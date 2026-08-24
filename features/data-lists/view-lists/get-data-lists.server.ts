@@ -41,9 +41,24 @@ export async function getDataListLocales(): Promise<string[]> {
     loggerName: "data-lists.locales",
   });
 
-  if (Result.isError(result)) {
-    throw new DataLoadError(result.message);
+  if (Result.isSuccess(result)) {
+    return result.value;
   }
 
-  return result.value;
+  // GET /data-lists/locales is OSS e966+. Older APIs bind "locales" as GetById (Int64).
+  return collectCatalogLocales(await getAllDataLists());
+}
+
+function collectCatalogLocales(lists: readonly DataList[]): string[] {
+  const seen = new Set<string>();
+  for (const list of lists) {
+    if (list.defaultLocale) {
+      seen.add(list.defaultLocale);
+    }
+    for (const locale of list.availableLocales ?? []) {
+      seen.add(locale);
+    }
+  }
+
+  return [...seen].sort((left, right) => left.localeCompare(right));
 }

@@ -184,7 +184,7 @@ export function DataListsPage({
         setIsDeleteBlocked(dependenciesResult.value.length > 0);
       });
     },
-    [replaceListHref],
+    [replaceListHref, startDependenciesTransition],
   );
 
   const handleDelete = () => {
@@ -240,6 +240,10 @@ export function DataListsPage({
     [updateUrl, createdDateFilter, modifiedDateFilter, handleOpenDelete],
   );
 
+  // TanStack Table requires a referentially-stable `data` array — an inline
+  // `[...paged.items]` literal here is a new reference every render, which
+  // defeats its internal row-model memoization and cascades into a setState
+  // loop from inside its row-pagination/row-model machinery.
   const tableData = useMemo(() => [...paged.items], [paged.items]);
   const table = useReactTable({
     data: tableData,

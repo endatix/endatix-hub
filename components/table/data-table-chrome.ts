@@ -8,6 +8,9 @@ export const DATA_TABLE_COLUMN_LABEL_CLASS_NAME =
 export const DATA_TABLE_ELEMENT_CLASS_NAME =
   "min-w-full border-separate border-spacing-0";
 
+/** Shrink a column to its content (`w-px`); pair with `min-w-*` when a floor is needed. */
+export const DATA_TABLE_SHRINK_WRAP_CLASS_NAME = "w-px";
+
 export function dataTableColumnLabelClassName(className?: string): string {
   return cn(DATA_TABLE_COLUMN_LABEL_CLASS_NAME, className);
 }
