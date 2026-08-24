@@ -5,6 +5,7 @@ import { Result } from "@/lib/result";
 import { getDataListsPage } from "./get-data-lists.server";
 
 const CREATOR_PAGE_SIZE = 100;
+const CREATOR_MAX_PAGES = 200;
 
 export type GetDataListsForCreatorResult = Result<DataList[]>;
 
@@ -17,12 +18,15 @@ export async function getDataListsForCreatorAction(): Promise<GetDataListsForCre
     let page = 1;
     let hasNextPage = true;
 
-    while (hasNextPage) {
+    while (hasNextPage && page <= CREATOR_MAX_PAGES) {
       const pageResult = await getDataListsPage({
         page,
         pageSize: CREATOR_PAGE_SIZE,
       });
       allLists.push(...pageResult.items);
+      if (pageResult.items.length === 0) {
+        break;
+      }
       hasNextPage = pageResult.hasNextPage;
       page += 1;
     }
