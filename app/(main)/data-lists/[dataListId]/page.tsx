@@ -5,16 +5,20 @@ import {
   getDataListByIdAction,
   DataListDetailsPage,
 } from "@/features/data-lists/view-list-details";
+import { getDataListItemsPage } from "@/features/data-lists/view-list-details/get-data-list-items.server";
+import { parseDataListItemsParams } from "@/features/data-lists/view-list-details/utils";
+import { firstString } from "@/features/data-lists/view-lists/utils";
 import { isNotFoundError } from "@/lib/endatix-api";
 import { hasValue, SearchParam } from "@/lib/utils/next-utils";
-import {
-  firstString,
-  parseDataListsReturnHref,
-} from "@/features/data-lists/view-lists/utils";
 
 interface DataListDetailsRoutePageProps {
   params: Promise<{ dataListId: string }>;
-  searchParams: Promise<{ action: SearchParam; from: SearchParam }>;
+  searchParams: Promise<{
+    action: SearchParam;
+    page: SearchParam;
+    pageSize: SearchParam;
+    search: SearchParam;
+  }>;
 }
 
 export default async function DataListDetailsRoutePage({
@@ -26,6 +30,7 @@ export default async function DataListDetailsRoutePage({
   await requireHubAccess();
 
   const { dataListId } = await params;
+  const raw = await searchParams;
   const dataListResult = await getDataListByIdAction(dataListId);
 
   if (!dataListResult.success) {
@@ -36,15 +41,24 @@ export default async function DataListDetailsRoutePage({
     throw new Error(dataListResult.error.message);
   }
 
-  const { action, from } = await searchParams;
-  const openReplaceOnLoad = hasValue(action, "replace");
-  const returnHref = parseDataListsReturnHref(firstString(from));
+  const itemsRequest = parseDataListItemsParams({
+    page: firstString(raw.page),
+    pageSize: firstString(raw.pageSize),
+    search: firstString(raw.search),
+  });
+  const includeLocales = dataListResult.data.availableLocales ?? [];
+  const itemsPromise = getDataListItemsPage(dataListId, {
+    ...itemsRequest,
+    includeLocales,
+    locale: dataListResult.data.defaultLocale,
+  });
+  const openReplaceOnLoad = hasValue(raw.action, "replace");
 
   return (
     <DataListDetailsPage
       initialDetails={dataListResult.data}
+      itemsPromise={itemsPromise}
       openReplaceOnLoad={openReplaceOnLoad}
-      returnHref={returnHref}
     />
   );
 }

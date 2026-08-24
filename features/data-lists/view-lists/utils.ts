@@ -5,6 +5,10 @@ import { tryNormalizeCultureCode } from "@/lib/localization";
 export const DEFAULT_DATA_LISTS_PAGE_SIZE = 10;
 export const DATA_LISTS_LIST_PATH = "/data-lists";
 export const ALL_LOCALES_FILTER_VALUE = "__all_locales__";
+/** `tableKey` for `BackToTableButton` / `rememberTableReturnTo` (see `lib/list-page/table-return-to`). */
+export const DATA_LISTS_TABLE_KEY = "data-lists";
+/** Debounced filter keys for `useTableFiltersUrlState` (see `components/table`). Module-level: must stay a stable reference. */
+export const DATA_LISTS_FILTER_KEYS = ["search", "hasLocale"] as const;
 
 export interface DataListsListSearchParams {
   page?: string;
@@ -12,7 +16,6 @@ export interface DataListsListSearchParams {
   search?: string;
   hasLocale?: string;
   action?: string;
-  from?: string;
 }
 
 export interface DataListsListUrlState {
@@ -90,29 +93,25 @@ export function buildDataListsListHref(state: DataListsListUrlState): string {
 
 export function buildDataListDetailHref(
   dataListId: string,
-  listQuery: string,
   extra?: { action?: string },
 ): string {
-  const params = new URLSearchParams();
-  if (listQuery) {
-    params.set("from", listQuery);
-  }
-  if (extra?.action) {
-    params.set("action", extra.action);
-  }
-
-  const query = params.toString();
   const path = `${DATA_LISTS_LIST_PATH}/${dataListId}`;
-  return query ? `${path}?${query}` : path;
+  return extra?.action ? `${path}?action=${extra.action}` : path;
 }
 
-export function parseDataListsReturnHref(from: string | undefined): string {
-  if (!from) {
-    return DATA_LISTS_LIST_PATH;
-  }
+/**
+ * Re-parses a raw list query string through the list's own whitelist
+ * (paging clamped, `hasLocale` culture-code validated, unknown keys
+ * dropped). Pass to `BackToTableButton`'s `parse` prop — see
+ * `lib/list-page/table-return-to`.
+ */
+export function parseDataListsReturnQuery(query: string): string {
+  return currentDataListsListQuery(new URLSearchParams(query));
+}
 
-  const query = currentDataListsListQuery(new URLSearchParams(from));
-  return query ? `${DATA_LISTS_LIST_PATH}?${query}` : DATA_LISTS_LIST_PATH;
+/** Builds `/data-lists?<query>` from an already-validated query string. */
+export function dataListsListHrefFromQuery(query: string): string {
+  return `${DATA_LISTS_LIST_PATH}?${query}`;
 }
 
 export function currentDataListsListQuery(

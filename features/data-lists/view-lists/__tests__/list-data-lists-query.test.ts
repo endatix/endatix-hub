@@ -3,8 +3,9 @@ import {
   ALL_LOCALES_FILTER_VALUE,
   buildDataListDetailHref,
   buildDataListsListHref,
+  dataListsListHrefFromQuery,
   parseDataListsListParams,
-  parseDataListsReturnHref,
+  parseDataListsReturnQuery,
   serializeDataListsListSearchParams,
 } from "../utils";
 
@@ -52,8 +53,24 @@ describe("serializeDataListsListSearchParams", () => {
       "/data-lists",
     );
   });
+});
 
-  it("round-trips list filters through the detail from param", () => {
+describe("buildDataListDetailHref", () => {
+  it("builds a bare detail href with no query", () => {
+    // Arrange & Act & Assert
+    expect(buildDataListDetailHref("42")).toBe("/data-lists/42");
+  });
+
+  it("appends action when given", () => {
+    // Arrange & Act & Assert
+    expect(buildDataListDetailHref("42", { action: "replace" })).toBe(
+      "/data-lists/42?action=replace",
+    );
+  });
+});
+
+describe("parseDataListsReturnQuery + dataListsListHrefFromQuery", () => {
+  it("round-trips a remembered list query into a full href (BackToTableButton contract)", () => {
     // Arrange
     const listQuery = serializeDataListsListSearchParams({
       page: 3,
@@ -63,17 +80,23 @@ describe("serializeDataListsListSearchParams", () => {
     });
 
     // Act
-    const detailHref = buildDataListDetailHref("42", listQuery, {
-      action: "replace",
-    });
-    const from = new URLSearchParams(detailHref.split("?")[1] ?? "").get(
-      "from",
+    const parsed = parseDataListsReturnQuery(listQuery);
+    const href = dataListsListHrefFromQuery(parsed);
+
+    // Assert
+    expect(href).toBe(`/data-lists?${listQuery}`);
+  });
+
+  it("drops unknown keys and re-clamps paging when re-parsing", () => {
+    // Arrange & Act
+    const parsed = parseDataListsReturnQuery(
+      "page=-5&pageSize=1000&evil=<script>&search=cities",
     );
 
     // Assert
-    expect(detailHref).toContain("action=replace");
-    expect(parseDataListsReturnHref(from ?? undefined)).toBe(
-      `/data-lists?${listQuery}`,
-    );
+    expect(parsed).not.toContain("evil");
+    expect(parsed).toContain("search=cities");
+    expect(parsed).not.toContain("page=");
+    expect(parsed).toContain("pageSize=1000");
   });
 });

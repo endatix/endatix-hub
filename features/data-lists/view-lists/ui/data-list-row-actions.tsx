@@ -15,17 +15,15 @@ import Link from "next/link";
 
 interface DataListRowActionsProps {
   dataList: DataList;
-  listQuery: string;
   onDelete: (dataList: DataList) => void;
 }
 
 export function DataListRowActions({
   dataList,
-  listQuery,
   onDelete,
 }: Readonly<DataListRowActionsProps>) {
-  const detailHref = buildDataListDetailHref(String(dataList.id), listQuery);
-  const replaceHref = buildDataListDetailHref(String(dataList.id), listQuery, {
+  const detailHref = buildDataListDetailHref(String(dataList.id));
+  const replaceHref = buildDataListDetailHref(String(dataList.id), {
     action: "replace",
   });
   return (

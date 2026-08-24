@@ -15,7 +15,9 @@ export async function getDataListByIdAction(
   await requireHubAccess();
 
   const api = new EndatixApi(session?.accessToken);
-  const result = await api.dataLists.getById(dataListId);
+  const result = await api.dataLists.getById(dataListId, {
+    includeItems: false,
+  });
 
   if (ApiResult.isError(result)) {
     return result;

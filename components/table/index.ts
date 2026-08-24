@@ -1,3 +1,4 @@
+export { BackToTableButton } from "./back-to-table-button";
 export {
   DATA_TABLE_COLUMN_LABEL_CLASS_NAME,
   DATA_TABLE_ELEMENT_CLASS_NAME,
@@ -19,3 +20,7 @@ export {
 } from "./paged-table-footer";
 export { TableEmptyRow } from "./table-empty-row";
 export { TableSearchInput } from "./table-search-input";
+export {
+  useTableFiltersUrlState,
+  type UseTableFiltersUrlStateResult,
+} from "./use-table-filters-url-state";
