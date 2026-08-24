@@ -111,8 +111,8 @@ function ReportingExportSubmissionsButton({
   if (isLoading) {
     return (
       <Button variant="outline" disabled className={className}>
-        <Spinner className="mr-2 h-4 w-4" />
-        Loading...
+        <Spinner />
+        <span className="sr-only sm:not-sr-only">Loading...</span>
       </Button>
     );
   }
@@ -127,7 +127,9 @@ function ReportingExportSubmissionsButton({
       >
         <Link href={"/settings/organization/export-formats" as Route}>
           <Download />
-          <span className="sr-only sm:not-sr-only">Configure export formats</span>
+          <span className="sr-only sm:not-sr-only">
+            Configure export formats
+          </span>
         </Link>
       </Button>
     );
@@ -213,8 +215,8 @@ function LegacyExportSubmissionsButton({
   if (isLoadingSettings) {
     return (
       <Button variant="outline" disabled className={className}>
-        <Spinner className="mr-2 h-4 w-4" />
-        Loading...
+        <Spinner />
+        <span className="sr-only sm:not-sr-only">Loading...</span>
       </Button>
     );
   }

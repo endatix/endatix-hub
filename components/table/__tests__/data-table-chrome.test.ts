@@ -69,7 +69,6 @@ describe("data-table-chrome", () => {
   });
 
   it("fills the surface width without collapsing compact columns", () => {
-    expect(DATA_TABLE_ELEMENT_CLASS_NAME).toContain("w-full");
     expect(DATA_TABLE_ELEMENT_CLASS_NAME).toContain("min-w-full");
     expect(DATA_TABLE_ELEMENT_CLASS_NAME).not.toContain("table-fixed");
   });

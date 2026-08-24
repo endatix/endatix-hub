@@ -4,12 +4,9 @@ import { cn } from "@/lib/utils";
 export const DATA_TABLE_COLUMN_LABEL_CLASS_NAME =
   "truncate text-xs font-semibold tracking-wider text-muted-foreground uppercase";
 
-/** Shared `<table>` layout: fill the surface; min-widths keep columns readable while leftover width is shared. */
+/** Shared `<table>` layout: min-w-full fills the surface; column min-widths keep cells readable while leftover width is shared. */
 export const DATA_TABLE_ELEMENT_CLASS_NAME =
-  "w-full min-w-full border-separate border-spacing-0";
-
-/** Keep a column at content width. Do not use `w-[1%]` — with `table-fixed` it collapses cells. */
-export const DATA_TABLE_SHRINK_WRAP_CLASS_NAME = "whitespace-nowrap";
+  "min-w-full border-separate border-spacing-0";
 
 export function dataTableColumnLabelClassName(className?: string): string {
   return cn(DATA_TABLE_COLUMN_LABEL_CLASS_NAME, className);

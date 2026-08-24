@@ -128,10 +128,10 @@ describe("submission table column definitions", () => {
     ).toContain("w-12");
     expect(
       columns.find((col) => col.id === "createdAt")?.meta?.cellClassName,
-    ).toContain("min-w-");
+    ).toBe("min-w-[6.5rem]");
     expect(
       columns.find((col) => col.id === "status")?.meta?.headerClassName,
-    ).toContain("min-w-");
+    ).toBe("min-w-[7.5rem]");
   });
   it("uses humanized field names for dynamic form column labels and hides them by default", () => {
     const columns = buildSubmissionDataColumns([

@@ -1,7 +1,6 @@
 export {
   DATA_TABLE_COLUMN_LABEL_CLASS_NAME,
   DATA_TABLE_ELEMENT_CLASS_NAME,
-  DATA_TABLE_SHRINK_WRAP_CLASS_NAME,
   dataTableBodyCellClassName,
   dataTableBodyRowClassName,
   dataTableColumnLabelClassName,
