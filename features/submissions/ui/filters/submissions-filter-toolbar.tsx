@@ -75,12 +75,14 @@ export function SubmissionsFilterToolbar({
       {hasActiveFilters && (
         <Button
           variant="ghost"
+          size="sm"
           onClick={onResetFilters}
           disabled={disabled}
           className="shrink-0 px-2 lg:px-3"
+          aria-label="Reset Filters"
         >
-          Reset Filters
           <X />
+          <span className="sr-only sm:not-sr-only">Reset Filters</span>
         </Button>
       )}
     </>
