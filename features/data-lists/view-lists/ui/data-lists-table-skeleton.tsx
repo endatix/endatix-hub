@@ -94,10 +94,10 @@ export function DataListsTableSkeleton() {
                   <TableCell
                     className={dataTableBodyCellClassName({
                       isEvenRow,
-                      className: "hidden text-center md:table-cell",
+                      className: "hidden text-right md:table-cell",
                     })}
                   >
-                    <Skeleton className="mx-auto h-4 w-10" />
+                    <Skeleton className="ml-auto h-4 w-10" />
                   </TableCell>
                   <TableCell
                     className={dataTableBodyCellClassName({

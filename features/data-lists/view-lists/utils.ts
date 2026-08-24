@@ -7,8 +7,6 @@ export const DATA_LISTS_LIST_PATH = "/data-lists";
 export const ALL_LOCALES_FILTER_VALUE = "__all_locales__";
 /** `tableKey` for `BackToTableButton` / `rememberTableReturnTo` (see `lib/list-page/table-return-to`). */
 export const DATA_LISTS_TABLE_KEY = "data-lists";
-/** Debounced filter keys for `useTableFiltersUrlState` (see `components/table`). Module-level: must stay a stable reference. */
-export const DATA_LISTS_FILTER_KEYS = ["search", "hasLocale"] as const;
 
 export interface DataListsListSearchParams {
   page?: string;
@@ -159,11 +157,4 @@ export function currentDataListsListQuery(
     search: parsed.search,
     hasLocale: parsed.hasLocale,
   });
-}
-
-export function currentDataListsListHref(
-  searchParams: URLSearchParams,
-): string {
-  const query = currentDataListsListQuery(searchParams);
-  return query ? `${DATA_LISTS_LIST_PATH}?${query}` : DATA_LISTS_LIST_PATH;
 }

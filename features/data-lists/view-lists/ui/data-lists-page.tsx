@@ -54,6 +54,7 @@ import {
   buildDataListDetailHref,
   buildDataListsListHref,
   DATA_LISTS_TABLE_KEY,
+  parseDataListsListParams,
   parseDataListsReturnQuery,
 } from "../utils";
 
@@ -111,16 +112,23 @@ export function DataListsPage({
     setIsCreateDialogOpen(openCreateOnLoad);
   }, [openCreateOnLoad]);
 
+  const buildReturnHref = (): string => {
+    const parsed = parseDataListsListParams({
+      search: searchParams.get("search") ?? undefined,
+      hasLocale: searchParams.get("hasLocale") ?? undefined,
+    });
+
+    return buildDataListsListHref({
+      page: paged.page,
+      pageSize: paged.pageSize,
+      search: parsed.search,
+      hasLocale: parsed.hasLocale,
+    });
+  };
+
   const handleOpenDelete = (dataList: DataList) => {
     setIsCreateDialogOpen(false);
-    router.replace(
-      buildDataListsListHref({
-        page: paged.page,
-        pageSize: paged.pageSize,
-        search: searchParams.get("search")?.trim() || undefined,
-        hasLocale: searchParams.get("hasLocale")?.trim() || undefined,
-      }) as Route,
-    );
+    router.replace(buildReturnHref() as Route);
 
     setSelectedForDelete(dataList);
     setDependencies([]);
@@ -167,14 +175,7 @@ export function DataListsPage({
   const handleCreateDialogClose = (open: boolean): void => {
     setIsCreateDialogOpen(open);
     if (!open) {
-      router.replace(
-        buildDataListsListHref({
-          page: paged.page,
-          pageSize: paged.pageSize,
-          search: searchParams.get("search")?.trim() || undefined,
-          hasLocale: searchParams.get("hasLocale")?.trim() || undefined,
-        }) as Route,
-      );
+      router.replace(buildReturnHref() as Route);
     }
   };
 
@@ -338,7 +339,7 @@ export function DataListsPage({
             </Table>
           </div>
         )}
-        <PagedTableFooter {...footerProps} />
+        <PagedTableFooter {...footerProps} variant="surface" />
       </DataTableSurface>
 
       <CreateDataListDialog

@@ -364,7 +364,7 @@ function DataListItemsPanel({
           ? "No items match the current search."
           : "No items in this list."
       }
-      footer={<PagedTableFooter {...footerProps} />}
+      footer={<PagedTableFooter {...footerProps} variant="surface" />}
     />
   );
 }

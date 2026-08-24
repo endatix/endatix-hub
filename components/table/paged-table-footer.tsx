@@ -11,6 +11,7 @@ import {
 import type { NormalizedPagedResponse } from "@/lib/endatix-api/shared/paged-response";
 import type { UrlSearchParamsUpdater } from "@/lib/utils/hooks/use-url-search-params-updater.hook";
 import { formatInteger } from "@/lib/utils/formatters";
+import { cn } from "@/lib/utils";
 import {
   ChevronLeft,
   ChevronRight,
@@ -31,6 +32,12 @@ export interface PagedTableFooterProps {
   onPageSizeChange: (pageSize: number) => void;
   pageSizeOptions?: readonly number[];
   rowsPerPageLabel?: string;
+  /**
+   * "card" (default) preserves the original Card-matched footer chrome used
+   * by roles/users/platform-admins tables. "surface" is the tighter,
+   * borderless-adjacent styling used by the data-lists grids.
+   */
+  variant?: "card" | "surface";
 }
 
 export function PagedTableFooter({
@@ -44,6 +51,7 @@ export function PagedTableFooter({
   onPageSizeChange,
   pageSizeOptions = defaultPageSizeOptions,
   rowsPerPageLabel = "Rows per page",
+  variant = "card",
 }: Readonly<PagedTableFooterProps>) {
   const showingFrom = totalRecords === 0 ? 0 : (page - 1) * pageSize + 1;
   const showingTo = Math.min(page * pageSize, totalRecords);
@@ -52,7 +60,14 @@ export function PagedTableFooter({
   const canGoNext = hasNextPage;
 
   return (
-    <div className="flex flex-col gap-3 border-t border-border/40 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4">
+    <div
+      className={cn(
+        "flex flex-col gap-3 border-t sm:flex-row sm:items-center sm:justify-between",
+        variant === "surface"
+          ? "border-border/40 px-3 py-3 sm:px-4"
+          : "border-border px-6 py-4",
+      )}
+    >
       <div className="flex-1 text-sm text-muted-foreground">
         <span className="sm:hidden">
           {formatInteger(showingFrom)}-{formatInteger(showingTo)} of{" "}
