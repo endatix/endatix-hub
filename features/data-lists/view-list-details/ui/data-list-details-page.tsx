@@ -127,9 +127,15 @@ export function DataListDetailsPage({
       return;
     }
 
+    const idResult = validateEndatixId(String(details.id), 'dataListId');
+    if (Result.isError(idResult)) {
+      toast.error(idResult.message);
+      return;
+    }
+
     setOpenedEditFromLoad(true);
     setIsEditPanelOpen(true);
-  }, [openEditOnLoad]);
+  }, [openEditOnLoad, details.id]);
 
   const handleOpenCloseReplaceDialog = (open: boolean): void => {
     setIsReplaceDialogOpen(open);

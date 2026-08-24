@@ -18,6 +18,7 @@ import { setDataListDefaultLocaleAction } from '@/features/data-lists/translatio
 import { RemoveLocaleConfirmDialog } from '@/features/data-lists/remove-locale';
 import type { DataListDetails } from '@/lib/endatix-api/data-lists/types';
 import { Result } from '@/lib/result';
+import { DATA_LIST_NAME_MAX_LENGTH } from '@/lib/survey-features/data-lists/constants';
 import { validateEndatixId } from '@/lib/utils/type-validators';
 import { X } from 'lucide-react';
 import { useEffect, useState, useTransition } from 'react';
@@ -48,12 +49,14 @@ export function EditDataListPanel({
   const dataListIdResult = validateEndatixId(String(details.id), 'dataListId');
   const hasValidId = Result.isSuccess(dataListIdResult);
   const availableLocales = details.availableLocales ?? [];
+  const isNameEmpty = name.trim().length === 0;
   const controlsDisabled =
     isSaving ||
     isLocalePending ||
     isRemovePending ||
     localePendingRemoval !== null ||
     !hasValidId;
+  const saveDisabled = controlsDisabled || isNameEmpty;
 
   useEffect(() => {
     if (!open) {
@@ -81,14 +84,13 @@ export function EditDataListPanel({
 
     const trimmedName = name.trim();
     if (!trimmedName) {
-      toast.error('Name is required.');
       return;
     }
 
     startSaveTransition(async () => {
       const result = await updateDataListDetailsAction(dataListId, {
         name: trimmedName,
-        description,
+        description: description.trim(),
       });
       if (Result.isError(result)) {
         toast.error(result.message);
@@ -142,7 +144,12 @@ export function EditDataListPanel({
                 onChange={(event) => setName(event.target.value)}
                 disabled={controlsDisabled}
                 autoComplete="off"
+                maxLength={DATA_LIST_NAME_MAX_LENGTH}
+                aria-invalid={isNameEmpty}
               />
+              {isNameEmpty ? (
+                <p className="text-xs text-destructive">Name is required.</p>
+              ) : null}
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-data-list-description">Description</Label>
@@ -212,7 +219,7 @@ export function EditDataListPanel({
             <Button
               type="button"
               onClick={handleSave}
-              disabled={controlsDisabled}
+              disabled={saveDisabled}
             >
               {isSaving ? 'Saving…' : 'Save changes'}
             </Button>

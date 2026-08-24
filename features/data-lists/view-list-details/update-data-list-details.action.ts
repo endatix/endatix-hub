@@ -7,6 +7,7 @@ import type {
   DataListDetails,
   UpdateDataListDetailsRequest,
 } from '@/lib/endatix-api/data-lists/types';
+import { DATA_LIST_NAME_MAX_LENGTH } from '@/lib/survey-features/data-lists/constants';
 import { Result } from '@/lib/result';
 import { toResult } from '@/lib/result/map-api-result-to-result';
 import { validateEndatixId } from '@/lib/utils/type-validators';
@@ -28,19 +29,27 @@ export async function updateDataListDetailsAction(
   }
 
   const name =
-    request.name === undefined ? undefined : request.name.trim();
+    request.name === undefined
+      ? undefined
+      : request.name.trim().slice(0, DATA_LIST_NAME_MAX_LENGTH);
   if (name !== undefined && name.length === 0) {
     return Result.error('Name is required.');
   }
+
+  const description =
+    request.description === undefined
+      ? undefined
+      : request.description.trim();
 
   const api = new EndatixApi(session?.accessToken);
   const result = toResult(
     await api.dataLists.updateDetails(idResult.value, {
       name,
-      description: request.description,
+      description,
     }),
     {
       fallbackMessage: 'Failed to update data list',
+      preferredFields: ['name'],
       logMessage: 'Failed to update data list details',
       loggerName: 'data-lists.updateDetails',
     },
