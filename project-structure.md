@@ -200,7 +200,7 @@ Hub management grids follow the same URL + chrome pattern as forms/users. Parsin
 
 | Surface | Slice | Hub URL | API |
 | --- | --- | --- | --- |
-| List | `features/data-lists/view-lists/` | `search`, `hasLocale` (comma-separated OR), `page`, `pageSize`, `action=create` | `GET /data-lists` (`query`, `hasLocale`) |
+| List | `features/data-lists/view-lists/` | `search`, `hasLocale` (single BCP-47 code), `page`, `pageSize`, `action=create` | `GET /data-lists` (`search`, `hasLocale`) |
 | Detail items | `features/data-lists/view-list-details/` | `search`, `page`, `pageSize`, `from`, `action=replace` | `GET /data-lists/{id}/items` (`query`) + `GET /data-lists/{id}?includeItems=false` |
 
 - List → detail preserves filters with `from` (serialized list query). Back uses `parseDataListsReturnHref` and ignores unknown keys.

@@ -1,13 +1,13 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { ApiResult } from "@/lib/endatix-api";
+import { DataLoadError } from "@/lib/errors/data-load-error";
 
 const { mockGetDataListsAction } = vi.hoisted(() => ({
   mockGetDataListsAction: vi.fn(),
 }));
 
 vi.mock("@/features/data-lists/view-lists/get-data-lists.action", () => ({
-  getDataListsAction: mockGetDataListsAction,
+  getAllDataListsAction: mockGetDataListsAction,
 }));
 vi.mock("@/auth", () => ({
   auth: vi.fn(),
@@ -42,7 +42,7 @@ describe("useDataLists hooks", () => {
     // Arrange
     const { useDataListsLoader } = hooksModule;
     const dataLists = [{ id: 1, name: "Countries" }];
-    mockGetDataListsAction.mockResolvedValue(ApiResult.success(dataLists));
+    mockGetDataListsAction.mockResolvedValue(dataLists);
 
     // Act
     const { result } = renderHook(() => useDataListsLoader());
@@ -59,7 +59,7 @@ describe("useDataLists hooks", () => {
   it("surfaces fetch failures via error and empty dataLists", async () => {
     // Arrange
     const { useDataListsLoader } = hooksModule;
-    mockGetDataListsAction.mockResolvedValue(ApiResult.authError("Unauthorized"));
+    mockGetDataListsAction.mockRejectedValue(new DataLoadError("Unauthorized"));
 
     // Act
     const { result } = renderHook(() => useDataListsLoader());

@@ -1,13 +1,34 @@
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
 import { DataListsPage } from "@/features/data-lists/view-lists/ui/data-lists-page";
-import { getDataListsAction } from "@/features/data-lists/view-lists/get-data-lists.action";
-import { isNotFoundError } from "@/lib/endatix-api";
-import { notFound } from "next/navigation";
+import { getDataListsPage } from "@/features/data-lists/view-lists/get-data-lists.server";
+import {
+  firstString,
+  parseDataListsListParams,
+} from "@/features/data-lists/view-lists/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 import { hasValue, SearchParam } from "@/lib/utils/next-utils";
+import { Suspense } from "react";
 
 interface DataListsRoutePageProps {
-  searchParams: Promise<{ action: SearchParam }>;
+  searchParams: Promise<{
+    action: SearchParam;
+    page: SearchParam;
+    pageSize: SearchParam;
+    search: SearchParam;
+    hasLocale: SearchParam;
+  }>;
+}
+
+function DataListsTableSkeleton() {
+  return (
+    <div className="mt-6 space-y-3">
+      <Skeleton className="h-10 w-full" />
+      {[1, 2, 3, 4, 5].map((row) => (
+        <Skeleton key={row} className="h-14 w-full" />
+      ))}
+    </div>
+  );
 }
 
 export default async function DataListsRoutePage({
@@ -17,22 +38,22 @@ export default async function DataListsRoutePage({
   const { requireHubAccess } = await authorization(session);
   await requireHubAccess();
 
-  const dataListsResult = await getDataListsAction();
-  if (!dataListsResult.success) {
-    if (isNotFoundError(dataListsResult)) {
-      notFound();
-    }
-
-    throw new Error(dataListsResult.error.message);
-  }
-
-  const { action } = await searchParams;
-  const openCreateOnLoad = hasValue(action, "create");
+  const raw = await searchParams;
+  const listRequest = parseDataListsListParams({
+    page: firstString(raw.page),
+    pageSize: firstString(raw.pageSize),
+    search: firstString(raw.search),
+    hasLocale: firstString(raw.hasLocale),
+  });
+  const dataListsPromise = getDataListsPage(listRequest);
+  const openCreateOnLoad = hasValue(raw.action, "create");
 
   return (
-    <DataListsPage
-      initialDataLists={dataListsResult.data}
-      openCreateOnLoad={openCreateOnLoad}
-    />
+    <Suspense fallback={<DataListsTableSkeleton />}>
+      <DataListsPage
+        dataListsPromise={dataListsPromise}
+        openCreateOnLoad={openCreateOnLoad}
+      />
+    </Suspense>
   );
 }

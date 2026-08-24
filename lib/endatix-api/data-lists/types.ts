@@ -1,3 +1,6 @@
+import type { IPagedRequest } from "../shared/types";
+import type { DataListSearchMatchMode } from "../public/data-lists/types";
+
 export interface DataList {
   id: string;
   name: string;
@@ -29,6 +32,20 @@ export interface CreateDataListRequest {
   name: string;
   description?: string;
 }
+
+export interface ListDataListsRequest extends IPagedRequest {
+  search?: string;
+  hasLocale?: string;
+}
+
+export interface ListDataListItemsRequest extends IPagedRequest {
+  query?: string;
+  matchMode?: DataListSearchMatchMode;
+  locale?: string;
+  includeLocales?: string[];
+}
+
+export type { DataListSearchMatchMode };
 
 export type DataListExportFormat = "csv" | "json";
 

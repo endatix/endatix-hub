@@ -6,25 +6,31 @@ import {
   normalizePagedResponse,
   NormalizedPagedResponse,
 } from "../shared/paged-response";
-import { IPagedRequest, PagedResponse } from "../shared/types";
+import {
+  appendPagingQueryParams,
+  appendQueryParam,
+  buildEndpointWithQuery,
+} from "../shared/query-params";
+import { PagedResponse } from "../shared/types";
 import {
   CreateDataListRequest,
   DataList,
   DataListChoiceItem,
   DataListDetails,
   DataListExportFormat,
+  DataListItem,
   FormDependencySummary,
   ImportDataListRequest,
+  ListDataListItemsRequest,
+  ListDataListsRequest,
 } from "./types";
 
 export type DataListsPage = NormalizedPagedResponse<DataList>;
+export type DataListItemsPage = NormalizedPagedResponse<DataListItem>;
 
 const DATA_LISTS_BASE = "/data-lists";
 const DATA_LIST_ID_PARAM = "dataListId";
-
-function dataListCollectionPath(query?: string): string {
-  return query ? `${DATA_LISTS_BASE}?${query}` : DATA_LISTS_BASE;
-}
+const INCLUDE_LOCALES_QUERY_PARAM = "includeLocales";
 
 function dataListPath(dataListId: string, ...segments: string[]): string {
   if (segments.length === 0) {
@@ -40,14 +46,44 @@ function normalizeEnsureLocales(locales?: readonly string[]): string[] {
     .filter((locale) => locale.length > 0);
 }
 
+export function buildListDataListsEndpoint(
+  request: ListDataListsRequest,
+): string {
+  const searchParams = new URLSearchParams();
+  appendPagingQueryParams(searchParams, request, { page: 1, pageSize: 10 });
+  appendQueryParam(searchParams, "search", request.search);
+  appendQueryParam(searchParams, "hasLocale", request.hasLocale);
+  return buildEndpointWithQuery(DATA_LISTS_BASE, searchParams);
+}
+
+function buildListDataListItemsEndpoint(
+  dataListId: string,
+  request: ListDataListItemsRequest,
+): string {
+  const searchParams = new URLSearchParams();
+  appendQueryParam(searchParams, "page", request.page ?? 1);
+  appendQueryParam(searchParams, "pageSize", request.pageSize ?? 25);
+  appendQueryParam(searchParams, "query", request.query);
+  appendQueryParam(searchParams, "matchMode", request.matchMode);
+  appendQueryParam(searchParams, "locale", request.locale);
+  for (const locale of request.includeLocales ?? []) {
+    appendQueryParam(searchParams, INCLUDE_LOCALES_QUERY_PARAM, locale);
+  }
+
+  return buildEndpointWithQuery(
+    dataListPath(dataListId, "items"),
+    searchParams,
+  );
+}
+
 export class DataLists {
   constructor(private readonly endatix: EndatixApi) {}
 
-  async list(request?: IPagedRequest): Promise<ApiResult<DataListsPage>> {
-    const page = request?.page ?? 1;
-    const pageSize = request?.pageSize ?? 20;
+  async list(
+    request: ListDataListsRequest = {},
+  ): Promise<ApiResult<DataListsPage>> {
     const response = await this.endatix.get<PagedResponse<DataList>>(
-      dataListCollectionPath(`page=${page}&pageSize=${pageSize}`),
+      buildListDataListsEndpoint(request),
     );
 
     if (!response.success) {
@@ -57,13 +93,43 @@ export class DataLists {
     return ApiResult.success(normalizePagedResponse(response.data));
   }
 
-  async getById(dataListId: string): Promise<ApiResult<DataListDetails>> {
+  async listItems(
+    dataListId: string,
+    request: ListDataListItemsRequest = {},
+  ): Promise<ApiResult<DataListItemsPage>> {
     const idResult = this.requireDataListId(dataListId);
     if (!idResult.success) {
       return idResult;
     }
 
-    return this.endatix.get<DataListDetails>(dataListPath(idResult.data));
+    const response = await this.endatix.get<PagedResponse<DataListItem>>(
+      buildListDataListItemsEndpoint(idResult.data, request),
+    );
+
+    if (!response.success) {
+      return response;
+    }
+
+    return ApiResult.success(normalizePagedResponse(response.data));
+  }
+
+  async getById(
+    dataListId: string,
+    options?: { includeItems?: boolean },
+  ): Promise<ApiResult<DataListDetails>> {
+    const idResult = this.requireDataListId(dataListId);
+    if (!idResult.success) {
+      return idResult;
+    }
+
+    const searchParams = new URLSearchParams();
+    if (options?.includeItems === false) {
+      appendQueryParam(searchParams, "includeItems", false);
+    }
+
+    return this.endatix.get<DataListDetails>(
+      buildEndpointWithQuery(dataListPath(idResult.data), searchParams),
+    );
   }
 
   async create(

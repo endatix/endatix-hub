@@ -1,40 +1,29 @@
 "use server";
 
-import { auth } from "@/auth";
-import { authorization } from "@/features/auth/authorization";
-import { ApiResult, EndatixApi } from "@/lib/endatix-api";
-import { DataList } from "@/lib/endatix-api/data-lists/types";
+import { getAllDataLists, getDataListsPage } from "./get-data-lists.server";
+import type {
+  DataList,
+  ListDataListsRequest,
+} from "@/lib/endatix-api/data-lists/types";
+import type { DataListsPage } from "@/lib/endatix-api/data-lists/data-lists";
+
+/**
+ * Paged data-lists loader for Hub list UI.
+ */
+export async function getDataListsAction(
+  request: ListDataListsRequest = {},
+): Promise<DataListsPage> {
+  return getDataListsPage(request);
+}
 
 /**
  * Gets all data lists via server-side aggregation.
- * TODO: We will add lazy laoding and paging support in a future PR.
- * @returns The data lists.
+ *
+ * Still required for the Creator "Choices from data list" dropdown
+ * (`edxDataListId`) and convert-inline uniqueness checks. Those use
+ * Serializer `choices`, not the lazy-load handlers in creator-bindings
+ * (those load *items of a bound list* via public search).
  */
-export async function getDataListsAction(): Promise<ApiResult<DataList[]>> {
-  const session = await auth();
-  const { requireHubAccess } = await authorization(session);
-  await requireHubAccess();
-
-  const api = new EndatixApi(session?.accessToken);
-  const pageSize = 100;
-  const allItems: DataList[] = [];
-  let currentPage = 1;
-  let totalPages = 1;
-
-  while (currentPage <= totalPages) {
-    const result = await api.dataLists.list({
-      page: currentPage,
-      pageSize,
-    });
-
-    if (!result.success) {
-      return result;
-    }
-
-    allItems.push(...result.data.items);
-    totalPages = Math.max(result.data.totalPages, 1);
-    currentPage += 1;
-  }
-
-  return ApiResult.success(allItems);
+export async function getAllDataListsAction(): Promise<DataList[]> {
+  return getAllDataLists();
 }
