@@ -1,8 +1,15 @@
-'use client';
+"use client";
 
-import { use, useEffect, useMemo, useState, useTransition } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import {
+  use,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  useTransition,
+} from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   CellDate,
   createPagedTableFooterProps,
@@ -13,12 +20,10 @@ import {
   dataTableHeaderCellClassName,
   DataTableEmpty,
   DataTableSurface,
-  FacetedFilter,
   PagedTableFooter,
   type DateFilterValue,
-  type FacetedFilterOption,
-} from '@/components/table';
-import { Spinner } from '@/components/loaders/spinner';
+} from "@/components/table";
+import { Spinner } from "@/components/loaders/spinner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,7 +33,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+} from "@/components/ui/alert-dialog";
 import {
   Table,
   TableBody,
@@ -36,20 +41,19 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { toast } from '@/components/ui/toast';
-import { formatLocaleLabel } from '@/features/data-lists/translations/locale-discovery';
+} from "@/components/ui/table";
+import { toast } from "@/components/ui/toast";
 import type {
   DataList,
   DataListListSortBy,
   FormDependencySummary,
-} from '@/lib/endatix-api/data-lists/types';
-import type { DataListsPage } from '@/lib/endatix-api/data-lists/data-lists';
-import { rememberTableReturnTo } from '@/lib/list-page/table-return-to';
-import { useListUrlState } from '@/lib/list-page/use-list-url-state';
-import type { UrlSearchParamsUpdater } from '@/lib/utils/hooks/use-url-search-params-updater.hook';
-import { Result } from '@/lib/result';
-import { formatInteger } from '@/lib/utils/formatters';
+} from "@/lib/endatix-api/data-lists/types";
+import type { DataListsPage } from "@/lib/endatix-api/data-lists/data-lists";
+import { rememberTableReturnTo } from "@/lib/list-page/table-return-to";
+import { useListUrlState } from "@/lib/list-page/use-list-url-state";
+import type { UrlSearchParamsUpdater } from "@/lib/utils/hooks/use-url-search-params-updater.hook";
+import { Result } from "@/lib/result";
+import { formatInteger } from "@/lib/utils/formatters";
 import {
   flexRender,
   getCoreRowModel,
@@ -57,28 +61,24 @@ import {
   type ColumnDef,
   type SortingState,
   type Updater,
-} from '@tanstack/react-table';
-import type { Route } from 'next';
-import { CreateDataListDialog } from '../../create-list/ui/create-data-list-dialog';
-import { DataListRowActions } from './data-list-row-actions';
-import { DataListLocalesCell } from './data-list-locales-cell';
-import { getDataListFormDependenciesAction } from '../get-data-list-form-dependencies.action';
-import { deleteDataListAction } from '../../delete-list/delete-data-list.action';
+} from "@tanstack/react-table";
+import type { Route } from "next";
+import { CreateDataListDialog } from "../../create-list/ui/create-data-list-dialog";
+import { DataListRowActions } from "./data-list-row-actions";
+import { DataListLocalesCell } from "./data-list-locales-cell";
+import { getDataListFormDependenciesAction } from "../get-data-list-form-dependencies.action";
+import { deleteDataListAction } from "../../delete-list/delete-data-list.action";
 import {
   buildDataListDetailHref,
   buildDataListsListHref,
-  currentDataListsListQuery,
   DATA_LISTS_TABLE_KEY,
   listUrlStateFromSearchParams,
   parseDataListsReturnQuery,
-  parseHasLocaleFilterSet,
-  serializeHasLocaleFilter,
-} from '../utils';
-import './table-types';
+} from "../utils";
+import "./table-types";
 
 interface DataListsPageProps {
   dataListsPromise: Promise<DataListsPage>;
-  localesPromise: Promise<string[]>;
   openCreateOnLoad?: boolean;
 }
 
@@ -97,29 +97,13 @@ export function DataListsPageHeader() {
 
 export function DataListsPage({
   dataListsPromise,
-  localesPromise,
   openCreateOnLoad = false,
 }: Readonly<DataListsPageProps>) {
   const paged = use(dataListsPromise);
-  const tenantLocales = use(localesPromise);
   const router = useRouter();
   const { updateUrl, searchParams } = useListUrlState();
-  const listQuery = currentDataListsListQuery(searchParams);
   const urlState = listUrlStateFromSearchParams(searchParams);
-  const searchInput = searchParams.get('search') ?? '';
-  const selectedLocales = useMemo(
-    () => parseHasLocaleFilterSet(searchParams.get('hasLocale')),
-    [searchParams],
-  );
-
-  const localeOptions = useMemo<FacetedFilterOption[]>(
-    () =>
-      tenantLocales.map((value) => ({
-        value,
-        label: formatLocaleLabel(value),
-      })),
-    [tenantLocales],
-  );
+  const searchInput = searchParams.get("search") ?? "";
 
   const sorting = useMemo<SortingState>(() => {
     if (!urlState.sortBy) {
@@ -128,7 +112,7 @@ export function DataListsPage({
     return [
       {
         id: urlState.sortBy,
-        desc: urlState.sortDir !== 'asc',
+        desc: urlState.sortDir !== "asc",
       },
     ];
   }, [urlState.sortBy, urlState.sortDir]);
@@ -168,35 +152,38 @@ export function DataListsPage({
     setIsCreateDialogOpen(openCreateOnLoad);
   }, [openCreateOnLoad]);
 
-  const replaceListHref = () => {
+  const replaceListHref = useCallback(() => {
     router.replace(buildDataListsListHref(urlState) as Route);
-  };
+  }, [router, urlState]);
 
-  const handleOpenDelete = (dataList: DataList) => {
-    setIsCreateDialogOpen(false);
-    replaceListHref();
+  const handleOpenDelete = useCallback(
+    (dataList: DataList) => {
+      setIsCreateDialogOpen(false);
+      replaceListHref();
 
-    setSelectedForDelete(dataList);
-    setDependencies([]);
-    setIsDeleteBlocked(false);
-    setIsDeleteDialogOpen(true);
+      setSelectedForDelete(dataList);
+      setDependencies([]);
+      setIsDeleteBlocked(false);
+      setIsDeleteDialogOpen(true);
 
-    startDependenciesTransition(async () => {
-      const dependenciesResult = await getDataListFormDependenciesAction(
-        String(dataList.id),
-      );
-
-      if (Result.isError(dependenciesResult)) {
-        toast.error(
-          dependenciesResult.message || 'Failed to load dependencies',
+      startDependenciesTransition(async () => {
+        const dependenciesResult = await getDataListFormDependenciesAction(
+          String(dataList.id),
         );
-        return;
-      }
 
-      setDependencies(dependenciesResult.value);
-      setIsDeleteBlocked(dependenciesResult.value.length > 0);
-    });
-  };
+        if (Result.isError(dependenciesResult)) {
+          toast.error(
+            dependenciesResult.message || "Failed to load dependencies",
+          );
+          return;
+        }
+
+        setDependencies(dependenciesResult.value);
+        setIsDeleteBlocked(dependenciesResult.value.length > 0);
+      });
+    },
+    [replaceListHref],
+  );
 
   const handleDelete = () => {
     if (!selectedForDelete || isDeleteBlocked) {
@@ -207,11 +194,11 @@ export function DataListsPage({
       const result = await deleteDataListAction(String(selectedForDelete.id));
 
       if (Result.isError(result)) {
-        toast.error(result.message || 'Failed to delete data list');
+        toast.error(result.message || "Failed to delete data list");
         return;
       }
 
-      toast.success('Data list deleted successfully');
+      toast.success("Data list deleted successfully");
       setIsDeleteDialogOpen(false);
       setSelectedForDelete(null);
       router.refresh();
@@ -226,46 +213,34 @@ export function DataListsPage({
   };
 
   const handleSortingChange = (updater: Updater<SortingState>) => {
-    const next =
-      typeof updater === 'function' ? updater(sorting) : updater;
+    const next = typeof updater === "function" ? updater(sorting) : updater;
     const first = next[0];
     if (!first) {
-      updateUrl({ sortBy: null, sortDir: null, page: '1' });
+      updateUrl({ sortBy: null, sortDir: null, page: "1" });
       return;
     }
 
     updateUrl({
       sortBy: first.id,
-      sortDir: first.desc ? 'desc' : 'asc',
-      page: '1',
+      sortDir: first.desc ? "desc" : "asc",
+      page: "1",
     });
   };
 
   const columns = useMemo(
     () =>
       buildDataListColumns({
-        listQuery,
-        searchInput,
         updateUrl,
-        selectedLocales,
-        localeOptions,
         createdDateFilter,
         modifiedDateFilter,
         onDelete: handleOpenDelete,
       }),
-    [
-      listQuery,
-      searchInput,
-      updateUrl,
-      selectedLocales,
-      localeOptions,
-      createdDateFilter,
-      modifiedDateFilter,
-    ],
+    [updateUrl, createdDateFilter, modifiedDateFilter, handleOpenDelete],
   );
 
+  const tableData = useMemo(() => [...paged.items], [paged.items]);
   const table = useReactTable({
-    data: [...paged.items],
+    data: tableData,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getRowId: (row) => String(row.id),
@@ -274,14 +249,18 @@ export function DataListsPage({
     onSortingChange: handleSortingChange,
   });
 
-  const footerProps = createPagedTableFooterProps(paged, 'data lists', updateUrl);
+  const footerProps = createPagedTableFooterProps(
+    paged,
+    "data lists",
+    updateUrl,
+  );
   const hasFilters = Boolean(
     searchInput.trim() ||
-      urlState.hasLocale ||
-      urlState.createdFrom ||
-      urlState.createdTo ||
-      urlState.modifiedFrom ||
-      urlState.modifiedTo,
+    urlState.hasLocale ||
+    urlState.createdFrom ||
+    urlState.createdTo ||
+    urlState.modifiedFrom ||
+    urlState.modifiedTo,
   );
 
   return (
@@ -290,8 +269,8 @@ export function DataListsPage({
         {paged.items.length === 0 ? (
           <DataTableEmpty>
             {hasFilters
-              ? 'No data lists match the current filters.'
-              : 'No data lists yet.'}
+              ? "No data lists match the current filters."
+              : "No data lists yet."}
           </DataTableEmpty>
         ) : (
           <div className="w-full overflow-x-auto">
@@ -371,16 +350,16 @@ export function DataListsPage({
           <AlertDialogHeader>
             <AlertDialogTitle>
               {isDeleteBlocked
-                ? 'Cannot delete data list'
-                : 'Delete data list?'}
+                ? "Cannot delete data list"
+                : "Delete data list?"}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {selectedForDelete ? (
                 <>
                   <span className="font-medium">{selectedForDelete.name}</span>
                   {isDeleteBlocked
-                    ? ' is currently used by forms and cannot be deleted.'
-                    : ' will be permanently removed.'}
+                    ? " is currently used by forms and cannot be deleted."
+                    : " will be permanently removed."}
                 </>
               ) : null}
             </AlertDialogDescription>
@@ -419,7 +398,7 @@ export function DataListsPage({
                   Deleting...
                 </>
               ) : (
-                'Delete'
+                "Delete"
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -430,22 +409,14 @@ export function DataListsPage({
 }
 
 type BuildColumnsArgs = {
-  listQuery: string;
-  searchInput: string;
   updateUrl: UrlSearchParamsUpdater;
-  selectedLocales: Set<string>;
-  localeOptions: FacetedFilterOption[];
   createdDateFilter: DateFilterValue;
   modifiedDateFilter: DateFilterValue;
   onDelete: (dataList: DataList) => void;
 };
 
 function buildDataListColumns({
-  listQuery,
-  searchInput,
   updateUrl,
-  selectedLocales,
-  localeOptions,
   createdDateFilter,
   modifiedDateFilter,
   onDelete,
@@ -454,40 +425,28 @@ function buildDataListColumns({
 
   return [
     {
-      id: sortableId('name'),
-      accessorKey: 'name',
+      id: sortableId("name"),
+      accessorKey: "name",
       enableSorting: true,
       meta: {
-        headerClassName: 'min-w-[12rem]',
-        cellClassName: 'min-w-[12rem]',
+        headerClassName: "min-w-[12rem]",
+        cellClassName: "min-w-[12rem]",
       },
       header: ({ column }) => (
         <DataTableColumnHeader
           column={column}
           title="Friendly Name"
           isSorted={column.getIsSorted()}
-          textFilter={{
-            value: searchInput,
-            placeholder: 'Search by name',
-            onChange: (value) => {
-              updateUrl({
-                search: value || null,
-                page: '1',
-              });
-            },
-          }}
         />
       ),
       cell: ({ row }) => {
         const dataList = row.original;
-        const detailHref = buildDataListDetailHref(String(dataList.id), {
-          listQuery,
-        });
+        const detailHref = buildDataListDetailHref(String(dataList.id));
         return (
           <Link href={detailHref as Route} className="block min-w-0">
             <p className="truncate text-sm font-medium">{dataList.name}</p>
             <p className="truncate text-xs text-muted-foreground">
-              {dataList.description || 'No description'}
+              {dataList.description || "No description"}
             </p>
             <p className="mt-1 text-xs text-muted-foreground md:hidden">
               <CellDate date={dataList.modifiedAt ?? dataList.createdAt} />
@@ -497,8 +456,8 @@ function buildDataListColumns({
       },
     },
     {
-      id: sortableId('isActive'),
-      accessorKey: 'isActive',
+      id: sortableId("isActive"),
+      accessorKey: "isActive",
       enableSorting: true,
       header: ({ column }) => (
         <DataTableColumnHeader
@@ -510,31 +469,14 @@ function buildDataListColumns({
       cell: ({ row }) => <StatusPill isActive={row.original.isActive} />,
     },
     {
-      id: 'locales',
+      id: "locales",
       enableSorting: false,
       meta: {
-        headerClassName: 'min-w-[10rem]',
-        cellClassName: 'min-w-[10rem]',
+        headerClassName: "min-w-[10rem]",
+        cellClassName: "min-w-[10rem]",
       },
       header: ({ column }) => (
-        <DataTableColumnHeader
-          column={column}
-          title="Locales"
-          facetFilterActive={selectedLocales.size > 0}
-          facetFilter={
-            <FacetedFilter
-              title="Locale"
-              options={localeOptions}
-              selectedValues={selectedLocales}
-              onValueChange={(values) => {
-                updateUrl({
-                  hasLocale: serializeHasLocaleFilter(values) ?? null,
-                  page: '1',
-                });
-              }}
-            />
-          }
-        />
+        <DataTableColumnHeader column={column} title="Locales" />
       ),
       cell: ({ row }) => (
         <DataListLocalesCell
@@ -544,12 +486,12 @@ function buildDataListColumns({
       ),
     },
     {
-      id: sortableId('createdAt'),
-      accessorKey: 'createdAt',
+      id: sortableId("createdAt"),
+      accessorKey: "createdAt",
       enableSorting: true,
       meta: {
-        headerClassName: 'hidden md:table-cell',
-        cellClassName: 'hidden md:table-cell',
+        headerClassName: "hidden md:table-cell",
+        cellClassName: "hidden md:table-cell",
       },
       header: ({ column }) => (
         <DataTableColumnHeader
@@ -562,7 +504,7 @@ function buildDataListColumns({
               updateUrl({
                 createdFrom: value.from ?? null,
                 createdTo: value.to ?? null,
-                page: '1',
+                page: "1",
               });
             },
           }}
@@ -571,12 +513,12 @@ function buildDataListColumns({
       cell: ({ row }) => <CellDate date={row.original.createdAt} />,
     },
     {
-      id: sortableId('modifiedAt'),
-      accessorKey: 'modifiedAt',
+      id: sortableId("modifiedAt"),
+      accessorKey: "modifiedAt",
       enableSorting: true,
       meta: {
-        headerClassName: 'hidden md:table-cell',
-        cellClassName: 'hidden md:table-cell',
+        headerClassName: "hidden md:table-cell",
+        cellClassName: "hidden md:table-cell",
       },
       header: ({ column }) => (
         <DataTableColumnHeader
@@ -589,7 +531,7 @@ function buildDataListColumns({
               updateUrl({
                 modifiedFrom: value.from ?? null,
                 modifiedTo: value.to ?? null,
-                page: '1',
+                page: "1",
               });
             },
           }}
@@ -598,12 +540,12 @@ function buildDataListColumns({
       cell: ({ row }) => <CellDate date={row.original.modifiedAt} />,
     },
     {
-      id: sortableId('itemsCount'),
-      accessorKey: 'itemsCount',
+      id: sortableId("itemsCount"),
+      accessorKey: "itemsCount",
       enableSorting: true,
       meta: {
-        headerClassName: 'hidden text-right md:table-cell',
-        cellClassName: 'hidden text-right md:table-cell',
+        headerClassName: "hidden text-right md:table-cell",
+        cellClassName: "hidden text-right md:table-cell",
       },
       header: ({ column }) => (
         <DataTableColumnHeader
@@ -613,30 +555,26 @@ function buildDataListColumns({
         />
       ),
       cell: ({ row }) => {
-        const detailHref = buildDataListDetailHref(String(row.original.id), {
-          listQuery,
-        });
+        const detailHref = buildDataListDetailHref(String(row.original.id));
         return (
-          <Link href={detailHref as Route}>{formatInteger(row.original.itemsCount)}</Link>
+          <Link href={detailHref as Route}>
+            {formatInteger(row.original.itemsCount)}
+          </Link>
         );
       },
     },
     {
-      id: 'actions',
+      id: "actions",
       enableSorting: false,
       meta: {
-        headerClassName: 'text-right',
-        cellClassName: 'text-right',
+        headerClassName: "text-right",
+        cellClassName: "text-right",
       },
       header: () => (
         <span className={dataTableColumnLabelClassName()}>Actions</span>
       ),
       cell: ({ row }) => (
-        <DataListRowActions
-          dataList={row.original}
-          listQuery={listQuery}
-          onDelete={onDelete}
-        />
+        <DataListRowActions dataList={row.original} onDelete={onDelete} />
       ),
     },
   ];
