@@ -1,6 +1,7 @@
 import {
   formatBytes,
   formatNumber,
+  formatInteger,
   formatCurrency,
   formatDecimalNumber,
   formatDateTime,
@@ -43,6 +44,18 @@ describe("formatNumber", () => {
   it("should format billions with B suffix", () => {
     expect(formatNumber(1000000000)).toBe("1B");
     expect(formatNumber(5500000000)).toBe("5.5B");
+  });
+});
+
+describe("formatInteger", () => {
+  it("groups thousands for en-US", () => {
+    expect(formatInteger(5000, "en-US")).toBe("5,000");
+    expect(formatInteger(0, "en-US")).toBe("0");
+  });
+
+  it("returns fallback for non-finite values", () => {
+    expect(formatInteger(Number.NaN)).toBe("-");
+    expect(formatInteger(Number.POSITIVE_INFINITY, "en-US", "n/a")).toBe("n/a");
   });
 });
 

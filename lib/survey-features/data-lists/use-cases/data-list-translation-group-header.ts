@@ -2,7 +2,7 @@ import {
   fromSurveyModelLocale,
   isDefaultCatalogLocale,
 } from "@/lib/localization";
-import { toLocaleNumber } from "@/lib/utils/number-utils";
+import { formatInteger } from "@/lib/utils/formatters";
 import type { DataListTranslationCatalog } from "./surveyjs-translation-csv";
 
 const DATA_LISTS_BASE_PATH = "/data-lists";
@@ -74,5 +74,5 @@ export function dataListLocaleStatus(
 }
 
 function formatItemCount(count: number): string {
-  return count === 1 ? "1 item" : `${toLocaleNumber(count)} items`;
+  return count === 1 ? "1 item" : `${formatInteger(count)} items`;
 }

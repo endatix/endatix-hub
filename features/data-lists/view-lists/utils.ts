@@ -7,8 +7,6 @@ export const DATA_LISTS_LIST_PATH = "/data-lists";
 export const ALL_LOCALES_FILTER_VALUE = "__all_locales__";
 /** `tableKey` for `BackToTableButton` / `rememberTableReturnTo` (see `lib/list-page/table-return-to`). */
 export const DATA_LISTS_TABLE_KEY = "data-lists";
-/** Debounced filter keys for `useTableFiltersUrlState` (see `components/table`). Module-level: must stay a stable reference. */
-export const DATA_LISTS_FILTER_KEYS = ["search", "hasLocale"] as const;
 
 export interface DataListsListSearchParams {
   page?: string;
@@ -60,7 +58,36 @@ export function parseHasLocaleFilter(
     return undefined;
   }
 
-  return tryNormalizeCultureCode(value) ?? undefined;
+  const seen = new Set<string>();
+  const locales: string[] = [];
+  for (const part of value.split(",")) {
+    const normalized = tryNormalizeCultureCode(part.trim());
+    if (normalized == null || seen.has(normalized)) {
+      continue;
+    }
+    seen.add(normalized);
+    locales.push(normalized);
+  }
+
+  return locales.length > 0 ? locales.join(",") : undefined;
+}
+
+export function parseHasLocaleFilterSet(
+  value: string | null | undefined,
+): Set<string> {
+  const parsed = parseHasLocaleFilter(value);
+  if (!parsed) {
+    return new Set();
+  }
+
+  return new Set(parsed.split(","));
+}
+
+export function serializeHasLocaleFilter(
+  locales: ReadonlySet<string> | readonly string[],
+): string | undefined {
+  const values = Array.isArray(locales) ? locales : [...locales];
+  return parseHasLocaleFilter(values.join(","));
 }
 
 export function serializeDataListsListSearchParams(
@@ -130,11 +157,4 @@ export function currentDataListsListQuery(
     search: parsed.search,
     hasLocale: parsed.hasLocale,
   });
-}
-
-export function currentDataListsListHref(
-  searchParams: URLSearchParams,
-): string {
-  const query = currentDataListsListQuery(searchParams);
-  return query ? `${DATA_LISTS_LIST_PATH}?${query}` : DATA_LISTS_LIST_PATH;
 }

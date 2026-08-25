@@ -1,6 +1,5 @@
 export { CellCompleteStatus } from "./cell-complete-status";
 export { CellCompletionTime } from "./cell-completion-time";
-export { CellDate } from "./cell-date";
 export { CellReadStatus } from "./cell-read-status";
 export {
   ColumnHeader,

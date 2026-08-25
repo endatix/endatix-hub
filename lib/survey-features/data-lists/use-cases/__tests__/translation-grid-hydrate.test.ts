@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { SurveyModel, type PanelModel } from "survey-core";
 import { Translation } from "survey-creator-core";
+import { formatInteger } from "@/lib/utils/formatters";
 import { DATA_LIST_PROPERTY_NAME } from "../../constants";
 import { registerDataListGlobals } from "../../infrastructure/registry";
 import {
@@ -107,9 +108,7 @@ describe("translation grid data-list summaries", () => {
     );
 
     const { header, matrix } = getSummaryMatrix(translation);
-    expect(header?.title).toBe(
-      `World cities (${(1200).toLocaleString()} items)`,
-    );
+    expect(header?.title).toBe(`World cities (${formatInteger(1200)} items)`);
     expect(matrix).toBeDefined();
     expect(matrix?.rows[0].value).toBe("choices");
     expect(matrix?.rows[0].text).toBe("Choices");

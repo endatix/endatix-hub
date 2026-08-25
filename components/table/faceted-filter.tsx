@@ -19,15 +19,17 @@ import {
 } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ComponentType } from "react";
 
-interface FacetedFilterProps {
+export interface FacetedFilterOption {
+  label: string;
+  value: string;
+  icon?: ComponentType<{ className?: string }>;
+}
+
+export interface FacetedFilterProps {
   title: string;
-  options: {
-    label: string;
-    value: string;
-    icon?: React.ComponentType<{ className?: string }>;
-  }[];
+  options: FacetedFilterOption[];
   selectedValues: Set<string>;
   onValueChange: (values: Set<string>) => void;
   disabled?: boolean;
@@ -39,7 +41,7 @@ export function FacetedFilter({
   selectedValues,
   onValueChange,
   disabled = false,
-}: FacetedFilterProps) {
+}: Readonly<FacetedFilterProps>) {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -107,7 +109,7 @@ export function FacetedFilter({
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[200px] p-0" align="start">
+      <PopoverContent className="w-[240px] p-0" align="start">
         <Command>
           <CommandInput placeholder={title} />
           <CommandList>

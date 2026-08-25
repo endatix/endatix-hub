@@ -1,4 +1,10 @@
 export { BackToTableButton } from "./back-to-table-button";
+export { CellDate, type CellDateProps } from "./cell-date";
+export {
+  FacetedFilter,
+  type FacetedFilterOption,
+  type FacetedFilterProps,
+} from "./faceted-filter";
 export {
   DATA_TABLE_COLUMN_LABEL_CLASS_NAME,
   DATA_TABLE_ELEMENT_CLASS_NAME,

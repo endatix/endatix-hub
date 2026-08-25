@@ -1,3 +1,4 @@
+import { formatInteger } from "@/lib/utils/formatters";
 import { describe, expect, it } from "vitest";
 import {
   DATA_LIST_LOCALE_NOT_TRANSLATED,
@@ -22,7 +23,7 @@ describe("data list translation group header", () => {
       items: [],
     });
 
-    expect(title).toBe(`Cities (${(12).toLocaleString()} items)`);
+    expect(title).toBe(`Cities (${formatInteger(12)} items)`);
   });
 
   it("groups thousands in the item count", () => {
@@ -34,7 +35,7 @@ describe("data list translation group header", () => {
       items: [],
     });
 
-    expect(title).toBe(`Cities (${(5000).toLocaleString()} items)`);
+    expect(title).toBe(`Cities (${formatInteger(5000)} items)`);
   });
 
   it("uses singular item label when the list has one row", () => {

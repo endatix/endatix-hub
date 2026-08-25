@@ -11,11 +11,12 @@ import {
   formatPreciseDateTime,
   formatRelativeOrCompactDateTime,
   toValidDate,
+  type DateInput,
 } from "@/lib/date-utils";
 import { useEffect, useState } from "react";
 
-interface CellDateProps {
-  date?: Date;
+export interface CellDateProps {
+  date?: DateInput;
   visible?: boolean;
 }
 
