@@ -1,8 +1,7 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { CheckSquare, Eye, Sparkles, X } from "lucide-react";
-import { FacetedFilter } from "@/components/table";
+import { CheckSquare, Eye, Sparkles } from "lucide-react";
+import { FacetedFilter, ResetFiltersButton } from "@/components/table";
 
 interface SubmissionsFilterToolbarProps {
   isCompleteFilter: Set<string>;
@@ -73,17 +72,7 @@ export function SubmissionsFilterToolbar({
         disabled={disabled}
       />
       {hasActiveFilters && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onResetFilters}
-          disabled={disabled}
-          className="shrink-0 px-2 lg:px-3"
-          aria-label="Reset Filters"
-        >
-          <X />
-          <span className="sr-only sm:not-sr-only">Reset Filters</span>
-        </Button>
+        <ResetFiltersButton onClick={onResetFilters} disabled={disabled} />
       )}
     </>
   );

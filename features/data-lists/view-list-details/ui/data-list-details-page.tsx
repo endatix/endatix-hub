@@ -8,6 +8,7 @@ import {
   FacetedFilter,
   DataTableToolbar,
   PagedTableFooter,
+  ResetFiltersButton,
   TableSearchInput,
   type FacetedFilterOption,
 } from "@/components/table";
@@ -39,7 +40,7 @@ import {
   parseHasLocaleFilterSet,
   serializeHasLocaleFilter,
 } from "../../view-lists/utils";
-import { ChevronDown, Download, PencilLine, Upload, X } from "lucide-react";
+import { ChevronDown, Download, PencilLine, Upload } from "lucide-react";
 import type { Route } from "next";
 import {
   Suspense,
@@ -419,8 +420,7 @@ function DataListItemsSection({
               />
             ) : null}
             {search.trim() || selectedLocales.size > 0 ? (
-              <Button
-                variant="ghost"
+              <ResetFiltersButton
                 onClick={() => {
                   setSearch("");
                   updateUrl({
@@ -429,11 +429,7 @@ function DataListItemsSection({
                     page: "1",
                   });
                 }}
-                className="shrink-0 px-2 lg:px-3"
-              >
-                Reset Filters
-                <X />
-              </Button>
+              />
             ) : null}
           </>
         }

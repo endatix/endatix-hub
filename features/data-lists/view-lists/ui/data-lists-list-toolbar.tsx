@@ -3,12 +3,11 @@
 import {
   DataTableToolbar,
   FacetedFilter,
+  ResetFiltersButton,
   TableSearchInput,
 } from "@/components/table";
-import { Button } from "@/components/ui/button";
 import { formatLocaleLabel } from "@/features/data-lists/translations/locale-discovery";
 import { useListUrlState } from "@/lib/list-page/use-list-url-state";
-import { X } from "lucide-react";
 import { useMemo } from "react";
 import {
   listUrlStateFromSearchParams,
@@ -40,11 +39,11 @@ export function DataListsListToolbar({
   );
   const hasActiveFilters = Boolean(
     search.trim() ||
-      urlState.hasLocale ||
-      urlState.createdFrom ||
-      urlState.createdTo ||
-      urlState.modifiedFrom ||
-      urlState.modifiedTo,
+    urlState.hasLocale ||
+    urlState.createdFrom ||
+    urlState.createdTo ||
+    urlState.modifiedFrom ||
+    urlState.modifiedTo,
   );
 
   const resetFilters = (): void => {
@@ -86,14 +85,7 @@ export function DataListsListToolbar({
             />
           ) : null}
           {hasActiveFilters ? (
-            <Button
-              variant="ghost"
-              onClick={resetFilters}
-              className="shrink-0 px-2 lg:px-3"
-            >
-              Reset Filters
-              <X />
-            </Button>
+            <ResetFiltersButton onClick={resetFilters} />
           ) : null}
         </>
       }

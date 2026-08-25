@@ -34,6 +34,7 @@ export {
   PagedTableFooter,
   type PagedTableFooterProps,
 } from "./paged-table-footer";
+export { ResetFiltersButton } from "./reset-filters-button";
 export { TableEmptyRow } from "./table-empty-row";
 export { TableSearchInput } from "./table-search-input";
 export {
