@@ -5,11 +5,9 @@ import {
   DataListsPageHeader,
 } from "@/features/data-lists/view-lists/ui/data-lists-page";
 import { DataListsListToolbar } from "@/features/data-lists/view-lists/ui/data-lists-list-toolbar";
+import { DataListsLocaleFilter } from "@/features/data-lists/view-lists/ui/data-lists-locale-filter";
 import { DataListsTableSkeleton } from "@/features/data-lists/view-lists/ui/data-lists-table-skeleton";
-import {
-  getDataListLocales,
-  getDataListsPage,
-} from "@/features/data-lists/view-lists/get-data-lists.server";
+import { getDataListsPage } from "@/features/data-lists/view-lists/get-data-lists.server";
 import {
   firstString,
   parseDataListsListParams,
@@ -53,16 +51,19 @@ export default async function DataListsRoutePage({
     modifiedFrom: firstString(raw.modifiedFrom),
     modifiedTo: firstString(raw.modifiedTo),
   });
-  // Start list fetch without blocking the toolbar; locales resolve for the
-  // filter so FacetedFilter is not remounted via Suspense on every hasLocale nav.
   const dataListsPromise = getDataListsPage(listRequest);
-  const locales = await getDataListLocales();
   const openCreateOnLoad = hasValue(raw.action, "create");
 
   return (
     <>
       <DataListsPageHeader />
-      <DataListsListToolbar locales={locales} />
+      <DataListsListToolbar
+        localeFilter={
+          <Suspense fallback={null}>
+            <DataListsLocaleFilter />
+          </Suspense>
+        }
+      />
       <Suspense fallback={<DataListsTableSkeleton />}>
         <DataListsPage
           dataListsPromise={dataListsPromise}

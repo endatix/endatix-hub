@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import type { Route } from "next";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
@@ -23,7 +23,10 @@ export function useUrlSearchParamsUpdater() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const searchParamsRef = useRef(searchParams);
-  searchParamsRef.current = searchParams;
+
+  useEffect(() => {
+    searchParamsRef.current = searchParams;
+  }, [searchParams]);
 
   const updateUrl = useCallback<UrlSearchParamsUpdater>(
     (updates) => {

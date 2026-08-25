@@ -1,5 +1,6 @@
 "use client";
 
+import { TruncatedId } from "@/components/common/truncated-id";
 import {
   DATA_TABLE_ELEMENT_CLASS_NAME,
   DATA_TABLE_SHRINK_WRAP_CLASS_NAME,
@@ -54,7 +55,7 @@ function buildColumns(
         <span className={dataTableColumnLabelClassName()}>Value</span>
       ),
       cell: ({ row }) => (
-        <span className="font-mono text-xs">{row.original.value}</span>
+        <TruncatedId id={row.original.value} copyLabel="Copy value" />
       ),
       meta: {
         headerClassName: `${DATA_TABLE_SHRINK_WRAP_CLASS_NAME} min-w-[8rem]`,

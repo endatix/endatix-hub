@@ -1,6 +1,9 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { DataListsListToolbar } from "../ui/data-lists-list-toolbar";
+import {
+  DataListsListToolbar,
+  DataListsLocaleFacet,
+} from "../ui/data-lists-list-toolbar";
 
 const updateUrl = vi.fn();
 const setSearch = vi.fn();
@@ -30,7 +33,7 @@ describe("DataListsListToolbar", () => {
     );
     mockSearch = "widgets";
 
-    render(<DataListsListToolbar locales={["en", "es"]} />);
+    render(<DataListsListToolbar />);
 
     fireEvent.click(screen.getByRole("button", { name: /reset filters/i }));
 
@@ -47,8 +50,27 @@ describe("DataListsListToolbar", () => {
   });
 
   it("hides Reset Filters when no filters are active", () => {
-    render(<DataListsListToolbar locales={["en", "es"]} />);
+    render(<DataListsListToolbar />);
 
     expect(screen.queryByRole("button", { name: /reset filters/i })).toBeNull();
+  });
+});
+
+describe("DataListsLocaleFacet", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockSearchParams = new URLSearchParams();
+  });
+
+  it("renders a Locale filter when locales are present", () => {
+    render(<DataListsLocaleFacet locales={["en", "es"]} />);
+
+    expect(screen.getByRole("button", { name: /locale/i })).toBeTruthy();
+  });
+
+  it("renders nothing when the catalog is empty", () => {
+    const { container } = render(<DataListsLocaleFacet locales={[]} />);
+
+    expect(container.firstChild).toBeNull();
   });
 });

@@ -98,9 +98,11 @@ async function fetchAllDataListPages(api: EndatixApi): Promise<DataList[]> {
     });
     allItems.push(...paged.items);
     if (paged.items.length === 0 || !paged.hasNextPage) {
-      break;
+      return allItems;
     }
   }
 
-  return allItems;
+  throw new DataLoadError(
+    `Failed to load all data lists: exceeded ${MAX_LIST_PAGES} pages.`,
+  );
 }
