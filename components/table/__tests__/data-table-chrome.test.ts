@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   DATA_TABLE_COLUMN_LABEL_CLASS_NAME,
   DATA_TABLE_ELEMENT_CLASS_NAME,
+  DATA_TABLE_SHRINK_WRAP_CLASS_NAME,
   dataTableBodyCellClassName,
   dataTableBodyRowClassName,
   dataTableColumnLabelClassName,
@@ -87,5 +88,6 @@ describe("data-table-chrome", () => {
   it("fills the surface width without collapsing compact columns", () => {
     expect(DATA_TABLE_ELEMENT_CLASS_NAME).toContain("min-w-full");
     expect(DATA_TABLE_ELEMENT_CLASS_NAME).not.toContain("table-fixed");
+    expect(DATA_TABLE_SHRINK_WRAP_CLASS_NAME).toBe("w-px");
   });
 });

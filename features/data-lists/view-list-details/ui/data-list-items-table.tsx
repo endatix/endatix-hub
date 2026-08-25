@@ -1,15 +1,15 @@
 "use client";
 
+import { TruncatedId } from "@/components/common/truncated-id";
 import {
   DATA_TABLE_ELEMENT_CLASS_NAME,
-  DataTableColumnHeader,
+  DATA_TABLE_SHRINK_WRAP_CLASS_NAME,
   dataTableBodyCellClassName,
   dataTableBodyRowClassName,
+  dataTableColumnLabelClassName,
   dataTableHeaderCellClassName,
   DataTableEmpty,
   DataTableSurface,
-  FacetedFilter,
-  type FacetedFilterOption,
 } from "@/components/table";
 import {
   Table,
@@ -38,71 +38,40 @@ type DataListItemsTableProps = {
   defaultLocale?: string;
   emptyMessage?: string;
   footer?: ReactNode;
-  localeOptions?: FacetedFilterOption[];
-  selectedLocales?: Set<string>;
-  onLocaleFilterChange?: (values: Set<string>) => void;
 };
 
 type DataListItemRow = DataListItem & { rowId: string };
 
-function buildColumns(args: {
-  labelColumns: readonly string[];
-  defaultLocale: string | undefined;
-  localeOptions: FacetedFilterOption[];
-  selectedLocales: Set<string>;
-  onLocaleFilterChange: ((values: Set<string>) => void) | undefined;
-}): ColumnDef<DataListItemRow>[] {
-  const {
-    labelColumns,
-    defaultLocale,
-    localeOptions,
-    selectedLocales,
-    onLocaleFilterChange,
-  } = args;
-
+function buildColumns(
+  labelColumns: readonly string[],
+  defaultLocale: string | undefined,
+): ColumnDef<DataListItemRow>[] {
   return [
     {
       id: "value",
       accessorKey: "value",
       enableSorting: false,
-      header: ({ column }) => (
-        <DataTableColumnHeader
-          column={column}
-          title="Value"
-          facetFilterActive={selectedLocales.size > 0}
-          facetFilter={
-            onLocaleFilterChange && localeOptions.length > 0 ? (
-              <FacetedFilter
-                title="Locale"
-                options={localeOptions}
-                selectedValues={selectedLocales}
-                onValueChange={onLocaleFilterChange}
-              />
-            ) : undefined
-          }
-        />
+      header: () => (
+        <span className={dataTableColumnLabelClassName()}>Value</span>
       ),
       cell: ({ row }) => (
-        <span className="font-mono text-xs">{row.original.value}</span>
+        <TruncatedId id={row.original.value} copyLabel="Copy value" />
       ),
       meta: {
-        headerClassName: "min-w-[8rem]",
-        cellClassName: "min-w-[8rem]",
+        headerClassName: `${DATA_TABLE_SHRINK_WRAP_CLASS_NAME} min-w-[8rem]`,
+        cellClassName: `${DATA_TABLE_SHRINK_WRAP_CLASS_NAME} min-w-[8rem]`,
       },
     },
     ...labelColumns.map(
       (columnKey): ColumnDef<DataListItemRow> => ({
         id: `label:${columnKey}`,
         enableSorting: false,
-        header: ({ column }) => (
-          <DataTableColumnHeader
-            column={column}
-            title={
-              columnKey === "default"
-                ? `Default (${defaultLocale ?? "—"})`
-                : formatLocaleLabel(columnKey)
-            }
-          />
+        header: () => (
+          <span className={dataTableColumnLabelClassName()}>
+            {columnKey === "default"
+              ? `Default (${defaultLocale ?? "—"})`
+              : formatLocaleLabel(columnKey)}
+          </span>
         ),
         cell: ({ row }) => {
           const text =
@@ -129,9 +98,6 @@ export function DataListItemsTable({
   defaultLocale,
   emptyMessage = "No items in this list.",
   footer,
-  localeOptions = [],
-  selectedLocales = new Set(),
-  onLocaleFilterChange,
 }: Readonly<DataListItemsTableProps>) {
   const data = useMemo<DataListItemRow[]>(
     () =>
@@ -143,21 +109,8 @@ export function DataListItemsTable({
   );
 
   const columns = useMemo(
-    () =>
-      buildColumns({
-        labelColumns,
-        defaultLocale,
-        localeOptions,
-        selectedLocales,
-        onLocaleFilterChange,
-      }),
-    [
-      labelColumns,
-      defaultLocale,
-      localeOptions,
-      selectedLocales,
-      onLocaleFilterChange,
-    ],
+    () => buildColumns(labelColumns, defaultLocale),
+    [labelColumns, defaultLocale],
   );
 
   const table = useReactTable({

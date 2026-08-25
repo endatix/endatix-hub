@@ -48,4 +48,18 @@ describe("useUrlSearchParamsUpdater", () => {
       scroll: false,
     });
   });
+
+  it("skips replace when the query string is unchanged", () => {
+    replace.mockClear();
+    const { result } = renderHook(() => useUrlSearchParamsUpdater());
+
+    act(() => {
+      result.current.updateUrl({
+        page: "2",
+        search: "alpha",
+      });
+    });
+
+    expect(replace).not.toHaveBeenCalled();
+  });
 });

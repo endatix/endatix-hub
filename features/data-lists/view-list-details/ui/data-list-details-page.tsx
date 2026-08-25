@@ -5,7 +5,10 @@ import {
   BackToTableButton,
   CellDate,
   createPagedTableFooterProps,
+  FacetedFilter,
+  DataTableToolbar,
   PagedTableFooter,
+  ResetFiltersButton,
   TableSearchInput,
   type FacetedFilterOption,
 } from "@/components/table";
@@ -392,12 +395,44 @@ function DataListItemsSection({
   }, [availableLocales, defaultLocale]);
 
   return (
-    <div className="space-y-3">
-      <TableSearchInput
-        value={search}
-        onChange={setSearch}
-        placeholder="Search items by value or label"
-        ariaLabel="Search data list items"
+    <div className="flex flex-col gap-3">
+      <DataTableToolbar
+        filters={
+          <>
+            <TableSearchInput
+              value={search}
+              onChange={setSearch}
+              placeholder="Search items by value or label"
+              ariaLabel="Search data list items"
+              className="min-w-[12rem] flex-none lg:flex-1"
+            />
+            {localeOptions.length > 0 ? (
+              <FacetedFilter
+                title="Locale"
+                options={localeOptions}
+                selectedValues={selectedLocales}
+                onValueChange={(values) => {
+                  updateUrl({
+                    hasLocale: serializeHasLocaleFilter(values) ?? null,
+                    page: "1",
+                  });
+                }}
+              />
+            ) : null}
+            {search.trim() || selectedLocales.size > 0 ? (
+              <ResetFiltersButton
+                onClick={() => {
+                  setSearch("");
+                  updateUrl({
+                    search: null,
+                    hasLocale: null,
+                    page: "1",
+                  });
+                }}
+              />
+            ) : null}
+          </>
+        }
       />
       <Suspense
         fallback={
@@ -410,14 +445,6 @@ function DataListItemsSection({
           itemsPromise={itemsPromise}
           availableLocales={availableLocales}
           defaultLocale={defaultLocale}
-          localeOptions={localeOptions}
-          selectedLocales={selectedLocales}
-          onLocaleFilterChange={(values) => {
-            updateUrl({
-              hasLocale: serializeHasLocaleFilter(values) ?? null,
-              page: "1",
-            });
-          }}
         />
       </Suspense>
     </div>
@@ -428,16 +455,10 @@ function DataListItemsPanel({
   itemsPromise,
   availableLocales,
   defaultLocale,
-  localeOptions,
-  selectedLocales,
-  onLocaleFilterChange,
 }: Readonly<{
   itemsPromise: Promise<DataListItemsPage>;
   availableLocales: string[];
   defaultLocale?: string;
-  localeOptions: FacetedFilterOption[];
-  selectedLocales: Set<string>;
-  onLocaleFilterChange: (values: Set<string>) => void;
 }>) {
   const paged = use(itemsPromise);
   const { updateUrl, searchParams } = useListUrlState();
@@ -451,15 +472,16 @@ function DataListItemsPanel({
     defaultLocale,
     availableLocales,
   });
+  // A fresh `[...paged.items]` literal here is a new reference every render,
+  // which defeats internal row-model memoization and can cascade into a
+  // setState loop (see data-lists-page.tsx's tableData for the same fix).
+  const items = useMemo(() => [...paged.items], [paged.items]);
 
   return (
     <DataListItemsTable
-      items={[...paged.items]}
+      items={items}
       labelColumns={labelColumns}
       defaultLocale={defaultLocale}
-      localeOptions={localeOptions}
-      selectedLocales={selectedLocales}
-      onLocaleFilterChange={onLocaleFilterChange}
       emptyMessage={
         hasFilters
           ? "No items match the current filters."
