@@ -1,18 +1,18 @@
-'use client';
+"use client";
 
-import { Button } from '@/components/ui/button';
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { cn } from '@/lib/utils';
-import { dataTableColumnLabelClassName } from './data-table-chrome';
-import { Column, SortDirection } from '@tanstack/react-table';
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
+import { dataTableColumnLabelClassName } from "./data-table-chrome";
+import { Column, SortDirection } from "@tanstack/react-table";
 import {
   ArrowDown,
   ArrowUp,
@@ -22,9 +22,18 @@ import {
   Filter,
   ListFilter,
   X,
-} from 'lucide-react';
-import { useEffect, useState, type ReactNode } from 'react';
-import type { DateFilterValue } from './date-filter-types';
+} from "lucide-react";
+import {
+  useEffect,
+  useState,
+  type ReactNode,
+  type SyntheticEvent,
+} from "react";
+import type { DateFilterValue } from "./date-filter-types";
+
+function stopMenuEventBubble(event: SyntheticEvent): void {
+  event.stopPropagation();
+}
 
 interface DateFilterConfig {
   readonly value: DateFilterValue;
@@ -67,28 +76,28 @@ export interface DataTableColumnHeaderProps<
   /** When provided, shows a Hide menu item. */
   readonly onHideColumn?: () => void;
   /** Shrink header chrome (padding, menu button) for dense columns. */
-  readonly density?: 'default' | 'compact';
+  readonly density?: "default" | "compact";
   /** Optional visual title (e.g. icon); `title` remains the accessible name. */
   readonly titleContent?: ReactNode;
   /**
    * `center` keeps the title fixed (e.g. Complete icon) and overlays sort/filter
    * chrome so hover does not shift alignment vs cell content.
    */
-  readonly align?: 'start' | 'center';
+  readonly align?: "start" | "center";
 }
 
 /** Hover-reveal chrome on md+; always visible when active or below md. */
 export function getColumnHeaderChromeClassName(forceVisible: boolean): string {
   if (forceVisible) {
-    return 'opacity-100';
+    return "opacity-100";
   }
 
   return [
-    'opacity-100',
-    'md:opacity-0 md:pointer-events-none',
-    'md:group-hover:opacity-100 md:group-hover:pointer-events-auto',
-    'md:focus-within:opacity-100 md:focus-within:pointer-events-auto',
-  ].join(' ');
+    "opacity-100",
+    "md:opacity-0 md:pointer-events-none",
+    "md:group-hover:opacity-100 md:group-hover:pointer-events-auto",
+    "md:focus-within:opacity-100 md:focus-within:pointer-events-auto",
+  ].join(" ");
 }
 
 /**
@@ -99,23 +108,23 @@ export function getColumnHeaderTitleSwapClassName(
   forceVisible: boolean,
 ): string {
   if (forceVisible) {
-    return 'opacity-0 pointer-events-none';
+    return "opacity-0 pointer-events-none";
   }
 
   return [
-    'opacity-0 pointer-events-none',
-    'md:opacity-100 md:pointer-events-auto',
-    'md:group-hover:opacity-0 md:group-hover:pointer-events-none',
-    'md:focus-within:opacity-0 md:focus-within:pointer-events-none',
-  ].join(' ');
+    "opacity-0 pointer-events-none",
+    "md:opacity-100 md:pointer-events-auto",
+    "md:group-hover:opacity-0 md:group-hover:pointer-events-none",
+    "md:focus-within:opacity-0 md:focus-within:pointer-events-none",
+  ].join(" ");
 }
 
 function getSortIcon(isSorted: false | SortDirection | undefined) {
-  if (isSorted === 'asc') {
+  if (isSorted === "asc") {
     return ArrowUp;
   }
 
-  if (isSorted === 'desc') {
+  if (isSorted === "desc") {
     return ArrowDown;
   }
 
@@ -126,12 +135,12 @@ function cycleColumnSort<TData, TValue>(
   column: Column<TData, TValue>,
   isSorted: false | SortDirection | undefined,
 ): void {
-  if (isSorted === 'asc') {
+  if (isSorted === "asc") {
     column.toggleSorting(true);
     return;
   }
 
-  if (isSorted === 'desc') {
+  if (isSorted === "desc") {
     column.clearSorting();
     return;
   }
@@ -152,7 +161,7 @@ function SortIndicator({
     <span
       aria-hidden="true"
       className={cn(
-        'flex h-3.5 w-3.5 shrink-0 items-center justify-center transition-opacity',
+        "flex h-3.5 w-3.5 shrink-0 items-center justify-center transition-opacity",
         chromeClassName,
       )}
     >
@@ -189,10 +198,10 @@ function ColumnHeaderMenu<TData, TValue>({
   readonly hasActiveFilter: boolean;
   readonly isCompact: boolean;
   readonly chromeClassName?: string;
-  readonly contentAlign: 'start' | 'end';
+  readonly contentAlign: "start" | "end";
   readonly onHideColumn?: () => void;
 }) {
-  const showHide = Boolean(onHideColumn) && column.id !== 'actions';
+  const showHide = Boolean(onHideColumn) && column.id !== "actions";
   const hasSortSection = canSort;
   const hasDateSection = Boolean(dateFilter);
   const hasTextSection = Boolean(textFilter);
@@ -205,8 +214,8 @@ function ColumnHeaderMenu<TData, TValue>({
           variant="ghost"
           size="icon"
           className={cn(
-            'transition-opacity data-[state=open]:bg-accent data-[state=open]:opacity-100',
-            isCompact ? 'h-7 w-7' : 'h-8 w-8',
+            "transition-opacity data-[state=open]:bg-accent data-[state=open]:opacity-100",
+            isCompact ? "h-7 w-7" : "h-8 w-8",
             chromeClassName,
           )}
           aria-label={`${title} column menu`}
@@ -220,7 +229,12 @@ function ColumnHeaderMenu<TData, TValue>({
           )}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align={contentAlign}>
+      <DropdownMenuContent
+        align={contentAlign}
+        onPointerDown={stopMenuEventBubble}
+        onClick={stopMenuEventBubble}
+        onKeyDown={stopMenuEventBubble}
+      >
         {hasSortSection ? (
           <>
             <DropdownMenuItem onClick={() => column.toggleSorting(false)}>
@@ -256,7 +270,9 @@ function ColumnHeaderMenu<TData, TValue>({
         ) : null}
         {hasTextSection ? (
           <>
-            {hasSortSection || hasDateSection ? <DropdownMenuSeparator /> : null}
+            {hasSortSection || hasDateSection ? (
+              <DropdownMenuSeparator />
+            ) : null}
             <div className="w-56 space-y-3 p-2">
               <TextFilterControls
                 idPrefix={column.id}
@@ -272,13 +288,7 @@ function ColumnHeaderMenu<TData, TValue>({
             {hasSortSection || hasDateSection || hasTextSection ? (
               <DropdownMenuSeparator />
             ) : null}
-            <div
-              className="p-2"
-              onPointerDown={(event) => event.stopPropagation()}
-              onClick={(event) => event.stopPropagation()}
-            >
-              {facetFilter}
-            </div>
+            <div className="p-2">{facetFilter}</div>
           </>
         ) : null}
         {showHide ? (
@@ -327,20 +337,20 @@ function CenterAlignedColumnHeader<TData, TValue>({
   readonly onHideColumn?: () => void;
 }) {
   const handleSortCycle = () => cycleColumnSort(column, isSorted);
-  const sizeClassName = isCompact ? 'h-7 w-7' : 'h-8 w-8';
+  const sizeClassName = isCompact ? "h-7 w-7" : "h-8 w-8";
   const canFilter = Boolean(dateFilter || textFilter || facetFilter);
 
   return (
     <div
       className={cn(
-        'group relative flex w-full items-center justify-center',
-        isCompact ? 'h-7' : 'h-8',
+        "group relative flex w-full items-center justify-center",
+        isCompact ? "h-7" : "h-8",
         className,
       )}
     >
       <div
         className={cn(
-          'flex items-center justify-center transition-opacity',
+          "flex items-center justify-center transition-opacity",
           sizeClassName,
           titleSwapClassName,
         )}
@@ -350,8 +360,8 @@ function CenterAlignedColumnHeader<TData, TValue>({
       </div>
       <div
         className={cn(
-          'absolute inset-0 flex items-center justify-center transition-opacity',
-          isCompact ? 'gap-0.5' : 'gap-1',
+          "absolute inset-0 flex items-center justify-center transition-opacity",
+          isCompact ? "gap-0.5" : "gap-1",
           chromeClassName,
         )}
       >
@@ -359,7 +369,7 @@ function CenterAlignedColumnHeader<TData, TValue>({
           <button
             type="button"
             className={cn(
-              'flex cursor-pointer items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground',
+              "flex cursor-pointer items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground",
               sizeClassName,
             )}
             onClick={handleSortCycle}
@@ -422,8 +432,8 @@ function StartAlignedColumnHeader<TData, TValue>({
   return (
     <div
       className={cn(
-        'group flex items-center',
-        isCompact ? 'gap-0.5' : 'gap-2',
+        "group flex items-center",
+        isCompact ? "gap-0.5" : "gap-2",
         className,
       )}
     >
@@ -431,8 +441,8 @@ function StartAlignedColumnHeader<TData, TValue>({
         <button
           type="button"
           className={cn(
-            'flex cursor-pointer items-center rounded-md text-left hover:bg-accent hover:text-accent-foreground',
-            isCompact ? 'h-7 gap-1 px-1' : 'h-8 min-w-0 flex-1 gap-1.5 px-2',
+            "flex cursor-pointer items-center rounded-md text-left hover:bg-accent hover:text-accent-foreground",
+            isCompact ? "h-7 gap-1 px-1" : "h-8 min-w-0 flex-1 gap-1.5 px-2",
           )}
           onClick={() => cycleColumnSort(column, isSorted)}
           aria-label={title}
@@ -446,8 +456,8 @@ function StartAlignedColumnHeader<TData, TValue>({
       ) : (
         <div
           className={cn(
-            'flex items-center',
-            isCompact ? 'h-7 px-1' : 'h-8 min-w-0 flex-1 px-2',
+            "flex items-center",
+            isCompact ? "h-7 px-1" : "h-8 min-w-0 flex-1 px-2",
           )}
         >
           {titleLabel}
@@ -484,16 +494,16 @@ export function DataTableColumnHeader<TData, TValue>({
   facetFilter,
   facetFilterActive = false,
   onHideColumn,
-  density = 'default',
+  density = "default",
   titleContent,
-  align = 'start',
+  align = "start",
 }: DataTableColumnHeaderProps<TData, TValue>) {
   const canSort = column.getCanSort();
   const hasActiveFilter =
     Boolean(dateFilter?.value.from || dateFilter?.value.to) ||
     Boolean(textFilter?.value.trim()) ||
     facetFilterActive;
-  const isCompact = density === 'compact';
+  const isCompact = density === "compact";
   const forceChromeVisible = Boolean(isSorted) || hasActiveFilter;
   const chromeClassName = getColumnHeaderChromeClassName(forceChromeVisible);
   const titleSwapClassName =
@@ -511,8 +521,8 @@ export function DataTableColumnHeader<TData, TValue>({
     return (
       <div
         className={cn(
-          'cursor-default',
-          align === 'center' && 'flex w-full justify-center',
+          "cursor-default",
+          align === "center" && "flex w-full justify-center",
           className,
         )}
       >
@@ -537,7 +547,7 @@ export function DataTableColumnHeader<TData, TValue>({
     onHideColumn,
   };
 
-  if (align === 'center') {
+  if (align === "center") {
     return (
       <CenterAlignedColumnHeader
         {...sharedProps}
@@ -590,8 +600,8 @@ export function TextFilterControls({
           className="flex-1"
           disabled={!hasActiveFilter && !draftValue.trim()}
           onClick={() => {
-            setDraftValue('');
-            onApply('');
+            setDraftValue("");
+            onApply("");
           }}
         >
           <X className="h-3.5 w-3.5" />
@@ -624,7 +634,7 @@ export function DateFilterControls({
         <Input
           id={`${idPrefix}-from`}
           type="date"
-          value={draftDateFilter.from ?? ''}
+          value={draftDateFilter.from ?? ""}
           onChange={(event) =>
             setDraftDateFilter({
               ...draftDateFilter,
@@ -640,7 +650,7 @@ export function DateFilterControls({
         <Input
           id={`${idPrefix}-to`}
           type="date"
-          value={draftDateFilter.to ?? ''}
+          value={draftDateFilter.to ?? ""}
           onChange={(event) =>
             setDraftDateFilter({
               ...draftDateFilter,
