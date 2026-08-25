@@ -1,4 +1,9 @@
-import { buildQueryEndpoint } from "../shared/query-params";
+import { appendDateRangeFilters } from "../shared/list-query";
+import {
+  appendQueryParam,
+  appendQueryParams,
+  buildEndpointWithQuery,
+} from "../shared/query-params";
 import { EndatixApi } from "../endatix-api";
 import { ApiResult } from "../shared/api-result";
 import type { PagedResponse } from "../shared/types";
@@ -109,8 +114,9 @@ export class Forms {
   }
 }
 
-function buildListFormsEndpoint(request: FormsListRequest): string {
-  const entries: [string, string | number | boolean | null | undefined][] = [
+export function buildListFormsEndpoint(request: FormsListRequest): string {
+  const searchParams = new URLSearchParams();
+  appendQueryParams(searchParams, [
     ["page", request.page],
     ["pageSize", request.pageSize],
     ["search", request.search],
@@ -118,20 +124,17 @@ function buildListFormsEndpoint(request: FormsListRequest): string {
     ["isPublic", request.isPublic],
     ["sortBy", request.sortBy],
     ["sortDir", request.sortDir],
-    ["createdFrom", request.createdFrom],
-    ["createdTo", request.createdTo],
-    ["modifiedFrom", request.modifiedFrom],
-    ["modifiedTo", request.modifiedTo],
     ["folderId", request.folderId],
-  ];
+  ]);
+  appendDateRangeFilters(searchParams, request, ["created", "modified"]);
 
   if (request.unassignedOnly) {
-    entries.push(["filter", "folderId:null"]);
+    appendQueryParam(searchParams, "filter", "folderId:null");
   } else if (request.themeId) {
-    entries.push(["filter", `themeId:${request.themeId}`]);
+    appendQueryParam(searchParams, "filter", `themeId:${request.themeId}`);
   } else if (request.filter) {
-    entries.push(["filter", request.filter]);
+    appendQueryParam(searchParams, "filter", request.filter);
   }
 
-  return buildQueryEndpoint("/forms", entries);
+  return buildEndpointWithQuery("/forms", searchParams);
 }

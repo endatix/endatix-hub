@@ -8,6 +8,7 @@ import {
 const SUBMISSIONS_FILTERS = [
   "includeTestSubmissions",
   "createdAtRange",
+  "modifiedAtRange",
   "startedAtRange",
   "completedAtRange",
   "submissionIdRange",
@@ -145,21 +146,46 @@ describe("export url builders", () => {
       listFilters: {
         createdFrom: "2026-01-01",
         createdTo: "2026-01-02",
+        modifiedFrom: "2026-01-03",
+        modifiedTo: "2026-01-04",
         startedFrom: "2026-01-05",
         startedTo: "2026-01-06",
         completedFrom: "2026-02-01",
         completedTo: "2026-02-03",
       },
-      allowedFilters: ["createdAtRange", "startedAtRange", "completedAtRange"],
+      allowedFilters: [
+        "createdAtRange",
+        "modifiedAtRange",
+        "startedAtRange",
+        "completedAtRange",
+      ],
     });
     const params = new URL(url, "https://example.test").searchParams;
 
     expect(params.get("createdFrom")).toBe("2026-01-01");
     expect(params.get("createdTo")).toBe("2026-01-02");
+    expect(params.get("modifiedFrom")).toBe("2026-01-03");
+    expect(params.get("modifiedTo")).toBe("2026-01-04");
     expect(params.get("startedFrom")).toBe("2026-01-05");
     expect(params.get("startedTo")).toBe("2026-01-06");
     expect(params.get("completedFrom")).toBe("2026-02-01");
     expect(params.get("completedTo")).toBe("2026-02-03");
+  });
+
+  it("omits modified range when modifiedAtRange is not allowed", () => {
+    const url = buildReportingExportUrl({
+      formId: "100",
+      formatKey: "csv",
+      exportFormatId: "42",
+      listFilters: {
+        modifiedFrom: "2026-01-03",
+        modifiedTo: "2026-01-04",
+      },
+      allowedFilters: ["createdAtRange"],
+    });
+
+    expect(url).not.toContain("modifiedFrom=");
+    expect(url).not.toContain("modifiedTo=");
   });
 
   it("skips invalid calendar dates", () => {

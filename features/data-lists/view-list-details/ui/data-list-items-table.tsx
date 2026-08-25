@@ -51,12 +51,13 @@ type DataListItemRow = DataListItem & { rowId: string };
 function buildColumns(
   labelColumns: readonly string[],
   defaultLocale: string | undefined,
+  sortingEnabled: boolean,
 ): ColumnDef<DataListItemRow>[] {
   return [
     {
       id: "value",
       accessorKey: "value",
-      enableSorting: true,
+      enableSorting: sortingEnabled,
       header: ({ column }) => (
         <DataTableColumnHeader
           column={column}
@@ -112,6 +113,8 @@ export function DataListItemsTable({
   onSortingChange,
   isPending = false,
 }: Readonly<DataListItemsTableProps>) {
+  const sortingEnabled = onSortingChange !== undefined;
+
   const data = useMemo<DataListItemRow[]>(
     () =>
       items.map((item, index) => ({
@@ -122,9 +125,13 @@ export function DataListItemsTable({
   );
 
   const columns = useMemo(
-    () => buildColumns(labelColumns, defaultLocale),
-    [labelColumns, defaultLocale],
+    () => buildColumns(labelColumns, defaultLocale, sortingEnabled),
+    [labelColumns, defaultLocale, sortingEnabled],
   );
+
+  const controlledSorting = sortingEnabled
+    ? { state: { sorting }, onSortingChange }
+    : {};
 
   const table = useReactTable({
     data,
@@ -132,9 +139,8 @@ export function DataListItemsTable({
     getCoreRowModel: getCoreRowModel(),
     getRowId: (row) => row.rowId,
     enableColumnPinning: true,
-    manualSorting: true,
-    state: { sorting },
-    onSortingChange,
+    manualSorting: sortingEnabled,
+    ...controlledSorting,
     initialState: {
       columnPinning: {
         left: ["value"],

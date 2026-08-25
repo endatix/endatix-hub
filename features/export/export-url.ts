@@ -11,6 +11,7 @@ export const DEFAULT_REPORTING_LOCALE = "default" as const;
 export const EXPORT_REQUEST_FILTER = {
   includeTestSubmissions: "includeTestSubmissions",
   createdAtRange: "createdAtRange",
+  modifiedAtRange: "modifiedAtRange",
   startedAtRange: "startedAtRange",
   completedAtRange: "completedAtRange",
   submissionIdRange: "submissionIdRange",
@@ -149,6 +150,7 @@ function appendAllowedListFilters(
   const allowedDateStems = (
     [
       ["created", EXPORT_REQUEST_FILTER.createdAtRange],
+      ["modified", EXPORT_REQUEST_FILTER.modifiedAtRange],
       ["started", EXPORT_REQUEST_FILTER.startedAtRange],
       ["completed", EXPORT_REQUEST_FILTER.completedAtRange],
     ] as const

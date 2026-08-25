@@ -15,7 +15,7 @@ export function DataTableSurface({
   isPending = false,
   children,
   ...props
-}: DataTableSurfaceProps) {
+}: Readonly<DataTableSurfaceProps>) {
   return (
     <div
       className={cn(

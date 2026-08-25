@@ -12,10 +12,13 @@ interface TenantsPageProps {
 }
 
 export default async function TenantsPage({ searchParams }: TenantsPageProps) {
-  const session = await requirePlatformAdmin();
+  const [session, resolvedSearchParams] = await Promise.all([
+    requirePlatformAdmin(),
+    searchParams,
+  ]);
   const tenants = await listPlatformTenants(
     session,
-    parsePlatformTenantListParams(await searchParams),
+    parsePlatformTenantListParams(resolvedSearchParams),
   );
 
   return (
