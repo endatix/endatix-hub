@@ -11,6 +11,7 @@ import { parseDataListId } from "./data-list-survey-integration";
 import { bindDataListsToSurvey } from "./survey-bindings";
 import type { ExtensionRuntimeDeps } from "@/lib/survey-extensions/types";
 import { bindConvertInlineChoicesTitleActions } from "./convert-inline-choices-title-actions";
+import { bindDataListCreatorTranslations } from "./creator-translation-bindings";
 import {
   refreshPropertyGridLazyChoices,
   refreshPropertyGridLazyChoicesForCreator,
@@ -102,6 +103,7 @@ export function bindDataListsToCreator(
 
   const disposeConvertTitleActions =
     bindConvertInlineChoicesTitleActions(creator);
+  const disposeTranslationCsv = bindDataListCreatorTranslations(creator);
 
   if (creator.survey) {
     bindSurveyForArea("__creator-initial-survey", creator.survey);
@@ -109,6 +111,7 @@ export function bindDataListsToCreator(
 
   return () => {
     disposeConvertTitleActions();
+    disposeTranslationCsv();
     creator.onAfterPropertyChanged.remove(onPropertyChanged);
     creator.onSurveyInstanceCreated.remove(handleSurveyInstanceCreated);
     creatorSurveyDisposers.forEach((dispose) => dispose?.());

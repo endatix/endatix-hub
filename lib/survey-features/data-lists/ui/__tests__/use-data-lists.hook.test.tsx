@@ -1,14 +1,17 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { DataLoadError } from "@/lib/errors/data-load-error";
+import { Result } from "@/lib/result";
 
-const { mockGetDataListsAction } = vi.hoisted(() => ({
-  mockGetDataListsAction: vi.fn(),
+const { mockGetDataListsForCreatorAction } = vi.hoisted(() => ({
+  mockGetDataListsForCreatorAction: vi.fn(),
 }));
 
-vi.mock("@/features/data-lists/view-lists/get-data-lists.action", () => ({
-  getAllDataListsAction: mockGetDataListsAction,
-}));
+vi.mock(
+  "@/features/data-lists/view-lists/get-data-lists-for-creator.action",
+  () => ({
+    getDataListsForCreatorAction: mockGetDataListsForCreatorAction,
+  }),
+);
 vi.mock("@/auth", () => ({
   auth: vi.fn(),
 }));
@@ -30,41 +33,40 @@ describe("useDataLists hooks", () => {
   });
 
   it("does not fetch data lists when only binding hook is used", () => {
-    // Arrange
     const { useDataLists } = hooksModule;
     renderHook(() => useDataLists());
 
-    // Act & Assert
-    expect(mockGetDataListsAction).not.toHaveBeenCalled();
+    expect(mockGetDataListsForCreatorAction).not.toHaveBeenCalled();
   });
 
-  it("fetches data lists in loader hook and exposes loading state", async () => {
-    // Arrange
+  it("fetches all data lists in loader hook and exposes loading state", async () => {
     const { useDataListsLoader } = hooksModule;
-    const dataLists = [{ id: 1, name: "Countries" }];
-    mockGetDataListsAction.mockResolvedValue(dataLists);
+    const dataLists = [
+      { id: 1, name: "Countries" },
+      { id: 2, name: "Cities" },
+    ];
+    mockGetDataListsForCreatorAction.mockResolvedValue(
+      Result.success(dataLists),
+    );
 
-    // Act
     const { result } = renderHook(() => useDataListsLoader());
 
-    // Assert
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
-    expect(mockGetDataListsAction).toHaveBeenCalledTimes(1);
+    expect(mockGetDataListsForCreatorAction).toHaveBeenCalledTimes(1);
     expect(result.current.dataLists).toEqual(dataLists);
     expect(result.current.error).toBeNull();
   });
 
   it("surfaces fetch failures via error and empty dataLists", async () => {
-    // Arrange
     const { useDataListsLoader } = hooksModule;
-    mockGetDataListsAction.mockRejectedValue(new DataLoadError("Unauthorized"));
+    mockGetDataListsForCreatorAction.mockResolvedValue(
+      Result.error("Unauthorized"),
+    );
 
-    // Act
     const { result } = renderHook(() => useDataListsLoader());
 
-    // Assert
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });

@@ -1,0 +1,52 @@
+.edx-data-list-translation-header__title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.edx-data-list-translation-header__title::before {
+  content: "";
+  flex: 0 0 1em;
+  width: 1em;
+  height: 1em;
+  background-color: currentColor;
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cellipse cx='12' cy='5' rx='9' ry='3'/%3E%3Cpath d='M3 5V19A9 3 0 0 0 15 21.84'/%3E%3Cpath d='M21 5V8'/%3E%3Cpath d='M21 12L18 17H22L19 22'/%3E%3Cpath d='M3 12A9 3 0 0 0 14.59 14.87'/%3E%3C/svg%3E");
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cellipse cx='12' cy='5' rx='9' ry='3'/%3E%3Cpath d='M3 5V19A9 3 0 0 0 15 21.84'/%3E%3Cpath d='M21 5V8'/%3E%3Cpath d='M21 12L18 17H22L19 22'/%3E%3Cpath d='M3 12A9 3 0 0 0 14.59 14.87'/%3E%3C/svg%3E");
+  -webkit-mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+}
+
+.edx-data-list-translation-header__link {
+  margin-left: auto;
+  font-weight: 500;
+  color: var(--sjs-primary-backcolor, #19b394);
+  text-decoration: underline;
+  white-space: nowrap;
+}
+
+.edx-data-list-translation-header__link:hover {
+  opacity: 0.85;
+}
+
+.edx-data-list-translation-help {
+  margin: 0;
+  padding: var(--sjs-base-unit, 8px)
+    var(--ctr-string-table-row-padding-right, 24px) var(--sjs-base-unit, 8px)
+    var(--ctr-string-table-row-padding-left, 24px);
+  color: var(
+    --ctr-string-table-title-caption-color,
+    var(--sjs-layer-1-foreground-50, rgba(0, 0, 0, 0.5))
+  );
+  font-size: var(--ctr-font-small-size, 12px);
+  line-height: 1.4;
+  background-color: var(
+    --ctr-string-table-row-background-color,
+    var(--sjs-layer-1-background-500, #fff)
+  );
+  border-bottom: 1px solid
+    var(--ctr-string-table-row-border-color, var(--sjs-border-10, gainsboro));
+}
