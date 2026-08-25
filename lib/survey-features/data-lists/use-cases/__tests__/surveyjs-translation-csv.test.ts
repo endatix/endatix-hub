@@ -31,6 +31,22 @@ describe("surveyjs translation CSV merge", () => {
     expect(merged).toContain("page1.question1.title,City,Ciudad");
   });
 
+  it("collapses trailing CRLF before appending data-list rows", () => {
+    const surveyCsv = '"h",English\r\npage1.title,City\r\n\r\n';
+
+    const merged = appendDataListRowsToSurveyCsv(surveyCsv, [
+      {
+        dataListId: "1",
+        availableLocales: [],
+        items: [{ value: "a", labels: { default: "A" } }],
+      },
+    ]);
+
+    expect(merged).toBe(
+      '"h",English\r\npage1.title,City\r\nedx_dataList_1_a,A',
+    );
+  });
+
   it("splits compound-key rows into management CSVs and leaves form rows", () => {
     // Arrange
     const rows = [
@@ -50,6 +66,8 @@ describe("surveyjs translation CSV merge", () => {
     expect(extracted.dataListCsvs).toHaveLength(1);
     expect(extracted.dataListCsvs[0].dataListId).toBe("42");
     expect(extracted.dataListCsvs[0].csv).toContain("value,default,es");
-    expect(extracted.dataListCsvs[0].csv).toContain("new_york,New York,Nueva York");
+    expect(extracted.dataListCsvs[0].csv).toContain(
+      "new_york,New York,Nueva York",
+    );
   });
 });

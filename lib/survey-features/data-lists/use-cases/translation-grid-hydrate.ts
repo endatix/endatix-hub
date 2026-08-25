@@ -288,7 +288,7 @@ function bindPlaceholderRefresh(stringsSurvey: SurveyModel): void {
 }
 
 function removeExistingSummaryPanels(stringsSurvey: SurveyModel): void {
-  for (const panel of [...stringsSurvey.getAllPanels()]) {
+  for (const panel of stringsSurvey.getAllPanels()) {
     if (String(panel.name).startsWith(DATA_LIST_HEADER_GROUP_PREFIX)) {
       panel.delete();
     }

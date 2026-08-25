@@ -1,4 +1,5 @@
 import { tryNormalizeCultureCode } from "@/lib/localization";
+import { stripTrailingNewlines } from "@/lib/utils/string-utils";
 import {
   encodeDataListTranslationKey,
   parseDataListTranslationKey,
@@ -69,8 +70,7 @@ export function appendDataListRowsToSurveyCsv(
     return surveyCsv;
   }
 
-  const trimmed = surveyCsv.replace(/(\r?\n)+$/, "");
-  return `${trimmed}\r\n${extraRows.join("\r\n")}`;
+  return `${stripTrailingNewlines(surveyCsv)}\r\n${extraRows.join("\r\n")}`;
 }
 
 export function extractDataListCsvsFromSurveyRows(rows: string[][]): {
