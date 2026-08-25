@@ -1,5 +1,5 @@
 import type { ExportFormat, ReportingExportFormat } from "../types";
-import { isValidCalendarDateYmd } from "@/lib/date-utils";
+import { parseCalendarDateYmd } from "@/lib/endatix-api/shared/list-query";
 
 export function parseLegacyExportFormat(
   format: string | null,
@@ -48,12 +48,7 @@ export function parseIncludeTestSubmissionsQuery(
 export function parseOptionalCalendarDateQuery(
   value: string | null,
 ): string | undefined {
-  if (!value?.trim()) {
-    return undefined;
-  }
-
-  const trimmed = value.trim();
-  return isValidCalendarDateYmd(trimmed) ? trimmed : undefined;
+  return parseCalendarDateYmd(value);
 }
 
 export function parseOptionalPositiveIdQuery(

@@ -35,13 +35,15 @@ import {
   DATA_LISTS_LIST_PATH,
   DATA_LISTS_TABLE_KEY,
   dataListsListHrefFromQuery,
-  parseCalendarDateParam,
-  parseDataListSortDir,
   parseDataListsReturnQuery,
   parseHasLocaleFilter,
   parseHasLocaleFilterSet,
   serializeHasLocaleFilter,
 } from "../../view-lists/utils";
+import {
+  parseCalendarDateYmd,
+  parseSortDir,
+} from "@/lib/endatix-api/shared/list-query";
 import { ChevronDown, Download, PencilLine, Upload } from "lucide-react";
 import type { Route } from "next";
 import {
@@ -408,10 +410,10 @@ function DataListItemsSection({
     }));
   }, [availableLocales, defaultLocale]);
 
-  const createdFrom = parseCalendarDateParam(searchParams.get("createdFrom"));
-  const createdTo = parseCalendarDateParam(searchParams.get("createdTo"));
-  const modifiedFrom = parseCalendarDateParam(searchParams.get("modifiedFrom"));
-  const modifiedTo = parseCalendarDateParam(searchParams.get("modifiedTo"));
+  const createdFrom = parseCalendarDateYmd(searchParams.get("createdFrom"));
+  const createdTo = parseCalendarDateYmd(searchParams.get("createdTo"));
+  const modifiedFrom = parseCalendarDateYmd(searchParams.get("modifiedFrom"));
+  const modifiedTo = parseCalendarDateYmd(searchParams.get("modifiedTo"));
   const sortBy = parseDataListItemSortBy(searchParams.get("sortBy"));
   const hasActiveFilters = Boolean(
     search.trim() ||
@@ -520,10 +522,10 @@ function DataListItemsPanel({
   const searchValue = searchParams.get("search") ?? "";
   const hasLocale = parseHasLocaleFilter(searchParams.get("hasLocale"));
   const hasLocaleFilter = Boolean(hasLocale);
-  const createdFrom = parseCalendarDateParam(searchParams.get("createdFrom"));
-  const createdTo = parseCalendarDateParam(searchParams.get("createdTo"));
-  const modifiedFrom = parseCalendarDateParam(searchParams.get("modifiedFrom"));
-  const modifiedTo = parseCalendarDateParam(searchParams.get("modifiedTo"));
+  const createdFrom = parseCalendarDateYmd(searchParams.get("createdFrom"));
+  const createdTo = parseCalendarDateYmd(searchParams.get("createdTo"));
+  const modifiedFrom = parseCalendarDateYmd(searchParams.get("modifiedFrom"));
+  const modifiedTo = parseCalendarDateYmd(searchParams.get("modifiedTo"));
   const hasFilters = Boolean(
     searchValue.trim() ||
     hasLocaleFilter ||
@@ -533,7 +535,7 @@ function DataListItemsPanel({
     modifiedTo,
   );
   const sortBy = parseDataListItemSortBy(searchParams.get("sortBy"));
-  const sortDir = parseDataListSortDir(searchParams.get("sortDir"));
+  const sortDir = parseSortDir(searchParams.get("sortDir"));
   const sorting = useMemo<SortingState>(() => {
     if (!sortBy) {
       return [];

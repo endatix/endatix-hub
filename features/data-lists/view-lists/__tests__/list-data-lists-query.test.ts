@@ -4,7 +4,6 @@ import {
   buildDataListDetailHref,
   buildDataListsListHref,
   dataListsListHrefFromQuery,
-  parseCalendarDateParam,
   parseDataListsListParams,
   parseDataListsReturnHref,
   parseDataListsReturnQuery,
@@ -92,16 +91,6 @@ describe("parseDataListsListParams", () => {
     expect(parsed.sortDir).toBeUndefined();
     expect(parsed.createdFrom).toBeUndefined();
     expect(parsed.createdTo).toBeUndefined();
-  });
-});
-
-describe("parseCalendarDateParam", () => {
-  it("accepts valid YYYY-MM-DD", () => {
-    expect(parseCalendarDateParam("2024-06-01")).toBe("2024-06-01");
-  });
-
-  it("rejects non-calendar dates", () => {
-    expect(parseCalendarDateParam("2024-02-30")).toBeUndefined();
   });
 });
 

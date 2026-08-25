@@ -1,5 +1,8 @@
 import type { ListSubmissionsRequest } from "@/lib/endatix-api/submissions/types";
-import { isValidCalendarDateYmd } from "@/lib/date-utils";
+import {
+  parseCalendarDateYmd,
+  pickDateRangeFilters,
+} from "@/lib/endatix-api/shared/list-query";
 import {
   SUBMISSION_LIST_BOOLEAN_FILTER_VALUES,
   SUBMISSION_LIST_DEFAULT_PAGE,
@@ -65,12 +68,7 @@ export function parseSubmissionListPageSize(value: string | undefined): number {
 export function parseSubmissionListCalendarDate(
   value: string | undefined,
 ): string | undefined {
-  if (!value) {
-    return undefined;
-  }
-
-  const trimmed = value.trim();
-  return isValidCalendarDateYmd(trimmed) ? trimmed : undefined;
+  return parseCalendarDateYmd(value);
 }
 
 /**
@@ -157,6 +155,11 @@ export function parseSubmissionListSearchParams(
     firstString(searchParams[searchParamKeys.pageSize]) ?? undefined,
   );
 
+  const dateFilters = pickDateRangeFilters(
+    (key) => firstString(searchParams[key]),
+    ["created", "modified", "started", "completed"] as const,
+  );
+
   return {
     page,
     pageSize,
@@ -172,30 +175,7 @@ export function parseSubmissionListSearchParams(
       firstString(searchParams[searchParamKeys.isTestSubmission]),
       SUBMISSION_LIST_BOOLEAN_FILTER_VALUES,
     ),
-    createdFrom: parseSubmissionListCalendarDate(
-      firstString(searchParams[searchParamKeys.createdFrom]),
-    ),
-    createdTo: parseSubmissionListCalendarDate(
-      firstString(searchParams[searchParamKeys.createdTo]),
-    ),
-    modifiedFrom: parseSubmissionListCalendarDate(
-      firstString(searchParams[searchParamKeys.modifiedFrom]),
-    ),
-    modifiedTo: parseSubmissionListCalendarDate(
-      firstString(searchParams[searchParamKeys.modifiedTo]),
-    ),
-    startedFrom: parseSubmissionListCalendarDate(
-      firstString(searchParams[searchParamKeys.startedFrom]),
-    ),
-    startedTo: parseSubmissionListCalendarDate(
-      firstString(searchParams[searchParamKeys.startedTo]),
-    ),
-    completedFrom: parseSubmissionListCalendarDate(
-      firstString(searchParams[searchParamKeys.completedFrom]),
-    ),
-    completedTo: parseSubmissionListCalendarDate(
-      firstString(searchParams[searchParamKeys.completedTo]),
-    ),
+    ...dateFilters,
     submitterDisplayId:
       firstString(searchParams[searchParamKeys.submitterDisplayId])?.trim() ||
       undefined,

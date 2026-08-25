@@ -1,10 +1,11 @@
 import { parsePagedSearchParams } from "@/lib/list-page/parse-paged-search-params";
 import type { ListDataListItemsRequest } from "@/lib/endatix-api/data-lists/types";
 import {
-  parseCalendarDateParam,
-  parseDataListSortDir,
-  parseHasLocaleFilter,
-} from "../view-lists/utils";
+  parseSortBy,
+  parseSortDir,
+  pickDateRangeFilters,
+} from "@/lib/endatix-api/shared/list-query";
+import { parseHasLocaleFilter } from "../view-lists/utils";
 
 export const DEFAULT_DATA_LIST_ITEMS_PAGE_SIZE = 25;
 
@@ -28,16 +29,7 @@ export interface DataListItemsSearchParams {
 export function parseDataListItemSortBy(
   value: string | null | undefined,
 ): ListDataListItemsRequest["sortBy"] {
-  const trimmed = value?.trim();
-  if (!trimmed) {
-    return undefined;
-  }
-
-  return ALLOWED_ITEM_SORT_BY.has(
-    trimmed as NonNullable<ListDataListItemsRequest["sortBy"]>,
-  )
-    ? (trimmed as NonNullable<ListDataListItemsRequest["sortBy"]>)
-    : undefined;
+  return parseSortBy(value, ALLOWED_ITEM_SORT_BY);
 }
 
 export function parseDataListItemsParams(
@@ -49,17 +41,18 @@ export function parseDataListItemsParams(
   );
   const search = searchParams?.search?.trim() || undefined;
   const hasLocale = parseHasLocaleFilter(searchParams?.hasLocale);
+  const dateFilters = pickDateRangeFilters(
+    (key) => searchParams?.[key as keyof DataListItemsSearchParams],
+    ["created", "modified"] as const,
+  );
 
   return {
     ...paging,
     query: search,
     hasLocale,
     sortBy: parseDataListItemSortBy(searchParams?.sortBy),
-    sortDir: parseDataListSortDir(searchParams?.sortDir),
-    createdFrom: parseCalendarDateParam(searchParams?.createdFrom),
-    createdTo: parseCalendarDateParam(searchParams?.createdTo),
-    modifiedFrom: parseCalendarDateParam(searchParams?.modifiedFrom),
-    modifiedTo: parseCalendarDateParam(searchParams?.modifiedTo),
+    sortDir: parseSortDir(searchParams?.sortDir),
+    ...dateFilters,
   };
 }
 

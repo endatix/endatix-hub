@@ -1,4 +1,4 @@
-import { isValidCalendarDateYmd } from "@/lib/date-utils";
+import { appendDateRangeFilters } from "@/lib/endatix-api/shared/list-query";
 import { withBasePath } from "@/lib/hosting";
 
 /**
@@ -98,21 +98,6 @@ export function mapIncludeTestSubmissions(
   return undefined;
 }
 
-function appendCalendarRange(
-  params: URLSearchParams,
-  fromKey: string,
-  toKey: string,
-  from: string | undefined,
-  to: string | undefined,
-): void {
-  if (from && isValidCalendarDateYmd(from)) {
-    params.set(fromKey, from);
-  }
-  if (to && isValidCalendarDateYmd(to)) {
-    params.set(toKey, to);
-  }
-}
-
 function appendIncludeTestSubmissionsFilter(
   params: URLSearchParams,
   filters: SubmissionExportListFilters,
@@ -161,34 +146,18 @@ function appendAllowedListFilters(
     appendIncludeTestSubmissionsFilter(params, filters);
   }
 
-  if (allowsFilter(allowedFilters, EXPORT_REQUEST_FILTER.createdAtRange)) {
-    appendCalendarRange(
-      params,
-      "createdFrom",
-      "createdTo",
-      filters.createdFrom,
-      filters.createdTo,
-    );
-  }
+  const allowedDateStems = (
+    [
+      ["created", EXPORT_REQUEST_FILTER.createdAtRange],
+      ["started", EXPORT_REQUEST_FILTER.startedAtRange],
+      ["completed", EXPORT_REQUEST_FILTER.completedAtRange],
+    ] as const
+  )
+    .filter(([, filter]) => allowsFilter(allowedFilters, filter))
+    .map(([stem]) => stem);
 
-  if (allowsFilter(allowedFilters, EXPORT_REQUEST_FILTER.startedAtRange)) {
-    appendCalendarRange(
-      params,
-      "startedFrom",
-      "startedTo",
-      filters.startedFrom,
-      filters.startedTo,
-    );
-  }
-
-  if (allowsFilter(allowedFilters, EXPORT_REQUEST_FILTER.completedAtRange)) {
-    appendCalendarRange(
-      params,
-      "completedFrom",
-      "completedTo",
-      filters.completedFrom,
-      filters.completedTo,
-    );
+  if (allowedDateStems.length > 0) {
+    appendDateRangeFilters(params, filters, allowedDateStems);
   }
 
   if (allowsFilter(allowedFilters, EXPORT_REQUEST_FILTER.submissionIdRange)) {
