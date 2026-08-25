@@ -6,7 +6,10 @@ import {
   DataListDetailsPage,
 } from "@/features/data-lists/view-list-details";
 import { getDataListItemsPage } from "@/features/data-lists/view-list-details/get-data-list-items.server";
-import { parseDataListItemsParams } from "@/features/data-lists/view-list-details/utils";
+import {
+  parseDataListItemsParams,
+  resolveItemsIncludeLocales,
+} from "@/features/data-lists/view-list-details/utils";
 import { firstString } from "@/features/data-lists/view-lists/utils";
 import { isNotFoundError } from "@/lib/endatix-api";
 import { hasValue, SearchParam } from "@/lib/utils/next-utils";
@@ -18,6 +21,7 @@ interface DataListDetailsRoutePageProps {
     page: SearchParam;
     pageSize: SearchParam;
     search: SearchParam;
+    hasLocale: SearchParam;
   }>;
 }
 
@@ -45,20 +49,30 @@ export default async function DataListDetailsRoutePage({
     page: firstString(raw.page),
     pageSize: firstString(raw.pageSize),
     search: firstString(raw.search),
+    hasLocale: firstString(raw.hasLocale),
   });
-  const includeLocales = dataListResult.data.availableLocales ?? [];
+  const availableLocales = dataListResult.data.availableLocales ?? [];
+  const includeLocales = resolveItemsIncludeLocales({
+    hasLocale: itemsRequest.hasLocale,
+    availableLocales,
+  });
+  const searchLocale = includeLocales[0] ?? dataListResult.data.defaultLocale;
   const itemsPromise = getDataListItemsPage(dataListId, {
-    ...itemsRequest,
+    page: itemsRequest.page,
+    pageSize: itemsRequest.pageSize,
+    query: itemsRequest.query,
     includeLocales,
-    locale: dataListResult.data.defaultLocale,
+    locale: searchLocale,
   });
   const openReplaceOnLoad = hasValue(raw.action, "replace");
+  const openEditOnLoad = hasValue(raw.action, "edit");
 
   return (
     <DataListDetailsPage
       initialDetails={dataListResult.data}
       itemsPromise={itemsPromise}
       openReplaceOnLoad={openReplaceOnLoad}
+      openEditOnLoad={openEditOnLoad}
     />
   );
 }

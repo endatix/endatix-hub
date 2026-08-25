@@ -23,6 +23,7 @@ import {
   ImportDataListRequest,
   ListDataListItemsRequest,
   ListDataListsRequest,
+  UpdateDataListDetailsRequest,
 } from "./types";
 
 export type DataListsPage = NormalizedPagedResponse<DataList>;
@@ -53,6 +54,12 @@ export function buildListDataListsEndpoint(
   appendPagingQueryParams(searchParams, request, { page: 1, pageSize: 10 });
   appendQueryParam(searchParams, "search", request.search);
   appendQueryParam(searchParams, "hasLocale", request.hasLocale);
+  appendQueryParam(searchParams, "sortBy", request.sortBy);
+  appendQueryParam(searchParams, "sortDir", request.sortDir);
+  appendQueryParam(searchParams, "createdFrom", request.createdFrom);
+  appendQueryParam(searchParams, "createdTo", request.createdTo);
+  appendQueryParam(searchParams, "modifiedFrom", request.modifiedFrom);
+  appendQueryParam(searchParams, "modifiedTo", request.modifiedTo);
   return buildEndpointWithQuery(DATA_LISTS_BASE, searchParams);
 }
 
@@ -91,6 +98,10 @@ export class DataLists {
     }
 
     return ApiResult.success(normalizePagedResponse(response.data));
+  }
+
+  async listLocales(): Promise<ApiResult<string[]>> {
+    return this.endatix.get<string[]>(`${DATA_LISTS_BASE}/locales`);
   }
 
   async listItems(
@@ -136,6 +147,21 @@ export class DataLists {
     request: CreateDataListRequest,
   ): Promise<ApiResult<DataListDetails>> {
     return this.endatix.post<DataListDetails>(DATA_LISTS_BASE, request);
+  }
+
+  async updateDetails(
+    dataListId: string,
+    request: UpdateDataListDetailsRequest,
+  ): Promise<ApiResult<DataListDetails>> {
+    const idResult = this.requireDataListId(dataListId);
+    if (!idResult.success) {
+      return idResult;
+    }
+
+    return this.endatix.patch<DataListDetails>(
+      dataListPath(idResult.data),
+      request,
+    );
   }
 
   async import(

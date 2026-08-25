@@ -1,12 +1,19 @@
 "use client";
 
-import { use, useEffect, useState, useTransition } from "react";
-import type { Route } from "next";
+import {
+  use,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  useTransition,
+} from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   CellDate,
   createPagedTableFooterProps,
+  DataTableColumnHeader,
   dataTableBodyCellClassName,
   dataTableBodyRowClassName,
   dataTableColumnLabelClassName,
@@ -14,8 +21,8 @@ import {
   DataTableEmpty,
   DataTableSurface,
   PagedTableFooter,
+  type DateFilterValue,
 } from "@/components/table";
-import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/loaders/spinner";
 import {
   AlertDialog,
@@ -36,27 +43,39 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "@/components/ui/toast";
-import { formatLocaleLabel } from "@/features/data-lists/translations/locale-discovery";
 import type {
   DataList,
+  DataListListSortBy,
   FormDependencySummary,
 } from "@/lib/endatix-api/data-lists/types";
 import type { DataListsPage } from "@/lib/endatix-api/data-lists/data-lists";
 import { rememberTableReturnTo } from "@/lib/list-page/table-return-to";
 import { useListUrlState } from "@/lib/list-page/use-list-url-state";
+import type { UrlSearchParamsUpdater } from "@/lib/utils/hooks/use-url-search-params-updater.hook";
 import { Result } from "@/lib/result";
 import { formatInteger } from "@/lib/utils/formatters";
+import {
+  flexRender,
+  getCoreRowModel,
+  useReactTable,
+  type ColumnDef,
+  type SortingState,
+  type Updater,
+} from "@tanstack/react-table";
+import type { Route } from "next";
 import { CreateDataListDialog } from "../../create-list/ui/create-data-list-dialog";
 import { DataListRowActions } from "./data-list-row-actions";
+import { DataListLocalesCell } from "./data-list-locales-cell";
 import { getDataListFormDependenciesAction } from "../get-data-list-form-dependencies.action";
 import { deleteDataListAction } from "../../delete-list/delete-data-list.action";
 import {
   buildDataListDetailHref,
   buildDataListsListHref,
   DATA_LISTS_TABLE_KEY,
-  parseDataListsListParams,
+  listUrlStateFromSearchParams,
   parseDataListsReturnQuery,
 } from "../utils";
+import "./table-types";
 
 interface DataListsPageProps {
   dataListsPromise: Promise<DataListsPage>;
@@ -83,8 +102,29 @@ export function DataListsPage({
   const paged = use(dataListsPromise);
   const router = useRouter();
   const { updateUrl, searchParams } = useListUrlState();
-  const hasLocaleInput = searchParams.get("hasLocale") ?? "";
+  const urlState = listUrlStateFromSearchParams(searchParams);
   const searchInput = searchParams.get("search") ?? "";
+
+  const sorting = useMemo<SortingState>(() => {
+    if (!urlState.sortBy) {
+      return [];
+    }
+    return [
+      {
+        id: urlState.sortBy,
+        desc: urlState.sortDir !== "asc",
+      },
+    ];
+  }, [urlState.sortBy, urlState.sortDir]);
+
+  const createdDateFilter: DateFilterValue = useMemo(
+    () => ({ from: urlState.createdFrom, to: urlState.createdTo }),
+    [urlState.createdFrom, urlState.createdTo],
+  );
+  const modifiedDateFilter: DateFilterValue = useMemo(
+    () => ({ from: urlState.modifiedFrom, to: urlState.modifiedTo }),
+    [urlState.modifiedFrom, urlState.modifiedTo],
+  );
 
   // Lets "Back to Data Lists" on the detail page restore paging/filters —
   // see lib/list-page/table-return-to and AGENTS.md "Detail → list back
@@ -112,45 +152,38 @@ export function DataListsPage({
     setIsCreateDialogOpen(openCreateOnLoad);
   }, [openCreateOnLoad]);
 
-  const buildReturnHref = (): string => {
-    const parsed = parseDataListsListParams({
-      search: searchParams.get("search") ?? undefined,
-      hasLocale: searchParams.get("hasLocale") ?? undefined,
-    });
+  const replaceListHref = useCallback(() => {
+    router.replace(buildDataListsListHref(urlState) as Route);
+  }, [router, urlState]);
 
-    return buildDataListsListHref({
-      page: paged.page,
-      pageSize: paged.pageSize,
-      search: parsed.search,
-      hasLocale: parsed.hasLocale,
-    });
-  };
+  const handleOpenDelete = useCallback(
+    (dataList: DataList) => {
+      setIsCreateDialogOpen(false);
+      replaceListHref();
 
-  const handleOpenDelete = (dataList: DataList) => {
-    setIsCreateDialogOpen(false);
-    router.replace(buildReturnHref() as Route);
+      setSelectedForDelete(dataList);
+      setDependencies([]);
+      setIsDeleteBlocked(false);
+      setIsDeleteDialogOpen(true);
 
-    setSelectedForDelete(dataList);
-    setDependencies([]);
-    setIsDeleteBlocked(false);
-    setIsDeleteDialogOpen(true);
-
-    startDependenciesTransition(async () => {
-      const dependenciesResult = await getDataListFormDependenciesAction(
-        String(dataList.id),
-      );
-
-      if (Result.isError(dependenciesResult)) {
-        toast.error(
-          dependenciesResult.message || "Failed to load dependencies",
+      startDependenciesTransition(async () => {
+        const dependenciesResult = await getDataListFormDependenciesAction(
+          String(dataList.id),
         );
-        return;
-      }
 
-      setDependencies(dependenciesResult.value);
-      setIsDeleteBlocked(dependenciesResult.value.length > 0);
-    });
-  };
+        if (Result.isError(dependenciesResult)) {
+          toast.error(
+            dependenciesResult.message || "Failed to load dependencies",
+          );
+          return;
+        }
+
+        setDependencies(dependenciesResult.value);
+        setIsDeleteBlocked(dependenciesResult.value.length > 0);
+      });
+    },
+    [replaceListHref],
+  );
 
   const handleDelete = () => {
     if (!selectedForDelete || isDeleteBlocked) {
@@ -175,18 +208,67 @@ export function DataListsPage({
   const handleCreateDialogClose = (open: boolean): void => {
     setIsCreateDialogOpen(open);
     if (!open) {
-      router.replace(buildReturnHref() as Route);
+      replaceListHref();
     }
   };
 
-  const footerProps = createPagedTableFooterProps(paged, "data lists", updateUrl);
+  const handleSortingChange = (updater: Updater<SortingState>) => {
+    const next = typeof updater === "function" ? updater(sorting) : updater;
+    const first = next[0];
+    if (!first) {
+      updateUrl({ sortBy: null, sortDir: null, page: "1" });
+      return;
+    }
+
+    updateUrl({
+      sortBy: first.id,
+      sortDir: first.desc ? "desc" : "asc",
+      page: "1",
+    });
+  };
+
+  const columns = useMemo(
+    () =>
+      buildDataListColumns({
+        updateUrl,
+        createdDateFilter,
+        modifiedDateFilter,
+        onDelete: handleOpenDelete,
+      }),
+    [updateUrl, createdDateFilter, modifiedDateFilter, handleOpenDelete],
+  );
+
+  const tableData = useMemo(() => [...paged.items], [paged.items]);
+  const table = useReactTable({
+    data: tableData,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    getRowId: (row) => String(row.id),
+    manualSorting: true,
+    state: { sorting },
+    onSortingChange: handleSortingChange,
+  });
+
+  const footerProps = createPagedTableFooterProps(
+    paged,
+    "data lists",
+    updateUrl,
+  );
+  const hasFilters = Boolean(
+    searchInput.trim() ||
+    urlState.hasLocale ||
+    urlState.createdFrom ||
+    urlState.createdTo ||
+    urlState.modifiedFrom ||
+    urlState.modifiedTo,
+  );
 
   return (
     <>
       <DataTableSurface data-slot="data-lists-table" className="mt-4">
         {paged.items.length === 0 ? (
           <DataTableEmpty>
-            {searchInput || hasLocaleInput
+            {hasFilters
               ? "No data lists match the current filters."
               : "No data lists yet."}
           </DataTableEmpty>
@@ -194,144 +276,54 @@ export function DataListsPage({
           <div className="w-full overflow-x-auto">
             <Table className="border-separate border-spacing-0">
               <TableHeader className="bg-surface-container-low">
-                <TableRow className="border-0 hover:bg-transparent">
-                  <TableHead
-                    className={dataTableHeaderCellClassName({
-                      className: "min-w-[12rem]",
-                    })}
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <TableRow
+                    key={headerGroup.id}
+                    className="border-0 hover:bg-transparent"
                   >
-                    <span className={dataTableColumnLabelClassName()}>
-                      Friendly Name
-                    </span>
-                  </TableHead>
-                  <TableHead className={dataTableHeaderCellClassName({})}>
-                    <span className={dataTableColumnLabelClassName()}>
-                      Status
-                    </span>
-                  </TableHead>
-                  <TableHead
-                    className={dataTableHeaderCellClassName({
-                      className: "min-w-[10rem]",
-                    })}
-                  >
-                    <span className={dataTableColumnLabelClassName()}>
-                      Locales
-                    </span>
-                  </TableHead>
-                  <TableHead
-                    className={dataTableHeaderCellClassName({
-                      className: "hidden md:table-cell",
-                    })}
-                  >
-                    <span className={dataTableColumnLabelClassName()}>
-                      Created
-                    </span>
-                  </TableHead>
-                  <TableHead
-                    className={dataTableHeaderCellClassName({
-                      className: "hidden md:table-cell",
-                    })}
-                  >
-                    <span className={dataTableColumnLabelClassName()}>
-                      Modified
-                    </span>
-                  </TableHead>
-                  <TableHead
-                    className={dataTableHeaderCellClassName({
-                      className: "hidden text-right md:table-cell",
-                    })}
-                  >
-                    <span className={dataTableColumnLabelClassName()}>
-                      Items
-                    </span>
-                  </TableHead>
-                  <TableHead
-                    className={dataTableHeaderCellClassName({
-                      className: "text-right",
-                    })}
-                  >
-                    <span className={dataTableColumnLabelClassName()}>
-                      Actions
-                    </span>
-                  </TableHead>
-                </TableRow>
+                    {headerGroup.headers.map((header) => (
+                      <TableHead
+                        key={header.id}
+                        colSpan={header.colSpan}
+                        className={dataTableHeaderCellClassName({
+                          className:
+                            header.column.columnDef.meta?.headerClassName,
+                        })}
+                      >
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext(),
+                            )}
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                ))}
               </TableHeader>
               <TableBody>
-                {paged.items.map((dataList, rowIndex) => {
+                {table.getRowModel().rows.map((row, rowIndex) => {
                   const isEvenRow = rowIndex % 2 === 1;
-                  const detailHref = buildDataListDetailHref(
-                    String(dataList.id),
-                  );
                   return (
                     <TableRow
-                      key={dataList.id}
+                      key={row.id}
                       className={dataTableBodyRowClassName({ isEvenRow })}
                     >
-                      <TableCell
-                        className={dataTableBodyCellClassName({
-                          isEvenRow,
-                          className: "min-w-[12rem]",
-                        })}
-                      >
-                        <Link href={detailHref as Route} className="block min-w-0">
-                          <p className="truncate text-sm font-medium">
-                            {dataList.name}
-                          </p>
-                          <p className="truncate text-xs text-muted-foreground">
-                            {dataList.description || "No description"}
-                          </p>
-                          <p className="mt-1 text-xs text-muted-foreground md:hidden">
-                            <CellDate date={dataList.modifiedAt ?? dataList.createdAt} />
-                          </p>
-                        </Link>
-                      </TableCell>
-                      <TableCell
-                        className={dataTableBodyCellClassName({ isEvenRow })}
-                      >
-                        <StatusPill isActive={dataList.isActive} />
-                      </TableCell>
-                      <TableCell
-                        className={dataTableBodyCellClassName({ isEvenRow })}
-                      >
-                        <LocalesCell dataList={dataList} />
-                      </TableCell>
-                      <TableCell
-                        className={dataTableBodyCellClassName({
-                          isEvenRow,
-                          className: "hidden md:table-cell",
-                        })}
-                      >
-                        <CellDate date={dataList.createdAt} />
-                      </TableCell>
-                      <TableCell
-                        className={dataTableBodyCellClassName({
-                          isEvenRow,
-                          className: "hidden md:table-cell",
-                        })}
-                      >
-                        <CellDate date={dataList.modifiedAt} />
-                      </TableCell>
-                      <TableCell
-                        className={dataTableBodyCellClassName({
-                          isEvenRow,
-                          className: "hidden text-right md:table-cell",
-                        })}
-                      >
-                        <Link href={detailHref as Route}>
-                          {formatInteger(dataList.itemsCount)}
-                        </Link>
-                      </TableCell>
-                      <TableCell
-                        className={dataTableBodyCellClassName({
-                          isEvenRow,
-                          className: "text-right",
-                        })}
-                      >
-                        <DataListRowActions
-                          dataList={dataList}
-                          onDelete={handleOpenDelete}
-                        />
-                      </TableCell>
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell
+                          key={cell.id}
+                          className={dataTableBodyCellClassName({
+                            isEvenRow,
+                            className:
+                              cell.column.columnDef.meta?.cellClassName,
+                          })}
+                        >
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext(),
+                          )}
+                        </TableCell>
+                      ))}
                     </TableRow>
                   );
                 })}
@@ -416,26 +408,176 @@ export function DataListsPage({
   );
 }
 
-function LocalesCell({ dataList }: Readonly<{ dataList: DataList }>) {
-  const defaultLocale = dataList.defaultLocale;
-  const extra = dataList.availableLocales ?? [];
+type BuildColumnsArgs = {
+  updateUrl: UrlSearchParamsUpdater;
+  createdDateFilter: DateFilterValue;
+  modifiedDateFilter: DateFilterValue;
+  onDelete: (dataList: DataList) => void;
+};
 
-  if (!defaultLocale && extra.length === 0) {
-    return <span className="text-muted-foreground">—</span>;
-  }
+function buildDataListColumns({
+  updateUrl,
+  createdDateFilter,
+  modifiedDateFilter,
+  onDelete,
+}: BuildColumnsArgs): ColumnDef<DataList>[] {
+  const sortableId = (id: DataListListSortBy) => id;
 
-  return (
-    <div className="flex flex-wrap gap-1">
-      {defaultLocale ? (
-        <Badge variant="secondary">{formatLocaleLabel(defaultLocale)}</Badge>
-      ) : null}
-      {extra.map((locale) => (
-        <Badge key={locale} variant="outline">
-          {formatLocaleLabel(locale)}
-        </Badge>
-      ))}
-    </div>
-  );
+  return [
+    {
+      id: sortableId("name"),
+      accessorKey: "name",
+      enableSorting: true,
+      meta: {
+        headerClassName: "min-w-[12rem]",
+        cellClassName: "min-w-[12rem]",
+      },
+      header: ({ column }) => (
+        <DataTableColumnHeader
+          column={column}
+          title="Friendly Name"
+          isSorted={column.getIsSorted()}
+        />
+      ),
+      cell: ({ row }) => {
+        const dataList = row.original;
+        const detailHref = buildDataListDetailHref(String(dataList.id));
+        return (
+          <Link href={detailHref as Route} className="block min-w-0">
+            <p className="truncate text-sm font-medium">{dataList.name}</p>
+            <p className="truncate text-xs text-muted-foreground">
+              {dataList.description || "No description"}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground md:hidden">
+              <CellDate date={dataList.modifiedAt ?? dataList.createdAt} />
+            </p>
+          </Link>
+        );
+      },
+    },
+    {
+      id: sortableId("isActive"),
+      accessorKey: "isActive",
+      enableSorting: true,
+      header: ({ column }) => (
+        <DataTableColumnHeader
+          column={column}
+          title="Status"
+          isSorted={column.getIsSorted()}
+        />
+      ),
+      cell: ({ row }) => <StatusPill isActive={row.original.isActive} />,
+    },
+    {
+      id: "locales",
+      enableSorting: false,
+      meta: {
+        headerClassName: "min-w-[10rem]",
+        cellClassName: "min-w-[10rem]",
+      },
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Locales" />
+      ),
+      cell: ({ row }) => (
+        <DataListLocalesCell
+          defaultLocale={row.original.defaultLocale}
+          availableLocales={row.original.availableLocales}
+        />
+      ),
+    },
+    {
+      id: sortableId("createdAt"),
+      accessorKey: "createdAt",
+      enableSorting: true,
+      meta: {
+        headerClassName: "hidden md:table-cell",
+        cellClassName: "hidden md:table-cell",
+      },
+      header: ({ column }) => (
+        <DataTableColumnHeader
+          column={column}
+          title="Created"
+          isSorted={column.getIsSorted()}
+          dateFilter={{
+            value: createdDateFilter,
+            onChange: (value) => {
+              updateUrl({
+                createdFrom: value.from ?? null,
+                createdTo: value.to ?? null,
+                page: "1",
+              });
+            },
+          }}
+        />
+      ),
+      cell: ({ row }) => <CellDate date={row.original.createdAt} />,
+    },
+    {
+      id: sortableId("modifiedAt"),
+      accessorKey: "modifiedAt",
+      enableSorting: true,
+      meta: {
+        headerClassName: "hidden md:table-cell",
+        cellClassName: "hidden md:table-cell",
+      },
+      header: ({ column }) => (
+        <DataTableColumnHeader
+          column={column}
+          title="Modified"
+          isSorted={column.getIsSorted()}
+          dateFilter={{
+            value: modifiedDateFilter,
+            onChange: (value) => {
+              updateUrl({
+                modifiedFrom: value.from ?? null,
+                modifiedTo: value.to ?? null,
+                page: "1",
+              });
+            },
+          }}
+        />
+      ),
+      cell: ({ row }) => <CellDate date={row.original.modifiedAt} />,
+    },
+    {
+      id: sortableId("itemsCount"),
+      accessorKey: "itemsCount",
+      enableSorting: true,
+      meta: {
+        headerClassName: "hidden text-right md:table-cell",
+        cellClassName: "hidden text-right md:table-cell",
+      },
+      header: ({ column }) => (
+        <DataTableColumnHeader
+          column={column}
+          title="Items"
+          isSorted={column.getIsSorted()}
+        />
+      ),
+      cell: ({ row }) => {
+        const detailHref = buildDataListDetailHref(String(row.original.id));
+        return (
+          <Link href={detailHref as Route}>
+            {formatInteger(row.original.itemsCount)}
+          </Link>
+        );
+      },
+    },
+    {
+      id: "actions",
+      enableSorting: false,
+      meta: {
+        headerClassName: "text-right",
+        cellClassName: "text-right",
+      },
+      header: () => (
+        <span className={dataTableColumnLabelClassName()}>Actions</span>
+      ),
+      cell: ({ row }) => (
+        <DataListRowActions dataList={row.original} onDelete={onDelete} />
+      ),
+    },
+  ];
 }
 
 function StatusPill({ isActive }: Readonly<{ isActive: boolean }>) {

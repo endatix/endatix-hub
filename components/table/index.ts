@@ -1,6 +1,15 @@
 export { BackToTableButton } from "./back-to-table-button";
 export { CellDate, type CellDateProps } from "./cell-date";
 export {
+  DataTableColumnHeader,
+  DateFilterControls,
+  getColumnHeaderChromeClassName,
+  getColumnHeaderTitleSwapClassName,
+  TextFilterControls,
+  type DataTableColumnHeaderProps,
+} from "./data-table-column-header";
+export type { DateFilterValue } from "./date-filter-types";
+export {
   FacetedFilter,
   type FacetedFilterOption,
   type FacetedFilterProps,

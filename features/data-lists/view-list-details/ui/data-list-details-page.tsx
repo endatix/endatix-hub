@@ -7,6 +7,7 @@ import {
   createPagedTableFooterProps,
   PagedTableFooter,
   TableSearchInput,
+  type FacetedFilterOption,
 } from "@/components/table";
 import {
   DropdownMenu,
@@ -25,23 +26,36 @@ import {
   getFilenameFromContentDisposition,
   initiateFileDownload,
 } from "@/lib/utils/files-download";
-import { ChevronDown, Download, Upload } from "lucide-react";
+import { formatLocaleLabel } from "@/features/data-lists/translations/locale-discovery";
+import { DataListLocalesCell } from "@/features/data-lists/view-lists/ui/data-list-locales-cell";
+import {
+  DATA_LISTS_LIST_PATH,
+  DATA_LISTS_TABLE_KEY,
+  dataListsListHrefFromQuery,
+  parseDataListsReturnQuery,
+  parseHasLocaleFilter,
+  parseHasLocaleFilterSet,
+  serializeHasLocaleFilter,
+} from "../../view-lists/utils";
+import { ChevronDown, Download, PencilLine, Upload } from "lucide-react";
 import type { Route } from "next";
-import { Suspense, use, useEffect, useState, useTransition } from "react";
-import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Suspense,
+  use,
+  useEffect,
+  useMemo,
+  useState,
+  useTransition,
+} from "react";
 import { ReplaceItemsDialog } from "../../replace-items/ui/replace-items-dialog";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { validateEndatixId } from "@/lib/utils/type-validators";
 import { Result } from "@/lib/result";
 import type { DataListSourceFormat } from "../../add-items/data-list-items-input";
 import { DataListItemsTable } from "./data-list-items-table";
-import { LocaleCatalogPanel } from "./locale-catalog-panel";
-import {
-  DATA_LISTS_LIST_PATH,
-  DATA_LISTS_TABLE_KEY,
-  dataListsListHrefFromQuery,
-  parseDataListsReturnQuery,
-} from "../../view-lists/utils";
+import { DataListItemsTableSkeleton } from "./data-list-items-table-skeleton";
+import { EditDataListPanel } from "./edit-data-list-panel";
+import { resolveVisibleLabelColumns } from "../utils";
 
 const CSV_EXPORT_LOGGER = "data-lists.exportCsv";
 
@@ -49,18 +63,22 @@ interface DataListDetailsPageProps {
   initialDetails: DataListDetails;
   itemsPromise: Promise<DataListItemsPage>;
   openReplaceOnLoad?: boolean;
+  openEditOnLoad?: boolean;
 }
 
 export function DataListDetailsPage({
   initialDetails,
   itemsPromise,
   openReplaceOnLoad = false,
+  openEditOnLoad = false,
 }: Readonly<DataListDetailsPageProps>) {
   const [details, setDetails] = useState(initialDetails);
   const [isReplaceDialogOpen, setIsReplaceDialogOpen] =
     useState(openReplaceOnLoad);
   const [openedReplaceFromLoad, setOpenedReplaceFromLoad] =
     useState(openReplaceOnLoad);
+  const [isEditPanelOpen, setIsEditPanelOpen] = useState(openEditOnLoad);
+  const [openedEditFromLoad, setOpenedEditFromLoad] = useState(openEditOnLoad);
   const [replaceInitialFormat, setReplaceInitialFormat] =
     useState<DataListSourceFormat>("json");
   const [isDownloadPending, startDownloadTransition] = useTransition();
@@ -99,6 +117,21 @@ export function DataListDetailsPage({
     setIsReplaceDialogOpen(true);
   }, [openReplaceOnLoad, details.id]);
 
+  useEffect(() => {
+    if (!openEditOnLoad) {
+      return;
+    }
+
+    const idResult = validateEndatixId(String(details.id), "dataListId");
+    if (Result.isError(idResult)) {
+      toast.error(idResult.message);
+      return;
+    }
+
+    setOpenedEditFromLoad(true);
+    setIsEditPanelOpen(true);
+  }, [openEditOnLoad, details.id]);
+
   const handleOpenCloseReplaceDialog = (open: boolean): void => {
     setIsReplaceDialogOpen(open);
     if (!open) {
@@ -107,6 +140,14 @@ export function DataListDetailsPage({
         setOpenedReplaceFromLoad(false);
         router.back();
       }
+    }
+  };
+
+  const handleOpenCloseEditPanel = (open: boolean): void => {
+    setIsEditPanelOpen(open);
+    if (!open && openedEditFromLoad) {
+      setOpenedEditFromLoad(false);
+      router.back();
     }
   };
 
@@ -226,9 +267,25 @@ export function DataListDetailsPage({
                 {details.itemsCount === 1 ? "" : "s"}
               </span>
             </div>
+            <DataListLocalesCell
+              defaultLocale={details.defaultLocale}
+              availableLocales={availableLocales}
+              className="pt-1"
+            />
           </div>
 
           <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setOpenedEditFromLoad(false);
+                setIsEditPanelOpen(true);
+              }}
+            >
+              <PencilLine className="h-4 w-4" />
+              Edit
+            </Button>
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" disabled={isDownloadPending}>
@@ -267,20 +324,22 @@ export function DataListDetailsPage({
           </div>
         </div>
 
-        <LocaleCatalogPanel
-          details={details}
-          onUpdated={(updated) => {
-            setDetails(updated);
-            router.refresh();
-          }}
-        />
-
         <DataListItemsSection
           itemsPromise={itemsPromise}
           availableLocales={availableLocales}
           defaultLocale={details.defaultLocale}
         />
       </div>
+
+      <EditDataListPanel
+        open={isEditPanelOpen}
+        onOpenChange={handleOpenCloseEditPanel}
+        details={details}
+        onUpdated={(updated) => {
+          setDetails(updated);
+          router.refresh();
+        }}
+      />
 
       <ReplaceItemsDialog
         key={`${details.id}-${replaceInitialFormat}-${isReplaceDialogOpen}`}
@@ -313,7 +372,24 @@ function DataListItemsSection({
   availableLocales: string[];
   defaultLocale?: string;
 }>) {
-  const { search, setSearch } = useListUrlState();
+  const { search, setSearch, updateUrl, searchParams } = useListUrlState();
+  const selectedLocales = useMemo(
+    () => parseHasLocaleFilterSet(searchParams.get("hasLocale")),
+    [searchParams],
+  );
+  const localeOptions = useMemo<FacetedFilterOption[]>(() => {
+    const codes = [
+      ...(defaultLocale ? [defaultLocale] : []),
+      ...availableLocales.filter(
+        (locale) =>
+          locale.trim().toLowerCase() !== defaultLocale?.trim().toLowerCase(),
+      ),
+    ];
+    return codes.map((value) => ({
+      value,
+      label: formatLocaleLabel(value),
+    }));
+  }, [availableLocales, defaultLocale]);
 
   return (
     <div className="space-y-3">
@@ -325,15 +401,23 @@ function DataListItemsSection({
       />
       <Suspense
         fallback={
-          <div className="space-y-3">
-            <Skeleton className="h-64 w-full" />
-          </div>
+          <DataListItemsTableSkeleton
+            localeColumnCount={Math.max(1, availableLocales.length + 1)}
+          />
         }
       >
         <DataListItemsPanel
           itemsPromise={itemsPromise}
           availableLocales={availableLocales}
           defaultLocale={defaultLocale}
+          localeOptions={localeOptions}
+          selectedLocales={selectedLocales}
+          onLocaleFilterChange={(values) => {
+            updateUrl({
+              hasLocale: serializeHasLocaleFilter(values) ?? null,
+              page: "1",
+            });
+          }}
         />
       </Suspense>
     </div>
@@ -344,24 +428,41 @@ function DataListItemsPanel({
   itemsPromise,
   availableLocales,
   defaultLocale,
+  localeOptions,
+  selectedLocales,
+  onLocaleFilterChange,
 }: Readonly<{
   itemsPromise: Promise<DataListItemsPage>;
   availableLocales: string[];
   defaultLocale?: string;
+  localeOptions: FacetedFilterOption[];
+  selectedLocales: Set<string>;
+  onLocaleFilterChange: (values: Set<string>) => void;
 }>) {
   const paged = use(itemsPromise);
   const { updateUrl, searchParams } = useListUrlState();
   const footerProps = createPagedTableFooterProps(paged, "items", updateUrl);
-  const hasSearch = Boolean(searchParams.get("search")?.trim());
+  const searchValue = searchParams.get("search") ?? "";
+  const hasLocale = parseHasLocaleFilter(searchParams.get("hasLocale"));
+  const hasLocaleFilter = Boolean(hasLocale);
+  const hasFilters = Boolean(searchValue.trim() || hasLocaleFilter);
+  const labelColumns = resolveVisibleLabelColumns({
+    hasLocale,
+    defaultLocale,
+    availableLocales,
+  });
 
   return (
     <DataListItemsTable
       items={[...paged.items]}
-      availableLocales={availableLocales}
+      labelColumns={labelColumns}
       defaultLocale={defaultLocale}
+      localeOptions={localeOptions}
+      selectedLocales={selectedLocales}
+      onLocaleFilterChange={onLocaleFilterChange}
       emptyMessage={
-        hasSearch
-          ? "No items match the current search."
+        hasFilters
+          ? "No items match the current filters."
           : "No items in this list."
       }
       footer={<PagedTableFooter {...footerProps} variant="surface" />}

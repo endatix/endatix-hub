@@ -1,5 +1,9 @@
 import { parsePagedSearchParams } from "@/lib/list-page/parse-paged-search-params";
-import type { ListDataListsRequest } from "@/lib/endatix-api/data-lists/types";
+import type {
+  DataListListSortBy,
+  DataListListSortDir,
+  ListDataListsRequest,
+} from "@/lib/endatix-api/data-lists/types";
 import { tryNormalizeCultureCode } from "@/lib/localization";
 
 export const DEFAULT_DATA_LISTS_PAGE_SIZE = 10;
@@ -8,11 +12,27 @@ export const ALL_LOCALES_FILTER_VALUE = "__all_locales__";
 /** `tableKey` for `BackToTableButton` / `rememberTableReturnTo` (see `lib/list-page/table-return-to`). */
 export const DATA_LISTS_TABLE_KEY = "data-lists";
 
+const CALENDAR_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+const ALLOWED_SORT_BY = new Set<DataListListSortBy>([
+  "name",
+  "createdAt",
+  "modifiedAt",
+  "itemsCount",
+  "isActive",
+]);
+
 export interface DataListsListSearchParams {
   page?: string;
   pageSize?: string;
   search?: string;
   hasLocale?: string;
+  sortBy?: string;
+  sortDir?: string;
+  createdFrom?: string;
+  createdTo?: string;
+  modifiedFrom?: string;
+  modifiedTo?: string;
   action?: string;
 }
 
@@ -21,6 +41,12 @@ export interface DataListsListUrlState {
   pageSize: number;
   search?: string;
   hasLocale?: string;
+  sortBy?: DataListListSortBy;
+  sortDir?: DataListListSortDir;
+  createdFrom?: string;
+  createdTo?: string;
+  modifiedFrom?: string;
+  modifiedTo?: string;
   action?: string;
 }
 
@@ -34,6 +60,51 @@ export function firstString(
   return value;
 }
 
+export function parseCalendarDateParam(
+  value: string | null | undefined,
+): string | undefined {
+  const trimmed = value?.trim();
+  if (!trimmed || !CALENDAR_DATE_PATTERN.test(trimmed)) {
+    return undefined;
+  }
+
+  const [year, month, day] = trimmed.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    return undefined;
+  }
+
+  return trimmed;
+}
+
+export function parseDataListSortBy(
+  value: string | null | undefined,
+): DataListListSortBy | undefined {
+  const trimmed = value?.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+
+  return ALLOWED_SORT_BY.has(trimmed as DataListListSortBy)
+    ? (trimmed as DataListListSortBy)
+    : undefined;
+}
+
+export function parseDataListSortDir(
+  value: string | null | undefined,
+): DataListListSortDir | undefined {
+  const trimmed = value?.trim().toLowerCase();
+  if (trimmed === "asc" || trimmed === "desc") {
+    return trimmed;
+  }
+
+  return undefined;
+}
+
 export function parseDataListsListParams(
   searchParams?: DataListsListSearchParams,
 ): ListDataListsRequest {
@@ -43,11 +114,23 @@ export function parseDataListsListParams(
   );
   const search = searchParams?.search?.trim() || undefined;
   const hasLocale = parseHasLocaleFilter(searchParams?.hasLocale);
+  const sortBy = parseDataListSortBy(searchParams?.sortBy);
+  const sortDir = parseDataListSortDir(searchParams?.sortDir);
+  const createdFrom = parseCalendarDateParam(searchParams?.createdFrom);
+  const createdTo = parseCalendarDateParam(searchParams?.createdTo);
+  const modifiedFrom = parseCalendarDateParam(searchParams?.modifiedFrom);
+  const modifiedTo = parseCalendarDateParam(searchParams?.modifiedTo);
 
   return {
     ...paging,
     search,
     hasLocale,
+    sortBy,
+    sortDir,
+    createdFrom,
+    createdTo,
+    modifiedFrom,
+    modifiedTo,
   };
 }
 
@@ -100,6 +183,24 @@ export function serializeDataListsListSearchParams(
   if (state.hasLocale) {
     params.set("hasLocale", state.hasLocale);
   }
+  if (state.sortBy) {
+    params.set("sortBy", state.sortBy);
+  }
+  if (state.sortDir) {
+    params.set("sortDir", state.sortDir);
+  }
+  if (state.createdFrom) {
+    params.set("createdFrom", state.createdFrom);
+  }
+  if (state.createdTo) {
+    params.set("createdTo", state.createdTo);
+  }
+  if (state.modifiedFrom) {
+    params.set("modifiedFrom", state.modifiedFrom);
+  }
+  if (state.modifiedTo) {
+    params.set("modifiedTo", state.modifiedTo);
+  }
   if (state.page > 1) {
     params.set("page", String(state.page));
   }
@@ -122,8 +223,14 @@ export function buildDataListDetailHref(
   dataListId: string,
   extra?: { action?: string },
 ): string {
+  const params = new URLSearchParams();
+  if (extra?.action) {
+    params.set("action", extra.action);
+  }
+
+  const query = params.toString();
   const path = `${DATA_LISTS_LIST_PATH}/${dataListId}`;
-  return extra?.action ? `${path}?action=${extra.action}` : path;
+  return query ? `${path}?${query}` : path;
 }
 
 /**
@@ -138,23 +245,84 @@ export function parseDataListsReturnQuery(query: string): string {
 
 /** Builds `/data-lists?<query>` from an already-validated query string. */
 export function dataListsListHrefFromQuery(query: string): string {
-  return `${DATA_LISTS_LIST_PATH}?${query}`;
+  return query ? `${DATA_LISTS_LIST_PATH}?${query}` : DATA_LISTS_LIST_PATH;
+}
+
+function urlStateFromParsed(
+  parsed: ListDataListsRequest,
+): DataListsListUrlState {
+  return {
+    page: parsed.page ?? 1,
+    pageSize: parsed.pageSize ?? DEFAULT_DATA_LISTS_PAGE_SIZE,
+    search: parsed.search,
+    hasLocale: parsed.hasLocale,
+    sortBy: parsed.sortBy,
+    sortDir: parsed.sortDir,
+    createdFrom: parsed.createdFrom,
+    createdTo: parsed.createdTo,
+    modifiedFrom: parsed.modifiedFrom,
+    modifiedTo: parsed.modifiedTo,
+  };
+}
+
+export function parseDataListsReturnHref(from: string | undefined): string {
+  if (!from) {
+    return DATA_LISTS_LIST_PATH;
+  }
+
+  const raw = new URLSearchParams(from);
+  const parsed = parseDataListsListParams({
+    page: firstString(raw.get("page") ?? undefined),
+    pageSize: firstString(raw.get("pageSize") ?? undefined),
+    search: firstString(raw.get("search") ?? undefined),
+    hasLocale: firstString(raw.get("hasLocale") ?? undefined),
+    sortBy: firstString(raw.get("sortBy") ?? undefined),
+    sortDir: firstString(raw.get("sortDir") ?? undefined),
+    createdFrom: firstString(raw.get("createdFrom") ?? undefined),
+    createdTo: firstString(raw.get("createdTo") ?? undefined),
+    modifiedFrom: firstString(raw.get("modifiedFrom") ?? undefined),
+    modifiedTo: firstString(raw.get("modifiedTo") ?? undefined),
+  });
+
+  return buildDataListsListHref(urlStateFromParsed(parsed));
 }
 
 export function currentDataListsListQuery(
   searchParams: URLSearchParams,
 ): string {
-  const parsed = parseDataListsListParams({
-    page: firstString(searchParams.get("page") ?? undefined),
-    pageSize: firstString(searchParams.get("pageSize") ?? undefined),
-    search: firstString(searchParams.get("search") ?? undefined),
-    hasLocale: firstString(searchParams.get("hasLocale") ?? undefined),
-  });
+  return serializeDataListsListSearchParams(
+    urlStateFromParsed(
+      parseDataListsListParams({
+        page: searchParams.get("page") ?? undefined,
+        pageSize: searchParams.get("pageSize") ?? undefined,
+        search: searchParams.get("search") ?? undefined,
+        hasLocale: searchParams.get("hasLocale") ?? undefined,
+        sortBy: searchParams.get("sortBy") ?? undefined,
+        sortDir: searchParams.get("sortDir") ?? undefined,
+        createdFrom: searchParams.get("createdFrom") ?? undefined,
+        createdTo: searchParams.get("createdTo") ?? undefined,
+        modifiedFrom: searchParams.get("modifiedFrom") ?? undefined,
+        modifiedTo: searchParams.get("modifiedTo") ?? undefined,
+      }),
+    ),
+  );
+}
 
-  return serializeDataListsListSearchParams({
-    page: parsed.page ?? 1,
-    pageSize: parsed.pageSize ?? DEFAULT_DATA_LISTS_PAGE_SIZE,
-    search: parsed.search,
-    hasLocale: parsed.hasLocale,
-  });
+export function listUrlStateFromSearchParams(
+  searchParams: URLSearchParams,
+): DataListsListUrlState {
+  return urlStateFromParsed(
+    parseDataListsListParams({
+      page: searchParams.get("page") ?? undefined,
+      pageSize: searchParams.get("pageSize") ?? undefined,
+      search: searchParams.get("search") ?? undefined,
+      hasLocale: searchParams.get("hasLocale") ?? undefined,
+      sortBy: searchParams.get("sortBy") ?? undefined,
+      sortDir: searchParams.get("sortDir") ?? undefined,
+      createdFrom: searchParams.get("createdFrom") ?? undefined,
+      createdTo: searchParams.get("createdTo") ?? undefined,
+      modifiedFrom: searchParams.get("modifiedFrom") ?? undefined,
+      modifiedTo: searchParams.get("modifiedTo") ?? undefined,
+    }),
+  );
 }

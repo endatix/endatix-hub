@@ -4,7 +4,9 @@ import {
   buildDataListDetailHref,
   buildDataListsListHref,
   dataListsListHrefFromQuery,
+  parseCalendarDateParam,
   parseDataListsListParams,
+  parseDataListsReturnHref,
   parseDataListsReturnQuery,
   serializeDataListsListSearchParams,
 } from "../utils";
@@ -25,6 +27,12 @@ describe("parseDataListsListParams", () => {
       pageSize: 25,
       search: "cities",
       hasLocale: "es",
+      sortBy: undefined,
+      sortDir: undefined,
+      createdFrom: undefined,
+      createdTo: undefined,
+      modifiedFrom: undefined,
+      modifiedTo: undefined,
     });
   });
 
@@ -47,6 +55,54 @@ describe("parseDataListsListParams", () => {
     // Assert
     expect(parsed.hasLocale).toBeUndefined();
   });
+
+  it("parses sort and calendar date filters", () => {
+    // Arrange & Act
+    const parsed = parseDataListsListParams({
+      sortBy: "name",
+      sortDir: "asc",
+      createdFrom: "2024-01-15",
+      createdTo: "2024-02-01",
+      modifiedFrom: "2024-03-10",
+      modifiedTo: "2024-03-20",
+    });
+
+    // Assert
+    expect(parsed).toMatchObject({
+      sortBy: "name",
+      sortDir: "asc",
+      createdFrom: "2024-01-15",
+      createdTo: "2024-02-01",
+      modifiedFrom: "2024-03-10",
+      modifiedTo: "2024-03-20",
+    });
+  });
+
+  it("drops invalid sort and date values", () => {
+    // Arrange & Act
+    const parsed = parseDataListsListParams({
+      sortBy: "unknown",
+      sortDir: "sideways",
+      createdFrom: "01-15-2024",
+      createdTo: "2024-13-01",
+    });
+
+    // Assert
+    expect(parsed.sortBy).toBeUndefined();
+    expect(parsed.sortDir).toBeUndefined();
+    expect(parsed.createdFrom).toBeUndefined();
+    expect(parsed.createdTo).toBeUndefined();
+  });
+});
+
+describe("parseCalendarDateParam", () => {
+  it("accepts valid YYYY-MM-DD", () => {
+    expect(parseCalendarDateParam("2024-06-01")).toBe("2024-06-01");
+  });
+
+  it("rejects non-calendar dates", () => {
+    expect(parseCalendarDateParam("2024-02-30")).toBeUndefined();
+  });
 });
 
 describe("serializeDataListsListSearchParams", () => {
@@ -67,12 +123,10 @@ describe("serializeDataListsListSearchParams", () => {
 
 describe("buildDataListDetailHref", () => {
   it("builds a bare detail href with no query", () => {
-    // Arrange & Act & Assert
     expect(buildDataListDetailHref("42")).toBe("/data-lists/42");
   });
 
   it("appends action when given", () => {
-    // Arrange & Act & Assert
     expect(buildDataListDetailHref("42", { action: "replace" })).toBe(
       "/data-lists/42?action=replace",
     );
@@ -81,32 +135,48 @@ describe("buildDataListDetailHref", () => {
 
 describe("parseDataListsReturnQuery + dataListsListHrefFromQuery", () => {
   it("round-trips a remembered list query into a full href (BackToTableButton contract)", () => {
-    // Arrange
     const listQuery = serializeDataListsListSearchParams({
       page: 3,
       pageSize: 25,
       search: "cities",
       hasLocale: "es",
+      sortBy: "itemsCount",
+      sortDir: "desc",
+      createdFrom: "2024-01-01",
+      modifiedTo: "2024-12-31",
     });
 
-    // Act
     const parsed = parseDataListsReturnQuery(listQuery);
     const href = dataListsListHrefFromQuery(parsed);
 
-    // Assert
     expect(href).toBe(`/data-lists?${listQuery}`);
   });
 
   it("drops unknown keys and re-clamps paging when re-parsing", () => {
-    // Arrange & Act
     const parsed = parseDataListsReturnQuery(
       "page=-5&pageSize=1000&evil=<script>&search=cities",
     );
 
-    // Assert
     expect(parsed).not.toContain("evil");
     expect(parsed).toContain("search=cities");
     expect(parsed).not.toContain("page=");
     expect(parsed).toContain("pageSize=1000");
+  });
+
+  it("round-trips a remembered query string into a list href", () => {
+    const listQuery = serializeDataListsListSearchParams({
+      page: 3,
+      pageSize: 25,
+      search: "cities",
+      hasLocale: "es",
+      sortBy: "itemsCount",
+      sortDir: "desc",
+      createdFrom: "2024-01-01",
+      modifiedTo: "2024-12-31",
+    });
+
+    expect(parseDataListsReturnHref(listQuery)).toBe(
+      `/data-lists?${listQuery}`,
+    );
   });
 });
