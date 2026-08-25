@@ -22,7 +22,19 @@ describe("data list translation group header", () => {
       items: [],
     });
 
-    expect(title).toBe("Cities (12 items)");
+    expect(title).toBe(`Cities (${(12).toLocaleString()} items)`);
+  });
+
+  it("groups thousands in the item count", () => {
+    const title = formatDataListTranslationGroupTitle({
+      dataListId: "7",
+      name: "Cities",
+      itemsCount: 5000,
+      availableLocales: [],
+      items: [],
+    });
+
+    expect(title).toBe(`Cities (${(5000).toLocaleString()} items)`);
   });
 
   it("uses singular item label when the list has one row", () => {

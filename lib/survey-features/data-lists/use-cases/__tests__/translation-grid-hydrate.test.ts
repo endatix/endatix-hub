@@ -107,7 +107,9 @@ describe("translation grid data-list summaries", () => {
     );
 
     const { header, matrix } = getSummaryMatrix(translation);
-    expect(header?.title).toBe("World cities (1200 items)");
+    expect(header?.title).toBe(
+      `World cities (${(1200).toLocaleString()} items)`,
+    );
     expect(matrix).toBeDefined();
     expect(matrix?.rows[0].value).toBe("choices");
     expect(matrix?.rows[0].text).toBe("Choices");
