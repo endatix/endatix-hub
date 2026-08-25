@@ -1,26 +1,20 @@
+import { appendQueryParam } from "../shared/query-params";
+import { isValidCalendarDateYmd } from "@/lib/date-utils";
 import type { ListSubmissionsRequest } from "./types";
 
 /**
- * Encodes {@link ListSubmissionsRequest} into repeated `filter` query segments for the Endatix list API.
- *
- * Kept submission-specific on purpose: a generic “list filter query builder” should wait until a second
- * resource proves the same rules (param name, segment grammar, UTC calendar bounds for date ranges).
- * Then extract a small shared helper driven by a field descriptor (wire name, multi-value join, operator
- * shape) instead of duplicating ad hoc encoders.
+ * Encodes facet filters as repeated `filter` query segments, and typed sort/date
+ * bounds as first-class query params (`sortBy`, `sortDir`, `createdFrom`, …).
  */
 
-/** Repeated query key for each list filter segment (`field:value` / `field>:` / …). */
+/** Repeated query key for each list filter segment (`field:value` / …). */
 export const SUBMISSION_LIST_FILTER_QUERY_PARAM = "filter" as const;
 
-/** Wire field names for `ListSubmissionsRequest` → list API `filter` segments. */
+/** Wire field names for facet `filter` segments only (not dates). */
 export const SUBMISSION_LIST_FILTER_FIELD_NAMES = Object.freeze({
   isComplete: "isComplete",
   status: "status",
   isTestSubmission: "isTestSubmission",
-  createdAt: "createdAt",
-  modifiedAt: "modifiedAt",
-  startedAt: "startedAt",
-  completedAt: "completedAt",
   submitterDisplayId: "submitterDisplayId",
   submitterProfile: "submitterProfile",
 } as const);
@@ -32,41 +26,18 @@ const ALLOWED_SUBMITTER_PROFILE_FIELDS = new Set(["email"]);
 export type SubmissionFilterFieldName =
   keyof typeof SUBMISSION_LIST_FILTER_FIELD_NAMES;
 
-/**
- * True when `value` is a real calendar day `YYYY-MM-DD` in UTC (rejects overflow dates and garbage).
- */
-function isValidCalendarDateYmd(value: string): boolean {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    return false;
+function appendCalendarBound(
+  params: URLSearchParams,
+  key: string,
+  value: string | undefined,
+): void {
+  if (value && isValidCalendarDateYmd(value)) {
+    appendQueryParam(params, key, value);
   }
-
-  const [year, month, day] = value.split("-").map(Number);
-  const d = new Date(Date.UTC(year, month - 1, day));
-  return (
-    d.getUTCFullYear() === year &&
-    d.getUTCMonth() === month - 1 &&
-    d.getUTCDate() === day
-  );
 }
 
 /**
- * Start of a calendar day `YYYY-MM-DD` in UTC as ISO 8601 (for `createdAt>` / `completedAt>` filters).
- */
-export function utcCalendarDayStartIso(calendarDate: string): string {
-  const [year, month, day] = calendarDate.split("-").map(Number);
-  return new Date(Date.UTC(year, month - 1, day)).toISOString();
-}
-
-/**
- * Start of the day after `YYYY-MM-DD` in UTC as ISO 8601 (exclusive upper bound for `createdAt<` / `completedAt<`).
- */
-export function utcCalendarNextDayStartIso(calendarDate: string): string {
-  const [year, month, day] = calendarDate.split("-").map(Number);
-  return new Date(Date.UTC(year, month - 1, day + 1)).toISOString();
-}
-
-/**
- * Appends Endatix list `filter` query segments for {@link ListSubmissionsRequest} onto existing params (page, pageSize).
+ * Appends Endatix list facet `filter` segments and typed sort/date query params.
  */
 export function appendSubmissionListFilters(
   params: URLSearchParams,
@@ -110,58 +81,16 @@ export function appendSubmissionListFilters(
       `${SUBMISSION_LIST_FILTER_FIELD_NAMES.submitterProfile}.${submitterProfileField}:${submitterProfileValue}`,
     );
   }
-  if (request.createdAtFrom && isValidCalendarDateYmd(request.createdAtFrom)) {
-    params.append(
-      SUBMISSION_LIST_FILTER_QUERY_PARAM,
-      `${SUBMISSION_LIST_FILTER_FIELD_NAMES.createdAt}>:${utcCalendarDayStartIso(request.createdAtFrom)}`,
-    );
-  }
-  if (request.createdAtTo && isValidCalendarDateYmd(request.createdAtTo)) {
-    params.append(
-      SUBMISSION_LIST_FILTER_QUERY_PARAM,
-      `${SUBMISSION_LIST_FILTER_FIELD_NAMES.createdAt}<${utcCalendarNextDayStartIso(request.createdAtTo)}`,
-    );
-  }
-  if (
-    request.modifiedAtFrom &&
-    isValidCalendarDateYmd(request.modifiedAtFrom)
-  ) {
-    params.append(
-      SUBMISSION_LIST_FILTER_QUERY_PARAM,
-      `${SUBMISSION_LIST_FILTER_FIELD_NAMES.modifiedAt}>:${utcCalendarDayStartIso(request.modifiedAtFrom)}`,
-    );
-  }
-  if (request.modifiedAtTo && isValidCalendarDateYmd(request.modifiedAtTo)) {
-    params.append(
-      SUBMISSION_LIST_FILTER_QUERY_PARAM,
-      `${SUBMISSION_LIST_FILTER_FIELD_NAMES.modifiedAt}<${utcCalendarNextDayStartIso(request.modifiedAtTo)}`,
-    );
-  }
-  if (request.startedAtFrom && isValidCalendarDateYmd(request.startedAtFrom)) {
-    params.append(
-      SUBMISSION_LIST_FILTER_QUERY_PARAM,
-      `${SUBMISSION_LIST_FILTER_FIELD_NAMES.startedAt}>:${utcCalendarDayStartIso(request.startedAtFrom)}`,
-    );
-  }
-  if (request.startedAtTo && isValidCalendarDateYmd(request.startedAtTo)) {
-    params.append(
-      SUBMISSION_LIST_FILTER_QUERY_PARAM,
-      `${SUBMISSION_LIST_FILTER_FIELD_NAMES.startedAt}<${utcCalendarNextDayStartIso(request.startedAtTo)}`,
-    );
-  }
-  if (
-    request.completedAtFrom &&
-    isValidCalendarDateYmd(request.completedAtFrom)
-  ) {
-    params.append(
-      SUBMISSION_LIST_FILTER_QUERY_PARAM,
-      `${SUBMISSION_LIST_FILTER_FIELD_NAMES.completedAt}>:${utcCalendarDayStartIso(request.completedAtFrom)}`,
-    );
-  }
-  if (request.completedAtTo && isValidCalendarDateYmd(request.completedAtTo)) {
-    params.append(
-      SUBMISSION_LIST_FILTER_QUERY_PARAM,
-      `${SUBMISSION_LIST_FILTER_FIELD_NAMES.completedAt}<${utcCalendarNextDayStartIso(request.completedAtTo)}`,
-    );
-  }
+
+  appendQueryParam(params, "sortBy", request.sortBy);
+  appendQueryParam(params, "sortDir", request.sortDir);
+
+  appendCalendarBound(params, "createdFrom", request.createdFrom);
+  appendCalendarBound(params, "createdTo", request.createdTo);
+  appendCalendarBound(params, "modifiedFrom", request.modifiedFrom);
+  appendCalendarBound(params, "modifiedTo", request.modifiedTo);
+  appendCalendarBound(params, "startedFrom", request.startedFrom);
+  appendCalendarBound(params, "startedTo", request.startedTo);
+  appendCalendarBound(params, "completedFrom", request.completedFrom);
+  appendCalendarBound(params, "completedTo", request.completedTo);
 }

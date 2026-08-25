@@ -16,14 +16,14 @@ describe("parseSubmissionListSearchParams + serializeSubmissionListSearchParams"
       isComplete: "true,false",
       status: "new,approved",
       isTestSubmission: "true",
-      createdAtFrom: "2024-03-01",
-      createdAtTo: "2024-03-31",
-      modifiedAtFrom: "2024-03-10",
-      modifiedAtTo: "2024-03-25",
-      startedAtFrom: "2024-03-15",
-      startedAtTo: "2024-03-20",
-      completedAtFrom: "2024-04-01",
-      completedAtTo: "2024-04-30",
+      createdFrom: "2024-03-01",
+      createdTo: "2024-03-31",
+      modifiedFrom: "2024-03-10",
+      modifiedTo: "2024-03-25",
+      startedFrom: "2024-03-15",
+      startedTo: "2024-03-20",
+      completedFrom: "2024-04-01",
+      completedTo: "2024-04-30",
     };
 
     const parsed = parseSubmissionListSearchParams(raw);
@@ -39,42 +39,42 @@ describe("parseSubmissionListSearchParams + serializeSubmissionListSearchParams"
       isComplete: ["true", "false"],
       status: ["new", "approved"],
       isTestSubmission: ["true"],
-      createdAtFrom: "2024-03-01",
-      createdAtTo: "2024-03-31",
-      modifiedAtFrom: "2024-03-10",
-      modifiedAtTo: "2024-03-25",
-      startedAtFrom: "2024-03-15",
-      startedAtTo: "2024-03-20",
-      completedAtFrom: "2024-04-01",
-      completedAtTo: "2024-04-30",
+      createdFrom: "2024-03-01",
+      createdTo: "2024-03-31",
+      modifiedFrom: "2024-03-10",
+      modifiedTo: "2024-03-25",
+      startedFrom: "2024-03-15",
+      startedTo: "2024-03-20",
+      completedFrom: "2024-04-01",
+      completedTo: "2024-04-30",
     });
   });
 
   it("drops invalid calendar dates", () => {
     const parsed = parseSubmissionListSearchParams({
-      createdAtFrom: "not-a-date",
-      createdAtTo: "2024-13-40",
-      modifiedAtFrom: "abc",
-      modifiedAtTo: "2024-02-30",
+      createdFrom: "not-a-date",
+      createdTo: "2024-13-40",
+      modifiedFrom: "abc",
+      modifiedTo: "2024-02-30",
     });
-    expect(parsed.createdAtFrom).toBeUndefined();
-    expect(parsed.createdAtTo).toBeUndefined();
-    expect(parsed.modifiedAtFrom).toBeUndefined();
-    expect(parsed.modifiedAtTo).toBeUndefined();
+    expect(parsed.createdFrom).toBeUndefined();
+    expect(parsed.createdTo).toBeUndefined();
+    expect(parsed.modifiedFrom).toBeUndefined();
+    expect(parsed.modifiedTo).toBeUndefined();
   });
 
   it("serializes modifiedAt bounds with the modifiedAt URL keys", () => {
     const parsed = parseSubmissionListSearchParams({
-      modifiedAtFrom: "2024-05-01",
-      modifiedAtTo: "2024-05-31",
+      modifiedFrom: "2024-05-01",
+      modifiedTo: "2024-05-31",
     });
 
     expect(serializeSubmissionListSearchParams(parsed).toString()).toBe(
-      "modifiedAtFrom=2024-05-01&modifiedAtTo=2024-05-31",
+      "modifiedFrom=2024-05-01&modifiedTo=2024-05-31",
     );
     expect(submissionListUrlStateToListRequest(parsed)).toMatchObject({
-      modifiedAtFrom: "2024-05-01",
-      modifiedAtTo: "2024-05-31",
+      modifiedFrom: "2024-05-01",
+      modifiedTo: "2024-05-31",
     });
   });
 
@@ -192,12 +192,16 @@ describe("submission list sorting URL state", () => {
     expect(serialized).not.toContain("sort=");
   });
 
-  it("does not include sorting in the list API request", () => {
+  it("maps primary URL sort to list API sortBy and sortDir", () => {
     const parsed = parseSubmissionListSearchParams({
       page: "2",
       sort: "createdAt:desc",
     });
 
+    expect(submissionListUrlStateToListRequest(parsed)).toMatchObject({
+      sortBy: "createdAt",
+      sortDir: "desc",
+    });
     expect(submissionListUrlStateToListRequest(parsed)).not.toHaveProperty(
       "sorting",
     );
@@ -251,22 +255,22 @@ describe("buildSubmissionListPath", () => {
 
 describe("isCanonicalSubmissionListUrl", () => {
   const emptyDateBundle = {
-    rawCreatedAtFrom: undefined as string | undefined,
-    rawCreatedAtTo: undefined as string | undefined,
-    rawModifiedAtFrom: undefined as string | undefined,
-    rawModifiedAtTo: undefined as string | undefined,
-    rawStartedAtFrom: undefined as string | undefined,
-    rawStartedAtTo: undefined as string | undefined,
-    rawCompletedAtFrom: undefined as string | undefined,
-    rawCompletedAtTo: undefined as string | undefined,
-    createdAtFrom: undefined as string | undefined,
-    createdAtTo: undefined as string | undefined,
-    modifiedAtFrom: undefined as string | undefined,
-    modifiedAtTo: undefined as string | undefined,
-    startedAtFrom: undefined as string | undefined,
-    startedAtTo: undefined as string | undefined,
-    completedAtFrom: undefined as string | undefined,
-    completedAtTo: undefined as string | undefined,
+    rawCreatedFrom: undefined as string | undefined,
+    rawCreatedTo: undefined as string | undefined,
+    rawModifiedFrom: undefined as string | undefined,
+    rawModifiedTo: undefined as string | undefined,
+    rawStartedFrom: undefined as string | undefined,
+    rawStartedTo: undefined as string | undefined,
+    rawCompletedFrom: undefined as string | undefined,
+    rawCompletedTo: undefined as string | undefined,
+    createdFrom: undefined as string | undefined,
+    createdTo: undefined as string | undefined,
+    modifiedFrom: undefined as string | undefined,
+    modifiedTo: undefined as string | undefined,
+    startedFrom: undefined as string | undefined,
+    startedTo: undefined as string | undefined,
+    completedFrom: undefined as string | undefined,
+    completedTo: undefined as string | undefined,
   };
 
   it("is true when raw omits default paging and dates match parsed", () => {
@@ -290,42 +294,42 @@ describe("isCanonicalSubmissionListUrl", () => {
 
   it("is false when raw calendar date is invalid but parsed drops it", () => {
     const parsed = parseSubmissionListSearchParams({
-      createdAtFrom: "2024-13-40",
+      createdFrom: "2024-13-40",
     });
     expect(
       isCanonicalSubmissionListUrl(undefined, undefined, parsed, {
         ...emptyDateBundle,
-        rawCreatedAtFrom: "2024-13-40",
+        rawCreatedFrom: "2024-13-40",
       }),
     ).toBe(false);
   });
 
   it("is false when raw modifiedAt is invalid but parsed drops it", () => {
     const parsed = parseSubmissionListSearchParams({
-      modifiedAtFrom: "not-a-date",
+      modifiedFrom: "not-a-date",
     });
-    expect(parsed.modifiedAtFrom).toBeUndefined();
+    expect(parsed.modifiedFrom).toBeUndefined();
     expect(
       isCanonicalSubmissionListUrl(undefined, undefined, parsed, {
         ...emptyDateBundle,
-        rawModifiedAtFrom: "not-a-date",
+        rawModifiedFrom: "not-a-date",
       }),
     ).toBe(false);
   });
 
   it("is true when raw modifiedAt bounds match parsed values", () => {
     const parsed = parseSubmissionListSearchParams({
-      modifiedAtFrom: "2024-07-01",
-      modifiedAtTo: "2024-07-31",
+      modifiedFrom: "2024-07-01",
+      modifiedTo: "2024-07-31",
     });
 
     expect(
       isCanonicalSubmissionListUrl(undefined, undefined, parsed, {
         ...emptyDateBundle,
-        rawModifiedAtFrom: "2024-07-01",
-        rawModifiedAtTo: "2024-07-31",
-        modifiedAtFrom: "2024-07-01",
-        modifiedAtTo: "2024-07-31",
+        rawModifiedFrom: "2024-07-01",
+        rawModifiedTo: "2024-07-31",
+        modifiedFrom: "2024-07-01",
+        modifiedTo: "2024-07-31",
       }),
     ).toBe(true);
   });
@@ -423,20 +427,20 @@ describe("submissionListUrlStateFromClientFilters", () => {
       isComplete: new Set(["true", "bogus"]),
       status: new Set(["new", "hacker"]),
       isTestSubmission: new Set(["false"]),
-      createdAtFrom: "2024-06-01",
-      createdAtTo: "not-a-date",
-      modifiedAtFrom: "2024-06-15",
-      modifiedAtTo: "bogus",
+      createdFrom: "2024-06-01",
+      createdTo: "not-a-date",
+      modifiedFrom: "2024-06-15",
+      modifiedTo: "bogus",
       submitterEmail: " external@endatix.com ",
     });
 
     expect(state.isComplete).toEqual(["true"]);
     expect(state.status).toEqual(["new"]);
     expect(state.isTestSubmission).toEqual(["false"]);
-    expect(state.createdAtFrom).toBe("2024-06-01");
-    expect(state.createdAtTo).toBeUndefined();
-    expect(state.modifiedAtFrom).toBe("2024-06-15");
-    expect(state.modifiedAtTo).toBeUndefined();
+    expect(state.createdFrom).toBe("2024-06-01");
+    expect(state.createdTo).toBeUndefined();
+    expect(state.modifiedFrom).toBe("2024-06-15");
+    expect(state.modifiedTo).toBeUndefined();
     expect(state.submitterEmail).toBe("external@endatix.com");
     expect(state.sorting).toEqual([]);
   });

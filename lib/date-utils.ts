@@ -1,5 +1,5 @@
 /**
- * Shared Hub date formatting for list/grid surfaces.
+ * Shared Hub date helpers for list/grid surfaces (format + calendar-day validation).
  * Detail views, PDF, and exports should keep using `getFormattedDate` in `lib/utils.ts`.
  */
 
@@ -49,6 +49,24 @@ export function toValidDate(date?: DateInput): Date | null {
 
   const dateValue = date instanceof Date ? date : new Date(date);
   return Number.isNaN(dateValue.getTime()) ? null : dateValue;
+}
+
+/**
+ * True when `value` is a real UTC calendar day `YYYY-MM-DD`
+ * (rejects overflow dates such as 2024-13-01 and garbage).
+ */
+export function isValidCalendarDateYmd(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return false;
+  }
+
+  const [year, month, day] = value.split("-").map(Number);
+  const d = new Date(Date.UTC(year, month - 1, day));
+  return (
+    d.getUTCFullYear() === year &&
+    d.getUTCMonth() === month - 1 &&
+    d.getUTCDate() === day
+  );
 }
 
 /**

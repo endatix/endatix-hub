@@ -68,6 +68,12 @@ export interface ListDataListItemsRequest extends IPagedRequest {
   matchMode?: DataListSearchMatchMode;
   locale?: string;
   includeLocales?: string[];
+  sortBy?: "value" | "label" | "createdAt" | "modifiedAt";
+  sortDir?: DataListListSortDir;
+  createdFrom?: string;
+  createdTo?: string;
+  modifiedFrom?: string;
+  modifiedTo?: string;
 }
 
 export type { DataListSearchMatchMode };

@@ -123,30 +123,43 @@ export interface ExportSubmissionsRequest {
   locale?: string;
   /** Optional completion filter. Omit means all (API default). */
   completionStatus?: ExportCompletionStatus;
-  createdAfter?: string;
-  createdBefore?: string;
-  startedAfter?: string;
-  startedBefore?: string;
-  completedAfter?: string;
-  completedBefore?: string;
+  /** Inclusive UTC calendar day `YYYY-MM-DD`. */
+  createdFrom?: string;
+  createdTo?: string;
+  startedFrom?: string;
+  startedTo?: string;
+  completedFrom?: string;
+  completedTo?: string;
+  modifiedFrom?: string;
+  modifiedTo?: string;
   minSubmissionId?: string;
   maxSubmissionId?: string;
 }
 
+export type SubmissionListSortBy =
+  | "createdAt"
+  | "modifiedAt"
+  | "startedAt"
+  | "completedAt"
+  | "id";
+
 export interface ListSubmissionsRequest {
   page?: number;
   pageSize?: number;
+  sortBy?: SubmissionListSortBy;
+  sortDir?: "asc" | "desc";
   isComplete?: BooleanFilterValue[];
   status?: SubmissionReviewStatus[];
   isTestSubmission?: BooleanFilterValue[];
-  createdAtFrom?: string;
-  createdAtTo?: string;
-  modifiedAtFrom?: string;
-  modifiedAtTo?: string;
-  startedAtFrom?: string;
-  startedAtTo?: string;
-  completedAtFrom?: string;
-  completedAtTo?: string;
+  /** Inclusive UTC calendar day `YYYY-MM-DD`. */
+  createdFrom?: string;
+  createdTo?: string;
+  modifiedFrom?: string;
+  modifiedTo?: string;
+  startedFrom?: string;
+  startedTo?: string;
+  completedFrom?: string;
+  completedTo?: string;
   submitterDisplayId?: string;
   submitterProfileFilter?: {
     field: string;

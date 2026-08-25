@@ -24,14 +24,14 @@ type SubmissionListSearchParams = {
   isComplete?: string;
   status?: string;
   isTestSubmission?: string;
-  createdAtFrom?: string;
-  createdAtTo?: string;
-  modifiedAtFrom?: string;
-  modifiedAtTo?: string;
-  startedAtFrom?: string;
-  startedAtTo?: string;
-  completedAtFrom?: string;
-  completedAtTo?: string;
+  createdFrom?: string;
+  createdTo?: string;
+  modifiedFrom?: string;
+  modifiedTo?: string;
+  startedFrom?: string;
+  startedTo?: string;
+  completedFrom?: string;
+  completedTo?: string;
   submitterDisplayId?: string;
   submitterEmail?: string;
   sort?: string;
@@ -109,14 +109,14 @@ async function SubmissionsTableData({
     listState.status.length > 0 ||
     listState.isTestSubmission.length > 0 ||
     Boolean(
-      listState.createdAtFrom ||
-      listState.createdAtTo ||
-      listState.modifiedAtFrom ||
-      listState.modifiedAtTo ||
-      listState.startedAtFrom ||
-      listState.startedAtTo ||
-      listState.completedAtFrom ||
-      listState.completedAtTo ||
+      listState.createdFrom ||
+      listState.createdTo ||
+      listState.modifiedFrom ||
+      listState.modifiedTo ||
+      listState.startedFrom ||
+      listState.startedTo ||
+      listState.completedFrom ||
+      listState.completedTo ||
       listState.submitterDisplayId ||
       listState.submitterEmail,
     );
@@ -128,25 +128,25 @@ async function SubmissionsTableData({
       searchParams.pageSize,
       listState,
       {
-        rawCreatedAtFrom: searchParams.createdAtFrom,
-        rawCreatedAtTo: searchParams.createdAtTo,
-        rawModifiedAtFrom: searchParams.modifiedAtFrom,
-        rawModifiedAtTo: searchParams.modifiedAtTo,
-        rawStartedAtFrom: searchParams.startedAtFrom,
-        rawStartedAtTo: searchParams.startedAtTo,
-        rawCompletedAtFrom: searchParams.completedAtFrom,
-        rawCompletedAtTo: searchParams.completedAtTo,
+        rawCreatedFrom: searchParams.createdFrom,
+        rawCreatedTo: searchParams.createdTo,
+        rawModifiedFrom: searchParams.modifiedFrom,
+        rawModifiedTo: searchParams.modifiedTo,
+        rawStartedFrom: searchParams.startedFrom,
+        rawStartedTo: searchParams.startedTo,
+        rawCompletedFrom: searchParams.completedFrom,
+        rawCompletedTo: searchParams.completedTo,
         rawSubmitterDisplayId: searchParams.submitterDisplayId,
         rawSubmitterEmail: searchParams.submitterEmail,
         rawSort: searchParams.sort,
-        createdAtFrom: listState.createdAtFrom,
-        createdAtTo: listState.createdAtTo,
-        modifiedAtFrom: listState.modifiedAtFrom,
-        modifiedAtTo: listState.modifiedAtTo,
-        startedAtFrom: listState.startedAtFrom,
-        startedAtTo: listState.startedAtTo,
-        completedAtFrom: listState.completedAtFrom,
-        completedAtTo: listState.completedAtTo,
+        createdFrom: listState.createdFrom,
+        createdTo: listState.createdTo,
+        modifiedFrom: listState.modifiedFrom,
+        modifiedTo: listState.modifiedTo,
+        startedFrom: listState.startedFrom,
+        startedTo: listState.startedTo,
+        completedFrom: listState.completedFrom,
+        completedTo: listState.completedTo,
         submitterDisplayId: listState.submitterDisplayId,
         submitterEmail: listState.submitterEmail,
       },
@@ -222,14 +222,14 @@ async function SubmissionsTableData({
       initialIsComplete={listState.isComplete}
       initialStatus={listState.status}
       initialIsTestSubmission={listState.isTestSubmission}
-      initialCreatedAtFrom={listState.createdAtFrom}
-      initialCreatedAtTo={listState.createdAtTo}
-      initialModifiedAtFrom={listState.modifiedAtFrom}
-      initialModifiedAtTo={listState.modifiedAtTo}
-      initialStartedAtFrom={listState.startedAtFrom}
-      initialStartedAtTo={listState.startedAtTo}
-      initialCompletedAtFrom={listState.completedAtFrom}
-      initialCompletedAtTo={listState.completedAtTo}
+      initialCreatedFrom={listState.createdFrom}
+      initialCreatedTo={listState.createdTo}
+      initialModifiedFrom={listState.modifiedFrom}
+      initialModifiedTo={listState.modifiedTo}
+      initialStartedFrom={listState.startedFrom}
+      initialStartedTo={listState.startedTo}
+      initialCompletedFrom={listState.completedFrom}
+      initialCompletedTo={listState.completedTo}
       initialSubmitterDisplayId={listState.submitterDisplayId}
       initialSubmitterEmail={listState.submitterEmail}
       initialSorting={listState.sorting}

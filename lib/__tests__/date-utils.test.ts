@@ -4,6 +4,7 @@ import {
   formatCompactDateTime,
   formatPreciseDateTime,
   formatRelativeOrCompactDateTime,
+  isValidCalendarDateYmd,
   toValidDate,
 } from "@/lib/date-utils";
 
@@ -26,6 +27,23 @@ describe("date-utils", () => {
       // Act & Assert
       expect(toValidDate(date)?.getTime()).toBe(date.getTime());
       expect(toValidDate(date.toISOString())?.getTime()).toBe(date.getTime());
+    });
+  });
+
+  describe("isValidCalendarDateYmd", () => {
+    it("accepts real UTC calendar days", () => {
+      expect(isValidCalendarDateYmd("2024-01-31")).toBe(true);
+      expect(isValidCalendarDateYmd("2024-02-29")).toBe(true);
+      expect(isValidCalendarDateYmd("9999-12-31")).toBe(true);
+    });
+
+    it("rejects overflow dates, wrong shape, and garbage", () => {
+      expect(isValidCalendarDateYmd("2024-02-30")).toBe(false);
+      expect(isValidCalendarDateYmd("2024-13-01")).toBe(false);
+      expect(isValidCalendarDateYmd("01-01-2024")).toBe(false);
+      expect(isValidCalendarDateYmd("2024-1-1")).toBe(false);
+      expect(isValidCalendarDateYmd("not-a-date")).toBe(false);
+      expect(isValidCalendarDateYmd("")).toBe(false);
     });
   });
 

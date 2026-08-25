@@ -1,4 +1,5 @@
 import type { ExportFormat, ReportingExportFormat } from "../types";
+import { isValidCalendarDateYmd } from "@/lib/date-utils";
 
 export function parseLegacyExportFormat(
   format: string | null,
@@ -40,19 +41,26 @@ export function parseIncludeTestSubmissionsQuery(
   return undefined;
 }
 
-export function parseOptionalIsoDateQuery(
+/**
+ * Accepts UTC calendar days (`YYYY-MM-DD`) for export From/To bounds.
+ * API owns exclusive next-day conversion.
+ */
+export function parseOptionalCalendarDateQuery(
   value: string | null,
 ): string | undefined {
   if (!value?.trim()) {
     return undefined;
   }
 
-  const parsed = Date.parse(value);
-  if (Number.isNaN(parsed)) {
-    return undefined;
-  }
+  const trimmed = value.trim();
+  return isValidCalendarDateYmd(trimmed) ? trimmed : undefined;
+}
 
-  return new Date(parsed).toISOString();
+/** @deprecated Prefer {@link parseOptionalCalendarDateQuery}. */
+export function parseOptionalIsoDateQuery(
+  value: string | null,
+): string | undefined {
+  return parseOptionalCalendarDateQuery(value);
 }
 
 export function parseOptionalPositiveIdQuery(

@@ -33,7 +33,7 @@ export interface PaginationQuery {
   page?: number;
   pageSize?: number;
   sortBy?: string;
-  sortDirection?: "asc" | "desc";
+  sortDir?: "asc" | "desc";
 }
 
 /**

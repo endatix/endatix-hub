@@ -177,29 +177,29 @@ export function parseSubmissionListSearchParams(
       firstString(searchParams[searchParamKeys.isTestSubmission]),
       SUBMISSION_LIST_BOOLEAN_FILTER_VALUES,
     ),
-    createdAtFrom: parseSubmissionListCalendarDate(
-      firstString(searchParams[searchParamKeys.createdAtFrom]),
+    createdFrom: parseSubmissionListCalendarDate(
+      firstString(searchParams[searchParamKeys.createdFrom]),
     ),
-    createdAtTo: parseSubmissionListCalendarDate(
-      firstString(searchParams[searchParamKeys.createdAtTo]),
+    createdTo: parseSubmissionListCalendarDate(
+      firstString(searchParams[searchParamKeys.createdTo]),
     ),
-    modifiedAtFrom: parseSubmissionListCalendarDate(
-      firstString(searchParams[searchParamKeys.modifiedAtFrom]),
+    modifiedFrom: parseSubmissionListCalendarDate(
+      firstString(searchParams[searchParamKeys.modifiedFrom]),
     ),
-    modifiedAtTo: parseSubmissionListCalendarDate(
-      firstString(searchParams[searchParamKeys.modifiedAtTo]),
+    modifiedTo: parseSubmissionListCalendarDate(
+      firstString(searchParams[searchParamKeys.modifiedTo]),
     ),
-    startedAtFrom: parseSubmissionListCalendarDate(
-      firstString(searchParams[searchParamKeys.startedAtFrom]),
+    startedFrom: parseSubmissionListCalendarDate(
+      firstString(searchParams[searchParamKeys.startedFrom]),
     ),
-    startedAtTo: parseSubmissionListCalendarDate(
-      firstString(searchParams[searchParamKeys.startedAtTo]),
+    startedTo: parseSubmissionListCalendarDate(
+      firstString(searchParams[searchParamKeys.startedTo]),
     ),
-    completedAtFrom: parseSubmissionListCalendarDate(
-      firstString(searchParams[searchParamKeys.completedAtFrom]),
+    completedFrom: parseSubmissionListCalendarDate(
+      firstString(searchParams[searchParamKeys.completedFrom]),
     ),
-    completedAtTo: parseSubmissionListCalendarDate(
-      firstString(searchParams[searchParamKeys.completedAtTo]),
+    completedTo: parseSubmissionListCalendarDate(
+      firstString(searchParams[searchParamKeys.completedTo]),
     ),
     submitterDisplayId:
       firstString(searchParams[searchParamKeys.submitterDisplayId])?.trim() ||
@@ -221,20 +221,32 @@ export function parseSubmissionListSearchParams(
 export function submissionListUrlStateToListRequest(
   state: SubmissionListUrlState,
 ): ListSubmissionsRequest {
+  const primarySort = state.sorting[0];
+  const sortBy = isSubmissionListSortBy(primarySort?.id)
+    ? primarySort.id
+    : undefined;
+
   return {
     page: state.page,
     pageSize: state.pageSize,
+    sortBy,
+    sortDir:
+      sortBy === undefined || primarySort === undefined
+        ? undefined
+        : primarySort.desc
+          ? "desc"
+          : "asc",
     isComplete: state.isComplete,
     status: state.status,
     isTestSubmission: state.isTestSubmission,
-    createdAtFrom: state.createdAtFrom,
-    createdAtTo: state.createdAtTo,
-    modifiedAtFrom: state.modifiedAtFrom,
-    modifiedAtTo: state.modifiedAtTo,
-    startedAtFrom: state.startedAtFrom,
-    startedAtTo: state.startedAtTo,
-    completedAtFrom: state.completedAtFrom,
-    completedAtTo: state.completedAtTo,
+    createdFrom: state.createdFrom,
+    createdTo: state.createdTo,
+    modifiedFrom: state.modifiedFrom,
+    modifiedTo: state.modifiedTo,
+    startedFrom: state.startedFrom,
+    startedTo: state.startedTo,
+    completedFrom: state.completedFrom,
+    completedTo: state.completedTo,
     submitterDisplayId: state.submitterDisplayId,
     submitterProfileFilter: state.submitterEmail
       ? {
@@ -245,34 +257,48 @@ export function submissionListUrlStateToListRequest(
   };
 }
 
+const SUBMISSION_LIST_API_SORT_FIELDS = new Set([
+  "createdAt",
+  "modifiedAt",
+  "startedAt",
+  "completedAt",
+  "id",
+]);
+
+function isSubmissionListSortBy(
+  id: string | undefined,
+): id is NonNullable<ListSubmissionsRequest["sortBy"]> {
+  return id !== undefined && SUBMISSION_LIST_API_SORT_FIELDS.has(id);
+}
+
 /**
  * The canonical date fields.
- * @param rawCreatedAtFrom - The raw created at from.
- * @param rawCreatedAtTo - The raw created at to.
- * @param rawCompletedAtFrom - The raw completed at from.
- * @param rawCompletedAtTo - The raw completed at to.
- * @param createdAtFrom - The created at from.
- * @param createdAtTo - The created at to.
- * @param completedAtFrom - The completed at from.
- * @param completedAtTo - The completed at to.
+ * @param rawCreatedFrom - The raw created at from.
+ * @param rawCreatedTo - The raw created at to.
+ * @param rawCompletedFrom - The raw completed at from.
+ * @param rawCompletedTo - The raw completed at to.
+ * @param createdFrom - The created at from.
+ * @param createdTo - The created at to.
+ * @param completedFrom - The completed at from.
+ * @param completedTo - The completed at to.
  */
 export type SubmissionListCanonicalDateFields = {
-  rawCreatedAtFrom?: string;
-  rawCreatedAtTo?: string;
-  rawModifiedAtFrom?: string;
-  rawModifiedAtTo?: string;
-  rawStartedAtFrom?: string;
-  rawStartedAtTo?: string;
-  rawCompletedAtFrom?: string;
-  rawCompletedAtTo?: string;
-  createdAtFrom?: string;
-  createdAtTo?: string;
-  modifiedAtFrom?: string;
-  modifiedAtTo?: string;
-  startedAtFrom?: string;
-  startedAtTo?: string;
-  completedAtFrom?: string;
-  completedAtTo?: string;
+  rawCreatedFrom?: string;
+  rawCreatedTo?: string;
+  rawModifiedFrom?: string;
+  rawModifiedTo?: string;
+  rawStartedFrom?: string;
+  rawStartedTo?: string;
+  rawCompletedFrom?: string;
+  rawCompletedTo?: string;
+  createdFrom?: string;
+  createdTo?: string;
+  modifiedFrom?: string;
+  modifiedTo?: string;
+  startedFrom?: string;
+  startedTo?: string;
+  completedFrom?: string;
+  completedTo?: string;
   rawSubmitterDisplayId?: string;
   submitterDisplayId?: string;
   rawSubmitterEmail?: string;
@@ -313,14 +339,14 @@ export function isCanonicalSubmissionListUrl(
     canonicalPage &&
     canonicalPageSize &&
     canonicalSort &&
-    rawDates.rawCreatedAtFrom === rawDates.createdAtFrom &&
-    rawDates.rawCreatedAtTo === rawDates.createdAtTo &&
-    rawDates.rawModifiedAtFrom === rawDates.modifiedAtFrom &&
-    rawDates.rawModifiedAtTo === rawDates.modifiedAtTo &&
-    rawDates.rawStartedAtFrom === rawDates.startedAtFrom &&
-    rawDates.rawStartedAtTo === rawDates.startedAtTo &&
-    rawDates.rawCompletedAtFrom === rawDates.completedAtFrom &&
-    rawDates.rawCompletedAtTo === rawDates.completedAtTo &&
+    rawDates.rawCreatedFrom === rawDates.createdFrom &&
+    rawDates.rawCreatedTo === rawDates.createdTo &&
+    rawDates.rawModifiedFrom === rawDates.modifiedFrom &&
+    rawDates.rawModifiedTo === rawDates.modifiedTo &&
+    rawDates.rawStartedFrom === rawDates.startedFrom &&
+    rawDates.rawStartedTo === rawDates.startedTo &&
+    rawDates.rawCompletedFrom === rawDates.completedFrom &&
+    rawDates.rawCompletedTo === rawDates.completedTo &&
     (rawDates.rawSubmitterDisplayId?.trim() || undefined) ===
       rawDates.submitterDisplayId &&
     (rawDates.rawSubmitterEmail?.trim() || undefined) ===

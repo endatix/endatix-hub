@@ -59,14 +59,14 @@ interface SubmissionsWithFiltersProps {
   initialIsComplete?: string[];
   initialStatus?: string[];
   initialIsTestSubmission?: string[];
-  initialCreatedAtFrom?: string;
-  initialCreatedAtTo?: string;
-  initialModifiedAtFrom?: string;
-  initialModifiedAtTo?: string;
-  initialStartedAtFrom?: string;
-  initialStartedAtTo?: string;
-  initialCompletedAtFrom?: string;
-  initialCompletedAtTo?: string;
+  initialCreatedFrom?: string;
+  initialCreatedTo?: string;
+  initialModifiedFrom?: string;
+  initialModifiedTo?: string;
+  initialStartedFrom?: string;
+  initialStartedTo?: string;
+  initialCompletedFrom?: string;
+  initialCompletedTo?: string;
   initialSubmitterDisplayId?: string;
   initialSubmitterEmail?: string;
   initialSorting?: SortingState;
@@ -165,14 +165,14 @@ function SubmissionsContent({
 
   const exportListFilters = useMemo(
     () => ({
-      createdAtFrom: dateFilters.createdAt.from,
-      createdAtTo: dateFilters.createdAt.to,
-      modifiedAtFrom: dateFilters.modifiedAt.from,
-      modifiedAtTo: dateFilters.modifiedAt.to,
-      startedAtFrom: dateFilters.startedAt.from,
-      startedAtTo: dateFilters.startedAt.to,
-      completedAtFrom: dateFilters.completedAt.from,
-      completedAtTo: dateFilters.completedAt.to,
+      createdFrom: dateFilters.createdAt.from,
+      createdTo: dateFilters.createdAt.to,
+      modifiedFrom: dateFilters.modifiedAt.from,
+      modifiedTo: dateFilters.modifiedAt.to,
+      startedFrom: dateFilters.startedAt.from,
+      startedTo: dateFilters.startedAt.to,
+      completedFrom: dateFilters.completedAt.from,
+      completedTo: dateFilters.completedAt.to,
     }),
     [
       dateFilters.createdAt.from,
@@ -352,14 +352,14 @@ export function SubmissionsWithFilters({
   initialIsComplete = EMPTY_INITIAL_FILTER_VALUES,
   initialStatus = EMPTY_INITIAL_FILTER_VALUES,
   initialIsTestSubmission = EMPTY_INITIAL_FILTER_VALUES,
-  initialCreatedAtFrom,
-  initialCreatedAtTo,
-  initialModifiedAtFrom,
-  initialModifiedAtTo,
-  initialStartedAtFrom,
-  initialStartedAtTo,
-  initialCompletedAtFrom,
-  initialCompletedAtTo,
+  initialCreatedFrom,
+  initialCreatedTo,
+  initialModifiedFrom,
+  initialModifiedTo,
+  initialStartedFrom,
+  initialStartedTo,
+  initialCompletedFrom,
+  initialCompletedTo,
   initialSubmitterDisplayId = "",
   initialSubmitterEmail = "",
   initialSorting,
@@ -394,20 +394,20 @@ export function SubmissionsWithFilters({
   );
   const [dateFilters, setDateFilters] = useState<SubmissionDateFilters>({
     createdAt: {
-      from: initialCreatedAtFrom,
-      to: initialCreatedAtTo,
+      from: initialCreatedFrom,
+      to: initialCreatedTo,
     },
     modifiedAt: {
-      from: initialModifiedAtFrom,
-      to: initialModifiedAtTo,
+      from: initialModifiedFrom,
+      to: initialModifiedTo,
     },
     startedAt: {
-      from: initialStartedAtFrom,
-      to: initialStartedAtTo,
+      from: initialStartedFrom,
+      to: initialStartedTo,
     },
     completedAt: {
-      from: initialCompletedAtFrom,
-      to: initialCompletedAtTo,
+      from: initialCompletedFrom,
+      to: initialCompletedTo,
     },
   });
   const [sorting, setSorting] = useState<SortingState>(resolvedInitialSorting);
@@ -435,34 +435,34 @@ export function SubmissionsWithFilters({
     setSubmitterEmailFilter(initialSubmitterEmail);
     setDateFilters({
       createdAt: {
-        from: initialCreatedAtFrom,
-        to: initialCreatedAtTo,
+        from: initialCreatedFrom,
+        to: initialCreatedTo,
       },
       modifiedAt: {
-        from: initialModifiedAtFrom,
-        to: initialModifiedAtTo,
+        from: initialModifiedFrom,
+        to: initialModifiedTo,
       },
       startedAt: {
-        from: initialStartedAtFrom,
-        to: initialStartedAtTo,
+        from: initialStartedFrom,
+        to: initialStartedTo,
       },
       completedAt: {
-        from: initialCompletedAtFrom,
-        to: initialCompletedAtTo,
+        from: initialCompletedFrom,
+        to: initialCompletedTo,
       },
     });
   }, [
     initialIsComplete,
     initialStatus,
     initialIsTestSubmission,
-    initialCreatedAtFrom,
-    initialCreatedAtTo,
-    initialModifiedAtFrom,
-    initialModifiedAtTo,
-    initialStartedAtFrom,
-    initialStartedAtTo,
-    initialCompletedAtFrom,
-    initialCompletedAtTo,
+    initialCreatedFrom,
+    initialCreatedTo,
+    initialModifiedFrom,
+    initialModifiedTo,
+    initialStartedFrom,
+    initialStartedTo,
+    initialCompletedFrom,
+    initialCompletedTo,
     initialSubmitterDisplayId,
     initialSubmitterEmail,
   ]);
@@ -500,14 +500,14 @@ export function SubmissionsWithFilters({
       isTestSubmission,
       submitterDisplayId,
       submitterEmail,
-      createdAtFrom: dates.createdAt.from,
-      createdAtTo: dates.createdAt.to,
-      modifiedAtFrom: dates.modifiedAt.from,
-      modifiedAtTo: dates.modifiedAt.to,
-      startedAtFrom: dates.startedAt.from,
-      startedAtTo: dates.startedAt.to,
-      completedAtFrom: dates.completedAt.from,
-      completedAtTo: dates.completedAt.to,
+      createdFrom: dates.createdAt.from,
+      createdTo: dates.createdAt.to,
+      modifiedFrom: dates.modifiedAt.from,
+      modifiedTo: dates.modifiedAt.to,
+      startedFrom: dates.startedAt.from,
+      startedTo: dates.startedAt.to,
+      completedFrom: dates.completedAt.from,
+      completedTo: dates.completedAt.to,
       sorting: nextSorting,
     });
     const queryString =

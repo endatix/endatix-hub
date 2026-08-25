@@ -16,14 +16,14 @@ export type SubmissionListSortItem = {
  * @param isComplete - The is complete.
  * @param status - The status.
  * @param isTestSubmission - The is test submission.
- * @param createdAtFrom - The created at from.
- * @param createdAtTo - The created at to.
- * @param modifiedAtFrom - The modified at from.
- * @param modifiedAtTo - The modified at to.
- * @param startedAtFrom - The started at from.
- * @param startedAtTo - The started at to.
- * @param completedAtFrom - The completed at from.
- * @param completedAtTo - The completed at to.
+ * @param createdFrom - The created at from.
+ * @param createdTo - The created at to.
+ * @param modifiedFrom - The modified at from.
+ * @param modifiedTo - The modified at to.
+ * @param startedFrom - The started at from.
+ * @param startedTo - The started at to.
+ * @param completedFrom - The completed at from.
+ * @param completedTo - The completed at to.
  * @param submitterDisplayId - The submitter display id filter.
  * @param submitterEmail - The submitter profile email filter.
  * @param sorting - Client-side table sorting restored from the URL.
@@ -34,14 +34,14 @@ export type SubmissionListUrlState = {
   isComplete: BooleanFilterValue[];
   status: SubmissionReviewStatus[];
   isTestSubmission: BooleanFilterValue[];
-  createdAtFrom?: string;
-  createdAtTo?: string;
-  modifiedAtFrom?: string;
-  modifiedAtTo?: string;
-  startedAtFrom?: string;
-  startedAtTo?: string;
-  completedAtFrom?: string;
-  completedAtTo?: string;
+  createdFrom?: string;
+  createdTo?: string;
+  modifiedFrom?: string;
+  modifiedTo?: string;
+  startedFrom?: string;
+  startedTo?: string;
+  completedFrom?: string;
+  completedTo?: string;
   submitterDisplayId?: string;
   submitterEmail?: string;
   sorting: SubmissionListSortItem[];

@@ -73,6 +73,12 @@ function buildListDataListItemsEndpoint(
   appendQueryParam(searchParams, "query", request.query);
   appendQueryParam(searchParams, "matchMode", request.matchMode);
   appendQueryParam(searchParams, "locale", request.locale);
+  appendQueryParam(searchParams, "sortBy", request.sortBy);
+  appendQueryParam(searchParams, "sortDir", request.sortDir);
+  appendQueryParam(searchParams, "createdFrom", request.createdFrom);
+  appendQueryParam(searchParams, "createdTo", request.createdTo);
+  appendQueryParam(searchParams, "modifiedFrom", request.modifiedFrom);
+  appendQueryParam(searchParams, "modifiedTo", request.modifiedTo);
   for (const locale of request.includeLocales ?? []) {
     appendQueryParam(searchParams, INCLUDE_LOCALES_QUERY_PARAM, locale);
   }

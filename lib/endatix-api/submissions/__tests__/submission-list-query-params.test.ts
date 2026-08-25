@@ -3,33 +3,9 @@ import {
   SUBMISSION_LIST_FILTER_FIELD_NAMES,
   SUBMISSION_LIST_FILTER_QUERY_PARAM,
   appendSubmissionListFilters,
-  utcCalendarDayStartIso,
-  utcCalendarNextDayStartIso,
 } from "../submission-list-query-params";
 
 const F = SUBMISSION_LIST_FILTER_FIELD_NAMES;
-
-describe("utcCalendarDayStartIso", () => {
-  it("returns UTC midnight ISO for calendar date", () => {
-    expect(utcCalendarDayStartIso("2024-06-15")).toBe(
-      "2024-06-15T00:00:00.000Z",
-    );
-  });
-});
-
-describe("utcCalendarNextDayStartIso", () => {
-  it("returns start of next calendar day in UTC", () => {
-    expect(utcCalendarNextDayStartIso("2024-06-15")).toBe(
-      "2024-06-16T00:00:00.000Z",
-    );
-  });
-
-  it("rolls from year end to January in UTC", () => {
-    expect(utcCalendarNextDayStartIso("2024-12-31")).toBe(
-      "2025-01-01T00:00:00.000Z",
-    );
-  });
-});
 
 describe("appendSubmissionListFilters", () => {
   it("does not append filter params when no filter fields are set", () => {
@@ -38,61 +14,54 @@ describe("appendSubmissionListFilters", () => {
     expect(params.has(SUBMISSION_LIST_FILTER_QUERY_PARAM)).toBe(false);
   });
 
-  it("appends filter segments and uses UTC calendar boundaries for dates", () => {
+  it("appends facet filter segments and typed date/sort query params", () => {
     const params = new URLSearchParams();
     appendSubmissionListFilters(params, {
       isComplete: ["true"],
       status: ["new", "read"],
       isTestSubmission: ["false"],
-      createdAtFrom: "2024-01-10",
-      createdAtTo: "2024-01-12",
-      modifiedAtFrom: "2024-01-15",
-      modifiedAtTo: "2024-01-16",
-      completedAtFrom: "2024-02-01",
-      completedAtTo: "2024-02-02",
+      sortBy: "createdAt",
+      sortDir: "asc",
+      createdFrom: "2024-01-10",
+      createdTo: "2024-01-12",
+      modifiedFrom: "2024-01-15",
+      modifiedTo: "2024-01-16",
+      completedFrom: "2024-02-01",
+      completedTo: "2024-02-02",
     });
 
     const filters = params.getAll(SUBMISSION_LIST_FILTER_QUERY_PARAM);
     expect(filters).toContain(`${F.isComplete}:true`);
     expect(filters).toContain(`${F.status}:new|read`);
     expect(filters).toContain(`${F.isTestSubmission}:false`);
-    expect(filters).toContain(
-      `${F.createdAt}>:${utcCalendarDayStartIso("2024-01-10")}`,
-    );
-    expect(filters).toContain(
-      `${F.createdAt}<${utcCalendarNextDayStartIso("2024-01-12")}`,
-    );
-    expect(filters).toContain(
-      `${F.modifiedAt}>:${utcCalendarDayStartIso("2024-01-15")}`,
-    );
-    expect(filters).toContain(
-      `${F.modifiedAt}<${utcCalendarNextDayStartIso("2024-01-16")}`,
-    );
-    expect(filters).toContain(
-      `${F.completedAt}>:${utcCalendarDayStartIso("2024-02-01")}`,
-    );
-    expect(filters).toContain(
-      `${F.completedAt}<${utcCalendarNextDayStartIso("2024-02-02")}`,
-    );
+    expect(filters.some((f) => f.includes("createdAt"))).toBe(false);
+
+    expect(params.get("sortBy")).toBe("createdAt");
+    expect(params.get("sortDir")).toBe("asc");
+    expect(params.get("createdFrom")).toBe("2024-01-10");
+    expect(params.get("createdTo")).toBe("2024-01-12");
+    expect(params.get("modifiedFrom")).toBe("2024-01-15");
+    expect(params.get("modifiedTo")).toBe("2024-01-16");
+    expect(params.get("completedFrom")).toBe("2024-02-01");
+    expect(params.get("completedTo")).toBe("2024-02-02");
   });
 
-  it("skips date filters that are not valid YYYY-MM-DD calendar days (no throw)", () => {
+  it("skips date params that are not valid YYYY-MM-DD calendar days", () => {
     const params = new URLSearchParams();
     appendSubmissionListFilters(params, {
       isComplete: ["true"],
-      createdAtFrom: "not-a-date",
-      createdAtTo: "2024-13-40",
-      completedAtFrom: "2024-02-30",
-      completedAtTo: "2024-06-15",
+      createdFrom: "not-a-date",
+      createdTo: "2024-13-40",
+      completedFrom: "2024-02-30",
+      completedTo: "2024-06-15",
     });
 
     const filters = params.getAll(SUBMISSION_LIST_FILTER_QUERY_PARAM);
     expect(filters).toContain(`${F.isComplete}:true`);
-    expect(filters.some((f) => f.startsWith(`${F.createdAt}`))).toBe(false);
-    expect(filters.some((f) => f.startsWith(`${F.completedAt}>`))).toBe(false);
-    expect(filters).toContain(
-      `${F.completedAt}<${utcCalendarNextDayStartIso("2024-06-15")}`,
-    );
+    expect(params.has("createdFrom")).toBe(false);
+    expect(params.has("createdTo")).toBe(false);
+    expect(params.has("completedFrom")).toBe(false);
+    expect(params.get("completedTo")).toBe("2024-06-15");
   });
 
   it("appends allowed submitter profile filters with normalized field names", () => {

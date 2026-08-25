@@ -19,7 +19,7 @@ import {
 describe("export-dialog-filters", () => {
   it("creates a draft from list filters with defaults", () => {
     const draft = createFilterDraftFromListFilters({
-      createdAtFrom: "2026-01-01",
+      createdFrom: "2026-01-01",
       completionStatus: EXPORT_COMPLETION_STATUS.all,
     });
 
@@ -37,8 +37,8 @@ describe("export-dialog-filters", () => {
 
   it("validates inverted date ranges", () => {
     const draft = createFilterDraftFromListFilters({
-      createdAtFrom: "2026-01-10",
-      createdAtTo: "2026-01-01",
+      createdFrom: "2026-01-10",
+      createdTo: "2026-01-01",
     });
     const errors = validateFilterDraft(draft, {
       showRowFilters: true,
@@ -53,7 +53,7 @@ describe("export-dialog-filters", () => {
     const draft = createFilterDraftFromListFilters({
       includeTestSubmissions: true,
       completionStatus: EXPORT_COMPLETION_STATUS.completed,
-      createdAtFrom: "2026-01-01",
+      createdFrom: "2026-01-01",
       locale: "es",
     });
 
@@ -67,12 +67,12 @@ describe("export-dialog-filters", () => {
     ).toEqual({
       includeTestSubmissions: true,
       completionStatus: EXPORT_COMPLETION_STATUS.completed,
-      createdAtFrom: "2026-01-01",
-      createdAtTo: undefined,
-      startedAtFrom: undefined,
-      startedAtTo: undefined,
-      completedAtFrom: undefined,
-      completedAtTo: undefined,
+      createdFrom: "2026-01-01",
+      createdTo: undefined,
+      startedFrom: undefined,
+      startedTo: undefined,
+      completedFrom: undefined,
+      completedTo: undefined,
       locale: "es",
     });
   });
