@@ -3,7 +3,6 @@
 import { DataTableToolbar } from "@/components/table";
 import { ShareDialog } from "@/features/forms/ui/share-dialog";
 import {
-  buildSubmissionsTableKey,
   rememberSubmissionListReturnTo,
   serializeSubmissionListSearchParams,
   submissionListUrlStateFromClientFilters,
@@ -19,7 +18,6 @@ import {
   ColumnVisibilityProvider,
   EMPTY_SUBMISSION_DATE_FILTERS,
   ResetOptionsDropdown,
-  SubmissionsTableSkeleton,
   useColumnOrder,
   useColumnVisibility,
 } from "@/features/submissions/ui/table";
@@ -113,7 +111,6 @@ function SubmissionsContent({
   onResetSorting,
   onResetAllFiltersAndSorting,
   isPending,
-  tableKey,
   allColumns,
   sorting,
   onSortingChange,
@@ -139,7 +136,6 @@ function SubmissionsContent({
   onResetSorting: () => void;
   onResetAllFiltersAndSorting: () => void;
   isPending: boolean;
-  tableKey: string;
   allColumns: ColumnDef<ParsedSubmission>[];
   sorting: SortingState;
   onSortingChange: Dispatch<SetStateAction<SortingState>>;
@@ -238,19 +234,10 @@ function SubmissionsContent({
         />
       </>
     );
-  } else if (isPending) {
-    tableRegion = (
-      <SubmissionsTableSkeleton
-        pageSize={pagination.pageSize}
-        loadingLabel="Updating submissions…"
-      />
-    );
   } else {
     tableRegion = (
       <SubmissionsTable
-        key={tableKey}
         data={data}
-        formId={formId}
         columns={allColumns}
         sorting={sorting}
         onSortingChange={onSortingChange}
@@ -259,6 +246,7 @@ function SubmissionsContent({
         totalRecords={totalRecords}
         totalPages={totalPages}
         onFilteredEmptyClear={onResetFilters}
+        isPending={isPending}
       />
     );
   }
@@ -267,6 +255,7 @@ function SubmissionsContent({
     <>
       <DataTableToolbar
         className="mt-8 mb-4"
+        isPending={isPending}
         filters={
           <SubmissionsFilterToolbar
             isCompleteFilter={isCompleteFilter}
@@ -289,13 +278,6 @@ function SubmissionsContent({
         }
         actions={
           <>
-            <div
-              role="status"
-              aria-live="polite"
-              className="hidden min-w-[5rem] text-right text-sm text-muted-foreground sm:block"
-            >
-              {isPending ? "Updating…" : null}
-            </div>
             <ColumnViewOptionsDropdown
               columns={columnHeaders}
               disabled={disableTableControls}
@@ -722,17 +704,6 @@ export function SubmissionsWithFilters({
     });
   };
 
-  const tableKey = buildSubmissionsTableKey({
-    isCompleteFilter,
-    statusFilter,
-    testSubmissionFilter,
-    submitterDisplayId: submitterDisplayIdFilter,
-    submitterEmail: submitterEmailFilter,
-    dateFilters,
-    pagination,
-    dataLength: data.length,
-  });
-
   const allColumns = [
     ...buildSubmissionSystemColumns({
       dateFilters,
@@ -766,7 +737,6 @@ export function SubmissionsWithFilters({
           onResetSorting={handleResetSorting}
           onResetAllFiltersAndSorting={handleResetAllFiltersAndSorting}
           isPending={isPending}
-          tableKey={tableKey}
           allColumns={allColumns}
           sorting={sorting}
           onSortingChange={handleSortingChange}

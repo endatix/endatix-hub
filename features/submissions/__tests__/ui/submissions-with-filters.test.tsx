@@ -40,6 +40,30 @@ vi.mock("next/navigation", () => ({
   }),
 }));
 
+vi.mock("@/components/ui/dropdown-menu", () => ({
+  DropdownMenu: ({ children }: { children: ReactNode }) => (
+    <div>{children}</div>
+  ),
+  DropdownMenuTrigger: ({ children }: { children: ReactNode }) => (
+    <>{children}</>
+  ),
+  DropdownMenuContent: ({ children }: { children: ReactNode }) => (
+    <div>{children}</div>
+  ),
+  DropdownMenuItem: ({
+    children,
+    onClick,
+  }: {
+    children: ReactNode;
+    onClick?: () => void;
+  }) => (
+    <button type="button" role="menuitem" onClick={onClick}>
+      {children}
+    </button>
+  ),
+  DropdownMenuSeparator: () => <hr />,
+}));
+
 vi.mock("@/features/forms/ui/share-dialog", () => ({
   ShareDialog: ({ open }: { open: boolean }) =>
     open ? <div>Share dialog</div> : null,
@@ -95,7 +119,9 @@ vi.mock("@/features/submissions/ui/table", () => ({
   ),
   ResetOptionsDropdown: () => null,
   SubmissionsTableSkeleton: ({ pageSize }: { pageSize?: number }) => (
-    <div data-testid="submissions-table-skeleton">Skeleton rows: {pageSize}</div>
+    <div data-testid="submissions-table-skeleton">
+      Skeleton rows: {pageSize}
+    </div>
   ),
   useColumnOrder: () => ({
     resetToDefault: vi.fn(),
@@ -238,7 +264,7 @@ describe("SubmissionsWithFilters", () => {
     ).toBeNull();
   });
 
-  it("shows the table skeleton instead of stale rows while URL navigation is pending", () => {
+  it("keeps the existing rows visible (dimmed) instead of swapping to a skeleton while URL navigation is pending", () => {
     navigationMocks.isPending = true;
 
     render(
@@ -253,10 +279,10 @@ describe("SubmissionsWithFilters", () => {
       />,
     );
 
-    expect(screen.getByTestId("submissions-table-skeleton").textContent).toBe(
-      "Skeleton rows: 10",
+    expect(screen.queryByTestId("submissions-table-skeleton")).toBeNull();
+    expect(screen.getByTestId("submissions-table").textContent).toContain(
+      "Rows: 1",
     );
-    expect(screen.queryByTestId("submissions-table")).toBeNull();
     expect(screen.getByText("Updating…")).not.toBeNull();
   });
 
@@ -342,7 +368,7 @@ describe("SubmissionsWithFilters", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /reset filters/i }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /reset filters/i }));
 
     expect(navigationMocks.push).toHaveBeenCalledWith(
       "/forms/form-1/submissions?sort=createdAt%3Adesc",

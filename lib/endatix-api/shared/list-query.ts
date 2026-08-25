@@ -52,8 +52,8 @@ export function pickDateRangeFilters<T extends string>(
   const result = {} as DateRangeFilter<T>;
 
   for (const field of fields) {
-    const fromKey = `${field}From` as keyof DateRangeFilter<T> & string;
-    const toKey = `${field}To` as keyof DateRangeFilter<T> & string;
+    const fromKey = `${field}From` as keyof DateRangeFilter<T>;
+    const toKey = `${field}To` as keyof DateRangeFilter<T>;
     result[fromKey] = parseCalendarDateYmd(
       get(fromKey),
     ) as DateRangeFilter<T>[typeof fromKey];

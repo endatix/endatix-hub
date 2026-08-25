@@ -5,7 +5,6 @@
  * Endatix list API `filter` query encoding for `ListSubmissionsRequest` lives in
  * `@/lib/endatix-api/submissions/submission-list-query-params`.
  */
-export { buildSubmissionsTableKey } from "./build-submissions-table-key";
 export { buildSubmissionListPath } from "./build-submission-list-path";
 export {
   clearSubmissionListReturnTo,

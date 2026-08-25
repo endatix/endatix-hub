@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useTransition } from "react";
 import type { Route } from "next";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
@@ -14,15 +14,18 @@ export type UrlSearchParamsUpdater = (
 ) => void;
 
 /**
- * A hook that provides a function to update the URL search params.
- * `updateUrl` is identity-stable across searchParams changes (reads via ref)
+ * URL search-param updater. `updateUrl` is identity-stable (reads via ref)
  * so debounced search effects do not re-arm on every filter navigation.
+ * `router.replace` runs in a transition; `isPending` is that transition.
+ * Each hook instance has its own pending flag — lift `updateUrl`/`isPending`
+ * to a parent when toolbar and table must share one indicator.
  */
 export function useUrlSearchParamsUpdater() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const searchParamsRef = useRef(searchParams);
+  const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
     searchParamsRef.current = searchParams;
@@ -50,10 +53,12 @@ export function useUrlSearchParamsUpdater() {
       const href = (
         queryString ? `${pathname}?${queryString}` : pathname
       ) as Route;
-      router.replace(href, { scroll: false });
+      startTransition(() => {
+        router.replace(href, { scroll: false });
+      });
     },
-    [pathname, router],
+    [pathname, router, startTransition],
   );
 
-  return { searchParams, updateUrl };
+  return { searchParams, updateUrl, isPending };
 }

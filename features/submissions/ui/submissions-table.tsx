@@ -12,7 +12,6 @@ import { Dispatch, SetStateAction, useEffect, useState } from "react";
 
 type SubmissionsTableProps = {
   data: Submission[];
-  formId: string;
   columns: ColumnDef<ParsedSubmission>[];
   sorting?: SortingState;
   onSortingChange?: Dispatch<SetStateAction<SortingState>>;
@@ -21,11 +20,11 @@ type SubmissionsTableProps = {
   totalRecords?: number;
   totalPages?: number;
   onFilteredEmptyClear?: () => void;
+  isPending?: boolean;
 };
 
 const SubmissionsTable = ({
   data,
-  formId,
   columns,
   sorting,
   onSortingChange,
@@ -34,6 +33,7 @@ const SubmissionsTable = ({
   totalRecords,
   totalPages,
   onFilteredEmptyClear,
+  isPending,
 }: SubmissionsTableProps) => {
   const [selectedSubmissionId, setSelectedSubmissionId] = useState<
     string | null
@@ -81,7 +81,6 @@ const SubmissionsTable = ({
     <DataTable
       data={parsedData}
       columns={columns}
-      formId={formId}
       sorting={sorting}
       onSortingChange={onSortingChange}
       pagination={pagination}
@@ -89,6 +88,7 @@ const SubmissionsTable = ({
       rowCount={totalRecords}
       pageCount={totalPages}
       onFilteredEmptyClear={onFilteredEmptyClear}
+      isPending={isPending}
     />
   );
 };

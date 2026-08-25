@@ -135,7 +135,6 @@ const getRowClassName = <TData extends Submission>(row: Row<TData>) => {
 export function DataTable<TData extends Submission>({
   data,
   columns,
-  formId,
   sorting: externalSorting,
   onSortingChange: externalOnSortingChange,
   pagination: externalPagination,
@@ -143,10 +142,10 @@ export function DataTable<TData extends Submission>({
   rowCount,
   pageCount,
   onFilteredEmptyClear,
+  isPending = false,
 }: {
   data: TData[];
   columns: ColumnDef<TData>[];
-  formId: string;
   sorting?: SortingState;
   onSortingChange?: Dispatch<SetStateAction<SortingState>>;
   pagination?: PaginationState;
@@ -154,6 +153,7 @@ export function DataTable<TData extends Submission>({
   rowCount?: number;
   pageCount?: number;
   onFilteredEmptyClear?: () => void;
+  isPending?: boolean;
 }) {
   const [internalSorting, setInternalSorting] = useState<SortingState>([]);
 
@@ -242,7 +242,10 @@ export function DataTable<TData extends Submission>({
       onFilteredEmptyClear !== undefined;
 
     return (
-      <DataTableSurface data-slot="submission-data-table">
+      <DataTableSurface
+        data-slot="submission-data-table"
+        isPending={isPending}
+      >
         {isFilteredEmpty ? (
           <NoMatchingSubmissionsEmptyState
             onClearFilters={onFilteredEmptyClear}
@@ -259,7 +262,7 @@ export function DataTable<TData extends Submission>({
 
   return (
     <>
-      <DataTableSurface data-slot="submission-data-table">
+      <DataTableSurface data-slot="submission-data-table" isPending={isPending}>
         <DndContext
           id={dndContextId}
           sensors={sensors}

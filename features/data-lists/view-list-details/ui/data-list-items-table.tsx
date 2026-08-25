@@ -43,6 +43,7 @@ type DataListItemsTableProps = {
   footer?: ReactNode;
   sorting?: SortingState;
   onSortingChange?: OnChangeFn<SortingState>;
+  isPending?: boolean;
 };
 
 type DataListItemRow = DataListItem & { rowId: string };
@@ -109,6 +110,7 @@ export function DataListItemsTable({
   footer,
   sorting = [],
   onSortingChange,
+  isPending = false,
 }: Readonly<DataListItemsTableProps>) {
   const data = useMemo<DataListItemRow[]>(
     () =>
@@ -144,7 +146,7 @@ export function DataListItemsTable({
 
   if (rows.length === 0) {
     return (
-      <DataTableSurface data-slot="data-list-items-table">
+      <DataTableSurface data-slot="data-list-items-table" isPending={isPending}>
         <DataTableEmpty>{emptyMessage}</DataTableEmpty>
         {footer}
       </DataTableSurface>
@@ -152,7 +154,7 @@ export function DataListItemsTable({
   }
 
   return (
-    <DataTableSurface data-slot="data-list-items-table">
+    <DataTableSurface data-slot="data-list-items-table" isPending={isPending}>
       <div className="w-full overflow-x-auto">
         <Table className={DATA_TABLE_ELEMENT_CLASS_NAME}>
           <TableHeader className="bg-surface-container-low">

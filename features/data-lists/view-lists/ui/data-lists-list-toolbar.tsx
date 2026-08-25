@@ -23,7 +23,8 @@ type DataListsListToolbarProps = {
 export function DataListsListToolbar({
   localeFilter,
 }: Readonly<DataListsListToolbarProps>) {
-  const { search, setSearch, updateUrl, searchParams } = useListUrlState();
+  const { search, setSearch, updateUrl, searchParams, isPending } =
+    useListUrlState();
   const urlState = listUrlStateFromSearchParams(searchParams);
   const hasActiveFilters = Boolean(
     search.trim() ||
@@ -74,6 +75,7 @@ export function DataListsListToolbar({
   return (
     <DataTableToolbar
       className="mt-6"
+      isPending={isPending}
       filters={
         <>
           <TableSearchInput

@@ -9,7 +9,7 @@ export function useListUrlState(
   searchParamKey = "search",
   debounceMs = DEFAULT_DEBOUNCE_MS,
 ) {
-  const { searchParams, updateUrl } = useUrlSearchParamsUpdater();
+  const { searchParams, updateUrl, isPending } = useUrlSearchParamsUpdater();
   const urlSearch = searchParams.get(searchParamKey) ?? "";
   const { search, setSearch } = useDebouncedUrlSearch({
     debounceMs,
@@ -18,5 +18,5 @@ export function useListUrlState(
     updateUrl,
   });
 
-  return { search, setSearch, urlSearch, updateUrl, searchParams };
+  return { search, setSearch, urlSearch, updateUrl, searchParams, isPending };
 }

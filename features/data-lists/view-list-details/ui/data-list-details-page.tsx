@@ -22,6 +22,7 @@ import { toast } from "@/components/ui/toast";
 import type { DataListDetails } from "@/lib/endatix-api/data-lists/types";
 import type { DataListItemsPage } from "@/lib/endatix-api/data-lists/data-lists";
 import { useListUrlState } from "@/lib/list-page/use-list-url-state";
+import type { UrlSearchParamsUpdater } from "@/lib/utils/hooks/use-url-search-params-updater.hook";
 import { TelemetryLogger } from "@/features/telemetry";
 import { withBasePath } from "@/lib/hosting";
 import { formatInteger } from "@/lib/utils/formatters";
@@ -391,7 +392,8 @@ function DataListItemsSection({
   availableLocales: string[];
   defaultLocale?: string;
 }>) {
-  const { search, setSearch, updateUrl, searchParams } = useListUrlState();
+  const { search, setSearch, updateUrl, searchParams, isPending } =
+    useListUrlState();
   const selectedLocales = useMemo(
     () => parseHasLocaleFilterSet(searchParams.get("hasLocale")),
     [searchParams],
@@ -428,6 +430,7 @@ function DataListItemsSection({
   return (
     <div className="flex flex-col gap-3">
       <DataTableToolbar
+        isPending={isPending}
         filters={
           <>
             <TableSearchInput
@@ -501,6 +504,9 @@ function DataListItemsSection({
           itemsPromise={itemsPromise}
           availableLocales={availableLocales}
           defaultLocale={defaultLocale}
+          updateUrl={updateUrl}
+          searchParams={searchParams}
+          isPending={isPending}
         />
       </Suspense>
     </div>
@@ -511,13 +517,18 @@ function DataListItemsPanel({
   itemsPromise,
   availableLocales,
   defaultLocale,
+  updateUrl,
+  searchParams,
+  isPending,
 }: Readonly<{
   itemsPromise: Promise<DataListItemsPage>;
   availableLocales: string[];
   defaultLocale?: string;
+  updateUrl: UrlSearchParamsUpdater;
+  searchParams: URLSearchParams;
+  isPending: boolean;
 }>) {
   const paged = use(itemsPromise);
-  const { updateUrl, searchParams } = useListUrlState();
   const footerProps = createPagedTableFooterProps(paged, "items", updateUrl);
   const searchValue = searchParams.get("search") ?? "";
   const hasLocale = parseHasLocaleFilter(searchParams.get("hasLocale"));
@@ -581,6 +592,7 @@ function DataListItemsPanel({
           : "No items in this list."
       }
       footer={<PagedTableFooter {...footerProps} variant="surface" />}
+      isPending={isPending}
     />
   );
 }

@@ -201,16 +201,16 @@ export function submissionListUrlStateToListRequest(
     ? primarySort.id
     : undefined;
 
+  let sortDir: ListSubmissionsRequest["sortDir"];
+  if (sortBy !== undefined && primarySort !== undefined) {
+    sortDir = primarySort.desc ? "desc" : "asc";
+  }
+
   return {
     page: state.page,
     pageSize: state.pageSize,
     sortBy,
-    sortDir:
-      sortBy === undefined || primarySort === undefined
-        ? undefined
-        : primarySort.desc
-          ? "desc"
-          : "asc",
+    sortDir,
     isComplete: state.isComplete,
     status: state.status,
     isTestSubmission: state.isTestSubmission,

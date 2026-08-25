@@ -103,7 +103,7 @@ export function DataListsPage({
 }: Readonly<DataListsPageProps>) {
   const paged = use(dataListsPromise);
   const router = useRouter();
-  const { updateUrl, searchParams } = useListUrlState();
+  const { updateUrl, searchParams, isPending } = useListUrlState();
   const urlState = listUrlStateFromSearchParams(searchParams);
   const searchInput = searchParams.get("search") ?? "";
 
@@ -271,7 +271,11 @@ export function DataListsPage({
 
   return (
     <>
-      <DataTableSurface data-slot="data-lists-table" className="mt-4">
+      <DataTableSurface
+        data-slot="data-lists-table"
+        className="mt-4"
+        isPending={isPending}
+      >
         {paged.items.length === 0 ? (
           <DataTableEmpty>
             {hasFilters
