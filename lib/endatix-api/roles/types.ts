@@ -2,9 +2,13 @@ import type { IPagedRequest } from "../shared/types";
 
 export type RoleTypeFilter = "all" | "system" | "custom";
 
+export type RoleListSortBy = "name" | "isActive" | "usersCount";
+
 export interface ListRolesRequest extends IPagedRequest {
   roleType?: RoleTypeFilter;
   search?: string;
+  sortBy?: RoleListSortBy;
+  sortDir?: "asc" | "desc";
 }
 
 export type RoleListItem = {

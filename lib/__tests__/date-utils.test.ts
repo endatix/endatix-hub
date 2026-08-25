@@ -35,6 +35,7 @@ describe("date-utils", () => {
       expect(isValidCalendarDateYmd("2024-01-31")).toBe(true);
       expect(isValidCalendarDateYmd("2024-02-29")).toBe(true);
       expect(isValidCalendarDateYmd("9999-12-31")).toBe(true);
+      expect(isValidCalendarDateYmd("0001-01-01")).toBe(true);
     });
 
     it("rejects overflow dates, wrong shape, and garbage", () => {

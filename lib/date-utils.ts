@@ -61,7 +61,8 @@ export function isValidCalendarDateYmd(value: string): boolean {
   }
 
   const [year, month, day] = value.split("-").map(Number);
-  const d = new Date(Date.UTC(year, month - 1, day));
+  const d = new Date(0);
+  d.setUTCFullYear(year, month - 1, day);
   return (
     d.getUTCFullYear() === year &&
     d.getUTCMonth() === month - 1 &&

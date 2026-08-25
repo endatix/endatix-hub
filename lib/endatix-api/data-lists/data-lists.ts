@@ -63,7 +63,7 @@ export function buildListDataListsEndpoint(
   return buildEndpointWithQuery(DATA_LISTS_BASE, searchParams);
 }
 
-function buildListDataListItemsEndpoint(
+export function buildListDataListItemsEndpoint(
   dataListId: string,
   request: ListDataListItemsRequest,
 ): string {

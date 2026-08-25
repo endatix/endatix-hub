@@ -270,7 +270,8 @@ export const getThemes = async (
     throw new Error("Failed to fetch themes");
   }
 
-  return response.json();
+  const payload: { items?: ThemeResponse[] } = await response.json();
+  return payload.items ?? [];
 };
 
 export const createTheme = async (theme: ITheme): Promise<ThemeResponse> => {
@@ -680,16 +681,32 @@ export interface CustomQuestion {
 export const getCustomQuestions = async (): Promise<CustomQuestion[]> => {
   const session = await getSession();
   const headers = new HeaderBuilder().withAuth(session).build();
+  const questions: CustomQuestion[] = [];
+  let page = 1;
+  let totalPages = 1;
 
-  const response = await fetch(`${requireApiUrl()}/questions`, {
-    headers: headers,
-  });
+  while (page <= totalPages) {
+    const response = await fetch(
+      `${requireApiUrl()}/questions?page=${page}&pageSize=100`,
+      {
+        headers: headers,
+      },
+    );
 
-  if (!response.ok) {
-    throw new Error("Failed to fetch custom questions");
+    if (!response.ok) {
+      throw new Error("Failed to fetch custom questions");
+    }
+
+    const payload: {
+      items?: CustomQuestion[];
+      totalPages?: number;
+    } = await response.json();
+    questions.push(...(payload.items ?? []));
+    totalPages = payload.totalPages ?? 1;
+    page += 1;
   }
 
-  return response.json();
+  return questions;
 };
 
 export interface CreateCustomQuestionRequest {

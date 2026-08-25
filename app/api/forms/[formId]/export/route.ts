@@ -98,6 +98,12 @@ export async function GET(
     exportOptions.createdTo = parseOptionalCalendarDateQuery(
       searchParams.get("createdTo"),
     );
+    exportOptions.modifiedFrom = parseOptionalCalendarDateQuery(
+      searchParams.get("modifiedFrom"),
+    );
+    exportOptions.modifiedTo = parseOptionalCalendarDateQuery(
+      searchParams.get("modifiedTo"),
+    );
     exportOptions.startedFrom = parseOptionalCalendarDateQuery(
       searchParams.get("startedFrom"),
     );

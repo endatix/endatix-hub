@@ -35,6 +35,8 @@ import {
   DATA_LISTS_LIST_PATH,
   DATA_LISTS_TABLE_KEY,
   dataListsListHrefFromQuery,
+  parseCalendarDateParam,
+  parseDataListSortDir,
   parseDataListsReturnQuery,
   parseHasLocaleFilter,
   parseHasLocaleFilterSet,
@@ -58,7 +60,8 @@ import type { DataListSourceFormat } from "../../add-items/data-list-items-input
 import { DataListItemsTable } from "./data-list-items-table";
 import { DataListItemsTableSkeleton } from "./data-list-items-table-skeleton";
 import { EditDataListPanel } from "./edit-data-list-panel";
-import { resolveVisibleLabelColumns } from "../utils";
+import { parseDataListItemSortBy, resolveVisibleLabelColumns } from "../utils";
+import type { SortingState, Updater } from "@tanstack/react-table";
 
 const CSV_EXPORT_LOGGER = "data-lists.exportCsv";
 
@@ -95,12 +98,19 @@ export function DataListDetailsPage({
   // would otherwise render a false "no items" empty state after replace.
   const resetItemsListState = (): void => {
     const nextParams = new URLSearchParams(searchParams.toString());
-    if (!nextParams.has("page") && !nextParams.has("search")) {
+    if (
+      !nextParams.has("page") &&
+      !nextParams.has("search") &&
+      !nextParams.has("sortBy") &&
+      !nextParams.has("sortDir")
+    ) {
       return;
     }
 
     nextParams.delete("page");
     nextParams.delete("search");
+    nextParams.delete("sortBy");
+    nextParams.delete("sortDir");
     const query = nextParams.toString();
     router.replace((query ? `${pathname}?${query}` : pathname) as Route);
   };
@@ -394,6 +404,21 @@ function DataListItemsSection({
     }));
   }, [availableLocales, defaultLocale]);
 
+  const createdFrom = parseCalendarDateParam(searchParams.get("createdFrom"));
+  const createdTo = parseCalendarDateParam(searchParams.get("createdTo"));
+  const modifiedFrom = parseCalendarDateParam(searchParams.get("modifiedFrom"));
+  const modifiedTo = parseCalendarDateParam(searchParams.get("modifiedTo"));
+  const sortBy = parseDataListItemSortBy(searchParams.get("sortBy"));
+  const hasActiveFilters = Boolean(
+    search.trim() ||
+    selectedLocales.size > 0 ||
+    createdFrom ||
+    createdTo ||
+    modifiedFrom ||
+    modifiedTo,
+  );
+  const hasSorting = Boolean(sortBy);
+
   return (
     <div className="flex flex-col gap-3">
       <DataTableToolbar
@@ -419,18 +444,43 @@ function DataListItemsSection({
                 }}
               />
             ) : null}
-            {search.trim() || selectedLocales.size > 0 ? (
-              <ResetFiltersButton
-                onClick={() => {
-                  setSearch("");
-                  updateUrl({
-                    search: null,
-                    hasLocale: null,
-                    page: "1",
-                  });
-                }}
-              />
-            ) : null}
+            <ResetFiltersButton
+              hasFilters={hasActiveFilters}
+              hasSorting={hasSorting}
+              onClick={() => {
+                setSearch("");
+                updateUrl({
+                  search: null,
+                  hasLocale: null,
+                  createdFrom: null,
+                  createdTo: null,
+                  modifiedFrom: null,
+                  modifiedTo: null,
+                  page: "1",
+                });
+              }}
+              onResetSorting={() => {
+                updateUrl({
+                  sortBy: null,
+                  sortDir: null,
+                  page: "1",
+                });
+              }}
+              onResetAll={() => {
+                setSearch("");
+                updateUrl({
+                  search: null,
+                  hasLocale: null,
+                  createdFrom: null,
+                  createdTo: null,
+                  modifiedFrom: null,
+                  modifiedTo: null,
+                  sortBy: null,
+                  sortDir: null,
+                  page: "1",
+                });
+              }}
+            />
           </>
         }
       />
@@ -466,7 +516,42 @@ function DataListItemsPanel({
   const searchValue = searchParams.get("search") ?? "";
   const hasLocale = parseHasLocaleFilter(searchParams.get("hasLocale"));
   const hasLocaleFilter = Boolean(hasLocale);
-  const hasFilters = Boolean(searchValue.trim() || hasLocaleFilter);
+  const createdFrom = parseCalendarDateParam(searchParams.get("createdFrom"));
+  const createdTo = parseCalendarDateParam(searchParams.get("createdTo"));
+  const modifiedFrom = parseCalendarDateParam(searchParams.get("modifiedFrom"));
+  const modifiedTo = parseCalendarDateParam(searchParams.get("modifiedTo"));
+  const hasFilters = Boolean(
+    searchValue.trim() ||
+    hasLocaleFilter ||
+    createdFrom ||
+    createdTo ||
+    modifiedFrom ||
+    modifiedTo,
+  );
+  const sortBy = parseDataListItemSortBy(searchParams.get("sortBy"));
+  const sortDir = parseDataListSortDir(searchParams.get("sortDir"));
+  const sorting = useMemo<SortingState>(() => {
+    if (!sortBy) {
+      return [];
+    }
+    return [{ id: sortBy, desc: sortDir !== "asc" }];
+  }, [sortBy, sortDir]);
+
+  const handleSortingChange = (updater: Updater<SortingState>): void => {
+    const next = typeof updater === "function" ? updater(sorting) : updater;
+    const first = next[0];
+    if (!first) {
+      updateUrl({ sortBy: null, sortDir: null, page: "1" });
+      return;
+    }
+
+    updateUrl({
+      sortBy: first.id,
+      sortDir: first.desc ? "desc" : "asc",
+      page: "1",
+    });
+  };
+
   const labelColumns = resolveVisibleLabelColumns({
     hasLocale,
     defaultLocale,
@@ -482,6 +567,8 @@ function DataListItemsPanel({
       items={items}
       labelColumns={labelColumns}
       defaultLocale={defaultLocale}
+      sorting={sorting}
+      onSortingChange={handleSortingChange}
       emptyMessage={
         hasFilters
           ? "No items match the current filters."

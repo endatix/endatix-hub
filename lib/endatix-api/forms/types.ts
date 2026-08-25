@@ -1,9 +1,17 @@
 import type { IPagedRequest } from "../shared/types";
 
+export type FormListSortBy = "name" | "createdAt" | "modifiedAt";
+
 export interface FormsListRequest extends IPagedRequest {
   search?: string;
   isEnabled?: boolean;
   isPublic?: boolean;
+  sortBy?: FormListSortBy;
+  sortDir?: "asc" | "desc";
+  createdFrom?: string;
+  createdTo?: string;
+  modifiedFrom?: string;
+  modifiedTo?: string;
   /** Advanced filter expression when typed fields are not sufficient. */
   filter?: string;
   folderId?: string;

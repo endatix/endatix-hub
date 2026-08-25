@@ -19,6 +19,12 @@ describe("parseDataListItemsParams", () => {
       pageSize: 25,
       query: "york",
       hasLocale: undefined,
+      sortBy: undefined,
+      sortDir: undefined,
+      createdFrom: undefined,
+      createdTo: undefined,
+      modifiedFrom: undefined,
+      modifiedTo: undefined,
     });
   });
 
@@ -30,6 +36,24 @@ describe("parseDataListItemsParams", () => {
 
     // Assert
     expect(parsed.hasLocale).toBe("es,de");
+  });
+
+  it("parses sort and calendar bounds", () => {
+    const parsed = parseDataListItemsParams({
+      sortBy: "value",
+      sortDir: "asc",
+      createdFrom: "2024-01-15",
+      createdTo: "2024-01-16",
+    });
+
+    expect(parsed.sortBy).toBe("value");
+    expect(parsed.sortDir).toBe("asc");
+    expect(parsed.createdFrom).toBe("2024-01-15");
+    expect(parsed.createdTo).toBe("2024-01-16");
+  });
+
+  it("drops unknown sortBy", () => {
+    expect(parseDataListItemsParams({ sortBy: "nope" }).sortBy).toBeUndefined();
   });
 });
 

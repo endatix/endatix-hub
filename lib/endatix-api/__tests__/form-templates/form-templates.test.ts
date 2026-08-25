@@ -36,7 +36,15 @@ describe("FormTemplates", () => {
   it("list sends default page size without folder filter", async () => {
     // Arrange
     const expected: FormTemplate[] = [];
-    const get = vi.fn().mockResolvedValue(ApiResult.success(expected));
+    const get = vi.fn().mockResolvedValue(
+      ApiResult.success({
+        items: expected,
+        page: 1,
+        pageSize: 100,
+        totalRecords: 0,
+        totalPages: 0,
+      }),
+    );
     const sut = new FormTemplates({ get } as unknown as EndatixApi);
 
     // Act
@@ -44,14 +52,22 @@ describe("FormTemplates", () => {
 
     // Assert
     expect(get).toHaveBeenCalledTimes(1);
-    expect(get).toHaveBeenCalledWith("/form-templates?pageSize=100");
+    expect(get).toHaveBeenCalledWith("/form-templates?page=1&pageSize=100");
     expect(ApiResult.isSuccess(result)).toBe(true);
   });
 
   it("list sends folderId filter when provided", async () => {
     // Arrange
     const expected: FormTemplate[] = [];
-    const get = vi.fn().mockResolvedValue(ApiResult.success(expected));
+    const get = vi.fn().mockResolvedValue(
+      ApiResult.success({
+        items: expected,
+        page: 1,
+        pageSize: 100,
+        totalRecords: 0,
+        totalPages: 0,
+      }),
+    );
     const sut = new FormTemplates({ get } as unknown as EndatixApi);
 
     // Act
@@ -60,7 +76,7 @@ describe("FormTemplates", () => {
     // Assert
     expect(get).toHaveBeenCalledTimes(1);
     expect(get).toHaveBeenCalledWith(
-      "/form-templates?pageSize=100&folderId=123",
+      "/form-templates?page=1&pageSize=100&folderId=123",
     );
   });
 });

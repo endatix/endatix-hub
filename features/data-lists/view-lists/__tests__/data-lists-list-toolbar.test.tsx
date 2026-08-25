@@ -1,9 +1,34 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   DataListsListToolbar,
   DataListsLocaleFacet,
 } from "../ui/data-lists-list-toolbar";
+
+vi.mock("@/components/ui/dropdown-menu", () => ({
+  DropdownMenu: ({ children }: { children: ReactNode }) => (
+    <div>{children}</div>
+  ),
+  DropdownMenuTrigger: ({ children }: { children: ReactNode }) => (
+    <>{children}</>
+  ),
+  DropdownMenuContent: ({ children }: { children: ReactNode }) => (
+    <div>{children}</div>
+  ),
+  DropdownMenuItem: ({
+    children,
+    onClick,
+  }: {
+    children: ReactNode;
+    onClick?: () => void;
+  }) => (
+    <button type="button" role="menuitem" onClick={onClick}>
+      {children}
+    </button>
+  ),
+  DropdownMenuSeparator: () => <hr />,
+}));
 
 const updateUrl = vi.fn();
 const setSearch = vi.fn();
@@ -49,10 +74,46 @@ describe("DataListsListToolbar", () => {
     });
   });
 
-  it("hides Reset Filters when no filters are active", () => {
+  it("shows a combined Reset menu when filters and sorting are both active", () => {
+    mockSearchParams = new URLSearchParams("search=widgets&sortBy=name");
+    mockSearch = "widgets";
+
     render(<DataListsListToolbar />);
 
-    expect(screen.queryByRole("button", { name: /reset filters/i })).toBeNull();
+    fireEvent.click(screen.getByRole("menuitem", { name: "Reset All" }));
+
+    expect(setSearch).toHaveBeenCalledWith("");
+    expect(updateUrl).toHaveBeenCalledWith({
+      search: null,
+      hasLocale: null,
+      createdFrom: null,
+      createdTo: null,
+      modifiedFrom: null,
+      modifiedTo: null,
+      sortBy: null,
+      sortDir: null,
+      page: "1",
+    });
+  });
+
+  it("hides Reset when no filters or sorting are active", () => {
+    render(<DataListsListToolbar />);
+
+    expect(screen.queryByRole("button", { name: /reset/i })).toBeNull();
+  });
+
+  it("shows Reset Sorting when only sort query params are set", () => {
+    mockSearchParams = new URLSearchParams("sortBy=name&sortDir=asc");
+
+    render(<DataListsListToolbar />);
+
+    fireEvent.click(screen.getByRole("button", { name: /reset sorting/i }));
+
+    expect(updateUrl).toHaveBeenCalledWith({
+      sortBy: null,
+      sortDir: null,
+      page: "1",
+    });
   });
 });
 

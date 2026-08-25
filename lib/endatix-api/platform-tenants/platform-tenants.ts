@@ -18,6 +18,12 @@ export default class PlatformTenants {
         ["page", request.page],
         ["pageSize", request.pageSize],
         ["search", request.search],
+        ["sortBy", request.sortBy],
+        ["sortDir", request.sortDir],
+        ["createdFrom", request.createdFrom],
+        ["createdTo", request.createdTo],
+        ["modifiedFrom", request.modifiedFrom],
+        ["modifiedTo", request.modifiedTo],
       ]),
     );
   }

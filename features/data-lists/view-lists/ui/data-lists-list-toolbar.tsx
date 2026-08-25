@@ -33,6 +33,7 @@ export function DataListsListToolbar({
     urlState.modifiedFrom ||
     urlState.modifiedTo,
   );
+  const hasSorting = Boolean(urlState.sortBy);
 
   const resetFilters = (): void => {
     setSearch("");
@@ -43,6 +44,29 @@ export function DataListsListToolbar({
       createdTo: null,
       modifiedFrom: null,
       modifiedTo: null,
+      page: "1",
+    });
+  };
+
+  const resetSorting = (): void => {
+    updateUrl({
+      sortBy: null,
+      sortDir: null,
+      page: "1",
+    });
+  };
+
+  const resetAll = (): void => {
+    setSearch("");
+    updateUrl({
+      search: null,
+      hasLocale: null,
+      createdFrom: null,
+      createdTo: null,
+      modifiedFrom: null,
+      modifiedTo: null,
+      sortBy: null,
+      sortDir: null,
       page: "1",
     });
   };
@@ -60,9 +84,13 @@ export function DataListsListToolbar({
             className="min-w-[12rem] flex-none lg:flex-1"
           />
           {localeFilter}
-          {hasActiveFilters ? (
-            <ResetFiltersButton onClick={resetFilters} />
-          ) : null}
+          <ResetFiltersButton
+            onClick={resetFilters}
+            onResetSorting={resetSorting}
+            onResetAll={resetAll}
+            hasFilters={hasActiveFilters}
+            hasSorting={hasSorting}
+          />
         </>
       }
     />

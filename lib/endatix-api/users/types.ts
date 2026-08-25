@@ -16,10 +16,16 @@ export type UserListItem = {
 
 export type UserStatusFilter = "active" | "pending" | "locked";
 
+export type UserListSortBy = "userName" | "email" | "lastLoginAt";
+
 export interface ListUsersRequest extends IPagedRequest {
   search?: string;
   role?: string;
   status?: UserStatusFilter;
+  sortBy?: UserListSortBy;
+  sortDir?: "asc" | "desc";
+  lastLoginFrom?: string;
+  lastLoginTo?: string;
 }
 
 export type CreateUserRequestBody = {

@@ -4,6 +4,7 @@ import type {
   DataListListSortDir,
   ListDataListsRequest,
 } from "@/lib/endatix-api/data-lists/types";
+import { isValidCalendarDateYmd } from "@/lib/date-utils";
 import { tryNormalizeCultureCode } from "@/lib/localization";
 
 export const DEFAULT_DATA_LISTS_PAGE_SIZE = 10;
@@ -11,8 +12,6 @@ export const DATA_LISTS_LIST_PATH = "/data-lists";
 export const ALL_LOCALES_FILTER_VALUE = "__all_locales__";
 /** `tableKey` for `BackToTableButton` / `rememberTableReturnTo` (see `lib/list-page/table-return-to`). */
 export const DATA_LISTS_TABLE_KEY = "data-lists";
-
-const CALENDAR_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 const ALLOWED_SORT_BY = new Set<DataListListSortBy>([
   "name",
@@ -64,21 +63,7 @@ export function parseCalendarDateParam(
   value: string | null | undefined,
 ): string | undefined {
   const trimmed = value?.trim();
-  if (!trimmed || !CALENDAR_DATE_PATTERN.test(trimmed)) {
-    return undefined;
-  }
-
-  const [year, month, day] = trimmed.split("-").map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day));
-  if (
-    date.getUTCFullYear() !== year ||
-    date.getUTCMonth() !== month - 1 ||
-    date.getUTCDate() !== day
-  ) {
-    return undefined;
-  }
-
-  return trimmed;
+  return trimmed && isValidCalendarDateYmd(trimmed) ? trimmed : undefined;
 }
 
 export function parseDataListSortBy(

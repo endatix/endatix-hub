@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { buildListDataListsEndpoint } from "../data-lists";
+import {
+  buildListDataListItemsEndpoint,
+  buildListDataListsEndpoint,
+} from "../data-lists";
 
 describe("buildListDataListsEndpoint", () => {
   it("sends search, not query, for the management list", () => {
@@ -42,5 +45,26 @@ describe("buildListDataListsEndpoint", () => {
 
     // Assert
     expect(endpoint).toBe("/data-lists?page=1&pageSize=10");
+  });
+});
+
+describe("buildListDataListItemsEndpoint", () => {
+  it("sends sort and calendar date bounds", () => {
+    const endpoint = buildListDataListItemsEndpoint("42", {
+      sortBy: "value",
+      sortDir: "asc",
+      createdFrom: "2024-01-01",
+      createdTo: "2024-01-31",
+      modifiedFrom: "2024-02-01",
+      modifiedTo: "2024-02-28",
+    });
+
+    expect(endpoint).toContain("/data-lists/42/items");
+    expect(endpoint).toContain("sortBy=value");
+    expect(endpoint).toContain("sortDir=asc");
+    expect(endpoint).toContain("createdFrom=2024-01-01");
+    expect(endpoint).toContain("createdTo=2024-01-31");
+    expect(endpoint).toContain("modifiedFrom=2024-02-01");
+    expect(endpoint).toContain("modifiedTo=2024-02-28");
   });
 });

@@ -119,5 +119,9 @@ function buildListUsersEndpoint(request: ListUsersRequest): string {
     ["search", request.search],
     ["role", request.role],
     ["status", request.status],
+    ["sortBy", request.sortBy],
+    ["sortDir", request.sortDir],
+    ["lastLoginFrom", request.lastLoginFrom],
+    ["lastLoginTo", request.lastLoginTo],
   ]);
 }

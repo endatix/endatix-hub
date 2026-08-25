@@ -116,6 +116,12 @@ function buildListFormsEndpoint(request: FormsListRequest): string {
     ["search", request.search],
     ["isEnabled", request.isEnabled],
     ["isPublic", request.isPublic],
+    ["sortBy", request.sortBy],
+    ["sortDir", request.sortDir],
+    ["createdFrom", request.createdFrom],
+    ["createdTo", request.createdTo],
+    ["modifiedFrom", request.modifiedFrom],
+    ["modifiedTo", request.modifiedTo],
     ["folderId", request.folderId],
   ];
 

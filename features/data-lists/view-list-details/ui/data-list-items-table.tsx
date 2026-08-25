@@ -8,6 +8,7 @@ import {
   dataTableBodyRowClassName,
   dataTableColumnLabelClassName,
   dataTableHeaderCellClassName,
+  DataTableColumnHeader,
   DataTableEmpty,
   DataTableSurface,
 } from "@/components/table";
@@ -27,6 +28,8 @@ import {
   getCoreRowModel,
   useReactTable,
   type ColumnDef,
+  type OnChangeFn,
+  type SortingState,
 } from "@tanstack/react-table";
 import { type ReactNode, useMemo } from "react";
 import "./table-types";
@@ -38,6 +41,8 @@ type DataListItemsTableProps = {
   defaultLocale?: string;
   emptyMessage?: string;
   footer?: ReactNode;
+  sorting?: SortingState;
+  onSortingChange?: OnChangeFn<SortingState>;
 };
 
 type DataListItemRow = DataListItem & { rowId: string };
@@ -50,9 +55,13 @@ function buildColumns(
     {
       id: "value",
       accessorKey: "value",
-      enableSorting: false,
-      header: () => (
-        <span className={dataTableColumnLabelClassName()}>Value</span>
+      enableSorting: true,
+      header: ({ column }) => (
+        <DataTableColumnHeader
+          column={column}
+          title="Value"
+          isSorted={column.getIsSorted()}
+        />
       ),
       cell: ({ row }) => (
         <TruncatedId id={row.original.value} copyLabel="Copy value" />
@@ -98,6 +107,8 @@ export function DataListItemsTable({
   defaultLocale,
   emptyMessage = "No items in this list.",
   footer,
+  sorting = [],
+  onSortingChange,
 }: Readonly<DataListItemsTableProps>) {
   const data = useMemo<DataListItemRow[]>(
     () =>
@@ -119,6 +130,9 @@ export function DataListItemsTable({
     getCoreRowModel: getCoreRowModel(),
     getRowId: (row) => row.rowId,
     enableColumnPinning: true,
+    manualSorting: true,
+    state: { sorting },
+    onSortingChange,
     initialState: {
       columnPinning: {
         left: ["value"],

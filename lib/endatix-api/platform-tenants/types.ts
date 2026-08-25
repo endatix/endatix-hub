@@ -1,7 +1,15 @@
 import type { IPagedRequest } from "../shared/types";
 
+export type PlatformTenantListSortBy = "name" | "createdAt" | "modifiedAt";
+
 export interface ListPlatformTenantsRequest extends IPagedRequest {
   search?: string;
+  sortBy?: PlatformTenantListSortBy;
+  sortDir?: "asc" | "desc";
+  createdFrom?: string;
+  createdTo?: string;
+  modifiedFrom?: string;
+  modifiedTo?: string;
 }
 
 export interface PlatformTenantListItem {

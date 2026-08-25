@@ -4,10 +4,17 @@ import { validateEndatixId } from "@/lib/utils/type-validators";
 import { EndatixApi } from "../endatix-api";
 import { ApiResult } from "../shared/api-result";
 import type { CreateFormTemplateRequest } from "@/lib/form-types";
+import type { PagedResponse } from "../shared/types";
 
 export type FormTemplatesListRequest = {
   folderId?: string;
   filter?: string;
+  sortBy?: "name" | "createdAt" | "modifiedAt";
+  sortDir?: "asc" | "desc";
+  createdFrom?: string;
+  createdTo?: string;
+  modifiedFrom?: string;
+  modifiedTo?: string;
 };
 
 export type PartialUpdateFormTemplateRequest = {
@@ -30,17 +37,52 @@ export class FormTemplates {
   async list(
     request?: FormTemplatesListRequest,
   ): Promise<ApiResult<FormTemplate[]>> {
-    const params = new URLSearchParams();
-    params.set("pageSize", "100");
-    if (request?.filter) {
-      params.set("filter", request.filter);
+    const templates: FormTemplate[] = [];
+    let page = 1;
+    let totalPages = 1;
+
+    while (page <= totalPages) {
+      const params = new URLSearchParams();
+      params.set("page", String(page));
+      params.set("pageSize", "100");
+      if (request?.filter) {
+        params.set("filter", request.filter);
+      }
+      if (request?.folderId) {
+        params.set("folderId", request.folderId);
+      }
+      if (request?.sortBy) {
+        params.set("sortBy", request.sortBy);
+      }
+      if (request?.sortDir) {
+        params.set("sortDir", request.sortDir);
+      }
+      if (request?.createdFrom) {
+        params.set("createdFrom", request.createdFrom);
+      }
+      if (request?.createdTo) {
+        params.set("createdTo", request.createdTo);
+      }
+      if (request?.modifiedFrom) {
+        params.set("modifiedFrom", request.modifiedFrom);
+      }
+      if (request?.modifiedTo) {
+        params.set("modifiedTo", request.modifiedTo);
+      }
+
+      const result = await this.endatix.get<PagedResponse<FormTemplate>>(
+        `/form-templates?${params.toString()}`,
+      );
+      if (!ApiResult.isSuccess(result)) {
+        return result;
+      }
+
+      templates.push(...(result.data.items ?? []));
+      totalPages = Math.max(result.data.totalPages ?? 1, 1);
+      page += 1;
     }
-    if (request?.folderId) {
-      params.set("folderId", request.folderId);
-    }
-    return this.endatix.get<FormTemplate[]>(
-      `/form-templates?${params.toString()}`,
-    );
+
+    return ApiResult.success(templates);
   }
 
   async partialUpdate(

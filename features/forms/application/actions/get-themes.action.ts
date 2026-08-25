@@ -21,9 +21,19 @@ export async function getThemesAction(): Promise<GetThemesResult | never> {
   await requireHubAccess();
 
   try {
-    const DEFAULT_THEMES_PAGE_LIMIT = 50;
-    const FIRST_PAGE = 1;
-    const themes = await getThemes(FIRST_PAGE, DEFAULT_THEMES_PAGE_LIMIT);
+    const PAGE_SIZE = 100;
+    const themes: ThemeItem[] = [];
+    let page = 1;
+
+    for (;;) {
+      const batch = await getThemes(page, PAGE_SIZE);
+      themes.push(...batch);
+      if (batch.length < PAGE_SIZE) {
+        break;
+      }
+      page += 1;
+    }
+
     return Result.success(themes);
   } catch (error) {
     console.error("Failed to fetch themes", error);

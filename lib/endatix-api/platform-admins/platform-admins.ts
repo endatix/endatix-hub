@@ -26,6 +26,10 @@ export default class PlatformAdmins {
         ["search", request.search],
         ["scope", request.scope],
         ["tenantId", request.tenantId],
+        ["sortBy", request.sortBy],
+        ["sortDir", request.sortDir],
+        ["lastLoginFrom", request.lastLoginFrom],
+        ["lastLoginTo", request.lastLoginTo],
       ]),
     );
   }
