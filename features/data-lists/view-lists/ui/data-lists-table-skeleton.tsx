@@ -27,20 +27,31 @@ export function DataListsTableSkeleton() {
           <TableHeader className="bg-surface-container-low">
             <TableRow className="border-0 hover:bg-transparent">
               {[
-                "Friendly Name",
-                "Status",
-                "Locales",
-                "Created",
-                "Modified",
-                "Items",
-                "Actions",
-              ].map((title) => (
+                { title: "Friendly Name" },
+                { title: "Status" },
+                { title: "Locales" },
+                {
+                  title: "Created",
+                  className: "hidden md:table-cell",
+                },
+                {
+                  title: "Modified",
+                  className: "hidden md:table-cell",
+                },
+                {
+                  title: "Items",
+                  className: "hidden text-right md:table-cell",
+                },
+                { title: "Actions", className: "text-right" },
+              ].map((column) => (
                 <TableHead
-                  key={title}
-                  className={dataTableHeaderCellClassName({})}
+                  key={column.title}
+                  className={dataTableHeaderCellClassName({
+                    className: column.className,
+                  })}
                 >
                   <span className={dataTableColumnLabelClassName()}>
-                    {title}
+                    {column.title}
                   </span>
                 </TableHead>
               ))}
