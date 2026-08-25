@@ -110,12 +110,13 @@ function SubmissionsContent({
   onStatusChange,
   onTestSubmissionChange,
   onResetFilters,
+  onResetSorting,
+  onResetAllFiltersAndSorting,
   isPending,
   tableKey,
   allColumns,
   sorting,
   onSortingChange,
-  onResetSorting,
   pagination,
   onPaginationChange,
   totalRecords,
@@ -135,12 +136,13 @@ function SubmissionsContent({
   onStatusChange: (values: Set<string>) => void;
   onTestSubmissionChange: (values: Set<string>) => void;
   onResetFilters: () => void;
+  onResetSorting: () => void;
+  onResetAllFiltersAndSorting: () => void;
   isPending: boolean;
   tableKey: string;
   allColumns: ColumnDef<ParsedSubmission>[];
   sorting: SortingState;
   onSortingChange: Dispatch<SetStateAction<SortingState>>;
-  onResetSorting: () => void;
   pagination: PaginationState;
   onPaginationChange: Dispatch<SetStateAction<PaginationState>>;
   totalRecords: number;
@@ -153,13 +155,6 @@ function SubmissionsContent({
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
 
   const hasSorting = sorting.length > 0;
-  const hasActiveFilters =
-    isCompleteFilter.size > 0 ||
-    statusFilter.size > 0 ||
-    testSubmissionFilter.size > 0 ||
-    submitterDisplayIdFilter.length > 0 ||
-    submitterEmailFilter.length > 0 ||
-    hasDateFilters(dateFilters);
   const isTrueEmptyState = !hasAnySubmissions;
   const disableTableControls = isTrueEmptyState;
 
@@ -222,18 +217,11 @@ function SubmissionsContent({
       onClick: resetVisibility,
     });
   }
-  if (hasSorting) {
-    resetOptions.push({
-      label: "Reset Sorting",
-      onClick: onResetSorting,
-    });
-  }
 
-  const handleResetAll = () => {
+  const handleResetTableLayout = () => {
     if (hasCustomOrder) resetOrder();
     if (hasCustomVisibility) resetVisibility();
-    if (hasSorting) onResetSorting();
-    if (hasActiveFilters) onResetFilters();
+    onResetAllFiltersAndSorting();
   };
 
   let tableRegion: ReactNode;
@@ -288,6 +276,9 @@ function SubmissionsContent({
             onStatusChange={onStatusChange}
             onTestSubmissionChange={onTestSubmissionChange}
             onResetFilters={onResetFilters}
+            onResetSorting={onResetSorting}
+            onResetAll={onResetAllFiltersAndSorting}
+            hasSorting={hasSorting}
             disabled={disableTableControls}
             hasAdditionalFilters={
               hasDateFilters(dateFilters) ||
@@ -312,7 +303,7 @@ function SubmissionsContent({
             {isClient && (
               <ResetOptionsDropdown
                 options={resetOptions}
-                onResetAll={handleResetAll}
+                onResetAll={handleResetTableLayout}
                 disabled={disableTableControls}
               />
             )}
@@ -690,6 +681,29 @@ export function SubmissionsWithFilters({
     });
   };
 
+  const handleResetAllFiltersAndSorting = () => {
+    const emptySet = new Set<string>();
+    setIsCompleteFilter(emptySet);
+    setStatusFilter(emptySet);
+    setTestSubmissionFilter(emptySet);
+    setSubmitterDisplayIdFilter("");
+    setSubmitterEmailFilter("");
+    setDateFilters(EMPTY_SUBMISSION_DATE_FILTERS);
+    setSorting(EMPTY_INITIAL_SORTING);
+    setPagination((current) => ({ ...current, pageIndex: 0 }));
+    updateURL({
+      isComplete: emptySet,
+      status: emptySet,
+      isTestSubmission: emptySet,
+      submitterDisplayId: "",
+      submitterEmail: "",
+      dates: EMPTY_SUBMISSION_DATE_FILTERS,
+      page: 1,
+      pageSize: pagination.pageSize,
+      sorting: EMPTY_INITIAL_SORTING,
+    });
+  };
+
   const handlePaginationChange: Dispatch<SetStateAction<PaginationState>> = (
     updater,
   ) => {
@@ -749,12 +763,13 @@ export function SubmissionsWithFilters({
           onStatusChange={handleStatusChange}
           onTestSubmissionChange={handleTestSubmissionChange}
           onResetFilters={handleResetFilters}
+          onResetSorting={handleResetSorting}
+          onResetAllFiltersAndSorting={handleResetAllFiltersAndSorting}
           isPending={isPending}
           tableKey={tableKey}
           allColumns={allColumns}
           sorting={sorting}
           onSortingChange={handleSortingChange}
-          onResetSorting={handleResetSorting}
           pagination={pagination}
           onPaginationChange={handlePaginationChange}
           totalRecords={totalRecords}
