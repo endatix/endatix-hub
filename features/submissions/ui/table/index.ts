@@ -1,4 +1,3 @@
-export { CellDate } from "@/components/table";
 export { CellCompleteStatus } from "./cell-complete-status";
 export { CellCompletionTime } from "./cell-completion-time";
 export { CellReadStatus } from "./cell-read-status";
