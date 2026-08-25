@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import type { Route } from "next";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
@@ -15,16 +15,23 @@ export type UrlSearchParamsUpdater = (
 
 /**
  * A hook that provides a function to update the URL search params.
- * @returns An object with the current URL search params and the function to update the URL search params.
+ * `updateUrl` is identity-stable across searchParams changes (reads via ref)
+ * so debounced search effects do not re-arm on every filter navigation.
  */
 export function useUrlSearchParamsUpdater() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const searchParamsRef = useRef(searchParams);
+
+  useEffect(() => {
+    searchParamsRef.current = searchParams;
+  }, [searchParams]);
 
   const updateUrl = useCallback<UrlSearchParamsUpdater>(
     (updates) => {
-      const nextSearchParams = new URLSearchParams(searchParams.toString());
+      const current = searchParamsRef.current;
+      const nextSearchParams = new URLSearchParams(current.toString());
 
       Object.entries(updates).forEach(([key, value]) => {
         if (!value) {
@@ -36,12 +43,16 @@ export function useUrlSearchParamsUpdater() {
       });
 
       const queryString = nextSearchParams.toString();
+      if (queryString === current.toString()) {
+        return;
+      }
+
       const href = (
         queryString ? `${pathname}?${queryString}` : pathname
       ) as Route;
       router.replace(href, { scroll: false });
     },
-    [pathname, router, searchParams],
+    [pathname, router],
   );
 
   return { searchParams, updateUrl };

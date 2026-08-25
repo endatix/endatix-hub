@@ -17,6 +17,7 @@ export {
 export {
   DATA_TABLE_COLUMN_LABEL_CLASS_NAME,
   DATA_TABLE_ELEMENT_CLASS_NAME,
+  DATA_TABLE_SHRINK_WRAP_CLASS_NAME,
   dataTableBodyCellClassName,
   dataTableBodyRowClassName,
   dataTableColumnLabelClassName,
@@ -33,6 +34,7 @@ export {
   PagedTableFooter,
   type PagedTableFooterProps,
 } from "./paged-table-footer";
+export { ResetFiltersButton } from "./reset-filters-button";
 export { TableEmptyRow } from "./table-empty-row";
 export { TableSearchInput } from "./table-search-input";
 export {

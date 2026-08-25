@@ -5,11 +5,9 @@ import {
   DataListsPageHeader,
 } from "@/features/data-lists/view-lists/ui/data-lists-page";
 import { DataListsListToolbar } from "@/features/data-lists/view-lists/ui/data-lists-list-toolbar";
+import { DataListsLocaleFilter } from "@/features/data-lists/view-lists/ui/data-lists-locale-filter";
 import { DataListsTableSkeleton } from "@/features/data-lists/view-lists/ui/data-lists-table-skeleton";
-import {
-  getDataListLocales,
-  getDataListsPage,
-} from "@/features/data-lists/view-lists/get-data-lists.server";
+import { getDataListsPage } from "@/features/data-lists/view-lists/get-data-lists.server";
 import {
   firstString,
   parseDataListsListParams,
@@ -54,15 +52,18 @@ export default async function DataListsRoutePage({
     modifiedTo: firstString(raw.modifiedTo),
   });
   const dataListsPromise = getDataListsPage(listRequest);
-  const localesPromise = getDataListLocales();
   const openCreateOnLoad = hasValue(raw.action, "create");
 
   return (
     <>
       <DataListsPageHeader />
-      <Suspense fallback={<DataListsListToolbar />}>
-        <DataListsToolbar localesPromise={localesPromise} />
-      </Suspense>
+      <DataListsListToolbar
+        localeFilter={
+          <Suspense fallback={null}>
+            <DataListsLocaleFilter />
+          </Suspense>
+        }
+      />
       <Suspense fallback={<DataListsTableSkeleton />}>
         <DataListsPage
           dataListsPromise={dataListsPromise}
@@ -71,15 +72,4 @@ export default async function DataListsRoutePage({
       </Suspense>
     </>
   );
-}
-
-interface DataListsToolbarProps {
-  localesPromise: Promise<string[]>;
-}
-
-async function DataListsToolbar({
-  localesPromise,
-}: Readonly<DataListsToolbarProps>) {
-  const locales = await localesPromise;
-  return <DataListsListToolbar locales={locales} />;
 }
