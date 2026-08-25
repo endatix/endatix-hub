@@ -40,13 +40,13 @@ export interface UpdateDataListDetailsRequest {
 }
 
 export type DataListListSortBy =
-  | 'name'
-  | 'createdAt'
-  | 'modifiedAt'
-  | 'itemsCount'
-  | 'isActive';
+  | "name"
+  | "createdAt"
+  | "modifiedAt"
+  | "itemsCount"
+  | "isActive";
 
-export type DataListListSortDir = 'asc' | 'desc';
+export type DataListListSortDir = "asc" | "desc";
 
 export interface ListDataListsRequest extends IPagedRequest {
   search?: string;

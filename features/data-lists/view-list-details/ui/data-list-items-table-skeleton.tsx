@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import {
   DataTableSurface,
@@ -6,8 +6,8 @@ import {
   dataTableBodyRowClassName,
   dataTableColumnLabelClassName,
   dataTableHeaderCellClassName,
-} from '@/components/table';
-import { Skeleton } from '@/components/ui/skeleton';
+} from "@/components/table";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -15,7 +15,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
+} from "@/components/ui/table";
 
 const SKELETON_ROWS = 8;
 
@@ -38,7 +38,7 @@ export function DataListItemsTableSkeleton({
         <Table className="border-separate border-spacing-0">
           <TableHeader className="bg-surface-container-low">
             <TableRow className="border-0 hover:bg-transparent">
-              {['Value', ...localeHeaders].map((title) => (
+              {["Value", ...localeHeaders].map((title) => (
                 <TableHead
                   key={title}
                   className={dataTableHeaderCellClassName({})}

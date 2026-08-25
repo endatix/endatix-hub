@@ -1,12 +1,12 @@
-import type { DateFilterValue } from '@/components/table/date-filter-types';
+import type { DateFilterValue } from "@/components/table/date-filter-types";
 
-export type { DateFilterValue } from '@/components/table/date-filter-types';
+export type { DateFilterValue } from "@/components/table/date-filter-types";
 
 export type DateFilterColumnId =
-  | 'createdAt'
-  | 'modifiedAt'
-  | 'startedAt'
-  | 'completedAt';
+  | "createdAt"
+  | "modifiedAt"
+  | "startedAt"
+  | "completedAt";
 
 export type SubmissionDateFilters = Record<DateFilterColumnId, DateFilterValue>;
 

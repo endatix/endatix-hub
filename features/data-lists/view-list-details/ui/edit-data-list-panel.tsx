@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   ResponsivePanel,
   ResponsivePanelBody,
@@ -10,19 +10,19 @@ import {
   ResponsivePanelFooter,
   ResponsivePanelHeader,
   ResponsivePanelTitle,
-} from '@/components/ui/responsive-panel';
-import { Textarea } from '@/components/ui/textarea';
-import { toast } from '@/components/ui/toast';
-import { formatLocaleLabel } from '@/features/data-lists/translations/locale-discovery';
-import { setDataListDefaultLocaleAction } from '@/features/data-lists/translations/translations-csv.action';
-import { RemoveLocaleConfirmDialog } from '@/features/data-lists/remove-locale';
-import type { DataListDetails } from '@/lib/endatix-api/data-lists/types';
-import { Result } from '@/lib/result';
-import { DATA_LIST_NAME_MAX_LENGTH } from '@/lib/survey-features/data-lists/constants';
-import { validateEndatixId } from '@/lib/utils/type-validators';
-import { X } from 'lucide-react';
-import { useEffect, useState, useTransition } from 'react';
-import { updateDataListDetailsAction } from '../update-data-list-details.action';
+} from "@/components/ui/responsive-panel";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
+import { formatLocaleLabel } from "@/features/data-lists/translations/locale-discovery";
+import { setDataListDefaultLocaleAction } from "@/features/data-lists/translations/translations-csv.action";
+import { RemoveLocaleConfirmDialog } from "@/features/data-lists/remove-locale";
+import type { DataListDetails } from "@/lib/endatix-api/data-lists/types";
+import { Result } from "@/lib/result";
+import { DATA_LIST_NAME_MAX_LENGTH } from "@/lib/survey-features/data-lists/constants";
+import { validateEndatixId } from "@/lib/utils/type-validators";
+import { X } from "lucide-react";
+import { useEffect, useState, useTransition } from "react";
+import { updateDataListDetailsAction } from "../update-data-list-details.action";
 
 type EditDataListPanelProps = {
   open: boolean;
@@ -38,7 +38,7 @@ export function EditDataListPanel({
   onUpdated,
 }: Readonly<EditDataListPanelProps>) {
   const [name, setName] = useState(details.name);
-  const [description, setDescription] = useState(details.description ?? '');
+  const [description, setDescription] = useState(details.description ?? "");
   const [isSaving, startSaveTransition] = useTransition();
   const [isLocalePending, startLocaleTransition] = useTransition();
   const [isRemovePending, setIsRemovePending] = useState(false);
@@ -46,7 +46,7 @@ export function EditDataListPanel({
     string | null
   >(null);
 
-  const dataListIdResult = validateEndatixId(String(details.id), 'dataListId');
+  const dataListIdResult = validateEndatixId(String(details.id), "dataListId");
   const hasValidId = Result.isSuccess(dataListIdResult);
   const availableLocales = details.availableLocales ?? [];
   const isNameEmpty = name.trim().length === 0;
@@ -64,7 +64,7 @@ export function EditDataListPanel({
     }
 
     setName(details.name);
-    setDescription(details.description ?? '');
+    setDescription(details.description ?? "");
   }, [open, details.name, details.description]);
 
   const requireDataListId = (): string | null => {
@@ -98,7 +98,7 @@ export function EditDataListPanel({
       }
 
       onUpdated(result.value);
-      toast.success('Data list updated');
+      toast.success("Data list updated");
       onOpenChange(false);
     });
   };
@@ -216,12 +216,8 @@ export function EditDataListPanel({
             >
               Cancel
             </Button>
-            <Button
-              type="button"
-              onClick={handleSave}
-              disabled={saveDisabled}
-            >
-              {isSaving ? 'Saving…' : 'Save changes'}
+            <Button type="button" onClick={handleSave} disabled={saveDisabled}>
+              {isSaving ? "Saving…" : "Save changes"}
             </Button>
           </ResponsivePanelFooter>
         </div>
