@@ -200,10 +200,10 @@ Parsing and helpers live in `features/forms/list-forms/utils.ts` (`parseFormsLis
 
 Hub management grids follow the same URL + chrome pattern as forms/users. Parsing stays in the owning slice (not a new query slice).
 
-| Surface | Slice | Hub URL | API |
-| --- | --- | --- | --- |
-| List | `features/data-lists/view-lists/` | `search`, `hasLocale` (single BCP-47 code), `page`, `pageSize`, `action=create` | `GET /data-lists` (`search`, `hasLocale`) |
-| Detail items | `features/data-lists/view-list-details/` | `search`, `page`, `pageSize`, `action=replace` | `GET /data-lists/{id}/items` (`query`) + `GET /data-lists/{id}?includeItems=false` |
+| Surface      | Slice                                    | Hub URL                                                                         | API                                                                                |
+| ------------ | ---------------------------------------- | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| List         | `features/data-lists/view-lists/`        | `search`, `hasLocale` (single BCP-47 code), `page`, `pageSize`, `action=create` | `GET /data-lists` (`search`, `hasLocale`)                                          |
+| Detail items | `features/data-lists/view-list-details/` | `search`, `page`, `pageSize`, `action=replace`                                  | `GET /data-lists/{id}/items` (`query`) + `GET /data-lists/{id}?includeItems=false` |
 
 - List → detail "Back to Data Lists" restores filters/paging via `BackToTableButton` (`tableKey: "data-lists"`), not a URL param — see AGENTS.md "Detail → list back navigation".
 - Replacing items resets the items grid's `page`/`search` (stale values from before the replace would otherwise point past the new item set).
@@ -397,12 +397,12 @@ hub/
 
 Use `lib/localization` for **cross-feature multi-lingual infrastructure**, organized as slices:
 
-| Slice | Responsibility |
-| --- | --- |
-| `catalog/` | SurveyJS ↔ owned catalog vocabulary (`default` ↔ `""` / runtime default code), culture-code normalize/validate, `toCatalogLocales`, display names |
-| `submission-locale/` | Submission metadata language helpers shared by submissions UI and pdf-export |
-| `routing/` (future) | Locale-prefixed Hub routes / middleware |
-| `messages/` (future) | Hub UI copy catalogs (e.g. next-intl) |
+| Slice                | Responsibility                                                                                                                                    |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `catalog/`           | SurveyJS ↔ owned catalog vocabulary (`default` ↔ `""` / runtime default code), culture-code normalize/validate, `toCatalogLocales`, display names |
+| `submission-locale/` | Submission metadata language helpers shared by submissions UI and pdf-export                                                                      |
+| `routing/` (future)  | Locale-prefixed Hub routes / middleware                                                                                                           |
+| `messages/` (future) | Hub UI copy catalogs (e.g. next-intl)                                                                                                             |
 
 Keep **selection policy** in the owning feature (e.g. public-form language picker priority: preselected → localStorage → survey model → browser). Do not move feature-specific preference storage or init order into `lib/`.
 
@@ -424,6 +424,7 @@ endatix-saas/
 ### Migration Steps
 
 1. **lib/endatix-api/** → **packages/@endatix/api-client/**
+   - Includes shared list wire helpers (`SortRequest`, `DateRangeFilter`, `list-query.ts`). Keep new sort/range contract code in `lib/endatix-api/shared` until that extract; do not place it under `features/` or `lib/date-utils` (formatters).
 2. **lib/utils/** → **packages/@endatix/utils/**
 3. **features/config/** → **packages/@endatix/config/**
 4. **features/auth/** → Keep in apps/hub/features/auth/ (app-specific)
