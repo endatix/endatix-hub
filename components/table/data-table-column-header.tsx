@@ -66,7 +66,7 @@ export interface DataTableColumnHeaderProps<
   readonly column: Column<TData, TValue>;
   readonly title: string;
   readonly visible?: boolean;
-  readonly isSorted?: false | SortDirection;
+  readonly isSorted?: ColumnSortState;
   readonly dateFilter?: DateFilterConfig;
   readonly textFilter?: TextFilterConfig;
   /** Optional facet UI rendered inside the filter dropdown (after date/text). */
@@ -119,7 +119,9 @@ export function getColumnHeaderTitleSwapClassName(
   ].join(" ");
 }
 
-function getSortIcon(isSorted: false | SortDirection | undefined) {
+type ColumnSortState = false | SortDirection | undefined;
+
+function getSortIcon(isSorted: ColumnSortState) {
   if (isSorted === "asc") {
     return ArrowUp;
   }
@@ -133,7 +135,7 @@ function getSortIcon(isSorted: false | SortDirection | undefined) {
 
 function cycleColumnSort<TData, TValue>(
   column: Column<TData, TValue>,
-  isSorted: false | SortDirection | undefined,
+  isSorted: ColumnSortState,
 ): void {
   if (isSorted === "asc") {
     column.toggleSorting(true);
@@ -152,7 +154,7 @@ function SortIndicator({
   isSorted,
   chromeClassName,
 }: {
-  readonly isSorted: false | SortDirection | undefined;
+  readonly isSorted: ColumnSortState;
   readonly chromeClassName?: string;
 }) {
   const SortIcon = getSortIcon(isSorted);
@@ -191,7 +193,7 @@ function ColumnHeaderMenu<TData, TValue>({
   readonly column: Column<TData, TValue>;
   readonly title: string;
   readonly canSort: boolean;
-  readonly isSorted: false | SortDirection | undefined;
+  readonly isSorted: ColumnSortState;
   readonly dateFilter?: DateFilterConfig;
   readonly textFilter?: TextFilterConfig;
   readonly facetFilter?: ReactNode;
@@ -202,10 +204,6 @@ function ColumnHeaderMenu<TData, TValue>({
   readonly onHideColumn?: () => void;
 }) {
   const showHide = Boolean(onHideColumn) && column.id !== "actions";
-  const hasSortSection = canSort;
-  const hasDateSection = Boolean(dateFilter);
-  const hasTextSection = Boolean(textFilter);
-  const hasFacetSection = Boolean(facetFilter);
 
   return (
     <DropdownMenu>
@@ -235,73 +233,110 @@ function ColumnHeaderMenu<TData, TValue>({
         onClick={stopMenuEventBubble}
         onKeyDown={stopMenuEventBubble}
       >
-        {hasSortSection ? (
-          <>
-            <DropdownMenuItem onClick={() => column.toggleSorting(false)}>
-              <ArrowUp className="h-3.5 w-3.5 text-muted-foreground/70" />
-              Asc
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => column.toggleSorting(true)}>
-              <ArrowDown className="h-3.5 w-3.5 text-muted-foreground/70" />
-              Desc
-            </DropdownMenuItem>
-            {isSorted ? (
-              <>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => column.clearSorting()}>
-                  <ChevronsUpDown className="h-3.5 w-3.5 text-muted-foreground/70" />
-                  Clear sorting
-                </DropdownMenuItem>
-              </>
-            ) : null}
-          </>
-        ) : null}
-        {hasDateSection ? (
-          <>
-            {hasSortSection ? <DropdownMenuSeparator /> : null}
-            <div className="w-56 space-y-3 p-2">
-              <DateFilterControls
-                idPrefix={column.id}
-                value={dateFilter!.value}
-                onApply={dateFilter!.onChange}
-              />
-            </div>
-          </>
-        ) : null}
-        {hasTextSection ? (
-          <>
-            {hasSortSection || hasDateSection ? (
-              <DropdownMenuSeparator />
-            ) : null}
-            <div className="w-56 space-y-3 p-2">
-              <TextFilterControls
-                idPrefix={column.id}
-                value={textFilter!.value}
-                placeholder={textFilter!.placeholder}
-                onApply={textFilter!.onChange}
-              />
-            </div>
-          </>
-        ) : null}
-        {hasFacetSection ? (
-          <>
-            {hasSortSection || hasDateSection || hasTextSection ? (
-              <DropdownMenuSeparator />
-            ) : null}
-            <div className="p-2">{facetFilter}</div>
-          </>
-        ) : null}
-        {showHide ? (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={onHideColumn}>
-              <EyeOff className="h-3.5 w-3.5 text-muted-foreground/70" />
-              Hide
-            </DropdownMenuItem>
-          </>
-        ) : null}
+        <ColumnHeaderMenuBody
+          column={column}
+          canSort={canSort}
+          isSorted={isSorted}
+          dateFilter={dateFilter}
+          textFilter={textFilter}
+          facetFilter={facetFilter}
+          showHide={showHide}
+          onHideColumn={onHideColumn}
+        />
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+function ColumnHeaderMenuBody<TData, TValue>({
+  column,
+  canSort,
+  isSorted,
+  dateFilter,
+  textFilter,
+  facetFilter,
+  showHide,
+  onHideColumn,
+}: {
+  readonly column: Column<TData, TValue>;
+  readonly canSort: boolean;
+  readonly isSorted: ColumnSortState;
+  readonly dateFilter?: DateFilterConfig;
+  readonly textFilter?: TextFilterConfig;
+  readonly facetFilter?: ReactNode;
+  readonly showHide: boolean;
+  readonly onHideColumn?: () => void;
+}) {
+  const hasDateSection = Boolean(dateFilter);
+  const hasTextSection = Boolean(textFilter);
+  const hasFacetSection = Boolean(facetFilter);
+
+  return (
+    <>
+      {canSort ? (
+        <>
+          <DropdownMenuItem onClick={() => column.toggleSorting(false)}>
+            <ArrowUp className="h-3.5 w-3.5 text-muted-foreground/70" />
+            Asc
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => column.toggleSorting(true)}>
+            <ArrowDown className="h-3.5 w-3.5 text-muted-foreground/70" />
+            Desc
+          </DropdownMenuItem>
+          {isSorted ? (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => column.clearSorting()}>
+                <ChevronsUpDown className="h-3.5 w-3.5 text-muted-foreground/70" />
+                Clear sorting
+              </DropdownMenuItem>
+            </>
+          ) : null}
+        </>
+      ) : null}
+      {hasDateSection ? (
+        <>
+          {canSort ? <DropdownMenuSeparator /> : null}
+          <div className="w-56 space-y-3 p-2">
+            <DateFilterControls
+              idPrefix={column.id}
+              value={dateFilter!.value}
+              onApply={dateFilter!.onChange}
+            />
+          </div>
+        </>
+      ) : null}
+      {hasTextSection ? (
+        <>
+          {canSort || hasDateSection ? <DropdownMenuSeparator /> : null}
+          <div className="w-56 space-y-3 p-2">
+            <TextFilterControls
+              idPrefix={column.id}
+              value={textFilter!.value}
+              placeholder={textFilter!.placeholder}
+              onApply={textFilter!.onChange}
+            />
+          </div>
+        </>
+      ) : null}
+      {hasFacetSection ? (
+        <>
+          {canSort || hasDateSection || hasTextSection ? (
+            <DropdownMenuSeparator />
+          ) : null}
+          <div className="p-2">{facetFilter}</div>
+        </>
+      ) : null}
+      {showHide ? (
+        <>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={onHideColumn}>
+            <EyeOff className="h-3.5 w-3.5 text-muted-foreground/70" />
+            Hide
+          </DropdownMenuItem>
+        </>
+      ) : null}
+    </>
   );
 }
 
@@ -326,7 +361,7 @@ function CenterAlignedColumnHeader<TData, TValue>({
   readonly titleLabel: ReactNode;
   readonly className?: string;
   readonly canSort: boolean;
-  readonly isSorted: false | SortDirection | undefined;
+  readonly isSorted: ColumnSortState;
   readonly dateFilter?: DateFilterConfig;
   readonly textFilter?: TextFilterConfig;
   readonly facetFilter?: ReactNode;
@@ -418,7 +453,7 @@ function StartAlignedColumnHeader<TData, TValue>({
   readonly titleLabel: ReactNode;
   readonly className?: string;
   readonly canSort: boolean;
-  readonly isSorted: false | SortDirection | undefined;
+  readonly isSorted: ColumnSortState;
   readonly dateFilter?: DateFilterConfig;
   readonly textFilter?: TextFilterConfig;
   readonly facetFilter?: ReactNode;

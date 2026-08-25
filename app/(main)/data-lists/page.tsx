@@ -73,11 +73,13 @@ export default async function DataListsRoutePage({
   );
 }
 
+interface DataListsToolbarProps {
+  localesPromise: Promise<string[]>;
+}
+
 async function DataListsToolbar({
   localesPromise,
-}: {
-  localesPromise: Promise<string[]>;
-}) {
+}: Readonly<DataListsToolbarProps>) {
   const locales = await localesPromise;
   return <DataListsListToolbar locales={locales} />;
 }

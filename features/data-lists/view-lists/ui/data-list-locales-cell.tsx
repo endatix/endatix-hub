@@ -32,13 +32,9 @@ export function DataListLocalesCell({
 
   const extras = availableLocales.filter(
     (locale) =>
-      !defaultLocale ||
-      locale.trim().toLowerCase() !== defaultLocale.trim().toLowerCase(),
+      locale.trim().toLowerCase() !== defaultLocale?.trim().toLowerCase(),
   );
-  const allKeys = [
-    ...(defaultLocale ? [defaultLocale] : []),
-    ...extras,
-  ];
+  const allKeys = [...(defaultLocale ? [defaultLocale] : []), ...extras];
 
   if (allKeys.length === 0) {
     return <span className="text-muted-foreground">—</span>;
@@ -59,14 +55,13 @@ export function DataListLocalesCell({
         {shown.map((locale) => {
           const isDefault =
             Boolean(defaultLocale) &&
-            locale.trim().toLowerCase() ===
-              defaultLocale!.trim().toLowerCase();
+            locale.trim().toLowerCase() === defaultLocale!.trim().toLowerCase();
           return (
             <Tooltip key={locale}>
               <TooltipTrigger asChild>
                 <Badge
                   variant={isDefault ? "secondary" : "outline"}
-                  className="shrink-0 font-mono text-[0.7rem] uppercase tracking-wide"
+                  className="shrink-0 font-mono text-[0.7rem] tracking-wide uppercase"
                 >
                   {locale}
                 </Badge>
@@ -91,9 +86,7 @@ export function DataListLocalesCell({
           }}
           aria-expanded={expanded}
           aria-label={
-            expanded
-              ? "Show fewer locales"
-              : `Show ${hiddenCount} more locales`
+            expanded ? "Show fewer locales" : `Show ${hiddenCount} more locales`
           }
         >
           {expanded ? "Less" : `+${hiddenCount}`}
