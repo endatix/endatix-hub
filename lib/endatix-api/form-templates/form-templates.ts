@@ -4,18 +4,20 @@ import { validateEndatixId } from "@/lib/utils/type-validators";
 import { EndatixApi } from "../endatix-api";
 import { ApiResult } from "../shared/api-result";
 import type { CreateFormTemplateRequest } from "@/lib/form-types";
-import type { PagedResponse } from "../shared/types";
+import { appendDateRangeFilters, appendSortParams } from "../shared/list-query";
+import type {
+  AuditDateFilters,
+  PagedResponse,
+  SortRequest,
+} from "../shared/types";
+
+export type FormTemplateListSortBy = "name" | "createdAt" | "modifiedAt";
 
 export type FormTemplatesListRequest = {
   folderId?: string;
   filter?: string;
-  sortBy?: "name" | "createdAt" | "modifiedAt";
-  sortDir?: "asc" | "desc";
-  createdFrom?: string;
-  createdTo?: string;
-  modifiedFrom?: string;
-  modifiedTo?: string;
-};
+} & SortRequest<FormTemplateListSortBy> &
+  AuditDateFilters;
 
 export type PartialUpdateFormTemplateRequest = {
   name?: string;
@@ -51,23 +53,9 @@ export class FormTemplates {
       if (request?.folderId) {
         params.set("folderId", request.folderId);
       }
-      if (request?.sortBy) {
-        params.set("sortBy", request.sortBy);
-      }
-      if (request?.sortDir) {
-        params.set("sortDir", request.sortDir);
-      }
-      if (request?.createdFrom) {
-        params.set("createdFrom", request.createdFrom);
-      }
-      if (request?.createdTo) {
-        params.set("createdTo", request.createdTo);
-      }
-      if (request?.modifiedFrom) {
-        params.set("modifiedFrom", request.modifiedFrom);
-      }
-      if (request?.modifiedTo) {
-        params.set("modifiedTo", request.modifiedTo);
+      if (request) {
+        appendSortParams(params, request);
+        appendDateRangeFilters(params, request, ["created", "modified"]);
       }
 
       const result = await this.endatix.get<PagedResponse<FormTemplate>>(

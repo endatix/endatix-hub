@@ -6,6 +6,7 @@ import {
   normalizePagedResponse,
   NormalizedPagedResponse,
 } from "../shared/paged-response";
+import { appendDateRangeFilters, appendSortParams } from "../shared/list-query";
 import {
   appendPagingQueryParams,
   appendQueryParam,
@@ -54,12 +55,8 @@ export function buildListDataListsEndpoint(
   appendPagingQueryParams(searchParams, request, { page: 1, pageSize: 10 });
   appendQueryParam(searchParams, "search", request.search);
   appendQueryParam(searchParams, "hasLocale", request.hasLocale);
-  appendQueryParam(searchParams, "sortBy", request.sortBy);
-  appendQueryParam(searchParams, "sortDir", request.sortDir);
-  appendQueryParam(searchParams, "createdFrom", request.createdFrom);
-  appendQueryParam(searchParams, "createdTo", request.createdTo);
-  appendQueryParam(searchParams, "modifiedFrom", request.modifiedFrom);
-  appendQueryParam(searchParams, "modifiedTo", request.modifiedTo);
+  appendSortParams(searchParams, request);
+  appendDateRangeFilters(searchParams, request, ["created", "modified"]);
   return buildEndpointWithQuery(DATA_LISTS_BASE, searchParams);
 }
 
@@ -73,12 +70,8 @@ export function buildListDataListItemsEndpoint(
   appendQueryParam(searchParams, "query", request.query);
   appendQueryParam(searchParams, "matchMode", request.matchMode);
   appendQueryParam(searchParams, "locale", request.locale);
-  appendQueryParam(searchParams, "sortBy", request.sortBy);
-  appendQueryParam(searchParams, "sortDir", request.sortDir);
-  appendQueryParam(searchParams, "createdFrom", request.createdFrom);
-  appendQueryParam(searchParams, "createdTo", request.createdTo);
-  appendQueryParam(searchParams, "modifiedFrom", request.modifiedFrom);
-  appendQueryParam(searchParams, "modifiedTo", request.modifiedTo);
+  appendSortParams(searchParams, request);
+  appendDateRangeFilters(searchParams, request, ["created", "modified"]);
   for (const locale of request.includeLocales ?? []) {
     appendQueryParam(searchParams, INCLUDE_LOCALES_QUERY_PARAM, locale);
   }

@@ -1,17 +1,21 @@
-import type { IPagedRequest } from "../shared/types";
+import type {
+  DateRangeFilter,
+  IPagedRequest,
+  SortRequest,
+} from "../shared/types";
 
 export type PlatformAdminListScope = "all" | "approved" | "candidates";
 
 export type PlatformAdminListSortBy = "email" | "userName" | "lastLoginAt";
 
-export interface ListPlatformAdminsRequest extends IPagedRequest {
+export interface ListPlatformAdminsRequest
+  extends
+    IPagedRequest,
+    SortRequest<PlatformAdminListSortBy>,
+    DateRangeFilter<"lastLogin"> {
   search?: string;
   scope?: PlatformAdminListScope;
   tenantId?: string;
-  sortBy?: PlatformAdminListSortBy;
-  sortDir?: "asc" | "desc";
-  lastLoginFrom?: string;
-  lastLoginTo?: string;
 }
 
 export interface PlatformAdminUserListItem {

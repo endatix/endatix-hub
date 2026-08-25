@@ -1,5 +1,4 @@
-import { appendQueryParam } from "../shared/query-params";
-import { isValidCalendarDateYmd } from "@/lib/date-utils";
+import { appendDateRangeFilters, appendSortParams } from "../shared/list-query";
 import type { ListSubmissionsRequest } from "./types";
 
 /**
@@ -26,15 +25,12 @@ const ALLOWED_SUBMITTER_PROFILE_FIELDS = new Set(["email"]);
 export type SubmissionFilterFieldName =
   keyof typeof SUBMISSION_LIST_FILTER_FIELD_NAMES;
 
-function appendCalendarBound(
-  params: URLSearchParams,
-  key: string,
-  value: string | undefined,
-): void {
-  if (value && isValidCalendarDateYmd(value)) {
-    appendQueryParam(params, key, value);
-  }
-}
+const SUBMISSION_DATE_RANGE_FIELDS = [
+  "created",
+  "modified",
+  "started",
+  "completed",
+] as const;
 
 /**
  * Appends Endatix list facet `filter` segments and typed sort/date query params.
@@ -82,15 +78,6 @@ export function appendSubmissionListFilters(
     );
   }
 
-  appendQueryParam(params, "sortBy", request.sortBy);
-  appendQueryParam(params, "sortDir", request.sortDir);
-
-  appendCalendarBound(params, "createdFrom", request.createdFrom);
-  appendCalendarBound(params, "createdTo", request.createdTo);
-  appendCalendarBound(params, "modifiedFrom", request.modifiedFrom);
-  appendCalendarBound(params, "modifiedTo", request.modifiedTo);
-  appendCalendarBound(params, "startedFrom", request.startedFrom);
-  appendCalendarBound(params, "startedTo", request.startedTo);
-  appendCalendarBound(params, "completedFrom", request.completedFrom);
-  appendCalendarBound(params, "completedTo", request.completedTo);
+  appendSortParams(params, request);
+  appendDateRangeFilters(params, request, SUBMISSION_DATE_RANGE_FIELDS);
 }
