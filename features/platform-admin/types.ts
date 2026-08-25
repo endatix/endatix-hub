@@ -10,6 +10,12 @@ export interface PlatformAdminSearchParams {
   tenantId?: string;
 }
 
+export interface PlatformTenantSearchParams {
+  page?: string;
+  pageSize?: string;
+  search?: string;
+}
+
 export interface PlatformConfigStatus {
   label: string;
   status: "set" | "not-set";

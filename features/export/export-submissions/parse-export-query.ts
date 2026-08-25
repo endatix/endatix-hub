@@ -56,13 +56,6 @@ export function parseOptionalCalendarDateQuery(
   return isValidCalendarDateYmd(trimmed) ? trimmed : undefined;
 }
 
-/** @deprecated Prefer {@link parseOptionalCalendarDateQuery}. */
-export function parseOptionalIsoDateQuery(
-  value: string | null,
-): string | undefined {
-  return parseOptionalCalendarDateQuery(value);
-}
-
 export function parseOptionalPositiveIdQuery(
   value: string | null,
 ): string | undefined {

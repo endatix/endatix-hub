@@ -98,19 +98,23 @@ export function DataListDetailsPage({
   // would otherwise render a false "no items" empty state after replace.
   const resetItemsListState = (): void => {
     const nextParams = new URLSearchParams(searchParams.toString());
-    if (
-      !nextParams.has("page") &&
-      !nextParams.has("search") &&
-      !nextParams.has("sortBy") &&
-      !nextParams.has("sortDir")
-    ) {
+    const staleKeys = [
+      "page",
+      "search",
+      "sortBy",
+      "sortDir",
+      "createdFrom",
+      "createdTo",
+      "modifiedFrom",
+      "modifiedTo",
+    ];
+    if (!staleKeys.some((key) => nextParams.has(key))) {
       return;
     }
 
-    nextParams.delete("page");
-    nextParams.delete("search");
-    nextParams.delete("sortBy");
-    nextParams.delete("sortDir");
+    for (const key of staleKeys) {
+      nextParams.delete(key);
+    }
     const query = nextParams.toString();
     router.replace((query ? `${pathname}?${query}` : pathname) as Route);
   };
