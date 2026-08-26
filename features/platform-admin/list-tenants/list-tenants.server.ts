@@ -5,6 +5,7 @@ import type { ListPlatformTenantsRequest } from "@/lib/endatix-api";
 import { Result } from "@/lib/result";
 import { toResult } from "@/lib/result/map-api-result-to-result";
 import { DataLoadError } from "@/lib/errors/data-load-error";
+import { normalizePagedResponse } from "@/lib/endatix-api/shared/paged-response";
 import type { PlatformAdminSession } from "../types";
 
 export async function listPlatformTenants(
@@ -23,5 +24,5 @@ export async function listPlatformTenants(
     throw new DataLoadError(result.message);
   }
 
-  return result.value;
+  return normalizePagedResponse(result.value);
 }
