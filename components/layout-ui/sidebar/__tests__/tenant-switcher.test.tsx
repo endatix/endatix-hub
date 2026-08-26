@@ -2,14 +2,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { TenantSwitcher } from "../tenant-switcher";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import type { SwitcherTenant } from "@/features/tenants/switch-tenant/types";
+import type { MembershipTenant } from "@/lib/endatix-api";
 
 vi.mock("next/image", () => ({
   default: ({ alt }: { alt?: string }) => <img alt={alt ?? ""} />,
 }));
 
 vi.mock("@/features/tenants/switch-tenant/switch-tenant.action", () => ({
-  selectSwitcherTenantAction: vi.fn(),
+  switchTenantAction: vi.fn(),
 }));
 
 beforeEach(() => {
@@ -29,31 +29,21 @@ beforeEach(() => {
   });
 });
 
-const ACME: SwitcherTenant = {
+const ACME: MembershipTenant = {
   id: "1",
   name: "Acme",
   slug: "xK9mP2qR8vNw",
   isActive: true,
-  isMembership: true,
 };
 
-const BETA: SwitcherTenant = {
+const BETA: MembershipTenant = {
   id: "2",
   name: "Beta",
   slug: "aB3cD4eF5gH6",
   isActive: false,
-  isMembership: true,
 };
 
-const GAMMA: SwitcherTenant = {
-  id: "3",
-  name: "Gamma",
-  slug: "gH7iJ8kL9mN0",
-  isActive: false,
-  isMembership: false,
-};
-
-function renderSwitcher(tenants?: SwitcherTenant[]) {
+function renderSwitcher(tenants?: MembershipTenant[]) {
   return render(
     <SidebarProvider>
       <TenantSwitcher tenants={tenants} />
@@ -66,7 +56,7 @@ describe("TenantSwitcher", () => {
     renderSwitcher([ACME]);
 
     expect(screen.getAllByAltText("Endatix Hub").length).toBeGreaterThan(0);
-    expect(screen.queryByText("Your tenants")).toBeNull();
+    expect(screen.queryByText("Tenants")).toBeNull();
     expect(screen.queryByText("Add tenant")).toBeNull();
   });
 
@@ -76,14 +66,6 @@ describe("TenantSwitcher", () => {
     expect(screen.getByRole("button").getAttribute("aria-haspopup")).toBe("menu");
     expect(screen.getByText("Acme")).toBeTruthy();
     expect(screen.queryByText("Add tenant")).toBeNull();
-    expect(screen.queryByAltText("Endatix Hub")).toBeNull();
-  });
-
-  it("shows a dropdown when a platform admin has directory tenants to assume", () => {
-    renderSwitcher([ACME, GAMMA]);
-
-    expect(screen.getByRole("button").getAttribute("aria-haspopup")).toBe("menu");
-    expect(screen.getByText("Acme")).toBeTruthy();
     expect(screen.queryByAltText("Endatix Hub")).toBeNull();
   });
 });

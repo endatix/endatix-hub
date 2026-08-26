@@ -5,7 +5,7 @@ import { mergeTopLevelNavWithFolderForms } from "@/features/folders/utils";
 import { listFoldersAction } from "@/features/folders/server";
 import { listMyTenantsAction } from "@/features/tenants/switch-tenant/switch-tenant.action";
 import { Result } from "@/lib/result";
-import type { SwitcherTenant } from "@/features/tenants/switch-tenant/types";
+import type { MembershipTenant } from "@/lib/endatix-api";
 import { ChevronsUpDown } from "lucide-react";
 import { SitemapService } from "@/services/sitemap-service";
 import { filterNavByKeys } from "@/features/navigation/filter-nav-by-auth";
@@ -54,7 +54,7 @@ const SidebarNav = ({
       ? mergeTopLevelNavWithFolderForms(base, initialFolders)
       : base;
   });
-  const [tenants, setTenants] = useState<SwitcherTenant[] | undefined>();
+  const [tenants, setTenants] = useState<MembershipTenant[] | undefined>();
   const secondaryNavItems = SitemapService.getSecondarySitemap();
   const isLoggedIn = session?.user !== null;
   const currentUserInfo = getCurrentUserInfo(session);
