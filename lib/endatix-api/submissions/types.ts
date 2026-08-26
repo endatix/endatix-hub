@@ -1,9 +1,13 @@
 import { FormDefinition } from "@/types";
 import {
   ApiEntity,
+  type AuditDateFilters,
+  type DateRangeFilter,
   EntityId,
+  type IPagedRequest,
   JsonData,
   PaginationQuery,
+  type SortRequest,
 } from "../shared/types";
 import { ApiResult } from "../shared/api-result";
 
@@ -112,7 +116,15 @@ export type SubmissionReviewStatus = "new" | "read" | "approved";
 
 export type ExportCompletionStatus = "all" | "completed" | "incomplete";
 
-export interface ExportSubmissionsRequest {
+export type SubmissionListSortBy =
+  | "createdAt"
+  | "modifiedAt"
+  | "startedAt"
+  | "completedAt"
+  | "id";
+
+export interface ExportSubmissionsRequest
+  extends AuditDateFilters, DateRangeFilter<"started" | "completed"> {
   formId: string;
   exportFormat?: ExportFormat;
   exportFormatId?: string;
@@ -123,30 +135,19 @@ export interface ExportSubmissionsRequest {
   locale?: string;
   /** Optional completion filter. Omit means all (API default). */
   completionStatus?: ExportCompletionStatus;
-  createdAfter?: string;
-  createdBefore?: string;
-  startedAfter?: string;
-  startedBefore?: string;
-  completedAfter?: string;
-  completedBefore?: string;
   minSubmissionId?: string;
   maxSubmissionId?: string;
 }
 
-export interface ListSubmissionsRequest {
-  page?: number;
-  pageSize?: number;
+export interface ListSubmissionsRequest
+  extends
+    IPagedRequest,
+    SortRequest<SubmissionListSortBy>,
+    AuditDateFilters,
+    DateRangeFilter<"started" | "completed"> {
   isComplete?: BooleanFilterValue[];
   status?: SubmissionReviewStatus[];
   isTestSubmission?: BooleanFilterValue[];
-  createdAtFrom?: string;
-  createdAtTo?: string;
-  modifiedAtFrom?: string;
-  modifiedAtTo?: string;
-  startedAtFrom?: string;
-  startedAtTo?: string;
-  completedAtFrom?: string;
-  completedAtTo?: string;
   submitterDisplayId?: string;
   submitterProfileFilter?: {
     field: string;

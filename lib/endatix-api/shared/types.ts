@@ -29,11 +29,38 @@ export interface IPagedRequest {
   pageSize?: number;
 }
 
+/** Wire sort direction for list requests (`sortDir` query key). */
+export type SortDir = "asc" | "desc";
+
+/**
+ * Typed sort capability for list requests (Hub counterpart of OSS `ISortableRequest<T>`).
+ * @template TFields - Closed set of sortable field names for the list (e.g. `"createdAt"`).
+ */
+export interface SortRequest<TFields extends string> {
+  sortBy?: TFields;
+  sortDir?: SortDir;
+}
+
+/**
+ * Inclusive UTC calendar day (`YYYY-MM-DD`) From/To bounds for event stems.
+ *
+ * Stems are bare verbs (`"created"`, `"modified"`), not property names:
+ * `"created"` → `createdFrom` / `createdTo`. Sort fields stay `createdAt`.
+ *
+ * @template T - Event stem(s), e.g. `"created" | "modified"`.
+ */
+export type DateRangeFilter<T extends string> = {
+  [K in `${T}From` | `${T}To`]?: string;
+};
+
+/** Created + modified calendar day bounds (most Hub list surfaces). */
+export type AuditDateFilters = DateRangeFilter<"created" | "modified">;
+
 export interface PaginationQuery {
   page?: number;
   pageSize?: number;
   sortBy?: string;
-  sortDirection?: "asc" | "desc";
+  sortDir?: SortDir;
 }
 
 /**

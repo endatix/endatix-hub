@@ -433,12 +433,12 @@ describe("ExportSubmissionsDialog", () => {
         filters: {
           includeTestSubmissions: false,
           completionStatus: "completed",
-          createdAtFrom: "2026-01-01",
-          createdAtTo: undefined,
-          startedAtFrom: undefined,
-          startedAtTo: undefined,
-          completedAtFrom: undefined,
-          completedAtTo: undefined,
+          createdFrom: "2026-01-01",
+          createdTo: undefined,
+          startedFrom: undefined,
+          startedTo: undefined,
+          completedFrom: undefined,
+          completedTo: undefined,
         },
       });
     });
@@ -938,10 +938,10 @@ describe("ExportSubmissionsDialog", () => {
           listFilters: {
             includeTestSubmissions: true,
             completionStatus: "all",
-            createdAtFrom: "2026-03-01",
-            createdAtTo: "2026-03-15",
-            startedAtFrom: "2026-03-05",
-            startedAtTo: "2026-03-10",
+            createdFrom: "2026-03-01",
+            createdTo: "2026-03-15",
+            startedFrom: "2026-03-05",
+            startedTo: "2026-03-10",
           },
         })}
       />,
@@ -969,12 +969,12 @@ describe("ExportSubmissionsDialog", () => {
 
   it("re-prefills grid filters including startedAt after close and reopen", async () => {
     const listFilters = {
-      createdAtFrom: "2026-04-01",
-      createdAtTo: "2026-04-02",
-      startedAtFrom: "2026-04-03",
-      startedAtTo: "2026-04-04",
-      completedAtFrom: "2026-04-05",
-      completedAtTo: "2026-04-06",
+      createdFrom: "2026-04-01",
+      createdTo: "2026-04-02",
+      startedFrom: "2026-04-03",
+      startedTo: "2026-04-04",
+      completedFrom: "2026-04-05",
+      completedTo: "2026-04-06",
       completionStatus: "all" as const,
     };
 

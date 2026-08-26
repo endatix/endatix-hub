@@ -3,7 +3,7 @@ export {
   parseCompletionStatusQuery,
   parseIncludeTestSubmissionsQuery,
   parseLegacyExportFormat,
-  parseOptionalIsoDateQuery,
+  parseOptionalCalendarDateQuery,
   parseOptionalLocaleQuery,
   parseOptionalPositiveIdQuery,
   parseReportingExportFormat,

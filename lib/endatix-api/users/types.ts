@@ -1,4 +1,8 @@
-import type { IPagedRequest } from "../shared/types";
+import type {
+  DateRangeFilter,
+  IPagedRequest,
+  SortRequest,
+} from "../shared/types";
 
 export type UserListItem = {
   id: string;
@@ -16,7 +20,13 @@ export type UserListItem = {
 
 export type UserStatusFilter = "active" | "pending" | "locked";
 
-export interface ListUsersRequest extends IPagedRequest {
+export type UserListSortBy = "userName" | "email" | "lastLoginAt";
+
+export interface ListUsersRequest
+  extends
+    IPagedRequest,
+    SortRequest<UserListSortBy>,
+    DateRangeFilter<"lastLogin"> {
   search?: string;
   role?: string;
   status?: UserStatusFilter;

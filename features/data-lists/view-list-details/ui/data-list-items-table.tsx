@@ -8,6 +8,7 @@ import {
   dataTableBodyRowClassName,
   dataTableColumnLabelClassName,
   dataTableHeaderCellClassName,
+  DataTableColumnHeader,
   DataTableEmpty,
   DataTableSurface,
 } from "@/components/table";
@@ -27,6 +28,8 @@ import {
   getCoreRowModel,
   useReactTable,
   type ColumnDef,
+  type OnChangeFn,
+  type SortingState,
 } from "@tanstack/react-table";
 import { type ReactNode, useMemo } from "react";
 import "./table-types";
@@ -38,6 +41,9 @@ type DataListItemsTableProps = {
   defaultLocale?: string;
   emptyMessage?: string;
   footer?: ReactNode;
+  sorting?: SortingState;
+  onSortingChange?: OnChangeFn<SortingState>;
+  isPending?: boolean;
 };
 
 type DataListItemRow = DataListItem & { rowId: string };
@@ -45,14 +51,19 @@ type DataListItemRow = DataListItem & { rowId: string };
 function buildColumns(
   labelColumns: readonly string[],
   defaultLocale: string | undefined,
+  sortingEnabled: boolean,
 ): ColumnDef<DataListItemRow>[] {
   return [
     {
       id: "value",
       accessorKey: "value",
-      enableSorting: false,
-      header: () => (
-        <span className={dataTableColumnLabelClassName()}>Value</span>
+      enableSorting: sortingEnabled,
+      header: ({ column }) => (
+        <DataTableColumnHeader
+          column={column}
+          title="Value"
+          isSorted={column.getIsSorted()}
+        />
       ),
       cell: ({ row }) => (
         <TruncatedId id={row.original.value} copyLabel="Copy value" />
@@ -98,7 +109,12 @@ export function DataListItemsTable({
   defaultLocale,
   emptyMessage = "No items in this list.",
   footer,
+  sorting = [],
+  onSortingChange,
+  isPending = false,
 }: Readonly<DataListItemsTableProps>) {
+  const sortingEnabled = onSortingChange !== undefined;
+
   const data = useMemo<DataListItemRow[]>(
     () =>
       items.map((item, index) => ({
@@ -109,9 +125,13 @@ export function DataListItemsTable({
   );
 
   const columns = useMemo(
-    () => buildColumns(labelColumns, defaultLocale),
-    [labelColumns, defaultLocale],
+    () => buildColumns(labelColumns, defaultLocale, sortingEnabled),
+    [labelColumns, defaultLocale, sortingEnabled],
   );
+
+  const controlledSorting = sortingEnabled
+    ? { state: { sorting }, onSortingChange }
+    : {};
 
   const table = useReactTable({
     data,
@@ -119,6 +139,8 @@ export function DataListItemsTable({
     getCoreRowModel: getCoreRowModel(),
     getRowId: (row) => row.rowId,
     enableColumnPinning: true,
+    manualSorting: sortingEnabled,
+    ...controlledSorting,
     initialState: {
       columnPinning: {
         left: ["value"],
@@ -130,7 +152,7 @@ export function DataListItemsTable({
 
   if (rows.length === 0) {
     return (
-      <DataTableSurface data-slot="data-list-items-table">
+      <DataTableSurface data-slot="data-list-items-table" isPending={isPending}>
         <DataTableEmpty>{emptyMessage}</DataTableEmpty>
         {footer}
       </DataTableSurface>
@@ -138,7 +160,7 @@ export function DataListItemsTable({
   }
 
   return (
-    <DataTableSurface data-slot="data-list-items-table">
+    <DataTableSurface data-slot="data-list-items-table" isPending={isPending}>
       <div className="w-full overflow-x-auto">
         <Table className={DATA_TABLE_ELEMENT_CLASS_NAME}>
           <TableHeader className="bg-surface-container-low">

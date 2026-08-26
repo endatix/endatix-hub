@@ -4,14 +4,11 @@ import {
   buildReportingExportUrl,
   mapIncludeTestSubmissions,
 } from "../../export-url";
-import {
-  utcCalendarDayStartIso,
-  utcCalendarNextDayStartIso,
-} from "@/lib/endatix-api/submissions/submission-list-query-params";
 
 const SUBMISSIONS_FILTERS = [
   "includeTestSubmissions",
   "createdAtRange",
+  "modifiedAtRange",
   "startedAtRange",
   "completedAtRange",
   "submissionIdRange",
@@ -55,8 +52,8 @@ describe("export url builders", () => {
     const listFilters = {
       includeTestSubmissions: false,
       completionStatus: "completed" as const,
-      createdAtFrom: "2026-01-01",
-      createdAtTo: "2026-01-02",
+      createdFrom: "2026-01-01",
+      createdTo: "2026-01-02",
       locale: "es",
     };
 
@@ -69,8 +66,8 @@ describe("export url builders", () => {
     });
     expect(csvUrl).toContain("includeTestSubmissions=false");
     expect(csvUrl).toContain("completionStatus=completed");
-    expect(csvUrl).toContain("createdAfter=");
-    expect(csvUrl).toContain("createdBefore=");
+    expect(csvUrl).toContain("createdFrom=");
+    expect(csvUrl).toContain("createdTo=");
     expect(csvUrl).not.toContain("locale=es");
 
     const codebookUrl = buildReportingExportUrl({
@@ -82,7 +79,7 @@ describe("export url builders", () => {
     });
     expect(codebookUrl).not.toContain("includeTestSubmissions");
     expect(codebookUrl).not.toContain("completionStatus");
-    expect(codebookUrl).not.toContain("createdAfter");
+    expect(codebookUrl).not.toContain("createdFrom");
     expect(codebookUrl).toContain("locale=es");
   });
 
@@ -106,12 +103,12 @@ describe("export url builders", () => {
       exportFormatId: "42",
       listFilters: {
         isTestSubmission: ["true"],
-        createdAtFrom: "2026-01-01",
+        createdFrom: "2026-01-01",
       },
       allowedFilters: ["includeTestSubmissions", "createdAtRange"],
     });
     expect(url).not.toContain("includeTestSubmissions");
-    expect(url).toContain("createdAfter=");
+    expect(url).toContain("createdFrom=");
   });
 
   it("maps production-only grid filter to includeTestSubmissions=false", () => {
@@ -141,41 +138,54 @@ describe("export url builders", () => {
     expect(url).toContain("includeTestSubmissions=true");
   });
 
-  it("encodes calendar ranges with inclusive from and exclusive next-day to", () => {
+  it("encodes calendar ranges as YYYY-MM-DD From/To (API owns exclusive end)", () => {
     const url = buildReportingExportUrl({
       formId: "100",
       formatKey: "csv",
       exportFormatId: "42",
       listFilters: {
-        createdAtFrom: "2026-01-01",
-        createdAtTo: "2026-01-02",
-        startedAtFrom: "2026-01-05",
-        startedAtTo: "2026-01-06",
-        completedAtFrom: "2026-02-01",
-        completedAtTo: "2026-02-03",
+        createdFrom: "2026-01-01",
+        createdTo: "2026-01-02",
+        modifiedFrom: "2026-01-03",
+        modifiedTo: "2026-01-04",
+        startedFrom: "2026-01-05",
+        startedTo: "2026-01-06",
+        completedFrom: "2026-02-01",
+        completedTo: "2026-02-03",
       },
-      allowedFilters: ["createdAtRange", "startedAtRange", "completedAtRange"],
+      allowedFilters: [
+        "createdAtRange",
+        "modifiedAtRange",
+        "startedAtRange",
+        "completedAtRange",
+      ],
     });
     const params = new URL(url, "https://example.test").searchParams;
 
-    expect(params.get("createdAfter")).toBe(
-      utcCalendarDayStartIso("2026-01-01"),
-    );
-    expect(params.get("createdBefore")).toBe(
-      utcCalendarNextDayStartIso("2026-01-02"),
-    );
-    expect(params.get("startedAfter")).toBe(
-      utcCalendarDayStartIso("2026-01-05"),
-    );
-    expect(params.get("startedBefore")).toBe(
-      utcCalendarNextDayStartIso("2026-01-06"),
-    );
-    expect(params.get("completedAfter")).toBe(
-      utcCalendarDayStartIso("2026-02-01"),
-    );
-    expect(params.get("completedBefore")).toBe(
-      utcCalendarNextDayStartIso("2026-02-03"),
-    );
+    expect(params.get("createdFrom")).toBe("2026-01-01");
+    expect(params.get("createdTo")).toBe("2026-01-02");
+    expect(params.get("modifiedFrom")).toBe("2026-01-03");
+    expect(params.get("modifiedTo")).toBe("2026-01-04");
+    expect(params.get("startedFrom")).toBe("2026-01-05");
+    expect(params.get("startedTo")).toBe("2026-01-06");
+    expect(params.get("completedFrom")).toBe("2026-02-01");
+    expect(params.get("completedTo")).toBe("2026-02-03");
+  });
+
+  it("omits modified range when modifiedAtRange is not allowed", () => {
+    const url = buildReportingExportUrl({
+      formId: "100",
+      formatKey: "csv",
+      exportFormatId: "42",
+      listFilters: {
+        modifiedFrom: "2026-01-03",
+        modifiedTo: "2026-01-04",
+      },
+      allowedFilters: ["createdAtRange"],
+    });
+
+    expect(url).not.toContain("modifiedFrom=");
+    expect(url).not.toContain("modifiedTo=");
   });
 
   it("skips invalid calendar dates", () => {
@@ -184,16 +194,16 @@ describe("export url builders", () => {
       formatKey: "csv",
       exportFormatId: "42",
       listFilters: {
-        createdAtFrom: "not-a-date",
-        createdAtTo: "2026-13-40",
-        completedAtFrom: "2026-01-01",
+        createdFrom: "not-a-date",
+        createdTo: "2026-13-40",
+        completedFrom: "2026-01-01",
       },
       allowedFilters: ["createdAtRange", "completedAtRange"],
     });
 
-    expect(url).not.toContain("createdAfter=");
-    expect(url).not.toContain("createdBefore=");
-    expect(url).toContain("completedAfter=");
+    expect(url).not.toContain("createdFrom=");
+    expect(url).not.toContain("createdTo=");
+    expect(url).toContain("completedFrom=");
   });
 
   it("attaches completionStatus values when allowed", () => {

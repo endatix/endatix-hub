@@ -77,16 +77,16 @@ export function createFilterDraftFromListFilters(
     completionStatus:
       listFilters?.completionStatus ?? DEFAULT_EXPORT_COMPLETION_STATUS,
     createdAt: {
-      from: listFilters?.createdAtFrom ?? "",
-      to: listFilters?.createdAtTo ?? "",
+      from: listFilters?.createdFrom ?? "",
+      to: listFilters?.createdTo ?? "",
     },
     startedAt: {
-      from: listFilters?.startedAtFrom ?? "",
-      to: listFilters?.startedAtTo ?? "",
+      from: listFilters?.startedFrom ?? "",
+      to: listFilters?.startedTo ?? "",
     },
     completedAt: {
-      from: listFilters?.completedAtFrom ?? "",
-      to: listFilters?.completedAtTo ?? "",
+      from: listFilters?.completedFrom ?? "",
+      to: listFilters?.completedTo ?? "",
     },
     locale: listFilters?.locale?.trim() || DEFAULT_REPORTING_LOCALE,
   };
@@ -197,13 +197,13 @@ export function toSubmissionExportListFilters(
   if (args.showRowFilters) {
     filters.includeTestSubmissions = draft.includeTestSubmissions;
     filters.completionStatus = draft.completionStatus;
-    filters.createdAtFrom = draft.createdAt.from || undefined;
-    filters.createdAtTo = draft.createdAt.to || undefined;
-    filters.startedAtFrom = draft.startedAt.from || undefined;
-    filters.startedAtTo = draft.startedAt.to || undefined;
+    filters.createdFrom = draft.createdAt.from || undefined;
+    filters.createdTo = draft.createdAt.to || undefined;
+    filters.startedFrom = draft.startedAt.from || undefined;
+    filters.startedTo = draft.startedAt.to || undefined;
     if (args.showCompletedAt) {
-      filters.completedAtFrom = draft.completedAt.from || undefined;
-      filters.completedAtTo = draft.completedAt.to || undefined;
+      filters.completedFrom = draft.completedAt.from || undefined;
+      filters.completedTo = draft.completedAt.to || undefined;
     }
   }
 

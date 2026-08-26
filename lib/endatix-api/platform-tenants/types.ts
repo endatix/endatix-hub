@@ -1,6 +1,16 @@
-import type { IPagedRequest } from "../shared/types";
+import type {
+  AuditDateFilters,
+  IPagedRequest,
+  SortRequest,
+} from "../shared/types";
 
-export interface ListPlatformTenantsRequest extends IPagedRequest {
+export type PlatformTenantListSortBy = "name" | "createdAt" | "modifiedAt";
+
+export interface ListPlatformTenantsRequest
+  extends
+    IPagedRequest,
+    SortRequest<PlatformTenantListSortBy>,
+    AuditDateFilters {
   search?: string;
 }
 

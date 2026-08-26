@@ -42,14 +42,14 @@ export function serializeSubmissionListSearchParams(
 }
 
 const OPTIONAL_STRING_PARAMS = [
-  [searchParamKeys.createdAtFrom, "createdAtFrom"],
-  [searchParamKeys.createdAtTo, "createdAtTo"],
-  [searchParamKeys.modifiedAtFrom, "modifiedAtFrom"],
-  [searchParamKeys.modifiedAtTo, "modifiedAtTo"],
-  [searchParamKeys.startedAtFrom, "startedAtFrom"],
-  [searchParamKeys.startedAtTo, "startedAtTo"],
-  [searchParamKeys.completedAtFrom, "completedAtFrom"],
-  [searchParamKeys.completedAtTo, "completedAtTo"],
+  [searchParamKeys.createdFrom, "createdFrom"],
+  [searchParamKeys.createdTo, "createdTo"],
+  [searchParamKeys.modifiedFrom, "modifiedFrom"],
+  [searchParamKeys.modifiedTo, "modifiedTo"],
+  [searchParamKeys.startedFrom, "startedFrom"],
+  [searchParamKeys.startedTo, "startedTo"],
+  [searchParamKeys.completedFrom, "completedFrom"],
+  [searchParamKeys.completedTo, "completedTo"],
   [searchParamKeys.submitterDisplayId, "submitterDisplayId"],
   [searchParamKeys.submitterEmail, "submitterEmail"],
 ] as const satisfies ReadonlyArray<

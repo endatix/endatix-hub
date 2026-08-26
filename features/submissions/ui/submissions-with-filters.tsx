@@ -3,7 +3,6 @@
 import { DataTableToolbar } from "@/components/table";
 import { ShareDialog } from "@/features/forms/ui/share-dialog";
 import {
-  buildSubmissionsTableKey,
   rememberSubmissionListReturnTo,
   serializeSubmissionListSearchParams,
   submissionListUrlStateFromClientFilters,
@@ -19,7 +18,6 @@ import {
   ColumnVisibilityProvider,
   EMPTY_SUBMISSION_DATE_FILTERS,
   ResetOptionsDropdown,
-  SubmissionsTableSkeleton,
   useColumnOrder,
   useColumnVisibility,
 } from "@/features/submissions/ui/table";
@@ -59,14 +57,14 @@ interface SubmissionsWithFiltersProps {
   initialIsComplete?: string[];
   initialStatus?: string[];
   initialIsTestSubmission?: string[];
-  initialCreatedAtFrom?: string;
-  initialCreatedAtTo?: string;
-  initialModifiedAtFrom?: string;
-  initialModifiedAtTo?: string;
-  initialStartedAtFrom?: string;
-  initialStartedAtTo?: string;
-  initialCompletedAtFrom?: string;
-  initialCompletedAtTo?: string;
+  initialCreatedFrom?: string;
+  initialCreatedTo?: string;
+  initialModifiedFrom?: string;
+  initialModifiedTo?: string;
+  initialStartedFrom?: string;
+  initialStartedTo?: string;
+  initialCompletedFrom?: string;
+  initialCompletedTo?: string;
   initialSubmitterDisplayId?: string;
   initialSubmitterEmail?: string;
   initialSorting?: SortingState;
@@ -110,12 +108,12 @@ function SubmissionsContent({
   onStatusChange,
   onTestSubmissionChange,
   onResetFilters,
+  onResetSorting,
+  onResetAllFiltersAndSorting,
   isPending,
-  tableKey,
   allColumns,
   sorting,
   onSortingChange,
-  onResetSorting,
   pagination,
   onPaginationChange,
   totalRecords,
@@ -135,12 +133,12 @@ function SubmissionsContent({
   onStatusChange: (values: Set<string>) => void;
   onTestSubmissionChange: (values: Set<string>) => void;
   onResetFilters: () => void;
+  onResetSorting: () => void;
+  onResetAllFiltersAndSorting: () => void;
   isPending: boolean;
-  tableKey: string;
   allColumns: ColumnDef<ParsedSubmission>[];
   sorting: SortingState;
   onSortingChange: Dispatch<SetStateAction<SortingState>>;
-  onResetSorting: () => void;
   pagination: PaginationState;
   onPaginationChange: Dispatch<SetStateAction<PaginationState>>;
   totalRecords: number;
@@ -153,26 +151,19 @@ function SubmissionsContent({
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
 
   const hasSorting = sorting.length > 0;
-  const hasActiveFilters =
-    isCompleteFilter.size > 0 ||
-    statusFilter.size > 0 ||
-    testSubmissionFilter.size > 0 ||
-    submitterDisplayIdFilter.length > 0 ||
-    submitterEmailFilter.length > 0 ||
-    hasDateFilters(dateFilters);
   const isTrueEmptyState = !hasAnySubmissions;
   const disableTableControls = isTrueEmptyState;
 
   const exportListFilters = useMemo(
     () => ({
-      createdAtFrom: dateFilters.createdAt.from,
-      createdAtTo: dateFilters.createdAt.to,
-      modifiedAtFrom: dateFilters.modifiedAt.from,
-      modifiedAtTo: dateFilters.modifiedAt.to,
-      startedAtFrom: dateFilters.startedAt.from,
-      startedAtTo: dateFilters.startedAt.to,
-      completedAtFrom: dateFilters.completedAt.from,
-      completedAtTo: dateFilters.completedAt.to,
+      createdFrom: dateFilters.createdAt.from,
+      createdTo: dateFilters.createdAt.to,
+      modifiedFrom: dateFilters.modifiedAt.from,
+      modifiedTo: dateFilters.modifiedAt.to,
+      startedFrom: dateFilters.startedAt.from,
+      startedTo: dateFilters.startedAt.to,
+      completedFrom: dateFilters.completedAt.from,
+      completedTo: dateFilters.completedAt.to,
     }),
     [
       dateFilters.createdAt.from,
@@ -222,18 +213,11 @@ function SubmissionsContent({
       onClick: resetVisibility,
     });
   }
-  if (hasSorting) {
-    resetOptions.push({
-      label: "Reset Sorting",
-      onClick: onResetSorting,
-    });
-  }
 
-  const handleResetAll = () => {
+  const handleResetTableLayout = () => {
     if (hasCustomOrder) resetOrder();
     if (hasCustomVisibility) resetVisibility();
-    if (hasSorting) onResetSorting();
-    if (hasActiveFilters) onResetFilters();
+    onResetAllFiltersAndSorting();
   };
 
   let tableRegion: ReactNode;
@@ -250,19 +234,10 @@ function SubmissionsContent({
         />
       </>
     );
-  } else if (isPending) {
-    tableRegion = (
-      <SubmissionsTableSkeleton
-        pageSize={pagination.pageSize}
-        loadingLabel="Updating submissions…"
-      />
-    );
   } else {
     tableRegion = (
       <SubmissionsTable
-        key={tableKey}
         data={data}
-        formId={formId}
         columns={allColumns}
         sorting={sorting}
         onSortingChange={onSortingChange}
@@ -271,6 +246,7 @@ function SubmissionsContent({
         totalRecords={totalRecords}
         totalPages={totalPages}
         onFilteredEmptyClear={onResetFilters}
+        isPending={isPending}
       />
     );
   }
@@ -279,6 +255,7 @@ function SubmissionsContent({
     <>
       <DataTableToolbar
         className="mt-8 mb-4"
+        isPending={isPending}
         filters={
           <SubmissionsFilterToolbar
             isCompleteFilter={isCompleteFilter}
@@ -288,6 +265,9 @@ function SubmissionsContent({
             onStatusChange={onStatusChange}
             onTestSubmissionChange={onTestSubmissionChange}
             onResetFilters={onResetFilters}
+            onResetSorting={onResetSorting}
+            onResetAll={onResetAllFiltersAndSorting}
+            hasSorting={hasSorting}
             disabled={disableTableControls}
             hasAdditionalFilters={
               hasDateFilters(dateFilters) ||
@@ -298,13 +278,6 @@ function SubmissionsContent({
         }
         actions={
           <>
-            <div
-              role="status"
-              aria-live="polite"
-              className="hidden min-w-[5rem] text-right text-sm text-muted-foreground sm:block"
-            >
-              {isPending ? "Updating…" : null}
-            </div>
             <ColumnViewOptionsDropdown
               columns={columnHeaders}
               disabled={disableTableControls}
@@ -312,7 +285,7 @@ function SubmissionsContent({
             {isClient && (
               <ResetOptionsDropdown
                 options={resetOptions}
-                onResetAll={handleResetAll}
+                onResetAll={handleResetTableLayout}
                 disabled={disableTableControls}
               />
             )}
@@ -352,14 +325,14 @@ export function SubmissionsWithFilters({
   initialIsComplete = EMPTY_INITIAL_FILTER_VALUES,
   initialStatus = EMPTY_INITIAL_FILTER_VALUES,
   initialIsTestSubmission = EMPTY_INITIAL_FILTER_VALUES,
-  initialCreatedAtFrom,
-  initialCreatedAtTo,
-  initialModifiedAtFrom,
-  initialModifiedAtTo,
-  initialStartedAtFrom,
-  initialStartedAtTo,
-  initialCompletedAtFrom,
-  initialCompletedAtTo,
+  initialCreatedFrom,
+  initialCreatedTo,
+  initialModifiedFrom,
+  initialModifiedTo,
+  initialStartedFrom,
+  initialStartedTo,
+  initialCompletedFrom,
+  initialCompletedTo,
   initialSubmitterDisplayId = "",
   initialSubmitterEmail = "",
   initialSorting,
@@ -394,20 +367,20 @@ export function SubmissionsWithFilters({
   );
   const [dateFilters, setDateFilters] = useState<SubmissionDateFilters>({
     createdAt: {
-      from: initialCreatedAtFrom,
-      to: initialCreatedAtTo,
+      from: initialCreatedFrom,
+      to: initialCreatedTo,
     },
     modifiedAt: {
-      from: initialModifiedAtFrom,
-      to: initialModifiedAtTo,
+      from: initialModifiedFrom,
+      to: initialModifiedTo,
     },
     startedAt: {
-      from: initialStartedAtFrom,
-      to: initialStartedAtTo,
+      from: initialStartedFrom,
+      to: initialStartedTo,
     },
     completedAt: {
-      from: initialCompletedAtFrom,
-      to: initialCompletedAtTo,
+      from: initialCompletedFrom,
+      to: initialCompletedTo,
     },
   });
   const [sorting, setSorting] = useState<SortingState>(resolvedInitialSorting);
@@ -435,34 +408,34 @@ export function SubmissionsWithFilters({
     setSubmitterEmailFilter(initialSubmitterEmail);
     setDateFilters({
       createdAt: {
-        from: initialCreatedAtFrom,
-        to: initialCreatedAtTo,
+        from: initialCreatedFrom,
+        to: initialCreatedTo,
       },
       modifiedAt: {
-        from: initialModifiedAtFrom,
-        to: initialModifiedAtTo,
+        from: initialModifiedFrom,
+        to: initialModifiedTo,
       },
       startedAt: {
-        from: initialStartedAtFrom,
-        to: initialStartedAtTo,
+        from: initialStartedFrom,
+        to: initialStartedTo,
       },
       completedAt: {
-        from: initialCompletedAtFrom,
-        to: initialCompletedAtTo,
+        from: initialCompletedFrom,
+        to: initialCompletedTo,
       },
     });
   }, [
     initialIsComplete,
     initialStatus,
     initialIsTestSubmission,
-    initialCreatedAtFrom,
-    initialCreatedAtTo,
-    initialModifiedAtFrom,
-    initialModifiedAtTo,
-    initialStartedAtFrom,
-    initialStartedAtTo,
-    initialCompletedAtFrom,
-    initialCompletedAtTo,
+    initialCreatedFrom,
+    initialCreatedTo,
+    initialModifiedFrom,
+    initialModifiedTo,
+    initialStartedFrom,
+    initialStartedTo,
+    initialCompletedFrom,
+    initialCompletedTo,
     initialSubmitterDisplayId,
     initialSubmitterEmail,
   ]);
@@ -500,14 +473,14 @@ export function SubmissionsWithFilters({
       isTestSubmission,
       submitterDisplayId,
       submitterEmail,
-      createdAtFrom: dates.createdAt.from,
-      createdAtTo: dates.createdAt.to,
-      modifiedAtFrom: dates.modifiedAt.from,
-      modifiedAtTo: dates.modifiedAt.to,
-      startedAtFrom: dates.startedAt.from,
-      startedAtTo: dates.startedAt.to,
-      completedAtFrom: dates.completedAt.from,
-      completedAtTo: dates.completedAt.to,
+      createdFrom: dates.createdAt.from,
+      createdTo: dates.createdAt.to,
+      modifiedFrom: dates.modifiedAt.from,
+      modifiedTo: dates.modifiedAt.to,
+      startedFrom: dates.startedAt.from,
+      startedTo: dates.startedAt.to,
+      completedFrom: dates.completedAt.from,
+      completedTo: dates.completedAt.to,
       sorting: nextSorting,
     });
     const queryString =
@@ -690,6 +663,29 @@ export function SubmissionsWithFilters({
     });
   };
 
+  const handleResetAllFiltersAndSorting = () => {
+    const emptySet = new Set<string>();
+    setIsCompleteFilter(emptySet);
+    setStatusFilter(emptySet);
+    setTestSubmissionFilter(emptySet);
+    setSubmitterDisplayIdFilter("");
+    setSubmitterEmailFilter("");
+    setDateFilters(EMPTY_SUBMISSION_DATE_FILTERS);
+    setSorting(EMPTY_INITIAL_SORTING);
+    setPagination((current) => ({ ...current, pageIndex: 0 }));
+    updateURL({
+      isComplete: emptySet,
+      status: emptySet,
+      isTestSubmission: emptySet,
+      submitterDisplayId: "",
+      submitterEmail: "",
+      dates: EMPTY_SUBMISSION_DATE_FILTERS,
+      page: 1,
+      pageSize: pagination.pageSize,
+      sorting: EMPTY_INITIAL_SORTING,
+    });
+  };
+
   const handlePaginationChange: Dispatch<SetStateAction<PaginationState>> = (
     updater,
   ) => {
@@ -707,17 +703,6 @@ export function SubmissionsWithFilters({
       sorting,
     });
   };
-
-  const tableKey = buildSubmissionsTableKey({
-    isCompleteFilter,
-    statusFilter,
-    testSubmissionFilter,
-    submitterDisplayId: submitterDisplayIdFilter,
-    submitterEmail: submitterEmailFilter,
-    dateFilters,
-    pagination,
-    dataLength: data.length,
-  });
 
   const allColumns = [
     ...buildSubmissionSystemColumns({
@@ -749,12 +734,12 @@ export function SubmissionsWithFilters({
           onStatusChange={handleStatusChange}
           onTestSubmissionChange={handleTestSubmissionChange}
           onResetFilters={handleResetFilters}
+          onResetSorting={handleResetSorting}
+          onResetAllFiltersAndSorting={handleResetAllFiltersAndSorting}
           isPending={isPending}
-          tableKey={tableKey}
           allColumns={allColumns}
           sorting={sorting}
           onSortingChange={handleSortingChange}
-          onResetSorting={handleResetSorting}
           pagination={pagination}
           onPaginationChange={handlePaginationChange}
           totalRecords={totalRecords}

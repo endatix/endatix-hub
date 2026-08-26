@@ -22,6 +22,7 @@ import { toast } from "@/components/ui/toast";
 import type { DataListDetails } from "@/lib/endatix-api/data-lists/types";
 import type { DataListItemsPage } from "@/lib/endatix-api/data-lists/data-lists";
 import { useListUrlState } from "@/lib/list-page/use-list-url-state";
+import type { UrlSearchParamsUpdater } from "@/lib/utils/hooks/use-url-search-params-updater.hook";
 import { TelemetryLogger } from "@/features/telemetry";
 import { withBasePath } from "@/lib/hosting";
 import { formatInteger } from "@/lib/utils/formatters";
@@ -40,6 +41,10 @@ import {
   parseHasLocaleFilterSet,
   serializeHasLocaleFilter,
 } from "../../view-lists/utils";
+import {
+  parseCalendarDateYmd,
+  parseSortDir,
+} from "@/lib/endatix-api/shared/list-query";
 import { ChevronDown, Download, PencilLine, Upload } from "lucide-react";
 import type { Route } from "next";
 import {
@@ -58,7 +63,8 @@ import type { DataListSourceFormat } from "../../add-items/data-list-items-input
 import { DataListItemsTable } from "./data-list-items-table";
 import { DataListItemsTableSkeleton } from "./data-list-items-table-skeleton";
 import { EditDataListPanel } from "./edit-data-list-panel";
-import { resolveVisibleLabelColumns } from "../utils";
+import { parseDataListItemSortBy, resolveVisibleLabelColumns } from "../utils";
+import type { SortingState, Updater } from "@tanstack/react-table";
 
 const CSV_EXPORT_LOGGER = "data-lists.exportCsv";
 
@@ -95,12 +101,23 @@ export function DataListDetailsPage({
   // would otherwise render a false "no items" empty state after replace.
   const resetItemsListState = (): void => {
     const nextParams = new URLSearchParams(searchParams.toString());
-    if (!nextParams.has("page") && !nextParams.has("search")) {
+    const staleKeys = [
+      "page",
+      "search",
+      "sortBy",
+      "sortDir",
+      "createdFrom",
+      "createdTo",
+      "modifiedFrom",
+      "modifiedTo",
+    ];
+    if (!staleKeys.some((key) => nextParams.has(key))) {
       return;
     }
 
-    nextParams.delete("page");
-    nextParams.delete("search");
+    for (const key of staleKeys) {
+      nextParams.delete(key);
+    }
     const query = nextParams.toString();
     router.replace((query ? `${pathname}?${query}` : pathname) as Route);
   };
@@ -375,7 +392,8 @@ function DataListItemsSection({
   availableLocales: string[];
   defaultLocale?: string;
 }>) {
-  const { search, setSearch, updateUrl, searchParams } = useListUrlState();
+  const { search, setSearch, updateUrl, searchParams, isPending } =
+    useListUrlState();
   const selectedLocales = useMemo(
     () => parseHasLocaleFilterSet(searchParams.get("hasLocale")),
     [searchParams],
@@ -394,9 +412,25 @@ function DataListItemsSection({
     }));
   }, [availableLocales, defaultLocale]);
 
+  const createdFrom = parseCalendarDateYmd(searchParams.get("createdFrom"));
+  const createdTo = parseCalendarDateYmd(searchParams.get("createdTo"));
+  const modifiedFrom = parseCalendarDateYmd(searchParams.get("modifiedFrom"));
+  const modifiedTo = parseCalendarDateYmd(searchParams.get("modifiedTo"));
+  const sortBy = parseDataListItemSortBy(searchParams.get("sortBy"));
+  const hasActiveFilters = Boolean(
+    search.trim() ||
+    selectedLocales.size > 0 ||
+    createdFrom ||
+    createdTo ||
+    modifiedFrom ||
+    modifiedTo,
+  );
+  const hasSorting = Boolean(sortBy);
+
   return (
     <div className="flex flex-col gap-3">
       <DataTableToolbar
+        isPending={isPending}
         filters={
           <>
             <TableSearchInput
@@ -419,18 +453,43 @@ function DataListItemsSection({
                 }}
               />
             ) : null}
-            {search.trim() || selectedLocales.size > 0 ? (
-              <ResetFiltersButton
-                onClick={() => {
-                  setSearch("");
-                  updateUrl({
-                    search: null,
-                    hasLocale: null,
-                    page: "1",
-                  });
-                }}
-              />
-            ) : null}
+            <ResetFiltersButton
+              hasFilters={hasActiveFilters}
+              hasSorting={hasSorting}
+              onClick={() => {
+                setSearch("");
+                updateUrl({
+                  search: null,
+                  hasLocale: null,
+                  createdFrom: null,
+                  createdTo: null,
+                  modifiedFrom: null,
+                  modifiedTo: null,
+                  page: "1",
+                });
+              }}
+              onResetSorting={() => {
+                updateUrl({
+                  sortBy: null,
+                  sortDir: null,
+                  page: "1",
+                });
+              }}
+              onResetAll={() => {
+                setSearch("");
+                updateUrl({
+                  search: null,
+                  hasLocale: null,
+                  createdFrom: null,
+                  createdTo: null,
+                  modifiedFrom: null,
+                  modifiedTo: null,
+                  sortBy: null,
+                  sortDir: null,
+                  page: "1",
+                });
+              }}
+            />
           </>
         }
       />
@@ -445,6 +504,9 @@ function DataListItemsSection({
           itemsPromise={itemsPromise}
           availableLocales={availableLocales}
           defaultLocale={defaultLocale}
+          updateUrl={updateUrl}
+          searchParams={searchParams}
+          isPending={isPending}
         />
       </Suspense>
     </div>
@@ -455,18 +517,58 @@ function DataListItemsPanel({
   itemsPromise,
   availableLocales,
   defaultLocale,
+  updateUrl,
+  searchParams,
+  isPending,
 }: Readonly<{
   itemsPromise: Promise<DataListItemsPage>;
   availableLocales: string[];
   defaultLocale?: string;
+  updateUrl: UrlSearchParamsUpdater;
+  searchParams: URLSearchParams;
+  isPending: boolean;
 }>) {
   const paged = use(itemsPromise);
-  const { updateUrl, searchParams } = useListUrlState();
   const footerProps = createPagedTableFooterProps(paged, "items", updateUrl);
   const searchValue = searchParams.get("search") ?? "";
   const hasLocale = parseHasLocaleFilter(searchParams.get("hasLocale"));
   const hasLocaleFilter = Boolean(hasLocale);
-  const hasFilters = Boolean(searchValue.trim() || hasLocaleFilter);
+  const createdFrom = parseCalendarDateYmd(searchParams.get("createdFrom"));
+  const createdTo = parseCalendarDateYmd(searchParams.get("createdTo"));
+  const modifiedFrom = parseCalendarDateYmd(searchParams.get("modifiedFrom"));
+  const modifiedTo = parseCalendarDateYmd(searchParams.get("modifiedTo"));
+  const hasFilters = Boolean(
+    searchValue.trim() ||
+    hasLocaleFilter ||
+    createdFrom ||
+    createdTo ||
+    modifiedFrom ||
+    modifiedTo,
+  );
+  const sortBy = parseDataListItemSortBy(searchParams.get("sortBy"));
+  const sortDir = parseSortDir(searchParams.get("sortDir"));
+  const sorting = useMemo<SortingState>(() => {
+    if (!sortBy) {
+      return [];
+    }
+    return [{ id: sortBy, desc: sortDir !== "asc" }];
+  }, [sortBy, sortDir]);
+
+  const handleSortingChange = (updater: Updater<SortingState>): void => {
+    const next = typeof updater === "function" ? updater(sorting) : updater;
+    const first = next[0];
+    if (!first) {
+      updateUrl({ sortBy: null, sortDir: null, page: "1" });
+      return;
+    }
+
+    updateUrl({
+      sortBy: first.id,
+      sortDir: first.desc ? "desc" : "asc",
+      page: "1",
+    });
+  };
+
   const labelColumns = resolveVisibleLabelColumns({
     hasLocale,
     defaultLocale,
@@ -482,12 +584,15 @@ function DataListItemsPanel({
       items={items}
       labelColumns={labelColumns}
       defaultLocale={defaultLocale}
+      sorting={sorting}
+      onSortingChange={handleSortingChange}
       emptyMessage={
         hasFilters
           ? "No items match the current filters."
           : "No items in this list."
       }
       footer={<PagedTableFooter {...footerProps} variant="surface" />}
+      isPending={isPending}
     />
   );
 }

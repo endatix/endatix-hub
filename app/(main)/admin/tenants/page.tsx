@@ -4,18 +4,21 @@ import {
 } from "@/features/platform-admin/server";
 import { PlatformAdminShell } from "@/features/platform-admin/ui/platform-admin-shell";
 import { TenantsTable } from "@/features/platform-admin/list-tenants/ui/tenants-table";
-import { parsePlatformAdminListParams } from "@/features/platform-admin/utils";
-import type { PlatformAdminSearchParams } from "@/features/platform-admin/types";
+import { parsePlatformTenantListParams } from "@/features/platform-admin/utils";
+import type { PlatformTenantSearchParams } from "@/features/platform-admin/types";
 
 interface TenantsPageProps {
-  searchParams?: Promise<PlatformAdminSearchParams>;
+  searchParams?: Promise<PlatformTenantSearchParams>;
 }
 
 export default async function TenantsPage({ searchParams }: TenantsPageProps) {
-  const session = await requirePlatformAdmin();
+  const [session, resolvedSearchParams] = await Promise.all([
+    requirePlatformAdmin(),
+    searchParams,
+  ]);
   const tenants = await listPlatformTenants(
     session,
-    parsePlatformAdminListParams(await searchParams),
+    parsePlatformTenantListParams(resolvedSearchParams),
   );
 
   return (

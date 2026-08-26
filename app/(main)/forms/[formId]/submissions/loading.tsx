@@ -4,8 +4,8 @@ import { SubmissionsTableSkeleton } from "@/features/submissions/ui/table/submis
 
 /**
  * Instant fallback for navigations into `/forms/[formId]/submissions`.
- * Complements the in-page Suspense boundary (streaming) and the client
- * `isPending` skeleton (filter/sort/paging URL transitions).
+ * Complements the in-page Suspense boundary. Filter/sort/page transitions
+ * keep the current table and dim it instead of using this skeleton.
  */
 export default function SubmissionsLoading() {
   return (

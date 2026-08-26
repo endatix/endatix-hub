@@ -1,7 +1,4 @@
-import {
-  utcCalendarDayStartIso,
-  utcCalendarNextDayStartIso,
-} from "@/lib/endatix-api/submissions/submission-list-query-params";
+import { appendDateRangeFilters } from "@/lib/endatix-api/shared/list-query";
 import { withBasePath } from "@/lib/hosting";
 
 /**
@@ -14,6 +11,7 @@ export const DEFAULT_REPORTING_LOCALE = "default" as const;
 export const EXPORT_REQUEST_FILTER = {
   includeTestSubmissions: "includeTestSubmissions",
   createdAtRange: "createdAtRange",
+  modifiedAtRange: "modifiedAtRange",
   startedAtRange: "startedAtRange",
   completedAtRange: "completedAtRange",
   submissionIdRange: "submissionIdRange",
@@ -52,14 +50,14 @@ export interface SubmissionExportListFilters {
   isTestSubmission?: string[];
   /** Explicit override (custom export dialog). Wins over `isTestSubmission` mapping. */
   includeTestSubmissions?: boolean;
-  createdAtFrom?: string;
-  createdAtTo?: string;
-  modifiedAtFrom?: string;
-  modifiedAtTo?: string;
-  startedAtFrom?: string;
-  startedAtTo?: string;
-  completedAtFrom?: string;
-  completedAtTo?: string;
+  createdFrom?: string;
+  createdTo?: string;
+  modifiedFrom?: string;
+  modifiedTo?: string;
+  startedFrom?: string;
+  startedTo?: string;
+  completedFrom?: string;
+  completedTo?: string;
   minSubmissionId?: string;
   maxSubmissionId?: string;
   locale?: string;
@@ -99,35 +97,6 @@ export function mapIncludeTestSubmissions(
   }
 
   return undefined;
-}
-
-function isValidCalendarDateYmd(value: string): boolean {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    return false;
-  }
-
-  const [year, month, day] = value.split("-").map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day));
-  return (
-    date.getUTCFullYear() === year &&
-    date.getUTCMonth() === month - 1 &&
-    date.getUTCDate() === day
-  );
-}
-
-function appendCalendarRange(
-  params: URLSearchParams,
-  fromKey: string,
-  toKey: string,
-  from: string | undefined,
-  to: string | undefined,
-): void {
-  if (from && isValidCalendarDateYmd(from)) {
-    params.set(fromKey, utcCalendarDayStartIso(from));
-  }
-  if (to && isValidCalendarDateYmd(to)) {
-    params.set(toKey, utcCalendarNextDayStartIso(to));
-  }
 }
 
 function appendIncludeTestSubmissionsFilter(
@@ -178,34 +147,19 @@ function appendAllowedListFilters(
     appendIncludeTestSubmissionsFilter(params, filters);
   }
 
-  if (allowsFilter(allowedFilters, EXPORT_REQUEST_FILTER.createdAtRange)) {
-    appendCalendarRange(
-      params,
-      "createdAfter",
-      "createdBefore",
-      filters.createdAtFrom,
-      filters.createdAtTo,
-    );
-  }
+  const allowedDateStems = (
+    [
+      ["created", EXPORT_REQUEST_FILTER.createdAtRange],
+      ["modified", EXPORT_REQUEST_FILTER.modifiedAtRange],
+      ["started", EXPORT_REQUEST_FILTER.startedAtRange],
+      ["completed", EXPORT_REQUEST_FILTER.completedAtRange],
+    ] as const
+  )
+    .filter(([, filter]) => allowsFilter(allowedFilters, filter))
+    .map(([stem]) => stem);
 
-  if (allowsFilter(allowedFilters, EXPORT_REQUEST_FILTER.startedAtRange)) {
-    appendCalendarRange(
-      params,
-      "startedAfter",
-      "startedBefore",
-      filters.startedAtFrom,
-      filters.startedAtTo,
-    );
-  }
-
-  if (allowsFilter(allowedFilters, EXPORT_REQUEST_FILTER.completedAtRange)) {
-    appendCalendarRange(
-      params,
-      "completedAfter",
-      "completedBefore",
-      filters.completedAtFrom,
-      filters.completedAtTo,
-    );
+  if (allowedDateStems.length > 0) {
+    appendDateRangeFilters(params, filters, allowedDateStems);
   }
 
   if (allowsFilter(allowedFilters, EXPORT_REQUEST_FILTER.submissionIdRange)) {
@@ -288,7 +242,9 @@ export function buildReportingExportUrl(
     );
   }
 
-  return withBasePath(`/api/forms/${options.formId}/export?${params.toString()}`);
+  return withBasePath(
+    `/api/forms/${options.formId}/export?${params.toString()}`,
+  );
 }
 
 export function buildLegacyExportUrl(

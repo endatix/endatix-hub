@@ -1,9 +1,14 @@
 import { parsePagedSearchParams } from "@/lib/list-page/parse-paged-search-params";
 import type {
   DataListListSortBy,
-  DataListListSortDir,
   ListDataListsRequest,
 } from "@/lib/endatix-api/data-lists/types";
+import {
+  parseSortBy,
+  parseSortDir,
+  pickDateRangeFilters,
+} from "@/lib/endatix-api/shared/list-query";
+import type { SortDir } from "@/lib/endatix-api/shared/types";
 import { tryNormalizeCultureCode } from "@/lib/localization";
 
 export const DEFAULT_DATA_LISTS_PAGE_SIZE = 10;
@@ -11,8 +16,6 @@ export const DATA_LISTS_LIST_PATH = "/data-lists";
 export const ALL_LOCALES_FILTER_VALUE = "__all_locales__";
 /** `tableKey` for `BackToTableButton` / `rememberTableReturnTo` (see `lib/list-page/table-return-to`). */
 export const DATA_LISTS_TABLE_KEY = "data-lists";
-
-const CALENDAR_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 const ALLOWED_SORT_BY = new Set<DataListListSortBy>([
   "name",
@@ -42,7 +45,7 @@ export interface DataListsListUrlState {
   search?: string;
   hasLocale?: string;
   sortBy?: DataListListSortBy;
-  sortDir?: DataListListSortDir;
+  sortDir?: SortDir;
   createdFrom?: string;
   createdTo?: string;
   modifiedFrom?: string;
@@ -60,49 +63,10 @@ export function firstString(
   return value;
 }
 
-export function parseCalendarDateParam(
-  value: string | null | undefined,
-): string | undefined {
-  const trimmed = value?.trim();
-  if (!trimmed || !CALENDAR_DATE_PATTERN.test(trimmed)) {
-    return undefined;
-  }
-
-  const [year, month, day] = trimmed.split("-").map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day));
-  if (
-    date.getUTCFullYear() !== year ||
-    date.getUTCMonth() !== month - 1 ||
-    date.getUTCDate() !== day
-  ) {
-    return undefined;
-  }
-
-  return trimmed;
-}
-
 export function parseDataListSortBy(
   value: string | null | undefined,
 ): DataListListSortBy | undefined {
-  const trimmed = value?.trim();
-  if (!trimmed) {
-    return undefined;
-  }
-
-  return ALLOWED_SORT_BY.has(trimmed as DataListListSortBy)
-    ? (trimmed as DataListListSortBy)
-    : undefined;
-}
-
-export function parseDataListSortDir(
-  value: string | null | undefined,
-): DataListListSortDir | undefined {
-  const trimmed = value?.trim().toLowerCase();
-  if (trimmed === "asc" || trimmed === "desc") {
-    return trimmed;
-  }
-
-  return undefined;
+  return parseSortBy(value, ALLOWED_SORT_BY);
 }
 
 export function parseDataListsListParams(
@@ -115,11 +79,11 @@ export function parseDataListsListParams(
   const search = searchParams?.search?.trim() || undefined;
   const hasLocale = parseHasLocaleFilter(searchParams?.hasLocale);
   const sortBy = parseDataListSortBy(searchParams?.sortBy);
-  const sortDir = parseDataListSortDir(searchParams?.sortDir);
-  const createdFrom = parseCalendarDateParam(searchParams?.createdFrom);
-  const createdTo = parseCalendarDateParam(searchParams?.createdTo);
-  const modifiedFrom = parseCalendarDateParam(searchParams?.modifiedFrom);
-  const modifiedTo = parseCalendarDateParam(searchParams?.modifiedTo);
+  const sortDir = parseSortDir(searchParams?.sortDir);
+  const dateFilters = pickDateRangeFilters(
+    (key) => searchParams?.[key as keyof DataListsListSearchParams],
+    ["created", "modified"] as const,
+  );
 
   return {
     ...paging,
@@ -127,10 +91,7 @@ export function parseDataListsListParams(
     hasLocale,
     sortBy,
     sortDir,
-    createdFrom,
-    createdTo,
-    modifiedFrom,
-    modifiedTo,
+    ...dateFilters,
   };
 }
 

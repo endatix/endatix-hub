@@ -7,7 +7,7 @@ import {
   parseCompletionStatusQuery,
   parseIncludeTestSubmissionsQuery,
   parseLegacyExportFormat,
-  parseOptionalIsoDateQuery,
+  parseOptionalCalendarDateQuery,
   parseOptionalLocaleQuery,
   parseOptionalPositiveIdQuery,
   parseReportingExportFormat,
@@ -92,23 +92,29 @@ export async function GET(
     exportOptions.includeTestSubmissions = parseIncludeTestSubmissionsQuery(
       includeTestSubmissionsParam,
     );
-    exportOptions.createdAfter = parseOptionalIsoDateQuery(
-      searchParams.get("createdAfter"),
+    exportOptions.createdFrom = parseOptionalCalendarDateQuery(
+      searchParams.get("createdFrom"),
     );
-    exportOptions.createdBefore = parseOptionalIsoDateQuery(
-      searchParams.get("createdBefore"),
+    exportOptions.createdTo = parseOptionalCalendarDateQuery(
+      searchParams.get("createdTo"),
     );
-    exportOptions.startedAfter = parseOptionalIsoDateQuery(
-      searchParams.get("startedAfter"),
+    exportOptions.modifiedFrom = parseOptionalCalendarDateQuery(
+      searchParams.get("modifiedFrom"),
     );
-    exportOptions.startedBefore = parseOptionalIsoDateQuery(
-      searchParams.get("startedBefore"),
+    exportOptions.modifiedTo = parseOptionalCalendarDateQuery(
+      searchParams.get("modifiedTo"),
     );
-    exportOptions.completedAfter = parseOptionalIsoDateQuery(
-      searchParams.get("completedAfter"),
+    exportOptions.startedFrom = parseOptionalCalendarDateQuery(
+      searchParams.get("startedFrom"),
     );
-    exportOptions.completedBefore = parseOptionalIsoDateQuery(
-      searchParams.get("completedBefore"),
+    exportOptions.startedTo = parseOptionalCalendarDateQuery(
+      searchParams.get("startedTo"),
+    );
+    exportOptions.completedFrom = parseOptionalCalendarDateQuery(
+      searchParams.get("completedFrom"),
+    );
+    exportOptions.completedTo = parseOptionalCalendarDateQuery(
+      searchParams.get("completedTo"),
     );
     exportOptions.minSubmissionId = parseOptionalPositiveIdQuery(
       searchParams.get("minSubmissionId"),

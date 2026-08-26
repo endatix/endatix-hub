@@ -23,7 +23,8 @@ type DataListsListToolbarProps = {
 export function DataListsListToolbar({
   localeFilter,
 }: Readonly<DataListsListToolbarProps>) {
-  const { search, setSearch, updateUrl, searchParams } = useListUrlState();
+  const { search, setSearch, updateUrl, searchParams, isPending } =
+    useListUrlState();
   const urlState = listUrlStateFromSearchParams(searchParams);
   const hasActiveFilters = Boolean(
     search.trim() ||
@@ -33,6 +34,7 @@ export function DataListsListToolbar({
     urlState.modifiedFrom ||
     urlState.modifiedTo,
   );
+  const hasSorting = Boolean(urlState.sortBy);
 
   const resetFilters = (): void => {
     setSearch("");
@@ -47,9 +49,33 @@ export function DataListsListToolbar({
     });
   };
 
+  const resetSorting = (): void => {
+    updateUrl({
+      sortBy: null,
+      sortDir: null,
+      page: "1",
+    });
+  };
+
+  const resetAll = (): void => {
+    setSearch("");
+    updateUrl({
+      search: null,
+      hasLocale: null,
+      createdFrom: null,
+      createdTo: null,
+      modifiedFrom: null,
+      modifiedTo: null,
+      sortBy: null,
+      sortDir: null,
+      page: "1",
+    });
+  };
+
   return (
     <DataTableToolbar
       className="mt-6"
+      isPending={isPending}
       filters={
         <>
           <TableSearchInput
@@ -60,9 +86,13 @@ export function DataListsListToolbar({
             className="min-w-[12rem] flex-none lg:flex-1"
           />
           {localeFilter}
-          {hasActiveFilters ? (
-            <ResetFiltersButton onClick={resetFilters} />
-          ) : null}
+          <ResetFiltersButton
+            onClick={resetFilters}
+            onResetSorting={resetSorting}
+            onResetAll={resetAll}
+            hasFilters={hasActiveFilters}
+            hasSorting={hasSorting}
+          />
         </>
       }
     />

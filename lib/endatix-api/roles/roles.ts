@@ -55,5 +55,7 @@ function buildListRolesEndpoint(request: ListRolesRequest): string {
     ["pageSize", request.pageSize],
     ["roleType", request.roleType],
     ["search", request.search],
+    ["sortBy", request.sortBy],
+    ["sortDir", request.sortDir],
   ]);
 }

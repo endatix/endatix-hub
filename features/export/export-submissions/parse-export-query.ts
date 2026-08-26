@@ -1,4 +1,5 @@
 import type { ExportFormat, ReportingExportFormat } from "../types";
+import { parseCalendarDateYmd } from "@/lib/endatix-api/shared/list-query";
 
 export function parseLegacyExportFormat(
   format: string | null,
@@ -40,19 +41,14 @@ export function parseIncludeTestSubmissionsQuery(
   return undefined;
 }
 
-export function parseOptionalIsoDateQuery(
+/**
+ * Accepts UTC calendar days (`YYYY-MM-DD`) for export From/To bounds.
+ * API owns exclusive next-day conversion.
+ */
+export function parseOptionalCalendarDateQuery(
   value: string | null,
 ): string | undefined {
-  if (!value?.trim()) {
-    return undefined;
-  }
-
-  const parsed = Date.parse(value);
-  if (Number.isNaN(parsed)) {
-    return undefined;
-  }
-
-  return new Date(parsed).toISOString();
+  return parseCalendarDateYmd(value);
 }
 
 export function parseOptionalPositiveIdQuery(

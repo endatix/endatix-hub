@@ -1,8 +1,11 @@
-import type { IPagedRequest } from "../shared/types";
+import type { IPagedRequest, SortRequest } from "../shared/types";
 
 export type RoleTypeFilter = "all" | "system" | "custom";
 
-export interface ListRolesRequest extends IPagedRequest {
+export type RoleListSortBy = "name" | "isActive" | "usersCount";
+
+export interface ListRolesRequest
+  extends IPagedRequest, SortRequest<RoleListSortBy> {
   roleType?: RoleTypeFilter;
   search?: string;
 }

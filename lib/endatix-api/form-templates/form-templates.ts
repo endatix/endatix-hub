@@ -4,11 +4,20 @@ import { validateEndatixId } from "@/lib/utils/type-validators";
 import { EndatixApi } from "../endatix-api";
 import { ApiResult } from "../shared/api-result";
 import type { CreateFormTemplateRequest } from "@/lib/form-types";
+import { appendDateRangeFilters, appendSortParams } from "../shared/list-query";
+import type {
+  AuditDateFilters,
+  PagedResponse,
+  SortRequest,
+} from "../shared/types";
+
+export type FormTemplateListSortBy = "name" | "createdAt" | "modifiedAt";
 
 export type FormTemplatesListRequest = {
   folderId?: string;
   filter?: string;
-};
+} & SortRequest<FormTemplateListSortBy> &
+  AuditDateFilters;
 
 export type PartialUpdateFormTemplateRequest = {
   name?: string;
@@ -30,17 +39,38 @@ export class FormTemplates {
   async list(
     request?: FormTemplatesListRequest,
   ): Promise<ApiResult<FormTemplate[]>> {
-    const params = new URLSearchParams();
-    params.set("pageSize", "100");
-    if (request?.filter) {
-      params.set("filter", request.filter);
+    const templates: FormTemplate[] = [];
+    let page = 1;
+    let totalPages = 1;
+
+    while (page <= totalPages) {
+      const params = new URLSearchParams();
+      params.set("page", String(page));
+      params.set("pageSize", "100");
+      if (request?.filter) {
+        params.set("filter", request.filter);
+      }
+      if (request?.folderId) {
+        params.set("folderId", request.folderId);
+      }
+      if (request) {
+        appendSortParams(params, request);
+        appendDateRangeFilters(params, request, ["created", "modified"]);
+      }
+
+      const result = await this.endatix.get<PagedResponse<FormTemplate>>(
+        `/form-templates?${params.toString()}`,
+      );
+      if (!ApiResult.isSuccess(result)) {
+        return result;
+      }
+
+      templates.push(...(result.data.items ?? []));
+      totalPages = Math.max(result.data.totalPages ?? 1, 1);
+      page += 1;
     }
-    if (request?.folderId) {
-      params.set("folderId", request.folderId);
-    }
-    return this.endatix.get<FormTemplate[]>(
-      `/form-templates?${params.toString()}`,
-    );
+
+    return ApiResult.success(templates);
   }
 
   async partialUpdate(

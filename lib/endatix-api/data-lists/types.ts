@@ -1,4 +1,8 @@
-import type { IPagedRequest } from "../shared/types";
+import type {
+  AuditDateFilters,
+  IPagedRequest,
+  SortRequest,
+} from "../shared/types";
 import type { DataListSearchMatchMode } from "../public/data-lists/types";
 
 export interface DataList {
@@ -46,24 +50,20 @@ export type DataListListSortBy =
   | "itemsCount"
   | "isActive";
 
-export type DataListListSortDir = "asc" | "desc";
+export type DataListItemListSortBy =
+  | "value"
+  | "label"
+  | "createdAt"
+  | "modifiedAt";
 
-export interface ListDataListsRequest extends IPagedRequest {
+export interface ListDataListsRequest
+  extends IPagedRequest, SortRequest<DataListListSortBy>, AuditDateFilters {
   search?: string;
   hasLocale?: string;
-  sortBy?: DataListListSortBy;
-  sortDir?: DataListListSortDir;
-  /** Inclusive UTC calendar day `YYYY-MM-DD`. */
-  createdFrom?: string;
-  /** Inclusive UTC calendar day `YYYY-MM-DD`. */
-  createdTo?: string;
-  /** Inclusive UTC calendar day `YYYY-MM-DD`. */
-  modifiedFrom?: string;
-  /** Inclusive UTC calendar day `YYYY-MM-DD`. */
-  modifiedTo?: string;
 }
 
-export interface ListDataListItemsRequest extends IPagedRequest {
+export interface ListDataListItemsRequest
+  extends IPagedRequest, SortRequest<DataListItemListSortBy>, AuditDateFilters {
   query?: string;
   matchMode?: DataListSearchMatchMode;
   locale?: string;

@@ -1,6 +1,13 @@
-import type { IPagedRequest } from "../shared/types";
+import type {
+  AuditDateFilters,
+  IPagedRequest,
+  SortRequest,
+} from "../shared/types";
 
-export interface FormsListRequest extends IPagedRequest {
+export type FormListSortBy = "name" | "createdAt" | "modifiedAt";
+
+export interface FormsListRequest
+  extends IPagedRequest, SortRequest<FormListSortBy>, AuditDateFilters {
   search?: string;
   isEnabled?: boolean;
   isPublic?: boolean;

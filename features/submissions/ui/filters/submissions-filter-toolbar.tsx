@@ -11,6 +11,9 @@ interface SubmissionsFilterToolbarProps {
   onStatusChange: (values: Set<string>) => void;
   onTestSubmissionChange: (values: Set<string>) => void;
   onResetFilters: () => void;
+  onResetSorting: () => void;
+  onResetAll: () => void;
+  hasSorting?: boolean;
   disabled?: boolean;
   hasAdditionalFilters?: boolean;
 }
@@ -39,6 +42,9 @@ export function SubmissionsFilterToolbar({
   onStatusChange,
   onTestSubmissionChange,
   onResetFilters,
+  onResetSorting,
+  onResetAll,
+  hasSorting = false,
   disabled = false,
   hasAdditionalFilters = false,
 }: SubmissionsFilterToolbarProps) {
@@ -71,9 +77,14 @@ export function SubmissionsFilterToolbar({
         onValueChange={onTestSubmissionChange}
         disabled={disabled}
       />
-      {hasActiveFilters && (
-        <ResetFiltersButton onClick={onResetFilters} disabled={disabled} />
-      )}
+      <ResetFiltersButton
+        onClick={onResetFilters}
+        onResetSorting={onResetSorting}
+        onResetAll={onResetAll}
+        hasFilters={hasActiveFilters}
+        hasSorting={hasSorting}
+        disabled={disabled}
+      />
     </>
   );
 }

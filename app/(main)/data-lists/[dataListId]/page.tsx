@@ -22,6 +22,12 @@ interface DataListDetailsRoutePageProps {
     pageSize: SearchParam;
     search: SearchParam;
     hasLocale: SearchParam;
+    sortBy: SearchParam;
+    sortDir: SearchParam;
+    createdFrom: SearchParam;
+    createdTo: SearchParam;
+    modifiedFrom: SearchParam;
+    modifiedTo: SearchParam;
   }>;
 }
 
@@ -50,6 +56,12 @@ export default async function DataListDetailsRoutePage({
     pageSize: firstString(raw.pageSize),
     search: firstString(raw.search),
     hasLocale: firstString(raw.hasLocale),
+    sortBy: firstString(raw.sortBy),
+    sortDir: firstString(raw.sortDir),
+    createdFrom: firstString(raw.createdFrom),
+    createdTo: firstString(raw.createdTo),
+    modifiedFrom: firstString(raw.modifiedFrom),
+    modifiedTo: firstString(raw.modifiedTo),
   });
   const availableLocales = dataListResult.data.availableLocales ?? [];
   const includeLocales = resolveItemsIncludeLocales({
@@ -63,6 +75,12 @@ export default async function DataListDetailsRoutePage({
     query: itemsRequest.query,
     includeLocales,
     locale: searchLocale,
+    sortBy: itemsRequest.sortBy,
+    sortDir: itemsRequest.sortDir,
+    createdFrom: itemsRequest.createdFrom,
+    createdTo: itemsRequest.createdTo,
+    modifiedFrom: itemsRequest.modifiedFrom,
+    modifiedTo: itemsRequest.modifiedTo,
   });
   const openReplaceOnLoad = hasValue(raw.action, "replace");
   const openEditOnLoad = hasValue(raw.action, "edit");
