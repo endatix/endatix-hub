@@ -29,6 +29,10 @@ export default async function SignupRequestsPage({
     notFoundAsEmpty: true,
   });
 
+  if (requests === null) {
+    notFound();
+  }
+
   return (
     <PlatformAdminShell
       title="Signup Requests"
