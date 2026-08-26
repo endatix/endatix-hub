@@ -6,10 +6,13 @@ import {
 import { toAuthProviderOptions } from "@/features/platform-admin/view-auth-settings/auth-provider-options";
 import { getAuthSettings } from "@/features/platform-admin/view-auth-settings/view-auth-settings.server";
 import { PlatformAdminShell } from "@/features/platform-admin/ui/platform-admin-shell";
-import { TenantsTable } from "@/features/platform-admin/list-tenants/ui/tenants-table";
+import { TenantsListToolbar } from "@/features/platform-admin/list-tenants/ui/tenants-list-toolbar";
+import { TenantsTableFromPromise } from "@/features/platform-admin/list-tenants/ui/tenants-table";
+import { TenantsTableSkeleton } from "@/features/platform-admin/list-tenants/ui/tenants-table-skeleton";
 import { parsePlatformTenantListParams } from "@/features/platform-admin/utils";
 import type { PlatformTenantSearchParams } from "@/features/platform-admin/types";
 import { tenantManagementFlag } from "@/lib/feature-flags/flags";
+import { Suspense } from "react";
 
 interface TenantsPageProps {
   searchParams?: Promise<PlatformTenantSearchParams>;
@@ -22,13 +25,13 @@ export default async function TenantsPage({ searchParams }: TenantsPageProps) {
     tenantManagementFlag(),
   ]);
 
-  const [tenants, authProviders] = await Promise.all([
-    listPlatformTenants(
-      session,
-      parsePlatformTenantListParams(resolvedSearchParams),
-    ),
-    canManage ? getAuthSettings(session).then(toAuthProviderOptions) : [],
-  ]);
+  const tenantsPromise = listPlatformTenants(
+    session,
+    parsePlatformTenantListParams(resolvedSearchParams),
+  );
+  const authProviders = canManage
+    ? await getAuthSettings(session).then(toAuthProviderOptions)
+    : [];
 
   return (
     <PlatformAdminShell
@@ -40,11 +43,14 @@ export default async function TenantsPage({ searchParams }: TenantsPageProps) {
         ) : undefined
       }
     >
-      <TenantsTable
-        tenants={tenants}
-        canManage={canManage}
-        authProviders={authProviders}
-      />
+      <TenantsListToolbar />
+      <Suspense fallback={<TenantsTableSkeleton />}>
+        <TenantsTableFromPromise
+          tenantsPromise={tenantsPromise}
+          canManage={canManage}
+          authProviders={authProviders}
+        />
+      </Suspense>
     </PlatformAdminShell>
   );
 }

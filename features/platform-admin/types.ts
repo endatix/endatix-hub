@@ -14,6 +14,12 @@ export interface PlatformTenantSearchParams {
   page?: string;
   pageSize?: string;
   search?: string;
+  sortBy?: string;
+  sortDir?: string;
+  createdFrom?: string;
+  createdTo?: string;
+  modifiedFrom?: string;
+  modifiedTo?: string;
 }
 
 export interface PlatformConfigStatus {

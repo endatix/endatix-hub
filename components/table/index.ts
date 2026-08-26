@@ -24,6 +24,11 @@ export {
   dataTableHeaderCellClassName,
 } from "./data-table-chrome";
 export { DataTableEmpty } from "./data-table-empty";
+export { DataTableGrid } from "./data-table-grid";
+export {
+  sortingStateFromUrl,
+  sortingUrlUpdatesFromState,
+} from "./list-sorting";
 export {
   DATA_TABLE_SURFACE_CLASS_NAME,
   DataTableSurface,

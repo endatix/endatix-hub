@@ -8,6 +8,7 @@ import type {
   PlatformAdminSearchParams,
   PlatformTenantSearchParams,
 } from "./types";
+import { parsePlatformTenantListParams as parseTenantsListParams } from "./list-tenants/utils";
 
 const DEFAULT_SCOPE: PlatformAdminListScope = "all";
 
@@ -31,10 +32,7 @@ export function parsePlatformAdminListParams(
 export function parsePlatformTenantListParams(
   searchParams?: PlatformTenantSearchParams,
 ): ListPlatformTenantsRequest {
-  return {
-    ...parsePagedSearchParams(searchParams, 10),
-    search: searchParams?.search?.trim() || undefined,
-  };
+  return parseTenantsListParams(searchParams);
 }
 
 function parseScope(value: string | undefined): PlatformAdminListScope {

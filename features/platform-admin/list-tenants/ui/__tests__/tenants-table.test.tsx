@@ -1,7 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { TenantsTable } from "../tenants-table";
-import type { PagedResponse, PlatformTenantListItem } from "@/lib/endatix-api";
+import type { PlatformTenantListItem } from "@/lib/endatix-api";
+import type { NormalizedPagedResponse } from "@/lib/endatix-api/shared/paged-response";
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ replace: vi.fn(), refresh: vi.fn() }),
+  usePathname: () => "/admin/tenants",
+  useSearchParams: () => new URLSearchParams(),
+}));
 
 vi.mock("@/lib/utils/hooks/use-media-query.hook", () => ({
   useMediaQuery: () => true,
@@ -16,11 +23,12 @@ vi.mock("@/features/platform-admin/assume-tenant/assume-tenant.action", () => ({
   assumeTenantAction: vi.fn(),
 }));
 
-const TENANTS: PagedResponse<PlatformTenantListItem> = {
+const TENANTS: NormalizedPagedResponse<PlatformTenantListItem> = {
   page: 1,
   pageSize: 10,
   totalPages: 1,
   totalRecords: 1,
+  hasNextPage: false,
   items: [
     {
       id: "42",
@@ -39,6 +47,7 @@ const TENANTS: PagedResponse<PlatformTenantListItem> = {
 describe("TenantsTable", () => {
   it("hides row actions when management is off", () => {
     render(<TenantsTable tenants={TENANTS} />);
+    expect(screen.getByText("Acme")).toBeTruthy();
     expect(
       screen.queryByRole("button", { name: /open tenant actions/i }),
     ).toBeNull();
@@ -60,11 +69,18 @@ describe("TenantsTable columns", () => {
     expect(screen.getByText("On")).toBeTruthy();
   });
 
-  it("spans the empty row across the actions column when management is on", () => {
-    render(<TenantsTable tenants={{ ...TENANTS, items: [] }} canManage />);
-
-    expect(screen.getByText("No tenants found.").getAttribute("colspan")).toBe(
-      "9",
+  it("shows an empty state when there are no tenants", () => {
+    render(
+      <TenantsTable
+        tenants={{
+          ...TENANTS,
+          items: [],
+          totalRecords: 0,
+          totalPages: 0,
+        }}
+      />,
     );
+
+    expect(screen.getByText("No tenants found.")).toBeTruthy();
   });
 });

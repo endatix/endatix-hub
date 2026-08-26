@@ -14,15 +14,14 @@ import {
   CellDate,
   createPagedTableFooterProps,
   DataTableColumnHeader,
-  DATA_TABLE_ELEMENT_CLASS_NAME,
   DATA_TABLE_SHRINK_WRAP_CLASS_NAME,
-  dataTableBodyCellClassName,
-  dataTableBodyRowClassName,
   dataTableColumnLabelClassName,
-  dataTableHeaderCellClassName,
   DataTableEmpty,
+  DataTableGrid,
   DataTableSurface,
   PagedTableFooter,
+  sortingStateFromUrl,
+  sortingUrlUpdatesFromState,
   type DateFilterValue,
 } from "@/components/table";
 import { Spinner } from "@/components/loaders/spinner";
@@ -36,14 +35,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { toast } from "@/components/ui/toast";
 import type {
   DataList,
@@ -57,7 +48,6 @@ import type { UrlSearchParamsUpdater } from "@/lib/utils/hooks/use-url-search-pa
 import { Result } from "@/lib/result";
 import { formatInteger } from "@/lib/utils/formatters";
 import {
-  flexRender,
   getCoreRowModel,
   useReactTable,
   type ColumnDef,
@@ -107,17 +97,10 @@ export function DataListsPage({
   const urlState = listUrlStateFromSearchParams(searchParams);
   const searchInput = searchParams.get("search") ?? "";
 
-  const sorting = useMemo<SortingState>(() => {
-    if (!urlState.sortBy) {
-      return [];
-    }
-    return [
-      {
-        id: urlState.sortBy,
-        desc: urlState.sortDir !== "asc",
-      },
-    ];
-  }, [urlState.sortBy, urlState.sortDir]);
+  const sorting = useMemo(
+    () => sortingStateFromUrl(urlState.sortBy, urlState.sortDir),
+    [urlState.sortBy, urlState.sortDir],
+  );
 
   const createdDateFilter: DateFilterValue = useMemo(
     () => ({ from: urlState.createdFrom, to: urlState.createdTo }),
@@ -216,17 +199,7 @@ export function DataListsPage({
 
   const handleSortingChange = (updater: Updater<SortingState>) => {
     const next = typeof updater === "function" ? updater(sorting) : updater;
-    const first = next[0];
-    if (!first) {
-      updateUrl({ sortBy: null, sortDir: null, page: "1" });
-      return;
-    }
-
-    updateUrl({
-      sortBy: first.id,
-      sortDir: first.desc ? "desc" : "asc",
-      page: "1",
-    });
+    updateUrl(sortingUrlUpdatesFromState(next));
   };
 
   const columns = useMemo(
@@ -276,71 +249,17 @@ export function DataListsPage({
         className="mt-4"
         isPending={isPending}
       >
-        {paged.items.length === 0 ? (
-          <DataTableEmpty>
-            {hasFilters
-              ? "No data lists match the current filters."
-              : "No data lists yet."}
-          </DataTableEmpty>
-        ) : (
-          <div className="w-full overflow-x-auto">
-            <Table className={DATA_TABLE_ELEMENT_CLASS_NAME}>
-              <TableHeader className="bg-surface-container-low">
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow
-                    key={headerGroup.id}
-                    className="border-0 hover:bg-transparent"
-                  >
-                    {headerGroup.headers.map((header) => (
-                      <TableHead
-                        key={header.id}
-                        colSpan={header.colSpan}
-                        className={dataTableHeaderCellClassName({
-                          className:
-                            header.column.columnDef.meta?.headerClassName,
-                        })}
-                      >
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext(),
-                            )}
-                      </TableHead>
-                    ))}
-                  </TableRow>
-                ))}
-              </TableHeader>
-              <TableBody>
-                {table.getRowModel().rows.map((row, rowIndex) => {
-                  const isEvenRow = rowIndex % 2 === 1;
-                  return (
-                    <TableRow
-                      key={row.id}
-                      className={dataTableBodyRowClassName({ isEvenRow })}
-                    >
-                      {row.getVisibleCells().map((cell) => (
-                        <TableCell
-                          key={cell.id}
-                          className={dataTableBodyCellClassName({
-                            isEvenRow,
-                            className:
-                              cell.column.columnDef.meta?.cellClassName,
-                          })}
-                        >
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext(),
-                          )}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
-        )}
+        <DataTableGrid
+          table={table}
+          hasRows={paged.items.length > 0}
+          empty={
+            <DataTableEmpty>
+              {hasFilters
+                ? "No data lists match the current filters."
+                : "No data lists yet."}
+            </DataTableEmpty>
+          }
+        />
         <PagedTableFooter {...footerProps} variant="surface" />
       </DataTableSurface>
 
