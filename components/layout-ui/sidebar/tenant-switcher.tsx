@@ -8,6 +8,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -19,8 +20,8 @@ import {
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { getPublicAssetPath } from "@/lib/hosting";
-import { switchTenantAction } from "@/features/tenants/switch-tenant/switch-tenant.action";
-import type { MembershipTenant } from "@/lib/endatix-api";
+import { selectSwitcherTenantAction } from "@/features/tenants/switch-tenant/switch-tenant.action";
+import type { SwitcherTenant } from "@/features/tenants/switch-tenant/types";
 
 function EndatixLogoIcon({ className }: Readonly<{ className?: string }>) {
   return (
@@ -46,7 +47,7 @@ function EndatixLogoIcon({ className }: Readonly<{ className?: string }>) {
 }
 
 interface TenantSwitcherProps {
-  tenants?: MembershipTenant[];
+  tenants?: SwitcherTenant[];
 }
 
 const DEFAULT_TENANT = {
@@ -95,32 +96,61 @@ export function TenantSwitcher({ tenants }: Readonly<TenantSwitcherProps>) {
             side={isMobile ? "bottom" : "right"}
             sideOffset={4}
           >
-            <DropdownMenuLabel className="text-xs text-muted-foreground">
-              Tenants
-            </DropdownMenuLabel>
-            {tenants.map((tenant) => (
-              <DropdownMenuItem
-                key={String(tenant.id)}
-                disabled={tenant.isActive}
-                onClick={() => {
-                  if (tenant.isActive) {
-                    return;
-                  }
-
-                  startSwitching(() => {
-                    void switchTenantAction(String(tenant.id));
-                  });
-                }}
-                className="gap-2 p-2"
-              >
-                <TenantGlyph name={tenant.name} compact />
-                {tenant.name}
-              </DropdownMenuItem>
-            ))}
+            {renderTenantGroup(
+              "Your tenants",
+              tenants.filter((tenant) => tenant.isMembership),
+              startSwitching,
+            )}
+            {tenants.some((tenant) => tenant.isMembership) &&
+              tenants.some((tenant) => !tenant.isMembership) && (
+                <DropdownMenuSeparator />
+              )}
+            {renderTenantGroup(
+              "Support access",
+              tenants.filter((tenant) => !tenant.isMembership),
+              startSwitching,
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>
     </SidebarMenu>
+  );
+}
+
+function renderTenantGroup(
+  label: string,
+  tenants: SwitcherTenant[],
+  startSwitching: React.TransitionStartFunction,
+) {
+  if (tenants.length === 0) {
+    return null;
+  }
+
+  return (
+    <>
+      <DropdownMenuLabel className="text-xs text-muted-foreground">
+        {label}
+      </DropdownMenuLabel>
+      {tenants.map((tenant) => (
+        <DropdownMenuItem
+          key={tenant.id}
+          disabled={tenant.isActive}
+          onClick={() => {
+            if (tenant.isActive) {
+              return;
+            }
+
+            startSwitching(() => {
+              void selectSwitcherTenantAction(tenant.id);
+            });
+          }}
+          className="gap-2 p-2"
+        >
+          <TenantGlyph name={tenant.name} compact />
+          {tenant.name}
+        </DropdownMenuItem>
+      ))}
+    </>
   );
 }
 
