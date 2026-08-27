@@ -4,6 +4,10 @@ import { Result } from "@/lib/result";
 import { createTenantAction } from "../create-tenant.action";
 import { CreateTenantDialog } from "../ui/create-tenant-dialog";
 
+vi.mock("@/lib/utils/hooks/use-media-query.hook", () => ({
+  useMediaQuery: () => true,
+}));
+
 vi.mock("../create-tenant.action", () => ({
   createTenantAction: vi.fn(),
 }));
@@ -52,7 +56,7 @@ describe("CreateTenantDialog", () => {
       Result.success({
         id: "42",
         name: "Acme Surveys",
-        slug: "xK9mP2qR8vNw",
+        slug: "xK9mP2qR",
         allowSelfRegistration: false,
         allowedAuthProviderKeys: [],
         defaultRegistrationRoleName: "Respondent",
@@ -71,7 +75,7 @@ describe("CreateTenantDialog", () => {
     fireEvent.click(createButtons[createButtons.length - 1]);
 
     const urlInput = (await screen.findByLabelText("Public sign-in URL")) as HTMLInputElement;
-    expect(urlInput.value).toBe("/t/xK9mP2qR8vNw/signin");
+    expect(urlInput.value).toBe("/t/xK9mP2qR/signin");
     await waitFor(() => {
       expect(createTenantActionMock).toHaveBeenCalledOnce();
     });

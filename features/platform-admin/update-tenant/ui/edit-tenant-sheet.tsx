@@ -13,13 +13,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+  ResponsivePanel,
+  ResponsivePanelBody,
+  ResponsivePanelDescription,
+  ResponsivePanelFooter,
+  ResponsivePanelHeader,
+  ResponsivePanelTitle,
+} from "@/components/ui/responsive-panel";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast";
@@ -131,22 +131,27 @@ export function EditTenantSheet({
   };
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="flex flex-col sm:max-w-md">
-        <SheetHeader>
-          <SheetTitle>Edit tenant</SheetTitle>
-          <SheetDescription>
-            Update the display name and self-registration policy. The public id
-            stays locked because sign-in URLs already use it.
-          </SheetDescription>
-        </SheetHeader>
+    <ResponsivePanel
+      desktopType="complex"
+      open={open}
+      onOpenChange={onOpenChange}
+    >
+      <ResponsivePanelHeader>
+        <ResponsivePanelTitle>Edit tenant</ResponsivePanelTitle>
+        <ResponsivePanelDescription>
+          Update the display name and self-registration policy. The tenant slug
+          stays locked because sign-in URLs already use it.
+        </ResponsivePanelDescription>
+      </ResponsivePanelHeader>
 
-        {isLoading || !tenant ? (
-          <div className="flex flex-1 items-center justify-center p-6 text-muted-foreground">
+      {isLoading || !tenant ? (
+        <ResponsivePanelBody>
+          <div className="flex flex-1 items-center justify-center text-muted-foreground">
             <Loader2 className="size-5 animate-spin" />
           </div>
-        ) : (
-          <div className="grid flex-1 content-start gap-4 overflow-y-auto p-4">
+        </ResponsivePanelBody>
+      ) : (
+        <ResponsivePanelBody>
             <div className="grid gap-2">
               <Label htmlFor="edit-tenant-name">Name</Label>
               <Input
@@ -232,15 +237,14 @@ export function EditTenantSheet({
                 </AlertDescription>
               </Alert>
             )}
-          </div>
-        )}
+        </ResponsivePanelBody>
+      )}
 
-        <SheetFooter>
-          <Button type="button" onClick={submit} disabled={isPending || isLoading}>
-            {isPending ? "Saving…" : "Save changes"}
-          </Button>
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
+      <ResponsivePanelFooter>
+        <Button type="button" onClick={submit} disabled={isPending || isLoading}>
+          {isPending ? "Saving…" : "Save changes"}
+        </Button>
+      </ResponsivePanelFooter>
+    </ResponsivePanel>
   );
 }
