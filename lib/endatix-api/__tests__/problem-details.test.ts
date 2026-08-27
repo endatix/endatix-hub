@@ -2,44 +2,50 @@ import { describe, expect, it } from "vitest";
 import { parseProblemDetails } from "../shared/problem-details";
 
 describe("parseProblemDetails", () => {
-  it("parses RFC7807 camelCase problem details", () => {
-    const problem = parseProblemDetails({
-      type: "https://tools.ietf.org/html/rfc7231#section-6.6.1",
-      title: "Export failed",
-      status: 500,
-      detail:
-        "Form schema has not been compiled for this form. Save or publish the form definition to trigger compilation.",
-    });
-
-    expect(problem?.detail).toContain("Form schema has not been compiled");
-    expect(problem?.status).toBe(500);
-  });
-
-  it("parses PascalCase problem details from default .NET serialization", () => {
-    const problem = parseProblemDetails({
-      Title: "Export failed",
-      Status: 409,
-      Detail:
-        "Form schema has not been compiled for this form. Save or publish the form definition to trigger compilation.",
-    });
-
-    expect(problem?.detail).toContain("Form schema has not been compiled");
-    expect(problem?.status).toBe(409);
-    expect(problem?.title).toBe("Export failed");
-  });
-
-  it("accepts partial payloads with only detail and status", () => {
-    const problem = parseProblemDetails({
-      detail: "Export format is not supported.",
+  it("parses the canonical Endatix RFC7807 body with fields and traceId", () => {
+    const parsed = parseProblemDetails({
+      type: "https://www.rfc-editor.org/rfc/rfc9110#name-400-bad-request",
+      title: "There was a problem with your request",
       status: 400,
+      detail: "Name is required.",
+      instance: "/api/forms",
+      traceId: "0HMPNHL0JHL76:00000001",
+      errorCode: "NotEmptyValidator",
+      fields: { name: ["Name is required."] },
     });
 
-    expect(problem?.detail).toBe("Export format is not supported.");
-    expect(problem?.status).toBe(400);
-    expect(problem?.title).toBe("Error");
+    expect(parsed).not.toBeNull();
+    expect(parsed?.status).toBe(400);
+    expect(parsed?.detail).toBe("Name is required.");
+    expect(parsed?.traceId).toBe("0HMPNHL0JHL76:00000001");
+    expect(parsed?.errorCode).toBe("NotEmptyValidator");
+    expect(parsed?.fields).toEqual({ name: ["Name is required."] });
   });
 
-  it("returns null for unrecognized payloads", () => {
-    expect(parseProblemDetails({ message: "oops" })).toBeNull();
+  it("returns null for the legacy FastEndpoints ErrorResponse shape", () => {
+    const parsed = parseProblemDetails({
+      statusCode: 400,
+      message: "One or more errors occurred!",
+      errors: {
+        password: ["password is too short!"],
+      },
+    });
+
+    expect(parsed).toBeNull();
+  });
+
+  it("accepts PascalCase .NET ProblemDetails members", () => {
+    const parsed = parseProblemDetails({
+      Type: "about:blank",
+      Title: "Resource not found",
+      Status: 404,
+      Detail: "Form not found",
+      TraceId: "trace-404",
+    });
+
+    expect(parsed).not.toBeNull();
+    expect(parsed?.status).toBe(404);
+    expect(parsed?.detail).toBe("Form not found");
+    expect(parsed?.traceId).toBe("trace-404");
   });
 });
