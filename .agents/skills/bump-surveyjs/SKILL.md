@@ -57,6 +57,7 @@ The script is located at: `hub/scripts/upgrade-surveyjs.mjs`
 - Themes from `survey-core/themes` carry **no** `--sjs2-*` values; the base token set is injected by `ensureBaseThemeStyles()` under `:where(.sd-theme-root)`. Anything rendered outside a survey root (modals portaled to `document.body`) resolves none of them. Hub avoids this entirely by using shadcn dialogs — do not reintroduce `settings.showDialog`
 - `survey-core` ships real typings for the `themes` subpath; do not re-add a local `declare module "survey-core/themes"` shim
 - `--ctr-*` and single-prefix `--sjs-*` variables are gone from creator-core 3.x (CSS and JS). Grep Hub stylesheets for them after a bump: each one silently falls through to its hard-coded fallback, which reads as a light-mode block inside a dark Creator
+- `applyCreatorTheme` only calls `designerPlugin.setTheme()`. The Translations grid snapshots surface CSS at create. Hub paints `--sjs2-*` onto that grid's existing root — do **not** call `stringsSurvey.applyTheme` (v3 themeChanged + style injection retriggers Next.js HMR/`_rsc` refresh on that tab in dev)
 
 ## Next Steps After Upgrade
 
