@@ -10,6 +10,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { toast } from "@/components/ui/toast";
+import { Result } from "@/lib/result";
 import { assumeTenantAction } from "../assume-tenant.action";
 import { useTransition } from "react";
 
@@ -63,8 +65,13 @@ export function AssumeTenantConfirmDialog({
                 return;
               }
 
-              startTransition(() => {
-                void assumeTenantAction(tenant.id);
+              startTransition(async () => {
+                // On success the action redirects and control never returns here;
+                // a returned value means the assume call failed.
+                const result = await assumeTenantAction(tenant.id);
+                if (result && Result.isError(result)) {
+                  toast.error(result.message || "Failed to enter tenant");
+                }
               });
             }}
           >
