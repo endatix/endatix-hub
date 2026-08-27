@@ -31,11 +31,15 @@ describe("Auth", () => {
 
     describe("validation error responses", () => {
       it("should handle FluentValidation error response", async () => {
-        // Arrange
+        // Arrange — Endatix API 0.7.5+ uses the same RFC7807 body as handler ToProblem
         const serverErrorResponse = {
-          statusCode: 400,
-          message: "One or more errors occurred!",
-          errors: {
+          type: "https://www.rfc-editor.org/rfc/rfc9110#name-400-bad-request",
+          title: "There was a problem with your request",
+          status: 400,
+          detail: "password is too short!",
+          instance: "/api/auth/login",
+          traceId: "0HMPNHL0JHL76:00000001",
+          fields: {
             password: ["password is too short!"],
           },
         };
@@ -43,7 +47,7 @@ describe("Auth", () => {
         const mockResponse = new Response(JSON.stringify(serverErrorResponse), {
           status: 400,
           statusText: "Bad Request",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/problem+json" },
         });
 
         mockFetch.mockResolvedValueOnce(mockResponse);
@@ -67,7 +71,7 @@ describe("Auth", () => {
         expect(ApiResult.isError(result)).toBe(true);
         if (ApiResult.isError(result)) {
           expect(result.error.type).toBe(ApiErrorType.ValidationError);
-          expect(result.error.message).toBe("One or more errors occurred!");
+          expect(result.error.message).toBe("password is too short!");
           expect(result.error.details?.statusCode).toBe(400);
           expect(result.error.fields).toEqual({
             password: ["password is too short!"],

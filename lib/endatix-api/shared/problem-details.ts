@@ -5,6 +5,9 @@ import { z } from "zod";
  *
  * `type` and `title` are optional so partial payloads (e.g. streaming endpoints that only set
  * `detail` + `status`) still surface a useful message instead of falling back to a generic one.
+ *
+ * Endatix API (0.7.5+) emits one RFC7807 shape for handler errors, FluentValidation, and
+ * unhandled exceptions — `fields` is a property→messages dictionary (not FE `{statusCode, message, errors}`).
  */
 export const ProblemDetailsSchema = z.object({
   type: z.string().optional(),
@@ -14,16 +17,6 @@ export const ProblemDetailsSchema = z.object({
   errorCode: z.string().optional(),
   traceId: z.string().optional(),
   fields: z.record(z.string(), z.array(z.string())).optional(),
-});
-
-/**
- * The schema for a ValidationProblemDetails object returned from the API.
- * TODO: Merge this with ProblemDetailsSchema once Endatix API fully moves to problem details
- */
-export const ValidationProblemDetailsSchema = z.object({
-  statusCode: z.number().int().min(400).max(499),
-  message: z.string(),
-  errors: z.record(z.string(), z.array(z.string())),
 });
 
 export type ProblemDetails = z.infer<typeof ProblemDetailsSchema>;
@@ -43,8 +36,7 @@ function normalizeProblemDetailsCandidate(data: unknown): unknown {
   const type = record.type ?? record.Type;
   const errorCode = record.errorCode ?? record.ErrorCode;
   const traceId = record.traceId ?? record.TraceId;
-  const fields =
-    record.fields ?? record.Fields ?? record.errors ?? record.Errors;
+  const fields = record.fields ?? record.Fields;
 
   return {
     ...record,
@@ -76,18 +68,6 @@ export function parseProblemDetails(data: unknown): ProblemDetails | null {
       errorCode: result.data.errorCode,
       traceId: result.data.traceId,
       fields: result.data.fields,
-    };
-  }
-
-  const validationResult = ValidationProblemDetailsSchema.safeParse(data);
-
-  if (validationResult.success) {
-    return {
-      type: "https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.1",
-      title: "One or more validation errors occurred.",
-      status: validationResult.data.statusCode,
-      detail: validationResult.data.message,
-      fields: validationResult.data.errors,
     };
   }
 
