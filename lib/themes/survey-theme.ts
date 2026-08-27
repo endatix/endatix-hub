@@ -73,9 +73,10 @@ const SURVEY_BASE_THEME_STYLE_ID = "endatix-sjs-base-theme-variables";
 
 /**
  * SurveyJS `ensureBaseThemeStyles` inserts a `<style>` as a child of the
- * dashboard root (inside the App Router tree). That is the same HMR/`_rsc`
- * trigger as `stringsSurvey.applyTheme` on Translations — not the lazy-CSS
- * chunk bug (vercel/next.js#74749). Move it to `document.head` as a singleton.
+ * survey root (inside the App Router tree). Relocating it to `document.head`
+ * avoids HMR/`_rsc` on some surfaces, but **dashboard must not use this**:
+ * in-page Hub theme toggle then leaves `--sjs2-*` incomplete until remount.
+ * Keep the tag under the dashboard container and call `applyTheme` in place.
  */
 export function relocateSurveyBaseThemeStyles(from: ParentNode): void {
   const injected = from.querySelector(`style[${SURVEY_BASE_THEME_STYLE_ATTR}]`);

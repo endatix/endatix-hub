@@ -174,6 +174,7 @@ Action rules:
 - **Two or more debounced filter fields on the same table** must share one `useTableFiltersUrlState(keys)` call (`components/table`), not one `useListUrlState`/`useUrlSearchParamsUpdater` per field — independent debounced writers race (each rebuilds the URL from its own stale `searchParams` snapshot) and can silently drop each other's change. `keys` must be a module-level constant array.
 - **Detail → list back navigation** restores the list's paging/filters via session-scoped storage, not a URL param — see AGENTS.md "Detail → list back navigation" and `lib/list-page/table-return-to`.
 - Hub list URL key is **`search`**; map it to the API query field (`query`, `filter`, etc.) inside the slice parser. Do not introduce a parallel `q` param.
+- The **API-client** side of a paged list (request type, exported `buildList<Entity>Endpoint`, `list()` returning a normalized page, a separate bounded `listAll()` for pickers, which don't support lazy loading. Prefer list with paging where possible) has exactly one documented shape — see AGENTS.md "Paged list sort and calendar From/To → The one list-client shape" and its reference implementation `lib/endatix-api/themes/`.
 - Reference: `settings/organization/users/page.tsx`, `admin/platform-admins/page.tsx`, `forms/page.tsx`, `features/forms/list-forms/`, and `features/data-lists/view-lists/`.
 
 ##### Forms list scope model (`/forms`)
@@ -424,7 +425,7 @@ endatix-saas/
 ### Migration Steps
 
 1. **lib/endatix-api/** → **packages/@endatix/api-client/**
-   - Includes shared list wire helpers (`SortRequest`, `DateRangeFilter`, `list-query.ts`). Keep new sort/range contract code in `lib/endatix-api/shared` until that extract; do not place it under `features/` or `lib/date-utils` (formatters).
+   - Includes shared list wire helpers (`SortRequest`, `DateRangeFilter`, `list-query.ts`, `query-params.ts`, `paged-response.ts`). Keep new sort/range contract code in `lib/endatix-api/shared` until that extract; do not place it under `features/` or `lib/date-utils` (formatters). `lib/endatix-api/themes/` is the reference module shape for the extract.
 2. **lib/utils/** → **packages/@endatix/utils/**
 3. **features/config/** → **packages/@endatix/config/**
 4. **features/auth/** → Keep in apps/hub/features/auth/ (app-specific)

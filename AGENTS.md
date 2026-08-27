@@ -23,11 +23,24 @@
 
 ## Paged list sort and calendar From/To
 
+**Reference implementation: `lib/endatix-api/themes/` (+ `lib/endatix-api/__tests__/themes/themes.test.ts`).** Copy that shape for every new paged list client; there is exactly one right answer per bullet below.
+
 - Compose list/export request DTOs from `lib/endatix-api/shared` types: `IPagedRequest`, `SortRequest<TFields>`, `DateRangeFilter<"created">` / `AuditDateFilters` (and other stems). Do **not** hand-copy `createdFrom`/`sortDir` fields onto every interface.
 - Parse and append via `lib/endatix-api/shared/list-query.ts` (`parseCalendarDateYmd`, `parseSortBy`/`parseSortDir`, `pickDateRangeFilters`, `appendSortParams`, `appendDateRangeFilters`). Feature URL glue stays in `features/`; raw URL state may keep `string` until parse.
 - Sort allowlists use property names (`createdAt`); date stems use bare verbs (`"created"` → `createdFrom`/`createdTo`). Keep those namespaces distinct.
 - Wire stays flat (`createdFrom`/`createdTo`). OSS Core uses `UtcDateTimeRange` only after API parse — do not nest Hub query objects to mirror that struct.
 - These helpers live in the `lib/endatix-api` package candidate (future `@endatix/api-client`); do not import `@/features` or Next into that folder.
+
+### The one list-client shape
+
+1. **Export a pure `buildList<Entity>Endpoint(request)`** next to the class. It builds a `URLSearchParams` with `appendPagingQueryParams(params, request, { page: 1, pageSize: N })` → `appendSortParams` → `appendDateRangeFilters(params, request, ["created", "modified"])` → `appendQueryParam` for entity-specific filters, and returns `buildEndpointWithQuery(BASE, params)`. Assert the query contract against this function in tests — no `EndatixApi` instance needed. Do **not** hand-build `new URLSearchParams()` + `params.set(...)` inside `list()`.
+2. **`list()` returns one page**, not a flat array: `Promise<ApiResult<NormalizedPagedResponse<T>>>` via `normalizePagedResponse(response.data)` (`shared/paged-response.ts`). That preserves `page`/`totalRecords`/`totalPages` for `PagedTableFooter` and adds `hasNextPage`. Never drop the envelope on the floor — a `list()` that returns `T[]` cannot render paging.
+3. **Draining every page is a separate, named method** (`listAll()`), used only where the UI genuinely has no paging affordance (a Creator dropdown, a template picker). It omits `page` from its request type, loops from page 1, stops on `!hasNextPage`, and is bounded by a `LIST_ALL_MAX_PAGES` constant so a server that misreports `totalPages` cannot loop forever. Do **not** bolt "start at `request.page` and drain to the end" onto `list()` — that reads as paging but returns `[]` for any `page > 1` before the first response arrives.
+4. **Boolean filter sugar maps to the wire filter in the builder**, not at every call site (`unassignedOnly: true` → `filter=folderId:null`). Call sites pass the intent; the builder owns the encoding.
+5. **Validate path ids with `validateEndatixId(...)` and return `ApiResult.validationError(...)`** before touching the network (see `Themes.partialUpdate` / `Themes.delete`).
+6. **Server actions map with `toResult(...)`**, never a hand-written `if (ApiResult.isError(...)) return Result.error(...)` — see "Server Actions" above. `features/forms/application/actions/*-theme.action.ts` are the worked examples.
+
+Known deviations, to be migrated when next touched (do not copy them): `Forms.list` / `Users.list` / `PlatformTenants.list` return the raw `PagedResponse<T>` without `normalizePagedResponse`; `FormTemplates.list` is a drain that has not yet been renamed to `listAll`.
 
 ## Server Pages
 
