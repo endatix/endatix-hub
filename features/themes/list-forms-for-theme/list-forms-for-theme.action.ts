@@ -10,7 +10,7 @@ import { Form } from "@/types";
 
 export async function getFormsForThemeAction(
   themeId: string,
-): Promise<Result<Form[]> | never> {
+): Promise<Result<Form[]>> {
   const session = await auth();
   const { requireHubAccess } = await authorization(session);
   await requireHubAccess();

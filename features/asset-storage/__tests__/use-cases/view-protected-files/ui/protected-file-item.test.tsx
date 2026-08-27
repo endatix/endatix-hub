@@ -107,7 +107,7 @@ describe("ProtectedSurveyFileItem (SurveyJS file question)", () => {
 
     expect(() => renderProtectedItem(question, item, context)).not.toThrow();
 
-    expect(screen.getByText("doc.pdf")).toBeDefined();
+    expect(screen.getByRole("link", { name: "doc.pdf" })).toBeDefined();
     expect(
       screen.getByRole("button", { name: "Remove doc.pdf" }),
     ).toBeDefined();
