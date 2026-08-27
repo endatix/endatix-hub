@@ -3,17 +3,16 @@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  ResponsivePanel,
+  ResponsivePanelBody,
+  ResponsivePanelDescription,
+  ResponsivePanelFooter,
+  ResponsivePanelHeader,
+  ResponsivePanelTitle,
+} from "@/components/ui/responsive-panel";
 import {
   Select,
   SelectContent,
@@ -128,23 +127,27 @@ export function CreateTenantDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+    <ResponsivePanel
+      desktopType="complex"
+      open={open}
+      onOpenChange={setOpen}
+      trigger={
         <Button>
           <Plus />
           Create tenant
         </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Create tenant</DialogTitle>
-          <DialogDescription>
-            {step === "done"
-              ? "Copy the public sign-in URL. Anyone with the link can open it."
-              : `Step ${step} of 3 — ${STEP_COPY[step].title}. ${STEP_COPY[step].description}`}
-          </DialogDescription>
-        </DialogHeader>
+      }
+    >
+      <ResponsivePanelHeader>
+        <ResponsivePanelTitle>Create tenant</ResponsivePanelTitle>
+        <ResponsivePanelDescription>
+          {step === "done"
+            ? "Copy the public sign-in URL. Anyone with the link can open it."
+            : `Step ${step} of 3 — ${STEP_COPY[step].title}. ${STEP_COPY[step].description}`}
+        </ResponsivePanelDescription>
+      </ResponsivePanelHeader>
 
+      <ResponsivePanelBody>
         {step === 1 && (
           <div className="grid gap-4">
             <div className="grid gap-2">
@@ -270,8 +273,9 @@ export function CreateTenantDialog({
         {stepError && (
           <p className="text-sm text-destructive">{stepError}</p>
         )}
+      </ResponsivePanelBody>
 
-        <DialogFooter>
+      <ResponsivePanelFooter>
           {step !== "done" && step > 1 && (
             <Button
               type="button"
@@ -304,8 +308,7 @@ export function CreateTenantDialog({
               Done
             </Button>
           )}
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      </ResponsivePanelFooter>
+    </ResponsivePanel>
   );
 }
