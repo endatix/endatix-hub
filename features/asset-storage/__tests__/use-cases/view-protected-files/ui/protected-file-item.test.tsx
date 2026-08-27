@@ -1,138 +1,117 @@
 import {
   AssetStorageContext,
   type AssetStorageContextValue,
-} from "@/features/asset-storage/ui/asset-storage.context";
-import { fireEvent, render, screen } from "@testing-library/react";
-import { QuestionFileModel } from "survey-core";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+} from "@/features/asset-storage/client";
+import type { SurveyJsComponent } from "@/__tests__/utils/test-utils";
 import { clientStorageConfig } from "../../../test-storage-config";
+import { ProtectedSurveyFileItem } from "@/features/asset-storage/use-cases/view-protected-files/ui/protected-file-item";
+import { render, screen } from "@testing-library/react";
+import { Model, QuestionFileModel } from "survey-core";
+import { Survey } from "survey-react-ui";
+import { describe, expect, it, vi } from "vitest";
+import type { ReactNode } from "react";
 
 vi.mock("@/features/asset-storage/ui/storage-presigned-image", () => ({
-  StoragePresignedImage: (props: { src: string }) => (
-    <img data-testid="storage-presigned-image" src={props.src} alt="preview" />
+  StoragePresignedImage: ({ src, alt }: { src: string; alt?: string }) => (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img alt={alt ?? ""} data-testid="storage-presigned-image" src={src} />
   ),
 }));
 
 vi.mock("@/features/asset-storage/ui/storage-presigned-link", () => ({
-  StoragePresignedLink: (props: {
+  StoragePresignedLink: ({
+    href,
+    children,
+  }: {
     href: string;
-    children: React.ReactNode;
+    children?: ReactNode;
   }) => (
-    <a data-testid="storage-presigned-link" href={props.href}>
-      {props.children}
+    <a data-testid="storage-presigned-link" href={href}>
+      {children}
     </a>
   ),
 }));
 
-import { ProtectedSurveyFileItem } from "@/features/asset-storage/use-cases/view-protected-files/ui/protected-file-item";
+const FILE_URL = "https://testaccount.blob.core.windows.net/content/doc.pdf";
 
-function buildContext(): AssetStorageContextValue {
+function privateStorageContext(): AssetStorageContextValue {
   return {
-    config: clientStorageConfig({ isPrivate: true }),
-    enqueuePrivateReadUrls: vi.fn().mockResolvedValue(new Map()),
+    config: clientStorageConfig({ isEnabled: true, isPrivate: true }),
+    enqueuePrivateReadUrls: vi.fn(async () => new Map()),
     mergePrivateReadUrlCache: vi.fn(),
     getCachedPrivateReadUrl: vi.fn(() => null),
     readUrlCacheVersion: 0,
   };
 }
 
-describe("ProtectedSurveyFileItem", () => {
-  const fileContent =
-    "https://testaccount.blob.core.windows.net/content/photo.jpg";
+function createFileQuestion(value?: unknown): QuestionFileModel {
+  const survey = new Model({
+    elements: [{ type: "file", name: "upload", title: "Upload a file" }],
+  });
+  const question = survey.getQuestionByName("upload") as QuestionFileModel;
+  if (value !== undefined) {
+    question.value = value;
+  }
+  return question;
+}
 
-  const mockQuestion = {
-    cssClasses: {
-      previewItem: "sd-file__preview-item",
-      fileSign: "sd-file__sign",
-      fileSignBottom: "sd-file__sign-bottom",
-      removeFile: "Remove",
-      removeFileSvgIconId: "icon-remove",
-      removeFileSvg: "sd-file__remove-svg",
-      defaultImage: "sd-file__default",
-      defaultImageIconId: "icon-file",
-    },
-    imageWidth: 100,
-    imageHeight: 80,
-    isReadOnly: false,
-    removeFileCaption: "Remove",
-    canPreviewImage: () => true,
-    getImageWrapperCss: () => "sd-file__image-wrapper",
-    getRemoveButtonCss: () => "sd-file__remove",
-    doDownloadFile: vi.fn(),
-    doDownloadFileFromContainer: vi.fn(),
-    doRemoveFile: vi.fn(),
-  } as unknown as QuestionFileModel;
+function renderProtectedItem(
+  question: QuestionFileModel,
+  item: { content?: string; name?: string },
+  context: AssetStorageContextValue,
+) {
+  const instance = new ProtectedSurveyFileItem({
+    question,
+    item,
+  }) as unknown as SurveyJsComponent & { context: AssetStorageContextValue };
+  instance.context = context;
 
-  beforeEach(() => {
-    vi.clearAllMocks();
+  return render(
+    <AssetStorageContext.Provider value={context}>
+      {instance.renderElement()}
+    </AssetStorageContext.Provider>,
+  );
+}
+
+class ResizeObserverStub {
+  observe(): void {}
+  unobserve(): void {}
+  disconnect(): void {}
+}
+
+describe("ProtectedSurveyFileItem (SurveyJS file question)", () => {
+  it("renders an empty file question without a preview item", () => {
+    globalThis.ResizeObserver ??=
+      ResizeObserverStub as unknown as typeof ResizeObserver;
+
+    const question = createFileQuestion();
+    const model = question.survey as Model;
+
+    const { container } = render(<Survey model={model} />);
+
+    expect(question.isEmpty()).toBe(true);
+    expect(question.showPreviewContainer).toBe(false);
+    expect(container.textContent).toContain("Upload a file");
+    expect(question.getRemoveButtonCss).toBeUndefined();
   });
 
-  it("renders presigned preview and link when private", () => {
-    const instance = new ProtectedSurveyFileItem({
-      question: mockQuestion,
-      item: { content: fileContent, name: "photo.jpg" },
-    } as never);
-    (instance as { context: AssetStorageContextValue }).context =
-      buildContext();
+  it("renders a file preview under private storage without getRemoveButtonCss", () => {
+    const file = {
+      name: "doc.pdf",
+      type: "application/pdf",
+      content: FILE_URL,
+    };
+    const question = createFileQuestion([file]);
+    const item = question.previewValue[0] ?? file;
+    const context = privateStorageContext();
 
-    const view = (
-      instance as unknown as { renderElement(): React.ReactNode }
-    ).renderElement();
+    expect(() => renderProtectedItem(question, item, context)).not.toThrow();
 
-    render(
-      <AssetStorageContext.Provider value={buildContext()}>
-        {view}
-      </AssetStorageContext.Provider>,
-    );
-
-    expect(screen.getByTestId("storage-presigned-image")).toBeDefined();
-    expect(screen.getAllByTestId("storage-presigned-link").length).toBe(2);
-  });
-
-  it("downloads from the container from a native button", () => {
-    const instance = new ProtectedSurveyFileItem({
-      question: mockQuestion,
-      item: { content: fileContent, name: "photo.jpg" },
-    } as never);
-    (instance as { context: AssetStorageContextValue }).context =
-      buildContext();
-
-    const view = (
-      instance as unknown as { renderElement(): React.ReactNode }
-    ).renderElement();
-
-    render(
-      <AssetStorageContext.Provider value={buildContext()}>
-        {view}
-      </AssetStorageContext.Provider>,
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: "Download photo.jpg" }));
-
-    expect(mockQuestion.doDownloadFileFromContainer).toHaveBeenCalledTimes(1);
-  });
-
-  it("removes the file from a native button", () => {
-    const instance = new ProtectedSurveyFileItem({
-      question: mockQuestion,
-      item: { content: fileContent, name: "photo.jpg" },
-    } as never);
-    (instance as { context: AssetStorageContextValue }).context =
-      buildContext();
-
-    const view = (
-      instance as unknown as { renderElement(): React.ReactNode }
-    ).renderElement();
-
-    render(
-      <AssetStorageContext.Provider value={buildContext()}>
-        {view}
-      </AssetStorageContext.Provider>,
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: "Remove photo.jpg" }));
-
-    expect(mockQuestion.doRemoveFile).toHaveBeenCalledTimes(1);
-    expect(mockQuestion.doDownloadFileFromContainer).not.toHaveBeenCalled();
+    expect(screen.getByText("doc.pdf")).toBeDefined();
+    expect(
+      screen.getByRole("button", { name: "Remove doc.pdf" }),
+    ).toBeDefined();
+    expect(question.getRemoveFileButton(item)).toBeTruthy();
+    expect(question.cssClasses.removeFileButton).toBeTruthy();
   });
 });

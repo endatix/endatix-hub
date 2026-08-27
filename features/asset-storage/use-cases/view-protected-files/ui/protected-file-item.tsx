@@ -24,17 +24,7 @@ class ProtectedSurveyFileItem extends SurveyFileItem {
   private downloadFileFromContainer(
     event: React.MouseEvent<HTMLElement>,
   ): void {
-    this.question.doDownloadFileFromContainer(
-      event.nativeEvent,
-    );
-  }
-
-  private removeFile(
-    val: { content?: string; name?: string },
-    event: React.MouseEvent<HTMLElement>,
-  ): void {
-    event.stopPropagation();
-    this.question.doRemoveFile(val, event.nativeEvent);
+    this.question.doDownloadFileFromContainer(event.nativeEvent);
   }
 
   private renderFileLink(
@@ -114,6 +104,11 @@ class ProtectedSurveyFileItem extends SurveyFileItem {
     );
   }
 
+  /**
+   * SurveyJS v3 dropped `getRemoveButtonCss`. Official `SurveyFileItem` uses
+   * `getRemoveFileButton` + `SurveyAction`; `SurveyAction` is not a public
+   * export, so we bind the same Action + `cssClasses.removeFileButton`.
+   */
   private renderRemoveButton(val: {
     content?: string;
     name?: string;
@@ -122,11 +117,19 @@ class ProtectedSurveyFileItem extends SurveyFileItem {
       return null;
     }
 
+    const removeAction = this.question.getRemoveFileButton(val);
+    if (!removeAction) {
+      return null;
+    }
+
     return (
       <button
         aria-label={`Remove ${val.name}`}
-        className={this.question.getRemoveButtonCss()}
-        onClick={(event) => this.removeFile(val, event)}
+        className={this.question.cssClasses.removeFileButton}
+        onClick={(event) => {
+          event.stopPropagation();
+          removeAction.action();
+        }}
         type="button"
       >
         <span className={this.question.cssClasses.removeFile}>
@@ -161,17 +164,13 @@ class ProtectedSurveyFileItem extends SurveyFileItem {
     const content = val.content ?? "";
 
     return (
-      <span className={this.question.cssClasses.previewItem}>
+      <span
+        className={this.question.cssClasses.previewItem}
+        onClick={(event) => this.downloadFileFromContainer(event)}
+      >
         {this.renderFileSign(this.question.cssClasses.fileSign, val)}
         <div className={this.question.getImageWrapperCss(val)}>
-          <button
-            aria-label={val.name ? `Download ${val.name}` : "Download file"}
-            className={this.question.cssClasses.previewItem}
-            onClick={(event) => this.downloadFileFromContainer(event)}
-            type="button"
-          >
-            {this.renderPreviewContent(content, val)}
-          </button>
+          {this.renderPreviewContent(content, val)}
           {this.renderRemoveButton(val)}
         </div>
         {this.renderFileSign(this.question.cssClasses.fileSignBottom, val)}
