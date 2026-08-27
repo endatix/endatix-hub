@@ -5,8 +5,15 @@ import { EndatixApi } from "../endatix-api";
 import { ApiResult } from "../shared/api-result";
 import type { CreateFormTemplateRequest } from "@/lib/form-types";
 import { appendDateRangeFilters, appendSortParams } from "../shared/list-query";
+import { normalizePagedResponse } from "../shared/paged-response";
+import {
+  appendPagingQueryParams,
+  appendQueryParam,
+  buildEndpointWithQuery,
+} from "../shared/query-params";
 import type {
   AuditDateFilters,
+  IPagedRequest,
   PagedResponse,
   SortRequest,
 } from "../shared/types";
@@ -16,7 +23,9 @@ export type FormTemplateListSortBy = "name" | "createdAt" | "modifiedAt";
 export type FormTemplatesListRequest = {
   folderId?: string;
   filter?: string;
-} & SortRequest<FormTemplateListSortBy> &
+  unassignedOnly?: boolean;
+} & IPagedRequest &
+  SortRequest<FormTemplateListSortBy> &
   AuditDateFilters;
 
 export type PartialUpdateFormTemplateRequest = {
@@ -27,6 +36,10 @@ export type PartialUpdateFormTemplateRequest = {
   clearFolderId?: boolean;
 };
 
+const DEFAULT_LIST_PAGE_SIZE = 100;
+/** Hard stop so a server that misreports `totalPages` cannot loop forever. */
+const LIST_ALL_MAX_PAGES = 50;
+
 export class FormTemplates {
   constructor(private readonly endatix: EndatixApi) {}
 
@@ -36,38 +49,30 @@ export class FormTemplates {
     return this.endatix.post<FormTemplate>("/form-templates", body);
   }
 
+  /**
+   * Drains every page into a flat array (template pickers have no paging control).
+   * Mirrors `Themes.listAll` - see `lib/endatix-api/themes/themes.ts`, the reference
+   * implementation for paged list clients.
+   */
   async list(
-    request?: FormTemplatesListRequest,
+    request: Omit<FormTemplatesListRequest, "page"> = {},
   ): Promise<ApiResult<FormTemplate[]>> {
     const templates: FormTemplate[] = [];
-    let page = 1;
-    let totalPages = 1;
+    const pageSize = request.pageSize ?? DEFAULT_LIST_PAGE_SIZE;
 
-    while (page <= totalPages) {
-      const params = new URLSearchParams();
-      params.set("page", String(page));
-      params.set("pageSize", "100");
-      if (request?.filter) {
-        params.set("filter", request.filter);
-      }
-      if (request?.folderId) {
-        params.set("folderId", request.folderId);
-      }
-      if (request) {
-        appendSortParams(params, request);
-        appendDateRangeFilters(params, request, ["created", "modified"]);
-      }
-
+    for (let page = 1; page <= LIST_ALL_MAX_PAGES; page++) {
       const result = await this.endatix.get<PagedResponse<FormTemplate>>(
-        `/form-templates?${params.toString()}`,
+        buildListFormTemplatesEndpoint({ ...request, page, pageSize }),
       );
       if (!ApiResult.isSuccess(result)) {
         return result;
       }
 
-      templates.push(...(result.data.items ?? []));
-      totalPages = Math.max(result.data.totalPages ?? 1, 1);
-      page += 1;
+      const paged = normalizePagedResponse(result.data);
+      templates.push(...paged.items);
+      if (!paged.hasNextPage) {
+        break;
+      }
     }
 
     return ApiResult.success(templates);
@@ -83,4 +88,25 @@ export class FormTemplates {
     }
     return this.endatix.patch<void>(`/form-templates/${idResult.value}`, body);
   }
+}
+
+export function buildListFormTemplatesEndpoint(
+  request: FormTemplatesListRequest,
+): string {
+  const searchParams = new URLSearchParams();
+  appendPagingQueryParams(searchParams, request, {
+    page: 1,
+    pageSize: DEFAULT_LIST_PAGE_SIZE,
+  });
+  appendQueryParam(searchParams, "folderId", request.folderId);
+  appendSortParams(searchParams, request);
+  appendDateRangeFilters(searchParams, request, ["created", "modified"]);
+
+  if (request.unassignedOnly) {
+    appendQueryParam(searchParams, "filter", "folderId:null");
+  } else if (request.filter) {
+    appendQueryParam(searchParams, "filter", request.filter);
+  }
+
+  return buildEndpointWithQuery("/form-templates", searchParams);
 }

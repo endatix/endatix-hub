@@ -20,6 +20,7 @@ import Stats from "./stats/stats";
 import { Folders } from "./folders/folders";
 import { FormTemplates } from "./form-templates/form-templates";
 import Email from "./email/email";
+import { Themes } from "./themes/themes";
 import AuthAdmin from "./auth-admin/auth-admin";
 import PlatformTenants from "./platform-tenants/platform-tenants";
 import PlatformAdmins from "./platform-admins/platform-admins";
@@ -83,6 +84,7 @@ export class EndatixApi {
   private _stats?: Stats;
   private _folders?: Folders;
   private _formTemplates?: FormTemplates;
+  private _themes?: Themes;
   private _email?: Email;
   private _authAdmin?: AuthAdmin;
   private _platformTenants?: PlatformTenants;
@@ -243,6 +245,11 @@ export class EndatixApi {
   get formTemplates(): FormTemplates {
     this._formTemplates ??= new FormTemplates(this);
     return this._formTemplates;
+  }
+
+  get themes(): Themes {
+    this._themes ??= new Themes(this);
+    return this._themes;
   }
 
   get email(): Email {

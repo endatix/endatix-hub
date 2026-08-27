@@ -56,7 +56,7 @@ async function FormTemplatesContent({
 }: Readonly<{ accessToken: string | undefined }>) {
   const api = new EndatixApi(accessToken);
   const [templatesResult, settingsResult] = await Promise.all([
-    api.formTemplates.list({ filter: "folderId:null" }),
+    api.formTemplates.list({ unassignedOnly: true }),
     api.tenant.getSettings(),
   ]);
 

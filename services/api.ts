@@ -9,9 +9,7 @@ import {
   validateHexToken,
 } from "@/lib/utils/type-validators";
 import { redirect } from "next/navigation";
-import { ITheme } from "survey-core";
 import { HeaderBuilder } from "../lib/endatix-api/shared/header-builder";
-import { parseThemesPayload } from "./parse-themes-payload";
 import { ActiveDefinition, Form, FormDefinition, FormTemplate } from "../types";
 
 export const createForm = async (
@@ -242,124 +240,6 @@ export const updateFormDefinition = async (
   if (!response.ok) {
     throw new Error("Failed to update form definition");
   }
-};
-
-export interface ThemeResponse {
-  id: string;
-  name: string;
-  description?: string;
-  jsonData: string;
-  createdAt?: Date;
-  modifiedAt?: Date;
-}
-
-export const getThemes = async (
-  page: number = 1,
-  pageSize: number = 10,
-): Promise<ThemeResponse[]> => {
-  const session = await getSession();
-  const headers = new HeaderBuilder().withAuth(session).acceptJson().build();
-
-  const response = await fetch(
-    `${requireApiUrl()}/themes?page=${page}&pageSize=${pageSize}`,
-    {
-      headers: headers,
-    },
-  );
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch themes");
-  }
-
-  const payload: unknown = await response.json();
-  return parseThemesPayload<ThemeResponse>(payload);
-};
-
-export const createTheme = async (theme: ITheme): Promise<ThemeResponse> => {
-  const session = await getSession();
-  const headers = new HeaderBuilder()
-    .withAuth(session)
-    .acceptJson()
-    .provideJson()
-    .build();
-
-  const createThemeRequest = {
-    name: theme.themeName,
-    jsonData: JSON.stringify(theme),
-  };
-
-  const response = await fetch(`${requireApiUrl()}/themes`, {
-    method: "POST",
-    headers: headers,
-    body: JSON.stringify(createThemeRequest),
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to create theme");
-  }
-
-  return response.json();
-};
-
-export const updateTheme = async (
-  themeId: string,
-  theme: ITheme,
-): Promise<ThemeResponse> => {
-  const session = await getSession();
-  const headers = new HeaderBuilder()
-    .withAuth(session)
-    .acceptJson()
-    .provideJson()
-    .build();
-
-  const validateIdResult = validateEndatixId(themeId, "themeId");
-  if (Result.isError(validateIdResult)) {
-    throw new TypeError(validateIdResult.message);
-  }
-
-  const response = await fetch(
-    `${requireApiUrl()}/themes/${validateIdResult.value}`,
-    {
-      method: "PATCH",
-      headers: headers,
-      body: JSON.stringify({ jsonData: JSON.stringify(theme) }),
-    },
-  );
-
-  if (!response.ok) {
-    throw new Error("Failed to update theme");
-  }
-
-  return response.json();
-};
-
-export const deleteTheme = async (themeId: string): Promise<string> => {
-  const session = await getSession();
-
-  if (!session.isLoggedIn) {
-    redirect("/login");
-  }
-
-  const headers = new HeaderBuilder().withAuth(session).build();
-
-  const validateThemeIdResult = validateEndatixId(themeId, "themeId");
-  if (Result.isError(validateThemeIdResult)) {
-    throw new TypeError(validateThemeIdResult.message);
-  }
-
-  const response = await fetch(
-    `${requireApiUrl()}/themes/${validateThemeIdResult.value}`,
-    {
-      method: "DELETE",
-      headers: headers,
-    },
-  );
-
-  if (!response.ok) {
-    throw new Error("Failed to delete theme");
-  }
-
-  return response.text();
 };
 
 export const getFormTemplate = async (

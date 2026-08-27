@@ -5,6 +5,7 @@ import { SurveyDashboard } from "../survey-dashboard";
 const mockRender = vi.fn();
 const mockClear = vi.fn();
 const mockApplyTheme = vi.fn();
+const mockRefresh = vi.fn();
 
 vi.mock("survey-core", () => ({
   Model: vi.fn().mockImplementation(function () {
@@ -18,6 +19,7 @@ vi.mock("survey-analytics", () => ({
   Dashboard: vi.fn().mockImplementation(function () {
     return {
       applyTheme: mockApplyTheme,
+      refresh: mockRefresh,
       render: mockRender,
       clear: mockClear,
     };
