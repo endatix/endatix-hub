@@ -3,7 +3,6 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -19,13 +18,17 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import type {
-  SignupRequestListItem,
-  SignupRequestsPagedResponse,
-} from '@/lib/endatix-api/signup-requests/types';
+import {
+  createPagedTableFooterProps,
+  PagedTableFooter,
+  TableSearchInput,
+} from '@/components/table';
+import { useListUrlState } from '@/lib/list-page/use-list-url-state';
+import { normalizePagedResponse } from '@/lib/endatix-api/shared/paged-response';
+import type { SignupRequestListItem } from '@/lib/endatix-api/signup-requests/types';
+import type { SignupRequestsPagedResponse } from '@/lib/endatix-api/signup-requests/types';
 import { getFormattedDate } from '@/lib/utils';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useState, useTransition } from 'react';
+import { useState } from 'react';
 import { ApproveSignupRequestDialog } from './approve-signup-request-dialog';
 import { RejectSignupRequestDialog } from './reject-signup-request-dialog';
 
@@ -36,28 +39,12 @@ interface SignupRequestsTableProps {
 export function SignupRequestsTable({
   requests,
 }: Readonly<SignupRequestsTableProps>) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const [isPending, startTransition] = useTransition();
+  const { search, setSearch, updateUrl, searchParams } = useListUrlState();
   const [approveTarget, setApproveTarget] = useState<SignupRequestListItem | null>(null);
   const [rejectTarget, setRejectTarget] = useState<SignupRequestListItem | null>(null);
-  const [search, setSearch] = useState(searchParams.get('search') ?? '');
 
-  const updateQuery = (updates: Record<string, string | undefined>) => {
-    const params = new URLSearchParams(searchParams.toString());
-    for (const [key, value] of Object.entries(updates)) {
-      if (!value) {
-        params.delete(key);
-      } else {
-        params.set(key, value);
-      }
-    }
-
-    startTransition(() => {
-      router.push(`${pathname}?${params.toString()}`);
-    });
-  };
+  const paged = normalizePagedResponse(requests);
+  const status = searchParams.get('status') ?? 'pending';
 
   return (
     <>
@@ -65,20 +52,16 @@ export function SignupRequestsTable({
         <CardHeader className="gap-4 sm:flex-row sm:items-end sm:justify-between">
           <CardTitle>Signup requests</CardTitle>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <Input
-              placeholder="Search email or company"
+            <TableSearchInput
               value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') {
-                  updateQuery({ search: search.trim() || undefined, page: '1' });
-                }
-              }}
+              onChange={setSearch}
+              placeholder="Search email or company"
+              ariaLabel="Search signup requests"
               className="sm:w-72"
             />
             <Select
-              value={searchParams.get('status') ?? 'pending'}
-              onValueChange={(value) => updateQuery({ status: value, page: '1' })}
+              value={status}
+              onValueChange={(value) => updateUrl({ status: value, page: '1' })}
             >
               <SelectTrigger className="sm:w-40">
                 <SelectValue placeholder="Status" />
@@ -90,14 +73,6 @@ export function SignupRequestsTable({
                 <SelectItem value="all">All</SelectItem>
               </SelectContent>
             </Select>
-            <Button
-              type="button"
-              variant="outline"
-              disabled={isPending}
-              onClick={() => updateQuery({ search: search.trim() || undefined, page: '1' })}
-            >
-              Search
-            </Button>
           </div>
         </CardHeader>
         <CardContent>
@@ -113,14 +88,14 @@ export function SignupRequestsTable({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {requests.items.length === 0 ? (
+              {paged.items.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="text-muted-foreground">
                     No signup requests match the current filters.
                   </TableCell>
                 </TableRow>
               ) : (
-                requests.items.map((request) => (
+                paged.items.map((request) => (
                   <TableRow key={request.id}>
                     <TableCell className="font-medium">{request.email}</TableCell>
                     <TableCell>{request.companyName || '—'}</TableCell>
@@ -158,6 +133,9 @@ export function SignupRequestsTable({
             </TableBody>
           </Table>
         </CardContent>
+        <PagedTableFooter
+          {...createPagedTableFooterProps(paged, 'signup requests', updateUrl)}
+        />
       </Card>
 
       <ApproveSignupRequestDialog
