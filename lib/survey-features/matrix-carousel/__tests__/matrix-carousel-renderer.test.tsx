@@ -2,7 +2,16 @@ import { act, fireEvent, render } from "@testing-library/react";
 import React from "react";
 import { Model } from "survey-core";
 import { Survey } from "survey-react-ui";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { registerMatrixCarouselSchema } from "../infrastructure/registry";
@@ -26,9 +35,11 @@ const footerCssSource = readFileSync(
 // assertions (className/src/alt) rely on, so tests stay decoupled from
 // asset-storage's own render behavior.
 vi.mock("@/features/asset-storage/ui/storage-presigned-image", () => ({
-  StoragePresignedImage: (props: { src: string; alt?: string; className?: string }) => (
-    <img src={props.src} alt={props.alt} className={props.className} />
-  ),
+  StoragePresignedImage: (props: {
+    src: string;
+    alt?: string;
+    className?: string;
+  }) => <img src={props.src} alt={props.alt} className={props.className} />,
 }));
 
 const observeSpy = vi.fn();
@@ -74,11 +85,17 @@ const gridSurveyJson = {
   ],
 };
 
-function carouselSurveyJson(rows: unknown[] = [
-  { value: "r1", text: "I like coffee" },
-  { value: "r2", text: "I like tea" },
-  { value: "r3", text: "I like water", imageUrl: "https://example.com/water.png" },
-]) {
+function carouselSurveyJson(
+  rows: unknown[] = [
+    { value: "r1", text: "I like coffee" },
+    { value: "r2", text: "I like tea" },
+    {
+      value: "r3",
+      text: "I like water",
+      imageUrl: "https://example.com/water.png",
+    },
+  ],
+) {
   return {
     pages: [
       {
@@ -114,20 +131,23 @@ describe("MatrixCarouselRenderer", () => {
     previousResizeObserver = globalThis.ResizeObserver;
     globalThis.IntersectionObserver =
       IntersectionObserverStub as unknown as typeof IntersectionObserver;
-    globalThis.ResizeObserver = ResizeObserverStub as unknown as typeof ResizeObserver;
+    globalThis.ResizeObserver =
+      ResizeObserverStub as unknown as typeof ResizeObserver;
     // jsdom doesn't implement CSS.escape; SurveyJS's focus-first-error path
     // (validate(true, true), triggered when Next is blocked) uses it to
     // build a selector when scrolling/focusing the erroring question — a
     // real-browser behavior with no bearing on carousel logic itself.
     (globalThis as { CSS?: { escape?: (s: string) => string } }).CSS ??= {};
-    (globalThis as { CSS: { escape?: (s: string) => string } }).CSS.escape ??=
-      (value: string) => value.replace(/[^a-zA-Z0-9_-]/g, (ch) => `\\${ch}`);
+    (globalThis as { CSS: { escape?: (s: string) => string } }).CSS.escape ??= (
+      value: string,
+    ) => value.replace(/[^a-zA-Z0-9_-]/g, (ch) => `\\${ch}`);
     registerMatrixCarouselSchema();
     registerMatrixCarouselRenderer();
   });
 
   afterAll(() => {
-    globalThis.IntersectionObserver = previousIntersectionObserver as typeof IntersectionObserver;
+    globalThis.IntersectionObserver =
+      previousIntersectionObserver as typeof IntersectionObserver;
     globalThis.ResizeObserver = previousResizeObserver as typeof ResizeObserver;
   });
 
@@ -166,7 +186,9 @@ describe("MatrixCarouselRenderer", () => {
     // Assert
     expect(container.querySelector(".sv-matrixcarousel")).not.toBeNull();
     expect(container.querySelector(".sv-matrixcarousel__strip")).not.toBeNull();
-    expect(container.querySelectorAll(".sv-matrixcarousel__slide")).toHaveLength(3);
+    expect(
+      container.querySelectorAll(".sv-matrixcarousel__slide"),
+    ).toHaveLength(3);
     expect(container.querySelector("table")).toBeNull();
   });
 
@@ -282,7 +304,9 @@ describe("MatrixCarouselRenderer", () => {
   it("hides the progress text once the question reports isMobile", () => {
     // Arrange
     const model = new Model(carouselSurveyJson());
-    const question = model.getQuestionByName("q1") as unknown as { isMobile: boolean };
+    const question = model.getQuestionByName("q1") as unknown as {
+      isMobile: boolean;
+    };
 
     // Act
     question.isMobile = true;
@@ -297,12 +321,14 @@ describe("MatrixCarouselRenderer", () => {
     const model = new Model(carouselSurveyJson());
 
     // Act
-    const { container } = render(<Survey model={model} />);
+    const { container, getByText } = render(<Survey model={model} />);
 
-    // Assert — sd-action-bar/sd-action, not the unstyled sv- fallback,
-    // confirms actionsContainer.cssClasses was set from survey.getCss().actionBar
+    // Assert — sd-action-bar/sd-action (not the unstyled sv- fallback).
+    // SurveyJS 3 puts the label in a nested span and no longer mirrors it on
+    // the button title attribute, so assert via text + class rather than
+    // `.sd-action[title='Next']`.
     expect(container.querySelector(".sd-action-bar")).not.toBeNull();
-    expect(container.querySelector(".sd-action[title='Next']")).not.toBeNull();
+    expect(getByText("Next").closest(".sd-action")).not.toBeNull();
   });
 
   it("lays out progress bar above the content and Back/Next below it, matching PanelDynamic's carousel ordering", () => {
@@ -327,7 +353,9 @@ describe("MatrixCarouselRenderer", () => {
     // Act
     const { container } = render(<Survey model={model} />);
     const root = container.querySelector(".sv-matrixcarousel");
-    const childClasses = Array.from(root?.children ?? []).map((el) => el.className);
+    const childClasses = Array.from(root?.children ?? []).map(
+      (el) => el.className,
+    );
 
     // Assert — progress bar first, strip second, footer (with Back/Next) last
     expect(childClasses).toEqual([
@@ -360,7 +388,9 @@ describe("MatrixCarouselRenderer", () => {
     const { container, queryByText } = render(<Survey model={model} />);
 
     // Assert
-    expect(container.querySelector(".sv-matrixcarousel__progress-bar-track")).not.toBeNull();
+    expect(
+      container.querySelector(".sv-matrixcarousel__progress-bar-track"),
+    ).not.toBeNull();
     expect(queryByText("1 of 2")).toBeNull();
   });
 
@@ -381,8 +411,11 @@ describe("MatrixCarouselRenderer", () => {
     fireEvent.click(getByText("Next"));
 
     // Assert
-    const offendingCalls = consoleErrorSpy.mock.calls.filter((args: unknown[]) =>
-      String(args[0]).includes("Cannot update during an existing state transition"),
+    const offendingCalls = consoleErrorSpy.mock.calls.filter(
+      (args: unknown[]) =>
+        String(args[0]).includes(
+          "Cannot update during an existing state transition",
+        ),
     );
     expect(offendingCalls).toEqual([]);
   });
@@ -393,7 +426,9 @@ describe("MatrixCarouselRenderer", () => {
 
     // Act
     const { container } = render(<Survey model={model} />);
-    const images = container.querySelectorAll(".sv-matrixcarousel__slide-image");
+    const images = container.querySelectorAll(
+      ".sv-matrixcarousel__slide-image",
+    );
 
     // Assert
     expect(images).toHaveLength(1);
@@ -406,7 +441,9 @@ describe("MatrixCarouselRenderer", () => {
 
     // Act
     const { container } = render(<Survey model={model} />);
-    const radios = container.querySelectorAll('.sv-matrixcarousel__slide input[type="radio"]');
+    const radios = container.querySelectorAll(
+      '.sv-matrixcarousel__slide input[type="radio"]',
+    );
 
     // Assert — 3 slides x 2 columns each
     expect(radios).toHaveLength(6);
@@ -457,7 +494,9 @@ describe("MatrixCarouselRenderer", () => {
     // control's native arrow-key semantics).
     const model = new Model(carouselSurveyJson());
     const { container } = render(<Survey model={model} />);
-    const strip = container.querySelector(".sv-matrixcarousel__strip") as HTMLElement;
+    const strip = container.querySelector(
+      ".sv-matrixcarousel__strip",
+    ) as HTMLElement;
     expect(strip.getAttribute("role")).toBeNull();
 
     // Act
@@ -490,7 +529,11 @@ describe("MatrixCarouselRenderer", () => {
               ],
               rows: [
                 { value: "r1", text: "Row 1" },
-                { value: "r2", text: "Row 2", visibleIf: "{toggle} contains 'show'" },
+                {
+                  value: "r2",
+                  text: "Row 2",
+                  visibleIf: "{toggle} contains 'show'",
+                },
                 { value: "r3", text: "Row 3" },
               ],
             },
@@ -499,7 +542,9 @@ describe("MatrixCarouselRenderer", () => {
       ],
     });
     const { container } = render(<Survey model={model} />);
-    expect(container.querySelectorAll(".sv-matrixcarousel__slide")).toHaveLength(2);
+    expect(
+      container.querySelectorAll(".sv-matrixcarousel__slide"),
+    ).toHaveLength(2);
 
     // Act
     act(() => {
@@ -552,12 +597,21 @@ describe("MatrixCarouselRenderer", () => {
     // by a confirmed ~40px. Locks in that the fix uses rect deltas instead.
     const model = new Model(carouselSurveyJson());
     const { container, getByText } = render(<Survey model={model} />);
-    const strip = container.querySelector(".sv-matrixcarousel__strip") as HTMLElement;
+    const strip = container.querySelector(
+      ".sv-matrixcarousel__strip",
+    ) as HTMLElement;
     const slide1 = strip.children[1] as HTMLElement;
 
-    vi.spyOn(strip, "getBoundingClientRect").mockReturnValue({ left: 100 } as DOMRect);
-    vi.spyOn(slide1, "getBoundingClientRect").mockReturnValue({ left: 500 } as DOMRect);
-    Object.defineProperty(slide1, "offsetLeft", { value: 999, configurable: true });
+    vi.spyOn(strip, "getBoundingClientRect").mockReturnValue({
+      left: 100,
+    } as DOMRect);
+    vi.spyOn(slide1, "getBoundingClientRect").mockReturnValue({
+      left: 500,
+    } as DOMRect);
+    Object.defineProperty(slide1, "offsetLeft", {
+      value: 999,
+      configurable: true,
+    });
     // jsdom has no Element.prototype.scrollTo to spy on — assign a stub instead.
     const scrollToSpy = vi.fn();
     strip.scrollTo = scrollToSpy;
@@ -567,14 +621,18 @@ describe("MatrixCarouselRenderer", () => {
 
     // Assert — 500 - 100 + scrollLeft(0) = 400 (the rect-based delta), not
     // offsetLeft's 999.
-    expect(scrollToSpy).toHaveBeenCalledWith(expect.objectContaining({ left: 400 }));
+    expect(scrollToSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ left: 400 }),
+    );
   });
 
   it("resets the theme's edge-alignment negative margin on the footer's action bar and provides its own gap, so Previous/Next and the progress text aren't flush against each other", () => {
     // jsdom can't reliably compute cascaded flexbox gap from an external
     // stylesheet — verified visually instead (0px/0px -> 36px/8px). This
     // just guards against the rule being deleted or renamed later.
-    expect(footerCssSource).toMatch(/\.sv-matrixcarousel__footer-row\s*\{[^}]*gap:/);
+    expect(footerCssSource).toMatch(
+      /\.sv-matrixcarousel__footer-row\s*\{[^}]*gap:/,
+    );
     expect(footerCssSource).toMatch(
       /\.sv-matrixcarousel__footer-row \.sd-action-bar\s*\{[^}]*margin:\s*0[^}]*gap:/,
     );
@@ -622,6 +680,8 @@ describe("MatrixCarouselRenderer", () => {
     });
 
     // Assert — exactly one clean set of slides from the current instance
-    expect(container.querySelectorAll(".sv-matrixcarousel__slide")).toHaveLength(2);
+    expect(
+      container.querySelectorAll(".sv-matrixcarousel__slide"),
+    ).toHaveLength(2);
   });
 });

@@ -26,7 +26,9 @@ describe("useEndatixCreatorTheme", () => {
     });
 
     const { result } = renderHook(() => useEndatixCreatorTheme());
-    expect(result.current.themeName).toBe("endatixThemeLight");
+    expect(result.current.themeName).toBe("default");
+    expect(result.current.colorPalette).toBe("light");
+    expect(result.current.isLight).toBe(true);
   });
 
   it("returns dark theme when resolvedTheme is 'dark'", () => {
@@ -40,7 +42,9 @@ describe("useEndatixCreatorTheme", () => {
     });
 
     const { result } = renderHook(() => useEndatixCreatorTheme());
-    expect(result.current.themeName).toBe("endatixThemeDark");
+    expect(result.current.themeName).toBe("default");
+    expect(result.current.colorPalette).toBe("dark");
+    expect(result.current.isLight).toBe(false);
   });
 });
 
