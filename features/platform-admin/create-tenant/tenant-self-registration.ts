@@ -1,3 +1,4 @@
+import type { Route } from "next";
 import { SystemRoles } from "@/features/auth/authorization/domain/system-roles";
 
 export type AuthProviderOption = {
@@ -25,12 +26,12 @@ export function identityStepError(name: string): string | null {
   return null;
 }
 
-export function tenantPublicSignInPath(slug: string): string {
-  return `/t/${slug}/signin`;
+export function tenantPublicSignInPath(slug: string): Route {
+  return `/t/${slug}/signin` as Route;
 }
 
-export function tenantPublicRegisterPath(slug: string): string {
-  return `/t/${slug}/register`;
+export function tenantPublicRegisterPath(slug: string): Route {
+  return `/t/${slug}/register` as Route;
 }
 
 export function filterTenantAuthProviders<T extends { id: string }>(
