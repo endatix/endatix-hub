@@ -1,8 +1,10 @@
+import type { Question } from "survey-core";
 import { describe, expect, it } from "vitest";
 import type { BlindSearchTagboxQuestion } from "../types";
 import {
   filterChoicesBySearch,
   isBlindSearchEnabled,
+  isBlindSearchTagboxQuestion,
   isSearchThresholdMet,
   shouldEnableOtherFallback,
   shouldSuppressChoices,
@@ -144,6 +146,21 @@ describe("blind-search-state", () => {
       // Act & Assert
       expect(isBlindSearchEnabled(enabled)).toBe(true);
       expect(isBlindSearchEnabled(disabled)).toBe(false);
+    });
+  });
+
+  describe("isBlindSearchTagboxQuestion", () => {
+    it.each([
+      ["null", null],
+      ["undefined", undefined],
+    ])("returns false for a %s question rather than throwing", (_, value) => {
+      // Arrange
+      const question = value as unknown as Question;
+
+      // Act & Assert
+      expect(() => isBlindSearchTagboxQuestion(question)).not.toThrow();
+      expect(isBlindSearchTagboxQuestion(question)).toBe(false);
+      expect(isBlindSearchEnabled(question)).toBe(false);
     });
   });
 });

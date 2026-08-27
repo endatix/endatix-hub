@@ -1,4 +1,8 @@
-import { Model, type QuestionTagboxModel } from "survey-core";
+import {
+  Model,
+  type QuestionMatrixDropdownModel,
+  type QuestionTagboxModel,
+} from "survey-core";
 import { beforeEach, describe, expect, it } from "vitest";
 import { registerBlindSearchTagboxGlobals } from "../infrastructure/registry";
 import {
@@ -414,5 +418,53 @@ describe("bindBlindSearchToSurvey", () => {
     expect(options.filteredChoices?.map((choice) => choice.value)).toEqual([
       "a2",
     ]);
+  });
+
+  it("keeps matrix column totals recalculating on a survey with no tagbox", () => {
+    // Arrange
+    const model = new Model({
+      pages: [
+        {
+          elements: [
+            {
+              type: "matrixdropdown",
+              name: "question1",
+              cellType: "text",
+              rows: ["Row 1", "Row 2"],
+              totalText: "Total",
+              columns: [
+                {
+                  name: "Column 1",
+                  cellType: "text",
+                  inputType: "number",
+                  totalType: "sum",
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    bindBlindSearchToSurvey(model);
+    const matrix = model.getQuestionByName(
+      "question1",
+    ) as QuestionMatrixDropdownModel;
+    const totalCell = () =>
+      matrix.visibleTotalRow.cells[0].question.value as number;
+    const setCell = (rowIndex: number, value: number) => {
+      matrix.visibleRows[rowIndex].cells[0].question.value = value;
+    };
+
+    // Act & Assert — the second edit is the one that regressed: before the null
+    // guard the first edit threw, so every later recalculation was skipped.
+    setCell(0, 10);
+    expect(totalCell()).toBe(10);
+
+    setCell(1, 5);
+    expect(totalCell()).toBe(15);
+
+    setCell(0, 20);
+    expect(totalCell()).toBe(25);
+    expect(model.data["question1-total"]).toEqual({ "Column 1": 25 });
   });
 });
