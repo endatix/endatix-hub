@@ -23,12 +23,12 @@ The palette is rooted in a sophisticated range of slates and atmospheric blues, 
 
 ### Semantic status tokens (`app/globals.css`)
 
-| Token | Usage |
-| :---- | :---- |
-| `--success` / `--success-foreground` | Positive completion states |
-| `--warning` / `--warning-foreground` | Cautionary states |
+| Token                                                                  | Usage                                                               |
+| :--------------------------------------------------------------------- | :------------------------------------------------------------------ |
+| `--success` / `--success-foreground`                                   | Positive completion states                                          |
+| `--warning` / `--warning-foreground`                                   | Cautionary states                                                   |
 | `--info` / `--info-foreground` / `--info-background` / `--info-border` | Informational callouts, external-user badges, non-blocking guidance |
-| `--destructive` / `--destructive-foreground` | Errors and destructive confirmations |
+| `--destructive` / `--destructive-foreground`                           | Errors and destructive confirmations                                |
 
 Light and dark values are defined under `:root` and `.dark`. Components must consume these tokens (or Shadcn variants built on them), not fixed Tailwind palette steps such as `blue-200` or `text-blue-950`.
 
@@ -171,32 +171,32 @@ Hub `components.json` style is **new-york**. Do **not** import `survey-core/them
 ### Source of Truth Files
 
 - App tokens: `app/globals.css` (`:root` and `.dark`)
-`lib/themes/` is four modules — what the themes are, how each kind is applied, and the React hook:
+  `lib/themes/` is four modules — what the themes are, how each kind is applied, and the React hook:
 
-| Module | Holds |
-| :-- | :-- |
-| `endatix-themes.ts` | Hub tokens + fallbacks, Creator chrome and survey themes (light/dark), `pickCreatorTheme` / `pickSurveyTheme` |
-| `creator-theme.ts` | `applyEndatixCreatorTheme` + the Hub-colour resolve pass |
-| `survey-theme.ts` | `registerThemes`, `sanitizeSurveyTheme`, `applyFormSurveyTheme`, `applyHubDashboardTheme` |
-| `use-endatix-themes.ts` | `useEndatixCreatorTheme` / `useEndatixSurveyTheme` (`next-themes`) |
+| Module                  | Holds                                                                                                         |
+| :---------------------- | :------------------------------------------------------------------------------------------------------------ |
+| `endatix-themes.ts`     | Hub tokens + fallbacks, Creator chrome and survey themes (light/dark), `pickCreatorTheme` / `pickSurveyTheme` |
+| `creator-theme.ts`      | `applyEndatixCreatorTheme` + the Hub-colour resolve pass                                                      |
+| `survey-theme.ts`       | `registerThemes`, `sanitizeSurveyTheme`, `applyFormSurveyTheme`, `applyHubDashboardTheme`                     |
+| `use-endatix-themes.ts` | `useEndatixCreatorTheme` / `useEndatixSurveyTheme` (`next-themes`)                                            |
 
 ### Token Mapping (source `--sjs2-*`)
 
-| App token (`globals.css`) | Creator + survey source (`endatix-themes.ts`) |
-| :-- | :-- |
-| `--primary` | `--sjs2-color-project-brand-600` |
-| `--primary-foreground` | `--sjs2-color-fg-brand-on-primary` |
-| `--foreground` | `--sjs2-color-fg-basic-primary` |
-| `--border` | `--sjs2-color-border-basic-secondary` |
-| `--radius` | `--sjs2-base-unit-radius` |
-| `--ring` | `--sjs2-color-utility-a11y` |
-| `--destructive` | `--sjs2-palette-red-600` |
-| `--success` | `--sjs2-palette-green-600` |
-| `--warning` | `--sjs2-palette-yellow-600` |
-| `--info` | `--sjs2-palette-blue-600` |
-| `--background` | Survey model: `--sjs2-color-utility-body`, `--sjs2-color-utility-surface-survey` (kills Default teal tint) |
-| `--content-canvas` | Creator **editing surfaces only** — see the region table below |
-| `--card` | Creator **chrome** (top bar, toolbox, property grid, root). Survey model: `--sjs2-color-utility-sheet` |
+| App token (`globals.css`) | Creator + survey source (`endatix-themes.ts`)                                                              |
+| :------------------------ | :--------------------------------------------------------------------------------------------------------- |
+| `--primary`               | `--sjs2-color-project-brand-600`                                                                           |
+| `--primary-foreground`    | `--sjs2-color-fg-brand-on-primary`                                                                         |
+| `--foreground`            | `--sjs2-color-fg-basic-primary`                                                                            |
+| `--border`                | `--sjs2-color-border-basic-secondary`                                                                      |
+| `--radius`                | `--sjs2-base-unit-radius`                                                                                  |
+| `--ring`                  | `--sjs2-color-utility-a11y`                                                                                |
+| `--destructive`           | `--sjs2-palette-red-600`                                                                                   |
+| `--success`               | `--sjs2-palette-green-600`                                                                                 |
+| `--warning`               | `--sjs2-palette-yellow-600`                                                                                |
+| `--info`                  | `--sjs2-palette-blue-600`                                                                                  |
+| `--background`            | Survey model: `--sjs2-color-utility-body`, `--sjs2-color-utility-surface-survey` (kills Default teal tint) |
+| `--content-canvas`        | Creator **editing surfaces only** — see the region table below                                             |
+| `--card`                  | Creator **chrome** (top bar, toolbox, property grid, root). Survey model: `--sjs2-color-utility-sheet`     |
 
 Do not pin `--sjs2-color-bg-brand-primary` or other derived tokens unless a shade is explicitly off-brand.
 
@@ -225,7 +225,7 @@ grid, custom question icons) must name **`--sjs2-*` tokens only**, and must not 
 hard-coded colour fallback.
 
 v3 dropped the `--ctr-*` and single-prefix `--sjs-*` variables entirely — they are not
-in survey-creator-core 3.x CSS *or* JS. Rules that still name them fall straight through
+in survey-creator-core 3.x CSS _or_ JS. Rules that still name them fall straight through
 to their literal fallback, which is how a white help band appeared across the dark
 Translations grid, and how the "Open data list" link kept rendering in SurveyJS teal.
 `var(--gone, #fff)` looks defensive and is the opposite.
@@ -248,11 +248,11 @@ Verified against `survey-creator-core` 3.0.2 CSS.
 
 **Three depths, the same rule in both palettes:**
 
-| Depth | Hub token | Light | Dark | Paints |
-| :-- | :-- | :-- | :-- | :-- |
-| Recessed | `--background` | `#fff` | `#000f21` | input fills, search boxes, unchecked controls |
-| Canvas | `--content-canvas` | `#eff4fe` | `#001225` | the design surface behind the survey |
-| Raised | `--card` | `#fff` | `#001a34` | chrome panels **and** question cards |
+| Depth    | Hub token          | Light     | Dark      | Paints                                        |
+| :------- | :----------------- | :-------- | :-------- | :-------------------------------------------- |
+| Recessed | `--background`     | `#fff`    | `#000f21` | input fills, search boxes, unchecked controls |
+| Canvas   | `--content-canvas` | `#eff4fe` | `#001225` | the design surface behind the survey          |
+| Raised   | `--card`           | `#fff`    | `#001a34` | chrome panels **and** question cards          |
 
 Two failure modes this prevents, both seen on the v3 upgrade:
 
@@ -262,18 +262,18 @@ Two failure modes this prevents, both seen on the v3 upgrade:
    dark it paints question cards, the sidebar tabs, the collapsed icon rail and every
    input a warm grey (`#1c1b20` / `#222126`) against the Hub navy.
 
-| `--sjs2-color-utility-*` | Selector it paints | Hub value |
-| :-- | :-- | :-- |
-| `tabs` | `.svc-top-bar` | `--card` |
-| `toolbox` | `.svc-toolbox__panel` | `--card` |
-| `property-grid` | `.svc-side-bar__container`, `.spg-panel__content` | `--card` |
-| `body` | `.svc-creator` root | `--card` |
-| `sheet` | popup / preset sheets | `--card` |
-| `surface-designer` | `.svc-tab-designer` | `--content-canvas` |
-| `surface-survey` | `.sd-root-modern::before` | `--content-canvas` |
-| `surface-json-editor` | `.svc-json-editor-tab__content-area` | `--content-canvas` |
-| `surface-presets-manager` | `.svc-tab-designer--presets` | `--content-canvas` |
-| `surface-translations` | `.svc-translation-tab` | `--content-canvas` |
+| `--sjs2-color-utility-*`  | Selector it paints                                | Hub value          |
+| :------------------------ | :------------------------------------------------ | :----------------- |
+| `tabs`                    | `.svc-top-bar`                                    | `--card`           |
+| `toolbox`                 | `.svc-toolbox__panel`                             | `--card`           |
+| `property-grid`           | `.svc-side-bar__container`, `.spg-panel__content` | `--card`           |
+| `body`                    | `.svc-creator` root                               | `--card`           |
+| `sheet`                   | popup / preset sheets                             | `--card`           |
+| `surface-designer`        | `.svc-tab-designer`                               | `--content-canvas` |
+| `surface-survey`          | `.sd-root-modern::before`                         | `--content-canvas` |
+| `surface-json-editor`     | `.svc-json-editor-tab__content-area`              | `--content-canvas` |
+| `surface-presets-manager` | `.svc-tab-designer--presets`                      | `--content-canvas` |
+| `surface-translations`    | `.svc-translation-tab`                            | `--content-canvas` |
 
 `--sjs2-color-bg-basic-primary` is deliberately **not** in the Creator overlay: it is the
 generic panel surface behind question cards, the simulator and property-grid inputs, so
@@ -304,9 +304,9 @@ charts and loops).
 
 ### Dialogs are Hub UI, never SurveyJS popups
 
-Every dialog the Hub opens is a shadcn `Dialog` / `AlertDialog` in
-`features/forms/ui/editor/`: `theme-save-dialog`, `theme-delete-dialog`,
-`custom-question-dialog`. None of them use `settings.showDialog`.
+Every dialog the Hub opens is a shadcn `Dialog` / `AlertDialog`:
+`features/themes/manage-theme-editor/ui/` (`theme-save-dialog`, `theme-delete-dialog`)
+and `features/forms/ui/editor/custom-question-dialog`. None of them use `settings.showDialog`.
 
 That is a deliberate boundary, not a style preference. A SurveyJS popup is portaled
 to `settings.environment.popupMountContainer` (`document.body`), and survey-core 3.x
@@ -334,7 +334,7 @@ One boolean, `isThemeDirty`, owned by `useThemeManagement`:
 - cleared by `themeEditor.onThemeSelected`, because switching themes discards the edits
 - cleared after a successful save
 
-`creator.theme = …` runs on *every* property change (v3's `syncTheme`) but does not fire
+`creator.theme = …` runs on _every_ property change (v3's `syncTheme`) but does not fire
 `onThemeSelected`, so it does not clear the flag.
 
 **Importing a theme file is the exception.** v3 routes Import through
@@ -346,7 +346,7 @@ chooser switch by payload (neither carries an id). `useThemeManagement` therefor
 `onOpenFileChooser` listener for this.
 
 Both rules are pinned by
-`features/forms/ui/editor/__tests__/use-theme-management.test.tsx`.
+`features/themes/manage-theme-editor/__tests__/use-theme-management.test.tsx`.
 
 The header chip surfaces the state (`unsaved changes` / `unsaved json`); **Save** persists the
 theme first (so a newly created theme id is in `creator.theme`) and then the form JSON.

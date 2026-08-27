@@ -34,12 +34,12 @@ export default function FormEditorHeader({
   setIsEditingName,
   setName,
 }: FormEditorHeaderProps) {
-  const saveDisabled = isPending || hasJsonErrors;
+  const saveDisabled = isPending || isSaving || hasJsonErrors;
   const showInvalidJson = isOnJsonTab && hasJsonErrors;
   const showUnsavedChanges =
     !hasJsonErrors && (hasUnsavedChanges || isCurrentThemeModified);
   return (
-    <div className="flex justify-between items-center mt-0 pt-4 pb-4 px-6 sticky top-0 z-50 w-full border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <div className="sticky top-0 z-50 mt-0 flex w-full items-center justify-between border-border/40 bg-background/95 px-6 pt-4 pb-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex w-full items-center gap-6">
         <Button
           variant="ghost"
@@ -57,12 +57,12 @@ export default function FormEditorHeader({
             value={name}
             onChange={(e) => setName(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="font-bold text-lg border border-border rounded"
+            className="rounded border border-border text-lg font-bold"
             autoFocus
           />
         ) : (
           <span
-            className="font-bold text-lg hover:border hover:border-border hover:rounded px-1"
+            className="px-1 text-lg font-bold hover:rounded hover:border hover:border-border"
             onClick={() => setIsEditingName(true)}
             style={{ cursor: "text" }}
           >
@@ -77,7 +77,7 @@ export default function FormEditorHeader({
           isJsonModified={isJsonModified}
           hasJsonErrors={showInvalidJson}
           hasUnsavedChanges={showUnsavedChanges}
-          isSaving={isPending}
+          isSaving={isSaving}
           showSavedSuccess={showSavedSuccess}
           onSavedSuccessDismiss={clearSavedSuccess}
         />
@@ -85,7 +85,7 @@ export default function FormEditorHeader({
           disabled={saveDisabled}
           onClick={saveFormHandler}
           label="Save"
-          isPending={isPending}
+          isPending={isSaving}
           savingLabel="Saving..."
         />
       </div>
