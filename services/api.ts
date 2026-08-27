@@ -10,7 +10,7 @@ import {
 } from "@/lib/utils/type-validators";
 import { redirect } from "next/navigation";
 import { HeaderBuilder } from "../lib/endatix-api/shared/header-builder";
-import { ActiveDefinition, Form, FormDefinition, FormTemplate } from "../types";
+import { ActiveDefinition, Form, FormTemplate } from "../types";
 
 export const createForm = async (
   formRequest: CreateFormRequest,
@@ -162,45 +162,6 @@ export const getActiveFormDefinition = async (
 
   if (!response.ok) {
     throw new Error(`Failed to fetch form definition for formId ${formId}`);
-  }
-
-  return response.json();
-};
-
-export const getFormDefinition = async (
-  formId: string,
-  definitionId: string,
-): Promise<FormDefinition> => {
-  const requestOptions: RequestInit = {};
-  const session = await getSession();
-
-  if (!session.isLoggedIn) {
-    redirect("/login");
-  }
-
-  const validateFormIdResult = validateEndatixId(formId, "formId");
-  if (Result.isError(validateFormIdResult)) {
-    throw new TypeError(validateFormIdResult.message);
-  }
-
-  const validateDefinitionIdResult = validateEndatixId(
-    definitionId,
-    "definitionId",
-  );
-  if (Result.isError(validateDefinitionIdResult)) {
-    throw new TypeError(validateDefinitionIdResult.message);
-  }
-
-  const headers = new HeaderBuilder().withAuth(session).build();
-  requestOptions.headers = headers;
-
-  const response = await fetch(
-    `${requireApiUrl()}/forms/${validateFormIdResult.value}/definitions/${validateDefinitionIdResult.value}`,
-    requestOptions,
-  );
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch form definition");
   }
 
   return response.json();
