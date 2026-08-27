@@ -1,0 +1,17 @@
+/* survey-analytics hard-codes light-theme fallbacks (`#1c1b20`, `#404040`). */
+.sa-visualizer__footer-title,
+.sa-dropdown,
+.sa-action-dropdown,
+.sa-dropdown-item,
+.sa-action-dropdown-item,
+.sa-dropdown-header-text {
+  color: var(--sjs2-color-fg-basic-primary, var(--foreground));
+}
+
+.sa-dropdown__title {
+  color: var(--sjs2-color-fg-basic-secondary, var(--muted-foreground));
+}
+
+.sa-dropdown-action svg use {
+  fill: var(--sjs2-color-fg-basic-primary, var(--foreground));
+}

@@ -177,7 +177,7 @@ Hub `components.json` style is **new-york**. Do **not** import `survey-core/them
 | :-- | :-- |
 | `endatix-themes.ts` | Hub tokens + fallbacks, Creator chrome and survey themes (light/dark), `pickCreatorTheme` / `pickSurveyTheme` |
 | `creator-theme.ts` | `applyEndatixCreatorTheme` + the Hub-colour resolve pass |
-| `survey-theme.ts` | `registerThemes`, `sanitizeSurveyTheme`, `applyFormSurveyTheme` |
+| `survey-theme.ts` | `registerThemes`, `sanitizeSurveyTheme`, `applyFormSurveyTheme`, `applyHubDashboardTheme` |
 | `use-endatix-themes.ts` | `useEndatixCreatorTheme` / `useEndatixSurveyTheme` (`next-themes`) |
 
 ### Token Mapping (source `--sjs2-*`)
@@ -273,11 +273,34 @@ Two failure modes this prevents, both seen on the v3 upgrade:
 | `surface-survey` | `.sd-root-modern::before` | `--content-canvas` |
 | `surface-json-editor` | `.svc-json-editor-tab__content-area` | `--content-canvas` |
 | `surface-presets-manager` | `.svc-tab-designer--presets` | `--content-canvas` |
+| `surface-translations` | `.svc-translation-tab` | `--content-canvas` |
 
 `--sjs2-color-bg-basic-primary` is deliberately **not** in the Creator overlay: it is the
 generic panel surface behind question cards, the simulator and property-grid inputs, so
 tinting it turns the designer's white cards the same colour as the canvas. Pinned by
 `lib/themes/__tests__/endatix-themes.test.ts`.
+
+### Survey analytics dashboard (not Creator chrome)
+
+`features/form-analytics/ui/survey-dashboard.tsx` is a **survey-analytics** `Dashboard`
+on the Hub analytics page. It is **not** a Creator surface — do not add it to the
+`--sjs2-color-utility-*` table above. It uses `pickSurveyTheme` / `surveyTokens` in
+`endatix-themes.ts` (chart axis labels, muted toolbar, disabled Reset Filter).
+
+**Do not call `dashboard.applyTheme` or `render(container)` as the root.** Both inject a
+`<style>` via `ensureBaseThemeStyles`. Next.js 16.3 HMR treats that as CSS invalidation
+and PPR re-fetches the page (`?_rsc=` loop in dev). Same rule as Translations: never
+`stringsSurvey.applyTheme`. Use `render(container, false)`, paint `--sjs2-*` on the
+container, then `theme.setTheme` + `refresh()` (`applyHubDashboardTheme`).
+
+**Hard-coded SurveyJS CSS** that tokens cannot reach lives next to the widget:
+
+- `.sa-visualizer__footer-title` is `#404040` in survey-analytics — override in
+  `survey-dashboard.css` with `--sjs2-color-fg-basic-primary` (Hub `--foreground`).
+
+Re-apply Hub colours after palette change and after the sidebar width transition
+(200ms). Do not drive theme from `ResizeObserver` (`applyTheme` / `refresh` rebuilds
+charts and loops).
 
 ### Dialogs are Hub UI, never SurveyJS popups
 
@@ -337,12 +360,13 @@ theme first (so a newly created theme id is in `creator.theme`) and then the for
 5. Light/dark stays on `next-themes`:
    - Creator: `useEndatixCreatorTheme()` / `pickCreatorTheme(resolvedTheme)`
    - Hub-internal survey model (submissions viewer): `useEndatixSurveyTheme()` / `pickSurveyTheme(resolvedTheme)`
+   - Analytics dashboard: `applyHubDashboardTheme()` after `render(…, false)` — never `dashboard.applyTheme`
    - Public share/embed: `applyFormSurveyTheme()` with GetActive JSON (no `useEndatixSurveyTheme`)
 6. Check contrast: primary CTA, muted text on nested surfaces, error/warning chips.
 
 ### Visual Validation Steps
 
-- Light mode: form editor + template editor — toolbox, top bar and property grid must be **white**, with only the design canvas tinted; question cards stay white on the canvas. Submission details: question cards vs page.
-- Dark mode: toggle `.dark`; chrome and survey switch without Hub-foreground-as-background (that means a `--sjs2-*` var was flattened to inherited `color`).
+- Light mode: form editor + template editor — toolbox, top bar and property grid must be **white**, with only the design canvas tinted; question cards stay white on the canvas. Submission details: question cards vs page. Analytics: axis labels, footer titles and Reset Filter readable on the Hub canvas.
+- Dark mode: toggle `.dark`; chrome and survey switch without Hub-foreground-as-background (that means a `--sjs2-*` var was flattened to inherited `color`). Analytics footer must not stay `#404040`.
 - Dialogs: form Save with a dirty theme (Hub shadcn dialog), plus delete theme and "Create custom question" (SurveyJS popups). Each must show a scrim, a rounded card with a shadow, and brand-coloured footer buttons in both palettes.
 - Cross-check: fix `globals.css` first; only then change the `--sjs2-*` map.
