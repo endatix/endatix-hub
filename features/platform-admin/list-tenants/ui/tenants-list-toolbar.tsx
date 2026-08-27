@@ -64,7 +64,7 @@ export function TenantsListToolbar() {
           <TableSearchInput
             value={search}
             onChange={setSearch}
-            placeholder="Search by name, public id, or description"
+            placeholder="Search by name, tenant slug, or description"
             ariaLabel="Search tenants"
             className="min-w-[12rem] flex-none lg:flex-1"
           />

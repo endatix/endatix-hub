@@ -22,11 +22,8 @@ const SKELETON_ROWS = 8;
 
 const COLUMNS = [
   { title: "Tenant", className: "min-w-[12rem]" },
-  { title: "Public id" },
-  { title: "ID" },
+  { title: "Tenant slug" },
   { title: "Self-reg" },
-  { title: "Forms", className: "hidden text-right md:table-cell" },
-  { title: "Submissions", className: "hidden text-right md:table-cell" },
   { title: "Created", className: "hidden md:table-cell" },
   { title: "Modified", className: "hidden md:table-cell" },
   { title: "Actions", className: "text-right" },

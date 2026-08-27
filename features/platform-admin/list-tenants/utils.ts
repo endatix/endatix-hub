@@ -9,6 +9,7 @@ import {
   pickDateRangeFilters,
 } from "@/lib/endatix-api/shared/list-query";
 import type { SortDir } from "@/lib/endatix-api/shared/types";
+import type { SearchParam } from "@/lib/utils/next-utils";
 import type { PlatformTenantSearchParams } from "../types";
 
 export const DEFAULT_TENANTS_PAGE_SIZE = 10;
@@ -31,23 +32,36 @@ export interface TenantsListUrlState {
   modifiedTo?: string;
 }
 
+export function firstSearchParam(value: SearchParam): string | undefined {
+  if (Array.isArray(value)) {
+    return value[0];
+  }
+
+  return value;
+}
+
 export function parsePlatformTenantListParams(
   searchParams?: PlatformTenantSearchParams,
 ): ListPlatformTenantsRequest {
+  const search = firstSearchParam(searchParams?.search)?.trim() || undefined;
   const paging = parsePagedSearchParams(
-    searchParams,
+    {
+      page: firstSearchParam(searchParams?.page),
+      pageSize: firstSearchParam(searchParams?.pageSize),
+    },
     DEFAULT_TENANTS_PAGE_SIZE,
   );
   const dateFilters = pickDateRangeFilters(
-    (key) => searchParams?.[key as keyof PlatformTenantSearchParams],
+    (key) =>
+      firstSearchParam(searchParams?.[key as keyof PlatformTenantSearchParams]),
     ["created", "modified"] as const,
   );
 
   return {
     ...paging,
-    search: searchParams?.search?.trim() || undefined,
-    sortBy: parseSortBy(searchParams?.sortBy, ALLOWED_SORT_BY),
-    sortDir: parseSortDir(searchParams?.sortDir),
+    search,
+    sortBy: parseSortBy(firstSearchParam(searchParams?.sortBy), ALLOWED_SORT_BY),
+    sortDir: parseSortDir(firstSearchParam(searchParams?.sortDir)),
     ...dateFilters,
   };
 }
