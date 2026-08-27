@@ -8,7 +8,7 @@ import type { BlindSearchTagboxQuestion } from "../types";
 export function isBlindSearchTagboxQuestion(
   question: Question,
 ): question is BlindSearchTagboxQuestion {
-  return question.getType() === BLIND_SEARCH_TAGBOX_TYPE;
+  return !!question && question.getType() === BLIND_SEARCH_TAGBOX_TYPE;
 }
 
 export function isBlindSearchEnabled(
