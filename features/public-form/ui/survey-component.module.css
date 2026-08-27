@@ -22,7 +22,19 @@
    floors that measurement at the iframe's current height — once grown, it
    could never shrink back down. */
 .embedShellFill {
-  background-color: var(--sjs-general-backcolor-dim, transparent);
+  background-color: var(
+    --sjs2-color-utility-body,
+    var(--sjs-general-backcolor-dim, transparent)
+  );
+}
+
+/* Reserve right edge of the survey title so absolute language picker
+   does not cover long titles. Also tighten v3 title band (default 24px). */
+.layoutFullHeight :global(.sd-container-modern__title),
+.embedShell :global(.sd-container-modern__title) {
+  padding-block: 0.75rem;
+  padding-inline-start: 0.75rem;
+  padding-inline-end: 10rem;
 }
 
 .layoutFullHeight :global(.sd-completedpage),

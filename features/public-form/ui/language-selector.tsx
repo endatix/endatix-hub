@@ -3,6 +3,7 @@
 import { useCallback, useState, useRef, useEffect } from "react";
 import { SurveyModel } from "survey-core";
 import { useLanguageSelection } from "../application/use-language-selection.hook";
+import styles from "./language-selector.module.css";
 
 interface LanguageSelectorProps {
   availableLocales: string[];
@@ -38,7 +39,6 @@ export function LanguageSelector({
     [changeLocale],
   );
 
-  // Close dropdown on click outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -49,7 +49,6 @@ export function LanguageSelector({
       }
     };
 
-    // Close dropdown on ESC key
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setIsOpen(false);
@@ -72,36 +71,10 @@ export function LanguageSelector({
   }
 
   return (
-    <div
-      ref={dropdownRef}
-      style={{
-        display: "flex",
-        justifyContent: "flex-end",
-        margin: "8px",
-        width: "140px",
-        marginLeft: "auto",
-      }}
-    >
-      <div
-        style={{
-          position: "relative",
-          width: "100%",
-        }}
-      >
+    <div ref={dropdownRef} className={styles.root}>
+      <div className={styles.controlWrap}>
         <div
-          className="sd-input sd-dropdown"
-          style={{
-            border: "1px solid var(--sjs-border-default, #d6d6d6)",
-            borderRadius: "4px",
-            backgroundColor: "var(--sjs-general-backcolor, #ffffff)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "6px 12px",
-            cursor: "pointer",
-            height: "32px",
-            fontSize: "14px",
-          }}
+          className={`sd-input sd-dropdown ${styles.trigger}`}
           onClick={() => setIsOpen(!isOpen)}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
@@ -115,10 +88,10 @@ export function LanguageSelector({
           aria-expanded={isOpen}
           aria-haspopup="listbox"
         >
-          <div style={{ flex: 1, display: "flex", alignItems: "center" }}>
+          <div className={styles.value}>
             <input
               autoComplete="off"
-              className="sd-dropdown__filter-string-input"
+              className={`sd-dropdown__filter-string-input ${styles.input}`}
               role="combobox"
               aria-controls={isOpen ? "language-options" : undefined}
               aria-required="false"
@@ -129,37 +102,13 @@ export function LanguageSelector({
               inputMode="text"
               type="text"
               value={currentOption?.label || currentLocale}
-              style={{
-                cursor: "pointer",
-                width: "100%",
-                border: "none",
-                outline: "none",
-                background: "transparent",
-                fontSize: "14px",
-                fontFamily: "inherit",
-                fontWeight: "inherit",
-                textTransform: "capitalize",
-                color: "inherit",
-                lineHeight: "inherit",
-                padding: "0 12px",
-                margin: "0",
-                verticalAlign: "middle",
-              }}
             />
           </div>
-          <div
-            style={{ marginLeft: "8px", display: "flex", alignItems: "center" }}
-          >
+          <div className={styles.chevronWrap}>
             <svg
-              style={{
-                width: "12px",
-                height: "12px",
-                transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
-                transition: "transform 0.2s ease",
-                fill: "currentColor",
-                flexShrink: 0,
-              }}
+              className={`${styles.chevron}${isOpen ? ` ${styles.chevronOpen}` : ""}`}
               viewBox="0 0 24 24"
+              aria-hidden="true"
             >
               <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z" />
             </svg>
@@ -168,69 +117,32 @@ export function LanguageSelector({
 
         {isOpen && (
           <div
+            id="language-options"
             role="listbox"
             aria-label="Language options"
-            style={{
-              position: "absolute",
-              top: "100%",
-              left: "0",
-              right: "0",
-              zIndex: 10000,
-              backgroundColor: "var(--sjs-general-backcolor, #ffffff)",
-              border: "1px solid var(--sjs-border-default, #d6d6d6)",
-              borderRadius: "4px",
-              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-              maxHeight: "200px",
-              overflowY: "auto",
-              marginTop: "2px",
-            }}
+            className={styles.menu}
           >
-            {languageOptions.map((option) => (
-              <div
-                key={option.value}
-                onClick={() => handleLocaleChange(option.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    handleLocaleChange(option.value);
-                  }
-                }}
-                role="option"
-                aria-selected={option.value === currentLocale}
-                tabIndex={0}
-                style={{
-                  cursor: "pointer",
-                  padding: "6px 8px",
-                  textTransform: "capitalize",
-                  borderBottom: "1px solid var(--sjs-border-default, #d6d6d6)",
-                  backgroundColor:
-                    option.value === currentLocale
-                      ? "var(--sjs-primary-backcolor, #e6f3ff)"
-                      : "transparent",
-                  color: "inherit",
-                  fontSize: "14px",
-                  fontFamily: "inherit",
-                  fontWeight: "inherit",
-                  lineHeight: "inherit",
-                  display: "flex",
-                  alignItems: "center",
-                  height: "32px",
-                }}
-                onMouseEnter={(e) => {
-                  if (option.value !== currentLocale) {
-                    e.currentTarget.style.backgroundColor =
-                      "var(--sjs-primary-backcolor-dim, #f0f8ff)";
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (option.value !== currentLocale) {
-                    e.currentTarget.style.backgroundColor = "transparent";
-                  }
-                }}
-              >
-                {option.label}
-              </div>
-            ))}
+            {languageOptions.map((option) => {
+              const selected = option.value === currentLocale;
+              return (
+                <div
+                  key={option.value}
+                  onClick={() => handleLocaleChange(option.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleLocaleChange(option.value);
+                    }
+                  }}
+                  role="option"
+                  aria-selected={selected}
+                  tabIndex={0}
+                  className={`${styles.option}${selected ? ` ${styles.optionSelected}` : ""}`}
+                >
+                  {option.label}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

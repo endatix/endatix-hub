@@ -1,6 +1,8 @@
+"use client";
+
+import { applyFormSurveyTheme } from "@/lib/themes/survey-theme";
 import { useEffect, useState } from "react";
 import { ITheme, SurveyModel } from "survey-core";
-import { DefaultLight } from "survey-core/themes";
 
 export function useSurveyTheme(
   themeString: string | undefined,
@@ -26,17 +28,12 @@ export function useSurveyTheme(
     }
   }, [themeString]);
 
-  // Apply theme to the model
   useEffect(() => {
     if (!model) {
       return;
     }
 
-    if (parsedTheme) {
-      model.applyTheme(parsedTheme);
-    } else {
-      model.applyTheme(DefaultLight);
-    }
+    applyFormSurveyTheme(model, parsedTheme);
   }, [model, parsedTheme]);
 
   return { theme: parsedTheme, error };
