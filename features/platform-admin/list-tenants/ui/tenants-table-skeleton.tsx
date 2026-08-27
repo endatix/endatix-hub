@@ -20,14 +20,14 @@ import {
 
 const SKELETON_ROWS = 8;
 
-const COLUMNS = [
+const COLUMNS: readonly { title: string; className?: string }[] = [
   { title: "Tenant", className: "min-w-[12rem]" },
   { title: "Tenant slug" },
   { title: "Self-reg" },
   { title: "Created", className: "hidden md:table-cell" },
   { title: "Modified", className: "hidden md:table-cell" },
   { title: "Actions", className: "text-right" },
-] as const;
+];
 
 export function TenantsTableSkeleton() {
   return (
