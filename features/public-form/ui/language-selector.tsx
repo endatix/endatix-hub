@@ -106,7 +106,11 @@ export function LanguageSelector({
           </div>
           <div className={styles.chevronWrap}>
             <svg
-              className={`${styles.chevron}${isOpen ? ` ${styles.chevronOpen}` : ""}`}
+              className={
+                isOpen
+                  ? `${styles.chevron} ${styles.chevronOpen}`
+                  : styles.chevron
+              }
               viewBox="0 0 24 24"
               aria-hidden="true"
             >
@@ -137,7 +141,11 @@ export function LanguageSelector({
                   role="option"
                   aria-selected={selected}
                   tabIndex={0}
-                  className={`${styles.option}${selected ? ` ${styles.optionSelected}` : ""}`}
+                  className={
+                    selected
+                      ? `${styles.option} ${styles.optionSelected}`
+                      : styles.option
+                  }
                 >
                   {option.label}
                 </div>

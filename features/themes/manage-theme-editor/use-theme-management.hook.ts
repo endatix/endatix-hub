@@ -306,7 +306,9 @@ export const useThemeManagement = ({
 
     fetchThemes()
       .then((themes) => {
-        themes.forEach(addCustomTheme);
+        for (const theme of themes) {
+          addCustomTheme(theme);
+        }
         registeredThemeNamesRef.current = [
           ...new Set([
             DEFAULT_THEME_NAME,

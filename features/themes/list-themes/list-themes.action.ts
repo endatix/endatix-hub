@@ -10,7 +10,7 @@ export type ThemeItem = Theme;
 
 export type GetThemesResult = Result<ThemeItem[]>;
 
-export async function getThemesAction(): Promise<GetThemesResult | never> {
+export async function getThemesAction(): Promise<GetThemesResult> {
   const { requireHubAccess } = await authorization();
   await requireHubAccess();
 

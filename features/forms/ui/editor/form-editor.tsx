@@ -5,8 +5,12 @@ import { customQuestions } from "@/customizations/questions/question-registry";
 import { useStorageWithCreator } from "@/features/asset-storage/client";
 import {
   DEFAULT_THEME_ID,
+  ThemeDeleteDialog,
+  ThemeSaveDialog,
   useThemeManagement,
 } from "@/features/themes/manage-theme-editor";
+import { StoredTheme } from "@/features/themes/types";
+import { updateFormThemeAction } from "@/features/themes/update-form-theme";
 import { useDesignerRuntime } from "@/lib/designer-runtime";
 import { registerAudioQuestionUI } from "@/lib/questions/audio-recorder";
 import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";
@@ -43,14 +47,7 @@ import "ace-builds/src-noconflict/ext-searchbox";
 import "ace-builds/src-noconflict/theme-github_light_default";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Question } from "survey-core";
-import {
-  JsonObject,
-  Serializer,
-  settings,
-  slk,
-  SurveyModel,
-  SvgRegistry,
-} from "survey-core";
+import { JsonObject, Serializer, slk, SvgRegistry } from "survey-core";
 import "survey-core/i18n";
 import "survey-core/survey-core.css";
 import {
@@ -67,12 +64,6 @@ import {
   CustomQuestionDialog,
   type CustomQuestionRequest,
 } from "./custom-question-dialog";
-import {
-  ThemeDeleteDialog,
-  ThemeSaveDialog,
-} from "@/features/themes/manage-theme-editor";
-import { updateFormThemeAction } from "@/features/themes/update-form-theme";
-import { StoredTheme } from "@/features/themes/types";
 import { createCustomQuestionAction } from "../../application/actions/create-custom-question.action";
 import { updateFormDefinitionJsonAction } from "../../application/actions/update-form-definition-json.action";
 import {
