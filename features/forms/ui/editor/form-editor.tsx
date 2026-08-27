@@ -3,7 +3,10 @@
 import { toast } from "@/components/ui/toast";
 import { customQuestions } from "@/customizations/questions/question-registry";
 import { useStorageWithCreator } from "@/features/asset-storage/client";
-import { useThemeManagement } from "@/features/public-form/application/use-theme-management.hook";
+import {
+  DEFAULT_THEME_ID,
+  useThemeManagement,
+} from "@/features/themes/manage-theme-editor";
 import { useDesignerRuntime } from "@/lib/designer-runtime";
 import { registerAudioQuestionUI } from "@/lib/questions/audio-recorder";
 import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";
@@ -31,7 +34,8 @@ import {
 import { useQuestionLoops } from "@/lib/survey-features/question-loops";
 import { useRichTextEditing } from "@/lib/survey-features/rich-text";
 import { useLoopAwareSummaryTableEditing } from "@/lib/survey-features/summary-table";
-import { resolveCreatorThemeCssVariables } from "@/lib/themes/resolve-creator-theme-css-variables";
+import { applyEndatixCreatorTheme } from "@/lib/themes/creator-theme";
+import { registerThemes } from "@/lib/themes/survey-theme";
 import { useEndatixCreatorTheme } from "@/lib/themes/use-endatix-themes";
 import { CreateCustomQuestionRequest } from "@/services/api";
 import "ace-builds/src-noconflict/ace";
@@ -49,22 +53,28 @@ import {
 } from "survey-core";
 import "survey-core/i18n";
 import "survey-core/survey-core.css";
-import { BorderlessLightPanelless, DefaultLight } from "survey-core/themes";
 import {
   getLocaleStrings,
   ICreatorOptions,
   ModifiedEvent,
-  registerSurveyTheme,
   SurveyCreatorModel,
   SurveyInstanceCreatedEvent,
 } from "survey-creator-core";
 import "survey-creator-core/i18n";
 import "survey-creator-core/survey-creator-core.css";
 import { SurveyCreator, SurveyCreatorComponent } from "survey-creator-react";
+import {
+  CustomQuestionDialog,
+  type CustomQuestionRequest,
+} from "./custom-question-dialog";
+import {
+  ThemeDeleteDialog,
+  ThemeSaveDialog,
+} from "@/features/themes/manage-theme-editor";
+import { updateFormThemeAction } from "@/features/themes/update-form-theme";
+import { StoredTheme } from "@/features/themes/types";
 import { createCustomQuestionAction } from "../../application/actions/create-custom-question.action";
 import { updateFormDefinitionJsonAction } from "../../application/actions/update-form-definition-json.action";
-import { updateFormThemeAction } from "../../application/actions/update-form-theme.action";
-import { StoredTheme } from "../../domain/models/theme";
 import {
   customizeQuestionClassesOnCreator,
   loadBuiltInCustomQuestionClasses,
@@ -91,7 +101,6 @@ registerAudioQuestionUI();
 addRandomizeGroupFeature();
 
 const DEFAULT_THEME_NAME = "default";
-const DEFAULT_THEME_ID = "0"; // Sentinel value for clearing/resetting theme
 
 const translations = getLocaleStrings("en");
 
@@ -119,7 +128,7 @@ const questionLoopsIcon =
   '<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 32 32"><defs><style>.st0{fill:none;stroke:#000;stroke-linecap:round;stroke-linejoin:round;stroke-width:2px}</style></defs><path class="st0" d="M3.3 18.3V28h25.4V9.7H9.6"/><path class="st0" d="M14.4 15.5 8.6 9.7 14.7 4"/></svg>';
 SvgRegistry.registerIcon("icon-question-loops", questionLoopsIcon);
 
-registerSurveyTheme(DefaultLight);
+registerThemes();
 
 interface FormEditorProps {
   formId: string;
@@ -393,36 +402,43 @@ function FormEditor({
     setIsJsonModified,
   ]);
 
-  const { saveThemeHandler, isCurrentThemeModified } = useThemeManagement({
+  const [customQuestionRequest, setCustomQuestionRequest] =
+    useState<CustomQuestionRequest | null>(null);
+  const {
+    saveThemeHandler,
+    isThemeDirty,
+    themeSaveRequest,
+    themeDeleteRequest,
+    closeThemeDeleteRequest,
+  } = useThemeManagement({
     formId,
     creator,
     themeId,
     onThemeIdChanged: markFormModified,
-    onPostThemeSave: saveForm,
   });
 
+  // The theme is persisted first so `saveForm` picks up a newly created theme id.
+  // `saveThemeHandler` is a no-op when the theme is clean and resolves once the
+  // user has answered the dialog, so the form JSON is always saved exactly once.
   const saveFormHandler = useCallback(async () => {
-    if (!hasUnsavedChanges && !isCurrentThemeModified && !isJsonModified) {
+    if (!hasUnsavedChanges && !isThemeDirty && !isJsonModified) {
       toast.info("Nothing to save");
       return;
     }
 
-    const isThemeSavedFlow = await saveThemeHandler();
-
-    if (!isThemeSavedFlow) {
-      await saveForm();
-    }
+    await saveThemeHandler();
+    await saveForm();
   }, [
     hasUnsavedChanges,
-    isCurrentThemeModified,
+    isThemeDirty,
     isJsonModified,
     saveThemeHandler,
     saveForm,
   ]);
 
   useEffect(() => {
-    onThemeModificationChange?.(isCurrentThemeModified);
-  }, [isCurrentThemeModified, onThemeModificationChange]);
+    onThemeModificationChange?.(isThemeDirty);
+  }, [isThemeDirty, onThemeModificationChange]);
 
   // Provide save handler to parent
   useEffect(() => {
@@ -443,56 +459,14 @@ function FormEditor({
   }, [creator, onPropertyGridControllerReady]);
 
   const createCustomQuestionDialog = useCallback(
-    async (element: Question) => {
-      try {
-        const isDefaultName = element.name.match(/^(question|panel)\d+$/);
-        const defaultTitle = isDefaultName ? "" : nameToTitle(element.name);
-
-        const surveyDefinition = JSON.parse(
-          `{"pages":[{"name":"page1","elements":[
-          {"type":"html","name":"description","html":"<p class='text-muted-foreground'>You are about to save <b>&quot;${
-            element.name
-          }&quot;</b> as a custom question.</p>"},
-          {"type":"text","name":"question_name","title":"Enter a unique name for the custom question","requiredIf":"true","requiredErrorText":"Question name is required","placeholder":"${
-            isDefaultName ? "" : element.name
-          }","defaultValue":"${isDefaultName ? "" : element.name}"},
-          {"type":"text","name":"question_title","title":"Enter the custom question title","requiredIf":"true","requiredErrorText":"Question title is required","placeholder":"${defaultTitle}","defaultValue":"${defaultTitle}"}
-        ]}],"showNavigationButtons":false,"questionErrorLocation":"bottom","requiredText":"*"}`,
-        );
-
-        const survey = new SurveyModel(surveyDefinition);
-        survey.isCompact = true;
-        survey.applyTheme(BorderlessLightPanelless);
-
-        settings.showDialog(
-          {
-            componentName: "survey",
-            data: { model: survey },
-            onApply: () => {
-              if (survey.tryComplete()) {
-                saveCustomQuestion(
-                  element,
-                  survey.data.question_name,
-                  survey.data.question_title,
-                );
-                return true;
-              }
-              return false;
-            },
-            onCancel: () => {
-              return false;
-            },
-            title: "Create Custom Question",
-            displayMode: "popup",
-            isFocusedContent: true,
-            cssClass: "creator-dialog",
-          },
-          settings.environment.popupMountContainer as HTMLElement,
-        );
-      } catch (error) {
-        console.error("Error saving custom question:", error);
-        toast.error("Failed to save custom question");
-      }
+    (element: Question) => {
+      const isDefaultName = /^(question|panel)\d+$/.test(element.name);
+      setCustomQuestionRequest({
+        elementName: element.name,
+        defaultName: isDefaultName ? "" : element.name,
+        defaultTitle: isDefaultName ? "" : nameToTitle(element.name),
+        onSubmit: (name, title) => saveCustomQuestion(element, name, title),
+      });
     },
     [saveCustomQuestion],
   );
@@ -540,11 +514,11 @@ function FormEditor({
         initFormDiagnosticsGlobals();
         initDataListsGlobals();
         const newCreator = new SurveyCreator(creatorOptions);
-        const resolvedTheme = resolveCreatorThemeCssVariables(
+        applyEndatixCreatorTheme(
+          newCreator,
           creatorThemeRef.current,
           document.getElementById("creator") ?? undefined,
         );
-        newCreator.applyCreatorTheme(resolvedTheme);
         const cleanupQuestionLoops = bindQuestionLoops(newCreator);
         const cleanupFormDiagnostics = bindFormDiagnostics(newCreator);
 
@@ -626,11 +600,11 @@ function FormEditor({
     let frame2 = 0;
     frame1 = globalThis.window.requestAnimationFrame(() => {
       frame2 = globalThis.window.requestAnimationFrame(() => {
-        const resolvedTheme = resolveCreatorThemeCssVariables(
+        applyEndatixCreatorTheme(
+          creator,
           creatorTheme,
           document.getElementById("creator") ?? undefined,
         );
-        creator.applyCreatorTheme(resolvedTheme);
       });
     });
 
@@ -682,7 +656,7 @@ function FormEditor({
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (hasUnsavedChanges || isCurrentThemeModified) {
+      if (hasUnsavedChanges || isThemeDirty) {
         e.preventDefault();
         e.returnValue = ""; // Required for Chrome
       }
@@ -691,7 +665,7 @@ function FormEditor({
     globalThis.window.addEventListener("beforeunload", handleBeforeUnload);
     return () =>
       globalThis.window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [hasUnsavedChanges, isCurrentThemeModified]);
+  }, [hasUnsavedChanges, isThemeDirty]);
 
   useEffect(() => {
     if (!creator || !formJson) {
@@ -706,6 +680,15 @@ function FormEditor({
   return (
     <div id="creator">
       <ConvertInlineChoicesDialog {...convertInlineChoicesUi.dialog} />
+      <ThemeSaveDialog request={themeSaveRequest} />
+      <ThemeDeleteDialog
+        request={themeDeleteRequest}
+        onClose={closeThemeDeleteRequest}
+      />
+      <CustomQuestionDialog
+        request={customQuestionRequest}
+        onClose={() => setCustomQuestionRequest(null)}
+      />
 
       {isCreatorLoading ? (
         <div className="flex h-[calc(100vh-80px)] items-center justify-center">
@@ -724,4 +707,3 @@ function FormEditor({
 }
 export default FormEditor;
 export type { FormEditorProps };
-

@@ -38,7 +38,7 @@
 3. **Draining every page is a separate, named method** (`listAll()`), used only where the UI genuinely has no paging affordance (a Creator dropdown, a template picker). It omits `page` from its request type, loops from page 1, stops on `!hasNextPage`, and is bounded by a `LIST_ALL_MAX_PAGES` constant so a server that misreports `totalPages` cannot loop forever. Do **not** bolt "start at `request.page` and drain to the end" onto `list()` — that reads as paging but returns `[]` for any `page > 1` before the first response arrives.
 4. **Boolean filter sugar maps to the wire filter in the builder**, not at every call site (`unassignedOnly: true` → `filter=folderId:null`). Call sites pass the intent; the builder owns the encoding.
 5. **Validate path ids with `validateEndatixId(...)` and return `ApiResult.validationError(...)`** before touching the network (see `Themes.partialUpdate` / `Themes.delete`).
-6. **Server actions map with `toResult(...)`**, never a hand-written `if (ApiResult.isError(...)) return Result.error(...)` — see "Server Actions" above. `features/forms/application/actions/*-theme.action.ts` are the worked examples.
+6. **Server actions map with `toResult(...)`**, never a hand-written `if (ApiResult.isError(...)) return Result.error(...)` — see "Server Actions" above. `features/themes/*/*.action.ts` are the worked examples.
 
 Known deviations, to be migrated when next touched (do not copy them): `Forms.list` / `Users.list` / `PlatformTenants.list` return the raw `PagedResponse<T>` without `normalizePagedResponse`; `FormTemplates.list` is a drain that has not yet been renamed to `listAll`.
 
