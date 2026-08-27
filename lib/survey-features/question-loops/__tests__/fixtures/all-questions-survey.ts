@@ -106,6 +106,9 @@ const allQuestionsSurveySchema = {
           type: "ranking",
           name: "q_ranking",
           title: "Ranking Question",
+          // SurveyJS 3 expands ranking values to all choices unless select-to-rank
+          // is on; keep partial defaultValue as ranked items only.
+          selectToRankEnabled: true,
           choices: [
             "choice_foo",
             "choice_bar",

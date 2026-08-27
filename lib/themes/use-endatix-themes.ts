@@ -2,7 +2,7 @@
 
 import { useTheme } from "next-themes";
 import { useMemo } from "react";
-import { pickCreatorTheme, pickSurveyTheme } from "./pick-endatix-theme";
+import { pickCreatorTheme, pickSurveyTheme } from "./endatix-themes";
 
 /**
  * Survey Creator chrome aligned with `ThemeProvider` / `globals.css` tokens.

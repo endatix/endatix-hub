@@ -11,6 +11,7 @@ import {
 import { redirect } from "next/navigation";
 import { ITheme } from "survey-core";
 import { HeaderBuilder } from "../lib/endatix-api/shared/header-builder";
+import { parseThemesPayload } from "./parse-themes-payload";
 import { ActiveDefinition, Form, FormDefinition, FormTemplate } from "../types";
 
 export const createForm = async (
@@ -270,8 +271,8 @@ export const getThemes = async (
     throw new Error("Failed to fetch themes");
   }
 
-  const payload: { items?: ThemeResponse[] } = await response.json();
-  return payload.items ?? [];
+  const payload: unknown = await response.json();
+  return parseThemesPayload<ThemeResponse>(payload);
 };
 
 export const createTheme = async (theme: ITheme): Promise<ThemeResponse> => {
