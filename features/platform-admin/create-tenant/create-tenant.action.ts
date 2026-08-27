@@ -1,18 +1,23 @@
 "use server";
 
 import { EndatixApi } from "@/lib/endatix-api";
-import type { CreatePlatformTenantRequest } from "@/lib/endatix-api/platform-tenants/types";
-import { Result } from "@/lib/result";
+import type {
+  CreatePlatformTenantRequest,
+  PlatformTenant,
+} from "@/lib/endatix-api/platform-tenants/types";
+import { Result, type ResultType } from "@/lib/result";
 import { mapApiErrorToResult } from "@/lib/result/map-api-error-to-result";
 import { revalidatePath } from "next/cache";
 import { requirePlatformAdmin } from "../require-platform-admin/require-platform-admin.server";
 import { identityStepError } from "./tenant-self-registration";
 
-export async function createTenantAction(request: CreatePlatformTenantRequest) {
+export async function createTenantAction(
+  request: CreatePlatformTenantRequest,
+): Promise<ResultType<PlatformTenant>> {
   const session = await requirePlatformAdmin();
   const identityError = identityStepError(request.name);
   if (identityError) {
-    return Result.validationError(identityError);
+    return Result.validationError<PlatformTenant>(identityError);
   }
 
   const api = new EndatixApi(session.accessToken);
@@ -25,7 +30,7 @@ export async function createTenantAction(request: CreatePlatformTenantRequest) {
   });
 
   if (!created.success) {
-    return mapApiErrorToResult(created, {
+    return mapApiErrorToResult<PlatformTenant>(created, {
       fallbackMessage: "Failed to create tenant",
       preferredFields: ["name", "defaultRegistrationRoleName"],
     });
