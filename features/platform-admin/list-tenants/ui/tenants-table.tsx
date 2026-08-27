@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useMemo, useState, useTransition, type TransitionStartFunction } from "react";
+import { use, useMemo, useState } from "react";
 import {
   CellDate,
   createPagedTableFooterProps,
@@ -15,6 +15,7 @@ import {
   sortingUrlUpdatesFromState,
   type DateFilterValue,
 } from "@/components/table";
+import { TruncatedId } from "@/components/common/truncated-id";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,13 +24,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { assumeTenantAction } from "@/features/platform-admin/assume-tenant/assume-tenant.action";
 import type { AuthProviderOption } from "@/features/platform-admin/tenant-registration";
+import {
+  AssumeTenantConfirmDialog,
+  type AssumeTenantTarget,
+} from "@/features/platform-admin/assume-tenant/ui/assume-tenant-confirm-dialog";
 import { EditTenantSheet } from "@/features/platform-admin/update-tenant/ui/edit-tenant-sheet";
 import type { PlatformTenantListItem, PlatformTenantListSortBy } from "@/lib/endatix-api";
 import type { NormalizedPagedResponse } from "@/lib/endatix-api/shared/paged-response";
 import { useListUrlState } from "@/lib/list-page/use-list-url-state";
-import { formatInteger } from "@/lib/utils/formatters";
 import type { UrlSearchParamsUpdater } from "@/lib/utils/hooks/use-url-search-params-updater.hook";
 import { MoreHorizontal } from "lucide-react";
 import {
@@ -67,7 +70,9 @@ export function TenantsTable({
   const urlState = listUrlStateFromSearchParams(searchParams);
   const searchInput = searchParams.get("search") ?? "";
   const [editingTenantId, setEditingTenantId] = useState<string | null>(null);
-  const [isEnteringTenant, startEnteringTenant] = useTransition();
+  const [assumeTarget, setAssumeTarget] = useState<AssumeTenantTarget | null>(
+    null,
+  );
 
   const sorting = useMemo(
     () => sortingStateFromUrl(urlState.sortBy, urlState.sortDir),
@@ -91,21 +96,13 @@ export function TenantsTable({
     () =>
       buildTenantColumns({
         canManage,
-        isEnteringTenant,
-        startEnteringTenant,
+        onAssume: setAssumeTarget,
         onEdit: setEditingTenantId,
         updateUrl,
         createdDateFilter,
         modifiedDateFilter,
       }),
-    [
-      canManage,
-      isEnteringTenant,
-      startEnteringTenant,
-      updateUrl,
-      createdDateFilter,
-      modifiedDateFilter,
-    ],
+    [canManage, updateUrl, createdDateFilter, modifiedDateFilter],
   );
 
   const tableData = useMemo(() => [...paged.items], [paged.items]);
@@ -147,15 +144,25 @@ export function TenantsTable({
         />
       </DataTableSurface>
       {canManage && (
-        <EditTenantSheet
-          tenantId={editingTenantId}
-          authProviders={authProviders}
-          onOpenChange={(isOpen) => {
-            if (!isOpen) {
-              setEditingTenantId(null);
-            }
-          }}
-        />
+        <>
+          <AssumeTenantConfirmDialog
+            tenant={assumeTarget}
+            onOpenChange={(open) => {
+              if (!open) {
+                setAssumeTarget(null);
+              }
+            }}
+          />
+          <EditTenantSheet
+            tenantId={editingTenantId}
+            authProviders={authProviders}
+            onOpenChange={(isOpen) => {
+              if (!isOpen) {
+                setEditingTenantId(null);
+              }
+            }}
+          />
+        </>
       )}
     </>
   );
@@ -163,8 +170,7 @@ export function TenantsTable({
 
 type BuildColumnsArgs = {
   canManage: boolean;
-  isEnteringTenant: boolean;
-  startEnteringTenant: TransitionStartFunction;
+  onAssume: (tenant: AssumeTenantTarget) => void;
   onEdit: (tenantId: string) => void;
   updateUrl: UrlSearchParamsUpdater;
   createdDateFilter: DateFilterValue;
@@ -173,8 +179,7 @@ type BuildColumnsArgs = {
 
 function buildTenantColumns({
   canManage,
-  isEnteringTenant,
-  startEnteringTenant,
+  onAssume,
   onEdit,
   updateUrl,
   createdDateFilter,
@@ -218,24 +223,10 @@ function buildTenantColumns({
         <span className={dataTableColumnLabelClassName()}>Public id</span>
       ),
       cell: ({ row }) => (
-        <span className="font-mono text-sm text-muted-foreground">
-          {row.original.shortUrl}
-        </span>
-      ),
-    },
-    {
-      id: "id",
-      accessorKey: "id",
-      enableSorting: false,
-      meta: {
-        headerClassName: DATA_TABLE_SHRINK_WRAP_CLASS_NAME,
-        cellClassName: DATA_TABLE_SHRINK_WRAP_CLASS_NAME,
-      },
-      header: () => (
-        <span className={dataTableColumnLabelClassName()}>ID</span>
-      ),
-      cell: ({ row }) => (
-        <span className="text-muted-foreground">{row.original.id}</span>
+        <TruncatedId
+          id={row.original.shortUrl}
+          copyLabel="Copy public id"
+        />
       ),
     },
     {
@@ -258,36 +249,6 @@ function buildTenantColumns({
           {row.original.selfRegistrationEnabled ? "On" : "Off"}
         </Badge>
       ),
-    },
-    {
-      id: "formsCount",
-      accessorKey: "formsCount",
-      enableSorting: false,
-      meta: {
-        headerClassName: `hidden text-right md:table-cell ${DATA_TABLE_SHRINK_WRAP_CLASS_NAME}`,
-        cellClassName: `hidden text-right md:table-cell ${DATA_TABLE_SHRINK_WRAP_CLASS_NAME}`,
-      },
-      header: () => (
-        <span className={dataTableColumnLabelClassName("text-right")}>
-          Forms
-        </span>
-      ),
-      cell: ({ row }) => formatInteger(row.original.formsCount),
-    },
-    {
-      id: "submissionsCount",
-      accessorKey: "submissionsCount",
-      enableSorting: false,
-      meta: {
-        headerClassName: `hidden text-right md:table-cell ${DATA_TABLE_SHRINK_WRAP_CLASS_NAME}`,
-        cellClassName: `hidden text-right md:table-cell ${DATA_TABLE_SHRINK_WRAP_CLASS_NAME}`,
-      },
-      header: () => (
-        <span className={dataTableColumnLabelClassName("text-right")}>
-          Submissions
-        </span>
-      ),
-      cell: ({ row }) => formatInteger(row.original.submissionsCount),
     },
     {
       id: sortableId("createdAt"),
@@ -366,16 +327,18 @@ function buildTenantColumns({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem
-              disabled={isEnteringTenant}
               onSelect={() => {
-                startEnteringTenant(() => {
-                  void assumeTenantAction(row.original.id);
+                onAssume({
+                  id: row.original.id,
+                  name: row.original.name,
                 });
               }}
             >
-              Enter tenant
+              Assume tenant
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onEdit(row.original.id)}>
+            <DropdownMenuItem
+              onClick={() => onEdit(row.original.id)}
+            >
               Edit
             </DropdownMenuItem>
           </DropdownMenuContent>

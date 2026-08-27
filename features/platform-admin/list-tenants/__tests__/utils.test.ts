@@ -19,6 +19,18 @@ describe("parsePlatformTenantListParams", () => {
     });
   });
 
+  it("coerces Next.js array search params", () => {
+    expect(
+      parsePlatformTenantListParams({
+        search: ["Acme"],
+        page: ["2"],
+      }),
+    ).toMatchObject({
+      search: "Acme",
+      page: 2,
+    });
+  });
+
   it("parses search, sort, and date bounds", () => {
     expect(
       parsePlatformTenantListParams({

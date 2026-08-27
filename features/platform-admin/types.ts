@@ -1,3 +1,4 @@
+import type { SearchParam } from "@/lib/utils/next-utils";
 import type { Session } from "next-auth";
 
 export type PlatformAdminSession = Session;
@@ -11,15 +12,15 @@ export interface PlatformAdminSearchParams {
 }
 
 export interface PlatformTenantSearchParams {
-  page?: string;
-  pageSize?: string;
-  search?: string;
-  sortBy?: string;
-  sortDir?: string;
-  createdFrom?: string;
-  createdTo?: string;
-  modifiedFrom?: string;
-  modifiedTo?: string;
+  page?: SearchParam;
+  pageSize?: SearchParam;
+  search?: SearchParam;
+  sortBy?: SearchParam;
+  sortDir?: SearchParam;
+  createdFrom?: SearchParam;
+  createdTo?: SearchParam;
+  modifiedFrom?: SearchParam;
+  modifiedTo?: SearchParam;
 }
 
 export interface PlatformConfigStatus {

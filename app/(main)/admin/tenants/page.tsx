@@ -36,7 +36,7 @@ export default async function TenantsPage({ searchParams }: TenantsPageProps) {
   return (
     <PlatformAdminShell
       title="Tenants"
-      description="Review tenant records and platform-level usage counts without switching tenant context."
+      description="Review and manage tenants. Assume a tenant only for support access."
       actions={
         canManage ? (
           <CreateTenantDialog authProviders={authProviders} />
