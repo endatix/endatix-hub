@@ -332,58 +332,6 @@ export const deleteFormTemplate = async (
   return response.text();
 };
 
-export const getSubmissions = async (
-  formId: string,
-  filters?: {
-    isComplete?: string[];
-    status?: string[];
-    isTestSubmission?: string[];
-  },
-): Promise<Submission[]> => {
-  const session = await getSession();
-  if (!session.isLoggedIn) {
-    redirect("/login");
-  }
-
-  const validateFormIdResult = validateEndatixId(formId, "formId");
-  if (Result.isError(validateFormIdResult)) {
-    throw new TypeError(validateFormIdResult.message);
-  }
-
-  const CLIENT_PAGE_SIZE = 10_000;
-  const headers = new HeaderBuilder().withAuth(session).build();
-
-  const params = new URLSearchParams();
-  params.set("pageSize", String(CLIENT_PAGE_SIZE));
-
-  if (filters?.isComplete && filters.isComplete.length > 0) {
-    params.append("filter", `isComplete:${filters.isComplete.join("|")}`);
-  }
-  if (filters?.status && filters.status.length > 0) {
-    params.append("filter", `status:${filters.status.join("|")}`);
-  }
-  if (filters?.isTestSubmission && filters.isTestSubmission.length > 0) {
-    params.append(
-      "filter",
-      `isTestSubmission:${filters.isTestSubmission.join("|")}`,
-    );
-  }
-
-  const url = `${requireApiUrl()}/forms/${validateFormIdResult.value}/submissions?${params.toString()}`;
-
-  const response = await fetch(url, {
-    headers: headers,
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error("API Error:", response.status, errorText);
-    throw new Error(`Failed to fetch data: ${response.status} - ${errorText}`);
-  }
-
-  return response.json();
-};
-
 export const updateSubmission = async (
   formId: string,
   submissionId: string,
