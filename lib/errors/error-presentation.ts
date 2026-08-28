@@ -41,7 +41,7 @@ export function resolveErrorPresentation<T extends ErrorPresentation>(
   // Own properties only. The key is caller-supplied - an `?error=` query param, an
   // API error code - so a plain index would resolve `toString` to a function off
   // Object.prototype and hand it to the renderer as a presentation.
-  if (key === undefined || !Object.prototype.hasOwnProperty.call(map, key)) {
+  if (key === undefined || !Object.hasOwn(map, key)) {
     return fallback;
   }
 

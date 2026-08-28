@@ -218,34 +218,18 @@ export function formatUnexpectedErrorClipboard(
   diagnostics: UnexpectedErrorDiagnostics,
   extras: { path?: string; statusLabel?: string; details?: string },
 ): string {
-  const lines = ["Endatix Hub error"];
-
-  if (extras.path) {
-    lines.push(`Path: ${extras.path}`);
-  }
-
-  lines.push(`Timestamp: ${new Date().toISOString()}`);
-
-  lines.push(
-    diagnostics.digest ? `Digest: ${diagnostics.digest}` : "Digest: n/a",
-  );
-
-  if (diagnostics.traceId) {
-    lines.push(`Trace ID: ${diagnostics.traceId}`);
-  }
-
-  if (diagnostics.errorCode) {
-    lines.push(`Error code: ${diagnostics.errorCode}`);
-  }
-
   const httpStatus = diagnostics.statusCode ?? extras.statusLabel;
-  if (httpStatus !== undefined) {
-    lines.push(`HTTP status: ${httpStatus}`);
-  }
 
-  if (extras.details) {
-    lines.push(`Details: ${extras.details}`);
-  }
-
-  return lines.join("\n");
+  return [
+    "Endatix Hub error",
+    extras.path ? `Path: ${extras.path}` : undefined,
+    `Timestamp: ${new Date().toISOString()}`,
+    diagnostics.digest ? `Digest: ${diagnostics.digest}` : "Digest: n/a",
+    diagnostics.traceId ? `Trace ID: ${diagnostics.traceId}` : undefined,
+    diagnostics.errorCode ? `Error code: ${diagnostics.errorCode}` : undefined,
+    httpStatus !== undefined ? `HTTP status: ${httpStatus}` : undefined,
+    extras.details ? `Details: ${extras.details}` : undefined,
+  ]
+    .filter((line): line is string => line !== undefined)
+    .join("\n");
 }
