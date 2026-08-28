@@ -13,8 +13,9 @@ import { FormAssistantProvider } from "@/features/forms/use-cases/design-form/fo
 import { getCurrentConversationUseCase } from "@/features/forms/use-cases/design-form/get-current-conversation.use-case";
 import { aiFeaturesFlag } from "@/lib/feature-flags/flags";
 import { EndatixApi } from "@/lib/endatix-api";
-import { getForm, getFormDefinition } from "@/services/api";
-import { Form, FormDefinition } from "@/types";
+import { ApiResult } from "@/lib/endatix-api/shared/api-result";
+import { getForm } from "@/services/api";
+import { Form } from "@/types";
 import Link from "next/link";
 import { Suspense } from "react";
 
@@ -50,12 +51,16 @@ export default async function FormDesignerPage({ params }: Params) {
   try {
     form = await getForm(formId);
 
-    const response: FormDefinition = await getFormDefinition(
-      formId,
-      form.activeDefinitionId!,
-    );
-    formDefinitionJson = response?.jsonData;
-    formJson = formDefinitionJson ? JSON.parse(formDefinitionJson) : null;
+    if (form.activeDefinitionId) {
+      const definitionResult = await api.definitions.get(
+        formId,
+        form.activeDefinitionId,
+      );
+      if (ApiResult.isSuccess(definitionResult)) {
+        formDefinitionJson = definitionResult.data.jsonData;
+        formJson = formDefinitionJson ? JSON.parse(formDefinitionJson) : null;
+      }
+    }
   } catch (error) {
     console.error("Failed to load form:", error);
 

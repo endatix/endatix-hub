@@ -204,20 +204,20 @@ importers:
         specifier: ^1.7.1
         version: 1.7.4(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       survey-analytics:
-        specifier: ^2.5.29
-        version: 2.5.29(@types/mongodb@4.0.7)(@types/plotly.js-dist-min@2.3.4)(@types/tabulator-tables@6.3.1)(survey-core@2.5.29)
+        specifier: ^3.0.2
+        version: 3.0.2(@types/mongodb@4.0.7)(@types/plotly.js-dist-min@2.3.4)(@types/tabulator-tables@6.3.1)(survey-core@3.0.2)
       survey-core:
-        specifier: ^2.5.29
-        version: 2.5.29
+        specifier: ^3.0.2
+        version: 3.0.2
       survey-creator-core:
-        specifier: ^2.5.29
-        version: 2.5.29(ace-builds@1.43.6)(survey-core@2.5.29)
+        specifier: ^3.0.2
+        version: 3.0.2(ace-builds@1.43.6)(survey-core@3.0.2)
       survey-creator-react:
-        specifier: ^2.5.29
-        version: 2.5.29(ace-builds@1.43.6)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(survey-core@2.5.29)(survey-creator-core@2.5.29(ace-builds@1.43.6)(survey-core@2.5.29))(survey-react-ui@2.5.29(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(survey-core@2.5.29))
+        specifier: ^3.0.2
+        version: 3.0.2(ace-builds@1.43.6)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(survey-core@3.0.2)(survey-creator-core@3.0.2(ace-builds@1.43.6)(survey-core@3.0.2))(survey-react-ui@3.0.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(survey-core@3.0.2))
       survey-react-ui:
-        specifier: ^2.5.29
-        version: 2.5.29(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(survey-core@2.5.29)
+        specifier: ^3.0.2
+        version: 3.0.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(survey-core@3.0.2)
       tailwind-merge:
         specifier: ^3.4.1
         version: 3.4.1
@@ -1576,6 +1576,9 @@ packages:
   '@js-sdsl/ordered-map@4.4.2':
     resolution: {integrity: sha512-iUKgm52T8HOE/makSxjqoWhe95ZJA1/G1sYsGev2JDKUSS14KAgg1LHb+Ba+IPow0xflbnSkOsZcO08C7w1gYw==}
 
+  '@kurkle/color@0.3.4':
+    resolution: {integrity: sha512-M5UknZPHRu3DEDWoipU6sE8PdkZ6Z/S+v4dD+Ke8IaNlpdSQah50lz1KtcFBa2vsdOnwbbnxJwVM4wty6udA5w==}
+
   '@microsoft/applicationinsights-web-snippet@1.2.3':
     resolution: {integrity: sha512-59ex4x1/PabGQIg+o0GKG5olqAJYBvMOiXec/9HCD3hK2y36YMWT0ivq5mequvtS5+21kco3SOnMB6QyScLPIA==}
 
@@ -1588,9 +1591,6 @@ packages:
     peerDependenciesMeta:
       '@cfworker/json-schema':
         optional: true
-
-  '@mongodb-js/saslprep@1.4.11':
-    resolution: {integrity: sha512-o9rAHc0IpIjuPSxRutWpE1F62x7n+4mVS4rCNHkzhIUMQcc18bb6xEq5wd2NdN0WjepIyXIppRshYI2kQDOZVA==}
 
   '@mongodb-js/saslprep@1.4.13':
     resolution: {integrity: sha512-E3Sv4eCYAlKYUTx8S3ioQcDUscOif+8zZ5OnW1IzJ+Tt+EO+ke8mn+Y3FX6N1H79picwbdOavVOb1jPi2EOyrg==}
@@ -3206,6 +3206,31 @@ packages:
   '@standard-schema/utils@0.3.0':
     resolution: {integrity: sha512-e7Mew686owMaPJVNNLs55PUvgz371nKgwsc4vxE49zsODpJEnxgxRo2y/OKrqueavXgZNMDVj3DdHFlaSAeU8g==}
 
+  '@svgdotjs/svg.draggable.js@3.0.6':
+    resolution: {integrity: sha512-7iJFm9lL3C40HQcqzEfezK2l+dW2CpoVY3b77KQGqc8GXWa6LhhmX5Ckv7alQfUXBuZbjpICZ+Dvq1czlGx7gA==}
+    peerDependencies:
+      '@svgdotjs/svg.js': ^3.2.4
+
+  '@svgdotjs/svg.filter.js@3.0.9':
+    resolution: {integrity: sha512-/69XMRCDoam2HgC4ldHIaDgeQf1ViHIsa0Ld4uWgiXtZ+E24DWHe/9Ib6kbNiZ7WRIdlVokUDR1Fg0kjIpkfbw==}
+    engines: {node: '>= 0.8.0'}
+
+  '@svgdotjs/svg.js@3.2.8':
+    resolution: {integrity: sha512-NUdbI/7FDdqGpzKmqr09IQoy9MUcrAC/3bC8gLgXi6OfJuyri450zMLvJekFUhuq3iN5gpdPjoSoStNl9Eijfg==}
+
+  '@svgdotjs/svg.resize.js@2.0.5':
+    resolution: {integrity: sha512-4heRW4B1QrJeENfi7326lUPYBCevj78FJs8kfeDxn5st0IYPIRXoTtOSYvTzFWgaWWXd3YCDE6ao4fmv91RthA==}
+    engines: {node: '>= 14.18'}
+    peerDependencies:
+      '@svgdotjs/svg.js': ^3.2.4
+      '@svgdotjs/svg.select.js': ^4.0.1
+
+  '@svgdotjs/svg.select.js@4.0.3':
+    resolution: {integrity: sha512-qkMgso1sd2hXKd1FZ1weO7ANq12sNmQJeGDjs46QwDVsxSRcHmvWKL2NDF7Yimpwf3sl5esOLkPqtV2bQ3v/Jg==}
+    engines: {node: '>= 14.18'}
+    peerDependencies:
+      '@svgdotjs/svg.js': ^3.2.4
+
   '@swc/helpers@0.5.17':
     resolution: {integrity: sha512-5IKx/Y13RsYd+sauPb2x+U/xZikHjolzfuDgTAl/Tdf3Q8rslRvC19NKDLgAJQ6wsqADk10ntlv08nPFw/gO/A==}
 
@@ -3765,6 +3790,9 @@ packages:
   '@vitest/utils@4.1.10':
     resolution: {integrity: sha512-fy9am/HWxbaGt/Sawrp90vt6Y6jQwf1RX77cz3uwoJwJVMli/e1IEwRPnMNJ7vKfPTwo0diXifkpPvwH9v7nGA==}
 
+  '@yr/monotone-cubic-spline@1.0.3':
+    resolution: {integrity: sha512-FQXkOta0XBSUPHndIKON2Y9JeQz5ZeMqLYZVVK93FliNBFm7LNMIZmY6FrMEB9XPcDbE2bekMbZD6kzDkxwYjA==}
+
   abs-svg-path@0.1.1:
     resolution: {integrity: sha512-d8XPSGjfyzlXC3Xx891DJRyZfqk5JU0BJrDQcsWomFIV1/BIzPW5HDH5iDdWpqWaav0YVIEzT1RHTwWr0FFshA==}
 
@@ -3839,6 +3867,9 @@ packages:
   ansi-styles@5.2.0:
     resolution: {integrity: sha512-Cxwpt2SfTzTtXcfOlzGEee8O+c+MmUgGrNiBcXnuWxuFJHe6a5Hz7qwhwe5OgaSYI0IJvkLqWX1ASG+cJOkEiA==}
     engines: {node: '>=10'}
+
+  apexcharts@4.7.0:
+    resolution: {integrity: sha512-iZSrrBGvVlL+nt2B1NpqfDuBZ9jX61X9I2+XV0hlYXHtTwhwLTHDKGXjNXAgFBDLuvSYCB/rq2nPWVPRv2DrGA==}
 
   argparse@2.0.1:
     resolution: {integrity: sha512-8+9WqebbFzpX9OR+Wa6O29asIogeRMzcGtAINdpMHHyAg10f05aSFVBbcEqGf/PXw1EjAZ+q2/bEBg3DvurK3Q==}
@@ -4029,6 +4060,15 @@ packages:
   chalk@5.6.2:
     resolution: {integrity: sha512-7NzBL0rN6fMUW+f7A6Io4h40qQlG+xGmtMxfbnH/K7TAtt8JQWVQK+6g0UXKMeVJoyV5EkkNsErQ8pVD3bLHbA==}
     engines: {node: ^12.17.0 || ^14.13 || >=16.0.0}
+
+  chart.js@4.5.1:
+    resolution: {integrity: sha512-GIjfiT9dbmHRiYi6Nl2yFCq7kkwdkp1W/lp2J99rX0yo9tgJGn3lKQATztIjb5tVtevcBtIdICNWqlq5+E8/Pw==}
+    engines: {pnpm: '>=8'}
+
+  chartjs-plugin-datalabels@2.2.0:
+    resolution: {integrity: sha512-14ZU30lH7n89oq+A4bWaJPnAG8a7ZTk7dKf48YAzMvJjQtjrgg5Dpk9f+LbjCF6bpx3RAGTeL13IXpKQYyRvlw==}
+    peerDependencies:
+      chart.js: '>=3.0.0'
 
   chokidar@4.0.3:
     resolution: {integrity: sha512-Qgzu8kfBvo+cA4962jnP1KkS6Dop5NS6g7R5LFYJr4b8Ub94PPQXUksCw9PvXoeXPRRddRNC5C1JQUR2SMGtnA==}
@@ -6613,47 +6653,47 @@ packages:
     resolution: {integrity: sha512-ot0WnXS9fgdkgIcePe6RHNk1WA8+muPa6cSjeR3V8K27q9BB1rTE3R1p7Hv0z1ZyAc8s6Vvv8DIyWf681MAt0w==}
     engines: {node: '>= 0.4'}
 
-  survey-analytics@2.5.29:
-    resolution: {integrity: sha512-ZGiQyUn2/4nc8zP/sYAeQlkLzea+BI+KmfGRIaNdn9t/isWrvxteEh3PVg/0nB32lEeG8beN4vDGM4h2UUrzWQ==}
+  survey-analytics@3.0.2:
+    resolution: {integrity: sha512-3EYnN1ocvEKc60wMFqOSsOemtXtytwwCcrNC0ziwnMQ3gfgmH6UzshFePVOALWzw1VOmwfQrTtn62vPaLFK6Yg==}
     peerDependencies:
       '@types/mongodb': ^4.0.6
       '@types/plotly.js-dist-min': ^2.3.0
       '@types/tabulator-tables': ^6.2.3
-      survey-core: 2.5.29
+      survey-core: 3.0.2
 
-  survey-core@2.5.29:
-    resolution: {integrity: sha512-X3+M6JNbZeH44HdI4R/j1BPH+N/E4qX3FXeVs1RvxInBrjKzXNc6zSo/x/KxXQk4XEpBHRjnxXxypKj5461TEQ==}
+  survey-core@3.0.2:
+    resolution: {integrity: sha512-koM/Y8tV5YBaRxoET4kzHcnHWH0x//xSUtyahCS7WkBM9KaNrerh7reAXss7qVdInLZ4pkRTE76GiOWTuSaD5Q==}
 
-  survey-creator-core@2.5.29:
-    resolution: {integrity: sha512-GPkQy9G7SjXAxJoUZr9Ihm+q1bTcXAXyjKkZTEu5TYmiPOVnHEJ1fwERhEBVZjBMttTYZLu5fkV6ASfUZFYcVg==}
+  survey-creator-core@3.0.2:
+    resolution: {integrity: sha512-iWVrpzr9CfCaZncLHeWJkqPA3IEooYbbMyl4wp7R4ThH3NsRFMeJUTQChIcLse8tMduVP3Ew+YOPEgeX9cDTuw==}
     engines: {node: '>=0.10.0'}
     peerDependencies:
       ace-builds: ^1.4.12
-      survey-core: 2.5.29
+      survey-core: 3.0.2
     peerDependenciesMeta:
       ace-builds:
         optional: true
 
-  survey-creator-react@2.5.29:
-    resolution: {integrity: sha512-NCI93OaptOkuGoQhBV6vT8wfjtEGh4yeUbe/6aSUiOeOe0DA/rLynM+jmBITc+UUgHSS0+5QCg/zVe2ySxp3/w==}
+  survey-creator-react@3.0.2:
+    resolution: {integrity: sha512-gOKWjabID+4qO39GgOoKug/3yVI1ZJE2IuAYzFtporRgCO7+9Jl+nTiNQVJGWC4BtKndbXG8oL2VQ3tSB1VFaw==}
     engines: {node: '>=0.10.0'}
     peerDependencies:
       ace-builds: ^1.4.12
       react: ^16.5.0 || ^17.0.1 || ^18.1.0 || ^19.0.0
       react-dom: ^16.5.0 || ^17.0.1 || ^18.1.0 || ^19.0.0
-      survey-core: 2.5.29
-      survey-creator-core: 2.5.29
-      survey-react-ui: 2.5.29
+      survey-core: 3.0.2
+      survey-creator-core: 3.0.2
+      survey-react-ui: 3.0.2
     peerDependenciesMeta:
       ace-builds:
         optional: true
 
-  survey-react-ui@2.5.29:
-    resolution: {integrity: sha512-uIsk7tk2VLGANJNc71EZf52PZvBi0eNunre26LlS8JIF8supP8zvv5OqDZShhdSQJU/XF35626XUhK77nQBLVw==}
+  survey-react-ui@3.0.2:
+    resolution: {integrity: sha512-r6pZfmxDJKAYHFw2Ng/Ppt9b/FdmgIO3Kd5bssFW9zES+JczkUbRM3jv9USf5VRAOm4lY0CV1WPwIZs/S3FX7Q==}
     peerDependencies:
       react: ^16.5.0 || ^17.0.1 || ^18.1.0 || ^19.0.0
       react-dom: ^16.5.0 || ^17.0.1 || ^18.1.0 || ^19.0.0
-      survey-core: 2.5.29
+      survey-core: 3.0.2
 
   svg-arc-to-cubic-bezier@3.2.0:
     resolution: {integrity: sha512-djbJ/vZKZO+gPoSDThGNpKDO+o+bAeA4XQKovvkNCqnIS2t+S4qnLAGQhyyrulhCFRl1WWzAp0wUDV8PpTVU3g==}
@@ -8713,6 +8753,8 @@ snapshots:
 
   '@js-sdsl/ordered-map@4.4.2': {}
 
+  '@kurkle/color@0.3.4': {}
+
   '@microsoft/applicationinsights-web-snippet@1.2.3': {}
 
   '@modelcontextprotocol/sdk@1.30.0(zod@3.25.76)':
@@ -8736,10 +8778,6 @@ snapshots:
       zod-to-json-schema: 3.25.2(zod@3.25.76)
     transitivePeerDependencies:
       - supports-color
-
-  '@mongodb-js/saslprep@1.4.11':
-    dependencies:
-      sparse-bitfield: 3.0.3
 
   '@mongodb-js/saslprep@1.4.13':
     dependencies:
@@ -10493,6 +10531,25 @@ snapshots:
 
   '@standard-schema/utils@0.3.0': {}
 
+  '@svgdotjs/svg.draggable.js@3.0.6(@svgdotjs/svg.js@3.2.8)':
+    dependencies:
+      '@svgdotjs/svg.js': 3.2.8
+
+  '@svgdotjs/svg.filter.js@3.0.9':
+    dependencies:
+      '@svgdotjs/svg.js': 3.2.8
+
+  '@svgdotjs/svg.js@3.2.8': {}
+
+  '@svgdotjs/svg.resize.js@2.0.5(@svgdotjs/svg.js@3.2.8)(@svgdotjs/svg.select.js@4.0.3(@svgdotjs/svg.js@3.2.8))':
+    dependencies:
+      '@svgdotjs/svg.js': 3.2.8
+      '@svgdotjs/svg.select.js': 4.0.3(@svgdotjs/svg.js@3.2.8)
+
+  '@svgdotjs/svg.select.js@4.0.3(@svgdotjs/svg.js@3.2.8)':
+    dependencies:
+      '@svgdotjs/svg.js': 3.2.8
+
   '@swc/helpers@0.5.17':
     dependencies:
       tslib: 2.8.1
@@ -11086,6 +11143,8 @@ snapshots:
       convert-source-map: 2.0.0
       tinyrainbow: 3.1.0
 
+  '@yr/monotone-cubic-spline@1.0.3': {}
+
   abs-svg-path@0.1.1: {}
 
   accepts@2.0.0:
@@ -11146,6 +11205,15 @@ snapshots:
       color-convert: 2.0.1
 
   ansi-styles@5.2.0: {}
+
+  apexcharts@4.7.0:
+    dependencies:
+      '@svgdotjs/svg.draggable.js': 3.0.6(@svgdotjs/svg.js@3.2.8)
+      '@svgdotjs/svg.filter.js': 3.0.9
+      '@svgdotjs/svg.js': 3.2.8
+      '@svgdotjs/svg.resize.js': 2.0.5(@svgdotjs/svg.js@3.2.8)(@svgdotjs/svg.select.js@4.0.3(@svgdotjs/svg.js@3.2.8))
+      '@svgdotjs/svg.select.js': 4.0.3(@svgdotjs/svg.js@3.2.8)
+      '@yr/monotone-cubic-spline': 1.0.3
 
   argparse@2.0.1: {}
 
@@ -11366,6 +11434,14 @@ snapshots:
   chai@6.2.2: {}
 
   chalk@5.6.2: {}
+
+  chart.js@4.5.1:
+    dependencies:
+      '@kurkle/color': 0.3.4
+
+  chartjs-plugin-datalabels@2.2.0(chart.js@4.5.1):
+    dependencies:
+      chart.js: 4.5.1
 
   chokidar@4.0.3:
     dependencies:
@@ -13061,7 +13137,7 @@ snapshots:
 
   mongodb@6.21.0:
     dependencies:
-      '@mongodb-js/saslprep': 1.4.11
+      '@mongodb-js/saslprep': 1.4.13
       bson: 6.10.4
       mongodb-connection-string-url: 3.0.2
 
@@ -14171,15 +14247,18 @@ snapshots:
 
   supports-preserve-symlinks-flag@1.0.0: {}
 
-  survey-analytics@2.5.29(@types/mongodb@4.0.7)(@types/plotly.js-dist-min@2.3.4)(@types/tabulator-tables@6.3.1)(survey-core@2.5.29):
+  survey-analytics@3.0.2(@types/mongodb@4.0.7)(@types/plotly.js-dist-min@2.3.4)(@types/tabulator-tables@6.3.1)(survey-core@3.0.2):
     dependencies:
       '@types/mongodb': 4.0.7
       '@types/plotly.js-dist-min': 2.3.4
       '@types/tabulator-tables': 6.3.1
+      apexcharts: 4.7.0
+      chart.js: 4.5.1
+      chartjs-plugin-datalabels: 2.2.0(chart.js@4.5.1)
       mongodb: 6.21.0
       muuri: 0.8.0
       plotly.js-dist-min: 2.35.3
-      survey-core: 2.5.29
+      survey-core: 3.0.2
       tabulator-tables: 6.3.1
     transitivePeerDependencies:
       - '@aws-sdk/credential-providers'
@@ -14190,29 +14269,29 @@ snapshots:
       - snappy
       - socks
 
-  survey-core@2.5.29: {}
+  survey-core@3.0.2: {}
 
-  survey-creator-core@2.5.29(ace-builds@1.43.6)(survey-core@2.5.29):
+  survey-creator-core@3.0.2(ace-builds@1.43.6)(survey-core@3.0.2):
     dependencies:
-      survey-core: 2.5.29
+      survey-core: 3.0.2
     optionalDependencies:
       ace-builds: 1.43.6
 
-  survey-creator-react@2.5.29(ace-builds@1.43.6)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(survey-core@2.5.29)(survey-creator-core@2.5.29(ace-builds@1.43.6)(survey-core@2.5.29))(survey-react-ui@2.5.29(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(survey-core@2.5.29)):
+  survey-creator-react@3.0.2(ace-builds@1.43.6)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(survey-core@3.0.2)(survey-creator-core@3.0.2(ace-builds@1.43.6)(survey-core@3.0.2))(survey-react-ui@3.0.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(survey-core@3.0.2)):
     dependencies:
       react: 19.2.8
       react-dom: 19.2.8(react@19.2.8)
-      survey-core: 2.5.29
-      survey-creator-core: 2.5.29(ace-builds@1.43.6)(survey-core@2.5.29)
-      survey-react-ui: 2.5.29(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(survey-core@2.5.29)
+      survey-core: 3.0.2
+      survey-creator-core: 3.0.2(ace-builds@1.43.6)(survey-core@3.0.2)
+      survey-react-ui: 3.0.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(survey-core@3.0.2)
     optionalDependencies:
       ace-builds: 1.43.6
 
-  survey-react-ui@2.5.29(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(survey-core@2.5.29):
+  survey-react-ui@3.0.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(survey-core@3.0.2):
     dependencies:
       react: 19.2.8
       react-dom: 19.2.8(react@19.2.8)
-      survey-core: 2.5.29
+      survey-core: 3.0.2
 
   svg-arc-to-cubic-bezier@3.2.0: {}
 

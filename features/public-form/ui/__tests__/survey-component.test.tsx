@@ -685,7 +685,7 @@ describe("SurveyComponent - Embed Fill Mode", () => {
   });
 
   it("re-applies the background once the survey's real theme finishes applying", async () => {
-    // Arrange: useSurveyTheme applies DefaultLight first and the real theme
+    // Arrange: useSurveyTheme applies Endatix first and the stored theme
     // a render later once it's parsed (see use-survey-theme.hook.tsx) — the
     // effect must re-run on that second pass, not just the first.
     mockGetEmbedMessagingContext.mockReturnValue({
@@ -698,7 +698,7 @@ describe("SurveyComponent - Embed Fill Mode", () => {
       value: { "--sjs-general-backcolor-dim": "rgb(1, 1, 1)" },
     });
 
-    // Act: first pass, as if only DefaultLight has been applied so far.
+    // Act: first pass, as if only the fallback theme has been applied so far.
     const result = renderSurveyComponent({ isEmbed: true });
     await act(async () => {});
 

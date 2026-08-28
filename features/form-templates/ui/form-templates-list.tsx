@@ -19,7 +19,7 @@ import Link from "next/link";
 import { ApiResult } from "@/lib/endatix-api";
 
 type FormTemplatesListProps = {
-  templatesPromise: Promise<ApiResult<FormTemplate[]> | FormTemplate[]>;
+  templatesPromise: Promise<ApiResult<FormTemplate[]>>;
   requireFolderAssignment?: boolean;
 };
 
@@ -27,22 +27,18 @@ const FormTemplatesList = ({
   templatesPromise,
   requireFolderAssignment = false,
 }: FormTemplatesListProps) => {
-  const resolvedTemplates = use(templatesPromise);
-  const templatesResult = Array.isArray(resolvedTemplates)
-    ? ApiResult.success(resolvedTemplates)
-    : resolvedTemplates;
+  const templatesResult = use(templatesPromise);
   const errorMessage = ApiResult.isError(templatesResult)
     ? ApiResult.getErrorMessage(templatesResult) ||
       "Failed to load form templates."
     : null;
-  const templates = useMemo(
-    () =>
-      ApiResult.isSuccess(templatesResult) &&
-      Array.isArray(templatesResult.data)
-        ? templatesResult.data
-        : [],
-    [templatesResult],
-  );
+  const templates = useMemo(() => {
+    if (!ApiResult.isSuccess(templatesResult)) {
+      return [];
+    }
+
+    return templatesResult.data;
+  }, [templatesResult]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(
     null,
   );

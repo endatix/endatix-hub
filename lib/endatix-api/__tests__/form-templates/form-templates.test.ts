@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import { FormTemplates } from "../../form-templates/form-templates";
+import {
+  FormTemplates,
+  buildListFormTemplatesEndpoint,
+} from "../../form-templates/form-templates";
 import { ApiResult } from "../../shared/api-result";
 import type { EndatixApi } from "../../endatix-api";
 import type { FormTemplate } from "@/types";
@@ -77,6 +80,98 @@ describe("FormTemplates", () => {
     expect(get).toHaveBeenCalledTimes(1);
     expect(get).toHaveBeenCalledWith(
       "/form-templates?page=1&pageSize=100&folderId=123",
+    );
+  });
+
+  it("list sends folderId:null filter when unassignedOnly", async () => {
+    const get = vi.fn().mockResolvedValue(
+      ApiResult.success({
+        items: [],
+        page: 1,
+        pageSize: 100,
+        totalRecords: 0,
+        totalPages: 0,
+      }),
+    );
+    const sut = new FormTemplates({ get } as unknown as EndatixApi);
+
+    await sut.list({ unassignedOnly: true });
+
+    expect(get).toHaveBeenCalledTimes(1);
+    const url = get.mock.calls[0][0] as string;
+    expect(url).toContain("page=1");
+    expect(url).toContain("pageSize=100");
+    expect(decodeURIComponent(url)).toContain("filter=folderId:null");
+  });
+
+  it("list flattens Paged.items into a FormTemplate array", async () => {
+    const items: FormTemplate[] = [
+      {
+        id: "1",
+        name: "A",
+        description: undefined,
+        createdAt: new Date(),
+        folderId: null,
+      },
+      {
+        id: "2",
+        name: "B",
+        description: undefined,
+        createdAt: new Date(),
+        folderId: null,
+      },
+    ];
+    const get = vi.fn().mockResolvedValue(
+      ApiResult.success({
+        items,
+        page: 1,
+        pageSize: 100,
+        totalRecords: 2,
+        totalPages: 1,
+      }),
+    );
+    const sut = new FormTemplates({ get } as unknown as EndatixApi);
+
+    const result = await sut.list({ unassignedOnly: true });
+
+    expect(ApiResult.isSuccess(result)).toBe(true);
+    if (ApiResult.isSuccess(result)) {
+      expect(result.data).toEqual(items);
+    }
+  });
+
+  it("fails when the server keeps reporting more pages after the cap", async () => {
+    const get = vi.fn().mockResolvedValue(
+      ApiResult.success({
+        items: [
+          {
+            id: "1",
+            name: "A",
+            description: undefined,
+            createdAt: new Date(),
+            folderId: null,
+          },
+        ],
+        page: 1,
+        pageSize: 100,
+        totalRecords: 1_000_000,
+        totalPages: 10_000,
+      }),
+    );
+    const sut = new FormTemplates({ get } as unknown as EndatixApi);
+
+    const result = await sut.list();
+
+    expect(get).toHaveBeenCalledTimes(50);
+    expect(ApiResult.isSuccess(result)).toBe(false);
+  });
+});
+
+describe("buildListFormTemplatesEndpoint", () => {
+  it("maps unassignedOnly to filter folderId:null", () => {
+    const endpoint = buildListFormTemplatesEndpoint({ unassignedOnly: true });
+    expect(decodeURIComponent(endpoint)).toBe(
+      "/form-templates?page=1&pageSize=100&filter=folderId:null",
     );
   });
 });

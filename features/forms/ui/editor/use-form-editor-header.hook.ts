@@ -58,7 +58,7 @@ export const useFormEditorHeader = ({
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [originalName, setOriginalName] = useState(initialFormName);
   const [isPending, startTransition] = useTransition();
-  const [isSaving] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [showSavedSuccess, setShowSavedSuccess] = useState(false);
 
   const handleNameSave = useCallback(async () => {
@@ -118,29 +118,28 @@ export const useFormEditorHeader = ({
     [handleNameSave, originalName],
   );
 
-  const saveFormHandler = useCallback(() => {
+  // Deliberately NOT wrapped in startTransition: the save flow can open a modal that
+  // waits on the user, and a transition would both keep `isPending` stuck for as long
+  // as the dialog is open and deprioritise the render that paints it.
+  const saveFormHandler = useCallback(async () => {
     const hasChanges =
       hasUnsavedChanges || isCurrentThemeModified || isJsonModified;
     if (!hasChanges) {
       toast.info("Nothing to save");
       return;
     }
-    startTransition(async () => {
-      try {
-        await onSave();
-        setShowSavedSuccess(true);
-      } catch (error) {
-        console.error("Error in save flow:", error);
-        toast.error("Failed to save changes");
-      }
-    });
-  }, [
-    hasUnsavedChanges,
-    isCurrentThemeModified,
-    isJsonModified,
-    onSave,
-    startTransition,
-  ]);
+
+    setIsSaving(true);
+    try {
+      await onSave();
+      setShowSavedSuccess(true);
+    } catch (error) {
+      console.error("Error in save flow:", error);
+      toast.error("Failed to save changes");
+    } finally {
+      setIsSaving(false);
+    }
+  }, [hasUnsavedChanges, isCurrentThemeModified, isJsonModified, onSave]);
 
   const clearSavedSuccess = useCallback(() => setShowSavedSuccess(false), []);
 

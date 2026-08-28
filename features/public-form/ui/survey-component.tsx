@@ -99,10 +99,12 @@ export default function SurveyComponent({
   // of via useEffect+state. Require embedId too: embed.js always sets it
   // alongside heightMode=fill, so a bare `?heightMode=fill` visit (not
   // driven by our own SDK) doesn't trigger fill styling.
-  const embedMessagingContext = isEmbed ? getEmbedMessagingContext() : undefined;
+  const embedMessagingContext = isEmbed
+    ? getEmbedMessagingContext()
+    : undefined;
   const isFillMode = Boolean(
     embedMessagingContext?.heightMode === "fill" &&
-      embedMessagingContext?.embedId,
+    embedMessagingContext?.embedId,
   );
 
   useEffect(() => {
@@ -119,17 +121,19 @@ export default function SurveyComponent({
     // so this reaches the space beyond the survey's own content even if
     // some ancestor's box stays content-sized.
     //
-    // `appliedTheme` (from useSurveyTheme) is in the dependency list even
-    // though it's unused directly: useSurveyTheme applies DefaultLight
-    // first and the survey's real theme a render later once parsed, so
-    // without it this effect would only ever see the DefaultLight colors.
+    // `appliedTheme` is in the dependency list even though unused directly:
+    // useSurveyTheme applies Endatix or the stored theme a render later
+    // once JSON is parsed, so this effect must re-run for the real colors.
     const themeVariables = surveyModel.themeVariables ?? {};
     const backgroundColor =
+      themeVariables["--sjs2-color-utility-body"] ||
+      themeVariables["--sjs2-color-utility-surface-survey"] ||
       themeVariables["--sjs-general-backcolor-dim"] ||
       themeVariables["--sjs-general-backcolor"] ||
       DEFAULT_FILL_BACKGROUND_COLOR;
 
-    const previousHtmlBackground = document.documentElement.style.backgroundColor;
+    const previousHtmlBackground =
+      document.documentElement.style.backgroundColor;
     const previousBodyBackground = document.body.style.backgroundColor;
     document.documentElement.style.backgroundColor = backgroundColor;
     document.body.style.backgroundColor = backgroundColor;

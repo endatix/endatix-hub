@@ -19,7 +19,7 @@ import AnswerViewer from "@/features/submissions/ui/answers/answer-viewer";
 import {
   getDefinitionAction,
   GetDefinitionRequest,
-} from "../get-definition.action";
+} from "@/features/submissions/use-cases/get-definition/get-definition.action";
 import { Submission } from "@/lib/endatix-api";
 import { Result } from "@/lib/result";
 
@@ -39,9 +39,8 @@ const SubmissionSheet = ({ submission }: SubmissionSheetProps) => {
           formId: params.formId,
           definitionId: submission?.formDefinitionId,
         };
-        const getDefinitionResult = await getDefinitionAction(
-          getDefinitionRequest,
-        );
+        const getDefinitionResult =
+          await getDefinitionAction(getDefinitionRequest);
 
         if (getDefinitionResult === undefined) {
           return;
@@ -86,10 +85,10 @@ const SubmissionSheet = ({ submission }: SubmissionSheetProps) => {
     submission &&
     surveyModel && (
       <Sheet modal={false} open={submission != null}>
-        <SheetContent className="w-[720px] sm:w-[620px] sm:max-w-none overflow-auto">
+        <SheetContent className="w-[720px] overflow-auto sm:w-[620px] sm:max-w-none">
           <SheetHeader>
             <SheetTitle>
-              {surveyModel?.title} <Link2 className="inline-block ml-4" />
+              {surveyModel?.title} <Link2 className="ml-4 inline-block" />
             </SheetTitle>
           </SheetHeader>
           <div className="my-8 flex space-x-2">
@@ -121,14 +120,14 @@ const SubmissionSheet = ({ submission }: SubmissionSheetProps) => {
               );
             })}
           </div>
-          <div className="grid grid-cols-5 py-2 items-center gap-4">
-            <span className="text-right self-start col-span-2">
+          <div className="grid grid-cols-5 items-center gap-4 py-2">
+            <span className="col-span-2 self-start text-right">
               Is Complete
             </span>
-            <span className="text-sm text-muted-foreground col-span-3">
+            <span className="col-span-3 text-sm text-muted-foreground">
               <span
                 className={cn(
-                  "flex h-2 w-2 mr-1 rounded-full inline-block",
+                  "mr-1 flex inline-block h-2 w-2 rounded-full",
                   submission.isComplete ? "bg-green-600" : "bg-gray-600",
                 )}
               />
@@ -136,20 +135,20 @@ const SubmissionSheet = ({ submission }: SubmissionSheetProps) => {
             </span>
           </div>
           {submission.isComplete ? (
-            <div className="grid grid-cols-5 py-2 items-center gap-4">
-              <span className="text-right self-start col-span-2">
+            <div className="grid grid-cols-5 items-center gap-4 py-2">
+              <span className="col-span-2 self-start text-right">
                 Submitted on
               </span>
-              <span className="text-sm text-muted-foreground col-span-3">
+              <span className="col-span-3 text-sm text-muted-foreground">
                 {getFormattedDate(submission.completedAt)}
               </span>
             </div>
           ) : (
-            <div className="grid grid-cols-5 py-2 items-center gap-4">
-              <span className="text-right self-start col-span-2">
+            <div className="grid grid-cols-5 items-center gap-4 py-2">
+              <span className="col-span-2 self-start text-right">
                 Last updated on
               </span>
-              <span className="text-sm text-muted-foreground col-span-3">
+              <span className="col-span-3 text-sm text-muted-foreground">
                 {getFormattedDate(submission.createdAt)}
               </span>
             </div>
