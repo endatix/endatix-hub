@@ -1,17 +1,22 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { useSurveyLicenseKey } from "@/features/config/survey-license-provider";
 
-const PreviewForm = dynamic(() => import("@/features/forms/ui/preview/preview-form"), {
-  ssr: false,
-});
+const PreviewForm = dynamic(
+  () => import("@/features/forms/ui/preview/preview-form"),
+  {
+    ssr: false,
+  },
+);
 
 interface PreviewFormContainerProps {
   model: string;
 }
 
 const PreviewFormContainer = ({ model }: PreviewFormContainerProps) => {
-  return <PreviewForm model={model} slkVal={process.env.NEXT_PUBLIC_SLK} />;
+  const surveyLicenseKey = useSurveyLicenseKey();
+  return <PreviewForm model={model} slkVal={surveyLicenseKey} />;
 };
 
 export default PreviewFormContainer;

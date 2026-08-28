@@ -1,4 +1,5 @@
 import { TruncatedId } from "@/components/common/truncated-id";
+import { getIsomorphicEndatixConfig } from "@/features/config/client-endatix-config";
 import { DefinitionField, Submission } from "@/lib/endatix-api";
 import {
   QUESTION_REGISTRY,
@@ -32,9 +33,6 @@ interface SubmissionSystemColumnsOptions {
   onSubmitterEmailFilterChange?: (value: string) => void;
 }
 
-const submitterPrimaryFilterLabel =
-  process.env.NEXT_PUBLIC_SUBMITTER_PRIMARY_FILTER_LABEL?.trim() || "Submitter";
-
 /** Icon/action columns stay compact; text columns keep a min width and share leftover space. */
 const COMPACT_COLUMN = "w-12 whitespace-nowrap";
 const FLUID_COLUMN = "min-w-[6.5rem]";
@@ -47,6 +45,10 @@ export function buildSubmissionSystemColumns({
   submitterEmailFilter = "",
   onSubmitterEmailFilterChange,
 }: SubmissionSystemColumnsOptions = {}): ColumnDef<ParsedSubmission>[] {
+  // Read per call, not at module init: a build-inlined label cannot be changed per
+  // deployment, and this builder is invoked from a component after config hydration.
+  const { submitterPrimaryFilterLabel } = getIsomorphicEndatixConfig();
+
   return [
     {
       id: "actions",
@@ -321,13 +323,11 @@ function buildSubmitterProfileColumns({
 }
 
 function getSubmitterGridProfileFields(): string[] {
-  return (process.env.NEXT_PUBLIC_SUBMITTER_GRID_PROFILE_FIELDS ?? "")
-    .split(",")
+  return getIsomorphicEndatixConfig()
+    .submitterGridProfileFields.split(",")
     .map((field) => field.trim())
     .filter(Boolean);
 }
-
-export const COLUMNS_DEFINITION = buildSubmissionSystemColumns();
 
 export function buildSubmissionDataColumns(
   fields: DefinitionField[],

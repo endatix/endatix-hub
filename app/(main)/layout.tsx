@@ -8,6 +8,8 @@ import { Metadata } from "next";
 import { cookies, headers } from "next/headers";
 import { getMetadataBase } from "@/lib/seo";
 import { getClientEndatixConfig } from "@/features/config";
+import { getSurveyLicenseKey } from "@/features/config/legacy-public-env.server";
+import { SurveyLicenseProvider } from "@/features/config/survey-license-provider";
 
 export const metadata: Metadata = {
   metadataBase: getMetadataBase(),
@@ -36,7 +38,6 @@ export default async function RootLayout({
   header,
   nav,
 }: RootLayoutProps) {
-
   const requestHeaders = await headers();
   const osClass = getOsClass(requestHeaders);
   const session = await auth();
@@ -60,11 +61,13 @@ export default async function RootLayout({
           sidebarDefaultOpen={defaultSidebarOpen}
           endatixConfig={endatixConfig}
         >
-          {nav}
-          <main data-slot="sidebar-inset">
-            {header}
-            <div data-slot="content-wrapper">{children}</div>
-          </main>
+          <SurveyLicenseProvider value={getSurveyLicenseKey()}>
+            {nav}
+            <main data-slot="sidebar-inset">
+              {header}
+              <div data-slot="content-wrapper">{children}</div>
+            </main>
+          </SurveyLicenseProvider>
         </AppProvider>
       </body>
     </html>

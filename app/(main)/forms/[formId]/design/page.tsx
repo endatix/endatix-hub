@@ -7,6 +7,7 @@ import { authorization } from "@/features/auth/authorization";
 import FormDesignerWrapper, {
   FormDesignerWrapperProps,
 } from "@/features/forms/ui/designer/form-designer-wrapper";
+import { getSurveyLicenseKey } from "@/features/config/legacy-public-env.server";
 import { DesignerRuntimeProvider } from "@/lib/designer-runtime";
 import FormEditorLoader from "@/features/forms/ui/editor/form-editor-loader";
 import { FormAssistantProvider } from "@/features/forms/use-cases/design-form/form-assistant.context";
@@ -87,7 +88,7 @@ export default async function FormDesignerPage({ params }: Params) {
     formId: formId,
     formJson: formJson,
     formName: form.name,
-    slkVal: process.env.NEXT_PUBLIC_SLK,
+    slkVal: getSurveyLicenseKey(),
     themeId: form.themeId ?? undefined,
     isPublic: form.isPublic,
     formIsEnabled: form.isEnabled,

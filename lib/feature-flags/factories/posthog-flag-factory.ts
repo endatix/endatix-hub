@@ -1,6 +1,7 @@
 import { dedupe, flag } from "flags/next";
 import { createPostHogAdapter, PostHogEntities } from "@flags-sdk/posthog";
 import type { FlagFactory, FlagDefinition } from "./flag-factory.interface";
+import { getServerPostHogConfig } from "@/features/config/legacy-public-env.server";
 import { identify } from "../utils";
 import { Identify } from "flags";
 
@@ -15,11 +16,14 @@ export class PostHogFlagFactory implements FlagFactory {
   private postHogAdapter: ReturnType<typeof createPostHogAdapter>;
 
   constructor() {
+    // Server-only adapter, so read the runtime environment directly rather than through
+    // the isomorphic accessor — that one branches on `typeof window`, which is defined
+    // under jsdom and would hand a server module the empty browser projection. Being
+    // server-side, it also honours the deprecated NEXT_PUBLIC_-prefixed name.
+    const { key, host } = getServerPostHogConfig();
     this.postHogAdapter = createPostHogAdapter({
-      postHogKey: process.env.NEXT_PUBLIC_POSTHOG_KEY!,
-      postHogOptions: {
-        host: "https://us.i.posthog.com",
-      },
+      postHogKey: key,
+      postHogOptions: { host },
     });
   }
 

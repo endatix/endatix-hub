@@ -22,10 +22,43 @@ export function EndatixConfigProvider({
   value,
   children,
 }: Readonly<EndatixConfigProviderProps>) {
-  const { apiBaseUrl, extensionsEnabled } = value;
+  const {
+    apiBaseUrl,
+    extensionsEnabled,
+    recaptchaSiteKey,
+    posthogKey,
+    posthogHost,
+    posthogUiHost,
+    isDebugMode,
+    submitterPrimaryFilterLabel,
+    submitterGridProfileFields,
+  } = value;
+  // Destructured to primitives so the memo compares by value: a new object identity from
+  // the server on every request must not re-render every consumer of this context.
   const stable = useMemo(
-    () => toClientEndatixConfig({ apiBaseUrl, extensionsEnabled }),
-    [apiBaseUrl, extensionsEnabled],
+    () =>
+      toClientEndatixConfig({
+        apiBaseUrl,
+        extensionsEnabled,
+        recaptchaSiteKey,
+        posthogKey,
+        posthogHost,
+        posthogUiHost,
+        isDebugMode,
+        submitterPrimaryFilterLabel,
+        submitterGridProfileFields,
+      }),
+    [
+      apiBaseUrl,
+      extensionsEnabled,
+      recaptchaSiteKey,
+      posthogKey,
+      posthogHost,
+      posthogUiHost,
+      isDebugMode,
+      submitterPrimaryFilterLabel,
+      submitterGridProfileFields,
+    ],
   );
 
   hydrateBrowserEndatixConfig(stable);

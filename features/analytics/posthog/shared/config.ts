@@ -1,6 +1,7 @@
 /**
  * PostHog configuration utilities
  */
+import { getIsomorphicEndatixConfig } from "@/features/config/client-endatix-config";
 import { PostHogConfig } from "./types";
 
 /**
@@ -12,7 +13,7 @@ export function isPostHogEnabled(config?: PostHogConfig): boolean {
     return config.enabled;
   }
 
-  return !!process.env.NEXT_PUBLIC_POSTHOG_KEY;
+  return !!getIsomorphicEndatixConfig().posthogKey;
 }
 
 /**
@@ -32,19 +33,13 @@ export function isProduction(): boolean {
 }
 
 /**
- * Check if application debug mode is enabled
- * Uses NEXT_PUBLIC_IS_DEBUG_MODE environment variable if set, otherwise falls back to development mode
+ * Check if application debug mode is enabled.
+ * Uses ENDATIX_IS_DEBUG_MODE if set, otherwise falls back to the development build.
+ * The precedence lives in `readPublicEndatixEnv()` so server and browser agree.
  * @returns Whether debug mode is enabled
  */
 export function isDebugMode(): boolean {
-  // Check if NEXT_PUBLIC_IS_DEBUG_MODE is explicitly set
-  const debugMode = process.env.NEXT_PUBLIC_IS_DEBUG_MODE;
-  if (debugMode !== undefined) {
-    return debugMode === "true";
-  }
-
-  // Fall back to development mode check
-  return isDevelopment();
+  return getIsomorphicEndatixConfig().isDebugMode;
 }
 
 /**
@@ -67,13 +62,14 @@ export function createPostHogConfig(
  * @returns Default PostHog configuration
  */
 export function getDefaultPostHogConfig(): PostHogConfig {
-  const apiKey = process.env.NEXT_PUBLIC_POSTHOG_KEY || "";
+  const { posthogKey, posthogHost, posthogUiHost, isDebugMode } =
+    getIsomorphicEndatixConfig();
 
   return {
-    enabled: !!apiKey,
-    apiKey,
-    apiHost: process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com",
-    uiHost: process.env.NEXT_PUBLIC_POSTHOG_UI_HOST || undefined,
-    debug: isDebugMode(),
+    enabled: !!posthogKey,
+    apiKey: posthogKey,
+    apiHost: posthogHost,
+    uiHost: posthogUiHost || undefined,
+    debug: isDebugMode,
   };
 }
