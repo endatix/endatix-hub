@@ -17,12 +17,9 @@ import {
   type ExperimentalConfig,
 } from "./experimental-config";
 import {
-  DEFAULT_POSTHOG_HOST,
-  DEFAULT_SUBMITTER_PRIMARY_FILTER_LABEL,
   readPublicEndatixEnv,
   type ClientEndatixConfig,
 } from "./client-endatix-config";
-import { readLegacyPublicEnv } from "./legacy-public-env.server";
 
 const DEFAULT_API_PREFIX = "/api";
 
@@ -217,33 +214,12 @@ export function getRuntimeStorageProfile(): StorageProfileSlice {
 export function getClientEndatixConfig(): ClientEndatixConfig {
   const resolved = resolveEndatixSettings({ source: "runtime" });
 
-  const current = readPublicEndatixEnv();
-  // Deprecated NEXT_PUBLIC_-prefixed names, applied only where the current name is unset.
-  // Server-side, so nothing here is inlined into the client bundle.
-  const legacy = readLegacyPublicEnv();
-
   return Object.freeze({
     apiBaseUrl: resolved.mergedApiConfig?.apiUrl ?? "",
     extensionsEnabled: resolved.mergedExperimentalConfig.extensions,
-    recaptchaSiteKey: current.recaptchaSiteKey || legacy.recaptchaSiteKey,
-    posthogKey: current.posthogKey || legacy.posthogKey,
-    posthogHost:
-      current.posthogHost !== DEFAULT_POSTHOG_HOST
-        ? current.posthogHost
-        : legacy.posthogHost || DEFAULT_POSTHOG_HOST,
-    posthogUiHost: current.posthogUiHost || legacy.posthogUiHost,
-    isDebugMode:
-      process.env.ENDATIX_IS_DEBUG_MODE || !legacy.debugMode
-        ? current.isDebugMode
-        : legacy.debugMode === "true",
-    submitterPrimaryFilterLabel:
-      current.submitterPrimaryFilterLabel !==
-      DEFAULT_SUBMITTER_PRIMARY_FILTER_LABEL
-        ? current.submitterPrimaryFilterLabel
-        : legacy.submitterPrimaryFilterLabel ||
-          DEFAULT_SUBMITTER_PRIMARY_FILTER_LABEL,
-    submitterGridProfileFields:
-      current.submitterGridProfileFields || legacy.submitterGridProfileFields,
+    // Deprecated NEXT_PUBLIC_-prefixed names were folded into these at server startup by
+    // applyLegacyPublicEnv(), so there is exactly one source to read here.
+    ...readPublicEndatixEnv(),
   });
 }
 

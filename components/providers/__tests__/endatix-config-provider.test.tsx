@@ -40,7 +40,13 @@ describe("EndatixConfigProvider", () => {
       recaptchaSiteKey: "recaptcha-site-key",
       posthogKey: "posthog-key",
     });
-    const extra = { ...expected, secret: "do-not-leak" };
+    // Sentinels: both must be dropped by the projection. Without an explicit
+    // surveyLicenseKey here the assertion below would pass vacuously.
+    const extra = {
+      ...expected,
+      secret: "do-not-leak",
+      surveyLicenseKey: "do-not-project",
+    };
 
     const { result } = renderHook(() => useEndatixConfig(), {
       wrapper: wrapper(extra),

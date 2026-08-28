@@ -16,10 +16,6 @@ declare namespace NodeJS {
     // `getClientEndatixConfig()` — deliberately NOT `NEXT_PUBLIC_*`, which Next inlines
     // into the client bundle at build time and which therefore cannot be changed by a
     // container env var. See features/config/client-endatix-config.ts.
-    /**
-     * SurveyJS Creator licence key.
-     */
-    ENDATIX_SURVEY_LICENSE_KEY?: string;
     ENDATIX_RECAPTCHA_SITE_KEY?: string;
     ENDATIX_POSTHOG_KEY?: string;
     ENDATIX_POSTHOG_HOST?: string;
@@ -27,6 +23,19 @@ declare namespace NodeJS {
     ENDATIX_IS_DEBUG_MODE?: string;
     ENDATIX_SUBMITTER_PRIMARY_FILTER_LABEL?: string;
     ENDATIX_SUBMITTER_GRID_PROFILE_FIELDS?: string;
+
+    /**
+     * SurveyJS Creator licence key. NOT part of the shared projection above: that object
+     * is serialised into the HTML of every page mounting AppProvider, including the
+     * anonymous public form routes. Read server-side and provided only to the
+     * authenticated shell, via SurveyLicenseProvider.
+     *
+     * Perpetual: the embedded date governs eligibility for updates and support, not the
+     * right to run, so an existing deployment keeps working. A new key is needed when
+     * upgrading the SurveyJS packages beyond the window it covers — and replacing it must
+     * be a config change, never an image rebuild.
+     */
+    ENDATIX_SURVEY_LICENSE_KEY?: string;
 
     // Session
     SESSION_SECRET?: string;

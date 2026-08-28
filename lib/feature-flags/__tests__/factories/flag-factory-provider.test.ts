@@ -12,7 +12,7 @@ vi.mock("@/features/auth", () => ({
   }),
 }));
 
-process.env.NEXT_PUBLIC_POSTHOG_KEY = "test-key";
+process.env.ENDATIX_POSTHOG_KEY = "test-key";
 
 vi.mock("@flags-sdk/posthog", () => ({
   createPostHogAdapter: vi.fn(() => ({
