@@ -13,13 +13,23 @@ export const ProblemDetailsSchema = z.object({
   type: z.string().optional(),
   title: z.string().optional(),
   status: z.number(),
-  detail: z.string(),
+  // RFC7807 makes `detail` optional. Endatix always sends it, but ASP.NET's built-in
+  // writers (401/404 from auth and routing) omit it - accept those instead of failing
+  // the parse and falling back to a generic message.
+  detail: z.string().optional(),
+  instance: z.string().optional(),
   errorCode: z.string().optional(),
   traceId: z.string().optional(),
   fields: z.record(z.string(), z.array(z.string())).optional(),
 });
 
-export type ProblemDetails = z.infer<typeof ProblemDetailsSchema>;
+/**
+ * Parsed problem details. `detail` is normalized to always be present (falling back to
+ * `title`), so callers never have to branch on a missing message.
+ */
+export type ProblemDetails = z.infer<typeof ProblemDetailsSchema> & {
+  detail: string;
+};
 
 /**
  * Normalize common ProblemDetails shapes (camelCase RFC7807 and PascalCase .NET defaults).
@@ -34,6 +44,7 @@ function normalizeProblemDetailsCandidate(data: unknown): unknown {
   const status = record.status ?? record.Status;
   const title = record.title ?? record.Title;
   const type = record.type ?? record.Type;
+  const instance = record.instance ?? record.Instance;
   const errorCode = record.errorCode ?? record.ErrorCode;
   const traceId = record.traceId ?? record.TraceId;
   const fields = record.fields ?? record.Fields;
@@ -44,6 +55,7 @@ function normalizeProblemDetailsCandidate(data: unknown): unknown {
     ...(typeof status === "number" ? { status } : {}),
     ...(typeof title === "string" ? { title } : {}),
     ...(typeof type === "string" ? { type } : {}),
+    ...(typeof instance === "string" ? { instance } : {}),
     ...(typeof errorCode === "string" ? { errorCode } : {}),
     ...(typeof traceId === "string" ? { traceId } : {}),
     ...(fields !== undefined ? { fields } : {}),
@@ -60,11 +72,15 @@ export function parseProblemDetails(data: unknown): ProblemDetails | null {
   const result = ProblemDetailsSchema.safeParse(normalized);
 
   if (result.success) {
+    const title = result.data.title ?? "Error";
     return {
       type: result.data.type ?? "about:blank",
-      title: result.data.title ?? "Error",
+      title,
       status: result.data.status,
-      detail: result.data.detail,
+      // Keep `detail` a guaranteed string for consumers; fall back to the title when the
+      // producer omitted it.
+      detail: result.data.detail ?? title,
+      instance: result.data.instance,
       errorCode: result.data.errorCode,
       traceId: result.data.traceId,
       fields: result.data.fields,

@@ -49,3 +49,39 @@ describe("parseProblemDetails", () => {
     expect(parsed?.traceId).toBe("trace-404");
   });
 });
+
+describe("parseProblemDetails - RFC7807 tolerance", () => {
+  it("accepts a body without detail and falls back to title", () => {
+    const parsed = parseProblemDetails({
+      type: "https://www.rfc-editor.org/rfc/rfc9110#name-401-unauthorized",
+      title: "Unauthorized",
+      status: 401,
+    });
+
+    expect(parsed).not.toBeNull();
+    expect(parsed?.detail).toBe("Unauthorized");
+    expect(parsed?.status).toBe(401);
+  });
+
+  it("keeps instance from the canonical Endatix body", () => {
+    const parsed = parseProblemDetails({
+      type: "https://www.rfc-editor.org/rfc/rfc9110#name-400-bad-request",
+      title: "There was a problem with your request",
+      status: 400,
+      detail: "Name is required.",
+      instance: "/api/forms",
+      traceId: "00-abc-def-01",
+      fields: { Name: ["Name is required."] },
+    });
+
+    expect(parsed?.instance).toBe("/api/forms");
+    expect(parsed?.traceId).toBe("00-abc-def-01");
+    expect(parsed?.fields).toEqual({ Name: ["Name is required."] });
+  });
+
+  it("still rejects a body with no status", () => {
+    expect(
+      parseProblemDetails({ title: "Nope", detail: "no status" }),
+    ).toBeNull();
+  });
+});
