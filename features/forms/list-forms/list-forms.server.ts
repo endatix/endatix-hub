@@ -1,4 +1,4 @@
-import { EndatixApi } from "@/lib/endatix-api";
+import { ApiResult, EndatixApi } from "@/lib/endatix-api";
 import type { PagedResponse } from "@/lib/endatix-api/shared/types";
 import type { FormsListRequest } from "@/lib/endatix-api/forms/types";
 import { Form } from "@/types";
@@ -20,7 +20,9 @@ export async function getFormsListPromise(
   });
 
   if (Result.isError(result)) {
-    throw new DataLoadError(result.message);
+    throw ApiResult.isError(apiResult)
+      ? DataLoadError.fromApiError(apiResult)
+      : new DataLoadError(result.message, { errorCode: result.errorCode });
   }
 
   return result.value;

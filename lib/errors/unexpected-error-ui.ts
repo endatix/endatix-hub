@@ -114,10 +114,76 @@ export function unexpectedErrorKindFromApiErrorType(
   }
 }
 
+type ErrorWithSupportMetadata = Error & {
+  digest?: string;
+  traceId?: string;
+  errorCode?: string;
+  statusCode?: number;
+};
+
+function readOptionalString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
+
+function readOptionalNumber(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+}
+
+/**
+ * Collects support identifiers from a boundary error.
+ * Prefer API `traceId` (OpenTelemetry / ProblemDetails) when present; always keep Next `digest`.
+ */
 export function buildUnexpectedErrorDiagnostics(
   error: Error & { digest?: string },
 ): UnexpectedErrorDiagnostics {
+  const withMeta = error as ErrorWithSupportMetadata;
+  const cause = error.cause as ErrorWithSupportMetadata | undefined;
+
   return {
-    digest: error.digest,
+    digest: readOptionalString(withMeta.digest),
+    traceId:
+      readOptionalString(withMeta.traceId) ?? readOptionalString(cause?.traceId),
+    errorCode:
+      readOptionalString(withMeta.errorCode) ??
+      readOptionalString(cause?.errorCode),
+    statusCode:
+      readOptionalNumber(withMeta.statusCode) ??
+      readOptionalNumber(cause?.statusCode),
   };
+}
+
+export function formatUnexpectedErrorClipboard(
+  diagnostics: UnexpectedErrorDiagnostics,
+  extras: { path?: string; statusLabel?: string; details?: string },
+): string {
+  const lines = ['Endatix Hub error'];
+
+  if (extras.path) {
+    lines.push(`Path: ${extras.path}`);
+  }
+
+  lines.push(`Timestamp: ${new Date().toISOString()}`);
+
+  if (diagnostics.digest) {
+    lines.push(`Digest: ${diagnostics.digest}`);
+  }
+
+  if (diagnostics.traceId) {
+    lines.push(`Trace ID: ${diagnostics.traceId}`);
+  }
+
+  if (diagnostics.errorCode) {
+    lines.push(`Error code: ${diagnostics.errorCode}`);
+  }
+
+  const httpStatus = diagnostics.statusCode ?? extras.statusLabel;
+  if (httpStatus !== undefined) {
+    lines.push(`HTTP status: ${httpStatus}`);
+  }
+
+  if (extras.details) {
+    lines.push(`Details: ${extras.details}`);
+  }
+
+  return lines.join('\n');
 }

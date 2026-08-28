@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useTrackEvent } from '@/features/analytics/posthog';
 import {
   buildUnexpectedErrorDiagnostics,
+  formatUnexpectedErrorClipboard,
   getUnexpectedErrorUi,
   type UnexpectedErrorDiagnostics,
 } from '@/lib/errors/unexpected-error-ui';
@@ -54,20 +55,14 @@ export function UnexpectedErrorView({
       return;
     }
 
-    const lines = [
-      `Digest: ${resolvedDiagnostics.digest ?? 'N/A'}`,
-      `Trace ID: ${resolvedDiagnostics.traceId ?? 'N/A'}`,
-      `Error code: ${resolvedDiagnostics.errorCode ?? 'N/A'}`,
-      `HTTP status: ${resolvedDiagnostics.statusCode ?? ui.statusCode}`,
-      `Path: ${typeof window !== 'undefined' ? window.location.pathname : 'N/A'}`,
-      `Timestamp: ${new Date().toISOString()}`,
-    ];
+    const payload = formatUnexpectedErrorClipboard(resolvedDiagnostics, {
+      path: typeof window !== 'undefined' ? window.location.pathname : undefined,
+      statusLabel: ui.statusCode,
+      details:
+        process.env.NODE_ENV === 'development' ? error.message : undefined,
+    });
 
-    if (process.env.NODE_ENV === 'development' && error.message) {
-      lines.push(`Details: ${error.message}`);
-    }
-
-    await navigator.clipboard.writeText(lines.join('\n'));
+    await navigator.clipboard.writeText(payload);
     setIsCopied(true);
     window.setTimeout(() => setIsCopied(false), 2000);
   };
@@ -98,33 +93,54 @@ export function UnexpectedErrorView({
           )}
         </Button>
       </div>
-      <div className="rounded-xl border border-border/70 bg-muted/30 p-3 text-sm text-muted-foreground">
-        <p>
-          <span className="font-semibold tracking-wide uppercase">Digest:</span>{' '}
-          <span className="font-mono">{resolvedDiagnostics.digest ?? 'N/A'}</span>
+      <div className="rounded-lg bg-surface-container-lowest p-4 text-sm text-muted-foreground shadow-[0_8px_30px_rgb(0,52,94,0.06)] outline outline-primary/15">
+        <p className="text-xs font-semibold tracking-[0.18em] text-primary uppercase">
+          Support reference
         </p>
-        {resolvedDiagnostics.traceId ? (
-          <p className="mt-2">
-            <span className="font-semibold tracking-wide uppercase">
-              Trace ID:
-            </span>{' '}
-            <span className="font-mono">{resolvedDiagnostics.traceId}</span>
-          </p>
-        ) : null}
-        {resolvedDiagnostics.errorCode ? (
-          <p className="mt-2">
-            <span className="font-semibold tracking-wide uppercase">
-              Error code:
-            </span>{' '}
-            <span className="font-mono">{resolvedDiagnostics.errorCode}</span>
-          </p>
-        ) : null}
-        {process.env.NODE_ENV === 'development' && error.message ? (
-          <p className="mt-2">
-            <span className="font-semibold">Details:</span>{' '}
-            <span className="font-mono">{error.message}</span>
-          </p>
-        ) : null}
+        <dl className="mt-3 space-y-2">
+          <div>
+            <dt className="text-xs font-medium tracking-wide text-on-surface-variant uppercase">
+              Digest
+            </dt>
+            <dd className="font-mono text-foreground">
+              {resolvedDiagnostics.digest ?? 'N/A'}
+            </dd>
+          </div>
+          {resolvedDiagnostics.traceId ? (
+            <div>
+              <dt className="text-xs font-medium tracking-wide text-on-surface-variant uppercase">
+                Trace ID
+              </dt>
+              <dd className="font-mono text-foreground">
+                {resolvedDiagnostics.traceId}
+              </dd>
+            </div>
+          ) : (
+            <p className="text-xs text-on-surface-variant">
+              No API trace ID — the request may not have reached the server.
+            </p>
+          )}
+          {resolvedDiagnostics.errorCode ? (
+            <div>
+              <dt className="text-xs font-medium tracking-wide text-on-surface-variant uppercase">
+                Error code
+              </dt>
+              <dd className="font-mono text-foreground">
+                {resolvedDiagnostics.errorCode}
+              </dd>
+            </div>
+          ) : null}
+          {process.env.NODE_ENV === 'development' && error.message ? (
+            <div>
+              <dt className="text-xs font-medium tracking-wide text-on-surface-variant uppercase">
+                Details
+              </dt>
+              <dd className="font-mono text-foreground break-all">
+                {error.message}
+              </dd>
+            </div>
+          ) : null}
+        </dl>
       </div>
     </ErrorPage>
   );

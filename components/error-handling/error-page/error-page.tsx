@@ -1,4 +1,5 @@
 import { SheepBuddy } from '@/components/error-handling/sheep-buddy';
+import '@/components/error-handling/not-found/not-found-sheep.css';
 import { cn } from '@/lib/utils';
 
 export interface ErrorPageProps {
@@ -24,37 +25,41 @@ export function ErrorPage({
   return (
     <section
       className={cn(
-        'mx-auto flex w-full max-w-6xl flex-col gap-5 px-6 py-6',
+        'mx-auto flex min-h-[min(32rem,70vh)] w-full max-w-4xl flex-col justify-center gap-8 px-6 py-10',
         className,
       )}
     >
-      <div className="grid items-center gap-6 md:grid-cols-[220px_1fr]">
-        <div className="flex justify-center md:justify-start">
+      <div className="flex flex-col items-center gap-8 md:flex-row md:items-center md:gap-12">
+        <div className="shrink-0 [&_.sheep]:mb-0">
           <SheepBuddy />
         </div>
-        <div className="relative flex flex-col gap-4 text-center md:text-left">
-          <span className="pointer-events-none absolute -top-6 left-1/2 -translate-x-1/2 text-[120px] leading-none font-extrabold text-primary/10 select-none md:left-0 md:translate-x-0 md:text-[140px]">
+        <div className="relative flex min-w-0 flex-1 flex-col items-center gap-3 text-center md:items-start md:text-left">
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 text-[5.5rem] leading-none font-extrabold text-primary/10 select-none md:left-0 md:translate-x-0 md:text-[7rem]"
+          >
             {statusCode}
           </span>
-          <h1 className="relative z-10 max-w-3xl text-4xl leading-tight font-extrabold text-foreground md:text-6xl">
+          <p className="relative z-10 text-xs font-semibold tracking-[0.22em] text-primary uppercase">
+            {statusCode}
+          </p>
+          <h1 className="relative z-10 max-w-2xl text-3xl font-extrabold tracking-tight text-foreground md:text-4xl">
             {title}
           </h1>
           {subtitle ? (
-            <p className="max-w-2xl text-2xl leading-tight font-medium text-muted-foreground md:text-4xl">
+            <p className="max-w-xl text-lg font-medium text-muted-foreground md:text-xl">
               {subtitle}
             </p>
+          ) : null}
+          {message ? (
+            <p className="max-w-xl text-sm text-on-surface-variant">{message}</p>
           ) : null}
         </div>
       </div>
 
-      {(message || children) && (
-        <div className="flex flex-col gap-3 border-t border-border/60 pt-4">
-          {message ? (
-            <p className="text-sm text-muted-foreground">{message}</p>
-          ) : null}
-          {children}
-        </div>
-      )}
+      {children ? (
+        <div className="flex flex-col gap-4">{children}</div>
+      ) : null}
     </section>
   );
 }

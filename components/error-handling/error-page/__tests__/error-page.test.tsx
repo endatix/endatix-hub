@@ -16,7 +16,7 @@ describe('ErrorPage', () => {
     );
 
     // Assert
-    expect(screen.getByText('500')).toBeTruthy();
+    expect(screen.getAllByText('500').length).toBeGreaterThan(0);
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(
       'Something went wrong.',
     );
@@ -36,7 +36,7 @@ describe('NotFoundComponent', () => {
     );
 
     // Assert
-    expect(screen.getByText('404')).toBeTruthy();
+    expect(screen.getAllByText('404').length).toBeGreaterThan(0);
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(
       'This page could not be found.',
     );
