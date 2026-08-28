@@ -32,6 +32,7 @@ export async function mapResponseToApiError<T>(
     ...details,
     statusCode: details.statusCode ?? response.status,
     details: problemDetails?.detail ?? details.details,
+    traceId: problemDetails?.traceId ?? details.traceId,
   };
 
   const retryAfter = response.headers.get("Retry-After");

@@ -32,6 +32,7 @@ describe("mapResponseToApiError", () => {
       expect(result.error.fields).toEqual({ name: ["Name is required."] });
       expect(result.error.details?.statusCode).toBe(400);
       expect(result.error.details?.details).toBe("Name is required.");
+      expect(result.error.details?.traceId).toBe("0HMPNHL0JHL76:00000001");
     }
   });
 
