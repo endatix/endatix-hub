@@ -1,8 +1,11 @@
+import "@/app/globals.css";
 import { NotFoundComponent } from "@/components/error-handling/not-found";
-import "@/components/error-handling/not-found/not-found-styles-standalone.css";
+import { geistMono, geistSans } from "@/lib/fonts/geist-local";
 import { getPublicAssetPath } from "@/lib/hosting";
 import { getMetadataBase } from "@/lib/seo";
 import { Metadata } from "next";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
   metadataBase: getMetadataBase(),
@@ -20,6 +23,10 @@ export const metadata: Metadata = {
   publisher: "Endatix Ltd.",
 };
 
+/**
+ * Unmatched routes skip every layout. Import Hub styles here (Next.js global-not-found).
+ * @see https://nextjs.org/docs/app/api-reference/file-conventions/not-found
+ */
 export default function GlobalNotFound() {
   return (
     <html lang="en" suppressHydrationWarning>
@@ -30,14 +37,19 @@ export default function GlobalNotFound() {
           type="image/svg+xml"
         />
       </head>
-      <body>
-        <div className="not-found-container">
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-content-canvas text-foreground antialiased`}
+      >
+        <div className="flex min-h-screen items-center justify-center px-4">
           <NotFoundComponent
             notFoundTitle="404"
             notFoundSubtitle="The page you are looking for does not exist."
             notFoundMessage="Please check the URL and try again."
-            titleSize="large"
-          ></NotFoundComponent>
+          >
+            <Button asChild>
+              <Link href="/">Back to Hub</Link>
+            </Button>
+          </NotFoundComponent>
         </div>
       </body>
     </html>

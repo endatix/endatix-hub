@@ -1,5 +1,5 @@
+import "@/app/globals.css";
 import { NotFoundComponent } from "@/components/error-handling/not-found";
-import "@/components/error-handling/not-found/not-found-styles-standalone.css";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -9,13 +9,12 @@ export const metadata: Metadata = {
 
 export default function NotFound() {
   return (
-    <div className="not-found-container">
+    <div className="flex min-h-screen items-center justify-center bg-content-canvas px-4">
       <NotFoundComponent
-        notFoundTitle="404"
-        notFoundSubtitle="The page you are looking for does not exist."
+        notFoundTitle="Not found"
+        notFoundSubtitle="The survey you are looking for does not exist."
         notFoundMessage="Please check the URL and try again."
-        titleSize="large"
-      ></NotFoundComponent>
+      />
     </div>
   );
 }

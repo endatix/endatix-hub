@@ -1,8 +1,8 @@
 'use client';
 
+import '@/app/globals.css';
 import { UnexpectedErrorView } from '@/components/error-handling/error-page';
-import '@/components/error-handling/not-found/not-found-sheep.css';
-import '@/components/error-handling/not-found/not-found-styles-standalone.css';
+import { geistMono, geistSans } from '@/lib/fonts/geist-local';
 import { getPublicAssetPath } from '@/lib/hosting';
 
 export default function GlobalError({
@@ -22,8 +22,10 @@ export default function GlobalError({
           type="image/svg+xml"
         />
       </head>
-      <body>
-        <div className="not-found-container">
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-content-canvas text-foreground antialiased`}
+      >
+        <div className="flex min-h-screen items-center justify-center px-4">
           <UnexpectedErrorView error={error} retry={retry} />
         </div>
       </body>
