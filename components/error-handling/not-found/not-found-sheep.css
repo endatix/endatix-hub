@@ -8,11 +8,28 @@
   }
 }
 
+/*
+ * Every dimension below is in `em`, so `--sheep-scale` resizes the whole animal.
+ *
+ * The legs (top: 80%) and ground shadow (top: 112% + 18% tall) are absolutely
+ * positioned against this box, so they overhang the 7em body by ~2.1em and the
+ * parent cannot measure them. That space has to be reserved with margin, not
+ * padding: padding grows the containing block the percentages resolve against,
+ * which pushes the legs and shadow down by more than it reserves. This replaces
+ * the old fixed `margin-bottom: 70px` that every call site cancelled with
+ * `[&_.sheep]:mb-0`.
+ */
 .sheep {
   display: inline-block;
   position: relative;
-  font-size: 1em;
-  margin-bottom: 70px;
+  font-size: var(--sheep-scale, 1em);
+  margin-bottom: 2.4em;
+}
+
+@media (max-width: 640px) {
+  .sheep {
+    --sheep-scale: 0.72em;
+  }
 }
 
 .sheep * {
@@ -146,10 +163,18 @@
 
 .sheep .legs .leg {
   display: inline-block;
-  background: #141214;
+  /* Mid slate: readable on pale canvas and dark navy (was #141214). */
+  background: #4a6080;
   width: 0.5em;
   height: 2.5em;
   margin: 0.2em;
+  border-radius: 0.12em;
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.28);
+}
+
+.dark .sheep .legs .leg {
+  background: #9aacc4;
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.18);
 }
 
 .sheep::before {
@@ -161,11 +186,20 @@
   width: 100%;
   height: 18%;
   border-radius: 100%;
-  background: rgba(0, 0, 0, 0.2);
+  background: rgb(0 84 209 / 0.22);
 }
 
-@media (max-width: 767px) {
-  .error {
-    font-size: 150px;
+.dark .sheep::before {
+  background: rgb(255 255 255 / 0.16);
+}
+
+/* An error page is where a motion-sensitive user is already under stress. */
+@media (prefers-reduced-motion: reduce) {
+  .sheep .top {
+    animation: none;
+  }
+
+  .sheep * {
+    transition: none;
   }
 }

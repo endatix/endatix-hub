@@ -19,8 +19,3 @@ export enum AuthErrorType {
   InvalidToken = "InvalidToken",
   Unknown = "Unknown",
 }
-
-export interface ErrorDetails {
-  message: string;
-  code: string;
-}

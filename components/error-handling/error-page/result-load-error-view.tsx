@@ -1,17 +1,18 @@
-'use client';
+"use client";
 
-import { ErrorPage } from './error-page';
-import { Button } from '@/components/ui/button';
+import { ErrorPage } from "./error-page";
+import { TruncatedId } from "@/components/common/truncated-id";
+import { Button } from "@/components/ui/button";
 import {
   diagnosticsFromResult,
   formatUnexpectedErrorClipboard,
   unexpectedErrorUiFromResult,
   type UnexpectedErrorDiagnostics,
   type UnexpectedErrorUi,
-} from '@/lib/errors/unexpected-error-ui';
-import type { Error as ResultError } from '@/lib/result';
-import { Check, Copy, RotateCcw } from 'lucide-react';
-import { useState } from 'react';
+} from "@/lib/errors/unexpected-error-ui";
+import type { Error as ResultError } from "@/lib/result";
+import { Check, Copy, RotateCcw } from "lucide-react";
+import { useState } from "react";
 
 export interface LoadErrorViewProps {
   ui: UnexpectedErrorUi;
@@ -19,8 +20,6 @@ export interface LoadErrorViewProps {
   /** Dev-only detail string (e.g. Result.message). Never shown in production. */
   details?: string;
   onRetry: () => void;
-  /** When true, omit Digest row (Result path has no Next digest). */
-  hideDigest?: boolean;
 }
 
 /**
@@ -31,11 +30,10 @@ export function LoadErrorView({
   diagnostics,
   details,
   onRetry,
-  hideDigest = false,
 }: Readonly<LoadErrorViewProps>) {
   const [isCopied, setIsCopied] = useState(false);
   const showDevDetails =
-    process.env.NODE_ENV === 'development' && Boolean(details);
+    process.env.NODE_ENV === "development" && Boolean(details);
 
   const handleCopyDiagnostics = async () => {
     if (!navigator?.clipboard) {
@@ -43,8 +41,9 @@ export function LoadErrorView({
     }
 
     const payload = formatUnexpectedErrorClipboard(diagnostics, {
-      path: typeof window !== 'undefined' ? window.location.pathname : undefined,
-      statusLabel: ui.statusCode,
+      path:
+        typeof window !== "undefined" ? window.location.pathname : undefined,
+      statusLabel: ui.code,
       details: showDevDetails ? details : undefined,
     });
 
@@ -54,13 +53,8 @@ export function LoadErrorView({
   };
 
   return (
-    <ErrorPage
-      statusCode={ui.statusCode}
-      title={ui.title}
-      subtitle={ui.subtitle}
-      message={ui.message}
-    >
-      <div className="flex flex-wrap gap-3">
+    <ErrorPage {...ui}>
+      <div className="flex flex-wrap justify-center gap-3">
         <Button onClick={onRetry}>
           <RotateCcw className="size-4 shrink-0" />
           Try Again
@@ -79,56 +73,58 @@ export function LoadErrorView({
           )}
         </Button>
       </div>
-      <div className="rounded-lg bg-surface-container-lowest p-4 text-sm text-muted-foreground shadow-[0_8px_30px_rgb(0,52,94,0.06)] outline outline-primary/15">
+      <div className="w-full max-w-md rounded-lg bg-surface-container-lowest p-4 text-left text-sm text-muted-foreground shadow-[0_8px_30px_rgb(0,52,94,0.06)] outline outline-primary/15">
         <p className="text-xs font-semibold tracking-[0.18em] text-primary uppercase">
           Support reference
         </p>
         <dl className="mt-3 space-y-2">
-          {!hideDigest ? (
-            <div>
-              <dt className="text-xs font-medium tracking-wide text-on-surface-variant uppercase">
-                Digest
-              </dt>
-              <dd className="font-mono text-foreground">
-                {diagnostics.digest ?? 'N/A'}
-              </dd>
-            </div>
-          ) : null}
-          {diagnostics.traceId ? (
-            <div>
-              <dt className="text-xs font-medium tracking-wide text-on-surface-variant uppercase">
-                Trace ID
-              </dt>
-              <dd className="font-mono text-foreground">
-                {diagnostics.traceId}
-              </dd>
-            </div>
-          ) : (
-            <p className="text-xs text-on-surface-variant">
-              No API trace ID on this error.
-            </p>
-          )}
-          {diagnostics.errorCode ? (
-            <div>
-              <dt className="text-xs font-medium tracking-wide text-on-surface-variant uppercase">
-                Error code
-              </dt>
-              <dd className="font-mono text-foreground">
-                {diagnostics.errorCode}
-              </dd>
-            </div>
-          ) : null}
+          <DiagnosticRow label="Digest">
+            {diagnostics.digest ? (
+              <TruncatedId id={diagnostics.digest} copyLabel="Copy Digest" />
+            ) : null}
+          </DiagnosticRow>
+          <DiagnosticRow label="Trace ID">
+            {diagnostics.traceId ? (
+              <TruncatedId
+                id={diagnostics.traceId}
+                visibleChars={8}
+                copyLabel="Copy Trace ID"
+              />
+            ) : null}
+          </DiagnosticRow>
+          <DiagnosticRow label="Error code">
+            {diagnostics.errorCode ? (
+              <span className="font-mono">{diagnostics.errorCode}</span>
+            ) : null}
+          </DiagnosticRow>
           {showDevDetails ? (
-            <div>
-              <dt className="text-xs font-medium tracking-wide text-on-surface-variant uppercase">
-                Details
-              </dt>
-              <dd className="font-mono text-foreground break-all">{details}</dd>
-            </div>
+            <DiagnosticRow label="Details">
+              <span className="font-mono break-all">{details}</span>
+            </DiagnosticRow>
           ) : null}
         </dl>
       </div>
     </ErrorPage>
+  );
+}
+
+/**
+ * One support-reference row. An absent value reads as a blank on a form (a dash),
+ * not as a sentence explaining what the page does not have.
+ */
+function DiagnosticRow({
+  label,
+  children,
+}: Readonly<{ label: string; children?: React.ReactNode }>) {
+  return (
+    <div>
+      <dt className="text-xs font-medium tracking-wide text-on-surface-variant uppercase">
+        {label}
+      </dt>
+      <dd className="text-foreground">
+        {children ?? <span aria-label="Not available">&mdash;</span>}
+      </dd>
+    </div>
   );
 }
 
@@ -153,7 +149,6 @@ export function ResultLoadErrorView({
       diagnostics={diagnostics}
       details={result.message}
       onRetry={onRetry}
-      hideDigest
     />
   );
 }
