@@ -200,7 +200,10 @@ describe("Themes.listAll", () => {
     const result = await sut.listAll();
 
     expect(get).toHaveBeenCalledTimes(50);
-    expect(ApiResult.isSuccess(result)).toBe(true);
+    expect(ApiResult.isSuccess(result)).toBe(false);
+    if (!ApiResult.isSuccess(result)) {
+      expect(result.error.message).toContain("stopped after 50 pages");
+    }
   });
 
   it("short-circuits on the first failing page", async () => {

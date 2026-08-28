@@ -6,7 +6,10 @@ import { getThemesAction } from "@/features/themes/list-themes";
 import { updateThemeAction } from "@/features/themes/update-theme";
 import { StoredTheme } from "@/features/themes/types";
 import type { ThemeDeleteRequest } from "./ui/theme-delete-dialog";
-import type { ThemeSaveDecision, ThemeSaveRequest } from "./ui/theme-save-dialog";
+import type {
+  ThemeSaveDecision,
+  ThemeSaveRequest,
+} from "./ui/theme-save-dialog";
 import { Result } from "@/lib/result";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Action, ITheme } from "survey-core";
@@ -52,7 +55,9 @@ async function fetchThemes(): Promise<StoredTheme[]> {
 async function createTheme(theme: StoredTheme): Promise<StoredTheme | null> {
   const result = await createThemeAction(theme);
   if (result === undefined || Result.isError(result)) {
-    toast.error(`Failed to create theme: ${result?.message ?? "unknown error"}`);
+    toast.error(
+      `Failed to create theme: ${result?.message ?? "unknown error"}`,
+    );
     return null;
   }
 
@@ -69,7 +74,9 @@ async function createTheme(theme: StoredTheme): Promise<StoredTheme | null> {
 async function updateTheme(theme: StoredTheme): Promise<boolean> {
   const result = await updateThemeAction({ themeId: theme.id, theme });
   if (result === undefined || Result.isError(result)) {
-    toast.error(`Failed to update theme: ${result?.message ?? "unknown error"}`);
+    toast.error(
+      `Failed to update theme: ${result?.message ?? "unknown error"}`,
+    );
     return false;
   }
 
@@ -102,7 +109,10 @@ export const useThemeManagement = ({
   const themeManagementInitializedRef = useRef(false);
   const registeredThemeNamesRef = useRef<string[]>([DEFAULT_THEME_NAME]);
   const currentThemeIdRef = useRef<string | undefined>(themeId);
-  currentThemeIdRef.current = currentThemeId;
+
+  useEffect(() => {
+    currentThemeIdRef.current = currentThemeId;
+  }, [currentThemeId]);
 
   const addCustomTheme = useCallback(
     (theme: StoredTheme) => {
@@ -113,7 +123,10 @@ export const useThemeManagement = ({
         // v3's onAvailableThemesChanged always calls propertyGrid.survey.runExpressions().
         // Before the Themes tab activates that survey can be missing; Themes[] is still
         // updated and activate() refreshes the choices.
-        console.error("addTheme failed (retried on Themes tab activate)", error);
+        console.error(
+          "addTheme failed (retried on Themes tab activate)",
+          error,
+        );
       }
 
       if (safeTheme.id === currentThemeIdRef.current) {
@@ -198,11 +211,13 @@ export const useThemeManagement = ({
 
         creator.themeEditor.removeTheme(theme, true);
         creator.theme = { themeName: DEFAULT_THEME_NAME };
+        setCurrentThemeId(undefined);
+        onThemeIdChanged?.(DEFAULT_THEME_ID);
         setIsThemeDirty(false);
         toast.success("Theme deleted successfully");
       },
     });
-  }, [creator, formId]);
+  }, [creator, formId, onThemeIdChanged]);
 
   const deleteThemeActionBtn = useMemo(
     () =>
@@ -258,19 +273,6 @@ export const useThemeManagement = ({
     if (resetThemeActionIndex !== -1) {
       creator.toolbar.actions.splice(resetThemeActionIndex, 1);
     }
-
-    creator.onPropertyEditorUpdateTitleActions.add((_, options) => {
-      if (options.property?.name !== "themeName") {
-        return;
-      }
-      const exists = options.titleActions.some(
-        (action: unknown) =>
-          (action as { id: string })?.id === "svd-delete-custom-theme",
-      );
-      if (!exists) {
-        options.titleActions.push(deleteThemeActionBtn);
-      }
-    });
 
     const themeTabPlugin = creator.themeEditor;
     themeTabPlugin.advancedModeEnabled = true;
@@ -339,13 +341,41 @@ export const useThemeManagement = ({
       );
       themeManagementInitializedRef.current = false;
     };
-  }, [
-    creator,
-    addCustomTheme,
-    deleteThemeActionBtn,
-    handleThemeChanged,
-    handleThemePropertyChanged,
-  ]);
+  }, [creator, addCustomTheme, handleThemeChanged, handleThemePropertyChanged]);
+
+  useEffect(() => {
+    if (!creator) {
+      return;
+    }
+
+    const onPropertyEditorUpdateTitleActions = (
+      _: unknown,
+      options: {
+        property?: { name?: string };
+        titleActions: unknown[];
+      },
+    ) => {
+      if (options.property?.name !== "themeName") {
+        return;
+      }
+      const exists = options.titleActions.some(
+        (action: unknown) =>
+          (action as { id: string })?.id === "svd-delete-custom-theme",
+      );
+      if (!exists) {
+        options.titleActions.push(deleteThemeActionBtn);
+      }
+    };
+    creator.onPropertyEditorUpdateTitleActions.add(
+      onPropertyEditorUpdateTitleActions,
+    );
+
+    return () => {
+      creator.onPropertyEditorUpdateTitleActions.remove(
+        onPropertyEditorUpdateTitleActions,
+      );
+    };
+  }, [creator, deleteThemeActionBtn]);
 
   return {
     currentThemeId,

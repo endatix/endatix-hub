@@ -41,6 +41,9 @@ export function SurveyDashboard({
       data: results ?? [],
     });
     dashboardRef.current = dashboard;
+    // Default isRoot=true. `render(container, false)` is nested-visualizer mode:
+    // chrome is appended without `sa-visualizer-wrapper`, and `clear()` does not
+    // remove it — React remount then stacks a second toolbar/content/footer.
     dashboard.render(container);
 
     return () => {
@@ -66,7 +69,7 @@ export function SurveyDashboard({
     }, delayMs);
 
     return () => window.clearTimeout(timer);
-  }, [resolvedTheme, sidebarState]);
+  }, [resolvedTheme, sidebarState, surveyJson, results]);
 
   return <div ref={containerRef} className="min-h-[400px] w-full"></div>;
 }

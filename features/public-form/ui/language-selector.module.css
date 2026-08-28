@@ -62,7 +62,7 @@
 .chevron {
   width: 0.75rem;
   height: 0.75rem;
-  fill: currentColor;
+  fill: currentcolor;
   flex-shrink: 0;
   transition: transform 0.2s ease;
 }

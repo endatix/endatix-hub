@@ -63,4 +63,17 @@ describe("SurveyDashboard", () => {
       mockApplyTheme.mock.invocationCallOrder[0],
     );
   });
+
+  it("re-applies the Hub theme after survey JSON changes", async () => {
+    mockApplyTheme.mockClear();
+    const { rerender } = render(
+      <SurveyDashboard surveyJson={{ title: "one" }} />,
+    );
+    await waitFor(() => expect(mockApplyTheme).toHaveBeenCalled());
+    mockApplyTheme.mockClear();
+
+    rerender(<SurveyDashboard surveyJson={{ title: "two" }} />);
+
+    await waitFor(() => expect(mockApplyTheme).toHaveBeenCalled());
+  });
 });

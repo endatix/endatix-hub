@@ -364,8 +364,8 @@ function FormEditor({
         return;
       }
 
-      if (!updateThemeResult.success) {
-        toast.error(updateThemeResult.error || "Failed to update form theme");
+      if (Result.isError(updateThemeResult)) {
+        toast.error(updateThemeResult.message || "Failed to update form theme");
         return;
       }
 

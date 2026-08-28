@@ -42,12 +42,12 @@ describe("applyFormSurveyTheme", () => {
     expect(model.applyTheme).toHaveBeenCalledWith(stored, DefaultLight);
   });
 
-  it("falls back to the Endatix survey theme when the form has none", () => {
+  it("falls back to SurveyJS DefaultLight when the form has no assigned theme", () => {
     const model = { applyTheme: vi.fn() };
 
     applyFormSurveyTheme(model as never);
 
-    expect(model.applyTheme).toHaveBeenCalledWith(endatixSurveyThemeLight);
+    expect(model.applyTheme).toHaveBeenCalledWith(DefaultLight);
   });
 });
 

@@ -7,6 +7,7 @@ import type { Theme } from "@/lib/endatix-api/themes/types";
 import { createThemeAction } from "../create-theme/create-theme.action";
 import { deleteThemeAction } from "../delete-theme/delete-theme.action";
 import { getThemesAction } from "../list-themes/list-themes.action";
+import { updateFormThemeAction } from "../update-form-theme/update-form-theme.action";
 import { updateThemeAction } from "../update-theme/update-theme.action";
 
 const telemetryLoggerMock = vi.hoisted(() => ({
@@ -36,6 +37,10 @@ vi.mock("@/lib/endatix-api", async (importOriginal) => {
   };
 });
 
+vi.mock("next/cache", () => ({
+  revalidatePath: vi.fn(),
+}));
+
 const sampleTheme: Theme = {
   id: "theme-1",
   name: "Brand",
@@ -48,6 +53,7 @@ describe("theme actions", () => {
   const listAll = vi.fn();
   const partialUpdate = vi.fn();
   const deleteTheme = vi.fn();
+  const updateForm = vi.fn();
   const requireHubAccess = vi.fn().mockResolvedValue(undefined);
 
   beforeEach(() => {
@@ -66,6 +72,9 @@ describe("theme actions", () => {
           partialUpdate,
           delete: deleteTheme,
         },
+        forms: {
+          update: updateForm,
+        },
       } as never;
     });
   });
@@ -83,6 +92,22 @@ describe("theme actions", () => {
 
       expect(result.errorType).toBe(ErrorType.ValidationError);
       expect(result.message).toBe("Theme name is required");
+    });
+
+    it("rejects the reserved name default without calling the API", async () => {
+      const result = await createThemeAction({
+        themeName: " Default ",
+      } as never);
+
+      expect(create).not.toHaveBeenCalled();
+      expect(EndatixApi).not.toHaveBeenCalled();
+      expect(result.kind).toBe(Kind.Error);
+      if (result.kind !== Kind.Error) {
+        return;
+      }
+
+      expect(result.errorType).toBe(ErrorType.ValidationError);
+      expect(result.message).toContain("reserved");
     });
 
     it("posts trimmed name and serialized theme JSON", async () => {
@@ -204,6 +229,31 @@ describe("theme actions", () => {
       }
 
       expect(result.value).toBe("theme-1");
+    });
+  });
+
+  describe("updateFormThemeAction", () => {
+    it("maps API errors through toResult", async () => {
+      updateForm.mockResolvedValue(
+        ApiResult.httpStatusError(403, undefined, undefined, {
+          statusCode: 403,
+          endpoint: "/forms/1",
+          method: "PUT",
+        }),
+      );
+
+      const result = await updateFormThemeAction({
+        formId: "1",
+        themeId: "theme-1",
+      });
+
+      expect(result.kind).toBe(Kind.Error);
+      if (result.kind !== Kind.Error) {
+        return;
+      }
+
+      expect(result.errorCode).toBe(ERROR_CODE.ACCESS_FORBIDDEN);
+      expect(telemetryLoggerMock.error).not.toHaveBeenCalled();
     });
   });
 });

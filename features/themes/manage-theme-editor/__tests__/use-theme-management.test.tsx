@@ -24,7 +24,13 @@ vi.mock("@/components/ui/toast", () => ({
   toast: { error: vi.fn(), success: vi.fn(), info: vi.fn() },
 }));
 
-import { useThemeManagement } from "../use-theme-management.hook";
+import { deleteThemeAction } from "@/features/themes/delete-theme";
+import { getFormsForThemeAction } from "@/features/themes/list-forms-for-theme";
+import { Result } from "@/lib/result";
+import {
+  DEFAULT_THEME_ID,
+  useThemeManagement,
+} from "../use-theme-management.hook";
 
 class FakeEvent<TSender, TOptions> {
   handlers: Array<(sender: TSender, options: TOptions) => void> = [];
@@ -70,7 +76,10 @@ function makeCreator(theme: Record<string, unknown>) {
   };
 }
 
-function renderThemeManagement(theme: Record<string, unknown>) {
+function renderThemeManagement(
+  theme: Record<string, unknown>,
+  extras?: { onThemeIdChanged?: (themeId: string) => void },
+) {
   const creator = makeCreator(theme);
   const view = renderHook(() =>
     useThemeManagement({
@@ -78,6 +87,7 @@ function renderThemeManagement(theme: Record<string, unknown>) {
       // The hook only touches the subset of the Creator modelled above.
       creator: creator as never,
       themeId: theme.id as string | undefined,
+      onThemeIdChanged: extras?.onThemeIdChanged,
     }),
   );
   return { creator, view };
@@ -268,5 +278,41 @@ describe("useThemeManagement save flow", () => {
     expect(updateThemeAction).not.toHaveBeenCalled();
     // Still dirty: the edits were kept in the editor, just not persisted.
     expect(view.result.current.isThemeDirty).toBe(true);
+  });
+});
+
+describe("useThemeManagement delete", () => {
+  it("clears the theme id and marks the form dirty so Save persists Default", async () => {
+    vi.mocked(getFormsForThemeAction).mockResolvedValue(Result.success([]));
+    vi.mocked(deleteThemeAction).mockResolvedValue(Result.success("t1"));
+    const onThemeIdChanged = vi.fn();
+    const { creator, view } = renderThemeManagement(
+      { id: "t1", themeName: "Acme" },
+      { onThemeIdChanged },
+    );
+
+    const titleActions: unknown[] = [];
+    act(() => {
+      creator.onPropertyEditorUpdateTitleActions.fire(null, {
+        property: { name: "themeName" },
+        titleActions,
+      });
+    });
+    const deleteAction = titleActions[0] as { action: () => Promise<void> };
+
+    await act(async () => {
+      await deleteAction.action();
+    });
+    await waitFor(() =>
+      expect(view.result.current.themeDeleteRequest).not.toBeNull(),
+    );
+
+    await act(async () => {
+      await view.result.current.themeDeleteRequest!.onConfirm();
+    });
+
+    expect(creator.themeEditor.removeTheme).toHaveBeenCalled();
+    expect(onThemeIdChanged).toHaveBeenCalledWith(DEFAULT_THEME_ID);
+    expect(view.result.current.currentThemeId).toBeUndefined();
   });
 });

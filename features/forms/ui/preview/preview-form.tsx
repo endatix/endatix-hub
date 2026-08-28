@@ -69,7 +69,6 @@ const PreviewForm = ({ model, slkVal }: PreviewFormProps) => {
     const cleanupQuestionLoops = bindQuestionLoops(newCreator);
     newCreator.JSON = model;
     newCreator.activeTab = "test";
-    applyEndatixCreatorTheme(newCreator, creatorTheme);
     newCreator.theme = BorderlessLight;
 
     onCreatorCreated(newCreator);
@@ -87,8 +86,15 @@ const PreviewForm = ({ model, slkVal }: PreviewFormProps) => {
     initAnyAnsweredGlobals,
     initQuestionLoopsGlobals,
     bindQuestionLoops,
-    creatorTheme,
   ]);
+
+  useEffect(() => {
+    if (!creator) {
+      return;
+    }
+
+    applyEndatixCreatorTheme(creator, creatorTheme);
+  }, [creator, creatorTheme]);
 
   if (!isExtensionsReady) {
     return null;

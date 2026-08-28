@@ -3,6 +3,7 @@
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
 import { EndatixApi } from "@/lib/endatix-api";
+import { Result, toResult } from "@/lib/result";
 import { revalidatePath } from "next/cache";
 
 interface UpdateFormThemeRequest {
@@ -10,10 +11,7 @@ interface UpdateFormThemeRequest {
   themeId: string | null;
 }
 
-export interface UpdateFormThemeResult {
-  success: boolean;
-  error?: string;
-}
+export type UpdateFormThemeResult = Result<void>;
 
 export async function updateFormThemeAction(
   request: UpdateFormThemeRequest,
@@ -24,13 +22,18 @@ export async function updateFormThemeAction(
 
   const api = new EndatixApi(session?.accessToken);
   const { formId, themeId } = request;
-  const result = await api.forms.update(formId, { themeId });
+  const updated = await api.forms.update(formId, { themeId });
 
-  if (!result.success) {
-    console.error("Failed to update form theme", result.error);
-    return { success: false, error: "Failed to update form theme" };
+  const result = toResult(updated, {
+    mapData: () => undefined,
+    fallbackMessage: "Failed to update form theme",
+    logMessage: "Failed to update form theme",
+    loggerName: "forms.update",
+  });
+
+  if (Result.isSuccess(result)) {
+    revalidatePath(`/(main)/forms/${formId}/design`);
   }
 
-  revalidatePath(`/(main)/forms/${formId}/design`);
-  return { success: true };
+  return result;
 }

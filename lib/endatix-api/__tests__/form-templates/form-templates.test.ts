@@ -139,6 +139,32 @@ describe("FormTemplates", () => {
       expect(result.data).toEqual(items);
     }
   });
+
+  it("fails when the server keeps reporting more pages after the cap", async () => {
+    const get = vi.fn().mockResolvedValue(
+      ApiResult.success({
+        items: [
+          {
+            id: "1",
+            name: "A",
+            description: undefined,
+            createdAt: new Date(),
+            folderId: null,
+          },
+        ],
+        page: 1,
+        pageSize: 100,
+        totalRecords: 1_000_000,
+        totalPages: 10_000,
+      }),
+    );
+    const sut = new FormTemplates({ get } as unknown as EndatixApi);
+
+    const result = await sut.list();
+
+    expect(get).toHaveBeenCalledTimes(50);
+    expect(ApiResult.isSuccess(result)).toBe(false);
+  });
 });
 
 describe("buildListFormTemplatesEndpoint", () => {

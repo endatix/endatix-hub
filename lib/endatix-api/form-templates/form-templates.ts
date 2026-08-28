@@ -59,6 +59,7 @@ export class FormTemplates {
   ): Promise<ApiResult<FormTemplate[]>> {
     const templates: FormTemplate[] = [];
     const pageSize = request.pageSize ?? DEFAULT_LIST_PAGE_SIZE;
+    let hasNextPage = false;
 
     for (let page = 1; page <= LIST_ALL_MAX_PAGES; page++) {
       const result = await this.endatix.get<PagedResponse<FormTemplate>>(
@@ -70,9 +71,16 @@ export class FormTemplates {
 
       const paged = normalizePagedResponse(result.data);
       templates.push(...paged.items);
-      if (!paged.hasNextPage) {
+      hasNextPage = paged.hasNextPage;
+      if (!hasNextPage) {
         break;
       }
+    }
+
+    if (hasNextPage) {
+      return ApiResult.serverError(
+        `Could not load all form templates (stopped after ${LIST_ALL_MAX_PAGES} pages)`,
+      );
     }
 
     return ApiResult.success(templates);

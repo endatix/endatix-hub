@@ -94,6 +94,7 @@ export class Themes {
   ): Promise<ApiResult<Theme[]>> {
     const pageSize = request.pageSize ?? LIST_ALL_PAGE_SIZE;
     const themes: Theme[] = [];
+    let hasNextPage = false;
 
     for (let page = DEFAULT_PAGE; page <= LIST_ALL_MAX_PAGES; page++) {
       const result = await this.list({ ...request, page, pageSize });
@@ -102,9 +103,16 @@ export class Themes {
       }
 
       themes.push(...result.data.items);
-      if (!result.data.hasNextPage) {
+      hasNextPage = result.data.hasNextPage;
+      if (!hasNextPage) {
         break;
       }
+    }
+
+    if (hasNextPage) {
+      return ApiResult.serverError(
+        `Could not load all themes (stopped after ${LIST_ALL_MAX_PAGES} pages)`,
+      );
     }
 
     return ApiResult.success(themes);

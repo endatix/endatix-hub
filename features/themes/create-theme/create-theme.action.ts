@@ -23,6 +23,11 @@ export async function createThemeAction(
   if (!name) {
     return Result.validationError("Theme name is required");
   }
+  if (name.toLowerCase() === "default") {
+    return Result.validationError(
+      'Theme name "default" is reserved. Choose a different name.',
+    );
+  }
 
   const session = await auth();
   const api = new EndatixApi(session?.accessToken);

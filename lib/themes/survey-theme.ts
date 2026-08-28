@@ -1,11 +1,7 @@
 import type { ITheme, SurveyModel } from "survey-core";
 import { DefaultDark, DefaultLight } from "survey-core/themes";
 import { registerCreatorTheme } from "survey-creator-core";
-import {
-  endatixSurveyThemeLight,
-  pickSurveyTheme,
-  type HubTheme,
-} from "./endatix-themes";
+import { pickSurveyTheme, type HubTheme } from "./endatix-themes";
 
 let isRegistered = false;
 
@@ -49,8 +45,11 @@ export function sanitizeSurveyTheme<T extends object>(theme: T): T {
 
 /**
  * Applies a form's stored theme (the GetActive `themeModel` JSON), layered on
- * DefaultLight so v3 `--sjs2-*` and legacy `--sjs-*` both resolve. Falls back to
- * the Endatix survey theme when the form has no assigned theme.
+ * DefaultLight so v3 `--sjs2-*` and legacy `--sjs-*` both resolve.
+ *
+ * No assigned theme → SurveyJS DefaultLight (green), same as Creator Preview.
+ * Hub survey tokens stay on analytics (`applyHubDashboardTheme`) and Hub-internal
+ * survey models (`useEndatixSurveyTheme`) — not on public share/embed.
  */
 export function applyFormSurveyTheme(
   model: SurveyModel,
@@ -61,7 +60,7 @@ export function applyFormSurveyTheme(
     return;
   }
 
-  model.applyTheme(endatixSurveyThemeLight);
+  model.applyTheme(DefaultLight);
 }
 
 type DashboardThemeTarget = {
