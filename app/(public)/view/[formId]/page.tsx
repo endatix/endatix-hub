@@ -33,7 +33,6 @@ export default async function PublicViewSubmissionPage({
         notFoundTitle="Invalid Form"
         notFoundSubtitle="Invalid form ID provided"
         notFoundMessage="Please check the URL and try again."
-        titleSize="medium"
       />
     );
   }
@@ -44,7 +43,6 @@ export default async function PublicViewSubmissionPage({
         notFoundTitle="Token Required"
         notFoundSubtitle="No access token provided"
         notFoundMessage="You need a valid access token to view this submission."
-        titleSize="medium"
       />
     );
   }
@@ -55,7 +53,6 @@ export default async function PublicViewSubmissionPage({
         notFoundTitle="Access Denied"
         notFoundSubtitle="You don't have permission to view this submission"
         notFoundMessage="The access token does not include view permissions."
-        titleSize="medium"
       />
     );
   }
@@ -74,7 +71,6 @@ export default async function PublicViewSubmissionPage({
           notFoundTitle="Token Expired"
           notFoundSubtitle="This link has expired"
           notFoundMessage="Please request a new access link to view this submission."
-          titleSize="medium"
         />
       );
     }
@@ -88,7 +84,6 @@ export default async function PublicViewSubmissionPage({
           notFoundTitle="Access Denied"
           notFoundSubtitle="You don't have permission to view this submission"
           notFoundMessage="The access token does not have view permissions."
-          titleSize="medium"
         />
       );
     }
@@ -98,7 +93,6 @@ export default async function PublicViewSubmissionPage({
         notFoundTitle="Submission Not Found"
         notFoundSubtitle="Unable to load submission"
         notFoundMessage="The submission may have been deleted or the token is invalid."
-        titleSize="medium"
       />
     );
   }
@@ -113,7 +107,6 @@ export default async function PublicViewSubmissionPage({
         notFoundTitle="Form Not Found"
         notFoundSubtitle="Unable to load form definition"
         notFoundMessage="The form definition could not be loaded. Please try again later."
-        titleSize="medium"
       />
     );
   }

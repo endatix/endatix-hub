@@ -77,9 +77,8 @@ export default async function FormDesignerPage({ params }: Params) {
     return (
       <NotFoundComponent
         notFoundTitle="Form not found"
-        notFoundSubtitle="The form you are looking for does not exist."
-        notFoundMessage="Please check the form ID and try again."
-        titleSize="medium"
+        notFoundSubtitle="We couldn't find that form."
+        notFoundMessage="It may have been deleted, or the ID in the URL is wrong."
       >
         <Link href="/forms">
           <Button>Back to forms</Button>

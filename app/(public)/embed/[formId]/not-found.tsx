@@ -1,5 +1,8 @@
 import "@/app/globals.css";
-import { NotFoundComponent } from "@/components/error-handling/not-found";
+import {
+  NotFoundComponent,
+  PublicNotFoundFrame,
+} from "@/components/error-handling/not-found";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -9,12 +12,12 @@ export const metadata: Metadata = {
 
 export default function NotFoundEmbedForm() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-content-canvas px-4">
+    <PublicNotFoundFrame>
       <NotFoundComponent
-        notFoundTitle="Not found"
-        notFoundSubtitle="The survey you are looking for does not exist."
-        notFoundMessage="Please check the URL and try again."
+        notFoundTitle="Survey not found"
+        notFoundSubtitle="We couldn't find that survey."
+        notFoundMessage="Check the link and try again."
       />
-    </div>
+    </PublicNotFoundFrame>
   );
 }

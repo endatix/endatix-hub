@@ -33,7 +33,6 @@ export default async function FilePage({ params }: Readonly<Params>) {
         notFoundTitle="File not found"
         notFoundSubtitle="The file could not be loaded."
         notFoundMessage={fileResult.message}
-        titleSize="medium"
       >
         <Link
           href={`/forms/${formId}/submissions/${submissionId}/files`}
