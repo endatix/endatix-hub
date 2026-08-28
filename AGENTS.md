@@ -82,11 +82,11 @@ When a detail page has a "Back to `<list>`" control that should restore the list
 
 ### Server loaders vs `error.tsx`
 
-- When a server loader already has an `ApiResult` (list pages, detail fetches), **return `Result<T>`** and render fallback UI (e.g. `ResultLoadErrorView`). Do **not** `throw` into `error.tsx` — Next only forwards `message` + `digest`, so API `traceId` / `statusCode` are lost and the page may show a misleading 500.
+- When a server loader already has an `ApiResult` (list pages, detail fetches), **return `Result<T>`** and render fallback UI (`HubPageLoadError` / `ResultLoadErrorView`). Do **not** dump `ApiResult.error.message` as red text and do **not** `throw` into `error.tsx` — Next only forwards `message` + `digest`, so API `traceId` / `statusCode` are lost and the page may show a misleading 500.
 - Sibling `Suspense` regions: each `ResultLoadErrorView` is independent. Two failing Result loaders show **two** branded error blocks in their slots; toolbar/layout stay. A **throw** in a sibling (e.g. folders `await` without Result) still hits `error.tsx` and replaces the **whole** route segment, including successful siblings. Isolate only the loaders you convert to Result; do not mix throw + Result if you need both regions to keep rendering.
 - `error.tsx` / `global-error.tsx` are for **uncaught** exceptions only. Next.js forwards `error.message` (generic in production for Server Components) plus `error.digest` (hash to match server logs). Show digest on the support box; send it with PostHog `trackException`. Use stable `retry()` (not `reset()`). `global-error` must ship its own `<html>`/`<body>` + `globals.css`. Do **not** adopt `catchError` / graceful-degrading HTML snapshots for loaders — keep known `ApiResult` failures as `Result`.
 - Drive chrome from `statusCode` / `Result.errorType` via `unexpectedErrorUiFromResult`, not by sniffing `error.message`.
-- Reference: `features/forms/list-forms/list-forms.server.ts` + `ui/forms-list-section.tsx`.
+- Reference: `features/forms/list-forms/list-forms.server.ts` + `ui/forms-list-section.tsx`, or any `(main)` page using `HubPageLoadError`.
 
 ### Error page chrome (`ErrorPage`)
 

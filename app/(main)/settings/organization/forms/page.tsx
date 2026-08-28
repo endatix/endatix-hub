@@ -2,7 +2,9 @@ import PageTitle from "@/components/headings/page-title";
 import { auth } from "@/auth";
 import { authorization, Permissions } from "@/features/auth/authorization";
 import { OrganizationFormsSettingsForm } from "@/features/settings/ui/organization-forms-settings-form";
+import { HubPageLoadError } from "@/components/error-handling/error-page";
 import { ApiErrorType, EndatixApi } from "@/lib/endatix-api";
+import { Result, toResult } from "@/lib/result";
 import Link from "next/link";
 import type { Route } from "next";
 import { redirect } from "next/navigation";
@@ -21,22 +23,28 @@ export default async function OrganizationFormsSettingsPage() {
   }
 
   const api = new EndatixApi(session?.accessToken);
-  const settingsResult = await api.tenant.getSettings();
+  const settingsApiResult = await api.tenant.getSettings();
 
-  if (!settingsResult.success) {
-    if (settingsResult.error.type === ApiErrorType.AuthError) {
-      redirect(SIGNIN_PATH);
-    }
-    return (
-      <div className="text-sm text-destructive">
-        {settingsResult.error.message}
-      </div>
-    );
+  if (
+    !settingsApiResult.success &&
+    settingsApiResult.error.type === ApiErrorType.AuthError
+  ) {
+    redirect(SIGNIN_PATH);
   }
 
-  const requireFolder = settingsResult.data.requireFolderAssignment ?? false;
+  const settingsResult = toResult(settingsApiResult, {
+    fallbackMessage: "Failed to load organization form settings.",
+    logMessage: "Failed to load organization form settings.",
+    loggerName: "settings.organization.forms",
+  });
+
+  if (Result.isError(settingsResult)) {
+    return <HubPageLoadError result={settingsResult} />;
+  }
+
+  const requireFolder = settingsResult.value.requireFolderAssignment ?? false;
   const submissionTokenExpiryHours =
-    settingsResult.data.submissionTokenExpiryHours ?? null;
+    settingsResult.value.submissionTokenExpiryHours ?? null;
 
   return (
     <div className="space-y-6">

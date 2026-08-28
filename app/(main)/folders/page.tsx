@@ -4,7 +4,10 @@ import { SIGNIN_PATH } from "@/features/auth";
 import { authorization, Permissions } from "@/features/auth/authorization";
 import { CreateFolderDialog } from "@/features/folders/create-folder";
 import { FolderManagementListCard } from "@/features/folders/list-folders";
+import { HubPageLoadError } from "@/components/error-handling/error-page";
+import { UnauthorizedComponent } from "@/components/error-handling/unauthorized";
 import { ApiErrorType, ApiResult, EndatixApi } from "@/lib/endatix-api";
+import { Result, toResult } from "@/lib/result";
 import { hasValue, SearchParam } from "@/lib/utils/next-utils";
 import { FolderCog, FolderOpen } from "lucide-react";
 import { redirect } from "next/navigation";
@@ -16,7 +19,6 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { UnauthorizedComponent } from "@/components/error-handling/unauthorized";
 
 interface FoldersManagementPageProps {
   searchParams: Promise<{ action: SearchParam }>;
@@ -36,20 +38,26 @@ export default async function FoldersManagementPage({
   }
 
   const api = new EndatixApi(session?.accessToken);
-  const foldersResult = await api.folders.list({ includeInactive: true });
+  const foldersApiResult = await api.folders.list({ includeInactive: true });
 
-  if (ApiResult.isError(foldersResult)) {
-    if (foldersResult.error.type === ApiErrorType.AuthError) {
-      redirect(SIGNIN_PATH);
-    }
-    return (
-      <div className="text-sm text-destructive">
-        {foldersResult.error.message}
-      </div>
-    );
+  if (
+    ApiResult.isError(foldersApiResult) &&
+    foldersApiResult.error.type === ApiErrorType.AuthError
+  ) {
+    redirect(SIGNIN_PATH);
   }
 
-  const folders = foldersResult.data;
+  const foldersResult = toResult(foldersApiResult, {
+    fallbackMessage: "Failed to load folders.",
+    logMessage: "Failed to load folders list.",
+    loggerName: "folders.list",
+  });
+
+  if (Result.isError(foldersResult)) {
+    return <HubPageLoadError result={foldersResult} />;
+  }
+
+  const folders = foldersResult.value;
   const folderSummaries = await Promise.all(
     folders.map(async (folder) => {
       const [formsResult, templatesResult] = await Promise.all([
