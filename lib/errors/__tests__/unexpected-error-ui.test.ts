@@ -2,11 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { ApiErrorType } from '@/lib/endatix-api';
 import {
   buildUnexpectedErrorDiagnostics,
+  diagnosticsFromResult,
   formatUnexpectedErrorClipboard,
   getUnexpectedErrorUi,
   unexpectedErrorKindFromApiErrorType,
   unexpectedErrorUiByKind,
+  unexpectedErrorUiFromResult,
 } from '@/lib/errors/unexpected-error-ui';
+import { ErrorType, Result } from '@/lib/result';
 
 describe('unexpected-error-ui', () => {
   it('defaults to a generic 500 page for unknown messages', () => {
@@ -46,7 +49,7 @@ describe('unexpected-error-ui', () => {
       'service',
     );
     expect(unexpectedErrorKindFromApiErrorType(ApiErrorType.ValidationError)).toBe(
-      'general',
+      'client',
     );
   });
 
@@ -57,6 +60,35 @@ describe('unexpected-error-ui', () => {
     // Assert
     expect(service.statusCode).toBe('503');
     expect(service.message.length).toBeGreaterThan(0);
+  });
+
+  it('maps Result validation errors to 400 client UI with diagnostics', () => {
+    // Arrange
+    const result = Result.validationError(
+      'We have a problem',
+      'We have a problem',
+      'ValidationError',
+      {
+        statusCode: 400,
+        traceId: '00-7c4136e87655d6da47ee643c221f630b-ef3c8ae2be5da5dd-00',
+      },
+    );
+
+    // Act
+    if (!Result.isError(result)) {
+      throw new Error('expected error result');
+    }
+    const ui = unexpectedErrorUiFromResult(result);
+    const diagnostics = diagnosticsFromResult(result);
+
+    // Assert
+    expect(result.errorType).toBe(ErrorType.ValidationError);
+    expect(ui.kind).toBe('client');
+    expect(ui.statusCode).toBe('400');
+    expect(diagnostics.traceId).toBe(
+      '00-7c4136e87655d6da47ee643c221f630b-ef3c8ae2be5da5dd-00',
+    );
+    expect(diagnostics.statusCode).toBe(400);
   });
 
   it('reads traceId from the thrown error when present', () => {

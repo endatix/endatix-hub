@@ -75,9 +75,17 @@ When a detail page has a "Back to `<list>`" control that should restore the list
 - Preserve API-provided user-facing messages, validation errors, and error codes through the shared result mappers.
 - Use `parseZodError()` or `ServerActionState.fromZodError()` for Zod validation failures in form actions.
 - For any `ApiResult<T>`, prefer `toResult(...)` — it maps to `Result` and owns unexpected-failure telemetry when `logMessage` / `loggerName` are set. Expected validation/auth/403/404/rate-limit are suppressed inside `toResult`; do not duplicate that classification with local filters or ad hoc `TelemetryLogger.error` on `!apiResult.success`.
+- `toResult` / `mapApiErrorToResult` must preserve ProblemDetails support fields on `Result` errors: `traceId`, `statusCode`, and `errorCode`. Do not drop them when mapping.
 - Do not log expected user/action failures such as validation, authentication, or authorization failures as application errors.
 - Use `TelemetryLogger` for unexpected operational failures outside an `ApiResult` path (e.g. thrown errors, composing-action workflow failures). Only log safe scalar attributes (`errorCode`, ids already shown in UI, status/method/endpoint from `mapApiErrorToTelemetryAttributes`); never log tokens, cookies, raw request bodies, field values, or raw API detail/message strings.
 - **Composing actions** (workflows that call other actions returning `Result<T>`): do **not** call `toResult` again. Check `Result.isError`, return/combine user-facing messages, and if you must log the workflow failure use safe scalars only. API telemetry belongs in the leaf that received `ApiResult` via `toResult`.
+
+### Server loaders vs `error.tsx`
+
+- When a server loader already has an `ApiResult` (list pages, detail fetches), **return `Result<T>`** and render fallback UI (e.g. `ResultLoadErrorView`). Do **not** `throw` into `error.tsx` — Next only forwards `message` + `digest`, so API `traceId` / `statusCode` are lost and the page may show a misleading 500.
+- `error.tsx` / `global-error.tsx` are for **uncaught** exceptions only. Digest is the Hub correlation id. API `traceId` exists in the UI only if you kept `Result` (or passed diagnostics another serializable way).
+- Drive chrome from `statusCode` / `Result.errorType` via `unexpectedErrorUiFromResult`, not by sniffing `error.message`.
+- Reference: `features/forms/list-forms/list-forms.server.ts` + `ui/forms-list-section.tsx`.
 
 ### Example: API leaf action (`toResult`)
 

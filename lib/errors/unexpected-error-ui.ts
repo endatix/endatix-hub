@@ -1,7 +1,9 @@
 import { ApiErrorType } from '@/lib/endatix-api';
+import { ErrorType, type Error as ResultError } from '@/lib/result';
 
 export type UnexpectedErrorKind =
   | 'general'
+  | 'client'
   | 'authorization'
   | 'network'
   | 'service';
@@ -53,6 +55,44 @@ export function getUnexpectedErrorUi(error: Error): UnexpectedErrorUi {
   return unexpectedErrorUiByKind('general');
 }
 
+/**
+ * Maps a Hub `Result` error using HTTP status / error type (not message sniffing).
+ */
+export function unexpectedErrorUiFromResult(
+  result: ResultError,
+): UnexpectedErrorUi {
+  const status = result.statusCode;
+
+  if (status === 401 || status === 403) {
+    return unexpectedErrorUiByKind('authorization');
+  }
+
+  if (status === 404) {
+    return {
+      kind: 'client',
+      statusCode: '404',
+      title: 'This resource could not be found.',
+      subtitle: 'It may have been removed or the link is incorrect.',
+      message: 'Check the URL and try again.',
+    };
+  }
+
+  if (
+    result.errorType === ErrorType.ValidationError ||
+    status === 400 ||
+    status === 409 ||
+    status === 422
+  ) {
+    return unexpectedErrorUiByKind('client');
+  }
+
+  if (status === 429 || status === 503 || (status !== undefined && status >= 500)) {
+    return unexpectedErrorUiByKind('service');
+  }
+
+  return unexpectedErrorUiByKind('general');
+}
+
 export function unexpectedErrorUiByKind(
   kind: UnexpectedErrorKind,
 ): UnexpectedErrorUi {
@@ -65,6 +105,15 @@ export function unexpectedErrorUiByKind(
         subtitle: 'Access was denied for this request.',
         message:
           'Please verify your permissions or switch to an account with the required access.',
+      };
+    case 'client':
+      return {
+        kind,
+        statusCode: '400',
+        title: 'We could not load this page.',
+        subtitle: 'The server rejected the request.',
+        message:
+          'Try again. If the issue persists, share diagnostics with support.',
       };
     case 'network':
       return {
@@ -106,12 +155,25 @@ export function unexpectedErrorKindFromApiErrorType(
     case ApiErrorType.AuthError:
     case ApiErrorType.ForbiddenError:
       return 'authorization';
+    case ApiErrorType.ValidationError:
+    case ApiErrorType.ConflictError:
+      return 'client';
     case ApiErrorType.ServerError:
     case ApiErrorType.RateLimitError:
       return 'service';
     default:
       return 'general';
   }
+}
+
+export function diagnosticsFromResult(
+  result: ResultError,
+): UnexpectedErrorDiagnostics {
+  return {
+    traceId: result.traceId,
+    errorCode: result.errorCode,
+    statusCode: result.statusCode,
+  };
 }
 
 type ErrorWithSupportMetadata = Error & {
