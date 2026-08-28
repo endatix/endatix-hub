@@ -32,6 +32,18 @@ describe("truncateId", () => {
     // Assert
     expect(result).toBe("1329\u20269648");
   });
+
+  it("truncates W3C trace ids with 8 visible characters per side", () => {
+    // Arrange
+    const id = "00-15ceb2d6a7b35125152d10c131b11672-28c1e891c501df6c-00";
+
+    // Act
+    const result = truncateId(id, 8);
+
+    // Assert
+    expect(result).toBe("00-15ceb\u20261df6c-00");
+    expect(result.length).toBeLessThan(id.length);
+  });
 });
 
 describe("TruncatedId", () => {
