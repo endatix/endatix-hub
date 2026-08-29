@@ -62,11 +62,13 @@ export default async function FormDesignerPage({ params }: Params) {
   const [settingsRes, foldersRes, formResult] = await Promise.all([
     api.tenant.getSettings(),
     api.folders.list(),
-    toResult(await api.forms.get(formId), {
-      fallbackMessage: "Failed to load form.",
-      logMessage: "Failed to load form for design.",
-      loggerName: "forms.design",
-    }),
+    api.forms.get(formId).then((apiResult) =>
+      toResult(apiResult, {
+        fallbackMessage: "Failed to load form.",
+        logMessage: "Failed to load form for design.",
+        loggerName: "forms.design",
+      }),
+    ),
   ]);
 
   if (Result.isError(formResult)) {
