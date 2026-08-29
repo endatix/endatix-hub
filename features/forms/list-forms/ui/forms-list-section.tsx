@@ -2,12 +2,14 @@
 
 import type { ReactNode } from "react";
 import { use } from "react";
+import { useRouter } from "next/navigation";
+import { ResultLoadErrorView } from "@/components/error-handling/error-page";
 import { PagedListFooter } from "@/components/ui/paged-list-footer";
 import FormsList from "@/features/forms/ui/forms-list";
-import type { PagedResponse } from "@/lib/endatix-api/shared/types";
 import { normalizePagedResponse } from "@/lib/endatix-api/shared/paged-response";
 import { useListUrlState } from "@/lib/list-page/use-list-url-state";
-import { Form } from "@/types";
+import { Result } from "@/lib/result";
+import type { FormsListResult } from "../list-forms.server";
 import {
   hasActiveFormsListFilters,
   isTenantWideFormsList,
@@ -15,7 +17,7 @@ import {
 } from "../utils";
 
 interface FormsListSectionProps {
-  formsPromise: Promise<PagedResponse<Form>>;
+  formsPromise: Promise<FormsListResult>;
   emptyState: ReactNode;
   filteredEmptyState: ReactNode;
   scope: "root" | "folder";
@@ -29,8 +31,20 @@ export function FormsListSection({
   scope,
   folderContextById,
 }: Readonly<FormsListSectionProps>) {
-  const pagedForms = normalizePagedResponse(use(formsPromise));
+  const listResult = use(formsPromise);
+  const router = useRouter();
   const { updateUrl, searchParams } = useListUrlState();
+
+  if (Result.isError(listResult)) {
+    return (
+      <ResultLoadErrorView
+        result={listResult}
+        onRetry={() => router.refresh()}
+      />
+    );
+  }
+
+  const pagedForms = normalizePagedResponse(listResult.value);
   const filtersActive = hasActiveFormsListFilters(searchParams);
   const showFolderContext =
     scope === "root" &&

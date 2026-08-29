@@ -31,6 +31,8 @@ export const AppOptions = {
   PublicPages: {
     enableTheme: false,
     enableAnalytics: true,
+    enableSession: false,
+    enableToaster: false,
     enableSidebar: false,
   } as AppProviderOptions,
 };

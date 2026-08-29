@@ -1,44 +1,13 @@
-"use client"; // Error boundaries must be Client Components
+'use client';
 
-import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
-  AlertAction,
-} from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
-import { AlertCircle } from "lucide-react";
-import { useEffect } from "react";
-import { useTrackEvent } from "@/features/analytics/posthog";
+import { UnexpectedErrorView } from '@/components/error-handling/error-page';
 
 export default function Error({
   error,
-  reset,
+  retry,
 }: {
   error: Error & { digest?: string };
-  reset: () => void;
+  retry: () => void;
 }) {
-  const { trackException } = useTrackEvent();
-
-  useEffect(() => {
-    trackException(error, {
-      timestamp: new Date().toISOString(),
-    });
-  }, [error, trackException]);
-
-  return (
-    <Alert variant="destructive" className="max-w-md">
-      <AlertCircle/>
-      <AlertTitle>Something went wrong!</AlertTitle>
-      <AlertDescription>
-        We are notified on the issue and are working on it.{" "}
-        <b>Error details:</b> {error.message}
-      </AlertDescription>
-      <AlertAction>
-        <Button onClick={reset}>
-          Click to Retry
-        </Button>
-      </AlertAction>
-    </Alert>
-  );
+  return <UnexpectedErrorView error={error} retry={retry} />;
 }

@@ -32,9 +32,8 @@ export default async function FormTemplateEditPage({ params }: Params) {
     return (
       <NotFoundComponent
         notFoundTitle="Template not found"
-        notFoundSubtitle="The form template you are looking for does not exist."
-        notFoundMessage="Please check the form template ID and try again."
-        titleSize="medium"
+        notFoundSubtitle="We couldn't find that template."
+        notFoundMessage="It may have been deleted, or the ID in the URL is wrong."
       >
         <Link href="/forms/templates">
           <Button>Check all templates</Button>

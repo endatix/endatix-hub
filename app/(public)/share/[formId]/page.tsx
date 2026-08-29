@@ -22,7 +22,6 @@ async function ShareSurveyPage({ params, searchParams }: ShareSurveyPage) {
           notFoundTitle="Access Denied"
           notFoundSubtitle="You don't have permission to continue this submission"
           notFoundMessage="The access token does not include submit permissions."
-          titleSize="medium"
         />
       );
     }

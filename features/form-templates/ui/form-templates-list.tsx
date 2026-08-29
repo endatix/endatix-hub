@@ -1,7 +1,7 @@
 "use client";
 
 import { FormTemplate } from "@/types";
-import { use, useMemo, useState } from "react";
+import { use, useState } from "react";
 import FormTemplateCard from "./form-template-card";
 import FormTemplateSheet from "./form-template-sheet";
 import { FormTemplatePreview } from "./form-template-preview";
@@ -16,10 +16,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { ArrowUpRight, FilePlus2, FileText } from "lucide-react";
 import Link from "next/link";
-import { ApiResult } from "@/lib/endatix-api";
+import { HubPageLoadError } from "@/components/error-handling/error-page";
+import { Result, type ResultType } from "@/lib/result";
 
 type FormTemplatesListProps = {
-  templatesPromise: Promise<ApiResult<FormTemplate[]>>;
+  templatesPromise: Promise<ResultType<FormTemplate[]>>;
   requireFolderAssignment?: boolean;
 };
 
@@ -28,17 +29,28 @@ const FormTemplatesList = ({
   requireFolderAssignment = false,
 }: FormTemplatesListProps) => {
   const templatesResult = use(templatesPromise);
-  const errorMessage = ApiResult.isError(templatesResult)
-    ? ApiResult.getErrorMessage(templatesResult) ||
-      "Failed to load form templates."
-    : null;
-  const templates = useMemo(() => {
-    if (!ApiResult.isSuccess(templatesResult)) {
-      return [];
-    }
 
-    return templatesResult.data;
-  }, [templatesResult]);
+  if (Result.isError(templatesResult)) {
+    return <HubPageLoadError result={templatesResult} />;
+  }
+
+  return (
+    <FormTemplatesListContent
+      templates={templatesResult.value}
+      requireFolderAssignment={requireFolderAssignment}
+    />
+  );
+};
+
+type FormTemplatesListContentProps = {
+  templates: FormTemplate[];
+  requireFolderAssignment: boolean;
+};
+
+function FormTemplatesListContent({
+  templates,
+  requireFolderAssignment,
+}: Readonly<FormTemplatesListContentProps>) {
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(
     null,
   );
@@ -60,9 +72,8 @@ const FormTemplatesList = ({
     setIsPreviewOpen(true);
   };
 
-  const selectedTemplate = useMemo(
-    () => templates.find((template) => template.id === selectedTemplateId),
-    [selectedTemplateId, templates],
+  const selectedTemplate = templates.find(
+    (template) => template.id === selectedTemplateId,
   );
 
   const handleSheetOpenChange = (open: boolean) => {
@@ -78,14 +89,6 @@ const FormTemplatesList = ({
       setPreviewTemplateId(null);
     }
   };
-
-  if (errorMessage) {
-    return (
-      <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
-        {errorMessage}
-      </div>
-    );
-  }
 
   if (templates.length === 0) {
     return <NoFormTemplates />;
@@ -124,7 +127,7 @@ const FormTemplatesList = ({
       )}
     </>
   );
-};
+}
 
 const NoFormTemplates = () => {
   return (

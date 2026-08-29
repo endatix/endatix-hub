@@ -1,9 +1,12 @@
 import { getSession } from "@/features/auth";
-import { ApiErrorType, ApiResult, EndatixApi } from "@/lib/endatix-api";
+import { EndatixApi } from "@/lib/endatix-api";
 import { Model } from "survey-core";
 import ConversationDetails from "@/features/agents/ui/conversation-details";
 import { Suspense } from "react";
 import { requireAdmin } from "@/components/admin-ui/admin-protection";
+import { HubPageLoadError } from "@/components/error-handling/error-page";
+import { NotFoundComponent } from "@/components/error-handling/not-found";
+import { Result, toResult } from "@/lib/result";
 
 interface Params {
   params: Promise<{ agentId: string; conversationId: string }>;
@@ -33,21 +36,31 @@ async function ConversationDetailsPageContent({
   let formModelError: string | undefined;
   const session = await getSession();
   const endatixApi = new EndatixApi(session);
-  const conversationResult = await endatixApi.agents.conversations.get(
-    agentId,
-    conversationId,
+  const conversationResult = toResult(
+    await endatixApi.agents.conversations.get(agentId, conversationId),
+    {
+      fallbackMessage: "Failed to load conversation.",
+      logMessage: "Failed to load agent conversation.",
+      loggerName: "admin.agents",
+    },
   );
 
-  if (ApiResult.isError(conversationResult)) {
-    if (conversationResult.error.type === ApiErrorType.NotFoundError) {
-      return <div>Conversation not found</div>;
+  if (Result.isError(conversationResult)) {
+    if (conversationResult.statusCode === 404) {
+      return (
+        <NotFoundComponent
+          notFoundTitle="Conversation not found"
+          notFoundSubtitle="We couldn't find that conversation."
+          notFoundMessage="It may have been deleted, or the ID in the URL is wrong."
+        />
+      );
     }
 
-    return <div>Error: {conversationResult.error.message}</div>;
+    return <HubPageLoadError result={conversationResult} />;
   }
 
   try {
-    const validatedModel = new Model(conversationResult.data.resultJson);
+    const validatedModel = new Model(conversationResult.value.resultJson);
     formModel = validatedModel.toJSON();
   } catch (error) {
     formModelError = `Cannot parse form model: ${error}`;
@@ -58,7 +71,7 @@ async function ConversationDetailsPageContent({
       <ConversationDetails
         formModel={formModel}
         formModelError={formModelError}
-        conversation={conversationResult.data}
+        conversation={conversationResult.value}
       />
     </Suspense>
   );

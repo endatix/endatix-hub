@@ -1,7 +1,5 @@
 import { PublicSurveyContent } from "@/features/public-form/ui/public-survey-content";
-import {
-  buildPublicFormSignInHref,
-} from "@/features/public-form/ui/public-form-access-error";
+import { buildPublicFormSignInHref } from "@/features/public-form/ui/public-form-access-error";
 import type { SurveyJsWrapperProps } from "@/features/public-form/ui/survey-js-wrapper";
 import { loadPublicSurveyPageUseCase } from "@/features/public-form/use-cases/load-public-survey-page.use-case";
 import type { LoadPublicSurveyPageResult } from "@/features/public-form/use-cases/load-public-survey-page.use-case";
@@ -175,7 +173,7 @@ describe("PublicSurveyContent", () => {
 
     render(component);
 
-    expect(screen.getByText("Token Expired")).toBeDefined();
+    expect(screen.getByText("Link expired")).toBeDefined();
     expect(screen.queryByTestId("survey-js-wrapper")).toBeNull();
   });
 
@@ -228,9 +226,9 @@ describe("PublicSurveyContent", () => {
 
     expect(screen.getByTestId("embed-height-reporter")).toBeDefined();
     expect(screen.getByRole("link", { name: "Sign in" })).toBeDefined();
-    expect(screen.getByRole("link", { name: "Sign in" }).getAttribute("target")).toBe(
-      "_top",
-    );
+    expect(
+      screen.getByRole("link", { name: "Sign in" }).getAttribute("target"),
+    ).toBe("_top");
   });
 
   it("forwards urlToken into the unauthorized sign-in returnUrl", async () => {
@@ -246,7 +244,9 @@ describe("PublicSurveyContent", () => {
 
     render(component);
 
-    expect(screen.getByRole("link", { name: "Sign in" }).getAttribute("href")).toBe(
+    expect(
+      screen.getByRole("link", { name: "Sign in" }).getAttribute("href"),
+    ).toBe(
       buildPublicFormSignInHref({
         formId: "form-1",
         urlToken: "token.rw",

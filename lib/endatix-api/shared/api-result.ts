@@ -26,6 +26,8 @@ export interface ApiErrorDetails {
   method?: string;
   details?: string;
   retryAfter?: number;
+  /** Correlation id from RFC7807 ProblemDetails when the API returns one. */
+  traceId?: string;
 }
 
 // Simple, self-contained Result types

@@ -254,168 +254,89 @@ describe("buildSubmissionListPath", () => {
 });
 
 describe("isCanonicalSubmissionListUrl", () => {
-  const emptyDateBundle = {
-    rawCreatedFrom: undefined as string | undefined,
-    rawCreatedTo: undefined as string | undefined,
-    rawModifiedFrom: undefined as string | undefined,
-    rawModifiedTo: undefined as string | undefined,
-    rawStartedFrom: undefined as string | undefined,
-    rawStartedTo: undefined as string | undefined,
-    rawCompletedFrom: undefined as string | undefined,
-    rawCompletedTo: undefined as string | undefined,
-    createdFrom: undefined as string | undefined,
-    createdTo: undefined as string | undefined,
-    modifiedFrom: undefined as string | undefined,
-    modifiedTo: undefined as string | undefined,
-    startedFrom: undefined as string | undefined,
-    startedTo: undefined as string | undefined,
-    completedFrom: undefined as string | undefined,
-    completedTo: undefined as string | undefined,
-  };
-
   it("is true when raw omits default paging and dates match parsed", () => {
-    const parsed = parseSubmissionListSearchParams({});
-    expect(
-      isCanonicalSubmissionListUrl(
-        undefined,
-        undefined,
-        parsed,
-        emptyDateBundle,
-      ),
-    ).toBe(true);
+    const raw = {};
+    const parsed = parseSubmissionListSearchParams(raw);
+    expect(isCanonicalSubmissionListUrl(raw, parsed)).toBe(true);
   });
 
   it("is false when page 1 is explicit in URL (canonical omits default page)", () => {
-    const parsed = parseSubmissionListSearchParams({ page: "1" });
-    expect(
-      isCanonicalSubmissionListUrl("1", undefined, parsed, emptyDateBundle),
-    ).toBe(false);
+    const raw = { page: "1" };
+    const parsed = parseSubmissionListSearchParams(raw);
+    expect(isCanonicalSubmissionListUrl(raw, parsed)).toBe(false);
   });
 
   it("is false when raw calendar date is invalid but parsed drops it", () => {
-    const parsed = parseSubmissionListSearchParams({
-      createdFrom: "2024-13-40",
-    });
-    expect(
-      isCanonicalSubmissionListUrl(undefined, undefined, parsed, {
-        ...emptyDateBundle,
-        rawCreatedFrom: "2024-13-40",
-      }),
-    ).toBe(false);
+    const raw = { createdFrom: "2024-13-40" };
+    const parsed = parseSubmissionListSearchParams(raw);
+    expect(isCanonicalSubmissionListUrl(raw, parsed)).toBe(false);
   });
 
   it("is false when raw modifiedAt is invalid but parsed drops it", () => {
-    const parsed = parseSubmissionListSearchParams({
-      modifiedFrom: "not-a-date",
-    });
+    const raw = { modifiedFrom: "not-a-date" };
+    const parsed = parseSubmissionListSearchParams(raw);
     expect(parsed.modifiedFrom).toBeUndefined();
-    expect(
-      isCanonicalSubmissionListUrl(undefined, undefined, parsed, {
-        ...emptyDateBundle,
-        rawModifiedFrom: "not-a-date",
-      }),
-    ).toBe(false);
+    expect(isCanonicalSubmissionListUrl(raw, parsed)).toBe(false);
   });
 
   it("is true when raw modifiedAt bounds match parsed values", () => {
-    const parsed = parseSubmissionListSearchParams({
+    const raw = {
       modifiedFrom: "2024-07-01",
       modifiedTo: "2024-07-31",
-    });
-
-    expect(
-      isCanonicalSubmissionListUrl(undefined, undefined, parsed, {
-        ...emptyDateBundle,
-        rawModifiedFrom: "2024-07-01",
-        rawModifiedTo: "2024-07-31",
-        modifiedFrom: "2024-07-01",
-        modifiedTo: "2024-07-31",
-      }),
-    ).toBe(true);
+    };
+    const parsed = parseSubmissionListSearchParams(raw);
+    expect(isCanonicalSubmissionListUrl(raw, parsed)).toBe(true);
   });
 
   it("accepts submitterDisplayId as canonical submitter display id input", () => {
-    const parsed = parseSubmissionListSearchParams({
-      submitterDisplayId: "submitter-123",
-    });
-
-    expect(
-      isCanonicalSubmissionListUrl(undefined, undefined, parsed, {
-        ...emptyDateBundle,
-        rawSubmitterDisplayId: "submitter-123",
-        submitterDisplayId: "submitter-123",
-      }),
-    ).toBe(true);
+    const raw = { submitterDisplayId: "submitter-123" };
+    const parsed = parseSubmissionListSearchParams(raw);
+    expect(isCanonicalSubmissionListUrl(raw, parsed)).toBe(true);
   });
 
   it("is false when raw submitterDisplayId does not match parsed submitter display id", () => {
     const parsed = parseSubmissionListSearchParams({
       submitterDisplayId: "submitter-123",
     });
-
     expect(
-      isCanonicalSubmissionListUrl(undefined, undefined, parsed, {
-        ...emptyDateBundle,
-        rawSubmitterDisplayId: "different-submitter",
-        submitterDisplayId: "submitter-123",
-      }),
+      isCanonicalSubmissionListUrl(
+        { submitterDisplayId: "different-submitter" },
+        parsed,
+      ),
     ).toBe(false);
   });
 
   it("is true when raw submitterEmail matches parsed submitter email", () => {
-    const parsed = parseSubmissionListSearchParams({
-      submitterEmail: "external@endatix.com",
-    });
-
-    expect(
-      isCanonicalSubmissionListUrl(undefined, undefined, parsed, {
-        ...emptyDateBundle,
-        rawSubmitterEmail: "external@endatix.com",
-        submitterEmail: "external@endatix.com",
-      }),
-    ).toBe(true);
+    const raw = { submitterEmail: "external@endatix.com" };
+    const parsed = parseSubmissionListSearchParams(raw);
+    expect(isCanonicalSubmissionListUrl(raw, parsed)).toBe(true);
   });
 
   it("is true when raw sort matches parsed sorting", () => {
-    const parsed = parseSubmissionListSearchParams({
-      sort: "createdAt:desc",
-    });
-
-    expect(
-      isCanonicalSubmissionListUrl(undefined, undefined, parsed, {
-        ...emptyDateBundle,
-        rawSort: "createdAt:desc",
-      }),
-    ).toBe(true);
+    const raw = { sort: "createdAt:desc" };
+    const parsed = parseSubmissionListSearchParams(raw);
+    expect(isCanonicalSubmissionListUrl(raw, parsed)).toBe(true);
   });
 
   it("is false when raw sort is invalid and parsed drops it", () => {
-    const parsed = parseSubmissionListSearchParams({
-      sort: "createdAt:nope",
-    });
-
+    const raw = { sort: "createdAt:nope" };
+    const parsed = parseSubmissionListSearchParams(raw);
     expect(parsed.sorting).toEqual([]);
-    expect(
-      isCanonicalSubmissionListUrl(undefined, undefined, parsed, {
-        ...emptyDateBundle,
-        rawSort: "createdAt:nope",
-      }),
-    ).toBe(false);
+    expect(isCanonicalSubmissionListUrl(raw, parsed)).toBe(false);
   });
 
   it("is false when raw omits sort but parsed has sorting", () => {
     const parsed = parseSubmissionListSearchParams({
       sort: "createdAt:desc",
     });
+    expect(isCanonicalSubmissionListUrl({}, parsed)).toBe(false);
+  });
 
-    expect(
-      isCanonicalSubmissionListUrl(
-        undefined,
-        undefined,
-        parsed,
-        emptyDateBundle,
-      ),
-    ).toBe(false);
+  it("is false when a multi-value filter is invalid and parsed drops it", () => {
+    const raw = { status: "invalid" };
+    const parsed = parseSubmissionListSearchParams(raw);
+    expect(parsed.status).toEqual([]);
+    expect(isCanonicalSubmissionListUrl(raw, parsed)).toBe(false);
   });
 });
 

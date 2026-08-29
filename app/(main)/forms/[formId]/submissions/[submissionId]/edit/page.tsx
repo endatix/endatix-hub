@@ -38,7 +38,6 @@ export default async function EditSubmissionPage({ params }: Params) {
         notFoundTitle="Not found"
         notFoundSubtitle="The submission you are looking for does not exist."
         notFoundMessage="Please check the submission ID and try again."
-        titleSize="medium"
       >
         <BackToSubmissionsButton
           formId={formId}

@@ -39,13 +39,12 @@ export default async function FormAnalyticsPage({ params }: Readonly<Params>) {
     return (
       <NotFoundComponent
         notFoundTitle="Form not found"
-        notFoundSubtitle="The form you are looking for does not exist."
-        notFoundMessage="Please check the form ID and try again."
-        titleSize="medium"
+        notFoundSubtitle="We couldn't find that form."
+        notFoundMessage="It may have been deleted, or the ID in the URL is wrong."
       >
-        <Link href="/forms">
-          <Button>Back to forms</Button>
-        </Link>
+        <Button asChild>
+          <Link href="/forms">Back to forms</Link>
+        </Button>
       </NotFoundComponent>
     );
   }
@@ -55,7 +54,7 @@ export default async function FormAnalyticsPage({ params }: Readonly<Params>) {
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
           <PageTitle title={`Reporting: ${form.name}`} className="text-2xl" />
-          <p className="text-muted-foreground mt-1">
+          <p className="mt-1 text-muted-foreground">
             Survey analytics and charts (v1: mocked data).
           </p>
         </div>

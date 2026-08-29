@@ -8,6 +8,7 @@ import { authorization } from "@/features/auth/authorization";
 import { AssetStorageProvider } from "@/features/asset-storage/server";
 import { getFormsHeaderDataCached } from "@/features/folders/view-forms-header";
 import { EndatixApi } from "@/lib/endatix-api";
+import { toResult } from "@/lib/result";
 
 export default async function FormTemplatesPage() {
   const session = await auth();
@@ -55,10 +56,15 @@ async function FormTemplatesContent({
   accessToken,
 }: Readonly<{ accessToken: string | undefined }>) {
   const api = new EndatixApi(accessToken);
-  const [templatesResult, settingsResult] = await Promise.all([
+  const [templatesApiResult, settingsResult] = await Promise.all([
     api.formTemplates.list({ unassignedOnly: true }),
     api.tenant.getSettings(),
   ]);
+  const templatesResult = toResult(templatesApiResult, {
+    fallbackMessage: "Failed to load form templates.",
+    logMessage: "Failed to load form templates list.",
+    loggerName: "form-templates.list",
+  });
 
   const requireFolderAssignment =
     settingsResult.success &&

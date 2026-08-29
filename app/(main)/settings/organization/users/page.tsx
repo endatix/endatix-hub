@@ -13,31 +13,23 @@ import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Session } from "next-auth";
 import { UnauthorizedComponent } from "@/components/error-handling/unauthorized";
-import { Result } from "@/lib/result";
+import { Result, type ResultType, toResult } from "@/lib/result";
 import { parsePagedSearchParams } from "@/lib/list-page/parse-paged-search-params";
-import { toResult } from "@/lib/result/map-api-result-to-result";
-import { DataLoadError } from "@/lib/errors/data-load-error";
 
 async function getUsersPromise(
   request: ListUsersRequest,
   session: Session | null = null,
-): Promise<PagedResponse<UserListItem>> {
+): Promise<ResultType<PagedResponse<UserListItem>>> {
   const { requirePermission } = await authorization(session);
   await requirePermission(Permissions.Tenant.ViewUsers);
 
   const api = new EndatixApi(session?.accessToken);
   const apiResult = await api.users.list(request);
-  const result = toResult(apiResult, {
+  return toResult(apiResult, {
     fallbackMessage: "Failed to load users.",
     logMessage: "Failed to load organization users.",
     loggerName: "organization.users",
   });
-
-  if (Result.isError(result)) {
-    throw new DataLoadError(result.message);
-  }
-
-  return result.value;
 }
 
 async function getRolesPromise(

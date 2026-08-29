@@ -15,7 +15,7 @@ exports[`Form Analytics Page > renders analytics page when form exists and flag 
           Reporting: Reporting Form
         </h1>
         <p
-          class="text-muted-foreground mt-1"
+          class="mt-1 text-muted-foreground"
         >
           Survey analytics and charts (v1: mocked data).
         </p>
