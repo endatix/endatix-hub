@@ -1,6 +1,8 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReactNode } from "react";
+import type { SubmissionListUrlState } from "@/features/submissions/list-submission-query";
+import type { PagedResponse } from "@/lib/endatix-api/shared/types";
 import type { Submission } from "@/lib/endatix-api/submissions/types";
 import { SubmissionsWithFilters } from "@/features/submissions/ui/submissions-with-filters";
 
@@ -171,6 +173,61 @@ const submission: Submission = {
   status: "completed",
 };
 
+const emptyListState: SubmissionListUrlState = {
+  page: 1,
+  pageSize: 10,
+  isComplete: [],
+  status: [],
+  isTestSubmission: [],
+  sorting: [],
+};
+
+function renderSubmissionsWithFilters({
+  data = [],
+  formId,
+  hasAnySubmissions,
+  initialStatus,
+  initialSorting,
+  initialPage = 1,
+  initialPageSize = 10,
+  totalRecords = 0,
+  totalPages = 0,
+}: {
+  data?: Submission[];
+  formId: string;
+  hasAnySubmissions: boolean;
+  initialStatus?: string[];
+  initialSorting?: SubmissionListUrlState["sorting"];
+  initialPage?: number;
+  initialPageSize?: number;
+  totalRecords?: number;
+  totalPages?: number;
+}) {
+  const page: PagedResponse<Submission> = {
+    items: data,
+    page: initialPage,
+    pageSize: initialPageSize,
+    totalRecords,
+    totalPages,
+  };
+  const listState: SubmissionListUrlState = {
+    ...emptyListState,
+    page: initialPage,
+    pageSize: initialPageSize,
+    status: (initialStatus ?? []) as SubmissionListUrlState["status"],
+    sorting: initialSorting ?? [],
+  };
+
+  return render(
+    <SubmissionsWithFilters
+      formId={formId}
+      hasAnySubmissions={hasAnySubmissions}
+      page={page}
+      listState={listState}
+    />,
+  );
+}
+
 describe("SubmissionsWithFilters", () => {
   beforeEach(() => {
     navigationMocks.push.mockClear();
@@ -182,18 +239,16 @@ describe("SubmissionsWithFilters", () => {
 
   it("shows the true empty state when deep-linked filters exist but the form has no submissions", () => {
     // Act
-    render(
-      <SubmissionsWithFilters
-        data={[]}
-        formId="form-1"
-        hasAnySubmissions={false}
-        initialStatus={["new"]}
-        initialPage={1}
-        initialPageSize={10}
-        totalRecords={0}
-        totalPages={0}
-      />,
-    );
+    renderSubmissionsWithFilters({
+      data: [],
+      formId: "form-1",
+      hasAnySubmissions: false,
+      initialStatus: ["new"],
+      initialPage: 1,
+      initialPageSize: 10,
+      totalRecords: 0,
+      totalPages: 0,
+    });
 
     // Assert
     screen.getByText("No submissions yet");
@@ -215,18 +270,16 @@ describe("SubmissionsWithFilters", () => {
 
   it("shows the filtered empty state when submissions exist but filters match no rows", () => {
     // Act
-    render(
-      <SubmissionsWithFilters
-        data={[]}
-        formId="form-1"
-        hasAnySubmissions
-        initialStatus={["new"]}
-        initialPage={1}
-        initialPageSize={10}
-        totalRecords={0}
-        totalPages={0}
-      />,
-    );
+    renderSubmissionsWithFilters({
+      data: [],
+      formId: "form-1",
+      hasAnySubmissions: true,
+      initialStatus: ["new"],
+      initialPage: 1,
+      initialPageSize: 10,
+      totalRecords: 0,
+      totalPages: 0,
+    });
 
     // Assert — table path with zero rows (real UI shows copy inside DataTable; SubmissionsTable is mocked here)
     expect(screen.getByTestId("submissions-table").textContent).toContain(
@@ -244,17 +297,15 @@ describe("SubmissionsWithFilters", () => {
 
   it("renders the table path when rows are available", () => {
     // Act
-    render(
-      <SubmissionsWithFilters
-        data={[submission]}
-        formId="form-1"
-        hasAnySubmissions
-        initialPage={1}
-        initialPageSize={10}
-        totalRecords={0}
-        totalPages={0}
-      />,
-    );
+    renderSubmissionsWithFilters({
+      data: [submission],
+      formId: "form-1",
+      hasAnySubmissions: true,
+      initialPage: 1,
+      initialPageSize: 10,
+      totalRecords: 0,
+      totalPages: 0,
+    });
 
     // Assert
     screen.getByTestId("submissions-table");
@@ -267,17 +318,15 @@ describe("SubmissionsWithFilters", () => {
   it("keeps the existing rows visible (dimmed) instead of swapping to a skeleton while URL navigation is pending", () => {
     navigationMocks.isPending = true;
 
-    render(
-      <SubmissionsWithFilters
-        data={[submission]}
-        formId="form-1"
-        hasAnySubmissions
-        initialPage={1}
-        initialPageSize={10}
-        totalRecords={1}
-        totalPages={1}
-      />,
-    );
+    renderSubmissionsWithFilters({
+      data: [submission],
+      formId: "form-1",
+      hasAnySubmissions: true,
+      initialPage: 1,
+      initialPageSize: 10,
+      totalRecords: 1,
+      totalPages: 1,
+    });
 
     expect(screen.queryByTestId("submissions-table-skeleton")).toBeNull();
     expect(screen.getByTestId("submissions-table").textContent).toContain(
@@ -290,17 +339,15 @@ describe("SubmissionsWithFilters", () => {
     vi.useFakeTimers();
 
     try {
-      render(
-        <SubmissionsWithFilters
-          data={[submission]}
-          formId="form-1"
-          hasAnySubmissions
-          initialPage={2}
-          initialPageSize={10}
-          totalRecords={1}
-          totalPages={1}
-        />,
-      );
+      renderSubmissionsWithFilters({
+        data: [submission],
+        formId: "form-1",
+        hasAnySubmissions: true,
+        initialPage: 2,
+        initialPageSize: 10,
+        totalRecords: 1,
+        totalPages: 1,
+      });
 
       act(() => {
         navigationMocks.systemColumnOptions.current?.onSubmitterDisplayIdFilterChange?.(
@@ -330,17 +377,15 @@ describe("SubmissionsWithFilters", () => {
   });
 
   it("writes sorting to the URL with replace navigation", () => {
-    render(
-      <SubmissionsWithFilters
-        data={[submission]}
-        formId="form-1"
-        hasAnySubmissions
-        initialPage={1}
-        initialPageSize={10}
-        totalRecords={1}
-        totalPages={1}
-      />,
-    );
+    renderSubmissionsWithFilters({
+      data: [submission],
+      formId: "form-1",
+      hasAnySubmissions: true,
+      initialPage: 1,
+      initialPageSize: 10,
+      totalRecords: 1,
+      totalPages: 1,
+    });
 
     fireEvent.click(
       screen.getByRole("button", { name: /sort createdat desc/i }),
@@ -354,19 +399,17 @@ describe("SubmissionsWithFilters", () => {
   });
 
   it("preserves existing sorting when resetting filters", () => {
-    render(
-      <SubmissionsWithFilters
-        data={[]}
-        formId="form-1"
-        hasAnySubmissions
-        initialStatus={["new"]}
-        initialSorting={[{ id: "createdAt", desc: true }]}
-        initialPage={1}
-        initialPageSize={10}
-        totalRecords={0}
-        totalPages={0}
-      />,
-    );
+    renderSubmissionsWithFilters({
+      data: [],
+      formId: "form-1",
+      hasAnySubmissions: true,
+      initialStatus: ["new"],
+      initialSorting: [{ id: "createdAt", desc: true }],
+      initialPage: 1,
+      initialPageSize: 10,
+      totalRecords: 0,
+      totalPages: 0,
+    });
 
     fireEvent.click(screen.getByRole("menuitem", { name: /reset filters/i }));
 
