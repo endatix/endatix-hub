@@ -50,6 +50,24 @@ Known deviations, to be migrated when next touched (do not copy them): `Forms.li
 - Use `Promise.all` for independent data dependencies. Await sequentially only when a later call depends on an earlier result.
 - For server page calls to the Endatix API, convert `ApiResult<T>` with `toResult(...)` so unexpected operational failures are logged consistently and expected invalid/not-found states can map to page-specific fallback UI.
 
+### Page-load outcomes (composed GET loaders)
+
+**Single-Result lists** (one `toResult`, no post-fetch redirect): keep the thin promise + client `use()` pattern — reference `features/forms/list-forms/list-forms.server.ts` + `ui/forms-list-section.tsx`.
+
+**Composed list loads** (two+ GET Results, identity 404 vs load chrome, and/or a redirect that needs the API response): do **not** pile fetch + mapping + chrome into `app/.../page.tsx`. Use a slice-local **page-load outcome**:
+
+1. Pure `resolve*PageLoad(...)` returns a discriminated union (`ready` / `error` / `notFound` / `redirect`) — no React, no Next `redirect`.
+2. Thin `*.server.ts` loader does `Promise.all` + `toResult`, then calls the resolver.
+3. Server Component section matches on `kind` → `HubPageLoadError` / not-found chrome / `redirect(href)` / success UI.
+
+Keep post-fetch `redirect()` in that Server Component — do not stream the outcome through a client `use()` wrapper. Pre-fetch URL canonicalization (parse-only) can stay in the route file.
+
+**Compose, don’t explode:** success view models take `PagedResponse<T>` + existing URL state (+ a few scalars). Do **not** re-list `page` / `pageSize` / every `*From`/`*To` stem as constructor args — those already live on the envelope and URL state (same idea as `ListSubmissionsRequest` composing `IPagedRequest` + `AuditDateFilters`). Wire stays flat; nest only at a UI adapter (e.g. date-filter chrome).
+
+**Pre-fetch canonical URL:** `isCanonical*(rawSearchParams, parsedState) → boolean`. Do not hand-build a raw/parsed date bag at the route.
+
+**Reference (first of its kind):** `features/submissions/list-submissions/` (`types.ts` view model, resolver, server loader, section) + `isCanonicalSubmissionListUrl(raw, parsed)` in `list-submission-query/`. Do **not** extract a shared `lib/page-load` type until a second page copies this shape. Analyze all references to identify further oppotunities for optimization like better patterns, utils and abstractions
+
 ## Table filter state (client)
 
 - One debounced field (a search box): `useListUrlState()` (`lib/list-page/use-list-url-state.ts`).
@@ -86,7 +104,7 @@ When a detail page has a "Back to `<list>`" control that should restore the list
 - Sibling `Suspense` regions: each `ResultLoadErrorView` is independent. Two failing Result loaders show **two** branded error blocks in their slots; toolbar/layout stay. A **throw** in a sibling (e.g. folders `await` without Result) still hits `error.tsx` and replaces the **whole** route segment, including successful siblings. Isolate only the loaders you convert to Result; do not mix throw + Result if you need both regions to keep rendering.
 - `error.tsx` / `global-error.tsx` are for **uncaught** exceptions only. Next.js forwards `error.message` (generic in production for Server Components) plus `error.digest` (hash to match server logs). Show digest on the support box; send it with PostHog `trackException`. Use stable `retry()` (not `reset()`). `global-error` must ship its own `<html>`/`<body>` + `globals.css`. Do **not** adopt `catchError` / graceful-degrading HTML snapshots for loaders — keep known `ApiResult` failures as `Result`.
 - Drive chrome from `statusCode` / `Result.errorType` via `unexpectedErrorUiFromResult`, not by sniffing `error.message`.
-- Reference: `features/forms/list-forms/list-forms.server.ts` + `ui/forms-list-section.tsx`, or any `(main)` page using `HubPageLoadError`.
+- Reference — single Result list: `features/forms/list-forms/list-forms.server.ts` + `ui/forms-list-section.tsx`. Composed GET + post-fetch redirect: `features/submissions/list-submissions/` (page-load outcome). Other `(main)` pages may return `HubPageLoadError` directly when the loader is a single Result with no redirect.
 
 ### Error page chrome (`ErrorPage`)
 

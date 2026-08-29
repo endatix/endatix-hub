@@ -6,6 +6,7 @@ import {
   rememberSubmissionListReturnTo,
   serializeSubmissionListSearchParams,
   submissionListUrlStateFromClientFilters,
+  type SubmissionListUrlState,
 } from "@/features/submissions/list-submission-query";
 import { ExportSubmissionsButton } from "@/features/export";
 import { SubmissionsFilterToolbar } from "@/features/submissions/ui/filters/submissions-filter-toolbar";
@@ -28,6 +29,7 @@ import type {
   SubmissionDateFilters,
 } from "@/features/submissions/ui/table";
 import type { DefinitionField } from "@/lib/endatix-api";
+import type { PagedResponse } from "@/lib/endatix-api/shared/types";
 import type { Submission } from "@/lib/endatix-api/submissions/types";
 import type {
   ColumnDef,
@@ -48,35 +50,41 @@ import {
 } from "react";
 import SubmissionsTable from "@/features/submissions/ui/submissions-table";
 
-interface SubmissionsWithFiltersProps {
-  data: Submission[];
+type SubmissionsWithFiltersProps = {
   formId: string;
   hasAnySubmissions: boolean;
   useReportingExport?: boolean;
   definitionFields?: DefinitionField[];
-  initialIsComplete?: string[];
-  initialStatus?: string[];
-  initialIsTestSubmission?: string[];
-  initialCreatedFrom?: string;
-  initialCreatedTo?: string;
-  initialModifiedFrom?: string;
-  initialModifiedTo?: string;
-  initialStartedFrom?: string;
-  initialStartedTo?: string;
-  initialCompletedFrom?: string;
-  initialCompletedTo?: string;
-  initialSubmitterDisplayId?: string;
-  initialSubmitterEmail?: string;
-  initialSorting?: SortingState;
-  initialPage: number;
-  initialPageSize: number;
-  totalRecords: number;
-  totalPages: number;
-}
+  page: PagedResponse<Submission>;
+  listState: SubmissionListUrlState;
+};
 
-const EMPTY_INITIAL_FILTER_VALUES: string[] = [];
 const EMPTY_INITIAL_SORTING: SortingState = [];
 const SUBMITTER_FILTER_DEBOUNCE_MS = 300;
+
+/** Flat URL date stems → table date-filter UI shape (UI-only nest). */
+function submissionDateFiltersFromListState(
+  listState: SubmissionListUrlState,
+): SubmissionDateFilters {
+  return {
+    createdAt: {
+      from: listState.createdFrom,
+      to: listState.createdTo,
+    },
+    modifiedAt: {
+      from: listState.modifiedFrom,
+      to: listState.modifiedTo,
+    },
+    startedAt: {
+      from: listState.startedFrom,
+      to: listState.startedTo,
+    },
+    completedAt: {
+      from: listState.completedFrom,
+      to: listState.completedTo,
+    },
+  };
+}
 
 type NavigationMode = "push" | "replace";
 
@@ -317,128 +325,72 @@ function hasDateFilters(dateFilters: SubmissionDateFilters) {
 }
 
 export function SubmissionsWithFilters({
-  data,
   formId,
   hasAnySubmissions,
   useReportingExport = false,
   definitionFields = [],
-  initialIsComplete = EMPTY_INITIAL_FILTER_VALUES,
-  initialStatus = EMPTY_INITIAL_FILTER_VALUES,
-  initialIsTestSubmission = EMPTY_INITIAL_FILTER_VALUES,
-  initialCreatedFrom,
-  initialCreatedTo,
-  initialModifiedFrom,
-  initialModifiedTo,
-  initialStartedFrom,
-  initialStartedTo,
-  initialCompletedFrom,
-  initialCompletedTo,
-  initialSubmitterDisplayId = "",
-  initialSubmitterEmail = "",
-  initialSorting,
-  initialPage,
-  initialPageSize,
-  totalRecords,
-  totalPages,
+  page,
+  listState,
 }: SubmissionsWithFiltersProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
-  const resolvedInitialSorting = initialSorting ?? EMPTY_INITIAL_SORTING;
+  const data = [...page.items];
+  const totalRecords = page.totalRecords;
+  const totalPages = page.totalPages;
 
   useEffect(() => {
     rememberSubmissionListReturnTo(formId, searchParams.toString());
   }, [formId, searchParams]);
   const [isCompleteFilter, setIsCompleteFilter] = useState<Set<string>>(
-    new Set(initialIsComplete),
+    () => new Set(listState.isComplete),
   );
   const [statusFilter, setStatusFilter] = useState<Set<string>>(
-    new Set(initialStatus),
+    () => new Set(listState.status),
   );
   const [testSubmissionFilter, setTestSubmissionFilter] = useState<Set<string>>(
-    new Set(initialIsTestSubmission),
+    () => new Set(listState.isTestSubmission),
   );
   const [submitterDisplayIdFilter, setSubmitterDisplayIdFilter] = useState(
-    initialSubmitterDisplayId,
+    listState.submitterDisplayId ?? "",
   );
   const [submitterEmailFilter, setSubmitterEmailFilter] = useState(
-    initialSubmitterEmail,
+    listState.submitterEmail ?? "",
   );
-  const [dateFilters, setDateFilters] = useState<SubmissionDateFilters>({
-    createdAt: {
-      from: initialCreatedFrom,
-      to: initialCreatedTo,
-    },
-    modifiedAt: {
-      from: initialModifiedFrom,
-      to: initialModifiedTo,
-    },
-    startedAt: {
-      from: initialStartedFrom,
-      to: initialStartedTo,
-    },
-    completedAt: {
-      from: initialCompletedFrom,
-      to: initialCompletedTo,
-    },
-  });
-  const [sorting, setSorting] = useState<SortingState>(resolvedInitialSorting);
+  const [dateFilters, setDateFilters] = useState<SubmissionDateFilters>(() =>
+    submissionDateFiltersFromListState(listState),
+  );
+  const [sorting, setSorting] = useState<SortingState>(() =>
+    listState.sorting.length > 0
+      ? [...listState.sorting]
+      : EMPTY_INITIAL_SORTING,
+  );
   const [pagination, setPagination] = useState<PaginationState>({
-    pageIndex: initialPage - 1,
-    pageSize: initialPageSize,
+    pageIndex: page.page - 1,
+    pageSize: page.pageSize,
   });
 
   useEffect(() => {
     setPagination({
-      pageIndex: initialPage - 1,
-      pageSize: initialPageSize,
+      pageIndex: page.page - 1,
+      pageSize: page.pageSize,
     });
-  }, [initialPage, initialPageSize]);
+  }, [page.page, page.pageSize]);
 
   useEffect(() => {
-    setSorting(resolvedInitialSorting);
-  }, [resolvedInitialSorting]);
-
-  useEffect(() => {
-    setIsCompleteFilter(new Set(initialIsComplete));
-    setStatusFilter(new Set(initialStatus));
-    setTestSubmissionFilter(new Set(initialIsTestSubmission));
-    setSubmitterDisplayIdFilter(initialSubmitterDisplayId);
-    setSubmitterEmailFilter(initialSubmitterEmail);
-    setDateFilters({
-      createdAt: {
-        from: initialCreatedFrom,
-        to: initialCreatedTo,
-      },
-      modifiedAt: {
-        from: initialModifiedFrom,
-        to: initialModifiedTo,
-      },
-      startedAt: {
-        from: initialStartedFrom,
-        to: initialStartedTo,
-      },
-      completedAt: {
-        from: initialCompletedFrom,
-        to: initialCompletedTo,
-      },
-    });
-  }, [
-    initialIsComplete,
-    initialStatus,
-    initialIsTestSubmission,
-    initialCreatedFrom,
-    initialCreatedTo,
-    initialModifiedFrom,
-    initialModifiedTo,
-    initialStartedFrom,
-    initialStartedTo,
-    initialCompletedFrom,
-    initialCompletedTo,
-    initialSubmitterDisplayId,
-    initialSubmitterEmail,
-  ]);
+    setIsCompleteFilter(new Set(listState.isComplete));
+    setStatusFilter(new Set(listState.status));
+    setTestSubmissionFilter(new Set(listState.isTestSubmission));
+    setSubmitterDisplayIdFilter(listState.submitterDisplayId ?? "");
+    setSubmitterEmailFilter(listState.submitterEmail ?? "");
+    setDateFilters(submissionDateFiltersFromListState(listState));
+    setSorting(
+      listState.sorting.length > 0
+        ? [...listState.sorting]
+        : EMPTY_INITIAL_SORTING,
+    );
+  }, [listState]);
 
   const submitterFilterDebounceRef = useRef<ReturnType<
     typeof setTimeout
