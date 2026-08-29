@@ -34,7 +34,7 @@ export async function SubmissionListSection({
 
   switch (outcome.kind) {
     case "redirect":
-      redirect(outcome.href as Route);
+      return redirect(outcome.href as Route);
     case "notFound":
       return <FormNotFound />;
     case "error":

@@ -3,8 +3,7 @@ import {
   SUBMISSION_LIST_DEFAULT_PAGE,
   type SubmissionListUrlState,
 } from "@/features/submissions/list-submission-query";
-import type { ApiResult } from "@/lib/endatix-api";
-import type { DefinitionField } from "@/lib/endatix-api";
+import type { ApiResult, DefinitionField } from "@/lib/endatix-api";
 import type { ListSubmissionsResponse } from "@/lib/endatix-api/submissions/types";
 import { Result, type ResultType } from "@/lib/result";
 import type { SubmissionListPageLoad } from "./types";
