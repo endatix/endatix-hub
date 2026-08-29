@@ -23,8 +23,10 @@ export async function SubmissionListSection({
   formId,
   listState,
 }: Readonly<SubmissionListSectionProps>) {
-  const session = await getSession();
-  const useReportingExport = await reportingExportFlag();
+  const [session, useReportingExport] = await Promise.all([
+    getSession(),
+    reportingExportFlag(),
+  ]);
   const outcome = await loadSubmissionListPage({
     formId,
     listState,
@@ -51,9 +53,9 @@ function FormNotFound() {
       notFoundSubtitle="We couldn't find that form."
       notFoundMessage="It may have been deleted, or the ID in the URL is wrong."
     >
-      <Link href="/forms">
-        <Button>Back to forms</Button>
-      </Link>
+      <Button asChild>
+        <Link href="/forms">Back to forms</Link>
+      </Button>
     </NotFoundComponent>
   );
 }

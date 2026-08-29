@@ -66,7 +66,7 @@ Keep post-fetch `redirect()` in that Server Component — do not stream the outc
 
 **Pre-fetch canonical URL:** `isCanonical*(rawSearchParams, parsedState) → boolean`. Do not hand-build a raw/parsed date bag at the route.
 
-**Reference (first of its kind):** `features/submissions/list-submissions/` (`types.ts` view model, resolver, server loader, section) + `isCanonicalSubmissionListUrl(raw, parsed)` in `list-submission-query/`. Do **not** extract a shared `lib/page-load` type until a second page copies this shape. Analyze all references to identify further oppotunities for optimization like better patterns, utils and abstractions
+**Reference (first of its kind):** `features/submissions/list-submissions/` (`types.ts` view model, resolver, server loader, section) + `isCanonicalSubmissionListUrl(raw, parsed)` in `list-submission-query/`. Do **not** extract a shared `lib/page-load` type until a second page copies this shape. Analyze all references to identify further opportunities for optimization like better patterns, utils and abstractions
 
 ## Table filter state (client)
 

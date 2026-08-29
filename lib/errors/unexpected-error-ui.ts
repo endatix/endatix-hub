@@ -70,7 +70,19 @@ export function unexpectedErrorUiFromResult(
     return unexpectedErrorUiByKind("network");
   }
 
-  if (status === 401 || status === 403) {
+  if (status === 401) {
+    return {
+      kind: "authorization",
+      code: "401",
+      eyebrow: "Sign in required",
+      title: "You need to sign in to continue.",
+      subtitle: "This request was not authenticated.",
+      message:
+        "Sign in and try again. If you already have an account, your session may have expired.",
+    };
+  }
+
+  if (status === 403) {
     return unexpectedErrorUiByKind("authorization");
   }
 

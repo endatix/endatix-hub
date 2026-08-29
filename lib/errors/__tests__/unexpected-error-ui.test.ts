@@ -61,6 +61,21 @@ describe("unexpected-error-ui", () => {
     expect(ui.code).not.toBe("500");
   });
 
+  it("maps 401 Results to authentication copy, not 403", () => {
+    const result = Result.error("Unauthorized", undefined, "unauthorized", {
+      statusCode: 401,
+    });
+    if (!Result.isError(result)) {
+      throw new Error("expected error result");
+    }
+
+    const ui = unexpectedErrorUiFromResult(result);
+
+    expect(ui.kind).toBe("authorization");
+    expect(ui.code).toBe("401");
+    expect(ui.eyebrow).toBe("Sign in required");
+  });
+
   it("still prefers a real HTTP status over the network shortcut", () => {
     // Arrange
     const result = Result.error("Forbidden", undefined, "access_forbidden", {

@@ -77,6 +77,20 @@ describe("NotFoundComponent", () => {
     expect(document.querySelector(".sheep")).not.toBeNull();
   });
 
+  it("omits the watermark when notFoundCode is null", () => {
+    // Arrange & Act
+    const { container } = render(
+      <NotFoundComponent
+        notFoundCode={null}
+        notFoundTitle="Page not found"
+        notFoundSubtitle="We couldn't find that page."
+      />,
+    );
+
+    // Assert
+    expect(container.querySelector('[aria-hidden="true"]')).toBeNull();
+  });
+
   /**
    * Routes that predate the code/eyebrow split pass "404" as the title. The watermark
    * already says that, so the eyebrow must not repeat it verbatim.

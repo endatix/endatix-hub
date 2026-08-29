@@ -6,8 +6,7 @@ import { CreateFolderDialog } from "@/features/folders/create-folder";
 import { FolderNavigationCards } from "@/features/folders/list-folders";
 import { HubPageLoadError } from "@/components/error-handling/error-page";
 import { ApiErrorType, ApiResult, EndatixApi } from "@/lib/endatix-api";
-import { Result } from "@/lib/result";
-import { toResult } from "@/lib/result/map-api-result-to-result";
+import { Result, toResult } from "@/lib/result";
 import { redirect } from "next/navigation";
 import {
   Empty,

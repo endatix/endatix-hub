@@ -284,11 +284,26 @@ export function isCanonicalSubmissionListUrl(
   }
 
   return (
+    isCanonicalJoinedFilter(firstString(raw.isComplete), parsed.isComplete) &&
+    isCanonicalJoinedFilter(firstString(raw.status), parsed.status) &&
+    isCanonicalJoinedFilter(
+      firstString(raw.isTestSubmission),
+      parsed.isTestSubmission,
+    ) &&
     (firstString(raw.submitterDisplayId)?.trim() || undefined) ===
       parsed.submitterDisplayId &&
     (firstString(raw.submitterEmail)?.trim() || undefined) ===
       parsed.submitterEmail
   );
+}
+
+function isCanonicalJoinedFilter(
+  rawValue: string | undefined,
+  parsedValues: readonly string[],
+): boolean {
+  const canonical =
+    parsedValues.length > 0 ? parsedValues.join(",") : undefined;
+  return (rawValue || undefined) === canonical;
 }
 
 const SUBMISSION_LIST_DATE_URL_KEYS = [

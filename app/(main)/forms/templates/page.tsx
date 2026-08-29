@@ -8,7 +8,7 @@ import { authorization } from "@/features/auth/authorization";
 import { AssetStorageProvider } from "@/features/asset-storage/server";
 import { getFormsHeaderDataCached } from "@/features/folders/view-forms-header";
 import { EndatixApi } from "@/lib/endatix-api";
-import { toResult } from "@/lib/result/map-api-result-to-result";
+import { toResult } from "@/lib/result";
 
 export default async function FormTemplatesPage() {
   const session = await auth();

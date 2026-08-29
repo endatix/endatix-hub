@@ -3,10 +3,9 @@ import "./not-found-sheep.css";
 
 interface NotFoundPageProps {
   /**
-   * HTTP code for the watermark. Defaults to `404`, which is what every
-   * not-found route is. Pass `undefined` to render without a watermark.
+   * HTTP code for the watermark. Defaults to `404`. Pass `null` to omit it.
    */
-  notFoundCode?: string;
+  notFoundCode?: string | null;
   /** Short label above the headline, e.g. `Form not found`. */
   notFoundTitle?: string;
   notFoundSubtitle?: string;
@@ -27,13 +26,14 @@ export const NotFoundComponent: React.FC<NotFoundPageProps> = ({
   notFoundMessage = DEFAULT_NOT_FOUND_MESSAGE,
   children,
 }) => {
+  const watermarkCode = notFoundCode ?? undefined;
   // Routes that predate the `code`/`eyebrow` split pass "404" as the title.
   // That is the watermark's job, not the label's - don't print it twice.
-  const isCodeAsTitle = notFoundTitle === notFoundCode;
+  const isCodeAsTitle = notFoundTitle === watermarkCode;
 
   return (
     <ErrorPage
-      code={notFoundCode}
+      code={watermarkCode}
       eyebrow={isCodeAsTitle ? DEFAULT_NOT_FOUND_TITLE : notFoundTitle}
       title={notFoundSubtitle}
       message={notFoundMessage}

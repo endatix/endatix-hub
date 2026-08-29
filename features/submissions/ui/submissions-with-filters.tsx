@@ -336,7 +336,7 @@ export function SubmissionsWithFilters({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
-  const data = [...page.items];
+  const data = useMemo(() => [...page.items], [page.items]);
   const totalRecords = page.totalRecords;
   const totalPages = page.totalPages;
 

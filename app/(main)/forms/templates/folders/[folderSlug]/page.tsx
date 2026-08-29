@@ -8,7 +8,7 @@ import FormTemplatesList from "@/features/form-templates/ui/form-templates-list"
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { toResult } from "@/lib/result/map-api-result-to-result";
+import { toResult } from "@/lib/result";
 
 type PageProps = {
   params: Promise<{ folderSlug: string }>;
