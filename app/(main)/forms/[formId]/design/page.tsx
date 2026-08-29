@@ -36,6 +36,19 @@ function formNotFound() {
   );
 }
 
+function parseFormDefinitionJson(jsonData: string | undefined): object | null {
+  if (!jsonData) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(jsonData) as object;
+  } catch (error) {
+    console.error("Failed to parse form definition JSON:", error);
+    return null;
+  }
+}
+
 export default async function FormDesignerPage({ params }: Params) {
   const session = await auth();
   const { requireHubAccess } = await authorization(session);
@@ -85,16 +98,16 @@ export default async function FormDesignerPage({ params }: Params) {
       },
     );
 
+    // A missing definition is not a missing form - keep the load-error chrome so the
+    // 404 reads as "this resource", not "we couldn't find that form".
     if (Result.isError(definitionResult)) {
-      if (definitionResult.statusCode === 404) {
-        return formNotFound();
-      }
-
       return <HubPageLoadError result={definitionResult} />;
     }
 
     formDefinitionJson = definitionResult.value.jsonData;
-    formJson = formDefinitionJson ? JSON.parse(formDefinitionJson) : null;
+    // A stored definition that is not valid JSON must not take the whole route
+    // segment into error.tsx - open the designer empty, as it did before.
+    formJson = parseFormDefinitionJson(formDefinitionJson);
   }
 
   const props: FormDesignerWrapperProps = {

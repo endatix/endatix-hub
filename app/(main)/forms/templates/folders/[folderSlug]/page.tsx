@@ -8,6 +8,7 @@ import FormTemplatesList from "@/features/form-templates/ui/form-templates-list"
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { toResult } from "@/lib/result/map-api-result-to-result";
 
 type PageProps = {
   params: Promise<{ folderSlug: string }>;
@@ -33,10 +34,15 @@ export default async function TemplateFolderSlugPage({ params }: PageProps) {
   }
 
   const folder = folderResult.data;
-  const [templatesResult, settingsResult] = await Promise.all([
+  const [templatesApiResult, settingsResult] = await Promise.all([
     api.formTemplates.list({ folderId: folder.id }),
     api.tenant.getSettings(),
   ]);
+  const templatesResult = toResult(templatesApiResult, {
+    fallbackMessage: "Failed to load form templates.",
+    logMessage: "Failed to load folder form templates list.",
+    loggerName: "form-templates.list",
+  });
   const requireFolderAssignment =
     settingsResult.success &&
     settingsResult.data.requireFolderAssignment === true;

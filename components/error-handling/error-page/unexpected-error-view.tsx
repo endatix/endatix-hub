@@ -1,13 +1,13 @@
-'use client';
+"use client";
 
-import { LoadErrorView } from './result-load-error-view';
-import { useTrackEvent } from '@/features/analytics/posthog';
+import { LoadErrorView } from "./result-load-error-view";
+import { useTrackEvent } from "@/features/analytics/posthog";
 import {
   buildUnexpectedErrorDiagnostics,
   getUnexpectedErrorUi,
   type UnexpectedErrorDiagnostics,
-} from '@/lib/errors/unexpected-error-ui';
-import { useEffect } from 'react';
+} from "@/lib/errors/unexpected-error-ui";
+import { useEffect, useMemo } from "react";
 
 export interface UnexpectedErrorViewProps {
   error: Error & { digest?: string };
@@ -25,8 +25,13 @@ export function UnexpectedErrorView({
 }: Readonly<UnexpectedErrorViewProps>) {
   const { trackException } = useTrackEvent();
   const ui = getUnexpectedErrorUi(error);
-  const resolvedDiagnostics =
-    diagnostics ?? buildUnexpectedErrorDiagnostics(error);
+  // Derived from `error`, so it must be memoised on it: an object rebuilt every
+  // render is a new dependency every render, and the effect below would report the
+  // same exception again on each re-render of the boundary.
+  const resolvedDiagnostics = useMemo(
+    () => diagnostics ?? buildUnexpectedErrorDiagnostics(error),
+    [diagnostics, error],
+  );
 
   useEffect(() => {
     const properties: Record<string, string | number | boolean | null> = {

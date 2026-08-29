@@ -47,7 +47,14 @@ export function LoadErrorView({
       details: showDevDetails ? details : undefined,
     });
 
-    await navigator.clipboard.writeText(payload);
+    try {
+      await navigator.clipboard.writeText(payload);
+    } catch {
+      // Clipboard permission can be denied (or the page is not a secure context).
+      // A rejected write must not surface as an unhandled rejection on an error page.
+      return;
+    }
+
     setIsCopied(true);
     window.setTimeout(() => setIsCopied(false), 2000);
   };
