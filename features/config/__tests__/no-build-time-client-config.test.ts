@@ -13,7 +13,7 @@ const REPO_ROOT = path.resolve(__dirname, "../../..");
  * change, never a rebuild.
  */
 
-/** The two build-time reads that have no runtime equivalent, and the deprecation shim. */
+/** Documented build-time `NEXT_PUBLIC_*` reads and the deprecated-env shim. */
 const ALLOWED_BUILD_TIME_READS = [
   // basePath feeds next.config.ts, which Next resolves at build. No runtime equivalent.
   "lib/hosting/base-path.ts",

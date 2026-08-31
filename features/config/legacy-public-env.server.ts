@@ -56,15 +56,3 @@ export function applyLegacyPublicEnv(): string[] {
 
   return applied;
 }
-
-/**
- * The SurveyJS Creator licence key, read on the server.
- *
- * Deliberately NOT part of `ClientEndatixConfig`: that projection is serialised into the
- * HTML of every page that mounts `AppProvider`, including the anonymous public form routes,
- * and a respondent filling in a form has no use for a commercial licence key. Only the
- * authenticated designer surface receives it, via `SurveyLicenseProvider`.
- */
-export function getSurveyLicenseKey(): string {
-  return process.env.ENDATIX_SURVEY_LICENSE_KEY?.trim() ?? "";
-}

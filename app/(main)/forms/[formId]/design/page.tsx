@@ -7,7 +7,7 @@ import { authorization } from "@/features/auth/authorization";
 import FormDesignerWrapper, {
   FormDesignerWrapperProps,
 } from "@/features/forms/ui/designer/form-designer-wrapper";
-import { getSurveyLicenseKey } from "@/features/config/legacy-public-env.server";
+import { getSurveyLicenseKey } from "@/features/config/server";
 import { DesignerRuntimeProvider } from "@/lib/designer-runtime";
 import FormEditorLoader from "@/features/forms/ui/editor/form-editor-loader";
 import { FormAssistantProvider } from "@/features/forms/use-cases/design-form/form-assistant.context";

@@ -26,6 +26,21 @@ export interface ClientEndatixConfig {
   readonly submitterGridProfileFields: string;
 }
 
+/** Compile-time guard: secrets must never be added to the browser projection type. */
+type ForbiddenClientConfigKeys =
+  | "surveyLicenseKey"
+  | "sessionSecret"
+  | "authSecret"
+  | "keycloakClientSecret";
+
+type _AssertClientConfigAllowlist =
+  Extract<ForbiddenClientConfigKeys, keyof ClientEndatixConfig> extends never
+    ? true
+    : never;
+
+const _clientConfigAllowlist: _AssertClientConfigAllowlist = true;
+void _clientConfigAllowlist;
+
 export const DEFAULT_POSTHOG_HOST = "https://us.i.posthog.com";
 export const DEFAULT_SUBMITTER_PRIMARY_FILTER_LABEL = "Submitter";
 
@@ -83,7 +98,8 @@ function firstNonEmpty(...values: (string | undefined)[]): string {
  * `ENDATIX_*` only. This module is imported by client components, and Next inlines any
  * `NEXT_PUBLIC_`-prefixed env literal it finds in a client-reachable module at build time —
  * so the deprecated names live in `legacy-public-env.server.ts`, which no client component
- * imports, and are merged in by `getClientEndatixConfig()` on the server.
+ * imports. At Node boot, `applyLegacyPublicEnv()` folds them into `ENDATIX_*` once; every
+ * consumer then reads only the current names (including SSR of `getIsomorphicEndatixConfig`).
  *
  * Non-`NEXT_PUBLIC_` reads are safe here: Next does not inline them, so in the browser they
  * simply resolve to `undefined` and the hydrated projection supplies the value instead.
@@ -129,7 +145,7 @@ export function getBrowserEndatixConfig(): ClientEndatixConfig {
  * across requests.
  *
  * `apiBaseUrl`/`extensionsEnabled` are omitted on the server path; server callers that need
- * those use `getClientEndatixConfig()` from `@/features/config`, which resolves the full
+ * those use `getClientEndatixConfig()` from `@/features/config/server`, which resolves the full
  * object including API settings.
  */
 export function getIsomorphicEndatixConfig(): ClientEndatixConfig {
@@ -141,8 +157,6 @@ export function getIsomorphicEndatixConfig(): ClientEndatixConfig {
     extensionsEnabled: false,
     ...readPublicEndatixEnv(),
   });
-  // NOTE: the server branch does not apply the deprecated NEXT_PUBLIC_* fallbacks — those
-  // are server-module-only and reach the browser through the hydrated projection instead.
 }
 
 /** Called from {@link EndatixConfigProvider} during render (before children). */

@@ -1,7 +1,7 @@
 import "server-only";
 
 import { getApiConfig } from "@/features/config/api-config";
-import { getClientEndatixConfig } from "@/features/config/resolve-endatix-settings";
+import { getClientEndatixConfig } from "@/features/config/server";
 import type { PlatformAdminSession } from "../types";
 import type { EnvironmentAdminSummary } from "./types";
 
@@ -15,7 +15,7 @@ export type { EnvironmentAdminSummary } from "./types";
 export async function getEnvironmentSettings(
   _session: PlatformAdminSession,
 ): Promise<EnvironmentAdminSummary> {
-  const client = getClientEndatixConfig();
+  const client = await getClientEndatixConfig();
   const apiConfig = getApiConfig();
   const apiUrl = client.apiBaseUrl.trim();
   const apiConfigured = apiUrl.length > 0 && apiConfig !== null;

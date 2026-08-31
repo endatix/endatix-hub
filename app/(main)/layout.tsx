@@ -7,8 +7,7 @@ import { getOsClass } from "@/lib/utils/next-utils";
 import { Metadata } from "next";
 import { cookies, headers } from "next/headers";
 import { getMetadataBase } from "@/lib/seo";
-import { getClientEndatixConfig } from "@/features/config";
-import { getSurveyLicenseKey } from "@/features/config/legacy-public-env.server";
+import { getClientEndatixConfig, getSurveyLicenseKey } from "@/features/config/server";
 import { SurveyLicenseProvider } from "@/features/config/survey-license-provider";
 
 export const metadata: Metadata = {
@@ -42,7 +41,7 @@ export default async function RootLayout({
   const osClass = getOsClass(requestHeaders);
   const session = await auth();
   const cookieStore = await cookies();
-  const endatixConfig = getClientEndatixConfig();
+  const endatixConfig = await getClientEndatixConfig();
   const sidebarValue = cookieStore.get("sidebar_state");
   const defaultSidebarOpen = sidebarValue?.value === "true";
 
