@@ -21,6 +21,28 @@ api:
   # Path prefix in baseUrl mode only. Hub defaults to /api if this is empty.
   apiPrefix: "/api"
 
+# Public, request-time client config. Projected to the browser per request, so these can
+# be changed with a `helm upgrade` — no image rebuild. Licence keys especially: replacing
+# one must always be a config change.
+clientConfig:
+  # SurveyJS Creator licence key. Empty = unlicensed Creator (non-commercial banner).
+  # Perpetual, so a running deployment keeps working; replace this when upgrading the
+  # SurveyJS packages past the subscription window the current key covers.
+  surveyLicenseKey: ""
+  # Google reCAPTCHA site key. Empty disables reCAPTCHA.
+  recaptchaSiteKey: ""
+  # Override the "Submitter" column label and add submitter profile grid columns.
+  submitterPrimaryFilterLabel: ""
+  submitterGridProfileFields: ""
+  # Set to "true"/"false" to force debug mode; empty follows the build type.
+  debugMode: ""
+
+analytics:
+  # PostHog. Empty key disables product analytics entirely.
+  posthogKey: ""
+  posthogHost: "https://us.i.posthog.com"
+  posthogUiHost: ""
+
 experimental:
   # SurveyJS extensions (data-list questions, custom widgets). Defaults on so a
   # stock chart deploy registers and fetches data lists without a hidden switch.

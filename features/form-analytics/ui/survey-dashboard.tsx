@@ -1,11 +1,12 @@
 "use client";
 
 import { useSidebar } from "@/components/ui/sidebar";
+import { useSurveyLicenseKey } from "@/features/config/survey-license-provider";
 import { applyHubDashboardTheme } from "@/lib/themes/survey-theme";
 import { useTheme } from "next-themes";
 import { useEffect, useRef } from "react";
 import { Dashboard } from "survey-analytics";
-import { Model } from "survey-core";
+import { Model, slk } from "survey-core";
 import { MOCK_RESULTS, MOCK_SURVEY_JSON } from "../data/mock-dashboard-data";
 
 export interface SurveyDashboardProps {
@@ -27,12 +28,17 @@ export function SurveyDashboard({
   const containerRef = useRef<HTMLDivElement>(null);
   const dashboardRef = useRef<Dashboard | null>(null);
   const sidebarStateRef = useRef<"expanded" | "collapsed" | null>(null);
+  const surveyLicenseKey = useSurveyLicenseKey();
   const { resolvedTheme } = useTheme();
   const { state: sidebarState } = useSidebar();
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
+
+    if (surveyLicenseKey) {
+      slk(surveyLicenseKey);
+    }
 
     const json = surveyJson ?? MOCK_SURVEY_JSON;
     const survey = new Model(json);
@@ -50,7 +56,7 @@ export function SurveyDashboard({
       dashboard.clear();
       dashboardRef.current = null;
     };
-  }, [surveyJson, results]);
+  }, [surveyJson, results, surveyLicenseKey]);
 
   useEffect(() => {
     const dashboard = dashboardRef.current;

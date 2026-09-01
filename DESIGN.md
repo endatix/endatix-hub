@@ -30,7 +30,9 @@ The palette is rooted in a sophisticated range of slates and atmospheric blues, 
 | `--info` / `--info-foreground` / `--info-background` / `--info-border` | Informational callouts, external-user badges, non-blocking guidance |
 | `--destructive` / `--destructive-foreground`                           | Errors and destructive confirmations                                |
 
-Light and dark values are defined under `:root` and `.dark`. Components must consume these tokens (or Shadcn variants built on them), not fixed Tailwind palette steps such as `blue-200` or `text-blue-950`.
+Light and dark values are defined under `:root` and `.dark`, and every one of them is registered in the `@theme inline` block so it exists as a Tailwind utility (`bg-success`, `text-warning`, `border-info-border`, …). If you add a `--token` to `:root`/`.dark`, you must also add `--color-token: var(--token)` to `@theme inline` in the same change — otherwise the utility silently does not compile and the class is dropped.
+
+Components must consume these tokens (or Shadcn variants built on them), not fixed Tailwind palette steps such as `blue-200` or `text-blue-950`.
 
 ### Surface Hierarchy & Nesting
 
@@ -81,6 +83,46 @@ We eschew traditional "structural lines" in favor of **Tonal Layering**.
 - **Strategy:** Use `spacing-5` (1.1rem) to separate internal card elements.
 - **Style:** Cards use `rounded-lg` (0.5rem) and a background of `surface_container_lowest`.
 
+### Card Grids — `.grid-card-list`
+
+Any page laying out a set of peer cards uses the `.grid-card-list` component
+class (`app/globals.css`), never hand-rolled viewport breakpoints:
+
+```
+grid-template-columns: repeat(auto-fill, minmax(min(var(--grid-card-min), 100%), 1fr));
+--grid-card-min: 420px;  /* override per page: className="grid-card-list [--grid-card-min:360px]" */
+```
+
+**Why intrinsic sizing, not `md:grid-cols-2 xl:grid-cols-3`:**
+
+1. **The sidebar makes viewport breakpoints lie.** Our content area is a
+   collapsible-sidebar inset. At one fixed viewport width the content region has
+   two very different widths depending on sidebar state, so a `lg:` breakpoint
+   fires on a measurement that is not the one the cards live in. `auto-fill`
+   derives the column count from the container, so collapsing the sidebar
+   naturally gains a column instead of leaving a half-empty row.
+2. **Large screens are free.** A 2-column cap wastes an ultrawide monitor and
+   forces scrolling for content that would fit on one screen. `auto-fill` scales
+   to 3, 4, 5 columns with no extra breakpoints to maintain.
+3. **One knob, not a breakpoint ladder.** The design decision becomes "how
+   narrow may this card get before it stops being readable?" — a single number
+   per page — rather than four coupled column counts.
+
+**Rules:**
+
+- Use `auto-fill`, **not** `auto-fit`. `auto-fit` collapses empty tracks, so two
+  cards on a wide screen stretch to half the page each and look nothing like the
+  same two cards when a third is added. Card width must not depend on card count.
+- Always keep the `min(…, 100%)` guard. A bare `minmax(420px, 1fr)` overflows
+  horizontally on any container narrower than the minimum.
+- Set `--grid-card-min` from the card's **narrowest legible content**, not from
+  taste. A card holding a label and a right-aligned URL needs more room than one
+  holding a title and a chip. Default 420px; go below ~320px only for genuinely
+  tiny tiles.
+- Give cards `h-full` when their heights vary, so each row's cards share a
+  bottom edge. The cost is whitespace inside short cards; ragged bottoms read as
+  a bug, stretched cards read as a grid.
+
 ### Buttons
 
 - **Primary:** Background `primary`, text `on_primary`. High-contrast, no shadow.
@@ -96,6 +138,48 @@ We eschew traditional "structural lines" in favor of **Tonal Layering**.
 
 - **Data Status:** Use `tertiary_container` for neutral data tags. Use `error_container` for alerts.
 - **Shape:** Use `rounded-full` to distinguish tags from interactive buttons.
+
+### Status & State Vocabulary
+
+Status is the single most-copied inconsistency in this codebase: the same idea
+("this is on") ends up rendered as a filled primary pill on one screen, a grey
+pill with a check icon on the next, and bare text on a third. Screens that show
+state must use **one vocabulary**, and it is this one.
+
+**Three tones. There is no fourth.**
+
+| Tone        | Meaning                                                   | Badge variant | Example labels                         |
+| :---------- | :-------------------------------------------------------- | :------------ | :------------------------------------- |
+| `on`        | Present / active / healthy                                | `success`     | Configured, Set, On, Enabled, Active   |
+| `off`       | Absent or inactive, **and that is a legitimate state**    | `secondary`   | Not set, Off, Disabled, Inactive       |
+| `attention` | Required, and missing — the operator has something to fix | `warning`     | Not configured, Expired, Action needed |
+
+`destructive` is reserved for a state that is actively failing or for confirming
+a destructive action. Never use it for "empty".
+
+**Rules:**
+
+1. **Tone carries meaning, not iconography.** All three tones render as the same
+   pill with a leading `size-1.5 rounded-full bg-current` dot. Do not give one
+   state a check icon and its sibling no icon — differing shapes read as
+   differing _kinds_ of information, which is exactly the inconsistency this
+   section exists to kill.
+2. **Status badges are soft-tinted** (`bg-success/12 text-success`), never solid
+   fills. Solid `default` (primary) is reserved for high-intent actions, per the
+   Tonal Hierarchy. A page full of solid blue "Enabled" pills spends the brand's
+   action color on read-only information.
+3. **One label per state per page.** Pick "Enabled/Disabled" _or_ "On/Off" for a
+   given concept and use it everywhere that concept appears.
+4. **Never mix a status badge and a literal value in the same visual slot
+   inconsistently.** Within a section, either every row's value column holds a
+   badge or every row holds a literal — mixing is fine only when the row _kinds_
+   genuinely differ (a flag vs. a URL), and then the literal must be monospace
+   so the two are obviously different types.
+5. Encode the vocabulary in a component (see
+   `features/platform-admin/view-environment-settings/ui/config-status-badge.tsx`)
+   rather than re-deriving badge variants at each call site. If you find yourself
+   writing `variant={x ? "default" : "secondary"}` inline, reach for the shared
+   component instead.
 
 ### Overlay Interaction Rulebook
 
@@ -123,7 +207,98 @@ Implementation rules:
 
 ---
 
-## 6. Do's and Don'ts
+## 6. Page Patterns
+
+Component rules alone do not produce a consistent product; recurring _page
+shapes_ do. When you build a page, find its shape here first.
+
+### Read-only settings & configuration pages
+
+Pages whose job is "let an operator review resolved configuration" — Admin →
+Environment, Auth, Storage, Email. Reference implementation:
+`features/platform-admin/view-environment-settings/ui/`.
+
+**Anatomy, top to bottom:**
+
+1. **`PlatformAdminShell`** — eyebrow, `headline` title, one-sentence purpose,
+   `Separator`. Never hand-roll a page header in this area.
+2. **Overview strip** — one full-width card answering _"is anything wrong?"_
+   before the reader scrolls. Keep it to a single runtime fact plus one rollup
+   badge (e.g. `3 of 4 configured`) and, when relevant, a plain-text list of
+   what is missing. This is a summary bar, **not** a stat/KPI dashboard — do not
+   grow it into a row of metric tiles on a page nobody visits for metrics.
+3. **Section cards in a `.grid-card-list`** (see §5) — give cards `h-full` so a
+   row's cards share a height. Multi-column is the default, not full width: a
+   full-width card puts a two-word label and a small badge ~1000px apart and
+   destroys the label→value association. The grid reflows from one column on a
+   phone to four on an ultrawide with no breakpoints of its own. Only span a
+   card full width when its content genuinely needs the measure (a table, a
+   long-form form) — the overview strip in step 2 is the usual exception.
+4. **Rows on a nested surface** — `dl` with `grid gap-4 rounded-lg bg-muted/40 p-4`
+   inside `CardContent`. The tonal shift is the boundary; no dividers, per §4.
+
+**Row anatomy** (`ConfigRow`):
+
+- Label left as `dt`, value right as `dd` with `justify-end text-right`, so all
+  values in a section align into one scannable column.
+- **Show the source key, do not hide it in a tooltip.** On a page for reviewing
+  environment configuration, the env var name is the operator's primary key —
+  it renders as a `font-mono text-xs text-on-surface-variant` sub-label
+  under the human label. A row of `CircleHelp` icons that each reveal one word
+  is icon noise standing in for information design.
+- Literal values are monospace and **wrap rather than truncate** (`break-all`).
+  Never truncate a value the reader came to read.
+- **Unset and empty are different answers.** A setting that was never configured
+  renders `—` (with an `sr-only` "Not set"); one that resolved to an empty
+  string renders `(none)`. Collapsing both to an em dash tells an operator their
+  deliberately-empty prefix is missing, and sends them to fix a non-problem.
+- **Show the key even for values you are hiding.** Env var sub-labels appear on
+  every row, including secret rows — the operator still needs to know which
+  variable to set.
+- Copy affordance rule: any value an operator might paste into a config file
+  gets a `CopyToClipboard layout="inline"`. Enum-ish values (`development`,
+  `/api`) do not. Apply the rule consistently within a page — a copy button on
+  one URL and not the next reads as a bug.
+- Nested detail rows indent with `pl-4` and drop to `text-xs text-muted-foreground`.
+  Do **not** use a left border rule to express nesting.
+
+**Secrets:** never render a secret value, even masked. Render presence only,
+through the same status vocabulary as everything else (`Set` / `Not set`), and
+say so in the section description.
+
+**But first decide what is actually secret — by where the value already goes,
+not by how secret it sounds.** A key this app serialises into the HTML of every
+public page is not a secret, and hiding it on an admin page costs the operator
+the one thing the page is for — confirming _which_ key is live — while
+concealing nothing that is not already in the page source. The test is
+mechanical: **if the field is a member of `ClientEndatixConfig`, show its
+value.** A reCAPTCHA _site_ key and a PostHog _project_ key are public by
+design; the SurveyJS Creator licence never reaches a browser and is the genuine
+secret. Reaching for `Set` / `Not set` on a public value is security theatre
+that degrades the page.
+
+### Deciding on a new pattern
+
+When this document does not already answer a question, resolve it in this order,
+and then **write the answer back into this file** as part of the same change:
+
+1. **Does a sibling page already solve it?** Match it. Cross-page consistency
+   beats a locally nicer idea; a novel icon treatment on one admin page is a
+   regression even if the page looks better in isolation.
+2. **Does a token or shared component cover it?** Use it. If a semantic token
+   exists but has no Tailwind utility, register it in `@theme inline` rather
+   than hardcoding a palette step.
+3. **What is the page for?** Optimize for the reader's actual task. On a review
+   page that means scanning and comparison — align values into a column, surface
+   the keys, summarize exceptions at the top. On an action page it means making
+   the action unmistakable.
+4. **Prefer removing over adding.** Most inconsistency here is accumulated
+   decoration: an icon added to one badge, a tooltip added to one label. Cutting
+   the extra is almost always more on-brand than harmonizing it.
+
+---
+
+## 7. Do's and Don'ts
 
 ### Do:
 
@@ -131,6 +306,10 @@ Implementation rules:
 - **Do** allow for generous white space around "Display" typography.
 - **Do** use `primary` sparingly to ensure it maintains its "Action" intent.
 - **Do** lean into `inter` medium weights for labels to improve legibility on tinted backgrounds.
+- **Do** route every on/off, present/absent, healthy/broken state through the three-tone Status Vocabulary (§5).
+- **Do** show the underlying key (env var, setting name) as visible text on configuration pages, not in a tooltip.
+- **Do** register a new semantic token in `@theme inline` in the same change that adds it to `:root`/`.dark`.
+- **Do** lay peer cards out with `.grid-card-list` so large screens gain columns instead of whitespace.
 
 ### Don't:
 
@@ -139,10 +318,15 @@ Implementation rules:
 - **Don't** use standard "Alert Red" for errors. Use the sophisticated `error` (`#9f403d`) and `error_container` (`#fe8983`) tokens.
 - **Don't** use fixed Tailwind color scales (`bg-blue-50`, `text-blue-950`, etc.) on surfaces that must work in light and dark mode. Use semantic tokens (`info-background`, `muted-foreground`, `on-surface-variant`) or component variants (`Alert variant="info"`).
 - **Don't** overcrowd the card. If data is dense, use a "Nested Surface" to group related points.
+- **Don't** render status with a solid `primary` badge. Primary is for actions; status is soft-tinted.
+- **Don't** give one state an icon and its sibling none — differing shapes imply differing kinds of information.
+- **Don't** stretch label/value rows across the full page width. Put the cards in a `.grid-card-list` so values stay near their labels.
+- **Don't** hand-roll card grids with viewport breakpoints (`md:grid-cols-2 xl:grid-cols-3`). The sidebar changes the content width without changing the viewport; use `.grid-card-list`.
+- **Don't** truncate a value on a page whose purpose is reading that value. Wrap it.
 
 ---
 
-## 7. Spacing Scale
+## 8. Spacing Scale
 
 Our spacing is built on a tight 0.2rem increment for precision data-density, expanding for editorial breathing room.
 
@@ -153,7 +337,7 @@ Our spacing is built on a tight 0.2rem increment for precision data-density, exp
 
 ---
 
-## 8. Survey Theme Sync Guide (SurveyJS v3)
+## 9. Survey Theme Sync Guide (SurveyJS v3)
 
 `app/globals.css` is the source of truth for Hub brand tokens. Survey Creator chrome and Hub-internal Survey Model themes must derive from these tokens.
 

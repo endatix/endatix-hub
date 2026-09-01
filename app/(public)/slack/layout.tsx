@@ -2,7 +2,7 @@ import { AppProvider } from "@/components/providers";
 import "@/app/globals.css";
 import { AppOptions } from "@/components/providers/app-provider";
 import { auth } from "@/auth";
-import { getClientEndatixConfig } from "@/features/config";
+import { getClientEndatixConfig } from "@/features/config/server";
 
 export const metadata = {
   title: "Next.js",
@@ -14,8 +14,10 @@ interface SlackLayoutProps {
 }
 
 export default async function SlackLayout({ children }: SlackLayoutProps) {
-  const session = await auth();
-  const endatixConfig = getClientEndatixConfig();
+  const [session, endatixConfig] = await Promise.all([
+    auth(),
+    getClientEndatixConfig(),
+  ]);
 
   return (
     <html lang="en" suppressHydrationWarning>

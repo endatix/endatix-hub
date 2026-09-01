@@ -12,6 +12,30 @@ declare namespace NodeJS {
     // Experimental features
     ENDATIX_ENABLE_EXTENSIONS?: string;
 
+    // Public, request-time client config. Projected to the browser by
+    // `getClientEndatixConfig()` from `@/features/config/server` — deliberately NOT
+    // `NEXT_PUBLIC_*`, which Next inlines into the client bundle at build time.
+    ENDATIX_RECAPTCHA_SITE_KEY?: string;
+    ENDATIX_POSTHOG_KEY?: string;
+    ENDATIX_POSTHOG_HOST?: string;
+    ENDATIX_POSTHOG_UI_HOST?: string;
+    ENDATIX_IS_DEBUG_MODE?: string;
+    ENDATIX_SUBMITTER_PRIMARY_FILTER_LABEL?: string;
+    ENDATIX_SUBMITTER_GRID_PROFILE_FIELDS?: string;
+
+    /**
+     * SurveyJS Creator licence key. NOT part of the shared projection above: that object
+     * is serialised into the HTML of every page mounting AppProvider, including the
+     * anonymous public form routes. Read server-side and provided only to the
+     * authenticated shell, via SurveyLicenseProvider.
+     *
+     * Perpetual: the embedded date governs eligibility for updates and support, not the
+     * right to run, so an existing deployment keeps working. A new key is needed when
+     * upgrading the SurveyJS packages beyond the window it covers — and replacing it must
+     * be a config change, never an image rebuild.
+     */
+    ENDATIX_SURVEY_LICENSE_KEY?: string;
+
     // Session
     SESSION_SECRET?: string;
     SESSION_MAX_AGE_IN_MINUTES?: string;
@@ -31,6 +55,7 @@ declare namespace NodeJS {
     NEXT_FORMS_COOKIE_DURATION_DAYS?: string;
 
     // ReCaptcha
+    /** @deprecated Build-time inlined. Use ENDATIX_RECAPTCHA_SITE_KEY. */
     NEXT_PUBLIC_RECAPTCHA_SITE_KEY?: string;
 
     // Slack
@@ -76,7 +101,12 @@ declare namespace NodeJS {
     RESIZE_IMAGES_WIDTH?: string;
 
     // Public
+    /** @deprecated Build-time inlined. Use ENDATIX_SURVEY_LICENSE_KEY. */
     NEXT_PUBLIC_SLK?: string;
+    /** @deprecated Build-time inlined. Use ENDATIX_SUBMITTER_PRIMARY_FILTER_LABEL. */
+    NEXT_PUBLIC_SUBMITTER_PRIMARY_FILTER_LABEL?: string;
+    /** @deprecated Build-time inlined. Use ENDATIX_SUBMITTER_GRID_PROFILE_FIELDS. */
+    NEXT_PUBLIC_SUBMITTER_GRID_PROFILE_FIELDS?: string;
     NEXT_PUBLIC_NAME?: string;
 
     // Telemetry
@@ -86,8 +116,11 @@ declare namespace NodeJS {
     TELEMETRY_CONSOLE_FALLBACK?: string;
 
     // PostHog
+    /** @deprecated Build-time inlined. Use ENDATIX_POSTHOG_KEY. */
     NEXT_PUBLIC_POSTHOG_KEY?: string;
+    /** @deprecated Build-time inlined. Use ENDATIX_POSTHOG_HOST. */
     NEXT_PUBLIC_POSTHOG_HOST?: string;
+    /** @deprecated Build-time inlined. Use ENDATIX_POSTHOG_UI_HOST. */
     NEXT_PUBLIC_POSTHOG_UI_HOST?: string;
     ENABLE_POSTHOG_ADAPTER?: string;
 
@@ -99,6 +132,7 @@ declare namespace NodeJS {
     ENDATIX_RESOLVED_IMAGE_REMOTE_HOSTNAMES?: string;
 
     // Application settings
+    /** @deprecated Build-time inlined. Use ENDATIX_IS_DEBUG_MODE. */
     NEXT_PUBLIC_IS_DEBUG_MODE?: string; // Application-level debug flag
 
     // Hub maintenance (see docs — proxy rewrite + /maintenance page)

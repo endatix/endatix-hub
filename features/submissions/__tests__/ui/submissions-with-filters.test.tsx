@@ -96,14 +96,6 @@ vi.mock("@/features/submissions/ui/table", () => ({
       options as typeof navigationMocks.systemColumnOptions.current;
     return [];
   },
-  COLUMNS_DEFINITION: [
-    {
-      id: "createdAt",
-      meta: {
-        displayName: "Created at",
-      },
-    },
-  ],
   EMPTY_SUBMISSION_DATE_FILTERS: {
     createdAt: {},
     modifiedAt: {},

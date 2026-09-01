@@ -3,6 +3,7 @@
 import { toast } from "@/components/ui/toast";
 import { customQuestions } from "@/customizations/questions/question-registry";
 import { useStorageWithCreator } from "@/features/asset-storage/client";
+import { useSurveyLicenseKey } from "@/features/config/survey-license-provider";
 import {
   DEFAULT_THEME_ID,
   ThemeDeleteDialog,
@@ -126,7 +127,6 @@ interface FormEditorProps {
   formJson: object | null;
   formName: string;
   options?: ICreatorOptions;
-  slkVal?: string;
   themeId?: string;
   isPublic?: boolean;
   formIsEnabled?: boolean;
@@ -162,7 +162,6 @@ function FormEditor({
   formId,
   formName,
   options,
-  slkVal,
   themeId,
   isPublic,
   formIsEnabled,
@@ -171,6 +170,7 @@ function FormEditor({
   onSaveHandlerReady,
   onPropertyGridControllerReady,
 }: Readonly<FormEditorProps>) {
+  const slkVal = useSurveyLicenseKey();
   const designerRuntime = useDesignerRuntime();
   const isCreatorInitializedRef = useRef(false);
   const [creator, setCreator] = useState<SurveyCreator | null>(null);

@@ -1,4 +1,7 @@
-const RECAPTCHA_SITE_KEY = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY!;
+import { getIsomorphicEndatixConfig } from "@/features/config/client-endatix-config";
+
+/** Request-time, never inlined — see `client-endatix-config.ts`. */
+const siteKey = () => getIsomorphicEndatixConfig().recaptchaSiteKey;
 
 const RECAPTCHA_ACTIONS = {
   SUBMIT_FORM: "submit_form",
@@ -9,16 +12,16 @@ const RECAPTCHA_ACTIONS = {
 };
 
 const isReCaptchaEnabled = () => {
-  return RECAPTCHA_SITE_KEY !== "";
+  return siteKey() !== "";
 };
-
-const RECAPTCHA_JS_URL = `https://www.google.com/recaptcha/api.js?render=${RECAPTCHA_SITE_KEY}`;
 
 export const recaptchaConfig = {
   /**
-   * reCAPTCHA site key
+   * reCAPTCHA site key. A getter, not a const: the value is only known at request time.
    */
-  SITE_KEY: RECAPTCHA_SITE_KEY,
+  get SITE_KEY(): string {
+    return siteKey();
+  },
 
   /**
    * reCAPTCHA actions
@@ -26,12 +29,18 @@ export const recaptchaConfig = {
   ACTIONS: RECAPTCHA_ACTIONS,
 
   /**
-   * Check if reCAPTCHA is enabled
+   * Check if reCAPTCHA is enabled.
+   *
+   * Previously compared a non-null-asserted env read to "", so an UNSET key read as
+   * ENABLED and loaded the reCAPTCHA script with `render=undefined`.
+   * The config normalises a missing key to "", so unset now correctly reads as disabled.
    */
   isReCaptchaEnabled,
 
   /**
    * reCAPTCHA JS URL
    */
-  JS_URL: RECAPTCHA_JS_URL,
+  get JS_URL(): string {
+    return `https://www.google.com/recaptcha/api.js?render=${siteKey()}`;
+  },
 };

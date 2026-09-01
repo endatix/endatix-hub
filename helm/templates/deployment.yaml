@@ -60,6 +60,27 @@ spec:
             - name: ENDATIX_ENABLE_EXTENSIONS
               value: {{ .Values.experimental.extensions | quote }}
 
+            # Public client config. Request-time, projected to the browser per request —
+            # changing any of these is a `helm upgrade`, never an image rebuild.
+            - name: ENDATIX_SURVEY_LICENSE_KEY
+              value: {{ .Values.clientConfig.surveyLicenseKey | quote }}
+            - name: ENDATIX_RECAPTCHA_SITE_KEY
+              value: {{ .Values.clientConfig.recaptchaSiteKey | quote }}
+            - name: ENDATIX_SUBMITTER_PRIMARY_FILTER_LABEL
+              value: {{ .Values.clientConfig.submitterPrimaryFilterLabel | quote }}
+            - name: ENDATIX_SUBMITTER_GRID_PROFILE_FIELDS
+              value: {{ .Values.clientConfig.submitterGridProfileFields | quote }}
+            - name: ENDATIX_IS_DEBUG_MODE
+              value: {{ .Values.clientConfig.debugMode | quote }}
+
+            # Product analytics — empty key disables PostHog.
+            - name: ENDATIX_POSTHOG_KEY
+              value: {{ .Values.analytics.posthogKey | quote }}
+            - name: ENDATIX_POSTHOG_HOST
+              value: {{ .Values.analytics.posthogHost | quote }}
+            - name: ENDATIX_POSTHOG_UI_HOST
+              value: {{ .Values.analytics.posthogUiHost | quote }}
+
             # Auth
             - name: SESSION_SECRET
               valueFrom:

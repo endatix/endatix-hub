@@ -7,7 +7,7 @@ import { getOsClass } from "@/lib/utils/next-utils";
 import { Metadata } from "next";
 import { cookies, headers } from "next/headers";
 import { getMetadataBase } from "@/lib/seo";
-import { getClientEndatixConfig } from "@/features/config";
+import { getClientEndatixConfig } from "@/features/config/server";
 
 export const metadata: Metadata = {
   metadataBase: getMetadataBase(),
@@ -36,12 +36,9 @@ export default async function RootLayout({
   header,
   nav,
 }: RootLayoutProps) {
-
-  const requestHeaders = await headers();
+  const [requestHeaders, session, cookieStore, endatixConfig] =
+    await Promise.all([headers(), auth(), cookies(), getClientEndatixConfig()]);
   const osClass = getOsClass(requestHeaders);
-  const session = await auth();
-  const cookieStore = await cookies();
-  const endatixConfig = getClientEndatixConfig();
   const sidebarValue = cookieStore.get("sidebar_state");
   const defaultSidebarOpen = sidebarValue?.value === "true";
 

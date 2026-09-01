@@ -69,8 +69,10 @@ const ai = await aiFeatures(); // { enabled: boolean, assistant: {...} }
 ```bash
 # Enable PostHog flags (optional)
 ENABLE_POSTHOG_ADAPTER=true
-NEXT_PUBLIC_POSTHOG_KEY=your_posthog_key
+ENDATIX_POSTHOG_KEY=your_posthog_key
 ```
+
+Deprecated `NEXT_PUBLIC_POSTHOG_KEY` still works as a server boot fallback; prefer `ENDATIX_POSTHOG_KEY`.
 
 ## 🚀 Usage (Server-Side Only)
 

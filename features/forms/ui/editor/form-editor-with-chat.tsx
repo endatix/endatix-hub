@@ -32,7 +32,6 @@ export interface FormEditorWithChatProps {
   formJson: object | null;
   formName: string;
   options?: ICreatorOptions;
-  slkVal?: string;
   themeId?: string;
   isPublic?: boolean;
   formIsEnabled?: boolean;
@@ -45,7 +44,6 @@ export default function FormEditorWithChat({
   formJson,
   formName,
   options,
-  slkVal,
   themeId,
   isPublic,
   formIsEnabled,
@@ -138,7 +136,6 @@ export default function FormEditorWithChat({
               formJson={updatedFormJson}
               formName={formName}
               options={options}
-              slkVal={slkVal}
               themeId={themeId}
               isPublic={isPublic}
               formIsEnabled={formIsEnabled}

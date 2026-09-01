@@ -15,7 +15,6 @@ export {
 export {
   buildSubmissionDataColumns,
   buildSubmissionSystemColumns,
-  COLUMNS_DEFINITION,
   humanizeFieldName,
   type ParsedSubmission,
 } from "./columns-definition";

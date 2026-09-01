@@ -7,6 +7,8 @@ import { requireAdmin } from "@/components/admin-ui/admin-protection";
 import { HubPageLoadError } from "@/components/error-handling/error-page";
 import { NotFoundComponent } from "@/components/error-handling/not-found";
 import { Result, toResult } from "@/lib/result";
+import { getSurveyLicenseKey } from "@/features/config/server";
+import { SurveyLicenseProvider } from "@/features/config/survey-license-provider";
 
 interface Params {
   params: Promise<{ agentId: string; conversationId: string }>;
@@ -68,11 +70,18 @@ async function ConversationDetailsPageContent({
 
   return (
     <Suspense fallback={<div>Loading...</div>}>
-      <ConversationDetails
-        formModel={formModel}
-        formModelError={formModelError}
-        conversation={conversationResult.value}
-      />
+      {/*
+       * Scoped to this route, not the `(main)` layout: the licence is a commercial
+       * credential and the provider serialises it into the RSC payload of every page
+       * below it. This preview is the only consumer of `useSurveyLicenseKey`.
+       */}
+      <SurveyLicenseProvider value={getSurveyLicenseKey()}>
+        <ConversationDetails
+          formModel={formModel}
+          formModelError={formModelError}
+          conversation={conversationResult.value}
+        />
+      </SurveyLicenseProvider>
     </Suspense>
   );
 }

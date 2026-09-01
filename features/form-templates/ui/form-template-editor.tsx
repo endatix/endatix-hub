@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 import { useStorageWithCreator } from "@/features/asset-storage/client";
+import { useSurveyLicenseKey } from "@/features/config/survey-license-provider";
 import { useDesignerRuntime } from "@/lib/designer-runtime";
 import {
   customizeQuestionClassesOnCreator,
@@ -56,7 +57,6 @@ export interface FormTemplateEditorProps {
   templateName: string;
   description?: string;
   options?: ICreatorOptions;
-  slkVal?: string;
 }
 
 const defaultCreatorOptions: ICreatorOptions = {
@@ -83,8 +83,8 @@ function FormTemplateEditorContent({
   templateId,
   templateName,
   options,
-  slkVal,
 }: Readonly<FormTemplateEditorProps>) {
+  const slkVal = useSurveyLicenseKey();
   const isCreatorInitializedRef = useRef(false);
   const [creator, setCreator] = useState<SurveyCreator | null>(null);
   const {

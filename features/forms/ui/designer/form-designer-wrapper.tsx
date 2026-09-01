@@ -16,7 +16,6 @@ export interface FormDesignerWrapperProps {
   formJson: object | null;
   formName: string;
   options?: ICreatorOptions;
-  slkVal?: string;
   themeId?: string;
   isPublic?: boolean;
   formIsEnabled?: boolean;
@@ -33,7 +32,6 @@ function FormDesignerContent({
   formJson,
   formName,
   options,
-  slkVal,
   themeId,
   isPublic,
   formIsEnabled,
@@ -70,7 +68,7 @@ function FormDesignerContent({
   });
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full flex-col">
       <FormEditorHeader
         {...headerState}
         isCurrentThemeModified={isCurrentThemeModified}
@@ -82,7 +80,6 @@ function FormDesignerContent({
           formJson={formJson}
           formName={formName}
           options={options}
-          slkVal={slkVal}
           themeId={themeId}
           isPublic={isPublic}
           formIsEnabled={formIsEnabled}
@@ -95,7 +92,6 @@ function FormDesignerContent({
           formJson={formJson}
           formName={formName}
           options={options}
-          slkVal={slkVal}
           themeId={themeId}
           isPublic={isPublic}
           formIsEnabled={formIsEnabled}
@@ -112,7 +108,6 @@ export default function FormDesignerWrapper({
   formJson,
   formName,
   options,
-  slkVal,
   themeId,
   isPublic,
   formIsEnabled,
@@ -127,7 +122,6 @@ export default function FormDesignerWrapper({
         formJson={formJson}
         formName={formName}
         options={options}
-        slkVal={slkVal}
         themeId={themeId}
         isPublic={isPublic}
         formIsEnabled={formIsEnabled}

@@ -1,6 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { FlagFactoryProvider } from "@/lib/feature-flags/factories/flag-factory-provider";
-import { isPostHogEnabled } from "@/features/analytics/posthog/shared/config";
 
 // Mock the auth module to prevent Next.js server module import issues
 vi.mock("@/features/auth", () => ({
@@ -12,33 +11,39 @@ vi.mock("@/features/auth", () => ({
   }),
 }));
 
-process.env.NEXT_PUBLIC_POSTHOG_KEY = "test-key";
-
 vi.mock("@flags-sdk/posthog", () => ({
   createPostHogAdapter: vi.fn(() => ({
     pflag: vi.fn(),
   })),
 }));
 
-vi.mock("@/features/analytics/posthog/shared/config", () => ({
-  isPostHogEnabled: vi.fn(),
-}));
-
+/**
+ * Drives the real environment rather than mocking `isPostHogEnabled`. The provider is
+ * server-only code, and mocking the key check would hide exactly the failure this suite
+ * exists to catch: a key read that resolves against the browser projection under jsdom
+ * and silently disables PostHog flags.
+ */
 describe("FlagFactoryProvider", () => {
+  const originalEnv = { ...process.env };
   let provider: FlagFactoryProvider;
 
   beforeEach(() => {
     vi.clearAllMocks();
     provider = new FlagFactoryProvider();
-
+    process.env = { ...originalEnv };
     delete process.env.ENABLE_POSTHOG_ADAPTER;
+    delete process.env.ENDATIX_POSTHOG_KEY;
+  });
+
+  afterEach(() => {
+    process.env = originalEnv;
   });
 
   describe("getFactory", () => {
-    describe("when PostHog is enabled", () => {
+    describe("when the adapter is enabled and a project key is configured", () => {
       beforeEach(() => {
         process.env.ENABLE_POSTHOG_ADAPTER = "true";
-        vi.mocked(isPostHogEnabled).mockReturnValue(true);
+        process.env.ENDATIX_POSTHOG_KEY = "phc_test_key";
       });
 
       it("should return PostHogFlagFactory when conditions are met", () => {
@@ -59,7 +64,7 @@ describe("FlagFactoryProvider", () => {
     describe("when PostHog adapter is disabled via environment", () => {
       beforeEach(() => {
         process.env.ENABLE_POSTHOG_ADAPTER = "false";
-        vi.mocked(isPostHogEnabled).mockReturnValue(true);
+        process.env.ENDATIX_POSTHOG_KEY = "phc_test_key";
       });
 
       it("should return EnvironmentFlagFactory", () => {
@@ -69,10 +74,23 @@ describe("FlagFactoryProvider", () => {
       });
     });
 
-    describe("when PostHog is disabled", () => {
+    describe("when the project key is missing", () => {
       beforeEach(() => {
         process.env.ENABLE_POSTHOG_ADAPTER = "true";
-        vi.mocked(isPostHogEnabled).mockReturnValue(false);
+        delete process.env.ENDATIX_POSTHOG_KEY;
+      });
+
+      it("should return EnvironmentFlagFactory", () => {
+        const factory = provider.getFactory();
+
+        expect(factory.constructor.name).toBe("EnvironmentFlagFactory");
+      });
+    });
+
+    describe("when the project key is only whitespace", () => {
+      beforeEach(() => {
+        process.env.ENABLE_POSTHOG_ADAPTER = "true";
+        process.env.ENDATIX_POSTHOG_KEY = "   ";
       });
 
       it("should return EnvironmentFlagFactory", () => {
@@ -85,7 +103,7 @@ describe("FlagFactoryProvider", () => {
     describe("when both PostHog conditions are false", () => {
       beforeEach(() => {
         process.env.ENABLE_POSTHOG_ADAPTER = "false";
-        vi.mocked(isPostHogEnabled).mockReturnValue(false);
+        delete process.env.ENDATIX_POSTHOG_KEY;
       });
 
       it("should return EnvironmentFlagFactory", () => {
@@ -106,7 +124,7 @@ describe("FlagFactoryProvider", () => {
     describe("when environment variable is undefined", () => {
       beforeEach(() => {
         // Don't set ENABLE_POSTHOG_ADAPTER
-        vi.mocked(isPostHogEnabled).mockReturnValue(true);
+        process.env.ENDATIX_POSTHOG_KEY = "phc_test_key";
       });
 
       it("should return EnvironmentFlagFactory (falsy check)", () => {

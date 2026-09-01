@@ -26,7 +26,7 @@ vi.mock("@/features/auth", () => ({
 describe("Feature Flags Module Exports", () => {
   beforeEach(() => {
     // Set PostHog API key for tests
-    process.env.NEXT_PUBLIC_POSTHOG_KEY = "test-key";
+    process.env.ENDATIX_POSTHOG_KEY = "test-key";
   });
 
   describe("main utilities", () => {

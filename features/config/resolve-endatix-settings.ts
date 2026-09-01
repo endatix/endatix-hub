@@ -16,7 +16,11 @@ import {
   getExperimentalConfig,
   type ExperimentalConfig,
 } from "./experimental-config";
-import type { ClientEndatixConfig } from "./client-endatix-config";
+import {
+  readPublicEndatixEnv,
+  toClientEndatixConfig,
+  type ClientEndatixConfig,
+} from "./client-endatix-config";
 
 const DEFAULT_API_PREFIX = "/api";
 
@@ -71,10 +75,11 @@ export interface EndatixResolvedSettings {
   readonly mergedAuthConfig: EndatixAuthConfig;
   readonly mergedExperimentalConfig: ExperimentalConfig;
   readonly mergedApiConfig: ApiConfig | null;
+  /** Browser-safe projection. Never includes licence keys, auth secrets, or storage credentials. */
+  readonly client: ClientEndatixConfig;
   /**
    * Keys merged into `nextConfig.env` (build). Compiler-needed only: `ENDATIX_RESOLVED_*`
-   * so {@link resolveEndatixSettings} with `source: 'runtime'` matches build-time storage + images.
-   * Does not include `ENDATIX_API_URL` or `ENDATIX_ENABLE_EXTENSIONS` (request-time client projection).
+   * and non-secret auth flags. Never public client keys, licence keys, or storage secrets.
    */
   readonly envPatch: Readonly<Record<string, string>>;
 }
@@ -204,16 +209,16 @@ export function getRuntimeStorageProfile(): StorageProfileSlice {
   return readStorageProfile("runtime");
 }
 
-/**
- * Request-time browser projection (API origin + extensions gate).
- * Call from Server Component layouts and pass into `AppProvider` — not via `nextConfig.env`.
- */
-export function getClientEndatixConfig(): ClientEndatixConfig {
-  const resolved = resolveEndatixSettings({ source: "runtime" });
-
-  return Object.freeze({
-    apiBaseUrl: resolved.mergedApiConfig?.apiUrl ?? "",
-    extensionsEnabled: resolved.mergedExperimentalConfig.extensions,
+function buildClientConfig(
+  mergedApiConfig: ApiConfig | null,
+  mergedExperimentalConfig: ExperimentalConfig,
+): ClientEndatixConfig {
+  return toClientEndatixConfig({
+    apiBaseUrl: mergedApiConfig?.apiUrl ?? "",
+    extensionsEnabled: mergedExperimentalConfig.extensions,
+    // Deprecated NEXT_PUBLIC_-prefixed names were folded into ENDATIX_* at server startup
+    // by applyLegacyPublicEnv(), so there is exactly one source to read here.
+    ...readPublicEndatixEnv(),
   });
 }
 
@@ -322,12 +327,14 @@ export function resolveEndatixSettings(input: {
   const envPatch = Object.freeze(
     buildEnvPatch(mergedAuthConfig, storage, input.source),
   );
+  const client = buildClientConfig(mergedApiConfig, mergedExperimentalConfig);
 
   return Object.freeze({
     storage,
     mergedAuthConfig,
     mergedExperimentalConfig,
     mergedApiConfig,
+    client,
     envPatch,
   });
 }

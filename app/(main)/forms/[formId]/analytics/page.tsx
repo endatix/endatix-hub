@@ -9,6 +9,8 @@ import { formAnalyticsFlag } from "@/lib/feature-flags";
 import { redirect } from "next/navigation";
 import PageTitle from "@/components/headings/page-title";
 import { SurveyDashboardWrapper } from "@/features/form-analytics/ui/survey-dashboard-wrapper";
+import { getSurveyLicenseKey } from "@/features/config/server";
+import { SurveyLicenseProvider } from "@/features/config/survey-license-provider";
 
 type Params = {
   params: Promise<{ formId: string }>;
@@ -63,7 +65,9 @@ export default async function FormAnalyticsPage({ params }: Readonly<Params>) {
         </Button>
       </div>
       {/* disabled for now until we add subission JSON data via the API */}
-      <SurveyDashboardWrapper surveyJson={null} />
+      <SurveyLicenseProvider value={getSurveyLicenseKey()}>
+        <SurveyDashboardWrapper surveyJson={null} />
+      </SurveyLicenseProvider>
     </div>
   );
 }
