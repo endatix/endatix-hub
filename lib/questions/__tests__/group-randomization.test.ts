@@ -1,5 +1,10 @@
 import { describe, expect, it, beforeEach, vi } from "vitest";
-import { Helpers, SurveyModel, QuestionSelectBase } from "survey-core";
+import {
+  Helpers,
+  ItemValue,
+  SurveyModel,
+  QuestionSelectBase,
+} from "survey-core";
 import addRandomizeGroupFeature from "../features/group-randomization";
 
 // Mock data interfaces
@@ -357,6 +362,186 @@ describe("Group Randomization Feature", () => {
       expect(choices.findIndex((choice) => choice.value === "4")).toEqual(4);
       const randomizedChoicesSignature = choices.map((choice) => choice.group || "__default__").join(",");
       expect(randomizedChoicesSignature).toEqual("A,A,B,B,__default__");
+    });
+  });
+
+  describe("Design mode", () => {
+    type MatrixQuestion = {
+      visibleRows: Array<{ cells: Array<{ question: QuestionSelectBase }> }>;
+    };
+
+    /**
+     * Fixed seeds make "the order never changes" and "the order does change"
+     * deterministic assertions instead of coin flips. Four items per group give
+     * 24 permutations each, so a shuffle landing back on the authored order for
+     * every seed is not a realistic false negative.
+     */
+    const SEEDS = [11, 22, 33, 44, 55];
+
+    const GROUPED_CHOICES = [
+      { value: "item1", group: "A" },
+      { value: "item2", group: "A" },
+      { value: "item3", group: "A" },
+      { value: "item4", group: "A" },
+      { value: "item5" },
+      { value: "item6", group: "B" },
+      { value: "item7", group: "B" },
+      { value: "item8", group: "B" },
+      { value: "item9", group: "B" },
+    ];
+
+    const AUTHORED_ORDER = GROUPED_CHOICES.map((choice) => choice.value);
+    const GROUP_SIGNATURE = "A,A,A,A,__default__,B,B,B,B";
+
+    const MATRIX_JSON = {
+      elements: [
+        {
+          type: "matrixdropdown",
+          name: "question1",
+          rows: ["Row 1", "Row 2"],
+          columns: [
+            {
+              name: "Column 1",
+              cellType: "checkbox",
+              choicesOrder: "random",
+              choices: GROUPED_CHOICES,
+            },
+          ],
+        },
+      ],
+    };
+
+    const PLAIN_JSON = {
+      elements: [
+        {
+          type: "checkbox",
+          name: "question1",
+          choicesOrder: "random",
+          choices: GROUPED_CHOICES,
+        },
+      ],
+    };
+
+    const createSurvey = (json: object, seed: number, isDesignMode: boolean) => {
+      const survey = new SurveyModel();
+      if (isDesignMode) {
+        survey.setDesignMode(true);
+      }
+      survey.fromJSON(json);
+      survey.randomSeed = seed;
+      return survey;
+    };
+
+    const getMatrixCell = (survey: SurveyModel): QuestionSelectBase =>
+      (survey.getQuestionByName("question1") as unknown as MatrixQuestion)
+        .visibleRows[0].cells[0].question;
+
+    const getOrder = (question: QuestionSelectBase): string[] =>
+      question.visibleChoices.map((choice) => String(choice.value));
+
+    const getGroupSignature = (choices: ItemValue[]): string =>
+      choices.map((choice) => choice.group || "__default__").join(",");
+
+    beforeEach(() => {
+      addRandomizeGroupFeature();
+    });
+
+    it("should install the design-mode override on QuestionSelectBase", () => {
+      // Arrange - the override is what makes the Designer stop shuffling; if
+      // survey-core ever renames the method it is silently skipped, so assert
+      // it is in place rather than inferring it from ordering alone.
+      const randomizeChoices = (
+        QuestionSelectBase.prototype as unknown as {
+          randomizeArray: (this: unknown, array: ItemValue[]) => ItemValue[];
+        }
+      ).randomizeArray;
+      const items = GROUPED_CHOICES as unknown as ItemValue[];
+      const designModeItems = [...items];
+      const runtimeItems = [...items];
+
+      // Act
+      const inDesignMode = randomizeChoices.call(
+        { isDesignMode: true },
+        designModeItems,
+      );
+      const atRuntime = randomizeChoices.call(
+        { isDesignMode: false, randomSeed: 12345 },
+        runtimeItems,
+      );
+
+      // Assert
+      expect(inDesignMode).toBe(designModeItems);
+      expect(atRuntime).not.toBe(runtimeItems);
+      expect(getGroupSignature(atRuntime)).toEqual(GROUP_SIGNATURE);
+    });
+
+    it("should keep the authored order for matrix cell choices in design mode", () => {
+      // Arrange - matrix cell questions are content elements, so survey-core's
+      // own `isInDesignMode` guard does not cover them
+      const orders = SEEDS.map((seed) =>
+        getOrder(getMatrixCell(createSurvey(MATRIX_JSON, seed, true))),
+      );
+
+      // Assert - the seed must make no difference at all in the Designer
+      orders.forEach((order) => expect(order).toEqual(AUTHORED_ORDER));
+    });
+
+    it("should keep the authored order for standalone choices in design mode", () => {
+      // Arrange - design mode appends its own placeholder entries ("", newitem,
+      // none, other) whose composition is survey-core's business, so compare
+      // the authored values only. A missing or reordered authored value still
+      // fails the comparison.
+      const orders = SEEDS.map((seed) => {
+        const survey = createSurvey(PLAIN_JSON, seed, true);
+        const question = survey.getQuestionByName(
+          "question1",
+        ) as QuestionSelectBase;
+        return getOrder(question).filter((value) =>
+          AUTHORED_ORDER.includes(value),
+        );
+      });
+
+      // Assert
+      orders.forEach((order) => expect(order).toEqual(AUTHORED_ORDER));
+    });
+
+    it("should not reorder matrix cell choices when a group is edited in design mode", () => {
+      // Arrange - the original report: the canvas showed a shuffle frozen from
+      // before the groups were typed in
+      const survey = createSurvey(MATRIX_JSON, SEEDS[0], true);
+      const orderOnLoad = getOrder(getMatrixCell(survey));
+
+      // Act
+      const templateQuestion = (
+        survey.getQuestionByName("question1") as unknown as {
+          columns: Array<{ templateQuestion: QuestionSelectBase }>;
+        }
+      ).columns[0].templateQuestion;
+      templateQuestion.choices[4].group = "C";
+
+      // Assert
+      expect(orderOnLoad).toEqual(AUTHORED_ORDER);
+      expect(getOrder(getMatrixCell(survey))).toEqual(AUTHORED_ORDER);
+    });
+
+    it("should still shuffle matrix cell choices within their groups outside design mode", () => {
+      // Arrange
+      const orders = SEEDS.map((seed) =>
+        getMatrixCell(createSurvey(MATRIX_JSON, seed, false)),
+      ).map((cell) => ({
+        order: getOrder(cell).join(","),
+        signature: getGroupSignature(cell.visibleChoices),
+      }));
+
+      // Assert - grouping holds, and the choices are genuinely shuffled: the
+      // seed changes the order, and the result is not just the authored order
+      orders.forEach(({ signature }) =>
+        expect(signature).toEqual(GROUP_SIGNATURE),
+      );
+      expect(new Set(orders.map(({ order }) => order)).size).toBeGreaterThan(1);
+      expect(
+        orders.some(({ order }) => order !== AUTHORED_ORDER.join(",")),
+      ).toBe(true);
     });
   });
 });
