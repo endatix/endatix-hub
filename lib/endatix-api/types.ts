@@ -54,6 +54,9 @@ export type {
   MembershipTenant,
   SwitchTenantRequest,
   UserTenantsResponse,
+  RegisterRequest,
+  RegisterResponse,
+  PublicTenant,
   AuthorizationData,
 } from "./auth/types";
 

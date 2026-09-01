@@ -49,6 +49,25 @@ export interface SwitchTenantRequest {
   tenantId: number | string;
 }
 
+export interface RegisterRequest {
+  email: string;
+  password: string;
+  confirmPassword: string;
+  tenantSlug?: string;
+}
+
+export interface RegisterResponse {
+  success: boolean;
+  message: string;
+}
+
+export interface PublicTenant {
+  slug: string;
+  name: string;
+  selfRegistrationEnabled: boolean;
+  allowedAuthProviders: string[];
+}
+
 export const ActivateInviteRequestSchema = z
   .object({
     token: z.string().trim().min(1, { error: "Invite token is required." }),
