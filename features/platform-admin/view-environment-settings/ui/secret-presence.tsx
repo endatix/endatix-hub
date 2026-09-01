@@ -8,9 +8,13 @@ interface SecretPresenceBadgeProps {
 }
 
 /**
- * Presence of a secret, never its value. Uses the same badge vocabulary as
+ * Presence of a genuine secret, never its value. Uses the same badge vocabulary as
  * every other status on the page — a secret being set is not a different kind
  * of "on" than a feature being enabled.
+ *
+ * Only for values the browser never receives. A public key that already ships in the
+ * page renders as its literal value via `ConfigValue`; reducing it to a badge hides
+ * nothing and stops the operator confirming which key is live.
  */
 export function SecretPresenceBadge({
   presence,

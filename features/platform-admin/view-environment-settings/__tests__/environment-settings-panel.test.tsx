@@ -3,8 +3,10 @@ import { describe, expect, it } from "vitest";
 import type { EnvironmentAdminSummary } from "../types";
 import { EnvironmentSettingsPanel } from "../ui/environment-settings-panel";
 
-const SECRET_POSTHOG_KEY = "phc_must_not_appear_in_dom";
-const SECRET_RECAPTCHA_KEY = "6Le_must_not_appear_either";
+/** Public keys: already in the HTML of every public form, so the page must show them. */
+const PUBLIC_POSTHOG_KEY = "phc_public_project_key";
+const PUBLIC_RECAPTCHA_KEY = "6Le_public_site_key";
+/** The one genuine secret: server-only, must never reach the DOM. */
 const SECRET_SURVEY_LICENSE = "slk_must_not_leak";
 
 function buildSummary(
@@ -32,12 +34,12 @@ function buildSummary(
     experimental: Object.freeze({ extensionsEnabled: false }),
     debug: Object.freeze({ isDebugMode: false, nodeEnv: "test" }),
     analytics: Object.freeze({
-      posthogKey: Object.freeze({ configured: posthogConfigured }),
+      posthogKey: posthogConfigured ? PUBLIC_POSTHOG_KEY : "",
       posthogHost: "https://us.i.posthog.com",
       posthogUiHost: "https://us.posthog.com",
     }),
     recaptcha: Object.freeze({
-      siteKey: Object.freeze({ configured: recaptchaConfigured }),
+      siteKey: recaptchaConfigured ? PUBLIC_RECAPTCHA_KEY : "",
     }),
     surveyJs: Object.freeze({
       license: Object.freeze({ configured: licenseConfigured }),
@@ -46,15 +48,19 @@ function buildSummary(
 }
 
 describe("EnvironmentSettingsPanel", () => {
-  it("renders Set / Not set badges without secret values in the document", () => {
+  it("shows public keys as values and the licence as presence only", () => {
     render(<EnvironmentSettingsPanel summary={buildSummary()} />);
 
-    expect(screen.getAllByText("Set")).toHaveLength(3);
-    expect(screen.queryByText(SECRET_POSTHOG_KEY)).toBeNull();
-    expect(screen.queryByText(SECRET_RECAPTCHA_KEY)).toBeNull();
-    expect(screen.queryByText(SECRET_SURVEY_LICENSE)).toBeNull();
+    // Public: hiding these would cost the operator the ability to confirm which key
+    // is live, while hiding nothing that is not already in the page source.
+    expect(screen.getByText(PUBLIC_POSTHOG_KEY)).toBeDefined();
+    expect(screen.getByText(PUBLIC_RECAPTCHA_KEY)).toBeDefined();
     expect(screen.getByText("PostHog host")).toBeDefined();
     expect(screen.getByText("https://us.i.posthog.com")).toBeDefined();
+
+    // Secret: the licence is server-only, so only its presence may be rendered.
+    expect(screen.queryByText(SECRET_SURVEY_LICENSE)).toBeNull();
+    expect(screen.getAllByText("Set")).toHaveLength(1);
   });
 
   it("summarises configured settings and lists what is missing", () => {
@@ -115,6 +121,10 @@ describe("EnvironmentSettingsPanel", () => {
       />,
     );
 
+    // Only the licence renders a presence badge; the public keys render as "—".
     expect(screen.getAllByText("Not set")).toHaveLength(3);
+    expect(
+      screen.getAllByText("Not set", { selector: "span.sr-only" }),
+    ).toHaveLength(2);
   });
 });

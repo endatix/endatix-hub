@@ -11,8 +11,8 @@ import type { EnvironmentAdminSummary, SecretPresence } from "./types";
 export type { EnvironmentAdminSummary, SecretPresence } from "./types";
 
 /**
- * Collapses a secret to a presence flag. The value itself never leaves the server, so a
- * blank or whitespace-only env var reports as not configured.
+ * Collapses a genuine secret to a presence flag. The value itself never leaves the server,
+ * so a blank or whitespace-only env var reports as not configured.
  */
 function secretPresence(value: string | undefined): SecretPresence {
   return { configured: Boolean(value?.trim()) };
@@ -22,8 +22,13 @@ function secretPresence(value: string | undefined): SecretPresence {
  * Resolves Hub environment settings for the admin Environment page.
  * Uses the same runtime projection as layouts (`getClientEndatixConfig`) plus
  * optional base/prefix when the origin was built from `ENDATIX_BASE_URL`.
- * Secret values (PostHog key, reCAPTCHA site key, SurveyJS licence) are never
- * included — only Set / Not set presence flags.
+ *
+ * What is included is decided by where the value already goes, not by how secret it
+ * sounds. The PostHog project key and the reCAPTCHA site key are members of
+ * `ClientEndatixConfig`: this app serialises both into the HTML of every public form
+ * page, so withholding them here hides nothing and only stops an operator confirming
+ * which key is live. The SurveyJS licence never reaches a browser, so it stays a
+ * presence flag.
  */
 export async function getEnvironmentSettings(
   _session: PlatformAdminSession,
@@ -48,12 +53,12 @@ export async function getEnvironmentSettings(
       nodeEnv: process.env.NODE_ENV ?? "unknown",
     }),
     analytics: Object.freeze({
-      posthogKey: secretPresence(client.posthogKey),
+      posthogKey: client.posthogKey,
       posthogHost: client.posthogHost,
       posthogUiHost: client.posthogUiHost,
     }),
     recaptcha: Object.freeze({
-      siteKey: secretPresence(client.recaptchaSiteKey),
+      siteKey: client.recaptchaSiteKey,
     }),
     surveyJs: Object.freeze({
       license: secretPresence(getSurveyLicenseKey()),

@@ -38,9 +38,9 @@ export function EnvironmentSettingsPanel({
     { label: "Endatix API URL", configured: api.apiConfigured, required: true },
     {
       label: "PostHog project key",
-      configured: analytics.posthogKey.configured,
+      configured: Boolean(analytics.posthogKey),
     },
-    { label: "reCAPTCHA site key", configured: recaptcha.siteKey.configured },
+    { label: "reCAPTCHA site key", configured: Boolean(recaptcha.siteKey) },
     {
       label: "SurveyJS creator licence",
       configured: surveyJs.license.configured,
@@ -149,12 +149,17 @@ export function EnvironmentSettingsPanel({
         <ConfigSection
           icon={BarChart3}
           title="Analytics"
-          description="PostHog client configuration. The project key is never shown."
+          description="PostHog client configuration. All three values are public — they ship to every browser as part of the client config."
         >
           <ConfigRow
             label="PostHog project key"
             envVar="ENDATIX_POSTHOG_KEY"
-            value={<SecretPresenceBadge presence={analytics.posthogKey} />}
+            value={
+              <ConfigValue
+                value={analytics.posthogKey || null}
+                copyLabel="Copy PostHog project key"
+              />
+            }
           />
           <ConfigRow
             label="PostHog host"
@@ -181,19 +186,24 @@ export function EnvironmentSettingsPanel({
         <ConfigSection
           icon={ShieldCheck}
           title="reCAPTCHA"
-          description="Public site key used in the browser. Value is not shown on this page."
+          description="Public site key. It is embedded in the reCAPTCHA script URL on every form that uses it."
         >
           <ConfigRow
             label="Site key"
             envVar="ENDATIX_RECAPTCHA_SITE_KEY"
-            value={<SecretPresenceBadge presence={recaptcha.siteKey} />}
+            value={
+              <ConfigValue
+                value={recaptcha.siteKey || null}
+                copyLabel="Copy reCAPTCHA site key"
+              />
+            }
           />
         </ConfigSection>
 
         <ConfigSection
           icon={Wrench}
           title="SurveyJS"
-          description="Creator licence key is server-only and never sent to the browser."
+          description="The only secret on this page. The Creator licence is server-only, never sent to the browser, and shown as presence alone."
         >
           <ConfigRow
             label="Creator licence"

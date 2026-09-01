@@ -5,7 +5,14 @@ import { getIsomorphicEndatixConfig } from "@/features/config/client-endatix-con
 import { PostHogConfig } from "./types";
 
 /**
- * Check if PostHog is enabled based on environment variables
+ * Check if PostHog is enabled based on environment variables.
+ *
+ * For isomorphic and browser callers. A **server-only** module must not use this: it
+ * resolves through {@link getIsomorphicEndatixConfig}, which branches on `typeof window`
+ * — defined under jsdom — so server code would read the empty browser projection in tests
+ * and quietly disable PostHog. Server-only callers read `readPublicEndatixEnv()` directly
+ * (see `lib/feature-flags/factories/`).
+ *
  * @returns Whether PostHog is enabled
  */
 export function isPostHogEnabled(config?: PostHogConfig): boolean {

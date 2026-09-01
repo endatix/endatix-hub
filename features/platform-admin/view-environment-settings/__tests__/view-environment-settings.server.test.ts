@@ -6,8 +6,10 @@ vi.mock("next/server", () => ({
   connection: vi.fn().mockResolvedValue(undefined),
 }));
 
-const SECRET_POSTHOG_KEY = "phc_super_secret_posthog_key_12345";
-const SECRET_RECAPTCHA_KEY = "6LeIxAcTAgIJdY59xT0QLn_aJcKdPqNo";
+/** Public keys — already serialised into every public form page by ClientEndatixConfig. */
+const PUBLIC_POSTHOG_KEY = "phc_public_posthog_project_key_12345";
+const PUBLIC_RECAPTCHA_KEY = "6LeIxAcTAgIJdY59xT0QLn_aJcKdPqNo";
+/** The one genuine secret — server-only, must never appear in the summary. */
 const SECRET_SURVEY_LICENSE = "slk_commercial_surveyjs_license_xyz";
 
 const mockSession = {} as PlatformAdminSession;
@@ -26,12 +28,12 @@ describe("getEnvironmentSettings", () => {
     resetApiConfigCacheForTests();
   });
 
-  it("does not leak secret values in JSON.stringify(summary)", async () => {
+  it("carries public keys but never the SurveyJS licence", async () => {
     process.env.ENDATIX_BASE_URL = "https://api.example.com";
-    process.env.ENDATIX_POSTHOG_KEY = SECRET_POSTHOG_KEY;
+    process.env.ENDATIX_POSTHOG_KEY = PUBLIC_POSTHOG_KEY;
     process.env.ENDATIX_POSTHOG_HOST = "https://eu.i.posthog.com";
     process.env.ENDATIX_POSTHOG_UI_HOST = "https://eu.posthog.com";
-    process.env.ENDATIX_RECAPTCHA_SITE_KEY = SECRET_RECAPTCHA_KEY;
+    process.env.ENDATIX_RECAPTCHA_SITE_KEY = PUBLIC_RECAPTCHA_KEY;
     process.env.ENDATIX_SURVEY_LICENSE_KEY = SECRET_SURVEY_LICENSE;
     process.env.ENDATIX_ENABLE_EXTENSIONS = "true";
     process.env.ENDATIX_IS_DEBUG_MODE = "true";
@@ -43,13 +45,15 @@ describe("getEnvironmentSettings", () => {
     const summary = await getEnvironmentSettings(mockSession);
     const serialized = JSON.stringify(summary);
 
-    expect(serialized).not.toContain(SECRET_POSTHOG_KEY);
-    expect(serialized).not.toContain(SECRET_RECAPTCHA_KEY);
+    // The licence is the only value the browser never sees, so it is the only one
+    // that must not survive serialisation.
     expect(serialized).not.toContain(SECRET_SURVEY_LICENSE);
-
-    expect(summary.analytics.posthogKey.configured).toBe(true);
-    expect(summary.recaptcha.siteKey.configured).toBe(true);
     expect(summary.surveyJs.license.configured).toBe(true);
+
+    // The public keys are shown: this page is where an operator confirms which key
+    // is live, and both are already in the HTML of every public form.
+    expect(summary.analytics.posthogKey).toBe(PUBLIC_POSTHOG_KEY);
+    expect(summary.recaptcha.siteKey).toBe(PUBLIC_RECAPTCHA_KEY);
     expect(summary.analytics.posthogHost).toBe("https://eu.i.posthog.com");
     expect(summary.analytics.posthogUiHost).toBe("https://eu.posthog.com");
     expect(summary.experimental.extensionsEnabled).toBe(true);
@@ -59,7 +63,7 @@ describe("getEnvironmentSettings", () => {
     expect(summary.api.apiUrl).toContain("api.example.com");
   });
 
-  it("reports configured: false when secret env vars are empty", async () => {
+  it("reports empty public keys and an unconfigured licence when unset", async () => {
     delete process.env.ENDATIX_POSTHOG_KEY;
     delete process.env.ENDATIX_RECAPTCHA_SITE_KEY;
     delete process.env.ENDATIX_SURVEY_LICENSE_KEY;
@@ -72,8 +76,8 @@ describe("getEnvironmentSettings", () => {
 
     const summary = await getEnvironmentSettings(mockSession);
 
-    expect(summary.analytics.posthogKey.configured).toBe(false);
-    expect(summary.recaptcha.siteKey.configured).toBe(false);
+    expect(summary.analytics.posthogKey).toBe("");
+    expect(summary.recaptcha.siteKey).toBe("");
     expect(summary.surveyJs.license.configured).toBe(false);
     expect(summary.api.apiConfigured).toBe(false);
   });

@@ -266,6 +266,17 @@ Environment, Auth, Storage, Email. Reference implementation:
 through the same status vocabulary as everything else (`Set` / `Not set`), and
 say so in the section description.
 
+**But first decide what is actually secret — by where the value already goes,
+not by how secret it sounds.** A key this app serialises into the HTML of every
+public page is not a secret, and hiding it on an admin page costs the operator
+the one thing the page is for — confirming _which_ key is live — while
+concealing nothing that is not already in the page source. The test is
+mechanical: **if the field is a member of `ClientEndatixConfig`, show its
+value.** A reCAPTCHA _site_ key and a PostHog _project_ key are public by
+design; the SurveyJS Creator licence never reaches a browser and is the genuine
+secret. Reaching for `Set` / `Not set` on a public value is security theatre
+that degrades the page.
+
 ### Deciding on a new pattern
 
 When this document does not already answer a question, resolve it in this order,
