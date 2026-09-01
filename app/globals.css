@@ -23,6 +23,8 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
   --color-info: var(--info);
@@ -214,8 +216,21 @@
 }
 
 @layer components {
+  /*
+   * Intrinsically responsive card wall. Column count is derived from the
+   * container's own width, so it stays correct when the sidebar collapses at a
+   * fixed viewport width — which viewport breakpoints (`lg:grid-cols-2`) do not.
+   * `auto-fill` (not `auto-fit`) keeps card width constant when there are fewer
+   * cards than fit; `min(…, 100%)` stops the track overflowing narrow screens.
+   * Override the minimum per page with `[--grid-card-min:360px]`.
+   */
   .grid-card-list {
-    @apply grid grid-cols-[repeat(auto-fill,minmax(420px,1fr))] gap-6;
+    --grid-card-min: 420px;
+    @apply grid gap-6;
+    grid-template-columns: repeat(
+      auto-fill,
+      minmax(min(var(--grid-card-min), 100%), 1fr)
+    );
   }
 
   [data-slot="content-wrapper"] {

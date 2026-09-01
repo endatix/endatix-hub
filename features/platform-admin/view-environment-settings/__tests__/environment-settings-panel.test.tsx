@@ -9,12 +9,14 @@ const SECRET_SURVEY_LICENSE = "slk_must_not_leak";
 
 function buildSummary(
   overrides: Partial<{
+    apiConfigured: boolean;
     posthogConfigured: boolean;
     recaptchaConfigured: boolean;
     licenseConfigured: boolean;
   }> = {},
 ): EnvironmentAdminSummary {
   const {
+    apiConfigured = true,
     posthogConfigured = true,
     recaptchaConfigured = true,
     licenseConfigured = true,
@@ -22,10 +24,10 @@ function buildSummary(
 
   return Object.freeze({
     api: Object.freeze({
-      apiUrl: "https://api.example.com/api",
-      apiConfigured: true,
-      baseUrl: "https://api.example.com",
-      prefix: "/api",
+      apiUrl: apiConfigured ? "https://api.example.com/api" : "",
+      apiConfigured,
+      baseUrl: apiConfigured ? "https://api.example.com" : null,
+      prefix: apiConfigured ? "/api" : null,
     }),
     experimental: Object.freeze({ extensionsEnabled: false }),
     debug: Object.freeze({ isDebugMode: false, nodeEnv: "test" }),
@@ -53,6 +55,41 @@ describe("EnvironmentSettingsPanel", () => {
     expect(screen.queryByText(SECRET_SURVEY_LICENSE)).toBeNull();
     expect(screen.getByText("PostHog host")).toBeDefined();
     expect(screen.getByText("https://us.i.posthog.com")).toBeDefined();
+  });
+
+  it("summarises configured settings and lists what is missing", () => {
+    const { container } = render(
+      <EnvironmentSettingsPanel
+        summary={buildSummary({ posthogConfigured: false })}
+      />,
+    );
+
+    expect(screen.getByText("3 of 4 configured")).toBeDefined();
+    expect(screen.getByText(/Not set: PostHog project key/)).toBeDefined();
+    // Optional secrets missing is a neutral state, not an operator alarm.
+    expect(container.querySelector('[data-tone="attention"]')).toBeNull();
+  });
+
+  it("flags a missing API URL as needing attention", () => {
+    const { container } = render(
+      <EnvironmentSettingsPanel
+        summary={buildSummary({ apiConfigured: false })}
+      />,
+    );
+
+    expect(screen.getByText("Not configured")).toBeDefined();
+    expect(container.querySelectorAll('[data-tone="attention"]')).toHaveLength(
+      2,
+    );
+  });
+
+  it("renders the env var behind every setting as visible text", () => {
+    render(<EnvironmentSettingsPanel summary={buildSummary()} />);
+
+    expect(screen.getByText("ENDATIX_POSTHOG_KEY")).toBeDefined();
+    expect(screen.getByText("ENDATIX_RECAPTCHA_SITE_KEY")).toBeDefined();
+    expect(screen.getByText("ENDATIX_SURVEY_LICENSE_KEY")).toBeDefined();
+    expect(screen.getByText("ENDATIX_ENABLE_EXTENSIONS")).toBeDefined();
   });
 
   it("shows Not set when secrets are not configured", () => {

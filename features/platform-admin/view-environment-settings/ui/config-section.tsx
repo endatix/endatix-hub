@@ -11,6 +11,10 @@ interface ConfigSectionProps {
   children: ReactNode;
 }
 
+/**
+ * A configuration group: card on the page canvas, rows on a nested surface.
+ * Depth comes from the tonal shift between the two, not from divider lines.
+ */
 export function ConfigSection({
   title,
   description,
@@ -18,18 +22,16 @@ export function ConfigSection({
   children,
 }: Readonly<ConfigSectionProps>) {
   return (
-    <Card>
+    <Card className="h-full gap-4">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
-          <Icon className="h-5 w-5" />
+          <Icon className="h-5 w-5 text-on-surface-variant" />
           {title}
         </CardTitle>
         <p className="text-sm text-muted-foreground">{description}</p>
       </CardHeader>
       <CardContent>
-        <div className="grid gap-2 rounded-lg border bg-muted/30 p-4 text-sm">
-          {children}
-        </div>
+        <dl className="grid gap-4 rounded-lg bg-muted/40 p-4">{children}</dl>
       </CardContent>
     </Card>
   );
