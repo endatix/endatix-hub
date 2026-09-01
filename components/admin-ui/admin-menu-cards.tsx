@@ -83,7 +83,7 @@ export function AdminMenuCards({ showStorage }: Readonly<AdminMenuCardsProps>) {
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
-            View Endatix API origin and SurveyJS extensions status.
+            API, analytics, reCAPTCHA, SurveyJS license presence, debug.
           </div>
           <div className="text-muted-foreground"></div>
         </CardFooter>

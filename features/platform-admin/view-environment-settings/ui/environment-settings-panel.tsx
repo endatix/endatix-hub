@@ -1,154 +1,217 @@
 "use client";
 
-import type { ReactNode } from "react";
-import { AlertCircle, CheckCircle2, FlaskConical, Server } from "lucide-react";
+import {
+  AlertCircle,
+  BarChart3,
+  Bug,
+  CheckCircle2,
+  FlaskConical,
+  Server,
+  ShieldCheck,
+  Wrench,
+} from "lucide-react";
 import CopyToClipboard from "@/components/copy-to-clipboard";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
 import type { EnvironmentAdminSummary } from "../types";
+import { ConfigRow } from "./config-row";
+import { ConfigSection } from "./config-section";
+import { SecretPresenceBadge } from "./secret-presence";
 
 interface EnvironmentSettingsPanelProps {
   summary: EnvironmentAdminSummary;
 }
 
-function DetailRow({
-  label,
-  value,
-  nested = false,
-}: Readonly<{
-  label: string;
-  value: ReactNode;
-  nested?: boolean;
-}>) {
-  return (
-    <div
-      className={cn(
-        "flex flex-wrap items-center justify-between gap-2",
-        nested && "ml-1 border-l border-border pl-3",
-      )}
-    >
-      <span className={cn("text-muted-foreground", nested && "text-xs")}>
-        {label}
-      </span>
-      <span className={cn("font-mono text-sm", nested && "text-xs")}>
-        {value}
-      </span>
-    </div>
-  );
-}
-
 export function EnvironmentSettingsPanel({
   summary,
 }: Readonly<EnvironmentSettingsPanelProps>) {
+  const { api, experimental, debug, analytics, recaptcha, surveyJs } = summary;
+
   const showUrlParts =
-    summary.apiConfigured &&
-    (summary.baseUrl !== null || summary.prefix !== null);
+    api.apiConfigured && (api.baseUrl !== null || api.prefix !== null);
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Server className="h-5 w-5" />
-            Hub runtime
-          </CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Endatix API origin resolved from process environment at request
-            time. Change via deployment env (Helm, Docker, host), not in this
-            UI.
-          </p>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-2 rounded-lg border bg-muted/30 p-4 text-sm">
-            <DetailRow
-              label="Status"
-              value={
-                summary.apiConfigured ? (
-                  <Badge variant="secondary" className="gap-1">
-                    <CheckCircle2 className="h-3 w-3" />
-                    Configured
-                  </Badge>
-                ) : (
-                  <Badge
-                    variant="outline"
-                    className="gap-1 text-muted-foreground"
-                  >
-                    <AlertCircle className="h-3 w-3" />
-                    Not configured
-                  </Badge>
-                )
-              }
-            />
-            <div className="space-y-2">
-              <DetailRow
-                label="Endatix API URL"
-                value={
-                  summary.apiConfigured ? (
-                    <span className="inline-flex max-w-full items-center gap-1.5">
-                      <span className="truncate">{summary.apiUrl}</span>
-                      <CopyToClipboard
-                        layout="inline"
-                        copyValue={summary.apiUrl}
-                        label="Copy Endatix API URL"
-                        buttonClassName="h-7 w-7"
-                      />
-                    </span>
-                  ) : (
-                    "—"
-                  )
-                }
-              />
-              {showUrlParts && (
-                <div className="space-y-2 pl-2">
-                  {summary.baseUrl !== null && (
-                    <DetailRow
-                      nested
-                      label="API origin"
-                      value={summary.baseUrl}
-                    />
-                  )}
-                  {summary.prefix !== null && (
-                    <DetailRow
-                      nested
-                      label="API prefix"
-                      value={summary.prefix === "" ? "(none)" : summary.prefix}
-                    />
-                  )}
-                </div>
+      <ConfigSection
+        icon={Server}
+        title="API"
+        description="Endatix API origin resolved from process environment at request time. Change via deployment env (Helm, Docker, host), not in this UI."
+      >
+        <ConfigRow
+          label="Status"
+          tooltip="ENDATIX_BASE_URL or ENDATIX_API_BASE_URL"
+          value={
+            api.apiConfigured ? (
+              <Badge variant="secondary" className="gap-1">
+                <CheckCircle2 className="h-3 w-3" />
+                Configured
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="gap-1 text-muted-foreground">
+                <AlertCircle className="h-3 w-3" />
+                Not configured
+              </Badge>
+            )
+          }
+        />
+        <div className="space-y-2">
+          <ConfigRow
+            label="Endatix API URL"
+            value={
+              api.apiConfigured ? (
+                <span className="inline-flex max-w-full items-center gap-1.5">
+                  <span className="truncate">{api.apiUrl}</span>
+                  <CopyToClipboard
+                    layout="inline"
+                    copyValue={api.apiUrl}
+                    label="Copy Endatix API URL"
+                    buttonClassName="h-7 w-7"
+                  />
+                </span>
+              ) : (
+                "—"
+              )
+            }
+          />
+          {showUrlParts && (
+            <div className="space-y-2 pl-2">
+              {api.baseUrl !== null && (
+                <ConfigRow nested label="API origin" value={api.baseUrl} />
+              )}
+              {api.prefix !== null && (
+                <ConfigRow
+                  nested
+                  label="API prefix"
+                  value={api.prefix === "" ? "(none)" : api.prefix}
+                />
               )}
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          )}
+        </div>
+      </ConfigSection>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <FlaskConical className="h-5 w-5" />
-            Experimental
-          </CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Feature gates from{" "}
-            <span className="font-mono">ENDATIX_ENABLE_*</span> env vars. Use
-            with caution in production.
-          </p>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-2 rounded-lg border bg-muted/30 p-4 text-sm">
-            <DetailRow
-              label="extensions"
-              value={
-                <Badge
-                  variant={summary.extensionsEnabled ? "default" : "secondary"}
-                >
-                  {summary.extensionsEnabled ? "Enabled" : "Disabled"}
-                </Badge>
-              }
+      <ConfigSection
+        icon={FlaskConical}
+        title="Experimental"
+        description="Feature gates from ENDATIX_ENABLE_* env vars. Use with caution in production."
+      >
+        <ConfigRow
+          label="SurveyJS extensions"
+          tooltip="ENDATIX_ENABLE_EXTENSIONS"
+          value={
+            <Badge
+              variant={experimental.extensionsEnabled ? "default" : "secondary"}
+            >
+              {experimental.extensionsEnabled ? "Enabled" : "Disabled"}
+            </Badge>
+          }
+        />
+      </ConfigSection>
+
+      <ConfigSection
+        icon={Bug}
+        title="Debug"
+        description="Diagnostic flags resolved at request time."
+      >
+        <ConfigRow
+          label="Debug mode"
+          tooltip="ENDATIX_IS_DEBUG_MODE"
+          value={
+            <Badge variant={debug.isDebugMode ? "default" : "secondary"}>
+              {debug.isDebugMode ? "On" : "Off"}
+            </Badge>
+          }
+        />
+        <ConfigRow label="NODE_ENV" value={debug.nodeEnv} />
+      </ConfigSection>
+
+      <ConfigSection
+        icon={BarChart3}
+        title="Analytics"
+        description="PostHog client configuration. The project key is never shown."
+      >
+        <ConfigRow
+          label="PostHog project key"
+          tooltip="ENDATIX_POSTHOG_KEY"
+          value={
+            <SecretPresenceBadge
+              presence={analytics.posthogKey}
+              envVar="ENDATIX_POSTHOG_KEY"
             />
-          </div>
-        </CardContent>
-      </Card>
+          }
+        />
+        <ConfigRow
+          label="PostHog host"
+          tooltip="ENDATIX_POSTHOG_HOST"
+          value={
+            analytics.posthogHost ? (
+              <span className="inline-flex max-w-full items-center gap-1.5">
+                <span className="truncate">{analytics.posthogHost}</span>
+                <CopyToClipboard
+                  layout="inline"
+                  copyValue={analytics.posthogHost}
+                  label="Copy PostHog host"
+                  buttonClassName="h-7 w-7"
+                />
+              </span>
+            ) : (
+              "—"
+            )
+          }
+        />
+        <ConfigRow
+          label="PostHog UI host"
+          tooltip="ENDATIX_POSTHOG_UI_HOST"
+          value={
+            analytics.posthogUiHost ? (
+              <span className="inline-flex max-w-full items-center gap-1.5">
+                <span className="truncate">{analytics.posthogUiHost}</span>
+                <CopyToClipboard
+                  layout="inline"
+                  copyValue={analytics.posthogUiHost}
+                  label="Copy PostHog UI host"
+                  buttonClassName="h-7 w-7"
+                />
+              </span>
+            ) : (
+              "—"
+            )
+          }
+        />
+      </ConfigSection>
+
+      <ConfigSection
+        icon={ShieldCheck}
+        title="reCAPTCHA"
+        description="Public site key used in the browser. Value is not shown on this page."
+      >
+        <ConfigRow
+          label="Site key"
+          tooltip="ENDATIX_RECAPTCHA_SITE_KEY"
+          value={
+            <SecretPresenceBadge
+              presence={recaptcha.siteKey}
+              envVar="ENDATIX_RECAPTCHA_SITE_KEY"
+            />
+          }
+        />
+      </ConfigSection>
+
+      <ConfigSection
+        icon={Wrench}
+        title="SurveyJS"
+        description="Creator licence key is server-only and never sent to the browser."
+      >
+        <ConfigRow
+          label="Creator licence"
+          tooltip="ENDATIX_SURVEY_LICENSE_KEY"
+          value={
+            <SecretPresenceBadge
+              presence={surveyJs.license}
+              envVar="ENDATIX_SURVEY_LICENSE_KEY"
+            />
+          }
+        />
+      </ConfigSection>
     </div>
   );
 }

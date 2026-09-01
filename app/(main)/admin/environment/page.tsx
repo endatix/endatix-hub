@@ -17,7 +17,7 @@ export default async function EnvironmentSettingsPage() {
   return (
     <PlatformAdminShell
       title="Environment"
-      description="Review Hub runtime configuration resolved from process environment. Values cannot be changed here."
+      description="Review Hub runtime configuration resolved from process environment. Secret values show as Set / Not set only."
     >
       <EnvironmentSettingsPanel summary={summary} />
     </PlatformAdminShell>
