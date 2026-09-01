@@ -13,9 +13,8 @@ declare namespace NodeJS {
     ENDATIX_ENABLE_EXTENSIONS?: string;
 
     // Public, request-time client config. Projected to the browser by
-    // `getClientEndatixConfig()` — deliberately NOT `NEXT_PUBLIC_*`, which Next inlines
-    // into the client bundle at build time and which therefore cannot be changed by a
-    // container env var. See features/config/client-endatix-config.ts.
+    // `getClientEndatixConfig()` from `@/features/config/server` — deliberately NOT
+    // `NEXT_PUBLIC_*`, which Next inlines into the client bundle at build time.
     ENDATIX_RECAPTCHA_SITE_KEY?: string;
     ENDATIX_POSTHOG_KEY?: string;
     ENDATIX_POSTHOG_HOST?: string;

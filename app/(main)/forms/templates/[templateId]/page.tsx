@@ -8,6 +8,8 @@ import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
 import { AssetStorageProvider } from "@/features/asset-storage/server";
 import { DesignerRuntimeProvider } from "@/lib/designer-runtime";
+import { getSurveyLicenseKey } from "@/features/config/server";
+import { SurveyLicenseProvider } from "@/features/config/survey-license-provider";
 import { Suspense } from "react";
 import FormEditorLoader from "@/features/forms/ui/editor/form-editor-loader";
 
@@ -61,15 +63,17 @@ export default async function FormTemplateEditPage({ params }: Params) {
   return (
     <div data-full-bleed className="h-dvh max-w-[100vw] overflow-hidden">
       <Suspense fallback={<FormEditorLoader />}>
-        <DesignerRuntimeProvider
-          initialState={{
-            templateId,
-          }}
-        >
-          <AssetStorageProvider>
-            <FormTemplateEditorContainer {...props} />
-          </AssetStorageProvider>
-        </DesignerRuntimeProvider>
+        <SurveyLicenseProvider value={getSurveyLicenseKey()}>
+          <DesignerRuntimeProvider
+            initialState={{
+              templateId,
+            }}
+          >
+            <AssetStorageProvider>
+              <FormTemplateEditorContainer {...props} />
+            </AssetStorageProvider>
+          </DesignerRuntimeProvider>
+        </SurveyLicenseProvider>
       </Suspense>
     </div>
   );

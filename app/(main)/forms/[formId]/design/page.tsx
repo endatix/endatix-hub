@@ -7,7 +7,8 @@ import { authorization } from "@/features/auth/authorization";
 import FormDesignerWrapper, {
   FormDesignerWrapperProps,
 } from "@/features/forms/ui/designer/form-designer-wrapper";
-import { getSurveyLicenseKey } from "@/features/config/legacy-public-env.server";
+import { getSurveyLicenseKey } from "@/features/config/server";
+import { SurveyLicenseProvider } from "@/features/config/survey-license-provider";
 import { DesignerRuntimeProvider } from "@/lib/designer-runtime";
 import FormEditorLoader from "@/features/forms/ui/editor/form-editor-loader";
 import { FormAssistantProvider } from "@/features/forms/use-cases/design-form/form-assistant.context";
@@ -88,7 +89,6 @@ export default async function FormDesignerPage({ params }: Params) {
     formId: formId,
     formJson: formJson,
     formName: form.name,
-    slkVal: getSurveyLicenseKey(),
     themeId: form.themeId ?? undefined,
     isPublic: form.isPublic,
     formIsEnabled: form.isEnabled,
@@ -97,26 +97,28 @@ export default async function FormDesignerPage({ params }: Params) {
   return (
     <div data-full-bleed className="h-dvh max-w-[100vw] overflow-hidden">
       <Suspense fallback={<FormEditorLoader />}>
-        <DesignerRuntimeProvider
-          initialState={{
-            formId,
-            formName: form.name,
-            folderId: form.folderId,
-            isPublic: form.isPublic,
-            formIsEnabled: form.isEnabled,
-          }}
-        >
-          <AssetStorageProvider>
-            <FormAssistantProvider
-              isAssistantEnabled={aiFeaturesEnabled}
-              getConversationPromise={chatContextPromise}
-              requireFolderForNewForms={requireFolderForNewForms}
-              assignableFolders={assignableFolders}
-            >
-              <FormDesignerWrapper {...props} />
-            </FormAssistantProvider>
-          </AssetStorageProvider>
-        </DesignerRuntimeProvider>
+        <SurveyLicenseProvider value={getSurveyLicenseKey()}>
+          <DesignerRuntimeProvider
+            initialState={{
+              formId,
+              formName: form.name,
+              folderId: form.folderId,
+              isPublic: form.isPublic,
+              formIsEnabled: form.isEnabled,
+            }}
+          >
+            <AssetStorageProvider>
+              <FormAssistantProvider
+                isAssistantEnabled={aiFeaturesEnabled}
+                getConversationPromise={chatContextPromise}
+                requireFolderForNewForms={requireFolderForNewForms}
+                assignableFolders={assignableFolders}
+              >
+                <FormDesignerWrapper {...props} />
+              </FormAssistantProvider>
+            </AssetStorageProvider>
+          </DesignerRuntimeProvider>
+        </SurveyLicenseProvider>
       </Suspense>
     </div>
   );

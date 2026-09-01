@@ -4,6 +4,8 @@ import { Model } from "survey-core";
 import ConversationDetails from "@/features/agents/ui/conversation-details";
 import { Suspense } from "react";
 import { requireAdmin } from "@/components/admin-ui/admin-protection";
+import { getSurveyLicenseKey } from "@/features/config/server";
+import { SurveyLicenseProvider } from "@/features/config/survey-license-provider";
 
 interface Params {
   params: Promise<{ agentId: string; conversationId: string }>;
@@ -55,11 +57,18 @@ async function ConversationDetailsPageContent({
 
   return (
     <Suspense fallback={<div>Loading...</div>}>
-      <ConversationDetails
-        formModel={formModel}
-        formModelError={formModelError}
-        conversation={conversationResult.data}
-      />
+      {/*
+       * Scoped to this route, not the `(main)` layout: the licence is a commercial
+       * credential and the provider serialises it into the RSC payload of every page
+       * below it. This preview is the only consumer of `useSurveyLicenseKey`.
+       */}
+      <SurveyLicenseProvider value={getSurveyLicenseKey()}>
+        <ConversationDetails
+          formModel={formModel}
+          formModelError={formModelError}
+          conversation={conversationResult.data}
+        />
+      </SurveyLicenseProvider>
     </Suspense>
   );
 }

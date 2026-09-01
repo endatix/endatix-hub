@@ -9,6 +9,8 @@ import { formAnalyticsFlag } from "@/lib/feature-flags";
 import { redirect } from "next/navigation";
 import PageTitle from "@/components/headings/page-title";
 import { SurveyDashboardWrapper } from "@/features/form-analytics/ui/survey-dashboard-wrapper";
+import { getSurveyLicenseKey } from "@/features/config/server";
+import { SurveyLicenseProvider } from "@/features/config/survey-license-provider";
 
 type Params = {
   params: Promise<{ formId: string }>;
@@ -55,7 +57,7 @@ export default async function FormAnalyticsPage({ params }: Readonly<Params>) {
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
           <PageTitle title={`Reporting: ${form.name}`} className="text-2xl" />
-          <p className="text-muted-foreground mt-1">
+          <p className="mt-1 text-muted-foreground">
             Survey analytics and charts (v1: mocked data).
           </p>
         </div>
@@ -64,7 +66,9 @@ export default async function FormAnalyticsPage({ params }: Readonly<Params>) {
         </Button>
       </div>
       {/* disabled for now until we add subission JSON data via the API */}
-      <SurveyDashboardWrapper surveyJson={null} />
+      <SurveyLicenseProvider value={getSurveyLicenseKey()}>
+        <SurveyDashboardWrapper surveyJson={null} />
+      </SurveyLicenseProvider>
     </div>
   );
 }

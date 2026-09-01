@@ -6,7 +6,7 @@ import { getOsClass } from "@/lib/utils/next-utils";
 import { Metadata } from "next";
 import { headers } from "next/headers";
 import { getMetadataBase } from "@/lib/seo";
-import { getClientEndatixConfig } from "@/features/config";
+import { getClientEndatixConfig } from "@/features/config/server";
 
 const appOptions = {
   enableTheme: true,
@@ -29,9 +29,11 @@ interface MaintenanceLayoutProps {
 export default async function PublicLayout({
   children,
 }: Readonly<MaintenanceLayoutProps>) {
-  const requestHeaders = await headers();
+  const [requestHeaders, endatixConfig] = await Promise.all([
+    headers(),
+    getClientEndatixConfig(),
+  ]);
   const osClass = getOsClass(requestHeaders);
-  const endatixConfig = getClientEndatixConfig();
 
   return (
     <html

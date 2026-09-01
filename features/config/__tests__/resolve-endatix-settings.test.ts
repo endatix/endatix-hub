@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
-  getClientEndatixConfig,
   resolveEndatixSettings,
   resetResolveEndatixSettingsCacheForTests,
 } from "../resolve-endatix-settings";
@@ -241,12 +240,12 @@ describe("resolveEndatixSettings", () => {
     });
   });
 
-  describe("getClientEndatixConfig", () => {
+  describe("client projection slice", () => {
     it("projects live API URL and extensions from env", () => {
       process.env.ENDATIX_BASE_URL = "https://api.live.example.com";
       process.env.ENDATIX_ENABLE_EXTENSIONS = "true";
 
-      const config = getClientEndatixConfig();
+      const config = resolveEndatixSettings({ source: "runtime" }).client;
 
       expect(config.apiBaseUrl).toBe("https://api.live.example.com/api");
       expect(config.extensionsEnabled).toBe(true);
@@ -255,7 +254,7 @@ describe("resolveEndatixSettings", () => {
     it("falls back to ENDATIX_API_URL when ENDATIX_BASE_URL is unset", () => {
       process.env.ENDATIX_API_URL = "https://helm.example.com/api";
 
-      const config = getClientEndatixConfig();
+      const config = resolveEndatixSettings({ source: "runtime" }).client;
 
       expect(config.apiBaseUrl).toBe("https://helm.example.com/api");
       expect(config.extensionsEnabled).toBe(false);
@@ -264,17 +263,26 @@ describe("resolveEndatixSettings", () => {
     it("returns empty apiBaseUrl when ENDATIX_API_URL is invalid", () => {
       process.env.ENDATIX_API_URL = "not-a-url";
 
-      const config = getClientEndatixConfig();
+      const config = resolveEndatixSettings({ source: "runtime" }).client;
 
       expect(config.apiBaseUrl).toBe("");
       expect(config.extensionsEnabled).toBe(false);
     });
 
     it("returns empty apiBaseUrl and extensions off when unset", () => {
-      const config = getClientEndatixConfig();
+      const config = resolveEndatixSettings({ source: "runtime" }).client;
 
       expect(config.apiBaseUrl).toBe("");
       expect(config.extensionsEnabled).toBe(false);
+    });
+
+    it("never includes the SurveyJS licence key even when ENDATIX_SURVEY_LICENSE_KEY is set", () => {
+      process.env.ENDATIX_SURVEY_LICENSE_KEY = "commercial-licence-key";
+
+      const config = resolveEndatixSettings({ source: "runtime" }).client;
+
+      expect(config).not.toHaveProperty("surveyLicenseKey");
+      expect(Object.keys(config)).not.toContain("surveyLicenseKey");
     });
   });
 });

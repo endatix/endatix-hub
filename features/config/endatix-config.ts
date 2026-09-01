@@ -19,7 +19,6 @@ export type {
   WithEndatixOptions,
 } from "./resolve-endatix-settings";
 export {
-  getClientEndatixConfig,
   getRuntimeStorageProfile,
   resolveEndatixSettings,
 } from "./resolve-endatix-settings";

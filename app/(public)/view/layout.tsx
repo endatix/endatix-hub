@@ -2,7 +2,7 @@ import "@/app/globals.css";
 import { auth } from "@/auth";
 import { AppProvider } from "@/components/providers";
 import { AppOptions } from "@/components/providers/app-provider";
-import { getClientEndatixConfig } from "@/features/config";
+import { getClientEndatixConfig } from "@/features/config/server";
 import { getPublicAssetPath } from "@/lib/hosting";
 import type { Metadata } from "next";
 import { ROBOTS, getMetadataBase } from "@/lib/seo";
@@ -23,8 +23,10 @@ export default async function ViewLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await auth();
-  const endatixConfig = getClientEndatixConfig();
+  const [session, endatixConfig] = await Promise.all([
+    auth(),
+    getClientEndatixConfig(),
+  ]);
 
   return (
     <html lang="en" suppressHydrationWarning>
