@@ -25,6 +25,10 @@ export default async function SignupRequestsPage({
     parseSignupRequestsListParams(await searchParams),
   );
 
+  if (requests === null) {
+    notFound();
+  }
+
   return (
     <PlatformAdminShell
       title="Signup requests"
