@@ -8,6 +8,8 @@ export interface FeatureFlagConfig {
   reportingExport: boolean;
   /** Mirrors API `multi-tenancy` deployment flag. */
   tenantManagement: boolean;
+  /** Mirrors API `saas-management` deployment flag. */
+  saasManagement: boolean;
 }
 
 export interface AIFeatures {

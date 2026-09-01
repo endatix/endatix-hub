@@ -25,6 +25,7 @@ import AuthAdmin from "./auth-admin/auth-admin";
 import PlatformTenants from "./platform-tenants/platform-tenants";
 import PlatformAdmins from "./platform-admins/platform-admins";
 import PublicTenants from "./public-tenants/public-tenants";
+import SignupRequests from "./signup-requests/signup-requests";
 import { Reporting } from "./reporting/reporting";
 
 /** Resolved Endatix API origin via {@link requireApiUrl}. */
@@ -91,6 +92,7 @@ export class EndatixApi {
   private _platformTenants?: PlatformTenants;
   private _platformAdmins?: PlatformAdmins;
   private _publicTenants?: PublicTenants;
+  private _signupRequests?: SignupRequests;
 
   constructor(
     sessionOrToken?: SessionData | string,
@@ -277,6 +279,11 @@ export class EndatixApi {
   get publicTenants(): PublicTenants {
     this._publicTenants ??= new PublicTenants(this);
     return this._publicTenants;
+  }
+
+  get signupRequests(): SignupRequests {
+    this._signupRequests ??= new SignupRequests(this);
+    return this._signupRequests;
   }
 
   /**

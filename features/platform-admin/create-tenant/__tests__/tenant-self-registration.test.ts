@@ -37,6 +37,26 @@ describe("tenant-self-registration", () => {
     expect(filterTenantAuthProviders(providers, [])).toEqual([{ id: "endatix" }]);
   });
 
+  it("builds the public register path from the opaque id", () => {
+    expect(tenantPublicRegisterPath("xK9mP2qR8vNw")).toBe(
+      "/t/xK9mP2qR8vNw/register",
+    );
+  });
+
+  it("keeps Endatix credentials and filters other providers by the allow list", () => {
+    const providers = [
+      { id: "endatix" },
+      { id: "google" },
+      { id: "keycloak" },
+    ];
+
+    expect(filterTenantAuthProviders(providers, ["google"])).toEqual([
+      { id: "endatix" },
+      { id: "google" },
+    ]);
+    expect(filterTenantAuthProviders(providers, [])).toEqual([{ id: "endatix" }]);
+  });
+
   it("flags Hub-capable default roles", () => {
     expect(roleHasHubAccess("Respondent")).toBe(false);
     expect(roleHasHubAccess("Creator")).toBe(true);
