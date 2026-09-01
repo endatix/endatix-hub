@@ -6,10 +6,13 @@ import {
 } from "@/features/platform-admin/server";
 import { getAuthSettings } from "@/features/platform-admin/view-auth-settings/view-auth-settings.server";
 import { PlatformAdminShell } from "@/features/platform-admin/ui/platform-admin-shell";
-import { TenantsTable } from "@/features/platform-admin/list-tenants/ui/tenants-table";
+import { TenantsListToolbar } from "@/features/platform-admin/list-tenants/ui/tenants-list-toolbar";
+import { TenantsTableFromPromise } from "@/features/platform-admin/list-tenants/ui/tenants-table";
+import { TenantsTableSkeleton } from "@/features/platform-admin/list-tenants/ui/tenants-table-skeleton";
 import { parsePlatformTenantListParams } from "@/features/platform-admin/utils";
 import type { PlatformTenantSearchParams } from "@/features/platform-admin/types";
 import { getAllFlags } from "@/lib/feature-flags/flags";
+import { Suspense } from "react";
 
 interface TenantsPageProps {
   searchParams?: Promise<PlatformTenantSearchParams>;
@@ -21,7 +24,7 @@ export default async function TenantsPage({ searchParams }: TenantsPageProps) {
     searchParams,
     getAllFlags(),
   ]);
-  const tenants = await listPlatformTenants(
+  const tenantsPromise = listPlatformTenants(
     session,
     parsePlatformTenantListParams(resolvedSearchParams),
   );
@@ -32,18 +35,21 @@ export default async function TenantsPage({ searchParams }: TenantsPageProps) {
   return (
     <PlatformAdminShell
       title="Tenants"
-      description="Review tenant records and platform-level usage counts without switching tenant context."
+      description="Review and manage tenants. Assume a tenant only for support access."
       actions={
         flags.tenantManagement ? (
           <CreateTenantDialog authProviders={authProviders} />
         ) : undefined
       }
     >
-      <TenantsTable
-        tenants={tenants}
-        canManage={flags.tenantManagement}
-        authProviders={authProviders}
-      />
+      <TenantsListToolbar />
+      <Suspense fallback={<TenantsTableSkeleton />}>
+        <TenantsTableFromPromise
+          tenantsPromise={tenantsPromise}
+          canManage={flags.tenantManagement}
+          authProviders={authProviders}
+        />
+      </Suspense>
     </PlatformAdminShell>
   );
 }
