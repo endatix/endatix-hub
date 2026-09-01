@@ -9,9 +9,8 @@ import {
   validateHexToken,
 } from "@/lib/utils/type-validators";
 import { redirect } from "next/navigation";
-import { ITheme } from "survey-core";
 import { HeaderBuilder } from "../lib/endatix-api/shared/header-builder";
-import { ActiveDefinition, Form, FormDefinition, FormTemplate } from "../types";
+import { ActiveDefinition, Form, FormTemplate } from "../types";
 
 export const createForm = async (
   formRequest: CreateFormRequest,
@@ -168,45 +167,6 @@ export const getActiveFormDefinition = async (
   return response.json();
 };
 
-export const getFormDefinition = async (
-  formId: string,
-  definitionId: string,
-): Promise<FormDefinition> => {
-  const requestOptions: RequestInit = {};
-  const session = await getSession();
-
-  if (!session.isLoggedIn) {
-    redirect("/login");
-  }
-
-  const validateFormIdResult = validateEndatixId(formId, "formId");
-  if (Result.isError(validateFormIdResult)) {
-    throw new TypeError(validateFormIdResult.message);
-  }
-
-  const validateDefinitionIdResult = validateEndatixId(
-    definitionId,
-    "definitionId",
-  );
-  if (Result.isError(validateDefinitionIdResult)) {
-    throw new TypeError(validateDefinitionIdResult.message);
-  }
-
-  const headers = new HeaderBuilder().withAuth(session).build();
-  requestOptions.headers = headers;
-
-  const response = await fetch(
-    `${requireApiUrl()}/forms/${validateFormIdResult.value}/definitions/${validateDefinitionIdResult.value}`,
-    requestOptions,
-  );
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch form definition");
-  }
-
-  return response.json();
-};
-
 export const updateFormDefinition = async (
   formId: string,
   isDraft: boolean,
@@ -241,124 +201,6 @@ export const updateFormDefinition = async (
   if (!response.ok) {
     throw new Error("Failed to update form definition");
   }
-};
-
-export interface ThemeResponse {
-  id: string;
-  name: string;
-  description?: string;
-  jsonData: string;
-  createdAt?: Date;
-  modifiedAt?: Date;
-}
-
-export const getThemes = async (
-  page: number = 1,
-  pageSize: number = 10,
-): Promise<ThemeResponse[]> => {
-  const session = await getSession();
-  const headers = new HeaderBuilder().withAuth(session).acceptJson().build();
-
-  const response = await fetch(
-    `${requireApiUrl()}/themes?page=${page}&pageSize=${pageSize}`,
-    {
-      headers: headers,
-    },
-  );
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch themes");
-  }
-
-  const payload: { items?: ThemeResponse[] } = await response.json();
-  return payload.items ?? [];
-};
-
-export const createTheme = async (theme: ITheme): Promise<ThemeResponse> => {
-  const session = await getSession();
-  const headers = new HeaderBuilder()
-    .withAuth(session)
-    .acceptJson()
-    .provideJson()
-    .build();
-
-  const createThemeRequest = {
-    name: theme.themeName,
-    jsonData: JSON.stringify(theme),
-  };
-
-  const response = await fetch(`${requireApiUrl()}/themes`, {
-    method: "POST",
-    headers: headers,
-    body: JSON.stringify(createThemeRequest),
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to create theme");
-  }
-
-  return response.json();
-};
-
-export const updateTheme = async (
-  themeId: string,
-  theme: ITheme,
-): Promise<ThemeResponse> => {
-  const session = await getSession();
-  const headers = new HeaderBuilder()
-    .withAuth(session)
-    .acceptJson()
-    .provideJson()
-    .build();
-
-  const validateIdResult = validateEndatixId(themeId, "themeId");
-  if (Result.isError(validateIdResult)) {
-    throw new TypeError(validateIdResult.message);
-  }
-
-  const response = await fetch(
-    `${requireApiUrl()}/themes/${validateIdResult.value}`,
-    {
-      method: "PATCH",
-      headers: headers,
-      body: JSON.stringify({ jsonData: JSON.stringify(theme) }),
-    },
-  );
-
-  if (!response.ok) {
-    throw new Error("Failed to update theme");
-  }
-
-  return response.json();
-};
-
-export const deleteTheme = async (themeId: string): Promise<string> => {
-  const session = await getSession();
-
-  if (!session.isLoggedIn) {
-    redirect("/login");
-  }
-
-  const headers = new HeaderBuilder().withAuth(session).build();
-
-  const validateThemeIdResult = validateEndatixId(themeId, "themeId");
-  if (Result.isError(validateThemeIdResult)) {
-    throw new TypeError(validateThemeIdResult.message);
-  }
-
-  const response = await fetch(
-    `${requireApiUrl()}/themes/${validateThemeIdResult.value}`,
-    {
-      method: "DELETE",
-      headers: headers,
-    },
-  );
-
-  if (!response.ok) {
-    throw new Error("Failed to delete theme");
-  }
-
-  return response.text();
 };
 
 export const getFormTemplate = async (
@@ -449,58 +291,6 @@ export const deleteFormTemplate = async (
   }
 
   return response.text();
-};
-
-export const getSubmissions = async (
-  formId: string,
-  filters?: {
-    isComplete?: string[];
-    status?: string[];
-    isTestSubmission?: string[];
-  },
-): Promise<Submission[]> => {
-  const session = await getSession();
-  if (!session.isLoggedIn) {
-    redirect("/login");
-  }
-
-  const validateFormIdResult = validateEndatixId(formId, "formId");
-  if (Result.isError(validateFormIdResult)) {
-    throw new TypeError(validateFormIdResult.message);
-  }
-
-  const CLIENT_PAGE_SIZE = 10_000;
-  const headers = new HeaderBuilder().withAuth(session).build();
-
-  const params = new URLSearchParams();
-  params.set("pageSize", String(CLIENT_PAGE_SIZE));
-
-  if (filters?.isComplete && filters.isComplete.length > 0) {
-    params.append("filter", `isComplete:${filters.isComplete.join("|")}`);
-  }
-  if (filters?.status && filters.status.length > 0) {
-    params.append("filter", `status:${filters.status.join("|")}`);
-  }
-  if (filters?.isTestSubmission && filters.isTestSubmission.length > 0) {
-    params.append(
-      "filter",
-      `isTestSubmission:${filters.isTestSubmission.join("|")}`,
-    );
-  }
-
-  const url = `${requireApiUrl()}/forms/${validateFormIdResult.value}/submissions?${params.toString()}`;
-
-  const response = await fetch(url, {
-    headers: headers,
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error("API Error:", response.status, errorText);
-    throw new Error(`Failed to fetch data: ${response.status} - ${errorText}`);
-  }
-
-  return response.json();
 };
 
 export const updateSubmission = async (

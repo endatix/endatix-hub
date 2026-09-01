@@ -1,62 +1,64 @@
 import { describe, expect, it } from "vitest";
-import { ApiErrorType, ERROR_CODE } from "../shared/api-result";
+import { ApiErrorType, ApiResult } from "../shared/api-result";
 import { mapResponseToApiError } from "../shared/http-error-mapper";
 
 describe("mapResponseToApiError", () => {
-  it("maps 409 conflict problem details to ConflictError with readable message", async () => {
-    const response = new Response(
-      JSON.stringify({
-        title: "There was a conflict.",
-        status: 409,
-        detail:
-          "Next error(s) occurred:* A submission already exists for this user and form.\n",
-      }),
-      { status: 409, headers: { "Content-Type": "application/problem+json" } },
-    );
+  it("maps 400 problem+json with fields and traceId to ValidationError", async () => {
+    const body = {
+      type: "https://www.rfc-editor.org/rfc/rfc9110#name-400-bad-request",
+      title: "There was a problem with your request",
+      status: 400,
+      detail: "Name is required.",
+      instance: "/api/forms",
+      traceId: "0HMPNHL0JHL76:00000001",
+      fields: { name: ["Name is required."] },
+    };
 
-    const result = await mapResponseToApiError(response, {
-      endpoint: "/api/forms/1/submissions",
-      method: "POST",
-      statusCode: 409,
+    const response = new Response(JSON.stringify(body), {
+      status: 400,
+      statusText: "Bad Request",
+      headers: { "Content-Type": "application/problem+json" },
     });
 
-    expect(result.success).toBe(false);
-    if (result.success) {
-      throw new Error("Expected error result");
-    }
+    const result = await mapResponseToApiError(response, {
+      endpoint: "/api/forms",
+      method: "POST",
+    });
 
-    expect(result.error.type).toBe(ApiErrorType.ConflictError);
-    expect(result.error.errorCode).toBe(ERROR_CODE.CONFLICT);
-    expect(result.error.message).toBe(
-      "A submission already exists for this user and form.",
-    );
-    expect(result.error.details?.statusCode).toBe(409);
+    expect(ApiResult.isError(result)).toBe(true);
+    if (ApiResult.isError(result)) {
+      expect(result.error.type).toBe(ApiErrorType.ValidationError);
+      expect(result.error.message).toBe("Name is required.");
+      expect(result.error.fields).toEqual({ name: ["Name is required."] });
+      expect(result.error.details?.statusCode).toBe(400);
+      expect(result.error.details?.details).toBe("Name is required.");
+      expect(result.error.details?.traceId).toBe("0HMPNHL0JHL76:00000001");
+    }
   });
 
-  it("uses CONFLICT fallback for 409 problem body with no detail message or errorCode", async () => {
+  it("falls back to status semantics when body is legacy FE ErrorResponse", async () => {
     const response = new Response(
       JSON.stringify({
-        status: 409,
-        detail: "",
+        statusCode: 400,
+        message: "One or more errors occurred!",
+        errors: { name: ["Name is required."] },
       }),
-      { status: 409, headers: { "Content-Type": "application/problem+json" } },
+      {
+        status: 400,
+        statusText: "Bad Request",
+        headers: { "Content-Type": "application/json" },
+      },
     );
 
     const result = await mapResponseToApiError(response, {
-      endpoint: "/api/forms/1/submissions",
+      endpoint: "/api/forms",
       method: "POST",
-      statusCode: 409,
     });
 
-    expect(result.success).toBe(false);
-    if (result.success) {
-      throw new Error("Expected error result");
+    expect(ApiResult.isError(result)).toBe(true);
+    if (ApiResult.isError(result)) {
+      expect(result.error.type).toBe(ApiErrorType.ValidationError);
+      expect(result.error.fields).toBeUndefined();
     }
-
-    expect(result.error.type).toBe(ApiErrorType.ConflictError);
-    expect(result.error.errorCode).toBe(ERROR_CODE.CONFLICT);
-    expect(result.error.message).toBe(
-      "This action conflicts with the current state. Please try again.",
-    );
   });
 });

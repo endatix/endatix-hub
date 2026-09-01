@@ -42,10 +42,9 @@ async function SubmissionDetails({
   if (Result.isError(submissionResult)) {
     return (
       <NotFoundComponent
-        notFoundTitle="Not found"
-        notFoundSubtitle="The submission you are looking for does not exist."
-        notFoundMessage="Please check the submission ID and try again."
-        titleSize="medium"
+        notFoundTitle="Submission not found"
+        notFoundSubtitle="We couldn't find that submission."
+        notFoundMessage="It may have been deleted, or the ID in the URL is wrong."
       >
         <BackToSubmissionsButton
           formId={formId}

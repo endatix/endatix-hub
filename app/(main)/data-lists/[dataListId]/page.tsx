@@ -11,7 +11,9 @@ import {
   resolveItemsIncludeLocales,
 } from "@/features/data-lists/view-list-details/utils";
 import { firstString } from "@/features/data-lists/view-lists/utils";
+import { HubPageLoadError } from "@/components/error-handling/error-page";
 import { isNotFoundError } from "@/lib/endatix-api";
+import { Result, toResult } from "@/lib/result";
 import { hasValue, SearchParam } from "@/lib/utils/next-utils";
 
 interface DataListDetailsRoutePageProps {
@@ -41,15 +43,23 @@ export default async function DataListDetailsRoutePage({
 
   const { dataListId } = await params;
   const raw = await searchParams;
-  const dataListResult = await getDataListByIdAction(dataListId);
+  const dataListApiResult = await getDataListByIdAction(dataListId);
 
-  if (!dataListResult.success) {
-    if (isNotFoundError(dataListResult)) {
-      notFound();
-    }
-
-    throw new Error(dataListResult.error.message);
+  if (isNotFoundError(dataListApiResult)) {
+    notFound();
   }
+
+  const dataListResult = toResult(dataListApiResult, {
+    fallbackMessage: "Failed to load data list.",
+    logMessage: "Failed to load data list details.",
+    loggerName: "data-lists.details",
+  });
+
+  if (Result.isError(dataListResult)) {
+    return <HubPageLoadError result={dataListResult} />;
+  }
+
+  const dataList = dataListResult.value;
 
   const itemsRequest = parseDataListItemsParams({
     page: firstString(raw.page),
@@ -63,12 +73,12 @@ export default async function DataListDetailsRoutePage({
     modifiedFrom: firstString(raw.modifiedFrom),
     modifiedTo: firstString(raw.modifiedTo),
   });
-  const availableLocales = dataListResult.data.availableLocales ?? [];
+  const availableLocales = dataList.availableLocales ?? [];
   const includeLocales = resolveItemsIncludeLocales({
     hasLocale: itemsRequest.hasLocale,
     availableLocales,
   });
-  const searchLocale = includeLocales[0] ?? dataListResult.data.defaultLocale;
+  const searchLocale = includeLocales[0] ?? dataList.defaultLocale;
   const itemsPromise = getDataListItemsPage(dataListId, {
     page: itemsRequest.page,
     pageSize: itemsRequest.pageSize,
@@ -87,7 +97,7 @@ export default async function DataListDetailsRoutePage({
 
   return (
     <DataListDetailsPage
-      initialDetails={dataListResult.data}
+      initialDetails={dataList}
       itemsPromise={itemsPromise}
       openReplaceOnLoad={openReplaceOnLoad}
       openEditOnLoad={openEditOnLoad}

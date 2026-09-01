@@ -22,7 +22,6 @@ export {
   serializeSubmissionListSorting,
   submissionListUrlStateToListRequest,
 } from "./parse-submission-list-search-params";
-export type { SubmissionListCanonicalDateFields } from "./parse-submission-list-search-params";
 export {
   SUBMISSION_LIST_BOOLEAN_FILTER_VALUES,
   SUBMISSION_LIST_DEFAULT_PAGE,

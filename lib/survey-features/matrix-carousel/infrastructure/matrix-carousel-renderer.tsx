@@ -1,7 +1,22 @@
 import * as React from "react";
-import type { LocalizableString, Question, QuestionMatrixModel, SurveyModel } from "survey-core";
-import { Action, ActionContainer, getLocaleString } from "survey-core";
-import { ReactQuestionFactory, SurveyActionBar, SurveyQuestion, SurveyQuestionMatrix } from "survey-react-ui";
+import type {
+  LocalizableString,
+  Question,
+  QuestionMatrixModel,
+  SurveyModel,
+} from "survey-core";
+import {
+  Action,
+  ActionContainer,
+  defaultActionBarCss,
+  getLocaleString,
+} from "survey-core";
+import {
+  ReactQuestionFactory,
+  SurveyActionBar,
+  SurveyQuestion,
+  SurveyQuestionMatrix,
+} from "survey-react-ui";
 import { StoragePresignedImage } from "@/features/asset-storage/ui/storage-presigned-image";
 import { MATRIX_TYPE } from "../constants";
 import type { MatrixCarouselQuestion, MatrixRowItemValue } from "../types";
@@ -106,12 +121,14 @@ export class MatrixCarouselRenderer extends SurveyQuestionMatrix {
 
   private prevAction = new Action({
     id: "sv-matrixcarousel-prev",
-    locTitle: getSurveyNavLocStrings(this.question as unknown as Question).locPrev,
+    locTitle: getSurveyNavLocStrings(this.question as unknown as Question)
+      .locPrev,
     action: () => this.handlePrev(),
   });
   private nextAction = new Action({
     id: "sv-matrixcarousel-next",
-    locTitle: getSurveyNavLocStrings(this.question as unknown as Question).locNext,
+    locTitle: getSurveyNavLocStrings(this.question as unknown as Question)
+      .locNext,
     action: () => this.handleNext(),
   });
   // Plain ActionContainer (not AdaptiveActionContainer) — deliberately: with
@@ -122,23 +139,18 @@ export class MatrixCarouselRenderer extends SurveyQuestionMatrix {
   // ActionContainer has neither concern — but see syncActions() below for
   // the one thing it does still need: an explicit flushUpdates() call.
   //
-  // cssClasses is assigned explicitly to the survey's own theme actionBar
-  // classes (sd-action-bar/sd-action/...) — the same one-liner
-  // SurveyElement.createActionContainer() uses internally
-  // (`actionContainer.cssClasses = this.survey.getCss().actionBar`,
-  // confirmed in the installed survey-core bundle at the call sites for both
-  // PanelDynamic's own footer toolbar and the generic base). Without this,
-  // ActionContainer falls back to actionBarCss.ts's bare sv- names, which
-  // exist but carry none of the current theme's button styling (pill shape,
-  // primary-teal text, spacing) — this is what makes Prev/Next actually look
-  // like PanelDynamic's Back/Next rather than unstyled default buttons.
+  // cssClasses is assigned explicitly to the survey theme actionBar classes
+  // when present (SurveyJS ≤2.x via `survey.getCss().actionBar`). On SurveyJS
+  // 3.x that key was removed from getCss(); `defaultActionBarCss` already
+  // ships the themed `sd-action-bar` / `sd-action` names, so fall back to it.
+  // Without an explicit assign, ActionContainer still uses defaultActionBarCss
+  // internally — we set it here so the dependency is visible at the call site.
   private actionsContainer = (() => {
     const container = new ActionContainer<Action>();
     container.setItems([this.prevAction, this.nextAction]);
     const survey = this.carouselQuestion.survey;
-    if (survey && survey.getCss().actionBar) {
-      container.cssClasses = survey.getCss().actionBar;
-    }
+    const themeActionBar = survey?.getCss()?.actionBar;
+    container.cssClasses = themeActionBar ?? defaultActionBarCss;
     return container;
   })();
 
@@ -160,7 +172,9 @@ export class MatrixCarouselRenderer extends SurveyQuestionMatrix {
     // aligned with visibleRows for whatever render that setState triggers.
     const baseVisibleRowsChangedCallback = question.visibleRowsChangedCallback;
     question.visibleRowsChangedCallback = () => {
-      resyncMatrixCarouselDecomposition(question as unknown as QuestionMatrixModel);
+      resyncMatrixCarouselDecomposition(
+        question as unknown as QuestionMatrixModel,
+      );
       this.pendingObserverRefresh = true;
       baseVisibleRowsChangedCallback?.();
     };
@@ -195,7 +209,9 @@ export class MatrixCarouselRenderer extends SurveyQuestionMatrix {
 
   componentWillUnmount(): void {
     super.componentWillUnmount();
-    this.carouselQuestion.onPropertyChanged.remove(this.handleQuestionPropertyChanged);
+    this.carouselQuestion.onPropertyChanged.remove(
+      this.handleQuestionPropertyChanged,
+    );
     this.teardownObserver();
     if (this.programmaticScrollTimeout) {
       clearTimeout(this.programmaticScrollTimeout);
@@ -262,7 +278,9 @@ export class MatrixCarouselRenderer extends SurveyQuestionMatrix {
     this.forceUpdate();
   };
 
-  private handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>): void => {
+  private handleKeyDown = (
+    event: React.KeyboardEvent<HTMLDivElement>,
+  ): void => {
     if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") {
       return;
     }
@@ -288,12 +306,17 @@ export class MatrixCarouselRenderer extends SurveyQuestionMatrix {
       return;
     }
 
-    this.intersectionObserver = new IntersectionObserver(this.handleIntersection, {
-      root: strip,
-      threshold: 0.5,
-    });
+    this.intersectionObserver = new IntersectionObserver(
+      this.handleIntersection,
+      {
+        root: strip,
+        threshold: 0.5,
+      },
+    );
 
-    Array.from(strip.children).forEach((child) => this.intersectionObserver!.observe(child));
+    Array.from(strip.children).forEach((child) =>
+      this.intersectionObserver!.observe(child),
+    );
   }
 
   private teardownObserver(): void {
@@ -314,7 +337,10 @@ export class MatrixCarouselRenderer extends SurveyQuestionMatrix {
     }
 
     const index = Number((mostVisible.target as HTMLElement).dataset.index);
-    if (Number.isNaN(index) || index === getCurrentRowIndex(this.carouselQuestion)) {
+    if (
+      Number.isNaN(index) ||
+      index === getCurrentRowIndex(this.carouselQuestion)
+    ) {
       return;
     }
 
@@ -325,7 +351,10 @@ export class MatrixCarouselRenderer extends SurveyQuestionMatrix {
 
   private clearProgrammaticScrollFlag = (): void => {
     this.isProgrammaticScroll = false;
-    this.stripRef.current?.removeEventListener("scrollend", this.clearProgrammaticScrollFlag);
+    this.stripRef.current?.removeEventListener(
+      "scrollend",
+      this.clearProgrammaticScrollFlag,
+    );
     if (this.programmaticScrollTimeout) {
       clearTimeout(this.programmaticScrollTimeout);
       this.programmaticScrollTimeout = undefined;
@@ -349,7 +378,9 @@ export class MatrixCarouselRenderer extends SurveyQuestionMatrix {
     // turned out to be the surrounding .sd-question wrapper, not the strip,
     // causing a confirmed ~40px overscroll that clipped the slide's left edge.
     const targetLeft =
-      target.getBoundingClientRect().left - strip.getBoundingClientRect().left + strip.scrollLeft;
+      target.getBoundingClientRect().left -
+      strip.getBoundingClientRect().left +
+      strip.scrollLeft;
 
     if (Math.abs(strip.scrollLeft - targetLeft) <= SCROLL_EPSILON_PX) {
       return;
@@ -357,7 +388,9 @@ export class MatrixCarouselRenderer extends SurveyQuestionMatrix {
 
     this.isProgrammaticScroll = true;
     strip.scrollTo({ left: targetLeft, behavior: "smooth" });
-    strip.addEventListener("scrollend", this.clearProgrammaticScrollFlag, { once: true });
+    strip.addEventListener("scrollend", this.clearProgrammaticScrollFlag, {
+      once: true,
+    });
     this.programmaticScrollTimeout = setTimeout(
       this.clearProgrammaticScrollFlag,
       PROGRAMMATIC_SCROLL_RESET_MS,
@@ -388,7 +421,10 @@ export class MatrixCarouselRenderer extends SurveyQuestionMatrix {
    * width below uses; a valuemin of 1 would make that fallback computation
    * diverge from what's visually shown.
    */
-  private renderProgressBar(currentIndex: number, total: number): React.JSX.Element | null {
+  private renderProgressBar(
+    currentIndex: number,
+    total: number,
+  ): React.JSX.Element | null {
     const question = this.carouselQuestion;
     if (
       question.edxShowProgressIndicator === false ||
@@ -409,7 +445,10 @@ export class MatrixCarouselRenderer extends SurveyQuestionMatrix {
         <div
           className="sv-matrixcarousel__progress-bar-track sd-progress"
           role="progressbar"
-          aria-label={getLocaleString("progressbar", question.survey?.getLocale())}
+          aria-label={getLocaleString(
+            "progressbar",
+            question.survey?.getLocale(),
+          )}
           aria-valuemin={0}
           aria-valuemax={total}
           aria-valuenow={currentIndex + 1}
@@ -473,7 +512,10 @@ export class MatrixCarouselRenderer extends SurveyQuestionMatrix {
    * question_paneldynamic.ts's own progressText getter uses, so this reads
    * correctly in any locale SurveyJS ships rather than a hardcoded " of ".
    */
-  private renderFooter(currentIndex: number, total: number): React.JSX.Element | null {
+  private renderFooter(
+    currentIndex: number,
+    total: number,
+  ): React.JSX.Element | null {
     const question = this.carouselQuestion;
     const showText =
       question.edxShowProgressIndicator !== false &&
@@ -557,7 +599,11 @@ export class MatrixCarouselRenderer extends SurveyQuestionMatrix {
             // row the same way.
             const imageAlt = item.hasText ? item.text : `Row ${i + 1}`;
             return (
-              <div key={row.uniqueId} className="sv-matrixcarousel__slide" data-index={i}>
+              <div
+                key={row.uniqueId}
+                className="sv-matrixcarousel__slide"
+                data-index={i}
+              >
                 {item.imageUrl && (
                   // StoragePresignedImage (not a plain <img>) — matches how
                   // imagepicker/logo/signature-pad already handle images in
@@ -574,7 +620,11 @@ export class MatrixCarouselRenderer extends SurveyQuestionMatrix {
                     alt={imageAlt}
                   />
                 )}
-                <SurveyQuestion element={decomposed[i]} creator={this.creator} css={cssClasses} />
+                <SurveyQuestion
+                  element={decomposed[i]}
+                  creator={this.creator}
+                  css={cssClasses}
+                />
               </div>
             );
           })}

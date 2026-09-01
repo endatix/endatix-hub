@@ -23,11 +23,24 @@
 
 ## Paged list sort and calendar From/To
 
+**Reference implementation: `lib/endatix-api/themes/` (+ `lib/endatix-api/__tests__/themes/themes.test.ts`).** Copy that shape for every new paged list client; there is exactly one right answer per bullet below.
+
 - Compose list/export request DTOs from `lib/endatix-api/shared` types: `IPagedRequest`, `SortRequest<TFields>`, `DateRangeFilter<"created">` / `AuditDateFilters` (and other stems). Do **not** hand-copy `createdFrom`/`sortDir` fields onto every interface.
 - Parse and append via `lib/endatix-api/shared/list-query.ts` (`parseCalendarDateYmd`, `parseSortBy`/`parseSortDir`, `pickDateRangeFilters`, `appendSortParams`, `appendDateRangeFilters`). Feature URL glue stays in `features/`; raw URL state may keep `string` until parse.
 - Sort allowlists use property names (`createdAt`); date stems use bare verbs (`"created"` → `createdFrom`/`createdTo`). Keep those namespaces distinct.
 - Wire stays flat (`createdFrom`/`createdTo`). OSS Core uses `UtcDateTimeRange` only after API parse — do not nest Hub query objects to mirror that struct.
 - These helpers live in the `lib/endatix-api` package candidate (future `@endatix/api-client`); do not import `@/features` or Next into that folder.
+
+### The one list-client shape
+
+1. **Export a pure `buildList<Entity>Endpoint(request)`** next to the class. It builds a `URLSearchParams` with `appendPagingQueryParams(params, request, { page: 1, pageSize: N })` → `appendSortParams` → `appendDateRangeFilters(params, request, ["created", "modified"])` → `appendQueryParam` for entity-specific filters, and returns `buildEndpointWithQuery(BASE, params)`. Assert the query contract against this function in tests — no `EndatixApi` instance needed. Do **not** hand-build `new URLSearchParams()` + `params.set(...)` inside `list()`.
+2. **`list()` returns one page**, not a flat array: `Promise<ApiResult<NormalizedPagedResponse<T>>>` via `normalizePagedResponse(response.data)` (`shared/paged-response.ts`). That preserves `page`/`totalRecords`/`totalPages` for `PagedTableFooter` and adds `hasNextPage`. Never drop the envelope on the floor — a `list()` that returns `T[]` cannot render paging.
+3. **Draining every page is a separate, named method** (`listAll()`), used only where the UI genuinely has no paging affordance (a Creator dropdown, a template picker). It omits `page` from its request type, loops from page 1, stops on `!hasNextPage`, and is bounded by a `LIST_ALL_MAX_PAGES` constant so a server that misreports `totalPages` cannot loop forever. Do **not** bolt "start at `request.page` and drain to the end" onto `list()` — that reads as paging but returns `[]` for any `page > 1` before the first response arrives.
+4. **Boolean filter sugar maps to the wire filter in the builder**, not at every call site (`unassignedOnly: true` → `filter=folderId:null`). Call sites pass the intent; the builder owns the encoding.
+5. **Validate path ids with `validateEndatixId(...)` and return `ApiResult.validationError(...)`** before touching the network (see `Themes.partialUpdate` / `Themes.delete`).
+6. **Server actions map with `toResult(...)`**, never a hand-written `if (ApiResult.isError(...)) return Result.error(...)` — see "Server Actions" above. `features/themes/*/*.action.ts` are the worked examples.
+
+Known deviations, to be migrated when next touched (do not copy them): `Forms.list` / `Users.list` / `PlatformTenants.list` return the raw `PagedResponse<T>` without `normalizePagedResponse`; `FormTemplates.list` is a drain that has not yet been renamed to `listAll`.
 
 ## Server Pages
 
@@ -36,6 +49,24 @@
 - For streamed sections, pass stable promises into the section and unwrap them with React `use()` in the receiving component when that keeps the route file thin.
 - Use `Promise.all` for independent data dependencies. Await sequentially only when a later call depends on an earlier result.
 - For server page calls to the Endatix API, convert `ApiResult<T>` with `toResult(...)` so unexpected operational failures are logged consistently and expected invalid/not-found states can map to page-specific fallback UI.
+
+### Page-load outcomes (composed GET loaders)
+
+**Single-Result lists** (one `toResult`, no post-fetch redirect): keep the thin promise + client `use()` pattern — reference `features/forms/list-forms/list-forms.server.ts` + `ui/forms-list-section.tsx`.
+
+**Composed list loads** (two+ GET Results, identity 404 vs load chrome, and/or a redirect that needs the API response): do **not** pile fetch + mapping + chrome into `app/.../page.tsx`. Use a slice-local **page-load outcome**:
+
+1. Pure `resolve*PageLoad(...)` returns a discriminated union (`ready` / `error` / `notFound` / `redirect`) — no React, no Next `redirect`.
+2. Thin `*.server.ts` loader does `Promise.all` + `toResult`, then calls the resolver.
+3. Server Component section matches on `kind` → `HubPageLoadError` / not-found chrome / `redirect(href)` / success UI.
+
+Keep post-fetch `redirect()` in that Server Component — do not stream the outcome through a client `use()` wrapper. Pre-fetch URL canonicalization (parse-only) can stay in the route file.
+
+**Compose, don’t explode:** success view models take `PagedResponse<T>` + existing URL state (+ a few scalars). Do **not** re-list `page` / `pageSize` / every `*From`/`*To` stem as constructor args — those already live on the envelope and URL state (same idea as `ListSubmissionsRequest` composing `IPagedRequest` + `AuditDateFilters`). Wire stays flat; nest only at a UI adapter (e.g. date-filter chrome).
+
+**Pre-fetch canonical URL:** `isCanonical*(rawSearchParams, parsedState) → boolean`. Do not hand-build a raw/parsed date bag at the route.
+
+**Reference (first of its kind):** `features/submissions/list-submissions/` (`types.ts` view model, resolver, server loader, section) + `isCanonicalSubmissionListUrl(raw, parsed)` in `list-submission-query/`. Do **not** extract a shared `lib/page-load` type until a second page copies this shape. Analyze all references to identify further opportunities for optimization like better patterns, utils and abstractions
 
 ## Table filter state (client)
 
@@ -62,9 +93,27 @@ When a detail page has a "Back to `<list>`" control that should restore the list
 - Preserve API-provided user-facing messages, validation errors, and error codes through the shared result mappers.
 - Use `parseZodError()` or `ServerActionState.fromZodError()` for Zod validation failures in form actions.
 - For any `ApiResult<T>`, prefer `toResult(...)` — it maps to `Result` and owns unexpected-failure telemetry when `logMessage` / `loggerName` are set. Expected validation/auth/403/404/rate-limit are suppressed inside `toResult`; do not duplicate that classification with local filters or ad hoc `TelemetryLogger.error` on `!apiResult.success`.
+- `toResult` / `mapApiErrorToResult` must preserve ProblemDetails support fields on `Result` errors: `traceId`, `statusCode`, and `errorCode`. Do not drop them when mapping.
 - Do not log expected user/action failures such as validation, authentication, or authorization failures as application errors.
 - Use `TelemetryLogger` for unexpected operational failures outside an `ApiResult` path (e.g. thrown errors, composing-action workflow failures). Only log safe scalar attributes (`errorCode`, ids already shown in UI, status/method/endpoint from `mapApiErrorToTelemetryAttributes`); never log tokens, cookies, raw request bodies, field values, or raw API detail/message strings.
 - **Composing actions** (workflows that call other actions returning `Result<T>`): do **not** call `toResult` again. Check `Result.isError`, return/combine user-facing messages, and if you must log the workflow failure use safe scalars only. API telemetry belongs in the leaf that received `ApiResult` via `toResult`.
+
+### Server loaders vs `error.tsx`
+
+- When a server loader already has an `ApiResult` (list pages, detail fetches), **return `Result<T>`** and render fallback UI (`HubPageLoadError` / `ResultLoadErrorView`). Do **not** dump `ApiResult.error.message` as red text and do **not** `throw` into `error.tsx` — Next only forwards `message` + `digest`, so API `traceId` / `statusCode` are lost and the page may show a misleading 500.
+- Sibling `Suspense` regions: each `ResultLoadErrorView` is independent. Two failing Result loaders show **two** branded error blocks in their slots; toolbar/layout stay. A **throw** in a sibling (e.g. folders `await` without Result) still hits `error.tsx` and replaces the **whole** route segment, including successful siblings. Isolate only the loaders you convert to Result; do not mix throw + Result if you need both regions to keep rendering.
+- `error.tsx` / `global-error.tsx` are for **uncaught** exceptions only. Next.js forwards `error.message` (generic in production for Server Components) plus `error.digest` (hash to match server logs). Show digest on the support box; send it with PostHog `trackException`. Use stable `retry()` (not `reset()`). `global-error` must ship its own `<html>`/`<body>` + `globals.css`. Do **not** adopt `catchError` / graceful-degrading HTML snapshots for loaders — keep known `ApiResult` failures as `Result`.
+- Drive chrome from `statusCode` / `Result.errorType` via `unexpectedErrorUiFromResult`, not by sniffing `error.message`.
+- Reference — single Result list: `features/forms/list-forms/list-forms.server.ts` + `ui/forms-list-section.tsx`. Composed GET + post-fetch redirect: `features/submissions/list-submissions/` (page-load outcome). Other `(main)` pages may return `HubPageLoadError` directly when the loader is a single Result with no redirect.
+
+### Error page chrome (`ErrorPage`)
+
+- Every full-page error renders through `components/error-handling/error-page` — 404, 403, auth, unexpected, public share/embed. One centred layout, one sheep, one type scale. Do not hand-roll an error screen with its own icon treatment.
+- `code` is the **watermark** and takes an HTTP status only (`404`, `500`, `403`). Anything longer than 4 characters is ignored by design: a phrase wraps across the copy it sits behind. Put the words in `eyebrow`.
+- `eyebrow` is the short label (`Form not found`), `title` is the sentence (`We couldn't find that form.`). Never repeat one in the other — the watermark, eyebrow and title used to say "Form not found" three times.
+- Rendering custom error data? Type the copy map as `ErrorPresentation` (`lib/errors/error-presentation.ts`) — its fields _are_ `ErrorPageProps`, so `<ErrorPage {...presentation} />` renders it and `<ErrorPage {...presentation} title="…" />` overrides a field; look it up with `resolveErrorPresentation(map, key, fallback)`, and if the surface also shows a support code call it `supportCode`, never `code`.
+- The sheep scales through `--sheep-scale` and pauses under `prefers-reduced-motion`; both live in `not-found-sheep.css`. Don't add per-call-site sizing.
+- Absent diagnostics render as a dash on the row, not as a sentence about what is missing.
 
 ### Example: API leaf action (`toResult`)
 

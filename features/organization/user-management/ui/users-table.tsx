@@ -109,9 +109,11 @@ import {
   type UserActionAvailability,
   type UserActionPolicy,
 } from "./user-action-policy";
+import { HubPageLoadError } from "@/components/error-handling/error-page";
+import { Result, type ResultType } from "@/lib/result";
 
 interface UsersTableProps {
-  usersPromise: Promise<PagedResponse<UserListItem>>;
+  usersPromise: Promise<ResultType<PagedResponse<UserListItem>>>;
   currentUserId?: string;
   canInviteUsers?: boolean;
   canResendVerification?: boolean;
@@ -142,9 +144,40 @@ export function UsersTable({
   canManageUsers = false,
   availableRolesPromise,
 }: Readonly<UsersTableProps>) {
-  const pagedUsers = normalizePagedResponse(use(usersPromise));
-  const availableRoles = use(availableRolesPromise ?? emptyRolesPromise);
+  const usersResult = use(usersPromise);
+
+  if (Result.isError(usersResult)) {
+    return <HubPageLoadError result={usersResult} />;
+  }
+
+  return (
+    <UsersTableContent
+      pagedUsers={normalizePagedResponse(usersResult.value)}
+      currentUserId={currentUserId}
+      canInviteUsers={canInviteUsers}
+      canResendVerification={canResendVerification}
+      canManageRoles={canManageRoles}
+      canManageUsers={canManageUsers}
+      availableRolesPromise={availableRolesPromise}
+    />
+  );
+}
+
+type UsersTableContentProps = Omit<UsersTableProps, "usersPromise"> & {
+  pagedUsers: ReturnType<typeof normalizePagedResponse<UserListItem>>;
+};
+
+function UsersTableContent({
+  pagedUsers,
+  currentUserId,
+  canInviteUsers = false,
+  canResendVerification = false,
+  canManageRoles = false,
+  canManageUsers = false,
+  availableRolesPromise,
+}: Readonly<UsersTableContentProps>) {
   const router = useRouter();
+  const availableRoles = use(availableRolesPromise ?? emptyRolesPromise);
   const users = pagedUsers.items;
   const { trackEvent } = useTrackEvent();
   const { searchParams, updateUrl } = useUrlSearchParamsUpdater();

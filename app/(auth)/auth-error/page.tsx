@@ -1,14 +1,17 @@
 import { Button } from "@/components/ui/button";
+import { ErrorPage } from "@/components/error-handling/error-page";
 import {
   SIGNIN_PATH,
   SIGNOUT_PATH,
 } from "@/features/auth/infrastructure/auth-constants";
-import { XCircle } from "lucide-react";
 import { Metadata } from "next";
 import Link from "next/link";
-import AuthErrorDetails from "@/features/auth/ui/auth-error";
-import { AuthErrorType, ErrorDetails } from "@/features/auth";
+import { AuthErrorType } from "@/features/auth/shared/auth.types";
 import { auth } from "@/auth";
+import {
+  resolveErrorPresentation,
+  type ErrorPresentation,
+} from "@/lib/errors/error-presentation";
 import { getPublicAssetPath } from "@/lib/hosting";
 import { ROBOTS } from "@/lib/seo";
 
@@ -33,38 +36,54 @@ export const metadata: Metadata = {
   robots: ROBOTS.hiddenPage,
 };
 
-const defaultErrorDetails: ErrorDetails = {
+interface AuthErrorPresentation extends ErrorPresentation {
+  /** Branch name shown to the user to quote at support. Not the HTTP status. */
+  supportCode: string;
+}
+
+const UNKNOWN_PRESENTATION: AuthErrorPresentation = {
+  code: "500",
+  eyebrow: "Authentication failed",
+  title: "We couldn't sign you in.",
   message:
     "There was a problem when trying to authenticate. Please contact us if this error persists.",
-  code: "Unknown",
+  supportCode: "Unknown",
 };
 
-const errorMap = {
+const errorMap: Record<AuthErrorType, AuthErrorPresentation> = {
   [AuthErrorType.Configuration]: {
+    code: "500",
+    eyebrow: "Authentication failed",
+    title: "We couldn't sign you in.",
     message:
       "There was a problem when trying to authenticate. Please contact us if this error persists.",
-    code: "Configuration",
+    supportCode: "Configuration",
   },
   [AuthErrorType.Network]: {
+    code: "503",
+    eyebrow: "Connection problem",
+    title: "We couldn't reach the Endatix API.",
     message:
-      "There was a problem when trying to connect Endatix API. Please try again later and contact us if the problem persists.",
-    code: "Network",
+      "The service did not respond. Try again in a moment, and contact us if the problem persists.",
+    supportCode: "Network",
   },
   [AuthErrorType.Server]: {
+    code: "500",
+    eyebrow: "Authentication failed",
+    title: "We couldn't sign you in.",
     message:
       "There was an unexpected error when trying to authenticate. Please try again and contact us if the issue persists.",
-    code: "Server",
+    supportCode: "Server",
   },
   [AuthErrorType.InvalidToken]: {
+    code: "401",
+    eyebrow: "Authorization failed",
+    title: "Your session was rejected.",
     message:
-      "You are signed in, but your session has been rejected from the authorization server. Please sign out and sign in again and contact us if the issue persists.",
-    code: "InvalidToken",
+      "You are signed in, but the authorization server rejected your session. Sign out and sign in again, and contact us if the issue persists.",
+    supportCode: "InvalidToken",
   },
-  [AuthErrorType.Unknown]: {
-    message:
-      "There was an unexpected error when trying to authenticate. Please try again and contact us if the issue persists.",
-    code: "Unknown",
-  },
+  [AuthErrorType.Unknown]: UNKNOWN_PRESENTATION,
 };
 
 interface AuthErrorPageProps {
@@ -79,25 +98,26 @@ export default async function AuthErrorPage({
   const { error } = await searchParams;
   const session = await auth();
   const isLoggedIn = !!session;
-  let errorDetatails = defaultErrorDetails;
-  if ((error as AuthErrorType) in errorMap) {
-    errorDetatails = errorMap[error as AuthErrorType];
-  }
+
+  const presentation = resolveErrorPresentation(
+    errorMap,
+    error,
+    UNKNOWN_PRESENTATION,
+  );
+
   const hasInvalidTokenError =
     isLoggedIn && error === AuthErrorType.InvalidToken;
-  const authErrorTitle = hasInvalidTokenError
-    ? "Authorization failed"
-    : "Authentication failed";
+
+  // A rejected token while signed out just means the session lapsed. "Your session
+  // was rejected" would overstate it, so fall back to the generic sign-in copy and
+  // keep only the support code that says which branch it was.
+  const resolved =
+    error === AuthErrorType.InvalidToken && !hasInvalidTokenError
+      ? { ...UNKNOWN_PRESENTATION, supportCode: presentation.supportCode }
+      : presentation;
 
   return (
-    <div className="flex h-screen flex-col items-center justify-center">
-      <div className="mb-2 flex items-center justify-center gap-3">
-        <XCircle className="h-6 w-6 text-red-500" />
-        <h1 className="text-2xl font-semibold tracking-tight">
-          {authErrorTitle}
-        </h1>
-      </div>
-      <AuthErrorDetails errorDetatails={errorDetatails} />
+    <ErrorPage {...resolved}>
       {hasInvalidTokenError ? (
         <Button variant="default" asChild>
           <Link href={SIGNOUT_PATH}>Sign out</Link>
@@ -107,6 +127,12 @@ export default async function AuthErrorPage({
           <Link href={SIGNIN_PATH}>Go to sign in</Link>
         </Button>
       )}
-    </div>
+      <p className="text-xs text-on-surface-variant">
+        Error code{" "}
+        <code className="rounded-sm bg-surface-container px-1.5 py-0.5 font-mono">
+          {resolved.supportCode}
+        </code>
+      </p>
+    </ErrorPage>
   );
 }

@@ -26,7 +26,8 @@ import {
   SurveyDesignSaveButton,
   SurveyDesignStatusBadge,
 } from "@/lib/survey-features/survey-design/ui";
-import { resolveCreatorThemeCssVariables } from "@/lib/themes/resolve-creator-theme-css-variables";
+import { applyEndatixCreatorTheme } from "@/lib/themes/creator-theme";
+import { registerThemes } from "@/lib/themes/survey-theme";
 import { useEndatixCreatorTheme } from "@/lib/themes/use-endatix-themes";
 import "ace-builds/src-noconflict/ace";
 import "ace-builds/src-noconflict/ext-searchbox";
@@ -47,6 +48,8 @@ import "survey-creator-core/survey-creator-core.css";
 import { SurveyCreator, SurveyCreatorComponent } from "survey-creator-react";
 import { updateTemplateJsonAction } from "../application/update-template-json.action";
 import { updateTemplateNameAction } from "../application/update-template-name.action";
+
+registerThemes();
 
 export interface FormTemplateEditorProps {
   templateId: string;
@@ -203,11 +206,11 @@ function FormTemplateEditorContent({
       try {
         const newCreator = new SurveyCreator(options || defaultCreatorOptions);
 
-        const resolvedTheme = resolveCreatorThemeCssVariables(
+        applyEndatixCreatorTheme(
+          newCreator,
           creatorThemeRef.current,
           document.getElementById("surveyCreatorContainer") ?? undefined,
         );
-        newCreator.applyCreatorTheme(resolvedTheme);
         setCreator(newCreator);
         onCreatorCreated(newCreator);
 
@@ -260,11 +263,11 @@ function FormTemplateEditorContent({
     let frame2 = 0;
     frame1 = globalThis.requestAnimationFrame(() => {
       frame2 = globalThis.requestAnimationFrame(() => {
-        const resolvedTheme = resolveCreatorThemeCssVariables(
+        applyEndatixCreatorTheme(
+          creator,
           creatorTheme,
           document.getElementById("surveyCreatorContainer") ?? undefined,
         );
-        creator.applyCreatorTheme(resolvedTheme);
       });
     });
 

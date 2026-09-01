@@ -1,7 +1,8 @@
 .edx-data-list-translation-header__title {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--sjs2-spacing-x100, 0.5rem);
+  color: var(--sjs2-color-fg-basic-primary);
 }
 
 .edx-data-list-translation-header__title::before {
@@ -23,7 +24,7 @@
 .edx-data-list-translation-header__link {
   margin-left: auto;
   font-weight: 500;
-  color: var(--sjs-primary-backcolor, #19b394);
+  color: var(--sjs2-color-fg-brand-primary);
   text-decoration: underline;
   white-space: nowrap;
 }
@@ -33,20 +34,15 @@
 }
 
 .edx-data-list-translation-help {
+  /* Sits inside `.st-panel__content`, above the string-table rows, so it takes the
+     same surface tokens as `.st-table__cell`. Never hard-code a light fallback here:
+     the row is inside the Creator, where the palette follows the Hub theme. */
   margin: 0;
-  padding: var(--sjs-base-unit, 8px)
-    var(--ctr-string-table-row-padding-right, 24px) var(--sjs-base-unit, 8px)
-    var(--ctr-string-table-row-padding-left, 24px);
-  color: var(
-    --ctr-string-table-title-caption-color,
-    var(--sjs-layer-1-foreground-50, rgba(0, 0, 0, 0.5))
-  );
-  font-size: var(--ctr-font-small-size, 12px);
+  padding: var(--sjs2-spacing-x200) var(--sjs2-spacing-x400);
+  color: var(--sjs2-color-fg-basic-primary-muted);
+  font-size: var(--sjs2-typography-font-size-component-caption-hint);
   line-height: 1.4;
-  background-color: var(
-    --ctr-string-table-row-background-color,
-    var(--sjs-layer-1-background-500, #fff)
-  );
-  border-bottom: 1px solid
-    var(--ctr-string-table-row-border-color, var(--sjs-border-10, gainsboro));
+  background-color: var(--sjs2-color-bg-basic-primary);
+  border-bottom: var(--sjs2-border-width-x100) solid
+    var(--sjs2-color-border-basic-secondary);
 }

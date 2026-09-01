@@ -1,5 +1,8 @@
-import { NotFoundComponent } from "@/components/error-handling/not-found";
-import "@/components/error-handling/not-found/not-found-styles-standalone.css";
+import "@/app/globals.css";
+import {
+  NotFoundComponent,
+  PublicNotFoundFrame,
+} from "@/components/error-handling/not-found";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -14,13 +17,12 @@ export const metadata: Metadata = {
 
 export default function NotFoundMaintenancePage() {
   return (
-    <div className="not-found-container">
+    <PublicNotFoundFrame>
       <NotFoundComponent
-        notFoundTitle="404"
-        notFoundSubtitle="The page you are looking for does not exist."
-        notFoundMessage="Please check the URL and try again."
-        titleSize="large"
-      ></NotFoundComponent>
-    </div>
+        notFoundTitle="Page not found"
+        notFoundSubtitle="We couldn't find that page."
+        notFoundMessage="Check the URL and try again."
+      />
+    </PublicNotFoundFrame>
   );
 }

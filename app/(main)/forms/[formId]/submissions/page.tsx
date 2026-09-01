@@ -5,41 +5,18 @@ import { authorization } from "@/features/auth/authorization";
 import {
   buildSubmissionListPath,
   isCanonicalSubmissionListUrl,
-  parseSubmissionListPageSize,
   parseSubmissionListSearchParams,
-  SUBMISSION_LIST_DEFAULT_PAGE,
-  submissionListUrlStateToListRequest,
 } from "@/features/submissions/list-submission-query";
+import { SubmissionListSection } from "@/features/submissions/list-submissions";
 import { SubmissionsTableSkeleton } from "@/features/submissions/ui/table/submissions-table-skeleton";
-import { SubmissionsWithFilters } from "@/features/submissions/ui/submissions-with-filters";
-import { reportingExportFlag } from "@/lib/feature-flags/flags";
 import { EndatixApi } from "@/lib/endatix-api";
 import type { Metadata, ResolvingMetadata, Route } from "next";
 import { redirect } from "next/navigation";
-import { Suspense, type ReactNode } from "react";
-
-type SubmissionListSearchParams = {
-  page?: string;
-  pageSize?: string;
-  isComplete?: string;
-  status?: string;
-  isTestSubmission?: string;
-  createdFrom?: string;
-  createdTo?: string;
-  modifiedFrom?: string;
-  modifiedTo?: string;
-  startedFrom?: string;
-  startedTo?: string;
-  completedFrom?: string;
-  completedTo?: string;
-  submitterDisplayId?: string;
-  submitterEmail?: string;
-  sort?: string;
-};
+import { Suspense } from "react";
 
 type Params = {
   readonly params: Promise<{ formId: string }>;
-  readonly searchParams: Promise<SubmissionListSearchParams>;
+  readonly searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
 export async function generateMetadata(
@@ -69,18 +46,19 @@ export async function generateMetadata(
 export default async function ResponsesPage({ params, searchParams }: Params) {
   const { formId } = await params;
   const sp = await searchParams;
+  const listState = parseSubmissionListSearchParams(sp);
+
+  if (!isCanonicalSubmissionListUrl(sp, listState)) {
+    redirect(buildSubmissionListPath(formId, listState) as Route);
+  }
 
   return (
     <>
       <Suspense fallback={<PageTitle title="Submissions..." />}>
         <PageTitleData formId={formId} />
       </Suspense>
-      <Suspense
-        fallback={
-          <TableLoader pageSize={parseSubmissionListPageSize(sp.pageSize)} />
-        }
-      >
-        <SubmissionsTableData formId={formId} searchParams={sp} />
+      <Suspense fallback={<TableLoader pageSize={listState.pageSize} />}>
+        <SubmissionListSection formId={formId} listState={listState} />
       </Suspense>
     </>
   );
@@ -94,178 +72,6 @@ async function PageTitleData({ formId }: Readonly<{ formId: string }>) {
   const formName = formResult.success ? formResult.data.name : "Form";
 
   return <PageTitle title={`Submissions for ${formName}`} />;
-}
-
-async function SubmissionsTableData({
-  formId,
-  searchParams,
-}: {
-  readonly formId: string;
-  readonly searchParams: SubmissionListSearchParams;
-}) {
-  const listState = parseSubmissionListSearchParams(searchParams);
-  const hasActiveFilters =
-    listState.isComplete.length > 0 ||
-    listState.status.length > 0 ||
-    listState.isTestSubmission.length > 0 ||
-    Boolean(
-      listState.createdFrom ||
-      listState.createdTo ||
-      listState.modifiedFrom ||
-      listState.modifiedTo ||
-      listState.startedFrom ||
-      listState.startedTo ||
-      listState.completedFrom ||
-      listState.completedTo ||
-      listState.submitterDisplayId ||
-      listState.submitterEmail,
-    );
-  const page = listState.page;
-
-  if (
-    !isCanonicalSubmissionListUrl(
-      searchParams.page,
-      searchParams.pageSize,
-      listState,
-      {
-        rawCreatedFrom: searchParams.createdFrom,
-        rawCreatedTo: searchParams.createdTo,
-        rawModifiedFrom: searchParams.modifiedFrom,
-        rawModifiedTo: searchParams.modifiedTo,
-        rawStartedFrom: searchParams.startedFrom,
-        rawStartedTo: searchParams.startedTo,
-        rawCompletedFrom: searchParams.completedFrom,
-        rawCompletedTo: searchParams.completedTo,
-        rawSubmitterDisplayId: searchParams.submitterDisplayId,
-        rawSubmitterEmail: searchParams.submitterEmail,
-        rawSort: searchParams.sort,
-        createdFrom: listState.createdFrom,
-        createdTo: listState.createdTo,
-        modifiedFrom: listState.modifiedFrom,
-        modifiedTo: listState.modifiedTo,
-        startedFrom: listState.startedFrom,
-        startedTo: listState.startedTo,
-        completedFrom: listState.completedFrom,
-        completedTo: listState.completedTo,
-        submitterDisplayId: listState.submitterDisplayId,
-        submitterEmail: listState.submitterEmail,
-      },
-    )
-  ) {
-    redirect(buildSubmissionListPath(formId, listState) as Route);
-  }
-
-  const session = await getSession();
-  const api = new EndatixApi(session ?? undefined);
-  const useReportingExport = await reportingExportFlag();
-
-  const listRequest = submissionListUrlStateToListRequest(listState);
-
-  const [submissionsResult, fieldsResult, hasAnySubmissionsProbeResult] =
-    await Promise.all([
-      api.submissions.list(formId, listRequest),
-      api.definitions.getFields(formId),
-      hasActiveFilters
-        ? api.submissions.list(formId, { pageSize: 1 })
-        : Promise.resolve(null),
-    ]);
-
-  if (!submissionsResult.success) {
-    return (
-      <SubmissionsLoadError>
-        Unable to load submissions. Please try again.
-      </SubmissionsLoadError>
-    );
-  }
-
-  if (!fieldsResult.success) {
-    return (
-      <SubmissionsLoadError>
-        Unable to load submission fields. Please try again.
-      </SubmissionsLoadError>
-    );
-  }
-
-  const definitionFields = fieldsResult.data;
-
-  const canonicalPage = getCanonicalPage(
-    page,
-    submissionsResult.data.page,
-    submissionsResult.data.totalPages,
-  );
-  if (canonicalPage !== page) {
-    redirect(
-      buildSubmissionListPath(formId, {
-        ...listState,
-        page: canonicalPage,
-      }) as Route,
-    );
-  }
-
-  const submissions = submissionsResult.data.items;
-  const hasAnySubmissions = hasActiveFilters
-    ? hasAnySubmissionsProbeResult?.success === true &&
-      hasAnySubmissionsProbeResult.data.totalRecords > 0
-    : submissionsResult.data.totalRecords > 0;
-
-  return (
-    <SubmissionsWithFilters
-      data={submissions}
-      formId={formId}
-      hasAnySubmissions={hasAnySubmissions}
-      useReportingExport={useReportingExport}
-      definitionFields={definitionFields}
-      initialPage={submissionsResult.data.page}
-      initialPageSize={submissionsResult.data.pageSize}
-      totalRecords={submissionsResult.data.totalRecords}
-      totalPages={submissionsResult.data.totalPages}
-      initialIsComplete={listState.isComplete}
-      initialStatus={listState.status}
-      initialIsTestSubmission={listState.isTestSubmission}
-      initialCreatedFrom={listState.createdFrom}
-      initialCreatedTo={listState.createdTo}
-      initialModifiedFrom={listState.modifiedFrom}
-      initialModifiedTo={listState.modifiedTo}
-      initialStartedFrom={listState.startedFrom}
-      initialStartedTo={listState.startedTo}
-      initialCompletedFrom={listState.completedFrom}
-      initialCompletedTo={listState.completedTo}
-      initialSubmitterDisplayId={listState.submitterDisplayId}
-      initialSubmitterEmail={listState.submitterEmail}
-      initialSorting={listState.sorting}
-    />
-  );
-}
-
-function getCanonicalPage(
-  requestedPage: number,
-  responsePage: number,
-  totalPages: number,
-) {
-  if (totalPages <= 0) {
-    return SUBMISSION_LIST_DEFAULT_PAGE;
-  }
-
-  if (requestedPage > totalPages) {
-    return totalPages;
-  }
-
-  if (responsePage > 0 && responsePage !== requestedPage) {
-    return Math.min(responsePage, totalPages);
-  }
-
-  return requestedPage;
-}
-
-function SubmissionsLoadError({ children }: Readonly<{ children: ReactNode }>) {
-  return (
-    <div
-      role="alert"
-      className="mt-8 rounded-xl border border-destructive/30 bg-destructive/5 px-5 py-4 text-sm text-destructive"
-    >
-      {children}
-    </div>
-  );
 }
 
 function TableLoader({ pageSize }: Readonly<{ pageSize: number }>) {

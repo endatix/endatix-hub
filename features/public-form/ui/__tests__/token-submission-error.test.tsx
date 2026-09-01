@@ -12,7 +12,9 @@ describe("TokenSubmissionError", () => {
   ] as const)("renders expired copy for %s", (_name, errorCode) => {
     render(<TokenSubmissionError errorCode={errorCode} />);
 
-    expect(screen.getByText("Token Expired")).toBeDefined();
-    expect(screen.getByText("This link has expired")).toBeDefined();
+    expect(screen.getByText("Link expired")).toBeDefined();
+    expect(screen.getByText("This link has expired.")).toBeDefined();
+    // Expired access is a 401, not the 404 this used to borrow from NotFoundComponent.
+    expect(screen.getByText("401")).toBeDefined();
   });
 });

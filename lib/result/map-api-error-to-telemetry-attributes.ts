@@ -16,6 +16,7 @@ export function mapApiErrorToTelemetryAttributes(
     apiErrorEndpoint: sanitizeEndpoint(details?.endpoint),
     apiErrorMethod: details?.method,
     apiErrorRetryAfter: details?.retryAfter,
+    apiErrorTraceId: details?.traceId,
   };
 }
 

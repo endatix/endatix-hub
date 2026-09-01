@@ -4,7 +4,9 @@ import { SIGNIN_PATH, UNAUTHORIZED_PATH } from "@/features/auth";
 import { authorization, Permissions } from "@/features/auth/authorization";
 import { CreateFolderDialog } from "@/features/folders/create-folder";
 import { FolderNavigationCards } from "@/features/folders/list-folders";
+import { HubPageLoadError } from "@/components/error-handling/error-page";
 import { ApiErrorType, ApiResult, EndatixApi } from "@/lib/endatix-api";
+import { Result, toResult } from "@/lib/result";
 import { redirect } from "next/navigation";
 import {
   Empty,
@@ -22,24 +24,33 @@ export default async function FormFoldersPage() {
   await requireHubAccess();
 
   const api = new EndatixApi(session?.accessToken);
-  const foldersResult = await api.folders.list();
+  const foldersApiResult = await api.folders.list();
 
-  if (ApiResult.isError(foldersResult)) {
-    if (foldersResult.error.type === ApiErrorType.AuthError) {
-      redirect(SIGNIN_PATH);
-    }
-    if (foldersResult.error.type === ApiErrorType.ForbiddenError) {
-      redirect(UNAUTHORIZED_PATH);
-    }
-    return (
-      <div className="mt-4 p-6 text-destructive">
-        {foldersResult.error.message}
-      </div>
-    );
+  if (
+    ApiResult.isError(foldersApiResult) &&
+    foldersApiResult.error.type === ApiErrorType.AuthError
+  ) {
+    redirect(SIGNIN_PATH);
+  }
+  if (
+    ApiResult.isError(foldersApiResult) &&
+    foldersApiResult.error.type === ApiErrorType.ForbiddenError
+  ) {
+    redirect(UNAUTHORIZED_PATH);
+  }
+
+  const foldersResult = toResult(foldersApiResult, {
+    fallbackMessage: "Failed to load form folders.",
+    logMessage: "Failed to load form folders list.",
+    loggerName: "forms.folders",
+  });
+
+  if (Result.isError(foldersResult)) {
+    return <HubPageLoadError result={foldersResult} />;
   }
 
   const canManage = (await checkPermission(Permissions.Folders.Manage)).success;
-  const folders = foldersResult.data;
+  const folders = foldersResult.value;
 
   return (
     <>

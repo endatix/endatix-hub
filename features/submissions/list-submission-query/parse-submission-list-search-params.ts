@@ -247,54 +247,17 @@ function isSubmissionListSortBy(
 }
 
 /**
- * The canonical date fields.
- * @param rawCreatedFrom - The raw created at from.
- * @param rawCreatedTo - The raw created at to.
- * @param rawCompletedFrom - The raw completed at from.
- * @param rawCompletedTo - The raw completed at to.
- * @param createdFrom - The created at from.
- * @param createdTo - The created at to.
- * @param completedFrom - The completed at from.
- * @param completedTo - The completed at to.
- */
-export type SubmissionListCanonicalDateFields = {
-  rawCreatedFrom?: string;
-  rawCreatedTo?: string;
-  rawModifiedFrom?: string;
-  rawModifiedTo?: string;
-  rawStartedFrom?: string;
-  rawStartedTo?: string;
-  rawCompletedFrom?: string;
-  rawCompletedTo?: string;
-  createdFrom?: string;
-  createdTo?: string;
-  modifiedFrom?: string;
-  modifiedTo?: string;
-  startedFrom?: string;
-  startedTo?: string;
-  completedFrom?: string;
-  completedTo?: string;
-  rawSubmitterDisplayId?: string;
-  submitterDisplayId?: string;
-  rawSubmitterEmail?: string;
-  submitterEmail?: string;
-  rawSort?: string;
-};
-
-/**
- * Checks if the submission list URL is canonical.
- * @param rawPage - The raw page.
- * @param rawPageSize - The raw page size.
- * @param parsed - The parsed search params.
- * @param rawDates - The raw dates.
- * @returns True if the submission list URL is canonical, false otherwise.
+ * True when raw searchParams already match the parsed/canonical list state
+ * (defaults omitted, dates/sort/submitter filters unchanged by parse).
  */
 export function isCanonicalSubmissionListUrl(
-  rawPage: string | undefined,
-  rawPageSize: string | undefined,
+  raw: SubmissionListRawSearchParams,
   parsed: SubmissionListUrlState,
-  rawDates: SubmissionListCanonicalDateFields,
 ): boolean {
+  const rawPage = firstString(raw.page);
+  const rawPageSize = firstString(raw.pageSize);
+  const rawSort = firstString(raw.sort);
+
   const canonicalPage =
     parsed.page === SUBMISSION_LIST_DEFAULT_PAGE
       ? rawPage === undefined
@@ -307,24 +270,49 @@ export function isCanonicalSubmissionListUrl(
   const serializedSort = serializeSubmissionListSorting(parsed.sorting);
   const canonicalSort =
     serializedSort === undefined
-      ? rawDates.rawSort === undefined
-      : rawDates.rawSort === serializedSort;
+      ? rawSort === undefined
+      : rawSort === serializedSort;
+
+  if (!canonicalPage || !canonicalPageSize || !canonicalSort) {
+    return false;
+  }
+
+  for (const key of SUBMISSION_LIST_DATE_URL_KEYS) {
+    if (firstString(raw[key]) !== parsed[key]) {
+      return false;
+    }
+  }
 
   return (
-    canonicalPage &&
-    canonicalPageSize &&
-    canonicalSort &&
-    rawDates.rawCreatedFrom === rawDates.createdFrom &&
-    rawDates.rawCreatedTo === rawDates.createdTo &&
-    rawDates.rawModifiedFrom === rawDates.modifiedFrom &&
-    rawDates.rawModifiedTo === rawDates.modifiedTo &&
-    rawDates.rawStartedFrom === rawDates.startedFrom &&
-    rawDates.rawStartedTo === rawDates.startedTo &&
-    rawDates.rawCompletedFrom === rawDates.completedFrom &&
-    rawDates.rawCompletedTo === rawDates.completedTo &&
-    (rawDates.rawSubmitterDisplayId?.trim() || undefined) ===
-      rawDates.submitterDisplayId &&
-    (rawDates.rawSubmitterEmail?.trim() || undefined) ===
-      rawDates.submitterEmail
+    isCanonicalJoinedFilter(firstString(raw.isComplete), parsed.isComplete) &&
+    isCanonicalJoinedFilter(firstString(raw.status), parsed.status) &&
+    isCanonicalJoinedFilter(
+      firstString(raw.isTestSubmission),
+      parsed.isTestSubmission,
+    ) &&
+    (firstString(raw.submitterDisplayId)?.trim() || undefined) ===
+      parsed.submitterDisplayId &&
+    (firstString(raw.submitterEmail)?.trim() || undefined) ===
+      parsed.submitterEmail
   );
 }
+
+function isCanonicalJoinedFilter(
+  rawValue: string | undefined,
+  parsedValues: readonly string[],
+): boolean {
+  const canonical =
+    parsedValues.length > 0 ? parsedValues.join(",") : undefined;
+  return (rawValue || undefined) === canonical;
+}
+
+const SUBMISSION_LIST_DATE_URL_KEYS = [
+  "createdFrom",
+  "createdTo",
+  "modifiedFrom",
+  "modifiedTo",
+  "startedFrom",
+  "startedTo",
+  "completedFrom",
+  "completedTo",
+] as const satisfies ReadonlyArray<keyof SubmissionListUrlState>;

@@ -13,7 +13,7 @@ import { FormTemplate } from "@/types";
 import { useEffect, useState } from "react";
 import { Model } from "survey-core";
 import "survey-core/survey-core.css";
-import { SharpLightPanelless } from "survey-core/themes";
+import { ContrastLightPanelless } from "survey-core/themes";
 import { Survey } from "survey-react-ui";
 
 interface SurveyPreviewComponentProps {
@@ -66,7 +66,7 @@ export default function SurveyPreviewComponent({
       survey.showCompletedPage = false;
       survey.showProgressBar = "top";
       survey.questionsOnPageMode = "singlePage";
-      survey.applyTheme(SharpLightPanelless);
+      survey.applyTheme(ContrastLightPanelless);
 
       setModelMetadata(survey);
       prefetchPrivateReadUrlsForModel(survey);

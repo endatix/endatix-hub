@@ -5,14 +5,18 @@ import { useAnyAnswered } from "@/lib/survey-features/any-answered";
 import { useRichTextEditing } from "@/lib/survey-features/rich-text";
 import { useLoopAwareSummaryTableEditing } from "@/lib/survey-features/summary-table";
 import { useSurveyExtensions } from "@/lib/survey-extensions/ui/use-survey-extensions";
+import { applyEndatixCreatorTheme } from "@/lib/themes/creator-theme";
+import { registerThemes } from "@/lib/themes/survey-theme";
+import { useEndatixCreatorTheme } from "@/lib/themes/use-endatix-themes";
 import { useEffect, useState } from "react";
 import { slk } from "survey-core";
 import "survey-core/survey-core.css";
 import { BorderlessLight } from "survey-core/themes";
 import { ICreatorOptions } from "survey-creator-core";
 import "survey-creator-core/survey-creator-core.css";
-import SurveyCreatorTheme from "survey-creator-core/themes";
 import { SurveyCreator, SurveyCreatorComponent } from "survey-creator-react";
+
+registerThemes();
 
 interface PreviewFormProps {
   model: string;
@@ -29,6 +33,7 @@ const creatorOptions: ICreatorOptions = {
 
 const PreviewForm = ({ model, slkVal }: PreviewFormProps) => {
   const [creator, setCreator] = useState<SurveyCreator | null>(null);
+  const creatorTheme = useEndatixCreatorTheme();
   useRichTextEditing(creator);
   useLoopAwareSummaryTableEditing(creator);
   const { isReady: isExtensionsReady, onCreatorCreated } = useSurveyExtensions({
@@ -37,7 +42,10 @@ const PreviewForm = ({ model, slkVal }: PreviewFormProps) => {
     },
   });
   const { initGlobals: initAnyAnsweredGlobals } = useAnyAnswered();
-  const { initGlobals: initQuestionLoopsGlobals, bindToCreator: bindQuestionLoops } = useQuestionLoops();
+  const {
+    initGlobals: initQuestionLoopsGlobals,
+    bindToCreator: bindQuestionLoops,
+  } = useQuestionLoops();
 
   useEffect(() => {
     if (!isExtensionsReady) {
@@ -61,7 +69,6 @@ const PreviewForm = ({ model, slkVal }: PreviewFormProps) => {
     const cleanupQuestionLoops = bindQuestionLoops(newCreator);
     newCreator.JSON = model;
     newCreator.activeTab = "test";
-    newCreator.applyCreatorTheme(SurveyCreatorTheme.DefaultContrast);
     newCreator.theme = BorderlessLight;
 
     onCreatorCreated(newCreator);
@@ -80,6 +87,14 @@ const PreviewForm = ({ model, slkVal }: PreviewFormProps) => {
     initQuestionLoopsGlobals,
     bindQuestionLoops,
   ]);
+
+  useEffect(() => {
+    if (!creator) {
+      return;
+    }
+
+    applyEndatixCreatorTheme(creator, creatorTheme);
+  }, [creator, creatorTheme]);
 
   if (!isExtensionsReady) {
     return null;

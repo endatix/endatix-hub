@@ -92,7 +92,7 @@ describe("Form Analytics Page", () => {
 
     const { getByText } = render(result);
     expect(getByText("Form not found")).toBeDefined();
-    expect(getByText(/form you are looking for does not exist/i)).toBeDefined();
+    expect(getByText(/couldn't find that form/i)).toBeDefined();
   });
 
   it("renders analytics page when form exists and flag is enabled", async () => {

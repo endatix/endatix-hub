@@ -21,38 +21,43 @@ class ProtectedSurveyFileItem extends SurveyFileItem {
     return this.props.item;
   }
 
-  private downloadFileFromContainer(
-    event: React.MouseEvent<HTMLElement>,
-  ): void {
-    this.question.doDownloadFileFromContainer(
-      event.nativeEvent,
-    );
-  }
-
-  private removeFile(
-    val: { content?: string; name?: string },
-    event: React.MouseEvent<HTMLElement>,
-  ): void {
-    event.stopPropagation();
-    this.question.doRemoveFile(val, event.nativeEvent);
-  }
-
+  /**
+   * SurveyJS `SurveyFileItem` puts `onClick` on a `<span>` and
+   * `doDownloadFileFromContainer` then `click()`s the first inner `<a>`.
+   * That span cannot be a `<button>`: it already wraps a filename `<a>` and
+   * a Remove `<button>`. We keep the span as layout and attach download to
+   * native `<a>`s instead (filename + preview).
+   * @see https://github.com/surveyjs/survey-library/blob/73740ea743ef5cb520a13292d5063c922e9e5ad2/packages/survey-react-ui/src/components/file/file-item.tsx
+   */
   private renderFileLink(
     content: string,
     val: { content?: string; name?: string },
-    linkProps: React.AnchorHTMLAttributes<HTMLAnchorElement>,
+    children: React.ReactNode,
+    extraProps?: React.AnchorHTMLAttributes<HTMLAnchorElement>,
   ): React.JSX.Element {
+    const linkProps: React.AnchorHTMLAttributes<HTMLAnchorElement> = {
+      onClick: (event) => {
+        this.question.doDownloadFile(event.nativeEvent, val);
+      },
+      title: val.name,
+      download: val.name,
+      target: "_blank",
+      rel: "noreferrer",
+      style: { width: this.question.imageWidth },
+      ...extraProps,
+    };
+
     if (isPrivateStorageContext(this.context) && content.length > 0) {
       return (
         <StoragePresignedLink href={content} {...linkProps}>
-          {val.name}
+          {children}
         </StoragePresignedLink>
       );
     }
 
     return (
       <a href={content} {...linkProps}>
-        {val.name}
+        {children}
       </a>
     );
   }
@@ -65,21 +70,9 @@ class ProtectedSurveyFileItem extends SurveyFileItem {
       return null;
     }
 
-    const content = val.content ?? "";
-    const linkProps = {
-      onClick: (event: React.MouseEvent<HTMLAnchorElement>) => {
-        this.question.doDownloadFile(event.nativeEvent, val);
-      },
-      title: val.name,
-      download: val.name,
-      target: "_blank" as const,
-      rel: "noreferrer" as const,
-      style: { width: this.question.imageWidth },
-    };
-
     return (
       <div className={className}>
-        {this.renderFileLink(content, val, linkProps)}
+        {this.renderFileLink(val.content ?? "", val, val.name)}
       </div>
     );
   }
@@ -88,32 +81,43 @@ class ProtectedSurveyFileItem extends SurveyFileItem {
     content: string,
     val: { content?: string; name?: string },
   ): React.JSX.Element | null {
+    let preview: React.JSX.Element | null = null;
     if (this.question.canPreviewImage(val)) {
-      return (
+      preview = (
         <StoragePresignedImage
           src={content}
           style={{
             height: this.question.imageHeight,
             width: this.question.imageWidth,
           }}
-          alt="File preview"
+          alt=""
+        />
+      );
+    } else if (this.question.cssClasses.defaultImage) {
+      preview = (
+        <SvgIcon
+          iconName={this.question.cssClasses.defaultImageIconId}
+          size="auto"
+          className={this.question.cssClasses.defaultImage}
         />
       );
     }
 
-    if (!this.question.cssClasses.defaultImage) {
+    if (!preview) {
       return null;
     }
 
-    return (
-      <SvgIcon
-        iconName={this.question.cssClasses.defaultImageIconId}
-        size="auto"
-        className={this.question.cssClasses.defaultImage}
-      />
-    );
+    return this.renderFileLink(content, val, preview, {
+      "aria-hidden": true,
+      tabIndex: -1,
+    });
   }
 
+  /**
+   * SurveyJS v3 dropped `getRemoveButtonCss`. Official `SurveyFileItem` uses
+   * `getRemoveFileButton` + `SurveyAction`; `SurveyAction` is not a public
+   * export, so we bind the same Action + `cssClasses.removeFileButton`.
+   */
   private renderRemoveButton(val: {
     content?: string;
     name?: string;
@@ -122,11 +126,19 @@ class ProtectedSurveyFileItem extends SurveyFileItem {
       return null;
     }
 
+    const removeAction = this.question.getRemoveFileButton(val);
+    if (!removeAction) {
+      return null;
+    }
+
     return (
       <button
         aria-label={`Remove ${val.name}`}
-        className={this.question.getRemoveButtonCss()}
-        onClick={(event) => this.removeFile(val, event)}
+        className={this.question.cssClasses.removeFileButton}
+        onClick={(event) => {
+          event.stopPropagation();
+          removeAction.action();
+        }}
         type="button"
       >
         <span className={this.question.cssClasses.removeFile}>
@@ -164,14 +176,7 @@ class ProtectedSurveyFileItem extends SurveyFileItem {
       <span className={this.question.cssClasses.previewItem}>
         {this.renderFileSign(this.question.cssClasses.fileSign, val)}
         <div className={this.question.getImageWrapperCss(val)}>
-          <button
-            aria-label={val.name ? `Download ${val.name}` : "Download file"}
-            className={this.question.cssClasses.previewItem}
-            onClick={(event) => this.downloadFileFromContainer(event)}
-            type="button"
-          >
-            {this.renderPreviewContent(content, val)}
-          </button>
+          {this.renderPreviewContent(content, val)}
           {this.renderRemoveButton(val)}
         </div>
         {this.renderFileSign(this.question.cssClasses.fileSignBottom, val)}

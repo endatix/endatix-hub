@@ -1,65 +1,44 @@
+import { ErrorPage } from "@/components/error-handling/error-page";
 import "./not-found-sheep.css";
 
 interface NotFoundPageProps {
+  /**
+   * HTTP code for the watermark. Defaults to `404`. Pass `null` to omit it.
+   */
+  notFoundCode?: string | null;
+  /** Short label above the headline, e.g. `Form not found`. */
   notFoundTitle?: string;
   notFoundSubtitle?: string;
-  titleSize?: "small" | "medium" | "large";
   notFoundMessage?: string;
   children?: React.ReactNode;
 }
 
-const DEFAULT_NOT_FOUND_TITLE = "404";
+const DEFAULT_NOT_FOUND_CODE = "404";
+const DEFAULT_NOT_FOUND_TITLE = "Page not found";
 const DEFAULT_NOT_FOUND_SUBTITLE = "This page could not be found.";
 const DEFAULT_NOT_FOUND_MESSAGE =
   "Sorry, the page you're looking for doesn't exist, may have been removed, or its name may have changed.";
 
 export const NotFoundComponent: React.FC<NotFoundPageProps> = ({
+  notFoundCode = DEFAULT_NOT_FOUND_CODE,
   notFoundTitle = DEFAULT_NOT_FOUND_TITLE,
   notFoundSubtitle = DEFAULT_NOT_FOUND_SUBTITLE,
-  titleSize = "large",
   notFoundMessage = DEFAULT_NOT_FOUND_MESSAGE,
   children,
 }) => {
-  const titleSizeClass =
-    titleSize === "small"
-      ? "text-4xl"
-      : titleSize === "medium"
-      ? "text-6xl"
-      : "text-9xl";
+  const watermarkCode = notFoundCode ?? undefined;
+  // Routes that predate the `code`/`eyebrow` split pass "404" as the title.
+  // That is the watermark's job, not the label's - don't print it twice.
+  const isCodeAsTitle = notFoundTitle === watermarkCode;
 
   return (
-    <div className="mx-auto flex h-full max-w-xl flex-col items-center justify-center py-16 text-center">
-      <h1 className={`endatix-error-h1 ${titleSizeClass} text-primary mb-4`}>
-        {notFoundTitle}
-      </h1>
-      <div className="inline-block mb-4">
-        <h2 className="text-2xl font-bold mb-8">{notFoundSubtitle}</h2>
-      </div>
-      <Sheep />
-      <p className="mt-2 text-muted-foreground">{notFoundMessage}</p>
-      {children && <div className="mt-4">{children}</div>}
-    </div>
-  );
-};
-
-const Sheep = () => {
-  return (
-    <div className="sheep">
-      <div className="top">
-        <div className="body"></div>
-        <div className="head">
-          <div className="eye one"></div>
-          <div className="eye two"></div>
-          <div className="ear one"></div>
-          <div className="ear two"></div>
-        </div>
-      </div>
-      <div className="legs">
-        <div className="leg"></div>
-        <div className="leg"></div>
-        <div className="leg"></div>
-        <div className="leg"></div>
-      </div>
-    </div>
+    <ErrorPage
+      code={watermarkCode}
+      eyebrow={isCodeAsTitle ? DEFAULT_NOT_FOUND_TITLE : notFoundTitle}
+      title={notFoundSubtitle}
+      message={notFoundMessage}
+    >
+      {children}
+    </ErrorPage>
   );
 };

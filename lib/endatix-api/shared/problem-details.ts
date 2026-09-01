@@ -5,28 +5,31 @@ import { z } from "zod";
  *
  * `type` and `title` are optional so partial payloads (e.g. streaming endpoints that only set
  * `detail` + `status`) still surface a useful message instead of falling back to a generic one.
+ *
+ * Endatix API (0.7.5+) emits one RFC7807 shape for handler errors, FluentValidation, and
+ * unhandled exceptions — `fields` is a property→messages dictionary (not FE `{statusCode, message, errors}`).
  */
 export const ProblemDetailsSchema = z.object({
   type: z.string().optional(),
   title: z.string().optional(),
   status: z.number(),
-  detail: z.string(),
+  // RFC7807 makes `detail` optional. Endatix always sends it, but ASP.NET's built-in
+  // writers (401/404 from auth and routing) omit it - accept those instead of failing
+  // the parse and falling back to a generic message.
+  detail: z.string().optional(),
+  instance: z.string().optional(),
   errorCode: z.string().optional(),
   traceId: z.string().optional(),
   fields: z.record(z.string(), z.array(z.string())).optional(),
 });
 
 /**
- * The schema for a ValidationProblemDetails object returned from the API.
- * TODO: Merge this with ProblemDetailsSchema once Endatix API fully moves to problem details
+ * Parsed problem details. `detail` is normalized to always be present (falling back to
+ * `title`), so callers never have to branch on a missing message.
  */
-export const ValidationProblemDetailsSchema = z.object({
-  statusCode: z.number().int().min(400).max(499),
-  message: z.string(),
-  errors: z.record(z.string(), z.array(z.string())),
-});
-
-export type ProblemDetails = z.infer<typeof ProblemDetailsSchema>;
+export type ProblemDetails = z.infer<typeof ProblemDetailsSchema> & {
+  detail: string;
+};
 
 /**
  * Normalize common ProblemDetails shapes (camelCase RFC7807 and PascalCase .NET defaults).
@@ -41,10 +44,10 @@ function normalizeProblemDetailsCandidate(data: unknown): unknown {
   const status = record.status ?? record.Status;
   const title = record.title ?? record.Title;
   const type = record.type ?? record.Type;
+  const instance = record.instance ?? record.Instance;
   const errorCode = record.errorCode ?? record.ErrorCode;
   const traceId = record.traceId ?? record.TraceId;
-  const fields =
-    record.fields ?? record.Fields ?? record.errors ?? record.Errors;
+  const fields = record.fields ?? record.Fields;
 
   return {
     ...record,
@@ -52,6 +55,7 @@ function normalizeProblemDetailsCandidate(data: unknown): unknown {
     ...(typeof status === "number" ? { status } : {}),
     ...(typeof title === "string" ? { title } : {}),
     ...(typeof type === "string" ? { type } : {}),
+    ...(typeof instance === "string" ? { instance } : {}),
     ...(typeof errorCode === "string" ? { errorCode } : {}),
     ...(typeof traceId === "string" ? { traceId } : {}),
     ...(fields !== undefined ? { fields } : {}),
@@ -68,26 +72,18 @@ export function parseProblemDetails(data: unknown): ProblemDetails | null {
   const result = ProblemDetailsSchema.safeParse(normalized);
 
   if (result.success) {
+    const title = result.data.title ?? "Error";
     return {
       type: result.data.type ?? "about:blank",
-      title: result.data.title ?? "Error",
+      title,
       status: result.data.status,
-      detail: result.data.detail,
+      // Keep `detail` a guaranteed string for consumers; fall back to the title when the
+      // producer omitted it.
+      detail: result.data.detail ?? title,
+      instance: result.data.instance,
       errorCode: result.data.errorCode,
       traceId: result.data.traceId,
       fields: result.data.fields,
-    };
-  }
-
-  const validationResult = ValidationProblemDetailsSchema.safeParse(data);
-
-  if (validationResult.success) {
-    return {
-      type: "https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.1",
-      title: "One or more validation errors occurred.",
-      status: validationResult.data.statusCode,
-      detail: validationResult.data.message,
-      fields: validationResult.data.errors,
     };
   }
 
