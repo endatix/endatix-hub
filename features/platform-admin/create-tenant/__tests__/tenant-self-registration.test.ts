@@ -12,7 +12,7 @@ describe("tenant-self-registration", () => {
   });
 
   it("builds the public sign-in path from the opaque id", () => {
-    expect(tenantPublicSignInPath("xK9mP2qR8vNw")).toBe("/t/xK9mP2qR8vNw/signin");
+    expect(tenantPublicSignInPath("xK9mP2qR")).toBe("/t/xK9mP2qR/signin");
   });
 
   it("flags Hub-capable default roles", () => {
