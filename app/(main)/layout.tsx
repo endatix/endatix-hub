@@ -62,8 +62,8 @@ export default async function RootLayout({
         >
           {nav}
           <main data-slot="sidebar-inset">
-            {header}
             <AssumedTenantBanner accessToken={session?.accessToken} />
+            {header}
             <div data-slot="content-wrapper">{children}</div>
           </main>
         </AppProvider>
