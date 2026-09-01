@@ -6,6 +6,8 @@ import {
   ActivateInviteResponse,
   AssumeTenantRequest,
   AssumeTenantResponse,
+  SwitchTenantRequest,
+  UserTenantsResponse,
   AuthorizationData,
   InviteDetailsRequest,
   InviteDetailsResponse,
@@ -89,6 +91,22 @@ export default class Auth {
     return this.endatix.post<AssumeTenantResponse>(
       "/auth/exit-assume",
       {},
+      { requireAuth: true },
+    );
+  }
+
+  async listMyTenants(): Promise<ApiResult<UserTenantsResponse>> {
+    return this.endatix.get<UserTenantsResponse>("/auth/tenants", {
+      requireAuth: true,
+    });
+  }
+
+  async switchTenant(
+    request: SwitchTenantRequest,
+  ): Promise<ApiResult<AssumeTenantResponse>> {
+    return this.endatix.post<AssumeTenantResponse>(
+      "/auth/switch-tenant",
+      request,
       { requireAuth: true },
     );
   }

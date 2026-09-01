@@ -1,15 +1,13 @@
 "use client";
 
 import * as React from "react";
-import { ChevronsUpDown, Plus } from "lucide-react";
+import { ChevronsUpDown } from "lucide-react";
 
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -21,7 +19,8 @@ import {
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { getPublicAssetPath } from "@/lib/hosting";
-
+import { switchTenantAction } from "@/features/tenants/switch-tenant/switch-tenant.action";
+import type { MembershipTenant } from "@/lib/endatix-api";
 
 function EndatixLogoIcon({ className }: Readonly<{ className?: string }>) {
   return (
@@ -46,15 +45,8 @@ function EndatixLogoIcon({ className }: Readonly<{ className?: string }>) {
   );
 }
 
-interface Tenant {
-  name: string;
-  description?: string;
-  logo: React.ElementType;
-  href?: string;
-}
-
 interface TenantSwitcherProps {
-  tenants?: Tenant[];
+  tenants?: MembershipTenant[];
 }
 
 const DEFAULT_TENANT = {
@@ -66,19 +58,17 @@ const DEFAULT_TENANT = {
 
 export function TenantSwitcher({ tenants }: Readonly<TenantSwitcherProps>) {
   const { isMobile } = useSidebar();
-  const [activeTenant, setActiveTenant] = React.useState(
-    tenants?.at(0) ?? DEFAULT_TENANT,
-  );
+  const [, startSwitching] = React.useTransition();
+  const activeTenant =
+    tenants?.find((tenant) => tenant.isActive) ?? tenants?.at(0);
+
+  if (tenants === undefined || tenants.length <= 1) {
+    return <SingleTenantDisplay tenant={DEFAULT_TENANT} />;
+  }
 
   if (!activeTenant) {
     return null;
   }
-
-  if (tenants === undefined && activeTenant) {
-    return <SingleTenantDisplay tenant={activeTenant} />;
-  }
-
-  const tenantsToDisplay = tenants ?? [DEFAULT_TENANT];
 
   return (
     <SidebarMenu>
@@ -89,15 +79,11 @@ export function TenantSwitcher({ tenants }: Readonly<TenantSwitcherProps>) {
               size="lg"
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
-              <div className="flex aspect-square size-8 flex-shrink-0 items-center justify-center group-data-[collapsible=icon]:size-full">
-                <activeTenant.logo className="size-8 shrink-0" />
-              </div>
+              <TenantGlyph name={activeTenant.name} />
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">
-                  {activeTenant.name}
-                </span>
-                <span className="truncate text-xs">
-                  {activeTenant.description}
+                <span className="truncate font-medium">{activeTenant.name}</span>
+                <span className="truncate text-xs text-muted-foreground">
+                  {activeTenant.slug}
                 </span>
               </div>
               <ChevronsUpDown className="ml-auto" />
@@ -112,28 +98,25 @@ export function TenantSwitcher({ tenants }: Readonly<TenantSwitcherProps>) {
             <DropdownMenuLabel className="text-xs text-muted-foreground">
               Tenants
             </DropdownMenuLabel>
-            {tenantsToDisplay?.map((tenant, index) => (
+            {tenants.map((tenant) => (
               <DropdownMenuItem
-                key={tenant.name}
-                onClick={() => setActiveTenant(tenant)}
+                key={String(tenant.id)}
+                disabled={tenant.isActive}
+                onClick={() => {
+                  if (tenant.isActive) {
+                    return;
+                  }
+
+                  startSwitching(() => {
+                    void switchTenantAction(String(tenant.id));
+                  });
+                }}
                 className="gap-2 p-2"
               >
-                <div className="flex size-6 items-center justify-center">
-                  <tenant.logo className="size-6 shrink-0" />
-                </div>
+                <TenantGlyph name={tenant.name} compact />
                 {tenant.name}
-                <DropdownMenuShortcut>⌘{index + 1}</DropdownMenuShortcut>
               </DropdownMenuItem>
             ))}
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="gap-2 p-2">
-              <div className="flex size-6 items-center justify-center rounded-md border bg-transparent">
-                <Plus className="size-4" />
-              </div>
-              <div className="font-medium text-muted-foreground">
-                Add tenant
-              </div>
-            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>
@@ -141,7 +124,31 @@ export function TenantSwitcher({ tenants }: Readonly<TenantSwitcherProps>) {
   );
 }
 
-const SingleTenantDisplay = ({ tenant }: Readonly<{ tenant: Tenant }>) => {
+function TenantGlyph({
+  name,
+  compact = false,
+}: Readonly<{ name: string; compact?: boolean }>) {
+  return (
+    <div
+      className={cn(
+        "flex flex-shrink-0 items-center justify-center rounded-md bg-sidebar-accent font-medium",
+        compact ? "size-6 text-xs" : "aspect-square size-8 text-sm group-data-[collapsible=icon]:size-full",
+      )}
+    >
+      {name.trim().charAt(0).toUpperCase() || "T"}
+    </div>
+  );
+}
+
+const SingleTenantDisplay = ({
+  tenant,
+}: Readonly<{
+  tenant: {
+    name: string;
+    logo: React.ElementType;
+    href?: string;
+  };
+}>) => {
   return (
     <SidebarMenu>
       <SidebarMenuItem>
