@@ -1,6 +1,7 @@
 export const SystemRoles = {
   Admin: "Admin",
   Creator: "Creator",
+  Respondent: "Respondent",
   Authenticated: "Authenticated",
   Public: "Public",
   PlatformAdmin: "PlatformAdmin",
