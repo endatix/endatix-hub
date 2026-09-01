@@ -14,8 +14,10 @@ interface SlackLayoutProps {
 }
 
 export default async function SlackLayout({ children }: SlackLayoutProps) {
-  const session = await auth();
-  const endatixConfig = await getClientEndatixConfig();
+  const [session, endatixConfig] = await Promise.all([
+    auth(),
+    getClientEndatixConfig(),
+  ]);
 
   return (
     <html lang="en" suppressHydrationWarning>

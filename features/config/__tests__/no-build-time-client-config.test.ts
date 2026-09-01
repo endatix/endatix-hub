@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -13,6 +14,9 @@ const REPO_ROOT = path.resolve(__dirname, "../../..");
  * change, never a rebuild.
  */
 
+/** The deprecated-env shim. Server-only by contract; the second test enforces it. */
+const LEGACY_SERVER_MODULE = "features/config/legacy-public-env.server.ts";
+
 /** Documented build-time `NEXT_PUBLIC_*` reads and the deprecated-env shim. */
 const ALLOWED_BUILD_TIME_READS = [
   // basePath feeds next.config.ts, which Next resolves at build. No runtime equivalent.
@@ -21,12 +25,8 @@ const ALLOWED_BUILD_TIME_READS = [
   "features/forms/use-cases/create-form/resolve-default-create-folder.ts",
   "features/auth/infrastructure/auth-logout.utils.ts",
   // Deprecated fallbacks. Safe ONLY while no client component imports it — asserted below.
-  LEGACY_SERVER_MODULE(),
+  LEGACY_SERVER_MODULE,
 ];
-
-function LEGACY_SERVER_MODULE(): string {
-  return "features/config/legacy-public-env.server.ts";
-}
 
 /** `git grep` exits 1 when nothing matches, which is success here, not failure. */
 function gitGrepFiles(pattern: string): string[] {
@@ -52,12 +52,14 @@ function gitGrepFiles(pattern: string): string[] {
     .filter((file) => !file.includes("__tests__") && !file.includes(".test."));
 }
 
+/**
+ * Reads the working tree, not `HEAD`: the point of this guard is to fail on the change
+ * being written, and `git show HEAD:<file>` both misses uncommitted edits and throws
+ * outright on a file that has not been committed yet.
+ */
 function isClientModule(file: string): boolean {
-  const out = execFileSync("git", ["show", `HEAD:${file}`], {
-    cwd: REPO_ROOT,
-    encoding: "utf-8",
-  });
-  return /^\s*["']use client["']/m.test(out);
+  const source = readFileSync(path.join(REPO_ROOT, file), "utf-8");
+  return /^\s*["']use client["']/m.test(source);
 }
 
 describe("public client config stays request-time", () => {
@@ -78,13 +80,13 @@ describe("public client config stays request-time", () => {
     // The exemption above is only sound while this module stays server-side: one import
     // from a "use client" file is enough for Next to inline every literal inside it.
     const importers = gitGrepFiles("legacy-public-env.server").filter(
-      (file) => file !== LEGACY_SERVER_MODULE(),
+      (file) => file !== LEGACY_SERVER_MODULE,
     );
     const clientImporters = importers.filter(isClientModule);
 
     expect(
       clientImporters,
-      `${LEGACY_SERVER_MODULE()} is imported by a client component, so its deprecated ` +
+      `${LEGACY_SERVER_MODULE} is imported by a client component, so its deprecated ` +
         "NEXT_PUBLIC_-prefixed reads are now inlined into the browser bundle. Read them " +
         "on the server and pass the value down instead.",
     ).toEqual([]);

@@ -17,8 +17,10 @@ export default async function EmbedLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await auth();
-  const endatixConfig = await getClientEndatixConfig();
+  const [session, endatixConfig] = await Promise.all([
+    auth(),
+    getClientEndatixConfig(),
+  ]);
 
   return (
     <html lang="en" suppressHydrationWarning>

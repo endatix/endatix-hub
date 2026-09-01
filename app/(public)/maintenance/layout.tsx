@@ -29,9 +29,11 @@ interface MaintenanceLayoutProps {
 export default async function PublicLayout({
   children,
 }: Readonly<MaintenanceLayoutProps>) {
-  const requestHeaders = await headers();
+  const [requestHeaders, endatixConfig] = await Promise.all([
+    headers(),
+    getClientEndatixConfig(),
+  ]);
   const osClass = getOsClass(requestHeaders);
-  const endatixConfig = await getClientEndatixConfig();
 
   return (
     <html

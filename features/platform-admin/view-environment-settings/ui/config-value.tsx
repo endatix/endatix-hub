@@ -3,11 +3,18 @@
 import CopyToClipboard from "@/components/copy-to-clipboard";
 
 interface ConfigValueProps {
+  /** `null` when the setting is unset; `""` when it resolved to an empty value. */
   value: string | null;
   /** Accessible name for the copy button, e.g. "Copy PostHog host". */
   copyLabel: string;
   /** Turn off for short enum-like values nobody needs to paste elsewhere. */
   copyable?: boolean;
+  /**
+   * Rendered when the value resolved to an empty string. "Configured as empty"
+   * and "never configured" are different answers to an operator's question, so
+   * they must not both render as an em dash.
+   */
+  emptyLabel?: string;
 }
 
 /**
@@ -19,12 +26,21 @@ export function ConfigValue({
   value,
   copyLabel,
   copyable = true,
+  emptyLabel = "(none)",
 }: Readonly<ConfigValueProps>) {
-  if (!value) {
+  if (value === null) {
     return (
       <span className="font-mono text-sm text-muted-foreground">
         <span className="sr-only">Not set</span>
         <span aria-hidden="true">—</span>
+      </span>
+    );
+  }
+
+  if (value === "") {
+    return (
+      <span className="font-mono text-sm text-muted-foreground">
+        {emptyLabel}
       </span>
     );
   }

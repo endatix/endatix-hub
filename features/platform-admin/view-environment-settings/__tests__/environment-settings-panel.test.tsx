@@ -83,6 +83,18 @@ describe("EnvironmentSettingsPanel", () => {
     );
   });
 
+  it("distinguishes an empty API prefix from an unset one", () => {
+    const summary = buildSummary();
+    render(
+      <EnvironmentSettingsPanel
+        summary={{ ...summary, api: { ...summary.api, prefix: "" } }}
+      />,
+    );
+
+    // An API served at the origin root is configured, not missing.
+    expect(screen.getByText("(none)")).toBeDefined();
+  });
+
   it("renders the env var behind every setting as visible text", () => {
     render(<EnvironmentSettingsPanel summary={buildSummary()} />);
 

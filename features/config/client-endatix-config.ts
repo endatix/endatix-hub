@@ -26,20 +26,24 @@ export interface ClientEndatixConfig {
   readonly submitterGridProfileFields: string;
 }
 
-/** Compile-time guard: secrets must never be added to the browser projection type. */
+/** Secrets that must never be added to the browser projection type. */
 type ForbiddenClientConfigKeys =
   | "surveyLicenseKey"
   | "sessionSecret"
   | "authSecret"
   | "keycloakClientSecret";
 
-type _AssertClientConfigAllowlist =
-  Extract<ForbiddenClientConfigKeys, keyof ClientEndatixConfig> extends never
-    ? true
-    : never;
-
-const _clientConfigAllowlist: _AssertClientConfigAllowlist = true;
-void _clientConfigAllowlist;
+/**
+ * Compile-time guard. Type-only, so it emits no runtime code: the default type argument
+ * is checked against its `never` constraint, and adding any {@link ForbiddenClientConfigKeys}
+ * member to {@link ClientEndatixConfig} makes that default non-`never` and fails the build.
+ */
+export type AssertNoSecretsInClientConfig<
+  TForbidden extends never = Extract<
+    ForbiddenClientConfigKeys,
+    keyof ClientEndatixConfig
+  >,
+> = TForbidden;
 
 export const DEFAULT_POSTHOG_HOST = "https://us.i.posthog.com";
 export const DEFAULT_SUBMITTER_PRIMARY_FILTER_LABEL = "Submitter";
@@ -93,6 +97,17 @@ function firstNonEmpty(...values: (string | undefined)[]): string {
 }
 
 /**
+ * The env-derived half of {@link ClientEndatixConfig}. Excludes `apiBaseUrl` and
+ * `extensionsEnabled`, which are resolved from the API/experimental config rather than read
+ * straight from the environment, so no caller can pick them up from an accessor that cannot
+ * produce them.
+ */
+export type PublicEndatixEnvConfig = Omit<
+  ClientEndatixConfig,
+  "apiBaseUrl" | "extensionsEnabled"
+>;
+
+/**
  * The public slice of the runtime environment.
  *
  * `ENDATIX_*` only. This module is imported by client components, and Next inlines any
@@ -104,10 +119,7 @@ function firstNonEmpty(...values: (string | undefined)[]): string {
  * Non-`NEXT_PUBLIC_` reads are safe here: Next does not inline them, so in the browser they
  * simply resolve to `undefined` and the hydrated projection supplies the value instead.
  */
-export function readPublicEndatixEnv(): Omit<
-  ClientEndatixConfig,
-  "apiBaseUrl" | "extensionsEnabled"
-> {
+export function readPublicEndatixEnv(): PublicEndatixEnvConfig {
   const debugOverride = firstNonEmpty(process.env.ENDATIX_IS_DEBUG_MODE);
 
   return {
@@ -144,19 +156,17 @@ export function getBrowserEndatixConfig(): ClientEndatixConfig {
  * module-level `browserConfig`, which SSR of a client component would otherwise share
  * across requests.
  *
- * `apiBaseUrl`/`extensionsEnabled` are omitted on the server path; server callers that need
- * those use `getClientEndatixConfig()` from `@/features/config/server`, which resolves the full
- * object including API settings.
+ * The return type stops at {@link PublicEndatixEnvConfig} on purpose: the server path has no
+ * `apiBaseUrl`/`extensionsEnabled` to give, and handing back placeholders would hydrate a
+ * component with values that differ from the ones it server-rendered. Server callers that
+ * need those use `getClientEndatixConfig()` from `@/features/config/server`; browser-only
+ * callers use {@link getBrowserEndatixConfig}.
  */
-export function getIsomorphicEndatixConfig(): ClientEndatixConfig {
+export function getIsomorphicEndatixConfig(): PublicEndatixEnvConfig {
   if (typeof window !== "undefined") {
     return browserConfig;
   }
-  return Object.freeze({
-    apiBaseUrl: "",
-    extensionsEnabled: false,
-    ...readPublicEndatixEnv(),
-  });
+  return readPublicEndatixEnv();
 }
 
 /** Called from {@link EndatixConfigProvider} during render (before children). */
@@ -164,6 +174,7 @@ export function hydrateBrowserEndatixConfig(config: ClientEndatixConfig): void {
   browserConfig = config;
 }
 
+/** Clears the hydrated browser projection between tests. */
 export function resetBrowserEndatixConfigForTests(): void {
   browserConfig = EMPTY_CLIENT_ENDATIX_CONFIG;
 }

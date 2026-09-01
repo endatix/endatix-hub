@@ -10,6 +10,10 @@ import type { EnvironmentAdminSummary, SecretPresence } from "./types";
 
 export type { EnvironmentAdminSummary, SecretPresence } from "./types";
 
+/**
+ * Collapses a secret to a presence flag. The value itself never leaves the server, so a
+ * blank or whitespace-only env var reports as not configured.
+ */
 function secretPresence(value: string | undefined): SecretPresence {
   return { configured: Boolean(value?.trim()) };
 }

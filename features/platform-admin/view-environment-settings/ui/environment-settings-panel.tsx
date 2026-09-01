@@ -21,6 +21,11 @@ interface EnvironmentSettingsPanelProps {
   summary: EnvironmentAdminSummary;
 }
 
+/**
+ * Read-only view of the resolved Hub runtime configuration: an overview strip answering
+ * "is anything missing?", then one card per configuration group. Secrets render as
+ * Set / Not set presence badges only — no secret value reaches this component.
+ */
 export function EnvironmentSettingsPanel({
   summary,
 }: Readonly<EnvironmentSettingsPanelProps>) {
@@ -63,7 +68,7 @@ export function EnvironmentSettingsPanel({
           />
           <ConfigRow
             label="Endatix API URL"
-            envVar="ENDATIX_BASE_URL / ENDATIX_API_BASE_URL"
+            envVar="ENDATIX_BASE_URL / ENDATIX_API_URL"
             value={
               <ConfigValue
                 value={api.apiConfigured ? api.apiUrl : null}
@@ -84,9 +89,10 @@ export function EnvironmentSettingsPanel({
             <ConfigRow
               nested
               label="API prefix"
+              envVar="ENDATIX_API_PREFIX"
               value={
                 <ConfigValue
-                  value={api.prefix === "" ? null : api.prefix}
+                  value={api.prefix}
                   copyLabel="Copy API prefix"
                   copyable={false}
                 />

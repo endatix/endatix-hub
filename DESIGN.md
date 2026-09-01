@@ -246,9 +246,15 @@ Environment, Auth, Storage, Email. Reference implementation:
   it renders as a `font-mono text-xs text-on-surface-variant` sub-label
   under the human label. A row of `CircleHelp` icons that each reveal one word
   is icon noise standing in for information design.
-- Literal values are monospace, **wrap rather than truncate** (`break-all`), and
-  render `—` in `text-muted-foreground` when empty, with an `sr-only` label for
-  screen readers. Never truncate a value the reader came to read.
+- Literal values are monospace and **wrap rather than truncate** (`break-all`).
+  Never truncate a value the reader came to read.
+- **Unset and empty are different answers.** A setting that was never configured
+  renders `—` (with an `sr-only` "Not set"); one that resolved to an empty
+  string renders `(none)`. Collapsing both to an em dash tells an operator their
+  deliberately-empty prefix is missing, and sends them to fix a non-problem.
+- **Show the key even for values you are hiding.** Env var sub-labels appear on
+  every row, including secret rows — the operator still needs to know which
+  variable to set.
 - Copy affordance rule: any value an operator might paste into a config file
   gets a `CopyToClipboard layout="inline"`. Enum-ish values (`development`,
   `/api`) do not. Apply the rule consistently within a page — a copy button on
