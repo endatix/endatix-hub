@@ -19,19 +19,16 @@ import { useEffect, useState, useTransition } from "react";
 import {
   TENANT_REGISTRATION_ROLES,
   tenantNameError,
-  type AuthProviderOption,
 } from "../../tenant-registration";
 import { getTenantAction, updateTenantAction } from "../update-tenant.action";
 
 interface EditTenantSheetProps {
   tenantId: string | null;
-  authProviders: AuthProviderOption[];
   onOpenChange: (open: boolean) => void;
 }
 
 export function EditTenantSheet({
   tenantId,
-  authProviders,
   onOpenChange,
 }: Readonly<EditTenantSheetProps>) {
   const open = tenantId !== null;
@@ -40,7 +37,6 @@ export function EditTenantSheet({
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [allowSelfRegistration, setAllowSelfRegistration] = useState(false);
-  const [allowedProviders, setAllowedProviders] = useState<string[]>([]);
   const [defaultRole, setDefaultRole] = useState(
     TENANT_REGISTRATION_ROLES[0].name,
   );
@@ -73,7 +69,6 @@ export function EditTenantSheet({
         setName(result.value.name);
         setDescription(result.value.description ?? "");
         setAllowSelfRegistration(result.value.allowSelfRegistration);
-        setAllowedProviders([...result.value.allowedAuthProviderKeys]);
         setDefaultRole(result.value.defaultRegistrationRoleName);
       })
       .catch(() => {
@@ -108,7 +103,6 @@ export function EditTenantSheet({
         name: name.trim(),
         description: description.trim(),
         allowSelfRegistration,
-        allowedAuthProviderKeys: allowedProviders,
         defaultRegistrationRoleName: defaultRole,
       });
 
@@ -169,9 +163,6 @@ export function EditTenantSheet({
             idPrefix="edit-tenant"
             allowSelfRegistration={allowSelfRegistration}
             onAllowSelfRegistrationChange={setAllowSelfRegistration}
-            authProviders={authProviders}
-            allowedProviders={allowedProviders}
-            onAllowedProvidersChange={setAllowedProviders}
             defaultRole={defaultRole}
             onDefaultRoleChange={setDefaultRole}
           />

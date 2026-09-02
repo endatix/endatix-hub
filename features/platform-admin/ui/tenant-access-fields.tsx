@@ -1,7 +1,6 @@
 "use client";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -15,16 +14,12 @@ import { Info } from "lucide-react";
 import {
   roleHasHubAccess,
   TENANT_REGISTRATION_ROLES,
-  type AuthProviderOption,
 } from "../tenant-registration";
 
 interface TenantAccessFieldsProps {
   idPrefix: string;
   allowSelfRegistration: boolean;
   onAllowSelfRegistrationChange: (value: boolean) => void;
-  authProviders: AuthProviderOption[];
-  allowedProviders: string[];
-  onAllowedProvidersChange: (value: string[]) => void;
   defaultRole: string;
   onDefaultRoleChange: (value: string) => void;
   showSelfRegHint?: boolean;
@@ -34,9 +29,6 @@ export function TenantAccessFields({
   idPrefix,
   allowSelfRegistration,
   onAllowSelfRegistrationChange,
-  authProviders,
-  allowedProviders,
-  onAllowedProvidersChange,
   defaultRole,
   onDefaultRoleChange,
   showSelfRegHint = false,
@@ -61,35 +53,6 @@ export function TenantAccessFields({
           onCheckedChange={onAllowSelfRegistrationChange}
         />
       </div>
-      {authProviders.length > 0 && (
-        <fieldset className="grid gap-2">
-          <legend className="text-sm font-medium">
-            Allowed auth providers
-          </legend>
-          {authProviders.map((provider) => {
-            const providerId = `${idPrefix}-provider-${provider.id}`;
-
-            return (
-              <div key={provider.id} className="flex items-center gap-2">
-                <Checkbox
-                  id={providerId}
-                  checked={allowedProviders.includes(provider.id)}
-                  onCheckedChange={(checked) => {
-                    onAllowedProvidersChange(
-                      checked === true
-                        ? [...allowedProviders, provider.id]
-                        : allowedProviders.filter((id) => id !== provider.id),
-                    );
-                  }}
-                />
-                <Label htmlFor={providerId} className="font-normal">
-                  {provider.name}
-                </Label>
-              </div>
-            );
-          })}
-        </fieldset>
-      )}
       <div className="grid gap-2">
         <Label htmlFor={roleId}>Default registration role</Label>
         <Select value={defaultRole} onValueChange={onDefaultRoleChange}>

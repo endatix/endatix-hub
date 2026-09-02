@@ -56,7 +56,6 @@ describe("EditTenantSheet", () => {
     render(
       <EditTenantSheet
         tenantId="42"
-        authProviders={[]}
         onOpenChange={onOpenChange}
       />,
     );
@@ -89,7 +88,6 @@ describe("EditTenantSheet failures", () => {
     render(
       <EditTenantSheet
         tenantId="42"
-        authProviders={[]}
         onOpenChange={vi.fn()}
       />,
     );
@@ -104,7 +102,6 @@ describe("EditTenantSheet failures", () => {
     render(
       <EditTenantSheet
         tenantId="42"
-        authProviders={[]}
         onOpenChange={vi.fn()}
       />,
     );
@@ -129,7 +126,6 @@ describe("EditTenantSheet failures", () => {
     render(
       <EditTenantSheet
         tenantId="42"
-        authProviders={[]}
         onOpenChange={vi.fn()}
       />,
     );

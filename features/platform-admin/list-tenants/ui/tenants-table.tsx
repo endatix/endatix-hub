@@ -24,7 +24,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { AuthProviderOption } from "@/features/platform-admin/tenant-registration";
 import {
   AssumeTenantConfirmDialog,
   type AssumeTenantTarget,
@@ -47,7 +46,6 @@ import { listUrlStateFromSearchParams } from "../utils";
 interface TenantsTableProps {
   tenants: NormalizedPagedResponse<PlatformTenantListItem>;
   canManage?: boolean;
-  authProviders?: AuthProviderOption[];
 }
 
 export function TenantsTableFromPromise({
@@ -64,7 +62,6 @@ export function TenantsTableFromPromise({
 export function TenantsTable({
   tenants: paged,
   canManage = false,
-  authProviders = [],
 }: Readonly<TenantsTableProps>) {
   const { updateUrl, searchParams, isPending } = useListUrlState();
   const urlState = listUrlStateFromSearchParams(searchParams);
@@ -155,7 +152,6 @@ export function TenantsTable({
           />
           <EditTenantSheet
             tenantId={editingTenantId}
-            authProviders={authProviders}
             onOpenChange={(isOpen) => {
               if (!isOpen) {
                 setEditingTenantId(null);

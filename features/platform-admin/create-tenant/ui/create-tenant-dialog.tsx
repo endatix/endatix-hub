@@ -19,7 +19,6 @@ import { useState, useTransition } from "react";
 import {
   TENANT_REGISTRATION_ROLES,
   tenantNameError,
-  type AuthProviderOption,
 } from "../../tenant-registration";
 import { createTenantAction } from "../create-tenant.action";
 
@@ -48,19 +47,12 @@ const STEP_COPY: Record<
 
 const DEFAULT_ROLE = TENANT_REGISTRATION_ROLES[0].name;
 
-interface CreateTenantDialogProps {
-  authProviders: AuthProviderOption[];
-}
-
-export function CreateTenantDialog({
-  authProviders,
-}: Readonly<CreateTenantDialogProps>) {
+export function CreateTenantDialog() {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<CreateStep>(1);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [allowSelfRegistration, setAllowSelfRegistration] = useState(false);
-  const [allowedProviders, setAllowedProviders] = useState<string[]>([]);
   const [defaultRole, setDefaultRole] = useState(DEFAULT_ROLE);
   const [createdShortUrl, setCreatedShortUrl] = useState<string | null>(null);
   const [stepError, setStepError] = useState<string | null>(null);
@@ -73,7 +65,6 @@ export function CreateTenantDialog({
       setName("");
       setDescription("");
       setAllowSelfRegistration(false);
-      setAllowedProviders([]);
       setDefaultRole(DEFAULT_ROLE);
       setCreatedShortUrl(null);
       setStepError(null);
@@ -96,7 +87,6 @@ export function CreateTenantDialog({
         name: name.trim(),
         description: description.trim() || null,
         allowSelfRegistration,
-        allowedAuthProviderKeys: allowedProviders,
         defaultRegistrationRoleName: defaultRole,
       });
 
@@ -151,9 +141,6 @@ export function CreateTenantDialog({
             idPrefix="tenant"
             allowSelfRegistration={allowSelfRegistration}
             onAllowSelfRegistrationChange={setAllowSelfRegistration}
-            authProviders={authProviders}
-            allowedProviders={allowedProviders}
-            onAllowedProvidersChange={setAllowedProviders}
             defaultRole={defaultRole}
             onDefaultRoleChange={setDefaultRole}
             showSelfRegHint
