@@ -5,17 +5,27 @@ import { Result } from "@/lib/result";
 import { getTenantAction, updateTenantAction } from "../update-tenant.action";
 import type { PlatformTenant } from "@/lib/endatix-api/platform-tenants/types";
 
-const { getByIdMock, updateMock } = vi.hoisted(() => ({
-  getByIdMock: vi.fn(),
-  updateMock: vi.fn(),
-}));
+const { getByIdMock, updateMock, tenantManagementFlagMock } = vi.hoisted(
+  () => ({
+    getByIdMock: vi.fn(),
+    updateMock: vi.fn(),
+    tenantManagementFlagMock: vi.fn(),
+  }),
+);
 
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
 }));
 
-vi.mock("../../require-platform-admin/require-platform-admin.server", () => ({
-  requirePlatformAdmin: vi.fn().mockResolvedValue({ accessToken: "token" }),
+vi.mock(
+  "@/features/platform-admin/require-platform-admin/require-platform-admin.server",
+  () => ({
+    requirePlatformAdmin: vi.fn().mockResolvedValue({ accessToken: "token" }),
+  }),
+);
+
+vi.mock("@/lib/feature-flags/flags", () => ({
+  tenantManagementFlag: tenantManagementFlagMock,
 }));
 
 vi.mock("@/lib/endatix-api", () => ({
@@ -38,6 +48,7 @@ const TENANT: PlatformTenant = {
 describe("update-tenant actions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    tenantManagementFlagMock.mockResolvedValue(true);
   });
 
   it("loads a tenant by id", async () => {
@@ -47,6 +58,22 @@ describe("update-tenant actions", () => {
 
     expect(Result.isSuccess(result)).toBe(true);
     expect(getByIdMock).toHaveBeenCalledWith("42");
+  });
+
+  it("stays dark when the multi-tenancy flag is off", async () => {
+    tenantManagementFlagMock.mockResolvedValue(false);
+
+    const result = await updateTenantAction("42", { name: "Acme" });
+
+    expect(Result.isError(result)).toBe(true);
+    expect(updateMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects a blank name without calling the API", async () => {
+    const result = await updateTenantAction("42", { name: "  " });
+
+    expect(Result.isError(result)).toBe(true);
+    expect(updateMock).not.toHaveBeenCalled();
   });
 
   it("updates a tenant and revalidates the admin list", async () => {
@@ -59,6 +86,9 @@ describe("update-tenant actions", () => {
     });
 
     expect(Result.isSuccess(result)).toBe(true);
+    expect(updateMock).toHaveBeenCalledWith("42", {
+      allowSelfRegistration: false,
+    });
     expect(revalidatePath).toHaveBeenCalledWith("/(main)/admin/tenants");
   });
 

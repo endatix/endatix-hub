@@ -1,44 +1,62 @@
 "use server";
 
-import { EndatixApi } from "@/lib/endatix-api";
 import type {
   PlatformTenant,
   UpdatePlatformTenantRequest,
 } from "@/lib/endatix-api/platform-tenants/types";
-import { Result } from "@/lib/result";
-import { mapApiErrorToResult } from "@/lib/result/map-api-error-to-result";
+import { Result, type ResultType } from "@/lib/result";
+import { toResult } from "@/lib/result/map-api-result-to-result";
 import { revalidatePath } from "next/cache";
-import { requirePlatformAdmin } from "../require-platform-admin/require-platform-admin.server";
+import {
+  requireTenantManagement,
+  TENANTS_LIST_PATH,
+  TENANTS_LOGGER_NAME,
+} from "../tenant-management.server";
+import { tenantNameError } from "../tenant-registration";
 
-export async function getTenantAction(tenantId: string) {
-  const session = await requirePlatformAdmin();
-  const api = new EndatixApi(session.accessToken);
-  const loaded = await api.platformTenants.getById(String(tenantId));
-
-  if (!loaded.success) {
-    return mapApiErrorToResult<PlatformTenant>(loaded, {
-      fallbackMessage: "Failed to load tenant",
-    });
+export async function getTenantAction(
+  tenantId: string,
+): Promise<ResultType<PlatformTenant>> {
+  const api = await requireTenantManagement();
+  if (Result.isError(api)) {
+    return api;
   }
 
-  return Result.success(loaded.data);
+  return toResult(await api.value.platformTenants.getById(tenantId), {
+    fallbackMessage: "Failed to load tenant.",
+    logMessage: "Failed to load tenant.",
+    loggerName: TENANTS_LOGGER_NAME,
+  });
 }
 
 export async function updateTenantAction(
   tenantId: string,
   request: UpdatePlatformTenantRequest,
-) {
-  const session = await requirePlatformAdmin();
-  const api = new EndatixApi(session.accessToken);
-  const updated = await api.platformTenants.update(String(tenantId), request);
-
-  if (!updated.success) {
-    return mapApiErrorToResult(updated, {
-      fallbackMessage: "Failed to update tenant",
-      preferredFields: ["name", "defaultRegistrationRoleName"],
-    });
+): Promise<ResultType<PlatformTenant>> {
+  const api = await requireTenantManagement();
+  if (Result.isError(api)) {
+    return api;
   }
 
-  revalidatePath("/(main)/admin/tenants");
-  return Result.success(updated.data);
+  const nameError =
+    request.name === undefined ? null : tenantNameError(request.name);
+  if (nameError) {
+    return Result.validationError<PlatformTenant>(nameError);
+  }
+
+  const result = toResult(
+    await api.value.platformTenants.update(tenantId, request),
+    {
+      fallbackMessage: "Failed to update tenant.",
+      logMessage: "Failed to update tenant.",
+      loggerName: TENANTS_LOGGER_NAME,
+      preferredFields: ["name", "defaultRegistrationRoleName"],
+    },
+  );
+
+  if (Result.isSuccess(result)) {
+    revalidatePath(TENANTS_LIST_PATH);
+  }
+
+  return result;
 }

@@ -1,41 +1,51 @@
 "use server";
 
-import { EndatixApi } from "@/lib/endatix-api";
 import type {
   CreatePlatformTenantRequest,
   PlatformTenant,
 } from "@/lib/endatix-api/platform-tenants/types";
 import { Result, type ResultType } from "@/lib/result";
-import { mapApiErrorToResult } from "@/lib/result/map-api-error-to-result";
+import { toResult } from "@/lib/result/map-api-result-to-result";
 import { revalidatePath } from "next/cache";
-import { requirePlatformAdmin } from "../require-platform-admin/require-platform-admin.server";
-import { identityStepError } from "./tenant-self-registration";
+import {
+  requireTenantManagement,
+  TENANTS_LIST_PATH,
+  TENANTS_LOGGER_NAME,
+} from "../tenant-management.server";
+import { tenantNameError } from "../tenant-registration";
 
 export async function createTenantAction(
   request: CreatePlatformTenantRequest,
 ): Promise<ResultType<PlatformTenant>> {
-  const session = await requirePlatformAdmin();
-  const identityError = identityStepError(request.name);
-  if (identityError) {
-    return Result.validationError<PlatformTenant>(identityError);
+  const api = await requireTenantManagement();
+  if (Result.isError(api)) {
+    return api;
   }
 
-  const api = new EndatixApi(session.accessToken);
-  const created = await api.platformTenants.create({
-    name: request.name.trim(),
-    description: request.description?.trim() || null,
-    allowSelfRegistration: request.allowSelfRegistration,
-    allowedAuthProviderKeys: request.allowedAuthProviderKeys,
-    defaultRegistrationRoleName: request.defaultRegistrationRoleName,
-  });
+  const nameError = tenantNameError(request.name);
+  if (nameError) {
+    return Result.validationError<PlatformTenant>(nameError);
+  }
 
-  if (!created.success) {
-    return mapApiErrorToResult<PlatformTenant>(created, {
-      fallbackMessage: "Failed to create tenant",
+  const result = toResult(
+    await api.value.platformTenants.create({
+      name: request.name.trim(),
+      description: request.description?.trim() || null,
+      allowSelfRegistration: request.allowSelfRegistration,
+      allowedAuthProviderKeys: request.allowedAuthProviderKeys,
+      defaultRegistrationRoleName: request.defaultRegistrationRoleName,
+    }),
+    {
+      fallbackMessage: "Failed to create tenant.",
+      logMessage: "Failed to create tenant.",
+      loggerName: TENANTS_LOGGER_NAME,
       preferredFields: ["name", "defaultRegistrationRoleName"],
-    });
+    },
+  );
+
+  if (Result.isSuccess(result)) {
+    revalidatePath(TENANTS_LIST_PATH);
   }
 
-  revalidatePath("/(main)/admin/tenants");
-  return Result.success(created.data);
+  return result;
 }

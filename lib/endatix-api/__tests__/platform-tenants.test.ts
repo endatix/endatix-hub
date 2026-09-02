@@ -5,6 +5,25 @@ import { ApiResult } from "../shared/api-result";
 const mockFetch = vi.fn();
 vi.stubGlobal("fetch", mockFetch);
 
+const TENANT = {
+  id: "1",
+  name: "Acme",
+  shortUrl: "xk9mp2qr",
+  allowSelfRegistration: false,
+  allowedAuthProviderKeys: [],
+  defaultRegistrationRoleName: "Respondent",
+  createdAt: "2026-01-01T00:00:00.000Z",
+};
+
+function respondWithTenant(status: number): void {
+  mockFetch.mockResolvedValueOnce(
+    new Response(JSON.stringify(TENANT), {
+      status,
+      headers: { "Content-Type": "application/json" },
+    }),
+  );
+}
+
 describe("PlatformTenants", () => {
   beforeEach(() => {
     process.env.ENDATIX_API_URL = "https://ci.api.endatix.com/api";
@@ -15,32 +34,20 @@ describe("PlatformTenants", () => {
     vi.clearAllMocks();
   });
 
-  it("rejects a non-numeric tenant id before calling the API", async () => {
-    const api = new EndatixApi("token");
-    const result = await api.platformTenants.getById("abc");
+  it.each([
+    ["getById", (api: EndatixApi) => api.platformTenants.getById("abc")],
+    ["update", (api: EndatixApi) => api.platformTenants.update("../1", {})],
+  ])("rejects a non-numeric tenant id in %s", async (_name, call) => {
+    const result = await call(new EndatixApi("token"));
 
     expect(ApiResult.isError(result)).toBe(true);
     expect(mockFetch).not.toHaveBeenCalled();
   });
 
   it("GETs a tenant by id", async () => {
-    mockFetch.mockResolvedValueOnce(
-      new Response(
-        JSON.stringify({
-          id: "1",
-          name: "Acme",
-          shortUrl: "xk9mp2qr",
-          allowSelfRegistration: false,
-          allowedAuthProviderKeys: [],
-          defaultRegistrationRoleName: "Respondent",
-          createdAt: "2026-01-01T00:00:00.000Z",
-        }),
-        { status: 200, headers: { "Content-Type": "application/json" } },
-      ),
-    );
+    respondWithTenant(200);
 
-    const api = new EndatixApi("token");
-    const result = await api.platformTenants.getById("1");
+    const result = await new EndatixApi("token").platformTenants.getById("1");
 
     expect(ApiResult.isSuccess(result)).toBe(true);
     expect(mockFetch).toHaveBeenCalledWith(
@@ -50,37 +57,29 @@ describe("PlatformTenants", () => {
   });
 
   it("POSTs create without a slug field", async () => {
-    mockFetch.mockResolvedValueOnce(
-      new Response(
-        JSON.stringify({
-          id: "1",
-          name: "Acme",
-          shortUrl: "xk9mp2qr",
-          allowSelfRegistration: false,
-          allowedAuthProviderKeys: [],
-          defaultRegistrationRoleName: "Respondent",
-          createdAt: "2026-01-01T00:00:00.000Z",
-        }),
-        { status: 201, headers: { "Content-Type": "application/json" } },
-      ),
-    );
+    respondWithTenant(201);
+    const body = { name: "Acme", allowSelfRegistration: false };
 
-    const api = new EndatixApi("token");
-    const body = {
-      name: "Acme",
-      allowSelfRegistration: false,
-    };
-    await api.platformTenants.create(body);
+    await new EndatixApi("token").platformTenants.create(body);
 
     expect(mockFetch).toHaveBeenCalledWith(
       expect.stringContaining("/api/admin/tenants"),
-      expect.objectContaining({
-        method: "POST",
-        body: JSON.stringify(body),
-      }),
+      expect.objectContaining({ method: "POST", body: JSON.stringify(body) }),
     );
     expect(JSON.parse(mockFetch.mock.calls[0][1].body)).not.toHaveProperty(
       "slug",
+    );
+  });
+
+  it("PATCHes only the supplied fields", async () => {
+    respondWithTenant(200);
+    const body = { allowSelfRegistration: true };
+
+    await new EndatixApi("token").platformTenants.update("42", body);
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining("/api/admin/tenants/42"),
+      expect.objectContaining({ method: "PATCH", body: JSON.stringify(body) }),
     );
   });
 });

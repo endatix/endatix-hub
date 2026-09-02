@@ -5,14 +5,24 @@ import { Result } from "@/lib/result";
 import { createTenantAction } from "../create-tenant.action";
 import type { PlatformTenant } from "@/lib/endatix-api/platform-tenants/types";
 
-const { createMock } = vi.hoisted(() => ({ createMock: vi.fn() }));
+const { createMock, tenantManagementFlagMock } = vi.hoisted(() => ({
+  createMock: vi.fn(),
+  tenantManagementFlagMock: vi.fn(),
+}));
 
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
 }));
 
-vi.mock("../../require-platform-admin/require-platform-admin.server", () => ({
-  requirePlatformAdmin: vi.fn().mockResolvedValue({ accessToken: "token" }),
+vi.mock(
+  "@/features/platform-admin/require-platform-admin/require-platform-admin.server",
+  () => ({
+    requirePlatformAdmin: vi.fn().mockResolvedValue({ accessToken: "token" }),
+  }),
+);
+
+vi.mock("@/lib/feature-flags/flags", () => ({
+  tenantManagementFlag: tenantManagementFlagMock,
 }));
 
 vi.mock("@/lib/endatix-api", () => ({
@@ -35,6 +45,7 @@ const TENANT: PlatformTenant = {
 describe("createTenantAction", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    tenantManagementFlagMock.mockResolvedValue(true);
   });
 
   it("rejects a blank name without calling the API", async () => {
@@ -46,6 +57,18 @@ describe("createTenantAction", () => {
     expect(Result.isError(result)).toBe(true);
     expect(createMock).not.toHaveBeenCalled();
     expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("stays dark when the multi-tenancy flag is off", async () => {
+    tenantManagementFlagMock.mockResolvedValue(false);
+
+    const result = await createTenantAction({
+      name: "Acme",
+      allowSelfRegistration: false,
+    });
+
+    expect(Result.isError(result)).toBe(true);
+    expect(createMock).not.toHaveBeenCalled();
   });
 
   it("creates a tenant and revalidates the admin list", async () => {
