@@ -18,8 +18,6 @@ import {
 } from "./property-grid-lazy-choice-registry";
 import { registerDataListGlobals } from "./registry";
 
-export { setDataListPropertyChoices } from "./data-list-property-choices";
-
 const DATA_LIST_CREATOR_BOUND_KEY = "__endatixDataListsCreatorBound";
 
 const LAZY_REFRESH_PROPERTY_NAMES = new Set<string>(

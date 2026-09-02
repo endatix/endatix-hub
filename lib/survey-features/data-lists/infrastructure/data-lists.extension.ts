@@ -1,6 +1,7 @@
 import type { ExtensionModule } from "@/lib/survey-extensions/types";
 import { bindDataListsToCreator } from "@/lib/survey-features/data-lists/infrastructure/creator-bindings";
 import { registerDataListCreatorHelp } from "@/lib/survey-features/data-lists/infrastructure/creator-help";
+import { registerDataListCatalogLazyChoiceProvider } from "@/lib/survey-features/data-lists/infrastructure/data-list-catalog-lazy-choice-provider";
 import { registerDataListGlobals } from "@/lib/survey-features/data-lists/infrastructure/registry";
 import { bindDataListsToSurvey } from "@/lib/survey-features/data-lists/infrastructure/survey-bindings";
 
@@ -13,6 +14,7 @@ import { bindDataListsToSurvey } from "@/lib/survey-features/data-lists/infrastr
 const dataListsExtension: ExtensionModule = {
   onInit: () => {
     registerDataListGlobals();
+    registerDataListCatalogLazyChoiceProvider();
     registerDataListCreatorHelp();
   },
   onCreatorReady: (creator, deps) => {

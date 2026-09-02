@@ -13,6 +13,29 @@ describe("property-grid-lazy-choice-registry", () => {
     clearPropertyGridLazyChoiceProvidersForTests();
   });
 
+  it("enables lazy load on a registered property editor dropdown", () => {
+    registerPropertyGridLazyChoiceProvider({
+      propertyName: "edxDataListId",
+      shouldEnable: () => true,
+      loadPage: async () => ({ items: [], total: 0 }),
+      resolveDisplayValues: async (_ctx, values) => values,
+    });
+
+    const propertyGridSurvey = new Model({
+      elements: [{ type: "dropdown", name: "edxDataListId" }],
+    });
+
+    refreshPropertyGridLazyChoices({
+      designerSurvey: new SurveyModel({ elements: [] }),
+      propertyGridSurvey,
+      editingObj: {},
+    });
+
+    const editor = propertyGridSurvey.getQuestionByName("edxDataListId");
+    expect(editor?.choicesLazyLoadEnabled).toBe(true);
+    expect(editor?.choicesLazyLoadPageSize).toBe(25);
+  });
+
   it("enables lazy load on a registered property editor tagbox", () => {
     registerPropertyGridLazyChoiceProvider({
       propertyName: "edxCarryForwardPriorityItems",

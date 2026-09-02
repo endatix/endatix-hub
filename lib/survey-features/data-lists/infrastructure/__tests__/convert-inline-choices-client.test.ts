@@ -34,7 +34,7 @@ describe("runConvertInlineChoicesToDataList", () => {
     const confirmConvertInlineChoices = vi.fn().mockResolvedValue(null);
     const completeDataListBinding = vi.fn();
     registerConvertChoicesUiDeps({
-      getDataListNames: () => [],
+      searchDataListNames: vi.fn().mockResolvedValue([]),
       refreshDataLists: vi.fn().mockResolvedValue(undefined),
       completeDataListBinding,
       markFormModified: vi.fn(),
@@ -77,7 +77,7 @@ describe("runConvertInlineChoicesToDataList", () => {
       ),
     );
     registerConvertChoicesUiDeps({
-      getDataListNames: () => [],
+      searchDataListNames: vi.fn().mockResolvedValue([]),
       refreshDataLists,
       completeDataListBinding: vi.fn(),
       markFormModified: vi.fn(),

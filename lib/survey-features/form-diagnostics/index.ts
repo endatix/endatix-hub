@@ -7,10 +7,7 @@ export {
   type FormDiagnosticsContextInput,
   type FormDiagnosticsRuntimeSlice,
 } from "./form-diagnostics-context";
-export {
-  useFormDiagnostics,
-  type UseFormDiagnosticsOptions,
-} from "./use-form-diagnostics.hook";
+export { useFormDiagnostics } from "./use-form-diagnostics.hook";
 export {
   FormDiagnosticsPlugin,
   FORM_DIAGNOSTICS_PLUGIN_NAME,

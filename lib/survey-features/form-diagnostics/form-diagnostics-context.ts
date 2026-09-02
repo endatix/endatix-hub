@@ -1,4 +1,3 @@
-import type { DataList } from "@/lib/endatix-api/data-lists/types";
 import type { SurveyCreatorModel } from "survey-creator-core";
 import {
   FormDiagnosticsPlugin,
@@ -20,23 +19,19 @@ export interface FormDiagnosticsContextInput {
   formName?: string;
   formIsEnabled?: boolean;
   folderId?: string | null;
-  dataLists?: DataList[] | null;
+  availableDataListNames?: string[];
 }
 
-/** Form metadata carried on designer runtime (no data lists). */
+/** Form metadata carried on designer runtime. */
 export type FormDiagnosticsRuntimeSlice = Omit<
   FormDiagnosticsContextInput,
-  "dataLists"
+  "availableDataListNames"
 >;
 
 export function createFormDiagnosticsContextFromRuntime(
   runtime: FormDiagnosticsRuntimeSlice,
-  dataLists?: DataList[] | null,
 ): FormDiagnosticsContext {
-  return createFormDiagnosticsContext({
-    ...runtime,
-    dataLists,
-  });
+  return createFormDiagnosticsContext(runtime);
 }
 
 export function createFormDiagnosticsContext(
@@ -48,9 +43,7 @@ export function createFormDiagnosticsContext(
     formName: input.formName,
     formIsEnabled: input.formIsEnabled,
     folderId: input.folderId,
-    availableDataListNames: (input.dataLists ?? []).map(
-      (dataList) => dataList.name,
-    ),
+    availableDataListNames: input.availableDataListNames ?? [],
   };
 }
 

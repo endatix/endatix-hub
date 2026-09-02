@@ -212,6 +212,8 @@ Hub management grids follow the same URL + chrome pattern as forms/users. Parsin
 - Items are **GET-only** in Hub. Authors edit via file replace (`replace-items`), not per-item CRUD.
 - Stream the paged promise from the App Router page into the client table (`use()` + `Suspense`). Footer lives **inside** `DataTableSurface`.
 - Creator Translations CSV wrap lives in `lib/survey-features/data-lists/` (compound keys + SurveyJS CSV merge). Hub actions stay in `features/data-lists/translations/` (`uploadTranslationsCsvAction`, `getDataListTranslationCatalogAction`).
+- **Creator catalog picker** (`edxDataListId`): `PropertyGridLazyChoiceProvider` in `lib/survey-features/data-lists/infrastructure/` pages `GET /data-lists` via `searchDataListsForPickerAction`. Selected labels use `GET /data-lists/{id}`. Do not aggregate list pages for Creator bootstrap.
+- **Bound question items** (respondent + Creator preview): public search in `survey-bindings.ts` (`searchDataListChoices`). Same handlers; different API from the Hub catalog picker.
 
 ### Server Helper Layer (`*.server.ts`)
 

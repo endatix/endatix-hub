@@ -12,55 +12,33 @@ import {
 } from "../form-diagnostics-plugin";
 
 describe("form-diagnostics-context", () => {
-  it("builds context from designer runtime slice and data lists", () => {
-    const context = createFormDiagnosticsContextFromRuntime(
-      {
-        formId: "form-1",
-        formName: "Games",
-        folderId: "folder-9",
-        isPublic: true,
-        formIsEnabled: false,
-      },
-      [
-        {
-          id: "1",
-          name: "Countries",
-          isActive: true,
-          createdAt: new Date(),
-          itemsCount: 0,
-        },
-      ],
-    );
+  it("builds context from designer runtime slice", () => {
+    const context = createFormDiagnosticsContextFromRuntime({
+      formId: "form-1",
+      formName: "Games",
+      folderId: "folder-9",
+      isPublic: true,
+      formIsEnabled: false,
+    });
 
     expect(context.folderId).toBe("folder-9");
-    expect(context.availableDataListNames).toEqual(["Countries"]);
+    expect(context.availableDataListNames).toEqual([]);
   });
 
-  it("builds context with data list names from loaded lists", () => {
-    // Arrange & Act
+  it("builds context with optional data list names", () => {
     const context = createFormDiagnosticsContext({
       isPublic: false,
       formId: "form-1",
       formName: "Games",
       formIsEnabled: true,
-      dataLists: [
-        {
-          id: "1",
-          name: "Countries",
-          isActive: true,
-          createdAt: new Date(),
-          itemsCount: 0,
-        },
-      ],
+      availableDataListNames: ["Countries"],
     });
 
-    // Assert
     expect(context.availableDataListNames).toEqual(["Countries"]);
     expect(context.formName).toBe("Games");
   });
 
   it("applies form context to the diagnostics plugin tab", () => {
-    // Arrange
     const creator = new SurveyCreatorModel({});
     const plugin = new FormDiagnosticsPlugin(creator);
     (creator as unknown as { addTab: (tab: unknown) => void }).addTab({
@@ -72,7 +50,6 @@ describe("form-diagnostics-context", () => {
       componentName: "svc-tab-form-diagnostics",
     });
 
-    // Act
     applyFormDiagnosticsContext(creator, {
       isPublic: true,
       formId: "form-1",
@@ -82,7 +59,6 @@ describe("form-diagnostics-context", () => {
       availableDataListNames: ["Countries", "Regions"],
     });
 
-    // Assert
     const resolved = getFormDiagnosticsPlugin(creator);
     expect(resolved).toBe(plugin);
     expect(resolved?.isPublic).toBe(true);

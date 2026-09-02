@@ -37,7 +37,7 @@ describe("useFormDiagnostics", () => {
 
     // Act
     const { result } = renderHook(
-      () => useFormDiagnostics(creator, { dataLists: [] }),
+      () => useFormDiagnostics(creator),
       { wrapper },
     );
     act(() => {

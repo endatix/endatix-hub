@@ -5,11 +5,10 @@ import type { Question } from "survey-core";
  * The convert choices UI dependencies.
  */
 export type ConvertChoicesUiDeps = {
-  getDataListNames: () => string[];
+  searchDataListNames: (query: string) => Promise<string[]>;
   refreshDataLists: () => Promise<void>;
   /**
-   * Updates Serializer choices, binds the question, and refreshes the Creator
-   * property grid when the question is selected.
+   * Binds the question and refreshes the Creator property grid when selected.
    */
   completeDataListBinding: (
     question: Question,
