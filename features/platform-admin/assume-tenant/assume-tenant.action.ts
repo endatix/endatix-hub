@@ -26,7 +26,7 @@ export async function assumeTenantAction(tenantId: string) {
     return swapped;
   }
 
-  redirect("/");
+  redirect("/forms");
 }
 
 export async function exitAssumeAction() {
