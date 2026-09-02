@@ -2,7 +2,6 @@
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -31,19 +30,16 @@ import {
   roleHasHubAccess,
   TENANT_DEFAULT_REGISTRATION_ROLES,
   tenantPublicSignInPath,
-  type AuthProviderOption,
 } from "../../create-tenant/tenant-self-registration";
 import { getTenantAction, updateTenantAction } from "../update-tenant.action";
 
 interface EditTenantSheetProps {
   tenantId: string | null;
-  authProviders: AuthProviderOption[];
   onOpenChange: (open: boolean) => void;
 }
 
 export function EditTenantSheet({
   tenantId,
-  authProviders,
   onOpenChange,
 }: Readonly<EditTenantSheetProps>) {
   const open = tenantId !== null;
@@ -52,7 +48,6 @@ export function EditTenantSheet({
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [allowSelfRegistration, setAllowSelfRegistration] = useState(false);
-  const [allowedProviders, setAllowedProviders] = useState<string[]>([]);
   const [defaultRole, setDefaultRole] = useState(
     TENANT_DEFAULT_REGISTRATION_ROLES[0].name,
   );
@@ -82,7 +77,6 @@ export function EditTenantSheet({
         setName(result.value.name);
         setDescription(result.value.description ?? "");
         setAllowSelfRegistration(result.value.allowSelfRegistration);
-        setAllowedProviders([...result.value.allowedAuthProviderKeys]);
         setDefaultRole(result.value.defaultRegistrationRoleName);
       })
       .finally(() => {
@@ -116,7 +110,6 @@ export function EditTenantSheet({
         name: name.trim(),
         description: description.trim(),
         allowSelfRegistration,
-        allowedAuthProviderKeys: allowedProviders,
         defaultRegistrationRoleName: defaultRole,
       });
 
@@ -190,29 +183,6 @@ export function EditTenantSheet({
                 onCheckedChange={setAllowSelfRegistration}
               />
             </div>
-            {authProviders.length > 0 && (
-              <fieldset className="grid gap-2">
-                <legend className="text-sm font-medium">Allowed auth providers</legend>
-                {authProviders.map((provider) => (
-                  <label
-                    key={provider.id}
-                    className="flex items-center gap-2 text-sm"
-                  >
-                    <Checkbox
-                      checked={allowedProviders.includes(provider.id)}
-                      onCheckedChange={(checked) => {
-                        setAllowedProviders((current) =>
-                          checked === true
-                            ? [...current, provider.id]
-                            : current.filter((id) => id !== provider.id),
-                        );
-                      }}
-                    />
-                    {provider.name}
-                  </label>
-                ))}
-              </fieldset>
-            )}
             <div className="grid gap-2">
               <Label htmlFor="edit-tenant-default-role">Default registration role</Label>
               <Select value={defaultRole} onValueChange={setDefaultRole}>

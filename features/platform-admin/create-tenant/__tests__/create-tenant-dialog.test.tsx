@@ -20,7 +20,7 @@ beforeAll(() => {
 
 describe("CreateTenantDialog", () => {
   it("blocks continue when the name is empty", async () => {
-    render(<CreateTenantDialog authProviders={[]} />);
+    render(<CreateTenantDialog />);
     fireEvent.click(screen.getByRole("button", { name: /create tenant/i }));
 
     fireEvent.click(await screen.findByRole("button", { name: /continue/i }));
@@ -29,7 +29,7 @@ describe("CreateTenantDialog", () => {
   });
 
   it("does not show a slug field on the identity step", async () => {
-    render(<CreateTenantDialog authProviders={[]} />);
+    render(<CreateTenantDialog />);
     fireEvent.click(screen.getByRole("button", { name: /create tenant/i }));
 
     expect(await screen.findByLabelText("Name")).toBeTruthy();
@@ -37,7 +37,7 @@ describe("CreateTenantDialog", () => {
   });
 
   it("shows a Hub access warning for Creator", async () => {
-    render(<CreateTenantDialog authProviders={[]} />);
+    render(<CreateTenantDialog />);
     fireEvent.click(screen.getByRole("button", { name: /create tenant/i }));
 
     fireEvent.change(await screen.findByLabelText("Name"), {
@@ -64,7 +64,7 @@ describe("CreateTenantDialog", () => {
       }),
     );
 
-    render(<CreateTenantDialog authProviders={[]} />);
+    render(<CreateTenantDialog />);
     fireEvent.click(screen.getByRole("button", { name: /create tenant/i }));
     fireEvent.change(await screen.findByLabelText("Name"), {
       target: { value: "Acme Surveys" },
@@ -80,5 +80,8 @@ describe("CreateTenantDialog", () => {
       expect(createTenantActionMock).toHaveBeenCalledOnce();
     });
     expect(createTenantActionMock.mock.calls[0][0]).not.toHaveProperty("slug");
+    expect(createTenantActionMock.mock.calls[0][0]).not.toHaveProperty(
+      "allowedAuthProviderKeys",
+    );
   });
 });

@@ -1,10 +1,5 @@
 import { SystemRoles } from "@/features/auth/authorization/domain/system-roles";
 
-export type AuthProviderOption = {
-  id: string;
-  name: string;
-};
-
 export type TenantRegistrationRoleOption = {
   name: string;
   hasHubAccess: boolean;
