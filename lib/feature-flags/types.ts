@@ -6,6 +6,7 @@ export interface FeatureFlagConfig {
   formAnalytics: boolean;
   storageStats: boolean;
   reportingExport: boolean;
+  tenantManagement: boolean;
 }
 
 export interface AIFeatures {

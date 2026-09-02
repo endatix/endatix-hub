@@ -14,6 +14,7 @@
 - Pass `fallbackMessage`, `logMessage`, and `loggerName` so unexpected failures log via `TelemetryLogger` while expected 403/404/validation stay user-facing without noisy logs.
 - When the action result type differs from the API payload (e.g. `Result<void>` after PATCH that returns settings), use `mapData` (e.g. `mapData: () => undefined`). Alternatively keep success local and map only the failure branch with `toResult`.
 - Call `revalidatePath` / `revalidateTag` only after `Result.isSuccess(result)`.
+- Actions behind a feature flag check it server-side, next to the authorization guard, and return `Result.error("<Feature> is not enabled for this environment.")` — a hidden UI is not a gate. When several actions share one guard + flag, put both in a slice-local `require*` helper that returns `Result<EndatixApi>` (`features/platform-admin/tenant-management.server.ts`); a single action can inline the check (`features/export/prepare-reporting-export/prepare-reporting-export.action.ts`).
 
 ## Endatix IDs
 
