@@ -17,7 +17,7 @@ export interface ListPlatformTenantsRequest
 export interface PlatformTenantListItem {
   id: string;
   name: string;
-  slug: string;
+  shortUrl: string;
   description?: string | null;
   createdAt: string;
   modifiedAt?: string | null;
@@ -29,7 +29,7 @@ export interface PlatformTenantListItem {
 export interface PlatformTenant {
   id: string;
   name: string;
-  slug: string;
+  shortUrl: string;
   description?: string | null;
   allowSelfRegistration: boolean;
   allowedAuthProviderKeys: string[];

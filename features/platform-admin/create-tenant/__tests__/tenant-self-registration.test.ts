@@ -12,12 +12,15 @@ describe("tenant-self-registration", () => {
   });
 
   it("builds the public sign-in path from the opaque id", () => {
-    expect(tenantPublicSignInPath("xK9mP2qR8vNw")).toBe("/t/xK9mP2qR8vNw/signin");
+    expect(tenantPublicSignInPath("xK9mP2qR8vNw")).toBe(
+      "/t/xK9mP2qR8vNw/signin",
+    );
   });
 
   it("flags Hub-capable default roles", () => {
     expect(roleHasHubAccess("Respondent")).toBe(false);
     expect(roleHasHubAccess("Creator")).toBe(true);
     expect(roleHasHubAccess("Admin")).toBe(true);
+    expect(roleHasHubAccess("Unknown")).toBe(false);
   });
 });

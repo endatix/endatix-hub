@@ -39,6 +39,6 @@ export async function updateTenantAction(
     });
   }
 
-  revalidatePath("/admin/tenants");
+  revalidatePath("/(main)/admin/tenants");
   return Result.success(updated.data);
 }

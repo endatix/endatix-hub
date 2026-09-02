@@ -1,3 +1,4 @@
+import type { Route } from "next";
 import { SystemRoles } from "@/features/auth/authorization/domain/system-roles";
 
 export type AuthProviderOption = {
@@ -25,13 +26,13 @@ export function identityStepError(name: string): string | null {
   return null;
 }
 
-export function tenantPublicSignInPath(slug: string): string {
-  return `/t/${slug}/signin`;
+export function tenantPublicSignInPath(shortUrl: string): Route {
+  return `/t/${shortUrl}/signin` as Route;
 }
 
 export function roleHasHubAccess(roleName: string): boolean {
   return (
     TENANT_DEFAULT_REGISTRATION_ROLES.find((role) => role.name === roleName)
-      ?.hasHubAccess ?? true
+      ?.hasHubAccess ?? false
   );
 }

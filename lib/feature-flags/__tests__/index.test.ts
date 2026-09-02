@@ -8,6 +8,7 @@ import {
   advancedAnalyticsFlag,
   formAnalyticsFlag,
   reportingExportFlag,
+  tenantManagementFlag,
   getAllFlags,
   flagFactoryProvider,
   PostHogFlagFactory,
@@ -58,6 +59,7 @@ describe("Feature Flags Module Exports", () => {
       expect(typeof advancedAnalyticsFlag).toBe("function");
       expect(typeof formAnalyticsFlag).toBe("function");
       expect(typeof reportingExportFlag).toBe("function");
+      expect(typeof tenantManagementFlag).toBe("function");
       expect(typeof getAllFlags).toBe("function");
     });
   });
@@ -95,6 +97,7 @@ describe("Feature Flags Module Exports", () => {
         "advancedAnalyticsFlag",
         "formAnalyticsFlag",
         "reportingExportFlag",
+        "tenantManagementFlag",
         "getAllFlags",
         "flagFactoryProvider",
         "PostHogFlagFactory",
