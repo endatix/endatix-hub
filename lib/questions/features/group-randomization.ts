@@ -1,8 +1,8 @@
 import {
-  Serializer,
   Helpers,
   ItemValue,
   QuestionSelectBase,
+  Serializer,
 } from "survey-core";
 
 interface IHasGroup {
@@ -10,7 +10,18 @@ interface IHasGroup {
   randomize: boolean;
 }
 
+/**
+ * `randomizeArray` is private on `QuestionSelectBase`, so it is not on the
+ * public typings. It is a plain prototype method at runtime, which is what the
+ * design-mode override below replaces.
+ */
+type ChoiceRandomizer = (array: ItemValue[]) => ItemValue[];
+const selectBasePrototype = QuestionSelectBase.prototype as unknown as {
+  randomizeArray?: ChoiceRandomizer;
+};
+
 const originalRandomizeArray = Helpers.randomizeArray;
+const originalQuestionRandomizeArray = selectBasePrototype.randomizeArray;
 let isInitialized = false;
 
 function addRandomizeGroupFeature() {
@@ -38,6 +49,24 @@ function addRandomizeGroupFeature() {
 
     return groupRandomize(array, seed);
   };
+
+  /**
+   * Skip randomization whenever the survey is in design mode, so the Designer
+   * shows the authored order everywhere and randomization stays a preview /
+   * runtime concern.
+   */
+  if (typeof originalQuestionRandomizeArray === "function") {
+    selectBasePrototype.randomizeArray = function (
+      this: QuestionSelectBase,
+      array: ItemValue[],
+    ): ItemValue[] {
+      if (this.isDesignMode) {
+        return array;
+      }
+
+      return originalQuestionRandomizeArray.call(this, array);
+    };
+  }
 
   Serializer.addProperties("itemvalue", [
     {
