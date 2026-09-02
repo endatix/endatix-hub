@@ -8,8 +8,7 @@ import { Spinner } from "@/components/loaders/spinner";
 import { registerTenantAccountAction } from "../public-tenant.action";
 import { useActionState } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
-import { getPublicAssetPath } from "@/lib/hosting";
+import { AuthLogo } from "@/features/auth/ui/auth-logo";
 
 interface TenantRegisterFormProps {
   tenantSlug: string;
@@ -45,24 +44,7 @@ const TenantRegisterForm = ({
   return (
     <form action={formAction}>
       <div className="grid gap-2 text-center">
-        <div className="mb-2 flex justify-center">
-          <Image
-            src={getPublicAssetPath("/assets/icons/endatix-logo-wordmark-blue.svg")}
-            alt="Endatix Hub"
-            width={3778}
-            height={706}
-            priority
-            className="h-10 w-auto dark:hidden"
-          />
-          <Image
-            src={getPublicAssetPath("/assets/icons/endatix-logo-wordmark-white.svg")}
-            alt="Endatix Hub"
-            width={3778}
-            height={706}
-            priority
-            className="hidden h-10 w-auto dark:block"
-          />
-        </div>
+        <AuthLogo className="mb-2" />
         <p className="mb-6 text-balance text-muted-foreground">
           Create an account for {tenantName}
         </p>
@@ -98,7 +80,12 @@ const TenantRegisterForm = ({
           )}
         </div>
         {state?.errorMessage && <ErrorMessage message={state.errorMessage} />}
-        <Button type="submit" className="w-full" disabled={isPending} tabIndex={3}>
+        <Button
+          type="submit"
+          className="w-full"
+          disabled={isPending}
+          tabIndex={3}
+        >
           {isPending ? <Spinner className="mr-2 h-4 w-4" /> : null}
           Create account
         </Button>

@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { CalendarX2 } from "lucide-react";
 import {
@@ -25,7 +24,7 @@ import {
   type ActivateInviteActionState,
 } from "../activate-invite.action";
 import { getStringFormValue } from "@/lib/utils/form-data-utils";
-import { getPublicAssetPath } from "@/lib/hosting";
+import { AuthLogo } from "@/features/auth/ui/auth-logo";
 
 interface ActivateInviteFormProps {
   token: string;
@@ -100,24 +99,7 @@ export default function ActivateInviteForm({
       <input type="hidden" name="token" value={token} readOnly />
 
       <div className="grid gap-2 text-center">
-        <div className="mb-2 flex justify-center">
-          <Image
-            src={getPublicAssetPath("/assets/icons/endatix-logo-wordmark-blue.svg")}
-            alt="Endatix Hub"
-            width={3778}
-            height={706}
-            priority
-            className="h-10 w-auto dark:hidden"
-          />
-          <Image
-            src={getPublicAssetPath("/assets/icons/endatix-logo-wordmark-white.svg")}
-            alt="Endatix Hub"
-            width={3778}
-            height={706}
-            priority
-            className="hidden h-10 w-auto dark:block"
-          />
-        </div>
+        <AuthLogo className="mb-2" />
         <h1 className="text-2xl font-semibold">Accept your invitation</h1>
         <p className="mb-6 text-balance text-muted-foreground">
           Set a password to activate your account and sign in to Endatix Hub.
@@ -206,27 +188,10 @@ function mapClientValidationErrors(
 export const InvalidInviteLinkMessage = () => {
   return (
     <div className="grid gap-2 text-center">
-      <div className="mb-2 flex justify-center">
-        <Image
-          src={getPublicAssetPath("/assets/icons/endatix-logo-wordmark-blue.svg")}
-          alt="Endatix Hub"
-          width={3778}
-          height={706}
-          priority
-          className="h-10 w-auto dark:hidden"
-        />
-        <Image
-          src={getPublicAssetPath("/assets/icons/endatix-logo-wordmark-white.svg")}
-          alt="Endatix Hub"
-          width={3778}
-          height={706}
-          priority
-          className="hidden h-10 w-auto dark:block"
-        />
-      </div>
+      <AuthLogo className="mb-2" />
       <div className="space-y-4">
         <div className="mb-2 flex items-center justify-center gap-3">
-          <CalendarX2 className="h-8 w-8 text-red-500" />
+          <CalendarX2 className="size-8 text-destructive" />
           <h2 className="text-2xl font-semibold">Invalid invite link</h2>
         </div>
         <p className="text-center text-muted-foreground">

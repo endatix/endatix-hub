@@ -5,7 +5,6 @@ import {
   resetPasswordAction,
   ResetPasswordActionState,
 } from "./reset-password.action";
-import Image from "next/image";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -14,7 +13,6 @@ import Link from "next/link";
 import { ErrorMessage } from "@/components/forms/error-message";
 import { CalendarX2 } from "lucide-react";
 import { ERROR_CODE } from "@/lib/endatix-api";
-import { getPublicAssetPath } from "@/lib/hosting";
 import FormSuccessMessage from "@/components/forms/form-success-message";
 
 interface ResetPasswordFormProps {
@@ -23,6 +21,8 @@ interface ResetPasswordFormProps {
 }
 
 import { ServerActionState } from "@/lib/utils/zod-error-utils";
+import { AuthLogo } from "@/features/auth/ui/auth-logo";
+import { AuthStatus } from "@/features/auth/ui/auth-status";
 
 const initialState: ResetPasswordActionState = ServerActionState.emptyState();
 
@@ -66,24 +66,7 @@ export default function ResetPasswordForm({
       />
 
       <div className="grid gap-2 text-center">
-        <div className="mb-2 flex justify-center">
-          <Image
-            src={getPublicAssetPath("/assets/icons/endatix-logo-wordmark-blue.svg")}
-            alt="Endatix Hub"
-            width={3778}
-            height={706}
-            priority
-            className="h-10 w-auto dark:hidden"
-          />
-          <Image
-            src={getPublicAssetPath("/assets/icons/endatix-logo-wordmark-white.svg")}
-            alt="Endatix Hub"
-            width={3778}
-            height={706}
-            priority
-            className="hidden h-10 w-auto dark:block"
-          />
-        </div>
+        <AuthLogo className="mb-2" />
         <h1 className="text-2xl font-semibold">Reset your password</h1>
         <p className="mb-6 text-balance text-muted-foreground">
           Enter your new password below.
@@ -143,39 +126,21 @@ export default function ResetPasswordForm({
 
 export const InvalidResetLinkMessage = () => {
   return (
-    <div className="grid gap-2 text-center">
-      <div className="mb-2 flex justify-center">
-        <Image
-          src={getPublicAssetPath("/assets/icons/endatix-logo-wordmark-blue.svg")}
-          alt="Endatix Hub"
-          width={3778}
-          height={706}
-          priority
-          className="h-10 w-auto dark:hidden"
-        />
-        <Image
-          src={getPublicAssetPath("/assets/icons/endatix-logo-wordmark-white.svg")}
-          alt="Endatix Hub"
-          width={3778}
-          height={706}
-          priority
-          className="hidden h-10 w-auto dark:block"
-        />
-      </div>
-      <div className="space-y-4">
-        <div className="mb-2 flex items-center justify-center gap-3">
-          <CalendarX2 className="h-8 w-8 text-red-500" />
-          <h2 className="text-2xl font-semibold">Invalid reset link</h2>
-        </div>
-        <p className="text-center text-muted-foreground">
-          This password reset link is invalid or has expired. Please request a
-          new password reset link.
-        </p>
+    <>
+      <AuthLogo className="mb-2" />
+      <AuthStatus
+        tone="warning"
+        title="This link has expired"
+        description="Password reset links are short-lived. Request a new one and we will email it to you."
+      >
         <Button asChild className="w-full">
-          <Link href="/forgot-password">Request new reset link</Link>
+          <Link href="/forgot-password">Request a new link</Link>
         </Button>
-      </div>
-    </div>
+        <Button variant="ghost" asChild className="w-full">
+          <Link href="/signin">Back to sign in</Link>
+        </Button>
+      </AuthStatus>
+    </>
   );
 };
 

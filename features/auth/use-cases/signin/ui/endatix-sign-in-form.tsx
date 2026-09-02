@@ -5,17 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FC, useActionState } from "react";
-import Image from "next/image";
 import { AuthPresentation } from "@/features/auth/infrastructure";
 import {
   SignInFormState,
   signInWithEndatixAction,
 } from "../sign-in-with-endatix.action";
 import { Spinner } from "@/components/loaders/spinner";
-import { getPublicAssetPath } from "@/lib/hosting";
 import Link from "next/link";
 
 import { ServerActionState } from "@/lib/utils/zod-error-utils";
+import { AuthLogo } from "@/features/auth/ui/auth-logo";
 
 interface EndatixSignInFormProps {
   endatixAuthProvider: AuthPresentation;
@@ -39,24 +38,7 @@ const EndatixSignInForm: FC<EndatixSignInFormProps> = ({
     <form action={formAction}>
       <input type="hidden" name="returnUrl" value={returnUrl} readOnly />
       <div className="grid gap-2 text-center">
-        <div className="mb-2 flex justify-center">
-          <Image
-            src={getPublicAssetPath("/assets/icons/endatix-logo-wordmark-blue.svg")}
-            alt="Endatix Hub"
-            width={3778}
-            height={706}
-            priority
-            className="h-10 w-auto dark:hidden"
-          />
-          <Image
-            src={getPublicAssetPath("/assets/icons/endatix-logo-wordmark-white.svg")}
-            alt="Endatix Hub"
-            width={3778}
-            height={706}
-            priority
-            className="hidden h-10 w-auto dark:block"
-          />
-        </div>
+        <AuthLogo className="mb-2" />
         <p className="mb-6 text-balance text-muted-foreground">
           Sign in to your account
         </p>

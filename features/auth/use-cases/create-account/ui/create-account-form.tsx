@@ -3,13 +3,12 @@
 // import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import Image from "next/image";
 // import { Spinner } from "@/components/loaders/spinner";
 import { ErrorMessage } from "@/components/forms/error-message";
 import { createAccountAction } from "../create-account.action";
 import { useActionState } from "react";
 import { useRouter } from "next/navigation";
-import { getPublicAssetPath } from "@/lib/hosting";
+import { AuthLogo } from "@/features/auth/ui/auth-logo";
 
 interface CreateAccountActionState {
   success: boolean;
@@ -45,24 +44,7 @@ const CreateAccountForm = () => {
   return (
     <form action={formAction}>
       <div className="grid gap-2 text-center">
-        <div className="mb-2 flex justify-center">
-          <Image
-            src={getPublicAssetPath("/assets/icons/endatix-logo-wordmark-blue.svg")}
-            alt="Endatix Hub"
-            width={3778}
-            height={706}
-            priority
-            className="h-10 w-auto dark:hidden"
-          />
-          <Image
-            src={getPublicAssetPath("/assets/icons/endatix-logo-wordmark-white.svg")}
-            alt="Endatix Hub"
-            width={3778}
-            height={706}
-            priority
-            className="hidden h-10 w-auto dark:block"
-          />
-        </div>
+        <AuthLogo className="mb-2" />
         <p className="mb-6 text-balance text-muted-foreground">
           Collect data with highly customizable forms in minutes
         </p>

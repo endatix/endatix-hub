@@ -116,7 +116,7 @@ const SignedInSuccessMessage = ({
         </Card>
         <p className="max-w-lg px-6 text-sm leading-relaxed text-balance text-muted-foreground">
           Or{" "}
-          <Link href="/signout" className="text-blue-500">
+          <Link href="/signout" className="text-primary underline">
             sign out
           </Link>{" "}
           if you wish to use a different account.
