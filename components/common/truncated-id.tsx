@@ -25,7 +25,7 @@ export function truncateId(
 }
 
 interface TruncatedIdProps {
-  id: string;
+  id: string | null | undefined;
   emptyLabel?: string;
   visibleChars?: number;
   className?: string;
@@ -39,7 +39,7 @@ export function TruncatedId({
   className,
   copyLabel = "Copy ID",
 }: Readonly<TruncatedIdProps>) {
-  const trimmed = id.trim();
+  const trimmed = id?.trim() ?? "";
   if (trimmed.length === 0) {
     return (
       <span className={cn("text-muted-foreground", className)}>
