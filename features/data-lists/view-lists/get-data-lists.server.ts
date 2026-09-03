@@ -27,25 +27,17 @@ export async function getDataListsPageResult(
 export async function getDataListsPage(
   request: ListDataListsRequest,
 ): Promise<DataListsPage> {
-  const result = await getDataListsPageResult(request);
-  if (Result.isError(result)) {
-    throw new DataLoadError(result.message, {
-      traceId: result.traceId,
-      errorCode: result.errorCode,
-      statusCode: result.statusCode,
-    });
-  }
-
-  return result.value;
+  return unwrapOrThrow(await getDataListsPageResult(request));
 }
 
-/** Distinct cultures from GET /data-lists/locales. */
 export async function getDataListLocales(): Promise<string[]> {
   const api = await requireDataListsApi();
-  const result = toResult(
-    await api.dataLists.listLocales(),
-    LOCALES_MAP_OPTIONS,
+  return unwrapOrThrow(
+    toResult(await api.dataLists.listLocales(), LOCALES_MAP_OPTIONS),
   );
+}
+
+function unwrapOrThrow<T>(result: Result<T>): T {
   if (Result.isError(result)) {
     throw new DataLoadError(result.message, {
       traceId: result.traceId,

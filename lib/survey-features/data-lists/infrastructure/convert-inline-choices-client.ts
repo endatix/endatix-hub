@@ -21,27 +21,18 @@ async function getDefaultDataListName(
   question: Question,
   uiDeps: ConvertChoicesUiDeps | null,
 ): Promise<string> {
-  const seedName = getQuestionDataListName(
-    {
-      title: question.title,
-      name: question.name,
-      type: question.getType(),
-    },
-    new Set(),
-  );
+  const namingSource = {
+    title: question.title,
+    name: question.name,
+    type: question.getType(),
+  };
+  const seedName = getQuestionDataListName(namingSource, new Set());
   const matchingNames = await uiDeps?.searchDataListNames(seedName);
   const reservedNames = new Set(
     (matchingNames ?? []).map((name) => name.toLowerCase()),
   );
 
-  return getQuestionDataListName(
-    {
-      title: question.title,
-      name: question.name,
-      type: question.getType(),
-    },
-    reservedNames,
-  );
+  return getQuestionDataListName(namingSource, reservedNames);
 }
 
 async function askForDataListName(

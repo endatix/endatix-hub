@@ -7,7 +7,11 @@ describe("mapSkipTakeToPage", () => {
     expect(mapSkipTakeToPage(25, 25)).toEqual({ page: 2, pageSize: 25 });
   });
 
-  it("falls back to the default page size when take is missing", () => {
+  it("uses the default page size when take is not positive", () => {
     expect(mapSkipTakeToPage(0, 0)).toEqual({ page: 1, pageSize: 25 });
+  });
+
+  it("clamps negative skip to page 1", () => {
+    expect(mapSkipTakeToPage(-10, 25)).toEqual({ page: 1, pageSize: 25 });
   });
 });

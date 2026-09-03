@@ -202,19 +202,18 @@ Parsing and helpers live in `features/forms/list-forms/utils.ts` (`parseFormsLis
 
 Hub management grids follow the same URL + chrome pattern as forms/users. Parsing stays in the owning slice (not a new query slice).
 
-| Surface      | Slice                                    | Hub URL                                                                         | API                                                                                |
-| ------------ | ---------------------------------------- | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| List         | `features/data-lists/view-lists/`                    | `search`, `hasLocale` (single BCP-47 code), `page`, `pageSize`, `action=create` | `GET /data-lists` (`search`, `hasLocale`)                                          |
+| Surface        | Slice                                               | Hub URL                                                                         | API                                                                                |
+| -------------- | --------------------------------------------------- | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| List           | `features/data-lists/view-lists/`                   | `search`, `hasLocale` (single BCP-47 code), `page`, `pageSize`, `action=create` | `GET /data-lists` (`search`, `hasLocale`)                                          |
 | Creator picker | `features/data-lists/search-data-lists-for-picker/` | (property grid; no Hub URL)                                                     | Same `GET /data-lists` via `getDataListsPageResult`                                |
-| Detail items | `features/data-lists/view-list-details/`             | `search`, `page`, `pageSize`, `action=replace`                                  | `GET /data-lists/{id}/items` (`query`) + `GET /data-lists/{id}?includeItems=false` |
+| Detail items   | `features/data-lists/view-list-details/`            | `search`, `page`, `pageSize`, `action=replace`                                  | `GET /data-lists/{id}/items` (`query`) + `GET /data-lists/{id}?includeItems=false` |
 
 - List → detail "Back to Data Lists" restores filters/paging via `BackToTableButton` (`tableKey: "data-lists"`), not a URL param — see AGENTS.md "Detail → list back navigation".
 - Replacing items resets the items grid's `page`/`search` (stale values from before the replace would otherwise point past the new item set).
 - Items are **GET-only** in Hub. Authors edit via file replace (`replace-items`), not per-item CRUD.
 - Stream the paged promise from the App Router page into the client table (`use()` + `Suspense`). Footer lives **inside** `DataTableSurface`.
 - Creator Translations CSV wrap lives in `lib/survey-features/data-lists/` (compound keys + SurveyJS CSV merge). Hub actions stay in `features/data-lists/translations/` (`uploadTranslationsCsvAction`, `getDataListTranslationCatalogAction`).
-- **Creator catalog picker** (`edxDataListId`): `PropertyGridLazyChoiceProvider` in `lib/survey-features/data-lists/infrastructure/` pages `GET /data-lists` via `search-data-lists-for-picker` (`searchDataListsForPickerAction` → `getDataListsPageResult`). Selected labels use `view-list-details` (`getDataListDetailsAction` / `getDataListDetails`, `toResult`). Do not aggregate list pages for Creator bootstrap.
-- **Bound question items** (respondent + Creator preview): public search in `survey-bindings.ts` (`searchDataListChoices`). Same handlers; different API from the Hub catalog picker.
+- Creator catalog picker vs bound-question items: Hub session `GET /data-lists` (`search-data-lists-for-picker`) vs public item search (`survey-bindings.ts` + `searchDataListChoices`). Do not load the full catalog at Creator init.
 
 ### Server Helper Layer (`*.server.ts`)
 

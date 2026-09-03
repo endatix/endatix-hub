@@ -26,4 +26,26 @@ describe("getDataListDetails", () => {
     expect(mockRequireApi).not.toHaveBeenCalled();
     expect(mockGetById).not.toHaveBeenCalled();
   });
+
+  it("returns details from GET /data-lists/{id}", async () => {
+    mockGetById.mockResolvedValue({
+      success: true,
+      data: {
+        id: "99",
+        name: "Cities",
+        isActive: true,
+        createdAt: new Date("2024-01-01"),
+        itemsCount: 3,
+        items: [],
+      },
+    });
+
+    const result = await getDataListDetails("99");
+
+    expect(Result.isSuccess(result)).toBe(true);
+    if (Result.isSuccess(result)) {
+      expect(result.value.name).toBe("Cities");
+    }
+    expect(mockGetById).toHaveBeenCalledWith("99", { includeItems: false });
+  });
 });

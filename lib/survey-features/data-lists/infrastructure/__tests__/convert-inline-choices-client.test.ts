@@ -52,6 +52,36 @@ describe("runConvertInlineChoicesToDataList", () => {
     model.dispose?.();
   });
 
+  it("suffixes the default name when search finds an existing list", async () => {
+    const model = new Model({
+      elements: [
+        {
+          type: "dropdown",
+          name: "games",
+          title: "Dropdown",
+          choices: ["A", "B"],
+        },
+      ],
+    });
+    const question = model.getQuestionByName("games") as Question;
+    const confirmConvertInlineChoices = vi.fn().mockResolvedValue(null);
+    registerConvertChoicesUiDeps({
+      searchDataListNames: vi.fn().mockResolvedValue(["games"]),
+      refreshDataLists: vi.fn().mockResolvedValue(undefined),
+      completeDataListBinding: vi.fn(),
+      markFormModified: vi.fn(),
+      confirmConvertInlineChoices,
+    });
+
+    await runConvertInlineChoicesToDataList(question);
+
+    expect(confirmConvertInlineChoices).toHaveBeenCalledWith({
+      initialName: "games (2)",
+      errorMessage: undefined,
+    });
+    model.dispose?.();
+  });
+
   it("reopens the dialog when the API returns duplicate name error code", async () => {
     // Arrange
     const model = new Model({

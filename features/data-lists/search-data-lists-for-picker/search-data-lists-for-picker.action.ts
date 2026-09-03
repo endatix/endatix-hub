@@ -7,7 +7,6 @@ import { Result } from "@/lib/result";
 
 export type SearchDataListsForPickerResult = Result<DataListsPage>;
 
-/** Paged Hub catalog search for Creator property-grid pickers. */
 export async function searchDataListsForPickerAction(
   request: ListDataListsRequest = {},
 ): Promise<SearchDataListsForPickerResult> {

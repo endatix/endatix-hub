@@ -26,7 +26,6 @@ import { useAnyAnswered } from "@/lib/survey-features/any-answered";
 import {
   ConvertInlineChoicesDialog,
   useConvertInlineChoicesUi,
-  useDataLists,
 } from "@/lib/survey-features/data-lists";
 import { useSurveyDesigner } from "@/lib/survey-features/designer/design-survey.context";
 import { useFormDiagnostics } from "@/lib/survey-features/form-diagnostics";
@@ -220,7 +219,6 @@ function FormEditor({
     initGlobals: initQuestionLoopsGlobals,
     bindToCreator: bindQuestionLoops,
   } = useQuestionLoops();
-  const { initGlobals: initDataListsGlobals } = useDataLists();
   const { initGlobals: initAnyAnsweredGlobals } = useAnyAnswered();
 
   const {
@@ -486,7 +484,6 @@ function FormEditor({
         initAnyAnsweredGlobals();
         initQuestionLoopsGlobals();
         initFormDiagnosticsGlobals();
-        initDataListsGlobals();
         const newCreator = new SurveyCreator(creatorOptions);
         applyEndatixCreatorTheme(
           newCreator,
@@ -561,7 +558,6 @@ function FormEditor({
     bindQuestionLoops,
     bindFormDiagnostics,
     initAnyAnsweredGlobals,
-    initDataListsGlobals,
     initFormDiagnosticsGlobals,
     initQuestionLoopsGlobals,
   ]);

@@ -14,12 +14,9 @@ const { mockSearch, mockGetById } = vi.hoisted(() => ({
   mockGetById: vi.fn(),
 }));
 
-vi.mock(
-  "@/features/data-lists/search-data-lists-for-picker",
-  () => ({
-    searchDataListsForPickerAction: mockSearch,
-  }),
-);
+vi.mock("@/features/data-lists/search-data-lists-for-picker", () => ({
+  searchDataListsForPickerAction: mockSearch,
+}));
 vi.mock(
   "@/features/data-lists/view-list-details/get-data-list-details.action",
   () => ({
@@ -56,7 +53,7 @@ describe("data-list-catalog-lazy-choice-provider", () => {
       ctx,
       DATA_LIST_PROPERTY_NAME,
       { skip: 25, take: 25, filter: "cit" },
-      { getRuntimeState: () => null },
+      { getRuntimeState: () => ({}) },
     );
 
     expect(mockSearch).toHaveBeenCalledWith({
@@ -92,11 +89,28 @@ describe("data-list-catalog-lazy-choice-provider", () => {
       ctx,
       DATA_LIST_PROPERTY_NAME,
       ["99"],
-      { getRuntimeState: () => null },
+      { getRuntimeState: () => ({}) },
     );
 
     expect(mockGetById).toHaveBeenCalledWith("99");
     expect(labels).toEqual(["Cities"]);
     expect(mockSearch).not.toHaveBeenCalled();
+  });
+
+  it("returns an empty page when catalog search fails", async () => {
+    mockSearch.mockResolvedValue(Result.error("Failed to search data lists."));
+
+    const page = await dispatchPropertyGridChoicesLazyLoad(
+      {
+        designerSurvey: new SurveyModel({ elements: [] }),
+        propertyGridSurvey: new Model({ elements: [] }),
+        editingObj: {},
+      },
+      DATA_LIST_PROPERTY_NAME,
+      { skip: 0, take: 25 },
+      { getRuntimeState: () => ({}) },
+    );
+
+    expect(page).toEqual({ items: [], total: 0 });
   });
 });
