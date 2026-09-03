@@ -4,6 +4,7 @@
 
 - Keep Hub features organized as vertical slices under `features/{feature}/{verb-noun}/`.
 - Put reusable cross-feature utilities in `lib/`; keep feature-specific business logic inside the owning feature slice.
+- Chrome shared by two or more slices of the same feature lives in `features/{feature}/ui/` (e.g. `platform-admin/ui/platform-admin-shell.tsx`, `tenant-access-fields.tsx` used by `create-tenant` and `update-tenant`). Do not park it in one slice and import across siblings, and do not invent a vague umbrella slice to hold it — a slice is one verb-noun action.
 - Keep `app/` routing-focused. Data mutations should flow through server actions.
 
 ## Server Actions
@@ -21,6 +22,7 @@
 - Treat C# `long` IDs from Endatix entities as strings in Hub types and UI state. The API serializes these IDs as strings to avoid JavaScript number precision loss.
 - Do not coerce Endatix IDs through `Number(...)`, `parseInt(...)`, or numeric Zod schemas. Keep values as strings from API DTOs through server actions and route/query params.
 - Before using an Endatix ID in an API path, server action payload, or security-sensitive lookup, validate it with `validateEndatixId(...)` or `createEndatixIdSchema(...)` from `lib/utils/type-validators.ts` to reduce attack surface.
+- A tenant's public id is `shortUrl` (opaque, API-generated, immutable). Never name it `slug` in Hub DTOs or state, and never send it on create — only Next route folders keep `[tenantSlug]`.
 
 ## Paged list sort and calendar From/To
 
@@ -88,6 +90,13 @@ When a detail page has a "Back to `<list>`" control that should restore the list
 - `parse` / `buildHref` should be stable references (module-level functions, not inline closures) — they're effect dependencies on `BackToTableButton`.
 - Reference implementation: `features/data-lists/view-lists/utils.ts` (`parseDataListsReturnQuery`, `dataListsListHrefFromQuery`), wired into `data-lists-page.tsx` (remember) and `data-list-details-page.tsx` (`BackToTableButton`).
 - `features/submissions/list-submission-query/submission-list-return-to.ts` + `back-to-submissions-button.tsx` predate this shared abstraction (bespoke sessionStorage, same shape, not yet migrated). Move it onto `table-return-to` / `BackToTableButton` next time that code is touched rather than adding a third bespoke copy.
+
+## Mirrored OSS rules
+
+Some Hub modules re-implement an OSS Core rule so the UI can validate before a round trip. Both copies must agree: a Hub-only rule rejects input the API accepts and strands rows already holding that value.
+
+- `lib/url/url-slug.ts` mirrors `Endatix.Core.Common.UrlSlugNormalizer` (normalization + `ReservedSlugs`). Add a reserved name to OSS first, then here; `lib/url/__tests__/url-slug.test.ts` pins the list so drift fails a test rather than a user's save.
+- Same rule for any future mirror: state the OSS type in a file header comment and pin the shared data in a test.
 
 ## Error Handling
 

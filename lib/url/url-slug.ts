@@ -7,6 +7,12 @@ export const MAX_URL_SLUG_LENGTH = 128;
 const EMPTY_STRING = "";
 const HYPHEN_CHAR = "-";
 
+/**
+ * Mirrors `UrlSlugNormalizer.ReservedSlugs` (OSS Endatix.Core), plus `null` so the
+ * literal string cannot reach a route param. A Hub-only entry rejects a slug the API
+ * accepts and blocks re-saving folders that already carry it, so reserve new names in
+ * OSS first, then mirror them here.
+ */
 const RESERVED_SLUGS = new Set(
   [
     "null",
@@ -22,6 +28,15 @@ const RESERVED_SLUGS = new Set(
     "share",
     "embed",
     "preview",
+    "login",
+    "signup",
+    "logout",
+    "register",
+    "forgot-password",
+    "reset-password",
+    "verify-email",
+    "email-verification",
+    "email-confirmation",
   ].map((s) => s.toLowerCase()),
 );
 
