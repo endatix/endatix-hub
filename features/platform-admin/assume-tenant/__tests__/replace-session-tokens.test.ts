@@ -69,6 +69,18 @@ describe("replaceSessionTokens", () => {
     expect(Result.isSuccess(result)).toBe(true);
   });
 
+  it("fails when the access token has no exp", async () => {
+    const { replaceSessionTokens } = await import("../replace-session-tokens");
+
+    const result = await replaceSessionTokens(
+      unsignedJwt({ sub: "7", tid: "99", act: "7" }),
+      "refresh-token",
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    expect(unstableUpdate).not.toHaveBeenCalled();
+  });
+
   it("fails when the session cookie cannot be written", async () => {
     unstableUpdate.mockRejectedValue(new Error("cookie write failed"));
     const { replaceSessionTokens } = await import("../replace-session-tokens");

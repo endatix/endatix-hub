@@ -1,21 +1,44 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { ApiResult } from "@/lib/endatix-api/shared/api-result";
 import { Result } from "@/lib/result";
 import { assumeTenantAction, exitAssumeAction } from "../assume-tenant.action";
 
-const { assumeMock, exitMock, tenantManagementFlagMock, replaceMock } =
-  vi.hoisted(() => ({
-    assumeMock: vi.fn(),
-    exitMock: vi.fn(),
-    tenantManagementFlagMock: vi.fn(),
-    replaceMock: vi.fn(),
-  }));
+const {
+  assumeMock,
+  exitMock,
+  tenantManagementFlagMock,
+  replaceMock,
+  authMock,
+} = vi.hoisted(() => ({
+  assumeMock: vi.fn(),
+  exitMock: vi.fn(),
+  tenantManagementFlagMock: vi.fn(),
+  replaceMock: vi.fn(),
+  authMock: vi.fn(),
+}));
+
+function unsignedJwt(payload: Record<string, unknown>): string {
+  const encode = (value: unknown) =>
+    Buffer.from(JSON.stringify(value)).toString("base64url");
+  return `${encode({ alg: "none", typ: "JWT" })}.${encode(payload)}.x`;
+}
+
+const ASSUMED_TOKEN = unsignedJwt({ sub: "7", tid: "99", act: "7" });
 
 vi.mock("next/navigation", () => ({
   redirect: vi.fn((href: string) => {
     throw new Error(`REDIRECT:${href}`);
   }),
+}));
+
+vi.mock("next/cache", () => ({
+  revalidatePath: vi.fn(),
+}));
+
+vi.mock("@/auth", () => ({
+  auth: (...args: unknown[]) => authMock(...args),
 }));
 
 vi.mock(
@@ -70,6 +93,7 @@ describe("assume-tenant actions", () => {
     await expect(assumeTenantAction("42")).rejects.toThrow("REDIRECT:/forms");
     expect(assumeMock).toHaveBeenCalledWith({ tenantId: "42" });
     expect(replaceMock).toHaveBeenCalledWith("access", "refresh");
+    expect(revalidatePath).toHaveBeenCalledWith("/", "layout");
     expect(redirect).toHaveBeenCalledWith("/forms");
   });
 
@@ -86,10 +110,32 @@ describe("assume-tenant actions", () => {
   });
 
   it("exits back to the tenants list", async () => {
+    authMock.mockResolvedValue({ accessToken: ASSUMED_TOKEN });
     exitMock.mockResolvedValue(ApiResult.success(TOKENS));
 
     await expect(exitAssumeAction()).rejects.toThrow("REDIRECT:/admin/tenants");
     expect(replaceMock).toHaveBeenCalledWith("access", "refresh");
+    expect(revalidatePath).toHaveBeenCalledWith("/", "layout");
     expect(redirect).toHaveBeenCalledWith("/admin/tenants");
+  });
+
+  it("still calls exit-assume when the multi-tenancy flag is off", async () => {
+    tenantManagementFlagMock.mockResolvedValue(false);
+    authMock.mockResolvedValue({ accessToken: ASSUMED_TOKEN });
+    exitMock.mockResolvedValue(ApiResult.success(TOKENS));
+
+    await expect(exitAssumeAction()).rejects.toThrow("REDIRECT:/admin/tenants");
+    expect(exitMock).toHaveBeenCalled();
+  });
+
+  it("does not call the API when the session is not assumed", async () => {
+    authMock.mockResolvedValue({
+      accessToken: unsignedJwt({ sub: "7", tid: "1" }),
+    });
+
+    const result = await exitAssumeAction();
+
+    expect(Result.isError(result)).toBe(true);
+    expect(exitMock).not.toHaveBeenCalled();
   });
 });

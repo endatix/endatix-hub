@@ -1,13 +1,17 @@
 "use server";
 
+import { auth } from "@/auth";
 import type { AssumeTenantResponse } from "@/lib/endatix-api/auth/types";
+import { EndatixApi } from "@/lib/endatix-api";
 import { Result, type ResultType } from "@/lib/result";
 import { toResult } from "@/lib/result/map-api-result-to-result";
 import { validateEndatixId } from "@/lib/utils/type-validators";
 import type { Route } from "next";
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { TENANTS_LOGGER_NAME } from "../tenant-management.constants";
 import { requireTenantManagement } from "../tenant-management.server";
+import { readAssumeSession } from "./read-assume-session";
 import { replaceSessionTokens } from "./replace-session-tokens";
 
 async function swapSessionAndRedirect(
@@ -22,6 +26,7 @@ async function swapSessionAndRedirect(
     return swapped;
   }
 
+  revalidatePath("/", "layout");
   redirect(href);
 }
 
@@ -54,16 +59,23 @@ export async function assumeTenantAction(
 }
 
 export async function exitAssumeAction(): Promise<ResultType<boolean>> {
-  const api = await requireTenantManagement();
-  if (Result.isError(api)) {
-    return api;
+  const session = await auth();
+  if (!session?.accessToken) {
+    return Result.error("You must be signed in to exit the tenant.");
   }
 
-  const result = toResult(await api.value.auth.exitAssume(), {
-    fallbackMessage: "Failed to exit tenant.",
-    logMessage: "Failed to exit tenant.",
-    loggerName: TENANTS_LOGGER_NAME,
-  });
+  if (!readAssumeSession(session.accessToken)) {
+    return Result.error("Not in an assumed tenant session.");
+  }
+
+  const result = toResult(
+    await new EndatixApi(session.accessToken).auth.exitAssume(),
+    {
+      fallbackMessage: "Failed to exit tenant.",
+      logMessage: "Failed to exit tenant.",
+      loggerName: TENANTS_LOGGER_NAME,
+    },
+  );
   if (Result.isError(result)) {
     return result;
   }

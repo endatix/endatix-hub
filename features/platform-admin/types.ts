@@ -4,11 +4,11 @@ import type { Session } from "next-auth";
 export type PlatformAdminSession = Session;
 
 export interface PlatformAdminSearchParams {
-  page?: string;
-  pageSize?: string;
-  search?: string;
-  scope?: string;
-  tenantId?: string;
+  page?: SearchParamValue;
+  pageSize?: SearchParamValue;
+  search?: SearchParamValue;
+  scope?: SearchParamValue;
+  tenantId?: SearchParamValue;
 }
 
 export interface PlatformTenantSearchParams {

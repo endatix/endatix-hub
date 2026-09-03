@@ -15,10 +15,19 @@ export async function replaceSessionTokens(
   let payload: EndatixJwtPayload;
   try {
     payload = decodeJwt<EndatixJwtPayload>(accessToken);
+  } catch {
+    return Result.error("Failed to replace session tokens");
+  }
+
+  if (typeof payload.exp !== "number" || !Number.isFinite(payload.exp)) {
+    return Result.error("Assumed session token is missing an expiry.");
+  }
+
+  try {
     await unstable_update({
       accessToken,
       refreshToken,
-      expiresAt: payload.exp ?? Date.now() / 1000,
+      expiresAt: payload.exp,
     });
   } catch {
     return Result.error("Failed to replace session tokens");

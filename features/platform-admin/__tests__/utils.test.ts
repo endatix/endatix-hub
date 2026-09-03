@@ -30,6 +30,20 @@ describe("parsePlatformAdminListParams", () => {
     });
   });
 
+  it("coerces Next.js array search params", () => {
+    expect(
+      parsePlatformAdminListParams({
+        search: ["a", "b"],
+        tenantId: ["42"],
+        page: ["2"],
+      }),
+    ).toMatchObject({
+      search: "a",
+      tenantId: "42",
+      page: 2,
+    });
+  });
+
   it("falls back to all for unknown scope values", () => {
     expect(parsePlatformAdminListParams({ scope: "nominated" }).scope).toBe(
       "all",

@@ -92,15 +92,15 @@ export function listUrlStateFromSearchParams(
 export function tenantsListSuspenseKey(
   request: ListPlatformTenantsRequest,
 ): string {
-  return [
-    request.page ?? 1,
-    request.pageSize ?? DEFAULT_TENANTS_PAGE_SIZE,
-    request.search,
-    request.sortBy,
-    request.sortDir,
-    request.createdFrom,
-    request.createdTo,
-    request.modifiedFrom,
-    request.modifiedTo,
-  ].join("|");
+  return JSON.stringify({
+    page: request.page ?? 1,
+    pageSize: request.pageSize ?? DEFAULT_TENANTS_PAGE_SIZE,
+    search: request.search ?? null,
+    sortBy: request.sortBy ?? null,
+    sortDir: request.sortDir ?? null,
+    createdFrom: request.createdFrom ?? null,
+    createdTo: request.createdTo ?? null,
+    modifiedFrom: request.modifiedFrom ?? null,
+    modifiedTo: request.modifiedTo ?? null,
+  });
 }

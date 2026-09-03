@@ -9,6 +9,7 @@ export const Permissions = {
   },
   Platform: {
     ManageTenants: "platform.tenants.manage",
+    /** Reserved. API does not enforce this yet (PlatformAdmin + `act`). Mirror OSS Actions. */
     AssumeTenants: "platform.tenants.assume",
     ManageSettings: "platform.settings.manage",
     ManageIntegrations: "platform.integrations.manage",
