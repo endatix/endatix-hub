@@ -1,61 +1,52 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { DataList } from "@/lib/endatix-api/data-lists/types";
 import {
   getConvertChoicesUiDeps,
   registerConvertChoicesUiDeps,
 } from "../../conversion/convert-inline-choices-deps";
 import { useConvertInlineChoicesUi } from "../use-convert-inline-choices-ui.hook";
 
-const dataLists: DataList[] = [
-  {
-    id: "1",
-    name: "Countries",
-    isActive: true,
-    createdAt: new Date(),
-    itemsCount: 0,
-  },
-];
+const { mockSearchNames } = vi.hoisted(() => ({
+  mockSearchNames: vi.fn(),
+}));
+
+vi.mock("@/features/data-lists/search-data-lists-for-picker", () => ({
+  searchDataListNamesForPicker: mockSearchNames,
+}));
 
 describe("useConvertInlineChoicesUi", () => {
   afterEach(() => {
     registerConvertChoicesUiDeps(null);
+    vi.clearAllMocks();
   });
 
   it("registers convert choices UI dependencies", async () => {
-    // Arrange
-    const refetchDataLists = vi.fn().mockResolvedValue(undefined);
+    mockSearchNames.mockResolvedValue(["Countries"]);
     const markFormModified = vi.fn();
 
-    // Act
     renderHook(() =>
       useConvertInlineChoicesUi({
         creator: null,
-        dataLists,
-        refetchDataLists,
         markFormModified,
       }),
     );
 
-    // Assert
     await waitFor(() => {
       expect(getConvertChoicesUiDeps()).not.toBeNull();
     });
     const deps = getConvertChoicesUiDeps();
-    expect(deps?.getDataListNames()).toEqual(["Countries"]);
+    await expect(deps?.searchDataListNames("Countries")).resolves.toEqual([
+      "Countries",
+    ]);
     await deps?.refreshDataLists();
-    expect(refetchDataLists).toHaveBeenCalledTimes(1);
     deps?.markFormModified();
     expect(markFormModified).toHaveBeenCalledTimes(1);
   });
 
   it("resolves confirmation with the selected name", async () => {
-    // Arrange
     const { result } = renderHook(() =>
       useConvertInlineChoicesUi({
         creator: null,
-        dataLists,
-        refetchDataLists: vi.fn().mockResolvedValue(undefined),
         markFormModified: vi.fn(),
       }),
     );
@@ -65,7 +56,6 @@ describe("useConvertInlineChoicesUi", () => {
     const deps = getConvertChoicesUiDeps();
     let promise: Promise<string | null> | null = null;
 
-    // Act
     act(() => {
       promise =
         deps?.confirmConvertInlineChoices({
@@ -87,19 +77,15 @@ describe("useConvertInlineChoicesUi", () => {
       throw new Error("Expected confirmation promise.");
     }
 
-    // Assert
     await expect(confirmation).resolves.toBe("Regions");
     expect(result.current.dialog.open).toBe(false);
     expect(result.current.dialog.errorMessage).toBeUndefined();
   });
 
   it("resolves confirmation with null when cancelled", async () => {
-    // Arrange
     const { result } = renderHook(() =>
       useConvertInlineChoicesUi({
         creator: null,
-        dataLists,
-        refetchDataLists: vi.fn().mockResolvedValue(undefined),
         markFormModified: vi.fn(),
       }),
     );
@@ -109,7 +95,6 @@ describe("useConvertInlineChoicesUi", () => {
     const deps = getConvertChoicesUiDeps();
     let promise: Promise<string | null> | null = null;
 
-    // Act
     act(() => {
       promise =
         deps?.confirmConvertInlineChoices({ initialName: "Countries" }) ?? null;
@@ -125,7 +110,6 @@ describe("useConvertInlineChoicesUi", () => {
       throw new Error("Expected confirmation promise.");
     }
 
-    // Assert
     await expect(confirmation).resolves.toBeNull();
     expect(result.current.dialog.open).toBe(false);
   });

@@ -74,8 +74,8 @@ Rules:
 - **Side effects** only in `infrastructure/` — bindings, dependencies, sync guards.
 - **One** `ExtensionModule` per feature in `{feature}.extension.ts`.
 - Do **not** add `ui/use-{feature}.hook.ts` with `initGlobals` / `bindToCreator`
-  unless the feature needs React state (e.g. loading API data). Data-fetch hooks
-  like `useDataListsLoader` are fine; install hooks are not.
+  unless the feature needs React state. Paged Creator pickers: `PropertyGridLazyChoiceProvider`
+  (data-lists `edxDataListId`); do not block Creator init on a full catalog.
 
 ---
 

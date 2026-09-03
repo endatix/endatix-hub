@@ -37,6 +37,6 @@ export {
   type UseConvertInlineChoicesUiOptions,
   type UseConvertInlineChoicesUiResult,
 } from "./ui/use-convert-inline-choices-ui.hook";
-export { useDataLists, useDataListsLoader } from "./ui/use-data-lists.hook";
+export { useDataLists } from "./ui/use-data-lists.hook";
 export { dataListsExtension } from "./infrastructure/data-lists.extension";
 export { registerPropertyGridLazyChoiceProvider } from "./infrastructure/property-grid-lazy-choice-registry";

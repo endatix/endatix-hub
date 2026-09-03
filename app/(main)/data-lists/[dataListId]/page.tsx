@@ -1,10 +1,8 @@
 import { notFound } from "next/navigation";
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
-import {
-  getDataListByIdAction,
-  DataListDetailsPage,
-} from "@/features/data-lists/view-list-details";
+import { DataListDetailsPage } from "@/features/data-lists/view-list-details";
+import { getDataListDetails } from "@/features/data-lists/view-list-details/get-data-list-details.server";
 import { getDataListItemsPage } from "@/features/data-lists/view-list-details/get-data-list-items.server";
 import {
   parseDataListItemsParams,
@@ -12,8 +10,7 @@ import {
 } from "@/features/data-lists/view-list-details/utils";
 import { firstString } from "@/features/data-lists/view-lists/utils";
 import { HubPageLoadError } from "@/components/error-handling/error-page";
-import { isNotFoundError } from "@/lib/endatix-api";
-import { Result, toResult } from "@/lib/result";
+import { Result } from "@/lib/result";
 import { hasValue, SearchParam } from "@/lib/utils/next-utils";
 
 interface DataListDetailsRoutePageProps {
@@ -43,19 +40,13 @@ export default async function DataListDetailsRoutePage({
 
   const { dataListId } = await params;
   const raw = await searchParams;
-  const dataListApiResult = await getDataListByIdAction(dataListId);
-
-  if (isNotFoundError(dataListApiResult)) {
-    notFound();
-  }
-
-  const dataListResult = toResult(dataListApiResult, {
-    fallbackMessage: "Failed to load data list.",
-    logMessage: "Failed to load data list details.",
-    loggerName: "data-lists.details",
-  });
+  const dataListResult = await getDataListDetails(dataListId);
 
   if (Result.isError(dataListResult)) {
+    if (dataListResult.statusCode === 404) {
+      notFound();
+    }
+
     return <HubPageLoadError result={dataListResult} />;
   }
 

@@ -14,6 +14,8 @@ export type {
   PropertyGridLazyChoiceProvider,
 } from "../types";
 
+const LAZY_CHOICE_EDITOR_TYPES = new Set(["dropdown", "tagbox"]);
+
 const providers = new Map<string, PropertyGridLazyChoiceProvider>();
 
 export function registerPropertyGridLazyChoiceProvider(
@@ -45,25 +47,25 @@ export function refreshPropertyGridLazyChoices(
     const editor = ctx.propertyGridSurvey.getQuestionByName(
       provider.propertyName,
     );
-    if (editor?.getType() !== "tagbox") {
+    if (!editor || !LAZY_CHOICE_EDITOR_TYPES.has(editor.getType())) {
       continue;
     }
 
-    const tagbox = editor as Question & {
+    const choiceEditor = editor as Question & {
       choicesLazyLoadEnabled?: boolean;
       choicesLazyLoadPageSize?: number;
       choices?: unknown[];
     };
 
     if (!provider.shouldEnable(ctx)) {
-      tagbox.choicesLazyLoadEnabled = false;
-      tagbox.choices = provider.getStaticChoices?.(ctx, "") ?? [];
+      choiceEditor.choicesLazyLoadEnabled = false;
+      choiceEditor.choices = provider.getStaticChoices?.(ctx, "") ?? [];
       continue;
     }
 
-    tagbox.choicesLazyLoadEnabled = true;
-    tagbox.choicesLazyLoadPageSize = DEFAULT_CHOICES_LAZY_LOAD_PAGE_SIZE;
-    tagbox.choices = provider.getStaticChoices?.(ctx, "") ?? [];
+    choiceEditor.choicesLazyLoadEnabled = true;
+    choiceEditor.choicesLazyLoadPageSize = DEFAULT_CHOICES_LAZY_LOAD_PAGE_SIZE;
+    choiceEditor.choices = provider.getStaticChoices?.(ctx, "") ?? [];
   }
 }
 

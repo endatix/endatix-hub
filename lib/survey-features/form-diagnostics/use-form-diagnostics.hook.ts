@@ -2,7 +2,6 @@
 
 import { useDesignerRuntime } from "@/lib/designer-runtime";
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import type { DataList } from "@/lib/endatix-api/data-lists/types";
 import type { SurveyCreatorModel } from "survey-creator-core";
 import {
   applyFormDiagnosticsContext,
@@ -26,23 +25,15 @@ type DiagnosticsTabApi = {
   removeTab?: (name: string) => void;
 };
 
-export interface UseFormDiagnosticsOptions {
-  dataLists?: DataList[] | null;
-}
-
 /**
  * Adds Form Diagnostics to Survey Creator and syncs plugin context from designer runtime.
  */
-export function useFormDiagnostics(
-  creator: SurveyCreatorModel | null,
-  options: UseFormDiagnosticsOptions = {},
-) {
+export function useFormDiagnostics(creator: SurveyCreatorModel | null) {
   const { stateRef, revision } = useDesignerRuntime();
-  const { dataLists } = options;
   const runtime = stateRef.current;
 
   const context = useMemo(
-    () => createFormDiagnosticsContextFromRuntime(runtime, dataLists),
+    () => createFormDiagnosticsContextFromRuntime(runtime),
     [
       revision,
       runtime.formId,
@@ -50,7 +41,6 @@ export function useFormDiagnostics(
       runtime.formIsEnabled,
       runtime.isPublic,
       runtime.folderId,
-      dataLists,
     ],
   );
 

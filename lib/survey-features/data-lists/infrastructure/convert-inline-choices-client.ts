@@ -17,22 +17,22 @@ import { Question } from "survey-core";
 const DATA_LIST_NAME_ALREADY_EXISTS_ERROR_CODE =
   "data_list_name_already_exists";
 
-function getDefaultDataListName(
+async function getDefaultDataListName(
   question: Question,
   uiDeps: ConvertChoicesUiDeps | null,
-): string {
+): Promise<string> {
+  const namingSource = {
+    title: question.title,
+    name: question.name,
+    type: question.getType(),
+  };
+  const seedName = getQuestionDataListName(namingSource, new Set());
+  const matchingNames = await uiDeps?.searchDataListNames(seedName);
   const reservedNames = new Set(
-    (uiDeps?.getDataListNames() ?? []).map((name) => name.toLowerCase()),
+    (matchingNames ?? []).map((name) => name.toLowerCase()),
   );
 
-  return getQuestionDataListName(
-    {
-      title: question.title,
-      name: question.name,
-      type: question.getType(),
-    },
-    reservedNames,
-  );
+  return getQuestionDataListName(namingSource, reservedNames);
 }
 
 async function askForDataListName(
@@ -85,7 +85,7 @@ export async function runConvertInlineChoicesToDataList(
     return;
   }
 
-  let proposedName = getDefaultDataListName(question, uiDeps);
+  let proposedName = await getDefaultDataListName(question, uiDeps);
   let nameError: string | undefined;
 
   for (;;) {

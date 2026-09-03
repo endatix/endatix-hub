@@ -26,8 +26,6 @@ import { useAnyAnswered } from "@/lib/survey-features/any-answered";
 import {
   ConvertInlineChoicesDialog,
   useConvertInlineChoicesUi,
-  useDataLists,
-  useDataListsLoader,
 } from "@/lib/survey-features/data-lists";
 import { useSurveyDesigner } from "@/lib/survey-features/designer/design-survey.context";
 import { useFormDiagnostics } from "@/lib/survey-features/form-diagnostics";
@@ -221,36 +219,19 @@ function FormEditor({
     initGlobals: initQuestionLoopsGlobals,
     bindToCreator: bindQuestionLoops,
   } = useQuestionLoops();
-  const { initGlobals: initDataListsGlobals, setAvailableDataLists } =
-    useDataLists();
-  const {
-    dataLists,
-    isLoading: isDataListsLoading,
-    error: dataListsError,
-    refetch: refetchDataLists,
-  } = useDataListsLoader();
   const { initGlobals: initAnyAnsweredGlobals } = useAnyAnswered();
 
   const {
     initGlobals: initFormDiagnosticsGlobals,
     bindToCreator: bindFormDiagnostics,
-  } = useFormDiagnostics(creator, { dataLists });
+  } = useFormDiagnostics(creator);
 
   const creatorTheme = useEndatixCreatorTheme();
   const creatorThemeRef = useRef(creatorTheme);
   creatorThemeRef.current = creatorTheme;
 
-  useEffect(() => {
-    if (dataListsError) {
-      return;
-    }
-    setAvailableDataLists(dataLists ?? []);
-  }, [dataLists, dataListsError, setAvailableDataLists]);
-
   const convertInlineChoicesUi = useConvertInlineChoicesUi({
     creator,
-    dataLists,
-    refetchDataLists,
     markFormModified,
   });
 
@@ -503,7 +484,6 @@ function FormEditor({
         initAnyAnsweredGlobals();
         initQuestionLoopsGlobals();
         initFormDiagnosticsGlobals();
-        initDataListsGlobals();
         const newCreator = new SurveyCreator(creatorOptions);
         applyEndatixCreatorTheme(
           newCreator,
@@ -578,7 +558,6 @@ function FormEditor({
     bindQuestionLoops,
     bindFormDiagnostics,
     initAnyAnsweredGlobals,
-    initDataListsGlobals,
     initFormDiagnosticsGlobals,
     initQuestionLoopsGlobals,
   ]);
@@ -666,7 +645,7 @@ function FormEditor({
     creator.JSON = formJson;
   }, [creator, formJson]);
 
-  const isCreatorLoading = isLoading || !isStorageReady || isDataListsLoading;
+  const isCreatorLoading = isLoading || !isStorageReady;
 
   return (
     <div id="creator">

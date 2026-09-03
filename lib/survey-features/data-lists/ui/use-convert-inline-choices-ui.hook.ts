@@ -1,39 +1,18 @@
 "use client";
 
+import { searchDataListNamesForPicker } from "@/features/data-lists/search-data-lists-for-picker";
 import type { DataList } from "@/lib/endatix-api/data-lists/types";
 import { applyDataListBindingOnQuestion } from "@/lib/survey-features/data-lists/utils";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Question } from "survey-core";
 import type { SurveyCreatorModel } from "survey-creator-core";
 import { registerConvertChoicesUiDeps } from "../conversion/convert-inline-choices-deps";
-import { setDataListPropertyChoices } from "../infrastructure/data-list-property-choices";
+import { refreshPropertyGridLazyChoicesForCreator } from "../infrastructure/property-grid-lazy-choice-registry";
 import { syncDataListPropertyGridAfterBinding } from "../infrastructure/creator-property-grid-sync";
 import type { ConvertInlineChoicesDialogProps } from "./convert-inline-choices-dialog";
 
-function mergeDataLists(
-  existing: DataList[],
-  created: Pick<DataList, "id" | "name">,
-): DataList[] {
-  const createdId = String(created.id);
-  const withoutDuplicate = existing.filter(
-    (list) => String(list.id) !== createdId,
-  );
-  return [
-    ...withoutDuplicate,
-    {
-      id: created.id,
-      name: created.name,
-      isActive: true,
-      createdAt: new Date(),
-      itemsCount: 0,
-    },
-  ];
-}
-
 export interface UseConvertInlineChoicesUiOptions {
   creator: SurveyCreatorModel | null;
-  dataLists: DataList[] | null;
-  refetchDataLists: () => Promise<void>;
   markFormModified: () => void;
 }
 
@@ -49,8 +28,6 @@ interface ConvertInlineChoicesDialogState {
 
 export function useConvertInlineChoicesUi({
   creator,
-  dataLists,
-  refetchDataLists,
   markFormModified,
 }: UseConvertInlineChoicesUiOptions): UseConvertInlineChoicesUiResult {
   const confirmResolverRef = useRef<((value: string | null) => void) | null>(
@@ -111,20 +88,31 @@ export function useConvertInlineChoicesUi({
     }));
   }, []);
 
+  const searchDataListNames = useCallback(async (query: string) => {
+    return searchDataListNamesForPicker(query);
+  }, []);
+
   const completeDataListBinding = useCallback(
     (question: Question, created: Pick<DataList, "id" | "name">) => {
-      setDataListPropertyChoices(mergeDataLists(dataLists ?? [], created));
       applyDataListBindingOnQuestion(question, String(created.id));
       syncDataListPropertyGridAfterBinding(creator, question);
+      if (creator) {
+        refreshPropertyGridLazyChoicesForCreator(creator);
+      }
     },
-    [creator, dataLists],
+    [creator],
   );
+
+  const refreshDataLists = useCallback(async () => {
+    if (creator) {
+      refreshPropertyGridLazyChoicesForCreator(creator);
+    }
+  }, [creator]);
 
   useEffect(() => {
     registerConvertChoicesUiDeps({
-      getDataListNames: () =>
-        (dataLists ?? []).map((dataList) => dataList.name),
-      refreshDataLists: () => refetchDataLists(),
+      searchDataListNames,
+      refreshDataLists,
       completeDataListBinding,
       markFormModified,
       confirmConvertInlineChoices: requestConfirmation,
@@ -133,10 +121,10 @@ export function useConvertInlineChoicesUi({
     return () => registerConvertChoicesUiDeps(null);
   }, [
     completeDataListBinding,
-    dataLists,
     markFormModified,
-    refetchDataLists,
+    refreshDataLists,
     requestConfirmation,
+    searchDataListNames,
   ]);
 
   useEffect(() => {
