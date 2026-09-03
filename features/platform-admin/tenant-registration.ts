@@ -1,4 +1,10 @@
 import { SystemRoles } from "@/features/auth/authorization/domain/system-roles";
+import type { Route } from "next";
+
+export type AuthProviderOption = {
+  id: string;
+  name: string;
+};
 
 export type TenantRegistrationRoleOption = {
   name: string;
@@ -21,6 +27,10 @@ export function tenantNameError(
   name: string | null | undefined,
 ): string | null {
   return name?.trim() ? null : "Name is required.";
+}
+
+export function tenantPublicSignInPath(shortUrl: string): Route {
+  return `/t/${shortUrl}/signin` as Route;
 }
 
 /** Unknown roles do not imply Hub access. */

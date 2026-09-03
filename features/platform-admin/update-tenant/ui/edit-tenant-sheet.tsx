@@ -1,17 +1,6 @@
 "use client";
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   ResponsivePanel,
   ResponsivePanelBody,
@@ -20,19 +9,18 @@ import {
   ResponsivePanelHeader,
   ResponsivePanelTitle,
 } from "@/components/ui/responsive-panel";
-import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast";
-import type { PlatformTenant } from "@/lib/endatix-api/platform-tenants/types";
+import { TenantAccessFields } from "@/features/platform-admin/ui/tenant-access-fields";
+import { TenantIdentityFields } from "@/features/platform-admin/ui/tenant-identity-fields";
+import { TenantSignInUrlField } from "@/features/platform-admin/ui/tenant-signin-url-field";
 import { Result } from "@/lib/result";
-import { Copy, Info, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
 import {
-  roleHasHubAccess,
-  TENANT_DEFAULT_REGISTRATION_ROLES,
-  tenantPublicSignInPath,
+  TENANT_REGISTRATION_ROLES,
+  tenantNameError,
   type AuthProviderOption,
-} from "../../create-tenant/tenant-self-registration";
+} from "../../tenant-registration";
 import { getTenantAction, updateTenantAction } from "../update-tenant.action";
 
 interface EditTenantSheetProps {
@@ -47,25 +35,29 @@ export function EditTenantSheet({
   onOpenChange,
 }: Readonly<EditTenantSheetProps>) {
   const open = tenantId !== null;
-  const [tenant, setTenant] = useState<PlatformTenant | null>(null);
+  const [shortUrl, setShortUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [allowSelfRegistration, setAllowSelfRegistration] = useState(false);
   const [allowedProviders, setAllowedProviders] = useState<string[]>([]);
   const [defaultRole, setDefaultRole] = useState(
-    TENANT_DEFAULT_REGISTRATION_ROLES[0].name,
+    TENANT_REGISTRATION_ROLES[0].name,
   );
+  const [nameError, setNameError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
     if (!tenantId) {
-      setTenant(null);
+      setShortUrl(null);
       return;
     }
 
     let cancelled = false;
     setIsLoading(true);
+    setNameError(null);
+    setLoadError(null);
     getTenantAction(tenantId)
       .then((result) => {
         if (cancelled) {
@@ -73,12 +65,11 @@ export function EditTenantSheet({
         }
 
         if (Result.isError(result)) {
-          toast.error(result.message || "Failed to load tenant");
-          onOpenChange(false);
+          setLoadError(result.message || "Failed to load tenant");
           return;
         }
 
-        setTenant(result.value);
+        setShortUrl(result.value.shortUrl);
         setName(result.value.name);
         setDescription(result.value.description ?? "");
         setAllowSelfRegistration(result.value.allowSelfRegistration);
@@ -94,20 +85,16 @@ export function EditTenantSheet({
     return () => {
       cancelled = true;
     };
-  }, [tenantId, onOpenChange]);
-
-  const copySignInUrl = async () => {
-    if (!tenant?.slug) {
-      return;
-    }
-
-    const path = tenantPublicSignInPath(tenant.slug);
-    await navigator.clipboard.writeText(`${window.location.origin}${path}`);
-    toast.success("Sign-in URL copied");
-  };
+  }, [tenantId]);
 
   const submit = () => {
     if (!tenantId) {
+      return;
+    }
+
+    const error = tenantNameError(name);
+    setNameError(error);
+    if (error) {
       return;
     }
 
@@ -139,109 +126,57 @@ export function EditTenantSheet({
       <ResponsivePanelHeader>
         <ResponsivePanelTitle>Edit tenant</ResponsivePanelTitle>
         <ResponsivePanelDescription>
-          Update the display name and self-registration policy. The tenant slug
+          Update the display name and self-registration policy. The public id
           stays locked because sign-in URLs already use it.
         </ResponsivePanelDescription>
       </ResponsivePanelHeader>
 
-      {isLoading || !tenant ? (
+      {isLoading || !shortUrl ? (
         <ResponsivePanelBody>
-          <div className="flex flex-1 items-center justify-center text-muted-foreground">
-            <Loader2 className="size-5 animate-spin" />
+          <div className="flex flex-1 items-center justify-center text-center text-muted-foreground">
+            {loadError ? (
+              <p className="text-sm text-destructive">{loadError}</p>
+            ) : (
+              <Loader2 className="size-5 animate-spin" />
+            )}
           </div>
         </ResponsivePanelBody>
       ) : (
-        <ResponsivePanelBody>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-tenant-name">Name</Label>
-              <Input
-                id="edit-tenant-name"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-tenant-description">Description</Label>
-              <Textarea
-                id="edit-tenant-description"
-                value={description}
-                onChange={(event) => setDescription(event.target.value)}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-tenant-slug">Public sign-in URL</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="edit-tenant-slug"
-                  value={tenantPublicSignInPath(tenant.slug)}
-                  readOnly
-                />
-                <Button type="button" variant="outline" size="icon" onClick={copySignInUrl}>
-                  <Copy />
-                  <span className="sr-only">Copy sign-in URL</span>
-                </Button>
-              </div>
-            </div>
-            <div className="flex items-center justify-between gap-4">
-              <Label htmlFor="edit-tenant-self-reg">Allow self-registration</Label>
-              <Switch
-                id="edit-tenant-self-reg"
-                checked={allowSelfRegistration}
-                onCheckedChange={setAllowSelfRegistration}
-              />
-            </div>
-            {authProviders.length > 0 && (
-              <fieldset className="grid gap-2">
-                <legend className="text-sm font-medium">Allowed auth providers</legend>
-                {authProviders.map((provider) => (
-                  <label
-                    key={provider.id}
-                    className="flex items-center gap-2 text-sm"
-                  >
-                    <Checkbox
-                      checked={allowedProviders.includes(provider.id)}
-                      onCheckedChange={(checked) => {
-                        setAllowedProviders((current) =>
-                          checked === true
-                            ? [...current, provider.id]
-                            : current.filter((id) => id !== provider.id),
-                        );
-                      }}
-                    />
-                    {provider.name}
-                  </label>
-                ))}
-              </fieldset>
-            )}
-            <div className="grid gap-2">
-              <Label htmlFor="edit-tenant-default-role">Default registration role</Label>
-              <Select value={defaultRole} onValueChange={setDefaultRole}>
-                <SelectTrigger id="edit-tenant-default-role" className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {TENANT_DEFAULT_REGISTRATION_ROLES.map((role) => (
-                    <SelectItem key={role.name} value={role.name}>
-                      {role.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            {roleHasHubAccess(defaultRole) && (
-              <Alert variant="info">
-                <Info />
-                <AlertTitle>Hub access</AlertTitle>
-                <AlertDescription>
-                  {defaultRole} can sign in to Hub.
-                </AlertDescription>
-              </Alert>
-            )}
+        <ResponsivePanelBody className="grid gap-4">
+          <TenantIdentityFields
+            idPrefix="edit-tenant"
+            name={name}
+            onNameChange={(value) => {
+              setName(value);
+              setNameError(null);
+            }}
+            description={description}
+            onDescriptionChange={setDescription}
+          />
+          <TenantSignInUrlField
+            id="edit-tenant-signin-url"
+            shortUrl={shortUrl}
+          />
+          <TenantAccessFields
+            idPrefix="edit-tenant"
+            allowSelfRegistration={allowSelfRegistration}
+            onAllowSelfRegistrationChange={setAllowSelfRegistration}
+            authProviders={authProviders}
+            allowedProviders={allowedProviders}
+            onAllowedProvidersChange={setAllowedProviders}
+            defaultRole={defaultRole}
+            onDefaultRoleChange={setDefaultRole}
+          />
+          {nameError && <p className="text-sm text-destructive">{nameError}</p>}
         </ResponsivePanelBody>
       )}
 
       <ResponsivePanelFooter>
-        <Button type="button" onClick={submit} disabled={isPending || isLoading}>
+        <Button
+          type="button"
+          onClick={submit}
+          disabled={isPending || isLoading || !shortUrl}
+        >
           {isPending ? "Saving…" : "Save changes"}
         </Button>
       </ResponsivePanelFooter>

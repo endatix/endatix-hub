@@ -1,10 +1,6 @@
 "use client";
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   ResponsivePanel,
   ResponsivePanelBody,
@@ -13,44 +9,44 @@ import {
   ResponsivePanelHeader,
   ResponsivePanelTitle,
 } from "@/components/ui/responsive-panel";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast";
+import { TenantAccessFields } from "@/features/platform-admin/ui/tenant-access-fields";
+import { TenantIdentityFields } from "@/features/platform-admin/ui/tenant-identity-fields";
+import { TenantSignInUrlField } from "@/features/platform-admin/ui/tenant-signin-url-field";
 import { Result } from "@/lib/result";
-import { Copy, Info, Plus } from "lucide-react";
-import { useEffect, useState, useTransition } from "react";
-import { createTenantAction } from "../create-tenant.action";
+import { Plus } from "lucide-react";
+import { useState, useTransition } from "react";
 import {
-  identityStepError,
-  roleHasHubAccess,
-  TENANT_DEFAULT_REGISTRATION_ROLES,
-  tenantPublicSignInPath,
+  TENANT_REGISTRATION_ROLES,
+  tenantNameError,
   type AuthProviderOption,
-} from "../tenant-self-registration";
+} from "../../tenant-registration";
+import { createTenantAction } from "../create-tenant.action";
 
 type CreateStep = 1 | 2 | 3 | "done";
 
-const STEP_COPY: Record<Exclude<CreateStep, "done">, { title: string; description: string }> = {
+const STEP_COPY: Record<
+  Exclude<CreateStep, "done">,
+  { title: string; description: string }
+> = {
   1: {
     title: "Identity",
-    description: "Name the tenant. The public sign-in URL is generated after create.",
+    description:
+      "Name the tenant. The public sign-in URL is generated after create.",
   },
   2: {
     title: "Access",
-    description: "Configure whether people can self-register through the tenant URL.",
+    description:
+      "Configure whether people can self-register through the tenant URL.",
   },
   3: {
     title: "Confirm",
-    description: "Review the tenant before creating it. The public id cannot be changed later.",
+    description:
+      "Review the tenant before creating it. The public id cannot be changed later.",
   },
 };
+
+const DEFAULT_ROLE = TENANT_REGISTRATION_ROLES[0].name;
 
 interface CreateTenantDialogProps {
   authProviders: AuthProviderOption[];
@@ -65,43 +61,33 @@ export function CreateTenantDialog({
   const [description, setDescription] = useState("");
   const [allowSelfRegistration, setAllowSelfRegistration] = useState(false);
   const [allowedProviders, setAllowedProviders] = useState<string[]>([]);
-  const [defaultRole, setDefaultRole] = useState(
-    TENANT_DEFAULT_REGISTRATION_ROLES[0].name,
-  );
-  const [createdSignInPath, setCreatedSignInPath] = useState<string | null>(null);
+  const [defaultRole, setDefaultRole] = useState(DEFAULT_ROLE);
+  const [createdShortUrl, setCreatedShortUrl] = useState<string | null>(null);
   const [stepError, setStepError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  useEffect(() => {
-    if (!open) {
-      return;
+  // Reset here rather than in an effect so a reopened panel never paints the previous run's step.
+  const onOpenChange = (isOpen: boolean) => {
+    if (isOpen) {
+      setStep(1);
+      setName("");
+      setDescription("");
+      setAllowSelfRegistration(false);
+      setAllowedProviders([]);
+      setDefaultRole(DEFAULT_ROLE);
+      setCreatedShortUrl(null);
+      setStepError(null);
     }
 
-    setStep(1);
-    setName("");
-    setDescription("");
-    setAllowSelfRegistration(false);
-    setAllowedProviders([]);
-    setDefaultRole(TENANT_DEFAULT_REGISTRATION_ROLES[0].name);
-    setCreatedSignInPath(null);
-    setStepError(null);
-  }, [open]);
-
-  const goToAccess = () => {
-    const error = identityStepError(name);
-    if (error) {
-      setStepError(error);
-      return;
-    }
-
-    setStepError(null);
-    setStep(2);
+    setOpen(isOpen);
   };
 
-  const copySignInUrl = async (path: string) => {
-    const url = `${window.location.origin}${path}`;
-    await navigator.clipboard.writeText(url);
-    toast.success("Sign-in URL copied");
+  const goToAccess = () => {
+    const error = tenantNameError(name);
+    setStepError(error);
+    if (!error) {
+      setStep(2);
+    }
   };
 
   const submit = () => {
@@ -119,8 +105,7 @@ export function CreateTenantDialog({
         return;
       }
 
-      const path = tenantPublicSignInPath(result.value.slug);
-      setCreatedSignInPath(path);
+      setCreatedShortUrl(result.value.shortUrl);
       setStep("done");
       toast.success("Tenant created");
     });
@@ -130,7 +115,7 @@ export function CreateTenantDialog({
     <ResponsivePanel
       desktopType="complex"
       open={open}
-      onOpenChange={setOpen}
+      onOpenChange={onOpenChange}
       trigger={
         <Button>
           <Plus />
@@ -147,92 +132,32 @@ export function CreateTenantDialog({
         </ResponsivePanelDescription>
       </ResponsivePanelHeader>
 
-      <ResponsivePanelBody>
+      <ResponsivePanelBody className="grid gap-4">
         {step === 1 && (
-          <div className="grid gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="tenant-name">Name</Label>
-              <Input
-                id="tenant-name"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="tenant-description">Description</Label>
-              <Textarea
-                id="tenant-description"
-                value={description}
-                onChange={(event) => setDescription(event.target.value)}
-              />
-            </div>
-          </div>
+          <TenantIdentityFields
+            idPrefix="tenant"
+            name={name}
+            onNameChange={(value) => {
+              setName(value);
+              setStepError(null);
+            }}
+            description={description}
+            onDescriptionChange={setDescription}
+          />
         )}
 
         {step === 2 && (
-          <div className="grid gap-4">
-            <div className="flex items-center justify-between gap-4">
-              <div className="grid gap-1">
-                <Label htmlFor="tenant-self-reg">Allow self-registration</Label>
-                <p className="text-sm text-muted-foreground">
-                  People can create an account from the tenant sign-in URL.
-                </p>
-              </div>
-              <Switch
-                id="tenant-self-reg"
-                checked={allowSelfRegistration}
-                onCheckedChange={setAllowSelfRegistration}
-              />
-            </div>
-            {authProviders.length > 0 && (
-              <fieldset className="grid gap-2">
-                <legend className="text-sm font-medium">Allowed auth providers</legend>
-                {authProviders.map((provider) => (
-                  <label
-                    key={provider.id}
-                    className="flex items-center gap-2 text-sm"
-                  >
-                    <Checkbox
-                      checked={allowedProviders.includes(provider.id)}
-                      onCheckedChange={(checked) => {
-                        setAllowedProviders((current) =>
-                          checked === true
-                            ? [...current, provider.id]
-                            : current.filter((id) => id !== provider.id),
-                        );
-                      }}
-                    />
-                    {provider.name}
-                  </label>
-                ))}
-              </fieldset>
-            )}
-            <div className="grid gap-2">
-              <Label htmlFor="tenant-default-role">Default registration role</Label>
-              <Select value={defaultRole} onValueChange={setDefaultRole}>
-                <SelectTrigger id="tenant-default-role" className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {TENANT_DEFAULT_REGISTRATION_ROLES.map((role) => (
-                    <SelectItem key={role.name} value={role.name}>
-                      {role.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            {roleHasHubAccess(defaultRole) && (
-              <Alert variant="info">
-                <Info />
-                <AlertTitle>Hub access</AlertTitle>
-                <AlertDescription>
-                  {defaultRole} can sign in to Hub. Use Respondent unless you
-                  intend new accounts to manage forms.
-                </AlertDescription>
-              </Alert>
-            )}
-          </div>
+          <TenantAccessFields
+            idPrefix="tenant"
+            allowSelfRegistration={allowSelfRegistration}
+            onAllowSelfRegistrationChange={setAllowSelfRegistration}
+            authProviders={authProviders}
+            allowedProviders={allowedProviders}
+            onAllowedProvidersChange={setAllowedProviders}
+            defaultRole={defaultRole}
+            onDefaultRoleChange={setDefaultRole}
+            showSelfRegHint
+          />
         )}
 
         {step === 3 && (
@@ -252,62 +177,46 @@ export function CreateTenantDialog({
           </dl>
         )}
 
-        {step === "done" && createdSignInPath && (
-          <div className="grid gap-2">
-            <Label htmlFor="tenant-signin-url">Public sign-in URL</Label>
-            <div className="flex gap-2">
-              <Input id="tenant-signin-url" value={createdSignInPath} readOnly />
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                onClick={() => copySignInUrl(createdSignInPath)}
-              >
-                <Copy />
-                <span className="sr-only">Copy sign-in URL</span>
-              </Button>
-            </div>
-          </div>
+        {step === "done" && createdShortUrl && (
+          <TenantSignInUrlField
+            id="tenant-signin-url"
+            shortUrl={createdShortUrl}
+          />
         )}
 
-        {stepError && (
-          <p className="text-sm text-destructive">{stepError}</p>
-        )}
+        {stepError && <p className="text-sm text-destructive">{stepError}</p>}
       </ResponsivePanelBody>
 
       <ResponsivePanelFooter>
-          {step !== "done" && step > 1 && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                setStepError(null);
-                setStep((current) => (current === 1 ? 1 : ((Number(current) - 1) as 1 | 2 | 3)));
-              }}
-            >
-              Back
-            </Button>
-          )}
-          {step === 1 && (
-            <Button type="button" onClick={goToAccess}>
-              Continue
-            </Button>
-          )}
-          {step === 2 && (
-            <Button type="button" onClick={() => setStep(3)}>
-              Continue
-            </Button>
-          )}
-          {step === 3 && (
-            <Button type="button" onClick={submit} disabled={isPending}>
-              {isPending ? "Creating…" : "Create tenant"}
-            </Button>
-          )}
-          {step === "done" && (
-            <Button type="button" onClick={() => setOpen(false)}>
-              Done
-            </Button>
-          )}
+        {step !== "done" && step > 1 && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setStep(step === 3 ? 2 : 1)}
+          >
+            Back
+          </Button>
+        )}
+        {step === 1 && (
+          <Button type="button" onClick={goToAccess}>
+            Continue
+          </Button>
+        )}
+        {step === 2 && (
+          <Button type="button" onClick={() => setStep(3)}>
+            Continue
+          </Button>
+        )}
+        {step === 3 && (
+          <Button type="button" onClick={submit} disabled={isPending}>
+            {isPending ? "Creating…" : "Create tenant"}
+          </Button>
+        )}
+        {step === "done" && (
+          <Button type="button" onClick={() => setOpen(false)}>
+            Done
+          </Button>
+        )}
       </ResponsivePanelFooter>
     </ResponsivePanel>
   );

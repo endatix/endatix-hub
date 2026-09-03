@@ -17,12 +17,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { AuthProviderOption } from "@/features/platform-admin/create-tenant/tenant-self-registration";
+import type { AuthProviderOption } from "@/features/platform-admin/tenant-registration";
 import { EditTenantSheet } from "@/features/platform-admin/update-tenant/ui/edit-tenant-sheet";
 import type { PagedResponse, PlatformTenantListItem } from "@/lib/endatix-api";
 import { getFormattedDate } from "@/lib/utils";
 import { MoreHorizontal } from "lucide-react";
 import { useState } from "react";
+
+/** Tenant, Public id, ID, Self-reg, Forms, Submissions, Created, Modified. */
+const BASE_COLUMNS = 8;
 
 interface TenantsTableProps {
   tenants: PagedResponse<PlatformTenantListItem>;
@@ -36,7 +39,7 @@ export function TenantsTable({
   authProviders = [],
 }: Readonly<TenantsTableProps>) {
   const [editingTenantId, setEditingTenantId] = useState<string | null>(null);
-  const columnCount = canManage ? 9 : 8;
+  const columnCount = BASE_COLUMNS + (canManage ? 1 : 0);
 
   return (
     <>
@@ -56,12 +59,16 @@ export function TenantsTable({
                 <TableHead>Submissions</TableHead>
                 <TableHead>Created</TableHead>
                 <TableHead>Modified</TableHead>
-                {canManage && <TableHead className="w-12"><span className="sr-only">Actions</span></TableHead>}
+                {canManage && (
+                  <TableHead className="w-12">
+                    <span className="sr-only">Actions</span>
+                  </TableHead>
+                )}
               </TableRow>
             </TableHeader>
             <TableBody>
               {tenants.items.map((tenant) => (
-                <TableRow key={String(tenant.id)}>
+                <TableRow key={tenant.id}>
                   <TableCell className="max-w-md whitespace-normal">
                     <div className="font-medium">{tenant.name}</div>
                     <div className="text-sm text-muted-foreground">
@@ -69,13 +76,17 @@ export function TenantsTable({
                     </div>
                   </TableCell>
                   <TableCell className="font-mono text-sm text-muted-foreground">
-                    {tenant.slug}
+                    {tenant.shortUrl}
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {tenant.id}
                   </TableCell>
                   <TableCell>
-                    <Badge variant={tenant.selfRegistrationEnabled ? "default" : "secondary"}>
+                    <Badge
+                      variant={
+                        tenant.selfRegistrationEnabled ? "default" : "secondary"
+                      }
+                    >
                       {tenant.selfRegistrationEnabled ? "On" : "Off"}
                     </Badge>
                   </TableCell>
@@ -98,7 +109,7 @@ export function TenantsTable({
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem
-                            onClick={() => setEditingTenantId(String(tenant.id))}
+                            onClick={() => setEditingTenantId(tenant.id)}
                           >
                             Edit
                           </DropdownMenuItem>

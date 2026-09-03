@@ -56,7 +56,7 @@ describe("CreateTenantDialog", () => {
       Result.success({
         id: "42",
         name: "Acme Surveys",
-        slug: "xK9mP2qR",
+        shortUrl: "xk9mp2qr",
         allowSelfRegistration: false,
         allowedAuthProviderKeys: [],
         defaultRegistrationRoleName: "Respondent",
@@ -71,14 +71,20 @@ describe("CreateTenantDialog", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: /continue/i }));
     fireEvent.click(await screen.findByRole("button", { name: /continue/i }));
-    const createButtons = screen.getAllByRole("button", { name: /^create tenant$/i });
+    const createButtons = screen.getAllByRole("button", {
+      name: /^create tenant$/i,
+    });
     fireEvent.click(createButtons[createButtons.length - 1]);
 
-    const urlInput = (await screen.findByLabelText("Public sign-in URL")) as HTMLInputElement;
-    expect(urlInput.value).toBe("/t/xK9mP2qR/signin");
+    const urlInput = (await screen.findByLabelText(
+      "Public sign-in URL",
+    )) as HTMLInputElement;
+    expect(urlInput.value).toBe("/t/xk9mp2qr/signin");
     await waitFor(() => {
       expect(createTenantActionMock).toHaveBeenCalledOnce();
     });
-    expect(createTenantActionMock.mock.calls[0][0]).not.toHaveProperty("slug");
+    expect(createTenantActionMock.mock.calls[0][0]).not.toHaveProperty(
+      "shortUrl",
+    );
   });
 });
