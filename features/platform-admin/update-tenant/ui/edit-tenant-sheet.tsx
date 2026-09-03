@@ -142,10 +142,10 @@ export function EditTenantSheet({
             {loadError ? (
               <p className="text-sm text-destructive">{loadError}</p>
             ) : (
-              <span role="status">
+              <output>
                 <Loader2 className="size-5 motion-safe:animate-spin" />
                 <span className="sr-only">Loading tenant</span>
-              </span>
+              </output>
             )}
           </div>
         </ResponsivePanelBody>
