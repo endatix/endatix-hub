@@ -1,8 +1,7 @@
 "use client";
 
-import { searchDataListsForPickerAction } from "@/features/data-lists/search-data-lists-for-picker";
+import { searchDataListNamesForPicker } from "@/features/data-lists/search-data-lists-for-picker";
 import type { DataList } from "@/lib/endatix-api/data-lists/types";
-import { Result } from "@/lib/result";
 import { applyDataListBindingOnQuestion } from "@/lib/survey-features/data-lists/utils";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Question } from "survey-core";
@@ -90,16 +89,7 @@ export function useConvertInlineChoicesUi({
   }, []);
 
   const searchDataListNames = useCallback(async (query: string) => {
-    const result = await searchDataListsForPickerAction({
-      search: query,
-      page: 1,
-      pageSize: 25,
-    });
-    if (Result.isError(result)) {
-      return [];
-    }
-
-    return result.value.items.map((item) => item.name);
+    return searchDataListNamesForPicker(query);
   }, []);
 
   const completeDataListBinding = useCallback(

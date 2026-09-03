@@ -24,6 +24,12 @@ export async function getDataListDetails(
     await api.dataLists.getById(idResult.value, {
       includeItems: options?.includeItems ?? false,
     }),
-    DETAILS_MAP_OPTIONS,
+    {
+      ...DETAILS_MAP_OPTIONS,
+      mapData: (data) => ({
+        ...data,
+        items: data.items ?? [],
+      }),
+    },
   );
 }

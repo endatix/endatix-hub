@@ -1,22 +1,18 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { Result } from "@/lib/result";
 import {
   getConvertChoicesUiDeps,
   registerConvertChoicesUiDeps,
 } from "../../conversion/convert-inline-choices-deps";
 import { useConvertInlineChoicesUi } from "../use-convert-inline-choices-ui.hook";
 
-const { mockSearch } = vi.hoisted(() => ({
-  mockSearch: vi.fn(),
+const { mockSearchNames } = vi.hoisted(() => ({
+  mockSearchNames: vi.fn(),
 }));
 
-vi.mock(
-  "@/features/data-lists/search-data-lists-for-picker",
-  () => ({
-    searchDataListsForPickerAction: mockSearch,
-  }),
-);
+vi.mock("@/features/data-lists/search-data-lists-for-picker", () => ({
+  searchDataListNamesForPicker: mockSearchNames,
+}));
 
 describe("useConvertInlineChoicesUi", () => {
   afterEach(() => {
@@ -25,16 +21,7 @@ describe("useConvertInlineChoicesUi", () => {
   });
 
   it("registers convert choices UI dependencies", async () => {
-    mockSearch.mockResolvedValue(
-      Result.success({
-        page: 1,
-        pageSize: 25,
-        totalRecords: 1,
-        totalPages: 1,
-        hasNextPage: false,
-        items: [{ id: "1", name: "Countries" }],
-      }),
-    );
+    mockSearchNames.mockResolvedValue(["Countries"]);
     const markFormModified = vi.fn();
 
     renderHook(() =>

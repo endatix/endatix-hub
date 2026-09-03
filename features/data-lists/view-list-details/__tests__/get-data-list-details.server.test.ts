@@ -48,4 +48,24 @@ describe("getDataListDetails", () => {
     }
     expect(mockGetById).toHaveBeenCalledWith("99", { includeItems: false });
   });
+
+  it("normalizes omitted items when includeItems is false", async () => {
+    mockGetById.mockResolvedValue({
+      success: true,
+      data: {
+        id: "99",
+        name: "Cities",
+        isActive: true,
+        createdAt: new Date("2024-01-01"),
+        itemsCount: 3,
+      },
+    });
+
+    const result = await getDataListDetails("99");
+
+    expect(Result.isSuccess(result)).toBe(true);
+    if (Result.isSuccess(result)) {
+      expect(result.value.items).toEqual([]);
+    }
+  });
 });

@@ -37,6 +37,18 @@ describe("mapSurveyJsLazyLoadTotal", () => {
     ).toBe(27);
   });
 
+  it("trusts hasNextPage false on an exact full first page", () => {
+    expect(
+      mapSurveyJsLazyLoadTotal({
+        skip: 0,
+        take: 25,
+        itemCount: 25,
+        totalRecords: 25,
+        hasNextPage: false,
+      }),
+    ).toBe(25);
+  });
+
   it("uses loaded count on a short last page", () => {
     expect(
       mapSurveyJsLazyLoadTotal({

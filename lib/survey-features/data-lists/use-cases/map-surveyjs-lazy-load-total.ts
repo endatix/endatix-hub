@@ -27,7 +27,8 @@ export function mapSurveyJsLazyLoadTotal(params: {
   let total = Math.max(reported, loadedThroughThisPage);
 
   const morePages =
-    params.hasNextPage === true || (take > 0 && itemCount >= take);
+    params.hasNextPage === true ||
+    (params.hasNextPage !== false && take > 0 && itemCount >= take);
   if (morePages) {
     // Need total > skip+take+1 after SurveyJS increments skip by take.
     total = Math.max(total, skip + take + 2);

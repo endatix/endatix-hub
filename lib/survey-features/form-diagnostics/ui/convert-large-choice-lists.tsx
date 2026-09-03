@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { convertChoicesToDataListAction } from "@/features/data-lists/convert-inline-choices/convert-choices-to-data-list.action";
+import { searchDataListNamesForPicker } from "@/features/data-lists/search-data-lists-for-picker";
 import { createFormAction } from "@/features/forms/application/actions/create-form.action";
 import {
   ConvertibleChoiceQuestionRef,
@@ -32,6 +33,7 @@ import { Result } from "@/lib/result";
 import { useCallback, useMemo, useState } from "react";
 import { Info } from "lucide-react";
 import { Model } from "survey-core";
+import { collectReservedDataListNames } from "../collect-reserved-data-list-names";
 import type { FormDiagnosticsPlugin } from "../form-diagnostics-plugin";
 
 const PREVIEW_LIMIT = 12;
@@ -105,10 +107,6 @@ function getDuplicateRetryListName(
     { title: undefined, name: currentName },
     reserved,
   );
-}
-
-function buildReservedDataListNames(names: string[]): Set<string> {
-  return new Set(names.map((name) => name.toLowerCase()));
 }
 
 function buildConversionPlans(
@@ -509,7 +507,11 @@ export function ConvertLargeChoiceLists({
     }
 
     const surveyPayload = parsedPayload.payload;
-    const reserved = buildReservedDataListNames(model.availableDataListNames);
+    const reserved = await collectReservedDataListNames({
+      knownNames: model.availableDataListNames,
+      candidates,
+      searchNames: searchDataListNamesForPicker,
+    });
     const plans = buildConversionPlans(candidates, reserved);
 
     let choicesByName: Map<string, unknown[] | null>;
