@@ -1,5 +1,3 @@
-"use client";
-
 import { useDebouncedUrlSearch } from "@/lib/utils/hooks/use-debounced-url-search.hook";
 import { useUrlSearchParamsUpdater } from "@/lib/utils/hooks/use-url-search-params-updater.hook";
 
@@ -20,3 +18,5 @@ export function useListUrlState(
 
   return { search, setSearch, urlSearch, updateUrl, searchParams, isPending };
 }
+
+export type ListUrlState = ReturnType<typeof useListUrlState>;

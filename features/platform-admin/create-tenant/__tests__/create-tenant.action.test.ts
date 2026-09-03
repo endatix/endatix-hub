@@ -86,7 +86,6 @@ describe("createTenantAction", () => {
       name: "Acme",
       description: null,
       allowSelfRegistration: true,
-      allowedAuthProviderKeys: undefined,
       defaultRegistrationRoleName: "Respondent",
     });
     expect(revalidatePath).toHaveBeenCalledWith("/(main)/admin/tenants");

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   parsePlatformTenantListParams,
   listUrlStateFromSearchParams,
+  tenantsListSuspenseKey,
 } from "../utils";
 
 describe("parsePlatformTenantListParams", () => {
@@ -69,5 +70,18 @@ describe("listUrlStateFromSearchParams", () => {
       page: 3,
       pageSize: 10,
     });
+  });
+});
+
+describe("tenantsListSuspenseKey", () => {
+  it("changes when search changes", () => {
+    const base = listUrlStateFromSearchParams(new URLSearchParams("page=1"));
+    const searched = listUrlStateFromSearchParams(
+      new URLSearchParams("page=1&search=acme"),
+    );
+
+    expect(tenantsListSuspenseKey(base)).not.toBe(
+      tenantsListSuspenseKey(searched),
+    );
   });
 });

@@ -32,7 +32,6 @@ export async function createTenantAction(
       name: request.name.trim(),
       description: request.description?.trim() || null,
       allowSelfRegistration: request.allowSelfRegistration,
-      allowedAuthProviderKeys: request.allowedAuthProviderKeys,
       defaultRegistrationRoleName: request.defaultRegistrationRoleName,
     }),
     {

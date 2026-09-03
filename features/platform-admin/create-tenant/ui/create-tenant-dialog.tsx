@@ -1,5 +1,6 @@
 "use client";
 
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   ResponsivePanel,
@@ -14,7 +15,7 @@ import { TenantAccessFields } from "@/features/platform-admin/ui/tenant-access-f
 import { TenantIdentityFields } from "@/features/platform-admin/ui/tenant-identity-fields";
 import { TenantSignInUrlField } from "@/features/platform-admin/ui/tenant-signin-url-field";
 import { Result } from "@/lib/result";
-import { Plus } from "lucide-react";
+import { Info, Plus } from "lucide-react";
 import { useState, useTransition } from "react";
 import {
   TENANT_REGISTRATION_ROLES,
@@ -31,7 +32,7 @@ const STEP_COPY: Record<
   1: {
     title: "Identity",
     description:
-      "Name the tenant. The public sign-in URL is generated after create.",
+      "Name the tenant. A unique short URL is generated when it is created.",
   },
   2: {
     title: "Access",
@@ -122,29 +123,41 @@ export function CreateTenantDialog() {
         </ResponsivePanelDescription>
       </ResponsivePanelHeader>
 
-      <ResponsivePanelBody className="grid gap-4">
+      <ResponsivePanelBody className="grid content-start gap-5">
         {step === 1 && (
-          <TenantIdentityFields
-            idPrefix="tenant"
-            name={name}
-            onNameChange={(value) => {
-              setName(value);
-              setStepError(null);
-            }}
-            description={description}
-            onDescriptionChange={setDescription}
-          />
+          <>
+            <TenantIdentityFields
+              idPrefix="tenant"
+              name={name}
+              onNameChange={(value) => {
+                setName(value);
+                setStepError(null);
+              }}
+              description={description}
+              onDescriptionChange={setDescription}
+            />
+            <Alert variant="info">
+              <Info />
+              <AlertTitle>Public id</AlertTitle>
+              <AlertDescription>
+                A unique short URL is generated during creation. Sign-in links
+                use it, and it cannot be changed later.
+              </AlertDescription>
+            </Alert>
+          </>
         )}
 
         {step === 2 && (
-          <TenantAccessFields
-            idPrefix="tenant"
-            allowSelfRegistration={allowSelfRegistration}
-            onAllowSelfRegistrationChange={setAllowSelfRegistration}
-            defaultRole={defaultRole}
-            onDefaultRoleChange={setDefaultRole}
-            showSelfRegHint
-          />
+          <div className="grid gap-5 rounded-lg bg-surface-container-low p-4">
+            <TenantAccessFields
+              idPrefix="tenant"
+              allowSelfRegistration={allowSelfRegistration}
+              onAllowSelfRegistrationChange={setAllowSelfRegistration}
+              defaultRole={defaultRole}
+              onDefaultRoleChange={setDefaultRole}
+              showSelfRegHint
+            />
+          </div>
         )}
 
         {step === 3 && (

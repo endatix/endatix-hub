@@ -22,7 +22,7 @@ const SKELETON_ROWS = 8;
 
 const COLUMNS: readonly { title: string; className?: string }[] = [
   { title: "Tenant", className: "min-w-[12rem]" },
-  { title: "Tenant slug" },
+  { title: "Public id" },
   { title: "Self-reg" },
   { title: "Created", className: "hidden md:table-cell" },
   { title: "Modified", className: "hidden md:table-cell" },

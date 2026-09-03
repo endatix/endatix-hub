@@ -34,6 +34,24 @@ describe("CreateTenantDialog", () => {
 
     expect(await screen.findByLabelText("Name")).toBeTruthy();
     expect(screen.queryByLabelText("Slug")).toBeNull();
+    expect(
+      screen.getByText(/unique short URL is generated during creation/i),
+    ).toBeTruthy();
+    expect(screen.queryByText("Allowed auth providers")).toBeNull();
+  });
+
+  it("does not show auth providers on the access step", async () => {
+    render(<CreateTenantDialog />);
+    fireEvent.click(screen.getByRole("button", { name: /create tenant/i }));
+    fireEvent.change(await screen.findByLabelText("Name"), {
+      target: { value: "Acme Surveys" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+
+    expect(
+      await screen.findByLabelText("Allow self-registration"),
+    ).toBeTruthy();
+    expect(screen.queryByText("Allowed auth providers")).toBeNull();
   });
 
   it("shows a Hub access warning for Creator", async () => {

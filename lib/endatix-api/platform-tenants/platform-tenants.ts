@@ -1,5 +1,14 @@
 import { ApiResult } from "../shared/api-result";
-import { buildQueryEndpoint } from "../shared/query-params";
+import { appendDateRangeFilters, appendSortParams } from "../shared/list-query";
+import {
+  normalizePagedResponse,
+  type NormalizedPagedResponse,
+} from "../shared/paged-response";
+import {
+  appendPagingQueryParams,
+  appendQueryParam,
+  buildEndpointWithQuery,
+} from "../shared/query-params";
 import type { PagedResponse } from "../shared/types";
 import type { EndatixApi } from "../endatix-api";
 import { Result } from "@/lib/result";
@@ -13,26 +22,40 @@ import type {
 } from "./types";
 
 const TENANTS_BASE = "/admin/tenants";
+const DEFAULT_PAGE = 1;
+const DEFAULT_PAGE_SIZE = 10;
+
+export type PlatformTenantsPage =
+  NormalizedPagedResponse<PlatformTenantListItem>;
+
+export function buildListPlatformTenantsEndpoint(
+  request: ListPlatformTenantsRequest = {},
+): string {
+  const searchParams = new URLSearchParams();
+  appendPagingQueryParams(searchParams, request, {
+    page: DEFAULT_PAGE,
+    pageSize: DEFAULT_PAGE_SIZE,
+  });
+  appendSortParams(searchParams, request);
+  appendDateRangeFilters(searchParams, request, ["created", "modified"]);
+  appendQueryParam(searchParams, "search", request.search);
+  return buildEndpointWithQuery(TENANTS_BASE, searchParams);
+}
 
 export default class PlatformTenants {
   constructor(private readonly endatix: EndatixApi) {}
 
   async list(
     request: ListPlatformTenantsRequest = {},
-  ): Promise<ApiResult<PagedResponse<PlatformTenantListItem>>> {
-    return this.endatix.get<PagedResponse<PlatformTenantListItem>>(
-      buildQueryEndpoint(TENANTS_BASE, [
-        ["page", request.page],
-        ["pageSize", request.pageSize],
-        ["search", request.search],
-        ["sortBy", request.sortBy],
-        ["sortDir", request.sortDir],
-        ["createdFrom", request.createdFrom],
-        ["createdTo", request.createdTo],
-        ["modifiedFrom", request.modifiedFrom],
-        ["modifiedTo", request.modifiedTo],
-      ]),
-    );
+  ): Promise<ApiResult<PlatformTenantsPage>> {
+    const response = await this.endatix.get<
+      PagedResponse<PlatformTenantListItem>
+    >(buildListPlatformTenantsEndpoint(request));
+    if (!response.success) {
+      return response;
+    }
+
+    return ApiResult.success(normalizePagedResponse(response.data));
   }
 
   async getById(tenantId: string): Promise<ApiResult<PlatformTenant>> {

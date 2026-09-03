@@ -60,7 +60,10 @@ export function parsePlatformTenantListParams(
   return {
     ...paging,
     search,
-    sortBy: parseSortBy(firstSearchParam(searchParams?.sortBy), ALLOWED_SORT_BY),
+    sortBy: parseSortBy(
+      firstSearchParam(searchParams?.sortBy),
+      ALLOWED_SORT_BY,
+    ),
     sortDir: parseSortDir(firstSearchParam(searchParams?.sortDir)),
     ...dateFilters,
   };
@@ -92,4 +95,18 @@ export function listUrlStateFromSearchParams(
     modifiedFrom: parsed.modifiedFrom,
     modifiedTo: parsed.modifiedTo,
   };
+}
+
+export function tenantsListSuspenseKey(state: TenantsListUrlState): string {
+  return [
+    state.page,
+    state.pageSize,
+    state.search ?? "",
+    state.sortBy ?? "",
+    state.sortDir ?? "",
+    state.createdFrom ?? "",
+    state.createdTo ?? "",
+    state.modifiedFrom ?? "",
+    state.modifiedTo ?? "",
+  ].join("|");
 }

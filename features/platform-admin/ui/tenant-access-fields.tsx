@@ -37,7 +37,7 @@ export function TenantAccessFields({
   const roleId = `${idPrefix}-default-role`;
 
   return (
-    <>
+    <div className="grid content-start gap-5">
       <div className="flex items-center justify-between gap-4">
         <div className="grid gap-1">
           <Label htmlFor={selfRegId}>Allow self-registration</Label>
@@ -78,6 +78,6 @@ export function TenantAccessFields({
           </AlertDescription>
         </Alert>
       )}
-    </>
+    </div>
   );
 }

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { EndatixApi } from "../endatix-api";
 import { ApiResult } from "../shared/api-result";
+import { buildListPlatformTenantsEndpoint } from "../platform-tenants/platform-tenants";
 
 const mockFetch = vi.fn();
 vi.stubGlobal("fetch", mockFetch);
@@ -23,6 +24,31 @@ function respondWithTenant(status: number): void {
     }),
   );
 }
+
+describe("buildListPlatformTenantsEndpoint", () => {
+  it("applies the default page and page size", () => {
+    expect(buildListPlatformTenantsEndpoint()).toBe(
+      "/admin/tenants?page=1&pageSize=10",
+    );
+  });
+
+  it("maps search, sort, and calendar bounds onto the flat wire contract", () => {
+    const endpoint = buildListPlatformTenantsEndpoint({
+      page: 2,
+      pageSize: 25,
+      search: "acme",
+      sortBy: "name",
+      sortDir: "asc",
+      createdFrom: "2026-01-01",
+      createdTo: "2026-01-31",
+      modifiedFrom: "2026-02-01",
+    });
+
+    expect(decodeURIComponent(endpoint)).toBe(
+      "/admin/tenants?page=2&pageSize=25&sortBy=name&sortDir=asc&createdFrom=2026-01-01&createdTo=2026-01-31&modifiedFrom=2026-02-01&search=acme",
+    );
+  });
+});
 
 describe("PlatformTenants", () => {
   beforeEach(() => {
@@ -80,6 +106,47 @@ describe("PlatformTenants", () => {
     expect(mockFetch).toHaveBeenCalledWith(
       expect.stringContaining("/api/admin/tenants/42"),
       expect.objectContaining({ method: "PATCH", body: JSON.stringify(body) }),
+    );
+  });
+
+  it("lists one page and keeps the paging envelope", async () => {
+    mockFetch.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          items: [
+            {
+              id: "1",
+              name: "Acme",
+              shortUrl: "xk9mp2qr",
+              createdAt: "2026-01-01T00:00:00.000Z",
+              formsCount: 0,
+              submissionsCount: 0,
+              selfRegistrationEnabled: false,
+            },
+          ],
+          page: 1,
+          pageSize: 10,
+          totalRecords: 11,
+          totalPages: 2,
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    const result = await new EndatixApi("token").platformTenants.list({
+      search: "acme",
+    });
+
+    expect(ApiResult.isSuccess(result)).toBe(true);
+    if (!result.success) {
+      return;
+    }
+    expect(result.data.hasNextPage).toBe(true);
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining(
+        "/api/admin/tenants?page=1&pageSize=10&search=acme",
+      ),
+      expect.objectContaining({ method: "GET" }),
     );
   });
 });

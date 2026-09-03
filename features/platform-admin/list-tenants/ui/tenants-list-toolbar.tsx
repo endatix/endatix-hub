@@ -5,13 +5,24 @@ import {
   ResetFiltersButton,
   TableSearchInput,
 } from "@/components/table";
-import { useListUrlState } from "@/lib/list-page/use-list-url-state";
-import { listUrlStateFromSearchParams } from "../utils";
+import type { UrlSearchParamsUpdater } from "@/lib/utils/hooks/use-url-search-params-updater.hook";
+import type { TenantsListUrlState } from "../utils";
 
-export function TenantsListToolbar() {
-  const { search, setSearch, updateUrl, searchParams, isPending } =
-    useListUrlState();
-  const urlState = listUrlStateFromSearchParams(searchParams);
+interface TenantsListToolbarProps {
+  search: string;
+  setSearch: (value: string) => void;
+  updateUrl: UrlSearchParamsUpdater;
+  urlState: TenantsListUrlState;
+  isPending: boolean;
+}
+
+export function TenantsListToolbar({
+  search,
+  setSearch,
+  updateUrl,
+  urlState,
+  isPending,
+}: Readonly<TenantsListToolbarProps>) {
   const hasActiveFilters = Boolean(
     search.trim() ||
     urlState.createdFrom ||
@@ -64,7 +75,7 @@ export function TenantsListToolbar() {
           <TableSearchInput
             value={search}
             onChange={setSearch}
-            placeholder="Search by name, tenant slug, or description"
+            placeholder="Search by name, public id, or description"
             ariaLabel="Search tenants"
             className="min-w-[12rem] flex-none lg:flex-1"
           />

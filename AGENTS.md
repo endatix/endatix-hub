@@ -48,19 +48,19 @@
 5. **Validate path ids with `validateEndatixId(...)` and return `ApiResult.validationError(...)`** before touching the network (see `Themes.partialUpdate` / `Themes.delete`).
 6. **Server actions map with `toResult(...)`**, never a hand-written `if (ApiResult.isError(...)) return Result.error(...)` — see "Server Actions" above. `features/themes/*/*.action.ts` are the worked examples.
 
-Known deviations, to be migrated when next touched (do not copy them): `Forms.list` / `Users.list` / `PlatformTenants.list` return the raw `PagedResponse<T>` without `normalizePagedResponse`; `FormTemplates.list` is a drain that has not yet been renamed to `listAll`.
+Known deviations, to be migrated when next touched (do not copy them): `Forms.list` / `Users.list` return the raw `PagedResponse<T>` without `normalizePagedResponse`; `FormTemplates.list` is a drain that has not yet been renamed to `listAll`.
 
 ## Server Pages
 
 - Keep `app/` pages mostly orchestration-focused: parse route/search params, start independent data work early, and pass typed data into UI components.
 - Prefer streaming slow, independent page sections with `Suspense` boundaries instead of blocking the whole route when partial rendering improves UX.
-- For streamed sections, pass stable promises into the section and unwrap them with React `use()` in the receiving component when that keeps the route file thin.
+- For streamed sections, pass stable promises into the section and unwrap them with React `use()` in the receiving component when that keeps the route file thin. Key the `Suspense` boundary with the parsed list query so a new filter/search does not keep the previous `use(promise)` result.
 - Use `Promise.all` for independent data dependencies. Await sequentially only when a later call depends on an earlier result.
 - For server page calls to the Endatix API, convert `ApiResult<T>` with `toResult(...)` so unexpected operational failures are logged consistently and expected invalid/not-found states can map to page-specific fallback UI.
 
 ### Page-load outcomes (composed GET loaders)
 
-**Single-Result lists** (one `toResult`, no post-fetch redirect): keep the thin promise + client `use()` pattern — reference `features/forms/list-forms/list-forms.server.ts` + `ui/forms-list-section.tsx`.
+**Single-Result lists** (one `toResult`, no post-fetch redirect): thin route + promise + client `use()`. Reference `app/(main)/data-lists/page.tsx` + `features/data-lists/view-lists/`, and `app/(main)/admin/tenants/page.tsx` + `features/platform-admin/list-tenants/`. Return `Result<T>` from the loader; unwrap with `HubPageLoadError` / `ResultLoadErrorView` — do not throw `DataLoadError` into `error.tsx`.
 
 **Composed list loads** (two+ GET Results, identity 404 vs load chrome, and/or a redirect that needs the API response): do **not** pile fetch + mapping + chrome into `app/.../page.tsx`. Use a slice-local **page-load outcome**:
 
@@ -79,6 +79,7 @@ Keep post-fetch `redirect()` in that Server Component — do not stream the outc
 ## Table filter state (client)
 
 - One debounced field (a search box): `useListUrlState()` (`lib/list-page/use-list-url-state.ts`).
+- One list page → one `useListUrlState()` call in a **client shell** that keeps the toolbar mounted and keys `Suspense` around the table only. Toolbar and table take props from that shell — do not call the hook in both. Pass `listKey` (and the list promise) from the RSC so Suspense remounts with the matching payload. Reference: `features/platform-admin/list-tenants/ui/tenants-list.tsx`.
 - **Two or more** debounced fields on the same table (search + a free-text filter, etc.): `useTableFiltersUrlState(keys)` (`components/table`), not one `useListUrlState` / `useUrlSearchParamsUpdater` call per field. Independent debounced writers race — each rebuilds the next URL from its own `searchParams` snapshot at the moment its timer fires, so whichever settles second can silently drop the other's just-committed change. `useTableFiltersUrlState` commits every field together in a single `updateUrl` call per settle window, so there is exactly one writer.
   - `keys` must be a module-level constant array (e.g. `const FILTER_KEYS = ["search", "hasLocale"] as const;`), not an inline literal — it drives the hook's effect dependencies.
   - Non-debounced filters (`Select`s, checkboxes) still call `updateUrl` directly; they don't need to be listed in `keys`.
@@ -119,7 +120,7 @@ Some Hub modules re-implement an OSS Core rule so the UI can validate before a r
 - Sibling `Suspense` regions: each `ResultLoadErrorView` is independent. Two failing Result loaders show **two** branded error blocks in their slots; toolbar/layout stay. A **throw** in a sibling (e.g. folders `await` without Result) still hits `error.tsx` and replaces the **whole** route segment, including successful siblings. Isolate only the loaders you convert to Result; do not mix throw + Result if you need both regions to keep rendering.
 - `error.tsx` / `global-error.tsx` are for **uncaught** exceptions only. Next.js forwards `error.message` (generic in production for Server Components) plus `error.digest` (hash to match server logs). Show digest on the support box; send it with PostHog `trackException`. Use stable `retry()` (not `reset()`). `global-error` must ship its own `<html>`/`<body>` + `globals.css`. Do **not** adopt `catchError` / graceful-degrading HTML snapshots for loaders — keep known `ApiResult` failures as `Result`.
 - Drive chrome from `statusCode` / `Result.errorType` via `unexpectedErrorUiFromResult`, not by sniffing `error.message`.
-- Reference — single Result list: `features/forms/list-forms/list-forms.server.ts` + `ui/forms-list-section.tsx`. Composed GET + post-fetch redirect: `features/submissions/list-submissions/` (page-load outcome). Other `(main)` pages may return `HubPageLoadError` directly when the loader is a single Result with no redirect.
+- Reference — single Result list: `features/data-lists/view-lists/` and `features/platform-admin/list-tenants/`. Composed GET + post-fetch redirect: `features/submissions/list-submissions/` (page-load outcome). Other `(main)` pages may return `HubPageLoadError` directly when the loader is a single Result with no redirect.
 
 ### Error page chrome (`ErrorPage`)
 

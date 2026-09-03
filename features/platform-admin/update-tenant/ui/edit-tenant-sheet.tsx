@@ -125,8 +125,8 @@ export function EditTenantSheet({
       <ResponsivePanelHeader>
         <ResponsivePanelTitle>Edit tenant</ResponsivePanelTitle>
         <ResponsivePanelDescription>
-          Update the display name and self-registration policy. The public id
-          stays locked because sign-in URLs already use it.
+          Update the name, description, or self-registration policy. The public
+          id stays locked because sign-in URLs already use it.
         </ResponsivePanelDescription>
       </ResponsivePanelHeader>
 
@@ -144,7 +144,7 @@ export function EditTenantSheet({
           </div>
         </ResponsivePanelBody>
       ) : (
-        <ResponsivePanelBody className="grid gap-4">
+        <ResponsivePanelBody className="grid content-start gap-5">
           <TenantIdentityFields
             idPrefix="edit-tenant"
             name={name}
@@ -155,17 +155,22 @@ export function EditTenantSheet({
             description={description}
             onDescriptionChange={setDescription}
           />
-          <TenantSignInUrlField
-            id="edit-tenant-signin-url"
-            shortUrl={shortUrl}
-          />
-          <TenantAccessFields
-            idPrefix="edit-tenant"
-            allowSelfRegistration={allowSelfRegistration}
-            onAllowSelfRegistrationChange={setAllowSelfRegistration}
-            defaultRole={defaultRole}
-            onDefaultRoleChange={setDefaultRole}
-          />
+          <div className="grid gap-5 rounded-lg bg-surface-container-low p-4">
+            <TenantSignInUrlField
+              id="edit-tenant-signin-url"
+              shortUrl={shortUrl}
+            />
+          </div>
+          <div className="grid gap-5 rounded-lg bg-surface-container-low p-4">
+            <TenantAccessFields
+              idPrefix="edit-tenant"
+              allowSelfRegistration={allowSelfRegistration}
+              onAllowSelfRegistrationChange={setAllowSelfRegistration}
+              defaultRole={defaultRole}
+              onDefaultRoleChange={setDefaultRole}
+              showSelfRegHint
+            />
+          </div>
           {nameError && <p className="text-sm text-destructive">{nameError}</p>}
         </ResponsivePanelBody>
       )}

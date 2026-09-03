@@ -15,6 +15,7 @@ import {
   sortingUrlUpdatesFromState,
   type DateFilterValue,
 } from "@/components/table";
+import { HubPageLoadError } from "@/components/error-handling/error-page";
 import { TruncatedId } from "@/components/common/truncated-id";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,9 +30,12 @@ import {
   type AssumeTenantTarget,
 } from "@/features/platform-admin/assume-tenant/ui/assume-tenant-confirm-dialog";
 import { EditTenantSheet } from "@/features/platform-admin/update-tenant/ui/edit-tenant-sheet";
-import type { PlatformTenantListItem, PlatformTenantListSortBy } from "@/lib/endatix-api";
+import type {
+  PlatformTenantListItem,
+  PlatformTenantListSortBy,
+} from "@/lib/endatix-api";
 import type { NormalizedPagedResponse } from "@/lib/endatix-api/shared/paged-response";
-import { useListUrlState } from "@/lib/list-page/use-list-url-state";
+import { Result, type ResultType } from "@/lib/result";
 import type { UrlSearchParamsUpdater } from "@/lib/utils/hooks/use-url-search-params-updater.hook";
 import { MoreHorizontal } from "lucide-react";
 import {
@@ -41,10 +45,13 @@ import {
   type SortingState,
   type Updater,
 } from "@tanstack/react-table";
-import { listUrlStateFromSearchParams } from "../utils";
+import type { TenantsListUrlState } from "../utils";
 
 interface TenantsTableProps {
   tenants: NormalizedPagedResponse<PlatformTenantListItem>;
+  updateUrl: UrlSearchParamsUpdater;
+  urlState: TenantsListUrlState;
+  isPending: boolean;
   canManage?: boolean;
 }
 
@@ -53,19 +60,26 @@ export function TenantsTableFromPromise({
   ...props
 }: Readonly<
   Omit<TenantsTableProps, "tenants"> & {
-    tenantsPromise: Promise<NormalizedPagedResponse<PlatformTenantListItem>>;
+    tenantsPromise: Promise<
+      ResultType<NormalizedPagedResponse<PlatformTenantListItem>>
+    >;
   }
 >) {
-  return <TenantsTable tenants={use(tenantsPromise)} {...props} />;
+  const result = use(tenantsPromise);
+  if (Result.isError(result)) {
+    return <HubPageLoadError result={result} />;
+  }
+
+  return <TenantsTable tenants={result.value} {...props} />;
 }
 
 export function TenantsTable({
   tenants: paged,
+  updateUrl,
+  urlState,
+  isPending,
   canManage = false,
 }: Readonly<TenantsTableProps>) {
-  const { updateUrl, searchParams, isPending } = useListUrlState();
-  const urlState = listUrlStateFromSearchParams(searchParams);
-  const searchInput = searchParams.get("search") ?? "";
   const [editingTenantId, setEditingTenantId] = useState<string | null>(null);
   const [assumeTarget, setAssumeTarget] = useState<AssumeTenantTarget | null>(
     null,
@@ -114,7 +128,7 @@ export function TenantsTable({
   });
 
   const hasFilters = Boolean(
-    searchInput.trim() ||
+    urlState.search?.trim() ||
     urlState.createdFrom ||
     urlState.createdTo ||
     urlState.modifiedFrom ||
@@ -198,14 +212,30 @@ function buildTenantColumns({
           isSorted={column.getIsSorted()}
         />
       ),
-      cell: ({ row }) => (
-        <div className="min-w-0">
-          <p className="truncate text-sm font-medium">{row.original.name}</p>
-          <p className="truncate text-xs text-muted-foreground">
-            {row.original.description || "No description"}
-          </p>
-        </div>
-      ),
+      cell: ({ row }) => {
+        const nameBlock = (
+          <>
+            <p className="truncate text-sm font-medium">{row.original.name}</p>
+            <p className="truncate text-xs text-muted-foreground">
+              {row.original.description || "No description"}
+            </p>
+          </>
+        );
+
+        if (!canManage) {
+          return <div className="min-w-0">{nameBlock}</div>;
+        }
+
+        return (
+          <button
+            type="button"
+            className="min-w-0 text-left hover:underline focus-visible:underline focus-visible:outline-none"
+            onClick={() => onEdit(row.original.id)}
+          >
+            {nameBlock}
+          </button>
+        );
+      },
     },
     {
       id: "shortUrl",
@@ -219,10 +249,7 @@ function buildTenantColumns({
         <span className={dataTableColumnLabelClassName()}>Public id</span>
       ),
       cell: ({ row }) => (
-        <TruncatedId
-          id={row.original.shortUrl}
-          copyLabel="Copy public id"
-        />
+        <TruncatedId id={row.original.shortUrl} copyLabel="Copy public id" />
       ),
     },
     {
@@ -332,9 +359,7 @@ function buildTenantColumns({
             >
               Assume tenant
             </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => onEdit(row.original.id)}
-            >
+            <DropdownMenuItem onSelect={() => onEdit(row.original.id)}>
               Edit
             </DropdownMenuItem>
           </DropdownMenuContent>

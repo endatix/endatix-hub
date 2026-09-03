@@ -23,7 +23,7 @@ export function TenantIdentityFields({
   const descriptionId = `${idPrefix}-description`;
 
   return (
-    <>
+    <div className="grid content-start gap-5">
       <div className="grid gap-2">
         <Label htmlFor={nameId}>Name</Label>
         <Input
@@ -38,8 +38,9 @@ export function TenantIdentityFields({
           id={descriptionId}
           value={description}
           onChange={(event) => onDescriptionChange(event.target.value)}
+          rows={3}
         />
       </div>
-    </>
+    </div>
   );
 }

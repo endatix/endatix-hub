@@ -4,13 +4,14 @@ import {
   requirePlatformAdmin,
 } from "@/features/platform-admin/server";
 import { PlatformAdminShell } from "@/features/platform-admin/ui/platform-admin-shell";
-import { TenantsListToolbar } from "@/features/platform-admin/list-tenants/ui/tenants-list-toolbar";
-import { TenantsTableFromPromise } from "@/features/platform-admin/list-tenants/ui/tenants-table";
-import { TenantsTableSkeleton } from "@/features/platform-admin/list-tenants/ui/tenants-table-skeleton";
-import { parsePlatformTenantListParams } from "@/features/platform-admin/utils";
+import { TenantsList } from "@/features/platform-admin/list-tenants/ui/tenants-list";
+import {
+  DEFAULT_TENANTS_PAGE_SIZE,
+  parsePlatformTenantListParams,
+  tenantsListSuspenseKey,
+} from "@/features/platform-admin/list-tenants/utils";
 import type { PlatformTenantSearchParams } from "@/features/platform-admin/types";
 import { tenantManagementFlag } from "@/lib/feature-flags/flags";
-import { Suspense } from "react";
 
 interface TenantsPageProps {
   searchParams?: Promise<PlatformTenantSearchParams>;
@@ -23,10 +24,8 @@ export default async function TenantsPage({ searchParams }: TenantsPageProps) {
     tenantManagementFlag(),
   ]);
 
-  const tenantsPromise = listPlatformTenants(
-    session,
-    parsePlatformTenantListParams(resolvedSearchParams),
-  );
+  const listRequest = parsePlatformTenantListParams(resolvedSearchParams);
+  const tenantsPromise = listPlatformTenants(session, listRequest);
 
   return (
     <PlatformAdminShell
@@ -34,13 +33,21 @@ export default async function TenantsPage({ searchParams }: TenantsPageProps) {
       description="Review and manage tenants. Assume a tenant only for support access."
       actions={canManage ? <CreateTenantDialog /> : undefined}
     >
-      <TenantsListToolbar />
-      <Suspense fallback={<TenantsTableSkeleton />}>
-        <TenantsTableFromPromise
-          tenantsPromise={tenantsPromise}
-          canManage={canManage}
-        />
-      </Suspense>
+      <TenantsList
+        tenantsPromise={tenantsPromise}
+        listKey={tenantsListSuspenseKey({
+          page: listRequest.page ?? 1,
+          pageSize: listRequest.pageSize ?? DEFAULT_TENANTS_PAGE_SIZE,
+          search: listRequest.search,
+          sortBy: listRequest.sortBy,
+          sortDir: listRequest.sortDir,
+          createdFrom: listRequest.createdFrom,
+          createdTo: listRequest.createdTo,
+          modifiedFrom: listRequest.modifiedFrom,
+          modifiedTo: listRequest.modifiedTo,
+        })}
+        canManage={canManage}
+      />
     </PlatformAdminShell>
   );
 }
