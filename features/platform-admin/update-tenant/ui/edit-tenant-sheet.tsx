@@ -76,6 +76,11 @@ export function EditTenantSheet({
         setAllowedProviders([...result.value.allowedAuthProviderKeys]);
         setDefaultRole(result.value.defaultRegistrationRoleName);
       })
+      .catch(() => {
+        if (!cancelled) {
+          setLoadError("Failed to load tenant");
+        }
+      })
       .finally(() => {
         if (!cancelled) {
           setIsLoading(false);
@@ -137,7 +142,10 @@ export function EditTenantSheet({
             {loadError ? (
               <p className="text-sm text-destructive">{loadError}</p>
             ) : (
-              <Loader2 className="size-5 animate-spin" />
+              <span role="status">
+                <Loader2 className="size-5 motion-safe:animate-spin" />
+                <span className="sr-only">Loading tenant</span>
+              </span>
             )}
           </div>
         </ResponsivePanelBody>

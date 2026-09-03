@@ -4,6 +4,7 @@
 
 - Keep Hub features organized as vertical slices under `features/{feature}/{verb-noun}/`.
 - Put reusable cross-feature utilities in `lib/`; keep feature-specific business logic inside the owning feature slice.
+- Chrome shared by two or more slices of the same feature lives in `features/{feature}/ui/` (e.g. `platform-admin/ui/platform-admin-shell.tsx`, `tenant-access-fields.tsx` used by `create-tenant` and `update-tenant`). Do not park it in one slice and import across siblings, and do not invent a vague umbrella slice to hold it — a slice is one verb-noun action.
 - Keep `app/` routing-focused. Data mutations should flow through server actions.
 
 ## Server Actions

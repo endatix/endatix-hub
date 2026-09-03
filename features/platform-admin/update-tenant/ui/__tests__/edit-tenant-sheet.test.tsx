@@ -98,6 +98,21 @@ describe("EditTenantSheet failures", () => {
     expect(screen.queryByLabelText("Name")).toBeNull();
   });
 
+  it("surfaces a rejected load instead of spinning forever", async () => {
+    getTenantActionMock.mockRejectedValue(new Error("network down"));
+
+    render(
+      <EditTenantSheet
+        tenantId="42"
+        authProviders={[]}
+        onOpenChange={vi.fn()}
+      />,
+    );
+
+    expect(await screen.findByText("Failed to load tenant")).toBeTruthy();
+    expect(screen.queryByRole("status")).toBeNull();
+  });
+
   it("blocks a blank name before calling the API", async () => {
     getTenantActionMock.mockResolvedValue(
       Result.success({
