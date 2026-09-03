@@ -53,6 +53,8 @@ Use `features/folders` as the canonical implementation of this pattern:
 - server-safe curated exports via `features/folders/server.ts`
 - slice-local tests in `features/folders/create-folder/__tests__/`
 
+Public tenant sign-in / self-reg lives in `features/tenants/public-tenant/` (not under `platform-admin`). Hub types use `shortUrl`; `POST /auth/register` still sends `tenantSlug`. See Hub `AGENTS.md` “Endatix IDs”.
+
 ### Reporting export slices (`features/export`)
 
 Reporting export is a dedicated feature (not nested under `forms/` or `submissions/`). Slices map to API capabilities and UI surfaces:

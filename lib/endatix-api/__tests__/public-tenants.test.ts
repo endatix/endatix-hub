@@ -18,11 +18,11 @@ describe("PublicTenants", () => {
     vi.clearAllMocks();
   });
 
-  it("gets a public tenant by slug without auth", async () => {
+  it("gets a public tenant without auth and maps slug to shortUrl", async () => {
     mockFetch.mockResolvedValueOnce(
       new Response(
         JSON.stringify({
-          slug: "xK9mP2qR8vNw",
+          slug: "xk9mp2qr",
           name: "Acme",
           selfRegistrationEnabled: true,
           allowedAuthProviders: ["endatix"],
@@ -31,14 +31,18 @@ describe("PublicTenants", () => {
       ),
     );
 
-    const result = await api.publicTenants.getBySlug("xK9mP2qR8vNw");
+    const result = await api.publicTenants.getBySlug("xk9mp2qr");
 
     expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining("/api/public/tenants/xK9mP2qR8vNw"),
+      expect.stringContaining("/api/public/tenants/xk9mp2qr"),
       expect.objectContaining({ method: "GET" }),
     );
     const [, init] = mockFetch.mock.calls[0];
     expect(init.headers).not.toHaveProperty("Authorization");
     expect(ApiResult.isSuccess(result)).toBe(true);
+    if (ApiResult.isSuccess(result)) {
+      expect(result.data.shortUrl).toBe("xk9mp2qr");
+      expect(result.data).not.toHaveProperty("slug");
+    }
   });
 });

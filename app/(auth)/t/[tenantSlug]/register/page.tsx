@@ -19,7 +19,11 @@ const TenantRegisterPage = async ({ params }: TenantRegisterPageProps) => {
   const { tenantSlug } = await params;
   const tenantResult = await getPublicTenantAction(tenantSlug);
   if (!Result.isSuccess(tenantResult)) {
-    return <TenantPublicNotFound />;
+    return tenantResult.statusCode === 404 ? (
+      <TenantPublicNotFound />
+    ) : (
+      <p className="text-sm text-muted-foreground">{tenantResult.message}</p>
+    );
   }
 
   const tenant = tenantResult.value;
@@ -27,17 +31,20 @@ const TenantRegisterPage = async ({ params }: TenantRegisterPageProps) => {
     return (
       <TenantRegistrationClosed
         tenantName={tenant.name}
-        tenantSlug={tenant.slug}
+        shortUrl={tenant.shortUrl}
       />
     );
   }
 
   return (
     <>
-      <TenantRegisterForm tenantSlug={tenant.slug} tenantName={tenant.name} />
+      <TenantRegisterForm shortUrl={tenant.shortUrl} tenantName={tenant.name} />
       <div className="mt-4 text-center text-sm">
         Already have an account?{" "}
-        <Link href={tenantPublicSignInPath(tenant.slug)} className="underline">
+        <Link
+          href={tenantPublicSignInPath(tenant.shortUrl)}
+          className="underline"
+        >
           Sign in
         </Link>
       </div>

@@ -1,27 +1,20 @@
 "use server";
 
-import { EndatixApi, isNotFoundError, type PublicTenant } from "@/lib/endatix-api";
+import { EndatixApi } from "@/lib/endatix-api";
 import { Result } from "@/lib/result";
-import { mapApiErrorToResult } from "@/lib/result/map-api-error-to-result";
+import { toResult } from "@/lib/result/map-api-result-to-result";
 import { RegistrationRequestSchema } from "@/features/auth/shared/auth.schemas";
 import { parseZodError } from "@/lib/utils/zod-error-utils";
 
-export async function getPublicTenantAction(
-  slug: string,
-): Promise<Result<PublicTenant>> {
-  const api = new EndatixApi();
-  const loaded = await api.publicTenants.getBySlug(slug);
-  if (!loaded.success) {
-    if (isNotFoundError(loaded)) {
-      return Result.error("This tenant sign-in link is not valid.");
-    }
+const LOGGER_NAME = "public-tenants";
 
-    return mapApiErrorToResult(loaded, {
-      fallbackMessage: "Failed to load tenant",
-    });
-  }
-
-  return Result.success(loaded.data);
+export async function getPublicTenantAction(publicId: string) {
+  const apiResult = await new EndatixApi().publicTenants.getBySlug(publicId);
+  return toResult(apiResult, {
+    fallbackMessage: "Failed to load tenant",
+    logMessage: "Failed to load public tenant",
+    loggerName: LOGGER_NAME,
+  });
 }
 
 export type TenantRegisterState = {
@@ -54,22 +47,23 @@ export async function registerTenantAccountAction(
     };
   }
 
-  const api = new EndatixApi();
-  const registered = await api.auth.register({
+  const apiResult = await new EndatixApi().auth.register({
     email: validatedFields.data.email,
     password: validatedFields.data.password,
     confirmPassword: validatedFields.data.password,
     tenantSlug,
   });
+  const registered = toResult(apiResult, {
+    fallbackMessage:
+      "We cannot create your account at this time. Please try again later.",
+    logMessage: "Failed to register tenant account",
+    loggerName: LOGGER_NAME,
+  });
 
-  if (!registered.success) {
-    const mapped = mapApiErrorToResult(registered, {
-      fallbackMessage:
-        "We cannot create your account at this time. Please try again later.",
-    });
+  if (Result.isError(registered)) {
     return {
       success: false,
-      errorMessage: Result.isError(mapped) ? mapped.message : "Failed to create account.",
+      errorMessage: registered.message,
       formData,
     };
   }

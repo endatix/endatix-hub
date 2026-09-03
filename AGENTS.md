@@ -52,6 +52,8 @@ prefix, not `"use client"`, is what decides.
 - Do not coerce Endatix IDs through `Number(...)`, `parseInt(...)`, or numeric Zod schemas. Keep values as strings from API DTOs through server actions and route/query params.
 - Before using an Endatix ID in an API path, server action payload, or security-sensitive lookup, validate it with `validateEndatixId(...)` or `createEndatixIdSchema(...)` from `lib/utils/type-validators.ts` to reduce attack surface.
 - A tenant's public id is `shortUrl` (opaque, API-generated, immutable). Never name it `slug` in Hub DTOs or state, and never send it on create — only Next route folders keep `[tenantSlug]`.
+- Public GET JSON still uses `slug` (`PublicTenantModel.Slug` on the API). Map to `shortUrl` in `lib/endatix-api/public-tenants`. Register body keeps `tenantSlug` (OSS `RegisterCommand`). Worked example: `features/tenants/public-tenant/`.
+- Unauthenticated `/t/{shortUrl}/signin` and `/register` are auth routes (`isTenantPublicAuthPath` in `auth-constants.ts`) so the proxy does not bounce them to global `/signin`.
 
 ## Assume tenant (support)
 

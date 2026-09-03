@@ -11,27 +11,32 @@ import { useRouter } from "next/navigation";
 import { AuthLogo } from "@/features/auth/ui/auth-logo";
 
 interface TenantRegisterFormProps {
-  tenantSlug: string;
+  shortUrl: string;
   tenantName: string;
 }
 
+function formString(formData: FormData | undefined, name: string): string {
+  const value = formData?.get(name);
+  return typeof value === "string" ? value : "";
+}
+
 const TenantRegisterForm = ({
-  tenantSlug,
+  shortUrl,
   tenantName,
 }: TenantRegisterFormProps) => {
   const router = useRouter();
   const [state, formAction, isPending] = useActionState(
     async (_: unknown, formData: FormData) => {
       const result = await registerTenantAccountAction(
-        tenantSlug,
+        shortUrl,
         null,
         formData,
       );
       if (result.success) {
-        const email = formData.get("email");
+        const email = formString(formData, "email");
         if (email) {
           router.push(
-            `/account-verification?email=${encodeURIComponent(email.toString())}`,
+            `/account-verification?email=${encodeURIComponent(email)}`,
           );
         }
       }
@@ -58,8 +63,7 @@ const TenantRegisterForm = ({
             name="email"
             required
             autoFocus
-            tabIndex={1}
-            defaultValue={state?.formData?.get("email")?.toString()}
+            defaultValue={formString(state?.formData, "email")}
           />
           {state?.errors?.email && (
             <ErrorMessage message={state.errors.email.toString()} />
@@ -67,25 +71,13 @@ const TenantRegisterForm = ({
         </div>
         <div className="grid gap-2">
           <Label htmlFor="password">Password</Label>
-          <Input
-            id="password"
-            type="password"
-            name="password"
-            required
-            tabIndex={2}
-            defaultValue={state?.formData?.get("password")?.toString()}
-          />
+          <Input id="password" type="password" name="password" required />
           {state?.errors?.password && (
             <ErrorMessage message={state.errors.password.toString()} />
           )}
         </div>
         {state?.errorMessage && <ErrorMessage message={state.errorMessage} />}
-        <Button
-          type="submit"
-          className="w-full"
-          disabled={isPending}
-          tabIndex={3}
-        >
+        <Button type="submit" className="w-full" disabled={isPending}>
           {isPending ? <Spinner className="mr-2 h-4 w-4" /> : null}
           Create account
         </Button>

@@ -31,7 +31,11 @@ const TenantSignInPage = async ({
   const { returnUrl } = await searchParams;
   const tenantResult = await getPublicTenantAction(tenantSlug);
   if (!Result.isSuccess(tenantResult)) {
-    return <TenantPublicNotFound />;
+    return tenantResult.statusCode === 404 ? (
+      <TenantPublicNotFound />
+    ) : (
+      <p className="text-sm text-muted-foreground">{tenantResult.message}</p>
+    );
   }
 
   const tenant = tenantResult.value;
@@ -59,7 +63,11 @@ const TenantSignInPage = async ({
   }
 
   if (!endatixAuthProvider) {
-    return <div>No Endatix auth provider found</div>;
+    return (
+      <p className="text-sm text-muted-foreground">
+        Sign-in is not available for this tenant.
+      </p>
+    );
   }
 
   return (
@@ -74,7 +82,7 @@ const TenantSignInPage = async ({
         <div className="mt-4 text-center text-sm">
           Don&apos;t have an account?{" "}
           <Link
-            href={tenantPublicRegisterPath(tenant.slug)}
+            href={tenantPublicRegisterPath(tenant.shortUrl)}
             className="underline"
           >
             Create account

@@ -47,7 +47,7 @@ export interface RegisterResponse {
 }
 
 export interface PublicTenant {
-  slug: string;
+  shortUrl: string;
   name: string;
   selfRegistrationEnabled: boolean;
   allowedAuthProviders: string[];

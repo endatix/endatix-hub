@@ -2,14 +2,6 @@ import { CircleCheckBig, CircleX, TriangleAlert } from "lucide-react";
 import { Spinner } from "@/components/loaders/spinner";
 import { cn } from "@/lib/utils";
 
-/**
- * What an auth page is saying. The three outcome tones mirror the status
- * vocabulary in DESIGN.md; `pending` is work still in flight.
- *
- * `prompt` asks the reader something and reports nothing, so it carries no
- * indicator — a status glyph above "Sign out of Endatix Hub?" claims an
- * outcome that has not happened yet.
- */
 export type AuthStatusTone =
   | "success"
   | "error"
@@ -17,11 +9,6 @@ export type AuthStatusTone =
   | "pending"
   | "prompt";
 
-/**
- * A tonal disc rather than a bare glyph: at 24px an outline icon between the
- * wordmark and a bold heading reads as an artifact caught between two stronger
- * shapes. The disc echoes the feature tiles in the hero panel.
- */
 const TONE_INDICATORS: Record<
   Exclude<AuthStatusTone, "prompt">,
   { icon: React.ReactNode; surface: string }
@@ -47,20 +34,11 @@ const TONE_INDICATORS: Record<
 interface AuthStatusProps {
   tone: AuthStatusTone;
   title: string;
-  /** One sentence under the title. Longer guidance belongs in `children`. */
   description?: React.ReactNode;
-  /** Actions and secondary copy, stacked full-width below the description. */
   children?: React.ReactNode;
 }
 
-/**
- * Terminal state of an auth flow — verified, link expired, email sent — or a
- * confirmation the reader has to answer.
- *
- * Everything is centred on one axis. The previous pages centred the heading but
- * left the body paragraphs at their default alignment, which is what made them
- * read as broken rather than merely plain.
- */
+/** Terminal or confirmation state for `(auth)` pages. `prompt` has no status glyph. */
 export function AuthStatus({
   tone,
   title,

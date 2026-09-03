@@ -9,15 +9,15 @@ import { tenantPublicSignInPath } from "@/features/platform-admin/tenant-registr
 
 export function TenantRegistrationClosed({
   tenantName,
-  tenantSlug,
-}: Readonly<{ tenantName: string; tenantSlug: string }>) {
+  shortUrl,
+}: Readonly<{ tenantName: string; shortUrl: string }>) {
   return (
     <Card className="bg-background">
       <CardHeader>
         <CardTitle>Registration is closed</CardTitle>
         <CardDescription>
           {tenantName} is not accepting new accounts.{" "}
-          <Link href={tenantPublicSignInPath(tenantSlug)} className="underline">
+          <Link href={tenantPublicSignInPath(shortUrl)} className="underline">
             Sign in
           </Link>{" "}
           if you already have access.

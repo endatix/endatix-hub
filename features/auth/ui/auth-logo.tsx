@@ -2,12 +2,7 @@ import Image from "next/image";
 import { getPublicAssetPath } from "@/lib/hosting";
 import { cn } from "@/lib/utils";
 
-/**
- * The Endatix wordmark that opens every page under `(auth)`.
- *
- * Light and dark artwork are two files, so each call site previously carried a
- * 20-line pair of `<Image>` tags — six copies that drifted apart. Keep it here.
- */
+/** Endatix wordmark for `(auth)` pages (light + dark assets). */
 export function AuthLogo({ className }: Readonly<{ className?: string }>) {
   return (
     <div className={cn("flex justify-center", className)}>
