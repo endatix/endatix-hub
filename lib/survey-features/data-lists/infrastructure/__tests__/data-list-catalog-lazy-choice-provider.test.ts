@@ -67,6 +67,36 @@ describe("data-list-catalog-lazy-choice-provider", () => {
     });
   });
 
+  it("passes a SurveyJS-safe total when the first page is full", async () => {
+    mockSearch.mockResolvedValue(
+      Result.success({
+        page: 1,
+        pageSize: 25,
+        totalRecords: 26,
+        totalPages: 2,
+        hasNextPage: true,
+        items: Array.from({ length: 25 }, (_, index) => ({
+          id: String(index + 1),
+          name: `List ${index + 1}`,
+        })),
+      }),
+    );
+
+    const page = await dispatchPropertyGridChoicesLazyLoad(
+      {
+        designerSurvey: new SurveyModel({ elements: [] }),
+        propertyGridSurvey: new Model({ elements: [] }),
+        editingObj: {},
+      },
+      DATA_LIST_PROPERTY_NAME,
+      { skip: 0, take: 25 },
+      { getRuntimeState: () => ({}) },
+    );
+
+    expect(page?.items).toHaveLength(25);
+    expect(page?.total).toBeGreaterThan(26);
+  });
+
   it("resolves selected list labels without listing the catalog", async () => {
     mockGetById.mockResolvedValue(
       Result.success({

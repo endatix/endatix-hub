@@ -4,6 +4,7 @@ import { Result } from "@/lib/result";
 import { DATA_LIST_PROPERTY_NAME } from "../constants";
 import type { PropertyGridLazyChoiceProvider } from "../types";
 import { mapSkipTakeToPage } from "../use-cases/map-skip-take-to-page";
+import { mapSurveyJsLazyLoadTotal } from "../use-cases/map-surveyjs-lazy-load-total";
 import { registerPropertyGridLazyChoiceProvider } from "./property-grid-lazy-choice-registry";
 
 export const dataListCatalogLazyChoiceProvider: PropertyGridLazyChoiceProvider =
@@ -24,12 +25,20 @@ export const dataListCatalogLazyChoiceProvider: PropertyGridLazyChoiceProvider =
         return { items: [], total: 0 };
       }
 
+      const items = result.value.items.map((item) => ({
+        value: String(item.id),
+        text: item.name,
+      }));
+
       return {
-        items: result.value.items.map((item) => ({
-          value: String(item.id),
-          text: item.name,
-        })),
-        total: result.value.totalRecords,
+        items,
+        total: mapSurveyJsLazyLoadTotal({
+          skip: params.skip,
+          take: params.take,
+          itemCount: items.length,
+          totalRecords: result.value.totalRecords,
+          hasNextPage: result.value.hasNextPage,
+        }),
       };
     },
     resolveDisplayValues: async (_ctx, values) => {
