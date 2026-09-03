@@ -3,7 +3,6 @@
 import { SignInRequestSchema } from "@/lib/endatix-api";
 import { signIn } from "@/auth";
 import {
-  ENDATIX_AUTH_PROVIDER_ID,
   InvalidCredentialsError,
   InvalidInputError,
   NetworkError,
@@ -12,7 +11,10 @@ import {
 } from "@/features/auth/infrastructure/providers";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { redirect } from "next/navigation";
-import { AUTH_ERROR_PATH } from "../../infrastructure/auth-constants";
+import {
+  AUTH_ERROR_PATH,
+  ENDATIX_AUTH_PROVIDER_ID,
+} from "../../infrastructure/auth-constants";
 import { ServerActionState } from "@/lib/utils/zod-error-utils";
 import { toAuthRedirectUrl } from "@/features/auth/utils";
 

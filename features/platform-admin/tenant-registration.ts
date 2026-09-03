@@ -33,6 +33,10 @@ export function tenantPublicSignInPath(shortUrl: string): Route {
   return `/t/${shortUrl}/signin` as Route;
 }
 
+export function tenantPublicRegisterPath(shortUrl: string): Route {
+  return `/t/${shortUrl}/register` as Route;
+}
+
 /** Unknown roles do not imply Hub access. */
 export function roleHasHubAccess(roleName: string): boolean {
   return TENANT_REGISTRATION_ROLES.some(

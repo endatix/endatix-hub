@@ -6,6 +6,8 @@ import {
   ActivateInviteResponse,
   AssumeTenantRequest,
   AssumeTenantResponse,
+  RegisterRequest,
+  RegisterResponse,
   AuthorizationData,
   InviteDetailsRequest,
   InviteDetailsResponse,
@@ -91,6 +93,14 @@ export default class Auth {
       {},
       { requireAuth: true },
     );
+  }
+
+  async register(
+    request: RegisterRequest,
+  ): Promise<ApiResult<RegisterResponse>> {
+    return this.endatix.post<RegisterResponse>("/auth/register", request, {
+      requireAuth: false,
+    });
   }
 
   /**

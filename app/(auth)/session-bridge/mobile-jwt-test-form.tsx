@@ -125,7 +125,7 @@ export default function MobileJwtTestForm() {
               <Alert>
                 <AlertDescription>
                   <div className="space-y-2">
-                    <p className="font-semibold text-green-700">
+                    <p className="font-semibold text-success">
                       ✅ Session created successfully!
                     </p>
                     {result.user && (

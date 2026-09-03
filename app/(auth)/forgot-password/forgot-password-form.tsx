@@ -3,15 +3,14 @@
 import { useActionState } from "react";
 import { forgotPasswordAction } from "./forgot-password.action";
 import { ServerActionState } from "@/lib/utils/zod-error-utils";
-import Image from "next/image";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/loaders/spinner";
 import Link from "next/link";
 import { ErrorMessage } from "@/components/forms/error-message";
-import { getPublicAssetPath } from "@/lib/hosting";
-import { CircleCheckBig } from "lucide-react";
+import { AuthLogo } from "@/features/auth/ui/auth-logo";
+import { AuthStatus } from "@/features/auth/ui/auth-status";
 
 export default function ForgotPasswordForm() {
   const [state, formAction, isPending] = useActionState(
@@ -26,24 +25,7 @@ export default function ForgotPasswordForm() {
   return (
     <form action={formAction}>
       <div className="grid gap-2 text-center">
-        <div className="mb-2 flex justify-center">
-          <Image
-            src={getPublicAssetPath("/assets/icons/endatix-logo-wordmark-blue.svg")}
-            alt="Endatix Hub"
-            width={3778}
-            height={706}
-            priority
-            className="h-10 w-auto dark:hidden"
-          />
-          <Image
-            src={getPublicAssetPath("/assets/icons/endatix-logo-wordmark-white.svg")}
-            alt="Endatix Hub"
-            width={3778}
-            height={706}
-            priority
-            className="hidden h-10 w-auto dark:block"
-          />
-        </div>
+        <AuthLogo className="mb-2" />
         <p className="mb-6 text-balance text-muted-foreground">
           Enter your email and we&apos;ll send you a link to reset your
           password.
@@ -85,18 +67,20 @@ export default function ForgotPasswordForm() {
 
 function ForgotPasswordSuccessMessage() {
   return (
-    <div className="space-y-4">
-      <div className="mb-2 flex items-center justify-center gap-3">
-        <CircleCheckBig className="h-8 w-8 text-green-500" />
-        <h2 className="text-2xl font-semibold">Reset password link sent</h2>
-      </div>
-      <p className="text-center text-muted-foreground">
-        If your email is correct, you will receive a link to reset your
-        password.
-      </p>
-      <p className="text-center text-sm text-muted-foreground">
-        If you don&apos;t see the email, check your spam folder.
-      </p>
-    </div>
+    <>
+      <AuthLogo className="mb-2" />
+      <AuthStatus
+        tone="success"
+        title="Check your inbox"
+        description="If that email address has an account, we have sent it a link to reset the password."
+      >
+        <p className="text-sm text-muted-foreground">
+          No email yet? Check your spam folder.
+        </p>
+        <Button variant="ghost" asChild className="w-full">
+          <Link href="/signin">Back to sign in</Link>
+        </Button>
+      </AuthStatus>
+    </>
   );
 }

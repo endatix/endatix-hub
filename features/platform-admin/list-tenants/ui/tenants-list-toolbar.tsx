@@ -24,7 +24,7 @@ export function TenantsListToolbar({
   isPending,
 }: Readonly<TenantsListToolbarProps>) {
   const hasActiveFilters = Boolean(
-    search.trim() ||
+    (search ?? "").trim() ||
     urlState.createdFrom ||
     urlState.createdTo ||
     urlState.modifiedFrom ||

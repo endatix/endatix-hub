@@ -1,0 +1,48 @@
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import { EndatixApi } from "../endatix-api";
+import { ApiResult } from "../shared/api-result";
+
+const mockFetch = vi.fn();
+vi.stubGlobal("fetch", mockFetch);
+
+describe("PublicTenants", () => {
+  let api: EndatixApi;
+
+  beforeEach(() => {
+    process.env.ENDATIX_API_URL = "https://ci.api.endatix.com/api";
+    api = new EndatixApi();
+    mockFetch.mockClear();
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("gets a public tenant without auth and maps slug to shortUrl", async () => {
+    mockFetch.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          slug: "xk9mp2qr",
+          name: "Acme",
+          selfRegistrationEnabled: true,
+          allowedAuthProviders: ["endatix"],
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    const result = await api.publicTenants.getBySlug("xk9mp2qr");
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining("/api/public/tenants/xk9mp2qr"),
+      expect.objectContaining({ method: "GET" }),
+    );
+    const [, init] = mockFetch.mock.calls[0];
+    expect(init.headers).not.toHaveProperty("Authorization");
+    expect(ApiResult.isSuccess(result)).toBe(true);
+    if (ApiResult.isSuccess(result)) {
+      expect(result.data.shortUrl).toBe("xk9mp2qr");
+      expect(result.data).not.toHaveProperty("slug");
+    }
+  });
+});

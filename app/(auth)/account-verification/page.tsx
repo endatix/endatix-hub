@@ -2,52 +2,72 @@
 
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import Image from "next/image";
+import Link from "next/link";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/loaders/spinner";
+import { AuthLogo } from "@/features/auth/ui/auth-logo";
+import { AuthStatus } from "@/features/auth/ui/auth-status";
 import { sendVerificationAction } from "@/features/auth/use-cases/send-verification/send-verification.action";
-import { getPublicAssetPath } from "@/lib/hosting";
+import { CircleCheckBig, CircleX } from "lucide-react";
+
+/** Matches the window the API enforces between two verification emails. */
+const RESEND_COOLDOWN_SECONDS = 30;
+
+type ResendResult = { tone: "success" | "error"; message: string };
 
 export default function AccountVerificationPage() {
   const searchParams = useSearchParams();
   const email = searchParams.get("email");
   const [isResending, setIsResending] = useState(false);
-  const [resendMessage, setResendMessage] = useState<string>("");
-  const [cooldownSeconds, setCooldownSeconds] = useState(30); // Start with 30 seconds
+  const [resendResult, setResendResult] = useState<ResendResult | null>(null);
+  const [cooldownSeconds, setCooldownSeconds] = useState(
+    RESEND_COOLDOWN_SECONDS,
+  );
 
-  // Cooldown timer effect
   useEffect(() => {
-    if (cooldownSeconds > 0) {
-      const timer = setTimeout(() => {
-        setCooldownSeconds(cooldownSeconds - 1);
-      }, 1000);
-      return () => clearTimeout(timer);
+    if (cooldownSeconds <= 0) {
+      return;
     }
+
+    const timer = setTimeout(
+      () => setCooldownSeconds(cooldownSeconds - 1),
+      1000,
+    );
+    return () => clearTimeout(timer);
   }, [cooldownSeconds]);
 
   const handleResendVerification = async () => {
-    if (!email || cooldownSeconds > 0) return;
+    if (!email || cooldownSeconds > 0) {
+      return;
+    }
 
     setIsResending(true);
-    setResendMessage("");
+    setResendResult(null);
 
     try {
       const result = await sendVerificationAction(email);
 
+      // Carry the outcome as a tone, not a string the renderer greps for a
+      // keyword: a failure that happened to contain "successfully" rendered green.
       if (result.success) {
-        setResendMessage(
-          "Verification email sent successfully! Please check your inbox.",
-        );
-        setCooldownSeconds(30); // Start 30-second cooldown
+        setResendResult({
+          tone: "success",
+          message: "Verification email sent. Please check your inbox.",
+        });
+        setCooldownSeconds(RESEND_COOLDOWN_SECONDS);
       } else {
-        setResendMessage(
-          result.errorMessage || "Failed to send verification email.",
-        );
+        setResendResult({
+          tone: "error",
+          message:
+            result.errorMessage ?? "We could not send the verification email.",
+        });
       }
     } catch {
-      setResendMessage(
-        "An error occurred while sending the verification email.",
-      );
+      setResendResult({
+        tone: "error",
+        message: "We could not send the verification email.",
+      });
     } finally {
       setIsResending(false);
     }
@@ -56,110 +76,74 @@ export default function AccountVerificationPage() {
   if (!email) {
     return (
       <>
-        <div className="mb-2 flex justify-center">
-          <Image
-            src={getPublicAssetPath("/assets/icons/endatix-logo-wordmark-blue.svg")}
-            alt="Endatix Hub"
-            width={3778}
-            height={706}
-            priority
-            className="h-10 w-auto dark:hidden"
-          />
-          <Image
-            src={getPublicAssetPath("/assets/icons/endatix-logo-wordmark-white.svg")}
-            alt="Endatix Hub"
-            width={3778}
-            height={706}
-            priority
-            className="hidden h-10 w-auto dark:block"
-          />
-        </div>
-        <div className="grid gap-2 text-center">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Invalid Request
-          </h1>
-          <p className="text-muted-foreground">
-            This page requires a valid email address.
-          </p>
-        </div>
-        <div className="grid gap-4">
-          <Button className="w-full" onClick={() => window.history.back()}>
-            Go Back
+        <AuthLogo className="mb-2" />
+        <AuthStatus
+          tone="warning"
+          title="This link is incomplete"
+          description="Open the link from your confirmation email, or sign in to continue."
+        >
+          <Button asChild className="w-full">
+            <Link href="/signin">Go to sign in</Link>
           </Button>
-        </div>
+        </AuthStatus>
       </>
     );
   }
 
   return (
     <>
-      <div className="mb-2 flex justify-center">
-        <Image
-          src={getPublicAssetPath("/assets/icons/endatix-logo-wordmark-blue.svg")}
-          alt="Endatix Hub"
-          width={3778}
-          height={706}
-          priority
-          className="h-10 w-auto dark:hidden"
-        />
-        <Image
-          src={getPublicAssetPath("/assets/icons/endatix-logo-wordmark-white.svg")}
-          alt="Endatix Hub"
-          width={3778}
-          height={706}
-          priority
-          className="hidden h-10 w-auto dark:block"
-        />
-      </div>
-      <div className="grid gap-2 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          🎉 Account created successfully!
-        </h1>
-        <p className="text-muted-foreground">
-          We&#39;ve sent a verification email to{" "}
-          <span className="font-bold">{email}</span>.
-        </p>
-      </div>
-      <div className="grid gap-8">
+      <AuthLogo className="mb-2" />
+      <AuthStatus
+        tone="success"
+        title="Check your inbox"
+        description={
+          <>
+            If <span className="font-medium text-foreground">{email}</span> can
+            be registered, we have sent it a link to verify the address and
+            activate the account.
+          </>
+        }
+      >
+        {resendResult ? (
+          <Alert
+            variant={
+              resendResult.tone === "success" ? "success" : "destructive"
+            }
+            className="text-left"
+          >
+            {resendResult.tone === "success" ? <CircleCheckBig /> : <CircleX />}
+            <AlertDescription>{resendResult.message}</AlertDescription>
+          </Alert>
+        ) : null}
+
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={handleResendVerification}
+          disabled={isResending || cooldownSeconds > 0}
+        >
+          {isResending && <Spinner className="mr-2 size-4" />}
+          {resendButtonLabel(isResending, cooldownSeconds)}
+        </Button>
+
         <p className="text-sm text-muted-foreground">
-          Please check your inbox and click the link to verify the address and
-          activate your account.
+          No email yet? Check your spam folder before requesting another.
         </p>
-        {resendMessage && (
-          <p
-            className={`text-sm ${
-              resendMessage.includes("successfully")
-                ? "text-green-600 dark:text-green-400"
-                : "text-red-600 dark:text-red-400"
-            }`}
-          >
-            {resendMessage}
-          </p>
-        )}
-        <div className="grid gap-4">
-          <p className="text-xs text-muted-foreground">
-            Didn&#39;t receive the email? Check your spam folder or request a
-            new one.
-          </p>
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={handleResendVerification}
-            disabled={isResending || cooldownSeconds > 0}
-          >
-            {isResending ? (
-              <>
-                <Spinner className="mr-2 h-4 w-4" />
-                Sending...
-              </>
-            ) : cooldownSeconds > 0 ? (
-              `Resend verification email in ${cooldownSeconds}s`
-            ) : (
-              "Resend verification email"
-            )}
-          </Button>
-        </div>
-      </div>
+
+        <Button variant="ghost" asChild className="w-full">
+          <Link href="/signin">Back to sign in</Link>
+        </Button>
+      </AuthStatus>
     </>
   );
+}
+
+function resendButtonLabel(isResending: boolean, cooldownSeconds: number) {
+  if (isResending) {
+    return "Sending...";
+  }
+
+  return cooldownSeconds > 0
+    ? `Resend email in ${cooldownSeconds}s`
+    : "Resend verification email";
 }

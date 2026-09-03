@@ -2,15 +2,38 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Image from "next/image";
-import { verifyEmailAction } from "@/features/auth/use-cases/verify-email/verify-email.action";
-import { Button } from "@/components/ui/button";
-import { Spinner } from "@/components/loaders/spinner";
-import { getPublicAssetPath } from "@/lib/hosting";
-import { CheckCircle, XCircle, AlertCircle } from "lucide-react";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { AuthLogo } from "@/features/auth/ui/auth-logo";
+import { AuthStatus } from "@/features/auth/ui/auth-status";
+import { verifyEmailAction } from "@/features/auth/use-cases/verify-email/verify-email.action";
 
-type VerificationState = "loading" | "success" | "error" | "invalid";
+const REDIRECT_SECONDS = 10;
+
+/**
+ * A used token is not a failure — it means the address is already verified, so
+ * the only thing left to do is sign in. An expired one is recoverable but needs
+ * a fresh link. Everything else is a genuine error.
+ */
+type VerificationState =
+  | "loading"
+  | "verified"
+  | "alreadyVerified"
+  | "expired"
+  | "failed"
+  | "missingToken";
+
+function classifyFailure(message: string | undefined): VerificationState {
+  if (message && /already been used/i.test(message)) {
+    return "alreadyVerified";
+  }
+
+  if (message && /expired/i.test(message)) {
+    return "expired";
+  }
+
+  return "failed";
+}
 
 export default function VerifyEmailPage() {
   const router = useRouter();
@@ -18,162 +41,144 @@ export default function VerifyEmailPage() {
   const token = searchParams.get("token");
   const [state, setState] = useState<VerificationState>("loading");
   const [errorMessage, setErrorMessage] = useState<string>("");
-  const [countdown, setCountdown] = useState<number>(10);
+  const [countdown, setCountdown] = useState<number>(REDIRECT_SECONDS);
 
   useEffect(() => {
-    const verifyEmailToken = async () => {
-      if (!token) {
-        setState("invalid");
-        return;
-      }
+    if (!token) {
+      setState("missingToken");
+      return;
+    }
 
+    let cancelled = false;
+
+    const verifyEmailToken = async () => {
       try {
         const result = await verifyEmailAction(token);
+        if (cancelled) {
+          return;
+        }
 
         if (result.success) {
-          setState("success");
-          // Start countdown and redirect after 10 seconds
-          let timeLeft = 10;
-          const countdownInterval = setInterval(() => {
-            timeLeft -= 1;
-            setCountdown(timeLeft);
-            if (timeLeft <= 0) {
-              clearInterval(countdownInterval);
-              router.push("/signin");
-            }
-          }, 1000);
-        } else {
-          setState("error");
-          setErrorMessage(result.errorMessage || "Verification failed");
+          setState("verified");
+          return;
         }
-      } catch (error) {
-        setState("error");
-        setErrorMessage(
-          error instanceof Error ? error.message : "Verification failed",
-        );
+
+        setState(classifyFailure(result.errorMessage));
+        setErrorMessage(result.errorMessage ?? "");
+      } catch {
+        if (!cancelled) {
+          setState("failed");
+        }
       }
     };
 
     verifyEmailToken();
-  }, [token, router]);
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
 
-  const renderContent = () => {
-    switch (state) {
-      case "loading":
-        return (
-          <>
-            <div className="grid gap-2 text-center">
-              <div className="mb-2 flex items-center justify-center gap-3">
-                <Spinner className="h-6 w-6" />
-                <h1 className="text-2xl font-semibold tracking-tight">
-                  Verifying Your Email
-                </h1>
-              </div>
-              <p className="text-muted-foreground">
-                Please wait while we verify your email address...
-              </p>
-            </div>
-          </>
-        );
-
-      case "success":
-        return (
-          <>
-            <div className="grid gap-2 text-center">
-              <div className="mb-2 flex items-center justify-center gap-3">
-                <CheckCircle className="h-6 w-6 text-green-500" />
-                <h1 className="text-2xl font-semibold tracking-tight">
-                  Email verified successfully!
-                </h1>
-              </div>
-              <p className="text-muted-foreground">
-                Your email has been verified. You will be redirected to the sign
-                in page in {countdown} seconds.
-              </p>
-            </div>
-            <div className="grid gap-6">
-              <Link href="/signin">
-                <Button className="w-full">Sign in</Button>
-              </Link>
-            </div>
-          </>
-        );
-
-      case "error":
-        return (
-          <>
-            <div className="grid gap-2 text-center">
-              <div className="mb-2 flex items-center justify-center gap-3">
-                <XCircle className="h-6 w-6 text-red-500" />
-                <h1 className="text-2xl font-semibold tracking-tight">
-                  Verification failed
-                </h1>
-              </div>
-              <p className="text-destructive">
-                {errorMessage ||
-                  "We couldn't verify your email address. The link may be invalid or expired."}
-              </p>
-            </div>
-            <div className="grid gap-6">
-              <p className="text-sm text-muted-foreground">
-                Please check your email for a new verification link or contact
-                support if the problem persists.
-              </p>
-            </div>
-          </>
-        );
-
-      case "invalid":
-        return (
-          <>
-            <div className="grid gap-2 text-center">
-              <div className="mb-2 flex items-center justify-center gap-3">
-                <AlertCircle className="h-6 w-6 text-yellow-500" />
-                <h1 className="text-2xl font-semibold tracking-tight">
-                  Invalid Verification Link
-                </h1>
-              </div>
-              <p className="text-muted-foreground">
-                This verification link is missing the required token.
-              </p>
-            </div>
-            <div className="grid gap-6">
-              <p className="text-sm text-muted-foreground">
-                Please check your email for the complete verification link.
-              </p>
-              <Link href="/signin">
-                <Button className="w-full">Sign in</Button>
-              </Link>
-            </div>
-          </>
-        );
-
-      default:
-        return null;
+  // Only the freshly verified path bounces to sign-in; the other states are
+  // waiting on the reader, so moving the page under them would lose the message.
+  useEffect(() => {
+    if (state !== "verified") {
+      return;
     }
-  };
+
+    if (countdown <= 0) {
+      router.push("/signin");
+      return;
+    }
+
+    const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [state, countdown, router]);
 
   return (
     <>
-      <div className="mb-2 flex justify-center">
-        <Image
-          src={getPublicAssetPath("/assets/icons/endatix-logo-wordmark-blue.svg")}
-          alt="Endatix Hub"
-          width={3778}
-          height={706}
-          priority
-          className="h-10 w-auto dark:hidden"
-        />
-        <Image
-          src={getPublicAssetPath("/assets/icons/endatix-logo-wordmark-white.svg")}
-          alt="Endatix Hub"
-          width={3778}
-          height={706}
-          priority
-          className="hidden h-10 w-auto dark:block"
-        />
-      </div>
-      {renderContent()}
+      <AuthLogo className="mb-2" />
+      {renderState()}
     </>
   );
+
+  function renderState() {
+    switch (state) {
+      case "loading":
+        return (
+          <AuthStatus
+            tone="pending"
+            title="Verifying your email"
+            description="This only takes a moment."
+          />
+        );
+
+      case "verified":
+        return (
+          <AuthStatus
+            tone="success"
+            title="Email verified"
+            description={`Your account is active. Taking you to sign in in ${countdown}s.`}
+          >
+            <Button asChild className="w-full">
+              <Link href="/signin">Sign in now</Link>
+            </Button>
+          </AuthStatus>
+        );
+
+      case "alreadyVerified":
+        return (
+          <AuthStatus
+            tone="success"
+            title="Already verified"
+            description="This link has been used before. Your email address is confirmed, so you can sign in."
+          >
+            <Button asChild className="w-full">
+              <Link href="/signin">Go to sign in</Link>
+            </Button>
+          </AuthStatus>
+        );
+
+      case "expired":
+        return (
+          <AuthStatus
+            tone="warning"
+            title="This link has expired"
+            description="Verification links are short-lived. Sign in and we will send you a new one."
+          >
+            <Button asChild className="w-full">
+              <Link href="/signin">Go to sign in</Link>
+            </Button>
+          </AuthStatus>
+        );
+
+      case "missingToken":
+        return (
+          <AuthStatus
+            tone="warning"
+            title="This link is incomplete"
+            description="The verification link is missing its token. Open the most recent link from your inbox."
+          >
+            <Button asChild className="w-full">
+              <Link href="/signin">Go to sign in</Link>
+            </Button>
+          </AuthStatus>
+        );
+
+      default:
+        return (
+          <AuthStatus
+            tone="error"
+            title="We couldn't verify your email"
+            description={
+              errorMessage ||
+              "The link may be invalid. Open the most recent link from your inbox, or request a new one."
+            }
+          >
+            <Button asChild className="w-full">
+              <Link href="/signin">Go to sign in</Link>
+            </Button>
+          </AuthStatus>
+        );
+    }
+  }
 }

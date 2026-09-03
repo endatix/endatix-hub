@@ -3,6 +3,7 @@ import {
   roleHasHubAccess,
   TENANT_REGISTRATION_ROLES,
   tenantNameError,
+  tenantPublicRegisterPath,
   tenantPublicSignInPath,
 } from "../tenant-registration";
 
@@ -33,5 +34,11 @@ describe("roleHasHubAccess", () => {
 describe("tenantPublicSignInPath", () => {
   it("builds the Hub sign-in path from ShortUrl", () => {
     expect(tenantPublicSignInPath("xk9mp2qr")).toBe("/t/xk9mp2qr/signin");
+  });
+});
+
+describe("tenantPublicRegisterPath", () => {
+  it("builds the public register path from the opaque id", () => {
+    expect(tenantPublicRegisterPath("xk9mp2qr")).toBe("/t/xk9mp2qr/register");
   });
 });

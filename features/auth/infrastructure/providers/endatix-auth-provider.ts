@@ -1,4 +1,5 @@
 import { JWT } from "next-auth/jwt";
+import { ENDATIX_AUTH_PROVIDER_ID } from "../auth-constants";
 import { AuthError, CredentialsSignin, Session, User } from "next-auth";
 import {
   IAuthProvider,
@@ -20,8 +21,6 @@ import { ZodError } from "zod";
 import { decodeJwt } from "jose";
 import { EndatixJwtPayload } from "../jwt.types";
 import { JWTInvalid } from "jose/errors";
-
-export const ENDATIX_AUTH_PROVIDER_ID = "endatix";
 
 export class InvalidCredentialsError extends CredentialsSignin {
   static type = "InvalidCredentials";
@@ -182,7 +181,7 @@ export class EndatixAuthProvider implements IAuthProvider {
     session.user = {
       ...session.user,
       id: token.id as string,
-    }
+    };
 
     session.provider = token.provider as string;
     session.accessToken = token.access_token as string;

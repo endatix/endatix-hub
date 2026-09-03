@@ -14,7 +14,7 @@ function FormSuccessMessage({
   message = "The operation was successful.",
   variant = "default",
   children,
-  icon = <CircleCheckBig className="w-8 h-8 text-green-500" />,
+  icon = <CircleCheckBig className="size-8 text-success" />,
   ...props
 }: FormSuccessMessageProps) {
   if (variant === "compact") {
@@ -33,11 +33,11 @@ function FormSuccessMessage({
 
   return (
     <div className="space-y-4" {...props}>
-      <div className="flex items-center justify-center gap-3 mb-2">
+      <div className="mb-2 flex items-center justify-center gap-3">
         {icon}
         <h2 className="text-2xl font-semibold">{title}</h2>
       </div>
-      <p className="text-muted-foreground text-center">{message}</p>
+      <p className="text-center text-muted-foreground">{message}</p>
       {children && <AlertActions>{children}</AlertActions>}
     </div>
   );
@@ -49,7 +49,7 @@ function AlertActions({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex items-center justify-center gap-3 mb-2">
+    <div className="mb-2 flex items-center justify-center gap-3">
       {children}
     </div>
   );
