@@ -9,14 +9,18 @@
 
 ## SurveyJS domain
 
-Prefer vendor types from `survey-core` / `survey-creator-core`. When those types are too wide (`string`), Hub closed unions and constants live in [`lib/survey-js/`](lib/survey-js/) — **supersets** of SurveyJS (compose plugin ids; do not rename Creator ids such as `test`).
+Prefer vendor types from `survey-core` / `survey-creator-core`. When those are too wide (`string`), closed Hub unions live in [`lib/survey-js/`](lib/survey-js/) as **supersets** (built-in Creator ids + Hub plugin ids). Do not duplicate those strings in features — import the bank.
 
-- **Types / vocab:** `lib/survey-js/` (e.g. Creator tab ids, URL slug maps). Import these instead of duplicating string unions in features.
-- **Compute / copy helpers:** `lib/utils/survey/`
-- **Platform behavior** (Serializer, bindings, extensions): `lib/survey-features/`
-- **Code-owned question types:** `lib/questions/`
+| Path                   | Owns                                                                                                                              |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `lib/survey-js/`       | Types and vocab (Creator tab ids, URL slugs). Plugin tab ids live here; slices import them (e.g. `FORM_DIAGNOSTICS_PLUGIN_NAME`). |
+| `lib/utils/survey/`    | Choice compute/copy                                                                                                               |
+| `lib/survey-features/` | Serializer, bindings, designer use-cases                                                                                          |
+| `lib/questions/`       | Code-owned question types                                                                                                         |
 
-Feature allowlists (e.g. carry-forward supported types) stay in the feature; they should import bank unions when the set is SurveyJS vocabulary. Placement details: [`project-structure.md`](project-structure.md) (`lib/survey-js`).
+Creator preview id is `preview` (`test` is a parse/event alias). URL slugs map onto ids (`design` → `designer`; omit `tab` for Design). Feature allowlists (carry-forward types) stay in the feature.
+
+Placement: [`project-structure.md`](project-structure.md).
 
 ## Configuration: public values are request-time
 

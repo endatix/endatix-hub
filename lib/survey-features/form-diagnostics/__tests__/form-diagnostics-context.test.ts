@@ -6,10 +6,8 @@ import {
   createFormDiagnosticsContextFromRuntime,
   getFormDiagnosticsPlugin,
 } from "../form-diagnostics-context";
-import {
-  FormDiagnosticsPlugin,
-  FORM_DIAGNOSTICS_PLUGIN_NAME,
-} from "../form-diagnostics-plugin";
+import { FORM_DIAGNOSTICS_PLUGIN_NAME } from "../constants";
+import { FormDiagnosticsPlugin } from "../form-diagnostics-plugin";
 
 describe("form-diagnostics-context", () => {
   it("builds context from designer runtime slice", () => {

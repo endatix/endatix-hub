@@ -5,6 +5,7 @@ import { useAnyAnswered } from "@/lib/survey-features/any-answered";
 import { useRichTextEditing } from "@/lib/survey-features/rich-text";
 import { useLoopAwareSummaryTableEditing } from "@/lib/survey-features/summary-table";
 import { useSurveyExtensions } from "@/lib/survey-extensions/ui/use-survey-extensions";
+import { SURVEY_CREATOR_BUILT_IN_TAB } from "@/lib/survey-js";
 import { applyEndatixCreatorTheme } from "@/lib/themes/creator-theme";
 import { registerThemes } from "@/lib/themes/survey-theme";
 import { useEndatixCreatorTheme } from "@/lib/themes/use-endatix-themes";
@@ -68,7 +69,7 @@ const PreviewForm = ({ model, slkVal }: PreviewFormProps) => {
     const newCreator = new SurveyCreator(creatorOptions);
     const cleanupQuestionLoops = bindQuestionLoops(newCreator);
     newCreator.JSON = model;
-    newCreator.activeTab = "test";
+    newCreator.activeTab = SURVEY_CREATOR_BUILT_IN_TAB.preview;
     newCreator.theme = BorderlessLight;
 
     onCreatorCreated(newCreator);

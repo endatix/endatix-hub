@@ -1,7 +1,7 @@
 /**
- * Closed set of Survey Creator built-in plugin `name` / `activeTab` values.
- * Creator types `activeTab` as `string`; this union is the subset Hub relies on.
- * Preview was historically `test`; current Creator uses `preview`.
+ * Closed set of Survey Creator built-in `activeTab` / plugin names.
+ * Creator types `activeTab` as `string`; this is the subset Hub relies on.
+ * Preview was historically `test`.
  */
 export const SURVEY_CREATOR_BUILT_IN_TAB = {
   designer: "designer",
@@ -20,7 +20,6 @@ export const SURVEY_CREATOR_BUILT_IN_TAB_IDS: readonly SurveyCreatorBuiltInTabId
 
 const BUILT_IN_TAB_ID_SET = new Set<string>(SURVEY_CREATOR_BUILT_IN_TAB_IDS);
 
-/** Legacy Creator preview tab id still seen on `activeTab` / events. */
 export const SURVEY_CREATOR_LEGACY_PREVIEW_TAB_ID = "test";
 
 export function isSurveyCreatorBuiltInTabId(

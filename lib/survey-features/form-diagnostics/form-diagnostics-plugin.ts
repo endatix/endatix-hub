@@ -9,9 +9,6 @@ import {
   analyzeSurveyModel,
   FormDiagnosticsStats,
 } from "./form-diagnostics-logic";
-import { FORM_DIAGNOSTICS_PLUGIN_NAME } from "./constants";
-
-export { FORM_DIAGNOSTICS_PLUGIN_NAME };
 
 /**
  * Survey Creator plugin for the Form Diagnostics feature.

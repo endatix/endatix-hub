@@ -2,7 +2,7 @@
 
 This directory contains the core infrastructure for the "Zero-Overhead" extension system.
 
-Closed SurveyJS / Creator **types and vocabulary** (tab ids, etc.) live in [`hub/lib/survey-js/`](../survey-js/). This folder is the loader, registry, and `ExtensionModule` lifecycle — not a second types bank.
+Types/vocab: [`lib/survey-js/`](../survey-js/) (`hub/AGENTS.md`). This folder is loader + registry only.
 
 ## Loading Modes
 

@@ -25,6 +25,7 @@ import { useRichTextEditing } from "@/lib/survey-features/rich-text";
 import {
   SurveyDesignSaveButton,
   SurveyDesignStatusBadge,
+  useCreatorTabUrl,
 } from "@/lib/survey-features/survey-design/ui";
 import { applyEndatixCreatorTheme } from "@/lib/themes/creator-theme";
 import { registerThemes } from "@/lib/themes/survey-theme";
@@ -128,6 +129,7 @@ function FormTemplateEditorContent({
   const [isLoading, setIsLoading] = useState(true);
   const [questionClasses, setQuestionClasses] = useState<any[]>([]);
   useRichTextEditing(creator);
+  useCreatorTabUrl(creator);
 
   const creatorTheme = useEndatixCreatorTheme();
   const creatorThemeRef = useRef(creatorTheme);

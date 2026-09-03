@@ -1,20 +1,16 @@
-import { FORM_DIAGNOSTICS_PLUGIN_NAME } from "@/lib/survey-features/form-diagnostics/constants";
 import {
   canonicalizeSurveyCreatorTabId,
   SURVEY_CREATOR_BUILT_IN_TAB,
   type SurveyCreatorBuiltInTabId,
 } from "./built-in-tabs";
 
-/**
- * Hub Creator tabs: SurveyJS built-ins plus platform plugin tabs.
- * Plugin id strings stay owned by the slice that registers them.
- */
 export const ENDATIX_CREATOR_TAB = {
   ...SURVEY_CREATOR_BUILT_IN_TAB,
-  diagnostics: FORM_DIAGNOSTICS_PLUGIN_NAME,
+  diagnostics: "form-diagnostics",
 } as const;
 
-export type EndatixCreatorPluginTabId = typeof FORM_DIAGNOSTICS_PLUGIN_NAME;
+export type EndatixCreatorPluginTabId =
+  (typeof ENDATIX_CREATOR_TAB)["diagnostics"];
 
 export type EndatixCreatorTabId =
   | SurveyCreatorBuiltInTabId
@@ -41,8 +37,5 @@ export function canonicalizeCreatorTabId(
   if (builtIn) {
     return builtIn;
   }
-  if (isEndatixCreatorTabId(value)) {
-    return value;
-  }
-  return null;
+  return isEndatixCreatorTabId(value) ? value : null;
 }

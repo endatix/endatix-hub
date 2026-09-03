@@ -1,8 +1,6 @@
 import type { SurveyCreatorModel } from "survey-creator-core";
-import {
-  FormDiagnosticsPlugin,
-  FORM_DIAGNOSTICS_PLUGIN_NAME,
-} from "./form-diagnostics-plugin";
+import { FORM_DIAGNOSTICS_PLUGIN_NAME } from "./constants";
+import { FormDiagnosticsPlugin } from "./form-diagnostics-plugin";
 
 export interface FormDiagnosticsContext {
   isPublic?: boolean;

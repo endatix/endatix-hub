@@ -427,21 +427,16 @@ Import from `@/lib/localization` (root barrel) or a slice path such as `@/lib/lo
 
 ### `lib/survey-js` domain
 
-Shared **SurveyJS + Survey Creator types and closed vocabulary** for the whole Hub (analogue of OSS Reporting `Domain/SurveyJs`). Not feature behavior and not choice compute helpers.
+Shared SurveyJS + Creator **types/vocab** (not behavior, not choice helpers). Vendor types first; Hub unions subset or extend vendor `string`s.
 
 | Path | Use for |
 | --- | --- |
-| `lib/survey-js/` | Vendor types when they exist; Hub unions that **subset or extend** vendor `string`s (e.g. `SurveyCreatorBuiltInTabId`, `EndatixCreatorTabId`). Creator URL slugs (`preview` → `test`) live here as a map onto those ids. |
-| `lib/utils/survey/` | Reusable SurveyJS compute/copy (`getChoicesFromSourceQuestion`, choice keys). |
-| `lib/survey-features/` | Platform Serializer props, Creator/respondent bindings, product rules. |
-| `lib/questions/` | Code-owned question types. |
+| `lib/survey-js/` | Closed ids (`SurveyCreatorBuiltInTabId`, `EndatixCreatorTabId` including Hub plugins). URL slugs (`design` → `designer`, `preview` → `preview`; omit `tab` for Design). `test` is a legacy alias for preview. |
+| `lib/utils/survey/` | Choice compute/copy |
+| `lib/survey-features/` | Serializer, bindings, designer use-cases (`survey-design/use-cases/load-tab-from-url`) |
+| `lib/questions/` | Code-owned question types |
 
-Rules:
-
-- Import `Question`, `SurveyCreatorModel`, `ICreatorOptions`, etc. from `survey-core` / `survey-creator-core`. Do not re-declare them.
-- Do not duplicate Creator tab ids or similar vocab in `survey-features/{feature}/constants.ts`.
-- Hub wrappers **compose** SurveyJS (`EndatixCreatorTabId = built-in \| plugin id from the owning slice`). Do not fork ids (`test` stays `test` on the model; `preview` is URL-only).
-- Product allowlists (carry-forward question types) stay in the feature; import from `lib/survey-js` when the tokens are shared SurveyJS vocabulary.
+Do not re-declare `Question` / `SurveyCreatorModel`. Hub plugin tab ids live in `lib/survey-js`; slices import them. Product allowlists stay in the feature.
 
 Import from `@/lib/survey-js`.
 

@@ -5,12 +5,8 @@ import {
 } from "./tabs";
 import { SURVEY_CREATOR_BUILT_IN_TAB } from "./built-in-tabs";
 
-/** Query key on Form Builder / template editor URLs. */
 export const CREATOR_TAB_QUERY_KEY = "tab";
 
-/**
- * Canonical Hub URL slugs. Runtime/Creator code uses {@link EndatixCreatorTabId}, never these.
- */
 export const CREATOR_TAB_URL_SLUG = {
   design: "design",
   preview: "preview",
@@ -44,7 +40,8 @@ const TAB_ID_TO_SLUG: Record<EndatixCreatorTabId, CreatorTabUrlSlug> = {
   [ENDATIX_CREATOR_TAB.diagnostics]: CREATOR_TAB_URL_SLUG.diagnostics,
 };
 
-/** Forgiving parse aliases; serialize never writes these. */
+const CANONICAL_SLUGS = new Set<string>(Object.values(CREATOR_TAB_URL_SLUG));
+
 const SLUG_ALIASES: Record<string, CreatorTabUrlSlug> = {
   designer: CREATOR_TAB_URL_SLUG.design,
   test: CREATOR_TAB_URL_SLUG.preview,
@@ -55,32 +52,26 @@ const SLUG_ALIASES: Record<string, CreatorTabUrlSlug> = {
   "form-diagnostics": CREATOR_TAB_URL_SLUG.diagnostics,
 };
 
+function slugFromQuery(normalized: string): CreatorTabUrlSlug | undefined {
+  if (CANONICAL_SLUGS.has(normalized)) {
+    return normalized as CreatorTabUrlSlug;
+  }
+  return SLUG_ALIASES[normalized];
+}
+
 export function parseCreatorTabUrlSlug(
   queryValue: string | null | undefined,
 ): EndatixCreatorTabId {
-  if (!queryValue) {
-    return DEFAULT_CREATOR_TAB;
-  }
-
-  const normalized = queryValue.trim().toLowerCase();
+  const normalized = queryValue?.trim().toLowerCase();
   if (!normalized) {
     return DEFAULT_CREATOR_TAB;
   }
 
-  const slug =
-    (CREATOR_TAB_URL_SLUG as Record<string, CreatorTabUrlSlug>)[normalized] ??
-    SLUG_ALIASES[normalized];
-
-  if (!slug) {
-    return DEFAULT_CREATOR_TAB;
-  }
-
-  return SLUG_TO_TAB_ID[slug];
+  const slug = slugFromQuery(normalized);
+  return slug ? SLUG_TO_TAB_ID[slug] : DEFAULT_CREATOR_TAB;
 }
 
-/**
- * Canonical query value for a tab. `null` means omit the param (Design).
- */
+/** `null` omits `tab` (Design). */
 export function serializeCreatorTabUrlSlug(
   tabId: EndatixCreatorTabId,
 ): CreatorTabUrlSlug | null {

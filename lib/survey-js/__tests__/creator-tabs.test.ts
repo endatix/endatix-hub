@@ -3,6 +3,7 @@ import {
   DEFAULT_CREATOR_TAB,
   ENDATIX_CREATOR_TAB,
   SURVEY_CREATOR_BUILT_IN_TAB,
+  canonicalizeSurveyCreatorTabId,
   parseCreatorTabUrlSlug,
   serializeCreatorTabUrlSlug,
 } from "../index";
@@ -23,6 +24,12 @@ describe("survey-js creator tabs", () => {
     expect(ENDATIX_CREATOR_TAB.diagnostics).toBe("form-diagnostics");
     expect(ENDATIX_CREATOR_TAB.designer).toBe(
       SURVEY_CREATOR_BUILT_IN_TAB.designer,
+    );
+  });
+
+  it("maps legacy preview id test to preview", () => {
+    expect(canonicalizeSurveyCreatorTabId("test")).toBe(
+      SURVEY_CREATOR_BUILT_IN_TAB.preview,
     );
   });
 });
