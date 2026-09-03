@@ -7,7 +7,7 @@ import { ResultLoadErrorView } from "@/components/error-handling/error-page";
 import { PagedListFooter } from "@/components/ui/paged-list-footer";
 import FormsList from "@/features/forms/ui/forms-list";
 import { normalizePagedResponse } from "@/lib/endatix-api/shared/paged-response";
-import { useListUrlState } from "@/lib/list-page/use-list-url-state";
+import { useListUrlState } from "@/components/table";
 import { Result } from "@/lib/result";
 import type { FormsListResult } from "../list-forms.server";
 import {

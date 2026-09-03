@@ -3,7 +3,7 @@
 import { Suspense } from "react";
 import type { PlatformTenantListItem } from "@/lib/endatix-api";
 import type { NormalizedPagedResponse } from "@/lib/endatix-api/shared/paged-response";
-import { useListUrlState } from "@/lib/list-page/use-list-url-state";
+import { useListUrlState } from "@/components/table";
 import type { ResultType } from "@/lib/result";
 import { listUrlStateFromSearchParams } from "../utils";
 import { TenantsListToolbar } from "./tenants-list-toolbar";
@@ -14,7 +14,6 @@ interface TenantsListProps {
   tenantsPromise: Promise<
     ResultType<NormalizedPagedResponse<PlatformTenantListItem>>
   >;
-  /** Paired with `tenantsPromise` from the RSC so Suspense remounts with the matching payload. */
   listKey: string;
   canManage?: boolean;
 }

@@ -41,7 +41,6 @@ function stepStatus(position: number, current: number): StepStatus {
   return position === current ? "current" : "upcoming";
 }
 
-/** Progress through a multi-step overlay, as a track rather than prose (DESIGN.md §6). */
 export function PanelSteps({
   steps,
   current,

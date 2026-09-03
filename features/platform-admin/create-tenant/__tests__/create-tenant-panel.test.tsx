@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { Result } from "@/lib/result";
 import { createTenantAction } from "../create-tenant.action";
-import { CreateTenantDialog } from "../ui/create-tenant-dialog";
+import { CreateTenantPanel } from "../ui/create-tenant-panel";
 
 vi.mock("@/lib/utils/hooks/use-media-query.hook", () => ({
   useMediaQuery: () => true,
@@ -18,9 +18,9 @@ beforeAll(() => {
   Element.prototype.scrollIntoView = vi.fn();
 });
 
-describe("CreateTenantDialog", () => {
+describe("CreateTenantPanel", () => {
   it("blocks continue when the name is empty", async () => {
-    render(<CreateTenantDialog />);
+    render(<CreateTenantPanel />);
     fireEvent.click(screen.getByRole("button", { name: /create tenant/i }));
 
     fireEvent.click(await screen.findByRole("button", { name: /continue/i }));
@@ -29,7 +29,7 @@ describe("CreateTenantDialog", () => {
   });
 
   it("does not show a slug field on the identity step", async () => {
-    render(<CreateTenantDialog />);
+    render(<CreateTenantPanel />);
     fireEvent.click(screen.getByRole("button", { name: /create tenant/i }));
 
     expect(await screen.findByLabelText("Name")).toBeTruthy();
@@ -41,7 +41,7 @@ describe("CreateTenantDialog", () => {
   });
 
   it("does not show auth providers on the access step", async () => {
-    render(<CreateTenantDialog />);
+    render(<CreateTenantPanel />);
     fireEvent.click(screen.getByRole("button", { name: /create tenant/i }));
     fireEvent.change(await screen.findByLabelText("Name"), {
       target: { value: "Acme Surveys" },
@@ -55,7 +55,7 @@ describe("CreateTenantDialog", () => {
   });
 
   it("shows a Hub access warning for Creator once self-registration is on", async () => {
-    render(<CreateTenantDialog />);
+    render(<CreateTenantPanel />);
     fireEvent.click(screen.getByRole("button", { name: /create tenant/i }));
 
     fireEvent.change(await screen.findByLabelText("Name"), {
@@ -73,7 +73,7 @@ describe("CreateTenantDialog", () => {
   });
 
   it("summarises the tenant on the confirm step", async () => {
-    render(<CreateTenantDialog />);
+    render(<CreateTenantPanel />);
     fireEvent.click(screen.getByRole("button", { name: /create tenant/i }));
 
     fireEvent.change(await screen.findByLabelText("Name"), {
@@ -100,7 +100,7 @@ describe("CreateTenantDialog", () => {
       }),
     );
 
-    render(<CreateTenantDialog />);
+    render(<CreateTenantPanel />);
     fireEvent.click(screen.getByRole("button", { name: /create tenant/i }));
     fireEvent.change(await screen.findByLabelText("Name"), {
       target: { value: "Acme Surveys" },

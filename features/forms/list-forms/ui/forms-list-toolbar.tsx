@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
-import { useListUrlState } from "@/lib/list-page/use-list-url-state";
+import { useListUrlState } from "@/components/table";
 import {
   allBrowseScopesValue,
   allStatusesValue,

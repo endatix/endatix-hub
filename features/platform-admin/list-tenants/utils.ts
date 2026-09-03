@@ -89,10 +89,6 @@ export function listUrlStateFromSearchParams(
   };
 }
 
-/**
- * Identity of one tenants query. Keys the `Suspense` boundary so a new filter
- * remounts with the matching promise instead of the previous `use()` result.
- */
 export function tenantsListSuspenseKey(
   request: ListPlatformTenantsRequest,
 ): string {

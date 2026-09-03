@@ -22,6 +22,7 @@ import {
   DataTableSurface,
   PagedTableFooter,
   useListTableState,
+  useListUrlState,
   type DateFilterValue,
 } from "@/components/table";
 import { Spinner } from "@/components/loaders/spinner";
@@ -43,7 +44,6 @@ import type {
 } from "@/lib/endatix-api/data-lists/types";
 import type { DataListsPage } from "@/lib/endatix-api/data-lists/data-lists";
 import { rememberTableReturnTo } from "@/lib/list-page/table-return-to";
-import { useListUrlState } from "@/lib/list-page/use-list-url-state";
 import type { UrlSearchParamsUpdater } from "@/lib/utils/hooks/use-url-search-params-updater.hook";
 import { Result } from "@/lib/result";
 import { formatInteger } from "@/lib/utils/formatters";

@@ -3,10 +3,6 @@
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
-/**
- * The only states a read-only value may express (DESIGN.md §5). `destructive`
- * is deliberately absent — it means actively failing, not empty.
- */
 export type StatusTone = "on" | "off" | "attention";
 
 const TONE_VARIANT = {
@@ -21,7 +17,6 @@ interface StatusBadgeProps {
   className?: string;
 }
 
-/** One badge shape for every status in the Hub — table cell, panel header, review row. */
 export function StatusBadge({
   tone,
   label,

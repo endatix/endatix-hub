@@ -22,12 +22,16 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn() }),
 }));
 
-vi.mock("@/lib/list-page/use-list-url-state", () => ({
-  useListUrlState: () => ({
-    updateUrl: vi.fn(),
-    searchParams: new URLSearchParams(),
-  }),
-}));
+vi.mock("@/components/table", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/components/table")>();
+  return {
+    ...actual,
+    useListUrlState: () => ({
+      updateUrl: vi.fn(),
+      searchParams: new URLSearchParams(),
+    }),
+  };
+});
 
 vi.mock("@/features/forms/ui/forms-list", () => ({
   default: () => <div>forms-list</div>,

@@ -8,14 +8,6 @@ interface SupportAccessBannerSlotProps {
   accessToken?: string;
 }
 
-/**
- * Support-access banner for an assumed session, mounted by `(main)/layout.tsx`.
- *
- * Deliberately synchronous: whether to show the banner is decided from the JWT,
- * and only the tenant name streams. An `await` here would block every route
- * under the layout, and a `null` fallback would let the sticky banner pop in
- * after the page had painted.
- */
 export function SupportAccessBannerSlot({
   accessToken,
 }: Readonly<SupportAccessBannerSlotProps>) {

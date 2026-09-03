@@ -39,7 +39,7 @@ const STEP_DESCRIPTION: Record<Exclude<CreateStep, "done">, string> = {
 
 const DEFAULT_ROLE = TENANT_REGISTRATION_ROLES[0].name;
 
-export function CreateTenantDialog() {
+export function CreateTenantPanel() {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<CreateStep>(1);
   const [name, setName] = useState("");

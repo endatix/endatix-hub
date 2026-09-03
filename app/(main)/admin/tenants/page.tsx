@@ -1,4 +1,4 @@
-import { CreateTenantDialog } from "@/features/platform-admin/create-tenant/ui/create-tenant-dialog";
+import { CreateTenantPanel } from "@/features/platform-admin/create-tenant/ui/create-tenant-panel";
 import {
   listPlatformTenants,
   requirePlatformAdmin,
@@ -32,7 +32,7 @@ export default async function TenantsPage({
     <PlatformAdminShell
       title="Tenants"
       description="Review and manage tenants. Assume a tenant only for support access."
-      actions={canManage ? <CreateTenantDialog /> : undefined}
+      actions={canManage ? <CreateTenantPanel /> : undefined}
     >
       <TenantsList
         tenantsPromise={tenantsPromise}

@@ -281,7 +281,7 @@ that degrades the page.
 ### Create / edit overlays
 
 Panels that _change_ something — the tenant wizard, the edit sheet. Reference
-implementation: `features/platform-admin/create-tenant/ui/create-tenant-dialog.tsx`
+implementation: `features/platform-admin/create-tenant/ui/create-tenant-panel.tsx`
 and `features/platform-admin/update-tenant/ui/edit-tenant-sheet.tsx`.
 
 A settings page answers "what is true?"; an overlay asks "what do you want to be

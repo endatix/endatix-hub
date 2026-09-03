@@ -51,6 +51,7 @@ export {
   useListTableState,
   type ListTableUrlState,
 } from "./use-list-table-state";
+export { useListUrlState, type ListUrlState } from "./use-list-url-state";
 export {
   useTableFiltersUrlState,
   type UseTableFiltersUrlStateResult,

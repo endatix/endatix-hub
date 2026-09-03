@@ -169,8 +169,8 @@ Action rules:
 - Drive search, filters, and pagination from URL `searchParams` (parse in a server page or shared util, e.g. `parsePlatformAdminListParams`, `parseFormsListParams`). Coerce Next's repeated keys with `firstSearchParam` (`lib/utils/next-utils`); type optional `searchParams` members as `SearchParamValue`, not `SearchParam` — `?` plus `| undefined` is redundant.
 - Use one paged API endpoint with scope/tenant filters rather than two parallel lists sharing the same `page` param.
 - Client tables update the URL via `useListUrlState` (single debounced field) or `useTableFiltersUrlState` (2+ debounced fields, one coalesced commit — see below), plus `Select` filters calling `updateUrl` directly, `PagedTableFooter` / `PagedListFooter`, and receive unresolved promises from the server page wrapped in `Suspense`. Own `useListUrlState` once in a client shell; pass URL props to toolbar and table (see `features/platform-admin/list-tenants/ui/tenants-list.tsx`).
-- Shared helpers live in `lib/list-page/` (`parse-paged-search-params`, `use-list-url-state`, `table-return-to`).
-- List-table **chrome** (surface, empty state, header/row/cell class helpers, search input, **toolbar**, paged footer, **`BackToTableButton`**, **`useTableFiltersUrlState`**) lives in `components/table/`. `DataTableToolbar` is one row: filters scroll, actions stay pinned. Keep the ShadCN primitive (`Table`, `TableRow`, …) in `components/ui/table.tsx`.
+- Shared helpers live in `lib/list-page/` (`parse-paged-search-params`, `table-return-to`). URL writers for tables (`useListUrlState`, `useTableFiltersUrlState`) live in `components/table/`.
+- List-table **chrome** (surface, empty state, header/row/cell class helpers, search input, **toolbar**, paged footer, **`BackToTableButton`**, **`useListUrlState`**, **`useTableFiltersUrlState`**) lives in `components/table/`. `DataTableToolbar` is one row: filters scroll, actions stay pinned. Keep the ShadCN primitive (`Table`, `TableRow`, …) in `components/ui/table.tsx`.
 - Do not hand-roll the parts every list table shares — reach for `components/table` first:
   - **`DataTableGrid`** renders the TanStack header/body; **`DataTableSkeleton`** is its loading twin (pass `columns`, override a column's `cell` only where the placeholder shape differs).
   - **`useListTableState(urlState, updateUrl)`** derives `sorting`, `created`, `modified`, and `onSortingChange` from the URL.
@@ -221,7 +221,7 @@ Hub management grids follow the same URL + chrome pattern as forms/users. Parsin
 ### Layout and parallel-route slots (`*-slot.tsx`)
 
 - A component mounted by `app/` layouts or `@slot` route pages lives in its feature slice as `{feature}-slot.tsx`, not inline in the `app/` file. `app/` stays orchestration: resolve session/params, render the slot. References: `features/folders/view-forms-header/forms-folder-header-slot.tsx`, `features/platform-admin/assume-tenant/ui/support-access-banner-slot.tsx`.
-- A slot mounted by a **layout** must be synchronous and own its `Suspense` boundaries internally. `await` in the slot (or in the layout) blocks every route under that layout — decide *whether* to render from data already in hand, and stream only the parts that need a fetch.
+- A slot mounted by a **layout** must be synchronous and own its `Suspense` boundaries internally. `await` in the slot (or in the layout) blocks every route under that layout — decide _whether_ to render from data already in hand, and stream only the parts that need a fetch.
 - Slots call `*.server.ts` loaders; they do not construct `EndatixApi` themselves.
 
 ### Server Helper Layer (`*.server.ts`)

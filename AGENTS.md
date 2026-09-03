@@ -81,12 +81,11 @@ Keep post-fetch `redirect()` in that Server Component — do not stream the outc
 
 ## Table filter state (client)
 
-- One debounced field (a search box): `useListUrlState()` (`lib/list-page/use-list-url-state.ts`).
+- One debounced field (a search box): `useListUrlState()` (`components/table`).
 - One list page → one `useListUrlState()` call in a **client shell** that keeps the toolbar mounted and keys `Suspense` around the table only. Toolbar and table take props from that shell — do not call the hook in both. Pass `listKey` (and the list promise) from the RSC so Suspense remounts with the matching payload. Reference: `features/platform-admin/list-tenants/ui/tenants-list.tsx`.
 - **Two or more** debounced fields on the same table (search + a free-text filter, etc.): `useTableFiltersUrlState(keys)` (`components/table`), not one `useListUrlState` / `useUrlSearchParamsUpdater` call per field. Independent debounced writers race — each rebuilds the next URL from its own `searchParams` snapshot at the moment its timer fires, so whichever settles second can silently drop the other's just-committed change. `useTableFiltersUrlState` commits every field together in a single `updateUrl` call per settle window, so there is exactly one writer.
   - `keys` must be a module-level constant array (e.g. `const FILTER_KEYS = ["search", "hasLocale"] as const;`), not an inline literal — it drives the hook's effect dependencies.
   - Non-debounced filters (`Select`s, checkboxes) still call `updateUrl` directly; they don't need to be listed in `keys`.
-  - Reference: `features/data-lists/view-lists/ui/data-lists-page.tsx` (`DATA_LISTS_FILTER_KEYS` in `utils.ts`).
 
 ## Detail → list back navigation
 

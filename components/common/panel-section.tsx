@@ -8,16 +8,11 @@ interface PanelSectionProps {
   icon: LucideIcon;
   title: string;
   description?: string;
-  /** Status or affordance pinned to the right of the section title. */
   aside?: ReactNode;
   children: ReactNode;
   className?: string;
 }
 
-/**
- * A titled group of controls inside an overlay — `ConfigSection` on a nested
- * surface rather than a Card, because a panel is already raised (DESIGN.md §4).
- */
 export function PanelSection({
   icon: Icon,
   title,

@@ -25,7 +25,6 @@ export function TenantSignInUrlField({
       await navigator.clipboard.writeText(`${window.location.origin}${path}`);
       toast.success("Sign-in URL copied");
     } catch {
-      // Clipboard writes reject when permission is denied or the page is not a secure context.
       toast.error("Could not copy the sign-in URL");
     }
   };
