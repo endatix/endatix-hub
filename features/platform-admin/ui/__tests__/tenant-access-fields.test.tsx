@@ -1,45 +1,58 @@
 import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { TenantAccessFields } from "../tenant-access-fields";
 
 type Props = Parameters<typeof TenantAccessFields>[0];
 
 function renderFields(overrides: Partial<Props> = {}) {
-  const onAllowedProvidersChange = vi.fn();
   render(
     <TenantAccessFields
       idPrefix="test"
       allowSelfRegistration={false}
       onAllowSelfRegistrationChange={vi.fn()}
-      authProviders={[{ id: "google", name: "Google" }]}
-      allowedProviders={[]}
-      onAllowedProvidersChange={onAllowedProvidersChange}
       defaultRole="Respondent"
       onDefaultRoleChange={vi.fn()}
       {...overrides}
     />,
   );
-  return { onAllowedProvidersChange };
 }
 
 describe("TenantAccessFields", () => {
-  it("toggles a provider by clicking its label", () => {
-    const { onAllowedProvidersChange } = renderFields();
-
-    fireEvent.click(screen.getByLabelText("Google"));
-
-    expect(onAllowedProvidersChange).toHaveBeenCalledWith(["google"]);
+  it("does not offer an auth-provider policy", () => {
+    renderFields();
+    expect(screen.queryByText("Allowed auth providers")).toBeNull();
   });
 
   it("stays quiet for a role without Hub access", () => {
-    renderFields({ defaultRole: "Respondent" });
-
-    expect(screen.queryByText("Hub access")).toBeNull();
+    renderFields({ allowSelfRegistration: true, defaultRole: "Respondent" });
+    expect(screen.queryByText(/can sign in to Hub/i)).toBeNull();
   });
 
   it("warns when the default role can reach Hub", () => {
-    renderFields({ defaultRole: "Admin" });
+    renderFields({ allowSelfRegistration: true, defaultRole: "Admin" });
+    expect(screen.getByText("Admin can sign in to Hub")).toBeTruthy();
+  });
 
-    expect(screen.getByText("Hub access")).toBeTruthy();
+  it("stays quiet about Hub access while self-registration is off", () => {
+    // Nobody can self-register, so no account can be granted the role — the
+    // warning would be describing a risk that cannot occur.
+    renderFields({ allowSelfRegistration: false, defaultRole: "Admin" });
+    expect(screen.queryByText(/can sign in to Hub/i)).toBeNull();
+  });
+
+  it("disables the default role while self-registration is off", () => {
+    renderFields({ allowSelfRegistration: false });
+    const role = screen.getByRole("combobox", {
+      name: /default registration role/i,
+    });
+    expect(role.hasAttribute("disabled")).toBe(true);
+    expect(
+      screen.getByText("Applies once self-registration is on."),
+    ).toBeTruthy();
+  });
+
+  it("reports the current state as a status badge", () => {
+    renderFields({ allowSelfRegistration: true });
+    expect(screen.getByText("On")).toBeTruthy();
   });
 });

@@ -5,9 +5,9 @@ import {
   FacetedFilter,
   ResetFiltersButton,
   TableSearchInput,
+  useListUrlState,
 } from "@/components/table";
 import { formatLocaleLabel } from "@/features/data-lists/translations/locale-discovery";
-import { useListUrlState } from "@/lib/list-page/use-list-url-state";
 import { type ReactNode, useMemo } from "react";
 import {
   listUrlStateFromSearchParams,

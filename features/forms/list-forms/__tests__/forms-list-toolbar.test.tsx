@@ -5,17 +5,21 @@ import { FormsListToolbar } from "../ui/forms-list-toolbar";
 const updateUrl = vi.fn();
 const setSearch = vi.fn();
 
-vi.mock("@/lib/list-page/use-list-url-state", () => ({
-  useListUrlState: () => ({
-    search: "survey",
-    setSearch,
-    urlSearch: "survey",
-    updateUrl,
-    searchParams: new URLSearchParams(
-      "search=survey&status=enabled&visibility=public&browse=all&page=3",
-    ),
-  }),
-}));
+vi.mock("@/components/table", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/components/table")>();
+  return {
+    ...actual,
+    useListUrlState: () => ({
+      search: "survey",
+      setSearch,
+      urlSearch: "survey",
+      updateUrl,
+      searchParams: new URLSearchParams(
+        "search=survey&status=enabled&visibility=public&browse=all&page=3",
+      ),
+    }),
+  };
+});
 
 describe("FormsListToolbar", () => {
   beforeEach(() => {

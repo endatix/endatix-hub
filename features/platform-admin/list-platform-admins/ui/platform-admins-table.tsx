@@ -45,14 +45,15 @@ import { PlatformAdminUserActionButton } from "./platform-admin-user-action-butt
 import type {
   PagedResponse,
   PlatformAdminUserListItem,
-  PlatformTenantListItem,
 } from "@/lib/endatix-api";
+import type { PlatformTenantsPage } from "@/lib/endatix-api/platform-tenants/platform-tenants";
 import { normalizePagedResponse } from "@/lib/endatix-api/shared/paged-response";
+import { Result, type ResultType } from "@/lib/result";
 import { getFormattedDate } from "@/lib/utils";
 
 interface PlatformAdminsTableProps {
   usersPromise: Promise<PagedResponse<PlatformAdminUserListItem>>;
-  tenantsPromise: Promise<PagedResponse<PlatformTenantListItem>>;
+  tenantsPromise: Promise<ResultType<PlatformTenantsPage>>;
   approvedAdminTotalPromise: Promise<number>;
   currentUserId?: string;
   currentTenantId?: string;
@@ -60,15 +61,6 @@ interface PlatformAdminsTableProps {
 
 const allScopesValue = "__all_scopes__";
 const allTenantsValue = "__all_tenants__";
-const emptyTenantsPromise = Promise.resolve<
-  PagedResponse<PlatformTenantListItem>
->({
-  items: [],
-  page: 1,
-  pageSize: 0,
-  totalPages: 0,
-  totalRecords: 0,
-});
 
 export function PlatformAdminsTable({
   usersPromise,
@@ -78,9 +70,12 @@ export function PlatformAdminsTable({
   currentTenantId,
 }: Readonly<PlatformAdminsTableProps>) {
   const pagedUsers = normalizePagedResponse(use(usersPromise));
-  const tenants = normalizePagedResponse(
-    use(tenantsPromise ?? emptyTenantsPromise),
-  ).items;
+  // The tenant filter is secondary chrome: a failed tenant load leaves the list
+  // usable rather than replacing the page with an error.
+  const tenantsResult = use(tenantsPromise);
+  const tenants = Result.isSuccess(tenantsResult)
+    ? tenantsResult.value.items
+    : [];
   const approvedAdminTotal = use(approvedAdminTotalPromise);
   const { searchParams, updateUrl } = useUrlSearchParamsUpdater();
   const urlSearch = searchParams.get("search") ?? "";

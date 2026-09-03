@@ -8,10 +8,10 @@ import { Result, type ResultType } from "@/lib/result";
 import { toResult } from "@/lib/result/map-api-result-to-result";
 import { revalidatePath } from "next/cache";
 import {
-  requireTenantManagement,
   TENANTS_LIST_PATH,
   TENANTS_LOGGER_NAME,
-} from "../tenant-management.server";
+} from "../tenant-management.constants";
+import { requireTenantManagement } from "../tenant-management.server";
 import { tenantNameError } from "../tenant-registration";
 
 export async function getTenantAction(

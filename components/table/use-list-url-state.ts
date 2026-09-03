@@ -20,3 +20,5 @@ export function useListUrlState(
 
   return { search, setSearch, urlSearch, updateUrl, searchParams, isPending };
 }
+
+export type ListUrlState = ReturnType<typeof useListUrlState>;

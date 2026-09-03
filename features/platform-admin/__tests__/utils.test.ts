@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  parsePlatformAdminListParams,
-  parsePlatformTenantListParams,
-} from "../utils";
+import { parsePlatformAdminListParams } from "../utils";
 
 describe("parsePlatformAdminListParams", () => {
   it("defaults scope to all and page size to 10", () => {
@@ -33,33 +30,23 @@ describe("parsePlatformAdminListParams", () => {
     });
   });
 
+  it("coerces Next.js array search params", () => {
+    expect(
+      parsePlatformAdminListParams({
+        search: ["a", "b"],
+        tenantId: ["42"],
+        page: ["2"],
+      }),
+    ).toMatchObject({
+      search: "a",
+      tenantId: "42",
+      page: 2,
+    });
+  });
+
   it("falls back to all for unknown scope values", () => {
     expect(parsePlatformAdminListParams({ scope: "nominated" }).scope).toBe(
       "all",
     );
-  });
-});
-
-describe("parsePlatformTenantListParams", () => {
-  it("defaults page size to 10", () => {
-    expect(parsePlatformTenantListParams()).toEqual({
-      page: 1,
-      pageSize: 10,
-      search: undefined,
-    });
-  });
-
-  it("parses paging and search", () => {
-    expect(
-      parsePlatformTenantListParams({
-        page: "3",
-        pageSize: "50",
-        search: " acme ",
-      }),
-    ).toEqual({
-      page: 3,
-      pageSize: 50,
-      search: "acme",
-    });
   });
 });

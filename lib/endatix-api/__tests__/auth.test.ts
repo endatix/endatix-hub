@@ -293,4 +293,47 @@ describe("Auth", () => {
       });
     });
   });
+
+  describe("assumeTenant", () => {
+    it("posts the tenant id to assume-tenant", async () => {
+      const authedApi = new EndatixApi("access-token");
+      mockFetch.mockResolvedValueOnce(
+        new Response(JSON.stringify({ accessToken: "a", refreshToken: "r" }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
+
+      const result = await authedApi.auth.assumeTenant({ tenantId: "99" });
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining("/api/auth/assume-tenant"),
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({ tenantId: "99" }),
+        }),
+      );
+      expect(ApiResult.isSuccess(result)).toBe(true);
+    });
+  });
+
+  describe("exitAssume", () => {
+    it("posts to exit-assume", async () => {
+      const authedApi = new EndatixApi("access-token");
+      mockFetch.mockResolvedValueOnce(
+        new Response(JSON.stringify({ accessToken: "a", refreshToken: "r" }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
+
+      const result = await authedApi.auth.exitAssume();
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining("/api/auth/exit-assume"),
+        expect.objectContaining({ method: "POST" }),
+      );
+      expect(ApiResult.isSuccess(result)).toBe(true);
+    });
+  });
 });

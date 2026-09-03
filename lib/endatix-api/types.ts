@@ -49,6 +49,8 @@ export type {
   SendVerificationEmailRequest,
   RefreshTokenRequest,
   RefreshTokenResponse,
+  AssumeTenantRequest,
+  AssumeTenantResponse,
   AuthorizationData,
 } from "./auth/types";
 

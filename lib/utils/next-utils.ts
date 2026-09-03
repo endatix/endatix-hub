@@ -14,10 +14,23 @@ export function getOsClass(headers: ReadonlyHeaders) {
 }
 
 /**
- * The type of a search parameter follow Next.js searchParams type.
+ * A search-param value as Next.js delivers it when the key is present.
+ * Use this on optional interface members; use `SearchParam` for a value that
+ * may itself be absent.
  * https://nextjs.org/docs/app/api-reference/file-conventions/page#searchparams-optional
  */
-export type SearchParam = string | string[] | undefined;
+export type SearchParamValue = string | string[];
+
+/** A search-param value that may be absent. */
+export type SearchParam = SearchParamValue | undefined;
+
+/**
+ * Reads the single value of a search parameter, taking the first when Next.js
+ * delivers a repeated key as an array.
+ */
+export function firstSearchParam(value: SearchParam): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
+}
 
 /**
  * Checks if a search parameter has a value.

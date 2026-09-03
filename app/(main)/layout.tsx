@@ -8,6 +8,7 @@ import { Metadata } from "next";
 import { cookies, headers } from "next/headers";
 import { getMetadataBase } from "@/lib/seo";
 import { getClientEndatixConfig } from "@/features/config/server";
+import { SupportAccessBannerSlot } from "@/features/platform-admin/assume-tenant/ui/support-access-banner-slot";
 
 export const metadata: Metadata = {
   metadataBase: getMetadataBase(),
@@ -35,7 +36,7 @@ export default async function RootLayout({
   children,
   header,
   nav,
-}: RootLayoutProps) {
+}: Readonly<RootLayoutProps>) {
   const [requestHeaders, session, cookieStore, endatixConfig] =
     await Promise.all([headers(), auth(), cookies(), getClientEndatixConfig()]);
   const osClass = getOsClass(requestHeaders);
@@ -59,6 +60,7 @@ export default async function RootLayout({
         >
           {nav}
           <main data-slot="sidebar-inset">
+            <SupportAccessBannerSlot accessToken={session?.accessToken} />
             {header}
             <div data-slot="content-wrapper">{children}</div>
           </main>

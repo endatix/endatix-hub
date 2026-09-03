@@ -3,11 +3,8 @@ import type {
   ListPlatformAdminsRequest,
   PlatformAdminListScope,
 } from "@/lib/endatix-api/platform-admins/types";
-import type { ListPlatformTenantsRequest } from "@/lib/endatix-api/platform-tenants/types";
-import type {
-  PlatformAdminSearchParams,
-  PlatformTenantSearchParams,
-} from "./types";
+import { firstSearchParam } from "@/lib/utils/next-utils";
+import type { PlatformAdminSearchParams } from "./types";
 
 const DEFAULT_SCOPE: PlatformAdminListScope = "all";
 
@@ -18,22 +15,16 @@ export function parsePlatformAdminListParams(
   searchParams?: PlatformAdminSearchParams,
 ): ListPlatformAdminsRequest {
   return {
-    ...parsePagedSearchParams(searchParams, 10),
-    search: searchParams?.search?.trim() || undefined,
-    scope: parseScope(searchParams?.scope),
-    tenantId: searchParams?.tenantId?.trim() || undefined,
-  };
-}
-
-/**
- * Parses platform tenant list search params from the URL.
- */
-export function parsePlatformTenantListParams(
-  searchParams?: PlatformTenantSearchParams,
-): ListPlatformTenantsRequest {
-  return {
-    ...parsePagedSearchParams(searchParams, 10),
-    search: searchParams?.search?.trim() || undefined,
+    ...parsePagedSearchParams(
+      {
+        page: firstSearchParam(searchParams?.page),
+        pageSize: firstSearchParam(searchParams?.pageSize),
+      },
+      10,
+    ),
+    search: firstSearchParam(searchParams?.search)?.trim() || undefined,
+    scope: parseScope(firstSearchParam(searchParams?.scope)),
+    tenantId: firstSearchParam(searchParams?.tenantId)?.trim() || undefined,
   };
 }
 

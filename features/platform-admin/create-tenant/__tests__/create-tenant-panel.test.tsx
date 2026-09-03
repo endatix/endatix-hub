@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { Result } from "@/lib/result";
 import { createTenantAction } from "../create-tenant.action";
-import { CreateTenantDialog } from "../ui/create-tenant-dialog";
+import { CreateTenantPanel } from "../ui/create-tenant-panel";
 
 vi.mock("@/lib/utils/hooks/use-media-query.hook", () => ({
   useMediaQuery: () => true,
@@ -18,9 +18,9 @@ beforeAll(() => {
   Element.prototype.scrollIntoView = vi.fn();
 });
 
-describe("CreateTenantDialog", () => {
+describe("CreateTenantPanel", () => {
   it("blocks continue when the name is empty", async () => {
-    render(<CreateTenantDialog authProviders={[]} />);
+    render(<CreateTenantPanel />);
     fireEvent.click(screen.getByRole("button", { name: /create tenant/i }));
 
     fireEvent.click(await screen.findByRole("button", { name: /continue/i }));
@@ -29,15 +29,33 @@ describe("CreateTenantDialog", () => {
   });
 
   it("does not show a slug field on the identity step", async () => {
-    render(<CreateTenantDialog authProviders={[]} />);
+    render(<CreateTenantPanel />);
     fireEvent.click(screen.getByRole("button", { name: /create tenant/i }));
 
     expect(await screen.findByLabelText("Name")).toBeTruthy();
     expect(screen.queryByLabelText("Slug")).toBeNull();
+    expect(
+      screen.getByText(/unique short URL is generated during creation/i),
+    ).toBeTruthy();
+    expect(screen.queryByText("Allowed auth providers")).toBeNull();
   });
 
-  it("shows a Hub access warning for Creator", async () => {
-    render(<CreateTenantDialog authProviders={[]} />);
+  it("does not show auth providers on the access step", async () => {
+    render(<CreateTenantPanel />);
+    fireEvent.click(screen.getByRole("button", { name: /create tenant/i }));
+    fireEvent.change(await screen.findByLabelText("Name"), {
+      target: { value: "Acme Surveys" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+
+    expect(
+      await screen.findByLabelText("Allow self-registration"),
+    ).toBeTruthy();
+    expect(screen.queryByText("Allowed auth providers")).toBeNull();
+  });
+
+  it("shows a Hub access warning for Creator once self-registration is on", async () => {
+    render(<CreateTenantPanel />);
     fireEvent.click(screen.getByRole("button", { name: /create tenant/i }));
 
     fireEvent.change(await screen.findByLabelText("Name"), {
@@ -45,10 +63,28 @@ describe("CreateTenantDialog", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: /continue/i }));
 
+    // The role only takes effect for self-registered accounts, so it is inert
+    // — and its warning suppressed — until the toggle is on.
+    fireEvent.click(await screen.findByLabelText("Allow self-registration"));
     fireEvent.click(await screen.findByRole("combobox"));
     fireEvent.click(await screen.findByRole("option", { name: "Creator" }));
 
-    expect(await screen.findByText("Hub access")).toBeTruthy();
+    expect(await screen.findByText("Creator can sign in to Hub")).toBeTruthy();
+  });
+
+  it("summarises the tenant on the confirm step", async () => {
+    render(<CreateTenantPanel />);
+    fireEvent.click(screen.getByRole("button", { name: /create tenant/i }));
+
+    fireEvent.change(await screen.findByLabelText("Name"), {
+      target: { value: "Acme Surveys" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /continue/i }));
+
+    expect(await screen.findByText("Review")).toBeTruthy();
+    expect(screen.getByText("Acme Surveys")).toBeTruthy();
+    expect(screen.getByText("Off")).toBeTruthy();
   });
 
   it("shows a copyable sign-in path after create", async () => {
@@ -64,7 +100,7 @@ describe("CreateTenantDialog", () => {
       }),
     );
 
-    render(<CreateTenantDialog authProviders={[]} />);
+    render(<CreateTenantPanel />);
     fireEvent.click(screen.getByRole("button", { name: /create tenant/i }));
     fireEvent.change(await screen.findByLabelText("Name"), {
       target: { value: "Acme Surveys" },

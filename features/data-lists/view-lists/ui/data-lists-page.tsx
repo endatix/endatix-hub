@@ -11,18 +11,18 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
+  auditDateColumns,
   CellDate,
   createPagedTableFooterProps,
   DataTableColumnHeader,
-  DATA_TABLE_ELEMENT_CLASS_NAME,
   DATA_TABLE_SHRINK_WRAP_CLASS_NAME,
-  dataTableBodyCellClassName,
-  dataTableBodyRowClassName,
   dataTableColumnLabelClassName,
-  dataTableHeaderCellClassName,
   DataTableEmpty,
+  DataTableGrid,
   DataTableSurface,
   PagedTableFooter,
+  useListTableState,
+  useListUrlState,
   type DateFilterValue,
 } from "@/components/table";
 import { Spinner } from "@/components/loaders/spinner";
@@ -36,14 +36,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { toast } from "@/components/ui/toast";
 import type {
   DataList,
@@ -52,17 +44,13 @@ import type {
 } from "@/lib/endatix-api/data-lists/types";
 import type { DataListsPage } from "@/lib/endatix-api/data-lists/data-lists";
 import { rememberTableReturnTo } from "@/lib/list-page/table-return-to";
-import { useListUrlState } from "@/lib/list-page/use-list-url-state";
 import type { UrlSearchParamsUpdater } from "@/lib/utils/hooks/use-url-search-params-updater.hook";
 import { Result } from "@/lib/result";
 import { formatInteger } from "@/lib/utils/formatters";
 import {
-  flexRender,
   getCoreRowModel,
   useReactTable,
   type ColumnDef,
-  type SortingState,
-  type Updater,
 } from "@tanstack/react-table";
 import type { Route } from "next";
 import { CreateDataListDialog } from "../../create-list/ui/create-data-list-dialog";
@@ -77,7 +65,7 @@ import {
   listUrlStateFromSearchParams,
   parseDataListsReturnQuery,
 } from "../utils";
-import "./table-types";
+import "@/components/table/data-table-column-meta";
 
 interface DataListsPageProps {
   dataListsPromise: Promise<DataListsPage>;
@@ -107,25 +95,9 @@ export function DataListsPage({
   const urlState = listUrlStateFromSearchParams(searchParams);
   const searchInput = searchParams.get("search") ?? "";
 
-  const sorting = useMemo<SortingState>(() => {
-    if (!urlState.sortBy) {
-      return [];
-    }
-    return [
-      {
-        id: urlState.sortBy,
-        desc: urlState.sortDir !== "asc",
-      },
-    ];
-  }, [urlState.sortBy, urlState.sortDir]);
-
-  const createdDateFilter: DateFilterValue = useMemo(
-    () => ({ from: urlState.createdFrom, to: urlState.createdTo }),
-    [urlState.createdFrom, urlState.createdTo],
-  );
-  const modifiedDateFilter: DateFilterValue = useMemo(
-    () => ({ from: urlState.modifiedFrom, to: urlState.modifiedTo }),
-    [urlState.modifiedFrom, urlState.modifiedTo],
+  const { sorting, created, modified, onSortingChange } = useListTableState(
+    urlState,
+    updateUrl,
   );
 
   // Lets "Back to Data Lists" on the detail page restore paging/filters —
@@ -214,30 +186,15 @@ export function DataListsPage({
     }
   };
 
-  const handleSortingChange = (updater: Updater<SortingState>) => {
-    const next = typeof updater === "function" ? updater(sorting) : updater;
-    const first = next[0];
-    if (!first) {
-      updateUrl({ sortBy: null, sortDir: null, page: "1" });
-      return;
-    }
-
-    updateUrl({
-      sortBy: first.id,
-      sortDir: first.desc ? "desc" : "asc",
-      page: "1",
-    });
-  };
-
   const columns = useMemo(
     () =>
       buildDataListColumns({
         updateUrl,
-        createdDateFilter,
-        modifiedDateFilter,
+        created,
+        modified,
         onDelete: handleOpenDelete,
       }),
-    [updateUrl, createdDateFilter, modifiedDateFilter, handleOpenDelete],
+    [updateUrl, created, modified, handleOpenDelete],
   );
 
   // TanStack Table requires a referentially-stable `data` array — an inline
@@ -252,7 +209,7 @@ export function DataListsPage({
     getRowId: (row) => String(row.id),
     manualSorting: true,
     state: { sorting },
-    onSortingChange: handleSortingChange,
+    onSortingChange,
   });
 
   const footerProps = createPagedTableFooterProps(
@@ -276,71 +233,17 @@ export function DataListsPage({
         className="mt-4"
         isPending={isPending}
       >
-        {paged.items.length === 0 ? (
-          <DataTableEmpty>
-            {hasFilters
-              ? "No data lists match the current filters."
-              : "No data lists yet."}
-          </DataTableEmpty>
-        ) : (
-          <div className="w-full overflow-x-auto">
-            <Table className={DATA_TABLE_ELEMENT_CLASS_NAME}>
-              <TableHeader className="bg-surface-container-low">
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow
-                    key={headerGroup.id}
-                    className="border-0 hover:bg-transparent"
-                  >
-                    {headerGroup.headers.map((header) => (
-                      <TableHead
-                        key={header.id}
-                        colSpan={header.colSpan}
-                        className={dataTableHeaderCellClassName({
-                          className:
-                            header.column.columnDef.meta?.headerClassName,
-                        })}
-                      >
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext(),
-                            )}
-                      </TableHead>
-                    ))}
-                  </TableRow>
-                ))}
-              </TableHeader>
-              <TableBody>
-                {table.getRowModel().rows.map((row, rowIndex) => {
-                  const isEvenRow = rowIndex % 2 === 1;
-                  return (
-                    <TableRow
-                      key={row.id}
-                      className={dataTableBodyRowClassName({ isEvenRow })}
-                    >
-                      {row.getVisibleCells().map((cell) => (
-                        <TableCell
-                          key={cell.id}
-                          className={dataTableBodyCellClassName({
-                            isEvenRow,
-                            className:
-                              cell.column.columnDef.meta?.cellClassName,
-                          })}
-                        >
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext(),
-                          )}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
-        )}
+        <DataTableGrid
+          table={table}
+          hasRows={paged.items.length > 0}
+          empty={
+            <DataTableEmpty>
+              {hasFilters
+                ? "No data lists match the current filters."
+                : "No data lists yet."}
+            </DataTableEmpty>
+          }
+        />
         <PagedTableFooter {...footerProps} variant="surface" />
       </DataTableSurface>
 
@@ -420,15 +323,15 @@ export function DataListsPage({
 
 type BuildColumnsArgs = {
   updateUrl: UrlSearchParamsUpdater;
-  createdDateFilter: DateFilterValue;
-  modifiedDateFilter: DateFilterValue;
+  created: DateFilterValue;
+  modified: DateFilterValue;
   onDelete: (dataList: DataList) => void;
 };
 
 function buildDataListColumns({
   updateUrl,
-  createdDateFilter,
-  modifiedDateFilter,
+  created,
+  modified,
   onDelete,
 }: BuildColumnsArgs): ColumnDef<DataList>[] {
   const sortableId = (id: DataListListSortBy) => id;
@@ -499,60 +402,7 @@ function buildDataListColumns({
         />
       ),
     },
-    {
-      id: sortableId("createdAt"),
-      accessorKey: "createdAt",
-      enableSorting: true,
-      meta: {
-        headerClassName: `hidden md:table-cell ${DATA_TABLE_SHRINK_WRAP_CLASS_NAME}`,
-        cellClassName: `hidden md:table-cell ${DATA_TABLE_SHRINK_WRAP_CLASS_NAME}`,
-      },
-      header: ({ column }) => (
-        <DataTableColumnHeader
-          column={column}
-          title="Created"
-          isSorted={column.getIsSorted()}
-          dateFilter={{
-            value: createdDateFilter,
-            onChange: (value) => {
-              updateUrl({
-                createdFrom: value.from ?? null,
-                createdTo: value.to ?? null,
-                page: "1",
-              });
-            },
-          }}
-        />
-      ),
-      cell: ({ row }) => <CellDate date={row.original.createdAt} />,
-    },
-    {
-      id: sortableId("modifiedAt"),
-      accessorKey: "modifiedAt",
-      enableSorting: true,
-      meta: {
-        headerClassName: `hidden md:table-cell ${DATA_TABLE_SHRINK_WRAP_CLASS_NAME}`,
-        cellClassName: `hidden md:table-cell ${DATA_TABLE_SHRINK_WRAP_CLASS_NAME}`,
-      },
-      header: ({ column }) => (
-        <DataTableColumnHeader
-          column={column}
-          title="Modified"
-          isSorted={column.getIsSorted()}
-          dateFilter={{
-            value: modifiedDateFilter,
-            onChange: (value) => {
-              updateUrl({
-                modifiedFrom: value.from ?? null,
-                modifiedTo: value.to ?? null,
-                page: "1",
-              });
-            },
-          }}
-        />
-      ),
-      cell: ({ row }) => <CellDate date={row.original.modifiedAt} />,
-    },
+    ...auditDateColumns<DataList>({ created, modified, updateUrl }),
     {
       id: sortableId("itemsCount"),
       accessorKey: "itemsCount",

@@ -10,6 +10,7 @@ import {
   PagedTableFooter,
   ResetFiltersButton,
   TableSearchInput,
+  useListUrlState,
   type FacetedFilterOption,
 } from "@/components/table";
 import {
@@ -21,7 +22,6 @@ import {
 import { toast } from "@/components/ui/toast";
 import type { DataListDetails } from "@/lib/endatix-api/data-lists/types";
 import type { DataListItemsPage } from "@/lib/endatix-api/data-lists/data-lists";
-import { useListUrlState } from "@/lib/list-page/use-list-url-state";
 import type { UrlSearchParamsUpdater } from "@/lib/utils/hooks/use-url-search-params-updater.hook";
 import { TelemetryLogger } from "@/features/telemetry";
 import { withBasePath } from "@/lib/hosting";

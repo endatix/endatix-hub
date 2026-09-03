@@ -35,15 +35,19 @@ const setSearch = vi.fn();
 let mockSearchParams = new URLSearchParams();
 let mockSearch = "";
 
-vi.mock("@/lib/list-page/use-list-url-state", () => ({
-  useListUrlState: () => ({
-    search: mockSearch,
-    setSearch,
-    urlSearch: mockSearch,
-    updateUrl,
-    searchParams: mockSearchParams,
-  }),
-}));
+vi.mock("@/components/table", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/components/table")>();
+  return {
+    ...actual,
+    useListUrlState: () => ({
+      search: mockSearch,
+      setSearch,
+      urlSearch: mockSearch,
+      updateUrl,
+      searchParams: mockSearchParams,
+    }),
+  };
+});
 
 describe("DataListsListToolbar", () => {
   beforeEach(() => {

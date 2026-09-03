@@ -1,134 +1,50 @@
-"use client";
-
 import {
-  DATA_TABLE_ELEMENT_CLASS_NAME,
-  DataTableSurface,
-  dataTableBodyCellClassName,
-  dataTableBodyRowClassName,
-  dataTableColumnLabelClassName,
-  dataTableHeaderCellClassName,
+  DataTableSkeleton,
+  type DataTableSkeletonColumn,
 } from "@/components/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 
-const SKELETON_ROWS = 8;
+const COLUMNS: readonly DataTableSkeletonColumn[] = [
+  {
+    title: "Friendly Name",
+    className: "min-w-[12rem]",
+    cell: (
+      <div className="space-y-1.5">
+        <Skeleton className="h-4 w-40" />
+        <Skeleton className="h-3 w-28" />
+      </div>
+    ),
+  },
+  { title: "Status", cell: <Skeleton className="h-6 w-16 rounded-full" /> },
+  { title: "Locales", cell: <Skeleton className="h-5 w-24 rounded-full" /> },
+  {
+    title: "Created",
+    className: "hidden md:table-cell",
+    cell: <Skeleton className="h-4 w-20" />,
+  },
+  {
+    title: "Modified",
+    className: "hidden md:table-cell",
+    cell: <Skeleton className="h-4 w-20" />,
+  },
+  {
+    title: "Items",
+    className: "hidden text-right md:table-cell",
+    cell: <Skeleton className="ml-auto h-4 w-10" />,
+  },
+  {
+    title: "Actions",
+    className: "text-right",
+    cell: <Skeleton className="ml-auto h-8 w-8" />,
+  },
+];
 
 export function DataListsTableSkeleton() {
   return (
-    <DataTableSurface data-slot="data-lists-table-skeleton" className="mt-4">
-      <div className="w-full overflow-x-auto">
-        <Table className={DATA_TABLE_ELEMENT_CLASS_NAME}>
-          <TableHeader className="bg-surface-container-low">
-            <TableRow className="border-0 hover:bg-transparent">
-              {[
-                { title: "Friendly Name" },
-                { title: "Status" },
-                { title: "Locales" },
-                {
-                  title: "Created",
-                  className: "hidden md:table-cell",
-                },
-                {
-                  title: "Modified",
-                  className: "hidden md:table-cell",
-                },
-                {
-                  title: "Items",
-                  className: "hidden text-right md:table-cell",
-                },
-                { title: "Actions", className: "text-right" },
-              ].map((column) => (
-                <TableHead
-                  key={column.title}
-                  className={dataTableHeaderCellClassName({
-                    className: column.className,
-                  })}
-                >
-                  <span className={dataTableColumnLabelClassName()}>
-                    {column.title}
-                  </span>
-                </TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {Array.from({ length: SKELETON_ROWS }, (_, rowIndex) => {
-              const isEvenRow = rowIndex % 2 === 1;
-              return (
-                <TableRow
-                  key={rowIndex}
-                  className={dataTableBodyRowClassName({ isEvenRow })}
-                >
-                  <TableCell
-                    className={dataTableBodyCellClassName({
-                      isEvenRow,
-                      className: "min-w-[12rem]",
-                    })}
-                  >
-                    <div className="space-y-1.5">
-                      <Skeleton className="h-4 w-40" />
-                      <Skeleton className="h-3 w-28" />
-                    </div>
-                  </TableCell>
-                  <TableCell
-                    className={dataTableBodyCellClassName({ isEvenRow })}
-                  >
-                    <Skeleton className="h-6 w-16 rounded-full" />
-                  </TableCell>
-                  <TableCell
-                    className={dataTableBodyCellClassName({ isEvenRow })}
-                  >
-                    <Skeleton className="h-5 w-24 rounded-full" />
-                  </TableCell>
-                  <TableCell
-                    className={dataTableBodyCellClassName({
-                      isEvenRow,
-                      className: "hidden md:table-cell",
-                    })}
-                  >
-                    <Skeleton className="h-4 w-20" />
-                  </TableCell>
-                  <TableCell
-                    className={dataTableBodyCellClassName({
-                      isEvenRow,
-                      className: "hidden md:table-cell",
-                    })}
-                  >
-                    <Skeleton className="h-4 w-20" />
-                  </TableCell>
-                  <TableCell
-                    className={dataTableBodyCellClassName({
-                      isEvenRow,
-                      className: "hidden text-right md:table-cell",
-                    })}
-                  >
-                    <Skeleton className="ml-auto h-4 w-10" />
-                  </TableCell>
-                  <TableCell
-                    className={dataTableBodyCellClassName({
-                      isEvenRow,
-                      className: "text-right",
-                    })}
-                  >
-                    <Skeleton className="ml-auto h-8 w-8" />
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      </div>
-      <div className="flex items-center justify-between gap-4 border-t border-border/40 px-4 py-3">
-        <Skeleton className="h-4 w-40" />
-        <Skeleton className="h-8 w-48" />
-      </div>
-    </DataTableSurface>
+    <DataTableSkeleton
+      columns={COLUMNS}
+      className="mt-4"
+      data-slot="data-lists-table-skeleton"
+    />
   );
 }

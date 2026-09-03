@@ -17,10 +17,10 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import type { getPlatformDashboard } from "../view-platform-dashboard.server";
+import type { PlatformDashboardCounts } from "../view-platform-dashboard.server";
 
 interface PlatformDashboardProps {
-  dashboard: Awaited<ReturnType<typeof getPlatformDashboard>>;
+  dashboard: PlatformDashboardCounts;
 }
 
 export function PlatformDashboard({
@@ -34,14 +34,14 @@ export function PlatformDashboard({
       >
         <DashboardCard
           title="Tenants"
-          value={dashboard.tenants.totalRecords}
+          value={dashboard.tenants}
           description="Organizations currently known to the platform."
           href="/admin/tenants"
           icon={Building2}
         />
         <DashboardCard
           title="Platform Admins"
-          value={dashboard.admins.totalRecords}
+          value={dashboard.admins}
           description="Users with local PlatformAdmin approval."
           href="/admin/platform-admins"
           icon={UserCog}

@@ -1,8 +1,23 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
+import { use, useMemo, useState } from "react";
+import {
+  auditDateColumns,
+  createPagedTableFooterProps,
+  DataTableColumnHeader,
+  DATA_TABLE_SHRINK_WRAP_CLASS_NAME,
+  dataTableColumnLabelClassName,
+  DataTableEmpty,
+  DataTableGrid,
+  DataTableSurface,
+  PagedTableFooter,
+  useListTableState,
+  type DateFilterValue,
+} from "@/components/table";
+import { HubPageLoadError } from "@/components/error-handling/error-page";
+import { StatusBadge } from "@/components/common/status-badge";
+import { TruncatedId } from "@/components/common/truncated-id";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,140 +25,281 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import type { AuthProviderOption } from "@/features/platform-admin/tenant-registration";
+  AssumeTenantConfirmDialog,
+  type AssumeTenantTarget,
+} from "@/features/platform-admin/assume-tenant/ui/assume-tenant-confirm-dialog";
 import { EditTenantSheet } from "@/features/platform-admin/update-tenant/ui/edit-tenant-sheet";
-import type { PagedResponse, PlatformTenantListItem } from "@/lib/endatix-api";
-import { getFormattedDate } from "@/lib/utils";
-import { MoreHorizontal } from "lucide-react";
-import { useState } from "react";
-
-/** Tenant, Public id, ID, Self-reg, Forms, Submissions, Created, Modified. */
-const BASE_COLUMNS = 8;
+import type {
+  PlatformTenantListItem,
+  PlatformTenantListSortBy,
+} from "@/lib/endatix-api";
+import type { NormalizedPagedResponse } from "@/lib/endatix-api/shared/paged-response";
+import { Result, type ResultType } from "@/lib/result";
+import type { UrlSearchParamsUpdater } from "@/lib/utils/hooks/use-url-search-params-updater.hook";
+import { LogIn, MoreHorizontal, Pencil } from "lucide-react";
+import {
+  getCoreRowModel,
+  useReactTable,
+  type ColumnDef,
+} from "@tanstack/react-table";
+import type { TenantsListUrlState } from "../utils";
 
 interface TenantsTableProps {
-  tenants: PagedResponse<PlatformTenantListItem>;
+  tenants: NormalizedPagedResponse<PlatformTenantListItem>;
+  updateUrl: UrlSearchParamsUpdater;
+  urlState: TenantsListUrlState;
+  isPending: boolean;
   canManage?: boolean;
-  authProviders?: AuthProviderOption[];
+}
+
+export function TenantsTableFromPromise({
+  tenantsPromise,
+  ...props
+}: Readonly<
+  Omit<TenantsTableProps, "tenants"> & {
+    tenantsPromise: Promise<
+      ResultType<NormalizedPagedResponse<PlatformTenantListItem>>
+    >;
+  }
+>) {
+  const result = use(tenantsPromise);
+  if (Result.isError(result)) {
+    return <HubPageLoadError result={result} />;
+  }
+
+  return <TenantsTable tenants={result.value} {...props} />;
 }
 
 export function TenantsTable({
-  tenants,
+  tenants: paged,
+  updateUrl,
+  urlState,
+  isPending,
   canManage = false,
-  authProviders = [],
 }: Readonly<TenantsTableProps>) {
   const [editingTenantId, setEditingTenantId] = useState<string | null>(null);
-  const columnCount = BASE_COLUMNS + (canManage ? 1 : 0);
+  const [assumeTarget, setAssumeTarget] = useState<AssumeTenantTarget | null>(
+    null,
+  );
+
+  const { sorting, created, modified, onSortingChange } = useListTableState(
+    urlState,
+    updateUrl,
+  );
+
+  const columns = useMemo(
+    () =>
+      buildTenantColumns({
+        canManage,
+        onAssume: setAssumeTarget,
+        onEdit: setEditingTenantId,
+        updateUrl,
+        created,
+        modified,
+      }),
+    [canManage, updateUrl, created, modified],
+  );
+
+  const tableData = useMemo(() => [...paged.items], [paged.items]);
+  const table = useReactTable({
+    data: tableData,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    getRowId: (row) => row.id,
+    manualSorting: true,
+    state: { sorting },
+    onSortingChange,
+  });
+
+  const hasFilters = Boolean(
+    urlState.search?.trim() ||
+    urlState.createdFrom ||
+    urlState.createdTo ||
+    urlState.modifiedFrom ||
+    urlState.modifiedTo,
+  );
 
   return (
     <>
-      <Card>
-        <CardHeader>
-          <CardTitle>Tenants</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Tenant</TableHead>
-                <TableHead>Public id</TableHead>
-                <TableHead>ID</TableHead>
-                <TableHead>Self-reg</TableHead>
-                <TableHead>Forms</TableHead>
-                <TableHead>Submissions</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead>Modified</TableHead>
-                {canManage && (
-                  <TableHead className="w-12">
-                    <span className="sr-only">Actions</span>
-                  </TableHead>
-                )}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {tenants.items.map((tenant) => (
-                <TableRow key={tenant.id}>
-                  <TableCell className="max-w-md whitespace-normal">
-                    <div className="font-medium">{tenant.name}</div>
-                    <div className="text-sm text-muted-foreground">
-                      {tenant.description || "No description"}
-                    </div>
-                  </TableCell>
-                  <TableCell className="font-mono text-sm text-muted-foreground">
-                    {tenant.shortUrl}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {tenant.id}
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        tenant.selfRegistrationEnabled ? "default" : "secondary"
-                      }
-                    >
-                      {tenant.selfRegistrationEnabled ? "On" : "Off"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">{tenant.formsCount}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">{tenant.submissionsCount}</Badge>
-                  </TableCell>
-                  <TableCell>{getFormattedDate(tenant.createdAt)}</TableCell>
-                  <TableCell>{getFormattedDate(tenant.modifiedAt)}</TableCell>
-                  {canManage && (
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal />
-                            <span className="sr-only">Open tenant actions</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() => setEditingTenantId(tenant.id)}
-                          >
-                            Edit
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  )}
-                </TableRow>
-              ))}
-              {tenants.items.length === 0 && (
-                <TableRow>
-                  <TableCell
-                    colSpan={columnCount}
-                    className="h-24 text-center text-muted-foreground"
-                  >
-                    No tenants found.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-      {canManage && (
-        <EditTenantSheet
-          tenantId={editingTenantId}
-          authProviders={authProviders}
-          onOpenChange={(isOpen) => {
-            if (!isOpen) {
-              setEditingTenantId(null);
-            }
-          }}
+      <DataTableSurface data-slot="tenants-table" isPending={isPending}>
+        <DataTableGrid
+          table={table}
+          hasRows={paged.items.length > 0}
+          empty={
+            <DataTableEmpty>
+              {hasFilters
+                ? "No tenants match the current filters."
+                : "No tenants found."}
+            </DataTableEmpty>
+          }
         />
+        <PagedTableFooter
+          {...createPagedTableFooterProps(paged, "tenants", updateUrl)}
+          variant="surface"
+        />
+      </DataTableSurface>
+      {canManage && (
+        <>
+          <AssumeTenantConfirmDialog
+            tenant={assumeTarget}
+            onOpenChange={(open) => {
+              if (!open) {
+                setAssumeTarget(null);
+              }
+            }}
+          />
+          <EditTenantSheet
+            tenantId={editingTenantId}
+            onOpenChange={(isOpen) => {
+              if (!isOpen) {
+                setEditingTenantId(null);
+              }
+            }}
+          />
+        </>
       )}
     </>
   );
+}
+
+type BuildColumnsArgs = {
+  canManage: boolean;
+  onAssume: (tenant: AssumeTenantTarget) => void;
+  onEdit: (tenantId: string) => void;
+  updateUrl: UrlSearchParamsUpdater;
+  created: DateFilterValue;
+  modified: DateFilterValue;
+};
+
+function buildTenantColumns({
+  canManage,
+  onAssume,
+  onEdit,
+  updateUrl,
+  created,
+  modified,
+}: BuildColumnsArgs): ColumnDef<PlatformTenantListItem>[] {
+  const columns: ColumnDef<PlatformTenantListItem>[] = [
+    {
+      id: "name" satisfies PlatformTenantListSortBy,
+      accessorKey: "name",
+      enableSorting: true,
+      meta: {
+        headerClassName: "min-w-[12rem]",
+        cellClassName: "min-w-[12rem]",
+      },
+      header: ({ column }) => (
+        <DataTableColumnHeader
+          column={column}
+          title="Tenant"
+          isSorted={column.getIsSorted()}
+        />
+      ),
+      cell: ({ row }) => {
+        const nameBlock = (
+          <>
+            <p className="truncate text-sm font-medium">{row.original.name}</p>
+            <p className="truncate text-xs text-muted-foreground">
+              {row.original.description || "No description"}
+            </p>
+          </>
+        );
+
+        if (!canManage) {
+          return <div className="min-w-0">{nameBlock}</div>;
+        }
+
+        return (
+          <button
+            type="button"
+            className="min-w-0 text-left hover:underline focus-visible:underline focus-visible:outline-none"
+            onClick={() => onEdit(row.original.id)}
+          >
+            {nameBlock}
+          </button>
+        );
+      },
+    },
+    {
+      id: "shortUrl",
+      accessorKey: "shortUrl",
+      enableSorting: false,
+      meta: {
+        headerClassName: DATA_TABLE_SHRINK_WRAP_CLASS_NAME,
+        cellClassName: DATA_TABLE_SHRINK_WRAP_CLASS_NAME,
+      },
+      header: () => (
+        <span className={dataTableColumnLabelClassName()}>Public id</span>
+      ),
+      cell: ({ row }) => (
+        <TruncatedId id={row.original.shortUrl} copyLabel="Copy public id" />
+      ),
+    },
+    {
+      id: "selfRegistrationEnabled",
+      accessorKey: "selfRegistrationEnabled",
+      enableSorting: false,
+      meta: {
+        headerClassName: DATA_TABLE_SHRINK_WRAP_CLASS_NAME,
+        cellClassName: DATA_TABLE_SHRINK_WRAP_CLASS_NAME,
+      },
+      header: () => (
+        <span className={dataTableColumnLabelClassName()}>Self-reg</span>
+      ),
+      cell: ({ row }) => (
+        <StatusBadge
+          tone={row.original.selfRegistrationEnabled ? "on" : "off"}
+          label={row.original.selfRegistrationEnabled ? "On" : "Off"}
+        />
+      ),
+    },
+    ...auditDateColumns<PlatformTenantListItem>({
+      created,
+      modified,
+      updateUrl,
+    }),
+  ];
+
+  if (canManage) {
+    columns.push({
+      id: "actions",
+      enableSorting: false,
+      meta: {
+        headerClassName: `text-right ${DATA_TABLE_SHRINK_WRAP_CLASS_NAME}`,
+        cellClassName: `text-right ${DATA_TABLE_SHRINK_WRAP_CLASS_NAME}`,
+      },
+      header: () => (
+        <span className={dataTableColumnLabelClassName()}>Actions</span>
+      ),
+      cell: ({ row }) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon">
+              <MoreHorizontal />
+              <span className="sr-only">Open tenant actions</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              onSelect={() => {
+                onAssume({
+                  id: row.original.id,
+                  name: row.original.name,
+                });
+              }}
+            >
+              <LogIn />
+              Assume tenant
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => onEdit(row.original.id)}>
+              <Pencil />
+              Edit
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ),
+    });
+  }
+
+  return columns;
 }

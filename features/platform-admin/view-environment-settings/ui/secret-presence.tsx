@@ -1,7 +1,7 @@
 "use client";
 
 import type { SecretPresence } from "../types";
-import { ConfigStatusBadge } from "./config-status-badge";
+import { StatusBadge } from "@/components/common/status-badge";
 
 interface SecretPresenceBadgeProps {
   presence: SecretPresence;
@@ -20,7 +20,7 @@ export function SecretPresenceBadge({
   presence,
 }: Readonly<SecretPresenceBadgeProps>) {
   return (
-    <ConfigStatusBadge
+    <StatusBadge
       tone={presence.configured ? "on" : "off"}
       label={presence.configured ? "Set" : "Not set"}
     />
