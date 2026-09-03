@@ -1,10 +1,12 @@
 "use client";
 
+import { PanelSection } from "@/components/common/panel-section";
+import { StatusBadge } from "@/components/common/status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toast";
-import { Copy } from "lucide-react";
+import { Copy, Link2 } from "lucide-react";
 import { tenantPublicSignInPath } from "../tenant-registration";
 
 interface TenantSignInUrlFieldProps {
@@ -29,15 +31,28 @@ export function TenantSignInUrlField({
   };
 
   return (
-    <div className="grid gap-2">
-      <Label htmlFor={id}>Public sign-in URL</Label>
-      <div className="flex gap-2">
-        <Input id={id} value={path} readOnly />
-        <Button type="button" variant="outline" size="icon" onClick={copy}>
-          <Copy />
-          <span className="sr-only">Copy sign-in URL</span>
-        </Button>
+    <PanelSection
+      icon={Link2}
+      title="Public sign-in URL"
+      description="Share this link with people who should sign in to this tenant."
+      aside={<StatusBadge tone="off" label="Locked" />}
+    >
+      <div className="grid gap-2">
+        <Label htmlFor={id} className="sr-only">
+          Public sign-in URL
+        </Label>
+        <div className="flex gap-2">
+          <Input id={id} value={path} readOnly className="font-mono text-sm" />
+          <Button type="button" variant="outline" size="icon" onClick={copy}>
+            <Copy />
+            <span className="sr-only">Copy sign-in URL</span>
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Generated on creation and permanent — existing links would break if it
+          changed.
+        </p>
       </div>
-    </div>
+    </PanelSection>
   );
 }

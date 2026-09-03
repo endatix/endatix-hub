@@ -25,6 +25,8 @@
   --color-destructive-foreground: var(--destructive-foreground);
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
+  --color-success-border: var(--success-border);
+  --color-success-background: var(--success-background);
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
   --color-warning-border: var(--warning-border);
@@ -117,6 +119,8 @@
 
   --success: hsl(152 55% 36%);
   --success-foreground: hsl(0 0% 100%);
+  --success-border: color-mix(in oklab, var(--success) 32%, var(--border));
+  --success-background: color-mix(in oklab, var(--success) 12%, var(--card));
   --warning: hsl(32 90% 46%);
   --warning-foreground: hsl(0 0% 100%);
   --warning-border: color-mix(in oklab, var(--warning) 32%, var(--border));
@@ -188,6 +192,8 @@
 
   --success: hsl(152 55% 46%);
   --success-foreground: hsl(0 0% 100%);
+  --success-border: color-mix(in oklab, var(--success) 40%, var(--border));
+  --success-background: color-mix(in oklab, var(--success) 16%, var(--card));
   --warning: hsl(32 95% 50%);
   --warning-foreground: hsl(0 0% 100%);
   --warning-border: color-mix(in oklab, var(--warning) 40%, var(--border));

@@ -1,7 +1,7 @@
 "use client";
 
 import { Card, CardContent } from "@/components/ui/card";
-import { ConfigStatusBadge } from "./config-status-badge";
+import { StatusBadge } from "@/components/common/status-badge";
 
 export interface EnvironmentCheck {
   /** Human name of the setting, used when listing what is not configured. */
@@ -50,7 +50,7 @@ export function EnvironmentOverview({
               Not set: {missing.map((check) => check.label).join(", ")}
             </span>
           )}
-          <ConfigStatusBadge
+          <StatusBadge
             tone={tone}
             label={`${configuredCount} of ${checks.length} configured`}
           />

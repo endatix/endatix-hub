@@ -16,8 +16,8 @@ import {
   type DateFilterValue,
 } from "@/components/table";
 import { HubPageLoadError } from "@/components/error-handling/error-page";
+import { StatusBadge } from "@/components/common/status-badge";
 import { TruncatedId } from "@/components/common/truncated-id";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -37,7 +37,7 @@ import type {
 import type { NormalizedPagedResponse } from "@/lib/endatix-api/shared/paged-response";
 import { Result, type ResultType } from "@/lib/result";
 import type { UrlSearchParamsUpdater } from "@/lib/utils/hooks/use-url-search-params-updater.hook";
-import { MoreHorizontal } from "lucide-react";
+import { LogIn, MoreHorizontal, Pencil } from "lucide-react";
 import {
   getCoreRowModel,
   useReactTable,
@@ -264,13 +264,10 @@ function buildTenantColumns({
         <span className={dataTableColumnLabelClassName()}>Self-reg</span>
       ),
       cell: ({ row }) => (
-        <Badge
-          variant={
-            row.original.selfRegistrationEnabled ? "default" : "secondary"
-          }
-        >
-          {row.original.selfRegistrationEnabled ? "On" : "Off"}
-        </Badge>
+        <StatusBadge
+          tone={row.original.selfRegistrationEnabled ? "on" : "off"}
+          label={row.original.selfRegistrationEnabled ? "On" : "Off"}
+        />
       ),
     },
     {
@@ -357,9 +354,11 @@ function buildTenantColumns({
                 });
               }}
             >
+              <LogIn />
               Assume tenant
             </DropdownMenuItem>
             <DropdownMenuItem onSelect={() => onEdit(row.original.id)}>
+              <Pencil />
               Edit
             </DropdownMenuItem>
           </DropdownMenuContent>

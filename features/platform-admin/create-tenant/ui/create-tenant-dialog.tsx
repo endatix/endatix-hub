@@ -1,5 +1,9 @@
 "use client";
 
+import { PanelSection } from "@/components/common/panel-section";
+import { PanelSteps } from "@/components/common/panel-steps";
+import { StatusBadge } from "@/components/common/status-badge";
+import { SummaryRow } from "@/components/common/summary-row";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,7 +19,7 @@ import { TenantAccessFields } from "@/features/platform-admin/ui/tenant-access-f
 import { TenantIdentityFields } from "@/features/platform-admin/ui/tenant-identity-fields";
 import { TenantSignInUrlField } from "@/features/platform-admin/ui/tenant-signin-url-field";
 import { Result } from "@/lib/result";
-import { Info, Plus } from "lucide-react";
+import { CircleCheckBig, ClipboardCheck, Info, Plus } from "lucide-react";
 import { useState, useTransition } from "react";
 import {
   TENANT_REGISTRATION_ROLES,
@@ -25,25 +29,12 @@ import { createTenantAction } from "../create-tenant.action";
 
 type CreateStep = 1 | 2 | 3 | "done";
 
-const STEP_COPY: Record<
-  Exclude<CreateStep, "done">,
-  { title: string; description: string }
-> = {
-  1: {
-    title: "Identity",
-    description:
-      "Name the tenant. A unique short URL is generated when it is created.",
-  },
-  2: {
-    title: "Access",
-    description:
-      "Configure whether people can self-register through the tenant URL.",
-  },
-  3: {
-    title: "Confirm",
-    description:
-      "Review the tenant before creating it. The public id cannot be changed later.",
-  },
+const STEP_LABELS = ["Identity", "Access", "Confirm"] as const;
+
+const STEP_DESCRIPTION: Record<Exclude<CreateStep, "done">, string> = {
+  1: "Name the tenant. A unique public id is generated when it is created.",
+  2: "Decide whether people can create their own account from the tenant URL.",
+  3: "Check the details before creating the tenant.",
 };
 
 const DEFAULT_ROLE = TENANT_REGISTRATION_ROLES[0].name;
@@ -118,12 +109,14 @@ export function CreateTenantDialog() {
         <ResponsivePanelTitle>Create tenant</ResponsivePanelTitle>
         <ResponsivePanelDescription>
           {step === "done"
-            ? "Copy the public sign-in URL. Anyone with the link can open it."
-            : `Step ${step} of 3 — ${STEP_COPY[step].title}. ${STEP_COPY[step].description}`}
+            ? "The tenant is live. Share the sign-in URL with its first users."
+            : STEP_DESCRIPTION[step]}
         </ResponsivePanelDescription>
       </ResponsivePanelHeader>
 
       <ResponsivePanelBody className="grid content-start gap-5">
+        {step !== "done" && <PanelSteps steps={STEP_LABELS} current={step} />}
+
         {step === 1 && (
           <>
             <TenantIdentityFields
@@ -135,56 +128,91 @@ export function CreateTenantDialog() {
               }}
               description={description}
               onDescriptionChange={setDescription}
+              error={stepError}
             />
             <Alert variant="info">
               <Info />
-              <AlertTitle>Public id</AlertTitle>
+              <AlertTitle>The public id is permanent</AlertTitle>
               <AlertDescription>
                 A unique short URL is generated during creation. Sign-in links
-                use it, and it cannot be changed later.
+                use it, and it cannot be changed afterwards.
               </AlertDescription>
             </Alert>
           </>
         )}
 
         {step === 2 && (
-          <div className="grid gap-5 rounded-lg bg-surface-container-low p-4">
-            <TenantAccessFields
-              idPrefix="tenant"
-              allowSelfRegistration={allowSelfRegistration}
-              onAllowSelfRegistrationChange={setAllowSelfRegistration}
-              defaultRole={defaultRole}
-              onDefaultRoleChange={setDefaultRole}
-              showSelfRegHint
-            />
-          </div>
-        )}
-
-        {step === 3 && (
-          <dl className="grid gap-3 text-sm">
-            <div>
-              <dt className="text-muted-foreground">Name</dt>
-              <dd className="font-medium">{name.trim()}</dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">Self-registration</dt>
-              <dd>{allowSelfRegistration ? "On" : "Off"}</dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">Default role</dt>
-              <dd>{defaultRole}</dd>
-            </div>
-          </dl>
-        )}
-
-        {step === "done" && createdShortUrl && (
-          <TenantSignInUrlField
-            id="tenant-signin-url"
-            shortUrl={createdShortUrl}
+          <TenantAccessFields
+            idPrefix="tenant"
+            allowSelfRegistration={allowSelfRegistration}
+            onAllowSelfRegistrationChange={setAllowSelfRegistration}
+            defaultRole={defaultRole}
+            onDefaultRoleChange={setDefaultRole}
           />
         )}
 
-        {stepError && <p className="text-sm text-destructive">{stepError}</p>}
+        {step === 3 && (
+          <>
+            <PanelSection
+              icon={ClipboardCheck}
+              title="Review"
+              description="This is what will be created."
+            >
+              <dl className="grid gap-3">
+                <SummaryRow label="Name" value={name.trim()} />
+                <SummaryRow
+                  label="Description"
+                  value={
+                    description.trim() || (
+                      <span className="text-muted-foreground">
+                        <span aria-hidden="true">—</span>
+                        <span className="sr-only">Not set</span>
+                      </span>
+                    )
+                  }
+                />
+                <SummaryRow
+                  label="Self-registration"
+                  value={
+                    <StatusBadge
+                      tone={allowSelfRegistration ? "on" : "off"}
+                      label={allowSelfRegistration ? "On" : "Off"}
+                    />
+                  }
+                />
+                {allowSelfRegistration && (
+                  <SummaryRow label="Default role" value={defaultRole} />
+                )}
+              </dl>
+            </PanelSection>
+            <Alert variant="info">
+              <Info />
+              <AlertTitle>The public id is assigned now</AlertTitle>
+              <AlertDescription>
+                You can rename the tenant later, but its sign-in URL is fixed
+                once it exists.
+              </AlertDescription>
+            </Alert>
+          </>
+        )}
+
+        {step === "done" && createdShortUrl && (
+          <>
+            <Alert variant="success">
+              <CircleCheckBig />
+              <AlertTitle>{name.trim()} is ready</AlertTitle>
+              <AlertDescription>
+                {allowSelfRegistration
+                  ? `Anyone with the link can register as ${defaultRole}.`
+                  : "Self-registration is off, so accounts must be invited."}
+              </AlertDescription>
+            </Alert>
+            <TenantSignInUrlField
+              id="tenant-signin-url"
+              shortUrl={createdShortUrl}
+            />
+          </>
+        )}
       </ResponsivePanelBody>
 
       <ResponsivePanelFooter>

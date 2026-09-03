@@ -9,8 +9,9 @@ const alertVariants = cva(
     variants: {
       variant: {
         default: "bg-card text-card-foreground",
-        info:
-          "border-info-border bg-info-background text-info-foreground [&>svg]:text-info [&_[data-slot=alert-description]]:text-muted-foreground",
+        info: "border-info-border bg-info-background text-info-foreground [&>svg]:text-info [&_[data-slot=alert-description]]:text-muted-foreground",
+        success:
+          "border-success-border bg-success-background text-foreground [&>svg]:text-success [&_[data-slot=alert-description]]:text-muted-foreground",
         warning:
           "border-warning-border bg-warning-background text-foreground [&>svg]:text-warning [&_[data-slot=alert-description]]:text-muted-foreground",
         destructive:
@@ -59,7 +60,7 @@ function AlertDescription({
     <div
       data-slot="alert-description"
       className={cn(
-        "text-muted-foreground col-start-2 grid justify-items-start gap-1 text-sm [&_p]:leading-relaxed",
+        "col-start-2 grid justify-items-start gap-1 text-sm text-muted-foreground [&_p]:leading-relaxed",
         className,
       )}
       {...props}
@@ -71,7 +72,7 @@ function AlertAction({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="alert-action"
-      className={cn("col-start-2 flex mt-2", className)}
+      className={cn("col-start-2 mt-2 flex", className)}
       {...props}
     />
   );

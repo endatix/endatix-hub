@@ -54,7 +54,7 @@ describe("CreateTenantDialog", () => {
     expect(screen.queryByText("Allowed auth providers")).toBeNull();
   });
 
-  it("shows a Hub access warning for Creator", async () => {
+  it("shows a Hub access warning for Creator once self-registration is on", async () => {
     render(<CreateTenantDialog />);
     fireEvent.click(screen.getByRole("button", { name: /create tenant/i }));
 
@@ -63,10 +63,28 @@ describe("CreateTenantDialog", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: /continue/i }));
 
+    // The role only takes effect for self-registered accounts, so it is inert
+    // — and its warning suppressed — until the toggle is on.
+    fireEvent.click(await screen.findByLabelText("Allow self-registration"));
     fireEvent.click(await screen.findByRole("combobox"));
     fireEvent.click(await screen.findByRole("option", { name: "Creator" }));
 
-    expect(await screen.findByText("Hub access")).toBeTruthy();
+    expect(await screen.findByText("Creator can sign in to Hub")).toBeTruthy();
+  });
+
+  it("summarises the tenant on the confirm step", async () => {
+    render(<CreateTenantDialog />);
+    fireEvent.click(screen.getByRole("button", { name: /create tenant/i }));
+
+    fireEvent.change(await screen.findByLabelText("Name"), {
+      target: { value: "Acme Surveys" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /continue/i }));
+
+    expect(await screen.findByText("Review")).toBeTruthy();
+    expect(screen.getByText("Acme Surveys")).toBeTruthy();
+    expect(screen.getByText("Off")).toBeTruthy();
   });
 
   it("shows a copyable sign-in path after create", async () => {

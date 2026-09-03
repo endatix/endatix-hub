@@ -11,7 +11,7 @@ import {
 import type { EnvironmentAdminSummary } from "../types";
 import { ConfigRow } from "./config-row";
 import { ConfigSection } from "./config-section";
-import { ConfigStatusBadge } from "./config-status-badge";
+import { StatusBadge } from "@/components/common/status-badge";
 import { ConfigValue } from "./config-value";
 import type { EnvironmentCheck } from "./environment-overview";
 import { EnvironmentOverview } from "./environment-overview";
@@ -60,7 +60,7 @@ export function EnvironmentSettingsPanel({
           <ConfigRow
             label="Status"
             value={
-              <ConfigStatusBadge
+              <StatusBadge
                 tone={api.apiConfigured ? "on" : "attention"}
                 label={api.apiConfigured ? "Configured" : "Not configured"}
               />
@@ -110,7 +110,7 @@ export function EnvironmentSettingsPanel({
             label="Debug mode"
             envVar="ENDATIX_IS_DEBUG_MODE"
             value={
-              <ConfigStatusBadge
+              <StatusBadge
                 tone={debug.isDebugMode ? "on" : "off"}
                 label={debug.isDebugMode ? "On" : "Off"}
               />
@@ -138,7 +138,7 @@ export function EnvironmentSettingsPanel({
             label="SurveyJS extensions"
             envVar="ENDATIX_ENABLE_EXTENSIONS"
             value={
-              <ConfigStatusBadge
+              <StatusBadge
                 tone={experimental.extensionsEnabled ? "on" : "off"}
                 label={experimental.extensionsEnabled ? "Enabled" : "Disabled"}
               />

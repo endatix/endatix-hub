@@ -1,5 +1,6 @@
 "use client";
 
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   ResponsivePanel,
@@ -14,7 +15,7 @@ import { TenantAccessFields } from "@/features/platform-admin/ui/tenant-access-f
 import { TenantIdentityFields } from "@/features/platform-admin/ui/tenant-identity-fields";
 import { TenantSignInUrlField } from "@/features/platform-admin/ui/tenant-signin-url-field";
 import { Result } from "@/lib/result";
-import { Loader2 } from "lucide-react";
+import { Loader2, TriangleAlert } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
 import {
   TENANT_REGISTRATION_ROLES,
@@ -125,23 +126,26 @@ export function EditTenantSheet({
       <ResponsivePanelHeader>
         <ResponsivePanelTitle>Edit tenant</ResponsivePanelTitle>
         <ResponsivePanelDescription>
-          Update the name, description, or self-registration policy. The public
-          id stays locked because sign-in URLs already use it.
+          Update the name, description, or self-registration policy.
         </ResponsivePanelDescription>
       </ResponsivePanelHeader>
 
       {isLoading || !shortUrl ? (
         <ResponsivePanelBody>
-          <div className="flex flex-1 items-center justify-center text-center text-muted-foreground">
-            {loadError ? (
-              <p className="text-sm text-destructive">{loadError}</p>
-            ) : (
+          {loadError ? (
+            <Alert variant="destructive">
+              <TriangleAlert />
+              <AlertTitle>Could not load this tenant</AlertTitle>
+              <AlertDescription>{loadError}</AlertDescription>
+            </Alert>
+          ) : (
+            <div className="flex flex-1 items-center justify-center text-muted-foreground">
               <output>
                 <Loader2 className="size-5 motion-safe:animate-spin" />
                 <span className="sr-only">Loading tenant</span>
               </output>
-            )}
-          </div>
+            </div>
+          )}
         </ResponsivePanelBody>
       ) : (
         <ResponsivePanelBody className="grid content-start gap-5">
@@ -154,24 +158,19 @@ export function EditTenantSheet({
             }}
             description={description}
             onDescriptionChange={setDescription}
+            error={nameError}
           />
-          <div className="grid gap-5 rounded-lg bg-surface-container-low p-4">
-            <TenantSignInUrlField
-              id="edit-tenant-signin-url"
-              shortUrl={shortUrl}
-            />
-          </div>
-          <div className="grid gap-5 rounded-lg bg-surface-container-low p-4">
-            <TenantAccessFields
-              idPrefix="edit-tenant"
-              allowSelfRegistration={allowSelfRegistration}
-              onAllowSelfRegistrationChange={setAllowSelfRegistration}
-              defaultRole={defaultRole}
-              onDefaultRoleChange={setDefaultRole}
-              showSelfRegHint
-            />
-          </div>
-          {nameError && <p className="text-sm text-destructive">{nameError}</p>}
+          <TenantSignInUrlField
+            id="edit-tenant-signin-url"
+            shortUrl={shortUrl}
+          />
+          <TenantAccessFields
+            idPrefix="edit-tenant"
+            allowSelfRegistration={allowSelfRegistration}
+            onAllowSelfRegistrationChange={setAllowSelfRegistration}
+            defaultRole={defaultRole}
+            onDefaultRoleChange={setDefaultRole}
+          />
         </ResponsivePanelBody>
       )}
 

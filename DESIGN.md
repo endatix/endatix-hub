@@ -23,12 +23,12 @@ The palette is rooted in a sophisticated range of slates and atmospheric blues, 
 
 ### Semantic status tokens (`app/globals.css`)
 
-| Token                                                                  | Usage                                                               |
-| :--------------------------------------------------------------------- | :------------------------------------------------------------------ |
-| `--success` / `--success-foreground`                                   | Positive completion states                                          |
-| `--warning` / `--warning-foreground`                                   | Cautionary states                                                   |
-| `--info` / `--info-foreground` / `--info-background` / `--info-border` | Informational callouts, external-user badges, non-blocking guidance |
-| `--destructive` / `--destructive-foreground`                           | Errors and destructive confirmations                                |
+| Token                                                                              | Usage                                                               |
+| :--------------------------------------------------------------------------------- | :------------------------------------------------------------------ |
+| `--success` / `--success-foreground` / `--success-background` / `--success-border` | Positive completion states                                          |
+| `--warning` / `--warning-foreground`                                               | Cautionary states                                                   |
+| `--info` / `--info-foreground` / `--info-background` / `--info-border`             | Informational callouts, external-user badges, non-blocking guidance |
+| `--destructive` / `--destructive-foreground`                                       | Errors and destructive confirmations                                |
 
 Light and dark values are defined under `:root` and `.dark`, and every one of them is registered in the `@theme inline` block so it exists as a Tailwind utility (`bg-success`, `text-warning`, `border-info-border`, …). If you add a `--token` to `:root`/`.dark`, you must also add `--color-token: var(--token)` to `@theme inline` in the same change — otherwise the utility silently does not compile and the class is dropped.
 
@@ -175,11 +175,12 @@ a destructive action. Never use it for "empty".
    badge or every row holds a literal — mixing is fine only when the row _kinds_
    genuinely differ (a flag vs. a URL), and then the literal must be monospace
    so the two are obviously different types.
-5. Encode the vocabulary in a component (see
-   `features/platform-admin/view-environment-settings/ui/config-status-badge.tsx`)
-   rather than re-deriving badge variants at each call site. If you find yourself
-   writing `variant={x ? "default" : "secondary"}` inline, reach for the shared
-   component instead.
+5. Encode the vocabulary in a component — `components/common/status-badge.tsx`
+   (`StatusBadge`) — rather than re-deriving badge variants at each call site. If
+   you find yourself writing `variant={x ? "default" : "secondary"}` inline, reach
+   for the shared component instead. It is deliberately shared rather than
+   per-feature: the same `On` / `Off` state appears in a table cell, a panel
+   header and a review step, and three copies drift into three shapes.
 
 ### Overlay Interaction Rulebook
 
@@ -277,6 +278,75 @@ design; the SurveyJS Creator licence never reaches a browser and is the genuine
 secret. Reaching for `Set` / `Not set` on a public value is security theatre
 that degrades the page.
 
+### Create / edit overlays
+
+Panels that _change_ something — the tenant wizard, the edit sheet. Reference
+implementation: `features/platform-admin/create-tenant/ui/create-tenant-dialog.tsx`
+and `features/platform-admin/update-tenant/ui/edit-tenant-sheet.tsx`.
+
+A settings page answers "what is true?"; an overlay asks "what do you want to be
+true?" The anatomy is the read-only one turned inside out — the same masthead and
+the same status vocabulary, but the rows are controls.
+
+**Anatomy, top to bottom:**
+
+1. **Panel header** — title plus a one-sentence description of the _current step_,
+   not of the whole flow.
+2. **`PanelSteps`** (multi-step only) — the progress track, first thing in the body.
+3. **`PanelSection`s** — one per concern, each with an icon, a title, an optional
+   description, and an optional `aside` for status. This is the panel counterpart
+   of `ConfigSection`: same masthead, but on a nested surface
+   (`bg-surface-container-low`) instead of a `Card`. A panel is already a raised
+   surface, so a Card inside one stacks two elevations to express one boundary.
+4. **A closing `Alert`** when the step has a consequence worth stating once —
+   never one per field.
+
+**Rules:**
+
+- **A section owns its own surface.** Components like `TenantAccessFields` render
+  their own `PanelSection`; call sites do not wrap them in a tinted `div`. When the
+  wrapper lives at the call site, two panels showing the same section drift apart —
+  which is exactly how one of ours ended up with a titled block on one screen and
+  an untitled tinted box on the other.
+- **Icons mark sections, not fields.** One icon per `PanelSection` masthead. An
+  icon on individual labels is the "row of `CircleHelp`" noise §6 already rejects.
+- **State gets a badge, in the section header.** A section whose subject is on/off
+  puts a `StatusBadge` in `aside`, so the state is legible before the reader parses
+  the control. The switch sets it; the badge reports it.
+- **A control that cannot take effect is disabled, and says why.** A default-role
+  picker under a self-registration toggle that is off changes nothing when used.
+  Disable it and add one line of `text-xs text-muted-foreground` saying when it
+  applies. An enabled control that silently does nothing is worse than a disabled
+  one, and hiding it makes the panel jump.
+- **Warn about a risk only when the risk is reachable.** The "this role can sign in
+  to Hub" warning is suppressed while self-registration is off, because no account
+  can be granted that role. A warning that cannot come true teaches the reader to
+  ignore warnings.
+- **Immutability is a property of the field, not a footnote in the header.** Put it
+  on the section it constrains — a `Locked` badge plus one line of explanation —
+  rather than in the panel description where it is read once and forgotten.
+- **Alert tone follows the Status Vocabulary.** `info` for a consequence,
+  `warning` for a risk the operator is choosing, `success` for a completed write,
+  `destructive` for a failure. Do not use `info` for a security-relevant choice.
+
+**Multi-step flows (`PanelSteps`):**
+
+- Show the track, do not narrate it. "Step 2 of 3 — Access" inside the description
+  tells the reader where they are only after they read the prose, and never tells
+  them what is ahead or what they already settled.
+- Label steps with nouns (`Identity`, `Access`, `Confirm`), and keep the labels
+  identical to the section titles they lead to.
+- **The last step is a review, and it is built from `SummaryRow`.** Label left,
+  value hard right, values aligned into one column — the `ConfigRow` anatomy from
+  §6. Every value keeps the type it has elsewhere: a state renders as the same
+  `StatusBadge` the list uses, not as the bare word `Off`.
+- An unset optional value renders `—` with an `sr-only` "Not set", per §6.
+- Omit a row that cannot apply rather than showing it as empty — a default role is
+  not part of the summary when self-registration is off.
+- **The terminal step is an outcome, not a fourth form step.** Drop the track,
+  lead with a `success` Alert naming what was created, and give the reader the one
+  artefact they came for (here, the sign-in URL).
+
 ### Deciding on a new pattern
 
 When this document does not already answer a question, resolve it in this order,
@@ -310,6 +380,9 @@ and then **write the answer back into this file** as part of the same change:
 - **Do** show the underlying key (env var, setting name) as visible text on configuration pages, not in a tooltip.
 - **Do** register a new semantic token in `@theme inline` in the same change that adds it to `:root`/`.dark`.
 - **Do** lay peer cards out with `.grid-card-list` so large screens gain columns instead of whitespace.
+- **Do** let a shared section component own its own surface, so every panel that uses it looks the same.
+- **Do** disable a control that cannot take effect yet, and say in one line when it will.
+- **Do** reuse `StatusBadge` for a state wherever it appears — table cell, panel header, review step.
 
 ### Don't:
 
@@ -323,6 +396,10 @@ and then **write the answer back into this file** as part of the same change:
 - **Don't** stretch label/value rows across the full page width. Put the cards in a `.grid-card-list` so values stay near their labels.
 - **Don't** hand-roll card grids with viewport breakpoints (`md:grid-cols-2 xl:grid-cols-3`). The sidebar changes the content width without changing the viewport; use `.grid-card-list`.
 - **Don't** truncate a value on a page whose purpose is reading that value. Wrap it.
+- **Don't** narrate wizard progress in prose ("Step 2 of 3 …"). Render `PanelSteps`.
+- **Don't** nest a `Card` inside an overlay; a panel is already raised. Use `PanelSection` on a nested surface.
+- **Don't** show a warning for a risk the current settings make unreachable.
+- **Don't** render a state as a bare word in a review step when the same state is a badge everywhere else.
 
 ---
 
