@@ -24,6 +24,11 @@
 - Before using an Endatix ID in an API path, server action payload, or security-sensitive lookup, validate it with `validateEndatixId(...)` or `createEndatixIdSchema(...)` from `lib/utils/type-validators.ts` to reduce attack surface.
 - A tenant's public id is `shortUrl` (opaque, API-generated, immutable). Never name it `slug` in Hub DTOs or state, and never send it on create — only Next route folders keep `[tenantSlug]`.
 
+## Assume tenant (support)
+
+- Support session only: `POST /auth/assume-tenant` `{ tenantId }` then `POST /auth/exit-assume`. Both return new access+refresh tokens. Swap cookies with `replaceSessionTokens` (`server-only`; never `"use server"` — that would let the client set arbitrary tokens).
+- JWT `act` + `tid` means assumed (`readAssumeSession`). Sticky banner in `(main)/layout.tsx`. Confirm before assume. Success lands on `/forms`; exit on `/admin/tenants`. Gate with `requireTenantManagement`. Worked example: `features/platform-admin/assume-tenant/`.
+
 ## Paged list sort and calendar From/To
 
 **Reference implementation: `lib/endatix-api/themes/` (+ `lib/endatix-api/__tests__/themes/themes.test.ts`).** Copy that shape for every new paged list client; there is exactly one right answer per bullet below.

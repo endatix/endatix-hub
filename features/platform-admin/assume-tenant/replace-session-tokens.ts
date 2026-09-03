@@ -1,5 +1,3 @@
-// Server-only helper, deliberately NOT "use server": exposing it as an action would
-// let a client set arbitrary session tokens. It is called from assume-tenant.action.ts.
 import "server-only";
 
 import { unstable_update } from "@/auth";

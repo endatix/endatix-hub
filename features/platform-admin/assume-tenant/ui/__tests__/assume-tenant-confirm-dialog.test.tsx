@@ -28,7 +28,7 @@ describe("AssumeTenantConfirmDialog", () => {
     expect(assumeTenantActionMock).not.toHaveBeenCalled();
   });
 
-  it("calls assume after confirmation", () => {
+  it("calls assume after confirmation", async () => {
     render(
       <AssumeTenantConfirmDialog
         tenant={{ id: "42", name: "Acme" }}
@@ -37,7 +37,9 @@ describe("AssumeTenantConfirmDialog", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: /assume tenant/i }));
-    expect(assumeTenantActionMock).toHaveBeenCalledWith("42");
+    await waitFor(() => {
+      expect(assumeTenantActionMock).toHaveBeenCalledWith("42");
+    });
   });
 
   it("shows a toast when the assume call fails", async () => {

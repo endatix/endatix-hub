@@ -66,8 +66,6 @@ export function AssumeTenantConfirmDialog({
               }
 
               startTransition(async () => {
-                // On success the action redirects and control never returns here;
-                // a returned value means the assume call failed.
                 const result = await assumeTenantAction(tenant.id);
                 if (result && Result.isError(result)) {
                   toast.error(result.message || "Failed to enter tenant");

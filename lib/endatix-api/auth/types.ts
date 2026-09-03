@@ -26,7 +26,7 @@ export interface RefreshTokenResponse {
 }
 
 export interface AssumeTenantRequest {
-  tenantId: number | string;
+  tenantId: string;
 }
 
 export interface AssumeTenantResponse {

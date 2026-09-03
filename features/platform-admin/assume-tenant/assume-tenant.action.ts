@@ -1,52 +1,74 @@
 "use server";
 
-import { requirePlatformAdmin } from "@/features/platform-admin/require-platform-admin/require-platform-admin.server";
-import { EndatixApi } from "@/lib/endatix-api";
-import { Result } from "@/lib/result";
-import { mapApiErrorToResult } from "@/lib/result/map-api-error-to-result";
+import type { AssumeTenantResponse } from "@/lib/endatix-api/auth/types";
+import { Result, type ResultType } from "@/lib/result";
+import { toResult } from "@/lib/result/map-api-result-to-result";
+import { validateEndatixId } from "@/lib/utils/type-validators";
+import type { Route } from "next";
 import { redirect } from "next/navigation";
+import {
+  requireTenantManagement,
+  TENANTS_LOGGER_NAME,
+} from "../tenant-management.server";
 import { replaceSessionTokens } from "./replace-session-tokens";
 
-export async function assumeTenantAction(tenantId: string) {
-  const session = await requirePlatformAdmin();
-  const api = new EndatixApi(session.accessToken);
-  const assumed = await api.auth.assumeTenant({ tenantId });
-
-  if (!assumed.success) {
-    return mapApiErrorToResult(assumed, {
-      fallbackMessage: "Failed to enter tenant",
-    });
-  }
-
+async function swapSessionAndRedirect(
+  tokens: AssumeTenantResponse,
+  href: Route,
+): Promise<ResultType<boolean>> {
   const swapped = await replaceSessionTokens(
-    assumed.data.accessToken,
-    assumed.data.refreshToken,
+    tokens.accessToken,
+    tokens.refreshToken,
   );
   if (Result.isError(swapped)) {
     return swapped;
   }
 
-  redirect("/forms");
+  redirect(href);
 }
 
-export async function exitAssumeAction() {
-  const session = await requirePlatformAdmin();
-  const api = new EndatixApi(session.accessToken);
-  const exited = await api.auth.exitAssume();
-
-  if (!exited.success) {
-    return mapApiErrorToResult(exited, {
-      fallbackMessage: "Failed to exit tenant",
-    });
+export async function assumeTenantAction(
+  tenantId: string,
+): Promise<ResultType<boolean>> {
+  const idResult = validateEndatixId(tenantId, "tenantId");
+  if (Result.isError(idResult)) {
+    return idResult;
   }
 
-  const swapped = await replaceSessionTokens(
-    exited.data.accessToken,
-    exited.data.refreshToken,
+  const api = await requireTenantManagement();
+  if (Result.isError(api)) {
+    return api;
+  }
+
+  const result = toResult(
+    await api.value.auth.assumeTenant({ tenantId: idResult.value }),
+    {
+      fallbackMessage: "Failed to enter tenant.",
+      logMessage: "Failed to enter tenant.",
+      loggerName: TENANTS_LOGGER_NAME,
+    },
   );
-  if (Result.isError(swapped)) {
-    return swapped;
+  if (Result.isError(result)) {
+    return result;
   }
 
-  redirect("/admin/tenants");
+  return swapSessionAndRedirect(result.value, "/forms");
+}
+
+export async function exitAssumeAction(): Promise<ResultType<boolean>> {
+  const api = await requireTenantManagement();
+  if (Result.isError(api)) {
+    return api;
+  }
+
+  const result = toResult(await api.value.auth.exitAssume(), {
+    fallbackMessage: "Failed to exit tenant.",
+    logMessage: "Failed to exit tenant.",
+    loggerName: TENANTS_LOGGER_NAME,
+  });
+  if (Result.isError(result)) {
+    return result;
+  }
+
+  return swapSessionAndRedirect(result.value, "/admin/tenants");
 }
