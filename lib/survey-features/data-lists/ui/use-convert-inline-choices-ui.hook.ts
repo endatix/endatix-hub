@@ -1,6 +1,6 @@
 "use client";
 
-import { searchDataListsForPickerAction } from "@/features/data-lists/view-lists/search-data-lists-for-picker.action";
+import { searchDataListsForPickerAction } from "@/features/data-lists/search-data-lists-for-picker";
 import type { DataList } from "@/lib/endatix-api/data-lists/types";
 import { Result } from "@/lib/result";
 import { applyDataListBindingOnQuestion } from "@/lib/survey-features/data-lists/utils";

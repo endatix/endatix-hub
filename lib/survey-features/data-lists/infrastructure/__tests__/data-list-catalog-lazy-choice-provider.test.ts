@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Model, SurveyModel } from "survey-core";
 import { Result } from "@/lib/result";
-import { ApiResult } from "@/lib/endatix-api/shared/api-result";
 import { DATA_LIST_PROPERTY_NAME } from "../../constants";
 import { registerDataListCatalogLazyChoiceProvider } from "../data-list-catalog-lazy-choice-provider";
 import {
@@ -16,15 +15,15 @@ const { mockSearch, mockGetById } = vi.hoisted(() => ({
 }));
 
 vi.mock(
-  "@/features/data-lists/view-lists/search-data-lists-for-picker.action",
+  "@/features/data-lists/search-data-lists-for-picker",
   () => ({
     searchDataListsForPickerAction: mockSearch,
   }),
 );
 vi.mock(
-  "@/features/data-lists/view-list-details/get-data-list-by-id.action",
+  "@/features/data-lists/view-list-details/get-data-list-details.action",
   () => ({
-    getDataListByIdAction: mockGetById,
+    getDataListDetailsAction: mockGetById,
   }),
 );
 
@@ -73,7 +72,7 @@ describe("data-list-catalog-lazy-choice-provider", () => {
 
   it("resolves selected list labels without listing the catalog", async () => {
     mockGetById.mockResolvedValue(
-      ApiResult.success({
+      Result.success({
         id: "99",
         name: "Cities",
         isActive: true,

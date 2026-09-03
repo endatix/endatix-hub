@@ -12,7 +12,7 @@ const { mockSearch } = vi.hoisted(() => ({
 }));
 
 vi.mock(
-  "@/features/data-lists/view-lists/search-data-lists-for-picker.action",
+  "@/features/data-lists/search-data-lists-for-picker",
   () => ({
     searchDataListsForPickerAction: mockSearch,
   }),

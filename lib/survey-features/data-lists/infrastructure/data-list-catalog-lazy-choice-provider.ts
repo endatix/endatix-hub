@@ -1,5 +1,5 @@
-import { searchDataListsForPickerAction } from "@/features/data-lists/view-lists/search-data-lists-for-picker.action";
-import { getDataListByIdAction } from "@/features/data-lists/view-list-details/get-data-list-by-id.action";
+import { searchDataListsForPickerAction } from "@/features/data-lists/search-data-lists-for-picker";
+import { getDataListDetailsAction } from "@/features/data-lists/view-list-details/get-data-list-details.action";
 import { Result } from "@/lib/result";
 import { DATA_LIST_PROPERTY_NAME } from "../constants";
 import type { PropertyGridLazyChoiceProvider } from "../types";
@@ -35,12 +35,12 @@ export const dataListCatalogLazyChoiceProvider: PropertyGridLazyChoiceProvider =
     resolveDisplayValues: async (_ctx, values) => {
       const labels = await Promise.all(
         values.map(async (value) => {
-          const response = await getDataListByIdAction(value);
-          if (!response.success) {
+          const response = await getDataListDetailsAction(value);
+          if (Result.isError(response)) {
             return value;
           }
 
-          return response.data.name || value;
+          return response.value.name || value;
         }),
       );
 
