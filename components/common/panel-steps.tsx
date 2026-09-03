@@ -10,13 +10,38 @@ interface PanelStepsProps {
   className?: string;
 }
 
-/**
- * Progress through a multi-step overlay.
- *
- * Rendered as a labelled track rather than a sentence: "Step 2 of 3" inside the
- * description tells the reader where they are only after they read the prose,
- * and never tells them what is still ahead or what they already settled.
- */
+type StepStatus = "complete" | "current" | "upcoming";
+
+const STEP_STATUS = {
+  complete: {
+    srLabel: " (completed)",
+    marker: "bg-primary/12 text-primary",
+    label: "text-muted-foreground",
+    connector: "bg-primary/30",
+  },
+  current: {
+    srLabel: " (current step)",
+    marker: "bg-primary text-primary-foreground",
+    label: "font-medium text-foreground",
+    connector: "bg-border",
+  },
+  upcoming: {
+    srLabel: "",
+    marker: "bg-muted text-muted-foreground",
+    label: "text-muted-foreground",
+    connector: "bg-border",
+  },
+} as const satisfies Record<StepStatus, unknown>;
+
+function stepStatus(position: number, current: number): StepStatus {
+  if (position < current) {
+    return "complete";
+  }
+
+  return position === current ? "current" : "upcoming";
+}
+
+/** Progress through a multi-step overlay, as a track rather than prose (DESIGN.md §6). */
 export function PanelSteps({
   steps,
   current,
@@ -26,49 +51,38 @@ export function PanelSteps({
     <ol className={cn("flex items-center gap-2", className)}>
       {steps.map((label, index) => {
         const position = index + 1;
-        const isComplete = position < current;
-        const isCurrent = position === current;
+        const status = stepStatus(position, current);
+        const style = STEP_STATUS[status];
 
         return (
           <li
             key={label}
-            aria-current={isCurrent ? "step" : undefined}
+            aria-current={status === "current" ? "step" : undefined}
             className="flex min-w-0 flex-1 items-center gap-2 last:flex-none"
           >
             <span
               aria-hidden="true"
               className={cn(
                 "flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-medium",
-                isCurrent && "bg-primary text-primary-foreground",
-                isComplete && "bg-primary/12 text-primary",
-                !isCurrent && !isComplete && "bg-muted text-muted-foreground",
+                style.marker,
               )}
             >
-              {isComplete ? <Check className="size-3.5" /> : position}
+              {status === "complete" ? (
+                <Check className="size-3.5" />
+              ) : (
+                position
+              )}
             </span>
-            <span
-              className={cn(
-                "truncate text-xs",
-                isCurrent
-                  ? "font-medium text-foreground"
-                  : "text-muted-foreground",
-              )}
-            >
+            <span className={cn("truncate text-xs", style.label)}>
               {label}
-              <span className="sr-only">
-                {isComplete
-                  ? " (completed)"
-                  : isCurrent
-                    ? " (current step)"
-                    : ""}
-              </span>
+              <span className="sr-only">{style.srLabel}</span>
             </span>
             {position < steps.length && (
               <span
                 aria-hidden="true"
                 className={cn(
                   "h-px min-w-2 flex-1 rounded-full",
-                  isComplete ? "bg-primary/30" : "bg-border",
+                  style.connector,
                 )}
               />
             )}

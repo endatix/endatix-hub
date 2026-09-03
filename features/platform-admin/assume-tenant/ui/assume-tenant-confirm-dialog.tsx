@@ -48,7 +48,9 @@ export function AssumeTenantConfirmDialog({
             {tenant ? (
               <>
                 You will view{" "}
-                <span className="font-medium text-foreground">{tenant.name}</span>{" "}
+                <span className="font-medium text-foreground">
+                  {tenant.name}
+                </span>{" "}
                 as a platform administrator. You are not joining the tenant as a
                 member. Use this only for support, then exit when you are done.
               </>

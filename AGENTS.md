@@ -27,7 +27,10 @@
 ## Assume tenant (support)
 
 - Support session only: `POST /auth/assume-tenant` `{ tenantId }` then `POST /auth/exit-assume`. Both return new access+refresh tokens. Swap cookies with `replaceSessionTokens` (`server-only`; never `"use server"` — that would let the client set arbitrary tokens).
-- JWT `act` + `tid` means assumed (`readAssumeSession`). Sticky banner in `(main)/layout.tsx`. Confirm before assume. Success lands on `/forms`; exit on `/admin/tenants`. Gate with `requireTenantManagement`. Worked example: `features/platform-admin/assume-tenant/`.
+- JWT `act` + `tid` means assumed (`readAssumeSession`). Confirm before assume. Success lands on `/forms`; exit on `/admin/tenants`. Gate with `requireTenantManagement`. Worked example: `features/platform-admin/assume-tenant/`.
+- The sticky banner is `SupportAccessBannerSlot`, mounted by `(main)/layout.tsx` and living in the slice (see project-structure.md "Layout and parallel-route slots"). It decides _whether_ to render synchronously from the JWT and streams only the tenant **name**, with the unnamed banner as the `Suspense` fallback: an `await` in the layout blocks every route under it, and a `null` fallback would make the sticky banner pop in and shift the page.
+- A swap that already wrote the session cookie must report success. Invalidating the authorization cache is a best-effort follow-up — log it and continue, never fold it into the same `try` as `unstable_update`, or a cache error strands the operator in the old context with a false failure.
+- Both actions return `Result` and only _return_ on failure (success `redirect()`s). Callers must consume that value — the assume dialog and the exit button both `useTransition` + toast.
 
 ## Paged list sort and calendar From/To
 
@@ -48,7 +51,7 @@
 5. **Validate path ids with `validateEndatixId(...)` and return `ApiResult.validationError(...)`** before touching the network (see `Themes.partialUpdate` / `Themes.delete`).
 6. **Server actions map with `toResult(...)`**, never a hand-written `if (ApiResult.isError(...)) return Result.error(...)` — see "Server Actions" above. `features/themes/*/*.action.ts` are the worked examples.
 
-Known deviations, to be migrated when next touched (do not copy them): `Forms.list` / `Users.list` return the raw `PagedResponse<T>` without `normalizePagedResponse`; `FormTemplates.list` is a drain that has not yet been renamed to `listAll`.
+Known deviations, to be migrated when next touched (do not copy them): `Forms.list` / `Users.list` return the raw `PagedResponse<T>` without `normalizePagedResponse`; `FormTemplates.list` is a drain that has not yet been renamed to `listAll`; `listPlatformAdminUsers` still throws `DataLoadError` instead of returning `Result` (`listPlatformTenants` was migrated — follow that one).
 
 ## Server Pages
 

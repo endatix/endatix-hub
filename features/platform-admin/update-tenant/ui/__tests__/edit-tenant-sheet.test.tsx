@@ -53,12 +53,7 @@ describe("EditTenantSheet", () => {
     );
 
     const onOpenChange = vi.fn();
-    render(
-      <EditTenantSheet
-        tenantId="42"
-        onOpenChange={onOpenChange}
-      />,
-    );
+    render(<EditTenantSheet tenantId="42" onOpenChange={onOpenChange} />);
 
     const nameInput = (await screen.findByLabelText(
       "Name",
@@ -85,12 +80,7 @@ describe("EditTenantSheet failures", () => {
   it("shows the load error instead of the form", async () => {
     getTenantActionMock.mockResolvedValue(Result.error("Tenant not found"));
 
-    render(
-      <EditTenantSheet
-        tenantId="42"
-        onOpenChange={vi.fn()}
-      />,
-    );
+    render(<EditTenantSheet tenantId="42" onOpenChange={vi.fn()} />);
 
     expect(await screen.findByText("Tenant not found")).toBeTruthy();
     expect(screen.queryByLabelText("Name")).toBeNull();
@@ -99,12 +89,7 @@ describe("EditTenantSheet failures", () => {
   it("surfaces a rejected load instead of spinning forever", async () => {
     getTenantActionMock.mockRejectedValue(new Error("network down"));
 
-    render(
-      <EditTenantSheet
-        tenantId="42"
-        onOpenChange={vi.fn()}
-      />,
-    );
+    render(<EditTenantSheet tenantId="42" onOpenChange={vi.fn()} />);
 
     expect(await screen.findByText("Failed to load tenant")).toBeTruthy();
     expect(screen.queryByRole("status")).toBeNull();
@@ -123,12 +108,7 @@ describe("EditTenantSheet failures", () => {
       }),
     );
 
-    render(
-      <EditTenantSheet
-        tenantId="42"
-        onOpenChange={vi.fn()}
-      />,
-    );
+    render(<EditTenantSheet tenantId="42" onOpenChange={vi.fn()} />);
 
     fireEvent.change(await screen.findByLabelText("Name"), {
       target: { value: "  " },
@@ -137,5 +117,34 @@ describe("EditTenantSheet failures", () => {
 
     expect(await screen.findByText("Name is required.")).toBeTruthy();
     expect(updateTenantActionMock).not.toHaveBeenCalled();
+  });
+
+  it("does not keep the previous tenant loaded when the next one fails", async () => {
+    getTenantActionMock.mockResolvedValueOnce(
+      Result.success({
+        id: "42",
+        name: "Acme",
+        shortUrl: "xk9mp2qr",
+        allowSelfRegistration: false,
+        allowedAuthProviderKeys: [],
+        defaultRegistrationRoleName: "Respondent",
+        createdAt: "2026-01-15T00:00:00.000Z",
+      }),
+    );
+    getTenantActionMock.mockResolvedValueOnce(Result.error("Tenant not found"));
+
+    const { rerender } = render(
+      <EditTenantSheet tenantId="42" onOpenChange={vi.fn()} />,
+    );
+    expect(await screen.findByLabelText("Name")).toBeTruthy();
+
+    rerender(<EditTenantSheet tenantId="43" onOpenChange={vi.fn()} />);
+
+    // Acme's values must not stand in for tenant 43, or Save would overwrite it.
+    expect(await screen.findByText("Tenant not found")).toBeTruthy();
+    expect(screen.queryByLabelText("Name")).toBeNull();
+    expect(
+      screen.getByRole("button", { name: /save changes/i }),
+    ).toHaveProperty("disabled", true);
   });
 });

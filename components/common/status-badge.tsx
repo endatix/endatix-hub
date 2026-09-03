@@ -4,14 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 /**
- * The only three states a read-only value is allowed to express (DESIGN.md §5).
- *
- * - `on` — present / active / healthy.
- * - `off` — absent or inactive, and that is a legitimate state.
- * - `attention` — something required is missing and the operator should act.
- *
- * `destructive` is deliberately absent: it is reserved for a state that is
- * actively failing, not for "empty".
+ * The only states a read-only value may express (DESIGN.md §5). `destructive`
+ * is deliberately absent — it means actively failing, not empty.
  */
 export type StatusTone = "on" | "off" | "attention";
 
@@ -27,11 +21,7 @@ interface StatusBadgeProps {
   className?: string;
 }
 
-/**
- * One badge shape for every status in the Hub. Tone carries the meaning through
- * colour and a leading dot — never through a per-state icon — so a column of
- * them stays scannable in one pass.
- */
+/** One badge shape for every status in the Hub — table cell, panel header, review row. */
 export function StatusBadge({
   tone,
   label,

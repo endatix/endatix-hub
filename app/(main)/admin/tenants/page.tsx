@@ -6,7 +6,6 @@ import {
 import { PlatformAdminShell } from "@/features/platform-admin/ui/platform-admin-shell";
 import { TenantsList } from "@/features/platform-admin/list-tenants/ui/tenants-list";
 import {
-  DEFAULT_TENANTS_PAGE_SIZE,
   parsePlatformTenantListParams,
   tenantsListSuspenseKey,
 } from "@/features/platform-admin/list-tenants/utils";
@@ -17,7 +16,9 @@ interface TenantsPageProps {
   searchParams?: Promise<PlatformTenantSearchParams>;
 }
 
-export default async function TenantsPage({ searchParams }: TenantsPageProps) {
+export default async function TenantsPage({
+  searchParams,
+}: Readonly<TenantsPageProps>) {
   const [session, resolvedSearchParams, canManage] = await Promise.all([
     requirePlatformAdmin(),
     searchParams,
@@ -35,17 +36,7 @@ export default async function TenantsPage({ searchParams }: TenantsPageProps) {
     >
       <TenantsList
         tenantsPromise={tenantsPromise}
-        listKey={tenantsListSuspenseKey({
-          page: listRequest.page ?? 1,
-          pageSize: listRequest.pageSize ?? DEFAULT_TENANTS_PAGE_SIZE,
-          search: listRequest.search,
-          sortBy: listRequest.sortBy,
-          sortDir: listRequest.sortDir,
-          createdFrom: listRequest.createdFrom,
-          createdTo: listRequest.createdTo,
-          modifiedFrom: listRequest.modifiedFrom,
-          modifiedTo: listRequest.modifiedTo,
-        })}
+        listKey={tenantsListSuspenseKey(listRequest)}
         canManage={canManage}
       />
     </PlatformAdminShell>

@@ -6,10 +6,8 @@ import { toResult } from "@/lib/result/map-api-result-to-result";
 import { validateEndatixId } from "@/lib/utils/type-validators";
 import type { Route } from "next";
 import { redirect } from "next/navigation";
-import {
-  requireTenantManagement,
-  TENANTS_LOGGER_NAME,
-} from "../tenant-management.server";
+import { TENANTS_LOGGER_NAME } from "../tenant-management.constants";
+import { requireTenantManagement } from "../tenant-management.server";
 import { replaceSessionTokens } from "./replace-session-tokens";
 
 async function swapSessionAndRedirect(

@@ -9,7 +9,7 @@ import {
   pickDateRangeFilters,
 } from "@/lib/endatix-api/shared/list-query";
 import type { SortDir } from "@/lib/endatix-api/shared/types";
-import type { SearchParam } from "@/lib/utils/next-utils";
+import { firstSearchParam } from "@/lib/utils/next-utils";
 import type { PlatformTenantSearchParams } from "../types";
 
 export const DEFAULT_TENANTS_PAGE_SIZE = 10;
@@ -30,14 +30,6 @@ export interface TenantsListUrlState {
   createdTo?: string;
   modifiedFrom?: string;
   modifiedTo?: string;
-}
-
-export function firstSearchParam(value: SearchParam): string | undefined {
-  if (Array.isArray(value)) {
-    return value[0];
-  }
-
-  return value;
 }
 
 export function parsePlatformTenantListParams(
@@ -97,16 +89,22 @@ export function listUrlStateFromSearchParams(
   };
 }
 
-export function tenantsListSuspenseKey(state: TenantsListUrlState): string {
+/**
+ * Identity of one tenants query. Keys the `Suspense` boundary so a new filter
+ * remounts with the matching promise instead of the previous `use()` result.
+ */
+export function tenantsListSuspenseKey(
+  request: ListPlatformTenantsRequest,
+): string {
   return [
-    state.page,
-    state.pageSize,
-    state.search ?? "",
-    state.sortBy ?? "",
-    state.sortDir ?? "",
-    state.createdFrom ?? "",
-    state.createdTo ?? "",
-    state.modifiedFrom ?? "",
-    state.modifiedTo ?? "",
+    request.page ?? 1,
+    request.pageSize ?? DEFAULT_TENANTS_PAGE_SIZE,
+    request.search,
+    request.sortBy,
+    request.sortDir,
+    request.createdFrom,
+    request.createdTo,
+    request.modifiedFrom,
+    request.modifiedTo,
   ].join("|");
 }

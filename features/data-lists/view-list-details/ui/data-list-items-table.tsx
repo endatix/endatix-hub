@@ -32,7 +32,7 @@ import {
   type SortingState,
 } from "@tanstack/react-table";
 import { type ReactNode, useMemo } from "react";
-import "./table-types";
+import "@/components/table/data-table-column-meta";
 
 type DataListItemsTableProps = {
   items: DataListItem[];

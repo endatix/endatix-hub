@@ -2,7 +2,7 @@
 
 import { use, useMemo, useState } from "react";
 import {
-  CellDate,
+  auditDateColumns,
   createPagedTableFooterProps,
   DataTableColumnHeader,
   DATA_TABLE_SHRINK_WRAP_CLASS_NAME,
@@ -11,8 +11,7 @@ import {
   DataTableGrid,
   DataTableSurface,
   PagedTableFooter,
-  sortingStateFromUrl,
-  sortingUrlUpdatesFromState,
+  useListTableState,
   type DateFilterValue,
 } from "@/components/table";
 import { HubPageLoadError } from "@/components/error-handling/error-page";
@@ -42,8 +41,6 @@ import {
   getCoreRowModel,
   useReactTable,
   type ColumnDef,
-  type SortingState,
-  type Updater,
 } from "@tanstack/react-table";
 import type { TenantsListUrlState } from "../utils";
 
@@ -85,23 +82,10 @@ export function TenantsTable({
     null,
   );
 
-  const sorting = useMemo(
-    () => sortingStateFromUrl(urlState.sortBy, urlState.sortDir),
-    [urlState.sortBy, urlState.sortDir],
+  const { sorting, created, modified, onSortingChange } = useListTableState(
+    urlState,
+    updateUrl,
   );
-  const createdDateFilter: DateFilterValue = useMemo(
-    () => ({ from: urlState.createdFrom, to: urlState.createdTo }),
-    [urlState.createdFrom, urlState.createdTo],
-  );
-  const modifiedDateFilter: DateFilterValue = useMemo(
-    () => ({ from: urlState.modifiedFrom, to: urlState.modifiedTo }),
-    [urlState.modifiedFrom, urlState.modifiedTo],
-  );
-
-  const handleSortingChange = (updater: Updater<SortingState>) => {
-    const next = typeof updater === "function" ? updater(sorting) : updater;
-    updateUrl(sortingUrlUpdatesFromState(next));
-  };
 
   const columns = useMemo(
     () =>
@@ -110,10 +94,10 @@ export function TenantsTable({
         onAssume: setAssumeTarget,
         onEdit: setEditingTenantId,
         updateUrl,
-        createdDateFilter,
-        modifiedDateFilter,
+        created,
+        modified,
       }),
-    [canManage, updateUrl, createdDateFilter, modifiedDateFilter],
+    [canManage, updateUrl, created, modified],
   );
 
   const tableData = useMemo(() => [...paged.items], [paged.items]);
@@ -124,7 +108,7 @@ export function TenantsTable({
     getRowId: (row) => row.id,
     manualSorting: true,
     state: { sorting },
-    onSortingChange: handleSortingChange,
+    onSortingChange,
   });
 
   const hasFilters = Boolean(
@@ -183,8 +167,8 @@ type BuildColumnsArgs = {
   onAssume: (tenant: AssumeTenantTarget) => void;
   onEdit: (tenantId: string) => void;
   updateUrl: UrlSearchParamsUpdater;
-  createdDateFilter: DateFilterValue;
-  modifiedDateFilter: DateFilterValue;
+  created: DateFilterValue;
+  modified: DateFilterValue;
 };
 
 function buildTenantColumns({
@@ -192,13 +176,12 @@ function buildTenantColumns({
   onAssume,
   onEdit,
   updateUrl,
-  createdDateFilter,
-  modifiedDateFilter,
+  created,
+  modified,
 }: BuildColumnsArgs): ColumnDef<PlatformTenantListItem>[] {
-  const sortableId = (id: PlatformTenantListSortBy) => id;
   const columns: ColumnDef<PlatformTenantListItem>[] = [
     {
-      id: sortableId("name"),
+      id: "name" satisfies PlatformTenantListSortBy,
       accessorKey: "name",
       enableSorting: true,
       meta: {
@@ -270,60 +253,11 @@ function buildTenantColumns({
         />
       ),
     },
-    {
-      id: sortableId("createdAt"),
-      accessorKey: "createdAt",
-      enableSorting: true,
-      meta: {
-        headerClassName: `hidden md:table-cell ${DATA_TABLE_SHRINK_WRAP_CLASS_NAME}`,
-        cellClassName: `hidden md:table-cell ${DATA_TABLE_SHRINK_WRAP_CLASS_NAME}`,
-      },
-      header: ({ column }) => (
-        <DataTableColumnHeader
-          column={column}
-          title="Created"
-          isSorted={column.getIsSorted()}
-          dateFilter={{
-            value: createdDateFilter,
-            onChange: (value) => {
-              updateUrl({
-                createdFrom: value.from ?? null,
-                createdTo: value.to ?? null,
-                page: "1",
-              });
-            },
-          }}
-        />
-      ),
-      cell: ({ row }) => <CellDate date={row.original.createdAt} />,
-    },
-    {
-      id: sortableId("modifiedAt"),
-      accessorKey: "modifiedAt",
-      enableSorting: true,
-      meta: {
-        headerClassName: `hidden md:table-cell ${DATA_TABLE_SHRINK_WRAP_CLASS_NAME}`,
-        cellClassName: `hidden md:table-cell ${DATA_TABLE_SHRINK_WRAP_CLASS_NAME}`,
-      },
-      header: ({ column }) => (
-        <DataTableColumnHeader
-          column={column}
-          title="Modified"
-          isSorted={column.getIsSorted()}
-          dateFilter={{
-            value: modifiedDateFilter,
-            onChange: (value) => {
-              updateUrl({
-                modifiedFrom: value.from ?? null,
-                modifiedTo: value.to ?? null,
-                page: "1",
-              });
-            },
-          }}
-        />
-      ),
-      cell: ({ row }) => <CellDate date={row.original.modifiedAt} />,
-    },
+    ...auditDateColumns<PlatformTenantListItem>({
+      created,
+      modified,
+      updateUrl,
+    }),
   ];
 
   if (canManage) {

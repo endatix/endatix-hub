@@ -6,7 +6,7 @@ import type { PlatformTenantsPage } from "@/lib/endatix-api/platform-tenants/pla
 import { toResult } from "@/lib/result/map-api-result-to-result";
 import type { ResultType } from "@/lib/result";
 import type { PlatformAdminSession } from "../types";
-import { TENANTS_LOGGER_NAME } from "../tenant-management.server";
+import { TENANTS_LOGGER_NAME } from "../tenant-management.constants";
 
 export async function listPlatformTenants(
   session: PlatformAdminSession,

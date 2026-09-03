@@ -5,9 +5,6 @@ import { tenantManagementFlag } from "@/lib/feature-flags/flags";
 import { Result, type ResultType } from "@/lib/result";
 import { requirePlatformAdmin } from "./require-platform-admin/require-platform-admin.server";
 
-export const TENANTS_LOGGER_NAME = "platform-admin.tenants";
-export const TENANTS_LIST_PATH = "/(main)/admin/tenants";
-
 const DISABLED_MESSAGE =
   "Tenant management is not enabled for this environment.";
 

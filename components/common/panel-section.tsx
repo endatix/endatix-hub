@@ -15,12 +15,8 @@ interface PanelSectionProps {
 }
 
 /**
- * A titled group of controls inside an overlay — the panel counterpart of
- * `ConfigSection`.
- *
- * Same icon + title + description masthead, but on a nested surface rather than
- * a Card: a panel is already a raised surface, so a Card inside one stacks two
- * elevations to express one boundary. The tonal shift is the boundary (§4).
+ * A titled group of controls inside an overlay — `ConfigSection` on a nested
+ * surface rather than a Card, because a panel is already raised (DESIGN.md §4).
  */
 export function PanelSection({
   icon: Icon,

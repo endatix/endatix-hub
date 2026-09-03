@@ -53,6 +53,9 @@ export function EditTenantSheet({
 
     let cancelled = false;
     setIsLoading(true);
+    // Drop the previous tenant first: if this load fails, the panel must not
+    // render — or let Save overwrite this tenant with — the last one's values.
+    setShortUrl(null);
     setNameError(null);
     setLoadError(null);
     getTenantAction(tenantId)

@@ -80,9 +80,8 @@ export function TenantAccessFields({
             ))}
           </SelectContent>
         </Select>
-        {/* The role only applies to accounts self-registration creates, so it is
-            inert while the toggle is off. Disabled and explained beats an
-            enabled control that silently changes nothing. */}
+        {/* Inert while the toggle is off: disabled and explained beats a
+            control that silently does nothing. */}
         {!allowSelfRegistration && (
           <p id={roleHintId} className="text-xs text-muted-foreground">
             Applies once self-registration is on.
