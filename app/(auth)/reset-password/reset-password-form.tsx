@@ -11,7 +11,6 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/loaders/spinner";
 import Link from "next/link";
 import { ErrorMessage } from "@/components/forms/error-message";
-import { CalendarX2 } from "lucide-react";
 import { ERROR_CODE } from "@/lib/endatix-api";
 import FormSuccessMessage from "@/components/forms/form-success-message";
 
@@ -130,8 +129,8 @@ export const InvalidResetLinkMessage = () => {
       <AuthLogo className="mb-2" />
       <AuthStatus
         tone="warning"
-        title="This link has expired"
-        description="Password reset links are short-lived. Request a new one and we will email it to you."
+        title="This link is invalid or expired"
+        description="Password reset links are single-use and short-lived. Request a new one and we will email it to you."
       >
         <Button asChild className="w-full">
           <Link href="/forgot-password">Request a new link</Link>

@@ -15,6 +15,13 @@ type IsSameType<TLeft, TRight> = [TLeft] extends [TRight]
     : false
   : false;
 
+/**
+ * Some OSS endpoints answer a business failure with HTTP 200 and a
+ * `success: false` body (`RegisterResponse`, `ActivateInviteResponse`,
+ * `UserOperationResponse`) instead of a problem response.
+ */
+export type SuccessEnvelope = { success: boolean; message: string };
+
 type MapDataOption<TApiResult, TResult> =
   IsSameType<TApiResult, TResult> extends true
     ? { mapData?: (data: TApiResult) => TResult }
@@ -88,6 +95,12 @@ export function mapToResult<TApiResult, TResult = TApiResult>(
   options: MapApiResultToResultImplementationOptions<TApiResult, TResult> = {},
 ): ResultType<TApiResult> | ResultType<TResult> {
   if (ApiResult.isSuccess(apiResult)) {
+    if (isFailedEnvelope(apiResult.data)) {
+      return Result.validationError<TResult>(
+        apiResult.data.message || options.fallbackMessage || "Request failed",
+      );
+    }
+
     if (options.mapData) {
       return Result.success(options.mapData(apiResult.data));
     }
@@ -104,6 +117,22 @@ export function mapToResult<TApiResult, TResult = TApiResult>(
 }
 
 export const toResult = mapToResult;
+
+/**
+ * Only the exact envelope contract counts: a `success: false` alongside a string
+ * `message`. Every other payload — including one that happens to carry an
+ * unrelated `success` flag — passes through untouched.
+ */
+function isFailedEnvelope(data: unknown): data is SuccessEnvelope {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    "success" in data &&
+    data.success === false &&
+    "message" in data &&
+    typeof data.message === "string"
+  );
+}
 
 /**
  * Logs an API error.

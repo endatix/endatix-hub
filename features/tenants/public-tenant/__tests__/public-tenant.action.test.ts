@@ -76,4 +76,62 @@ describe("public-tenant actions", () => {
       tenantSlug: "xk9mp2qr",
     });
   });
+
+  it("fails when a 200 response carries an unsuccessful registration", async () => {
+    registerMock.mockResolvedValueOnce(
+      ApiResult.success({
+        success: false,
+        message: "Self-registration is not enabled for this tenant.",
+      }),
+    );
+    const formData = new FormData();
+    formData.set("email", "user@example.com");
+    formData.set("password", "Password123!");
+
+    const result = await registerTenantAccountAction(
+      "xk9mp2qr",
+      null,
+      formData,
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.errorMessage).toBe(
+      "Self-registration is not enabled for this tenant.",
+    );
+    expect(result.formData).toBe(formData);
+  });
+
+  it("surfaces the API error message when registration is rejected", async () => {
+    registerMock.mockResolvedValueOnce(
+      ApiResult.validationError("Registration failed. Email already in use."),
+    );
+    const formData = new FormData();
+    formData.set("email", "user@example.com");
+    formData.set("password", "Password123!");
+
+    const result = await registerTenantAccountAction(
+      "xk9mp2qr",
+      null,
+      formData,
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.errorMessage).toContain("Email already in use");
+  });
+
+  it("rejects an invalid email before calling the API", async () => {
+    const formData = new FormData();
+    formData.set("email", "not-an-email");
+    formData.set("password", "Password123!");
+
+    const result = await registerTenantAccountAction(
+      "xk9mp2qr",
+      null,
+      formData,
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.errors?.email).toBeDefined();
+    expect(registerMock).not.toHaveBeenCalled();
+  });
 });

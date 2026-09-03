@@ -44,6 +44,7 @@ prefix, not `"use client"`, is what decides.
 - Pass `fallbackMessage`, `logMessage`, and `loggerName` so unexpected failures log via `TelemetryLogger` while expected 403/404/validation stay user-facing without noisy logs.
 - When the action result type differs from the API payload (e.g. `Result<void>` after PATCH that returns settings), use `mapData` (e.g. `mapData: () => undefined`). Alternatively keep success local and map only the failure branch with `toResult`.
 - Call `revalidatePath` / `revalidateTag` only after `Result.isSuccess(result)`.
+- Some OSS payloads carry a `{ success, message }` envelope (`RegisterResponse`, `ActivateInviteResponse`, `UserOperationResponse`): a 200 does not mean the operation succeeded. `toResult` handles this for you — a body with `success: false` **and** a string `message` becomes a validation error carrying that message. Do not re-check the flag at the call site, and do not name an unrelated payload field `success` unless the envelope semantics apply.
 - Actions behind a feature flag check it server-side, next to the authorization guard, and return `Result.error("<Feature> is not enabled for this environment.")` — a hidden UI is not a gate. When several actions share one guard + flag, put both in a slice-local `require*` helper that returns `Result<EndatixApi>` (`features/platform-admin/tenant-management.server.ts`); a single action can inline the check (`features/export/prepare-reporting-export/prepare-reporting-export.action.ts`).
 
 ## Endatix IDs
@@ -53,7 +54,14 @@ prefix, not `"use client"`, is what decides.
 - Before using an Endatix ID in an API path, server action payload, or security-sensitive lookup, validate it with `validateEndatixId(...)` or `createEndatixIdSchema(...)` from `lib/utils/type-validators.ts` to reduce attack surface.
 - A tenant's public id is `shortUrl` (opaque, API-generated, immutable). Never name it `slug` in Hub DTOs or state, and never send it on create — only Next route folders keep `[tenantSlug]`.
 - Public GET JSON still uses `slug` (`PublicTenantModel.Slug` on the API). Map to `shortUrl` in `lib/endatix-api/public-tenants`. Register body keeps `tenantSlug` (OSS `RegisterCommand`). Worked example: `features/tenants/public-tenant/`.
-- Unauthenticated `/t/{shortUrl}/signin` and `/register` are auth routes (`isTenantPublicAuthPath` in `auth-constants.ts`) so the proxy does not bounce them to global `/signin`.
+
+## Auth pages (`app/(auth)`)
+
+- Compose every `(auth)` screen from `AuthLogo` + `AuthStatus` (`features/auth/ui/`). Never re-inline the light/dark `<Image>` wordmark pair, and never hand-roll a status heading with its own icon and colours.
+- `AuthStatus` tones are `success` / `error` / `warning` / `pending` / `prompt` (`prompt` = a question, so no glyph). Use the semantic tokens it carries (`text-success`, `bg-warning/10`, `text-destructive`) — no raw `text-green-500` / `text-red-500`.
+- Never branch on message text to pick a colour; carry the outcome as a tone (see `app/(auth)/account-verification/page.tsx`).
+- Unauthenticated `/t/{shortUrl}/signin` and `/register` are auth routes (`isTenantPublicAuthPath` in `auth-constants.ts`) so the proxy does not bounce them to global `/signin`. Failure states come from `features/tenants/public-tenant/ui/`, not bare `<p>` text.
+- `auth-constants.ts` stays free of NextAuth imports (the proxy and client components import it), which is why `ENDATIX_AUTH_PROVIDER_ID` lives there rather than beside the provider class.
 
 ## Assume tenant (support)
 

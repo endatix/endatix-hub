@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/loaders/spinner";
 import Link from "next/link";
 import { ErrorMessage } from "@/components/forms/error-message";
-import { CircleCheckBig } from "lucide-react";
 import { AuthLogo } from "@/features/auth/ui/auth-logo";
 import { AuthStatus } from "@/features/auth/ui/auth-status";
 

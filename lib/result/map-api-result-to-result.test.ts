@@ -41,6 +41,98 @@ describe("mapApiResultToResult", () => {
     expect(telemetryLoggerMock.error).not.toHaveBeenCalled();
   });
 
+  it("fails an HTTP 200 that carries a false success envelope by default", () => {
+    // Arrange
+    const apiResult = ApiResult.success({
+      success: false,
+      message: "Self-registration is not enabled for this tenant.",
+    });
+
+    // Act
+    const result = mapToResult(apiResult, {
+      fallbackMessage: "Failed to register",
+      logMessage: "Failed to register",
+      loggerName: "auth",
+    });
+
+    // Assert
+    expect(result.kind).toBe(Kind.Error);
+    if (result.kind !== Kind.Error) {
+      return;
+    }
+    expect(result.errorType).toBe(ErrorType.ValidationError);
+    expect(result.message).toBe(
+      "Self-registration is not enabled for this tenant.",
+    );
+    expect(telemetryLoggerMock.error).not.toHaveBeenCalled();
+  });
+
+  it("falls back when a failed envelope carries no message", () => {
+    // Arrange
+    const apiResult = ApiResult.success({ success: false, message: "" });
+
+    // Act
+    const result = mapToResult(apiResult, {
+      fallbackMessage: "Failed to register",
+    });
+
+    // Assert
+    expect(result.kind).toBe(Kind.Error);
+    if (result.kind !== Kind.Error) {
+      return;
+    }
+    expect(result.message).toBe("Failed to register");
+  });
+
+  it("keeps the payload when the success envelope is true", () => {
+    // Arrange
+    const apiResult = ApiResult.success({
+      success: true,
+      message: "Registered",
+      email: "user@example.com",
+    });
+
+    // Act
+    const result = mapToResult(apiResult, {});
+
+    // Assert
+    expect(result.kind).toBe(Kind.Success);
+    if (result.kind !== Kind.Success) {
+      return;
+    }
+    expect(result.value.email).toBe("user@example.com");
+  });
+
+  it("leaves a payload whose success flag is not an envelope untouched", () => {
+    // Arrange: a `success` flag without the envelope's string `message`.
+    const apiResult = ApiResult.success({ success: false, retries: 2 });
+
+    // Act
+    const result = mapToResult(apiResult, {});
+
+    // Assert
+    expect(result.kind).toBe(Kind.Success);
+    if (result.kind !== Kind.Success) {
+      return;
+    }
+    expect(result.value.retries).toBe(2);
+  });
+
+  it("rejects a failed envelope before mapData projects the flag away", () => {
+    // Arrange
+    const apiResult = ApiResult.success({ success: false, message: "Nope" });
+    const mapData = vi.fn(() => "mapped");
+
+    // Act
+    const result = mapToResult(apiResult, {
+      mapData,
+    });
+
+    // Assert
+    expect(result.kind).toBe(Kind.Error);
+    expect(mapData).not.toHaveBeenCalled();
+  });
+
   it("returns validation errors using preferred field messages without logging", () => {
     // Arrange
     const apiResult: ApiResultType<void> = ApiResult.validationError(
@@ -120,8 +212,9 @@ describe("mapApiResultToResult", () => {
 
   it("does not log expected auth or authorization errors", () => {
     // Arrange
-    const authResult: ApiResultType<void> =
-      ApiResult.authError("Authentication required");
+    const authResult: ApiResultType<void> = ApiResult.authError(
+      "Authentication required",
+    );
     const forbiddenResult: ApiResultType<void> =
       ApiResult.forbiddenError("Access denied");
     const options = {

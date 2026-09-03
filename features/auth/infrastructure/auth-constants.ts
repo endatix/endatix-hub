@@ -27,6 +27,8 @@ const HUB_PATHS = [
   "/data-lists",
 ];
 
+const ENDATIX_AUTH_PROVIDER_ID = "endatix";
+
 const TENANT_PUBLIC_AUTH_PREFIX = "/t/";
 
 function isTenantPublicAuthPath(pathname: string): boolean {
@@ -44,6 +46,7 @@ function isTenantPublicAuthPath(pathname: string): boolean {
 
 export {
   AUTH_ROUTES,
+  ENDATIX_AUTH_PROVIDER_ID,
   DEFAULT_RETURN_URL,
   SIGNIN_PATH,
   RETURN_URL_PARAM,

@@ -1,29 +1,25 @@
 "use client";
 
+import { useActionState } from "react";
+import { useRouter } from "next/navigation";
 import { ErrorMessage } from "@/components/forms/error-message";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/loaders/spinner";
-import { registerTenantAccountAction } from "../public-tenant.action";
-import { useActionState } from "react";
-import { useRouter } from "next/navigation";
 import { AuthLogo } from "@/features/auth/ui/auth-logo";
+import { getStringFormValue } from "@/lib/utils/form-data-utils";
+import { registerTenantAccountAction } from "../public-tenant.action";
 
 interface TenantRegisterFormProps {
   shortUrl: string;
   tenantName: string;
 }
 
-function formString(formData: FormData | undefined, name: string): string {
-  const value = formData?.get(name);
-  return typeof value === "string" ? value : "";
-}
-
 const TenantRegisterForm = ({
   shortUrl,
   tenantName,
-}: TenantRegisterFormProps) => {
+}: Readonly<TenantRegisterFormProps>) => {
   const router = useRouter();
   const [state, formAction, isPending] = useActionState(
     async (_: unknown, formData: FormData) => {
@@ -33,12 +29,8 @@ const TenantRegisterForm = ({
         formData,
       );
       if (result.success) {
-        const email = formString(formData, "email");
-        if (email) {
-          router.push(
-            `/account-verification?email=${encodeURIComponent(email)}`,
-          );
-        }
+        const email = getStringFormValue(formData, "email");
+        router.push(`/account-verification?email=${encodeURIComponent(email)}`);
       }
 
       return result;
@@ -63,22 +55,24 @@ const TenantRegisterForm = ({
             name="email"
             required
             autoFocus
-            defaultValue={formString(state?.formData, "email")}
+            defaultValue={
+              state.formData ? getStringFormValue(state.formData, "email") : ""
+            }
           />
-          {state?.errors?.email && (
+          {state.errors?.email && (
             <ErrorMessage message={state.errors.email.toString()} />
           )}
         </div>
         <div className="grid gap-2">
           <Label htmlFor="password">Password</Label>
           <Input id="password" type="password" name="password" required />
-          {state?.errors?.password && (
+          {state.errors?.password && (
             <ErrorMessage message={state.errors.password.toString()} />
           )}
         </div>
-        {state?.errorMessage && <ErrorMessage message={state.errorMessage} />}
+        {state.errorMessage && <ErrorMessage message={state.errorMessage} />}
         <Button type="submit" className="w-full" disabled={isPending}>
-          {isPending ? <Spinner className="mr-2 h-4 w-4" /> : null}
+          {isPending && <Spinner className="mr-2 size-4" />}
           Create account
         </Button>
       </div>

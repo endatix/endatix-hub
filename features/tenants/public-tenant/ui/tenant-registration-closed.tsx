@@ -1,10 +1,7 @@
 import Link from "next/link";
-import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { AuthLogo } from "@/features/auth/ui/auth-logo";
+import { AuthStatus } from "@/features/auth/ui/auth-status";
 import { tenantPublicSignInPath } from "@/features/platform-admin/tenant-registration";
 
 export function TenantRegistrationClosed({
@@ -12,17 +9,17 @@ export function TenantRegistrationClosed({
   shortUrl,
 }: Readonly<{ tenantName: string; shortUrl: string }>) {
   return (
-    <Card className="bg-background">
-      <CardHeader>
-        <CardTitle>Registration is closed</CardTitle>
-        <CardDescription>
-          {tenantName} is not accepting new accounts.{" "}
-          <Link href={tenantPublicSignInPath(shortUrl)} className="underline">
-            Sign in
-          </Link>{" "}
-          if you already have access.
-        </CardDescription>
-      </CardHeader>
-    </Card>
+    <>
+      <AuthLogo className="mb-2" />
+      <AuthStatus
+        tone="warning"
+        title="Registration is closed"
+        description={`${tenantName} is not accepting new accounts.`}
+      >
+        <Button asChild className="w-full">
+          <Link href={tenantPublicSignInPath(shortUrl)}>Sign in</Link>
+        </Button>
+      </AuthStatus>
+    </>
   );
 }

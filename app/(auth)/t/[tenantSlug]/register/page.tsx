@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getPublicTenantAction } from "@/features/tenants/public-tenant/public-tenant.action";
-import { TenantPublicNotFound } from "@/features/tenants/public-tenant/ui/tenant-public-not-found";
+import { TenantPublicUnavailable } from "@/features/tenants/public-tenant/ui/tenant-public-unavailable";
 import TenantRegisterForm from "@/features/tenants/public-tenant/ui/tenant-register-form";
 import { TenantRegistrationClosed } from "@/features/tenants/public-tenant/ui/tenant-registration-closed";
 import { tenantPublicSignInPath } from "@/features/platform-admin/tenant-registration";
@@ -19,11 +19,7 @@ const TenantRegisterPage = async ({ params }: TenantRegisterPageProps) => {
   const { tenantSlug } = await params;
   const tenantResult = await getPublicTenantAction(tenantSlug);
   if (!Result.isSuccess(tenantResult)) {
-    return tenantResult.statusCode === 404 ? (
-      <TenantPublicNotFound />
-    ) : (
-      <p className="text-sm text-muted-foreground">{tenantResult.message}</p>
-    );
+    return <TenantPublicUnavailable error={tenantResult} />;
   }
 
   const tenant = tenantResult.value;

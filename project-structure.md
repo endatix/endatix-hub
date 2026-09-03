@@ -53,7 +53,9 @@ Use `features/folders` as the canonical implementation of this pattern:
 - server-safe curated exports via `features/folders/server.ts`
 - slice-local tests in `features/folders/create-folder/__tests__/`
 
-Public tenant sign-in / self-reg lives in `features/tenants/public-tenant/` (not under `platform-admin`). Hub types use `shortUrl`; `POST /auth/register` still sends `tenantSlug`. See Hub `AGENTS.md` “Endatix IDs”.
+### Public tenant auth (`features/tenants/public-tenant`)
+
+Unauthenticated tenant sign-in / self-registration lives here, not under `platform-admin`: `platform-admin` is client-imported and must stay free of NextAuth. The slice owns the public-tenant action, the provider allow-list filter, and the `(auth)` failure states. Hub types use `shortUrl`; `POST /auth/register` still sends `tenantSlug`. See Hub `AGENTS.md` “Endatix IDs” and “Auth pages”.
 
 ### Reporting export slices (`features/export`)
 

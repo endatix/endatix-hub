@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  filterTenantAuthProviders,
   roleHasHubAccess,
   TENANT_REGISTRATION_ROLES,
   tenantNameError,
@@ -41,23 +40,5 @@ describe("tenantPublicSignInPath", () => {
 describe("tenantPublicRegisterPath", () => {
   it("builds the public register path from the opaque id", () => {
     expect(tenantPublicRegisterPath("xk9mp2qr")).toBe("/t/xk9mp2qr/register");
-  });
-});
-
-describe("filterTenantAuthProviders", () => {
-  it("keeps Endatix credentials and filters other providers by the allow list", () => {
-    const providers = [
-      { id: "endatix" },
-      { id: "google" },
-      { id: "keycloak" },
-    ];
-
-    expect(filterTenantAuthProviders(providers, ["google"])).toEqual([
-      { id: "endatix" },
-      { id: "google" },
-    ]);
-    expect(filterTenantAuthProviders(providers, [])).toEqual([
-      { id: "endatix" },
-    ]);
   });
 });
