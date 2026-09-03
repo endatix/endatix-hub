@@ -7,6 +7,17 @@
 - Chrome shared by two or more slices of the same feature lives in `features/{feature}/ui/` (e.g. `platform-admin/ui/platform-admin-shell.tsx`, `tenant-access-fields.tsx` used by `create-tenant` and `update-tenant`). Do not park it in one slice and import across siblings, and do not invent a vague umbrella slice to hold it — a slice is one verb-noun action.
 - Keep `app/` routing-focused. Data mutations should flow through server actions.
 
+## SurveyJS domain
+
+Prefer vendor types from `survey-core` / `survey-creator-core`. When those types are too wide (`string`), Hub closed unions and constants live in [`lib/survey-js/`](lib/survey-js/) — **supersets** of SurveyJS (compose plugin ids; do not rename Creator ids such as `test`).
+
+- **Types / vocab:** `lib/survey-js/` (e.g. Creator tab ids, URL slug maps). Import these instead of duplicating string unions in features.
+- **Compute / copy helpers:** `lib/utils/survey/`
+- **Platform behavior** (Serializer, bindings, extensions): `lib/survey-features/`
+- **Code-owned question types:** `lib/questions/`
+
+Feature allowlists (e.g. carry-forward supported types) stay in the feature; they should import bank unions when the set is SurveyJS vocabulary. Placement details: [`project-structure.md`](project-structure.md) (`lib/survey-js`).
+
 ## Configuration: public values are request-time
 
 The Hub promotes one image across environments, so nothing public may be baked at build. Next

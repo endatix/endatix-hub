@@ -401,6 +401,7 @@ hub/
 ├── lib/                    # Internal utilities
 │   ├── endatix-api/       # API client (internal)
 │   ├── localization/      # Multi-lingual domain (catalog, submission locale, future i18n)
+│   ├── survey-js/         # Shared SurveyJS + Creator types/vocab (vendor first, Hub supersets)
 │   └── utils/             # Shared utilities
 ├── features/              # App-specific features
 │   ├── config/            # App configuration
@@ -423,6 +424,26 @@ Use `lib/localization` for **cross-feature multi-lingual infrastructure**, organ
 Keep **selection policy** in the owning feature (e.g. public-form language picker priority: preselected → localStorage → survey model → browser). Do not move feature-specific preference storage or init order into `lib/`.
 
 Import from `@/lib/localization` (root barrel) or a slice path such as `@/lib/localization/catalog`.
+
+### `lib/survey-js` domain
+
+Shared **SurveyJS + Survey Creator types and closed vocabulary** for the whole Hub (analogue of OSS Reporting `Domain/SurveyJs`). Not feature behavior and not choice compute helpers.
+
+| Path | Use for |
+| --- | --- |
+| `lib/survey-js/` | Vendor types when they exist; Hub unions that **subset or extend** vendor `string`s (e.g. `SurveyCreatorBuiltInTabId`, `EndatixCreatorTabId`). Creator URL slugs (`preview` → `test`) live here as a map onto those ids. |
+| `lib/utils/survey/` | Reusable SurveyJS compute/copy (`getChoicesFromSourceQuestion`, choice keys). |
+| `lib/survey-features/` | Platform Serializer props, Creator/respondent bindings, product rules. |
+| `lib/questions/` | Code-owned question types. |
+
+Rules:
+
+- Import `Question`, `SurveyCreatorModel`, `ICreatorOptions`, etc. from `survey-core` / `survey-creator-core`. Do not re-declare them.
+- Do not duplicate Creator tab ids or similar vocab in `survey-features/{feature}/constants.ts`.
+- Hub wrappers **compose** SurveyJS (`EndatixCreatorTabId = built-in \| plugin id from the owning slice`). Do not fork ids (`test` stays `test` on the model; `preview` is URL-only).
+- Product allowlists (carry-forward question types) stay in the feature; import from `lib/survey-js` when the tokens are shared SurveyJS vocabulary.
+
+Import from `@/lib/survey-js`.
 
 ### Target Monorepo Structure
 

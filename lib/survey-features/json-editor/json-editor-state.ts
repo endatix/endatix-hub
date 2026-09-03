@@ -1,6 +1,5 @@
-import {
-  JsonEditorBaseModel
-} from "survey-creator-core";
+import { JsonEditorBaseModel } from "survey-creator-core";
+import { SURVEY_CREATOR_BUILT_IN_TAB } from "@/lib/survey-js";
 
 export interface JsonEditorState {
   hasErrors: boolean;
@@ -10,7 +9,7 @@ export interface JsonEditorState {
 
 export const JSON_CHANGED_TYPE = "JSON_EDITOR";
 
-export const JSON_EDITOR_PLUGIN_NAME = "json" as const;
+export const JSON_EDITOR_PLUGIN_NAME = SURVEY_CREATOR_BUILT_IN_TAB.json;
 
 export const JSON_EDITOR_PROPERTY_NAMES = {
   hasErrors: "hasErrors",
