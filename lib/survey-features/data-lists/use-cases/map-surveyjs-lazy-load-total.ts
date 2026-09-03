@@ -16,7 +16,7 @@ export function mapSurveyJsLazyLoadTotal(params: {
   hasNextPage?: boolean;
 }): number {
   const skip = Math.max(params.skip, 0);
-  const take = params.take > 0 ? params.take : 0;
+  const take = Math.max(0, params.take);
   const itemCount = Math.max(params.itemCount, 0);
   const reported =
     typeof params.totalRecords === "number" &&
