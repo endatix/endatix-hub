@@ -6,6 +6,35 @@
 - Put reusable cross-feature utilities in `lib/`; keep feature-specific business logic inside the owning feature slice.
 - Keep `app/` routing-focused. Data mutations should flow through server actions.
 
+## Configuration: public values are request-time
+
+The Hub promotes one image across environments, so nothing public may be baked at build. Next
+inlines any `NEXT_PUBLIC_`-prefixed literal in a client-reachable module at bundle time — the
+prefix, not `"use client"`, is what decides.
+
+- **Never add a `NEXT_PUBLIC_*` value or reach for `--build-arg`.** Public runtime values use
+  `ENDATIX_*` and reach the browser through the request-time projection. Replacing a licence key
+  must be a config change, never a rebuild. `features/config/__tests__/no-build-time-client-config.test.ts`
+  fails on any new `NEXT_PUBLIC_` read outside its allowlist.
+- Read config with `await getClientEndatixConfig()` from `@/features/config/server` (Server
+  Components), `getBrowserEndatixConfig()` (browser, non-React SurveyJS handlers), or
+  `getIsomorphicEndatixConfig()` (either side; omits `apiBaseUrl` / `extensionsEnabled`). Keep
+  `@/features/config` config-safe for `next.config.ts`; anything needing `next/server` goes in the
+  server barrel.
+- **Adding a public value:** field on `ClientEndatixConfig`, default in
+  `EMPTY_CLIENT_ENDATIX_CONFIG` plus pass-through in `toClientEndatixConfig`, `ENDATIX_*` read in
+  `readPublicEndatixEnv()`. It is then serialised into the HTML of every page mounting
+  `AppProvider`, anonymous form layouts included — `AssertNoSecretsInClientConfig` only backstops a
+  few known secret names.
+- **A secret a client component needs is scoped to its routes**, not added to the projection:
+  `getSurveyLicenseKey()` + `SurveyLicenseProvider`, mounted only on SurveyJS routes, never on
+  `(main)`.
+- Deprecated `NEXT_PUBLIC_*` names still work — `applyLegacyPublicEnv()` folds them into `ENDATIX_*`
+  at boot. Never import `legacy-public-env.server.ts` from a client component.
+- Only `basePath` stays build-time (`NEXT_PUBLIC_BASE_PATH` in `lib/hosting/base-path.ts`): no
+  runtime equivalent, so the published image serves at `/` whatever the operator sets. Subfolder
+  hosting needs per-origin hosting or a self-build.
+
 ## Server Actions
 
 - Server action files must use `"use server"` and return `Result<T>` for operation outcomes (default). Use `ServerActionState` only for FormData / `useActionState` flows that need Zod field-level errors.
