@@ -55,7 +55,8 @@ lib/survey-features/{feature-name}/
 │   ├── index.ts
 │   └── __tests__/
 ├── use-cases/
-│   └── sync-{target}.ts            # Single verb use-cases (orchestrate utils, no bindings)
+│   ├── {verb}-{target}.ts          # Single verb use-cases (orchestrate utils, no bindings)
+│   └── __tests__/
 ├── infrastructure/
 │   ├── registry.ts                 # Serializer.addProperty / global registration
 │   ├── survey-bindings.ts          # Model event handlers (respondent runtime)
@@ -71,6 +72,7 @@ Rules:
 
 - **Shares helpers** in `utils/` — queries, transforms, graph logic; test without SurveyJS when possible.
 - **Use-cases** in `use-cases/` — single verb orchestration (e.g. `syncSingleCarryForwardTarget`); focus on domain/feature based use-case. no event bindings.
+  Name the file `{verb}-{target}.ts` matching its exported verb (`resolve-creator-tab.ts` → `resolveCreatorTab`), and keep its test in `use-cases/__tests__/`. Pure logic named for its noun (`survey-design-status.ts`) is a use-case that drifted to the slice root.
 - **Side effects** only in `infrastructure/` — bindings, dependencies, sync guards.
 - **One** `ExtensionModule` per feature in `{feature}.extension.ts`.
 - Do **not** add `ui/use-{feature}.hook.ts` with `initGlobals` / `bindToCreator`
@@ -206,7 +208,7 @@ that manifest (whitelist) instead of client-side JSON analysis.
 **Rules:**
 
 - Use `parseScalarString` / `parseNumber` from [`lib/utils/type-parsers.ts`](lib/utils/type-parsers.ts) — do not hand-roll `String(value)` or `parseInt` in slices.
-- Prefer vendor types from `survey-core` / `survey-creator-core`; Hub supersets live in [`lib/survey-js/`](../../lib/survey-js/) (`hub/AGENTS.md`).
+- Prefer vendor types from `survey-core` / `survey-creator-core`; Hub supersets live in [`lib/survey-js/`](lib/survey-js/) (`hub/AGENTS.md`).
 - SurveyJS choice semantics (visibleChoices, isBuiltInChoice, isItemSelected) belong in `lib/utils/survey/`, not duplicated per feature.
 - Cross-feature mutual exclusion (data list vs carry forward vs URL) → `lib/survey-features/infrastructure/choice-source-mutual-exclusion.ts`.
 - Prefer **extend** existing slices + shared utils over parallel implementations (see [`carry-forward`](lib/survey-features/carry-forward/) vs reusing `question-loops` internals incorrectly).
@@ -327,7 +329,7 @@ Run: `pnpm test` from `hub/` (filter by feature path).
 - [ ] `loading: 'static'` for core features unless bundle size requires `dynamic`
 - [ ] Pure logic extracted to `use-cases/` (or `lib/utils/survey/` when reusable across features)
 - [ ] No new parse/format helpers in slice without checking `lib/utils` and `lib/utils/survey`
-- [ ] No new SurveyJS string unions/ids without checking [`lib/survey-js/`](../../lib/survey-js/)
+- [ ] No new SurveyJS string unions/ids without checking [`lib/survey-js/`](lib/survey-js/)
 - [ ] `creator-bindings.ts` and `survey-bindings.ts` separated
 - [ ] Tests for state, registry, and bindings
 - [ ] `ENDATIX_ENABLE_EXTENSIONS=true` required until h709 PR-2 lands (extensions off = runtime no-op)

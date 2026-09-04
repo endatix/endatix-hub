@@ -1,41 +1,40 @@
-import {
-  canonicalizeSurveyCreatorTabId,
-  SURVEY_CREATOR_BUILT_IN_TAB,
-  type SurveyCreatorBuiltInTabId,
-} from "./built-in-tabs";
+/**
+ * Survey Creator types `activeTab` as `string`. These are the ids Hub relies on:
+ * the vendor built-ins, plus the tabs Hub registers as Creator plugins.
+ */
+export const SURVEY_CREATOR_BUILT_IN_TAB = {
+  designer: "designer",
+  preview: "preview",
+  theme: "theme",
+  json: "json",
+  translation: "translation",
+  logic: "logic",
+} as const;
 
 export const ENDATIX_CREATOR_TAB = {
   ...SURVEY_CREATOR_BUILT_IN_TAB,
   diagnostics: "form-diagnostics",
 } as const;
 
-export type EndatixCreatorPluginTabId =
-  (typeof ENDATIX_CREATOR_TAB)["diagnostics"];
-
 export type EndatixCreatorTabId =
-  | SurveyCreatorBuiltInTabId
-  | EndatixCreatorPluginTabId;
+  (typeof ENDATIX_CREATOR_TAB)[keyof typeof ENDATIX_CREATOR_TAB];
 
 export const DEFAULT_CREATOR_TAB: EndatixCreatorTabId =
-  SURVEY_CREATOR_BUILT_IN_TAB.designer;
+  ENDATIX_CREATOR_TAB.designer;
 
-export const ENDATIX_CREATOR_TAB_IDS: readonly EndatixCreatorTabId[] =
-  Object.values(ENDATIX_CREATOR_TAB);
+const TAB_IDS = new Set<string>(Object.values(ENDATIX_CREATOR_TAB));
 
-const ENDATIX_TAB_ID_SET = new Set<string>(ENDATIX_CREATOR_TAB_IDS);
-
-export function isEndatixCreatorTabId(
-  value: string,
-): value is EndatixCreatorTabId {
-  return ENDATIX_TAB_ID_SET.has(value);
-}
+/** Creator still emits `test` for Preview and `editor` for JSON. */
+const LEGACY_TAB_IDS: Record<string, EndatixCreatorTabId> = {
+  test: ENDATIX_CREATOR_TAB.preview,
+  editor: ENDATIX_CREATOR_TAB.json,
+};
 
 export function canonicalizeCreatorTabId(
   value: string,
 ): EndatixCreatorTabId | null {
-  const builtIn = canonicalizeSurveyCreatorTabId(value);
-  if (builtIn) {
-    return builtIn;
+  if (TAB_IDS.has(value)) {
+    return value as EndatixCreatorTabId;
   }
-  return isEndatixCreatorTabId(value) ? value : null;
+  return LEGACY_TAB_IDS[value] ?? null;
 }

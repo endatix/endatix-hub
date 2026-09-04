@@ -5,48 +5,45 @@ import {
 } from "@/lib/survey-js";
 import { resolveCreatorTab } from "../resolve-creator-tab";
 
+const creatorWithTabs = (...ids: string[]) => ({
+  tabs: ids.map((id) => ({ id })),
+});
+
 describe("resolveCreatorTab", () => {
-  it("keeps a tab that exists on the creator", () => {
-    const creator = {
-      tabs: [
-        { id: SURVEY_CREATOR_BUILT_IN_TAB.designer },
-        { name: SURVEY_CREATOR_BUILT_IN_TAB.preview },
-      ],
-    };
+  it("keeps a tab that is on the creator", () => {
+    const creator = creatorWithTabs("designer", "preview");
 
     expect(
       resolveCreatorTab(creator, SURVEY_CREATOR_BUILT_IN_TAB.preview),
     ).toBe(SURVEY_CREATOR_BUILT_IN_TAB.preview);
   });
 
-  it("uses getPlugin when tabs omit the id", () => {
-    const creator = {
-      tabs: [],
-      getPlugin: (name: string) =>
-        name === SURVEY_CREATOR_BUILT_IN_TAB.preview ? {} : undefined,
-    };
+  it("canonicalizes a legacy id before matching", () => {
+    const creator = creatorWithTabs("designer", "preview");
 
-    expect(
-      resolveCreatorTab(creator, SURVEY_CREATOR_BUILT_IN_TAB.preview),
-    ).toBe(SURVEY_CREATOR_BUILT_IN_TAB.preview);
+    expect(resolveCreatorTab(creator, "test")).toBe(
+      SURVEY_CREATOR_BUILT_IN_TAB.preview,
+    );
   });
 
-  it("falls back to designer when the tab is missing", () => {
-    const creator = {
-      tabs: [{ id: SURVEY_CREATOR_BUILT_IN_TAB.designer }],
-    };
+  it("matches tabs exposed by name rather than id", () => {
+    const creator = { tabs: [{ name: ENDATIX_CREATOR_TAB.diagnostics }] };
+
+    expect(resolveCreatorTab(creator, ENDATIX_CREATOR_TAB.diagnostics)).toBe(
+      ENDATIX_CREATOR_TAB.diagnostics,
+    );
+  });
+
+  it("falls back to Design when the tab is absent", () => {
+    const creator = creatorWithTabs("designer");
 
     expect(resolveCreatorTab(creator, ENDATIX_CREATOR_TAB.diagnostics)).toBe(
       SURVEY_CREATOR_BUILT_IN_TAB.designer,
     );
   });
 
-  it("falls back to designer for unknown ids", () => {
-    const creator = {
-      tabs: [{ id: "mystery" }],
-    };
-
-    expect(resolveCreatorTab(creator, "mystery")).toBe(
+  it("falls back to Design for unknown ids", () => {
+    expect(resolveCreatorTab(creatorWithTabs("mystery"), "mystery")).toBe(
       SURVEY_CREATOR_BUILT_IN_TAB.designer,
     );
   });

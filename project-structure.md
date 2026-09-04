@@ -427,16 +427,14 @@ Import from `@/lib/localization` (root barrel) or a slice path such as `@/lib/lo
 
 ### `lib/survey-js` domain
 
-Shared SurveyJS + Creator **types/vocab** (not behavior, not choice helpers). Vendor types first; Hub unions subset or extend vendor `string`s.
+Shared SurveyJS + Creator **types/vocab** only — no behavior, no choice helpers. Vendor types first; Hub unions close vendor `string`s.
 
-| Path | Use for |
-| --- | --- |
-| `lib/survey-js/` | Closed ids (`SurveyCreatorBuiltInTabId`, `EndatixCreatorTabId` including Hub plugins). URL slugs (`design` → `designer`, `preview` → `preview`; omit `tab` for Design). `test` is a legacy alias for preview. |
-| `lib/utils/survey/` | Choice compute/copy |
-| `lib/survey-features/` | Serializer, bindings, designer use-cases (`survey-design/use-cases/load-tab-from-url`) |
-| `lib/questions/` | Code-owned question types |
+| Path                               | Owns                                                                                                 |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `lib/survey-js/creator/tabs.ts`    | Creator tab ids — `ENDATIX_CREATOR_TAB` (built-ins + Hub plugin tabs) and `canonicalizeCreatorTabId`  |
+| `lib/survey-js/creator/tab-url.ts` | `?tab=` slug ↔ tab id (`design` → `designer`; Design omits the param)                                 |
 
-Do not re-declare `Question` / `SurveyCreatorModel`. Hub plugin tab ids live in `lib/survey-js`; slices import them. Product allowlists stay in the feature.
+Behavior that reads this vocab stays in its slice's `use-cases/` — e.g. `lib/survey-features/survey-design/use-cases/`. Do not re-declare vendor types (`Question`, `SurveyCreatorModel`). Rules: `AGENTS.md` (SurveyJS domain).
 
 Import from `@/lib/survey-js`.
 

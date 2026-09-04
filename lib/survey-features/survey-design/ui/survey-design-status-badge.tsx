@@ -11,9 +11,9 @@ import {
 import { Check, CircleX, Code, Pencil } from "lucide-react";
 import { useEffect } from "react";
 import {
-  getSurveyDesignStatus,
+  resolveSurveyDesignStatus,
   SurveyDesignStatus,
-} from "../survey-design-status";
+} from "../use-cases/resolve-design-status";
 
 const SAVED_SUCCESS_DURATION_MS = 2000;
 const INVALID_JSON_TOOLTIP = "Fix all errors in the JSON editor before saving.";
@@ -51,7 +51,7 @@ function SurveyDesignStatusBadge({
     return () => globalThis.window.clearTimeout(id);
   }, [showSavedSuccess, onSavedSuccessDismiss]);
 
-  const status = getSurveyDesignStatus({
+  const status = resolveSurveyDesignStatus({
     hasJsonErrors,
     isOnJsonTab,
     isJsonModified,

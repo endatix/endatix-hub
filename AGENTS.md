@@ -9,16 +9,12 @@
 
 ## SurveyJS domain
 
-Prefer vendor types from `survey-core` / `survey-creator-core`. When those are too wide (`string`), closed Hub unions live in [`lib/survey-js/`](lib/survey-js/) as **supersets** (built-in Creator ids + Hub plugin ids). Do not duplicate those strings in features — import the bank.
+Prefer vendor types from `survey-core` / `survey-creator-core`. Where they widen to `string` (Creator `activeTab`), the closed Hub union lives in [`lib/survey-js/`](lib/survey-js/) — built-in ids plus Hub plugin ids. Import it instead of re-spelling those strings in a slice (`FORM_DIAGNOSTICS_PLUGIN_NAME` is `ENDATIX_CREATOR_TAB.diagnostics`).
 
-| Path                   | Owns                                                                                                                              |
-| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `lib/survey-js/`       | Types and vocab (Creator tab ids, URL slugs). Plugin tab ids live here; slices import them (e.g. `FORM_DIAGNOSTICS_PLUGIN_NAME`). |
-| `lib/utils/survey/`    | Choice compute/copy                                                                                                               |
-| `lib/survey-features/` | Serializer, bindings, designer use-cases                                                                                          |
-| `lib/questions/`       | Code-owned question types                                                                                                         |
-
-Creator preview id is `preview` (`test` is a parse/event alias). URL slugs map onto ids (`design` → `designer`; omit `tab` for Design). Feature allowlists (carry-forward types) stay in the feature.
+- Preview's id is `preview`; `test` is a legacy id Creator still emits — normalise with `canonicalizeCreatorTabId`, never compare raw.
+- `?tab=` slugs are one map in `creator/tab-url.ts` (`design` → `designer`; Design omits the param).
+- To ask whether a Creator can show a tab, read `creator.tabs`. Never `creator.getPlugin(id)`: it answers for tabs `showThemeTab` & friends removed, and instantiates the plugin as a side effect.
+- Product allowlists (carry-forward question types, …) stay in the owning feature.
 
 Placement: [`project-structure.md`](project-structure.md).
 

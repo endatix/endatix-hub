@@ -4,43 +4,24 @@ import {
   type EndatixCreatorTabId,
 } from "@/lib/survey-js";
 
+/**
+ * `creator.tabs` is the tab bar after `showThemeTab` & friends were applied.
+ * Do not probe `creator.getPlugin` instead: it answers for hidden tabs and
+ * instantiates the plugin as a side effect.
+ */
 export type CreatorTabListSource = {
   tabs?: Array<{ id?: string; name?: string }>;
-  getPlugin?: (name: string) => unknown;
 };
 
-export function listCreatorTabIds(creator: CreatorTabListSource): Set<string> {
-  const ids = new Set<string>();
-  for (const tab of creator.tabs ?? []) {
-    if (tab.id) {
-      ids.add(tab.id);
-    }
-    if (tab.name) {
-      ids.add(tab.name);
-    }
-  }
-  return ids;
-}
-
-function creatorHasTab(creator: CreatorTabListSource, tabId: string): boolean {
-  if (creator.getPlugin?.(tabId)) {
-    return true;
-  }
-  return listCreatorTabIds(creator).has(tabId);
-}
-
+/** The tab this Creator can actually show for `tabId`, else Design. */
 export function resolveCreatorTab(
   creator: CreatorTabListSource,
   tabId: string,
 ): EndatixCreatorTabId {
   const canonical = canonicalizeCreatorTabId(tabId);
-  if (!canonical) {
-    return DEFAULT_CREATOR_TAB;
-  }
+  const isOnCreator = creator.tabs?.some(
+    (tab) => tab.id === canonical || tab.name === canonical,
+  );
 
-  if (!creatorHasTab(creator, canonical) && !creatorHasTab(creator, tabId)) {
-    return DEFAULT_CREATOR_TAB;
-  }
-
-  return canonical;
+  return canonical && isOnCreator ? canonical : DEFAULT_CREATOR_TAB;
 }

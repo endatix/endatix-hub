@@ -13,6 +13,7 @@ import type {
 import { Result } from "@/lib/result";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Action, ITheme } from "survey-core";
+import { SURVEY_CREATOR_BUILT_IN_TAB } from "@/lib/survey-js";
 import { registerThemes, sanitizeSurveyTheme } from "@/lib/themes/survey-theme";
 import { DefaultLight } from "survey-core/themes";
 import { ThemeTabPlugin } from "survey-creator-core";
@@ -300,7 +301,7 @@ export const useThemeManagement = ({
     };
 
     const onActiveTabChanged = (_: unknown, options: { tabName?: string }) => {
-      if (options.tabName === "theme") {
+      if (options.tabName === SURVEY_CREATOR_BUILT_IN_TAB.theme) {
         applyThemeChooserChoices();
       }
     };

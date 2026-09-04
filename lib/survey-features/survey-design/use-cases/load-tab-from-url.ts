@@ -5,6 +5,7 @@ import {
 } from "@/lib/survey-js";
 import { resolveCreatorTab } from "./resolve-creator-tab";
 
+/** Applies `?tab=` to the Creator and returns the tab that actually won. */
 export function loadTabFromUrl(
   creator: SurveyCreatorModel,
   queryValue: string | null | undefined,
