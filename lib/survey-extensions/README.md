@@ -2,7 +2,7 @@
 
 This directory contains the core infrastructure for the "Zero-Overhead" extension system.
 
-Types/vocab: [`lib/survey-js/`](../survey-js/) (`hub/AGENTS.md`). This folder is loader + registry only.
+Types/vocab: [`lib/survey-js/`](../survey-js/) (`AGENTS.md`). This folder is loader + registry only.
 
 ## Loading Modes
 

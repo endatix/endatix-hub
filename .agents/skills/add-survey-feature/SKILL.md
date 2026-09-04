@@ -200,7 +200,7 @@ that manifest (whitelist) instead of client-side JSON analysis.
 | Layer | Path | Use for |
 |-------|------|---------|
 | Generic | `lib/utils/` | Domain-agnostic parse/format (`type-parsers.ts`, `type-validators.ts`) |
-| SurveyJS types/vocab | `lib/survey-js/` | Closed unions and constants that subset/extend vendor types. Prefer these over feature-local string lists. See `hub/AGENTS.md` (SurveyJS domain). |
+| SurveyJS types/vocab | `lib/survey-js/` | Closed unions and constants that subset/extend vendor types. Prefer these over feature-local string lists. See `AGENTS.md` (SurveyJS domain). |
 | SurveyJS shared | `lib/utils/survey/` | Reusable SurveyJS compute/copy (`getChoicesFromSourceQuestion`, `copyChoiceItem`, `normalizeChoiceKey`, `extractUniqueChoicesBy`) |
 | Platform cross-feature | `lib/survey-features/infrastructure/` | Extension wiring shared across slices (`creator-survey-bindings`, `choice-source-mutual-exclusion`, lazy-load guards) |
 | Feature slice | `lib/survey-features/{feature}/` | edx Serializer props, Creator registry, bindings, feature-only product rules |
@@ -208,7 +208,7 @@ that manifest (whitelist) instead of client-side JSON analysis.
 **Rules:**
 
 - Use `parseScalarString` / `parseNumber` from [`lib/utils/type-parsers.ts`](lib/utils/type-parsers.ts) — do not hand-roll `String(value)` or `parseInt` in slices.
-- Prefer vendor types from `survey-core` / `survey-creator-core`; Hub supersets live in [`lib/survey-js/`](lib/survey-js/) (`hub/AGENTS.md`).
+- Prefer vendor types from `survey-core` / `survey-creator-core`; Hub supersets live in [`lib/survey-js/`](lib/survey-js/) (`AGENTS.md`).
 - SurveyJS choice semantics (visibleChoices, isBuiltInChoice, isItemSelected) belong in `lib/utils/survey/`, not duplicated per feature.
 - Cross-feature mutual exclusion (data list vs carry forward vs URL) → `lib/survey-features/infrastructure/choice-source-mutual-exclusion.ts`.
 - Prefer **extend** existing slices + shared utils over parallel implementations (see [`carry-forward`](lib/survey-features/carry-forward/) vs reusing `question-loops` internals incorrectly).

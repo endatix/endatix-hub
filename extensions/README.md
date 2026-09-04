@@ -11,7 +11,7 @@
 
 The Endatix Extensions Architecture is designed for **Zero-Overhead** modularity. It allows developers to extend the SurveyJS Model and Creator with custom questions, logic, and widgets without bloating the initial bundle.
 
-Types/vocab: [`lib/survey-js/`](../lib/survey-js/) — see `hub/AGENTS.md`.
+Types/vocab: [`lib/survey-js/`](../lib/survey-js/) — see `AGENTS.md`.
 
 **Key Goals:**
 
