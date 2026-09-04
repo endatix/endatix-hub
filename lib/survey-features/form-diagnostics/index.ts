@@ -8,8 +8,6 @@ export {
   type FormDiagnosticsRuntimeSlice,
 } from "./form-diagnostics-context";
 export { useFormDiagnostics } from "./use-form-diagnostics.hook";
-export {
-  FormDiagnosticsPlugin,
-  FORM_DIAGNOSTICS_PLUGIN_NAME,
-} from "./form-diagnostics-plugin";
+export { FORM_DIAGNOSTICS_PLUGIN_NAME } from "./constants";
+export { FormDiagnosticsPlugin } from "./form-diagnostics-plugin";
 export type { FormDiagnosticsStats } from "./form-diagnostics-logic";

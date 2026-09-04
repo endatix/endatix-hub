@@ -7,6 +7,17 @@
 - Chrome shared by two or more slices of the same feature lives in `features/{feature}/ui/` (e.g. `platform-admin/ui/platform-admin-shell.tsx`, `tenant-access-fields.tsx` used by `create-tenant` and `update-tenant`). Do not park it in one slice and import across siblings, and do not invent a vague umbrella slice to hold it — a slice is one verb-noun action.
 - Keep `app/` routing-focused. Data mutations should flow through server actions.
 
+## SurveyJS domain
+
+Prefer vendor types from `survey-core` / `survey-creator-core`. Where they widen to `string` (Creator `activeTab`), the closed Hub union lives in [`lib/survey-js/`](lib/survey-js/) — built-in ids plus Hub plugin ids. Import it instead of re-spelling those strings in a slice (`FORM_DIAGNOSTICS_PLUGIN_NAME` is `ENDATIX_CREATOR_TAB.diagnostics`).
+
+- Preview's id is `preview`; `test` is a legacy id Creator still emits — normalise with `canonicalizeCreatorTabId`, never compare raw.
+- `?tab=` slugs are one map in `creator/tab-url.ts` (`design` → `designer`; Design omits the param).
+- To ask whether a Creator can show a tab, read `creator.tabs`. Never `creator.getPlugin(id)`: it answers for tabs `showThemeTab` & friends removed, and instantiates the plugin as a side effect.
+- Product allowlists (carry-forward question types, …) stay in the owning feature.
+
+Placement: [`project-structure.md`](project-structure.md).
+
 ## Configuration: public values are request-time
 
 The Hub promotes one image across environments, so nothing public may be baked at build. Next

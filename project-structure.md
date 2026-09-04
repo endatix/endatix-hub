@@ -405,6 +405,7 @@ hub/
 ├── lib/                    # Internal utilities
 │   ├── endatix-api/       # API client (internal)
 │   ├── localization/      # Multi-lingual domain (catalog, submission locale, future i18n)
+│   ├── survey-js/         # Shared SurveyJS + Creator types/vocab (vendor first, Hub supersets)
 │   └── utils/             # Shared utilities
 ├── features/              # App-specific features
 │   ├── config/            # App configuration
@@ -427,6 +428,19 @@ Use `lib/localization` for **cross-feature multi-lingual infrastructure**, organ
 Keep **selection policy** in the owning feature (e.g. public-form language picker priority: preselected → localStorage → survey model → browser). Do not move feature-specific preference storage or init order into `lib/`.
 
 Import from `@/lib/localization` (root barrel) or a slice path such as `@/lib/localization/catalog`.
+
+### `lib/survey-js` domain
+
+Shared SurveyJS + Creator **types/vocab** only — no behavior, no choice helpers. Vendor types first; Hub unions close vendor `string`s.
+
+| Path                               | Owns                                                                                                 |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `lib/survey-js/creator/tabs.ts`    | Creator tab ids — `ENDATIX_CREATOR_TAB` (built-ins + Hub plugin tabs) and `canonicalizeCreatorTabId`  |
+| `lib/survey-js/creator/tab-url.ts` | `?tab=` slug ↔ tab id (`design` → `designer`; Design omits the param)                                 |
+
+Behavior that reads this vocab stays in its slice's `use-cases/` — e.g. `lib/survey-features/survey-design/use-cases/`. Do not re-declare vendor types (`Question`, `SurveyCreatorModel`). Rules: `AGENTS.md` (SurveyJS domain).
+
+Import from `@/lib/survey-js`.
 
 ### Target Monorepo Structure
 

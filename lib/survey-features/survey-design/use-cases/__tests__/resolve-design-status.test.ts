@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
-  getSurveyDesignStatus,
+  resolveSurveyDesignStatus,
   SurveyDesignStatus,
-} from "../survey-design-status";
+} from "../resolve-design-status";
 
 const baseInput = {
   hasJsonErrors: false,
@@ -11,11 +11,11 @@ const baseInput = {
   hasUnsavedChanges: false,
 };
 
-describe("getSurveyDesignStatus", () => {
+describe("resolveSurveyDesignStatus", () => {
   describe("priority order", () => {
     it("returns InvalidJson when hasJsonErrors is true (highest priority)", () => {
       expect(
-        getSurveyDesignStatus({
+        resolveSurveyDesignStatus({
           ...baseInput,
           hasJsonErrors: true,
           isSaving: true,
@@ -26,7 +26,7 @@ describe("getSurveyDesignStatus", () => {
 
     it("returns JsonModified when isJsonModified and isOnJsonTab", () => {
       expect(
-        getSurveyDesignStatus({
+        resolveSurveyDesignStatus({
           ...baseInput,
           isJsonModified: true,
           isOnJsonTab: true,
@@ -36,7 +36,7 @@ describe("getSurveyDesignStatus", () => {
 
     it("returns UnsavedChanges when hasUnsavedChanges and not on JSON tab", () => {
       expect(
-        getSurveyDesignStatus({
+        resolveSurveyDesignStatus({
           ...baseInput,
           hasUnsavedChanges: true,
           isOnJsonTab: false,
@@ -46,7 +46,7 @@ describe("getSurveyDesignStatus", () => {
 
     it("returns SaveInProgress when isSaving", () => {
       expect(
-        getSurveyDesignStatus({
+        resolveSurveyDesignStatus({
           ...baseInput,
           isSaving: true,
         }),
@@ -55,7 +55,7 @@ describe("getSurveyDesignStatus", () => {
 
     it("returns Saved when showSavedSuccess (and not saving)", () => {
       expect(
-        getSurveyDesignStatus({
+        resolveSurveyDesignStatus({
           ...baseInput,
           showSavedSuccess: true,
         }),
@@ -63,7 +63,7 @@ describe("getSurveyDesignStatus", () => {
     });
 
     it("returns NoChanges when all flags false", () => {
-      expect(getSurveyDesignStatus(baseInput)).toBe(
+      expect(resolveSurveyDesignStatus(baseInput)).toBe(
         SurveyDesignStatus.NoChanges,
       );
     });
@@ -72,7 +72,7 @@ describe("getSurveyDesignStatus", () => {
   describe("edge cases", () => {
     it("InvalidJson wins over isSaving (show error, not saving state)", () => {
       expect(
-        getSurveyDesignStatus({
+        resolveSurveyDesignStatus({
           ...baseInput,
           hasJsonErrors: true,
           isSaving: true,
@@ -82,7 +82,7 @@ describe("getSurveyDesignStatus", () => {
 
     it("JsonModified only when on JSON tab", () => {
       expect(
-        getSurveyDesignStatus({
+        resolveSurveyDesignStatus({
           ...baseInput,
           isJsonModified: true,
           isOnJsonTab: false,
@@ -92,7 +92,7 @@ describe("getSurveyDesignStatus", () => {
 
     it("UnsavedChanges also when on JSON tab", () => {
       expect(
-        getSurveyDesignStatus({
+        resolveSurveyDesignStatus({
           ...baseInput,
           hasUnsavedChanges: true,
           isOnJsonTab: true,
@@ -102,7 +102,7 @@ describe("getSurveyDesignStatus", () => {
 
     it("isSaving wins over showSavedSuccess (saving takes precedence)", () => {
       expect(
-        getSurveyDesignStatus({
+        resolveSurveyDesignStatus({
           ...baseInput,
           isSaving: true,
           showSavedSuccess: true,
@@ -111,11 +111,11 @@ describe("getSurveyDesignStatus", () => {
     });
 
     it("defaults isSaving and showSavedSuccess to false", () => {
-      expect(getSurveyDesignStatus({ ...baseInput })).toBe(
+      expect(resolveSurveyDesignStatus({ ...baseInput })).toBe(
         SurveyDesignStatus.NoChanges,
       );
       expect(
-        getSurveyDesignStatus({
+        resolveSurveyDesignStatus({
           ...baseInput,
           isSaving: undefined,
           showSavedSuccess: undefined,
@@ -125,7 +125,7 @@ describe("getSurveyDesignStatus", () => {
 
     it("on JSON tab with unsaved designer changes but no JSON edit shows UnsavedChanges", () => {
       expect(
-        getSurveyDesignStatus({
+        resolveSurveyDesignStatus({
           ...baseInput,
           isOnJsonTab: true,
           hasUnsavedChanges: true,

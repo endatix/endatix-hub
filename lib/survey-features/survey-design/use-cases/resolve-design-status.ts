@@ -1,8 +1,3 @@
-/**
- * Pure status logic for SurveyDesignStatusBadge. No React, no DOM.
- * Used by the badge component and by tests.
- */
-
 export enum SurveyDesignStatus {
   NoChanges = "NoChanges",
   InvalidJson = "InvalidJson",
@@ -22,45 +17,31 @@ export interface SurveyDesignStatusInput {
 }
 
 /**
- * Resolves which status badge to show. Priority order:
- * 1. Invalid JSON (block save)
- * 2. JSON modified (on JSON tab)
- * 3. Unsaved changes (not on JSON tab)
- * 4. Save in progress
- * 5. Saved success
- * 6. No changes
+ * The one status the design badge shows, highest priority first: a blocked save
+ * (invalid JSON) outranks pending edits, which outrank save progress and success.
  */
-export function getSurveyDesignStatus(
-  input: SurveyDesignStatusInput,
-): SurveyDesignStatus {
-  const {
-    hasJsonErrors,
-    isOnJsonTab,
-    isJsonModified,
-    hasUnsavedChanges,
-    isSaving = false,
-    showSavedSuccess = false,
-  } = input;
-
+export function resolveSurveyDesignStatus({
+  hasJsonErrors,
+  isOnJsonTab,
+  isJsonModified,
+  hasUnsavedChanges,
+  isSaving = false,
+  showSavedSuccess = false,
+}: SurveyDesignStatusInput): SurveyDesignStatus {
   if (hasJsonErrors) {
     return SurveyDesignStatus.InvalidJson;
   }
-
   if (isJsonModified && isOnJsonTab) {
     return SurveyDesignStatus.JsonModified;
   }
-
   if (hasUnsavedChanges) {
     return SurveyDesignStatus.UnsavedChanges;
   }
-
   if (isSaving) {
     return SurveyDesignStatus.SaveInProgress;
   }
-
   if (showSavedSuccess) {
     return SurveyDesignStatus.Saved;
   }
-
   return SurveyDesignStatus.NoChanges;
 }

@@ -37,6 +37,7 @@ import {
 import { useQuestionLoops } from "@/lib/survey-features/question-loops";
 import { useRichTextEditing } from "@/lib/survey-features/rich-text";
 import { useLoopAwareSummaryTableEditing } from "@/lib/survey-features/summary-table";
+import { useCreatorTabUrl } from "@/lib/survey-features/survey-design/ui";
 import { applyEndatixCreatorTheme } from "@/lib/themes/creator-theme";
 import { registerThemes } from "@/lib/themes/survey-theme";
 import { useEndatixCreatorTheme } from "@/lib/themes/use-endatix-themes";
@@ -234,6 +235,7 @@ function FormEditor({
     creator,
     markFormModified,
   });
+  useCreatorTabUrl(creator);
 
   const saveCustomQuestion = useCallback(
     async (element: Question, questionName: string, questionTitle: string) => {

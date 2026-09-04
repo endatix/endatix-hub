@@ -10,8 +10,6 @@ import {
   FormDiagnosticsStats,
 } from "./form-diagnostics-logic";
 
-export const FORM_DIAGNOSTICS_PLUGIN_NAME = "form-diagnostics";
-
 /**
  * Survey Creator plugin for the Form Diagnostics feature.
  * Extends Base to provide reactive properties directly.
