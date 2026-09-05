@@ -5,6 +5,7 @@
 - Keep Hub features organized as vertical slices under `features/{feature}/{verb-noun}/`.
 - Put reusable cross-feature utilities in `lib/`; keep feature-specific business logic inside the owning feature slice.
 - Chrome shared by two or more slices of the same feature lives in `features/{feature}/ui/` (e.g. `platform-admin/ui/platform-admin-shell.tsx`, `tenant-access-fields.tsx` used by `create-tenant` and `update-tenant`). Do not park it in one slice and import across siblings, and do not invent a vague umbrella slice to hold it — a slice is one verb-noun action.
+- Physical file kinds (`csv`, `xlsx`, `png`, …) live in [`lib/file-kinds/`](lib/file-kinds/) (server-safe catalog: extension, MIME, label, group). Render with `FileKindIcon` / `FileKindLabel` from [`components/common/file-kind-icon.tsx`](components/common/file-kind-icon.tsx). Feature code maps its vocabulary to `FileKindKey` and never returns a Lucide icon. Visual rules: DESIGN.md §5 File Type Marks. Placement: [`project-structure.md`](project-structure.md) “Where UI for a shared concept lives”.
 - Keep `app/` routing-focused. Data mutations should flow through server actions.
 
 ## SurveyJS domain
@@ -160,6 +161,23 @@ Standalone esbuild IIFE (`public/embed/v1/embed.js`) for third-party host pages.
 - **Height is reported, never pinned.** `EmbedHeightReporter` posts `document.body.scrollHeight` on every mutation/resize; the host clamps it. Do not freeze reporting around submit — the complete page is shorter than the form, so a frozen height leaves the thank-you page below the iframe fold (h947).
 - **No viewport-percentage units under `.embedShell`** (`vh`/`vw`/`vmin`/`vmax`/`vi`/`vb` and `s`/`l`/`d` variants). Inside the iframe they resolve against the height we reported, so each resize shrinks the next one. Viewport units belong on standalone `.layoutFullHeight`; `survey-component-embed-css.test.ts` pins this.
 - **Scroll signal.** `endatix:scroll` is smooth by default; `onCompleting` sends `behavior: "instant"` so the host is at the iframe top before the form collapses. Current `embed.js` eases the following `endatix:resize` once (`prefers-reduced-motion` skips the transition). Older hosts ignore `behavior` and keep smooth.
+## Tests
+
+Vitest. AAA regions in every `it` that has distinct phases:
+
+```ts
+it("renders the xlsx glyph", () => {
+  // Arrange & Act
+  const { container } = render(<FileKindIcon kind="xlsx" />);
+
+  // Assert
+  expect(container.querySelector("svg")?.className).toContain("file-spreadsheet");
+});
+```
+
+- Setup then call then expect → `// Arrange` / `// Act` / `// Assert`.
+- Render+assert or a table of `expect(fn())` with no setup → `// Act & Assert`.
+- Skip labels only when the whole `it` is a one-liner (`expect(fn()).toBe(x)`). Folders: [`project-structure.md`](project-structure.md) Testing Convention.
 
 ## Mirrored OSS rules
 

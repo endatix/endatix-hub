@@ -178,7 +178,6 @@ function ReportingExportSubmissionsButton({
 }
 
 interface LegacyExportMenuItem {
-  /** Stable identity for the in-flight spinner — two exports may share a name. */
   key: string;
   label: string;
   fileKind: BuiltInExportFileKind;
@@ -186,7 +185,6 @@ interface LegacyExportMenuItem {
   exportName?: string;
 }
 
-/** Built-in downloads the legacy export endpoint serves without tenant setup. */
 const BUILT_IN_LEGACY_EXPORTS: readonly LegacyExportMenuItem[] = [
   {
     key: "built-in:csv",
