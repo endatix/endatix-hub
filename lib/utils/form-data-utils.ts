@@ -20,3 +20,9 @@ export function getStringFormValues(formData: FormData, key: string): string[] {
     .getAll(key)
     .filter((value): value is string => typeof value === "string");
 }
+
+/** True when the field is the checkbox values `"true"` or `"on"`. */
+export function getBooleanFormValue(formData: FormData, key: string): boolean {
+  const value = formData.get(key);
+  return value === "true" || value === "on";
+}
