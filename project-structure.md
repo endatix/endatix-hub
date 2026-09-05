@@ -140,7 +140,7 @@ Reporting export is a dedicated feature (not nested under `forms/` or `submissio
 | `export-submissions`       | Submissions list       | Tenant-configured export download via `exportFormatId` (+ legacy `CustomExports` when flag off). Owns the Export dialog: readiness check, auto prepare when schema missing, optional **Rebuild reporting data…** (manual prepare + full recompile), format + capability-aware filters. |
 | `manage-export-formats`    | Tenant settings (E10b) | CRUD UI for tenant export formats + tenant default mapping picker (alias, key separator, include-test)                                                                                                                                                                                 |
 
-Shared feature root: `types.ts`, `utils.ts` (wire key / delivery enum → `FileKindKey`), `export-url.ts`, `export-error-message.ts`. Physical file kinds (label, extension, MIME, group) live in `lib/file-kinds/` — including `image` / `audio` / `video` groups; the barrel stays free of `lucide-react` so server code can import it, with the icon map in `lib/file-kinds/file-kind-icons.ts` and the rendered mark in `components/common/file-kind-icon.tsx` (`FileKindIcon`, `FileKindLabel`). Reporting `wireKey` catalog is `lib/endatix-api/reporting/reporting-export-wire.ts` (maps each wire key to a file kind + codebook flag). Export route `app/api/forms/[formId]/export/route.ts` stays thin and delegates parsing to `export-submissions/parse-export-query.ts`. Delivery options in Create format come from the API capabilities catalog (`wireKey` e.g. `xlsx`); tenant format rows drive the submissions export dialog.
+Shared feature root: `types.ts`, `utils.ts` (wire key / delivery enum → `FileKindKey`), `export-url.ts`, `export-error-message.ts`. Reporting `wireKey` catalog: `lib/endatix-api/reporting/reporting-export-wire.ts`. File kinds and the rendered mark: `lib/file-kinds/` + `components/common/file-kind-icon.tsx` (see “Where UI for a shared concept lives”). Export route stays thin and delegates parsing to `export-submissions/parse-export-query.ts`. Create-format delivery options come from the API capabilities catalog (`wireKey` e.g. `xlsx`); tenant format rows drive the submissions export dialog.
 
 Import from `@/features/export` (client UI) or `@/features/export/server` (server actions). Slice barrels: `@/features/export/export-submissions`, `@/features/export/prepare-reporting-export`, `@/features/export/manage-export-formats`.
 
@@ -185,6 +185,7 @@ Use `__tests__/` folders for test organization:
 - **Feature level (optional)**: `features/{name}/__tests__/` - Cross-slice integration and shared feature helpers
 - **Component level**: Place `.test.tsx` files alongside components when testing specific UI behavior
 - **Focus on slices**: Test actions, loaders, hooks, and UI inside the slice where they live
+- **AAA regions**: `// Arrange` / `// Act` / `// Assert` (or `// Act & Assert` when there is no setup). Skip only when the `it` is a one-liner with no distinct phases. Full rule: `hub/AGENTS.md` Tests and `.cursor/rules/endatix-hub-rules.mdc`.
 
 ## Layers
 

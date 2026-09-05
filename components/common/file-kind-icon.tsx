@@ -7,19 +7,12 @@ import type { FileKindKey } from "@/lib/file-kinds";
 import { cn } from "@/lib/utils";
 
 interface FileKindIconProps {
-  /**
-   * Physical file kind this option delivers. `undefined` renders the generic
-   * file glyph — a format Hub does not recognise must not borrow another
-   * kind's icon, which would tell the reader they are downloading a CSV.
-   */
+  /** Omit for an unknown kind — generic file glyph, never a guessed type. */
   kind?: FileKindKey;
   className?: string;
 }
 
-/**
- * Marks the file type an export option delivers. Muted and icon-only: this is
- * a type marker, not a status — see the Status & State Vocabulary in DESIGN.md.
- */
+/** Muted file-type mark. Not a status — see DESIGN.md File Type Marks. */
 export function FileKindIcon({ kind, className }: Readonly<FileKindIconProps>) {
   const Icon = kind ? getFileKindIcon(kind) : File;
 
@@ -35,10 +28,7 @@ interface FileKindLabelProps extends FileKindIconProps {
   children: ReactNode;
 }
 
-/**
- * Icon + label row used by every export format picker and list cell, so the
- * same format reads identically in a Select, a table cell and a menu item.
- */
+/** Icon + label row for export pickers, menus, and table cells. */
 export function FileKindLabel({
   kind,
   className,

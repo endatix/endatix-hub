@@ -1,11 +1,6 @@
-import {
-  isCodebookFormatKey,
-  type BuiltInExportFileKind,
-} from "@/lib/endatix-api/reporting/reporting-export-wire";
+import type { BuiltInExportFileKind } from "@/lib/endatix-api/reporting/reporting-export-wire";
 import { appendDateRangeFilters } from "@/lib/endatix-api/shared/list-query";
 import { withBasePath } from "@/lib/hosting";
-
-export { isCodebookFormatKey };
 
 /**
  * SurveyJS / FormSchema default locale key (SurveyJS uses "default" when no
@@ -258,7 +253,6 @@ export function buildLegacyExportUrl(
   }
 
   const query = params.toString();
-  return withBasePath(
-    `/api/forms/${formId}/export${query ? `?${query}` : ""}`,
-  );
+  const path = `/api/forms/${formId}/export`;
+  return withBasePath(query ? `${path}?${query}` : path);
 }

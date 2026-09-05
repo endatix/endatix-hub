@@ -5,6 +5,7 @@
 - Keep Hub features organized as vertical slices under `features/{feature}/{verb-noun}/`.
 - Put reusable cross-feature utilities in `lib/`; keep feature-specific business logic inside the owning feature slice.
 - Chrome shared by two or more slices of the same feature lives in `features/{feature}/ui/` (e.g. `platform-admin/ui/platform-admin-shell.tsx`, `tenant-access-fields.tsx` used by `create-tenant` and `update-tenant`). Do not park it in one slice and import across siblings, and do not invent a vague umbrella slice to hold it — a slice is one verb-noun action.
+- Physical file kinds (`csv`, `xlsx`, `png`, …) live in [`lib/file-kinds/`](lib/file-kinds/) (server-safe catalog: extension, MIME, label, group). Render with `FileKindIcon` / `FileKindLabel` from [`components/common/file-kind-icon.tsx`](components/common/file-kind-icon.tsx). Feature code maps its vocabulary to `FileKindKey` and never returns a Lucide icon. Visual rules: DESIGN.md §5 File Type Marks. Placement: [`project-structure.md`](project-structure.md) “Where UI for a shared concept lives”.
 - Keep `app/` routing-focused. Data mutations should flow through server actions.
 
 ## SurveyJS domain
@@ -148,6 +149,24 @@ When a detail page has a "Back to `<list>`" control that should restore the list
 - `parse` / `buildHref` should be stable references (module-level functions, not inline closures) — they're effect dependencies on `BackToTableButton`.
 - Reference implementation: `features/data-lists/view-lists/utils.ts` (`parseDataListsReturnQuery`, `dataListsListHrefFromQuery`), wired into `data-lists-page.tsx` (remember) and `data-list-details-page.tsx` (`BackToTableButton`).
 - `features/submissions/list-submission-query/submission-list-return-to.ts` + `back-to-submissions-button.tsx` predate this shared abstraction (bespoke sessionStorage, same shape, not yet migrated). Move it onto `table-return-to` / `BackToTableButton` next time that code is touched rather than adding a third bespoke copy.
+
+## Tests
+
+Vitest. AAA regions in every `it` that has distinct phases:
+
+```ts
+it("renders the xlsx glyph", () => {
+  // Arrange & Act
+  const { container } = render(<FileKindIcon kind="xlsx" />);
+
+  // Assert
+  expect(container.querySelector("svg")?.className).toContain("file-spreadsheet");
+});
+```
+
+- Setup then call then expect → `// Arrange` / `// Act` / `// Assert`.
+- Render+assert or a table of `expect(fn())` with no setup → `// Act & Assert`.
+- Skip labels only when the whole `it` is a one-liner (`expect(fn()).toBe(x)`). Folders: [`project-structure.md`](project-structure.md) Testing Convention.
 
 ## Mirrored OSS rules
 
