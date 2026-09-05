@@ -1,3 +1,4 @@
+import type { BuiltInExportFileKind } from "@/lib/endatix-api/reporting/reporting-export-wire";
 import { appendDateRangeFilters } from "@/lib/endatix-api/shared/list-query";
 import { withBasePath } from "@/lib/hosting";
 
@@ -35,15 +36,6 @@ export type ExportCompletionStatusFilter =
 /** Hub dialog default — BI-friendly completed-only export. */
 export const DEFAULT_EXPORT_COMPLETION_STATUS =
   EXPORT_COMPLETION_STATUS.completed;
-
-export const CODEBOOK_FORMAT_KEYS: ReadonlySet<string> = new Set([
-  "codebook",
-  "codebook-shoji",
-]);
-
-export function isCodebookFormatKey(formatKey: string): boolean {
-  return CODEBOOK_FORMAT_KEYS.has(formatKey);
-}
 
 /** Filters inherited from the submissions list URL or custom export dialog. */
 export interface SubmissionExportListFilters {
@@ -250,12 +242,17 @@ export function buildReportingExportUrl(
 export function buildLegacyExportUrl(
   formId: string,
   exportId?: string,
+  format: BuiltInExportFileKind = "csv",
 ): string {
+  const params = new URLSearchParams();
   if (exportId) {
-    return withBasePath(
-      `/api/forms/${formId}/export?exportId=${encodeURIComponent(exportId)}`,
-    );
+    params.set("exportId", exportId);
+  }
+  if (format !== "csv") {
+    params.set("format", format);
   }
 
-  return withBasePath(`/api/forms/${formId}/export`);
+  const query = params.toString();
+  const path = `/api/forms/${formId}/export`;
+  return withBasePath(query ? `${path}?${query}` : path);
 }

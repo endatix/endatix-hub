@@ -10,6 +10,7 @@ import {
   type SortRequest,
 } from "../shared/types";
 import { ApiResult } from "../shared/api-result";
+import type { ReportingExportWireKey } from "../reporting/reporting-export-wire";
 
 /**
  * Submissions Types
@@ -88,13 +89,8 @@ export type UpdateSubmissionStatusDto = {
   status: SubmissionStatus;
 };
 
-export type ExportFormat =
-  | "csv"
-  | "csv-shoji"
-  | "xlsx"
-  | "json"
-  | "codebook"
-  | "codebook-shoji";
+export type { ReportingExportWireKey } from "../reporting/reporting-export-wire";
+export type ExportFormat = ReportingExportWireKey;
 
 export type ExportSubmissionsDto = {
   exportFormat?: ExportFormat;
@@ -105,12 +101,6 @@ export type ExportSubmissionsDto = {
   };
 };
 
-export type ReportingExportWireKey =
-  | "csv"
-  | "csv-shoji"
-  | "json"
-  | "codebook"
-  | "codebook-shoji";
 export type BooleanFilterValue = "true" | "false";
 export type SubmissionReviewStatus = "new" | "read" | "approved";
 

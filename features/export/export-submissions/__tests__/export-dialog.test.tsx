@@ -73,24 +73,51 @@ vi.mock("@/components/ui/dialog", () => ({
 vi.mock("@/components/ui/select", async (importOriginal) => {
   const React = await import("react");
 
+  type SelectWalkProps = {
+    id?: string;
+    value?: unknown;
+    children?: React.ReactNode;
+  };
+
+  function textOf(node: React.ReactNode): string {
+    if (typeof node === "string" || typeof node === "number") {
+      return String(node);
+    }
+
+    if (Array.isArray(node)) {
+      return node.map(textOf).join("");
+    }
+
+    if (
+      React.isValidElement<SelectWalkProps>(node) &&
+      node.props.children != null
+    ) {
+      return textOf(node.props.children);
+    }
+
+    return "";
+  }
+
   function walkOptions(
     node: React.ReactNode,
   ): Array<{ value: string; label: string }> {
     const opts: Array<{ value: string; label: string }> = [];
     React.Children.forEach(node, (child) => {
-      if (React.isValidElement(child)) {
-        if (
-          typeof child.props.value === "string" &&
-          typeof child.props.children === "string"
-        ) {
+      if (!React.isValidElement<SelectWalkProps>(child)) {
+        return;
+      }
+
+      if (typeof child.props.value === "string") {
+        const label = textOf(child.props.children).trim();
+        if (label) {
           opts.push({
             value: child.props.value,
-            label: child.props.children,
+            label,
           });
         }
-        if (child.props.children) {
-          opts.push(...walkOptions(child.props.children));
-        }
+      }
+      if (child.props.children) {
+        opts.push(...walkOptions(child.props.children));
       }
     });
     return opts;
@@ -99,7 +126,7 @@ vi.mock("@/components/ui/select", async (importOriginal) => {
   function findTriggerId(node: React.ReactNode): string | undefined {
     let found: string | undefined;
     React.Children.forEach(node, (child) => {
-      if (found || !React.isValidElement(child)) {
+      if (found || !React.isValidElement<SelectWalkProps>(child)) {
         return;
       }
 

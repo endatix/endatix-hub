@@ -1,10 +1,15 @@
-import type { ExportFormat, ReportingExportFormat } from "../types";
+import {
+  isReportingExportWireKey,
+  isBuiltInExportFileKind,
+  type BuiltInExportFileKind,
+} from "@/lib/endatix-api/reporting/reporting-export-wire";
 import { parseCalendarDateYmd } from "@/lib/endatix-api/shared/list-query";
+import type { ReportingExportFormat } from "../types";
 
 export function parseLegacyExportFormat(
   format: string | null,
-): ExportFormat | undefined {
-  if (format === "csv" || format === "xlsx" || format === "json") {
+): BuiltInExportFileKind | undefined {
+  if (format && isBuiltInExportFileKind(format)) {
     return format;
   }
 
@@ -14,13 +19,7 @@ export function parseLegacyExportFormat(
 export function parseReportingExportFormat(
   format: string | null,
 ): ReportingExportFormat | undefined {
-  if (
-    format === "csv" ||
-    format === "csv-shoji" ||
-    format === "json" ||
-    format === "codebook" ||
-    format === "codebook-shoji"
-  ) {
+  if (format && isReportingExportWireKey(format)) {
     return format;
   }
 

@@ -22,6 +22,79 @@ Quick reference for organizing features using vertical slice architecture.
 - **Reusable libraries** that can be published independently
 - **Workspace packages** that other projects can consume
 
+### Use `components/` for:
+
+- **Cross-feature UI** with no single owning domain
+- **Design-system vocabulary** governed by `DESIGN.md`
+- **Vendor primitives** (`components/ui/`, shadcn)
+
+## Where UI for a shared concept lives
+
+A reusable concept that grows a UI (file kinds, list tables, statuses) does
+**not** automatically grow a `ui/` folder next to its logic. Two shapes already
+exist in this repo and they are not interchangeable:
+
+| Shape                            | When                                                                                                                      | Example                                                                                                                                   |
+| :------------------------------- | :------------------------------------------------------------------------------------------------------------------------ | :---------------------------------------------------------------------------------------------------------------------------------------- |
+| `lib/<domain>/<slice>/ui/`       | The domain is itself a vertical slice — client-only, owns its use-cases, and its UI has exactly one consumer: that domain | `lib/survey-features/form-diagnostics/ui/`, `lib/survey-extensions/ui/`                                                                   |
+| `lib/<domain>/` + `components/…` | The logic is a catalog or helper many unrelated features read, and the UI is presentation vocabulary over it              | `lib/list-page/table-return-to` + `components/table/back-to-table-button.tsx`; `lib/file-kinds/` + `components/common/file-kind-icon.tsx` |
+
+**Decision rule — apply in order; the first test that answers, wins:**
+
+1. **Does server code import the domain?** If a route handler, server action or
+   server page imports it, UI must not live inside it. One `"use client"` file
+   with a `lucide-react` import turns the domain's barrel into a client
+   dependency, and the next `import { FILE_KINDS } from "@/lib/file-kinds"` in a
+   route handler drags React into a request path. This test is mechanical, not
+   taste, and it is why `lib/file-kinds/` has no `ui/`.
+2. **Who consumes the UI?** One domain, and only through that domain → keep it
+   domain-local in `lib/<domain>/<slice>/ui/`. Unrelated features import it
+   directly → `components/`.
+3. **Does `DESIGN.md` govern how it looks?** A status pill, a file mark, table
+   chrome — anything with a rule in the design system — lives in `components/`,
+   where the §5 component index points. A component the design system describes
+   but that is filed inside one domain will be re-invented by the next feature
+   that cannot find it.
+
+**Placement inside `components/`:**
+
+- `components/ui/` — shadcn/vendor primitives. Do not add hand-written Hub
+  components here; a local component in this folder reads as vendor code and
+  gets clobbered by the next generator run.
+- `components/common/` — a single design-vocabulary component per file, no
+  barrel, imported by full path (`@/components/common/status-badge`).
+- `components/<domain>/` — a **set** of related parts with an `index.ts` barrel.
+  `components/table/` is the reference. Graduate a `common/` component here once
+  it is roughly three files, or once the parts share internal conventions
+  (naming, class-name helpers, meta types) that outsiders should not reach past
+  the barrel for. Moving one file is cheap; splitting a folder nobody can
+  navigate is not.
+
+**Worked example — file kinds (H933):**
+
+```text
+lib/file-kinds/file-kinds.ts        # catalog: extension, MIME, label, group — server-safe
+lib/file-kinds/file-kind-icons.ts   # kind → Lucide icon; kept out of index.ts so the
+lib/file-kinds/index.ts             #   barrel stays free of lucide-react (test 1)
+components/common/file-kind-icon.tsx  # FileKindIcon / FileKindLabel — the rendered mark (tests 2, 3)
+features/export/utils.ts            # export wire keys + delivery enum → FileKindKey
+```
+
+The catalog is data and stays in `lib/`. The mark is design-system vocabulary
+and stays in `components/`. Feature code maps its own vocabulary onto a
+`FileKindKey` and never returns a `LucideIcon` — see `DESIGN.md` §5 "File Type
+Marks". When file UI grows past this one component (previews, upload chips, size
+labels), it graduates to `components/files/` with a barrel; that is a move, not
+a redesign.
+
+**Anti-patterns:**
+
+- Creating `lib/<domain>/ui/` for a single component two features import. That
+  is a `components/common/` component with extra path.
+- Creating `components/<domain>/` for one file. Start in `common/`, graduate.
+- Duplicating a design-system component inside a domain because the shared one
+  was hard to find. Fix the index in `DESIGN.md` §5 instead.
+
 ## Feature Structure
 
 Vertical Slice Architecture: organize by business feature, then by use-case slice.
@@ -67,7 +140,7 @@ Reporting export is a dedicated feature (not nested under `forms/` or `submissio
 | `export-submissions`       | Submissions list       | Tenant-configured export download via `exportFormatId` (+ legacy `CustomExports` when flag off). Owns the Export dialog: readiness check, auto prepare when schema missing, optional **Rebuild reporting data…** (manual prepare + full recompile), format + capability-aware filters. |
 | `manage-export-formats`    | Tenant settings (E10b) | CRUD UI for tenant export formats + tenant default mapping picker (alias, key separator, include-test)                                                                                                                                                                                 |
 
-Shared feature root: `types.ts`, `export-url.ts`, `export-error-message.ts`. Export route `app/api/forms/[formId]/export/route.ts` stays thin and delegates parsing to `export-submissions/parse-export-query.ts`.
+Shared feature root: `types.ts`, `utils.ts` (wire key / delivery enum → `FileKindKey`), `export-url.ts`, `export-error-message.ts`. Reporting `wireKey` catalog: `lib/endatix-api/reporting/reporting-export-wire.ts`. File kinds and the rendered mark: `lib/file-kinds/` + `components/common/file-kind-icon.tsx` (see “Where UI for a shared concept lives”). Export route stays thin and delegates parsing to `export-submissions/parse-export-query.ts`. Create-format delivery options come from the API capabilities catalog (`wireKey` e.g. `xlsx`); tenant format rows drive the submissions export dialog.
 
 Import from `@/features/export` (client UI) or `@/features/export/server` (server actions). Slice barrels: `@/features/export/export-submissions`, `@/features/export/prepare-reporting-export`, `@/features/export/manage-export-formats`.
 
@@ -112,6 +185,7 @@ Use `__tests__/` folders for test organization:
 - **Feature level (optional)**: `features/{name}/__tests__/` - Cross-slice integration and shared feature helpers
 - **Component level**: Place `.test.tsx` files alongside components when testing specific UI behavior
 - **Focus on slices**: Test actions, loaders, hooks, and UI inside the slice where they live
+- **AAA regions**: `// Arrange` / `// Act` / `// Assert` (or `// Act & Assert` when there is no setup). Skip only when the `it` is a one-liner with no distinct phases. Full rule: `hub/AGENTS.md` Tests and `.cursor/rules/endatix-hub-rules.mdc`.
 
 ## Layers
 
@@ -435,8 +509,8 @@ Shared SurveyJS + Creator **types/vocab** only — no behavior, no choice helper
 
 | Path                               | Owns                                                                                                 |
 | ---------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `lib/survey-js/creator/tabs.ts`    | Creator tab ids — `ENDATIX_CREATOR_TAB` (built-ins + Hub plugin tabs) and `canonicalizeCreatorTabId`  |
-| `lib/survey-js/creator/tab-url.ts` | `?tab=` slug ↔ tab id (`design` → `designer`; Design omits the param)                                 |
+| `lib/survey-js/creator/tabs.ts`    | Creator tab ids — `ENDATIX_CREATOR_TAB` (built-ins + Hub plugin tabs) and `canonicalizeCreatorTabId` |
+| `lib/survey-js/creator/tab-url.ts` | `?tab=` slug ↔ tab id (`design` → `designer`; Design omits the param)                                |
 
 Behavior that reads this vocab stays in its slice's `use-cases/` — e.g. `lib/survey-features/survey-design/use-cases/`. Do not re-declare vendor types (`Question`, `SurveyCreatorModel`). Rules: `AGENTS.md` (SurveyJS domain).
 

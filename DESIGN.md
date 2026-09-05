@@ -77,6 +77,29 @@ We eschew traditional "structural lines" in favor of **Tonal Layering**.
 
 ## 5. Components
 
+### The shared component index
+
+Before building a control, check whether the vocabulary already exists. Every
+entry below is deliberately shared rather than per-feature: the same idea shows
+up in a table cell, a panel header and a review step, and three local copies
+drift into three shapes.
+
+| Component                                                                | Owns                                                              |
+| :----------------------------------------------------------------------- | :---------------------------------------------------------------- |
+| `components/common/status-badge.tsx` — `StatusBadge`                     | The three-tone on / off / attention pill (below)                  |
+| `components/common/file-kind-icon.tsx` — `FileKindIcon`, `FileKindLabel` | The file-type mark and its icon+label row (below)                 |
+| `components/common/panel-section.tsx` — `PanelSection`                   | A titled concern inside an overlay, on a nested surface (§6)      |
+| `components/common/summary-row.tsx` — `SummaryRow`                       | Label-left / value-right review rows (§6)                         |
+| `components/common/truncated-id.tsx` — `TruncatedId`                     | A long id shortened to head…tail with a copy affordance           |
+| `components/table` — `DataTableSurface` and friends                      | All list-table chrome (below)                                     |
+| `components/ui/responsive-panel.tsx` — `ResponsivePanel`                 | Desktop Sheet / Dialog ↔ mobile Drawer swap (§5 Overlay rulebook) |
+| `.grid-card-list` (`app/globals.css`)                                    | Peer-card grids without breakpoints (below)                       |
+
+When you add a component to this list, add its row here in the same change.
+Where a new shared component belongs — `components/common/`, a graduated
+`components/<domain>/`, or a domain-local `lib/<domain>/<slice>/ui/` — is decided
+by "Where UI for a shared concept lives" in `project-structure.md`.
+
 ### Cards & Layouts
 
 - **Constraint:** Forbid divider lines within cards.
@@ -123,6 +146,44 @@ grid-template-columns: repeat(auto-fill, minmax(min(var(--grid-card-min), 100%),
   bottom edge. The cost is whitespace inside short cards; ragged bottoms read as
   a bug, stretched cards read as a grid.
 
+### List Tables — `components/table`
+
+Every list of records — tenants, forms, submissions, data lists, export formats
+— uses the shared table chrome. It is a set of primitives, not one component, so
+a small static list and a paged sortable grid still look identical:
+
+| Export                                                                                      | Use                                                                          |
+| :------------------------------------------------------------------------------------------ | :--------------------------------------------------------------------------- |
+| `DataTableSurface`                                                                          | The rounded, softly-lifted container. Also dims rows during a URL transition |
+| `DataTableGrid`                                                                             | Header + body for a TanStack table                                           |
+| `DataTableEmpty`                                                                            | The empty state, **outside** the table element                               |
+| `dataTableHeaderCellClassName` / `dataTableBodyRowClassName` / `dataTableBodyCellClassName` | Sticky header, zebra fill and cell padding for a hand-rolled `<table>`       |
+| `dataTableColumnLabelClassName`                                                             | The uppercase muted column title                                             |
+| `DATA_TABLE_SHRINK_WRAP_CLASS_NAME`                                                         | Shrink a column to its content                                               |
+| `PagedTableFooter`, `DataTableToolbar`, `DataTableSkeleton`                                 | Pagination, filter bar, loading state                                        |
+
+**Rules:**
+
+- **A table is not card content.** `DataTableSurface` is already a raised
+  surface with its own radius and shadow; wrapping it in a `Card` stacks two
+  elevations to express one boundary, exactly as §6 forbids for panels. The
+  section title, description and primary action sit **above** the surface as
+  plain `h2` + `p` + `Button`, the way the tenants and data-lists pages do it.
+  A `Card` is for controls and prose; a `DataTableSurface` is for rows.
+- **Reach for the class-name helpers before reaching for TanStack.** A fixed
+  list of a handful of rows with no sorting, filtering or paging does not need a
+  table instance. Compose `DataTableSurface` + `Table` + the chrome helpers and
+  you get the same pixels for a fraction of the machinery. Add TanStack when you
+  actually need its behavior.
+- **Zebra parity is `index % 2 === 1`.** `DataTableGrid` computes `isEvenRow`
+  that way; a hand-rolled table that flips the parity will not match the grid on
+  the next page over.
+- **The empty state is not a full-width `<td>`.** Render `DataTableEmpty`
+  instead of the table, so the empty message is not framed by a header row
+  describing columns that have no data.
+- Pass `isStatic: true` to `dataTableHeaderCellClassName` for a header that
+  never scrolls under sticky positioning (short lists, skeletons).
+
 ### Buttons
 
 - **Primary:** Background `primary`, text `on_primary`. High-contrast, no shadow.
@@ -163,7 +224,9 @@ a destructive action. Never use it for "empty".
    pill with a leading `size-1.5 rounded-full bg-current` dot. Do not give one
    state a check icon and its sibling no icon — differing shapes read as
    differing _kinds_ of information, which is exactly the inconsistency this
-   section exists to kill.
+   section exists to kill. The one carve-out is a **file type mark**, which
+   describes what a thing _is_ rather than how it is doing — see File Type Marks
+   below.
 2. **Status badges are soft-tinted** (`bg-success/12 text-success`), never solid
    fills. Solid `default` (primary) is reserved for high-intent actions, per the
    Tonal Hierarchy. A page full of solid blue "Enabled" pills spends the brand's
@@ -181,6 +244,47 @@ a destructive action. Never use it for "empty".
    for the shared component instead. It is deliberately shared rather than
    per-feature: the same `On` / `Off` state appears in a table cell, a panel
    header and a review step, and three copies drift into three shapes.
+
+### File Type Marks — `FileKindIcon`
+
+A status tone answers "how is this doing?"; a file type mark answers "what will
+I get?" They are different questions, so the file mark is allowed the icon that
+the Status Vocabulary denies to status — but only under the same discipline that
+keeps status consistent.
+
+`lib/file-kinds/` is the single catalog of physical file kinds: extension, MIME
+type, human label and group (`data`, `document`, `image`, `audio`, `video`,
+`archive`). `components/common/file-kind-icon.tsx` turns a kind into the mark:
+`FileKindIcon` for the glyph alone, `FileKindLabel` for the icon+label row that
+a picker, a menu item or a table cell renders.
+
+**Rules:**
+
+1. **Every option in a list gets a mark, or none of them do.** A menu with a
+   file icon on two rows and a generic `Download` on the rest reads as two kinds
+   of action. If one export option earns an icon, they all do.
+2. **The mark is muted and uniform** — `size-4 text-muted-foreground`, owned by
+   the component. Do not tint it by format; the colour channel belongs to
+   status, and a green CSV next to a blue JSON invents a meaning neither has.
+3. **Never guess a kind.** `FileKindIcon` with no `kind` renders the generic
+   file glyph. A format this build does not recognise must not borrow another
+   kind's icon — showing a spreadsheet glyph for something that downloads as
+   JSON is worse than showing nothing specific. Resolvers therefore return
+   `FileKindKey | undefined`, not a defaulted icon.
+4. **Resolve the kind, not the icon.** Feature code maps its own vocabulary to a
+   `FileKindKey` (`features/export/utils.ts` maps reporting wire keys and the
+   delivery enum); the component owns which Lucide glyph, at what size, in what
+   tone. A feature that returns a `LucideIcon` has taken a design decision into
+   a data layer, and the next feature will take a different one.
+5. **Prefer the more specific source, fall back to the coarser one.** An export
+   format carries both a wire key (`csv-shoji`) and a delivery enum (`Csv`); the
+   wire key wins, and the enum keeps a server-side format newer than this Hub
+   build on the right glyph instead of on the fallback.
+6. **The catalog stays server-safe.** `lib/file-kinds/index.ts` deliberately
+   does **not** re-export the icons: the catalog is imported by route handlers
+   and other server code, and the icon map pulls in `lucide-react`. Import
+   glyphs from `@/components/common/file-kind-icon`, and the icon map itself
+   only from `lib/file-kinds/file-kind-icons`.
 
 ### Overlay Interaction Rulebook
 
@@ -347,6 +451,37 @@ the same status vocabulary, but the rows are controls.
   lead with a `success` Alert naming what was created, and give the reader the one
   artefact they came for (here, the sign-in URL).
 
+### Tenant settings pages
+
+Pages under `app/(main)/settings/…` where an operator both reviews _and_
+changes tenant configuration. Reference implementation:
+`features/export/manage-export-formats/ui/export-formats-settings.tsx`.
+
+**Anatomy, top to bottom:**
+
+1. **Page masthead** — `h1.text-3xl.font-semibold.tracking-tight` plus a muted
+   one-sentence purpose, in the route's `page.tsx`. Every settings page repeats
+   this shape; match it rather than inventing a heading scale. (It is a
+   `SettingsPageHeader` waiting to be extracted — do that as its own change, not
+   as a side effect of a feature.)
+2. **A `Card` per standalone control** — a single setting with a sentence of
+   explanation, e.g. the tenant default export format. Constrain the control
+   (`max-w-md`); a select stretched across an ultrawide reads as an error.
+3. **A list section per collection** — `h2.text-lg` + muted description + the
+   primary action on the right, then a `DataTableSurface` beneath. Not inside a
+   `Card`; see List Tables in §5.
+4. **Create / edit through `ResponsivePanel`**, delete through `AlertDialog`,
+   per the Overlay Interaction Rulebook.
+
+**Rules:**
+
+- A row's identity column carries the name plus any state marks (`Default`) as
+  a `StatusBadge`, wrapping inline — not a stack of a name over a pill.
+- A row that names a deliverable carries its `FileKindLabel`, and so does every
+  picker that selects one. The same format must look the same in the settings
+  table, in the tenant-default picker and in the export dialog; these three
+  drifting apart is how the vocabulary rots.
+
 ### Deciding on a new pattern
 
 When this document does not already answer a question, resolve it in this order,
@@ -383,6 +518,10 @@ and then **write the answer back into this file** as part of the same change:
 - **Do** let a shared section component own its own surface, so every panel that uses it looks the same.
 - **Do** disable a control that cannot take effect yet, and say in one line when it will.
 - **Do** reuse `StatusBadge` for a state wherever it appears — table cell, panel header, review step.
+- **Do** build every list of records on `components/table` — the class-name helpers alone when the list is small and static.
+- **Do** mark a file deliverable with `FileKindLabel` in every place it appears — picker, menu item, table cell.
+- **Do** render the generic file glyph for a kind this build does not know, rather than defaulting to a plausible one.
+- **Do** add a row to the shared component index (§5) in the same change that adds a shared component.
 
 ### Don't:
 
@@ -400,6 +539,11 @@ and then **write the answer back into this file** as part of the same change:
 - **Don't** nest a `Card` inside an overlay; a panel is already raised. Use `PanelSection` on a nested surface.
 - **Don't** show a warning for a risk the current settings make unreachable.
 - **Don't** render a state as a bare word in a review step when the same state is a badge everywhere else.
+- **Don't** wrap a `DataTableSurface` in a `Card`. The surface is already raised; the section title and action go above it.
+- **Don't** colour a file type mark by format. Colour carries status; type is muted and uniform.
+- **Don't** default an unknown format to another kind's icon — the mark then lies about what downloads.
+- **Don't** return a `LucideIcon` from feature code. Resolve to a `FileKindKey` and let the shared component pick the glyph.
+- **Don't** re-export the file-kind icons from `lib/file-kinds/index.ts`; the catalog is imported by server code and must stay free of `lucide-react`.
 
 ---
 

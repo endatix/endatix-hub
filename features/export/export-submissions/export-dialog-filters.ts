@@ -1,10 +1,10 @@
 import type { ExportTarget } from "@/lib/endatix-api/reporting/reporting";
+import { isCodebookFormatKey } from "@/lib/endatix-api/reporting/reporting-export-wire";
 import {
   DEFAULT_EXPORT_COMPLETION_STATUS,
   DEFAULT_REPORTING_LOCALE,
   EXPORT_COMPLETION_STATUS,
   EXPORT_REQUEST_FILTER,
-  isCodebookFormatKey,
   type ExportCompletionStatusFilter,
   type SubmissionExportListFilters,
 } from "../export-url";

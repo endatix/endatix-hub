@@ -34,6 +34,9 @@ describe("export url builders", () => {
     expect(buildLegacyExportUrl("100", "custom-1")).toBe(
       "/api/forms/100/export?exportId=custom-1",
     );
+    expect(buildLegacyExportUrl("100", undefined, "xlsx")).toBe(
+      "/api/forms/100/export?format=xlsx",
+    );
   });
 
   it("builds reporting export urls with format and exportFormatId", () => {
