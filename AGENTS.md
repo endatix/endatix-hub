@@ -51,6 +51,10 @@ prefix, not `"use client"`, is what decides.
 ## Server Actions
 
 - Server action files must use `"use server"` and return `Result<T>` for operation outcomes (default). Use `ServerActionState` only for FormData / `useActionState` flows that need Zod field-level errors.
+- Type `ServerActionState<T>` from the posted form shape (same keys as the Zod schema). Field errors live on `errors` (`DeepFieldErrors<T>`). Show them with `firstFieldError(errors, "name")`.
+- Zod field failures: `ServerActionState.fromZodError` — no `message` when every issue has a path. Bind **every** schema path in the UI. Toast helpers that skip when `errors` is set are correct; silent UI means a field was not bound.
+- API / catalog / flag failures in FormData actions: `toResult` then `ServerActionState.fromFailure(result, rawData)` (or a domain `string`). That sets `message` and does **not** set `errors`, so toasts fire.
+- Do not hand-build `z.ZodIssue[]` / `new z.ZodError(issues)`. Put extra rules on the schema with `.superRefine` (`ctx.addIssue`). Do not `ApiResult.isSuccess` then `toResult` only on failure — always `toResult` first.
 - Keep actions thin: authenticate, authorize, call the API or use case, revalidate paths when needed, and return a typed result.
 - For Endatix API calls returning `ApiResult<T>`, **always** map with `toResult(...)` from `lib/result/map-api-result-to-result`. Do **not** hand-write `if (!apiResult.success) return Result.error(apiResult.error.message)`. Existing `mapToResult(...)` is equivalent; prefer `toResult(...)` for new/touched code.
 - Pass `fallbackMessage`, `logMessage`, and `loggerName` so unexpected failures log via `TelemetryLogger` while expected 403/404/validation stay user-facing without noisy logs.
@@ -178,7 +182,7 @@ Some Hub modules re-implement an OSS Core rule so the UI can validate before a r
 ## Error Handling
 
 - Preserve API-provided user-facing messages, validation errors, and error codes through the shared result mappers.
-- Use `parseZodError()` or `ServerActionState.fromZodError()` for Zod validation failures in form actions.
+- Use `parseZodError()` or `ServerActionState.fromZodError()` for Zod validation failures in form actions. Use `ServerActionState.fromFailure()` for operational `Result` errors on those same FormData actions.
 - For any `ApiResult<T>`, prefer `toResult(...)` — it maps to `Result` and owns unexpected-failure telemetry when `logMessage` / `loggerName` are set. Expected validation/auth/403/404/rate-limit are suppressed inside `toResult`; do not duplicate that classification with local filters or ad hoc `TelemetryLogger.error` on `!apiResult.success`.
 - `toResult` / `mapApiErrorToResult` must preserve ProblemDetails support fields on `Result` errors: `traceId`, `statusCode`, and `errorCode`. Do not drop them when mapping.
 - Do not log expected user/action failures such as validation, authentication, or authorization failures as application errors.
@@ -216,6 +220,27 @@ if (Result.isSuccess(result)) {
 }
 
 return result;
+```
+
+### Example: FormData action (`fromZodError` / `fromFailure`)
+
+```typescript
+const validated = schema.safeParse(rawData);
+if (!validated.success) {
+  return ServerActionState.fromZodError(validated.error, rawData);
+}
+
+const result = toResult(await api.reporting.exportFormats.create(body), {
+  fallbackMessage: "Failed to create export format.",
+  logMessage: "Failed to create export format.",
+  loggerName: "export.manage-export-formats",
+});
+if (Result.isSuccess(result)) {
+  revalidatePath("/settings/organization/export-formats");
+  return { isSuccess: true, message: "Export format created." };
+}
+
+return ServerActionState.fromFailure(result, rawData);
 ```
 
 ### Example: composing action (rollback / multi-step)

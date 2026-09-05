@@ -10,6 +10,7 @@ import type {
   ExportFormatListItem,
 } from "@/lib/endatix-api/reporting/export-format-types";
 import { getExportFormatTypeLabel } from "@/lib/endatix-api/reporting/export-format-types";
+import { firstFieldError } from "@/lib/utils/zod-error-utils";
 import { ExportFormatAdvancedFields } from "./export-format-advanced-fields";
 import { ExportFormatTypeFields } from "./export-format-type-fields";
 import {
@@ -112,7 +113,7 @@ export function ExportFormatFormFields({
               setValues((current) => ({ ...current, name: event.target.value }))
             }
           />
-          <FieldError message={fieldErrors?.name?.[0]} />
+          <FieldError message={firstFieldError(fieldErrors, "name")} />
         </div>
 
         {!isEdit ? (
@@ -127,9 +128,9 @@ export function ExportFormatFormFields({
             availableProfiles={availableProfiles}
             selectedProfileDescription={selectedProfileCapability?.description}
             fieldErrors={{
-              exportTarget: fieldErrors?.exportTarget?.[0],
-              deliveryFormat: fieldErrors?.deliveryFormat?.[0],
-              profile: fieldErrors?.profile?.[0],
+              exportTarget: firstFieldError(fieldErrors, "exportTarget"),
+              deliveryFormat: firstFieldError(fieldErrors, "deliveryFormat"),
+              profile: firstFieldError(fieldErrors, "profile"),
             }}
             onTargetChange={handleTargetChange}
             onDeliveryChange={handleDeliveryChange}
@@ -181,7 +182,7 @@ export function ExportFormatFormFields({
           keySeparator={values.keySeparator}
           namingConventions={namingConventions}
           selectedNamingConvention={selectedNamingConvention}
-          keySeparatorError={fieldErrors?.keySeparator?.[0]}
+          keySeparatorError={firstFieldError(fieldErrors, "keySeparator")}
           accordionValue={advancedSection}
           onAccordionValueChange={setAdvancedSection}
           onAliasProfileChange={(aliasProfile) =>
