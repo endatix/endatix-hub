@@ -21,6 +21,7 @@ import type {
   UpdateExportFormatRequestBody,
 } from "@/lib/endatix-api/reporting/reporting";
 import { normalizeExportCapabilities } from "@/lib/endatix-api/reporting/normalize-export-capabilities";
+import { DELIVERY_VALUES } from "@/lib/endatix-api/reporting/normalize-export-enums";
 import { normalizeExportNamingConventions } from "@/lib/endatix-api/reporting/normalize-export-naming-conventions";
 import { reportingExportFlag } from "@/lib/feature-flags/flags";
 import { Result } from "@/lib/result";
@@ -30,7 +31,12 @@ import { createEndatixIdSchema } from "@/lib/utils/type-validators";
 import { ServerActionState } from "@/lib/utils/zod-error-utils";
 
 const exportTargetSchema = z.enum(["Submissions", "Codebook"]);
-const deliveryFormatSchema = z.enum(["Csv", "Json"]);
+const deliveryFormatSchema = z.enum(
+  DELIVERY_VALUES as [
+    (typeof DELIVERY_VALUES)[number],
+    ...(typeof DELIVERY_VALUES)[number][],
+  ],
+);
 const profileSchema = z.enum(["Native", "Shoji"]);
 const exportFormatIdSchema = createEndatixIdSchema("exportFormatId");
 

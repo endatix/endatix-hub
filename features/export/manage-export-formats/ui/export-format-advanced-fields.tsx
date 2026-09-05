@@ -32,8 +32,8 @@ interface ExportFormatAdvancedFieldsProps {
   namingConventions: ColumnAliasNamingConventionDto[];
   selectedNamingConvention?: ColumnAliasNamingConventionDto;
   keySeparatorError?: string;
-  accordionValue: string | undefined;
-  onAccordionValueChange: (value: string | undefined) => void;
+  accordionValue: string;
+  onAccordionValueChange: (value: string) => void;
   onAliasProfileChange: (value: string) => void;
   onKeySeparatorChange: (value: string) => void;
 }
