@@ -15,6 +15,9 @@ import type {
   ColumnAliasNamingConventionDto,
   CreateExportFormatRequestBody,
   ExportCapabilityDto,
+  ExportDeliveryFormat,
+  ExportProfile,
+  ExportTarget,
   UpdateExportFormatRequestBody,
 } from "@/lib/endatix-api/reporting/reporting";
 import { normalizeExportCapabilities } from "@/lib/endatix-api/reporting/normalize-export-capabilities";
@@ -91,11 +94,18 @@ const REPORTING_EXPORT_DISABLED_MESSAGE =
   "Reporting export is not enabled for this environment.";
 
 type SettingsFields = z.infer<typeof exportFormatSettingsObjectSchema>;
-type UpdateFields = z.infer<typeof updateExportFormatSchema>;
-type PostedExportFormatFields = {
-  [K in keyof UpdateFields]?: K extends "includeTestSubmissions"
-    ? boolean
-    : string;
+
+/** Posted form values echoed back for `defaultValues` — matches form field unions. */
+export type PostedExportFormatFields = {
+  exportFormatId?: string;
+  name?: string;
+  description?: string;
+  exportTarget?: ExportTarget | "";
+  deliveryFormat?: ExportDeliveryFormat | "";
+  profile?: ExportProfile | "";
+  aliasProfile?: string;
+  keySeparator?: string;
+  includeTestSubmissions?: boolean;
 };
 
 export type ExportFormatActionState =
@@ -144,12 +154,16 @@ function catalogSelectionSchema(
     });
 }
 
-function readExportFormatForm(formData: FormData) {
+function readExportFormatForm(formData: FormData): PostedExportFormatFields {
   return {
     name: getStringFormValue(formData, "name"),
-    exportTarget: getStringFormValue(formData, "exportTarget"),
-    deliveryFormat: getStringFormValue(formData, "deliveryFormat"),
-    profile: getStringFormValue(formData, "profile"),
+    exportTarget: getStringFormValue(formData, "exportTarget") as
+      | ExportTarget
+      | "",
+    deliveryFormat: getStringFormValue(formData, "deliveryFormat") as
+      | ExportDeliveryFormat
+      | "",
+    profile: getStringFormValue(formData, "profile") as ExportProfile | "",
     description: getStringFormValue(formData, "description"),
     aliasProfile: getStringFormValue(formData, "aliasProfile"),
     keySeparator: getStringFormValue(formData, "keySeparator") || undefined,
