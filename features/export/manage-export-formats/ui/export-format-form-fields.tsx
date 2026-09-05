@@ -126,6 +126,11 @@ export function ExportFormatFormFields({
             availableDeliveryFormats={availableDeliveryFormats}
             availableProfiles={availableProfiles}
             selectedProfileDescription={selectedProfileCapability?.description}
+            fieldErrors={{
+              exportTarget: fieldErrors?.exportTarget?.[0],
+              deliveryFormat: fieldErrors?.deliveryFormat?.[0],
+              profile: fieldErrors?.profile?.[0],
+            }}
             onTargetChange={handleTargetChange}
             onDeliveryChange={handleDeliveryChange}
             onProfileChange={handleProfileChange}

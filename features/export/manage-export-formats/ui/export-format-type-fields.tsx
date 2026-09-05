@@ -22,6 +22,14 @@ interface CatalogOption<T extends string> {
   description?: string;
 }
 
+function FieldError({ message }: Readonly<{ message?: string }>) {
+  if (!message) {
+    return null;
+  }
+
+  return <p className="text-sm text-destructive">{message}</p>;
+}
+
 interface ExportFormatTypeFieldsProps {
   mode: string;
   exportTarget: ExportTarget | "";
@@ -32,6 +40,11 @@ interface ExportFormatTypeFieldsProps {
   availableDeliveryFormats: ReadonlyArray<CatalogOption<ExportDeliveryFormat>>;
   availableProfiles: ReadonlyArray<CatalogOption<ExportProfile>>;
   selectedProfileDescription?: string;
+  fieldErrors?: {
+    exportTarget?: string;
+    deliveryFormat?: string;
+    profile?: string;
+  };
   onTargetChange: (value: ExportTarget) => void;
   onDeliveryChange: (value: ExportDeliveryFormat) => void;
   onProfileChange: (value: ExportProfile) => void;
@@ -47,6 +60,7 @@ export function ExportFormatTypeFields({
   availableDeliveryFormats,
   availableProfiles,
   selectedProfileDescription,
+  fieldErrors,
   onTargetChange,
   onDeliveryChange,
   onProfileChange,
@@ -71,6 +85,7 @@ export function ExportFormatTypeFields({
             ))}
           </SelectContent>
         </Select>
+        <FieldError message={fieldErrors?.exportTarget} />
       </div>
 
       <div className="flex flex-col gap-2">
@@ -95,6 +110,7 @@ export function ExportFormatTypeFields({
             ))}
           </SelectContent>
         </Select>
+        <FieldError message={fieldErrors?.deliveryFormat} />
       </div>
 
       {showVariant ? (
@@ -137,6 +153,7 @@ export function ExportFormatTypeFields({
               {selectedProfileDescription}
             </p>
           ) : null}
+          <FieldError message={fieldErrors?.profile} />
         </div>
       ) : null}
     </>
