@@ -73,20 +73,36 @@ vi.mock("@/components/ui/dialog", () => ({
 vi.mock("@/components/ui/select", async (importOriginal) => {
   const React = await import("react");
 
+  function textOf(node: React.ReactNode): string {
+    if (typeof node === "string" || typeof node === "number") {
+      return String(node);
+    }
+
+    if (Array.isArray(node)) {
+      return node.map(textOf).join("");
+    }
+
+    if (React.isValidElement(node) && node.props.children != null) {
+      return textOf(node.props.children);
+    }
+
+    return "";
+  }
+
   function walkOptions(
     node: React.ReactNode,
   ): Array<{ value: string; label: string }> {
     const opts: Array<{ value: string; label: string }> = [];
     React.Children.forEach(node, (child) => {
       if (React.isValidElement(child)) {
-        if (
-          typeof child.props.value === "string" &&
-          typeof child.props.children === "string"
-        ) {
-          opts.push({
-            value: child.props.value,
-            label: child.props.children,
-          });
+        if (typeof child.props.value === "string") {
+          const label = textOf(child.props.children).trim();
+          if (label) {
+            opts.push({
+              value: child.props.value,
+              label,
+            });
+          }
         }
         if (child.props.children) {
           opts.push(...walkOptions(child.props.children));

@@ -121,6 +121,7 @@ export type {
   UpdateSubmissionStatusDto,
   ExportSubmissionsDto,
   ExportFormat,
+  ReportingExportWireKey,
   ExportSubmissionsRequest,
   BooleanFilterValue,
   SubmissionReviewStatus,
