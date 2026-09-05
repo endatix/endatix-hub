@@ -8,7 +8,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { getExportDeliveryFormatIcon } from "@/features/export/utils";
+import { FileKindLabel } from "@/components/common/file-kind-icon";
+import { getExportDeliveryFileKind } from "@/features/export/utils";
 import type {
   ExportDeliveryFormat,
   ExportProfile,
@@ -85,20 +86,13 @@ export function ExportFormatTypeFields({
             <SelectValue placeholder="Select delivery format" />
           </SelectTrigger>
           <SelectContent>
-            {availableDeliveryFormats.map((option) => {
-              const Icon = getExportDeliveryFormatIcon(option.value);
-              return (
-                <SelectItem key={option.value} value={option.value}>
-                  <span className="flex items-center gap-2">
-                    <Icon
-                      className="size-4 shrink-0 text-muted-foreground"
-                      aria-hidden
-                    />
-                    {option.label}
-                  </span>
-                </SelectItem>
-              );
-            })}
+            {availableDeliveryFormats.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                <FileKindLabel kind={getExportDeliveryFileKind(option.value)}>
+                  {option.label}
+                </FileKindLabel>
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>

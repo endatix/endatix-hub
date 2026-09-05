@@ -12,10 +12,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Spinner } from "@/components/loaders/spinner";
 import { Download, ChevronDown } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Fragment, useState, useEffect } from "react";
 import { getTenantSettingsAction } from "@/features/forms/application/actions/get-tenant-settings.action";
 import type { CustomExportSettings } from "@/lib/endatix-api/tenant";
 import { Result } from "@/lib/result";
+import { FileKindIcon } from "@/components/common/file-kind-icon";
 import { FILE_KINDS } from "@/lib/file-kinds";
 import type { BuiltInExportFileKind } from "@/lib/endatix-api/reporting/reporting-export-wire";
 import {
@@ -176,13 +177,39 @@ function ReportingExportSubmissionsButton({
   );
 }
 
+interface LegacyExportMenuItem {
+  /** Stable identity for the in-flight spinner — two exports may share a name. */
+  key: string;
+  label: string;
+  fileKind: BuiltInExportFileKind;
+  exportId?: string;
+  exportName?: string;
+}
+
+/** Built-in downloads the legacy export endpoint serves without tenant setup. */
+const BUILT_IN_LEGACY_EXPORTS: readonly LegacyExportMenuItem[] = [
+  {
+    key: "built-in:csv",
+    label: FILE_KINDS.csv.label,
+    fileKind: FILE_KINDS.csv.key,
+    exportName: FILE_KINDS.csv.label,
+  },
+  {
+    key: "built-in:xlsx",
+    label: `${FILE_KINDS.xlsx.label} (${FILE_KINDS.xlsx.extension.toUpperCase()})`,
+    fileKind: FILE_KINDS.xlsx.key,
+    exportName: FILE_KINDS.xlsx.label,
+  },
+];
+
 function LegacyExportSubmissionsButton({
   formId,
   className,
   disabled,
 }: Readonly<Omit<ExportSubmissionsButtonProps, "useReportingExport">>) {
-  const { currentExportName, isExporting, runExport } = useSubmissionsExport();
+  const { isExporting, runExport } = useSubmissionsExport();
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
+  const [runningExportKey, setRunningExportKey] = useState<string | null>(null);
   const [customExports, setCustomExports] = useState<CustomExportSettings[]>(
     [],
   );
@@ -207,16 +234,32 @@ function LegacyExportSubmissionsButton({
     fetchTenantSettings();
   }, []);
 
-  const handleExport = (
-    exportId?: string,
-    exportName?: string,
-    format: BuiltInExportFileKind = FILE_KINDS.csv.key,
-  ) =>
-    runExport({
-      exportName: exportName ?? null,
-      fallbackFilename: `form-${formId}-submissions.${FILE_KINDS[format].extension}`,
-      url: buildLegacyExportUrl(formId, exportId, format),
-    });
+  // Custom exports are served by the same endpoint as the built-in CSV download,
+  // so they deliver a CSV file and carry the CSV icon.
+  const menuItems: LegacyExportMenuItem[] = [
+    ...BUILT_IN_LEGACY_EXPORTS,
+    ...customExports.map((exportOption) => ({
+      key: `custom:${exportOption.id}`,
+      label: exportOption.name,
+      fileKind: FILE_KINDS.csv.key,
+      exportId: exportOption.id,
+      exportName: exportOption.name,
+    })),
+  ];
+
+  const handleExport = async (item: LegacyExportMenuItem) => {
+    setRunningExportKey(item.key);
+
+    try {
+      await runExport({
+        exportName: item.exportName ?? null,
+        fallbackFilename: `form-${formId}-submissions.${FILE_KINDS[item.fileKind].extension}`,
+        url: buildLegacyExportUrl(formId, item.exportId, item.fileKind),
+      });
+    } finally {
+      setRunningExportKey(null);
+    }
+  };
 
   if (isLoadingSettings) {
     return (
@@ -241,52 +284,24 @@ function LegacyExportSubmissionsButton({
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="end">
-        <DropdownMenuItem
-          onClick={() =>
-            handleExport(undefined, FILE_KINDS.csv.label, FILE_KINDS.csv.key)
-          }
-          disabled={disabled || isExporting}
-        >
-          {isExporting && currentExportName === FILE_KINDS.csv.label ? (
-            <Spinner className="mr-2 h-4 w-4" />
-          ) : (
-            <Download className="mr-2 h-4 w-4" />
-          )}
-          {FILE_KINDS.csv.label}
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={() =>
-            handleExport(undefined, FILE_KINDS.xlsx.label, FILE_KINDS.xlsx.key)
-          }
-          disabled={disabled || isExporting}
-        >
-          {isExporting && currentExportName === FILE_KINDS.xlsx.label ? (
-            <Spinner className="mr-2 h-4 w-4" />
-          ) : (
-            <Download className="mr-2 h-4 w-4" />
-          )}
-          Excel (XLSX)
-        </DropdownMenuItem>
-
-        {customExports.length > 0 ? (
-          <>
-            <DropdownMenuSeparator />
-            {customExports.map((exportOption) => (
-              <DropdownMenuItem
-                key={exportOption.id}
-                onClick={() => handleExport(exportOption.id, exportOption.name)}
-                disabled={disabled || isExporting}
-              >
-                {isExporting && currentExportName === exportOption.name ? (
-                  <Spinner className="mr-2 h-4 w-4" />
-                ) : (
-                  <Download className="mr-2 h-4 w-4" />
-                )}
-                {exportOption.name}
-              </DropdownMenuItem>
-            ))}
-          </>
-        ) : null}
+        {menuItems.map((item, index) => (
+          <Fragment key={item.key}>
+            {index === BUILT_IN_LEGACY_EXPORTS.length ? (
+              <DropdownMenuSeparator />
+            ) : null}
+            <DropdownMenuItem
+              onClick={() => void handleExport(item)}
+              disabled={disabled || isExporting}
+            >
+              {isExporting && runningExportKey === item.key ? (
+                <Spinner className="size-4" />
+              ) : (
+                <FileKindIcon kind={item.fileKind} />
+              )}
+              {item.label}
+            </DropdownMenuItem>
+          </Fragment>
+        ))}
       </DropdownMenuContent>
     </DropdownMenu>
   );
