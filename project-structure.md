@@ -67,7 +67,7 @@ Reporting export is a dedicated feature (not nested under `forms/` or `submissio
 | `export-submissions`       | Submissions list       | Tenant-configured export download via `exportFormatId` (+ legacy `CustomExports` when flag off). Owns the Export dialog: readiness check, auto prepare when schema missing, optional **Rebuild reporting data…** (manual prepare + full recompile), format + capability-aware filters. |
 | `manage-export-formats`    | Tenant settings (E10b) | CRUD UI for tenant export formats + tenant default mapping picker (alias, key separator, include-test)                                                                                                                                                                                 |
 
-Shared feature root: `types.ts`, `export-url.ts`, `export-error-message.ts`. Export route `app/api/forms/[formId]/export/route.ts` stays thin and delegates parsing to `export-submissions/parse-export-query.ts`.
+Shared feature root: `types.ts`, `utils.ts` (thin icon lookups), `export-url.ts`, `export-error-message.ts`. Physical file kinds (label, extension, MIME, group, Lucide icon) live in `lib/file-kinds/` — including `image` / `audio` / `video` groups. Reporting `wireKey` catalog is `lib/endatix-api/reporting/reporting-export-wire.ts` (maps each wire key to a file kind + codebook flag). Export route `app/api/forms/[formId]/export/route.ts` stays thin and delegates parsing to `export-submissions/parse-export-query.ts`. Delivery options in Create format come from the API capabilities catalog (`wireKey` e.g. `xlsx`); tenant format rows drive the submissions export dialog.
 
 Import from `@/features/export` (client UI) or `@/features/export/server` (server actions). Slice barrels: `@/features/export/export-submissions`, `@/features/export/prepare-reporting-export`, `@/features/export/manage-export-formats`.
 
@@ -435,8 +435,8 @@ Shared SurveyJS + Creator **types/vocab** only — no behavior, no choice helper
 
 | Path                               | Owns                                                                                                 |
 | ---------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `lib/survey-js/creator/tabs.ts`    | Creator tab ids — `ENDATIX_CREATOR_TAB` (built-ins + Hub plugin tabs) and `canonicalizeCreatorTabId`  |
-| `lib/survey-js/creator/tab-url.ts` | `?tab=` slug ↔ tab id (`design` → `designer`; Design omits the param)                                 |
+| `lib/survey-js/creator/tabs.ts`    | Creator tab ids — `ENDATIX_CREATOR_TAB` (built-ins + Hub plugin tabs) and `canonicalizeCreatorTabId` |
+| `lib/survey-js/creator/tab-url.ts` | `?tab=` slug ↔ tab id (`design` → `designer`; Design omits the param)                                |
 
 Behavior that reads this vocab stays in its slice's `use-cases/` — e.g. `lib/survey-features/survey-design/use-cases/`. Do not re-declare vendor types (`Question`, `SurveyCreatorModel`). Rules: `AGENTS.md` (SurveyJS domain).
 

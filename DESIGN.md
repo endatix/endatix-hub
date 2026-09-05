@@ -163,7 +163,10 @@ a destructive action. Never use it for "empty".
    pill with a leading `size-1.5 rounded-full bg-current` dot. Do not give one
    state a check icon and its sibling no icon — differing shapes read as
    differing _kinds_ of information, which is exactly the inconsistency this
-   section exists to kill.
+   section exists to kill. **Exception — file delivery type:** export format
+   pickers use Lucide icons from `getFileKindIcon` (`lib/file-kinds`) for CSV /
+   JSON / XLSX. Every option in the list gets an icon from that family (same size
+   and muted tone); this marks file type, not status.
 2. **Status badges are soft-tinted** (`bg-success/12 text-success`), never solid
    fills. Solid `default` (primary) is reserved for high-intent actions, per the
    Tonal Hierarchy. A page full of solid blue "Enabled" pills spends the brand's

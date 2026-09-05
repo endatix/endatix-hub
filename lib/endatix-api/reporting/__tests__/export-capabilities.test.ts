@@ -63,6 +63,23 @@ const CAPABILITIES: ExportCapabilityDto[] = [
     ],
   },
   {
+    target: "Submissions",
+    deliveryFormat: "Xlsx",
+    profile: "Native",
+    wireKey: "xlsx",
+    label: "Excel (XLSX)",
+    itemTypeName: "Endatix.Core.Entities.SubmissionExportRow",
+    description: "Excel workbook; long IDs stored as text.",
+    allowedFilters: [
+      "includeTestSubmissions",
+      "createdAtRange",
+      "startedAtRange",
+      "completedAtRange",
+      "submissionIdRange",
+      "columnScope",
+    ],
+  },
+  {
     target: "Codebook",
     deliveryFormat: "Json",
     profile: "Native",
@@ -127,6 +144,7 @@ describe("capability-derived export options", () => {
     ).toEqual([
       { value: "Csv", label: "CSV" },
       { value: "Json", label: "JSON" },
+      { value: "Xlsx", label: "Excel" },
     ]);
     expect(getDeliveryFormatOptionsForTarget("Codebook", CAPABILITIES)).toEqual(
       [{ value: "Json", label: "JSON" }],

@@ -16,6 +16,8 @@ import { useState, useEffect } from "react";
 import { getTenantSettingsAction } from "@/features/forms/application/actions/get-tenant-settings.action";
 import type { CustomExportSettings } from "@/lib/endatix-api/tenant";
 import { Result } from "@/lib/result";
+import { FILE_KINDS } from "@/lib/file-kinds";
+import type { BuiltInExportFileKind } from "@/lib/endatix-api/reporting/reporting-export-wire";
 import {
   buildLegacyExportUrl,
   buildReportingExportUrl,
@@ -205,11 +207,15 @@ function LegacyExportSubmissionsButton({
     fetchTenantSettings();
   }, []);
 
-  const handleExport = (exportId?: string, exportName?: string) =>
+  const handleExport = (
+    exportId?: string,
+    exportName?: string,
+    format: BuiltInExportFileKind = FILE_KINDS.csv.key,
+  ) =>
     runExport({
       exportName: exportName ?? null,
-      fallbackFilename: `form-${formId}-submissions.csv`,
-      url: buildLegacyExportUrl(formId, exportId),
+      fallbackFilename: `form-${formId}-submissions.${FILE_KINDS[format].extension}`,
+      url: buildLegacyExportUrl(formId, exportId, format),
     });
 
   if (isLoadingSettings) {
@@ -217,19 +223,6 @@ function LegacyExportSubmissionsButton({
       <Button variant="outline" disabled className={className}>
         <Spinner />
         <span className="sr-only sm:not-sr-only">Loading...</span>
-      </Button>
-    );
-  }
-
-  if (customExports.length === 0) {
-    return (
-      <Button
-        variant="outline"
-        onClick={() => handleExport()}
-        disabled={disabled || isExporting}
-        className={className}
-      >
-        <ExportButtonContents isExporting={isExporting} />
       </Button>
     );
   }
@@ -249,33 +242,51 @@ function LegacyExportSubmissionsButton({
 
       <DropdownMenuContent align="end">
         <DropdownMenuItem
-          onClick={() => handleExport()}
+          onClick={() =>
+            handleExport(undefined, FILE_KINDS.csv.label, FILE_KINDS.csv.key)
+          }
           disabled={disabled || isExporting}
         >
-          {isExporting && !currentExportName ? (
+          {isExporting && currentExportName === FILE_KINDS.csv.label ? (
             <Spinner className="mr-2 h-4 w-4" />
           ) : (
             <Download className="mr-2 h-4 w-4" />
           )}
-          Default CSV Export
+          {FILE_KINDS.csv.label}
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() =>
+            handleExport(undefined, FILE_KINDS.xlsx.label, FILE_KINDS.xlsx.key)
+          }
+          disabled={disabled || isExporting}
+        >
+          {isExporting && currentExportName === FILE_KINDS.xlsx.label ? (
+            <Spinner className="mr-2 h-4 w-4" />
+          ) : (
+            <Download className="mr-2 h-4 w-4" />
+          )}
+          Excel (XLSX)
         </DropdownMenuItem>
 
-        <DropdownMenuSeparator />
-
-        {customExports.map((exportOption) => (
-          <DropdownMenuItem
-            key={exportOption.id}
-            onClick={() => handleExport(exportOption.id, exportOption.name)}
-            disabled={disabled || isExporting}
-          >
-            {isExporting && currentExportName === exportOption.name ? (
-              <Spinner className="mr-2 h-4 w-4" />
-            ) : (
-              <Download className="mr-2 h-4 w-4" />
-            )}
-            {exportOption.name}
-          </DropdownMenuItem>
-        ))}
+        {customExports.length > 0 ? (
+          <>
+            <DropdownMenuSeparator />
+            {customExports.map((exportOption) => (
+              <DropdownMenuItem
+                key={exportOption.id}
+                onClick={() => handleExport(exportOption.id, exportOption.name)}
+                disabled={disabled || isExporting}
+              >
+                {isExporting && currentExportName === exportOption.name ? (
+                  <Spinner className="mr-2 h-4 w-4" />
+                ) : (
+                  <Download className="mr-2 h-4 w-4" />
+                )}
+                {exportOption.name}
+              </DropdownMenuItem>
+            ))}
+          </>
+        ) : null}
       </DropdownMenuContent>
     </DropdownMenu>
   );
