@@ -23,7 +23,8 @@ import {
   type ExportFilterRangeErrors,
 } from "../export-dialog-filters";
 import type { TenantExportOptionGroup } from "../map-tenant-export-options";
-import { getExportWireKeyIcon } from "@/features/export/utils";
+import { FileKindLabel } from "@/components/common/file-kind-icon";
+import { getExportWireKeyFileKind } from "@/features/export/utils";
 import { ExportDateRangeFieldset } from "./export-date-range-fieldset";
 
 interface ExportDialogFiltersFormProps {
@@ -87,23 +88,18 @@ export function ExportDialogFiltersForm({
                 {showGroupLabels ? (
                   <SelectLabel>{group.label}</SelectLabel>
                 ) : null}
-                {group.options.map((option) => {
-                  const Icon = getExportWireKeyIcon(option.formatKey);
-                  return (
-                    <SelectItem
-                      key={option.exportFormatId}
-                      value={option.exportFormatId}
+                {group.options.map((option) => (
+                  <SelectItem
+                    key={option.exportFormatId}
+                    value={option.exportFormatId}
+                  >
+                    <FileKindLabel
+                      kind={getExportWireKeyFileKind(option.formatKey)}
                     >
-                      <span className="flex items-center gap-2">
-                        <Icon
-                          className="size-4 shrink-0 text-muted-foreground"
-                          aria-hidden
-                        />
-                        {option.label}
-                      </span>
-                    </SelectItem>
-                  );
-                })}
+                      {option.label}
+                    </FileKindLabel>
+                  </SelectItem>
+                ))}
               </SelectGroup>
             ))}
           </SelectContent>

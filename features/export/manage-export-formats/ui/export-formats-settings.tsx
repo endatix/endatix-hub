@@ -12,7 +12,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -45,6 +44,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  DATA_TABLE_ELEMENT_CLASS_NAME,
+  DATA_TABLE_SHRINK_WRAP_CLASS_NAME,
+  DataTableEmpty,
+  DataTableSurface,
+  dataTableBodyCellClassName,
+  dataTableBodyRowClassName,
+  dataTableColumnLabelClassName,
+  dataTableHeaderCellClassName,
+} from "@/components/table";
+import { FileKindLabel } from "@/components/common/file-kind-icon";
+import { StatusBadge } from "@/components/common/status-badge";
 import { toast } from "@/components/ui/toast";
 import type {
   ColumnAliasNamingConventionDto,
@@ -65,6 +76,7 @@ import {
   upsertTenantDefaultExportMappingAction,
   type ExportFormatActionState,
 } from "../manage-export-formats.action";
+import { getExportFormatFileKind } from "@/features/export/utils";
 import { ExportFormatFormFields } from "./export-format-form-fields";
 
 interface ExportFormatsSettingsProps {
@@ -222,7 +234,9 @@ export function ExportFormatsSettings({
               <SelectContent>
                 {submissionFormats.map((format) => (
                   <SelectItem key={format.id} value={format.id}>
-                    {getExportFormatLabel(format)}
+                    <FileKindLabel kind={getExportFormatFileKind(format)}>
+                      {getExportFormatLabel(format)}
+                    </FileKindLabel>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -231,14 +245,16 @@ export function ExportFormatsSettings({
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader className="flex flex-row items-start justify-between gap-4">
+      <section className="flex flex-col gap-4">
+        <div className="flex flex-row items-start justify-between gap-4">
           <div className="flex flex-col gap-1.5">
-            <CardTitle>Export formats</CardTitle>
-            <CardDescription>
+            <h2 className="text-lg font-semibold tracking-tight">
+              Export formats
+            </h2>
+            <p className="text-sm text-muted-foreground">
               Configure how submissions and codebooks are exported for this
               tenant.
-            </CardDescription>
+            </p>
           </div>
           <Button
             type="button"
@@ -251,77 +267,136 @@ export function ExportFormatsSettings({
             <Plus data-icon="inline-start" />
             Create format
           </Button>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Export type</TableHead>
-                <TableHead>Settings</TableHead>
-                <TableHead className="w-[96px]" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {formats.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={4} className="text-muted-foreground">
-                    No export formats yet. Create one to get started.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                formats.map((format) => {
-                  const isDefault = format.id === defaultFormatId;
+        </div>
 
-                  return (
-                    <TableRow key={format.id}>
-                      <TableCell>
-                        <div className="flex flex-col gap-1">
-                          <span className="font-medium">{format.name}</span>
-                          {isDefault ? (
-                            <Badge variant="secondary">Default</Badge>
-                          ) : null}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {getExportFormatTypeLabel(format, capabilities)}
-                      </TableCell>
-                      <TableCell className="max-w-md text-sm text-muted-foreground">
-                        {getExportFormatSettingsSummary(
-                          format,
-                          namingConventions,
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            aria-label={`Edit ${format.name}`}
-                            onClick={() => setEditingFormat(format)}
-                          >
-                            <Pencil />
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            aria-label={`Delete ${format.name}`}
-                            onClick={() => setFormatToDelete(format)}
-                          >
-                            <Trash2 />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+        <DataTableSurface data-slot="export-formats-table">
+          {formats.length === 0 ? (
+            <DataTableEmpty>
+              No export formats yet. Create one to get started.
+            </DataTableEmpty>
+          ) : (
+            <div className="w-full overflow-x-auto">
+              <Table className={DATA_TABLE_ELEMENT_CLASS_NAME}>
+                <TableHeader className="bg-surface-container-low">
+                  <TableRow className="border-0 hover:bg-transparent">
+                    <TableHead
+                      className={dataTableHeaderCellClassName({
+                        isStatic: true,
+                      })}
+                    >
+                      <span className={dataTableColumnLabelClassName()}>
+                        Name
+                      </span>
+                    </TableHead>
+                    <TableHead
+                      className={dataTableHeaderCellClassName({
+                        isStatic: true,
+                      })}
+                    >
+                      <span className={dataTableColumnLabelClassName()}>
+                        Export type
+                      </span>
+                    </TableHead>
+                    <TableHead
+                      className={dataTableHeaderCellClassName({
+                        isStatic: true,
+                      })}
+                    >
+                      <span className={dataTableColumnLabelClassName()}>
+                        Settings
+                      </span>
+                    </TableHead>
+                    <TableHead
+                      className={dataTableHeaderCellClassName({
+                        isStatic: true,
+                        className: `text-right ${DATA_TABLE_SHRINK_WRAP_CLASS_NAME}`,
+                      })}
+                    >
+                      <span className={dataTableColumnLabelClassName()}>
+                        Actions
+                      </span>
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {formats.map((format, index) => {
+                    const isDefault = format.id === defaultFormatId;
+                    const isEvenRow = index % 2 === 1;
+
+                    return (
+                      <TableRow
+                        key={format.id}
+                        className={dataTableBodyRowClassName({ isEvenRow })}
+                      >
+                        <TableCell
+                          className={dataTableBodyCellClassName({ isEvenRow })}
+                        >
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-sm font-medium">
+                              {format.name}
+                            </span>
+                            {isDefault ? (
+                              <StatusBadge tone="on" label="Default" />
+                            ) : null}
+                          </div>
+                        </TableCell>
+                        <TableCell
+                          className={dataTableBodyCellClassName({
+                            isEvenRow,
+                            className: "text-sm text-muted-foreground",
+                          })}
+                        >
+                          <FileKindLabel kind={getExportFormatFileKind(format)}>
+                            {getExportFormatTypeLabel(format, capabilities)}
+                          </FileKindLabel>
+                        </TableCell>
+                        <TableCell
+                          className={dataTableBodyCellClassName({
+                            isEvenRow,
+                            className: "max-w-md text-sm text-muted-foreground",
+                          })}
+                        >
+                          {getExportFormatSettingsSummary(
+                            format,
+                            namingConventions,
+                          )}
+                        </TableCell>
+                        <TableCell
+                          className={dataTableBodyCellClassName({
+                            isEvenRow,
+                            className: `text-right ${DATA_TABLE_SHRINK_WRAP_CLASS_NAME}`,
+                          })}
+                        >
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              aria-label={`Edit ${format.name}`}
+                              onClick={() => setEditingFormat(format)}
+                            >
+                              <Pencil />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              aria-label={`Delete ${format.name}`}
+                              onClick={() => setFormatToDelete(format)}
+                            >
+                              <Trash2 />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </DataTableSurface>
+      </section>
 
       <ResponsivePanel
         desktopType="complex"

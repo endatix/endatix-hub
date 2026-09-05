@@ -1,19 +1,39 @@
 import { describe, expect, it } from "vitest";
-import { FileJson, FileSpreadsheet, FileText } from "lucide-react";
-import { getExportDeliveryFormatIcon, getExportWireKeyIcon } from "../utils";
+import {
+  getExportDeliveryFileKind,
+  getExportFormatFileKind,
+  getExportWireKeyFileKind,
+} from "../utils";
 
-describe("export delivery icons", () => {
-  it("maps delivery formats to File* icons", () => {
-    expect(getExportDeliveryFormatIcon("Csv")).toBe(FileText);
-    expect(getExportDeliveryFormatIcon("Json")).toBe(FileJson);
-    expect(getExportDeliveryFormatIcon("Xlsx")).toBe(FileSpreadsheet);
+describe("export file kind resolvers", () => {
+  it("maps delivery formats to file kinds", () => {
+    expect(getExportDeliveryFileKind("Csv")).toBe("csv");
+    expect(getExportDeliveryFileKind("Json")).toBe("json");
+    expect(getExportDeliveryFileKind("Xlsx")).toBe("xlsx");
   });
 
-  it("maps reporting wire keys to File* icons", () => {
-    expect(getExportWireKeyIcon("csv")).toBe(FileText);
-    expect(getExportWireKeyIcon("csv-shoji")).toBe(FileText);
-    expect(getExportWireKeyIcon("json")).toBe(FileJson);
-    expect(getExportWireKeyIcon("codebook-shoji")).toBe(FileJson);
-    expect(getExportWireKeyIcon("xlsx")).toBe(FileSpreadsheet);
+  it("maps reporting wire keys to file kinds", () => {
+    expect(getExportWireKeyFileKind("csv")).toBe("csv");
+    expect(getExportWireKeyFileKind("csv-shoji")).toBe("csv");
+    expect(getExportWireKeyFileKind("json")).toBe("json");
+    expect(getExportWireKeyFileKind("codebook-shoji")).toBe("json");
+    expect(getExportWireKeyFileKind("xlsx")).toBe("xlsx");
+  });
+
+  it("returns undefined for an unknown wire key rather than guessing", () => {
+    expect(getExportWireKeyFileKind("parquet")).toBeUndefined();
+    expect(getExportWireKeyFileKind("")).toBeUndefined();
+  });
+
+  it("falls back to the delivery enum when the wire key is newer than this build", () => {
+    expect(
+      getExportFormatFileKind({
+        wireKey: "xlsx-shoji",
+        deliveryFormat: "Xlsx",
+      }),
+    ).toBe("xlsx");
+    expect(
+      getExportFormatFileKind({ wireKey: "csv-shoji", deliveryFormat: "Csv" }),
+    ).toBe("csv");
   });
 });

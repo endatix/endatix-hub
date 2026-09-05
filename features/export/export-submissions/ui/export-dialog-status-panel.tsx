@@ -47,7 +47,7 @@ export function ExportDialogStatusPanel({
 
       {phase === "success" ? (
         <div className="flex flex-col items-center gap-3 py-4 text-center">
-          <CheckCircle2 className="h-10 w-10 text-emerald-600" aria-hidden />
+          <CheckCircle2 className="size-10 text-success" aria-hidden />
           <p className="text-sm text-muted-foreground">
             Export completed successfully.
           </p>
@@ -62,7 +62,7 @@ export function ExportDialogStatusPanel({
       ) : null}
 
       {phase === "ready" && prepareSuccessSummary ? (
-        <Alert variant="info">
+        <Alert variant="success">
           <CheckCircle2 />
           <AlertTitle>Ready to export</AlertTitle>
           <AlertDescription>{prepareSuccessSummary}</AlertDescription>
