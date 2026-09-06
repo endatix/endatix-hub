@@ -3,7 +3,11 @@ import { isSelectBaseQuestion } from "@/lib/utils/survey";
 import { MAX_LOOP_DEPTH } from "../constants";
 import { DynamicLoopModel } from "../types";
 import { getLoopDepth } from "./collect-loop-questions";
-import { stripPanelScope, toPanelScopedName } from "./loop-source-name";
+import {
+  isPanelScopedName,
+  stripPanelScope,
+  toPanelScopedName,
+} from "./loop-source-name";
 import {
   getOwningDynamicPanel,
   walkOwnQuestions,
@@ -146,8 +150,17 @@ export function resolveLoopSourceInScope(
 
   const bareName = stripPanelScope(sourceName);
   const descendants = getDescendantQuestions(loopQuestion);
+  // `panel.` addresses the immediate panel and nothing else — the same
+  // restriction runtime resolution applies. Searching the wider chain here would
+  // let the designer resolve a name the runtime cannot, which is the exact
+  // class of mismatch this scope rule exists to prevent.
+  const isOwnPanelOnly = isPanelScopedName(sourceName);
 
   for (const scope of getScopeChain(loopQuestion, survey)) {
+    if (isOwnPanelOnly && !scope.isOwnPanel) {
+      continue;
+    }
+
     const match = scope.questions.find(
       (question) =>
         question.name === bareName &&

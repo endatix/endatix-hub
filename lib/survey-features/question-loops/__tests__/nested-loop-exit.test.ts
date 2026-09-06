@@ -152,6 +152,62 @@ describe("exit conditions on the outer loop with nesting present", () => {
   });
 });
 
+describe("exit conditions through a static panel", () => {
+  it("hides later questions when a static panel sits between the loops", () => {
+    // arrange — the inner loop's immediate parent is the static group, not one
+    // of the outer loop's panels, so its expression path has to walk past it
+    const survey = buildBoundSurvey({
+      pages: [
+        {
+          elements: [
+            { type: "checkbox", name: "outerSource", choices: ["a", "b"] },
+            {
+              type: "paneldynamic",
+              name: "outerLoop",
+              loopSource: ["outerSource"],
+              templateElements: [
+                { type: "checkbox", name: "innerSource", choices: ["x", "y"] },
+                {
+                  type: "panel",
+                  name: "group",
+                  elements: [
+                    {
+                      type: "paneldynamic",
+                      name: "innerLoop",
+                      loopSource: ["panel.innerSource"],
+                      exitLoopCondition: "{panel.innerRating} = 1",
+                      templateElements: [
+                        { type: "rating", name: "innerRating" },
+                        { type: "text", name: "innerFollowUp" },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    survey.getQuestionByName("outerSource")!.value = ["a", "b"];
+    const outerLoop = survey.getQuestionByName("outerLoop") as LoopLike;
+    outerLoop.panels[1].getQuestionByName("innerSource").value = ["x", "y"];
+    const innerLoop = outerLoop.panels[1].getQuestionByName("innerLoop") as LoopLike;
+
+    // act — trigger in the SECOND outer panel, so a lost index prefix cannot
+    // accidentally resolve against panel 0
+    innerLoop.panels[0].getQuestionByName("innerRating").value = 1;
+
+    // assert
+    expect(innerLoop.panels[0].getQuestionByName("innerFollowUp").isVisible).toBe(
+      false,
+    );
+    expect(innerLoop.panels[1].getQuestionByName("innerFollowUp").isVisible).toBe(
+      true,
+    );
+  });
+});
+
 describe("exit state hydration for nested loops", () => {
   it("recomputes nested exit state from data at bind time", () => {
     // arrange — a resumed submission where the inner exit already triggered

@@ -12,6 +12,36 @@ import { getOwningDynamicPanel } from "./panel-tree";
 
 type DynamicPanelLike = Question & { panels?: PanelModel[] };
 
+type NestedPanel = PanelModel & { parent?: NestedPanel };
+
+/**
+ * The panel instance of `owner` that ultimately contains `question`.
+ *
+ * A question's immediate `parent` is not necessarily one of the owner's panels:
+ * static panels group elements without adding a dynamic level, so the chain can
+ * be `question → static panel → owner's panel`. Walking up until a container is
+ * actually one of `owner.panels` is what keeps the index correct through them.
+ *
+ * Returns undefined for an element still sitting in a template, which has no
+ * live panel to index.
+ */
+function findOwningPanelInstance(
+  question: Question,
+  owner: DynamicPanelLike,
+): PanelModel | undefined {
+  const panels = owner.panels ?? [];
+  let container = question?.parent as unknown as NestedPanel | undefined;
+
+  while (container) {
+    if (panels.indexOf(container) >= 0) {
+      return container;
+    }
+    container = container.parent;
+  }
+
+  return undefined;
+}
+
 /**
  * The name a loop is addressed by from the survey root, with each ancestor's
  * panel index baked in.
@@ -33,7 +63,7 @@ export function getLoopQualifiedName(loopQuestion: Question): string {
       break;
     }
 
-    const panel = current.parent as unknown as PanelModel | undefined;
+    const panel = findOwningPanelInstance(current, owner);
     const panelIndex = panel ? (owner.panels ?? []).indexOf(panel) : -1;
     if (panelIndex < 0) {
       // Still a template element rather than a live instance: no index to bake

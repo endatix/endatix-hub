@@ -320,6 +320,44 @@ describe("getLoopQualifiedName", () => {
     );
   });
 
+  it("keeps the ancestor index when a static panel sits between the loops", () => {
+    // arrange — a static panel groups elements without adding a dynamic level,
+    // so the inner loop's immediate parent is the group, not one of the outer
+    // loop's panels
+    const survey = new SurveyModel({
+      elements: [
+        { type: "checkbox", name: "outerSrc", choices: ["a", "b"] },
+        {
+          type: "paneldynamic",
+          name: "outerLoop",
+          loopSource: ["outerSrc"],
+          templateElements: [
+            { type: "checkbox", name: "innerSrc", choices: ["x"] },
+            {
+              type: "panel",
+              name: "group",
+              elements: [
+                {
+                  type: "paneldynamic",
+                  name: "innerLoop",
+                  loopSource: ["panel.innerSrc"],
+                  templateElements: [{ type: "rating", name: "r" }],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    const outer = materialise(survey, "outerLoop", 2);
+
+    // act / assert — without walking past the group the prefix would be lost,
+    // and every exit condition on this loop would silently evaluate false
+    expect(getLoopQualifiedName(outer.panels[1].getQuestionByName("innerLoop"))).toBe(
+      "outerLoop[1].innerLoop",
+    );
+  });
+
   it("handles a missing question without throwing", () => {
     expect(getLoopQualifiedName(undefined as never)).toBe("");
   });

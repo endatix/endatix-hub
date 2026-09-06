@@ -212,6 +212,42 @@ describe("resolveLoopSourceInScope", () => {
     );
   });
 
+  it("does not let a panel-scoped name fall through to page level", () => {
+    // arrange — `panel.orphan` names no sibling, but `orphan` exists at page
+    // level. Runtime resolves `panel.` against the immediate panel only, so the
+    // designer must not resolve it either, or it populates pickers from a
+    // question the form can never actually loop over.
+    const survey = buildDesignerSurvey({
+      pages: [
+        {
+          elements: [
+            { type: "checkbox", name: "outerSrc", choices: ["a"] },
+            { type: "checkbox", name: "orphan", choices: ["p", "q"] },
+            {
+              type: "paneldynamic",
+              name: "outerLoop",
+              loopSource: ["outerSrc"],
+              templateElements: [
+                {
+                  type: "paneldynamic",
+                  name: "innerLoop",
+                  loopSource: ["panel.orphan"],
+                  templateElements: [{ type: "text", name: "t" }],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    const innerLoop = loopNamed(survey, "innerLoop");
+
+    // act / assert
+    expect(resolveLoopSourceInScope(innerLoop, survey, "panel.orphan")).toBeUndefined();
+    // the bare form still resolves through the scope chain
+    expect(resolveLoopSourceInScope(innerLoop, survey, "orphan")?.name).toBe("orphan");
+  });
+
   it("refuses a name outside the loop's scope", () => {
     // arrange
     const survey = buildDesignerSurvey(DESIGNER_SCHEMA);
