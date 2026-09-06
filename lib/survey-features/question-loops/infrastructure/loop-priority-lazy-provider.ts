@@ -9,27 +9,21 @@ import {
   getStaticChoicesFromSources,
   hasDataListSource,
 } from "@/lib/survey-features/data-lists/utils/property-grid-source-choices";
-import { isSelectBaseQuestion } from "@/lib/utils/survey";
+import { DynamicLoopModel } from "../types";
+import { resolveLoopSourcesInScope } from "../utils/loop-source-scope";
 
 const LOOP_PRIORITY_ITEMS_PROPERTY = "priorityItems";
 
-type LoopEditingObj = {
-  loopSource?: string[];
-};
-
 function getLoopSources(ctx: PropertyGridLazyChoiceContext) {
-  const editingObj = ctx.editingObj as LoopEditingObj | null;
-  const loopSource = editingObj?.loopSource;
-  if (!loopSource?.length) {
+  const editingObj = ctx.editingObj as DynamicLoopModel | null;
+  if (!editingObj?.loopSource?.length || !ctx.designerSurvey) {
     return [];
   }
 
-  return loopSource
-    .map((name) => ctx.designerSurvey.getQuestionByName(name))
-    .filter(
-      (question): question is NonNullable<typeof question> => question != null,
-    )
-    .filter(isSelectBaseQuestion);
+  // Same scope rule as the loopSource picker: a name is resolved against the
+  // loop's own panel and its ancestors, never by a flat survey-wide lookup,
+  // which cannot see questions inside panel templates (h938).
+  return resolveLoopSourcesInScope(editingObj, ctx.designerSurvey);
 }
 
 const loopPriorityLazyProvider: PropertyGridLazyChoiceProvider = {

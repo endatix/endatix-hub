@@ -5,13 +5,28 @@ import {
   isNonEmptyCondition,
   resolveDynamicLoopCondition,
 } from "../loop-utils";
-import {
-  INITIAL_EXIT_STATE,
-  PANEL_VISIBILITY_SENTINEL,
-} from "../dynamic-loop-question";
+import { INITIAL_EXIT_STATE } from "../dynamic-loop-question";
+import { PANEL_VISIBILITY_SENTINEL } from "../constants";
+import { getLoopQualifiedName } from "../utils/loop-path";
+
+/**
+ * Copies exit state so it can be mutated safely.
+ *
+ * The `exitMeta` property default is one shared object, so every loop instance
+ * starts out holding the *same* reference — mutating it in place would make one
+ * panel's exit state visible in every sibling instance (h938).
+ */
+function copyExitMeta(source: LoopExitMeta | undefined): LoopExitMeta {
+  return {
+    exitAll: source?.exitAll ? { ...source.exitAll } : undefined,
+    exitCurrent: source?.exitCurrent
+      ? { triggeredIndexMap: { ...source.exitCurrent.triggeredIndexMap } }
+      : undefined,
+  };
+}
 
 export function createLoopExitCommand(panel: DynamicLoopModel) {
-  const state: LoopExitMeta = panel.exitMeta ?? { ...INITIAL_EXIT_STATE };
+  const state: LoopExitMeta = copyExitMeta(panel.exitMeta ?? INITIAL_EXIT_STATE);
 
   let stateChanged = false;
 
@@ -123,10 +138,14 @@ export function handleLoopExit(
   if (!exitAllLoopsCondition && !exitLoopCondition) return;
 
   const command = createLoopExitCommand(loopPanel);
+  // The expression engine addresses a nested loop by its full path from the
+  // survey root; a bare name silently evaluates to false (h938).
+  const loopPath = getLoopQualifiedName(loopPanel);
+
   if (isNonEmptyCondition(exitAllLoopsCondition)) {
     const exitAllExpression = resolveDynamicLoopCondition(
       exitAllLoopsCondition,
-      loopPanel.name,
+      loopPath,
       options.panelIndex,
     );
     const isExitAllConditionMet = sender.runCondition(exitAllExpression);
@@ -136,7 +155,7 @@ export function handleLoopExit(
   if (isNonEmptyCondition(exitLoopCondition)) {
     const exitCurrentExpression = resolveDynamicLoopCondition(
       exitLoopCondition,
-      loopPanel.name,
+      loopPath,
       options.panelIndex,
     );
     const triggerIndex = options.panel.questions.findIndex(

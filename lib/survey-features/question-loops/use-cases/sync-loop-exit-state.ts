@@ -5,6 +5,7 @@ import {
   resolveDynamicLoopCondition,
 } from "../loop-utils";
 import { createLoopExitCommand } from "./handle-loop-exit";
+import { getLoopQualifiedName } from "../utils/loop-path";
 
 const FIRST_QUESTION_INDEX = 0;
 
@@ -32,12 +33,13 @@ export function syncLoopExitState(
   if (!exitAllLoopsCondition && !exitLoopCondition) return;
 
   const command = createLoopExitCommand(loopPanel);
+  const loopPath = getLoopQualifiedName(loopPanel);
 
   loopPanel.panels.forEach((panel, panelIndex) => {
     if (isNonEmptyCondition(exitAllLoopsCondition)) {
       const exitAllExpression = resolveDynamicLoopCondition(
         exitAllLoopsCondition,
-        loopPanel.name,
+        loopPath,
         panelIndex,
       );
 
@@ -50,7 +52,7 @@ export function syncLoopExitState(
     if (isNonEmptyCondition(exitLoopCondition)) {
       const exitCurrentExpression = resolveDynamicLoopCondition(
         exitLoopCondition,
-        loopPanel.name,
+        loopPath,
         panelIndex,
       );
 
