@@ -22,13 +22,18 @@ import { getSelectableCreateFolders } from "./resolve-default-create-folder";
 
 const INITIAL_STATE: CreateFormActionState = ServerActionState.emptyState();
 
-type CreateFormWizardProps = {
+type CreateFormWizardFields = {
   requireFolderAssignment?: boolean;
   folders?: Folder[];
   defaultFolderId?: string;
   defaultFolderName?: string;
-  cancelHref?: string;
 };
+
+type CreateFormWizardProps = CreateFormWizardFields &
+  (
+    | { onCancel: () => void; cancelHref?: never }
+    | { onCancel?: never; cancelHref?: string }
+  );
 
 export default function CreateFormWizard({
   requireFolderAssignment = false,
@@ -36,6 +41,7 @@ export default function CreateFormWizard({
   defaultFolderId,
   defaultFolderName,
   cancelHref = "/forms",
+  onCancel,
 }: Readonly<CreateFormWizardProps>) {
   const router = useRouter();
   const normalizedDefaultFolderId = defaultFolderId
@@ -164,9 +170,20 @@ export default function CreateFormWizard({
       </div>
 
       <div className="flex justify-end space-x-2">
-        <Button variant="outline" asChild disabled={isPending}>
-          <Link href={{ pathname: cancelHref }}>Cancel</Link>
-        </Button>
+        {onCancel ? (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onCancel}
+            disabled={isPending}
+          >
+            Cancel
+          </Button>
+        ) : (
+          <Button variant="outline" asChild disabled={isPending}>
+            <Link href={{ pathname: cancelHref }}>Cancel</Link>
+          </Button>
+        )}
         <Button
           type="submit"
           disabled={isPending || isFolderRequiredAndMissing}
