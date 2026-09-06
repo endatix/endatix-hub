@@ -1,5 +1,5 @@
 import { EndatixEmbedMessage } from "@/features/embed-form/types";
-import { test, expect } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
 declare global {
   interface Window {
@@ -230,9 +230,12 @@ test.describe("Embed Form Height Modes (Real Environment)", () => {
     await expect
       .poll(async () => {
         const colors = await readColors();
-        return colors.body;
+        const cardSurfacePainted =
+          Boolean(colors.cardSurface) &&
+          colors.cardSurface !== "rgba(0, 0, 0, 0)";
+        return cardSurfacePainted && colors.cardSurface === colors.body;
       })
-      .not.toBe("rgba(0, 0, 0, 0)");
+      .toBe(true);
 
     const colors = await readColors();
     expect(colors.body).toBeTruthy();
