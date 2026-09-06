@@ -1,6 +1,6 @@
 import React from "react";
 import { act, render } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import SurveyComponent from "../survey-component";
 import { SurveyModel, CompleteEvent } from "survey-core";
 import { ApiResult } from "@/lib/endatix-api";
@@ -25,6 +25,7 @@ const {
   mockEmbedHeightReporting,
   mockGetEmbedMessagingContext,
   mockUseSurveyTheme,
+  mockUseStorageWithSurvey,
 } = vi.hoisted(() => ({
   mockSubmitPublicForm: vi.fn(),
   mockEnqueueSubmission: vi.fn(),
@@ -46,6 +47,10 @@ const {
       error: null,
     }),
   ),
+  mockUseStorageWithSurvey: vi.fn((..._args: unknown[]) => ({
+    registerStorageHandlers: vi.fn(() => () => {}),
+    isStorageReady: true,
+  })),
 }));
 
 // --- MOCK DEPENDENCIES ---
@@ -86,10 +91,8 @@ vi.mock("@/features/analytics/posthog/client", () => ({
 }));
 
 vi.mock("@/features/asset-storage/client", () => ({
-  useStorageWithSurvey: vi.fn(() => ({
-    registerStorageHandlers: vi.fn(() => () => {}),
-    isStorageReady: true,
-  })),
+  useStorageWithSurvey: (...args: unknown[]) =>
+    mockUseStorageWithSurvey(...args),
 }));
 
 vi.mock("../use-survey-theme.hook", () => ({
@@ -154,7 +157,15 @@ vi.mock("@/lib/endatix-api/public/forms/form-access-token.client", () => ({
 }));
 
 vi.mock("survey-react-ui", () => ({
-  Survey: () => <div data-testid="survey">Survey UI</div>,
+  // Real embeds render `.sd-root-modern` (SurveyJS itself); the fill-mode
+  // paint effect queries for it, so tests need it present too, or every
+  // test would silently only exercise the themeVariables fallback branch
+  // and never the real DOM-read primary path.
+  Survey: () => (
+    <div data-testid="survey" className="sd-root-modern">
+      Survey UI
+    </div>
+  ),
 }));
 
 vi.mock("@/lib/endatix-api", () => ({
@@ -477,13 +488,37 @@ describe("SurveyComponent - submissionUpdateGuard Behavior", () => {
 
 describe("SurveyComponent - Embed Fill Mode", () => {
   let realSurveyModel: SurveyModel;
+  // Controls what the getComputedStyle stub below returns for
+  // .sd-root-modern's ::before — jsdom doesn't compute real pseudo-element
+  // styles, so this simulates "SurveyJS has (or hasn't yet) painted its
+  // theme" independently of the themeVariables fallback tests below.
+  let pseudoBackgroundColor = "";
+  let getComputedStyleSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     vi.clearAllMocks();
     mockGetEmbedMessagingContext.mockReturnValue({});
     mockUseSurveyTheme.mockReturnValue({ theme: undefined, error: null });
+    mockUseStorageWithSurvey.mockReturnValue({
+      registerStorageHandlers: vi.fn(() => () => {}),
+      isStorageReady: true,
+    });
     document.documentElement.style.backgroundColor = "";
     document.body.style.backgroundColor = "";
+    pseudoBackgroundColor = "";
+
+    const realGetComputedStyle = window.getComputedStyle.bind(window);
+    getComputedStyleSpy = vi
+      .spyOn(window, "getComputedStyle")
+      .mockImplementation((el: Element, pseudo?: string | null) => {
+        if (
+          pseudo === "::before" &&
+          el.classList?.contains("sd-root-modern")
+        ) {
+          return { backgroundColor: pseudoBackgroundColor } as CSSStyleDeclaration;
+        }
+        return realGetComputedStyle(el, pseudo);
+      });
 
     realSurveyModel = new SurveyModel(defaultProps.definition);
     mockUseSurveyModel.mockImplementation(() => ({
@@ -493,8 +528,13 @@ describe("SurveyComponent - Embed Fill Mode", () => {
     }));
   });
 
-  it("paints html/body with the survey's theme background when embedded in fill mode", async () => {
-    // Arrange
+  afterEach(() => {
+    getComputedStyleSpy.mockRestore();
+  });
+
+  it("falls back to themeVariables when the survey hasn't painted its own background yet", async () => {
+    // Arrange: pseudoBackgroundColor stays "" (unpainted) this test, so this
+    // exercises the themeVariables fallback, not the primary DOM-read path.
     mockGetEmbedMessagingContext.mockReturnValue({
       heightMode: "fill",
       embedId: "embed-1",
@@ -519,6 +559,110 @@ describe("SurveyComponent - Embed Fill Mode", () => {
     expect(shell?.className).toEqual(
       expect.stringContaining("embedShellFill"),
     );
+  });
+
+  it("prefers the survey's own rendered background over the themeVariables fallback", async () => {
+    // Arrange: this is the actual production path — SurveyJS v3 applies its
+    // theme via an injected stylesheet targeting .sd-root-modern::before,
+    // not via themeVariables applied as inline style (see the effect's
+    // comment). themeVariables is set to a *different* color deliberately,
+    // to prove the rendered color wins rather than passing by coincidence.
+    mockGetEmbedMessagingContext.mockReturnValue({
+      heightMode: "fill",
+      embedId: "embed-1",
+    });
+    Object.defineProperty(realSurveyModel, "themeVariables", {
+      configurable: true,
+      value: { "--sjs-general-backcolor-dim": "rgb(9, 8, 7)" },
+    });
+    pseudoBackgroundColor = "rgb(11, 22, 33)";
+
+    // Act
+    await act(async () => {
+      renderSurveyComponent({ isEmbed: true });
+    });
+
+    // Assert
+    expect(document.body.style.backgroundColor).toBe(
+      cssColor("rgb(11, 22, 33)"),
+    );
+  });
+
+  it("re-paints when SurveyJS fires onAfterRenderSurvey, independent of React's own effect timing", async () => {
+    // Arrange: this is the safety net for comment #1's concern — this
+    // component's effect ordering relative to survey-react-ui's own
+    // internal rendering isn't a contract either side promises, so the
+    // paint must also react to SurveyJS's own "fully rendered" signal, not
+    // only to our dependency array.
+    mockGetEmbedMessagingContext.mockReturnValue({
+      heightMode: "fill",
+      embedId: "embed-1",
+    });
+    pseudoBackgroundColor = "rgb(40, 41, 42)";
+
+    // Act
+    await act(async () => {
+      renderSurveyComponent({ isEmbed: true });
+    });
+    expect(document.body.style.backgroundColor).toBe(
+      cssColor("rgb(40, 41, 42)"),
+    );
+
+    // Act: SurveyJS settles its theme/render later, independent of any
+    // React re-render on our side, and announces it via this event.
+    pseudoBackgroundColor = "rgb(50, 51, 52)";
+    await act(async () => {
+      realSurveyModel.onAfterRenderSurvey.fire(realSurveyModel, {
+        survey: realSurveyModel,
+        htmlElement: document.createElement("div"),
+      });
+    });
+
+    // Assert
+    expect(document.body.style.backgroundColor).toBe(
+      cssColor("rgb(50, 51, 52)"),
+    );
+  });
+
+  it("waits for isModelReady before painting (isStorageReady transitions false -> true)", async () => {
+    // Arrange: surveyModel already exists, but storage isn't ready yet —
+    // isModelReady is false, so "Loading..." renders instead of the real
+    // shell, and .sd-root-modern doesn't exist in the DOM yet.
+    mockGetEmbedMessagingContext.mockReturnValue({
+      heightMode: "fill",
+      embedId: "embed-1",
+    });
+    Object.defineProperty(realSurveyModel, "themeVariables", {
+      configurable: true,
+      value: { "--sjs-general-backcolor-dim": "rgb(9, 8, 7)" },
+    });
+    mockUseStorageWithSurvey.mockReturnValue({
+      registerStorageHandlers: vi.fn(() => () => {}),
+      isStorageReady: false,
+    });
+
+    // Act
+    const result = renderSurveyComponent({ isEmbed: true });
+    await act(async () => {});
+
+    // Assert: no crash querying a DOM that isn't there yet, and no paint.
+    expect(document.body.style.backgroundColor).toBe("");
+
+    // Act: storage becomes ready.
+    mockUseStorageWithSurvey.mockReturnValue({
+      registerStorageHandlers: vi.fn(() => () => {}),
+      isStorageReady: true,
+    });
+    await act(async () => {
+      result.rerender(
+        <FormRuntimeProvider initialState={{ formId: defaultProps.formId }}>
+          <SurveyComponent {...defaultProps} isEmbed />
+        </FormRuntimeProvider>,
+      );
+    });
+
+    // Assert
+    expect(document.body.style.backgroundColor).toBe("rgb(9, 8, 7)");
   });
 
   it("restores the prior background on unmount", async () => {
