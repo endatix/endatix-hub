@@ -212,11 +212,40 @@ test.describe("Embed Form Height Modes (Real Environment)", () => {
     // own background shows through below the (much shorter) survey content.
     const frameElement = await iframeLocator.elementHandle();
     const frameDocument = await frameElement?.contentFrame();
-    const bodyBackground = await frameDocument?.evaluate(
-      () => getComputedStyle(document.body).backgroundColor,
-    );
-    expect(bodyBackground).not.toBe("rgba(0, 0, 0, 0)");
-    expect(bodyBackground).toBeTruthy();
+    const readColors = () =>
+      frameDocument!.evaluate(() => {
+        const card = document.querySelector(".sd-root-modern");
+        return {
+          body: getComputedStyle(document.body).backgroundColor,
+          cardSurface: card
+            ? getComputedStyle(card, "::before").backgroundColor
+            : null,
+        };
+      });
+
+    // Poll, not a single read: the background is painted in a useEffect
+    // that can run after .sd-root-modern first becomes visible, so a
+    // one-shot check here would be flaky (still transparent) rather than
+    // a reliable signal either way.
+    await expect
+      .poll(async () => {
+        const colors = await readColors();
+        return colors.body;
+      })
+      .not.toBe("rgba(0, 0, 0, 0)");
+
+    const colors = await readColors();
+    expect(colors.body).toBeTruthy();
+    // Not just "some color" — it must match the survey's own rendered
+    // theme, or this passes even with a hardcoded/wrong fallback color
+    // (exactly how h930's SurveyJS-3.0 regression slipped through: this
+    // assertion previously only checked for "not transparent"). Note this
+    // only proves the fallback is unused for *this* seeded form, which has
+    // no stored theme (DefaultLight throughout, no override to race
+    // against) — see survey-component.test.tsx for coverage of a theme
+    // arriving after the fallback has already painted.
+    expect(colors.cardSurface).toBeTruthy();
+    expect(colors.body).toBe(colors.cardSurface);
   });
 
   test("grows past the container when content is taller, and shrinks back down when content shrinks again", async ({

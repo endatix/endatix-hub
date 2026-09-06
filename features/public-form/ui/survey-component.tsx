@@ -18,7 +18,14 @@ import { ApiResult, Submission } from "@/lib/endatix-api";
 import { useRichText } from "@/lib/survey-features/rich-text";
 import { useLoopAwareSummaryTable } from "@/lib/survey-features/summary-table";
 import { useFormRuntime } from "@/lib/form-runtime/form-runtime.context";
-import { useCallback, useEffect, useMemo, useRef, useTransition } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useTransition,
+  type CSSProperties,
+} from "react";
 import {
   CompleteEvent,
   CurrentPageChangedEvent,
@@ -92,6 +99,7 @@ export default function SurveyComponent({
   const { trackException } = useTrackEvent();
   const submissionUpdateGuard = useRef<boolean>(false);
   const originalCompletedHtmlRef = useRef<string | null>(null);
+  const shellRef = useRef<HTMLDivElement>(null);
 
   // SurveyComponent is only ever loaded client-side (see
   // dynamic(..., { ssr: false }) in survey-js-wrapper.tsx), so there's no
@@ -106,47 +114,6 @@ export default function SurveyComponent({
     embedMessagingContext?.heightMode === "fill" &&
     embedMessagingContext?.embedId,
   );
-
-  useEffect(() => {
-    if (!isFillMode || !surveyModel) {
-      return;
-    }
-
-    // The iframe's outer height chain is fully under our control, but the
-    // surrounding host page's own layout wrappers (e.g. AppProvider's
-    // sidebar shell) are shared with non-embed routes and aren't guaranteed
-    // to propagate height down to us. Paint the canvas directly instead of
-    // depending on that chain: html/body backgrounds fill the full iframe
-    // viewport regardless of their own box height (CSS canvas painting),
-    // so this reaches the space beyond the survey's own content even if
-    // some ancestor's box stays content-sized.
-    //
-    // `appliedTheme` is in the dependency list even though unused directly:
-    // useSurveyTheme applies Endatix or the stored theme a render later
-    // once JSON is parsed, so this effect must re-run for the real colors.
-    const themeVariables = surveyModel.themeVariables ?? {};
-    const backgroundColor =
-      themeVariables["--sjs2-color-utility-body"] ||
-      themeVariables["--sjs2-color-utility-surface-survey"] ||
-      themeVariables["--sjs-general-backcolor-dim"] ||
-      themeVariables["--sjs-general-backcolor"] ||
-      DEFAULT_FILL_BACKGROUND_COLOR;
-
-    const previousHtmlBackground =
-      document.documentElement.style.backgroundColor;
-    const previousBodyBackground = document.body.style.backgroundColor;
-    document.documentElement.style.backgroundColor = backgroundColor;
-    document.body.style.backgroundColor = backgroundColor;
-
-    // Restore whatever was there before on unmount, on a fill-to-auto
-    // transition, or before re-applying a changed theme's color — this
-    // mutates document/body, which outlives this component, so it
-    // shouldn't leave a stale override behind for whatever renders next.
-    return () => {
-      document.documentElement.style.backgroundColor = previousHtmlBackground;
-      document.body.style.backgroundColor = previousBodyBackground;
-    };
-  }, [isFillMode, surveyModel, appliedTheme]);
 
   const getSubmissionId = useCallback(() => {
     return stateRef.current.submissionId;
@@ -166,6 +133,77 @@ export default function SurveyComponent({
   });
 
   const isModelReady = surveyModel && isStorageReady;
+
+  useEffect(() => {
+    if (!isFillMode || !isModelReady || !surveyModel) {
+      return;
+    }
+
+    // The iframe's outer height chain is fully under our control, but the
+    // surrounding host page's own layout wrappers (e.g. AppProvider's
+    // sidebar shell) are shared with non-embed routes and aren't guaranteed
+    // to propagate height down to us. Paint the canvas directly instead of
+    // depending on that chain: html/body backgrounds fill the full iframe
+    // viewport regardless of their own box height (CSS canvas painting),
+    // so this reaches the space beyond the survey's own content even if
+    // some ancestor's box stays content-sized.
+    //
+    // SurveyJS v3 no longer exposes the page/surface color as a plain CSS
+    // custom property we can read off `themeVariables` and apply via inline
+    // style: it injects its own `:where(.sd-theme-root)` stylesheet instead,
+    // which wins the cascade over anything set on our wrapper regardless of
+    // which --sjs*/--sjs2* variable name we guess (this is what silently
+    // broke when v2's --sjs-general-backcolor-dim stopped applying here
+    // under v3). The color itself still exists, just on a pseudo-element
+    // (.sd-root-modern::before) that isn't readable via getPropertyValue on
+    // any real element — so ask the browser for its resolved color
+    // directly instead of trying to replicate SurveyJS's own variable
+    // resolution, which is what keeps changing across versions.
+    const isPaintedColor = (value: string) =>
+      Boolean(value) && value !== "transparent" && value !== "rgba(0, 0, 0, 0)";
+
+    const paintFillBackground = () => {
+      const card = shellRef.current?.querySelector(".sd-root-modern");
+      const pseudoBackground = card
+        ? getComputedStyle(card, "::before").backgroundColor
+        : "";
+      const themeVariables = surveyModel.themeVariables ?? {};
+      const backgroundColor = isPaintedColor(pseudoBackground)
+        ? pseudoBackground
+        : themeVariables["--sjs-general-backcolor-dim"] ||
+          themeVariables["--sjs-general-backcolor"] ||
+          DEFAULT_FILL_BACKGROUND_COLOR;
+
+      document.documentElement.style.backgroundColor = backgroundColor;
+      document.body.style.backgroundColor = backgroundColor;
+    };
+
+    const previousHtmlBackground =
+      document.documentElement.style.backgroundColor;
+    const previousBodyBackground = document.body.style.backgroundColor;
+
+    // Paint immediately — verified live that by the time isModelReady
+    // flips, useSurveyTheme's own effect has already applied the real
+    // theme's stylesheet in every case tried, including a stored
+    // (non-default) theme. But this component's effect ordering relative
+    // to a third-party library's internal rendering isn't a contract
+    // either side promises, so don't rely on that alone for something
+    // this version-sensitive — re-paint once SurveyJS itself confirms the
+    // survey (and, transitively, its theme) has fully rendered. This also
+    // covers a theme changing later via `appliedTheme` in the deps below.
+    paintFillBackground();
+    surveyModel.onAfterRenderSurvey.add(paintFillBackground);
+
+    // Restore whatever was there before on unmount, on a fill-to-auto
+    // transition, or before re-applying a changed theme's color — this
+    // mutates document/body, which outlives this component, so it
+    // shouldn't leave a stale override behind for whatever renders next.
+    return () => {
+      surveyModel.onAfterRenderSurvey.remove(paintFillBackground);
+      document.documentElement.style.backgroundColor = previousHtmlBackground;
+      document.body.style.backgroundColor = previousBodyBackground;
+    };
+  }, [isFillMode, isModelReady, surveyModel, appliedTheme]);
 
   const { sendEmbedMessage, registerEmbedHandlers } = useSurveyEmbedBehavior({
     isEmbed: isEmbed ?? false,
@@ -343,7 +381,18 @@ export default function SurveyComponent({
     : styles.layoutFullHeight;
 
   return (
-    <div className={shellClassName} style={surveyModel.themeVariables}>
+    <div
+      ref={shellRef}
+      className={shellClassName}
+      style={
+        {
+          ...surveyModel.themeVariables,
+          ...(isFillMode
+            ? { "--embed-fill-fallback-bg": DEFAULT_FILL_BACKGROUND_COLOR }
+            : {}),
+        } as CSSProperties
+      }
+    >
       {isRespondentTestMode && <TestSubmissionBadge />}
       <LanguageSelector
         availableLocales={surveyLocales}
