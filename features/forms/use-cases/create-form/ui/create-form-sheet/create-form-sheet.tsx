@@ -19,7 +19,6 @@ import { useCreateFormSheetBootstrap } from "../../use-create-form-sheet-bootstr
 import type { Folder } from "@/lib/endatix-api/folders/types";
 import type { FormTemplate } from "@/types";
 import { FilePlus2 } from "lucide-react";
-import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { useFormAssistant } from "../../../design-form/form-assistant.context";
@@ -47,6 +46,7 @@ export function CreateFormSheet({
   initialRequireFolderAssignment = false,
 }: Readonly<CreateFormSheetProps>) {
   const router = useRouter();
+  const [open, setOpen] = useState(false);
   const [selectedOption, setSelectedOption] = useState<
     CreateFormOption | undefined
   >(undefined);
@@ -68,7 +68,6 @@ export function CreateFormSheet({
   const {
     effectiveFolderId,
     effectiveFolderName,
-    effectiveFolderSlug,
     foldersWithFetched,
   } = useCreateFormFolderContext({
     folders,
@@ -95,9 +94,25 @@ export function CreateFormSheet({
     (chatContext?.isResponsePending ?? false) || isCreatingForm;
   const canRenderWizard = foldersReady || Boolean(effectiveFolderId);
 
-  const cancelHref: Route = effectiveFolderSlug
-    ? (`/forms/folders/${encodeURIComponent(effectiveFolderSlug)}` as Route)
-    : "/forms";
+  const handleOpenChange = useCallback(
+    (isOpen: boolean) => {
+      if (isOpen) {
+        setSelectedOption(undefined);
+        setSelectedTemplate(null);
+        setPreviewTemplateId(null);
+        setIsPreviewOpen(false);
+        setSelectedFolderId(
+          effectiveFolderId ? String(effectiveFolderId) : NO_FOLDER_ID,
+        );
+      }
+      setOpen(isOpen);
+    },
+    [effectiveFolderId],
+  );
+
+  const handleCancel = useCallback(() => {
+    handleOpenChange(false);
+  }, [handleOpenChange]);
 
   useEffect(() => {
     setSelectedFolderId(
@@ -139,7 +154,7 @@ export function CreateFormSheet({
     : "Choose one of the following options to create a form.";
 
   return (
-    <Sheet modal>
+    <Sheet modal open={open} onOpenChange={handleOpenChange}>
       <SheetTrigger asChild>
         <Button variant="default">
           <FilePlus2 className="h-4 w-4" />
@@ -160,8 +175,8 @@ export function CreateFormSheet({
               folders={foldersWithFetched}
               effectiveFolderId={effectiveFolderId}
               effectiveFolderName={effectiveFolderName}
-              cancelHref={cancelHref}
               onBack={() => setSelectedOption(undefined)}
+              onCancel={handleCancel}
             />
           ) : (
             <CreateFormOptionsGrid
