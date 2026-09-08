@@ -48,6 +48,7 @@ describe("useSurveyEmbedBehavior", () => {
         onCurrentPageChanged: { add: vi.fn(), remove: vi.fn() },
         onAfterRenderPage: { add: vi.fn(), remove: vi.fn() },
         onNavigateToUrl: { add: vi.fn(), remove: vi.fn() },
+        onCompleting: { add: vi.fn(), remove: vi.fn() },
       } as unknown as SurveyModel;
 
       const { result } = renderHook(() =>
@@ -159,6 +160,7 @@ describe("useSurveyEmbedBehavior", () => {
           onCurrentPageChanged: { add: addMock, remove: removeMock },
           onAfterRenderPage: { add: addMock, remove: removeMock },
           onNavigateToUrl: { add: addMock, remove: removeMock },
+          onCompleting: { add: addMock, remove: removeMock },
         } as unknown as SurveyModel;
 
         const { result } = renderHook(() =>
@@ -167,7 +169,7 @@ describe("useSurveyEmbedBehavior", () => {
 
         result.current.registerEmbedHandlers(mockModel);
 
-        expect(addMock).toHaveBeenCalledTimes(4);
+        expect(addMock).toHaveBeenCalledTimes(5);
       });
 
       it("returns cleanup function that removes handlers", () => {
@@ -179,6 +181,7 @@ describe("useSurveyEmbedBehavior", () => {
           onCurrentPageChanged: { add: addMock, remove: removeMock },
           onAfterRenderPage: { add: addMock, remove: removeMock },
           onNavigateToUrl: { add: addMock, remove: removeMock },
+          onCompleting: { add: addMock, remove: removeMock },
         } as unknown as SurveyModel;
 
         const { result } = renderHook(() =>
@@ -188,7 +191,47 @@ describe("useSurveyEmbedBehavior", () => {
         const unregister = result.current.registerEmbedHandlers(mockModel);
         unregister();
 
-        expect(removeMock).toHaveBeenCalledTimes(4);
+        expect(removeMock).toHaveBeenCalledTimes(5);
+      });
+
+      it("scrolls the host to the embed instantly when the survey starts completing", () => {
+        // Arrange - onCompleting runs before the form collapses into the thank-you
+        // page, so the host is already at the top when the content shrinks (h947).
+        const handlers: Record<string, () => void> = {};
+        const capture = (key: string) => ({
+          add: (fn: () => void) => {
+            handlers[key] = fn;
+          },
+          remove: vi.fn(),
+        });
+        const model = {
+          onAfterRenderSurvey: capture("afterRenderSurvey"),
+          onCurrentPageChanged: capture("currentPageChanged"),
+          onAfterRenderPage: capture("afterRenderPage"),
+          onNavigateToUrl: capture("navigateToUrl"),
+          onCompleting: capture("completing"),
+        } as unknown as SurveyModel;
+
+        const { result } = renderHook(() =>
+          useSurveyEmbedBehavior({ isEmbed: true, formId: "123" }),
+        );
+
+        // Act
+        act(() => {
+          result.current.registerEmbedHandlers(model);
+        });
+        act(() => {
+          handlers.completing?.();
+        });
+
+        // Assert
+        expect(mockPostMessage).toHaveBeenCalledWith(
+          expect.objectContaining({
+            type: "endatix:scroll",
+            behavior: "instant",
+          }),
+          expect.anything(),
+        );
       });
 
       it("sends form-loaded message when survey renders via onAfterRenderSurvey", () => {
@@ -206,6 +249,7 @@ describe("useSurveyEmbedBehavior", () => {
           onCurrentPageChanged: { add: vi.fn(), remove: vi.fn() },
           onAfterRenderPage: { add: vi.fn(), remove: vi.fn() },
           onNavigateToUrl: { add: vi.fn(), remove: vi.fn() },
+          onCompleting: { add: vi.fn(), remove: vi.fn() },
         } as unknown as SurveyModel;
 
         const { result } = renderHook(() =>
@@ -270,6 +314,7 @@ describe("useSurveyEmbedBehavior", () => {
           onCurrentPageChanged: { add: addMock, remove: removeMock },
           onAfterRenderPage: { add: addMock, remove: removeMock },
           onNavigateToUrl: { add: addMock, remove: removeMock },
+          onCompleting: { add: vi.fn(), remove: vi.fn() },
         } as unknown as SurveyModel;
 
         const { result } = renderHook(() =>
@@ -315,6 +360,7 @@ describe("useSurveyEmbedBehavior", () => {
           onCurrentPageChanged: { add: addMock, remove: removeMock },
           onAfterRenderPage: { add: addMock, remove: removeMock },
           onNavigateToUrl: { add: addMock, remove: removeMock },
+          onCompleting: { add: vi.fn(), remove: vi.fn() },
         } as unknown as SurveyModel;
 
         const { result } = renderHook(() =>
@@ -361,6 +407,7 @@ describe("useSurveyEmbedBehavior", () => {
           onCurrentPageChanged: { add: addMock, remove: removeMock },
           onAfterRenderPage: { add: addMock, remove: removeMock },
           onNavigateToUrl: { add: addMock, remove: removeMock },
+          onCompleting: { add: vi.fn(), remove: vi.fn() },
         } as unknown as SurveyModel;
 
         const { result } = renderHook(() =>
@@ -410,6 +457,7 @@ describe("useSurveyEmbedBehavior", () => {
           onCurrentPageChanged: { add: addMock, remove: removeMock },
           onAfterRenderPage: { add: addMock, remove: removeMock },
           onNavigateToUrl: { add: addMock, remove: removeMock },
+          onCompleting: { add: vi.fn(), remove: vi.fn() },
         } as unknown as SurveyModel;
 
         const { result } = renderHook(() =>

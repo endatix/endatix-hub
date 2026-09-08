@@ -396,11 +396,6 @@ describe("SurveyComponent - submissionUpdateGuard Behavior", () => {
     // Assert - without this the iframe keeps the last form page's height and a short
     // completedHtml renders above the viewport (h947).
     expect(mockEmbedHeightReporting.resume).toHaveBeenCalled();
-    // Instant, not smooth: a smooth scroll leaves the viewport over the empty tail of
-    // the not-yet-resized iframe for its duration.
-    expect(mockSendEmbedMessage).toHaveBeenCalledWith("scroll", {
-      behavior: "instant",
-    });
 
     // The freeze is re-applied by sendEmbedMessage("form-complete"), so the resume
     // has to be the last of the two calls to have any effect.
