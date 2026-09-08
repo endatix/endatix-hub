@@ -258,10 +258,6 @@ function handleResizeMessage(
   instance.iframe.style.height = `${clampedHeight}px`;
 }
 
-/**
- * Eases a single height change, then removes the transition so ordinary resizes
- * (validation messages, dynamic panels, page changes) stay instant.
- */
 function easeHeightChange(iframe: HTMLIFrameElement): void {
   if (prefersReducedMotion()) {
     return;
@@ -279,7 +275,6 @@ function easeHeightChange(iframe: HTMLIFrameElement): void {
 
   iframe.style.transition = `height ${HEIGHT_EASE_MS}ms cubic-bezier(0.4, 0, 0.2, 1)`;
   iframe.addEventListener("transitionend", onEnd);
-  // Safety net: a height that does not actually change fires no transitionend.
   setTimeout(clear, HEIGHT_EASE_MS + 100);
 }
 
@@ -297,8 +292,6 @@ function handleScrollMessage(
   const behavior: ScrollBehavior =
     data.behavior === "instant" ? "instant" : "smooth";
 
-  // Only completion asks for an instant scroll, and it is followed by a large
-  // shrink to the thank-you page. Ease that one resize so the host does not snap.
   if (behavior === "instant") {
     instance.easeNextResize = true;
   }
