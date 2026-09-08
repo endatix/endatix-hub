@@ -156,6 +156,7 @@ Standalone esbuild IIFE (`public/embed/v1/embed.js`) for third-party host pages.
 - **Framework-free bundle.** No `next` / `react` / `@/*` — eslint `no-restricted-imports` on `src/embed/**` and on `features/embed-form/embed-query-params.ts` (the shared contract). Share constants with a relative import, not `@/`.
 - **Handshake query keys** live in `embed-query-params.ts` (`EMBED_QUERY_PARAMS` / `EMBED_RESERVED_QUERY_PARAMS`). Fold the reserved set into public-form `IGNORED_PARAMS`. A missed key makes every embed load enqueue an empty partial (h934). Do not re-spell the names.
 - **Ignored ≠ stripped.** `cleanupUrl` removes prefill keys only; reserved keys stay on the iframe URL for `getEmbedMessagingContext()`. Parse/validate there (`embedId` charset, http(s) `parentOrigin`). Query input is untrusted — not proof the SDK loaded the page.
+- **Do not test embed by opening `/embed/{formId}` alone** — that is the iframe document, not a host; it skips `embed.js`. Host page: WebHost `GET /dev/embed-host` (query is the contract: `formId`, `view=bare` for no chrome, `heightMode`, `token`/`prefill`, `hubBaseUrl`). Local Hub HTTP: use `http://localhost:5000/dev/embed-host` (HTTPS `:5001` cannot load HTTP Hub `embed.js`). Playwright: `e2e/utils/open-embed-host.ts` + `E2E_EMBED_HOST_URL` (API origin, handshake uses `view=bare`). Fill-mode e2e stays on the same-origin mock (fixed-height parent; playground fill is viewport-sized). Public-form data-collection features: check **share and embed**.
 
 ## Mirrored OSS rules
 
