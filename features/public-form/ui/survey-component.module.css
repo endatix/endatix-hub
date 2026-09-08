@@ -33,12 +33,26 @@
 .layoutFullHeight :global(.sd-completedpage),
 .embedShell :global(.sd-completedpage) {
   box-sizing: border-box;
-  min-height: max(16rem, calc(100vh - 10rem));
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: clamp(2rem, 8vh, 6rem) 1.5rem;
   text-align: center;
+}
+
+/* Standalone page: vh is the real viewport, so fill it. */
+.layoutFullHeight :global(.sd-completedpage) {
+  min-height: max(16rem, calc(100vh - 10rem));
+  padding: clamp(2rem, 8vh, 6rem) 1.5rem;
+}
+
+/* Embed: vh here is the iframe's own height, which the host sets from the height
+   EmbedHeightReporter measures. Sizing off it feeds that measurement back into
+   itself, so the completed page walked the iframe down 10rem per postMessage
+   round trip instead of landing on the content height (h947). Keep every length
+   viewport-independent - the same hazard the .embedShellFill note above describes. */
+.embedShell :global(.sd-completedpage) {
+  min-height: 16rem;
+  padding: 3rem 1.5rem;
 }
 
 .layoutFullHeight > *:last-child {
