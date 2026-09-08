@@ -227,6 +227,52 @@ describe("nested loops — hydration from existing data", () => {
     expect(panelCountOf(outerLoop.panels[1], NESTED_INNER_LOOP_NAME)).toBe(1);
   });
 
+  it("does not hydrate when data is assigned after binding", () => {
+    // arrange — the order the submissions viewer used before h938. Assigning
+    // `survey.data` goes through SurveyJS's `setDataCore`, which writes the
+    // values hash and notifies questions directly without raising
+    // `onValueChanged` or `onDynamicPanelValueChanged` (pinned by guard 3b in
+    // surveyjs-shape-guards.test.ts). A binding made first therefore has no
+    // event to hydrate from.
+    const resumedData = {
+      [NESTED_OUTER_SOURCE_NAME]: ["item1", "item2"],
+      [NESTED_OUTER_LOOP_NAME]: [
+        {
+          itemText: "outside_Item 1",
+          itemValue: "item1",
+          loopIndex: 0,
+          [NESTED_INNER_SOURCE_NAME]: ["item1", "item3"],
+        },
+      ],
+    };
+    const boundFirst = new SurveyModel(nestedLoopSurveySchema as never);
+    bindFeatureToSurvey(boundFirst);
+
+    // act
+    boundFirst.data = structuredClone(resumedData);
+
+    // assert — only what SurveyJS itself materialised from the stored hash: one
+    // outer panel, despite the source naming two, and no inner panels at all
+    const boundFirstOuter = boundFirst.getQuestionByName(
+      NESTED_OUTER_LOOP_NAME,
+    ) as LoopLike;
+    expect(boundFirstOuter.panels).toHaveLength(1);
+    expect(panelCountOf(boundFirstOuter.panels[0], NESTED_INNER_LOOP_NAME)).toBe(0);
+
+    // ...whereas the supported order hydrates both levels from the same data.
+    // This contrast is the reason `use-survey-model.hook.ts` binds *after*
+    // assigning `model.data`; swapping it back reproduces the counts above.
+    const dataFirst = new SurveyModel(nestedLoopSurveySchema as never);
+    dataFirst.data = structuredClone(resumedData);
+    bindFeatureToSurvey(dataFirst);
+
+    const dataFirstOuter = dataFirst.getQuestionByName(
+      NESTED_OUTER_LOOP_NAME,
+    ) as LoopLike;
+    expect(dataFirstOuter.panels).toHaveLength(2);
+    expect(panelCountOf(dataFirstOuter.panels[0], NESTED_INNER_LOOP_NAME)).toBe(2);
+  });
+
   it("preserves nested answers across a rebind", () => {
     // arrange
     const survey = new SurveyModel(nestedLoopSurveySchema as never);
