@@ -11,20 +11,12 @@
   position: relative;
 }
 
-/* Fill mode: the parent script's iframe has already been sized to at least
-   fill its host container (see src/embed/embed.ts). The real background
-   painting happens imperatively in survey-component.tsx (it needs the
-   survey's actual rendered theme color, read from the DOM — SurveyJS's own
-   CSS custom properties for this aren't reliably readable here across
-   versions; see that file's comment). This is just the brief-window
-   fallback before that effect runs. --embed-fill-fallback-bg is set inline
-   by survey-component.tsx from DEFAULT_FILL_BACKGROUND_COLOR in
-   height-mode.ts — the literal here is only a last-resort fallback if that
-   custom property is somehow unset. Deliberately no min-height here:
-   EmbedHeightReporter measures document.body.scrollHeight, and any
-   ancestor whose height tracks the iframe's own size (rather than content)
-   floors that measurement at the iframe's current height — once grown, it
-   could never shrink back down. */
+/* Brief-window fallback shown before survey-component.tsx's paint effect
+   reads the survey's real rendered color from the DOM and overrides this
+   via --embed-fill-fallback-bg (set there from DEFAULT_FILL_BACKGROUND_COLOR).
+   No min-height: EmbedHeightReporter measures document.body.scrollHeight,
+   and a height that tracks the iframe's own size would floor that
+   measurement at its tallest-ever height, never letting it shrink back. */
 .embedShellFill {
   background-color: var(--embed-fill-fallback-bg, #f3f3f3);
 }

@@ -134,74 +134,67 @@ export default function SurveyComponent({
 
   const isModelReady = surveyModel && isStorageReady;
 
+  // Fill mode paints html/body directly: their backgrounds cover the full
+  // iframe viewport regardless of their own box height (unlike a normal
+  // element's), which is what reaches the space below the survey's own
+  // (possibly shorter) content. Restoring the pre-fill-mode colors is a
+  // separate effect, keyed only on isFillMode, so it fires on entering/
+  // leaving fill mode — not on every re-paint from the effect below.
   useEffect(() => {
-    if (!isFillMode || !isModelReady || !surveyModel) {
+    if (!isFillMode) {
       return;
     }
-
-    // The iframe's outer height chain is fully under our control, but the
-    // surrounding host page's own layout wrappers (e.g. AppProvider's
-    // sidebar shell) are shared with non-embed routes and aren't guaranteed
-    // to propagate height down to us. Paint the canvas directly instead of
-    // depending on that chain: html/body backgrounds fill the full iframe
-    // viewport regardless of their own box height (CSS canvas painting),
-    // so this reaches the space beyond the survey's own content even if
-    // some ancestor's box stays content-sized.
-    //
-    // SurveyJS v3 no longer exposes the page/surface color as a plain CSS
-    // custom property we can read off `themeVariables` and apply via inline
-    // style: it injects its own `:where(.sd-theme-root)` stylesheet instead,
-    // which wins the cascade over anything set on our wrapper regardless of
-    // which --sjs*/--sjs2* variable name we guess (this is what silently
-    // broke when v2's --sjs-general-backcolor-dim stopped applying here
-    // under v3). The color itself still exists, just on a pseudo-element
-    // (.sd-root-modern::before) that isn't readable via getPropertyValue on
-    // any real element — so ask the browser for its resolved color
-    // directly instead of trying to replicate SurveyJS's own variable
-    // resolution, which is what keeps changing across versions.
-    const isPaintedColor = (value: string) =>
-      Boolean(value) && value !== "transparent" && value !== "rgba(0, 0, 0, 0)";
-
-    const paintFillBackground = () => {
-      const card = shellRef.current?.querySelector(".sd-root-modern");
-      const pseudoBackground = card
-        ? getComputedStyle(card, "::before").backgroundColor
-        : "";
-      const themeVariables = surveyModel.themeVariables ?? {};
-      const backgroundColor = isPaintedColor(pseudoBackground)
-        ? pseudoBackground
-        : themeVariables["--sjs-general-backcolor-dim"] ||
-          themeVariables["--sjs-general-backcolor"] ||
-          DEFAULT_FILL_BACKGROUND_COLOR;
-
-      document.documentElement.style.backgroundColor = backgroundColor;
-      document.body.style.backgroundColor = backgroundColor;
-    };
 
     const previousHtmlBackground =
       document.documentElement.style.backgroundColor;
     const previousBodyBackground = document.body.style.backgroundColor;
 
-    // Paint immediately — verified live that by the time isModelReady
-    // flips, useSurveyTheme's own effect has already applied the real
-    // theme's stylesheet in every case tried, including a stored
-    // (non-default) theme. But this component's effect ordering relative
-    // to a third-party library's internal rendering isn't a contract
-    // either side promises, so don't rely on that alone for something
-    // this version-sensitive — re-paint once SurveyJS itself confirms the
-    // survey (and, transitively, its theme) has fully rendered. This also
-    // covers a theme changing later via `appliedTheme` in the deps below.
+    return () => {
+      document.documentElement.style.backgroundColor = previousHtmlBackground;
+      document.body.style.backgroundColor = previousBodyBackground;
+    };
+  }, [isFillMode]);
+
+  useEffect(() => {
+    if (!isFillMode || !isModelReady || !surveyModel) {
+      return;
+    }
+
+    // SurveyJS v3 paints the survey's surface color via its own injected
+    // `:where(.sd-theme-root)` stylesheet onto `.sd-root-modern::before`,
+    // not via a themeVariables custom property we can read and reapply —
+    // guessing a --sjs*/--sjs2* variable name is what silently broke here
+    // under v3 (h930). Ask the browser for the resolved color instead.
+    // Until that's painted, use the same DEFAULT_FILL_BACKGROUND_COLOR the
+    // CSS fallback already shows (survey-component.module.css), rather
+    // than a second, version-sensitive guess.
+    const paintFillBackground = () => {
+      const card = shellRef.current?.querySelector(".sd-root-modern");
+      const pseudoBackground = card
+        ? getComputedStyle(card, "::before").backgroundColor
+        : "";
+      const isPainted =
+        Boolean(pseudoBackground) &&
+        pseudoBackground !== "transparent" &&
+        pseudoBackground !== "rgba(0, 0, 0, 0)";
+      const backgroundColor = isPainted
+        ? pseudoBackground
+        : DEFAULT_FILL_BACKGROUND_COLOR;
+
+      document.documentElement.style.backgroundColor = backgroundColor;
+      document.body.style.backgroundColor = backgroundColor;
+    };
+
+    // Paint immediately, and again on SurveyJS's own onAfterRenderSurvey:
+    // by the time isModelReady flips, useSurveyTheme has already applied
+    // in every case tried, but that ordering isn't a contract either side
+    // promises — the second paint is the safety net for when it isn't,
+    // and also covers a theme changing later via `appliedTheme` below.
     paintFillBackground();
     surveyModel.onAfterRenderSurvey.add(paintFillBackground);
 
-    // Restore whatever was there before on unmount, on a fill-to-auto
-    // transition, or before re-applying a changed theme's color — this
-    // mutates document/body, which outlives this component, so it
-    // shouldn't leave a stale override behind for whatever renders next.
     return () => {
       surveyModel.onAfterRenderSurvey.remove(paintFillBackground);
-      document.documentElement.style.backgroundColor = previousHtmlBackground;
-      document.body.style.backgroundColor = previousBodyBackground;
     };
   }, [isFillMode, isModelReady, surveyModel, appliedTheme]);
 
