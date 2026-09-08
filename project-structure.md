@@ -24,7 +24,7 @@ Quick reference for organizing features using vertical slice architecture.
 
 ### Use `src/` for:
 
-- **Bundles built outside Next** — today only `src/embed` (the embed SDK, esbuild → `public/embed/v1/embed.js`). Nothing else belongs here; see AGENTS.md "Embed SDK".
+- **Standalone browser bundles** (not Next). Today: `src/embed` → `public/embed/v1/embed.js`. See AGENTS.md "Embed SDK".
 
 ## Feature Structure
 
