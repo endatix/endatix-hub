@@ -42,6 +42,48 @@ describe("applyFormSurveyTheme", () => {
     expect(model.applyTheme).toHaveBeenCalledWith(stored, DefaultLight);
   });
 
+  it("keeps panels transparent when a panelless theme also carries a legacy panel colour", () => {
+    // Arrange - survey-core 3.x sets the panelless transparent first, then maps
+    // --sjs-questionpanel-backcolor over it, so the v3 token must be named explicitly.
+    const model = { applyTheme: vi.fn() };
+    const stored = {
+      themeName: "brand",
+      isPanelless: true,
+      cssVariables: { "--sjs-questionpanel-backcolor": "rgba(56, 10, 83, 1)" },
+    };
+
+    // Act
+    applyFormSurveyTheme(model as never, stored);
+
+    // Assert - the legacy colour still feeds its other action-surface tokens.
+    expect(model.applyTheme).toHaveBeenCalledWith(
+      expect.objectContaining({
+        isPanelless: true,
+        cssVariables: expect.objectContaining({
+          "--sjs-questionpanel-backcolor": "rgba(56, 10, 83, 1)",
+          "--sjs2-color-component-panel-default-bg": "transparent",
+        }),
+      }),
+      DefaultLight,
+    );
+  });
+
+  it("leaves a framed theme's panel colour alone", () => {
+    // Arrange
+    const model = { applyTheme: vi.fn() };
+    const stored = {
+      themeName: "brand",
+      isPanelless: false,
+      cssVariables: { "--sjs-questionpanel-backcolor": "rgba(56, 10, 83, 1)" },
+    };
+
+    // Act
+    applyFormSurveyTheme(model as never, stored);
+
+    // Assert - passed through untouched, no injected token.
+    expect(model.applyTheme).toHaveBeenCalledWith(stored, DefaultLight);
+  });
+
   it("falls back to SurveyJS DefaultLight when the form has no assigned theme", () => {
     const model = { applyTheme: vi.fn() };
 
