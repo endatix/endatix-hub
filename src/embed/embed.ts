@@ -3,6 +3,7 @@ import { EMBED_QUERY_PARAMS } from "../../features/embed-form/embed-query-params
 /** Max positive signed 64-bit integer (typical snowflake upper bound). */
 const MAX_SNOWFLAKE_ID = BigInt("9223372036854775807");
 const MAX_IFRAME_HEIGHT = 10_000;
+const HEIGHT_EASE_MS = 320;
 
 type HeightMode = "auto" | "fill";
 
@@ -21,6 +22,7 @@ interface EmbedInstance {
   expectedOrigin: string;
   embedId: string;
   heightMode: HeightMode;
+  easeNextResize?: boolean;
 }
 
 interface ParseResult {
@@ -247,7 +249,45 @@ function handleResizeMessage(
   }
 
   const clampedHeight = Math.min(Math.ceil(height), MAX_IFRAME_HEIGHT);
+
+  if (instance.easeNextResize) {
+    instance.easeNextResize = false;
+    easeHeightChange(instance.iframe);
+  }
+
   instance.iframe.style.height = `${clampedHeight}px`;
+}
+
+/**
+ * Eases a single height change, then removes the transition so ordinary resizes
+ * (validation messages, dynamic panels, page changes) stay instant.
+ */
+function easeHeightChange(iframe: HTMLIFrameElement): void {
+  if (prefersReducedMotion()) {
+    return;
+  }
+
+  const clear = () => {
+    iframe.style.transition = "";
+    iframe.removeEventListener("transitionend", onEnd);
+  };
+  const onEnd = (event: TransitionEvent) => {
+    if (event.propertyName === "height") {
+      clear();
+    }
+  };
+
+  iframe.style.transition = `height ${HEIGHT_EASE_MS}ms cubic-bezier(0.4, 0, 0.2, 1)`;
+  iframe.addEventListener("transitionend", onEnd);
+  // Safety net: a height that does not actually change fires no transitionend.
+  setTimeout(clear, HEIGHT_EASE_MS + 100);
+}
+
+function prefersReducedMotion(): boolean {
+  return (
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
 }
 
 function handleScrollMessage(
@@ -256,6 +296,12 @@ function handleScrollMessage(
 ): void {
   const behavior: ScrollBehavior =
     data.behavior === "instant" ? "instant" : "smooth";
+
+  // Only completion asks for an instant scroll, and it is followed by a large
+  // shrink to the thank-you page. Ease that one resize so the host does not snap.
+  if (behavior === "instant") {
+    instance.easeNextResize = true;
+  }
 
   requestAnimationFrame(() => {
     instance.iframe.scrollIntoView({

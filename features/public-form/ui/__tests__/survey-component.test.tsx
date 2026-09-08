@@ -22,7 +22,6 @@ const {
   mockWaitForInFlightPartial,
   mockUseSurveyModel,
   mockSendEmbedMessage,
-  mockEmbedHeightReporting,
   mockGetEmbedMessagingContext,
   mockUseSurveyTheme,
   mockUseStorageWithSurvey,
@@ -35,11 +34,6 @@ const {
   mockWaitForInFlightPartial: vi.fn().mockResolvedValue(undefined),
   mockUseSurveyModel: vi.fn(),
   mockSendEmbedMessage: vi.fn(),
-  mockEmbedHeightReporting: {
-    freeze: vi.fn(),
-    resume: vi.fn(),
-    isFrozen: vi.fn(() => false),
-  },
   mockGetEmbedMessagingContext: vi.fn(() => ({})),
   mockUseSurveyTheme: vi.fn(
     (..._args: unknown[]): { theme: unknown; error: unknown } => ({
@@ -74,7 +68,6 @@ vi.mock("../use-survey-model.hook", () => ({
 }));
 
 vi.mock("@/features/embed-form", () => ({
-  embedHeightReporting: mockEmbedHeightReporting,
   useSurveyEmbedBehavior: vi.fn(() => ({
     sendEmbedMessage: mockSendEmbedMessage,
     registerEmbedHandlers: vi.fn(() => () => {}),
@@ -373,90 +366,6 @@ describe("SurveyComponent - submissionUpdateGuard Behavior", () => {
       status: "completed",
       completedAt: "2026-05-26T10:00:00.000Z",
     });
-  });
-
-  it("resumes height reporting after a successful submission so the complete page is measured", async () => {
-    // Arrange
-    mockSubmitPublicForm.mockResolvedValue({
-      success: true,
-      data: {
-        submissionId: "sub-456",
-        isComplete: true,
-        status: "completed",
-        completedAt: "2026-05-26T10:00:00.000Z",
-      },
-    });
-    renderSurveyComponent({ isEmbed: true });
-
-    // Act
-    await act(async () => {
-      fireCompleteEvent();
-    });
-
-    // Assert - without this the iframe keeps the last form page's height and a short
-    // completedHtml renders above the viewport (h947).
-    expect(mockEmbedHeightReporting.resume).toHaveBeenCalled();
-
-    // The freeze is re-applied by sendEmbedMessage("form-complete"), so the resume
-    // has to be the last of the two calls to have any effect.
-    const resumeOrder =
-      mockEmbedHeightReporting.resume.mock.invocationCallOrder.at(-1)!;
-    const freezeOrder =
-      mockEmbedHeightReporting.freeze.mock.invocationCallOrder.at(-1)!;
-    expect(resumeOrder).toBeGreaterThan(freezeOrder);
-  });
-
-  it("lifts the freeze before awaiting the response, so the iframe is not pinned for the round trip", async () => {
-    // Arrange - resolve the submit only when we say so, to stand in for a slow network.
-    let resolveSubmit!: (value: unknown) => void;
-    mockSubmitPublicForm.mockReturnValue(
-      new Promise((resolve) => {
-        resolveSubmit = resolve;
-      }),
-    );
-    renderSurveyComponent({ isEmbed: true });
-
-    // Act - fire the complete event but leave the request in flight.
-    await act(async () => {
-      fireCompleteEvent();
-      await Promise.resolve();
-    });
-
-    // Assert - the complete page is already laying out, so reporting must be live
-    // before the response lands (h947 lag).
-    expect(mockEmbedHeightReporting.resume).toHaveBeenCalled();
-
-    await act(async () => {
-      resolveSubmit({
-        success: true,
-        data: {
-          submissionId: "sub-456",
-          isComplete: true,
-          status: "completed",
-        },
-      });
-    });
-  });
-
-  it("resumes height reporting after a failed submission", async () => {
-    // Arrange
-    mockSubmitPublicForm.mockResolvedValue({
-      success: false,
-      error: { message: "Server error", type: "server", errorCode: "500" },
-    });
-    renderSurveyComponent({ isEmbed: true });
-
-    // Act
-    await act(async () => {
-      fireCompleteEvent();
-    });
-
-    // Assert - the failure complete page is short too.
-    const resumeOrder =
-      mockEmbedHeightReporting.resume.mock.invocationCallOrder.at(-1)!;
-    const freezeOrder =
-      mockEmbedHeightReporting.freeze.mock.invocationCallOrder.at(-1)!;
-    expect(resumeOrder).toBeGreaterThan(freezeOrder);
   });
 
   it("should reset the guard flag on submission failure", async () => {

@@ -2,10 +2,7 @@
 
 import { useTrackEvent } from "@/features/analytics/posthog/client";
 import { useStorageWithSurvey } from "@/features/asset-storage/client";
-import {
-  embedHeightReporting,
-  useSurveyEmbedBehavior,
-} from "@/features/embed-form";
+import { useSurveyEmbedBehavior } from "@/features/embed-form";
 import { DEFAULT_FILL_BACKGROUND_COLOR } from "@/features/embed-form/height-mode";
 import { getEmbedMessagingContext } from "@/features/embed-form/ui/embed-messaging-context";
 import type { EmbedFormInfo } from "@/features/embed-form/types";
@@ -219,15 +216,11 @@ export default function SurveyComponent({
         return;
       }
 
-      if (isEmbed && embedHeightReporting.isFrozen()) {
-        embedHeightReporting.resume();
-      }
-
       enqueueSubmission(
         buildSubmissionData(sender, false, surveyLocales.length > 1),
       );
     },
-    [enqueueSubmission, isEmbed, surveyLocales.length],
+    [enqueueSubmission, surveyLocales.length],
   );
 
   const submitForm = useCallback(
@@ -240,15 +233,8 @@ export default function SurveyComponent({
       submissionUpdateGuard.current = true;
 
       clearQueue();
-      if (isEmbed) {
-        embedHeightReporting.freeze();
-      }
-
       sender.showCompletePage = true;
       event.showSaveInProgress("Saving your answers...");
-      if (isEmbed) {
-        embedHeightReporting.resume();
-      }
       const submissionData = buildSubmissionData(
         sender,
         true,
@@ -285,14 +271,8 @@ export default function SurveyComponent({
             status: result.data.status,
             completedAt: result.data.completedAt,
           });
-          if (isEmbed) {
-            embedHeightReporting.resume();
-          }
         } else {
           submissionUpdateGuard.current = false;
-          if (isEmbed) {
-            embedHeightReporting.freeze();
-          }
 
           // Keep showCompletePage true — SurveyJS renders showSaveError on the
           // complete page. Hiding it leaves a blank screen (surveyjs#4865).
@@ -317,9 +297,6 @@ export default function SurveyComponent({
               message: result.error.message,
             },
           });
-          if (isEmbed) {
-            embedHeightReporting.resume();
-          }
         }
       });
     },
@@ -336,7 +313,6 @@ export default function SurveyComponent({
       onSubmitSuccess,
       surveyLocales.length,
       runtimeToken,
-      isEmbed,
     ],
   );
 

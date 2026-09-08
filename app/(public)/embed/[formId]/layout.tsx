@@ -31,7 +31,10 @@ export default async function EmbedLayout({
           type="image/svg+xml"
         />
       </head>
-      <body>
+      {/* The embed route deliberately skips globals.css (DESIGN.md §9), so no reset
+          runs and the UA default body margin shows as an 8px gutter around the form
+          inside the iframe - white wherever the theme has not painted html/body. */}
+      <body style={{ margin: 0 }}>
         <AppProvider
           options={AppOptions.PublicPages}
           session={session}

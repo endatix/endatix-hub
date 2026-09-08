@@ -45,8 +45,8 @@ export function sanitizeSurveyTheme<T extends object>(theme: T): T {
 
 const PANEL_BACKGROUND_TOKEN = "--sjs2-color-component-panel-default-bg";
 
-/** Panelless: pin `--sjs2-color-component-panel-default-bg` to transparent so a legacy panel colour cannot re-frame panels. */
-export function withPanellessSurface(theme: ITheme): ITheme {
+/** Panelless: pin the v3 panel token to transparent so a stored legacy `--sjs-questionpanel-backcolor` cannot re-frame panels. */
+function withPanellessSurface(theme: ITheme): ITheme {
   if (!theme.isPanelless) {
     return theme;
   }
