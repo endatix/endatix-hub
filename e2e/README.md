@@ -52,23 +52,19 @@ Playwright loads environment variables from `.env` files. Create a `.env` file i
 # hub/.env (gitignored)
 BASE_URL="http://localhost:3000"
 E2E_EMBED_FORM_ID=1480919870399840256
-
-# For smoke tests (production)
-SMOKE_TEST_EMAIL="your-test-email@example.com"
-SMOKE_TEST_PASSWORD="your-password"
-SMOKE_TEST_BASE_URL="https://hub.endatix.com"
+# WebHost origin (or full /dev/embed-host URL) — cross-origin embed. Unset = same-origin mock.
+E2E_EMBED_HOST_URL="https://localhost:5001"
 ```
 
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `E2E_EMBED_FORM_ID` | Form ID to use for embed tests | `1480919870399840256` |
+| `E2E_EMBED_HOST_URL` | API origin or `/dev/embed-host` URL | unset (same-origin mock) |
 | `BASE_URL` | Base URL for the app | `http://127.0.0.1:3000` |
-| `SMOKE_TEST_EMAIL` | Test account email for smoke tests | - |
-| `SMOKE_TEST_PASSWORD` | Test account password for smoke tests | - |
-| `SMOKE_TEST_BASE_URL` | Production URL for smoke tests | `https://hub.endatix.com` |
 
 ### What Embed Tests Verify
-- Form loads in embed mode at `/embed/{formId}`
+- Form loads via `embed.js` on a host page (`openEmbedHost`; prefer WebHost `/dev/embed-host`)
+- Do not treat a direct visit to `/embed/{formId}` as embed coverage
 - Survey questions are rendered correctly
 - Navigation between pages works
 - Complete button appears on final page

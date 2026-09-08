@@ -1,5 +1,9 @@
 import { EndatixEmbedMessage } from "@/features/embed-form/types";
 import { expect, test } from "@playwright/test";
+import {
+  EMBED_FILL_CONTAINER_HEIGHT_PX,
+  openEmbedHost,
+} from "../../utils/open-embed-host";
 
 declare global {
   interface Window {
@@ -8,12 +12,9 @@ declare global {
 }
 
 test.describe("Embed Form Behavior (Real Environment)", () => {
-  // Use an environment variable for the seeded form ID, or fallback to a known ID
   const TEST_FORM_ID = process.env.E2E_EMBED_FORM_ID || "0";
 
   test.beforeEach(async ({ page, baseURL }) => {
-    // 1. Set up the message interceptor BEFORE the page navigates
-    // addInitScript guarantees this runs before embed.js executes
     await page.addInitScript(() => {
       globalThis.window.__receivedEmbedMessages__ = [];
       globalThis.window.addEventListener("message", (event) => {
@@ -23,39 +24,10 @@ test.describe("Embed Form Behavior (Real Environment)", () => {
       });
     });
 
-    // 2. Mock a route on the SAME origin to act as our 3rd-party host site
-    // This perfectly sidesteps the CORS and Private Network Access restrictions
-    await page.route(`${baseURL}/__mock_host__`, async (route) => {
-      await route.fulfill({
-        contentType: "text/html",
-        body: `
-              <!DOCTYPE html>
-              <html>
-                <head>
-                  <title>Test Host Page</title>
-                  <style>
-                    body { padding: 50px; background: #f0f0f0; font-family: sans-serif; }
-                    .spacer { height: 1000px; } /* Force scrolling */
-                  </style>
-                </head>
-                <body>
-                  <h1>My External Website</h1>
-                  <p>The form is embedded below:</p>
-                  
-                  <script 
-                    src="${baseURL}/embed/v1/embed.js" 
-                    data-form-id="${TEST_FORM_ID}">
-                  </script>
-                  
-                  <div class="spacer"></div>
-                </body>
-              </html>
-            `,
-      });
+    await openEmbedHost(page, {
+      formId: TEST_FORM_ID,
+      hubOrigin: baseURL ?? "http://127.0.0.1:3000",
     });
-
-    // 3. Navigate to our mocked same-origin page
-    await page.goto(`${baseURL}/__mock_host__`);
   });
 
   test("should load the form and send the form-loaded message", async ({
@@ -142,39 +114,14 @@ test.describe("Embed Form Behavior (Real Environment)", () => {
 
 test.describe("Embed Form Height Modes (Real Environment)", () => {
   const TEST_FORM_ID = process.env.E2E_EMBED_FORM_ID || "0";
-  const CONTAINER_HEIGHT_PX = 900;
+  const CONTAINER_HEIGHT_PX = EMBED_FILL_CONTAINER_HEIGHT_PX;
 
   test.beforeEach(async ({ page, baseURL }) => {
-    // Mock a host page whose script sits inside a fixed-height container,
-    // matching the customer scenario from endatix-hub#842.
-    await page.route(`${baseURL}/__mock_host_fill__`, async (route) => {
-      await route.fulfill({
-        contentType: "text/html",
-        body: `
-              <!DOCTYPE html>
-              <html>
-                <head>
-                  <title>Test Host Page (Fill Mode)</title>
-                  <style>
-                    body { padding: 50px; background: #f0f0f0; font-family: sans-serif; }
-                  </style>
-                </head>
-                <body>
-                  <h1>My External Website</h1>
-                  <div style="height: ${CONTAINER_HEIGHT_PX}px; border: 1px solid #ccc;">
-                    <script
-                      src="${baseURL}/embed/v1/embed.js"
-                      data-form-id="${TEST_FORM_ID}"
-                      data-height-mode="fill">
-                    </script>
-                  </div>
-                </body>
-              </html>
-            `,
-      });
+    await openEmbedHost(page, {
+      formId: TEST_FORM_ID,
+      hubOrigin: baseURL ?? "http://127.0.0.1:3000",
+      heightMode: "fill",
     });
-
-    await page.goto(`${baseURL}/__mock_host_fill__`);
   });
 
   test("fills a fixed-height parent container when content is shorter", async ({
