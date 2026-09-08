@@ -94,20 +94,22 @@ export function CreateFormSheet({
     (chatContext?.isResponsePending ?? false) || isCreatingForm;
   const canRenderWizard = foldersReady || Boolean(effectiveFolderId);
 
+  const resetSheetState = useCallback(() => {
+    setSelectedOption(undefined);
+    setSelectedTemplate(null);
+    setPreviewTemplateId(null);
+    setIsPreviewOpen(false);
+    setSelectedFolderId(
+      effectiveFolderId ? String(effectiveFolderId) : NO_FOLDER_ID,
+    );
+  }, [effectiveFolderId]);
+
   const handleOpenChange = useCallback(
     (isOpen: boolean) => {
-      if (isOpen) {
-        setSelectedOption(undefined);
-        setSelectedTemplate(null);
-        setPreviewTemplateId(null);
-        setIsPreviewOpen(false);
-        setSelectedFolderId(
-          effectiveFolderId ? String(effectiveFolderId) : NO_FOLDER_ID,
-        );
-      }
+      resetSheetState();
       setOpen(isOpen);
     },
-    [effectiveFolderId],
+    [resetSheetState],
   );
 
   const handleCancel = useCallback(() => {

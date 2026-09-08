@@ -59,7 +59,8 @@ export default function CreateFormWizard({
     createFormAction,
     INITIAL_STATE,
   );
-  const isFormCreatedState = state?.isSuccess && state?.formId;
+  const isFormCreatedState = Boolean(state?.isSuccess && state?.formId);
+  const isBusy = isPending || isFormCreatedState;
   const isFolderRequiredAndMissing =
     requireFolderAssignment && selectedFolderId.length === 0;
   const showEmptyFolderOption =
@@ -75,15 +76,22 @@ export default function CreateFormWizard({
   }, [normalizedDefaultFolderId, state?.data?.folderId]);
 
   useEffect(() => {
-    if (isFormCreatedState) {
-      toast.success({
-        title: "Form created successfully!",
-        description: "Opening form designer...",
-      });
-      setTimeout(() => {
-        router.push(`/forms/${state?.formId}/design`);
-      }, 400);
+    if (!isFormCreatedState || !state?.formId) {
+      return;
     }
+
+    toast.success({
+      title: "Form created successfully!",
+      description: "Opening form designer...",
+    });
+
+    const timeoutId = window.setTimeout(() => {
+      router.push(`/forms/${state.formId}/design`);
+    }, 400);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
   }, [isFormCreatedState, router, state?.formId]);
 
   return (
@@ -103,7 +111,7 @@ export default function CreateFormWizard({
             placeholder="Enter form's name"
             defaultValue={state?.data?.name}
             required
-            disabled={isPending}
+            disabled={isBusy}
           />
           {state?.errors?.name && <ErrorMessage message={state.errors.name} />}
         </div>
@@ -115,7 +123,7 @@ export default function CreateFormWizard({
             placeholder="Enter form's description"
             defaultValue={state?.data?.description}
             rows={3}
-            disabled={isPending}
+            disabled={isBusy}
           />
         </div>
         {state?.errors?.description && (
@@ -135,7 +143,7 @@ export default function CreateFormWizard({
               name="folderId"
               value={selectedFolderId}
               onChange={(event) => setSelectedFolderId(event.target.value)}
-              disabled={isPending}
+              disabled={isBusy}
               required={requireFolderAssignment}
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
             >
@@ -170,12 +178,12 @@ export default function CreateFormWizard({
       </div>
 
       <div className="flex justify-end space-x-2">
-        {onCancel ? (
+        {onCancel || isFormCreatedState ? (
           <Button
             type="button"
             variant="outline"
             onClick={onCancel}
-            disabled={isPending}
+            disabled={isBusy}
           >
             Cancel
           </Button>
@@ -184,10 +192,7 @@ export default function CreateFormWizard({
             <Link href={{ pathname: cancelHref }}>Cancel</Link>
           </Button>
         )}
-        <Button
-          type="submit"
-          disabled={isPending || isFolderRequiredAndMissing}
-        >
+        <Button type="submit" disabled={isBusy || isFolderRequiredAndMissing}>
           {isPending && <Spinner className="mr-2 h-4 w-4" />}
           {isPending ? "Creating your form..." : "Create Form"}
         </Button>
