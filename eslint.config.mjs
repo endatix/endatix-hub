@@ -89,6 +89,24 @@ const eslintConfig = defineConfig([
     },
   },
   {
+    files: ["src/embed/**/*.ts", "features/embed-form/embed-query-params.ts"],
+    ignores: ["src/embed/**/*.test.ts", "src/embed/__tests__/**"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["next", "next/*", "react", "react/*", "@/*"],
+              message:
+                "embed.js is a standalone esbuild IIFE: no framework or @/ imports. Share constants via a relative import of features/embed-form/embed-query-params.ts.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     files: [
       "features/asset-storage/infrastructure/providers/azure/**/*.ts",
       "features/asset-storage/infrastructure/providers/s3/**/*.ts",

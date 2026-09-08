@@ -1,9 +1,8 @@
+import { EMBED_QUERY_PARAMS } from "../../features/embed-form/embed-query-params";
+
 /** Max positive signed 64-bit integer (typical snowflake upper bound). */
 const MAX_SNOWFLAKE_ID = BigInt("9223372036854775807");
 const MAX_IFRAME_HEIGHT = 10_000;
-const EMBED_ID_QUERY_PARAM = "embedId";
-const PARENT_ORIGIN_QUERY_PARAM = "parentOrigin";
-const HEIGHT_MODE_QUERY_PARAM = "heightMode";
 
 type HeightMode = "auto" | "fill";
 
@@ -147,10 +146,7 @@ export const parseNumericId = (
 
 const DEFAULT_HEIGHT_MODE: HeightMode = "auto";
 
-export const parseHeightMode = (
-  value: unknown,
-  warn = true,
-): HeightMode => {
+export const parseHeightMode = (value: unknown, warn = true): HeightMode => {
   const trimmedValue = typeof value === "string" ? value.trim() : value;
 
   if (trimmedValue === undefined || trimmedValue === "") {
@@ -434,11 +430,11 @@ const endatixEmbed: EndatixEmbedApi = {
 
     const parentOrigin = getCurrentParentOrigin();
     if (parentOrigin) {
-      iframeUrl.searchParams.set(PARENT_ORIGIN_QUERY_PARAM, parentOrigin);
+      iframeUrl.searchParams.set(EMBED_QUERY_PARAMS.parentOrigin, parentOrigin);
     }
-    iframeUrl.searchParams.set(EMBED_ID_QUERY_PARAM, embedId);
+    iframeUrl.searchParams.set(EMBED_QUERY_PARAMS.embedId, embedId);
     if (heightMode === "fill") {
-      iframeUrl.searchParams.set(HEIGHT_MODE_QUERY_PARAM, "fill");
+      iframeUrl.searchParams.set(EMBED_QUERY_PARAMS.heightMode, "fill");
     }
 
     iframe.src = iframeUrl.toString();

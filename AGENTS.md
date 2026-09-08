@@ -149,6 +149,14 @@ When a detail page has a "Back to `<list>`" control that should restore the list
 - Reference implementation: `features/data-lists/view-lists/utils.ts` (`parseDataListsReturnQuery`, `dataListsListHrefFromQuery`), wired into `data-lists-page.tsx` (remember) and `data-list-details-page.tsx` (`BackToTableButton`).
 - `features/submissions/list-submission-query/submission-list-return-to.ts` + `back-to-submissions-button.tsx` predate this shared abstraction (bespoke sessionStorage, same shape, not yet migrated). Move it onto `table-return-to` / `BackToTableButton` next time that code is touched rather than adding a third bespoke copy.
 
+## Embed SDK (`src/embed`)
+
+Standalone esbuild IIFE (`public/embed/v1/embed.js`) for third-party host pages. Iframe: `app/(public)/embed/[formId]`.
+
+- **Framework-free bundle.** No `next` / `react` / `@/*` — eslint `no-restricted-imports` on `src/embed/**` and on `features/embed-form/embed-query-params.ts` (the shared contract). Share constants with a relative import, not `@/`.
+- **Handshake query keys** live in `embed-query-params.ts` (`EMBED_QUERY_PARAMS` / `EMBED_RESERVED_QUERY_PARAMS`). Fold the reserved set into public-form `IGNORED_PARAMS`. A missed key makes every embed load enqueue an empty partial (h934). Do not re-spell the names.
+- **Ignored ≠ stripped.** `cleanupUrl` removes prefill keys only; reserved keys stay on the iframe URL for `getEmbedMessagingContext()`. Parse/validate there (`embedId` charset, http(s) `parentOrigin`). Query input is untrusted — not proof the SDK loaded the page.
+
 ## Mirrored OSS rules
 
 Some Hub modules re-implement an OSS Core rule so the UI can validate before a round trip. Both copies must agree: a Hub-only rule rejects input the API accepts and strands rows already holding that value.

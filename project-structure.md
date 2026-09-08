@@ -22,6 +22,10 @@ Quick reference for organizing features using vertical slice architecture.
 - **Reusable libraries** that can be published independently
 - **Workspace packages** that other projects can consume
 
+### Use `src/` for:
+
+- **Standalone browser bundles** (not Next). Today: `src/embed` → `public/embed/v1/embed.js`. See AGENTS.md "Embed SDK".
+
 ## Feature Structure
 
 Vertical Slice Architecture: organize by business feature, then by use-case slice.

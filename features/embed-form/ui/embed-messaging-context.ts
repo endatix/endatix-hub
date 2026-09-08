@@ -1,11 +1,8 @@
 "use client";
 
+import { EMBED_QUERY_PARAMS } from "../embed-query-params";
 import { isFillHeightMode } from "../height-mode";
 import type { EmbedMessagingContext } from "../types";
-
-export const EMBED_ID_QUERY_PARAM = "embedId";
-const PARENT_ORIGIN_QUERY_PARAM = "parentOrigin";
-const HEIGHT_MODE_QUERY_PARAM = "heightMode";
 
 function parseHttpOrigin(value: string | null): string | undefined {
   if (!value) {
@@ -57,8 +54,12 @@ export function getEmbedMessagingContext(): EmbedMessagingContext {
   const searchParams = new URLSearchParams(search);
 
   return {
-    embedId: parseEmbedId(searchParams.get(EMBED_ID_QUERY_PARAM)),
-    parentOrigin: parseHttpOrigin(searchParams.get(PARENT_ORIGIN_QUERY_PARAM)),
-    heightMode: parseHeightMode(searchParams.get(HEIGHT_MODE_QUERY_PARAM)),
+    embedId: parseEmbedId(searchParams.get(EMBED_QUERY_PARAMS.embedId)),
+    parentOrigin: parseHttpOrigin(
+      searchParams.get(EMBED_QUERY_PARAMS.parentOrigin),
+    ),
+    heightMode: parseHeightMode(
+      searchParams.get(EMBED_QUERY_PARAMS.heightMode),
+    ),
   };
 }

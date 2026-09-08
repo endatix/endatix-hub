@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { SurveyModel } from "survey-core";
 import { useSearchParamsVariables } from "../use-search-params-variables.hook";
+import { EMBED_RESERVED_QUERY_PARAMS } from "@/features/embed-form/embed-query-params";
 
 // Mock Next.js navigation
 const mockReplace = vi.fn();
@@ -31,7 +32,8 @@ beforeEach(() => {
     writable: true,
   });
   vi.clearAllMocks();
-  mockSearchParams.forEach((_, key) => mockSearchParams.delete(key));
+  // URLSearchParams.forEach + delete can skip keys; drain via keys() snapshot.
+  [...mockSearchParams.keys()].forEach((key) => mockSearchParams.delete(key));
 });
 
 describe("useSearchParamsVariables", () => {
@@ -53,9 +55,7 @@ describe("useSearchParamsVariables", () => {
       mockSearchParams.set("var1", "value1");
       mockSearchParams.set("var2", "value2");
 
-      const { result } = renderHook(() =>
-        useSearchParamsVariables(formId),
-      );
+      const { result } = renderHook(() => useSearchParamsVariables(formId));
 
       // Act
       act(() => {
@@ -76,9 +76,7 @@ describe("useSearchParamsVariables", () => {
       mockSearchParams.set("lang", "should-be-ignored");
       mockSearchParams.set("validvar", "validValue");
 
-      const { result } = renderHook(() =>
-        useSearchParamsVariables(formId),
-      );
+      const { result } = renderHook(() => useSearchParamsVariables(formId));
 
       // Act
       act(() => {
@@ -93,15 +91,63 @@ describe("useSearchParamsVariables", () => {
       expect(testModel.getVariable("validvar")).toBe("validValue");
     });
 
+    it("should ignore embed handshake/layout params and not enqueue a submission", () => {
+      // Arrange
+      const testModel = new SurveyModel();
+      for (const key of EMBED_RESERVED_QUERY_PARAMS) {
+        mockSearchParams.set(key, `v-${key}`);
+      }
+
+      const { result } = renderHook(() => useSearchParamsVariables(formId));
+
+      // Act
+      act(() => {
+        result.current.processSearchParams(testModel);
+      });
+
+      // Assert
+      for (const key of EMBED_RESERVED_QUERY_PARAMS) {
+        expect(testModel.getVariable(key)).toBeUndefined();
+      }
+      expect(mockEnqueueSubmission).not.toHaveBeenCalled();
+    });
+
+    it("should still enqueue when a real prefill key sits beside embed reserved params", () => {
+      // Arrange
+      const testModel = new SurveyModel();
+      for (const key of EMBED_RESERVED_QUERY_PARAMS) {
+        mockSearchParams.set(key, `v-${key}`);
+      }
+      mockSearchParams.set("campaign", "spring");
+
+      const { result } = renderHook(() => useSearchParamsVariables(formId));
+
+      // Act
+      act(() => {
+        result.current.processSearchParams(testModel);
+      });
+
+      // Assert
+      expect(testModel.getVariable("campaign")).toBe("spring");
+      for (const key of EMBED_RESERVED_QUERY_PARAMS) {
+        expect(testModel.getVariable(key)).toBeUndefined();
+      }
+      expect(mockEnqueueSubmission).toHaveBeenCalledTimes(1);
+
+      const metadata = JSON.parse(
+        mockEnqueueSubmission.mock.calls[0][0].metadata,
+      );
+      expect(metadata.variables).toHaveProperty("campaign", "spring");
+      for (const key of EMBED_RESERVED_QUERY_PARAMS) {
+        expect(metadata.variables).not.toHaveProperty(key);
+      }
+    });
+
     it("should not process when no valid params exist", () => {
       // Arrange
-      // Clear search params and use a fresh model
-      mockSearchParams.forEach((_, key) => mockSearchParams.delete(key));
       const freshModel = new SurveyModel();
       mockSearchParams.set("token", "only-reserved");
-      const { result } = renderHook(() =>
-        useSearchParamsVariables(formId),
-      );
+      const { result } = renderHook(() => useSearchParamsVariables(formId));
 
       // Act
       act(() => {
@@ -116,9 +162,7 @@ describe("useSearchParamsVariables", () => {
       // Arrange
       mockSearchParams.set("var1", "value1");
       const onSetVariables = vi.fn();
-      const { result } = renderHook(() =>
-        useSearchParamsVariables(formId),
-      );
+      const { result } = renderHook(() => useSearchParamsVariables(formId));
 
       // Act
       act(() => {
@@ -136,9 +180,7 @@ describe("useSearchParamsVariables", () => {
       model.setVariable("var1", "value1");
       mockSearchParams.set("var1", "value1"); // Same value
       const onSetVariables = vi.fn();
-      const { result } = renderHook(() =>
-        useSearchParamsVariables(formId),
-      );
+      const { result } = renderHook(() => useSearchParamsVariables(formId));
 
       // Act
       act(() => {
@@ -154,9 +196,7 @@ describe("useSearchParamsVariables", () => {
       // Arrange
       model.setVariable("existing", "old");
       mockSearchParams.set("newvar", "newValue");
-      const { result } = renderHook(() =>
-        useSearchParamsVariables(formId),
-      );
+      const { result } = renderHook(() => useSearchParamsVariables(formId));
 
       // Act
       act(() => {
@@ -181,9 +221,7 @@ describe("useSearchParamsVariables", () => {
       // Arrange
       model.locale = "fr";
       mockSearchParams.set("var1", "value1");
-      const { result } = renderHook(() =>
-        useSearchParamsVariables(formId),
-      );
+      const { result } = renderHook(() => useSearchParamsVariables(formId));
 
       // Act
       act(() => {
@@ -198,9 +236,7 @@ describe("useSearchParamsVariables", () => {
 
     it("should handle empty search params", () => {
       // Arrange
-      const { result } = renderHook(() =>
-        useSearchParamsVariables(formId),
-      );
+      const { result } = renderHook(() => useSearchParamsVariables(formId));
 
       // Act
       act(() => {
@@ -215,9 +251,7 @@ describe("useSearchParamsVariables", () => {
       // Arrange
       // URLSearchParams doesn't allow empty keys, but test edge case
       mockSearchParams.set("valid", "value");
-      const { result } = renderHook(() =>
-        useSearchParamsVariables(formId),
-      );
+      const { result } = renderHook(() => useSearchParamsVariables(formId));
 
       // Act
       act(() => {
@@ -246,10 +280,52 @@ describe("useSearchParamsVariables", () => {
       });
 
       // Assert
-      expect(mockReplace).toHaveBeenCalledWith(
-        "/test/path?token=keep-this",
-        { scroll: false },
+      expect(mockReplace).toHaveBeenCalledWith("/test/path?token=keep-this", {
+        scroll: false,
+      });
+    });
+
+    it("should keep embed params in the URL — postMessage routing reads them after cleanup", () => {
+      // Arrange
+      for (const key of EMBED_RESERVED_QUERY_PARAMS) {
+        mockSearchParams.set(key, `v-${key}`);
+      }
+      mockSearchParams.set("var1", "value1");
+
+      const { result } = renderHook(() =>
+        useSearchParamsVariables(formId, { removeAfterProcessing: true }),
       );
+
+      // Act
+      act(() => {
+        result.current.cleanupUrl();
+      });
+
+      // Assert
+      const [newUrl] = mockReplace.mock.calls[0];
+      expect(newUrl).not.toContain("var1=");
+      for (const key of EMBED_RESERVED_QUERY_PARAMS) {
+        expect(newUrl).toContain(`${key}=`);
+      }
+    });
+
+    it("should not call replace when only embed params are present", () => {
+      // Arrange
+      for (const key of EMBED_RESERVED_QUERY_PARAMS) {
+        mockSearchParams.set(key, `v-${key}`);
+      }
+
+      const { result } = renderHook(() =>
+        useSearchParamsVariables(formId, { removeAfterProcessing: true }),
+      );
+
+      // Act
+      act(() => {
+        result.current.cleanupUrl();
+      });
+
+      // Assert
+      expect(mockReplace).not.toHaveBeenCalled();
     });
 
     it("should not remove params when removeAfterProcessing is false", () => {
@@ -363,7 +439,9 @@ describe("useSearchParamsVariables", () => {
   describe("Debug Mode", () => {
     it("should log debug info when debugMode is enabled", () => {
       // Arrange
-      const consoleLogSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+      const consoleLogSpy = vi
+        .spyOn(console, "log")
+        .mockImplementation(() => {});
       mockSearchParams.set("var1", "value1");
       const { result } = renderHook(() =>
         useSearchParamsVariables(formId, { debugMode: true }),
@@ -387,7 +465,9 @@ describe("useSearchParamsVariables", () => {
 
     it("should not log when debugMode is false", () => {
       // Arrange
-      const consoleLogSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+      const consoleLogSpy = vi
+        .spyOn(console, "log")
+        .mockImplementation(() => {});
       mockSearchParams.set("var1", "value1");
       const { result } = renderHook(() =>
         useSearchParamsVariables(formId, { debugMode: false }),
@@ -421,7 +501,9 @@ describe("useSearchParamsVariables", () => {
 
     it("should default debugMode to false", () => {
       // Arrange
-      const consoleLogSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+      const consoleLogSpy = vi
+        .spyOn(console, "log")
+        .mockImplementation(() => {});
       mockSearchParams.set("var1", "value1");
       const { result } = renderHook(() => useSearchParamsVariables(formId));
 

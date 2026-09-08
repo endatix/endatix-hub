@@ -1,5 +1,7 @@
+import type { Route } from "next";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useCallback, useRef } from "react";
+import { EMBED_RESERVED_QUERY_PARAMS } from "@/features/embed-form/embed-query-params";
 import { DynamicVariable } from "../types";
 import { useSubmissionQueue } from "./submission-queue";
 import { SubmissionData } from "@/features/submissions/types";
@@ -10,12 +12,28 @@ interface UseSearchParamsVarsOptions {
   debugMode?: boolean;
 }
 
-const IGNORED_PARAMS = new Set(["token", "theme", "language", "lang"]);
+const IGNORED_PARAMS = new Set([
+  "token",
+  "theme",
+  "language",
+  "lang",
+  ...EMBED_RESERVED_QUERY_PARAMS,
+]);
 
-/**
- * Internal function to apply search parameters to a survey model.
- * This is called synchronously during initialization.
- */
+const pickPrefillParams = (
+  searchParams: URLSearchParams,
+): Record<string, DynamicVariable> => {
+  const variables: Record<string, DynamicVariable> = {};
+
+  searchParams.forEach((value, key) => {
+    if (key.length > 0 && !IGNORED_PARAMS.has(key)) {
+      variables[key] = value;
+    }
+  });
+
+  return variables;
+};
+
 const applySearchParamsToModel = (
   model: SurveyModel,
   searchParams: URLSearchParams,
@@ -23,46 +41,23 @@ const applySearchParamsToModel = (
   variables: Record<string, DynamicVariable>;
   hasChanges: boolean;
 } => {
-  const searchParamsVars: Record<string, DynamicVariable> = {};
+  const variables = pickPrefillParams(searchParams);
+  const entries = Object.entries(variables);
 
-  searchParams.forEach((value, key) => {
-    if (key.length > 0 && !IGNORED_PARAMS.has(key)) {
-      searchParamsVars[key] = value;
-    }
-  });
-
-  if (Object.keys(searchParamsVars).length === 0) {
+  if (entries.length === 0) {
     return { variables: {}, hasChanges: false };
   }
 
-  let hasNewOrModifiedVars = false;
-  Object.entries(searchParamsVars).forEach(([key, value]) => {
-    if (value !== model.getVariable(key)) {
-      hasNewOrModifiedVars = true;
-    }
+  let hasChanges = false;
+  entries.forEach(([key, value]) => {
+    hasChanges ||= value !== model.getVariable(key);
     model.setVariable(key, value);
   });
 
-  return {
-    variables: searchParamsVars,
-    hasChanges: hasNewOrModifiedVars,
-  };
+  return { variables, hasChanges };
 };
 
-/**
- * React hook that provides methods to process search parameters.
- * The hook does NOT automatically process params - it returns methods
- * that should be called manually by the orchestrator (e.g., useSurveyModel).
- *
- * @param formId - The form identifier.
- * @param options - Optional settings:
- *   - removeAfterProcessing: Remove params from URL after processing (default: false)
- *   - debugMode: Enable debug logging (default: false)
- *
- * @returns Object with:
- *   - processSearchParams: Function to apply params and handle side-effects (model state sync)
- *   - cleanupUrl: Function to remove params from URL (optional)
- */
+/** Query-string prefill. Call `processSearchParams` / `cleanupUrl` from the survey orchestrator (e.g. useSurveyModel). */
 export const useSearchParamsVariables = (
   formId: string,
   options?: UseSearchParamsVarsOptions,
@@ -114,26 +109,20 @@ export const useSearchParamsVariables = (
       return;
     }
 
-    const searchParamsVars: Record<string, DynamicVariable> = {};
-    searchParams.forEach((value, key) => {
-      if (key.length > 0 && !IGNORED_PARAMS.has(key)) {
-        searchParamsVars[key] = value;
-      }
-    });
-
-    if (Object.keys(searchParamsVars).length === 0) {
+    const prefillKeys = Object.keys(pickPrefillParams(searchParams));
+    if (prefillKeys.length === 0) {
       return;
     }
 
     const newSearchParams = new URLSearchParams(searchParams);
-    Object.keys(searchParamsVars).forEach((key) => newSearchParams.delete(key));
+    prefillKeys.forEach((key) => newSearchParams.delete(key));
 
-    const newUrl = newSearchParams.toString()
-      ? `${window.location.pathname}?${newSearchParams.toString()}`
+    const query = newSearchParams.toString();
+    const newUrl = query
+      ? `${window.location.pathname}?${query}`
       : window.location.pathname;
 
-     
-    router.replace(newUrl as any, { scroll: false });
+    router.replace(newUrl as Route, { scroll: false });
     hasCleanedUpRef.current = true;
   }, [searchParams, router, removeAfterProcessing, debugMode]);
 
