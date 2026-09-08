@@ -116,6 +116,14 @@ const myFeatureExtension: ExtensionModule = {
 Read runtime context via `deps.getRuntimeState()` inside hooks when you need
 `formId`, JWT, etc. Do not attach Endatix state onto SurveyJS model objects.
 
+**Bind after `model.data` is assigned.** Bulk assignment goes through SurveyJS
+`setDataCore`, which raises no `onValueChanged` — binding first and assigning data
+after leaves anything that hydrates from existing data with nothing to react to.
+Question loops is the worked example: nested loops stay empty on resume
+(`bindFeatureToSurvey` → `hydrateLoopsFromData` in
+`lib/survey-features/question-loops/infrastructure/survey-bindings.ts`). Both
+`use-survey-model` hooks (public-form and submissions) already use this order.
+
 **Binding idempotency (707):** Features may use `__endatix*Bound` sentinels on
 `SurveyCreator` / `Model` for now (matches data-lists). **Target (h709 PR-3b):**
 Hub-owned `WeakMap` side tables in

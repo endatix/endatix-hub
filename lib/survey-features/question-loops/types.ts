@@ -94,9 +94,24 @@ export interface LoopExitMeta {
   };
 }
 
+/**
+ * What the survey expression engine hands a registered function as `this`.
+ *
+ * `question` is the element whose expression is being evaluated. It carries
+ * enough of the tree to walk up to the loop instance that owns it, which is how
+ * a nested loop's exit state is found — a lookup by name from the survey root
+ * cannot see panel-nested loops, and could not tell instances apart if it did.
+ */
+type ConditionRunnerQuestion = {
+  survey: SurveyModel;
+  name?: string;
+  getType?: () => string;
+  parentQuestion?: ConditionRunnerQuestion;
+};
+
 type ConditionRunnerContext = {
   survey?: SurveyModel;
-  question?: { survey: SurveyModel };
+  question?: ConditionRunnerQuestion;
 };
 
 // Thе following properties will be injected into the value of each panel
@@ -108,6 +123,7 @@ interface PanelItem {
 }
 
 export type {
+  ConditionRunnerQuestion,
   DynamicLoopDefinition,
   DynamicLoopModel,
   ConditionRunnerContext,

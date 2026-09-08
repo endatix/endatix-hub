@@ -72,11 +72,17 @@ export function useSurveyModel(
         const definitionJson = JSON.parse(submission.formDefinition.jsonData);
         const submissionData = JSON.parse(submission.jsonData);
         const model = new Model(definitionJson);
-        const unbindQuestionLoops = bindQuestionLoops(model);
 
         onModelCreated?.(model);
 
         model.data = submissionData;
+
+        // Bind question loops *after* the data is in place. Assigning
+        // `model.data` fires no events at all (SurveyJS writes the values hash
+        // directly), so a binding made earlier has nothing to react to and
+        // nested loops never rebuild. Binding here lets the feature hydrate
+        // from data it can see — the order public-form already uses (h938).
+        const unbindQuestionLoops = bindQuestionLoops(model);
 
         const submissionLocale = getSubmissionLocale(submission);
         if (submissionLocale && isLocaleValid(submissionLocale, model)) {

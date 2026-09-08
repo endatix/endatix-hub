@@ -3,9 +3,9 @@ import { ChoiceValue, DynamicLoopModel, PanelItem } from "../types";
 import {
   getUniqueSelectedChoices,
   isLoopQuestion,
-  isSelectBaseQuestion,
   shuffleArray,
 } from "../loop-utils";
+import { resolveLoopSourceQuestions } from "../utils/resolve-loop-source";
 
 export type CategorizedChoices = {
   priority: PanelItem[];
@@ -15,11 +15,13 @@ export type CategorizedChoices = {
 
 /**
  * Syncs the loop source choices to the panel question
- * @param survey - The survey model
+ * @param _survey - Unused. Sources resolve from the loop's own scope, which may
+ *   be a panel rather than the survey root; the parameter stays for call-site
+ *   and test compatibility.
  * @param panelQuestion - The panel question to sync the loop source choices to
  */
 export function syncSingleLoopSource(
-  survey: SurveyModel,
+  _survey: SurveyModel,
   panelQuestion: DynamicLoopModel,
 ) {
   if (!isLoopQuestion(panelQuestion)) return;
@@ -30,9 +32,10 @@ export function syncSingleLoopSource(
   const existingFilledInItemValues =
     getExistingFilledInItemValues(panelQuestion);
 
-  const loopSourceQuestions = panelQuestion.loopSource
-    .map((sourceName) => survey.getQuestionByName(sourceName))
-    .filter(isSelectBaseQuestion);
+  // Scope-aware: a loop inside a panel reads its sibling in *that* panel
+  // instance, which a survey-root lookup by name can neither find nor
+  // disambiguate between instances.
+  const loopSourceQuestions = resolveLoopSourceQuestions(panelQuestion);
 
   const choicesMap = getUniqueSelectedChoices(loopSourceQuestions);
 

@@ -2,14 +2,15 @@ import { IJsonPropertyInfo, SurveyModel } from "survey-core";
 import {
   ConditionRunnerContext,
   DynamicLoopDefinition,
+  DynamicLoopModel,
   LoopExitMeta,
   SourceSelectionModes,
 } from "./types";
+import { isLoopQuestion } from "./loop-utils";
 import {
-  getAllSelectBasedQuestions,
-  isLoopQuestion,
-  isSelectBaseQuestion,
-} from "./loop-utils";
+  getLoopSourceCandidates,
+  resolveLoopSourcesInScope,
+} from "./utils/loop-source-scope";
 import {
   formatSourceChoiceLabel,
   getStaticChoicesFromSources,
@@ -17,13 +18,37 @@ import {
 } from "@/lib/survey-features/data-lists/utils/property-grid-source-choices";
 import { createLoopExitQuery } from "./use-cases/handle-loop-exit";
 
-const PANEL_QUESTION_TYPE = "paneldynamic";
-export const PANEL_VISIBILITY_SENTINEL = 9999;
+import { PANEL_QUESTION_TYPE, PANEL_VISIBILITY_SENTINEL } from "./constants";
 
 const INITIAL_EXIT_STATE: LoopExitMeta = {
   exitAll: undefined,
   exitCurrent: undefined,
 };
+
+/**
+ * Finds the loop instance an expression is being evaluated inside, by walking
+ * up from the evaluating question.
+ *
+ * This is what makes exit state work for nested loops: `survey.getQuestionByName`
+ * cannot see a loop inside a panel, and even if it could it would return one
+ * shared object rather than the instance belonging to this panel. Walking the
+ * context needs neither a name lookup nor a path.
+ */
+function findLoopInstanceInContext(
+  context: ConditionRunnerContext,
+  panelName: string,
+): DynamicLoopModel | undefined {
+  let current = context.question;
+
+  while (current) {
+    if (current.name === panelName && isLoopQuestion(current as never)) {
+      return current as unknown as DynamicLoopModel;
+    }
+    current = current.parentQuestion;
+  }
+
+  return undefined;
+}
 
 export function isLoopExitedFunction(
   this: ConditionRunnerContext,
@@ -41,7 +66,11 @@ export function isLoopExitedFunction(
 
   if (!survey) return false;
 
-  const panel = survey.getQuestionByName(panelName);
+  // Context first, name lookup second: the latter only ever resolves a
+  // page-level loop, which is exactly the single-level case it still serves.
+  const panel =
+    findLoopInstanceInContext(this, panelName) ??
+    (survey.getQuestionByName(panelName) as DynamicLoopModel | undefined);
 
   if (!panel?.exitMeta?.exitAll && !panel?.exitMeta?.exitCurrent) return false;
 
@@ -57,7 +86,7 @@ const LOOP_SOURCE_PROPERTY: IJsonPropertyInfo = {
   category: "questionLoops",
   type: "multiplevalues",
   choices: function (
-    obj: { survey: SurveyModel },
+    obj: DynamicLoopModel,
     choicesCallback: (choices: { value: string; text: string }[]) => void,
   ) {
     const survey = obj ? obj.survey : null;
@@ -67,13 +96,9 @@ const LOOP_SOURCE_PROPERTY: IJsonPropertyInfo = {
       return;
     }
 
-    const filteredChoices =
-      getAllSelectBasedQuestions(survey).map((selectQuestion) => ({
-        value: selectQuestion.name,
-        text: selectQuestion.name,
-      })) || [];
-
-    choicesCallback(filteredChoices);
+    // Scoped: a question that only exists inside an unrelated panel template
+    // cannot be resolved at runtime, so it is not offered here either.
+    choicesCallback(getLoopSourceCandidates(obj, survey));
   },
 };
 
@@ -115,15 +140,13 @@ const PRIORITY_ITEMS_PROPERTY: IJsonPropertyInfo = {
   category: "questionLoops",
   type: "multiplevalues",
   choices: function (
-    obj: { survey: SurveyModel; loopSource: string[] },
+    obj: DynamicLoopModel,
     choicesCallback: (choices: { value: string; text: string }[]) => void,
   ) {
     const { survey, loopSource } = obj || {};
     if (!survey || !loopSource) return choicesCallback([]);
 
-    const loopSourceQuestions = loopSource
-      .map((name) => survey.getQuestionByName(name))
-      .filter(isSelectBaseQuestion);
+    const loopSourceQuestions = resolveLoopSourcesInScope(obj, survey);
 
     if (hasDataListSource(loopSourceQuestions)) {
       choicesCallback([]);
@@ -160,6 +183,9 @@ const EXIT_ALL_LOOPS_CONDITION_PROPERTY: IJsonPropertyInfo = {
 const EXIT_META_PROPERTY: IJsonPropertyInfo = {
   name: "exitMeta",
   visible: false,
+  // Pure runtime state: it must never round-trip into saved form JSON, which
+  // matters once loops nest and every panel instance carries its own (h938).
+  isSerializable: false,
   default: INITIAL_EXIT_STATE,
 };
 
@@ -184,4 +210,9 @@ const DEFAULT_LOOP_DEFINITION: DynamicLoopDefinition = {
 const getDynamicLoopDefinition = (): DynamicLoopDefinition =>
   DEFAULT_LOOP_DEFINITION;
 
-export { PANEL_QUESTION_TYPE, INITIAL_EXIT_STATE, getDynamicLoopDefinition };
+export {
+  PANEL_QUESTION_TYPE,
+  PANEL_VISIBILITY_SENTINEL,
+  INITIAL_EXIT_STATE,
+  getDynamicLoopDefinition,
+};
