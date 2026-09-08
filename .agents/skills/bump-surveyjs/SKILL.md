@@ -60,6 +60,7 @@ The script is located at: `hub/scripts/upgrade-surveyjs.mjs`
 - `applyCreatorTheme` only calls `designerPlugin.setTheme()`. The Translations grid snapshots surface CSS at create. Hub paints `--sjs2-*` onto that grid's existing root — do **not** call `stringsSurvey.applyTheme` (v3 themeChanged + style injection retriggers Next.js HMR/`_rsc` refresh on that tab in dev)
 - Question loops (nested `paneldynamic`): run `lib/survey-features/question-loops/__tests__/surveyjs-shape-guards.test.ts`. A failure there is a vendor-contract break, not a flaky unit test — nested loops fail silently (form loads, designer looks configured, zero panels), so nothing else will catch it
 - Do not rediscover loops with `survey.getAllQuestions()` (with or without `includeNested`). Walk templates vs live instances — `collectLoopTemplates` / `collectLoopInstances` in `question-loops/utils/`
+- Public embed fill-mode background (`hub/features/public-form/ui/survey-component.tsx`): the survey's page/surface color isn't a `themeVariables` custom property applicable via inline style — it's painted by the injected `:where(.sd-theme-root)` stylesheet onto `.sd-root-modern::before`. Read the resolved color with `getComputedStyle(card, "::before")` instead of guessing a `--sjs*`/`--sjs2*` variable name; guessing wrong is what silently broke this under v3 (h930)
 
 ## Next Steps After Upgrade
 
