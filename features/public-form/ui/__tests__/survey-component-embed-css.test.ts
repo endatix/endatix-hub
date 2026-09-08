@@ -38,6 +38,17 @@ describe("survey-component.module.css embed rules", () => {
     }
   });
 
+  it("pins the fill-mode background layer to the iframe viewport", () => {
+    // Arrange - the theme's background image layer is sized to the survey root, so a
+    // completed page shorter than the iframe left the space below it on the flat
+    // fallback colour. Fixed also keeps it out of flow, so it cannot feed back into
+    // the reported height.
+    const fillBlocks = blocksFor(".sd-root_background-image").join("\n");
+
+    // Assert
+    expect(fillBlocks).toContain("position: fixed");
+  });
+
   it("still lets the standalone layout fill the real viewport", () => {
     // Arrange
     const standaloneBlocks = blocksFor(".layoutFullHeight").join("\n");

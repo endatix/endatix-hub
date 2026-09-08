@@ -21,6 +21,18 @@
   background-color: var(--embed-fill-fallback-bg, #f3f3f3);
 }
 
+/* Fill mode: the survey can be shorter than the iframe, and the theme's background
+   image layer is sized to the survey root - so it stopped where the content stopped
+   and the space below fell back to the flat colour above. Pin the layer to the iframe
+   viewport instead, so the image reaches the bottom as it does on the standalone page.
+   Fixed keeps it out of flow, so it cannot feed back into the reported height. */
+.embedShellFill :global(.sd-root_background-image) {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
 /* Reserve right edge of the survey title so absolute language picker
    does not cover long titles. Also tighten v3 title band (default 24px). */
 .layoutFullHeight :global(.sd-container-modern__title),
