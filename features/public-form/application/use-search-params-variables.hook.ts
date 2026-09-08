@@ -1,3 +1,4 @@
+import type { Route } from "next";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useCallback, useRef } from "react";
 import { EMBED_RESERVED_QUERY_PARAMS } from "@/features/embed-form/embed-query-params";
@@ -19,10 +20,21 @@ const IGNORED_PARAMS = new Set([
   ...EMBED_RESERVED_QUERY_PARAMS,
 ]);
 
-/**
- * Internal function to apply search parameters to a survey model.
- * This is called synchronously during initialization.
- */
+/** The params a public form treats as prefill: everything the app does not reserve. */
+const pickPrefillParams = (
+  searchParams: URLSearchParams,
+): Record<string, DynamicVariable> => {
+  const variables: Record<string, DynamicVariable> = {};
+
+  searchParams.forEach((value, key) => {
+    if (key.length > 0 && !IGNORED_PARAMS.has(key)) {
+      variables[key] = value;
+    }
+  });
+
+  return variables;
+};
+
 const applySearchParamsToModel = (
   model: SurveyModel,
   searchParams: URLSearchParams,
@@ -30,30 +42,20 @@ const applySearchParamsToModel = (
   variables: Record<string, DynamicVariable>;
   hasChanges: boolean;
 } => {
-  const searchParamsVars: Record<string, DynamicVariable> = {};
+  const variables = pickPrefillParams(searchParams);
+  const entries = Object.entries(variables);
 
-  searchParams.forEach((value, key) => {
-    if (key.length > 0 && !IGNORED_PARAMS.has(key)) {
-      searchParamsVars[key] = value;
-    }
-  });
-
-  if (Object.keys(searchParamsVars).length === 0) {
+  if (entries.length === 0) {
     return { variables: {}, hasChanges: false };
   }
 
-  let hasNewOrModifiedVars = false;
-  Object.entries(searchParamsVars).forEach(([key, value]) => {
-    if (value !== model.getVariable(key)) {
-      hasNewOrModifiedVars = true;
-    }
+  let hasChanges = false;
+  entries.forEach(([key, value]) => {
+    hasChanges ||= value !== model.getVariable(key);
     model.setVariable(key, value);
   });
 
-  return {
-    variables: searchParamsVars,
-    hasChanges: hasNewOrModifiedVars,
-  };
+  return { variables, hasChanges };
 };
 
 /**
@@ -121,25 +123,20 @@ export const useSearchParamsVariables = (
       return;
     }
 
-    const searchParamsVars: Record<string, DynamicVariable> = {};
-    searchParams.forEach((value, key) => {
-      if (key.length > 0 && !IGNORED_PARAMS.has(key)) {
-        searchParamsVars[key] = value;
-      }
-    });
-
-    if (Object.keys(searchParamsVars).length === 0) {
+    const prefillKeys = Object.keys(pickPrefillParams(searchParams));
+    if (prefillKeys.length === 0) {
       return;
     }
 
     const newSearchParams = new URLSearchParams(searchParams);
-    Object.keys(searchParamsVars).forEach((key) => newSearchParams.delete(key));
+    prefillKeys.forEach((key) => newSearchParams.delete(key));
 
-    const newUrl = newSearchParams.toString()
-      ? `${window.location.pathname}?${newSearchParams.toString()}`
+    const query = newSearchParams.toString();
+    const newUrl = query
+      ? `${window.location.pathname}?${query}`
       : window.location.pathname;
 
-    router.replace(newUrl as any, { scroll: false });
+    router.replace(newUrl as Route, { scroll: false });
     hasCleanedUpRef.current = true;
   }, [searchParams, router, removeAfterProcessing, debugMode]);
 

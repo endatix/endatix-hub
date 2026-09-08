@@ -92,7 +92,6 @@ describe("useSearchParamsVariables", () => {
 
     it("should ignore embed handshake/layout params and not enqueue a submission", () => {
       // Arrange — embed.js always appends these; they must not look like prefill
-      mockSearchParams.forEach((_, key) => mockSearchParams.delete(key));
       const testModel = new SurveyModel();
       mockSearchParams.set("parentOrigin", "https://host.example");
       mockSearchParams.set("embedId", "edxf-123-0-abc");
@@ -114,7 +113,6 @@ describe("useSearchParamsVariables", () => {
 
     it("should still enqueue when a real prefill key sits beside embed reserved params", () => {
       // Arrange
-      mockSearchParams.forEach((_, key) => mockSearchParams.delete(key));
       const testModel = new SurveyModel();
       mockSearchParams.set("parentOrigin", "https://host.example");
       mockSearchParams.set("embedId", "edxf-123-0-abc");
@@ -146,8 +144,6 @@ describe("useSearchParamsVariables", () => {
 
     it("should not process when no valid params exist", () => {
       // Arrange
-      // Clear search params and use a fresh model
-      mockSearchParams.forEach((_, key) => mockSearchParams.delete(key));
       const freshModel = new SurveyModel();
       mockSearchParams.set("token", "only-reserved");
       const { result } = renderHook(() => useSearchParamsVariables(formId));
@@ -286,6 +282,48 @@ describe("useSearchParamsVariables", () => {
       expect(mockReplace).toHaveBeenCalledWith("/test/path?token=keep-this", {
         scroll: false,
       });
+    });
+
+    it("should keep embed params in the URL — postMessage routing reads them after cleanup", () => {
+      // Arrange
+      mockSearchParams.set("embedId", "edxf-123-0-abc");
+      mockSearchParams.set("parentOrigin", "https://host.example");
+      mockSearchParams.set("heightMode", "fill");
+      mockSearchParams.set("var1", "value1");
+
+      const { result } = renderHook(() =>
+        useSearchParamsVariables(formId, { removeAfterProcessing: true }),
+      );
+
+      // Act
+      act(() => {
+        result.current.cleanupUrl();
+      });
+
+      // Assert
+      const [newUrl] = mockReplace.mock.calls[0];
+      expect(newUrl).not.toContain("var1");
+      expect(newUrl).toContain("embedId=edxf-123-0-abc");
+      expect(newUrl).toContain("parentOrigin=https%3A%2F%2Fhost.example");
+      expect(newUrl).toContain("heightMode=fill");
+    });
+
+    it("should not call replace when only embed params are present", () => {
+      // Arrange
+      mockSearchParams.set("embedId", "edxf-123-0-abc");
+      mockSearchParams.set("heightMode", "fill");
+
+      const { result } = renderHook(() =>
+        useSearchParamsVariables(formId, { removeAfterProcessing: true }),
+      );
+
+      // Act
+      act(() => {
+        result.current.cleanupUrl();
+      });
+
+      // Assert
+      expect(mockReplace).not.toHaveBeenCalled();
     });
 
     it("should not remove params when removeAfterProcessing is false", () => {

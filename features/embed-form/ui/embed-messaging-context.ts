@@ -8,8 +8,6 @@ import {
 import { isFillHeightMode } from "../height-mode";
 import type { EmbedMessagingContext } from "../types";
 
-export { EMBED_ID_QUERY_PARAM };
-
 function parseHttpOrigin(value: string | null): string | undefined {
   if (!value) {
     return undefined;

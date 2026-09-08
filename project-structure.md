@@ -22,6 +22,10 @@ Quick reference for organizing features using vertical slice architecture.
 - **Reusable libraries** that can be published independently
 - **Workspace packages** that other projects can consume
 
+### Use `src/` for:
+
+- **Bundles built outside Next** — today only `src/embed` (the embed SDK, esbuild → `public/embed/v1/embed.js`). Nothing else belongs here; see AGENTS.md "Embed SDK".
+
 ## Feature Structure
 
 Vertical Slice Architecture: organize by business feature, then by use-case slice.

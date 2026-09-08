@@ -149,6 +149,16 @@ When a detail page has a "Back to `<list>`" control that should restore the list
 - Reference implementation: `features/data-lists/view-lists/utils.ts` (`parseDataListsReturnQuery`, `dataListsListHrefFromQuery`), wired into `data-lists-page.tsx` (remember) and `data-list-details-page.tsx` (`BackToTableButton`).
 - `features/submissions/list-submission-query/submission-list-return-to.ts` + `back-to-submissions-button.tsx` predate this shared abstraction (bespoke sessionStorage, same shape, not yet migrated). Move it onto `table-return-to` / `BackToTableButton` next time that code is touched rather than adding a third bespoke copy.
 
+## Embed SDK (`src/embed`)
+
+`src/embed/embed.ts` is a standalone esbuild IIFE bundle (`public/embed/v1/embed.js`) that runs on customer pages. It loads the form in an iframe pointed at `app/(public)/embed/[formId]`, so the two sides share a query-string contract.
+
+- **The bundle stays framework-free.** No `next` / `react` / `@/*` imports — enforced by `no-restricted-imports` in `eslint.config.mjs`. Share plain constants with the app through a relative import instead.
+- **Reserved query keys are one module:** `features/embed-form/embed-query-params.ts`, imported by both sides. Don't re-spell `"embedId"` / `"parentOrigin"` / `"heightMode"` anywhere. Prefer this one-module share over the mirror-and-pin-in-a-test pattern below — that is for rules whose other copy lives in another repo.
+- **Adding a reserved key:** add it to `EMBED_RESERVED_QUERY_PARAMS`. That set is folded into `IGNORED_PARAMS` in `use-search-params-variables.hook.ts`, which is what keeps prefill from reading handshake params as survey variables — a missed key makes every embed load look like "prefill changed" and enqueues an empty partial submission (h934).
+- **Ignored ≠ stripped.** `cleanupUrl` only removes keys it treats as prefill, so reserved keys survive in the iframe URL — `getEmbedMessagingContext()` re-reads them from `window.location` on every render.
+- Parsing/validating a reserved key is `features/embed-form/ui/embed-messaging-context.ts` (allowlisted `embedId`, http(s)-only `parentOrigin`). Query input is untrusted: parse there, never trust it as proof the SDK loaded the page.
+
 ## Mirrored OSS rules
 
 Some Hub modules re-implement an OSS Core rule so the UI can validate before a round trip. Both copies must agree: a Hub-only rule rejects input the API accepts and strands rows already holding that value.
