@@ -1,8 +1,4 @@
-import {
-  EMBED_ID_QUERY_PARAM,
-  HEIGHT_MODE_QUERY_PARAM,
-  PARENT_ORIGIN_QUERY_PARAM,
-} from "../../features/embed-form/embed-query-params";
+import { EMBED_QUERY_PARAMS } from "../../features/embed-form/embed-query-params";
 
 /** Max positive signed 64-bit integer (typical snowflake upper bound). */
 const MAX_SNOWFLAKE_ID = BigInt("9223372036854775807");
@@ -434,11 +430,11 @@ const endatixEmbed: EndatixEmbedApi = {
 
     const parentOrigin = getCurrentParentOrigin();
     if (parentOrigin) {
-      iframeUrl.searchParams.set(PARENT_ORIGIN_QUERY_PARAM, parentOrigin);
+      iframeUrl.searchParams.set(EMBED_QUERY_PARAMS.parentOrigin, parentOrigin);
     }
-    iframeUrl.searchParams.set(EMBED_ID_QUERY_PARAM, embedId);
+    iframeUrl.searchParams.set(EMBED_QUERY_PARAMS.embedId, embedId);
     if (heightMode === "fill") {
-      iframeUrl.searchParams.set(HEIGHT_MODE_QUERY_PARAM, "fill");
+      iframeUrl.searchParams.set(EMBED_QUERY_PARAMS.heightMode, "fill");
     }
 
     iframe.src = iframeUrl.toString();

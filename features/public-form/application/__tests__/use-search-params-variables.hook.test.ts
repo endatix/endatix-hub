@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { SurveyModel } from "survey-core";
 import { useSearchParamsVariables } from "../use-search-params-variables.hook";
+import { EMBED_RESERVED_QUERY_PARAMS } from "@/features/embed-form/embed-query-params";
 
 // Mock Next.js navigation
 const mockReplace = vi.fn();
@@ -93,9 +94,9 @@ describe("useSearchParamsVariables", () => {
     it("should ignore embed handshake/layout params and not enqueue a submission", () => {
       // Arrange
       const testModel = new SurveyModel();
-      mockSearchParams.set("parentOrigin", "https://host.example");
-      mockSearchParams.set("embedId", "edxf-123-0-abc");
-      mockSearchParams.set("heightMode", "fill");
+      for (const key of EMBED_RESERVED_QUERY_PARAMS) {
+        mockSearchParams.set(key, `v-${key}`);
+      }
 
       const { result } = renderHook(() => useSearchParamsVariables(formId));
 
@@ -105,18 +106,18 @@ describe("useSearchParamsVariables", () => {
       });
 
       // Assert
-      expect(testModel.getVariable("parentOrigin")).toBeUndefined();
-      expect(testModel.getVariable("embedId")).toBeUndefined();
-      expect(testModel.getVariable("heightMode")).toBeUndefined();
+      for (const key of EMBED_RESERVED_QUERY_PARAMS) {
+        expect(testModel.getVariable(key)).toBeUndefined();
+      }
       expect(mockEnqueueSubmission).not.toHaveBeenCalled();
     });
 
     it("should still enqueue when a real prefill key sits beside embed reserved params", () => {
       // Arrange
       const testModel = new SurveyModel();
-      mockSearchParams.set("parentOrigin", "https://host.example");
-      mockSearchParams.set("embedId", "edxf-123-0-abc");
-      mockSearchParams.set("heightMode", "fill");
+      for (const key of EMBED_RESERVED_QUERY_PARAMS) {
+        mockSearchParams.set(key, `v-${key}`);
+      }
       mockSearchParams.set("campaign", "spring");
 
       const { result } = renderHook(() => useSearchParamsVariables(formId));
@@ -128,18 +129,18 @@ describe("useSearchParamsVariables", () => {
 
       // Assert
       expect(testModel.getVariable("campaign")).toBe("spring");
-      expect(testModel.getVariable("parentOrigin")).toBeUndefined();
-      expect(testModel.getVariable("embedId")).toBeUndefined();
-      expect(testModel.getVariable("heightMode")).toBeUndefined();
+      for (const key of EMBED_RESERVED_QUERY_PARAMS) {
+        expect(testModel.getVariable(key)).toBeUndefined();
+      }
       expect(mockEnqueueSubmission).toHaveBeenCalledTimes(1);
 
       const metadata = JSON.parse(
         mockEnqueueSubmission.mock.calls[0][0].metadata,
       );
       expect(metadata.variables).toHaveProperty("campaign", "spring");
-      expect(metadata.variables).not.toHaveProperty("parentOrigin");
-      expect(metadata.variables).not.toHaveProperty("embedId");
-      expect(metadata.variables).not.toHaveProperty("heightMode");
+      for (const key of EMBED_RESERVED_QUERY_PARAMS) {
+        expect(metadata.variables).not.toHaveProperty(key);
+      }
     });
 
     it("should not process when no valid params exist", () => {
@@ -286,9 +287,9 @@ describe("useSearchParamsVariables", () => {
 
     it("should keep embed params in the URL — postMessage routing reads them after cleanup", () => {
       // Arrange
-      mockSearchParams.set("embedId", "edxf-123-0-abc");
-      mockSearchParams.set("parentOrigin", "https://host.example");
-      mockSearchParams.set("heightMode", "fill");
+      for (const key of EMBED_RESERVED_QUERY_PARAMS) {
+        mockSearchParams.set(key, `v-${key}`);
+      }
       mockSearchParams.set("var1", "value1");
 
       const { result } = renderHook(() =>
@@ -302,16 +303,17 @@ describe("useSearchParamsVariables", () => {
 
       // Assert
       const [newUrl] = mockReplace.mock.calls[0];
-      expect(newUrl).not.toContain("var1");
-      expect(newUrl).toContain("embedId=edxf-123-0-abc");
-      expect(newUrl).toContain("parentOrigin=https%3A%2F%2Fhost.example");
-      expect(newUrl).toContain("heightMode=fill");
+      expect(newUrl).not.toContain("var1=");
+      for (const key of EMBED_RESERVED_QUERY_PARAMS) {
+        expect(newUrl).toContain(`${key}=`);
+      }
     });
 
     it("should not call replace when only embed params are present", () => {
       // Arrange
-      mockSearchParams.set("embedId", "edxf-123-0-abc");
-      mockSearchParams.set("heightMode", "fill");
+      for (const key of EMBED_RESERVED_QUERY_PARAMS) {
+        mockSearchParams.set(key, `v-${key}`);
+      }
 
       const { result } = renderHook(() =>
         useSearchParamsVariables(formId, { removeAfterProcessing: true }),

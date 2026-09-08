@@ -121,6 +121,33 @@ describe("Endatix embed host script", () => {
     expect(iframeUrl.searchParams.get("embedId")).toBe(instance.embedId);
   });
 
+  it("adds only reserved handshake keys besides token (not prefill)", async () => {
+    const { EMBED_RESERVED_QUERY_PARAMS } =
+      await import("../../features/embed-form/embed-query-params");
+    const reserved = new Set<string>(EMBED_RESERVED_QUERY_PARAMS);
+    const api = await loadEmbedApi();
+
+    api.embedFormAt(
+      "123",
+      {
+        baseUrl: "https://hub.example/embed/v1/embed.js",
+        token: "tok",
+        heightMode: "fill",
+      },
+      null,
+    );
+
+    const iframeUrl = new URL(api.instances[0].iframe.src);
+    for (const key of iframeUrl.searchParams.keys()) {
+      if (key === "token") {
+        continue;
+      }
+      expect(reserved.has(key)).toBe(true);
+    }
+    expect(iframeUrl.searchParams.get("token")).toBe("tok");
+    expect(iframeUrl.searchParams.get("heightMode")).toBe("fill");
+  });
+
   it("dispatches form-loaded events only for trusted message envelopes", async () => {
     // Arrange
     const api = await loadEmbedApi();
@@ -157,7 +184,7 @@ describe("Endatix embed host script", () => {
       definitionId: "def-123",
       limitOnePerUser: true,
       requiresReCaptcha: false,
-      metadata: "{\"source\":\"test\"}",
+      metadata: '{"source":"test"}',
       title: "Customer Intake",
     });
 
@@ -170,7 +197,7 @@ describe("Endatix embed host script", () => {
         definitionId: "def-123",
         limitOnePerUser: true,
         requiresReCaptcha: false,
-        metadata: "{\"source\":\"test\"}",
+        metadata: '{"source":"test"}',
         title: "Customer Intake",
       },
     });
@@ -271,7 +298,9 @@ describe("Endatix embed host script", () => {
     it("warns and falls back to auto for an invalid heightMode value", async () => {
       // Arrange
       const api = await loadEmbedApi();
-      const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+      const warn = vi
+        .spyOn(console, "warn")
+        .mockImplementation(() => undefined);
 
       // Act
       api.embedFormAt(

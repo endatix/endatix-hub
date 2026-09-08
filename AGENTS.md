@@ -154,7 +154,7 @@ When a detail page has a "Back to `<list>`" control that should restore the list
 Standalone esbuild IIFE (`public/embed/v1/embed.js`) for third-party host pages. Iframe: `app/(public)/embed/[formId]`.
 
 - **Framework-free bundle.** No `next` / `react` / `@/*` — eslint `no-restricted-imports` on `src/embed/**` and on `features/embed-form/embed-query-params.ts` (the shared contract). Share constants with a relative import, not `@/`.
-- **Handshake query keys** (`embedId`, `parentOrigin`, `heightMode`) live in `embed-query-params.ts` as `EMBED_RESERVED_QUERY_PARAMS`. Fold that set into public-form `IGNORED_PARAMS` so prefill does not treat them as survey variables. A missed key makes every embed load enqueue an empty partial (h934). Do not re-spell the names; this is one module, not an OSS-mirror pin-in-a-test.
+- **Handshake query keys** live in `embed-query-params.ts` (`EMBED_QUERY_PARAMS` / `EMBED_RESERVED_QUERY_PARAMS`). Fold the reserved set into public-form `IGNORED_PARAMS`. A missed key makes every embed load enqueue an empty partial (h934). Do not re-spell the names.
 - **Ignored ≠ stripped.** `cleanupUrl` removes prefill keys only; reserved keys stay on the iframe URL for `getEmbedMessagingContext()`. Parse/validate there (`embedId` charset, http(s) `parentOrigin`). Query input is untrusted — not proof the SDK loaded the page.
 
 ## Mirrored OSS rules
