@@ -61,11 +61,14 @@ describe("CreateFormWizard", () => {
     expect(cancelLink.getAttribute("href")).toBe("/forms/folders/oggys-tests");
   });
 
-  it("disables Cancel and Create Form after a successful create", async () => {
+  it("disables the form after a successful create, even though the action is no longer pending", async () => {
     // Arrange
     await submitSuccessfulCreate();
 
     // Assert
+    expect(
+      (screen.getByLabelText("Name") as HTMLInputElement).disabled,
+    ).toBe(true);
     expect(
       (screen.getByRole("button", { name: "Cancel" }) as HTMLButtonElement)
         .disabled,
