@@ -254,9 +254,6 @@ function handleScrollMessage(
   instance: EmbedInstance,
   data: Record<string, unknown>,
 ): void {
-  // Page navigation scrolls smoothly. Completion asks for "instant": it swaps a tall
-  // form for a short thank-you page, and animating the scroll leaves the viewport over
-  // the empty tail of the not-yet-resized iframe for the duration (h947).
   const behavior: ScrollBehavior =
     data.behavior === "instant" ? "instant" : "smooth";
 

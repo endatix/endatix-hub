@@ -122,10 +122,6 @@ export function useSurveyEmbedBehavior({
         }
       };
 
-      // Completion collapses a tall form into a short thank-you page. onCompleting
-      // runs before that swap, so the host is already at the top of the embed when the
-      // content shrinks. Scrolling later leaves the viewport over the empty tail of the
-      // not-yet-resized iframe (h947).
       const handleCompleting = () => {
         sendEmbedMessage("scroll", { behavior: "instant" });
       };

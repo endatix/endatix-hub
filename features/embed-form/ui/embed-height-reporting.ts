@@ -8,14 +8,7 @@ export class EmbedHeightReportingController {
     this.frozen = true;
   }
 
-  /**
-   * Lifts the freeze and signals listeners to re-measure.
-   *
-   * Resuming on its own would report nothing: the mutations that changed the height
-   * happened while frozen, so the observer has already fired for them and will not
-   * fire again. Without this signal the iframe keeps the height of the last form
-   * page after a submit (h947).
-   */
+  /** Unfreeze and notify listeners (needed: mutations while frozen will not re-fire). */
   resume(): void {
     this.frozen = false;
     for (const listener of this.resumeListeners) {

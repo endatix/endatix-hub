@@ -21,11 +21,7 @@
   background-color: var(--embed-fill-fallback-bg, #f3f3f3);
 }
 
-/* Fill mode: the survey can be shorter than the iframe, and the theme's background
-   image layer is sized to the survey root - so it stopped where the content stopped
-   and the space below fell back to the flat colour above. Pin the layer to the iframe
-   viewport instead, so the image reaches the bottom as it does on the standalone page.
-   Fixed keeps it out of flow, so it cannot feed back into the reported height. */
+/* Fill: pin theme background to the iframe so a short complete page does not leave a gap. */
 .embedShellFill :global(.sd-root_background-image) {
   position: fixed;
   inset: 0;
@@ -51,17 +47,12 @@
   text-align: center;
 }
 
-/* Standalone page: vh is the real viewport, so fill it. */
+/* Standalone: vh is the window. Embed: do not use vh — it is the iframe height we report (feedback loop). */
 .layoutFullHeight :global(.sd-completedpage) {
   min-height: max(16rem, calc(100vh - 10rem));
   padding: clamp(2rem, 8vh, 6rem) 1.5rem;
 }
 
-/* Embed: vh here is the iframe's own height, which the host sets from the height
-   EmbedHeightReporter measures. Sizing off it feeds that measurement back into
-   itself, so the completed page walked the iframe down 10rem per postMessage
-   round trip instead of landing on the content height (h947). Keep every length
-   viewport-independent - the same hazard the .embedShellFill note above describes. */
 .embedShell :global(.sd-completedpage) {
   min-height: 16rem;
   padding: 3rem 1.5rem;

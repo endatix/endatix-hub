@@ -224,6 +224,41 @@ describe("Endatix embed host script", () => {
     expect(instance.iframe.style.height).toBe("10000px");
   });
 
+  it("scrolls the iframe instantly when the payload asks, otherwise smoothly", async () => {
+    vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => {
+      cb(0);
+      return 0;
+    });
+    const api = await loadEmbedApi();
+    api.embedFormAt(
+      "123",
+      { baseUrl: "https://hub.example/embed/v1/embed.js" },
+      null,
+    );
+    const instance = api.instances[0];
+    const scrollIntoView = vi.fn();
+    instance.iframe.scrollIntoView = scrollIntoView;
+
+    dispatchMessage(instance, {
+      type: "endatix:scroll",
+      embedId: instance.embedId,
+      behavior: "instant",
+    });
+    expect(scrollIntoView).toHaveBeenCalledWith({
+      behavior: "instant",
+      block: "start",
+    });
+
+    dispatchMessage(instance, {
+      type: "endatix:scroll",
+      embedId: instance.embedId,
+    });
+    expect(scrollIntoView).toHaveBeenLastCalledWith({
+      behavior: "smooth",
+      block: "start",
+    });
+  });
+
   it("does not leave a container in the DOM when no valid base URL can be resolved", async () => {
     // Arrange
     const api = await loadEmbedApi();

@@ -2,13 +2,6 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-/**
- * Inside an embed the viewport is the iframe, whose height the host sets from what
- * EmbedHeightReporter measures. A viewport-derived length therefore feeds the
- * measurement back into itself: the completed page used `100vh - 10rem` and walked
- * the iframe down 10rem per postMessage round trip instead of landing on the content
- * height (h947). Keep embed-scoped rules viewport-independent.
- */
 describe("survey-component.module.css embed rules", () => {
   const css = readFileSync(
     join(__dirname, "..", "survey-component.module.css"),

@@ -45,18 +45,7 @@ export function sanitizeSurveyTheme<T extends object>(theme: T): T {
 
 const PANEL_BACKGROUND_TOKEN = "--sjs2-color-component-panel-default-bg";
 
-/**
- * Restores the panelless surface that a legacy theme's own panel colour undoes.
- *
- * survey-core 3.x `patchLegacyCSSVariables` sets this token to `transparent` for an
- * `isPanelless` theme, then maps legacy `--sjs-questionpanel-backcolor` over the top —
- * so a stored theme carrying both renders framed panels despite the flag. Naming the
- * v3 token in the theme keeps the conversion from filling it in.
- *
- * Pinning this one derived token is the narrow fix: `--sjs-questionpanel-backcolor`
- * also feeds several action-surface tokens, so dropping it from the legacy set would
- * change more than the panels. Stored tenant theme JSON stays untouched (DESIGN.md §9).
- */
+/** Panelless: pin `--sjs2-color-component-panel-default-bg` to transparent so a legacy panel colour cannot re-frame panels. */
 export function withPanellessSurface(theme: ITheme): ITheme {
   if (!theme.isPanelless) {
     return theme;
