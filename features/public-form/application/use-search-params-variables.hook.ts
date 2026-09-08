@@ -20,7 +20,6 @@ const IGNORED_PARAMS = new Set([
   ...EMBED_RESERVED_QUERY_PARAMS,
 ]);
 
-/** The params a public form treats as prefill: everything the app does not reserve. */
 const pickPrefillParams = (
   searchParams: URLSearchParams,
 ): Record<string, DynamicVariable> => {
@@ -58,20 +57,7 @@ const applySearchParamsToModel = (
   return { variables, hasChanges };
 };
 
-/**
- * React hook that provides methods to process search parameters.
- * The hook does NOT automatically process params - it returns methods
- * that should be called manually by the orchestrator (e.g., useSurveyModel).
- *
- * @param formId - The form identifier.
- * @param options - Optional settings:
- *   - removeAfterProcessing: Remove params from URL after processing (default: false)
- *   - debugMode: Enable debug logging (default: false)
- *
- * @returns Object with:
- *   - processSearchParams: Function to apply params and handle side-effects (model state sync)
- *   - cleanupUrl: Function to remove params from URL (optional)
- */
+/** Query-string prefill. Call `processSearchParams` / `cleanupUrl` from the survey orchestrator (e.g. useSurveyModel). */
 export const useSearchParamsVariables = (
   formId: string,
   options?: UseSearchParamsVarsOptions,

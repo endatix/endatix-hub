@@ -91,7 +91,7 @@ describe("useSearchParamsVariables", () => {
     });
 
     it("should ignore embed handshake/layout params and not enqueue a submission", () => {
-      // Arrange — embed.js always appends these; they must not look like prefill
+      // Arrange
       const testModel = new SurveyModel();
       mockSearchParams.set("parentOrigin", "https://host.example");
       mockSearchParams.set("embedId", "edxf-123-0-abc");

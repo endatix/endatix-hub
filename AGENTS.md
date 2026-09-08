@@ -151,13 +151,11 @@ When a detail page has a "Back to `<list>`" control that should restore the list
 
 ## Embed SDK (`src/embed`)
 
-`src/embed/embed.ts` is a standalone esbuild IIFE bundle (`public/embed/v1/embed.js`) that runs on customer pages. It loads the form in an iframe pointed at `app/(public)/embed/[formId]`, so the two sides share a query-string contract.
+Standalone esbuild IIFE (`public/embed/v1/embed.js`) for third-party host pages. Iframe: `app/(public)/embed/[formId]`.
 
-- **The bundle stays framework-free.** No `next` / `react` / `@/*` imports — enforced by `no-restricted-imports` in `eslint.config.mjs`. Share plain constants with the app through a relative import instead.
-- **Reserved query keys are one module:** `features/embed-form/embed-query-params.ts`, imported by both sides. Don't re-spell `"embedId"` / `"parentOrigin"` / `"heightMode"` anywhere. Prefer this one-module share over the mirror-and-pin-in-a-test pattern below — that is for rules whose other copy lives in another repo.
-- **Adding a reserved key:** add it to `EMBED_RESERVED_QUERY_PARAMS`. That set is folded into `IGNORED_PARAMS` in `use-search-params-variables.hook.ts`, which is what keeps prefill from reading handshake params as survey variables — a missed key makes every embed load look like "prefill changed" and enqueues an empty partial submission (h934).
-- **Ignored ≠ stripped.** `cleanupUrl` only removes keys it treats as prefill, so reserved keys survive in the iframe URL — `getEmbedMessagingContext()` re-reads them from `window.location` on every render.
-- Parsing/validating a reserved key is `features/embed-form/ui/embed-messaging-context.ts` (allowlisted `embedId`, http(s)-only `parentOrigin`). Query input is untrusted: parse there, never trust it as proof the SDK loaded the page.
+- **Framework-free bundle.** No `next` / `react` / `@/*` — eslint `no-restricted-imports` on `src/embed/**` and on `features/embed-form/embed-query-params.ts` (the shared contract). Share constants with a relative import, not `@/`.
+- **Handshake query keys** (`embedId`, `parentOrigin`, `heightMode`) live in `embed-query-params.ts` as `EMBED_RESERVED_QUERY_PARAMS`. Fold that set into public-form `IGNORED_PARAMS` so prefill does not treat them as survey variables. A missed key makes every embed load enqueue an empty partial (h934). Do not re-spell the names; this is one module, not an OSS-mirror pin-in-a-test.
+- **Ignored ≠ stripped.** `cleanupUrl` removes prefill keys only; reserved keys stay on the iframe URL for `getEmbedMessagingContext()`. Parse/validate there (`embedId` charset, http(s) `parentOrigin`). Query input is untrusted — not proof the SDK loaded the page.
 
 ## Mirrored OSS rules
 
