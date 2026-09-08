@@ -1,9 +1,6 @@
 import { EndatixEmbedMessage } from "@/features/embed-form/types";
 import { expect, test } from "@playwright/test";
-import {
-  EMBED_FILL_CONTAINER_HEIGHT_PX,
-  openEmbedHost,
-} from "../../utils/open-embed-host";
+import { openEmbedHost } from "../../utils/open-embed-host";
 
 declare global {
   interface Window {
@@ -24,10 +21,7 @@ test.describe("Embed Form Behavior (Real Environment)", () => {
       });
     });
 
-    await openEmbedHost(page, {
-      formId: TEST_FORM_ID,
-      hubOrigin: baseURL ?? "http://127.0.0.1:3000",
-    });
+    await openEmbedHost(page, { baseURL, formId: TEST_FORM_ID });
   });
 
   test("should load the form and send the form-loaded message", async ({
@@ -118,9 +112,10 @@ test.describe("Embed Form Height Modes (Real Environment)", () => {
 
   test.beforeEach(async ({ page, baseURL }) => {
     await openEmbedHost(page, {
+      baseURL,
       formId: TEST_FORM_ID,
-      hubOrigin: baseURL ?? "http://127.0.0.1:3000",
       heightMode: "fill",
+      containerHeightPx: CONTAINER_HEIGHT_PX,
     });
   });
 

@@ -52,14 +52,20 @@ Playwright loads environment variables from `.env` files. Create a `.env` file i
 # hub/.env (gitignored)
 BASE_URL="http://localhost:3000"
 E2E_EMBED_FORM_ID=1480919870399840256
-# WebHost origin (or full /dev/embed-host URL) — cross-origin embed. Unset = same-origin mock.
-E2E_EMBED_HOST_URL="https://localhost:5001"
+
+# Optional: WebHost playground (handshake specs use view=bare)
+# E2E_EMBED_HOST_URL=https://localhost:5001
+
+# For smoke tests (production)
+SMOKE_TEST_EMAIL="your-test-email@example.com"
+SMOKE_TEST_PASSWORD="your-password"
+SMOKE_TEST_BASE_URL="https://hub.endatix.com"
 ```
 
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `E2E_EMBED_FORM_ID` | Form ID to use for embed tests | `1480919870399840256` |
-| `E2E_EMBED_HOST_URL` | API origin or `/dev/embed-host` URL | unset (same-origin mock) |
+| `E2E_EMBED_HOST_URL` | WebHost origin for real `embed.js` (`/dev/embed-host?view=bare`) | unset = same-origin mock |
 | `BASE_URL` | Base URL for the app | `http://127.0.0.1:3000` |
 
 ### What Embed Tests Verify

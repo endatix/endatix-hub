@@ -253,6 +253,10 @@ When the Endatix API exposes a catalog for options, labels, or descriptions (cap
 
 **Hints / follow-ups:** route remaining Hub-authored strings through i18n (or keep them only on the API); consider CI that generates TS wire unions (and optional label maps) from Reporting contracts/capabilities so Hub and .NET stay aligned. When a stronger pattern ships, update this section so agents keep following it.
 
+## Embed SDK
+
+Do not treat `/embed/{formId}` as a third-party host — that is the iframe document. Host page is WebHost `GET /dev/embed-host` (query is the contract: `formId`, `view=bare` for no chrome, `heightMode`, `token`/`prefill`, `hubBaseUrl`). Playwright: `e2e/utils/open-embed-host.ts` + `E2E_EMBED_HOST_URL` (handshake tests use `view=bare`). Public-form data-collection features must be checked on share **and** embed.
+
 ## Analytics
 
 - In client components, use `useTrackEvent()` from `features/analytics/posthog/client` and track success transitions from effects or event handlers. Guard effects with refs when a state transition should emit once.
