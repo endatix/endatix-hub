@@ -11,21 +11,14 @@
   position: relative;
 }
 
-/* Fill mode: the parent script's iframe has already been sized to at least
-   fill its host container (see src/embed/embed.ts). Paint the survey's own
-   theme background so it reaches the edges instead of leaving a transparent
-   gap that shows the host page through — via the canvas background rule
-   (html/body backgrounds fill the full viewport regardless of box height),
-   not by stretching this element's own box. Deliberately no min-height
-   here: EmbedHeightReporter measures document.body.scrollHeight, and any
-   ancestor whose height tracks the iframe's own size (rather than content)
-   floors that measurement at the iframe's current height — once grown, it
-   could never shrink back down. */
+/* Brief-window fallback shown before survey-component.tsx's paint effect
+   reads the survey's real rendered color from the DOM and overrides this
+   via --embed-fill-fallback-bg (set there from DEFAULT_FILL_BACKGROUND_COLOR).
+   No min-height: EmbedHeightReporter measures document.body.scrollHeight,
+   and a height that tracks the iframe's own size would floor that
+   measurement at its tallest-ever height, never letting it shrink back. */
 .embedShellFill {
-  background-color: var(
-    --sjs2-color-utility-body,
-    var(--sjs-general-backcolor-dim, transparent)
-  );
+  background-color: var(--embed-fill-fallback-bg, #f3f3f3);
 }
 
 /* Reserve right edge of the survey title so absolute language picker
