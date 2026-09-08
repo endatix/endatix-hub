@@ -1,5 +1,6 @@
 import { useSearchParams, useRouter } from "next/navigation";
 import { useCallback, useRef } from "react";
+import { EMBED_RESERVED_QUERY_PARAMS } from "@/features/embed-form/embed-query-params";
 import { DynamicVariable } from "../types";
 import { useSubmissionQueue } from "./submission-queue";
 import { SubmissionData } from "@/features/submissions/types";
@@ -10,7 +11,13 @@ interface UseSearchParamsVarsOptions {
   debugMode?: boolean;
 }
 
-const IGNORED_PARAMS = new Set(["token", "theme", "language", "lang"]);
+const IGNORED_PARAMS = new Set([
+  "token",
+  "theme",
+  "language",
+  "lang",
+  ...EMBED_RESERVED_QUERY_PARAMS,
+]);
 
 /**
  * Internal function to apply search parameters to a survey model.
@@ -132,7 +139,6 @@ export const useSearchParamsVariables = (
       ? `${window.location.pathname}?${newSearchParams.toString()}`
       : window.location.pathname;
 
-     
     router.replace(newUrl as any, { scroll: false });
     hasCleanedUpRef.current = true;
   }, [searchParams, router, removeAfterProcessing, debugMode]);

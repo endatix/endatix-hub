@@ -1,11 +1,14 @@
 "use client";
 
+import {
+  EMBED_ID_QUERY_PARAM,
+  HEIGHT_MODE_QUERY_PARAM,
+  PARENT_ORIGIN_QUERY_PARAM,
+} from "../embed-query-params";
 import { isFillHeightMode } from "../height-mode";
 import type { EmbedMessagingContext } from "../types";
 
-export const EMBED_ID_QUERY_PARAM = "embedId";
-const PARENT_ORIGIN_QUERY_PARAM = "parentOrigin";
-const HEIGHT_MODE_QUERY_PARAM = "heightMode";
+export { EMBED_ID_QUERY_PARAM };
 
 function parseHttpOrigin(value: string | null): string | undefined {
   if (!value) {
