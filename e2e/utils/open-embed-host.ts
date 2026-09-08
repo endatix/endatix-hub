@@ -1,5 +1,7 @@
 import type { Page } from "@playwright/test";
 
+export const EMBED_FILL_CONTAINER_HEIGHT_PX = 900;
+
 type OpenEmbedHostOptions = {
   baseURL: string | undefined;
   formId: string;
@@ -7,75 +9,48 @@ type OpenEmbedHostOptions = {
   containerHeightPx?: number;
 };
 
+export function playgroundEmbedHostHref(
+  playgroundOrigin: string,
+  formId: string,
+  hubBaseUrl: string,
+): string {
+  const url = new URL("/dev/embed-host", playgroundOrigin);
+  url.searchParams.set("formId", formId);
+  url.searchParams.set("view", "bare");
+  url.searchParams.set("hubBaseUrl", hubBaseUrl);
+  return url.toString();
+}
+
 /**
- * Real embed.js host: WebHost `GET /dev/embed-host?view=bare` when
- * `E2E_EMBED_HOST_URL` is set. Fill-mode layout tests stay on the same-origin
- * mock (fixed 900px parent). Handshake tests use the playground when configured.
+ * Host page for embed.js. When `E2E_EMBED_HOST_URL` is set, handshake specs
+ * use WebHost `/dev/embed-host?view=bare` (cross-origin). Fill-mode stays on
+ * the same-origin mock — playground fill is viewport-sized, not a 900px parent.
  */
 export async function openEmbedHost(
   page: Page,
   options: OpenEmbedHostOptions,
 ): Promise<void> {
   const playground = process.env.E2E_EMBED_HOST_URL;
-  const usePlayground = Boolean(playground) && options.heightMode !== "fill";
-
-  if (usePlayground && playground && options.baseURL) {
-    const url = new URL("/dev/embed-host", playground);
-    url.searchParams.set("formId", options.formId);
-    url.searchParams.set("view", "bare");
-    url.searchParams.set("hubBaseUrl", options.baseURL);
-    await page.goto(url.toString());
+  if (playground && options.heightMode !== "fill" && options.baseURL) {
+    await page.goto(
+      playgroundEmbedHostHref(playground, options.formId, options.baseURL),
+    );
     return;
   }
 
-  const path =
-    options.heightMode === "fill" ? "/__mock_host_fill__" : "/__mock_host__";
-  const heightAttr =
-    options.heightMode === "fill" ? ' data-height-mode="fill"' : "";
-  const containerPx = options.containerHeightPx ?? 900;
-  const body =
-    options.heightMode === "fill"
-      ? `
-              <!DOCTYPE html>
-              <html>
-                <head>
-                  <title>Test Host Page (Fill Mode)</title>
-                  <style>
-                    body { padding: 50px; background: #f0f0f0; font-family: sans-serif; }
-                  </style>
-                </head>
-                <body>
-                  <h1>My External Website</h1>
-                  <div style="height: ${containerPx}px; border: 1px solid #ccc;">
-                    <script
-                      src="${options.baseURL}/embed/v1/embed.js"
-                      data-form-id="${options.formId}"${heightAttr}>
-                    </script>
-                  </div>
-                </body>
-              </html>
-            `
-      : `
-              <!DOCTYPE html>
-              <html>
-                <head>
-                  <title>Test Host Page</title>
-                  <style>
-                    body { padding: 50px; background: #f0f0f0; font-family: sans-serif; }
-                    .spacer { height: 1000px; }
-                  </style>
-                </head>
-                <body>
-                  <h1>My External Website</h1>
-                  <p>The form is embedded below:</p>
-                  <script
-                    src="${options.baseURL}/embed/v1/embed.js"
-                    data-form-id="${options.formId}">
-                  </script>
-                  <div class="spacer"></div>
-                </body>
-              </html>
-            `;
+  const isFill = options.heightMode === "fill";
+  const path = isFill ? "/__mock_host_fill__" : "/__mock_host__";
+  const containerPx =
+    options.containerHeightPx ?? EMBED_FILL_CONTAINER_HEIGHT_PX;
+  const script = `<script src="${options.baseURL}/embed/v1/embed.js" data-form-id="${options.formId}"${isFill ? ' data-height-mode="fill"' : ""}></script>`;
+  const body = isFill
+    ? `<!DOCTYPE html><html><head><title>Fill host</title></head><body>
+        <div style="height: ${containerPx}px; border: 1px solid #ccc;">${script}</div>
+      </body></html>`
+    : `<!DOCTYPE html><html><head><title>Host</title>
+        <style>.spacer { height: 1000px; }</style></head><body>
+        ${script}<div class="spacer"></div>
+      </body></html>`;
 
   await page.route(`${options.baseURL}${path}`, async (route) => {
     await route.fulfill({ contentType: "text/html", body });
