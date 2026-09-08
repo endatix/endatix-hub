@@ -31,7 +31,8 @@ export default async function EmbedLayout({
           type="image/svg+xml"
         />
       </head>
-      <body>
+      {/* No globals.css (DESIGN.md §9) — zero UA body margin or the iframe shows an 8px gutter. */}
+      <body style={{ margin: 0 }}>
         <AppProvider
           options={AppOptions.PublicPages}
           session={session}

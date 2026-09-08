@@ -5,7 +5,6 @@ import { useCallback, useRef } from "react";
 import { isSafeRedirectUrl } from "@/lib/utils/url-utils";
 import { EmbedFormInfo, EmbedMessagePayload, EmbedMessageType } from "../types";
 import { getEmbedMessagingContext } from "./embed-messaging-context";
-import { embedHeightReporting } from "./embed-height-reporting";
 
 export interface UseSurveyEmbedBehaviorOptions {
   isEmbed: boolean;
@@ -58,10 +57,6 @@ export function useSurveyEmbedBehavior({
   const sendEmbedMessage = useCallback(
     <T extends EmbedMessageType>(type: T, data?: EmbedMessageData<T>) => {
       const messagingContext = getEmbedMessagingContext();
-
-      if (isEmbed && (type === "form-complete" || type === "form-error")) {
-        embedHeightReporting.freeze();
-      }
 
       if (
         isEmbed &&
@@ -122,6 +117,10 @@ export function useSurveyEmbedBehavior({
         }
       };
 
+      const handleCompleting = () => {
+        sendEmbedMessage("scroll", { behavior: "instant" });
+      };
+
       const handleNavigateToUrl = (
         sender: SurveyModel,
         options: { url: string; allow: boolean },
@@ -145,12 +144,14 @@ export function useSurveyEmbedBehavior({
       model.onCurrentPageChanged.add(handlePageChanged);
       model.onAfterRenderPage.add(handlePageRendered);
       model.onNavigateToUrl.add(handleNavigateToUrl);
+      model.onCompleting.add(handleCompleting);
 
       return () => {
         model.onAfterRenderSurvey.remove(handleAfterRenderSurvey);
         model.onCurrentPageChanged.remove(handlePageChanged);
         model.onAfterRenderPage.remove(handlePageRendered);
         model.onNavigateToUrl.remove(handleNavigateToUrl);
+        model.onCompleting.remove(handleCompleting);
       };
     },
     [embedForm, isEmbed, sendEmbedMessage],

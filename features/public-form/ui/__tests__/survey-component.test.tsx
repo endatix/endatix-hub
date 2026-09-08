@@ -22,7 +22,6 @@ const {
   mockWaitForInFlightPartial,
   mockUseSurveyModel,
   mockSendEmbedMessage,
-  mockEmbedHeightReporting,
   mockGetEmbedMessagingContext,
   mockUseSurveyTheme,
   mockUseStorageWithSurvey,
@@ -35,11 +34,6 @@ const {
   mockWaitForInFlightPartial: vi.fn().mockResolvedValue(undefined),
   mockUseSurveyModel: vi.fn(),
   mockSendEmbedMessage: vi.fn(),
-  mockEmbedHeightReporting: {
-    freeze: vi.fn(),
-    resume: vi.fn(),
-    isFrozen: vi.fn(() => false),
-  },
   mockGetEmbedMessagingContext: vi.fn(() => ({})),
   mockUseSurveyTheme: vi.fn(
     (..._args: unknown[]): { theme: unknown; error: unknown } => ({
@@ -74,7 +68,6 @@ vi.mock("../use-survey-model.hook", () => ({
 }));
 
 vi.mock("@/features/embed-form", () => ({
-  embedHeightReporting: mockEmbedHeightReporting,
   useSurveyEmbedBehavior: vi.fn(() => ({
     sendEmbedMessage: mockSendEmbedMessage,
     registerEmbedHandlers: vi.fn(() => () => {}),
@@ -511,11 +504,10 @@ describe("SurveyComponent - Embed Fill Mode", () => {
     getComputedStyleSpy = vi
       .spyOn(window, "getComputedStyle")
       .mockImplementation((el: Element, pseudo?: string | null) => {
-        if (
-          pseudo === "::before" &&
-          el.classList?.contains("sd-root-modern")
-        ) {
-          return { backgroundColor: pseudoBackgroundColor } as CSSStyleDeclaration;
+        if (pseudo === "::before" && el.classList?.contains("sd-root-modern")) {
+          return {
+            backgroundColor: pseudoBackgroundColor,
+          } as CSSStyleDeclaration;
         }
         return realGetComputedStyle(el, pseudo);
       });
@@ -557,9 +549,7 @@ describe("SurveyComponent - Embed Fill Mode", () => {
       cssColor(DEFAULT_FILL_BACKGROUND_COLOR),
     );
     const shell = result.container.querySelector('[class*="embedShell"]');
-    expect(shell?.className).toEqual(
-      expect.stringContaining("embedShellFill"),
-    );
+    expect(shell?.className).toEqual(expect.stringContaining("embedShellFill"));
   });
 
   it("uses the survey's own rendered background when already painted", async () => {

@@ -59,6 +59,7 @@ describe("Endatix embed host script", () => {
   afterEach(() => {
     document.body.innerHTML = "";
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
     delete (globalThis as { EndatixEmbed?: unknown }).EndatixEmbed;
   });
 
@@ -222,6 +223,161 @@ describe("Endatix embed host script", () => {
 
     // Assert
     expect(instance.iframe.style.height).toBe("10000px");
+  });
+
+  it("scrolls the iframe instantly when the payload asks, otherwise smoothly", async () => {
+    vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => {
+      cb(0);
+      return 0;
+    });
+    const api = await loadEmbedApi();
+    api.embedFormAt(
+      "123",
+      { baseUrl: "https://hub.example/embed/v1/embed.js" },
+      null,
+    );
+    const instance = api.instances[0];
+    const scrollIntoView = vi.fn();
+    instance.iframe.scrollIntoView = scrollIntoView;
+
+    dispatchMessage(instance, {
+      type: "endatix:scroll",
+      embedId: instance.embedId,
+      behavior: "instant",
+    });
+    expect(scrollIntoView).toHaveBeenCalledWith({
+      behavior: "instant",
+      block: "start",
+    });
+
+    dispatchMessage(instance, {
+      type: "endatix:scroll",
+      embedId: instance.embedId,
+    });
+    expect(scrollIntoView).toHaveBeenLastCalledWith({
+      behavior: "smooth",
+      block: "start",
+    });
+  });
+
+  it("eases only the resize that follows a completion scroll", async () => {
+    // Arrange
+    vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => {
+      cb(0);
+      return 0;
+    });
+    const api = await loadEmbedApi();
+    api.embedFormAt(
+      "123",
+      { baseUrl: "https://hub.example/embed/v1/embed.js" },
+      null,
+    );
+    const instance = api.instances[0];
+    instance.iframe.scrollIntoView = vi.fn();
+
+    // Act - an ordinary resize mid-form.
+    dispatchMessage(instance, {
+      type: "endatix:resize",
+      embedId: instance.embedId,
+      height: 900,
+    });
+
+    // Assert - no animation while filling the form.
+    expect(instance.iframe.style.transition).toBe("");
+    expect(instance.iframe.style.height).toBe("900px");
+
+    // Act - completion scrolls instantly, then shrinks to the thank-you page.
+    dispatchMessage(instance, {
+      type: "endatix:scroll",
+      embedId: instance.embedId,
+      behavior: "instant",
+    });
+    dispatchMessage(instance, {
+      type: "endatix:resize",
+      embedId: instance.embedId,
+      height: 400,
+    });
+
+    // Assert - that one shrink eases rather than snapping.
+    expect(instance.iframe.style.transition).toContain("height");
+    expect(instance.iframe.style.height).toBe("400px");
+
+    // Act - the next resize is back to normal.
+    instance.iframe.style.transition = "";
+    dispatchMessage(instance, {
+      type: "endatix:resize",
+      embedId: instance.embedId,
+      height: 500,
+    });
+
+    // Assert - the easing is one-shot, not sticky.
+    expect(instance.iframe.style.transition).toBe("");
+  });
+
+  it("does not ease when the scroll is the smooth page-change signal", async () => {
+    // Arrange
+    vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => {
+      cb(0);
+      return 0;
+    });
+    const api = await loadEmbedApi();
+    api.embedFormAt(
+      "123",
+      { baseUrl: "https://hub.example/embed/v1/embed.js" },
+      null,
+    );
+    const instance = api.instances[0];
+    instance.iframe.scrollIntoView = vi.fn();
+
+    // Act
+    dispatchMessage(instance, {
+      type: "endatix:scroll",
+      embedId: instance.embedId,
+    });
+    dispatchMessage(instance, {
+      type: "endatix:resize",
+      embedId: instance.embedId,
+      height: 700,
+    });
+
+    // Assert
+    expect(instance.iframe.style.transition).toBe("");
+  });
+
+  it("respects prefers-reduced-motion for the completion resize", async () => {
+    // Arrange
+    vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => {
+      cb(0);
+      return 0;
+    });
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn(() => ({ matches: true })),
+    );
+    const api = await loadEmbedApi();
+    api.embedFormAt(
+      "123",
+      { baseUrl: "https://hub.example/embed/v1/embed.js" },
+      null,
+    );
+    const instance = api.instances[0];
+    instance.iframe.scrollIntoView = vi.fn();
+
+    // Act
+    dispatchMessage(instance, {
+      type: "endatix:scroll",
+      embedId: instance.embedId,
+      behavior: "instant",
+    });
+    dispatchMessage(instance, {
+      type: "endatix:resize",
+      embedId: instance.embedId,
+      height: 400,
+    });
+
+    // Assert - the height still lands, without the animation.
+    expect(instance.iframe.style.transition).toBe("");
+    expect(instance.iframe.style.height).toBe("400px");
   });
 
   it("does not leave a container in the DOM when no valid base URL can be resolved", async () => {

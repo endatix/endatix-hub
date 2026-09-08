@@ -11,14 +11,17 @@
   position: relative;
 }
 
-/* Brief-window fallback shown before survey-component.tsx's paint effect
-   reads the survey's real rendered color from the DOM and overrides this
-   via --embed-fill-fallback-bg (set there from DEFAULT_FILL_BACKGROUND_COLOR).
-   No min-height: EmbedHeightReporter measures document.body.scrollHeight,
-   and a height that tracks the iframe's own size would floor that
-   measurement at its tallest-ever height, never letting it shrink back. */
+/* Fallback bg only. No min-height — reporter measures body.scrollHeight. */
 .embedShellFill {
   background-color: var(--embed-fill-fallback-bg, #f3f3f3);
+}
+
+/* Fill: pin theme background to the iframe so a short complete page does not leave a gap. */
+.embedShellFill :global(.sd-root_background-image) {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
 }
 
 /* Reserve right edge of the survey title so absolute language picker
@@ -33,12 +36,21 @@
 .layoutFullHeight :global(.sd-completedpage),
 .embedShell :global(.sd-completedpage) {
   box-sizing: border-box;
-  min-height: max(16rem, calc(100vh - 10rem));
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: clamp(2rem, 8vh, 6rem) 1.5rem;
   text-align: center;
+}
+
+/* Standalone: vh is the window. Embed: viewport units are the iframe height we report. */
+.layoutFullHeight :global(.sd-completedpage) {
+  min-height: max(16rem, calc(100vh - 10rem));
+  padding: clamp(2rem, 8vh, 6rem) 1.5rem;
+}
+
+.embedShell :global(.sd-completedpage) {
+  min-height: 16rem;
+  padding: 3rem 1.5rem;
 }
 
 .layoutFullHeight > *:last-child {

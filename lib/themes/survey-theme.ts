@@ -43,6 +43,23 @@ export function sanitizeSurveyTheme<T extends object>(theme: T): T {
   return next;
 }
 
+const PANEL_BACKGROUND_TOKEN = "--sjs2-color-component-panel-default-bg";
+
+/** Panelless: keep the v3 panel token transparent so a stored `--sjs-questionpanel-backcolor` cannot re-frame panels. */
+function withPanellessSurface(theme: ITheme): ITheme {
+  if (!theme.isPanelless) {
+    return theme;
+  }
+
+  return {
+    ...theme,
+    cssVariables: {
+      ...theme.cssVariables,
+      [PANEL_BACKGROUND_TOKEN]: "transparent",
+    },
+  };
+}
+
 /**
  * Applies a form's stored theme (the GetActive `themeModel` JSON), layered on
  * DefaultLight so v3 `--sjs2-*` and legacy `--sjs-*` both resolve.
@@ -56,7 +73,7 @@ export function applyFormSurveyTheme(
   storedTheme?: ITheme,
 ): void {
   if (storedTheme) {
-    model.applyTheme(storedTheme, DefaultLight);
+    model.applyTheme(withPanellessSurface(storedTheme), DefaultLight);
     return;
   }
 

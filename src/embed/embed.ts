@@ -3,6 +3,7 @@ import { EMBED_QUERY_PARAMS } from "../../features/embed-form/embed-query-params
 /** Max positive signed 64-bit integer (typical snowflake upper bound). */
 const MAX_SNOWFLAKE_ID = BigInt("9223372036854775807");
 const MAX_IFRAME_HEIGHT = 10_000;
+const HEIGHT_EASE_MS = 320;
 
 type HeightMode = "auto" | "fill";
 
@@ -21,6 +22,7 @@ interface EmbedInstance {
   expectedOrigin: string;
   embedId: string;
   heightMode: HeightMode;
+  easeNextResize?: boolean;
 }
 
 interface ParseResult {
@@ -247,13 +249,56 @@ function handleResizeMessage(
   }
 
   const clampedHeight = Math.min(Math.ceil(height), MAX_IFRAME_HEIGHT);
+
+  if (instance.easeNextResize) {
+    instance.easeNextResize = false;
+    easeHeightChange(instance.iframe);
+  }
+
   instance.iframe.style.height = `${clampedHeight}px`;
 }
 
-function handleScrollMessage(instance: EmbedInstance): void {
+function easeHeightChange(iframe: HTMLIFrameElement): void {
+  if (prefersReducedMotion()) {
+    return;
+  }
+
+  const clear = () => {
+    iframe.style.transition = "";
+    iframe.removeEventListener("transitionend", onEnd);
+  };
+  const onEnd = (event: TransitionEvent) => {
+    if (event.propertyName === "height") {
+      clear();
+    }
+  };
+
+  iframe.style.transition = `height ${HEIGHT_EASE_MS}ms cubic-bezier(0.4, 0, 0.2, 1)`;
+  iframe.addEventListener("transitionend", onEnd);
+  setTimeout(clear, HEIGHT_EASE_MS + 100);
+}
+
+function prefersReducedMotion(): boolean {
+  return (
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
+}
+
+function handleScrollMessage(
+  instance: EmbedInstance,
+  data: Record<string, unknown>,
+): void {
+  const behavior: ScrollBehavior =
+    data.behavior === "instant" ? "instant" : "smooth";
+
+  if (behavior === "instant") {
+    instance.easeNextResize = true;
+  }
+
   requestAnimationFrame(() => {
     instance.iframe.scrollIntoView({
-      behavior: "smooth",
+      behavior,
       block: "start",
     });
   });
@@ -339,7 +384,7 @@ function handleEmbedMessage(
       handleResizeMessage(instance, data);
       return;
     case "endatix:scroll":
-      handleScrollMessage(instance);
+      handleScrollMessage(instance, data);
       return;
     case "endatix:navigate":
       handleNavigateMessage(data);
