@@ -246,6 +246,13 @@ export default function SurveyComponent({
 
       sender.showCompletePage = true;
       event.showSaveInProgress("Saving your answers...");
+      if (isEmbed) {
+        // The complete page starts laying out here, before the request resolves.
+        // Holding the freeze across the await would pin the iframe at the form's
+        // height for the whole round trip, so lift it now that the transition is
+        // under way and the transient zero-height frame has passed.
+        embedHeightReporting.resume();
+      }
       const submissionData = buildSubmissionData(
         sender,
         true,
@@ -282,6 +289,13 @@ export default function SurveyComponent({
             status: result.data.status,
             completedAt: result.data.completedAt,
           });
+          if (isEmbed) {
+            // The freeze covers the save-in-progress flicker only. Lift it now, or the
+            // iframe keeps the height of the last form page and a short completedHtml
+            // renders above the viewport (h947). Must run after sendEmbedMessage, which
+            // freezes again for form-complete.
+            embedHeightReporting.resume();
+          }
         } else {
           submissionUpdateGuard.current = false;
           if (isEmbed) {
@@ -311,6 +325,9 @@ export default function SurveyComponent({
               message: result.error.message,
             },
           });
+          if (isEmbed) {
+            embedHeightReporting.resume();
+          }
         }
       });
     },

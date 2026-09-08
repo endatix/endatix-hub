@@ -41,6 +41,55 @@ describe("EmbedHeightReporter", () => {
     });
   });
 
+  it("reports on resume alone, with no further mutation or resize", async () => {
+    // Arrange - the complete page lays out while frozen, so the observer has already
+    // fired for it and will not fire again. Resuming has to trigger the measurement.
+    render(<EmbedHeightReporter />);
+    await waitFor(() => {
+      expect(postMessage).toHaveBeenCalledTimes(1);
+    });
+
+    embedHeightReporting.freeze();
+    setBodyHeight(180);
+
+    // Act
+    act(() => {
+      embedHeightReporting.resume();
+    });
+
+    // Assert
+    await waitFor(() => {
+      expect(postMessage).toHaveBeenCalledTimes(2);
+    });
+    expect(postMessage).toHaveBeenLastCalledWith(
+      {
+        type: "endatix:resize",
+        embedId: "embed-1",
+        height: 180,
+      },
+      "https://host.example",
+    );
+  });
+
+  it("stops notifying a resume listener after unmount", async () => {
+    // Arrange
+    const { unmount } = render(<EmbedHeightReporter />);
+    await waitFor(() => {
+      expect(postMessage).toHaveBeenCalledTimes(1);
+    });
+
+    // Act
+    unmount();
+    setBodyHeight(900);
+    act(() => {
+      embedHeightReporting.resume();
+    });
+
+    // Assert
+    await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+    expect(postMessage).toHaveBeenCalledTimes(1);
+  });
+
   it("stops reporting smaller heights while frozen and resumes when unfrozen", async () => {
     render(<EmbedHeightReporter />);
 

@@ -43,9 +43,17 @@ export function EmbedHeightReporter() {
     const observer = new MutationObserver(reportHeight);
     observer.observe(document.body, config);
 
+    // The complete page is laid out while reporting is frozen, so re-measure once
+    // the freeze lifts. The frame gives the pending render time to land; any later
+    // mutation is picked up by the observer as usual.
+    const unsubscribeResume = embedHeightReporting.onResume(() => {
+      requestAnimationFrame(reportHeight);
+    });
+
     return () => {
       window.removeEventListener("resize", reportHeight);
       observer.disconnect();
+      unsubscribeResume();
     };
   }, []);
 

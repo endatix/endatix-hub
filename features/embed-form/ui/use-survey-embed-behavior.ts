@@ -122,6 +122,14 @@ export function useSurveyEmbedBehavior({
         }
       };
 
+      // Completion collapses a tall form into a short thank-you page. onCompleting
+      // runs before that swap, so the host is already at the top of the embed when the
+      // content shrinks. Scrolling later leaves the viewport over the empty tail of the
+      // not-yet-resized iframe (h947).
+      const handleCompleting = () => {
+        sendEmbedMessage("scroll", { behavior: "instant" });
+      };
+
       const handleNavigateToUrl = (
         sender: SurveyModel,
         options: { url: string; allow: boolean },
@@ -145,12 +153,14 @@ export function useSurveyEmbedBehavior({
       model.onCurrentPageChanged.add(handlePageChanged);
       model.onAfterRenderPage.add(handlePageRendered);
       model.onNavigateToUrl.add(handleNavigateToUrl);
+      model.onCompleting.add(handleCompleting);
 
       return () => {
         model.onAfterRenderSurvey.remove(handleAfterRenderSurvey);
         model.onCurrentPageChanged.remove(handlePageChanged);
         model.onAfterRenderPage.remove(handlePageRendered);
         model.onNavigateToUrl.remove(handleNavigateToUrl);
+        model.onCompleting.remove(handleCompleting);
       };
     },
     [embedForm, isEmbed, sendEmbedMessage],

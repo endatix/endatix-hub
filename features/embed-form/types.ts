@@ -55,7 +55,7 @@ export interface EmbedResizePayload {
 
 export interface EmbedMessagePayloadMap {
   resize: EmbedResizePayload;
-  scroll: { formId: string };
+  scroll: { formId: string; behavior?: "smooth" | "instant" };
   navigate: EmbedNavigatePayload;
   "form-loaded": EmbedLoadedPayload;
   "form-complete": EmbedCompletePayload;

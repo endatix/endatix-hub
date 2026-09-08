@@ -375,6 +375,95 @@ describe("SurveyComponent - submissionUpdateGuard Behavior", () => {
     });
   });
 
+  it("resumes height reporting after a successful submission so the complete page is measured", async () => {
+    // Arrange
+    mockSubmitPublicForm.mockResolvedValue({
+      success: true,
+      data: {
+        submissionId: "sub-456",
+        isComplete: true,
+        status: "completed",
+        completedAt: "2026-05-26T10:00:00.000Z",
+      },
+    });
+    renderSurveyComponent({ isEmbed: true });
+
+    // Act
+    await act(async () => {
+      fireCompleteEvent();
+    });
+
+    // Assert - without this the iframe keeps the last form page's height and a short
+    // completedHtml renders above the viewport (h947).
+    expect(mockEmbedHeightReporting.resume).toHaveBeenCalled();
+    // Instant, not smooth: a smooth scroll leaves the viewport over the empty tail of
+    // the not-yet-resized iframe for its duration.
+    expect(mockSendEmbedMessage).toHaveBeenCalledWith("scroll", {
+      behavior: "instant",
+    });
+
+    // The freeze is re-applied by sendEmbedMessage("form-complete"), so the resume
+    // has to be the last of the two calls to have any effect.
+    const resumeOrder =
+      mockEmbedHeightReporting.resume.mock.invocationCallOrder.at(-1)!;
+    const freezeOrder =
+      mockEmbedHeightReporting.freeze.mock.invocationCallOrder.at(-1)!;
+    expect(resumeOrder).toBeGreaterThan(freezeOrder);
+  });
+
+  it("lifts the freeze before awaiting the response, so the iframe is not pinned for the round trip", async () => {
+    // Arrange - resolve the submit only when we say so, to stand in for a slow network.
+    let resolveSubmit!: (value: unknown) => void;
+    mockSubmitPublicForm.mockReturnValue(
+      new Promise((resolve) => {
+        resolveSubmit = resolve;
+      }),
+    );
+    renderSurveyComponent({ isEmbed: true });
+
+    // Act - fire the complete event but leave the request in flight.
+    await act(async () => {
+      fireCompleteEvent();
+      await Promise.resolve();
+    });
+
+    // Assert - the complete page is already laying out, so reporting must be live
+    // before the response lands (h947 lag).
+    expect(mockEmbedHeightReporting.resume).toHaveBeenCalled();
+
+    await act(async () => {
+      resolveSubmit({
+        success: true,
+        data: {
+          submissionId: "sub-456",
+          isComplete: true,
+          status: "completed",
+        },
+      });
+    });
+  });
+
+  it("resumes height reporting after a failed submission", async () => {
+    // Arrange
+    mockSubmitPublicForm.mockResolvedValue({
+      success: false,
+      error: { message: "Server error", type: "server", errorCode: "500" },
+    });
+    renderSurveyComponent({ isEmbed: true });
+
+    // Act
+    await act(async () => {
+      fireCompleteEvent();
+    });
+
+    // Assert - the failure complete page is short too.
+    const resumeOrder =
+      mockEmbedHeightReporting.resume.mock.invocationCallOrder.at(-1)!;
+    const freezeOrder =
+      mockEmbedHeightReporting.freeze.mock.invocationCallOrder.at(-1)!;
+    expect(resumeOrder).toBeGreaterThan(freezeOrder);
+  });
+
   it("should reset the guard flag on submission failure", async () => {
     // Arrange
     realSurveyModel.completedHtml =
@@ -511,11 +600,10 @@ describe("SurveyComponent - Embed Fill Mode", () => {
     getComputedStyleSpy = vi
       .spyOn(window, "getComputedStyle")
       .mockImplementation((el: Element, pseudo?: string | null) => {
-        if (
-          pseudo === "::before" &&
-          el.classList?.contains("sd-root-modern")
-        ) {
-          return { backgroundColor: pseudoBackgroundColor } as CSSStyleDeclaration;
+        if (pseudo === "::before" && el.classList?.contains("sd-root-modern")) {
+          return {
+            backgroundColor: pseudoBackgroundColor,
+          } as CSSStyleDeclaration;
         }
         return realGetComputedStyle(el, pseudo);
       });
@@ -557,9 +645,7 @@ describe("SurveyComponent - Embed Fill Mode", () => {
       cssColor(DEFAULT_FILL_BACKGROUND_COLOR),
     );
     const shell = result.container.querySelector('[class*="embedShell"]');
-    expect(shell?.className).toEqual(
-      expect.stringContaining("embedShellFill"),
-    );
+    expect(shell?.className).toEqual(expect.stringContaining("embedShellFill"));
   });
 
   it("uses the survey's own rendered background when already painted", async () => {
