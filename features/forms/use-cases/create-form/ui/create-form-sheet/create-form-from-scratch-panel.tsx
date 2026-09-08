@@ -4,7 +4,6 @@ import { Spinner } from "@/components/loaders/spinner";
 import { Button } from "@/components/ui/button";
 import CreateFormWizard from "../../create-form-wizard";
 import type { Folder } from "@/lib/endatix-api/folders/types";
-import type { Route } from "next";
 
 interface CreateFormFromScratchPanelProps {
   canRenderWizard: boolean;
@@ -12,8 +11,8 @@ interface CreateFormFromScratchPanelProps {
   folders: Folder[];
   effectiveFolderId?: string;
   effectiveFolderName?: string;
-  cancelHref: Route;
   onBack: () => void;
+  onCancel: () => void;
 }
 
 export function CreateFormFromScratchPanel({
@@ -22,8 +21,8 @@ export function CreateFormFromScratchPanel({
   folders,
   effectiveFolderId,
   effectiveFolderName,
-  cancelHref,
   onBack,
+  onCancel,
 }: Readonly<CreateFormFromScratchPanelProps>) {
   return (
     <div className="flex w-full flex-col gap-4">
@@ -43,7 +42,7 @@ export function CreateFormFromScratchPanel({
           folders={folders}
           defaultFolderId={effectiveFolderId}
           defaultFolderName={effectiveFolderName}
-          cancelHref={cancelHref}
+          onCancel={onCancel}
         />
       ) : (
         <div className="flex justify-center py-8">
