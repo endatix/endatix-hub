@@ -241,13 +241,256 @@ describe("zod-error-utils", () => {
   });
 
   describe("flattenFieldErrors", () => {
-    it("flattens nested objects to dot paths", () => {
+    it("should flatten already flat objects", () => {
+      // Arrange / Act
+      const out = flattenFieldErrors({
+        email: ["Email required"],
+        password: ["Password required"],
+      });
+
       // Assert
-      expect(
-        flattenFieldErrors({
-          user: { firstName: ["Too short"] },
-        }),
-      ).toEqual({ "user.firstName": ["Too short"] });
+      expect(out).toEqual({
+        email: ["Email required"],
+        password: ["Password required"],
+      });
+    });
+
+    it("should flatten deeply nested objects with dot paths", () => {
+      // Arrange / Act
+      const out = flattenFieldErrors({
+        user: {
+          firstName: ["Too short"],
+          lastName: ["Too short"],
+        },
+      });
+
+      // Assert
+      expect(out).toEqual({
+        "user.firstName": ["Too short"],
+        "user.lastName": ["Too short"],
+      });
+    });
+
+    it("should flatten array-index shaped objects", () => {
+      // Arrange / Act
+      const out = flattenFieldErrors({
+        tags: {
+          0: ["Tag too short"],
+          2: ["Tag too short"],
+        },
+      });
+
+      // Assert
+      expect(out).toEqual({
+        "tags.0": ["Tag too short"],
+        "tags.2": ["Tag too short"],
+      });
+    });
+
+    it("should protect against prototype pollution", () => {
+      // Arrange / Act
+      const out = flattenFieldErrors({
+        __proto__: { polluted: ["should not leak"] },
+        normalField: ["ok"],
+      });
+
+      // Assert
+      expect(out).toEqual({
+        normalField: ["ok"],
+      });
+      expect(({} as any).polluted).toBeUndefined();
+    });
+
+    it("should handle deeply nested objects (3+ levels)", () => {
+      // Arrange / Act
+      const out = flattenFieldErrors({
+        user: {
+          profile: {
+            address: {
+              city: ["City required"],
+              country: ["Country required"],
+            },
+          },
+        },
+      });
+
+      // Assert
+      expect(out).toEqual({
+        "user.profile.address.city": ["City required"],
+        "user.profile.address.country": ["Country required"],
+      });
+    });
+
+    it("should handle leaf nodes with multiple errors", () => {
+      // Arrange / Act
+      const out = flattenFieldErrors({
+        email: ["Email is required", "Invalid email format"],
+        password: ["Password too short"],
+      });
+
+      // Assert
+      expect(out).toEqual({
+        email: ["Email is required", "Invalid email format"],
+        password: ["Password too short"],
+      });
+    });
+
+    it("should handle deeply nested leaf nodes with multiple errors", () => {
+      // Arrange / Act
+      const out = flattenFieldErrors({
+        user: {
+          profile: {
+            bio: ["Too short", "Contains forbidden words"],
+          },
+        },
+      });
+
+      // Assert
+      expect(out).toEqual({
+        "user.profile.bio": ["Too short", "Contains forbidden words"],
+      });
+    });
+
+    it("should handle mixed nested depths in the same object", () => {
+      // Arrange / Act
+      const out = flattenFieldErrors({
+        a: {
+          b: {
+            c: ["Deep error"],
+          },
+        },
+        d: ["Shallow error"],
+        e: {
+          f: ["Medium error"],
+        },
+      });
+
+      // Assert
+      expect(out).toEqual({
+        "a.b.c": ["Deep error"],
+        d: ["Shallow error"],
+        "e.f": ["Medium error"],
+      });
+    });
+
+    it("should handle arrays of objects with deep nesting", () => {
+      // Arrange / Act
+      const out = flattenFieldErrors({
+        users: {
+          0: {
+            profile: {
+              name: ["Name required"],
+            },
+          },
+          1: {
+            profile: {
+              name: ["Name required"],
+            },
+          },
+        },
+      });
+
+      // Assert
+      expect(out).toEqual({
+        "users.0.profile.name": ["Name required"],
+        "users.1.profile.name": ["Name required"],
+      });
+    });
+
+    it("should handle prefix parameter correctly", () => {
+      // Arrange / Act
+      const out = flattenFieldErrors(
+        {
+          name: ["Required"],
+          email: ["Invalid"],
+        },
+        "form",
+      );
+
+      // Assert
+      expect(out).toEqual({
+        "form.name": ["Required"],
+        "form.email": ["Invalid"],
+      });
+    });
+
+    it("should handle prefix with nested objects", () => {
+      // Arrange / Act
+      const out = flattenFieldErrors(
+        {
+          user: {
+            firstName: ["Required"],
+          },
+        },
+        "data",
+      );
+
+      // Assert
+      expect(out).toEqual({
+        "data.user.firstName": ["Required"],
+      });
+    });
+
+    it("should handle empty fieldErrors object", () => {
+      // Assert
+      expect(flattenFieldErrors({})).toEqual({});
+    });
+
+    it("should handle undefined fieldErrors", () => {
+      // Assert
+      expect(flattenFieldErrors(undefined)).toEqual({});
+    });
+
+    it("should handle nested objects with null values gracefully", () => {
+      // Arrange / Act
+      const out = flattenFieldErrors({
+        user: null as any,
+        name: ["Required"],
+      });
+
+      // Assert
+      expect(out).toEqual({
+        name: ["Required"],
+      });
+    });
+
+    it("should handle deeply nested mixed with arrays and multiple errors", () => {
+      // Arrange / Act
+      const out = flattenFieldErrors({
+        company: {
+          departments: {
+            0: {
+              employees: {
+                0: {
+                  name: ["Required", "Too short"],
+                  role: ["Invalid role"],
+                },
+              },
+            },
+          },
+        },
+      });
+
+      // Assert
+      expect(out).toEqual({
+        "company.departments.0.employees.0.name": ["Required", "Too short"],
+        "company.departments.0.employees.0.role": ["Invalid role"],
+      });
+    });
+
+    it("should handle constructor and prototype keys in nested objects", () => {
+      // Arrange / Act
+      const out = flattenFieldErrors({
+        user: {
+          constructor: ["Should be filtered"],
+          normal: ["Valid error"],
+        },
+      } as any);
+
+      // Assert
+      expect(out).toEqual({
+        "user.normal": ["Valid error"],
+      });
     });
   });
 

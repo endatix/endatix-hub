@@ -92,6 +92,7 @@ export function ExportDialogFiltersForm({
                   <SelectItem
                     key={option.exportFormatId}
                     value={option.exportFormatId}
+                    textValue={option.label}
                   >
                     <FileKindLabel
                       kind={getExportWireKeyFileKind(option.formatKey)}

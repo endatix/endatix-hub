@@ -16,7 +16,7 @@ describe("FILE_KINDS", () => {
     expect(FILE_KINDS.csv.extension).toBe("csv");
     expect(FILE_KINDS.json.extension).toBe("json");
     expect(FILE_KINDS.xlsx.extension).toBe("xlsx");
-    expect(FILE_KINDS.xlsx.label).toBe("Excel");
+    expect(FILE_KINDS.xlsx.label).toBe("Excel (XLSX)");
     expect(FILE_KINDS.pdf.mimeType).toBe("application/pdf");
     expect(FILE_KINDS.txt.extension).toBe("txt");
     expect(FILE_KINDS.zip.label).toBe("ZIP");

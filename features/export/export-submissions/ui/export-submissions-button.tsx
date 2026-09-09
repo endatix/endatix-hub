@@ -194,7 +194,7 @@ const BUILT_IN_LEGACY_EXPORTS: readonly LegacyExportMenuItem[] = [
   },
   {
     key: "built-in:xlsx",
-    label: `${FILE_KINDS.xlsx.label} (${FILE_KINDS.xlsx.extension.toUpperCase()})`,
+    label: FILE_KINDS.xlsx.label,
     fileKind: FILE_KINDS.xlsx.key,
     exportName: FILE_KINDS.xlsx.label,
   },

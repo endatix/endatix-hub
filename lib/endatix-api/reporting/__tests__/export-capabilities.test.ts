@@ -144,7 +144,7 @@ describe("capability-derived export options", () => {
     ).toEqual([
       { value: "Csv", label: "CSV" },
       { value: "Json", label: "JSON" },
-      { value: "Xlsx", label: "Excel" },
+      { value: "Xlsx", label: "Excel (XLSX)" },
     ]);
     expect(getDeliveryFormatOptionsForTarget("Codebook", CAPABILITIES)).toEqual(
       [{ value: "Json", label: "JSON" }],

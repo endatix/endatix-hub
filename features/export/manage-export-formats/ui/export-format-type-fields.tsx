@@ -15,19 +15,12 @@ import type {
   ExportProfile,
   ExportTarget,
 } from "@/lib/endatix-api/reporting/export-format-types";
+import { FieldError } from "./field-error";
 
 interface CatalogOption<T extends string> {
   value: T;
   label: string;
   description?: string;
-}
-
-function FieldError({ message }: Readonly<{ message?: string }>) {
-  if (!message) {
-    return null;
-  }
-
-  return <p className="text-sm text-destructive">{message}</p>;
 }
 
 interface ExportFormatTypeFieldsProps {
@@ -102,7 +95,11 @@ export function ExportFormatTypeFields({
           </SelectTrigger>
           <SelectContent>
             {availableDeliveryFormats.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
+              <SelectItem
+                key={option.value}
+                value={option.value}
+                textValue={option.label}
+              >
                 <FileKindLabel kind={getExportDeliveryFileKind(option.value)}>
                   {option.label}
                 </FileKindLabel>

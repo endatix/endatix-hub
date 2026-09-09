@@ -285,6 +285,12 @@ a picker, a menu item or a table cell renders.
    and other server code, and the icon map pulls in `lucide-react`. Import
    glyphs from `@/components/common/file-kind-icon`, and the icon map itself
    only from `lib/file-kinds/file-kind-icons`.
+7. **Same format → same label.** Create-format delivery options, settings table
+   type cells, default picker, and legacy menus must show one string for a
+   given kind (e.g. `FILE_KINDS.xlsx.label` = `Excel (XLSX)`). Do not special-case
+   `${label} (${ext})` in one surface while another uses the catalog label.
+   When `SelectItem` children are a `FileKindLabel` (non-string), set `textValue`
+   to that same visible label for typeahead / accessible name.
 
 ### Overlay Interaction Rulebook
 

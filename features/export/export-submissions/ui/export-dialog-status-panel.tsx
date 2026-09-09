@@ -62,7 +62,7 @@ export function ExportDialogStatusPanel({
       ) : null}
 
       {phase === "ready" && prepareSuccessSummary ? (
-        <Alert variant="success">
+        <Alert variant="info">
           <CheckCircle2 />
           <AlertTitle>Ready to export</AlertTitle>
           <AlertDescription>{prepareSuccessSummary}</AlertDescription>

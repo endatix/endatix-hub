@@ -233,7 +233,11 @@ export function ExportFormatsSettings({
               </SelectTrigger>
               <SelectContent>
                 {submissionFormats.map((format) => (
-                  <SelectItem key={format.id} value={format.id}>
+                  <SelectItem
+                    key={format.id}
+                    value={format.id}
+                    textValue={getExportFormatLabel(format)}
+                  >
                     <FileKindLabel kind={getExportFormatFileKind(format)}>
                       {getExportFormatLabel(format)}
                     </FileKindLabel>

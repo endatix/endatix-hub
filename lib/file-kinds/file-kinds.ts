@@ -31,7 +31,7 @@ export const FILE_KINDS = {
   xlsx: kind(
     "xlsx",
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    "Excel",
+    "Excel (XLSX)",
     "data",
   ),
   json: kind("json", "application/json", "JSON", "data"),

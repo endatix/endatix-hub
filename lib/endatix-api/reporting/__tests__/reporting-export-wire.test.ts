@@ -17,13 +17,20 @@ describe("REPORTING_EXPORT_WIRE", () => {
     expect(getReportingExportWire("codebook-shoji")?.fileKind).toBe("json");
   });
 
-  it("flags codebook wires only", () => {
+  it("flags codebook wires only with exact keys", () => {
     // Act & Assert
     expect(isCodebookFormatKey("codebook")).toBe(true);
     expect(isCodebookFormatKey("codebook-shoji")).toBe(true);
+    expect(isCodebookFormatKey("CODEBOOK")).toBe(false);
     expect(isCodebookFormatKey("csv")).toBe(false);
     expect(isCodebookFormatKey("xlsx")).toBe(false);
     expect(isCodebookFormatKey("unknown")).toBe(false);
+  });
+
+  it("does not case-fold wire lookups", () => {
+    // Act & Assert
+    expect(getReportingExportWire("XLSX")).toBeUndefined();
+    expect(getReportingExportWire("xlsx")?.key).toBe("xlsx");
   });
 
   it("resolves fallback file extensions from file kind", () => {

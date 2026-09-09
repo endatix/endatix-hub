@@ -18,16 +18,14 @@ export const REPORTING_EXPORT_WIRE = {
 
 export type ReportingExportWireKey = keyof typeof REPORTING_EXPORT_WIRE;
 
-/** Physical file kinds used by built-in / legacy submission download. */
-export type BuiltInExportFileKind = Extract<
-  ReportingExportWireKey,
-  FileKindKey
->;
+/** Built-in / legacy download formats — closed set, not every file-kind∩wire key. */
+export const BUILT_IN_EXPORT_FILE_KINDS = ["csv", "xlsx", "json"] as const;
+export type BuiltInExportFileKind = (typeof BUILT_IN_EXPORT_FILE_KINDS)[number];
 
 export function isBuiltInExportFileKind(
   value: string,
 ): value is BuiltInExportFileKind {
-  return isFileKindKey(value) && isReportingExportWireKey(value);
+  return (BUILT_IN_EXPORT_FILE_KINDS as readonly string[]).includes(value);
 }
 
 export function isReportingExportWireKey(
@@ -37,12 +35,11 @@ export function isReportingExportWireKey(
 }
 
 export function getReportingExportWire(value: string) {
-  const key = value.trim().toLowerCase();
-  if (!isReportingExportWireKey(key)) {
+  if (!isReportingExportWireKey(value)) {
     return undefined;
   }
 
-  return REPORTING_EXPORT_WIRE[key];
+  return REPORTING_EXPORT_WIRE[value];
 }
 
 export function isCodebookFormatKey(formatKey: string): boolean {

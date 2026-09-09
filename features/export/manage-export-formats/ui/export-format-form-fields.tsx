@@ -13,6 +13,7 @@ import { getExportFormatTypeLabel } from "@/lib/endatix-api/reporting/export-for
 import { firstFieldError } from "@/lib/utils/zod-error-utils";
 import { ExportFormatAdvancedFields } from "./export-format-advanced-fields";
 import { ExportFormatTypeFields } from "./export-format-type-fields";
+import { FieldError } from "./field-error";
 import {
   useExportFormatFormState,
   type ExportFormatFormMode,
@@ -28,14 +29,6 @@ interface ExportFormatFormFieldsProps {
   initialFormat?: ExportFormatListItem;
   fieldErrors?: Record<string, string[] | undefined>;
   defaultValues?: Partial<ExportFormatFormValues>;
-}
-
-function FieldError({ message }: Readonly<{ message?: string }>) {
-  if (!message) {
-    return null;
-  }
-
-  return <p className="text-sm text-destructive">{message}</p>;
 }
 
 export function ExportFormatFormFields({
@@ -182,6 +175,7 @@ export function ExportFormatFormFields({
           keySeparator={values.keySeparator}
           namingConventions={namingConventions}
           selectedNamingConvention={selectedNamingConvention}
+          aliasProfileError={firstFieldError(fieldErrors, "aliasProfile")}
           keySeparatorError={firstFieldError(fieldErrors, "keySeparator")}
           accordionValue={advancedSection}
           onAccordionValueChange={setAdvancedSection}
