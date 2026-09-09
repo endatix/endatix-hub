@@ -38,7 +38,7 @@ jobs:
       name: Production
     steps:
       - name: 🔐 Fetch secrets (Infisical, OIDC)
-        uses: Infisical/secrets-action@03d3fa38607956c493f53c6633f94006a13c47ae # v1.0.7
+        uses: Infisical/secrets-action@6cd3f7c0e4cc0d2395ee4ef414eb6eeb5d3e73db # v1.0.17
         with:
           method: "oidc"
           env-slug: "prod"
