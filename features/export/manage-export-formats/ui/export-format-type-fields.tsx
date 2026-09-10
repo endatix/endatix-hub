@@ -8,11 +8,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { FileKindLabel } from "@/components/common/file-kind-icon";
+import { getExportDeliveryFileKind } from "@/features/export/utils";
 import type {
   ExportDeliveryFormat,
   ExportProfile,
   ExportTarget,
 } from "@/lib/endatix-api/reporting/export-format-types";
+import { FieldError } from "./field-error";
 
 interface CatalogOption<T extends string> {
   value: T;
@@ -30,6 +33,11 @@ interface ExportFormatTypeFieldsProps {
   availableDeliveryFormats: ReadonlyArray<CatalogOption<ExportDeliveryFormat>>;
   availableProfiles: ReadonlyArray<CatalogOption<ExportProfile>>;
   selectedProfileDescription?: string;
+  fieldErrors?: {
+    exportTarget?: string;
+    deliveryFormat?: string;
+    profile?: string;
+  };
   onTargetChange: (value: ExportTarget) => void;
   onDeliveryChange: (value: ExportDeliveryFormat) => void;
   onProfileChange: (value: ExportProfile) => void;
@@ -45,6 +53,7 @@ export function ExportFormatTypeFields({
   availableDeliveryFormats,
   availableProfiles,
   selectedProfileDescription,
+  fieldErrors,
   onTargetChange,
   onDeliveryChange,
   onProfileChange,
@@ -69,6 +78,7 @@ export function ExportFormatTypeFields({
             ))}
           </SelectContent>
         </Select>
+        <FieldError message={fieldErrors?.exportTarget} />
       </div>
 
       <div className="flex flex-col gap-2">
@@ -85,12 +95,19 @@ export function ExportFormatTypeFields({
           </SelectTrigger>
           <SelectContent>
             {availableDeliveryFormats.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
+              <SelectItem
+                key={option.value}
+                value={option.value}
+                textValue={option.label}
+              >
+                <FileKindLabel kind={getExportDeliveryFileKind(option.value)}>
+                  {option.label}
+                </FileKindLabel>
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
+        <FieldError message={fieldErrors?.deliveryFormat} />
       </div>
 
       {showVariant ? (
@@ -133,6 +150,7 @@ export function ExportFormatTypeFields({
               {selectedProfileDescription}
             </p>
           ) : null}
+          <FieldError message={fieldErrors?.profile} />
         </div>
       ) : null}
     </>

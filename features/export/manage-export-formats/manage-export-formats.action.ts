@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { auth } from "@/auth";
 import { authorization, Permissions } from "@/features/auth/authorization";
-import { ApiResult, EndatixApi } from "@/lib/endatix-api";
+import { EndatixApi } from "@/lib/endatix-api";
 import {
   buildExportFormatSettingsInput,
   getColumnAliasNamingConvention,
@@ -21,20 +21,35 @@ import type {
   UpdateExportFormatRequestBody,
 } from "@/lib/endatix-api/reporting/reporting";
 import { normalizeExportCapabilities } from "@/lib/endatix-api/reporting/normalize-export-capabilities";
+import {
+  DELIVERY_VALUES,
+  PROFILE_VALUES,
+  TARGET_VALUES,
+} from "@/lib/endatix-api/reporting/normalize-export-enums";
 import { normalizeExportNamingConventions } from "@/lib/endatix-api/reporting/normalize-export-naming-conventions";
 import { reportingExportFlag } from "@/lib/feature-flags/flags";
-import { Result } from "@/lib/result";
+import { Result, type ResultType } from "@/lib/result";
 import { toResult } from "@/lib/result/map-api-result-to-result";
-import { getStringFormValue } from "@/lib/utils/form-data-utils";
+import {
+  getBooleanFormValue,
+  getStringFormValue,
+} from "@/lib/utils/form-data-utils";
 import { createEndatixIdSchema } from "@/lib/utils/type-validators";
 import { ServerActionState } from "@/lib/utils/zod-error-utils";
 
-const exportTargetSchema = z.enum(["Submissions", "Codebook"]);
-const deliveryFormatSchema = z.enum(["Csv", "Json"]);
-const profileSchema = z.enum(["Native", "Shoji"]);
-const exportFormatIdSchema = createEndatixIdSchema("exportFormatId");
+function enumSchema<T extends string>(values: readonly T[]) {
+  return z.enum(values as [T, ...T[]]);
+}
 
-const exportFormatSettingsFieldsSchema = z.object({
+const exportTargetSchema = enumSchema(TARGET_VALUES);
+const deliveryFormatSchema = enumSchema(DELIVERY_VALUES);
+const profileSchema = enumSchema(PROFILE_VALUES);
+const exportFormatIdSchema = createEndatixIdSchema("exportFormatId");
+const exportFormatIdBodySchema = z.object({
+  exportFormatId: exportFormatIdSchema,
+});
+
+const exportFormatSettingsObjectSchema = z.object({
   exportTarget: exportTargetSchema,
   deliveryFormat: deliveryFormatSchema,
   profile: profileSchema,
@@ -43,110 +58,145 @@ const exportFormatSettingsFieldsSchema = z.object({
   includeTestSubmissions: z.boolean().optional(),
 });
 
-const createExportFormatSchema = exportFormatSettingsFieldsSchema.extend({
+function refineSettingsFields(
+  data: z.infer<typeof exportFormatSettingsObjectSchema>,
+  ctx: z.RefinementCtx,
+) {
+  const visibility = getExportFormatSettingsFieldVisibility(data.exportTarget);
+  if (!visibility.includeTestSubmissions && data.includeTestSubmissions) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["includeTestSubmissions"],
+      message: "Include test submissions applies only to submission exports.",
+    });
+  }
+}
+
+const nameFieldsSchema = {
   name: z.string().trim().min(1).max(200),
   description: z.string().trim().max(500).optional(),
-});
+};
 
-const updateExportFormatSchema = exportFormatSettingsFieldsSchema.extend({
-  exportFormatId: exportFormatIdSchema,
-  name: z.string().trim().min(1).max(200),
-  description: z.string().trim().max(500).optional(),
-});
+const createExportFormatSchema = exportFormatSettingsObjectSchema
+  .extend(nameFieldsSchema)
+  .superRefine(refineSettingsFields);
 
-const deleteExportFormatSchema = z.object({
-  exportFormatId: exportFormatIdSchema,
-});
-
-const upsertDefaultMappingSchema = z.object({
-  exportFormatId: exportFormatIdSchema,
-});
+const updateExportFormatSchema = exportFormatSettingsObjectSchema
+  .extend({
+    exportFormatId: exportFormatIdSchema,
+    ...nameFieldsSchema,
+  })
+  .superRefine(refineSettingsFields);
 
 const EXPORT_FORMATS_PATH = "/settings/organization/export-formats";
 const LOGGER_NAME = "export.manage-export-formats";
 const REPORTING_EXPORT_DISABLED_MESSAGE =
   "Reporting export is not enabled for this environment.";
 
-function getBooleanFormValue(formData: FormData, key: string): boolean {
-  const value = formData.get(key);
-  return value === "true" || value === "on";
-}
+type SettingsFields = z.infer<typeof exportFormatSettingsObjectSchema>;
 
-function validateSettingsFields(
-  data: z.infer<typeof exportFormatSettingsFieldsSchema>,
-): z.ZodError | null {
-  const visibility = getExportFormatSettingsFieldVisibility(data.exportTarget);
-  const issues: z.ZodIssue[] = [];
+/** Posted form values echoed back for `defaultValues` — matches form field unions. */
+export type PostedExportFormatFields = {
+  exportFormatId?: string;
+  name?: string;
+  description?: string;
+  exportTarget?: ExportTarget | "";
+  deliveryFormat?: ExportDeliveryFormat | "";
+  profile?: ExportProfile | "";
+  aliasProfile?: string;
+  keySeparator?: string;
+  includeTestSubmissions?: boolean;
+};
 
-  if (!data.aliasProfile) {
-    issues.push({
-      code: "custom",
-      path: ["aliasProfile"],
-      message: "Column naming is required.",
-    });
-  }
+export type ExportFormatActionState =
+  ServerActionState<PostedExportFormatFields>;
 
-  if (!data.keySeparator) {
-    issues.push({
-      code: "custom",
-      path: ["keySeparator"],
-      message: "Key separator is required.",
-    });
-  }
-
-  if (!visibility.includeTestSubmissions && data.includeTestSubmissions) {
-    issues.push({
-      code: "custom",
-      path: ["includeTestSubmissions"],
-      message: "Include test submissions applies only to submission exports.",
-    });
-  }
-
-  return issues.length > 0 ? new z.ZodError(issues) : null;
-}
-
-function validateCatalogMembership(
-  selection: {
-    exportTarget: ExportTarget;
-    deliveryFormat: ExportDeliveryFormat;
-    profile: ExportProfile;
-    aliasProfile: string;
-  },
+function catalogSelectionSchema(
   capabilities: ReadonlyArray<ExportCapabilityDto>,
   namingConventions: ReadonlyArray<ColumnAliasNamingConventionDto>,
-): z.ZodError | null {
-  const issues: z.ZodIssue[] = [];
+) {
+  return z
+    .object({
+      exportTarget: exportTargetSchema,
+      deliveryFormat: deliveryFormatSchema,
+      profile: profileSchema,
+      aliasProfile: z.string(),
+    })
+    .superRefine((selection, ctx) => {
+      if (
+        !getExportCapabilityForSelection(
+          selection.exportTarget,
+          selection.deliveryFormat,
+          selection.profile,
+          capabilities,
+        )
+      ) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["exportTarget"],
+          message:
+            "Selected export type is not supported by the available capabilities.",
+        });
+      }
 
-  const capability = getExportCapabilityForSelection(
-    selection.exportTarget,
-    selection.deliveryFormat,
-    selection.profile,
-    capabilities,
-  );
-  if (!capability) {
-    issues.push({
-      code: "custom",
-      path: ["exportTarget"],
-      message:
-        "Selected export type is not supported by the available capabilities.",
+      if (
+        !getColumnAliasNamingConvention(
+          selection.aliasProfile,
+          namingConventions,
+        )
+      ) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["aliasProfile"],
+          message: "Selected column naming is not supported.",
+        });
+      }
     });
+}
+
+function readExportFormatForm(formData: FormData): PostedExportFormatFields {
+  return {
+    name: getStringFormValue(formData, "name"),
+    exportTarget: getStringFormValue(formData, "exportTarget") as
+      | ExportTarget
+      | "",
+    deliveryFormat: getStringFormValue(formData, "deliveryFormat") as
+      | ExportDeliveryFormat
+      | "",
+    profile: getStringFormValue(formData, "profile") as ExportProfile | "",
+    description: getStringFormValue(formData, "description"),
+    aliasProfile: getStringFormValue(formData, "aliasProfile"),
+    keySeparator: getStringFormValue(formData, "keySeparator") || undefined,
+    includeTestSubmissions: getBooleanFormValue(
+      formData,
+      "includeTestSubmissions",
+    ),
+  };
+}
+
+function settingsInput(data: SettingsFields) {
+  return buildExportFormatSettingsInput(data.exportTarget, data.profile, {
+    aliasProfile: data.aliasProfile,
+    keySeparator: data.keySeparator,
+    includeTestSubmissions: data.includeTestSubmissions,
+  });
+}
+
+async function requireExportFormatsClient(): Promise<ResultType<EndatixApi>> {
+  const session = await auth();
+  const { requirePermission } = await authorization(session);
+  await requirePermission(Permissions.Tenant.ManageSettings);
+
+  const reportingExportEnabled = await reportingExportFlag();
+  if (!reportingExportEnabled) {
+    return Result.error(REPORTING_EXPORT_DISABLED_MESSAGE);
   }
 
-  if (
-    !getColumnAliasNamingConvention(selection.aliasProfile, namingConventions)
-  ) {
-    issues.push({
-      code: "custom",
-      path: ["aliasProfile"],
-      message: "Selected column naming is not supported.",
-    });
-  }
-
-  return issues.length > 0 ? new z.ZodError(issues) : null;
+  return Result.success(new EndatixApi(session?.accessToken));
 }
 
 async function loadExportCatalogs(api: EndatixApi): Promise<
-  Result<{
+  ResultType<{
     capabilities: ExportCapabilityDto[];
     namingConventions: ColumnAliasNamingConventionDto[];
   }>
@@ -181,321 +231,214 @@ async function loadExportCatalogs(api: EndatixApi): Promise<
   });
 }
 
-export type ExportFormatActionState = ServerActionState<{
-  exportFormatId?: string;
-  name?: string;
-}>;
-
-async function requireReportingExportSettings(): Promise<ExportFormatActionState | null> {
-  const reportingExportEnabled = await reportingExportFlag();
-  if (reportingExportEnabled) {
-    return null;
+function finishWrite(
+  result: ResultType<unknown>,
+  successMessage: string,
+  rawData?: PostedExportFormatFields,
+): ExportFormatActionState {
+  if (Result.isSuccess(result)) {
+    revalidatePath(EXPORT_FORMATS_PATH);
+    return { isSuccess: true, message: successMessage };
   }
 
-  return {
-    isSuccess: false,
-    message: REPORTING_EXPORT_DISABLED_MESSAGE,
-  };
+  return ServerActionState.fromFailure(result, rawData);
+}
+
+async function validateAgainstCatalogs(
+  api: EndatixApi,
+  selection: SettingsFields,
+  rawData: PostedExportFormatFields,
+): Promise<ExportFormatActionState | null> {
+  const catalogsResult = await loadExportCatalogs(api);
+  if (Result.isError(catalogsResult)) {
+    return ServerActionState.fromFailure(catalogsResult, rawData);
+  }
+
+  const catalogParsed = catalogSelectionSchema(
+    catalogsResult.value.capabilities,
+    catalogsResult.value.namingConventions,
+  ).safeParse(selection);
+  if (!catalogParsed.success) {
+    return ServerActionState.fromZodError(catalogParsed.error, rawData);
+  }
+
+  return null;
 }
 
 export async function createExportFormatAction(
   _prevState: ExportFormatActionState,
   formData: FormData,
 ): Promise<ExportFormatActionState> {
-  const session = await auth();
-  const { requirePermission } = await authorization(session);
-  await requirePermission(Permissions.Tenant.ManageSettings);
-
-  const disabled = await requireReportingExportSettings();
-  if (disabled) {
-    return disabled;
+  const access = await requireExportFormatsClient();
+  if (Result.isError(access)) {
+    return ServerActionState.fromFailure(access);
   }
 
-  const rawData = {
-    name: getStringFormValue(formData, "name"),
-    exportTarget: getStringFormValue(formData, "exportTarget"),
-    deliveryFormat: getStringFormValue(formData, "deliveryFormat"),
-    profile: getStringFormValue(formData, "profile"),
-    description: getStringFormValue(formData, "description"),
-    aliasProfile: getStringFormValue(formData, "aliasProfile"),
-    keySeparator: getStringFormValue(formData, "keySeparator") || undefined,
-    includeTestSubmissions: getBooleanFormValue(
-      formData,
-      "includeTestSubmissions",
-    ),
-  };
-
+  const rawData = readExportFormatForm(formData);
   const validated = createExportFormatSchema.safeParse(rawData);
   if (!validated.success) {
     return ServerActionState.fromZodError(validated.error, rawData);
   }
 
-  const settingsValidationError = validateSettingsFields(validated.data);
-  if (settingsValidationError) {
-    return ServerActionState.fromZodError(settingsValidationError, rawData);
-  }
-
-  const api = new EndatixApi(session?.accessToken);
-  const catalogsResult = await loadExportCatalogs(api);
-  if (Result.isError(catalogsResult)) {
-    return {
-      isSuccess: false,
-      message: catalogsResult.message,
-      data: rawData,
-    };
-  }
-
-  const catalogValidationError = validateCatalogMembership(
+  const catalogError = await validateAgainstCatalogs(
+    access.value,
     validated.data,
-    catalogsResult.value.capabilities,
-    catalogsResult.value.namingConventions,
+    rawData,
   );
-  if (catalogValidationError) {
-    return ServerActionState.fromZodError(catalogValidationError, rawData);
+  if (catalogError) {
+    return catalogError;
   }
 
   const body: CreateExportFormatRequestBody = {
     name: validated.data.name,
-    exportTarget: validated.data.exportTarget as ExportTarget,
-    deliveryFormat: validated.data.deliveryFormat as ExportDeliveryFormat,
-    profile: validated.data.profile as ExportProfile,
+    exportTarget: validated.data.exportTarget,
+    deliveryFormat: validated.data.deliveryFormat,
+    profile: validated.data.profile,
     description: validated.data.description,
-    settings: buildExportFormatSettingsInput(
-      validated.data.exportTarget,
-      validated.data.profile,
-      {
-        aliasProfile: validated.data.aliasProfile,
-        keySeparator: validated.data.keySeparator,
-        includeTestSubmissions: validated.data.includeTestSubmissions,
-      },
-    ),
+    settings: settingsInput(validated.data),
   };
 
-  const apiResult = await api.reporting.exportFormats.create(body);
-
-  if (ApiResult.isSuccess(apiResult)) {
-    revalidatePath(EXPORT_FORMATS_PATH);
-    return { isSuccess: true, message: "Export format created." };
-  }
-
-  const result = toResult(apiResult, {
-    fallbackMessage: "Failed to create export format.",
-    logMessage: "Failed to create export format.",
-    loggerName: LOGGER_NAME,
-  });
-
-  return {
-    isSuccess: false,
-    message: Result.isError(result)
-      ? result.message
-      : "Failed to create export format.",
-    data: rawData,
-  };
+  return finishWrite(
+    toResult(await access.value.reporting.exportFormats.create(body), {
+      fallbackMessage: "Failed to create export format.",
+      logMessage: "Failed to create export format.",
+      loggerName: LOGGER_NAME,
+    }),
+    "Export format created.",
+    rawData,
+  );
 }
 
 export async function updateExportFormatAction(
   _prevState: ExportFormatActionState,
   formData: FormData,
 ): Promise<ExportFormatActionState> {
-  const session = await auth();
-  const { requirePermission } = await authorization(session);
-  await requirePermission(Permissions.Tenant.ManageSettings);
-
-  const disabled = await requireReportingExportSettings();
-  if (disabled) {
-    return disabled;
+  const access = await requireExportFormatsClient();
+  if (Result.isError(access)) {
+    return ServerActionState.fromFailure(access);
   }
 
   const rawData = {
     exportFormatId: getStringFormValue(formData, "exportFormatId"),
-    name: getStringFormValue(formData, "name"),
-    exportTarget: getStringFormValue(formData, "exportTarget"),
-    deliveryFormat: getStringFormValue(formData, "deliveryFormat"),
-    profile: getStringFormValue(formData, "profile"),
-    description: getStringFormValue(formData, "description"),
-    aliasProfile: getStringFormValue(formData, "aliasProfile"),
-    keySeparator: getStringFormValue(formData, "keySeparator") || undefined,
-    includeTestSubmissions: getBooleanFormValue(
-      formData,
-      "includeTestSubmissions",
-    ),
+    ...readExportFormatForm(formData),
   };
-
   const validated = updateExportFormatSchema.safeParse(rawData);
   if (!validated.success) {
     return ServerActionState.fromZodError(validated.error, rawData);
   }
 
-  const settingsValidationError = validateSettingsFields(validated.data);
-  if (settingsValidationError) {
-    return ServerActionState.fromZodError(settingsValidationError, rawData);
-  }
-
-  const api = new EndatixApi(session?.accessToken);
-  const catalogsResult = await loadExportCatalogs(api);
-  if (Result.isError(catalogsResult)) {
-    return {
-      isSuccess: false,
-      message: catalogsResult.message,
-      data: rawData,
-    };
-  }
-
-  const catalogValidationError = validateCatalogMembership(
+  const catalogError = await validateAgainstCatalogs(
+    access.value,
     validated.data,
-    catalogsResult.value.capabilities,
-    catalogsResult.value.namingConventions,
+    rawData,
   );
-  if (catalogValidationError) {
-    return ServerActionState.fromZodError(catalogValidationError, rawData);
+  if (catalogError) {
+    return catalogError;
   }
 
   const body: UpdateExportFormatRequestBody = {
     name: validated.data.name,
     description: validated.data.description ?? null,
-    settings: buildExportFormatSettingsInput(
-      validated.data.exportTarget,
-      validated.data.profile,
+    settings: settingsInput(validated.data),
+  };
+
+  return finishWrite(
+    toResult(
+      await access.value.reporting.exportFormats.update(
+        validated.data.exportFormatId,
+        body,
+      ),
       {
-        aliasProfile: validated.data.aliasProfile,
-        keySeparator: validated.data.keySeparator,
-        includeTestSubmissions: validated.data.includeTestSubmissions,
+        fallbackMessage: "Failed to update export format.",
+        logMessage: "Failed to update export format.",
+        loggerName: LOGGER_NAME,
       },
     ),
-  };
-
-  const apiResult = await api.reporting.exportFormats.update(
-    validated.data.exportFormatId,
-    body,
+    "Export format updated.",
+    rawData,
   );
-
-  if (ApiResult.isSuccess(apiResult)) {
-    revalidatePath(EXPORT_FORMATS_PATH);
-    return { isSuccess: true, message: "Export format updated." };
-  }
-
-  const result = toResult(apiResult, {
-    fallbackMessage: "Failed to update export format.",
-    logMessage: "Failed to update export format.",
-    loggerName: LOGGER_NAME,
-  });
-
-  return {
-    isSuccess: false,
-    message: Result.isError(result)
-      ? result.message
-      : "Failed to update export format.",
-    data: rawData,
-  };
 }
 
 export async function deleteExportFormatAction(
   exportFormatId: string,
 ): Promise<ExportFormatActionState> {
-  const session = await auth();
-  const { requirePermission } = await authorization(session);
-  await requirePermission(Permissions.Tenant.ManageSettings);
-
-  const disabled = await requireReportingExportSettings();
-  if (disabled) {
-    return disabled;
+  const access = await requireExportFormatsClient();
+  if (Result.isError(access)) {
+    return ServerActionState.fromFailure(access);
   }
 
-  const validated = deleteExportFormatSchema.safeParse({ exportFormatId });
+  const rawData = { exportFormatId };
+  const validated = exportFormatIdBodySchema.safeParse(rawData);
   if (!validated.success) {
-    return ServerActionState.fromZodError(validated.error, { exportFormatId });
+    return ServerActionState.fromZodError(validated.error, rawData);
   }
 
-  const api = new EndatixApi(session?.accessToken);
-  const apiResult = await api.reporting.exportFormats.delete(
-    validated.data.exportFormatId,
+  return finishWrite(
+    toResult(
+      await access.value.reporting.exportFormats.delete(
+        validated.data.exportFormatId,
+      ),
+      {
+        fallbackMessage: "Failed to delete export format.",
+        logMessage: "Failed to delete export format.",
+        loggerName: LOGGER_NAME,
+      },
+    ),
+    "Export format deleted.",
+    rawData,
   );
-
-  if (ApiResult.isSuccess(apiResult)) {
-    revalidatePath(EXPORT_FORMATS_PATH);
-    return { isSuccess: true, message: "Export format deleted." };
-  }
-
-  const result = toResult(apiResult, {
-    fallbackMessage: "Failed to delete export format.",
-    logMessage: "Failed to delete export format.",
-    loggerName: LOGGER_NAME,
-  });
-
-  return {
-    isSuccess: false,
-    message: Result.isError(result)
-      ? result.message
-      : "Failed to delete export format.",
-    data: { exportFormatId },
-  };
 }
 
 export async function upsertTenantDefaultExportMappingAction(
   exportFormatId: string,
 ): Promise<ExportFormatActionState> {
-  const session = await auth();
-  const { requirePermission } = await authorization(session);
-  await requirePermission(Permissions.Tenant.ManageSettings);
-
-  const disabled = await requireReportingExportSettings();
-  if (disabled) {
-    return disabled;
+  const access = await requireExportFormatsClient();
+  if (Result.isError(access)) {
+    return ServerActionState.fromFailure(access);
   }
 
-  const validated = upsertDefaultMappingSchema.safeParse({ exportFormatId });
+  const rawData = { exportFormatId };
+  const validated = exportFormatIdBodySchema.safeParse(rawData);
   if (!validated.success) {
-    return ServerActionState.fromZodError(validated.error, { exportFormatId });
+    return ServerActionState.fromZodError(validated.error, rawData);
   }
 
-  const api = new EndatixApi(session?.accessToken);
-  const formatsApiResult = await api.reporting.exportFormats.list();
-  const formatsResult = toResult(formatsApiResult, {
-    fallbackMessage: "Failed to load export formats.",
-    logMessage: "Failed to load export formats for default mapping validation.",
-    loggerName: LOGGER_NAME,
-  });
-
+  const formatsResult = toResult(
+    await access.value.reporting.exportFormats.list(),
+    {
+      fallbackMessage: "Failed to load export formats.",
+      logMessage:
+        "Failed to load export formats for default mapping validation.",
+      loggerName: LOGGER_NAME,
+    },
+  );
   if (Result.isError(formatsResult)) {
-    return {
-      isSuccess: false,
-      message: formatsResult.message,
-      data: { exportFormatId },
-    };
+    return ServerActionState.fromFailure(formatsResult, rawData);
   }
 
   const selectedFormat = formatsResult.value.find(
     (format) => format.id === validated.data.exportFormatId,
   );
   if (selectedFormat?.exportTarget !== "Submissions") {
-    return {
-      isSuccess: false,
-      message: "Default export format must target submissions.",
-      data: { exportFormatId },
-    };
+    return ServerActionState.fromFailure(
+      "Default export format must target submissions.",
+      rawData,
+    );
   }
 
-  const apiResult = await api.reporting.exportMappings.upsert({
-    exportFormatId: validated.data.exportFormatId,
-    isDefault: true,
-  });
-
-  if (ApiResult.isSuccess(apiResult)) {
-    revalidatePath(EXPORT_FORMATS_PATH);
-    return { isSuccess: true, message: "Default export format updated." };
-  }
-
-  const result = toResult(apiResult, {
-    fallbackMessage: "Failed to update default export format.",
-    logMessage: "Failed to update tenant default export mapping.",
-    loggerName: LOGGER_NAME,
-  });
-
-  return {
-    isSuccess: false,
-    message: Result.isError(result)
-      ? result.message
-      : "Failed to update default export format.",
-    data: { exportFormatId },
-  };
+  return finishWrite(
+    toResult(
+      await access.value.reporting.exportMappings.upsert({
+        exportFormatId: validated.data.exportFormatId,
+        isDefault: true,
+      }),
+      {
+        fallbackMessage: "Failed to update default export format.",
+        logMessage: "Failed to update tenant default export mapping.",
+        loggerName: LOGGER_NAME,
+      },
+    ),
+    "Default export format updated.",
+    rawData,
+  );
 }

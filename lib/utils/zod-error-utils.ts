@@ -76,6 +76,19 @@ export const ServerActionState = {
   },
 
   /**
+   * Maps an operational `Result` error (or a domain message) to FormData action
+   * state. Sets `message` and does not set `errors`, so toasts still fire.
+   */
+  fromFailure: <TState = ActionStateData>(
+    failure: string | { message: string },
+    rawData?: TState,
+  ): ValidationFailedState<TState> => ({
+    isSuccess: false,
+    message: typeof failure === "string" ? failure : failure.message,
+    data: rawData,
+  }),
+
+  /**
    * Creates an empty form state.
    *
    * @param data The data to include in the state.
@@ -137,14 +150,11 @@ function setFieldError(
 }
 
 /**
- * Normalizes deeply nested validation errors into a flat shape suitable for
- * API `fields: Record<string, string[]>` responses.
- *
- * Example:
- * `{ user: { firstName: ["Too short"] } }` -> `{ "user.firstName": ["Too short"] }`
+ * Nested `DeepFieldErrors` → `Record<string, string[]>` with dot paths
+ * (`user.firstName`) for API `fields` payloads.
  */
 export function flattenFieldErrors<TState = ActionStateData>(
-  fieldErrors?: DeepFieldErrors<TState>, // Made optional to handle undefined gracefully
+  fieldErrors?: DeepFieldErrors<TState>,
   rootPrefix: string = "",
 ): Record<string, string[]> {
   const result: Record<string, string[]> = {};
@@ -172,6 +182,15 @@ export function flattenFieldErrors<TState = ActionStateData>(
 
   flatten(fieldErrors, rootPrefix);
   return result;
+}
+
+/** First message for a top-level form field (`errors.name` → string). */
+export function firstFieldError(
+  errors: DeepFieldErrors<ActionStateData> | undefined,
+  field: string,
+): string | undefined {
+  const messages = errors?.[field];
+  return Array.isArray(messages) ? messages[0] : undefined;
 }
 
 /**

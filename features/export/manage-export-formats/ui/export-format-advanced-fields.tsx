@@ -16,14 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { ColumnAliasNamingConventionDto } from "@/lib/endatix-api/reporting/export-format-types";
-
-function FieldError({ message }: Readonly<{ message?: string }>) {
-  if (!message) {
-    return null;
-  }
-
-  return <p className="text-sm text-destructive">{message}</p>;
-}
+import { FieldError } from "./field-error";
 
 interface ExportFormatAdvancedFieldsProps {
   mode: string;
@@ -31,9 +24,10 @@ interface ExportFormatAdvancedFieldsProps {
   keySeparator: string;
   namingConventions: ColumnAliasNamingConventionDto[];
   selectedNamingConvention?: ColumnAliasNamingConventionDto;
+  aliasProfileError?: string;
   keySeparatorError?: string;
-  accordionValue: string | undefined;
-  onAccordionValueChange: (value: string | undefined) => void;
+  accordionValue: string;
+  onAccordionValueChange: (value: string) => void;
   onAliasProfileChange: (value: string) => void;
   onKeySeparatorChange: (value: string) => void;
 }
@@ -44,6 +38,7 @@ export function ExportFormatAdvancedFields({
   keySeparator,
   namingConventions,
   selectedNamingConvention,
+  aliasProfileError,
   keySeparatorError,
   accordionValue,
   onAccordionValueChange,
@@ -117,6 +112,7 @@ export function ExportFormatAdvancedFields({
                 ) : null}
               </p>
             ) : null}
+            <FieldError message={aliasProfileError} />
           </div>
 
           <div className="flex flex-col gap-2">

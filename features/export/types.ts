@@ -1,7 +1,8 @@
+export type { ExportFormat } from "@/lib/endatix-api/submissions/types";
 export type {
-  ExportFormat,
+  ReportingExportWireKey,
   ReportingExportWireKey as ReportingExportFormat,
-} from "@/lib/endatix-api/submissions/types";
+} from "@/lib/endatix-api/reporting/reporting-export-wire";
 
 export type {
   ColumnAliasNamingConventionDto,

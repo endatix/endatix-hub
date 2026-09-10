@@ -1,7 +1,17 @@
+import { FILE_KINDS, type FileKindKey } from "@/lib/file-kinds";
+
 /** Wire enum values from the Reporting API contract — not UI copy. */
 export type ExportTarget = "Submissions" | "Codebook";
-export type ExportDeliveryFormat = "Csv" | "Json";
+export type ExportDeliveryFormat = "Csv" | "Json" | "Xlsx";
 export type ExportProfile = "Native" | "Shoji";
+
+export const DELIVERY_TO_FILE_KIND = {
+  Csv: "csv",
+  Json: "json",
+  Xlsx: "xlsx",
+} as const satisfies Record<ExportDeliveryFormat, FileKindKey>;
+
+export { getExportFormatFallbackExtension } from "./reporting-export-wire";
 
 export interface ColumnAliasNamingConventionDto {
   wireKey: string;
@@ -198,24 +208,8 @@ export function buildExportFormatSettingsInput(
   return settings;
 }
 
-export function getExportFormatFallbackExtension(wireKey: string): string {
-  if (wireKey === "codebook" || wireKey === "codebook-shoji") {
-    return "json";
-  }
-
-  if (wireKey === "csv-shoji") {
-    return "csv";
-  }
-
-  return wireKey;
-}
-
 function formatDeliveryLabel(deliveryFormat: ExportDeliveryFormat): string {
-  if (deliveryFormat === "Csv") {
-    return "CSV";
-  }
-
-  return deliveryFormat.toUpperCase();
+  return FILE_KINDS[DELIVERY_TO_FILE_KIND[deliveryFormat]].label;
 }
 
 /** Distinct export targets present in the capabilities catalog. */

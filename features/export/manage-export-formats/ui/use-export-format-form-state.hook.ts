@@ -192,8 +192,8 @@ export function useExportFormatFormState({
   const hasAdvancedErrors = Boolean(
     fieldErrors?.keySeparator?.length || fieldErrors?.aliasProfile?.length,
   );
-  const [advancedSection, setAdvancedSection] = useState<string | undefined>(
-    hasAdvancedErrors ? "advanced" : undefined,
+  const [advancedSection, setAdvancedSection] = useState(
+    hasAdvancedErrors ? "advanced" : "",
   );
 
   useEffect(() => {

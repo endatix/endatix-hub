@@ -12,7 +12,7 @@ import {
   parseOptionalPositiveIdQuery,
   parseReportingExportFormat,
 } from "@/features/export/export-submissions";
-import { isCodebookFormatKey } from "@/features/export/export-url";
+import { isCodebookFormatKey } from "@/lib/endatix-api/reporting/reporting-export-wire";
 import { Result } from "@/lib/result";
 import { toUpstreamFileResponse } from "@/lib/utils/route-handlers";
 import { validateEndatixId } from "@/lib/utils/type-validators";

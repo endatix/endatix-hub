@@ -10,8 +10,10 @@ import type {
   ExportFormatListItem,
 } from "@/lib/endatix-api/reporting/export-format-types";
 import { getExportFormatTypeLabel } from "@/lib/endatix-api/reporting/export-format-types";
+import { firstFieldError } from "@/lib/utils/zod-error-utils";
 import { ExportFormatAdvancedFields } from "./export-format-advanced-fields";
 import { ExportFormatTypeFields } from "./export-format-type-fields";
+import { FieldError } from "./field-error";
 import {
   useExportFormatFormState,
   type ExportFormatFormMode,
@@ -27,14 +29,6 @@ interface ExportFormatFormFieldsProps {
   initialFormat?: ExportFormatListItem;
   fieldErrors?: Record<string, string[] | undefined>;
   defaultValues?: Partial<ExportFormatFormValues>;
-}
-
-function FieldError({ message }: Readonly<{ message?: string }>) {
-  if (!message) {
-    return null;
-  }
-
-  return <p className="text-sm text-destructive">{message}</p>;
 }
 
 export function ExportFormatFormFields({
@@ -112,7 +106,7 @@ export function ExportFormatFormFields({
               setValues((current) => ({ ...current, name: event.target.value }))
             }
           />
-          <FieldError message={fieldErrors?.name?.[0]} />
+          <FieldError message={firstFieldError(fieldErrors, "name")} />
         </div>
 
         {!isEdit ? (
@@ -126,6 +120,11 @@ export function ExportFormatFormFields({
             availableDeliveryFormats={availableDeliveryFormats}
             availableProfiles={availableProfiles}
             selectedProfileDescription={selectedProfileCapability?.description}
+            fieldErrors={{
+              exportTarget: firstFieldError(fieldErrors, "exportTarget"),
+              deliveryFormat: firstFieldError(fieldErrors, "deliveryFormat"),
+              profile: firstFieldError(fieldErrors, "profile"),
+            }}
             onTargetChange={handleTargetChange}
             onDeliveryChange={handleDeliveryChange}
             onProfileChange={handleProfileChange}
@@ -176,7 +175,8 @@ export function ExportFormatFormFields({
           keySeparator={values.keySeparator}
           namingConventions={namingConventions}
           selectedNamingConvention={selectedNamingConvention}
-          keySeparatorError={fieldErrors?.keySeparator?.[0]}
+          aliasProfileError={firstFieldError(fieldErrors, "aliasProfile")}
+          keySeparatorError={firstFieldError(fieldErrors, "keySeparator")}
           accordionValue={advancedSection}
           onAccordionValueChange={setAdvancedSection}
           onAliasProfileChange={(aliasProfile) =>

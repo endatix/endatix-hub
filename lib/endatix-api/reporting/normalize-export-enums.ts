@@ -8,7 +8,11 @@ export const TARGET_VALUES: readonly ExportTarget[] = [
   "Submissions",
   "Codebook",
 ];
-export const DELIVERY_VALUES: readonly ExportDeliveryFormat[] = ["Csv", "Json"];
+export const DELIVERY_VALUES: readonly ExportDeliveryFormat[] = [
+  "Csv",
+  "Json",
+  "Xlsx",
+];
 export const PROFILE_VALUES: readonly ExportProfile[] = ["Native", "Shoji"];
 
 /**

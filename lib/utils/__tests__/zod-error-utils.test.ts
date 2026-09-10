@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { z } from "zod";
+import { Result } from "@/lib/result";
 import {
+  firstFieldError,
   flattenFieldErrors,
   parseZodError,
   ServerActionState,
@@ -210,15 +212,43 @@ describe("zod-error-utils", () => {
         expect(state.errors).toBeUndefined();
       });
     });
+
+    describe("fromFailure", () => {
+      it("maps a Result error message without field errors", () => {
+        // Arrange
+        const result = Result.error("Failed to create export format.");
+        const rawData = { name: "Excel" };
+
+        // Act
+        const state = ServerActionState.fromFailure(result, rawData);
+
+        // Assert
+        expect(state.isSuccess).toBe(false);
+        expect(state.message).toBe("Failed to create export format.");
+        expect(state.errors).toBeUndefined();
+        expect(state.data).toEqual(rawData);
+      });
+
+      it("maps a domain string", () => {
+        // Act
+        const state = ServerActionState.fromFailure("Not allowed.");
+
+        // Assert
+        expect(state.isSuccess).toBe(false);
+        expect(state.message).toBe("Not allowed.");
+      });
+    });
   });
 
   describe("flattenFieldErrors", () => {
     it("should flatten already flat objects", () => {
+      // Arrange / Act
       const out = flattenFieldErrors({
         email: ["Email required"],
         password: ["Password required"],
       });
 
+      // Assert
       expect(out).toEqual({
         email: ["Email required"],
         password: ["Password required"],
@@ -226,6 +256,7 @@ describe("zod-error-utils", () => {
     });
 
     it("should flatten deeply nested objects with dot paths", () => {
+      // Arrange / Act
       const out = flattenFieldErrors({
         user: {
           firstName: ["Too short"],
@@ -233,6 +264,7 @@ describe("zod-error-utils", () => {
         },
       });
 
+      // Assert
       expect(out).toEqual({
         "user.firstName": ["Too short"],
         "user.lastName": ["Too short"],
@@ -240,6 +272,7 @@ describe("zod-error-utils", () => {
     });
 
     it("should flatten array-index shaped objects", () => {
+      // Arrange / Act
       const out = flattenFieldErrors({
         tags: {
           0: ["Tag too short"],
@@ -247,6 +280,7 @@ describe("zod-error-utils", () => {
         },
       });
 
+      // Assert
       expect(out).toEqual({
         "tags.0": ["Tag too short"],
         "tags.2": ["Tag too short"],
@@ -254,11 +288,13 @@ describe("zod-error-utils", () => {
     });
 
     it("should protect against prototype pollution", () => {
+      // Arrange / Act
       const out = flattenFieldErrors({
         __proto__: { polluted: ["should not leak"] },
         normalField: ["ok"],
       });
 
+      // Assert
       expect(out).toEqual({
         normalField: ["ok"],
       });
@@ -266,6 +302,7 @@ describe("zod-error-utils", () => {
     });
 
     it("should handle deeply nested objects (3+ levels)", () => {
+      // Arrange / Act
       const out = flattenFieldErrors({
         user: {
           profile: {
@@ -277,6 +314,7 @@ describe("zod-error-utils", () => {
         },
       });
 
+      // Assert
       expect(out).toEqual({
         "user.profile.address.city": ["City required"],
         "user.profile.address.country": ["Country required"],
@@ -284,11 +322,13 @@ describe("zod-error-utils", () => {
     });
 
     it("should handle leaf nodes with multiple errors", () => {
+      // Arrange / Act
       const out = flattenFieldErrors({
         email: ["Email is required", "Invalid email format"],
         password: ["Password too short"],
       });
 
+      // Assert
       expect(out).toEqual({
         email: ["Email is required", "Invalid email format"],
         password: ["Password too short"],
@@ -296,6 +336,7 @@ describe("zod-error-utils", () => {
     });
 
     it("should handle deeply nested leaf nodes with multiple errors", () => {
+      // Arrange / Act
       const out = flattenFieldErrors({
         user: {
           profile: {
@@ -304,12 +345,14 @@ describe("zod-error-utils", () => {
         },
       });
 
+      // Assert
       expect(out).toEqual({
         "user.profile.bio": ["Too short", "Contains forbidden words"],
       });
     });
 
     it("should handle mixed nested depths in the same object", () => {
+      // Arrange / Act
       const out = flattenFieldErrors({
         a: {
           b: {
@@ -322,6 +365,7 @@ describe("zod-error-utils", () => {
         },
       });
 
+      // Assert
       expect(out).toEqual({
         "a.b.c": ["Deep error"],
         d: ["Shallow error"],
@@ -330,6 +374,7 @@ describe("zod-error-utils", () => {
     });
 
     it("should handle arrays of objects with deep nesting", () => {
+      // Arrange / Act
       const out = flattenFieldErrors({
         users: {
           0: {
@@ -345,6 +390,7 @@ describe("zod-error-utils", () => {
         },
       });
 
+      // Assert
       expect(out).toEqual({
         "users.0.profile.name": ["Name required"],
         "users.1.profile.name": ["Name required"],
@@ -352,6 +398,7 @@ describe("zod-error-utils", () => {
     });
 
     it("should handle prefix parameter correctly", () => {
+      // Arrange / Act
       const out = flattenFieldErrors(
         {
           name: ["Required"],
@@ -360,6 +407,7 @@ describe("zod-error-utils", () => {
         "form",
       );
 
+      // Assert
       expect(out).toEqual({
         "form.name": ["Required"],
         "form.email": ["Invalid"],
@@ -367,6 +415,7 @@ describe("zod-error-utils", () => {
     });
 
     it("should handle prefix with nested objects", () => {
+      // Arrange / Act
       const out = flattenFieldErrors(
         {
           user: {
@@ -376,35 +425,37 @@ describe("zod-error-utils", () => {
         "data",
       );
 
+      // Assert
       expect(out).toEqual({
         "data.user.firstName": ["Required"],
       });
     });
 
     it("should handle empty fieldErrors object", () => {
-      const out = flattenFieldErrors({});
-
-      expect(out).toEqual({});
+      // Assert
+      expect(flattenFieldErrors({})).toEqual({});
     });
 
     it("should handle undefined fieldErrors", () => {
-      const out = flattenFieldErrors(undefined);
-
-      expect(out).toEqual({});
+      // Assert
+      expect(flattenFieldErrors(undefined)).toEqual({});
     });
 
     it("should handle nested objects with null values gracefully", () => {
+      // Arrange / Act
       const out = flattenFieldErrors({
         user: null as any,
         name: ["Required"],
       });
 
+      // Assert
       expect(out).toEqual({
         name: ["Required"],
       });
     });
 
     it("should handle deeply nested mixed with arrays and multiple errors", () => {
+      // Arrange / Act
       const out = flattenFieldErrors({
         company: {
           departments: {
@@ -420,6 +471,7 @@ describe("zod-error-utils", () => {
         },
       });
 
+      // Assert
       expect(out).toEqual({
         "company.departments.0.employees.0.name": ["Required", "Too short"],
         "company.departments.0.employees.0.role": ["Invalid role"],
@@ -427,6 +479,7 @@ describe("zod-error-utils", () => {
     });
 
     it("should handle constructor and prototype keys in nested objects", () => {
+      // Arrange / Act
       const out = flattenFieldErrors({
         user: {
           constructor: ["Should be filtered"],
@@ -434,9 +487,27 @@ describe("zod-error-utils", () => {
         },
       } as any);
 
+      // Assert
       expect(out).toEqual({
         "user.normal": ["Valid error"],
       });
+    });
+  });
+
+  describe("firstFieldError", () => {
+    it("returns the first message for a field", () => {
+      // Assert
+      expect(firstFieldError({ name: ["Required", "Too long"] }, "name")).toBe(
+        "Required",
+      );
+    });
+
+    it("returns undefined when the field has no errors", () => {
+      // Assert
+      expect(
+        firstFieldError({ name: ["Required"] }, "deliveryFormat"),
+      ).toBeUndefined();
+      expect(firstFieldError(undefined, "name")).toBeUndefined();
     });
   });
 });
