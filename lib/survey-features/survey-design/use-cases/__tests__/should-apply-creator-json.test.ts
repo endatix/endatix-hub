@@ -23,6 +23,36 @@ describe("shouldApplyCreatorJson", () => {
     );
   });
 
+  it("skips a semantically identical snapshot with reordered object keys", () => {
+    // Arrange
+    const creator = { id: "creator" };
+    const applied = {
+      title: "Form",
+      pages: [{ name: "page1", elements: [] }],
+    };
+    const refetched = {
+      pages: [{ elements: [], name: "page1" }],
+      title: "Form",
+    };
+
+    // Act & Assert
+    expect(shouldApplyCreatorJson(creator, refetched, creator, applied)).toBe(
+      false,
+    );
+  });
+
+  it("applies when array element order differs", () => {
+    // Arrange
+    const creator = { id: "creator" };
+    const applied = { pages: [{ name: "a" }, { name: "b" }] };
+    const reorderedPages = { pages: [{ name: "b" }, { name: "a" }] };
+
+    // Act & Assert
+    expect(
+      shouldApplyCreatorJson(creator, reorderedPages, creator, applied),
+    ).toBe(true);
+  });
+
   it("applies a distinct snapshot on the same Creator", () => {
     // Arrange
     const creator = { id: "creator" };
