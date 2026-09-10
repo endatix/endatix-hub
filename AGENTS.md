@@ -14,7 +14,8 @@
 Prefer vendor types from `survey-core` / `survey-creator-core`. Where they widen to `string` (Creator `activeTab`), the closed Hub union lives in [`lib/survey-js/`](lib/survey-js/) — built-in ids plus Hub plugin ids. Import it instead of re-spelling those strings in a slice (`FORM_DIAGNOSTICS_PLUGIN_NAME` is `ENDATIX_CREATOR_TAB.diagnostics`).
 
 - Preview's id is `preview`; `test` is a legacy id Creator still emits — normalise with `canonicalizeCreatorTabId`, never compare raw.
-- `?tab=` slugs are one map in `creator/tab-url.ts` (`design` → `designer`; Design omits the param).
+- `?tab=` slugs are one map in `creator/tab-url.ts` (`design` → `designer`; Design omits the param). Write `?tab=` with `history.replaceState`, never `router.replace` — App Router navigation refetches the saved definition over live Creator state (h939).
+- Apply Creator JSON when its content changes (`useCreatorJson`). Skip a new object that is the same snapshot (dev RSC refetch). Do not skip a distinct snapshot — AI chat turns replace the canvas on the same Creator.
 - To ask whether a Creator can show a tab, read `creator.tabs`. Never `creator.getPlugin(id)`: it answers for tabs `showThemeTab` & friends removed, and instantiates the plugin as a side effect.
 - Product allowlists (carry-forward question types, …) stay in the owning feature.
 

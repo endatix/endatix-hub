@@ -37,7 +37,10 @@ import {
 import { useQuestionLoops } from "@/lib/survey-features/question-loops";
 import { useRichTextEditing } from "@/lib/survey-features/rich-text";
 import { useLoopAwareSummaryTableEditing } from "@/lib/survey-features/summary-table";
-import { useCreatorTabUrl } from "@/lib/survey-features/survey-design/ui";
+import {
+  useCreatorJson,
+  useCreatorTabUrl,
+} from "@/lib/survey-features/survey-design/ui";
 import { applyEndatixCreatorTheme } from "@/lib/themes/creator-theme";
 import { registerThemes } from "@/lib/themes/survey-theme";
 import { useEndatixCreatorTheme } from "@/lib/themes/use-endatix-themes";
@@ -599,6 +602,8 @@ function FormEditor({
     return () => creator.onModified.remove(setAsModified);
   }, [creator, setHasUnsavedChanges]);
 
+  useCreatorJson(creator, formJson);
+
   useEffect(() => {
     if (!creator) return;
 
@@ -638,14 +643,6 @@ function FormEditor({
     return () =>
       globalThis.window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [hasUnsavedChanges, isThemeDirty]);
-
-  useEffect(() => {
-    if (!creator || !formJson) {
-      return;
-    }
-
-    creator.JSON = formJson;
-  }, [creator, formJson]);
 
   const isCreatorLoading = isLoading || !isStorageReady;
 
