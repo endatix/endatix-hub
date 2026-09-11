@@ -10,7 +10,6 @@ import {
 import { loadTabFromUrl } from "../use-cases/load-tab-from-url";
 import { bindSetTabToUrl } from "../use-cases/set-tab-to-url";
 
-/** Writes `?tab=` in place. Next patches History, so `useSearchParams` still sees it. */
 function replaceTabQuery(nextQueryValue: string | null) {
   const { location, history } = globalThis.window;
   const url = new URL(location.href);

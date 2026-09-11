@@ -29,12 +29,6 @@ export function useCreatorJson(
       return;
     }
 
-    // Reassigning resets undo history and the selected element, so skip a snapshot
-    // we already applied (Server Component refetch) or one the canvas already holds
-    // (`revalidatePath` after a save hands back exactly what the user just saved).
-    const isSameDefinition = (applied: object | null) =>
-      Helpers.checkIfValuesEqual(applied, json, SAME_DEFINITION);
-
     if (
       appliedToRef.current === creator &&
       (isSameDefinition(lastAppliedJsonRef.current, json) ||
