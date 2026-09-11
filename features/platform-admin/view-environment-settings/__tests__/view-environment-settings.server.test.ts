@@ -38,6 +38,7 @@ describe("getEnvironmentSettings", () => {
     process.env.ENDATIX_ENABLE_EXTENSIONS = "true";
     process.env.ENDATIX_IS_DEBUG_MODE = "true";
     process.env.NODE_ENV = "test";
+    process.env.ENABLE_POSTHOG_ADAPTER = "true";
 
     const { getEnvironmentSettings } =
       await import("../view-environment-settings.server");
@@ -56,6 +57,8 @@ describe("getEnvironmentSettings", () => {
     expect(summary.recaptcha.siteKey).toBe(PUBLIC_RECAPTCHA_KEY);
     expect(summary.analytics.posthogHost).toBe("https://eu.i.posthog.com");
     expect(summary.analytics.posthogUiHost).toBe("https://eu.posthog.com");
+    expect(summary.featureFlags.adapterEnabled).toBe(true);
+    expect(summary.featureFlags.provider).toBe("posthog");
     expect(summary.experimental.extensionsEnabled).toBe(true);
     expect(summary.debug.isDebugMode).toBe(true);
     expect(summary.debug.nodeEnv).toBe("test");
@@ -70,6 +73,7 @@ describe("getEnvironmentSettings", () => {
     delete process.env.ENDATIX_BASE_URL;
     delete process.env.ENDATIX_API_URL;
     delete process.env.ENDATIX_API_PREFIX;
+    delete process.env.ENABLE_POSTHOG_ADAPTER;
 
     const { getEnvironmentSettings } =
       await import("../view-environment-settings.server");
@@ -77,6 +81,8 @@ describe("getEnvironmentSettings", () => {
     const summary = await getEnvironmentSettings(mockSession);
 
     expect(summary.analytics.posthogKey).toBe("");
+    expect(summary.featureFlags.adapterEnabled).toBe(false);
+    expect(summary.featureFlags.provider).toBe("environment");
     expect(summary.recaptcha.siteKey).toBe("");
     expect(summary.surveyJs.license.configured).toBe(false);
     expect(summary.api.apiConfigured).toBe(false);

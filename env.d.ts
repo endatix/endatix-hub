@@ -116,12 +116,6 @@ declare namespace NodeJS {
     TELEMETRY_CONSOLE_FALLBACK?: string;
 
     // PostHog
-    /** @deprecated Build-time inlined. Use ENDATIX_POSTHOG_KEY. */
-    NEXT_PUBLIC_POSTHOG_KEY?: string;
-    /** @deprecated Build-time inlined. Use ENDATIX_POSTHOG_HOST. */
-    NEXT_PUBLIC_POSTHOG_HOST?: string;
-    /** @deprecated Build-time inlined. Use ENDATIX_POSTHOG_UI_HOST. */
-    NEXT_PUBLIC_POSTHOG_UI_HOST?: string;
     ENABLE_POSTHOG_ADAPTER?: string;
 
     // Build-time mirror from withEndatix (resolveEndatixSettings envPatch) — flags and hostnames only, never secrets

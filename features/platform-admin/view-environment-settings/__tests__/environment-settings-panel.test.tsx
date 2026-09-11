@@ -38,6 +38,10 @@ function buildSummary(
       posthogHost: "https://us.i.posthog.com",
       posthogUiHost: "https://us.posthog.com",
     }),
+    featureFlags: Object.freeze({
+      adapterEnabled: posthogConfigured,
+      provider: posthogConfigured ? "posthog" : "environment",
+    }),
     recaptcha: Object.freeze({
       siteKey: recaptchaConfigured ? PUBLIC_RECAPTCHA_KEY : "",
     }),
@@ -105,9 +109,25 @@ describe("EnvironmentSettingsPanel", () => {
     render(<EnvironmentSettingsPanel summary={buildSummary()} />);
 
     expect(screen.getByText("ENDATIX_POSTHOG_KEY")).toBeDefined();
+    expect(screen.getByText("ENABLE_POSTHOG_ADAPTER")).toBeDefined();
+    expect(screen.getByText("Feature flags")).toBeDefined();
+    expect(screen.getByText("PostHog adapter")).toBeDefined();
+    expect(screen.getByText("Provider")).toBeDefined();
     expect(screen.getByText("ENDATIX_RECAPTCHA_SITE_KEY")).toBeDefined();
     expect(screen.getByText("ENDATIX_SURVEY_LICENSE_KEY")).toBeDefined();
     expect(screen.getByText("ENDATIX_ENABLE_EXTENSIONS")).toBeDefined();
+  });
+
+  it("keeps feature-flag provider on its own card, not on Analytics", () => {
+    render(
+      <EnvironmentSettingsPanel
+        summary={buildSummary({ posthogConfigured: false })}
+      />,
+    );
+
+    expect(screen.getByText("Feature flags")).toBeDefined();
+    expect(screen.getByText("Environment variables")).toBeDefined();
+    expect(screen.getByText("ENABLE_POSTHOG_ADAPTER")).toBeDefined();
   });
 
   it("shows Not set when secrets are not configured", () => {

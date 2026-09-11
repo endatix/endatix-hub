@@ -17,12 +17,6 @@ vi.mock("@flags-sdk/posthog", () => ({
   })),
 }));
 
-/**
- * Drives the real environment rather than mocking `isPostHogEnabled`. The provider is
- * server-only code, and mocking the key check would hide exactly the failure this suite
- * exists to catch: a key read that resolves against the browser projection under jsdom
- * and silently disables PostHog flags.
- */
 describe("FlagFactoryProvider", () => {
   const originalEnv = { ...process.env };
   let provider: FlagFactoryProvider;
@@ -132,6 +126,20 @@ describe("FlagFactoryProvider", () => {
 
         expect(factory.constructor.name).toBe("EnvironmentFlagFactory");
       });
+    });
+
+    it("re-reads adapter env on each getFactory call", () => {
+      delete process.env.ENABLE_POSTHOG_ADAPTER;
+      delete process.env.ENDATIX_POSTHOG_KEY;
+
+      expect(provider.getFactory().constructor.name).toBe(
+        "EnvironmentFlagFactory",
+      );
+
+      process.env.ENABLE_POSTHOG_ADAPTER = "true";
+      process.env.ENDATIX_POSTHOG_KEY = "phc_test_key";
+
+      expect(provider.getFactory().constructor.name).toBe("PostHogFlagFactory");
     });
   });
 });

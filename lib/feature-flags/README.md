@@ -72,8 +72,6 @@ ENABLE_POSTHOG_ADAPTER=true
 ENDATIX_POSTHOG_KEY=your_posthog_key
 ```
 
-Deprecated `NEXT_PUBLIC_POSTHOG_KEY` still works as a server boot fallback; prefer `ENDATIX_POSTHOG_KEY`.
-
 ## 🚀 Usage (Server-Side Only)
 
 ### Server Components
@@ -147,30 +145,12 @@ const isEnabled = await myFeature();
 ## 🔄 How It Works
 
 ```typescript
-// 1. Factory decides: PostHog enabled? Use PostHogFactory : EnvironmentFactory
-// 2. PostHog flags: Uses Vercel pflag with PostHog adapter
-// 3. Environment flags: Direct env var parsing with type conversion
-// 4. Automatic fallback: PostHog → Environment → Default
+// 1. On evaluation, factory decides: PostHog switch + key? PostHogFactory : EnvironmentFactory
+// 2. PostHog flags: Vercel flag() with PostHog adapter
+// 3. Environment flags: FLAG_* env vars with type conversion
 ```
 
 For more details, see [Vercel flags documentation](https://flags-sdk.dev/).
-
-## 🎯 Development Best Practices
-
-1. **Server-Side Only**: Always evaluate flags in server components to avoid layout shift
-2. **Pass as Props**: When client interactivity is needed, evaluate server-side and pass as props
-3. **Meaningful Defaults**: Always provide sensible default values
-4. **Complex Objects**: Group related flags (like `aiFeatures`) for easier management
-5. **Static Pages**: Use precompute pattern for static page generation with flags
-
-## 🚫 What We Don't Do
-
-Following [Vercel's server-side principles](https://flags-sdk.dev/principles/server-side-vs-client-side):
-
-- ❌ **Client-side hooks**: Causes layout shift and performance issues
-- ❌ **Client-side evaluation**: Increases bundle size and latency  
-- ❌ **Loading states**: Server-side evaluation eliminates the need
-- ❌ **Feature flag names in client**: Maintains confidentiality
 
 ## 🔧 Development
 

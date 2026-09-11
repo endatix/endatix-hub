@@ -4,11 +4,9 @@ import { applyLegacyPublicEnv } from "../legacy-public-env.server";
 const TOUCHED = [
   "ENDATIX_SURVEY_LICENSE_KEY",
   "ENDATIX_RECAPTCHA_SITE_KEY",
-  "ENDATIX_POSTHOG_HOST",
   "ENDATIX_IS_DEBUG_MODE",
   "NEXT_PUBLIC_SLK",
   "NEXT_PUBLIC_RECAPTCHA_SITE_KEY",
-  "NEXT_PUBLIC_POSTHOG_HOST",
   "NEXT_PUBLIC_IS_DEBUG_MODE",
 ];
 
@@ -58,14 +56,14 @@ describe("applyLegacyPublicEnv", () => {
     // Guards the precedence bug the read-time merge had: a current value that happens to
     // match the default must still win over a custom deprecated one.
     // Arrange
-    process.env.ENDATIX_POSTHOG_HOST = "https://us.i.posthog.com";
-    process.env.NEXT_PUBLIC_POSTHOG_HOST = "https://legacy.posthog.example";
+    process.env.ENDATIX_RECAPTCHA_SITE_KEY = "site-key";
+    process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY = "legacy-key";
 
     // Act
     applyLegacyPublicEnv();
 
     // Assert
-    expect(process.env.ENDATIX_POSTHOG_HOST).toBe("https://us.i.posthog.com");
+    expect(process.env.ENDATIX_RECAPTCHA_SITE_KEY).toBe("site-key");
   });
 
   it("treats a whitespace-only current value as unset", () => {
