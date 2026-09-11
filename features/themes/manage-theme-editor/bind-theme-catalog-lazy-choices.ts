@@ -6,6 +6,16 @@ import {
   mapSurveyJsLazyLoadTotal,
 } from "@/lib/survey-features/infrastructure/choices-lazy-load-page";
 import {
+  applyUniqueChoices,
+  bindLoadingIndicatorObserver,
+  choiceValue,
+  existingChoiceKeys,
+  markAllChoicesLoaded,
+  resetLazyChoices,
+  uniqueChoices,
+  type LazyChoiceQuestion,
+} from "@/lib/survey-features/infrastructure/choices-lazy-load-dropdown";
+import {
   DEFAULT_THEME_CHOICE,
   loadThemeCatalogChoicePage,
 } from "./load-theme-catalog-choice-page";
@@ -14,174 +24,16 @@ const THEME_NAME_PROPERTY = "themeName";
 const BOUND_KEY = "__endatixThemeCatalogLazyBound";
 const NOOP = () => {};
 
-type ScrollContainer = {
-  scrollHeight: number;
-  scrollTop: number;
-  clientHeight: number;
-  addEventListener?: (type: string, listener: () => void) => void;
-  removeEventListener?: (type: string, listener: () => void) => void;
+/** `onAvailableThemesChanged` is private in the typings; we patch it by name. */
+type ThemeChooserHost = {
+  onAvailableThemesChanged?: (availableThemes: string[]) => void;
 };
-
-type LazyChoiceQuestion = {
-  choicesLazyLoadEnabled?: boolean;
-  choicesLazyLoadPageSize?: number;
-  searchEnabled?: boolean;
-  choices?: unknown[];
-  dropdownListModel?: {
-    updateQuestionChoices?: () => void;
-    itemsSettings?: { items?: unknown[]; totalCount?: number };
-    popupModel?: {
-      isVisible?: boolean;
-      onVisibilityChanged?: {
-        add: (
-          handler: (sender: unknown, options: { isVisible: boolean }) => void,
-        ) => void;
-        remove: (
-          handler: (sender: unknown, options: { isVisible: boolean }) => void,
-        ) => void;
-      };
-    };
-    listModel?: {
-      isAllDataLoaded?: boolean;
-      scrollableContainer?: ScrollContainer | null;
-      setLoadingIndicatorVisibilityObserver?: (
-        handler: (isVisible: boolean) => void,
-      ) => void;
-      loadingIndicator?: {
-        intersectionVisibilityObserver?: { disconnect: () => void };
-        initLoadingIndicatorVisibilityObserver?: (
-          handler: (isVisible: boolean) => void,
-        ) => void;
-      };
-    };
-  };
-};
-
-const LOADING_ROW_SCROLL_PX = 48;
-
-function choiceValue(item: unknown): string {
-  if (item == null) {
-    return "";
-  }
-  if (typeof item === "string" || typeof item === "number") {
-    return String(item);
-  }
-  const record = item as { value?: unknown; id?: unknown };
-  if (record.value != null) {
-    return String(record.value);
-  }
-  if (record.id != null) {
-    return String(record.id);
-  }
-  return String(item);
-}
-
-function uniqueChoices(items: unknown[]): unknown[] {
-  const seen = new Set<string>();
-  const unique: unknown[] = [];
-  for (const item of items) {
-    const key = choiceValue(item);
-    if (key === "" || seen.has(key)) {
-      continue;
-    }
-    seen.add(key);
-    unique.push(item);
-  }
-  return unique;
-}
-
-function existingChoiceKeys(question: LazyChoiceQuestion): Set<string> {
-  const keys = new Set<string>();
-  for (const item of question.dropdownListModel?.itemsSettings?.items ?? []) {
-    keys.add(choiceValue(item));
-  }
-  for (const item of question.choices ?? []) {
-    keys.add(choiceValue(item));
-  }
-  return keys;
-}
-
-function applyUniqueChoices(question: LazyChoiceQuestion): unknown[] {
-  const settings = question.dropdownListModel?.itemsSettings;
-  const unique = uniqueChoices([
-    ...(settings?.items ?? []),
-    ...(question.choices ?? []),
-  ]);
-  if (settings) {
-    settings.items = unique;
-  }
-  question.choices = unique;
-  return unique;
-}
-
-function isScrolledToLoadingRow(
-  container: ScrollContainer | null | undefined,
-): boolean {
-  if (!container) {
-    return false;
-  }
-  return (
-    container.scrollHeight - container.scrollTop - container.clientHeight <
-    LOADING_ROW_SCROLL_PX
-  );
-}
 
 /**
- * SurveyJS observes the loading row against the viewport, so it fires when the
- * row is clipped in the list or when the popup closes. Only fetch more when the
- * popup is open and the list is scrolled to that row. The handler must still be
- * a function — otherwise IntersectionObserver throws `handler is not a function`.
+ * Pages the tenant theme catalog into the Theme Editor `themeName` chooser.
+ * Returns an unbind for the hook cleanup; binding twice on one property grid
+ * survey is a no-op.
  */
-function bindLoadingIndicatorObserver(
-  question: LazyChoiceQuestion,
-): () => void {
-  const dropdown = question.dropdownListModel;
-  const listModel = dropdown?.listModel;
-  if (!dropdown || !listModel?.setLoadingIndicatorVisibilityObserver) {
-    return NOOP;
-  }
-
-  const requestNextPageIfNeeded = () => {
-    if (!dropdown.popupModel?.isVisible) {
-      return;
-    }
-    if (!isScrolledToLoadingRow(listModel.scrollableContainer)) {
-      return;
-    }
-    dropdown.updateQuestionChoices?.();
-  };
-
-  const onVisible = (isVisible: boolean) => {
-    if (isVisible) {
-      requestNextPageIfNeeded();
-    }
-  };
-
-  listModel.setLoadingIndicatorVisibilityObserver(onVisible);
-  const indicator = listModel.loadingIndicator;
-  indicator?.intersectionVisibilityObserver?.disconnect();
-  indicator?.initLoadingIndicatorVisibilityObserver?.(onVisible);
-
-  const onPopupVisibility = (_: unknown, options: { isVisible: boolean }) => {
-    const container = listModel.scrollableContainer;
-    if (!container?.addEventListener || !container.removeEventListener) {
-      return;
-    }
-    if (options.isVisible) {
-      container.addEventListener("scroll", requestNextPageIfNeeded);
-      return;
-    }
-    container.removeEventListener("scroll", requestNextPageIfNeeded);
-  };
-  dropdown.popupModel?.onVisibilityChanged?.add(onPopupVisibility);
-
-  return () => {
-    const container = listModel.scrollableContainer;
-    container?.removeEventListener?.("scroll", requestNextPageIfNeeded);
-    dropdown.popupModel?.onVisibilityChanged?.remove(onPopupVisibility);
-  };
-}
-
 export function bindThemeCatalogLazyChoices(
   plugin: ThemeTabPlugin,
   registerThemes: (themes: StoredTheme[]) => void,
@@ -203,6 +55,8 @@ export function bindThemeCatalogLazyChoices(
 
   question.choicesLazyLoadEnabled = true;
   question.choicesLazyLoadPageSize = DEFAULT_CHOICES_LAZY_LOAD_PAGE_SIZE;
+  // `GET /themes` has no name filter, so a search box could only match the page
+  // already loaded. Re-enable it together with server-side filtering.
   question.searchEnabled = false;
   const unbindLoadingObserver = bindLoadingIndicatorObserver(question);
   question.choices = [DEFAULT_THEME_CHOICE];
@@ -211,11 +65,10 @@ export function bindThemeCatalogLazyChoices(
   // themeName.choices and may setTheme(default) when the current value is not
   // in that static list. Still run expressions so Header View Basic hides
   // advanced-only editors (height, cover width, …).
-  const originalOnAvailableThemesChanged = plugin.onAvailableThemesChanged;
+  const host = plugin as unknown as ThemeChooserHost;
+  const originalOnAvailableThemesChanged = host.onAvailableThemesChanged;
   if (typeof originalOnAvailableThemesChanged === "function") {
-    plugin.onAvailableThemesChanged = () => {
-      survey.runExpressions();
-    };
+    host.onAvailableThemesChanged = () => survey.runExpressions();
   }
 
   let loadedCount = 0;
@@ -226,15 +79,12 @@ export function bindThemeCatalogLazyChoices(
       return;
     }
 
-    if (options.skip === 0) {
+    const lazyQuestion = options.question as LazyChoiceQuestion;
+    const isFirstPage = options.skip === 0;
+    if (isFirstPage) {
       loadedCount = 0;
       loadGeneration += 1;
-      const lazyQuestion = options.question as LazyChoiceQuestion;
-      const itemsSettings = lazyQuestion.dropdownListModel?.itemsSettings;
-      if (itemsSettings) {
-        itemsSettings.items = [];
-      }
-      lazyQuestion.choices = [];
+      resetLazyChoices(lazyQuestion);
     }
     const generation = loadGeneration;
 
@@ -247,48 +97,35 @@ export function bindThemeCatalogLazyChoices(
       return;
     }
 
-    const lazyQuestion = options.question as LazyChoiceQuestion;
+    // A page can repeat a theme the chooser already lists (a rename between
+    // pages, or a re-request of the same skip); setItems only ever appends.
     const alreadyListed = existingChoiceKeys(lazyQuestion);
-    const items =
-      options.skip === 0
-        ? page.items
-        : page.items.filter((item) => !alreadyListed.has(choiceValue(item)));
+    const items = isFirstPage
+      ? page.items
+      : page.items.filter((item) => !alreadyListed.has(choiceValue(item)));
 
-    const uniquePreview = uniqueChoices([
-      ...(options.skip === 0
-        ? []
-        : [
-            ...(lazyQuestion.dropdownListModel?.itemsSettings?.items ?? []),
-            ...(lazyQuestion.choices ?? []),
-          ]),
-      ...items,
-    ]);
-    loadedCount += items.length;
-    loadedCount = Math.max(loadedCount, uniquePreview.length);
+    loadedCount = Math.max(
+      loadedCount + items.length,
+      uniqueChoices([...alreadyListed, ...items]).length,
+    );
 
-    const total = page.hasNextPage
-      ? mapSurveyJsLazyLoadTotal({
-          skip: options.skip,
-          take: options.take,
-          itemCount: items.length,
-          totalRecords: page.totalRecords,
-          hasNextPage: true,
-        })
-      : loadedCount;
+    options.setItems(
+      items,
+      page.hasNextPage
+        ? mapSurveyJsLazyLoadTotal({
+            skip: options.skip,
+            take: options.take,
+            itemCount: items.length,
+            totalRecords: page.totalRecords,
+            hasNextPage: true,
+          })
+        : loadedCount,
+    );
 
-    options.setItems(items, total);
     const unique = applyUniqueChoices(lazyQuestion);
-
     if (!page.hasNextPage) {
-      const uniqueCount = unique.length;
-      loadedCount = uniqueCount;
-      const settings = lazyQuestion.dropdownListModel?.itemsSettings;
-      if (settings) {
-        settings.totalCount = uniqueCount;
-      }
-      if (lazyQuestion.dropdownListModel?.listModel) {
-        lazyQuestion.dropdownListModel.listModel.isAllDataLoaded = true;
-      }
+      loadedCount = unique.length;
+      markAllChoicesLoaded(lazyQuestion, loadedCount);
     }
   };
 
@@ -298,7 +135,7 @@ export function bindThemeCatalogLazyChoices(
     unbindLoadingObserver();
     survey.onChoicesLazyLoad.remove(onChoicesLazyLoad);
     if (typeof originalOnAvailableThemesChanged === "function") {
-      plugin.onAvailableThemesChanged = originalOnAvailableThemesChanged;
+      host.onAvailableThemesChanged = originalOnAvailableThemesChanged;
     }
     survey[BOUND_KEY] = false;
   };

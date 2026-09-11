@@ -11,6 +11,13 @@ vi.mock("../load-theme-catalog-choice-page", () => ({
 
 type Handler = (sender: unknown, options: unknown) => Promise<void> | void;
 
+/** `onAvailableThemesChanged` is private in the vendor typings. */
+type ThemeChooserHost = {
+  onAvailableThemesChanged: (themes: string[]) => void;
+};
+
+type ItemsSettings = { items: unknown[]; totalCount?: number };
+
 const choice = (name: string) => ({ value: name, text: name });
 
 const lazyLoadOptions = (
@@ -51,7 +58,13 @@ function createPlugin(availableThemes: string[]) {
     propertyGrid: { survey },
   };
 
-  return { plugin: plugin as unknown as ThemeTabPlugin, question, handlers };
+  return {
+    plugin: plugin as unknown as ThemeTabPlugin,
+    host: plugin as ThemeChooserHost,
+    survey,
+    question: question as typeof question & { dropdownListModel?: unknown },
+    handlers,
+  };
 }
 
 beforeEach(() => {
@@ -112,11 +125,7 @@ describe("bindThemeCatalogLazyChoices", () => {
       isVisible: true,
       onVisibilityChanged: { add: vi.fn(), remove: vi.fn() },
     };
-    (
-      question as {
-        dropdownListModel: unknown;
-      }
-    ).dropdownListModel = {
+    question.dropdownListModel = {
       updateQuestionChoices,
       popupModel,
       listModel: {
@@ -217,7 +226,7 @@ describe("bindThemeCatalogLazyChoices", () => {
     const { plugin, handlers } = createPlugin(["default"]);
     bindThemeCatalogLazyChoices(plugin, vi.fn());
 
-    const itemsSettings = {
+    const itemsSettings: ItemsSettings = {
       items: [choice("Tulip"), { value: "White", text: "White" }],
     };
     mockLoadPage.mockResolvedValueOnce({
@@ -225,13 +234,17 @@ describe("bindThemeCatalogLazyChoices", () => {
       hasNextPage: false,
       totalRecords: 27,
     });
-    const question = {
+    const question: {
+      name: string;
+      choices: unknown[];
+      dropdownListModel: unknown;
+    } = {
       name: "themeName",
       choices: [{ value: "White", text: "White" }],
       dropdownListModel: { itemsSettings },
     };
-    const setItems = vi.fn((items: unknown[]) => {
-      itemsSettings.items = [...itemsSettings.items, ...items];
+    const setItems = vi.fn((...args: unknown[]) => {
+      itemsSettings.items = [...itemsSettings.items, ...(args[0] as unknown[])];
       question.choices = itemsSettings.items;
     });
     await handlers[0](null, {
@@ -252,7 +265,9 @@ describe("bindThemeCatalogLazyChoices", () => {
     const { plugin, handlers } = createPlugin(["default"]);
     bindThemeCatalogLazyChoices(plugin, vi.fn());
 
-    const itemsSettings = { items: [choice("White"), choice("Corp Site")] };
+    const itemsSettings: ItemsSettings = {
+      items: [choice("White"), choice("Corp Site")],
+    };
     mockLoadPage.mockResolvedValueOnce({
       items: [choice("default"), choice("Tulip")],
       hasNextPage: true,
@@ -269,17 +284,17 @@ describe("bindThemeCatalogLazyChoices", () => {
   });
 
   it("does not let addTheme rewrite chooser choices while lazy load is on", () => {
-    const { plugin, question } = createPlugin(["default"]);
-    const vendorRewrite = plugin.onAvailableThemesChanged;
+    const { plugin, host, survey, question } = createPlugin(["default"]);
+    const vendorRewrite = host.onAvailableThemesChanged;
 
     const unbind = bindThemeCatalogLazyChoices(plugin, vi.fn());
-    plugin.onAvailableThemesChanged(["default", "Brand"]);
+    host.onAvailableThemesChanged(["default", "Brand"]);
     expect(question.choices).toEqual([{ value: "default", text: "Default" }]);
-    expect(plugin.propertyGrid.survey.runExpressions).toHaveBeenCalled();
+    expect(survey.runExpressions).toHaveBeenCalled();
 
     unbind();
-    plugin.onAvailableThemesChanged(["Brand"]);
-    expect(plugin.onAvailableThemesChanged).toBe(vendorRewrite);
+    host.onAvailableThemesChanged(["Brand"]);
+    expect(host.onAvailableThemesChanged).toBe(vendorRewrite);
     expect(question.choices).toEqual([{ value: "Brand", text: "Brand" }]);
   });
 
