@@ -95,6 +95,7 @@ function makeCreator(theme: Record<string, unknown>) {
   return {
     theme,
     propertyGridSurvey,
+    activeTab: "designer",
     hasPendingThemeChanges: false,
     preferredColorPalette: "light",
     toolbar: { actions: [] as Array<{ id: string }> },
@@ -106,9 +107,10 @@ function makeCreator(theme: Record<string, unknown>) {
 
 function renderThemeManagement(
   theme: Record<string, unknown>,
-  extras?: { onThemeIdChanged?: (themeId: string) => void },
+  extras?: { onThemeIdChanged?: (themeId: string) => void; activeTab?: string },
 ) {
   const creator = makeCreator(theme);
+  creator.activeTab = extras?.activeTab ?? "designer";
   const view = renderHook(() =>
     useThemeManagement({
       formId: "form-1",
@@ -261,6 +263,19 @@ describe("useThemeManagement dirty tracking", () => {
     });
 
     expect(view.result.current.isThemeDirty).toBe(false);
+  });
+
+  it("pages the chooser when ?tab=theme activated the plugin before this hook", async () => {
+    // useCreatorTabUrl runs first, so activate() and onActiveTabChanged have
+    // already fired by the time the hook wires itself up.
+    const { creator } = renderThemeManagement(
+      { id: "t1", themeName: "Acme" },
+      { activeTab: "theme" },
+    );
+
+    expect(creator.propertyGridSurvey.onChoicesLazyLoad.handlers).toHaveLength(
+      1,
+    );
   });
 
   it("keeps the edits in progress when a catalog page re-registers the assigned theme", async () => {

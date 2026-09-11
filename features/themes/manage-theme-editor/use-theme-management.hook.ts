@@ -334,6 +334,13 @@ export const useThemeManagement = ({
     };
     creator.onActiveTabChanged.add(onActiveTabChanged);
 
+    // `?tab=theme` activates the plugin from useCreatorTabUrl, whose effect runs
+    // before this one - neither the wrapped activate nor onActiveTabChanged will
+    // fire again, so bind against the property grid that is already up.
+    if (creator.activeTab === SURVEY_CREATOR_BUILT_IN_TAB.theme) {
+      hydrateThemeTab(bindLazyChoices);
+    }
+
     loadAssignedTheme(currentThemeIdRef.current)
       .then((assignedTheme) => {
         if (assignedTheme) {
