@@ -1,6 +1,6 @@
-export const DATA_LIST_PROPERTY_NAME = "edxDataListId";
+export { DEFAULT_CHOICES_LAZY_LOAD_PAGE_SIZE } from "@/lib/survey-features/infrastructure/choices-lazy-load-page";
 
-export const DEFAULT_CHOICES_LAZY_LOAD_PAGE_SIZE = 25;
+export const DATA_LIST_PROPERTY_NAME = "edxDataListId";
 
 /** Property changes that affect aggregated property-grid lazy choice editors. */
 export const PROPERTY_GRID_LAZY_REFRESH_PROPERTY_NAMES = [

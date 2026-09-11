@@ -3,7 +3,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const createThemeAction = vi.fn();
 const updateThemeAction = vi.fn();
-const getThemesAction = vi.fn();
+const getThemeAction = vi.fn();
+const listThemesPageAction = vi.fn();
 
 vi.mock("@/features/themes/create-theme", () => ({
   createThemeAction: (...args: unknown[]) => createThemeAction(...args),
@@ -12,7 +13,10 @@ vi.mock("@/features/themes/update-theme", () => ({
   updateThemeAction: (...args: unknown[]) => updateThemeAction(...args),
 }));
 vi.mock("@/features/themes/list-themes", () => ({
-  getThemesAction: (...args: unknown[]) => getThemesAction(...args),
+  listThemesPageAction: (...args: unknown[]) => listThemesPageAction(...args),
+}));
+vi.mock("@/features/themes/get-theme", () => ({
+  getThemeAction: (...args: unknown[]) => getThemeAction(...args),
 }));
 vi.mock("@/features/themes/delete-theme", () => ({
   deleteThemeAction: vi.fn(),
@@ -45,7 +49,19 @@ class FakeEvent<TSender, TOptions> {
   }
 }
 
+/** Minimal Theme Editor property grid: only the lazy `themeName` chooser. */
+function makePropertyGridSurvey() {
+  const themeNameQuestion = { name: "themeName", choices: [] as unknown[] };
+  return {
+    getQuestionByName: (name: string) =>
+      name === "themeName" ? themeNameQuestion : undefined,
+    onChoicesLazyLoad: new FakeEvent<unknown, unknown>(),
+  };
+}
+
 function makeCreator(theme: Record<string, unknown>) {
+  const propertyGridSurvey = makePropertyGridSurvey();
+  const addTheme = vi.fn();
   const themeEditor = {
     advancedModeEnabled: false,
     _availableThemes: [] as string[],
@@ -56,8 +72,10 @@ function makeCreator(theme: Record<string, unknown>) {
       this._availableThemes = value;
       themeEditor.onThemePropertyChanged.fire(null, {});
     },
-    addTheme: vi.fn(),
+    addTheme,
     removeTheme: vi.fn(),
+    onAvailableThemesChanged: vi.fn(),
+    propertyGrid: { survey: propertyGridSurvey },
     activate() {
       themeEditor.onThemePropertyChanged.fire(null, {});
     },
@@ -78,20 +96,24 @@ function makeCreator(theme: Record<string, unknown>) {
   };
   return {
     theme,
+    propertyGridSurvey,
+    activeTab: "designer",
     hasPendingThemeChanges: false,
     preferredColorPalette: "light",
     toolbar: { actions: [] as Array<{ id: string }> },
     onPropertyEditorUpdateTitleActions: new FakeEvent<unknown, unknown>(),
     onActiveTabChanged: new FakeEvent<unknown, { tabName?: string }>(),
     themeEditor,
+    addTheme,
   };
 }
 
 function renderThemeManagement(
   theme: Record<string, unknown>,
-  extras?: { onThemeIdChanged?: (themeId: string) => void },
+  extras?: { onThemeIdChanged?: (themeId: string) => void; activeTab?: string },
 ) {
   const creator = makeCreator(theme);
+  creator.activeTab = extras?.activeTab ?? "designer";
   const view = renderHook(() =>
     useThemeManagement({
       formId: "form-1",
@@ -106,7 +128,17 @@ function renderThemeManagement(
 
 beforeEach(() => {
   vi.clearAllMocks();
-  getThemesAction.mockResolvedValue({ value: [] });
+  getThemeAction.mockResolvedValue(Result.error("not found"));
+  listThemesPageAction.mockResolvedValue(
+    Result.success({
+      items: [],
+      page: 1,
+      pageSize: 25,
+      totalRecords: 0,
+      totalPages: 0,
+      hasNextPage: false,
+    }),
+  );
 });
 
 describe("useThemeManagement dirty tracking", () => {
@@ -234,6 +266,142 @@ describe("useThemeManagement dirty tracking", () => {
     });
 
     expect(view.result.current.isThemeDirty).toBe(false);
+  });
+
+  it("pages the chooser when ?tab=theme activated the plugin before this hook", async () => {
+    // useCreatorTabUrl runs first, so activate() and onActiveTabChanged have
+    // already fired by the time the hook wires itself up.
+    const { creator } = renderThemeManagement(
+      { id: "t1", themeName: "Acme" },
+      { activeTab: "theme" },
+    );
+
+    expect(creator.propertyGridSurvey.onChoicesLazyLoad.handlers).toHaveLength(
+      1,
+    );
+  });
+
+  it("applies the assigned theme into the open Theme tab on a ?tab=theme deep link", async () => {
+    // Creator.applyTheme skips the Theme tab plugin while that tab is active, so
+    // the theme the fetch resolves to has to be pushed into the editor by hand.
+    getThemeAction.mockResolvedValue(
+      Result.success({
+        id: "t1",
+        name: "Acme",
+        jsonData: '{"themeName":"Acme"}',
+      }),
+    );
+    const { creator, view } = renderThemeManagement(
+      { id: "t1", themeName: "Acme" },
+      { activeTab: "theme" },
+    );
+
+    await waitFor(() =>
+      expect(creator.themeEditor.themeModel.setTheme).toHaveBeenCalledWith(
+        expect.objectContaining({ id: "t1", themeName: "Acme" }),
+      ),
+    );
+    expect(creator.hasPendingThemeChanges).toBe(false);
+    expect(view.result.current.isThemeDirty).toBe(false);
+  });
+
+  it("keeps pending theme changes when assigned-theme hydration races with edits", async () => {
+    let resolveGet: (value: unknown) => void = () => {};
+    getThemeAction.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveGet = resolve;
+        }),
+    );
+    const { creator, view } = renderThemeManagement({
+      id: "t1",
+      themeName: "Acme",
+    });
+
+    act(() => {
+      creator.themeEditor.onThemePropertyChanged.fire(null, {});
+      creator.hasPendingThemeChanges = true;
+    });
+    expect(view.result.current.isThemeDirty).toBe(true);
+
+    await act(async () => {
+      resolveGet(
+        Result.success({
+          id: "t1",
+          name: "Acme",
+          jsonData: '{"themeName":"Acme"}',
+        }),
+      );
+    });
+
+    expect(view.result.current.isThemeDirty).toBe(true);
+    expect(creator.hasPendingThemeChanges).toBe(true);
+  });
+
+  it("leaves the Theme tab alone when it is not the active tab", async () => {
+    getThemeAction.mockResolvedValue(
+      Result.success({
+        id: "t1",
+        name: "Acme",
+        jsonData: '{"themeName":"Acme"}',
+      }),
+    );
+    const { creator } = renderThemeManagement({ id: "t1", themeName: "Acme" });
+
+    await waitFor(() =>
+      expect(creator.addTheme).toHaveBeenCalled(),
+    );
+    expect(creator.themeEditor.themeModel.setTheme).not.toHaveBeenCalled();
+  });
+
+  it("keeps the edits in progress when a catalog page re-registers the assigned theme", async () => {
+    // Paging the chooser must only make themes selectable. Re-applying the
+    // assigned one would silently roll back the edits the user is making.
+    const assigned = {
+      id: "t1",
+      name: "Acme",
+      jsonData: '{"themeName":"Acme"}',
+    };
+    getThemeAction.mockResolvedValue(Result.success(assigned));
+    listThemesPageAction.mockResolvedValue(
+      Result.success({
+        items: [assigned],
+        page: 1,
+        pageSize: 25,
+        totalRecords: 1,
+        totalPages: 1,
+        hasNextPage: false,
+      }),
+    );
+    const { creator, view } = renderThemeManagement({
+      id: "t1",
+      themeName: "Acme",
+    });
+    await waitFor(() =>
+      expect(creator.addTheme).toHaveBeenCalled(),
+    );
+
+    act(() => {
+      creator.onActiveTabChanged.fire(null, { tabName: "theme" });
+      creator.themeEditor.onThemePropertyChanged.fire(null, {});
+    });
+    const edited = { id: "t1", themeName: "Acme", edited: true };
+    creator.theme = edited;
+
+    await act(async () => {
+      creator.propertyGridSurvey.onChoicesLazyLoad.fire(null, {
+        question: { name: "themeName" },
+        skip: 0,
+        take: 25,
+        setItems: vi.fn(),
+      });
+    });
+
+    expect(creator.addTheme).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "t1", themeName: "Acme" }),
+    );
+    expect(creator.theme).toBe(edited);
+    expect(view.result.current.isThemeDirty).toBe(true);
   });
 });
 

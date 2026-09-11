@@ -1,3 +1,16 @@
+/** Shared SurveyJS dropdown lazy-load page size (data lists, Theme Editor, …). */
+export const DEFAULT_CHOICES_LAZY_LOAD_PAGE_SIZE = 25;
+
+export function mapSkipTakeToPage(
+  skip: number,
+  take: number,
+): { page: number; pageSize: number } {
+  const pageSize = take > 0 ? take : DEFAULT_CHOICES_LAZY_LOAD_PAGE_SIZE;
+  const safeSkip = Math.max(skip, 0);
+  const page = Math.floor(safeSkip / pageSize) + 1;
+  return { page, pageSize };
+}
+
 /**
  * SurveyJS DropdownListModel (3.x) only requests the next page when
  * `(itemsSettings.skip + 1) < totalCount`. It increments `skip` by `take`
@@ -30,8 +43,10 @@ export function mapSurveyJsLazyLoadTotal(params: {
     params.hasNextPage === true ||
     (params.hasNextPage !== false && take > 0 && itemCount >= take);
   if (morePages) {
-    // Need total > skip+take+1 after SurveyJS increments skip by take.
-    total = Math.max(total, skip + take + 2);
+    // skip is already `options.skip + take` when this total is read. Extra
+    // rows on the page (Theme Editor prepends Default) must not shrink the
+    // gap to 1 or the loading footer never triggers skip=take.
+    total = Math.max(total, skip + take + itemCount + 2);
   }
 
   return total;
