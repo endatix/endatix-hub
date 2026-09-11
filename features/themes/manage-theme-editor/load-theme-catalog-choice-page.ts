@@ -9,6 +9,8 @@ export type ThemeCatalogChoice = { value: string; text: string };
 export type ThemeCatalogChoicePage = {
   items: ThemeCatalogChoice[];
   hasNextPage: boolean;
+  /** API catalog size plus Default on the chooser (not in the API). */
+  totalRecords: number;
 };
 
 export const DEFAULT_THEME_CHOICE: ThemeCatalogChoice = {
@@ -24,9 +26,11 @@ export async function loadThemeCatalogChoicePage(
   const { page, pageSize } = mapSkipTakeToPage(skip, take);
   const result = await listThemesPageAction({ page, pageSize });
   if (result === undefined || Result.isError(result)) {
+    const items = skip === 0 ? [DEFAULT_THEME_CHOICE] : [];
     return {
-      items: skip === 0 ? [DEFAULT_THEME_CHOICE] : [],
+      items,
       hasNextPage: false,
+      totalRecords: items.length,
     };
   }
 
@@ -44,5 +48,9 @@ export async function loadThemeCatalogChoicePage(
 
   registerThemes(stored);
 
-  return { items, hasNextPage: result.value.hasNextPage };
+  return {
+    items,
+    hasNextPage: result.value.hasNextPage,
+    totalRecords: result.value.totalRecords + 1,
+  };
 }

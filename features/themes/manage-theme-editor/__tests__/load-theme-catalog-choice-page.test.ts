@@ -36,6 +36,7 @@ describe("loadThemeCatalogChoicePage", () => {
     expect(mockListPage).toHaveBeenCalledWith({ page: 1, pageSize: 25 });
     expect(page).toEqual({
       hasNextPage: false,
+      totalRecords: 2,
       items: [
         { value: "default", text: "Default" },
         { value: "Brand", text: "Brand" },
@@ -77,10 +78,12 @@ describe("loadThemeCatalogChoicePage", () => {
 
     expect(await loadThemeCatalogChoicePage(0, 25, vi.fn())).toEqual({
       hasNextPage: false,
+      totalRecords: 1,
       items: [{ value: "default", text: "Default" }],
     });
     expect(await loadThemeCatalogChoicePage(25, 25, vi.fn())).toEqual({
       hasNextPage: false,
+      totalRecords: 0,
       items: [],
     });
   });

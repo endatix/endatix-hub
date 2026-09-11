@@ -73,6 +73,7 @@ function makeCreator(theme: Record<string, unknown>) {
     },
     addTheme: vi.fn(),
     removeTheme: vi.fn(),
+    onAvailableThemesChanged: vi.fn(),
     propertyGrid: { survey: propertyGridSurvey },
     activate() {
       themeEditor.onThemePropertyChanged.fire(null, {});

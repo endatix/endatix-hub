@@ -35,6 +35,7 @@ function createPlugin(availableThemes: string[]) {
   const survey = {
     getQuestionByName: (name: string) =>
       name === "themeName" ? question : undefined,
+    runExpressions: vi.fn(),
     onChoicesLazyLoad: {
       add: (handler: Handler) => handlers.push(handler),
       remove: (handler: Handler) => {
@@ -44,6 +45,9 @@ function createPlugin(availableThemes: string[]) {
   };
   const plugin = {
     availableThemes,
+    onAvailableThemesChanged: (themes: string[]) => {
+      question.choices = themes.map((theme) => ({ value: theme, text: theme }));
+    },
     propertyGrid: { survey },
   };
 
@@ -91,6 +95,58 @@ describe("bindThemeCatalogLazyChoices", () => {
     );
   });
 
+  it("binds a loading-row observer that does not fetch until the list is scrolled", () => {
+    const { plugin, question } = createPlugin(["default"]);
+    const disconnect = vi.fn();
+    const initObserver = vi.fn();
+    const setObserver = vi.fn();
+    const updateQuestionChoices = vi.fn();
+    const scrollableContainer = {
+      scrollHeight: 800,
+      scrollTop: 0,
+      clientHeight: 240,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    };
+    const popupModel = {
+      isVisible: true,
+      onVisibilityChanged: { add: vi.fn(), remove: vi.fn() },
+    };
+    (
+      question as {
+        dropdownListModel: unknown;
+      }
+    ).dropdownListModel = {
+      updateQuestionChoices,
+      popupModel,
+      listModel: {
+        scrollableContainer,
+        setLoadingIndicatorVisibilityObserver: setObserver,
+        loadingIndicator: {
+          intersectionVisibilityObserver: { disconnect },
+          initLoadingIndicatorVisibilityObserver: initObserver,
+        },
+      },
+    };
+
+    bindThemeCatalogLazyChoices(plugin, vi.fn());
+
+    expect(setObserver).toHaveBeenCalledWith(expect.any(Function));
+    expect(initObserver).toHaveBeenCalledWith(expect.any(Function));
+
+    initObserver.mock.calls[0][0](true);
+    expect(updateQuestionChoices).not.toHaveBeenCalled();
+
+    popupModel.isVisible = false;
+    initObserver.mock.calls[0][0](true);
+    expect(updateQuestionChoices).not.toHaveBeenCalled();
+
+    popupModel.isVisible = true;
+    scrollableContainer.scrollTop = 760;
+    initObserver.mock.calls[0][0](true);
+    expect(updateQuestionChoices).toHaveBeenCalledOnce();
+  });
+
   it("reports the accumulated count on the last page so loading stops", async () => {
     const { plugin, handlers } = createPlugin(["default"]);
     bindThemeCatalogLazyChoices(plugin, vi.fn());
@@ -127,6 +183,69 @@ describe("bindThemeCatalogLazyChoices", () => {
     await handlers[0](null, lazyLoadOptions(0, second));
 
     expect(second.mock.calls[0][1]).toBe(2);
+  });
+
+  it("drops a stale page when the dropdown reopens at skip 0", async () => {
+    const { plugin, handlers } = createPlugin(["default"]);
+    bindThemeCatalogLazyChoices(plugin, vi.fn());
+
+    let resolveFirst: (value: unknown) => void = () => {};
+    mockLoadPage
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveFirst = resolve;
+          }),
+      )
+      .mockResolvedValueOnce({
+        items: [choice("fresh")],
+        hasNextPage: false,
+      });
+
+    const staleSetItems = vi.fn();
+    const staleLoad = handlers[0](null, lazyLoadOptions(0, staleSetItems));
+    const freshSetItems = vi.fn();
+    await handlers[0](null, lazyLoadOptions(0, freshSetItems));
+    resolveFirst({ items: [choice("stale-page-2")], hasNextPage: false });
+    await staleLoad;
+
+    expect(staleSetItems).not.toHaveBeenCalled();
+    expect(freshSetItems).toHaveBeenCalledWith([choice("fresh")], 1);
+  });
+
+  it("clears SurveyJS concat buffer before applying skip 0", async () => {
+    const { plugin, handlers } = createPlugin(["default"]);
+    bindThemeCatalogLazyChoices(plugin, vi.fn());
+
+    const itemsSettings = { items: [choice("White"), choice("Corp Site")] };
+    mockLoadPage.mockResolvedValueOnce({
+      items: [choice("default"), choice("Tulip")],
+      hasNextPage: true,
+      totalRecords: 40,
+    });
+    const setItems = vi.fn();
+    await handlers[0](null, {
+      ...lazyLoadOptions(0, setItems),
+      question: { name: "themeName", dropdownListModel: { itemsSettings } },
+    });
+
+    expect(itemsSettings.items).toEqual([]);
+    expect(setItems).toHaveBeenCalled();
+  });
+
+  it("does not let addTheme rewrite chooser choices while lazy load is on", () => {
+    const { plugin, question } = createPlugin(["default"]);
+    const vendorRewrite = plugin.onAvailableThemesChanged;
+
+    const unbind = bindThemeCatalogLazyChoices(plugin, vi.fn());
+    plugin.onAvailableThemesChanged(["default", "Brand"]);
+    expect(question.choices).toEqual([{ value: "default", text: "Default" }]);
+    expect(plugin.propertyGrid.survey.runExpressions).toHaveBeenCalled();
+
+    unbind();
+    plugin.onAvailableThemesChanged(["Brand"]);
+    expect(plugin.onAvailableThemesChanged).toBe(vendorRewrite);
+    expect(question.choices).toEqual([{ value: "Brand", text: "Brand" }]);
   });
 
   it("unbinds so a re-created creator can bind again", () => {

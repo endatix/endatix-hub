@@ -43,7 +43,10 @@ export function mapSurveyJsLazyLoadTotal(params: {
     params.hasNextPage === true ||
     (params.hasNextPage !== false && take > 0 && itemCount >= take);
   if (morePages) {
-    total = Math.max(total, skip + take + 2);
+    // skip is already `options.skip + take` when this total is read. Extra
+    // rows on the page (Theme Editor prepends Default) must not shrink the
+    // gap to 1 or the loading footer never triggers skip=take.
+    total = Math.max(total, skip + take + itemCount + 2);
   }
 
   return total;

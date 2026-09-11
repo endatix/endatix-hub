@@ -286,7 +286,6 @@ export const useThemeManagement = ({
     }
 
     const themeTabPlugin = creator.themeEditor;
-    themeTabPlugin.advancedModeEnabled = true;
     themeTabPlugin.onThemeSelected.add(handleThemeChanged);
     themeTabPlugin.onThemePropertyChanged.add(handleThemePropertyChanged);
 
@@ -299,10 +298,11 @@ export const useThemeManagement = ({
     };
 
     const unbindLazyChoices: Array<() => void> = [];
-    const bindLazyChoices = () =>
+    const bindLazyChoices = () => {
       unbindLazyChoices.push(
         bindThemeCatalogLazyChoices(themeTabPlugin, registerCatalogThemes),
       );
+    };
 
     const hydrateThemeTab = (hydrate: () => void) => {
       isHydratingThemeTabRef.current = true;

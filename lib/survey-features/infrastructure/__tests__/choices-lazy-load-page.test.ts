@@ -26,10 +26,10 @@ describe("mapSurveyJsLazyLoadTotal", () => {
         skip: 0,
         take: 25,
         itemCount: 25,
-        totalRecords: 40,
+        totalRecords: 80,
         hasNextPage: true,
       }),
-    ).toBe(40);
+    ).toBe(80);
   });
 
   it("bumps a 26-item total so SurveyJS will request skip=25", () => {
@@ -41,7 +41,19 @@ describe("mapSurveyJsLazyLoadTotal", () => {
         totalRecords: 26,
         hasNextPage: true,
       }),
-    ).toBe(27);
+    ).toBeGreaterThan(25 + 1);
+  });
+
+  it("keeps a gap after a first page that is longer than take (Default + page)", () => {
+    expect(
+      mapSurveyJsLazyLoadTotal({
+        skip: 0,
+        take: 25,
+        itemCount: 26,
+        totalRecords: 26,
+        hasNextPage: true,
+      }),
+    ).toBeGreaterThan(25 + 1);
   });
 
   it("treats a full page with missing total as having more data", () => {
@@ -52,7 +64,7 @@ describe("mapSurveyJsLazyLoadTotal", () => {
         itemCount: 25,
         totalRecords: 0,
       }),
-    ).toBe(27);
+    ).toBeGreaterThan(25 + 1);
   });
 
   it("trusts hasNextPage false on an exact full first page", () => {
