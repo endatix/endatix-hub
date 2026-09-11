@@ -305,6 +305,39 @@ describe("useThemeManagement dirty tracking", () => {
     expect(view.result.current.isThemeDirty).toBe(false);
   });
 
+  it("keeps pending theme changes when assigned-theme hydration races with edits", async () => {
+    let resolveGet: (value: unknown) => void = () => {};
+    getThemeAction.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveGet = resolve;
+        }),
+    );
+    const { creator, view } = renderThemeManagement({
+      id: "t1",
+      themeName: "Acme",
+    });
+
+    act(() => {
+      creator.themeEditor.onThemePropertyChanged.fire(null, {});
+      creator.hasPendingThemeChanges = true;
+    });
+    expect(view.result.current.isThemeDirty).toBe(true);
+
+    await act(async () => {
+      resolveGet(
+        Result.success({
+          id: "t1",
+          name: "Acme",
+          jsonData: '{"themeName":"Acme"}',
+        }),
+      );
+    });
+
+    expect(view.result.current.isThemeDirty).toBe(true);
+    expect(creator.hasPendingThemeChanges).toBe(true);
+  });
+
   it("leaves the Theme tab alone when it is not the active tab", async () => {
     getThemeAction.mockResolvedValue(
       Result.success({

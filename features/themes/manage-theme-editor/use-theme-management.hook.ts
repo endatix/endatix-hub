@@ -140,7 +140,9 @@ export const useThemeManagement = ({
 
       if (safeTheme.id === currentThemeIdRef.current) {
         creator!.theme = safeTheme;
-        creator!.hasPendingThemeChanges = false;
+        if (!isThemeDirtyRef.current) {
+          creator!.hasPendingThemeChanges = false;
+        }
       }
     },
     [creator, registerTheme],
