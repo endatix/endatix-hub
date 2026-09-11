@@ -16,6 +16,7 @@ function isSameDefinition(left: object | null, right: object): boolean {
   return Helpers.checkIfValuesEqual(left, right, SAME_DEFINITION);
 }
 
+/** Loads a saved canvas snapshot into the Creator without clobbering live edits. */
 export function useCreatorJson(
   creator: SurveyCreatorModel | null,
   json: object | null,
@@ -24,10 +25,6 @@ export function useCreatorJson(
   const lastAppliedJsonRef = useRef<object | null>(null);
 
   useEffect(() => {
-    if (!creator || !json) {
-      return;
-    }
-
     if (
       appliedToRef.current === creator &&
       (isSameDefinition(lastAppliedJsonRef.current, json) ||

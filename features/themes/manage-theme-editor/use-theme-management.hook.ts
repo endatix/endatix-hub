@@ -113,7 +113,6 @@ export const useThemeManagement = ({
   const registeredThemeNamesRef = useRef<string[]>([DEFAULT_THEME_NAME]);
   const currentThemeIdRef = useRef<string | undefined>(themeId);
 
-
   useEffect(() => {
     currentThemeIdRef.current = currentThemeId;
   }, [currentThemeId]);
