@@ -45,8 +45,6 @@ describe("flag runtime factory selection", () => {
     process.env = originalEnv;
   });
 
-  // The regression this guards: binding the factory when `flag()` is called leaves a
-  // container started with PostHog credentials permanently on environment flags.
   it("switches to PostHog when the adapter env is set after flag() is defined", async () => {
     const evaluate = flag({ key: "ai-features", defaultValue: false });
 
@@ -56,5 +54,16 @@ describe("flag runtime factory selection", () => {
     process.env.ENDATIX_POSTHOG_KEY = "phc_test_key";
 
     expect(await evaluate()).toBe(POSTHOG_VALUE);
+  });
+
+  it("switches back to environment flags when the adapter is turned off", async () => {
+    process.env.ENABLE_POSTHOG_ADAPTER = "true";
+    process.env.ENDATIX_POSTHOG_KEY = "phc_test_key";
+
+    const evaluate = flag({ key: "ai-features", defaultValue: false });
+    expect(await evaluate()).toBe(POSTHOG_VALUE);
+
+    process.env.ENABLE_POSTHOG_ADAPTER = "false";
+    expect(await evaluate()).toBe(false);
   });
 });

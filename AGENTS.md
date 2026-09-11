@@ -45,15 +45,17 @@ prefix, not `"use client"`, is what decides.
 - **A secret a client component needs is scoped to its routes**, not added to the projection:
   `getSurveyLicenseKey()` + `SurveyLicenseProvider`, mounted only on SurveyJS routes, never on
   `(main)`.
-- Deprecated `NEXT_PUBLIC_*` names still work — `applyLegacyPublicEnv()` folds them into `ENDATIX_*`
-  at boot. Never import `legacy-public-env.server.ts` from a client component.
-- **Feature flags follow the same rule.** `flag()` in [`lib/feature-flags/utils.ts`](lib/feature-flags/utils.ts)
-  picks its factory on every evaluation and awaits `connection()` first, so a flag is never bound
-  to the build environment or baked into prerendered HTML. Never hoist `flagFactoryProvider.getFactory()`
-  to module scope. The provider is PostHog only when `ENABLE_POSTHOG_ADAPTER=true` **and**
-  `ENDATIX_POSTHOG_KEY` is set (`factories/posthog-flag-settings.ts`) — it is a choice, not a fallback
-  chain, so `FLAG_*` vars are ignored while PostHog is active. Consequence: any page evaluating a flag
-  renders dynamically. Resolved state is visible on Admin → Environment settings.
+- Deprecated `NEXT_PUBLIC_*` names still fold into `ENDATIX_*` at boot via `applyLegacyPublicEnv()`,
+  except the PostHog aliases (`NEXT_PUBLIC_POSTHOG_*`) which were removed — use `ENDATIX_POSTHOG_*`.
+  Never import `legacy-public-env.server.ts` from a client component.
+- **Feature flags** are request-time, same as public config. `flag()` in
+  [`lib/feature-flags/utils.ts`](lib/feature-flags/utils.ts) awaits `connection()` then picks the
+  factory (`PostHogFlagFactory` vs `EnvironmentFlagFactory`). Do not call
+  `flagFactoryProvider.getFactory()` at module load. PostHog wins only when
+  `ENABLE_POSTHOG_ADAPTER=true` **and** `ENDATIX_POSTHOG_KEY` is set
+  ([`posthog-flag-settings.ts`](lib/feature-flags/factories/posthog-flag-settings.ts)); otherwise
+  `FLAG_*` / `defaultValue`. Pages that evaluate flags are dynamic. Admin → Environment → Feature flags
+  shows the resolved provider.
 - Only `basePath` stays build-time (`NEXT_PUBLIC_BASE_PATH` in `lib/hosting/base-path.ts`): no
   runtime equivalent, so the published image serves at `/` whatever the operator sets. Subfolder
   hosting needs per-origin hosting or a self-build.

@@ -63,8 +63,6 @@ describe("flag", () => {
       expect(result).toBe(true);
     });
 
-    // Without this opt-out a prerender would bake the flag value into static HTML,
-    // which is the build-time coupling this module exists to avoid.
     it("opts the request out of static rendering before evaluating", async () => {
       mockCreateFlag.mockReturnValue(vi.fn().mockResolvedValue(true));
 

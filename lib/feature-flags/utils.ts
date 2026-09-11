@@ -38,12 +38,8 @@ export function flag<T extends string | number>(definition: {
 }): () => Promise<T>;
 
 /**
- * The factory is chosen per evaluation, never at module load, so the environment the
- * container was started with wins over the one the image was built with. `connection()`
- * keeps a prerender from baking a flag value into static HTML for the same reason.
- *
- * Each factory keeps its own memoised implementation: the Vercel `flag()` wrapper carries
- * request-scoped caching, so it must be built once per factory rather than per evaluation.
+ * Factory chosen per evaluation (after `connection()`), not at module load.
+ * One Vercel `flag()` wrapper per factory — that wrapper is request-cached.
  */
 export function flag<T>(definition: FlagDefinition<T>): () => Promise<T> {
   const implementations = new WeakMap<FlagFactory, () => Promise<T>>();
@@ -51,9 +47,11 @@ export function flag<T>(definition: FlagDefinition<T>): () => Promise<T> {
   return async (): Promise<T> => {
     await connection();
     const factory = flagFactoryProvider.getFactory();
-    const evaluate =
-      implementations.get(factory) ?? factory.createFlag<T>(definition);
-    implementations.set(factory, evaluate);
+    let evaluate = implementations.get(factory);
+    if (!evaluate) {
+      evaluate = factory.createFlag<T>(definition);
+      implementations.set(factory, evaluate);
+    }
     return evaluate();
   };
 }

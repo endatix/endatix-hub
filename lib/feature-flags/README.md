@@ -18,9 +18,7 @@ lib/feature-flags/
 └── utils.ts                         # Main flag() function
 ```
 
-### Request-time resolution
-
-`flag()` picks the factory **when the flag is evaluated**, not when the module loads, and awaits `connection()` first. The Hub promotes one image across environments, so a flag decided at build time would freeze whatever the CI environment happened to hold. The cost is that any page evaluating a flag renders dynamically — evaluate behind an existing dynamic boundary (session, params) rather than on a page you want prerendered.
+Request-time factory selection, `connection()`, and PostHog vs `FLAG_*` rules: Hub [`AGENTS.md`](../../AGENTS.md) (Configuration).
 
 ## 🎯 Flag Types
 
@@ -155,16 +153,6 @@ const isEnabled = await myFeature();
 - ✅ **Objects for config**: Group related settings together
 - ✅ **Meaningful defaults**: Always provide sensible fallbacks
 - ❌ **No client hooks**: Use server evaluation + props pattern instead
-
-## 🔄 How It Works
-
-1. On each evaluation the provider re-reads the environment: `ENABLE_POSTHOG_ADAPTER=true` **and** a non-empty `ENDATIX_POSTHOG_KEY` select `PostHogFlagFactory`, otherwise `EnvironmentFlagFactory`.
-2. PostHog flags go through the Vercel `flag()` wrapper with the PostHog adapter.
-3. Environment flags read `FLAG_*` with type conversion.
-
-The operator-visible state of this is on **Admin → Environment settings → Feature flags**.
-
-For more details, see [Vercel flags documentation](https://flags-sdk.dev/).
 
 ## 🔧 Development
 
