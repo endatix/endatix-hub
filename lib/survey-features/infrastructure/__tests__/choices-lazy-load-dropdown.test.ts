@@ -1,6 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   applyUniqueChoices,
+  bindLoadingIndicatorObserver,
   choiceValue,
   existingChoiceKeys,
   markAllChoicesLoaded,
@@ -83,5 +84,77 @@ describe("lazy choice buffer", () => {
 
     expect(question.dropdownListModel?.itemsSettings?.totalCount).toBe(2);
     expect(question.dropdownListModel?.listModel?.isAllDataLoaded).toBe(true);
+  });
+});
+
+describe("bindLoadingIndicatorObserver", () => {
+  /** `scrollableContainer` throws once the vendor drops listContainerHtmlElement. */
+  function makeDropdown(options: { unmounted?: boolean } = {}) {
+    const container = {
+      scrollHeight: 800,
+      scrollTop: 0,
+      clientHeight: 240,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    };
+    const popupModel = {
+      isVisible: false,
+      onVisibilityChanged: { add: vi.fn(), remove: vi.fn() },
+    };
+    const listModel = {
+      setLoadingIndicatorVisibilityObserver: vi.fn(),
+      get scrollableContainer() {
+        if (options.unmounted) {
+          throw new TypeError(
+            "Cannot read properties of undefined (reading 'querySelector')",
+          );
+        }
+        return container;
+      },
+    };
+    const question: LazyChoiceQuestion = {
+      dropdownListModel: {
+        popupModel,
+        listModel,
+        updateQuestionChoices: vi.fn(),
+      },
+    };
+    return { question, container, popupModel, listModel, options };
+  }
+
+  it("detaches from the element it attached to, even after the list unmounts", () => {
+    const dropdown = makeDropdown();
+    const unbind = bindLoadingIndicatorObserver(dropdown.question);
+    const onPopupVisibility =
+      dropdown.popupModel.onVisibilityChanged.add.mock.calls[0][0];
+
+    onPopupVisibility(null, { isVisible: true });
+    expect(dropdown.container.addEventListener).toHaveBeenCalledWith(
+      "scroll",
+      expect.any(Function),
+    );
+
+    // Tab switch: SurveyJS tears the list down, so reading the getter throws.
+    dropdown.options.unmounted = true;
+    expect(() => unbind()).not.toThrow();
+    expect(dropdown.container.removeEventListener).toHaveBeenCalledWith(
+      "scroll",
+      expect.any(Function),
+    );
+  });
+
+  it("binds without throwing when the list is already unmounted", () => {
+    const dropdown = makeDropdown({ unmounted: true });
+
+    const unbind = bindLoadingIndicatorObserver(dropdown.question);
+    const onVisible =
+      dropdown.listModel.setLoadingIndicatorVisibilityObserver.mock.calls[0][0];
+    dropdown.popupModel.isVisible = true;
+
+    expect(() => onVisible(true)).not.toThrow();
+    expect(
+      dropdown.question.dropdownListModel?.updateQuestionChoices,
+    ).not.toHaveBeenCalled();
+    expect(() => unbind()).not.toThrow();
   });
 });

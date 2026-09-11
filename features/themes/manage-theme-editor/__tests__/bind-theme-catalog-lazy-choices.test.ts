@@ -11,11 +11,6 @@ vi.mock("../load-theme-catalog-choice-page", () => ({
 
 type Handler = (sender: unknown, options: unknown) => Promise<void> | void;
 
-/** `onAvailableThemesChanged` is private in the vendor typings. */
-type ThemeChooserHost = {
-  onAvailableThemesChanged: (themes: string[]) => void;
-};
-
 type ItemsSettings = { items: unknown[]; totalCount?: number };
 
 const choice = (name: string) => ({ value: name, text: name });
@@ -31,39 +26,71 @@ const lazyLoadOptions = (
 });
 
 function createPlugin(availableThemes: string[]) {
-  const handlers: Handler[] = [];
-  const question = {
-    name: "themeName",
-    choicesLazyLoadEnabled: false,
-    choicesLazyLoadPageSize: 0,
-    searchEnabled: true,
-    choices: [] as unknown[],
-  };
-  const survey = {
-    getQuestionByName: (name: string) =>
-      name === "themeName" ? question : undefined,
-    runExpressions: vi.fn(),
-    onChoicesLazyLoad: {
-      add: (handler: Handler) => handlers.push(handler),
-      remove: (handler: Handler) => {
-        handlers.splice(handlers.indexOf(handler), 1);
+  /** The plugin rebuilds this survey on every Themes tab activation. */
+  const makeSurvey = () => {
+    const handlers: Handler[] = [];
+    const question = {
+      name: "themeName",
+      choicesLazyLoadEnabled: false,
+      choicesLazyLoadPageSize: 0,
+      searchEnabled: true,
+      choices: [] as unknown[],
+    };
+    const survey = {
+      getQuestionByName: (name: string) =>
+        name === "themeName" ? question : undefined,
+      runExpressions: vi.fn(),
+      onChoicesLazyLoad: {
+        add: (handler: Handler) => handlers.push(handler),
+        remove: (handler: Handler) => {
+          handlers.splice(handlers.indexOf(handler), 1);
+        },
       },
-    },
+    };
+    return { survey, question, handlers };
   };
+
+  let current = makeSurvey();
+  const themeModel = { setTheme: vi.fn() };
   const plugin = {
     availableThemes,
-    onAvailableThemesChanged: (themes: string[]) => {
-      question.choices = themes.map((theme) => ({ value: theme, text: theme }));
+    themeModel,
+    addTheme: (theme: { themeName?: string }) => {
+      const name = theme.themeName ?? "unnamed";
+      plugin.availableThemes = [...plugin.availableThemes, name];
+      const themeChooser = plugin.propertyGrid.survey.getQuestionByName(
+        "themeName",
+      ) as typeof current.question | undefined;
+      if (themeChooser) {
+        themeChooser.choices = plugin.availableThemes.map((themeName) => ({
+          value: themeName,
+          text: themeName,
+        }));
+        themeModel.setTheme({ themeName: "default" });
+      }
+      plugin.propertyGrid.survey.runExpressions();
     },
-    propertyGrid: { survey },
+    propertyGrid: { survey: current.survey },
   };
 
   return {
     plugin: plugin as unknown as ThemeTabPlugin,
-    host: plugin as ThemeChooserHost,
-    survey,
-    question: question as typeof question & { dropdownListModel?: unknown },
-    handlers,
+    get survey() {
+      return current.survey;
+    },
+    get question() {
+      return current.question as typeof current.question & {
+        dropdownListModel?: unknown;
+      };
+    },
+    get handlers() {
+      return current.handlers;
+    },
+    /** Mirrors `propertyGrid.obj = themeModel` swapping in a fresh Model. */
+    rebuildSurvey() {
+      current = makeSurvey();
+      plugin.propertyGrid.survey = current.survey;
+    },
   };
 }
 
@@ -284,18 +311,59 @@ describe("bindThemeCatalogLazyChoices", () => {
   });
 
   it("does not let addTheme rewrite chooser choices while lazy load is on", () => {
-    const { plugin, host, survey, question } = createPlugin(["default"]);
-    const vendorRewrite = host.onAvailableThemesChanged;
+    const { plugin, survey, question } = createPlugin(["default"]);
+    const itemsSettings = { items: [choice("default")], totalCount: 40 };
+    question.dropdownListModel = { itemsSettings };
+    const originalAddTheme = plugin.addTheme;
 
     const unbind = bindThemeCatalogLazyChoices(plugin, vi.fn());
-    host.onAvailableThemesChanged(["default", "Brand"]);
+    plugin.addTheme({ themeName: "Brand" });
     expect(question.choices).toEqual([{ value: "default", text: "Default" }]);
+    expect(itemsSettings).toEqual({
+      items: [choice("default")],
+      totalCount: 40,
+    });
     expect(survey.runExpressions).toHaveBeenCalled();
+    expect(plugin.themeModel.setTheme).not.toHaveBeenCalled();
 
     unbind();
-    host.onAvailableThemesChanged(["Brand"]);
-    expect(host.onAvailableThemesChanged).toBe(vendorRewrite);
-    expect(question.choices).toEqual([{ value: "Brand", text: "Brand" }]);
+    expect(plugin.addTheme).toBe(originalAddTheme);
+    plugin.addTheme({ themeName: "Tulip" });
+    expect(question.choices).toEqual([
+      { value: "default", text: "default" },
+      { value: "Brand", text: "Brand" },
+      { value: "Tulip", text: "Tulip" },
+    ]);
+  });
+
+  it("hands back the live unbind when the same survey binds twice", () => {
+    const { plugin, handlers } = createPlugin(["default"]);
+
+    const first = bindThemeCatalogLazyChoices(plugin, vi.fn());
+    const second = bindThemeCatalogLazyChoices(plugin, vi.fn());
+
+    expect(second).toBe(first);
+    second();
+    expect(handlers).toHaveLength(0);
+  });
+
+  it("supersedes the previous binding when the plugin rebuilds its survey", () => {
+    // Every Themes tab activation swaps in a fresh property grid Model; without
+    // superseding, each visit stacks another addTheme wrapper on the plugin.
+    const harness = createPlugin(["default"]);
+    const vendorAddTheme = harness.plugin.addTheme;
+
+    bindThemeCatalogLazyChoices(harness.plugin, vi.fn());
+    const staleHandlers = harness.handlers;
+
+    harness.rebuildSurvey();
+    const unbind = bindThemeCatalogLazyChoices(harness.plugin, vi.fn());
+
+    expect(staleHandlers).toHaveLength(0);
+    expect(harness.handlers).toHaveLength(1);
+
+    unbind();
+    expect(harness.plugin.addTheme).toBe(vendorAddTheme);
   });
 
   it("unbinds so a re-created creator can bind again", () => {

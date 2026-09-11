@@ -297,10 +297,12 @@ export const useThemeManagement = ({
       }
     };
 
-    const unbindLazyChoices: Array<() => void> = [];
+    // Binding supersedes the previous one, so only the latest unbind matters.
+    let unbindLazyChoices = () => {};
     const bindLazyChoices = () => {
-      unbindLazyChoices.push(
-        bindThemeCatalogLazyChoices(themeTabPlugin, registerCatalogThemes),
+      unbindLazyChoices = bindThemeCatalogLazyChoices(
+        themeTabPlugin,
+        registerCatalogThemes,
       );
     };
 
@@ -367,7 +369,7 @@ export const useThemeManagement = ({
     themeManagementInitializedRef.current = true;
 
     return () => {
-      unbindLazyChoices.forEach((unbind) => unbind());
+      unbindLazyChoices();
       themeTabPlugin.activate = pluginActivate;
       themeTabPlugin.importFromFile = importFromFile;
       creator.onActiveTabChanged.remove(onActiveTabChanged);

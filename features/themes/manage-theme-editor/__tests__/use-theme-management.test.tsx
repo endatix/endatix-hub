@@ -61,6 +61,7 @@ function makePropertyGridSurvey() {
 
 function makeCreator(theme: Record<string, unknown>) {
   const propertyGridSurvey = makePropertyGridSurvey();
+  const addTheme = vi.fn();
   const themeEditor = {
     advancedModeEnabled: false,
     _availableThemes: [] as string[],
@@ -71,7 +72,7 @@ function makeCreator(theme: Record<string, unknown>) {
       this._availableThemes = value;
       themeEditor.onThemePropertyChanged.fire(null, {});
     },
-    addTheme: vi.fn(),
+    addTheme,
     removeTheme: vi.fn(),
     onAvailableThemesChanged: vi.fn(),
     propertyGrid: { survey: propertyGridSurvey },
@@ -103,6 +104,7 @@ function makeCreator(theme: Record<string, unknown>) {
     onPropertyEditorUpdateTitleActions: new FakeEvent<unknown, unknown>(),
     onActiveTabChanged: new FakeEvent<unknown, { tabName?: string }>(),
     themeEditor,
+    addTheme,
   };
 }
 
@@ -314,7 +316,7 @@ describe("useThemeManagement dirty tracking", () => {
     const { creator } = renderThemeManagement({ id: "t1", themeName: "Acme" });
 
     await waitFor(() =>
-      expect(creator.themeEditor.addTheme).toHaveBeenCalled(),
+      expect(creator.addTheme).toHaveBeenCalled(),
     );
     expect(creator.themeEditor.themeModel.setTheme).not.toHaveBeenCalled();
   });
@@ -343,7 +345,7 @@ describe("useThemeManagement dirty tracking", () => {
       themeName: "Acme",
     });
     await waitFor(() =>
-      expect(creator.themeEditor.addTheme).toHaveBeenCalled(),
+      expect(creator.addTheme).toHaveBeenCalled(),
     );
 
     act(() => {
@@ -362,7 +364,7 @@ describe("useThemeManagement dirty tracking", () => {
       });
     });
 
-    expect(creator.themeEditor.addTheme).toHaveBeenCalledWith(
+    expect(creator.addTheme).toHaveBeenCalledWith(
       expect.objectContaining({ id: "t1", themeName: "Acme" }),
     );
     expect(creator.theme).toBe(edited);

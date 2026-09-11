@@ -128,6 +128,22 @@ export function markAllChoicesLoaded(
   }
 }
 
+/**
+ * `scrollableContainer` is a getter over `listContainerHtmlElement`, which the
+ * vendor leaves undefined once the list unmounts - reading it then throws.
+ */
+function readScrollableContainer(
+  listModel: NonNullable<
+    NonNullable<LazyChoiceQuestion["dropdownListModel"]>["listModel"]
+  >,
+): ScrollContainer | null {
+  try {
+    return listModel.scrollableContainer ?? null;
+  } catch {
+    return null;
+  }
+}
+
 function isScrolledToLoadingRow(
   container: ScrollContainer | null | undefined,
 ): boolean {
@@ -154,16 +170,26 @@ export function bindLoadingIndicatorObserver(
   if (!dropdown || !listModel?.setLoadingIndicatorVisibilityObserver) {
     return NOOP;
   }
+  const list = listModel;
 
-  const requestNextPageIfNeeded = () => {
-    if (!dropdown.popupModel?.isVisible) {
+  // The element the scroll listener is on. Never re-read the getter to detach:
+  // it can throw, and after a re-render it can answer with a different node.
+  let scrollTarget: ScrollContainer | null = null;
+
+  const detachScrollListener = () => {
+    scrollTarget?.removeEventListener?.("scroll", requestNextPageIfNeeded);
+    scrollTarget = null;
+  };
+
+  function requestNextPageIfNeeded() {
+    if (!dropdown?.popupModel?.isVisible) {
       return;
     }
-    if (!isScrolledToLoadingRow(listModel.scrollableContainer)) {
+    if (!isScrolledToLoadingRow(readScrollableContainer(list))) {
       return;
     }
     dropdown.updateQuestionChoices?.();
-  };
+  }
 
   const onVisible = (isVisible: boolean) => {
     if (isVisible) {
@@ -171,27 +197,28 @@ export function bindLoadingIndicatorObserver(
     }
   };
 
-  listModel.setLoadingIndicatorVisibilityObserver(onVisible);
-  const indicator = listModel.loadingIndicator;
+  list.setLoadingIndicatorVisibilityObserver?.(onVisible);
+  const indicator = list.loadingIndicator;
   indicator?.intersectionVisibilityObserver?.disconnect();
   indicator?.initLoadingIndicatorVisibilityObserver?.(onVisible);
 
   const onPopupVisibility = (_: unknown, options: { isVisible: boolean }) => {
-    const container = listModel.scrollableContainer;
-    if (!container?.addEventListener || !container.removeEventListener) {
+    detachScrollListener();
+    if (!options.isVisible) {
       return;
     }
-    if (options.isVisible) {
-      container.addEventListener("scroll", requestNextPageIfNeeded);
+
+    const container = readScrollableContainer(list);
+    if (!container?.addEventListener) {
       return;
     }
-    container.removeEventListener("scroll", requestNextPageIfNeeded);
+    container.addEventListener("scroll", requestNextPageIfNeeded);
+    scrollTarget = container;
   };
   dropdown.popupModel?.onVisibilityChanged?.add(onPopupVisibility);
 
   return () => {
-    const container = listModel.scrollableContainer;
-    container?.removeEventListener?.("scroll", requestNextPageIfNeeded);
+    detachScrollListener();
     dropdown.popupModel?.onVisibilityChanged?.remove(onPopupVisibility);
   };
 }

@@ -21,18 +21,64 @@ import {
 } from "./load-theme-catalog-choice-page";
 
 const THEME_NAME_PROPERTY = "themeName";
+/** Holds the live unbind, so re-binding one survey returns it instead of stacking. */
 const BOUND_KEY = "__endatixThemeCatalogLazyBound";
 const NOOP = () => {};
 
-/** `onAvailableThemesChanged` is private in the typings; we patch it by name. */
-type ThemeChooserHost = {
-  onAvailableThemesChanged?: (availableThemes: string[]) => void;
-};
+type Unbind = () => void;
+
+/** Runs `act` with the `themeName` editor hidden from `getQuestionByName`. */
+function withHiddenThemeChooser<T>(survey: Model, act: () => T): T {
+  const lookup = survey.getQuestionByName;
+  survey.getQuestionByName = ((name: string) =>
+    name === THEME_NAME_PROPERTY
+      ? undefined
+      : lookup.call(survey, name)) as Model["getQuestionByName"];
+  try {
+    return act();
+  } finally {
+    survey.getQuestionByName = lookup;
+  }
+}
+
+/**
+ * `addTheme` assigns `availableThemes`, which looks up `themeName` and rewrites
+ * `choices` (that reset leaves SurveyJS on "Loading..."). Hide the chooser for
+ * the call so Themes[] still updates and `runExpressions` still runs.
+ */
+function wrapAddThemeForLazyChooser(
+  plugin: ThemeTabPlugin,
+  survey: Model,
+  question: LazyChoiceQuestion,
+): Unbind {
+  const originalAddTheme = plugin.addTheme;
+
+  plugin.addTheme = ((theme, setAsDefault) =>
+    question.choicesLazyLoadEnabled
+      ? withHiddenThemeChooser(survey, () =>
+          originalAddTheme.call(plugin, theme, setAsDefault),
+        )
+      : originalAddTheme.call(
+          plugin,
+          theme,
+          setAsDefault,
+        )) as ThemeTabPlugin["addTheme"];
+
+  return () => {
+    plugin.addTheme = originalAddTheme;
+  };
+}
+
+const activeUnbinds = new WeakMap<ThemeTabPlugin, Unbind>();
+
+function unbindPrevious(plugin: ThemeTabPlugin): void {
+  activeUnbinds.get(plugin)?.();
+}
 
 /**
  * Pages the tenant theme catalog into the Theme Editor `themeName` chooser.
- * Returns an unbind for the hook cleanup; binding twice on one property grid
- * survey is a no-op.
+ * Returns the unbind for the hook cleanup - re-binding the same survey hands
+ * back the live one, and binding a rebuilt survey supersedes the old binding.
  */
 export function bindThemeCatalogLazyChoices(
   plugin: ThemeTabPlugin,
@@ -48,10 +94,14 @@ export function bindThemeCatalogLazyChoices(
     return NOOP;
   }
 
-  if (survey[BOUND_KEY]) {
-    return NOOP;
+  const bound = survey[BOUND_KEY] as Unbind | undefined;
+  if (bound) {
+    return bound;
   }
-  survey[BOUND_KEY] = true;
+
+  // The plugin rebuilds `propertyGrid.survey` on every Themes tab activation, so
+  // drop the previous survey's handlers before wrapping `addTheme` again.
+  unbindPrevious(plugin);
 
   question.choicesLazyLoadEnabled = true;
   question.choicesLazyLoadPageSize = DEFAULT_CHOICES_LAZY_LOAD_PAGE_SIZE;
@@ -61,15 +111,7 @@ export function bindThemeCatalogLazyChoices(
   const unbindLoadingObserver = bindLoadingIndicatorObserver(question);
   question.choices = [DEFAULT_THEME_CHOICE];
 
-  // addTheme → availableThemes setter → onAvailableThemesChanged rewrites
-  // themeName.choices and may setTheme(default) when the current value is not
-  // in that static list. Still run expressions so Header View Basic hides
-  // advanced-only editors (height, cover width, …).
-  const host = plugin as unknown as ThemeChooserHost;
-  const originalOnAvailableThemesChanged = host.onAvailableThemesChanged;
-  if (typeof originalOnAvailableThemesChanged === "function") {
-    host.onAvailableThemesChanged = () => survey.runExpressions();
-  }
+  const unwrapAddTheme = wrapAddThemeForLazyChooser(plugin, survey, question);
 
   let loadedCount = 0;
   let loadGeneration = 0;
@@ -131,12 +173,17 @@ export function bindThemeCatalogLazyChoices(
 
   survey.onChoicesLazyLoad.add(onChoicesLazyLoad);
 
-  return () => {
+  const unbind = () => {
     unbindLoadingObserver();
     survey.onChoicesLazyLoad.remove(onChoicesLazyLoad);
-    if (typeof originalOnAvailableThemesChanged === "function") {
-      host.onAvailableThemesChanged = originalOnAvailableThemesChanged;
+    unwrapAddTheme();
+    delete survey[BOUND_KEY];
+    if (activeUnbinds.get(plugin) === unbind) {
+      activeUnbinds.delete(plugin);
     }
-    survey[BOUND_KEY] = false;
   };
+
+  survey[BOUND_KEY] = unbind;
+  activeUnbinds.set(plugin, unbind);
+  return unbind;
 }
