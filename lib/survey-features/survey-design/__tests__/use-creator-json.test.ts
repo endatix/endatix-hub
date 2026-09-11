@@ -31,6 +31,28 @@ describe("useCreatorJson", () => {
     expect(creator.JSON).toBe(unsavedJson);
   });
 
+  it("does not reset the canvas when a save revalidates the edits back", () => {
+    // Arrange
+    const creator = createCreator();
+    const savedJson = { pages: [{ name: "page1", elements: [] }] };
+    const { rerender } = renderCreatorJson({ creator, json: savedJson });
+
+    // Act — the user's edit is saved, then revalidatePath refetches that same content.
+    const edited = {
+      pages: [{ name: "page1", elements: [{ type: "text", name: "q1" }] }],
+    };
+    creator.JSON = edited;
+    rerender({
+      creator,
+      json: {
+        pages: [{ name: "page1", elements: [{ type: "text", name: "q1" }] }],
+      },
+    });
+
+    // Assert
+    expect(creator.JSON).toBe(edited);
+  });
+
   it("applies a later distinct snapshot on the same Creator", () => {
     // Arrange
     const creator = createCreator();
@@ -73,5 +95,57 @@ describe("useCreatorJson", () => {
     // Assert
     expect(first.JSON).toBe(json);
     expect(second.JSON).toBe(json);
+  });
+});
+
+// survey-core's comparator defaults are tuned for answers (case-folding, trimming,
+// numeric coercion). These pin the definition-comparison flags so a survey-core
+// upgrade fails here rather than silently dropping an edit from the canvas.
+describe("useCreatorJson snapshot comparison", () => {
+  const rerenderWith = (applied: object, next: object) => {
+    const creator = createCreator();
+    const { rerender } = renderCreatorJson({ creator, json: applied });
+    rerender({ creator, json: next });
+    return creator.JSON;
+  };
+
+  it("skips a snapshot that differs only by object key order", () => {
+    // Act & Assert
+    expect(
+      rerenderWith(
+        { title: "Form", pages: [{ name: "p1", elements: [] }] },
+        { pages: [{ elements: [], name: "p1" }], title: "Form" },
+      ),
+    ).toEqual({ title: "Form", pages: [{ name: "p1", elements: [] }] });
+  });
+
+  it("applies a snapshot whose array order changed", () => {
+    // Arrange
+    const reordered = { pages: [{ name: "b" }, { name: "a" }] };
+
+    // Act & Assert
+    expect(
+      rerenderWith({ pages: [{ name: "a" }, { name: "b" }] }, reordered),
+    ).toBe(reordered);
+  });
+
+  it("applies a title edit that only changes letter case", () => {
+    // Arrange
+    const titleCased = { pages: [{ name: "p1", title: "First Name" }] };
+
+    // Act & Assert
+    expect(
+      rerenderWith({ pages: [{ name: "p1", title: "first name" }] }, titleCased),
+    ).toBe(titleCased);
+  });
+
+  it("applies an edit that only retypes a value from string to number", () => {
+    // Arrange
+    const numeric = { pages: [{ name: "p1", rateMax: 5 }] };
+
+    // Act & Assert
+    expect(
+      rerenderWith({ pages: [{ name: "p1", rateMax: "5" }] }, numeric),
+    ).toBe(numeric);
   });
 });
