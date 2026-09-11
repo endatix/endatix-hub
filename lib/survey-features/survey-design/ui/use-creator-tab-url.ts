@@ -10,21 +10,21 @@ import {
 import { loadTabFromUrl } from "../use-cases/load-tab-from-url";
 import { bindSetTabToUrl } from "../use-cases/set-tab-to-url";
 
+/** Writes `?tab=` in place. Next patches History, so `useSearchParams` still sees it. */
 function replaceTabQuery(nextQueryValue: string | null) {
-  const url = new URL(globalThis.window.location.href);
+  const { location, history } = globalThis.window;
+  const url = new URL(location.href);
   if (nextQueryValue) {
     url.searchParams.set(CREATOR_TAB_QUERY_KEY, nextQueryValue);
   } else {
     url.searchParams.delete(CREATOR_TAB_QUERY_KEY);
   }
 
-  const href = `${url.pathname}${url.search}${url.hash}`;
-  const current = `${globalThis.window.location.pathname}${globalThis.window.location.search}${globalThis.window.location.hash}`;
-  if (href === current) {
+  if (url.search === location.search) {
     return;
   }
 
-  globalThis.window.history.replaceState(null, "", href);
+  history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
 }
 
 /** Keeps the Creator's active tab and `?tab=` in sync, both ways. */

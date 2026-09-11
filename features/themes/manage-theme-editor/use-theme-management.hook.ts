@@ -109,13 +109,17 @@ export const useThemeManagement = ({
   const [originalThemeId] = useState<string | undefined>(themeId);
   const themeManagementInitializedRef = useRef(false);
   const isHydratingThemeTabRef = useRef(false);
+  const isThemeDirtyRef = useRef(false);
   const registeredThemeNamesRef = useRef<string[]>([DEFAULT_THEME_NAME]);
   const currentThemeIdRef = useRef<string | undefined>(themeId);
-
 
   useEffect(() => {
     currentThemeIdRef.current = currentThemeId;
   }, [currentThemeId]);
+
+  useEffect(() => {
+    isThemeDirtyRef.current = isThemeDirty;
+  }, [isThemeDirty]);
 
   const addCustomTheme = useCallback(
     (theme: StoredTheme) => {
@@ -284,18 +288,31 @@ export const useThemeManagement = ({
     themeTabPlugin.onThemeSelected.add(handleThemeChanged);
     themeTabPlugin.onThemePropertyChanged.add(handleThemePropertyChanged);
 
-    const pluginActivate = themeTabPlugin.activate;
-    if (pluginActivate) {
-      themeTabPlugin.activate = () => {
-        isHydratingThemeTabRef.current = true;
-        try {
-          pluginActivate.call(themeTabPlugin);
-        } finally {
-          isHydratingThemeTabRef.current = false;
+    const applyThemeChooserChoices = () => {
+      try {
+        creator.themeEditor.availableThemes = registeredThemeNamesRef.current;
+      } catch {
+        // The property grid survey only exists after ThemeTabPlugin.activate().
+      }
+    };
+
+    // Hydrating the Theme Editor raises the same events a user edit does. Suppress
+    // them, and leave Creator's own flag alone when the user really is mid-edit.
+    const hydrateThemeTab = (hydrate: () => void) => {
+      isHydratingThemeTabRef.current = true;
+      try {
+        hydrate();
+      } finally {
+        isHydratingThemeTabRef.current = false;
+        if (!isThemeDirtyRef.current) {
           creator.hasPendingThemeChanges = false;
         }
-      };
-    }
+      }
+    };
+
+    const pluginActivate = themeTabPlugin.activate;
+    themeTabPlugin.activate = () =>
+      hydrateThemeTab(() => pluginActivate.call(themeTabPlugin));
 
     // Importing a theme file goes through `themeModel.setTheme`, which raises only
     // `onThemeSelected` — the same event a chooser switch raises, and that one clears
@@ -309,24 +326,9 @@ export const useThemeManagement = ({
         callback?.(theme);
       });
 
-    const applyThemeChooserChoices = () => {
-      try {
-        creator.themeEditor.availableThemes = registeredThemeNamesRef.current;
-      } catch {
-        // The property grid survey only exists after ThemeTabPlugin.activate().
-      }
-    };
-
     const onActiveTabChanged = (_: unknown, options: { tabName?: string }) => {
-      if (options.tabName !== SURVEY_CREATOR_BUILT_IN_TAB.theme) {
-        return;
-      }
-      isHydratingThemeTabRef.current = true;
-      try {
-        applyThemeChooserChoices();
-      } finally {
-        isHydratingThemeTabRef.current = false;
-        creator.hasPendingThemeChanges = false;
+      if (options.tabName === SURVEY_CREATOR_BUILT_IN_TAB.theme) {
+        hydrateThemeTab(applyThemeChooserChoices);
       }
     };
     creator.onActiveTabChanged.add(onActiveTabChanged);
@@ -344,13 +346,7 @@ export const useThemeManagement = ({
               .filter((name): name is string => Boolean(name)),
           ]),
         ];
-        isHydratingThemeTabRef.current = true;
-        try {
-          applyThemeChooserChoices();
-        } finally {
-          isHydratingThemeTabRef.current = false;
-          creator.hasPendingThemeChanges = false;
-        }
+        hydrateThemeTab(applyThemeChooserChoices);
 
         const assignedTheme = currentThemeIdRef.current
           ? themes.find((theme) => theme.id === currentThemeIdRef.current)
@@ -365,9 +361,7 @@ export const useThemeManagement = ({
     themeManagementInitializedRef.current = true;
 
     return () => {
-      if (pluginActivate) {
-        themeTabPlugin.activate = pluginActivate;
-      }
+      themeTabPlugin.activate = pluginActivate;
       themeTabPlugin.importFromFile = importFromFile;
       creator.onActiveTabChanged.remove(onActiveTabChanged);
       creator.themeEditor.onThemeSelected.remove(handleThemeChanged);

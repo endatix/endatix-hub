@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import type { SurveyCreatorModel } from "survey-creator-core";
 import { shouldApplyCreatorJson } from "../use-cases/should-apply-creator-json";
 
+/** Loads a saved canvas snapshot into the Creator without clobbering live edits. */
 export function useCreatorJson(
   creator: SurveyCreatorModel | null,
   json: object | null,
@@ -12,11 +13,9 @@ export function useCreatorJson(
   const lastAppliedJsonRef = useRef<object | null>(null);
 
   useEffect(() => {
-    if (!creator || !json) {
-      return;
-    }
-
     if (
+      !creator ||
+      !json ||
       !shouldApplyCreatorJson(
         creator,
         json,

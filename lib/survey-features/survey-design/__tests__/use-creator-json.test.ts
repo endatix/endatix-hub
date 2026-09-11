@@ -2,28 +2,30 @@ import { renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { useCreatorJson } from "../ui/use-creator-json";
 
-function createCreator(initialJson: object | null = null) {
-  return { JSON: initialJson };
-}
+type FakeCreator = { JSON: object | null };
+type CreatorJsonProps = { creator: FakeCreator; json: object | null };
+
+const createCreator = (): FakeCreator => ({ JSON: null });
+
+const renderCreatorJson = (initialProps: CreatorJsonProps) =>
+  renderHook<void, CreatorJsonProps>(
+    ({ creator, json }) => useCreatorJson(creator as never, json),
+    { initialProps },
+  );
 
 describe("useCreatorJson", () => {
   it("does not overwrite live edits when the same snapshot is refetched", () => {
     // Arrange
     const creator = createCreator();
     const savedJson = { pages: [{ name: "page1", elements: [] }] };
+    const { rerender } = renderCreatorJson({ creator, json: savedJson });
 
     // Act
-    const { rerender } = renderHook(
-      ({ json }: { json: object | null }) =>
-        useCreatorJson(creator as never, json),
-      { initialProps: { json: savedJson } },
-    );
-
     const unsavedJson = {
       pages: [{ name: "page1", elements: [{ type: "text", name: "q1" }] }],
     };
     creator.JSON = unsavedJson;
-    rerender({ json: { pages: [{ name: "page1", elements: [] }] } });
+    rerender({ creator, json: { pages: [{ name: "page1", elements: [] }] } });
 
     // Assert
     expect(creator.JSON).toBe(unsavedJson);
@@ -36,14 +38,10 @@ describe("useCreatorJson", () => {
     const secondTurn = {
       pages: [{ name: "page1", elements: [{ type: "text", name: "q1" }] }],
     };
+    const { rerender } = renderCreatorJson({ creator, json: firstTurn });
 
     // Act
-    const { rerender } = renderHook(
-      ({ json }: { json: object | null }) =>
-        useCreatorJson(creator as never, json),
-      { initialProps: { json: firstTurn } },
-    );
-    rerender({ json: secondTurn });
+    rerender({ creator, json: secondTurn });
 
     // Assert
     expect(creator.JSON).toBe(secondTurn);
@@ -53,14 +51,10 @@ describe("useCreatorJson", () => {
     // Arrange
     const creator = createCreator();
     const json = { pages: [{ name: "page1" }] };
+    const { rerender } = renderCreatorJson({ creator, json: null });
 
     // Act
-    const { rerender } = renderHook(
-      ({ json: nextJson }: { json: object | null }) =>
-        useCreatorJson(creator as never, nextJson),
-      { initialProps: { json: null } },
-    );
-    rerender({ json });
+    rerender({ creator, json });
 
     // Assert
     expect(creator.JSON).toBe(json);
@@ -71,18 +65,9 @@ describe("useCreatorJson", () => {
     const first = createCreator();
     const second = createCreator();
     const json = { pages: [{ name: "page1" }] };
+    const { rerender } = renderCreatorJson({ creator: first, json });
 
     // Act
-    const { rerender } = renderHook(
-      ({
-        creator,
-        json: nextJson,
-      }: {
-        creator: ReturnType<typeof createCreator>;
-        json: object | null;
-      }) => useCreatorJson(creator as never, nextJson),
-      { initialProps: { creator: first, json } },
-    );
     rerender({ creator: second, json });
 
     // Assert

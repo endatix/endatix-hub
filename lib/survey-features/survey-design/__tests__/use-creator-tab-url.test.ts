@@ -65,19 +65,18 @@ describe("useCreatorTabUrl", () => {
   });
 
   it("keeps other search params and the hash", () => {
-    window.history.replaceState(
-      null,
-      "",
-      "/forms/1/design?foo=bar#toolbox",
-    );
+    // Arrange
+    window.history.replaceState(null, "", "/forms/1/design?foo=bar#toolbox");
     const creator = newCreator();
     renderHook(() => useCreatorTabUrl(creator));
     vi.mocked(window.history.replaceState).mockClear();
 
+    // Act
     act(() => {
       creator.activeTab = SURVEY_CREATOR_BUILT_IN_TAB.preview;
     });
 
+    // Assert
     expect(window.history.replaceState).toHaveBeenCalledWith(
       null,
       "",
@@ -86,6 +85,7 @@ describe("useCreatorTabUrl", () => {
   });
 
   it("does not call replaceState when the tab query is already current", () => {
+    // Arrange
     window.history.replaceState(null, "", "/forms/1/design?tab=preview");
     searchParams = new URLSearchParams("tab=preview");
     const creator = newCreator();
@@ -93,10 +93,12 @@ describe("useCreatorTabUrl", () => {
     renderHook(() => useCreatorTabUrl(creator));
     vi.mocked(window.history.replaceState).mockClear();
 
+    // Act
     act(() => {
       creator.activeTab = SURVEY_CREATOR_BUILT_IN_TAB.preview;
     });
 
+    // Assert
     expect(window.history.replaceState).not.toHaveBeenCalled();
   });
 });

@@ -164,6 +164,27 @@ describe("useThemeManagement dirty tracking", () => {
     expect(view.result.current.isThemeDirty).toBe(false);
   });
 
+  it("keeps pending theme changes when the user reopens the Themes tab mid-edit", async () => {
+    // Arrange
+    const { creator, view } = renderThemeManagement({
+      id: "t1",
+      themeName: "Acme",
+    });
+
+    // Act — applyTheme sets the flag on every edit; leaving and returning must not clear it.
+    act(() => {
+      creator.hasPendingThemeChanges = true;
+      creator.themeEditor.onThemePropertyChanged.fire(null, {});
+    });
+    act(() => {
+      creator.onActiveTabChanged.fire(null, { tabName: "theme" });
+    });
+
+    // Assert
+    expect(view.result.current.isThemeDirty).toBe(true);
+    expect(creator.hasPendingThemeChanges).toBe(true);
+  });
+
   it("keeps the theme dirty across the syncTheme that follows every edit", async () => {
     // v3 assigns creator.theme on each property change. That must not look like a
     // theme switch, or the Save button would stop offering to save the edits.

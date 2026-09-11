@@ -15,8 +15,8 @@ Prefer vendor types from `survey-core` / `survey-creator-core`. Where they widen
 
 - Preview's id is `preview`; `test` is a legacy id Creator still emits — normalise with `canonicalizeCreatorTabId`, never compare raw.
 - `?tab=` slugs are one map in `creator/tab-url.ts` (`design` → `designer`; Design omits the param). Sync via `history.replaceState` in `useCreatorTabUrl`, not `router.replace` — App Router navigation refetches saved JSON over live Creator state (h939). Paged lists still use `useUrlSearchParamsUpdater` so they refetch.
-- Load canvas JSON with `useCreatorJson`: skip same-content object identity churn; apply a distinct snapshot (AI chat) and a new Creator instance.
-- Opening the Themes tab hydrates Theme Editor (`activate`, chooser choices). That is not a user edit — `useThemeManagement` ignores those events. `creator.theme =` from Hub also clears `hasPendingThemeChanges`.
+- Never assign `creator.JSON` in a slice — call `useCreatorJson` (`form-editor.tsx`, `form-template-editor.tsx`). It re-applies only for a structurally different snapshot (object key order ignored, array order significant) or a new Creator instance, so a Server Component refetch of the same definition cannot overwrite unsaved canvas edits (h939). A save does change the content, so it still re-applies.
+- Opening the Themes tab hydrates Theme Editor (`activate`, chooser choices) and raises the same events a user edit does. `useThemeManagement` suppresses them via `hydrateThemeTab`. Hub's dirty state is `isThemeDirty` (Save and `beforeunload` read it); `hasPendingThemeChanges` is only Creator's own theme-save signal — clear it after Hub-driven theme writes, never while `isThemeDirty`.
 - To ask whether a Creator can show a tab, read `creator.tabs`. Never `creator.getPlugin(id)`: it answers for tabs `showThemeTab` & friends removed, and instantiates the plugin as a side effect.
 - Product allowlists (carry-forward question types, …) stay in the owning feature.
 
