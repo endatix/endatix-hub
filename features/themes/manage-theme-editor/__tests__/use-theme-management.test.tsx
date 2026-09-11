@@ -49,7 +49,18 @@ class FakeEvent<TSender, TOptions> {
   }
 }
 
+/** Minimal Theme Editor property grid: only the lazy `themeName` chooser. */
+function makePropertyGridSurvey() {
+  const themeNameQuestion = { name: "themeName", choices: [] as unknown[] };
+  return {
+    getQuestionByName: (name: string) =>
+      name === "themeName" ? themeNameQuestion : undefined,
+    onChoicesLazyLoad: new FakeEvent<unknown, unknown>(),
+  };
+}
+
 function makeCreator(theme: Record<string, unknown>) {
+  const propertyGridSurvey = makePropertyGridSurvey();
   const themeEditor = {
     advancedModeEnabled: false,
     _availableThemes: [] as string[],
@@ -62,6 +73,7 @@ function makeCreator(theme: Record<string, unknown>) {
     },
     addTheme: vi.fn(),
     removeTheme: vi.fn(),
+    propertyGrid: { survey: propertyGridSurvey },
     activate() {
       themeEditor.onThemePropertyChanged.fire(null, {});
     },
@@ -82,6 +94,7 @@ function makeCreator(theme: Record<string, unknown>) {
   };
   return {
     theme,
+    propertyGridSurvey,
     hasPendingThemeChanges: false,
     preferredColorPalette: "light",
     toolbar: { actions: [] as Array<{ id: string }> },
@@ -248,6 +261,56 @@ describe("useThemeManagement dirty tracking", () => {
     });
 
     expect(view.result.current.isThemeDirty).toBe(false);
+  });
+
+  it("keeps the edits in progress when a catalog page re-registers the assigned theme", async () => {
+    // Paging the chooser must only make themes selectable. Re-applying the
+    // assigned one would silently roll back the edits the user is making.
+    const assigned = {
+      id: "t1",
+      name: "Acme",
+      jsonData: '{"themeName":"Acme"}',
+    };
+    getThemeAction.mockResolvedValue(Result.success(assigned));
+    listThemesPageAction.mockResolvedValue(
+      Result.success({
+        items: [assigned],
+        page: 1,
+        pageSize: 25,
+        totalRecords: 1,
+        totalPages: 1,
+        hasNextPage: false,
+      }),
+    );
+    const { creator, view } = renderThemeManagement({
+      id: "t1",
+      themeName: "Acme",
+    });
+    await waitFor(() =>
+      expect(creator.themeEditor.addTheme).toHaveBeenCalled(),
+    );
+
+    act(() => {
+      creator.onActiveTabChanged.fire(null, { tabName: "theme" });
+      creator.themeEditor.onThemePropertyChanged.fire(null, {});
+    });
+    const edited = { id: "t1", themeName: "Acme", edited: true };
+    creator.theme = edited;
+
+    await act(async () => {
+      creator.propertyGridSurvey.onChoicesLazyLoad.fire(null, {
+        question: { name: "themeName" },
+        skip: 0,
+        take: 25,
+        setItems: vi.fn(),
+      });
+    });
+
+    expect(creator.themeEditor.addTheme).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "t1", themeName: "Acme" }),
+    );
+    expect(creator.theme).toBe(edited);
+    expect(view.result.current.isThemeDirty).toBe(true);
   });
 });
 

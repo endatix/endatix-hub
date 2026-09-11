@@ -19,10 +19,7 @@ import { DefaultLight } from "survey-core/themes";
 import { ThemeTabPlugin } from "survey-creator-core";
 import { SurveyCreator } from "survey-creator-react";
 import { bindThemeCatalogLazyChoices } from "./bind-theme-catalog-lazy-choices";
-import {
-  DEFAULT_THEME_NAME,
-  parseStoredTheme,
-} from "./parse-stored-theme";
+import { DEFAULT_THEME_NAME, parseStoredTheme } from "./parse-stored-theme";
 
 registerThemes();
 
@@ -113,11 +110,11 @@ export const useThemeManagement = ({
     isThemeDirtyRef.current = isThemeDirty;
   }, [isThemeDirty]);
 
-  const addCustomTheme = useCallback(
+  /** Makes a theme selectable in the chooser. Never touches the applied theme. */
+  const registerTheme = useCallback(
     (theme: StoredTheme) => {
-      const safeTheme = sanitizeSurveyTheme(theme);
       try {
-        creator!.themeEditor.addTheme(safeTheme);
+        creator!.themeEditor.addTheme(theme);
       } catch (error) {
         // v3's onAvailableThemesChanged always calls propertyGrid.survey.runExpressions().
         // Before the Themes tab activates that survey can be missing; Themes[] is still
@@ -127,13 +124,22 @@ export const useThemeManagement = ({
           error,
         );
       }
+    },
+    [creator],
+  );
+
+  /** Registers a theme and applies it when it is the one assigned to the form. */
+  const addCustomTheme = useCallback(
+    (theme: StoredTheme) => {
+      const safeTheme = sanitizeSurveyTheme(theme);
+      registerTheme(safeTheme);
 
       if (safeTheme.id === currentThemeIdRef.current) {
         creator!.theme = safeTheme;
         creator!.hasPendingThemeChanges = false;
       }
     },
-    [creator],
+    [creator, registerTheme],
   );
 
   /**
@@ -280,11 +286,19 @@ export const useThemeManagement = ({
     themeTabPlugin.onThemeSelected.add(handleThemeChanged);
     themeTabPlugin.onThemePropertyChanged.add(handleThemePropertyChanged);
 
+    // Paged catalog themes only become selectable - re-applying the assigned one
+    // here would silently discard the edits in progress on the Themes tab.
     const registerCatalogThemes = (themes: StoredTheme[]) => {
       for (const theme of themes) {
-        addCustomTheme(theme);
+        registerTheme(sanitizeSurveyTheme(theme));
       }
     };
+
+    const unbindLazyChoices: Array<() => void> = [];
+    const bindLazyChoices = () =>
+      unbindLazyChoices.push(
+        bindThemeCatalogLazyChoices(themeTabPlugin, registerCatalogThemes),
+      );
 
     const hydrateThemeTab = (hydrate: () => void) => {
       isHydratingThemeTabRef.current = true;
@@ -302,7 +316,7 @@ export const useThemeManagement = ({
     themeTabPlugin.activate = () =>
       hydrateThemeTab(() => {
         pluginActivate.call(themeTabPlugin);
-        bindThemeCatalogLazyChoices(themeTabPlugin, registerCatalogThemes);
+        bindLazyChoices();
       });
 
     // Import uses setTheme → onThemeSelected, which would clear dirty. Mark dirty after.
@@ -315,7 +329,7 @@ export const useThemeManagement = ({
 
     const onActiveTabChanged = (_: unknown, options: { tabName?: string }) => {
       if (options.tabName === SURVEY_CREATOR_BUILT_IN_TAB.theme) {
-        bindThemeCatalogLazyChoices(themeTabPlugin, registerCatalogThemes);
+        hydrateThemeTab(bindLazyChoices);
       }
     };
     creator.onActiveTabChanged.add(onActiveTabChanged);
@@ -335,6 +349,7 @@ export const useThemeManagement = ({
     themeManagementInitializedRef.current = true;
 
     return () => {
+      unbindLazyChoices.forEach((unbind) => unbind());
       themeTabPlugin.activate = pluginActivate;
       themeTabPlugin.importFromFile = importFromFile;
       creator.onActiveTabChanged.remove(onActiveTabChanged);
@@ -344,7 +359,13 @@ export const useThemeManagement = ({
       );
       themeManagementInitializedRef.current = false;
     };
-  }, [creator, addCustomTheme, handleThemeChanged, handleThemePropertyChanged]);
+  }, [
+    creator,
+    addCustomTheme,
+    registerTheme,
+    handleThemeChanged,
+    handleThemePropertyChanged,
+  ]);
 
   useEffect(() => {
     if (!creator) {

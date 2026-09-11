@@ -7,7 +7,7 @@ import type { Theme } from "@/lib/endatix-api/themes/types";
 import { createThemeAction } from "../create-theme/create-theme.action";
 import { deleteThemeAction } from "../delete-theme/delete-theme.action";
 import { getThemeAction } from "../get-theme/get-theme.action";
-import { getThemesAction, listThemesPageAction } from "../list-themes/list-themes.action";
+import { listThemesPageAction } from "../list-themes/list-themes.action";
 import { updateFormThemeAction } from "../update-form-theme/update-form-theme.action";
 import { updateThemeAction } from "../update-theme/update-theme.action";
 
@@ -51,7 +51,6 @@ const sampleTheme: Theme = {
 
 describe("theme actions", () => {
   const create = vi.fn();
-  const listAll = vi.fn();
   const list = vi.fn();
   const getTheme = vi.fn();
   const partialUpdate = vi.fn();
@@ -71,7 +70,6 @@ describe("theme actions", () => {
       return {
         themes: {
           create,
-          listAll,
           list,
           get: getTheme,
           partialUpdate,
@@ -190,42 +188,6 @@ describe("theme actions", () => {
 
       expect(getTheme).toHaveBeenCalledWith("theme-1");
       expect(result.kind).toBe(Kind.Success);
-    });
-  });
-
-  describe("getThemesAction", () => {
-    it("drains every page via listAll", async () => {
-      listAll.mockResolvedValue(ApiResult.success([sampleTheme]));
-
-      const result = await getThemesAction();
-
-      expect(listAll).toHaveBeenCalledTimes(1);
-      expect(listAll).toHaveBeenCalledWith();
-      expect(result.kind).toBe(Kind.Success);
-      if (result.kind !== Kind.Success) {
-        return;
-      }
-
-      expect(result.value).toEqual([sampleTheme]);
-    });
-
-    it("returns a failure when listAll fails", async () => {
-      listAll.mockResolvedValue(
-        ApiResult.httpStatusError(500, undefined, undefined, {
-          statusCode: 500,
-          endpoint: "/themes",
-          method: "GET",
-        }),
-      );
-
-      const result = await getThemesAction();
-
-      expect(result.kind).toBe(Kind.Error);
-      if (result.kind !== Kind.Error) {
-        return;
-      }
-
-      expect(result.message).toBeDefined();
     });
   });
 

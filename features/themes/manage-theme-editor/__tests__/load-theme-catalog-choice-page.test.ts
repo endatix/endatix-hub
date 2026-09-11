@@ -10,46 +10,78 @@ vi.mock("@/features/themes/list-themes", () => ({
   listThemesPageAction: (...args: unknown[]) => mockListPage(...args),
 }));
 
+function themePage(themes: Array<{ name: string; jsonData?: string }>) {
+  return Result.success({
+    page: 1,
+    pageSize: 25,
+    totalRecords: themes.length,
+    totalPages: 1,
+    hasNextPage: false,
+    items: themes.map((theme, index) => ({
+      id: `${index}`,
+      name: theme.name,
+      jsonData: theme.jsonData ?? JSON.stringify({ themeName: theme.name }),
+      createdAt: new Date(),
+    })),
+  });
+}
+
 describe("loadThemeCatalogChoicePage", () => {
   it("pages Hub themes into Theme Editor choices and registers JSON", async () => {
+    mockListPage.mockResolvedValue(themePage([{ name: "Brand" }]));
+    const registerThemes = vi.fn();
+
+    const page = await loadThemeCatalogChoicePage(0, 25, registerThemes);
+
+    expect(mockListPage).toHaveBeenCalledWith({ page: 1, pageSize: 25 });
+    expect(page).toEqual({
+      hasNextPage: false,
+      items: [
+        { value: "default", text: "Default" },
+        { value: "Brand", text: "Brand" },
+      ],
+    });
+    expect(registerThemes).toHaveBeenCalledWith([
+      expect.objectContaining({ id: "0", themeName: "Brand" }),
+    ]);
+  });
+
+  it("prepends Default on the first page only", async () => {
+    mockListPage.mockResolvedValue(themePage([{ name: "Brand" }]));
+
+    const page = await loadThemeCatalogChoicePage(25, 25, vi.fn());
+
+    expect(mockListPage).toHaveBeenCalledWith({ page: 2, pageSize: 25 });
+    expect(page.items).toEqual([{ value: "Brand", text: "Brand" }]);
+  });
+
+  it("skips themes with unusable JSON", async () => {
     mockListPage.mockResolvedValue(
-      Result.success({
-        page: 1,
-        pageSize: 25,
-        totalRecords: 1,
-        totalPages: 1,
-        hasNextPage: false,
-        items: [
-          {
-            id: "9",
-            name: "Brand",
-            jsonData: '{"themeName":"Brand"}',
-            createdAt: new Date(),
-          },
-        ],
-      }),
+      themePage([{ name: "Broken", jsonData: "{" }, { name: "Brand" }]),
     );
     const registerThemes = vi.fn();
 
-    const page = await loadThemeCatalogChoicePage(0, 25, undefined, registerThemes);
+    const page = await loadThemeCatalogChoicePage(0, 25, registerThemes);
 
-    expect(mockListPage).toHaveBeenCalledWith({ page: 1, pageSize: 25 });
     expect(page.items).toEqual([
       { value: "default", text: "Default" },
       { value: "Brand", text: "Brand" },
     ]);
     expect(registerThemes).toHaveBeenCalledWith([
-      expect.objectContaining({ id: "9", themeName: "Brand" }),
+      expect.objectContaining({ themeName: "Brand" }),
     ]);
-    expect(page.total).toBeGreaterThanOrEqual(2);
   });
 
   it("returns Default only when the page request fails", async () => {
     mockListPage.mockResolvedValue(Result.error("Failed to fetch themes"));
 
-    const page = await loadThemeCatalogChoicePage(0, 25, undefined, vi.fn());
-
-    expect(page.items).toEqual([{ value: "default", text: "Default" }]);
-    expect(page.total).toBe(1);
+    expect(await loadThemeCatalogChoicePage(0, 25, vi.fn())).toEqual({
+      hasNextPage: false,
+      items: [{ value: "default", text: "Default" }],
+    });
+    expect(await loadThemeCatalogChoicePage(25, 25, vi.fn())).toEqual({
+      hasNextPage: false,
+      items: [],
+    });
   });
 });

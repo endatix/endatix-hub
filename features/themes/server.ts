@@ -6,12 +6,8 @@ export { updateThemeAction } from "./update-theme";
 export type { UpdateThemeRequest, UpdateThemeResult } from "./update-theme";
 export { deleteThemeAction } from "./delete-theme";
 export type { DeleteThemeResult } from "./delete-theme";
-export { getThemesAction, listThemesPageAction } from "./list-themes";
-export type {
-  GetThemesResult,
-  ListThemesPageResult,
-  ThemeItem,
-} from "./list-themes";
+export { listThemesPageAction } from "./list-themes";
+export type { ListThemesPageResult, ThemeItem } from "./list-themes";
 export { getFormsForThemeAction } from "./list-forms-for-theme";
 export { updateFormThemeAction } from "./update-form-theme";
 export type { UpdateFormThemeResult } from "./update-form-theme";
