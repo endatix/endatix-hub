@@ -48,9 +48,19 @@ class FakeEvent<TSender, TOptions> {
 function makeCreator(theme: Record<string, unknown>) {
   const themeEditor = {
     advancedModeEnabled: false,
-    availableThemes: [] as string[],
+    _availableThemes: [] as string[],
+    get availableThemes() {
+      return this._availableThemes;
+    },
+    set availableThemes(value: string[]) {
+      this._availableThemes = value;
+      themeEditor.onThemePropertyChanged.fire(null, {});
+    },
     addTheme: vi.fn(),
     removeTheme: vi.fn(),
+    activate() {
+      themeEditor.onThemePropertyChanged.fire(null, {});
+    },
     // v3 loads the file, calls themeModel.setTheme (which raises onThemeSelected)
     // and only then invokes the callback.
     importFromFile(file: unknown, callback?: (theme: unknown) => void) {
@@ -68,6 +78,7 @@ function makeCreator(theme: Record<string, unknown>) {
   };
   return {
     theme,
+    hasPendingThemeChanges: false,
     preferredColorPalette: "light",
     toolbar: { actions: [] as Array<{ id: string }> },
     onPropertyEditorUpdateTitleActions: new FakeEvent<unknown, unknown>(),
@@ -124,6 +135,54 @@ describe("useThemeManagement dirty tracking", () => {
     });
 
     expect(view.result.current.isThemeDirty).toBe(true);
+  });
+
+  it("stays clean when Theme Editor hydrates on activate", async () => {
+    const { creator, view } = renderThemeManagement({
+      id: "t1",
+      themeName: "Acme",
+    });
+
+    act(() => {
+      creator.themeEditor.activate();
+    });
+
+    expect(view.result.current.isThemeDirty).toBe(false);
+    expect(creator.hasPendingThemeChanges).toBe(false);
+  });
+
+  it("stays clean when the Themes tab reapplies chooser choices", async () => {
+    const { creator, view } = renderThemeManagement({
+      id: "t1",
+      themeName: "Acme",
+    });
+
+    act(() => {
+      creator.onActiveTabChanged.fire(null, { tabName: "theme" });
+    });
+
+    expect(view.result.current.isThemeDirty).toBe(false);
+  });
+
+  it("keeps pending theme changes when the user reopens the Themes tab mid-edit", async () => {
+    // Arrange
+    const { creator, view } = renderThemeManagement({
+      id: "t1",
+      themeName: "Acme",
+    });
+
+    // Act
+    act(() => {
+      creator.hasPendingThemeChanges = true;
+      creator.themeEditor.onThemePropertyChanged.fire(null, {});
+    });
+    act(() => {
+      creator.onActiveTabChanged.fire(null, { tabName: "theme" });
+    });
+
+    // Assert
+    expect(view.result.current.isThemeDirty).toBe(true);
+    expect(creator.hasPendingThemeChanges).toBe(true);
   });
 
   it("keeps the theme dirty across the syncTheme that follows every edit", async () => {

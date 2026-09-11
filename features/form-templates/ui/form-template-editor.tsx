@@ -25,6 +25,7 @@ import { useRichTextEditing } from "@/lib/survey-features/rich-text";
 import {
   SurveyDesignSaveButton,
   SurveyDesignStatusBadge,
+  useCreatorJson,
   useCreatorTabUrl,
 } from "@/lib/survey-features/survey-design/ui";
 import { applyEndatixCreatorTheme } from "@/lib/themes/creator-theme";
@@ -149,6 +150,8 @@ function FormTemplateEditorContent({
     return () => creator.onModified.remove(setAsModified);
   }, [creator, setHasUnsavedChanges]);
 
+  useCreatorJson(creator, templateJson);
+
   const handleNameSave = useCallback(async () => {
     if (name === originalName) return;
 
@@ -246,14 +249,6 @@ function FormTemplateEditorContent({
     onCreatorCreated,
     isExtensionsReady,
   ]);
-
-  useEffect(() => {
-    if (!creator || !templateJson) {
-      return;
-    }
-
-    creator.JSON = templateJson;
-  }, [creator, templateJson]);
 
   useEffect(() => {
     if (!creator) {

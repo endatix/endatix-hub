@@ -11,14 +11,14 @@
 
 ## SurveyJS domain
 
-Prefer vendor types from `survey-core` / `survey-creator-core`. Where they widen to `string` (Creator `activeTab`), the closed Hub union lives in [`lib/survey-js/`](lib/survey-js/) — built-in ids plus Hub plugin ids. Import it instead of re-spelling those strings in a slice (`FORM_DIAGNOSTICS_PLUGIN_NAME` is `ENDATIX_CREATOR_TAB.diagnostics`).
+Prefer vendor types from `survey-core` / `survey-creator-core`. Closed Hub unions for vendor `string`s: [`lib/survey-js/`](lib/survey-js/) (`FORM_DIAGNOSTICS_PLUGIN_NAME` is `ENDATIX_CREATOR_TAB.diagnostics`). Placement: [`project-structure.md`](project-structure.md) `lib/survey-js`.
 
-- Preview's id is `preview`; `test` is a legacy id Creator still emits — normalise with `canonicalizeCreatorTabId`, never compare raw.
-- `?tab=` slugs are one map in `creator/tab-url.ts` (`design` → `designer`; Design omits the param).
-- To ask whether a Creator can show a tab, read `creator.tabs`. Never `creator.getPlugin(id)`: it answers for tabs `showThemeTab` & friends removed, and instantiates the plugin as a side effect.
-- Product allowlists (carry-forward question types, …) stay in the owning feature.
-
-Placement: [`project-structure.md`](project-structure.md).
+- Preview id is `preview`; Creator still emits `test` — `canonicalizeCreatorTabId`, never a raw compare.
+- `?tab=` map: `creator/tab-url.ts`. Sync with [`useCreatorTabUrl`](lib/survey-features/survey-design/ui/use-creator-tab-url.ts) (`history.replaceState`). Lists keep `useUrlSearchParamsUpdater` so they refetch (h939).
+- Canvas JSON: [`useCreatorJson`](lib/survey-features/survey-design/ui/use-creator-json.ts) only — never `creator.JSON =` in a slice. Compare with `SAME_DEFINITION` in that file (`Helpers.checkIfValuesEqual`, not `isTwoValueEquals`). Flags are pinned in `use-creator-json.test.ts`.
+- Theme hydration: `hydrateThemeTab` in [`use-theme-management.hook.ts`](features/themes/manage-theme-editor/use-theme-management.hook.ts). Hub dirty is `isThemeDirty`; Creator's save signal is `hasPendingThemeChanges` — do not clear the latter while the former is true.
+- Tab presence: `creator.tabs`. Never `creator.getPlugin(id)` (answers for hidden tabs and instantiates the plugin).
+- Product allowlists stay in the owning feature.
 
 ## Configuration: public values are request-time
 

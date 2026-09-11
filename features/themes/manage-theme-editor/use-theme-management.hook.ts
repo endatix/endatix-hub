@@ -108,12 +108,18 @@ export const useThemeManagement = ({
     useState<ThemeDeleteRequest | null>(null);
   const [originalThemeId] = useState<string | undefined>(themeId);
   const themeManagementInitializedRef = useRef(false);
+  const isHydratingThemeTabRef = useRef(false);
+  const isThemeDirtyRef = useRef(false);
   const registeredThemeNamesRef = useRef<string[]>([DEFAULT_THEME_NAME]);
   const currentThemeIdRef = useRef<string | undefined>(themeId);
 
   useEffect(() => {
     currentThemeIdRef.current = currentThemeId;
   }, [currentThemeId]);
+
+  useEffect(() => {
+    isThemeDirtyRef.current = isThemeDirty;
+  }, [isThemeDirty]);
 
   const addCustomTheme = useCallback(
     (theme: StoredTheme) => {
@@ -132,6 +138,7 @@ export const useThemeManagement = ({
 
       if (safeTheme.id === currentThemeIdRef.current) {
         creator!.theme = safeTheme;
+        creator!.hasPendingThemeChanges = false;
       }
     },
     [creator],
@@ -258,8 +265,9 @@ export const useThemeManagement = ({
   );
 
   const handleThemePropertyChanged = useCallback(() => {
-    // Do not gate on ThemeTabPlugin.isModified: v3 syncs creator.theme before this
-    // event, so isModified is often false (or throws when cssVariables is missing).
+    if (isHydratingThemeTabRef.current) {
+      return;
+    }
     setIsThemeDirty(true);
   }, []);
 
@@ -280,18 +288,6 @@ export const useThemeManagement = ({
     themeTabPlugin.onThemeSelected.add(handleThemeChanged);
     themeTabPlugin.onThemePropertyChanged.add(handleThemePropertyChanged);
 
-    // Importing a theme file goes through `themeModel.setTheme`, which raises only
-    // `onThemeSelected` — the same event a chooser switch raises, and that one clears
-    // the dirty flag. `setTheme` runs before this callback, so marking dirty here wins
-    // and Save offers to keep the imported theme. (Editing a property, including the
-    // background image, already raises `onThemePropertyChanged`.)
-    const importFromFile = themeTabPlugin.importFromFile;
-    themeTabPlugin.importFromFile = (file, callback) =>
-      importFromFile.call(themeTabPlugin, file, (theme: ITheme) => {
-        setIsThemeDirty(true);
-        callback?.(theme);
-      });
-
     const applyThemeChooserChoices = () => {
       try {
         creator.themeEditor.availableThemes = registeredThemeNamesRef.current;
@@ -300,9 +296,33 @@ export const useThemeManagement = ({
       }
     };
 
+    const hydrateThemeTab = (hydrate: () => void) => {
+      isHydratingThemeTabRef.current = true;
+      try {
+        hydrate();
+      } finally {
+        isHydratingThemeTabRef.current = false;
+        if (!isThemeDirtyRef.current) {
+          creator.hasPendingThemeChanges = false;
+        }
+      }
+    };
+
+    const pluginActivate = themeTabPlugin.activate;
+    themeTabPlugin.activate = () =>
+      hydrateThemeTab(() => pluginActivate.call(themeTabPlugin));
+
+    // Import uses setTheme → onThemeSelected, which would clear dirty. Mark dirty after.
+    const importFromFile = themeTabPlugin.importFromFile;
+    themeTabPlugin.importFromFile = (file, callback) =>
+      importFromFile.call(themeTabPlugin, file, (theme: ITheme) => {
+        setIsThemeDirty(true);
+        callback?.(theme);
+      });
+
     const onActiveTabChanged = (_: unknown, options: { tabName?: string }) => {
       if (options.tabName === SURVEY_CREATOR_BUILT_IN_TAB.theme) {
-        applyThemeChooserChoices();
+        hydrateThemeTab(applyThemeChooserChoices);
       }
     };
     creator.onActiveTabChanged.add(onActiveTabChanged);
@@ -320,13 +340,14 @@ export const useThemeManagement = ({
               .filter((name): name is string => Boolean(name)),
           ]),
         ];
-        applyThemeChooserChoices();
+        hydrateThemeTab(applyThemeChooserChoices);
 
         const assignedTheme = currentThemeIdRef.current
           ? themes.find((theme) => theme.id === currentThemeIdRef.current)
           : undefined;
         if (!assignedTheme) {
           creator.theme = sanitizeSurveyTheme(DefaultLight);
+          creator.hasPendingThemeChanges = false;
         }
       })
       .catch((error) => console.error("Error: ", error));
@@ -334,6 +355,7 @@ export const useThemeManagement = ({
     themeManagementInitializedRef.current = true;
 
     return () => {
+      themeTabPlugin.activate = pluginActivate;
       themeTabPlugin.importFromFile = importFromFile;
       creator.onActiveTabChanged.remove(onActiveTabChanged);
       creator.themeEditor.onThemeSelected.remove(handleThemeChanged);

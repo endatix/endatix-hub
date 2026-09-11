@@ -1,18 +1,33 @@
 "use client";
 
 import { useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import type { SurveyCreatorModel } from "survey-creator-core";
 import {
   CREATOR_TAB_QUERY_KEY,
   serializeCreatorTabUrlSlug,
 } from "@/lib/survey-js";
-import { useUrlSearchParamsUpdater } from "@/lib/utils/hooks/use-url-search-params-updater.hook";
 import { loadTabFromUrl } from "../use-cases/load-tab-from-url";
 import { bindSetTabToUrl } from "../use-cases/set-tab-to-url";
 
-/** Keeps the Creator's active tab and `?tab=` in sync, both ways. */
+function replaceTabQuery(nextQueryValue: string | null) {
+  const { location, history } = globalThis.window;
+  const url = new URL(location.href);
+  if (nextQueryValue) {
+    url.searchParams.set(CREATOR_TAB_QUERY_KEY, nextQueryValue);
+  } else {
+    url.searchParams.delete(CREATOR_TAB_QUERY_KEY);
+  }
+
+  if (url.search === location.search) {
+    return;
+  }
+
+  history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+}
+
 export function useCreatorTabUrl(creator: SurveyCreatorModel | null) {
-  const { searchParams, updateUrl } = useUrlSearchParamsUpdater();
+  const searchParams = useSearchParams();
   const queryValue = searchParams.get(CREATOR_TAB_QUERY_KEY);
 
   useEffect(() => {
@@ -21,18 +36,14 @@ export function useCreatorTabUrl(creator: SurveyCreatorModel | null) {
     }
 
     const resolved = loadTabFromUrl(creator, queryValue);
-    updateUrl({
-      [CREATOR_TAB_QUERY_KEY]: serializeCreatorTabUrlSlug(resolved),
-    });
-  }, [creator, queryValue, updateUrl]);
+    replaceTabQuery(serializeCreatorTabUrlSlug(resolved));
+  }, [creator, queryValue]);
 
   useEffect(() => {
     if (!creator) {
       return;
     }
 
-    return bindSetTabToUrl(creator, (nextQueryValue) => {
-      updateUrl({ [CREATOR_TAB_QUERY_KEY]: nextQueryValue });
-    });
-  }, [creator, updateUrl]);
+    return bindSetTabToUrl(creator, replaceTabQuery);
+  }, [creator]);
 }
