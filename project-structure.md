@@ -515,7 +515,7 @@ Shared SurveyJS + Creator **types/vocab** only — no behavior, no choice helper
 | `lib/survey-js/creator/tabs.ts`    | Creator tab ids — `ENDATIX_CREATOR_TAB` (built-ins + Hub plugin tabs) and `canonicalizeCreatorTabId` |
 | `lib/survey-js/creator/tab-url.ts` | `?tab=` slug ↔ tab id (`design` → `designer`; Design omits the param)                                |
 
-Behavior that reads this vocab stays in its slice's `use-cases/` — e.g. `lib/survey-features/survey-design/use-cases/`. Do not re-declare vendor types (`Question`, `SurveyCreatorModel`). Rules: `AGENTS.md` (SurveyJS domain).
+Vocab only here. Creator tab/JSON behavior: `lib/survey-features/survey-design/` (`ui/use-creator-tab-url.ts`, `ui/use-creator-json.ts`, `use-cases/`). Do not re-declare vendor types (`Question`, `SurveyCreatorModel`). Rules: `AGENTS.md` (SurveyJS domain).
 
 Import from `@/lib/survey-js`.
 

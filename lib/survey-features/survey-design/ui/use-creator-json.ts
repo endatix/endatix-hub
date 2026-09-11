@@ -4,11 +4,7 @@ import { useEffect, useRef } from "react";
 import { Helpers } from "survey-core";
 import type { SurveyCreatorModel } from "survey-creator-core";
 
-/**
- * Definition comparison, not answer comparison: survey-core's comparator defaults
- * fold case and trim strings, which would hide a real title edit. Numbers stay
- * untyped so `"5"` is not the same definition as `5`.
- */
+/** Definition equality — survey-core defaults compare answers. See AGENTS.md SurveyJS domain. */
 const SAME_DEFINITION = {
   ignoreOrder: false,
   caseSensitive: true,
@@ -16,7 +12,10 @@ const SAME_DEFINITION = {
   doNotConvertNumbers: true,
 } as const;
 
-/** Loads a saved canvas snapshot into the Creator without clobbering live edits. */
+function isSameDefinition(left: object | null, right: object): boolean {
+  return Helpers.checkIfValuesEqual(left, right, SAME_DEFINITION);
+}
+
 export function useCreatorJson(
   creator: SurveyCreatorModel | null,
   json: object | null,
@@ -29,16 +28,10 @@ export function useCreatorJson(
       return;
     }
 
-    // Reassigning resets undo history and the selected element, so skip a snapshot
-    // we already applied (Server Component refetch) or one the canvas already holds
-    // (`revalidatePath` after a save hands back exactly what the user just saved).
-    const isSameDefinition = (applied: object | null) =>
-      Helpers.checkIfValuesEqual(applied, json, SAME_DEFINITION);
-
     if (
       appliedToRef.current === creator &&
-      (isSameDefinition(lastAppliedJsonRef.current) ||
-        isSameDefinition(creator.JSON))
+      (isSameDefinition(lastAppliedJsonRef.current, json) ||
+        isSameDefinition(creator.JSON, json))
     ) {
       return;
     }

@@ -296,8 +296,6 @@ export const useThemeManagement = ({
       }
     };
 
-    // Hydrating the Theme Editor raises the same events a user edit does. Suppress
-    // them, and leave Creator's own flag alone when the user really is mid-edit.
     const hydrateThemeTab = (hydrate: () => void) => {
       isHydratingThemeTabRef.current = true;
       try {
@@ -314,11 +312,7 @@ export const useThemeManagement = ({
     themeTabPlugin.activate = () =>
       hydrateThemeTab(() => pluginActivate.call(themeTabPlugin));
 
-    // Importing a theme file goes through `themeModel.setTheme`, which raises only
-    // `onThemeSelected` — the same event a chooser switch raises, and that one clears
-    // the dirty flag. `setTheme` runs before this callback, so marking dirty here wins
-    // and Save offers to keep the imported theme. (Editing a property, including the
-    // background image, already raises `onThemePropertyChanged`.)
+    // Import uses setTheme → onThemeSelected, which would clear dirty. Mark dirty after.
     const importFromFile = themeTabPlugin.importFromFile;
     themeTabPlugin.importFromFile = (file, callback) =>
       importFromFile.call(themeTabPlugin, file, (theme: ITheme) => {

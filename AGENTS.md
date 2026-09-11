@@ -11,17 +11,14 @@
 
 ## SurveyJS domain
 
-Prefer vendor types from `survey-core` / `survey-creator-core`. Where they widen to `string` (Creator `activeTab`), the closed Hub union lives in [`lib/survey-js/`](lib/survey-js/) — built-in ids plus Hub plugin ids. Import it instead of re-spelling those strings in a slice (`FORM_DIAGNOSTICS_PLUGIN_NAME` is `ENDATIX_CREATOR_TAB.diagnostics`).
+Prefer vendor types from `survey-core` / `survey-creator-core`. Closed Hub unions for vendor `string`s: [`lib/survey-js/`](lib/survey-js/) (`FORM_DIAGNOSTICS_PLUGIN_NAME` is `ENDATIX_CREATOR_TAB.diagnostics`). Placement: [`project-structure.md`](project-structure.md) `lib/survey-js`.
 
-- Preview's id is `preview`; `test` is a legacy id Creator still emits — normalise with `canonicalizeCreatorTabId`, never compare raw.
-- `?tab=` slugs are one map in `creator/tab-url.ts` (`design` → `designer`; Design omits the param). Sync via `history.replaceState` in `useCreatorTabUrl`, not `router.replace` — App Router navigation refetches saved JSON over live Creator state (h939). Paged lists still use `useUrlSearchParamsUpdater` so they refetch.
-- Never assign `creator.JSON` in a slice — call `useCreatorJson`. Assigning resets undo history and selection, so it re-applies only for a definition neither already applied nor already on the canvas (h939).
-- Compare definitions with `Helpers.checkIfValuesEqual` (`survey-core`), never a hand-rolled deep compare, and pass all four flags — the defaults compare *answers*, so they fold case, trim, and read `"5"` as `5`, each silently dropping a real edit. `isTwoValueEquals` can't pass `doNotConvertNumbers`. `use-creator-json.test.ts` pins this against upgrades.
-- Theme Editor hydration (`activate`, chooser choices) raises the same events a user edit does; wrap it in `hydrateThemeTab`. Dirty state is Hub's `isThemeDirty`; `hasPendingThemeChanges` is Creator's own save signal — clear it after Hub-driven writes, never while `isThemeDirty`.
-- To ask whether a Creator can show a tab, read `creator.tabs`. Never `creator.getPlugin(id)`: it answers for tabs `showThemeTab` & friends removed, and instantiates the plugin as a side effect.
-- Product allowlists (carry-forward question types, …) stay in the owning feature.
-
-Placement: [`project-structure.md`](project-structure.md).
+- Preview id is `preview`; Creator still emits `test` — `canonicalizeCreatorTabId`, never a raw compare.
+- `?tab=` map: `creator/tab-url.ts`. Sync with [`useCreatorTabUrl`](lib/survey-features/survey-design/ui/use-creator-tab-url.ts) (`history.replaceState`). Lists keep `useUrlSearchParamsUpdater` so they refetch (h939).
+- Canvas JSON: [`useCreatorJson`](lib/survey-features/survey-design/ui/use-creator-json.ts) only — never `creator.JSON =` in a slice. Compare with `SAME_DEFINITION` in that file (`Helpers.checkIfValuesEqual`, not `isTwoValueEquals`). Flags are pinned in `use-creator-json.test.ts`.
+- Theme hydration: `hydrateThemeTab` in [`use-theme-management.hook.ts`](features/themes/manage-theme-editor/use-theme-management.hook.ts). Hub dirty is `isThemeDirty`; Creator's save signal is `hasPendingThemeChanges` — do not clear the latter while the former is true.
+- Tab presence: `creator.tabs`. Never `creator.getPlugin(id)` (answers for hidden tabs and instantiates the plugin).
+- Product allowlists stay in the owning feature.
 
 ## Configuration: public values are request-time
 

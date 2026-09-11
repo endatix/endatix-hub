@@ -10,7 +10,6 @@ import {
 import { loadTabFromUrl } from "../use-cases/load-tab-from-url";
 import { bindSetTabToUrl } from "../use-cases/set-tab-to-url";
 
-/** Writes `?tab=` in place. Next patches History, so `useSearchParams` still sees it. */
 function replaceTabQuery(nextQueryValue: string | null) {
   const { location, history } = globalThis.window;
   const url = new URL(location.href);
@@ -27,7 +26,6 @@ function replaceTabQuery(nextQueryValue: string | null) {
   history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
 }
 
-/** Keeps the Creator's active tab and `?tab=` in sync, both ways. */
 export function useCreatorTabUrl(creator: SurveyCreatorModel | null) {
   const searchParams = useSearchParams();
   const queryValue = searchParams.get(CREATOR_TAB_QUERY_KEY);

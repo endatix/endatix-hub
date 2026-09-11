@@ -171,7 +171,7 @@ describe("useThemeManagement dirty tracking", () => {
       themeName: "Acme",
     });
 
-    // Act — applyTheme sets the flag on every edit; leaving and returning must not clear it.
+    // Act
     act(() => {
       creator.hasPendingThemeChanges = true;
       creator.themeEditor.onThemePropertyChanged.fire(null, {});

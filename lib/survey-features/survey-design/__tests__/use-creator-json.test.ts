@@ -98,9 +98,6 @@ describe("useCreatorJson", () => {
   });
 });
 
-// survey-core's comparator defaults are tuned for answers (case-folding, trimming,
-// numeric coercion). These pin the definition-comparison flags so a survey-core
-// upgrade fails here rather than silently dropping an edit from the canvas.
 describe("useCreatorJson snapshot comparison", () => {
   const rerenderWith = (applied: object, next: object) => {
     const creator = createCreator();
