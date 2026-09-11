@@ -3,8 +3,8 @@
 import {
   BarChart3,
   Bug,
-  FlaskConical,
   Flag,
+  FlaskConical,
   Server,
   ShieldCheck,
   Wrench,
@@ -195,7 +195,7 @@ export function EnvironmentSettingsPanel({
         <ConfigSection
           icon={Flag}
           title="Feature flags"
-          description="Server-side gates for Hub capabilities such as AI, reporting export, and tenant management. Evaluated on the server so the UI does not flash. FLAG_* environment variables (and code defaults) apply unless the provider is PostHog."
+          description="Server-side gates for Hub capabilities. The provider is resolved per request: PostHog when the adapter is on and a project key is set, otherwise FLAG_* env vars and code defaults."
         >
           <ConfigRow
             label="Provider"

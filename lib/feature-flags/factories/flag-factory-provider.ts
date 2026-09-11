@@ -1,7 +1,7 @@
 import { PostHogFlagFactory } from "./posthog-flag-factory";
 import { EnvironmentFlagFactory } from "./environment-flag-factory";
 import type { FlagFactory } from "./flag-factory.interface";
-import { shouldUsePostHogFlags } from "./posthog-flag-adapter";
+import { shouldUsePostHogFlags } from "./posthog-flag-settings";
 
 export class FlagFactoryProvider {
   private postHogFactory?: PostHogFlagFactory;

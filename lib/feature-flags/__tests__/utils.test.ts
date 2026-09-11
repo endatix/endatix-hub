@@ -24,6 +24,7 @@ vi.mock("@/lib/feature-flags/factories/flag-factory-provider", () => ({
   },
 }));
 
+import { connection } from "next/server";
 import { flag } from "@/lib/feature-flags/utils";
 
 describe("flag", () => {
@@ -38,7 +39,9 @@ describe("flag", () => {
         key: "test-flag",
         defaultValue: "default-value",
       };
-      mockCreateFlag.mockReturnValue(vi.fn().mockResolvedValue("default-value"));
+      mockCreateFlag.mockReturnValue(
+        vi.fn().mockResolvedValue("default-value"),
+      );
 
       flag(definition);
 
@@ -58,6 +61,16 @@ describe("flag", () => {
       expect(mockCreateFlag).toHaveBeenCalledWith(definition);
       expect(mockFlagFunction).toHaveBeenCalledTimes(1);
       expect(result).toBe(true);
+    });
+
+    // Without this opt-out a prerender would bake the flag value into static HTML,
+    // which is the build-time coupling this module exists to avoid.
+    it("opts the request out of static rendering before evaluating", async () => {
+      mockCreateFlag.mockReturnValue(vi.fn().mockResolvedValue(true));
+
+      await flag({ key: "test-flag", defaultValue: false })();
+
+      expect(connection).toHaveBeenCalled();
     });
 
     it("reuses the factory implementation on later evaluations", async () => {
@@ -137,7 +150,9 @@ describe("flag", () => {
         defaultValue: { enabled: false },
         parsePayload,
       };
-      mockCreateFlag.mockReturnValue(vi.fn().mockResolvedValue({ enabled: true }));
+      mockCreateFlag.mockReturnValue(
+        vi.fn().mockResolvedValue({ enabled: true }),
+      );
 
       const result = await flag(definition)();
 

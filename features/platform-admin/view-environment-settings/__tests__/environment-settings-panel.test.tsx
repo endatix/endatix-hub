@@ -118,16 +118,15 @@ describe("EnvironmentSettingsPanel", () => {
     expect(screen.getByText("ENDATIX_ENABLE_EXTENSIONS")).toBeDefined();
   });
 
-  it("keeps feature-flag provider on its own card, not on Analytics", () => {
+  it("falls back to the environment provider when PostHog is not configured", () => {
     render(
       <EnvironmentSettingsPanel
         summary={buildSummary({ posthogConfigured: false })}
       />,
     );
 
-    expect(screen.getByText("Feature flags")).toBeDefined();
     expect(screen.getByText("Environment variables")).toBeDefined();
-    expect(screen.getByText("ENABLE_POSTHOG_ADAPTER")).toBeDefined();
+    expect(screen.queryByText("PostHog")).toBeNull();
   });
 
   it("shows Not set when secrets are not configured", () => {

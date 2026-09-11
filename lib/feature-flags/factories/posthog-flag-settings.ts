@@ -8,7 +8,6 @@ export function isPostHogFlagAdapterEnabled(): boolean {
 /** Resolve flags through PostHog: switch on and a non-empty `ENDATIX_POSTHOG_KEY`. */
 export function shouldUsePostHogFlags(): boolean {
   return (
-    isPostHogFlagAdapterEnabled() &&
-    Boolean(readPublicEndatixEnv().posthogKey)
+    isPostHogFlagAdapterEnabled() && Boolean(readPublicEndatixEnv().posthogKey)
   );
 }

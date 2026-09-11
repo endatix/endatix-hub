@@ -8,7 +8,7 @@ import {
 import {
   isPostHogFlagAdapterEnabled,
   shouldUsePostHogFlags,
-} from "@/lib/feature-flags/factories/posthog-flag-adapter";
+} from "@/lib/feature-flags/factories/posthog-flag-settings";
 import type { PlatformAdminSession } from "../types";
 import type { EnvironmentAdminSummary, SecretPresence } from "./types";
 

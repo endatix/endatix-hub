@@ -1,5 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+/** Any value the environment factory cannot produce, so the source is unambiguous. */
+const POSTHOG_VALUE = true;
+
 vi.mock("next/server", () => ({
   connection: vi.fn().mockResolvedValue(undefined),
 }));
@@ -23,11 +26,10 @@ vi.mock("@flags-sdk/posthog", () => ({
 
 vi.mock("flags/next", () => ({
   dedupe: (fn: unknown) => fn,
-  flag: () => async () => false,
+  flag: () => async () => POSTHOG_VALUE,
 }));
 
 import { flag } from "@/lib/feature-flags/utils";
-import { flagFactoryProvider } from "@/lib/feature-flags/factories/flag-factory-provider";
 
 describe("flag runtime factory selection", () => {
   const originalEnv = { ...process.env };
@@ -36,22 +38,23 @@ describe("flag runtime factory selection", () => {
     process.env = { ...originalEnv };
     delete process.env.ENABLE_POSTHOG_ADAPTER;
     delete process.env.ENDATIX_POSTHOG_KEY;
+    delete process.env.FLAG_AI_FEATURES;
   });
 
   afterEach(() => {
     process.env = originalEnv;
   });
 
-  it("uses PostHog when adapter env is set after flag() is defined", async () => {
+  // The regression this guards: binding the factory when `flag()` is called leaves a
+  // container started with PostHog credentials permanently on environment flags.
+  it("switches to PostHog when the adapter env is set after flag() is defined", async () => {
     const evaluate = flag({ key: "ai-features", defaultValue: false });
+
+    expect(await evaluate()).toBe(false);
 
     process.env.ENABLE_POSTHOG_ADAPTER = "true";
     process.env.ENDATIX_POSTHOG_KEY = "phc_test_key";
 
-    await evaluate();
-
-    expect(flagFactoryProvider.getFactory().constructor.name).toBe(
-      "PostHogFlagFactory",
-    );
+    expect(await evaluate()).toBe(POSTHOG_VALUE);
   });
 });

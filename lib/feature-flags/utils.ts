@@ -37,19 +37,23 @@ export function flag<T extends string | number>(definition: {
   defaultValue: T;
 }): () => Promise<T>;
 
-// Implementation — factory is chosen at evaluation, not at module load, so SWA
-// runtime env (`ENABLE_POSTHOG_ADAPTER`, `ENDATIX_POSTHOG_KEY`) can win after build.
+/**
+ * The factory is chosen per evaluation, never at module load, so the environment the
+ * container was started with wins over the one the image was built with. `connection()`
+ * keeps a prerender from baking a flag value into static HTML for the same reason.
+ *
+ * Each factory keeps its own memoised implementation: the Vercel `flag()` wrapper carries
+ * request-scoped caching, so it must be built once per factory rather than per evaluation.
+ */
 export function flag<T>(definition: FlagDefinition<T>): () => Promise<T> {
   const implementations = new WeakMap<FlagFactory, () => Promise<T>>();
 
   return async (): Promise<T> => {
     await connection();
     const factory = flagFactoryProvider.getFactory();
-    let impl = implementations.get(factory);
-    if (!impl) {
-      impl = factory.createFlag<T>(definition);
-      implementations.set(factory, impl);
-    }
-    return impl();
+    const evaluate =
+      implementations.get(factory) ?? factory.createFlag<T>(definition);
+    implementations.set(factory, evaluate);
+    return evaluate();
   };
 }

@@ -47,6 +47,13 @@ prefix, not `"use client"`, is what decides.
   `(main)`.
 - Deprecated `NEXT_PUBLIC_*` names still work — `applyLegacyPublicEnv()` folds them into `ENDATIX_*`
   at boot. Never import `legacy-public-env.server.ts` from a client component.
+- **Feature flags follow the same rule.** `flag()` in [`lib/feature-flags/utils.ts`](lib/feature-flags/utils.ts)
+  picks its factory on every evaluation and awaits `connection()` first, so a flag is never bound
+  to the build environment or baked into prerendered HTML. Never hoist `flagFactoryProvider.getFactory()`
+  to module scope. The provider is PostHog only when `ENABLE_POSTHOG_ADAPTER=true` **and**
+  `ENDATIX_POSTHOG_KEY` is set (`factories/posthog-flag-settings.ts`) — it is a choice, not a fallback
+  chain, so `FLAG_*` vars are ignored while PostHog is active. Consequence: any page evaluating a flag
+  renders dynamically. Resolved state is visible on Admin → Environment settings.
 - Only `basePath` stays build-time (`NEXT_PUBLIC_BASE_PATH` in `lib/hosting/base-path.ts`): no
   runtime equivalent, so the published image serves at `/` whatever the operator sets. Subfolder
   hosting needs per-origin hosting or a self-build.

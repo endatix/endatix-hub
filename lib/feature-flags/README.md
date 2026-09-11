@@ -1,25 +1,31 @@
 # Feature Flags System
 
-A hybrid feature flag system with PostHog integration and environment variable fallbacks, following the [Vercel flags pattern](https://flags-sdk.dev/) with **server-side evaluation only**.
+A feature flag system with PostHog and environment-variable providers, following the [Vercel flags pattern](https://flags-sdk.dev/) with **server-side evaluation only**.
 
 ## 🏗️ Architecture
 
-The system uses a **factory pattern** with **fallback chain**: PostHog → Environment Variables → Default Values
+One **factory selects the provider**, PostHog _or_ environment variables — not a chain. When PostHog is the provider, `FLAG_*` env vars are not consulted; a missing PostHog flag falls back to the flag's `defaultValue`.
 
 ```
 lib/feature-flags/
 ├── factories/
-│   ├── posthog-flag-factory.ts      # PostHog integration  
-│   ├── environment-flag-factory.ts  # Environment variables
+│   ├── posthog-flag-settings.ts     # Env predicates: is PostHog the provider?
+│   ├── posthog-flag-factory.ts      # PostHog integration
+│   ├── environment-flag-factory.ts  # FLAG_* environment variables
 │   └── flag-factory-provider.ts     # Factory selector
 ├── flags.ts                         # Flag definitions
 ├── types.ts                         # TypeScript interfaces
 └── utils.ts                         # Main flag() function
 ```
 
+### Request-time resolution
+
+`flag()` picks the factory **when the flag is evaluated**, not when the module loads, and awaits `connection()` first. The Hub promotes one image across environments, so a flag decided at build time would freeze whatever the CI environment happened to hold. The cost is that any page evaluating a flag renders dynamically — evaluate behind an existing dynamic boundary (session, params) rather than on a page you want prerendered.
+
 ## 🎯 Flag Types
 
 ### Boolean Flags (Simple Feature Toggles)
+
 ```typescript
 export const experimentalFeatures = flag({
   key: "experimental-features",
@@ -31,17 +37,19 @@ const isEnabled = await experimentalFeatures(); // boolean
 ```
 
 ### String/Number Flags (Configuration Values)
+
 ```typescript
 export const theme = flag({
   key: "theme",
   defaultValue: "light" as const,
 });
 
-// Usage  
+// Usage
 const currentTheme = await theme(); // "light" | "dark"
 ```
 
 ### Object Flags (Complex Configuration)
+
 ```typescript
 export const aiFeatures = flag<AIFeatures>({
   key: "ai-features",
@@ -59,13 +67,15 @@ const ai = await aiFeatures(); // { enabled: boolean, assistant: {...} }
 ## 📊 PostHog Integration
 
 ### Automatic Adapter Selection
+
 - **Boolean flags** → `isFeatureEnabled()` (tracks events ✅)
-- **String/number flags** → `featureFlagValue()` (tracks events ✅)  
+- **String/number flags** → `featureFlagValue()` (tracks events ✅)
 - **Object flags** → `featureFlagPayload()` (works but no event tracking ⚠️)
 
 > ⚠️ **Note**: Object flags work perfectly but don't appear in PostHog's "Feature flag called" events due to payload-based evaluation. Use boolean flags if you need event tracking.
 
 ### Configuration
+
 ```bash
 # Enable PostHog flags (optional)
 ENABLE_POSTHOG_ADAPTER=true
@@ -75,13 +85,14 @@ ENDATIX_POSTHOG_KEY=your_posthog_key
 ## 🚀 Usage (Server-Side Only)
 
 ### Server Components
+
 ```typescript
 import { aiFeatures, experimentalFeatures } from '@/lib/feature-flags';
 
 export default async function MyComponent() {
   const ai = await aiFeatures();
   const experimental = await experimentalFeatures();
-  
+
   return (
     <div>
       {ai.enabled && <AIFeatures assistant={ai.assistant} />}
@@ -92,6 +103,7 @@ export default async function MyComponent() {
 ```
 
 ### Server + Client Pattern
+
 ```typescript
 // Server Component (evaluate flags)
 export default async function ServerContainer() {
@@ -112,7 +124,7 @@ export default function ClientComponent({ aiFeatures }: { aiFeatures: AIFeatures
 # Boolean flags
 FLAG_EXPERIMENTAL_FEATURES=true
 
-# String flags  
+# String flags
 FLAG_THEME=dark
 
 # Object flags (JSON)
@@ -122,14 +134,16 @@ FLAG_AI_FEATURES='{"enabled":true,"assistant":{"enabled":true,"name":"FormBot"}}
 ## 🔧 Adding New Flags
 
 1. **Define in `flags.ts`**:
+
 ```typescript
 export const myFeature = flag({
-  key: "my-feature", 
+  key: "my-feature",
   defaultValue: false,
 });
 ```
 
 2. **Use in components**:
+
 ```typescript
 const isEnabled = await myFeature();
 ```
@@ -137,29 +151,27 @@ const isEnabled = await myFeature();
 ## 🎯 Best Practices
 
 - ✅ **Server-side only**: Avoids layout shift and improves performance
-- ✅ **Boolean for toggles**: Use for simple on/off features  
+- ✅ **Boolean for toggles**: Use for simple on/off features
 - ✅ **Objects for config**: Group related settings together
 - ✅ **Meaningful defaults**: Always provide sensible fallbacks
 - ❌ **No client hooks**: Use server evaluation + props pattern instead
 
 ## 🔄 How It Works
 
-```typescript
-// 1. On evaluation, factory decides: PostHog switch + key? PostHogFactory : EnvironmentFactory
-// 2. PostHog flags: Vercel flag() with PostHog adapter
-// 3. Environment flags: FLAG_* env vars with type conversion
-```
+1. On each evaluation the provider re-reads the environment: `ENABLE_POSTHOG_ADAPTER=true` **and** a non-empty `ENDATIX_POSTHOG_KEY` select `PostHogFlagFactory`, otherwise `EnvironmentFlagFactory`.
+2. PostHog flags go through the Vercel `flag()` wrapper with the PostHog adapter.
+3. Environment flags read `FLAG_*` with type conversion.
+
+The operator-visible state of this is on **Admin → Environment settings → Feature flags**.
 
 For more details, see [Vercel flags documentation](https://flags-sdk.dev/).
 
 ## 🔧 Development
 
-- **Local Development**: Uses environment variables and defaults
-- **Staging**: Can use PostHog for testing targeting rules
-- **Production**: Full PostHog integration with env var fallbacks
+- **Local Development**: `FLAG_*` env vars and code defaults
+- **Staging / Production**: PostHog once the adapter and project key are set
 
 ## 📚 Further Reading
 
 - [Server-side vs Client-side Principles](https://flags-sdk.dev/principles/server-side-vs-client-side)
-- [Precompute Pattern](https://flags-sdk.dev/principles/precompute)
-- [Vercel Flags Examples](https://github.com/vercel/flags/tree/main/examples) 
+- [Vercel Flags Examples](https://github.com/vercel/flags/tree/main/examples)
