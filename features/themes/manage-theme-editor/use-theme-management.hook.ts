@@ -39,7 +39,11 @@ async function loadAssignedTheme(
     return null;
   }
 
-  return parseStoredTheme(result.value);
+  const parsed = parseStoredTheme(result.value);
+  if (!parsed) {
+    toast.error("Could not load the form theme");
+  }
+  return parsed;
 }
 
 /** Returns the created theme, or null once the failure has been surfaced. */

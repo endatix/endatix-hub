@@ -21,11 +21,6 @@ type LazyChoiceQuestion = {
   choices?: unknown[];
 };
 
-/**
- * Pages the tenant theme catalog into the Theme Editor `themeName` chooser.
- * Returns an unbind for the hook cleanup; binding twice on one property grid
- * survey is a no-op.
- */
 export function bindThemeCatalogLazyChoices(
   plugin: ThemeTabPlugin,
   registerThemes: (themes: StoredTheme[]) => void,
@@ -40,20 +35,16 @@ export function bindThemeCatalogLazyChoices(
     return NOOP;
   }
 
-  question.choicesLazyLoadEnabled = true;
-  question.choicesLazyLoadPageSize = DEFAULT_CHOICES_LAZY_LOAD_PAGE_SIZE;
-  // `GET /themes` has no name filter, so a search box could only match the page
-  // already loaded. Re-enable it together with server-side filtering.
-  question.searchEnabled = false;
-  question.choices = [DEFAULT_THEME_CHOICE];
-
   if (survey[BOUND_KEY]) {
     return NOOP;
   }
   survey[BOUND_KEY] = true;
 
-  // SurveyJS clears the "Loading..." footer only when the items it has
-  // accumulated equal the reported total, so the last page reports that count.
+  question.choicesLazyLoadEnabled = true;
+  question.choicesLazyLoadPageSize = DEFAULT_CHOICES_LAZY_LOAD_PAGE_SIZE;
+  question.searchEnabled = false;
+  question.choices = [DEFAULT_THEME_CHOICE];
+
   let loadedCount = 0;
 
   const onChoicesLazyLoad = async (_: Model, options: ChoicesLazyLoadEvent) => {

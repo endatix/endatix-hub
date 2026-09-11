@@ -68,12 +68,14 @@ describe("bindThemeCatalogLazyChoices", () => {
   });
 
   it("loads a page on lazy load and registers the handler once per survey", async () => {
-    const { plugin, handlers } = createPlugin(["default"]);
+    const { plugin, handlers, question } = createPlugin(["default"]);
     const registerThemes = vi.fn();
 
     bindThemeCatalogLazyChoices(plugin, registerThemes);
+    question.choices = [{ value: "Brand", text: "Brand" }];
     bindThemeCatalogLazyChoices(plugin, registerThemes);
     expect(handlers).toHaveLength(1);
+    expect(question.choices).toEqual([{ value: "Brand", text: "Brand" }]);
 
     const setItems = vi.fn();
     mockLoadPage.mockResolvedValueOnce({

@@ -16,11 +16,6 @@ export const DEFAULT_THEME_CHOICE: ThemeCatalogChoice = {
   text: "Default",
 };
 
-/**
- * One page of Theme Editor `themeName` choices: `Default` first, then the
- * tenant catalog. Themes with unusable JSON are dropped, so the caller counts
- * the items it received rather than the server's `totalRecords`.
- */
 export async function loadThemeCatalogChoicePage(
   skip: number,
   take: number,
