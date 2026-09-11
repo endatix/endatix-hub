@@ -213,6 +213,41 @@ describe("bindThemeCatalogLazyChoices", () => {
     expect(freshSetItems).toHaveBeenCalledWith([choice("fresh")], 1);
   });
 
+  it("does not append a selected page-2 theme that SurveyJS already injected", async () => {
+    const { plugin, handlers } = createPlugin(["default"]);
+    bindThemeCatalogLazyChoices(plugin, vi.fn());
+
+    const itemsSettings = {
+      items: [choice("Tulip"), { value: "White", text: "White" }],
+    };
+    mockLoadPage.mockResolvedValueOnce({
+      items: [choice("White"), choice("Corp Site")],
+      hasNextPage: false,
+      totalRecords: 27,
+    });
+    const question = {
+      name: "themeName",
+      choices: [{ value: "White", text: "White" }],
+      dropdownListModel: { itemsSettings },
+    };
+    const setItems = vi.fn((items: unknown[]) => {
+      itemsSettings.items = [...itemsSettings.items, ...items];
+      question.choices = itemsSettings.items;
+    });
+    await handlers[0](null, {
+      ...lazyLoadOptions(25, setItems),
+      question,
+    });
+
+    expect(setItems).toHaveBeenCalledWith([choice("Corp Site")], 3);
+    expect(itemsSettings.totalCount).toBe(3);
+    expect(itemsSettings.items).toEqual([
+      choice("Tulip"),
+      { value: "White", text: "White" },
+      choice("Corp Site"),
+    ]);
+  });
+
   it("clears SurveyJS concat buffer before applying skip 0", async () => {
     const { plugin, handlers } = createPlugin(["default"]);
     bindThemeCatalogLazyChoices(plugin, vi.fn());

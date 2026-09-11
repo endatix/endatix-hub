@@ -29,7 +29,7 @@ type LazyChoiceQuestion = {
   choices?: unknown[];
   dropdownListModel?: {
     updateQuestionChoices?: () => void;
-    itemsSettings?: { items?: unknown[] };
+    itemsSettings?: { items?: unknown[]; totalCount?: number };
     popupModel?: {
       isVisible?: boolean;
       onVisibilityChanged?: {
@@ -42,6 +42,7 @@ type LazyChoiceQuestion = {
       };
     };
     listModel?: {
+      isAllDataLoaded?: boolean;
       scrollableContainer?: ScrollContainer | null;
       setLoadingIndicatorVisibilityObserver?: (
         handler: (isVisible: boolean) => void,
@@ -57,6 +58,61 @@ type LazyChoiceQuestion = {
 };
 
 const LOADING_ROW_SCROLL_PX = 48;
+
+function choiceValue(item: unknown): string {
+  if (item == null) {
+    return "";
+  }
+  if (typeof item === "string" || typeof item === "number") {
+    return String(item);
+  }
+  const record = item as { value?: unknown; id?: unknown };
+  if (record.value != null) {
+    return String(record.value);
+  }
+  if (record.id != null) {
+    return String(record.id);
+  }
+  return String(item);
+}
+
+function uniqueChoices(items: unknown[]): unknown[] {
+  const seen = new Set<string>();
+  const unique: unknown[] = [];
+  for (const item of items) {
+    const key = choiceValue(item);
+    if (key === "" || seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    unique.push(item);
+  }
+  return unique;
+}
+
+function existingChoiceKeys(question: LazyChoiceQuestion): Set<string> {
+  const keys = new Set<string>();
+  for (const item of question.dropdownListModel?.itemsSettings?.items ?? []) {
+    keys.add(choiceValue(item));
+  }
+  for (const item of question.choices ?? []) {
+    keys.add(choiceValue(item));
+  }
+  return keys;
+}
+
+function applyUniqueChoices(question: LazyChoiceQuestion): unknown[] {
+  const settings = question.dropdownListModel?.itemsSettings;
+  const unique = uniqueChoices([
+    ...(settings?.items ?? []),
+    ...(question.choices ?? []),
+  ]);
+  if (settings) {
+    settings.items = unique;
+  }
+  question.choices = unique;
+  return unique;
+}
 
 function isScrolledToLoadingRow(
   container: ScrollContainer | null | undefined,
@@ -173,11 +229,12 @@ export function bindThemeCatalogLazyChoices(
     if (options.skip === 0) {
       loadedCount = 0;
       loadGeneration += 1;
-      const itemsSettings = (options.question as LazyChoiceQuestion)
-        .dropdownListModel?.itemsSettings;
+      const lazyQuestion = options.question as LazyChoiceQuestion;
+      const itemsSettings = lazyQuestion.dropdownListModel?.itemsSettings;
       if (itemsSettings) {
         itemsSettings.items = [];
       }
+      lazyQuestion.choices = [];
     }
     const generation = loadGeneration;
 
@@ -190,20 +247,49 @@ export function bindThemeCatalogLazyChoices(
       return;
     }
 
-    loadedCount += page.items.length;
+    const lazyQuestion = options.question as LazyChoiceQuestion;
+    const alreadyListed = existingChoiceKeys(lazyQuestion);
+    const items =
+      options.skip === 0
+        ? page.items
+        : page.items.filter((item) => !alreadyListed.has(choiceValue(item)));
 
-    options.setItems(
-      page.items,
-      page.hasNextPage
-        ? mapSurveyJsLazyLoadTotal({
-            skip: options.skip,
-            take: options.take,
-            itemCount: page.items.length,
-            totalRecords: page.totalRecords,
-            hasNextPage: true,
-          })
-        : loadedCount,
-    );
+    const uniquePreview = uniqueChoices([
+      ...(options.skip === 0
+        ? []
+        : [
+            ...(lazyQuestion.dropdownListModel?.itemsSettings?.items ?? []),
+            ...(lazyQuestion.choices ?? []),
+          ]),
+      ...items,
+    ]);
+    loadedCount += items.length;
+    loadedCount = Math.max(loadedCount, uniquePreview.length);
+
+    const total = page.hasNextPage
+      ? mapSurveyJsLazyLoadTotal({
+          skip: options.skip,
+          take: options.take,
+          itemCount: items.length,
+          totalRecords: page.totalRecords,
+          hasNextPage: true,
+        })
+      : loadedCount;
+
+    options.setItems(items, total);
+    const unique = applyUniqueChoices(lazyQuestion);
+
+    if (!page.hasNextPage) {
+      const uniqueCount = unique.length;
+      loadedCount = uniqueCount;
+      const settings = lazyQuestion.dropdownListModel?.itemsSettings;
+      if (settings) {
+        settings.totalCount = uniqueCount;
+      }
+      if (lazyQuestion.dropdownListModel?.listModel) {
+        lazyQuestion.dropdownListModel.listModel.isAllDataLoaded = true;
+      }
+    }
   };
 
   survey.onChoicesLazyLoad.add(onChoicesLazyLoad);
