@@ -1,8 +1,8 @@
 import { toast } from "@/components/ui/toast";
 import { createThemeAction } from "@/features/themes/create-theme";
 import { deleteThemeAction } from "@/features/themes/delete-theme";
+import { getThemeAction } from "@/features/themes/get-theme";
 import { getFormsForThemeAction } from "@/features/themes/list-forms-for-theme";
-import { getThemesAction } from "@/features/themes/list-themes";
 import { updateThemeAction } from "@/features/themes/update-theme";
 import { StoredTheme } from "@/features/themes/types";
 import type { ThemeDeleteRequest } from "./ui/theme-delete-dialog";
@@ -18,38 +18,31 @@ import { registerThemes, sanitizeSurveyTheme } from "@/lib/themes/survey-theme";
 import { DefaultLight } from "survey-core/themes";
 import { ThemeTabPlugin } from "survey-creator-core";
 import { SurveyCreator } from "survey-creator-react";
+import { bindThemeCatalogLazyChoices } from "./bind-theme-catalog-lazy-choices";
+import {
+  DEFAULT_THEME_NAME,
+  parseStoredTheme,
+} from "./parse-stored-theme";
 
 registerThemes();
 
-const DEFAULT_THEME_NAME = "default";
 /** Sentinel the form uses to mean "no tenant theme assigned". */
 export const DEFAULT_THEME_ID = "0";
 
-async function fetchThemes(): Promise<StoredTheme[]> {
-  const result = await getThemesAction();
-  if (result === undefined || Result.isError(result)) {
-    toast.error("Could not proceed with fetching themes");
-    return [];
+async function loadAssignedTheme(
+  themeId: string | undefined,
+): Promise<StoredTheme | null> {
+  if (!themeId || themeId === DEFAULT_THEME_ID) {
+    return null;
   }
 
-  const themes: StoredTheme[] = [];
-  for (const theme of result.value) {
-    try {
-      const parsed = JSON.parse(theme.jsonData) as StoredTheme;
-      themes.push(
-        sanitizeSurveyTheme({
-          ...parsed,
-          name: theme.name,
-          id: theme.id,
-          // Theme Editor's dropdown keys off `themeName`, not the Hub `name`.
-          themeName: theme.name || parsed.themeName,
-        }),
-      );
-    } catch (error) {
-      console.error("Skipped invalid theme JSON", theme.id, error);
-    }
+  const result = await getThemeAction(themeId);
+  if (result === undefined || Result.isError(result)) {
+    toast.error("Could not load the form theme");
+    return null;
   }
-  return themes;
+
+  return parseStoredTheme(result.value);
 }
 
 /** Returns the created theme, or null once the failure has been surfaced. */
@@ -110,7 +103,6 @@ export const useThemeManagement = ({
   const themeManagementInitializedRef = useRef(false);
   const isHydratingThemeTabRef = useRef(false);
   const isThemeDirtyRef = useRef(false);
-  const registeredThemeNamesRef = useRef<string[]>([DEFAULT_THEME_NAME]);
   const currentThemeIdRef = useRef<string | undefined>(themeId);
 
   useEffect(() => {
@@ -288,11 +280,9 @@ export const useThemeManagement = ({
     themeTabPlugin.onThemeSelected.add(handleThemeChanged);
     themeTabPlugin.onThemePropertyChanged.add(handleThemePropertyChanged);
 
-    const applyThemeChooserChoices = () => {
-      try {
-        creator.themeEditor.availableThemes = registeredThemeNamesRef.current;
-      } catch {
-        // The property grid survey only exists after ThemeTabPlugin.activate().
+    const registerCatalogThemes = (themes: StoredTheme[]) => {
+      for (const theme of themes) {
+        addCustomTheme(theme);
       }
     };
 
@@ -310,7 +300,10 @@ export const useThemeManagement = ({
 
     const pluginActivate = themeTabPlugin.activate;
     themeTabPlugin.activate = () =>
-      hydrateThemeTab(() => pluginActivate.call(themeTabPlugin));
+      hydrateThemeTab(() => {
+        pluginActivate.call(themeTabPlugin);
+        bindThemeCatalogLazyChoices(themeTabPlugin, registerCatalogThemes);
+      });
 
     // Import uses setTheme → onThemeSelected, which would clear dirty. Mark dirty after.
     const importFromFile = themeTabPlugin.importFromFile;
@@ -322,33 +315,20 @@ export const useThemeManagement = ({
 
     const onActiveTabChanged = (_: unknown, options: { tabName?: string }) => {
       if (options.tabName === SURVEY_CREATOR_BUILT_IN_TAB.theme) {
-        hydrateThemeTab(applyThemeChooserChoices);
+        bindThemeCatalogLazyChoices(themeTabPlugin, registerCatalogThemes);
       }
     };
     creator.onActiveTabChanged.add(onActiveTabChanged);
 
-    fetchThemes()
-      .then((themes) => {
-        for (const theme of themes) {
-          addCustomTheme(theme);
+    loadAssignedTheme(currentThemeIdRef.current)
+      .then((assignedTheme) => {
+        if (assignedTheme) {
+          addCustomTheme(assignedTheme);
+          return;
         }
-        registeredThemeNamesRef.current = [
-          ...new Set([
-            DEFAULT_THEME_NAME,
-            ...themes
-              .map((theme) => theme.themeName)
-              .filter((name): name is string => Boolean(name)),
-          ]),
-        ];
-        hydrateThemeTab(applyThemeChooserChoices);
 
-        const assignedTheme = currentThemeIdRef.current
-          ? themes.find((theme) => theme.id === currentThemeIdRef.current)
-          : undefined;
-        if (!assignedTheme) {
-          creator.theme = sanitizeSurveyTheme(DefaultLight);
-          creator.hasPendingThemeChanges = false;
-        }
+        creator.theme = sanitizeSurveyTheme(DefaultLight);
+        creator.hasPendingThemeChanges = false;
       })
       .catch((error) => console.error("Error: ", error));
 

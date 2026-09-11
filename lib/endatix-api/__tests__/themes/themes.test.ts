@@ -225,6 +225,28 @@ describe("Themes.listAll", () => {
   });
 });
 
+describe("Themes.get", () => {
+  it("gets /themes/{id}", async () => {
+    const get = vi.fn().mockResolvedValue(ApiResult.success(sample));
+    const sut = new Themes({ get } as unknown as EndatixApi);
+
+    const result = await sut.get("9");
+
+    expect(get).toHaveBeenCalledWith("/themes/9");
+    expect(ApiResult.isSuccess(result)).toBe(true);
+  });
+
+  it("rejects a malformed theme id before calling the API", async () => {
+    const get = vi.fn();
+    const sut = new Themes({ get } as unknown as EndatixApi);
+
+    const result = await sut.get("../../admin");
+
+    expect(get).not.toHaveBeenCalled();
+    expect(ApiResult.isSuccess(result)).toBe(false);
+  });
+});
+
 describe("Themes.partialUpdate / delete", () => {
   it("patches /themes/{id}", async () => {
     const patch = vi.fn().mockResolvedValue(ApiResult.success(sample));

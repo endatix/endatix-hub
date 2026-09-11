@@ -6,7 +6,8 @@ import { ErrorType, Kind } from "@/lib/result";
 import type { Theme } from "@/lib/endatix-api/themes/types";
 import { createThemeAction } from "../create-theme/create-theme.action";
 import { deleteThemeAction } from "../delete-theme/delete-theme.action";
-import { getThemesAction } from "../list-themes/list-themes.action";
+import { getThemeAction } from "../get-theme/get-theme.action";
+import { getThemesAction, listThemesPageAction } from "../list-themes/list-themes.action";
 import { updateFormThemeAction } from "../update-form-theme/update-form-theme.action";
 import { updateThemeAction } from "../update-theme/update-theme.action";
 
@@ -51,6 +52,8 @@ const sampleTheme: Theme = {
 describe("theme actions", () => {
   const create = vi.fn();
   const listAll = vi.fn();
+  const list = vi.fn();
+  const getTheme = vi.fn();
   const partialUpdate = vi.fn();
   const deleteTheme = vi.fn();
   const updateForm = vi.fn();
@@ -69,6 +72,8 @@ describe("theme actions", () => {
         themes: {
           create,
           listAll,
+          list,
+          get: getTheme,
           partialUpdate,
           delete: deleteTheme,
         },
@@ -154,6 +159,37 @@ describe("theme actions", () => {
 
       expect(result.errorCode).toBe(ERROR_CODE.ACCESS_FORBIDDEN);
       expect(telemetryLoggerMock.error).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("listThemesPageAction", () => {
+    it("requests one page via list", async () => {
+      list.mockResolvedValue(
+        ApiResult.success({
+          items: [sampleTheme],
+          page: 1,
+          pageSize: 25,
+          totalRecords: 1,
+          totalPages: 1,
+          hasNextPage: false,
+        }),
+      );
+
+      const result = await listThemesPageAction({ page: 1, pageSize: 25 });
+
+      expect(list).toHaveBeenCalledWith({ page: 1, pageSize: 25 });
+      expect(result.kind).toBe(Kind.Success);
+    });
+  });
+
+  describe("getThemeAction", () => {
+    it("gets a theme by id", async () => {
+      getTheme.mockResolvedValue(ApiResult.success(sampleTheme));
+
+      const result = await getThemeAction("theme-1");
+
+      expect(getTheme).toHaveBeenCalledWith("theme-1");
+      expect(result.kind).toBe(Kind.Success);
     });
   });
 

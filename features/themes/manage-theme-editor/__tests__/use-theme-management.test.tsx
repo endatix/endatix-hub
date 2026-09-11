@@ -3,7 +3,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const createThemeAction = vi.fn();
 const updateThemeAction = vi.fn();
-const getThemesAction = vi.fn();
+const getThemeAction = vi.fn();
+const listThemesPageAction = vi.fn();
 
 vi.mock("@/features/themes/create-theme", () => ({
   createThemeAction: (...args: unknown[]) => createThemeAction(...args),
@@ -12,7 +13,10 @@ vi.mock("@/features/themes/update-theme", () => ({
   updateThemeAction: (...args: unknown[]) => updateThemeAction(...args),
 }));
 vi.mock("@/features/themes/list-themes", () => ({
-  getThemesAction: (...args: unknown[]) => getThemesAction(...args),
+  listThemesPageAction: (...args: unknown[]) => listThemesPageAction(...args),
+}));
+vi.mock("@/features/themes/get-theme", () => ({
+  getThemeAction: (...args: unknown[]) => getThemeAction(...args),
 }));
 vi.mock("@/features/themes/delete-theme", () => ({
   deleteThemeAction: vi.fn(),
@@ -106,7 +110,17 @@ function renderThemeManagement(
 
 beforeEach(() => {
   vi.clearAllMocks();
-  getThemesAction.mockResolvedValue({ value: [] });
+  getThemeAction.mockResolvedValue(Result.error("not found"));
+  listThemesPageAction.mockResolvedValue(
+    Result.success({
+      items: [],
+      page: 1,
+      pageSize: 25,
+      totalRecords: 0,
+      totalPages: 0,
+      hasNextPage: false,
+    }),
+  );
 });
 
 describe("useThemeManagement dirty tracking", () => {

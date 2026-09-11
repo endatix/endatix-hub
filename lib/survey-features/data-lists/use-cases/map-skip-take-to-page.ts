@@ -1,11 +1,1 @@
-import { DEFAULT_CHOICES_LAZY_LOAD_PAGE_SIZE } from "../constants";
-
-export function mapSkipTakeToPage(
-  skip: number,
-  take: number,
-): { page: number; pageSize: number } {
-  const pageSize = take > 0 ? take : DEFAULT_CHOICES_LAZY_LOAD_PAGE_SIZE;
-  const safeSkip = Math.max(skip, 0);
-  const page = Math.floor(safeSkip / pageSize) + 1;
-  return { page, pageSize };
-}
+export { mapSkipTakeToPage } from "@/lib/survey-features/infrastructure/choices-lazy-load-page";

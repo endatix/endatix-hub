@@ -86,8 +86,8 @@ export class Themes {
   }
 
   /**
-   * Drains every page into a flat array. Themes feed the Creator Theme Editor
-   * dropdown, which has no paging affordance - prefer {@link list} everywhere else.
+   * Drains every page into a flat array. Prefer {@link list} for paged UI
+   * (Theme Editor chooser uses `list` + lazy choices).
    */
   async listAll(
     request: Omit<ThemesListRequest, "page"> = {},
@@ -116,6 +116,14 @@ export class Themes {
     }
 
     return ApiResult.success(themes);
+  }
+
+  async get(themeId: string): Promise<ApiResult<Theme>> {
+    const idResult = validateEndatixId(themeId, "themeId");
+    if (Result.isError(idResult)) {
+      return ApiResult.validationError(idResult.message);
+    }
+    return this.endatix.get<Theme>(`${THEMES_BASE}/${idResult.value}`);
   }
 
   async partialUpdate(
