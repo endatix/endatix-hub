@@ -1,8 +1,4 @@
-/**
- * True when this Creator should receive `json`.
- * Same-content new objects (dev RSC refetch) are skipped; distinct snapshots
- * (AI chat turns) are applied. A new Creator instance always applies.
- */
+/** Skip same-content refetches; apply distinct snapshots and a new Creator. */
 export function shouldApplyCreatorJson(
   creator: object | null,
   json: object | null,
