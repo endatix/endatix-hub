@@ -63,7 +63,14 @@ spec:
             # Public client config. Request-time, projected to the browser per request —
             # changing any of these is a `helm upgrade`, never an image rebuild.
             - name: ENDATIX_SURVEY_LICENSE_KEY
+            {{- if .Values.clientConfig.secretName }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.clientConfig.secretName }}
+                  key: survey-license-key
+            {{- else }}
               value: {{ .Values.clientConfig.surveyLicenseKey | quote }}
+            {{- end }}
             - name: ENDATIX_RECAPTCHA_SITE_KEY
               value: {{ .Values.clientConfig.recaptchaSiteKey | quote }}
             - name: ENDATIX_SUBMITTER_PRIMARY_FILTER_LABEL
@@ -75,7 +82,14 @@ spec:
 
             # Product analytics — empty key disables PostHog.
             - name: ENDATIX_POSTHOG_KEY
+            {{- if .Values.analytics.secretName }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.analytics.secretName }}
+                  key: posthog-key
+            {{- else }}
               value: {{ .Values.analytics.posthogKey | quote }}
+            {{- end }}
             - name: ENDATIX_POSTHOG_HOST
               value: {{ .Values.analytics.posthogHost | quote }}
             - name: ENDATIX_POSTHOG_UI_HOST
