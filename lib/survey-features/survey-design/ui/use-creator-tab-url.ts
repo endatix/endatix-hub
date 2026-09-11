@@ -7,20 +7,20 @@ import {
   CREATOR_TAB_QUERY_KEY,
   serializeCreatorTabUrlSlug,
 } from "@/lib/survey-js";
-import { hrefWithSearchParamUpdates } from "../use-cases/href-with-search-param-updates";
 import { loadTabFromUrl } from "../use-cases/load-tab-from-url";
 import { bindSetTabToUrl } from "../use-cases/set-tab-to-url";
 
-/**
- * Writes `?tab=` with the native History API so App Router does not navigate
- * (and therefore does not refetch the last saved definition over live edits).
- * `useSearchParams` still updates — Next.js patches `replaceState`.
- */
 function replaceTabQuery(nextQueryValue: string | null) {
-  const href = hrefWithSearchParamUpdates(globalThis.window.location.href, {
-    [CREATOR_TAB_QUERY_KEY]: nextQueryValue,
-  });
-  if (!href) {
+  const url = new URL(globalThis.window.location.href);
+  if (nextQueryValue) {
+    url.searchParams.set(CREATOR_TAB_QUERY_KEY, nextQueryValue);
+  } else {
+    url.searchParams.delete(CREATOR_TAB_QUERY_KEY);
+  }
+
+  const href = `${url.pathname}${url.search}${url.hash}`;
+  const current = `${globalThis.window.location.pathname}${globalThis.window.location.search}${globalThis.window.location.hash}`;
+  if (href === current) {
     return;
   }
 

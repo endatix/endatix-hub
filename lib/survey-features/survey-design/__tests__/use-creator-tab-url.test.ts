@@ -63,4 +63,40 @@ describe("useCreatorTabUrl", () => {
       "/forms/1/design",
     );
   });
+
+  it("keeps other search params and the hash", () => {
+    window.history.replaceState(
+      null,
+      "",
+      "/forms/1/design?foo=bar#toolbox",
+    );
+    const creator = newCreator();
+    renderHook(() => useCreatorTabUrl(creator));
+    vi.mocked(window.history.replaceState).mockClear();
+
+    act(() => {
+      creator.activeTab = SURVEY_CREATOR_BUILT_IN_TAB.preview;
+    });
+
+    expect(window.history.replaceState).toHaveBeenCalledWith(
+      null,
+      "",
+      "/forms/1/design?foo=bar&tab=preview#toolbox",
+    );
+  });
+
+  it("does not call replaceState when the tab query is already current", () => {
+    window.history.replaceState(null, "", "/forms/1/design?tab=preview");
+    searchParams = new URLSearchParams("tab=preview");
+    const creator = newCreator();
+    creator.activeTab = SURVEY_CREATOR_BUILT_IN_TAB.preview;
+    renderHook(() => useCreatorTabUrl(creator));
+    vi.mocked(window.history.replaceState).mockClear();
+
+    act(() => {
+      creator.activeTab = SURVEY_CREATOR_BUILT_IN_TAB.preview;
+    });
+
+    expect(window.history.replaceState).not.toHaveBeenCalled();
+  });
 });

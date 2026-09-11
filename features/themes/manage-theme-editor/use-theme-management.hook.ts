@@ -108,8 +108,10 @@ export const useThemeManagement = ({
     useState<ThemeDeleteRequest | null>(null);
   const [originalThemeId] = useState<string | undefined>(themeId);
   const themeManagementInitializedRef = useRef(false);
+  const isHydratingThemeTabRef = useRef(false);
   const registeredThemeNamesRef = useRef<string[]>([DEFAULT_THEME_NAME]);
   const currentThemeIdRef = useRef<string | undefined>(themeId);
+
 
   useEffect(() => {
     currentThemeIdRef.current = currentThemeId;
@@ -132,6 +134,7 @@ export const useThemeManagement = ({
 
       if (safeTheme.id === currentThemeIdRef.current) {
         creator!.theme = safeTheme;
+        creator!.hasPendingThemeChanges = false;
       }
     },
     [creator],
@@ -258,8 +261,9 @@ export const useThemeManagement = ({
   );
 
   const handleThemePropertyChanged = useCallback(() => {
-    // Do not gate on ThemeTabPlugin.isModified: v3 syncs creator.theme before this
-    // event, so isModified is often false (or throws when cssVariables is missing).
+    if (isHydratingThemeTabRef.current) {
+      return;
+    }
     setIsThemeDirty(true);
   }, []);
 
@@ -279,6 +283,19 @@ export const useThemeManagement = ({
     themeTabPlugin.advancedModeEnabled = true;
     themeTabPlugin.onThemeSelected.add(handleThemeChanged);
     themeTabPlugin.onThemePropertyChanged.add(handleThemePropertyChanged);
+
+    const pluginActivate = themeTabPlugin.activate;
+    if (pluginActivate) {
+      themeTabPlugin.activate = () => {
+        isHydratingThemeTabRef.current = true;
+        try {
+          pluginActivate.call(themeTabPlugin);
+        } finally {
+          isHydratingThemeTabRef.current = false;
+          creator.hasPendingThemeChanges = false;
+        }
+      };
+    }
 
     // Importing a theme file goes through `themeModel.setTheme`, which raises only
     // `onThemeSelected` — the same event a chooser switch raises, and that one clears
@@ -301,8 +318,15 @@ export const useThemeManagement = ({
     };
 
     const onActiveTabChanged = (_: unknown, options: { tabName?: string }) => {
-      if (options.tabName === SURVEY_CREATOR_BUILT_IN_TAB.theme) {
+      if (options.tabName !== SURVEY_CREATOR_BUILT_IN_TAB.theme) {
+        return;
+      }
+      isHydratingThemeTabRef.current = true;
+      try {
         applyThemeChooserChoices();
+      } finally {
+        isHydratingThemeTabRef.current = false;
+        creator.hasPendingThemeChanges = false;
       }
     };
     creator.onActiveTabChanged.add(onActiveTabChanged);
@@ -320,13 +344,20 @@ export const useThemeManagement = ({
               .filter((name): name is string => Boolean(name)),
           ]),
         ];
-        applyThemeChooserChoices();
+        isHydratingThemeTabRef.current = true;
+        try {
+          applyThemeChooserChoices();
+        } finally {
+          isHydratingThemeTabRef.current = false;
+          creator.hasPendingThemeChanges = false;
+        }
 
         const assignedTheme = currentThemeIdRef.current
           ? themes.find((theme) => theme.id === currentThemeIdRef.current)
           : undefined;
         if (!assignedTheme) {
           creator.theme = sanitizeSurveyTheme(DefaultLight);
+          creator.hasPendingThemeChanges = false;
         }
       })
       .catch((error) => console.error("Error: ", error));
@@ -334,6 +365,9 @@ export const useThemeManagement = ({
     themeManagementInitializedRef.current = true;
 
     return () => {
+      if (pluginActivate) {
+        themeTabPlugin.activate = pluginActivate;
+      }
       themeTabPlugin.importFromFile = importFromFile;
       creator.onActiveTabChanged.remove(onActiveTabChanged);
       creator.themeEditor.onThemeSelected.remove(handleThemeChanged);

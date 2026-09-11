@@ -4,11 +4,6 @@ import { useEffect, useRef } from "react";
 import type { SurveyCreatorModel } from "survey-creator-core";
 import { shouldApplyCreatorJson } from "../use-cases/should-apply-creator-json";
 
-/**
- * Assigns survey JSON when its content changes, not merely its object
- * identity. A Server Component refetch of the same snapshot must not
- * replace in-memory canvas edits; a distinct snapshot (AI chat) must.
- */
 export function useCreatorJson(
   creator: SurveyCreatorModel | null,
   json: object | null,
