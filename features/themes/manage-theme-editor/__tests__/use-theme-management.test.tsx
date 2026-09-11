@@ -278,6 +278,46 @@ describe("useThemeManagement dirty tracking", () => {
     );
   });
 
+  it("applies the assigned theme into the open Theme tab on a ?tab=theme deep link", async () => {
+    // Creator.applyTheme skips the Theme tab plugin while that tab is active, so
+    // the theme the fetch resolves to has to be pushed into the editor by hand.
+    getThemeAction.mockResolvedValue(
+      Result.success({
+        id: "t1",
+        name: "Acme",
+        jsonData: '{"themeName":"Acme"}',
+      }),
+    );
+    const { creator, view } = renderThemeManagement(
+      { id: "t1", themeName: "Acme" },
+      { activeTab: "theme" },
+    );
+
+    await waitFor(() =>
+      expect(creator.themeEditor.themeModel.setTheme).toHaveBeenCalledWith(
+        expect.objectContaining({ id: "t1", themeName: "Acme" }),
+      ),
+    );
+    expect(creator.hasPendingThemeChanges).toBe(false);
+    expect(view.result.current.isThemeDirty).toBe(false);
+  });
+
+  it("leaves the Theme tab alone when it is not the active tab", async () => {
+    getThemeAction.mockResolvedValue(
+      Result.success({
+        id: "t1",
+        name: "Acme",
+        jsonData: '{"themeName":"Acme"}',
+      }),
+    );
+    const { creator } = renderThemeManagement({ id: "t1", themeName: "Acme" });
+
+    await waitFor(() =>
+      expect(creator.themeEditor.addTheme).toHaveBeenCalled(),
+    );
+    expect(creator.themeEditor.themeModel.setTheme).not.toHaveBeenCalled();
+  });
+
   it("keeps the edits in progress when a catalog page re-registers the assigned theme", async () => {
     // Paging the chooser must only make themes selectable. Re-applying the
     // assigned one would silently roll back the edits the user is making.

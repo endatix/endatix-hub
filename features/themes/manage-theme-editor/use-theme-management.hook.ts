@@ -343,13 +343,20 @@ export const useThemeManagement = ({
 
     loadAssignedTheme(currentThemeIdRef.current)
       .then((assignedTheme) => {
-        if (assignedTheme) {
-          addCustomTheme(assignedTheme);
+        if (!assignedTheme) {
+          creator.theme = sanitizeSurveyTheme(DefaultLight);
+          creator.hasPendingThemeChanges = false;
           return;
         }
 
-        creator.theme = sanitizeSurveyTheme(DefaultLight);
-        creator.hasPendingThemeChanges = false;
+        hydrateThemeTab(() => {
+          addCustomTheme(assignedTheme);
+          // `creator.theme =` is a no-op for the Theme tab while it is active,
+          // and a `?tab=theme` deep link opened it before this fetch resolved.
+          if (creator.activeTab === SURVEY_CREATOR_BUILT_IN_TAB.theme) {
+            themeTabPlugin.themeModel.setTheme(creator.theme);
+          }
+        });
       })
       .catch((error) => console.error("Error: ", error));
 
