@@ -25,9 +25,20 @@ api:
 # be changed with a `helm upgrade` — no image rebuild. Licence keys especially: replacing
 # one must always be a config change.
 clientConfig:
+  # Optional. Name of an existing Secret to read the sensitive members of this block from,
+  # instead of setting them literally below. When set, the chart reads the key
+  # "survey-license-key" from it and ignores surveyLicenseKey.
+  #
+  # These values reach the browser either way — that is what "public client config" means —
+  # so this is not about hiding them from users. It is about keeping them out of the git
+  # repository that holds values.yaml, where they would sit in history, in every clone and
+  # in `helm get values`. A SurveyJS licence has commercial value, so that distinction is
+  # worth having even though the key itself is served to every visitor.
+  secretName: ""
   # SurveyJS Creator licence key. Empty = unlicensed Creator (non-commercial banner).
   # Perpetual, so a running deployment keeps working; replace this when upgrading the
   # SurveyJS packages past the subscription window the current key covers.
+  # Ignored when secretName is set.
   surveyLicenseKey: ""
   # Google reCAPTCHA site key. Empty disables reCAPTCHA.
   recaptchaSiteKey: ""
@@ -38,7 +49,10 @@ clientConfig:
   debugMode: ""
 
 analytics:
-  # PostHog. Empty key disables product analytics entirely.
+  # Optional. As clientConfig.secretName — when set, the chart reads the key "posthog-key"
+  # from this Secret and ignores posthogKey below.
+  secretName: ""
+  # PostHog. Empty key disables product analytics entirely. Ignored when secretName is set.
   posthogKey: ""
   posthogHost: "https://us.i.posthog.com"
   posthogUiHost: ""
