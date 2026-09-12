@@ -8,3 +8,64 @@
   display: inline-flex;
   flex-wrap: nowrap;
 }
+
+/*
+ * The property grid swaps this editor in for `title` / `description` / `text`,
+ * so it has to read as one of the `.sd-formbox` inputs it sits between: the
+ * wrapper mirrors `.sd-formbox`, the Quill editor mirrors `.sd-formbox__input`
+ * (survey-core 3.0.2). Tokens rather than Tailwind literals — `border-gray-300`
+ * never followed the palette, and it stopped matching its neighbours outright
+ * once the Creator inputs got their fill and radius back (endatix-hub#954).
+ * DESIGN.md §9 "Hub CSS injected into the Creator" is the rule: `--sjs2-*`
+ * only, no hard-coded colour.
+ */
+.rich-text-editor {
+  position: relative; /* Quill anchors its bubble tooltip to `bounds` */
+  padding: var(--sjs2-layout-component-formbox-medium-padding-vertical)
+    var(--sjs2-layout-component-formbox-medium-padding-horizontal);
+  background: var(--sjs2-color-component-formbox-default-bg);
+  border-radius: var(--sjs2-radius-component-formbox);
+  box-shadow: var(--sjs2-border-effect-component-formbox-default);
+
+  /*
+   * A block box contributes nothing to intrinsic sizing, so in an auto-layout
+   * `.spg-table` this editor claimed only its longest word and its column
+   * collapsed to ~40px. The ItemValue matrices set explicit column widths
+   * (`lib/survey-features/infrastructure/creator-property-grid.css`); this floor
+   * is the backstop for any matrix not named there. Keep it well under those
+   * widths so it never fights them. `ch` ties it to the token font size.
+   */
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 6ch;
+}
+
+/* Quill ships its own 13px Helvetica; the grid around it is Open Sans. */
+.rich-text-editor .ql-container {
+  font-family: var(--sjs2-typography-font-family-component-input-content);
+  font-size: var(--sjs2-typography-font-size-component-input-content);
+  font-weight: var(--sjs2-typography-font-weight-component-input-content);
+  line-height: var(--sjs2-typography-line-height-component-input-content);
+  color: var(--sjs2-color-component-input-default-value);
+}
+
+/* Mirrors `.sd-formbox__input`, so the control is as tall as a text row. */
+.rich-text-editor .ql-editor {
+  /* Quill sets `line-height: 1.42` on `.ql-editor` itself, which beats the
+   * inherited token and left the control a pixel shorter than a real input. */
+  line-height: var(--sjs2-typography-line-height-component-input-content);
+  min-height: calc(
+    1lh + var(--sjs2-layout-component-input-medium-content-padding-vertical) * 2
+  );
+  padding: var(--sjs2-layout-component-input-medium-content-padding-vertical)
+    var(--sjs2-layout-component-input-medium-content-padding-horizontal);
+}
+
+/* Quill's own placeholder is a hard-coded rgba(0, 0, 0, 0.6): unreadable on the
+ * dark chrome, and italic where the rest of the grid is not. */
+.rich-text-editor .ql-editor.ql-blank::before {
+  color: var(--sjs2-color-component-input-default-placeholder);
+  font-style: normal;
+  left: var(--sjs2-layout-component-input-medium-content-padding-horizontal);
+  right: var(--sjs2-layout-component-input-medium-content-padding-horizontal);
+}
