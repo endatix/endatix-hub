@@ -7,10 +7,7 @@ const STYLESHEET =
 
 const CSS = readFileSync(path.join(process.cwd(), STYLESHEET), "utf8");
 
-/**
- * Comments stripped. The comments name the vendor tokens this file exists to
- * override, so asserting on raw CSS would match the explanation, not the rule.
- */
+/** Comments stripped: they name the very tokens these rules override. */
 const RULES = CSS.replace(/\/\*[\s\S]*?\*\//g, "");
 
 /** The Creator entry points, and the only files allowed to load this stylesheet. */
@@ -41,9 +38,8 @@ const BLOCKS = RULES.split("}")
 
 describe("creator property grid stylesheet", () => {
   it("recesses matrix cells onto the input fill", () => {
-    // survey-creator-core fills a matrix cell with --sjs2-color-bg-basic-primary,
-    // the *raised* surface, which is the same colour as the panel behind it — so
-    // Value and Group read as plain text until focused (endatix-hub#954).
+    // The vendor fills a cell with the *raised* surface, i.e. the panel's own
+    // colour, so Value and Group read as plain text until focused (#954).
     expect(RULES).toMatch(
       /\.svc-creator \.spg-table__cell:not\(\.spg-table__cell--detail-panel\) \.sd-formbox\s*\{[^}]*background-color:\s*var\(--sjs2-color-component-formbox-default-bg\)/,
     );
@@ -51,8 +47,8 @@ describe("creator property grid stylesheet", () => {
   });
 
   it("names only v3 design tokens", () => {
-    // `--ctr-*` and single-prefix `--sjs-*` no longer exist in survey-creator-core 3.x,
-    // so a rule naming them falls through to its literal fallback in every palette.
+    // `--ctr-*` and single-prefix `--sjs-*` are gone in 3.x: a rule naming them
+    // falls through to its literal fallback in every palette.
     const deadTokens = [
       ...RULES.matchAll(/var\(\s*(--(?:ctr|sjs)-[\w-]+)/g),
     ].map((match) => match[1]);
@@ -77,10 +73,8 @@ describe("creator property grid stylesheet", () => {
   });
 
   it("keeps the specificity bump that beats the vendor rule", () => {
-    // Without `.svc-creator` this selector matches survey-creator-core's own rule
-    // character for character, so specificity ties and load order decides — and the
-    // vendor sheet arrives with the dynamically imported editor, after this file.
-    // Dropping the prefix makes the override silently do nothing.
+    // Without the prefix these tie the vendor's specificity, and its sheet loads
+    // after this file — the override then silently does nothing.
     expect(BLOCKS).not.toEqual([]);
     for (const { selector } of BLOCKS) {
       expect(selector, `${selector} must outrank the vendor rule`).toMatch(
@@ -90,8 +84,7 @@ describe("creator property grid stylesheet", () => {
   });
 
   it("outlines matrix cells with the formbox border effect", () => {
-    // The fill alone still reads flat beside a bordered input, and the vendor sets
-    // `box-shadow: none` on this selector, so it has to be restated.
+    // The vendor sets `box-shadow: none` here, so the outline must be restated.
     const cell = BLOCKS.find(({ selector }) =>
       selector.endsWith(".sd-formbox"),
     );
@@ -102,9 +95,8 @@ describe("creator property grid stylesheet", () => {
   });
 
   it("owns the focused state instead of leaving it to load order", () => {
-    // The vendor's focus ring sits on an equal-specificity `:focus-within` rule, so
-    // restoring `box-shadow` at rest without restating the focused value would put
-    // the ring back at the mercy of which stylesheet loads last.
+    // The vendor's ring is an equal-specificity `:focus-within` rule, so leaving
+    // it unstated would put the ring at the mercy of load order.
     const focused = BLOCKS.find(({ selector }) =>
       selector.endsWith(".sd-formbox:focus-within"),
     );
@@ -120,7 +112,7 @@ describe("creator property grid stylesheet", () => {
         )?.[1],
       );
 
-    // One shared rule for columns 2 and 3 is what guarantees they stay equal.
+    // One shared rule for columns 2 and 3 is what keeps them equal.
     const shared = widthOf(":is(:nth-child(2), :nth-child(3))");
     const group = widthOf(":nth-child(4):not(.spg-table__cell--actions)");
 
@@ -130,9 +122,8 @@ describe("creator property grid stylesheet", () => {
   });
 
   it("shrinks the icon columns so the slack lands on the data columns", () => {
-    // A percentage under their content width makes the table shrink them to
-    // min-content. Without it a matrix with no Group column handed the leftover
-    // to the drag handle, which ballooned to ~114px.
+    // A percentage under their content width shrinks them to min-content; without
+    // it a Group-less matrix gave the leftover to the drag handle (~114px).
     const actions = BLOCKS.find(({ selector }) =>
       selector.endsWith(".spg-table__cell--actions"),
     );
@@ -140,9 +131,28 @@ describe("creator property grid stylesheet", () => {
     expect(actions?.body).toMatch(/width:\s*1%/);
   });
 
+  it("separates adjacent rows in dropdown popups", () => {
+    // `ul.sd-selectlist` is a plain block list with no item margins, so adjacent
+    // selections fuse into one slab (#954). Only the spacing was missing.
+    const rule = BLOCKS.find(({ selector }) =>
+      selector.includes(".sd-selectlist__item + .sd-selectlist__item"),
+    );
+
+    expect(rule?.body).toMatch(
+      /margin-block-start:\s*var\(--sjs2-spacing-x0[1-9]/,
+    );
+  });
+
+  it("targets the selectlist classes, not the other two list sets", () => {
+    // Three list class sets exist: `sv-list__item`, `sd-menu-item` and
+    // `sd-selectlist__item`. These popups render the third; the other two match
+    // nothing and fail silently. Verify against the DOM, not the docs.
+    expect(RULES).not.toContain(".sv-list__item");
+    expect(RULES).not.toContain(".sd-menu-item");
+  });
+
   it("scopes every width rule to the ItemValue matrices", () => {
-    // The column positions only hold where the columns are Value/Text(/Group).
-    // Validators and the other matrices must keep the vendor's own layout.
+    // Positions only hold for Value/Text(/Group); other matrices keep vendor layout.
     const widthRules = BLOCKS.filter(({ body }) => /width:/.test(body));
 
     expect(widthRules).not.toEqual([]);
@@ -162,9 +172,8 @@ describe("creator property grid stylesheet loading", () => {
   });
 
   it.each(RESPONDENT_ENTRY_POINTS)("is not loaded by %s", (entryPoint) => {
-    // These render a plain Survey Model, so Creator chrome CSS would be dead
-    // weight shipped to respondents. DESIGN.md §9 "Public pages stay off
-    // globals.css" is the same rule.
+    // Plain Survey Models: Creator chrome CSS would be dead weight for
+    // respondents. Same rule as DESIGN.md §9 "Public pages stay off globals.css".
     expect(read(entryPoint)).not.toContain("creator-property-grid");
   });
 });

@@ -25,28 +25,17 @@ const DARK_PALETTE = "dark";
 const SURVEYJS_RELATIVE_TOKEN =
   /var\(--sjs2-|lch\(from |rgba\(from |rgb\(from |hsl\(from |hwb\(from /i;
 
-/**
- * Inherited by the probe, so "not a color" is distinguishable from a color.
- * Never compare against this literal — read it back computed, because the engine
- * picks the serialization (CSS Color 4 permits `rgb(1 2 3)`).
- */
+/** Sentinel the probe inherits. Compare it computed — the engine picks the serialization. */
 const NOT_A_COLOR = "rgb(1, 2, 3)";
 
 /**
- * Resolves Hub CSS values (`var(--content-canvas)`, …) to computed colors.
+ * Resolves Hub CSS values to computed colors, which Creator's JS brand-tint
+ * maths (`parseColor`) needs — it cannot read a `var()`.
  *
- * Creator does its brand-tint maths in JS (`parseColor`), which cannot read a
- * `var()` reference — without this pass the property grid's selected rows and
- * the top-bar toggle lose their brand tint.
- *
- * Only values that really are colors may be rewritten. A `var()` holding a
- * length — `--sjs2-base-unit-radius: var(--radius, 0.5rem)` — is *valid at parse
- * time* and dropped at computed-value time, and the browser then reports the
- * **inherited** color. Rewriting the radius base unit to a color made every
- * `calc(var(--sjs2-base-unit-radius) * n)` invalid, which flattened Creator to
- * `border-radius: 0` — property grid inputs, popups and dialogs (endatix-hub#954).
- * Hence the sentinel on the probe's parent: an invalid value computes to the
- * inherited sentinel, a real color computes to itself.
+ * Only real colors may be rewritten: `color: var(--radius, 0.5rem)` parses, is
+ * dropped at computed-value time, then reported as the *inherited* color. That
+ * turned a length into a color and flattened every `calc()` radius in Creator to
+ * 0 (endatix-hub#954), hence the sentinel on the probe's parent.
  */
 function resolveHubColors(theme: HubTheme, root?: HTMLElement): HubTheme {
   if (typeof document === "undefined" || !theme?.cssVariables) {
@@ -69,8 +58,7 @@ function resolveHubColors(theme: HubTheme, root?: HTMLElement): HubTheme {
   const resolved: Record<string, string> = {};
 
   try {
-    // Read the sentinel back instead of trusting the literal: a dropped value is
-    // reported in whatever serialization this engine uses for an inherited color.
+    // Read it back: the engine picks the serialization.
     const notAColor = getComputedStyle(probeHost).color || NOT_A_COLOR;
 
     for (const [key, value] of Object.entries(theme.cssVariables)) {
@@ -78,10 +66,10 @@ function resolveHubColors(theme: HubTheme, root?: HTMLElement): HubTheme {
         continue;
       }
 
-      probe.style.color = ""; // a rejected value leaves the previous one in place
+      probe.style.color = ""; // a rejected value would leave the previous one
       probe.style.color = value;
       if (probe.style.color === "") {
-        continue; // the browser rejected it outright — not a color
+        continue; // rejected at parse — not a color
       }
 
       const computed = getComputedStyle(probe).color;

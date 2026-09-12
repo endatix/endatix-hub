@@ -123,9 +123,8 @@ describe.each([
     });
 
     it("maps the two surface depths onto the canvas and the card", () => {
-      // recessed (inputs, unchecked controls) < raised (panels, question cards).
-      // Left to the base theme these sit on SurveyJS's neutral grey ramp, which reads
-      // as warm grey (#1c1b20 / #222126) against the Hub navy in dark mode.
+      // Left to the base theme both sit on SurveyJS's neutral grey ramp, which
+      // reads as warm grey against the Hub navy in dark.
       expect(theme.cssVariables["--sjs2-color-bg-basic-primary"]).toBe(
         hubToken("--card"),
       );
@@ -135,10 +134,9 @@ describe.each([
     });
 
     it("gives the recessed depth a different colour from the raised one", () => {
-      // --background and --card are the same #fff in :root, so parking the recessed
-      // depth on --background left property grid inputs, search boxes and unchecked
-      // controls with no fill against the panel behind them (endatix-hub#954).
-      // Comparing the resolved palette values, not the token names, is the point.
+      // --background and --card are the same #fff in :root, so the recessed depth
+      // had no fill against its panel (endatix-hub#954). Compare resolved palette
+      // values, not token names — names alone let this through.
       const globals = readGlobalsPaletteTokens(paletteSelector);
       const raised =
         globals[

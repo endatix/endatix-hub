@@ -68,25 +68,14 @@ const brandTokens: Record<string, string> = {
 };
 
 /**
- * Creator chrome. Only the editing surfaces take the Hub page canvas tint; the
- * panels around them stay on the card surface, or the whole Creator flattens
- * into one colour. Each token is annotated with the region it paints (verified
- * against survey-creator-core 3.0.2 CSS) — `hub/DESIGN.md` §9 has the table.
+ * Creator chrome. Two depths, the same rule in both palettes — recessed
+ * `--content-canvas` (working area, input fills), raised `--card` (chrome panels,
+ * question cards). Region-by-token table: `hub/DESIGN.md` §9.
  *
- * Two depths, the same rule in both palettes:
- *
- *   recessed  `--content-canvas`   #eff4fe / #001225  the working area, input fills
- *   raised    `--card`             #fff / #001a34     chrome panels, question cards
- *
- * `--background` cannot carry the recessed depth: it is the *same colour* as `--card`
- * in light (both `#fff`), so input fills, search boxes and unchecked controls had no
- * fill at all against the panel they sit on (endatix-hub#954).
- *
- * The base theme leaves the raised and recessed surfaces on SurveyJS's own **neutral**
- * grey ramp. That is invisible in light (near-white either way) but shows up as warm
- * grey (#1c1b20 / #222126) against the Hub navy in dark, so both are mapped below.
- * Keep the *raised* surfaces off the canvas tint: mapping every surface to
- * `--content-canvas` is what flattened the whole Creator into one colour.
+ * Not `--background` for recessed — same `#fff` as `--card` in light, so inputs
+ * lost their fill (endatix-hub#954) — and not `--content-canvas` for raised,
+ * which flattens Creator into one colour. Leaving either unmapped parks it on
+ * SurveyJS's neutral grey ramp, which reads warm grey against the Hub navy.
  */
 const creatorTokens: Record<string, string> = {
   ...brandTokens,

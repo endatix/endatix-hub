@@ -19,10 +19,9 @@ function theme(cssVariables: Record<string, string>, colorPalette = "light") {
 }
 
 /**
- * Emulates what Chrome does with a `color` that is valid at parse time and
- * invalid at computed-value time: the declaration is dropped and the inherited
- * colour is reported. jsdom never resolves a `var()`, so without this the
- * resolve pass cannot be exercised the way a browser exercises it.
+ * Emulates Chrome dropping a `color` that is invalid at computed-value time and
+ * reporting the inherited one. jsdom never resolves a `var()`, so the resolve
+ * pass cannot otherwise be exercised the way a browser exercises it.
  */
 function spyOnInheritedComputedColor() {
   const original = globalThis.getComputedStyle;
@@ -107,10 +106,8 @@ describe("applyEndatixCreatorTheme", () => {
 
   it("keeps a length token the browser reports as the inherited colour", () => {
     // Arrange
-    // `color: var(--radius, 0.5rem)` parses, then drops out at computed-value
-    // time, and the browser answers with the *inherited* colour. Resolving that
-    // into --sjs2-base-unit-radius made every calc() radius invalid, flattening
-    // the property grid, popups and dialogs to border-radius: 0 (endatix-hub#954).
+    // Resolving the inherited colour into --sjs2-base-unit-radius made every
+    // calc() radius invalid: border-radius: 0 Creator-wide (endatix-hub#954).
     const root = document.createElement("div");
     document.body.appendChild(root);
     const creator = makeCreator();
@@ -133,8 +130,7 @@ describe("applyEndatixCreatorTheme", () => {
         "--sjs2-spacing-x100": "0.5rem",
       });
     } finally {
-      // A failed assertion must not leak the getComputedStyle mock into the
-      // tests after this one.
+      // A failed assertion must not leak the mock into later tests.
       spy.mockRestore();
       root.remove();
     }
