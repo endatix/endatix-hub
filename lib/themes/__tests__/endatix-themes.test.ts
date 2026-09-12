@@ -12,16 +12,19 @@ import {
   pickSurveyTheme,
 } from "../endatix-themes";
 
-/** Parses the `:root` custom properties out of app/globals.css. */
-function readGlobalsRootTokens(): Record<string, string> {
+/** Parses the custom properties of one palette block out of app/globals.css. */
+function readGlobalsPaletteTokens(selector = ":root"): Record<string, string> {
   const css = readFileSync(
     path.join(process.cwd(), "app", "globals.css"),
     "utf8",
   );
-  const rootBlock = /:root\s*\{([\s\S]*?)\n\}/.exec(css);
+  const pattern = new RegExp(
+    `${selector.replace(".", "\\.")}\\s*\\{([\\s\\S]*?)\\n\\}`,
+  );
+  const rootBlock = pattern.exec(css);
   expect(
     rootBlock,
-    "app/globals.css must declare a :root block",
+    `app/globals.css must declare a ${selector} block`,
   ).not.toBeNull();
 
   const tokens: Record<string, string> = {};
@@ -42,11 +45,18 @@ function readGlobalsRootTokens(): Record<string, string> {
   return tokens;
 }
 
+/** `var(--card, hsl(0 0% 100%))` → `--card`. */
+function hubTokenName(themeValue: string): string {
+  const match = /^var\((--[\w-]+)/.exec(themeValue);
+  expect(match, `${themeValue} must reference a Hub token`).not.toBeNull();
+  return match![1];
+}
+
 describe("hub token fallbacks", () => {
   it("matches the live :root values in app/globals.css", () => {
     // Public form pages do not load globals.css, so these literals are what
     // respondents actually see. If the Hub palette moves, move them together.
-    const globals = readGlobalsRootTokens();
+    const globals = readGlobalsPaletteTokens();
 
     for (const [token, fallback] of Object.entries(hubTokenFallbacks)) {
       expect(globals[token], `${token} missing from :root`).toBeDefined();
@@ -80,57 +90,77 @@ const CANVAS_TOKENS = [
 ];
 
 describe.each([
-  ["light", endatixThemeLight, "light", true],
-  ["dark", endatixThemeDark, "dark", false],
-] as const)("creator chrome theme (%s)", (_name, theme, palette, isLight) => {
-  it("carries the palette metadata", () => {
-    expect(theme.themeName).toBe("default");
-    expect(theme.colorPalette).toBe(palette);
-    expect(theme.isLight).toBe(isLight);
-  });
+  ["light", endatixThemeLight, "light", true, ":root"],
+  ["dark", endatixThemeDark, "dark", false, ".dark"],
+] as const)(
+  "creator chrome theme (%s)",
+  (_name, theme, palette, isLight, paletteSelector) => {
+    it("carries the palette metadata", () => {
+      expect(theme.themeName).toBe("default");
+      expect(theme.colorPalette).toBe(palette);
+      expect(theme.isLight).toBe(isLight);
+    });
 
-  it("keeps the chrome panels on the card surface", () => {
-    for (const token of CHROME_TOKENS) {
-      expect(theme.cssVariables[token]).toBe(hubToken("--card"));
-    }
-  });
+    it("keeps the chrome panels on the card surface", () => {
+      for (const token of CHROME_TOKENS) {
+        expect(theme.cssVariables[token]).toBe(hubToken("--card"));
+      }
+    });
 
-  it("tints only the editing surfaces with the page canvas", () => {
-    for (const token of CANVAS_TOKENS) {
-      expect(theme.cssVariables[token]).toBe("var(--content-canvas)");
-    }
-  });
+    it("tints only the editing surfaces with the page canvas", () => {
+      for (const token of CANVAS_TOKENS) {
+        expect(theme.cssVariables[token]).toBe("var(--content-canvas)");
+      }
+    });
 
-  it("never paints the chrome and the canvas the same colour", () => {
-    // The v3 regression: every surface token was --content-canvas, so the top bar,
-    // toolbox, design canvas and property grid flattened into one block of colour.
-    const canvas = new Set(CANVAS_TOKENS.map((t) => theme.cssVariables[t]));
-    for (const token of CHROME_TOKENS) {
-      expect(canvas.has(theme.cssVariables[token])).toBe(false);
-    }
-  });
+    it("never paints the chrome and the canvas the same colour", () => {
+      // The v3 regression: every surface token was --content-canvas, so the top bar,
+      // toolbox, design canvas and property grid flattened into one block of colour.
+      const canvas = new Set(CANVAS_TOKENS.map((t) => theme.cssVariables[t]));
+      for (const token of CHROME_TOKENS) {
+        expect(canvas.has(theme.cssVariables[token])).toBe(false);
+      }
+    });
 
-  it("maps the three surface depths onto distinct Hub tokens", () => {
-    // recessed (inputs) < canvas (working area) < raised (panels, question cards).
-    // Left to the base theme these sit on SurveyJS's neutral grey ramp, which reads
-    // as warm grey (#1c1b20 / #222126) against the Hub navy in dark mode.
-    const raised = theme.cssVariables["--sjs2-color-bg-basic-primary"];
-    const recessed = theme.cssVariables["--sjs2-color-bg-basic-secondary"];
-    const canvas = theme.cssVariables["--sjs2-color-utility-surface-designer"];
+    it("maps the two surface depths onto the canvas and the card", () => {
+      // Left to the base theme both sit on SurveyJS's neutral grey ramp, which
+      // reads as warm grey against the Hub navy in dark.
+      expect(theme.cssVariables["--sjs2-color-bg-basic-primary"]).toBe(
+        hubToken("--card"),
+      );
+      expect(theme.cssVariables["--sjs2-color-bg-basic-secondary"]).toBe(
+        "var(--content-canvas)",
+      );
+    });
 
-    expect(raised).toBe(hubToken("--card"));
-    expect(recessed).toBe(hubToken("--background"));
-    expect(new Set([raised, recessed, canvas]).size).toBe(3);
-  });
+    it("gives the recessed depth a different colour from the raised one", () => {
+      // --background and --card are the same #fff in :root, so the recessed depth
+      // had no fill against its panel (endatix-hub#954). Compare resolved palette
+      // values, not token names — names alone let this through.
+      const globals = readGlobalsPaletteTokens(paletteSelector);
+      const raised =
+        globals[
+          hubTokenName(theme.cssVariables["--sjs2-color-bg-basic-primary"])
+        ];
+      const recessed =
+        globals[
+          hubTokenName(theme.cssVariables["--sjs2-color-bg-basic-secondary"])
+        ];
 
-  it("raises question cards onto the same surface as the chrome", () => {
-    // Cards float on the canvas, so they read as raised panels — the same
-    // relationship the chrome has, which is why both resolve to --card.
-    expect(theme.cssVariables["--sjs2-color-bg-basic-primary"]).toBe(
-      theme.cssVariables["--sjs2-color-utility-toolbox"],
-    );
-  });
-});
+      expect(raised, "raised depth missing from globals.css").toBeDefined();
+      expect(recessed, "recessed depth missing from globals.css").toBeDefined();
+      expect(recessed).not.toBe(raised);
+    });
+
+    it("raises question cards onto the same surface as the chrome", () => {
+      // Cards float on the canvas, so they read as raised panels — the same
+      // relationship the chrome has, which is why both resolve to --card.
+      expect(theme.cssVariables["--sjs2-color-bg-basic-primary"]).toBe(
+        theme.cssVariables["--sjs2-color-utility-toolbox"],
+      );
+    });
+  },
+);
 
 describe.each([
   ["light", endatixSurveyThemeLight, "endatix-survey-light", "light"],

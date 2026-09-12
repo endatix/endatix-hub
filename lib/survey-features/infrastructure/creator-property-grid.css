@@ -1,0 +1,97 @@
+/*
+ * Creator property-grid overrides — the grid and the popups its editors open.
+ * Imported by `form-editor-container.tsx` and `form-template-editor-container.tsx`
+ * only, never a respondent page.
+ *
+ * Keep `.svc-creator` on every rule: without it these tie survey-creator-core's
+ * specificity, and its sheet loads after this file, so the override would
+ * silently do nothing.
+ */
+
+/* Cells are filled with the *raised* surface (the panel's own colour) and get
+ * `box-shadow: none`, so nothing shows they are editable (endatix-hub#954). */
+.svc-creator .spg-table__cell:not(.spg-table__cell--detail-panel) .sd-formbox {
+  background-color: var(--sjs2-color-component-formbox-default-bg);
+  box-shadow: var(--sjs2-border-effect-component-formbox-default);
+}
+
+/* The vendor ring is an equal-specificity `:focus-within` rule, so restating
+ * `box-shadow` above means owning the focused state too. */
+.svc-creator
+  .spg-table__cell:not(.spg-table__cell--detail-panel)
+  .sd-formbox:focus-within {
+  box-shadow: inset 0 0 0 2px var(--sjs2-color-bg-brand-primary);
+}
+
+/* Hub's rich-text editor sits in the Text column styled as a *standalone*
+ * formbox; matrix cells use tighter vendor metrics, so it rendered ~7px taller. */
+.svc-creator
+  .spg-table__cell:not(.spg-table__cell--detail-panel)
+  .rich-text-editor {
+  padding: var(--sjs2-spacing-x100);
+  border-radius: var(--sjs2-radius-x075);
+}
+
+.svc-creator
+  .spg-table__cell:not(.spg-table__cell--detail-panel)
+  .rich-text-editor
+  .ql-editor {
+  padding: 0;
+  min-height: auto;
+}
+
+/*
+ * ItemValue matrices. Auto layout sizes columns by intrinsic need, which ranks
+ * these badly — a native `<input>` claims ~20 characters, a block editor its
+ * longest word — collapsing Text to ~40px.
+ *
+ * Positional because cells carry no stable identifier (`title` is localized):
+ * 1 drag, 2 Value, 3 Text, 4 Group where present, last actions.
+ */
+.svc-creator
+  :is(
+    [data-name="choices"],
+    [data-name="rows"],
+    [data-name="columns"],
+    [data-name="rateValues"]
+  )
+  .spg-table__cell:is(:nth-child(2), :nth-child(3)) {
+  /* Satisfiable, so honoured exactly; larger values compress unevenly. */
+  width: 26%;
+}
+
+.svc-creator
+  :is(
+    [data-name="choices"],
+    [data-name="rows"],
+    [data-name="columns"],
+    [data-name="rateValues"]
+  )
+  .spg-table__cell:nth-child(4):not(.spg-table__cell--actions) {
+  width: 16%;
+}
+
+/* Under their content width, so they shrink to min-content and the slack goes to
+ * the data columns instead of the drag handle (~114px without this). */
+.svc-creator
+  :is(
+    [data-name="choices"],
+    [data-name="rows"],
+    [data-name="columns"],
+    [data-name="rateValues"]
+  )
+  .spg-table__cell--actions {
+  width: 1%;
+}
+
+/*
+ * Dropdown popups (`multiplevalues` editors). These are `sd-selectlist`, not
+ * survey-core's `sv-list__item` or `sd-menu-item` — the wrong set matches nothing
+ * and fails silently, so check the DOM first.
+ *
+ * A plain block list with no item margins, so adjacent selected rows fuse into
+ * one slab (endatix-hub#954). Fill and radius are already right.
+ */
+.svc-creator .sd-selectlist__item + .sd-selectlist__item {
+  margin-block-start: var(--sjs2-spacing-x050);
+}

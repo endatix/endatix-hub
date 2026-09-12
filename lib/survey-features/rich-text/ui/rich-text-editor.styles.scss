@@ -8,3 +8,58 @@
   display: inline-flex;
   flex-wrap: nowrap;
 }
+
+/*
+ * The property grid swaps this editor in for `title` / `description` / `text`, so
+ * it must read as one of the `.sd-formbox` inputs beside it: the wrapper mirrors
+ * `.sd-formbox`, the Quill editor mirrors `.sd-formbox__input` (survey-core 3.0.2).
+ * Tokens, never Tailwind literals — `border-gray-300` did not follow the palette
+ * (endatix-hub#954). DESIGN.md §9 "Hub CSS injected into the Creator" is the rule.
+ */
+.rich-text-editor {
+  position: relative; /* Quill anchors its bubble tooltip to `bounds` */
+  padding: var(--sjs2-layout-component-formbox-medium-padding-vertical)
+    var(--sjs2-layout-component-formbox-medium-padding-horizontal);
+  background: var(--sjs2-color-component-formbox-default-bg);
+  border-radius: var(--sjs2-radius-component-formbox);
+  box-shadow: var(--sjs2-border-effect-component-formbox-default);
+
+  /*
+   * A block box adds nothing to intrinsic sizing, so in an auto-layout
+   * `.spg-table` this claimed only its longest word and the column collapsed to
+   * ~40px. `creator-property-grid.css` sets explicit widths for the ItemValue
+   * matrices; this floor backstops any matrix not named there, and stays well
+   * under those widths so it never fights them.
+   */
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 6ch;
+}
+
+/* Quill ships its own 13px Helvetica; the grid around it is Open Sans. */
+.rich-text-editor .ql-container {
+  font-family: var(--sjs2-typography-font-family-component-input-content);
+  font-size: var(--sjs2-typography-font-size-component-input-content);
+  font-weight: var(--sjs2-typography-font-weight-component-input-content);
+  line-height: var(--sjs2-typography-line-height-component-input-content);
+  color: var(--sjs2-color-component-input-default-value);
+}
+
+/* Mirrors `.sd-formbox__input`, so the control is as tall as a text row. */
+.rich-text-editor .ql-editor {
+  /* Quill's own `line-height: 1.42` here beats the inherited token. */
+  line-height: var(--sjs2-typography-line-height-component-input-content);
+  min-height: calc(
+    1lh + var(--sjs2-layout-component-input-medium-content-padding-vertical) * 2
+  );
+  padding: var(--sjs2-layout-component-input-medium-content-padding-vertical)
+    var(--sjs2-layout-component-input-medium-content-padding-horizontal);
+}
+
+/* Quill's placeholder is a hard-coded rgba(0,0,0,.6), and italic: unreadable on dark. */
+.rich-text-editor .ql-editor.ql-blank::before {
+  color: var(--sjs2-color-component-input-default-placeholder);
+  font-style: normal;
+  left: var(--sjs2-layout-component-input-medium-content-padding-horizontal);
+  right: var(--sjs2-layout-component-input-medium-content-padding-horizontal);
+}
