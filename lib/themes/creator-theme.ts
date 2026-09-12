@@ -26,11 +26,27 @@ const SURVEYJS_RELATIVE_TOKEN =
   /var\(--sjs2-|lch\(from |rgba\(from |rgb\(from |hsl\(from |hwb\(from /i;
 
 /**
+ * Inherited by the probe, so "not a color" is distinguishable from a color.
+ * Never compare against this literal — read it back computed, because the engine
+ * picks the serialization (CSS Color 4 permits `rgb(1 2 3)`).
+ */
+const NOT_A_COLOR = "rgb(1, 2, 3)";
+
+/**
  * Resolves Hub CSS values (`var(--content-canvas)`, …) to computed colors.
  *
  * Creator does its brand-tint maths in JS (`parseColor`), which cannot read a
  * `var()` reference — without this pass the property grid's selected rows and
  * the top-bar toggle lose their brand tint.
+ *
+ * Only values that really are colors may be rewritten. A `var()` holding a
+ * length — `--sjs2-base-unit-radius: var(--radius, 0.5rem)` — is *valid at parse
+ * time* and dropped at computed-value time, and the browser then reports the
+ * **inherited** color. Rewriting the radius base unit to a color made every
+ * `calc(var(--sjs2-base-unit-radius) * n)` invalid, which flattened Creator to
+ * `border-radius: 0` — property grid inputs, popups and dialogs (endatix-hub#954).
+ * Hence the sentinel on the probe's parent: an invalid value computes to the
+ * inherited sentinel, a real color computes to itself.
  */
 function resolveHubColors(theme: HubTheme, root?: HTMLElement): HubTheme {
   if (typeof document === "undefined" || !theme?.cssVariables) {
@@ -42,33 +58,39 @@ function resolveHubColors(theme: HubTheme, root?: HTMLElement): HubTheme {
     return theme;
   }
 
+  const probeHost = document.createElement("div");
+  probeHost.style.cssText =
+    "visibility:hidden;position:absolute;width:0;height:0;pointer-events:none;overflow:hidden;" +
+    `color:${NOT_A_COLOR};`;
   const probe = document.createElement("div");
-  probe.style.cssText =
-    "visibility:hidden;position:absolute;width:0;height:0;pointer-events:none;overflow:hidden;";
-  mountRoot.appendChild(probe);
+  probeHost.appendChild(probe);
+  mountRoot.appendChild(probeHost);
 
   const resolved: Record<string, string> = {};
-  const sentinel = "rgb(1, 2, 3)";
 
   try {
+    // Read the sentinel back instead of trusting the literal: a dropped value is
+    // reported in whatever serialization this engine uses for an inherited color.
+    const notAColor = getComputedStyle(probeHost).color || NOT_A_COLOR;
+
     for (const [key, value] of Object.entries(theme.cssVariables)) {
       if (SURVEYJS_RELATIVE_TOKEN.test(value)) {
         continue;
       }
 
-      probe.style.color = sentinel;
+      probe.style.color = ""; // a rejected value leaves the previous one in place
       probe.style.color = value;
-      if (probe.style.color === "" || probe.style.color === sentinel) {
-        continue; // the browser rejected it — not a color
+      if (probe.style.color === "") {
+        continue; // the browser rejected it outright — not a color
       }
 
       const computed = getComputedStyle(probe).color;
-      if (computed && computed !== sentinel && !computed.includes("var(")) {
+      if (computed && computed !== notAColor && !computed.includes("var(")) {
         resolved[key] = computed;
       }
     }
   } finally {
-    probe.remove();
+    probeHost.remove();
   }
 
   return { ...theme, cssVariables: { ...theme.cssVariables, ...resolved } };

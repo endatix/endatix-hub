@@ -606,7 +606,7 @@ Hub `components.json` style is **new-york**. Do **not** import `survey-core/them
 | `--warning`               | `--sjs2-palette-yellow-600`                                                                                |
 | `--info`                  | `--sjs2-palette-blue-600`                                                                                  |
 | `--background`            | Survey model: `--sjs2-color-utility-body`, `--sjs2-color-utility-surface-survey` (kills Default teal tint) |
-| `--content-canvas`        | Creator **editing surfaces only** — see the region table below                                             |
+| `--content-canvas`        | Creator **editing surfaces and input fills** — see the region table below                                  |
 | `--card`                  | Creator **chrome** (top bar, toolbox, property grid, root). Survey model: `--sjs2-color-utility-sheet`     |
 
 Do not pin `--sjs2-color-bg-brand-primary` or other derived tokens unless a shade is explicitly off-brand.
@@ -657,21 +657,25 @@ dark mode ships.
 
 Verified against `survey-creator-core` 3.0.2 CSS.
 
-**Three depths, the same rule in both palettes:**
+**Two depths, the same rule in both palettes:**
 
-| Depth    | Hub token          | Light     | Dark      | Paints                                        |
-| :------- | :----------------- | :-------- | :-------- | :-------------------------------------------- |
-| Recessed | `--background`     | `#fff`    | `#000f21` | input fills, search boxes, unchecked controls |
-| Canvas   | `--content-canvas` | `#eff4fe` | `#001225` | the design surface behind the survey          |
-| Raised   | `--card`           | `#fff`    | `#001a34` | chrome panels **and** question cards          |
+| Depth    | Hub token          | Light     | Dark      | Paints                                                            |
+| :------- | :----------------- | :-------- | :-------- | :---------------------------------------------------------------- |
+| Recessed | `--content-canvas` | `#eff4fe` | `#001225` | the design surface, input fills, search boxes, unchecked controls |
+| Raised   | `--card`           | `#fff`    | `#001a34` | chrome panels **and** question cards                              |
 
-Two failure modes this prevents, both seen on the v3 upgrade:
+Three failure modes this prevents, all seen on the v3 upgrade:
 
-1. Mapping every surface to `--content-canvas` flattens the whole Creator into one block.
+1. Mapping every surface — **raised included** — to `--content-canvas` flattens the whole
+   Creator into one block.
 2. Leaving `--sjs2-color-bg-basic-primary` / `-secondary` to the base theme parks them on
    SurveyJS's **neutral** grey ramp. Invisible in light (near-white either way), but in
    dark it paints question cards, the sidebar tabs, the collapsed icon rail and every
    input a warm grey (`#1c1b20` / `#222126`) against the Hub navy.
+3. Recessing onto `--background` reads as three depths but is only two: `--background` and
+   `--card` are the **same** `#fff` in light, so property grid inputs, the search boxes and
+   unchecked controls had no fill against the panel behind them (endatix-hub#954). Compare
+   the palette *values*, never the token names.
 
 | `--sjs2-color-utility-*`  | Selector it paints                                | Hub value          |
 | :------------------------ | :------------------------------------------------ | :----------------- |
@@ -686,10 +690,25 @@ Two failure modes this prevents, both seen on the v3 upgrade:
 | `surface-presets-manager` | `.svc-tab-designer--presets`                      | `--content-canvas` |
 | `surface-translations`    | `.svc-translation-tab`                            | `--content-canvas` |
 
-`--sjs2-color-bg-basic-primary` is deliberately **not** in the Creator overlay: it is the
-generic panel surface behind question cards, the simulator and property-grid inputs, so
-tinting it turns the designer's white cards the same colour as the canvas. Pinned by
-`lib/themes/__tests__/endatix-themes.test.ts`.
+The two `bg-basic-*` tokens carry the depths, and neither may be left to the base theme:
+
+| `--sjs2-color-bg-basic-*` | Paints                                                     | Hub value          |
+| :------------------------ | :--------------------------------------------------------- | :----------------- |
+| `primary`                 | question cards, sidebar tabs, collapsed icon rail, buttons | `--card`           |
+| `secondary`               | `.sd-formbox` fills, search boxes, unchecked radio/checkbox | `--content-canvas` |
+
+`primary` must stay **off** the canvas tint — tinting it turns the designer's white cards the
+same colour as the canvas they float on. Pinned by
+`lib/themes/__tests__/endatix-themes.test.ts`, which resolves both through `app/globals.css`
+and fails if they land on the same colour.
+
+**Non-colour tokens do not survive the resolve pass by accident.** `applyEndatixCreatorTheme`
+flattens `var()` references to computed colours so Creator's JS `parseColor` maths works
+(`lib/themes/creator-theme.ts`). A browser accepts `color: var(--radius, 0.5rem)` at parse
+time, drops it at computed-value time and answers with the **inherited** colour — so a length
+came back as a colour, `calc(var(--sjs2-base-unit-radius) * n)` turned invalid, and every
+corner in the Creator went square (endatix-hub#954). The probe therefore inherits a sentinel
+colour; anything computing to it is left verbatim.
 
 ### Survey analytics dashboard (not Creator chrome)
 
