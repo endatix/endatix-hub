@@ -17,12 +17,6 @@ vi.mock("@flags-sdk/posthog", () => ({
   })),
 }));
 
-/**
- * Drives the real environment rather than mocking `isPostHogEnabled`. The provider is
- * server-only code, and mocking the key check would hide exactly the failure this suite
- * exists to catch: a key read that resolves against the browser projection under jsdom
- * and silently disables PostHog flags.
- */
 describe("FlagFactoryProvider", () => {
   const originalEnv = { ...process.env };
   let provider: FlagFactoryProvider;
@@ -40,98 +34,41 @@ describe("FlagFactoryProvider", () => {
   });
 
   describe("getFactory", () => {
-    describe("when the adapter is enabled and a project key is configured", () => {
-      beforeEach(() => {
-        process.env.ENABLE_POSTHOG_ADAPTER = "true";
-        process.env.ENDATIX_POSTHOG_KEY = "phc_test_key";
-      });
+    // PostHog needs the operator switch *and* a usable project key; anything else is
+    // environment flags. The whitespace case guards the trim in readPublicEndatixEnv().
+    it.each([
+      ["true", "phc_test_key", "PostHogFlagFactory"],
+      ["true", undefined, "EnvironmentFlagFactory"],
+      ["true", "   ", "EnvironmentFlagFactory"],
+      ["false", "phc_test_key", "EnvironmentFlagFactory"],
+      [undefined, "phc_test_key", "EnvironmentFlagFactory"],
+    ])("adapter=%s key=%s selects %s", (adapter, key, expectedFactory) => {
+      if (adapter !== undefined) {
+        process.env.ENABLE_POSTHOG_ADAPTER = adapter;
+      }
+      if (key !== undefined) {
+        process.env.ENDATIX_POSTHOG_KEY = key;
+      }
 
-      it("should return PostHogFlagFactory when conditions are met", () => {
-        const factory = provider.getFactory();
-
-        expect(factory.constructor.name).toBe("PostHogFlagFactory");
-      });
-
-      it("should reuse the same PostHogFlagFactory instance", () => {
-        const factory1 = provider.getFactory();
-        const factory2 = provider.getFactory();
-
-        expect(factory1).toBe(factory2);
-        expect(factory1.constructor.name).toBe("PostHogFlagFactory");
-      });
+      expect(provider.getFactory().constructor.name).toBe(expectedFactory);
     });
 
-    describe("when PostHog adapter is disabled via environment", () => {
-      beforeEach(() => {
-        process.env.ENABLE_POSTHOG_ADAPTER = "false";
-        process.env.ENDATIX_POSTHOG_KEY = "phc_test_key";
-      });
+    it("reuses the same factory instance", () => {
+      process.env.ENABLE_POSTHOG_ADAPTER = "true";
+      process.env.ENDATIX_POSTHOG_KEY = "phc_test_key";
 
-      it("should return EnvironmentFlagFactory", () => {
-        const factory = provider.getFactory();
-
-        expect(factory.constructor.name).toBe("EnvironmentFlagFactory");
-      });
+      expect(provider.getFactory()).toBe(provider.getFactory());
     });
 
-    describe("when the project key is missing", () => {
-      beforeEach(() => {
-        process.env.ENABLE_POSTHOG_ADAPTER = "true";
-        delete process.env.ENDATIX_POSTHOG_KEY;
-      });
+    it("re-reads adapter env on each getFactory call", () => {
+      expect(provider.getFactory().constructor.name).toBe(
+        "EnvironmentFlagFactory",
+      );
 
-      it("should return EnvironmentFlagFactory", () => {
-        const factory = provider.getFactory();
+      process.env.ENABLE_POSTHOG_ADAPTER = "true";
+      process.env.ENDATIX_POSTHOG_KEY = "phc_test_key";
 
-        expect(factory.constructor.name).toBe("EnvironmentFlagFactory");
-      });
-    });
-
-    describe("when the project key is only whitespace", () => {
-      beforeEach(() => {
-        process.env.ENABLE_POSTHOG_ADAPTER = "true";
-        process.env.ENDATIX_POSTHOG_KEY = "   ";
-      });
-
-      it("should return EnvironmentFlagFactory", () => {
-        const factory = provider.getFactory();
-
-        expect(factory.constructor.name).toBe("EnvironmentFlagFactory");
-      });
-    });
-
-    describe("when both PostHog conditions are false", () => {
-      beforeEach(() => {
-        process.env.ENABLE_POSTHOG_ADAPTER = "false";
-        delete process.env.ENDATIX_POSTHOG_KEY;
-      });
-
-      it("should return EnvironmentFlagFactory", () => {
-        const factory = provider.getFactory();
-
-        expect(factory.constructor.name).toBe("EnvironmentFlagFactory");
-      });
-
-      it("should reuse the same EnvironmentFlagFactory instance", () => {
-        const factory1 = provider.getFactory();
-        const factory2 = provider.getFactory();
-
-        expect(factory1).toBe(factory2);
-        expect(factory1.constructor.name).toBe("EnvironmentFlagFactory");
-      });
-    });
-
-    describe("when environment variable is undefined", () => {
-      beforeEach(() => {
-        // Don't set ENABLE_POSTHOG_ADAPTER
-        process.env.ENDATIX_POSTHOG_KEY = "phc_test_key";
-      });
-
-      it("should return EnvironmentFlagFactory (falsy check)", () => {
-        const factory = provider.getFactory();
-
-        expect(factory.constructor.name).toBe("EnvironmentFlagFactory");
-      });
+      expect(provider.getFactory().constructor.name).toBe("PostHogFlagFactory");
     });
   });
 });

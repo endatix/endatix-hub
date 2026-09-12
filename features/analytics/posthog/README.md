@@ -26,23 +26,23 @@ Analytics tracking for Next.js applications using PostHog, with support for both
 ## Setup
 
 1. Environment variables:
+
    ```
    ENDATIX_POSTHOG_KEY=your_posthog_api_key
    ENDATIX_POSTHOG_HOST=https://us.i.posthog.com
    ENDATIX_POSTHOG_UI_HOST=https://app.posthog.com  # optional
    ```
 
-   Deprecated fallbacks `NEXT_PUBLIC_POSTHOG_*` still work via server boot normalisation; prefer `ENDATIX_*` so values are request-time, not build-inlined.
-
 2. Add PostHog provider to your root layout:
+
    ```tsx
    // In app/layout.tsx
    import { PostHogProvider } from '@/features/analytics/posthog';
    import { getSession } from '@/features/auth';
-   
+
    export default async function RootLayout({ children }) {
      const session = await getSession();
-     
+
      return (
        <html lang="en">
          <body>
@@ -56,11 +56,12 @@ Analytics tracking for Next.js applications using PostHog, with support for both
    ```
 
 3. Add page view tracking (optional):
+
    ```tsx
    // In a client layout component
    "use client";
    import { PostHogPageView } from '@/features/analytics/posthog';
-   
+
    export default function ClientLayout({ children }) {
      return (
        <>
@@ -81,7 +82,7 @@ import { useTrackEvent } from '@/features/analytics/posthog';
 
 function CheckoutButton() {
   const { trackEvent } = useTrackEvent();
-  
+
   const handleCheckout = () => {
     // Perform checkout logic
     trackEvent('checkout_started', {
@@ -89,7 +90,7 @@ function CheckoutButton() {
       items_count: 3
     });
   };
-  
+
   return <button onClick={handleCheckout}>Checkout</button>;
 }
 ```
@@ -102,11 +103,11 @@ import { useFeatureFlag } from '@/features/analytics/posthog';
 
 function NewFeature() {
   const isEnabled = useFeatureFlag('new-checkout-flow');
-  
+
   if (!isEnabled) {
     return null;
   }
-  
+
   return <div>New Checkout Experience</div>;
 }
 ```
@@ -119,7 +120,7 @@ import { useTrackEvent } from '@/features/analytics/posthog';
 
 function DataComponent() {
   const { trackException } = useTrackEvent();
-  
+
   const fetchData = async () => {
     try {
       const data = await fetchFromAPI();
@@ -132,7 +133,7 @@ function DataComponent() {
       // Handle error appropriately
     }
   };
-  
+
   // Component implementation
 }
 ```
@@ -149,17 +150,17 @@ export async function processForm(formData: FormData) {
   try {
     // Check if a feature flag is enabled
     const isEnabled = await isFeatureEnabled('advanced-features', false);
-    
+
     // Process form data
     const result = await saveToDatabase(formData);
-    
+
     // Track successful submission
     await trackEvent('form_submitted', {
       form_id: formData.get('id')?.toString(),
       success: true,
       feature_enabled: isEnabled
     });
-    
+
     return result;
   } catch (error) {
     // Track exception
@@ -167,7 +168,7 @@ export async function processForm(formData: FormData) {
       form_id: formData.get('id')?.toString(),
       error_type: 'form_processing_error'
     });
-    
+
     throw error;
   }
 }
@@ -191,7 +192,7 @@ export class SubmissionQueue {
         queue_length: this.items.length,
         error_type: 'queue_processing_error'
       });
-      
+
       // Handle error appropriately
     }
   }
@@ -213,7 +214,6 @@ export class SubmissionQueue {
   - `useTrackEvent()`: Main hook for event tracking
   - `useFeatureFlag(key)`: Hook for feature flag checking
   - `trackException()`: Direct function for error tracking
-  
 - **Server-Side**:
   - `trackEvent()`: Track events from server
   - `trackException()`: Track exceptions from server

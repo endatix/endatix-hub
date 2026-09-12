@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// Mock the auth module to prevent Next.js server module import issues
+vi.mock("next/server", () => ({
+  connection: vi.fn().mockResolvedValue(undefined),
+}));
+
 vi.mock("@/features/auth", () => ({
   getSession: vi.fn().mockResolvedValue({
     username: "test-user",
@@ -10,19 +13,18 @@ vi.mock("@/features/auth", () => ({
   }),
 }));
 
-// Create mock factory with createFlag method
 const mockCreateFlag = vi.fn();
 const mockFactory = {
   createFlag: mockCreateFlag,
 };
 
-// Mock the factory provider
 vi.mock("@/lib/feature-flags/factories/flag-factory-provider", () => ({
   flagFactoryProvider: {
     getFactory: () => mockFactory,
   },
 }));
 
+import { connection } from "next/server";
 import { flag } from "@/lib/feature-flags/utils";
 
 describe("flag", () => {
@@ -32,21 +34,21 @@ describe("flag", () => {
   });
 
   describe("factory delegation", () => {
-    it("should call createFlag on the factory with the flag definition", () => {
+    it("does not bind a factory until the flag is evaluated", () => {
       const definition = {
         key: "test-flag",
         defaultValue: "default-value",
       };
-      const mockFlagFunction = vi.fn();
-      mockCreateFlag.mockReturnValue(mockFlagFunction);
+      mockCreateFlag.mockReturnValue(
+        vi.fn().mockResolvedValue("default-value"),
+      );
 
-      const result = flag(definition);
+      flag(definition);
 
-      expect(mockCreateFlag).toHaveBeenCalledWith(definition);
-      expect(result).toBe(mockFlagFunction);
+      expect(mockCreateFlag).not.toHaveBeenCalled();
     });
 
-    it("should return the function returned by factory.createFlag", () => {
+    it("calls createFlag on first evaluation and returns that value", async () => {
       const definition = {
         key: "test-flag",
         defaultValue: true,
@@ -54,73 +56,91 @@ describe("flag", () => {
       const mockFlagFunction = vi.fn().mockResolvedValue(true);
       mockCreateFlag.mockReturnValue(mockFlagFunction);
 
-      const result = flag(definition);
+      const result = await flag(definition)();
 
-      expect(typeof result).toBe("function");
-      expect(result).toBe(mockFlagFunction);
+      expect(mockCreateFlag).toHaveBeenCalledWith(definition);
+      expect(mockFlagFunction).toHaveBeenCalledTimes(1);
+      expect(result).toBe(true);
+    });
+
+    it("opts the request out of static rendering before evaluating", async () => {
+      mockCreateFlag.mockReturnValue(vi.fn().mockResolvedValue(true));
+
+      await flag({ key: "test-flag", defaultValue: false })();
+
+      expect(connection).toHaveBeenCalled();
+    });
+
+    it("reuses the factory implementation on later evaluations", async () => {
+      const definition = {
+        key: "test-flag",
+        defaultValue: false,
+      };
+      const mockFlagFunction = vi.fn().mockResolvedValue(false);
+      mockCreateFlag.mockReturnValue(mockFlagFunction);
+
+      const evaluate = flag(definition);
+      await evaluate();
+      await evaluate();
+
+      expect(mockCreateFlag).toHaveBeenCalledTimes(1);
+      expect(mockFlagFunction).toHaveBeenCalledTimes(2);
     });
   });
 
   describe("flag types", () => {
-    it("should handle boolean flags", () => {
+    it("should handle boolean flags", async () => {
       const definition = {
         key: "boolean-flag",
         defaultValue: false,
       };
-      const mockFlagFunction = vi.fn().mockResolvedValue(true);
-      mockCreateFlag.mockReturnValue(mockFlagFunction);
+      mockCreateFlag.mockReturnValue(vi.fn().mockResolvedValue(true));
 
-      const result = flag(definition);
+      const result = await flag(definition)();
 
       expect(mockCreateFlag).toHaveBeenCalledWith(definition);
-      expect(result).toBe(mockFlagFunction);
+      expect(result).toBe(true);
     });
 
-    it("should handle string flags", () => {
+    it("should handle string flags", async () => {
       const definition = {
         key: "string-flag",
         defaultValue: "default-string",
       };
-      const mockFlagFunction = vi.fn().mockResolvedValue("test-string");
-      mockCreateFlag.mockReturnValue(mockFlagFunction);
+      mockCreateFlag.mockReturnValue(vi.fn().mockResolvedValue("test-string"));
 
-      const result = flag(definition);
+      const result = await flag(definition)();
 
-      expect(mockCreateFlag).toHaveBeenCalledWith(definition);
-      expect(result).toBe(mockFlagFunction);
+      expect(result).toBe("test-string");
     });
 
-    it("should handle number flags", () => {
+    it("should handle number flags", async () => {
       const definition = {
         key: "number-flag",
         defaultValue: 42,
       };
-      const mockFlagFunction = vi.fn().mockResolvedValue(100);
-      mockCreateFlag.mockReturnValue(mockFlagFunction);
+      mockCreateFlag.mockReturnValue(vi.fn().mockResolvedValue(100));
 
-      const result = flag(definition);
+      const result = await flag(definition)();
 
-      expect(mockCreateFlag).toHaveBeenCalledWith(definition);
-      expect(result).toBe(mockFlagFunction);
+      expect(result).toBe(100);
     });
 
-    it("should handle object flags", () => {
+    it("should handle object flags", async () => {
       const definition = {
         key: "object-flag",
         defaultValue: { enabled: false, name: "default" },
       };
-      const mockFlagFunction = vi
-        .fn()
-        .mockResolvedValue({ enabled: true, name: "test" });
-      mockCreateFlag.mockReturnValue(mockFlagFunction);
+      mockCreateFlag.mockReturnValue(
+        vi.fn().mockResolvedValue({ enabled: true, name: "test" }),
+      );
 
-      const result = flag(definition);
+      const result = await flag(definition)();
 
-      expect(mockCreateFlag).toHaveBeenCalledWith(definition);
-      expect(result).toBe(mockFlagFunction);
+      expect(result).toEqual({ enabled: true, name: "test" });
     });
 
-    it("should handle object flags with parsePayload", () => {
+    it("should handle object flags with parsePayload", async () => {
       const parsePayload = (payload: unknown) =>
         payload as { enabled: boolean };
       const definition = {
@@ -128,65 +148,14 @@ describe("flag", () => {
         defaultValue: { enabled: false },
         parsePayload,
       };
-      const mockFlagFunction = vi.fn().mockResolvedValue({ enabled: true });
-      mockCreateFlag.mockReturnValue(mockFlagFunction);
+      mockCreateFlag.mockReturnValue(
+        vi.fn().mockResolvedValue({ enabled: true }),
+      );
 
-      const result = flag(definition);
-
-      expect(mockCreateFlag).toHaveBeenCalledWith(definition);
-      expect(result).toBe(mockFlagFunction);
-    });
-  });
-
-  describe("overload compatibility", () => {
-    it("should work with the boolean overload", () => {
-      const definition = {
-        key: "boolean-overload",
-        defaultValue: false,
-      };
-      const mockFlagFunction = vi.fn().mockResolvedValue(true);
-      mockCreateFlag.mockReturnValue(mockFlagFunction);
-
-      const result = flag(definition);
+      const result = await flag(definition)();
 
       expect(mockCreateFlag).toHaveBeenCalledWith(definition);
-      expect(result).toBe(mockFlagFunction);
-    });
-
-    it("should work with the string/number overload", () => {
-      const definition = {
-        key: "string-overload",
-        defaultValue: "test" as const,
-      };
-      const mockFlagFunction = vi.fn().mockResolvedValue("result");
-      mockCreateFlag.mockReturnValue(mockFlagFunction);
-
-      const result = flag(definition);
-
-      expect(mockCreateFlag).toHaveBeenCalledWith(definition);
-      expect(result).toBe(mockFlagFunction);
-    });
-
-    it("should work with the complex object overload", () => {
-      interface TestConfig {
-        enabled: boolean;
-        name: string;
-      }
-
-      const definition = {
-        key: "complex-overload",
-        defaultValue: { enabled: false, name: "default" } as TestConfig,
-        parsePayload: (payload: unknown) => payload as TestConfig,
-      };
-      const mockFlagFunction = vi
-        .fn()
-        .mockResolvedValue({ enabled: true, name: "test" });
-      mockCreateFlag.mockReturnValue(mockFlagFunction);
-
-      const result = flag(definition);
-
-      expect(mockCreateFlag).toHaveBeenCalledWith(definition);
-      expect(result).toBe(mockFlagFunction);
+      expect(result).toEqual({ enabled: true });
     });
   });
 });

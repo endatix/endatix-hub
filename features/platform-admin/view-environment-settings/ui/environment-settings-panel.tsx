@@ -3,6 +3,7 @@
 import {
   BarChart3,
   Bug,
+  Flag,
   FlaskConical,
   Server,
   ShieldCheck,
@@ -29,7 +30,15 @@ interface EnvironmentSettingsPanelProps {
 export function EnvironmentSettingsPanel({
   summary,
 }: Readonly<EnvironmentSettingsPanelProps>) {
-  const { api, experimental, debug, analytics, recaptcha, surveyJs } = summary;
+  const {
+    api,
+    experimental,
+    debug,
+    analytics,
+    featureFlags,
+    recaptcha,
+    surveyJs,
+  } = summary;
 
   const showUrlParts =
     api.apiConfigured && (api.baseUrl !== null || api.prefix !== null);
@@ -149,7 +158,7 @@ export function EnvironmentSettingsPanel({
         <ConfigSection
           icon={BarChart3}
           title="Analytics"
-          description="PostHog client configuration. All three values are public — they ship to every browser as part of the client config."
+          description="PostHog client configuration. Project key, host, and UI host are public — they ship to every browser as part of the client config."
         >
           <ConfigRow
             label="PostHog project key"
@@ -178,6 +187,37 @@ export function EnvironmentSettingsPanel({
               <ConfigValue
                 value={analytics.posthogUiHost || null}
                 copyLabel="Copy PostHog UI host"
+              />
+            }
+          />
+        </ConfigSection>
+
+        <ConfigSection
+          icon={Flag}
+          title="Feature flags"
+          description="Server-side gates for Hub capabilities. The provider is resolved per request: PostHog when the adapter is on and a project key is set, otherwise FLAG_* env vars and code defaults."
+        >
+          <ConfigRow
+            label="Provider"
+            value={
+              <ConfigValue
+                value={
+                  featureFlags.provider === "posthog"
+                    ? "PostHog"
+                    : "Environment variables"
+                }
+                copyLabel="Copy feature-flag provider"
+                copyable={false}
+              />
+            }
+          />
+          <ConfigRow
+            label="PostHog adapter"
+            envVar="ENABLE_POSTHOG_ADAPTER"
+            value={
+              <StatusBadge
+                tone={featureFlags.adapterEnabled ? "on" : "off"}
+                label={featureFlags.adapterEnabled ? "On" : "Off"}
               />
             }
           />

@@ -1,6 +1,10 @@
+import { connection } from "next/server";
 import { getSession } from "@/features/auth";
 import { flagFactoryProvider } from "./factories/flag-factory-provider";
-import type { FlagDefinition } from "./factories/flag-factory.interface";
+import type {
+  FlagDefinition,
+  FlagFactory,
+} from "./factories/flag-factory.interface";
 import { dedupe } from "flags/next";
 
 export interface FlagEntities {
@@ -33,8 +37,21 @@ export function flag<T extends string | number>(definition: {
   defaultValue: T;
 }): () => Promise<T>;
 
-// Implementation
+/**
+ * Factory chosen per evaluation (after `connection()`), not at module load.
+ * One Vercel `flag()` wrapper per factory — that wrapper is request-cached.
+ */
 export function flag<T>(definition: FlagDefinition<T>): () => Promise<T> {
-  const factory = flagFactoryProvider.getFactory();
-  return factory.createFlag<T>(definition);
+  const implementations = new WeakMap<FlagFactory, () => Promise<T>>();
+
+  return async (): Promise<T> => {
+    await connection();
+    const factory = flagFactoryProvider.getFactory();
+    let evaluate = implementations.get(factory);
+    if (!evaluate) {
+      evaluate = factory.createFlag<T>(definition);
+      implementations.set(factory, evaluate);
+    }
+    return evaluate();
+  };
 }

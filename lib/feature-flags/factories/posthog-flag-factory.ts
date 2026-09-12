@@ -16,9 +16,6 @@ export class PostHogFlagFactory implements FlagFactory {
   private postHogAdapter: ReturnType<typeof createPostHogAdapter>;
 
   constructor() {
-    // Server-only adapter, so read the runtime environment directly rather than through
-    // the isomorphic accessor — that one branches on `typeof window`, which is defined
-    // under jsdom and would hand a server module the empty browser projection.
     const { posthogKey, posthogHost } = readPublicEndatixEnv();
     this.postHogAdapter = createPostHogAdapter({
       postHogKey: posthogKey,
@@ -27,7 +24,6 @@ export class PostHogFlagFactory implements FlagFactory {
   }
 
   createFlag<T>(definition: FlagDefinition<T>): () => Promise<T> {
-    // Complex objects (non-primitive types) use featureFlagPayload
     if (
       typeof definition.defaultValue === "object" ||
       definition.parsePayload
@@ -44,7 +40,6 @@ export class PostHogFlagFactory implements FlagFactory {
       });
     }
 
-    // Boolean flags use isFeatureEnabled
     if (typeof definition.defaultValue === "boolean") {
       return flag<boolean, PostHogEntities>({
         key: definition.key,
@@ -56,7 +51,6 @@ export class PostHogFlagFactory implements FlagFactory {
       }) as () => Promise<T>;
     }
 
-    // Simple values use featureFlagValue
     return flag<string | boolean, PostHogEntities>({
       key: definition.key,
       adapter: this.postHogAdapter.featureFlagValue({

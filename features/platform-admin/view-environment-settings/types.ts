@@ -31,6 +31,11 @@ export type EnvironmentAdminSummary = {
     readonly posthogHost: string;
     readonly posthogUiHost: string;
   };
+  /** Server-side Hub feature flags. Provider is PostHog only when the adapter is on and a key exists. */
+  readonly featureFlags: {
+    readonly adapterEnabled: boolean;
+    readonly provider: "posthog" | "environment";
+  };
   /** Public value: the site key is embedded in the reCAPTCHA script URL on every form. */
   readonly recaptcha: {
     readonly siteKey: string;
