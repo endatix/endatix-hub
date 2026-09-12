@@ -22,7 +22,7 @@ export default defineConfig({
         "app/**/*.{ts,tsx}",
         "components/**/*.tsx",
         "extensions/**/*.ts",
-        "features/**/*.{ts,tsx}",
+        "features/**/*.ts",
         "lib/**/*.{ts,tsx}",
         "types/**/*.ts",
         "src/**/*.ts",
