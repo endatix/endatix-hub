@@ -14,9 +14,13 @@ vi.mock("@/features/auth", () => ({
 }));
 
 const createPostHogAdapter = vi.hoisted(() => vi.fn());
+const hoisted = vi.hoisted(() => ({
+  realCreatePostHogAdapter: undefined as never,
+}));
 
 vi.mock("@flags-sdk/posthog", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@flags-sdk/posthog")>();
+  hoisted.realCreatePostHogAdapter = actual.createPostHogAdapter as never;
   createPostHogAdapter.mockImplementation(actual.createPostHogAdapter);
   return { ...actual, createPostHogAdapter };
 });
@@ -78,7 +82,7 @@ describe("PostHogFlagFactory", () => {
     );
   });
 
-  it("wires flags/next to the v1 callable adapter (value) and .payload", () => {
+  it("wires flags/next to the v1 callable adapter, never the v0 builders", () => {
     const factory = new PostHogFlagFactory();
 
     factory.createFlag({ key: "ai-features", defaultValue: false });
@@ -88,21 +92,56 @@ describe("PostHogFlagFactory", () => {
     });
 
     expect(flagCalls).toHaveLength(2);
+    // Value flags pass the callable adapter itself; payload flags pass a resolved adapter.
     expect(typeof flagCalls[0]?.adapter).toBe("function");
     expect(flagCalls[0]?.adapter).not.toHaveProperty("isFeatureEnabled");
-    expect(typeof flagCalls[1]?.adapter).toBe("function");
+    expect(flagCalls[1]?.adapter).toHaveProperty("decide");
   });
 
-  it("applies parsePayload to the PostHog result", async () => {
-    const factory = new PostHogFlagFactory();
-    const evaluate = factory.createFlag({
-      key: "parsed-flag",
-      defaultValue: { enabled: false },
-      parsePayload: (payload) => ({
-        enabled: (payload as { source: string }).source === "posthog",
-      }),
+  describe("parsePayload", () => {
+    // mockClear() in the outer beforeEach keeps implementations, so restore the real one.
+    afterEach(() => {
+      createPostHogAdapter.mockImplementation(hoisted.realCreatePostHogAdapter);
     });
 
-    expect(await evaluate()).toEqual({ enabled: true });
+    const definition = {
+      key: "parsed-flag",
+      defaultValue: { enabled: false },
+      parsePayload: (payload: unknown) => ({
+        enabled: (payload as { source?: string }).source === "posthog",
+      }),
+    };
+
+    /** Drives the adapter handed to `flags/next`, which is where parsing now happens. */
+    function decideWith(payload: unknown) {
+      createPostHogAdapter.mockReturnValue(
+        Object.assign(() => ({ decide: vi.fn() }), {
+          payload: () => ({
+            decide: async ({ defaultValue }: { defaultValue?: unknown }) =>
+              payload === MISSING ? defaultValue : payload,
+          }),
+        }),
+      );
+
+      new PostHogFlagFactory().createFlag(definition);
+      const adapter = flagCalls.at(-1)?.adapter as {
+        decide: (params: Record<string, unknown>) => Promise<unknown>;
+      };
+      return adapter.decide({ key: definition.key });
+    }
+
+    const MISSING = Symbol("missing");
+
+    it("parses a real PostHog payload", async () => {
+      expect(await decideWith({ source: "posthog" })).toEqual({
+        enabled: true,
+      });
+    });
+
+    // The parser expects raw PostHog JSON. Handing it Hub's own typed default would
+    // transform it — or throw — instead of returning the default unchanged.
+    it("returns defaultValue untouched when PostHog has no payload", async () => {
+      expect(await decideWith(MISSING)).toBe(definition.defaultValue);
+    });
   });
 });

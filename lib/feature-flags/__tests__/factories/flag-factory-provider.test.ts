@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { FlagFactoryProvider } from "@/lib/feature-flags/factories/flag-factory-provider";
+import {
+  FlagFactoryProvider,
+  readFlagSettings,
+  flagFactoryProvider,
+} from "@/lib/feature-flags/factories/flag-factory-provider";
 
 vi.mock("@/features/auth", () => ({
   getSession: vi.fn().mockResolvedValue({
@@ -77,6 +81,27 @@ describe("FlagFactoryProvider", () => {
       );
     });
 
+    it("reports no selected provider until the first getFactory call", () => {
+      expect(provider.getSelectedProvider()).toBeNull();
+    });
+
+    it("reports the frozen provider rather than what env says now", () => {
+      process.env.FLAG_PROVIDER = "posthog";
+      process.env.POSTHOG_PROJECT_API_KEY = "phc_test_key";
+      provider.getFactory();
+
+      delete process.env.FLAG_PROVIDER;
+
+      expect(provider.getSelectedProvider()).toBe("posthog");
+    });
+
+    it("trims FLAG_PROVIDER before comparing", () => {
+      process.env.FLAG_PROVIDER = "  posthog\r";
+      process.env.POSTHOG_PROJECT_API_KEY = "phc_test_key";
+
+      expect(provider.getFactory().constructor.name).toBe("PostHogFlagFactory");
+    });
+
     it("resetForTests() allows a later getFactory to re-read env", () => {
       expect(provider.getFactory().constructor.name).toBe(
         "EnvironmentFlagFactory",
@@ -87,6 +112,41 @@ describe("FlagFactoryProvider", () => {
       provider.resetForTests();
 
       expect(provider.getFactory().constructor.name).toBe("PostHogFlagFactory");
+    });
+  });
+});
+
+describe("readFlagSettings", () => {
+  const originalEnv = { ...process.env };
+
+  beforeEach(() => {
+    process.env = { ...originalEnv };
+    delete process.env.FLAG_PROVIDER;
+    flagFactoryProvider.resetForTests();
+  });
+
+  afterEach(() => {
+    process.env = originalEnv;
+    flagFactoryProvider.resetForTests();
+  });
+
+  it("reports the trimmed request and no provider before the first evaluation", () => {
+    process.env.FLAG_PROVIDER = " environment ";
+
+    expect(readFlagSettings()).toEqual({
+      requestedProvider: "environment",
+      provider: null,
+    });
+  });
+
+  it("keeps reporting the frozen provider after env changes", () => {
+    flagFactoryProvider.getFactory();
+    process.env.FLAG_PROVIDER = "posthog";
+    process.env.POSTHOG_PROJECT_API_KEY = "phc_test_key";
+
+    expect(readFlagSettings()).toEqual({
+      requestedProvider: "posthog",
+      provider: "environment",
     });
   });
 });

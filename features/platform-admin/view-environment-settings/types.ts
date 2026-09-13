@@ -1,3 +1,6 @@
+import type { ClientEndatixConfig } from "@/features/config/client-endatix-config";
+import type { FlagSettings } from "@/lib/feature-flags/flag-settings";
+
 /**
  * Whether a genuine secret is configured, without exposing its value.
  *
@@ -25,17 +28,13 @@ export type EnvironmentAdminSummary = {
     readonly isDebugMode: boolean;
     readonly nodeEnv: string;
   };
-  /** Public values: every field here is part of the browser projection. */
-  readonly analytics: {
-    readonly posthogKey: string;
-    readonly posthogHost: string;
-    readonly posthogUiHost: string;
-  };
-  /** Server-side Hub feature flags. Provider is PostHog only when the adapter is on and a key exists. */
-  readonly featureFlags: {
-    readonly adapterEnabled: boolean;
-    readonly provider: "posthog" | "environment";
-  };
+  /** Public values: projected straight off the browser config, not re-declared. */
+  readonly analytics: Pick<
+    ClientEndatixConfig,
+    "posthogKey" | "posthogHost" | "posthogUiHost"
+  >;
+  /** Owned by `lib/feature-flags`; this page reports it, it does not define it. */
+  readonly featureFlags: FlagSettings;
   /** Public value: the site key is embedded in the reCAPTCHA script URL on every form. */
   readonly recaptcha: {
     readonly siteKey: string;

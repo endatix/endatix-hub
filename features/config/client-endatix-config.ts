@@ -14,8 +14,8 @@
  * isomorphic modules read {@link getIsomorphicEndatixConfig}.
  */
 
-import { withBasePath } from "@/lib/hosting/base-path";
-import { trimTrailingSlashes } from "@/lib/utils/url-utils";
+import { withBasePath } from "../../lib/hosting/base-path";
+import { trimTrailingSlashes } from "../../lib/utils/url-utils";
 
 export interface ClientEndatixConfig {
   readonly apiBaseUrl: string;

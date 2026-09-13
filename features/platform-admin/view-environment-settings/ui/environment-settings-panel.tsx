@@ -9,6 +9,7 @@ import {
   ShieldCheck,
   Wrench,
 } from "lucide-react";
+import type { FlagProviderName } from "@/lib/feature-flags/flag-settings";
 import type { EnvironmentAdminSummary } from "../types";
 import { ConfigRow } from "./config-row";
 import { ConfigSection } from "./config-section";
@@ -17,6 +18,13 @@ import { ConfigValue } from "./config-value";
 import type { EnvironmentCheck } from "./environment-overview";
 import { EnvironmentOverview } from "./environment-overview";
 import { SecretPresenceBadge } from "./secret-presence";
+
+/** `pending` covers the window before any flag has been evaluated in this process. */
+const FLAG_PROVIDER_LABELS: Record<FlagProviderName | "pending", string> = {
+  posthog: "PostHog",
+  environment: "Environment variables",
+  pending: "Not selected yet",
+};
 
 interface EnvironmentSettingsPanelProps {
   summary: EnvironmentAdminSummary;
@@ -198,14 +206,10 @@ export function EnvironmentSettingsPanel({
           description="Server-side Hub gates. Provider is chosen on first flag evaluation in the process (PostHog when FLAG_PROVIDER=posthog and POSTHOG_PROJECT_API_KEY is set). Flag values still evaluate per request. Restart to switch provider."
         >
           <ConfigRow
-            label="Provider"
+            label="Provider in use"
             value={
               <ConfigValue
-                value={
-                  featureFlags.provider === "posthog"
-                    ? "PostHog"
-                    : "Environment variables"
-                }
+                value={FLAG_PROVIDER_LABELS[featureFlags.provider ?? "pending"]}
                 copyLabel="Copy feature-flag provider"
                 copyable={false}
               />
@@ -215,9 +219,11 @@ export function EnvironmentSettingsPanel({
             label="Requested provider"
             envVar="FLAG_PROVIDER"
             value={
-              <StatusBadge
-                tone={featureFlags.adapterEnabled ? "on" : "off"}
-                label={featureFlags.adapterEnabled ? "On" : "Off"}
+              <ConfigValue
+                value={featureFlags.requestedProvider}
+                emptyLabel="(not set)"
+                copyLabel="Copy requested feature-flag provider"
+                copyable={false}
               />
             }
           />

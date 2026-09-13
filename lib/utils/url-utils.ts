@@ -1,4 +1,4 @@
-import { Result } from "../result";
+import { Result } from "../result/result";
 import { isValidAbsoluteUrl } from "./is-valid-absolute-url";
 
 /**

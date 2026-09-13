@@ -35,8 +35,9 @@ prefix, not `"use client"`, is what decides.
 - Read config with `await getClientEndatixConfig()` from `@/features/config/server` (Server
   Components), `getBrowserEndatixConfig()` (browser, non-React SurveyJS handlers), or
   `getIsomorphicEndatixConfig()` (either side; omits `apiBaseUrl` / `extensionsEnabled`). Keep
-  `@/features/config` config-safe for `next.config.ts`; anything needing `next/server` goes in the
-  server barrel.
+  `@/features/config` config-safe for `next.config.ts` (no `@/` imports in that graph — Next
+  rewrites them as `./…` next to the importer; use relative paths like `endatix-config.ts`). Anything
+  needing `next/server` goes in the server barrel.
 - **Adding a public value:** field on `ClientEndatixConfig`, default in
   `EMPTY_CLIENT_ENDATIX_CONFIG` plus pass-through in `toClientEndatixConfig`. Most fields are
   `ENDATIX_*` in `readPublicEndatixEnv()`; PostHog uses `POSTHOG_PROJECT_API_KEY` / `POSTHOG_HOST` /
@@ -59,6 +60,9 @@ prefix, not `"use client"`, is what decides.
   Adapter is `createPostHogAdapter` (callable / `.payload`), not `isFeatureEnabled`.
   Do not set `POSTHOG_SECRET_KEY` on SWA. Never `NEXT_PUBLIC_POSTHOG_*`. Product flags live
   here, not `features/analytics/posthog`. Admin → Environment shows the resolved provider.
+  `flags` / `flags/next` types: Hub `types/flags-sdk.d.ts`. The npm package only lists
+  types in `typesVersions`, which `moduleResolution: bundler` skips ([vercel/flags](https://github.com/vercel/flags)
+  `packages/flags/package.json`). Remove the shim when `exports` includes a `types` condition.
 - Only `basePath` stays build-time (`NEXT_PUBLIC_BASE_PATH` in `lib/hosting/base-path.ts`): no
   runtime equivalent, so the published image serves at `/` whatever the operator sets. Subfolder
   hosting needs per-origin hosting or a self-build.

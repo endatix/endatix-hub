@@ -5,10 +5,7 @@ import {
   getClientEndatixConfig,
   getSurveyLicenseKey,
 } from "@/features/config/server";
-import {
-  isPostHogFlagProviderRequested,
-  shouldUsePostHogFlags,
-} from "@/lib/feature-flags/factories/posthog-flag-settings";
+import { readFlagSettings } from "@/lib/feature-flags/factories/flag-factory-provider";
 import type { PlatformAdminSession } from "../types";
 import type { EnvironmentAdminSummary, SecretPresence } from "./types";
 
@@ -61,10 +58,7 @@ export async function getEnvironmentSettings(
       posthogHost: client.posthogHost,
       posthogUiHost: client.posthogUiHost,
     }),
-    featureFlags: Object.freeze({
-      adapterEnabled: isPostHogFlagProviderRequested(),
-      provider: shouldUsePostHogFlags() ? "posthog" : "environment",
-    }),
+    featureFlags: readFlagSettings(),
     recaptcha: Object.freeze({
       siteKey: client.recaptchaSiteKey,
     }),

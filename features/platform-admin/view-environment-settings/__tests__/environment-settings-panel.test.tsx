@@ -39,7 +39,7 @@ function buildSummary(
       posthogUiHost: "https://us.posthog.com",
     }),
     featureFlags: Object.freeze({
-      adapterEnabled: posthogConfigured,
+      requestedProvider: posthogConfigured ? "posthog" : "",
       provider: posthogConfigured ? "posthog" : "environment",
     }),
     recaptcha: Object.freeze({
@@ -126,6 +126,39 @@ describe("EnvironmentSettingsPanel", () => {
 
     expect(screen.getByText("Environment variables")).toBeDefined();
     expect(screen.queryByText("PostHog")).toBeNull();
+  });
+
+  // An explicit FLAG_PROVIDER=environment used to render the same "Off" badge as an unset
+  // value, so a deliberate choice looked like a missing one.
+  it("shows the requested provider verbatim, including an explicit environment", () => {
+    const summary = buildSummary();
+    render(
+      <EnvironmentSettingsPanel
+        summary={{
+          ...summary,
+          featureFlags: {
+            requestedProvider: "environment",
+            provider: "environment",
+          },
+        }}
+      />,
+    );
+
+    expect(screen.getByText("environment")).toBeDefined();
+  });
+
+  it("says the provider is not selected yet before the first flag evaluation", () => {
+    const summary = buildSummary();
+    render(
+      <EnvironmentSettingsPanel
+        summary={{
+          ...summary,
+          featureFlags: { requestedProvider: "posthog", provider: null },
+        }}
+      />,
+    );
+
+    expect(screen.getByText("Not selected yet")).toBeDefined();
   });
 
   it("shows Not set when secrets are not configured", () => {

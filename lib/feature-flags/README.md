@@ -70,7 +70,7 @@ const ai = await aiFeatures(); // { enabled: boolean, assistant: {...} }
 - Boolean / string flags → v1 callable `adapter` (value)
 - Object flags → `adapter.payload`
 
-> ⚠️ **Note**: Object flags work perfectly but don't appear in PostHog's "Feature flag called" events due to payload-based evaluation. Use boolean flags if you need event tracking.
+> ⚠️ **Note**: Both forms go through one `evaluateFlags` call — v1 dropped the `sendFeatureFlagEvents` option. Impressions still differ: `getFlag` fires `$feature_flag_called` (deduped per distinct id, flag and value), while `getFlagPayload` fires nothing. Use a boolean or string flag when you need the flag to show up in PostHog usage reporting.
 
 ### Configuration
 
@@ -160,7 +160,7 @@ const isEnabled = await myFeature();
 ## 🔧 Development
 
 - **Local Development**: `FLAG_*` env vars and code defaults
-- **Staging / Production**: PostHog once the adapter and project key are set
+- **Staging / Production**: PostHog once `FLAG_PROVIDER=posthog` and `POSTHOG_PROJECT_API_KEY` are set
 
 ## 📚 Further Reading
 
