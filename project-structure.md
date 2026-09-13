@@ -129,6 +129,19 @@ Use `features/folders` as the canonical implementation of this pattern:
 - server-safe curated exports via `features/folders/server.ts`
 - slice-local tests in `features/folders/create-folder/__tests__/`
 
+### Diagnostic views project, they do not re-declare
+
+A page that *reports* on a domain (admin Environment, health views) imports that domain's
+type instead of writing a matching one. Re-spelling a union or a field list in a
+`view-*/types.ts` creates two definitions that drift silently, and the page ends up
+describing settings it does not own.
+
+`features/platform-admin/view-environment-settings/types.ts` is the worked example:
+`featureFlags` is `FlagSettings` from [`lib/feature-flags/flag-settings.ts`](lib/feature-flags/flag-settings.ts),
+`analytics` is a `Pick<ClientEndatixConfig, …>`, and the server loader calls the domain's
+own `readFlagSettings()` rather than assembling fields. Keep the shared vocabulary in a
+dependency-free module so client components can type-import it.
+
 ### Public tenant auth (`features/tenants/public-tenant`)
 
 Unauthenticated tenant sign-in / self-registration lives here, not under `platform-admin`: `platform-admin` is client-imported and must stay free of NextAuth. The slice owns the public-tenant action, the provider allow-list filter, and the `(auth)` failure states. Hub types use `shortUrl`; `POST /auth/register` still sends `tenantSlug`. See Hub `AGENTS.md` “Endatix IDs” and “Auth pages”.

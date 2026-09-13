@@ -13,12 +13,13 @@ lib/feature-flags/
 │   ├── posthog-flag-factory.ts      # PostHog integration
 │   ├── environment-flag-factory.ts  # FLAG_* environment variables
 │   └── flag-factory-provider.ts     # Factory selector
+├── identify.ts                      # distinctId from session
 ├── flags.ts                         # Flag definitions
 ├── types.ts                         # TypeScript interfaces
 └── utils.ts                         # Main flag() function
 ```
 
-Request-time factory selection, `connection()`, and PostHog vs `FLAG_*` rules: Hub [`AGENTS.md`](../../AGENTS.md) (Configuration).
+`connection()` (dynamic pages), process-frozen factory, PostHog vs `FLAG_*`: Hub [`AGENTS.md`](../../AGENTS.md) (Configuration).
 
 ## 🎯 Flag Types
 
@@ -66,19 +67,21 @@ const ai = await aiFeatures(); // { enabled: boolean, assistant: {...} }
 
 ### Automatic Adapter Selection
 
-- **Boolean flags** → `isFeatureEnabled()` (tracks events ✅)
-- **String/number flags** → `featureFlagValue()` (tracks events ✅)
-- **Object flags** → `featureFlagPayload()` (works but no event tracking ⚠️)
+- Boolean / string flags → v1 callable `adapter` (value)
+- Object flags → `adapter.payload`
 
-> ⚠️ **Note**: Object flags work perfectly but don't appear in PostHog's "Feature flag called" events due to payload-based evaluation. Use boolean flags if you need event tracking.
+> ⚠️ **Note**: Both forms go through one `evaluateFlags` call — v1 dropped the `sendFeatureFlagEvents` option. Impressions still differ: `getFlag` fires `$feature_flag_called` (deduped per distinct id, flag and value), while `getFlagPayload` fires nothing. Use a boolean or string flag when you need the flag to show up in PostHog usage reporting.
 
 ### Configuration
 
 ```bash
-# Enable PostHog flags (optional)
-ENABLE_POSTHOG_ADAPTER=true
-ENDATIX_POSTHOG_KEY=your_posthog_key
+# PostHog flags (optional). Omit FLAG_PROVIDER or set environment to use FLAG_*.
+FLAG_PROVIDER=posthog
+POSTHOG_PROJECT_API_KEY=your_posthog_key
+POSTHOG_HOST=https://us.i.posthog.com
 ```
+
+`POSTHOG_HOST` must be an absolute origin — server flag evaluation cannot use Hub's browser-only `/ingest` rewrite. Do not set `POSTHOG_SECRET_KEY` on Azure Static Web Apps (keeps remote `/flags` eval).
 
 ## 🚀 Usage (Server-Side Only)
 
@@ -157,7 +160,7 @@ const isEnabled = await myFeature();
 ## 🔧 Development
 
 - **Local Development**: `FLAG_*` env vars and code defaults
-- **Staging / Production**: PostHog once the adapter and project key are set
+- **Staging / Production**: PostHog once `FLAG_PROVIDER=posthog` and `POSTHOG_PROJECT_API_KEY` are set
 
 ## 📚 Further Reading
 

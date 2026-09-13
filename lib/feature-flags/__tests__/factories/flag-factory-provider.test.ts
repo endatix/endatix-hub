@@ -1,7 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { FlagFactoryProvider } from "@/lib/feature-flags/factories/flag-factory-provider";
+import {
+  FlagFactoryProvider,
+  readFlagSettings,
+  flagFactoryProvider,
+} from "@/lib/feature-flags/factories/flag-factory-provider";
 
-// Mock the auth module to prevent Next.js server module import issues
 vi.mock("@/features/auth", () => ({
   getSession: vi.fn().mockResolvedValue({
     username: "test-user",
@@ -11,20 +14,15 @@ vi.mock("@/features/auth", () => ({
   }),
 }));
 
-vi.mock("@flags-sdk/posthog", () => ({
-  createPostHogAdapter: vi.fn(() => ({
-    pflag: vi.fn(),
-  })),
-}));
-
 describe("FlagFactoryProvider", () => {
   const originalEnv = { ...process.env };
   let provider: FlagFactoryProvider;
 
   beforeEach(() => {
-    vi.clearAllMocks();
     provider = new FlagFactoryProvider();
     process.env = { ...originalEnv };
+    delete process.env.FLAG_PROVIDER;
+    delete process.env.POSTHOG_PROJECT_API_KEY;
     delete process.env.ENABLE_POSTHOG_ADAPTER;
     delete process.env.ENDATIX_POSTHOG_KEY;
   });
@@ -34,41 +32,120 @@ describe("FlagFactoryProvider", () => {
   });
 
   describe("getFactory", () => {
-    // PostHog needs the operator switch *and* a usable project key; anything else is
-    // environment flags. The whitespace case guards the trim in readPublicEndatixEnv().
     it.each([
-      ["true", "phc_test_key", "PostHogFlagFactory"],
-      ["true", undefined, "EnvironmentFlagFactory"],
-      ["true", "   ", "EnvironmentFlagFactory"],
-      ["false", "phc_test_key", "EnvironmentFlagFactory"],
+      ["posthog", "phc_test_key", "PostHogFlagFactory"],
+      ["posthog", undefined, "EnvironmentFlagFactory"],
+      ["posthog", "   ", "EnvironmentFlagFactory"],
+      ["environment", "phc_test_key", "EnvironmentFlagFactory"],
       [undefined, "phc_test_key", "EnvironmentFlagFactory"],
-    ])("adapter=%s key=%s selects %s", (adapter, key, expectedFactory) => {
-      if (adapter !== undefined) {
-        process.env.ENABLE_POSTHOG_ADAPTER = adapter;
-      }
-      if (key !== undefined) {
-        process.env.ENDATIX_POSTHOG_KEY = key;
-      }
+    ])(
+      "FLAG_PROVIDER=%s POSTHOG_PROJECT_API_KEY=%s selects %s",
+      (providerName, key, expectedFactory) => {
+        if (providerName !== undefined) {
+          process.env.FLAG_PROVIDER = providerName;
+        }
+        if (key !== undefined) {
+          process.env.POSTHOG_PROJECT_API_KEY = key;
+        }
 
-      expect(provider.getFactory().constructor.name).toBe(expectedFactory);
+        expect(provider.getFactory().constructor.name).toBe(expectedFactory);
+      },
+    );
+
+    it("ignores ENABLE_POSTHOG_ADAPTER and ENDATIX_POSTHOG_KEY", () => {
+      process.env.ENABLE_POSTHOG_ADAPTER = "true";
+      process.env.ENDATIX_POSTHOG_KEY = "phc_legacy_key";
+
+      expect(provider.getFactory().constructor.name).toBe(
+        "EnvironmentFlagFactory",
+      );
     });
 
     it("reuses the same factory instance", () => {
-      process.env.ENABLE_POSTHOG_ADAPTER = "true";
-      process.env.ENDATIX_POSTHOG_KEY = "phc_test_key";
+      process.env.FLAG_PROVIDER = "posthog";
+      process.env.POSTHOG_PROJECT_API_KEY = "phc_test_key";
 
       expect(provider.getFactory()).toBe(provider.getFactory());
     });
 
-    it("re-reads adapter env on each getFactory call", () => {
+    it("freezes the factory after the first getFactory call", () => {
       expect(provider.getFactory().constructor.name).toBe(
         "EnvironmentFlagFactory",
       );
 
-      process.env.ENABLE_POSTHOG_ADAPTER = "true";
-      process.env.ENDATIX_POSTHOG_KEY = "phc_test_key";
+      process.env.FLAG_PROVIDER = "posthog";
+      process.env.POSTHOG_PROJECT_API_KEY = "phc_test_key";
+
+      expect(provider.getFactory().constructor.name).toBe(
+        "EnvironmentFlagFactory",
+      );
+    });
+
+    it("reports no selected provider until the first getFactory call", () => {
+      expect(provider.getSelectedProvider()).toBeNull();
+    });
+
+    it("reports the frozen provider rather than what env says now", () => {
+      process.env.FLAG_PROVIDER = "posthog";
+      process.env.POSTHOG_PROJECT_API_KEY = "phc_test_key";
+      provider.getFactory();
+
+      delete process.env.FLAG_PROVIDER;
+
+      expect(provider.getSelectedProvider()).toBe("posthog");
+    });
+
+    it("trims FLAG_PROVIDER before comparing", () => {
+      process.env.FLAG_PROVIDER = "  posthog\r";
+      process.env.POSTHOG_PROJECT_API_KEY = "phc_test_key";
 
       expect(provider.getFactory().constructor.name).toBe("PostHogFlagFactory");
     });
+
+    it("resetForTests() allows a later getFactory to re-read env", () => {
+      expect(provider.getFactory().constructor.name).toBe(
+        "EnvironmentFlagFactory",
+      );
+
+      process.env.FLAG_PROVIDER = "posthog";
+      process.env.POSTHOG_PROJECT_API_KEY = "phc_test_key";
+      provider.resetForTests();
+
+      expect(provider.getFactory().constructor.name).toBe("PostHogFlagFactory");
+    });
+  });
+});
+
+describe("readFlagSettings", () => {
+  const originalEnv = { ...process.env };
+
+  beforeEach(() => {
+    process.env = { ...originalEnv };
+    delete process.env.FLAG_PROVIDER;
+    delete process.env.POSTHOG_PROJECT_API_KEY;
+    flagFactoryProvider.resetForTests();
+  });
+
+  afterEach(() => {
+    process.env = originalEnv;
+    flagFactoryProvider.resetForTests();
+  });
+
+  // Nothing is frozen yet, so env is the honest answer for what the next evaluation picks.
+  it("falls back to the environment before the first evaluation", () => {
+    process.env.FLAG_PROVIDER = " posthog ";
+    process.env.POSTHOG_PROJECT_API_KEY = "phc_test_key";
+
+    expect(readFlagSettings()).toEqual({ provider: "posthog" });
+  });
+
+  // Once flags are running, the page must not claim a provider they are not using.
+  it("keeps reporting the frozen provider after env changes", () => {
+    flagFactoryProvider.getFactory();
+
+    process.env.FLAG_PROVIDER = "posthog";
+    process.env.POSTHOG_PROJECT_API_KEY = "phc_test_key";
+
+    expect(readFlagSettings()).toEqual({ provider: "environment" });
   });
 });

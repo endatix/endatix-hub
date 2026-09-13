@@ -9,6 +9,7 @@ import {
   ShieldCheck,
   Wrench,
 } from "lucide-react";
+import type { FlagProviderName } from "@/lib/feature-flags/flag-settings";
 import type { EnvironmentAdminSummary } from "../types";
 import { ConfigRow } from "./config-row";
 import { ConfigSection } from "./config-section";
@@ -17,6 +18,11 @@ import { ConfigValue } from "./config-value";
 import type { EnvironmentCheck } from "./environment-overview";
 import { EnvironmentOverview } from "./environment-overview";
 import { SecretPresenceBadge } from "./secret-presence";
+
+const FLAG_PROVIDER_LABELS: Record<FlagProviderName, string> = {
+  posthog: "PostHog",
+  environment: "Environment variables",
+};
 
 interface EnvironmentSettingsPanelProps {
   summary: EnvironmentAdminSummary;
@@ -162,7 +168,7 @@ export function EnvironmentSettingsPanel({
         >
           <ConfigRow
             label="PostHog project key"
-            envVar="ENDATIX_POSTHOG_KEY"
+            envVar="POSTHOG_PROJECT_API_KEY"
             value={
               <ConfigValue
                 value={analytics.posthogKey || null}
@@ -172,7 +178,7 @@ export function EnvironmentSettingsPanel({
           />
           <ConfigRow
             label="PostHog host"
-            envVar="ENDATIX_POSTHOG_HOST"
+            envVar="POSTHOG_HOST"
             value={
               <ConfigValue
                 value={analytics.posthogHost || null}
@@ -182,7 +188,7 @@ export function EnvironmentSettingsPanel({
           />
           <ConfigRow
             label="PostHog UI host"
-            envVar="ENDATIX_POSTHOG_UI_HOST"
+            envVar="POSTHOG_UI_HOST"
             value={
               <ConfigValue
                 value={analytics.posthogUiHost || null}
@@ -195,29 +201,16 @@ export function EnvironmentSettingsPanel({
         <ConfigSection
           icon={Flag}
           title="Feature flags"
-          description="Server-side gates for Hub capabilities. The provider is resolved per request: PostHog when the adapter is on and a project key is set, otherwise FLAG_* env vars and code defaults."
+          description="Server-side Hub gates. PostHog needs FLAG_PROVIDER=posthog and POSTHOG_PROJECT_API_KEY; anything else uses FLAG_* env vars and code defaults. The provider is fixed on the first flag evaluation — restart to change it. Flag values still evaluate per request."
         >
           <ConfigRow
             label="Provider"
+            envVar="FLAG_PROVIDER"
             value={
               <ConfigValue
-                value={
-                  featureFlags.provider === "posthog"
-                    ? "PostHog"
-                    : "Environment variables"
-                }
+                value={FLAG_PROVIDER_LABELS[featureFlags.provider]}
                 copyLabel="Copy feature-flag provider"
                 copyable={false}
-              />
-            }
-          />
-          <ConfigRow
-            label="PostHog adapter"
-            envVar="ENABLE_POSTHOG_ADAPTER"
-            value={
-              <StatusBadge
-                tone={featureFlags.adapterEnabled ? "on" : "off"}
-                label={featureFlags.adapterEnabled ? "On" : "Off"}
               />
             }
           />

@@ -1,9 +1,10 @@
 /**
  * Server-side PostHog client implementation
  */
-import { PostHog } from 'posthog-node';
-import { createPostHogConfig, isPostHogEnabled } from '../shared/config';
-import type { PostHogConfig } from '../shared/types';
+import { PostHog } from "posthog-node";
+import { resolvePostHogNodeHost } from "@/features/config/client-endatix-config";
+import { createPostHogConfig, isPostHogEnabled } from "../shared/config";
+import type { PostHogConfig } from "../shared/types";
 
 // Define property types
 type PostHogProperties = Record<string, string | number | boolean | null | undefined | unknown[]>;
@@ -30,7 +31,7 @@ export function getPostHog(config?: PostHogConfig): PostHog | null {
     }
 
     posthogInstance = new PostHog(resolvedConfig.apiKey, {
-      host: resolvedConfig.apiHost,
+      host: resolvePostHogNodeHost(resolvedConfig.apiHost),
       flushAt: 1,
       flushInterval: 0,
     });

@@ -1,13 +1,25 @@
 import { readPublicEndatixEnv } from "@/features/config/client-endatix-config";
 
-/** Operator switch. Does not imply a project key is present. */
-export function isPostHogFlagAdapterEnabled(): boolean {
-  return process.env.ENABLE_POSTHOG_ADAPTER === "true";
+const POSTHOG_PROVIDER = "posthog";
+
+/** Raw `FLAG_PROVIDER`, trimmed. Empty string when unset. */
+function readRequestedFlagProvider(): string {
+  return process.env.FLAG_PROVIDER?.trim() ?? "";
 }
 
-/** Resolve flags through PostHog: switch on and a non-empty `ENDATIX_POSTHOG_KEY`. */
+/**
+ * Operator asked for PostHog flags. Does not imply a project key is present.
+ *
+ * Trimmed before comparing: a trailing space or a `\r` from a Windows `.env` would
+ * otherwise drop the deployment back to environment flags with no signal.
+ */
+function isPostHogFlagProviderRequested(): boolean {
+  return readRequestedFlagProvider() === POSTHOG_PROVIDER;
+}
+
 export function shouldUsePostHogFlags(): boolean {
   return (
-    isPostHogFlagAdapterEnabled() && Boolean(readPublicEndatixEnv().posthogKey)
+    isPostHogFlagProviderRequested() &&
+    Boolean(readPublicEndatixEnv().posthogKey)
   );
 }

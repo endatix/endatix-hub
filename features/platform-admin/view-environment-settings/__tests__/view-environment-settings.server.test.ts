@@ -1,9 +1,23 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { resetApiConfigCacheForTests } from "@/features/config/api-config";
+import type { FlagSettings } from "@/lib/feature-flags/flag-settings";
 import type { PlatformAdminSession } from "../../types";
 
 vi.mock("next/server", () => ({
   connection: vi.fn().mockResolvedValue(undefined),
+}));
+
+/**
+ * Stubbed so this suite asserts the summary mirrors the provider's frozen choice. The
+ * freeze itself is covered in `flag-factory-provider.test.ts`; importing the real
+ * singleton here would drag the whole flags/PostHog graph into a config test.
+ */
+const flagSettings = vi.hoisted(() => ({
+  value: { provider: "environment" } as FlagSettings,
+}));
+
+vi.mock("@/lib/feature-flags/factories/flag-factory-provider", () => ({
+  readFlagSettings: () => flagSettings.value,
 }));
 
 /** Public keys — already serialised into every public form page by ClientEndatixConfig. */
@@ -30,15 +44,14 @@ describe("getEnvironmentSettings", () => {
 
   it("carries public keys but never the SurveyJS licence", async () => {
     process.env.ENDATIX_BASE_URL = "https://api.example.com";
-    process.env.ENDATIX_POSTHOG_KEY = PUBLIC_POSTHOG_KEY;
-    process.env.ENDATIX_POSTHOG_HOST = "https://eu.i.posthog.com";
-    process.env.ENDATIX_POSTHOG_UI_HOST = "https://eu.posthog.com";
+    process.env.POSTHOG_PROJECT_API_KEY = PUBLIC_POSTHOG_KEY;
+    process.env.POSTHOG_HOST = "https://eu.i.posthog.com";
+    process.env.POSTHOG_UI_HOST = "https://eu.posthog.com";
     process.env.ENDATIX_RECAPTCHA_SITE_KEY = PUBLIC_RECAPTCHA_KEY;
     process.env.ENDATIX_SURVEY_LICENSE_KEY = SECRET_SURVEY_LICENSE;
     process.env.ENDATIX_ENABLE_EXTENSIONS = "true";
     process.env.ENDATIX_IS_DEBUG_MODE = "true";
     process.env.NODE_ENV = "test";
-    process.env.ENABLE_POSTHOG_ADAPTER = "true";
 
     const { getEnvironmentSettings } =
       await import("../view-environment-settings.server");
@@ -57,8 +70,6 @@ describe("getEnvironmentSettings", () => {
     expect(summary.recaptcha.siteKey).toBe(PUBLIC_RECAPTCHA_KEY);
     expect(summary.analytics.posthogHost).toBe("https://eu.i.posthog.com");
     expect(summary.analytics.posthogUiHost).toBe("https://eu.posthog.com");
-    expect(summary.featureFlags.adapterEnabled).toBe(true);
-    expect(summary.featureFlags.provider).toBe("posthog");
     expect(summary.experimental.extensionsEnabled).toBe(true);
     expect(summary.debug.isDebugMode).toBe(true);
     expect(summary.debug.nodeEnv).toBe("test");
@@ -66,14 +77,25 @@ describe("getEnvironmentSettings", () => {
     expect(summary.api.apiUrl).toContain("api.example.com");
   });
 
+  // Whether the provider is frozen, and how FLAG_PROVIDER is parsed, belong to
+  // lib/feature-flags. This page only has to report that snapshot without reshaping it.
+  it("passes the flag settings snapshot through untouched", async () => {
+    flagSettings.value = { provider: "posthog" };
+
+    const { getEnvironmentSettings } =
+      await import("../view-environment-settings.server");
+    const summary = await getEnvironmentSettings(mockSession);
+
+    expect(summary.featureFlags).toEqual(flagSettings.value);
+  });
+
   it("reports empty public keys and an unconfigured licence when unset", async () => {
-    delete process.env.ENDATIX_POSTHOG_KEY;
+    delete process.env.POSTHOG_PROJECT_API_KEY;
     delete process.env.ENDATIX_RECAPTCHA_SITE_KEY;
     delete process.env.ENDATIX_SURVEY_LICENSE_KEY;
     delete process.env.ENDATIX_BASE_URL;
     delete process.env.ENDATIX_API_URL;
     delete process.env.ENDATIX_API_PREFIX;
-    delete process.env.ENABLE_POSTHOG_ADAPTER;
 
     const { getEnvironmentSettings } =
       await import("../view-environment-settings.server");
@@ -81,8 +103,6 @@ describe("getEnvironmentSettings", () => {
     const summary = await getEnvironmentSettings(mockSession);
 
     expect(summary.analytics.posthogKey).toBe("");
-    expect(summary.featureFlags.adapterEnabled).toBe(false);
-    expect(summary.featureFlags.provider).toBe("environment");
     expect(summary.recaptcha.siteKey).toBe("");
     expect(summary.surveyJs.license.configured).toBe(false);
     expect(summary.api.apiConfigured).toBe(false);
