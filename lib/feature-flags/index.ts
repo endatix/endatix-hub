@@ -1,5 +1,6 @@
 // Main exports
-export { flag, identify } from "./utils";
+export { flag } from "./utils";
+export { identify } from "./identify";
 export type { FeatureFlagConfig, AIFeatures } from "./types";
 export * from "./flags";
 

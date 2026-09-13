@@ -13,6 +13,7 @@ lib/feature-flags/
 │   ├── posthog-flag-factory.ts      # PostHog integration
 │   ├── environment-flag-factory.ts  # FLAG_* environment variables
 │   └── flag-factory-provider.ts     # Factory selector
+├── identify.ts                      # distinctId from session
 ├── flags.ts                         # Flag definitions
 ├── types.ts                         # TypeScript interfaces
 └── utils.ts                         # Main flag() function
@@ -80,7 +81,7 @@ POSTHOG_PROJECT_API_KEY=your_posthog_key
 POSTHOG_HOST=https://us.i.posthog.com
 ```
 
-`POSTHOG_HOST` must be an absolute origin — server flag evaluation cannot use Hub's browser-only `/ingest` rewrite. Do not set `POSTHOG_SECRET_KEY` on Azure Static Web Apps (remote evaluation). OpenFeature is a future factory, not a second adapter in this package.
+`POSTHOG_HOST` must be an absolute origin — server flag evaluation cannot use Hub's browser-only `/ingest` rewrite. Do not set `POSTHOG_SECRET_KEY` on Azure Static Web Apps (keeps remote `/flags` eval).
 
 ## 🚀 Usage (Server-Side Only)
 

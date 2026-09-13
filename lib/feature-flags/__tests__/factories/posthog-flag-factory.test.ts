@@ -27,7 +27,7 @@ vi.mock("flags/next", () => ({
   dedupe: (fn: unknown) => fn,
   flag: (options: { adapter: unknown; key: string }) => {
     flagCalls.push({ adapter: options.adapter, key: options.key });
-    return async () => undefined;
+    return async () => ({ source: "posthog" });
   },
 }));
 
@@ -91,5 +91,18 @@ describe("PostHogFlagFactory", () => {
     expect(typeof flagCalls[0]?.adapter).toBe("function");
     expect(flagCalls[0]?.adapter).not.toHaveProperty("isFeatureEnabled");
     expect(typeof flagCalls[1]?.adapter).toBe("function");
+  });
+
+  it("applies parsePayload to the PostHog result", async () => {
+    const factory = new PostHogFlagFactory();
+    const evaluate = factory.createFlag({
+      key: "parsed-flag",
+      defaultValue: { enabled: false },
+      parsePayload: (payload) => ({
+        enabled: (payload as { source: string }).source === "posthog",
+      }),
+    });
+
+    expect(await evaluate()).toEqual({ enabled: true });
   });
 });

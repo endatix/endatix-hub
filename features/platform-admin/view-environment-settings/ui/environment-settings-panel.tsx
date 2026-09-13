@@ -195,7 +195,7 @@ export function EnvironmentSettingsPanel({
         <ConfigSection
           icon={Flag}
           title="Feature flags"
-          description="Server-side gates for Hub capabilities. The provider is resolved per request: PostHog when FLAG_PROVIDER=posthog and POSTHOG_PROJECT_API_KEY is set, otherwise FLAG_* env vars and code defaults."
+          description="Server-side Hub gates. Provider is chosen on first flag evaluation in the process (PostHog when FLAG_PROVIDER=posthog and POSTHOG_PROJECT_API_KEY is set). Flag values still evaluate per request. Restart to switch provider."
         >
           <ConfigRow
             label="Provider"

@@ -54,10 +54,15 @@ export const DEFAULT_POSTHOG_INGEST_PATH = "/ingest";
  * posthog-node needs a real origin, so a same-origin rewrite path (`/ingest`) or a blank
  * value falls back to the default host rather than being passed through.
  */
+function stripTrailingSlash(host: string): string {
+  return host.replace(/\/+$/, "");
+}
+
 export function resolvePostHogNodeHost(host: string): string {
+  const normalized = stripTrailingSlash(host);
   try {
-    return ["http:", "https:"].includes(new URL(host).protocol)
-      ? host
+    return ["http:", "https:"].includes(new URL(normalized).protocol)
+      ? normalized
       : DEFAULT_POSTHOG_HOST;
   } catch {
     return DEFAULT_POSTHOG_HOST;
@@ -71,8 +76,9 @@ export function resolvePostHogNodeHost(host: string): string {
  * instance — must be called directly, or its events would land in the wrong region.
  */
 export function resolvePostHogBrowserHost(host: string): string {
-  return host && host !== DEFAULT_POSTHOG_HOST
-    ? host
+  const normalized = stripTrailingSlash(host);
+  return normalized && normalized !== DEFAULT_POSTHOG_HOST
+    ? normalized
     : withBasePath(DEFAULT_POSTHOG_INGEST_PATH);
 }
 

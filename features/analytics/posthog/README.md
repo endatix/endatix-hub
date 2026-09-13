@@ -33,7 +33,9 @@ Analytics tracking for Next.js applications using PostHog, with support for both
    POSTHOG_UI_HOST=https://app.posthog.com  # optional
    ```
 
-2. Add PostHog provider to your root layout:
+2. Hub **product** flags (`ai-features`, etc.) are `lib/feature-flags` + `FLAG_PROVIDER=posthog`, not the analytics `isFeatureEnabled` helpers.
+
+3. Add PostHog provider to your root layout:
 
    ```tsx
    // In app/layout.tsx
@@ -55,7 +57,7 @@ Analytics tracking for Next.js applications using PostHog, with support for both
    }
    ```
 
-3. Add page view tracking (optional):
+4. Add page view tracking (optional):
 
    ```tsx
    // In a client layout component

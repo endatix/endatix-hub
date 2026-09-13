@@ -36,6 +36,12 @@ describe("resolvePostHogBrowserHost", () => {
     );
   });
 
+  it("treats the default host with a trailing slash as /ingest", () => {
+    expect(resolvePostHogBrowserHost(`${DEFAULT_POSTHOG_HOST}/`)).toBe(
+      "/ingest",
+    );
+  });
+
   it("passes a custom proxy path through untouched", () => {
     expect(resolvePostHogBrowserHost("/telemetry")).toBe("/telemetry");
   });
