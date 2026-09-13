@@ -162,7 +162,7 @@ export function EnvironmentSettingsPanel({
         >
           <ConfigRow
             label="PostHog project key"
-            envVar="ENDATIX_POSTHOG_KEY"
+            envVar="POSTHOG_PROJECT_API_KEY"
             value={
               <ConfigValue
                 value={analytics.posthogKey || null}
@@ -172,7 +172,7 @@ export function EnvironmentSettingsPanel({
           />
           <ConfigRow
             label="PostHog host"
-            envVar="ENDATIX_POSTHOG_HOST"
+            envVar="POSTHOG_HOST"
             value={
               <ConfigValue
                 value={analytics.posthogHost || null}
@@ -182,7 +182,7 @@ export function EnvironmentSettingsPanel({
           />
           <ConfigRow
             label="PostHog UI host"
-            envVar="ENDATIX_POSTHOG_UI_HOST"
+            envVar="POSTHOG_UI_HOST"
             value={
               <ConfigValue
                 value={analytics.posthogUiHost || null}
@@ -195,7 +195,7 @@ export function EnvironmentSettingsPanel({
         <ConfigSection
           icon={Flag}
           title="Feature flags"
-          description="Server-side gates for Hub capabilities. The provider is resolved per request: PostHog when the adapter is on and a project key is set, otherwise FLAG_* env vars and code defaults."
+          description="Server-side Hub gates. Provider is chosen on first flag evaluation in the process (PostHog when FLAG_PROVIDER=posthog and POSTHOG_PROJECT_API_KEY is set). Flag values still evaluate per request. Restart to switch provider."
         >
           <ConfigRow
             label="Provider"
@@ -212,8 +212,8 @@ export function EnvironmentSettingsPanel({
             }
           />
           <ConfigRow
-            label="PostHog adapter"
-            envVar="ENABLE_POSTHOG_ADAPTER"
+            label="Requested provider"
+            envVar="FLAG_PROVIDER"
             value={
               <StatusBadge
                 tone={featureFlags.adapterEnabled ? "on" : "off"}

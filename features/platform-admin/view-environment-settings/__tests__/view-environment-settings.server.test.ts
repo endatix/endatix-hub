@@ -30,15 +30,15 @@ describe("getEnvironmentSettings", () => {
 
   it("carries public keys but never the SurveyJS licence", async () => {
     process.env.ENDATIX_BASE_URL = "https://api.example.com";
-    process.env.ENDATIX_POSTHOG_KEY = PUBLIC_POSTHOG_KEY;
-    process.env.ENDATIX_POSTHOG_HOST = "https://eu.i.posthog.com";
-    process.env.ENDATIX_POSTHOG_UI_HOST = "https://eu.posthog.com";
+    process.env.POSTHOG_PROJECT_API_KEY = PUBLIC_POSTHOG_KEY;
+    process.env.POSTHOG_HOST = "https://eu.i.posthog.com";
+    process.env.POSTHOG_UI_HOST = "https://eu.posthog.com";
     process.env.ENDATIX_RECAPTCHA_SITE_KEY = PUBLIC_RECAPTCHA_KEY;
     process.env.ENDATIX_SURVEY_LICENSE_KEY = SECRET_SURVEY_LICENSE;
     process.env.ENDATIX_ENABLE_EXTENSIONS = "true";
     process.env.ENDATIX_IS_DEBUG_MODE = "true";
     process.env.NODE_ENV = "test";
-    process.env.ENABLE_POSTHOG_ADAPTER = "true";
+    process.env.FLAG_PROVIDER = "posthog";
 
     const { getEnvironmentSettings } =
       await import("../view-environment-settings.server");
@@ -67,13 +67,13 @@ describe("getEnvironmentSettings", () => {
   });
 
   it("reports empty public keys and an unconfigured licence when unset", async () => {
-    delete process.env.ENDATIX_POSTHOG_KEY;
+    delete process.env.POSTHOG_PROJECT_API_KEY;
     delete process.env.ENDATIX_RECAPTCHA_SITE_KEY;
     delete process.env.ENDATIX_SURVEY_LICENSE_KEY;
     delete process.env.ENDATIX_BASE_URL;
     delete process.env.ENDATIX_API_URL;
     delete process.env.ENDATIX_API_PREFIX;
-    delete process.env.ENABLE_POSTHOG_ADAPTER;
+    delete process.env.FLAG_PROVIDER;
 
     const { getEnvironmentSettings } =
       await import("../view-environment-settings.server");

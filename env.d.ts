@@ -16,9 +16,9 @@ declare namespace NodeJS {
     // `getClientEndatixConfig()` from `@/features/config/server` — deliberately NOT
     // `NEXT_PUBLIC_*`, which Next inlines into the client bundle at build time.
     ENDATIX_RECAPTCHA_SITE_KEY?: string;
-    ENDATIX_POSTHOG_KEY?: string;
-    ENDATIX_POSTHOG_HOST?: string;
-    ENDATIX_POSTHOG_UI_HOST?: string;
+    POSTHOG_PROJECT_API_KEY?: string;
+    POSTHOG_HOST?: string;
+    POSTHOG_UI_HOST?: string;
     ENDATIX_IS_DEBUG_MODE?: string;
     ENDATIX_SUBMITTER_PRIMARY_FILTER_LABEL?: string;
     ENDATIX_SUBMITTER_GRID_PROFILE_FIELDS?: string;
@@ -115,8 +115,8 @@ declare namespace NodeJS {
     APPLICATIONINSIGHTS_CONNECTION_STRING?: string;
     TELEMETRY_CONSOLE_FALLBACK?: string;
 
-    // PostHog
-    ENABLE_POSTHOG_ADAPTER?: string;
+    // Feature-flag provider: `posthog` or omit/`environment` for FLAG_* env vars.
+    FLAG_PROVIDER?: string;
 
     // Build-time mirror from withEndatix (resolveEndatixSettings envPatch) — flags and hostnames only, never secrets
     ENDATIX_RESOLVED_STORAGE_VERSION?: string;

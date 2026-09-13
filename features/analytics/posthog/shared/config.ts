@@ -1,7 +1,10 @@
 /**
  * PostHog configuration utilities
  */
-import { getIsomorphicEndatixConfig } from "@/features/config/client-endatix-config";
+import {
+  getIsomorphicEndatixConfig,
+  resolvePostHogBrowserHost,
+} from "@/features/config/client-endatix-config";
 import { PostHogConfig } from "./types";
 
 /**
@@ -75,7 +78,7 @@ export function getDefaultPostHogConfig(): PostHogConfig {
   return {
     enabled: !!posthogKey,
     apiKey: posthogKey,
-    apiHost: posthogHost,
+    apiHost: resolvePostHogBrowserHost(posthogHost),
     uiHost: posthogUiHost || undefined,
     debug: isDebugMode,
   };

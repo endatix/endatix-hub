@@ -28,12 +28,14 @@ Analytics tracking for Next.js applications using PostHog, with support for both
 1. Environment variables:
 
    ```
-   ENDATIX_POSTHOG_KEY=your_posthog_api_key
-   ENDATIX_POSTHOG_HOST=https://us.i.posthog.com
-   ENDATIX_POSTHOG_UI_HOST=https://app.posthog.com  # optional
+   POSTHOG_PROJECT_API_KEY=your_posthog_api_key
+   POSTHOG_HOST=https://us.i.posthog.com
+   POSTHOG_UI_HOST=https://app.posthog.com  # optional
    ```
 
-2. Add PostHog provider to your root layout:
+2. Hub **product** flags (`ai-features`, etc.) are `lib/feature-flags` + `FLAG_PROVIDER=posthog`, not the analytics `isFeatureEnabled` helpers.
+
+3. Add PostHog provider to your root layout:
 
    ```tsx
    // In app/layout.tsx
@@ -55,7 +57,7 @@ Analytics tracking for Next.js applications using PostHog, with support for both
    }
    ```
 
-3. Add page view tracking (optional):
+4. Add page view tracking (optional):
 
    ```tsx
    // In a client layout component
