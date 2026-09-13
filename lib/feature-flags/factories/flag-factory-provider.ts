@@ -4,27 +4,24 @@ import type { FlagFactory } from "./flag-factory.interface";
 import { shouldUsePostHogFlags } from "./posthog-flag-settings";
 
 export class FlagFactoryProvider {
-  private postHogFactory?: PostHogFlagFactory;
-  private environmentFactory?: EnvironmentFlagFactory;
+  private factory?: FlagFactory;
 
-  private get postHogFactoryInstance(): PostHogFlagFactory {
-    if (!this.postHogFactory) {
-      this.postHogFactory = new PostHogFlagFactory();
-    }
-    return this.postHogFactory;
-  }
-
-  private get environmentFactoryInstance(): EnvironmentFlagFactory {
-    if (!this.environmentFactory) {
-      this.environmentFactory = new EnvironmentFlagFactory();
-    }
-    return this.environmentFactory;
-  }
-
+  /**
+   * Provider is chosen from env on first call and held for the process.
+   * Mid-process env changes are ignored.
+   */
   getFactory(): FlagFactory {
-    return shouldUsePostHogFlags()
-      ? this.postHogFactoryInstance
-      : this.environmentFactoryInstance;
+    if (!this.factory) {
+      this.factory = shouldUsePostHogFlags()
+        ? new PostHogFlagFactory()
+        : new EnvironmentFlagFactory();
+    }
+    return this.factory;
+  }
+
+  /** Test seam: drop the frozen factory so the next `getFactory()` re-reads env. */
+  resetForTests(): void {
+    this.factory = undefined;
   }
 }
 

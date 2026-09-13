@@ -32,7 +32,7 @@ import {
 describe("Feature Flags Module Exports", () => {
   beforeEach(() => {
     // Set PostHog API key for tests
-    process.env.ENDATIX_POSTHOG_KEY = "test-key";
+    process.env.POSTHOG_PROJECT_API_KEY = "test-key";
   });
 
   describe("main utilities", () => {

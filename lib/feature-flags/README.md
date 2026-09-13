@@ -18,7 +18,7 @@ lib/feature-flags/
 └── utils.ts                         # Main flag() function
 ```
 
-Request-time factory selection, `connection()`, and PostHog vs `FLAG_*` rules: Hub [`AGENTS.md`](../../AGENTS.md) (Configuration).
+`connection()` (dynamic pages), process-frozen factory, PostHog vs `FLAG_*`: Hub [`AGENTS.md`](../../AGENTS.md) (Configuration).
 
 ## 🎯 Flag Types
 
@@ -66,19 +66,21 @@ const ai = await aiFeatures(); // { enabled: boolean, assistant: {...} }
 
 ### Automatic Adapter Selection
 
-- **Boolean flags** → `isFeatureEnabled()` (tracks events ✅)
-- **String/number flags** → `featureFlagValue()` (tracks events ✅)
-- **Object flags** → `featureFlagPayload()` (works but no event tracking ⚠️)
+- Boolean / string flags → v1 callable `adapter` (value)
+- Object flags → `adapter.payload`
 
 > ⚠️ **Note**: Object flags work perfectly but don't appear in PostHog's "Feature flag called" events due to payload-based evaluation. Use boolean flags if you need event tracking.
 
 ### Configuration
 
 ```bash
-# Enable PostHog flags (optional)
-ENABLE_POSTHOG_ADAPTER=true
-ENDATIX_POSTHOG_KEY=your_posthog_key
+# PostHog flags (optional). Omit FLAG_PROVIDER or set environment to use FLAG_*.
+FLAG_PROVIDER=posthog
+POSTHOG_PROJECT_API_KEY=your_posthog_key
+POSTHOG_HOST=https://us.i.posthog.com
 ```
+
+`POSTHOG_HOST` must be an absolute origin — server flag evaluation cannot use Hub's browser-only `/ingest` rewrite. Do not set `POSTHOG_SECRET_KEY` on Azure Static Web Apps (remote evaluation). OpenFeature is a future factory, not a second adapter in this package.
 
 ## 🚀 Usage (Server-Side Only)
 

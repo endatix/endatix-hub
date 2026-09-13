@@ -1,9 +1,12 @@
 import { dedupe, flag } from "flags/next";
-import { createPostHogAdapter, PostHogEntities } from "@flags-sdk/posthog";
+import { createPostHogAdapter, type PostHogEntities } from "@flags-sdk/posthog";
+import type { Identify } from "flags";
 import type { FlagFactory, FlagDefinition } from "./flag-factory.interface";
-import { readPublicEndatixEnv } from "@/features/config/client-endatix-config";
+import {
+  readPublicEndatixEnv,
+  resolvePostHogNodeHost,
+} from "@/features/config/client-endatix-config";
 import { identify } from "../utils";
-import { Identify } from "flags";
 
 const postHogIdentify = dedupe(async (): Promise<PostHogEntities> => {
   const entities = await identify();
@@ -12,52 +15,37 @@ const postHogIdentify = dedupe(async (): Promise<PostHogEntities> => {
   };
 }) satisfies Identify<PostHogEntities>;
 
+/**
+ * Builds a v1 PostHog adapter from Hub runtime env (`POSTHOG_PROJECT_API_KEY`,
+ * `POSTHOG_HOST`). Does not use the package default `postHogAdapter`, which
+ * reads those names only at first decide and has no Hub host default.
+ */
 export class PostHogFlagFactory implements FlagFactory {
-  private postHogAdapter: ReturnType<typeof createPostHogAdapter>;
+  private readonly adapter: ReturnType<typeof createPostHogAdapter>;
 
   constructor() {
     const { posthogKey, posthogHost } = readPublicEndatixEnv();
-    this.postHogAdapter = createPostHogAdapter({
+    this.adapter = createPostHogAdapter({
       postHogKey: posthogKey,
-      postHogOptions: { host: posthogHost },
+      postHogOptions: {
+        host: resolvePostHogNodeHost(posthogHost),
+        // Server IPs are not user locations; geo targeting must come from PostHog person
+        // properties, not from where Hub happens to run.
+        disableGeoip: true,
+      },
     });
   }
 
   createFlag<T>(definition: FlagDefinition<T>): () => Promise<T> {
-    if (
+    const usePayload =
       typeof definition.defaultValue === "object" ||
-      definition.parsePayload
-    ) {
-      const parser =
-        definition.parsePayload || ((payload: unknown) => payload as T);
-      return flag<T, PostHogEntities>({
-        key: definition.key,
-        adapter: this.postHogAdapter.featureFlagPayload<T>(parser, {
-          sendFeatureFlagEvents: true,
-        }),
-        defaultValue: definition.defaultValue,
-        identify: postHogIdentify,
-      });
-    }
+      Boolean(definition.parsePayload);
 
-    if (typeof definition.defaultValue === "boolean") {
-      return flag<boolean, PostHogEntities>({
-        key: definition.key,
-        adapter: this.postHogAdapter.isFeatureEnabled({
-          sendFeatureFlagEvents: true,
-        }),
-        defaultValue: definition.defaultValue,
-        identify: postHogIdentify,
-      }) as () => Promise<T>;
-    }
-
-    return flag<string | boolean, PostHogEntities>({
+    return flag<T, PostHogEntities>({
       key: definition.key,
-      adapter: this.postHogAdapter.featureFlagValue({
-        sendFeatureFlagEvents: true,
-      }),
-      defaultValue: definition.defaultValue as string | boolean,
+      adapter: usePayload ? this.adapter.payload : this.adapter,
+      defaultValue: definition.defaultValue,
       identify: postHogIdentify,
-    }) as () => Promise<T>;
+    });
   }
 }

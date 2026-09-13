@@ -108,11 +108,10 @@ describe("EnvironmentSettingsPanel", () => {
   it("renders the env var behind every setting as visible text", () => {
     render(<EnvironmentSettingsPanel summary={buildSummary()} />);
 
-    expect(screen.getByText("ENDATIX_POSTHOG_KEY")).toBeDefined();
-    expect(screen.getByText("ENABLE_POSTHOG_ADAPTER")).toBeDefined();
+    expect(screen.getByText("POSTHOG_PROJECT_API_KEY")).toBeDefined();
+    expect(screen.getByText("FLAG_PROVIDER")).toBeDefined();
     expect(screen.getByText("Feature flags")).toBeDefined();
-    expect(screen.getByText("PostHog adapter")).toBeDefined();
-    expect(screen.getByText("Provider")).toBeDefined();
+    expect(screen.getByText("Requested provider")).toBeDefined();
     expect(screen.getByText("ENDATIX_RECAPTCHA_SITE_KEY")).toBeDefined();
     expect(screen.getByText("ENDATIX_SURVEY_LICENSE_KEY")).toBeDefined();
     expect(screen.getByText("ENDATIX_ENABLE_EXTENSIONS")).toBeDefined();

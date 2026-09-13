@@ -6,7 +6,7 @@ import {
   getSurveyLicenseKey,
 } from "@/features/config/server";
 import {
-  isPostHogFlagAdapterEnabled,
+  isPostHogFlagProviderRequested,
   shouldUsePostHogFlags,
 } from "@/lib/feature-flags/factories/posthog-flag-settings";
 import type { PlatformAdminSession } from "../types";
@@ -62,7 +62,7 @@ export async function getEnvironmentSettings(
       posthogUiHost: client.posthogUiHost,
     }),
     featureFlags: Object.freeze({
-      adapterEnabled: isPostHogFlagAdapterEnabled(),
+      adapterEnabled: isPostHogFlagProviderRequested(),
       provider: shouldUsePostHogFlags() ? "posthog" : "environment",
     }),
     recaptcha: Object.freeze({

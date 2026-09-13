@@ -38,23 +38,30 @@ prefix, not `"use client"`, is what decides.
   `@/features/config` config-safe for `next.config.ts`; anything needing `next/server` goes in the
   server barrel.
 - **Adding a public value:** field on `ClientEndatixConfig`, default in
-  `EMPTY_CLIENT_ENDATIX_CONFIG` plus pass-through in `toClientEndatixConfig`, `ENDATIX_*` read in
-  `readPublicEndatixEnv()`. It is then serialised into the HTML of every page mounting
+  `EMPTY_CLIENT_ENDATIX_CONFIG` plus pass-through in `toClientEndatixConfig`. Most fields are
+  `ENDATIX_*` in `readPublicEndatixEnv()`; PostHog uses `POSTHOG_PROJECT_API_KEY` / `POSTHOG_HOST` /
+  `POSTHOG_UI_HOST`. It is then serialised into the HTML of every page mounting
   `AppProvider`, anonymous form layouts included — `AssertNoSecretsInClientConfig` only backstops a
   few known secret names.
 - **A secret a client component needs is scoped to its routes**, not added to the projection:
   `getSurveyLicenseKey()` + `SurveyLicenseProvider`, mounted only on SurveyJS routes, never on
   `(main)`.
 - Deprecated `NEXT_PUBLIC_*` names still fold into `ENDATIX_*` at boot via `applyLegacyPublicEnv()`,
-  except the PostHog aliases (`NEXT_PUBLIC_POSTHOG_*`) which were removed — use `ENDATIX_POSTHOG_*`.
+  except the PostHog aliases (`NEXT_PUBLIC_POSTHOG_*`) which were removed — use
+  `POSTHOG_PROJECT_API_KEY`, `POSTHOG_HOST`, and `POSTHOG_UI_HOST`. Never restore
+  `NEXT_PUBLIC_` for PostHog.
   Never import `legacy-public-env.server.ts` from a client component.
-- **Feature flags** are request-time, same as public config. `flag()` in
-  [`lib/feature-flags/utils.ts`](lib/feature-flags/utils.ts) awaits `connection()` then picks the
-  factory (`PostHogFlagFactory` vs `EnvironmentFlagFactory`). Do not call
+- **Feature flags** stay request-time for _values_ (user/cohort), not for _which
+  provider_. `flag()` in [`lib/feature-flags/utils.ts`](lib/feature-flags/utils.ts)
+  awaits `connection()` so pages are not statically baked at `next build`, then
+  `getFactory()` — first call freezes PostHog vs env for the process. Do not call
   `flagFactoryProvider.getFactory()` at module load. PostHog wins only when
-  `ENABLE_POSTHOG_ADAPTER=true` **and** `ENDATIX_POSTHOG_KEY` is set
+  `FLAG_PROVIDER=posthog` **and** `POSTHOG_PROJECT_API_KEY` is set
   ([`posthog-flag-settings.ts`](lib/feature-flags/factories/posthog-flag-settings.ts)); otherwise
-  `FLAG_*` / `defaultValue`. Pages that evaluate flags are dynamic. Admin → Environment → Feature flags
+  `FLAG_*` / `defaultValue`. The PostHog factory uses `@flags-sdk/posthog` v1
+  (`createPostHogAdapter` + callable adapter / `.payload`), not `isFeatureEnabled`.
+  Do not set `POSTHOG_SECRET_KEY` on SWA. OpenFeature is the next factory slot, not
+  a second adapter here. Pages that evaluate flags are dynamic. Admin → Environment → Feature flags
   shows the resolved provider.
 - Only `basePath` stays build-time (`NEXT_PUBLIC_BASE_PATH` in `lib/hosting/base-path.ts`): no
   runtime equivalent, so the published image serves at `/` whatever the operator sets. Subfolder

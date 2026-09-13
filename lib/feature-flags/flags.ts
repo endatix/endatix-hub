@@ -6,7 +6,6 @@ export const aiFeaturesFlag = flag<boolean>({
   defaultValue: false,
 });
 
-// General feature flags
 export const experimentalFeaturesFlag = flag<boolean>({
   key: "experimental-features",
   defaultValue: false,
@@ -37,7 +36,6 @@ export const tenantManagementFlag = flag<boolean>({
   defaultValue: false,
 });
 
-// Get all flags at once (async version)
 export const getAllFlags = async (): Promise<FeatureFlagConfig> => ({
   experimentalFeatures: await experimentalFeaturesFlag(),
   advancedAnalytics: await advancedAnalyticsFlag(),

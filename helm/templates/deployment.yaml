@@ -80,8 +80,8 @@ spec:
             - name: ENDATIX_IS_DEBUG_MODE
               value: {{ .Values.clientConfig.debugMode | quote }}
 
-            # Product analytics — empty key disables PostHog.
-            - name: ENDATIX_POSTHOG_KEY
+            # Product analytics + server flags — empty key disables PostHog.
+            - name: POSTHOG_PROJECT_API_KEY
             {{- if .Values.analytics.secretName }}
               valueFrom:
                 secretKeyRef:
@@ -90,10 +90,12 @@ spec:
             {{- else }}
               value: {{ .Values.analytics.posthogKey | quote }}
             {{- end }}
-            - name: ENDATIX_POSTHOG_HOST
+            - name: POSTHOG_HOST
               value: {{ .Values.analytics.posthogHost | quote }}
-            - name: ENDATIX_POSTHOG_UI_HOST
+            - name: POSTHOG_UI_HOST
               value: {{ .Values.analytics.posthogUiHost | quote }}
+            - name: FLAG_PROVIDER
+              value: {{ .Values.analytics.flagProvider | quote }}
 
             # Auth
             - name: SESSION_SECRET

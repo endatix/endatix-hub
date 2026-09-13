@@ -14,6 +14,8 @@
  * isomorphic modules read {@link getIsomorphicEndatixConfig}.
  */
 
+import { withBasePath } from "@/lib/hosting/base-path";
+
 export interface ClientEndatixConfig {
   readonly apiBaseUrl: string;
   readonly extensionsEnabled: boolean;
@@ -46,6 +48,34 @@ export type AssertNoSecretsInClientConfig<
 > = TForbidden;
 
 export const DEFAULT_POSTHOG_HOST = "https://us.i.posthog.com";
+export const DEFAULT_POSTHOG_INGEST_PATH = "/ingest";
+
+/**
+ * posthog-node needs a real origin, so a same-origin rewrite path (`/ingest`) or a blank
+ * value falls back to the default host rather than being passed through.
+ */
+export function resolvePostHogNodeHost(host: string): string {
+  try {
+    return ["http:", "https:"].includes(new URL(host).protocol)
+      ? host
+      : DEFAULT_POSTHOG_HOST;
+  } catch {
+    return DEFAULT_POSTHOG_HOST;
+  }
+}
+
+/**
+ * posthog-js prefers Hub's same-origin `/ingest` rewrite so ad blockers do not drop events.
+ * That rewrite has a fixed destination baked in at build (`next.config.ts`), so it can only
+ * stand in for {@link DEFAULT_POSTHOG_HOST}: any other host — an EU project, a self-hosted
+ * instance — must be called directly, or its events would land in the wrong region.
+ */
+export function resolvePostHogBrowserHost(host: string): string {
+  return host && host !== DEFAULT_POSTHOG_HOST
+    ? host
+    : withBasePath(DEFAULT_POSTHOG_INGEST_PATH);
+}
+
 export const DEFAULT_SUBMITTER_PRIMARY_FILTER_LABEL = "Submitter";
 
 export const EMPTY_CLIENT_ENDATIX_CONFIG: ClientEndatixConfig = Object.freeze({
@@ -110,11 +140,12 @@ export type PublicEndatixEnvConfig = Omit<
 /**
  * The public slice of the runtime environment.
  *
- * `ENDATIX_*` only. This module is imported by client components, and Next inlines any
- * `NEXT_PUBLIC_`-prefixed env literal it finds in a client-reachable module at build time —
- * so the deprecated names live in `legacy-public-env.server.ts`, which no client component
- * imports. At Node boot, `applyLegacyPublicEnv()` folds them into `ENDATIX_*` once; every
- * consumer then reads only the current names (including SSR of `getIsomorphicEndatixConfig`).
+ * Runtime names only (`ENDATIX_*`, plus PostHog's official `POSTHOG_*`). This module is
+ * imported by client components, and Next inlines any `NEXT_PUBLIC_`-prefixed env literal
+ * it finds in a client-reachable module at build time — so the deprecated names live in
+ * `legacy-public-env.server.ts`, which no client component imports. At Node boot,
+ * `applyLegacyPublicEnv()` folds them into current names once; every consumer then reads
+ * only those names (including SSR of `getIsomorphicEndatixConfig`).
  *
  * Non-`NEXT_PUBLIC_` reads are safe here: Next does not inline them, so in the browser they
  * simply resolve to `undefined` and the hydrated projection supplies the value instead.
@@ -124,10 +155,10 @@ export function readPublicEndatixEnv(): PublicEndatixEnvConfig {
 
   return {
     recaptchaSiteKey: firstNonEmpty(process.env.ENDATIX_RECAPTCHA_SITE_KEY),
-    posthogKey: firstNonEmpty(process.env.ENDATIX_POSTHOG_KEY),
+    posthogKey: firstNonEmpty(process.env.POSTHOG_PROJECT_API_KEY),
     posthogHost:
-      firstNonEmpty(process.env.ENDATIX_POSTHOG_HOST) || DEFAULT_POSTHOG_HOST,
-    posthogUiHost: firstNonEmpty(process.env.ENDATIX_POSTHOG_UI_HOST),
+      firstNonEmpty(process.env.POSTHOG_HOST) || DEFAULT_POSTHOG_HOST,
+    posthogUiHost: firstNonEmpty(process.env.POSTHOG_UI_HOST),
     // Explicit override wins; otherwise debug follows the development build.
     isDebugMode: debugOverride
       ? debugOverride === "true"
