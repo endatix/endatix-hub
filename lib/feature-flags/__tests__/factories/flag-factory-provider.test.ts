@@ -122,6 +122,7 @@ describe("readFlagSettings", () => {
   beforeEach(() => {
     process.env = { ...originalEnv };
     delete process.env.FLAG_PROVIDER;
+    delete process.env.POSTHOG_PROJECT_API_KEY;
     flagFactoryProvider.resetForTests();
   });
 
@@ -130,23 +131,21 @@ describe("readFlagSettings", () => {
     flagFactoryProvider.resetForTests();
   });
 
-  it("reports the trimmed request and no provider before the first evaluation", () => {
-    process.env.FLAG_PROVIDER = " environment ";
+  // Nothing is frozen yet, so env is the honest answer for what the next evaluation picks.
+  it("falls back to the environment before the first evaluation", () => {
+    process.env.FLAG_PROVIDER = " posthog ";
+    process.env.POSTHOG_PROJECT_API_KEY = "phc_test_key";
 
-    expect(readFlagSettings()).toEqual({
-      requestedProvider: "environment",
-      provider: null,
-    });
+    expect(readFlagSettings()).toEqual({ provider: "posthog" });
   });
 
+  // Once flags are running, the page must not claim a provider they are not using.
   it("keeps reporting the frozen provider after env changes", () => {
     flagFactoryProvider.getFactory();
+
     process.env.FLAG_PROVIDER = "posthog";
     process.env.POSTHOG_PROJECT_API_KEY = "phc_test_key";
 
-    expect(readFlagSettings()).toEqual({
-      requestedProvider: "posthog",
-      provider: "environment",
-    });
+    expect(readFlagSettings()).toEqual({ provider: "environment" });
   });
 });

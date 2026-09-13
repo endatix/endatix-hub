@@ -1,10 +1,7 @@
 import { PostHogFlagFactory } from "./posthog-flag-factory";
 import { EnvironmentFlagFactory } from "./environment-flag-factory";
 import type { FlagFactory } from "./flag-factory.interface";
-import {
-  readRequestedFlagProvider,
-  shouldUsePostHogFlags,
-} from "./posthog-flag-settings";
+import { shouldUsePostHogFlags } from "./posthog-flag-settings";
 import type { FlagProviderName, FlagSettings } from "../flag-settings";
 
 export class FlagFactoryProvider {
@@ -39,10 +36,17 @@ export class FlagFactoryProvider {
 
 export const flagFactoryProvider = new FlagFactoryProvider();
 
-/** The whole flag configuration, for diagnostics. The one projection admin views read. */
+/**
+ * The flag configuration, for diagnostics. The one projection admin views read.
+ *
+ * Prefers the frozen choice so the page cannot claim a provider the running flags are not
+ * using; falls back to the environment only while nothing is frozen yet, where there is no
+ * running choice to contradict.
+ */
 export function readFlagSettings(): FlagSettings {
   return Object.freeze({
-    requestedProvider: readRequestedFlagProvider(),
-    provider: flagFactoryProvider.getSelectedProvider(),
+    provider:
+      flagFactoryProvider.getSelectedProvider() ??
+      (shouldUsePostHogFlags() ? "posthog" : "environment"),
   });
 }

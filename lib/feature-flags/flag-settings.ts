@@ -7,12 +7,10 @@
 export type FlagProviderName = "posthog" | "environment";
 
 export type FlagSettings = {
-  /** Raw `FLAG_PROVIDER`, trimmed. Empty when unset. */
-  readonly requestedProvider: string;
   /**
-   * The provider the flags actually run on; `null` until the first evaluation in this
-   * process. It can disagree with `requestedProvider` once env changes after the freeze —
-   * surfacing that disagreement is the reason both fields exist.
+   * The provider Hub flags resolve through. Once a flag has been evaluated this is the
+   * frozen choice, so it never contradicts the running flags; before that it is what the
+   * next evaluation will pick from the current environment.
    */
-  readonly provider: FlagProviderName | null;
+  readonly provider: FlagProviderName;
 };

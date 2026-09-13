@@ -19,11 +19,9 @@ import type { EnvironmentCheck } from "./environment-overview";
 import { EnvironmentOverview } from "./environment-overview";
 import { SecretPresenceBadge } from "./secret-presence";
 
-/** `pending` covers the window before any flag has been evaluated in this process. */
-const FLAG_PROVIDER_LABELS: Record<FlagProviderName | "pending", string> = {
+const FLAG_PROVIDER_LABELS: Record<FlagProviderName, string> = {
   posthog: "PostHog",
   environment: "Environment variables",
-  pending: "Not selected yet",
 };
 
 interface EnvironmentSettingsPanelProps {
@@ -203,26 +201,15 @@ export function EnvironmentSettingsPanel({
         <ConfigSection
           icon={Flag}
           title="Feature flags"
-          description="Server-side Hub gates. Provider is chosen on first flag evaluation in the process (PostHog when FLAG_PROVIDER=posthog and POSTHOG_PROJECT_API_KEY is set). Flag values still evaluate per request. Restart to switch provider."
+          description="Server-side Hub gates. PostHog needs FLAG_PROVIDER=posthog and POSTHOG_PROJECT_API_KEY; anything else uses FLAG_* env vars and code defaults. The provider is fixed on the first flag evaluation — restart to change it. Flag values still evaluate per request."
         >
           <ConfigRow
-            label="Provider in use"
-            value={
-              <ConfigValue
-                value={FLAG_PROVIDER_LABELS[featureFlags.provider ?? "pending"]}
-                copyLabel="Copy feature-flag provider"
-                copyable={false}
-              />
-            }
-          />
-          <ConfigRow
-            label="Requested provider"
+            label="Provider"
             envVar="FLAG_PROVIDER"
             value={
               <ConfigValue
-                value={featureFlags.requestedProvider}
-                emptyLabel="(not set)"
-                copyLabel="Copy requested feature-flag provider"
+                value={FLAG_PROVIDER_LABELS[featureFlags.provider]}
+                copyLabel="Copy feature-flag provider"
                 copyable={false}
               />
             }

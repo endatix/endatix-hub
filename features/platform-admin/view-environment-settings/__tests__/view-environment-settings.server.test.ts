@@ -13,7 +13,7 @@ vi.mock("next/server", () => ({
  * singleton here would drag the whole flags/PostHog graph into a config test.
  */
 const flagSettings = vi.hoisted(() => ({
-  value: { requestedProvider: "", provider: null } as FlagSettings,
+  value: { provider: "environment" } as FlagSettings,
 }));
 
 vi.mock("@/lib/feature-flags/factories/flag-factory-provider", () => ({
@@ -80,10 +80,7 @@ describe("getEnvironmentSettings", () => {
   // Whether the provider is frozen, and how FLAG_PROVIDER is parsed, belong to
   // lib/feature-flags. This page only has to report that snapshot without reshaping it.
   it("passes the flag settings snapshot through untouched", async () => {
-    flagSettings.value = {
-      requestedProvider: "posthog",
-      provider: "environment",
-    };
+    flagSettings.value = { provider: "posthog" };
 
     const { getEnvironmentSettings } =
       await import("../view-environment-settings.server");

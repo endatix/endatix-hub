@@ -3,7 +3,7 @@ import { readPublicEndatixEnv } from "@/features/config/client-endatix-config";
 const POSTHOG_PROVIDER = "posthog";
 
 /** Raw `FLAG_PROVIDER`, trimmed. Empty string when unset. */
-export function readRequestedFlagProvider(): string {
+function readRequestedFlagProvider(): string {
   return process.env.FLAG_PROVIDER?.trim() ?? "";
 }
 
