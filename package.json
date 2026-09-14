@@ -36,7 +36,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@flags-sdk/posthog": "^1.0.1",
     "@grpc/grpc-js": "^1.14.4",
-    "@hookform/resolvers": "^3.10.0",
+    "@hookform/resolvers": "^5.9.1",
     "@opentelemetry/api": "^1.9.1",
     "@opentelemetry/api-logs": "^0.221.0",
     "@opentelemetry/context-async-hooks": "^2.10.0",
