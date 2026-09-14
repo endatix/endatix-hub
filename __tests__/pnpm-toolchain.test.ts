@@ -32,8 +32,14 @@ const PNPM_VERSION_PINS: Array<[file: string, pattern: RegExp]> = [
  */
 const PNPM_VULNERABLE_VERSIONS = ["10.34.4", "11.0.0", "11.10.9"];
 
-/** Node majors that engines.node must never admit: 20 and 21 are End-of-Life. */
-const EOL_NODE_VERSIONS = ["20.19.0", "21.7.3"];
+/** Node versions engines.node must never admit (EOL, odd-year 23, or Node 25). */
+const UNSUPPORTED_NODE_VERSIONS = [
+  "20.19.0",
+  "21.7.3",
+  "23.11.0",
+  "25.0.0",
+  "25.1.0",
+];
 
 describe("pnpm configuration stays in pnpm-workspace.yaml", () => {
   it("keeps no pnpm settings in package.json", () => {
@@ -151,12 +157,16 @@ describe("Node toolchain pins agree", () => {
     );
   });
 
-  it("admits no End-of-Life Node major", () => {
+  it("pins engines.node to 22.13+ and 24 LTS only", () => {
+    expect(nodeEngine).toBe(">=22.13.0 <23.0.0 || >=24.0.0 <25.0.0");
+  });
+
+  it("admits no End-of-Life or out-of-policy Node major", () => {
     // Act & Assert
-    for (const eol of EOL_NODE_VERSIONS) {
+    for (const unsupported of UNSUPPORTED_NODE_VERSIONS) {
       expect(
-        semver.satisfies(eol, nodeEngine),
-        `engines.node (${nodeEngine}) admits End-of-Life Node ${eol}`,
+        semver.satisfies(unsupported, nodeEngine),
+        `engines.node (${nodeEngine}) admits unsupported Node ${unsupported}`,
       ).toBe(false);
     }
   });
