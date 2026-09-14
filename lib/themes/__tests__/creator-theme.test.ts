@@ -18,6 +18,29 @@ function theme(cssVariables: Record<string, string>, colorPalette = "light") {
   return { themeName: "test", colorPalette, cssVariables } as HubTheme;
 }
 
+/**
+ * Emulates Chrome dropping a `color` that is invalid at computed-value time and
+ * reporting the inherited one. jsdom never resolves a `var()`, so the resolve
+ * pass cannot otherwise be exercised the way a browser exercises it.
+ */
+function spyOnInheritedComputedColor() {
+  const original = globalThis.getComputedStyle;
+  return vi
+    .spyOn(globalThis, "getComputedStyle")
+    .mockImplementation((element: Element) => {
+      const target = element as HTMLElement;
+      if (!target.style.color.includes("var(")) {
+        return original(element);
+      }
+      for (let node = target.parentElement; node; node = node.parentElement) {
+        if (node.style.color) {
+          return { color: node.style.color } as CSSStyleDeclaration;
+        }
+      }
+      return { color: "rgb(2, 8, 23)" } as CSSStyleDeclaration; // Hub --foreground
+    });
+}
+
 describe("applyEndatixCreatorTheme", () => {
   it("sets the palette from the theme and applies it once", () => {
     const creator = makeCreator();
@@ -79,6 +102,38 @@ describe("applyEndatixCreatorTheme", () => {
       "var(--does-not-exist)",
     );
     root.remove();
+  });
+
+  it("keeps a length token the browser reports as the inherited colour", () => {
+    // Arrange
+    // Resolving the inherited colour into --sjs2-base-unit-radius made every
+    // calc() radius invalid: border-radius: 0 Creator-wide (endatix-hub#954).
+    const root = document.createElement("div");
+    document.body.appendChild(root);
+    const creator = makeCreator();
+    const spy = spyOnInheritedComputedColor();
+
+    try {
+      // Act
+      applyEndatixCreatorTheme(
+        creator as never,
+        theme({
+          "--sjs2-base-unit-radius": "var(--radius, 0.5rem)",
+          "--sjs2-spacing-x100": "0.5rem",
+        }),
+        root,
+      );
+
+      // Assert
+      expect(applied(creator).cssVariables).toMatchObject({
+        "--sjs2-base-unit-radius": "var(--radius, 0.5rem)",
+        "--sjs2-spacing-x100": "0.5rem",
+      });
+    } finally {
+      // A failed assertion must not leak the mock into later tests.
+      spy.mockRestore();
+      root.remove();
+    }
   });
 
   it("resolves a var() the browser computes to a concrete colour", () => {

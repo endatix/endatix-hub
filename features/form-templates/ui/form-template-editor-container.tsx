@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { FormTemplateEditorProps } from "./form-template-editor";
 import "./creator-styles.scss";
+import "@/lib/survey-features/infrastructure/creator-property-grid.css";
 import { questionLoaderModule } from "@/lib/questions/question-loader-module";
 import { customQuestions } from "@/customizations/questions/question-registry";
 import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";

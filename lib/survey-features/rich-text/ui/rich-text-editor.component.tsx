@@ -119,7 +119,7 @@ export class RichTextEditorComponent extends SurveyQuestionElementBase {
       <div
         ref={this.wrapperRef}
         aria-label="Rich text editor"
-        className={`relative rounded-md border border-gray-300 p-0 ${hasActiveSelection ? "rich-text-editor--active" : ""}`}
+        className={`rich-text-editor ${hasActiveSelection ? "rich-text-editor--active" : ""}`}
       >
         <ReactQuill
           ref={this.quillRef}

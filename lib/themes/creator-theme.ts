@@ -25,12 +25,17 @@ const DARK_PALETTE = "dark";
 const SURVEYJS_RELATIVE_TOKEN =
   /var\(--sjs2-|lch\(from |rgba\(from |rgb\(from |hsl\(from |hwb\(from /i;
 
+/** Sentinel the probe inherits. Compare it computed — the engine picks the serialization. */
+const NOT_A_COLOR = "rgb(1, 2, 3)";
+
 /**
- * Resolves Hub CSS values (`var(--content-canvas)`, …) to computed colors.
+ * Resolves Hub CSS values to computed colors, which Creator's JS brand-tint
+ * maths (`parseColor`) needs — it cannot read a `var()`.
  *
- * Creator does its brand-tint maths in JS (`parseColor`), which cannot read a
- * `var()` reference — without this pass the property grid's selected rows and
- * the top-bar toggle lose their brand tint.
+ * Only real colors may be rewritten: `color: var(--radius, 0.5rem)` parses, is
+ * dropped at computed-value time, then reported as the *inherited* color. That
+ * turned a length into a color and flattened every `calc()` radius in Creator to
+ * 0 (endatix-hub#954), hence the sentinel on the probe's parent.
  */
 function resolveHubColors(theme: HubTheme, root?: HTMLElement): HubTheme {
   if (typeof document === "undefined" || !theme?.cssVariables) {
@@ -42,33 +47,38 @@ function resolveHubColors(theme: HubTheme, root?: HTMLElement): HubTheme {
     return theme;
   }
 
+  const probeHost = document.createElement("div");
+  probeHost.style.cssText =
+    "visibility:hidden;position:absolute;width:0;height:0;pointer-events:none;overflow:hidden;" +
+    `color:${NOT_A_COLOR};`;
   const probe = document.createElement("div");
-  probe.style.cssText =
-    "visibility:hidden;position:absolute;width:0;height:0;pointer-events:none;overflow:hidden;";
-  mountRoot.appendChild(probe);
+  probeHost.appendChild(probe);
+  mountRoot.appendChild(probeHost);
 
   const resolved: Record<string, string> = {};
-  const sentinel = "rgb(1, 2, 3)";
 
   try {
+    // Read it back: the engine picks the serialization.
+    const notAColor = getComputedStyle(probeHost).color || NOT_A_COLOR;
+
     for (const [key, value] of Object.entries(theme.cssVariables)) {
       if (SURVEYJS_RELATIVE_TOKEN.test(value)) {
         continue;
       }
 
-      probe.style.color = sentinel;
+      probe.style.color = ""; // a rejected value would leave the previous one
       probe.style.color = value;
-      if (probe.style.color === "" || probe.style.color === sentinel) {
-        continue; // the browser rejected it — not a color
+      if (probe.style.color === "") {
+        continue; // rejected at parse — not a color
       }
 
       const computed = getComputedStyle(probe).color;
-      if (computed && computed !== sentinel && !computed.includes("var(")) {
+      if (computed && computed !== notAColor && !computed.includes("var(")) {
         resolved[key] = computed;
       }
     }
   } finally {
-    probe.remove();
+    probeHost.remove();
   }
 
   return { ...theme, cssVariables: { ...theme.cssVariables, ...resolved } };
