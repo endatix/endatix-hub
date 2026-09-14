@@ -57,7 +57,7 @@ Endatix Hub is a commercial product and it requires the purchase of a license fr
 
 ## System Requirements
 
-- **Node.js 20.x.x** (Node 20.9.0 is recommended)
+- **Node.js 22.13+** (22 or 24 LTS). We only support [non-EOL](https://nodejs.org/en/about/eol) Node majors — Node 20 is End-of-Life.
 
 ## Supported Environments
 
@@ -76,7 +76,7 @@ It can be deployed to on-premise servers, cloud environments such as **Azure**, 
 - **nvm** - we recommend using nvm to manage node versions as this will help you install the correct version of node without having to manually change the node version in your system. Download nvm [here](https://github.com/nvm-sh/nvm)
 
 >[!TIP]
->If you are using nvm, you can install the correct version of node by running `nvm install v20.9.0`
+>If you are using nvm, run `nvm install` from this directory (reads [`.nvmrc`](./.nvmrc) — Node 22).
 
 >[!IMPORTANT]
 >Do **not** use Corepack. It cannot run pnpm 12 ([corepack#873](https://github.com/nodejs/corepack/issues/873)), which is why `package.json` has no `packageManager` field. If `pnpm --version` prints 10.x when you installed 12, Corepack is intercepting — run `corepack disable pnpm`, then reinstall as above.
@@ -84,11 +84,11 @@ It can be deployed to on-premise servers, cloud environments such as **Azure**, 
 >[!NOTE]
 >All pnpm configuration lives in [`pnpm-workspace.yaml`](./pnpm-workspace.yaml), including the `overrides` and the reason each one exists. pnpm 11+ ignores `package.json#pnpm` and reads only auth settings from `.npmrc`, so nothing may be added to either. `verifyDepsBeforeRun: install` makes `pnpm dev` / `pnpm build` reinstall on their own when `node_modules` has drifted, so switching pnpm majors locally costs one full reinstall.
 >
->Self-hosters may stay on **standalone pnpm 10.34.5+**. pnpm 11 is excluded on purpose: it requires Node >= 22.13, while this repo supports Node >= 20.9.0. Below 10.34.5 / 11.11.0 pnpm is vulnerable to [GHSA-vx52-2968-3vc6](https://github.com/advisories/GHSA-vx52-2968-3vc6), which exfiltrates environment secrets through proxy settings in a `pnpm-workspace.yaml` - the very file this repo now ships.
+>Self-hosters may stay on **standalone pnpm 10.34.5+** (11 and 12 included). Below 10.34.5 / 11.11.0 pnpm is vulnerable to [GHSA-vx52-2968-3vc6](https://github.com/advisories/GHSA-vx52-2968-3vc6), which exfiltrates environment secrets through proxy settings in a `pnpm-workspace.yaml` — the file this repo ships.
 
 ## ⚙️ Getting Started
 
-1. Setup correct node version. Open the terminal and run `nvm use v20.9.0`
+1. Setup Node 22. From this directory run `nvm use` (or `nvm install`).
 2. Install the dependencies. Run `pnpm install`
 3. Copy `.env.example` to `.env` and set at least:
    - `ENDATIX_BASE_URL` — API origin, e.g. `https://localhost:5001`
