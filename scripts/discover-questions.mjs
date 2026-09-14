@@ -45,9 +45,10 @@ const registryEntries = questions
   .map((dir) => `  "${dir}": () => import('./${dir}/index')`)
   .join(",\n");
 
+// No timestamp: this file is committed, and a per-run date would dirty the working
+// tree on every build. Content changes only when a question folder is added or removed.
 const content = `// Auto-generated file - do not edit manually
 // This file ensures all custom questions are included in the build
-// Generated on: ${new Date().toISOString()}
 
 export const questionModuleMap = {
 ${registryEntries}

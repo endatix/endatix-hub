@@ -9,6 +9,12 @@
 - Reporting export wire keys (`csv`, `xlsx`, `codebook`, …) live in [`lib/endatix-api/reporting/reporting-export-wire.ts`](lib/endatix-api/reporting/reporting-export-wire.ts). Lookups are **exact** (no case-fold). Legacy downloads use the closed `BUILT_IN_EXPORT_FILE_KINDS` list (`csv` | `xlsx` | `json`), not `Extract<wire, FileKindKey>`.
 - Keep `app/` routing-focused. Data mutations should flow through server actions.
 
+## Toolchain (pnpm)
+
+- **All pnpm config lives in [`pnpm-workspace.yaml`](pnpm-workspace.yaml)** - overrides, `allowBuilds`, supply-chain defaults. pnpm 11+ ignores `package.json#pnpm` and reads only auth keys from `.npmrc`, so a setting written there is dropped silently. Every override carries a one-line note saying which upgrade removes it; keep the note with the entry.
+- Never add a `packageManager` field (Corepack cannot run pnpm 12) and never set `sharedWorkspaceLockfile` (breaks pnpm 10's hoisted linker). `__tests__/pnpm-toolchain.test.ts` pins both, plus the version pinned in the Dockerfile and [`.github/actions/setup-node-pnpm`](.github/actions/setup-node-pnpm/action.yml) - bump pnpm in those two files only.
+- CI installs with `pnpm ci` through that composite action, which fails the job on unrecognized workspace keys. Do not inline `pnpm/action-setup` in a new workflow.
+
 ## SurveyJS domain
 
 Prefer vendor types from `survey-core` / `survey-creator-core`. Closed Hub unions for vendor `string`s: [`lib/survey-js/`](lib/survey-js/) (`FORM_DIAGNOSTICS_PLUGIN_NAME` is `ENDATIX_CREATOR_TAB.diagnostics`). Placement: [`project-structure.md`](project-structure.md) `lib/survey-js`.
