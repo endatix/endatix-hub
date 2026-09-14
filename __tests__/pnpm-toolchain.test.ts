@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
+import semver from "semver";
 import { describe, expect, it } from "vitest";
 
 /**
@@ -22,6 +23,22 @@ const workspaceYaml = read("pnpm-workspace.yaml");
 const PNPM_VERSION_PINS: Array<[file: string, pattern: RegExp]> = [
   ["Dockerfile", /pnpm@(\d+\.\d+\.\d+)/],
   [".github/actions/setup-node-pnpm/action.yml", /default: "(\d+\.\d+\.\d+)"/],
+];
+
+/**
+ * pnpm below these versions leaks environment secrets through proxy settings in a
+ * `pnpm-workspace.yaml` (GHSA-vx52-2968-3vc6) - the file this repo ships. The 11.x
+ * window is easy to reopen by "simplifying" engines.pnpm into a single range.
+ */
+const PNPM_VULNERABLE_VERSIONS = ["10.34.4", "11.0.0", "11.10.9"];
+
+/** Node versions engines.node must never admit (EOL, odd-year 23, or Node 25). */
+const UNSUPPORTED_NODE_VERSIONS = [
+  "20.19.0",
+  "21.7.3",
+  "23.11.0",
+  "25.0.0",
+  "25.1.0",
 ];
 
 describe("pnpm configuration stays in pnpm-workspace.yaml", () => {
@@ -58,9 +75,6 @@ describe("pnpm toolchain pins agree", () => {
   it("pins the same pnpm version everywhere, inside the supported range", () => {
     // Arrange
     const engines = (packageJson.engines as Record<string, string>).pnpm;
-    const supportedMajors = new Set(
-      [...engines.matchAll(/>=(\d+)\./g)].map((match) => match[1]),
-    );
 
     // Act
     const pinned = PNPM_VERSION_PINS.map(([file, pattern]) => {
@@ -71,6 +85,89 @@ describe("pnpm toolchain pins agree", () => {
 
     // Assert
     expect(new Set(pinned).size, `pins disagree: ${pinned.join(", ")}`).toBe(1);
-    expect(supportedMajors).toContain(pinned[0].split(".")[0]);
+    expect(
+      semver.satisfies(pinned[0], engines),
+      `pnpm ${pinned[0]} is outside engines.pnpm (${engines})`,
+    ).toBe(true);
+  });
+
+  it("keeps engines.pnpm clear of the GHSA-vx52-2968-3vc6 versions", () => {
+    // Arrange
+    const engines = (packageJson.engines as Record<string, string>).pnpm;
+
+    // Act & Assert
+    for (const vulnerable of PNPM_VULNERABLE_VERSIONS) {
+      expect(
+        semver.satisfies(vulnerable, engines),
+        `engines.pnpm (${engines}) admits vulnerable pnpm ${vulnerable}`,
+      ).toBe(false);
+    }
+  });
+});
+
+/**
+ * Node has one pin - `.nvmrc`. CI reads it through `node-version-file`, the Dockerfile
+ * repeats only its major, and `engines.node` is the range self-hosters are held to (it
+ * is also what `lib/hosting/check-node-version.ts` warns against at startup). Bumping
+ * Node means editing `.nvmrc`, and these guards catch every copy left behind.
+ */
+describe("Node toolchain pins agree", () => {
+  const nodeEngine = (packageJson.engines as Record<string, string>).node;
+  const nvmrc = read(".nvmrc").trim();
+
+  it("pins a concrete version in .nvmrc, so `nvm use` cannot pick an older 22.x", () => {
+    // Act & Assert
+    expect(
+      semver.valid(nvmrc),
+      `.nvmrc must hold an exact version, got "${nvmrc}"`,
+    ).not.toBeNull();
+  });
+
+  it("keeps the .nvmrc version inside engines.node", () => {
+    // Act & Assert
+    expect(
+      semver.satisfies(nvmrc, nodeEngine),
+      `.nvmrc (${nvmrc}) is outside engines.node (${nodeEngine})`,
+    ).toBe(true);
+  });
+
+  it("builds the image on the same Node major", () => {
+    // Arrange
+    const image = /^FROM node:(\d+)-alpine/m.exec(read("Dockerfile"))?.[1];
+
+    // Act & Assert
+    expect(
+      image,
+      "no `FROM node:<major>-alpine` found in Dockerfile",
+    ).toBeDefined();
+    expect(
+      image,
+      `Dockerfile runs Node ${image} while .nvmrc pins ${nvmrc}`,
+    ).toBe(semver.major(nvmrc).toString());
+  });
+
+  it("lets CI read .nvmrc instead of repeating the version", () => {
+    // Arrange
+    const action = read(".github/actions/setup-node-pnpm/action.yml");
+
+    // Act & Assert
+    expect(action).toMatch(/node-version-file:\s*"\.nvmrc"/);
+    expect(action, "hardcoded node-version drifts from .nvmrc").not.toMatch(
+      /^\s*node-version:/m,
+    );
+  });
+
+  it("pins engines.node to 22.13+ and 24 LTS only", () => {
+    expect(nodeEngine).toBe(">=22.13.0 <23.0.0 || >=24.0.0 <25.0.0");
+  });
+
+  it("admits no End-of-Life or out-of-policy Node major", () => {
+    // Act & Assert
+    for (const unsupported of UNSUPPORTED_NODE_VERSIONS) {
+      expect(
+        semver.satisfies(unsupported, nodeEngine),
+        `engines.node (${nodeEngine}) admits unsupported Node ${unsupported}`,
+      ).toBe(false);
+    }
   });
 });

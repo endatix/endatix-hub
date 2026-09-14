@@ -13,7 +13,7 @@ import { PackageJson } from "@/lib/hosting/check-node-version";
 const mockPackageJson: PackageJson = vi.hoisted(() => {
   return {
     engines: {
-      node: ">=20.0.0 <21.0.0",
+      node: ">=22.0.0 <23.0.0",
     },
   };
 });
@@ -25,7 +25,7 @@ vi.mock("@/package.json", () => ({
 describe("checkNodeVersion", () => {
   let consoleSpy: MockInstance;
   const originalVersion = process.version;
-  const DEFAULT_REQUIRED_NODE_VERSION = ">=20.0.0 <21.0.0";
+  const DEFAULT_REQUIRED_NODE_VERSION = ">=22.0.0 <23.0.0";
 
   const messages = {
     success: () => `Node version check passed`,
@@ -34,8 +34,7 @@ describe("checkNodeVersion", () => {
       versionMismatch: (current: string) =>
         `Current Node version (${current}) does not match the required version of Node (${DEFAULT_REQUIRED_NODE_VERSION})`,
       readmeInfo: "💡 Check Readme for how to setup the correct Node version",
-      moreInfo:
-        "🔗 More info at https://github.com/endatix/endatix-hub",
+      moreInfo: "🔗 More info at https://github.com/endatix/endatix-hub",
     },
   };
 
@@ -84,7 +83,7 @@ describe("checkNodeVersion", () => {
 
   it("should log success message when node version matches requirements", () => {
     // Arrange
-    const validVersion = "20.9.0";
+    const validVersion = "22.13.0";
     setRuntimeNodeVersion(validVersion);
 
     // Act
@@ -121,7 +120,7 @@ describe("checkNodeVersion", () => {
 
   it("should handle valid prerelease versions correctly", () => {
     // Arrange
-    const prereleaseVersion = "20.10.0-rc.1";
+    const prereleaseVersion = "22.14.0-rc.1";
     setRuntimeNodeVersion(prereleaseVersion);
 
     // Act
@@ -134,7 +133,7 @@ describe("checkNodeVersion", () => {
 
   it("should handle invalid futureprerelease versions correctly", () => {
     // Arrange
-    const prereleaseVersion = "22.10.0-rc.1";
+    const prereleaseVersion = "24.10.0-rc.1";
     setRuntimeNodeVersion(prereleaseVersion);
 
     // Act

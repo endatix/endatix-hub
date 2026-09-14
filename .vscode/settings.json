@@ -1,5 +1,6 @@
 {
   "cSpell.words": ["Endatix"],
+  "npm.packageManager": "pnpm",
   "search.exclude": {
     ".next": true,
     "node_modules": true
@@ -19,6 +20,6 @@
       "icon": "model",
       "extensions": ["domain"],
       "format": "svg"
-    },
+    }
   ]
 }

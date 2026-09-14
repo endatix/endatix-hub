@@ -9,11 +9,13 @@
 - Reporting export wire keys (`csv`, `xlsx`, `codebook`, …) live in [`lib/endatix-api/reporting/reporting-export-wire.ts`](lib/endatix-api/reporting/reporting-export-wire.ts). Lookups are **exact** (no case-fold). Legacy downloads use the closed `BUILT_IN_EXPORT_FILE_KINDS` list (`csv` | `xlsx` | `json`), not `Extract<wire, FileKindKey>`.
 - Keep `app/` routing-focused. Data mutations should flow through server actions.
 
-## Toolchain (pnpm)
+## Toolchain (Node & pnpm)
 
 - **All pnpm config lives in [`pnpm-workspace.yaml`](pnpm-workspace.yaml)** - overrides, `allowBuilds`, supply-chain defaults. pnpm 11+ ignores `package.json#pnpm` and reads only auth keys from `.npmrc`, so a setting written there is dropped silently. Every override carries a one-line note saying which upgrade removes it; keep the note with the entry.
 - Never add a `packageManager` field (Corepack cannot run pnpm 12) and never set `sharedWorkspaceLockfile` (breaks pnpm 10's hoisted linker). `__tests__/pnpm-toolchain.test.ts` pins both, plus the version pinned in the Dockerfile and [`.github/actions/setup-node-pnpm`](.github/actions/setup-node-pnpm/action.yml) - bump pnpm in those two files only.
 - CI installs with `pnpm ci` through that composite action, which fails the job on unrecognized workspace keys. Do not inline `pnpm/action-setup` in a new workflow.
+- **[`.nvmrc`](.nvmrc) is the only place the Node version is written.** CI reads it via `node-version-file`, the Dockerfile repeats just the major, and `engines.node` is the supported range (LTS lines only - 22 and 24; `lib/hosting/check-node-version.ts` warns at startup when the host is outside it). To move Node, edit `.nvmrc` and, only when the supported *range* changes, `engines.node` + the Dockerfile major. `__tests__/pnpm-toolchain.test.ts` fails on any drift, and [`dependabot.yml`](.github/dependabot.yml) is told not to raise the image major on its own.
+- `engines.pnpm` deliberately has a gap (`>=10.34.5 <11.0.0 || >=11.11.0 <13.0.0`): pnpm below 10.34.5 and 11.0.0-11.10.x leak env secrets via `pnpm-workspace.yaml` proxy settings (GHSA-vx52-2968-3vc6). Never flatten it into a single range - the toolchain test asserts the vulnerable versions stay excluded.
 
 ## SurveyJS domain
 
