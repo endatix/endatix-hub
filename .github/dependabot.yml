@@ -34,3 +34,10 @@ updates:
     commit-message:
       prefix: "chore"
       include: "scope"
+    # The Dockerfile must stay on the Node LTS major declared in .nvmrc and
+    # engines.node — an unattended major bump is how the image ended up on Node 26
+    # while CI tested on 22. Patch/minor updates of the 22 tag still come through;
+    # raising the major is a deliberate change to .nvmrc, engines.node and here.
+    ignore:
+      - dependency-name: "node"
+        update-types: ["version-update:semver-major"]

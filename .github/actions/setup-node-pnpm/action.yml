@@ -6,10 +6,6 @@ inputs:
     description: "pnpm version to install. Keep in step with engines.pnpm and the Dockerfile."
     required: false
     default: "12.4.1"
-  node-version:
-    description: "Node major to install. Default is the oldest non-EOL LTS line (see https://nodejs.org/en/about/eol and package.json engines.node). Bump this major when 22 reaches EOL."
-    required: false
-    default: "22"
 
 runs:
   using: "composite"
@@ -23,7 +19,10 @@ runs:
     - name: 📦 Setup Node.js
       uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
       with:
-        node-version: ${{ inputs.node-version }}
+        # .nvmrc is the single source of truth for the Node version - CI, the
+        # Dockerfile major and package.json engines.node all follow it, and
+        # __tests__/pnpm-toolchain.test.ts fails if they drift. Bump Node there.
+        node-version-file: ".nvmrc"
         cache: "pnpm"
 
     # engines.pnpm is a range, not an exact pin (Corepack cannot run pnpm 12), and with a
