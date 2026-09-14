@@ -58,9 +58,7 @@ describe("pnpm toolchain pins agree", () => {
   it("pins the same pnpm version everywhere, inside the supported range", () => {
     // Arrange
     const engines = (packageJson.engines as Record<string, string>).pnpm;
-    const supportedMajors = new Set(
-      [...engines.matchAll(/>=(\d+)\./g)].map((match) => match[1]),
-    );
+    const nodeEngine = (packageJson.engines as Record<string, string>).node;
 
     // Act
     const pinned = PNPM_VERSION_PINS.map(([file, pattern]) => {
@@ -68,9 +66,14 @@ describe("pnpm toolchain pins agree", () => {
       expect(version, `no pnpm version found in ${file}`).toBeDefined();
       return version as string;
     });
+    const major = Number(pinned[0].split(".")[0]);
 
     // Assert
     expect(new Set(pinned).size, `pins disagree: ${pinned.join(", ")}`).toBe(1);
-    expect(supportedMajors).toContain(pinned[0].split(".")[0]);
+    expect(major).toBeGreaterThanOrEqual(10);
+    expect(major).toBeLessThan(13);
+    expect(engines).toMatch(/>=10\.34\.5/);
+    expect(engines).toMatch(/<13\.0\.0/);
+    expect(nodeEngine).toMatch(/^>=22\.13\.0/);
   });
 });

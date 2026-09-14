@@ -1,5 +1,7 @@
 {
   "cSpell.words": ["Endatix"],
+  "npm.autoDetect": "off",
+  "npm.packageManager": "pnpm",
   "search.exclude": {
     ".next": true,
     "node_modules": true

@@ -7,7 +7,7 @@ inputs:
     required: false
     default: "12.4.1"
   node-version:
-    description: "Node version to install."
+    description: "Node major to install. Default is the oldest non-EOL LTS line (see https://nodejs.org/en/about/eol and package.json engines.node). Bump this major when 22 reaches EOL."
     required: false
     default: "22"
 
