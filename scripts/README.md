@@ -2,6 +2,9 @@
 
 This directory contains build scripts for the Endatix Hub application.
 
+> `echo-pnpm-comments.mjs` is gone. Override CVE notes now live as comments on each
+> entry in [`pnpm-workspace.yaml`](../pnpm-workspace.yaml).
+
 ## Question Discovery Script
 
 ### `discover-questions.mjs`
@@ -44,5 +47,3 @@ Avoids `cp -r` shell commands, which fail on Windows because pnpm runs scripts t
 ```bash
 node scripts/copy-standalone.mjs
 ```
-
-Override CVE notes live as comments on each entry in [`pnpm-workspace.yaml`](../pnpm-workspace.yaml), not in `package.json`.

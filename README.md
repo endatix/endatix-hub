@@ -69,17 +69,22 @@ It can be deployed to on-premise servers, cloud environments such as **Azure**, 
 
 ## Prerequisites
 
-- **pnpm 12** (minimum 10.28) - pnpm is the package manager for this project. Install it with `curl -fsSL https://get.pnpm.io/install.sh | sh -`, then run `pnpm setup` once so global binaries are on your PATH. pnpm 12 is a native binary and needs no Node.js of its own; `pnpm --version` should print `12.x`.
+- **pnpm 12** (minimum 10.34.5) - the package manager for this project. pnpm 12 is a native binary and needs no Node.js of its own; `pnpm --version` should print `12.x`.
+  - POSIX: `curl -fsSL https://get.pnpm.io/install.sh | env PNPM_VERSION=12.4.1 sh -`
+  - Windows PowerShell: `$env:PNPM_VERSION="12.4.1"; iwr https://get.pnpm.io/install.ps1 -UseBasicParsing | iex`
+  - Then `pnpm setup` once, so global binaries are on your PATH.
 - **nvm** - we recommend using nvm to manage node versions as this will help you install the correct version of node without having to manually change the node version in your system. Download nvm [here](https://github.com/nvm-sh/nvm)
 
 >[!TIP]
 >If you are using nvm, you can install the correct version of node by running `nvm install v20.9.0`
 
 >[!IMPORTANT]
->Do **not** use Corepack for this repo. Corepack cannot run pnpm 12 ([corepack#873](https://github.com/nodejs/corepack/issues/873)), which is why `package.json` has no `packageManager` field. Self-host builds may still use **standalone** pnpm 10.28+. If you intended pnpm 12 but `pnpm --version` is 10.x, Corepack is likely intercepting — run `corepack disable pnpm` and install pnpm as above.
+>Do **not** use Corepack. It cannot run pnpm 12 ([corepack#873](https://github.com/nodejs/corepack/issues/873)), which is why `package.json` has no `packageManager` field. If `pnpm --version` prints 10.x when you installed 12, Corepack is intercepting — run `corepack disable pnpm`, then reinstall as above.
 
 >[!NOTE]
->All pnpm configuration lives in [`pnpm-workspace.yaml`](./pnpm-workspace.yaml), including the dependency `overrides` and the reason each one exists. pnpm 11+ ignores the `pnpm` field in `package.json` and reads only auth settings from `.npmrc`, so nothing may be added there. `verifyDepsBeforeRun: install` means `pnpm dev` and `pnpm build` reinstall on their own when `node_modules` has drifted - switching pnpm majors locally will trigger one full reinstall.
+>All pnpm configuration lives in [`pnpm-workspace.yaml`](./pnpm-workspace.yaml), including the `overrides` and the reason each one exists. pnpm 11+ ignores `package.json#pnpm` and reads only auth settings from `.npmrc`, so nothing may be added to either. `verifyDepsBeforeRun: install` makes `pnpm dev` / `pnpm build` reinstall on their own when `node_modules` has drifted, so switching pnpm majors locally costs one full reinstall.
+>
+>Self-hosters may stay on **standalone pnpm 10.34.5+**. pnpm 11 is excluded on purpose: it requires Node >= 22.13, while this repo supports Node >= 20.9.0. Below 10.34.5 / 11.11.0 pnpm is vulnerable to [GHSA-vx52-2968-3vc6](https://github.com/advisories/GHSA-vx52-2968-3vc6), which exfiltrates environment secrets through proxy settings in a `pnpm-workspace.yaml` - the very file this repo now ships.
 
 ## ⚙️ Getting Started
 

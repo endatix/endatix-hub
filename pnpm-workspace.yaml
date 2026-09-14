@@ -1,16 +1,15 @@
-# Single source of pnpm configuration for Endatix Hub.
-#
-# pnpm 11+ reads ONLY auth/registry keys from .npmrc and ignores the `pnpm` field in
-# package.json, so every setting has to live here. pnpm 10.28+ reads this file too,
-# which is what keeps self-hosters on pnpm 10 building from the same config.
+# Single source of pnpm configuration for Endatix Hub. pnpm 11+ ignores
+# package.json#pnpm and reads only auth/registry keys from .npmrc, so every setting
+# lives here; pnpm 10.34.5+ reads this file too, which keeps self-hosters on the
+# same config. Supported range: see engines.pnpm in package.json.
 
-# Do not set sharedWorkspaceLockfile. A pnpm-workspace.yaml makes this a workspace
-# root; combining per-project lockfiles with nodeLinker: hoisted fails on pnpm
-# 10.28–10.34 (ERR_PNPM_MISSING_HOISTED_LOCATIONS). Default (shared lockfile)
-# is correct for this single-package repo.
+# Never set sharedWorkspaceLockfile: this file makes the Hub a workspace root, and
+# per-project lockfiles plus nodeLinker: hoisted fail every pnpm 10 install with
+# ERR_PNPM_MISSING_HOISTED_LOCATIONS. The shared-lockfile default is correct for a
+# single-package repo.
 nodeLinker: hoisted
 
-# Supply-chain defaults. pnpm 11+ ships these values; pnpm 10 defaults are laxer
+# Supply-chain defaults. pnpm 11+ ships these; pnpm 10 defaults are laxer
 # (minimumReleaseAge 0, blockExoticSubdeps false), so set them explicitly and both
 # majors behave identically. For a genuine same-day CVE patch add the package to
 # minimumReleaseAgeExclude rather than lowering the age.
@@ -19,8 +18,8 @@ blockExoticSubdeps: true
 strictDepBuilds: true
 verifyDepsBeforeRun: install
 
-# Dependency lifecycle-script allowlist. Replaces pnpm.onlyBuiltDependencies, which
-# pnpm 11 removed; note this is a map, not a list.
+# Lifecycle-script allowlist. Replaces pnpm.onlyBuiltDependencies (removed in pnpm 11);
+# a map, not a list.
 allowBuilds:
   "@parcel/watcher": true
   core-js: true
@@ -30,8 +29,7 @@ allowBuilds:
   sharp: true
   unrs-resolver: true
 
-# Every override records why it is here and what removes it. Keep the note with the
-# entry - this is the ledger that used to live in package.json#pnpm.comments.
+# Every override records why it is here and what removes it. Keep the note on the entry.
 overrides:
   # @types/react & @types/react-dom are managed by Next.js. Keep in lockstep with
   # the versions in package.json#devDependencies.
