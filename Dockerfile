@@ -1,6 +1,8 @@
 FROM node:26-alpine AS base
 # pnpm 12 is a native binary; npm resolves @pnpm/exe.linux-{x64,arm64}-musl on Alpine.
-RUN npm install -g pnpm@12.4.1
+# --ignore-scripts applies only to this npm install of pnpm itself (no postinstall
+# from the registry). Hub prebuild/predev still run later via `pnpm run build`.
+RUN npm install -g pnpm@12.4.1 --ignore-scripts
 WORKDIR /app
 
 FROM base AS build
