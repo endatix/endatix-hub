@@ -5,6 +5,10 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 10
+    # Must stay >= minimumReleaseAge in pnpm-workspace.yaml (1440 minutes), or
+    # Dependabot proposes a version its own frozen install then refuses to resolve.
+    cooldown:
+      default-days: 2
     commit-message:
       prefix: "chore"
       include: "scope"

@@ -1,10 +1,11 @@
 FROM node:26-alpine AS base
-RUN npm install -g pnpm@10.18.0
+# pnpm 12 is a native binary; npm resolves @pnpm/exe.linux-{x64,arm64}-musl on Alpine.
+RUN npm install -g pnpm@12.4.1
 WORKDIR /app
 
 FROM base AS build
-COPY package.json pnpm-lock.yaml .npmrc .
-RUN pnpm install --frozen-lockfile
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .
+RUN pnpm ci
 COPY . .
 RUN pnpm run build
 

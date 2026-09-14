@@ -45,14 +45,4 @@ Avoids `cp -r` shell commands, which fail on Windows because pnpm runs scripts t
 node scripts/copy-standalone.mjs
 ```
 
-## Echo pnpm comments
-
-### `echo-pnpm-comments.mjs`
-
-This script echoes the pnpm comments from the package.json file. Can be used manually or automatically via `pnpm:comments` script.
-
-**Usage:**
-
-```bash
-node scripts/echo-pnpm-comments.mjs
-```
+Override CVE notes live as comments on each entry in [`pnpm-workspace.yaml`](../pnpm-workspace.yaml), not in `package.json`.
