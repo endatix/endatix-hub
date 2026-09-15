@@ -7,6 +7,11 @@ import { parseBoolean } from "@/lib/utils/type-parsers";
 import { CustomQuestion } from "@/services/api";
 import { pdf } from "@react-pdf/renderer";
 import { NextRequest, NextResponse } from "next/server";
+import {
+  isPdfRenderTimeout,
+  raceWithTimeout,
+  remainingSwaBudgetMs,
+} from "@/features/pdf-export/swa-render-budget";
 
 type Params = {
   params: Promise<{
@@ -18,6 +23,7 @@ type Params = {
 const INLINE_QUERY_PARAM = "inline";
 const DEFAULT_LOCALE_QUERY_PARAM = "defaultLocale";
 export async function GET(req: NextRequest, { params }: Params) {
+  const startedAtMs = Date.now();
   const { formId, submissionId } = await params;
 
   const searchParams = req.nextUrl.searchParams;
@@ -43,7 +49,9 @@ export async function GET(req: NextRequest, { params }: Params) {
   }
 
   if (Result.isSuccess(customQuestionsResult)) {
-    customQuestionsJsonData = customQuestionsResult.value.map((q: CustomQuestion) => q.jsonData);
+    customQuestionsJsonData = customQuestionsResult.value.map(
+      (q: CustomQuestion) => q.jsonData,
+    );
   }
 
   const submission = submissionResult.value;
@@ -54,20 +62,37 @@ export async function GET(req: NextRequest, { params }: Params) {
     useDefaultLocale,
   });
 
-  const pdfBlob = await pdf(
-    <SubmissionDetailsPdf
-      submission={submission}
-      surveyModel={surveyModel}
-    />,
-  ).toBlob();
+  try {
+    const pdfBlob = await raceWithTimeout(
+      pdf(
+        <SubmissionDetailsPdf
+          submission={submission}
+          surveyModel={surveyModel}
+        />,
+      ).toBlob(),
+      remainingSwaBudgetMs(startedAtMs),
+    );
 
-  const contentDisposition = inline === "true" ? "inline" : "attachment";
+    const contentDisposition = inline === "true" ? "inline" : "attachment";
 
-  return new Response(pdfBlob, {
-    status: 200,
-    headers: {
-      "Content-Type": "application/pdf",
-      "Content-Disposition": `${contentDisposition}; filename="submission-${submissionId}.pdf"`,
-    },
-  });
+    return new Response(pdfBlob, {
+      status: 200,
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `${contentDisposition}; filename="submission-${submissionId}.pdf"`,
+      },
+    });
+  } catch (error) {
+    if (isPdfRenderTimeout(error)) {
+      return NextResponse.json(
+        {
+          error:
+            "PDF export took too long. Try again or export a smaller submission.",
+        },
+        { status: 502 },
+      );
+    }
+
+    throw error;
+  }
 }

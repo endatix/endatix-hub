@@ -9,9 +9,7 @@ interface PdfSubmissionAnswerProps {
   question: Question;
 }
 
-export const PdfSubmissionAnswer = ({
-  question,
-}: PdfSubmissionAnswerProps) => {
+export const PdfSubmissionAnswer = ({ question }: PdfSubmissionAnswerProps) => {
   // Helper to check if a question should render answer full width
   const isFullWidthAnswer = (question: Question) => {
     const type = question.getType();
@@ -55,11 +53,7 @@ export const PdfSubmissionAnswer = ({
   if (isFullWidthAnswer(question)) {
     rows.push(
       <View key={question.id} style={styles.fullWidthAnswerRow}>
-        <PdfAnswerViewer
-          forQuestion={question}
-          hideTitle
-          pageBreak={true}
-        />
+        <PdfAnswerViewer forQuestion={question} hideTitle />
       </View>,
     );
     return rows;
@@ -92,10 +86,7 @@ export const PdfSubmissionAnswer = ({
         <PdfQuestionLabel question={question} style={styles.questionLabel} />
       </View>
       <View style={styles.answerCol}>
-        <PdfAnswerViewer
-          forQuestion={question}
-          hideTitle pageBreak={true}
-        />
+        <PdfAnswerViewer forQuestion={question} hideTitle />
       </View>
     </View>,
   );

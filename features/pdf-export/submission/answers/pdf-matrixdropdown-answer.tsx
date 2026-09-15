@@ -1,6 +1,6 @@
 import { Text, View } from "@react-pdf/renderer";
 import { QuestionMatrixDropdownModel } from "survey-core";
-import PdfAnswerViewer, { VIEWER_STYLES } from "../pdf-answer-viewer";
+import { VIEWER_STYLES } from "../pdf-answer-viewer";
 import { PDF_TABLE_STYLES } from "@/features/pdf-export/submission/pdf-styles";
 import { htmlSanitizer } from "@/lib/utils/html-sanitizer";
 
@@ -8,16 +8,34 @@ interface MatrixDropdownAnswerProps {
   question: QuestionMatrixDropdownModel;
 }
 
-const PdfMatrixDropdownAnswer = ({ question }: MatrixDropdownAnswerProps) => {
-  const headerCells = question.renderedTable.headerRow?.cells ?? [];
-  const renderedRows = question.renderedTable.renderedRows.filter(
-    (row) => !row.isErrorsRow,
-  );
-  const hasAnswers = renderedRows.some((row) =>
-    row.cells?.some((cell) => cell.question?.value),
-  );
+type MatrixDropdownValue = Record<string, Record<string, unknown>>;
 
-  if (!hasAnswers) {
+function asMatrixValue(value: unknown): MatrixDropdownValue {
+  if (!value || typeof value !== "object") {
+    return {};
+  }
+
+  return value as MatrixDropdownValue;
+}
+
+const PdfMatrixDropdownAnswer = ({ question }: MatrixDropdownAnswerProps) => {
+  const value = asMatrixValue(question.value);
+  const columns = question.columns ?? [];
+  const rows = question.visibleRows ?? question.rows ?? [];
+
+  const filledRows = rows.filter((row) => {
+    const rowValue = value[String(row.value)];
+    if (!rowValue) {
+      return false;
+    }
+
+    return columns.some((column) => {
+      const cell = rowValue[column.name];
+      return cell !== undefined && cell !== null && cell !== "";
+    });
+  });
+
+  if (filledRows.length === 0) {
     return (
       <View style={VIEWER_STYLES.answerContainer}>
         <Text style={VIEWER_STYLES.questionLabel}>
@@ -34,63 +52,41 @@ const PdfMatrixDropdownAnswer = ({ question }: MatrixDropdownAnswerProps) => {
         {htmlSanitizer.toPlainText(question.title ?? "")}
       </Text>
       <View style={PDF_TABLE_STYLES.table}>
-        {/* Header Row */}
-        <View
-          style={[PDF_TABLE_STYLES.tableRow, PDF_TABLE_STYLES.tableHeader]}
-          fixed
-        >
-          {headerCells.map((cell, index) => {
-            if (cell.isEmpty) {
-              return null;
-            }
-            return (
-              <View
-                key={index}
-                style={{
-                  ...PDF_TABLE_STYLES.tableCellHeader,
-                  flex: index === 0 ? 1 : 1.5,
-                }}
-              >
+        <View style={[PDF_TABLE_STYLES.tableRow, PDF_TABLE_STYLES.tableHeader]}>
+          <View style={{ ...PDF_TABLE_STYLES.tableCellHeader, flex: 1 }}>
+            <Text> </Text>
+          </View>
+          {columns.map((column) => (
+            <View
+              key={column.name}
+              style={{ ...PDF_TABLE_STYLES.tableCellHeader, flex: 1.5 }}
+            >
+              <Text>
+                {htmlSanitizer.toPlainText(column.title || column.name)}
+              </Text>
+            </View>
+          ))}
+        </View>
+        {filledRows.map((row) => {
+          const rowValue = value[String(row.value)] ?? {};
+          return (
+            <View style={PDF_TABLE_STYLES.tableRow} key={String(row.value)}>
+              <View style={{ ...PDF_TABLE_STYLES.tableCell, flex: 1 }}>
                 <Text>
-                  {cell.hasTitle
-                    ? htmlSanitizer.toPlainText(cell.locTitle?.textOrHtml ?? "")
-                    : null}
+                  {htmlSanitizer.toPlainText(row.text || String(row.value))}
                 </Text>
               </View>
-            );
-          })}
-        </View>
-        {/* Data Rows */}
-        {renderedRows.map((row, rowIndex) => (
-          <View style={PDF_TABLE_STYLES.tableRow} key={rowIndex}>
-            {row.cells.map((cell, cellIndex) => {
-              const cellStyle = {
-                ...PDF_TABLE_STYLES.tableCell,
-                flex: cellIndex === 0 ? 1 : 1.5,
-              };
-              if (cell.hasQuestion) {
-                return (
-                  <View key={cellIndex} style={cellStyle}>
-                    <PdfAnswerViewer forQuestion={cell.question} hideTitle />
-                  </View>
-                );
-              }
-              if (cell.isActionsCell) {
-                return null;
-              }
-
-              return (
-                <View key={cellIndex} style={cellStyle}>
-                  <Text>
-                    {cell.hasTitle
-                      ? htmlSanitizer.toPlainText(cell.locTitle.textOrHtml ?? "")
-                      : null}
-                  </Text>
+              {columns.map((column) => (
+                <View
+                  key={column.name}
+                  style={{ ...PDF_TABLE_STYLES.tableCell, flex: 1.5 }}
+                >
+                  <Text>{String(rowValue[column.name] ?? "")}</Text>
                 </View>
-              );
-            })}
-          </View>
-        ))}
+              ))}
+            </View>
+          );
+        })}
       </View>
     </View>
   );

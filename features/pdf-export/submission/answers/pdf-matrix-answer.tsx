@@ -64,10 +64,7 @@ const PdfMatrixAnswer = ({ question }: MatrixAnswerPdfProps) => {
         &quot; question
       </Text>
       <View style={PDF_TABLE_STYLES.table}>
-        <View
-          style={[PDF_TABLE_STYLES.tableRow, PDF_TABLE_STYLES.tableHeader]}
-          fixed
-        >
+        <View style={[PDF_TABLE_STYLES.tableRow, PDF_TABLE_STYLES.tableHeader]}>
           <Text style={PDF_TABLE_STYLES.tableCellHeader}>Question</Text>
           <Text style={PDF_TABLE_STYLES.tableCellHeader}>Answer</Text>
         </View>

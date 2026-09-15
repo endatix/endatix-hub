@@ -28,6 +28,10 @@ export interface ApiErrorDetails {
   retryAfter?: number;
   /** Correlation id from RFC7807 ProblemDetails when the API returns one. */
   traceId?: string;
+  /** Undici/Node `error.cause.code` when `fetch` throws (e.g. ETIMEDOUT). */
+  causeCode?: string;
+  /** Undici/Node `error.cause.name` when `fetch` throws. */
+  causeName?: string;
 }
 
 // Simple, self-contained Result types
