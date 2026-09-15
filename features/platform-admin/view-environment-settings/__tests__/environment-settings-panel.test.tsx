@@ -74,7 +74,7 @@ describe("EnvironmentSettingsPanel", () => {
     );
 
     expect(screen.getByText("3 of 4 configured")).toBeDefined();
-    expect(screen.getByText(/Not set: PostHog project key/)).toBeDefined();
+    expect(screen.getByText(/Not set: PostHog project token/)).toBeDefined();
     // Optional secrets missing is a neutral state, not an operator alarm.
     expect(container.querySelector('[data-tone="attention"]')).toBeNull();
   });

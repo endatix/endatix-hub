@@ -52,7 +52,7 @@ export function EnvironmentSettingsPanel({
   const checks: readonly EnvironmentCheck[] = [
     { label: "Endatix API URL", configured: api.apiConfigured, required: true },
     {
-      label: "PostHog project key",
+      label: "PostHog project token",
       configured: Boolean(analytics.posthogKey),
     },
     { label: "reCAPTCHA site key", configured: Boolean(recaptcha.siteKey) },
@@ -167,12 +167,12 @@ export function EnvironmentSettingsPanel({
           description="PostHog client configuration. Project key, host, and UI host are public — they ship to every browser as part of the client config."
         >
           <ConfigRow
-            label="PostHog project key"
+            label="PostHog project token"
             envVar="POSTHOG_PROJECT_TOKEN"
             value={
               <ConfigValue
                 value={analytics.posthogKey || null}
-                copyLabel="Copy PostHog project key"
+                copyLabel="Copy PostHog project token"
               />
             }
           />

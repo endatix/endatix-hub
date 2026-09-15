@@ -65,6 +65,9 @@ prefix, not `"use client"`, is what decides.
   except the PostHog aliases (`NEXT_PUBLIC_POSTHOG_*`) which were removed — use
   `POSTHOG_PROJECT_TOKEN`, `POSTHOG_HOST`, and `POSTHOG_UI_HOST` (PostHog’s Next.js docs names
   without the `NEXT_PUBLIC_` prefix). Never restore `NEXT_PUBLIC_` for PostHog.
+  Retiring an env name means adding it to the scan in
+  [`lib/feature-flags/__tests__/flag-env-contract.test.ts`](lib/feature-flags/__tests__/flag-env-contract.test.ts);
+  that guard keeps a dead name out of source, so individual tests need no legacy assertions.
   Never import `legacy-public-env.server.ts` from a client component.
 - **Feature flags** (server only): evaluate after `connection()` so values are not baked at
   `next build`. Pattern: [`lib/feature-flags/utils.ts`](lib/feature-flags/utils.ts) `flag()`.
