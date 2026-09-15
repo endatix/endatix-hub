@@ -5,7 +5,7 @@ describe("@flags-sdk/posthog v1 contract", () => {
   const adapter = createPostHogAdapter({
     postHogKey: "phc_contract_test",
     postHogOptions: { host: "https://us.i.posthog.com" },
-  });
+  } as unknown as Parameters<typeof createPostHogAdapter>[0]);
 
   it("returns a callable adapter with a .payload variant", () => {
     expect(typeof adapter).toBe("function");

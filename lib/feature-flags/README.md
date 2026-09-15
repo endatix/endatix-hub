@@ -77,7 +77,7 @@ const ai = await aiFeatures(); // { enabled: boolean, assistant: {...} }
 ```bash
 # PostHog flags (optional). Omit FLAG_PROVIDER or set environment to use FLAG_*.
 FLAG_PROVIDER=posthog
-POSTHOG_PROJECT_API_KEY=your_posthog_key
+POSTHOG_PROJECT_TOKEN=your_posthog_key
 POSTHOG_HOST=https://us.i.posthog.com
 ```
 
@@ -160,7 +160,7 @@ const isEnabled = await myFeature();
 ## 🔧 Development
 
 - **Local Development**: `FLAG_*` env vars and code defaults
-- **Staging / Production**: PostHog once `FLAG_PROVIDER=posthog` and `POSTHOG_PROJECT_API_KEY` are set
+- **Staging / Production**: PostHog once `FLAG_PROVIDER=posthog` and `POSTHOG_PROJECT_TOKEN` are set
 
 ## 📚 Further Reading
 

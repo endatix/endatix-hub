@@ -31,7 +31,7 @@ export type EnvironmentAdminSummary = {
   /** Public values: projected straight off the browser config, not re-declared. */
   readonly analytics: Pick<
     ClientEndatixConfig,
-    "posthogKey" | "posthogHost" | "posthogUiHost"
+    "posthogProjectToken" | "posthogHost" | "posthogUiHost"
   >;
   /** Owned by `lib/feature-flags`; this page reports it, it does not define it. */
   readonly featureFlags: FlagSettings;

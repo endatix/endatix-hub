@@ -80,15 +80,20 @@ spec:
             - name: ENDATIX_IS_DEBUG_MODE
               value: {{ .Values.clientConfig.debugMode | quote }}
 
-            # Product analytics + server flags — empty key disables PostHog.
-            - name: POSTHOG_PROJECT_API_KEY
+            # Product analytics + server flags — an empty token disables PostHog.
+            # Helm ignores values it does not know, so a stale analytics.posthogKey would
+            # silently ship an empty token and take analytics and flags down with it.
+            {{- if .Values.analytics.posthogKey }}
+            {{- fail "analytics.posthogKey was renamed to analytics.posthogProjectToken." }}
+            {{- end }}
+            - name: POSTHOG_PROJECT_TOKEN
             {{- if .Values.analytics.secretName }}
               valueFrom:
                 secretKeyRef:
                   name: {{ .Values.analytics.secretName }}
                   key: posthog-key
             {{- else }}
-              value: {{ .Values.analytics.posthogKey | quote }}
+              value: {{ .Values.analytics.posthogProjectToken | quote }}
             {{- end }}
             - name: POSTHOG_HOST
               value: {{ .Values.analytics.posthogHost | quote }}

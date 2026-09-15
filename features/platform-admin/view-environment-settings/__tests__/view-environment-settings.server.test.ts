@@ -44,7 +44,7 @@ describe("getEnvironmentSettings", () => {
 
   it("carries public keys but never the SurveyJS licence", async () => {
     process.env.ENDATIX_BASE_URL = "https://api.example.com";
-    process.env.POSTHOG_PROJECT_API_KEY = PUBLIC_POSTHOG_KEY;
+    process.env.POSTHOG_PROJECT_TOKEN = PUBLIC_POSTHOG_KEY;
     process.env.POSTHOG_HOST = "https://eu.i.posthog.com";
     process.env.POSTHOG_UI_HOST = "https://eu.posthog.com";
     process.env.ENDATIX_RECAPTCHA_SITE_KEY = PUBLIC_RECAPTCHA_KEY;
@@ -66,7 +66,7 @@ describe("getEnvironmentSettings", () => {
 
     // The public keys are shown: this page is where an operator confirms which key
     // is live, and both are already in the HTML of every public form.
-    expect(summary.analytics.posthogKey).toBe(PUBLIC_POSTHOG_KEY);
+    expect(summary.analytics.posthogProjectToken).toBe(PUBLIC_POSTHOG_KEY);
     expect(summary.recaptcha.siteKey).toBe(PUBLIC_RECAPTCHA_KEY);
     expect(summary.analytics.posthogHost).toBe("https://eu.i.posthog.com");
     expect(summary.analytics.posthogUiHost).toBe("https://eu.posthog.com");
@@ -90,7 +90,7 @@ describe("getEnvironmentSettings", () => {
   });
 
   it("reports empty public keys and an unconfigured licence when unset", async () => {
-    delete process.env.POSTHOG_PROJECT_API_KEY;
+    delete process.env.POSTHOG_PROJECT_TOKEN;
     delete process.env.ENDATIX_RECAPTCHA_SITE_KEY;
     delete process.env.ENDATIX_SURVEY_LICENSE_KEY;
     delete process.env.ENDATIX_BASE_URL;
@@ -102,7 +102,7 @@ describe("getEnvironmentSettings", () => {
 
     const summary = await getEnvironmentSettings(mockSession);
 
-    expect(summary.analytics.posthogKey).toBe("");
+    expect(summary.analytics.posthogProjectToken).toBe("");
     expect(summary.recaptcha.siteKey).toBe("");
     expect(summary.surveyJs.license.configured).toBe(false);
     expect(summary.api.apiConfigured).toBe(false);

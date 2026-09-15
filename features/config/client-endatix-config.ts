@@ -21,7 +21,7 @@ export interface ClientEndatixConfig {
   readonly apiBaseUrl: string;
   readonly extensionsEnabled: boolean;
   readonly recaptchaSiteKey: string;
-  readonly posthogKey: string;
+  readonly posthogProjectToken: string;
   readonly posthogHost: string;
   readonly posthogUiHost: string;
   readonly isDebugMode: boolean;
@@ -85,7 +85,7 @@ export const EMPTY_CLIENT_ENDATIX_CONFIG: ClientEndatixConfig = Object.freeze({
   apiBaseUrl: "",
   extensionsEnabled: false,
   recaptchaSiteKey: "",
-  posthogKey: "",
+  posthogProjectToken: "",
   posthogHost: DEFAULT_POSTHOG_HOST,
   posthogUiHost: "",
   isDebugMode: false,
@@ -105,7 +105,7 @@ export function toClientEndatixConfig(
     apiBaseUrl: value.apiBaseUrl ?? "",
     extensionsEnabled: value.extensionsEnabled === true,
     recaptchaSiteKey: value.recaptchaSiteKey ?? "",
-    posthogKey: value.posthogKey ?? "",
+    posthogProjectToken: value.posthogProjectToken ?? "",
     posthogHost: value.posthogHost || DEFAULT_POSTHOG_HOST,
     posthogUiHost: value.posthogUiHost ?? "",
     isDebugMode: value.isDebugMode === true,
@@ -143,7 +143,8 @@ export type PublicEndatixEnvConfig = Omit<
 /**
  * The public slice of the runtime environment.
  *
- * Runtime names only (`ENDATIX_*`, plus PostHog's official `POSTHOG_*`). This module is
+ * Runtime names only (`ENDATIX_*` for Endatix product, plus owner stems like
+ * `POSTHOG_PROJECT_TOKEN` / `POSTHOG_HOST` / `POSTHOG_UI_HOST`). This module is
  * imported by client components, and Next inlines any `NEXT_PUBLIC_`-prefixed env literal
  * it finds in a client-reachable module at build time — so the deprecated names live in
  * `legacy-public-env.server.ts`, which no client component imports. At Node boot,
@@ -158,7 +159,7 @@ export function readPublicEndatixEnv(): PublicEndatixEnvConfig {
 
   return {
     recaptchaSiteKey: firstNonEmpty(process.env.ENDATIX_RECAPTCHA_SITE_KEY),
-    posthogKey: firstNonEmpty(process.env.POSTHOG_PROJECT_API_KEY),
+    posthogProjectToken: firstNonEmpty(process.env.POSTHOG_PROJECT_TOKEN),
     posthogHost:
       firstNonEmpty(process.env.POSTHOG_HOST) || DEFAULT_POSTHOG_HOST,
     posthogUiHost: firstNonEmpty(process.env.POSTHOG_UI_HOST),

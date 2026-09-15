@@ -52,8 +52,8 @@ export function EnvironmentSettingsPanel({
   const checks: readonly EnvironmentCheck[] = [
     { label: "Endatix API URL", configured: api.apiConfigured, required: true },
     {
-      label: "PostHog project key",
-      configured: Boolean(analytics.posthogKey),
+      label: "PostHog project token",
+      configured: Boolean(analytics.posthogProjectToken),
     },
     { label: "reCAPTCHA site key", configured: Boolean(recaptcha.siteKey) },
     {
@@ -164,15 +164,15 @@ export function EnvironmentSettingsPanel({
         <ConfigSection
           icon={BarChart3}
           title="Analytics"
-          description="PostHog client configuration. Project key, host, and UI host are public — they ship to every browser as part of the client config."
+          description="PostHog client configuration. Project project token, host, and UI host are public — they ship to every browser as part of the client config."
         >
           <ConfigRow
-            label="PostHog project key"
-            envVar="POSTHOG_PROJECT_API_KEY"
+            label="PostHog project token"
+            envVar="POSTHOG_PROJECT_TOKEN"
             value={
               <ConfigValue
-                value={analytics.posthogKey || null}
-                copyLabel="Copy PostHog project key"
+                value={analytics.posthogProjectToken || null}
+                copyLabel="Copy PostHog project token"
               />
             }
           />
@@ -201,7 +201,7 @@ export function EnvironmentSettingsPanel({
         <ConfigSection
           icon={Flag}
           title="Feature flags"
-          description="Server-side Hub gates. PostHog needs FLAG_PROVIDER=posthog and POSTHOG_PROJECT_API_KEY; anything else uses FLAG_* env vars and code defaults. The provider is fixed on the first flag evaluation — restart to change it. Flag values still evaluate per request."
+          description="Server-side Hub gates. PostHog needs FLAG_PROVIDER=posthog and POSTHOG_PROJECT_TOKEN; anything else uses FLAG_* env vars and code defaults. The provider is fixed on the first flag evaluation — restart to change it. Flag values still evaluate per request."
         >
           <ConfigRow
             label="Provider"

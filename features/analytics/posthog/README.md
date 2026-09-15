@@ -28,7 +28,7 @@ Analytics tracking for Next.js applications using PostHog, with support for both
 1. Environment variables:
 
    ```
-   POSTHOG_PROJECT_API_KEY=your_posthog_api_key
+   POSTHOG_PROJECT_TOKEN=your_posthog_project_token
    POSTHOG_HOST=https://us.i.posthog.com
    POSTHOG_UI_HOST=https://app.posthog.com  # optional
    ```

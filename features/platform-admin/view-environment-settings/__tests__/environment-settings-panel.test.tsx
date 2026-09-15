@@ -34,7 +34,7 @@ function buildSummary(
     experimental: Object.freeze({ extensionsEnabled: false }),
     debug: Object.freeze({ isDebugMode: false, nodeEnv: "test" }),
     analytics: Object.freeze({
-      posthogKey: posthogConfigured ? PUBLIC_POSTHOG_KEY : "",
+      posthogProjectToken: posthogConfigured ? PUBLIC_POSTHOG_KEY : "",
       posthogHost: "https://us.i.posthog.com",
       posthogUiHost: "https://us.posthog.com",
     }),
@@ -74,7 +74,7 @@ describe("EnvironmentSettingsPanel", () => {
     );
 
     expect(screen.getByText("3 of 4 configured")).toBeDefined();
-    expect(screen.getByText(/Not set: PostHog project key/)).toBeDefined();
+    expect(screen.getByText(/Not set: PostHog project token/)).toBeDefined();
     // Optional secrets missing is a neutral state, not an operator alarm.
     expect(container.querySelector('[data-tone="attention"]')).toBeNull();
   });
@@ -107,7 +107,7 @@ describe("EnvironmentSettingsPanel", () => {
   it("renders the env var behind every setting as visible text", () => {
     render(<EnvironmentSettingsPanel summary={buildSummary()} />);
 
-    expect(screen.getByText("POSTHOG_PROJECT_API_KEY")).toBeDefined();
+    expect(screen.getByText("POSTHOG_PROJECT_TOKEN")).toBeDefined();
     expect(screen.getByText("FLAG_PROVIDER")).toBeDefined();
     expect(screen.getByText("Feature flags")).toBeDefined();
     expect(screen.getByText("ENDATIX_RECAPTCHA_SITE_KEY")).toBeDefined();

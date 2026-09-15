@@ -25,7 +25,7 @@ function secretPresence(value: string | undefined): SecretPresence {
  * optional base/prefix when the origin was built from `ENDATIX_BASE_URL`.
  *
  * What is included is decided by where the value already goes, not by how secret it
- * sounds. The PostHog project key and the reCAPTCHA site key are members of
+ * sounds. The PostHog project token and the reCAPTCHA site key are members of
  * `ClientEndatixConfig`: this app serialises both into the HTML of every public form
  * page, so withholding them here hides nothing and only stops an operator confirming
  * which key is live. The SurveyJS licence never reaches a browser, so it stays a
@@ -54,7 +54,7 @@ export async function getEnvironmentSettings(
       nodeEnv: process.env.NODE_ENV ?? "unknown",
     }),
     analytics: Object.freeze({
-      posthogKey: client.posthogKey,
+      posthogProjectToken: client.posthogProjectToken,
       posthogHost: client.posthogHost,
       posthogUiHost: client.posthogUiHost,
     }),

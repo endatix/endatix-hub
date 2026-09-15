@@ -44,23 +44,20 @@ describe("PostHogFlagFactory", () => {
     flagCalls.length = 0;
     createPostHogAdapter.mockClear();
     process.env = { ...originalEnv };
-    process.env.POSTHOG_PROJECT_API_KEY = "phc_from_project_api_key";
+    process.env.POSTHOG_PROJECT_TOKEN = "phc_from_project_token";
     process.env.POSTHOG_HOST = "https://eu.i.posthog.com";
-    delete process.env.ENDATIX_POSTHOG_KEY;
   });
 
   afterEach(() => {
     process.env = originalEnv;
   });
 
-  it("passes POSTHOG_PROJECT_API_KEY into createPostHogAdapter, not ENDATIX_POSTHOG_KEY", () => {
-    process.env.ENDATIX_POSTHOG_KEY = "phc_legacy_ignored";
-
+  it("passes POSTHOG_PROJECT_TOKEN into createPostHogAdapter", () => {
     new PostHogFlagFactory();
 
     expect(createPostHogAdapter).toHaveBeenCalledWith(
       expect.objectContaining({
-        postHogKey: "phc_from_project_api_key",
+        postHogKey: "phc_from_project_token",
         postHogOptions: expect.objectContaining({
           host: "https://eu.i.posthog.com",
         }),

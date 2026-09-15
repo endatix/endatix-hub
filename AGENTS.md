@@ -36,10 +36,16 @@ The Hub promotes one image across environments, so nothing public may be baked a
 inlines any `NEXT_PUBLIC_`-prefixed literal in a client-reachable module at bundle time — the
 prefix, not `"use client"`, is what decides.
 
-- **Never add a `NEXT_PUBLIC_*` value or reach for `--build-arg`.** Public runtime values use
-  `ENDATIX_*` and reach the browser through the request-time projection. Replacing a licence key
-  must be a config change, never a rebuild. `features/config/__tests__/no-build-time-client-config.test.ts`
-  fails on any new `NEXT_PUBLIC_` read outside its allowlist.
+- **Prefix by owner, not “this is Hub”.** `ENDATIX_*` is Endatix API / product identity
+  (extensions, SurveyJS licence we ship, submitter copy, Hub debug). Third-party or Hub
+  subsystems use a domain stem: `POSTHOG_*`, `STORAGE_*`, `AUTH_*`, `FLAG_*`, `SLACK_*`,
+  `OTEL_*`, `MAINTENANCE_*`. Public vs secret is **which module reads the var**
+  (`readPublicEndatixEnv` / `ClientEndatixConfig` vs server-only), not the letters `ENDATIX_`.
+- **Never add a `NEXT_PUBLIC_*` value or reach for `--build-arg`.** Public runtime values reach
+  the browser through the request-time projection. Replacing a licence key must be a config
+  change, never a rebuild. `features/config/__tests__/no-build-time-client-config.test.ts`
+  fails on any new `NEXT_PUBLIC_` read outside its allowlist. The only allowed build-time
+  public name is `NEXT_PUBLIC_BASE_PATH` (see below).
 - Read config with `await getClientEndatixConfig()` from `@/features/config/server` (Server
   Components), `getBrowserEndatixConfig()` (browser, non-React SurveyJS handlers), or
   `getIsomorphicEndatixConfig()` (either side; omits `apiBaseUrl` / `extensionsEnabled`). Keep
@@ -47,24 +53,27 @@ prefix, not `"use client"`, is what decides.
   rewrites them as `./…` next to the importer; use relative paths like `endatix-config.ts`). Anything
   needing `next/server` goes in the server barrel.
 - **Adding a public value:** field on `ClientEndatixConfig`, default in
-  `EMPTY_CLIENT_ENDATIX_CONFIG` plus pass-through in `toClientEndatixConfig`. Most fields are
-  `ENDATIX_*` in `readPublicEndatixEnv()`; PostHog uses `POSTHOG_PROJECT_API_KEY` / `POSTHOG_HOST` /
-  `POSTHOG_UI_HOST`. It is then serialised into the HTML of every page mounting
-  `AppProvider`, anonymous form layouts included — `AssertNoSecretsInClientConfig` only backstops a
-  few known secret names.
+  `EMPTY_CLIENT_ENDATIX_CONFIG` plus pass-through in `toClientEndatixConfig`. Wire it in
+  `readPublicEndatixEnv()` with an owner-stem name (`ENDATIX_*` only when it is Endatix-product;
+  PostHog uses `POSTHOG_PROJECT_TOKEN` / `POSTHOG_HOST` / `POSTHOG_UI_HOST`). It is then
+  serialised into the HTML of every page mounting `AppProvider`, anonymous form layouts
+  included — `AssertNoSecretsInClientConfig` only backstops a few known secret names.
 - **A secret a client component needs is scoped to its routes**, not added to the projection:
   `getSurveyLicenseKey()` + `SurveyLicenseProvider`, mounted only on SurveyJS routes, never on
   `(main)`.
 - Deprecated `NEXT_PUBLIC_*` names still fold into `ENDATIX_*` at boot via `applyLegacyPublicEnv()`,
   except the PostHog aliases (`NEXT_PUBLIC_POSTHOG_*`) which were removed — use
-  `POSTHOG_PROJECT_API_KEY`, `POSTHOG_HOST`, and `POSTHOG_UI_HOST`. Never restore
-  `NEXT_PUBLIC_` for PostHog.
+  `POSTHOG_PROJECT_TOKEN`, `POSTHOG_HOST`, and `POSTHOG_UI_HOST` (PostHog’s Next.js docs names
+  without the `NEXT_PUBLIC_` prefix). Never restore `NEXT_PUBLIC_` for PostHog.
+  Retiring an env name means adding it to the scan in
+  [`lib/feature-flags/__tests__/flag-env-contract.test.ts`](lib/feature-flags/__tests__/flag-env-contract.test.ts);
+  that guard keeps a dead name out of source, so individual tests need no legacy assertions.
   Never import `legacy-public-env.server.ts` from a client component.
 - **Feature flags** (server only): evaluate after `connection()` so values are not baked at
   `next build`. Pattern: [`lib/feature-flags/utils.ts`](lib/feature-flags/utils.ts) `flag()`.
   Do not call `getFactory()` at module load. First `getFactory()` freezes PostHog vs env
   for the process (config is 12-factor; restart to switch). PostHog:
-  `FLAG_PROVIDER=posthog` **and** `POSTHOG_PROJECT_API_KEY`; else `FLAG_*` / `defaultValue`.
+  `FLAG_PROVIDER=posthog` **and** `POSTHOG_PROJECT_TOKEN`; else `FLAG_*` / `defaultValue`.
   Adapter is `createPostHogAdapter` (callable / `.payload`), not `isFeatureEnabled`.
   Do not set `POSTHOG_SECRET_KEY` on SWA. Never `NEXT_PUBLIC_POSTHOG_*`. Product flags live
   here, not `features/analytics/posthog`. Admin → Environment shows the resolved provider.

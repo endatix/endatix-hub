@@ -16,7 +16,7 @@ declare namespace NodeJS {
     // `getClientEndatixConfig()` from `@/features/config/server` — deliberately NOT
     // `NEXT_PUBLIC_*`, which Next inlines into the client bundle at build time.
     ENDATIX_RECAPTCHA_SITE_KEY?: string;
-    POSTHOG_PROJECT_API_KEY?: string;
+    POSTHOG_PROJECT_TOKEN?: string;
     POSTHOG_HOST?: string;
     POSTHOG_UI_HOST?: string;
     ENDATIX_IS_DEBUG_MODE?: string;

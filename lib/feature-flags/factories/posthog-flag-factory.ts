@@ -15,14 +15,16 @@ export class PostHogFlagFactory implements FlagFactory {
   private readonly adapter: ReturnType<typeof createPostHogAdapter>;
 
   constructor() {
-    const { posthogKey, posthogHost } = readPublicEndatixEnv();
+    const { posthogProjectToken, posthogHost } = readPublicEndatixEnv();
+    // Runtime + published .d.cts take `postHogKey`. ESM .d.ts in 1.0.1 still names
+    // the field `posthogProjectToken`, so assert to the resolved parameter type.
     this.adapter = createPostHogAdapter({
-      postHogKey: posthogKey,
+      postHogKey: posthogProjectToken,
       postHogOptions: {
         host: resolvePostHogNodeHost(posthogHost),
         disableGeoip: true,
       },
-    });
+    } as unknown as Parameters<typeof createPostHogAdapter>[0]);
   }
 
   createFlag<T>(definition: FlagDefinition<T>): () => Promise<T> {

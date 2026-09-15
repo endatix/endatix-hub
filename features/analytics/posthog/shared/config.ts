@@ -23,7 +23,7 @@ export function isPostHogEnabled(config?: PostHogConfig): boolean {
     return config.enabled;
   }
 
-  return !!getIsomorphicEndatixConfig().posthogKey;
+  return !!getIsomorphicEndatixConfig().posthogProjectToken;
 }
 
 /**
@@ -72,12 +72,12 @@ export function createPostHogConfig(
  * @returns Default PostHog configuration
  */
 export function getDefaultPostHogConfig(): PostHogConfig {
-  const { posthogKey, posthogHost, posthogUiHost, isDebugMode } =
+  const { posthogProjectToken, posthogHost, posthogUiHost, isDebugMode } =
     getIsomorphicEndatixConfig();
 
   return {
-    enabled: !!posthogKey,
-    apiKey: posthogKey,
+    enabled: !!posthogProjectToken,
+    apiKey: posthogProjectToken,
     apiHost: resolvePostHogBrowserHost(posthogHost),
     uiHost: posthogUiHost || undefined,
     debug: isDebugMode,

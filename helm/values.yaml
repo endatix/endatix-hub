@@ -50,10 +50,12 @@ clientConfig:
 
 analytics:
   # Optional. As clientConfig.secretName — when set, the chart reads the key "posthog-key"
-  # from this Secret and ignores posthogKey below.
+  # from this Secret and ignores posthogProjectToken below. The Secret key keeps its
+  # original name so an existing Secret keeps working across this rename.
   secretName: ""
-  # PostHog. Empty key disables product analytics entirely. Ignored when secretName is set.
-  posthogKey: ""
+  # PostHog project token (phc_...). Empty disables product analytics and PostHog flags.
+  # Ignored when secretName is set.
+  posthogProjectToken: ""
   posthogHost: "https://us.i.posthog.com"
   posthogUiHost: ""
   # `posthog` to evaluate Hub flags via PostHog. Empty / `environment` uses FLAG_*.
