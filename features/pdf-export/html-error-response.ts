@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-function prefersHtml(acceptHeader: string | null): boolean {
+export function prefersHtml(acceptHeader: string | null): boolean {
   if (!acceptHeader) {
     return false;
   }

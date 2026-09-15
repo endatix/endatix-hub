@@ -8,11 +8,9 @@
   <title>Taking too long &middot; Endatix</title>
 
   <!--
-    Served by Azure Static Web Apps via responseOverrides.500 (staticwebapp.config.json)
-    when the backend does not answer inside the platform time limit (~45s).
-
-    Everything here is inlined on purpose: the page must render with zero further
-    requests, because the thing that serves them is what just failed.
+    Preview at /swa-backend-failure.html (static public file).
+    Hub also returns this file as the 502 body when PDF export hits the
+    40s budget. SWA cannot rewrite platform 500s to this page.
   -->
 
   <script>

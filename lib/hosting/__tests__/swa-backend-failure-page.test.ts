@@ -3,24 +3,23 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 /**
- * `public/swa-backend-failure.html` is what Azure Static Web Apps serves through
- * `responseOverrides.500` when the Next.js backend does not answer in time.
+ * `public/swa-backend-failure.html` is a standalone branded timeout page.
  *
- * It renders *because* server-side processing failed, so it cannot link the app's
- * stylesheet, run React, or call next-themes. Everything is inlined instead, which
- * means a small number of values are necessarily copied out of the app.
+ * Azure Static Web Apps only allows responseOverrides for 400, 401, 403, and 404
+ * (https://aka.ms/static-web-apps-configuration). A 500 rewrite fails deploy
+ * validation, so this file is not wired in staticwebapp.config.json.
  *
- * Nobody opens this page until there is an incident, so drift in those copies is
- * silent — a changed `storageKey` would leave it showing the wrong theme with
- * nothing to notice. These tests fail the moment a copy stops matching its source.
+ * Hub still returns HTML 502 from the export-pdf route when it can finish
+ * inside the ~40s budget. The SWA edge 500 (`Backend call failure`) cannot be
+ * customized.
  *
- * They deliberately do not couple the page to the app at runtime: that coupling is
- * the one thing the page cannot afford.
+ * Everything is inlined: it cannot depend on the Next.js backend.
  */
 
 const REPO_ROOT = path.resolve(__dirname, "../../..");
 
 const PAGE = "public/swa-backend-failure.html";
+const SWA_CONFIG = "staticwebapp.config.json";
 const GLOBALS = "app/globals.css";
 const THEME_PROVIDER = "components/providers/theme-provider.tsx";
 
@@ -183,6 +182,12 @@ describe("SWA backend-failure page: design tokens", () => {
 });
 
 describe("SWA backend-failure page: self-containment", () => {
+  it("is not wired as a 500 override (SWA deploy rejects that status)", () => {
+    const config = read(SWA_CONFIG);
+
+    expect(config).not.toMatch(/"500"/);
+    expect(config).not.toContain("responseOverrides");
+  });
   /**
    * The backend is what just failed. Any runtime dependency is a dependency on the
    * broken thing, so the page must render from its own bytes alone.
