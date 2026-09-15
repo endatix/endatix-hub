@@ -45,6 +45,10 @@ const HTTP_ERROR_PRESENTATION: Record<number, { title: string; type: string }> =
       title: "Internal Server Error",
       type: "https://datatracker.ietf.org/doc/html/rfc7231#section-6.6.1",
     },
+    502: {
+      title: "Bad Gateway",
+      type: "https://datatracker.ietf.org/doc/html/rfc7231#section-6.6.3",
+    },
   };
 
 const DEFAULT_INVALID_JSON_DETAIL = "Invalid JSON body";
@@ -203,6 +207,8 @@ export const apiResponses = {
   badRequest: (error: ErrorResponse) =>
     createProblemDetailsResponse(error, 400),
   notFound: (error: ErrorResponse) => createProblemDetailsResponse(error, 404),
+  badGateway: (error: ErrorResponse) =>
+    createProblemDetailsResponse(error, 502),
   serverError: (error: ErrorResponse) =>
     createProblemDetailsResponse(error, 500),
 };

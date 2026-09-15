@@ -1,21 +1,21 @@
-import { describe, expect, it } from 'vitest';
-import { ApiErrorType, type ApiError } from '@/lib/endatix-api';
-import { mapApiErrorToTelemetryAttributes } from '@/lib/result/map-api-error-to-telemetry-attributes';
+import { describe, expect, it } from "vitest";
+import { ApiErrorType, type ApiError } from "@/lib/endatix-api";
+import { mapApiErrorToTelemetryAttributes } from "@/lib/result/map-api-error-to-telemetry-attributes";
 
-describe('mapApiErrorToTelemetryAttributes', () => {
-  it('includes apiErrorTraceId when present on details', () => {
+describe("mapApiErrorToTelemetryAttributes", () => {
+  it("includes apiErrorTraceId when present on details", () => {
     // Arrange
     const apiError: ApiError = {
       success: false,
       error: {
         type: ApiErrorType.ValidationError,
-        message: 'Name is required.',
-        errorCode: 'NotEmptyValidator',
+        message: "Name is required.",
+        errorCode: "NotEmptyValidator",
         details: {
           statusCode: 400,
-          endpoint: '/api/forms',
-          method: 'POST',
-          traceId: '00-abc-def-01',
+          endpoint: "/api/forms",
+          method: "POST",
+          traceId: "00-abc-def-01",
         },
       },
     };
@@ -24,8 +24,37 @@ describe('mapApiErrorToTelemetryAttributes', () => {
     const attrs = mapApiErrorToTelemetryAttributes(apiError);
 
     // Assert
-    expect(attrs.apiErrorTraceId).toBe('00-abc-def-01');
+    expect(attrs.apiErrorTraceId).toBe("00-abc-def-01");
     expect(attrs.apiErrorStatusCode).toBe(400);
-    expect(attrs.apiErrorCode).toBe('NotEmptyValidator');
+    expect(attrs.apiErrorCode).toBe("NotEmptyValidator");
+  });
+
+  it("redacts access-token path segments", () => {
+    // Arrange
+    const apiError: ApiError = {
+      success: false,
+      error: {
+        type: ApiErrorType.NetworkError,
+        message: "Network error. Failed to connect to the Endatix API.",
+        errorCode: "network_error",
+        details: {
+          endpoint:
+            "/forms/123/submissions/by-access-token/abc.def.x.signature",
+          method: "GET",
+          causeCode: "ETIMEDOUT",
+          causeName: "Error",
+        },
+      },
+    };
+
+    // Act
+    const attrs = mapApiErrorToTelemetryAttributes(apiError);
+
+    // Assert
+    expect(attrs.apiErrorEndpoint).toBe(
+      "/forms/123/submissions/by-access-token/[redacted]",
+    );
+    expect(attrs.apiErrorCauseCode).toBe("ETIMEDOUT");
+    expect(attrs.apiErrorCauseName).toBe("Error");
   });
 });

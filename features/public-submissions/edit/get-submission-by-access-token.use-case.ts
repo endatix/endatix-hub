@@ -1,6 +1,6 @@
-import { ApiResult, EndatixApi, Submission } from "@/lib/endatix-api";
+import { EndatixApi, Submission } from "@/lib/endatix-api";
 import { ERROR_CODE } from "@/lib/endatix-api/shared/error-codes";
-import { Result } from "@/lib/result";
+import { Result, toResult } from "@/lib/result";
 
 export type GetSubmissionByAccessTokenQuery = {
   formId: string;
@@ -15,25 +15,18 @@ export const getSubmissionByAccessTokenUseCase = async ({
 }: GetSubmissionByAccessTokenQuery): Promise<SubmissionByAccessTokenResult> => {
   try {
     const endatixApi = new EndatixApi();
-    const apiResult = await endatixApi.submissions.public.getByAccessToken(
-      formId,
-      token,
-    );
-
-    if (ApiResult.isSuccess(apiResult)) {
-      return Result.success(apiResult.data);
-    }
-
-    return Result.error(
-      apiResult.error?.message || "Failed to load submission",
-      undefined,
-      apiResult.error?.errorCode,
+    return toResult(
+      await endatixApi.submissions.public.getByAccessToken(formId, token),
+      {
+        fallbackMessage: "Failed to load submission",
+        logMessage: "Failed to load submission by access token",
+        loggerName: "public-submissions.getByAccessToken",
+      },
     );
   } catch (error) {
     const errorMessage = `Failed to load submission: ${
       error instanceof Error ? error.message : "Unknown error"
     }`;
-    console.error(errorMessage);
     return Result.error(errorMessage, undefined, ERROR_CODE.UNKNOWN_ERROR);
   }
 };

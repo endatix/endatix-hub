@@ -11,6 +11,7 @@ import { Model } from "survey-core";
 import { PDF_STYLES } from "./pdf-styles";
 import { PdfSubmissionAnswer } from "./pdf-submission-answer";
 import { PdfSubmissionProperties } from "./pdf-submission-properties";
+import { shouldIncludeQuestionInPdf } from "../should-include-question-in-pdf";
 
 Font.register({
   family: "Roboto",
@@ -43,7 +44,9 @@ export const SubmissionDetailsPdf = ({
   submission,
   surveyModel,
 }: SubmissionDetailsPdfProps) => {
-  const questions = surveyModel.getAllQuestions(false, false, false);
+  const questions = surveyModel
+    .getAllQuestions(false, false, false)
+    .filter(shouldIncludeQuestionInPdf);
 
   return (
     <Document>
@@ -53,10 +56,7 @@ export const SubmissionDetailsPdf = ({
           <Text style={PDF_STYLES.sectionTitle}>Submission Answers</Text>
           <View style={{ marginTop: 8 }}>
             {questions?.map((question) => (
-              <PdfSubmissionAnswer
-                key={question.name}
-                question={question}
-              />
+              <PdfSubmissionAnswer key={question.name} question={question} />
             ))}
           </View>
         </View>

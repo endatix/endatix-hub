@@ -1,6 +1,7 @@
 import { requireApiUrl } from "@/features/config/api-config";
 import { HeaderBuilder } from "@/lib/endatix-api/shared/header-builder";
 import { ApiResult, ApiErrorDetails } from "./shared/api-result";
+import { describeFetchFailure } from "./shared/describe-fetch-failure";
 import { ERROR_CODE } from "./shared/error-codes";
 import { mapResponseToApiError } from "./shared/http-error-mapper";
 import { Definitions } from "./definitions/definitions";
@@ -483,10 +484,13 @@ export class EndatixApi {
     endpoint: string,
     method: string,
   ): ApiResult<T> {
+    const failure = describeFetchFailure(error);
     const details: ApiErrorDetails = {
       endpoint,
       method,
-      details: error instanceof Error ? error.message : String(error),
+      details: failure.message,
+      causeCode: failure.causeCode,
+      causeName: failure.causeName,
     };
 
     if (error instanceof TypeError && error.message.includes("fetch")) {
