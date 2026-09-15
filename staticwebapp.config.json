@@ -1,10 +1,6 @@
 {
     "platform": {
         "apiRuntime": "node:22"
-    },
-    "responseOverrides": {
-        "500": {
-            "rewrite": "/swa-backend-failure.html"
-        }
     }
 }
+
