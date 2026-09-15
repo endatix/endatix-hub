@@ -81,7 +81,7 @@ spec:
               value: {{ .Values.clientConfig.debugMode | quote }}
 
             # Product analytics + server flags — empty key disables PostHog.
-            - name: POSTHOG_PROJECT_API_KEY
+            - name: POSTHOG_PROJECT_TOKEN
             {{- if .Values.analytics.secretName }}
               valueFrom:
                 secretKeyRef:

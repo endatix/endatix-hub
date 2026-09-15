@@ -30,9 +30,7 @@ describe("flag runtime factory selection", () => {
   beforeEach(() => {
     process.env = { ...originalEnv };
     delete process.env.FLAG_PROVIDER;
-    delete process.env.POSTHOG_PROJECT_API_KEY;
-    delete process.env.ENABLE_POSTHOG_ADAPTER;
-    delete process.env.ENDATIX_POSTHOG_KEY;
+    delete process.env.POSTHOG_PROJECT_TOKEN;
     delete process.env.FLAG_AI_FEATURES;
     flagFactoryProvider.resetForTests();
   });
@@ -42,9 +40,9 @@ describe("flag runtime factory selection", () => {
     flagFactoryProvider.resetForTests();
   });
 
-  it("uses PostHog when FLAG_PROVIDER and project key are set before first evaluation", async () => {
+  it("uses PostHog when FLAG_PROVIDER and project token are set before first evaluation", async () => {
     process.env.FLAG_PROVIDER = "posthog";
-    process.env.POSTHOG_PROJECT_API_KEY = "phc_test_key";
+    process.env.POSTHOG_PROJECT_TOKEN = "phc_test_key";
 
     const evaluate = flag({ key: "ai-features", defaultValue: false });
 
@@ -57,23 +55,14 @@ describe("flag runtime factory selection", () => {
     expect(await evaluate()).toBe(false);
 
     process.env.FLAG_PROVIDER = "posthog";
-    process.env.POSTHOG_PROJECT_API_KEY = "phc_test_key";
-
-    expect(await evaluate()).toBe(false);
-  });
-
-  it("does not switch to PostHog when only the pre-v1 env names are set", async () => {
-    const evaluate = flag({ key: "ai-features", defaultValue: false });
-
-    process.env.ENABLE_POSTHOG_ADAPTER = "true";
-    process.env.ENDATIX_POSTHOG_KEY = "phc_test_key";
+    process.env.POSTHOG_PROJECT_TOKEN = "phc_test_key";
 
     expect(await evaluate()).toBe(false);
   });
 
   it("does not switch back to environment flags after PostHog is frozen", async () => {
     process.env.FLAG_PROVIDER = "posthog";
-    process.env.POSTHOG_PROJECT_API_KEY = "phc_test_key";
+    process.env.POSTHOG_PROJECT_TOKEN = "phc_test_key";
 
     const evaluate = flag({ key: "ai-features", defaultValue: false });
     expect(await evaluate()).toBe(POSTHOG_VALUE);

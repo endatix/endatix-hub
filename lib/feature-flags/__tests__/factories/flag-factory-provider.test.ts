@@ -22,9 +22,7 @@ describe("FlagFactoryProvider", () => {
     provider = new FlagFactoryProvider();
     process.env = { ...originalEnv };
     delete process.env.FLAG_PROVIDER;
-    delete process.env.POSTHOG_PROJECT_API_KEY;
-    delete process.env.ENABLE_POSTHOG_ADAPTER;
-    delete process.env.ENDATIX_POSTHOG_KEY;
+    delete process.env.POSTHOG_PROJECT_TOKEN;
   });
 
   afterEach(() => {
@@ -39,31 +37,22 @@ describe("FlagFactoryProvider", () => {
       ["environment", "phc_test_key", "EnvironmentFlagFactory"],
       [undefined, "phc_test_key", "EnvironmentFlagFactory"],
     ])(
-      "FLAG_PROVIDER=%s POSTHOG_PROJECT_API_KEY=%s selects %s",
+      "FLAG_PROVIDER=%s POSTHOG_PROJECT_TOKEN=%s selects %s",
       (providerName, key, expectedFactory) => {
         if (providerName !== undefined) {
           process.env.FLAG_PROVIDER = providerName;
         }
         if (key !== undefined) {
-          process.env.POSTHOG_PROJECT_API_KEY = key;
+          process.env.POSTHOG_PROJECT_TOKEN = key;
         }
 
         expect(provider.getFactory().constructor.name).toBe(expectedFactory);
       },
     );
 
-    it("ignores ENABLE_POSTHOG_ADAPTER and ENDATIX_POSTHOG_KEY", () => {
-      process.env.ENABLE_POSTHOG_ADAPTER = "true";
-      process.env.ENDATIX_POSTHOG_KEY = "phc_legacy_key";
-
-      expect(provider.getFactory().constructor.name).toBe(
-        "EnvironmentFlagFactory",
-      );
-    });
-
     it("reuses the same factory instance", () => {
       process.env.FLAG_PROVIDER = "posthog";
-      process.env.POSTHOG_PROJECT_API_KEY = "phc_test_key";
+      process.env.POSTHOG_PROJECT_TOKEN = "phc_test_key";
 
       expect(provider.getFactory()).toBe(provider.getFactory());
     });
@@ -74,7 +63,7 @@ describe("FlagFactoryProvider", () => {
       );
 
       process.env.FLAG_PROVIDER = "posthog";
-      process.env.POSTHOG_PROJECT_API_KEY = "phc_test_key";
+      process.env.POSTHOG_PROJECT_TOKEN = "phc_test_key";
 
       expect(provider.getFactory().constructor.name).toBe(
         "EnvironmentFlagFactory",
@@ -87,7 +76,7 @@ describe("FlagFactoryProvider", () => {
 
     it("reports the frozen provider rather than what env says now", () => {
       process.env.FLAG_PROVIDER = "posthog";
-      process.env.POSTHOG_PROJECT_API_KEY = "phc_test_key";
+      process.env.POSTHOG_PROJECT_TOKEN = "phc_test_key";
       provider.getFactory();
 
       delete process.env.FLAG_PROVIDER;
@@ -97,7 +86,7 @@ describe("FlagFactoryProvider", () => {
 
     it("trims FLAG_PROVIDER before comparing", () => {
       process.env.FLAG_PROVIDER = "  posthog\r";
-      process.env.POSTHOG_PROJECT_API_KEY = "phc_test_key";
+      process.env.POSTHOG_PROJECT_TOKEN = "phc_test_key";
 
       expect(provider.getFactory().constructor.name).toBe("PostHogFlagFactory");
     });
@@ -108,7 +97,7 @@ describe("FlagFactoryProvider", () => {
       );
 
       process.env.FLAG_PROVIDER = "posthog";
-      process.env.POSTHOG_PROJECT_API_KEY = "phc_test_key";
+      process.env.POSTHOG_PROJECT_TOKEN = "phc_test_key";
       provider.resetForTests();
 
       expect(provider.getFactory().constructor.name).toBe("PostHogFlagFactory");
@@ -122,7 +111,7 @@ describe("readFlagSettings", () => {
   beforeEach(() => {
     process.env = { ...originalEnv };
     delete process.env.FLAG_PROVIDER;
-    delete process.env.POSTHOG_PROJECT_API_KEY;
+    delete process.env.POSTHOG_PROJECT_TOKEN;
     flagFactoryProvider.resetForTests();
   });
 
@@ -134,7 +123,7 @@ describe("readFlagSettings", () => {
   // Nothing is frozen yet, so env is the honest answer for what the next evaluation picks.
   it("falls back to the environment before the first evaluation", () => {
     process.env.FLAG_PROVIDER = " posthog ";
-    process.env.POSTHOG_PROJECT_API_KEY = "phc_test_key";
+    process.env.POSTHOG_PROJECT_TOKEN = "phc_test_key";
 
     expect(readFlagSettings()).toEqual({ provider: "posthog" });
   });
@@ -144,7 +133,7 @@ describe("readFlagSettings", () => {
     flagFactoryProvider.getFactory();
 
     process.env.FLAG_PROVIDER = "posthog";
-    process.env.POSTHOG_PROJECT_API_KEY = "phc_test_key";
+    process.env.POSTHOG_PROJECT_TOKEN = "phc_test_key";
 
     expect(readFlagSettings()).toEqual({ provider: "environment" });
   });

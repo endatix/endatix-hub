@@ -168,7 +168,7 @@ export function EnvironmentSettingsPanel({
         >
           <ConfigRow
             label="PostHog project key"
-            envVar="POSTHOG_PROJECT_API_KEY"
+            envVar="POSTHOG_PROJECT_TOKEN"
             value={
               <ConfigValue
                 value={analytics.posthogKey || null}
@@ -201,7 +201,7 @@ export function EnvironmentSettingsPanel({
         <ConfigSection
           icon={Flag}
           title="Feature flags"
-          description="Server-side Hub gates. PostHog needs FLAG_PROVIDER=posthog and POSTHOG_PROJECT_API_KEY; anything else uses FLAG_* env vars and code defaults. The provider is fixed on the first flag evaluation — restart to change it. Flag values still evaluate per request."
+          description="Server-side Hub gates. PostHog needs FLAG_PROVIDER=posthog and POSTHOG_PROJECT_TOKEN; anything else uses FLAG_* env vars and code defaults. The provider is fixed on the first flag evaluation — restart to change it. Flag values still evaluate per request."
         >
           <ConfigRow
             label="Provider"
