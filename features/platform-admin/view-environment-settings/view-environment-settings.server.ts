@@ -54,7 +54,7 @@ export async function getEnvironmentSettings(
       nodeEnv: process.env.NODE_ENV ?? "unknown",
     }),
     analytics: Object.freeze({
-      posthogKey: client.posthogKey,
+      posthogProjectToken: client.posthogProjectToken,
       posthogHost: client.posthogHost,
       posthogUiHost: client.posthogUiHost,
     }),

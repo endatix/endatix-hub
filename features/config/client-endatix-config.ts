@@ -21,7 +21,7 @@ export interface ClientEndatixConfig {
   readonly apiBaseUrl: string;
   readonly extensionsEnabled: boolean;
   readonly recaptchaSiteKey: string;
-  readonly posthogKey: string;
+  readonly posthogProjectToken: string;
   readonly posthogHost: string;
   readonly posthogUiHost: string;
   readonly isDebugMode: boolean;
@@ -85,7 +85,7 @@ export const EMPTY_CLIENT_ENDATIX_CONFIG: ClientEndatixConfig = Object.freeze({
   apiBaseUrl: "",
   extensionsEnabled: false,
   recaptchaSiteKey: "",
-  posthogKey: "",
+  posthogProjectToken: "",
   posthogHost: DEFAULT_POSTHOG_HOST,
   posthogUiHost: "",
   isDebugMode: false,
@@ -105,7 +105,7 @@ export function toClientEndatixConfig(
     apiBaseUrl: value.apiBaseUrl ?? "",
     extensionsEnabled: value.extensionsEnabled === true,
     recaptchaSiteKey: value.recaptchaSiteKey ?? "",
-    posthogKey: value.posthogKey ?? "",
+    posthogProjectToken: value.posthogProjectToken ?? "",
     posthogHost: value.posthogHost || DEFAULT_POSTHOG_HOST,
     posthogUiHost: value.posthogUiHost ?? "",
     isDebugMode: value.isDebugMode === true,
@@ -159,7 +159,7 @@ export function readPublicEndatixEnv(): PublicEndatixEnvConfig {
 
   return {
     recaptchaSiteKey: firstNonEmpty(process.env.ENDATIX_RECAPTCHA_SITE_KEY),
-    posthogKey: firstNonEmpty(process.env.POSTHOG_PROJECT_TOKEN),
+    posthogProjectToken: firstNonEmpty(process.env.POSTHOG_PROJECT_TOKEN),
     posthogHost:
       firstNonEmpty(process.env.POSTHOG_HOST) || DEFAULT_POSTHOG_HOST,
     posthogUiHost: firstNonEmpty(process.env.POSTHOG_UI_HOST),

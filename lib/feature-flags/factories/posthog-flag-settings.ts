@@ -20,6 +20,6 @@ function isPostHogFlagProviderRequested(): boolean {
 export function shouldUsePostHogFlags(): boolean {
   return (
     isPostHogFlagProviderRequested() &&
-    Boolean(readPublicEndatixEnv().posthogKey)
+    Boolean(readPublicEndatixEnv().posthogProjectToken)
   );
 }

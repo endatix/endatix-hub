@@ -66,7 +66,7 @@ describe("getEnvironmentSettings", () => {
 
     // The public keys are shown: this page is where an operator confirms which key
     // is live, and both are already in the HTML of every public form.
-    expect(summary.analytics.posthogKey).toBe(PUBLIC_POSTHOG_KEY);
+    expect(summary.analytics.posthogProjectToken).toBe(PUBLIC_POSTHOG_KEY);
     expect(summary.recaptcha.siteKey).toBe(PUBLIC_RECAPTCHA_KEY);
     expect(summary.analytics.posthogHost).toBe("https://eu.i.posthog.com");
     expect(summary.analytics.posthogUiHost).toBe("https://eu.posthog.com");
@@ -102,7 +102,7 @@ describe("getEnvironmentSettings", () => {
 
     const summary = await getEnvironmentSettings(mockSession);
 
-    expect(summary.analytics.posthogKey).toBe("");
+    expect(summary.analytics.posthogProjectToken).toBe("");
     expect(summary.recaptcha.siteKey).toBe("");
     expect(summary.surveyJs.license.configured).toBe(false);
     expect(summary.api.apiConfigured).toBe(false);

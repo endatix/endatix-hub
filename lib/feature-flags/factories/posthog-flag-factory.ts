@@ -15,9 +15,9 @@ export class PostHogFlagFactory implements FlagFactory {
   private readonly adapter: ReturnType<typeof createPostHogAdapter>;
 
   constructor() {
-    const { posthogKey, posthogHost } = readPublicEndatixEnv();
+    const { posthogProjectToken, posthogHost } = readPublicEndatixEnv();
     this.adapter = createPostHogAdapter({
-      postHogKey: posthogKey,
+      posthogProjectToken,
       postHogOptions: {
         host: resolvePostHogNodeHost(posthogHost),
         disableGeoip: true,

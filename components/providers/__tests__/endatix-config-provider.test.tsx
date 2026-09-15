@@ -38,7 +38,7 @@ describe("EndatixConfigProvider", () => {
       apiBaseUrl: "https://api.example.com/api",
       extensionsEnabled: true,
       recaptchaSiteKey: "recaptcha-site-key",
-      posthogKey: "posthog-key",
+      posthogProjectToken: "phc_test_token",
     });
     // Sentinels: both must be dropped by the projection. Without an explicit
     // surveyLicenseKey here the assertion below would pass vacuously.

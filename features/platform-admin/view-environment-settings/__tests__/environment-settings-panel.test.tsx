@@ -34,7 +34,7 @@ function buildSummary(
     experimental: Object.freeze({ extensionsEnabled: false }),
     debug: Object.freeze({ isDebugMode: false, nodeEnv: "test" }),
     analytics: Object.freeze({
-      posthogKey: posthogConfigured ? PUBLIC_POSTHOG_KEY : "",
+      posthogProjectToken: posthogConfigured ? PUBLIC_POSTHOG_KEY : "",
       posthogHost: "https://us.i.posthog.com",
       posthogUiHost: "https://us.posthog.com",
     }),

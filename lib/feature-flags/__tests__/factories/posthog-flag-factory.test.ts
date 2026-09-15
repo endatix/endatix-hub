@@ -57,7 +57,7 @@ describe("PostHogFlagFactory", () => {
 
     expect(createPostHogAdapter).toHaveBeenCalledWith(
       expect.objectContaining({
-        postHogKey: "phc_from_project_token",
+        posthogProjectToken: "phc_from_project_token",
         postHogOptions: expect.objectContaining({
           host: "https://eu.i.posthog.com",
         }),

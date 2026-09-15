@@ -3,7 +3,7 @@ import { createPostHogAdapter } from "@flags-sdk/posthog";
 
 describe("@flags-sdk/posthog v1 contract", () => {
   const adapter = createPostHogAdapter({
-    postHogKey: "phc_contract_test",
+    posthogProjectToken: "phc_contract_test",
     postHogOptions: { host: "https://us.i.posthog.com" },
   });
 
