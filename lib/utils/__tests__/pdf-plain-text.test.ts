@@ -10,6 +10,24 @@ describe("pdfPlainText", () => {
     expect(pdfPlainText("&lt;span&gt;Hello&lt;/span&gt;")).toBe("Hello");
   });
 
+  it("decodes double-encoded tags then strips them", () => {
+    expect(pdfPlainText("&amp;lt;span&amp;gt;Hello&amp;lt;/span&amp;gt;")).toBe(
+      "Hello",
+    );
+  });
+
+  it("decodes named entities beyond the markup-relevant set", () => {
+    expect(pdfPlainText("&copy; 2026")).toBe("© 2026");
+  });
+
+  it("keeps a literal ampersand as-is", () => {
+    expect(pdfPlainText("Q&A")).toBe("Q&A");
+  });
+
+  it("keeps a literal ampersand next to a stripped tag", () => {
+    expect(pdfPlainText("<span>Q&A</span>")).toBe("Q&A");
+  });
+
   it("turns literal \\n into a line break", () => {
     expect(pdfPlainText("line\\nline")).toBe("line\nline");
   });
