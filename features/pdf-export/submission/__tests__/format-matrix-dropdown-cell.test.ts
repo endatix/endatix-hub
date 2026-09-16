@@ -2,26 +2,21 @@ import { describe, expect, it } from "vitest";
 import { formatMatrixDropdownCell } from "../format-matrix-dropdown-cell";
 
 describe("formatMatrixDropdownCell", () => {
-  it("uses SurveyJS display text with the stored value", () => {
-    // Arrange
-    const row = {
-      getQuestionByColumnName: () => ({ displayValue: "United States" }),
-    };
-
+  it("pairs a display label with the stored choice value", () => {
     // Act & Assert
-    expect(formatMatrixDropdownCell(row, "country", "us")).toBe(
+    expect(formatMatrixDropdownCell("us", "United States")).toBe(
       "United States (us)",
     );
   });
 
-  it("falls back to the stored value when there is no cell question", () => {
+  it("uses the stored value when there is no display label", () => {
     // Act & Assert
-    expect(formatMatrixDropdownCell({}, "country", "us")).toBe("us");
+    expect(formatMatrixDropdownCell("us", undefined)).toBe("us");
   });
 
   it("stringifies nested objects when there is no label", () => {
     // Act & Assert
-    expect(formatMatrixDropdownCell({}, "meta", { code: "us" })).toBe(
+    expect(formatMatrixDropdownCell({ code: "us" }, undefined)).toBe(
       '{"code":"us"}',
     );
   });

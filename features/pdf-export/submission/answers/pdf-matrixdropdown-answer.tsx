@@ -72,13 +72,13 @@ const PdfMatrixDropdownAnswer = ({
           ))}
         </View>
         {filledRows.map((row) => {
-          const rowValue = value[String(row.value)] ?? {};
+          const rowKey = String(row.value);
+          const rowValue = value[rowKey] ?? {};
+          const rowDisplay = displayByRow[rowKey] ?? {};
           return (
-            <View style={PDF_TABLE_STYLES.tableRow} key={String(row.value)}>
+            <View style={PDF_TABLE_STYLES.tableRow} key={rowKey}>
               <View style={{ ...PDF_TABLE_STYLES.tableCell, flex: 1 }}>
-                <Text>
-                  {htmlSanitizer.toPlainText(row.text || String(row.value))}
-                </Text>
+                <Text>{htmlSanitizer.toPlainText(row.text || rowKey)}</Text>
               </View>
               {columns.map((column) => (
                 <View
@@ -88,9 +88,8 @@ const PdfMatrixDropdownAnswer = ({
                   <Text>
                     {htmlSanitizer.toPlainText(
                       formatMatrixDropdownCell(
-                        row,
-                        column.name,
                         rowValue[column.name],
+                        rowDisplay[column.name],
                       ),
                     )}
                   </Text>
