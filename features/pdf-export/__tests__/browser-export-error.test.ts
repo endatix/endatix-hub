@@ -3,6 +3,23 @@ import { asBrowserExportError } from "../browser-export-error";
 import { apiResponses } from "@/lib/utils/route-handlers";
 
 describe("asBrowserExportError", () => {
+  it("does not treat html with q=0 as a browser", async () => {
+    // Arrange
+    const jsonResponse = apiResponses.notFound({
+      detail: "Submission not found.",
+    });
+
+    // Act
+    const response = await asBrowserExportError(
+      jsonResponse,
+      "text/html;q=0,application/json",
+    );
+
+    // Assert
+    expect(response.status).toBe(404);
+    expect(response.headers.get("content-type")).toContain("application/json");
+  });
+
   it("keeps JSON and the real status when Accept is application/json", async () => {
     // Arrange
     const jsonResponse = apiResponses.notFound({
@@ -48,10 +65,7 @@ describe("asBrowserExportError", () => {
     });
 
     // Act
-    const response = await asBrowserExportError(
-      jsonResponse,
-      "text/html",
-    );
+    const response = await asBrowserExportError(jsonResponse, "text/html");
 
     // Assert
     expect(response.headers.get("location")).toContain("code=timeout");
@@ -108,10 +122,7 @@ describe("asBrowserExportError", () => {
     });
 
     // Act
-    const response = await asBrowserExportError(
-      jsonResponse,
-      "text/html",
-    );
+    const response = await asBrowserExportError(jsonResponse, "text/html");
 
     // Assert
     const location = response.headers.get("location") ?? "";

@@ -1,7 +1,7 @@
 import { Text, View } from "@react-pdf/renderer";
 import { QuestionMatrixDropdownModel } from "survey-core";
 import { VIEWER_STYLES } from "../pdf-answer-viewer";
-import { formatPdfCellValue } from "../format-pdf-cell-value";
+import { formatMatrixDropdownCell } from "../format-matrix-dropdown-cell";
 import { PDF_TABLE_STYLES } from "@/features/pdf-export/submission/pdf-styles";
 import { htmlSanitizer } from "@/lib/utils/html-sanitizer";
 
@@ -86,7 +86,11 @@ const PdfMatrixDropdownAnswer = ({
                 >
                   <Text>
                     {htmlSanitizer.toPlainText(
-                      formatPdfCellValue(rowValue[column.name]),
+                      formatMatrixDropdownCell(
+                        row,
+                        column.name,
+                        rowValue[column.name],
+                      ),
                     )}
                   </Text>
                 </View>

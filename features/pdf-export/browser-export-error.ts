@@ -6,21 +6,46 @@ import { resolveSupportReference } from "./support-reference";
 /** Where browsers are sent. A real Next.js page, not a hand-maintained file. */
 const EXPORT_ERROR_PATH = "/export-error";
 
+function mediaQuality(acceptHeader: string, type: string): number {
+  let best = 0;
+
+  for (const part of acceptHeader.split(",")) {
+    const [mediaRaw, ...params] = part.trim().split(";");
+    const media = mediaRaw.trim().toLowerCase();
+    const matches =
+      media === type ||
+      media === "*/*" ||
+      (type.startsWith("text/") && media === "text/*") ||
+      (type.startsWith("application/") && media === "application/*");
+    if (!matches) {
+      continue;
+    }
+
+    let q = 1;
+    for (const param of params) {
+      const [key, raw] = param.trim().split("=");
+      if (key !== "q" || raw === undefined) {
+        continue;
+      }
+      const parsed = Number(raw);
+      q = Number.isFinite(parsed) ? parsed : 1;
+    }
+
+    best = Math.max(best, q);
+  }
+
+  return best;
+}
+
 function prefersHtml(acceptHeader: string | null): boolean {
   if (!acceptHeader) {
     return false;
   }
 
-  const htmlWeight = acceptHeader.includes("text/html") ? 1 : 0;
-  const jsonWeight = acceptHeader.includes("application/json") ? 1 : 0;
-  if (htmlWeight && !jsonWeight) {
-    return true;
-  }
+  const htmlQuality = mediaQuality(acceptHeader, "text/html");
+  const jsonQuality = mediaQuality(acceptHeader, "application/json");
 
-  return (
-    htmlWeight > 0 &&
-    acceptHeader.indexOf("text/html") < acceptHeader.indexOf("application/json")
-  );
+  return htmlQuality > 0 && htmlQuality >= jsonQuality;
 }
 
 /**
@@ -83,5 +108,4 @@ export async function asBrowserExportError(
       "Cache-Control": "no-store",
     },
   });
-
 }

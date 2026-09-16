@@ -12,22 +12,24 @@ const DEFAULT_MS = DEFAULT_RENDER_TIMEOUT_SECONDS * 1000;
 
 afterEach(() => {
   vi.unstubAllEnvs();
+  vi.useRealTimers();
 });
 
 describe("render-timeout", () => {
   it("fails immediately when no budget remains", async () => {
-    // Arrange & Act
-    const work = Promise.resolve("ok");
+    // Arrange
+    const createWork = vi.fn(async () => "ok");
 
-    // Assert
-    await expect(raceWithTimeout(work, 0)).rejects.toThrow(
+    // Act & Assert
+    await expect(raceWithTimeout(createWork, 0)).rejects.toThrow(
       "pdf_render_timeout",
     );
+    expect(createWork).not.toHaveBeenCalled();
   });
 
   it("resolves when work finishes inside the budget", async () => {
     // Arrange & Act
-    const result = await raceWithTimeout(Promise.resolve("ok"), 1_000);
+    const result = await raceWithTimeout(async () => "ok", 1_000);
 
     // Assert
     expect(result).toBe("ok");
@@ -40,12 +42,17 @@ describe("render-timeout", () => {
   });
 
   it("computes remaining time from start time", () => {
+    // Arrange
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-01-01T00:00:00.000Z"));
+    const startedAtMs = Date.now();
+
     // Act
-    const remaining = remainingRenderTimeoutMs(Date.now());
+    vi.setSystemTime(new Date("2026-01-01T00:00:10.000Z"));
+    const remaining = remainingRenderTimeoutMs(startedAtMs);
 
     // Assert
-    expect(remaining).toBeLessThanOrEqual(DEFAULT_MS);
-    expect(remaining).toBeGreaterThan(DEFAULT_MS - 50);
+    expect(remaining).toBe(DEFAULT_MS - 10_000);
   });
 });
 
@@ -65,7 +72,7 @@ describe("renderTimeoutMs", () => {
 
     // Act & Assert
     expect(renderTimeoutMs()).toBe(8_000);
-    expect(remainingRenderTimeoutMs(Date.now())).toBeLessThanOrEqual(8_000);
+    expect(remainingRenderTimeoutMs(Date.now())).toBe(8_000);
   });
 
   /**

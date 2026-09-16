@@ -49,14 +49,13 @@ export function remainingRenderTimeoutMs(startedAtMs: number): number {
 }
 
 /**
- * Bounds `work` by a wall-clock timeout.
+ * Bounds work by a wall-clock timeout. `createWork` runs only when budget remains.
  *
- * Note this bounds the *response*, not the work: `@react-pdf` exposes no abort,
- * so a render that loses the race keeps going until it finishes. The caller
- * stops waiting; the work does not stop.
+ * This bounds the *response*, not in-flight work: `@react-pdf` exposes no abort,
+ * so a render that loses the race keeps going until it finishes.
  */
 export async function raceWithTimeout<T>(
-  work: Promise<T>,
+  createWork: () => Promise<T>,
   timeoutMs: number,
 ): Promise<T> {
   if (timeoutMs <= 0) {
@@ -66,7 +65,7 @@ export async function raceWithTimeout<T>(
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     return await Promise.race([
-      work,
+      createWork(),
       new Promise<T>((_, reject) => {
         timer = setTimeout(() => {
           reject(new Error(PDF_RENDER_TIMEOUT_CODE));

@@ -53,13 +53,18 @@ vi.mock("../submission-details-pdf", () => ({
   SubmissionDetailsPdf: () => null,
 }));
 
-const { renderSubmissionPdf } = await import("../render-submission-pdf.use-case");
+const { renderSubmissionPdf } =
+  await import("../render-submission-pdf.use-case");
+const { preparePdfModel } = await import("../prepare-pdf-model.use-case");
 
 const submission = { id: "s1" } as never;
 
 beforeEach(() => {
   spans.length = 0;
   toBlob.mockClear();
+  vi.mocked(preparePdfModel).mockClear();
+  vi.mocked(preparePdfModel).mockResolvedValue(surveyModel);
+  vi.useRealTimers();
 });
 
 describe("renderSubmissionPdf", () => {
@@ -120,6 +125,51 @@ describe("renderSubmissionPdf", () => {
     }
 
     const render = spans.find((s) => s.name === "render-pdf");
-    expect(render?.attributes["pdf.outcome"]).toBe("timeout");
+    expect(render).toBeUndefined();
+    expect(preparePdfModel).not.toHaveBeenCalled();
+    expect(toBlob).not.toHaveBeenCalled();
+  });
+
+  it("times out when model preparation never finishes", async () => {
+    // Arrange
+    vi.useFakeTimers();
+    vi.mocked(preparePdfModel).mockImplementation(
+      () => new Promise(() => undefined),
+    );
+
+    // Act
+    const pending = renderSubmissionPdf({
+      submission,
+      customQuestionsJsonData: [],
+      startedAtMs: Date.now(),
+      caller: "anonymous-token",
+    });
+    await vi.advanceTimersByTimeAsync(40_000);
+    const result = await pending;
+
+    // Assert
+    expect(Result.isError(result)).toBe(true);
+    if (Result.isError(result)) {
+      expect(result.errorCode).toBe("pdf_render_timeout");
+    }
+  });
+
+  it("returns a generic failure when render throws", async () => {
+    // Arrange
+    toBlob.mockRejectedValueOnce(new Error("renderer exploded"));
+
+    // Act
+    const result = await renderSubmissionPdf({
+      submission,
+      customQuestionsJsonData: [],
+      startedAtMs: Date.now(),
+      caller: "hub-authenticated",
+    });
+
+    // Assert
+    expect(Result.isError(result)).toBe(true);
+    if (Result.isError(result)) {
+      expect(result.message).toBe("PDF export failed.");
+    }
   });
 });

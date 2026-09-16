@@ -41,7 +41,7 @@ interface RenderSubmissionPdfOptions {
  *
  * Exceeding the deadline is an expected outcome, not an exception, so it comes
  * back as `Result.error` carrying `PDF_RENDER_TIMEOUT_CODE`; callers decide how
- * to present it. Anything else genuinely is a fault and still throws.
+ * to present it. Other faults also return `Result.error` with a generic message.
  *
  * Two spans are emitted - `prepare-model` and `render-pdf`. The render span
  * carries a pre-render description of the workload so a slow render can be
@@ -55,76 +55,94 @@ export async function renderSubmissionPdf({
   startedAtMs,
   caller,
 }: RenderSubmissionPdfOptions): Promise<Result<Blob>> {
-  const surveyModel = await TelemetryTracer.traceAsync(
-    TRACER,
-    "prepare-model",
-    async (span) => {
-      span.setAttribute("pdf.caller", caller);
-      return preparePdfModel({
-        submission,
-        customQuestionsJsonData,
-        useDefaultLocale,
-      });
-    },
-  );
+  try {
+    const surveyModel = await TelemetryTracer.traceAsync(
+      TRACER,
+      "prepare-model",
+      async (span) => {
+        span.setAttribute("pdf.caller", caller);
+        return raceWithTimeout(
+          () =>
+            preparePdfModel({
+              submission,
+              customQuestionsJsonData,
+              useDefaultLocale,
+            }),
+          remainingRenderTimeoutMs(startedAtMs),
+        );
+      },
+    );
 
-  return TelemetryTracer.traceAsync(TRACER, "render-pdf", async (span) => {
-    const workload = describePdfWorkload(surveyModel);
+    return await TelemetryTracer.traceAsync(
+      TRACER,
+      "render-pdf",
+      async (span) => {
+        const workload = describePdfWorkload(surveyModel);
 
-    span.setAttributes({
-      "pdf.caller": caller,
-      "pdf.questionCount": workload.questionCount,
-      "pdf.answeredCount": workload.answeredCount,
-      "pdf.fileAttachmentCount": workload.fileAttachmentCount,
-      "pdf.matrixRowCount": workload.matrixRowCount,
-      "pdf.timeoutMs": renderTimeoutMs(),
-    });
-
-    const renderStartedAtMs = Date.now();
-
-    try {
-      const pdfBlob = await raceWithTimeout(
-        pdf(
-          <SubmissionDetailsPdf
-            submission={submission}
-            surveyModel={surveyModel}
-          />,
-        ).toBlob(),
-        remainingRenderTimeoutMs(startedAtMs),
-      );
-
-      span.setAttributes({
-        "pdf.outcome": "success",
-        "pdf.durationMs": Date.now() - renderStartedAtMs,
-        "pdf.byteSize": pdfBlob.size,
-      });
-
-      return Result.success(pdfBlob);
-    } catch (error) {
-      const durationMs = Date.now() - renderStartedAtMs;
-
-      if (isPdfRenderTimeout(error)) {
-        // A timeout is a measured outcome, not a fault - record it and return.
         span.setAttributes({
-          "pdf.outcome": "timeout",
-          "pdf.durationMs": durationMs,
+          "pdf.caller": caller,
+          "pdf.questionCount": workload.questionCount,
+          "pdf.answeredCount": workload.answeredCount,
+          "pdf.fileAttachmentCount": workload.fileAttachmentCount,
+          "pdf.matrixRowCount": workload.matrixRowCount,
+          "pdf.timeoutMs": renderTimeoutMs(),
         });
 
-        return Result.error(
-          "PDF render exceeded the deadline.",
-          undefined,
-          PDF_RENDER_TIMEOUT_CODE,
-        );
-      }
+        const renderStartedAtMs = Date.now();
 
-      // traceAsync records the exception and sets the span status; this only
-      // adds the attributes a query needs to tell faults from timeouts.
-      span.setAttributes({
-        "pdf.outcome": "error",
-        "pdf.durationMs": durationMs,
-      });
+        try {
+          const pdfBlob = await raceWithTimeout(
+            () =>
+              pdf(
+                <SubmissionDetailsPdf
+                  submission={submission}
+                  surveyModel={surveyModel}
+                />,
+              ).toBlob(),
+            remainingRenderTimeoutMs(startedAtMs),
+          );
 
-      throw error;
+          span.setAttributes({
+            "pdf.outcome": "success",
+            "pdf.durationMs": Date.now() - renderStartedAtMs,
+            "pdf.byteSize": pdfBlob.size,
+          });
+
+          return Result.success(pdfBlob);
+        } catch (error) {
+          const durationMs = Date.now() - renderStartedAtMs;
+
+          if (isPdfRenderTimeout(error)) {
+            span.setAttributes({
+              "pdf.outcome": "timeout",
+              "pdf.durationMs": durationMs,
+            });
+
+            return Result.error(
+              "PDF render exceeded the deadline.",
+              undefined,
+              PDF_RENDER_TIMEOUT_CODE,
+            );
+          }
+
+          span.setAttributes({
+            "pdf.outcome": "error",
+            "pdf.durationMs": durationMs,
+          });
+
+          throw error;
+        }
+      },
+    );
+  } catch (error) {
+    if (isPdfRenderTimeout(error)) {
+      return Result.error(
+        "PDF render exceeded the deadline.",
+        undefined,
+        PDF_RENDER_TIMEOUT_CODE,
+      );
     }
-  });
+
+    return Result.error("PDF export failed.");
+  }
 }

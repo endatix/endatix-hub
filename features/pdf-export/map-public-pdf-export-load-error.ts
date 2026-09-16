@@ -79,8 +79,20 @@ export function mapPublicPdfExportLoadError(error: ResultError): NextResponse {
     });
   }
 
-  return apiResponses.notFound({
-    detail: "Submission not found.",
+  const isNotFound =
+    error.statusCode === 404 ||
+    error.errorCode === ERROR_CODE.RESOURCE_NOT_FOUND ||
+    error.errorCode === ERROR_CODE.FORM_NOT_FOUND;
+
+  if (isNotFound) {
+    return apiResponses.notFound({
+      detail: "Submission not found.",
+      ...supportFields(error),
+    });
+  }
+
+  return apiResponses.badGateway({
+    detail: "Failed to load submission from the Endatix API.",
     ...supportFields(error),
   });
 }

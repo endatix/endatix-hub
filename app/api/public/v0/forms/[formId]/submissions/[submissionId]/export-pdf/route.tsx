@@ -50,13 +50,18 @@ export async function GET(req: NextRequest, { params }: Params) {
 
   const submission = submissionResult.value;
 
-  const renderResult = await renderSubmissionPdf({
-    submission,
-    customQuestionsJsonData,
-    useDefaultLocale,
-    startedAtMs,
-    caller: "hub-authenticated",
-  });
+  let renderResult;
+  try {
+    renderResult = await renderSubmissionPdf({
+      submission,
+      customQuestionsJsonData,
+      useDefaultLocale,
+      startedAtMs,
+      caller: "hub-authenticated",
+    });
+  } catch {
+    return NextResponse.json({ error: "PDF export failed." }, { status: 500 });
+  }
 
   if (Result.isError(renderResult)) {
     if (renderResult.errorCode === PDF_RENDER_TIMEOUT_CODE) {

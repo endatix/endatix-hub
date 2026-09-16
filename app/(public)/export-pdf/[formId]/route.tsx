@@ -77,13 +77,21 @@ export async function GET(req: NextRequest, { params }: Params) {
   submission.formDefinition = definitionResult.value;
   const customQuestionsJsonData = definitionResult.value.customQuestions ?? [];
 
-  const renderResult = await renderSubmissionPdf({
-    submission,
-    customQuestionsJsonData,
-    useDefaultLocale,
-    startedAtMs,
-    caller: "anonymous-token",
-  });
+  let renderResult;
+  try {
+    renderResult = await renderSubmissionPdf({
+      submission,
+      customQuestionsJsonData,
+      useDefaultLocale,
+      startedAtMs,
+      caller: "anonymous-token",
+    });
+  } catch {
+    return await asBrowserExportError(
+      apiResponses.serverError({ detail: "PDF export failed." }),
+      accept,
+    );
+  }
 
   if (Result.isError(renderResult)) {
     if (renderResult.errorCode === PDF_RENDER_TIMEOUT_CODE) {

@@ -43,9 +43,28 @@ describe("mapPublicPdfExportLoadError", () => {
     expect(response.status).toBe(401);
   });
 
-  it("maps unknown missing submission to 404", async () => {
+  it("maps unknown missing submission to 502", async () => {
     // Arrange
     const error = Result.error("Submission was not found");
+    if (!Result.isError(error)) {
+      throw new Error("expected error result");
+    }
+
+    // Act
+    const response = mapPublicPdfExportLoadError(error);
+
+    // Assert
+    expect(response.status).toBe(502);
+  });
+
+  it("maps resource_not_found to 404", async () => {
+    // Arrange
+    const error = Result.error(
+      "Missing",
+      undefined,
+      ERROR_CODE.RESOURCE_NOT_FOUND,
+      { statusCode: 404 },
+    );
     if (!Result.isError(error)) {
       throw new Error("expected error result");
     }
