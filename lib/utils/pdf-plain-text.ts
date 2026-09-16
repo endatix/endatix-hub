@@ -1,5 +1,6 @@
 import { decodeHTMLStrict } from "entities";
 import { htmlSanitizer } from "@/lib/utils/html-sanitizer";
+import { parseScalarString } from "@/lib/utils/type-parsers";
 
 const MAX_DECODE_PASSES = 3;
 const LITERAL_NEWLINE = String.raw`\n`;
@@ -45,8 +46,30 @@ function replaceLiteralNewlines(text: string): string {
     : text;
 }
 
+/**
+ * Renders an answer value of any shape as text.
+ *
+ * Scalars go through `parseScalarString`. Everything else is JSON rather than
+ * `String()`: matrix and paneldynamic answers are objects and arrays, and
+ * `String()` would print `[object Object]` for one and a function's whole
+ * source for the other.
+ *
+ * `JSON.stringify` is guarded because it is not total - it throws on a
+ * circular value, which would fail the entire render, and returns `undefined`
+ * for a function or symbol. Both end up as empty text, which is the right
+ * outcome for something that cannot be shown in a PDF cell.
+ */
 function stringifyValue(value: unknown): string {
-  return typeof value === "object" ? JSON.stringify(value) : String(value);
+  const scalar = parseScalarString(value);
+  if (scalar !== null) {
+    return scalar;
+  }
+
+  try {
+    return JSON.stringify(value) ?? "";
+  } catch {
+    return "";
+  }
 }
 
 /** Decode entities, strip HTML, turn literal \\n into newlines for PDF `<Text>`. */

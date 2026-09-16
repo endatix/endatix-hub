@@ -57,6 +57,27 @@ describe("pdfPlainText", () => {
     expect(pdfPlainText("A&#x110000;B")).toBe("A\uFFFDB");
   });
 
+  it("renders object and array answers as JSON, not [object Object]", () => {
+    expect(pdfPlainText({ a: 1 })).toBe('{"a":1}');
+    expect(pdfPlainText([1, 2])).toBe("[1,2]");
+  });
+
+  /**
+   * JSON.stringify is not total. A circular answer would otherwise throw and
+   * fail the whole render, and a function would print its source into the PDF.
+   */
+  it("yields empty text for values that cannot be serialised", () => {
+    const circular: Record<string, unknown> = { a: 1 };
+    circular.self = circular;
+
+    expect(pdfPlainText(circular)).toBe("");
+    expect(pdfPlainText(() => "secret")).toBe("");
+  });
+
+  it("renders a bigint answer", () => {
+    expect(pdfPlainText(10n)).toBe("10");
+  });
+
   /** Lone surrogates cannot stand alone in text and would corrupt PDF output. */
   it("replaces lone surrogate references", () => {
     expect(pdfPlainText("A&#xD800;B")).toBe("A\uFFFDB");
