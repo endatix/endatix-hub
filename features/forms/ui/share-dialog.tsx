@@ -15,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Code, Link2 } from "lucide-react";
 import { toast } from "@/components/ui/toast";
 import CopyToClipboard from "@/components/copy-to-clipboard";
-import { ShareLinkRow } from "@/features/share-links/ui/share-link-row";
+import { ShareLinkRow } from "@/components/common/share-link-row";
 import { withBasePath } from "@/lib/hosting";
 
 interface ShareDialogProps {
