@@ -27,6 +27,7 @@ vi.mock("@/features/telemetry", () => ({
   },
   TelemetryLogger: {
     warn: vi.fn(),
+    error: vi.fn(),
   },
 }));
 
@@ -69,6 +70,7 @@ beforeEach(() => {
   vi.mocked(preparePdfModel).mockClear();
   vi.mocked(preparePdfModel).mockResolvedValue(surveyModel);
   vi.mocked(TelemetryLogger.warn).mockClear();
+  vi.mocked(TelemetryLogger.error).mockClear();
   vi.useRealTimers();
 });
 
@@ -165,6 +167,43 @@ describe("renderSubmissionPdf", () => {
     if (Result.isError(result)) {
       expect(result.errorCode).toBe("pdf_render_timeout");
     }
+    expect(TelemetryLogger.warn).toHaveBeenCalledWith(
+      "PDF render exceeded the deadline.",
+      expect.objectContaining({ "pdf.caller": "anonymous-token" }),
+      "pdf-export",
+    );
+    expect(TelemetryLogger.error).not.toHaveBeenCalled();
+  });
+
+  it("logs the render duration when the renderer itself overruns", async () => {
+    // Arrange
+    vi.useFakeTimers();
+    toBlob.mockImplementationOnce(() => new Promise(() => undefined));
+
+    // Act
+    const pending = renderSubmissionPdf({
+      submission,
+      customQuestionsJsonData: [],
+      startedAtMs: Date.now(),
+      caller: "hub-authenticated",
+    });
+    await vi.advanceTimersByTimeAsync(40_000);
+    const result = await pending;
+
+    // Assert
+    expect(Result.isError(result)).toBe(true);
+    if (Result.isError(result)) {
+      expect(result.errorCode).toBe("pdf_render_timeout");
+    }
+    expect(TelemetryLogger.warn).toHaveBeenCalledTimes(1);
+    expect(TelemetryLogger.warn).toHaveBeenCalledWith(
+      "PDF render exceeded the deadline.",
+      expect.objectContaining({
+        "pdf.caller": "hub-authenticated",
+        "pdf.durationMs": expect.any(Number),
+      }),
+      "pdf-export",
+    );
   });
 
   it("returns a generic failure when render throws", async () => {
@@ -184,5 +223,12 @@ describe("renderSubmissionPdf", () => {
     if (Result.isError(result)) {
       expect(result.message).toBe("PDF export failed.");
     }
+    expect(TelemetryLogger.error).toHaveBeenCalledWith(
+      "PDF export failed.",
+      undefined,
+      { "pdf.caller": "hub-authenticated", "error.type": "Error" },
+      "pdf-export",
+    );
+    expect(TelemetryLogger.warn).not.toHaveBeenCalled();
   });
 });

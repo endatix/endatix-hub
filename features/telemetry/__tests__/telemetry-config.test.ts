@@ -1,82 +1,137 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { TelemetryConfig } from "../infrastructure/telemetry-config";
+import { stubEmptyTelemetryEnv } from "./support/telemetry-env";
 
 describe("TelemetryConfig", () => {
-  let envBackup: NodeJS.ProcessEnv;
-
   beforeEach(() => {
-    envBackup = { ...process.env };
+    stubEmptyTelemetryEnv();
   });
 
   afterEach(() => {
-    process.env = envBackup;
+    vi.unstubAllEnvs();
+    vi.restoreAllMocks();
   });
 
   it("exposes SERVICE_NAME constant", () => {
     expect(TelemetryConfig.SERVICE_NAME).toBe("endatix-hub");
   });
 
-  it("isAzureConfigured returns true when APPLICATIONINSIGHTS_CONNECTION_STRING is set", () => {
-    process.env.APPLICATIONINSIGHTS_CONNECTION_STRING =
-      "InstrumentationKey=abc";
-    expect(TelemetryConfig.isAzureConfigured()).toBe(true);
+  describe("Azure", () => {
+    it("is configured when APPLICATIONINSIGHTS_CONNECTION_STRING is set", () => {
+      vi.stubEnv(
+        "APPLICATIONINSIGHTS_CONNECTION_STRING",
+        " InstrumentationKey=abc ",
+      );
+
+      expect(TelemetryConfig.isAzureConfigured()).toBe(true);
+      expect(TelemetryConfig.azureConnectionString()).toBe(
+        "InstrumentationKey=abc",
+      );
+    });
+
+    it.each(["", "   "])("is not configured for %j", (value) => {
+      vi.stubEnv("APPLICATIONINSIGHTS_CONNECTION_STRING", value);
+
+      expect(TelemetryConfig.isAzureConfigured()).toBe(false);
+      expect(TelemetryConfig.azureConnectionString()).toBeUndefined();
+    });
   });
 
-  it("isAzureConfigured returns false when APPLICATIONINSIGHTS_CONNECTION_STRING is unset", () => {
-    delete process.env.APPLICATIONINSIGHTS_CONNECTION_STRING;
-    expect(TelemetryConfig.isAzureConfigured()).toBe(false);
-  });
+  describe("OTLP", () => {
+    it("is configured for every signal by the generic endpoint", () => {
+      vi.stubEnv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317");
 
-  it("isOtelConfigured returns true when OTEL_EXPORTER_OTLP_ENDPOINT is set", () => {
-    process.env.OTEL_EXPORTER_OTLP_ENDPOINT = "http://localhost:4317";
-    expect(TelemetryConfig.isOtelConfigured()).toBe(true);
-  });
+      expect(TelemetryConfig.isOtelConfigured()).toBe(true);
+      expect(TelemetryConfig.isOtlpSignalConfigured("TRACES")).toBe(true);
+      expect(TelemetryConfig.isOtlpSignalConfigured("LOGS")).toBe(true);
+    });
 
-  it("isOtelConfigured returns false when OTEL_EXPORTER_OTLP_ENDPOINT is unset", () => {
-    delete process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
-    expect(TelemetryConfig.isOtelConfigured()).toBe(false);
-  });
+    it("is configured for one signal by that signal's endpoint", () => {
+      vi.stubEnv(
+        "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT",
+        "http://localhost:4318/v1/traces",
+      );
 
-  it("isOtelConfigured returns true when only a per-signal endpoint is set", () => {
-    delete process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
-    process.env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT =
-      "http://localhost:4318/v1/traces";
-    expect(TelemetryConfig.isOtelConfigured()).toBe(true);
-    expect(TelemetryConfig.isOtlpSignalConfigured("LOGS")).toBe(false);
-  });
+      expect(TelemetryConfig.isOtelConfigured()).toBe(true);
+      expect(TelemetryConfig.isOtlpSignalConfigured("TRACES")).toBe(true);
+      expect(TelemetryConfig.isOtlpSignalConfigured("LOGS")).toBe(false);
+    });
 
-  it("otlpProtocol defaults to grpc and prefers the signal-specific key", () => {
-    delete process.env.OTEL_EXPORTER_OTLP_PROTOCOL;
-    delete process.env.OTEL_EXPORTER_OTLP_TRACES_PROTOCOL;
-    expect(TelemetryConfig.otlpProtocol("TRACES")).toBe("grpc");
+    it("is not configured without an endpoint", () => {
+      expect(TelemetryConfig.isOtelConfigured()).toBe(false);
+    });
 
-    process.env.OTEL_EXPORTER_OTLP_PROTOCOL = "http/protobuf";
-    process.env.OTEL_EXPORTER_OTLP_TRACES_PROTOCOL = "http/json";
-    expect(TelemetryConfig.otlpProtocol("TRACES")).toBe("http/json");
-    expect(TelemetryConfig.otlpProtocol("LOGS")).toBe("http/protobuf");
-  });
+    it("defaults the protocol to grpc", () => {
+      expect(TelemetryConfig.otlpProtocol("TRACES")).toBe("grpc");
+    });
 
-  it("otlpProtocol falls back to grpc on an unknown value", () => {
-    vi.spyOn(console, "warn").mockImplementation(() => {});
-    process.env.OTEL_EXPORTER_OTLP_PROTOCOL = "thrift";
-    expect(TelemetryConfig.otlpProtocol("LOGS")).toBe("grpc");
+    it("prefers the signal-specific protocol over the generic one", () => {
+      vi.stubEnv("OTEL_EXPORTER_OTLP_PROTOCOL", "http/protobuf");
+      vi.stubEnv("OTEL_EXPORTER_OTLP_TRACES_PROTOCOL", "HTTP/JSON");
+
+      expect(TelemetryConfig.otlpProtocol("TRACES")).toBe("http/json");
+      expect(TelemetryConfig.otlpProtocol("LOGS")).toBe("http/protobuf");
+    });
+
+    it("falls back to grpc with a warning on an unknown protocol", () => {
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+      vi.stubEnv("OTEL_EXPORTER_OTLP_PROTOCOL", "thrift");
+
+      expect(TelemetryConfig.otlpProtocol("LOGS")).toBe("grpc");
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining("thrift"));
+    });
   });
 
   it.each([
     ["true", true],
     ["TRUE", true],
+    [" true ", true],
     ["1", false],
     ["false", false],
     ["", false],
   ])("isSdkDisabled(%j) is %s, matching the OTel spec", (value, expected) => {
-    process.env.OTEL_SDK_DISABLED = value;
+    vi.stubEnv("OTEL_SDK_DISABLED", value);
+
     expect(TelemetryConfig.isSdkDisabled()).toBe(expected);
   });
 
-  it("hasActiveExporter is false when the SDK is disabled", () => {
-    process.env.APPLICATIONINSIGHTS_CONNECTION_STRING =
-      "InstrumentationKey=abc";
-    process.env.OTEL_SDK_DISABLED = "true";
-    expect(TelemetryConfig.hasActiveExporter()).toBe(false);
+  describe("hasActiveExporter", () => {
+    it("is true when an exporter is configured", () => {
+      vi.stubEnv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317");
+
+      expect(TelemetryConfig.hasActiveExporter()).toBe(true);
+    });
+
+    it("is false when no exporter is configured", () => {
+      expect(TelemetryConfig.hasActiveExporter()).toBe(false);
+    });
+
+    it("is false when the SDK is disabled", () => {
+      vi.stubEnv(
+        "APPLICATIONINSIGHTS_CONNECTION_STRING",
+        "InstrumentationKey=abc",
+      );
+      vi.stubEnv("OTEL_SDK_DISABLED", "true");
+
+      expect(TelemetryConfig.hasActiveExporter()).toBe(false);
+    });
+  });
+
+  it.each([
+    ["true", true],
+    ["false", false],
+    ["", false],
+  ])("isConsoleOutputForced(%j) is %s", (value, expected) => {
+    vi.stubEnv("TELEMETRY_CONSOLE_FALLBACK", value);
+
+    expect(TelemetryConfig.isConsoleOutputForced()).toBe(expected);
+  });
+
+  it("uses OTEL_SERVICE_NAME, else endatix-hub", () => {
+    expect(TelemetryConfig.serviceName()).toBe("endatix-hub");
+
+    vi.stubEnv("OTEL_SERVICE_NAME", "hub-staging");
+
+    expect(TelemetryConfig.serviceName()).toBe("hub-staging");
   });
 });

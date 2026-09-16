@@ -1,197 +1,168 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Resource, resourceFromAttributes } from "@opentelemetry/resources";
+import { logs } from "@opentelemetry/api-logs";
+import { OTLPTraceExporter as OTLPGrpcTraceExporter } from "@opentelemetry/exporter-trace-otlp-grpc";
+import { OTLPTraceExporter as OTLPProtoTraceExporter } from "@opentelemetry/exporter-trace-otlp-proto";
+import { OTLPLogExporter as OTLPGrpcLogExporter } from "@opentelemetry/exporter-logs-otlp-grpc";
+import { OTLPLogExporter as OTLPJsonLogExporter } from "@opentelemetry/exporter-logs-otlp-http";
 import { TelemetryConfig } from "../infrastructure/telemetry-config";
 import { FilteringSpanProcessor } from "../infrastructure/filtering-span-processor";
 import { JsonConsoleLogRecordExporter } from "../infrastructure/json-console-log-record-exporter";
-import { OTLPTraceExporter as OTLPGrpcTraceExporter } from "@opentelemetry/exporter-trace-otlp-grpc";
-import { OTLPTraceExporter as OTLPProtoTraceExporter } from "@opentelemetry/exporter-trace-otlp-proto";
-import { OTLPLogExporter as OTLPProtoLogExporter } from "@opentelemetry/exporter-logs-otlp-proto";
-import { OTLPLogExporter as OTLPJsonLogExporter } from "@opentelemetry/exporter-logs-otlp-http";
-
-vi.mock("@azure/monitor-opentelemetry-exporter", () => ({
-  AzureMonitorTraceExporter: class {
-    constructor(public options: { connectionString: string }) {}
-  },
-  AzureMonitorLogExporter: class {
-    constructor(public options: { connectionString: string }) {}
-  },
-}));
-
 import { NodeSdkTelemetryStrategy } from "../infrastructure/strategies";
+import { stubEmptyTelemetryEnv } from "./support/telemetry-env";
 
-type Internals = {
+const INVALID_AZURE = "invalid";
+
+vi.mock("@azure/monitor-opentelemetry-exporter", () => {
+  class FakeAzureExporter {
+    constructor(public options: { connectionString: string }) {
+      if (options.connectionString === "invalid") {
+        throw new Error("Invalid connection string");
+      }
+    }
+  }
+  return {
+    AzureMonitorTraceExporter: FakeAzureExporter,
+    AzureMonitorLogExporter: FakeAzureExporter,
+  };
+});
+
+const AZURE = "InstrumentationKey=test";
+const OTLP_GRPC = "http://localhost:4317";
+
+/** Private fields the strategy keeps; read here to assert what was wired. */
+type StrategyInternals = {
   spanProcessors: Array<{ _exporter?: unknown }>;
   loggerProvider: {
     _sharedState: { processors: Array<{ _exporter?: unknown }> };
+    forceFlush(): Promise<void>;
+    shutdown(): Promise<void>;
   };
 };
 
-function internals(strategy: NodeSdkTelemetryStrategy): Internals {
-  return strategy as unknown as Internals;
+type SdkInternals = {
+  _instrumentations: Array<{ instrumentationName?: string }>;
+  _meterProviderConfig?: { readers: unknown[] };
+  _loggerProviderConfig?: { logRecordProcessors: unknown[] };
+};
+
+function internals(strategy: NodeSdkTelemetryStrategy): StrategyInternals {
+  return strategy as unknown as StrategyInternals;
+}
+
+function spanProcessors(strategy: NodeSdkTelemetryStrategy) {
+  return internals(strategy).spanProcessors;
 }
 
 function traceExporters(strategy: NodeSdkTelemetryStrategy): unknown[] {
-  return internals(strategy)
-    .spanProcessors.map((p) => p._exporter)
+  return spanProcessors(strategy)
+    .map((processor) => processor._exporter)
     .filter(Boolean);
 }
 
 function logExporters(strategy: NodeSdkTelemetryStrategy): unknown[] {
   return internals(strategy).loggerProvider._sharedState.processors.map(
-    (p) => p._exporter,
+    (processor) => processor._exporter,
   );
 }
 
 describe("NodeSdkTelemetryStrategy", () => {
-  let envBackup: NodeJS.ProcessEnv;
   const resource: Resource = resourceFromAttributes({
     [TelemetryConfig.ATTR_SERVICE_NAME]: TelemetryConfig.SERVICE_NAME,
   });
 
   beforeEach(() => {
-    envBackup = { ...process.env };
-    delete process.env.APPLICATIONINSIGHTS_CONNECTION_STRING;
-    for (const key of [
-      "OTEL_EXPORTER_OTLP_ENDPOINT",
-      "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT",
-      "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT",
-      "OTEL_EXPORTER_OTLP_PROTOCOL",
-      "OTEL_EXPORTER_OTLP_TRACES_PROTOCOL",
-      "OTEL_EXPORTER_OTLP_LOGS_PROTOCOL",
-      "TELEMETRY_CONSOLE_FALLBACK",
-    ]) {
-      delete process.env[key];
-    }
+    stubEmptyTelemetryEnv();
     vi.spyOn(console, "log").mockImplementation(() => {});
   });
 
   afterEach(() => {
-    process.env = envBackup;
+    vi.unstubAllEnvs();
     vi.restoreAllMocks();
   });
 
-  it("builds a NodeSDK for Azure so shutdown can flush logs", () => {
-    // Arrange
-    process.env.APPLICATIONINSIGHTS_CONNECTION_STRING =
-      "InstrumentationKey=e5a33aeb-9056-4881-8155-d2ee13542a4f;EndpointSuffix=core.windows.net";
-
-    // Act
+  function initialize(): {
+    strategy: NodeSdkTelemetryStrategy;
+    sdk: SdkInternals;
+  } {
     const strategy = new NodeSdkTelemetryStrategy();
-    const sdk = strategy.initialize(resource);
+    const sdk = strategy.initialize(resource) as unknown as SdkInternals;
+    return { strategy, sdk };
+  }
 
-    // Assert
-    expect(sdk).toBeDefined();
-    expect(typeof sdk.start).toBe("function");
-    expect(typeof sdk.shutdown).toBe("function");
-    expect(strategy.name).toBe("Azure AppInsights");
+  describe("exporter selection", () => {
+    it("wires Azure trace and log exporters", () => {
+      vi.stubEnv("APPLICATIONINSIGHTS_CONNECTION_STRING", AZURE);
+
+      const { strategy } = initialize();
+
+      expect(strategy.name).toBe("Azure AppInsights");
+      expect(traceExporters(strategy)).toHaveLength(1);
+      expect(logExporters(strategy)).toHaveLength(1);
+    });
+
+    it("fans out to Azure and OTLP when both are set", () => {
+      vi.stubEnv("APPLICATIONINSIGHTS_CONNECTION_STRING", AZURE);
+      vi.stubEnv("OTEL_EXPORTER_OTLP_ENDPOINT", OTLP_GRPC);
+
+      const { strategy } = initialize();
+
+      expect(strategy.name).toBe("Azure AppInsights + OTel");
+      expect(traceExporters(strategy)).toHaveLength(2);
+      expect(logExporters(strategy)).toHaveLength(2);
+    });
+
+    it("defaults OTLP to gRPC when no protocol is set", () => {
+      vi.stubEnv("OTEL_EXPORTER_OTLP_ENDPOINT", OTLP_GRPC);
+
+      const { strategy } = initialize();
+
+      expect(strategy.name).toBe("OTel");
+      expect(traceExporters(strategy)).toEqual([
+        expect.any(OTLPGrpcTraceExporter),
+      ]);
+      expect(logExporters(strategy)).toEqual([expect.any(OTLPGrpcLogExporter)]);
+    });
+
+    it("honours OTEL_EXPORTER_OTLP_PROTOCOL and per-signal overrides", () => {
+      vi.stubEnv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4318");
+      vi.stubEnv("OTEL_EXPORTER_OTLP_PROTOCOL", "http/protobuf");
+      vi.stubEnv("OTEL_EXPORTER_OTLP_LOGS_PROTOCOL", "http/json");
+
+      const { strategy } = initialize();
+
+      expect(traceExporters(strategy)).toEqual([
+        expect.any(OTLPProtoTraceExporter),
+      ]);
+      expect(logExporters(strategy)).toEqual([expect.any(OTLPJsonLogExporter)]);
+    });
+
+    it("exports only the signal whose own endpoint is set", () => {
+      vi.stubEnv("OTEL_EXPORTER_OTLP_LOGS_ENDPOINT", OTLP_GRPC);
+
+      const { strategy } = initialize();
+
+      expect(traceExporters(strategy)).toHaveLength(0);
+      expect(logExporters(strategy)).toHaveLength(1);
+    });
+
+    it("throws when no exporter is configured", () => {
+      const strategy = new NodeSdkTelemetryStrategy();
+
+      expect(() => strategy.initialize(resource)).toThrow(
+        "No telemetry exporter configured",
+      );
+      expect(strategy.name).toBe("none");
+    });
   });
 
-  it("registers undici instrumentation so traceparent reaches the API", () => {
-    // Arrange
-    process.env.OTEL_EXPORTER_OTLP_ENDPOINT = "http://localhost:4317";
-    const strategy = new NodeSdkTelemetryStrategy();
+  it("writes JSON stdout only when TELEMETRY_CONSOLE_FALLBACK is true", () => {
+    vi.stubEnv("OTEL_EXPORTER_OTLP_ENDPOINT", OTLP_GRPC);
+    const quiet = initialize().strategy;
 
-    // Act
-    const sdk = strategy.initialize(resource);
+    vi.stubEnv("TELEMETRY_CONSOLE_FALLBACK", "true");
+    const forced = initialize().strategy;
 
-    // Assert
-    const registered = (sdk as unknown as { _instrumentations?: unknown[] })
-      ._instrumentations;
-    const names = (registered ?? []).map(
-      (i) => (i as { instrumentationName?: string }).instrumentationName,
-    );
-
-    expect(names).toContain("@opentelemetry/instrumentation-undici");
-  });
-
-  it("names the combined Azure + OTLP mode when both exporters are set", () => {
-    // Arrange
-    process.env.APPLICATIONINSIGHTS_CONNECTION_STRING =
-      "InstrumentationKey=test";
-    process.env.OTEL_EXPORTER_OTLP_ENDPOINT = "http://localhost:4317";
-
-    // Act
-    const strategy = new NodeSdkTelemetryStrategy();
-    strategy.initialize(resource);
-
-    // Assert
-    expect(strategy.name).toBe("Azure AppInsights + OTel");
-  });
-
-  it("does not let NodeSDK build metric or logger pipelines from env", () => {
-    // Arrange — omitted options make NodeSDK add an OTLP metric reader and a second
-    // logger provider aimed at localhost:4318.
-    process.env.APPLICATIONINSIGHTS_CONNECTION_STRING =
-      "InstrumentationKey=test";
-    const strategy = new NodeSdkTelemetryStrategy();
-
-    // Act
-    const sdk = strategy.initialize(resource) as unknown as {
-      _meterProviderConfig?: { readers: unknown[] };
-      _loggerProviderConfig?: { logRecordProcessors: unknown[] };
-    };
-
-    // Assert
-    expect(sdk._meterProviderConfig?.readers).toEqual([]);
-    expect(sdk._loggerProviderConfig?.logRecordProcessors).toEqual([]);
-  });
-
-  it("defaults OTLP to gRPC when no protocol is set", () => {
-    // Arrange
-    process.env.OTEL_EXPORTER_OTLP_ENDPOINT = "http://localhost:4317";
-    const strategy = new NodeSdkTelemetryStrategy();
-
-    // Act
-    strategy.initialize(resource);
-
-    // Assert
-    expect(traceExporters(strategy)[0]).toBeInstanceOf(OTLPGrpcTraceExporter);
-  });
-
-  it("honours OTEL_EXPORTER_OTLP_PROTOCOL and per-signal overrides", () => {
-    // Arrange
-    process.env.OTEL_EXPORTER_OTLP_ENDPOINT = "http://localhost:4318";
-    process.env.OTEL_EXPORTER_OTLP_PROTOCOL = "http/protobuf";
-    process.env.OTEL_EXPORTER_OTLP_LOGS_PROTOCOL = "http/json";
-    const strategy = new NodeSdkTelemetryStrategy();
-
-    // Act
-    strategy.initialize(resource);
-
-    // Assert
-    expect(traceExporters(strategy)[0]).toBeInstanceOf(OTLPProtoTraceExporter);
-    expect(logExporters(strategy)[0]).toBeInstanceOf(OTLPJsonLogExporter);
-    expect(logExporters(strategy)).not.toContainEqual(
-      expect.any(OTLPProtoLogExporter),
-    );
-  });
-
-  it("exports only the signal whose own endpoint is set", () => {
-    // Arrange
-    process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT = "http://localhost:4317";
-    const strategy = new NodeSdkTelemetryStrategy();
-
-    // Act
-    strategy.initialize(resource);
-
-    // Assert
-    expect(traceExporters(strategy)).toHaveLength(0);
-    expect(logExporters(strategy)).toHaveLength(1);
-  });
-
-  it("writes stdout only when TELEMETRY_CONSOLE_FALLBACK is true", () => {
-    // Arrange
-    process.env.OTEL_EXPORTER_OTLP_ENDPOINT = "http://localhost:4317";
-    const quiet = new NodeSdkTelemetryStrategy();
-    quiet.initialize(resource);
-
-    process.env.TELEMETRY_CONSOLE_FALLBACK = "true";
-    const forced = new NodeSdkTelemetryStrategy();
-
-    // Act
-    forced.initialize(resource);
-
-    // Assert
     expect(logExporters(quiet)).not.toContainEqual(
       expect.any(JsonConsoleLogRecordExporter),
     );
@@ -200,31 +171,119 @@ describe("NodeSdkTelemetryStrategy", () => {
     );
   });
 
-  it("throws when no exporter is configured", () => {
-    // Act & Assert
-    const strategy = new NodeSdkTelemetryStrategy();
-    expect(() => strategy.initialize(resource)).toThrow(
-      "No telemetry exporter configured",
+  it("runs the noisy-span filter before any exporting processor", () => {
+    vi.stubEnv("APPLICATIONINSIGHTS_CONNECTION_STRING", AZURE);
+
+    const { strategy } = initialize();
+
+    expect(spanProcessors(strategy)[0]).toBeInstanceOf(FilteringSpanProcessor);
+  });
+
+  it("does not let NodeSDK build metric or logger pipelines from env", () => {
+    // Omitted options make NodeSDK add an OTLP metric reader and a second logger
+    // provider aimed at localhost:4318.
+    vi.stubEnv("APPLICATIONINSIGHTS_CONNECTION_STRING", AZURE);
+
+    const { sdk } = initialize();
+
+    expect(sdk._meterProviderConfig?.readers).toEqual([]);
+    expect(sdk._loggerProviderConfig?.logRecordProcessors).toEqual([]);
+  });
+
+  it("registers undici instrumentation so traceparent reaches the API", () => {
+    vi.stubEnv("OTEL_EXPORTER_OTLP_ENDPOINT", OTLP_GRPC);
+
+    const { sdk } = initialize();
+
+    expect(sdk._instrumentations.map((i) => i.instrumentationName)).toContain(
+      "@opentelemetry/instrumentation-undici",
     );
   });
 
-  it("installs the noisy-span filter on the Azure path", () => {
+  it("registers nothing global when an exporter constructor throws", () => {
     // Arrange
-    process.env.APPLICATIONINSIGHTS_CONNECTION_STRING =
-      "InstrumentationKey=test";
+    vi.stubEnv("APPLICATIONINSIGHTS_CONNECTION_STRING", INVALID_AZURE);
+    const setProvider = vi.spyOn(logs, "setGlobalLoggerProvider");
     const strategy = new NodeSdkTelemetryStrategy();
 
-    // Act
-    const sdk = strategy.initialize(resource);
-    const processors = (sdk as unknown as { _spanProcessors?: unknown[] })
-      ._spanProcessors;
+    // Act & Assert
+    expect(() => strategy.initialize(resource)).toThrow(
+      "Invalid connection string",
+    );
+    expect(setProvider).not.toHaveBeenCalled();
+  });
 
-    // Assert — field name varies by SDK version; either way the constructor must not throw
-    expect(sdk).toBeDefined();
-    if (processors) {
-      expect(processors.some((p) => p instanceof FilteringSpanProcessor)).toBe(
-        true,
+  describe("lifecycle", () => {
+    it("flushes every span processor and the logger provider", async () => {
+      // Arrange
+      vi.stubEnv("OTEL_EXPORTER_OTLP_ENDPOINT", OTLP_GRPC);
+      const { strategy } = initialize();
+      const flushes = [
+        ...spanProcessors(strategy),
+        internals(strategy).loggerProvider,
+      ].map((target) =>
+        vi
+          .spyOn(target as { forceFlush: () => Promise<void> }, "forceFlush")
+          .mockResolvedValue(undefined),
       );
-    }
+
+      // Act
+      await strategy.forceFlush();
+
+      // Assert
+      for (const flush of flushes) {
+        expect(flush).toHaveBeenCalled();
+      }
+    });
+
+    it("keeps flushing the others when one pipeline fails, then rejects", async () => {
+      // Arrange
+      vi.stubEnv("OTEL_EXPORTER_OTLP_ENDPOINT", OTLP_GRPC);
+      const { strategy } = initialize();
+      const [first, ...rest] = spanProcessors(strategy) as unknown as Array<{
+        forceFlush: () => Promise<void>;
+      }>;
+      vi.spyOn(first, "forceFlush").mockRejectedValue(
+        new Error("flush failed"),
+      );
+      const others = rest.map((processor) =>
+        vi.spyOn(processor, "forceFlush").mockResolvedValue(undefined),
+      );
+      const logFlush = vi
+        .spyOn(internals(strategy).loggerProvider, "forceFlush")
+        .mockResolvedValue();
+
+      // Act & Assert
+      await expect(strategy.forceFlush()).rejects.toThrow("flush failed");
+      for (const other of others) {
+        expect(other).toHaveBeenCalled();
+      }
+      expect(logFlush).toHaveBeenCalled();
+    });
+
+    it("shuts down the SDK and the logger provider it does not own", async () => {
+      // Arrange
+      vi.stubEnv("OTEL_EXPORTER_OTLP_ENDPOINT", OTLP_GRPC);
+      const strategy = new NodeSdkTelemetryStrategy();
+      const sdk = strategy.initialize(resource);
+      const sdkShutdown = vi.spyOn(sdk, "shutdown").mockResolvedValue();
+      const logShutdown = vi
+        .spyOn(internals(strategy).loggerProvider, "shutdown")
+        .mockResolvedValue();
+
+      // Act
+      await strategy.shutdown();
+
+      // Assert
+      expect(sdkShutdown).toHaveBeenCalled();
+      expect(logShutdown).toHaveBeenCalled();
+    });
+
+    it("resolves flush and shutdown before initialize", async () => {
+      const strategy = new NodeSdkTelemetryStrategy();
+
+      await expect(strategy.forceFlush()).resolves.toBeUndefined();
+      await expect(strategy.shutdown()).resolves.toBeUndefined();
+    });
   });
 });

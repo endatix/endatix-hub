@@ -212,7 +212,10 @@ export class NodeSdkTelemetryStrategy implements TelemetryInitStrategy {
       // fetch is undici, which bypasses node:http entirely, so HttpInstrumentation never sees
       // it. Next.js already creates fetch spans; we do not add FetchInstrumentation (that
       // package is for browsers, and @vercel/otel's fetch helper is Vercel-drain specific).
-      instrumentations: [new HttpInstrumentation(), new UndiciInstrumentation()],
+      instrumentations: [
+        new HttpInstrumentation(),
+        new UndiciInstrumentation(),
+      ],
     });
 
     // Same split as @vercel/otel: traces via the tracer SDK, logs via an explicit

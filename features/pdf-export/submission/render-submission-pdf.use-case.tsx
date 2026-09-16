@@ -14,6 +14,9 @@ import { preparePdfModel } from "./prepare-pdf-model.use-case";
 import { SubmissionDetailsPdf } from "./submission-details-pdf";
 
 const TRACER = "pdf-export";
+const LOGGER_NAME = "pdf-export";
+const PDF_DEADLINE_EXCEEDED = "PDF render exceeded the deadline.";
+const PDF_EXPORT_FAILED = "PDF export failed.";
 
 /** Which entry point asked for the PDF; the two have different size profiles. */
 type PdfExportCaller = "anonymous-token" | "hub-authenticated";
@@ -117,13 +120,7 @@ export async function renderSubmissionPdf({
               "pdf.outcome": "timeout",
               "pdf.durationMs": durationMs,
             });
-            logPdfDeadlineExceeded(caller, { "pdf.durationMs": durationMs });
-
-            return Result.error(
-              "PDF render exceeded the deadline.",
-              undefined,
-              PDF_RENDER_TIMEOUT_CODE,
-            );
+            return deadlineExceeded(caller, { "pdf.durationMs": durationMs });
           }
 
           span.setAttributes({
@@ -137,29 +134,45 @@ export async function renderSubmissionPdf({
     );
   } catch (error) {
     if (isPdfRenderTimeout(error)) {
-      logPdfDeadlineExceeded(caller);
-      return Result.error(
-        "PDF render exceeded the deadline.",
-        undefined,
-        PDF_RENDER_TIMEOUT_CODE,
-      );
+      return deadlineExceeded(caller);
     }
 
-    return Result.error("PDF export failed.");
+    // Safe scalars only: renderer errors can quote image URLs, and those may
+    // carry storage SAS tokens. The span keeps the full exception for tracing.
+    TelemetryLogger.error(
+      PDF_EXPORT_FAILED,
+      undefined,
+      {
+        "pdf.caller": caller,
+        "error.type": error instanceof Error ? error.name : typeof error,
+      },
+      LOGGER_NAME,
+    );
+    return Result.error(PDF_EXPORT_FAILED);
   }
 }
 
-function logPdfDeadlineExceeded(
+/**
+ * Logs the overrun as a warning (an expected outcome, not an exception) and
+ * returns the timeout Result callers map to their own response.
+ */
+function deadlineExceeded(
   caller: PdfExportCaller,
   attributes: { "pdf.durationMs"?: number } = {},
-): void {
+): Result<Blob> {
   TelemetryLogger.warn(
-    "PDF render exceeded the deadline.",
+    PDF_DEADLINE_EXCEEDED,
     {
       "pdf.caller": caller,
       "pdf.timeoutMs": renderTimeoutMs(),
       ...attributes,
     },
-    "pdf-export",
+    LOGGER_NAME,
+  );
+
+  return Result.error(
+    PDF_DEADLINE_EXCEEDED,
+    undefined,
+    PDF_RENDER_TIMEOUT_CODE,
   );
 }

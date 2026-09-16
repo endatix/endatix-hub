@@ -1,15 +1,21 @@
 /**
- * Packages Next must leave unbundled so instrumentation and request handlers
- * share one `@opentelemetry/api` / `api-logs` singleton. A second copy of
- * api-logs makes TelemetryLogger.emit() a no-op while HTTP spans still export.
+ * Packages Next must leave unbundled, so instrumentation and request handlers load
+ * the same OpenTelemetry modules the SDK registered its global providers with.
+ *
+ * Every @opentelemetry / @azure import under features/telemetry/infrastructure must
+ * be listed; otel-server-externals.test.ts fails when one is missing.
  */
 export const OTEL_SERVER_EXTERNAL_PACKAGES = [
   "@opentelemetry/api",
   "@opentelemetry/api-logs",
+  "@opentelemetry/context-async-hooks",
+  "@opentelemetry/core",
+  "@opentelemetry/resources",
+  "@opentelemetry/semantic-conventions",
   "@opentelemetry/sdk-logs",
   "@opentelemetry/sdk-node",
-  "@opentelemetry/sdk-trace-node",
   "@opentelemetry/sdk-trace-base",
+  "@opentelemetry/sdk-trace-node",
   "@opentelemetry/instrumentation-http",
   "@opentelemetry/instrumentation-undici",
   "@opentelemetry/exporter-trace-otlp-grpc",
