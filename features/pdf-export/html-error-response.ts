@@ -4,6 +4,7 @@ import {
   getExportErrorContent,
   resolveExportErrorCode,
 } from "./export-error-content";
+import { resolveSupportReference } from "./support-reference";
 import {
   EXPORT_RETRY_COOKIE,
   EXPORT_RETRY_COOKIE_MAX_AGE_SECONDS,
@@ -66,15 +67,29 @@ export async function asBrowserExportError(
   }
 
   let errorCode: string | undefined;
+  let apiTraceId: string | undefined;
   try {
-    const body = (await response.clone().json()) as { errorCode?: string };
+    const body = (await response.clone().json()) as {
+      errorCode?: string;
+      traceId?: string;
+    };
     errorCode = body.errorCode;
+    apiTraceId = body.traceId;
   } catch {
     // Not problem-details JSON; the status alone still resolves a code.
   }
 
   const code = resolveExportErrorCode(response.status, errorCode);
-  const target = `${withBasePath(EXPORT_ERROR_PATH)}?code=${encodeURIComponent(code)}`;
+
+  // A correlation id the reader can quote. Not a secret, unlike the token.
+  const reference = resolveSupportReference(apiTraceId);
+
+  const query = new URLSearchParams({ code });
+  if (reference) {
+    query.set("ref", reference);
+  }
+
+  const target = `${withBasePath(EXPORT_ERROR_PATH)}?${query.toString()}`;
 
   // Built by hand: NextResponse.redirect() rejects a relative target.
   const redirect = new NextResponse(null, {

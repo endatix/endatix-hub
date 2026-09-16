@@ -28,6 +28,8 @@ import {
   parseExportRetryTarget,
 } from "@/features/pdf-export/export-retry-target";
 import { RetryExportButton } from "@/features/pdf-export/export-error/retry-export-button";
+import { SupportReferenceLine } from "@/features/pdf-export/export-error/support-reference-line";
+import { parseSupportReference } from "@/features/pdf-export/support-reference";
 
 const ICONS: Readonly<Record<ExportErrorCode, LucideIcon>> = {
   [EXPORT_ERROR_CODE.TIMEOUT]: Clock,
@@ -50,7 +52,7 @@ function retryHint(retryable: boolean, canRetry: boolean): string {
 }
 
 interface ExportErrorPageProps {
-  searchParams: Promise<{ code?: string }>;
+  searchParams: Promise<{ code?: string; ref?: string }>;
 }
 
 /**
@@ -61,7 +63,7 @@ interface ExportErrorPageProps {
 export default async function ExportErrorPage({
   searchParams,
 }: ExportErrorPageProps) {
-  const { code } = await searchParams;
+  const { code, ref } = await searchParams;
   const content = getExportErrorContent(code);
   const Icon = ICONS[content.key];
 
@@ -72,6 +74,9 @@ export default async function ExportErrorPage({
     ? (await cookies()).get(EXPORT_RETRY_COOKIE)?.value
     : undefined;
   const canRetry = parseExportRetryTarget(storedRetry) !== null;
+
+  // Arrives in the URL, so clamp its shape before putting it on the page.
+  const reference = parseSupportReference(ref);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4 md:p-8">
@@ -89,13 +94,17 @@ export default async function ExportErrorPage({
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col items-center gap-6 text-center">
-          {canRetry && <RetryExportButton />}
+          {canRetry && (
+            <RetryExportButton cooldownSeconds={content.retryCooldownSeconds} />
+          )}
 
           <Separator />
 
           <p className="max-w-prose text-sm text-muted-foreground">
             {retryHint(content.retryable, canRetry)}
           </p>
+
+          {reference && <SupportReferenceLine reference={reference} />}
         </CardContent>
       </Card>
     </div>

@@ -103,11 +103,7 @@ describe("asBrowserExportError", () => {
     expect(cookie?.sameSite).toBe("lax");
   });
 
-  /**
-   * A timed-out render keeps running after the deadline, so there is no retry
-   * button - and therefore no reason to keep the token in a cookie.
-   */
-  it("does not store the token for a code with no retry button", async () => {
+  it("stores the retry link for a timed-out render too", async () => {
     // Arrange
     const jsonResponse = apiResponses.badGateway({
       detail: "PDF export took too long.",
@@ -122,7 +118,44 @@ describe("asBrowserExportError", () => {
     );
 
     // Assert
+    expect(response.cookies.get("endatix_export_retry")?.value).toBe(
+      RETRY_TARGET,
+    );
+  });
+
+  /** Codes that cannot succeed on a retry never store the token at all. */
+  it("does not store the token for a code with no retry button", async () => {
+    // Arrange
+    const jsonResponse = apiResponses.unauthorized({
+      detail: "Access token has expired.",
+    });
+
+    // Act
+    const response = await asBrowserExportError(
+      jsonResponse,
+      "text/html",
+      RETRY_TARGET,
+    );
+
+    // Assert
     expect(response.cookies.get("endatix_export_retry")).toBeUndefined();
+  });
+
+  /** The reference is a correlation id, so it may travel in the URL. */
+  it("carries the API trace id through as a support reference", async () => {
+    // Arrange
+    const jsonResponse = apiResponses.badGateway({
+      detail: "Upstream down.",
+      traceId: "4bf92f3577b34da6a3ce929d0e0e4736",
+    });
+
+    // Act
+    const response = await asBrowserExportError(jsonResponse, "text/html");
+
+    // Assert
+    expect(response.headers.get("location")).toBe(
+      "/export-error?code=upstream&ref=4bf92f3577b34da6a3ce929d0e0e4736",
+    );
   });
 
   it("refuses to store a tampered retry target", async () => {

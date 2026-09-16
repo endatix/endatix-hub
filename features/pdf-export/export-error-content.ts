@@ -31,16 +31,17 @@ type ExportErrorContent = {
   description: string;
   /** Whether retrying the same link is worth suggesting at all. */
   retryable: boolean;
-  /**
-   * Whether to offer a one-click retry button.
-   *
-   * Deliberately narrower than `retryable`. A timed-out render is not cancelled
-   * when the deadline fires - it keeps consuming CPU until it finishes - so a
-   * retry button there invites hammering a server that is already struggling.
-   * An upstream failure is the case where retrying promptly can genuinely
-   * succeed, so that is the only one that gets the button.
-   */
+  /** Whether to offer a one-click retry button. */
   offersRetry: boolean;
+  /**
+   * How long the retry stays disabled.
+   *
+   * A timed-out render is not cancelled when the timeout fires - it keeps
+   * consuming CPU until it finishes - so retrying too soon adds load to a server
+   * still working off the last request. That case waits longer than an upstream
+   * failure, where the far end may already have recovered.
+   */
+  retryCooldownSeconds: number;
 };
 
 const CONTENT: Readonly<
@@ -52,7 +53,8 @@ const CONTENT: Readonly<
     description:
       "The PDF could not be produced in time. Nothing has been lost. Waiting a moment usually helps, because a less busy server finishes well inside the limit.",
     retryable: true,
-    offersRetry: false,
+    offersRetry: true,
+    retryCooldownSeconds: 30,
   },
   [EXPORT_ERROR_CODE.UPSTREAM]: {
     eyebrow: "Service unavailable",
@@ -61,6 +63,7 @@ const CONTENT: Readonly<
       "The submission could not be loaded, so the PDF was not generated. This is usually brief - try again in a moment.",
     retryable: true,
     offersRetry: true,
+    retryCooldownSeconds: 10,
   },
   [EXPORT_ERROR_CODE.EXPIRED]: {
     eyebrow: "Link expired",
@@ -69,6 +72,7 @@ const CONTENT: Readonly<
       "Export links are valid for a limited time. Ask whoever shared it to send a new one.",
     retryable: false,
     offersRetry: false,
+    retryCooldownSeconds: 0,
   },
   [EXPORT_ERROR_CODE.FORBIDDEN]: {
     eyebrow: "No access",
@@ -77,6 +81,7 @@ const CONTENT: Readonly<
       "The link does not carry export permission. Ask whoever shared it for a link that allows exporting.",
     retryable: false,
     offersRetry: false,
+    retryCooldownSeconds: 0,
   },
   [EXPORT_ERROR_CODE.NOT_FOUND]: {
     eyebrow: "Not found",
@@ -85,6 +90,7 @@ const CONTENT: Readonly<
       "It may have been deleted, or the link may be incomplete. Check that you copied the whole link.",
     retryable: false,
     offersRetry: false,
+    retryCooldownSeconds: 0,
   },
   [EXPORT_ERROR_CODE.INVALID]: {
     eyebrow: "Invalid link",
@@ -93,6 +99,7 @@ const CONTENT: Readonly<
       "Part of the link is missing or malformed. Check that you copied the whole link, including everything after the question mark.",
     retryable: false,
     offersRetry: false,
+    retryCooldownSeconds: 0,
   },
   [EXPORT_ERROR_CODE.UNKNOWN]: {
     eyebrow: "Something went wrong",
@@ -101,6 +108,7 @@ const CONTENT: Readonly<
       "Try again in a moment. If it keeps happening, share this page with your administrator.",
     retryable: true,
     offersRetry: false,
+    retryCooldownSeconds: 0,
   },
 });
 
