@@ -84,11 +84,9 @@ const PdfMatrixDropdownAnswer = ({
                   style={{ ...PDF_TABLE_STYLES.tableCell, flex: 1.5 }}
                 >
                   <Text>
-                    {pdfPlainText(
-                      formatMatrixDropdownCell(
-                        rowValue[column.name],
-                        rowDisplay[column.name],
-                      ),
+                    {formatMatrixDropdownCell(
+                      rowValue[column.name],
+                      rowDisplay[column.name],
                     )}
                   </Text>
                 </View>

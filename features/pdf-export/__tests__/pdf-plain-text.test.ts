@@ -18,4 +18,14 @@ describe("pdfPlainText", () => {
     expect(pdfPlainText(null)).toBe("");
     expect(pdfPlainText(undefined)).toBe("");
   });
+
+  it("stringifies numbers and booleans without sanitizing", () => {
+    expect(pdfPlainText(18)).toBe("18");
+    expect(pdfPlainText(true)).toBe("true");
+  });
+
+  it("drops out-of-range numeric entities instead of throwing", () => {
+    expect(pdfPlainText("A&#1114112;B")).toBe("AB");
+    expect(pdfPlainText("A&#x110000;B")).toBe("AB");
+  });
 });
