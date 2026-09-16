@@ -149,4 +149,82 @@ describe("TelemetryInitializer", () => {
       expect.any(Error),
     );
   });
+
+  it("flushes on SIGTERM without exiting, leaving the drain to Next.js", async () => {
+    // Arrange
+    process.env.APPLICATIONINSIGHTS_CONNECTION_STRING = "test-conn";
+    delete process.env.NEXT_MANUAL_SIG_HANDLE;
+    const forceFlush = vi.fn(() => Promise.resolve());
+    const shutdown = vi.fn(() => Promise.resolve());
+    (
+      NodeSdkTelemetryStrategy as unknown as {
+        mockImplementation: (impl: () => unknown) => void;
+      }
+    ).mockImplementation(function () {
+      return {
+        initialize: vi.fn(() => ({ start: vi.fn(), shutdown })),
+        forceFlush,
+        name: "Azure AppInsights",
+      };
+    });
+    const signalHandlers = new Map<string, () => void>();
+    vi.spyOn(process, "once").mockImplementation(((
+      event: string,
+      handler: () => void,
+    ) => {
+      signalHandlers.set(event, handler);
+      return process;
+    }) as typeof process.once);
+    vi.spyOn(process, "on").mockImplementation(
+      (() => process) as typeof process.on,
+    );
+    const exit = vi
+      .spyOn(process, "exit")
+      .mockImplementation((() => undefined) as never);
+
+    // Act
+    new TelemetryInitializer().initialize();
+    signalHandlers.get("SIGTERM")?.();
+    await Promise.resolve();
+
+    // Assert
+    expect(signalHandlers.has("SIGTERM")).toBe(true);
+    expect(forceFlush).toHaveBeenCalled();
+    expect(shutdown).not.toHaveBeenCalled();
+    expect(exit).not.toHaveBeenCalled();
+    vi.restoreAllMocks();
+  });
+
+  it("gives the strategy a detected resource with OTEL_RESOURCE_ATTRIBUTES", () => {
+    // Arrange
+    process.env.OTEL_EXPORTER_OTLP_ENDPOINT = "http://localhost:4317";
+    process.env.OTEL_RESOURCE_ATTRIBUTES =
+      "deployment.environment.name=staging";
+    const initialize = vi.fn(() => ({ start: vi.fn(), shutdown: vi.fn() }));
+    (
+      NodeSdkTelemetryStrategy as unknown as {
+        mockImplementation: (impl: () => unknown) => void;
+      }
+    ).mockImplementation(function () {
+      return { initialize, name: "OTel" };
+    });
+    vi.spyOn(process, "once").mockImplementation(
+      (() => process) as typeof process.once,
+    );
+    vi.spyOn(process, "on").mockImplementation(
+      (() => process) as typeof process.on,
+    );
+
+    // Act
+    new TelemetryInitializer().initialize();
+
+    // Assert
+    const resource = (initialize.mock.calls[0] as unknown[])[0] as {
+      attributes: Record<string, unknown>;
+    };
+    expect(resource.attributes["deployment.environment.name"]).toBe("staging");
+    expect(resource.attributes["service.name"]).toBe("endatix-hub");
+    expect(resource.attributes["host.name"]).toBeDefined();
+    vi.restoreAllMocks();
+  });
 });

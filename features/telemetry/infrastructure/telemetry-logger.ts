@@ -1,5 +1,6 @@
 import { logs, SeverityNumber } from "@opentelemetry/api-logs";
 import { TelemetryConfig } from "./telemetry-config";
+import { redactSensitiveAttributes } from "./redact-sensitive-attributes";
 
 /**
  * Severity levels for logging
@@ -52,9 +53,6 @@ const consoleMethodMap: Record<
   [LogSeverity.Error]: "error",
   [LogSeverity.Critical]: "error",
 };
-
-const sensitiveAttributePattern =
-  /(authorization|cookie|token|secret|password|api[-_ ]?key|connection[-_ ]?string)/i;
 
 /**
  * Log record attributes
@@ -163,22 +161,21 @@ export class TelemetryLogger {
     const consoleMethod = consoleMethodMap[severity];
     console[consoleMethod](`[${loggerName}] ${message}`, {
       severity,
-      attributes: sanitizeConsoleAttributes(attributes),
+      attributes: redactSensitiveAttributes(attributes),
     });
   }
 
   private static shouldUseConsoleFallback(): boolean {
-    const hasTelemetryExporter =
-      TelemetryConfig.isAzureConfigured() || TelemetryConfig.isOtelConfigured();
-
-    if (hasTelemetryExporter) {
-      // Stdout is the ConsoleLogRecordExporter on the NodeSDK log pipeline.
+    // With a running exporter, stdout (when forced) is the JSON-lines console
+    // exporter on the OTel log pipeline, so mirroring here would print twice.
+    // OTEL_SDK_DISABLED counts as no exporter, or records would go nowhere.
+    if (TelemetryConfig.hasActiveExporter()) {
       return false;
     }
 
     return (
       process.env.NODE_ENV === "development" ||
-      process.env.TELEMETRY_CONSOLE_FALLBACK === "true"
+      TelemetryConfig.isConsoleOutputForced()
     );
   }
 
@@ -237,26 +234,7 @@ export class TelemetryLogger {
     attributes?: LogAttributes,
     loggerName?: string,
   ): void {
-    const enhancedAttributes: LogAttributes = {
-      ...attributes,
-    };
-
-    if (error) {
-      const err =
-        error instanceof Error ? error : new Error(parseErrorMessage(error));
-      // OTEL semantic convention – Azure maps these to Failures; body includes context so it appears in exception view
-      enhancedAttributes["exception.type"] = err.name;
-      enhancedAttributes["exception.message"] = err.message;
-      enhancedAttributes["exception.stacktrace"] = err.stack ?? "";
-      this.log(
-        `${message}: ${err.message}`,
-        LogSeverity.Error,
-        enhancedAttributes,
-        loggerName,
-      );
-    } else {
-      this.log(message, LogSeverity.Error, enhancedAttributes, loggerName);
-    }
+    this.logFailure(LogSeverity.Error, message, error, attributes, loggerName);
   }
 
   /**
@@ -272,33 +250,44 @@ export class TelemetryLogger {
     attributes?: LogAttributes,
     loggerName?: string,
   ): void {
-    const enhancedAttributes: LogAttributes = {
-      ...attributes,
-    };
-
-    if (error) {
-      const err =
-        error instanceof Error ? error : new Error(parseErrorMessage(error));
-      enhancedAttributes["exception.type"] = err.name;
-      enhancedAttributes["exception.message"] = err.message;
-      enhancedAttributes["exception.stacktrace"] = err.stack ?? "";
-      this.log(
-        `${message}: ${err.message}`,
-        LogSeverity.Critical,
-        enhancedAttributes,
-        loggerName,
-      );
-    } else {
-      this.log(message, LogSeverity.Critical, enhancedAttributes, loggerName);
-    }
+    this.logFailure(
+      LogSeverity.Critical,
+      message,
+      error,
+      attributes,
+      loggerName,
+    );
   }
-}
 
-function sanitizeConsoleAttributes(attributes: LogAttributes): LogAttributes {
-  return Object.fromEntries(
-    Object.entries(attributes).map(([key, value]) => [
-      key,
-      sensitiveAttributePattern.test(key) ? "[REDACTED]" : value,
-    ]),
-  );
+  /**
+   * Error and critical share one shape: with an error, the OTel exception.*
+   * attributes are added (Azure Monitor maps type + stacktrace to `exceptions`)
+   * and the error message is appended to the body.
+   */
+  private static logFailure(
+    severity: LogSeverity.Error | LogSeverity.Critical,
+    message: string,
+    error: unknown,
+    attributes: LogAttributes = {},
+    loggerName?: string,
+  ): void {
+    if (!error) {
+      this.log(message, severity, { ...attributes }, loggerName);
+      return;
+    }
+
+    const err =
+      error instanceof Error ? error : new Error(parseErrorMessage(error));
+    this.log(
+      `${message}: ${err.message}`,
+      severity,
+      {
+        ...attributes,
+        "exception.type": err.name,
+        "exception.message": err.message,
+        "exception.stacktrace": err.stack ?? "",
+      },
+      loggerName,
+    );
+  }
 }

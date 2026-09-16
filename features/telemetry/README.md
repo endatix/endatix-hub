@@ -80,11 +80,14 @@ TelemetryLogger.critical(message: string, error?: unknown, attributes?: LogAttri
 
 ## Configuration
 
-- **Azure**: set `APPLICATIONINSIGHTS_CONNECTION_STRING` at **runtime**. Azure Monitor **exporters** (not `useAzureMonitor`) share one NodeSDK with an explicit `LoggerProvider` (`logs.setGlobalLoggerProvider`), matching the `@vercel/otel` logs split. Span filter still drops `/_next/*`, RSC, health, etc.
-- **OTLP**: set `OTEL_EXPORTER_OTLP_ENDPOINT`. Both Azure and OTLP may be set (fan-out).
-- **`OTEL_SERVICE_NAME`**, **`OTEL_SDK_DISABLED`**, **`OTEL_LOG_LEVEL`**: standard OTel env vars.
-- If neither exporter is set, the SDK is not started; `TelemetryLogger` mirrors to the console in development.
-- With an exporter, stdout is the `ConsoleLogRecordExporter`. `TELEMETRY_CONSOLE_FALLBACK=true` only when there is no exporter and production must still print.
+- **Azure**: set `APPLICATIONINSIGHTS_CONNECTION_STRING` at **runtime**. Azure Monitor **exporters** (not `useAzureMonitor`) share one NodeSDK with an explicit `LoggerProvider` (`logs.setGlobalLoggerProvider`), matching the `@vercel/otel` logs split. Span filter still drops `/_next/*`, RSC, health, etc. No Live Metrics or performance counters (those come only with the distro).
+- **OTLP**: set `OTEL_EXPORTER_OTLP_ENDPOINT` (or a per-signal `OTEL_EXPORTER_OTLP_{TRACES,LOGS}_ENDPOINT`). `OTEL_EXPORTER_OTLP_[SIGNAL_]PROTOCOL` picks `grpc` (default), `http/protobuf` or `http/json`. Headers, `_INSECURE`, `_CERTIFICATE` and client certs are read by the exporters from the standard env vars. Both Azure and OTLP may be set (fan-out).
+- **Resource**: env, host and process detectors run once in `TelemetryInitializer`; spans and logs share the result, so `OTEL_RESOURCE_ATTRIBUTES` (e.g. `deployment.environment.name=staging`) reaches both.
+- **Metrics**: none. NodeSDK gets empty `metricReaders` / `logRecordProcessors` so it does not build env-driven pipelines of its own.
+- **`OTEL_SERVICE_NAME`**, **`OTEL_SDK_DISABLED`** (`true` only, per spec), **`OTEL_LOG_LEVEL`**: standard OTel env vars.
+- If no exporter is active (none set, or `OTEL_SDK_DISABLED=true`), `TelemetryLogger` mirrors to the console in development, or in production with `TELEMETRY_CONSOLE_FALLBACK=true`.
+- With an active exporter, stdout is off unless `TELEMETRY_CONSOLE_FALLBACK=true`, which adds a one-JSON-object-per-line console exporter to the log pipeline.
+- **Shutdown**: on SIGTERM/SIGINT Hub only flushes; Next.js drains requests and exits.
 
 ---
 
@@ -102,9 +105,10 @@ pnpm test -- --run features/telemetry
 | **FilteringSpanProcessor** | `filtering-span-processor.test.ts` | Spans matching URL/pattern or internal metric → `traceFlags` set to NONE; non-matching span unchanged; `forceFlush`/`shutdown` |
 | **TelemetryLogger** | `telemetry-logger.test.ts` | `debug`/`info`/`warn`/`error`/`critical` call OTEL logger `emit` with correct severity, body, attributes; error/critical with `Error` set `exception.*` and combined body; console fallback behavior |
 | **TelemetryTracer** | `telemetry-tracer.test.ts` | `getTracer`, `traceAsync`/`trace` invoke callback with span and return result; on throw, `recordException` and `setStatus` called |
-| **NodeSdkTelemetryStrategy** | `node-sdk-telemetry-strategy.test.ts` | Azure/OTLP/both; undici instrumentation; throws when no exporter |
+| **NodeSdkTelemetryStrategy** | `node-sdk-telemetry-strategy.test.ts` | Azure/OTLP/both; OTLP protocol selection and per-signal endpoints; no env-built metric/log pipelines; JSON stdout only when forced; undici instrumentation; throws when no exporter |
+| **JsonConsoleLogRecordExporter** | `json-console-log-record-exporter.test.ts` | One JSON line per record; survives unserializable values |
 | **OTEL server externals** | `otel-server-externals.test.ts` | `serverExternalPackages` includes `api-logs` |
-| **TelemetryInitializer** | `telemetry-initializer.test.ts` | Strategy when Azure or OTLP set; `OTEL_SDK_DISABLED`; warning when none; error when init throws |
+| **TelemetryInitializer** | `telemetry-initializer.test.ts` | Strategy when Azure or OTLP set; `OTEL_SDK_DISABLED`; warning when none; error when init throws; SIGTERM flushes without exiting; detected resource includes `OTEL_RESOURCE_ATTRIBUTES` |
 
 OTEL APIs (`logs.getLogger`, `trace.getTracer`) are mocked so tests don’t require a running SDK.
 

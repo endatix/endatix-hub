@@ -13,6 +13,10 @@ export const OTEL_SERVER_EXTERNAL_PACKAGES = [
   "@opentelemetry/instrumentation-http",
   "@opentelemetry/instrumentation-undici",
   "@opentelemetry/exporter-trace-otlp-grpc",
+  "@opentelemetry/exporter-trace-otlp-proto",
+  "@opentelemetry/exporter-trace-otlp-http",
   "@opentelemetry/exporter-logs-otlp-grpc",
+  "@opentelemetry/exporter-logs-otlp-proto",
+  "@opentelemetry/exporter-logs-otlp-http",
   "@azure/monitor-opentelemetry-exporter",
 ] as const;

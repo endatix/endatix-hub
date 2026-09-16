@@ -2,25 +2,30 @@ import { NodeSDK } from "@opentelemetry/sdk-node";
 import { Resource } from "@opentelemetry/resources";
 
 /**
- * Strategy interface for telemetry SDK initialization
+ * Builds and owns the telemetry pipelines for one process.
  */
 export interface TelemetryInitStrategy {
   /**
-   * Initialize and start the telemetry SDK
-   * @param resource The OpenTelemetry resource
-   * @returns The initialized SDK (not started)
+   * Build the exporters, register the global LoggerProvider and return the
+   * NodeSDK. The caller starts it.
+   * @param resource Resource shared by spans and logs
    */
   initialize(resource: Resource): NodeSDK;
 
   /**
-   * Flush the Logs API provider. NodeSDK.shutdown() does not own a provider
-   * we register ourselves (same split @vercel/otel uses).
+   * Export everything buffered without stopping the pipelines, so records emitted
+   * afterwards (e.g. while Next.js drains requests on SIGTERM) still export.
    */
-  shutdownLogs?(): Promise<void>;
+  forceFlush(): Promise<void>;
 
   /**
-   * Get the name of the telemetry strategy
-   * @returns The name of the telemetry strategy
+   * Flush and stop every pipeline this strategy built: the NodeSDK and the
+   * LoggerProvider the SDK does not own.
    */
-  name: string;
+  shutdown(): Promise<void>;
+
+  /**
+   * Human-readable exporter mode, e.g. "Azure AppInsights + OTel"
+   */
+  readonly name: string;
 }

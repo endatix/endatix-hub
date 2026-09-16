@@ -123,7 +123,7 @@ This is useful for testing the production build locally e.g. test with enabled c
 
 Use `TelemetryLogger` from `features/telemetry` for application logs instead of calling `console` directly. The logger emits OpenTelemetry log records when Azure Application Insights (`APPLICATIONINSIGHTS_CONNECTION_STRING`) or OTLP (`OTEL_EXPORTER_OTLP_ENDPOINT`) is configured.
 
-When no telemetry exporter is configured, `TelemetryLogger` mirrors logs to the console in local development so failures remain visible. Production console fallback is off by default to avoid duplicate logs; enable it with `TELEMETRY_CONSOLE_FALLBACK=true` only when the host intentionally collects stdout/stderr.
+When no telemetry exporter is active, `TelemetryLogger` mirrors logs to the console in local development so failures remain visible. Production stdout is off by default to avoid duplicate logs; enable it with `TELEMETRY_CONSOLE_FALLBACK=true` only when the host intentionally collects stdout/stderr. With an exporter configured, that flag writes one JSON object per line.
 
 Keep log attributes safe and scalar. Do not log tokens, cookies, raw request bodies, field values, or unreviewed API detail strings. For API errors, prefer the shared result/telemetry mappers under `lib/result`.
 
