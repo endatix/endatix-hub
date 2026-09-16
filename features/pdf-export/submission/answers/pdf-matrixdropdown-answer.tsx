@@ -23,6 +23,7 @@ const PdfMatrixDropdownAnswer = ({
   question,
 }: Readonly<MatrixDropdownAnswerProps>) => {
   const value = asMatrixValue(question.value);
+  const displayByRow = asMatrixValue(question.getDisplayValue(false, value));
   const columns = question.columns ?? [];
   const rows = question.visibleRows ?? question.rows ?? [];
 

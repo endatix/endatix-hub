@@ -1,16 +1,6 @@
 import { formatChoiceDisplay } from "./format-choice-display";
 import { formatPdfCellValue } from "./format-pdf-cell-value";
 
-type MatrixDropdownCellQuestion = {
-  displayValue?: unknown;
-};
-
-type MatrixDropdownRow = {
-  getQuestionByColumnName?: (
-    name: string,
-  ) => MatrixDropdownCellQuestion | null | undefined;
-};
-
 function isChoiceStoredValue(
   value: unknown,
 ): value is string | number | boolean {
@@ -21,15 +11,12 @@ function isChoiceStoredValue(
   );
 }
 
-/** Resolves a matrix-dropdown cell to PDF text, preferring SurveyJS display labels. */
+/** PDF text for one matrix-dropdown cell: stored value + SurveyJS display label. */
 export function formatMatrixDropdownCell(
-  row: MatrixDropdownRow,
-  columnName: string,
   stored: unknown,
+  display: unknown,
 ): string {
-  const displayText = formatPdfCellValue(
-    row.getQuestionByColumnName?.(columnName)?.displayValue,
-  );
+  const displayText = formatPdfCellValue(display);
 
   if (isChoiceStoredValue(stored)) {
     return formatChoiceDisplay(stored, displayText || undefined);
