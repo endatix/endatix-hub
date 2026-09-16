@@ -2,11 +2,11 @@ import { describe, expect, it } from "vitest";
 import {
   isPdfRenderTimeout,
   raceWithTimeout,
-  remainingSwaBudgetMs,
-  SWA_SSR_BUDGET_MS,
-} from "../swa-render-budget";
+  remainingDeadlineMs,
+  RENDER_DEADLINE_MS,
+} from "../render-deadline";
 
-describe("swa-render-budget", () => {
+describe("render-deadline", () => {
   it("fails immediately when no budget remains", async () => {
     // Arrange & Act
     const work = Promise.resolve("ok");
@@ -33,10 +33,10 @@ describe("swa-render-budget", () => {
 
   it("computes remaining budget from start time", () => {
     // Arrange & Act
-    const remaining = remainingSwaBudgetMs(Date.now());
+    const remaining = remainingDeadlineMs(Date.now());
 
     // Assert
-    expect(remaining).toBeLessThanOrEqual(SWA_SSR_BUDGET_MS);
-    expect(remaining).toBeGreaterThan(SWA_SSR_BUDGET_MS - 50);
+    expect(remaining).toBeLessThanOrEqual(RENDER_DEADLINE_MS);
+    expect(remaining).toBeGreaterThan(RENDER_DEADLINE_MS - 50);
   });
 });

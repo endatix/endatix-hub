@@ -1,10 +1,6 @@
 import { preparePdfModel } from "@/features/pdf-export/server";
 import { SubmissionDetailsPdf } from "@/features/pdf-export/submission/submission-details-pdf";
-import {
-  asBrowserExportError,
-  prefersHtml,
-} from "@/features/pdf-export/html-error-response";
-import { swaBackendFailureResponse } from "@/lib/hosting/swa-backend-failure-response";
+import { asBrowserExportError } from "@/features/pdf-export/html-error-response";
 import { mapPublicPdfExportLoadError } from "@/features/pdf-export/map-public-pdf-export-load-error";
 import { getSubmissionByAccessTokenUseCase } from "@/features/public-submissions/edit/get-submission-by-access-token.use-case";
 import { resolveSubmissionFormDefinition } from "@/features/public-submissions/resolve-submission-form-definition";
@@ -17,8 +13,8 @@ import { NextRequest } from "next/server";
 import {
   isPdfRenderTimeout,
   raceWithTimeout,
-  remainingSwaBudgetMs,
-} from "@/features/pdf-export/swa-render-budget";
+  remainingDeadlineMs,
+} from "@/features/pdf-export/render-deadline";
 
 type Params = {
   params: Promise<{
@@ -32,7 +28,7 @@ const TOKEN_QUERY_PARAM = "token";
 /** TEMPORARY test scaffolding - see the block in GET. Remove before merging. */
 const FORCE_TIMEOUT_QUERY_PARAM = "timeOut";
 
-/** Comfortably past the ~45s Static Web Apps backend limit observed on this app. */
+/** Longer than any deadline, so the race below always expires first. */
 const FORCE_TIMEOUT_MS = 60_000;
 
 export async function GET(req: NextRequest, { params }: Params) {
@@ -40,22 +36,44 @@ export async function GET(req: NextRequest, { params }: Params) {
   const { formId } = await params;
   const searchParams = req.nextUrl.searchParams;
 
+  const accept = req.headers.get("accept");
+
   // ---------------------------------------------------------------------------
   // TEMPORARY test scaffolding for issue #980 - REMOVE BEFORE MERGING.
   //
-  // staticwebapp.config.json rewrites 500 responses to /swa-backend-failure.html,
-  // but Static Web Apps only documents responseOverrides for 4xx codes, so it is
-  // unproven that the rewrite fires for a platform-generated "Backend call failure"
-  // at all. The only faithful way to find out is to exceed the backend limit and
-  // let the platform produce the 500 itself.
+  // Static Web Apps only allows responseOverrides for 400/401/403/404; a 500
+  // rewrite fails deploy validation, so the edge "Backend call failure" page
+  // cannot be customized. The only error page we control is the one this route
+  // returns *before* the platform gives up.
   //
-  // Placement is deliberate. Before the token and permission checks, so an expired
-  // token cannot return 401 and quietly mask the result; and before the render
-  // deadline, which would otherwise answer with its own 502 and never let the
-  // platform time out. Sleeps rather than spins: costs a worker slot, no CPU.
+  // So this races a sleep through the same deadline that guards the real render:
+  // it expires at the budget, falls into the badGateway path below, and proves
+  // the branded HTML 502 a user would actually see. Sleeping past the platform
+  // limit instead would only re-demonstrate the page we cannot change.
+  //
+  // Kept ahead of the token check so an expired token cannot mask the result.
   // ---------------------------------------------------------------------------
   if (parseBoolean(searchParams.get(FORCE_TIMEOUT_QUERY_PARAM))) {
-    await new Promise((resolve) => setTimeout(resolve, FORCE_TIMEOUT_MS));
+    try {
+      await raceWithTimeout(
+        new Promise((resolve) => setTimeout(resolve, FORCE_TIMEOUT_MS)),
+        remainingDeadlineMs(startedAtMs),
+      );
+    } catch (error) {
+      if (isPdfRenderTimeout(error)) {
+        return await asBrowserExportError(
+          apiResponses.badGateway({
+            detail:
+              "PDF export took too long. Try again or export a smaller submission from Hub.",
+            errorCode: "pdf_render_timeout",
+          }),
+          accept,
+          req.url,
+        );
+      }
+
+      throw error;
+    }
   }
 
   const token = searchParams.get(TOKEN_QUERY_PARAM);
@@ -63,14 +81,13 @@ export async function GET(req: NextRequest, { params }: Params) {
     searchParams.get(DEFAULT_LOCALE_QUERY_PARAM),
   );
 
-  const accept = req.headers.get("accept");
-
   if (!token) {
     return await asBrowserExportError(
       apiResponses.badRequest({
         detail: "Token is required.",
       }),
       accept,
+      req.url,
     );
   }
 
@@ -80,6 +97,7 @@ export async function GET(req: NextRequest, { params }: Params) {
         detail: "Access token does not have export permissions.",
       }),
       accept,
+      req.url,
     );
   }
 
@@ -92,6 +110,7 @@ export async function GET(req: NextRequest, { params }: Params) {
     return await asBrowserExportError(
       mapPublicPdfExportLoadError(submissionResult),
       accept,
+      req.url,
     );
   }
 
@@ -105,6 +124,7 @@ export async function GET(req: NextRequest, { params }: Params) {
         detail: "Form definition not found.",
       }),
       accept,
+      req.url,
     );
   }
 
@@ -125,7 +145,7 @@ export async function GET(req: NextRequest, { params }: Params) {
           surveyModel={surveyModel}
         />,
       ).toBlob(),
-      remainingSwaBudgetMs(startedAtMs),
+      remainingDeadlineMs(startedAtMs),
     );
 
     return new Response(pdfBlob, {
@@ -137,15 +157,15 @@ export async function GET(req: NextRequest, { params }: Params) {
     });
   } catch (error) {
     if (isPdfRenderTimeout(error)) {
-      if (prefersHtml(accept)) {
-        return await swaBackendFailureResponse(502);
-      }
-
-      return apiResponses.badGateway({
-        detail:
-          "PDF export took too long. Try again or export a smaller submission from Hub.",
-        errorCode: "pdf_render_timeout",
-      });
+      return await asBrowserExportError(
+        apiResponses.badGateway({
+          detail:
+            "PDF export took too long. Try again or export a smaller submission from Hub.",
+          errorCode: "pdf_render_timeout",
+        }),
+        accept,
+        req.url,
+      );
     }
 
     throw error;

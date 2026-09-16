@@ -10,8 +10,8 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   isPdfRenderTimeout,
   raceWithTimeout,
-  remainingSwaBudgetMs,
-} from "@/features/pdf-export/swa-render-budget";
+  remainingDeadlineMs,
+} from "@/features/pdf-export/render-deadline";
 
 type Params = {
   params: Promise<{
@@ -70,7 +70,7 @@ export async function GET(req: NextRequest, { params }: Params) {
           surveyModel={surveyModel}
         />,
       ).toBlob(),
-      remainingSwaBudgetMs(startedAtMs),
+      remainingDeadlineMs(startedAtMs),
     );
 
     const contentDisposition = inline === "true" ? "inline" : "attachment";
