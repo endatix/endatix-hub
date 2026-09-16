@@ -1,12 +1,11 @@
 import { getCustomQuestionsAction } from "@/features/forms/application/actions/get-custom-questions.action";
-import { preparePdfModel } from "@/features/pdf-export/server";
-import { SubmissionDetailsPdf } from "@/features/pdf-export/submission/submission-details-pdf";
+import { renderSubmissionPdf } from "@/features/pdf-export/submission/render-submission-pdf.use-case";
 import { getSubmissionDetailsUseCase } from "@/features/submissions/use-cases/get-submission-details.use-case";
 import { Result } from "@/lib/result";
 import { parseBoolean } from "@/lib/utils/type-parsers";
 import { CustomQuestion } from "@/services/api";
-import { pdf } from "@react-pdf/renderer";
 import { NextRequest, NextResponse } from "next/server";
+import { PDF_RENDER_TIMEOUT_CODE } from "@/features/pdf-export/render-timeout";
 
 type Params = {
   params: Promise<{
@@ -18,6 +17,7 @@ type Params = {
 const INLINE_QUERY_PARAM = "inline";
 const DEFAULT_LOCALE_QUERY_PARAM = "defaultLocale";
 export async function GET(req: NextRequest, { params }: Params) {
+  const startedAtMs = Date.now();
   const { formId, submissionId } = await params;
 
   const searchParams = req.nextUrl.searchParams;
@@ -43,27 +43,43 @@ export async function GET(req: NextRequest, { params }: Params) {
   }
 
   if (Result.isSuccess(customQuestionsResult)) {
-    customQuestionsJsonData = customQuestionsResult.value.map((q: CustomQuestion) => q.jsonData);
+    customQuestionsJsonData = customQuestionsResult.value.map(
+      (q: CustomQuestion) => q.jsonData,
+    );
   }
 
   const submission = submissionResult.value;
 
-  const surveyModel = await preparePdfModel({
-    submission,
-    customQuestionsJsonData,
-    useDefaultLocale,
-  });
+  let renderResult;
+  try {
+    renderResult = await renderSubmissionPdf({
+      submission,
+      customQuestionsJsonData,
+      useDefaultLocale,
+      startedAtMs,
+      caller: "hub-authenticated",
+    });
+  } catch {
+    return NextResponse.json({ error: "PDF export failed." }, { status: 500 });
+  }
 
-  const pdfBlob = await pdf(
-    <SubmissionDetailsPdf
-      submission={submission}
-      surveyModel={surveyModel}
-    />,
-  ).toBlob();
+  if (Result.isError(renderResult)) {
+    if (renderResult.errorCode === PDF_RENDER_TIMEOUT_CODE) {
+      return NextResponse.json(
+        {
+          error:
+            "PDF export took too long. Try again or export a smaller submission.",
+        },
+        { status: 502 },
+      );
+    }
+
+    return NextResponse.json({ error: renderResult.message }, { status: 500 });
+  }
 
   const contentDisposition = inline === "true" ? "inline" : "attachment";
 
-  return new Response(pdfBlob, {
+  return new Response(renderResult.value, {
     status: 200,
     headers: {
       "Content-Type": "application/pdf",

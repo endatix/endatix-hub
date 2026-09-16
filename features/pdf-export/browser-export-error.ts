@@ -1,0 +1,111 @@
+import { NextResponse } from "next/server";
+import { withBasePath } from "@/lib/hosting/base-path";
+import { resolveExportErrorCode } from "./export-error-content";
+import { resolveSupportReference } from "./support-reference";
+
+/** Where browsers are sent. A real Next.js page, not a hand-maintained file. */
+const EXPORT_ERROR_PATH = "/export-error";
+
+function mediaQuality(acceptHeader: string, type: string): number {
+  let best = 0;
+
+  for (const part of acceptHeader.split(",")) {
+    const [mediaRaw, ...params] = part.trim().split(";");
+    const media = mediaRaw.trim().toLowerCase();
+    const matches =
+      media === type ||
+      media === "*/*" ||
+      (type.startsWith("text/") && media === "text/*") ||
+      (type.startsWith("application/") && media === "application/*");
+    if (!matches) {
+      continue;
+    }
+
+    let q = 1;
+    for (const param of params) {
+      const [key, raw] = param.trim().split("=");
+      if (key !== "q" || raw === undefined) {
+        continue;
+      }
+      const parsed = Number(raw);
+      q = Number.isFinite(parsed) ? parsed : 1;
+    }
+
+    best = Math.max(best, q);
+  }
+
+  return best;
+}
+
+function prefersHtml(acceptHeader: string | null): boolean {
+  if (!acceptHeader) {
+    return false;
+  }
+
+  const htmlQuality = mediaQuality(acceptHeader, "text/html");
+  const jsonQuality = mediaQuality(acceptHeader, "application/json");
+
+  return htmlQuality > 0 && htmlQuality >= jsonQuality;
+}
+
+/**
+ * Content negotiation for public export failures.
+ *
+ * API clients keep the RFC7807 problem details and the real status. Browsers are
+ * redirected to `/export-error`, which renders with the app's own theme and
+ * components - so there is no second error page to keep in sync.
+ *
+ * Only a code crosses the redirect. The request URL carries an access token, so
+ * nothing from it is forwarded: the target is built from scratch.
+ *
+ * The `Location` is deliberately relative. Behind a reverse proxy - Azure Static
+ * Web Apps, a load balancer, any container platform - `req.url` is the *internal*
+ * origin the Node process was reached on (`http://<container-id>:8080`), not the
+ * address the visitor typed. Redirecting there sends the browser somewhere it
+ * cannot resolve. A relative Location (RFC 7231 §7.1.2) sidesteps the question:
+ * the browser resolves it against the URL it actually requested, so this is
+ * correct on every host without trusting forwarded headers or configuring an
+ * origin. Do not "fix" this into an absolute URL.
+ */
+export async function asBrowserExportError(
+  response: NextResponse,
+  acceptHeader: string | null,
+): Promise<NextResponse> {
+  if (!prefersHtml(acceptHeader)) {
+    return response;
+  }
+
+  let errorCode: string | undefined;
+  let apiTraceId: string | undefined;
+  try {
+    const body = (await response.clone().json()) as {
+      errorCode?: string;
+      traceId?: string;
+    };
+    errorCode = body.errorCode;
+    apiTraceId = body.traceId;
+  } catch {
+    // Not problem-details JSON; the status alone still resolves a code.
+  }
+
+  const code = resolveExportErrorCode(response.status, errorCode);
+
+  // A correlation id the reader can quote. Not a secret, unlike the token.
+  const reference = resolveSupportReference(apiTraceId);
+
+  const query = new URLSearchParams({ code });
+  if (reference) {
+    query.set("ref", reference);
+  }
+
+  const target = `${withBasePath(EXPORT_ERROR_PATH)}?${query.toString()}`;
+
+  // Built by hand: NextResponse.redirect() rejects a relative target.
+  return new NextResponse(null, {
+    status: 303,
+    headers: {
+      Location: target,
+      "Cache-Control": "no-store",
+    },
+  });
+}

@@ -1,13 +1,14 @@
-import { preparePdfModel } from "@/features/pdf-export/server";
-import { SubmissionDetailsPdf } from "@/features/pdf-export/submission/submission-details-pdf";
+import { renderSubmissionPdf } from "@/features/pdf-export/submission/render-submission-pdf.use-case";
+import { asBrowserExportError } from "@/features/pdf-export/browser-export-error";
+import { mapPublicPdfExportLoadError } from "@/features/pdf-export/map-public-pdf-export-load-error";
 import { getSubmissionByAccessTokenUseCase } from "@/features/public-submissions/edit/get-submission-by-access-token.use-case";
 import { resolveSubmissionFormDefinition } from "@/features/public-submissions/resolve-submission-form-definition";
 import { Result } from "@/lib/result";
 import { hasTokenPermission, TokenPermission } from "@/lib/utils";
 import { apiResponses } from "@/lib/utils/route-handlers";
 import { parseBoolean } from "@/lib/utils/type-parsers";
-import { pdf } from "@react-pdf/renderer";
 import { NextRequest } from "next/server";
+import { PDF_RENDER_TIMEOUT_CODE } from "@/features/pdf-export/render-timeout";
 
 type Params = {
   params: Promise<{
@@ -19,23 +20,33 @@ const DEFAULT_LOCALE_QUERY_PARAM = "defaultLocale";
 const TOKEN_QUERY_PARAM = "token";
 
 export async function GET(req: NextRequest, { params }: Params) {
+  const startedAtMs = Date.now();
   const { formId } = await params;
   const searchParams = req.nextUrl.searchParams;
+
+  const accept = req.headers.get("accept");
+
   const token = searchParams.get(TOKEN_QUERY_PARAM);
   const useDefaultLocale = parseBoolean(
     searchParams.get(DEFAULT_LOCALE_QUERY_PARAM),
   );
 
   if (!token) {
-    return apiResponses.badRequest({
-      detail: "Token is required.",
-    });
+    return await asBrowserExportError(
+      apiResponses.badRequest({
+        detail: "Token is required.",
+      }),
+      accept,
+    );
   }
 
   if (!hasTokenPermission(token, TokenPermission.Export)) {
-    return apiResponses.forbidden({
-      detail: "Access token does not have export permissions.",
-    });
+    return await asBrowserExportError(
+      apiResponses.forbidden({
+        detail: "Access token does not have export permissions.",
+      }),
+      accept,
+    );
   }
 
   const submissionResult = await getSubmissionByAccessTokenUseCase({
@@ -44,26 +55,10 @@ export async function GET(req: NextRequest, { params }: Params) {
   });
 
   if (Result.isError(submissionResult)) {
-    const errorMessage = submissionResult.message.toLowerCase();
-
-    if (errorMessage.includes("expired")) {
-      return apiResponses.unauthorized({
-        detail: "Access token has expired.",
-      });
-    }
-
-    if (
-      errorMessage.includes("permission") ||
-      errorMessage.includes("forbidden")
-    ) {
-      return apiResponses.forbidden({
-        detail: "Access denied.",
-      });
-    }
-
-    return apiResponses.notFound({
-      detail: "Submission not found.",
-    });
+    return await asBrowserExportError(
+      mapPublicPdfExportLoadError(submissionResult),
+      accept,
+    );
   }
 
   const submission = submissionResult.value;
@@ -71,25 +66,52 @@ export async function GET(req: NextRequest, { params }: Params) {
 
   if (Result.isError(definitionResult)) {
     console.error(definitionResult.message);
-    return apiResponses.notFound({
-      detail: "Form definition not found.",
-    });
+    return await asBrowserExportError(
+      apiResponses.notFound({
+        detail: "Form definition not found.",
+      }),
+      accept,
+    );
   }
 
   submission.formDefinition = definitionResult.value;
   const customQuestionsJsonData = definitionResult.value.customQuestions ?? [];
 
-  const surveyModel = await preparePdfModel({
-    submission,
-    customQuestionsJsonData,
-    useDefaultLocale,
-  });
+  let renderResult;
+  try {
+    renderResult = await renderSubmissionPdf({
+      submission,
+      customQuestionsJsonData,
+      useDefaultLocale,
+      startedAtMs,
+      caller: "anonymous-token",
+    });
+  } catch {
+    return await asBrowserExportError(
+      apiResponses.serverError({ detail: "PDF export failed." }),
+      accept,
+    );
+  }
 
-  const pdfBlob = await pdf(
-    <SubmissionDetailsPdf submission={submission} surveyModel={surveyModel} />,
-  ).toBlob();
+  if (Result.isError(renderResult)) {
+    if (renderResult.errorCode === PDF_RENDER_TIMEOUT_CODE) {
+      return await asBrowserExportError(
+        apiResponses.badGateway({
+          detail:
+            "PDF export took too long. Try again or export a smaller submission from Hub.",
+          errorCode: PDF_RENDER_TIMEOUT_CODE,
+        }),
+        accept,
+      );
+    }
 
-  return new Response(pdfBlob, {
+    return await asBrowserExportError(
+      apiResponses.serverError({ detail: renderResult.message }),
+      accept,
+    );
+  }
+
+  return new Response(renderResult.value, {
     status: 200,
     headers: {
       "Content-Type": "application/pdf",
