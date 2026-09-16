@@ -17,17 +17,11 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { cookies } from "next/headers";
 import {
   EXPORT_ERROR_CODE,
   getExportErrorContent,
   type ExportErrorCode,
 } from "@/features/pdf-export/export-error-content";
-import {
-  EXPORT_RETRY_COOKIE,
-  parseExportRetryTarget,
-} from "@/features/pdf-export/export-retry-target";
-import { RetryExportButton } from "@/features/pdf-export/export-error/retry-export-button";
 import { SupportReferenceLine } from "@/features/pdf-export/export-error/support-reference-line";
 import { parseSupportReference } from "@/features/pdf-export/support-reference";
 
@@ -40,16 +34,6 @@ const ICONS: Readonly<Record<ExportErrorCode, LucideIcon>> = {
   [EXPORT_ERROR_CODE.INVALID]: TriangleAlert,
   [EXPORT_ERROR_CODE.UNKNOWN]: TriangleAlert,
 };
-
-function retryHint(retryable: boolean, canRetry: boolean): string {
-  if (canRetry) {
-    return "The wait gives the server a moment to recover before trying again.";
-  }
-
-  return retryable
-    ? "Go back and open the export link again to retry."
-    : "Nothing on this page needs your attention - you can close the tab.";
-}
 
 interface ExportErrorPageProps {
   searchParams: Promise<{ code?: string; ref?: string }>;
@@ -66,14 +50,6 @@ export default async function ExportErrorPage({
   const { code, ref } = await searchParams;
   const content = getExportErrorContent(code);
   const Icon = ICONS[content.key];
-
-  // Read only to decide whether a retry is possible. The stored link is never
-  // rendered - the retry POSTs and the handler resolves it server-side - so the
-  // access token stays out of the page entirely.
-  const storedRetry = content.offersRetry
-    ? (await cookies()).get(EXPORT_RETRY_COOKIE)?.value
-    : undefined;
-  const canRetry = parseExportRetryTarget(storedRetry) !== null;
 
   // Arrives in the URL, so clamp its shape before putting it on the page.
   const reference = parseSupportReference(ref);
@@ -94,14 +70,10 @@ export default async function ExportErrorPage({
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col items-center gap-6 text-center">
-          {canRetry && (
-            <RetryExportButton cooldownSeconds={content.retryCooldownSeconds} />
-          )}
-
           <Separator />
 
           <p className="max-w-prose text-sm text-muted-foreground">
-            {retryHint(content.retryable, canRetry)}
+            {content.hint}
           </p>
 
           {reference && <SupportReferenceLine reference={reference} />}

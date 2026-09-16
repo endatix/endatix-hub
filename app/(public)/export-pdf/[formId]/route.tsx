@@ -1,5 +1,5 @@
 import { renderSubmissionPdf } from "@/features/pdf-export/submission/render-submission-pdf.use-case";
-import { asBrowserExportError } from "@/features/pdf-export/html-error-response";
+import { asBrowserExportError } from "@/features/pdf-export/browser-export-error";
 import { mapPublicPdfExportLoadError } from "@/features/pdf-export/map-public-pdf-export-load-error";
 import { getSubmissionByAccessTokenUseCase } from "@/features/public-submissions/edit/get-submission-by-access-token.use-case";
 import { resolveSubmissionFormDefinition } from "@/features/public-submissions/resolve-submission-form-definition";
@@ -25,9 +25,6 @@ export async function GET(req: NextRequest, { params }: Params) {
   const searchParams = req.nextUrl.searchParams;
 
   const accept = req.headers.get("accept");
-  // Relative by construction - never req.url, whose origin behind a proxy is
-  // the container's internal host.
-  const retryTarget = `${req.nextUrl.pathname}${req.nextUrl.search}`;
 
   const token = searchParams.get(TOKEN_QUERY_PARAM);
   const useDefaultLocale = parseBoolean(
@@ -40,7 +37,6 @@ export async function GET(req: NextRequest, { params }: Params) {
         detail: "Token is required.",
       }),
       accept,
-      retryTarget,
     );
   }
 
@@ -50,7 +46,6 @@ export async function GET(req: NextRequest, { params }: Params) {
         detail: "Access token does not have export permissions.",
       }),
       accept,
-      retryTarget,
     );
   }
 
@@ -63,7 +58,6 @@ export async function GET(req: NextRequest, { params }: Params) {
     return await asBrowserExportError(
       mapPublicPdfExportLoadError(submissionResult),
       accept,
-      retryTarget,
     );
   }
 
@@ -77,7 +71,6 @@ export async function GET(req: NextRequest, { params }: Params) {
         detail: "Form definition not found.",
       }),
       accept,
-      retryTarget,
     );
   }
 
@@ -101,14 +94,12 @@ export async function GET(req: NextRequest, { params }: Params) {
           errorCode: PDF_RENDER_TIMEOUT_CODE,
         }),
         accept,
-        retryTarget,
       );
     }
 
     return await asBrowserExportError(
       apiResponses.serverError({ detail: renderResult.message }),
       accept,
-      retryTarget,
     );
   }
 

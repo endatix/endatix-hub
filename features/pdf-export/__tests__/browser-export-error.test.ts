@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { asBrowserExportError } from "../html-error-response";
+import { asBrowserExportError } from "../browser-export-error";
 import { apiResponses } from "@/lib/utils/route-handlers";
 
 describe("asBrowserExportError", () => {
@@ -79,68 +79,6 @@ describe("asBrowserExportError", () => {
     expect(location).not.toContain("://");
   });
 
-  const RETRY_TARGET = "/export-pdf/123?token=super-secret-token";
-
-  it("stores the retry link for an upstream failure", async () => {
-    // Arrange
-    const jsonResponse = apiResponses.badGateway({
-      detail: "Failed to load submission from the Endatix API.",
-    });
-
-    // Act
-    const response = await asBrowserExportError(
-      jsonResponse,
-      "text/html",
-      RETRY_TARGET,
-    );
-
-    // Assert - HttpOnly and path-scoped, so script cannot read it and it is
-    // only ever sent to the error page.
-    const cookie = response.cookies.get("endatix_export_retry");
-    expect(cookie?.value).toBe(RETRY_TARGET);
-    expect(cookie?.httpOnly).toBe(true);
-    expect(cookie?.path).toBe("/export-error");
-    expect(cookie?.sameSite).toBe("lax");
-  });
-
-  it("stores the retry link for a timed-out render too", async () => {
-    // Arrange
-    const jsonResponse = apiResponses.badGateway({
-      detail: "PDF export took too long.",
-      errorCode: "pdf_render_timeout",
-    });
-
-    // Act
-    const response = await asBrowserExportError(
-      jsonResponse,
-      "text/html",
-      RETRY_TARGET,
-    );
-
-    // Assert
-    expect(response.cookies.get("endatix_export_retry")?.value).toBe(
-      RETRY_TARGET,
-    );
-  });
-
-  /** Codes that cannot succeed on a retry never store the token at all. */
-  it("does not store the token for a code with no retry button", async () => {
-    // Arrange
-    const jsonResponse = apiResponses.unauthorized({
-      detail: "Access token has expired.",
-    });
-
-    // Act
-    const response = await asBrowserExportError(
-      jsonResponse,
-      "text/html",
-      RETRY_TARGET,
-    );
-
-    // Assert
-    expect(response.cookies.get("endatix_export_retry")).toBeUndefined();
-  });
-
   /** The reference is a correlation id, so it may travel in the URL. */
   it("carries the API trace id through as a support reference", async () => {
     // Arrange
@@ -156,21 +94,6 @@ describe("asBrowserExportError", () => {
     expect(response.headers.get("location")).toBe(
       "/export-error?code=upstream&ref=4bf92f3577b34da6a3ce929d0e0e4736",
     );
-  });
-
-  it("refuses to store a tampered retry target", async () => {
-    // Arrange
-    const jsonResponse = apiResponses.badGateway({ detail: "Upstream down." });
-
-    // Act
-    const response = await asBrowserExportError(
-      jsonResponse,
-      "text/html",
-      "https://evil.com/export-pdf/1?token=a",
-    );
-
-    // Assert
-    expect(response.cookies.get("endatix_export_retry")).toBeUndefined();
   });
 
   /**

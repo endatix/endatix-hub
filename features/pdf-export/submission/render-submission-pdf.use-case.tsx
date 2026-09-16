@@ -16,7 +16,7 @@ import { SubmissionDetailsPdf } from "./submission-details-pdf";
 const TRACER = "pdf-export";
 
 /** Which entry point asked for the PDF; the two have different size profiles. */
-export type PdfExportCaller = "anonymous-token" | "hub-authenticated";
+type PdfExportCaller = "anonymous-token" | "hub-authenticated";
 
 interface RenderSubmissionPdfOptions {
   submission: Submission;

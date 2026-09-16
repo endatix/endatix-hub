@@ -15,13 +15,13 @@ export type PdfWorkload = {
   questionCount: number;
   /** Of those, how many carry an answer. */
   answeredCount: number;
-  /** File-bearing questions, which also drive storage read-token work. */
+  /** Questions holding stored files, which also cost storage read tokens. */
   fileAttachmentCount: number;
   /** Total matrix rows across all matrix questions - the prime suspect. */
   matrixRowCount: number;
 };
 
-const FILE_QUESTION_TYPES = new Set(["file", "audiorecorder", "signaturepad"]);
+const FILE_QUESTION_TYPES = new Set(["file", "audiorecorder"]);
 
 /** Matrix models expose rows under different names; read defensively. */
 function countMatrixRows(question: Question): number {

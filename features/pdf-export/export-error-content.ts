@@ -29,19 +29,8 @@ type ExportErrorContent = {
   eyebrow: string;
   title: string;
   description: string;
-  /** Whether retrying the same link is worth suggesting at all. */
-  retryable: boolean;
-  /** Whether to offer a one-click retry button. */
-  offersRetry: boolean;
-  /**
-   * How long the retry stays disabled.
-   *
-   * A timed-out render is not cancelled when the timeout fires - it keeps
-   * consuming CPU until it finishes - so retrying too soon adds load to a server
-   * still working off the last request. That case waits longer than an upstream
-   * failure, where the far end may already have recovered.
-   */
-  retryCooldownSeconds: number;
+  /** What to do next. Sits under the separator, below the description. */
+  hint: string;
 };
 
 const CONTENT: Readonly<
@@ -52,63 +41,49 @@ const CONTENT: Readonly<
     title: "This export is taking longer than expected",
     description:
       "The PDF could not be produced in time. Nothing has been lost. Waiting a moment usually helps, because a less busy server finishes well inside the limit.",
-    retryable: true,
-    offersRetry: true,
-    retryCooldownSeconds: 30,
+    hint: "Go back and open the export link again to retry.",
   },
   [EXPORT_ERROR_CODE.UPSTREAM]: {
     eyebrow: "Service unavailable",
     title: "We could not reach the submission service",
     description:
       "The submission could not be loaded, so the PDF was not generated. This is usually brief - try again in a moment.",
-    retryable: true,
-    offersRetry: true,
-    retryCooldownSeconds: 10,
+    hint: "Go back and open the export link again to retry.",
   },
   [EXPORT_ERROR_CODE.EXPIRED]: {
     eyebrow: "Link expired",
     title: "This export link has expired",
     description:
       "Export links are valid for a limited time. Ask whoever shared it to send a new one.",
-    retryable: false,
-    offersRetry: false,
-    retryCooldownSeconds: 0,
+    hint: "You can close this tab.",
   },
   [EXPORT_ERROR_CODE.FORBIDDEN]: {
     eyebrow: "No access",
     title: "This link cannot export the submission",
     description:
       "The link does not carry export permission. Ask whoever shared it for a link that allows exporting.",
-    retryable: false,
-    offersRetry: false,
-    retryCooldownSeconds: 0,
+    hint: "You can close this tab.",
   },
   [EXPORT_ERROR_CODE.NOT_FOUND]: {
     eyebrow: "Not found",
     title: "We could not find that submission",
     description:
       "It may have been deleted, or the link may be incomplete. Check that you copied the whole link.",
-    retryable: false,
-    offersRetry: false,
-    retryCooldownSeconds: 0,
+    hint: "You can close this tab.",
   },
   [EXPORT_ERROR_CODE.INVALID]: {
     eyebrow: "Invalid link",
     title: "This export link is not valid",
     description:
       "Part of the link is missing or malformed. Check that you copied the whole link, including everything after the question mark.",
-    retryable: false,
-    offersRetry: false,
-    retryCooldownSeconds: 0,
+    hint: "You can close this tab.",
   },
   [EXPORT_ERROR_CODE.UNKNOWN]: {
     eyebrow: "Something went wrong",
     title: "The export could not be completed",
     description:
       "Try again in a moment. If it keeps happening, share this page with your administrator.",
-    retryable: true,
-    offersRetry: false,
-    retryCooldownSeconds: 0,
+    hint: "Go back and open the export link again to retry.",
   },
 });
 
