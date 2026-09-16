@@ -6,6 +6,35 @@ import { cn } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
+interface ShareLinkRowHeaderProps {
+  icon: LucideIcon;
+  title: string;
+  description: string;
+  className?: string;
+}
+
+/** Icon + title + description, shared by a generated row and its not-yet-generated placeholder. */
+export function ShareLinkRowHeader({
+  icon: Icon,
+  title,
+  description,
+  className,
+}: Readonly<ShareLinkRowHeaderProps>) {
+  return (
+    <div className={cn("flex items-start gap-3", className)}>
+      <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary [&_svg]:size-4">
+        <Icon />
+      </div>
+      <div className="min-w-0">
+        <h3 className="text-sm font-medium text-foreground">{title}</h3>
+        <p className="text-xs leading-snug text-muted-foreground">
+          {description}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 interface ShareLinkRowProps {
   icon: LucideIcon;
   title: string;
@@ -20,7 +49,7 @@ interface ShareLinkRowProps {
 }
 
 export function ShareLinkRow({
-  icon: Icon,
+  icon,
   title,
   description,
   value,
@@ -36,17 +65,7 @@ export function ShareLinkRow({
         className,
       )}
     >
-      <div className="flex items-start gap-3">
-        <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary [&_svg]:size-4">
-          <Icon />
-        </div>
-        <div className="min-w-0">
-          <h3 className="text-sm font-medium text-foreground">{title}</h3>
-          <p className="text-xs leading-snug text-muted-foreground">
-            {description}
-          </p>
-        </div>
-      </div>
+      <ShareLinkRowHeader icon={icon} title={title} description={description} />
 
       {/* Stacks under sm so a long URL never widens the dialog. */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">

@@ -38,6 +38,11 @@ beforeEach(() => {
       expiresAt: new Date(Date.now() + 7 * 24 * 3600_000).toISOString(),
     }),
   );
+  // Radix Select needs these in jsdom; it has no real pointer/scroll APIs.
+  Element.prototype.scrollIntoView = vi.fn();
+  Element.prototype.hasPointerCapture = vi.fn().mockReturnValue(false);
+  Element.prototype.setPointerCapture = vi.fn();
+  Element.prototype.releasePointerCapture = vi.fn();
 });
 
 describe("SubmissionShareLinksDialog", () => {
@@ -114,5 +119,60 @@ describe("SubmissionShareLinksDialog", () => {
 
     await waitFor(() => expect(createLink).toHaveBeenCalled());
     expect(screen.queryByDisplayValue(/token-/)).toBeNull();
+  });
+
+  /** Changing the lifetime must not relabel a link already issued. */
+  it("generates with the newly selected lifetime", async () => {
+    renderDialog();
+
+    fireEvent.pointerDown(screen.getByRole("combobox"));
+    fireEvent.click(screen.getByRole("combobox"));
+    fireEvent.click(await screen.findByRole("option", { name: "1 hour" }));
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Generate" })[0]);
+
+    await waitFor(() => {
+      expect(createLink).toHaveBeenCalledWith("123", "456", "share", 60);
+    });
+  });
+
+  it("issues a new token on regenerate and keeps the row", async () => {
+    renderDialog();
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Generate" })[0]);
+    await screen.findByDisplayValue(/token-share/);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Regenerate Share link" }),
+    );
+
+    await waitFor(() => expect(createLink).toHaveBeenCalledTimes(2));
+    expect(screen.getByDisplayValue(/token-share/)).toBeTruthy();
+  });
+
+  it("offers native share only when the browser supports it", async () => {
+    const share = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(globalThis.navigator, "share", {
+      value: share,
+      configurable: true,
+    });
+
+    renderDialog();
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Generate" })[0]);
+    await screen.findByDisplayValue(/token-share/);
+
+    fireEvent.click(screen.getByRole("button", { name: "Share Share link" }));
+
+    await waitFor(() => {
+      expect(share).toHaveBeenCalledWith(
+        expect.objectContaining({ title: "Share submission" }),
+      );
+    });
+
+    Object.defineProperty(globalThis.navigator, "share", {
+      value: undefined,
+      configurable: true,
+    });
   });
 });

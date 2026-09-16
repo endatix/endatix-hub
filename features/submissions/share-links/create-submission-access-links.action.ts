@@ -11,11 +11,7 @@ import {
   DEFAULT_EXPIRY_MINUTES,
 } from "./share-link-expiry";
 
-export type SubmissionAccessLinkType =
-  | "view"
-  | "edit"
-  | "share"
-  | "export-pdf";
+export type SubmissionAccessLinkType = "view" | "edit" | "share" | "export-pdf";
 
 export interface SubmissionAccessLinkToken {
   type: SubmissionAccessLinkType;
@@ -61,7 +57,11 @@ export async function createSubmissionAccessLinkAction(
     permissions: [...permissions],
   });
 
-  const mappedTokenResult = toResult(tokenResult);
+  const mappedTokenResult = toResult(tokenResult, {
+    fallbackMessage: "Failed to create submission share link.",
+    logMessage: "Failed to create submission share link.",
+    loggerName: "submissions.createAccessLink",
+  });
   if (Result.isError(mappedTokenResult)) {
     return mappedTokenResult;
   }

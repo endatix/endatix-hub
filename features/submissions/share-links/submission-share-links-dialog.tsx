@@ -18,7 +18,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/toast";
-import { ShareLinkRow } from "@/features/share-links/ui/share-link-row";
+import {
+  ShareLinkRow,
+  ShareLinkRowHeader,
+} from "@/components/common/share-link-row";
 import { withBasePath } from "@/lib/hosting";
 import { Result } from "@/lib/result";
 import {
@@ -187,7 +190,10 @@ export function SubmissionShareLinksDialog({
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-2 rounded-lg bg-surface-container-low p-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <Label htmlFor="share-link-expiry" className="text-sm font-medium">
+              <Label
+                htmlFor="share-link-expiry"
+                className="text-sm font-medium"
+              >
                 Link lifetime
               </Label>
               <p className="text-xs text-muted-foreground">
@@ -221,22 +227,17 @@ export function SubmissionShareLinksDialog({
             const isPending = pendingType === option.type;
 
             if (!generated) {
-              const Icon = option.icon;
-
               return (
                 <section
                   key={option.type}
                   className="flex items-center gap-3 rounded-lg bg-surface-container-low p-3"
                 >
-                  <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary [&_svg]:size-4">
-                    <Icon />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <h3 className="text-sm font-medium">{option.label}</h3>
-                    <p className="text-xs leading-snug text-muted-foreground">
-                      {option.description}
-                    </p>
-                  </div>
+                  <ShareLinkRowHeader
+                    icon={option.icon}
+                    title={option.label}
+                    description={option.description}
+                    className="flex-1"
+                  />
                   <Button
                     type="button"
                     size="sm"
@@ -305,8 +306,8 @@ export function SubmissionShareLinksDialog({
           })}
 
           <p className="text-xs text-muted-foreground">
-            Anyone with a link can use it until it expires. Regenerating issues a
-            new link; the previous one keeps working until its own expiry.
+            Anyone with a link can use it until it expires. Regenerating issues
+            a new link; the previous one keeps working until its own expiry.
           </p>
         </div>
       </DialogContent>
