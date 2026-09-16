@@ -4,12 +4,10 @@ import { useState } from "react";
 import { Check, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-/**
- * The id someone quotes when reporting a failed export. It resolves to the
- * trace carrying the `render-pdf` span, so support can see what the render was
- * actually doing.
- */
-export function SupportReferenceLine({ reference }: { reference: string }) {
+/** Copy-able id for the failed export's `render-pdf` trace. */
+export function SupportReferenceLine({
+  reference,
+}: Readonly<{ reference: string }>) {
   const [copied, setCopied] = useState(false);
 
   const copy = async () => {

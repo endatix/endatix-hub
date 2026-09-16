@@ -46,12 +46,11 @@ interface ExportErrorPageProps {
  */
 export default async function ExportErrorPage({
   searchParams,
-}: ExportErrorPageProps) {
+}: Readonly<ExportErrorPageProps>) {
   const { code, ref } = await searchParams;
   const content = getExportErrorContent(code);
   const Icon = ICONS[content.key];
 
-  // Arrives in the URL, so clamp its shape before putting it on the page.
   const reference = parseSupportReference(ref);
 
   return (

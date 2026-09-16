@@ -1,6 +1,7 @@
 import { Text, View } from "@react-pdf/renderer";
 import { QuestionMatrixDropdownModel } from "survey-core";
 import { VIEWER_STYLES } from "../pdf-answer-viewer";
+import { formatPdfCellValue } from "../format-pdf-cell-value";
 import { PDF_TABLE_STYLES } from "@/features/pdf-export/submission/pdf-styles";
 import { htmlSanitizer } from "@/lib/utils/html-sanitizer";
 
@@ -18,7 +19,9 @@ function asMatrixValue(value: unknown): MatrixDropdownValue {
   return value as MatrixDropdownValue;
 }
 
-const PdfMatrixDropdownAnswer = ({ question }: MatrixDropdownAnswerProps) => {
+const PdfMatrixDropdownAnswer = ({
+  question,
+}: Readonly<MatrixDropdownAnswerProps>) => {
   const value = asMatrixValue(question.value);
   const columns = question.columns ?? [];
   const rows = question.visibleRows ?? question.rows ?? [];
@@ -81,7 +84,11 @@ const PdfMatrixDropdownAnswer = ({ question }: MatrixDropdownAnswerProps) => {
                   key={column.name}
                   style={{ ...PDF_TABLE_STYLES.tableCell, flex: 1.5 }}
                 >
-                  <Text>{String(rowValue[column.name] ?? "")}</Text>
+                  <Text>
+                    {htmlSanitizer.toPlainText(
+                      formatPdfCellValue(rowValue[column.name]),
+                    )}
+                  </Text>
                 </View>
               ))}
             </View>
