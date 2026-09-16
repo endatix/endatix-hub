@@ -6,8 +6,10 @@ import { EndatixApi } from "@/lib/endatix-api";
 import type { SubmissionAccessTokenPermission } from "@/lib/endatix-api/submissions/types";
 import { Result, type ResultType } from "@/lib/result";
 import { toResult } from "@/lib/result/map-api-result-to-result";
-
-const DEFAULT_EXPIRY_MINUTES = 60 * 24 * 7;
+import {
+  clampExpiryMinutes,
+  DEFAULT_EXPIRY_MINUTES,
+} from "./share-link-expiry";
 
 export type SubmissionAccessLinkType =
   | "view"
@@ -53,7 +55,9 @@ export async function createSubmissionAccessLinkAction(
   const tokenResult = await api.submissions.createAccessToken({
     formId,
     submissionId,
-    expiryMinutes,
+    // Corrected here rather than sent on: the API validates the range and would
+    // answer with an opaque 400 long after the user picked a lifetime.
+    expiryMinutes: clampExpiryMinutes(expiryMinutes),
     permissions: [...permissions],
   });
 

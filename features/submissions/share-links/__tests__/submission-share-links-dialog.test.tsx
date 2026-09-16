@@ -1,0 +1,118 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { Result } from "@/lib/result";
+
+const createLink = vi.fn();
+vi.mock("../create-submission-access-links.action", () => ({
+  createSubmissionAccessLinkAction: (...args: unknown[]) => createLink(...args),
+}));
+
+const writeText = vi.fn(async () => undefined);
+
+import { SubmissionShareLinksDialog } from "../submission-share-links-dialog";
+import { DEFAULT_EXPIRY_MINUTES } from "../share-link-expiry";
+
+function renderDialog() {
+  return render(
+    <SubmissionShareLinksDialog
+      formId="123"
+      submissionId="456"
+      open
+      onOpenChange={() => {}}
+    />,
+  );
+}
+
+beforeEach(() => {
+  createLink.mockReset();
+  writeText.mockReset();
+  writeText.mockResolvedValue(undefined);
+  Object.defineProperty(globalThis.navigator, "clipboard", {
+    value: { writeText },
+    configurable: true,
+  });
+  createLink.mockImplementation(async (_f, _s, type: string) =>
+    Result.success({
+      type,
+      token: `token-${type}`,
+      expiresAt: new Date(Date.now() + 7 * 24 * 3600_000).toISOString(),
+    }),
+  );
+});
+
+describe("SubmissionShareLinksDialog", () => {
+  /** The old dialog hid three of four types behind a Select. */
+  it("shows every link type without opening a menu", () => {
+    renderDialog();
+
+    for (const label of ["Share", "View", "Edit", "Export PDF"]) {
+      expect(screen.getByRole("heading", { name: label })).toBeTruthy();
+    }
+    expect(screen.getAllByRole("button", { name: "Generate" })).toHaveLength(4);
+  });
+
+  /**
+   * The previous implementation cleared the generated link whenever the type
+   * changed, so two links could never exist at once.
+   */
+  it("keeps earlier links when another is generated", async () => {
+    renderDialog();
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Generate" })[0]);
+    await screen.findByDisplayValue(/token-share/);
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Generate" })[0]);
+    await screen.findByDisplayValue(/token-view/);
+
+    // Both survive.
+    expect(screen.getByDisplayValue(/token-share/)).toBeTruthy();
+    expect(screen.getByDisplayValue(/token-view/)).toBeTruthy();
+  });
+
+  it("copies the new link without a second click", async () => {
+    renderDialog();
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Generate" })[0]);
+
+    await waitFor(() => {
+      expect(writeText).toHaveBeenCalledWith(
+        expect.stringContaining("/share/123?token=token-share"),
+      );
+    });
+  });
+
+  /** A rejected clipboard write must not be reported as a copy. */
+  it("still generates when the clipboard refuses", async () => {
+    writeText.mockRejectedValue(new Error("not allowed"));
+    renderDialog();
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Generate" })[0]);
+
+    expect(await screen.findByDisplayValue(/token-share/)).toBeTruthy();
+  });
+
+  it("generates with the default lifetime", async () => {
+    renderDialog();
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Generate" })[0]);
+
+    await waitFor(() => {
+      expect(createLink).toHaveBeenCalledWith(
+        "123",
+        "456",
+        "share",
+        DEFAULT_EXPIRY_MINUTES,
+      );
+    });
+  });
+
+  it("surfaces a failure instead of rendering an empty link", async () => {
+    createLink.mockResolvedValue(Result.error("Nope"));
+    renderDialog();
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Generate" })[0]);
+
+    await waitFor(() => expect(createLink).toHaveBeenCalled());
+    expect(screen.queryByDisplayValue(/token-/)).toBeNull();
+  });
+});

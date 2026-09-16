@@ -33,25 +33,37 @@ interface CopyToClipboardProps extends Omit<
   buttonClassName?: string;
 }
 
-export const copyValueToClipboard = (value: string): boolean => {
-  let isCopied = false;
+/**
+ * Copies `value`, reporting whether it actually landed.
+ *
+ * The write is awaited rather than fired and forgotten: browsers reject it when
+ * the page lacks clipboard permission or the click that authorised it is no
+ * longer recent - which is exactly what happens when a copy follows an awaited
+ * server call. Claiming success there would show "Copied to clipboard" over an
+ * empty clipboard.
+ */
+export const copyValueToClipboard = async (value: string): Promise<boolean> => {
   if (!value || typeof value !== "string" || value.trim().length === 0) {
-    return isCopied;
+    return false;
   }
 
-  if (globalThis?.navigator?.clipboard) {
-    globalThis?.navigator?.clipboard?.writeText(value);
-    isCopied = true;
+  const clipboard = globalThis?.navigator?.clipboard;
+  if (!clipboard) {
+    return false;
   }
 
-  if (isCopied) {
-    toast.success({
-      title: "Copied to clipboard",
-      duration: ANIMATION_DURATION,
-    });
+  try {
+    await clipboard.writeText(value);
+  } catch {
+    return false;
   }
 
-  return isCopied;
+  toast.success({
+    title: "Copied to clipboard",
+    duration: ANIMATION_DURATION,
+  });
+
+  return true;
 };
 
 const ANIMATION_DURATION = 4000;
@@ -88,11 +100,11 @@ const CopyToClipboard = ({
 }: CopyToClipboardProps) => {
   const [isCopied, setIsCopied] = useState(false);
 
-  const handleCopyClick = () => {
+  const handleCopyClick = async () => {
     if (disabled) {
       return;
     }
-    const copied = copyValueToClipboard(
+    const copied = await copyValueToClipboard(
       typeof copyValue === "function" ? copyValue() : copyValue,
     );
 

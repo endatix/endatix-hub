@@ -72,10 +72,29 @@ describe("CopyToClipboard", () => {
       const button = screen.getByRole("button");
       fireEvent.click(button);
 
+      // The write is awaited now, so the toast lands a microtask later.
+      await act(async () => {});
+
       expect(toast.success).toHaveBeenCalledWith({
         title: "Copied to clipboard",
         duration: 4000,
       });
+    });
+
+    /**
+     * Browsers reject the write when permission is missing or the click that
+     * authorised it is no longer recent. Reporting success there would show
+     * "Copied to clipboard" over an empty clipboard.
+     */
+    it("should not claim success when the clipboard write is rejected", async () => {
+      const { toast } = await import("../ui/toast");
+      mockWriteText.mockRejectedValueOnce(new Error("not allowed"));
+      render(<CopyToClipboard copyValue="test" />);
+
+      fireEvent.click(screen.getByRole("button"));
+      await act(async () => {});
+
+      expect(toast.success).not.toHaveBeenCalled();
     });
   });
 

@@ -4,6 +4,7 @@ import CopyToClipboard from "@/components/copy-to-clipboard";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
+import type { ReactNode } from "react";
 
 interface ShareLinkRowProps {
   icon: LucideIcon;
@@ -12,6 +13,10 @@ interface ShareLinkRowProps {
   value: string;
   copyLabel: string;
   className?: string;
+  /** Rendered beside the copy button - a native share, a regenerate, nothing. */
+  actions?: ReactNode;
+  /** Rendered under the input, e.g. when this link expires. */
+  footer?: ReactNode;
 }
 
 export function ShareLinkRow({
@@ -21,6 +26,8 @@ export function ShareLinkRow({
   value,
   copyLabel,
   className,
+  actions,
+  footer,
 }: Readonly<ShareLinkRowProps>) {
   return (
     <section
@@ -41,14 +48,22 @@ export function ShareLinkRow({
         </div>
       </div>
 
-      <div className="relative">
-        <Input
-          readOnly
-          value={value}
-          className="bg-surface-container-lowest pr-10 font-mono text-xs"
-        />
-        <CopyToClipboard copyValue={value} label={copyLabel} />
+      {/* Stacks under sm so a long URL never widens the dialog. */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="relative min-w-0 flex-1">
+          <Input
+            readOnly
+            value={value}
+            className="truncate bg-surface-container-lowest pr-10 font-mono text-xs"
+          />
+          <CopyToClipboard copyValue={value} label={copyLabel} />
+        </div>
+        {actions && (
+          <div className="flex shrink-0 items-center gap-2">{actions}</div>
+        )}
       </div>
+
+      {footer && <div className="text-xs text-muted-foreground">{footer}</div>}
     </section>
   );
 }
