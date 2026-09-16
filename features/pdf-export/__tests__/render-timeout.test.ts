@@ -1,19 +1,20 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
-  DEFAULT_RENDER_DEADLINE_MS,
+  DEFAULT_RENDER_TIMEOUT_SECONDS,
   isPdfRenderTimeout,
   raceWithTimeout,
-  remainingDeadlineMs,
-  renderDeadlineMs,
-} from "../render-deadline";
+  remainingRenderTimeoutMs,
+  renderTimeoutMs,
+} from "../render-timeout";
 
-const DEADLINE_ENV_VAR = "PDF_RENDER_DEADLINE_MS";
+const TIMEOUT_ENV_VAR = "PDF_RENDER_TIMEOUT_SECONDS";
+const DEFAULT_MS = DEFAULT_RENDER_TIMEOUT_SECONDS * 1000;
 
 afterEach(() => {
   vi.unstubAllEnvs();
 });
 
-describe("render-deadline", () => {
+describe("render-timeout", () => {
   it("fails immediately when no budget remains", async () => {
     // Arrange & Act
     const work = Promise.resolve("ok");
@@ -38,32 +39,33 @@ describe("render-deadline", () => {
     expect(isPdfRenderTimeout(new Error("other"))).toBe(false);
   });
 
-  it("computes remaining budget from start time", () => {
-    // Arrange & Act
-    const remaining = remainingDeadlineMs(Date.now());
+  it("computes remaining time from start time", () => {
+    // Act
+    const remaining = remainingRenderTimeoutMs(Date.now());
 
     // Assert
-    expect(remaining).toBeLessThanOrEqual(DEFAULT_RENDER_DEADLINE_MS);
-    expect(remaining).toBeGreaterThan(DEFAULT_RENDER_DEADLINE_MS - 50);
+    expect(remaining).toBeLessThanOrEqual(DEFAULT_MS);
+    expect(remaining).toBeGreaterThan(DEFAULT_MS - 50);
   });
 });
 
-describe("renderDeadlineMs", () => {
+describe("renderTimeoutMs", () => {
   it("uses the default when unset", () => {
     // Arrange
-    vi.stubEnv(DEADLINE_ENV_VAR, "");
+    vi.stubEnv(TIMEOUT_ENV_VAR, "");
 
     // Act & Assert
-    expect(renderDeadlineMs()).toBe(DEFAULT_RENDER_DEADLINE_MS);
+    expect(renderTimeoutMs()).toBe(DEFAULT_MS);
   });
 
-  it("honours an operator override", () => {
+  /** Configured in seconds, used in milliseconds. */
+  it("reads the override as seconds", () => {
     // Arrange - a host with a shorter request cap than Azure's
-    vi.stubEnv(DEADLINE_ENV_VAR, "8000");
+    vi.stubEnv(TIMEOUT_ENV_VAR, "8");
 
     // Act & Assert
-    expect(renderDeadlineMs()).toBe(8_000);
-    expect(remainingDeadlineMs(Date.now())).toBeLessThanOrEqual(8_000);
+    expect(renderTimeoutMs()).toBe(8_000);
+    expect(remainingRenderTimeoutMs(Date.now())).toBeLessThanOrEqual(8_000);
   });
 
   /**
@@ -74,10 +76,10 @@ describe("renderDeadlineMs", () => {
     "falls back to the default for %p",
     (value) => {
       // Arrange
-      vi.stubEnv(DEADLINE_ENV_VAR, value);
+      vi.stubEnv(TIMEOUT_ENV_VAR, value);
 
       // Act & Assert
-      expect(renderDeadlineMs()).toBe(DEFAULT_RENDER_DEADLINE_MS);
+      expect(renderTimeoutMs()).toBe(DEFAULT_MS);
     },
   );
 });

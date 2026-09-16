@@ -8,7 +8,7 @@ import { hasTokenPermission, TokenPermission } from "@/lib/utils";
 import { apiResponses } from "@/lib/utils/route-handlers";
 import { parseBoolean } from "@/lib/utils/type-parsers";
 import { NextRequest } from "next/server";
-import { PDF_RENDER_TIMEOUT_CODE } from "@/features/pdf-export/render-deadline";
+import { PDF_RENDER_TIMEOUT_CODE } from "@/features/pdf-export/render-timeout";
 
 type Params = {
   params: Promise<{

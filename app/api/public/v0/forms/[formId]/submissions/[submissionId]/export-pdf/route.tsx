@@ -5,7 +5,7 @@ import { Result } from "@/lib/result";
 import { parseBoolean } from "@/lib/utils/type-parsers";
 import { CustomQuestion } from "@/services/api";
 import { NextRequest, NextResponse } from "next/server";
-import { PDF_RENDER_TIMEOUT_CODE } from "@/features/pdf-export/render-deadline";
+import { PDF_RENDER_TIMEOUT_CODE } from "@/features/pdf-export/render-timeout";
 
 type Params = {
   params: Promise<{

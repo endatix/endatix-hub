@@ -6,9 +6,9 @@ import {
   isPdfRenderTimeout,
   PDF_RENDER_TIMEOUT_CODE,
   raceWithTimeout,
-  remainingDeadlineMs,
-  renderDeadlineMs,
-} from "../render-deadline";
+  remainingRenderTimeoutMs,
+  renderTimeoutMs,
+} from "../render-timeout";
 import { describePdfWorkload } from "./describe-pdf-workload";
 import { preparePdfModel } from "./prepare-pdf-model.use-case";
 import { SubmissionDetailsPdf } from "./submission-details-pdf";
@@ -77,7 +77,7 @@ export async function renderSubmissionPdf({
       "pdf.answeredCount": workload.answeredCount,
       "pdf.fileAttachmentCount": workload.fileAttachmentCount,
       "pdf.matrixRowCount": workload.matrixRowCount,
-      "pdf.deadlineMs": renderDeadlineMs(),
+      "pdf.timeoutMs": renderTimeoutMs(),
     });
 
     const renderStartedAtMs = Date.now();
@@ -90,7 +90,7 @@ export async function renderSubmissionPdf({
             surveyModel={surveyModel}
           />,
         ).toBlob(),
-        remainingDeadlineMs(startedAtMs),
+        remainingRenderTimeoutMs(startedAtMs),
       );
 
       span.setAttributes({
