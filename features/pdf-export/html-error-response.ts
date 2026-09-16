@@ -30,12 +30,20 @@ function prefersHtml(acceptHeader: string | null): boolean {
  * components - so there is no second error page to keep in sync.
  *
  * Only a code crosses the redirect. The request URL carries an access token, so
- * nothing from it is forwarded: the redirect target is built fresh.
+ * nothing from it is forwarded: the target is built from scratch.
+ *
+ * The `Location` is deliberately relative. Behind a reverse proxy - Azure Static
+ * Web Apps, a load balancer, any container platform - `req.url` is the *internal*
+ * origin the Node process was reached on (`http://<container-id>:8080`), not the
+ * address the visitor typed. Redirecting there sends the browser somewhere it
+ * cannot resolve. A relative Location (RFC 7231 §7.1.2) sidesteps the question:
+ * the browser resolves it against the URL it actually requested, so this is
+ * correct on every host without trusting forwarded headers or configuring an
+ * origin. Do not "fix" this into an absolute URL.
  */
 export async function asBrowserExportError(
   response: NextResponse,
   acceptHeader: string | null,
-  requestUrl: string,
 ): Promise<NextResponse> {
   if (!prefersHtml(acceptHeader)) {
     return response;
@@ -50,10 +58,14 @@ export async function asBrowserExportError(
   }
 
   const code = resolveExportErrorCode(response.status, errorCode);
-  const target = new URL(withBasePath(EXPORT_ERROR_PATH), requestUrl);
-  target.search = `?code=${encodeURIComponent(code)}`;
+  const target = `${withBasePath(EXPORT_ERROR_PATH)}?code=${encodeURIComponent(code)}`;
 
-  const redirect = NextResponse.redirect(target, 303);
-  redirect.headers.set("Cache-Control", "no-store");
-  return redirect;
+  // Built by hand: NextResponse.redirect() rejects a relative target.
+  return new NextResponse(null, {
+    status: 303,
+    headers: {
+      Location: target,
+      "Cache-Control": "no-store",
+    },
+  });
 }

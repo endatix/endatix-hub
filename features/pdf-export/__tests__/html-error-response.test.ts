@@ -2,9 +2,6 @@ import { describe, expect, it } from "vitest";
 import { asBrowserExportError } from "../html-error-response";
 import { apiResponses } from "@/lib/utils/route-handlers";
 
-const REQUEST_URL =
-  "https://hub.example.com/export-pdf/123?token=super-secret-token";
-
 describe("asBrowserExportError", () => {
   it("keeps JSON and the real status when Accept is application/json", async () => {
     // Arrange
@@ -16,7 +13,6 @@ describe("asBrowserExportError", () => {
     const response = await asBrowserExportError(
       jsonResponse,
       "application/json",
-      REQUEST_URL,
     );
 
     // Assert
@@ -34,13 +30,12 @@ describe("asBrowserExportError", () => {
     const response = await asBrowserExportError(
       jsonResponse,
       "text/html,application/xhtml+xml",
-      REQUEST_URL,
     );
 
     // Assert
     expect(response.status).toBe(303);
     expect(response.headers.get("location")).toBe(
-      "https://hub.example.com/export-error?code=upstream",
+      "/export-error?code=upstream",
     );
     expect(response.headers.get("cache-control")).toBe("no-store");
   });
@@ -56,11 +51,32 @@ describe("asBrowserExportError", () => {
     const response = await asBrowserExportError(
       jsonResponse,
       "text/html",
-      REQUEST_URL,
     );
 
     // Assert
     expect(response.headers.get("location")).toContain("code=timeout");
+  });
+
+  /**
+   * Behind a reverse proxy the Node process sees its own internal origin
+   * (`http://<container-id>:8080`), not the address the visitor typed. An
+   * absolute Location built from the request sends the browser to a host it
+   * cannot resolve; a relative one is resolved against the real URL.
+   */
+  it("redirects relatively, never to an absolute origin", async () => {
+    // Arrange
+    const jsonResponse = apiResponses.badGateway({
+      detail: "PDF export took too long.",
+      errorCode: "pdf_render_timeout",
+    });
+
+    // Act
+    const response = await asBrowserExportError(jsonResponse, "text/html");
+
+    // Assert
+    const location = response.headers.get("location") ?? "";
+    expect(location.startsWith("/")).toBe(true);
+    expect(location).not.toContain("://");
   });
 
   /**
@@ -78,7 +94,6 @@ describe("asBrowserExportError", () => {
     const response = await asBrowserExportError(
       jsonResponse,
       "text/html",
-      REQUEST_URL,
     );
 
     // Assert

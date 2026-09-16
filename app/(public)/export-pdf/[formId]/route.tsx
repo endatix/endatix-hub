@@ -68,7 +68,6 @@ export async function GET(req: NextRequest, { params }: Params) {
             errorCode: "pdf_render_timeout",
           }),
           accept,
-          req.url,
         );
       }
 
@@ -87,7 +86,6 @@ export async function GET(req: NextRequest, { params }: Params) {
         detail: "Token is required.",
       }),
       accept,
-      req.url,
     );
   }
 
@@ -97,7 +95,6 @@ export async function GET(req: NextRequest, { params }: Params) {
         detail: "Access token does not have export permissions.",
       }),
       accept,
-      req.url,
     );
   }
 
@@ -110,7 +107,6 @@ export async function GET(req: NextRequest, { params }: Params) {
     return await asBrowserExportError(
       mapPublicPdfExportLoadError(submissionResult),
       accept,
-      req.url,
     );
   }
 
@@ -124,7 +120,6 @@ export async function GET(req: NextRequest, { params }: Params) {
         detail: "Form definition not found.",
       }),
       accept,
-      req.url,
     );
   }
 
@@ -164,7 +159,6 @@ export async function GET(req: NextRequest, { params }: Params) {
           errorCode: "pdf_render_timeout",
         }),
         accept,
-        req.url,
       );
     }
 
