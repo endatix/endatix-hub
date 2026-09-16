@@ -3,11 +3,15 @@ import { normalizeBasePath } from "./lib/hosting/base-path";
 import { getRewriteRuleFor } from "./lib/hosting/next-config-helper";
 import { Rewrite } from "next/dist/lib/load-custom-routes";
 import { withEndatix } from "@/features/config";
+import { OTEL_SERVER_EXTERNAL_PACKAGES } from "./features/telemetry/infrastructure/otel-server-externals";
 
 const nextConfig: NextConfig = {
   /* config options here */
   output: "standalone", // Used to decrease the size of the application, check https://nextjs.org/docs/pages/api-reference/next-config-js/output
   basePath: normalizeBasePath(),
+  // Keep OTel + Azure exporters out of the server bundle so instrumentation and
+  // route handlers share one @opentelemetry/api-logs global (otherwise emit() is a no-op).
+  serverExternalPackages: [...OTEL_SERVER_EXTERNAL_PACKAGES],
   typedRoutes: true,
   reactStrictMode: true,
   reactCompiler: true,

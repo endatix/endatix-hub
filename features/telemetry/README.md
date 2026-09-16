@@ -80,10 +80,11 @@ TelemetryLogger.critical(message: string, error?: unknown, attributes?: LogAttri
 
 ## Configuration
 
-- **Azure**: set `APPLICATIONINSIGHTS_CONNECTION_STRING` in the environment. The Azure Monitor OpenTelemetry distro is used; logs and exceptions are sent to App Insights. A **span filter** is applied so noisy spans (Next.js static assets, `/_next/*`, RSC payloads, `/api/health`, favicon, fonts, etc.) are not exported—reducing volume and cost. See [Filtering OpenTelemetry in Application Insights](https://learn.microsoft.com/en-us/azure/azure-monitor/app/opentelemetry-filter?tabs=nodejs).
-- **OTLP (e.g. AWS, self-hosted)**: set `OTEL_EXPORTER_OTLP_ENDPOINT`. Logs and traces are sent to that endpoint.
-- If neither is set, the telemetry SDK is not started; `TelemetryLogger` mirrors logs to the console in local development.
-- Production console fallback is disabled by default to avoid duplicate logs. Set `TELEMETRY_CONSOLE_FALLBACK=true` only when the production host intentionally collects stdout/stderr.
+- **Azure**: set `APPLICATIONINSIGHTS_CONNECTION_STRING` at **runtime**. Azure Monitor **exporters** (not `useAzureMonitor`) share one NodeSDK with an explicit `LoggerProvider` (`logs.setGlobalLoggerProvider`), matching the `@vercel/otel` logs split. Span filter still drops `/_next/*`, RSC, health, etc.
+- **OTLP**: set `OTEL_EXPORTER_OTLP_ENDPOINT`. Both Azure and OTLP may be set (fan-out).
+- **`OTEL_SERVICE_NAME`**, **`OTEL_SDK_DISABLED`**, **`OTEL_LOG_LEVEL`**: standard OTel env vars.
+- If neither exporter is set, the SDK is not started; `TelemetryLogger` mirrors to the console in development.
+- With an exporter, stdout is the `ConsoleLogRecordExporter`. `TELEMETRY_CONSOLE_FALLBACK=true` only when there is no exporter and production must still print.
 
 ---
 
@@ -101,9 +102,9 @@ pnpm test -- --run features/telemetry
 | **FilteringSpanProcessor** | `filtering-span-processor.test.ts` | Spans matching URL/pattern or internal metric → `traceFlags` set to NONE; non-matching span unchanged; `forceFlush`/`shutdown` |
 | **TelemetryLogger** | `telemetry-logger.test.ts` | `debug`/`info`/`warn`/`error`/`critical` call OTEL logger `emit` with correct severity, body, attributes; error/critical with `Error` set `exception.*` and combined body; console fallback behavior |
 | **TelemetryTracer** | `telemetry-tracer.test.ts` | `getTracer`, `traceAsync`/`trace` invoke callback with span and return result; on throw, `recordException` and `setStatus` called |
-| **AzureTelemetryStrategy** | `azure-telemetry-strategy.test.ts` | `useAzureMonitor` called with connection string, resource, `FilteringSpanProcessor`; throws when connection string missing |
-| **OtelTelemetryStrategy** | `otel-telemetry-strategy.test.ts` | Returns SDK when OTLP endpoint set; throws when endpoint missing |
-| **TelemetryInitializer** | `telemetry-initializer.test.ts` | Strategy selection (Azure vs OTel), warning when none configured, error when init throws |
+| **NodeSdkTelemetryStrategy** | `node-sdk-telemetry-strategy.test.ts` | Azure/OTLP/both; undici instrumentation; throws when no exporter |
+| **OTEL server externals** | `otel-server-externals.test.ts` | `serverExternalPackages` includes `api-logs` |
+| **TelemetryInitializer** | `telemetry-initializer.test.ts` | Strategy when Azure or OTLP set; `OTEL_SDK_DISABLED`; warning when none; error when init throws |
 
 OTEL APIs (`logs.getLogger`, `trace.getTracer`) are mocked so tests don’t require a running SDK.
 

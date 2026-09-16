@@ -95,7 +95,7 @@ export function parseErrorMessage(value: unknown): string {
  * Provides utilities for logging with OpenTelemetry
  */
 export class TelemetryLogger {
-  private static readonly DEFAULT_LOGGER_NAME = "default";
+  private static readonly DEFAULT_LOGGER_NAME = TelemetryConfig.SERVICE_NAME;
 
   /**
    * Gets a logger with the given name
@@ -172,6 +172,7 @@ export class TelemetryLogger {
       TelemetryConfig.isAzureConfigured() || TelemetryConfig.isOtelConfigured();
 
     if (hasTelemetryExporter) {
+      // Stdout is the ConsoleLogRecordExporter on the NodeSDK log pipeline.
       return false;
     }
 

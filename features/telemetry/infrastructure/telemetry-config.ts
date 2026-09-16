@@ -27,4 +27,20 @@ export const TelemetryConfig = {
   isOtelConfigured(): boolean {
     return !!process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
   },
+
+  /**
+   * Standard OTel kill switch. Honoured before any SDK starts.
+   */
+  isSdkDisabled(): boolean {
+    const raw = process.env.OTEL_SDK_DISABLED?.trim().toLowerCase();
+    return raw === "true" || raw === "1";
+  },
+
+  /**
+   * service.name — OTEL_SERVICE_NAME wins, else endatix-hub.
+   */
+  serviceName(): string {
+    const fromEnv = process.env.OTEL_SERVICE_NAME?.trim();
+    return fromEnv || this.SERVICE_NAME;
+  },
 };

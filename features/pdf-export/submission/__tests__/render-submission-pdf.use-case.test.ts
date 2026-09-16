@@ -25,6 +25,9 @@ vi.mock("@/features/telemetry", () => ({
       return fn(span);
     },
   },
+  TelemetryLogger: {
+    warn: vi.fn(),
+  },
 }));
 
 const surveyModel = new Model({
@@ -56,6 +59,7 @@ vi.mock("../submission-details-pdf", () => ({
 const { renderSubmissionPdf } =
   await import("../render-submission-pdf.use-case");
 const { preparePdfModel } = await import("../prepare-pdf-model.use-case");
+const { TelemetryLogger } = await import("@/features/telemetry");
 
 const submission = { id: "s1" } as never;
 
@@ -64,6 +68,7 @@ beforeEach(() => {
   toBlob.mockClear();
   vi.mocked(preparePdfModel).mockClear();
   vi.mocked(preparePdfModel).mockResolvedValue(surveyModel);
+  vi.mocked(TelemetryLogger.warn).mockClear();
   vi.useRealTimers();
 });
 
@@ -128,6 +133,14 @@ describe("renderSubmissionPdf", () => {
     expect(render).toBeUndefined();
     expect(preparePdfModel).not.toHaveBeenCalled();
     expect(toBlob).not.toHaveBeenCalled();
+    expect(TelemetryLogger.warn).toHaveBeenCalledWith(
+      "PDF render exceeded the deadline.",
+      expect.objectContaining({
+        "pdf.caller": "hub-authenticated",
+        "pdf.timeoutMs": expect.any(Number),
+      }),
+      "pdf-export",
+    );
   });
 
   it("times out when model preparation never finishes", async () => {

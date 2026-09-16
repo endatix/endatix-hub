@@ -112,6 +112,8 @@ declare namespace NodeJS {
     // Telemetry
     OTEL_LOG_LEVEL?: string;
     OTEL_EXPORTER_OTLP_ENDPOINT?: string;
+    OTEL_SERVICE_NAME?: string;
+    OTEL_SDK_DISABLED?: string;
     APPLICATIONINSIGHTS_CONNECTION_STRING?: string;
     TELEMETRY_CONSOLE_FALLBACK?: string;
 

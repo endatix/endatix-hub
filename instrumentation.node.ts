@@ -1,11 +1,8 @@
 import { TelemetryInitializer } from './features/telemetry/infrastructure/telemetry-initializer';
 
 /**
- * Initialize OpenTelemetry instrumentation for Node.js
- * 
- * This file serves as the entry point for OpenTelemetry instrumentation.
- * It determines whether to use Azure Application Insights or a local OTLP exporter
- * based on environment configuration.
+ * Initialize OpenTelemetry for Node.js (Next.js instrumentation.ts register()).
+ * One NodeSDK plus an explicit LoggerProvider — see NodeSdkTelemetryStrategy.
  */
 
 // Create and start the telemetry initializer

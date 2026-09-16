@@ -1,7 +1,7 @@
 import { pdf } from "@react-pdf/renderer";
 import { Submission } from "@/lib/endatix-api";
 import { Result } from "@/lib/result";
-import { TelemetryTracer } from "@/features/telemetry";
+import { TelemetryLogger, TelemetryTracer } from "@/features/telemetry";
 import {
   isPdfRenderTimeout,
   PDF_RENDER_TIMEOUT_CODE,
@@ -117,6 +117,7 @@ export async function renderSubmissionPdf({
               "pdf.outcome": "timeout",
               "pdf.durationMs": durationMs,
             });
+            logPdfDeadlineExceeded(caller, { "pdf.durationMs": durationMs });
 
             return Result.error(
               "PDF render exceeded the deadline.",
@@ -136,6 +137,7 @@ export async function renderSubmissionPdf({
     );
   } catch (error) {
     if (isPdfRenderTimeout(error)) {
+      logPdfDeadlineExceeded(caller);
       return Result.error(
         "PDF render exceeded the deadline.",
         undefined,
@@ -145,4 +147,19 @@ export async function renderSubmissionPdf({
 
     return Result.error("PDF export failed.");
   }
+}
+
+function logPdfDeadlineExceeded(
+  caller: PdfExportCaller,
+  attributes: { "pdf.durationMs"?: number } = {},
+): void {
+  TelemetryLogger.warn(
+    "PDF render exceeded the deadline.",
+    {
+      "pdf.caller": caller,
+      "pdf.timeoutMs": renderTimeoutMs(),
+      ...attributes,
+    },
+    "pdf-export",
+  );
 }
