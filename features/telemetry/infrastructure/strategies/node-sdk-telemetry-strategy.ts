@@ -11,6 +11,7 @@ import {
   ConsoleLogRecordExporter,
   LoggerProvider,
   SimpleLogRecordProcessor,
+  type LogRecordProcessor,
 } from "@opentelemetry/sdk-logs";
 import { AlwaysOnSampler } from "@opentelemetry/sdk-trace-base";
 import { AsyncLocalStorageContextManager } from "@opentelemetry/context-async-hooks";
@@ -49,7 +50,7 @@ export class NodeSdkTelemetryStrategy implements TelemetryInitStrategy {
     }
 
     const spanProcessors = [new FilteringSpanProcessor()];
-    const logRecordProcessors = [
+    const logRecordProcessors: LogRecordProcessor[] = [
       new SimpleLogRecordProcessor({
         exporter: new ConsoleLogRecordExporter(),
       }),
