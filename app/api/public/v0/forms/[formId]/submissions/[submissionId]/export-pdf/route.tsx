@@ -1,17 +1,11 @@
 import { getCustomQuestionsAction } from "@/features/forms/application/actions/get-custom-questions.action";
-import { preparePdfModel } from "@/features/pdf-export/server";
-import { SubmissionDetailsPdf } from "@/features/pdf-export/submission/submission-details-pdf";
+import { renderSubmissionPdf } from "@/features/pdf-export/submission/render-submission-pdf.use-case";
 import { getSubmissionDetailsUseCase } from "@/features/submissions/use-cases/get-submission-details.use-case";
 import { Result } from "@/lib/result";
 import { parseBoolean } from "@/lib/utils/type-parsers";
 import { CustomQuestion } from "@/services/api";
-import { pdf } from "@react-pdf/renderer";
 import { NextRequest, NextResponse } from "next/server";
-import {
-  isPdfRenderTimeout,
-  raceWithTimeout,
-  remainingDeadlineMs,
-} from "@/features/pdf-export/render-deadline";
+import { PDF_RENDER_TIMEOUT_CODE } from "@/features/pdf-export/render-deadline";
 
 type Params = {
   params: Promise<{
@@ -56,34 +50,16 @@ export async function GET(req: NextRequest, { params }: Params) {
 
   const submission = submissionResult.value;
 
-  const surveyModel = await preparePdfModel({
+  const renderResult = await renderSubmissionPdf({
     submission,
     customQuestionsJsonData,
     useDefaultLocale,
+    startedAtMs,
+    caller: "hub-authenticated",
   });
 
-  try {
-    const pdfBlob = await raceWithTimeout(
-      pdf(
-        <SubmissionDetailsPdf
-          submission={submission}
-          surveyModel={surveyModel}
-        />,
-      ).toBlob(),
-      remainingDeadlineMs(startedAtMs),
-    );
-
-    const contentDisposition = inline === "true" ? "inline" : "attachment";
-
-    return new Response(pdfBlob, {
-      status: 200,
-      headers: {
-        "Content-Type": "application/pdf",
-        "Content-Disposition": `${contentDisposition}; filename="submission-${submissionId}.pdf"`,
-      },
-    });
-  } catch (error) {
-    if (isPdfRenderTimeout(error)) {
+  if (Result.isError(renderResult)) {
+    if (renderResult.errorCode === PDF_RENDER_TIMEOUT_CODE) {
       return NextResponse.json(
         {
           error:
@@ -93,6 +69,16 @@ export async function GET(req: NextRequest, { params }: Params) {
       );
     }
 
-    throw error;
+    return NextResponse.json({ error: renderResult.message }, { status: 500 });
   }
+
+  const contentDisposition = inline === "true" ? "inline" : "attachment";
+
+  return new Response(renderResult.value, {
+    status: 200,
+    headers: {
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `${contentDisposition}; filename="submission-${submissionId}.pdf"`,
+    },
+  });
 }
