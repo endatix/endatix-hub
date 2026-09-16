@@ -1,6 +1,6 @@
 import React from "react";
 import { Text, View, StyleSheet } from "@react-pdf/renderer";
-import { pdfPlainText } from "@/features/pdf-export/pdf-plain-text";
+import { pdfPlainText } from "@/lib/utils/pdf-plain-text";
 import {
   MultipleTextItemModel,
   Question,

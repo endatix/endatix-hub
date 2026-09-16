@@ -3,7 +3,7 @@ import { QuestionMatrixDropdownModel } from "survey-core";
 import { VIEWER_STYLES } from "../pdf-answer-viewer";
 import { formatMatrixDropdownCell } from "../format-matrix-dropdown-cell";
 import { PDF_TABLE_STYLES } from "@/features/pdf-export/submission/pdf-styles";
-import { pdfPlainText } from "@/features/pdf-export/pdf-plain-text";
+import { pdfPlainText } from "@/lib/utils/pdf-plain-text";
 
 interface MatrixDropdownAnswerProps {
   question: QuestionMatrixDropdownModel;

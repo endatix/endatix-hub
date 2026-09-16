@@ -1,4 +1,4 @@
-import { pdfPlainText } from "@/features/pdf-export/pdf-plain-text";
+import { pdfPlainText } from "@/lib/utils/pdf-plain-text";
 
 /**
  * Matrix-dropdown cells can hold primitives, choice arrays, or nested objects.

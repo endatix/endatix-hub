@@ -1,7 +1,7 @@
 import { Text, View } from "@react-pdf/renderer";
 import { ItemValue, QuestionMatrixModel } from "survey-core";
 import { PDF_TABLE_STYLES } from "@/features/pdf-export/submission/pdf-styles";
-import { pdfPlainText } from "@/features/pdf-export/pdf-plain-text";
+import { pdfPlainText } from "@/lib/utils/pdf-plain-text";
 import {
   formatChoiceDisplay,
   resolveMatrixColumnLabel,

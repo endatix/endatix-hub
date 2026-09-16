@@ -24,6 +24,11 @@ describe("pdfPlainText", () => {
     expect(pdfPlainText(true)).toBe("true");
   });
 
+  it("decodes named and numeric entities", () => {
+    expect(pdfPlainText("A&nbsp;B")).toBe("A B");
+    expect(pdfPlainText("&#39;quoted&#39;")).toBe("'quoted'");
+  });
+
   it("drops out-of-range numeric entities instead of throwing", () => {
     expect(pdfPlainText("A&#1114112;B")).toBe("AB");
     expect(pdfPlainText("A&#x110000;B")).toBe("AB");

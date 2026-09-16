@@ -77,6 +77,20 @@ describe("PdfDragCategorizeAnswer", () => {
     expect(text).toContain("Item Two");
   });
 
+  it("strips HTML from zone titles", () => {
+    const tree = renderPdfAnswer(
+      {
+        choices: [{ value: "item_1", text: "Item One" }],
+        zones: [{ value: "zone_a", text: "<span>Zone A</span>" }],
+      },
+      { zone_a: ["item_1"] },
+    );
+
+    const text = collectText(tree);
+    expect(text).toContain("Zone A");
+    expect(text.join("")).not.toContain("<span>");
+  });
+
   it("marks an empty zone rather than omitting it", () => {
     // Act
     const tree = renderPdfAnswer(

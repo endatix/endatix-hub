@@ -8,7 +8,7 @@ import {
   MetadataSchema,
 } from "@/features/public-form/types";
 import { tryParseJson } from "@/lib/utils/type-parsers";
-import { pdfPlainText } from "@/features/pdf-export/pdf-plain-text";
+import { pdfPlainText } from "@/lib/utils/pdf-plain-text";
 import { Result } from "@/lib/result";
 
 interface PdfSubmissionVariablesProps {

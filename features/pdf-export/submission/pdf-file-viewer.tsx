@@ -8,7 +8,7 @@ import {
   VideoFileIcon,
 } from "@/features/pdf-export/submission/icons";
 import { PDF_STYLES } from "@/features/pdf-export/submission/pdf-styles";
-import { pdfPlainText } from "@/features/pdf-export/pdf-plain-text";
+import { pdfPlainText } from "@/lib/utils/pdf-plain-text";
 import AudioFileIcon from "./icons/audio-file-icon";
 
 interface FileViewerProps {

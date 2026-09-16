@@ -1,5 +1,5 @@
 import { getPanelTitle } from "@/lib/questions/question-utils";
-import { pdfPlainText } from "@/features/pdf-export/pdf-plain-text";
+import { pdfPlainText } from "@/lib/utils/pdf-plain-text";
 import { StyleSheet, Text, View } from "@react-pdf/renderer";
 import { Question, QuestionNonValue } from "survey-core";
 import { EyeOffIcon } from "./icons";

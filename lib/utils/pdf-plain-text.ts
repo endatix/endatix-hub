@@ -1,6 +1,14 @@
 import { htmlSanitizer } from "@/lib/utils/html-sanitizer";
 
-/** Unicode scalar values only; invalid numeric entities must not throw. */
+const NAMED_ENTITIES: Record<string, string> = {
+  "&nbsp;": " ",
+  "&lt;": "<",
+  "&gt;": ">",
+  "&quot;": '"',
+  "&apos;": "'",
+  "&amp;": "&",
+};
+
 function codePointToChar(code: number): string {
   if (!Number.isInteger(code) || code < 1 || code > 0x10ffff) {
     return "";
@@ -9,10 +17,6 @@ function codePointToChar(code: number): string {
   return String.fromCodePoint(code);
 }
 
-/**
- * Named + numeric entities in one linear pass. Captures are length-capped
- * so a huge digit run cannot inflate into fromCodePoint / Number.
- */
 function decodeHtmlEntities(text: string): string {
   return text.replace(
     /&(?:#x([0-9a-f]{1,6})|#(\d{1,7})|nbsp|lt|gt|quot|apos|amp);/gi,
@@ -24,22 +28,7 @@ function decodeHtmlEntities(text: string): string {
         return codePointToChar(Number(decimal));
       }
 
-      switch (match.toLowerCase()) {
-        case "&nbsp;":
-          return " ";
-        case "&lt;":
-          return "<";
-        case "&gt;":
-          return ">";
-        case "&quot;":
-          return '"';
-        case "&apos;":
-          return "'";
-        case "&amp;":
-          return "&";
-        default:
-          return match;
-      }
+      return NAMED_ENTITIES[match.toLowerCase()] ?? match;
     },
   );
 }
@@ -48,10 +37,7 @@ function replaceLiteralNewlines(text: string): string {
   return text.includes("\\n") ? text.replace(/\\n/g, "\n") : text;
 }
 
-/**
- * Plain text for @react-pdf/renderer &lt;Text&gt;: decode entities, strip HTML,
- * turn literal \\n into real line breaks.
- */
+/** Decode entities, strip HTML, turn literal \\n into newlines for PDF `<Text>`. */
 export function pdfPlainText(value: unknown): string {
   if (value === null || value === undefined) {
     return "";
@@ -66,8 +52,7 @@ export function pdfPlainText(value: unknown): string {
     return "";
   }
 
-  const hasMarkupOrEntities = /[&<]/.test(raw);
-  if (!hasMarkupOrEntities) {
+  if (!/[&<]/.test(raw)) {
     return replaceLiteralNewlines(raw);
   }
 

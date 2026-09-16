@@ -1,5 +1,5 @@
-import type { ItemValue, Question, QuestionMatrixModel } from 'survey-core';
-import { pdfPlainText } from '@/features/pdf-export/pdf-plain-text';
+import type { ItemValue, Question, QuestionMatrixModel } from "survey-core";
+import { pdfPlainText } from "@/lib/utils/pdf-plain-text";
 
 /**
  * Formats a stored choice value with its resolved label for PDF export.
@@ -9,8 +9,8 @@ export function formatChoiceDisplay(
   value: string | number | boolean | null | undefined,
   label?: string | null,
 ): string {
-  if (value === null || value === undefined || value === '') {
-    return '';
+  if (value === null || value === undefined || value === "") {
+    return "";
   }
 
   const valueStr = pdfPlainText(value);
@@ -22,7 +22,9 @@ export function formatChoiceDisplay(
   return `${labelStr} (${valueStr})`;
 }
 
-export function resolveItemValueLabel(item: ItemValue | undefined): string | undefined {
+export function resolveItemValueLabel(
+  item: ItemValue | undefined,
+): string | undefined {
   if (!item) {
     return undefined;
   }
@@ -33,7 +35,7 @@ export function resolveItemValueLabel(item: ItemValue | undefined): string | und
   }
 
   const title = item.title;
-  if (typeof title === 'string' && title.trim().length > 0) {
+  if (typeof title === "string" && title.trim().length > 0) {
     return title.trim();
   }
 
@@ -49,7 +51,11 @@ function resolveDisplayValueLabel(
       ? question.getDisplayValue(false)
       : question.getDisplayValue(false, value);
 
-  if (displayValue === null || displayValue === undefined || displayValue === '') {
+  if (
+    displayValue === null ||
+    displayValue === undefined ||
+    displayValue === ""
+  ) {
     return undefined;
   }
 
@@ -57,9 +63,11 @@ function resolveDisplayValueLabel(
 }
 
 /** Resolves display label for choice questions (incl. lazy-load data lists). */
-export function resolveChoiceLabelForQuestion(question: Question): string | undefined {
+export function resolveChoiceLabelForQuestion(
+  question: Question,
+): string | undefined {
   const value = question.value;
-  if (value === null || value === undefined || value === '') {
+  if (value === null || value === undefined || value === "") {
     return undefined;
   }
 

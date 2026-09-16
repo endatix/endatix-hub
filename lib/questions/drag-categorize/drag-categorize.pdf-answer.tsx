@@ -3,7 +3,7 @@ import { Image, StyleSheet, Text, View } from "@react-pdf/renderer";
 import React from "react";
 import type { Question } from "survey-core";
 import { resolveAnswerZones } from "./utils";
-import { pdfPlainText } from "@/features/pdf-export/pdf-plain-text";
+import { pdfPlainText } from "@/lib/utils/pdf-plain-text";
 
 interface PdfDragCategorizeAnswerProps {
   question: Question;
