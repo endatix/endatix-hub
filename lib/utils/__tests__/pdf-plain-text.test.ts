@@ -75,7 +75,7 @@ describe("pdfPlainText", () => {
   });
 
   it("renders a bigint answer", () => {
-    expect(pdfPlainText(10n)).toBe("10");
+    expect(pdfPlainText(BigInt(10))).toBe("10");
   });
 
   /** Lone surrogates cannot stand alone in text and would corrupt PDF output. */
