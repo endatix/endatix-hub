@@ -46,7 +46,6 @@ beforeEach(() => {
 });
 
 describe("SubmissionShareLinksDialog", () => {
-  /** The old dialog hid three of four types behind a Select. */
   it("shows every link type without opening a menu", () => {
     renderDialog();
 
@@ -56,10 +55,6 @@ describe("SubmissionShareLinksDialog", () => {
     expect(screen.getAllByRole("button", { name: "Generate" })).toHaveLength(4);
   });
 
-  /**
-   * The previous implementation cleared the generated link whenever the type
-   * changed, so two links could never exist at once.
-   */
   it("keeps earlier links when another is generated", async () => {
     renderDialog();
 
@@ -86,7 +81,6 @@ describe("SubmissionShareLinksDialog", () => {
     });
   });
 
-  /** A rejected clipboard write must not be reported as a copy. */
   it("still generates when the clipboard refuses", async () => {
     writeText.mockRejectedValue(new Error("not allowed"));
     renderDialog();
@@ -121,7 +115,6 @@ describe("SubmissionShareLinksDialog", () => {
     expect(screen.queryByDisplayValue(/token-/)).toBeNull();
   });
 
-  /** Changing the lifetime must not relabel a link already issued. */
   it("generates with the newly selected lifetime", async () => {
     renderDialog();
 
@@ -148,6 +141,47 @@ describe("SubmissionShareLinksDialog", () => {
 
     await waitFor(() => expect(createLink).toHaveBeenCalledTimes(2));
     expect(screen.getByDisplayValue(/token-share/)).toBeTruthy();
+  });
+
+  it("keeps each type pending until its own request finishes", async () => {
+    let resolveShare!: (value: unknown) => void;
+    let resolveView!: (value: unknown) => void;
+
+    createLink.mockImplementation(async (_f, _s, type: string) => {
+      const token = {
+        type,
+        token: `token-${type}`,
+        expiresAt: new Date(Date.now() + 7 * 24 * 3600_000).toISOString(),
+      };
+      if (type === "share") {
+        await new Promise((resolve) => {
+          resolveShare = resolve;
+        });
+      }
+      if (type === "view") {
+        await new Promise((resolve) => {
+          resolveView = resolve;
+        });
+      }
+      return Result.success(token);
+    });
+
+    renderDialog();
+
+    const generateButtons = screen.getAllByRole("button", { name: "Generate" });
+    fireEvent.click(generateButtons[0]);
+    fireEvent.click(generateButtons[1]);
+
+    expect(await screen.findAllByRole("button", { name: "Generating..." })).toHaveLength(
+      2,
+    );
+
+    resolveShare(undefined);
+    await screen.findByDisplayValue(/token-share/);
+    expect(screen.getByRole("button", { name: "Generating..." })).toBeTruthy();
+
+    resolveView(undefined);
+    await screen.findByDisplayValue(/token-view/);
   });
 
   it("offers native share only when the browser supports it", async () => {

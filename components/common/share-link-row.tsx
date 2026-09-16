@@ -13,7 +13,6 @@ interface ShareLinkRowHeaderProps {
   className?: string;
 }
 
-/** Icon + title + description, shared by a generated row and its not-yet-generated placeholder. */
 export function ShareLinkRowHeader({
   icon: Icon,
   title,
@@ -42,9 +41,7 @@ interface ShareLinkRowProps {
   value: string;
   copyLabel: string;
   className?: string;
-  /** Rendered beside the copy button - a native share, a regenerate, nothing. */
   actions?: ReactNode;
-  /** Rendered under the input, e.g. when this link expires. */
   footer?: ReactNode;
 }
 
@@ -67,7 +64,6 @@ export function ShareLinkRow({
     >
       <ShareLinkRowHeader icon={icon} title={title} description={description} />
 
-      {/* Stacks under sm so a long URL never widens the dialog. */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <div className="relative min-w-0 flex-1">
           <Input

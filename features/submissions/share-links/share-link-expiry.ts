@@ -1,13 +1,5 @@
-/**
- * How long a generated share link stays valid.
- *
- * The API validates this server-side: `CreateAccessTokenValidator` accepts 1 to
- * 86,400 minutes (60 days). Presets rather than a date picker - the cap is a
- * hard server rule, and presets avoid timezone handling and a validation
- * surface for a control with five sensible answers.
- */
+/** Presets for submission access-token lifetime. Cap matches API `CreateAccessTokenValidator.MaxExpiryMinutes`. */
 
-/** Mirrors `CreateAccessTokenValidator.MaxExpiryMinutes` in the API. */
 export const MAX_EXPIRY_MINUTES = 60 * 24 * 60;
 
 export const DEFAULT_EXPIRY_MINUTES = 60 * 24 * 7;
@@ -25,12 +17,6 @@ export const EXPIRY_OPTIONS: readonly ShareLinkExpiryOption[] = Object.freeze([
   { value: MAX_EXPIRY_MINUTES, label: "60 days" },
 ]);
 
-/**
- * Keeps a requested lifetime inside what the API will accept.
- *
- * Out-of-range values are corrected here rather than sent on to be rejected:
- * the failure would arrive as an opaque 400 well after the user chose.
- */
 export function clampExpiryMinutes(minutes: number): number {
   if (!Number.isFinite(minutes)) {
     return DEFAULT_EXPIRY_MINUTES;
@@ -48,10 +34,6 @@ const MINUTE_MS = 60_000;
 const HOUR_MS = 60 * MINUTE_MS;
 const DAY_MS = 24 * HOUR_MS;
 
-/**
- * Relative lifetime for the row that was actually minted - never the currently
- * selected preset, which may have changed since.
- */
 export function formatExpiresIn(
   expiresAt: string,
   now: Date = new Date(),

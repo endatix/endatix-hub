@@ -9,7 +9,7 @@
 - Reporting export wire keys (`csv`, `xlsx`, `codebook`, …) live in [`lib/endatix-api/reporting/reporting-export-wire.ts`](lib/endatix-api/reporting/reporting-export-wire.ts). Lookups are **exact** (no case-fold). Legacy downloads use the closed `BUILT_IN_EXPORT_FILE_KINDS` list (`csv` | `xlsx` | `json`), not `Extract<wire, FileKindKey>`.
 - Keep `app/` routing-focused. Data mutations should flow through server actions.
 - Submission PDF: `features/pdf-export/`. Public token + Hub API routes both call `renderSubmissionPdf`. Bound by server env `PDF_RENDER_TIMEOUT_SECONDS` (default 40, never `NEXT_PUBLIC_`). Public failures: `/export-error?code=&ref=`.
-- Share-link row UI (icon + title + copyable URL) lives in [`components/common/share-link-row.tsx`](components/common/share-link-row.tsx) (`ShareLinkRow`, `ShareLinkRowHeader`), not in a `features/share-links/` domain — it is presentation vocabulary consumed by two unrelated features (`features/forms/ui/share-dialog.tsx`, `features/submissions/share-links/`). Placement: [`project-structure.md`](project-structure.md) "Where UI for a shared concept lives".
+- Share-link row: [`components/common/share-link-row.tsx`](components/common/share-link-row.tsx) (`ShareLinkRow`, `ShareLinkRowHeader`). Used by form Share and submission share-links — not a `features/share-links/` domain. See [`project-structure.md`](project-structure.md) “Where UI for a shared concept lives”.
 
 ## Toolchain (Node & pnpm)
 

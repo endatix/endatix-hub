@@ -51,8 +51,6 @@ export async function createSubmissionAccessLinkAction(
   const tokenResult = await api.submissions.createAccessToken({
     formId,
     submissionId,
-    // Corrected here rather than sent on: the API validates the range and would
-    // answer with an opaque 400 long after the user picked a lifetime.
     expiryMinutes: clampExpiryMinutes(expiryMinutes),
     permissions: [...permissions],
   });

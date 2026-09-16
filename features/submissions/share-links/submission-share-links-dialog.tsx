@@ -60,10 +60,6 @@ type ShareLinkOption = {
   icon: LucideIcon;
 };
 
-/**
- * Every link type is shown at once. Four is few enough that a picker only hides
- * three of them behind a click, and the type is what someone came here to pick.
- */
 const SHARE_LINK_OPTIONS: ShareLinkOption[] = [
   {
     type: "share",
@@ -111,23 +107,23 @@ export function SubmissionShareLinksDialog({
   onOpenChange,
 }: SubmissionShareLinksDialogProps) {
   const [expiryMinutes, setExpiryMinutes] = useState(DEFAULT_EXPIRY_MINUTES);
-  // Keyed by type: generating one link must never discard another.
   const [links, setLinks] = useState<
     Partial<Record<SubmissionAccessLinkType, SubmissionAccessLinkToken>>
   >({});
-  const [pendingType, setPendingType] =
-    useState<SubmissionAccessLinkType | null>(null);
+  const [pendingTypes, setPendingTypes] = useState<
+    Partial<Record<SubmissionAccessLinkType, true>>
+  >({});
   const [, startTransition] = useTransition();
   const [canNativeShare, setCanNativeShare] = useState(false);
 
-  // navigator.share only exists on some browsers, so it is read after mount to
-  // keep the server and first client render identical.
   useEffect(() => {
     setCanNativeShare(typeof globalThis.navigator?.share === "function");
   }, []);
 
   const handleGenerate = (option: ShareLinkOption) => {
-    setPendingType(option.type);
+    setPendingTypes((current) =>
+      current[option.type] ? current : { ...current, [option.type]: true },
+    );
 
     startTransition(async () => {
       const result = await createSubmissionAccessLinkAction(
@@ -137,7 +133,11 @@ export function SubmissionShareLinksDialog({
         expiryMinutes,
       );
 
-      setPendingType(null);
+      setPendingTypes((current) => {
+        const next = { ...current };
+        delete next[option.type];
+        return next;
+      });
 
       if (Result.isError(result)) {
         toast.error({ title: result.message });
@@ -146,9 +146,6 @@ export function SubmissionShareLinksDialog({
 
       setLinks((current) => ({ ...current, [option.type]: result.value }));
 
-      // Copying is the near-certain next step, but the click that authorised it
-      // may no longer count as recent after the awaited call above - so this is
-      // best effort, and the copy button beside the link stays regardless.
       const copied = await copyValueToClipboard(
         getPublicUrl(`${option.path}/${formId}`, result.value.token),
       );
@@ -166,7 +163,7 @@ export function SubmissionShareLinksDialog({
         url,
       });
     } catch {
-      // Dismissing the sheet rejects; that is not a failure worth reporting.
+      // User dismissed the share sheet.
     }
   };
 
@@ -174,8 +171,6 @@ export function SubmissionShareLinksDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className="max-h-[90dvh] gap-3 overflow-y-auto sm:max-w-2xl"
-        // The trigger lives inside clickable submission UI; stop both pointer
-        // and click bubbling so parent row/menu handlers do not also fire.
         onClick={(event) => event.stopPropagation()}
         onPointerDown={(event) => event.stopPropagation()}
       >
@@ -224,7 +219,7 @@ export function SubmissionShareLinksDialog({
 
           {SHARE_LINK_OPTIONS.map((option) => {
             const generated = links[option.type];
-            const isPending = pendingType === option.type;
+            const isPending = pendingTypes[option.type] === true;
 
             if (!generated) {
               return (

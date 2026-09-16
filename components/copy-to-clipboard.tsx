@@ -33,15 +33,7 @@ interface CopyToClipboardProps extends Omit<
   buttonClassName?: string;
 }
 
-/**
- * Copies `value`, reporting whether it actually landed.
- *
- * The write is awaited rather than fired and forgotten: browsers reject it when
- * the page lacks clipboard permission or the click that authorised it is no
- * longer recent - which is exactly what happens when a copy follows an awaited
- * server call. Claiming success there would show "Copied to clipboard" over an
- * empty clipboard.
- */
+/** Await clipboard write; return whether it succeeded (no toast on failure). */
 export const copyValueToClipboard = async (value: string): Promise<boolean> => {
   if (!value || typeof value !== "string" || value.trim().length === 0) {
     return false;
