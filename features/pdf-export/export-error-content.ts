@@ -29,8 +29,18 @@ type ExportErrorContent = {
   eyebrow: string;
   title: string;
   description: string;
-  /** Whether retrying the same link is worth suggesting. */
+  /** Whether retrying the same link is worth suggesting at all. */
   retryable: boolean;
+  /**
+   * Whether to offer a one-click retry button.
+   *
+   * Deliberately narrower than `retryable`. A timed-out render is not cancelled
+   * when the deadline fires - it keeps consuming CPU until it finishes - so a
+   * retry button there invites hammering a server that is already struggling.
+   * An upstream failure is the case where retrying promptly can genuinely
+   * succeed, so that is the only one that gets the button.
+   */
+  offersRetry: boolean;
 };
 
 const CONTENT: Readonly<
@@ -42,6 +52,7 @@ const CONTENT: Readonly<
     description:
       "The PDF could not be produced in time. Nothing has been lost. Waiting a moment usually helps, because a less busy server finishes well inside the limit.",
     retryable: true,
+    offersRetry: false,
   },
   [EXPORT_ERROR_CODE.UPSTREAM]: {
     eyebrow: "Service unavailable",
@@ -49,6 +60,7 @@ const CONTENT: Readonly<
     description:
       "The submission could not be loaded, so the PDF was not generated. This is usually brief - try again in a moment.",
     retryable: true,
+    offersRetry: true,
   },
   [EXPORT_ERROR_CODE.EXPIRED]: {
     eyebrow: "Link expired",
@@ -56,6 +68,7 @@ const CONTENT: Readonly<
     description:
       "Export links are valid for a limited time. Ask whoever shared it to send a new one.",
     retryable: false,
+    offersRetry: false,
   },
   [EXPORT_ERROR_CODE.FORBIDDEN]: {
     eyebrow: "No access",
@@ -63,6 +76,7 @@ const CONTENT: Readonly<
     description:
       "The link does not carry export permission. Ask whoever shared it for a link that allows exporting.",
     retryable: false,
+    offersRetry: false,
   },
   [EXPORT_ERROR_CODE.NOT_FOUND]: {
     eyebrow: "Not found",
@@ -70,6 +84,7 @@ const CONTENT: Readonly<
     description:
       "It may have been deleted, or the link may be incomplete. Check that you copied the whole link.",
     retryable: false,
+    offersRetry: false,
   },
   [EXPORT_ERROR_CODE.INVALID]: {
     eyebrow: "Invalid link",
@@ -77,6 +92,7 @@ const CONTENT: Readonly<
     description:
       "Part of the link is missing or malformed. Check that you copied the whole link, including everything after the question mark.",
     retryable: false,
+    offersRetry: false,
   },
   [EXPORT_ERROR_CODE.UNKNOWN]: {
     eyebrow: "Something went wrong",
@@ -84,6 +100,7 @@ const CONTENT: Readonly<
     description:
       "Try again in a moment. If it keeps happening, share this page with your administrator.",
     retryable: true,
+    offersRetry: false,
   },
 });
 

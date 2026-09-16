@@ -79,6 +79,67 @@ describe("asBrowserExportError", () => {
     expect(location).not.toContain("://");
   });
 
+  const RETRY_TARGET = "/export-pdf/123?token=super-secret-token";
+
+  it("stores the retry link for an upstream failure", async () => {
+    // Arrange
+    const jsonResponse = apiResponses.badGateway({
+      detail: "Failed to load submission from the Endatix API.",
+    });
+
+    // Act
+    const response = await asBrowserExportError(
+      jsonResponse,
+      "text/html",
+      RETRY_TARGET,
+    );
+
+    // Assert - HttpOnly and path-scoped, so script cannot read it and it is
+    // only ever sent to the error page.
+    const cookie = response.cookies.get("endatix_export_retry");
+    expect(cookie?.value).toBe(RETRY_TARGET);
+    expect(cookie?.httpOnly).toBe(true);
+    expect(cookie?.path).toBe("/export-error");
+    expect(cookie?.sameSite).toBe("lax");
+  });
+
+  /**
+   * A timed-out render keeps running after the deadline, so there is no retry
+   * button - and therefore no reason to keep the token in a cookie.
+   */
+  it("does not store the token for a code with no retry button", async () => {
+    // Arrange
+    const jsonResponse = apiResponses.badGateway({
+      detail: "PDF export took too long.",
+      errorCode: "pdf_render_timeout",
+    });
+
+    // Act
+    const response = await asBrowserExportError(
+      jsonResponse,
+      "text/html",
+      RETRY_TARGET,
+    );
+
+    // Assert
+    expect(response.cookies.get("endatix_export_retry")).toBeUndefined();
+  });
+
+  it("refuses to store a tampered retry target", async () => {
+    // Arrange
+    const jsonResponse = apiResponses.badGateway({ detail: "Upstream down." });
+
+    // Act
+    const response = await asBrowserExportError(
+      jsonResponse,
+      "text/html",
+      "https://evil.com/export-pdf/1?token=a",
+    );
+
+    // Assert
+    expect(response.cookies.get("endatix_export_retry")).toBeUndefined();
+  });
+
   /**
    * The export URL carries an access token. The redirect is built from scratch,
    * so nothing from the original query string can ride along into browser

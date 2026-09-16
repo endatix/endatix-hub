@@ -1,6 +1,15 @@
 import { NextResponse } from "next/server";
 import { withBasePath } from "@/lib/hosting/base-path";
-import { resolveExportErrorCode } from "./export-error-content";
+import {
+  getExportErrorContent,
+  resolveExportErrorCode,
+} from "./export-error-content";
+import {
+  EXPORT_RETRY_COOKIE,
+  EXPORT_RETRY_COOKIE_MAX_AGE_SECONDS,
+  EXPORT_RETRY_COOKIE_PATH,
+  parseExportRetryTarget,
+} from "./export-retry-target";
 
 /** Where browsers are sent. A real Next.js page, not a hand-maintained file. */
 const EXPORT_ERROR_PATH = "/export-error";
@@ -44,6 +53,13 @@ function prefersHtml(acceptHeader: string | null): boolean {
 export async function asBrowserExportError(
   response: NextResponse,
   acceptHeader: string | null,
+  /**
+   * The relative export path the request came in on. Stored in an `HttpOnly`
+   * cookie - never in the redirect URL - so the error page can offer a retry
+   * without the access token being visible anywhere. Omit it and no retry is
+   * offered; it is only written for codes that actually use it.
+   */
+  retryTarget?: string,
 ): Promise<NextResponse> {
   if (!prefersHtml(acceptHeader)) {
     return response;
@@ -61,11 +77,31 @@ export async function asBrowserExportError(
   const target = `${withBasePath(EXPORT_ERROR_PATH)}?code=${encodeURIComponent(code)}`;
 
   // Built by hand: NextResponse.redirect() rejects a relative target.
-  return new NextResponse(null, {
+  const redirect = new NextResponse(null, {
     status: 303,
     headers: {
       Location: target,
       "Cache-Control": "no-store",
     },
   });
+
+  // Store the token-bearing link only when the page will actually use it, so a
+  // failure that cannot be retried never puts the token in a cookie at all.
+  const safeRetryTarget = getExportErrorContent(code).offersRetry
+    ? parseExportRetryTarget(retryTarget)
+    : null;
+
+  if (safeRetryTarget) {
+    redirect.cookies.set({
+      name: EXPORT_RETRY_COOKIE,
+      value: safeRetryTarget,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: EXPORT_RETRY_COOKIE_PATH,
+      maxAge: EXPORT_RETRY_COOKIE_MAX_AGE_SECONDS,
+    });
+  }
+
+  return redirect;
 }
