@@ -47,8 +47,18 @@ describe("pdfPlainText", () => {
     expect(pdfPlainText("&#39;quoted&#39;")).toBe("'quoted'");
   });
 
-  it("drops out-of-range numeric entities instead of throwing", () => {
-    expect(pdfPlainText("A&#1114112;B")).toBe("AB");
-    expect(pdfPlainText("A&#x110000;B")).toBe("AB");
+  /**
+   * The HTML spec resolves an out-of-range or invalid character reference to
+   * U+FFFD, which is what browsers show. Keeping the replacement character
+   * makes corrupt input visible instead of silently deleting it.
+   */
+  it("replaces out-of-range numeric entities rather than dropping them", () => {
+    expect(pdfPlainText("A&#1114112;B")).toBe("A\uFFFDB");
+    expect(pdfPlainText("A&#x110000;B")).toBe("A\uFFFDB");
+  });
+
+  /** Lone surrogates cannot stand alone in text and would corrupt PDF output. */
+  it("replaces lone surrogate references", () => {
+    expect(pdfPlainText("A&#xD800;B")).toBe("A\uFFFDB");
   });
 });

@@ -4,32 +4,27 @@ import { htmlSanitizer } from "@/lib/utils/html-sanitizer";
 const MAX_DECODE_PASSES = 3;
 const LITERAL_NEWLINE = String.raw`\n`;
 
-function codePointToChar(code: number): string {
-  if (!Number.isInteger(code) || code < 1 || code > 0x10ffff) {
-    return "";
-  }
-
-  return String.fromCodePoint(code);
-}
-
-function decodeNumericEntities(text: string): string {
-  return text.replace(
-    /&#x([0-9a-f]{1,6});|&#(\d{1,7});/gi,
-    (_match: string, hex: string | undefined, decimal: string | undefined) =>
-      codePointToChar(hex ? Number.parseInt(hex, 16) : Number(decimal)),
-  );
-}
-
 /**
- * Decodes entities, including the full HTML named-entity table (not just the
- * handful survey content commonly uses). Survey strings can be multiply
- * encoded (e.g. paneldynamic `processedTitle`), so this loops until a pass
- * changes nothing, capped to avoid pathological input.
+ * Decodes character references so a PDF `<Text>` shows the character itself.
+ *
+ * `sanitize-html` already decodes most of the named table - `&eacute;`,
+ * `&hellip;`, `&#8212;` all come back as characters - but it deliberately
+ * re-escapes the HTML-significant few (`&amp;`, `&lt;`, `&gt;`, `&quot;`,
+ * `&#39;`), which is right for HTML and wrong for a PDF text node, where
+ * "Tom &amp; Jerry" would print literally. Decoding those is what this is for;
+ * `entities` covers named and numeric references, including invalid ones, so
+ * there is nothing to hand-roll.
+ *
+ * Survey strings can be multiply encoded (paneldynamic `processedTitle`, for
+ * one), so this loops until a pass changes nothing, capped against pathological
+ * input. Decoding repeatedly would be unsafe if the result were HTML - it can
+ * resurrect markup - which is why `pdfPlainText` sanitizes between passes and
+ * why its output belongs in a PDF `<Text>`, never in a DOM.
  */
 function decodeEntities(text: string): string {
   let current = text;
   for (let pass = 0; pass < MAX_DECODE_PASSES; pass++) {
-    const next = decodeHTMLStrict(decodeNumericEntities(current));
+    const next = decodeHTMLStrict(current);
     if (next === current) {
       return next;
     }
