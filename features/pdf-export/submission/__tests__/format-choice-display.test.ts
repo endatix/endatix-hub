@@ -59,6 +59,12 @@ describe("formatChoiceDisplay", () => {
     expect(formatChoiceDisplay("us", undefined)).toBe("us");
   });
 
+  it("strips HTML from labels", () => {
+    expect(formatChoiceDisplay("us", "<span>United States</span>")).toBe(
+      "United States (us)",
+    );
+  });
+
   it("returns empty string for empty value", () => {
     expect(formatChoiceDisplay("", "Label")).toBe("");
   });

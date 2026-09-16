@@ -1,4 +1,5 @@
 import type { ItemValue, Question, QuestionMatrixModel } from 'survey-core';
+import { pdfPlainText } from '@/features/pdf-export/pdf-plain-text';
 
 /**
  * Formats a stored choice value with its resolved label for PDF export.
@@ -12,8 +13,8 @@ export function formatChoiceDisplay(
     return '';
   }
 
-  const valueStr = String(value);
-  const labelStr = label?.trim();
+  const valueStr = pdfPlainText(value);
+  const labelStr = pdfPlainText(label?.trim());
   if (!labelStr || labelStr === valueStr) {
     return valueStr;
   }

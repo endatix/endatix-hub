@@ -3,6 +3,7 @@ import { Image, StyleSheet, Text, View } from "@react-pdf/renderer";
 import React from "react";
 import type { Question } from "survey-core";
 import { resolveAnswerZones } from "./utils";
+import { pdfPlainText } from "@/features/pdf-export/pdf-plain-text";
 
 interface PdfDragCategorizeAnswerProps {
   question: Question;
@@ -62,7 +63,7 @@ export const PdfDragCategorizeAnswer = ({
     <View style={styles.container}>
       {zones.map((zone) => (
         <View key={zone.value} style={styles.zone} wrap={false}>
-          <Text style={styles.zoneTitle}>{zone.title}</Text>
+          <Text style={styles.zoneTitle}>{pdfPlainText(zone.title)}</Text>
           {zone.items.length === 0 ? (
             <Text style={styles.empty}>No items</Text>
           ) : (
@@ -71,7 +72,7 @@ export const PdfDragCategorizeAnswer = ({
                 {item.imageUrl && (
                   <Image src={item.imageUrl} style={styles.itemImage} />
                 )}
-                {item.text !== "" && <Text>{item.text}</Text>}
+                {item.text !== "" && <Text>{pdfPlainText(item.text)}</Text>}
               </View>
             ))
           )}

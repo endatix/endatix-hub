@@ -1,7 +1,7 @@
 import { PanelModel, QuestionPanelDynamicModel } from "survey-core";
 import { Text, View, StyleSheet } from "@react-pdf/renderer";
 import PdfAnswerViewer, { VIEWER_STYLES } from "../pdf-answer-viewer";
-import { htmlSanitizer } from "@/lib/utils/html-sanitizer";
+import { pdfPlainText } from "@/features/pdf-export/pdf-plain-text";
 
 interface PanelDynamicAnswerProps {
   question: QuestionPanelDynamicModel;
@@ -32,7 +32,7 @@ const PdfPanelDynamicAnswer = ({ question }: PanelDynamicAnswerProps) => {
     return (
       <View style={VIEWER_STYLES.answerContainer}>
         <Text style={VIEWER_STYLES.questionLabel}>
-          {htmlSanitizer.toPlainText(question.title ?? "")}:
+          {pdfPlainText(question.title)}:
         </Text>
         <Text style={styles.noPanelsText}>There are no panels filled</Text>
       </View>
@@ -62,7 +62,7 @@ const Panel = ({
   index: number;
   showTitle: boolean;
 }) => {
-  const panelTitle = panel.processedTitle || `Panel ${index + 1}`;
+  const panelTitle = pdfPlainText(panel.processedTitle) || `Panel ${index + 1}`;
   return (
     <View style={styles.panelContainer}>
       {showTitle && <Text style={styles.panelTitle}>{panelTitle}</Text>}

@@ -8,6 +8,7 @@ import {
   VideoFileIcon,
 } from "@/features/pdf-export/submission/icons";
 import { PDF_STYLES } from "@/features/pdf-export/submission/pdf-styles";
+import { pdfPlainText } from "@/features/pdf-export/pdf-plain-text";
 import AudioFileIcon from "./icons/audio-file-icon";
 
 interface FileViewerProps {
@@ -58,7 +59,7 @@ const FileDetails = ({ file, icon }: { file: IFile; icon: React.ReactNode }) => 
       ]}
     >
       <View style={[PDF_STYLES.flexColumn]}>
-        <Text>{file?.name ?? "unknown file name"}</Text>
+        <Text>{pdfPlainText(file?.name) || "unknown file name"}</Text>
         <Text
           style={[
             PDF_STYLES.smallText,

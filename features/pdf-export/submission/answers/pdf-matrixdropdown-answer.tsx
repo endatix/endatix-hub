@@ -3,7 +3,7 @@ import { QuestionMatrixDropdownModel } from "survey-core";
 import { VIEWER_STYLES } from "../pdf-answer-viewer";
 import { formatMatrixDropdownCell } from "../format-matrix-dropdown-cell";
 import { PDF_TABLE_STYLES } from "@/features/pdf-export/submission/pdf-styles";
-import { htmlSanitizer } from "@/lib/utils/html-sanitizer";
+import { pdfPlainText } from "@/features/pdf-export/pdf-plain-text";
 
 interface MatrixDropdownAnswerProps {
   question: QuestionMatrixDropdownModel;
@@ -43,7 +43,7 @@ const PdfMatrixDropdownAnswer = ({
     return (
       <View style={VIEWER_STYLES.answerContainer}>
         <Text style={VIEWER_STYLES.questionLabel}>
-          {htmlSanitizer.toPlainText(question.title ?? "")}:
+          {pdfPlainText(question.title)}:
         </Text>
         <Text style={VIEWER_STYLES.answerText}>No Answer</Text>
       </View>
@@ -53,7 +53,7 @@ const PdfMatrixDropdownAnswer = ({
   return (
     <View style={PDF_TABLE_STYLES.container}>
       <Text style={VIEWER_STYLES.questionLabel}>
-        {htmlSanitizer.toPlainText(question.title ?? "")}
+        {pdfPlainText(question.title)}
       </Text>
       <View style={PDF_TABLE_STYLES.table}>
         <View style={[PDF_TABLE_STYLES.tableRow, PDF_TABLE_STYLES.tableHeader]}>
@@ -65,9 +65,7 @@ const PdfMatrixDropdownAnswer = ({
               key={column.name}
               style={{ ...PDF_TABLE_STYLES.tableCellHeader, flex: 1.5 }}
             >
-              <Text>
-                {htmlSanitizer.toPlainText(column.title || column.name)}
-              </Text>
+              <Text>{pdfPlainText(column.title || column.name)}</Text>
             </View>
           ))}
         </View>
@@ -78,7 +76,7 @@ const PdfMatrixDropdownAnswer = ({
           return (
             <View style={PDF_TABLE_STYLES.tableRow} key={rowKey}>
               <View style={{ ...PDF_TABLE_STYLES.tableCell, flex: 1 }}>
-                <Text>{htmlSanitizer.toPlainText(row.text || rowKey)}</Text>
+                <Text>{pdfPlainText(row.text || rowKey)}</Text>
               </View>
               {columns.map((column) => (
                 <View
@@ -86,7 +84,7 @@ const PdfMatrixDropdownAnswer = ({
                   style={{ ...PDF_TABLE_STYLES.tableCell, flex: 1.5 }}
                 >
                   <Text>
-                    {htmlSanitizer.toPlainText(
+                    {pdfPlainText(
                       formatMatrixDropdownCell(
                         rowValue[column.name],
                         rowDisplay[column.name],

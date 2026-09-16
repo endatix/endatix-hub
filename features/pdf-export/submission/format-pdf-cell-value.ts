@@ -1,3 +1,5 @@
+import { pdfPlainText } from "@/features/pdf-export/pdf-plain-text";
+
 /**
  * Matrix-dropdown cells can hold primitives, choice arrays, or nested objects.
  * `String(object)` becomes "[object Object]"; this is the display form for PDF.
@@ -8,7 +10,7 @@ export function formatPdfCellValue(value: unknown): string {
   }
 
   if (typeof value === "string") {
-    return value;
+    return pdfPlainText(value);
   }
 
   if (typeof value === "number" || typeof value === "boolean") {

@@ -1,4 +1,5 @@
 import { getPanelTitle } from "@/lib/questions/question-utils";
+import { pdfPlainText } from "@/features/pdf-export/pdf-plain-text";
 import { StyleSheet, Text, View } from "@react-pdf/renderer";
 import { Question, QuestionNonValue } from "survey-core";
 import { EyeOffIcon } from "./icons";
@@ -44,7 +45,7 @@ export const PdfSubmissionAnswer = ({ question }: PdfSubmissionAnswerProps) => {
   if (showPanelTitle && panelTitle) {
     rows.push(
       <View key={`panel-title-${panelTitle}`} style={styles.groupHeaderRow}>
-        <Text style={styles.groupHeaderText}>{panelTitle}</Text>
+        <Text style={styles.groupHeaderText}>{pdfPlainText(panelTitle)}</Text>
       </View>,
     );
   }

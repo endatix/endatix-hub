@@ -7,6 +7,8 @@ describe("formatPdfCellValue", () => {
     [undefined, ""],
     ["", ""],
     ["yes", "yes"],
+    ["<span>Hello</span>", "Hello"],
+    ["line\\nline", "line\nline"],
     [3, "3"],
     [true, "true"],
     [["a", "b"], "a, b"],

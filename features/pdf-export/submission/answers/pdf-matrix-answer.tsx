@@ -1,7 +1,7 @@
 import { Text, View } from "@react-pdf/renderer";
 import { ItemValue, QuestionMatrixModel } from "survey-core";
 import { PDF_TABLE_STYLES } from "@/features/pdf-export/submission/pdf-styles";
-import { htmlSanitizer } from "@/lib/utils/html-sanitizer";
+import { pdfPlainText } from "@/features/pdf-export/pdf-plain-text";
 import {
   formatChoiceDisplay,
   resolveMatrixColumnLabel,
@@ -33,7 +33,7 @@ const PdfMatrixAnswer = ({ question }: MatrixAnswerPdfProps) => {
       // hasText (not a truthy check on .text): ItemValue.text always falls
       // back to String(value) when no text was authored, so `row.text ||
       // fallback` would never actually reach the fallback.
-      const rowText = row.hasText ? row.text : `Row ${index + 1}`;
+      const rowText = row.hasText ? pdfPlainText(row.text) : `Row ${index + 1}`;
       const answer = question.value[row.value];
       const answerText = formatChoiceDisplay(
         answer,
@@ -60,7 +60,7 @@ const PdfMatrixAnswer = ({ question }: MatrixAnswerPdfProps) => {
   return (
     <View style={PDF_TABLE_STYLES.container}>
       <Text style={PDF_TABLE_STYLES.caption}>
-        Answers for the &quot;{htmlSanitizer.toPlainText(question.title ?? "")}
+        Answers for the &quot;{pdfPlainText(question.title)}
         &quot; question
       </Text>
       <View style={PDF_TABLE_STYLES.table}>

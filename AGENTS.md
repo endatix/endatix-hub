@@ -8,7 +8,7 @@
 - Physical file kinds (`csv`, `xlsx`, `png`, …) live in [`lib/file-kinds/`](lib/file-kinds/) (server-safe catalog: extension, MIME, label, group). Render with `FileKindIcon` / `FileKindLabel` from [`components/common/file-kind-icon.tsx`](components/common/file-kind-icon.tsx). Feature code maps its vocabulary to `FileKindKey` and never returns a Lucide icon. Visual rules: DESIGN.md §5 File Type Marks. Placement: [`project-structure.md`](project-structure.md) “Where UI for a shared concept lives”.
 - Reporting export wire keys (`csv`, `xlsx`, `codebook`, …) live in [`lib/endatix-api/reporting/reporting-export-wire.ts`](lib/endatix-api/reporting/reporting-export-wire.ts). Lookups are **exact** (no case-fold). Legacy downloads use the closed `BUILT_IN_EXPORT_FILE_KINDS` list (`csv` | `xlsx` | `json`), not `Extract<wire, FileKindKey>`.
 - Keep `app/` routing-focused. Data mutations should flow through server actions.
-- Submission PDF: `features/pdf-export/`. Public token + Hub API routes both call `renderSubmissionPdf`. Bound by server env `PDF_RENDER_TIMEOUT_SECONDS` (default 40, never `NEXT_PUBLIC_`). Public failures: `/export-error?code=&ref=`.
+- Submission PDF: `features/pdf-export/`. Public token + Hub API routes both call `renderSubmissionPdf`. Bound by server env `PDF_RENDER_TIMEOUT_SECONDS` (default 40, never `NEXT_PUBLIC_`). Public failures: `/export-error?code=&ref=`. User-authored strings in `<Text>` go through `pdfPlainText` (entity-decode, strip HTML, literal `\\n` → newline).
 
 ## Toolchain (Node & pnpm)
 
