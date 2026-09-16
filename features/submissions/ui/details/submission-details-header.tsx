@@ -65,6 +65,22 @@ export function SubmissionDetailsHeader({
     setListHref(getSubmissionListReturnPath(formId));
   }, [formId]);
 
+  /** The export route answers `{ error }`; fall back to the status if it does not. */
+  const readExportErrorMessage = async (
+    response: Response,
+  ): Promise<string> => {
+    try {
+      const body = (await response.json()) as { error?: string };
+      if (body?.error) {
+        return body.error;
+      }
+    } catch {
+      // Not JSON - the status still tells the user something happened.
+    }
+
+    return `The export failed (HTTP ${response.status}).`;
+  };
+
   const handleExportPdfClick = async () => {
     try {
       setPdfLoading(true);
@@ -78,21 +94,36 @@ export function SubmissionDetailsHeader({
       );
       const pdfFileName = `submission-${submissionId}.pdf`;
       const fileResponse = await fetch(url);
-      if (fileResponse.ok) {
-        const blob = new Blob([await fileResponse.arrayBuffer()], {
-          type: "text/plain;charset=utf-8",
-        });
-        saveToFileHandler(pdfFileName, blob);
 
-        trackEvent("submission_export_pdf", {
+      // fetch resolves for 4xx and 5xx, so without this the export fails in
+      // silence: no download, no message, just the spinner stopping.
+      if (!fileResponse.ok) {
+        const message = await readExportErrorMessage(fileResponse);
+
+        trackEvent("submission_export_pdf_error", {
           form_id: formId,
           submission_id: submissionId,
-          file_name: pdfFileName,
-          file_size: blob.size,
+          status: fileResponse.status,
+          error_message: message,
         });
 
-        toast.success("PDF exported successfully");
+        toast.error(message);
+        return;
       }
+
+      const blob = new Blob([await fileResponse.arrayBuffer()], {
+        type: "application/pdf",
+      });
+      saveToFileHandler(pdfFileName, blob);
+
+      trackEvent("submission_export_pdf", {
+        form_id: formId,
+        submission_id: submissionId,
+        file_name: pdfFileName,
+        file_size: blob.size,
+      });
+
+      toast.success("PDF exported successfully");
     } catch (error) {
       console.error("Failed to export PDF:", error);
       trackEvent("submission_export_pdf_error", {
@@ -100,6 +131,11 @@ export function SubmissionDetailsHeader({
         submission_id: submissionId,
         error_message: error instanceof Error ? error.message : "Unknown error",
       });
+
+      // A thrown error here is the network failing, not the server answering.
+      toast.error(
+        "Could not reach the server. Check your connection and try again.",
+      );
     } finally {
       setPdfLoading(false);
     }
