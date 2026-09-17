@@ -29,7 +29,7 @@ function logRecord(
 }
 
 describe("JsonConsoleLogRecordExporter", () => {
-  it("writes one JSON object per line per record", () => {
+  it("writes one JSON object per line per record", async () => {
     // Arrange
     const writeLine = vi.fn();
     const callback = vi.fn();
@@ -39,6 +39,7 @@ describe("JsonConsoleLogRecordExporter", () => {
       [logRecord(), logRecord()],
       callback,
     );
+    await vi.waitFor(() => expect(callback).toHaveBeenCalled());
 
     // Assert
     expect(writeLine).toHaveBeenCalledTimes(2);
@@ -58,7 +59,7 @@ describe("JsonConsoleLogRecordExporter", () => {
     expect(callback).toHaveBeenCalledWith({ code: ExportResultCode.SUCCESS });
   });
 
-  it("fails the export instead of throwing when stdout cannot be written", () => {
+  it("fails the export instead of throwing when stdout cannot be written", async () => {
     // Arrange
     const writeLine = vi.fn(() => {
       throw new Error("EPIPE");
@@ -74,13 +75,40 @@ describe("JsonConsoleLogRecordExporter", () => {
 
     // Assert
     expect(act).not.toThrow();
-    expect(callback).toHaveBeenCalledWith({
-      code: ExportResultCode.FAILED,
-      error: expect.objectContaining({ message: "EPIPE" }),
-    });
+    await vi.waitFor(() =>
+      expect(callback).toHaveBeenCalledWith({
+        code: ExportResultCode.FAILED,
+        error: expect.objectContaining({ message: "EPIPE" }),
+      }),
+    );
   });
 
-  it("resolves flush and shutdown", async () => {
+  it("forceFlush waits for a write whose callback is still pending", async () => {
+    let finishWrite: (() => void) | undefined;
+    const writeLine = () =>
+      new Promise<void>((resolve) => {
+        finishWrite = resolve;
+      });
+    const exporter = new JsonConsoleLogRecordExporter(writeLine);
+    const callback = vi.fn();
+
+    exporter.export([logRecord()], callback);
+    const flushed = exporter.forceFlush();
+    let flushDone = false;
+    void flushed.then(() => {
+      flushDone = true;
+    });
+    await Promise.resolve();
+    expect(flushDone).toBe(false);
+    expect(callback).not.toHaveBeenCalled();
+
+    finishWrite?.();
+    await flushed;
+
+    expect(callback).toHaveBeenCalledWith({ code: ExportResultCode.SUCCESS });
+  });
+
+  it("resolves flush and shutdown when nothing is pending", async () => {
     const exporter = new JsonConsoleLogRecordExporter(vi.fn());
 
     await expect(exporter.forceFlush()).resolves.toBeUndefined();

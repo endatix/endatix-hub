@@ -9,49 +9,62 @@ import type {
 } from "@opentelemetry/sdk-logs";
 import { redactSensitiveAttributes } from "./redact-sensitive-attributes";
 
-type LineWriter = (line: string) => void;
+type LineWriter = (line: string) => void | Promise<void>;
 
-const writeToStdout: LineWriter = (line) => {
-  process.stdout.write(line);
-};
+function writeToStdout(line: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    process.stdout.write(line, (error) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+      resolve();
+    });
+  });
+}
+
+function toExportError(error: unknown): Error {
+  return error instanceof Error ? error : new Error(String(error));
+}
 
 /**
  * Writes each log record to stdout as one JSON line.
  *
  * The SDK's ConsoleLogRecordExporter uses console.dir, which prints a multi-line
- * object dump; container log agents (CloudWatch, Cloud Logging, Azure Container
- * Apps, kubectl pipelines) split that into one entry per line. One JSON object per
- * line survives every one of them and stays queryable. Credential-like attribute
- * keys are redacted, as in TelemetryLogger's console fallback.
+ * object dump; container log agents split that into one entry per line.
  */
 export class JsonConsoleLogRecordExporter implements LogRecordExporter {
+  private pending: Promise<void> = Promise.resolve();
+
   constructor(private readonly writeLine: LineWriter = writeToStdout) {}
 
   export(
     records: ReadableLogRecord[],
     resultCallback: (result: ExportResult) => void,
   ): void {
-    try {
+    this.pending = this.pending.then(async () => {
       for (const record of records) {
-        this.writeLine(`${toJsonLine(record)}\n`);
+        await this.writeLine(`${toJsonLine(record)}\n`);
       }
-      resultCallback({ code: ExportResultCode.SUCCESS });
-    } catch (error) {
-      // A closed or broken stdout (EPIPE) must fail the export, not throw into
-      // the log processor and from there into the code that emitted the record.
-      resultCallback({
-        code: ExportResultCode.FAILED,
-        error: error instanceof Error ? error : new Error(String(error)),
-      });
-    }
+    }).then(
+      () => {
+        resultCallback({ code: ExportResultCode.SUCCESS });
+      },
+      (error: unknown) => {
+        resultCallback({
+          code: ExportResultCode.FAILED,
+          error: toExportError(error),
+        });
+      },
+    );
   }
 
   shutdown(): Promise<void> {
-    return Promise.resolve();
+    return this.pending;
   }
 
   forceFlush(): Promise<void> {
-    return Promise.resolve();
+    return this.pending;
   }
 }
 
@@ -70,7 +83,6 @@ export function toJsonLine(record: ReadableLogRecord): string {
   try {
     return JSON.stringify(line);
   } catch {
-    // BigInt or circular values in body/attributes: keep the line, drop the payload.
     return JSON.stringify({
       ...line,
       body: String(record.body),

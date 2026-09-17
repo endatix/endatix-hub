@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Resource, resourceFromAttributes } from "@opentelemetry/resources";
-import { logs } from "@opentelemetry/api-logs";
+import { logs, SeverityNumber } from "@opentelemetry/api-logs";
 import { OTLPTraceExporter as OTLPGrpcTraceExporter } from "@opentelemetry/exporter-trace-otlp-grpc";
 import { OTLPTraceExporter as OTLPProtoTraceExporter } from "@opentelemetry/exporter-trace-otlp-proto";
 import { OTLPLogExporter as OTLPGrpcLogExporter } from "@opentelemetry/exporter-logs-otlp-grpc";
@@ -170,6 +170,41 @@ describe("TelemetrySdk", () => {
     expect(logExporters(forced)).toContainEqual(
       expect.any(JsonConsoleLogRecordExporter),
     );
+  });
+
+  it("emits through the LoggerProvider registered on the later initialize", async () => {
+    vi.stubEnv("OTEL_EXPORTER_OTLP_ENDPOINT", OTLP_GRPC);
+    initialize();
+    logs.disable();
+
+    vi.stubEnv("TELEMETRY_CONSOLE_FALLBACK", "true");
+    const { strategy } = initialize();
+    const write = vi.spyOn(process.stdout, "write").mockImplementation((
+      _chunk,
+      encodingOrCb?: unknown,
+      cb?: unknown,
+    ) => {
+      const callback =
+        typeof encodingOrCb === "function"
+          ? encodingOrCb
+          : typeof cb === "function"
+            ? cb
+            : undefined;
+      callback?.();
+      return true;
+    });
+
+    logs.getLogger("canary").emit({
+      body: "json-stdout-canary",
+      severityNumber: SeverityNumber.INFO,
+    });
+    await internals(strategy).loggerProvider.forceFlush();
+
+    expect(
+      write.mock.calls.some(([chunk]) =>
+        String(chunk).includes("json-stdout-canary"),
+      ),
+    ).toBe(true);
   });
 
   it("runs the noisy-span filter before any exporting processor", () => {
