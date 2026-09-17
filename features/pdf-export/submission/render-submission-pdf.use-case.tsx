@@ -64,17 +64,29 @@ export async function renderSubmissionPdf({
       "prepare-model",
       async (span) => {
         span.setAttribute("pdf.caller", caller);
-        return raceWithTimeout(
-          () =>
-            preparePdfModel({
-              submission,
-              customQuestionsJsonData,
-              useDefaultLocale,
-            }),
-          remainingRenderTimeoutMs(startedAtMs),
-        );
+        try {
+          return await raceWithTimeout(
+            () =>
+              preparePdfModel({
+                submission,
+                customQuestionsJsonData,
+                useDefaultLocale,
+              }),
+            remainingRenderTimeoutMs(startedAtMs),
+          );
+        } catch (error) {
+          if (isPdfRenderTimeout(error)) {
+            span.setAttributes({ "pdf.outcome": "timeout" });
+            return undefined;
+          }
+          throw error;
+        }
       },
     );
+
+    if (!surveyModel) {
+      return deadlineExceeded(caller);
+    }
 
     return await TelemetryTracer.traceAsync(
       TRACER,

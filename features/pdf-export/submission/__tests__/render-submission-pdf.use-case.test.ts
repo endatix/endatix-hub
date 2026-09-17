@@ -3,7 +3,12 @@ import { Model } from "survey-core";
 import { Result } from "@/lib/result";
 
 /** Captures what each span was told, so the telemetry contract can be asserted. */
-const spans: { name: string; attributes: Record<string, unknown> }[] = [];
+const spans: {
+  name: string;
+  attributes: Record<string, unknown>;
+  recordException: ReturnType<typeof vi.fn>;
+  setStatus: ReturnType<typeof vi.fn>;
+}[] = [];
 
 vi.mock("@/features/telemetry", () => ({
   TelemetryTracer: {
@@ -12,7 +17,12 @@ vi.mock("@/features/telemetry", () => ({
       name: string,
       fn: (span: unknown) => Promise<unknown>,
     ) => {
-      const record = { name, attributes: {} as Record<string, unknown> };
+      const record = {
+        name,
+        attributes: {} as Record<string, unknown>,
+        recordException: vi.fn(),
+        setStatus: vi.fn(),
+      };
       spans.push(record);
       const span = {
         setAttribute: (key: string, value: unknown) => {
@@ -21,6 +31,8 @@ vi.mock("@/features/telemetry", () => ({
         setAttributes: (values: Record<string, unknown>) => {
           Object.assign(record.attributes, values);
         },
+        recordException: record.recordException,
+        setStatus: record.setStatus,
       };
       return fn(span);
     },
@@ -173,6 +185,10 @@ describe("renderSubmissionPdf", () => {
       "pdf-export",
     );
     expect(TelemetryLogger.error).not.toHaveBeenCalled();
+    const prepare = spans.find((s) => s.name === "prepare-model");
+    expect(prepare?.attributes["pdf.outcome"]).toBe("timeout");
+    expect(prepare?.recordException).not.toHaveBeenCalled();
+    expect(prepare?.setStatus).not.toHaveBeenCalled();
   });
 
   it("logs the render duration when the renderer itself overruns", async () => {

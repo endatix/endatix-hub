@@ -106,6 +106,16 @@ describe("TelemetryConfig", () => {
       expect(TelemetryConfig.hasActiveExporter()).toBe(false);
     });
 
+    it("is false for traces-only OTLP (logs still use console fallback)", () => {
+      vi.stubEnv(
+        "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT",
+        "http://localhost:4318/v1/traces",
+      );
+
+      expect(TelemetryConfig.hasActiveExporter()).toBe(true);
+      expect(TelemetryConfig.hasActiveLogExporter()).toBe(false);
+    });
+
     it("is false when the SDK is disabled", () => {
       vi.stubEnv(
         "APPLICATIONINSIGHTS_CONNECTION_STRING",
@@ -114,6 +124,7 @@ describe("TelemetryConfig", () => {
       vi.stubEnv("OTEL_SDK_DISABLED", "true");
 
       expect(TelemetryConfig.hasActiveExporter()).toBe(false);
+      expect(TelemetryConfig.hasActiveLogExporter()).toBe(false);
     });
   });
 

@@ -4,7 +4,8 @@ import path from "node:path";
 import { OTEL_SERVER_EXTERNAL_PACKAGES } from "../infrastructure/otel-server-externals";
 
 const INFRASTRUCTURE_DIR = path.resolve(__dirname, "../infrastructure");
-const TELEMETRY_IMPORT = /from\s+"((?:@opentelemetry|@azure)\/[^"]+)"/g;
+const TELEMETRY_IMPORT =
+  /from\s+['"]((?:@opentelemetry|@azure)\/[^'"]+)['"]/g;
 
 function sourceFiles(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -47,7 +48,8 @@ describe("OTEL_SERVER_EXTERNAL_PACKAGES", () => {
     );
 
     // Act & Assert
-    expect(config).toContain("serverExternalPackages");
-    expect(config).toContain("OTEL_SERVER_EXTERNAL_PACKAGES");
+    expect(config).toMatch(
+      /serverExternalPackages[\s\S]*OTEL_SERVER_EXTERNAL_PACKAGES/,
+    );
   });
 });

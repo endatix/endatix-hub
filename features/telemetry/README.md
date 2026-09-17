@@ -88,7 +88,7 @@ TelemetryLogger.critical(message: string, error?: unknown, attributes?: LogAttri
 - If no exporter is active (none set, or `OTEL_SDK_DISABLED=true`), `TelemetryLogger` mirrors to the console in development, or in production with `TELEMETRY_CONSOLE_FALLBACK=true`.
 - With an active exporter, stdout is off unless `TELEMETRY_CONSOLE_FALLBACK=true`, which adds a one-JSON-object-per-line console exporter to the log pipeline.
 - **Shutdown**: on SIGTERM/SIGINT Hub only flushes; Next.js drains requests and exits. On an uncaught exception Hub logs it, shuts telemetry down (at most `CRASH_FLUSH_TIMEOUT_MS`) and exits 1.
-- **Redaction**: console fallback and JSON stdout replace credential-like attribute values (`authorization`, `token`, `password`, `api-key`, `connection string`, …) with `[REDACTED]`. Exporters receive attributes as logged, so never log secrets.
+- **Redaction**: `TelemetryLogger` redacts credential-like attribute keys before `emit`, so Azure, OTLP, JSON stdout, and console fallback all see `[REDACTED]`.
 
 ---
 

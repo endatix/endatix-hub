@@ -77,6 +77,7 @@ describe("NodeSdkTelemetryStrategy", () => {
   });
 
   afterEach(() => {
+    logs.disable();
     vi.unstubAllEnvs();
     vi.restoreAllMocks();
   });

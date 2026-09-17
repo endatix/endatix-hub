@@ -124,24 +124,24 @@ export class TelemetryLogger {
       ...attributes,
     };
 
+    const safeAttributes = redactSensitiveAttributes(enhancedAttributes);
+
     let emitFailed = false;
     try {
       logger.emit({
         severityNumber: severityMap[severity],
         severityText: severity,
         body: message,
-        attributes: enhancedAttributes,
+        attributes: safeAttributes,
       });
     } catch {
       emitFailed = true;
-      // Logging must never interrupt application flow. Console fallback below
-      // still makes local diagnostics visible when enabled.
     }
 
     this.logToConsoleFallback(
       message,
       severity,
-      enhancedAttributes,
+      safeAttributes,
       loggerName ?? this.DEFAULT_LOGGER_NAME,
       emitFailed,
     );
@@ -169,7 +169,14 @@ export class TelemetryLogger {
     // With a running exporter, stdout (when forced) is the JSON-lines console
     // exporter on the OTel log pipeline, so mirroring here would print twice.
     // OTEL_SDK_DISABLED counts as no exporter, or records would go nowhere.
-    if (TelemetryConfig.hasActiveExporter()) {
+    if (TelemetryConfig.hasActiveLogExporter()) {
+      return false;
+    }
+
+    if (
+      TelemetryConfig.hasActiveExporter() &&
+      TelemetryConfig.isConsoleOutputForced()
+    ) {
       return false;
     }
 
@@ -271,7 +278,7 @@ export class TelemetryLogger {
     attributes: LogAttributes = {},
     loggerName?: string,
   ): void {
-    if (!error) {
+    if (error === undefined) {
       this.log(message, severity, { ...attributes }, loggerName);
       return;
     }

@@ -30,6 +30,19 @@ describe("TelemetryLogger", () => {
     vi.restoreAllMocks();
   });
 
+  it("treats null as an error payload, not as absent", () => {
+    TelemetryLogger.error("Failed", null, {}, "forms");
+
+    expect(mockEmit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        body: "Failed: null",
+        attributes: expect.objectContaining({
+          "exception.message": "null",
+        }),
+      }),
+    );
+  });
+
   it("info() emits log with INFO severity and body", () => {
     TelemetryLogger.info("hello", {}, "my-logger");
 
@@ -197,6 +210,42 @@ describe("TelemetryLogger", () => {
         formId: "form-1",
       }),
     });
+  });
+
+  it("redacts credential-like attributes on emit", () => {
+    TelemetryLogger.info(
+      "Request failed",
+      { authorization: "Bearer secret-token", formId: "form-1" },
+      "forms",
+    );
+
+    expect(mockEmit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        attributes: expect.objectContaining({
+          authorization: "[REDACTED]",
+          formId: "form-1",
+        }),
+      }),
+    );
+  });
+
+  it("uses console fallback when only traces OTLP is configured", () => {
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("OTEL_EXPORTER_OTLP_ENDPOINT", "");
+    vi.stubEnv(
+      "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT",
+      "http://localhost:4318/v1/traces",
+    );
+    const consoleInfoSpy = vi
+      .spyOn(console, "info")
+      .mockImplementation(() => {});
+
+    TelemetryLogger.info("still visible", { formId: "form-1" }, "forms");
+
+    expect(consoleInfoSpy).toHaveBeenCalledWith(
+      "[forms] still visible",
+      expect.objectContaining({ severity: LogSeverity.Info }),
+    );
   });
 
   it("redacts sensitive console fallback attributes", () => {

@@ -72,6 +72,14 @@ export const TelemetryConfig = {
     );
   },
 
+  /** True when Azure or OTLP logs will receive TelemetryLogger records. */
+  hasActiveLogExporter(): boolean {
+    return (
+      !this.isSdkDisabled() &&
+      (this.isAzureConfigured() || this.isOtlpSignalConfigured("LOGS"))
+    );
+  },
+
   isConsoleOutputForced(): boolean {
     return readEnv("TELEMETRY_CONSOLE_FALLBACK") === "true";
   },
