@@ -12,18 +12,17 @@ import {
   settleWithin,
   TelemetryInitializer,
 } from "../infrastructure/telemetry-initializer";
-import { NodeSdkTelemetryStrategy } from "../infrastructure/strategies";
-import type { TelemetryInitStrategy } from "../infrastructure/strategies/telemetry-init-strategy.interface";
+import { TelemetrySdk } from "../infrastructure/telemetry-sdk";
 import { TelemetryLogger } from "../infrastructure/telemetry-logger";
 import { stubEmptyTelemetryEnv } from "./support/telemetry-env";
 
-vi.mock("../infrastructure/strategies", () => ({
-  NodeSdkTelemetryStrategy: vi.fn(),
+vi.mock("../infrastructure/telemetry-sdk", () => ({
+  TelemetrySdk: vi.fn(),
 }));
 
 type Listener = (...args: unknown[]) => void;
 
-interface FakeStrategy {
+interface FakeSdk {
   initialize: ReturnType<typeof vi.fn>;
   forceFlush: ReturnType<typeof vi.fn>;
   shutdown: ReturnType<typeof vi.fn>;
@@ -31,12 +30,11 @@ interface FakeStrategy {
   name: string;
 }
 
-/** Makes `new NodeSdkTelemetryStrategy()` return a controllable fake. */
-function useFakeStrategy(
-  overrides: Partial<Pick<FakeStrategy, "initialize" | "name">> = {},
-): FakeStrategy {
+function useFakeSdk(
+  overrides: Partial<Pick<FakeSdk, "initialize" | "name">> = {},
+): FakeSdk {
   const start = vi.fn();
-  const fake: FakeStrategy = {
+  const fake: FakeSdk = {
     start,
     initialize: vi.fn(() => ({ start })),
     forceFlush: vi.fn(() => Promise.resolve()),
@@ -44,8 +42,8 @@ function useFakeStrategy(
     name: "Azure AppInsights",
     ...overrides,
   };
-  vi.mocked(NodeSdkTelemetryStrategy).mockImplementation(function () {
-    return fake as unknown as TelemetryInitStrategy;
+  vi.mocked(TelemetrySdk).mockImplementation(function () {
+    return fake as unknown as TelemetrySdk;
   } as never);
   return fake;
 }
@@ -70,7 +68,7 @@ describe("TelemetryInitializer", () => {
 
   beforeEach(() => {
     stubEmptyTelemetryEnv();
-    vi.mocked(NodeSdkTelemetryStrategy).mockReset();
+    vi.mocked(TelemetrySdk).mockReset();
     consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
     consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => {});
     consoleLog = vi.spyOn(console, "log").mockImplementation(() => {});
@@ -83,7 +81,7 @@ describe("TelemetryInitializer", () => {
     vi.useRealTimers();
   });
 
-  describe("strategy selection", () => {
+  describe("exporter selection", () => {
     it.each([
       ["APPLICATIONINSIGHTS_CONNECTION_STRING", "InstrumentationKey=x"],
       ["OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317"],
@@ -91,7 +89,10 @@ describe("TelemetryInitializer", () => {
     ])("starts the SDK when %s is set", (key, value) => {
       // Arrange
       vi.stubEnv(key, value);
-      const strategy = useFakeStrategy();
+      const strategy = useFakeSdk();
+      const logInfo = vi
+        .spyOn(TelemetryLogger, "info")
+        .mockImplementation(() => {});
 
       // Act
       new TelemetryInitializer().initialize();
@@ -101,9 +102,14 @@ describe("TelemetryInitializer", () => {
       expect(consoleLog).toHaveBeenCalledWith(
         "Telemetry SDK started in Azure AppInsights mode",
       );
+      expect(logInfo).toHaveBeenCalledWith(
+        "Telemetry SDK started in Azure AppInsights mode",
+        { mode: "Azure AppInsights" },
+        "instrumentation",
+      );
     });
 
-    it("does not build a strategy when OTEL_SDK_DISABLED is true", () => {
+    it("does not build a TelemetrySdk when OTEL_SDK_DISABLED is true", () => {
       // Arrange
       vi.stubEnv(
         "APPLICATIONINSIGHTS_CONNECTION_STRING",
@@ -115,7 +121,7 @@ describe("TelemetryInitializer", () => {
       new TelemetryInitializer().initialize();
 
       // Assert
-      expect(NodeSdkTelemetryStrategy).not.toHaveBeenCalled();
+      expect(TelemetrySdk).not.toHaveBeenCalled();
       expect(consoleLog).toHaveBeenCalledWith(
         "OpenTelemetry SDK disabled (OTEL_SDK_DISABLED)",
       );
@@ -127,18 +133,18 @@ describe("TelemetryInitializer", () => {
 
       // Assert
       expect(consoleWarn).toHaveBeenCalledWith(
-        "No telemetry strategy configured",
+        "No telemetry exporter configured",
       );
       expect(listeners.size).toBe(0);
     });
 
-    it("logs and registers nothing when the strategy throws", () => {
+    it("logs and registers nothing when TelemetrySdk throws", () => {
       // Arrange
       vi.stubEnv(
         "APPLICATIONINSIGHTS_CONNECTION_STRING",
         "InstrumentationKey=x",
       );
-      useFakeStrategy({
+      useFakeSdk({
         initialize: vi.fn(() => {
           throw new Error("Init failed");
         }),
@@ -157,14 +163,14 @@ describe("TelemetryInitializer", () => {
     });
   });
 
-  it("gives the strategy a detected resource that includes OTEL_RESOURCE_ATTRIBUTES", () => {
+  it("gives TelemetrySdk a detected resource that includes OTEL_RESOURCE_ATTRIBUTES", () => {
     // Arrange
     vi.stubEnv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317");
     vi.stubEnv(
       "OTEL_RESOURCE_ATTRIBUTES",
       "deployment.environment.name=staging",
     );
-    const strategy = useFakeStrategy();
+    const strategy = useFakeSdk();
 
     // Act
     new TelemetryInitializer().initialize();
@@ -193,7 +199,10 @@ describe("TelemetryInitializer", () => {
       "flushes on %s without exiting, leaving the drain to Next.js",
       (signal) => {
         // Arrange
-        const strategy = useFakeStrategy();
+        const strategy = useFakeSdk();
+        const logInfo = vi
+          .spyOn(TelemetryLogger, "info")
+          .mockImplementation(() => {});
         const exit = vi
           .spyOn(process, "exit")
           .mockImplementation((() => undefined) as never);
@@ -203,6 +212,11 @@ describe("TelemetryInitializer", () => {
         listeners.get(signal)?.();
 
         // Assert
+        expect(logInfo).toHaveBeenCalledWith(
+          `Telemetry flushing on ${signal}`,
+          { signal },
+          "instrumentation",
+        );
         expect(strategy.forceFlush).toHaveBeenCalled();
         expect(strategy.shutdown).not.toHaveBeenCalled();
         expect(exit).not.toHaveBeenCalled();
@@ -211,7 +225,7 @@ describe("TelemetryInitializer", () => {
 
     it("reports a failed flush instead of rejecting unhandled", async () => {
       // Arrange
-      const strategy = useFakeStrategy();
+      const strategy = useFakeSdk();
       strategy.forceFlush.mockRejectedValue(new Error("collector down"));
       new TelemetryInitializer().initialize();
 
@@ -229,7 +243,7 @@ describe("TelemetryInitializer", () => {
     it("leaves signals alone when NEXT_MANUAL_SIG_HANDLE is set", () => {
       // Arrange
       vi.stubEnv("NEXT_MANUAL_SIG_HANDLE", "true");
-      useFakeStrategy();
+      useFakeSdk();
 
       // Act
       new TelemetryInitializer().initialize();
@@ -250,7 +264,7 @@ describe("TelemetryInitializer", () => {
 
     it("logs an uncaught exception, shuts down and exits 1", async () => {
       // Arrange
-      const strategy = useFakeStrategy();
+      const strategy = useFakeSdk();
       const logError = vi
         .spyOn(TelemetryLogger, "error")
         .mockImplementation(() => {});
@@ -278,7 +292,7 @@ describe("TelemetryInitializer", () => {
     it("exits after the flush timeout when shutdown hangs", async () => {
       // Arrange
       vi.useFakeTimers();
-      const strategy = useFakeStrategy();
+      const strategy = useFakeSdk();
       strategy.shutdown.mockReturnValue(new Promise(() => undefined));
       vi.spyOn(TelemetryLogger, "error").mockImplementation(() => {});
       const exit = vi
@@ -299,7 +313,7 @@ describe("TelemetryInitializer", () => {
 
     it("records unhandled rejections without exiting", () => {
       // Arrange
-      useFakeStrategy();
+      useFakeSdk();
       const logError = vi
         .spyOn(TelemetryLogger, "error")
         .mockImplementation(() => {});

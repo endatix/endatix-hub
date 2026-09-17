@@ -80,11 +80,12 @@ TelemetryLogger.critical(message: string, error?: unknown, attributes?: LogAttri
 
 ## Configuration
 
-- **Azure**: set `APPLICATIONINSIGHTS_CONNECTION_STRING` at **runtime**. Azure Monitor **exporters** (not `useAzureMonitor`) share one NodeSDK with an explicit `LoggerProvider` (`logs.setGlobalLoggerProvider`), matching the `@vercel/otel` logs split. Span filter still drops `/_next/*`, RSC, health, etc. No Live Metrics or performance counters (those come only with the distro).
+- **Azure**: set `APPLICATIONINSIGHTS_CONNECTION_STRING` at **runtime**. Azure Monitor **exporters** (not `useAzureMonitor`) share one `TelemetrySdk` (`NodeSDK` + explicit `LoggerProvider`). Span filter drops `/_next/*`, RSC, health, etc. No Live Metrics or performance counters.
 - **OTLP**: set `OTEL_EXPORTER_OTLP_ENDPOINT` (or a per-signal `OTEL_EXPORTER_OTLP_{TRACES,LOGS}_ENDPOINT`). `OTEL_EXPORTER_OTLP_[SIGNAL_]PROTOCOL` picks `grpc` (default), `http/protobuf` or `http/json`. Headers, `_INSECURE`, `_CERTIFICATE` and client certs are read by the exporters from the standard env vars. Both Azure and OTLP may be set (fan-out).
 - **Resource**: env, host and process detectors run once in `TelemetryInitializer`; spans and logs share the result, so `OTEL_RESOURCE_ATTRIBUTES` (e.g. `deployment.environment.name=staging`) reaches both.
 - **Metrics**: none. NodeSDK gets empty `metricReaders` / `logRecordProcessors` so it does not build env-driven pipelines of its own.
-- **`OTEL_SERVICE_NAME`**, **`OTEL_SDK_DISABLED`** (`true` only, per spec), **`OTEL_LOG_LEVEL`**: standard OTel env vars.
+- **`OTEL_SERVICE_NAME`**, **`OTEL_SDK_DISABLED`** (`true` only, per spec). **`OTEL_LOG_LEVEL`**: SDK stdout diagnostics — leave unset in production; `WARN`/`ERROR` while debugging export; not App Insights.
+- After start Hub emits one `TelemetryLogger` info (`instrumentation`) so App Insights `traces` has a canary; SIGTERM/SIGINT emit `Telemetry flushing on …` then flush.
 - If no exporter is active (none set, or `OTEL_SDK_DISABLED=true`), `TelemetryLogger` mirrors to the console in development, or in production with `TELEMETRY_CONSOLE_FALLBACK=true`.
 - With an active exporter, stdout is off unless `TELEMETRY_CONSOLE_FALLBACK=true`, which adds a one-JSON-object-per-line console exporter to the log pipeline.
 - **Shutdown**: on SIGTERM/SIGINT Hub only flushes; Next.js drains requests and exits. On an uncaught exception Hub logs it, shuts telemetry down (at most `CRASH_FLUSH_TIMEOUT_MS`) and exits 1.
@@ -97,7 +98,7 @@ TelemetryLogger.critical(message: string, error?: unknown, attributes?: LogAttri
 Tests live in `features/telemetry/__tests__/`. Run them with:
 
 ```bash
-pnpm test -- --run features/telemetry
+pnpm exec vitest run features/telemetry
 ```
 
 | Module | Test file | What’s covered |
@@ -107,10 +108,10 @@ pnpm test -- --run features/telemetry
 | **TelemetryLogger** | `telemetry-logger.test.ts` | `debug`/`info`/`warn`/`error`/`critical` call OTEL logger `emit` with correct severity, body, attributes; error/critical with `Error` set `exception.*` and combined body; default logger name; console fallback incl. `OTEL_SDK_DISABLED` and emit failures; `parseErrorMessage` |
 | **redactSensitiveAttributes** | `redact-sensitive-attributes.test.ts` | Credential-like keys redacted; other attributes untouched; input not mutated |
 | **TelemetryTracer** | `telemetry-tracer.test.ts` | `getTracer`, `traceAsync`/`trace` invoke callback with span and return result; on throw, `recordException` and `setStatus` called |
-| **NodeSdkTelemetryStrategy** | `node-sdk-telemetry-strategy.test.ts` | Azure / OTLP / both; protocol and per-signal endpoints; filter runs first; no env-built metric/log pipelines; JSON stdout only when forced; nothing global registered when an exporter throws; flush/shutdown reach every pipeline even when one fails |
+| **TelemetrySdk** | `telemetry-sdk.test.ts` | Azure / OTLP / both; protocol and per-signal endpoints; filter first; no env-built metric/log pipelines; JSON stdout only when forced; nothing global when an exporter throws; flush/shutdown reach every pipeline even when one fails |
 | **JsonConsoleLogRecordExporter** | `json-console-log-record-exporter.test.ts` | One JSON line per record; redaction; unserializable values; stdout write failure reported, not thrown |
 | **OTEL server externals** | `otel-server-externals.test.ts` | Every `@opentelemetry` / `@azure` import in `infrastructure/` is listed; wired into `next.config.ts` |
-| **TelemetryInitializer** | `telemetry-initializer.test.ts` | Strategy per exporter env; `OTEL_SDK_DISABLED`; init failure registers nothing; shared detected resource; SIGTERM/SIGINT flush without exit; `NEXT_MANUAL_SIG_HANDLE`; uncaught exception → shutdown → exit 1, bounded by `CRASH_FLUSH_TIMEOUT_MS`; unhandled rejection logged; `settleWithin` |
+| **TelemetryInitializer** | `telemetry-initializer.test.ts` | SDK when exporter env is set; `OTEL_SDK_DISABLED`; init failure registers nothing; shared detected resource; SIGTERM/SIGINT flush without exit; `NEXT_MANUAL_SIG_HANDLE`; uncaught exception → shutdown → exit 1, bounded by `CRASH_FLUSH_TIMEOUT_MS`; unhandled rejection logged; `settleWithin` |
 
 `__tests__/support/telemetry-env.ts` stubs every telemetry env var to empty so a shell exporting `OTEL_*` cannot change outcomes.
 

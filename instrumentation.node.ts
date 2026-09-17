@@ -2,6 +2,6 @@ import { TelemetryInitializer } from "./features/telemetry/infrastructure/teleme
 
 /**
  * Node.js telemetry entry point, imported by instrumentation.ts register().
- * One NodeSDK plus an explicit LoggerProvider — see NodeSdkTelemetryStrategy.
+ * One NodeSDK plus an explicit LoggerProvider — see TelemetrySdk.
  */
 new TelemetryInitializer().initialize();

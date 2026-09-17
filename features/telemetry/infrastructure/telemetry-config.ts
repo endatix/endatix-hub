@@ -9,7 +9,6 @@ const OTLP_PROTOCOLS = new Set<OtlpProtocol>([
   "http/json",
 ]);
 
-/** Default when unset. Spec prefers http/protobuf; Hub/API already used gRPC on :4317. */
 const DEFAULT_OTLP_PROTOCOL: OtlpProtocol = "grpc";
 
 function readEnv(key: string): string | undefined {
@@ -20,15 +19,11 @@ export const TelemetryConfig = {
   SERVICE_NAME: "endatix-hub",
   ATTR_SERVICE_NAME,
 
-  isAzureConfigured(): boolean {
-    return !!this.azureConnectionString();
-  },
-
   azureConnectionString(): string | undefined {
     return readEnv("APPLICATIONINSIGHTS_CONNECTION_STRING");
   },
 
-  isOtelConfigured(): boolean {
+  isOtlpConfigured(): boolean {
     return (
       this.isOtlpSignalConfigured("TRACES") ||
       this.isOtlpSignalConfigured("LOGS")
@@ -68,19 +63,18 @@ export const TelemetryConfig = {
   hasActiveExporter(): boolean {
     return (
       !this.isSdkDisabled() &&
-      (this.isAzureConfigured() || this.isOtelConfigured())
+      (!!this.azureConnectionString() || this.isOtlpConfigured())
     );
   },
 
-  /** True when Azure or OTLP logs will receive TelemetryLogger records. */
   hasActiveLogExporter(): boolean {
     return (
       !this.isSdkDisabled() &&
-      (this.isAzureConfigured() || this.isOtlpSignalConfigured("LOGS"))
+      (!!this.azureConnectionString() || this.isOtlpSignalConfigured("LOGS"))
     );
   },
 
-  isConsoleOutputForced(): boolean {
+  consoleFallbackEnabled(): boolean {
     return readEnv("TELEMETRY_CONSOLE_FALLBACK") === "true";
   },
 

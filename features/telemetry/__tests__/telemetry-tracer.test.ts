@@ -12,6 +12,7 @@ const mockSpan = {
 
 const mockStartActiveSpan = vi.fn();
 vi.mock("@opentelemetry/api", () => ({
+  SpanStatusCode: { ERROR: 2 },
   trace: {
     getTracer: () => ({
       startActiveSpan: mockStartActiveSpan,

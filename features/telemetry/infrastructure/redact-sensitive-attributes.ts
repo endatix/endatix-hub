@@ -3,7 +3,7 @@ const SENSITIVE_ATTRIBUTE_KEY =
 
 export const REDACTED = "[REDACTED]";
 
-/** Redact credential-like keys in records Hub prints to stdout. */
+/** Credential-like keys become `[REDACTED]` on every log destination. */
 export function redactSensitiveAttributes<T>(
   attributes: Readonly<Record<string, T>>,
 ): Record<string, T | typeof REDACTED> {

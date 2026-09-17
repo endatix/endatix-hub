@@ -27,10 +27,9 @@ import {
   AzureMonitorLogExporter,
   AzureMonitorTraceExporter,
 } from "@azure/monitor-opentelemetry-exporter";
-import { TelemetryInitStrategy } from "./telemetry-init-strategy.interface";
-import { FilteringSpanProcessor } from "../filtering-span-processor";
-import { JsonConsoleLogRecordExporter } from "../json-console-log-record-exporter";
-import { TelemetryConfig, type OtlpProtocol } from "../telemetry-config";
+import { FilteringSpanProcessor } from "./filtering-span-processor";
+import { JsonConsoleLogRecordExporter } from "./json-console-log-record-exporter";
+import { TelemetryConfig, type OtlpProtocol } from "./telemetry-config";
 
 const OTLP_SPAN_PROCESSOR_OPTIONS = {
   scheduledDelayMillis: 1000,
@@ -38,11 +37,7 @@ const OTLP_SPAN_PROCESSOR_OPTIONS = {
   maxExportBatchSize: 512,
 } as const;
 
-/**
- * No url, headers or credentials are passed: each exporter reads
- * OTEL_EXPORTER_OTLP_[SIGNAL_]ENDPOINT, _HEADERS, _INSECURE, _CERTIFICATE and
- * _CLIENT_* itself, so endpoint, TLS and auth follow the OTel spec.
- */
+/** Exporters read OTEL_EXPORTER_OTLP_* themselves (endpoint, headers, TLS). */
 const OTLP_TRACE_EXPORTERS: Record<OtlpProtocol, () => SpanExporter> = {
   grpc: () => new OTLPGrpcTraceExporter(),
   "http/protobuf": () => new OTLPProtoTraceExporter(),
@@ -55,18 +50,14 @@ const OTLP_LOG_EXPORTERS: Record<OtlpProtocol, () => LogRecordExporter> = {
   "http/json": () => new OTLPJsonLogExporter(),
 };
 
-/**
- * Which exporters this process uses, resolved once from env. An OTLP protocol is
- * present only when that signal has an endpoint.
- */
-interface ExporterPlan {
+type Exporters = {
   azureConnectionString?: string;
   otlpTracesProtocol?: OtlpProtocol;
   otlpLogsProtocol?: OtlpProtocol;
   jsonConsole: boolean;
-}
+};
 
-function resolveExporterPlan(): ExporterPlan {
+function resolveExporters(): Exporters {
   return {
     azureConnectionString: TelemetryConfig.azureConnectionString(),
     otlpTracesProtocol: TelemetryConfig.isOtlpSignalConfigured("TRACES")
@@ -75,88 +66,72 @@ function resolveExporterPlan(): ExporterPlan {
     otlpLogsProtocol: TelemetryConfig.isOtlpSignalConfigured("LOGS")
       ? TelemetryConfig.otlpProtocol("LOGS")
       : undefined,
-    jsonConsole: TelemetryConfig.isConsoleOutputForced(),
+    jsonConsole: TelemetryConfig.consoleFallbackEnabled(),
   };
 }
 
-function hasOtlp(plan: ExporterPlan): boolean {
-  return !!plan.otlpTracesProtocol || !!plan.otlpLogsProtocol;
-}
-
-function describeExporterPlan(plan: ExporterPlan): string {
-  const modes = [
-    plan.azureConnectionString ? "Azure AppInsights" : undefined,
-    hasOtlp(plan) ? "OTel" : undefined,
+function modeName(exporters: Exporters): string {
+  const parts = [
+    exporters.azureConnectionString ? "Azure AppInsights" : undefined,
+    exporters.otlpTracesProtocol || exporters.otlpLogsProtocol
+      ? "OTel"
+      : undefined,
   ].filter(Boolean);
-  return modes.length > 0 ? modes.join(" + ") : "none";
+  return parts.length > 0 ? parts.join(" + ") : "none";
 }
 
-function buildSpanProcessors(plan: ExporterPlan): SpanProcessor[] {
-  // The filter must run first: it marks noisy spans unsampled before any
-  // exporting processor sees them.
+function spanProcessorsFor(exporters: Exporters): SpanProcessor[] {
   const processors: SpanProcessor[] = [new FilteringSpanProcessor()];
-
-  if (plan.azureConnectionString) {
+  if (exporters.azureConnectionString) {
     processors.push(
       new BatchSpanProcessor(
         new AzureMonitorTraceExporter({
-          connectionString: plan.azureConnectionString,
+          connectionString: exporters.azureConnectionString,
         }),
       ),
     );
   }
-
-  if (plan.otlpTracesProtocol) {
+  if (exporters.otlpTracesProtocol) {
     processors.push(
       new BatchSpanProcessor(
-        OTLP_TRACE_EXPORTERS[plan.otlpTracesProtocol](),
+        OTLP_TRACE_EXPORTERS[exporters.otlpTracesProtocol](),
         OTLP_SPAN_PROCESSOR_OPTIONS,
       ),
     );
   }
-
   return processors;
 }
 
-function buildLogRecordProcessors(plan: ExporterPlan): LogRecordProcessor[] {
+function logProcessorsFor(exporters: Exporters): LogRecordProcessor[] {
   const processors: LogRecordProcessor[] = [];
-
-  if (plan.jsonConsole) {
+  if (exporters.jsonConsole) {
     processors.push(
       new SimpleLogRecordProcessor({
         exporter: new JsonConsoleLogRecordExporter(),
       }),
     );
   }
-
-  if (plan.azureConnectionString) {
+  if (exporters.azureConnectionString) {
     processors.push(
       new BatchLogRecordProcessor({
         exporter: new AzureMonitorLogExporter({
-          connectionString: plan.azureConnectionString,
+          connectionString: exporters.azureConnectionString,
         }),
       }),
     );
   }
-
-  if (plan.otlpLogsProtocol) {
+  if (exporters.otlpLogsProtocol) {
     processors.push(
       new BatchLogRecordProcessor({
-        exporter: OTLP_LOG_EXPORTERS[plan.otlpLogsProtocol](),
+        exporter: OTLP_LOG_EXPORTERS[exporters.otlpLogsProtocol](),
       }),
     );
   }
-
   return processors;
 }
 
-/**
- * Settles every promise, then rejects with the first failure, so one failing
- * pipeline does not stop the others from flushing.
- */
 async function settleAll(promises: Array<Promise<unknown>>): Promise<void> {
-  const results = await Promise.allSettled(promises);
-  const failure = results.find(
+  const failure = (await Promise.allSettled(promises)).find(
     (result): result is PromiseRejectedResult => result.status === "rejected",
   );
   if (failure) {
@@ -165,71 +140,53 @@ async function settleAll(promises: Array<Promise<unknown>>): Promise<void> {
 }
 
 /**
- * Single NodeSDK for every host. Azure Monitor and OTLP are exporters on the
- * same resource / logger provider so TelemetryLogger.emit() reaches App Insights,
- * a collector, and (when forced) stdout.
+ * One NodeSDK + explicit LoggerProvider. Azure and OTLP are exporters on the
+ * same resource so TelemetryLogger.emit() reaches App Insights and/or a collector.
  */
-export class NodeSdkTelemetryStrategy implements TelemetryInitStrategy {
-  private plan: ExporterPlan | undefined;
+export class TelemetrySdk {
+  name = "none";
   private sdk: NodeSDK | undefined;
   private loggerProvider: LoggerProvider | undefined;
   private spanProcessors: SpanProcessor[] = [];
 
-  get name(): string {
-    return describeExporterPlan(this.plan ?? resolveExporterPlan());
-  }
-
   initialize(resource: Resource): NodeSDK {
-    const plan = resolveExporterPlan();
-    if (!plan.azureConnectionString && !hasOtlp(plan)) {
+    const exporters = resolveExporters();
+    if (
+      !exporters.azureConnectionString &&
+      !exporters.otlpTracesProtocol &&
+      !exporters.otlpLogsProtocol
+    ) {
       throw new Error(
         "No telemetry exporter configured. Set APPLICATIONINSIGHTS_CONNECTION_STRING and/or OTEL_EXPORTER_OTLP_ENDPOINT.",
       );
     }
 
-    // Build every exporter before registering anything global, so a constructor
-    // that throws (e.g. a malformed connection string) leaves no half-wired state.
-    const spanProcessors = buildSpanProcessors(plan);
+    const spanProcessors = spanProcessorsFor(exporters);
     const loggerProvider = new LoggerProvider({
       resource,
-      processors: buildLogRecordProcessors(plan),
+      processors: logProcessorsFor(exporters),
     });
 
     const sdk = new NodeSDK({
       resource,
-      // The initializer already ran resource detection; running it again here
-      // would give spans attributes the logger provider never saw.
       autoDetectResources: false,
       spanProcessors,
-      // Empty lists, not omitted: omitted, NodeSDK builds an OTLP metric reader and
-      // a second logger provider from env (default http/protobuf to localhost:4318)
-      // that Hub never asked for.
       metricReaders: [],
       logRecordProcessors: [],
       contextManager: new AsyncLocalStorageContextManager(),
       sampler: new AlwaysOnSampler(),
-      // UndiciInstrumentation is what makes Hub -> API calls join one trace. Node 18+ global
-      // fetch is undici, which bypasses node:http entirely, so HttpInstrumentation never sees
-      // it. Next.js already creates fetch spans; we do not add FetchInstrumentation (that
-      // package is for browsers, and @vercel/otel's fetch helper is Vercel-drain specific).
       instrumentations: [
         new HttpInstrumentation(),
         new UndiciInstrumentation(),
       ],
     });
 
-    // Same split as @vercel/otel: traces via the tracer SDK, logs via an explicit
-    // LoggerProvider registered before sdk.start(), on the same resource as spans.
     logs.setGlobalLoggerProvider(loggerProvider);
 
-    this.plan = plan;
+    this.name = modeName(exporters);
     this.sdk = sdk;
     this.loggerProvider = loggerProvider;
     this.spanProcessors = spanProcessors;
-
-    console.log(
-      `OpenTelemetry SDK configured (${this.name}; OTLP traces: ${plan.otlpTracesProtocol ?? "off"}, logs: ${plan.otlpLogsProtocol ?? "off"})`,
-    );
     return sdk;
   }
 

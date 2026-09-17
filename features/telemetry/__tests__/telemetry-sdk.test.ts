@@ -8,7 +8,7 @@ import { OTLPLogExporter as OTLPJsonLogExporter } from "@opentelemetry/exporter-
 import { TelemetryConfig } from "../infrastructure/telemetry-config";
 import { FilteringSpanProcessor } from "../infrastructure/filtering-span-processor";
 import { JsonConsoleLogRecordExporter } from "../infrastructure/json-console-log-record-exporter";
-import { NodeSdkTelemetryStrategy } from "../infrastructure/strategies";
+import { TelemetrySdk } from "../infrastructure/telemetry-sdk";
 import { stubEmptyTelemetryEnv } from "./support/telemetry-env";
 
 const INVALID_AZURE = "invalid";
@@ -31,7 +31,7 @@ const AZURE = "InstrumentationKey=test";
 const OTLP_GRPC = "http://localhost:4317";
 
 /** Private fields the strategy keeps; read here to assert what was wired. */
-type StrategyInternals = {
+type SdkInternalsState = {
   spanProcessors: Array<{ _exporter?: unknown }>;
   loggerProvider: {
     _sharedState: { processors: Array<{ _exporter?: unknown }> };
@@ -46,27 +46,27 @@ type SdkInternals = {
   _loggerProviderConfig?: { logRecordProcessors: unknown[] };
 };
 
-function internals(strategy: NodeSdkTelemetryStrategy): StrategyInternals {
-  return strategy as unknown as StrategyInternals;
+function internals(strategy: TelemetrySdk): SdkInternalsState {
+  return strategy as unknown as SdkInternalsState;
 }
 
-function spanProcessors(strategy: NodeSdkTelemetryStrategy) {
+function spanProcessors(strategy: TelemetrySdk) {
   return internals(strategy).spanProcessors;
 }
 
-function traceExporters(strategy: NodeSdkTelemetryStrategy): unknown[] {
+function traceExporters(strategy: TelemetrySdk): unknown[] {
   return spanProcessors(strategy)
     .map((processor) => processor._exporter)
     .filter(Boolean);
 }
 
-function logExporters(strategy: NodeSdkTelemetryStrategy): unknown[] {
+function logExporters(strategy: TelemetrySdk): unknown[] {
   return internals(strategy).loggerProvider._sharedState.processors.map(
     (processor) => processor._exporter,
   );
 }
 
-describe("NodeSdkTelemetryStrategy", () => {
+describe("TelemetrySdk", () => {
   const resource: Resource = resourceFromAttributes({
     [TelemetryConfig.ATTR_SERVICE_NAME]: TelemetryConfig.SERVICE_NAME,
   });
@@ -83,10 +83,10 @@ describe("NodeSdkTelemetryStrategy", () => {
   });
 
   function initialize(): {
-    strategy: NodeSdkTelemetryStrategy;
+    strategy: TelemetrySdk;
     sdk: SdkInternals;
   } {
-    const strategy = new NodeSdkTelemetryStrategy();
+    const strategy = new TelemetrySdk();
     const sdk = strategy.initialize(resource) as unknown as SdkInternals;
     return { strategy, sdk };
   }
@@ -148,7 +148,7 @@ describe("NodeSdkTelemetryStrategy", () => {
     });
 
     it("throws when no exporter is configured", () => {
-      const strategy = new NodeSdkTelemetryStrategy();
+      const strategy = new TelemetrySdk();
 
       expect(() => strategy.initialize(resource)).toThrow(
         "No telemetry exporter configured",
@@ -205,7 +205,7 @@ describe("NodeSdkTelemetryStrategy", () => {
     // Arrange
     vi.stubEnv("APPLICATIONINSIGHTS_CONNECTION_STRING", INVALID_AZURE);
     const setProvider = vi.spyOn(logs, "setGlobalLoggerProvider");
-    const strategy = new NodeSdkTelemetryStrategy();
+    const strategy = new TelemetrySdk();
 
     // Act & Assert
     expect(() => strategy.initialize(resource)).toThrow(
@@ -265,7 +265,7 @@ describe("NodeSdkTelemetryStrategy", () => {
     it("shuts down the SDK and the logger provider it does not own", async () => {
       // Arrange
       vi.stubEnv("OTEL_EXPORTER_OTLP_ENDPOINT", OTLP_GRPC);
-      const strategy = new NodeSdkTelemetryStrategy();
+      const strategy = new TelemetrySdk();
       const sdk = strategy.initialize(resource);
       const sdkShutdown = vi.spyOn(sdk, "shutdown").mockResolvedValue();
       const logShutdown = vi
@@ -281,7 +281,7 @@ describe("NodeSdkTelemetryStrategy", () => {
     });
 
     it("resolves flush and shutdown before initialize", async () => {
-      const strategy = new NodeSdkTelemetryStrategy();
+      const strategy = new TelemetrySdk();
 
       await expect(strategy.forceFlush()).resolves.toBeUndefined();
       await expect(strategy.shutdown()).resolves.toBeUndefined();

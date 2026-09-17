@@ -23,7 +23,6 @@ describe("TelemetryConfig", () => {
         " InstrumentationKey=abc ",
       );
 
-      expect(TelemetryConfig.isAzureConfigured()).toBe(true);
       expect(TelemetryConfig.azureConnectionString()).toBe(
         "InstrumentationKey=abc",
       );
@@ -32,7 +31,6 @@ describe("TelemetryConfig", () => {
     it.each(["", "   "])("is not configured for %j", (value) => {
       vi.stubEnv("APPLICATIONINSIGHTS_CONNECTION_STRING", value);
 
-      expect(TelemetryConfig.isAzureConfigured()).toBe(false);
       expect(TelemetryConfig.azureConnectionString()).toBeUndefined();
     });
   });
@@ -41,7 +39,7 @@ describe("TelemetryConfig", () => {
     it("is configured for every signal by the generic endpoint", () => {
       vi.stubEnv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317");
 
-      expect(TelemetryConfig.isOtelConfigured()).toBe(true);
+      expect(TelemetryConfig.isOtlpConfigured()).toBe(true);
       expect(TelemetryConfig.isOtlpSignalConfigured("TRACES")).toBe(true);
       expect(TelemetryConfig.isOtlpSignalConfigured("LOGS")).toBe(true);
     });
@@ -52,13 +50,13 @@ describe("TelemetryConfig", () => {
         "http://localhost:4318/v1/traces",
       );
 
-      expect(TelemetryConfig.isOtelConfigured()).toBe(true);
+      expect(TelemetryConfig.isOtlpConfigured()).toBe(true);
       expect(TelemetryConfig.isOtlpSignalConfigured("TRACES")).toBe(true);
       expect(TelemetryConfig.isOtlpSignalConfigured("LOGS")).toBe(false);
     });
 
     it("is not configured without an endpoint", () => {
-      expect(TelemetryConfig.isOtelConfigured()).toBe(false);
+      expect(TelemetryConfig.isOtlpConfigured()).toBe(false);
     });
 
     it("defaults the protocol to grpc", () => {
@@ -132,10 +130,10 @@ describe("TelemetryConfig", () => {
     ["true", true],
     ["false", false],
     ["", false],
-  ])("isConsoleOutputForced(%j) is %s", (value, expected) => {
+  ])("consoleFallbackEnabled(%j) is %s", (value, expected) => {
     vi.stubEnv("TELEMETRY_CONSOLE_FALLBACK", value);
 
-    expect(TelemetryConfig.isConsoleOutputForced()).toBe(expected);
+    expect(TelemetryConfig.consoleFallbackEnabled()).toBe(expected);
   });
 
   it("uses OTEL_SERVICE_NAME, else endatix-hub", () => {
