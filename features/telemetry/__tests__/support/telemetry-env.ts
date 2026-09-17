@@ -1,4 +1,5 @@
 import { vi } from "vitest";
+import { TelemetryRuntime } from "../../infrastructure/telemetry-runtime";
 
 /** Every env var the telemetry module reads. */
 export const TELEMETRY_ENV_KEYS = [
@@ -13,7 +14,14 @@ export const TELEMETRY_ENV_KEYS = [
   "OTEL_SDK_DISABLED",
   "OTEL_SERVICE_NAME",
   "TELEMETRY_CONSOLE_FALLBACK",
+  "TELEMETRY_TRACES_PER_SECOND",
+  "OTEL_EXPORTER_OTLP_INSECURE",
+  "OTEL_EXPORTER_OTLP_TRACES_INSECURE",
+  "OTEL_EXPORTER_OTLP_LOGS_INSECURE",
+  "OTEL_TRACES_SAMPLER",
+  "OTEL_TRACES_SAMPLER_ARG",
   "NEXT_MANUAL_SIG_HANDLE",
+  "NEXT_OTEL_FETCH_DISABLED",
 ] as const;
 
 /**
@@ -21,6 +29,7 @@ export const TELEMETRY_ENV_KEYS = [
  * OTEL_* cannot change test outcomes. Pair with `vi.unstubAllEnvs()`.
  */
 export function stubEmptyTelemetryEnv(): void {
+  TelemetryRuntime.reset();
   for (const key of TELEMETRY_ENV_KEYS) {
     vi.stubEnv(key, "");
   }

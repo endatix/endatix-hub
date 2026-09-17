@@ -42,21 +42,23 @@ export class JsonConsoleLogRecordExporter implements LogRecordExporter {
     records: ReadableLogRecord[],
     resultCallback: (result: ExportResult) => void,
   ): void {
-    this.pending = this.pending.then(async () => {
-      for (const record of records) {
-        await this.writeLine(`${toJsonLine(record)}\n`);
-      }
-    }).then(
-      () => {
-        resultCallback({ code: ExportResultCode.SUCCESS });
-      },
-      (error: unknown) => {
-        resultCallback({
-          code: ExportResultCode.FAILED,
-          error: toExportError(error),
-        });
-      },
-    );
+    this.pending = this.pending
+      .then(async () => {
+        for (const record of records) {
+          await this.writeLine(`${toJsonLine(record)}\n`);
+        }
+      })
+      .then(
+        () => {
+          resultCallback({ code: ExportResultCode.SUCCESS });
+        },
+        (error: unknown) => {
+          resultCallback({
+            code: ExportResultCode.FAILED,
+            error: toExportError(error),
+          });
+        },
+      );
   }
 
   shutdown(): Promise<void> {

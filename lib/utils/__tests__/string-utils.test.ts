@@ -24,7 +24,9 @@ describe("stringifyUnknown", () => {
     expect(stringifyUnknown("hello")).toBe("hello");
     expect(stringifyUnknown(0)).toBe("0");
     expect(stringifyUnknown(false)).toBe("false");
-    expect(stringifyUnknown(BigInt(9007199254740993))).toBe("9007199254740993");
+    expect(stringifyUnknown(BigInt("9007199254740993"))).toBe(
+      "9007199254740993",
+    );
     expect(stringifyUnknown(Symbol("sym"))).toContain("sym");
   });
 

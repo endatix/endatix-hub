@@ -149,8 +149,8 @@ export async function renderSubmissionPdf({
       return deadlineExceeded(caller);
     }
 
-    // Safe scalars only: renderer errors can quote image URLs, and those may
-    // carry storage SAS tokens. The span keeps the full exception for tracing.
+    // Safe scalars only: renderer errors can quote image URLs that carry SAS
+    // tokens. TelemetryTracer redacts those query params on the span exception.
     TelemetryLogger.error(
       PDF_EXPORT_FAILED,
       undefined,

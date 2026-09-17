@@ -8,12 +8,14 @@ import {
   type MockInstance,
 } from "vitest";
 import {
-  CRASH_FLUSH_TIMEOUT_MS,
+  EXIT_FLUSH_TIMEOUT_MS,
+  ExitFlush,
   settleWithin,
   TelemetryInitializer,
 } from "../infrastructure/telemetry-initializer";
 import { TelemetrySdk } from "../infrastructure/telemetry-sdk";
 import { TelemetryLogger } from "../infrastructure/telemetry-logger";
+import { TelemetryRuntime } from "../infrastructure/telemetry-runtime";
 import { stubEmptyTelemetryEnv } from "./support/telemetry-env";
 
 vi.mock("../infrastructure/telemetry-sdk", () => ({
@@ -24,22 +26,26 @@ type Listener = (...args: unknown[]) => void;
 
 interface FakeSdk {
   initialize: ReturnType<typeof vi.fn>;
+  start: ReturnType<typeof vi.fn>;
   forceFlush: ReturnType<typeof vi.fn>;
   shutdown: ReturnType<typeof vi.fn>;
-  start: ReturnType<typeof vi.fn>;
   name: string;
+  hasLogPipeline: boolean;
 }
 
+/** Makes `new TelemetrySdk()` return a controllable fake. */
 function useFakeSdk(
-  overrides: Partial<Pick<FakeSdk, "initialize" | "name">> = {},
+  overrides: Partial<
+    Pick<FakeSdk, "initialize" | "start" | "hasLogPipeline">
+  > = {},
 ): FakeSdk {
-  const start = vi.fn();
   const fake: FakeSdk = {
-    start,
-    initialize: vi.fn(() => ({ start })),
+    initialize: vi.fn(),
+    start: vi.fn(),
     forceFlush: vi.fn(() => Promise.resolve()),
     shutdown: vi.fn(() => Promise.resolve()),
     name: "Azure AppInsights",
+    hasLogPipeline: true,
     ...overrides,
   };
   vi.mocked(TelemetrySdk).mockImplementation(function () {
@@ -60,11 +66,18 @@ function captureProcessListeners(): Map<string, Listener> {
   return listeners;
 }
 
+function stubExit(): MockInstance {
+  return vi
+    .spyOn(process, "exit")
+    .mockImplementation((() => undefined) as never);
+}
+
 describe("TelemetryInitializer", () => {
   let consoleError: MockInstance;
   let consoleWarn: MockInstance;
   let consoleLog: MockInstance;
   let listeners: Map<string, Listener>;
+  let exitFlush: ExitFlush;
 
   beforeEach(() => {
     stubEmptyTelemetryEnv();
@@ -72,16 +85,24 @@ describe("TelemetryInitializer", () => {
     consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
     consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => {});
     consoleLog = vi.spyOn(console, "log").mockImplementation(() => {});
+    vi.spyOn(TelemetryLogger, "info").mockImplementation(() => {});
     listeners = captureProcessListeners();
   });
 
   afterEach(() => {
+    exitFlush?.disarm();
     vi.unstubAllEnvs();
     vi.restoreAllMocks();
     vi.useRealTimers();
   });
 
-  describe("exporter selection", () => {
+  /** Creates the initializer after process.exit is stubbed, so disarm restores the stub. */
+  function createInitializer(): TelemetryInitializer {
+    exitFlush = new ExitFlush();
+    return new TelemetryInitializer(exitFlush);
+  }
+
+  describe("startup", () => {
     it.each([
       ["APPLICATIONINSIGHTS_CONNECTION_STRING", "InstrumentationKey=x"],
       ["OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317"],
@@ -89,25 +110,38 @@ describe("TelemetryInitializer", () => {
     ])("starts the SDK when %s is set", (key, value) => {
       // Arrange
       vi.stubEnv(key, value);
-      const strategy = useFakeSdk();
-      const logInfo = vi
-        .spyOn(TelemetryLogger, "info")
-        .mockImplementation(() => {});
+      const sdk = useFakeSdk();
 
       // Act
-      new TelemetryInitializer().initialize();
+      createInitializer().initialize();
 
       // Assert
-      expect(strategy.start).toHaveBeenCalled();
+      expect(sdk.initialize).toHaveBeenCalled();
+      expect(sdk.start).toHaveBeenCalled();
       expect(consoleLog).toHaveBeenCalledWith(
         "Telemetry SDK started in Azure AppInsights mode",
       );
-      expect(logInfo).toHaveBeenCalledWith(
+      expect(TelemetryLogger.info).toHaveBeenCalledWith(
         "Telemetry SDK started in Azure AppInsights mode",
         { mode: "Azure AppInsights" },
         "instrumentation",
       );
     });
+
+    it.each([true, false])(
+      "marks the log pipeline active=%s from what the SDK built",
+      (hasLogPipeline) => {
+        // Arrange
+        vi.stubEnv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317");
+        useFakeSdk({ hasLogPipeline });
+
+        // Act
+        createInitializer().initialize();
+
+        // Assert
+        expect(TelemetryRuntime.isLogPipelineActive()).toBe(hasLogPipeline);
+      },
+    );
 
     it("does not build a TelemetrySdk when OTEL_SDK_DISABLED is true", () => {
       // Arrange
@@ -118,7 +152,7 @@ describe("TelemetryInitializer", () => {
       vi.stubEnv("OTEL_SDK_DISABLED", "true");
 
       // Act
-      new TelemetryInitializer().initialize();
+      createInitializer().initialize();
 
       // Assert
       expect(TelemetrySdk).not.toHaveBeenCalled();
@@ -129,7 +163,7 @@ describe("TelemetryInitializer", () => {
 
     it("warns and registers nothing when no exporter is configured", () => {
       // Act
-      new TelemetryInitializer().initialize();
+      createInitializer().initialize();
 
       // Assert
       expect(consoleWarn).toHaveBeenCalledWith(
@@ -138,53 +172,57 @@ describe("TelemetryInitializer", () => {
       expect(listeners.size).toBe(0);
     });
 
-    it("logs and registers nothing when TelemetrySdk throws", () => {
+    it.each(["initialize", "start"] as const)(
+      "logs, registers nothing and leaves the log pipeline inactive when %s throws",
+      (failingStep) => {
+        // Arrange
+        vi.stubEnv(
+          "APPLICATIONINSIGHTS_CONNECTION_STRING",
+          "InstrumentationKey=x",
+        );
+        useFakeSdk({
+          [failingStep]: vi.fn(() => {
+            throw new Error("Init failed");
+          }),
+        });
+
+        // Act
+        const act = () => createInitializer().initialize();
+
+        // Assert
+        expect(act).not.toThrow();
+        expect(consoleError).toHaveBeenCalledWith(
+          "Failed to initialize telemetry:",
+          expect.any(Error),
+        );
+        expect(listeners.size).toBe(0);
+        expect(TelemetryRuntime.isLogPipelineActive()).toBe(false);
+      },
+    );
+
+    it("gives the SDK a detected resource that includes OTEL_RESOURCE_ATTRIBUTES", () => {
       // Arrange
+      vi.stubEnv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317");
       vi.stubEnv(
-        "APPLICATIONINSIGHTS_CONNECTION_STRING",
-        "InstrumentationKey=x",
+        "OTEL_RESOURCE_ATTRIBUTES",
+        "deployment.environment.name=staging",
       );
-      useFakeSdk({
-        initialize: vi.fn(() => {
-          throw new Error("Init failed");
-        }),
-      });
+      const sdk = useFakeSdk();
 
       // Act
-      const act = () => new TelemetryInitializer().initialize();
+      createInitializer().initialize();
 
       // Assert
-      expect(act).not.toThrow();
-      expect(consoleError).toHaveBeenCalledWith(
-        "Failed to initialize telemetry:",
-        expect.any(Error),
-      );
-      expect(listeners.size).toBe(0);
+      const [resource] = sdk.initialize.mock.calls[0] as [
+        { attributes: Record<string, unknown> },
+      ];
+      expect(resource.attributes).toMatchObject({
+        "service.name": "endatix-hub",
+        "process.runtime.name": "nodejs",
+        "deployment.environment.name": "staging",
+      });
+      expect(resource.attributes["host.name"]).toBeDefined();
     });
-  });
-
-  it("gives TelemetrySdk a detected resource that includes OTEL_RESOURCE_ATTRIBUTES", () => {
-    // Arrange
-    vi.stubEnv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317");
-    vi.stubEnv(
-      "OTEL_RESOURCE_ATTRIBUTES",
-      "deployment.environment.name=staging",
-    );
-    const strategy = useFakeSdk();
-
-    // Act
-    new TelemetryInitializer().initialize();
-
-    // Assert
-    const [resource] = strategy.initialize.mock.calls[0] as [
-      { attributes: Record<string, unknown> },
-    ];
-    expect(resource.attributes).toMatchObject({
-      "service.name": "endatix-hub",
-      "process.runtime.name": "nodejs",
-      "deployment.environment.name": "staging",
-    });
-    expect(resource.attributes["host.name"]).toBeDefined();
   });
 
   describe("signals", () => {
@@ -199,38 +237,33 @@ describe("TelemetryInitializer", () => {
       "flushes on %s without exiting, leaving the drain to Next.js",
       (signal) => {
         // Arrange
-        const strategy = useFakeSdk();
-        const logInfo = vi
-          .spyOn(TelemetryLogger, "info")
-          .mockImplementation(() => {});
-        const exit = vi
-          .spyOn(process, "exit")
-          .mockImplementation((() => undefined) as never);
-        new TelemetryInitializer().initialize();
+        const exit = stubExit();
+        const sdk = useFakeSdk();
+        createInitializer().initialize();
 
         // Act
-        listeners.get(signal)?.();
+        listeners.get(signal)?.(signal);
 
         // Assert
-        expect(logInfo).toHaveBeenCalledWith(
+        expect(TelemetryLogger.info).toHaveBeenCalledWith(
           `Telemetry flushing on ${signal}`,
           { signal },
           "instrumentation",
         );
-        expect(strategy.forceFlush).toHaveBeenCalled();
-        expect(strategy.shutdown).not.toHaveBeenCalled();
+        expect(sdk.forceFlush).toHaveBeenCalled();
+        expect(sdk.shutdown).not.toHaveBeenCalled();
         expect(exit).not.toHaveBeenCalled();
       },
     );
 
     it("reports a failed flush instead of rejecting unhandled", async () => {
       // Arrange
-      const strategy = useFakeSdk();
-      strategy.forceFlush.mockRejectedValue(new Error("collector down"));
-      new TelemetryInitializer().initialize();
+      const sdk = useFakeSdk();
+      sdk.forceFlush.mockRejectedValue(new Error("collector down"));
+      createInitializer().initialize();
 
       // Act
-      listeners.get("SIGTERM")?.();
+      listeners.get("SIGTERM")?.("SIGTERM");
       await vi.waitFor(() => expect(consoleError).toHaveBeenCalled());
 
       // Assert
@@ -240,13 +273,45 @@ describe("TelemetryInitializer", () => {
       );
     });
 
+    it("shuts telemetry down before Next's post-drain process.exit completes", async () => {
+      // Arrange
+      const exit = stubExit();
+      const sdk = useFakeSdk();
+      createInitializer().initialize();
+      listeners.get("SIGTERM")?.("SIGTERM");
+
+      // Act
+      process.exit(143);
+
+      // Assert
+      await vi.waitFor(() => expect(exit).toHaveBeenCalledWith(143));
+      expect(sdk.shutdown).toHaveBeenCalledTimes(1);
+      expect(sdk.shutdown.mock.invocationCallOrder[0]).toBeLessThan(
+        exit.mock.invocationCallOrder[0],
+      );
+    });
+
+    it("leaves process.exit native until a termination signal arrives", () => {
+      // Arrange
+      const exit = stubExit();
+      const sdk = useFakeSdk();
+      createInitializer().initialize();
+
+      // Act
+      process.exit(1);
+
+      // Assert
+      expect(exit).toHaveBeenCalledWith(1);
+      expect(sdk.shutdown).not.toHaveBeenCalled();
+    });
+
     it("leaves signals alone when NEXT_MANUAL_SIG_HANDLE is set", () => {
       // Arrange
       vi.stubEnv("NEXT_MANUAL_SIG_HANDLE", "true");
       useFakeSdk();
 
       // Act
-      new TelemetryInitializer().initialize();
+      createInitializer().initialize();
 
       // Assert
       expect(listeners.has("SIGTERM")).toBe(false);
@@ -254,7 +319,7 @@ describe("TelemetryInitializer", () => {
     });
   });
 
-  describe("crashes", () => {
+  describe("process errors", () => {
     beforeEach(() => {
       vi.stubEnv(
         "APPLICATIONINSIGHTS_CONNECTION_STRING",
@@ -262,21 +327,19 @@ describe("TelemetryInitializer", () => {
       );
     });
 
-    it("logs an uncaught exception, shuts down and exits 1", async () => {
+    it("logs an uncaught exception and keeps the SDK and the process running", () => {
       // Arrange
-      const strategy = useFakeSdk();
+      const exit = stubExit();
+      const sdk = useFakeSdk();
       const logError = vi
         .spyOn(TelemetryLogger, "error")
         .mockImplementation(() => {});
-      const exit = vi
-        .spyOn(process, "exit")
-        .mockImplementation((() => undefined) as never);
-      new TelemetryInitializer().initialize();
+      createInitializer().initialize();
       const error = new Error("boom");
 
       // Act
       listeners.get("uncaughtException")?.(error);
-      await vi.waitFor(() => expect(exit).toHaveBeenCalled());
+      listeners.get("uncaughtException")?.(new Error("again"));
 
       // Assert
       expect(logError).toHaveBeenCalledWith(
@@ -285,55 +348,97 @@ describe("TelemetryInitializer", () => {
         {},
         "instrumentation",
       );
-      expect(strategy.shutdown).toHaveBeenCalled();
-      expect(exit).toHaveBeenCalledWith(1);
+      expect(logError).toHaveBeenCalledTimes(2);
+      expect(sdk.shutdown).not.toHaveBeenCalled();
+      expect(exit).not.toHaveBeenCalled();
     });
 
-    it("exits after the flush timeout when shutdown hangs", async () => {
+    it("passes a non-Error rejection reason through for TelemetryLogger to describe", () => {
       // Arrange
-      vi.useFakeTimers();
-      const strategy = useFakeSdk();
-      strategy.shutdown.mockReturnValue(new Promise(() => undefined));
-      vi.spyOn(TelemetryLogger, "error").mockImplementation(() => {});
-      const exit = vi
-        .spyOn(process, "exit")
-        .mockImplementation((() => undefined) as never);
-      new TelemetryInitializer().initialize();
-
-      // Act
-      listeners.get("uncaughtException")?.(new Error("boom"));
-      await vi.advanceTimersByTimeAsync(CRASH_FLUSH_TIMEOUT_MS - 1);
-      const exitedEarly = exit.mock.calls.length > 0;
-      await vi.advanceTimersByTimeAsync(1);
-
-      // Assert
-      expect(exitedEarly).toBe(false);
-      expect(exit).toHaveBeenCalledWith(1);
-    });
-
-    it("records unhandled rejections without exiting", () => {
-      // Arrange
+      const exit = stubExit();
       useFakeSdk();
       const logError = vi
         .spyOn(TelemetryLogger, "error")
         .mockImplementation(() => {});
-      const exit = vi
-        .spyOn(process, "exit")
-        .mockImplementation((() => undefined) as never);
-      new TelemetryInitializer().initialize();
+      createInitializer().initialize();
+      const reason = { code: "E_API", message: "boom" };
 
       // Act
-      listeners.get("unhandledRejection")?.("not an Error");
+      listeners.get("unhandledRejection")?.(reason);
 
       // Assert
       expect(logError).toHaveBeenCalledWith(
         "Unhandled promise rejection",
-        expect.objectContaining({ message: "not an Error" }),
+        reason,
         {},
         "instrumentation",
       );
       expect(exit).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe("ExitFlush", () => {
+  let exit: MockInstance;
+  let exitFlush: ExitFlush;
+
+  beforeEach(() => {
+    exit = stubExit();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    exitFlush = new ExitFlush();
+  });
+
+  afterEach(() => {
+    exitFlush.disarm();
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  it("exits after the flush timeout when the flush hangs", async () => {
+    // Arrange
+    vi.useFakeTimers();
+    exitFlush.arm(() => new Promise(() => undefined));
+
+    // Act
+    process.exit(143);
+    await vi.advanceTimersByTimeAsync(EXIT_FLUSH_TIMEOUT_MS - 1);
+    const exitedEarly = exit.mock.calls.length > 0;
+    await vi.advanceTimersByTimeAsync(1);
+
+    // Assert
+    expect(exitedEarly).toBe(false);
+    expect(exit).toHaveBeenCalledWith(143);
+  });
+
+  it("exits immediately on a second call while the flush is pending", () => {
+    // Arrange
+    const flush = vi.fn(() => new Promise<void>(() => undefined));
+    exitFlush.arm(flush);
+
+    // Act
+    process.exit(143);
+    process.exit(1);
+
+    // Assert
+    expect(flush).toHaveBeenCalledTimes(1);
+    expect(exit).toHaveBeenCalledWith(1);
+  });
+
+  it("arms once, and disarm restores the previous process.exit", () => {
+    // Arrange
+    const first = vi.fn(() => Promise.resolve());
+    const second = vi.fn(() => Promise.resolve());
+    exitFlush.arm(first);
+    const armedExit = process.exit;
+
+    // Act
+    exitFlush.arm(second);
+    const afterSecondArm = process.exit;
+    exitFlush.disarm();
+
+    // Assert
+    expect(afterSecondArm).toBe(armedExit);
+    expect(process.exit).not.toBe(armedExit);
   });
 });
 
@@ -344,34 +449,45 @@ describe("settleWithin", () => {
   });
 
   it("resolves when the promise resolves first", async () => {
+    // Act & Assert
     await expect(
       settleWithin(Promise.resolve("done"), 1_000),
     ).resolves.toBeUndefined();
   });
 
   it("resolves and reports when the promise rejects", async () => {
+    // Arrange
     const consoleError = vi
       .spyOn(console, "error")
       .mockImplementation(() => {});
 
-    await expect(
-      settleWithin(Promise.reject(new Error("export failed")), 1_000),
-    ).resolves.toBeUndefined();
+    // Act
+    const settled = settleWithin(
+      Promise.reject(new Error("export failed")),
+      1_000,
+    );
+
+    // Assert
+    await expect(settled).resolves.toBeUndefined();
     expect(consoleError).toHaveBeenCalledWith(
-      "Error shutting down telemetry",
+      "Error flushing telemetry before exit",
       expect.objectContaining({ message: "export failed" }),
     );
   });
 
   it("resolves at the timeout when the promise never settles", async () => {
+    // Arrange
     vi.useFakeTimers();
     const onSettled = vi.fn();
 
+    // Act
     void settleWithin(new Promise(() => undefined), 100).then(onSettled);
     await vi.advanceTimersByTimeAsync(99);
-    expect(onSettled).not.toHaveBeenCalled();
+    const settledEarly = onSettled.mock.calls.length > 0;
     await vi.advanceTimersByTimeAsync(1);
 
+    // Assert
+    expect(settledEarly).toBe(false);
     expect(onSettled).toHaveBeenCalled();
   });
 });

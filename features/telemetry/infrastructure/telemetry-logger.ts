@@ -1,6 +1,7 @@
 import { logs, SeverityNumber } from "@opentelemetry/api-logs";
 import { stringifyUnknown } from "@/lib/utils/string-utils";
 import { TelemetryConfig } from "./telemetry-config";
+import { TelemetryRuntime } from "./telemetry-runtime";
 import { redactSensitiveAttributes } from "./redact-sensitive-attributes";
 
 export enum LogSeverity {
@@ -150,18 +151,19 @@ export class TelemetryLogger {
   }
 }
 
+/**
+ * Console output is for records that would otherwise go nowhere, and for local
+ * development. A running log pipeline (exporter or JSON stdout) owns output. When
+ * none runs, print if log export was configured (it failed to start, or has not
+ * started yet), if `TELEMETRY_CONSOLE_FALLBACK=true`, or in development.
+ */
 function shouldPrintFormattedConsole(): boolean {
-  if (TelemetryConfig.hasActiveLogExporter()) {
-    return false;
-  }
-  if (
-    TelemetryConfig.hasActiveExporter() &&
-    TelemetryConfig.consoleFallbackEnabled()
-  ) {
+  if (TelemetryRuntime.isLogPipelineActive()) {
     return false;
   }
   return (
-    process.env.NODE_ENV === "development" ||
-    TelemetryConfig.consoleFallbackEnabled()
+    TelemetryConfig.hasActiveLogExporter() ||
+    TelemetryConfig.consoleFallbackEnabled() ||
+    process.env.NODE_ENV === "development"
   );
 }

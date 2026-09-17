@@ -18,6 +18,7 @@ export const OTEL_SERVER_EXTERNAL_PACKAGES = [
   "@opentelemetry/sdk-trace-node",
   "@opentelemetry/instrumentation-http",
   "@opentelemetry/instrumentation-undici",
+  "@opentelemetry/otlp-grpc-exporter-base",
   "@opentelemetry/exporter-trace-otlp-grpc",
   "@opentelemetry/exporter-trace-otlp-proto",
   "@opentelemetry/exporter-trace-otlp-http",
