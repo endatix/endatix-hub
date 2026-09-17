@@ -105,7 +105,7 @@ pnpm exec vitest run features/telemetry
 |--------|-----------|----------------|
 | **TelemetryConfig** | `telemetry-config.test.ts` | Azure / OTLP detection incl. per-signal endpoints; protocol precedence and fallback; `OTEL_SDK_DISABLED` spec parsing; `hasActiveExporter`; console flag; service name |
 | **FilteringSpanProcessor** | `filtering-span-processor.test.ts` | Spans matching URL/pattern or internal metric → `traceFlags` set to NONE; non-matching span unchanged; `forceFlush`/`shutdown` |
-| **TelemetryLogger** | `telemetry-logger.test.ts` | `debug`/`info`/`warn`/`error`/`critical` call OTEL logger `emit` with correct severity, body, attributes; error/critical with `Error` set `exception.*` and combined body; default logger name; console fallback incl. `OTEL_SDK_DISABLED` and emit failures; `parseErrorMessage` |
+| **TelemetryLogger** | `telemetry-logger.test.ts` | `debug`/`info`/`warn`/`error`/`critical` call OTEL logger `emit` with correct severity, body, attributes; error/critical with `Error` set `exception.*` and combined body; default logger name; console fallback incl. `OTEL_SDK_DISABLED` and emit failures |
 | **redactSensitiveAttributes** | `redact-sensitive-attributes.test.ts` | Credential-like keys redacted; other attributes untouched; input not mutated |
 | **TelemetryTracer** | `telemetry-tracer.test.ts` | `getTracer`, `traceAsync`/`trace` invoke callback with span and return result; on throw, `recordException` and `setStatus` called |
 | **TelemetrySdk** | `telemetry-sdk.test.ts` | Azure / OTLP / both; protocol and per-signal endpoints; filter first; no env-built metric/log pipelines; JSON stdout only when forced; nothing global when an exporter throws; flush/shutdown reach every pipeline even when one fails |

@@ -1,4 +1,5 @@
 import { logs, SeverityNumber } from "@opentelemetry/api-logs";
+import { stringifyUnknown } from "@/lib/utils/string-utils";
 import { TelemetryConfig } from "./telemetry-config";
 import { redactSensitiveAttributes } from "./redact-sensitive-attributes";
 
@@ -34,25 +35,7 @@ export interface LogAttributes {
 }
 
 export function parseErrorMessage(value: unknown): string {
-  if (value === null) return "null";
-  if (value === undefined) return "undefined";
-  if (typeof value === "string") return value;
-  if (value instanceof Error) return value.message;
-  if (typeof value === "object") {
-    const obj = value as Record<string, unknown>;
-    if ("message" in obj) return String(obj.message);
-    try {
-      return JSON.stringify(value);
-    } catch {
-      return "[Circular]";
-    }
-  }
-
-  return typeof value === "bigint" ||
-    typeof value === "symbol" ||
-    typeof value === "function"
-    ? value.toString()
-    : String(value);
+  return stringifyUnknown(value, { preferKey: "message" });
 }
 
 export class TelemetryLogger {
