@@ -29,8 +29,6 @@ describe("shouldDrop", () => {
   it.each([
     [{ "url.path": "/_next/static/chunks/app.js" }],
     [{ "url.path": "/api/health" }],
-    [{ "url.path": "/forms", "url.query": "_rsc=abc" }],
-    [{ "url.path": "/forms", "url.query": "tab=1&_rsc=abc" }],
     [{ "http.target": "/favicon.ico" }],
     [{ "http.url": "https://hub.example.com/_next/image?url=x" }],
   ])("drops noise described by %j", (attributes) => {
@@ -66,6 +64,8 @@ describe("shouldDrop", () => {
   it.each([
     [{ "url.path": "/api/forms" }],
     [{ "url.path": "/forms/42", "url.query": "tab=settings" }],
+    [{ "url.path": "/forms", "url.query": "_rsc=abc" }],
+    [{ "http.target": "/forms?tab=1&_rsc=abc" }],
   ])("keeps ordinary request spans: %j", (attributes) => {
     // Act & Assert
     expect(shouldDrop(span({ attributes }))).toBe(false);
@@ -188,12 +188,13 @@ describe("FilteringSpanProcessor trace-level noise", () => {
     const root = traceSpan({
       traceId: "t1",
       name: "NextServer.getRequestHandler",
+      attributes: { "next.span_type": "NextServer.getRequestHandler" },
     });
     const request = traceSpan({
       traceId: "t1",
       name: "GET",
       kind: SpanKind.SERVER,
-      attributes: { "http.target": "/forms?_rsc=abc" },
+      attributes: { "http.target": "/_next/image?url=%2Flogo.png&w=64" },
       parent: {},
     });
     const render = traceSpan({
@@ -286,5 +287,71 @@ describe("FilteringSpanProcessor trace-level noise", () => {
 
     // Assert
     expect(render.traceFlagsRef.traceFlags).toBe(TraceFlags.SAMPLED);
+  });
+});
+
+describe("FilteringSpanProcessor Next.js wrapper-only traces", () => {
+  function wrapper(traceId: string, type: string, parent?: object): FakeSpan {
+    const flags = { traceId, traceFlags: TraceFlags.SAMPLED };
+    return {
+      name: type,
+      kind: SpanKind.INTERNAL,
+      attributes: { "next.span_type": type },
+      events: [],
+      parentSpanContext: parent,
+      spanContext: () => flags,
+      traceFlagsRef: flags,
+    } as unknown as FakeSpan;
+  }
+
+  function work(traceId: string, name: string): FakeSpan {
+    const flags = { traceId, traceFlags: TraceFlags.SAMPLED };
+    return {
+      name,
+      kind: SpanKind.SERVER,
+      attributes: { "http.target": "/forms/42" },
+      events: [],
+      parentSpanContext: { traceId, spanId: "p", traceFlags: 1 },
+      spanContext: () => flags,
+      traceFlagsRef: flags,
+    } as unknown as FakeSpan;
+  }
+
+  it("drops the two wrapper spans of a static file request", () => {
+    // Arrange
+    const processor = new FilteringSpanProcessor();
+    const root = wrapper("s1", "NextServer.getRequestHandler");
+    const inner = wrapper("s1", "NextServer.getServerRequestHandler", {
+      traceId: "s1",
+      spanId: "r",
+      traceFlags: 1,
+    });
+
+    // Act
+    processor.onStart(root as never, {} as never);
+    processor.onStart(inner as never, {} as never);
+    processor.onEnd(inner);
+    processor.onEnd(root);
+
+    // Assert
+    expect(inner.traceFlagsRef.traceFlags).toBe(TraceFlags.NONE);
+    expect(root.traceFlagsRef.traceFlags).toBe(TraceFlags.NONE);
+  });
+
+  it("keeps wrapper spans when the trace did real work", () => {
+    // Arrange
+    const processor = new FilteringSpanProcessor();
+    const root = wrapper("s2", "NextServer.getRequestHandler");
+    const request = work("s2", "GET");
+
+    // Act
+    processor.onStart(root as never, {} as never);
+    processor.onStart(request as never, {} as never);
+    processor.onEnd(request);
+    processor.onEnd(root);
+
+    // Assert
+    expect(request.traceFlagsRef.traceFlags).toBe(TraceFlags.SAMPLED);
+    expect(root.traceFlagsRef.traceFlags).toBe(TraceFlags.SAMPLED);
   });
 });

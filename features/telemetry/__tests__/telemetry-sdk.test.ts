@@ -376,7 +376,7 @@ describe("TelemetrySdk", () => {
 
     it.each([
       ["/_next/static/chunks/app.js", true],
-      ["/forms?_rsc=abc", true],
+      ["/forms?_rsc=abc", false],
       ["/api/health", true],
       ["/forms/42", false],
     ])("ignores incoming %s: %s", (url, ignored) => {

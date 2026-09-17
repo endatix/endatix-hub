@@ -3,6 +3,11 @@ import { SpanKind, type Attributes } from "@opentelemetry/api";
 /**
  * Request targets that carry no diagnostic value and would dominate ingestion:
  * Next.js assets, framework internals, static files and probes.
+ *
+ * RSC requests (`?_rsc=`) are deliberately absent: they are App Router
+ * navigations that render server components and call the API, so their spans
+ * and errors matter. Sampling bounds their volume, as in `@vercel/otel`, which
+ * filters no Next.js request.
  */
 const NOISY_TARGET_FRAGMENTS: readonly string[] = [
   "/_next/static",
@@ -21,11 +26,6 @@ const NOISY_TARGET_FRAGMENTS: readonly string[] = [
   ".gif",
   ".webp",
   ".ico",
-  // RSC payload requests, whether `_rsc` is the first query param or not.
-  "?_rsc=",
-  "&_rsc=",
-  "?rsc=",
-  "&rsc=",
   "/robots.txt",
   "/sitemap",
   "/api/health",
@@ -36,7 +36,7 @@ export const NEXT_TELEMETRY_HOST = "telemetry.nextjs.org";
 
 /**
  * Whether a request target (path plus optional `?query`) is noise.
- * @param target e.g. `/_next/static/chunks/app.js` or `/forms?_rsc=abc`
+ * @param target e.g. `/_next/static/chunks/app.js` or `/api/health?probe=1`
  */
 export function isNoisyRequestTarget(target: string): boolean {
   return NOISY_TARGET_FRAGMENTS.some((fragment) => target.includes(fragment));
@@ -70,8 +70,7 @@ function requestTargetOf(attributes: Attributes): string {
 }
 
 /**
- * Whether a span describes a noisy request Hub serves (asset, RSC payload,
- * probe). Identifies the whole trace as noise. Covers the stable HTTP semantic
+ * Whether a span describes a noisy request Hub serves (asset, probe). Identifies the whole trace as noise. Covers the stable HTTP semantic
  * conventions (`url.path`, `url.query`, `url.full`) and the legacy ones
  * (`http.target`, `http.url`) Next.js still emits.
  */
@@ -115,4 +114,19 @@ export function isNoisySpan(
   }
 
   return isNoisyRequestSpan(name, kind, attributes);
+}
+
+/**
+ * Next.js wraps every request in these spans before it knows the URL. A static
+ * file served by the router produces only these two, with no URL attribute.
+ */
+const NEXT_WRAPPER_SPAN_TYPES: ReadonlySet<string> = new Set([
+  "NextServer.getRequestHandler",
+  "NextServer.getServerRequestHandler",
+]);
+
+/** Whether a span is one of Next.js's URL-less request wrapper spans. */
+export function isNextWrapperSpan(attributes: Attributes): boolean {
+  const spanType = attributes["next.span_type"];
+  return typeof spanType === "string" && NEXT_WRAPPER_SPAN_TYPES.has(spanType);
 }
