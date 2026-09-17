@@ -3,12 +3,7 @@ const SENSITIVE_ATTRIBUTE_KEY =
 
 export const REDACTED = "[REDACTED]";
 
-/**
- * Replaces the value of every attribute whose key looks like a credential.
- *
- * Applied wherever Hub itself prints records (console fallback, JSON stdout), so
- * a log call that carries a token by mistake does not end up in container logs.
- */
+/** Redact credential-like keys in records Hub prints to stdout. */
 export function redactSensitiveAttributes<T>(
   attributes: Readonly<Record<string, T>>,
 ): Record<string, T | typeof REDACTED> {
