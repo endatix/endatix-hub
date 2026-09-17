@@ -1,24 +1,26 @@
-import { trace, Span } from "@opentelemetry/api";
+import { trace, Span, SpanStatusCode } from "@opentelemetry/api";
+import { stringifyUnknown } from "@/lib/utils/string-utils";
+import { redactSensitiveText } from "./redact-sensitive-attributes";
 
-/**
- * Provides utilities for tracing operations with OpenTelemetry
- */
+function toRedactedException(error: unknown): Error {
+  const message = redactSensitiveText(
+    error instanceof Error
+      ? error.message
+      : stringifyUnknown(error, { preferKey: "message" }),
+  );
+  const recorded = new Error(message);
+  recorded.name = error instanceof Error ? error.name : "Error";
+  if (error instanceof Error && error.stack) {
+    recorded.stack = redactSensitiveText(error.stack);
+  }
+  return recorded;
+}
+
 export class TelemetryTracer {
-  /**
-   * Creates a tracer with the given name
-   * @param tracerName Name of the tracer
-   */
   static getTracer(tracerName: string) {
     return trace.getTracer(tracerName);
   }
 
-  /**
-   * Wraps a function execution in a span
-   * @param tracerName Name of the tracer
-   * @param spanName Name of the span
-   * @param fn Function to execute
-   * @returns Result of the function
-   */
   static async traceAsync<T>(
     tracerName: string,
     spanName: string,
@@ -30,8 +32,8 @@ export class TelemetryTracer {
         try {
           return await fn(span);
         } catch (error) {
-          span.recordException(error as Error);
-          span.setStatus({ code: 2 }); // Error
+          span.recordException(toRedactedException(error));
+          span.setStatus({ code: SpanStatusCode.ERROR });
           throw error;
         } finally {
           span.end();
@@ -40,13 +42,6 @@ export class TelemetryTracer {
     );
   }
 
-  /**
-   * Wraps a synchronous function execution in a span
-   * @param tracerName Name of the tracer
-   * @param spanName Name of the span
-   * @param fn Function to execute
-   * @returns Result of the function
-   */
   static trace<T>(
     tracerName: string,
     spanName: string,
@@ -56,8 +51,8 @@ export class TelemetryTracer {
       try {
         return fn(span);
       } catch (error) {
-        span.recordException(error as Error);
-        span.setStatus({ code: 2 }); // Error
+        span.recordException(toRedactedException(error));
+        span.setStatus({ code: SpanStatusCode.ERROR });
         throw error;
       } finally {
         span.end();

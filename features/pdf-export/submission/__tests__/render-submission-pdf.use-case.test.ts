@@ -3,7 +3,12 @@ import { Model } from "survey-core";
 import { Result } from "@/lib/result";
 
 /** Captures what each span was told, so the telemetry contract can be asserted. */
-const spans: { name: string; attributes: Record<string, unknown> }[] = [];
+const spans: {
+  name: string;
+  attributes: Record<string, unknown>;
+  recordException: ReturnType<typeof vi.fn>;
+  setStatus: ReturnType<typeof vi.fn>;
+}[] = [];
 
 vi.mock("@/features/telemetry", () => ({
   TelemetryTracer: {
@@ -12,7 +17,12 @@ vi.mock("@/features/telemetry", () => ({
       name: string,
       fn: (span: unknown) => Promise<unknown>,
     ) => {
-      const record = { name, attributes: {} as Record<string, unknown> };
+      const record = {
+        name,
+        attributes: {} as Record<string, unknown>,
+        recordException: vi.fn(),
+        setStatus: vi.fn(),
+      };
       spans.push(record);
       const span = {
         setAttribute: (key: string, value: unknown) => {
@@ -21,9 +31,15 @@ vi.mock("@/features/telemetry", () => ({
         setAttributes: (values: Record<string, unknown>) => {
           Object.assign(record.attributes, values);
         },
+        recordException: record.recordException,
+        setStatus: record.setStatus,
       };
       return fn(span);
     },
+  },
+  TelemetryLogger: {
+    warn: vi.fn(),
+    error: vi.fn(),
   },
 }));
 
@@ -56,6 +72,7 @@ vi.mock("../submission-details-pdf", () => ({
 const { renderSubmissionPdf } =
   await import("../render-submission-pdf.use-case");
 const { preparePdfModel } = await import("../prepare-pdf-model.use-case");
+const { TelemetryLogger } = await import("@/features/telemetry");
 
 const submission = { id: "s1" } as never;
 
@@ -64,6 +81,8 @@ beforeEach(() => {
   toBlob.mockClear();
   vi.mocked(preparePdfModel).mockClear();
   vi.mocked(preparePdfModel).mockResolvedValue(surveyModel);
+  vi.mocked(TelemetryLogger.warn).mockClear();
+  vi.mocked(TelemetryLogger.error).mockClear();
   vi.useRealTimers();
 });
 
@@ -128,6 +147,14 @@ describe("renderSubmissionPdf", () => {
     expect(render).toBeUndefined();
     expect(preparePdfModel).not.toHaveBeenCalled();
     expect(toBlob).not.toHaveBeenCalled();
+    expect(TelemetryLogger.warn).toHaveBeenCalledWith(
+      "PDF render exceeded the deadline.",
+      expect.objectContaining({
+        "pdf.caller": "hub-authenticated",
+        "pdf.timeoutMs": expect.any(Number),
+      }),
+      "pdf-export",
+    );
   });
 
   it("times out when model preparation never finishes", async () => {
@@ -152,6 +179,47 @@ describe("renderSubmissionPdf", () => {
     if (Result.isError(result)) {
       expect(result.errorCode).toBe("pdf_render_timeout");
     }
+    expect(TelemetryLogger.warn).toHaveBeenCalledWith(
+      "PDF render exceeded the deadline.",
+      expect.objectContaining({ "pdf.caller": "anonymous-token" }),
+      "pdf-export",
+    );
+    expect(TelemetryLogger.error).not.toHaveBeenCalled();
+    const prepare = spans.find((s) => s.name === "prepare-model");
+    expect(prepare?.attributes["pdf.outcome"]).toBe("timeout");
+    expect(prepare?.recordException).not.toHaveBeenCalled();
+    expect(prepare?.setStatus).not.toHaveBeenCalled();
+  });
+
+  it("logs the render duration when the renderer itself overruns", async () => {
+    // Arrange
+    vi.useFakeTimers();
+    toBlob.mockImplementationOnce(() => new Promise(() => undefined));
+
+    // Act
+    const pending = renderSubmissionPdf({
+      submission,
+      customQuestionsJsonData: [],
+      startedAtMs: Date.now(),
+      caller: "hub-authenticated",
+    });
+    await vi.advanceTimersByTimeAsync(40_000);
+    const result = await pending;
+
+    // Assert
+    expect(Result.isError(result)).toBe(true);
+    if (Result.isError(result)) {
+      expect(result.errorCode).toBe("pdf_render_timeout");
+    }
+    expect(TelemetryLogger.warn).toHaveBeenCalledTimes(1);
+    expect(TelemetryLogger.warn).toHaveBeenCalledWith(
+      "PDF render exceeded the deadline.",
+      expect.objectContaining({
+        "pdf.caller": "hub-authenticated",
+        "pdf.durationMs": expect.any(Number),
+      }),
+      "pdf-export",
+    );
   });
 
   it("returns a generic failure when render throws", async () => {
@@ -171,5 +239,12 @@ describe("renderSubmissionPdf", () => {
     if (Result.isError(result)) {
       expect(result.message).toBe("PDF export failed.");
     }
+    expect(TelemetryLogger.error).toHaveBeenCalledWith(
+      "PDF export failed.",
+      undefined,
+      { "pdf.caller": "hub-authenticated", "error.type": "Error" },
+      "pdf-export",
+    );
+    expect(TelemetryLogger.warn).not.toHaveBeenCalled();
   });
 });

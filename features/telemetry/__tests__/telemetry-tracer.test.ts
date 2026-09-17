@@ -12,6 +12,7 @@ const mockSpan = {
 
 const mockStartActiveSpan = vi.fn();
 vi.mock("@opentelemetry/api", () => ({
+  SpanStatusCode: { ERROR: 2 },
   trace: {
     getTracer: () => ({
       startActiveSpan: mockStartActiveSpan,
@@ -71,7 +72,9 @@ describe("TelemetryTracer", () => {
       }),
     ).rejects.toThrow("fail");
 
-    expect(mockRecordException).toHaveBeenCalledWith(err);
+    expect(mockRecordException).toHaveBeenCalledWith(
+      expect.objectContaining({ message: "fail" }),
+    );
     expect(mockSetStatus).toHaveBeenCalledWith({ code: 2 });
     expect(mockEnd).toHaveBeenCalled();
   });
@@ -110,8 +113,34 @@ describe("TelemetryTracer", () => {
       }),
     ).toThrow("sync fail");
 
-    expect(mockRecordException).toHaveBeenCalledWith(err);
+    expect(mockRecordException).toHaveBeenCalledWith(
+      expect.objectContaining({ message: "sync fail" }),
+    );
     expect(mockSetStatus).toHaveBeenCalledWith({ code: 2 });
     expect(mockEnd).toHaveBeenCalled();
+  });
+
+  it("redacts SAS query params on recorded span exceptions", async () => {
+    mockStartActiveSpan.mockImplementation(
+      (_name: string, fn: (span: typeof mockSpan) => Promise<never>) => {
+        return fn(mockSpan).catch((e) => {
+          throw e;
+        });
+      },
+    );
+
+    await expect(
+      TelemetryTracer.traceAsync("svc", "op", async () => {
+        throw new Error(
+          "GET https://acct.blob.core.windows.net/c/a.png?sig=secretvalue",
+        );
+      }),
+    ).rejects.toThrow("sig=secretvalue");
+
+    expect(mockRecordException).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: expect.stringContaining("sig=[REDACTED]"),
+      }),
+    );
   });
 });

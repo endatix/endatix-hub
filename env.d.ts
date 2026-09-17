@@ -112,8 +112,22 @@ declare namespace NodeJS {
     // Telemetry
     OTEL_LOG_LEVEL?: string;
     OTEL_EXPORTER_OTLP_ENDPOINT?: string;
+    OTEL_EXPORTER_OTLP_TRACES_ENDPOINT?: string;
+    OTEL_EXPORTER_OTLP_LOGS_ENDPOINT?: string;
+    OTEL_EXPORTER_OTLP_PROTOCOL?: string;
+    OTEL_EXPORTER_OTLP_TRACES_PROTOCOL?: string;
+    OTEL_EXPORTER_OTLP_LOGS_PROTOCOL?: string;
+    OTEL_EXPORTER_OTLP_HEADERS?: string;
+    OTEL_RESOURCE_ATTRIBUTES?: string;
+    OTEL_SERVICE_NAME?: string;
+    OTEL_SDK_DISABLED?: string;
+    OTEL_EXPORTER_OTLP_INSECURE?: string;
     APPLICATIONINSIGHTS_CONNECTION_STRING?: string;
     TELEMETRY_CONSOLE_FALLBACK?: string;
+    TELEMETRY_TRACES_PER_SECOND?: string;
+    OTEL_TRACES_SAMPLER?: string;
+    OTEL_TRACES_SAMPLER_ARG?: string;
+    NEXT_OTEL_FETCH_DISABLED?: string;
 
     // Feature-flag provider: `posthog` or omit/`environment` for FLAG_* env vars.
     FLAG_PROVIDER?: string;
