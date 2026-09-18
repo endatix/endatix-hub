@@ -1,5 +1,6 @@
 import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";;
+import { Label } from "@/components/ui/label";
+import { htmlSanitizer } from "@/lib/utils/html-sanitizer";
 import { ItemValue, QuestionCheckboxModel } from "survey-core";
 import { ValueTooltip } from "./value-tooltip";
 
@@ -40,9 +41,9 @@ const CheckboxAnswer = ({ question, className }: CheckboxAnswerProps) => {
             />
             <Label
               htmlFor={checkedItem.value}
-              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              className="text-sm leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
             >
-              {decodeURIComponent(checkedItem.text)}
+              {htmlSanitizer.toPlainText(decodeURIComponent(checkedItem.text))}
             </Label>
             <ValueTooltip value={question} />
           </div>

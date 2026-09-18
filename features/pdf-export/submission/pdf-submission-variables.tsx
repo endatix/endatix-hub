@@ -8,6 +8,7 @@ import {
   MetadataSchema,
 } from "@/features/public-form/types";
 import { tryParseJson } from "@/lib/utils/type-parsers";
+import { pdfPlainText } from "@/lib/utils/pdf-plain-text";
 import { Result } from "@/lib/result";
 
 interface PdfSubmissionVariablesProps {
@@ -78,7 +79,7 @@ export const PdfSubmissionVariables = ({
                   <Text style={styles.dynamicVariableName}>{`@${name} =`}</Text>
                   <Text
                     style={styles.dynamicVariableValue}
-                  >{` ${surveyModel.getVariable(name)}`}</Text>
+                  >{` ${pdfPlainText(surveyModel.getVariable(name))}`}</Text>
                 </View>
               </View>
             ))}
@@ -102,7 +103,7 @@ export const PdfSubmissionVariables = ({
                     >{`${item.name} =`}</Text>
                     <Text
                       style={styles.dynamicVariableValue}
-                    >{` ${itemValue}`}</Text>
+                    >{` ${pdfPlainText(itemValue)}`}</Text>
                   </View>
                   <Text style={styles.calculatedMeta}>
                     {`includeIntoResult: ${item.includeIntoResult ? "true" : "false"}`}

@@ -1,6 +1,6 @@
 import React from "react";
 import { Text, View, StyleSheet } from "@react-pdf/renderer";
-import { htmlSanitizer } from "@/lib/utils/html-sanitizer";
+import { pdfPlainText } from "@/lib/utils/pdf-plain-text";
 import {
   MultipleTextItemModel,
   Question,
@@ -63,7 +63,7 @@ const PdfAnswerViewer = ({
     questionType = (forQuestion as Question).getType() ?? questionType;
   }
 
-  const questionTitle = htmlSanitizer.toPlainText(
+  const questionTitle = pdfPlainText(
     forQuestion.processedTitle ?? forQuestion.title ?? "",
   );
 
@@ -76,7 +76,7 @@ const PdfAnswerViewer = ({
     <View style={VIEWER_STYLES.answerContainer} break={pageBreak}>
       {renderTitle()}
       <Text style={VIEWER_STYLES.answerText}>
-        {forQuestion.value || "No Answer"}
+        {pdfPlainText(forQuestion.value) || "No Answer"}
       </Text>
     </View>
   );
@@ -92,7 +92,7 @@ const PdfAnswerViewer = ({
     <View style={VIEWER_STYLES.answerContainer} break={pageBreak}>
       {renderTitle()}
       <Text style={VIEWER_STYLES.answerText}>
-        {forQuestion.value || "No Answer"}
+        {pdfPlainText(forQuestion.value) || "No Answer"}
       </Text>
     </View>
   );
@@ -115,7 +115,9 @@ const PdfAnswerViewer = ({
     return (
       <View style={VIEWER_STYLES.answerContainer} break={pageBreak}>
         {renderTitle()}
-        <Text style={VIEWER_STYLES.answerText}>{display || "No Answer"}</Text>
+        <Text style={VIEWER_STYLES.answerText}>
+          {display || "No Answer"}
+        </Text>
       </View>
     );
   };
@@ -130,7 +132,7 @@ const PdfAnswerViewer = ({
     <View style={VIEWER_STYLES.answerContainer} break={pageBreak}>
       {renderTitle()}
       <Text style={VIEWER_STYLES.answerText}>
-        {forQuestion.value || "No Answer"}
+        {pdfPlainText(forQuestion.value) || "No Answer"}
       </Text>
     </View>
   );
@@ -162,7 +164,7 @@ const PdfAnswerViewer = ({
                 Comment:
               </Text>
               <Text style={[VIEWER_STYLES.mutedText, VIEWER_STYLES.smallText]}>
-                {forQuestion?.comment}
+                {pdfPlainText(forQuestion?.comment)}
               </Text>
             </View>
           </View>
@@ -211,7 +213,7 @@ const PdfAnswerViewer = ({
         {renderTitle()}
         {question?.items?.map((item: MultipleTextItemModel) => (
           <Text key={item.name} style={VIEWER_STYLES.answerText}>
-            {item.value}
+            {pdfPlainText(item.value)}
           </Text>
         ))}
       </View>
@@ -250,10 +252,12 @@ const PdfAnswerViewer = ({
       <View style={VIEWER_STYLES.answerContainer} break={pageBreak}>
         {renderTitle()}
         {isStringValue ? (
-          <Text style={VIEWER_STYLES.answerText}>{forQuestion.value}</Text>
+          <Text style={VIEWER_STYLES.answerText}>
+            {pdfPlainText(forQuestion.value)}
+          </Text>
         ) : (
           <Text style={VIEWER_STYLES.answerText}>
-            {JSON.stringify(forQuestion.value, null, 2)}
+            {pdfPlainText(JSON.stringify(forQuestion.value, null, 2))}
           </Text>
         )}
       </View>

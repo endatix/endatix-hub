@@ -1,6 +1,7 @@
 import { Text, View, StyleSheet } from "@react-pdf/renderer";
 import { QuestionBooleanModel } from "survey-core";
 import { VIEWER_STYLES } from "../pdf-answer-viewer";
+import { pdfPlainText } from "@/lib/utils/pdf-plain-text";
 
 interface BooleanAnswerProps {
   question: QuestionBooleanModel;
@@ -34,7 +35,9 @@ const PdfBooleanAnswer = ({ question }: BooleanAnswerProps) => {
 
   return (
     <View style={styles.valueContainer}>
-      <Text style={[styles.booleanText, style]}>{label.toUpperCase()}</Text>
+      <Text style={[styles.booleanText, style]}>
+        {pdfPlainText(label).toUpperCase()}
+      </Text>
     </View>
   );
 };

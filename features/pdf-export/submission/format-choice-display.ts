@@ -1,4 +1,5 @@
-import type { ItemValue, Question, QuestionMatrixModel } from 'survey-core';
+import type { ItemValue, Question, QuestionMatrixModel } from "survey-core";
+import { pdfPlainText } from "@/lib/utils/pdf-plain-text";
 
 /**
  * Formats a stored choice value with its resolved label for PDF export.
@@ -8,12 +9,12 @@ export function formatChoiceDisplay(
   value: string | number | boolean | null | undefined,
   label?: string | null,
 ): string {
-  if (value === null || value === undefined || value === '') {
-    return '';
+  if (value === null || value === undefined || value === "") {
+    return "";
   }
 
-  const valueStr = String(value);
-  const labelStr = label?.trim();
+  const valueStr = pdfPlainText(value);
+  const labelStr = pdfPlainText(label?.trim());
   if (!labelStr || labelStr === valueStr) {
     return valueStr;
   }
@@ -21,19 +22,21 @@ export function formatChoiceDisplay(
   return `${labelStr} (${valueStr})`;
 }
 
-export function resolveItemValueLabel(item: ItemValue | undefined): string | undefined {
+export function resolveItemValueLabel(
+  item: ItemValue | undefined,
+): string | undefined {
   if (!item) {
     return undefined;
   }
 
   const text = item.text?.trim();
   if (text) {
-    return text;
+    return pdfPlainText(text);
   }
 
   const title = item.title;
-  if (typeof title === 'string' && title.trim().length > 0) {
-    return title.trim();
+  if (typeof title === "string" && title.trim().length > 0) {
+    return pdfPlainText(title.trim());
   }
 
   return undefined;
@@ -48,17 +51,23 @@ function resolveDisplayValueLabel(
       ? question.getDisplayValue(false)
       : question.getDisplayValue(false, value);
 
-  if (displayValue === null || displayValue === undefined || displayValue === '') {
+  if (
+    displayValue === null ||
+    displayValue === undefined ||
+    displayValue === ""
+  ) {
     return undefined;
   }
 
-  return String(displayValue);
+  return pdfPlainText(String(displayValue));
 }
 
 /** Resolves display label for choice questions (incl. lazy-load data lists). */
-export function resolveChoiceLabelForQuestion(question: Question): string | undefined {
+export function resolveChoiceLabelForQuestion(
+  question: Question,
+): string | undefined {
   const value = question.value;
-  if (value === null || value === undefined || value === '') {
+  if (value === null || value === undefined || value === "") {
     return undefined;
   }
 
