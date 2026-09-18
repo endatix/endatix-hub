@@ -5,23 +5,7 @@ import { stringifyUnknown } from "@/lib/utils/string-utils";
 const MAX_DECODE_PASSES = 3;
 const LITERAL_NEWLINE = String.raw`\n`;
 
-/**
- * Decodes character references so a PDF `<Text>` shows the character itself.
- *
- * `sanitize-html` already decodes most of the named table - `&eacute;`,
- * `&hellip;`, `&#8212;` all come back as characters - but it deliberately
- * re-escapes the HTML-significant few (`&amp;`, `&lt;`, `&gt;`, `&quot;`,
- * `&#39;`), which is right for HTML and wrong for a PDF text node, where
- * "Tom &amp; Jerry" would print literally. Decoding those is what this is for;
- * `entities` covers named and numeric references, including invalid ones, so
- * there is nothing to hand-roll.
- *
- * Survey strings can be multiply encoded (paneldynamic `processedTitle`, for
- * one), so this loops until a pass changes nothing, capped against pathological
- * input. Decoding repeatedly would be unsafe if the result were HTML - it can
- * resurrect markup - which is why `pdfPlainText` sanitizes between passes and
- * why its output belongs in a PDF `<Text>`, never in a DOM.
- */
+/** Named + numeric refs via `entities`. Loop: Survey titles can be multiply encoded. */
 function decodeEntities(text: string): string {
   let current = text;
   for (let pass = 0; pass < MAX_DECODE_PASSES; pass++) {
@@ -48,11 +32,7 @@ function replaceLiteralNewlines(text: string): string {
 
 const UNSHOWABLE_VALUE = "Cannot display this value";
 
-/**
- * PDF cells: stringifyUnknown, but empty for anything that is not a survey
- * answer. Defaults would print `[Circular]`, an Error message, or a function's
- * source.
- */
+/** stringifyUnknown with empty/unshowable fallbacks — never dump function source. */
 function stringifyValue(value: unknown): string {
   if (typeof value === "function" || typeof value === "symbol") {
     return "";

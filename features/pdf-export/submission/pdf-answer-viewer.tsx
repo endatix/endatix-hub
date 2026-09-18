@@ -246,20 +246,12 @@ const PdfAnswerViewer = ({
       return <View />;
     }
 
-    const isStringValue = typeof forQuestion?.value === "string";
-
     return (
       <View style={VIEWER_STYLES.answerContainer} break={pageBreak}>
         {renderTitle()}
-        {isStringValue ? (
-          <Text style={VIEWER_STYLES.answerText}>
-            {pdfPlainText(forQuestion.value)}
-          </Text>
-        ) : (
-          <Text style={VIEWER_STYLES.answerText}>
-            {pdfPlainText(JSON.stringify(forQuestion.value, null, 2))}
-          </Text>
-        )}
+        <Text style={VIEWER_STYLES.answerText}>
+          {pdfPlainText(forQuestion.value)}
+        </Text>
       </View>
     );
   };

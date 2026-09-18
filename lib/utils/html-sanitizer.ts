@@ -282,7 +282,7 @@ export const sanitizationPresets = {
  * // Use inline preset for titles/labels (no block elements)
  * const labelHtml = htmlSanitizer.sanitize(question.title, htmlSanitizer.presets.inline);
  *
- * // Use pdf preset for plain text (e.g. PDF export)
+ * // Plain text for Hub UI (tables, ToC). PDF `<Text>` uses `pdfPlainText`.
  * const plainText = htmlSanitizer.toPlainText(question.title);
  * ```
  */
@@ -305,14 +305,10 @@ export const htmlSanitizer = {
   sanitizeInline: sanitizeHtmlInline,
 
   /**
-   * Strips all HTML and returns plain text. Use for PDF export and non-DOM contexts
-   * (e.g. @react-pdf/renderer &lt;Text&gt;) where only plain text is supported.
-   *
-   * @param dirtyHtml - The potentially unsafe HTML string (or plain text)
-   * @returns Plain text with all tags removed
+   * Strips tags for Hub UI text (matrix cells, ToC). PDF `<Text>` uses `pdfPlainText`.
    */
   toPlainText(dirtyHtml: string): string {
-    // sanitize-html re-escapes text; decode so PDF/plain consumers see `<` not `&lt;`.
+    // sanitize-html re-escapes; decode so the UI shows `<` not `&lt;`.
     return decodeHtmlEntities(sanitizeHtml(dirtyHtml, pdfSanitizationOptions));
   },
 
