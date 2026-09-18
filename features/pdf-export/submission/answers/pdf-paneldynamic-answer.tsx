@@ -62,7 +62,9 @@ const Panel = ({
   index: number;
   showTitle: boolean;
 }) => {
-  const panelTitle = panel.processedTitle || `Panel ${index + 1}`;
+  const panelTitle =
+    htmlSanitizer.toPlainText(panel.processedTitle ?? "") ||
+    `Panel ${index + 1}`;
   return (
     <View style={styles.panelContainer}>
       {showTitle && <Text style={styles.panelTitle}>{panelTitle}</Text>}

@@ -4,42 +4,67 @@ import { VIEWER_STYLES } from "../pdf-answer-viewer";
 import { formatMatrixDropdownCell } from "../format-matrix-dropdown-cell";
 import { PDF_TABLE_STYLES } from "@/features/pdf-export/submission/pdf-styles";
 import { htmlSanitizer } from "@/lib/utils/html-sanitizer";
+import {
+  PdfMatrixTable,
+  type PdfMatrixTableColumn,
+  type PdfMatrixTableRow,
+} from "./pdf-matrix-table";
 
 interface MatrixDropdownAnswerProps {
   question: QuestionMatrixDropdownModel;
 }
 
-type MatrixDropdownValue = Record<string, Record<string, unknown>>;
+export interface MatrixDropdownTableData {
+  columns: PdfMatrixTableColumn[];
+  rows: PdfMatrixTableRow[];
+}
 
-function asMatrixValue(value: unknown): MatrixDropdownValue {
-  if (!value || typeof value !== "object") {
-    return {};
+/**
+ * Row.value is the row's answer object, not an id — never index question.value
+ * with it. Use row.isEmpty / getCellByColumn so matrixdropdown (row-keyed) and
+ * matrixdynamic (array-keyed) share one path.
+ */
+export function buildMatrixDropdownTableData(
+  question: QuestionMatrixDropdownModel,
+): MatrixDropdownTableData | null {
+  const questionColumns = question.columns ?? [];
+  const filledRows = (question.visibleRows ?? []).filter((row) => !row.isEmpty);
+
+  if (filledRows.length === 0) {
+    return null;
   }
 
-  return value as MatrixDropdownValue;
+  const columns: PdfMatrixTableColumn[] = questionColumns.map((column) => ({
+    key: column.name,
+    title: htmlSanitizer.toPlainText(column.title || column.name),
+  }));
+
+  const rows: PdfMatrixTableRow[] = filledRows.map((row) => {
+    const cells: Record<string, string> = {};
+    questionColumns.forEach((column) => {
+      const cell = row.getCellByColumn(column);
+      cells[column.name] = formatMatrixDropdownCell(
+        cell?.question?.value,
+        cell?.question?.displayValue,
+      );
+    });
+
+    return {
+      key: row.id,
+      label: htmlSanitizer.toPlainText(row.text || row.rowName || row.id),
+      cells,
+    };
+  });
+
+  return { columns, rows };
 }
 
 const PdfMatrixDropdownAnswer = ({
   question,
 }: Readonly<MatrixDropdownAnswerProps>) => {
-  const value = asMatrixValue(question.value);
-  const displayByRow = asMatrixValue(question.getDisplayValue(false, value));
-  const columns = question.columns ?? [];
-  const rows = question.visibleRows ?? question.rows ?? [];
+  const tableData = buildMatrixDropdownTableData(question);
 
-  const filledRows = rows.filter((row) => {
-    const rowValue = value[String(row.value)];
-    if (!rowValue) {
-      return false;
-    }
-
-    return columns.some((column) => {
-      const cell = rowValue[column.name];
-      return cell !== undefined && cell !== null && cell !== "";
-    });
-  });
-
-  if (filledRows.length === 0) {
+  if (!tableData) {
     return (
       <View style={VIEWER_STYLES.answerContainer}>
         <Text style={VIEWER_STYLES.questionLabel}>
@@ -55,50 +80,7 @@ const PdfMatrixDropdownAnswer = ({
       <Text style={VIEWER_STYLES.questionLabel}>
         {htmlSanitizer.toPlainText(question.title ?? "")}
       </Text>
-      <View style={PDF_TABLE_STYLES.table}>
-        <View style={[PDF_TABLE_STYLES.tableRow, PDF_TABLE_STYLES.tableHeader]}>
-          <View style={{ ...PDF_TABLE_STYLES.tableCellHeader, flex: 1 }}>
-            <Text> </Text>
-          </View>
-          {columns.map((column) => (
-            <View
-              key={column.name}
-              style={{ ...PDF_TABLE_STYLES.tableCellHeader, flex: 1.5 }}
-            >
-              <Text>
-                {htmlSanitizer.toPlainText(column.title || column.name)}
-              </Text>
-            </View>
-          ))}
-        </View>
-        {filledRows.map((row) => {
-          const rowKey = String(row.value);
-          const rowValue = value[rowKey] ?? {};
-          const rowDisplay = displayByRow[rowKey] ?? {};
-          return (
-            <View style={PDF_TABLE_STYLES.tableRow} key={rowKey}>
-              <View style={{ ...PDF_TABLE_STYLES.tableCell, flex: 1 }}>
-                <Text>{htmlSanitizer.toPlainText(row.text || rowKey)}</Text>
-              </View>
-              {columns.map((column) => (
-                <View
-                  key={column.name}
-                  style={{ ...PDF_TABLE_STYLES.tableCell, flex: 1.5 }}
-                >
-                  <Text>
-                    {htmlSanitizer.toPlainText(
-                      formatMatrixDropdownCell(
-                        rowValue[column.name],
-                        rowDisplay[column.name],
-                      ),
-                    )}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          );
-        })}
-      </View>
+      <PdfMatrixTable columns={tableData.columns} rows={tableData.rows} />
     </View>
   );
 };

@@ -8,10 +8,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { htmlSanitizer } from "@/lib/utils/html-sanitizer";
 import { QuestionMatrixDropdownModel } from "survey-core";
 import AnswerViewer from "./answer-viewer";
 
-const FIRST_COLUMN_WIDTH_CSS_CLASSES = "min-w-[100px] max-w-[160px]";
+const FIRST_COLUMN_WIDTH_CSS_CLASSES = "min-w-[90px] max-w-[140px]";
+const DATA_COLUMN_WIDTH_CSS_CLASSES = "min-w-[130px]";
+const DENSE_CELL_PADDING = "px-2 py-2";
 
 interface MatrixDropdownAnswerProps {
   question: QuestionMatrixDropdownModel;
@@ -37,19 +40,25 @@ const MatrixDropdownAnswer = ({
       <div className="w-full overflow-x-auto">
         <Table className="table-auto">
           <TableCaption>
-            Answers for the &quot;{question.title}&quot; question
+            Answers for the &quot;
+            {htmlSanitizer.toPlainText(question.title ?? "")}&quot; question
           </TableCaption>
           <TableHeader>
             <TableRow>
               {headerCells.map((cell, index) => (
                 <TableHead
                   className={cn(
-                    "break-words whitespace-normal",
-                    index === 0 ? FIRST_COLUMN_WIDTH_CSS_CLASSES : "",
+                    "h-auto break-words whitespace-normal",
+                    DENSE_CELL_PADDING,
+                    index === 0
+                      ? FIRST_COLUMN_WIDTH_CSS_CLASSES
+                      : DATA_COLUMN_WIDTH_CSS_CLASSES,
                   )}
                   key={index}
                 >
-                  {cell.hasTitle ? cell.locTitle?.textOrHtml : null}
+                  {cell.hasTitle
+                    ? htmlSanitizer.toPlainText(cell.locTitle?.textOrHtml ?? "")
+                    : null}
                 </TableHead>
               ))}
             </TableRow>
@@ -59,13 +68,16 @@ const MatrixDropdownAnswer = ({
               <TableRow key={rowIndex}>
                 {row.cells.map((cell, cellIndex) => {
                   const cellClass =
-                    cellIndex === 0 ? FIRST_COLUMN_WIDTH_CSS_CLASSES : "";
+                    cellIndex === 0
+                      ? FIRST_COLUMN_WIDTH_CSS_CLASSES
+                      : DATA_COLUMN_WIDTH_CSS_CLASSES;
                   if (cell.hasQuestion) {
                     return (
                       <TableCell
                         key={cellIndex}
                         className={cn(
-                          "justify-start break-words whitespace-normal",
+                          "justify-start align-top break-words whitespace-normal",
+                          DENSE_CELL_PADDING,
                           cellClass,
                         )}
                       >
@@ -78,11 +90,16 @@ const MatrixDropdownAnswer = ({
                     <TableCell
                       key={cellIndex}
                       className={cn(
-                        "font-medium break-words whitespace-normal",
+                        "align-top font-medium break-words whitespace-normal",
+                        DENSE_CELL_PADDING,
                         cellClass,
                       )}
                     >
-                      {cell.hasTitle ? cell.locTitle.textOrHtml : null}
+                      {cell.hasTitle
+                        ? htmlSanitizer.toPlainText(
+                            cell.locTitle.textOrHtml ?? "",
+                          )
+                        : null}
                     </TableCell>
                   );
                 })}

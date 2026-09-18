@@ -1,4 +1,5 @@
 import { Model, PageModel, Question } from "survey-core";
+import { htmlSanitizer } from "@/lib/utils/html-sanitizer";
 
 export interface SubmissionNavQuestion {
   question: Question;
@@ -56,7 +57,7 @@ export function buildSubmissionNavPages(
       questions.push({
         question,
         name: question.name,
-        title: question.title || question.name,
+        title: htmlSanitizer.toPlainText(question.title || question.name),
         isInvisible: isQuestionInvisible,
       });
     }
@@ -65,7 +66,9 @@ export function buildSubmissionNavPages(
       continue;
     }
 
-    const pageTitle = page.navigationTitle || page.title || page.name;
+    const pageTitle = htmlSanitizer.toPlainText(
+      page.navigationTitle || page.title || page.name,
+    );
 
     result.push({
       page,

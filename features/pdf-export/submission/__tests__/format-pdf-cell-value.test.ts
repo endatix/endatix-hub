@@ -12,6 +12,8 @@ describe("formatPdfCellValue", () => {
     [["a", "b"], "a, b"],
     [["a", "", null], "a"],
     [{ code: "us" }, '{"code":"us"}'],
+    ["<b>Hi</b>", "Hi"],
+    ["a &lt; b", "a < b"],
   ])("formats %j", (value, expected) => {
     // Act & Assert
     expect(formatPdfCellValue(value)).toBe(expected);

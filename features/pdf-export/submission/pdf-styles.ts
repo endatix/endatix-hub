@@ -109,10 +109,10 @@ export const PDF_TABLE_STYLES = StyleSheet.create({
     borderColor: "#c0c0c0",
     borderLeftWidth: 0,
     borderTopWidth: 0,
-    flexShrink: 1, // Allow column to shrink
-    flexGrow: 1, // Allow column to grow
-    wordBreak: "break-word", // Enable text wrapping
-    minWidth: 50, // Prevent too small columns
+    flexShrink: 1,
+    flexGrow: 1,
+    wordBreak: "break-word",
+    minWidth: 50,
     flex: 1,
   },
 
@@ -137,4 +137,49 @@ export const PDF_TABLE_STYLES = StyleSheet.create({
     color: "#888",
     marginTop: 4,
   },
+  stackedContainer: {
+    marginTop: 8,
+    borderStyle: "solid",
+    borderWidth: 1,
+    borderColor: "#c0c0c0",
+    borderRightWidth: 0,
+    borderBottomWidth: 0,
+  },
+  stackedRow: {
+    padding: 6,
+    borderStyle: "solid",
+    borderWidth: 1,
+    borderColor: "#c0c0c0",
+    borderLeftWidth: 0,
+    borderTopWidth: 0,
+  },
+  stackedRowLabel: {
+    fontSize: 10,
+    fontFamily: "Roboto-Bold",
+    marginBottom: 2,
+  },
+  stackedRowCell: {
+    fontSize: 10,
+    fontFamily: "Roboto",
+    marginBottom: 1,
+  },
 });
+
+/** A4 content width after submission-details-pdf page margins. */
+export const MATRIX_TABLE_CONTENT_WIDTH = 550;
+export const MATRIX_LABEL_COLUMN_WIDTH = 110;
+export const MATRIX_MIN_DATA_COLUMN_WIDTH = 75;
+
+/** Even split of remaining width, or null → stacked layout. */
+export function computeMatrixDataColumnWidth(
+  dataColumnCount: number,
+): number | null {
+  if (dataColumnCount <= 0) {
+    return null;
+  }
+
+  const width =
+    (MATRIX_TABLE_CONTENT_WIDTH - MATRIX_LABEL_COLUMN_WIDTH) / dataColumnCount;
+
+  return width >= MATRIX_MIN_DATA_COLUMN_WIDTH ? width : null;
+}
