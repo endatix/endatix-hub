@@ -31,12 +31,12 @@ export function resolveItemValueLabel(
 
   const text = item.text?.trim();
   if (text) {
-    return text;
+    return pdfPlainText(text);
   }
 
   const title = item.title;
   if (typeof title === "string" && title.trim().length > 0) {
-    return title.trim();
+    return pdfPlainText(title.trim());
   }
 
   return undefined;
@@ -59,7 +59,7 @@ function resolveDisplayValueLabel(
     return undefined;
   }
 
-  return String(displayValue);
+  return pdfPlainText(String(displayValue));
 }
 
 /** Resolves display label for choice questions (incl. lazy-load data lists). */

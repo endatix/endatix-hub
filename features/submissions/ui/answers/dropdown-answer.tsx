@@ -6,6 +6,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { htmlSanitizer } from "@/lib/utils/html-sanitizer";
 import { Minus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { QuestionDropdownModel } from "survey-core";
@@ -19,7 +20,7 @@ function resolveDisplayText(question: QuestionDropdownModel): string {
   const selectedValue = question.value;
   const selectedItem = question.selectedItem;
   if (selectedItem?.text) {
-    return selectedItem.text;
+    return htmlSanitizer.toPlainText(selectedItem.text);
   }
 
   return String(selectedValue ?? "");

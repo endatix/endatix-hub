@@ -29,7 +29,10 @@ export function QuestionLabel({
   className,
   ...props
 }: QuestionLabelProps) {
-  const panelTitle = useMemo(() => getPanelTitle(forQuestion), [forQuestion]);
+  const panelTitle = useMemo(
+    () => htmlSanitizer.toPlainText(getPanelTitle(forQuestion) ?? ""),
+    [forQuestion],
+  );
   const { viewOptions } = useSubmissionDetailsViewOptions();
 
   if (!forQuestion) {

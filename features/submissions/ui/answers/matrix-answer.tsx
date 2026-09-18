@@ -8,6 +8,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { htmlSanitizer } from "@/lib/utils/html-sanitizer";
 import { ItemValue, QuestionMatrixModel } from "survey-core";
 import { ValueTooltip } from "./value-tooltip";
 
@@ -33,21 +34,16 @@ const MatrixAnswer = ({ question, className }: MatrixAnswerProps) => {
       if (!question?.value || !question?.columns) {
         return;
       }
-      // Image-only rows (matrix carousel) have no authored text — fall back
-      // to a positional label instead of dropping the row from the table.
-      // hasText (not a truthy check on .text): ItemValue.text always falls
-      // back to String(value) when no text was authored, so `row.text ||
-      // fallback` would never actually reach the fallback.
-      const rowText = row.hasText ? row.text : `Row ${index + 1}`;
-      const answer = question.value[row.value]; // Using row.value which is standard
-      const answerText =
+      const rowText = row.hasText
+        ? htmlSanitizer.toPlainText(row.text)
+        : `Row ${index + 1}`;
+      const answer = question.value[row.value];
+      const columnText =
         question.columns.find((c: ItemValue) => c.value === answer)?.text ?? "";
+      const answerText = htmlSanitizer.toPlainText(columnText);
 
       if (answerText) {
         answers.push({
-          // row.value (not rowText) — SurveyJS enforces uniqueness on row
-          // value (uniqueProperty: "value"), but two rows can share display
-          // text, which would collide as a React key.
           rowKey: String(row.value),
           question: rowText,
           answer: answerText,
@@ -70,7 +66,8 @@ const MatrixAnswer = ({ question, className }: MatrixAnswerProps) => {
     <div className={cn("w-full min-w-0 overflow-x-auto", className)}>
       <Table className="table-auto">
         <TableCaption>
-          Answers for the &quot;{question.title}&quot; question
+          Answers for the &quot;
+          {htmlSanitizer.toPlainText(question.title ?? "")}&quot; question
         </TableCaption>
         <TableHeader>
           <TableRow>

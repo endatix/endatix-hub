@@ -37,8 +37,7 @@ import { AudioPlayer } from "@/lib/questions/audio-recorder/audio-player";
 import { DragCategorizeAnswer } from "@/lib/questions/drag-categorize/drag-categorize.answer";
 import TextAnswer from "./text-answer";
 
-export interface ViewAnswerProps
-  extends React.HtmlHTMLAttributes<HTMLInputElement> {
+export interface ViewAnswerProps extends React.HtmlHTMLAttributes<HTMLInputElement> {
   forQuestion: Question;
   className?: string;
   isCustomQuestion?: boolean;
@@ -150,11 +149,14 @@ const AnswerViewer = ({
   );
 
   const renderTagBoxAnswer = () => (
-    <TagBoxAnswer question={forQuestion as QuestionTagboxModel} className={className} />
+    <TagBoxAnswer
+      question={forQuestion as QuestionTagboxModel}
+      className={className}
+    />
   );
 
   const renderAudioRecorderAnswer = () => (
-    <div className="col-span-3 w-full flex flex-col gap-2">
+    <div className="col-span-3 flex w-full flex-col gap-2">
       <AudioPlayer file={forQuestion.value} />
     </div>
   );

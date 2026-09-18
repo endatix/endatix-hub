@@ -2,6 +2,7 @@ import { TooltipContent } from "@/components/ui/tooltip";
 import { TooltipTrigger } from "@/components/ui/tooltip";
 import { Tooltip } from "@/components/ui/tooltip";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { htmlSanitizer } from "@/lib/utils/html-sanitizer";
 import { FileIcon, Info, MessageSquareTextIcon } from "lucide-react";
 import { Question } from "survey-core";
 
@@ -9,7 +10,7 @@ const QuestionComment = ({ comment }: { comment: string }) => {
   return (
     <div className="flex flex-row items-start gap-2">
       <MessageSquareTextIcon className="h-4 w-4 text-muted-foreground" />
-      <span className="text-muted-foreground text-left">{comment}</span>
+      <span className="text-left text-muted-foreground">{comment}</span>
     </div>
   );
 };
@@ -19,13 +20,15 @@ const ChangedQuestion = ({ question }: { question: Question }) => {
 
   const QuestionWrapper = ({ children }: { children: React.ReactNode }) => (
     <div className="flex flex-row items-start gap-2 text-sm">
-      <div className="flex flex-row items-center justify-end gap-2 w-1/2">
+      <div className="flex w-1/2 flex-row items-center justify-end gap-2">
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Info className="h-4 w-4 hidden md:block" />
+              <Info className="hidden h-4 w-4 md:block" />
             </TooltipTrigger>
-            <TooltipContent>{question.title}</TooltipContent>
+            <TooltipContent>
+              {htmlSanitizer.toPlainText(question.title ?? "")}
+            </TooltipContent>
           </Tooltip>
         </TooltipProvider>
         <span className="font-medium">{question.name} :</span>

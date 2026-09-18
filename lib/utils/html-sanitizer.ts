@@ -1,4 +1,5 @@
 import sanitize, { AllowedAttribute, IOptions } from "sanitize-html";
+import { decode as decodeHtmlEntities } from "entities";
 
 /**
  * Allowed HTML tags for rich text content in surveys.
@@ -126,6 +127,15 @@ const pdfSanitizationOptions: IOptions = {
  * Use for question titles, labels, and any content that must not contain block-level elements.
  *
  * Allows: strong, em, u, s, sub, sup, del, ins, code, span, a (no img, no block tags).
+ *
+ * Deliberately excludes `style` and `class`: authors sometimes hard-code a
+ * text/background color (e.g. a rich-text editor emitting
+ * `<span style="color:rgb(102,163,224)">`), which looks fine on the light
+ * canvas it was authored on but breaks contrast in dark mode and reads as
+ * visually "off" against the rest of Hub's own styling. Stripping
+ * presentational attributes keeps the structural/semantic formatting
+ * (bold, italic, underline, super/subscript, links) while letting Hub's own
+ * theme — not the author's — decide color.
  */
 const INLINE_ALLOWED_TAGS = [
   "a",
@@ -144,7 +154,7 @@ const INLINE_ALLOWED_TAGS = [
 const inlineSanitizationOptions: IOptions = {
   allowedTags: [...INLINE_ALLOWED_TAGS],
   allowedAttributes: {
-    "*": ["style", "class", "role", "title"],
+    "*": ["role", "title"],
     a: ["target", "href", "title", "rel"],
   },
   allowedSchemes: [...ALLOWED_SCHEMES],
@@ -302,7 +312,8 @@ export const htmlSanitizer = {
    * @returns Plain text with all tags removed
    */
   toPlainText(dirtyHtml: string): string {
-    return sanitizeHtml(dirtyHtml, pdfSanitizationOptions);
+    // sanitize-html re-escapes text; decode so PDF/plain consumers see `<` not `&lt;`.
+    return decodeHtmlEntities(sanitizeHtml(dirtyHtml, pdfSanitizationOptions));
   },
 
   /**

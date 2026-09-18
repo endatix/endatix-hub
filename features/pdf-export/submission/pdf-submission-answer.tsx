@@ -10,39 +10,22 @@ interface PdfSubmissionAnswerProps {
   question: Question;
 }
 
-export const PdfSubmissionAnswer = ({ question }: PdfSubmissionAnswerProps) => {
-  // Helper to check if a question should render answer full width
-  const isFullWidthAnswer = (question: Question) => {
-    const type = question.getType();
-    return (
-      type === "matrixdropdown" ||
-      type === "matrixdynamic" ||
-      type === "paneldynamic" ||
-      type === "matrix"
-    );
-  };
+const FULL_WIDTH_TYPES = new Set([
+  "matrixdropdown",
+  "matrixdynamic",
+  "paneldynamic",
+  "matrix",
+]);
 
-  let lastPanel: string | null = null;
-  // Skip non-value questions
+export const PdfSubmissionAnswer = ({ question }: PdfSubmissionAnswerProps) => {
   if (question instanceof QuestionNonValue) {
     return null;
   }
 
-  const panelTitle = getPanelTitle(question);
-  let showPanelTitle = false;
-
-  if (!lastPanel) {
-    lastPanel = panelTitle;
-    showPanelTitle = !!panelTitle;
-  } else if (lastPanel !== panelTitle) {
-    showPanelTitle = !!panelTitle;
-    lastPanel = panelTitle;
-  }
-
+  const panelTitle = pdfPlainText(getPanelTitle(question));
   const rows: React.ReactNode[] = [];
 
-  // Insert a group header row when the panel changes
-  if (showPanelTitle && panelTitle) {
+  if (panelTitle) {
     rows.push(
       <View key={`panel-title-${panelTitle}`} style={styles.groupHeaderRow}>
         <Text style={styles.groupHeaderText}>{pdfPlainText(panelTitle)}</Text>
@@ -50,8 +33,7 @@ export const PdfSubmissionAnswer = ({ question }: PdfSubmissionAnswerProps) => {
     );
   }
 
-  // Full width answer logic
-  if (isFullWidthAnswer(question)) {
+  if (FULL_WIDTH_TYPES.has(question.getType())) {
     rows.push(
       <View key={question.id} style={styles.fullWidthAnswerRow}>
         <PdfAnswerViewer forQuestion={question} hideTitle />
@@ -60,7 +42,6 @@ export const PdfSubmissionAnswer = ({ question }: PdfSubmissionAnswerProps) => {
     return rows;
   }
 
-  // If not visible, render label and not-visible message in two columns
   if (!question.isVisibleInSurvey) {
     rows.push(
       <View key={question.id} style={styles.questionRow}>
@@ -80,9 +61,9 @@ export const PdfSubmissionAnswer = ({ question }: PdfSubmissionAnswerProps) => {
     return rows;
   }
 
-  // Otherwise, render label and answer in two columns
+  // wrap={false}: a wrapping flex row splits label/answer at page breaks and truncates text.
   rows.push(
-    <View key={question.id} style={styles.questionRow} wrap={true}>
+    <View key={question.id} style={styles.questionRow} wrap={false}>
       <View style={styles.labelCol}>
         <PdfQuestionLabel question={question} style={styles.questionLabel} />
       </View>
@@ -112,27 +93,10 @@ const styles = StyleSheet.create({
     flex: 3,
     justifyContent: "flex-start",
   },
-  answerColFullWidth: {
-    flex: 1,
-    justifyContent: "flex-start",
-  },
   questionLabel: {
     fontSize: 12,
     fontFamily: "Roboto-Bold",
     marginBottom: 2,
-  },
-  panelTitle: {
-    fontSize: 11,
-    fontFamily: "Roboto-Bold",
-    marginBottom: 4,
-    color: "#444",
-  },
-  questionInvisible: {
-    flexDirection: "column",
-    marginBottom: 12,
-    paddingBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
   },
   invisibleRow: {
     flexDirection: "row",

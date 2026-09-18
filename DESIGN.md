@@ -84,21 +84,26 @@ entry below is deliberately shared rather than per-feature: the same idea shows
 up in a table cell, a panel header and a review step, and three local copies
 drift into three shapes.
 
-| Component                                                                | Owns                                                              |
-| :----------------------------------------------------------------------- | :---------------------------------------------------------------- |
-| `components/common/status-badge.tsx` — `StatusBadge`                     | The three-tone on / off / attention pill (below)                  |
-| `components/common/file-kind-icon.tsx` — `FileKindIcon`, `FileKindLabel` | The file-type mark and its icon+label row (below)                 |
-| `components/common/panel-section.tsx` — `PanelSection`                   | A titled concern inside an overlay, on a nested surface (§6)      |
-| `components/common/summary-row.tsx` — `SummaryRow`                       | Label-left / value-right review rows (§6)                         |
-| `components/common/truncated-id.tsx` — `TruncatedId`                     | A long id shortened to head…tail with a copy affordance           |
-| `components/table` — `DataTableSurface` and friends                      | All list-table chrome (below)                                     |
-| `components/ui/responsive-panel.tsx` — `ResponsivePanel`                 | Desktop Sheet / Dialog ↔ mobile Drawer swap (§5 Overlay rulebook) |
-| `.grid-card-list` (`app/globals.css`)                                    | Peer-card grids without breakpoints (below)                       |
+| Component                                                                | Owns                                                                     |
+| :----------------------------------------------------------------------- | :----------------------------------------------------------------------- |
+| `components/common/status-badge.tsx` — `StatusBadge`                     | The three-tone on / off / attention pill (below)                         |
+| `components/common/file-kind-icon.tsx` — `FileKindIcon`, `FileKindLabel` | The file-type mark and its icon+label row (below)                        |
+| `components/common/panel-section.tsx` — `PanelSection`                   | A titled concern inside an overlay, on a nested surface (§6)             |
+| `components/common/summary-row.tsx` — `SummaryRow`                       | Label-left / value-right review rows (§6)                                |
+| `components/common/truncated-id.tsx` — `TruncatedId`                     | A long id shortened to head…tail with a copy affordance                  |
+| `components/copy-to-clipboard.tsx` — `CopyToClipboard`                   | The copy-to-clipboard affordance, `overlay` and `inline` layouts (below) |
+| `components/table` — `DataTableSurface` and friends                      | All list-table chrome (below)                                            |
+| `components/ui/responsive-panel.tsx` — `ResponsivePanel`                 | Desktop Sheet / Dialog ↔ mobile Drawer swap (§5 Overlay rulebook)        |
+| `.grid-card-list` (`app/globals.css`)                                    | Peer-card grids without breakpoints (below)                              |
 
 When you add a component to this list, add its row here in the same change.
 Where a new shared component belongs — `components/common/`, a graduated
 `components/<domain>/`, or a domain-local `lib/<domain>/<slice>/ui/` — is decided
 by "Where UI for a shared concept lives" in `project-structure.md`.
+
+**`CopyToClipboard` layouts:** `overlay` (default) for a normal-width field with
+spare room; `inline` as a flex sibling of the value inside table cells and
+other tight rows. Never mix the two on one page for the same kind of value.
 
 ### Cards & Layouts
 
@@ -183,6 +188,62 @@ a small static list and a paged sortable grid still look identical:
   describing columns that have no data.
 - Pass `isStatic: true` to `dataTableHeaderCellClassName` for a header that
   never scrolls under sticky positioning (short lists, skeletons).
+
+### Tabular / Matrix Answers
+
+A read-only `matrix`, `matrixdropdown`, or `matrixdynamic` SurveyJS answer
+(`features/submissions/ui/answers/matrix-answer.tsx`,
+`matrixdropdown-answer.tsx`) is its own recurring shape — a grid of disabled
+inputs, not a `DataTableSurface` list (that machinery is for paged records, see
+List Tables above) and not a plain unconstrained `<table>` either, since both
+of those let a per-cell copy affordance collide with the value.
+
+**Rules:**
+
+- **Copy affordance is always `layout="inline"` inside a cell.** The default
+  `CopyToClipboard` layout (`overlay`, absolutely positioned over the input) is
+  built for a normal-width form field with room to spare; inside a table cell
+  the icon overlaps the value instead. `text-answer.tsx`, `comment-answer.tsx`,
+  and `multipletext-answer.tsx` render `<value> <CopyToClipboard layout="inline" />`
+  as flex row siblings — this is the one layout for a copy affordance
+  next to a disabled input or textarea, matrix cell or not, so a page never
+  shows the overlay style in one place and inline in another.
+- **Give every column a minimum width, not just the first.** Constraining only
+  the row-label column and leaving data columns to `table-auto` lets the
+  browser compress them to whatever the shortest cell in that column needs,
+  which is what crowds an inline copy button against its value. Size the
+  row-label column narrower (identifiers, short labels) and every data column
+  to a legible minimum (`matrixdropdown-answer.tsx`'s `DATA_COLUMN_WIDTH_CSS_CLASSES`).
+- **A cell value wraps; it is never a single-line form control.** SurveyJS's
+  own read-only rendering (`/view`) fits noticeably more columns in the same
+  width than an early version of this pattern did, purely because its cells
+  wrap text. An `<Input>` (or anything built on one) can never wrap — the
+  browser always lays it out on one line and either clips it or forces
+  horizontal scroll well before the column has actually run out of room.
+  `text-answer.tsx` is always wrapped plain text (`break-words
+  whitespace-normal`) plus inline copy — details view and matrix cells share
+  that layout. `matrixdropdown-answer.tsx` is the reference table caller.
+- **Match shadcn's default table padding to the content density, don't inherit
+  it.** `components/ui/table.tsx`'s `TableHead`/`TableCell` default to a page
+  table's spacing (`px-4`, `p-4`, fixed `h-10`) — appropriate for a paged
+  record list, wasteful for a dense answer grid where every column is
+  competing for width. A matrix table overrides this with a tighter,
+  explicit padding (`matrixdropdown-answer.tsx`'s `DENSE_CELL_PADDING`) and
+  `h-auto` on the header row so a wrapped multi-line title isn't clipped by
+  the inherited fixed height.
+- **Wrap in `overflow-x-auto`, never compress columns below their minimum.** A
+  matrix with many columns scrolls horizontally inside its own card instead of
+  squeezing every column unreadably thin — this matches how SurveyJS's own
+  read-only rendering (`/view`) presents the same data. Getting the two rules
+  above right (wrapping cells, matched padding) is what keeps this the
+  exception rather than the default outcome.
+- **The PDF export follows the same shape, with print-specific width math.**
+  `PdfMatrixTable` (`features/pdf-export/submission/answers/pdf-matrix-table.tsx`)
+  is the one renderer for `matrix` / `matrixdropdown` / `matrixdynamic`. It
+  reserves a fixed row-label column, divides remaining A4 width evenly across
+  data columns (`computeMatrixDataColumnWidth` in `pdf-styles.ts`), and falls
+  back to stacked "label: value" rows when a column would drop below the
+  legible minimum. Do not reintroduce a hardcoded flex ratio per column.
 
 ### Buttons
 
@@ -675,7 +736,7 @@ Three failure modes this prevents, all seen on the v3 upgrade:
 3. Recessing onto `--background` reads as three depths but is only two: `--background` and
    `--card` are the **same** `#fff` in light, so property grid inputs, the search boxes and
    unchecked controls had no fill against the panel behind them (endatix-hub#954). Compare
-   the palette *values*, never the token names.
+   the palette _values_, never the token names.
 
 | `--sjs2-color-utility-*`  | Selector it paints                                | Hub value          |
 | :------------------------ | :------------------------------------------------ | :----------------- |
@@ -692,9 +753,9 @@ Three failure modes this prevents, all seen on the v3 upgrade:
 
 The two `bg-basic-*` tokens carry the depths, and neither may be left to the base theme:
 
-| `--sjs2-color-bg-basic-*` | Paints                                                     | Hub value          |
-| :------------------------ | :--------------------------------------------------------- | :----------------- |
-| `primary`                 | question cards, sidebar tabs, collapsed icon rail, buttons | `--card`           |
+| `--sjs2-color-bg-basic-*` | Paints                                                      | Hub value          |
+| :------------------------ | :---------------------------------------------------------- | :----------------- |
+| `primary`                 | question cards, sidebar tabs, collapsed icon rail, buttons  | `--card`           |
 | `secondary`               | `.sd-formbox` fills, search boxes, unchecked radio/checkbox | `--content-canvas` |
 
 `primary` must stay **off** the canvas tint — tinting it turns the designer's white cards the

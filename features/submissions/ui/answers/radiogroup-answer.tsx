@@ -1,11 +1,11 @@
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { htmlSanitizer } from "@/lib/utils/html-sanitizer";
 import { Minus } from "lucide-react";
 import { Question } from "survey-core";
 import { ValueTooltip } from "./value-tooltip";
 
-interface RadioGroupAnswerProps
-  extends React.HtmlHTMLAttributes<HTMLDivElement> {
+interface RadioGroupAnswerProps extends React.HtmlHTMLAttributes<HTMLDivElement> {
   question: Question;
 }
 const RadioGroupAnswer = ({ question, className }: RadioGroupAnswerProps) => {
@@ -17,7 +17,11 @@ const RadioGroupAnswer = ({ question, className }: RadioGroupAnswerProps) => {
     <RadioGroup disabled defaultValue={question.value} className={className}>
       <div className="flex items-center space-x-2">
         <RadioGroupItem value={question.value} id={question.id} />
-        <Label htmlFor={question.id}>{decodeURIComponent(question.selectedItem?.text)}</Label>
+        <Label htmlFor={question.id}>
+          {htmlSanitizer.toPlainText(
+            decodeURIComponent(question.selectedItem?.text ?? ""),
+          )}
+        </Label>
         <ValueTooltip value={question} />
       </div>
     </RadioGroup>

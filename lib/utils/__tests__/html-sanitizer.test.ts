@@ -831,6 +831,24 @@ describe("htmlSanitizer", () => {
         expect(result).not.toContain("<img");
       });
 
+      it("should strip style and class from inline formatting (theme-safe: no author-hardcoded colors)", () => {
+        // Arrange — a rich-text editor commonly emits a hardcoded color that
+        // looks fine in light mode but breaks contrast in dark mode.
+        const input =
+          '<span style="color:rgb(102, 163, 224)">Colored text</span><strong class="text-red-500">Bold red</strong>';
+
+        // Act
+        const result = htmlSanitizer.sanitize(
+          input,
+          htmlSanitizer.presets.inline,
+        );
+
+        // Assert — the semantic tag survives, the presentational attribute doesn't.
+        expect(result).toBe(
+          "<span>Colored text</span><strong>Bold red</strong>",
+        );
+      });
+
       it("should enforce security on external links", () => {
         // Arrange
         const input = '<a href="https://example.com">Link</a>';
@@ -914,6 +932,20 @@ describe("htmlSanitizer", () => {
         expect(result).toBe("Bold and italic with link");
         expect(result).not.toContain("<");
         expect(result).not.toContain(">");
+      });
+
+      it("should decode HTML entities instead of leaving them escaped (regression: PDF export showed '&lt;=100' literally)", () => {
+        // Arrange — sanitize-html re-escapes special chars in its output to
+        // stay valid HTML even with allowedTags: [], but toPlainText's
+        // callers (react-pdf's <Text>, etc.) render the string as literal
+        // text with no HTML parser to decode it.
+        const input = "OPP con <=100 miembros & OPP con >100 miembros";
+
+        // Act
+        const result = htmlSanitizer.toPlainText(input);
+
+        // Assert
+        expect(result).toBe("OPP con <=100 miembros & OPP con >100 miembros");
       });
 
       it("should remove script tags and leave text", () => {

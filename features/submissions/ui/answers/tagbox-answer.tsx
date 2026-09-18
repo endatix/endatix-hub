@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { htmlSanitizer } from "@/lib/utils/html-sanitizer";
 import { Minus } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { ValueTooltip } from "./value-tooltip";
@@ -26,7 +27,7 @@ function resolveTagDisplayItems(question: QuestionTagboxModel): TagDisplayItem[]
     let text = value.toString();
 
     if (selectedItem?.text) {
-      text = selectedItem.text;
+      text = htmlSanitizer.toPlainText(selectedItem.text);
     }
 
     return {

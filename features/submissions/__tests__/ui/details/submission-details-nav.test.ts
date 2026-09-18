@@ -224,6 +224,30 @@ describe("submission-details-nav", () => {
       expect(result[0].questions[0].title).toBe("q1");
     });
 
+    it("should strip HTML from question and page titles instead of leaving raw tags (regression: ToC/search showed literal <span> markup)", () => {
+      const pages = [
+        createMockPage(
+          "page1",
+          true,
+          false,
+          '<span style="color:rgb(102, 163, 224)">Rich Page Title</span>',
+          [
+            createMockQuestion(
+              "q1",
+              '<span style="background-color:rgb(255, 255, 255)">Rich Question Title</span>',
+              true,
+            ) as Question,
+          ],
+        ),
+      ];
+      const survey = createMockSurvey(pages);
+
+      const result = buildSubmissionNavPages(survey, true);
+
+      expect(result[0].pageTitle).toBe("Rich Page Title");
+      expect(result[0].questions[0].title).toBe("Rich Question Title");
+    });
+
     it("should preserve page order from model", () => {
       const pages = [
         createMockPage("page3", true, false, "Third", [
