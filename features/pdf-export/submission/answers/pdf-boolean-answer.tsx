@@ -1,44 +1,61 @@
-import { Text, View, StyleSheet } from "@react-pdf/renderer";
+import { Checkbox, FieldSet, Text, View } from "@react-pdf/renderer";
 import { QuestionBooleanModel } from "survey-core";
-import { VIEWER_STYLES } from "../pdf-answer-viewer";
 import { pdfPlainText } from "@/lib/utils/pdf-plain-text";
+import {
+  pdfFormFieldProps,
+  sanitizePdfFieldName,
+  type PdfFormChrome,
+} from "../pdf-form-field";
 
 interface BooleanAnswerProps {
   question: QuestionBooleanModel;
+  chrome: PdfFormChrome;
 }
 
-const styles = StyleSheet.create({
-  valueContainer: {
-    flexDirection: "row",
-  },
-  booleanText: {
-    fontFamily: "Roboto-Bold",
-    fontSize: 12,
-  },
-  yes: {
-    color: "#006105",
-  },
-  no: {
-    color: "#FF0000",
-  },
-});
+const PdfBooleanAnswer = ({ question, chrome }: BooleanAnswerProps) => {
+  const trueLabel = pdfPlainText(question.locLabelTrue.text) || "Yes";
+  const falseLabel = pdfPlainText(question.locLabelFalse.text) || "No";
+  const value = question.value;
+  const hasValue = value !== null && typeof value !== "undefined";
+  const { checkboxBox, stack, row, answerText, positive, negative, mutedText } =
+    chrome.themeStyles;
 
-const PdfBooleanAnswer = ({ question }: BooleanAnswerProps) => {
-  if (question.value === null || typeof question.value === "undefined") {
-    return <Text style={VIEWER_STYLES.answerText}>No Answer</Text>;
+  if (!chrome.fillable) {
+    if (!hasValue) {
+      return <Text style={mutedText}>—</Text>;
+    }
+    return (
+      <Text style={[answerText, value ? positive : negative]}>
+        {(value ? trueLabel : falseLabel).toUpperCase()}
+      </Text>
+    );
   }
 
-  const label = question.value
-    ? question.locLabelTrue.text
-    : question.locLabelFalse.text;
-  const style = question.value ? styles.yes : styles.no;
+  const field = pdfFormFieldProps(chrome);
 
   return (
-    <View style={styles.valueContainer}>
-      <Text style={[styles.booleanText, style]}>
-        {pdfPlainText(label).toUpperCase()}
-      </Text>
-    </View>
+    <FieldSet name={sanitizePdfFieldName(question.name)}>
+      <View style={stack}>
+        <View style={row}>
+          <Checkbox
+            {...field}
+            name="choice.true"
+            checked={hasValue && Boolean(value)}
+            style={checkboxBox}
+          />
+          <Text style={[answerText, positive]}>{trueLabel.toUpperCase()}</Text>
+        </View>
+        <View style={row}>
+          <Checkbox
+            {...field}
+            name="choice.false"
+            checked={hasValue && !value}
+            style={checkboxBox}
+          />
+          <Text style={[answerText, negative]}>{falseLabel.toUpperCase()}</Text>
+        </View>
+      </View>
+    </FieldSet>
   );
 };
 

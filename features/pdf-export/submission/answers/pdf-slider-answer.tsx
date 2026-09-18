@@ -1,9 +1,11 @@
-import { Text } from "@react-pdf/renderer";
+import { Text, TextInput } from "@react-pdf/renderer";
 import { QuestionSliderModel } from "survey-core";
-import { VIEWER_STYLES } from "../pdf-answer-viewer";
+import type { PdfFormChrome } from "../pdf-form-field";
+import { pdfFormFieldProps, sanitizePdfFieldName } from "../pdf-form-field";
 
 interface PdfSliderAnswerProps {
   question: QuestionSliderModel;
+  chrome: PdfFormChrome;
 }
 
 function formatSliderValueLine(question: QuestionSliderModel): string | null {
@@ -32,13 +34,24 @@ function formatSliderValueLine(question: QuestionSliderModel): string | null {
   return `${num} (scale ${min}–${max})`;
 }
 
-const PdfSliderAnswer = ({ question }: PdfSliderAnswerProps) => {
+const PdfSliderAnswer = ({ question, chrome }: PdfSliderAnswerProps) => {
   const line = formatSliderValueLine(question);
   if (line === null) {
-    return <Text style={VIEWER_STYLES.answerText}>No Answer</Text>;
+    return <Text style={chrome.themeStyles.mutedText}>No Answer</Text>;
   }
 
-  return <Text style={VIEWER_STYLES.answerText}>{line}</Text>;
+  if (!chrome.fillable) {
+    return <Text style={chrome.themeStyles.answerText}>{line}</Text>;
+  }
+
+  return (
+    <TextInput
+      {...pdfFormFieldProps(chrome)}
+      name={sanitizePdfFieldName(question.name)}
+      value={line}
+      style={chrome.themeStyles.formInput}
+    />
+  );
 };
 
 export default PdfSliderAnswer;

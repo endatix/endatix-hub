@@ -65,6 +65,10 @@ vi.mock("@react-pdf/renderer", () => ({
   Path: () => null,
 }));
 
+vi.mock("../../load-form-theme-json", () => ({
+  loadFormThemeJson: vi.fn(async () => undefined),
+}));
+
 vi.mock("../submission-details-pdf", () => ({
   SubmissionDetailsPdf: () => null,
 }));
@@ -74,7 +78,7 @@ const { renderSubmissionPdf } =
 const { preparePdfModel } = await import("../prepare-pdf-model.use-case");
 const { TelemetryLogger } = await import("@/features/telemetry");
 
-const submission = { id: "s1" } as never;
+const submission = { id: "s1", formId: "1" } as never;
 
 beforeEach(() => {
   spans.length = 0;

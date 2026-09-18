@@ -12,6 +12,11 @@ import {
 import { describePdfWorkload } from "./describe-pdf-workload";
 import { preparePdfModel } from "./prepare-pdf-model.use-case";
 import { SubmissionDetailsPdf } from "./submission-details-pdf";
+import { loadFormThemeJson } from "../load-form-theme-json";
+import {
+  mapSurveyThemeToPdfTheme,
+  parseThemeJson,
+} from "../map-survey-theme-to-pdf-theme";
 
 const TRACER = "pdf-export";
 const LOGGER_NAME = "pdf-export";
@@ -32,6 +37,9 @@ interface RenderSubmissionPdfOptions {
    */
   startedAtMs: number;
   caller: PdfExportCaller;
+  /** Hub JWT when the caller is authenticated; omit for public token export. */
+  accessToken?: string;
+  fillable?: boolean;
 }
 
 /**
@@ -57,9 +65,11 @@ export async function renderSubmissionPdf({
   useDefaultLocale,
   startedAtMs,
   caller,
+  accessToken,
+  fillable = false,
 }: RenderSubmissionPdfOptions): Promise<Result<Blob>> {
   try {
-    const surveyModel = await TelemetryTracer.traceAsync(
+    const prepared = await TelemetryTracer.traceAsync(
       TRACER,
       "prepare-model",
       async (span) => {
@@ -67,11 +77,18 @@ export async function renderSubmissionPdf({
         try {
           return await raceWithTimeout(
             () =>
-              preparePdfModel({
-                submission,
-                customQuestionsJsonData,
-                useDefaultLocale,
-              }),
+              Promise.all([
+                preparePdfModel({
+                  submission,
+                  customQuestionsJsonData,
+                  useDefaultLocale,
+                }),
+                loadFormThemeJson({
+                  formId: String(submission.formId),
+                  embeddedThemeJson: submission.formDefinition?.themeModel,
+                  accessToken,
+                }),
+              ]),
             remainingRenderTimeoutMs(startedAtMs),
           );
         } catch (error) {
@@ -84,9 +101,12 @@ export async function renderSubmissionPdf({
       },
     );
 
-    if (!surveyModel) {
+    if (!prepared) {
       return deadlineExceeded(caller);
     }
+
+    const [surveyModel, themeJson] = prepared;
+    const pdfTheme = mapSurveyThemeToPdfTheme(parseThemeJson(themeJson));
 
     return await TelemetryTracer.traceAsync(
       TRACER,
@@ -112,6 +132,8 @@ export async function renderSubmissionPdf({
                 <SubmissionDetailsPdf
                   submission={submission}
                   surveyModel={surveyModel}
+                  pdfTheme={pdfTheme}
+                  fillable={fillable}
                 />,
               ).toBlob(),
             remainingRenderTimeoutMs(startedAtMs),

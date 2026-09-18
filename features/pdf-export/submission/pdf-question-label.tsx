@@ -3,11 +3,12 @@ import { Text, StyleSheet, View } from "@react-pdf/renderer";
 import type { Style } from "@react-pdf/types";
 import { Question, QuestionCustomModel } from "survey-core";
 import { PDF_STYLES } from "@/features/pdf-export/submission/pdf-styles";
-import { getPanelTitle } from "@/lib/questions";
+import type { PdfThemeStyles } from "@/features/pdf-export/create-pdf-theme-styles";
 import { pdfPlainText } from "@/lib/utils/pdf-plain-text";
 
 interface PdfQuestionLabelProps {
   question: Question;
+  themeStyles: PdfThemeStyles;
   style?: Style;
 }
 
@@ -30,22 +31,19 @@ export const PDF_LABEL_STYLES = StyleSheet.create({
 
 export const PdfQuestionLabel = ({
   question,
+  themeStyles,
   style,
 }: PdfQuestionLabelProps) => {
   const title = pdfPlainText(getProcessedTitle(question));
-  const panelTitle = pdfPlainText(getPanelTitle(question));
-
   const titleStyles = [
     PDF_STYLES.rightAlign,
-    PDF_STYLES.questionTitle,
+    themeStyles.questionTitle,
     ...(style ? [style] : []),
   ];
-  const subTitleStyles = [PDF_STYLES.rightAlign, PDF_STYLES.questionSubTitle];
 
   return (
     <View>
       <Text style={titleStyles}>{title}</Text>
-      {panelTitle && <Text style={subTitleStyles}>{panelTitle}</Text>}
     </View>
   );
 };

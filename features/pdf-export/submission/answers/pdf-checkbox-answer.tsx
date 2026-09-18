@@ -1,68 +1,75 @@
-import { Text, View, StyleSheet } from "@react-pdf/renderer";
+import { Checkbox, FieldSet, Text, View } from "@react-pdf/renderer";
 import { ItemValue, QuestionCheckboxModel } from "survey-core";
 import {
   formatChoiceDisplay,
   resolveChoiceLabel,
   resolveItemValueLabel,
 } from "../format-choice-display";
+import {
+  pdfFormFieldProps,
+  sanitizePdfFieldName,
+  type PdfFormChrome,
+} from "../pdf-form-field";
 
 interface CheckboxAnswerProps {
   question: QuestionCheckboxModel;
+  chrome: PdfFormChrome;
 }
 
-const styles = StyleSheet.create({
-  container: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 4,
-  },
-  item: {
-    display: "flex",
-    flexDirection: "row",
-    gap: 4,
-    alignItems: "center",
-  },
-  label: {
-    fontSize: 10,
-    fontFamily: "Roboto",
-  },
-  checkedIndicator: {
-    fontSize: 10,
-    fontFamily: "Roboto-Bold",
-  },
-  title: {
-    fontSize: 10,
-    fontFamily: "Roboto-Bold",
-    color: "gray",
-    marginBottom: 4,
-  },
-});
+function choiceLabel(question: QuestionCheckboxModel, item: ItemValue): string {
+  return formatChoiceDisplay(
+    item.value,
+    resolveChoiceLabel(question, item.value) ?? resolveItemValueLabel(item),
+  );
+}
 
-const PdfCheckboxAnswer = ({ question }: CheckboxAnswerProps) => {
-  const checkedItems: ItemValue[] = question.selectedChoices;
+const PdfCheckboxAnswer = ({ question, chrome }: CheckboxAnswerProps) => {
+  const choices: ItemValue[] = question.visibleChoices ?? [];
+  const selected = new Set(
+    (question.selectedChoices ?? []).map((item) => String(item.value)),
+  );
+  const { checkboxBox, stack, row, answerText, mutedText } = chrome.themeStyles;
 
-  if (!checkedItems || checkedItems.length === 0) {
-    return <Text style={styles.title}>No items selected</Text>;
+  if (choices.length === 0) {
+    return <Text style={mutedText}>No items</Text>;
   }
 
+  if (!chrome.fillable) {
+    return (
+      <View style={stack}>
+        {choices.map((item) => {
+          const checked = selected.has(String(item.value));
+          return (
+            <Text key={String(item.value)} style={answerText}>
+              {checked ? "[x]" : "[ ]"} {choiceLabel(question, item)}
+            </Text>
+          );
+        })}
+      </View>
+    );
+  }
+
+  const field = pdfFormFieldProps(chrome);
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Checked items</Text>
-      {checkedItems.map((item) => (
-        <View key={item.value} style={styles.item}>
-          <Text style={styles.checkedIndicator}>[X]</Text>
-          <Text style={styles.label}>
-            {decodeURIComponent(
-              formatChoiceDisplay(
-                item.value,
-                resolveChoiceLabel(question, item.value) ??
-                  resolveItemValueLabel(item),
-              ),
-            )}
-          </Text>
-        </View>
-      ))}
-    </View>
+    <FieldSet name={sanitizePdfFieldName(question.name)}>
+      <View style={stack}>
+        {choices.map((item) => {
+          const name = sanitizePdfFieldName(`choice.${String(item.value)}`);
+          return (
+            <View key={name} style={row}>
+              <Checkbox
+                {...field}
+                name={name}
+                checked={selected.has(String(item.value))}
+                style={checkboxBox}
+              />
+              <Text style={answerText}>{choiceLabel(question, item)}</Text>
+            </View>
+          );
+        })}
+      </View>
+    </FieldSet>
   );
 };
 

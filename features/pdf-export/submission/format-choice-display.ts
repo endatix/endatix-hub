@@ -19,6 +19,12 @@ export function formatChoiceDisplay(
     return valueStr;
   }
 
+  const valueLower = valueStr.toLowerCase();
+  const labelLower = labelStr.toLowerCase();
+  if (/\s/.test(valueStr) || labelLower.includes(valueLower)) {
+    return labelStr;
+  }
+
   return `${labelStr} (${valueStr})`;
 }
 

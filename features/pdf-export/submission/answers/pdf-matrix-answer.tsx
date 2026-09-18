@@ -1,5 +1,6 @@
 import { Text, View } from "@react-pdf/renderer";
 import { ItemValue, QuestionMatrixModel } from "survey-core";
+import type { PdfFormChrome } from "../pdf-form-field";
 import { PDF_TABLE_STYLES } from "@/features/pdf-export/submission/pdf-styles";
 import { pdfPlainText } from "@/lib/utils/pdf-plain-text";
 import { resolveItemValueLabel } from "../format-choice-display";
@@ -11,14 +12,13 @@ import {
 
 interface MatrixAnswerPdfProps {
   question: QuestionMatrixModel;
+  chrome: PdfFormChrome;
 }
-
-const SELECTED_MARK = "✓";
 
 export function buildMatrixAnswerTableData(
   question: QuestionMatrixModel,
 ): { columns: PdfMatrixTableColumn[]; rows: PdfMatrixTableRow[] } | null {
-  if (!question.rows || !question.columns || !question.value) {
+  if (!question.rows || !question.columns) {
     return null;
   }
 
@@ -33,16 +33,15 @@ export function buildMatrixAnswerTableData(
 
   const rows: PdfMatrixTableRow[] = [];
   question.rows.forEach((row: ItemValue, index: number) => {
-    const selected = question.value[row.value];
-    if (selected === undefined || selected === null || selected === "") {
-      return;
-    }
-
-    const selectedKey = String(selected);
+    const selected = question.value?.[row.value];
+    const selectedKey =
+      selected === undefined || selected === null || selected === ""
+        ? ""
+        : String(selected);
     const rowText = row.hasText ? row.text : `Row ${index + 1}`;
     const cells: Record<string, string> = {};
     columns.forEach((column) => {
-      cells[column.key] = column.key === selectedKey ? SELECTED_MARK : "";
+      cells[column.key] = column.key === selectedKey ? "1" : "";
     });
 
     rows.push({
@@ -55,20 +54,25 @@ export function buildMatrixAnswerTableData(
   return rows.length === 0 ? null : { columns, rows };
 }
 
-const PdfMatrixAnswer = ({ question }: MatrixAnswerPdfProps) => {
+const PdfMatrixAnswer = ({ question, chrome }: MatrixAnswerPdfProps) => {
   const tableData = buildMatrixAnswerTableData(question);
 
   if (!tableData) {
-    return <Text style={PDF_TABLE_STYLES.noAnswer}>No answer</Text>;
+    return <Text style={chrome.themeStyles.noAnswer}>No answer</Text>;
   }
 
   return (
     <View style={PDF_TABLE_STYLES.container}>
-      <Text style={PDF_TABLE_STYLES.caption}>
+      <Text style={chrome.themeStyles.tableCaption}>
         Answers for the &quot;{pdfPlainText(question.title)}
         &quot; question
       </Text>
-      <PdfMatrixTable columns={tableData.columns} rows={tableData.rows} />
+      <PdfMatrixTable
+        columns={tableData.columns}
+        rows={tableData.rows}
+        themeStyles={chrome.themeStyles}
+        cellKind="checkbox"
+      />
     </View>
   );
 };

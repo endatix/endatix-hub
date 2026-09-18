@@ -1,5 +1,6 @@
 import React from "react";
-import { Text, View, StyleSheet } from "@react-pdf/renderer";
+import { FieldSet, Select, Text, View, StyleSheet } from "@react-pdf/renderer";
+import { PdfFormValue } from "./pdf-form-value";
 import { pdfPlainText } from "@/lib/utils/pdf-plain-text";
 import {
   MultipleTextItemModel,
@@ -33,6 +34,8 @@ import PdfCustomAnswer from "./answers/pdf-custom-answer";
 import PdfRankingAnswer from "./answers/pdf-ranking-answer";
 import PdfSliderAnswer from "./answers/pdf-slider-answer";
 import PdfDragCategorizeAnswer from "@/lib/questions/drag-categorize/drag-categorize.pdf-answer";
+import type { PdfFormChrome } from "./pdf-form-field";
+import { pdfFormFieldProps, sanitizePdfFieldName } from "./pdf-form-field";
 import {
   formatChoiceDisplay,
   resolveChoiceLabelForQuestion,
@@ -42,18 +45,24 @@ export interface ViewAnswerProps {
   forQuestion: Question;
   pageBreak?: boolean;
   hideTitle?: boolean;
+  chrome: PdfFormChrome;
 }
 
 const PdfAnswerViewer = ({
   forQuestion,
   pageBreak,
   hideTitle,
+  chrome,
 }: ViewAnswerProps): React.ReactElement => {
+  const { themeStyles } = chrome;
+  const field = pdfFormFieldProps(chrome);
+  const inputStyle = themeStyles.formInput;
+
   if (
     forQuestion instanceof QuestionCustomModel ||
     forQuestion instanceof QuestionCompositeModel
   ) {
-    return <PdfCustomAnswer question={forQuestion} />;
+    return <PdfCustomAnswer question={forQuestion} chrome={chrome} />;
   }
 
   let questionType = forQuestion.getType() ?? "unsupported";
@@ -69,55 +78,82 @@ const PdfAnswerViewer = ({
 
   const renderTitle = () => {
     if (hideTitle) return null;
-    return <Text style={VIEWER_STYLES.questionLabel}>{questionTitle}:</Text>;
+    return <Text style={themeStyles.questionLabel}>{questionTitle}:</Text>;
   };
 
   const renderTextAnswer = () => (
-    <View style={VIEWER_STYLES.answerContainer} break={pageBreak}>
+    <View style={[VIEWER_STYLES.answerContainer, themeStyles.answerField]} break={pageBreak}>
       {renderTitle()}
-      <Text style={VIEWER_STYLES.answerText}>
-        {pdfPlainText(forQuestion.value) || "No Answer"}
-      </Text>
+      <PdfFormValue
+        chrome={chrome}
+        name={forQuestion.name}
+        value={pdfPlainText(forQuestion.value)}
+      />
     </View>
   );
 
   const renderBooleanAnswer = () => (
-    <View style={VIEWER_STYLES.answerContainer} break={pageBreak}>
+    <View style={[VIEWER_STYLES.answerContainer, themeStyles.answerField]} break={pageBreak}>
       {renderTitle()}
-      <PdfBooleanAnswer question={forQuestion as QuestionBooleanModel} />
+      <PdfBooleanAnswer
+        question={forQuestion as QuestionBooleanModel}
+        chrome={chrome}
+      />
     </View>
   );
 
   const renderRatingAnswer = () => (
-    <View style={VIEWER_STYLES.answerContainer} break={pageBreak}>
+    <View style={[VIEWER_STYLES.answerContainer, themeStyles.answerField]} break={pageBreak}>
       {renderTitle()}
-      <Text style={VIEWER_STYLES.answerText}>
-        {pdfPlainText(forQuestion.value) || "No Answer"}
-      </Text>
+      <PdfFormValue
+        chrome={chrome}
+        name={forQuestion.name}
+        value={pdfPlainText(forQuestion.value)}
+      />
     </View>
   );
 
   const renderSliderAnswer = () => (
-    <View style={VIEWER_STYLES.answerContainer} break={pageBreak}>
+    <View style={[VIEWER_STYLES.answerContainer, themeStyles.answerField]} break={pageBreak}>
       {renderTitle()}
-      <PdfSliderAnswer question={forQuestion as QuestionSliderModel} />
+      <PdfSliderAnswer
+        question={forQuestion as QuestionSliderModel}
+        chrome={chrome}
+      />
     </View>
   );
 
   const renderSingleChoiceAnswer = (
     question: QuestionRadiogroupModel | QuestionDropdownModel,
   ) => {
+    const options = (question.visibleChoices ?? question.choices ?? []).map(
+      (item) =>
+        formatChoiceDisplay(item.value, item.text) || String(item.value),
+    );
     const display = formatChoiceDisplay(
       question.value,
       resolveChoiceLabelForQuestion(question),
     );
+    const select = options.length > 0 ? options : display ? [display] : ["—"];
 
     return (
-      <View style={VIEWER_STYLES.answerContainer} break={pageBreak}>
+      <View style={[VIEWER_STYLES.answerContainer, themeStyles.answerField]} break={pageBreak}>
         {renderTitle()}
-        <Text style={VIEWER_STYLES.answerText}>
-          {display || "No Answer"}
-        </Text>
+        {chrome.fillable ? (
+          <FieldSet name={sanitizePdfFieldName(question.name)}>
+            <Select
+              {...field}
+              name="value"
+              select={select}
+              value={display || undefined}
+              edit={false}
+              noSpell
+              style={inputStyle}
+            />
+          </FieldSet>
+        ) : (
+          <Text style={themeStyles.answerText}>{display || "—"}</Text>
+        )}
       </View>
     );
   };
@@ -129,18 +165,21 @@ const PdfAnswerViewer = ({
     renderSingleChoiceAnswer(forQuestion as QuestionDropdownModel);
 
   const renderCommentAnswer = () => (
-    <View style={VIEWER_STYLES.answerContainer} break={pageBreak}>
+    <View style={[VIEWER_STYLES.stackedAnswer, themeStyles.answerField]} break={pageBreak}>
       {renderTitle()}
-      <Text style={VIEWER_STYLES.answerText}>
-        {pdfPlainText(forQuestion.value) || "No Answer"}
-      </Text>
+      <PdfFormValue
+        chrome={chrome}
+        name={forQuestion.name}
+        value={pdfPlainText(forQuestion.value)}
+        multiline
+      />
     </View>
   );
 
   const renderTagBoxAnswer = () => (
-    <View style={VIEWER_STYLES.answerContainer} wrap={false}>
+    <View style={[VIEWER_STYLES.stackedAnswer, themeStyles.answerField]}>
       {renderTitle()}
-      <PdfTagBoxAnswer question={forQuestion} />
+      <PdfTagBoxAnswer question={forQuestion} chrome={chrome} />
     </View>
   );
 
@@ -158,14 +197,13 @@ const PdfAnswerViewer = ({
           <View style={VIEWER_STYLES.flexRow}>
             <MessageSquareTextIcon />
             <View style={VIEWER_STYLES.flexColumn}>
-              <Text
-                style={[VIEWER_STYLES.questionLabel, VIEWER_STYLES.smallText]}
-              >
-                Comment:
-              </Text>
-              <Text style={[VIEWER_STYLES.mutedText, VIEWER_STYLES.smallText]}>
-                {pdfPlainText(forQuestion?.comment)}
-              </Text>
+              <Text style={themeStyles.questionLabel}>Comment:</Text>
+              <PdfFormValue
+                chrome={chrome}
+                name={`${forQuestion.name}.comment`}
+                value={pdfPlainText(forQuestion?.comment)}
+                multiline
+              />
             </View>
           </View>
         )}
@@ -173,7 +211,7 @@ const PdfAnswerViewer = ({
   );
 
   const renderSignaturePadAnswer = () => (
-    <View style={VIEWER_STYLES.answerContainer} break={pageBreak}>
+    <View style={[VIEWER_STYLES.answerContainer, themeStyles.answerField]} break={pageBreak}>
       {renderTitle()}
       <PdfSignaturePadAnswer
         question={forQuestion as QuestionSignaturePadModel}
@@ -185,6 +223,7 @@ const PdfAnswerViewer = ({
     <View>
       <PdfPanelDynamicAnswer
         question={forQuestion as QuestionPanelDynamicModel}
+        chrome={chrome}
       />
     </View>
   );
@@ -192,7 +231,10 @@ const PdfAnswerViewer = ({
   const renderMatrixAnswer = () => (
     <View>
       {renderTitle()}
-      <PdfMatrixAnswer question={forQuestion as QuestionMatrixModel} />
+      <PdfMatrixAnswer
+        question={forQuestion as QuestionMatrixModel}
+        chrome={chrome}
+      />
     </View>
   );
 
@@ -201,6 +243,7 @@ const PdfAnswerViewer = ({
       {renderTitle()}
       <PdfMatrixDropdownAnswer
         question={forQuestion as QuestionMatrixDropdownModel}
+        chrome={chrome}
       />
     </View>
   );
@@ -209,33 +252,42 @@ const PdfAnswerViewer = ({
     const question = forQuestion as QuestionMultipleTextModel;
 
     return (
-      <View style={VIEWER_STYLES.answerContainer} break={pageBreak}>
+      <View style={[VIEWER_STYLES.answerContainer, themeStyles.answerField]} break={pageBreak}>
         {renderTitle()}
         {question?.items?.map((item: MultipleTextItemModel) => (
-          <Text key={item.name} style={VIEWER_STYLES.answerText}>
-            {pdfPlainText(item.value)}
-          </Text>
+          <PdfFormValue
+            key={item.name}
+            chrome={chrome}
+            name={`${question.name}.${item.name}`}
+            value={pdfPlainText(item.value)}
+          />
         ))}
       </View>
     );
   };
 
   const renderRankingAnswer = () => (
-    <View style={VIEWER_STYLES.answerContainer} break={pageBreak}>
+    <View style={[VIEWER_STYLES.stackedAnswer, themeStyles.answerField]}>
       {renderTitle()}
-      <PdfRankingAnswer question={forQuestion as QuestionRankingModel} />
+      <PdfRankingAnswer
+        question={forQuestion as QuestionRankingModel}
+        chrome={chrome}
+      />
     </View>
   );
 
   const renderCheckboxAnswer = () => (
-    <View style={VIEWER_STYLES.answerContainer} break={pageBreak}>
+    <View style={[VIEWER_STYLES.stackedAnswer, themeStyles.answerField]}>
       {renderTitle()}
-      <PdfCheckboxAnswer question={forQuestion as QuestionCheckboxModel} />
+      <PdfCheckboxAnswer
+        question={forQuestion as QuestionCheckboxModel}
+        chrome={chrome}
+      />
     </View>
   );
 
   const renderDragCategorizeAnswer = () => (
-    <View style={VIEWER_STYLES.answerContainer} break={pageBreak}>
+    <View style={[VIEWER_STYLES.answerContainer, themeStyles.answerField]} break={pageBreak}>
       {renderTitle()}
       <PdfDragCategorizeAnswer question={forQuestion} />
     </View>
@@ -247,9 +299,9 @@ const PdfAnswerViewer = ({
     }
 
     return (
-      <View style={VIEWER_STYLES.answerContainer} break={pageBreak}>
+      <View style={[VIEWER_STYLES.answerContainer, themeStyles.answerField]} break={pageBreak}>
         {renderTitle()}
-        <Text style={VIEWER_STYLES.answerText}>
+        <Text style={themeStyles.answerText}>
           {pdfPlainText(forQuestion.value)}
         </Text>
       </View>
@@ -326,11 +378,9 @@ export const VIEWER_STYLES = StyleSheet.create({
     fontSize: 10,
     flex: 1,
   },
-  answerContainer: {
+  stackedAnswer: {
     fontFamily: "Roboto",
-    display: "flex",
-    flexDirection: "row",
-    flexWrap: "wrap",
+    flexDirection: "column",
     gap: 4,
     padding: 4,
     marginBottom: 4,

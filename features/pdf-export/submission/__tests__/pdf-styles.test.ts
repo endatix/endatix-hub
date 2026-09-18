@@ -42,11 +42,12 @@ describe("computeMatrixDataColumnWidth", () => {
     expect(computeMatrixDataColumnWidth(0)).toBeNull();
   });
 
-  it("keeps a grid at five data columns and stacks at six", () => {
-    // Act & Assert
+  it("keeps a grid through six data columns (participant-style matrix)", () => {
     expect(computeMatrixDataColumnWidth(5)).toBe(
       (MATRIX_TABLE_CONTENT_WIDTH - MATRIX_LABEL_COLUMN_WIDTH) / 5,
     );
-    expect(computeMatrixDataColumnWidth(6)).toBeNull();
+    expect(computeMatrixDataColumnWidth(6)).toBe(
+      (MATRIX_TABLE_CONTENT_WIDTH - MATRIX_LABEL_COLUMN_WIDTH) / 6,
+    );
   });
 });
