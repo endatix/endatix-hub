@@ -107,4 +107,23 @@ export class Definitions {
       `/forms/${formIdResult.value}/definitions/${definitionIdResult.value}`,
     );
   }
+
+  /**
+   * Active definition for a form (`GET /forms/{formId}/definition`).
+   * Anonymous when `requireAuth` is false (public surveys).
+   */
+  async getActive(
+    formId: string,
+    options: { requireAuth?: boolean } = {},
+  ): Promise<ApiResult<FormDefinitionDto>> {
+    const formIdResult = validateEndatixId(formId, "formId");
+    if (Result.isError(formIdResult)) {
+      return ApiResult.validationError(formIdResult.message);
+    }
+
+    return this.endatix.get<FormDefinitionDto>(
+      `/forms/${formIdResult.value}/definition`,
+      { requireAuth: options.requireAuth ?? true },
+    );
+  }
 }

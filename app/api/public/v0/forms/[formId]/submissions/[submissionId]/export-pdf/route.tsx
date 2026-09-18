@@ -1,4 +1,5 @@
 import { getCustomQuestionsAction } from "@/features/forms/application/actions/get-custom-questions.action";
+import { getSession } from "@/features/auth";
 import { renderSubmissionPdf } from "@/features/pdf-export/submission/render-submission-pdf.use-case";
 import { getSubmissionDetailsUseCase } from "@/features/submissions/use-cases/get-submission-details.use-case";
 import { Result } from "@/lib/result";
@@ -49,6 +50,7 @@ export async function GET(req: NextRequest, { params }: Params) {
   }
 
   const submission = submissionResult.value;
+  const session = await getSession();
 
   let renderResult;
   try {
@@ -58,6 +60,7 @@ export async function GET(req: NextRequest, { params }: Params) {
       useDefaultLocale,
       startedAtMs,
       caller: "hub-authenticated",
+      accessToken: session.isLoggedIn ? session.accessToken : undefined,
     });
   } catch {
     return NextResponse.json({ error: "PDF export failed." }, { status: 500 });

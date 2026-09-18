@@ -68,6 +68,16 @@ describe("formatChoiceDisplay", () => {
   it("returns empty string for empty value", () => {
     expect(formatChoiceDisplay("", "Label")).toBe("");
   });
+
+  it("shows label only when it already contains the stored value", () => {
+    expect(formatChoiceDisplay("SPO", "SPOs")).toBe("SPOs");
+    expect(
+      formatChoiceDisplay(
+        "Workshop Facilitator",
+        "Workshop Facilitator (Only for PN's facilitator)",
+      ),
+    ).toBe("Workshop Facilitator (Only for PN's facilitator)");
+  });
 });
 
 describe("resolveItemValueLabel", () => {

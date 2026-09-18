@@ -41,13 +41,13 @@ describe("buildMatrixAnswerTableData", () => {
     expect(result?.rows).toHaveLength(2);
     expect(result?.rows[0].cells).toEqual({
       poor: "",
-      good: "✓",
+      good: "1",
       great: "",
     });
-    expect(result?.rows[1].cells.great).toBe("✓");
+    expect(result?.rows[1].cells.great).toBe("1");
   });
 
-  it("returns null when every row is unanswered", () => {
+  it("still builds rows when every cell is unanswered", () => {
     // Arrange
     const model = new Model({
       elements: [
@@ -66,6 +66,8 @@ describe("buildMatrixAnswerTableData", () => {
     );
 
     // Assert
-    expect(result).toBeNull();
+    expect(result).not.toBeNull();
+    expect(result?.rows).toHaveLength(1);
+    expect(result?.rows[0].cells).toEqual({ a: "", b: "" });
   });
 });

@@ -4,13 +4,18 @@ import {
   QuestionCompositeModel,
   QuestionNonValue,
 } from "survey-core";
+import type { PdfFormChrome } from "../pdf-form-field";
 import PdfAnswerViewer from "../pdf-answer-viewer";
 
 interface PdfCompositeAnswerProps {
   question: QuestionCompositeModel;
+  chrome: PdfFormChrome;
 }
 
-const PdfCompositeAnswer = ({ question }: PdfCompositeAnswerProps) => {
+const PdfCompositeAnswer = ({
+  question,
+  chrome,
+}: PdfCompositeAnswerProps) => {
   if (!question) {
     return null;
   }
@@ -22,7 +27,11 @@ const PdfCompositeAnswer = ({ question }: PdfCompositeAnswerProps) => {
   return (
     <React.Fragment>
       {childQuestions?.map((childQuestion: Question) => (
-        <PdfAnswerViewer key={childQuestion.id} forQuestion={childQuestion} />
+        <PdfAnswerViewer
+          key={childQuestion.id}
+          forQuestion={childQuestion}
+          chrome={chrome}
+        />
       ))}
     </React.Fragment>
   );

@@ -1,51 +1,62 @@
-import React from "react";
-import { Text, View, StyleSheet } from "@react-pdf/renderer";
+import { FieldSet, Text, TextInput, View } from "@react-pdf/renderer";
 import { Question } from "survey-core";
-import { GripVerticalIcon } from "@/features/pdf-export/submission/icons";
 import {
   formatChoiceDisplay,
   resolveChoiceLabel,
 } from "../format-choice-display";
+import {
+  pdfFormFieldProps,
+  sanitizePdfFieldName,
+  type PdfFormChrome,
+} from "../pdf-form-field";
 
 interface PdfRankingAnswerProps {
   question: Question;
+  chrome: PdfFormChrome;
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: "column",
-    gap: 2,
-    marginBottom: 4,
-  },
-  item: {
-    flexDirection: "row",
-    alignItems: "center",
-    fontSize: 10,
-    marginBottom: 2,
-  },
-  noAnswer: {
-    fontSize: 10,
-    color: "#888",
-  },
-});
-
-const PdfRankingAnswer = ({ question }: PdfRankingAnswerProps) => {
+const PdfRankingAnswer = ({ question, chrome }: PdfRankingAnswerProps) => {
   const rankedAnswers: string[] = question.value ?? [];
-  const getDisplayText = (val: string) =>
-    formatChoiceDisplay(val, resolveChoiceLabel(question, val));
+  const field = pdfFormFieldProps(chrome);
+
+  if (rankedAnswers.length === 0) {
+    return <Text style={chrome.themeStyles.mutedText}>No answer</Text>;
+  }
+
+  const lines = rankedAnswers.map((answer, index) => {
+    const display = formatChoiceDisplay(
+      answer,
+      resolveChoiceLabel(question, answer),
+    );
+    return `${index + 1}. ${display}`;
+  });
+
+  if (!chrome.fillable) {
+    return (
+      <View style={chrome.themeStyles.stack}>
+        {lines.map((line, index) => (
+          <Text key={index} style={chrome.themeStyles.answerText}>
+            {line}
+          </Text>
+        ))}
+      </View>
+    );
+  }
+
   return (
-    <View style={styles.container}>
-      {rankedAnswers.length > 0 ? (
-        rankedAnswers.map((answer) => (
-          <View key={answer} style={styles.item}>
-            <GripVerticalIcon />
-            <Text>{getDisplayText(answer)}</Text>
-          </View>
-        ))
-      ) : (
-        <Text style={styles.noAnswer}>No answer</Text>
-      )}
-    </View>
+    <FieldSet name={sanitizePdfFieldName(question.name)}>
+      <View style={chrome.themeStyles.stack}>
+        {rankedAnswers.map((answer, index) => (
+          <TextInput
+            key={`${answer}-${index}`}
+            {...field}
+            name={sanitizePdfFieldName(`item.${index + 1}`)}
+            value={lines[index]}
+            style={chrome.themeStyles.formInput}
+          />
+        ))}
+      </View>
+    </FieldSet>
   );
 };
 

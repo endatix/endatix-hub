@@ -1,5 +1,6 @@
 import { Submission } from "@/lib/endatix-api";
 import { View, Text, StyleSheet } from "@react-pdf/renderer";
+import type { PdfThemeStyles } from "@/features/pdf-export/create-pdf-theme-styles";
 import { PDF_STYLES } from "./pdf-styles";
 import {
   getElapsedTimeString,
@@ -9,56 +10,59 @@ import {
 
 interface PdfSubmissionPropertiesProps {
   submission: Submission;
+  themeStyles: PdfThemeStyles;
 }
 
 const DASH_NO_DATA = "—";
 
 export const PdfSubmissionProperties = ({
   submission,
+  themeStyles,
 }: PdfSubmissionPropertiesProps) => {
+
   return (
-    <View style={[PDF_STYLES.section, styles.sectionProperties]}>
-      <Text style={PDF_STYLES.sectionTitle}>Submission Properties</Text>
+    <View style={[PDF_STYLES.section, themeStyles.propertiesSection]}>
+      <Text style={themeStyles.sectionTitle}>Submission Properties</Text>
       <View style={styles.propertiesTable}>
         <View style={styles.propertyRow}>
-          <Text style={styles.propertyLabel}>ID:</Text>
-          <Text style={styles.propertyValue}>{submission.id}</Text>
+          <Text style={themeStyles.propertyLabel}>ID:</Text>
+          <Text style={themeStyles.propertyValue}>{submission.id}</Text>
         </View>
         <View style={styles.propertyRow}>
-          <Text style={styles.propertyLabel}>Is Complete?</Text>
-          <Text style={styles.propertyValue}>
+          <Text style={themeStyles.propertyLabel}>Is Complete?</Text>
+          <Text style={themeStyles.propertyValue}>
             {submission.isComplete ? "YES" : "NO"}
           </Text>
         </View>
         <View style={styles.propertyRow}>
-          <Text style={styles.propertyLabel}>Created at</Text>
-          <Text style={styles.propertyValue}>
+          <Text style={themeStyles.propertyLabel}>Created at</Text>
+          <Text style={themeStyles.propertyValue}>
             {getFormattedDate(submission.createdAt)}
           </Text>
         </View>
         <View style={styles.propertyRow}>
-          <Text style={styles.propertyLabel}>Last modified on</Text>
-          <Text style={styles.propertyValue}>
+          <Text style={themeStyles.propertyLabel}>Last modified on</Text>
+          <Text style={themeStyles.propertyValue}>
             {getFormattedDate(submission.modifiedAt)}
           </Text>
         </View>
         <View style={styles.propertyRow}>
-          <Text style={styles.propertyLabel}>Started at</Text>
-          <Text style={styles.propertyValue}>
+          <Text style={themeStyles.propertyLabel}>Started at</Text>
+          <Text style={themeStyles.propertyValue}>
             {getFormattedDate(submission.startedAt, DASH_NO_DATA)}
           </Text>
         </View>
         <View style={styles.propertyRow}>
-          <Text style={styles.propertyLabel}>Completed at</Text>
-          <Text style={styles.propertyValue}>
+          <Text style={themeStyles.propertyLabel}>Completed at</Text>
+          <Text style={themeStyles.propertyValue}>
             {submission.isComplete
               ? getFormattedDate(submission.completedAt)
               : DASH_NO_DATA}
           </Text>
         </View>
         <View style={styles.propertyRow}>
-          <Text style={styles.propertyLabel}>Completion time</Text>
-          <Text style={styles.propertyValue}>
+          <Text style={themeStyles.propertyLabel}>Completion time</Text>
+          <Text style={themeStyles.propertyValue}>
             {submission.isComplete
               ? getElapsedTimeString(
                   getSubmissionStartedAt(submission),
@@ -74,12 +78,6 @@ export const PdfSubmissionProperties = ({
 };
 
 const styles = StyleSheet.create({
-  sectionProperties: {
-    fontSize: 10,
-    backgroundColor: "#f0f0f0",
-    borderRadius: 4,
-    gap: 4,
-  },
   propertiesTable: {
     marginTop: 8,
     width: "100%",
@@ -88,20 +86,5 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 8,
-  },
-  propertyLabel: {
-    flex: 2,
-    textAlign: "right",
-    fontFamily: "Roboto-Bold",
-    color: "#666",
-    fontSize: 10,
-    paddingRight: 16,
-  },
-  propertyValue: {
-    flex: 3,
-    textAlign: "left",
-    fontFamily: "Roboto",
-    color: "#222",
-    fontSize: 10,
   },
 });

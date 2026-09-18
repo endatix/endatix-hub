@@ -2,6 +2,7 @@ import { Text, View } from "@react-pdf/renderer";
 import { QuestionMatrixDropdownModel } from "survey-core";
 import { VIEWER_STYLES } from "../pdf-answer-viewer";
 import { formatMatrixDropdownCell } from "../format-matrix-dropdown-cell";
+import type { PdfFormChrome } from "../pdf-form-field";
 import { PDF_TABLE_STYLES } from "@/features/pdf-export/submission/pdf-styles";
 import { pdfPlainText } from "@/lib/utils/pdf-plain-text";
 import {
@@ -12,6 +13,7 @@ import {
 
 interface MatrixDropdownAnswerProps {
   question: QuestionMatrixDropdownModel;
+  chrome: PdfFormChrome;
 }
 
 export interface MatrixDropdownTableData {
@@ -61,26 +63,32 @@ export function buildMatrixDropdownTableData(
 
 const PdfMatrixDropdownAnswer = ({
   question,
+  chrome,
 }: Readonly<MatrixDropdownAnswerProps>) => {
   const tableData = buildMatrixDropdownTableData(question);
 
   if (!tableData) {
     return (
       <View style={VIEWER_STYLES.answerContainer}>
-        <Text style={VIEWER_STYLES.questionLabel}>
+        <Text style={chrome.themeStyles.questionLabel}>
           {pdfPlainText(question.title)}:
         </Text>
-        <Text style={VIEWER_STYLES.answerText}>No Answer</Text>
+        <Text style={chrome.themeStyles.answerText}>No Answer</Text>
       </View>
     );
   }
 
   return (
     <View style={PDF_TABLE_STYLES.container}>
-      <Text style={VIEWER_STYLES.questionLabel}>
+      <Text style={chrome.themeStyles.questionLabel}>
         {pdfPlainText(question.title)}
       </Text>
-      <PdfMatrixTable columns={tableData.columns} rows={tableData.rows} />
+      <PdfMatrixTable
+        columns={tableData.columns}
+        rows={tableData.rows}
+        themeStyles={chrome.themeStyles}
+        cellKind="input"
+      />
     </View>
   );
 };

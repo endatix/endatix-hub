@@ -1,6 +1,7 @@
-import { Text, View, StyleSheet } from "@react-pdf/renderer";
+import { FieldSet, List, Text } from "@react-pdf/renderer";
 import { Question } from "survey-core";
-import { VIEWER_STYLES } from "../pdf-answer-viewer";
+import type { PdfFormChrome } from "../pdf-form-field";
+import { pdfFormFieldProps, sanitizePdfFieldName } from "../pdf-form-field";
 import {
   formatChoiceDisplay,
   resolveChoiceLabel,
@@ -8,46 +9,51 @@ import {
 
 interface TagBoxAnswerProps {
   question: Question;
+  chrome: PdfFormChrome;
 }
 
-const styles = StyleSheet.create({
-  tagsContainer: {
-    display: "flex",
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 4,
-  },
-  tag: {
-    backgroundColor: "#f0f0f0",
-    paddingTop: 2,
-    paddingBottom: 2,
-    paddingLeft: 4,
-    paddingRight: 4,
-    borderRadius: 4,
-    fontSize: 10,
-    fontFamily: "Roboto",
-  },
-});
+const PdfTagBoxAnswer = ({ question, chrome }: TagBoxAnswerProps) => {
+  const choices = (question.visibleChoices ?? question.choices ?? []) as {
+    value: string;
+    text?: string;
+  }[];
+  const labels = choices.map((item) =>
+    formatChoiceDisplay(
+      item.value,
+      resolveChoiceLabel(question, item.value) ?? item.text,
+    ),
+  );
+  const selectedValues: string[] = Array.isArray(question.value)
+    ? question.value.map(String)
+    : [];
+  const selectedLabels = selectedValues.map((value) =>
+    formatChoiceDisplay(value, resolveChoiceLabel(question, value)),
+  );
 
-const PdfTagBoxAnswer = ({ question }: TagBoxAnswerProps) => {
-  if (!question?.value || question.value.length === 0) {
-    return <Text style={VIEWER_STYLES.answerText}>No Answer</Text>;
+  if (labels.length === 0 && selectedLabels.length === 0) {
+    return <Text style={chrome.themeStyles.mutedText}>No Answer</Text>;
   }
 
+  const display = selectedLabels.join(", ") || "—";
+  if (!chrome.fillable) {
+    return <Text style={chrome.themeStyles.answerText}>{display}</Text>;
+  }
+
+  const field = pdfFormFieldProps(chrome);
+
   return (
-    <View style={styles.tagsContainer}>
-      {question.value.map((value: string) => {
-        const display = formatChoiceDisplay(
-          value,
-          resolveChoiceLabel(question, value),
-        );
-        return (
-          <Text key={value} style={styles.tag}>
-            {display}
-          </Text>
-        );
-      })}
-    </View>
+    <FieldSet name={sanitizePdfFieldName(question.name)}>
+      <List
+        {...field}
+        name="choices"
+        multiSelect
+        edit={false}
+        noSpell
+        select={labels.length > 0 ? labels : selectedLabels}
+        value={selectedLabels.join(", ")}
+        style={chrome.themeStyles.formList}
+      />
+    </FieldSet>
   );
 };
 
