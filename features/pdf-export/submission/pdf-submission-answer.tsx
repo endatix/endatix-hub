@@ -28,7 +28,7 @@ export const PdfSubmissionAnswer = ({ question }: PdfSubmissionAnswerProps) => {
   if (panelTitle) {
     rows.push(
       <View key={`panel-title-${panelTitle}`} style={styles.groupHeaderRow}>
-        <Text style={styles.groupHeaderText}>{pdfPlainText(panelTitle)}</Text>
+        <Text style={styles.groupHeaderText}>{panelTitle}</Text>
       </View>,
     );
   }
