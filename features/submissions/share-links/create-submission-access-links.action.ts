@@ -6,14 +6,12 @@ import { EndatixApi } from "@/lib/endatix-api";
 import type { SubmissionAccessTokenPermission } from "@/lib/endatix-api/submissions/types";
 import { Result, type ResultType } from "@/lib/result";
 import { toResult } from "@/lib/result/map-api-result-to-result";
+import {
+  clampExpiryMinutes,
+  DEFAULT_EXPIRY_MINUTES,
+} from "./share-link-expiry";
 
-const DEFAULT_EXPIRY_MINUTES = 60 * 24 * 7;
-
-export type SubmissionAccessLinkType =
-  | "view"
-  | "edit"
-  | "share"
-  | "export-pdf";
+export type SubmissionAccessLinkType = "view" | "edit" | "share" | "export-pdf";
 
 export interface SubmissionAccessLinkToken {
   type: SubmissionAccessLinkType;
@@ -53,11 +51,15 @@ export async function createSubmissionAccessLinkAction(
   const tokenResult = await api.submissions.createAccessToken({
     formId,
     submissionId,
-    expiryMinutes,
+    expiryMinutes: clampExpiryMinutes(expiryMinutes),
     permissions: [...permissions],
   });
 
-  const mappedTokenResult = toResult(tokenResult);
+  const mappedTokenResult = toResult(tokenResult, {
+    fallbackMessage: "Failed to create submission share link.",
+    logMessage: "Failed to create submission share link.",
+    loggerName: "submissions.createAccessLink",
+  });
   if (Result.isError(mappedTokenResult)) {
     return mappedTokenResult;
   }
