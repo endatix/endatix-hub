@@ -74,6 +74,12 @@ describe("pdfPlainText", () => {
     expect(pdfPlainText(() => "secret")).toBe("");
   });
 
+  it("does not print Error.message into the PDF", () => {
+    expect(pdfPlainText(new Error("internal"))).toBe(
+      "Cannot display this value",
+    );
+  });
+
   it("renders a bigint answer", () => {
     expect(pdfPlainText(BigInt(10))).toBe("10");
   });
