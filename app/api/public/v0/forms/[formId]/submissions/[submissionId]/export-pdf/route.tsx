@@ -15,6 +15,7 @@ type Params = {
 };
 
 const INLINE_QUERY_PARAM = "inline";
+const LOCALE_QUERY_PARAM = "locale";
 const DEFAULT_LOCALE_QUERY_PARAM = "defaultLocale";
 export async function GET(req: NextRequest, { params }: Params) {
   const startedAtMs = Date.now();
@@ -22,7 +23,8 @@ export async function GET(req: NextRequest, { params }: Params) {
 
   const searchParams = req.nextUrl.searchParams;
   const inline = searchParams.get(INLINE_QUERY_PARAM);
-  const useDefaultLocale = parseBoolean(
+  const requestedLocale = searchParams.get(LOCALE_QUERY_PARAM) ?? undefined;
+  const forceDefaultLocale = parseBoolean(
     searchParams.get(DEFAULT_LOCALE_QUERY_PARAM),
   );
 
@@ -55,7 +57,8 @@ export async function GET(req: NextRequest, { params }: Params) {
     renderResult = await renderSubmissionPdf({
       submission,
       customQuestionsJsonData,
-      useDefaultLocale,
+      requestedLocale,
+      forceDefaultLocale,
       startedAtMs,
       caller: "hub-authenticated",
     });

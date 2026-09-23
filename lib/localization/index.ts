@@ -1,5 +1,6 @@
 export {
   DEFAULT_CATALOG_LOCALE,
+  catalogLocaleCodeLabel,
   catalogLocaleDisplayName,
   fromSurveyModelLocale,
   isCatalogDefaultLocaleKey,
@@ -21,5 +22,10 @@ export {
   getLanguageDisplayName,
   getSubmissionLocale,
   isLocaleValid,
+  resolvePdfCatalogLocale,
   resolveSurveyModelLocaleForSubmission,
+} from "./submission-locale";
+export type {
+  PdfCatalogLocaleDecision,
+  PdfLocaleSource,
 } from "./submission-locale";

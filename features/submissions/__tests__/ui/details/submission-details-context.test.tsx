@@ -267,7 +267,6 @@ describe("SubmissionDetailsContext", () => {
         showInvisibleItems: true,
         showPersonalizedItems: true,
         showReadOnly: true,
-        useSubmissionLanguage: true,
       });
       expect(result.current.updateOption).toBeDefined();
       expect(result.current.toggleOption).toBeDefined();
@@ -421,7 +420,6 @@ describe("SubmissionDetailsContext", () => {
           showInvisibleItems: false,
           showPersonalizedItems: true,
           showReadOnly: true,
-          useSubmissionLanguage: true,
         }),
       );
     });
@@ -432,7 +430,6 @@ describe("SubmissionDetailsContext", () => {
           showInvisibleItems: false,
           showPersonalizedItems: false,
           showReadOnly: false,
-          useSubmissionLanguage: false,
         }),
       );
 
@@ -457,7 +454,6 @@ describe("SubmissionDetailsContext", () => {
         showInvisibleItems: false,
         showPersonalizedItems: false,
         showReadOnly: false,
-        useSubmissionLanguage: false,
       });
     });
 
@@ -485,7 +481,6 @@ describe("SubmissionDetailsContext", () => {
         showInvisibleItems: true,
         showPersonalizedItems: true,
         showReadOnly: true,
-        useSubmissionLanguage: true,
       });
     });
   });
@@ -523,7 +518,6 @@ describe("SubmissionDetailsContext", () => {
           showInvisibleItems: false,
           showPersonalizedItems: false,
           showReadOnly: false,
-          useSubmissionLanguage: false,
         }),
       );
 
@@ -533,7 +527,6 @@ describe("SubmissionDetailsContext", () => {
         showInvisibleItems: false,
         showPersonalizedItems: false,
         showReadOnly: false,
-        useSubmissionLanguage: false,
       });
     });
 

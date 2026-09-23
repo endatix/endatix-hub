@@ -2,6 +2,14 @@
 
 import { SubmissionDetailsResult } from "@/features/submissions/use-cases/get-submission-details.use-case";
 import { Submission } from "@/lib/endatix-api";
+import {
+  DEFAULT_CATALOG_LOCALE,
+  fromSurveyModelLocale,
+  getSubmissionLocale,
+  isLocaleValid,
+  toCatalogLocales,
+  toSurveyModelLocale,
+} from "@/lib/localization";
 import { Result } from "@/lib/result";
 import {
   createContext,
@@ -23,12 +31,12 @@ import {
   submissionDetailsReducer,
   SubmissionDetailsState,
 } from "./submission-details.reducer";
+import { publishSubmissionDisplayLocale } from "./submission-display-locale.store";
 
 export const ViewOption = {
   ShowInvisible: "showInvisibleItems",
   ShowPersonalized: "showPersonalizedItems",
   ShowReadOnly: "showReadOnly",
-  UseSubmissionLanguage: "useSubmissionLanguage",
 } as const;
 
 export type ViewOptionKey = (typeof ViewOption)[keyof typeof ViewOption];
@@ -37,7 +45,6 @@ export const viewOptionsStateSchema = z.object({
   [ViewOption.ShowInvisible]: z.boolean(),
   [ViewOption.ShowPersonalized]: z.boolean(),
   [ViewOption.ShowReadOnly]: z.boolean(),
-  [ViewOption.UseSubmissionLanguage]: z.boolean().optional(),
 });
 
 export type SubmissionDetailsViewOptions = z.infer<
@@ -48,63 +55,23 @@ export type SubmissionDetailsViewOptions = z.infer<
  * The context type for the submission details context.
  */
 interface SubmissionDetailsContextType {
-  /**
-   * The submission.
-   */
   submission: Submission;
-
-  /**
-   * The survey model.
-   */
   surveyModel: Model | null;
-  /**
-   * Sets the survey model.
-   * @param model - The survey model.
-   */
   setSurveyModel: (model: Model | null) => void;
-
   /**
-   * Gets all the questions in the survey.
-   * @returns The questions in the survey.
+   * Catalog locale for SurveyJS labels on this page.
+   * Does not change the submission's stored language.
    */
+  displayCatalogLocale: string;
+  setDisplayCatalogLocale: (catalogLocale: string) => void;
+  catalogLocales: string[];
   allQuestions: Question[];
-
-  /**
-   * The navigation pages derived from survey model and view options.
-   */
   submissionNavPages: SubmissionNavPage[];
-
-  /**
-   * The view options.
-   */
   viewOptions: SubmissionDetailsViewOptions;
-
-  /**
-   * Updates the view option.
-   * @param key - The key of the view option.
-   * @param value - The value of the view option.
-   */
   updateViewOption: (key: ViewOptionKey, value: boolean) => void;
-
-  /**
-   * Toggles the view option.
-   * @param key - The key of the view option.
-   */
   toggleViewOption: (key: ViewOptionKey) => void;
-
-  /**
-   * Resets the view options.
-   */
   resetViewOptions: () => void;
-
-  /**
-   * The highlighted question name.
-   */
   highlightedQuestionName: string | null;
-  /**
-   * Sets the highlighted question name.
-   * @param name - The name of the highlighted question.
-   */
   setHighlightedQuestionName: (name: string | null) => void;
 }
 
@@ -112,24 +79,31 @@ const SubmissionDetailsContext = createContext<
   SubmissionDetailsContextType | undefined
 >(undefined);
 
-// ============================================================================
-// Constants & Defaults
-// ============================================================================
-
 const LOCAL_STORAGE_KEY = "SubmissionDetailsViewOptions";
 
 const DEFAULT_VIEW_OPTIONS: SubmissionDetailsViewOptions = {
   [ViewOption.ShowInvisible]: true,
   [ViewOption.ShowPersonalized]: true,
   [ViewOption.ShowReadOnly]: true,
-  [ViewOption.UseSubmissionLanguage]: true,
 };
 
 const DEFAULT_STATE: SubmissionDetailsState = {
   viewOptions: DEFAULT_VIEW_OPTIONS,
   surveyModel: null,
+  displayCatalogLocale: DEFAULT_CATALOG_LOCALE,
   highlightedQuestionName: null,
 };
+
+function resolveInitialDisplayLocale(
+  submission: Submission,
+  model: Model,
+): string {
+  const submissionLocale = getSubmissionLocale(submission);
+  if (isLocaleValid(submissionLocale, model)) {
+    return fromSurveyModelLocale(submissionLocale);
+  }
+  return DEFAULT_CATALOG_LOCALE;
+}
 
 export function getStoredViewOptions(): SubmissionDetailsViewOptions | null {
   if (globalThis.window === undefined) {
@@ -193,14 +167,29 @@ export function SubmissionDetailsProvider({
     }
 
     return state.surveyModel.getAllQuestions(false, false, false);
-  }, [state.surveyModel]);
+  }, [state.surveyModel, state.displayCatalogLocale]);
 
   const submissionNavPages = useMemo(() => {
     return buildSubmissionNavPages(
       state.surveyModel,
       state.viewOptions.showInvisibleItems,
     );
-  }, [state.surveyModel, state.viewOptions.showInvisibleItems]);
+  }, [
+    state.surveyModel,
+    state.viewOptions.showInvisibleItems,
+    state.displayCatalogLocale,
+  ]);
+
+  const catalogLocales = useMemo(() => {
+    if (!state.surveyModel) {
+      return [];
+    }
+    const used =
+      typeof state.surveyModel.getUsedLocales === "function"
+        ? state.surveyModel.getUsedLocales()
+        : [];
+    return toCatalogLocales(used ?? []);
+  }, [state.surveyModel]);
 
   const submission =
     result && Result.isSuccess(result) ? result.value : undefined;
@@ -211,9 +200,56 @@ export function SubmissionDetailsProvider({
     }
 
     const setSurveyModel = (model: Model | null) => {
+      if (model === state.surveyModel) {
+        return;
+      }
+
+      if (model) {
+        const catalogLocale = resolveInitialDisplayLocale(submission, model);
+        const locales = toCatalogLocales(
+          typeof model.getUsedLocales === "function"
+            ? (model.getUsedLocales() ?? [])
+            : [],
+        );
+        model.locale = toSurveyModelLocale(catalogLocale);
+        publishSubmissionDisplayLocale(submission.id, {
+          catalogLocales: locales,
+          displayCatalogLocale: catalogLocale,
+        });
+        dispatch({
+          type: SubmissionDetailsActionType.SET_DISPLAY_CATALOG_LOCALE,
+          payload: catalogLocale,
+        });
+      }
       dispatch({
         type: SubmissionDetailsActionType.SET_SURVEY_MODEL,
         payload: model,
+      });
+    };
+
+    const setDisplayCatalogLocale = (catalogLocale: string) => {
+      const model = state.surveyModel;
+      if (!model) {
+        return;
+      }
+
+      const used =
+        typeof model.getUsedLocales === "function"
+          ? model.getUsedLocales()
+          : [];
+      const allowed = toCatalogLocales(used ?? []);
+      if (!allowed.includes(catalogLocale)) {
+        return;
+      }
+
+      model.locale = toSurveyModelLocale(catalogLocale);
+      publishSubmissionDisplayLocale(submission.id, {
+        catalogLocales: allowed,
+        displayCatalogLocale: catalogLocale,
+      });
+      dispatch({
+        type: SubmissionDetailsActionType.SET_DISPLAY_CATALOG_LOCALE,
+        payload: catalogLocale,
       });
     };
 
@@ -252,6 +288,9 @@ export function SubmissionDetailsProvider({
       resetViewOptions,
       surveyModel: state.surveyModel,
       setSurveyModel,
+      displayCatalogLocale: state.displayCatalogLocale,
+      setDisplayCatalogLocale,
+      catalogLocales,
       allQuestions,
       submissionNavPages,
       highlightedQuestionName: state.highlightedQuestionName,
@@ -261,7 +300,9 @@ export function SubmissionDetailsProvider({
     submission,
     state.viewOptions,
     state.surveyModel,
+    state.displayCatalogLocale,
     state.highlightedQuestionName,
+    catalogLocales,
     allQuestions,
     submissionNavPages,
   ]);
@@ -301,7 +342,7 @@ export function useSubmissionDetailsViewOptions() {
 }
 
 /**
- * Hook to get the submission details context. Focuse on the submission details data and actions.
+ * Hook to get the submission details context. Focused on the submission details data and actions.
  */
 export function useSubmissionDetails() {
   const {
@@ -310,6 +351,9 @@ export function useSubmissionDetails() {
     allQuestions,
     submissionNavPages,
     setSurveyModel,
+    displayCatalogLocale,
+    setDisplayCatalogLocale,
+    catalogLocales,
     highlightedQuestionName,
     setHighlightedQuestionName,
   } = useSubmissionDetailsContext();
@@ -319,6 +363,9 @@ export function useSubmissionDetails() {
     allQuestions,
     submissionNavPages,
     setSurveyModel,
+    displayCatalogLocale,
+    setDisplayCatalogLocale,
+    catalogLocales,
     highlightedQuestionName,
     setHighlightedQuestionName,
   };

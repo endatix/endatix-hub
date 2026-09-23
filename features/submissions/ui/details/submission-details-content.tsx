@@ -3,7 +3,6 @@
 import { cn } from "@/lib/utils";
 import { CustomQuestion } from "@/services/api";
 import { useEffect, useState, type ReactNode } from "react";
-import { getSubmissionLocale } from "@/lib/localization";
 import CalculatedValuesList from "./calculated-values-list";
 import DynamicVariablesList from "./dynamic-variables-list";
 import { QuestionFinder } from "./question-finder";
@@ -33,7 +32,6 @@ export function SubmissionDetailsContent({
   customQuestions,
 }: Readonly<SubmissionDetailsContentProps>) {
   const { submission, surveyModel } = useSubmissionDetails();
-  const submissionLocale = getSubmissionLocale(submission);
   const [activeTab, setActiveTab] = useState<TabId>("answers");
 
   useEffect(() => {
@@ -73,7 +71,7 @@ export function SubmissionDetailsContent({
       <>
         <div className="sticky top-[73px] z-30 flex flex-wrap items-center justify-between gap-3 bg-surface-container-lowest/95 py-4 backdrop-blur">
           <QuestionFinder />
-          <SubmissionViewOptions submissionLanguageName={submissionLocale} />
+          <SubmissionViewOptions />
         </div>
         <SubmissionAnswers customQuestions={customQuestions} />
       </>

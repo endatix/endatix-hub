@@ -1,5 +1,6 @@
 export {
   DEFAULT_CATALOG_LOCALE,
+  catalogLocaleCodeLabel,
   catalogLocaleDisplayName,
   fromSurveyModelLocale,
   isDefaultCatalogLocale,

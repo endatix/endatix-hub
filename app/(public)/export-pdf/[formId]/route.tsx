@@ -16,6 +16,7 @@ type Params = {
   }>;
 };
 
+const LOCALE_QUERY_PARAM = "locale";
 const DEFAULT_LOCALE_QUERY_PARAM = "defaultLocale";
 const TOKEN_QUERY_PARAM = "token";
 
@@ -27,7 +28,8 @@ export async function GET(req: NextRequest, { params }: Params) {
   const accept = req.headers.get("accept");
 
   const token = searchParams.get(TOKEN_QUERY_PARAM);
-  const useDefaultLocale = parseBoolean(
+  const requestedLocale = searchParams.get(LOCALE_QUERY_PARAM) ?? undefined;
+  const forceDefaultLocale = parseBoolean(
     searchParams.get(DEFAULT_LOCALE_QUERY_PARAM),
   );
 
@@ -82,7 +84,8 @@ export async function GET(req: NextRequest, { params }: Params) {
     renderResult = await renderSubmissionPdf({
       submission,
       customQuestionsJsonData,
-      useDefaultLocale,
+      requestedLocale,
+      forceDefaultLocale,
       startedAtMs,
       caller: "anonymous-token",
     });

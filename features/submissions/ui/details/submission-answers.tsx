@@ -50,7 +50,7 @@ export function SubmissionAnswers({
     submission,
     customQuestions: customQuestions.map((q: CustomQuestion) => q.jsonData),
     onModelCreated,
-    useSubmissionLanguage: viewOptions.useSubmissionLanguage === true,
+    useSubmissionLanguage: true,
   });
 
   const getReadRuntime = useStorageReadRuntime({ formId });

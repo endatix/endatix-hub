@@ -49,7 +49,10 @@ const surveyModel = new Model({
 surveyModel.data = { q1: "answered" };
 
 vi.mock("../prepare-pdf-model.use-case", () => ({
-  preparePdfModel: vi.fn(async () => surveyModel),
+  preparePdfModel: vi.fn(async () => ({
+    surveyModel,
+    locale: { catalogLocale: "default", source: "default" as const },
+  })),
 }));
 
 const toBlob = vi.fn(async () => new Blob(["%PDF-1.4"]));
@@ -80,7 +83,10 @@ beforeEach(() => {
   spans.length = 0;
   toBlob.mockClear();
   vi.mocked(preparePdfModel).mockClear();
-  vi.mocked(preparePdfModel).mockResolvedValue(surveyModel);
+  vi.mocked(preparePdfModel).mockResolvedValue({
+    surveyModel,
+    locale: { catalogLocale: "default", source: "default" },
+  });
   vi.mocked(TelemetryLogger.warn).mockClear();
   vi.mocked(TelemetryLogger.error).mockClear();
   vi.useRealTimers();
@@ -120,6 +126,8 @@ describe("renderSubmissionPdf", () => {
       "pdf.answeredCount": 1,
       "pdf.matrixRowCount": 0,
       "pdf.fileAttachmentCount": 0,
+      "pdf.locale": "default",
+      "pdf.localeSource": "default",
     });
     expect(render?.attributes["pdf.durationMs"]).toBeTypeOf("number");
   });

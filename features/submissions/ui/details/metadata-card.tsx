@@ -1,28 +1,34 @@
 "use client";
 
+import { LocaleLabel } from "@/components/common/locale-label";
+import { StatusBadge } from "@/components/common/status-badge";
 import { Alert, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   getElapsedTimeString,
   getSubmissionStartedAt,
   parseDate,
 } from "@/lib/utils";
-import { Info, TriangleAlert } from "lucide-react";
-import { useMemo, type ReactNode } from "react";
 import {
-  getLanguageDisplayName,
+  catalogLocaleDisplayName,
+  DEFAULT_CATALOG_LOCALE,
+  fromSurveyModelLocale,
   getSubmissionLocale,
+  isLocaleValid,
 } from "@/lib/localization";
+import { ChevronDown, Languages, TriangleAlert } from "lucide-react";
+import type { ReactNode } from "react";
 import { CellStatusDropdown } from "../table/cell-status-dropdown";
-import {
-  useSubmissionDetails,
-  useSubmissionDetailsViewOptions,
-} from "./submission-details-context";
+import { useSubmissionDetails } from "./submission-details-context";
 
 const DASH_NO_DATA = "—";
 
@@ -57,7 +63,7 @@ interface MetaCellProps {
 function MetaCell({ label, children }: Readonly<MetaCellProps>) {
   return (
     <div className="flex h-full flex-col justify-between gap-3 bg-surface-container-lowest p-4 sm:p-6">
-      <span className="text-[10px] leading-none font-bold tracking-widest text-slate-500 uppercase">
+      <span className="text-[10px] leading-none font-bold tracking-widest text-muted-foreground uppercase">
         {label}
       </span>
       <div className="flex min-h-[28px] items-center">{children}</div>
@@ -67,31 +73,90 @@ function MetaCell({ label, children }: Readonly<MetaCellProps>) {
 
 function ValueText({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <span className="text-[13px] font-semibold text-slate-900">{children}</span>
+    <span className="text-[13px] font-semibold text-foreground">
+      {children}
+    </span>
+  );
+}
+
+function SubmissionLanguageMetaCell({
+  submittedCatalogLocale,
+}: Readonly<{ submittedCatalogLocale: string }>) {
+  const { catalogLocales, displayCatalogLocale, setDisplayCatalogLocale } =
+    useSubmissionDetails();
+
+  if (catalogLocales.length <= 1) {
+    return (
+      <MetaCell label="Language">
+        <ValueText>
+          <LocaleLabel
+            catalogLocale={catalogLocales[0] ?? DEFAULT_CATALOG_LOCALE}
+          />
+        </ValueText>
+      </MetaCell>
+    );
+  }
+
+  return (
+    <MetaCell label="Language">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Badge
+            asChild
+            variant="secondary"
+            className="h-7 max-w-full cursor-pointer gap-1 px-2.5 text-xs font-semibold"
+          >
+            <button type="button">
+              <span className="sr-only">Labels shown in </span>
+              <LocaleLabel catalogLocale={displayCatalogLocale} />
+              <ChevronDown aria-hidden="true" />
+            </button>
+          </Badge>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="min-w-52">
+          <DropdownMenuLabel
+            inset
+            className="text-xs font-normal text-muted-foreground"
+          >
+            Show labels in
+          </DropdownMenuLabel>
+          <DropdownMenuRadioGroup
+            value={displayCatalogLocale}
+            onValueChange={setDisplayCatalogLocale}
+          >
+            {catalogLocales.map((locale) => (
+              <DropdownMenuRadioItem key={locale} value={locale}>
+                <LocaleLabel catalogLocale={locale} />
+                {locale === submittedCatalogLocale && (
+                  <span className="ml-auto pl-3 text-xs text-muted-foreground">
+                    Submitted
+                  </span>
+                )}
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </MetaCell>
   );
 }
 
 export function MetadataCard() {
-  const { submission } = useSubmissionDetails();
-  const { viewOptions } = useSubmissionDetailsViewOptions();
-  const rawLocale = getSubmissionLocale(submission);
-  const hasStoredLocale = Boolean(rawLocale?.trim());
-  const languageLabel = hasStoredLocale
-    ? (getLanguageDisplayName(rawLocale) ?? rawLocale)
-    : "default";
-  const isUsingSubmissionLanguage = viewOptions.useSubmissionLanguage;
+  const {
+    submission,
+    surveyModel,
+    displayCatalogLocale,
+    setDisplayCatalogLocale,
+  } = useSubmissionDetails();
 
-  const languageTooltip = useMemo(() => {
-    if (!hasStoredLocale) {
-      return "No locale is stored for this submission; the default language is used.";
-    }
-
-    if (isUsingSubmissionLanguage) {
-      return "Displaying in submission language";
-    }
-
-    return `Switch to "${getLanguageDisplayName(rawLocale) ?? rawLocale}" in View menu`;
-  }, [hasStoredLocale, isUsingSubmissionLanguage, rawLocale]);
+  const storedLocale = getSubmissionLocale(submission);
+  const submittedCatalogLocale =
+    surveyModel && isLocaleValid(storedLocale, surveyModel)
+      ? fromSurveyModelLocale(storedLocale)
+      : DEFAULT_CATALOG_LOCALE;
+  const showingOtherLanguage = displayCatalogLocale !== submittedCatalogLocale;
+  const submittedName = catalogLocaleDisplayName(submittedCatalogLocale);
+  const displayName = catalogLocaleDisplayName(displayCatalogLocale);
 
   const completionTime =
     submission.isComplete &&
@@ -114,6 +179,30 @@ export function MetadataCard() {
           </AlertTitle>
         </Alert>
       )}
+      {showingOtherLanguage && (
+        <Alert
+          variant="info"
+          role="status"
+          className="rounded-none border-0 border-b py-2.5"
+        >
+          <Languages />
+          <div className="col-start-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+            <p>
+              Labels shown in <strong>{displayName}</strong>. Answers are
+              exactly as submitted in <strong>{submittedName}</strong>.
+            </p>
+            <Button
+              type="button"
+              variant="link"
+              size="sm"
+              className="h-auto p-0"
+              onClick={() => setDisplayCatalogLocale(submittedCatalogLocale)}
+            >
+              Show in {submittedName}
+            </Button>
+          </div>
+        </Alert>
+      )}
       <div
         className={`grid grid-cols-2 gap-px lg:grid-cols-4 ${metadataGridHairline}`}
       >
@@ -125,9 +214,10 @@ export function MetadataCard() {
           />
         </MetaCell>
         <MetaCell label="Is Complete">
-          <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-[11px] font-bold text-slate-700">
-            {submission.isComplete ? "Yes" : "No"}
-          </span>
+          <StatusBadge
+            tone={submission.isComplete ? "on" : "off"}
+            label={submission.isComplete ? "Yes" : "No"}
+          />
         </MetaCell>
         <MetaCell label="Created at">
           <ValueText>{formatDate(submission.createdAt)}</ValueText>
@@ -144,27 +234,9 @@ export function MetadataCard() {
         <MetaCell label="Completion time">
           <ValueText>{completionTime}</ValueText>
         </MetaCell>
-        <MetaCell label="Submission language">
-          <span className="inline-flex min-w-0 items-center gap-2">
-            <ValueText>{languageLabel}</ValueText>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    className="shrink-0 cursor-help rounded-full text-slate-400 transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                    aria-label="Submission language info"
-                  >
-                    <Info className="h-4 w-4" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p className="max-w-xs text-sm">{languageTooltip}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </span>
-        </MetaCell>
+        <SubmissionLanguageMetaCell
+          submittedCatalogLocale={submittedCatalogLocale}
+        />
       </div>
     </section>
   );

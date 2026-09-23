@@ -148,19 +148,6 @@ export function useSurveyModel({
     formRuntime,
   ]);
 
-  // Keep locale in sync when View → submission language is toggled after construction.
-  useEffect(() => {
-    if (!surveyModel || !submission || useSubmissionLanguage === undefined) {
-      return;
-    }
-
-    surveyModel.locale = resolveSurveyModelLocaleForSubmission(
-      submission,
-      surveyModel,
-      useSubmissionLanguage === true,
-    );
-  }, [surveyModel, submission, useSubmissionLanguage]);
-
   return {
     error,
     surveyModel,

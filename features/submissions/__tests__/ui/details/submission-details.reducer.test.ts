@@ -10,10 +10,11 @@ describe("submissionDetailsReducer", () => {
   const initialState: SubmissionDetailsState = {
     viewOptions: {
       showInvisibleItems: true,
+      showPersonalizedItems: true,
       showReadOnly: true,
-      useSubmissionLanguage: true,
     },
     surveyModel: null,
+    displayCatalogLocale: "default",
     highlightedQuestionName: null,
   };
 
@@ -21,8 +22,8 @@ describe("submissionDetailsReducer", () => {
     it("should replace viewOptions with payload", () => {
       const newOptions = {
         showInvisibleItems: false,
+        showPersonalizedItems: false,
         showReadOnly: false,
-        useSubmissionLanguage: false,
       };
 
       const action: SubmissionDetailsAction = {
@@ -49,7 +50,6 @@ describe("submissionDetailsReducer", () => {
 
       expect(result.viewOptions.showInvisibleItems).toBe(false);
       expect(result.viewOptions.showReadOnly).toBe(true);
-      expect(result.viewOptions.useSubmissionLanguage).toBe(true);
     });
 
     it("should update optional view option", () => {
@@ -99,17 +99,17 @@ describe("submissionDetailsReducer", () => {
         ...initialState,
         viewOptions: {
           showInvisibleItems: false,
+          showPersonalizedItems: false,
           showReadOnly: false,
-          useSubmissionLanguage: false,
         },
-        surveyModel: {} as any,
+        surveyModel: {} as never,
         highlightedQuestionName: "question1",
       };
 
       const defaultOptions = {
         showInvisibleItems: true,
+        showPersonalizedItems: true,
         showReadOnly: true,
-        useSubmissionLanguage: true,
       };
 
       const action: SubmissionDetailsAction = {
@@ -127,7 +127,7 @@ describe("submissionDetailsReducer", () => {
 
   describe("SET_SURVEY_MODEL", () => {
     it("should set surveyModel to the payload", () => {
-      const mockModel = { get: () => {} } as any;
+      const mockModel = { get: () => {} } as never;
 
       const action = {
         type: SubmissionDetailsActionType.SET_SURVEY_MODEL,
@@ -142,7 +142,7 @@ describe("submissionDetailsReducer", () => {
     it("should set surveyModel to null", () => {
       const stateWithModel = {
         ...initialState,
-        surveyModel: { get: () => {} } as any,
+        surveyModel: { get: () => {} } as never,
       };
 
       const action: SubmissionDetailsAction = {
@@ -153,6 +153,19 @@ describe("submissionDetailsReducer", () => {
       const result = submissionDetailsReducer(stateWithModel, action);
 
       expect(result.surveyModel).toBeNull();
+    });
+  });
+
+  describe("SET_DISPLAY_CATALOG_LOCALE", () => {
+    it("should set displayCatalogLocale", () => {
+      const action: SubmissionDetailsAction = {
+        type: SubmissionDetailsActionType.SET_DISPLAY_CATALOG_LOCALE,
+        payload: "fr",
+      };
+
+      const result = submissionDetailsReducer(initialState, action);
+
+      expect(result.displayCatalogLocale).toBe("fr");
     });
   });
 
@@ -187,7 +200,7 @@ describe("submissionDetailsReducer", () => {
 
   describe("default case", () => {
     it("should return the same state for unknown action type", () => {
-      const action = { type: "UNKNOWN_ACTION" } as any;
+      const action = { type: "UNKNOWN_ACTION" } as never;
 
       const result = submissionDetailsReducer(initialState, action);
 

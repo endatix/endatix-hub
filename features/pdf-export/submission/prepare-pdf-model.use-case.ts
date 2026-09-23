@@ -1,7 +1,12 @@
 import { addViewTokensToModelUseCase } from "@/features/asset-storage/server";
 import { primeDataListDisplayValues } from "@/lib/survey-features/data-lists/infrastructure/prime-data-list-display-values";
 import { registerDataListGlobals } from "@/lib/survey-features/data-lists/infrastructure/registry";
-import { getSubmissionLocale } from "@/lib/localization";
+import {
+  getSubmissionLocale,
+  resolvePdfCatalogLocale,
+  toSurveyModelLocale,
+  type PdfCatalogLocaleDecision,
+} from "@/lib/localization";
 import { Submission } from "@/lib/endatix-api";
 import { initializeCustomQuestions } from "@/lib/questions";
 import { registerAudioQuestionModel } from "@/lib/questions/audio-recorder/audio-question-pdf";
@@ -12,8 +17,16 @@ import { Model } from "survey-core";
 interface PreparePdfModelOptions {
   submission: Submission;
   customQuestionsJsonData: string[];
-  useDefaultLocale?: boolean;
+  /** Catalog code from `?locale=`. Omitted when the caller did not choose one. */
+  requestedLocale?: string;
+  /** Legacy `?defaultLocale=true` links. Wins over requestedLocale. */
+  forceDefaultLocale?: boolean;
 }
+
+export type PreparedPdfModel = {
+  surveyModel: Model;
+  locale: PdfCatalogLocaleDecision;
+};
 
 /**
  * Orchestrates the creation and authorization of a SurveyJS Model for PDF export.
@@ -24,8 +37,9 @@ interface PreparePdfModelOptions {
 export async function preparePdfModel({
   submission,
   customQuestionsJsonData,
-  useDefaultLocale = false,
-}: PreparePdfModelOptions): Promise<Model> {
+  requestedLocale,
+  forceDefaultLocale = false,
+}: PreparePdfModelOptions): Promise<PreparedPdfModel> {
   // Add custom questions to the model
   registerAudioQuestionModel();
   registerDragCategorizeModel();
@@ -34,21 +48,20 @@ export async function preparePdfModel({
 
   const surveyJson = JSON.parse(submission.formDefinition?.jsonData ?? "{}");
   const surveyModel = new Model(surveyJson);
+
+  const locale = resolvePdfCatalogLocale({
+    usedLocales: surveyModel.getUsedLocales() ?? [],
+    submissionLocale: getSubmissionLocale(submission),
+    requestedLocale,
+    forceDefault: forceDefaultLocale,
+  });
+  surveyModel.locale = toSurveyModelLocale(locale.catalogLocale);
   surveyModel.data = JSON.parse(submission.jsonData ?? "{}");
-
-  // Set Locale
-  const pdfLocale = useDefaultLocale
-    ? undefined
-    : getSubmissionLocale(submission);
-
-  if (pdfLocale) {
-    surveyModel.locale = pdfLocale;
-  }
 
   await primeDataListDisplayValues(surveyModel, submission.formId);
 
   // Authorize Assets
   await addViewTokensToModelUseCase(surveyModel);
 
-  return surveyModel;
+  return { surveyModel, locale };
 }

@@ -15,13 +15,7 @@ import {
   ViewOption,
 } from "./submission-details-context";
 
-interface SubmissionViewOptionsProps {
-  submissionLanguageName?: string;
-}
-
-export function SubmissionViewOptions({
-  submissionLanguageName,
-}: SubmissionViewOptionsProps) {
+export function SubmissionViewOptions() {
   const { viewOptions, toggleOption, resetOptions } =
     useSubmissionDetailsViewOptions();
 
@@ -54,16 +48,6 @@ export function SubmissionViewOptions({
         >
           Show Personalized Items
         </DropdownMenuCheckboxItem>
-        {submissionLanguageName && (
-          <DropdownMenuCheckboxItem
-            checked={viewOptions.useSubmissionLanguage}
-            onCheckedChange={() =>
-              toggleOption(ViewOption.UseSubmissionLanguage)
-            }
-          >
-            {`Display in ${submissionLanguageName}`}
-          </DropdownMenuCheckboxItem>
-        )}
         <DropdownMenuSeparator />
         <Button
           variant="ghost"

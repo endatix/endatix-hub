@@ -76,11 +76,31 @@ export function toCatalogLocales(usedLocales: readonly string[]): string[] {
  * runtime defaultLocale code when the catalog key is <c>default</c>).
  */
 export function catalogLocaleDisplayName(catalogLocale: string): string {
-  if (isDefaultCatalogLocale(catalogLocale)) {
-    const code = surveyJsDefaultLocaleCode();
-    return surveyLocalization.localeNames[code] || code;
-  }
+  const code = isDefaultCatalogLocale(catalogLocale)
+    ? surveyJsDefaultLocaleCode()
+    : catalogLocale.trim().toLowerCase();
+  return intlLanguageName(code) || surveyLocalization.localeNames[code] || code;
+}
 
-  const code = catalogLocale.trim().toLowerCase();
-  return surveyLocalization.localeNames[code] || code;
+/** Short code shown next to a language name (`en`, `pt-BR`). */
+export function catalogLocaleCodeLabel(catalogLocale: string): string {
+  const code = isDefaultCatalogLocale(catalogLocale)
+    ? surveyJsDefaultLocaleCode()
+    : catalogLocale.trim();
+  const [language, ...rest] = code.split("-");
+  const head = language.toLowerCase();
+  if (rest.length === 0) {
+    return head;
+  }
+  return `${head}-${rest.join("-").toUpperCase()}`;
+}
+
+function intlLanguageName(code: string): string | undefined {
+  try {
+    const displayNames = new Intl.DisplayNames(["en"], { type: "language" });
+    const tag = code.replaceAll("_", "-");
+    return displayNames.of(tag) ?? undefined;
+  } catch {
+    return undefined;
+  }
 }

@@ -30,16 +30,17 @@ import {
 import Link from "next/link";
 import type { Route } from "next";
 import { useSession } from "next-auth/react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { saveToFileHandler } from "survey-creator-core";
 import { StatusDropdownMenuItem } from "../../use-cases/change-status";
 import { DeleteSubmissionDialog } from "../../use-cases/delete-submission";
 import { SubmissionShareLinksDialog } from "../../share-links/submission-share-links-dialog";
 import { DownloadFilesDropdownItem } from "../download-files-dropdown-item";
 import {
-  useSubmissionDetails,
-  useSubmissionDetailsViewOptions,
-} from "./submission-details-context";
+  getSubmissionDisplayLocale,
+  subscribeSubmissionDisplayLocale,
+} from "./submission-display-locale.store";
+import { useSubmissionDetails } from "./submission-details-context";
 
 interface SubmissionDetailsHeaderProps {
   submissionId: string;
@@ -58,8 +59,12 @@ export function SubmissionDetailsHeader({
   const [listHref, setListHref] = useState(`/forms/${formId}/submissions`);
   const { data: session } = useSession();
   const { trackEvent } = useTrackEvent();
-  const { viewOptions } = useSubmissionDetailsViewOptions();
   const { submission } = useSubmissionDetails();
+  const displayLocale = useSyncExternalStore(
+    subscribeSubmissionDisplayLocale,
+    () => getSubmissionDisplayLocale(submissionId),
+    () => getSubmissionDisplayLocale(submissionId),
+  );
 
   useEffect(() => {
     setListHref(getSubmissionListReturnPath(formId));
@@ -85,8 +90,8 @@ export function SubmissionDetailsHeader({
     try {
       setPdfLoading(true);
       const params = new URLSearchParams();
-      if (!viewOptions.useSubmissionLanguage) {
-        params.set("defaultLocale", "true");
+      if (displayLocale.ready) {
+        params.set("locale", displayLocale.displayCatalogLocale);
       }
       const query = params.toString() ? `?${params.toString()}` : "";
       const url = withBasePath(
@@ -105,6 +110,7 @@ export function SubmissionDetailsHeader({
           submission_id: submissionId,
           status: fileResponse.status,
           error_message: message,
+          locale: displayLocale.displayCatalogLocale,
         });
 
         toast.error(message);
@@ -121,6 +127,7 @@ export function SubmissionDetailsHeader({
         submission_id: submissionId,
         file_name: pdfFileName,
         file_size: blob.size,
+        locale: displayLocale.displayCatalogLocale,
       });
 
       toast.success("PDF exported successfully");
@@ -130,6 +137,7 @@ export function SubmissionDetailsHeader({
         form_id: formId,
         submission_id: submissionId,
         error_message: error instanceof Error ? error.message : "Unknown error",
+        locale: displayLocale.displayCatalogLocale,
       });
 
       // A thrown error here is the network failing, not the server answering.
@@ -233,6 +241,11 @@ export function SubmissionDetailsHeader({
         submissionId={submissionId}
         open={isShareLinksOpen}
         onOpenChange={setIsShareLinksOpen}
+        pdfLocale={
+          displayLocale.catalogLocales.length > 1
+            ? displayLocale.displayCatalogLocale
+            : undefined
+        }
       />
       <DeleteSubmissionDialog
         open={isDeleteOpen}

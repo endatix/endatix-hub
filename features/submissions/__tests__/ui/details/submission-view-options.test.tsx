@@ -3,10 +3,13 @@ import { Result } from "@/lib/result";
 import { act, render, screen } from "@testing-library/react";
 import { Suspense } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { SubmissionDetailsProvider, useSubmissionDetailsViewOptions } from "../../../ui/details/submission-details-context";
+import {
+  SubmissionDetailsProvider,
+  useSubmissionDetailsViewOptions,
+} from "../../../ui/details/submission-details-context";
 import { SubmissionViewOptions } from "../../../ui/details/submission-view-options";
 
-const mockSubmission : Submission = {
+const mockSubmission: Submission = {
   id: "sub-123",
   status: "completed",
   createdAt: new Date(),
@@ -51,9 +54,15 @@ describe("SubmissionViewOptions", () => {
       const { viewOptions } = useSubmissionDetailsViewOptions();
       return (
         <div>
-          <span data-testid="showInvisible">{String(viewOptions.showInvisibleItems)}</span>
-          <span data-testid="showPersonalized">{String(viewOptions.showPersonalizedItems)}</span>
-          <span data-testid="showReadOnly">{String(viewOptions.showReadOnly)}</span>
+          <span data-testid="showInvisible">
+            {String(viewOptions.showInvisibleItems)}
+          </span>
+          <span data-testid="showPersonalized">
+            {String(viewOptions.showPersonalizedItems)}
+          </span>
+          <span data-testid="showReadOnly">
+            {String(viewOptions.showReadOnly)}
+          </span>
         </div>
       );
     };
@@ -74,23 +83,7 @@ describe("SubmissionViewOptions", () => {
     expect(screen.getByTestId("showReadOnly").textContent).toBe("true");
   });
 
-  it("should display submission language option when language name is provided", async () => {
-    const TestComponent = () => <SubmissionViewOptions submissionLanguageName="English" />;
-
-    await act(async () => {
-      render(
-        <Suspense fallback={<div>Loading...</div>}>
-          <SubmissionDetailsProvider submissionPromise={mockSubmissionPromise}>
-            <TestComponent />
-          </SubmissionDetailsProvider>
-        </Suspense>,
-      );
-    });
-
-    expect(screen.getByRole("button", { name: /view/i })).toBeDefined();
-  });
-
-  it("should render without submission language when not provided", async () => {
+  it("should render the View menu trigger", async () => {
     const TestComponent = () => <SubmissionViewOptions />;
 
     await act(async () => {
