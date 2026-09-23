@@ -19,14 +19,22 @@ export function FormsHeaderCreateActions({
   defaultFolderSlug,
   defaultFolderName,
 }: Readonly<FormsHeaderCreateActionsProps>) {
-  const initialFolders = mapNavFoldersForCreate(headerData.folders);
+  let initialFolders = undefined;
+  if (headerData.folders !== undefined) {
+    initialFolders = mapNavFoldersForCreate(headerData.folders);
+  }
+
+  const assignableFolders = headerData.folders?.map((folder) => ({
+    id: folder.id,
+    name: folder.name,
+  }));
 
   return (
     <AssetStorageProvider>
       <FormAssistantProvider
         isAssistantEnabled={aiFeatureFlag}
         requireFolderForNewForms={headerData.requireFolderForNewForms}
-        assignableFolders={headerData.assignableFolders}
+        assignableFolders={assignableFolders}
         defaultAssignFolderId={defaultFolderId}
       >
         <CreateFormSheet

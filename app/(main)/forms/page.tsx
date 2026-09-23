@@ -54,7 +54,7 @@ export default async function FormsPage({
   const formsPromise = getFormsListPromise(listRequest, session);
   const headerDataPromise = getFormsHeaderDataCached(session?.accessToken);
   const folderContextByIdPromise = headerDataPromise.then((headerData) =>
-    buildFolderContextById(headerData.folders),
+    buildFolderContextById(headerData.folders ?? []),
   );
 
   return (
@@ -114,7 +114,7 @@ async function FormsFoldersSection({
   headerDataPromise: ReturnType<typeof getFormsHeaderDataCached>;
 }>) {
   const headerData = await headerDataPromise;
-  if (headerData.folders.length === 0) {
+  if (headerData.folders === undefined || headerData.folders.length === 0) {
     return null;
   }
 

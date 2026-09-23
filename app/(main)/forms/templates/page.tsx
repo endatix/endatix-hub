@@ -38,7 +38,7 @@ async function TemplatesFoldersSection({
   headerDataPromise: ReturnType<typeof getFormsHeaderDataCached>;
 }>) {
   const headerData = await headerDataPromise;
-  if (headerData.folders.length === 0) {
+  if (headerData.folders === undefined || headerData.folders.length === 0) {
     return null;
   }
 

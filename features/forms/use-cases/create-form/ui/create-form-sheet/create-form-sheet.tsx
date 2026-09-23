@@ -35,6 +35,7 @@ interface CreateFormSheetProps {
   defaultFolderId?: string;
   defaultFolderSlug?: string;
   defaultFolderName?: string;
+  /** `undefined` — folders were not loaded. `[]` — loaded and empty. */
   initialFolders?: Folder[];
   initialRequireFolderAssignment?: boolean;
 }
@@ -43,7 +44,7 @@ export function CreateFormSheet({
   defaultFolderId,
   defaultFolderSlug,
   defaultFolderName,
-  initialFolders = [],
+  initialFolders,
   initialRequireFolderAssignment = false,
 }: Readonly<CreateFormSheetProps>) {
   const router = useRouter();
@@ -153,11 +154,13 @@ export function CreateFormSheet({
     });
   }, [isPending, router, selectedFolderId, selectedTemplate]);
 
-  const sheetDescription = isFromScratch
-    ? "Name the form. Add a description if you want one."
-    : effectiveFolderName
-      ? `Create a form in "${effectiveFolderName}". Choose an option below.`
-      : "Choose one of the following options to create a form.";
+  let sheetDescription =
+    "Choose one of the following options to create a form.";
+  if (isFromScratch) {
+    sheetDescription = "Name the form. Add a description if you want one.";
+  } else if (effectiveFolderName) {
+    sheetDescription = `Create a form in "${effectiveFolderName}". Choose an option below.`;
+  }
 
   return (
     <ResponsivePanel

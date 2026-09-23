@@ -156,6 +156,25 @@ beforeEach(() => {
 });
 
 describe("CreateFormSheet", () => {
+  it("opens when the empty-state button is clicked before the sheet registers", async () => {
+    // Arrange
+    const view = render(<OpenCreateFormButton />);
+    fireEvent.click(screen.getByRole("button", { name: /create a form/i }));
+
+    // Act
+    view.rerender(
+      <>
+        <OpenCreateFormButton />
+        <CreateFormSheet initialFolders={[]} />
+      </>,
+    );
+
+    // Assert
+    expect(
+      await screen.findByRole("dialog", { name: "Create a Form" }),
+    ).toBeTruthy();
+  });
+
   it("opens from the empty-state button", async () => {
     // Arrange
     render(
@@ -166,10 +185,14 @@ describe("CreateFormSheet", () => {
     );
 
     // Act — the empty-state control, not the header trigger
-    fireEvent.click(screen.getAllByRole("button", { name: /create a form/i })[0]);
+    fireEvent.click(
+      screen.getAllByRole("button", { name: /create a form/i })[0],
+    );
 
     // Assert
-    expect(await screen.findByRole("dialog", { name: "Create a Form" })).toBeTruthy();
+    expect(
+      await screen.findByRole("dialog", { name: "Create a Form" }),
+    ).toBeTruthy();
   });
 
   it("shows the create form when the tenant has no folders", async () => {
