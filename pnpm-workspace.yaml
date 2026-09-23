@@ -14,6 +14,19 @@ nodeLinker: hoisted
 # majors behave identically. For a genuine same-day CVE patch add the package to
 # minimumReleaseAgeExclude rather than lowering the age.
 minimumReleaseAge: 1440 # minutes - no same-day publishes
+# GHSA-vcvr-r3jv-pc5j: next 16.3.6 and its @next/* platform packages shipped 2026-09-22.
+# Remove once they are older than minimumReleaseAge.
+minimumReleaseAgeExclude:
+  - next
+  - "@next/env"
+  - "@next/swc-darwin-arm64"
+  - "@next/swc-darwin-x64"
+  - "@next/swc-linux-arm64-gnu"
+  - "@next/swc-linux-arm64-musl"
+  - "@next/swc-linux-x64-gnu"
+  - "@next/swc-linux-x64-musl"
+  - "@next/swc-win32-arm64-msvc"
+  - "@next/swc-win32-x64-msvc"
 blockExoticSubdeps: true
 strictDepBuilds: true
 verifyDepsBeforeRun: install
