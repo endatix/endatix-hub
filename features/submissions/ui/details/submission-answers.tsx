@@ -43,7 +43,6 @@ export function SubmissionAnswers({
       getRuntimeState,
     },
   });
-  const { viewOptions } = useSubmissionDetailsViewOptions();
   const { surveyModel, error } = useSurveyModel({
     formId,
     definition: formDefinition,

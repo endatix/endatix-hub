@@ -13,6 +13,7 @@
 - PDF `<Text>`: `pdfPlainText` in [`lib/utils/pdf-plain-text.ts`](lib/utils/pdf-plain-text.ts) (lives in `lib/` so `lib/questions/*pdf-answer*` can import it). Not `sanitizeInline`. Hub UI labels: `htmlSanitizer.toPlainText` only.
 - Hub telemetry: `features/telemetry/` — `TelemetrySdk` (`NodeSDK` + explicit `LoggerProvider`, not Azure `useAzureMonitor`). Env: `APPLICATIONINSIGHTS_CONNECTION_STRING`, `OTEL_EXPORTER_OTLP_*`, `OTEL_SDK_DISABLED`, `OTEL_SERVICE_NAME`. App logs: `TelemetryLogger`. Details: [`features/telemetry/README.md`](features/telemetry/README.md).
 - Sticky chrome (submission details search + ToC): do not put `overflow-hidden` (or other overflow clip) on an ancestor of `position: sticky` — it creates a containing block and silently unpins the child.
+- Submission label locale: the details page and `@header` do not share React context. `submission-display-locale.store.ts` is the bridge — the details model publishes `displayCatalogLocale`; Export PDF and the PDF share link read it. Do not add a second language picker in the header.
 - Share-link row: [`components/common/share-link-row.tsx`](components/common/share-link-row.tsx) (`ShareLinkRow`, `ShareLinkRowHeader`). Used by form Share and submission share-links — not a `features/share-links/` domain. See [`project-structure.md`](project-structure.md) “Where UI for a shared concept lives”.
 
 ## Toolchain (Node & pnpm)
