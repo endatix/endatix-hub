@@ -23,8 +23,14 @@ export function useCreateFormSheetBootstrap({
 
   useEffect(() => {
     setRequireFolderAssignment(initialRequireFolderAssignment);
+    // An empty list is a finished load, not "still waiting". A new [] from the
+    // parent on each render must not wipe a completed fetch or put the spinner back.
+    if (initialFolders.length === 0) {
+      return;
+    }
+
     setFolders(initialFolders);
-    setFoldersReady(initialFolders.length > 0);
+    setFoldersReady(true);
   }, [initialFolders, initialRequireFolderAssignment]);
 
   useEffect(() => {

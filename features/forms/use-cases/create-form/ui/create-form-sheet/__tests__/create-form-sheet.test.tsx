@@ -1,6 +1,7 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { createNextNavigationMock } from "@/__tests__/utils/mock-next";
+import { listFoldersAction } from "@/features/folders/server";
 import { getTenantSettingsAction } from "@/features/forms/application/actions/get-tenant-settings.action";
 import { Result } from "@/lib/result";
 import type { Folder } from "@/lib/endatix-api/folders/types";
@@ -22,18 +23,24 @@ vi.mock("../../../create-form.action", () => ({
   createFormAction: vi.fn(),
 }));
 
-vi.mock("@/features/forms/application/actions/get-tenant-settings.action", () => ({
-  getTenantSettingsAction: vi.fn(),
-}));
+vi.mock(
+  "@/features/forms/application/actions/get-tenant-settings.action",
+  () => ({
+    getTenantSettingsAction: vi.fn(),
+  }),
+);
 
 vi.mock("@/features/folders/server", () => ({
   listFoldersAction: vi.fn(),
   getFolderBySlugAction: vi.fn(),
 }));
 
-vi.mock("@/features/form-templates/application/run-create-form-from-template.client", () => ({
-  runCreateFormFromTemplate: vi.fn(),
-}));
+vi.mock(
+  "@/features/form-templates/application/run-create-form-from-template.client",
+  () => ({
+    runCreateFormFromTemplate: vi.fn(),
+  }),
+);
 
 vi.mock("@/features/form-templates/ui/form-template-preview", () => ({
   FormTemplatePreview: () => null,
@@ -43,22 +50,28 @@ vi.mock("../create-form-assistant-panel", () => ({
   CreateFormAssistantPanel: () => null,
 }));
 
-vi.mock("@/features/forms/use-cases/design-form/use-auto-create-form.hook", () => ({
-  useAutoCreateForm: () => ({ isCreatingForm: false }),
-}));
-
-vi.mock("@/features/forms/use-cases/design-form/form-assistant.context", () => ({
-  useFormAssistant: () => ({
-    isAssistantEnabled: false,
-    chatContext: null,
-    sendPrompt: vi.fn(),
-    generateAssociatedForm: vi.fn(),
-    requireFolderForNewForms: false,
-    assignableFolders: [],
-    assignFolderId: undefined,
-    setAssignFolderId: vi.fn(),
+vi.mock(
+  "@/features/forms/use-cases/design-form/use-auto-create-form.hook",
+  () => ({
+    useAutoCreateForm: () => ({ isCreatingForm: false }),
   }),
-}));
+);
+
+vi.mock(
+  "@/features/forms/use-cases/design-form/form-assistant.context",
+  () => ({
+    useFormAssistant: () => ({
+      isAssistantEnabled: false,
+      chatContext: null,
+      sendPrompt: vi.fn(),
+      generateAssociatedForm: vi.fn(),
+      requireFolderForNewForms: false,
+      assignableFolders: [],
+      assignFolderId: undefined,
+      setAssignFolderId: vi.fn(),
+    }),
+  }),
+);
 
 vi.mock("@/features/forms/ui/template-selector", () => ({
   default: function TemplateSelectorMock({
@@ -85,6 +98,7 @@ vi.mock("@/features/forms/ui/template-selector", () => ({
 }));
 
 const getTenantSettingsActionMock = vi.mocked(getTenantSettingsAction);
+const listFoldersActionMock = vi.mocked(listFoldersAction);
 
 const folders: Folder[] = [
   {
@@ -131,9 +145,34 @@ beforeEach(() => {
       requireFolderAssignment: false,
     }),
   );
+  listFoldersActionMock.mockResolvedValue(Result.success([]));
 });
 
 describe("CreateFormSheet", () => {
+  it("shows the create form when the tenant has no folders", async () => {
+    // Arrange
+    const view = render(
+      <CreateFormSheet
+        initialFolders={[]}
+        initialRequireFolderAssignment={false}
+      />,
+    );
+    await openSheet();
+    fireEvent.click(screen.getByText("Start from Scratch"));
+    expect(await screen.findByLabelText("Name")).toBeTruthy();
+
+    // Act — header rebuilds an empty folder list on each render
+    view.rerender(
+      <CreateFormSheet
+        initialFolders={[]}
+        initialRequireFolderAssignment={false}
+      />,
+    );
+
+    // Assert
+    expect(screen.getByLabelText("Name")).toBeTruthy();
+  });
+
   it("closes when Cancel is clicked on the from-scratch step", async () => {
     // Arrange
     renderSheet();
@@ -175,7 +214,9 @@ describe("CreateFormSheet", () => {
     renderSheet();
     await openSheet();
     fireEvent.click(screen.getByText("Create from a Template"));
-    fireEvent.click(screen.getByRole("button", { name: "Pick Marketing template" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Pick Marketing template" }),
+    );
     expect(screen.getByRole("combobox").textContent).toContain("Marketing");
 
     fireEvent.click(screen.getByRole("button", { name: "Close" }));
@@ -188,7 +229,9 @@ describe("CreateFormSheet", () => {
     fireEvent.click(screen.getByText("Create from a Template"));
 
     // Assert
-    expect(screen.queryByRole("button", { name: "Create Form from Template" })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Create Form from Template" }),
+    ).toBeNull();
     expect(screen.getByRole("combobox").textContent).toContain("Oggy's tests");
   });
 });
