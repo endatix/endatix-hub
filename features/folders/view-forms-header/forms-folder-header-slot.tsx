@@ -26,14 +26,14 @@ export async function FormsFolderHeaderSlot({
     const currentFolder = await resolveFolderForNavBySlug(
       session?.accessToken,
       folderSlug,
-      headerData.folders,
+      headerData.folders ?? [],
     );
 
     return buildFormsBreadcrumbModel({
       section,
       currentFolderSlug: currentFolder?.slug ?? folderSlug,
       currentFolderName: currentFolder?.name ?? null,
-      folders: headerData.folders,
+      folders: headerData.folders ?? [],
     });
   });
 
@@ -74,7 +74,7 @@ async function FolderFormsHeaderActions({
   const folder = await resolveFolderForNavBySlug(
     session?.accessToken,
     folderSlug,
-    headerData.folders,
+    headerData.folders ?? [],
   );
 
   return (

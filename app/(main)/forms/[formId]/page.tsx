@@ -63,7 +63,7 @@ export default async function FormOverviewPage({ params }: Params) {
       showHeader={true}
       enableEditing={true}
       enableAnalytics={enableAnalytics}
-      folderLink={resolveFormFolderLink(form, headerData.folders)}
+      folderLink={resolveFormFolderLink(form, headerData.folders ?? [])}
     />
   );
 }

@@ -16,7 +16,7 @@ const loadFormsHeaderData = cache(
       api.folders.list(),
     ]);
 
-    const folders: FormsNavFolder[] = foldersRes.success
+    const folders: FormsNavFolder[] | undefined = foldersRes.success
       ? foldersRes.data.map((folder) => ({
           id: folder.id,
           name: folder.name,
@@ -24,17 +24,13 @@ const loadFormsHeaderData = cache(
           isActive: folder.isActive,
           immutable: folder.immutable,
         }))
-      : [];
+      : undefined;
 
     return {
       requireFolderForNewForms:
         settingsRes.success &&
         settingsRes.data.requireFolderAssignment === true,
       folders,
-      assignableFolders: folders.map((folder) => ({
-        id: folder.id,
-        name: folder.name,
-      })),
     };
   },
 );

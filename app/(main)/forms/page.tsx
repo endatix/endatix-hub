@@ -23,9 +23,8 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { FilePlus2, FileText, SearchX } from "lucide-react";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { FileText, SearchX } from "lucide-react";
+import { OpenCreateFormButton } from "@/features/forms/use-cases/create-form/ui/open-create-form-button";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface FormsPageProps {
@@ -55,7 +54,7 @@ export default async function FormsPage({
   const formsPromise = getFormsListPromise(listRequest, session);
   const headerDataPromise = getFormsHeaderDataCached(session?.accessToken);
   const folderContextByIdPromise = headerDataPromise.then((headerData) =>
-    buildFolderContextById(headerData.folders),
+    buildFolderContextById(headerData.folders ?? []),
   );
 
   return (
@@ -115,7 +114,7 @@ async function FormsFoldersSection({
   headerDataPromise: ReturnType<typeof getFormsHeaderDataCached>;
 }>) {
   const headerData = await headerDataPromise;
-  if (headerData.folders.length === 0) {
+  if (headerData.folders === undefined || headerData.folders.length === 0) {
     return null;
   }
 
@@ -149,12 +148,7 @@ function NoUnassignedFormsEmptyState() {
         </EmptyDescription>
       </EmptyHeader>
       <EmptyContent className="flex-row justify-center gap-2">
-        <Button asChild>
-          <Link href="/forms/create">
-            <FilePlus2 data-icon="inline-start" />
-            Create a Form
-          </Link>
-        </Button>
+        <OpenCreateFormButton />
       </EmptyContent>
     </Empty>
   );
@@ -173,12 +167,7 @@ function NoAllFormsEmptyState() {
         </EmptyDescription>
       </EmptyHeader>
       <EmptyContent className="flex-row justify-center gap-2">
-        <Button asChild>
-          <Link href="/forms/create">
-            <FilePlus2 data-icon="inline-start" />
-            Create a Form
-          </Link>
-        </Button>
+        <OpenCreateFormButton />
       </EmptyContent>
     </Empty>
   );

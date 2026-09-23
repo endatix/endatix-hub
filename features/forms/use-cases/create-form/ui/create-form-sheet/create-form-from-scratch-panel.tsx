@@ -1,8 +1,9 @@
 "use client";
 
 import { Spinner } from "@/components/loaders/spinner";
-import { Button } from "@/components/ui/button";
-import CreateFormWizard from "../../create-form-wizard";
+import CreateFormWizard, {
+  CREATE_FORM_WIZARD_ACTIONS_ELEMENT_ID,
+} from "../../create-form-wizard";
 import type { Folder } from "@/lib/endatix-api/folders/types";
 
 interface CreateFormFromScratchPanelProps {
@@ -11,7 +12,6 @@ interface CreateFormFromScratchPanelProps {
   folders: Folder[];
   effectiveFolderId?: string;
   effectiveFolderName?: string;
-  onBack: () => void;
   onCancel: () => void;
 }
 
@@ -21,20 +21,10 @@ export function CreateFormFromScratchPanel({
   folders,
   effectiveFolderId,
   effectiveFolderName,
-  onBack,
   onCancel,
 }: Readonly<CreateFormFromScratchPanelProps>) {
   return (
     <div className="flex w-full flex-col gap-4">
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        className="px-0"
-        onClick={onBack}
-      >
-        ← Back to options
-      </Button>
       {canRenderWizard ? (
         <CreateFormWizard
           key={`${effectiveFolderId ?? "create-form-sheet"}-${effectiveFolderName ?? "no-folder"}`}
@@ -42,6 +32,7 @@ export function CreateFormFromScratchPanel({
           folders={folders}
           defaultFolderId={effectiveFolderId}
           defaultFolderName={effectiveFolderName}
+          actionsElementId={CREATE_FORM_WIZARD_ACTIONS_ELEMENT_ID}
           onCancel={onCancel}
         />
       ) : (

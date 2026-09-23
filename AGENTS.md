@@ -176,6 +176,17 @@ Keep post-fetch `redirect()` in that Server Component — do not stream the outc
 
 **Reference (first of its kind):** `features/submissions/list-submissions/` (`types.ts` view model, resolver, server loader, section) + `isCanonicalSubmissionListUrl(raw, parsed)` in `list-submission-query/`. Do **not** extract a shared `lib/page-load` type until a second page copies this shape. Analyze all references to identify further opportunities for optimization like better patterns, utils and abstractions
 
+### Loaded list vs failed list
+
+A list on a view model that can fail while the rest of the payload succeeds is `T[] | undefined`. Keep `ApiResult` on the API client and map it once in the loader.
+
+- `undefined` — the request failed. That is not “there are none.”
+- `[]` — the request succeeded and the list is empty.
+
+Do not add a sibling `*Loaded` flag, and do not store a second mapped copy of the same list. Those two fields drift. Derive a narrower shape at the one consumer that needs it.
+
+A component that only renders rows may take `folders ?? []` at that call. Do not write the `[]` back onto the view model. A control that branches on “no items” (create form, assistant folder gate) must receive `undefined` and load or wait itself. Reference: `FormsHeaderData.folders`. `SidebarNav` already treats a missing `initialFolders` as “fetch,” and `[]` as “loaded empty.”
+
 ## Table filter state (client)
 
 - One debounced field (a search box): `useListUrlState()` (`components/table`).

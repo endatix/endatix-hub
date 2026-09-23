@@ -14,8 +14,12 @@ export type FormsNavFolder = {
 
 export type FormsHeaderData = {
   requireFolderForNewForms: boolean;
-  folders: FormsNavFolder[];
-  assignableFolders: Array<{ id: string; name: string }>;
+  /**
+   * `undefined` — the folder list request failed. Do not treat that as empty.
+   * `[]` — the request succeeded and there are no folders.
+   * Derive `{ id, name }` at the consumer. Do not store a second copy or a loaded flag.
+   */
+  folders: FormsNavFolder[] | undefined;
 };
 
 type BreadcrumbLinkItem = {

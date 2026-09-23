@@ -325,6 +325,7 @@ Hub management grids follow the same URL + chrome pattern as forms/users. Parsin
 - Server-only read-model loaders and helper orchestration
 - Can live inside a slice (preferred) or feature root for shared server-only code
 - Keep plain constants (logger names, revalidation paths) in a sibling `*.constants.ts`, not in the `server-only` module. Importing one string otherwise drags `@/auth` into every consumer — including client components and unit tests. Example: `features/platform-admin/tenant-management.constants.ts`.
+- A list that can fail while the rest of the payload succeeds is `T[] | undefined` on the view model (`undefined` failed, `[]` loaded empty). Do not add a `*Loaded` flag or a second mapped copy. Full rule: AGENTS.md “Loaded list vs failed list”. Reference: `FormsHeaderData.folders`.
 
 ### Data Fetching and State Management
 

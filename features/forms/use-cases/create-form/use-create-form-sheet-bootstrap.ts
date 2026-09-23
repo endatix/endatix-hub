@@ -7,7 +7,8 @@ import { Result } from "@/lib/result";
 import { useEffect, useState } from "react";
 
 interface UseCreateFormSheetBootstrapOptions {
-  initialFolders: Folder[];
+  /** `undefined` — header did not load folders. `[]` — loaded and empty. */
+  initialFolders: Folder[] | undefined;
   initialRequireFolderAssignment: boolean;
 }
 
@@ -18,14 +19,21 @@ export function useCreateFormSheetBootstrap({
   const [requireFolderAssignment, setRequireFolderAssignment] = useState(
     initialRequireFolderAssignment,
   );
-  const [folders, setFolders] = useState<Folder[]>(initialFolders);
-  const [foldersReady, setFoldersReady] = useState(initialFolders.length > 0);
+  const [folders, setFolders] = useState<Folder[]>(initialFolders ?? []);
+  const [foldersReady, setFoldersReady] = useState(initialFolders !== undefined);
 
   useEffect(() => {
     setRequireFolderAssignment(initialRequireFolderAssignment);
+    if (initialFolders === undefined) {
+      return;
+    }
+
     setFolders(initialFolders);
-    setFoldersReady(initialFolders.length > 0);
+    setFoldersReady(true);
   }, [initialFolders, initialRequireFolderAssignment]);
+
+  const headerFoldersKnown = initialFolders !== undefined;
+  const headerFolderCount = initialFolders?.length ?? 0;
 
   useEffect(() => {
     let cancelled = false;
@@ -38,7 +46,7 @@ export function useCreateFormSheetBootstrap({
         );
       }
 
-      if (initialFolders.length > 0) {
+      if (headerFoldersKnown && headerFolderCount > 0) {
         return;
       }
 
@@ -57,7 +65,7 @@ export function useCreateFormSheetBootstrap({
     return () => {
       cancelled = true;
     };
-  }, [initialFolders.length]);
+  }, [headerFolderCount, headerFoldersKnown]);
 
   return {
     folders,

@@ -27,7 +27,7 @@ export default async function FormsHeaderSlot({
   const breadcrumbItemsPromise = headerDataPromise.then((headerData) =>
     buildFormsBreadcrumbModel({
       section: "forms",
-      folders: headerData.folders,
+      folders: headerData.folders ?? [],
       browse: resolvedSearchParams?.browse ?? null,
     }),
   );

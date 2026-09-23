@@ -10,6 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { Folder } from "@/lib/endatix-api/folders/types";
+import { NoActiveFoldersNotice } from "../no-active-folders-notice";
 import { NO_FOLDER_ID } from "./types";
 
 interface CreateFormFolderSelectProps {
@@ -74,10 +75,7 @@ export function CreateFormFolderSelect({
         </p>
       )}
       {requireFolderAssignment && folders.length === 0 && (
-        <p className="text-sm text-destructive">
-          No active folders exist. Create a folder under Forms → Folders before
-          creating a form.
-        </p>
+        <NoActiveFoldersNotice />
       )}
     </div>
   );

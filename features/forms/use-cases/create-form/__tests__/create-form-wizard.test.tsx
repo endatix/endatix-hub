@@ -38,6 +38,23 @@ async function submitSuccessfulCreate(onCancel: () => void = vi.fn()) {
 }
 
 describe("CreateFormWizard", () => {
+  it("links to create a folder when a folder is required and none exist", () => {
+    // Arrange
+    render(
+      <CreateFormWizard
+        onCancel={vi.fn()}
+        requireFolderAssignment
+        folders={[]}
+      />,
+    );
+
+    // Act
+    const createFolderLink = screen.getByRole("link", { name: "Create a folder" });
+
+    // Assert
+    expect(createFolderLink.getAttribute("href")).toBe("/folders?action=create");
+  });
+
   it("calls onCancel from the Cancel button", () => {
     // Arrange
     const onCancel = vi.fn();

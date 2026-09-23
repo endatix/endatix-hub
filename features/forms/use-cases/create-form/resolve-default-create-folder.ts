@@ -97,21 +97,6 @@ export function resolveEffectiveCreateFolderId(
   return folderId ? String(folderId) : undefined;
 }
 
-export function buildCreateFormHref(options?: {
-  folderId?: string;
-  folderSlug?: string;
-}): string {
-  if (options?.folderId) {
-    return `/forms/create?folderId=${encodeURIComponent(options.folderId)}`;
-  }
-
-  if (options?.folderSlug) {
-    return `/forms/create?folderSlug=${encodeURIComponent(options.folderSlug)}`;
-  }
-
-  return "/forms/create";
-}
-
 export function getSelectableCreateFolders(
   folders: Folder[],
   defaultFolderId?: string,
