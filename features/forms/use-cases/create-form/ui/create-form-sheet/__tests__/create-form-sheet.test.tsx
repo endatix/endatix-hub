@@ -7,6 +7,7 @@ import { Result } from "@/lib/result";
 import type { Folder } from "@/lib/endatix-api/folders/types";
 import type { FormTemplate } from "@/types";
 import { CreateFormSheet } from "../create-form-sheet";
+import { OpenCreateFormButton } from "../../open-create-form-button";
 
 vi.mock("next/navigation", () =>
   createNextNavigationMock({
@@ -134,6 +135,12 @@ async function openSheet() {
 
 beforeAll(() => {
   Element.prototype.scrollIntoView = vi.fn();
+  window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+    matches: query.includes("min-width"),
+    media: query,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  }));
 });
 
 beforeEach(() => {
@@ -149,6 +156,22 @@ beforeEach(() => {
 });
 
 describe("CreateFormSheet", () => {
+  it("opens from the empty-state button", async () => {
+    // Arrange
+    render(
+      <>
+        <OpenCreateFormButton />
+        <CreateFormSheet initialFolders={[]} />
+      </>,
+    );
+
+    // Act — the empty-state control, not the header trigger
+    fireEvent.click(screen.getAllByRole("button", { name: /create a form/i })[0]);
+
+    // Assert
+    expect(await screen.findByRole("dialog", { name: "Create a Form" })).toBeTruthy();
+  });
+
   it("shows the create form when the tenant has no folders", async () => {
     // Arrange
     const view = render(

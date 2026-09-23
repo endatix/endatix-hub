@@ -23,9 +23,8 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { FilePlus2, FileText, SearchX } from "lucide-react";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { FileText, SearchX } from "lucide-react";
+import { OpenCreateFormButton } from "@/features/forms/use-cases/create-form/ui/open-create-form-button";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface FormsPageProps {
@@ -149,12 +148,7 @@ function NoUnassignedFormsEmptyState() {
         </EmptyDescription>
       </EmptyHeader>
       <EmptyContent className="flex-row justify-center gap-2">
-        <Button asChild>
-          <Link href="/forms/create">
-            <FilePlus2 data-icon="inline-start" />
-            Create a Form
-          </Link>
-        </Button>
+        <OpenCreateFormButton />
       </EmptyContent>
     </Empty>
   );
@@ -173,12 +167,7 @@ function NoAllFormsEmptyState() {
         </EmptyDescription>
       </EmptyHeader>
       <EmptyContent className="flex-row justify-center gap-2">
-        <Button asChild>
-          <Link href="/forms/create">
-            <FilePlus2 data-icon="inline-start" />
-            Create a Form
-          </Link>
-        </Button>
+        <OpenCreateFormButton />
       </EmptyContent>
     </Empty>
   );

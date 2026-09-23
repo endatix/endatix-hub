@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
-  buildCreateFormHref,
   getSelectableCreateFolders,
   parseFormsFolderSlugFromPathname,
   resolveDefaultCreateFolder,
@@ -81,20 +80,6 @@ describe("resolveEffectiveCreateFolderId", () => {
     expect(
       resolveEffectiveCreateFolderId(folders, { folderSlug: "locked-folder" }),
     ).toBe("1");
-  });
-});
-
-describe("buildCreateFormHref", () => {
-  it("prefers folder id when provided", () => {
-    expect(
-      buildCreateFormHref({ folderId: "1", folderSlug: "locked-folder" }),
-    ).toBe("/forms/create?folderId=1");
-  });
-
-  it("falls back to folder slug", () => {
-    expect(buildCreateFormHref({ folderSlug: "locked-folder" })).toBe(
-      "/forms/create?folderSlug=locked-folder",
-    );
   });
 });
 

@@ -6,9 +6,8 @@ import { FormsListSection } from "@/features/forms/list-forms/ui/forms-list-sect
 import { FormsListSkeleton } from "@/features/forms/list-forms/ui/forms-list-skeleton";
 import { FormsListToolbar } from "@/features/forms/list-forms/ui/forms-list-toolbar";
 import { parseFormsListParams } from "@/features/forms/list-forms/utils";
-import { buildCreateFormHref } from "@/features/forms/use-cases/create-form/resolve-default-create-folder";
+import { OpenCreateFormButton } from "@/features/forms/use-cases/create-form/ui/open-create-form-button";
 import { ApiErrorType, ApiResult, EndatixApi } from "@/lib/endatix-api";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 import { SIGNIN_PATH, UNAUTHORIZED_PATH } from "@/features/auth";
@@ -20,8 +19,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { FilePlus2, FolderOpen, SearchX } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { FolderOpen, SearchX } from "lucide-react";
 
 type PageProps = {
   params: Promise<{ folderSlug: string }>;
@@ -79,12 +77,7 @@ export default async function FolderSlugFormsPage({
         <FormsListSection
           formsPromise={formsPromise}
           scope="folder"
-          emptyState={
-            <NoFolderFormsEmptyState
-              folderId={folder.id}
-              folderSlug={folder.slug}
-            />
-          }
+          emptyState={<NoFolderFormsEmptyState />}
           filteredEmptyState={<NoMatchingFormsEmptyState />}
         />
       </Suspense>
@@ -92,12 +85,7 @@ export default async function FolderSlugFormsPage({
   );
 }
 
-function NoFolderFormsEmptyState({
-  folderId,
-  folderSlug,
-}: Readonly<{ folderId: string; folderSlug: string }>) {
-  const createHref = buildCreateFormHref({ folderId, folderSlug });
-
+function NoFolderFormsEmptyState() {
   return (
     <Empty>
       <EmptyHeader>
@@ -111,12 +99,7 @@ function NoFolderFormsEmptyState({
         </EmptyDescription>
       </EmptyHeader>
       <EmptyContent className="flex-row justify-center gap-2">
-        <Button asChild>
-          <Link href={{ pathname: createHref }}>
-            <FilePlus2 data-icon="inline-start" />
-            Create a Form
-          </Link>
-        </Button>
+        <OpenCreateFormButton />
       </EmptyContent>
     </Empty>
   );

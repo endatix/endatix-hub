@@ -3,14 +3,13 @@
 import DotLoader from "@/components/loaders/dot-loader";
 import { Button } from "@/components/ui/button";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+  ResponsivePanel,
+  ResponsivePanelBody,
+  ResponsivePanelDescription,
+  ResponsivePanelFooter,
+  ResponsivePanelHeader,
+  ResponsivePanelTitle,
+} from "@/components/ui/responsive-panel";
 import { toast } from "@/components/ui/toast";
 import { runCreateFormFromTemplate } from "@/features/form-templates/application/run-create-form-from-template.client";
 import { FormTemplatePreview } from "@/features/form-templates/ui/form-template-preview";
@@ -18,17 +17,19 @@ import { useCreateFormFolderContext } from "../../use-create-form-folder-context
 import { useCreateFormSheetBootstrap } from "../../use-create-form-sheet-bootstrap";
 import type { Folder } from "@/lib/endatix-api/folders/types";
 import type { FormTemplate } from "@/types";
-import { FilePlus2 } from "lucide-react";
+import { ArrowLeft, FilePlus2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { useFormAssistant } from "../../../design-form/form-assistant.context";
 import { useAutoCreateForm } from "../../../design-form/use-auto-create-form.hook";
 import { CreateFormAssistantPanel } from "./create-form-assistant-panel";
 import { CreateFormFromScratchPanel } from "./create-form-from-scratch-panel";
+import { CREATE_FORM_WIZARD_ACTIONS_ELEMENT_ID } from "../../create-form-wizard";
 import { CreateFormOptionsGrid } from "./create-form-options-grid";
 import { CreateFormTemplatePanel } from "./create-form-template-panel";
 import type { CreateFormOption } from "./types";
 import { NO_FOLDER_ID } from "./types";
+import { registerOpenCreateFormSheet } from "../../open-create-form-sheet";
 
 interface CreateFormSheetProps {
   defaultFolderId?: string;
@@ -117,6 +118,10 @@ export function CreateFormSheet({
   }, [handleOpenChange]);
 
   useEffect(() => {
+    return registerOpenCreateFormSheet(() => setOpen(true));
+  }, []);
+
+  useEffect(() => {
     setSelectedFolderId(
       effectiveFolderId ? String(effectiveFolderId) : NO_FOLDER_ID,
     );
@@ -151,78 +156,102 @@ export function CreateFormSheet({
     });
   }, [isPending, router, selectedFolderId, selectedTemplate]);
 
-  const sheetDescription = effectiveFolderName
-    ? `Create a form in "${effectiveFolderName}". Choose an option below.`
-    : "Choose one of the following options to create a form.";
+  const sheetDescription = isFromScratch
+    ? "Name the form. Add a description if you want one."
+    : effectiveFolderName
+      ? `Create a form in "${effectiveFolderName}". Choose an option below.`
+      : "Choose one of the following options to create a form.";
 
   return (
-    <Sheet modal open={open} onOpenChange={handleOpenChange}>
-      <SheetTrigger asChild>
+    <ResponsivePanel
+      desktopType="complex"
+      open={open}
+      onOpenChange={handleOpenChange}
+      sheetContentClassName="sm:max-w-[480px]"
+      trigger={
         <Button variant="default">
           <FilePlus2 className="h-4 w-4" />
           Create a Form
         </Button>
-      </SheetTrigger>
-      <SheetContent className="flex h-screen w-[600px] flex-col justify-between p-6 sm:w-[480px] sm:max-w-none">
-        <SheetHeader className="mb-12">
-          <SheetTitle>Create a Form</SheetTitle>
-          <SheetDescription>{sheetDescription}</SheetDescription>
-        </SheetHeader>
+      }
+    >
+      <ResponsivePanelHeader>
+        {isFromScratch ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="w-fit self-start px-2"
+            onClick={() => setSelectedOption(undefined)}
+          >
+            <ArrowLeft data-icon="inline-start" />
+            Back to options
+          </Button>
+        ) : null}
+        <ResponsivePanelTitle>Create a Form</ResponsivePanelTitle>
+        <ResponsivePanelDescription>{sheetDescription}</ResponsivePanelDescription>
+      </ResponsivePanelHeader>
 
-        <div className="flex flex-grow flex-wrap items-start justify-center">
-          {isFromScratch ? (
-            <CreateFormFromScratchPanel
-              canRenderWizard={canRenderWizard}
-              requireFolderAssignment={requireFolderAssignment}
-              folders={foldersWithFetched}
-              effectiveFolderId={effectiveFolderId}
-              effectiveFolderName={effectiveFolderName}
-              onBack={() => setSelectedOption(undefined)}
-              onCancel={handleCancel}
-            />
-          ) : (
-            <CreateFormOptionsGrid
-              selectedOption={selectedOption}
-              onSelectOption={setSelectedOption}
-              isPending={isPending}
-            />
-          )}
-        </div>
-
+      <ResponsivePanelBody>
+        {isFromScratch ? (
+          <CreateFormFromScratchPanel
+            canRenderWizard={canRenderWizard}
+            requireFolderAssignment={requireFolderAssignment}
+            folders={foldersWithFetched}
+            effectiveFolderId={effectiveFolderId}
+            effectiveFolderName={effectiveFolderName}
+            onCancel={handleCancel}
+          />
+        ) : (
+          <CreateFormOptionsGrid
+            selectedOption={selectedOption}
+            onSelectOption={setSelectedOption}
+            isPending={isPending}
+          />
+        )}
         {isGeneratingResponse ? (
           <DotLoader className="m-auto flex-1 text-center" />
         ) : null}
+      </ResponsivePanelBody>
 
-        {!isFromScratch && (
-          <SheetFooter className="flex-end">
-            <div className="flex w-full flex-col gap-4">
-              {isFromTemplate ? (
-                <CreateFormTemplatePanel
-                  folders={foldersWithFetched}
-                  requireFolderAssignment={requireFolderAssignment}
-                  selectedFolderId={selectedFolderId}
-                  selectedTemplate={selectedTemplate}
-                  isPending={isPending}
-                  isCreatingForm={isCreatingForm}
-                  onTemplateSelect={handleTemplateSelect}
-                  onPreviewTemplate={handlePreviewTemplate}
-                  onSelectedFolderIdChange={setSelectedFolderId}
-                  onCreateFromTemplate={handleCreateFromTemplate}
-                />
-              ) : null}
-              {isAssistantEnabled ? <CreateFormAssistantPanel /> : null}
-            </div>
-          </SheetFooter>
-        )}
-
-        {previewTemplateId ? (
-          <FormTemplatePreview
-            open={isPreviewOpen}
-            onOpenChange={setIsPreviewOpen}
-            templateId={previewTemplateId}
+      {isFromScratch ? (
+        <ResponsivePanelFooter>
+          <div
+            id={CREATE_FORM_WIZARD_ACTIONS_ELEMENT_ID}
+            className="flex w-full justify-end"
           />
-        ) : null}
-      </SheetContent>
-    </Sheet>
+        </ResponsivePanelFooter>
+      ) : null}
+
+      {!isFromScratch && (isFromTemplate || isAssistantEnabled) ? (
+        <ResponsivePanelFooter className="sm:justify-stretch">
+          <div className="flex w-full flex-col gap-4">
+            {isFromTemplate ? (
+              <CreateFormTemplatePanel
+                folders={foldersWithFetched}
+                requireFolderAssignment={requireFolderAssignment}
+                selectedFolderId={selectedFolderId}
+                selectedTemplate={selectedTemplate}
+                isPending={isPending}
+                isCreatingForm={isCreatingForm}
+                onTemplateSelect={handleTemplateSelect}
+                onPreviewTemplate={handlePreviewTemplate}
+                onSelectedFolderIdChange={setSelectedFolderId}
+                onCreateFromTemplate={handleCreateFromTemplate}
+              />
+            ) : null}
+            {isAssistantEnabled ? <CreateFormAssistantPanel /> : null}
+          </div>
+        </ResponsivePanelFooter>
+      ) : null}
+
+      {previewTemplateId ? (
+        <FormTemplatePreview
+          open={isPreviewOpen}
+          onOpenChange={setIsPreviewOpen}
+          templateId={previewTemplateId}
+        />
+      ) : null}
+    </ResponsivePanel>
   );
 }

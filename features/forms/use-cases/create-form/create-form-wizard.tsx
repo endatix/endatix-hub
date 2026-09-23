@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import Link from "next/link";
 import { useActionState, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   createFormAction,
   type CreateFormActionState,
@@ -18,15 +19,23 @@ import { useRouter } from "next/navigation";
 
 import { ServerActionState } from "@/lib/utils/zod-error-utils";
 import type { Folder } from "@/lib/endatix-api/folders/types";
+import { NoActiveFoldersNotice } from "./ui/no-active-folders-notice";
 import { getSelectableCreateFolders } from "./resolve-default-create-folder";
 
 const INITIAL_STATE: CreateFormActionState = ServerActionState.emptyState();
+const CREATE_FORM_ID = "create-form-wizard";
+
+/** Footer slot the sheet renders so Cancel and Create stay outside the scrolling body. */
+export const CREATE_FORM_WIZARD_ACTIONS_ELEMENT_ID =
+  "create-form-wizard-actions";
 
 type CreateFormWizardFields = {
   requireFolderAssignment?: boolean;
   folders?: Folder[];
   defaultFolderId?: string;
   defaultFolderName?: string;
+  /** When set, Cancel and Create render into this element so they sit in the panel footer. */
+  actionsElementId?: string;
 };
 
 type CreateFormWizardProps = CreateFormWizardFields &
@@ -40,6 +49,7 @@ export default function CreateFormWizard({
   folders = [],
   defaultFolderId,
   defaultFolderName,
+  actionsElementId,
   cancelHref = "/forms",
   onCancel,
 }: Readonly<CreateFormWizardProps>) {
@@ -55,6 +65,7 @@ export default function CreateFormWizard({
   const [selectedFolderId, setSelectedFolderId] = useState<string>(
     normalizedDefaultFolderId ?? "",
   );
+  const [actionsHost, setActionsHost] = useState<HTMLElement | null>(null);
   const [state, formAction, isPending] = useActionState(
     createFormAction,
     INITIAL_STATE,
@@ -75,6 +86,15 @@ export default function CreateFormWizard({
   }, [normalizedDefaultFolderId, state?.data?.folderId]);
 
   useEffect(() => {
+    if (!actionsElementId) {
+      setActionsHost(null);
+      return;
+    }
+
+    setActionsHost(document.getElementById(actionsElementId));
+  }, [actionsElementId]);
+
+  useEffect(() => {
     if (!isFormCreated || !state?.formId) {
       return;
     }
@@ -93,8 +113,35 @@ export default function CreateFormWizard({
     };
   }, [isFormCreated, router, state?.formId]);
 
+  const actions = (
+    <div className="flex justify-end gap-2">
+      {onCancel || isFormCreated ? (
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCancel}
+          disabled={isPending || isFormCreated}
+        >
+          Cancel
+        </Button>
+      ) : (
+        <Button variant="outline" asChild disabled={isPending}>
+          <Link href={{ pathname: cancelHref }}>Cancel</Link>
+        </Button>
+      )}
+      <Button
+        type="submit"
+        form={CREATE_FORM_ID}
+        disabled={isPending || isFormCreated || isFolderRequiredAndMissing}
+      >
+        {isPending && <Spinner className="mr-2 h-4 w-4" />}
+        {isPending ? "Creating your form..." : "Create Form"}
+      </Button>
+    </div>
+  );
+
   return (
-    <form action={formAction} className="space-y-6">
+    <form id={CREATE_FORM_ID} action={formAction} className="space-y-6">
       {state?.formErrors && state.formErrors.length > 0 && (
         <div className="rounded-md bg-destructive/15 p-4">
           <ErrorMessage message={state.formErrors} />
@@ -167,38 +214,13 @@ export default function CreateFormWizard({
               </p>
             )}
             {requireFolderAssignment && folders.length === 0 && (
-              <p className="text-sm text-destructive">
-                No active folders exist. Create a folder under Forms → Folders
-                before creating a form.
-              </p>
+              <NoActiveFoldersNotice />
             )}
           </div>
         )}
       </div>
 
-      <div className="flex justify-end space-x-2">
-        {onCancel || isFormCreated ? (
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onCancel}
-            disabled={isPending || isFormCreated}
-          >
-            Cancel
-          </Button>
-        ) : (
-          <Button variant="outline" asChild disabled={isPending}>
-            <Link href={{ pathname: cancelHref }}>Cancel</Link>
-          </Button>
-        )}
-        <Button
-          type="submit"
-          disabled={isPending || isFormCreated || isFolderRequiredAndMissing}
-        >
-          {isPending && <Spinner className="mr-2 h-4 w-4" />}
-          {isPending ? "Creating your form..." : "Create Form"}
-        </Button>
-      </div>
+      {actionsHost ? createPortal(actions, actionsHost) : actions}
 
       {isFormCreated && (
         <div className="flex justify-center">
