@@ -29,7 +29,7 @@ import { CreateFormOptionsGrid } from "./create-form-options-grid";
 import { CreateFormTemplatePanel } from "./create-form-template-panel";
 import type { CreateFormOption } from "./types";
 import { NO_FOLDER_ID } from "./types";
-import { registerOpenCreateFormSheet } from "../../open-create-form-sheet";
+import { registerOpenCreateFormSheet } from "../open-create-form-button";
 
 interface CreateFormSheetProps {
   defaultFolderId?: string;
@@ -66,16 +66,13 @@ export function CreateFormSheet({
       initialRequireFolderAssignment,
     });
 
-  const {
-    effectiveFolderId,
-    effectiveFolderName,
-    foldersWithFetched,
-  } = useCreateFormFolderContext({
-    folders,
-    defaultFolderId,
-    defaultFolderSlug,
-    defaultFolderName,
-  });
+  const { effectiveFolderId, effectiveFolderName, foldersWithFetched } =
+    useCreateFormFolderContext({
+      folders,
+      defaultFolderId,
+      defaultFolderSlug,
+      defaultFolderName,
+    });
 
   const [selectedFolderId, setSelectedFolderId] = useState<string>(
     () => effectiveFolderId ?? NO_FOLDER_ID,
@@ -189,7 +186,9 @@ export function CreateFormSheet({
           </Button>
         ) : null}
         <ResponsivePanelTitle>Create a Form</ResponsivePanelTitle>
-        <ResponsivePanelDescription>{sheetDescription}</ResponsivePanelDescription>
+        <ResponsivePanelDescription>
+          {sheetDescription}
+        </ResponsivePanelDescription>
       </ResponsivePanelHeader>
 
       <ResponsivePanelBody>
