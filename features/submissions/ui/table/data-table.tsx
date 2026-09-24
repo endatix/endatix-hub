@@ -7,6 +7,7 @@ import {
   DataTableEmpty,
   DataTablePendingRows,
   DataTableSurface,
+  useHeldHeight,
 } from "@/components/table";
 import {
   Sheet,
@@ -238,6 +239,7 @@ export function DataTable<TData extends Submission>({
   });
 
   const rows = table.getRowModel().rows;
+  const heldHeight = useHeldHeight(isPending);
 
   if (rows.length === 0 && !isPending) {
     const isFilteredEmpty =
@@ -271,87 +273,89 @@ export function DataTable<TData extends Submission>({
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          <Table className={DATA_TABLE_ELEMENT_CLASS_NAME}>
-            <TableHeader className="bg-surface-container-low">
-              <SortableContext
-                items={visibleColumnOrder}
-                strategy={horizontalListSortingStrategy}
-              >
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow
-                    key={headerGroup.id}
-                    className="border-0 hover:bg-transparent"
-                  >
-                    {headerGroup.headers.map((header) => {
-                      const isPinnedLeft =
-                        header.column.getIsPinned() === "left";
-                      return (
-                        <TableHead
-                          key={header.id}
-                          colSpan={header.colSpan}
-                          className={dataTableHeaderCellClassName({
-                            isPinnedLeft,
-                            className:
-                              header.column.columnDef.meta?.headerClassName,
-                          })}
-                        >
-                          {header.isPlaceholder ? null : (
-                            <DraggableColumnHeader
-                              header={header}
-                              column={header.column}
-                            />
-                          )}
-                        </TableHead>
-                      );
-                    })}
-                  </TableRow>
-                ))}
-              </SortableContext>
-            </TableHeader>
-            <TableBody aria-busy={isPending || undefined}>
-              {isPending ? (
-                <DataTablePendingRows table={table} />
-              ) : (
-                rows.map((row, rowIndex) => {
-                  const isEvenRow = rowIndex % 2 === 1;
-                  const isSelected = row.getIsSelected();
-                  return (
+          <div ref={heldHeight.ref} style={heldHeight.style}>
+            <Table className={DATA_TABLE_ELEMENT_CLASS_NAME}>
+              <TableHeader className="bg-surface-container-low">
+                <SortableContext
+                  items={visibleColumnOrder}
+                  strategy={horizontalListSortingStrategy}
+                >
+                  {table.getHeaderGroups().map((headerGroup) => (
                     <TableRow
-                      key={row.id}
-                      className={dataTableBodyRowClassName({
-                        isEvenRow,
-                        className: cn("cursor-pointer", getRowClassName(row)),
-                      })}
-                      onClick={() => handleRowSelectionChange(row)}
-                      data-state={isSelected && "selected"}
+                      key={headerGroup.id}
+                      className="border-0 hover:bg-transparent"
                     >
-                      {row.getVisibleCells().map((cell) => {
+                      {headerGroup.headers.map((header) => {
                         const isPinnedLeft =
-                          cell.column.getIsPinned() === "left";
+                          header.column.getIsPinned() === "left";
                         return (
-                          <TableCell
-                            key={cell.id}
-                            className={dataTableBodyCellClassName({
+                          <TableHead
+                            key={header.id}
+                            colSpan={header.colSpan}
+                            className={dataTableHeaderCellClassName({
                               isPinnedLeft,
-                              isEvenRow,
-                              isSelected,
                               className:
-                                cell.column.columnDef.meta?.cellClassName,
+                                header.column.columnDef.meta?.headerClassName,
                             })}
                           >
-                            {flexRender(
-                              cell.column.columnDef.cell,
-                              cell.getContext(),
+                            {header.isPlaceholder ? null : (
+                              <DraggableColumnHeader
+                                header={header}
+                                column={header.column}
+                              />
                             )}
-                          </TableCell>
+                          </TableHead>
                         );
                       })}
                     </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
+                  ))}
+                </SortableContext>
+              </TableHeader>
+              <TableBody aria-busy={isPending || undefined}>
+                {isPending ? (
+                  <DataTablePendingRows table={table} />
+                ) : (
+                  rows.map((row, rowIndex) => {
+                    const isEvenRow = rowIndex % 2 === 1;
+                    const isSelected = row.getIsSelected();
+                    return (
+                      <TableRow
+                        key={row.id}
+                        className={dataTableBodyRowClassName({
+                          isEvenRow,
+                          className: cn("cursor-pointer", getRowClassName(row)),
+                        })}
+                        onClick={() => handleRowSelectionChange(row)}
+                        data-state={isSelected && "selected"}
+                      >
+                        {row.getVisibleCells().map((cell) => {
+                          const isPinnedLeft =
+                            cell.column.getIsPinned() === "left";
+                          return (
+                            <TableCell
+                              key={cell.id}
+                              className={dataTableBodyCellClassName({
+                                isPinnedLeft,
+                                isEvenRow,
+                                isSelected,
+                                className:
+                                  cell.column.columnDef.meta?.cellClassName,
+                              })}
+                            >
+                              {flexRender(
+                                cell.column.columnDef.cell,
+                                cell.getContext(),
+                              )}
+                            </TableCell>
+                          );
+                        })}
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
           <DragOverlay
             dropAnimation={null}
             modifiers={[centerDragOverlayOnPointer]}

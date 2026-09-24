@@ -30,7 +30,7 @@ export function TablePagination<TData>({
   const showingTo = Math.min((pageIndex + 1) * pageSize, total);
 
   return (
-    <div className="mt-auto flex flex-col gap-3 border-t border-border/40 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4">
+    <div className="flex flex-col gap-3 border-t border-border/40 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4">
       <div className="flex-1 text-sm text-muted-foreground">
         <span className="sm:hidden">
           {formatInteger(showingFrom)}-{formatInteger(showingTo)} of{" "}

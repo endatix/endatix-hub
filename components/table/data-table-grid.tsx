@@ -9,6 +9,7 @@ import {
 } from "./data-table-chrome";
 import "./data-table-column-meta";
 import { DataTablePendingRows } from "./data-table-skeleton-rows";
+import { useHeldHeight } from "./use-held-height";
 import {
   Table,
   TableBody,
@@ -39,6 +40,8 @@ export function DataTableGrid<TData>({
   hasRows,
   isPending = false,
 }: Readonly<DataTableGridProps<TData>>) {
+  const heldHeight = useHeldHeight(isPending);
+
   if (!hasRows && !isPending) {
     return empty;
   }
@@ -75,7 +78,11 @@ export function DataTableGrid<TData>({
   );
 
   return (
-    <div className="w-full overflow-x-auto">
+    <div
+      ref={heldHeight.ref}
+      style={heldHeight.style}
+      className="w-full overflow-x-auto"
+    >
       <Table className={DATA_TABLE_ELEMENT_CLASS_NAME}>
         <TableHeader className="bg-surface-container-low">
           {table.getHeaderGroups().map((headerGroup) => (

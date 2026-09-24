@@ -15,15 +15,7 @@ export function DataTableSurface({
   ...props
 }: Readonly<ComponentProps<"div">>) {
   return (
-    <div
-      className={cn(
-        DATA_TABLE_SURFACE_CLASS_NAME,
-        // Fills a `StableListRegion` so its footer (`mt-auto`) stays put.
-        "flex flex-1 flex-col",
-        className,
-      )}
-      {...props}
-    >
+    <div className={cn(DATA_TABLE_SURFACE_CLASS_NAME, className)} {...props}>
       {children}
     </div>
   );

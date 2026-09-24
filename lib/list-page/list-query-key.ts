@@ -28,19 +28,3 @@ function canonicalize(value: unknown): unknown {
 
   return value;
 }
-
-/**
- * `listKey` without `page`: the same list, filters, sort, and page size.
- * Paging inside one scope should not move the footer; a new scope may.
- */
-export function listScopeKey(listKey: string): string {
-  try {
-    const { page: _page, ...scope } = JSON.parse(listKey) as Record<
-      string,
-      unknown
-    >;
-    return JSON.stringify(scope);
-  } catch {
-    return listKey;
-  }
-}

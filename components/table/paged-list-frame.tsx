@@ -1,9 +1,8 @@
 "use client";
 
 import { Suspense, type ReactNode } from "react";
-import { listScopeKey } from "@/lib/list-page/list-query-key";
 import { useOptionalPagedListUrl } from "./paged-list-url-provider";
-import { StableListRegion } from "./stable-list-region";
+import { useHeldHeight } from "./use-held-height";
 
 type PagedListFrameProps = {
   /**
@@ -25,8 +24,8 @@ type PagedListFrameProps = {
 };
 
 /**
- * The rows region of a paged list: keyed per page, height held per scope so
- * the pager stays put, and a skeleton while the next page is on its way.
+ * The rows region of a paged list: keyed per page, and a skeleton at the
+ * current height while the next page is on its way.
  */
 export function PagedListFrame({
   listKey,
@@ -35,20 +34,18 @@ export function PagedListFrame({
   isPending,
 }: Readonly<PagedListFrameProps>) {
   const provided = useOptionalPagedListUrl();
-  const showSkeleton = isPending ?? provided?.isPending ?? false;
+  const pending = isPending ?? provided?.isPending ?? false;
+  const { ref, style } = useHeldHeight(pending);
 
   return (
-    <StableListRegion
-      scopeKey={listScopeKey(listKey)}
-      aria-busy={showSkeleton || undefined}
-    >
-      {showSkeleton ? (
+    <div ref={ref} style={style} aria-busy={pending || undefined}>
+      {pending ? (
         fallback
       ) : (
         <Suspense key={listKey} fallback={fallback}>
           {children}
         </Suspense>
       )}
-    </StableListRegion>
+    </div>
   );
 }

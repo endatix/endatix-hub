@@ -61,7 +61,7 @@ export function FormsListSection({
   const emptyListState = filtersActive ? filteredEmptyState : emptyState;
 
   return (
-    <div className="flex flex-1 flex-col gap-6">
+    <div className="flex flex-col gap-6">
       {pagedForms.items.length === 0 ? (
         emptyListState
       ) : (
@@ -72,7 +72,7 @@ export function FormsListSection({
         />
       )}
       {pagedForms.totalRecords > 0 ? (
-        <div className="mt-auto rounded-xl border bg-card">
+        <div className="rounded-xl border bg-card">
           <PagedListFooter
             entityLabel="forms"
             page={pagedForms.page}

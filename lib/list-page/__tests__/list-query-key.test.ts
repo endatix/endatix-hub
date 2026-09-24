@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { listQueryKey, listScopeKey } from "../list-query-key";
+import { listQueryKey } from "../list-query-key";
 
 const base = { page: 1, pageSize: 10 };
 
@@ -39,27 +39,5 @@ describe("listQueryKey", () => {
     expect(listQueryKey({ sorting: [{ id: "a" }, { id: "b" }] })).not.toBe(
       listQueryKey({ sorting: [{ id: "b" }, { id: "a" }] }),
     );
-  });
-});
-
-describe("listScopeKey", () => {
-  it("is the same for every page of one list", () => {
-    expect(listScopeKey(listQueryKey({ ...base, page: 3 }))).toBe(
-      listScopeKey(listQueryKey(base)),
-    );
-  });
-
-  it("changes with filters, sort, or page size", () => {
-    const scope = listScopeKey(listQueryKey(base));
-    expect(listScopeKey(listQueryKey({ ...base, search: "a" }))).not.toBe(
-      scope,
-    );
-    expect(listScopeKey(listQueryKey({ ...base, pageSize: 25 }))).not.toBe(
-      scope,
-    );
-  });
-
-  it("passes a non-JSON key through", () => {
-    expect(listScopeKey("page-1")).toBe("page-1");
   });
 });

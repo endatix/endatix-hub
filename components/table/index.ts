@@ -58,6 +58,7 @@ export {
   useListTableState,
   type ListTableUrlState,
 } from "./use-list-table-state";
+export { useHeldHeight } from "./use-held-height";
 export { useListUrlState, type ListUrlState } from "./use-list-url-state";
 export {
   useTableFiltersUrlState,
