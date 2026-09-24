@@ -1,6 +1,8 @@
 export {
   DEFAULT_CATALOG_LOCALE,
+  catalogLocaleCodeLabel,
   catalogLocaleDisplayName,
+  catalogLocaleEnglishName,
   fromSurveyModelLocale,
   isCatalogDefaultLocaleKey,
   isDefaultCatalogLocale,
@@ -17,9 +19,4 @@ export {
 } from "./catalog";
 export type { NormalizeCultureCodesResult } from "./catalog";
 
-export {
-  getLanguageDisplayName,
-  getSubmissionLocale,
-  isLocaleValid,
-  resolveSurveyModelLocaleForSubmission,
-} from "./submission-locale";
+export { getSubmissionLocale, isLocaleValid } from "./submission-locale";

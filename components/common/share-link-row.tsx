@@ -9,7 +9,7 @@ import type { ReactNode } from "react";
 interface ShareLinkRowHeaderProps {
   icon: LucideIcon;
   title: string;
-  description: string;
+  description: ReactNode;
   className?: string;
 }
 
@@ -37,7 +37,7 @@ export function ShareLinkRowHeader({
 interface ShareLinkRowProps {
   icon: LucideIcon;
   title: string;
-  description: string;
+  description: ReactNode;
   value: string;
   copyLabel: string;
   className?: string;

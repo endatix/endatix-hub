@@ -27,19 +27,21 @@ import {
   MoreVertical,
   Trash2,
 } from "lucide-react";
+import { PDF_LOCALE_PARAM } from "@/features/pdf-export/submission/pdf-locale";
 import Link from "next/link";
 import type { Route } from "next";
 import { useSession } from "next-auth/react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { saveToFileHandler } from "survey-creator-core";
 import { StatusDropdownMenuItem } from "../../use-cases/change-status";
 import { DeleteSubmissionDialog } from "../../use-cases/delete-submission";
 import { SubmissionShareLinksDialog } from "../../share-links/submission-share-links-dialog";
 import { DownloadFilesDropdownItem } from "../download-files-dropdown-item";
 import {
-  useSubmissionDetails,
-  useSubmissionDetailsViewOptions,
-} from "./submission-details-context";
+  getSubmissionDisplayLocale,
+  subscribeSubmissionDisplayLocale,
+} from "./submission-display-locale.store";
+import { useSubmissionDetails } from "./submission-details-context";
 
 interface SubmissionDetailsHeaderProps {
   submissionId: string;
@@ -58,8 +60,17 @@ export function SubmissionDetailsHeader({
   const [listHref, setListHref] = useState(`/forms/${formId}/submissions`);
   const { data: session } = useSession();
   const { trackEvent } = useTrackEvent();
-  const { viewOptions } = useSubmissionDetailsViewOptions();
   const { submission } = useSubmissionDetails();
+  const displayLocale = useSyncExternalStore(
+    subscribeSubmissionDisplayLocale,
+    () => getSubmissionDisplayLocale(submissionId),
+    () => getSubmissionDisplayLocale(submissionId),
+  );
+  // Only multi-language surveys have a choice to carry into the PDF.
+  const pdfLocale =
+    displayLocale.catalogLocales.length > 1
+      ? displayLocale.displayCatalogLocale
+      : undefined;
 
   useEffect(() => {
     setListHref(getSubmissionListReturnPath(formId));
@@ -84,11 +95,9 @@ export function SubmissionDetailsHeader({
   const handleExportPdfClick = async () => {
     try {
       setPdfLoading(true);
-      const params = new URLSearchParams();
-      if (!viewOptions.useSubmissionLanguage) {
-        params.set("defaultLocale", "true");
-      }
-      const query = params.toString() ? `?${params.toString()}` : "";
+      const query = pdfLocale
+        ? `?${new URLSearchParams({ [PDF_LOCALE_PARAM]: pdfLocale })}`
+        : "";
       const url = withBasePath(
         `/api/public/v0/forms/${formId}/submissions/${submissionId}/export-pdf${query}`,
       );
@@ -105,6 +114,7 @@ export function SubmissionDetailsHeader({
           submission_id: submissionId,
           status: fileResponse.status,
           error_message: message,
+          locale: pdfLocale ?? null,
         });
 
         toast.error(message);
@@ -121,6 +131,7 @@ export function SubmissionDetailsHeader({
         submission_id: submissionId,
         file_name: pdfFileName,
         file_size: blob.size,
+        locale: pdfLocale ?? null,
       });
 
       toast.success("PDF exported successfully");
@@ -130,6 +141,7 @@ export function SubmissionDetailsHeader({
         form_id: formId,
         submission_id: submissionId,
         error_message: error instanceof Error ? error.message : "Unknown error",
+        locale: pdfLocale ?? null,
       });
 
       // A thrown error here is the network failing, not the server answering.
@@ -233,6 +245,7 @@ export function SubmissionDetailsHeader({
         submissionId={submissionId}
         open={isShareLinksOpen}
         onOpenChange={setIsShareLinksOpen}
+        pdfLocale={pdfLocale}
       />
       <DeleteSubmissionDialog
         open={isDeleteOpen}

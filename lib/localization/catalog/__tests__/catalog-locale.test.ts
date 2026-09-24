@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  catalogLocaleCodeLabel,
+  catalogLocaleEnglishName,
   DEFAULT_CATALOG_LOCALE,
   fromSurveyModelLocale,
   isDefaultCatalogLocale,
@@ -36,6 +38,14 @@ describe("catalog-locale", () => {
   it("normalizes getUsedLocales-style lists to catalog codes", () => {
     expect(toCatalogLocales(["en", "bg", "en"])).toEqual(["default", "bg"]);
     expect(toCatalogLocales(["bg", "default"])).toEqual(["bg", "default"]);
+  });
+
+  it("labels a locale with its English name and canonical code", () => {
+    expect(catalogLocaleEnglishName(DEFAULT_CATALOG_LOCALE)).toBe("English");
+    expect(catalogLocaleEnglishName("es")).toBe("Spanish");
+    expect(catalogLocaleCodeLabel(DEFAULT_CATALOG_LOCALE)).toBe("en");
+    expect(catalogLocaleCodeLabel("pt-br")).toBe("pt-BR");
+    expect(catalogLocaleCodeLabel("zh-hans")).toBe("zh-Hans");
   });
 });
 

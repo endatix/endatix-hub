@@ -43,14 +43,12 @@ export function SubmissionAnswers({
       getRuntimeState,
     },
   });
-  const { viewOptions } = useSubmissionDetailsViewOptions();
   const { surveyModel, error } = useSurveyModel({
     formId,
     definition: formDefinition,
     submission,
     customQuestions: customQuestions.map((q: CustomQuestion) => q.jsonData),
     onModelCreated,
-    useSubmissionLanguage: viewOptions.useSubmissionLanguage === true,
   });
 
   const getReadRuntime = useStorageReadRuntime({ formId });

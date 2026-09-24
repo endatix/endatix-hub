@@ -29,11 +29,11 @@ export function QuestionLabel({
   className,
   ...props
 }: QuestionLabelProps) {
-  const panelTitle = useMemo(
-    () => htmlSanitizer.toPlainText(getPanelTitle(forQuestion) ?? ""),
-    [forQuestion],
-  );
   const { viewOptions } = useSubmissionDetailsViewOptions();
+  // Not memoized: the title follows the model's label locale.
+  const panelTitle = htmlSanitizer.toPlainText(
+    getPanelTitle(forQuestion) ?? "",
+  );
 
   if (!forQuestion) {
     return null;

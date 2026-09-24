@@ -1,3 +1,4 @@
+import { parsePdfLocaleQuery } from "@/features/pdf-export/submission/pdf-locale";
 import { renderSubmissionPdf } from "@/features/pdf-export/submission/render-submission-pdf.use-case";
 import { asBrowserExportError } from "@/features/pdf-export/browser-export-error";
 import { mapPublicPdfExportLoadError } from "@/features/pdf-export/map-public-pdf-export-load-error";
@@ -6,7 +7,6 @@ import { resolveSubmissionFormDefinition } from "@/features/public-submissions/r
 import { Result } from "@/lib/result";
 import { hasTokenPermission, TokenPermission } from "@/lib/utils";
 import { apiResponses } from "@/lib/utils/route-handlers";
-import { parseBoolean } from "@/lib/utils/type-parsers";
 import { NextRequest } from "next/server";
 import { PDF_RENDER_TIMEOUT_CODE } from "@/features/pdf-export/render-timeout";
 
@@ -16,7 +16,6 @@ type Params = {
   }>;
 };
 
-const DEFAULT_LOCALE_QUERY_PARAM = "defaultLocale";
 const TOKEN_QUERY_PARAM = "token";
 
 export async function GET(req: NextRequest, { params }: Params) {
@@ -27,9 +26,7 @@ export async function GET(req: NextRequest, { params }: Params) {
   const accept = req.headers.get("accept");
 
   const token = searchParams.get(TOKEN_QUERY_PARAM);
-  const useDefaultLocale = parseBoolean(
-    searchParams.get(DEFAULT_LOCALE_QUERY_PARAM),
-  );
+  const localeQuery = parsePdfLocaleQuery(searchParams);
 
   if (!token) {
     return await asBrowserExportError(
@@ -82,7 +79,7 @@ export async function GET(req: NextRequest, { params }: Params) {
     renderResult = await renderSubmissionPdf({
       submission,
       customQuestionsJsonData,
-      useDefaultLocale,
+      localeQuery,
       startedAtMs,
       caller: "anonymous-token",
     });

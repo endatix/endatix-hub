@@ -10,6 +10,7 @@ import {
   renderTimeoutMs,
 } from "../render-timeout";
 import { describePdfWorkload } from "./describe-pdf-workload";
+import type { PdfLocaleQuery } from "./pdf-locale";
 import { preparePdfModel } from "./prepare-pdf-model.use-case";
 import { SubmissionDetailsPdf } from "./submission-details-pdf";
 
@@ -24,7 +25,7 @@ type PdfExportCaller = "anonymous-token" | "hub-authenticated";
 interface RenderSubmissionPdfOptions {
   submission: Submission;
   customQuestionsJsonData: string[];
-  useDefaultLocale?: boolean;
+  localeQuery?: PdfLocaleQuery;
   /**
    * When the request began. The deadline is measured from here, not from the
    * start of the render, so time already spent loading the submission is not
@@ -54,7 +55,7 @@ interface RenderSubmissionPdfOptions {
 export async function renderSubmissionPdf({
   submission,
   customQuestionsJsonData,
-  useDefaultLocale,
+  localeQuery,
   startedAtMs,
   caller,
 }: RenderSubmissionPdfOptions): Promise<Result<Blob>> {
@@ -70,7 +71,7 @@ export async function renderSubmissionPdf({
               preparePdfModel({
                 submission,
                 customQuestionsJsonData,
-                useDefaultLocale,
+                localeQuery,
               }),
             remainingRenderTimeoutMs(startedAtMs),
           );
@@ -88,11 +89,13 @@ export async function renderSubmissionPdf({
       return deadlineExceeded(caller);
     }
 
+    const { surveyModel: model, locale: pdfLocale } = surveyModel;
+
     return await TelemetryTracer.traceAsync(
       TRACER,
       "render-pdf",
       async (span) => {
-        const workload = describePdfWorkload(surveyModel);
+        const workload = describePdfWorkload(model);
 
         span.setAttributes({
           "pdf.caller": caller,
@@ -101,6 +104,8 @@ export async function renderSubmissionPdf({
           "pdf.fileAttachmentCount": workload.fileAttachmentCount,
           "pdf.matrixRowCount": workload.matrixRowCount,
           "pdf.timeoutMs": renderTimeoutMs(),
+          "pdf.locale": pdfLocale.catalogLocale,
+          "pdf.localeSource": pdfLocale.source,
         });
 
         const renderStartedAtMs = Date.now();
@@ -111,7 +116,7 @@ export async function renderSubmissionPdf({
               pdf(
                 <SubmissionDetailsPdf
                   submission={submission}
-                  surveyModel={surveyModel}
+                  surveyModel={model}
                 />,
               ).toBlob(),
             remainingRenderTimeoutMs(startedAtMs),

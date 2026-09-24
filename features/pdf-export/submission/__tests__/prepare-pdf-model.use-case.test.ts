@@ -15,9 +15,13 @@ vi.mock(
   }),
 );
 
-vi.mock("@/lib/localization", () => ({
-  getSubmissionLocale: vi.fn(),
-}));
+vi.mock("@/lib/localization", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/localization")>();
+  return {
+    ...actual,
+    getSubmissionLocale: vi.fn(),
+  };
+});
 
 vi.mock("@/lib/questions", () => ({
   initializeCustomQuestions: vi.fn(),
@@ -81,8 +85,8 @@ describe("preparePdfModel", () => {
         customQuestionsJsonData: [],
       });
 
-      expect(result).toBeInstanceOf(Model);
-      expect(result.data).toEqual({ question1: "answer1" });
+      expect(result.surveyModel).toBeInstanceOf(Model);
+      expect(result.surveyModel.data).toEqual({ question1: "answer1" });
     });
 
     it("should initialize custom questions", async () => {
@@ -153,51 +157,59 @@ describe("preparePdfModel", () => {
       });
 
       expect(addViewTokensToModelUseCase).toHaveBeenCalledTimes(1);
-      expect(addViewTokensToModelUseCase).toHaveBeenCalledWith(result);
+      expect(addViewTokensToModelUseCase).toHaveBeenCalledWith(
+        result.surveyModel,
+      );
     });
   });
 
   describe("locale handling", () => {
-    it("should set locale from submission metadata when useDefaultLocale is false", async () => {
+    it("maps a valid submission language onto the survey model", async () => {
+      vi.mocked(getSubmissionLocale).mockReturnValue("fr");
+
+      const result = await preparePdfModel({
+        submission: {
+          ...mockSubmission,
+          formDefinition: {
+            ...mockSubmission.formDefinition!,
+            jsonData: JSON.stringify({
+              pages: [
+                {
+                  elements: [
+                    { type: "text", name: "question1", title: { fr: "Un" } },
+                  ],
+                },
+              ],
+            }),
+          },
+        },
+        customQuestionsJsonData: [],
+      });
+
+      expect(getSubmissionLocale).toHaveBeenCalledWith(
+        expect.objectContaining({ id: mockSubmission.id }),
+      );
+      expect(result.locale).toEqual({
+        catalogLocale: "fr",
+        source: "submission",
+      });
+      expect(result.surveyModel.locale).toBe("fr");
+    });
+
+    it("keeps the survey default for legacy defaultLocale links", async () => {
       vi.mocked(getSubmissionLocale).mockReturnValue("fr");
 
       const result = await preparePdfModel({
         submission: mockSubmission,
         customQuestionsJsonData: [],
-        useDefaultLocale: false,
+        localeQuery: { forceDefault: true },
       });
 
-      expect(getSubmissionLocale).toHaveBeenCalledWith(mockSubmission);
-      expect(result.locale).toBe("fr");
+      expect(result.locale.source).toBe("default");
+      expect(result.surveyModel.locale).toBeFalsy();
     });
 
-    it("should not set locale when useDefaultLocale is true", async () => {
-      const result = await preparePdfModel({
-        submission: mockSubmission,
-        customQuestionsJsonData: [],
-        useDefaultLocale: true,
-      });
-
-      expect(getSubmissionLocale).not.toHaveBeenCalled();
-      // SurveyJS Model may default to empty string, so check for falsy value
-      expect(result.locale).toBeFalsy();
-    });
-
-    it("should not set locale when getSubmissionLocale returns undefined", async () => {
-      vi.mocked(getSubmissionLocale).mockReturnValue(undefined);
-
-      const result = await preparePdfModel({
-        submission: mockSubmission,
-        customQuestionsJsonData: [],
-        useDefaultLocale: false,
-      });
-
-      expect(getSubmissionLocale).toHaveBeenCalledWith(mockSubmission);
-      // SurveyJS Model may default to empty string, so check for falsy value
-      expect(result.locale).toBeFalsy();
-    });
-
-    it("should default useDefaultLocale to false", async () => {
+    it("keeps the survey default when the submission language is not on the survey", async () => {
       vi.mocked(getSubmissionLocale).mockReturnValue("de");
 
       const result = await preparePdfModel({
@@ -205,8 +217,11 @@ describe("preparePdfModel", () => {
         customQuestionsJsonData: [],
       });
 
-      expect(getSubmissionLocale).toHaveBeenCalledWith(mockSubmission);
-      expect(result.locale).toBe("de");
+      expect(result.locale).toEqual({
+        catalogLocale: "default",
+        source: "default",
+      });
+      expect(result.surveyModel.locale).toBeFalsy();
     });
   });
 
@@ -222,8 +237,8 @@ describe("preparePdfModel", () => {
         customQuestionsJsonData: [],
       });
 
-      expect(result).toBeInstanceOf(Model);
-      expect(result.data).toEqual({ question1: "answer1" });
+      expect(result.surveyModel).toBeInstanceOf(Model);
+      expect(result.surveyModel.data).toEqual({ question1: "answer1" });
     });
 
     it("should handle missing formDefinition.jsonData", async () => {
@@ -240,8 +255,8 @@ describe("preparePdfModel", () => {
         customQuestionsJsonData: [],
       });
 
-      expect(result).toBeInstanceOf(Model);
-      expect(result.data).toEqual({ question1: "answer1" });
+      expect(result.surveyModel).toBeInstanceOf(Model);
+      expect(result.surveyModel.data).toEqual({ question1: "answer1" });
     });
 
     it("should handle missing submission jsonData", async () => {
@@ -255,8 +270,8 @@ describe("preparePdfModel", () => {
         customQuestionsJsonData: [],
       });
 
-      expect(result).toBeInstanceOf(Model);
-      expect(result.data).toEqual({});
+      expect(result.surveyModel).toBeInstanceOf(Model);
+      expect(result.surveyModel.data).toEqual({});
     });
 
     it("should handle empty jsonData strings by throwing error", async () => {

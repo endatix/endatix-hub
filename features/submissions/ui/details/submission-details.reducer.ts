@@ -7,6 +7,7 @@ export enum SubmissionDetailsActionType {
   TOGGLE_VIEW_OPTION = "TOGGLE_VIEW_OPTION",
   RESET_VIEW_OPTIONS = "RESET_VIEW_OPTIONS",
   SET_SURVEY_MODEL = "SET_SURVEY_MODEL",
+  SET_DISPLAY_CATALOG_LOCALE = "SET_DISPLAY_CATALOG_LOCALE",
   SET_HIGHLIGHTED_QUESTION = "SET_HIGHLIGHTED_QUESTION",
 }
 
@@ -35,6 +36,10 @@ export type SubmissionDetailsAction =
       payload: Model | null;
     }
   | {
+      type: SubmissionDetailsActionType.SET_DISPLAY_CATALOG_LOCALE;
+      payload: string;
+    }
+  | {
       type: SubmissionDetailsActionType.SET_HIGHLIGHTED_QUESTION;
       payload: string | null;
     };
@@ -42,6 +47,8 @@ export type SubmissionDetailsAction =
 export interface SubmissionDetailsState {
   viewOptions: SubmissionDetailsViewOptions;
   surveyModel: Model | null;
+  /** Catalog locale used for SurveyJS labels on this page (not stored on the submission). */
+  displayCatalogLocale: string;
   highlightedQuestionName: string | null;
 }
 
@@ -82,6 +89,11 @@ export function submissionDetailsReducer(
       return {
         ...state,
         surveyModel: action.payload,
+      };
+    case SubmissionDetailsActionType.SET_DISPLAY_CATALOG_LOCALE:
+      return {
+        ...state,
+        displayCatalogLocale: action.payload,
       };
     case SubmissionDetailsActionType.SET_HIGHLIGHTED_QUESTION:
       return {

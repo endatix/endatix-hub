@@ -1,6 +1,1 @@
-export {
-  getLanguageDisplayName,
-  getSubmissionLocale,
-  isLocaleValid,
-  resolveSurveyModelLocaleForSubmission,
-} from "./submission-locale";
+export { getSubmissionLocale, isLocaleValid } from "./submission-locale";

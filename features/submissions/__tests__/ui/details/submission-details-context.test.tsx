@@ -1,8 +1,10 @@
 import { SubmissionDetailsResult } from "@/features/submissions/use-cases/get-submission-details.use-case";
 import { Submission } from "@/lib/endatix-api";
+import { DEFAULT_CATALOG_LOCALE } from "@/lib/localization";
 import { Result } from "@/lib/result";
 import { act, render, renderHook, screen } from "@testing-library/react";
 import { Suspense } from "react";
+import { Model } from "survey-core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const createLocalStorageMock = () => ({
@@ -24,6 +26,7 @@ import {
   useSubmissionDetails,
   useSubmissionDetailsViewOptions,
 } from "../../../ui/details/submission-details-context";
+import { getSubmissionDisplayLocale } from "../../../ui/details/submission-display-locale.store";
 
 const mockSubmission: Submission = {
   id: "sub-123",
@@ -185,8 +188,8 @@ describe("SubmissionDetailsContext", () => {
     });
 
     it("should update surveyModel", async () => {
-      const mockModel = { get: () => {}, getAllQuestions: () => [] } as any;
-      let setSurveyModelFn: ((model: any) => void) | null = null;
+      const mockModel = new Model({});
+      let setSurveyModelFn: ((model: Model | null) => void) | null = null;
 
       const TestComponent = () => {
         const { surveyModel, setSurveyModel } = useSubmissionDetails();
@@ -247,6 +250,86 @@ describe("SubmissionDetailsContext", () => {
     });
   });
 
+  describe("label locale", () => {
+    const bilingualJson = {
+      pages: [
+        {
+          elements: [
+            { type: "text", name: "q1", title: { default: "One", es: "Uno" } },
+          ],
+        },
+      ],
+    };
+    const spanishSubmission: Submission = {
+      ...mockSubmission,
+      id: "sub-es",
+      metadata: JSON.stringify({ language: "es" }),
+    };
+
+    async function renderWithModel(model: Model) {
+      let details: ReturnType<typeof useSubmissionDetails> | undefined;
+      const Probe = () => {
+        details = useSubmissionDetails();
+        return null;
+      };
+
+      const view = await act(async () =>
+        render(
+          <Suspense fallback={null}>
+            <SubmissionDetailsProvider
+              submissionPromise={Promise.resolve(
+                Result.success(spanishSubmission),
+              )}
+            >
+              <Probe />
+            </SubmissionDetailsProvider>
+          </Suspense>,
+        ),
+      );
+      await act(async () => details!.setSurveyModel(model));
+      return { view, details: () => details! };
+    }
+
+    it("starts in the submitted language and publishes it for the header", async () => {
+      const model = new Model(bilingualJson);
+      const { details } = await renderWithModel(model);
+
+      expect(details().submittedCatalogLocale).toBe("es");
+      expect(details().displayCatalogLocale).toBe("es");
+      expect(model.locale).toBe("es");
+      expect(getSubmissionDisplayLocale("sub-es")).toEqual({
+        catalogLocales: ["default", "es"],
+        displayCatalogLocale: "es",
+      });
+    });
+
+    it("switches labels only to a language the survey has", async () => {
+      const model = new Model(bilingualJson);
+      const { details } = await renderWithModel(model);
+
+      await act(async () => details().setDisplayCatalogLocale("fr"));
+      expect(details().displayCatalogLocale).toBe("es");
+
+      await act(async () =>
+        details().setDisplayCatalogLocale(DEFAULT_CATALOG_LOCALE),
+      );
+      expect(details().displayCatalogLocale).toBe(DEFAULT_CATALOG_LOCALE);
+      expect(model.locale).toBe("");
+      expect(details().submittedCatalogLocale).toBe("es");
+      expect(getSubmissionDisplayLocale("sub-es").displayCatalogLocale).toBe(
+        DEFAULT_CATALOG_LOCALE,
+      );
+    });
+
+    it("clears the published locale when the page unmounts", async () => {
+      const { view } = await renderWithModel(new Model(bilingualJson));
+
+      view.unmount();
+
+      expect(getSubmissionDisplayLocale("sub-es").catalogLocales).toEqual([]);
+    });
+  });
+
   describe("useSubmissionDetailsViewOptions", () => {
     it("should return view options when used within provider", async () => {
       const { result } = await act(async () => {
@@ -267,7 +350,6 @@ describe("SubmissionDetailsContext", () => {
         showInvisibleItems: true,
         showPersonalizedItems: true,
         showReadOnly: true,
-        useSubmissionLanguage: true,
       });
       expect(result.current.updateOption).toBeDefined();
       expect(result.current.toggleOption).toBeDefined();
@@ -421,7 +503,6 @@ describe("SubmissionDetailsContext", () => {
           showInvisibleItems: false,
           showPersonalizedItems: true,
           showReadOnly: true,
-          useSubmissionLanguage: true,
         }),
       );
     });
@@ -432,7 +513,6 @@ describe("SubmissionDetailsContext", () => {
           showInvisibleItems: false,
           showPersonalizedItems: false,
           showReadOnly: false,
-          useSubmissionLanguage: false,
         }),
       );
 
@@ -457,7 +537,6 @@ describe("SubmissionDetailsContext", () => {
         showInvisibleItems: false,
         showPersonalizedItems: false,
         showReadOnly: false,
-        useSubmissionLanguage: false,
       });
     });
 
@@ -485,7 +564,6 @@ describe("SubmissionDetailsContext", () => {
         showInvisibleItems: true,
         showPersonalizedItems: true,
         showReadOnly: true,
-        useSubmissionLanguage: true,
       });
     });
   });
@@ -523,7 +601,6 @@ describe("SubmissionDetailsContext", () => {
           showInvisibleItems: false,
           showPersonalizedItems: false,
           showReadOnly: false,
-          useSubmissionLanguage: false,
         }),
       );
 
@@ -533,7 +610,6 @@ describe("SubmissionDetailsContext", () => {
         showInvisibleItems: false,
         showPersonalizedItems: false,
         showReadOnly: false,
-        useSubmissionLanguage: false,
       });
     });
 

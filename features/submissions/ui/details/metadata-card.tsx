@@ -1,28 +1,19 @@
 "use client";
 
+import { LocaleLabel } from "@/components/common/locale-label";
+import { StatusBadge } from "@/components/common/status-badge";
 import { Alert, AlertTitle } from "@/components/ui/alert";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import {
   getElapsedTimeString,
   getSubmissionStartedAt,
   parseDate,
 } from "@/lib/utils";
-import { Info, TriangleAlert } from "lucide-react";
-import { useMemo, type ReactNode } from "react";
-import {
-  getLanguageDisplayName,
-  getSubmissionLocale,
-} from "@/lib/localization";
+import { DEFAULT_CATALOG_LOCALE } from "@/lib/localization";
+import { TriangleAlert } from "lucide-react";
+import type { ReactNode } from "react";
 import { CellStatusDropdown } from "../table/cell-status-dropdown";
-import {
-  useSubmissionDetails,
-  useSubmissionDetailsViewOptions,
-} from "./submission-details-context";
+import { LabelLanguageNotice, LabelLanguagePicker } from "./label-language";
+import { useSubmissionDetails } from "./submission-details-context";
 
 const DASH_NO_DATA = "—";
 
@@ -57,7 +48,7 @@ interface MetaCellProps {
 function MetaCell({ label, children }: Readonly<MetaCellProps>) {
   return (
     <div className="flex h-full flex-col justify-between gap-3 bg-surface-container-lowest p-4 sm:p-6">
-      <span className="text-[10px] leading-none font-bold tracking-widest text-slate-500 uppercase">
+      <span className="text-[10px] leading-none font-bold tracking-widest text-muted-foreground uppercase">
         {label}
       </span>
       <div className="flex min-h-[28px] items-center">{children}</div>
@@ -67,31 +58,14 @@ function MetaCell({ label, children }: Readonly<MetaCellProps>) {
 
 function ValueText({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <span className="text-[13px] font-semibold text-slate-900">{children}</span>
+    <span className="text-[13px] font-semibold text-foreground">
+      {children}
+    </span>
   );
 }
 
 export function MetadataCard() {
-  const { submission } = useSubmissionDetails();
-  const { viewOptions } = useSubmissionDetailsViewOptions();
-  const rawLocale = getSubmissionLocale(submission);
-  const hasStoredLocale = Boolean(rawLocale?.trim());
-  const languageLabel = hasStoredLocale
-    ? (getLanguageDisplayName(rawLocale) ?? rawLocale)
-    : "default";
-  const isUsingSubmissionLanguage = viewOptions.useSubmissionLanguage;
-
-  const languageTooltip = useMemo(() => {
-    if (!hasStoredLocale) {
-      return "No locale is stored for this submission; the default language is used.";
-    }
-
-    if (isUsingSubmissionLanguage) {
-      return "Displaying in submission language";
-    }
-
-    return `Switch to "${getLanguageDisplayName(rawLocale) ?? rawLocale}" in View menu`;
-  }, [hasStoredLocale, isUsingSubmissionLanguage, rawLocale]);
+  const { submission, catalogLocales } = useSubmissionDetails();
 
   const completionTime =
     submission.isComplete &&
@@ -114,6 +88,7 @@ export function MetadataCard() {
           </AlertTitle>
         </Alert>
       )}
+      <LabelLanguageNotice />
       <div
         className={`grid grid-cols-2 gap-px lg:grid-cols-4 ${metadataGridHairline}`}
       >
@@ -125,9 +100,10 @@ export function MetadataCard() {
           />
         </MetaCell>
         <MetaCell label="Is Complete">
-          <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-[11px] font-bold text-slate-700">
-            {submission.isComplete ? "Yes" : "No"}
-          </span>
+          <StatusBadge
+            tone={submission.isComplete ? "on" : "off"}
+            label={submission.isComplete ? "Yes" : "No"}
+          />
         </MetaCell>
         <MetaCell label="Created at">
           <ValueText>{formatDate(submission.createdAt)}</ValueText>
@@ -144,26 +120,16 @@ export function MetadataCard() {
         <MetaCell label="Completion time">
           <ValueText>{completionTime}</ValueText>
         </MetaCell>
-        <MetaCell label="Submission language">
-          <span className="inline-flex min-w-0 items-center gap-2">
-            <ValueText>{languageLabel}</ValueText>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    className="shrink-0 cursor-help rounded-full text-slate-400 transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                    aria-label="Submission language info"
-                  >
-                    <Info className="h-4 w-4" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p className="max-w-xs text-sm">{languageTooltip}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </span>
+        <MetaCell label="Language">
+          {catalogLocales.length > 1 ? (
+            <LabelLanguagePicker />
+          ) : (
+            <ValueText>
+              <LocaleLabel
+                catalogLocale={catalogLocales[0] ?? DEFAULT_CATALOG_LOCALE}
+              />
+            </ValueText>
+          )}
         </MetaCell>
       </div>
     </section>

@@ -91,6 +91,7 @@ drift into three shapes.
 | `components/common/panel-section.tsx` — `PanelSection`                   | A titled concern inside an overlay, on a nested surface (§6)             |
 | `components/common/summary-row.tsx` — `SummaryRow`                       | Label-left / value-right review rows (§6)                                |
 | `components/common/truncated-id.tsx` — `TruncatedId`                     | A long id shortened to head…tail with a copy affordance                  |
+| `components/common/locale-label.tsx` — `LocaleLabel`                     | A survey language as name + short code (`Spanish es`), anywhere (§6)     |
 | `components/copy-to-clipboard.tsx` — `CopyToClipboard`                   | The copy-to-clipboard affordance, `overlay` and `inline` layouts (below) |
 | `components/table` — `DataTableSurface` and friends                      | All list-table chrome (below)                                            |
 | `components/ui/responsive-panel.tsx` — `ResponsivePanel`                 | Desktop Sheet / Dialog ↔ mobile Drawer swap (§5 Overlay rulebook)        |
@@ -221,7 +222,7 @@ of those let a per-cell copy affordance collide with the value.
   browser always lays it out on one line and either clips it or forces
   horizontal scroll well before the column has actually run out of room.
   `text-answer.tsx` is always wrapped plain text (`break-words
-  whitespace-normal`) plus inline copy — details view and matrix cells share
+whitespace-normal`) plus inline copy — details view and matrix cells share
   that layout. `matrixdropdown-answer.tsx` is the reference table caller.
 - **Match shadcn's default table padding to the content density, don't inherit
   it.** `components/ui/table.tsx`'s `TableHead`/`TableCell` default to a page
@@ -549,6 +550,43 @@ changes tenant configuration. Reference implementation:
   table, in the tenant-default picker and in the export dialog; these three
   drifting apart is how the vocabulary rots.
 
+### View-only choices on a record page
+
+Some controls change how a record is _read_ without changing the record — the
+label language on a submission is the reference case
+(`features/submissions/ui/details/label-language.tsx`, mounted by the metadata card). The risk is that a
+reader mistakes a view choice for an edit ("did I just change the respondent's
+language?"). The pattern exists to rule that out.
+
+**Rules:**
+
+- **One control, on the fact it re-reads.** The label-language picker lives in
+  the metadata card's Language cell, as the same badge dropdown as Status, so
+  the row does not change height. It is not repeated in the answers toolbar or
+  in dialogs.
+- **The menu says what it changes.** Open with a `DropdownMenuLabel`
+  ("Show labels in") and use `DropdownMenuRadioGroup`, not action items. Mark
+  the stored value in the list (a muted `Submitted` suffix) so the reader can
+  always find the way back.
+- **No choice, no control.** With one option (a single-language survey), render
+  the value as plain text — still name it, so the reader knows which it is.
+- **Diverging from the record is `info`, never `warning`.** When the view no
+  longer matches the stored value, show one `Alert variant="info"` strip at the
+  top of the card that names **both** values and offers the one-click way back
+  (`Show in Spanish`). Use `role="status"`, not `alert` — the reader caused the
+  change. Solid `warning` is reserved for facts about the record itself (a test
+  submission); reusing it for a view choice makes both strips mean nothing.
+- **Say what did not change, concretely.** "Answers are exactly as submitted in
+  Spanish" beats "Answers are unchanged" — unchanged from what?
+- **Exports follow the view; they do not re-ask.** Export PDF and the PDF share
+  link use the language chosen on the page. The share dialog **confirms** it in
+  the row's description (`LocaleLabel`) instead of offering a second picker; two
+  pickers for one choice drift, and the reader cannot tell which one won.
+- **Languages always render through `LocaleLabel`** — trigger, menu item,
+  dialog copy — so `Spanish es` looks the same everywhere. Its code inherits
+  the surrounding colour at reduced opacity; never tint it with a token, which
+  broke contrast on the grey badge in dark mode.
+
 ### Deciding on a new pattern
 
 When this document does not already answer a question, resolve it in this order,
@@ -589,6 +627,7 @@ and then **write the answer back into this file** as part of the same change:
 - **Do** mark a file deliverable with `FileKindLabel` in every place it appears — picker, menu item, table cell.
 - **Do** render the generic file glyph for a kind this build does not know, rather than defaulting to a plausible one.
 - **Do** add a row to the shared component index (§5) in the same change that adds a shared component.
+- **Do** flag a view that diverges from the stored record with an `info` strip naming both values and a one-click way back (§6).
 
 ### Don't:
 
@@ -610,6 +649,8 @@ and then **write the answer back into this file** as part of the same change:
 - **Don't** colour a file type mark by format. Colour carries status; type is muted and uniform.
 - **Don't** default an unknown format to another kind's icon — the mark then lies about what downloads.
 - **Don't** return a `LucideIcon` from feature code. Resolve to a `FileKindKey` and let the shared component pick the glyph.
+- **Don't** use the solid `warning` strip for a view-only choice; it is for facts about the record, such as a test submission.
+- **Don't** repeat a view choice as a second picker in a dialog or export flow. Confirm the value chosen on the page.
 - **Don't** re-export the file-kind icons from `lib/file-kinds/index.ts`; the catalog is imported by server code and must stay free of `lucide-react`.
 
 ---

@@ -71,16 +71,38 @@ export function toCatalogLocales(usedLocales: readonly string[]): string[] {
   return result;
 }
 
-/**
- * Display label for a catalog locale (uses SurveyJS localeNames for the
- * runtime defaultLocale code when the catalog key is <c>default</c>).
- */
-export function catalogLocaleDisplayName(catalogLocale: string): string {
-  if (isDefaultCatalogLocale(catalogLocale)) {
-    const code = surveyJsDefaultLocaleCode();
-    return surveyLocalization.localeNames[code] || code;
-  }
+const englishLanguageNames = new Intl.DisplayNames(["en"], {
+  type: "language",
+});
 
-  const code = catalogLocale.trim().toLowerCase();
+function runtimeCode(catalogLocale: string): string {
+  return isDefaultCatalogLocale(catalogLocale)
+    ? surveyJsDefaultLocaleCode()
+    : catalogLocale.trim().replaceAll("_", "-");
+}
+
+/** Native name for respondents (`Español`), from SurveyJS locale packs. */
+export function catalogLocaleDisplayName(catalogLocale: string): string {
+  const code = runtimeCode(catalogLocale).toLowerCase();
   return surveyLocalization.localeNames[code] || code;
+}
+
+/** English name for Hub staff (`Spanish`), falling back to the code. */
+export function catalogLocaleEnglishName(catalogLocale: string): string {
+  const code = runtimeCode(catalogLocale);
+  try {
+    return englishLanguageNames.of(code) ?? code;
+  } catch {
+    return code;
+  }
+}
+
+/** Canonical short code shown next to a language name (`en`, `pt-BR`). */
+export function catalogLocaleCodeLabel(catalogLocale: string): string {
+  const code = runtimeCode(catalogLocale);
+  try {
+    return Intl.getCanonicalLocales(code)[0] ?? code;
+  } catch {
+    return code;
+  }
 }

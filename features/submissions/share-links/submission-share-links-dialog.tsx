@@ -18,6 +18,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/toast";
+import { LocaleLabel } from "@/components/common/locale-label";
+import { PDF_LOCALE_PARAM } from "@/features/pdf-export/submission/pdf-locale";
 import {
   ShareLinkRow,
   ShareLinkRowHeader,
@@ -50,6 +52,11 @@ interface SubmissionShareLinksDialogProps {
   submissionId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /**
+   * Catalog locale for PDF labels, chosen on the submission page. Pass it only
+   * for a multi-language survey; omitted, the PDF uses the submitted language.
+   */
+  pdfLocale?: string;
 }
 
 type ShareLinkOption = {
@@ -91,8 +98,12 @@ const SHARE_LINK_OPTIONS: ShareLinkOption[] = [
   },
 ];
 
-function getPublicUrl(path: string, token: string): string {
-  const route = withBasePath(`${path}?token=${encodeURIComponent(token)}`);
+function getPublicUrl(path: string, token: string, locale?: string): string {
+  const params = new URLSearchParams({ token });
+  if (locale) {
+    params.set(PDF_LOCALE_PARAM, locale);
+  }
+  const route = withBasePath(`${path}?${params.toString()}`);
   if (globalThis.window !== undefined) {
     return `${globalThis.window.location.origin}${route}`;
   }
@@ -100,11 +111,26 @@ function getPublicUrl(path: string, token: string): string {
   return route;
 }
 
+function describeOption(option: ShareLinkOption, pdfLocale?: string) {
+  if (option.type !== "export-pdf" || !pdfLocale) {
+    return option.description;
+  }
+
+  return (
+    <>
+      {option.description} Labels in{" "}
+      <LocaleLabel catalogLocale={pdfLocale} className="text-foreground" />, as
+      selected on the submission.
+    </>
+  );
+}
+
 export function SubmissionShareLinksDialog({
   formId,
   submissionId,
   open,
   onOpenChange,
+  pdfLocale,
 }: SubmissionShareLinksDialogProps) {
   const [expiryMinutes, setExpiryMinutes] = useState(DEFAULT_EXPIRY_MINUTES);
   const [links, setLinks] = useState<
@@ -147,7 +173,11 @@ export function SubmissionShareLinksDialog({
       setLinks((current) => ({ ...current, [option.type]: result.value }));
 
       const copied = await copyValueToClipboard(
-        getPublicUrl(`${option.path}/${formId}`, result.value.token),
+        getPublicUrl(
+          `${option.path}/${formId}`,
+          result.value.token,
+          option.type === "export-pdf" ? pdfLocale : undefined,
+        ),
       );
 
       if (!copied) {
@@ -220,6 +250,9 @@ export function SubmissionShareLinksDialog({
           {SHARE_LINK_OPTIONS.map((option) => {
             const generated = links[option.type];
             const isPending = pendingTypes[option.type] === true;
+            const localeQuery =
+              option.type === "export-pdf" ? pdfLocale : undefined;
+            const description = describeOption(option, pdfLocale);
 
             if (!generated) {
               return (
@@ -230,7 +263,7 @@ export function SubmissionShareLinksDialog({
                   <ShareLinkRowHeader
                     icon={option.icon}
                     title={option.label}
-                    description={option.description}
+                    description={description}
                     className="flex-1"
                   />
                   <Button
@@ -250,6 +283,7 @@ export function SubmissionShareLinksDialog({
             const url = getPublicUrl(
               `${option.path}/${formId}`,
               generated.token,
+              localeQuery,
             );
 
             return (
@@ -257,7 +291,7 @@ export function SubmissionShareLinksDialog({
                 key={option.type}
                 icon={option.icon}
                 title={option.label}
-                description={option.description}
+                description={description}
                 value={url}
                 copyLabel={`Copy ${option.label} link`}
                 className="gap-2 p-3"
