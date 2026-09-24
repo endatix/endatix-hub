@@ -3,18 +3,16 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
-  TableCell,
   TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
 import {
   DATA_TABLE_ELEMENT_CLASS_NAME,
-  dataTableBodyCellClassName,
-  dataTableBodyRowClassName,
   dataTableColumnLabelClassName,
   dataTableHeaderCellClassName,
 } from "./data-table-chrome";
+import { DataTableSkeletonRows } from "./data-table-skeleton-rows";
 import { DataTableSurface } from "./data-table-surface";
 
 export interface DataTableSkeletonColumn {
@@ -65,27 +63,14 @@ export function DataTableSkeleton({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {Array.from({ length: rows }, (_, rowIndex) => {
-              const isEvenRow = rowIndex % 2 === 1;
-              return (
-                <TableRow
-                  key={rowIndex}
-                  className={dataTableBodyRowClassName({ isEvenRow })}
-                >
-                  {columns.map((column) => (
-                    <TableCell
-                      key={column.title}
-                      className={dataTableBodyCellClassName({
-                        isEvenRow,
-                        className: column.className,
-                      })}
-                    >
-                      {column.cell ?? <Skeleton className="h-4 w-24" />}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              );
-            })}
+            <DataTableSkeletonRows
+              rows={rows}
+              columns={columns.map((column) => ({
+                id: column.title,
+                className: column.className,
+                cell: column.cell,
+              }))}
+            />
           </TableBody>
         </Table>
       </div>

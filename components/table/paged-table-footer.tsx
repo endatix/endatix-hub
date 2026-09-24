@@ -62,7 +62,7 @@ export function PagedTableFooter({
   return (
     <div
       className={cn(
-        "flex flex-col gap-3 border-t sm:flex-row sm:items-center sm:justify-between",
+        "mt-auto flex flex-col gap-3 border-t sm:flex-row sm:items-center sm:justify-between",
         variant === "surface"
           ? "border-border/40 px-3 py-3 sm:px-4"
           : "border-border px-6 py-4",

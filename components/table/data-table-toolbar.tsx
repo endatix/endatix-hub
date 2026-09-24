@@ -7,8 +7,6 @@ type DataTableToolbarProps = {
   filters?: ReactNode;
   actions?: ReactNode;
   className?: string;
-  /** Shows an "Updating…" cue during URL filter/sort/page transitions. */
-  isPending?: boolean;
 };
 
 /**
@@ -19,7 +17,6 @@ export function DataTableToolbar({
   filters,
   actions,
   className,
-  isPending = false,
 }: Readonly<DataTableToolbarProps>) {
   return (
     <div
@@ -32,20 +29,11 @@ export function DataTableToolbar({
       >
         {filters}
       </div>
-      {actions || isPending ? (
+      {actions ? (
         <div
           data-slot="data-table-toolbar-actions"
           className="flex shrink-0 items-center gap-2"
         >
-          {isPending ? (
-            <div
-              role="status"
-              aria-live="polite"
-              className="hidden min-w-[5rem] text-right text-sm text-muted-foreground sm:block"
-            >
-              Updating…
-            </div>
-          ) : null}
           {actions}
         </div>
       ) : null}
