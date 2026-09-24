@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
-import { useListUrlState } from "@/components/table";
+import { usePagedListUrl } from "@/components/table";
 import {
   allBrowseScopesValue,
   allStatusesValue,
@@ -32,7 +32,7 @@ interface FormsListToolbarProps {
 }
 
 export function FormsListToolbar({ variant }: Readonly<FormsListToolbarProps>) {
-  const { search, setSearch, updateUrl, searchParams } = useListUrlState();
+  const { search, setSearch, updateUrl, searchParams } = usePagedListUrl();
   const statusFilter = parseFormsStatusFilter(searchParams.get("status"));
   const visibilityFilter = parseFormsVisibilityFilter(
     searchParams.get("visibility"),

@@ -7,7 +7,7 @@ import { ResultLoadErrorView } from "@/components/error-handling/error-page";
 import { PagedListFooter } from "@/components/ui/paged-list-footer";
 import FormsList from "@/features/forms/ui/forms-list";
 import { normalizePagedResponse } from "@/lib/endatix-api/shared/paged-response";
-import { useListUrlState } from "@/components/table";
+import { usePagedListUrl } from "@/components/table";
 import { Result } from "@/lib/result";
 import type { FormsListResult } from "../list-forms.server";
 import {
@@ -33,7 +33,7 @@ export function FormsListSection({
 }: Readonly<FormsListSectionProps>) {
   const listResult = use(formsPromise);
   const router = useRouter();
-  const { updateUrl, searchParams } = useListUrlState();
+  const { updateUrl, searchParams } = usePagedListUrl();
 
   if (Result.isError(listResult)) {
     return (

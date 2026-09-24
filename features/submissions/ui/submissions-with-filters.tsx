@@ -263,7 +263,6 @@ function SubmissionsContent({
     <>
       <DataTableToolbar
         className="mt-8 mb-4"
-        isPending={isPending}
         filters={
           <SubmissionsFilterToolbar
             isCompleteFilter={isCompleteFilter}

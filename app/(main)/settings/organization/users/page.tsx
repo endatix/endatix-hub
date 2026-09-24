@@ -8,9 +8,8 @@ import type {
   UserListItem,
   UserStatusFilter,
 } from "@/lib/endatix-api";
-import { UsersTable } from "@/features/organization/user-management/ui/users-table";
-import { Suspense } from "react";
-import { Skeleton } from "@/components/ui/skeleton";
+import { UsersList } from "@/features/organization/user-management/ui/users-list";
+import { listQueryKey } from "@/lib/list-page/list-query-key";
 import type { Session } from "next-auth";
 import { UnauthorizedComponent } from "@/components/error-handling/unauthorized";
 import { Result, type ResultType, toResult } from "@/lib/result";
@@ -52,17 +51,6 @@ async function getRolesPromise(
   }
 
   return result.value;
-}
-
-function UsersTableSkeleton() {
-  return (
-    <div className="space-y-3">
-      <Skeleton className="h-10 w-full" />
-      {[1, 2, 3, 4, 5].map((i) => (
-        <Skeleton key={i} className="h-14 w-full" />
-      ))}
-    </div>
-  );
 }
 
 interface SettingsOrganizationUsersPageProps {
@@ -126,17 +114,16 @@ export default async function SettingsOrganizationUsersPage(
           </p>
         </div>
       </div>
-      <Suspense fallback={<UsersTableSkeleton />}>
-        <UsersTable
-          usersPromise={usersPromise}
-          currentUserId={currentUserId}
-          canResendVerification={canInviteUsers}
-          canInviteUsers={canInviteUsers}
-          canManageUsers={canManageUsers}
-          canManageRoles={canManageRoles}
-          availableRolesPromise={rolesPromise}
-        />
-      </Suspense>
+      <UsersList
+        usersPromise={usersPromise}
+        listKey={listQueryKey(userListRequest)}
+        availableRolesPromise={rolesPromise}
+        currentUserId={currentUserId}
+        canResendVerification={canInviteUsers}
+        canInviteUsers={canInviteUsers}
+        canManageUsers={canManageUsers}
+        canManageRoles={canManageRoles}
+      />
     </div>
   );
 }

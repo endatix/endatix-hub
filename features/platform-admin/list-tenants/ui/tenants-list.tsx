@@ -1,9 +1,8 @@
 "use client";
 
-import { Suspense } from "react";
 import type { PlatformTenantListItem } from "@/lib/endatix-api";
 import type { NormalizedPagedResponse } from "@/lib/endatix-api/shared/paged-response";
-import { useListUrlState } from "@/components/table";
+import { PagedListFrame, useListUrlState } from "@/components/table";
 import type { ResultType } from "@/lib/result";
 import { listUrlStateFromSearchParams } from "../utils";
 import { TenantsListToolbar } from "./tenants-list-toolbar";
@@ -34,9 +33,8 @@ export function TenantsList({
         setSearch={setSearch}
         updateUrl={updateUrl}
         urlState={urlState}
-        isPending={isPending}
       />
-      <Suspense key={listKey} fallback={<TenantsTableSkeleton />}>
+      <PagedListFrame listKey={listKey} fallback={<TenantsTableSkeleton />}>
         <TenantsTableFromPromise
           tenantsPromise={tenantsPromise}
           canManage={canManage}
@@ -44,7 +42,7 @@ export function TenantsList({
           urlState={urlState}
           isPending={isPending}
         />
-      </Suspense>
+      </PagedListFrame>
     </>
   );
 }

@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   parsePlatformTenantListParams,
   listUrlStateFromSearchParams,
-  tenantsListSuspenseKey,
 } from "../utils";
 
 describe("parsePlatformTenantListParams", () => {
@@ -70,34 +69,5 @@ describe("listUrlStateFromSearchParams", () => {
       page: 3,
       pageSize: 10,
     });
-  });
-});
-
-describe("tenantsListSuspenseKey", () => {
-  it("does not collide when a pipe sits in search vs sortBy", () => {
-    const pipedSearch = tenantsListSuspenseKey({
-      page: 1,
-      pageSize: 10,
-      search: "acme|name",
-    });
-    const sorted = tenantsListSuspenseKey({
-      page: 1,
-      pageSize: 10,
-      search: "acme",
-      sortBy: "name",
-    });
-
-    expect(pipedSearch).not.toBe(sorted);
-  });
-
-  it("changes when search changes", () => {
-    const base = listUrlStateFromSearchParams(new URLSearchParams("page=1"));
-    const searched = listUrlStateFromSearchParams(
-      new URLSearchParams("page=1&search=acme"),
-    );
-
-    expect(tenantsListSuspenseKey(base)).not.toBe(
-      tenantsListSuspenseKey(searched),
-    );
   });
 });

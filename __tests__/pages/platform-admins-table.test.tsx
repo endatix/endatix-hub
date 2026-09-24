@@ -3,8 +3,6 @@ import type {
   PagedResponse,
   PlatformAdminUserListItem,
 } from "@/lib/endatix-api";
-import { normalizePagedResponse } from "@/lib/endatix-api/shared/paged-response";
-import { Result } from "@/lib/result";
 import { act, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
@@ -65,9 +63,7 @@ describe("PlatformAdminsTable", () => {
               }),
             ]),
           )}
-          tenantsPromise={Promise.resolve(
-            Result.success(normalizePagedResponse(paged([]))),
-          )}
+          updateUrl={vi.fn()}
           approvedAdminTotalPromise={Promise.resolve(2)}
           currentUserId="1514676504716378112"
         />,
@@ -106,9 +102,7 @@ describe("PlatformAdminsTable", () => {
               }),
             ]),
           )}
-          tenantsPromise={Promise.resolve(
-            Result.success(normalizePagedResponse(paged([]))),
-          )}
+          updateUrl={vi.fn()}
           approvedAdminTotalPromise={Promise.resolve(1)}
           currentUserId="different-user"
         />,
@@ -141,9 +135,7 @@ describe("PlatformAdminsTable", () => {
               }),
             ]),
           )}
-          tenantsPromise={Promise.resolve(
-            Result.success(normalizePagedResponse(paged([]))),
-          )}
+          updateUrl={vi.fn()}
           approvedAdminTotalPromise={Promise.resolve(0)}
         />,
       );

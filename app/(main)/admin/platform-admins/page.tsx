@@ -1,4 +1,3 @@
-import { Suspense } from "react";
 import {
   listPlatformAdminUsers,
   listPlatformTenants,
@@ -9,13 +8,13 @@ import {
   AuthorizationResult,
 } from "@/features/auth/authorization";
 import { PlatformAdminShell } from "@/features/platform-admin/ui/platform-admin-shell";
-import { PlatformAdminsTable } from "@/features/platform-admin/list-platform-admins/ui/platform-admins-table";
+import { PlatformAdminsList } from "@/features/platform-admin/list-platform-admins/ui/platform-admins-list";
 import type {
   PlatformAdminSearchParams,
   PlatformAdminSession,
 } from "@/features/platform-admin/types";
 import { parsePlatformAdminListParams } from "@/features/platform-admin/utils";
-import { Skeleton } from "@/components/ui/skeleton";
+import { listQueryKey } from "@/lib/list-page/list-query-key";
 
 interface PlatformAdminsPageProps {
   searchParams?: Promise<PlatformAdminSearchParams>;
@@ -34,29 +33,25 @@ export default async function PlatformAdminsPage({
     pageSize: 100,
   });
   const approvedAdminTotalPromise = getApprovedAdminTotal(session);
+  const authorized = AuthorizationResult.isSuccess(authorizationData)
+    ? authorizationData.data
+    : undefined;
+  const currentUserId = authorized?.userId ?? session.user?.id;
+  const currentTenantId = authorized?.tenantId;
 
   return (
     <PlatformAdminShell
       title="Platform Admins"
       description="Grant or revoke local PlatformAdmin approval. External IdP roles alone do not grant platform access."
     >
-      <Suspense fallback={<PlatformAdminsTableSkeleton />}>
-        <PlatformAdminsTable
-          usersPromise={usersPromise}
-          tenantsPromise={tenantsPromise}
-          approvedAdminTotalPromise={approvedAdminTotalPromise}
-          currentUserId={
-            AuthorizationResult.isSuccess(authorizationData)
-              ? authorizationData.data.userId
-              : session.user?.id
-          }
-          currentTenantId={
-            AuthorizationResult.isSuccess(authorizationData)
-              ? authorizationData.data.tenantId
-              : undefined
-          }
-        />
-      </Suspense>
+      <PlatformAdminsList
+        listKey={listQueryKey(request)}
+        usersPromise={usersPromise}
+        tenantsPromise={tenantsPromise}
+        approvedAdminTotalPromise={approvedAdminTotalPromise}
+        currentUserId={currentUserId}
+        currentTenantId={currentTenantId}
+      />
     </PlatformAdminShell>
   );
 }
@@ -71,16 +66,4 @@ async function getApprovedAdminTotal(
   });
 
   return approved.totalRecords;
-}
-
-function PlatformAdminsTableSkeleton() {
-  return (
-    <div className="space-y-3">
-      <Skeleton className="h-16 w-full" />
-      <Skeleton className="h-10 w-full" />
-      {[1, 2, 3, 4, 5].map((index) => (
-        <Skeleton key={index} className="h-14 w-full" />
-      ))}
-    </div>
-  );
 }

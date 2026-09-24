@@ -8,6 +8,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/auth", () => ({ auth: vi.fn() }));
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ replace: vi.fn(), refresh: vi.fn(), push: vi.fn() }),
+  usePathname: () => "/settings/organization/users",
+  useSearchParams: () => new URLSearchParams(),
+}));
+
 vi.mock("@/features/auth/authorization", () => ({
   authorization: vi.fn(),
   Permissions: {
@@ -26,6 +32,13 @@ vi.mock("@/lib/endatix-api", async () => {
     await import("@/__tests__/utils/mock-endatix-api");
   return createEndatixApiMock();
 });
+
+vi.mock(
+  "@/features/organization/user-management/ui/users-list-toolbar",
+  () => ({
+    UsersListToolbar: () => <div data-testid="users-list-toolbar" />,
+  }),
+);
 
 vi.mock("@/features/organization/user-management/ui/users-table", () => ({
   UsersTable: ({

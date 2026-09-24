@@ -2,29 +2,17 @@
 
 import { TruncatedId } from "@/components/common/truncated-id";
 import {
-  DATA_TABLE_ELEMENT_CLASS_NAME,
   DATA_TABLE_SHRINK_WRAP_CLASS_NAME,
-  dataTableBodyCellClassName,
-  dataTableBodyRowClassName,
   dataTableColumnLabelClassName,
-  dataTableHeaderCellClassName,
   DataTableColumnHeader,
   DataTableEmpty,
+  DataTableGrid,
   DataTableSurface,
 } from "@/components/table";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { formatLocaleLabel } from "@/features/data-lists/translations/locale-discovery";
 import type { DataListItem } from "@/lib/endatix-api/data-lists/types";
 import { resolveCatalogDefaultLabelText } from "@/lib/localization";
 import {
-  flexRender,
   getCoreRowModel,
   useReactTable,
   type ColumnDef,
@@ -148,83 +136,14 @@ export function DataListItemsTable({
     },
   });
 
-  const rows = table.getRowModel().rows;
-
-  if (rows.length === 0) {
-    return (
-      <DataTableSurface data-slot="data-list-items-table" isPending={isPending}>
-        <DataTableEmpty>{emptyMessage}</DataTableEmpty>
-        {footer}
-      </DataTableSurface>
-    );
-  }
-
   return (
-    <DataTableSurface data-slot="data-list-items-table" isPending={isPending}>
-      <div className="w-full overflow-x-auto">
-        <Table className={DATA_TABLE_ELEMENT_CLASS_NAME}>
-          <TableHeader className="bg-surface-container-low">
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow
-                key={headerGroup.id}
-                className="border-0 hover:bg-transparent"
-              >
-                {headerGroup.headers.map((header) => {
-                  const isPinnedLeft = header.column.getIsPinned() === "left";
-                  return (
-                    <TableHead
-                      key={header.id}
-                      colSpan={header.colSpan}
-                      className={dataTableHeaderCellClassName({
-                        isPinnedLeft,
-                        className:
-                          header.column.columnDef.meta?.headerClassName,
-                      })}
-                    >
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext(),
-                          )}
-                    </TableHead>
-                  );
-                })}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {rows.map((row, rowIndex) => {
-              const isEvenRow = rowIndex % 2 === 1;
-              return (
-                <TableRow
-                  key={row.id}
-                  className={dataTableBodyRowClassName({ isEvenRow })}
-                >
-                  {row.getVisibleCells().map((cell) => {
-                    const isPinnedLeft = cell.column.getIsPinned() === "left";
-                    return (
-                      <TableCell
-                        key={cell.id}
-                        className={dataTableBodyCellClassName({
-                          isPinnedLeft,
-                          isEvenRow,
-                          className: cell.column.columnDef.meta?.cellClassName,
-                        })}
-                      >
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext(),
-                        )}
-                      </TableCell>
-                    );
-                  })}
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      </div>
+    <DataTableSurface data-slot="data-list-items-table">
+      <DataTableGrid
+        table={table}
+        hasRows={table.getRowModel().rows.length > 0}
+        isPending={isPending}
+        empty={<DataTableEmpty>{emptyMessage}</DataTableEmpty>}
+      />
       {footer}
     </DataTableSurface>
   );

@@ -7,6 +7,8 @@ import { getFormsHeaderDataCached } from "@/features/folders/view-forms-header";
 import { getFormsListPromise } from "@/features/forms/list-forms/list-forms.server";
 import { FormsListSection } from "@/features/forms/list-forms/ui/forms-list-section";
 import { FormsListSkeleton } from "@/features/forms/list-forms/ui/forms-list-skeleton";
+import { listQueryKey } from "@/lib/list-page/list-query-key";
+import { PagedListFrame, PagedListUrlProvider } from "@/components/table";
 import { FormsListToolbar } from "@/features/forms/list-forms/ui/forms-list-toolbar";
 import {
   buildFolderContextById,
@@ -58,7 +60,7 @@ export default async function FormsPage({
   );
 
   return (
-    <>
+    <PagedListUrlProvider>
       <FormsListToolbar variant="root" />
       {!hideFolders && (
         <Suspense fallback={<FolderCardsSkeleton />}>
@@ -66,7 +68,8 @@ export default async function FormsPage({
         </Suspense>
       )}
       <AssetStorageProvider>
-        <Suspense
+        <PagedListFrame
+          listKey={listQueryKey(listRequest)}
           fallback={<FormsListSkeleton pageSize={listRequest.pageSize} />}
         >
           <FormsListSectionWithFolders
@@ -74,9 +77,9 @@ export default async function FormsPage({
             folderContextByIdPromise={folderContextByIdPromise}
             viewMode={viewMode}
           />
-        </Suspense>
+        </PagedListFrame>
       </AssetStorageProvider>
-    </>
+    </PagedListUrlProvider>
   );
 }
 

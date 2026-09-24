@@ -5,28 +5,17 @@ import { cn } from "@/lib/utils";
 export const DATA_TABLE_SURFACE_CLASS_NAME =
   "rounded-xl border border-border/40 bg-surface-container-lowest shadow-[0_8px_30px_rgb(0,52,94,0.04)] backdrop-blur-xl dark:shadow-none";
 
-interface DataTableSurfaceProps extends ComponentProps<"div"> {
-  /** Dims rows during URL filter/sort/page transitions. */
-  isPending?: boolean;
-}
-
+/**
+ * Table card. Loading is shown by the rows, not the surface: pass `isPending`
+ * to `DataTableGrid` (skeleton rows under a mounted header).
+ */
 export function DataTableSurface({
   className,
-  isPending = false,
   children,
   ...props
-}: Readonly<DataTableSurfaceProps>) {
+}: Readonly<ComponentProps<"div">>) {
   return (
-    <div
-      className={cn(
-        DATA_TABLE_SURFACE_CLASS_NAME,
-        "transition-opacity duration-150",
-        isPending && "pointer-events-none opacity-60",
-        className,
-      )}
-      aria-busy={isPending || undefined}
-      {...props}
-    >
+    <div className={cn(DATA_TABLE_SURFACE_CLASS_NAME, className)} {...props}>
       {children}
     </div>
   );
