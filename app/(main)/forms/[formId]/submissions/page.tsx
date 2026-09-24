@@ -6,11 +6,12 @@ import {
   buildSubmissionListPath,
   isCanonicalSubmissionListUrl,
   parseSubmissionListSearchParams,
-  serializeSubmissionListSearchParams,
 } from "@/features/submissions/list-submission-query";
 import { SubmissionListSection } from "@/features/submissions/list-submissions";
 import { SubmissionsTableSkeleton } from "@/features/submissions/ui/table/submissions-table-skeleton";
+import { PagedListFrame } from "@/components/table";
 import { EndatixApi } from "@/lib/endatix-api";
+import { listQueryKey } from "@/lib/list-page/list-query-key";
 import type { Metadata, ResolvingMetadata, Route } from "next";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
@@ -58,12 +59,12 @@ export default async function ResponsesPage({ params, searchParams }: Params) {
       <Suspense fallback={<PageTitle title="Submissions..." />}>
         <PageTitleData formId={formId} />
       </Suspense>
-      <Suspense
-        key={serializeSubmissionListSearchParams(listState).toString()}
-        fallback={<TableLoader pageSize={listState.pageSize} />}
+      <PagedListFrame
+        listKey={listQueryKey(listState)}
+        fallback={<SubmissionsListSkeleton pageSize={listState.pageSize} />}
       >
         <SubmissionListSection formId={formId} listState={listState} />
-      </Suspense>
+      </PagedListFrame>
     </>
   );
 }
@@ -78,7 +79,7 @@ async function PageTitleData({ formId }: Readonly<{ formId: string }>) {
   return <PageTitle title={`Submissions for ${formName}`} />;
 }
 
-function TableLoader({ pageSize }: Readonly<{ pageSize: number }>) {
+function SubmissionsListSkeleton({ pageSize }: Readonly<{ pageSize: number }>) {
   return (
     <div className="mt-8">
       <SubmissionsTableSkeleton pageSize={pageSize} />

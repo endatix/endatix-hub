@@ -8,9 +8,8 @@ import type {
   RoleListItem,
   RoleTypeFilter,
 } from "@/lib/endatix-api";
-import { RolesTable } from "@/features/organization/role-management/ui/roles-table";
-import { Suspense } from "react";
-import { Skeleton } from "@/components/ui/skeleton";
+import { RolesList } from "@/features/organization/role-management/ui/roles-list";
+import { listQueryKey } from "@/lib/list-page/list-query-key";
 import { UnauthorizedComponent } from "@/components/error-handling/unauthorized";
 import { Result } from "@/lib/result";
 import { parseNumber } from "@/lib/utils/type-parsers";
@@ -50,18 +49,6 @@ async function getPermissionsPromise(
   return Result.isSuccess(result) ? result.value : [];
 }
 
-function RolesTableSkeleton() {
-  return (
-    <div className="space-y-3">
-      <Skeleton className="h-10 w-full" />
-      <Skeleton className="h-10 w-full sm:w-72" />
-      {[1, 2, 3, 4, 5].map((i) => (
-        <Skeleton key={i} className="h-14 w-full" />
-      ))}
-    </div>
-  );
-}
-
 interface SettingsOrganizationRolesPageProps {
   searchParams?: Promise<{
     page?: string;
@@ -75,7 +62,8 @@ export default async function SettingsOrganizationRolesPage(
   props?: SettingsOrganizationRolesPageProps,
 ) {
   const session = await auth();
-  const { requireHubAccess, evaluatePermissions } = await authorization(session);
+  const { requireHubAccess, evaluatePermissions } =
+    await authorization(session);
   await requireHubAccess();
 
   const permissionsResult = await evaluatePermissions([
@@ -112,13 +100,12 @@ export default async function SettingsOrganizationRolesPage(
           are assigned to each role.
         </p>
       </div>
-      <Suspense fallback={<RolesTableSkeleton />}>
-        <RolesTable
-          rolesPromise={rolesPromise}
-          permissionsPromise={permissionsPromise}
-          canManageRoles={canManageRoles}
-        />
-      </Suspense>
+      <RolesList
+        rolesPromise={rolesPromise}
+        permissionsPromise={permissionsPromise}
+        listKey={listQueryKey(rolesRequest)}
+        canManageRoles={canManageRoles}
+      />
     </div>
   );
 }

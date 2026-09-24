@@ -5,10 +5,8 @@ import {
 } from "@/features/platform-admin/server";
 import { PlatformAdminShell } from "@/features/platform-admin/ui/platform-admin-shell";
 import { TenantsList } from "@/features/platform-admin/list-tenants/ui/tenants-list";
-import {
-  parsePlatformTenantListParams,
-  tenantsListSuspenseKey,
-} from "@/features/platform-admin/list-tenants/utils";
+import { parsePlatformTenantListParams } from "@/features/platform-admin/list-tenants/utils";
+import { listQueryKey } from "@/lib/list-page/list-query-key";
 import type { PlatformTenantSearchParams } from "@/features/platform-admin/types";
 import { tenantManagementFlag } from "@/lib/feature-flags/flags";
 
@@ -36,7 +34,7 @@ export default async function TenantsPage({
     >
       <TenantsList
         tenantsPromise={tenantsPromise}
-        listKey={tenantsListSuspenseKey(listRequest)}
+        listKey={listQueryKey(listRequest)}
         canManage={canManage}
       />
     </PlatformAdminShell>

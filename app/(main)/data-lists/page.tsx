@@ -5,10 +5,10 @@ import { DataListsBrowser } from "@/features/data-lists/view-lists/ui/data-lists
 import { DataListsLocaleFilter } from "@/features/data-lists/view-lists/ui/data-lists-locale-filter";
 import { getDataListsPage } from "@/features/data-lists/view-lists/get-data-lists.server";
 import {
-  dataListsListSuspenseKey,
   firstString,
   parseDataListsListParams,
 } from "@/features/data-lists/view-lists/utils";
+import { listQueryKey } from "@/lib/list-page/list-query-key";
 import { hasValue, SearchParam } from "@/lib/utils/next-utils";
 import { Suspense } from "react";
 
@@ -56,7 +56,7 @@ export default async function DataListsRoutePage({
       <DataListsPageHeader />
       <DataListsBrowser
         dataListsPromise={dataListsPromise}
-        listKey={dataListsListSuspenseKey(listRequest)}
+        listKey={listQueryKey(listRequest)}
         openCreateOnLoad={openCreateOnLoad}
         localeFilter={
           <Suspense fallback={null}>

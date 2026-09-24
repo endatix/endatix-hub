@@ -4,8 +4,8 @@ import { SubmissionsTableSkeleton } from "@/features/submissions/ui/table/submis
 
 /**
  * Instant fallback for navigations into `/forms/[formId]/submissions`.
- * Complements the in-page Suspense boundary. Filter/sort/page transitions
- * keep the current table and dim it instead of using this skeleton.
+ * Complements the in-page `PagedListFrame`. Filter/sort/page transitions keep
+ * the toolbar and column header and show skeleton rows instead.
  */
 export default function SubmissionsLoading() {
   return (

@@ -6,10 +6,11 @@ import { FormsListSection } from "@/features/forms/list-forms/ui/forms-list-sect
 import { FormsListSkeleton } from "@/features/forms/list-forms/ui/forms-list-skeleton";
 import { FormsListToolbar } from "@/features/forms/list-forms/ui/forms-list-toolbar";
 import { parseFormsListParams } from "@/features/forms/list-forms/utils";
+import { listQueryKey } from "@/lib/list-page/list-query-key";
+import { PagedListFrame, PagedListUrlProvider } from "@/components/table";
 import { OpenCreateFormButton } from "@/features/forms/use-cases/create-form/ui/open-create-form-button";
 import { ApiErrorType, ApiResult, EndatixApi } from "@/lib/endatix-api";
 import { notFound, redirect } from "next/navigation";
-import { Suspense } from "react";
 import { SIGNIN_PATH, UNAUTHORIZED_PATH } from "@/features/auth";
 import {
   Empty,
@@ -70,17 +71,20 @@ export default async function FolderSlugFormsPage({
           {folder.description}
         </p>
       ) : null}
-      <FormsListToolbar variant="folder" />
-      <Suspense
-        fallback={<FormsListSkeleton pageSize={listRequest.pageSize} />}
-      >
-        <FormsListSection
-          formsPromise={formsPromise}
-          scope="folder"
-          emptyState={<NoFolderFormsEmptyState />}
-          filteredEmptyState={<NoMatchingFormsEmptyState />}
-        />
-      </Suspense>
+      <PagedListUrlProvider>
+        <FormsListToolbar variant="folder" />
+        <PagedListFrame
+          listKey={listQueryKey(listRequest)}
+          fallback={<FormsListSkeleton pageSize={listRequest.pageSize} />}
+        >
+          <FormsListSection
+            formsPromise={formsPromise}
+            scope="folder"
+            emptyState={<NoFolderFormsEmptyState />}
+            filteredEmptyState={<NoMatchingFormsEmptyState />}
+          />
+        </PagedListFrame>
+      </PagedListUrlProvider>
     </AssetStorageProvider>
   );
 }
