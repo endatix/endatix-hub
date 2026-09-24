@@ -3,31 +3,16 @@
 import { LocaleLabel } from "@/components/common/locale-label";
 import { StatusBadge } from "@/components/common/status-badge";
 import { Alert, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   getElapsedTimeString,
   getSubmissionStartedAt,
   parseDate,
 } from "@/lib/utils";
-import {
-  catalogLocaleDisplayName,
-  DEFAULT_CATALOG_LOCALE,
-  fromSurveyModelLocale,
-  getSubmissionLocale,
-  isLocaleValid,
-} from "@/lib/localization";
-import { ChevronDown, Languages, TriangleAlert } from "lucide-react";
+import { DEFAULT_CATALOG_LOCALE } from "@/lib/localization";
+import { TriangleAlert } from "lucide-react";
 import type { ReactNode } from "react";
 import { CellStatusDropdown } from "../table/cell-status-dropdown";
+import { LabelLanguageNotice, LabelLanguagePicker } from "./label-language";
 import { useSubmissionDetails } from "./submission-details-context";
 
 const DASH_NO_DATA = "—";
@@ -79,84 +64,8 @@ function ValueText({ children }: Readonly<{ children: ReactNode }>) {
   );
 }
 
-function SubmissionLanguageMetaCell({
-  submittedCatalogLocale,
-}: Readonly<{ submittedCatalogLocale: string }>) {
-  const { catalogLocales, displayCatalogLocale, setDisplayCatalogLocale } =
-    useSubmissionDetails();
-
-  if (catalogLocales.length <= 1) {
-    return (
-      <MetaCell label="Language">
-        <ValueText>
-          <LocaleLabel
-            catalogLocale={catalogLocales[0] ?? DEFAULT_CATALOG_LOCALE}
-          />
-        </ValueText>
-      </MetaCell>
-    );
-  }
-
-  return (
-    <MetaCell label="Language">
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Badge
-            asChild
-            variant="secondary"
-            className="h-7 max-w-full cursor-pointer gap-1 px-2.5 text-xs font-semibold"
-          >
-            <button type="button">
-              <span className="sr-only">Labels shown in </span>
-              <LocaleLabel catalogLocale={displayCatalogLocale} />
-              <ChevronDown aria-hidden="true" />
-            </button>
-          </Badge>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="min-w-52">
-          <DropdownMenuLabel
-            inset
-            className="text-xs font-normal text-muted-foreground"
-          >
-            Show labels in
-          </DropdownMenuLabel>
-          <DropdownMenuRadioGroup
-            value={displayCatalogLocale}
-            onValueChange={setDisplayCatalogLocale}
-          >
-            {catalogLocales.map((locale) => (
-              <DropdownMenuRadioItem key={locale} value={locale}>
-                <LocaleLabel catalogLocale={locale} />
-                {locale === submittedCatalogLocale && (
-                  <span className="ml-auto pl-3 text-xs text-muted-foreground">
-                    Submitted
-                  </span>
-                )}
-              </DropdownMenuRadioItem>
-            ))}
-          </DropdownMenuRadioGroup>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </MetaCell>
-  );
-}
-
 export function MetadataCard() {
-  const {
-    submission,
-    surveyModel,
-    displayCatalogLocale,
-    setDisplayCatalogLocale,
-  } = useSubmissionDetails();
-
-  const storedLocale = getSubmissionLocale(submission);
-  const submittedCatalogLocale =
-    surveyModel && isLocaleValid(storedLocale, surveyModel)
-      ? fromSurveyModelLocale(storedLocale)
-      : DEFAULT_CATALOG_LOCALE;
-  const showingOtherLanguage = displayCatalogLocale !== submittedCatalogLocale;
-  const submittedName = catalogLocaleDisplayName(submittedCatalogLocale);
-  const displayName = catalogLocaleDisplayName(displayCatalogLocale);
+  const { submission, catalogLocales } = useSubmissionDetails();
 
   const completionTime =
     submission.isComplete &&
@@ -179,30 +88,7 @@ export function MetadataCard() {
           </AlertTitle>
         </Alert>
       )}
-      {showingOtherLanguage && (
-        <Alert
-          variant="info"
-          role="status"
-          className="rounded-none border-0 border-b py-2.5"
-        >
-          <Languages />
-          <div className="col-start-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
-            <p>
-              Labels shown in <strong>{displayName}</strong>. Answers are
-              exactly as submitted in <strong>{submittedName}</strong>.
-            </p>
-            <Button
-              type="button"
-              variant="link"
-              size="sm"
-              className="h-auto p-0"
-              onClick={() => setDisplayCatalogLocale(submittedCatalogLocale)}
-            >
-              Show in {submittedName}
-            </Button>
-          </div>
-        </Alert>
-      )}
+      <LabelLanguageNotice />
       <div
         className={`grid grid-cols-2 gap-px lg:grid-cols-4 ${metadataGridHairline}`}
       >
@@ -234,9 +120,17 @@ export function MetadataCard() {
         <MetaCell label="Completion time">
           <ValueText>{completionTime}</ValueText>
         </MetaCell>
-        <SubmissionLanguageMetaCell
-          submittedCatalogLocale={submittedCatalogLocale}
-        />
+        <MetaCell label="Language">
+          {catalogLocales.length > 1 ? (
+            <LabelLanguagePicker />
+          ) : (
+            <ValueText>
+              <LocaleLabel
+                catalogLocale={catalogLocales[0] ?? DEFAULT_CATALOG_LOCALE}
+              />
+            </ValueText>
+          )}
+        </MetaCell>
       </div>
     </section>
   );

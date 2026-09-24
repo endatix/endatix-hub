@@ -71,36 +71,38 @@ export function toCatalogLocales(usedLocales: readonly string[]): string[] {
   return result;
 }
 
-/**
- * Display label for a catalog locale (uses SurveyJS localeNames for the
- * runtime defaultLocale code when the catalog key is <c>default</c>).
- */
+const englishLanguageNames = new Intl.DisplayNames(["en"], {
+  type: "language",
+});
+
+function runtimeCode(catalogLocale: string): string {
+  return isDefaultCatalogLocale(catalogLocale)
+    ? surveyJsDefaultLocaleCode()
+    : catalogLocale.trim().replaceAll("_", "-");
+}
+
+/** Native name for respondents (`Español`), from SurveyJS locale packs. */
 export function catalogLocaleDisplayName(catalogLocale: string): string {
-  const code = isDefaultCatalogLocale(catalogLocale)
-    ? surveyJsDefaultLocaleCode()
-    : catalogLocale.trim().toLowerCase();
-  return intlLanguageName(code) || surveyLocalization.localeNames[code] || code;
+  const code = runtimeCode(catalogLocale).toLowerCase();
+  return surveyLocalization.localeNames[code] || code;
 }
 
-/** Short code shown next to a language name (`en`, `pt-BR`). */
-export function catalogLocaleCodeLabel(catalogLocale: string): string {
-  const code = isDefaultCatalogLocale(catalogLocale)
-    ? surveyJsDefaultLocaleCode()
-    : catalogLocale.trim();
-  const [language, ...rest] = code.split("-");
-  const head = language.toLowerCase();
-  if (rest.length === 0) {
-    return head;
-  }
-  return `${head}-${rest.join("-").toUpperCase()}`;
-}
-
-function intlLanguageName(code: string): string | undefined {
+/** English name for Hub staff (`Spanish`), falling back to the code. */
+export function catalogLocaleEnglishName(catalogLocale: string): string {
+  const code = runtimeCode(catalogLocale);
   try {
-    const displayNames = new Intl.DisplayNames(["en"], { type: "language" });
-    const tag = code.replaceAll("_", "-");
-    return displayNames.of(tag) ?? undefined;
+    return englishLanguageNames.of(code) ?? code;
   } catch {
-    return undefined;
+    return code;
+  }
+}
+
+/** Canonical short code shown next to a language name (`en`, `pt-BR`). */
+export function catalogLocaleCodeLabel(catalogLocale: string): string {
+  const code = runtimeCode(catalogLocale);
+  try {
+    return Intl.getCanonicalLocales(code)[0] ?? code;
+  } catch {
+    return code;
   }
 }

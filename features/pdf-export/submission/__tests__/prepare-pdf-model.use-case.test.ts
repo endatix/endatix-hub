@@ -196,13 +196,13 @@ describe("preparePdfModel", () => {
       expect(result.surveyModel.locale).toBe("fr");
     });
 
-    it("keeps the survey default when forceDefaultLocale is set", async () => {
+    it("keeps the survey default for legacy defaultLocale links", async () => {
       vi.mocked(getSubmissionLocale).mockReturnValue("fr");
 
       const result = await preparePdfModel({
         submission: mockSubmission,
         customQuestionsJsonData: [],
-        forceDefaultLocale: true,
+        localeQuery: { forceDefault: true },
       });
 
       expect(result.locale.source).toBe("default");

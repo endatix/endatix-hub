@@ -3,13 +3,12 @@
 import { DEFAULT_CATALOG_LOCALE } from "@/lib/localization";
 
 export type SubmissionDisplayLocaleSnapshot = {
-  ready: boolean;
+  /** Empty until the details page has loaded the survey. */
   catalogLocales: string[];
   displayCatalogLocale: string;
 };
 
 const EMPTY_SNAPSHOT: SubmissionDisplayLocaleSnapshot = {
-  ready: false,
   catalogLocales: [],
   displayCatalogLocale: DEFAULT_CATALOG_LOCALE,
 };
@@ -17,9 +16,15 @@ const EMPTY_SNAPSHOT: SubmissionDisplayLocaleSnapshot = {
 const bySubmissionId = new Map<string, SubmissionDisplayLocaleSnapshot>();
 const listeners = new Set<() => void>();
 
+function notify() {
+  for (const listener of listeners) {
+    listener();
+  }
+}
+
 /**
- * Submission details page and the parallel header slot do not share React
- * context. This store is how Export PDF and share links see the label locale.
+ * Bridge from the details page to the `@header` slot, which do not share React
+ * context. Export PDF and the PDF share link read the label locale from here.
  */
 export function subscribeSubmissionDisplayLocale(listener: () => void) {
   listeners.add(listener);
@@ -36,10 +41,14 @@ export function getSubmissionDisplayLocale(
 
 export function publishSubmissionDisplayLocale(
   submissionId: string,
-  snapshot: Omit<SubmissionDisplayLocaleSnapshot, "ready">,
+  snapshot: SubmissionDisplayLocaleSnapshot,
 ) {
-  bySubmissionId.set(submissionId, { ready: true, ...snapshot });
-  for (const listener of listeners) {
-    listener();
+  bySubmissionId.set(submissionId, snapshot);
+  notify();
+}
+
+export function clearSubmissionDisplayLocale(submissionId: string) {
+  if (bySubmissionId.delete(submissionId)) {
+    notify();
   }
 }

@@ -16,7 +16,6 @@ import { htmlSanitizer } from "@/lib/utils/html-sanitizer";
 import { useMemo } from "react";
 import { Question } from "survey-core";
 import {
-  useSubmissionDetails,
   useSubmissionDetailsViewOptions,
   ViewOption,
 } from "./submission-details-context";
@@ -31,10 +30,9 @@ export function QuestionLabel({
   ...props
 }: QuestionLabelProps) {
   const { viewOptions } = useSubmissionDetailsViewOptions();
-  const { displayCatalogLocale } = useSubmissionDetails();
-  const panelTitle = useMemo(
-    () => htmlSanitizer.toPlainText(getPanelTitle(forQuestion) ?? ""),
-    [forQuestion, displayCatalogLocale],
+  // Not memoized: the title follows the model's label locale.
+  const panelTitle = htmlSanitizer.toPlainText(
+    getPanelTitle(forQuestion) ?? "",
   );
 
   if (!forQuestion) {
@@ -61,12 +59,8 @@ export function QuestionLabel({
 }
 
 function TextLabel({ question }: { question: Question }) {
-  const { displayCatalogLocale } = useSubmissionDetails();
   const title = question.title ?? "";
-  const sanitized = useMemo(
-    () => htmlSanitizer.sanitizeInline(title),
-    [title, displayCatalogLocale],
-  );
+  const sanitized = useMemo(() => htmlSanitizer.sanitizeInline(title), [title]);
 
   return (
     <Label
@@ -77,10 +71,9 @@ function TextLabel({ question }: { question: Question }) {
 }
 
 function PersonalizedTextLabel({ question }: { question: Question }) {
-  const { displayCatalogLocale } = useSubmissionDetails();
   const extractionTokensResult = useMemo(
     () => extractReplacedTokens(question.title, question.processedTitle),
-    [question.title, question.processedTitle, displayCatalogLocale],
+    [question.title, question.processedTitle],
   );
 
   if (Result.isError(extractionTokensResult)) {

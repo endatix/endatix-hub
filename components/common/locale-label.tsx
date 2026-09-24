@@ -1,6 +1,6 @@
 import {
   catalogLocaleCodeLabel,
-  catalogLocaleDisplayName,
+  catalogLocaleEnglishName,
 } from "@/lib/localization";
 import { cn } from "@/lib/utils";
 
@@ -24,7 +24,7 @@ export function LocaleLabel({
       className={cn("inline-flex min-w-0 items-baseline gap-1.5", className)}
     >
       <span className="truncate">
-        {catalogLocaleDisplayName(catalogLocale)}
+        {catalogLocaleEnglishName(catalogLocale)}
       </span>
       <span className="font-mono text-[0.85em] font-normal opacity-70">
         {catalogLocaleCodeLabel(catalogLocale)}

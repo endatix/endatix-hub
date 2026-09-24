@@ -222,7 +222,7 @@ of those let a per-cell copy affordance collide with the value.
   browser always lays it out on one line and either clips it or forces
   horizontal scroll well before the column has actually run out of room.
   `text-answer.tsx` is always wrapped plain text (`break-words
-  whitespace-normal`) plus inline copy — details view and matrix cells share
+whitespace-normal`) plus inline copy — details view and matrix cells share
   that layout. `matrixdropdown-answer.tsx` is the reference table caller.
 - **Match shadcn's default table padding to the content density, don't inherit
   it.** `components/ui/table.tsx`'s `TableHead`/`TableCell` default to a page
@@ -554,7 +554,7 @@ changes tenant configuration. Reference implementation:
 
 Some controls change how a record is _read_ without changing the record — the
 label language on a submission is the reference case
-(`features/submissions/ui/details/metadata-card.tsx`). The risk is that a
+(`features/submissions/ui/details/label-language.tsx`, mounted by the metadata card). The risk is that a
 reader mistakes a view choice for an edit ("did I just change the respondent's
 language?"). The pattern exists to rule that out.
 

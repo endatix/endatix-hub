@@ -10,6 +10,7 @@ import {
   renderTimeoutMs,
 } from "../render-timeout";
 import { describePdfWorkload } from "./describe-pdf-workload";
+import type { PdfLocaleQuery } from "./pdf-locale";
 import { preparePdfModel } from "./prepare-pdf-model.use-case";
 import { SubmissionDetailsPdf } from "./submission-details-pdf";
 
@@ -24,8 +25,7 @@ type PdfExportCaller = "anonymous-token" | "hub-authenticated";
 interface RenderSubmissionPdfOptions {
   submission: Submission;
   customQuestionsJsonData: string[];
-  requestedLocale?: string;
-  forceDefaultLocale?: boolean;
+  localeQuery?: PdfLocaleQuery;
   /**
    * When the request began. The deadline is measured from here, not from the
    * start of the render, so time already spent loading the submission is not
@@ -55,8 +55,7 @@ interface RenderSubmissionPdfOptions {
 export async function renderSubmissionPdf({
   submission,
   customQuestionsJsonData,
-  requestedLocale,
-  forceDefaultLocale,
+  localeQuery,
   startedAtMs,
   caller,
 }: RenderSubmissionPdfOptions): Promise<Result<Blob>> {
@@ -72,8 +71,7 @@ export async function renderSubmissionPdf({
               preparePdfModel({
                 submission,
                 customQuestionsJsonData,
-                requestedLocale,
-                forceDefaultLocale,
+                localeQuery,
               }),
             remainingRenderTimeoutMs(startedAtMs),
           );

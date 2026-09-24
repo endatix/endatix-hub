@@ -31,7 +31,10 @@ import {
   submissionDetailsReducer,
   SubmissionDetailsState,
 } from "./submission-details.reducer";
-import { publishSubmissionDisplayLocale } from "./submission-display-locale.store";
+import {
+  clearSubmissionDisplayLocale,
+  publishSubmissionDisplayLocale,
+} from "./submission-display-locale.store";
 
 export const ViewOption = {
   ShowInvisible: "showInvisibleItems",
@@ -64,6 +67,8 @@ interface SubmissionDetailsContextType {
    */
   displayCatalogLocale: string;
   setDisplayCatalogLocale: (catalogLocale: string) => void;
+  /** Stored submission language, or `default` when the survey lacks it. */
+  submittedCatalogLocale: string;
   catalogLocales: string[];
   allQuestions: Question[];
   submissionNavPages: SubmissionNavPage[];
@@ -94,15 +99,14 @@ const DEFAULT_STATE: SubmissionDetailsState = {
   highlightedQuestionName: null,
 };
 
-function resolveInitialDisplayLocale(
+function submittedCatalogLocaleOf(
   submission: Submission,
   model: Model,
 ): string {
-  const submissionLocale = getSubmissionLocale(submission);
-  if (isLocaleValid(submissionLocale, model)) {
-    return fromSurveyModelLocale(submissionLocale);
-  }
-  return DEFAULT_CATALOG_LOCALE;
+  const locale = getSubmissionLocale(submission);
+  return isLocaleValid(locale, model)
+    ? fromSurveyModelLocale(locale)
+    : DEFAULT_CATALOG_LOCALE;
 }
 
 export function getStoredViewOptions(): SubmissionDetailsViewOptions | null {
@@ -161,38 +165,58 @@ export function SubmissionDetailsProvider({
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(state.viewOptions));
   }, [state.viewOptions]);
 
+  const submission =
+    result && Result.isSuccess(result) ? result.value : undefined;
+  const submissionId = submission?.id;
+
   const allQuestions = useMemo(() => {
     if (!state.surveyModel) {
       return [];
     }
 
     return state.surveyModel.getAllQuestions(false, false, false);
-  }, [state.surveyModel, state.displayCatalogLocale]);
+  }, [state.surveyModel]);
 
   const submissionNavPages = useMemo(() => {
     return buildSubmissionNavPages(
       state.surveyModel,
       state.viewOptions.showInvisibleItems,
     );
+    // Page titles are read from the model, so a locale switch must rebuild them.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     state.surveyModel,
     state.viewOptions.showInvisibleItems,
     state.displayCatalogLocale,
   ]);
 
-  const catalogLocales = useMemo(() => {
-    if (!state.surveyModel) {
-      return [];
-    }
-    const used =
-      typeof state.surveyModel.getUsedLocales === "function"
-        ? state.surveyModel.getUsedLocales()
-        : [];
-    return toCatalogLocales(used ?? []);
-  }, [state.surveyModel]);
+  const catalogLocales = useMemo(
+    () =>
+      state.surveyModel
+        ? toCatalogLocales(state.surveyModel.getUsedLocales() ?? [])
+        : [],
+    [state.surveyModel],
+  );
 
-  const submission =
-    result && Result.isSuccess(result) ? result.value : undefined;
+  const submittedCatalogLocale = useMemo(() => {
+    if (!submission || !state.surveyModel) {
+      return DEFAULT_CATALOG_LOCALE;
+    }
+
+    return submittedCatalogLocaleOf(submission, state.surveyModel);
+  }, [submission, state.surveyModel]);
+
+  useEffect(() => {
+    if (!submissionId || catalogLocales.length === 0) {
+      return;
+    }
+
+    publishSubmissionDisplayLocale(submissionId, {
+      catalogLocales,
+      displayCatalogLocale: state.displayCatalogLocale,
+    });
+    return () => clearSubmissionDisplayLocale(submissionId);
+  }, [submissionId, catalogLocales, state.displayCatalogLocale]);
 
   const contextValue = useMemo(() => {
     if (!submission) {
@@ -200,22 +224,14 @@ export function SubmissionDetailsProvider({
     }
 
     const setSurveyModel = (model: Model | null) => {
+      // Callers re-run this on every context change; re-applying would reset the chosen locale.
       if (model === state.surveyModel) {
         return;
       }
 
       if (model) {
-        const catalogLocale = resolveInitialDisplayLocale(submission, model);
-        const locales = toCatalogLocales(
-          typeof model.getUsedLocales === "function"
-            ? (model.getUsedLocales() ?? [])
-            : [],
-        );
+        const catalogLocale = submittedCatalogLocaleOf(submission, model);
         model.locale = toSurveyModelLocale(catalogLocale);
-        publishSubmissionDisplayLocale(submission.id, {
-          catalogLocales: locales,
-          displayCatalogLocale: catalogLocale,
-        });
         dispatch({
           type: SubmissionDetailsActionType.SET_DISPLAY_CATALOG_LOCALE,
           payload: catalogLocale,
@@ -228,25 +244,11 @@ export function SubmissionDetailsProvider({
     };
 
     const setDisplayCatalogLocale = (catalogLocale: string) => {
-      const model = state.surveyModel;
-      if (!model) {
+      if (!state.surveyModel || !catalogLocales.includes(catalogLocale)) {
         return;
       }
 
-      const used =
-        typeof model.getUsedLocales === "function"
-          ? model.getUsedLocales()
-          : [];
-      const allowed = toCatalogLocales(used ?? []);
-      if (!allowed.includes(catalogLocale)) {
-        return;
-      }
-
-      model.locale = toSurveyModelLocale(catalogLocale);
-      publishSubmissionDisplayLocale(submission.id, {
-        catalogLocales: allowed,
-        displayCatalogLocale: catalogLocale,
-      });
+      state.surveyModel.locale = toSurveyModelLocale(catalogLocale);
       dispatch({
         type: SubmissionDetailsActionType.SET_DISPLAY_CATALOG_LOCALE,
         payload: catalogLocale,
@@ -290,6 +292,7 @@ export function SubmissionDetailsProvider({
       setSurveyModel,
       displayCatalogLocale: state.displayCatalogLocale,
       setDisplayCatalogLocale,
+      submittedCatalogLocale,
       catalogLocales,
       allQuestions,
       submissionNavPages,
@@ -302,6 +305,7 @@ export function SubmissionDetailsProvider({
     state.surveyModel,
     state.displayCatalogLocale,
     state.highlightedQuestionName,
+    submittedCatalogLocale,
     catalogLocales,
     allQuestions,
     submissionNavPages,
@@ -353,6 +357,7 @@ export function useSubmissionDetails() {
     setSurveyModel,
     displayCatalogLocale,
     setDisplayCatalogLocale,
+    submittedCatalogLocale,
     catalogLocales,
     highlightedQuestionName,
     setHighlightedQuestionName,
@@ -365,6 +370,7 @@ export function useSubmissionDetails() {
     setSurveyModel,
     displayCatalogLocale,
     setDisplayCatalogLocale,
+    submittedCatalogLocale,
     catalogLocales,
     highlightedQuestionName,
     setHighlightedQuestionName,

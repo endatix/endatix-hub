@@ -2,6 +2,7 @@ export {
   DEFAULT_CATALOG_LOCALE,
   catalogLocaleCodeLabel,
   catalogLocaleDisplayName,
+  catalogLocaleEnglishName,
   fromSurveyModelLocale,
   isDefaultCatalogLocale,
   surveyJsDefaultLocaleCode,

@@ -4,10 +4,8 @@ import { Metadata, MetadataSchema } from "@/features/public-form/types";
 import { Result } from "@/lib/result";
 import { SurveyModel } from "survey-core";
 import {
-  DEFAULT_CATALOG_LOCALE,
   fromSurveyModelLocale,
   toCatalogLocales,
-  toSurveyModelLocale,
 } from "@/lib/localization/catalog";
 
 /**
@@ -56,46 +54,4 @@ function isLocaleValid(
   return usedLocales.includes(catalogLocale);
 }
 
-/**
- * Get the display name of the locale
- * @param locale - The locale to get the display name for
- * @returns The display name of the locale or the locale if not found
- */
-function getLanguageDisplayName(locale: string | undefined) {
-  if (!locale) {
-    return locale;
-  }
-
-  try {
-    const displayNames = new Intl.DisplayNames(["en"], { type: "language" });
-    return displayNames.of(locale) ?? locale;
-  } catch {
-    return locale;
-  }
-}
-
-/**
- * SurveyJS `model.locale` for a submission view: preferred metadata language
- * when enabled and valid, otherwise the catalog default (`""`).
- */
-function resolveSurveyModelLocaleForSubmission(
-  submission: Submission,
-  surveyModel: SurveyModel,
-  useSubmissionLanguage: boolean,
-): string {
-  if (useSubmissionLanguage) {
-    const submissionLocale = getSubmissionLocale(submission);
-    if (isLocaleValid(submissionLocale, surveyModel)) {
-      return toSurveyModelLocale(submissionLocale!);
-    }
-  }
-
-  return toSurveyModelLocale(DEFAULT_CATALOG_LOCALE);
-}
-
-export {
-  getSubmissionLocale,
-  isLocaleValid,
-  getLanguageDisplayName,
-  resolveSurveyModelLocaleForSubmission,
-};
+export { getSubmissionLocale, isLocaleValid };

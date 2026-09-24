@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/toast";
 import { LocaleLabel } from "@/components/common/locale-label";
+import { PDF_LOCALE_PARAM } from "@/features/pdf-export/submission/pdf-locale";
 import {
   ShareLinkRow,
   ShareLinkRowHeader,
@@ -100,7 +101,7 @@ const SHARE_LINK_OPTIONS: ShareLinkOption[] = [
 function getPublicUrl(path: string, token: string, locale?: string): string {
   const params = new URLSearchParams({ token });
   if (locale) {
-    params.set("locale", locale);
+    params.set(PDF_LOCALE_PARAM, locale);
   }
   const route = withBasePath(`${path}?${params.toString()}`);
   if (globalThis.window !== undefined) {
