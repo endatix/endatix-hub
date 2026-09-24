@@ -8,6 +8,7 @@ import {
   useListUrlState,
 } from "@/components/table";
 import { formatLocaleLabel } from "@/features/data-lists/translations/locale-discovery";
+import type { UrlSearchParamsUpdater } from "@/lib/utils/hooks/use-url-search-params-updater.hook";
 import { type ReactNode, useMemo } from "react";
 import {
   listUrlStateFromSearchParams,
@@ -18,13 +19,21 @@ import {
 type DataListsListToolbarProps = {
   /** Streamed locale facet (Suspense). Keeps search/reset outside that boundary. */
   localeFilter?: ReactNode;
+  search: string;
+  setSearch: (value: string) => void;
+  updateUrl: UrlSearchParamsUpdater;
+  searchParams: URLSearchParams;
+  isPending?: boolean;
 };
 
 export function DataListsListToolbar({
   localeFilter,
+  search,
+  setSearch,
+  updateUrl,
+  searchParams,
+  isPending = false,
 }: Readonly<DataListsListToolbarProps>) {
-  const { search, setSearch, updateUrl, searchParams, isPending } =
-    useListUrlState();
   const urlState = listUrlStateFromSearchParams(searchParams);
   const hasActiveFilters = Boolean(
     search.trim() ||

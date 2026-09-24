@@ -6,6 +6,7 @@ import {
   buildSubmissionListPath,
   isCanonicalSubmissionListUrl,
   parseSubmissionListSearchParams,
+  serializeSubmissionListSearchParams,
 } from "@/features/submissions/list-submission-query";
 import { SubmissionListSection } from "@/features/submissions/list-submissions";
 import { SubmissionsTableSkeleton } from "@/features/submissions/ui/table/submissions-table-skeleton";
@@ -57,7 +58,10 @@ export default async function ResponsesPage({ params, searchParams }: Params) {
       <Suspense fallback={<PageTitle title="Submissions..." />}>
         <PageTitleData formId={formId} />
       </Suspense>
-      <Suspense fallback={<TableLoader pageSize={listState.pageSize} />}>
+      <Suspense
+        key={serializeSubmissionListSearchParams(listState).toString()}
+        fallback={<TableLoader pageSize={listState.pageSize} />}
+      >
         <SubmissionListSection formId={formId} listState={listState} />
       </Suspense>
     </>

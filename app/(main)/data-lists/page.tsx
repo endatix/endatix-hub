@@ -1,14 +1,11 @@
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
-import {
-  DataListsPage,
-  DataListsPageHeader,
-} from "@/features/data-lists/view-lists/ui/data-lists-page";
-import { DataListsListToolbar } from "@/features/data-lists/view-lists/ui/data-lists-list-toolbar";
+import { DataListsPageHeader } from "@/features/data-lists/view-lists/ui/data-lists-page";
+import { DataListsBrowser } from "@/features/data-lists/view-lists/ui/data-lists-browser";
 import { DataListsLocaleFilter } from "@/features/data-lists/view-lists/ui/data-lists-locale-filter";
-import { DataListsTableSkeleton } from "@/features/data-lists/view-lists/ui/data-lists-table-skeleton";
 import { getDataListsPage } from "@/features/data-lists/view-lists/get-data-lists.server";
 import {
+  dataListsListSuspenseKey,
   firstString,
   parseDataListsListParams,
 } from "@/features/data-lists/view-lists/utils";
@@ -57,19 +54,16 @@ export default async function DataListsRoutePage({
   return (
     <>
       <DataListsPageHeader />
-      <DataListsListToolbar
+      <DataListsBrowser
+        dataListsPromise={dataListsPromise}
+        listKey={dataListsListSuspenseKey(listRequest)}
+        openCreateOnLoad={openCreateOnLoad}
         localeFilter={
           <Suspense fallback={null}>
             <DataListsLocaleFilter />
           </Suspense>
         }
       />
-      <Suspense fallback={<DataListsTableSkeleton />}>
-        <DataListsPage
-          dataListsPromise={dataListsPromise}
-          openCreateOnLoad={openCreateOnLoad}
-        />
-      </Suspense>
     </>
   );
 }

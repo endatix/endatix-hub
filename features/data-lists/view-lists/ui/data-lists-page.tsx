@@ -22,7 +22,6 @@ import {
   DataTableSurface,
   PagedTableFooter,
   useListTableState,
-  useListUrlState,
   type DateFilterValue,
 } from "@/components/table";
 import { Spinner } from "@/components/loaders/spinner";
@@ -70,6 +69,9 @@ import "@/components/table/data-table-column-meta";
 interface DataListsPageProps {
   dataListsPromise: Promise<DataListsPage>;
   openCreateOnLoad?: boolean;
+  updateUrl: UrlSearchParamsUpdater;
+  searchParams: URLSearchParams;
+  isPending?: boolean;
 }
 
 export function DataListsPageHeader() {
@@ -88,10 +90,12 @@ export function DataListsPageHeader() {
 export function DataListsPage({
   dataListsPromise,
   openCreateOnLoad = false,
+  updateUrl,
+  searchParams,
+  isPending = false,
 }: Readonly<DataListsPageProps>) {
   const paged = use(dataListsPromise);
   const router = useRouter();
-  const { updateUrl, searchParams, isPending } = useListUrlState();
   const urlState = listUrlStateFromSearchParams(searchParams);
   const searchInput = searchParams.get("search") ?? "";
 

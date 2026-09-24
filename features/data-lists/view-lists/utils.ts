@@ -269,6 +269,24 @@ export function currentDataListsListQuery(
   );
 }
 
+/** Remounts the lists grid when paging, filters, or sort change. */
+export function dataListsListSuspenseKey(
+  request: ListDataListsRequest,
+): string {
+  return JSON.stringify({
+    page: request.page ?? 1,
+    pageSize: request.pageSize ?? DEFAULT_DATA_LISTS_PAGE_SIZE,
+    search: request.search ?? null,
+    hasLocale: request.hasLocale ?? null,
+    sortBy: request.sortBy ?? null,
+    sortDir: request.sortDir ?? null,
+    createdFrom: request.createdFrom ?? null,
+    createdTo: request.createdTo ?? null,
+    modifiedFrom: request.modifiedFrom ?? null,
+    modifiedTo: request.modifiedTo ?? null,
+  });
+}
+
 export function listUrlStateFromSearchParams(
   searchParams: URLSearchParams,
 ): DataListsListUrlState {

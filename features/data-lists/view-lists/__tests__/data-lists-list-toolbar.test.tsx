@@ -49,6 +49,17 @@ vi.mock("@/components/table", async (importOriginal) => {
   };
 });
 
+function renderToolbar() {
+  render(
+    <DataListsListToolbar
+      search={mockSearch}
+      setSearch={setSearch}
+      updateUrl={updateUrl}
+      searchParams={mockSearchParams}
+    />,
+  );
+}
+
 describe("DataListsListToolbar", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -62,7 +73,7 @@ describe("DataListsListToolbar", () => {
     );
     mockSearch = "widgets";
 
-    render(<DataListsListToolbar />);
+    renderToolbar();
 
     fireEvent.click(screen.getByRole("button", { name: /reset filters/i }));
 
@@ -82,7 +93,7 @@ describe("DataListsListToolbar", () => {
     mockSearchParams = new URLSearchParams("search=widgets&sortBy=name");
     mockSearch = "widgets";
 
-    render(<DataListsListToolbar />);
+    renderToolbar();
 
     fireEvent.click(screen.getByRole("menuitem", { name: "Reset All" }));
 
@@ -101,7 +112,7 @@ describe("DataListsListToolbar", () => {
   });
 
   it("hides Reset when no filters or sorting are active", () => {
-    render(<DataListsListToolbar />);
+    renderToolbar();
 
     expect(screen.queryByRole("button", { name: /reset/i })).toBeNull();
   });
@@ -109,7 +120,7 @@ describe("DataListsListToolbar", () => {
   it("shows Reset Sorting when only sort query params are set", () => {
     mockSearchParams = new URLSearchParams("sortBy=name&sortDir=asc");
 
-    render(<DataListsListToolbar />);
+    renderToolbar();
 
     fireEvent.click(screen.getByRole("button", { name: /reset sorting/i }));
 
