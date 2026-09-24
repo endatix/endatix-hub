@@ -154,6 +154,7 @@ Known deviations, to be migrated when next touched (do not copy them): `Forms.li
 ## Server Pages
 
 - Keep `app/` pages mostly orchestration-focused: parse route/search params, start independent data work early, and pass typed data into UI components.
+- Resolve a ternary into a named local before JSX. Pass `currentUserId={currentUserId}`, not `condition ? a : b` inside the prop list. Same work on a Server Component; the name is what you inspect when a prop is wrong. Reference: `app/(main)/admin/platform-admins/page.tsx`.
 - Prefer streaming slow, independent page sections with `Suspense` boundaries instead of blocking the whole route when partial rendering improves UX.
 - For streamed sections, pass stable promises into the section and unwrap them with React `use()` in the receiving component when that keeps the route file thin. Key the `Suspense` boundary with the parsed list query so a new filter/search does not keep the previous `use(promise)` result.
 - Use `Promise.all` for independent data dependencies. Await sequentially only when a later call depends on an earlier result.

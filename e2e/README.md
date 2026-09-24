@@ -10,6 +10,7 @@ e2e/
 ├── tests/           # Test specifications
 │   ├── smoke/       # Smoke tests for production monitoring
 │   ├── embed/       # Embed form tests
+│   ├── lists/       # Paged list paging (issue #1011)
 │   └── contact/     # Feature-specific tests
 ├── utils/           # Test helper functions
 └── README.md        # This file
@@ -80,6 +81,26 @@ Host page vs iframe document, playground env, and fill-mode: [`AGENTS.md`](../AG
 - Survey questions render
 - Navigation between pages works
 - Complete button appears on the final page
+
+## Paged List Tests
+
+`tests/lists/list-paging.spec.ts` is the browser-level net for paging (endatix-hub#1011). For each
+list it clicks **Go to next page**, checks the URL changed without a full reload, checks the pager did not move, then reloads
+and checks the rows match a fresh server render of the same URL. That catches a grid stuck on page 1
+and index-keyed rows whose cells keep page 1 values. A second test checks the users search box
+keeps focus while the grid reloads.
+
+```bash
+# hub/.env (gitignored)
+E2E_EMAIL="admin@example.com"       # falls back to SMOKE_TEST_EMAIL
+E2E_PASSWORD="..."                  # falls back to SMOKE_TEST_PASSWORD
+E2E_PAGING_FORM_ID=1480919870399840256   # a form with more than 10 submissions
+```
+
+Lists open with `pageSize=1`, so 2 rows per list are enough. A list with a single page is skipped
+with a "seed at least 2 pages" note, not passed. Admin lists need a platform admin account.
+
+Run: `pnpm test:e2e --grep "Paged lists"`.
 
 ## Smoke Tests
 
