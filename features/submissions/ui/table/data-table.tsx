@@ -5,6 +5,7 @@ import {
   dataTableBodyRowClassName,
   dataTableHeaderCellClassName,
   DataTableEmpty,
+  DataTablePendingRows,
   DataTableSurface,
 } from "@/components/table";
 import {
@@ -206,6 +207,9 @@ export function DataTable<TData extends Submission>({
   const table = useReactTable({
     data,
     columns,
+    // Key rows by submission, not index: stateful cells (status dropdown,
+    // answers) must not carry page 1 values into page 2 (issue #1011).
+    getRowId: (row) => row.id,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -235,17 +239,14 @@ export function DataTable<TData extends Submission>({
 
   const rows = table.getRowModel().rows;
 
-  if (rows.length === 0) {
+  if (rows.length === 0 && !isPending) {
     const isFilteredEmpty =
       manualRowCount !== undefined &&
       manualRowCount > 0 &&
       onFilteredEmptyClear !== undefined;
 
     return (
-      <DataTableSurface
-        data-slot="submission-data-table"
-        isPending={isPending}
-      >
+      <DataTableSurface data-slot="submission-data-table">
         {isFilteredEmpty ? (
           <NoMatchingSubmissionsEmptyState
             onClearFilters={onFilteredEmptyClear}
@@ -262,7 +263,7 @@ export function DataTable<TData extends Submission>({
 
   return (
     <>
-      <DataTableSurface data-slot="submission-data-table" isPending={isPending}>
+      <DataTableSurface data-slot="submission-data-table">
         <DndContext
           id={dndContextId}
           sensors={sensors}
@@ -307,43 +308,48 @@ export function DataTable<TData extends Submission>({
                 ))}
               </SortableContext>
             </TableHeader>
-            <TableBody>
-              {rows.map((row, rowIndex) => {
-                const isEvenRow = rowIndex % 2 === 1;
-                const isSelected = row.getIsSelected();
-                return (
-                  <TableRow
-                    key={row.id}
-                    className={dataTableBodyRowClassName({
-                      isEvenRow,
-                      className: cn("cursor-pointer", getRowClassName(row)),
-                    })}
-                    onClick={() => handleRowSelectionChange(row)}
-                    data-state={isSelected && "selected"}
-                  >
-                    {row.getVisibleCells().map((cell) => {
-                      const isPinnedLeft =
-                        cell.column.getIsPinned() === "left";
-                      return (
-                        <TableCell
-                          key={cell.id}
-                          className={dataTableBodyCellClassName({
-                            isPinnedLeft,
-                            isEvenRow,
-                            isSelected,
-                            className: cell.column.columnDef.meta?.cellClassName,
-                          })}
-                        >
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext(),
-                          )}
-                        </TableCell>
-                      );
-                    })}
-                  </TableRow>
-                );
-              })}
+            <TableBody aria-busy={isPending || undefined}>
+              {isPending ? (
+                <DataTablePendingRows table={table} />
+              ) : (
+                rows.map((row, rowIndex) => {
+                  const isEvenRow = rowIndex % 2 === 1;
+                  const isSelected = row.getIsSelected();
+                  return (
+                    <TableRow
+                      key={row.id}
+                      className={dataTableBodyRowClassName({
+                        isEvenRow,
+                        className: cn("cursor-pointer", getRowClassName(row)),
+                      })}
+                      onClick={() => handleRowSelectionChange(row)}
+                      data-state={isSelected && "selected"}
+                    >
+                      {row.getVisibleCells().map((cell) => {
+                        const isPinnedLeft =
+                          cell.column.getIsPinned() === "left";
+                        return (
+                          <TableCell
+                            key={cell.id}
+                            className={dataTableBodyCellClassName({
+                              isPinnedLeft,
+                              isEvenRow,
+                              isSelected,
+                              className:
+                                cell.column.columnDef.meta?.cellClassName,
+                            })}
+                          >
+                            {flexRender(
+                              cell.column.columnDef.cell,
+                              cell.getContext(),
+                            )}
+                          </TableCell>
+                        );
+                      })}
+                    </TableRow>
+                  );
+                })
+              )}
             </TableBody>
           </Table>
           <DragOverlay

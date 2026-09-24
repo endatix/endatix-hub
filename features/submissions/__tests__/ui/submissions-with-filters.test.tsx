@@ -130,13 +130,16 @@ vi.mock("@/features/submissions/ui/table", () => ({
 vi.mock("@/features/submissions/ui/submissions-table", () => ({
   default: ({
     data,
+    isPending,
     onSortingChange,
   }: {
     data: Submission[];
+    isPending?: boolean;
     onSortingChange?: (updater: unknown) => void;
   }) => (
     <div data-testid="submissions-table">
       <span>Rows: {data.length}</span>
+      <span>Pending: {String(Boolean(isPending))}</span>
       <button
         type="button"
         onClick={() => onSortingChange?.([{ id: "createdAt", desc: true }])}
@@ -307,7 +310,7 @@ describe("SubmissionsWithFilters", () => {
     ).toBeNull();
   });
 
-  it("keeps the existing rows visible (dimmed) instead of swapping to a skeleton while URL navigation is pending", () => {
+  it("keeps the toolbar and table mounted and hands the pending state to the table (skeleton rows) while URL navigation is pending", () => {
     navigationMocks.isPending = true;
 
     renderSubmissionsWithFilters({
@@ -322,9 +325,9 @@ describe("SubmissionsWithFilters", () => {
 
     expect(screen.queryByTestId("submissions-table-skeleton")).toBeNull();
     expect(screen.getByTestId("submissions-table").textContent).toContain(
-      "Rows: 1",
+      "Pending: true",
     );
-    expect(screen.getByText("Updating…")).not.toBeNull();
+    expect(screen.queryByText("Updating…")).toBeNull();
   });
 
   it("debounces submitter text filters and replaces the URL", () => {

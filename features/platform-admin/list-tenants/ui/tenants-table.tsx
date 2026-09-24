@@ -121,9 +121,10 @@ export function TenantsTable({
 
   return (
     <>
-      <DataTableSurface data-slot="tenants-table" isPending={isPending}>
+      <DataTableSurface data-slot="tenants-table">
         <DataTableGrid
           table={table}
+          isPending={isPending}
           hasRows={paged.items.length > 0}
           empty={
             <DataTableEmpty>

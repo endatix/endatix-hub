@@ -1,34 +1,23 @@
 "use client";
 
 import { use } from "react";
-import { Info, User, UserCog } from "lucide-react";
+import { User, UserCog } from "lucide-react";
 import { useTrackEvent } from "@/features/analytics/posthog/client";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { CardContent } from "@/components/ui/card";
 import {
   createPagedTableFooterProps,
   PagedTableFooter,
   TableEmptyRow,
-  TableSearchInput,
 } from "@/components/table";
-import { useDebouncedUrlSearch } from "@/lib/utils/hooks/use-debounced-url-search.hook";
-import { useUrlSearchParamsUpdater } from "@/lib/utils/hooks/use-url-search-params-updater.hook";
-import { createUrlFilterUpdater } from "@/lib/utils/list-table-url-utils";
+import type { UrlSearchParamsUpdater } from "@/lib/utils/hooks/use-url-search-params-updater.hook";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -46,173 +35,79 @@ import type {
   PagedResponse,
   PlatformAdminUserListItem,
 } from "@/lib/endatix-api";
-import type { PlatformTenantsPage } from "@/lib/endatix-api/platform-tenants/platform-tenants";
 import { normalizePagedResponse } from "@/lib/endatix-api/shared/paged-response";
-import { Result, type ResultType } from "@/lib/result";
 import { getFormattedDate } from "@/lib/utils";
 
 interface PlatformAdminsTableProps {
   usersPromise: Promise<PagedResponse<PlatformAdminUserListItem>>;
-  tenantsPromise: Promise<ResultType<PlatformTenantsPage>>;
   approvedAdminTotalPromise: Promise<number>;
+  /** From the list shell's `useListUrlState`. The table never owns a URL writer. */
+  updateUrl: UrlSearchParamsUpdater;
   currentUserId?: string;
-  currentTenantId?: string;
 }
-
-const allScopesValue = "__all_scopes__";
-const allTenantsValue = "__all_tenants__";
 
 export function PlatformAdminsTable({
   usersPromise,
-  tenantsPromise,
   approvedAdminTotalPromise,
+  updateUrl,
   currentUserId,
-  currentTenantId,
 }: Readonly<PlatformAdminsTableProps>) {
   const pagedUsers = normalizePagedResponse(use(usersPromise));
-  // The tenant filter is secondary chrome: a failed tenant load leaves the list
-  // usable rather than replacing the page with an error.
-  const tenantsResult = use(tenantsPromise);
-  const tenants = Result.isSuccess(tenantsResult)
-    ? tenantsResult.value.items
-    : [];
   const approvedAdminTotal = use(approvedAdminTotalPromise);
-  const { searchParams, updateUrl } = useUrlSearchParamsUpdater();
-  const urlSearch = searchParams.get("search") ?? "";
-  const urlScope = searchParams.get("scope");
-  const scopeFilter =
-    urlScope === "approved" || urlScope === "candidates"
-      ? urlScope
-      : allScopesValue;
-  const tenantFilter = searchParams.get("tenantId") ?? allTenantsValue;
-  const { search, setSearch } = useDebouncedUrlSearch({
-    urlSearch,
-    updateUrl,
-  });
-  const onScopeFilterChange = createUrlFilterUpdater(
-    updateUrl,
-    "scope",
-    allScopesValue,
-  );
-  const onTenantFilterChange = createUrlFilterUpdater(
-    updateUrl,
-    "tenantId",
-    allTenantsValue,
-  );
   const { trackEvent } = useTrackEvent();
   const handleRevokeSuccess = () => {
     trackEvent("platform_admin_access_revoked", { success: true });
   };
 
   return (
-    <div className="space-y-4">
-      <Alert variant="info">
-        <Info className="h-4 w-4" />
-        <AlertTitle>Local PlatformAdmin approval</AlertTitle>
-        <AlertDescription>
-          External identity provider roles nominate users for platform
-          administration. Local approval in Endatix grants or revokes platform
-          access.
-        </AlertDescription>
-      </Alert>
+    <>
+      <CardContent className="p-0">
+        <TooltipProvider>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>User</TableHead>
+                <TableHead>Tenant</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Approval</TableHead>
+                <TableHead>Last Login</TableHead>
+                <TableHead className="text-right">Action</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {pagedUsers.items.map((user) => {
+                const isLocallyApproved = hasLocalPlatformAdminRole(user);
+                const isCurrentUser =
+                  currentUserId !== undefined && user.id === currentUserId;
+                const isLastApprovedAdmin =
+                  isLocallyApproved && approvedAdminTotal === 1;
+                const isActionDisabled =
+                  isLocallyApproved && (isCurrentUser || isLastApprovedAdmin);
 
-      <Card className="gap-0 py-0">
-        <CardHeader className="border-b bg-card py-4">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <TableSearchInput
-              value={search}
-              onChange={setSearch}
-              placeholder="Search by name or email"
-              ariaLabel="Search platform administrators by name or email"
-            />
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-              <Select value={scopeFilter} onValueChange={onScopeFilterChange}>
-                <SelectTrigger
-                  className="w-full lg:w-[180px]"
-                  aria-label="Filter platform administrators by approval status"
-                >
-                  <SelectValue placeholder="Approval" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={allScopesValue}>All users</SelectItem>
-                  <SelectItem value="approved">Approved</SelectItem>
-                  <SelectItem value="candidates">Candidates</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={tenantFilter} onValueChange={onTenantFilterChange}>
-                <SelectTrigger
-                  className="w-full lg:w-[200px]"
-                  aria-label="Filter platform administrators by tenant"
-                >
-                  <SelectValue placeholder="Tenant" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={allTenantsValue}>All tenants</SelectItem>
-                  {tenants.map((tenant) => (
-                    <SelectItem key={tenant.id} value={tenant.id}>
-                      {tenant.name}
-                      {tenant.id === currentTenantId ? (
-                        <span className="text-muted-foreground">
-                          {" "}
-                          (current)
-                        </span>
-                      ) : null}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardHeader>
+                return (
+                  <PlatformAdminUserRow
+                    key={user.id}
+                    user={user}
+                    isLocallyApproved={isLocallyApproved}
+                    isActionDisabled={isActionDisabled}
+                    isCurrentUser={isCurrentUser}
+                    isLastApprovedAdmin={isLastApprovedAdmin}
+                    onRevokeSuccess={handleRevokeSuccess}
+                  />
+                );
+              })}
+              {pagedUsers.items.length === 0 && (
+                <TableEmptyRow colSpan={6} message="No users found." />
+              )}
+            </TableBody>
+          </Table>
+        </TooltipProvider>
+      </CardContent>
 
-        <CardContent className="p-0">
-          <TooltipProvider>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>User</TableHead>
-                  <TableHead>Tenant</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Approval</TableHead>
-                  <TableHead>Last Login</TableHead>
-                  <TableHead className="text-right">Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {pagedUsers.items.map((user) => {
-                  const isLocallyApproved = hasLocalPlatformAdminRole(user);
-                  const isCurrentUser =
-                    currentUserId !== undefined && user.id === currentUserId;
-                  const isLastApprovedAdmin =
-                    isLocallyApproved && approvedAdminTotal === 1;
-                  const isActionDisabled =
-                    isLocallyApproved && (isCurrentUser || isLastApprovedAdmin);
-
-                  return (
-                    <PlatformAdminUserRow
-                      key={user.id}
-                      user={user}
-                      isLocallyApproved={isLocallyApproved}
-                      isActionDisabled={isActionDisabled}
-                      isCurrentUser={isCurrentUser}
-                      isLastApprovedAdmin={isLastApprovedAdmin}
-                      onRevokeSuccess={handleRevokeSuccess}
-                    />
-                  );
-                })}
-                {pagedUsers.items.length === 0 && (
-                  <TableEmptyRow colSpan={6} message="No users found." />
-                )}
-              </TableBody>
-            </Table>
-          </TooltipProvider>
-        </CardContent>
-
-        <PagedTableFooter
-          {...createPagedTableFooterProps(pagedUsers, "users", updateUrl)}
-        />
-      </Card>
-    </div>
+      <PagedTableFooter
+        {...createPagedTableFooterProps(pagedUsers, "users", updateUrl)}
+      />
+    </>
   );
 }
 

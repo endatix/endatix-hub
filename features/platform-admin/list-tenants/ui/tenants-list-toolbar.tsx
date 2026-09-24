@@ -13,7 +13,6 @@ interface TenantsListToolbarProps {
   setSearch: (value: string) => void;
   updateUrl: UrlSearchParamsUpdater;
   urlState: TenantsListUrlState;
-  isPending: boolean;
 }
 
 export function TenantsListToolbar({
@@ -21,7 +20,6 @@ export function TenantsListToolbar({
   setSearch,
   updateUrl,
   urlState,
-  isPending,
 }: Readonly<TenantsListToolbarProps>) {
   const hasActiveFilters = Boolean(
     (search ?? "").trim() ||
@@ -69,7 +67,6 @@ export function TenantsListToolbar({
   return (
     <DataTableToolbar
       className="mb-4"
-      isPending={isPending}
       filters={
         <>
           <TableSearchInput

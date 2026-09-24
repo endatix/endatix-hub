@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { formatInteger } from "@/lib/utils/formatters";
 import {
   Select,
   SelectContent,
@@ -23,16 +24,21 @@ export function TablePagination<TData>({
   table,
   totalRows,
 }: TablePagination<TData>) {
+  const { pageIndex, pageSize } = table.getState().pagination;
+  const total = totalRows ?? table.getCoreRowModel().rows.length;
+  const showingFrom = total === 0 ? 0 : pageIndex * pageSize + 1;
+  const showingTo = Math.min((pageIndex + 1) * pageSize, total);
+
   return (
-    <div className="flex flex-col gap-3 border-t border-border/40 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4">
+    <div className="mt-auto flex flex-col gap-3 border-t border-border/40 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4">
       <div className="flex-1 text-sm text-muted-foreground">
         <span className="sm:hidden">
-          {table.getFilteredSelectedRowModel().rows.length} of{" "}
-          {totalRows ?? table.getCoreRowModel().rows.length} selected
+          {formatInteger(showingFrom)}-{formatInteger(showingTo)} of{" "}
+          {formatInteger(total)}
         </span>
         <span className="hidden sm:inline">
-          {table.getFilteredSelectedRowModel().rows.length} of{" "}
-          {totalRows ?? table.getCoreRowModel().rows.length} row(s) selected.
+          Showing {formatInteger(showingFrom)}-{formatInteger(showingTo)} of{" "}
+          {formatInteger(total)} submissions
         </span>
       </div>
       <div className="flex items-center justify-between gap-3 sm:justify-end sm:space-x-6 lg:space-x-8">
