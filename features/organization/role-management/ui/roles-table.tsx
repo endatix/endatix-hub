@@ -9,13 +9,13 @@ import {
   useState,
   useTransition,
 } from "react";
-import { MoreHorizontal, Plus, Search, X } from "lucide-react";
+import { MoreHorizontal, Search, X } from "lucide-react";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CardContent } from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,13 +35,6 @@ import {
   ResponsivePanelTitle,
 } from "@/components/ui/responsive-panel";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Table,
   TableBody,
   TableCell,
@@ -51,18 +44,14 @@ import {
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { DisabledMenuItem } from "@/components/ui/disabled-menu-item";
-import { DisabledButton } from "@/components/ui/disabled-button";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { toast } from "@/components/ui/toast";
 import {
   createPagedTableFooterProps,
   PagedTableFooter,
   TableEmptyRow,
-  TableSearchInput,
 } from "@/components/table";
-import { useDebouncedUrlSearch } from "@/lib/utils/hooks/use-debounced-url-search.hook";
-import { useUrlSearchParamsUpdater } from "@/lib/utils/hooks/use-url-search-params-updater.hook";
-import { createUrlFilterUpdater } from "@/lib/utils/list-table-url-utils";
+import type { UrlSearchParamsUpdater } from "@/lib/utils/hooks/use-url-search-params-updater.hook";
 import { useTrackEvent } from "@/features/analytics/posthog/client";
 import type {
   PagedResponse,
@@ -87,10 +76,22 @@ interface RolesTableProps {
   rolesPromise: Promise<PagedResponse<RoleListItem>>;
   permissionsPromise: Promise<PermissionListItem[]>;
   canManageRoles: boolean;
+  /** From the list shell's `useListUrlState`. The table never owns a URL writer. */
+  updateUrl: UrlSearchParamsUpdater;
+  /** Create panel state lives in the shell; its button sits in the toolbar. */
+  createOpen: boolean;
+  onCreateOpenChange: (open: boolean) => void;
 }
 
 const initialState: RoleActionState = { isSuccess: undefined };
-const allRoleTypesValue = "__all_role_types__";
+const NO_DESCRIPTION_LABEL = "No description provided.";
+const EMPTY_ROLES_MESSAGE = "No roles match the current filters.";
+
+type RoleTableRow = {
+  permissionSummary: RolePermissionSummary;
+  role: RoleListItem;
+  userCount: number;
+};
 
 const permissionCategoryLabels: Record<string, string> = {
   access: "Access Controls",
@@ -109,34 +110,21 @@ export function RolesTable({
   rolesPromise,
   permissionsPromise,
   canManageRoles,
+  updateUrl,
+  createOpen,
+  onCreateOpenChange: setCreateOpen,
 }: Readonly<RolesTableProps>) {
   const pagedRoles = normalizePagedResponse(use(rolesPromise));
   const permissions = use(permissionsPromise);
-  const roleRows = pagedRoles.items.map((role) => ({
+  const roleRows: RoleTableRow[] = pagedRoles.items.map((role) => ({
     permissionSummary: getRolePermissionSummary(role),
     role,
     userCount: role.usersCount,
   }));
+  const hasRoles = roleRows.length > 0;
   const router = useRouter();
-  const { searchParams, updateUrl } = useUrlSearchParamsUpdater();
   const { trackEvent } = useTrackEvent();
   const handledCreateStateRef = useRef<RoleActionState | null>(null);
-  const urlSearch = searchParams.get("search") ?? "";
-  const urlRoleType = searchParams.get("roleType");
-  const roleTypeFilter =
-    urlRoleType === "system" || urlRoleType === "custom"
-      ? urlRoleType
-      : allRoleTypesValue;
-  const { search, setSearch } = useDebouncedUrlSearch({
-    urlSearch,
-    updateUrl,
-  });
-  const onRoleTypeFilterChange = createUrlFilterUpdater(
-    updateUrl,
-    "roleType",
-    allRoleTypesValue,
-  );
-  const [createOpen, setCreateOpen] = useState(false);
   const [createPermissions, setCreatePermissions] = useState<string[]>([]);
   const [editingRole, setEditingRole] = useState<RoleListItem | null>(null);
   const [editDescription, setEditDescription] = useState("");
@@ -146,6 +134,8 @@ export function RolesTable({
     initialState,
   );
   const [isPending, startTransition] = useTransition();
+  const createSubmitLabel = pending ? "Creating..." : "Create Role";
+  const saveSubmitLabel = isPending ? "Saving..." : "Save Changes";
 
   useEffect(() => {
     if (state.isSuccess && handledCreateStateRef.current !== state) {
@@ -163,7 +153,7 @@ export function RolesTable({
     if (state.isSuccess === false && state.formErrors?.length) {
       toast.error(state.formErrors[0]);
     }
-  }, [router, state, trackEvent]);
+  }, [router, setCreateOpen, state, trackEvent]);
 
   const openEditRole = (role: RoleListItem) => {
     setEditingRole(role);
@@ -172,22 +162,26 @@ export function RolesTable({
   };
 
   const onEditPermissionChange = (permissionName: string, checked: boolean) => {
-    setEditPermissions((current) =>
-      checked
-        ? addPermission(current, permissionName)
-        : removePermission(current, permissionName),
-    );
+    setEditPermissions((current) => {
+      if (checked) {
+        return addPermission(current, permissionName);
+      }
+
+      return removePermission(current, permissionName);
+    });
   };
 
   const onCreatePermissionChange = (
     permissionName: string,
     checked: boolean,
   ) => {
-    setCreatePermissions((current) =>
-      checked
-        ? addPermission(current, permissionName)
-        : removePermission(current, permissionName),
-    );
+    setCreatePermissions((current) => {
+      if (checked) {
+        return addPermission(current, permissionName);
+      }
+
+      return removePermission(current, permissionName);
+    });
   };
 
   const handleDelete = (roleName: string) => {
@@ -238,177 +232,56 @@ export function RolesTable({
 
   return (
     <>
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <CardTitle className="text-lg">All Roles</CardTitle>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <TableSearchInput
-                value={search}
-                onChange={setSearch}
-                placeholder="Search roles"
-                ariaLabel="Search organization roles by name"
-                className="sm:max-w-xs"
+      <CardContent className="px-0 pb-0 sm:px-6">
+        <div className="divide-y sm:hidden">
+          <RolesMobileList
+            canManageRoles={canManageRoles}
+            hasRoles={hasRoles}
+            isPending={isPending}
+            onDeleteRole={handleDelete}
+            onEditRole={openEditRole}
+            rows={roleRows}
+          />
+        </div>
+
+        <div className="hidden sm:block">
+          <Table className="w-full table-fixed">
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-auto whitespace-nowrap xl:w-[22%]">
+                  Role Name
+                </TableHead>
+                <TableHead className="hidden w-[44%] whitespace-nowrap xl:table-cell">
+                  Description
+                </TableHead>
+                <TableHead className="hidden w-36 text-right whitespace-nowrap xl:table-cell">
+                  Users Assigned
+                </TableHead>
+                <TableHead className="w-44 text-right whitespace-nowrap">
+                  Permissions
+                </TableHead>
+                <TableHead className="w-20 text-right whitespace-nowrap">
+                  Actions
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <RolesDesktopRows
+                canManageRoles={canManageRoles}
+                hasRoles={hasRoles}
+                isPending={isPending}
+                onDeleteRole={handleDelete}
+                onEditRole={openEditRole}
+                rows={roleRows}
               />
-              <Select
-                value={roleTypeFilter}
-                onValueChange={onRoleTypeFilterChange}
-              >
-                <SelectTrigger className="w-full sm:w-[160px]">
-                  <SelectValue placeholder="Role type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={allRoleTypesValue}>All types</SelectItem>
-                  <SelectItem value="system">System</SelectItem>
-                  <SelectItem value="custom">Custom</SelectItem>
-                </SelectContent>
-              </Select>
-              {canManageRoles ? (
-                <Button onClick={() => setCreateOpen(true)}>
-                  <Plus data-icon="inline-start" />
-                  Create Role
-                </Button>
-              ) : (
-                <TooltipProvider>
-                  <DisabledButton tooltip="You don't have permission to manage roles">
-                    <Plus data-icon="inline-start" />
-                    Create Role
-                  </DisabledButton>
-                </TooltipProvider>
-              )}
-            </div>
-          </div>
-        </CardHeader>
+            </TableBody>
+          </Table>
+        </div>
+      </CardContent>
 
-        <CardContent className="px-0 pb-0 sm:px-6">
-          {/* Mobile view */}
-          <div className="divide-y sm:hidden">
-            {roleRows.length === 0 ? (
-              <div className="p-6 text-center text-sm text-muted-foreground">
-                No roles match the current filters.
-              </div>
-            ) : (
-              roleRows.map(({ permissionSummary, role, userCount }) => (
-                <div key={role.id} className="p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="font-medium break-words">{role.name}</div>
-                      <RoleTypeBadge role={role} />
-                    </div>
-                    <RoleActionsMenu
-                      canManageRoles={canManageRoles}
-                      isPending={isPending}
-                      onDeleteRole={handleDelete}
-                      onEditRole={openEditRole}
-                      role={role}
-                    />
-                  </div>
-                  <p className="mt-3 text-sm break-words text-muted-foreground">
-                    {role.description || "No description provided."}
-                  </p>
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
-                    <Badge
-                      asChild
-                      variant="secondary"
-                      className="px-3 py-1 hover:bg-secondary/80"
-                    >
-                      <Link
-                        href={
-                          `/settings/organization/users?role=${encodeURIComponent(role.name)}&status=active` as Route
-                        }
-                      >
-                        {userCount} users
-                      </Link>
-                    </Badge>
-                    <RolePermissionsSummary summary={permissionSummary} />
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-
-          {/* Desktop table */}
-          <div className="hidden sm:block">
-            <Table className="w-full table-fixed">
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-auto whitespace-nowrap xl:w-[22%]">
-                    Role Name
-                  </TableHead>
-                  <TableHead className="hidden w-[44%] whitespace-nowrap xl:table-cell">
-                    Description
-                  </TableHead>
-                  <TableHead className="hidden w-36 text-right whitespace-nowrap xl:table-cell">
-                    Users Assigned
-                  </TableHead>
-                  <TableHead className="w-44 text-right whitespace-nowrap">
-                    Permissions
-                  </TableHead>
-                  <TableHead className="w-20 text-right whitespace-nowrap">
-                    Actions
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {roleRows.length === 0 ? (
-                  <TableEmptyRow
-                    colSpan={5}
-                    message="No roles match the current filters."
-                  />
-                ) : (
-                  roleRows.map(({ permissionSummary, role, userCount }) => (
-                    <TableRow key={role.id}>
-                      <TableCell className="align-top break-words whitespace-normal">
-                        <div className="font-medium break-words">
-                          {role.name}
-                        </div>
-                        <RoleTypeBadge role={role} />
-                        <div className="mt-2 text-sm break-words whitespace-normal text-muted-foreground xl:hidden">
-                          {role.description || "No description provided."}
-                        </div>
-                        <div className="mt-2 xl:hidden">
-                          <UsersAssignedBadge
-                            roleName={role.name}
-                            count={userCount}
-                          />
-                        </div>
-                      </TableCell>
-                      <TableCell className="hidden align-top break-words whitespace-normal text-muted-foreground xl:table-cell">
-                        {role.description || "No description provided."}
-                      </TableCell>
-                      <TableCell className="hidden text-right align-top xl:table-cell">
-                        <UsersAssignedBadge
-                          roleName={role.name}
-                          count={userCount}
-                        />
-                      </TableCell>
-                      <TableCell className="text-right align-top break-words whitespace-normal">
-                        <RolePermissionsSummary
-                          summary={permissionSummary}
-                          variant="text"
-                        />
-                      </TableCell>
-                      <TableCell className="text-right align-top">
-                        <RoleActionsMenu
-                          canManageRoles={canManageRoles}
-                          isPending={isPending}
-                          onDeleteRole={handleDelete}
-                          onEditRole={openEditRole}
-                          role={role}
-                        />
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-
-        <PagedTableFooter
-          {...createPagedTableFooterProps(pagedRoles, "roles", updateUrl)}
-        />
-      </Card>
+      <PagedTableFooter
+        {...createPagedTableFooterProps(pagedRoles, "roles", updateUrl)}
+      />
 
       {/* Create role panel */}
       <ResponsivePanel
@@ -462,7 +335,7 @@ export function RolesTable({
               Cancel
             </Button>
             <Button type="submit" disabled={pending}>
-              {pending ? "Creating..." : "Create Role"}
+              {createSubmitLabel}
             </Button>
           </ResponsivePanelFooter>
         </form>
@@ -472,7 +345,11 @@ export function RolesTable({
       <ResponsivePanel
         desktopType="complex"
         open={editingRole !== null}
-        onOpenChange={(open) => !open && setEditingRole(null)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditingRole(null);
+          }
+        }}
       >
         {editingRole && (
           <div className="flex h-full min-h-0 flex-col">
@@ -511,7 +388,7 @@ export function RolesTable({
                 Cancel
               </Button>
               <Button disabled={isPending} onClick={handleUpdate}>
-                {isPending ? "Saving..." : "Save Changes"}
+                {saveSubmitLabel}
               </Button>
             </ResponsivePanelFooter>
           </div>
@@ -519,6 +396,97 @@ export function RolesTable({
       </ResponsivePanel>
     </>
   );
+}
+
+function roleDescription(role: RoleListItem) {
+  return role.description || NO_DESCRIPTION_LABEL;
+}
+
+type RoleRowActions = {
+  canManageRoles: boolean;
+  isPending: boolean;
+  onDeleteRole: (roleName: string) => void;
+  onEditRole: (role: RoleListItem) => void;
+};
+
+function RolesMobileList({
+  hasRoles,
+  rows,
+  ...actions
+}: Readonly<
+  RoleRowActions & {
+    hasRoles: boolean;
+    rows: RoleTableRow[];
+  }
+>) {
+  if (!hasRoles) {
+    return (
+      <div className="p-6 text-center text-sm text-muted-foreground">
+        {EMPTY_ROLES_MESSAGE}
+      </div>
+    );
+  }
+
+  return rows.map(({ permissionSummary, role, userCount }) => (
+    <div key={role.id} className="p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="font-medium break-words">{role.name}</div>
+          <RoleTypeBadge role={role} />
+        </div>
+        <RoleActionsMenu role={role} {...actions} />
+      </div>
+      <p className="mt-3 text-sm break-words text-muted-foreground">
+        {roleDescription(role)}
+      </p>
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <UsersAssignedBadge roleName={role.name} count={userCount} />
+        <RolePermissionsSummary summary={permissionSummary} />
+      </div>
+    </div>
+  ));
+}
+
+function RolesDesktopRows({
+  hasRoles,
+  rows,
+  ...actions
+}: Readonly<
+  RoleRowActions & {
+    hasRoles: boolean;
+    rows: RoleTableRow[];
+  }
+>) {
+  if (!hasRoles) {
+    return <TableEmptyRow colSpan={5} message={EMPTY_ROLES_MESSAGE} />;
+  }
+
+  return rows.map(({ permissionSummary, role, userCount }) => (
+    <TableRow key={role.id}>
+      <TableCell className="align-top break-words whitespace-normal">
+        <div className="font-medium break-words">{role.name}</div>
+        <RoleTypeBadge role={role} />
+        <div className="mt-2 text-sm break-words whitespace-normal text-muted-foreground xl:hidden">
+          {roleDescription(role)}
+        </div>
+        <div className="mt-2 xl:hidden">
+          <UsersAssignedBadge roleName={role.name} count={userCount} />
+        </div>
+      </TableCell>
+      <TableCell className="hidden align-top break-words whitespace-normal text-muted-foreground xl:table-cell">
+        {roleDescription(role)}
+      </TableCell>
+      <TableCell className="hidden text-right align-top xl:table-cell">
+        <UsersAssignedBadge roleName={role.name} count={userCount} />
+      </TableCell>
+      <TableCell className="text-right align-top break-words whitespace-normal">
+        <RolePermissionsSummary summary={permissionSummary} variant="text" />
+      </TableCell>
+      <TableCell className="text-right align-top">
+        <RoleActionsMenu role={role} {...actions} />
+      </TableCell>
+    </TableRow>
+  ));
 }
 
 function PermissionsChecklist({
@@ -557,6 +525,88 @@ function PermissionsChecklist({
     () => groupPermissionsByCategory(filteredPermissions),
     [filteredPermissions],
   );
+  const sortedSelectedPermissions = selectedPermissions
+    .slice()
+    .sort((left, right) => left.localeCompare(right));
+  const hasSelectedPermissions = sortedSelectedPermissions.length > 0;
+  const hasGroupedPermissions = groupedPermissions.length > 0;
+
+  let selectedPermissionsContent = (
+    <p className="text-sm text-muted-foreground">No permissions selected.</p>
+  );
+  if (hasSelectedPermissions) {
+    selectedPermissionsContent = (
+      <div className="flex flex-wrap gap-2">
+        {sortedSelectedPermissions.map((permissionName) => (
+          <Badge
+            key={permissionName}
+            variant="secondary"
+            className="gap-1.5 px-3 py-1.5"
+          >
+            {permissionName}
+            <button
+              type="button"
+              className="rounded-full text-muted-foreground hover:text-destructive"
+              onClick={() => onPermissionChange(permissionName, false)}
+            >
+              <X className="h-3 w-3" />
+              <span className="sr-only">Remove {permissionName}</span>
+            </button>
+          </Badge>
+        ))}
+      </div>
+    );
+  }
+
+  let groupedPermissionsContent = (
+    <div className="p-4 text-sm text-muted-foreground">
+      No permissions match your search.
+    </div>
+  );
+  if (hasGroupedPermissions) {
+    groupedPermissionsContent = (
+      <>
+        {groupedPermissions.map((group) => (
+          <div key={group.categoryCode}>
+            <div className="border-y bg-muted px-4 py-2 text-xs font-semibold text-muted-foreground">
+              {group.categoryLabel}
+            </div>
+            {group.permissions.map((permission) => {
+              const isSelected = selectedPermissions.includes(permission.name);
+              const rowClassName = isSelected
+                ? "relative z-0 flex cursor-pointer items-start gap-3 border-b bg-primary/5 px-4 py-3 text-sm"
+                : "relative z-0 flex cursor-pointer items-start gap-3 border-b bg-background px-4 py-3 text-sm hover:bg-muted/40";
+              const nameClassName = isSelected
+                ? "block font-medium text-primary"
+                : "block font-medium";
+
+              return (
+                <label key={permission.id} className={rowClassName}>
+                  <Checkbox
+                    name="permissions"
+                    value={permission.name}
+                    checked={isSelected}
+                    onCheckedChange={(checked) =>
+                      onPermissionChange(permission.name, checked === true)
+                    }
+                    className="mt-1"
+                  />
+                  <span>
+                    <span className={nameClassName}>{permission.name}</span>
+                    {permission.description ? (
+                      <span className="block text-muted-foreground">
+                        {permission.description}
+                      </span>
+                    ) : null}
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+        ))}
+      </>
+    );
+  }
 
   return (
     <div className="space-y-4 rounded-xl bg-muted/20 p-4">
@@ -571,34 +621,7 @@ function PermissionsChecklist({
         <div className="mb-3 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
           Active Permissions
         </div>
-        {selectedPermissions.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            No permissions selected.
-          </p>
-        ) : (
-          <div className="flex flex-wrap gap-2">
-            {selectedPermissions
-              .slice()
-              .sort((left, right) => left.localeCompare(right))
-              .map((permissionName) => (
-                <Badge
-                  key={permissionName}
-                  variant="secondary"
-                  className="gap-1.5 px-3 py-1.5"
-                >
-                  {permissionName}
-                  <button
-                    type="button"
-                    className="rounded-full text-muted-foreground hover:text-destructive"
-                    onClick={() => onPermissionChange(permissionName, false)}
-                  >
-                    <X className="h-3 w-3" />
-                    <span className="sr-only">Remove {permissionName}</span>
-                  </button>
-                </Badge>
-              ))}
-          </div>
-        )}
+        {selectedPermissionsContent}
       </div>
 
       <div className="sticky -top-[1.25rem] z-20 -mx-4 border-y bg-muted/20 px-4 py-3 backdrop-blur">
@@ -614,73 +637,20 @@ function PermissionsChecklist({
       </div>
 
       <div className="rounded-lg border bg-background">
-        {groupedPermissions.length === 0 ? (
-          <div className="p-4 text-sm text-muted-foreground">
-            No permissions match your search.
-          </div>
-        ) : (
-          groupedPermissions.map((group) => (
-            <div key={group.categoryCode}>
-              <div className="border-y bg-muted px-4 py-2 text-xs font-semibold text-muted-foreground">
-                {group.categoryLabel}
-              </div>
-              {group.permissions.map((permission) => {
-                const isSelected = selectedPermissions.includes(
-                  permission.name,
-                );
-
-                return (
-                  <label
-                    key={permission.id}
-                    className={
-                      isSelected
-                        ? "relative z-0 flex cursor-pointer items-start gap-3 border-b bg-primary/5 px-4 py-3 text-sm"
-                        : "relative z-0 flex cursor-pointer items-start gap-3 border-b bg-background px-4 py-3 text-sm hover:bg-muted/40"
-                    }
-                  >
-                    <Checkbox
-                      name="permissions"
-                      value={permission.name}
-                      checked={isSelected}
-                      onCheckedChange={(checked) =>
-                        onPermissionChange(permission.name, checked === true)
-                      }
-                      className="mt-1"
-                    />
-                    <span>
-                      <span
-                        className={
-                          isSelected
-                            ? "block font-medium text-primary"
-                            : "block font-medium"
-                        }
-                      >
-                        {permission.name}
-                      </span>
-                      {permission.description && (
-                        <span className="block text-muted-foreground">
-                          {permission.description}
-                        </span>
-                      )}
-                    </span>
-                  </label>
-                );
-              })}
-            </div>
-          ))
-        )}
+        {groupedPermissionsContent}
       </div>
     </div>
   );
 }
 
 function RoleTypeBadge({ role }: Readonly<{ role: RoleListItem }>) {
+  const isSystemRole = role.isSystemDefined;
+  const variant = isSystemRole ? "secondary" : "outline";
+  const label = isSystemRole ? "System" : "Custom";
+
   return (
-    <Badge
-      variant={role.isSystemDefined ? "secondary" : "outline"}
-      className="mt-1"
-    >
-      {role.isSystemDefined ? "System" : "Custom"}
+    <Badge variant={variant} className="mt-1">
+      {label}
     </Badge>
   );
 }
@@ -702,8 +672,39 @@ function RoleActionsMenu({
   const canEdit = canManageRoles && !isSystemRole;
   const systemDisabledReason = "System roles cannot be modified";
   const permissionDisabledReason = "You don't have permission to manage roles";
-  const getDisabledReason = () =>
-    isSystemRole ? systemDisabledReason : permissionDisabledReason;
+  const disabledReason = isSystemRole
+    ? systemDisabledReason
+    : permissionDisabledReason;
+
+  let editItem = (
+    <DisabledMenuItem label="Edit Permissions" tooltip={disabledReason} />
+  );
+  if (canEdit) {
+    editItem = (
+      <DropdownMenuItem onClick={() => onEditRole(role)}>
+        Edit Permissions
+      </DropdownMenuItem>
+    );
+  }
+
+  let deleteItem = (
+    <DisabledMenuItem
+      label="Delete Role"
+      tooltip={disabledReason}
+      destructive
+    />
+  );
+  if (canEdit) {
+    deleteItem = (
+      <DropdownMenuItem
+        className="text-destructive focus:text-destructive"
+        disabled={isPending}
+        onClick={() => onDeleteRole(role.name)}
+      >
+        Delete Role
+      </DropdownMenuItem>
+    );
+  }
 
   return (
     <TooltipProvider>
@@ -716,32 +717,9 @@ function RoleActionsMenu({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuLabel>Actions</DropdownMenuLabel>
-          {canEdit ? (
-            <DropdownMenuItem onClick={() => onEditRole(role)}>
-              Edit Permissions
-            </DropdownMenuItem>
-          ) : (
-            <DisabledMenuItem
-              label="Edit Permissions"
-              tooltip={getDisabledReason()}
-            />
-          )}
+          {editItem}
           {!isSystemRole && <DropdownMenuSeparator />}
-          {canEdit ? (
-            <DropdownMenuItem
-              className="text-destructive focus:text-destructive"
-              disabled={isPending}
-              onClick={() => onDeleteRole(role.name)}
-            >
-              Delete Role
-            </DropdownMenuItem>
-          ) : (
-            <DisabledMenuItem
-              label="Delete Role"
-              tooltip={getDisabledReason()}
-              destructive
-            />
-          )}
+          {deleteItem}
         </DropdownMenuContent>
       </DropdownMenu>
     </TooltipProvider>
@@ -795,15 +773,13 @@ function RolePermissionsSummary({
     );
   }
 
+  const badgeClassName =
+    summary.kind === "effective-access"
+      ? "max-w-full shrink flex-col text-center leading-snug break-words whitespace-normal"
+      : "max-w-full shrink text-center leading-snug break-words whitespace-normal";
+
   return (
-    <Badge
-      variant="outline"
-      className={
-        summary.kind === "effective-access"
-          ? "max-w-full shrink flex-col text-center leading-snug break-words whitespace-normal"
-          : "max-w-full shrink text-center leading-snug break-words whitespace-normal"
-      }
-    >
+    <Badge variant="outline" className={badgeClassName}>
       <RolePermissionsSummaryLabel summary={summary} />
     </Badge>
   );

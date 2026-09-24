@@ -232,13 +232,10 @@ export function DataListsPage({
 
   return (
     <>
-      <DataTableSurface
-        data-slot="data-lists-table"
-        className="mt-4"
-        isPending={isPending}
-      >
+      <DataTableSurface data-slot="data-lists-table" className="mt-4">
         <DataTableGrid
           table={table}
+          isPending={isPending}
           hasRows={paged.items.length > 0}
           empty={
             <DataTableEmpty>

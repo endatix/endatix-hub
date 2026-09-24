@@ -23,7 +23,6 @@ type DataListsListToolbarProps = {
   setSearch: (value: string) => void;
   updateUrl: UrlSearchParamsUpdater;
   searchParams: URLSearchParams;
-  isPending?: boolean;
 };
 
 export function DataListsListToolbar({
@@ -32,7 +31,6 @@ export function DataListsListToolbar({
   setSearch,
   updateUrl,
   searchParams,
-  isPending = false,
 }: Readonly<DataListsListToolbarProps>) {
   const urlState = listUrlStateFromSearchParams(searchParams);
   const hasActiveFilters = Boolean(
@@ -84,7 +82,6 @@ export function DataListsListToolbar({
   return (
     <DataTableToolbar
       className="mt-6"
-      isPending={isPending}
       filters={
         <>
           <TableSearchInput

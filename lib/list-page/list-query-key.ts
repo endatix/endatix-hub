@@ -21,7 +21,7 @@ function canonicalize(value: unknown): unknown {
     return Object.fromEntries(
       Object.keys(record)
         .filter((key) => record[key] !== undefined && record[key] !== null)
-        .sort()
+        .sort((a, b) => a.localeCompare(b))
         .map((key) => [key, canonicalize(record[key])]),
     );
   }

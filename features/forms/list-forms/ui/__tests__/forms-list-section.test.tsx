@@ -26,7 +26,7 @@ vi.mock("@/components/table", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/components/table")>();
   return {
     ...actual,
-    useListUrlState: () => ({
+    usePagedListUrl: () => ({
       updateUrl: vi.fn(),
       searchParams: new URLSearchParams(),
     }),

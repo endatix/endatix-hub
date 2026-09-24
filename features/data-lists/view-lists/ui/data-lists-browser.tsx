@@ -1,7 +1,7 @@
 "use client";
 
-import { Suspense, type ReactNode } from "react";
-import { useListUrlState } from "@/components/table";
+import { type ReactNode } from "react";
+import { PagedListFrame, useListUrlState } from "@/components/table";
 import type { DataListsPage as DataListsPageData } from "@/lib/endatix-api/data-lists/data-lists";
 import { DataListsListToolbar } from "./data-lists-list-toolbar";
 import { DataListsPage } from "./data-lists-page";
@@ -37,9 +37,8 @@ export function DataListsBrowser({
         setSearch={setSearch}
         updateUrl={updateUrl}
         searchParams={searchParams}
-        isPending={isPending}
       />
-      <Suspense key={listKey} fallback={<DataListsTableSkeleton />}>
+      <PagedListFrame listKey={listKey} fallback={<DataListsTableSkeleton />}>
         <DataListsPage
           dataListsPromise={dataListsPromise}
           openCreateOnLoad={openCreateOnLoad}
@@ -47,7 +46,7 @@ export function DataListsBrowser({
           searchParams={searchParams}
           isPending={isPending}
         />
-      </Suspense>
+      </PagedListFrame>
     </>
   );
 }
