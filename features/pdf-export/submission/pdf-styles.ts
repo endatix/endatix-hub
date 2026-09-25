@@ -62,7 +62,6 @@ export const PDF_STYLES = StyleSheet.create({
     color: "gray",
   },
   section: {
-    marginBottom: 16,
     padding: 8,
   },
   sectionTitle: {

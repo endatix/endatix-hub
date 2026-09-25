@@ -10,6 +10,10 @@ import {
   renderTimeoutMs,
 } from "../render-timeout";
 import { describePdfWorkload } from "./describe-pdf-workload";
+import { downscalePdfFileImages } from "./downscale-pdf-images";
+import { attachPdfFileLinks } from "./attach-pdf-file-links";
+import { getClientStorageConfig } from "@/features/asset-storage/server";
+import { getMetadataBase } from "@/lib/seo/metadata-base";
 import type { PdfLocaleQuery } from "./pdf-locale";
 import { preparePdfModel } from "./prepare-pdf-model.use-case";
 import { SubmissionDetailsPdf } from "./submission-details-pdf";
@@ -111,16 +115,21 @@ export async function renderSubmissionPdf({
         const renderStartedAtMs = Date.now();
 
         try {
-          const pdfBlob = await raceWithTimeout(
-            () =>
-              pdf(
-                <SubmissionDetailsPdf
-                  submission={submission}
-                  surveyModel={model}
-                />,
-              ).toBlob(),
-            remainingRenderTimeoutMs(startedAtMs),
-          );
+          const pdfBlob = await raceWithTimeout(async () => {
+            // Links first: downscaling replaces image content with an inline copy.
+            attachPdfFileLinks(model, {
+              mode: caller === "hub-authenticated" ? "hub" : "signed",
+              hubOrigin: getMetadataBase().origin,
+              storageConfig: getClientStorageConfig(),
+            });
+            await downscalePdfFileImages(model);
+            return pdf(
+              <SubmissionDetailsPdf
+                submission={submission}
+                surveyModel={model}
+              />,
+            ).toBlob();
+          }, remainingRenderTimeoutMs(startedAtMs));
 
           span.setAttributes({
             "pdf.outcome": "success",
