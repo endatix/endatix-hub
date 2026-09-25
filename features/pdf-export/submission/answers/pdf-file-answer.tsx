@@ -1,9 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet } from "@react-pdf/renderer";
-import {
-  PDF_IMAGE_CAPTION_HEIGHT,
-  PdfFileViewer,
-} from "../pdf-file-viewer";
+import { PDF_IMAGE_CAPTION_HEIGHT, PdfFileViewer } from "../pdf-file-viewer";
 import { packPdfImageRows } from "../pack-pdf-image-rows";
 import { Question, QuestionFileModel } from "survey-core";
 import { FileType, getFileType, IFile } from "@/lib/questions/file/file-type";
@@ -32,6 +29,9 @@ export function PdfFileAnswer({
   const files: IFile[] = Array.isArray(question?.value) ? question?.value : [];
   const imageIndexes = files.flatMap((file, index) =>
     imageRatio(file) === undefined ? [] : [index],
+  );
+  const otherIndexes = files.flatMap((file, index) =>
+    imageRatio(file) === undefined ? [index] : [],
   );
   const ratios = imageIndexes.map((index) => imageRatio(files[index])!);
   const rows = packPdfImageRows(ratios);
@@ -65,15 +65,31 @@ export function PdfFileAnswer({
               ))}
             </View>
           ))}
-          {files.map((file, index) =>
-            imageRatio(file) === undefined ? (
-              <PdfFileViewer key={index} file={file} />
-            ) : null,
-          )}
+          {pairs(otherIndexes).map((pair) => (
+            <View key={pair[0]} style={styles.fileRow} wrap={false}>
+              {pair.map((index) => (
+                <PdfFileViewer key={index} file={files[index]} />
+              ))}
+            </View>
+          ))}
+          {files.some((file) => file.pdfLinkIsTemporary) ? (
+            <Text style={styles.temporaryLinksNote}>
+              File links in this PDF are temporary and stop working shortly
+              after it was exported.
+            </Text>
+          ) : null}
         </View>
       )}
     </View>
   );
+}
+
+function pairs<T>(items: T[]): T[][] {
+  const result: T[][] = [];
+  for (let index = 0; index < items.length; index += 2) {
+    result.push(items.slice(index, index + 2));
+  }
+  return result;
 }
 
 function imageRatio(file: IFile): number | undefined {
@@ -108,6 +124,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-start",
     gap: 8,
+  },
+  fileRow: {
+    flexDirection: "row",
+    alignItems: "stretch",
+    gap: 8,
+  },
+  temporaryLinksNote: {
+    fontSize: 8,
+    color: "#71717a",
   },
 });
 

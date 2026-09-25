@@ -1,3 +1,5 @@
+"use client";
+
 import { PanelSection } from "@/components/common/panel-section";
 import { SummaryRow } from "@/components/common/summary-row";
 import { Button } from "@/components/ui/button";

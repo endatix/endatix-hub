@@ -8,6 +8,10 @@ export interface IFile {
   /** Fitted display box in PDF points, set while preparing the export. */
   pdfWidth?: number;
   pdfHeight?: number;
+  /** Where the PDF links this file, set while preparing the export. */
+  pdfLink?: string;
+  /** The link is a signed storage URL that stops working when its token expires. */
+  pdfLinkIsTemporary?: boolean;
 }
 
 /**

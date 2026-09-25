@@ -43,7 +43,11 @@ export const PdfSubmissionAnswer = ({ question }: PdfSubmissionAnswerProps) => {
         key={`${question.id}-label`}
         minPresenceAhead={firstFileRowPresence(question)}
       >
-        <PdfQuestionLabel question={question} style={styles.questionLabel} />
+        <PdfQuestionLabel
+          question={question}
+          style={styles.fileQuestionLabel}
+          align="left"
+        />
       </View>,
       <View key={question.id} style={styles.fullWidthAnswerRow}>
         <PdfAnswerViewer forQuestion={question} hideTitle />
@@ -116,6 +120,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: "Roboto-Bold",
     marginBottom: 2,
+  },
+  fileQuestionLabel: {
+    fontSize: 12,
+    fontFamily: "Roboto-Bold",
+    marginBottom: 6,
   },
   invisibleRow: {
     flexDirection: "row",

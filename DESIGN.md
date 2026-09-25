@@ -344,6 +344,39 @@ rather than sitting beside a label.
   (`parseSubmissionFileUrl` returns null). The dialog shows the plain preview
   without the details panel, and it does the same if the lookup fails.
 
+**File answers in the PDF export**
+
+The PDF (`features/pdf-export/submission/answers/pdf-file-answer.tsx`,
+`pdf-file-viewer.tsx`) keeps the tile's promises in print. Keep these:
+
+- **Images share rows, never overlap, never split.** `packPdfImageRows` packs
+  images into rows that share one height (at most 200pt), keeping every
+  image's ratio. A wide photo takes a row by itself; portraits sit side by
+  side. Each row is `wrap={false}`, so a row moves to the next page whole.
+  The question title uses `minPresenceAhead` so it moves with its first row
+  instead of being stranded at the bottom of a page.
+- **Images are embedded downscaled.** `downscale-pdf-images.ts` limits the
+  longest edge to 1200px, so ten phone photos do not produce a 50MB PDF.
+- **The title sits on its answer.** File answers run full width, so their
+  title is left-aligned above the images (`PdfQuestionLabel align="left"`).
+  The right-aligned label belongs to the two-column label/answer rows only.
+- **Other files are compact cards, two per row.** Each card shows the
+  file-type icon, the name, the MIME type and one explicit **Open file**
+  link, at half the answer width (`PDF_FILE_CARD_WIDTH`). Pairs are
+  `wrap={false}` rows, like the image rows.
+- **Links never expire for Hub users.** A PDF is kept and forwarded long after
+  the 15-minute read token has lapsed. `attach-pdf-file-links.ts` stamps
+  `pdfLink` on each file before downscaling:
+  - A Hub-authenticated export links to the Hub file page
+    (`/forms/{formId}/submissions/{submissionId}/files/{fileName}`), which
+    signs a fresh URL on every open. Images link there too, so the
+    full-resolution original is one click from the embedded copy.
+  - A share-link (`anonymous-token`) export keeps the signed storage URL,
+    because its reader may have no Hub account. Such a file is marked
+    `pdfLinkIsTemporary`, and the answer ends with one muted line saying the
+    links stop working shortly after export.
+  - Inline `data:` files get no link.
+
 ### Buttons
 
 - **Primary:** Background `primary`, text `on_primary`. High-contrast, no shadow.
@@ -753,6 +786,7 @@ and then **write the answer back into this file** as part of the same change:
 - **Don't** repeat a view choice as a second picker in a dialog or export flow. Confirm the value chosen on the page.
 - **Don't** crop an uploaded file with `object-cover` or a fixed-ratio frame, and don't put a row of uploads in a horizontal scroller that hides the rest.
 - **Don't** link a thumbnail straight to its presigned storage URL; the token expires while the page stays open.
+- **Don't** put a presigned URL in a Hub-exported PDF. Link the Hub file page; a PDF outlives every read token.
 - **Don't** re-export the file-kind icons from `lib/file-kinds/index.ts`; the catalog is imported by server code and must stay free of `lucide-react`.
 
 ---

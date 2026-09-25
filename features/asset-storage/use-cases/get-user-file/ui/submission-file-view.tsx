@@ -6,7 +6,7 @@ import { FileViewMeta } from "./file-view-meta";
 import { withBasePath } from "@/lib/hosting";
 import Link from "next/link";
 import type { UserFileViewData } from "../get-use-file.use-case";
-import { UrlObject } from "node:url";
+import type { UrlObject } from "node:url";
 
 export interface SubmissionFileViewProps {
   file: UserFileViewData;
