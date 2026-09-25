@@ -28,7 +28,7 @@ export function attachPdfFileLinks(
   options: AttachPdfFileLinksOptions,
 ): void {
   const fileQuestions = model
-    .getAllQuestions()
+    .getAllQuestions(false, false, true)
     .filter((question) => question.getType() === "file");
 
   for (const question of fileQuestions) {
@@ -59,7 +59,7 @@ export function resolvePdfFileLink(
     const path = withBasePath(
       `/forms/${encodeURIComponent(stored.formId)}/submissions/${encodeURIComponent(stored.submissionId)}/files/${encodeURIComponent(stored.fileName)}`,
     );
-    return { pdfLink: `${hubOrigin.replace(/\/+$/, "")}${path}` };
+    return { pdfLink: `${trimTrailingSlashes(hubOrigin)}${path}` };
   }
 
   const isSigned = stored !== null && content !== withoutQuery(content);
@@ -69,4 +69,12 @@ export function resolvePdfFileLink(
 function withoutQuery(url: string): string {
   const queryStart = url.indexOf("?");
   return queryStart === -1 ? url : url.slice(0, queryStart);
+}
+
+function trimTrailingSlashes(value: string): string {
+  let end = value.length;
+  while (end > 0 && value[end - 1] === "/") {
+    end -= 1;
+  }
+  return value.slice(0, end);
 }

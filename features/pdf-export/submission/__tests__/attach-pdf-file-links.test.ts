@@ -84,4 +84,33 @@ describe("attachPdfFileLinks", () => {
     ]);
     expect(model.getQuestionByName("note").value).toBe("hello");
   });
+
+  it("stamps a file nested inside a paneldynamic", () => {
+    const model = new Model({
+      pages: [
+        {
+          name: "page1",
+          elements: [
+            {
+              type: "paneldynamic",
+              name: "entries",
+              templateElements: [{ type: "file", name: "clip" }],
+            },
+          ],
+        },
+      ],
+    });
+    model.data = {
+      entries: [
+        { clip: [{ name: "clip.mp4", type: "video/mp4", content: signed }] },
+      ],
+    };
+
+    attachPdfFileLinks(model, hub);
+
+    expect(
+      (model.data as { entries: { clip: { pdfLink?: string }[] }[] }).entries[0]
+        .clip[0].pdfLink,
+    ).toBe("https://hub.example.com/forms/f1/submissions/s1/files/a1b2.mp4");
+  });
 });

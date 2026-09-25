@@ -42,31 +42,34 @@ export function PdfFileAnswer({
         <Text style={styles.noFiles}>No files uploaded</Text>
       ) : (
         <View style={styles.filesContainer}>
-          {rows.map((row, rowIndex) => (
-            <View
-              key={rowIndex}
-              style={[
-                styles.imageRow,
-                {
-                  height:
-                    Math.max(...row.map((slot) => slot.height)) +
-                    PDF_IMAGE_CAPTION_HEIGHT,
-                },
-              ]}
-              wrap={false}
-            >
-              {row.map((slot) => (
-                <PdfFileViewer
-                  key={imageIndexes[slot.index]}
-                  file={files[imageIndexes[slot.index]]}
-                  width={slot.width}
-                  height={slot.height}
-                />
-              ))}
-            </View>
-          ))}
+          {rows.map((row) => {
+            const fileKeys = row.map((slot) => imageIndexes[slot.index]);
+            return (
+              <View
+                key={fileKeys.join("-")}
+                style={[
+                  styles.imageRow,
+                  {
+                    height:
+                      Math.max(...row.map((slot) => slot.height)) +
+                      PDF_IMAGE_CAPTION_HEIGHT,
+                  },
+                ]}
+                wrap={false}
+              >
+                {row.map((slot) => (
+                  <PdfFileViewer
+                    key={imageIndexes[slot.index]}
+                    file={files[imageIndexes[slot.index]]}
+                    width={slot.width}
+                    height={slot.height}
+                  />
+                ))}
+              </View>
+            );
+          })}
           {pairs(otherIndexes).map((pair) => (
-            <View key={pair[0]} style={styles.fileRow} wrap={false}>
+            <View key={pair.join("-")} style={styles.fileRow} wrap={false}>
               {pair.map((index) => (
                 <PdfFileViewer key={index} file={files[index]} />
               ))}
@@ -105,11 +108,6 @@ function imageRatio(file: IFile): number | undefined {
 const styles = StyleSheet.create({
   container: {
     marginBottom: 4,
-  },
-  title: {
-    fontSize: 14,
-    marginBottom: 8,
-    fontWeight: "bold",
   },
   noFiles: {
     fontSize: 12,

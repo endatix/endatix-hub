@@ -37,7 +37,7 @@ export const PdfSubmissionAnswer = ({ question }: PdfSubmissionAnswerProps) => {
   // Title and answer are siblings of the other questions. minPresenceAhead only
   // works in that shared column: if the first image does not fit below the
   // title, both move to the next page instead of the image being cut.
-  if (question.getType() === "file") {
+  if (question.getType() === "file" && question.isVisibleInSurvey) {
     rows.push(
       <View
         key={`${question.id}-label`}

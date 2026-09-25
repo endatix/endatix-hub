@@ -357,6 +357,12 @@ The PDF (`features/pdf-export/submission/answers/pdf-file-answer.tsx`,
   instead of being stranded at the bottom of a page.
 - **Images are embedded downscaled.** `downscale-pdf-images.ts` limits the
   longest edge to 1200px, so ten phone photos do not produce a 50MB PDF.
+  Sources over 20MB are skipped (original URL kept). Work runs a few at a
+  time. Nested file questions inside `paneldynamic` are included
+  (`getAllQuestions(false, false, true)`), matching what the PDF renders.
+- **Captions stay on one line.** Name and MIME type use `maxLines: 1` with
+  ellipsis so a long name cannot grow past the fixed caption height and
+  overlap the next row.
 - **The title sits on its answer.** File answers run full width, so their
   title is left-aligned above the images (`PdfQuestionLabel align="left"`).
   The right-aligned label belongs to the two-column label/answer rows only.

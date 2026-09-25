@@ -132,11 +132,15 @@ const styles = StyleSheet.create({
   fileName: {
     fontSize: 9,
     fontFamily: "Roboto-Bold",
+    maxLines: 1,
+    textOverflow: "ellipsis",
   },
   fileType: {
     fontSize: 8,
     color: "#71717a",
     marginTop: 1,
+    maxLines: 1,
+    textOverflow: "ellipsis",
   },
   fileCard: {
     width: PDF_FILE_CARD_WIDTH,

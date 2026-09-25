@@ -26,7 +26,10 @@ export function packPdfImageRows(
 
   for (let index = 0; index < ratios.length; index++) {
     const next = [...current, index];
-    if (current.length > 0 && rowWidth(next, ratios, MAX_ROW_HEIGHT) > contentWidth) {
+    if (
+      current.length > 0 &&
+      rowWidth(next, ratios, MAX_ROW_HEIGHT) > contentWidth
+    ) {
       rows.push(current);
       current = [index];
     } else {
@@ -41,7 +44,10 @@ export function packPdfImageRows(
 }
 
 function rowWidth(indexes: number[], ratios: number[], height: number): number {
-  const images = indexes.reduce((sum, index) => sum + height * ratios[index], 0);
+  const images = indexes.reduce(
+    (sum, index) => sum + height * ratios[index],
+    0,
+  );
   return images + GAP * (indexes.length - 1);
 }
 
@@ -67,7 +73,7 @@ function fitRow(
     GAP * Math.max(slots.length - 1, 0);
   const overflow = used - contentWidth;
   if (overflow > 0 && slots.length > 0) {
-    slots[slots.length - 1].width -= overflow;
+    slots.at(-1)!.width -= overflow;
   }
   return slots;
 }
