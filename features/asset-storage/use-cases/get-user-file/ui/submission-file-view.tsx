@@ -13,6 +13,10 @@ export interface SubmissionFileViewProps {
   formId: string;
   submissionId: string;
   showBackLink?: boolean;
+  /** Name + type under the preview. Off inside a panel whose header already shows them. */
+  showCaption?: boolean;
+  /** Name the enclosing dialog shows as its title (see FileViewMeta). */
+  shownName?: string;
   size?: FileViewSize;
 }
 
@@ -26,6 +30,8 @@ export function SubmissionFileView({
   formId,
   submissionId,
   showBackLink = true,
+  showCaption = true,
+  shownName,
   size = "large",
 }: Readonly<SubmissionFileViewProps>) {
   const filesListHref: UrlObject = {
@@ -53,6 +59,7 @@ export function SubmissionFileView({
         contentType={file.contentType}
         name={file.displayName}
         size={size}
+        showCaption={showCaption}
       />
       <FileViewMeta
         originalFileName={file.originalFileName}
@@ -60,6 +67,8 @@ export function SubmissionFileView({
         sizeInBytes={file.sizeInBytes}
         downloadApiUrl={downloadApiUrl}
         displayName={file.displayName}
+        shownName={shownName}
+        openUrl={file.url}
       />
     </div>
   );

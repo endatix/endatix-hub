@@ -1,4 +1,8 @@
+import { PanelSection } from "@/components/common/panel-section";
+import { SummaryRow } from "@/components/common/summary-row";
+import { Button } from "@/components/ui/button";
 import { DownloadSubmissionFileButton } from "@/features/asset-storage/use-cases/download-user-file/download-submission-file-button";
+import { ExternalLink, Info } from "lucide-react";
 
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -22,6 +26,10 @@ interface FileViewMetaProps {
   sizeInBytes?: number;
   downloadApiUrl: string;
   displayName: string;
+  /** The name the surrounding view already shows as its title; rows repeating it are dropped. Default: displayName. */
+  shownName?: string;
+  /** Signed view URL; rendered as "Open in new tab". Sign it when the view opens, not earlier. */
+  openUrl?: string;
 }
 
 export function FileViewMeta({
@@ -30,55 +38,59 @@ export function FileViewMeta({
   sizeInBytes,
   downloadApiUrl,
   displayName,
+  shownName = displayName,
+  openUrl,
 }: Readonly<FileViewMetaProps>) {
-  const showOriginalName = hasShowableString(originalFileName);
+  const showOriginalName =
+    hasShowableString(originalFileName) &&
+    originalFileName!.trim() !== shownName;
+  const showStoredName = displayName !== shownName;
   const showQuestionName = hasShowableString(questionName);
   const showSize = hasShowableSize(sizeInBytes);
-  const hasMeta = showOriginalName || showQuestionName || showSize;
+  const hasMeta =
+    showOriginalName || showStoredName || showQuestionName || showSize;
+
+  const actions = (
+    <div className="flex flex-wrap items-center gap-2">
+      <DownloadSubmissionFileButton
+        downloadApiUrl={downloadApiUrl}
+        variant="outline"
+        size="sm"
+        className="gap-2"
+      />
+      {openUrl && (
+        <Button variant="ghost" size="sm" className="gap-2" asChild>
+          <a href={openUrl} target="_blank" rel="noopener noreferrer">
+            <ExternalLink className="h-4 w-4" />
+            Open in new tab
+          </a>
+        </Button>
+      )}
+    </div>
+  );
 
   return (
-    <div className="flex flex-col gap-2 border-t pt-4 text-sm">
+    <PanelSection icon={Info} title="File details">
       {hasMeta && (
-        <dl className="grid gap-1 text-muted-foreground">
+        <dl className="grid gap-2">
           {showOriginalName && (
-            <div>
-              <dt className="sr-only">Original file name</dt>
-              <dd>
-                <span className="font-medium text-foreground">
-                  Original name:
-                </span>{" "}
-                {originalFileName!.trim()}
-              </dd>
-            </div>
+            <SummaryRow
+              label="Original name"
+              value={originalFileName!.trim()}
+            />
+          )}
+          {showStoredName && (
+            <SummaryRow label="Stored as" value={displayName} />
           )}
           {showQuestionName && (
-            <div>
-              <dt className="sr-only">Question</dt>
-              <dd>
-                <span className="font-medium text-foreground">Question:</span>{" "}
-                {questionName!.trim()}
-              </dd>
-            </div>
+            <SummaryRow label="Question" value={questionName!.trim()} />
           )}
           {showSize && (
-            <div>
-              <dt className="sr-only">File size</dt>
-              <dd>
-                <span className="font-medium text-foreground">Size:</span>{" "}
-                {formatFileSize(sizeInBytes!)}
-              </dd>
-            </div>
+            <SummaryRow label="Size" value={formatFileSize(sizeInBytes!)} />
           )}
         </dl>
       )}
-      <div>
-        <DownloadSubmissionFileButton
-          downloadApiUrl={downloadApiUrl}
-          variant="outline"
-          size="sm"
-          className="gap-2"
-        />
-      </div>
-    </div>
+      {actions}
+    </PanelSection>
   );
 }

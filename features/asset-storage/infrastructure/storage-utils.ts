@@ -60,6 +60,34 @@ function buildUserFilePath(
   return Result.success(`${folderPath}/${fileNameTrimmed}`);
 }
 
+export interface UserFilePathParts {
+  formId: string;
+  submissionId: string;
+  fileName: string;
+}
+
+/**
+ * Inverse of {@link buildUserFilePath}: splits s/{formId}/{submissionId}/{fileName}.
+ * Returns null for any other shape (content files, nested paths, missing segments).
+ */
+function parseUserFilePath(blobName: string): UserFilePathParts | null {
+  if (!blobName?.startsWith(USER_FILES_PREFIX)) {
+    return null;
+  }
+
+  const parts = blobName.slice(USER_FILES_PREFIX.length).split("/");
+  if (parts.length !== 3 || parts.some((part) => part.length === 0)) {
+    return null;
+  }
+
+  const [formId, submissionId, fileName] = parts;
+  try {
+    return { formId, submissionId, fileName: decodeURIComponent(fileName) };
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Builds the folder path for a content file in the CONTENT container.
  * Convention: f/{itemId} for form, t/{itemId} for template.
@@ -139,6 +167,7 @@ export {
   type StorageHeaderName,
   USER_FILES_PREFIX,
   buildUserFilePath,
+  parseUserFilePath,
   buildUserFileFolderPath,
   buildContentFolderPath,
   buildUserFileMetadata,

@@ -12,6 +12,7 @@ import {
   isStorageHostUrl,
   isUrlFromContainer,
   parseStorageObjectUrl,
+  parseSubmissionFileUrl,
   resolveContainerFromUrl,
 } from "../utils";
 
@@ -849,5 +850,31 @@ describe("extractStorageUrls", () => {
     expect(result).toEqual([
       "https://testaccount.blob.core.windows.net/user-files/folder/subfolder/document.pdf",
     ]);
+  });
+});
+
+describe("parseSubmissionFileUrl", () => {
+  const config = clientStorageConfig();
+  const base = "https://testaccount.blob.core.windows.net";
+
+  it("resolves a stored submission file URL", () => {
+    expect(
+      parseSubmissionFileUrl(`${base}/user-files/s/f1/s1/photo.jpg`, config),
+    ).toEqual({ formId: "f1", submissionId: "s1", fileName: "photo.jpg" });
+  });
+
+  it.each([
+    ["a presigned URL", `${base}/user-files/s/f1/s1/photo.jpg?sig=abc`],
+    ["the content container", `${base}/content/f/form-1/logo.png`],
+    ["another host", "https://example.com/user-files/s/f1/s1/photo.jpg"],
+    ["inline data", "data:image/png;base64,AAAA"],
+  ])("returns null for %s", (_label, url) => {
+    expect(parseSubmissionFileUrl(url, config)).toBeNull();
+  });
+
+  it("returns null without a storage config", () => {
+    expect(
+      parseSubmissionFileUrl(`${base}/user-files/s/f1/s1/photo.jpg`, null),
+    ).toBeNull();
   });
 });

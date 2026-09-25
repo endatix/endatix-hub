@@ -7,6 +7,7 @@ import {
   buildUserFilePath,
   buildUserFileMetadata,
   buildUserFileRequestHeaders,
+  parseUserFilePath,
   StorageHeaderNames,
 } from "../storage-utils";
 
@@ -77,6 +78,45 @@ describe("buildUserFilePath", () => {
     if (Result.isError(result1)) {
       expect(result1.message).toBe("File name is required");
     }
+  });
+});
+
+describe("parseUserFilePath", () => {
+  it("splits a submission file blob name", () => {
+    expect(parseUserFilePath("s/f1/s1/photo.jpg")).toEqual({
+      formId: "f1",
+      submissionId: "s1",
+      fileName: "photo.jpg",
+    });
+  });
+
+  it("decodes an encoded file name", () => {
+    expect(parseUserFilePath("s/f1/s1/my%20photo.jpg")?.fileName).toBe(
+      "my photo.jpg",
+    );
+  });
+
+  it("round-trips buildUserFilePath", () => {
+    const built = buildUserFilePath("f1", "s1", "doc.pdf");
+    expect(Result.isSuccess(built)).toBe(true);
+    if (Result.isSuccess(built)) {
+      expect(parseUserFilePath(built.value)).toEqual({
+        formId: "f1",
+        submissionId: "s1",
+        fileName: "doc.pdf",
+      });
+    }
+  });
+
+  it.each([
+    "",
+    "f/form-1/logo.png",
+    "s/f1/photo.jpg",
+    "s/f1/s1/nested/photo.jpg",
+    "s//s1/photo.jpg",
+    "s/f1/s1/bad%E0%A4%A.jpg",
+  ])("returns null for %j", (blobName) => {
+    expect(parseUserFilePath(blobName)).toBeNull();
   });
 });
 

@@ -96,6 +96,7 @@ drift into three shapes.
 | `components/table` — `DataTableSurface` and friends                      | All list-table chrome (below)                                            |
 | `components/ui/responsive-panel.tsx` — `ResponsivePanel`                 | Desktop Sheet / Dialog ↔ mobile Drawer swap (§5 Overlay rulebook)        |
 | `.grid-card-list` (`app/globals.css`)                                    | Peer-card grids without breakpoints (below)                              |
+| `asset-storage/…/get-user-file/ui` — `SubmissionFileDialog`              | A submission file's preview + details dialog (§5 File Answers)           |
 
 When you add a component to this list, add its row here in the same change.
 Where a new shared component belongs — `components/common/`, a graduated
@@ -245,6 +246,108 @@ whitespace-normal`) plus inline copy — details view and matrix cells share
   data columns (`computeMatrixDataColumnWidth` in `pdf-styles.ts`), and falls
   back to stacked "label: value" rows when a column would drop below the
   legible minimum. Do not reintroduce a hardcoded flex ratio per column.
+
+### File Answers — thumbnails and the details dialog
+
+A SurveyJS `file` answer (`features/submissions/ui/answers/file-answer.tsx`)
+renders each upload as a thumbnail tile through `FileViewer` with
+`size="small"` (`file-viewer.tsx`). Uploads arrive in every aspect ratio, from
+phone portraits (9:16) to panoramas and technical drawings (3:1). Reviewers
+use the row to check what was submitted. It is not a gallery, so the tile's
+job is to show the whole file, line up with its neighbours, and lead to the
+details.
+
+**The tile**
+
+- **Never crop an upload.** Images use `object-contain`, never
+  `object-cover`. A cropped thumbnail can hide the part a reviewer needs, such
+  as a signature, a measurement or a corner of a document. The same rule
+  holds at every size (`medium` dialog, `large` file page) and in the PDF.
+- **Fixed height, width follows the ratio.** Every tile is `h-40`. Its width
+  is the file's natural width at that height, clamped to `min-w-40` /
+  `max-w-72`. A tall 9:16 image sits centred in a 160px-wide tile, and a 3:1
+  image fills 288px with letterboxing above and below. The unused area is
+  `bg-muted`, so the frame edge stays visible whatever the image colours are.
+- **Wrap, don't scroll sideways.** Tiles sit in `flex flex-wrap items-start
+gap-4`. A horizontal `ScrollArea` hides every upload past the fold with no
+  visible cue that more exist, and `items-center` puts each caption at a
+  different height. Top alignment keeps the file names on one line across
+  the row.
+- **Caption: name, then MIME type.** Both are `truncate`d to the tile width,
+  and the name keeps its full value in `title`.
+- **Phones get the width, not the padding.** On the details page the question
+  card is `p-4 sm:p-8` and the answer surface `p-3 sm:p-5`. Desktop padding
+  on a 390px screen left a 168px answer column, which squeezed even a 16:9
+  tile.
+- **Reserve the tile while presigning.** `FileViewerPlaceholder` for `small`
+  is the tile (`h-40 w-40`) plus two caption bars. Lazy thumbnails then load
+  without shifting the question below them.
+
+**Per kind** — one tile shape, the preview inside it changes:
+
+| Kind       | Tile preview                                                                  | Plays / opens in                     |
+| :--------- | :---------------------------------------------------------------------------- | :----------------------------------- |
+| Image      | The image, `object-contain`                                                   | Dialog                               |
+| Video      | First frame (`preload="metadata"`, `#t=0.1`), no controls, centred play badge | Dialog, full `<video controls>`      |
+| Audio      | The inline `AudioPlayer`; a player is already compact                         | Inline; the caption opens the dialog |
+| PDF, other | `FileKindIcon` (`size-8`, muted) over the catalog label (`PDF`, `File`)       | Dialog (`<object>` for PDF)          |
+
+A 160px-tall `<video controls>` leaves no room for the scrubber and volume, so
+the tile only promises the video and the dialog plays it. The file-kind mark
+follows §5 File Type Marks: resolved from the extension through
+`lib/file-kinds`, generic glyph when unknown, never tinted. The tile is the
+one place the mark renders above `size-4`, because it fills a preview frame
+rather than sitting beside a label.
+
+**The details dialog**
+
+- **One button per file.** The whole tile is a `<button>` labelled
+  `View details for <name>`. It opens `SubmissionFileDialog`
+  (`features/asset-storage/use-cases/get-user-file/ui/`), never the raw storage
+  URL. Audio is the exception: its player stays interactive, so the caption is
+  the button.
+- **Same frame as the files list.** The dialog uses `FilePreviewDialog`, the
+  shell the `/files/[fileName]` route modal also uses, and renders the same
+  `SubmissionFileView`: the file at `medium`, then a **File details**
+  `PanelSection` of `SummaryRow`s (Original name when it differs from the
+  stored name, Question, Size) with **Download** and **Open in new tab**.
+- **`ResponsivePanel`, `desktopType="simple"`.** A centred Dialog on desktop
+  (`sm:max-w-4xl`) and a bottom Drawer under `md`, per the Overlay rulebook. A
+  preview is not a form, but it is still read on a phone, and Vaul's swipe to
+  dismiss beats a small close button there. Widen through
+  `dialogContentClassName` with the `sm:` prefix: `DialogContent` ships
+  `sm:max-w-lg`, and an unprefixed `max-w-4xl` loses to it.
+- **The header names the file.** The panel title is the file name and the
+  description is the MIME type, so `SubmissionFileView` renders with
+  `showCaption={false}` and `shownName`. The details then drop the Original
+  name row that would repeat the title and show **Stored as** (the storage
+  name, which the files list uses) instead.
+- **The preview never pushes the details off-screen.** At `medium` the image
+  is capped at `max-h-[min(55vh,40rem)]`, so a tall 9:16 upload still leaves
+  File details and the actions in view on a desktop dialog, and in reach of
+  one scroll in the phone drawer.
+- **Sign when the reader acts, not when the page loads.** Private read tokens
+  expire, and a details page can stay open longer than they last. A link
+  signed at page load then fails with 401 when someone clicks it later. So:
+  - Every dialog open fetches `GET /api/hub/v0/storage/submission-files/{formId}/{submissionId}/{fileName}`
+    (`cache: no-store`) for a freshly signed URL and the stored metadata.
+    Reopening the same file signs again.
+  - **Download** already signs per click (`…/download-url`).
+  - A thumbnail that fails to load calls `refresh()` from
+    `usePrivateStorageDisplayUrl`. That evicts the cached presigned URL and
+    signs once more. It retries once per URL, so a deleted file does not loop.
+  - Never put a presigned URL in an `href` that outlives the view that
+    signed it.
+- **Files outside submission storage still open.** Inline `data:` values and
+  external URLs cannot be looked up by (formId, submissionId, fileName)
+  (`parseSubmissionFileUrl` returns null). The dialog shows the plain preview
+  without the details panel, and it does the same if the lookup fails.
+
+**PDF export stacks, it does not tile.** `PdfFileAnswer` lays images out in a
+column at up to `maxHeight: 360` with `objectFit: "contain"`, each in a
+`wrap={false}` frame so an image is never split across pages. Images are
+downscaled server-side first (`downscale-pdf-images.ts`, longest edge 1200px)
+so a batch of phone photos does not produce a huge PDF.
 
 ### Buttons
 
@@ -627,6 +730,8 @@ and then **write the answer back into this file** as part of the same change:
 - **Do** mark a file deliverable with `FileKindLabel` in every place it appears — picker, menu item, table cell.
 - **Do** render the generic file glyph for a kind this build does not know, rather than defaulting to a plausible one.
 - **Do** add a row to the shared component index (§5) in the same change that adds a shared component.
+- **Do** show an uploaded file whole (`object-contain` on `bg-muted`) in a fixed-height tile, wrap the tiles, and open details in the file dialog (§5 File Answers).
+- **Do** sign a private file URL when the reader acts on it (open, download), not when the page loads.
 - **Do** flag a view that diverges from the stored record with an `info` strip naming both values and a one-click way back (§6).
 
 ### Don't:
@@ -651,6 +756,8 @@ and then **write the answer back into this file** as part of the same change:
 - **Don't** return a `LucideIcon` from feature code. Resolve to a `FileKindKey` and let the shared component pick the glyph.
 - **Don't** use the solid `warning` strip for a view-only choice; it is for facts about the record, such as a test submission.
 - **Don't** repeat a view choice as a second picker in a dialog or export flow. Confirm the value chosen on the page.
+- **Don't** crop an uploaded file with `object-cover` or a fixed-ratio frame, and don't put a row of uploads in a horizontal scroller that hides the rest.
+- **Don't** link a thumbnail straight to its presigned storage URL; the token expires while the page stays open.
 - **Don't** re-export the file-kind icons from `lib/file-kinds/index.ts`; the catalog is imported by server code and must stay free of `lucide-react`.
 
 ---

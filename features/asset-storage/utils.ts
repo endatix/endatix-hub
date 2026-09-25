@@ -2,6 +2,10 @@ import { Result } from "@/lib/result";
 import { v4 as uuidv4 } from "uuid";
 import type { ClientStorageConfig } from "./infrastructure/core";
 import type { ContainerType } from "./types";
+import {
+  parseUserFilePath,
+  type UserFilePathParts,
+} from "./infrastructure/storage-utils";
 
 const QUERY_STRING_START_CHAR = "?";
 const QUERY_STRING_SEPARATOR = "&";
@@ -147,6 +151,27 @@ function resolveContainerFromUrl(
   return parseStorageObjectUrl(url, storageConfig);
 }
 
+/**
+ * Identifies the submission file behind a stored file-question URL, so the Hub can
+ * ask for fresh view data by (formId, submissionId, fileName).
+ * Returns null for inline data, other hosts, the content container, or presigned URLs.
+ */
+function parseSubmissionFileUrl(
+  url: string,
+  storageConfig: ClientStorageConfig | null,
+): UserFilePathParts | null {
+  if (!isCanonicalStorageObjectUrl(url)) {
+    return null;
+  }
+
+  const parsed = parseStorageObjectUrl(url, storageConfig);
+  if (parsed?.containerType !== "USER_FILES") {
+    return null;
+  }
+
+  return parseUserFilePath(parsed.blobName);
+}
+
 /* Small helper function to check if a URL is from a specific container */
 function isUrlFromContainer(
   url: string,
@@ -266,5 +291,6 @@ export {
   isStorageHostUrl,
   isUrlFromContainer,
   parseStorageObjectUrl,
+  parseSubmissionFileUrl,
   resolveContainerFromUrl,
 };
