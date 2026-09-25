@@ -382,15 +382,15 @@ export function FileViewer({
     refresh,
   } = usePrivateStorageDisplayUrl(file.content, { enabled: presignEnabled });
 
-  // Re-sign once per failing URL: an expired token recovers, a missing file does not loop.
+  const content = file.content;
   const refreshedFor = useRef<string | null>(null);
   const handleMediaError = useCallback(() => {
-    if (refreshedFor.current === src) {
+    if (refreshedFor.current === content) {
       return;
     }
-    refreshedFor.current = src;
+    refreshedFor.current = content;
     refresh();
-  }, [refresh, src]);
+  }, [refresh, content]);
 
   const showMedia = presignEnabled && (!isResolving || src.length > 0);
 

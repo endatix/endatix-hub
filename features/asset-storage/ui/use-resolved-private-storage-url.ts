@@ -119,11 +119,7 @@ export function usePrivateStorageDisplayUrl(
     return isCanonicalStorageObjectUrl(raw);
   }, [raw, config?.isEnabled, config?.isPrivate]);
 
-  const cachedUrl = useMemo(() => {
-    // `attempt` re-reads the cache after refresh() evicted the entry.
-    void attempt;
-    return needsResolve ? getCachedPrivateReadUrl(raw) : null;
-  }, [needsResolve, getCachedPrivateReadUrl, raw, attempt]);
+  const cachedUrl = needsResolve ? getCachedPrivateReadUrl(raw) : null;
 
   const asyncTarget = needsResolve && cachedUrl === null ? raw : undefined;
   const asyncResult = usePrivateStorageDisplayUrlAsync(

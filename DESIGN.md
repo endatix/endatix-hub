@@ -262,7 +262,7 @@ details.
 - **Never crop an upload.** Images use `object-contain`, never
   `object-cover`. A cropped thumbnail can hide the part a reviewer needs, such
   as a signature, a measurement or a corner of a document. The same rule
-  holds at every size (`medium` dialog, `large` file page) and in the PDF.
+  holds at every size (`medium` dialog, `large` file page).
 - **Fixed height, width follows the ratio.** Every tile is `h-40`. Its width
   is the file's natural width at that height, clamped to `min-w-40` /
   `max-w-72`. A tall 9:16 image sits centred in a 160px-wide tile, and a 3:1
@@ -335,19 +335,14 @@ rather than sitting beside a label.
   - **Download** already signs per click (`…/download-url`).
   - A thumbnail that fails to load calls `refresh()` from
     `usePrivateStorageDisplayUrl`. That evicts the cached presigned URL and
-    signs once more. It retries once per URL, so a deleted file does not loop.
+    signs once more. It retries once per file (`file.content`), because each
+    re-sign is a new URL and a deleted file must not loop.
   - Never put a presigned URL in an `href` that outlives the view that
     signed it.
 - **Files outside submission storage still open.** Inline `data:` values and
   external URLs cannot be looked up by (formId, submissionId, fileName)
   (`parseSubmissionFileUrl` returns null). The dialog shows the plain preview
   without the details panel, and it does the same if the lookup fails.
-
-**PDF export stacks, it does not tile.** `PdfFileAnswer` lays images out in a
-column at up to `maxHeight: 360` with `objectFit: "contain"`, each in a
-`wrap={false}` frame so an image is never split across pages. Images are
-downscaled server-side first (`downscale-pdf-images.ts`, longest edge 1200px)
-so a batch of phone photos does not produce a huge PDF.
 
 ### Buttons
 

@@ -1,6 +1,7 @@
 import { getUserFile } from "@/features/asset-storage/server";
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth";
+import { Permissions } from "@/features/auth/authorization/domain/permissions";
 import { apiResponses } from "@/lib/utils/route-handlers";
 import { Result } from "@/lib/result";
 import { NextRequest, NextResponse } from "next/server";
@@ -27,13 +28,17 @@ export async function GET(
   context: DownloadUrlRequestParams,
 ) {
   const session = await auth();
-  const { requireHubAccess } = await authorization(session);
-  await requireHubAccess();
+  const { checkAllPermissions } = await authorization(session);
+  const permissionCheck = await checkAllPermissions([
+    Permissions.Access.Hub,
+    Permissions.Forms.View,
+  ]);
+  if (!permissionCheck.success) {
+    return apiResponses.forbidden({ detail: "Forbidden" });
+  }
 
   const { formId, submissionId, fileName } = await context.params;
-  const decodedFileName = decodeURIComponent(fileName);
-
-  const fileResult = await getUserFile(formId, submissionId, decodedFileName);
+  const fileResult = await getUserFile(formId, submissionId, fileName);
 
   if (Result.isError(fileResult)) {
     return apiResponses.notFound({

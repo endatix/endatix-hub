@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { usePrivateStorageDisplayUrl } from "@/features/asset-storage/client";
 import {
   FileContentView,
   FileViewer,
@@ -15,6 +16,7 @@ vi.mock("@/features/asset-storage/client", () => ({
     (url: string | undefined, options?: { enabled?: boolean }) => ({
       displayUrl: options?.enabled === false ? "" : (url ?? ""),
       isResolving: options?.enabled === false,
+      refresh: vi.fn(),
     }),
   ),
 }));
@@ -299,6 +301,32 @@ describe("FileViewer", () => {
     }
 
     vi.stubGlobal("IntersectionObserver", MockIntersectionObserver);
+  });
+
+  it("re-signs a failing thumbnail once per file", () => {
+    const refresh = vi.fn();
+    const content = "https://storage.example/s/f/s/photo.jpg";
+    vi.mocked(usePrivateStorageDisplayUrl).mockReturnValue({
+      displayUrl: `${content}?sig=first`,
+      isResolving: false,
+      refresh,
+    });
+
+    const file = { content, type: "image/jpeg", name: "photo.jpg" };
+    const { rerender, container } = render(
+      <FileViewer file={file} size="small" />,
+    );
+    container.querySelector("img")?.dispatchEvent(new Event("error"));
+
+    vi.mocked(usePrivateStorageDisplayUrl).mockReturnValue({
+      displayUrl: `${content}?sig=second`,
+      isResolving: false,
+      refresh,
+    });
+    rerender(<FileViewer file={file} size="small" />);
+    container.querySelector("img")?.dispatchEvent(new Event("error"));
+
+    expect(refresh).toHaveBeenCalledTimes(1);
   });
 
   it("resolves URL via context and passes to FileContentView", () => {
