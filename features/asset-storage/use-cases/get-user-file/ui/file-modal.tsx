@@ -1,17 +1,14 @@
 "use client";
 
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
+import { FilePreviewDialog } from "./file-preview-dialog";
 
 interface FileModalProps {
   formId: string;
   submissionId: string;
+  title?: string;
+  description?: string;
   children: React.ReactNode;
 }
 
@@ -22,15 +19,12 @@ interface FileModalProps {
 export function FileModal({
   formId,
   submissionId,
+  title,
+  description,
   children,
 }: Readonly<FileModalProps>) {
   const router = useRouter();
   const [open, setOpen] = useState(true);
-
-  const close = useCallback(() => {
-    setOpen(false);
-    router.push(`/forms/${formId}/submissions/${submissionId}/files`);
-  }, [router, formId, submissionId]);
 
   const handleOpenChange = useCallback(
     (next: boolean) => {
@@ -41,25 +35,14 @@ export function FileModal({
     [router, formId, submissionId],
   );
 
-  const handleEscapeKeyDown = useCallback(
-    (e: KeyboardEvent) => {
-      e.preventDefault();
-      close();
-    },
-    [close],
-  );
-
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent
-        className="max-h-[90vh] max-w-4xl overflow-y-auto"
-        onEscapeKeyDown={handleEscapeKeyDown}
-      >
-        <DialogHeader>
-          <DialogTitle className="sr-only">File preview</DialogTitle>
-        </DialogHeader>
-        {children}
-      </DialogContent>
-    </Dialog>
+    <FilePreviewDialog
+      open={open}
+      onOpenChange={handleOpenChange}
+      title={title}
+      description={description}
+    >
+      {children}
+    </FilePreviewDialog>
   );
 }

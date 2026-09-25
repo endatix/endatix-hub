@@ -37,12 +37,18 @@ export function SubmissionFileModal({
   }
 
   return (
-    <FileModal formId={formId} submissionId={submissionId}>
+    <FileModal
+      formId={formId}
+      submissionId={submissionId}
+      title={fileResult.value.displayName}
+      description={fileResult.value.contentType}
+    >
       <SubmissionFileView
         file={fileResult.value}
         formId={formId}
         submissionId={submissionId}
         showBackLink={false}
+        showCaption={false}
         size={size}
       />
     </FileModal>

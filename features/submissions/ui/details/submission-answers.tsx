@@ -165,7 +165,7 @@ const SubmissionItemCard = ({
       <article
         id={`${question.name}`}
         className={cn(
-          "rounded-md border border-slate-200/40 bg-surface-container-lowest p-8 transition-colors hover:border-primary dark:border-slate-700/40 dark:bg-surface-container-low",
+          "rounded-md border border-slate-200/40 bg-surface-container-lowest p-4 transition-colors hover:border-primary sm:p-8 dark:border-slate-700/40 dark:bg-surface-container-low",
           isSelected && selectedQuestionCardClass,
         )}
         data-selected={isSelected ? true : undefined}
@@ -181,7 +181,7 @@ const SubmissionItemCard = ({
             />
           </div>
         </div>
-        <div className="mt-4 rounded-md border border-slate-100 bg-surface-container-low p-5 dark:border-slate-800 dark:bg-surface-container">
+        <div className="mt-4 rounded-md border border-slate-100 bg-surface-container-low p-3 sm:p-5 dark:border-slate-800 dark:bg-surface-container">
           <div className="flex items-center gap-2">
             <EyeOff className="h-4 w-4 text-muted-foreground" />
             <p className="text-sm text-muted-foreground">
@@ -197,7 +197,7 @@ const SubmissionItemCard = ({
     <article
       id={`${question.name}`}
       className={cn(
-        "rounded-md border border-slate-200/40 bg-surface-container-lowest p-8 transition-colors hover:border-primary dark:border-slate-700/40 dark:bg-surface-container-low",
+        "rounded-md border border-slate-200/40 bg-surface-container-lowest p-4 transition-colors hover:border-primary sm:p-8 dark:border-slate-700/40 dark:bg-surface-container-low",
         isSelected && selectedQuestionCardClass,
       )}
       data-selected={isSelected ? true : undefined}
@@ -213,7 +213,7 @@ const SubmissionItemCard = ({
           />
         </div>
       </div>
-      <div className="rounded-md border border-slate-100 bg-surface-container-low p-5 dark:border-slate-800 dark:bg-surface-container">
+      <div className="rounded-md border border-slate-100 bg-surface-container-low p-3 sm:p-5 dark:border-slate-800 dark:bg-surface-container">
         <AnswerViewer
           key={question.id}
           forQuestion={question}

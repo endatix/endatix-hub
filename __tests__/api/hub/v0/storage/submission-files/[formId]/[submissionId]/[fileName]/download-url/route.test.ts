@@ -2,6 +2,7 @@ import { GET } from "@/app/api/hub/v0/storage/submission-files/[formId]/[submiss
 import * as authModule from "@/auth";
 import * as authFeature from "@/features/auth";
 import { getUserFile } from "@/features/asset-storage/server";
+import type { UserFileViewData } from "@/features/asset-storage/use-cases/get-user-file/get-use-file.use-case";
 import { Result } from "@/lib/result";
 import { NextRequest } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -15,12 +16,14 @@ describe("GET /api/hub/v0/storage/submission-files/[formId]/[submissionId]/[file
   const submissionId = "s1";
   const fileName = "doc.pdf";
   const mockParams = Promise.resolve({ formId, submissionId, fileName });
-  const mockFile = {
+  const mockFile: UserFileViewData = {
+    kind: "user",
     displayName: "doc.pdf",
     contentType: "application/pdf",
     sizeInBytes: 1024,
     originalFileName: "Original.pdf",
     questionName: "q1",
+    uploadedBy: "u1",
     url: "https://account.blob.core.windows.net/user-files/s/f1/s1/doc.pdf?sig=abc",
   };
 
@@ -30,7 +33,7 @@ describe("GET /api/hub/v0/storage/submission-files/[formId]/[submissionId]/[file
       user: { id: "u1", name: "Test", email: "test@example.com" },
     } as unknown as Awaited<ReturnType<typeof authModule.auth>>);
     vi.mocked(authFeature.authorization).mockResolvedValue({
-      requireHubAccess: vi.fn().mockResolvedValue(undefined),
+      checkAllPermissions: vi.fn().mockResolvedValue({ success: true }),
     } as unknown as Awaited<ReturnType<typeof authFeature.authorization>>);
     vi.mocked(getUserFile).mockResolvedValue(Result.success(mockFile));
   });
@@ -50,7 +53,7 @@ describe("GET /api/hub/v0/storage/submission-files/[formId]/[submissionId]/[file
     expect(getUserFile).toHaveBeenCalledWith(formId, submissionId, fileName);
   });
 
-  it("calls getUserFile with decoded fileName when param is encoded", async () => {
+  it("passes the route fileName through without a second decode", async () => {
     const req = new NextRequest("http://localhost/api/download-url");
     await GET(req, {
       params: Promise.resolve({
@@ -63,7 +66,7 @@ describe("GET /api/hub/v0/storage/submission-files/[formId]/[submissionId]/[file
     expect(getUserFile).toHaveBeenCalledWith(
       formId,
       submissionId,
-      "file name.pdf",
+      "file%20name.pdf",
     );
   });
 

@@ -39,9 +39,9 @@ describe("FileViewMeta", () => {
 
       // Assert
       expect(screen.getByTestId("download-button")).toBeDefined();
-      expect(screen.queryByText("Original name:")).toBeNull();
-      expect(screen.queryByText("Question:")).toBeNull();
-      expect(screen.queryByText("Size:")).toBeNull();
+      expect(screen.queryByText("Original name")).toBeNull();
+      expect(screen.queryByText("Question")).toBeNull();
+      expect(screen.queryByText("Size")).toBeNull();
     });
   });
 
@@ -59,8 +59,8 @@ describe("FileViewMeta", () => {
       render(<FileViewMeta {...props} />);
 
       // Assert
-      expect(screen.queryByText("Original name:")).toBeNull();
-      expect(screen.queryByText("Question:")).toBeNull();
+      expect(screen.queryByText("Original name")).toBeNull();
+      expect(screen.queryByText("Question")).toBeNull();
     });
 
     it("does not show original name or question when whitespace-only", () => {
@@ -76,8 +76,8 @@ describe("FileViewMeta", () => {
       render(<FileViewMeta {...props} />);
 
       // Assert
-      expect(screen.queryByText("Original name:")).toBeNull();
-      expect(screen.queryByText("Question:")).toBeNull();
+      expect(screen.queryByText("Original name")).toBeNull();
+      expect(screen.queryByText("Question")).toBeNull();
     });
   });
 
@@ -95,10 +95,10 @@ describe("FileViewMeta", () => {
       render(<FileViewMeta {...props} />);
 
       // Assert
-      expect(screen.getByText("Original name:")).toBeDefined();
+      expect(screen.getByText("Original name")).toBeDefined();
       expect(screen.getByText("report.pdf")).toBeDefined();
-      expect(screen.queryByText("Question:")).toBeNull();
-      expect(screen.queryByText("Size:")).toBeNull();
+      expect(screen.queryByText("Question")).toBeNull();
+      expect(screen.queryByText("Size")).toBeNull();
     });
 
     it("shows only question name when other fields are missing", () => {
@@ -114,10 +114,10 @@ describe("FileViewMeta", () => {
       render(<FileViewMeta {...props} />);
 
       // Assert
-      expect(screen.getByText("Question:")).toBeDefined();
+      expect(screen.getByText("Question")).toBeDefined();
       expect(screen.getByText("Upload your document")).toBeDefined();
-      expect(screen.queryByText("Original name:")).toBeNull();
-      expect(screen.queryByText("Size:")).toBeNull();
+      expect(screen.queryByText("Original name")).toBeNull();
+      expect(screen.queryByText("Size")).toBeNull();
     });
 
     it("shows only size when other fields are missing", () => {
@@ -133,10 +133,10 @@ describe("FileViewMeta", () => {
       render(<FileViewMeta {...props} />);
 
       // Assert
-      expect(screen.getByText("Size:")).toBeDefined();
+      expect(screen.getByText("Size")).toBeDefined();
       expect(screen.getByText("2.0 KB")).toBeDefined();
-      expect(screen.queryByText("Original name:")).toBeNull();
-      expect(screen.queryByText("Question:")).toBeNull();
+      expect(screen.queryByText("Original name")).toBeNull();
+      expect(screen.queryByText("Question")).toBeNull();
     });
   });
 
@@ -149,7 +149,7 @@ describe("FileViewMeta", () => {
       render(<FileViewMeta {...props} />);
 
       // Assert
-      expect(screen.getByText("Size:")).toBeDefined();
+      expect(screen.getByText("Size")).toBeDefined();
       expect(screen.getByText("0 B")).toBeDefined();
     });
 
@@ -161,7 +161,7 @@ describe("FileViewMeta", () => {
       render(<FileViewMeta {...props} />);
 
       // Assert
-      expect(screen.queryByText("Size:")).toBeNull();
+      expect(screen.queryByText("Size")).toBeNull();
     });
 
     it("does not show size when sizeInBytes is negative", () => {
@@ -172,7 +172,7 @@ describe("FileViewMeta", () => {
       render(<FileViewMeta {...props} />);
 
       // Assert
-      expect(screen.queryByText("Size:")).toBeNull();
+      expect(screen.queryByText("Size")).toBeNull();
     });
 
     it("does not show size when sizeInBytes is Infinity", () => {
@@ -183,7 +183,7 @@ describe("FileViewMeta", () => {
       render(<FileViewMeta {...props} />);
 
       // Assert
-      expect(screen.queryByText("Size:")).toBeNull();
+      expect(screen.queryByText("Size")).toBeNull();
     });
   });
 
@@ -201,11 +201,11 @@ describe("FileViewMeta", () => {
       render(<FileViewMeta {...props} />);
 
       // Assert
-      expect(screen.getByText("Original name:")).toBeDefined();
+      expect(screen.getByText("Original name")).toBeDefined();
       expect(screen.getByText("my-doc.pdf")).toBeDefined();
-      expect(screen.getByText("Question:")).toBeDefined();
+      expect(screen.getByText("Question")).toBeDefined();
       expect(screen.getByText("Attach PDF")).toBeDefined();
-      expect(screen.getByText("Size:")).toBeDefined();
+      expect(screen.getByText("Size")).toBeDefined();
       expect(screen.getByText("1.0 KB")).toBeDefined();
       expect(screen.getByTestId("download-button")).toBeDefined();
     });
@@ -225,6 +225,56 @@ describe("FileViewMeta", () => {
       // Assert
       expect(screen.getByText("report.pdf")).toBeDefined();
       expect(screen.getByText("Upload file")).toBeDefined();
+    });
+  });
+
+  describe("original name", () => {
+    it("hides the original name when it matches the stored name", () => {
+      render(<FileViewMeta {...defaultProps} originalFileName="file.pdf" />);
+
+      expect(screen.queryByText("Original name")).toBeNull();
+    });
+  });
+
+  describe("name shown by the enclosing view", () => {
+    it("drops the original name it repeats and shows the stored name", () => {
+      render(
+        <FileViewMeta
+          {...defaultProps}
+          displayName="a1b2c3.jpg"
+          originalFileName="IMG_0001.jpg"
+          shownName="IMG_0001.jpg"
+        />,
+      );
+
+      expect(screen.queryByText("Original name")).toBeNull();
+      expect(screen.getByText("Stored as")).toBeDefined();
+      expect(screen.getByText("a1b2c3.jpg")).toBeDefined();
+    });
+  });
+
+  describe("open in new tab", () => {
+    it("links to the signed URL when one is given", () => {
+      render(
+        <FileViewMeta
+          {...defaultProps}
+          openUrl="https://example.com/file.pdf?sig=fresh"
+        />,
+      );
+
+      const link = screen.getByRole("link", { name: /open in new tab/i });
+      expect(link.getAttribute("href")).toBe(
+        "https://example.com/file.pdf?sig=fresh",
+      );
+      expect(link.getAttribute("target")).toBe("_blank");
+    });
+
+    it("omits the link without a signed URL", () => {
+      render(<FileViewMeta {...defaultProps} />);
+
+      expect(
+        screen.queryByRole("link", { name: /open in new tab/i }),
+      ).toBeNull();
     });
   });
 

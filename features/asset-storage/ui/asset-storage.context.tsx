@@ -32,6 +32,11 @@ export interface AssetStorageContextValue {
   /** Merges presigned GET URLs (e.g. external batch results). */
   mergePrivateReadUrlCache: (entries: Record<string, string>) => void;
   getCachedPrivateReadUrl: (url: string) => string | null;
+  /**
+   * Drops a cached presigned URL so the next resolve signs it again
+   * (e.g. after the media element fails because the read token expired).
+   */
+  evictPrivateReadUrl: (url: string) => void;
   /** Bumped when the private read-url cache gains new raw keys. */
   readUrlCacheVersion: number;
 }
@@ -86,7 +91,7 @@ export function AssetStorageClientProvider({
     if (!resolvedConfig?.isPrivate) {
       return;
     }
-    
+
     registerProtectedFilePreview();
     registerProtectedImages();
     registerProtectedLogoImage();
@@ -147,12 +152,17 @@ export function AssetStorageClientProvider({
     [resolvedConfig],
   );
 
+  const evictPrivateReadUrl = useCallback((url: string) => {
+    delete cacheRef.current[url];
+  }, []);
+
   const contextVal = useMemo(
     () => ({
       config: resolvedConfig,
       enqueuePrivateReadUrls,
       mergePrivateReadUrlCache,
       getCachedPrivateReadUrl,
+      evictPrivateReadUrl,
       readUrlCacheVersion,
     }),
     [
@@ -160,6 +170,7 @@ export function AssetStorageClientProvider({
       enqueuePrivateReadUrls,
       mergePrivateReadUrlCache,
       getCachedPrivateReadUrl,
+      evictPrivateReadUrl,
       readUrlCacheVersion,
     ],
   );
