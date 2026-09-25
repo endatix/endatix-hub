@@ -25,13 +25,18 @@ export async function downscalePdfFileImages(model: Model): Promise<void> {
     .getAllQuestions(false, false, true)
     .filter((question) => question.getType() === "file");
 
-  await mapPool(fileQuestions, DOWNSCALE_CONCURRENCY, async (question) => {
-    if (!Array.isArray(question.value)) {
-      return;
-    }
-    const files = question.value as IFile[];
-    question.value = await mapPool(files, DOWNSCALE_CONCURRENCY, downscaleFile);
-  });
+  const limit = createLimiter(DOWNSCALE_CONCURRENCY);
+  await Promise.all(
+    fileQuestions.map(async (question) => {
+      if (!Array.isArray(question.value)) {
+        return;
+      }
+      const files = question.value as IFile[];
+      question.value = await Promise.all(
+        files.map((file) => limit(() => downscaleFile(file))),
+      );
+    }),
+  );
 }
 
 async function downscaleFile(file: IFile): Promise<IFile> {
@@ -103,34 +108,61 @@ async function loadImageBytes(source: string): Promise<Buffer | null> {
 
   const declared = Number(response.headers.get("content-length"));
   if (Number.isFinite(declared) && declared > MAX_SOURCE_BYTES) {
+    await response.body?.cancel();
     return null;
   }
 
-  const bytes = Buffer.from(await response.arrayBuffer());
-  return bytes.length > MAX_SOURCE_BYTES ? null : bytes;
+  const bytes = await readBodyLimited(response, MAX_SOURCE_BYTES);
+  return bytes;
 }
 
-async function mapPool<T, R>(
-  items: readonly T[],
-  concurrency: number,
-  mapItem: (item: T) => Promise<R>,
-): Promise<R[]> {
-  if (items.length === 0) {
-    return [];
+async function readBodyLimited(
+  response: Response,
+  maxBytes: number,
+): Promise<Buffer | null> {
+  const reader = response.body?.getReader();
+  if (!reader) {
+    return null;
   }
 
-  const results = new Array<R>(items.length);
-  let next = 0;
-
-  async function worker(): Promise<void> {
-    while (next < items.length) {
-      const index = next;
-      next += 1;
-      results[index] = await mapItem(items[index]);
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) {
+        break;
+      }
+      total += value.byteLength;
+      if (total > maxBytes) {
+        await reader.cancel();
+        return null;
+      }
+      chunks.push(value);
     }
+  } catch {
+    return null;
   }
 
-  const workers = Math.min(concurrency, items.length);
-  await Promise.all(Array.from({ length: workers }, () => worker()));
-  return results;
+  return Buffer.concat(chunks);
+}
+
+function createLimiter(concurrency: number) {
+  let active = 0;
+  const waiting: Array<() => void> = [];
+
+  return async function limit<T>(task: () => Promise<T>): Promise<T> {
+    if (active >= concurrency) {
+      await new Promise<void>((resolve) => {
+        waiting.push(resolve);
+      });
+    }
+    active += 1;
+    try {
+      return await task();
+    } finally {
+      active -= 1;
+      waiting.shift()?.();
+    }
+  };
 }
