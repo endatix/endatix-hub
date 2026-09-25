@@ -1,12 +1,8 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { mergeTopLevelNavWithFolderForms } from "@/features/folders/utils";
-import { listFoldersAction } from "@/features/folders/server";
-import { Result } from "@/lib/result";
 import { ChevronsUpDown } from "lucide-react";
 import { SitemapService } from "@/services/sitemap-service";
-import { filterNavByKeys } from "@/features/navigation/filter-nav-by-auth";
 import UserAvatar from "@/components/user/user-avatar";
 import NavUser from "./nav-user";
 import { TenantSwitcher } from "@/components/layout-ui/sidebar/tenant-switcher";
@@ -25,8 +21,7 @@ import {
 } from "@/components/ui/sidebar";
 import { getCurrentUserInfo } from "@/features/users/user-utils";
 import { SidebarNavItem } from "./sidebar-nav-item";
-import type { INavItem } from "@/types/navigation-models";
-import { useEffect, useState } from "react";
+import { useSidebarMainNav } from "./use-sidebar-main-nav";
 
 type SidebarFolder = {
   id: string;
@@ -46,43 +41,14 @@ const SidebarNav = ({
   const { data: session, status } = useSession();
   const { state } = useSidebar();
   const isSidebarCollapsed = state === "collapsed";
-  const [mainNavItems, setMainNavItems] = useState<INavItem[]>(() => {
-    const base = getAuthorizedNavItems(initialNavItemKeys);
-    return initialFolders && initialFolders.length > 0
-      ? mergeTopLevelNavWithFolderForms(base, initialFolders)
-      : base;
-  });
+  const mainNavItems = useSidebarMainNav(
+    initialFolders,
+    initialNavItemKeys,
+    status === "authenticated" && !!session,
+  );
   const secondaryNavItems = SitemapService.getSecondarySitemap();
   const isLoggedIn = session?.user !== null;
   const currentUserInfo = getCurrentUserInfo(session);
-
-  useEffect(() => {
-    if (initialFolders) {
-      return;
-    }
-
-    if (status !== "authenticated" || !session) {
-      return;
-    }
-
-    let cancelled = false;
-    void (async () => {
-      const result = await listFoldersAction();
-      if (cancelled) {
-        return;
-      }
-      const base = getAuthorizedNavItems(initialNavItemKeys);
-      if (!Result.isSuccess(result)) {
-        setMainNavItems(base);
-        return;
-      }
-      setMainNavItems(mergeTopLevelNavWithFolderForms(base, result.value));
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [status, session, initialFolders, initialNavItemKeys]);
 
   return (
     <Sidebar collapsible="icon">
@@ -151,9 +117,5 @@ const SidebarNav = ({
     </Sidebar>
   );
 };
-
-function getAuthorizedNavItems(initialNavItemKeys?: string[]): INavItem[] {
-  return filterNavByKeys(SitemapService.getTopLevelSitemap(), initialNavItemKeys);
-}
 
 export default SidebarNav;

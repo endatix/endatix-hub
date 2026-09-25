@@ -33,5 +33,6 @@ export async function createFolderAction(
   revalidatePath("/forms");
   revalidatePath("/forms/folders");
   revalidatePath("/folders");
+  revalidatePath("/", "layout");
   return Result.success(created.data);
 }
