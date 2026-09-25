@@ -10,6 +10,7 @@ import {
   renderTimeoutMs,
 } from "../render-timeout";
 import { describePdfWorkload } from "./describe-pdf-workload";
+import { downscalePdfFileImages } from "./downscale-pdf-images";
 import type { PdfLocaleQuery } from "./pdf-locale";
 import { preparePdfModel } from "./prepare-pdf-model.use-case";
 import { SubmissionDetailsPdf } from "./submission-details-pdf";
@@ -111,16 +112,15 @@ export async function renderSubmissionPdf({
         const renderStartedAtMs = Date.now();
 
         try {
-          const pdfBlob = await raceWithTimeout(
-            () =>
-              pdf(
-                <SubmissionDetailsPdf
-                  submission={submission}
-                  surveyModel={model}
-                />,
-              ).toBlob(),
-            remainingRenderTimeoutMs(startedAtMs),
-          );
+          const pdfBlob = await raceWithTimeout(async () => {
+            await downscalePdfFileImages(model);
+            return pdf(
+              <SubmissionDetailsPdf
+                submission={submission}
+                surveyModel={model}
+              />,
+            ).toBlob();
+          }, remainingRenderTimeoutMs(startedAtMs));
 
           span.setAttributes({
             "pdf.outcome": "success",

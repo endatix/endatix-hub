@@ -145,11 +145,7 @@ const PdfAnswerViewer = ({
   );
 
   const renderFileAnswer = () => (
-    <View
-      style={VIEWER_STYLES.fileAnswerContainer}
-      break={pageBreak}
-      wrap={false}
-    >
+    <View style={VIEWER_STYLES.fileAnswerContainer} break={pageBreak}>
       {renderTitle()}
       <PdfFileAnswer question={forQuestion as QuestionFileModel} />
       {forQuestion?.supportComment() &&
@@ -300,8 +296,7 @@ const PdfAnswerViewer = ({
 
 export const VIEWER_STYLES = StyleSheet.create({
   fileAnswerContainer: {
-    marginBottom: 8,
-    padding: 8,
+    marginBottom: 4,
   },
   booleanAnswer: {
     fontFamily: "Roboto-Bold",

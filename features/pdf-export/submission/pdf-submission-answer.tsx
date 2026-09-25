@@ -3,6 +3,7 @@ import { pdfPlainText } from "@/lib/utils/pdf-plain-text";
 import { StyleSheet, Text, View } from "@react-pdf/renderer";
 import { Question, QuestionNonValue } from "survey-core";
 import { EyeOffIcon } from "./icons";
+import { firstFileRowPresence } from "./answers/pdf-file-answer";
 import PdfAnswerViewer from "./pdf-answer-viewer";
 import { PdfQuestionLabel } from "./pdf-question-label";
 
@@ -31,6 +32,24 @@ export const PdfSubmissionAnswer = ({ question }: PdfSubmissionAnswerProps) => {
         <Text style={styles.groupHeaderText}>{panelTitle}</Text>
       </View>,
     );
+  }
+
+  // Title and answer are siblings of the other questions. minPresenceAhead only
+  // works in that shared column: if the first image does not fit below the
+  // title, both move to the next page instead of the image being cut.
+  if (question.getType() === "file") {
+    rows.push(
+      <View
+        key={`${question.id}-label`}
+        minPresenceAhead={firstFileRowPresence(question)}
+      >
+        <PdfQuestionLabel question={question} style={styles.questionLabel} />
+      </View>,
+      <View key={question.id} style={styles.fullWidthAnswerRow}>
+        <PdfAnswerViewer forQuestion={question} hideTitle />
+      </View>,
+    );
+    return rows;
   }
 
   if (FULL_WIDTH_TYPES.has(question.getType())) {

@@ -5,6 +5,9 @@ export interface IFile {
   content: string; // Base64 or URL content of the file
   name?: string; // Optional filename
   type?: string; // Optional MIME type
+  /** Fitted display box in PDF points, set while preparing the export. */
+  pdfWidth?: number;
+  pdfHeight?: number;
 }
 
 /**
