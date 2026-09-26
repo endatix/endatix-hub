@@ -30,4 +30,26 @@ describe("useSidebarMainNav", () => {
     rerender({ folders: [] });
     expect(formsChildren(result.current)).toEqual([]);
   });
+
+  it("drops folder links when the session ends and the nav slot has no folders", () => {
+    const { result, rerender } = renderHook(
+      ({
+        folders,
+        isAuthenticated,
+      }: {
+        folders: (typeof alpha)[] | undefined;
+        isAuthenticated: boolean;
+      }) => useSidebarMainNav(folders, keys, isAuthenticated),
+      {
+        initialProps: {
+          folders: [alpha] as (typeof alpha)[] | undefined,
+          isAuthenticated: true,
+        },
+      },
+    );
+    expect(formsChildren(result.current)).toEqual(["Alpha"]);
+
+    rerender({ folders: undefined, isAuthenticated: false });
+    expect(formsChildren(result.current)).not.toContain("Alpha");
+  });
 });

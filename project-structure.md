@@ -129,6 +129,7 @@ Use `features/folders` as the canonical implementation of this pattern:
 - shared root artifacts in `types.ts`, `utils.ts`, and root `ui/` for cross-slice components
 - server-safe curated exports via `features/folders/server.ts`
 - slice-local tests in `features/folders/create-folder/__tests__/`
+- create, update, and delete revalidate `revalidatePath("/", "layout")` so the sidebar nav slot reloads. Page paths alone leave the layout cache stale. Reference: `create-folder.action.ts`.
 
 ### Diagnostic views project, they do not re-declare
 

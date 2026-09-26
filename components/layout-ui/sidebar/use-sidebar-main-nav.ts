@@ -48,6 +48,7 @@ export function useSidebarMainNav(
     }
 
     if (!isAuthenticated) {
+      setMainNavItems(navWithFolders(initialNavItemKeys));
       return;
     }
 
