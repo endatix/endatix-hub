@@ -47,6 +47,26 @@ export async function approveSignupRequestAction(
   return Result.success(response.data);
 }
 
+export async function retrySignupProvisioningAction(signupRequestId: string) {
+  const guard = await ensureSignupManagementEnabled();
+  if (guard) {
+    return guard;
+  }
+
+  const session = await requirePlatformAdmin();
+  const api = new EndatixApi(session.accessToken);
+  const response = await api.signupRequests.retryProvisioning(signupRequestId);
+
+  if (!response.success) {
+    return mapApiErrorToResult(response, {
+      fallbackMessage: 'Failed to retry provisioning.',
+    });
+  }
+
+  revalidatePath('/admin/signup-requests');
+  return Result.success(response.data);
+}
+
 export async function rejectSignupRequestAction(
   signupRequestId: string,
   comment: string,

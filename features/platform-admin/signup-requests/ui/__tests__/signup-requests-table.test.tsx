@@ -12,6 +12,7 @@ vi.mock('next/navigation', () => ({
 vi.mock('../../signup-requests.actions', () => ({
   approveSignupRequestAction: vi.fn(),
   rejectSignupRequestAction: vi.fn(),
+  retrySignupProvisioningAction: vi.fn(),
 }));
 
 const REQUESTS: SignupRequestsPagedResponse = {
