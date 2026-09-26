@@ -16,7 +16,7 @@ export default async function AdminPage() {
         status: "pending",
         page: 1,
         pageSize: 1,
-      })
+      }).catch(() => null)
     : null;
 
   return (
@@ -26,7 +26,7 @@ export default async function AdminPage() {
     >
       <PlatformDashboard
         dashboard={dashboard}
-        showSignupRequests={flags.saasManagement}
+        showSignupRequests={flags.saasManagement && signupRequests !== null}
         pendingSignupRequests={signupRequests?.totalRecords ?? 0}
       />
     </PlatformAdminShell>
