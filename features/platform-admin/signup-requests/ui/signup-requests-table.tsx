@@ -22,13 +22,16 @@ import {
   createPagedTableFooterProps,
   PagedTableFooter,
   TableSearchInput,
+  useListUrlState,
 } from '@/components/table';
-import { useListUrlState } from '@/lib/list-page/use-list-url-state';
 import { normalizePagedResponse } from '@/lib/endatix-api/shared/paged-response';
 import type { SignupRequestListItem } from '@/lib/endatix-api/signup-requests/types';
 import type { SignupRequestsPagedResponse } from '@/lib/endatix-api/signup-requests/types';
 import { getFormattedDate } from '@/lib/utils';
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
+import { toast } from '@/components/ui/toast';
+import { Result } from '@/lib/result';
+import { retrySignupProvisioningAction } from '../signup-requests.actions';
 import { ApproveSignupRequestDialog } from './approve-signup-request-dialog';
 import { RejectSignupRequestDialog } from './reject-signup-request-dialog';
 
@@ -123,6 +126,9 @@ export function SignupRequestsTable({
                             Reject
                           </Button>
                         </div>
+                      ) : request.status === 'approved' &&
+                        request.provisioningStatus === 'failed' ? (
+                        <RetryProvisioningButton signupRequestId={request.id} />
                       ) : (
                         <span className="text-sm text-muted-foreground">—</span>
                       )}
@@ -157,6 +163,35 @@ export function SignupRequestsTable({
         }}
       />
     </>
+  );
+}
+
+function RetryProvisioningButton({ signupRequestId }: { signupRequestId: string }) {
+  const [isPending, startTransition] = useTransition();
+
+  return (
+    <Button
+      size="sm"
+      variant="outline"
+      disabled={isPending}
+      onClick={() => {
+        startTransition(async () => {
+          const result = await retrySignupProvisioningAction(signupRequestId);
+          if (Result.isError(result)) {
+            toast.error(result.message);
+            return;
+          }
+
+          toast.success(
+            result.value.provisioningStatus === 'succeeded'
+              ? 'Provisioning succeeded.'
+              : 'Provisioning ran again and is still failed.',
+          );
+        });
+      }}
+    >
+      Retry
+    </Button>
   );
 }
 

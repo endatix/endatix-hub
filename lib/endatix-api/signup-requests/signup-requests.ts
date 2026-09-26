@@ -49,6 +49,15 @@ export default class SignupRequests {
     );
   }
 
+  async retryProvisioning(
+    signupRequestId: string,
+  ): Promise<ApiResult<SignupRequestListItem>> {
+    return this.endatix.post<SignupRequestListItem>(
+      `/admin/signups/${encodeURIComponent(signupRequestId)}/retry-provisioning`,
+      {},
+    );
+  }
+
   async reject(
     signupRequestId: string,
     request: RejectSignupRequestBody,
