@@ -1,17 +1,17 @@
-import { SignupRequestForm } from '@/features/tenants/signup-request/ui/signup-request-form';
-import { saasManagementFlag } from '@/lib/feature-flags/flags';
-import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
-import { getPublicAssetPath } from '@/lib/hosting';
+import { SignupRequestForm } from "@/features/tenants/signup-request/ui/signup-request-form";
+import { saasManagementFlag } from "@/lib/feature-flags/flags";
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { getPublicAssetPath } from "@/lib/hosting";
 
 export const metadata: Metadata = {
-  title: 'Request workspace | Endatix Hub',
-  description: 'Request access to an Endatix workspace.',
+  title: "Sign up | Endatix Hub",
+  description: "Create an account to get started.",
   openGraph: {
-    description: 'Request access to an Endatix workspace.',
+    description: "Create an account to get started.",
     images: [
       {
-        url: getPublicAssetPath('/assets/endatix-og-image.jpg'),
+        url: getPublicAssetPath("/assets/endatix-og-image.jpg"),
       },
     ],
   },

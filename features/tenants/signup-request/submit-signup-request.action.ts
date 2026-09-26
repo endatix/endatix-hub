@@ -1,44 +1,65 @@
-'use server';
+"use server";
 
-import { EndatixApi } from '@/lib/endatix-api';
-import { Result, type ResultType } from '@/lib/result';
-import { mapApiErrorToResult } from '@/lib/result/map-api-error-to-result';
+import { z } from "zod";
+import { EndatixApi } from "@/lib/endatix-api";
+import { Result } from "@/lib/result";
+import { toResult } from "@/lib/result/map-api-result-to-result";
+import { getStringFormValue } from "@/lib/utils/form-data-utils";
+import { ServerActionState } from "@/lib/utils/zod-error-utils";
 
 const GENERIC_SUCCESS_MESSAGE =
-  'If your request is accepted, we will contact you at the email address provided.';
+  "If your request is accepted, we will contact you at the email address provided.";
 
-type SignupRequestResult = { message: string };
+const signupRequestSchema = z.object({
+  email: z
+    .string()
+    .trim()
+    .pipe(z.email({ error: "Enter a valid email address." })),
+  companyName: z
+    .string()
+    .trim()
+    .transform((value) => value || null),
+});
+
+type SignupRequestData = {
+  email?: string;
+  companyName?: string;
+};
+
+export type SignupRequestActionState = ServerActionState<SignupRequestData>;
 
 export async function submitSignupRequestAction(
+  _prevState: SignupRequestActionState,
   formData: FormData,
-): Promise<ResultType<SignupRequestResult>> {
-  const honeypot = formData.get('website')?.toString() ?? '';
-  if (honeypot.trim().length > 0) {
-    return Result.success({ message: GENERIC_SUCCESS_MESSAGE });
+): Promise<SignupRequestActionState> {
+  if (getStringFormValue(formData, "website").trim().length > 0) {
+    return { isSuccess: true, message: GENERIC_SUCCESS_MESSAGE };
   }
 
-  const email = formData.get('email')?.toString().trim() ?? '';
-  const companyName = formData.get('companyName')?.toString().trim() || null;
+  const rawData: SignupRequestData = {
+    email: getStringFormValue(formData, "email"),
+    companyName: getStringFormValue(formData, "companyName"),
+  };
 
-  if (!email) {
-    return Result.validationError<SignupRequestResult>('Email is required.');
+  const validated = signupRequestSchema.safeParse(rawData);
+  if (!validated.success) {
+    return ServerActionState.fromZodError(validated.error, rawData);
   }
 
   const api = new EndatixApi();
-  const response = await api.signupRequests.create({
-    email,
-    companyName,
-    jobTitle: honeypot || null,
+  const result = toResult(await api.signupRequests.create(validated.data), {
+    fallbackMessage: "We could not submit your request. Please try again.",
+    preferredFields: ["email"],
+    logMessage: "Failed to submit signup request.",
+    loggerName: "tenants.signup-request",
   });
 
-  if (!response.success) {
-    return mapApiErrorToResult<SignupRequestResult>(response, {
-      fallbackMessage: GENERIC_SUCCESS_MESSAGE,
-      preferredFields: ['email'],
-    });
+  if (Result.isSuccess(result)) {
+    return {
+      isSuccess: true,
+      message: result.value.message || GENERIC_SUCCESS_MESSAGE,
+    };
   }
 
-  return Result.success({
-    message: response.data.message || GENERIC_SUCCESS_MESSAGE,
-  });
+  return ServerActionState.fromFailure(result, rawData);
 }

@@ -1,4 +1,4 @@
-import type { PagedResponse } from '../shared/types';
+import type { PagedResponse } from "../shared/types";
 
 export interface CreateSignupRequestBody {
   email: string;
@@ -29,8 +29,8 @@ export interface ListSignupRequestsRequest {
   search?: string;
   page?: number;
   pageSize?: number;
-  sortBy?: 'createdAt' | 'email';
-  sortDir?: 'asc' | 'desc';
+  sortBy?: "createdAt" | "email";
+  sortDir?: "asc" | "desc";
 }
 
 export interface ApproveSignupRequestBody {

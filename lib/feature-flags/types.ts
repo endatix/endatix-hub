@@ -7,7 +7,6 @@ export interface FeatureFlagConfig {
   storageStats: boolean;
   reportingExport: boolean;
   tenantManagement: boolean;
-  /** Mirrors API `saas-management` deployment flag. */
   saasManagement: boolean;
 }
 

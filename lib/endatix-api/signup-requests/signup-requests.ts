@@ -1,6 +1,6 @@
-import { ApiResult } from '../shared/api-result';
-import { buildQueryEndpoint } from '../shared/query-params';
-import type { EndatixApi } from '../endatix-api';
+import { ApiResult } from "../shared/api-result";
+import { buildQueryEndpoint } from "../shared/query-params";
+import type { EndatixApi } from "../endatix-api";
 import type {
   ApproveSignupRequestBody,
   CreateSignupRequestBody,
@@ -9,7 +9,7 @@ import type {
   SignupRequestAcceptedResponse,
   SignupRequestListItem,
   SignupRequestsPagedResponse,
-} from './types';
+} from "./types";
 
 export default class SignupRequests {
   constructor(private readonly endatix: EndatixApi) {}
@@ -18,7 +18,7 @@ export default class SignupRequests {
     request: CreateSignupRequestBody,
   ): Promise<ApiResult<SignupRequestAcceptedResponse>> {
     return this.endatix.post<SignupRequestAcceptedResponse>(
-      '/public/signups',
+      "/public/signups",
       request,
       { requireAuth: false },
     );
@@ -28,13 +28,13 @@ export default class SignupRequests {
     request: ListSignupRequestsRequest = {},
   ): Promise<ApiResult<SignupRequestsPagedResponse>> {
     return this.endatix.get<SignupRequestsPagedResponse>(
-      buildQueryEndpoint('/admin/signups', [
-        ['status', request.status],
-        ['search', request.search],
-        ['page', request.page],
-        ['pageSize', request.pageSize],
-        ['sortBy', request.sortBy],
-        ['sortDir', request.sortDir],
+      buildQueryEndpoint("/admin/signups", [
+        ["status", request.status],
+        ["search", request.search],
+        ["page", request.page],
+        ["pageSize", request.pageSize],
+        ["sortBy", request.sortBy],
+        ["sortDir", request.sortDir],
       ]),
     );
   }
