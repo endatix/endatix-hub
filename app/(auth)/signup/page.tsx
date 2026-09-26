@@ -6,9 +6,9 @@ import { getPublicAssetPath } from "@/lib/hosting";
 
 export const metadata: Metadata = {
   title: "Sign up | Endatix Hub",
-  description: "Create an account to get started.",
+  description: "Request access to an Endatix workspace.",
   openGraph: {
-    description: "Create an account to get started.",
+    description: "Request access to an Endatix workspace.",
     images: [
       {
         url: getPublicAssetPath("/assets/endatix-og-image.jpg"),

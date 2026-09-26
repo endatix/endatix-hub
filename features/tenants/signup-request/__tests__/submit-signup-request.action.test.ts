@@ -1,7 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiResult, EndatixApi } from "@/lib/endatix-api";
+import { saasManagementFlag } from "@/lib/feature-flags/flags";
 import { ServerActionState } from "@/lib/utils/zod-error-utils";
 import { submitSignupRequestAction } from "../submit-signup-request.action";
+
+vi.mock("@/lib/feature-flags/flags", () => ({
+  saasManagementFlag: vi.fn(),
+}));
 
 vi.mock("@/lib/endatix-api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/endatix-api")>();
@@ -32,11 +37,30 @@ describe("submitSignupRequestAction", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(saasManagementFlag).mockResolvedValue(true);
     vi.mocked(EndatixApi).mockImplementation(function () {
       return { signupRequests: { create: createSignup } } as never;
     });
     createSignup.mockResolvedValue(
       ApiResult.success({ message: "Request received." }),
+    );
+  });
+
+  it("does not call the API when signup is disabled", async () => {
+    // Arrange
+    vi.mocked(saasManagementFlag).mockResolvedValue(false);
+
+    // Act
+    const state = await submitSignupRequestAction(
+      emptyState,
+      signupFormData({ email: "jane@example.com" }),
+    );
+
+    // Assert
+    expect(createSignup).not.toHaveBeenCalled();
+    expect(state.isSuccess).toBe(false);
+    expect(state.message).toBe(
+      "Signup is not enabled for this environment.",
     );
   });
 

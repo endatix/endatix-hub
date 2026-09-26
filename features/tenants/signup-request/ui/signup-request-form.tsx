@@ -108,7 +108,6 @@ export function SignupRequestForm() {
             defaultValue={state.data?.email}
             required
             autoFocus
-            tabIndex={1}
           />
           <ErrorMessage message={firstFieldError(state.errors, "email")} />
         </div>
@@ -119,7 +118,6 @@ export function SignupRequestForm() {
             type="text"
             name="companyName"
             defaultValue={state.data?.companyName}
-            tabIndex={2}
           />
           <ErrorMessage
             message={firstFieldError(state.errors, "companyName")}
@@ -132,7 +130,6 @@ export function SignupRequestForm() {
           type="submit"
           className="w-full"
           disabled={isPending}
-          tabIndex={3}
         >
           {isPending ? <Spinner className="mr-2 h-4 w-4" /> : null}
           Request workspace

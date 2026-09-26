@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { EndatixApi } from "@/lib/endatix-api";
+import { saasManagementFlag } from "@/lib/feature-flags/flags";
 import { Result } from "@/lib/result";
 import { toResult } from "@/lib/result/map-api-result-to-result";
 import { getStringFormValue } from "@/lib/utils/form-data-utils";
@@ -32,6 +33,12 @@ export async function submitSignupRequestAction(
   _prevState: SignupRequestActionState,
   formData: FormData,
 ): Promise<SignupRequestActionState> {
+  if (!(await saasManagementFlag())) {
+    return ServerActionState.fromFailure(
+      "Signup is not enabled for this environment.",
+    );
+  }
+
   if (getStringFormValue(formData, "website").trim().length > 0) {
     return { isSuccess: true, message: GENERIC_SUCCESS_MESSAGE };
   }
