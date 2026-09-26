@@ -18,7 +18,7 @@ export default class SignupRequests {
     request: CreateSignupRequestBody,
   ): Promise<ApiResult<SignupRequestAcceptedResponse>> {
     return this.endatix.post<SignupRequestAcceptedResponse>(
-      '/public/signup-requests',
+      '/public/signups',
       request,
       { requireAuth: false },
     );
@@ -28,7 +28,7 @@ export default class SignupRequests {
     request: ListSignupRequestsRequest = {},
   ): Promise<ApiResult<SignupRequestsPagedResponse>> {
     return this.endatix.get<SignupRequestsPagedResponse>(
-      buildQueryEndpoint('/admin/signup-requests', [
+      buildQueryEndpoint('/admin/signups', [
         ['status', request.status],
         ['search', request.search],
         ['page', request.page],
@@ -44,7 +44,7 @@ export default class SignupRequests {
     request: ApproveSignupRequestBody,
   ): Promise<ApiResult<SignupRequestListItem>> {
     return this.endatix.post<SignupRequestListItem>(
-      `/admin/signup-requests/${encodeURIComponent(signupRequestId)}/approve`,
+      `/admin/signups/${encodeURIComponent(signupRequestId)}/approve`,
       request,
     );
   }
@@ -54,7 +54,7 @@ export default class SignupRequests {
     request: RejectSignupRequestBody,
   ): Promise<ApiResult<SignupRequestListItem>> {
     return this.endatix.post<SignupRequestListItem>(
-      `/admin/signup-requests/${encodeURIComponent(signupRequestId)}/reject`,
+      `/admin/signups/${encodeURIComponent(signupRequestId)}/reject`,
       request,
     );
   }

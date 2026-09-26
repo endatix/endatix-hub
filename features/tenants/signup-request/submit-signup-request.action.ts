@@ -28,7 +28,7 @@ export async function submitSignupRequestAction(
   const response = await api.signupRequests.create({
     email,
     companyName,
-    honeypot: honeypot || null,
+    jobTitle: honeypot || null,
   });
 
   if (!response.success) {

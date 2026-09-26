@@ -33,7 +33,7 @@ describe('SignupRequests', () => {
     });
 
     expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining('/api/public/signup-requests'),
+      expect.stringContaining('/api/public/signups'),
       expect.objectContaining({ method: 'POST' }),
     );
     const [, init] = mockFetch.mock.calls[0];
@@ -58,7 +58,7 @@ describe('SignupRequests', () => {
     const result = await api.signupRequests.list({ status: 'pending' });
 
     expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining('/api/admin/signup-requests?status=pending'),
+      expect.stringContaining('/api/admin/signups?status=pending'),
       expect.objectContaining({ method: 'GET' }),
     );
     expect(ApiResult.isSuccess(result)).toBe(true);

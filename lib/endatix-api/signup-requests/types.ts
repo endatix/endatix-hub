@@ -3,7 +3,7 @@ import type { PagedResponse } from '../shared/types';
 export interface CreateSignupRequestBody {
   email: string;
   companyName?: string | null;
-  honeypot?: string | null;
+  jobTitle?: string | null;
 }
 
 export interface SignupRequestAcceptedResponse {
