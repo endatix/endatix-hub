@@ -32,6 +32,7 @@ export async function deleteFolderAction(
   revalidatePath("/forms/templates/folders");
   revalidatePath("/folders");
   revalidatePath("/settings/organization/forms");
+  revalidatePath("/", "layout");
 
   return Result.success(undefined);
 }

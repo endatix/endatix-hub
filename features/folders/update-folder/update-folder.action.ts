@@ -35,5 +35,6 @@ export async function updateFolderAction(
   revalidatePath("/forms/folders");
   revalidatePath("/folders");
   revalidatePath("/settings/organization/forms");
+  revalidatePath("/", "layout");
   return Result.success(updated.data);
 }

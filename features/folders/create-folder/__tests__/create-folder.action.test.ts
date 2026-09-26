@@ -4,6 +4,7 @@ import { authorization, Permissions } from "@/features/auth/authorization";
 import { ApiErrorType, EndatixApi } from "@/lib/endatix-api";
 import { ErrorType, Kind } from "@/lib/result";
 import { createFolderAction } from "@/features/folders/create-folder";
+import { revalidatePath } from "next/cache";
 
 vi.mock("@/auth", () => ({
   auth: vi.fn(),
@@ -77,5 +78,17 @@ describe("createFolderAction", () => {
 
     expect(result.errorType).toBe(ErrorType.ValidationError);
     expect(result.message).toBe("slug must be a valid URL slug.");
+  });
+
+  it("revalidates the app layout so the sidebar picks up the new folder", async () => {
+    create.mockResolvedValue({
+      success: true,
+      data: { id: "1", name: "Inbox", slug: "inbox" },
+    });
+
+    const result = await createFolderAction({ name: "Inbox", slug: "inbox" });
+
+    expect(result.kind).toBe(Kind.Success);
+    expect(revalidatePath).toHaveBeenCalledWith("/", "layout");
   });
 });
