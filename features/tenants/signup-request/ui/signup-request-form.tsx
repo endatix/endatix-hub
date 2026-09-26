@@ -122,6 +122,9 @@ export function SignupRequestForm() {
           <ErrorMessage
             message={firstFieldError(state.errors, "companyName")}
           />
+          <ErrorMessage
+            message={firstFieldError(state.errors, "companyName")}
+          />
         </div>
         {state.isSuccess === false ? (
           <ErrorMessage message={state.message ?? state.formErrors} />
