@@ -3,6 +3,7 @@ import {
   Building2,
   BookOpen,
   ClipboardList,
+  Inbox,
   DatabaseZap,
   FileDown,
   FolderCog,
@@ -184,6 +185,13 @@ const sitemapArray: INavItem[] = [
         title: "Platform Admins",
         url: "/admin/platform-admins",
         icon: UserCog,
+        requiredRole: SystemRoles.PlatformAdmin,
+      },
+      {
+        key: "platformSignupRequests",
+        title: "Signup Requests",
+        url: "/admin/signup-requests",
+        icon: Inbox,
         requiredRole: SystemRoles.PlatformAdmin,
       },
       {

@@ -285,7 +285,7 @@ Action rules:
 - **Detail → list back navigation** restores the list's paging/filters via session-scoped storage, not a URL param — see AGENTS.md "Detail → list back navigation" and `lib/list-page/table-return-to`.
 - Hub list URL key is **`search`**; map it to the API query field (`query`, `filter`, etc.) inside the slice parser. Do not introduce a parallel `q` param.
 - The **API-client** side of a paged list (request type, exported `buildList<Entity>Endpoint`, `list()` returning a normalized page, a separate bounded `listAll()` for pickers, which don't support lazy loading. Prefer list with paging where possible) has exactly one documented shape — see AGENTS.md "Paged list sort and calendar From/To → The one list-client shape" and its reference implementation `lib/endatix-api/themes/`.
-- Wired this way: `admin/tenants`, `admin/platform-admins`, `settings/organization/users`, `settings/organization/roles`, `forms`, `forms/folders/[folderSlug]`, `data-lists` (`DataListsBrowser`), and `forms/[formId]/submissions` (server section).
+- Wired this way: `admin/tenants`, `admin/platform-admins`, `admin/signup-requests`, `settings/organization/users`, `settings/organization/roles`, `forms`, `forms/folders/[folderSlug]`, `data-lists` (`DataListsBrowser`), and `forms/[formId]/submissions` (server section).
 - **Submissions list** (`/forms/[formId]/submissions`): loader + page-load outcome live in `features/submissions/list-submissions/` (not in `app/`). URL parse helpers stay in `list-submission-query/`. See AGENTS.md "Page-load outcomes".
 
 ##### Forms list scope model (`/forms`)

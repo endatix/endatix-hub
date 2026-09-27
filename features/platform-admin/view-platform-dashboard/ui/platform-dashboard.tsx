@@ -3,6 +3,7 @@ import type { Route } from "next";
 import {
   Building2,
   HardDrive,
+  Inbox,
   KeyRound,
   Mail,
   Server,
@@ -46,6 +47,15 @@ export function PlatformDashboard({
           href="/admin/platform-admins"
           icon={UserCog}
         />
+        {dashboard.signupRequests ? (
+          <DashboardCard
+            title="Signup Requests"
+            value={dashboard.signupRequests.pending}
+            description="Workspace requests waiting for a decision."
+            href="/admin/signup-requests"
+            icon={Inbox}
+          />
+        ) : null}
       </DashboardSection>
 
       <DashboardSection
