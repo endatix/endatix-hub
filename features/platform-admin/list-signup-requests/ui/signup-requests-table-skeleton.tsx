@@ -5,14 +5,16 @@ import {
 } from "@/components/table";
 
 const COLUMNS: readonly DataTableSkeletonColumn[] = [
-  { title: "Email", className: "min-w-[12rem]" },
-  { title: "Company" },
+  { title: "Requester", className: "min-w-[14rem]" },
   { title: "Status", className: DATA_TABLE_SHRINK_WRAP_CLASS_NAME },
   {
-    title: "Created",
+    title: "Submitted",
     className: `hidden md:table-cell ${DATA_TABLE_SHRINK_WRAP_CLASS_NAME}`,
   },
-  { title: "Actions", className: DATA_TABLE_SHRINK_WRAP_CLASS_NAME },
+  {
+    title: "Actions",
+    className: `text-right ${DATA_TABLE_SHRINK_WRAP_CLASS_NAME}`,
+  },
 ];
 
 export function SignupRequestsTableSkeleton() {

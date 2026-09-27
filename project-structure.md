@@ -148,6 +148,12 @@ dependency-free module so client components can type-import it.
 
 Unauthenticated tenant sign-in / self-registration lives here, not under `platform-admin`: `platform-admin` is client-imported and must stay free of NextAuth. The slice owns the public-tenant action, the provider allow-list filter, and the `(auth)` failure states. Hub types use `shortUrl`; `POST /auth/register` still sends `tenantSlug`. See Hub `AGENTS.md` “Endatix IDs” and “Auth pages”.
 
+### Signup request slices (`features/platform-admin`)
+
+- `list-signup-requests/` owns the queue: URL parsing, the loader, the toolbar and the grid.
+- `review-signup-request/` owns the decision: the approve, reject and retry actions, the review panel, the reviewer-name loader (`listSignupReviewers`), and `signup-request-state.ts`, the one mapping from decision and provisioning to tones, row badge and next step. The grid imports the state mapping and mounts the panel. It never decides itself.
+- UX pattern: `DESIGN.md` §6 "Review queues" and "Review and decide".
+
 ### Reporting export slices (`features/export`)
 
 Reporting export is a dedicated feature (not nested under `forms/` or `submissions/`). Slices map to API capabilities and UI surfaces:

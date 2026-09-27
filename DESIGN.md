@@ -748,8 +748,25 @@ Tables), and the rules below cover what a queue adds on top.
   for). An optional field that was left empty renders `—` with an `sr-only`
   "Not set".
 - **Say only what the page can do.** The page description names the actions
-  the page offers today. Pending rows offer Approve and Reject. An approved
-  row whose provisioning failed offers Retry.
+  the page offers today, and nothing that has not shipped.
+- **Name the requester, not the columns.** The identity column is the email
+  over the company, stacked like the tenants name column, and it is a button
+  that opens the review panel. Label it for what it holds ("Requester") and the
+  date column for what happened ("Submitted"), not after the entity fields
+  (`Email`, `Created`).
+- **One row badge, the most urgent fact.** A decision and the process behind it
+  (provisioning) are two states, but a row gets one pill: the decision, unless
+  the process behind it needs the reviewer (`Setup failed`, `attention`) or is
+  still running (`Setting up`, `off`). The panel shows both separately.
+- **Show who decided once there is a decision.** A "Decided by" column appears
+  when the filter includes closed requests and is hidden on the pending view,
+  where it would be empty on every row.
+- **One entry point per row.** A row never carries its decision buttons.
+  Approve beside Reject in a table cell is a one-click, record-unseen,
+  irreversible decision, and on a narrow screen the pair wraps the row. Each row
+  has a single button: `Review` (secondary) when the reviewer has something to
+  do (decide, retry), `View` (ghost) when the record is closed. Both open the
+  review panel below.
 - **One count, one icon, everywhere.** The admin dashboard card shows the open
   count, loaded in the dashboard's own loader (`getPlatformDashboard`) rather
   than in `page.tsx`, and it uses the same icon (`Inbox`) and the same title
@@ -757,6 +774,99 @@ Tables), and the rules below cover what a queue adds on top.
   fails to load shows no number. It never shows `0`, which would claim the
   queue is empty. A missing list route is an empty inbox, and the same 404 is
   a failed count on the dashboard.
+
+### Review and decide (approve / reject / retry)
+
+Any record that waits for a human decision and keeps an audit trail of it —
+signup requests today, and access requests, publish approvals or refunds
+tomorrow — uses one flow: **review → decide → outcome**, in one
+`ResponsivePanel`. Reference implementation:
+`features/platform-admin/review-signup-request/` (`signup-request-review-panel.tsx`,
+`signup-request-details.tsx`, `signup-request-state.ts`).
+
+**Why a panel, not row buttons or stacked dialogs.** A decision is made about a
+record, so the record is on screen when the decision control is. A right `Sheet`
+keeps the queue visible behind it on desktop, and it becomes a `Drawer` under
+`md` (`desktopType="complex"`, per the Overlay Rulebook). The approve and reject
+forms are **steps inside the same panel**, not a Dialog opened from the Sheet:
+two stacked overlays lose the record behind a scrim, and Escape closes the wrong
+one.
+
+**Anatomy of the review step, top to bottom:**
+
+1. **Header.** The title is the record's identity (the requester's email); the
+   description says what it is and when it arrived.
+2. **At most one status strip** (`Alert`). It shows the result of what the
+   reviewer just did, or otherwise a standing problem with the record. Never
+   two.
+3. **`PanelSection`s in the order the record lived:**
+   - **Request**: what was submitted (`SummaryRow`s; copy affordance on values
+     worth pasting). It carries the state badge only while no decision exists.
+   - **Decision**: who decided, when, and why, with the decision's
+     `StatusBadge` in `aside`. The reason of a negative decision is shown in
+     full, in a quoted block (`bg-surface-container-lowest`,
+     `whitespace-pre-wrap`), never truncated.
+   - **Downstream process** (e.g. **Workspace**): what the decision produced,
+     with its own badge and a link to where the result now lives (`Open in
+Tenants`).
+4. **Footer.** Only the next step the record allows: `Reject…` + `Approve…`
+   while undecided, `Retry …` after a failed process, and `Check again` while a
+   process is running. A closed record has no footer. The trailing ellipsis
+   means "asks for more before it acts".
+
+**Decide steps (Approve / Reject):**
+
+- **The form states its consequence once**, as a closing `Alert variant="info"`:
+  what gets created, who gets invited or notified, and that the decision is
+  recorded under the reviewer's name and cannot be undone. Don't put a warning
+  on every field.
+- **Prefill what can be suggested**, and say where the suggestion came from
+  ("Suggested from the company name") and how to change it later.
+- **A negative decision needs a reason.** Required, with its API limit as
+  `maxLength` and a visible `n / max` counter. Its description says who reads
+  it ("Kept with the decision for other admins. The requester is not
+  notified."). A reason nobody will read, or one the requester will read
+  without knowing it, are both bugs.
+- **Button tones:** the commit button of a positive decision is `default`
+  (primary); the commit of a rejection is `destructive`, because it is final.
+  The entry buttons in the review footer are `outline` (Reject…) and `default`
+  (Approve…). Every step has `Back`, never `Cancel`, because the record is still
+  open behind it.
+- **Errors land where they belong.** A validation error from the API goes under
+  its field (`aria-invalid`, `aria-describedby`); any other failure is a
+  `destructive` Alert at the top of the step, and the form keeps its values.
+
+**Outcome.** A successful decision returns the updated record, and the panel
+goes back to the review step showing it. The outcome strip names what happened.
+Its tone follows the Status Vocabulary: `success` for a completed write,
+`destructive` when a downstream process failed, `info` while it runs. The
+reviewer sees the new Decision section, with their own name in it, in the same
+place. Don't toast and close: a toast disappears, and the audit record the
+reviewer just created is the proof they need.
+
+**Audit rules:**
+
+- **Who** is a person, not an id. Resolve deciders through the admin directory
+  (`listSignupReviewers`), best effort: when the lookup fails, or the decider
+  was since revoked, show `Admin` plus a `TruncatedId`. The id must stay
+  visible; a decider must never disappear from the record.
+- **When** must be the time of the decision. When the API records no decision
+  timestamp, label the closest fact honestly (`Last updated`, from
+  `modifiedAt`). A timeline that invents event times is worse than none.
+- **Why** is the reason, verbatim.
+- **A retry is not a new decision.** It re-runs the process and records no new
+  decider, so the Decision section does not change.
+
+**States, one mapping in one file.** `describeSignupRequest` (the state file
+next to the panel) owns decision → tone, process → tone, the row's single badge
+and the allowed next step. The grid and the panel both read it, so a row that
+says `Setup failed` always opens on a panel that offers `Retry`. A new
+decision-record feature writes its own `describe*` with the same shape.
+
+**Light and dark.** Everything above is tokens only: `PanelSection`
+(`bg-surface-container-low`), the quoted reason (`bg-surface-container-lowest`),
+`StatusBadge`, and `Alert` variants. There are no palette steps, so both themes
+come from `app/globals.css`.
 
 ### Deciding on a new pattern
 
@@ -802,6 +912,8 @@ and then **write the answer back into this file** as part of the same change:
 - **Do** sign a private file URL when the reader acts on it (open, download), not when the page loads.
 - **Do** flag a view that diverges from the stored record with an `info` strip naming both values and a one-click way back (§6).
 - **Do** open a review queue on the items still waiting for a decision, and give the same destination one title and one icon in the sidebar, the dashboard and the page (§6 Review queues).
+- **Do** show the record before any decision control: one `Review` button per row, then review → decide → outcome in one `ResponsivePanel` (§6 Review and decide).
+- **Do** record and show who decided, when and why. Resolve the decider to a name, and keep the id visible when the name is unknown.
 
 ### Don't:
 
@@ -830,6 +942,8 @@ and then **write the answer back into this file** as part of the same change:
 - **Don't** put a presigned URL in a Hub-exported PDF. Link the Hub file page; a PDF outlives every read token.
 - **Don't** re-export the file-kind icons from `lib/file-kinds/index.ts`; the catalog is imported by server code and must stay free of `lucide-react`.
 - **Don't** show `0` for a count that failed to load. Render no number; a false zero says the queue is empty.
+- **Don't** put Approve and Reject buttons in a table row, or open a decision Dialog on top of a detail Sheet. Decide inside the panel that shows the record.
+- **Don't** label a record's last-modified time as the decision time, or invent timeline events the API did not record.
 
 ---
 

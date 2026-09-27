@@ -87,7 +87,11 @@ const shells = [
     name: "SignupRequestsList",
     searchLabel: "Search signup requests",
     render: (listKey: string) => (
-      <SignupRequestsList requestsPromise={never} listKey={listKey} />
+      <SignupRequestsList
+        requestsPromise={never}
+        reviewersPromise={never}
+        listKey={listKey}
+      />
     ),
   },
   {

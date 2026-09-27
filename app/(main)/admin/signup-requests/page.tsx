@@ -1,5 +1,6 @@
 import { SignupRequestsList } from "@/features/platform-admin/list-signup-requests/ui/signup-requests-list";
 import { listSignupRequests } from "@/features/platform-admin/list-signup-requests/list-signup-requests.server";
+import { listSignupReviewers } from "@/features/platform-admin/review-signup-request/list-signup-reviewers.server";
 import { parseSignupRequestsListParams } from "@/features/platform-admin/list-signup-requests/parse-signup-requests-params";
 import type { SignupRequestsSearchParams } from "@/features/platform-admin/list-signup-requests/types";
 import { requirePlatformAdmin } from "@/features/platform-admin/server";
@@ -28,14 +29,16 @@ export default async function SignupRequestsPage({
   const requestsPromise = listSignupRequests(session, listRequest, {
     notFoundAsEmpty: true,
   });
+  const reviewersPromise = listSignupReviewers(session);
 
   return (
     <PlatformAdminShell
       title="Signup Requests"
-      description="Review workspace requests, then approve or reject them."
+      description="Review each workspace request, then approve or reject it. Every decision records who made it."
     >
       <SignupRequestsList
         requestsPromise={requestsPromise}
+        reviewersPromise={reviewersPromise}
         listKey={listQueryKey(listRequest)}
       />
     </PlatformAdminShell>
