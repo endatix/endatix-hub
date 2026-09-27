@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useMemo, useState } from "react";
+import { Suspense, use, useMemo, useState } from "react";
 import {
   CellDate,
   createPagedTableFooterProps,
@@ -56,17 +56,43 @@ export function SignupRequestsTableFromPromise({
   }
 >) {
   const result = use(requestsPromise);
-  const reviewers = use(reviewersPromise);
   if (Result.isError(result)) {
     return <HubPageLoadError result={result} />;
   }
 
   return (
-    <SignupRequestsTable
-      requests={result.value}
-      reviewers={reviewers}
-      {...props}
-    />
+    <Suspense
+      fallback={
+        <SignupRequestsTable
+          requests={result.value}
+          reviewers={{}}
+          {...props}
+        />
+      }
+    >
+      <SignupRequestsTableWithReviewers
+        requests={result.value}
+        reviewersPromise={reviewersPromise}
+        {...props}
+      />
+    </Suspense>
+  );
+}
+
+function SignupRequestsTableWithReviewers({
+  requests,
+  reviewersPromise,
+  ...props
+}: Readonly<
+  Omit<SignupRequestsTableProps, "requests" | "reviewers"> & {
+    requests: NormalizedPagedResponse<SignupRequestListItem>;
+    reviewersPromise: Promise<SignupReviewers>;
+  }
+>) {
+  const reviewers = use(reviewersPromise);
+
+  return (
+    <SignupRequestsTable requests={requests} reviewers={reviewers} {...props} />
   );
 }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { Building2, MessageSquareText, TriangleAlert } from "lucide-react";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useState, useTransition } from "react";
 import { PanelSection } from "@/components/common/panel-section";
@@ -115,7 +116,16 @@ function ReviewContent({
     setFieldError(null);
     setFailure(null);
     startTransition(async () => {
-      const result = await action();
+      let result: ResultType<SignupRequestListItem>;
+      try {
+        result = await action();
+      } catch (error) {
+        if (isRedirectError(error)) {
+          throw error;
+        }
+        setFailure("Something went wrong. Try again.");
+        return;
+      }
       if (Result.isError(result)) {
         // A rejected value belongs under its field; anything else is about the request.
         if (result.errorType === ErrorType.ValidationError) {
@@ -143,137 +153,40 @@ function ReviewContent({
     run(() => retrySignupProvisioningAction(current.id), "retried");
 
   if (step === "approve") {
-    const nameId = `${ids}-workspace-name`;
     return (
-      <>
-        <ResponsivePanelHeader>
-          <ResponsivePanelTitle>Approve request</ResponsivePanelTitle>
-          <ResponsivePanelDescription>
-            Create a workspace for {current.email}.
-          </ResponsivePanelDescription>
-        </ResponsivePanelHeader>
-        <ResponsivePanelBody>
-          <FailureAlert message={failure} />
-          <PanelSection
-            icon={Building2}
-            title="Workspace"
-            description="Suggested from the company name. You can rename it later in Tenants."
-          >
-            <div className="grid gap-2">
-              <Label htmlFor={nameId}>Workspace name</Label>
-              <Input
-                id={nameId}
-                value={workspaceName}
-                maxLength={WORKSPACE_NAME_MAX_LENGTH}
-                autoComplete="off"
-                autoFocus
-                aria-invalid={fieldError ? true : undefined}
-                aria-describedby={fieldError ? `${nameId}-error` : undefined}
-                onChange={(event) => {
-                  setWorkspaceName(event.target.value);
-                  setFieldError(null);
-                }}
-              />
-              {fieldError && (
-                <p id={`${nameId}-error`} className="text-sm text-destructive">
-                  {fieldError}
-                </p>
-              )}
-            </div>
-          </PanelSection>
-          <Alert variant="info">
-            <AlertTitle>What approving does</AlertTitle>
-            <AlertDescription>
-              Creates the workspace and invites {current.email} as its Admin.
-              The decision is recorded under your name and cannot be undone.
-            </AlertDescription>
-          </Alert>
-        </ResponsivePanelBody>
-        <ResponsivePanelFooter>
-          <Button
-            variant="outline"
-            onClick={() => goTo("review")}
-            disabled={isPending}
-          >
-            Back
-          </Button>
-          <Button
-            onClick={approve}
-            disabled={isPending || !workspaceName.trim()}
-          >
-            {isPending ? "Approving…" : "Approve and create workspace"}
-          </Button>
-        </ResponsivePanelFooter>
-      </>
+      <ApproveStep
+        ids={ids}
+        email={current.email}
+        workspaceName={workspaceName}
+        fieldError={fieldError}
+        failure={failure}
+        isPending={isPending}
+        onNameChange={(value) => {
+          setWorkspaceName(value);
+          setFieldError(null);
+        }}
+        onBack={() => goTo("review")}
+        onApprove={approve}
+      />
     );
   }
 
   if (step === "reject") {
-    const reasonId = `${ids}-reason`;
     return (
-      <>
-        <ResponsivePanelHeader>
-          <ResponsivePanelTitle>Reject request</ResponsivePanelTitle>
-          <ResponsivePanelDescription>
-            Close the request from {current.email} without a workspace.
-          </ResponsivePanelDescription>
-        </ResponsivePanelHeader>
-        <ResponsivePanelBody>
-          <FailureAlert message={failure} />
-          <PanelSection
-            icon={MessageSquareText}
-            title="Reason"
-            description="Kept with the decision for other admins. The requester is not notified."
-          >
-            <div className="grid gap-2">
-              <Label htmlFor={reasonId}>Why is this request rejected?</Label>
-              <Textarea
-                id={reasonId}
-                value={reason}
-                rows={5}
-                maxLength={REJECTION_REASON_MAX_LENGTH}
-                autoFocus
-                aria-invalid={fieldError ? true : undefined}
-                aria-describedby={`${reasonId}-hint${fieldError ? ` ${reasonId}-error` : ""}`}
-                onChange={(event) => {
-                  setReason(event.target.value);
-                  setFieldError(null);
-                }}
-              />
-              <p
-                id={`${reasonId}-hint`}
-                className="text-xs text-muted-foreground tabular-nums"
-              >
-                {reason.length} / {REJECTION_REASON_MAX_LENGTH}
-              </p>
-              {fieldError && (
-                <p
-                  id={`${reasonId}-error`}
-                  className="text-sm text-destructive"
-                >
-                  {fieldError}
-                </p>
-              )}
-            </div>
-          </PanelSection>
-        </ResponsivePanelBody>
-        <ResponsivePanelFooter>
-          <Button
-            variant="outline"
-            onClick={() => goTo("review")}
-            disabled={isPending}
-          >
-            Back
-          </Button>
-          <Button
-            variant="destructive"
-            onClick={reject}
-            disabled={isPending || !reason.trim()}
-          >
-            {isPending ? "Rejecting…" : "Reject request"}
-          </Button>
-        </ResponsivePanelFooter>
-      </>
+      <RejectStep
+        ids={ids}
+        email={current.email}
+        reason={reason}
+        fieldError={fieldError}
+        failure={failure}
+        isPending={isPending}
+        onReasonChange={(value) => {
+          setReason(value);
+          setFieldError(null);
+        }}
+        onBack={() => goTo("review")}
+        onReject={reject}
+      />
     );
   }
 
@@ -327,6 +240,167 @@ function ReviewContent({
   );
 }
 
+function ApproveStep({
+  ids,
+  email,
+  workspaceName,
+  fieldError,
+  failure,
+  isPending,
+  onNameChange,
+  onBack,
+  onApprove,
+}: Readonly<{
+  ids: string;
+  email: string;
+  workspaceName: string;
+  fieldError: string | null;
+  failure: string | null;
+  isPending: boolean;
+  onNameChange: (value: string) => void;
+  onBack: () => void;
+  onApprove: () => void;
+}>) {
+  const nameId = `${ids}-workspace-name`;
+  return (
+    <>
+      <ResponsivePanelHeader>
+        <ResponsivePanelTitle>Approve request</ResponsivePanelTitle>
+        <ResponsivePanelDescription>
+          Create a workspace for {email}.
+        </ResponsivePanelDescription>
+      </ResponsivePanelHeader>
+      <ResponsivePanelBody>
+        <FailureAlert message={failure} />
+        <PanelSection
+          icon={Building2}
+          title="Workspace"
+          description="Suggested from the company name. You can rename it later in Tenants."
+        >
+          <div className="grid gap-2">
+            <Label htmlFor={nameId}>Workspace name</Label>
+            <Input
+              id={nameId}
+              value={workspaceName}
+              maxLength={WORKSPACE_NAME_MAX_LENGTH}
+              autoComplete="off"
+              autoFocus
+              aria-invalid={fieldError ? true : undefined}
+              aria-describedby={fieldError ? `${nameId}-error` : undefined}
+              onChange={(event) => onNameChange(event.target.value)}
+            />
+            {fieldError && (
+              <p id={`${nameId}-error`} className="text-sm text-destructive">
+                {fieldError}
+              </p>
+            )}
+          </div>
+        </PanelSection>
+        <Alert variant="info">
+          <AlertTitle>What approving does</AlertTitle>
+          <AlertDescription>
+            Creates the workspace and invites {email} as its Admin. The decision
+            is recorded under your name and cannot be undone.
+          </AlertDescription>
+        </Alert>
+      </ResponsivePanelBody>
+      <ResponsivePanelFooter>
+        <Button variant="outline" onClick={onBack} disabled={isPending}>
+          Back
+        </Button>
+        <Button
+          onClick={onApprove}
+          disabled={isPending || !workspaceName.trim()}
+        >
+          {isPending ? "Approving…" : "Approve and create workspace"}
+        </Button>
+      </ResponsivePanelFooter>
+    </>
+  );
+}
+
+function RejectStep({
+  ids,
+  email,
+  reason,
+  fieldError,
+  failure,
+  isPending,
+  onReasonChange,
+  onBack,
+  onReject,
+}: Readonly<{
+  ids: string;
+  email: string;
+  reason: string;
+  fieldError: string | null;
+  failure: string | null;
+  isPending: boolean;
+  onReasonChange: (value: string) => void;
+  onBack: () => void;
+  onReject: () => void;
+}>) {
+  const reasonId = `${ids}-reason`;
+  const describedBy = fieldError
+    ? `${reasonId}-hint ${reasonId}-error`
+    : `${reasonId}-hint`;
+  return (
+    <>
+      <ResponsivePanelHeader>
+        <ResponsivePanelTitle>Reject request</ResponsivePanelTitle>
+        <ResponsivePanelDescription>
+          Close the request from {email} without a workspace.
+        </ResponsivePanelDescription>
+      </ResponsivePanelHeader>
+      <ResponsivePanelBody>
+        <FailureAlert message={failure} />
+        <PanelSection
+          icon={MessageSquareText}
+          title="Reason"
+          description="Kept with the decision for other admins. The requester is not notified."
+        >
+          <div className="grid gap-2">
+            <Label htmlFor={reasonId}>Why is this request rejected?</Label>
+            <Textarea
+              id={reasonId}
+              value={reason}
+              rows={5}
+              maxLength={REJECTION_REASON_MAX_LENGTH}
+              autoFocus
+              aria-invalid={fieldError ? true : undefined}
+              aria-describedby={describedBy}
+              onChange={(event) => onReasonChange(event.target.value)}
+            />
+            <p
+              id={`${reasonId}-hint`}
+              className="text-xs text-muted-foreground tabular-nums"
+            >
+              {reason.length} / {REJECTION_REASON_MAX_LENGTH}
+            </p>
+            {fieldError && (
+              <p id={`${reasonId}-error`} className="text-sm text-destructive">
+                {fieldError}
+              </p>
+            )}
+          </div>
+        </PanelSection>
+      </ResponsivePanelBody>
+      <ResponsivePanelFooter>
+        <Button variant="outline" onClick={onBack} disabled={isPending}>
+          Back
+        </Button>
+        <Button
+          variant="destructive"
+          onClick={onReject}
+          disabled={isPending || !reason.trim()}
+        >
+          {isPending ? "Rejecting…" : "Reject request"}
+        </Button>
+      </ResponsivePanelFooter>
+    </>
+  );
+}
+
 /**
  * At most one strip: the result of what the reviewer just did, otherwise a
  * standing problem with the record. Tones follow DESIGN.md §6.
@@ -365,49 +439,58 @@ function ReviewStatusAlert({
 
   const workspace = request.tenantName ?? "The workspace";
 
-  if (request.status === "approved") {
-    if (request.provisioningStatus === "failed") {
-      return (
-        <Alert variant="destructive">
-          <TriangleAlert />
-          <AlertTitle>
-            {outcome === "approved"
-              ? "Approved, but the workspace setup failed"
-              : "Workspace setup failed"}
-          </AlertTitle>
-          <AlertDescription>
-            {request.approvedTenantId
-              ? `${workspace} exists and will be reused. Retry to finish inviting ${request.email}.`
-              : `Retry to create ${workspace} and invite ${request.email}.`}{" "}
-            The cause is in the API logs.
-          </AlertDescription>
-        </Alert>
-      );
-    }
+  if (request.status !== "approved") {
+    return null;
+  }
 
-    if (request.provisioningStatus === "pending") {
-      return (
-        <Alert variant="info" role="status">
-          <AlertTitle>Setting up the workspace</AlertTitle>
-          <AlertDescription>
-            {outcome === "approved" ? "Approved. " : ""}
-            {workspace} is still being created. Check again in a moment.
-          </AlertDescription>
-        </Alert>
-      );
-    }
+  return approvedStatusAlert(request, outcome, workspace);
+}
 
-    if (outcome === "approved" || outcome === "retried") {
-      return (
-        <Alert variant="success" role="status">
-          <AlertTitle>Workspace ready</AlertTitle>
-          <AlertDescription>
-            {workspace} was created and {request.email} was invited as its
-            Admin.
-          </AlertDescription>
-        </Alert>
-      );
-    }
+function approvedStatusAlert(
+  request: SignupRequestListItem,
+  outcome: ReviewOutcome | null,
+  workspace: string,
+) {
+  if (request.provisioningStatus === "failed") {
+    return (
+      <Alert variant="destructive">
+        <TriangleAlert />
+        <AlertTitle>
+          {outcome === "approved"
+            ? "Approved, but the workspace setup failed"
+            : "Workspace setup failed"}
+        </AlertTitle>
+        <AlertDescription>
+          {request.approvedTenantId
+            ? `${workspace} exists and will be reused. Retry to finish inviting ${request.email}.`
+            : `Retry to create ${workspace} and invite ${request.email}.`}{" "}
+          The cause is in the API logs.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  if (request.provisioningStatus === "pending") {
+    return (
+      <Alert variant="info" role="status">
+        <AlertTitle>Setting up the workspace</AlertTitle>
+        <AlertDescription>
+          {outcome === "approved" ? "Approved. " : ""}
+          {workspace} is still being created. Check again in a moment.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  if (outcome === "approved" || outcome === "retried") {
+    return (
+      <Alert variant="success" role="status">
+        <AlertTitle>Workspace ready</AlertTitle>
+        <AlertDescription>
+          {workspace} was created and {request.email} was invited as its Admin.
+        </AlertDescription>
+      </Alert>
+    );
   }
 
   return null;
