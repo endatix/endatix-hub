@@ -724,6 +724,39 @@ language?"). The pattern exists to rule that out.
   the surrounding colour at reduced opacity; never tint it with a token, which
   broke contrast on the grey badge in dark mode.
 
+### Review queues
+
+A review queue is a list of requests that each wait for a decision. Admin →
+Signup Requests is the reference case
+(`features/platform-admin/list-signup-requests/`). It is a list page (§5 List
+Tables), and the rules below cover what a queue adds on top.
+
+**Rules:**
+
+- **Open on the work.** The default filter is the subset that still needs a
+  decision (`pending`). It is the URL default, so it never appears as a
+  parameter and never counts as an active filter for Reset. The filter `Select`
+  lists that subset first, the closed states after it, and `All statuses` last.
+- **Decision states use the Status Vocabulary.** Waiting for a decision is
+  `attention`, accepted is `on`, and declined is `off`. A declined request is a
+  legitimate outcome, not a failure, so it never takes `destructive`.
+- **The empty state names the filter.** "No requests are waiting for a
+  decision" tells the reviewer the queue is clear. "No signup requests" on a
+  pending-only view reads as if nothing was ever submitted.
+- **The requester's identity is the value being read.** Wrap it with
+  `break-all`; never `truncate` it (§6: never truncate a value the reader came
+  for). An optional field that was left empty renders `—` with an `sr-only`
+  "Not set".
+- **Say only what the page can do.** The page description names the actions
+  the page offers today. Don't promise "approve or reject" before those
+  controls ship.
+- **One count, one icon, everywhere.** The admin dashboard card shows the open
+  count, loaded in the dashboard's own loader (`getPlatformDashboard`) rather
+  than in `page.tsx`, and it uses the same icon (`Inbox`) and the same title
+  case (`Signup Requests`) as the sidebar item and the page title. A count that
+  fails to load shows no number. It never shows `0`, which would claim the
+  queue is empty.
+
 ### Deciding on a new pattern
 
 When this document does not already answer a question, resolve it in this order,
@@ -767,6 +800,7 @@ and then **write the answer back into this file** as part of the same change:
 - **Do** show an uploaded file whole (`object-contain` on `bg-muted`) in a fixed-height tile, wrap the tiles, and open details in the file dialog (§5 File Answers).
 - **Do** sign a private file URL when the reader acts on it (open, download), not when the page loads.
 - **Do** flag a view that diverges from the stored record with an `info` strip naming both values and a one-click way back (§6).
+- **Do** open a review queue on the items still waiting for a decision, and give the same destination one title and one icon in the sidebar, the dashboard and the page (§6 Review queues).
 
 ### Don't:
 
@@ -794,6 +828,7 @@ and then **write the answer back into this file** as part of the same change:
 - **Don't** link a thumbnail straight to its presigned storage URL; the token expires while the page stays open.
 - **Don't** put a presigned URL in a Hub-exported PDF. Link the Hub file page; a PDF outlives every read token.
 - **Don't** re-export the file-kind icons from `lib/file-kinds/index.ts`; the catalog is imported by server code and must stay free of `lucide-react`.
+- **Don't** show `0` for a count that failed to load. Render no number; a false zero says the queue is empty.
 
 ---
 

@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { RolesList } from "@/features/organization/role-management/ui/roles-list";
 import { UsersList } from "@/features/organization/user-management/ui/users-list";
 import { PlatformAdminsList } from "@/features/platform-admin/list-platform-admins/ui/platform-admins-list";
+import { SignupRequestsList } from "@/features/platform-admin/list-signup-requests/ui/signup-requests-list";
 import { TenantsList } from "@/features/platform-admin/list-tenants/ui/tenants-list";
 import { Result } from "@/lib/result";
 
@@ -36,6 +37,10 @@ vi.mock(
 vi.mock("@/features/platform-admin/list-tenants/ui/tenants-table", () => ({
   TenantsTableFromPromise: LatchedRows,
 }));
+vi.mock(
+  "@/features/platform-admin/list-signup-requests/ui/signup-requests-table",
+  () => ({ SignupRequestsTableFromPromise: LatchedRows }),
+);
 vi.mock(
   "@/features/organization/user-management/use-cases/create-tenant-user/ui/create-tenant-user-dialog",
   () => ({ CreateTenantUserDialog: () => <button>Invite User</button> }),
@@ -76,6 +81,13 @@ const shells = [
         listKey={listKey}
         canManageRoles={false}
       />
+    ),
+  },
+  {
+    name: "SignupRequestsList",
+    searchLabel: "Search signup requests",
+    render: (listKey: string) => (
+      <SignupRequestsList requestsPromise={never} listKey={listKey} />
     ),
   },
   {

@@ -4,7 +4,10 @@ import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
 import { SitemapService } from "@/services/sitemap-service";
 import type { INavItem } from "@/types/navigation-models";
-import { reportingExportFlag } from "@/lib/feature-flags/flags";
+import {
+  reportingExportFlag,
+  saasManagementFlag,
+} from "@/lib/feature-flags/flags";
 import {
   filterNavByAuth,
   getNavItemKeys,
@@ -12,6 +15,7 @@ import {
 } from "./filter-nav-by-auth";
 
 const REPORTING_EXPORT_NAV_KEYS = new Set(["exportFormats"]);
+const SAAS_SIGNUP_NAV_KEYS = new Set(["platformSignupRequests"]);
 
 function hasUsableSession(session: Session | null): session is Session {
   return (
@@ -59,11 +63,20 @@ export const getAuthorizedNavItemKeys = cache(async (): Promise<string[]> => {
   );
 
   const keys = getNavItemKeys(navItems);
-  const reportingExportEnabled = await reportingExportFlag();
-  if (reportingExportEnabled) {
-    return keys;
-  }
+  const [reportingExportEnabled, saasManagementEnabled] = await Promise.all([
+    reportingExportFlag(),
+    saasManagementFlag(),
+  ]);
 
-  // Hide reporting export settings nav until the flag is on; legacy export stays available.
-  return keys.filter((key) => !REPORTING_EXPORT_NAV_KEYS.has(key));
+  return keys.filter((key) => {
+    if (!reportingExportEnabled && REPORTING_EXPORT_NAV_KEYS.has(key)) {
+      return false;
+    }
+
+    if (!saasManagementEnabled && SAAS_SIGNUP_NAV_KEYS.has(key)) {
+      return false;
+    }
+
+    return true;
+  });
 });

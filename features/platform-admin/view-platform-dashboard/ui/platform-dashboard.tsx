@@ -2,8 +2,8 @@ import Link from "next/link";
 import type { Route } from "next";
 import {
   Building2,
-  ClipboardList,
   HardDrive,
+  Inbox,
   KeyRound,
   Mail,
   Server,
@@ -22,14 +22,10 @@ import type { PlatformDashboardCounts } from "../view-platform-dashboard.server"
 
 interface PlatformDashboardProps {
   dashboard: PlatformDashboardCounts;
-  showSignupRequests?: boolean;
-  pendingSignupRequests?: number;
 }
 
 export function PlatformDashboard({
   dashboard,
-  showSignupRequests = false,
-  pendingSignupRequests = 0,
 }: Readonly<PlatformDashboardProps>) {
   return (
     <div className="space-y-10">
@@ -51,13 +47,13 @@ export function PlatformDashboard({
           href="/admin/platform-admins"
           icon={UserCog}
         />
-        {showSignupRequests ? (
+        {dashboard.signupRequests ? (
           <DashboardCard
-            title="Signup requests"
-            value={pendingSignupRequests}
-            description="Pending workspace requests from the public waitlist."
+            title="Signup Requests"
+            value={dashboard.signupRequests.pending}
+            description="Workspace requests waiting for a decision."
             href="/admin/signup-requests"
-            icon={ClipboardList}
+            icon={Inbox}
           />
         ) : null}
       </DashboardSection>
