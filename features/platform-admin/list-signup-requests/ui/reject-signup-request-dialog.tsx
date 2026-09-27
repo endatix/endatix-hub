@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { Button } from '@/components/ui/button';
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -8,14 +8,14 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { toast } from '@/components/ui/toast';
-import type { SignupRequestListItem } from '@/lib/endatix-api/signup-requests/types';
-import { Result } from '@/lib/result';
-import { useEffect, useState, useTransition } from 'react';
-import { rejectSignupRequestAction } from '../signup-requests.actions';
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
+import type { SignupRequestListItem } from "@/lib/endatix-api/signup-requests/types";
+import { Result } from "@/lib/result";
+import { useEffect, useState, useTransition } from "react";
+import { rejectSignupRequestAction } from "../signup-requests.actions";
 
 interface RejectSignupRequestDialogProps {
   request: SignupRequestListItem | null;
@@ -28,7 +28,7 @@ export function RejectSignupRequestDialog({
   open,
   onOpenChange,
 }: Readonly<RejectSignupRequestDialogProps>) {
-  const [comment, setComment] = useState('');
+  const [comment, setComment] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -37,7 +37,7 @@ export function RejectSignupRequestDialog({
       return;
     }
 
-    setComment('');
+    setComment("");
     setError(null);
   }, [open, request?.id]);
 
@@ -53,7 +53,7 @@ export function RejectSignupRequestDialog({
         return;
       }
 
-      toast.success('Signup request rejected.');
+      toast.success("Signup request rejected.");
       onOpenChange(false);
     });
   };
@@ -64,8 +64,7 @@ export function RejectSignupRequestDialog({
         <DialogHeader>
           <DialogTitle>Reject signup request</DialogTitle>
           <DialogDescription>
-            Record an internal comment for {request?.email}. The requester will
-            not be emailed.
+            Internal comment for {request?.email}. The requester is not emailed.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-2">
@@ -79,7 +78,11 @@ export function RejectSignupRequestDialog({
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={isPending}
+          >
             Cancel
           </Button>
           <Button

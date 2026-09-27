@@ -29,14 +29,10 @@ export default async function SignupRequestsPage({
     notFoundAsEmpty: true,
   });
 
-  if (requests === null) {
-    notFound();
-  }
-
   return (
     <PlatformAdminShell
       title="Signup Requests"
-      description="Review workspace requests submitted from the public signup page."
+      description="Review workspace requests, then approve or reject them."
     >
       <SignupRequestsList
         requestsPromise={requestsPromise}

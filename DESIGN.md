@@ -748,8 +748,8 @@ Tables), and the rules below cover what a queue adds on top.
   for). An optional field that was left empty renders `—` with an `sr-only`
   "Not set".
 - **Say only what the page can do.** The page description names the actions
-  the page offers today. Don't promise "approve or reject" before those
-  controls ship.
+  the page offers today. Pending rows offer Approve and Reject. An approved
+  row whose provisioning failed offers Retry.
 - **One count, one icon, everywhere.** The admin dashboard card shows the open
   count, loaded in the dashboard's own loader (`getPlatformDashboard`) rather
   than in `page.tsx`, and it uses the same icon (`Inbox`) and the same title

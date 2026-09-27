@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { Button } from '@/components/ui/button';
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -8,14 +8,14 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { toast } from '@/components/ui/toast';
-import type { SignupRequestListItem } from '@/lib/endatix-api/signup-requests/types';
-import { Result } from '@/lib/result';
-import { useEffect, useState, useTransition } from 'react';
-import { approveSignupRequestAction } from '../signup-requests.actions';
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "@/components/ui/toast";
+import type { SignupRequestListItem } from "@/lib/endatix-api/signup-requests/types";
+import { Result } from "@/lib/result";
+import { useEffect, useState, useTransition } from "react";
+import { approveSignupRequestAction } from "../signup-requests.actions";
 
 interface ApproveSignupRequestDialogProps {
   request: SignupRequestListItem | null;
@@ -28,7 +28,7 @@ export function ApproveSignupRequestDialog({
   open,
   onOpenChange,
 }: Readonly<ApproveSignupRequestDialogProps>) {
-  const [tenantName, setTenantName] = useState('');
+  const [tenantName, setTenantName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -37,7 +37,7 @@ export function ApproveSignupRequestDialog({
       return;
     }
 
-    setTenantName(request.companyName ?? request.email.split('@')[0] ?? '');
+    setTenantName(request.companyName ?? request.email.split("@")[0] ?? "");
     setError(null);
   }, [open, request]);
 
@@ -53,7 +53,17 @@ export function ApproveSignupRequestDialog({
         return;
       }
 
-      toast.success('Signup request approved.');
+      if (result.value.provisioningStatus === "failed") {
+        toast.error(
+          "Approved, but provisioning failed. Retry it from this list.",
+        );
+      } else if (result.value.provisioningStatus === "succeeded") {
+        toast.success("Signup request approved.");
+      } else {
+        toast.success(
+          "Signup request approved. Provisioning is still running.",
+        );
+      }
       onOpenChange(false);
     });
   };
@@ -64,8 +74,8 @@ export function ApproveSignupRequestDialog({
         <DialogHeader>
           <DialogTitle>Approve signup request</DialogTitle>
           <DialogDescription>
-            Create a tenant for {request?.email}. The requester will be assigned
-            tenant Admin access.
+            Create a tenant for {request?.email}. The requester becomes a tenant
+            Admin.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-2">
@@ -74,14 +84,22 @@ export function ApproveSignupRequestDialog({
             id="tenantName"
             value={tenantName}
             onChange={(event) => setTenantName(event.target.value)}
+            autoComplete="off"
           />
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={isPending}
+          >
             Cancel
           </Button>
-          <Button onClick={handleApprove} disabled={isPending || !tenantName.trim()}>
+          <Button
+            onClick={handleApprove}
+            disabled={isPending || !tenantName.trim()}
+          >
             Approve
           </Button>
         </DialogFooter>

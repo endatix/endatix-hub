@@ -12,6 +12,7 @@ const COLUMNS: readonly DataTableSkeletonColumn[] = [
     title: "Created",
     className: `hidden md:table-cell ${DATA_TABLE_SHRINK_WRAP_CLASS_NAME}`,
   },
+  { title: "Actions", className: DATA_TABLE_SHRINK_WRAP_CLASS_NAME },
 ];
 
 export function SignupRequestsTableSkeleton() {

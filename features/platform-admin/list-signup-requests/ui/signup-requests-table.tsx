@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useMemo } from "react";
+import { use, useMemo, useState } from "react";
 import {
   CellDate,
   createPagedTableFooterProps,
@@ -26,6 +26,9 @@ import {
 } from "@tanstack/react-table";
 import type { SignupRequestsUrlState } from "../signup-requests-url-state";
 import { DEFAULT_SIGNUP_REQUEST_STATUS_FILTER } from "../types";
+import { ApproveSignupRequestDialog } from "./approve-signup-request-dialog";
+import { RejectSignupRequestDialog } from "./reject-signup-request-dialog";
+import { SignupRequestRowActions } from "./signup-request-row-actions";
 
 // Created is secondary to who is asking; it steps aside on phones, like the audit dates elsewhere.
 const CREATED_CELL_CLASS_NAME = `hidden md:table-cell ${DATA_TABLE_SHRINK_WRAP_CLASS_NAME}`;
@@ -62,7 +65,18 @@ export function SignupRequestsTable({
   isPending,
 }: Readonly<SignupRequestsTableProps>) {
   const { sorting, onSortingChange } = useListTableState(urlState, updateUrl);
-  const columns = useMemo(() => buildColumns(), []);
+  const [approveTarget, setApproveTarget] =
+    useState<SignupRequestListItem | null>(null);
+  const [rejectTarget, setRejectTarget] =
+    useState<SignupRequestListItem | null>(null);
+  const columns = useMemo(
+    () =>
+      buildColumns({
+        onApprove: setApproveTarget,
+        onReject: setRejectTarget,
+      }),
+    [],
+  );
   const tableData = useMemo(() => [...paged.items], [paged.items]);
   const table = useReactTable({
     data: tableData,
@@ -86,11 +100,32 @@ export function SignupRequestsTable({
         {...createPagedTableFooterProps(paged, "signup requests", updateUrl)}
         variant="surface"
       />
+      <ApproveSignupRequestDialog
+        request={approveTarget}
+        open={approveTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setApproveTarget(null);
+          }
+        }}
+      />
+      <RejectSignupRequestDialog
+        request={rejectTarget}
+        open={rejectTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setRejectTarget(null);
+          }
+        }}
+      />
     </DataTableSurface>
   );
 }
 
-function buildColumns(): ColumnDef<SignupRequestListItem>[] {
+function buildColumns(actions: {
+  onApprove: (request: SignupRequestListItem) => void;
+  onReject: (request: SignupRequestListItem) => void;
+}): ColumnDef<SignupRequestListItem>[] {
   return [
     {
       id: "email",
@@ -163,6 +198,24 @@ function buildColumns(): ColumnDef<SignupRequestListItem>[] {
         />
       ),
       cell: ({ row }) => <CellDate date={row.original.createdAt} />,
+    },
+    {
+      id: "actions",
+      enableSorting: false,
+      meta: {
+        headerClassName: DATA_TABLE_SHRINK_WRAP_CLASS_NAME,
+        cellClassName: DATA_TABLE_SHRINK_WRAP_CLASS_NAME,
+      },
+      header: () => (
+        <span className={dataTableColumnLabelClassName()}>Actions</span>
+      ),
+      cell: ({ row }) => (
+        <SignupRequestRowActions
+          request={row.original}
+          onApprove={actions.onApprove}
+          onReject={actions.onReject}
+        />
+      ),
     },
   ];
 }
