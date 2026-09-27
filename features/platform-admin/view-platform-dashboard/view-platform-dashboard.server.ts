@@ -40,10 +40,14 @@ async function getPendingSignupRequests(
     return undefined;
   }
 
-  const pending = await listSignupRequests(session, {
-    ...COUNT_ONLY,
-    status: "pending",
-  });
+  const pending = await listSignupRequests(
+    session,
+    {
+      ...COUNT_ONLY,
+      status: "pending",
+    },
+    { notFoundAsEmpty: false },
+  );
   return {
     pending: Result.isSuccess(pending) ? pending.value.totalRecords : undefined,
   };

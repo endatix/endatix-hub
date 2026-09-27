@@ -25,7 +25,9 @@ export default async function SignupRequestsPage({
     searchParams,
   ]);
   const listRequest = parseSignupRequestsListParams(resolvedSearchParams);
-  const requestsPromise = listSignupRequests(session, listRequest);
+  const requestsPromise = listSignupRequests(session, listRequest, {
+    notFoundAsEmpty: true,
+  });
 
   return (
     <PlatformAdminShell

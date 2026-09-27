@@ -122,18 +122,11 @@ export function SignupRequestForm() {
           <ErrorMessage
             message={firstFieldError(state.errors, "companyName")}
           />
-          <ErrorMessage
-            message={firstFieldError(state.errors, "companyName")}
-          />
         </div>
         {state.isSuccess === false ? (
           <ErrorMessage message={state.message ?? state.formErrors} />
         ) : null}
-        <Button
-          type="submit"
-          className="w-full"
-          disabled={isPending}
-        >
+        <Button type="submit" className="w-full" disabled={isPending}>
           {isPending ? <Spinner className="mr-2 h-4 w-4" /> : null}
           Request workspace
         </Button>

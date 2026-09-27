@@ -55,11 +55,15 @@ describe("getPlatformDashboard", () => {
     const dashboard = await getPlatformDashboard(session);
 
     // Assert
-    expect(listSignupRequests).toHaveBeenCalledWith(session, {
-      page: 1,
-      pageSize: 1,
-      status: "pending",
-    });
+    expect(listSignupRequests).toHaveBeenCalledWith(
+      session,
+      {
+        page: 1,
+        pageSize: 1,
+        status: "pending",
+      },
+      { notFoundAsEmpty: false },
+    );
     expect(dashboard.signupRequests).toEqual({ pending: 3 });
   });
 

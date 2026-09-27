@@ -755,7 +755,8 @@ Tables), and the rules below cover what a queue adds on top.
   than in `page.tsx`, and it uses the same icon (`Inbox`) and the same title
   case (`Signup Requests`) as the sidebar item and the page title. A count that
   fails to load shows no number. It never shows `0`, which would claim the
-  queue is empty.
+  queue is empty. A missing list route is an empty inbox, and the same 404 is
+  a failed count on the dashboard.
 
 ### Deciding on a new pattern
 
