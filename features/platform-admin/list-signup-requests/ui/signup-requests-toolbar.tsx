@@ -21,6 +21,7 @@ interface SignupRequestsToolbarProps {
   setSearch: (value: string) => void;
   updateUrl: UrlSearchParamsUpdater;
   urlState: SignupRequestsUrlState;
+  onClearFilters: () => void;
 }
 
 export function SignupRequestsToolbar({
@@ -28,16 +29,12 @@ export function SignupRequestsToolbar({
   setSearch,
   updateUrl,
   urlState,
+  onClearFilters,
 }: Readonly<SignupRequestsToolbarProps>) {
   const hasActiveFilters = Boolean(
     search.trim() || urlState.status !== DEFAULT_SIGNUP_REQUEST_STATUS_FILTER,
   );
   const hasSorting = Boolean(urlState.sortBy);
-
-  const resetFilters = (): void => {
-    setSearch("");
-    updateUrl({ search: null, status: null, page: "1" });
-  };
 
   const resetSorting = (): void => {
     updateUrl({ sortBy: null, sortDir: null, page: "1" });
@@ -92,7 +89,7 @@ export function SignupRequestsToolbar({
             </SelectContent>
           </Select>
           <ResetFiltersButton
-            onClick={resetFilters}
+            onClick={onClearFilters}
             onResetSorting={resetSorting}
             onResetAll={resetAll}
             hasFilters={hasActiveFilters}

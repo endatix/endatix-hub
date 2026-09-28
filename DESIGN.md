@@ -163,7 +163,7 @@ a small static list and a paged sortable grid still look identical:
 | :------------------------------------------------------------------------------------------ | :--------------------------------------------------------------------------- |
 | `DataTableSurface`                                                                          | The rounded, softly-lifted container. Also dims rows during a URL transition |
 | `DataTableGrid`                                                                             | Header + body for a TanStack table                                           |
-| `DataTableEmpty`                                                                            | The empty state, **outside** the table element                               |
+| `DataTableEmpty`                                                                            | The empty state, **outside** the table element: icon, title, way out (below) |
 | `dataTableHeaderCellClassName` / `dataTableBodyRowClassName` / `dataTableBodyCellClassName` | Sticky header, zebra fill and cell padding for a hand-rolled `<table>`       |
 | `dataTableColumnLabelClassName`                                                             | The uppercase muted column title                                             |
 | `DATA_TABLE_SHRINK_WRAP_CLASS_NAME`                                                         | Shrink a column to its content                                               |
@@ -188,8 +188,53 @@ a small static list and a paged sortable grid still look identical:
 - **The empty state is not a full-width `<td>`.** Render `DataTableEmpty`
   instead of the table, so the empty message is not framed by a header row
   describing columns that have no data.
+
 - Pass `isStatic: true` to `dataTableHeaderCellClassName` for a header that
   never scrolls under sticky positioning (short lists, skeletons).
+
+**Empty states — `DataTableEmpty`.** A list page's empty state is titled and
+carries the list's icon. Pass `icon` + `title`, with the description as
+children:
+
+```tsx
+<DataTableEmpty
+  icon={Inbox}
+  title="No matching requests"
+  onClearFilters={clearFilters}
+>
+  No request matches “acme”. Search looks at the email and company.
+</DataTableEmpty>
+```
+
+- **One icon for both kinds of empty.** "Nothing yet" and "nothing matches" use
+  the list's entity icon, the same glyph as its sidebar item (`Inbox` for
+  Signup Requests). A search glyph or a warning mark on a filtered list reads
+  as a different kind of screen, or as an error. What tells the two states
+  apart is the title and the way out.
+- **Every empty state gives a way out:**
+
+  | The list is empty because…       | Title says                             | Action                                                           |
+  | :------------------------------- | :------------------------------------- | :--------------------------------------------------------------- |
+  | nothing was ever created         | "No … yet"                             | the create button (`action`) if the list has one, otherwise none |
+  | the default view is clear        | what is clear ("No requests waiting…") | an optional ghost link to the wider view ("Show all requests")   |
+  | a search or a non-default filter | "No matching …" / "No approved …"      | `onClearFilters`, the standard outline "Clear filters" button    |
+
+  The description names what was searched or filtered ("No approved request
+  matches “acme”") and, for search, which fields it looks at.
+
+- **`onClearFilters` resets exactly what the toolbar's Reset resets.** Build it
+  once in the list shell, which owns `setSearch` and `updateUrl`, and hand it to
+  both. A clear button that leaves a filter behind, or empties the input
+  without touching the URL, shows the same empty state again.
+- **Compact, not page-sized.** The titled variant sits under a column header
+  inside `DataTableSurface`, so it uses `py-10` and a `text-base` title, not the
+  page-level `Empty` (`md:p-12`, `text-lg`) that a whole-page empty state such as
+  `/forms` uses. The icon tile is `EmptyMedia variant="icon"` on `bg-muted`,
+  which works in light and dark.
+- **The one-liner still exists** (`<DataTableEmpty>No rows.</DataTableEmpty>`)
+  for secondary and embedded lists (a settings card, a dialog). Every list page
+  in the sidebar uses the titled form. Reference: `SignupRequestsEmpty` in
+  `features/platform-admin/list-signup-requests/ui/signup-requests-table.tsx`.
 
 ### Tabular / Matrix Answers
 
@@ -740,16 +785,34 @@ Tables), and the rules below cover what a queue adds on top.
 - **Decision states use the Status Vocabulary.** Waiting for a decision is
   `attention`, accepted is `on`, and declined is `off`. A declined request is a
   legitimate outcome, not a failure, so it never takes `destructive`.
-- **The empty state names the filter.** "No requests are waiting for a
-  decision" tells the reviewer the queue is clear. "No signup requests" on a
-  pending-only view reads as if nothing was ever submitted.
+- **The empty state names the filter.** "No requests waiting for a decision"
+  tells the reviewer the queue is clear. "No signup requests" on a pending-only
+  view reads as if nothing was ever submitted. It follows the §5 empty-state
+  rules: `Inbox` icon, and "Show all requests" as the way to the wider view.
 - **The requester's identity is the value being read.** Wrap it with
   `break-all`; never `truncate` it (§6: never truncate a value the reader came
   for). An optional field that was left empty renders `—` with an `sr-only`
   "Not set".
 - **Say only what the page can do.** The page description names the actions
-  the page offers today. Don't promise "approve or reject" before those
-  controls ship.
+  the page offers today, and nothing that has not shipped.
+- **Name the requester, not the columns.** The identity column is the email
+  over the company, stacked like the tenants name column, and it is a button
+  that opens the review panel. Label it for what it holds ("Requester") and the
+  date column for what happened ("Submitted"), not after the entity fields
+  (`Email`, `Created`).
+- **One row badge, the most urgent fact.** A decision and the process behind it
+  (provisioning) are two states, but a row gets one pill: the decision, unless
+  the process behind it needs the reviewer (`Setup failed`, `attention`) or is
+  still running (`Setting up`, `off`). The panel shows both separately.
+- **Show who decided once there is a decision.** A "Decided by" column appears
+  when the filter includes closed requests and is hidden on the pending view,
+  where it would be empty on every row.
+- **One entry point per row.** A row never carries its decision buttons.
+  Approve beside Reject in a table cell is a one-click, record-unseen,
+  irreversible decision, and on a narrow screen the pair wraps the row. Each row
+  has a single button: `Review` (secondary) when the reviewer has something to
+  do (decide, retry), `View` (ghost) when the record is closed. Both open the
+  review panel below.
 - **One count, one icon, everywhere.** The admin dashboard card shows the open
   count, loaded in the dashboard's own loader (`getPlatformDashboard`) rather
   than in `page.tsx`, and it uses the same icon (`Inbox`) and the same title
@@ -757,6 +820,99 @@ Tables), and the rules below cover what a queue adds on top.
   fails to load shows no number. It never shows `0`, which would claim the
   queue is empty. A missing list route is an empty inbox, and the same 404 is
   a failed count on the dashboard.
+
+### Review and decide (approve / reject / retry)
+
+Any record that waits for a human decision and keeps an audit trail of it —
+signup requests today, and access requests, publish approvals or refunds
+tomorrow — uses one flow: **review → decide → outcome**, in one
+`ResponsivePanel`. Reference implementation:
+`features/platform-admin/review-signup-request/` (`signup-request-review-panel.tsx`,
+`signup-request-details.tsx`, `signup-request-state.ts`).
+
+**Why a panel, not row buttons or stacked dialogs.** A decision is made about a
+record, so the record is on screen when the decision control is. A right `Sheet`
+keeps the queue visible behind it on desktop, and it becomes a `Drawer` under
+`md` (`desktopType="complex"`, per the Overlay Rulebook). The approve and reject
+forms are **steps inside the same panel**, not a Dialog opened from the Sheet:
+two stacked overlays lose the record behind a scrim, and Escape closes the wrong
+one.
+
+**Anatomy of the review step, top to bottom:**
+
+1. **Header.** The title is the record's identity (the requester's email); the
+   description says what it is and when it arrived.
+2. **At most one status strip** (`Alert`). It shows the result of what the
+   reviewer just did, or otherwise a standing problem with the record. Never
+   two.
+3. **`PanelSection`s in the order the record lived:**
+   - **Request**: what was submitted (`SummaryRow`s; copy affordance on values
+     worth pasting). It carries the state badge only while no decision exists.
+   - **Decision**: who decided, when, and why, with the decision's
+     `StatusBadge` in `aside`. The reason of a negative decision is shown in
+     full, in a quoted block (`bg-surface-container-lowest`,
+     `whitespace-pre-wrap`), never truncated.
+   - **Downstream process** (e.g. **Workspace**): what the decision produced,
+     with its own badge and a link to where the result now lives (`Open in
+Tenants`).
+4. **Footer.** Only the next step the record allows: `Reject…` + `Approve…`
+   while undecided, `Retry …` after a failed process, and `Check again` while a
+   process is running. A closed record has no footer. The trailing ellipsis
+   means "asks for more before it acts".
+
+**Decide steps (Approve / Reject):**
+
+- **The form states its consequence once**, as a closing `Alert variant="info"`:
+  what gets created, who gets invited or notified, and that the decision is
+  recorded under the reviewer's name and cannot be undone. Don't put a warning
+  on every field.
+- **Prefill what can be suggested**, and say where the suggestion came from
+  ("Suggested from the company name") and how to change it later.
+- **A negative decision needs a reason.** Required, with its API limit as
+  `maxLength` and a visible `n / max` counter. Its description says who reads
+  it ("Kept with the decision for other admins. The requester is not
+  notified."). A reason nobody will read, or one the requester will read
+  without knowing it, are both bugs.
+- **Button tones:** the commit button of a positive decision is `default`
+  (primary); the commit of a rejection is `destructive`, because it is final.
+  The entry buttons in the review footer are `outline` (Reject…) and `default`
+  (Approve…). Every step has `Back`, never `Cancel`, because the record is still
+  open behind it.
+- **Errors land where they belong.** A validation error from the API goes under
+  its field (`aria-invalid`, `aria-describedby`); any other failure is a
+  `destructive` Alert at the top of the step, and the form keeps its values.
+
+**Outcome.** A successful decision returns the updated record, and the panel
+goes back to the review step showing it. The outcome strip names what happened.
+Its tone follows the Status Vocabulary: `success` for a completed write,
+`destructive` when a downstream process failed, `info` while it runs. The
+reviewer sees the new Decision section, with their own name in it, in the same
+place. Don't toast and close: a toast disappears, and the audit record the
+reviewer just created is the proof they need.
+
+**Audit rules:**
+
+- **Who** is a person, not an id. Resolve deciders through the admin directory
+  (`listSignupReviewers`), best effort: when the lookup fails, or the decider
+  was since revoked, show `Admin` plus a `TruncatedId`. The id must stay
+  visible; a decider must never disappear from the record.
+- **When** must be the time of the decision. When the API records no decision
+  timestamp, label the closest fact honestly (`Last updated`, from
+  `modifiedAt`). A timeline that invents event times is worse than none.
+- **Why** is the reason, verbatim.
+- **A retry is not a new decision.** It re-runs the process and records no new
+  decider, so the Decision section does not change.
+
+**States, one mapping in one file.** `describeSignupRequest` (the state file
+next to the panel) owns decision → tone, process → tone, the row's single badge
+and the allowed next step. The grid and the panel both read it, so a row that
+says `Setup failed` always opens on a panel that offers `Retry`. A new
+decision-record feature writes its own `describe*` with the same shape.
+
+**Light and dark.** Everything above is tokens only: `PanelSection`
+(`bg-surface-container-low`), the quoted reason (`bg-surface-container-lowest`),
+`StatusBadge`, and `Alert` variants. There are no palette steps, so both themes
+come from `app/globals.css`.
 
 ### Deciding on a new pattern
 
@@ -802,6 +958,9 @@ and then **write the answer back into this file** as part of the same change:
 - **Do** sign a private file URL when the reader acts on it (open, download), not when the page loads.
 - **Do** flag a view that diverges from the stored record with an `info` strip naming both values and a one-click way back (§6).
 - **Do** open a review queue on the items still waiting for a decision, and give the same destination one title and one icon in the sidebar, the dashboard and the page (§6 Review queues).
+- **Do** show the record before any decision control: one `Review` button per row, then review → decide → outcome in one `ResponsivePanel` (§6 Review and decide).
+- **Do** record and show who decided, when and why. Resolve the decider to a name, and keep the id visible when the name is unknown.
+- **Do** give a list page's empty state the list's icon, a title and a way out — "Clear filters" when a filter or search caused it (§5 List Tables).
 
 ### Don't:
 
@@ -830,6 +989,8 @@ and then **write the answer back into this file** as part of the same change:
 - **Don't** put a presigned URL in a Hub-exported PDF. Link the Hub file page; a PDF outlives every read token.
 - **Don't** re-export the file-kind icons from `lib/file-kinds/index.ts`; the catalog is imported by server code and must stay free of `lucide-react`.
 - **Don't** show `0` for a count that failed to load. Render no number; a false zero says the queue is empty.
+- **Don't** put Approve and Reject buttons in a table row, or open a decision Dialog on top of a detail Sheet. Decide inside the panel that shows the record.
+- **Don't** label a record's last-modified time as the decision time, or invent timeline events the API did not record.
 
 ---
 
