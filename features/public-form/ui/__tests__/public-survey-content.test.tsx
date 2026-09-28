@@ -173,7 +173,9 @@ describe("PublicSurveyContent", () => {
 
     render(component);
 
-    expect(screen.getByText("This link has expired.")).toBeDefined();
+    expect(
+      screen.getByText("This link is invalid or has expired."),
+    ).toBeDefined();
     expect(screen.queryByTestId("survey-js-wrapper")).toBeNull();
   });
 

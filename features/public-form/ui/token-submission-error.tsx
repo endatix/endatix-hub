@@ -2,19 +2,26 @@ import type { PublicSurveyVariant } from "@/features/public-form/types";
 import { EmbedHeightReporter } from "@/features/public-form/ui/embed-height-reporter";
 import { ERROR_CODE } from "@/lib/endatix-api/shared/error-codes";
 import { resolveErrorPresentation } from "@/lib/errors/error-presentation";
-import { Link2Off, SearchX, ShieldX, type LucideIcon } from "lucide-react";
+import { Hourglass, SearchX, ShieldX, type LucideIcon } from "lucide-react";
 import { PublicStatusPage } from "@/components/public-status/public-status-page";
 
 type TokenErrorPresentation = {
   icon: LucideIcon;
   title: string;
   message: string;
+  /** Page layout only: an embed is not a tab the reader can close. */
+  note?: string;
 };
 
+// One page for every token failure - expired, tampered, truncated. The reader cannot fix
+// any of them differently, and one answer does not tell a guesser which check failed.
+// Same shape as the PDF export's page: why, who can fix it, then the note.
 const EXPIRED_COPY: TokenErrorPresentation = {
-  icon: Link2Off,
-  title: "This link has expired.",
-  message: "Request a new access link to continue.",
+  icon: Hourglass,
+  title: "This link is invalid or has expired.",
+  message:
+    "Access links work for a limited time and only when copied in full. Ask whoever shared it for a new link to continue.",
+  note: "You can close this tab.",
 };
 
 const FORBIDDEN_COPY: TokenErrorPresentation = {
@@ -43,7 +50,7 @@ export function TokenSubmissionError({
   errorCode,
   variant,
 }: Readonly<{ errorCode: string; variant: PublicSurveyVariant }>) {
-  const { icon, title, message } = resolveErrorPresentation(
+  const { icon, title, message, note } = resolveErrorPresentation(
     TOKEN_SUBMISSION_ERROR_COPY,
     errorCode,
     NOT_FOUND_COPY,
@@ -55,6 +62,7 @@ export function TokenSubmissionError({
       <PublicStatusPage
         icon={icon}
         message={message}
+        note={variant === "embed" ? undefined : note}
         title={title}
         tone="neutral"
         layout={variant === "embed" ? "embed" : "page"}

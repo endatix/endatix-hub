@@ -1,5 +1,8 @@
 import { Skeleton } from "@/components/ui/skeleton";
-import { SubmissionLinkError } from "@/features/public-submissions/ui/submission-link-error";
+import {
+  getSubmissionLinkFailureKind,
+  SubmissionLinkError,
+} from "@/features/public-submissions/ui/submission-link-error";
 import { AssetStorageProvider } from "@/features/asset-storage/server";
 import { getSubmissionByAccessTokenUseCase } from "@/features/public-submissions/edit/get-submission-by-access-token.use-case";
 import { resolveSubmissionFormDefinition } from "@/features/public-submissions/resolve-submission-form-definition";
@@ -45,20 +48,12 @@ export default async function PublicEditSubmissionPage({
   });
 
   if (Result.isError(submissionResult)) {
-    const errorMessage = submissionResult.message.toLowerCase();
-
-    if (errorMessage.includes("expired")) {
-      return <SubmissionLinkError action="edit" kind="expired" />;
-    }
-
-    if (
-      errorMessage.includes("permission") ||
-      errorMessage.includes("forbidden")
-    ) {
-      return <SubmissionLinkError action="edit" kind="forbidden" />;
-    }
-
-    return <SubmissionLinkError action="edit" kind="notFound" />;
+    return (
+      <SubmissionLinkError
+        action="edit"
+        kind={getSubmissionLinkFailureKind(submissionResult)}
+      />
+    );
   }
 
   const submission = submissionResult.value;

@@ -17,10 +17,39 @@ describe("TokenSubmissionError", () => {
     render(<TokenSubmissionError errorCode={errorCode} variant="share" />);
 
     expect(
-      screen.getByRole("heading", { name: "This link has expired." }),
+      screen.getByRole("heading", {
+        name: "This link is invalid or has expired.",
+      }),
     ).toBeDefined();
     // Respondent pages carry no HTTP status; the sentence is the whole answer.
     expect(screen.queryByText("401")).toBeNull();
+  });
+
+  it("tells a share reader why the link expired and that the tab can close", () => {
+    render(
+      <TokenSubmissionError
+        errorCode={ERROR_CODE.TOKEN_EXPIRED}
+        variant="share"
+      />,
+    );
+
+    expect(
+      screen.getByText(
+        "Access links work for a limited time and only when copied in full. Ask whoever shared it for a new link to continue.",
+      ),
+    ).toBeDefined();
+    expect(screen.getByText("You can close this tab.")).toBeDefined();
+  });
+
+  it("omits the close-tab note inside an embed", () => {
+    render(
+      <TokenSubmissionError
+        errorCode={ERROR_CODE.TOKEN_EXPIRED}
+        variant="embed"
+      />,
+    );
+
+    expect(screen.queryByText("You can close this tab.")).toBeNull();
   });
 
   it("falls back to not-found copy for an unknown code", () => {
