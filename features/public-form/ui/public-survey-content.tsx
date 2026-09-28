@@ -34,6 +34,7 @@ export async function PublicSurveyContent({
   if (
     pageResult.kind === "unauthorized" ||
     pageResult.kind === "forbidden" ||
+    pageResult.kind === "formUnavailable" ||
     pageResult.kind === "accessLoadError"
   ) {
     return (
@@ -45,6 +46,12 @@ export async function PublicSurveyContent({
         }
         formId={formId}
         kind={pageResult.kind}
+        message={
+          pageResult.kind === "formUnavailable" ? pageResult.message : undefined
+        }
+        title={
+          pageResult.kind === "formUnavailable" ? pageResult.title : undefined
+        }
         urlToken={urlToken}
         variant={variant}
       />
@@ -59,7 +66,12 @@ export async function PublicSurveyContent({
     pageResult.kind === "tokenSubmissionError" ||
     pageResult.kind === "submissionLoadError"
   ) {
-    return <TokenSubmissionError errorCode={pageResult.errorCode} />;
+    return (
+      <TokenSubmissionError
+        errorCode={pageResult.errorCode}
+        variant={variant}
+      />
+    );
   }
 
   const {

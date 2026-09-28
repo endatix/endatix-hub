@@ -1,5 +1,5 @@
-import "@/app/globals.css";
-import { NotFoundComponent } from "@/components/error-handling/not-found";
+import { PublicStatusPage } from "@/components/public-status/public-status-page";
+import { SearchX } from "lucide-react";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -9,12 +9,12 @@ export const metadata: Metadata = {
 
 export default function NotFound() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-content-canvas px-4">
-      <NotFoundComponent
-        notFoundTitle="Survey not found"
-        notFoundSubtitle="We couldn't find that survey."
-        notFoundMessage="Check the link and try again."
-      />
-    </div>
+    <PublicStatusPage
+      icon={SearchX}
+      layout="page"
+      message="Check the link and try again."
+      title="We couldn't find that survey."
+      tone="neutral"
+    />
   );
 }

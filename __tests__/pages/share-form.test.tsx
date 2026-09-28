@@ -75,9 +75,13 @@ describe("ShareForm Page", () => {
 
     render(component);
 
-    expect(screen.getByText("Access Denied")).toBeDefined();
     expect(
-      screen.getByText("The access token does not include submit permissions."),
+      screen.getByRole("heading", {
+        name: "You can't continue this submission.",
+      }),
+    ).toBeDefined();
+    expect(
+      screen.getByText("The access link does not include submit permissions."),
     ).toBeDefined();
     expect(screen.queryByTestId("public-survey-content")).toBeNull();
   });

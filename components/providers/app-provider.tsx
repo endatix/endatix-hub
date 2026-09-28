@@ -9,33 +9,14 @@ import { SessionProvider } from "next-auth/react";
 import type { ThemeProviderProps } from "next-themes";
 import { Toaster } from "sonner";
 import { SidebarProvider } from "../ui/sidebar";
+import type { AppProviderOptions } from "./app-options";
 import { Session } from "next-auth";
 import { withBasePath } from "@/lib/hosting/base-path";
 
 const authBasePath = withBasePath("/api/auth");
 
-// Options for enabling specific features
-interface AppProviderOptions {
-  enableTheme?: boolean;
-  enableAnalytics?: boolean;
-  enableSession?: boolean;
-  enableToaster?: boolean;
-  enableSidebar?: boolean;
-}
-
 // Theme options - use next-themes types for compatibility
 type ThemeOptions = Partial<Omit<ThemeProviderProps, "children">>;
-
-// Predefined options
-export const AppOptions = {
-  PublicPages: {
-    enableTheme: false,
-    enableAnalytics: true,
-    enableSession: false,
-    enableToaster: false,
-    enableSidebar: false,
-  } as AppProviderOptions,
-};
 
 // Main props interface
 interface AppProviderProps {

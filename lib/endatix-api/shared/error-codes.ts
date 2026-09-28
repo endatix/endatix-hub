@@ -11,6 +11,7 @@ const ERROR_CODES = Object.freeze({
   authentication_required:
     "Authentication is required to access this resource.",
   access_forbidden: "You don't have permission to access this resource.",
+  form_unavailable: "This survey is no longer available.",
   resource_not_found: "The requested resource was not found.",
   conflict: "This action conflicts with the current state. Please try again.",
   rate_limit_exceeded: "Too many requests. Please try again later.",
@@ -34,6 +35,7 @@ const ERROR_CODE = Object.freeze({
   NETWORK_ERROR: "network_error",
   AUTHENTICATION_REQUIRED: "authentication_required",
   ACCESS_FORBIDDEN: "access_forbidden",
+  FORM_UNAVAILABLE: "form_unavailable",
   RESOURCE_NOT_FOUND: "resource_not_found",
   CONFLICT: "conflict",
   RATE_LIMIT_EXCEEDED: "rate_limit_exceeded",

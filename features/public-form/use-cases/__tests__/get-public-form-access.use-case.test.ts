@@ -13,6 +13,10 @@ vi.mock("@/auth", () => ({
   auth,
 }));
 
+vi.mock("next/headers", () => ({
+  headers: vi.fn(async () => ({ get: () => null })),
+}));
+
 vi.mock("@/lib/endatix-api", () => ({
   EndatixApi: vi.fn().mockImplementation(function () {
     return {

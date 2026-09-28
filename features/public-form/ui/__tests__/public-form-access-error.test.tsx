@@ -2,7 +2,10 @@ import {
   buildPublicFormSignInHref,
   PublicFormAccessError,
 } from "@/features/public-form/ui/public-form-access-error";
-import { RETURN_URL_PARAM, SIGNIN_PATH } from "@/features/auth/infrastructure/auth-constants";
+import {
+  RETURN_URL_PARAM,
+  SIGNIN_PATH,
+} from "@/features/auth/infrastructure/auth-constants";
 import { ERROR_CODE, ERROR_CODES } from "@/lib/endatix-api/shared/error-codes";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
@@ -49,14 +52,16 @@ describe("PublicFormAccessError", () => {
       />,
     );
 
-    expect(screen.getByText("401")).toBeDefined();
-    expect(screen.getByText("Sign in required")).toBeDefined();
+    expect(
+      screen.getByRole("heading", { name: "Sign in required" }),
+    ).toBeDefined();
+    expect(screen.queryByText("401")).toBeNull();
     expect(
       screen.getByText("You must be signed in to access this form."),
     ).toBeDefined();
-    expect(screen.getByRole("link", { name: "Sign in" }).getAttribute("href")).toBe(
-      buildPublicFormSignInHref({ formId: "form-1", variant: "share" }),
-    );
+    expect(
+      screen.getByRole("link", { name: "Sign in" }).getAttribute("href"),
+    ).toBe(buildPublicFormSignInHref({ formId: "form-1", variant: "share" }));
     expect(
       screen.getByRole("link", { name: "Sign in" }).getAttribute("target"),
     ).toBeNull();
@@ -72,8 +77,9 @@ describe("PublicFormAccessError", () => {
       />,
     );
 
-    expect(screen.getByText("403")).toBeDefined();
-    expect(screen.getByText("Access denied")).toBeDefined();
+    expect(
+      screen.getByRole("heading", { name: "Access denied" }),
+    ).toBeDefined();
     expect(screen.queryByRole("link", { name: "Sign in" })).toBeNull();
   });
 
@@ -87,9 +93,9 @@ describe("PublicFormAccessError", () => {
     );
 
     expect(screen.getByTestId("embed-height-reporter")).toBeDefined();
-    expect(screen.getByRole("link", { name: "Sign in" }).getAttribute("target")).toBe(
-      "_top",
-    );
+    expect(
+      screen.getByRole("link", { name: "Sign in" }).getAttribute("target"),
+    ).toBe("_top");
   });
 
   it("renders load-failure copy for operational access errors", () => {
@@ -102,9 +108,54 @@ describe("PublicFormAccessError", () => {
       />,
     );
 
-    expect(screen.getByText("Unable to load form")).toBeDefined();
-    expect(screen.getByText("Something went wrong")).toBeDefined();
+    expect(
+      screen.getByRole("heading", { name: "Unable to load form" }),
+    ).toBeDefined();
     expect(screen.getByText(ERROR_CODES.network_error)).toBeDefined();
     expect(screen.queryByRole("link", { name: "Sign in" })).toBeNull();
+  });
+
+  it("renders host copy in an embed", () => {
+    render(
+      <PublicFormAccessError
+        formId="form-1"
+        kind="formUnavailable"
+        message="Thank you for your interest. Unfortunately, this survey can no longer be completed."
+        title="This survey is no longer available."
+        variant="embed"
+      />,
+    );
+
+    expect(screen.getByTestId("embed-height-reporter")).toBeDefined();
+    expect(
+      screen.getByRole("heading", {
+        name: "This survey is no longer available.",
+      }),
+    ).toBeDefined();
+    expect(screen.queryByText("403")).toBeNull();
+    expect(
+      screen.getByText(
+        "Thank you for your interest. Unfortunately, this survey can no longer be completed.",
+      ),
+    ).toBeDefined();
+    expect(screen.queryByText("You can't open this submission.")).toBeNull();
+  });
+
+  it("falls back to generic forbidden copy without both host fields", () => {
+    render(
+      <PublicFormAccessError
+        formId="form-1"
+        kind="formUnavailable"
+        title="This survey is no longer available."
+        variant="share"
+      />,
+    );
+
+    expect(
+      screen.getByRole("heading", { name: "Access denied" }),
+    ).toBeDefined();
+    expect(
+      screen.queryByText("This survey is no longer available."),
+    ).toBeNull();
   });
 });

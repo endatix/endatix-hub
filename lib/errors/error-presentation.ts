@@ -31,9 +31,10 @@ export interface ErrorPresentation {
  *
  * Every error surface needs this and each had spelled it differently — `in` plus an
  * index, `?? FALLBACK`, a `switch` default — which is how the auth page ended up
- * with a lookup that read nothing like the one next to it.
+ * with a lookup that read nothing like the one next to it. Unconstrained so respondent
+ * pages, which render a different shape (`PublicStatusPage`), share the same lookup.
  */
-export function resolveErrorPresentation<T extends ErrorPresentation>(
+export function resolveErrorPresentation<T>(
   map: Readonly<Partial<Record<string, T>>>,
   key: string | undefined,
   fallback: T,

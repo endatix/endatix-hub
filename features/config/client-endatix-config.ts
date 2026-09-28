@@ -27,6 +27,8 @@ export interface ClientEndatixConfig {
   readonly isDebugMode: boolean;
   readonly submitterPrimaryFilterLabel: string;
   readonly submitterGridProfileFields: string;
+  /** "Powered by Endatix" line on public status pages (DESIGN.md §6). */
+  readonly showPoweredBy: boolean;
 }
 
 /** Secrets that must never be added to the browser projection type. */
@@ -91,6 +93,7 @@ export const EMPTY_CLIENT_ENDATIX_CONFIG: ClientEndatixConfig = Object.freeze({
   isDebugMode: false,
   submitterPrimaryFilterLabel: DEFAULT_SUBMITTER_PRIMARY_FILTER_LABEL,
   submitterGridProfileFields: "",
+  showPoweredBy: true,
 });
 
 let browserConfig: ClientEndatixConfig = EMPTY_CLIENT_ENDATIX_CONFIG;
@@ -115,6 +118,8 @@ export function toClientEndatixConfig(
       value.submitterPrimaryFilterLabel ||
       DEFAULT_SUBMITTER_PRIMARY_FILTER_LABEL,
     submitterGridProfileFields: value.submitterGridProfileFields ?? "",
+    // Opt-out: only an explicit `false` hides it, so a partial object keeps the default.
+    showPoweredBy: value.showPoweredBy !== false,
   });
 }
 
@@ -173,6 +178,9 @@ export function readPublicEndatixEnv(): PublicEndatixEnvConfig {
     submitterGridProfileFields: firstNonEmpty(
       process.env.ENDATIX_SUBMITTER_GRID_PROFILE_FIELDS,
     ),
+    showPoweredBy:
+      firstNonEmpty(process.env.ENDATIX_SHOW_POWERED_BY).toLowerCase() !==
+      "false",
   };
 }
 

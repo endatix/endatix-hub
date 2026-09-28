@@ -1,27 +1,61 @@
-# Design System Specification: Editorial Enterprise
+# Hub Design System
 
-## 1. Overview & Creative North Star
+How the Hub looks and behaves, written as **reusable decisions**: principles, tokens, the shared
+components that encode them, UX patterns, and recipes for recurring page shapes.
 
-### The Creative North Star: "The Digital Curator"
+**How to use this file.** Read §1 and the §5 component index, then jump to the pattern or recipe
+your task matches. Detail that only matters to one surface lives next to its code (§8) — follow
+the link when you touch that code, not before.
 
-This design system moves beyond the rigid, "boxed-in" feel of traditional enterprise software. It treats data not as a series of rows in a database, but as curated content in a high-end editorial publication. By leveraging the precision of **Shadcn UI** and the utility of **Tailwind CSS**, we create an environment that is "Data-Centric yet Human-Centric."
-
-We break the "template" look through **intentional asymmetry** and **tonal depth**. Rather than relying on heavy borders and harsh dividers, we use white space as a structural element and "surface nesting" to guide the user's eye. The result is a professional, highly functional interface that feels bespoke, premium, and calm.
+**How to extend it.** When you settle a new question (§1 "Deciding"), write the answer back as a
+_general_ rule in the pattern or recipe it belongs to, in the same change. Do not add a section
+per feature; add a reference implementation to an existing recipe instead. Implementation
+detail (pixel values, retry counts, vendor quirks) goes in code comments or a README beside the
+component.
 
 ---
 
-## 2. Colors & Surface Logic
+## 1. Principles
 
-The palette is rooted in a sophisticated range of slates and atmospheric blues, designed to reduce cognitive load while highlighting key actions.
+**North star — "The Digital Curator".** Data is presented as curated editorial content:
+calm, spacious, precise. Boundaries come from tonal surfaces and white space, not lines. Built on
+**shadcn/ui** + **Tailwind CSS**.
 
-### Tonal Hierarchy
+1. **The page serves its reader's task.** A review page optimises for scanning and comparison
+   (values aligned in one column, keys visible, exceptions summarised at the top). An action page
+   makes the action unmistakable.
+2. **One vocabulary per concept, encoded in one component.** Status, file type, table chrome,
+   locale, copy affordance — the same idea appears in a table cell, a panel header and a review
+   step. Three local copies drift into three shapes, so reach for the §5 component; if none
+   exists and the idea recurs, create one and index it.
+3. **Tokens, never palette steps.** Everything must work in light and dark from `app/globals.css`.
+4. **Tone carries meaning; decoration does not.** Colour is reserved for status. Icons mark
+   sections and kinds of things, not individual fields.
+5. **Prefer removing over adding.** Most inconsistency is accumulated decoration — an icon on one
+   badge, a tooltip on one label. Cutting it is almost always more on-brand than harmonising it.
 
-- **Primary (`#0053db`):** Reserved exclusively for high-intent actions and active states. Use `primary_container` (`#dbe1ff`) for subtle highlights.
-- **Surface & Background (`#f8f9ff`):** Our canvas is a cool, bright blue-gray. It provides a crisp foundation for content.
-- **Informational surfaces:** Use semantic `--info-*` tokens (mapped in `app/globals.css` to Tailwind `info`, `info-background`, `info-border`, `info-foreground`). Prefer `<Alert variant="info">` for guidance banners—not raw `blue-50` / `blue-950` utility classes, which break in dark mode.
-- **The "No-Line" Rule:** We explicitly prohibit 1px solid borders for sectioning. Boundaries must be defined through background color shifts. For example, a sidebar should use `surface_container_low` against a `surface` main content area.
+**Deciding a question this file does not answer** — in this order, then write it back:
 
-### Semantic status tokens (`app/globals.css`)
+1. **Does a sibling page already solve it?** Match it. Cross-page consistency beats a locally
+   nicer idea.
+2. **Does a token or shared component cover it?** Use it. If a semantic token lacks a Tailwind
+   utility, register it (§2) rather than hardcoding a palette step.
+3. **What is the page for?** Principle 1.
+4. **Can you remove something instead?** Principle 5.
+
+---
+
+## 2. Colour & Surfaces
+
+- **Primary (`#0053db`)** is reserved for high-intent actions and active states. Never spend it on
+  read-only information (status, labels). `primary_container` (`#dbe1ff`) for subtle highlights.
+- **Canvas (`#f8f9ff`)** — a cool, bright blue-gray.
+- **No-Line Rule.** No 1px solid borders for sectioning or between list items. Boundaries come
+  from background shifts (sidebar on `surface_container_low` against a `surface` main area).
+- **No fixed Tailwind scales** (`bg-blue-50`, `text-blue-950`, `red-*`) on any surface that must
+  work in both themes. Use semantic tokens or component variants (`<Alert variant="info">`).
+
+### Semantic tokens (`app/globals.css`)
 
 | Token                                                                              | Usage                                                               |
 | :--------------------------------------------------------------------------------- | :------------------------------------------------------------------ |
@@ -30,171 +64,164 @@ The palette is rooted in a sophisticated range of slates and atmospheric blues, 
 | `--info` / `--info-foreground` / `--info-background` / `--info-border`             | Informational callouts, external-user badges, non-blocking guidance |
 | `--destructive` / `--destructive-foreground`                                       | Errors and destructive confirmations                                |
 
-Light and dark values are defined under `:root` and `.dark`, and every one of them is registered in the `@theme inline` block so it exists as a Tailwind utility (`bg-success`, `text-warning`, `border-info-border`, …). If you add a `--token` to `:root`/`.dark`, you must also add `--color-token: var(--token)` to `@theme inline` in the same change — otherwise the utility silently does not compile and the class is dropped.
+Values live under `:root` and `.dark`. **Every token must also be registered in `@theme inline`**
+(`--color-token: var(--token)`) in the same change, or the Tailwind utility silently does not
+compile and the class is dropped.
 
-Components must consume these tokens (or Shadcn variants built on them), not fixed Tailwind palette steps such as `blue-200` or `text-blue-950`.
+### Surface tiers
 
-### Surface Hierarchy & Nesting
+Treat the UI as physical layers; depth comes from the tier, not from borders:
 
-Treat the UI as a series of physical layers. Use the `surface-container` tiers to create depth:
+| Level           | Token                                                   | Used for                   |
+| :-------------- | :------------------------------------------------------ | :------------------------- |
+| 0 — Base        | `surface`                                               | Page canvas                |
+| 1 — Sectioning  | `surface_container_low` / `surface_container`           | Sidebar, nested row groups |
+| 2 — Interaction | `surface_container_lowest` (high contrast) / `_highest` | Cards, inputs              |
 
-1. **Level 0 (Base):** `surface`
-2. **Level 1 (Sectioning):** `surface_container_low` or `surface_container`
-3. **Level 2 (Cards/Interaction):** `surface_container_highest` or `surface_container_lowest` (for high contrast).
-
-### Glass & Gradient Rule
-
-To achieve a "signature" feel, floating elements (modals, dropdowns) should utilize **Glassmorphism**. Apply `surface_container_lowest` at 80% opacity with a `backdrop-blur-md` effect. For primary CTAs, use a subtle linear gradient from `primary` to `primary_dim` to add "soul" and depth.
+A `surface_container_lowest` card on a `surface_container_low` background gives a "soft lift"
+that is felt rather than seen. **Nested surface** = a group of rows on `bg-muted/40` or
+`bg-surface-container-low` inside a card or panel — the standard way to group dense data.
 
 ---
 
-## 3. Typography
+## 3. Typography & Spacing
 
-We utilize **Inter** for its mathematical precision and exceptional legibility at small sizes.
+**Inter**, chosen for precision and legibility at small sizes.
 
-| Level        | Size     | Token         | Usage                                       |
-| :----------- | :------- | :------------ | :------------------------------------------ |
-| **Display**  | 3.5rem   | `display-lg`  | Hero metrics and large data visualizations. |
-| **Headline** | 1.75rem  | `headline-md` | Page titles and primary section headers.    |
-| **Title**    | 1.125rem | `title-md`    | Card headers and modal titles.              |
-| **Body**     | 0.875rem | `body-md`     | Standard UI text and data values.           |
-| **Label**    | 0.75rem  | `label-md`    | Form labels and metadata.                   |
+| Level    | Size     | Token         | Usage                                                          |
+| :------- | :------- | :------------ | :------------------------------------------------------------- |
+| Display  | 3.5rem   | `display-lg`  | Hero metrics and large data visualisations                     |
+| Headline | 1.75rem  | `headline-md` | Page titles and primary section headers                        |
+| Title    | 1.125rem | `title-md`    | Card headers and modal titles                                  |
+| Body     | 0.875rem | `body-md`     | Standard UI text and data values                               |
+| Label    | 0.75rem  | `label-md`    | Form labels and metadata (`on_surface_variant`, medium weight) |
 
-**Editorial Contrast:** Pair `headline-lg` (bold) with `body-md` (regular) with significant vertical padding (Spacing `8` or `10`) to create a sense of authority and breathing room.
+Spacing is a tight 0.2rem increment for data density, expanding for editorial breathing room:
+**Tight (2)** 0.4rem icon→text · **Standard (4)** 0.9rem inside components · **Editorial (10)**
+2.25rem between sections · **Hero (16)** 3.5rem page margins and headers. Pair a bold headline
+with regular body and generous vertical padding (`8`–`10`).
 
 ---
 
 ## 4. Elevation & Depth
 
-We eschew traditional "structural lines" in favor of **Tonal Layering**.
-
-- **The Layering Principle:** Place a `surface_container_lowest` card on a `surface_container_low` background. This creates a "soft lift" that is felt rather than seen.
-- **Ambient Shadows:** When a floating effect is required (e.g., a Command Menu), use a custom shadow: `shadow-[0_8px_30px_rgb(0,52,94,0.06)]`. The shadow is tinted with `on_surface` to look natural.
-- **The "Ghost Border" Fallback:** If containment is required for accessibility, use a "Ghost Border": `outline_variant` at 15% opacity. Never use 100% opaque borders.
-- **Glassmorphism:** Use `bg-surface/80 backdrop-blur-xl` for navigation bars to allow content to bleed through, making the interface feel integrated.
+- **Tonal layering first** (§2). A raised element never sits inside another raised element to
+  express one boundary — no `Card` in an overlay, no `Card` around a table.
+- **Ambient shadow** for floating elements (command menu): `shadow-[0_8px_30px_rgb(0,52,94,0.06)]`,
+  tinted with `on_surface`. Never `#000` shadows.
+- **Ghost border** when containment is required for accessibility: `outline_variant` at 15%
+  opacity. Never a 100% opaque border.
+- **Glass** for floating chrome (nav bars, dropdowns, modals): `bg-surface/80 backdrop-blur-xl`
+  (or `surface_container_lowest` at 80% + `backdrop-blur-md`).
 
 ---
 
 ## 5. Components
 
-### The shared component index
+### Component index
 
-Before building a control, check whether the vocabulary already exists. Every
-entry below is deliberately shared rather than per-feature: the same idea shows
-up in a table cell, a panel header and a review step, and three local copies
-drift into three shapes.
+Before building a control, check whether the vocabulary already exists here.
 
-| Component                                                                | Owns                                                                     |
-| :----------------------------------------------------------------------- | :----------------------------------------------------------------------- |
-| `components/common/status-badge.tsx` — `StatusBadge`                     | The three-tone on / off / attention pill (below)                         |
-| `components/common/file-kind-icon.tsx` — `FileKindIcon`, `FileKindLabel` | The file-type mark and its icon+label row (below)                        |
-| `components/common/panel-section.tsx` — `PanelSection`                   | A titled concern inside an overlay, on a nested surface (§6)             |
-| `components/common/summary-row.tsx` — `SummaryRow`                       | Label-left / value-right review rows (§6)                                |
-| `components/common/truncated-id.tsx` — `TruncatedId`                     | A long id shortened to head…tail with a copy affordance                  |
-| `components/common/locale-label.tsx` — `LocaleLabel`                     | A survey language as name + short code (`Spanish es`), anywhere (§6)     |
-| `components/copy-to-clipboard.tsx` — `CopyToClipboard`                   | The copy-to-clipboard affordance, `overlay` and `inline` layouts (below) |
-| `components/table` — `DataTableSurface` and friends                      | All list-table chrome (below)                                            |
-| `components/ui/responsive-panel.tsx` — `ResponsivePanel`                 | Desktop Sheet / Dialog ↔ mobile Drawer swap (§5 Overlay rulebook)        |
-| `.grid-card-list` (`app/globals.css`)                                    | Peer-card grids without breakpoints (below)                              |
-| `asset-storage/…/get-user-file/ui` — `SubmissionFileDialog`              | A submission file's preview + details dialog (§5 File Answers)           |
+| Component                                                                | Owns                                                                                  |
+| :----------------------------------------------------------------------- | :------------------------------------------------------------------------------------ |
+| `components/common/status-badge.tsx` — `StatusBadge`                     | The three-tone on / off / attention pill (Status vocabulary, below)                   |
+| `components/common/file-kind-icon.tsx` — `FileKindIcon`, `FileKindLabel` | The file-type mark and its icon+label row (File Type Marks, below)                    |
+| `components/common/panel-section.tsx` — `PanelSection`                   | A titled concern inside an overlay, on a nested surface (§6 Create / edit overlay)    |
+| `components/common/summary-row.tsx` — `SummaryRow`                       | Label-left / value-right rows (§6 Displaying values)                                  |
+| `components/common/truncated-id.tsx` — `TruncatedId`                     | A long id shortened to head…tail with a copy affordance                               |
+| `components/common/locale-label.tsx` — `LocaleLabel`                     | A survey language as name + short code (`Spanish es`), anywhere                       |
+| `components/copy-to-clipboard.tsx` — `CopyToClipboard`                   | The copy affordance, `overlay` and `inline` layouts (below)                           |
+| `components/table` — `DataTableSurface` and friends                      | All list-table chrome (List tables, below)                                            |
+| `components/ui/responsive-panel.tsx` — `ResponsivePanel`                 | Desktop Sheet / Dialog ↔ mobile Drawer swap (Overlays, below)                         |
+| `.grid-card-list` (`app/globals.css`)                                    | Peer-card grids without breakpoints (below)                                           |
+| `asset-storage/…/get-user-file/ui` — `SubmissionFileDialog`              | A submission file's preview + details dialog (§6 File answers)                        |
+| `components/public-status` — `PublicStatusPage`, `PublicStatusReference` | Every status page a non-Hub reader sees: respondents, link and export recipients (§6) |
+| `components/error-handling/error-page` — `ErrorPage`                     | Every full-page error a Hub user sees (rules: `AGENTS.md` "Error page chrome")        |
 
-When you add a component to this list, add its row here in the same change.
-Where a new shared component belongs — `components/common/`, a graduated
-`components/<domain>/`, or a domain-local `lib/<domain>/<slice>/ui/` — is decided
-by "Where UI for a shared concept lives" in `project-structure.md`.
+Add a row here in the same change that adds a shared component. Where it lives
+(`components/common/`, a graduated `components/<domain>/`, or `lib/<domain>/<slice>/ui/`) is
+decided by "Where UI for a shared concept lives" in `project-structure.md`.
 
-**`CopyToClipboard` layouts:** `overlay` (default) for a normal-width field with
-spare room; `inline` as a flex sibling of the value inside table cells and
-other tight rows. Never mix the two on one page for the same kind of value.
+### Status vocabulary — `StatusBadge`
 
-### Cards & Layouts
+**Three tones. There is no fourth.**
 
-- **Constraint:** Forbid divider lines within cards.
-- **Strategy:** Use `spacing-5` (1.1rem) to separate internal card elements.
-- **Style:** Cards use `rounded-lg` (0.5rem) and a background of `surface_container_lowest`.
+| Tone        | Meaning                                                  | Badge variant | Example labels                       |
+| :---------- | :------------------------------------------------------- | :------------ | :----------------------------------- |
+| `on`        | Present / active / healthy / accepted                    | `success`     | Configured, Set, On, Enabled, Active |
+| `off`       | Absent, inactive or declined — **a legitimate state**    | `secondary`   | Not set, Off, Disabled, Rejected     |
+| `attention` | Required and missing, or waiting — the operator must act | `warning`     | Not configured, Expired, Pending     |
 
-### Card Grids — `.grid-card-list`
+- `destructive` is only for something actively failing, or confirming a destructive action.
+  Never for "empty", never for a declined request.
+- All tones render as the same **soft-tinted** pill (`bg-success/12 text-success`) with a leading
+  `size-1.5 rounded-full bg-current` dot. No solid fills (primary is for actions), no per-state
+  icons — differing shapes read as differing _kinds_ of information.
+- **One label per concept per page** ("Enabled/Disabled" _or_ "On/Off", everywhere).
+- In a value column, either every row is a badge or every row is a literal. Mix only when the row
+  kinds differ (a flag vs a URL), and then the literal is monospace.
+- A state is a badge **everywhere** it appears — table cell, panel header, review step. Never a
+  bare word in one of them. If you write `variant={x ? "default" : "secondary"}`, use `StatusBadge`.
+- **Alerts use the same mapping:** `info` for a consequence or a view choice, `warning` for a risk
+  the operator is choosing, `success` for a completed write, `destructive` for a failure. Never
+  `info` for a security-relevant choice.
 
-Any page laying out a set of peer cards uses the `.grid-card-list` component
-class (`app/globals.css`), never hand-rolled viewport breakpoints:
+### File Type Marks — `FileKindIcon`
 
-```
-grid-template-columns: repeat(auto-fill, minmax(min(var(--grid-card-min), 100%), 1fr));
---grid-card-min: 420px;  /* override per page: className="grid-card-list [--grid-card-min:360px]" */
-```
+A status tone answers "how is this doing?"; a file mark answers "what will I get?" — so it may
+carry an icon, under the same discipline.
 
-**Why intrinsic sizing, not `md:grid-cols-2 xl:grid-cols-3`:**
+`lib/file-kinds/` is the server-safe catalog (extension, MIME, label, group);
+`components/common/file-kind-icon.tsx` renders `FileKindIcon` (glyph) and `FileKindLabel`
+(icon+label row for pickers, menu items, table cells).
 
-1. **The sidebar makes viewport breakpoints lie.** Our content area is a
-   collapsible-sidebar inset. At one fixed viewport width the content region has
-   two very different widths depending on sidebar state, so a `lg:` breakpoint
-   fires on a measurement that is not the one the cards live in. `auto-fill`
-   derives the column count from the container, so collapsing the sidebar
-   naturally gains a column instead of leaving a half-empty row.
-2. **Large screens are free.** A 2-column cap wastes an ultrawide monitor and
-   forces scrolling for content that would fit on one screen. `auto-fill` scales
-   to 3, 4, 5 columns with no extra breakpoints to maintain.
-3. **One knob, not a breakpoint ladder.** The design decision becomes "how
-   narrow may this card get before it stops being readable?" — a single number
-   per page — rather than four coupled column counts.
+1. **All or none.** Every option in a list gets a mark, or none do.
+2. **Muted and uniform** — `size-4 text-muted-foreground`, owned by the component. Never tint by
+   format; colour belongs to status. (A preview tile is the one place it renders larger.)
+3. **Never guess.** An unknown kind renders the generic file glyph; resolvers return
+   `FileKindKey | undefined`, never a defaulted icon.
+4. **Resolve the kind, not the icon.** Feature code maps its vocabulary to a `FileKindKey`
+   (`features/export/utils.ts`) and never returns a `LucideIcon`.
+5. **Specific source first, coarser fallback** (wire key `csv-shoji` before delivery enum `Csv`).
+6. **Catalog stays server-safe.** `lib/file-kinds/index.ts` does not re-export icons; import glyphs
+   from `@/components/common/file-kind-icon`.
+7. **Same format → same label** on every surface (`FILE_KINDS.xlsx.label` = `Excel (XLSX)`). When a
+   `SelectItem`'s children are a `FileKindLabel`, set `textValue` to that label.
 
-**Rules:**
+### Copy affordance — `CopyToClipboard`
 
-- Use `auto-fill`, **not** `auto-fit`. `auto-fit` collapses empty tracks, so two
-  cards on a wide screen stretch to half the page each and look nothing like the
-  same two cards when a third is added. Card width must not depend on card count.
-- Always keep the `min(…, 100%)` guard. A bare `minmax(420px, 1fr)` overflows
-  horizontally on any container narrower than the minimum.
-- Set `--grid-card-min` from the card's **narrowest legible content**, not from
-  taste. A card holding a label and a right-aligned URL needs more room than one
-  holding a title and a chip. Default 420px; go below ~320px only for genuinely
-  tiny tiles.
-- Give cards `h-full` when their heights vary, so each row's cards share a
-  bottom edge. The cost is whitespace inside short cards; ragged bottoms read as
-  a bug, stretched cards read as a grid.
+- `overlay` (default) for a normal-width field with spare room; `inline` as a flex sibling of the
+  value in table cells, tight rows, and next to any disabled input or textarea.
+- Never mix both layouts on one page for the same kind of value.
+- Give every value a reader might paste somewhere (URLs, keys, ids) a copy button — and then give
+  it to **every** such value on the page. Enum-ish values (`development`, `/api`) get none.
 
-### List Tables — `components/table`
+### List tables — `components/table`
 
-Every list of records — tenants, forms, submissions, data lists, export formats
-— uses the shared table chrome. It is a set of primitives, not one component, so
-a small static list and a paged sortable grid still look identical:
+Every list of records uses the shared chrome — a set of primitives, so a small static list and a
+paged sortable grid look identical:
 
-| Export                                                                                      | Use                                                                          |
-| :------------------------------------------------------------------------------------------ | :--------------------------------------------------------------------------- |
-| `DataTableSurface`                                                                          | The rounded, softly-lifted container. Also dims rows during a URL transition |
-| `DataTableGrid`                                                                             | Header + body for a TanStack table                                           |
-| `DataTableEmpty`                                                                            | The empty state, **outside** the table element: icon, title, way out (below) |
-| `dataTableHeaderCellClassName` / `dataTableBodyRowClassName` / `dataTableBodyCellClassName` | Sticky header, zebra fill and cell padding for a hand-rolled `<table>`       |
-| `dataTableColumnLabelClassName`                                                             | The uppercase muted column title                                             |
-| `DATA_TABLE_SHRINK_WRAP_CLASS_NAME`                                                         | Shrink a column to its content                                               |
-| `PagedTableFooter`, `DataTableToolbar`, `DataTableSkeleton`                                 | Pagination, filter bar, loading state                                        |
+| Export                                                                                      | Use                                                                     |
+| :------------------------------------------------------------------------------------------ | :---------------------------------------------------------------------- |
+| `DataTableSurface`                                                                          | The rounded, softly-lifted container; dims rows during a URL transition |
+| `DataTableGrid`                                                                             | Header + body for a TanStack table                                      |
+| `DataTableEmpty`                                                                            | The empty state, **outside** the table element                          |
+| `dataTableHeaderCellClassName` / `dataTableBodyRowClassName` / `dataTableBodyCellClassName` | Sticky header, zebra fill, cell padding for a hand-rolled `<table>`     |
+| `dataTableColumnLabelClassName`                                                             | The uppercase muted column title                                        |
+| `DATA_TABLE_SHRINK_WRAP_CLASS_NAME`                                                         | Shrink a column to its content                                          |
+| `PagedTableFooter`, `DataTableToolbar`, `DataTableSkeleton`                                 | Pagination, filter bar, loading state                                   |
 
-**Rules:**
+- **A table is not card content.** Title, description and primary action sit **above**
+  `DataTableSurface` as plain `h2` + `p` + `Button`. A `Card` is for controls and prose.
+- **Class-name helpers before TanStack.** A handful of static rows needs `DataTableSurface` +
+  `Table` + the helpers, not a table instance. Pass `isStatic: true` to the header helper when the
+  header never scrolls under sticky positioning.
+- **Zebra parity is `index % 2 === 1`**, matching `DataTableGrid`.
+- **Column labels name what the column holds for the reader** ("Requester", "Submitted"), not the
+  entity field (`Email`, `Created`).
+- Wiring (URL state, paging, loading skeletons): `project-structure.md` "List pages and tables".
 
-- **A table is not card content.** `DataTableSurface` is already a raised
-  surface with its own radius and shadow; wrapping it in a `Card` stacks two
-  elevations to express one boundary, exactly as §6 forbids for panels. The
-  section title, description and primary action sit **above** the surface as
-  plain `h2` + `p` + `Button`, the way the tenants and data-lists pages do it.
-  A `Card` is for controls and prose; a `DataTableSurface` is for rows.
-- **Reach for the class-name helpers before reaching for TanStack.** A fixed
-  list of a handful of rows with no sorting, filtering or paging does not need a
-  table instance. Compose `DataTableSurface` + `Table` + the chrome helpers and
-  you get the same pixels for a fraction of the machinery. Add TanStack when you
-  actually need its behavior.
-- **Zebra parity is `index % 2 === 1`.** `DataTableGrid` computes `isEvenRow`
-  that way; a hand-rolled table that flips the parity will not match the grid on
-  the next page over.
-- **The empty state is not a full-width `<td>`.** Render `DataTableEmpty`
-  instead of the table, so the empty message is not framed by a header row
-  describing columns that have no data.
-
-- Pass `isStatic: true` to `dataTableHeaderCellClassName` for a header that
-  never scrolls under sticky positioning (short lists, skeletons).
-
-**Empty states — `DataTableEmpty`.** A list page's empty state is titled and
-carries the list's icon. Pass `icon` + `title`, with the description as
-children:
+**Empty states — `DataTableEmpty` with `icon` + `title`, description as children:**
 
 ```tsx
 <DataTableEmpty
@@ -206,1042 +233,364 @@ children:
 </DataTableEmpty>
 ```
 
-- **One icon for both kinds of empty.** "Nothing yet" and "nothing matches" use
-  the list's entity icon, the same glyph as its sidebar item (`Inbox` for
-  Signup Requests). A search glyph or a warning mark on a filtered list reads
-  as a different kind of screen, or as an error. What tells the two states
-  apart is the title and the way out.
-- **Every empty state gives a way out:**
+| The list is empty because…       | Title says                             | Action                                                  |
+| :------------------------------- | :------------------------------------- | :------------------------------------------------------ |
+| nothing was ever created         | "No … yet"                             | the create button (`action`) if the list has one        |
+| the default view is clear        | what is clear ("No requests waiting…") | optional ghost link to the wider view ("Show all …")    |
+| a search or a non-default filter | "No matching …" / "No approved …"      | `onClearFilters` — the standard outline "Clear filters" |
 
-  | The list is empty because…       | Title says                             | Action                                                           |
-  | :------------------------------- | :------------------------------------- | :--------------------------------------------------------------- |
-  | nothing was ever created         | "No … yet"                             | the create button (`action`) if the list has one, otherwise none |
-  | the default view is clear        | what is clear ("No requests waiting…") | an optional ghost link to the wider view ("Show all requests")   |
-  | a search or a non-default filter | "No matching …" / "No approved …"      | `onClearFilters`, the standard outline "Clear filters" button    |
+- **One icon for both kinds of empty**: the list's entity icon, same as its sidebar item. A search
+  or warning glyph reads as a different screen, or an error.
+- The description names what was searched or filtered, and which fields search looks at.
+- `onClearFilters` resets exactly what the toolbar's Reset resets — build it once in the list
+  shell and hand it to both.
+- Compact inside the surface (`py-10`, `text-base` title, `EmptyMedia variant="icon"` on
+  `bg-muted`); the page-level `Empty` is for whole-page empties such as `/forms`. The one-liner
+  `<DataTableEmpty>No rows.</DataTableEmpty>` is only for secondary lists (a settings card, a
+  dialog). Reference: `SignupRequestsEmpty` in `features/platform-admin/list-signup-requests/`.
 
-  The description names what was searched or filtered ("No approved request
-  matches “acme”") and, for search, which fields it looks at.
+### Card grids — `.grid-card-list`
 
-- **`onClearFilters` resets exactly what the toolbar's Reset resets.** Build it
-  once in the list shell, which owns `setSearch` and `updateUrl`, and hand it to
-  both. A clear button that leaves a filter behind, or empties the input
-  without touching the URL, shows the same empty state again.
-- **Compact, not page-sized.** The titled variant sits under a column header
-  inside `DataTableSurface`, so it uses `py-10` and a `text-base` title, not the
-  page-level `Empty` (`md:p-12`, `text-lg`) that a whole-page empty state such as
-  `/forms` uses. The icon tile is `EmptyMedia variant="icon"` on `bg-muted`,
-  which works in light and dark.
-- **The one-liner still exists** (`<DataTableEmpty>No rows.</DataTableEmpty>`)
-  for secondary and embedded lists (a settings card, a dialog). Every list page
-  in the sidebar uses the titled form. Reference: `SignupRequestsEmpty` in
-  `features/platform-admin/list-signup-requests/ui/signup-requests-table.tsx`.
+Any set of peer cards uses `.grid-card-list` (`app/globals.css`), never viewport breakpoints:
 
-### Tabular / Matrix Answers
+```
+grid-template-columns: repeat(auto-fill, minmax(min(var(--grid-card-min), 100%), 1fr));
+--grid-card-min: 420px;  /* per page: className="grid-card-list [--grid-card-min:360px]" */
+```
 
-A read-only `matrix`, `matrixdropdown`, or `matrixdynamic` SurveyJS answer
-(`features/submissions/ui/answers/matrix-answer.tsx`,
-`matrixdropdown-answer.tsx`) is its own recurring shape — a grid of disabled
-inputs, not a `DataTableSurface` list (that machinery is for paged records, see
-List Tables above) and not a plain unconstrained `<table>` either, since both
-of those let a per-cell copy affordance collide with the value.
+- **Why:** the collapsible sidebar changes the content width without changing the viewport, so
+  `md:`/`lg:` breakpoints measure the wrong thing; `auto-fill` also scales to ultrawide screens
+  with one knob instead of a breakpoint ladder.
+- `auto-fill`, **not** `auto-fit` — card width must not depend on card count.
+- Keep the `min(…, 100%)` guard, or narrow containers overflow.
+- Set `--grid-card-min` from the card's narrowest _legible_ content (default 420px; below ~320px
+  only for tiny tiles).
+- Give cards `h-full` so a row shares a bottom edge.
 
-**Rules:**
+### Overlays — `ResponsivePanel`
 
-- **Copy affordance is always `layout="inline"` inside a cell.** The default
-  `CopyToClipboard` layout (`overlay`, absolutely positioned over the input) is
-  built for a normal-width form field with room to spare; inside a table cell
-  the icon overlaps the value instead. `text-answer.tsx`, `comment-answer.tsx`,
-  and `multipletext-answer.tsx` render `<value> <CopyToClipboard layout="inline" />`
-  as flex row siblings — this is the one layout for a copy affordance
-  next to a disabled input or textarea, matrix cell or not, so a page never
-  shows the overlay style in one place and inline in another.
-- **Give every column a minimum width, not just the first.** Constraining only
-  the row-label column and leaving data columns to `table-auto` lets the
-  browser compress them to whatever the shortest cell in that column needs,
-  which is what crowds an inline copy button against its value. Size the
-  row-label column narrower (identifiers, short labels) and every data column
-  to a legible minimum (`matrixdropdown-answer.tsx`'s `DATA_COLUMN_WIDTH_CSS_CLASSES`).
-- **A cell value wraps; it is never a single-line form control.** SurveyJS's
-  own read-only rendering (`/view`) fits noticeably more columns in the same
-  width than an early version of this pattern did, purely because its cells
-  wrap text. An `<Input>` (or anything built on one) can never wrap — the
-  browser always lays it out on one line and either clips it or forces
-  horizontal scroll well before the column has actually run out of room.
-  `text-answer.tsx` is always wrapped plain text (`break-words
-whitespace-normal`) plus inline copy — details view and matrix cells share
-  that layout. `matrixdropdown-answer.tsx` is the reference table caller.
-- **Match shadcn's default table padding to the content density, don't inherit
-  it.** `components/ui/table.tsx`'s `TableHead`/`TableCell` default to a page
-  table's spacing (`px-4`, `p-4`, fixed `h-10`) — appropriate for a paged
-  record list, wasteful for a dense answer grid where every column is
-  competing for width. A matrix table overrides this with a tighter,
-  explicit padding (`matrixdropdown-answer.tsx`'s `DENSE_CELL_PADDING`) and
-  `h-auto` on the header row so a wrapped multi-line title isn't clipped by
-  the inherited fixed height.
-- **Wrap in `overflow-x-auto`, never compress columns below their minimum.** A
-  matrix with many columns scrolls horizontally inside its own card instead of
-  squeezing every column unreadably thin — this matches how SurveyJS's own
-  read-only rendering (`/view`) presents the same data. Getting the two rules
-  above right (wrapping cells, matched padding) is what keeps this the
-  exception rather than the default outcome.
-- **The PDF export follows the same shape, with print-specific width math.**
-  `PdfMatrixTable` (`features/pdf-export/submission/answers/pdf-matrix-table.tsx`)
-  is the one renderer for `matrix` / `matrixdropdown` / `matrixdynamic`. It
-  reserves a fixed row-label column, divides remaining A4 width evenly across
-  data columns (`computeMatrixDataColumnWidth` in `pdf-styles.ts`), and falls
-  back to stacked "label: value" rows when a column would drop below the
-  legible minimum. Do not reintroduce a hardcoded flex ratio per column.
+| Operation                         | Desktop                               | Mobile (`<768px`)       |
+| :-------------------------------- | :------------------------------------ | :---------------------- |
+| Simple create/edit, 1–2 fields    | `Dialog`                              | `Drawer`                |
+| Complex create/edit, 3+ fields    | Right `Sheet`                         | `Drawer`                |
+| Destructive/critical confirmation | `AlertDialog`                         | `AlertDialog`           |
+| Record detail / preview           | Right `Sheet` (or `Dialog` for media) | Full route, or `Drawer` |
 
-### File Answers — thumbnails and the details dialog
+1. Use `ResponsivePanel` — `desktopType="simple"` (Dialog) or `"complex"` (Sheet). If a Dialog
+   scrolls on desktop, it should be a Sheet.
+2. Never `side="bottom"` on a Sheet for mobile — swap to Drawer for Vaul's touch behaviour. Never
+   a Drawer on desktop.
+3. One scrollable body; the footer stays outside it.
+4. Every overlay has an accessible title and description.
+5. **Never stack overlays.** A follow-up form (approve, reject) is a step inside the same panel,
+   not a Dialog over a Sheet: the record disappears behind a scrim and Escape closes the wrong one.
+6. Widen a Dialog with an `sm:` prefix (`sm:max-w-4xl`) — `DialogContent` ships `sm:max-w-lg`
+   and an unprefixed class loses to it.
+7. Every Hub dialog is shadcn — never a SurveyJS popup (§9).
 
-A SurveyJS `file` answer (`features/submissions/ui/answers/file-answer.tsx`)
-renders each upload as a thumbnail tile through `FileViewer` with
-`size="small"` (`file-viewer.tsx`). Uploads arrive in every aspect ratio, from
-phone portraits (9:16) to panoramas and technical drawings (3:1). Reviewers
-use the row to check what was submitted. It is not a gallery, so the tile's
-job is to show the whole file, line up with its neighbours, and lead to the
-details.
+### Buttons, inputs, chips
 
-**The tile**
-
-- **Never crop an upload.** Images use `object-contain`, never
-  `object-cover`. A cropped thumbnail can hide the part a reviewer needs, such
-  as a signature, a measurement or a corner of a document. The same rule
-  holds at every size (`medium` dialog, `large` file page).
-- **Fixed height, width follows the ratio.** Every tile is `h-40`. Its width
-  is the file's natural width at that height, clamped to `min-w-40` /
-  `max-w-72`. A tall 9:16 image sits centred in a 160px-wide tile, and a 3:1
-  image fills 288px with letterboxing above and below. The unused area is
-  `bg-muted`, so the frame edge stays visible whatever the image colours are.
-- **Wrap, don't scroll sideways.** Tiles sit in `flex flex-wrap items-start
-gap-4`. A horizontal `ScrollArea` hides every upload past the fold with no
-  visible cue that more exist, and `items-center` puts each caption at a
-  different height. Top alignment keeps the file names on one line across
-  the row.
-- **Caption: name, then MIME type.** Both are `truncate`d to the tile width,
-  and the name keeps its full value in `title`.
-- **Phones get the width, not the padding.** On the details page the question
-  card is `p-4 sm:p-8` and the answer surface `p-3 sm:p-5`. Desktop padding
-  on a 390px screen left a 168px answer column, which squeezed even a 16:9
-  tile.
-- **Reserve the tile while presigning.** `FileViewerPlaceholder` for `small`
-  is the tile (`h-40 w-40`) plus two caption bars. Lazy thumbnails then load
-  without shifting the question below them.
-
-**Per kind** — one tile shape, the preview inside it changes:
-
-| Kind       | Tile preview                                                                  | Plays / opens in                     |
-| :--------- | :---------------------------------------------------------------------------- | :----------------------------------- |
-| Image      | The image, `object-contain`                                                   | Dialog                               |
-| Video      | First frame (`preload="metadata"`, `#t=0.1`), no controls, centred play badge | Dialog, full `<video controls>`      |
-| Audio      | The inline `AudioPlayer`; a player is already compact                         | Inline; the caption opens the dialog |
-| PDF, other | `FileKindIcon` (`size-8`, muted) over the catalog label (`PDF`, `File`)       | Dialog (`<object>` for PDF)          |
-
-A 160px-tall `<video controls>` leaves no room for the scrubber and volume, so
-the tile only promises the video and the dialog plays it. The file-kind mark
-follows §5 File Type Marks: resolved from the extension through
-`lib/file-kinds`, generic glyph when unknown, never tinted. The tile is the
-one place the mark renders above `size-4`, because it fills a preview frame
-rather than sitting beside a label.
-
-**The details dialog**
-
-- **One button per file.** The whole tile is a `<button>` labelled
-  `View details for <name>`. It opens `SubmissionFileDialog`
-  (`features/asset-storage/use-cases/get-user-file/ui/`), never the raw storage
-  URL. Audio is the exception: its player stays interactive, so the caption is
-  the button.
-- **Same frame as the files list.** The dialog uses `FilePreviewDialog`, the
-  shell the `/files/[fileName]` route modal also uses, and renders the same
-  `SubmissionFileView`: the file at `medium`, then a **File details**
-  `PanelSection` of `SummaryRow`s (Original name when it differs from the
-  stored name, Question, Size) with **Download** and **Open in new tab**.
-- **`ResponsivePanel`, `desktopType="simple"`.** A centred Dialog on desktop
-  (`sm:max-w-4xl`) and a bottom Drawer under `md`, per the Overlay rulebook. A
-  preview is not a form, but it is still read on a phone, and Vaul's swipe to
-  dismiss beats a small close button there. Widen through
-  `dialogContentClassName` with the `sm:` prefix: `DialogContent` ships
-  `sm:max-w-lg`, and an unprefixed `max-w-4xl` loses to it.
-- **The header names the file.** The panel title is the file name and the
-  description is the MIME type, so `SubmissionFileView` renders with
-  `showCaption={false}` and `shownName`. The details then drop the Original
-  name row that would repeat the title and show **Stored as** (the storage
-  name, which the files list uses) instead.
-- **The preview never pushes the details off-screen.** At `medium` the image
-  is capped at `max-h-[min(55vh,40rem)]`, so a tall 9:16 upload still leaves
-  File details and the actions in view on a desktop dialog, and in reach of
-  one scroll in the phone drawer.
-- **Sign when the reader acts, not when the page loads.** Private read tokens
-  expire, and a details page can stay open longer than they last. A link
-  signed at page load then fails with 401 when someone clicks it later. So:
-  - Every dialog open fetches `GET /api/hub/v0/storage/submission-files/{formId}/{submissionId}/{fileName}`
-    (`cache: no-store`) for a freshly signed URL and the stored metadata.
-    Reopening the same file signs again.
-  - **Download** already signs per click (`…/download-url`).
-  - A thumbnail that fails to load calls `refresh()` from
-    `usePrivateStorageDisplayUrl`. That evicts the cached presigned URL and
-    signs once more. It retries once per file (`file.content`), because each
-    re-sign is a new URL and a deleted file must not loop.
-  - Never put a presigned URL in an `href` that outlives the view that
-    signed it.
-- **Files outside submission storage still open.** Inline `data:` values and
-  external URLs cannot be looked up by (formId, submissionId, fileName)
-  (`parseSubmissionFileUrl` returns null). The dialog shows the plain preview
-  without the details panel, and it does the same if the lookup fails.
-
-**File answers in the PDF export**
-
-The PDF (`features/pdf-export/submission/answers/pdf-file-answer.tsx`,
-`pdf-file-viewer.tsx`) keeps the tile's promises in print. Keep these:
-
-- **Images share rows, never overlap, never split.** `packPdfImageRows` packs
-  images into rows that share one height (at most 200pt), keeping every
-  image's ratio. A wide photo takes a row by itself; portraits sit side by
-  side. Each row is `wrap={false}`, so a row moves to the next page whole.
-  The question title uses `minPresenceAhead` so it moves with its first row
-  instead of being stranded at the bottom of a page.
-- **Images are embedded downscaled.** `downscale-pdf-images.ts` limits the
-  longest edge to 1200px, so ten phone photos do not produce a 50MB PDF.
-  Sources over 20MB are skipped (original URL kept). Work runs a few at a
-  time. Nested file questions inside `paneldynamic` are included
-  (`getAllQuestions(false, false, true)`), matching what the PDF renders.
-- **Captions stay on one line.** Name and MIME type use `maxLines: 1` with
-  ellipsis so a long name cannot grow past the fixed caption height and
-  overlap the next row.
-- **The title sits on its answer.** File answers run full width, so their
-  title is left-aligned above the images (`PdfQuestionLabel align="left"`).
-  The right-aligned label belongs to the two-column label/answer rows only.
-- **Other files are compact cards, two per row.** Each card shows the
-  file-type icon, the name, the MIME type and one explicit **Open file**
-  link, at half the answer width (`PDF_FILE_CARD_WIDTH`). Pairs are
-  `wrap={false}` rows, like the image rows.
-- **Links never expire for Hub users.** A PDF is kept and forwarded long after
-  the 15-minute read token has lapsed. `attach-pdf-file-links.ts` stamps
-  `pdfLink` on each file before downscaling:
-  - A Hub-authenticated export links to the Hub file page
-    (`/forms/{formId}/submissions/{submissionId}/files/{fileName}`), which
-    signs a fresh URL on every open. Images link there too, so the
-    full-resolution original is one click from the embedded copy.
-  - A share-link (`anonymous-token`) export keeps the signed storage URL,
-    because its reader may have no Hub account. Such a file is marked
-    `pdfLinkIsTemporary`, and the answer ends with one muted line saying the
-    links stop working shortly after export.
-  - Inline `data:` files get no link.
-
-### Buttons
-
-- **Primary:** Background `primary`, text `on_primary`. High-contrast, no shadow.
-- **Secondary:** Background `secondary_container`, text `on_secondary_container`.
-- **Tertiary (Ghost):** No background, `primary` text. Use for low-emphasis actions.
-
-### Input Fields
-
-- **Logic:** Inputs should use `surface_container_low` backgrounds. On focus, transition the "Ghost Border" from 15% to 100% opacity using the `primary` color.
-- **Labels:** Always use `label-md` in `on_surface_variant`.
-
-### Chips & Tags
-
-- **Data Status:** Use `tertiary_container` for neutral data tags. Use `error_container` for alerts.
-- **Shape:** Use `rounded-full` to distinguish tags from interactive buttons.
-
-### Status & State Vocabulary
-
-Status is the single most-copied inconsistency in this codebase: the same idea
-("this is on") ends up rendered as a filled primary pill on one screen, a grey
-pill with a check icon on the next, and bare text on a third. Screens that show
-state must use **one vocabulary**, and it is this one.
-
-**Three tones. There is no fourth.**
-
-| Tone        | Meaning                                                   | Badge variant | Example labels                         |
-| :---------- | :-------------------------------------------------------- | :------------ | :------------------------------------- |
-| `on`        | Present / active / healthy                                | `success`     | Configured, Set, On, Enabled, Active   |
-| `off`       | Absent or inactive, **and that is a legitimate state**    | `secondary`   | Not set, Off, Disabled, Inactive       |
-| `attention` | Required, and missing — the operator has something to fix | `warning`     | Not configured, Expired, Action needed |
-
-`destructive` is reserved for a state that is actively failing or for confirming
-a destructive action. Never use it for "empty".
-
-**Rules:**
-
-1. **Tone carries meaning, not iconography.** All three tones render as the same
-   pill with a leading `size-1.5 rounded-full bg-current` dot. Do not give one
-   state a check icon and its sibling no icon — differing shapes read as
-   differing _kinds_ of information, which is exactly the inconsistency this
-   section exists to kill. The one carve-out is a **file type mark**, which
-   describes what a thing _is_ rather than how it is doing — see File Type Marks
-   below.
-2. **Status badges are soft-tinted** (`bg-success/12 text-success`), never solid
-   fills. Solid `default` (primary) is reserved for high-intent actions, per the
-   Tonal Hierarchy. A page full of solid blue "Enabled" pills spends the brand's
-   action color on read-only information.
-3. **One label per state per page.** Pick "Enabled/Disabled" _or_ "On/Off" for a
-   given concept and use it everywhere that concept appears.
-4. **Never mix a status badge and a literal value in the same visual slot
-   inconsistently.** Within a section, either every row's value column holds a
-   badge or every row holds a literal — mixing is fine only when the row _kinds_
-   genuinely differ (a flag vs. a URL), and then the literal must be monospace
-   so the two are obviously different types.
-5. Encode the vocabulary in a component — `components/common/status-badge.tsx`
-   (`StatusBadge`) — rather than re-deriving badge variants at each call site. If
-   you find yourself writing `variant={x ? "default" : "secondary"}` inline, reach
-   for the shared component instead. It is deliberately shared rather than
-   per-feature: the same `On` / `Off` state appears in a table cell, a panel
-   header and a review step, and three copies drift into three shapes.
-
-### File Type Marks — `FileKindIcon`
-
-A status tone answers "how is this doing?"; a file type mark answers "what will
-I get?" They are different questions, so the file mark is allowed the icon that
-the Status Vocabulary denies to status — but only under the same discipline that
-keeps status consistent.
-
-`lib/file-kinds/` is the single catalog of physical file kinds: extension, MIME
-type, human label and group (`data`, `document`, `image`, `audio`, `video`,
-`archive`). `components/common/file-kind-icon.tsx` turns a kind into the mark:
-`FileKindIcon` for the glyph alone, `FileKindLabel` for the icon+label row that
-a picker, a menu item or a table cell renders.
-
-**Rules:**
-
-1. **Every option in a list gets a mark, or none of them do.** A menu with a
-   file icon on two rows and a generic `Download` on the rest reads as two kinds
-   of action. If one export option earns an icon, they all do.
-2. **The mark is muted and uniform** — `size-4 text-muted-foreground`, owned by
-   the component. Do not tint it by format; the colour channel belongs to
-   status, and a green CSV next to a blue JSON invents a meaning neither has.
-3. **Never guess a kind.** `FileKindIcon` with no `kind` renders the generic
-   file glyph. A format this build does not recognise must not borrow another
-   kind's icon — showing a spreadsheet glyph for something that downloads as
-   JSON is worse than showing nothing specific. Resolvers therefore return
-   `FileKindKey | undefined`, not a defaulted icon.
-4. **Resolve the kind, not the icon.** Feature code maps its own vocabulary to a
-   `FileKindKey` (`features/export/utils.ts` maps reporting wire keys and the
-   delivery enum); the component owns which Lucide glyph, at what size, in what
-   tone. A feature that returns a `LucideIcon` has taken a design decision into
-   a data layer, and the next feature will take a different one.
-5. **Prefer the more specific source, fall back to the coarser one.** An export
-   format carries both a wire key (`csv-shoji`) and a delivery enum (`Csv`); the
-   wire key wins, and the enum keeps a server-side format newer than this Hub
-   build on the right glyph instead of on the fallback.
-6. **The catalog stays server-safe.** `lib/file-kinds/index.ts` deliberately
-   does **not** re-export the icons: the catalog is imported by route handlers
-   and other server code, and the icon map pulls in `lucide-react`. Import
-   glyphs from `@/components/common/file-kind-icon`, and the icon map itself
-   only from `lib/file-kinds/file-kind-icons`.
-7. **Same format → same label.** Create-format delivery options, settings table
-   type cells, default picker, and legacy menus must show one string for a
-   given kind (e.g. `FILE_KINDS.xlsx.label` = `Excel (XLSX)`). Do not special-case
-   `${label} (${ext})` in one surface while another uses the catalog label.
-   When `SelectItem` children are a `FileKindLabel` (non-string), set `textValue`
-   to that same visible label for typeahead / accessible name.
-
-### Overlay Interaction Rulebook
-
-Use one consistent information architecture for overlays. Prefer the shared `ResponsivePanel` wrapper for create/edit flows so desktop and mobile behavior stay aligned.
-
-- **Dialog:** Blocking, focused interactions only. Use for destructive confirmations, important warnings, and tiny forms with 1-2 fields. If it scrolls on desktop, it does not belong in a Dialog.
-- **AlertDialog:** Destructive or critical confirmations such as deleting, removing access, or revoking invitations. Keep this centered on desktop and mobile unless a flow explicitly needs mobile Drawer ergonomics.
-- **Sheet:** Desktop-only right slide-over for complex create/edit forms, record details, and dense configuration. Use when preserving page context is useful.
-- **Drawer:** Mobile-only bottom overlay for touch ergonomics. Under Tailwind `md` (`<768px`), Dialog and Sheet flows should generally become Drawers.
-
-| Operation Type                    | Desktop       | Mobile (`<768px`)                              |
-| :-------------------------------- | :------------ | :--------------------------------------------- |
-| Simple create/edit, 1-2 fields    | `Dialog`      | `Drawer`                                       |
-| Complex create/edit, 3+ fields    | Right `Sheet` | `Drawer`                                       |
-| Destructive/critical confirmation | `AlertDialog` | `AlertDialog`                                  |
-| Deep linked detail view           | Right `Sheet` | Full page route, or `Drawer` for short details |
-
-Implementation rules:
-
-1. Use `ResponsivePanel` with `desktopType="simple"` for tiny forms and `desktopType="complex"` for multi-field forms.
-2. Do not change a Sheet to `side="bottom"` on mobile; swap to Drawer to get Vaul's native touch behavior.
-3. Keep one scrollable body inside the overlay and keep the footer outside that scroll area.
-4. Every Dialog, Sheet, and Drawer must include an accessible title and description.
-5. Do not use Drawers on desktop; bottom drawers are poor mouse ergonomics on wide screens.
+- **Buttons:** primary (`primary` / `on_primary`, no shadow) for the one high-intent action;
+  secondary (`secondary_container`); ghost (`primary` text) for low emphasis; `destructive` only
+  to commit something final. A trailing ellipsis (`Reject…`) means "asks for more before it acts".
+  Spinners belong on action buttons, never list rows.
+- **Inputs:** `surface_container_low` fill; on focus the ghost border goes from 15% to 100%
+  `primary`. Labels `label-md` in `on_surface_variant`.
+- **Chips / tags:** `rounded-full` to distinguish from buttons; `tertiary_container` for neutral
+  data tags. Status tags are `StatusBadge`.
 
 ---
 
-## 6. Page Patterns
+## 6. UX Patterns & Page Recipes
 
-Component rules alone do not produce a consistent product; recurring _page
-shapes_ do. When you build a page, find its shape here first.
+Cross-cutting patterns first; recipes after them only add what is specific to their shape.
 
-### Read-only settings & configuration pages
+### Displaying values
 
-Pages whose job is "let an operator review resolved configuration" — Admin →
-Environment, Auth, Storage, Email. Reference implementation:
-`features/platform-admin/view-environment-settings/ui/`.
+- **Align label → value.** Label left, value right-aligned into one scannable column
+  (`SummaryRow`, or `dt`/`dd` with `justify-end text-right`). Put label/value rows in a
+  `.grid-card-list` — a full-width card puts a two-word label ~1000px from its value.
+- **Never truncate a value the reader came to read.** Wrap it (`break-all` for ids/URLs/emails,
+  `break-words whitespace-normal` for prose). Truncate only secondary text, with the full value in
+  `title`.
+- **Unset ≠ empty.** Never configured → `—` with `sr-only` "Not set". Resolved to an empty string →
+  `(none)`. An optional field left empty → `—`.
+- **Show the source key as text, not in a tooltip.** On configuration pages the env var or setting
+  name is a `font-mono text-xs text-on-surface-variant` sub-label under the human label — on
+  every row, secrets included. A row of `CircleHelp` icons is noise standing in for design.
+- **Literal values are monospace.** Nested detail rows indent `pl-4` in `text-xs
+text-muted-foreground` — no left-border rule.
+- **A value keeps its type everywhere** — a state is a `StatusBadge`, a language a `LocaleLabel`,
+  a format a `FileKindLabel`, an id a `TruncatedId`.
+- **Omit what cannot apply** rather than showing it empty.
+- **Dense grids** (read-only matrix answers, `matrixdropdown-answer.tsx`): every column gets a
+  minimum width, cells wrap (never a single-line `<Input>`), padding is tightened for the density
+  instead of inherited from page tables, header rows are `h-auto`, and the grid scrolls in
+  `overflow-x-auto` rather than compressing columns. The PDF equivalent (`PdfMatrixTable`) splits
+  width evenly and falls back to stacked rows.
+- **Secrets:** never render a secret value, even masked — show presence (`Set` / `Not set`) and say
+  so in the section description. But decide what is secret **by where the value already goes**:
+  if it is a `ClientEndatixConfig` field it is already in every page's HTML, so show it (reCAPTCHA
+  site key, PostHog project key). Hiding a public value costs the operator the one fact they came
+  for.
 
-**Anatomy, top to bottom:**
+### Controls & consequences
 
-1. **`PlatformAdminShell`** — eyebrow, `headline` title, one-sentence purpose,
-   `Separator`. Never hand-roll a page header in this area.
-2. **Overview strip** — one full-width card answering _"is anything wrong?"_
-   before the reader scrolls. Keep it to a single runtime fact plus one rollup
-   badge (e.g. `3 of 4 configured`) and, when relevant, a plain-text list of
-   what is missing. This is a summary bar, **not** a stat/KPI dashboard — do not
-   grow it into a row of metric tiles on a page nobody visits for metrics.
-3. **Section cards in a `.grid-card-list`** (see §5) — give cards `h-full` so a
-   row's cards share a height. Multi-column is the default, not full width: a
-   full-width card puts a two-word label and a small badge ~1000px apart and
-   destroys the label→value association. The grid reflows from one column on a
-   phone to four on an ultrawide with no breakpoints of its own. Only span a
-   card full width when its content genuinely needs the measure (a table, a
-   long-form form) — the overview strip in step 2 is the usual exception.
-4. **Rows on a nested surface** — `dl` with `grid gap-4 rounded-lg bg-muted/40 p-4`
-   inside `CardContent`. The tonal shift is the boundary; no dividers, per §4.
+- **A control that cannot take effect is disabled, with one `text-xs text-muted-foreground` line
+  saying when it applies.** Not hidden (the panel jumps), not silently inert.
+- **Warn only about a reachable risk.** A warning that cannot come true teaches readers to ignore
+  warnings.
+- **State the consequence once**, as one closing `Alert` — never a warning per field.
+- **Immutability belongs on the field it constrains** (a `Locked` badge + one line), not in the
+  panel description.
+- **State lives in the section header.** An on/off section shows a `StatusBadge` in its `aside`;
+  the switch sets it, the badge reports it.
+- **Prefill what can be suggested, and say where it came from** ("Suggested from the company name").
+- **A required free-text reason** has its API limit as `maxLength`, a visible `n / max` counter, and
+  a description saying who will read it.
+- **Errors land where they belong.** Field validation under the field (`aria-invalid`,
+  `aria-describedby`); anything else a `destructive` Alert at the top, with the form keeping its
+  values.
+- **`Back`, not `Cancel`,** on a step whose record is still open behind it.
+- **Show the outcome in place; don't toast and close** when the result is a record the user needs
+  to see (a toast disappears; the updated record is the proof).
 
-**Row anatomy** (`ConfigRow`):
+### View choices vs edits
 
-- Label left as `dt`, value right as `dd` with `justify-end text-right`, so all
-  values in a section align into one scannable column.
-- **Show the source key, do not hide it in a tooltip.** On a page for reviewing
-  environment configuration, the env var name is the operator's primary key —
-  it renders as a `font-mono text-xs text-on-surface-variant` sub-label
-  under the human label. A row of `CircleHelp` icons that each reveal one word
-  is icon noise standing in for information design.
-- Literal values are monospace and **wrap rather than truncate** (`break-all`).
-  Never truncate a value the reader came to read.
-- **Unset and empty are different answers.** A setting that was never configured
-  renders `—` (with an `sr-only` "Not set"); one that resolved to an empty
-  string renders `(none)`. Collapsing both to an em dash tells an operator their
-  deliberately-empty prefix is missing, and sends them to fix a non-problem.
-- **Show the key even for values you are hiding.** Env var sub-labels appear on
-  every row, including secret rows — the operator still needs to know which
-  variable to set.
-- Copy affordance rule: any value an operator might paste into a config file
-  gets a `CopyToClipboard layout="inline"`. Enum-ish values (`development`,
-  `/api`) do not. Apply the rule consistently within a page — a copy button on
-  one URL and not the next reads as a bug.
-- Nested detail rows indent with `pl-4` and drop to `text-xs text-muted-foreground`.
-  Do **not** use a left border rule to express nesting.
+A control that changes how a record is _read_ (label language on a submission) must never be
+mistaken for an edit. Reference: `features/submissions/ui/details/label-language.tsx`.
 
-**Secrets:** never render a secret value, even masked. Render presence only,
-through the same status vocabulary as everything else (`Set` / `Not set`), and
-say so in the section description.
+- **One control, on the fact it re-reads** (the metadata card's Language cell, same badge dropdown
+  shape as its neighbours so the row does not jump). Never repeated in toolbars or dialogs.
+- **The menu says what it changes:** a `DropdownMenuLabel` ("Show labels in") and a
+  `DropdownMenuRadioGroup`; mark the stored value (muted `Submitted` suffix).
+- **No choice, no control** — a single option renders as plain, named text.
+- **Diverging from the record is `info`, never `warning`:** one `Alert variant="info"` strip,
+  `role="status"`, naming **both** values, with a one-click way back ("Show in Spanish"). Solid
+  `warning` is for facts about the record itself (a test submission).
+- **Say concretely what did not change** ("Answers are exactly as submitted in Spanish").
+- **Downstream flows follow the view and confirm it** (Export PDF, share link show the choice via
+  `LocaleLabel`) — they never offer a second picker.
 
-**But first decide what is actually secret — by where the value already goes,
-not by how secret it sounds.** A key this app serialises into the HTML of every
-public page is not a secret, and hiding it on an admin page costs the operator
-the one thing the page is for — confirming _which_ key is live — while
-concealing nothing that is not already in the page source. The test is
-mechanical: **if the field is a member of `ClientEndatixConfig`, show its
-value.** A reCAPTCHA _site_ key and a PostHog _project_ key are public by
-design; the SurveyJS Creator licence never reaches a browser and is the genuine
-secret. Reaching for `Set` / `Not set` on a public value is security theatre
-that degrades the page.
+### Counts, time and audit
 
-### Create / edit overlays
+- **A count that failed to load shows no number** — never `0`, which claims "empty".
+- **The same destination has one title, one icon and one count source** across sidebar, dashboard
+  card and page.
+- **Label times honestly.** If the API records no event time, label the closest fact (`Last
+updated`, from `modifiedAt`). Never invent timeline events.
+- **Who is a person, not an id.** Resolve actors to names best-effort; when unknown, show `Admin` +
+  `TruncatedId` — the id never disappears.
+- **Why is shown verbatim, in full** — a quoted block (`bg-surface-container-lowest`,
+  `whitespace-pre-wrap`), never truncated.
 
-Panels that _change_ something — the tenant wizard, the edit sheet. Reference
-implementation: `features/platform-admin/create-tenant/ui/create-tenant-panel.tsx`
-and `features/platform-admin/update-tenant/ui/edit-tenant-sheet.tsx`.
+### Time-limited links
 
-A settings page answers "what is true?"; an overlay asks "what do you want to be
-true?" The anatomy is the read-only one turned inside out — the same masthead and
-the same status vocabulary, but the rows are controls.
+- **Sign when the reader acts, not when the page loads.** Fetch a fresh signed URL on open or
+  download (`cache: no-store`); a failed thumbnail re-signs once. Never put a presigned URL in an
+  `href` that outlives the view that signed it.
+- **Exports outlive tokens.** A Hub-authenticated PDF links to the Hub page that signs on open; a
+  share-link export (reader may have no account) keeps the signed URL and says once, muted, that
+  links expire shortly.
 
-**Anatomy, top to bottom:**
+### Files & media
 
-1. **Panel header** — title plus a one-sentence description of the _current step_,
-   not of the whole flow.
-2. **`PanelSteps`** (multi-step only) — the progress track, first thing in the body.
-3. **`PanelSection`s** — one per concern, each with an icon, a title, an optional
-   description, and an optional `aside` for status. This is the panel counterpart
-   of `ConfigSection`: same masthead, but on a nested surface
-   (`bg-surface-container-low`) instead of a `Card`. A panel is already a raised
-   surface, so a Card inside one stacks two elevations to express one boundary.
-4. **A closing `Alert`** when the step has a consequence worth stating once —
-   never one per field.
+- **Never crop an upload** — `object-contain` on `bg-muted`, at every size. A crop can hide the
+  signature or measurement the reviewer needs.
+- **Fixed height, width follows ratio** (clamped), so mixed aspect ratios line up.
+- **Wrap, don't scroll sideways** (`flex flex-wrap items-start`) — a horizontal scroller hides
+  uploads with no cue; top alignment keeps captions on one line.
+- **Caption:** name then MIME type, both truncated (name in `title`) — captions are secondary.
+- **Reserve the space while loading** so lazy content does not shift the page.
+- **The tile promises, the dialog delivers** — a video tile shows its first frame; playback and
+  details happen in the dialog.
+- **Print keeps the same promises:** never crop, keep a row of images together (`wrap={false}`),
+  keep a title with its first row, embed downscaled copies, single-line captions.
 
-**Rules:**
+### Recipe: list page
 
-- **A section owns its own surface.** Components like `TenantAccessFields` render
-  their own `PanelSection`; call sites do not wrap them in a tinted `div`. When the
-  wrapper lives at the call site, two panels showing the same section drift apart —
-  which is exactly how one of ours ended up with a titled block on one screen and
-  an untitled tinted box on the other.
-- **Icons mark sections, not fields.** One icon per `PanelSection` masthead. An
-  icon on individual labels is the "row of `CircleHelp`" noise §6 already rejects.
-- **State gets a badge, in the section header.** A section whose subject is on/off
-  puts a `StatusBadge` in `aside`, so the state is legible before the reader parses
-  the control. The switch sets it; the badge reports it.
-- **A control that cannot take effect is disabled, and says why.** A default-role
-  picker under a self-registration toggle that is off changes nothing when used.
-  Disable it and add one line of `text-xs text-muted-foreground` saying when it
-  applies. An enabled control that silently does nothing is worse than a disabled
-  one, and hiding it makes the panel jump.
-- **Warn about a risk only when the risk is reachable.** The "this role can sign in
-  to Hub" warning is suppressed while self-registration is off, because no account
-  can be granted that role. A warning that cannot come true teaches the reader to
-  ignore warnings.
-- **Immutability is a property of the field, not a footnote in the header.** Put it
-  on the section it constrains — a `Locked` badge plus one line of explanation —
-  rather than in the panel description where it is read once and forgotten.
-- **Alert tone follows the Status Vocabulary.** `info` for a consequence,
-  `warning` for a risk the operator is choosing, `success` for a completed write,
-  `destructive` for a failure. Do not use `info` for a security-relevant choice.
+Title + description + primary action above a `DataTableSurface`; toolbar (search, filters, Reset)
+in `DataTableToolbar`; titled empty state; `PagedTableFooter`. Reference:
+`features/platform-admin/list-tenants/`.
 
-**Multi-step flows (`PanelSteps`):**
+**Review queue** — a list whose items each wait for a decision. Reference:
+`features/platform-admin/list-signup-requests/`.
 
-- Show the track, do not narrate it. "Step 2 of 3 — Access" inside the description
-  tells the reader where they are only after they read the prose, and never tells
-  them what is ahead or what they already settled.
-- Label steps with nouns (`Identity`, `Access`, `Confirm`), and keep the labels
-  identical to the section titles they lead to.
-- **The last step is a review, and it is built from `SummaryRow`.** Label left,
-  value hard right, values aligned into one column — the `ConfigRow` anatomy from
-  §6. Every value keeps the type it has elsewhere: a state renders as the same
-  `StatusBadge` the list uses, not as the bare word `Off`.
-- An unset optional value renders `—` with an `sr-only` "Not set", per §6.
-- Omit a row that cannot apply rather than showing it as empty — a default role is
-  not part of the summary when self-registration is off.
-- **The terminal step is an outcome, not a fourth form step.** Drop the track,
-  lead with a `success` Alert naming what was created, and give the reader the one
-  artefact they came for (here, the sign-in URL).
+- **Open on the work.** The default filter is the undecided subset; it is the URL default, never a
+  parameter and never counted as an active filter. The filter `Select` lists it first, closed
+  states after, `All statuses` last.
+- **Decision states use the status vocabulary:** waiting `attention`, accepted `on`, declined `off`.
+- **One row badge, the most urgent fact** — the decision, unless the process behind it needs the
+  reviewer (`Setup failed`, `attention`) or is still running (`Setting up`, `off`). The panel shows
+  both.
+- **Columns appear when they have data** ("Decided by" hidden on the pending view).
+- **One entry point per row, never decision buttons in the row.** `Review` (secondary) when there
+  is something to do, `View` (ghost) when closed; both open the Review-and-decide panel.
+- **Say only what the page can do** — the description names shipped actions only.
 
-### Tenant settings pages
+### Recipe: review and decide
 
-Pages under `app/(main)/settings/…` where an operator both reviews _and_
-changes tenant configuration. Reference implementation:
+Any record awaiting a human decision with an audit trail (signup requests today; access requests,
+approvals, refunds tomorrow): **review → decide → outcome** in one `ResponsivePanel`
+(`desktopType="complex"`). Reference: `features/platform-admin/review-signup-request/`.
+
+1. **Header** — the record's identity as title; what it is and when it arrived as description.
+2. **At most one status strip** — the result of what the reviewer just did, otherwise a standing
+   problem. Never two.
+3. **`PanelSection`s in the order the record lived:** _Request_ (what was submitted; carries the
+   state badge only while undecided) → _Decision_ (who, when, why, badge in `aside`) →
+   _Downstream process_ (what the decision produced, its badge, a link to where it now lives).
+4. **Footer** — only the next step the record allows (`Reject…` outline + `Approve…` default while
+   undecided, `Retry …` after a failed process, `Check again` while running, nothing when closed).
+
+- **Decide steps are steps in the same panel**, each with `Back`. The positive commit is
+  `default`; a rejection commit is `destructive` because it is final. The form states its
+  consequence once (what gets created, who is notified, that the decision is recorded under the
+  reviewer's name and cannot be undone). A rejection reason is required and says who reads it.
+- **Outcome:** return to the review step showing the updated record, the strip naming what
+  happened (`success` / `destructive` if a process failed / `info` while running), and the
+  reviewer's own name in the Decision section.
+- **A retry is not a new decision** — it records no new decider.
+- **One state mapping in one file** (`describe*`, e.g. `signup-request-state.ts`) owns decision →
+  tone, process → tone, the row badge and the allowed next step. Grid and panel both read it, so a
+  `Setup failed` row always opens on a panel offering `Retry`.
+
+### Recipe: read-only settings page
+
+"Let an operator review resolved configuration" (Admin → Environment, Auth, Storage, Email).
+Reference: `features/platform-admin/view-environment-settings/ui/`.
+
+1. **`PlatformAdminShell`** — eyebrow, headline, one-sentence purpose, `Separator`. Never
+   hand-rolled.
+2. **Overview strip** — one full-width card answering "is anything wrong?": one runtime fact, one
+   rollup badge (`3 of 4 configured`), a plain list of what is missing. Not a KPI dashboard.
+3. **Section cards in `.grid-card-list`**, `h-full`. Full width only for content that needs the
+   measure (a table, a long form).
+4. **Rows on a nested surface** — `dl` with `grid gap-4 rounded-lg bg-muted/40 p-4`, following
+   Displaying values.
+
+### Recipe: tenant settings page (review and change)
+
+Pages under `app/(main)/settings/…`. Reference:
 `features/export/manage-export-formats/ui/export-formats-settings.tsx`.
 
-**Anatomy, top to bottom:**
+1. **Masthead** — `h1.text-3xl.font-semibold.tracking-tight` + muted one-sentence purpose in
+   `page.tsx` (a `SettingsPageHeader` waiting to be extracted — do that as its own change).
+2. **A `Card` per standalone control**, the control constrained (`max-w-md`).
+3. **A list section per collection** (list-page recipe, no `Card` around it).
+4. **Create/edit via `ResponsivePanel`, delete via `AlertDialog`.**
 
-1. **Page masthead** — `h1.text-3xl.font-semibold.tracking-tight` plus a muted
-   one-sentence purpose, in the route's `page.tsx`. Every settings page repeats
-   this shape; match it rather than inventing a heading scale. (It is a
-   `SettingsPageHeader` waiting to be extracted — do that as its own change, not
-   as a side effect of a feature.)
-2. **A `Card` per standalone control** — a single setting with a sentence of
-   explanation, e.g. the tenant default export format. Constrain the control
-   (`max-w-md`); a select stretched across an ultrawide reads as an error.
-3. **A list section per collection** — `h2.text-lg` + muted description + the
-   primary action on the right, then a `DataTableSurface` beneath. Not inside a
-   `Card`; see List Tables in §5.
-4. **Create / edit through `ResponsivePanel`**, delete through `AlertDialog`,
-   per the Overlay Interaction Rulebook.
+A row's identity column carries the name plus inline state badges (`Default`), not a name stacked
+over a pill.
 
-**Rules:**
+### Recipe: create / edit overlay
 
-- A row's identity column carries the name plus any state marks (`Default`) as
-  a `StatusBadge`, wrapping inline — not a stack of a name over a pill.
-- A row that names a deliverable carries its `FileKindLabel`, and so does every
-  picker that selects one. The same format must look the same in the settings
-  table, in the tenant-default picker and in the export dialog; these three
-  drifting apart is how the vocabulary rots.
+A settings page asks "what is true?"; an overlay asks "what do you want to be true?" — same
+masthead and vocabulary, rows become controls. References:
+`features/platform-admin/create-tenant/ui/create-tenant-panel.tsx`,
+`features/platform-admin/update-tenant/ui/edit-tenant-sheet.tsx`.
 
-### View-only choices on a record page
+1. **Header** — title + one sentence describing the _current step_.
+2. **`PanelSteps`** (multi-step only) — the progress track, first in the body.
+3. **`PanelSection` per concern** — icon, title, optional description, optional `aside` for
+   status, on `bg-surface-container-low`. One icon per section, none on fields.
+4. **Closing `Alert`** when the step has a consequence worth stating.
 
-Some controls change how a record is _read_ without changing the record — the
-label language on a submission is the reference case
-(`features/submissions/ui/details/label-language.tsx`, mounted by the metadata card). The risk is that a
-reader mistakes a view choice for an edit ("did I just change the respondent's
-language?"). The pattern exists to rule that out.
+- **A section owns its own surface.** Shared field groups (`TenantAccessFields`) render their own
+  `PanelSection`; call sites never wrap them in a tinted `div`.
+- **Multi-step:** show the track, don't narrate "Step 2 of 3". Step labels are nouns matching the
+  section titles. The last input step is a **review built from `SummaryRow`**. The terminal step
+  is an outcome, not a form: drop the track, lead with a `success` Alert naming what was created,
+  and hand over the one artefact the user came for (e.g. the sign-in URL).
 
-**Rules:**
+### Recipe: file answers
 
-- **One control, on the fact it re-reads.** The label-language picker lives in
-  the metadata card's Language cell, as the same badge dropdown as Status, so
-  the row does not change height. It is not repeated in the answers toolbar or
-  in dialogs.
-- **The menu says what it changes.** Open with a `DropdownMenuLabel`
-  ("Show labels in") and use `DropdownMenuRadioGroup`, not action items. Mark
-  the stored value in the list (a muted `Submitted` suffix) so the reader can
-  always find the way back.
-- **No choice, no control.** With one option (a single-language survey), render
-  the value as plain text — still name it, so the reader knows which it is.
-- **Diverging from the record is `info`, never `warning`.** When the view no
-  longer matches the stored value, show one `Alert variant="info"` strip at the
-  top of the card that names **both** values and offers the one-click way back
-  (`Show in Spanish`). Use `role="status"`, not `alert` — the reader caused the
-  change. Solid `warning` is reserved for facts about the record itself (a test
-  submission); reusing it for a view choice makes both strips mean nothing.
-- **Say what did not change, concretely.** "Answers are exactly as submitted in
-  Spanish" beats "Answers are unchanged" — unchanged from what?
-- **Exports follow the view; they do not re-ask.** Export PDF and the PDF share
-  link use the language chosen on the page. The share dialog **confirms** it in
-  the row's description (`LocaleLabel`) instead of offering a second picker; two
-  pickers for one choice drift, and the reader cannot tell which one won.
-- **Languages always render through `LocaleLabel`** — trigger, menu item,
-  dialog copy — so `Spanish es` looks the same everywhere. Its code inherits
-  the surrounding colour at reduced opacity; never tint it with a token, which
-  broke contrast on the grey badge in dark mode.
+A SurveyJS `file` answer (`features/submissions/ui/answers/file-answer.tsx`) follows Files &
+media: `FileViewer size="small"` tiles (`h-40`, `min-w-40`–`max-w-72`), per-kind preview (image;
+video first frame + play badge; inline `AudioPlayer`; `FileKindIcon` + label for PDF/other).
 
-### Review queues
+- **The whole tile is one button** (`View details for <name>`) opening `SubmissionFileDialog` —
+  never the raw storage URL. Audio's player stays interactive, so its caption is the button.
+- **The dialog shares the files-list frame** (`FilePreviewDialog` + `SubmissionFileView`):
+  `ResponsivePanel desktopType="simple"` widened to `sm:max-w-4xl`, title = file name,
+  description = MIME type, preview capped at `max-h-[min(55vh,40rem)]` so **File details**
+  (`PanelSection` of `SummaryRow`s: Stored as, Question, Size) and **Download** / **Open in new
+  tab** stay in view.
+- Files outside submission storage (`data:` values, external URLs) open the plain preview without
+  the details panel; so does a failed lookup.
+- PDF export: `features/pdf-export/submission/answers/pdf-file-answer.tsx` (image row packing,
+  downscaling, link stamping in `attach-pdf-file-links.ts`).
 
-A review queue is a list of requests that each wait for a decision. Admin →
-Signup Requests is the reference case
-(`features/platform-admin/list-signup-requests/`). It is a list page (§5 List
-Tables), and the rules below cover what a queue adds on top.
+### Recipe: public status pages
 
-**Rules:**
+Every page a **non-Hub reader** sees instead of what they came for — a respondent on `/share` or
+`/embed`, a `/view` / `/edit` link recipient, a failed PDF export. Rendered by `PublicStatusPage`;
+inventory and wiring rules: `components/public-status/README.md`.
 
-- **Open on the work.** The default filter is the subset that still needs a
-  decision (`pending`). It is the URL default, so it never appears as a
-  parameter and never counts as an active filter for Reset. The filter `Select`
-  lists that subset first, the closed states after it, and `All statuses` last.
-- **Decision states use the Status Vocabulary.** Waiting for a decision is
-  `attention`, accepted is `on`, and declined is `off`. A declined request is a
-  legitimate outcome, not a failure, so it never takes `destructive`.
-- **The empty state names the filter.** "No requests waiting for a decision"
-  tells the reviewer the queue is clear. "No signup requests" on a pending-only
-  view reads as if nothing was ever submitted. It follows the §5 empty-state
-  rules: `Inbox` icon, and "Show all requests" as the way to the wider view.
-- **The requester's identity is the value being read.** Wrap it with
-  `break-all`; never `truncate` it (§6: never truncate a value the reader came
-  for). An optional field that was left empty renders `—` with an `sr-only`
-  "Not set".
-- **Say only what the page can do.** The page description names the actions
-  the page offers today, and nothing that has not shipped.
-- **Name the requester, not the columns.** The identity column is the email
-  over the company, stacked like the tenants name column, and it is a button
-  that opens the review panel. Label it for what it holds ("Requester") and the
-  date column for what happened ("Submitted"), not after the entity fields
-  (`Email`, `Created`).
-- **One row badge, the most urgent fact.** A decision and the process behind it
-  (provisioning) are two states, but a row gets one pill: the decision, unless
-  the process behind it needs the reviewer (`Setup failed`, `attention`) or is
-  still running (`Setting up`, `off`). The panel shows both separately.
-- **Show who decided once there is a decision.** A "Decided by" column appears
-  when the filter includes closed requests and is hidden on the pending view,
-  where it would be empty on every row.
-- **One entry point per row.** A row never carries its decision buttons.
-  Approve beside Reject in a table cell is a one-click, record-unseen,
-  irreversible decision, and on a narrow screen the pair wraps the row. Each row
-  has a single button: `Review` (secondary) when the reviewer has something to
-  do (decide, retry), `View` (ghost) when the record is closed. Both open the
-  review panel below.
-- **One count, one icon, everywhere.** The admin dashboard card shows the open
-  count, loaded in the dashboard's own loader (`getPlatformDashboard`) rather
-  than in `page.tsx`, and it uses the same icon (`Inbox`) and the same title
-  case (`Signup Requests`) as the sidebar item and the page title. A count that
-  fails to load shows no number. It never shows `0`, which would claim the
-  queue is empty. A missing list route is an empty inbox, and the same 404 is
-  a failed count on the dashboard.
+| Audience                               | Brand                                                    | Component          |
+| :------------------------------------- | :------------------------------------------------------- | :----------------- |
+| Hub users (signed-in operators)        | Endatix — sheep, primary eyebrow, watermark, diagnostics | `ErrorPage`        |
+| Public readers (a customer's audience) | The customer's — Endatix only as "Powered by"            | `PublicStatusPage` |
 
-### Review and decide (approve / reject / retry)
+**Anatomy — one centred column:** icon in a soft-tinted circle (same situation → same glyph on
+every route) → one-sentence `h1` title → one or two muted sentences → **at most one** neutral
+action, only when the reader can act (Sign in, Try again) → optional `PublicStatusReference`
+support id → optional quieter note ("You can close this tab.") → "Powered by Endatix" footer.
 
-Any record that waits for a human decision and keeps an audit trail of it —
-signup requests today, and access requests, publish approvals or refunds
-tomorrow — uses one flow: **review → decide → outcome**, in one
-`ResponsivePanel`. Reference implementation:
-`features/platform-admin/review-signup-request/` (`signup-request-review-panel.tsx`,
-`signup-request-details.tsx`, `signup-request-state.ts`).
-
-**Why a panel, not row buttons or stacked dialogs.** A decision is made about a
-record, so the record is on screen when the decision control is. A right `Sheet`
-keeps the queue visible behind it on desktop, and it becomes a `Drawer` under
-`md` (`desktopType="complex"`, per the Overlay Rulebook). The approve and reject
-forms are **steps inside the same panel**, not a Dialog opened from the Sheet:
-two stacked overlays lose the record behind a scrim, and Escape closes the wrong
-one.
-
-**Anatomy of the review step, top to bottom:**
-
-1. **Header.** The title is the record's identity (the requester's email); the
-   description says what it is and when it arrived.
-2. **At most one status strip** (`Alert`). It shows the result of what the
-   reviewer just did, or otherwise a standing problem with the record. Never
-   two.
-3. **`PanelSection`s in the order the record lived:**
-   - **Request**: what was submitted (`SummaryRow`s; copy affordance on values
-     worth pasting). It carries the state badge only while no decision exists.
-   - **Decision**: who decided, when, and why, with the decision's
-     `StatusBadge` in `aside`. The reason of a negative decision is shown in
-     full, in a quoted block (`bg-surface-container-lowest`,
-     `whitespace-pre-wrap`), never truncated.
-   - **Downstream process** (e.g. **Workspace**): what the decision produced,
-     with its own badge and a link to where the result now lives (`Open in
-Tenants`).
-4. **Footer.** Only the next step the record allows: `Reject…` + `Approve…`
-   while undecided, `Retry …` after a failed process, and `Check again` while a
-   process is running. A closed record has no footer. The trailing ellipsis
-   means "asks for more before it acts".
-
-**Decide steps (Approve / Reject):**
-
-- **The form states its consequence once**, as a closing `Alert variant="info"`:
-  what gets created, who gets invited or notified, and that the decision is
-  recorded under the reviewer's name and cannot be undone. Don't put a warning
-  on every field.
-- **Prefill what can be suggested**, and say where the suggestion came from
-  ("Suggested from the company name") and how to change it later.
-- **A negative decision needs a reason.** Required, with its API limit as
-  `maxLength` and a visible `n / max` counter. Its description says who reads
-  it ("Kept with the decision for other admins. The requester is not
-  notified."). A reason nobody will read, or one the requester will read
-  without knowing it, are both bugs.
-- **Button tones:** the commit button of a positive decision is `default`
-  (primary); the commit of a rejection is `destructive`, because it is final.
-  The entry buttons in the review footer are `outline` (Reject…) and `default`
-  (Approve…). Every step has `Back`, never `Cancel`, because the record is still
-  open behind it.
-- **Errors land where they belong.** A validation error from the API goes under
-  its field (`aria-invalid`, `aria-describedby`); any other failure is a
-  `destructive` Alert at the top of the step, and the form keeps its values.
-
-**Outcome.** A successful decision returns the updated record, and the panel
-goes back to the review step showing it. The outcome strip names what happened.
-Its tone follows the Status Vocabulary: `success` for a completed write,
-`destructive` when a downstream process failed, `info` while it runs. The
-reviewer sees the new Decision section, with their own name in it, in the same
-place. Don't toast and close: a toast disappears, and the audit record the
-reviewer just created is the proof they need.
-
-**Audit rules:**
-
-- **Who** is a person, not an id. Resolve deciders through the admin directory
-  (`listSignupReviewers`), best effort: when the lookup fails, or the decider
-  was since revoked, show `Admin` plus a `TruncatedId`. The id must stay
-  visible; a decider must never disappear from the record.
-- **When** must be the time of the decision. When the API records no decision
-  timestamp, label the closest fact honestly (`Last updated`, from
-  `modifiedAt`). A timeline that invents event times is worse than none.
-- **Why** is the reason, verbatim.
-- **A retry is not a new decision.** It re-runs the process and records no new
-  decider, so the Decision section does not change.
-
-**States, one mapping in one file.** `describeSignupRequest` (the state file
-next to the panel) owns decision → tone, process → tone, the row's single badge
-and the allowed next step. The grid and the panel both read it, so a row that
-says `Setup failed` always opens on a panel that offers `Retry`. A new
-decision-record feature writes its own `describe*` with the same shape.
-
-**Light and dark.** Everything above is tokens only: `PanelSection`
-(`bg-surface-container-low`), the quoted reason (`bg-surface-container-lowest`),
-`StatusBadge`, and `Alert` variants. There are no palette steps, so both themes
-come from `app/globals.css`.
-
-### Deciding on a new pattern
-
-When this document does not already answer a question, resolve it in this order,
-and then **write the answer back into this file** as part of the same change:
-
-1. **Does a sibling page already solve it?** Match it. Cross-page consistency
-   beats a locally nicer idea; a novel icon treatment on one admin page is a
-   regression even if the page looks better in isolation.
-2. **Does a token or shared component cover it?** Use it. If a semantic token
-   exists but has no Tailwind utility, register it in `@theme inline` rather
-   than hardcoding a palette step.
-3. **What is the page for?** Optimize for the reader's actual task. On a review
-   page that means scanning and comparison — align values into a column, surface
-   the keys, summarize exceptions at the top. On an action page it means making
-   the action unmistakable.
-4. **Prefer removing over adding.** Most inconsistency here is accumulated
-   decoration: an icon added to one badge, a tooltip added to one label. Cutting
-   the extra is almost always more on-brand than harmonizing it.
+- **No Endatix brand in the content** — no mascot, no Hub primary, no Hub navy.
+- **No HTTP status, no raw error text.** The sentence is the whole answer; support gets a digest
+  or trace id.
+- **Three tones by what the reader should feel:** `success` (they are done), `neutral` (it cannot
+  work and nothing is broken — closed, denied, expired, not found), `warning` (something failed;
+  retry may help). A closed survey is never red.
+- **Copy: what happened, then what to do,** using the link's own verb (an `/edit` link says
+  _edit_).
+- **Host copy is all-or-nothing** — show host `title` + `detail` verbatim only when both exist.
+- **Light/dark follows the reader's OS, never the Hub's stored theme; embed is light and opaque.**
 
 ---
 
-## 7. Do's and Don'ts
+## 7. Review Checklist
 
-### Do:
+Before finishing UI work, check:
 
-- **Do** use `surface_container` shifts to define the sidebar vs. the main stage.
-- **Do** allow for generous white space around "Display" typography.
-- **Do** use `primary` sparingly to ensure it maintains its "Action" intent.
-- **Do** lean into `inter` medium weights for labels to improve legibility on tinted backgrounds.
-- **Do** route every on/off, present/absent, healthy/broken state through the three-tone Status Vocabulary (§5).
-- **Do** show the underlying key (env var, setting name) as visible text on configuration pages, not in a tooltip.
-- **Do** register a new semantic token in `@theme inline` in the same change that adds it to `:root`/`.dark`.
-- **Do** lay peer cards out with `.grid-card-list` so large screens gain columns instead of whitespace.
-- **Do** let a shared section component own its own surface, so every panel that uses it looks the same.
-- **Do** disable a control that cannot take effect yet, and say in one line when it will.
-- **Do** reuse `StatusBadge` for a state wherever it appears — table cell, panel header, review step.
-- **Do** build every list of records on `components/table` — the class-name helpers alone when the list is small and static.
-- **Do** mark a file deliverable with `FileKindLabel` in every place it appears — picker, menu item, table cell.
-- **Do** render the generic file glyph for a kind this build does not know, rather than defaulting to a plausible one.
-- **Do** add a row to the shared component index (§5) in the same change that adds a shared component.
-- **Do** show an uploaded file whole (`object-contain` on `bg-muted`) in a fixed-height tile, wrap the tiles, and open details in the file dialog (§5 File Answers).
-- **Do** sign a private file URL when the reader acts on it (open, download), not when the page loads.
-- **Do** flag a view that diverges from the stored record with an `info` strip naming both values and a one-click way back (§6).
-- **Do** open a review queue on the items still waiting for a decision, and give the same destination one title and one icon in the sidebar, the dashboard and the page (§6 Review queues).
-- **Do** show the record before any decision control: one `Review` button per row, then review → decide → outcome in one `ResponsivePanel` (§6 Review and decide).
-- **Do** record and show who decided, when and why. Resolve the decider to a name, and keep the id visible when the name is unknown.
-- **Do** give a list page's empty state the list's icon, a title and a way out — "Clear filters" when a filter or search caused it (§5 List Tables).
-
-### Don't:
-
-- **Don't** use `#000000` for shadows. Always tint with the surface color.
-- **Don't** use 1px solid borders to separate list items. Use spacing or tonal shifts.
-- **Don't** use standard "Alert Red" for errors. Use the sophisticated `error` (`#9f403d`) and `error_container` (`#fe8983`) tokens.
-- **Don't** use fixed Tailwind color scales (`bg-blue-50`, `text-blue-950`, etc.) on surfaces that must work in light and dark mode. Use semantic tokens (`info-background`, `muted-foreground`, `on-surface-variant`) or component variants (`Alert variant="info"`).
-- **Don't** overcrowd the card. If data is dense, use a "Nested Surface" to group related points.
-- **Don't** render status with a solid `primary` badge. Primary is for actions; status is soft-tinted.
-- **Don't** give one state an icon and its sibling none — differing shapes imply differing kinds of information.
-- **Don't** stretch label/value rows across the full page width. Put the cards in a `.grid-card-list` so values stay near their labels.
-- **Don't** hand-roll card grids with viewport breakpoints (`md:grid-cols-2 xl:grid-cols-3`). The sidebar changes the content width without changing the viewport; use `.grid-card-list`.
-- **Don't** truncate a value on a page whose purpose is reading that value. Wrap it.
-- **Don't** narrate wizard progress in prose ("Step 2 of 3 …"). Render `PanelSteps`.
-- **Don't** nest a `Card` inside an overlay; a panel is already raised. Use `PanelSection` on a nested surface.
-- **Don't** show a warning for a risk the current settings make unreachable.
-- **Don't** render a state as a bare word in a review step when the same state is a badge everywhere else.
-- **Don't** wrap a `DataTableSurface` in a `Card`. The surface is already raised; the section title and action go above it.
-- **Don't** colour a file type mark by format. Colour carries status; type is muted and uniform.
-- **Don't** default an unknown format to another kind's icon — the mark then lies about what downloads.
-- **Don't** return a `LucideIcon` from feature code. Resolve to a `FileKindKey` and let the shared component pick the glyph.
-- **Don't** use the solid `warning` strip for a view-only choice; it is for facts about the record, such as a test submission.
-- **Don't** repeat a view choice as a second picker in a dialog or export flow. Confirm the value chosen on the page.
-- **Don't** crop an uploaded file with `object-cover` or a fixed-ratio frame, and don't put a row of uploads in a horizontal scroller that hides the rest.
-- **Don't** link a thumbnail straight to its presigned storage URL; the token expires while the page stays open.
-- **Don't** put a presigned URL in a Hub-exported PDF. Link the Hub file page; a PDF outlives every read token.
-- **Don't** re-export the file-kind icons from `lib/file-kinds/index.ts`; the catalog is imported by server code and must stay free of `lucide-react`.
-- **Don't** show `0` for a count that failed to load. Render no number; a false zero says the queue is empty.
-- **Don't** put Approve and Reject buttons in a table row, or open a decision Dialog on top of a detail Sheet. Decide inside the panel that shows the record.
-- **Don't** label a record's last-modified time as the decision time, or invent timeline events the API did not record.
+- [ ] Only semantic tokens; any new token is registered in `@theme inline` (§2).
+- [ ] No 1px sectioning borders, no `Card` inside an overlay or around a table (§2, §4).
+- [ ] Every state is a `StatusBadge` in one of three tones, the same label everywhere (§5).
+- [ ] File deliverables carry `FileKindLabel` on every surface; unknown kinds get the generic glyph (§5).
+- [ ] Peer cards use `.grid-card-list`, not viewport breakpoints (§5).
+- [ ] Lists use `components/table`; the empty state has the list icon, a title and a way out (§5).
+- [ ] Overlays follow the table in §5, never stack, and have a title and description.
+- [ ] Values the reader came for wrap, never truncate; unset vs empty are distinct (§6).
+- [ ] Disabled controls say why; warnings are reachable; consequences stated once (§6).
+- [ ] No presigned URL outlives the view that signed it (§6).
+- [ ] Public pages use `PublicStatusPage` and have their own `error.tsx` (§6).
+- [ ] A new shared component has a row in the §5 index; a new decision is written back here as a
+      general rule.
 
 ---
 
-## 8. Spacing Scale
+## 8. Where the details live
 
-Our spacing is built on a tight 0.2rem increment for precision data-density, expanding for editorial breathing room.
-
-- **Tight (2):** 0.4rem (Icon to Text)
-- **Standard (4):** 0.9rem (Inside components)
-- **Editorial (10):** 2.25rem (Between sections)
-- **Hero (16):** 3.5rem (Page margins and headers)
+| Topic                                                        | Document                                                     |
+| :----------------------------------------------------------- | :----------------------------------------------------------- |
+| SurveyJS / Creator theme sync, token maps, palette checklist | `lib/themes/README.md`                                       |
+| Public status inventory, embed/theme wiring, "Powered by"    | `components/public-status/README.md`                         |
+| Hub error pages (`ErrorPage`), auth screens (`AuthStatus`)   | `AGENTS.md` "Error page chrome", "Auth pages"                |
+| List URL state, paging, loading skeletons                    | `project-structure.md` "List pages and tables"               |
+| Where a shared UI component should live                      | `project-structure.md` "Where UI for a shared concept lives" |
 
 ---
 
-## 9. Survey Theme Sync Guide (SurveyJS v3)
+## 9. SurveyJS Theming (summary)
 
-`app/globals.css` is the source of truth for Hub brand tokens. Survey Creator chrome and Hub-internal Survey Model themes must derive from these tokens.
+Full guide: `lib/themes/README.md` — read it before touching `lib/themes/`, Creator CSS, or any
+SurveyJS surface.
 
-SurveyJS v3 uses `--sjs2-*` design tokens. Override **source** tokens only (`project-brand-600`, palettes, utility surfaces). Downstream ramps (`bg-brand-*`, `lch(from …)`, `rgba(from …)`) derive automatically. Do not hand-edit `--sjs-layer-*` or other v2 Creator layer names.
-
-Legacy `--sjs-*` (single hyphen) is a compatibility map for **stored tenant theme JSON**. Leave DB themes as-is. New Hub mappings use `--sjs2-*`.
-
-Official guidance:
-
-- [SurveyJS v3 theme adapters](https://surveyjs.io/stay-updated/blog/surveyjs-v3-theme-adapters) — shadcn adapter reads `--primary`, `--background`, `--card`, `--border`, `--ring`, `--radius`, `--spacing`
-- Brand styling skill: source tokens + layer DefaultDark for dark; adapters are CSS on `.sjs-theme-overrides` and must not sit next to a competing `applyTheme`
-
-Hub `components.json` style is **new-york**. Do **not** import `survey-core/themes/adapters/shadcn-new-york.css` on public/share/embed until respondent light/dark is decided (endatix-hub#725). Hub designer uses `applyCreatorTheme` overlays, not the adapter stylesheet (adapter toolbox maps to `--background`; Hub chrome uses `--content-canvas`).
-
-### Source of Truth Files
-
-- App tokens: `app/globals.css` (`:root` and `.dark`)
-  `lib/themes/` is four modules — what the themes are, how each kind is applied, and the React hook:
-
-| Module                  | Holds                                                                                                         |
-| :---------------------- | :------------------------------------------------------------------------------------------------------------ |
-| `endatix-themes.ts`     | Hub tokens + fallbacks, Creator chrome and survey themes (light/dark), `pickCreatorTheme` / `pickSurveyTheme` |
-| `creator-theme.ts`      | `applyEndatixCreatorTheme` + the Hub-colour resolve pass                                                      |
-| `survey-theme.ts`       | `registerThemes`, `sanitizeSurveyTheme`, `applyFormSurveyTheme`, `applyHubDashboardTheme`                     |
-| `use-endatix-themes.ts` | `useEndatixCreatorTheme` / `useEndatixSurveyTheme` (`next-themes`)                                            |
-
-### Token Mapping (source `--sjs2-*`)
-
-| App token (`globals.css`) | Creator + survey source (`endatix-themes.ts`)                                                              |
-| :------------------------ | :--------------------------------------------------------------------------------------------------------- |
-| `--primary`               | `--sjs2-color-project-brand-600`                                                                           |
-| `--primary-foreground`    | `--sjs2-color-fg-brand-on-primary`                                                                         |
-| `--foreground`            | `--sjs2-color-fg-basic-primary`                                                                            |
-| `--border`                | `--sjs2-color-border-basic-secondary`                                                                      |
-| `--radius`                | `--sjs2-base-unit-radius`                                                                                  |
-| `--ring`                  | `--sjs2-color-utility-a11y`                                                                                |
-| `--destructive`           | `--sjs2-palette-red-600`                                                                                   |
-| `--success`               | `--sjs2-palette-green-600`                                                                                 |
-| `--warning`               | `--sjs2-palette-yellow-600`                                                                                |
-| `--info`                  | `--sjs2-palette-blue-600`                                                                                  |
-| `--background`            | Survey model: `--sjs2-color-utility-body`, `--sjs2-color-utility-surface-survey` (kills Default teal tint) |
-| `--content-canvas`        | Creator **editing surfaces and input fills** — see the region table below                                  |
-| `--card`                  | Creator **chrome** (top bar, toolbox, property grid, root). Survey model: `--sjs2-color-utility-sheet`     |
-
-Do not pin `--sjs2-color-bg-brand-primary` or other derived tokens unless a shade is explicitly off-brand.
-
-### Public pages stay off `globals.css`
-
-`/share` and `/embed` are their own root layouts (there is no `app/layout.tsx`) and they
-deliberately do **not** import `app/globals.css` — that is the whole Tailwind + shadcn
-bundle, ~153 KB raw / 24 KB gzipped, for a page that renders one survey. The standalone
-not-found stylesheet exists for the same reason.
-
-That means Hub tokens (`--primary`, `--card`, …) do not exist on those pages, so every Hub
-value in a theme object is written as `var(--token, <literal>)` via `hubToken()` in
-`lib/themes/endatix-themes.ts`. Without the literal the whole `--sjs2-*` declaration is
-invalid at computed-value time: surfaces render transparent and the submit button loses its
-background. With it, `/share` renders pixel-identically whether or not `globals.css` is
-loaded.
-
-The literals mirror `:root` in `app/globals.css`; `lib/themes/__tests__/endatix-themes.test.ts`
-parses that file and fails if the two drift. **When the palette changes, change both.**
-Never fix a missing-token symptom on a public page by importing `globals.css`.
-
-### Hub CSS injected into the Creator
-
-Anything the Hub injects into Creator DOM (the data-list rows in the Translations
-grid, custom question icons) must name **`--sjs2-*` tokens only**, and must not carry a
-hard-coded colour fallback.
-
-v3 dropped the `--ctr-*` and single-prefix `--sjs-*` variables entirely — they are not
-in survey-creator-core 3.x CSS _or_ JS. Rules that still name them fall straight through
-to their literal fallback, which is how a white help band appeared across the dark
-Translations grid, and how the "Open data list" link kept rendering in SurveyJS teal.
-`var(--gone, #fff)` looks defensive and is the opposite.
-
-Match the surface you are sitting on: `.st-table__cell` uses
-`--sjs2-color-bg-basic-primary`, header cells use `--sjs2-color-bg-basic-secondary`,
-muted captions use `--sjs2-color-fg-basic-primary-muted`, and brand text/icons use
-`--sjs2-color-fg-brand-primary` (toolbox icons use `--sjs2-color-bg-brand-primary`).
-Guarded by
-`lib/survey-features/data-lists/infrastructure/__tests__/creator-translation-styles.test.ts`.
-
-**Known gap:** `lib/questions/drag-categorize/drag-categorize.styles.css` still names v2
-variables throughout. It is respondent-facing and light-only today (see #725), so the
-literal fallbacks happen to be correct — but it needs the same pass before respondent
-dark mode ships.
-
-### Creator surfaces (which token paints what)
-
-Verified against `survey-creator-core` 3.0.2 CSS.
-
-**Two depths, the same rule in both palettes:**
-
-| Depth    | Hub token          | Light     | Dark      | Paints                                                            |
-| :------- | :----------------- | :-------- | :-------- | :---------------------------------------------------------------- |
-| Recessed | `--content-canvas` | `#eff4fe` | `#001225` | the design surface, input fills, search boxes, unchecked controls |
-| Raised   | `--card`           | `#fff`    | `#001a34` | chrome panels **and** question cards                              |
-
-Three failure modes this prevents, all seen on the v3 upgrade:
-
-1. Mapping every surface — **raised included** — to `--content-canvas` flattens the whole
-   Creator into one block.
-2. Leaving `--sjs2-color-bg-basic-primary` / `-secondary` to the base theme parks them on
-   SurveyJS's **neutral** grey ramp. Invisible in light (near-white either way), but in
-   dark it paints question cards, the sidebar tabs, the collapsed icon rail and every
-   input a warm grey (`#1c1b20` / `#222126`) against the Hub navy.
-3. Recessing onto `--background` reads as three depths but is only two: `--background` and
-   `--card` are the **same** `#fff` in light, so property grid inputs, the search boxes and
-   unchecked controls had no fill against the panel behind them (endatix-hub#954). Compare
-   the palette _values_, never the token names.
-
-| `--sjs2-color-utility-*`  | Selector it paints                                | Hub value          |
-| :------------------------ | :------------------------------------------------ | :----------------- |
-| `tabs`                    | `.svc-top-bar`                                    | `--card`           |
-| `toolbox`                 | `.svc-toolbox__panel`                             | `--card`           |
-| `property-grid`           | `.svc-side-bar__container`, `.spg-panel__content` | `--card`           |
-| `body`                    | `.svc-creator` root                               | `--card`           |
-| `sheet`                   | popup / preset sheets                             | `--card`           |
-| `surface-designer`        | `.svc-tab-designer`                               | `--content-canvas` |
-| `surface-survey`          | `.sd-root-modern::before`                         | `--content-canvas` |
-| `surface-json-editor`     | `.svc-json-editor-tab__content-area`              | `--content-canvas` |
-| `surface-presets-manager` | `.svc-tab-designer--presets`                      | `--content-canvas` |
-| `surface-translations`    | `.svc-translation-tab`                            | `--content-canvas` |
-
-The two `bg-basic-*` tokens carry the depths, and neither may be left to the base theme:
-
-| `--sjs2-color-bg-basic-*` | Paints                                                      | Hub value          |
-| :------------------------ | :---------------------------------------------------------- | :----------------- |
-| `primary`                 | question cards, sidebar tabs, collapsed icon rail, buttons  | `--card`           |
-| `secondary`               | `.sd-formbox` fills, search boxes, unchecked radio/checkbox | `--content-canvas` |
-
-`primary` must stay **off** the canvas tint — tinting it turns the designer's white cards the
-same colour as the canvas they float on. Pinned by
-`lib/themes/__tests__/endatix-themes.test.ts`, which resolves both through `app/globals.css`
-and fails if they land on the same colour.
-
-**Non-colour tokens do not survive the resolve pass by accident.** `applyEndatixCreatorTheme`
-flattens `var()` references to computed colours so Creator's JS `parseColor` maths works
-(`lib/themes/creator-theme.ts`). A browser accepts `color: var(--radius, 0.5rem)` at parse
-time, drops it at computed-value time and answers with the **inherited** colour — so a length
-came back as a colour, `calc(var(--sjs2-base-unit-radius) * n)` turned invalid, and every
-corner in the Creator went square (endatix-hub#954). The probe therefore inherits a sentinel
-colour; anything computing to it is left verbatim.
-
-### Survey analytics dashboard (not Creator chrome)
-
-`features/form-analytics/ui/survey-dashboard.tsx` is a **survey-analytics** `Dashboard`
-on the Hub analytics page. It is **not** a Creator surface — do not add it to the
-`--sjs2-color-utility-*` table above. It uses `pickSurveyTheme` / `surveyTokens` in
-`endatix-themes.ts` (chart axis labels, muted toolbar, disabled Reset Filter).
-
-Call `dashboard.render(container)` with the default `isRoot: true`. Do **not** pass
-`false`: that is nested-visualizer mode. Chrome is appended without
-`sa-visualizer-wrapper`, and `clear()` only removes the wrapper / license banner, so
-React remount (or a JSON rebuild) stacks a second toolbar/content/footer.
-
-Do not call `dashboard.applyTheme` from page code. After render, call
-`applyHubDashboardTheme` (that helper may call `applyTheme` internally so Chart.js
-picks Hub ticks). Same HMR rule as Translations: never `stringsSurvey.applyTheme`.
-Re-apply after the dashboard is recreated (`surveyJson` / `results` change), after
-palette change, and after the sidebar width transition (200ms).
-
-**Hard-coded SurveyJS CSS** that tokens cannot reach lives next to the widget:
-
-- `.sa-visualizer__footer-title` is `#404040` in survey-analytics — override in
-  `survey-dashboard.css` with `--sjs2-color-fg-basic-primary` (Hub `--foreground`).
-
-Do not drive theme from `ResizeObserver` (`applyTheme` / `refresh` rebuilds
-charts and loops).
-
-### Dialogs are Hub UI, never SurveyJS popups
-
-Every dialog the Hub opens is a shadcn `Dialog` / `AlertDialog`:
-`features/themes/manage-theme-editor/ui/` (`theme-save-dialog`, `theme-delete-dialog`)
-and `features/forms/ui/editor/custom-question-dialog`. None of them use `settings.showDialog`.
-
-That is a deliberate boundary, not a style preference. A SurveyJS popup is portaled
-to `settings.environment.popupMountContainer` (`document.body`), and survey-core 3.x
-injects the whole `--sjs2-*` token set into a `<style>` scoped to
-`:where(.sd-theme-root)` — a class that only lands on a survey root. A popup outside
-that root resolves **no** tokens: transparent overlay, transparent sheet, no
-radius/shadow/padding, unstyled footer buttons. Keeping Hub dialogs in the Hub's own
-React tree removes that whole class of problem, along with the token bridging, the
-`.creator-dialog` stylesheet and the survey-JSON-as-a-form templating that used to
-build them.
-
-Do not reintroduce `settings.showDialog` in Hub code. If a dialog is needed, add a
-shadcn one next to the others.
-
-The theme-save dialog additionally blocks Escape and outside-click
-(`onEscapeKeyDown` / `onInteractOutside`), because it is the only place the theme
-edits can be kept and dismissing it silently discarded them.
-
-### Theme dirty state
-
-One boolean, `isThemeDirty`, owned by `useThemeManagement`:
-
-- set by `themeEditor.onThemePropertyChanged` (never `isModified` — v3 syncs `creator.theme`
-  first, so it reads false or throws)
-- cleared by `themeEditor.onThemeSelected`, because switching themes discards the edits
-- cleared after a successful save
-
-`creator.theme = …` runs on _every_ property change (v3's `syncTheme`) but does not fire
-`onThemeSelected`, so it does not clear the flag.
-
-**Importing a theme file is the exception.** v3 routes Import through
-`themeModel.setTheme`, which raises only `onThemeSelected` — indistinguishable from a
-chooser switch by payload (neither carries an id). `useThemeManagement` therefore wraps
-`themeEditor.importFromFile` and marks the theme dirty in its callback, which runs after
-`setTheme`. Editing any property, background image included, already raises
-`onThemePropertyChanged` and needs no special handling — do not add an
-`onOpenFileChooser` listener for this.
-
-Both rules are pinned by
-`features/themes/manage-theme-editor/__tests__/use-theme-management.test.tsx`.
-
-The header chip surfaces the state (`unsaved changes` / `unsaved json`); **Save** persists the
-theme first (so a newly created theme id is in `creator.theme`) and then the form JSON.
-
-### Update Checklist (When Palette Changes)
-
-1. Update `:root` and/or `.dark` in `app/globals.css` first.
-2. If adjusting page canvas tone, update `--content-canvas` and confirm `[data-slot="sidebar-inset"]` still uses that token. Sparse admin pages should use a foreground panel (`bg-card` + border) on the canvas.
-3. Update the matching literal in `hubTokenFallbacks` (`lib/themes/endatix-themes.ts`) — public pages render from those, and a test asserts they match `:root`.
-4. Creator and survey token maps both live in `endatix-themes.ts`.
-5. Light/dark stays on `next-themes`:
-   - Creator: `useEndatixCreatorTheme()` / `pickCreatorTheme(resolvedTheme)`
-   - Hub-internal survey model (submissions viewer): `useEndatixSurveyTheme()` / `pickSurveyTheme(resolvedTheme)`
-   - Analytics dashboard: `applyHubDashboardTheme()` after `render(container)` (`isRoot` default) — never call `dashboard.applyTheme` from the page
-   - Public share/embed: `applyFormSurveyTheme()` with GetActive JSON; no theme → SurveyJS `DefaultLight` (same as Creator Preview). Do not apply Hub survey tokens on public pages.
-6. Check contrast: primary CTA, muted text on nested surfaces, error/warning chips.
-
-### Visual Validation Steps
-
-- Light mode: form editor + template editor — toolbox, top bar and property grid must be **white**, with only the design canvas tinted; question cards stay white on the canvas. Submission details: question cards vs page. Analytics: axis labels, footer titles and Reset Filter readable on the Hub canvas.
-- Dark mode: toggle `.dark`; chrome and survey switch without Hub-foreground-as-background (that means a `--sjs2-*` var was flattened to inherited `color`). Analytics footer must not stay `#404040`.
-- Dialogs: form Save with a dirty theme, delete theme, and "Create custom question" (all Hub shadcn dialogs, never SurveyJS popups). Each must show a scrim, a rounded card with a shadow, and brand-coloured footer buttons in both palettes.
-- Cross-check: fix `globals.css` first; only then change the `--sjs2-*` map.
+- `app/globals.css` is the source of truth; Creator and Hub-internal survey themes derive from it
+  via `--sjs2-*` **source** tokens only (`lib/themes/endatix-themes.ts`).
+- Public `/share` and `/embed` do **not** load `globals.css`; Hub values in theme objects are
+  `var(--token, <literal>)` via `hubToken()`, and a test pins the literals to `:root`. When the
+  palette changes, change both.
+- Hub CSS injected into Creator DOM names `--sjs2-*` tokens only, with no literal fallback.
+- Every Hub dialog is a shadcn `Dialog` / `AlertDialog`, never `settings.showDialog`.

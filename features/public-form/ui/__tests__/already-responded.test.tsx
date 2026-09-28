@@ -32,7 +32,7 @@ describe("AlreadyResponded", () => {
     render(
       <AlreadyResponded
         formId="form-123"
-        isEmbed={false}
+        variant="share"
         metadata={metadata}
       />,
     );
@@ -54,7 +54,7 @@ describe("AlreadyResponded", () => {
     render(
       <AlreadyResponded
         formId="form-123"
-        isEmbed={false}
+        variant="share"
         metadata={metadata}
       />,
     );
@@ -67,7 +67,7 @@ describe("AlreadyResponded", () => {
   it("falls back to default message for invalid metadata", () => {
     // Act
     render(
-      <AlreadyResponded formId="form-123" isEmbed={false} metadata="null" />,
+      <AlreadyResponded formId="form-123" variant="share" metadata="null" />,
     );
 
     // Assert
@@ -77,20 +77,24 @@ describe("AlreadyResponded", () => {
     ).toBeDefined();
   });
 
-  it("uses embed classes and reports already responded state in embed mode", () => {
+  it("reports already responded state in embed mode", () => {
     // Arrange
     const metadata = JSON.stringify({
       alreadyResponded: { message: "You already completed this survey." },
     });
 
     // Act
-    const { container } = render(
-      <AlreadyResponded isEmbed={true} formId="form-123" metadata={metadata} />,
+    render(
+      <AlreadyResponded
+        variant="embed"
+        formId="form-123"
+        metadata={metadata}
+      />,
     );
 
     // Assert
     expect(
-      container.querySelector(".already-responded-container"),
+      screen.getByRole("heading", { name: "Already Responded" }),
     ).toBeDefined();
     expect(
       screen

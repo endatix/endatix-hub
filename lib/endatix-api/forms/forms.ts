@@ -110,7 +110,12 @@ export class Forms {
       query ? `?${query}` : ""
     }`;
 
-    return this.endatix.get<PublicFormAccessResponse>(path, { requireAuth });
+    return this.endatix.get<PublicFormAccessResponse>(path, {
+      requireAuth,
+      headers: request.acceptLanguage
+        ? { "Accept-Language": request.acceptLanguage }
+        : undefined,
+    });
   }
 }
 

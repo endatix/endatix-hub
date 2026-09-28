@@ -78,6 +78,8 @@ spec:
               value: {{ .Values.clientConfig.submitterPrimaryFilterLabel | quote }}
             - name: ENDATIX_SUBMITTER_GRID_PROFILE_FIELDS
               value: {{ .Values.clientConfig.submitterGridProfileFields | quote }}
+            - name: ENDATIX_SHOW_POWERED_BY
+              value: {{ .Values.clientConfig.showPoweredBy | quote }}
             - name: ENDATIX_IS_DEBUG_MODE
               value: {{ .Values.clientConfig.debugMode | quote }}
 

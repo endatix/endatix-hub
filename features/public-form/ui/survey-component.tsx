@@ -1,5 +1,6 @@
 "use client";
 
+import { PublicStatusPage } from "@/components/public-status/public-status-page";
 import { useTrackEvent } from "@/features/analytics/posthog/client";
 import { useStorageWithSurvey } from "@/features/asset-storage/client";
 import { useSurveyEmbedBehavior } from "@/features/embed-form";
@@ -35,6 +36,7 @@ import {
 import "survey-core/survey-core.css";
 import "survey-core/survey.i18n";
 import { Survey } from "survey-react-ui";
+import { TriangleAlert } from "lucide-react";
 import { useSubmissionQueue } from "../application/submission-queue";
 import { LanguageSelector } from "./language-selector";
 import { TestSubmissionBadge } from "./test-submission-badge";
@@ -347,7 +349,17 @@ export default function SurveyComponent({
   ]);
 
   if (surveyModelError) {
-    return <div role="alert">{surveyModelError}</div>;
+    // The hook's message is for developers ("Failed to parse submission data"), not
+    // for the respondent.
+    return (
+      <PublicStatusPage
+        icon={TriangleAlert}
+        layout={isEmbed ? "embed" : "page"}
+        message="Please try again later."
+        title="Unable to load form"
+        tone="warning"
+      />
+    );
   }
 
   if (!isModelReady) {

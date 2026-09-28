@@ -1,5 +1,5 @@
-import { ApiError, ApiErrorType } from '@/lib/endatix-api/shared/api-result';
-import { Result, type ErrorSupport, type ResultType } from './result';
+import { ApiError, ApiErrorType } from "@/lib/endatix-api/shared/api-result";
+import { Result, type ErrorSupport, type ResultType } from "./result";
 
 type MapApiErrorToResultOptions = {
   fallbackMessage?: string;
@@ -35,6 +35,8 @@ function supportFromApiError(apiError: ApiError): ErrorSupport {
   return {
     traceId: apiError.error.details?.traceId,
     statusCode: apiError.error.details?.statusCode,
+    problemTitle: apiError.error.details?.problemTitle,
+    problemMediaType: apiError.error.details?.problemMediaType,
   };
 }
 
@@ -42,7 +44,7 @@ export function mapApiErrorToResult<T>(
   apiError: ApiError,
   options: MapApiErrorToResultOptions = {},
 ): ResultType<T> {
-  const fallbackMessage = options.fallbackMessage ?? 'Request failed';
+  const fallbackMessage = options.fallbackMessage ?? "Request failed";
   const preferredFields = options.preferredFields ?? [];
   const fieldMessage = pickFieldMessage(apiError.error.fields, preferredFields);
   const message = fieldMessage || apiError.error.message || fallbackMessage;

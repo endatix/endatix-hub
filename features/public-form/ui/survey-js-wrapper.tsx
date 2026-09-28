@@ -28,14 +28,14 @@ const SurveyJsWrapper = (props: SurveyJsWrapperProps) => {
     return (
       <AlreadyResponded
         formId={survey.formId}
-        isEmbed={survey.variant === "embed"}
         metadata={survey.activeDefinition.metadata}
+        variant={survey.variant}
       />
     );
   }
 
   if (shouldShowSubmissionCompleted(survey)) {
-    return <SubmissionAlreadyCompleted isEmbed={survey.variant === "embed"} />;
+    return <SubmissionAlreadyCompleted variant={survey.variant} />;
   }
 
   return (

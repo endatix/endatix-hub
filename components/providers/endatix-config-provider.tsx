@@ -32,6 +32,7 @@ export function EndatixConfigProvider({
     isDebugMode,
     submitterPrimaryFilterLabel,
     submitterGridProfileFields,
+    showPoweredBy,
   } = value;
   // Destructured to primitives so the memo compares by value: a new object identity from
   // the server on every request must not re-render every consumer of this context.
@@ -47,6 +48,7 @@ export function EndatixConfigProvider({
         isDebugMode,
         submitterPrimaryFilterLabel,
         submitterGridProfileFields,
+        showPoweredBy,
       }),
     [
       apiBaseUrl,
@@ -58,6 +60,7 @@ export function EndatixConfigProvider({
       isDebugMode,
       submitterPrimaryFilterLabel,
       submitterGridProfileFields,
+      showPoweredBy,
     ],
   );
 

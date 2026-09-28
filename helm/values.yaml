@@ -50,6 +50,8 @@ clientConfig:
   # Override the "Submitter" column label and add submitter profile grid columns.
   submitterPrimaryFilterLabel: ""
   submitterGridProfileFields: ""
+  # "false" hides "Powered by Endatix" on public status pages; empty keeps it shown.
+  showPoweredBy: ""
   # Set to "true"/"false" to force debug mode; empty follows the build type.
   debugMode: ""
 
