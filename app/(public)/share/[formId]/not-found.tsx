@@ -1,8 +1,5 @@
-import "@/app/globals.css";
-import {
-  NotFoundComponent,
-  PublicNotFoundFrame,
-} from "@/components/error-handling/not-found";
+import { PublicStatusPage } from "@/components/public-status/public-status-page";
+import { SearchX } from "lucide-react";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -12,12 +9,12 @@ export const metadata: Metadata = {
 
 export default function NotFoundSharedForm() {
   return (
-    <PublicNotFoundFrame>
-      <NotFoundComponent
-        notFoundTitle="Survey not found"
-        notFoundSubtitle="We couldn't find that survey."
-        notFoundMessage="Check the link and try again."
-      />
-    </PublicNotFoundFrame>
+    <PublicStatusPage
+      icon={SearchX}
+      message="Check the link and try again."
+      title="We couldn't find that survey."
+      tone="neutral"
+      layout="page"
+    />
   );
 }

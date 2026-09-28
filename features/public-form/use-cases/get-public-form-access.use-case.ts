@@ -5,6 +5,7 @@ import type {
   PublicFormAccessResponse,
 } from "@/lib/endatix-api/forms/types";
 import { toResult, type ResultType } from "@/lib/result";
+import { headers } from "next/headers";
 
 export interface GetPublicFormAccessQuery {
   formId: string;
@@ -23,9 +24,15 @@ export async function getPublicFormAccessUseCase({
 }: GetPublicFormAccessQuery): Promise<ResultType<PublicFormAccessResponse>> {
   const session = await auth();
   const endatixApi = new EndatixApi(session?.accessToken);
+  const headerList = await headers();
+  const acceptLanguage = headerList.get("accept-language") ?? undefined;
   const resolvedTokenType = tokenType ?? (token ? "AccessToken" : undefined);
-  const accessRequest: GetPublicFormAccessRequest =
-    token && resolvedTokenType ? { token, tokenType: resolvedTokenType } : {};
+  const accessRequest: GetPublicFormAccessRequest = {
+    ...(token && resolvedTokenType
+      ? { token, tokenType: resolvedTokenType }
+      : {}),
+    ...(acceptLanguage ? { acceptLanguage } : {}),
+  };
 
   const getAccessApiResult = await endatixApi.forms.getPublicFormAccess(
     formId,

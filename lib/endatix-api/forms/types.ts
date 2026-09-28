@@ -48,6 +48,7 @@ export interface FormAccessTokenResponse {
 export interface GetPublicFormAccessRequest {
   token?: string;
   tokenType?: "AccessToken" | "SubmissionToken";
+  acceptLanguage?: string;
 }
 
 /** Response from GET /public/forms/{formId}/access. */

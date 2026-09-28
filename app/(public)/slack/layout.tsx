@@ -1,6 +1,6 @@
 import { AppProvider } from "@/components/providers";
 import "@/app/globals.css";
-import { AppOptions } from "@/components/providers/app-provider";
+import { AppOptions } from "@/components/providers/app-options";
 import { auth } from "@/auth";
 import { getClientEndatixConfig } from "@/features/config/server";
 

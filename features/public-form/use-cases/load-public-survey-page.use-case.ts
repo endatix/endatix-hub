@@ -54,6 +54,11 @@ export type LoadPublicSurveyPageResult =
       kind: "forbidden";
     }
   | {
+      kind: "formUnavailable";
+      title: string;
+      message: string;
+    }
+  | {
       kind: "accessLoadError";
       errorCode: string;
     }
@@ -82,16 +87,16 @@ export async function loadPublicSurveyPageUseCase({
     return loadAccessTokenSurveyPage({ formId, urlToken });
   }
 
-  const [publicFormAccessResult, submissionResult, activeDefinitionResult] =
-    await Promise.all([
-      getPublicFormAccessUseCase({ formId }),
-      loadPartialSubmission({ formId, tokenStore }),
-      getActiveDefinitionUseCase({ formId }),
-    ]);
+  const publicFormAccessResult = await getPublicFormAccessUseCase({ formId });
 
   if (Result.isError(publicFormAccessResult)) {
     return mapAccessFailure(publicFormAccessResult);
   }
+
+  const [submissionResult, activeDefinitionResult] = await Promise.all([
+    loadPartialSubmission({ formId, tokenStore }),
+    getActiveDefinitionUseCase({ formId }),
+  ]);
 
   if (submissionResult.kind === "submissionLoadError") {
     return submissionResult;
@@ -109,8 +114,7 @@ export async function loadPublicSurveyPageUseCase({
     kind: "success",
     activeDefinition: activeDefinitionResult.value,
     submissionPhase: resolveSubmissionGate({
-      canStartNewSubmission:
-        publicFormAccessResult.value.canStartNewSubmission,
+      canStartNewSubmission: publicFormAccessResult.value.canStartNewSubmission,
       hasUserSubmitted: publicFormAccessResult.value.hasUserSubmitted,
       hasResumableDraft,
       hasUrlToken: false,
@@ -124,20 +128,22 @@ async function loadAccessTokenSurveyPage({
   formId,
   urlToken,
 }: LoadAccessTokenSurveyPageQuery): Promise<LoadPublicSurveyPageResult> {
-  const [publicFormAccessResult, submissionResult] = await Promise.all([
-    getPublicFormAccessUseCase({ formId, token: urlToken }),
-    loadAccessTokenSubmission({ formId, urlToken }),
-  ]);
+  const publicFormAccessResult = await getPublicFormAccessUseCase({
+    formId,
+    token: urlToken,
+  });
+
+  if (Result.isError(publicFormAccessResult)) {
+    return mapAccessFailure(publicFormAccessResult);
+  }
+
+  const submissionResult = await loadAccessTokenSubmission({
+    formId,
+    urlToken,
+  });
 
   if (submissionResult.kind === "tokenSubmissionError") {
     return submissionResult;
-  }
-
-  if (Result.isError(publicFormAccessResult)) {
-    return {
-      kind: "tokenSubmissionError",
-      errorCode: publicFormAccessResult.errorCode ?? ERROR_CODE.UNKNOWN_ERROR,
-    };
   }
 
   const activeDefinitionResult = resolveSubmissionFormDefinition(
@@ -156,8 +162,7 @@ async function loadAccessTokenSurveyPage({
     kind: "success",
     activeDefinition: activeDefinitionResult.value,
     submissionPhase: resolveSubmissionGate({
-      canStartNewSubmission:
-        publicFormAccessResult.value.canStartNewSubmission,
+      canStartNewSubmission: publicFormAccessResult.value.canStartNewSubmission,
       hasUserSubmitted: publicFormAccessResult.value.hasUserSubmitted,
       hasResumableDraft,
       hasUrlToken: true,
@@ -167,14 +172,31 @@ async function loadAccessTokenSurveyPage({
   };
 }
 
-function mapAccessFailure(
-  result: ResultType<unknown>,
-): Extract<
+const RESPONDENT_COPY_MAX_LENGTH = 240;
+
+function mapAccessFailure(result: ResultType<unknown>): Extract<
   LoadPublicSurveyPageResult,
-  { kind: "notFound" | "unauthorized" | "forbidden" | "accessLoadError" }
+  {
+    kind:
+      | "notFound"
+      | "unauthorized"
+      | "forbidden"
+      | "formUnavailable"
+      | "accessLoadError";
+  }
 > {
   if (!Result.isError(result)) {
     return { kind: "notFound" };
+  }
+
+  if (result.errorCode === ERROR_CODE.FORM_UNAVAILABLE) {
+    const title = plainRespondentCopy(result.problemTitle);
+    const message = plainRespondentCopy(result.message);
+    if (title && message) {
+      return { kind: "formUnavailable", title, message };
+    }
+
+    return { kind: "forbidden" };
   }
 
   if (result.errorCode === ERROR_CODE.AUTHENTICATION_REQUIRED) {
@@ -193,6 +215,22 @@ function mapAccessFailure(
     kind: "accessLoadError",
     errorCode: result.errorCode ?? ERROR_CODE.UNKNOWN_ERROR,
   };
+}
+
+function plainRespondentCopy(value: string | undefined): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  const stripped = value
+    .replace(/<[^>]*>/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!stripped) {
+    return undefined;
+  }
+
+  return stripped.slice(0, RESPONDENT_COPY_MAX_LENGTH);
 }
 
 function isMissingFormAccessError(errorCode: string | undefined): boolean {

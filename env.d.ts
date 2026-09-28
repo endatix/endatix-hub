@@ -22,6 +22,7 @@ declare namespace NodeJS {
     ENDATIX_IS_DEBUG_MODE?: string;
     ENDATIX_SUBMITTER_PRIMARY_FILTER_LABEL?: string;
     ENDATIX_SUBMITTER_GRID_PROFILE_FIELDS?: string;
+    ENDATIX_SHOW_POWERED_BY?: string;
 
     /**
      * SurveyJS Creator licence key. NOT part of the shared projection above: that object
@@ -146,6 +147,7 @@ declare namespace NodeJS {
     // Hub maintenance (see docs — proxy rewrite + /maintenance page)
     MAINTENANCE_MODE?: string;
     MAINTENANCE_RETRY_AFTER_SECONDS?: string;
+    /** @deprecated Ignored since the maintenance page became a public status page (no badge). */
     MAINTENANCE_BADGE_LABEL?: string;
     MAINTENANCE_TITLE?: string;
     MAINTENANCE_CARD_DESCRIPTION?: string;

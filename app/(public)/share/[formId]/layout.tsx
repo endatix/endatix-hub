@@ -1,6 +1,6 @@
 import { auth } from "@/auth";
 import { AppProvider } from "@/components/providers";
-import { AppOptions } from "@/components/providers/app-provider";
+import { AppOptions } from "@/components/providers/app-options";
 import { getClientEndatixConfig } from "@/features/config/server";
 import { getPublicAssetPath } from "@/lib/hosting";
 import type { Metadata } from "next";

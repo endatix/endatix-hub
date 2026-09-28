@@ -25,11 +25,9 @@ type ExportErrorCode =
 type ExportErrorContent = {
   /** The resolved code itself, so callers can key off it (icons, tests). */
   key: ExportErrorCode;
-  /** Short status line above the heading. */
-  eyebrow: string;
   title: string;
   description: string;
-  /** What to do next. Sits under the separator, below the description. */
+  /** What to do next. The quieter note line under the description. */
   hint: string;
 };
 
@@ -37,49 +35,42 @@ const CONTENT: Readonly<
   Record<ExportErrorCode, Omit<ExportErrorContent, "key">>
 > = Object.freeze({
   [EXPORT_ERROR_CODE.TIMEOUT]: {
-    eyebrow: "Took too long",
     title: "This export is taking longer than expected",
     description:
       "The PDF could not be produced in time. Nothing has been lost. Waiting a moment usually helps, because a less busy server finishes well inside the limit.",
     hint: "Go back and open the export link again to retry.",
   },
   [EXPORT_ERROR_CODE.UPSTREAM]: {
-    eyebrow: "Service unavailable",
     title: "We could not reach the submission service",
     description:
       "The submission could not be loaded, so the PDF was not generated. This is usually brief - try again in a moment.",
     hint: "Go back and open the export link again to retry.",
   },
   [EXPORT_ERROR_CODE.EXPIRED]: {
-    eyebrow: "Link expired",
     title: "This export link has expired",
     description:
       "Export links are valid for a limited time. Ask whoever shared it to send a new one.",
     hint: "You can close this tab.",
   },
   [EXPORT_ERROR_CODE.FORBIDDEN]: {
-    eyebrow: "No access",
     title: "This link cannot export the submission",
     description:
       "The link does not carry export permission. Ask whoever shared it for a link that allows exporting.",
     hint: "You can close this tab.",
   },
   [EXPORT_ERROR_CODE.NOT_FOUND]: {
-    eyebrow: "Not found",
     title: "We could not find that submission",
     description:
       "It may have been deleted, or the link may be incomplete. Check that you copied the whole link.",
     hint: "You can close this tab.",
   },
   [EXPORT_ERROR_CODE.INVALID]: {
-    eyebrow: "Invalid link",
     title: "This export link is not valid",
     description:
       "Part of the link is missing or malformed. Check that you copied the whole link, including everything after the question mark.",
     hint: "You can close this tab.",
   },
   [EXPORT_ERROR_CODE.UNKNOWN]: {
-    eyebrow: "Something went wrong",
     title: "The export could not be completed",
     description:
       "Try again in a moment. If it keeps happening, share this page with your administrator.",

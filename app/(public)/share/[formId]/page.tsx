@@ -1,8 +1,8 @@
-import { NotFoundComponent } from "@/components/error-handling/not-found/not-found-component";
-import "@/components/error-handling/not-found/not-found-styles-standalone.css";
+import { PublicStatusPage } from "@/components/public-status/public-status-page";
 import { PublicSurveyContent } from "@/features/public-form/ui/public-survey-content";
 import { PublicSurveySkeleton } from "@/features/public-form/ui/public-survey-skeleton";
 import { hasShareContinuationTokenPermission } from "@/lib/utils";
+import { ShieldX } from "lucide-react";
 import { Suspense } from "react";
 import styles from "./page.module.css";
 
@@ -18,10 +18,12 @@ async function ShareSurveyPage({ params, searchParams }: ShareSurveyPage) {
   if (urlToken) {
     if (!hasShareContinuationTokenPermission(urlToken)) {
       return (
-        <NotFoundComponent
-          notFoundTitle="Access Denied"
-          notFoundSubtitle="You don't have permission to continue this submission"
-          notFoundMessage="The access token does not include submit permissions."
+        <PublicStatusPage
+          icon={ShieldX}
+          message="The access link does not include submit permissions."
+          title="You can't continue this submission."
+          tone="neutral"
+          layout="page"
         />
       );
     }

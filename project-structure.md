@@ -152,7 +152,7 @@ Unauthenticated tenant sign-in / self-registration lives here, not under `platfo
 
 - `list-signup-requests/` owns the queue: URL parsing, the loader, the toolbar and the grid.
 - `review-signup-request/` owns the decision: the approve, reject and retry actions, the review panel, the reviewer-name loader (`listSignupReviewers`), and `signup-request-state.ts`, the one mapping from decision and provisioning to tones, row badge and next step. The grid imports the state mapping and mounts the panel. It never decides itself.
-- UX pattern: `DESIGN.md` §6 "Review queues" and "Review and decide".
+- UX pattern: `DESIGN.md` §6 "Recipe: list page" (review queue) and "Recipe: review and decide".
 
 ### Reporting export slices (`features/export`)
 

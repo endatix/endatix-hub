@@ -1,35 +1,49 @@
-import { RETURN_URL_PARAM, SIGNIN_PATH } from "@/features/auth/infrastructure/auth-constants";
+import {
+  RETURN_URL_PARAM,
+  SIGNIN_PATH,
+} from "@/features/auth/infrastructure/auth-constants";
 import { EmbedHeightReporter } from "@/features/public-form/ui/embed-height-reporter";
 import type { PublicSurveyVariant } from "@/features/public-form/types";
 import { getErrorMessageWithFallback } from "@/lib/endatix-api/shared/error-codes";
 import { withBasePath } from "@/lib/hosting";
-import { ShieldX } from "lucide-react";
-import emptyState from "./already-responded.module.css";
-import styles from "./public-form-access-error.module.css";
+import {
+  ClipboardX,
+  LockKeyhole,
+  ShieldX,
+  TriangleAlert,
+  type LucideIcon,
+} from "lucide-react";
+import {
+  PublicStatusPage,
+  publicStatusClassNames,
+  type PublicStatusTone,
+} from "@/components/public-status/public-status-page";
 
 export type PublicFormAccessErrorKind =
   | "unauthorized"
   | "forbidden"
+  | "formUnavailable"
   | "accessLoadError";
 
-const COPY: Record<
-  Exclude<PublicFormAccessErrorKind, "accessLoadError">,
-  {
-    title: string;
-    subtitle: string;
-    message: string;
-  }
-> = {
-  unauthorized: {
-    title: "401",
-    subtitle: "Sign in required",
-    message: "You must be signed in to access this form.",
-  },
-  forbidden: {
-    title: "403",
-    subtitle: "Access denied",
-    message: "You don't have permission to access this form.",
-  },
+type AccessErrorPresentation = {
+  icon: LucideIcon;
+  tone: PublicStatusTone;
+  title: string;
+  message: string;
+};
+
+const UNAUTHORIZED: AccessErrorPresentation = {
+  icon: LockKeyhole,
+  tone: "neutral",
+  title: "Sign in required",
+  message: "You must be signed in to access this form.",
+};
+
+const FORBIDDEN: AccessErrorPresentation = {
+  icon: ShieldX,
+  tone: "neutral",
+  title: "Access denied",
+  message: "You don't have permission to access this form.",
 };
 
 export type PublicFormAccessErrorProps = {
@@ -38,13 +52,20 @@ export type PublicFormAccessErrorProps = {
   variant: PublicSurveyVariant;
   urlToken?: string;
   errorCode?: string;
+  /** Host ProblemDetails title. Used only for `formUnavailable`. */
+  title?: string;
+  /** Host ProblemDetails detail. Used only for `formUnavailable`. */
+  message?: string;
 };
 
 export function buildPublicFormSignInHref({
   formId,
   variant,
   urlToken,
-}: Omit<PublicFormAccessErrorProps, "kind" | "errorCode">): string {
+}: Pick<
+  PublicFormAccessErrorProps,
+  "formId" | "variant" | "urlToken"
+>): string {
   const formPath = withBasePath(
     variant === "embed" ? `/embed/${formId}` : `/share/${formId}`,
   );
@@ -55,22 +76,37 @@ export function buildPublicFormSignInHref({
   return `${withBasePath(SIGNIN_PATH)}?${RETURN_URL_PARAM}=${encodeURIComponent(returnUrl)}`;
 }
 
-function getCopy(
-  kind: PublicFormAccessErrorKind,
-  errorCode?: string,
-): { title: string; subtitle: string; message: string } {
-  if (kind === "accessLoadError") {
-    return {
-      title: "Unable to load form",
-      subtitle: "Something went wrong",
-      message: getErrorMessageWithFallback(
-        errorCode,
-        "Please try again later.",
-      ),
-    };
+function getPresentation({
+  kind,
+  errorCode,
+  title,
+  message,
+}: Pick<
+  PublicFormAccessErrorProps,
+  "kind" | "errorCode" | "title" | "message"
+>): AccessErrorPresentation {
+  switch (kind) {
+    case "unauthorized":
+      return UNAUTHORIZED;
+    case "formUnavailable":
+      // Host copy is all-or-nothing: half a host message next to half of ours reads
+      // as two authors. Without both, it is an ordinary denial.
+      return title && message
+        ? { icon: ClipboardX, tone: "neutral", title, message }
+        : FORBIDDEN;
+    case "accessLoadError":
+      return {
+        icon: TriangleAlert,
+        tone: "warning",
+        title: "Unable to load form",
+        message: getErrorMessageWithFallback(
+          errorCode,
+          "Please try again later.",
+        ),
+      };
+    default:
+      return FORBIDDEN;
   }
-
-  return COPY[kind];
 }
 
 export function PublicFormAccessError({
@@ -79,23 +115,19 @@ export function PublicFormAccessError({
   variant,
   urlToken,
   errorCode,
+  title,
+  message,
 }: Readonly<PublicFormAccessErrorProps>) {
-  const copy = getCopy(kind, errorCode);
   const isEmbed = variant === "embed";
+  const presentation = getPresentation({ kind, errorCode, title, message });
 
   return (
-    <div className={emptyState.container}>
+    <>
       {isEmbed && <EmbedHeightReporter />}
-      <div className={emptyState.content}>
-        <h1 className={emptyState.title}>{copy.title}</h1>
-        <h2 className={styles.subtitle}>{copy.subtitle}</h2>
-        <div className={styles.iconWrapper}>
-          <ShieldX className={styles.icon} size={48} strokeWidth={1.8} />
-        </div>
-        <p className={emptyState.message}>{copy.message}</p>
+      <PublicStatusPage {...presentation} layout={isEmbed ? "embed" : "page"}>
         {kind === "unauthorized" && (
           <a
-            className={styles.signInLink}
+            className={publicStatusClassNames.action}
             href={buildPublicFormSignInHref({
               formId,
               variant,
@@ -106,7 +138,7 @@ export function PublicFormAccessError({
             Sign in
           </a>
         )}
-      </div>
-    </div>
+      </PublicStatusPage>
+    </>
   );
 }

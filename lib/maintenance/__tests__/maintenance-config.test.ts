@@ -69,18 +69,17 @@ describe("getMaintenanceData", () => {
     vi.unstubAllEnvs();
     const data = getMaintenanceData();
 
-    expect(data.badgeLabel).toBe("Maintenance");
     expect(data.title).toBe("We'll be right back");
     expect(data.cardDescription).toBe(
       "This application is temporarily unavailable.",
     );
     expect(data.body).toContain("scheduled maintenance");
     expect(data.footer).toBe("Thank you for your patience.");
-    expect(data.metadataTitle).toBe("Scheduled maintenance - Endatix Hub");
+    expect(data.metadataTitle).toBe("Scheduled maintenance");
     expect(data.metadataDescription).toContain("temporarily unavailable");
   });
 
-  it("uses env overrides when set", () => {
+  it("uses env overrides when set, and ignores the deprecated badge label", () => {
     vi.stubEnv("MAINTENANCE_BADGE_LABEL", "Down");
     vi.stubEnv("MAINTENANCE_TITLE", "Custom title");
     vi.stubEnv("MAINTENANCE_CARD_DESCRIPTION", "Card");
@@ -92,7 +91,6 @@ describe("getMaintenanceData", () => {
     const data = getMaintenanceData();
 
     expect(data).toEqual({
-      badgeLabel: "Down",
       title: "Custom title",
       cardDescription: "Card",
       body: "Body",

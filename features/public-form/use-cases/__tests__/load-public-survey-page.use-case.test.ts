@@ -105,7 +105,7 @@ describe("loadPublicSurveyPageUseCase", () => {
     );
   });
 
-  it("loads access, submission, and definition in one async pass", async () => {
+  it("loads the form only after public access succeeds", async () => {
     const definition = createDeferred<ResultType<ActiveDefinition>>();
     vi.mocked(getActiveDefinitionUseCase).mockReturnValue(definition.promise);
 
@@ -115,11 +115,13 @@ describe("loadPublicSurveyPageUseCase", () => {
     });
 
     expect(getPublicFormAccessUseCase).toHaveBeenCalledWith({ formId });
-    expect(getPartialSubmissionUseCase).toHaveBeenCalledWith({
-      formId,
-      tokenStore,
+    await vi.waitFor(() => {
+      expect(getPartialSubmissionUseCase).toHaveBeenCalledWith({
+        formId,
+        tokenStore,
+      });
+      expect(getActiveDefinitionUseCase).toHaveBeenCalledWith({ formId });
     });
-    expect(getActiveDefinitionUseCase).toHaveBeenCalledWith({ formId });
 
     definition.resolve(Result.success(activeDefinition));
     const result = await resultPromise;
@@ -450,16 +452,13 @@ describe("loadPublicSurveyPageUseCase", () => {
     expect(result).toEqual({ kind: "forbidden" });
   });
 
-  it("maps token-path access failures to tokenSubmissionError instead of sign-in", async () => {
+  it("does not load the submission when public access is denied", async () => {
     vi.mocked(getPublicFormAccessUseCase).mockResolvedValue(
       Result.error(
         "You must be authenticated to access this form",
         undefined,
         ERROR_CODE.AUTHENTICATION_REQUIRED,
       ),
-    );
-    vi.mocked(getSubmissionByAccessTokenUseCase).mockResolvedValue(
-      Result.success(accessTokenSubmission),
     );
 
     const result = await loadPublicSurveyPageUseCase({
@@ -468,20 +467,55 @@ describe("loadPublicSurveyPageUseCase", () => {
       urlToken: token,
     });
 
+    expect(getSubmissionByAccessTokenUseCase).not.toHaveBeenCalled();
+    expect(result).toEqual({ kind: "unauthorized" });
+  });
+
+  it("returns host copy for form_unavailable and skips the submission", async () => {
+    vi.mocked(getPublicFormAccessUseCase).mockResolvedValue(
+      Result.error(
+        "Thank you for your interest. Unfortunately, this survey can no longer be completed.",
+        undefined,
+        ERROR_CODE.FORM_UNAVAILABLE,
+        { problemTitle: "This survey is no longer available." },
+      ),
+    );
+
+    const result = await loadPublicSurveyPageUseCase({
+      formId,
+      tokenStore,
+      urlToken: token,
+    });
+
+    expect(getSubmissionByAccessTokenUseCase).not.toHaveBeenCalled();
     expect(result).toEqual({
-      kind: "tokenSubmissionError",
-      errorCode: ERROR_CODE.AUTHENTICATION_REQUIRED,
+      kind: "formUnavailable",
+      title: "This survey is no longer available.",
+      message:
+        "Thank you for your interest. Unfortunately, this survey can no longer be completed.",
     });
   });
 
-  it("prefers the submission error when both token-path lookups fail", async () => {
+  it("keeps a generic forbidden page when a 403 has no form_unavailable code", async () => {
     vi.mocked(getPublicFormAccessUseCase).mockResolvedValue(
       Result.error(
-        "You must be authenticated to access this form",
+        "internal assignment table missed a row",
         undefined,
-        ERROR_CODE.AUTHENTICATION_REQUIRED,
+        ERROR_CODE.ACCESS_FORBIDDEN,
+        { problemTitle: "Forbidden access" },
       ),
     );
+
+    const result = await loadPublicSurveyPageUseCase({
+      formId,
+      tokenStore,
+      urlToken: token,
+    });
+
+    expect(result).toEqual({ kind: "forbidden" });
+  });
+
+  it("uses the token error when access succeeds and the submission is forbidden", async () => {
     vi.mocked(getSubmissionByAccessTokenUseCase).mockResolvedValue(
       Result.error("Token expired", undefined, ERROR_CODE.TOKEN_EXPIRED),
     );

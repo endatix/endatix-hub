@@ -6,6 +6,7 @@ type Success<T> = {
 type ErrorSupport = {
   traceId?: string;
   statusCode?: number;
+  problemTitle?: string;
 };
 
 type Error = {
@@ -16,6 +17,7 @@ type Error = {
   errorCode?: string;
   traceId?: string;
   statusCode?: number;
+  problemTitle?: string;
 };
 
 type Result<T> = Success<T> | Error;
@@ -49,6 +51,7 @@ const Result = {
     errorCode,
     traceId: support?.traceId,
     statusCode: support?.statusCode,
+    problemTitle: support?.problemTitle,
   }),
 
   validationError: <T>(
@@ -64,6 +67,7 @@ const Result = {
     errorCode,
     traceId: support?.traceId,
     statusCode: support?.statusCode,
+    problemTitle: support?.problemTitle,
   }),
 
   isSuccess: <T>(result: Result<T>): result is Success<T> =>

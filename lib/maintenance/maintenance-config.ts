@@ -3,7 +3,6 @@
  */
 
 export type MaintenancePageData = {
-  badgeLabel: string;
   title: string;
   cardDescription: string;
   body: string;
@@ -12,13 +11,16 @@ export type MaintenancePageData = {
   metadataDescription: string;
 };
 
+/**
+ * `MAINTENANCE_BADGE_LABEL` is deprecated and no longer read: the maintenance page is
+ * a public status page (DESIGN.md §6), which has no badge slot.
+ */
 const DEFAULT_COPY: MaintenancePageData = {
-  badgeLabel: "Maintenance",
   title: "We'll be right back",
   cardDescription: "This application is temporarily unavailable.",
   body: "We're performing scheduled maintenance. Please check back soon. We apologize for the inconvenience.",
   footer: "Thank you for your patience.",
-  metadataTitle: "Scheduled maintenance - Endatix Hub",
+  metadataTitle: "Scheduled maintenance",
   metadataDescription:
     "The application is temporarily unavailable while we perform maintenance.",
 };
@@ -53,10 +55,6 @@ export function getMaintenanceRetryAfterSeconds(): number | undefined {
 
 export function getMaintenanceData(): MaintenancePageData {
   return {
-    badgeLabel: envOrDefault(
-      "MAINTENANCE_BADGE_LABEL",
-      DEFAULT_COPY.badgeLabel,
-    ),
     title: envOrDefault("MAINTENANCE_TITLE", DEFAULT_COPY.title),
     cardDescription: envOrDefault(
       "MAINTENANCE_CARD_DESCRIPTION",

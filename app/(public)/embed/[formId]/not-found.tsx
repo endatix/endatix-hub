@@ -1,8 +1,6 @@
-import "@/app/globals.css";
-import {
-  NotFoundComponent,
-  PublicNotFoundFrame,
-} from "@/components/error-handling/not-found";
+import { EmbedHeightReporter } from "@/features/public-form/ui/embed-height-reporter";
+import { PublicStatusPage } from "@/components/public-status/public-status-page";
+import { SearchX } from "lucide-react";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -12,12 +10,15 @@ export const metadata: Metadata = {
 
 export default function NotFoundEmbedForm() {
   return (
-    <PublicNotFoundFrame>
-      <NotFoundComponent
-        notFoundTitle="Survey not found"
-        notFoundSubtitle="We couldn't find that survey."
-        notFoundMessage="Check the link and try again."
+    <>
+      <EmbedHeightReporter />
+      <PublicStatusPage
+        icon={SearchX}
+        message="Check the link and try again."
+        title="We couldn't find that survey."
+        tone="neutral"
+        layout="embed"
       />
-    </PublicNotFoundFrame>
+    </>
   );
 }

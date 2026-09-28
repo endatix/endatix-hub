@@ -173,7 +173,7 @@ describe("PublicSurveyContent", () => {
 
     render(component);
 
-    expect(screen.getByText("Link expired")).toBeDefined();
+    expect(screen.getByText("This link has expired.")).toBeDefined();
     expect(screen.queryByTestId("survey-js-wrapper")).toBeNull();
   });
 
@@ -205,7 +205,6 @@ describe("PublicSurveyContent", () => {
 
     render(component);
 
-    expect(screen.getByText("401")).toBeDefined();
     expect(screen.getByText("Sign in required")).toBeDefined();
     expect(notFound).not.toHaveBeenCalled();
     expect(screen.queryByTestId("survey-js-wrapper")).toBeNull();
@@ -267,7 +266,6 @@ describe("PublicSurveyContent", () => {
 
     render(component);
 
-    expect(screen.getByText("403")).toBeDefined();
     expect(screen.getByText("Access denied")).toBeDefined();
     expect(notFound).not.toHaveBeenCalled();
     expect(screen.queryByTestId("survey-js-wrapper")).toBeNull();

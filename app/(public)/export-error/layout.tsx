@@ -1,28 +1,18 @@
-import "@/app/globals.css";
 import { AppProvider } from "@/components/providers";
-import { geistMono, geistSans } from "@/lib/fonts/geist-local";
-import { getPublicAssetPath } from "@/lib/hosting";
-import { getOsClass } from "@/lib/utils/next-utils";
-import { Metadata } from "next";
-import { headers } from "next/headers";
-import { getMetadataBase } from "@/lib/seo";
+import { AppOptions } from "@/components/providers/app-options";
 import { getClientEndatixConfig } from "@/features/config/server";
+import { getPublicAssetPath } from "@/lib/hosting";
+import { getMetadataBase } from "@/lib/seo";
+import { Metadata } from "next";
 
 /**
- * Standalone public shell, mirroring the maintenance page. Export links are
- * opened by recipients who have no Hub session, so there is no app chrome.
+ * Standalone public shell, like maintenance. Export links are opened by recipients
+ * who have no Hub session; the page is a public status page, so there is no Hub
+ * stylesheet, font or theme provider (DESIGN.md §6, §9).
  */
-const appOptions = {
-  enableTheme: true,
-  enableAnalytics: false,
-  enableSession: false,
-  enableToaster: false,
-  enableSidebar: false,
-};
-
 export const metadata: Metadata = {
   metadataBase: getMetadataBase(),
-  title: "Export failed - Endatix",
+  title: "Export failed",
   description: "This export could not be completed.",
   robots: {
     index: false,
@@ -37,18 +27,10 @@ interface ExportErrorLayoutProps {
 export default async function ExportErrorLayout({
   children,
 }: Readonly<ExportErrorLayoutProps>) {
-  const [requestHeaders, endatixConfig] = await Promise.all([
-    headers(),
-    getClientEndatixConfig(),
-  ]);
-  const osClass = getOsClass(requestHeaders);
+  const endatixConfig = await getClientEndatixConfig();
 
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${osClass}`}
-      suppressHydrationWarning
-    >
+    <html lang="en" suppressHydrationWarning>
       <head>
         <link
           rel="icon"
@@ -57,7 +39,10 @@ export default async function ExportErrorLayout({
         />
       </head>
       <body>
-        <AppProvider options={appOptions} endatixConfig={endatixConfig}>
+        <AppProvider
+          options={AppOptions.StatusPages}
+          endatixConfig={endatixConfig}
+        >
           {children}
         </AppProvider>
       </body>

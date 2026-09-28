@@ -1,5 +1,5 @@
-import { NotFoundComponent } from "@/components/error-handling/not-found/not-found-component";
 import { Skeleton } from "@/components/ui/skeleton";
+import { SubmissionLinkError } from "@/features/public-submissions/ui/submission-link-error";
 import { AssetStorageProvider } from "@/features/asset-storage/server";
 import { getSubmissionByAccessTokenUseCase } from "@/features/public-submissions/edit/get-submission-by-access-token.use-case";
 import { resolveSubmissionFormDefinition } from "@/features/public-submissions/resolve-submission-form-definition";
@@ -28,33 +28,15 @@ export default async function PublicViewSubmissionPage({
 
   const validateFormIdResult = validateEndatixId(formId, "formId");
   if (Result.isError(validateFormIdResult)) {
-    return (
-      <NotFoundComponent
-        notFoundTitle="Invalid Form"
-        notFoundSubtitle="Invalid form ID provided"
-        notFoundMessage="Please check the URL and try again."
-      />
-    );
+    return <SubmissionLinkError action="view" kind="invalidLink" />;
   }
 
   if (!token) {
-    return (
-      <NotFoundComponent
-        notFoundTitle="Token Required"
-        notFoundSubtitle="No access token provided"
-        notFoundMessage="You need a valid access token to view this submission."
-      />
-    );
+    return <SubmissionLinkError action="view" kind="tokenRequired" />;
   }
 
   if (!hasTokenPermission(token, TokenPermission.Read)) {
-    return (
-      <NotFoundComponent
-        notFoundTitle="Access Denied"
-        notFoundSubtitle="You don't have permission to view this submission"
-        notFoundMessage="The access token does not include view permissions."
-      />
-    );
+    return <SubmissionLinkError action="view" kind="forbidden" />;
   }
 
   const submissionResult = await getSubmissionByAccessTokenUseCase({
@@ -66,35 +48,17 @@ export default async function PublicViewSubmissionPage({
     const errorMessage = submissionResult.message.toLowerCase();
 
     if (errorMessage.includes("expired")) {
-      return (
-        <NotFoundComponent
-          notFoundTitle="Token Expired"
-          notFoundSubtitle="This link has expired"
-          notFoundMessage="Please request a new access link to view this submission."
-        />
-      );
+      return <SubmissionLinkError action="view" kind="expired" />;
     }
 
     if (
       errorMessage.includes("permission") ||
       errorMessage.includes("forbidden")
     ) {
-      return (
-        <NotFoundComponent
-          notFoundTitle="Access Denied"
-          notFoundSubtitle="You don't have permission to view this submission"
-          notFoundMessage="The access token does not have view permissions."
-        />
-      );
+      return <SubmissionLinkError action="view" kind="forbidden" />;
     }
 
-    return (
-      <NotFoundComponent
-        notFoundTitle="Submission Not Found"
-        notFoundSubtitle="Unable to load submission"
-        notFoundMessage="The submission may have been deleted or the token is invalid."
-      />
-    );
+    return <SubmissionLinkError action="view" kind="notFound" />;
   }
 
   const submission = submissionResult.value;
@@ -102,13 +66,7 @@ export default async function PublicViewSubmissionPage({
 
   if (Result.isError(definitionResult)) {
     console.error(definitionResult.message);
-    return (
-      <NotFoundComponent
-        notFoundTitle="Form Not Found"
-        notFoundSubtitle="Unable to load form definition"
-        notFoundMessage="The form definition could not be loaded. Please try again later."
-      />
-    );
+    return <SubmissionLinkError action="view" kind="formUnavailable" />;
   }
 
   submission.formDefinition = definitionResult.value;

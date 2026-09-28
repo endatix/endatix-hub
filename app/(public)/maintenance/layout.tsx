@@ -1,46 +1,32 @@
-import "@/app/globals.css";
 import { AppProvider } from "@/components/providers";
-import { geistMono, geistSans } from "@/lib/fonts/geist-local";
-import { getPublicAssetPath } from "@/lib/hosting";
-import { getOsClass } from "@/lib/utils/next-utils";
-import { Metadata } from "next";
-import { headers } from "next/headers";
-import { getMetadataBase } from "@/lib/seo";
+import { AppOptions } from "@/components/providers/app-options";
 import { getClientEndatixConfig } from "@/features/config/server";
+import { getPublicAssetPath } from "@/lib/hosting";
+import { getMetadataBase } from "@/lib/seo";
+import { Metadata } from "next";
 
-const appOptions = {
-  enableTheme: true,
-  enableAnalytics: false,
-  enableSession: false,
-  enableToaster: false,
-  enableSidebar: false,
-};
+/**
+ * Like `/share`, this route renders only a public status page, so it does not load
+ * `globals.css` or Hub fonts (DESIGN.md §9), and has no theme provider: the page
+ * follows the OS colour scheme on its own.
+ */
 
 export const metadata: Metadata = {
   metadataBase: getMetadataBase(),
-  title: "Endatix",
-  description: "Customizable form management platform",
+  title: "Scheduled maintenance",
 };
 
 interface MaintenanceLayoutProps {
   children: React.ReactNode;
 }
 
-export default async function PublicLayout({
+export default async function MaintenanceLayout({
   children,
 }: Readonly<MaintenanceLayoutProps>) {
-  const [requestHeaders, endatixConfig] = await Promise.all([
-    headers(),
-    getClientEndatixConfig(),
-  ]);
-  const osClass = getOsClass(requestHeaders);
+  const endatixConfig = await getClientEndatixConfig();
 
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${osClass}`}
-      suppressHydrationWarning
-    >
+    <html lang="en" suppressHydrationWarning>
       <head>
         <link
           rel="icon"
@@ -49,7 +35,10 @@ export default async function PublicLayout({
         />
       </head>
       <body>
-        <AppProvider options={appOptions} endatixConfig={endatixConfig}>
+        <AppProvider
+          options={AppOptions.StatusPages}
+          endatixConfig={endatixConfig}
+        >
           {children}
         </AppProvider>
       </body>
