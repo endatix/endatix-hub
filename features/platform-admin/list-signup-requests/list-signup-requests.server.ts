@@ -11,6 +11,7 @@ import {
 } from "@/lib/endatix-api/shared/paged-response";
 import { Result, type ResultType } from "@/lib/result";
 import { toResult } from "@/lib/result/map-api-result-to-result";
+import { signupActivityLinks } from "../review-signup-request/signup-activity-links.server";
 import type { PlatformAdminSession } from "../types";
 
 interface ListSignupRequestsOptions {
@@ -38,5 +39,12 @@ export async function listSignupRequests(
     return result;
   }
 
-  return Result.success(normalizePagedResponse(result.value));
+  const page = normalizePagedResponse(result.value);
+  return Result.success({
+    ...page,
+    items: page.items.map((item) => ({
+      ...item,
+      activity: signupActivityLinks(item),
+    })),
+  });
 }

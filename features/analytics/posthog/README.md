@@ -31,7 +31,10 @@ Analytics tracking for Next.js applications using PostHog, with support for both
    POSTHOG_PROJECT_TOKEN=your_posthog_project_token
    POSTHOG_HOST=https://us.i.posthog.com
    POSTHOG_UI_HOST=https://app.posthog.com  # optional
+   POSTHOG_PROJECT_ID=                     # optional, server-only; signup review links
    ```
+
+   A public signup keeps the anonymous `distinct_id`. Do not call `identify(email)`. On a successful request, set `email` with `setPersonProperties` and capture `signup_requested` with `has_company` only. The opaque distinct id and session id are stored on the signup when `POSTHOG_PROJECT_TOKEN` is set. The review sheet shows Session and Profile links only when `POSTHOG_UI_HOST`, `POSTHOG_PROJECT_ID`, and a stored id are all present. Do not set `POSTHOG_SECRET_KEY`.
 
 2. Hub **product** flags (`ai-features`, etc.) are `lib/feature-flags` + `FLAG_PROVIDER=posthog`, not the analytics `isFeatureEnabled` helpers.
 

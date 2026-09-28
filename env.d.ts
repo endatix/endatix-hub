@@ -19,6 +19,8 @@ declare namespace NodeJS {
     POSTHOG_PROJECT_TOKEN?: string;
     POSTHOG_HOST?: string;
     POSTHOG_UI_HOST?: string;
+    /** Server-only. Not part of the client config projection. */
+    POSTHOG_PROJECT_ID?: string;
     ENDATIX_IS_DEBUG_MODE?: string;
     ENDATIX_SUBMITTER_PRIMARY_FILTER_LABEL?: string;
     ENDATIX_SUBMITTER_GRID_PROFILE_FIELDS?: string;

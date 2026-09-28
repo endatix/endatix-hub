@@ -1,6 +1,7 @@
 "use server";
 
 import { z } from "zod";
+import { readPublicEndatixEnv } from "@/features/config/client-endatix-config";
 import { EndatixApi } from "@/lib/endatix-api";
 import { saasManagementFlag } from "@/lib/feature-flags/flags";
 import { Result } from "@/lib/result";
@@ -53,8 +54,20 @@ export async function submitSignupRequestAction(
     return ServerActionState.fromZodError(validated.error, rawData);
   }
 
+  const posthogEnabled = readPublicEndatixEnv().posthogProjectToken.length > 0;
+  const postHogDistinctId = getStringFormValue(formData, "postHogDistinctId").trim();
+  const postHogSessionId = getStringFormValue(formData, "postHogSessionId").trim();
+
   const api = new EndatixApi();
-  const result = toResult(await api.signupRequests.create(validated.data), {
+  const result = toResult(
+    await api.signupRequests.create({
+      ...validated.data,
+      ...(posthogEnabled && postHogDistinctId
+        ? { postHogDistinctId }
+        : {}),
+      ...(posthogEnabled && postHogSessionId ? { postHogSessionId } : {}),
+    }),
+    {
     fallbackMessage: "We could not submit your request. Please try again.",
     preferredFields: ["email"],
     logMessage: "Failed to submit signup request.",

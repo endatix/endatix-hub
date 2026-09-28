@@ -4,6 +4,8 @@ export interface CreateSignupRequestBody {
   email: string;
   companyName?: string | null;
   jobTitle?: string | null;
+  postHogDistinctId?: string;
+  postHogSessionId?: string;
 }
 
 export interface SignupRequestAcceptedResponse {
@@ -22,6 +24,16 @@ export interface SignupRequestListItem {
   decidedByUserId: string | null;
   createdAt: string;
   modifiedAt: string | null;
+  decidedAt?: string | null;
+  /** JSON bag. PostHog ids live here as postHogDistinctId and postHogSessionId. */
+  metadata?: string | null;
+  /** Server-built review links. Absent when PostHog is not configured for the UI. */
+  activity?: SignupActivityLinks | null;
+}
+
+export interface SignupActivityLinks {
+  sessionHref?: string;
+  profileHref?: string;
 }
 
 export interface ListSignupRequestsRequest {

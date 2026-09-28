@@ -72,6 +72,27 @@ describe("SignupRequestReviewPanel", () => {
     expect(screen.getByText("Request")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Approve…" })).toBeTruthy();
     expect(screen.queryByLabelText("Workspace name")).toBeNull();
+    expect(screen.queryByText("Activity")).toBeNull();
+  });
+
+  it("shows PostHog links only when the loader supplied them", () => {
+    // Act
+    renderPanel(
+      request({
+        activity: {
+          sessionHref: "https://us.posthog.com/project/1/replay/sess",
+          profileHref: "https://us.posthog.com/project/1/persons/anon",
+        },
+      }),
+    );
+
+    // Assert
+    expect(screen.getByRole("link", { name: "Session" }).getAttribute("href")).toBe(
+      "https://us.posthog.com/project/1/replay/sess",
+    );
+    expect(screen.getByRole("link", { name: "Profile" }).getAttribute("href")).toBe(
+      "https://us.posthog.com/project/1/persons/anon",
+    );
   });
 
   it("approves with the suggested workspace name and shows the outcome", async () => {

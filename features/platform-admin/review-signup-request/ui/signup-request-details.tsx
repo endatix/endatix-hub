@@ -8,7 +8,10 @@ import { StatusBadge } from "@/components/common/status-badge";
 import { SummaryRow } from "@/components/common/summary-row";
 import { TruncatedId } from "@/components/common/truncated-id";
 import CopyToClipboard from "@/components/copy-to-clipboard";
-import type { SignupRequestListItem } from "@/lib/endatix-api/signup-requests/types";
+import type {
+  SignupActivityLinks as SignupActivityLinkSet,
+  SignupRequestListItem,
+} from "@/lib/endatix-api/signup-requests/types";
 import { formatPreciseDateTime } from "@/lib/date-utils";
 import { describeSignupRequest } from "../signup-request-state";
 import type { SignupReviewers } from "../types";
@@ -57,6 +60,12 @@ export function SignupRequestDetails({
             label="Submitted"
             value={formatPreciseDateTime(request.createdAt)}
           />
+          {request.activity ? (
+            <SummaryRow
+              label="Activity"
+              value={<SignupActivityLinks links={request.activity} />}
+            />
+          ) : null}
         </dl>
       </PanelSection>
 
@@ -75,6 +84,16 @@ export function SignupRequestDetails({
                   userId={request.decidedByUserId}
                   reviewers={reviewers}
                 />
+              }
+            />
+            <SummaryRow
+              label="Decided"
+              value={
+                request.decidedAt ? (
+                  formatPreciseDateTime(request.decidedAt)
+                ) : (
+                  <NotSet />
+                )
               }
             />
             <SummaryRow
@@ -137,6 +156,35 @@ export function SignupRequestDetails({
         </PanelSection>
       )}
     </>
+  );
+}
+
+function SignupActivityLinks({
+  links,
+}: Readonly<{ links: SignupActivityLinkSet }>) {
+  return (
+    <span className="flex flex-wrap gap-x-3 gap-y-1">
+      {links.sessionHref ? (
+        <a
+          href={links.sessionHref}
+          target="_blank"
+          rel="noreferrer"
+          className="font-medium text-primary underline-offset-4 hover:underline"
+        >
+          Session
+        </a>
+      ) : null}
+      {links.profileHref ? (
+        <a
+          href={links.profileHref}
+          target="_blank"
+          rel="noreferrer"
+          className="font-medium text-primary underline-offset-4 hover:underline"
+        >
+          Profile
+        </a>
+      ) : null}
+    </span>
   );
 }
 
