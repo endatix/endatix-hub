@@ -30,6 +30,8 @@ export interface ApiErrorDetails {
   traceId?: string;
   /** ProblemDetails `title`, kept apart from `detail` so a host denial can show both. */
   problemTitle?: string;
+  /** Media type of the error response, without parameters. */
+  problemMediaType?: string;
   /** Undici/Node `error.cause.code` when `fetch` throws (e.g. ETIMEDOUT). */
   causeCode?: string;
   /** Undici/Node `error.cause.name` when `fetch` throws. */

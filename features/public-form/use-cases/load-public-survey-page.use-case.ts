@@ -192,7 +192,11 @@ function mapAccessFailure(result: ResultType<unknown>): Extract<
   if (result.errorCode === ERROR_CODE.FORM_UNAVAILABLE) {
     const title = plainRespondentCopy(result.problemTitle);
     const message = plainRespondentCopy(result.message);
-    if (title && message) {
+    if (
+      result.problemMediaType === "application/problem+json" &&
+      title &&
+      message
+    ) {
       return { kind: "formUnavailable", title, message };
     }
 
@@ -222,10 +226,7 @@ function plainRespondentCopy(value: string | undefined): string | undefined {
     return undefined;
   }
 
-  const stripped = value
-    .replace(/<[^>]*>/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
+  const stripped = value.replace(/\s+/g, " ").trim();
   if (!stripped) {
     return undefined;
   }

@@ -477,7 +477,7 @@ describe("loadPublicSurveyPageUseCase", () => {
         "Thank you for your interest. Unfortunately, this survey can no longer be completed.",
         undefined,
         ERROR_CODE.FORM_UNAVAILABLE,
-        { problemTitle: "This survey is no longer available." },
+        { problemTitle: "This survey is no longer available.", problemMediaType: "application/problem+json" },
       ),
     );
 
@@ -494,6 +494,28 @@ describe("loadPublicSurveyPageUseCase", () => {
       message:
         "Thank you for your interest. Unfortunately, this survey can no longer be completed.",
     });
+  });
+
+  it("keeps a generic forbidden page when form_unavailable is not problem+json", async () => {
+    vi.mocked(getPublicFormAccessUseCase).mockResolvedValue(
+      Result.error(
+        "Thank you for your interest.",
+        undefined,
+        ERROR_CODE.FORM_UNAVAILABLE,
+        {
+          problemTitle: "Closed",
+          problemMediaType: "application/json",
+        },
+      ),
+    );
+
+    const result = await loadPublicSurveyPageUseCase({
+      formId,
+      tokenStore,
+      urlToken: token,
+    });
+
+    expect(result).toEqual({ kind: "forbidden" });
   });
 
   it("keeps a generic forbidden page when a 403 has no form_unavailable code", async () => {

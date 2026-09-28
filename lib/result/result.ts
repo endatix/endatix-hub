@@ -7,6 +7,7 @@ type ErrorSupport = {
   traceId?: string;
   statusCode?: number;
   problemTitle?: string;
+  problemMediaType?: string;
 };
 
 type Error = {
@@ -18,6 +19,7 @@ type Error = {
   traceId?: string;
   statusCode?: number;
   problemTitle?: string;
+  problemMediaType?: string;
 };
 
 type Result<T> = Success<T> | Error;
@@ -52,6 +54,7 @@ const Result = {
     traceId: support?.traceId,
     statusCode: support?.statusCode,
     problemTitle: support?.problemTitle,
+    problemMediaType: support?.problemMediaType,
   }),
 
   validationError: <T>(
@@ -68,6 +71,7 @@ const Result = {
     traceId: support?.traceId,
     statusCode: support?.statusCode,
     problemTitle: support?.problemTitle,
+    problemMediaType: support?.problemMediaType,
   }),
 
   isSuccess: <T>(result: Result<T>): result is Success<T> =>

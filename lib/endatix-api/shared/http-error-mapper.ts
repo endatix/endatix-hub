@@ -28,12 +28,19 @@ export async function mapResponseToApiError<T>(
     }
   }
 
+  const problemMediaType = response.headers
+    .get("content-type")
+    ?.split(";")[0]
+    ?.trim()
+    .toLowerCase();
+
   const enrichedDetails: ApiErrorDetails = {
     ...details,
     statusCode: details.statusCode ?? response.status,
     details: problemDetails?.detail ?? details.details,
     traceId: problemDetails?.traceId ?? details.traceId,
     problemTitle: problemDetails?.title ?? details.problemTitle,
+    problemMediaType: problemMediaType || details.problemMediaType,
   };
 
   const retryAfter = response.headers.get("Retry-After");

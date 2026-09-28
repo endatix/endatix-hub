@@ -36,6 +36,7 @@ function supportFromApiError(apiError: ApiError): ErrorSupport {
     traceId: apiError.error.details?.traceId,
     statusCode: apiError.error.details?.statusCode,
     problemTitle: apiError.error.details?.problemTitle,
+    problemMediaType: apiError.error.details?.problemMediaType,
   };
 }
 
