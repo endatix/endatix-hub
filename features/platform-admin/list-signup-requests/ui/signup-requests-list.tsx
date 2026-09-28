@@ -26,6 +26,10 @@ export function SignupRequestsList({
   const { search, setSearch, updateUrl, searchParams, isPending } =
     useListUrlState();
   const urlState = signupRequestsUrlState(searchParams);
+  const clearFilters = () => {
+    setSearch("");
+    updateUrl({ search: null, status: null, page: "1" });
+  };
 
   return (
     <>
@@ -34,6 +38,7 @@ export function SignupRequestsList({
         setSearch={setSearch}
         updateUrl={updateUrl}
         urlState={urlState}
+        onClearFilters={clearFilters}
       />
       <PagedListFrame
         listKey={listKey}
@@ -45,6 +50,7 @@ export function SignupRequestsList({
           updateUrl={updateUrl}
           urlState={urlState}
           isPending={isPending}
+          onClearFilters={clearFilters}
         />
       </PagedListFrame>
     </>

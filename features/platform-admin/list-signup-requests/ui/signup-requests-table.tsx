@@ -1,5 +1,6 @@
 "use client";
 
+import { Inbox } from "lucide-react";
 import { Suspense, use, useMemo, useState } from "react";
 import {
   CellDate,
@@ -41,6 +42,7 @@ interface SignupRequestsTableProps {
   updateUrl: UrlSearchParamsUpdater;
   urlState: SignupRequestsUrlState;
   isPending: boolean;
+  onClearFilters: () => void;
 }
 
 export function SignupRequestsTableFromPromise({
@@ -102,6 +104,7 @@ export function SignupRequestsTable({
   updateUrl,
   urlState,
   isPending,
+  onClearFilters,
 }: Readonly<SignupRequestsTableProps>) {
   const { sorting, onSortingChange } = useListTableState(urlState, updateUrl);
   // The snapshot keeps the panel filled while it closes, and after a decision
@@ -147,7 +150,13 @@ export function SignupRequestsTable({
         table={table}
         isPending={isPending}
         hasRows={paged.items.length > 0}
-        empty={<DataTableEmpty>{emptyMessage(urlState)}</DataTableEmpty>}
+        empty={
+          <SignupRequestsEmpty
+            urlState={urlState}
+            onClearFilters={onClearFilters}
+            onShowAll={() => updateUrl({ status: "all", page: "1" })}
+          />
+        }
       />
       <PagedTableFooter
         {...createPagedTableFooterProps(paged, "signup requests", updateUrl)}
@@ -283,19 +292,74 @@ function buildColumns({
   ];
 }
 
-function emptyMessage(urlState: SignupRequestsUrlState): string {
-  if (urlState.search.trim()) {
-    return "No signup requests match your search.";
+const STATUS_NOUN: Record<SignupRequestsUrlState["status"], string> = {
+  pending: "pending",
+  approved: "approved",
+  rejected: "rejected",
+  all: "",
+};
+
+/**
+ * One icon for "nothing yet" and "nothing matches" — the sidebar's `Inbox` — so
+ * an empty filter reads as this list, not as an error. The copy and the way out differ.
+ */
+function SignupRequestsEmpty({
+  urlState,
+  onClearFilters,
+  onShowAll,
+}: Readonly<{
+  urlState: SignupRequestsUrlState;
+  onClearFilters: () => void;
+  onShowAll: () => void;
+}>) {
+  const search = urlState.search.trim();
+  const noun = STATUS_NOUN[urlState.status];
+
+  if (search) {
+    return (
+      <DataTableEmpty
+        icon={Inbox}
+        title="No matching requests"
+        onClearFilters={onClearFilters}
+      >
+        No {noun ? `${noun} ` : ""}request matches “{search}”. Search looks at
+        the email and company.
+      </DataTableEmpty>
+    );
   }
 
-  switch (urlState.status) {
-    case DEFAULT_SIGNUP_REQUEST_STATUS_FILTER:
-      return "No requests are waiting for a decision.";
-    case "approved":
-      return "No approved signup requests.";
-    case "rejected":
-      return "No rejected signup requests.";
-    default:
-      return "No signup requests yet. Requests from the signup page appear here.";
+  if (urlState.status === DEFAULT_SIGNUP_REQUEST_STATUS_FILTER) {
+    return (
+      <DataTableEmpty
+        icon={Inbox}
+        title="No requests waiting for a decision"
+        action={
+          <Button variant="ghost" size="sm" onClick={onShowAll}>
+            Show all requests
+          </Button>
+        }
+      >
+        New requests from the public signup page appear here for review.
+      </DataTableEmpty>
+    );
   }
+
+  if (urlState.status === "all") {
+    return (
+      <DataTableEmpty icon={Inbox} title="No signup requests yet">
+        Requests submitted from the public signup page appear here.
+      </DataTableEmpty>
+    );
+  }
+
+  return (
+    <DataTableEmpty
+      icon={Inbox}
+      title={`No ${noun} requests`}
+      onClearFilters={onClearFilters}
+    >
+      Requests move here once an admin{" "}
+      {urlState.status === "approved" ? "approves" : "rejects"} them.
+    </DataTableEmpty>
+  );
 }

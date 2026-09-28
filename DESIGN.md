@@ -163,7 +163,7 @@ a small static list and a paged sortable grid still look identical:
 | :------------------------------------------------------------------------------------------ | :--------------------------------------------------------------------------- |
 | `DataTableSurface`                                                                          | The rounded, softly-lifted container. Also dims rows during a URL transition |
 | `DataTableGrid`                                                                             | Header + body for a TanStack table                                           |
-| `DataTableEmpty`                                                                            | The empty state, **outside** the table element                               |
+| `DataTableEmpty`                                                                            | The empty state, **outside** the table element: icon, title, way out (below) |
 | `dataTableHeaderCellClassName` / `dataTableBodyRowClassName` / `dataTableBodyCellClassName` | Sticky header, zebra fill and cell padding for a hand-rolled `<table>`       |
 | `dataTableColumnLabelClassName`                                                             | The uppercase muted column title                                             |
 | `DATA_TABLE_SHRINK_WRAP_CLASS_NAME`                                                         | Shrink a column to its content                                               |
@@ -188,8 +188,53 @@ a small static list and a paged sortable grid still look identical:
 - **The empty state is not a full-width `<td>`.** Render `DataTableEmpty`
   instead of the table, so the empty message is not framed by a header row
   describing columns that have no data.
+
 - Pass `isStatic: true` to `dataTableHeaderCellClassName` for a header that
   never scrolls under sticky positioning (short lists, skeletons).
+
+**Empty states — `DataTableEmpty`.** A list page's empty state is titled and
+carries the list's icon. Pass `icon` + `title`, with the description as
+children:
+
+```tsx
+<DataTableEmpty
+  icon={Inbox}
+  title="No matching requests"
+  onClearFilters={clearFilters}
+>
+  No request matches “acme”. Search looks at the email and company.
+</DataTableEmpty>
+```
+
+- **One icon for both kinds of empty.** "Nothing yet" and "nothing matches" use
+  the list's entity icon, the same glyph as its sidebar item (`Inbox` for
+  Signup Requests). A search glyph or a warning mark on a filtered list reads
+  as a different kind of screen, or as an error. What tells the two states
+  apart is the title and the way out.
+- **Every empty state gives a way out:**
+
+  | The list is empty because…       | Title says                             | Action                                                           |
+  | :------------------------------- | :------------------------------------- | :--------------------------------------------------------------- |
+  | nothing was ever created         | "No … yet"                             | the create button (`action`) if the list has one, otherwise none |
+  | the default view is clear        | what is clear ("No requests waiting…") | an optional ghost link to the wider view ("Show all requests")   |
+  | a search or a non-default filter | "No matching …" / "No approved …"      | `onClearFilters`, the standard outline "Clear filters" button    |
+
+  The description names what was searched or filtered ("No approved request
+  matches “acme”") and, for search, which fields it looks at.
+
+- **`onClearFilters` resets exactly what the toolbar's Reset resets.** Build it
+  once in the list shell, which owns `setSearch` and `updateUrl`, and hand it to
+  both. A clear button that leaves a filter behind, or empties the input
+  without touching the URL, shows the same empty state again.
+- **Compact, not page-sized.** The titled variant sits under a column header
+  inside `DataTableSurface`, so it uses `py-10` and a `text-base` title, not the
+  page-level `Empty` (`md:p-12`, `text-lg`) that a whole-page empty state such as
+  `/forms` uses. The icon tile is `EmptyMedia variant="icon"` on `bg-muted`,
+  which works in light and dark.
+- **The one-liner still exists** (`<DataTableEmpty>No rows.</DataTableEmpty>`)
+  for secondary and embedded lists (a settings card, a dialog). Every list page
+  in the sidebar uses the titled form. Reference: `SignupRequestsEmpty` in
+  `features/platform-admin/list-signup-requests/ui/signup-requests-table.tsx`.
 
 ### Tabular / Matrix Answers
 
@@ -740,9 +785,10 @@ Tables), and the rules below cover what a queue adds on top.
 - **Decision states use the Status Vocabulary.** Waiting for a decision is
   `attention`, accepted is `on`, and declined is `off`. A declined request is a
   legitimate outcome, not a failure, so it never takes `destructive`.
-- **The empty state names the filter.** "No requests are waiting for a
-  decision" tells the reviewer the queue is clear. "No signup requests" on a
-  pending-only view reads as if nothing was ever submitted.
+- **The empty state names the filter.** "No requests waiting for a decision"
+  tells the reviewer the queue is clear. "No signup requests" on a pending-only
+  view reads as if nothing was ever submitted. It follows the §5 empty-state
+  rules: `Inbox` icon, and "Show all requests" as the way to the wider view.
 - **The requester's identity is the value being read.** Wrap it with
   `break-all`; never `truncate` it (§6: never truncate a value the reader came
   for). An optional field that was left empty renders `—` with an `sr-only`
@@ -914,6 +960,7 @@ and then **write the answer back into this file** as part of the same change:
 - **Do** open a review queue on the items still waiting for a decision, and give the same destination one title and one icon in the sidebar, the dashboard and the page (§6 Review queues).
 - **Do** show the record before any decision control: one `Review` button per row, then review → decide → outcome in one `ResponsivePanel` (§6 Review and decide).
 - **Do** record and show who decided, when and why. Resolve the decider to a name, and keep the id visible when the name is unknown.
+- **Do** give a list page's empty state the list's icon, a title and a way out — "Clear filters" when a filter or search caused it (§5 List Tables).
 
 ### Don't:
 
