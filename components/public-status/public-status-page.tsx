@@ -77,9 +77,8 @@ export function PublicStatusPage({
           <Icon aria-hidden className={styles.icon} strokeWidth={1.75} />
         </div>
         <h1 className={styles.title}>{title}</h1>
-        {toParagraphs(message).map((paragraph, index) => (
-          // Static copy that never reorders; text can repeat, so it is not a key.
-          <p className={styles.message} key={index}>
+        {toParagraphs(message).map((paragraph) => (
+          <p className={styles.message} key={paragraph}>
             {paragraph}
           </p>
         ))}
