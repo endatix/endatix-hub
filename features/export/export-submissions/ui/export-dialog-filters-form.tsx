@@ -11,10 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  EXPORT_COMPLETION_STATUS,
-  type ExportCompletionStatusFilter,
-} from "../../export-url";
+import { type ExportCompletionStatusFilter } from "../../export-url";
 import {
   COMPLETION_STATUS_OPTIONS,
   CREATED_AT_TOOLTIP,
@@ -157,13 +154,6 @@ export function ExportDialogFiltersForm({
                 ))}
               </SelectContent>
             </Select>
-            {filterDraft.completionStatus ===
-            EXPORT_COMPLETION_STATUS.incomplete ? (
-              <p className="text-xs text-muted-foreground">
-                Reporting export only includes completed submissions that have
-                been flattened. Incomplete drafts are not in the read model yet.
-              </p>
-            ) : null}
           </div>
 
           <div className="flex items-center gap-2 pt-0.5">

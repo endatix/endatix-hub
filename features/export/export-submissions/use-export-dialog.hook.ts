@@ -76,6 +76,7 @@ export type UseExportDialogArgs = {
 
 export type UseExportDialogResult = {
   phase: ExportDialogPhase;
+  includingIncomplete: boolean;
   description: string;
   busy: boolean;
   controlsLocked: boolean;
@@ -132,6 +133,7 @@ export function useExportDialog({
   const previousExportFormatIdRef = useRef<string | null>(null);
 
   const [phase, setPhase] = useState<ExportDialogPhase>("checking");
+  const [includingIncomplete, setIncludingIncomplete] = useState(false);
   const [inlineError, setInlineError] = useState<string | null>(null);
   const [prepareSuccessSummary, setPrepareSuccessSummary] = useState<
     string | null
@@ -276,6 +278,7 @@ export function useExportDialog({
     setFilterDraft(createFilterDraftFromListFilters(currentListFilters));
     setRangeErrors(EMPTY_RANGE_ERRORS);
     setLocaleDirty(false);
+    setIncludingIncomplete(false);
     previousExportFormatIdRef.current = null;
     setInlineError(null);
     setPrepareSuccessSummary(null);
@@ -401,11 +404,30 @@ export function useExportDialog({
       locale: localeSelectValue,
     });
 
+    const includesIncomplete =
+      showRowFilters &&
+      (filterDraft.completionStatus === EXPORT_COMPLETION_STATUS.incomplete ||
+        filterDraft.completionStatus === EXPORT_COMPLETION_STATUS.all);
+
     setPhase("exporting");
     setInlineError(null);
     setPrepareSuccessSummary(null);
+    setIncludingIncomplete(includesIncomplete);
 
     try {
+      if (includesIncomplete) {
+        const refresh = await prepareReportingExportAction(formId, {
+          completionScope: "incomplete",
+        });
+        if (Result.isError(refresh)) {
+          setIncludingIncomplete(false);
+          setInlineError(refresh.message);
+          setPhase("error");
+          return;
+        }
+        setIncludingIncomplete(false);
+      }
+
       const result = await onExport({
         formatKey: selectedOption.formatKey,
         exportName: selectedOption.label,
@@ -428,6 +450,7 @@ export function useExportDialog({
       });
       setPhase("success");
     } catch {
+      setIncludingIncomplete(false);
       setInlineError(GENERIC_EXPORT_FAILURE_MESSAGE);
       setPhase("error");
     }
@@ -440,6 +463,7 @@ export function useExportDialog({
 
   return {
     phase,
+    includingIncomplete,
     description: getPhaseDescription(phase, { rebuildMode }),
     busy,
     controlsLocked,

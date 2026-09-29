@@ -12,6 +12,7 @@ export interface BackfillSubmissionsRequest {
   batchSize?: number;
   afterSubmissionId?: string;
   force?: boolean;
+  completionScope?: "completed" | "incomplete";
 }
 
 export interface BackfillSubmissionsResponse {

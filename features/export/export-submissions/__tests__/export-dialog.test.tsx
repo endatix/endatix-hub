@@ -14,15 +14,14 @@ const mockPrepareReportingExportAction = vi.fn();
 
 type ExportTarget = "Submissions" | "Codebook";
 
-type DialogContentMockProps = {
+type ExportPanelMockProps = {
   children: React.ReactNode;
-  showCloseButton?: boolean;
-  onInteractOutside?: (event: { preventDefault: () => void }) => void;
-  onEscapeKeyDown?: (event: { preventDefault: () => void }) => void;
-  onOpenAutoFocus?: (event: { preventDefault: () => void }) => void;
+  open: boolean;
+  desktopType?: string;
+  onOpenChange: (open: boolean) => void;
 };
 
-let latestDialogContentProps: DialogContentMockProps | null = null;
+let latestPanelProps: ExportPanelMockProps | null = null;
 
 vi.mock("../list-form-reporting-locales.action", () => ({
   listFormReportingLocalesAction: (...args: unknown[]) =>
@@ -49,24 +48,29 @@ vi.mock("@/features/analytics/posthog/client", () => ({
   }),
 }));
 
-vi.mock("@/components/ui/dialog", () => ({
-  Dialog: ({ children, open }: { children: React.ReactNode; open: boolean }) =>
-    open ? <div>{children}</div> : null,
-  DialogContent: (props: DialogContentMockProps) => {
-    latestDialogContentProps = props;
-    return <div data-testid="dialog-content">{props.children}</div>;
+vi.mock("@/components/ui/responsive-panel", () => ({
+  ResponsivePanel: (props: ExportPanelMockProps) => {
+    latestPanelProps = props;
+    return props.open ? (
+      <div data-testid="export-panel" data-desktop-type={props.desktopType}>
+        {props.children}
+      </div>
+    ) : null;
   },
-  DialogDescription: ({ children }: { children: React.ReactNode }) => (
+  ResponsivePanelHeader: ({ children }: { children: React.ReactNode }) => (
+    <div>{children}</div>
+  ),
+  ResponsivePanelTitle: ({ children }: { children: React.ReactNode }) => (
+    <h1>{children}</h1>
+  ),
+  ResponsivePanelDescription: ({ children }: { children: React.ReactNode }) => (
     <p>{children}</p>
   ),
-  DialogFooter: ({ children }: { children: React.ReactNode }) => (
+  ResponsivePanelBody: ({ children }: { children: React.ReactNode }) => (
     <div>{children}</div>
   ),
-  DialogHeader: ({ children }: { children: React.ReactNode }) => (
-    <div>{children}</div>
-  ),
-  DialogTitle: ({ children }: { children: React.ReactNode }) => (
-    <h1>{children}</h1>
+  ResponsivePanelFooter: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="export-panel-footer">{children}</div>
   ),
 }));
 
@@ -355,7 +359,7 @@ async function waitForReady() {
 describe("ExportSubmissionsDialog", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    latestDialogContentProps = null;
+    latestPanelProps = null;
     mockListFormReportingLocalesAction.mockResolvedValue(
       Result.success(["default", "es", "fr"]),
     );
@@ -555,7 +559,7 @@ describe("ExportSubmissionsDialog", () => {
     expect(screen.getByRole("button", { name: /^export$/i })).toBeDefined();
   });
 
-  it("shows incomplete filter helper note", async () => {
+  it("shows incomplete inclusion notice without the old read-model warning", async () => {
     render(<ExportSubmissionsDialog {...createProps()} />);
     await waitForReady();
 
@@ -564,8 +568,68 @@ describe("ExportSubmissionsDialog", () => {
     });
 
     expect(
-      screen.getByText(/Incomplete drafts are not in the read model yet/i),
+      screen.getByText(/Incomplete responses are included/i),
     ).toBeDefined();
+    expect(
+      screen.queryByText(/not in the read model yet/i),
+    ).toBeNull();
+    expect(latestPanelProps?.desktopType).toBe("complex");
+    expect(screen.getByTestId("export-panel-footer")).toBeDefined();
+  });
+
+  it("refreshes incomplete submissions before download", async () => {
+    let resolveRefresh: (value: ReturnType<typeof Result.success>) => void =
+      () => undefined;
+    mockPrepareReportingExportAction.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveRefresh = resolve;
+        }),
+    );
+
+    render(<ExportSubmissionsDialog {...createProps()} />);
+    await waitForReady();
+
+    fireEvent.change(screen.getByTestId("export-submissions-completion"), {
+      target: { value: "incomplete" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /^export$/i }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: /including incomplete responses/i }),
+      ).toBeDefined();
+    });
+    expect(mockOnExport).not.toHaveBeenCalled();
+
+    resolveRefresh(
+      Result.success({
+        formDefinitionId: "1",
+        processed: 1,
+        skipped: 0,
+        failed: 0,
+        batches: 1,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(mockOnExport).toHaveBeenCalled();
+    });
+    expect(mockPrepareReportingExportAction).toHaveBeenCalledWith("100", {
+      completionScope: "incomplete",
+    });
+  });
+
+  it("does not refresh incomplete submissions when completion is completed", async () => {
+    render(<ExportSubmissionsDialog {...createProps()} />);
+    await waitForReady();
+
+    fireEvent.click(screen.getByRole("button", { name: /^export$/i }));
+
+    await waitFor(() => {
+      expect(mockOnExport).toHaveBeenCalled();
+    });
+    expect(mockPrepareReportingExportAction).not.toHaveBeenCalled();
   });
 
   it("shows prepare CTA when schema is missing on open", async () => {
@@ -789,15 +853,8 @@ describe("ExportSubmissionsDialog", () => {
       expect(screen.getByRole("button", { name: /exporting/i })).toBeDefined();
     });
 
-    expect(latestDialogContentProps?.showCloseButton).toBe(false);
-
-    const interactEvent = { preventDefault: vi.fn() };
-    latestDialogContentProps?.onInteractOutside?.(interactEvent);
-    expect(interactEvent.preventDefault).toHaveBeenCalled();
-
-    const escapeEvent = { preventDefault: vi.fn() };
-    latestDialogContentProps?.onEscapeKeyDown?.(escapeEvent);
-    expect(escapeEvent.preventDefault).toHaveBeenCalled();
+    latestPanelProps?.onOpenChange(false);
+    expect(mockOnOpenChange).not.toHaveBeenCalled();
 
     resolveExport({ succeeded: true });
     await waitFor(() => {
@@ -809,11 +866,8 @@ describe("ExportSubmissionsDialog", () => {
     render(<ExportSubmissionsDialog {...createProps()} />);
     await waitForReady();
 
-    expect(latestDialogContentProps?.showCloseButton).toBe(true);
-
-    const interactEvent = { preventDefault: vi.fn() };
-    latestDialogContentProps?.onInteractOutside?.(interactEvent);
-    expect(interactEvent.preventDefault).not.toHaveBeenCalled();
+    latestPanelProps?.onOpenChange(false);
+    expect(mockOnOpenChange).toHaveBeenCalledWith(false);
   });
 
   it("does not track analytics when onExport rejects", async () => {

@@ -78,13 +78,18 @@ export class Reporting {
       return ApiResult.validationError(validateFormIdResult.message);
     }
 
+    const body: BackfillSubmissionsRequest = {
+      batchSize: request.batchSize,
+      afterSubmissionId: request.afterSubmissionId,
+      force: request.force,
+    };
+    if (request.completionScope) {
+      body.completionScope = request.completionScope;
+    }
+
     return this.endatix.post<BackfillSubmissionsResponse>(
       `/forms/${validateFormIdResult.value}/submissions/backfill`,
-      {
-        batchSize: request.batchSize,
-        afterSubmissionId: request.afterSubmissionId,
-        force: request.force,
-      },
+      body,
     );
   }
 }

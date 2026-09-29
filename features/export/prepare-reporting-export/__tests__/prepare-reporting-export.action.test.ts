@@ -75,6 +75,19 @@ describe("prepareReportingExportAction", () => {
     });
   });
 
+  it("passes incomplete completion scope to backfill", async () => {
+    await prepareReportingExportAction("form-1", {
+      completionScope: "incomplete",
+    });
+
+    expect(mockBackfillSubmissions).toHaveBeenCalledWith("form-1", {
+      batchSize: 100,
+      afterSubmissionId: undefined,
+      force: false,
+      completionScope: "incomplete",
+    });
+  });
+
   it("passes replace and force when fullRecompile is true", async () => {
     const result = await prepareReportingExportAction("form-1", {
       fullRecompile: true,

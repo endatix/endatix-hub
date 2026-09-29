@@ -14,6 +14,7 @@ const LOGGER_NAME = "export.prepare-reporting-export";
 
 export type PrepareReportingExportOptions = {
   fullRecompile?: boolean;
+  completionScope?: "completed" | "incomplete";
 };
 
 export type PrepareReportingExportResult =
@@ -59,6 +60,7 @@ export async function prepareReportingExportAction(
       batchSize: DEFAULT_BATCH_SIZE,
       afterSubmissionId,
       force: fullRecompile,
+      completionScope: options.completionScope,
     });
 
     if (!backfillResult.success) {
