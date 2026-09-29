@@ -117,7 +117,7 @@ export function toTimeline(
   for (const event of [...eventsNewestFirst].reverse()) {
     const step = toStep(event);
     const previous = steps.at(-1);
-    if (previous && previous.label === step.label) {
+    if (previous?.label === step.label) {
       previous.count += 1;
       continue;
     }
