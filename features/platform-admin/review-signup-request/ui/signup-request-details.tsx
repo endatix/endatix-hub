@@ -1,21 +1,21 @@
 "use client";
 
 import { Building2, Gavel, Inbox } from "lucide-react";
-import Link from "next/link";
 import type { Route } from "next";
 import { PanelSection } from "@/components/common/panel-section";
 import { StatusBadge } from "@/components/common/status-badge";
 import { SummaryRow } from "@/components/common/summary-row";
+import { TextLink } from "@/components/common/text-link";
 import { TruncatedId } from "@/components/common/truncated-id";
 import CopyToClipboard from "@/components/copy-to-clipboard";
-import type { SignupRequestListItem } from "@/lib/endatix-api/signup-requests/types";
 import { formatPreciseDateTime } from "@/lib/date-utils";
 import { describeSignupRequest } from "../signup-request-state";
-import type { SignupReviewers } from "../types";
+import type { SignupRequestView, SignupReviewers } from "../types";
 import { SignupReviewerLabel } from "./signup-reviewer-label";
+import { SignupVisitorSection, visitorKey } from "./signup-visitor-section";
 
 interface SignupRequestDetailsProps {
-  request: SignupRequestListItem;
+  request: SignupRequestView;
   reviewers: SignupReviewers;
 }
 
@@ -60,6 +60,13 @@ export function SignupRequestDetails({
         </dl>
       </PanelSection>
 
+      {request.visitor && (
+        <SignupVisitorSection
+          key={visitorKey(request.visitor)}
+          visitor={request.visitor}
+        />
+      )}
+
       {isDecided && (
         <PanelSection
           icon={Gavel}
@@ -77,16 +84,23 @@ export function SignupRequestDetails({
                 />
               }
             />
-            <SummaryRow
-              label="Last updated"
-              value={
-                request.modifiedAt ? (
-                  formatPreciseDateTime(request.modifiedAt)
-                ) : (
-                  <NotSet />
-                )
-              }
-            />
+            {request.decidedAt ? (
+              <SummaryRow
+                label="Decided"
+                value={formatPreciseDateTime(request.decidedAt)}
+              />
+            ) : (
+              <SummaryRow
+                label="Last updated"
+                value={
+                  request.modifiedAt ? (
+                    formatPreciseDateTime(request.modifiedAt)
+                  ) : (
+                    <NotSet />
+                  )
+                }
+              />
+            )}
           </dl>
           {request.status === "rejected" && (
             <figure className="grid gap-1.5">
@@ -125,14 +139,14 @@ export function SignupRequestDetails({
             />
           </dl>
           {request.approvedTenantId && request.tenantName && (
-            <Link
+            <TextLink
               href={
                 `/admin/tenants?search=${encodeURIComponent(request.tenantName)}` as Route
               }
-              className="w-fit text-sm font-medium text-primary underline-offset-4 hover:underline"
+              className="w-fit text-sm"
             >
               Open in Tenants
-            </Link>
+            </TextLink>
           )}
         </PanelSection>
       )}

@@ -31,7 +31,11 @@ Analytics tracking for Next.js applications using PostHog, with support for both
    POSTHOG_PROJECT_TOKEN=your_posthog_project_token
    POSTHOG_HOST=https://us.i.posthog.com
    POSTHOG_UI_HOST=https://app.posthog.com  # optional
+   POSTHOG_PROJECT_ID=                     # optional, server-only; signup review
+   POSTHOG_PERSONAL_API_KEY=               # optional, server-only; read scopes person:read, query:read
    ```
+
+   A public signup keeps the anonymous `distinct_id`. Do not call `identify(email)`. On a successful request, set `email` with `setPersonProperties` and capture `signup_requested` with `has_company` only. The opaque distinct id and session id are stored on the signup when `POSTHOG_PROJECT_TOKEN` is set. The signup review panel reads the visitor through `server/posthog-read-api.server.ts` (persons API + HogQL) when `POSTHOG_UI_HOST`, `POSTHOG_PROJECT_ID`, `POSTHOG_PERSONAL_API_KEY` and a stored distinct id or session id are all present, and otherwise shows no Visitor section. The API host is `POSTHOG_UI_HOST` (the app host), not the ingestion host. The distinct id finds the person; when only the session id was stored, one HogQL query on that session finds them instead. The session id is never used to link a replay: it exists even when session recording is off, so it can't prove a replay exists. Do not set `POSTHOG_SECRET_KEY`.
 
 2. Hub **product** flags (`ai-features`, etc.) are `lib/feature-flags` + `FLAG_PROVIDER=posthog`, not the analytics `isFeatureEnabled` helpers.
 

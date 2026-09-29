@@ -19,6 +19,10 @@ declare namespace NodeJS {
     POSTHOG_PROJECT_TOKEN?: string;
     POSTHOG_HOST?: string;
     POSTHOG_UI_HOST?: string;
+    /** Server-only. Not part of the client config projection. */
+    POSTHOG_PROJECT_ID?: string;
+    /** Server-only. Read-only personal API key (`person:read`, `query:read`).https://posthog.com/docs/api/personal-api-keys. */
+    POSTHOG_PERSONAL_API_KEY?: string;
     ENDATIX_IS_DEBUG_MODE?: string;
     ENDATIX_SUBMITTER_PRIMARY_FILTER_LABEL?: string;
     ENDATIX_SUBMITTER_GRID_PROFILE_FIELDS?: string;

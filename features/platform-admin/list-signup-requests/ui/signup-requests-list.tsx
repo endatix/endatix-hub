@@ -1,10 +1,12 @@
 "use client";
 
 import { PagedListFrame, useListUrlState } from "@/components/table";
-import type { SignupRequestListItem } from "@/lib/endatix-api/signup-requests/types";
 import type { NormalizedPagedResponse } from "@/lib/endatix-api/shared/paged-response";
 import type { ResultType } from "@/lib/result";
-import type { SignupReviewers } from "../../review-signup-request/types";
+import type {
+  SignupReviewers,
+  SignupRequestView,
+} from "../../review-signup-request/types";
 import { signupRequestsUrlState } from "../signup-requests-url-state";
 import { SignupRequestsTableFromPromise } from "./signup-requests-table";
 import { SignupRequestsTableSkeleton } from "./signup-requests-table-skeleton";
@@ -12,7 +14,7 @@ import { SignupRequestsToolbar } from "./signup-requests-toolbar";
 
 interface SignupRequestsListProps {
   requestsPromise: Promise<
-    ResultType<NormalizedPagedResponse<SignupRequestListItem>>
+    ResultType<NormalizedPagedResponse<SignupRequestView>>
   >;
   reviewersPromise: Promise<SignupReviewers>;
   listKey: string;

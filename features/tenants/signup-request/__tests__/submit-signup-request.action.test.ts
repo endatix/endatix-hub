@@ -37,6 +37,7 @@ describe("submitSignupRequestAction", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    delete process.env.POSTHOG_PROJECT_TOKEN;
     vi.mocked(saasManagementFlag).mockResolvedValue(true);
     vi.mocked(EndatixApi).mockImplementation(function () {
       return { signupRequests: { create: createSignup } } as never;
@@ -59,9 +60,7 @@ describe("submitSignupRequestAction", () => {
     // Assert
     expect(createSignup).not.toHaveBeenCalled();
     expect(state.isSuccess).toBe(false);
-    expect(state.message).toBe(
-      "Signup is not enabled for this environment.",
-    );
+    expect(state.message).toBe("Signup is not enabled for this environment.");
   });
 
   it("sends the trimmed request and returns the API message", async () => {
@@ -136,6 +135,67 @@ describe("submitSignupRequestAction", () => {
     expect(state.data).toEqual({
       email: "jane@example.com",
       companyName: "Acme",
+    });
+  });
+
+  it("strips PostHog ids when the project token is unset", async () => {
+    // Arrange
+    const formData = signupFormData({
+      email: "jane@example.com",
+      companyName: "Acme",
+      postHogDistinctId: "anon-1",
+      postHogSessionId: "sess-1",
+    });
+
+    // Act
+    await submitSignupRequestAction(emptyState, formData);
+
+    // Assert
+    expect(createSignup).toHaveBeenCalledWith({
+      email: "jane@example.com",
+      companyName: "Acme",
+    });
+  });
+
+  it("forwards PostHog ids when the project token is set", async () => {
+    // Arrange
+    process.env.POSTHOG_PROJECT_TOKEN = "phc_test";
+    const formData = signupFormData({
+      email: "jane@example.com",
+      companyName: "",
+      postHogDistinctId: "anon-1",
+      postHogSessionId: "sess-1",
+    });
+
+    // Act
+    await submitSignupRequestAction(emptyState, formData);
+
+    // Assert
+    expect(createSignup).toHaveBeenCalledWith({
+      email: "jane@example.com",
+      companyName: null,
+      postHogDistinctId: "anon-1",
+      postHogSessionId: "sess-1",
+    });
+  });
+
+  it("drops a PostHog id longer than 200 characters", async () => {
+    // Arrange
+    process.env.POSTHOG_PROJECT_TOKEN = "phc_test";
+    const formData = signupFormData({
+      email: "jane@example.com",
+      postHogDistinctId: "a".repeat(201),
+      postHogSessionId: "sess-1",
+    });
+
+    // Act
+    await submitSignupRequestAction(emptyState, formData);
+
+    // Assert
+    expect(createSignup).toHaveBeenCalledWith({
+      email: "jane@example.com",
+      companyName: null,
+      postHogSessionId: "sess-1",
     });
   });
 

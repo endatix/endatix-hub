@@ -14,7 +14,8 @@ import {
 } from "@/components/ui/card";
 import Image from "next/image";
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
+import { usePostHog } from "posthog-js/react";
 import {
   firstFieldError,
   ServerActionState,
@@ -32,6 +33,44 @@ export function SignupRequestForm() {
     submitSignupRequestAction,
     initialState,
   );
+  const posthog = usePostHog();
+  const pendingAnalytics = useRef<{
+    email: string;
+    hasCompany: boolean;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!state.isSuccess || !pendingAnalytics.current || !posthog) {
+      return;
+    }
+
+    const { email, hasCompany } = pendingAnalytics.current;
+    pendingAnalytics.current = null;
+    posthog.setPersonProperties({ email });
+    posthog.capture("signup_requested", { has_company: hasCompany });
+  }, [posthog, state.isSuccess]);
+
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    const form = event.currentTarget;
+    const email = formValue(form, "email");
+    pendingAnalytics.current = {
+      email,
+      hasCompany: formValue(form, "companyName").length > 0,
+    };
+
+    const distinctId = form.elements.namedItem("postHogDistinctId");
+    const sessionId = form.elements.namedItem("postHogSessionId");
+    if (
+      distinctId instanceof HTMLInputElement &&
+      sessionId instanceof HTMLInputElement &&
+      posthog
+    ) {
+      // An uninitialised client returns `undefined`, which the input would store as
+      // the literal "undefined".
+      distinctId.value = posthog.get_distinct_id() ?? "";
+      sessionId.value = posthog.get_session_id() ?? "";
+    }
+  }
 
   if (state.isSuccess) {
     return (
@@ -56,7 +95,7 @@ export function SignupRequestForm() {
   }
 
   return (
-    <form action={formAction}>
+    <form action={formAction} onSubmit={handleSubmit}>
       <div className="grid gap-2 text-center">
         <div className="mb-2 flex justify-center">
           <Image
@@ -99,6 +138,8 @@ export function SignupRequestForm() {
             autoComplete="off"
           />
         </div>
+        <input type="hidden" name="postHogDistinctId" defaultValue="" />
+        <input type="hidden" name="postHogSessionId" defaultValue="" />
         <div className="grid gap-2">
           <Label htmlFor="email">Work email</Label>
           <Input
@@ -139,4 +180,9 @@ export function SignupRequestForm() {
       </div>
     </form>
   );
+}
+
+function formValue(form: HTMLFormElement, name: string): string {
+  const field = form.elements.namedItem(name);
+  return field instanceof HTMLInputElement ? field.value.trim() : "";
 }
