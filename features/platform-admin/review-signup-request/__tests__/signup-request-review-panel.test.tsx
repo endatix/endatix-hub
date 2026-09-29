@@ -105,7 +105,7 @@ describe("SignupRequestReviewPanel", () => {
 
     resolveLookup({
       status: "missing",
-      profileHref: "https://us.posthog.com/project/1/persons/anon",
+      profileHref: "https://us.posthog.com/project/1/person/anon",
     });
     await waitFor(() =>
       expect(screen.getByText(/no activity for this visitor/)).toBeTruthy(),
@@ -132,7 +132,7 @@ describe("SignupRequestReviewPanel", () => {
     // Arrange
     vi.mocked(getSignupVisitorAction).mockResolvedValue({
       status: "unavailable",
-      profileHref: "https://us.posthog.com/project/1/persons/anon",
+      profileHref: "https://us.posthog.com/project/1/person/anon",
     });
 
     // Act
@@ -144,7 +144,7 @@ describe("SignupRequestReviewPanel", () => {
     );
     expect(
       screen.getByRole("link", { name: /PostHog/ }).getAttribute("href"),
-    ).toBe("https://us.posthog.com/project/1/persons/anon");
+    ).toBe("https://us.posthog.com/project/1/person/anon");
   });
 
   it("hides the visitor section when the action throws", async () => {
@@ -164,7 +164,7 @@ describe("SignupRequestReviewPanel", () => {
     vi.mocked(getSignupVisitorAction).mockResolvedValue({
       status: "found",
       visitor: {
-        profileHref: "https://us.posthog.com/project/1/persons/anon",
+        profileHref: "https://us.posthog.com/project/1/person/anon",
         firstSeenAt: "2026-01-15T09:00:00.000Z",
         location: "Sofia, Bulgaria",
         timeZone: null,
@@ -210,7 +210,7 @@ describe("SignupRequestReviewPanel", () => {
     expect(steps[1].hasAttribute("data-active")).toBe(true);
     expect(
       screen.getByRole("link", { name: /PostHog/ }).getAttribute("href"),
-    ).toBe("https://us.posthog.com/project/1/persons/anon");
+    ).toBe("https://us.posthog.com/project/1/person/anon");
     expect(screen.queryByText(/Session replay/)).toBeNull();
   });
 
@@ -371,7 +371,7 @@ describe("SignupRequestReviewPanel", () => {
     const visitor = { distinctId: "anon", sessionId: null };
     vi.mocked(getSignupVisitorAction).mockResolvedValue({
       status: "missing",
-      profileHref: "https://us.posthog.com/project/1/persons/anon",
+      profileHref: "https://us.posthog.com/project/1/person/anon",
     });
     vi.mocked(rejectSignupRequestAction).mockResolvedValue(
       Result.success(

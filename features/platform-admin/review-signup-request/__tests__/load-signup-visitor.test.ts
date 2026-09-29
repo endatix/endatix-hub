@@ -75,7 +75,7 @@ describe("loadSignupVisitor", () => {
     expect(lookup).toEqual({
       status: "found",
       visitor: {
-        profileHref: "https://us.posthog.com/project/42/persons/anon-1",
+        profileHref: "https://us.posthog.com/project/42/person/anon-1",
         firstSeenAt: "2026-09-29T05:56:26Z",
         location: "Sofia, Bulgaria",
         timeZone: "Europe/Sofia",
@@ -102,7 +102,7 @@ describe("loadSignupVisitor", () => {
       loadSignupVisitor({ distinctId: "anon-1", sessionId: null }),
     ).resolves.toEqual({
       status: "missing",
-      profileHref: "https://us.posthog.com/project/42/persons/anon-1",
+      profileHref: "https://us.posthog.com/project/42/person/anon-1",
     });
   });
 
@@ -191,7 +191,7 @@ describe("loadSignupVisitor", () => {
       loadSignupVisitor({ distinctId: "anon-1", sessionId: null }),
     ).resolves.toEqual({
       status: "unavailable",
-      profileHref: "https://us.posthog.com/project/42/persons/anon-1",
+      profileHref: "https://us.posthog.com/project/42/person/anon-1",
     });
   });
 

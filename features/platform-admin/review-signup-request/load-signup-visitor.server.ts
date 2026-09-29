@@ -25,7 +25,7 @@ function unavailable(
 ): SignupVisitorLookup {
   return {
     status: "unavailable",
-    profileHref: distinctId ? postHogPersonUrl(config, distinctId) : null,
+    profileHref: distinctId ? postHogPersonUrl(config, { distinctId }) : null,
   };
 }
 
@@ -62,14 +62,16 @@ export async function loadSignupVisitor(
     return ref.distinctId
       ? {
           status: "missing",
-          profileHref: postHogPersonUrl(config, ref.distinctId),
+          profileHref: postHogPersonUrl(config, { distinctId: ref.distinctId }),
         }
       : { status: "unavailable", profileHref: null };
   }
 
   const profileHref = postHogPersonUrl(
     config,
-    ref.distinctId ?? person.value.uuid,
+    ref.distinctId
+      ? { distinctId: ref.distinctId }
+      : { uuid: person.value.uuid },
   );
   const events = await listPostHogPersonEvents(
     config,

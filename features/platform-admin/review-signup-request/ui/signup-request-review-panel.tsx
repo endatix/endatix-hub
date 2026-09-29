@@ -154,10 +154,16 @@ function ReviewContent({
   const checkAgain = () => {
     setFailure(null);
     startTransition(async () => {
-      const result = await refreshSignupRequestAction(
-        current.id,
-        current.email,
-      );
+      let result: ResultType<SignupRequestView>;
+      try {
+        result = await refreshSignupRequestAction(current.id, current.email);
+      } catch (error) {
+        if (isRedirectError(error)) {
+          throw error;
+        }
+        setFailure("Something went wrong. Try again.");
+        return;
+      }
       if (Result.isError(result)) {
         setFailure(result.message);
         return;
@@ -242,11 +248,7 @@ function ReviewContent({
       {current.status === "approved" &&
         current.provisioningStatus === "pending" && (
           <ResponsivePanelFooter>
-            <Button
-              variant="outline"
-              disabled={isPending}
-              onClick={checkAgain}
-            >
+            <Button variant="outline" disabled={isPending} onClick={checkAgain}>
               {isPending ? "Checking…" : "Check again"}
             </Button>
           </ResponsivePanelFooter>

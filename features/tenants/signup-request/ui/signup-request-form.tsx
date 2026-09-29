@@ -34,9 +34,10 @@ export function SignupRequestForm() {
     initialState,
   );
   const posthog = usePostHog();
-  const pendingAnalytics = useRef<{ email: string; hasCompany: boolean } | null>(
-    null,
-  );
+  const pendingAnalytics = useRef<{
+    email: string;
+    hasCompany: boolean;
+  } | null>(null);
 
   useEffect(() => {
     if (!state.isSuccess || !pendingAnalytics.current || !posthog) {
@@ -64,8 +65,10 @@ export function SignupRequestForm() {
       sessionId instanceof HTMLInputElement &&
       posthog
     ) {
-      distinctId.value = posthog.get_distinct_id();
-      sessionId.value = posthog.get_session_id();
+      // An uninitialised client returns `undefined`, which the input would store as
+      // the literal "undefined".
+      distinctId.value = posthog.get_distinct_id() ?? "";
+      sessionId.value = posthog.get_session_id() ?? "";
     }
   }
 

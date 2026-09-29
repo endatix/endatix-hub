@@ -43,12 +43,20 @@ export function readPostHogReadApiConfig(): PostHogReadApiConfig | null {
   return host && projectId && apiKey ? { host, projectId, apiKey } : null;
 }
 
-/** The PostHog UI page for a person, addressed by a distinct id or the person's uuid. */
+/**
+ * The PostHog UI page for a person. PostHog routes the two ids differently:
+ * `/person/<distinct id>` and `/persons/<uuid>`. A distinct id under `/persons/`
+ * is read as a uuid and finds no one.
+ */
 export function postHogPersonUrl(
   config: Pick<PostHogReadApiConfig, "host" | "projectId">,
-  distinctIdOrUuid: string,
+  person: { distinctId: string } | { uuid: string },
 ): string {
-  return `${config.host}/project/${encodeURIComponent(config.projectId)}/persons/${encodeURIComponent(distinctIdOrUuid)}`;
+  const path =
+    "distinctId" in person
+      ? `person/${encodeURIComponent(person.distinctId)}`
+      : `persons/${encodeURIComponent(person.uuid)}`;
+  return `${config.host}/project/${encodeURIComponent(config.projectId)}/${path}`;
 }
 
 export async function getPostHogPersonByDistinctId(
