@@ -1,18 +1,24 @@
 "use server";
 
 import { EndatixApi } from "@/lib/endatix-api";
-import type { SignupRequestListItem } from "@/lib/endatix-api/signup-requests/types";
 import { saasManagementFlag } from "@/lib/feature-flags/flags";
 import { Result, type ResultType } from "@/lib/result";
 import { toResult } from "@/lib/result/map-api-result-to-result";
 import { revalidatePath } from "next/cache";
 import { requirePlatformAdmin } from "../server";
+import { loadSignupVisitor } from "./load-signup-visitor.server";
+import { toSignupRequestView } from "./signup-request-view.server";
+import type {
+  SignupRequestView,
+  SignupVisitorLookup,
+  SignupVisitorRef,
+} from "./types";
 
 const LOGGER = "platform-admin.signup-requests";
 
-async function guardSignupManagement(): Promise<ResultType<SignupRequestListItem> | null> {
+async function guardSignupManagement(): Promise<ResultType<SignupRequestView> | null> {
   if (!(await saasManagementFlag())) {
-    return Result.error<SignupRequestListItem>(
+    return Result.error<SignupRequestView>(
       "Signup is not enabled for this environment.",
     );
   }
@@ -28,7 +34,7 @@ function revalidateSignupInbox(): void {
 export async function approveSignupRequestAction(
   signupRequestId: string,
   tenantName: string,
-): Promise<ResultType<SignupRequestListItem>> {
+): Promise<ResultType<SignupRequestView>> {
   const guard = await guardSignupManagement();
   if (guard) {
     return guard;
@@ -37,12 +43,12 @@ export async function approveSignupRequestAction(
   const id = signupRequestId.trim();
   const trimmedName = tenantName.trim();
   if (!id) {
-    return Result.validationError<SignupRequestListItem>(
+    return Result.validationError<SignupRequestView>(
       "Signup request is required.",
     );
   }
   if (!trimmedName) {
-    return Result.validationError<SignupRequestListItem>(
+    return Result.validationError<SignupRequestView>(
       "Tenant name is required.",
     );
   }
@@ -56,6 +62,7 @@ export async function approveSignupRequestAction(
       preferredFields: ["tenantName"],
       logMessage: "Failed to approve signup request.",
       loggerName: LOGGER,
+      mapData: toSignupRequestView,
     },
   );
   if (Result.isSuccess(result)) {
@@ -68,7 +75,7 @@ export async function approveSignupRequestAction(
 export async function rejectSignupRequestAction(
   signupRequestId: string,
   comment: string,
-): Promise<ResultType<SignupRequestListItem>> {
+): Promise<ResultType<SignupRequestView>> {
   const guard = await guardSignupManagement();
   if (guard) {
     return guard;
@@ -77,12 +84,12 @@ export async function rejectSignupRequestAction(
   const id = signupRequestId.trim();
   const trimmedComment = comment.trim();
   if (!id) {
-    return Result.validationError<SignupRequestListItem>(
+    return Result.validationError<SignupRequestView>(
       "Signup request is required.",
     );
   }
   if (!trimmedComment) {
-    return Result.validationError<SignupRequestListItem>(
+    return Result.validationError<SignupRequestView>(
       "Rejection comment is required.",
     );
   }
@@ -96,6 +103,7 @@ export async function rejectSignupRequestAction(
       preferredFields: ["comment"],
       logMessage: "Failed to reject signup request.",
       loggerName: LOGGER,
+      mapData: toSignupRequestView,
     },
   );
   if (Result.isSuccess(result)) {
@@ -107,7 +115,7 @@ export async function rejectSignupRequestAction(
 
 export async function retrySignupProvisioningAction(
   signupRequestId: string,
-): Promise<ResultType<SignupRequestListItem>> {
+): Promise<ResultType<SignupRequestView>> {
   const guard = await guardSignupManagement();
   if (guard) {
     return guard;
@@ -115,7 +123,7 @@ export async function retrySignupProvisioningAction(
 
   const id = signupRequestId.trim();
   if (!id) {
-    return Result.validationError<SignupRequestListItem>(
+    return Result.validationError<SignupRequestView>(
       "Signup request is required.",
     );
   }
@@ -126,10 +134,33 @@ export async function retrySignupProvisioningAction(
     fallbackMessage: "Failed to retry provisioning.",
     logMessage: "Failed to retry signup provisioning.",
     loggerName: LOGGER,
+    mapData: toSignupRequestView,
   });
   if (Result.isSuccess(result)) {
     revalidateSignupInbox();
   }
 
   return result;
+}
+
+/**
+ * What PostHog recorded about the visitor behind a signup, for the review panel.
+ * Best effort: failures come back as `unavailable`, never as an error.
+ */
+export async function getSignupVisitorAction(
+  ref: SignupVisitorRef,
+): Promise<SignupVisitorLookup> {
+  const cleaned: SignupVisitorRef = {
+    distinctId: ref.distinctId?.trim() || null,
+    sessionId: ref.sessionId?.trim() || null,
+  };
+  if (
+    (!cleaned.distinctId && !cleaned.sessionId) ||
+    (await guardSignupManagement())
+  ) {
+    return { status: "unavailable", profileHref: null };
+  }
+
+  await requirePlatformAdmin();
+  return loadSignupVisitor(cleaned);
 }

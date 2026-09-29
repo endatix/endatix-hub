@@ -129,6 +129,8 @@ Before building a control, check whether the vocabulary already exists here.
 | `components/common/panel-section.tsx` — `PanelSection`                   | A titled concern inside an overlay, on a nested surface (§6 Create / edit overlay)    |
 | `components/common/summary-row.tsx` — `SummaryRow`                       | Label-left / value-right rows (§6 Displaying values)                                  |
 | `components/common/truncated-id.tsx` — `TruncatedId`                     | A long id shortened to head…tail with a copy affordance                               |
+| `components/common/text-link.tsx` — `TextLink`                           | An inline link; `external` for one that leaves the Hub (Links, below)                 |
+| `components/timeline` — `Timeline` and its parts                         | Any sequence of steps: history, activity, progress (Timeline, below)                  |
 | `components/common/locale-label.tsx` — `LocaleLabel`                     | A survey language as name + short code (`Spanish es`), anywhere                       |
 | `components/copy-to-clipboard.tsx` — `CopyToClipboard`                   | The copy affordance, `overlay` and `inline` layouts (below)                           |
 | `components/table` — `DataTableSurface` and friends                      | All list-table chrome (List tables, below)                                            |
@@ -195,6 +197,26 @@ carry an icon, under the same discipline.
 - Never mix both layouts on one page for the same kind of value.
 - Give every value a reader might paste somewhere (URLs, keys, ids) a copy button — and then give
   it to **every** such value on the page. Enum-ish values (`development`, `/api`) get none.
+
+### Links — `TextLink`
+
+A link goes somewhere; a button does something. An inline destination (in prose, a
+`SummaryRow` value, a section `aside`) is a `TextLink` — never a hand-styled `<a>` or a `Button`
+dressed as text.
+
+- **Internal links stay in the tab.** The reader keeps their place with Back (and
+  `BackToTableButton` restores list state).
+- **External links say they leave:** `TextLink external` opens a new tab
+  (`rel="noopener noreferrer"`), adds a trailing `ExternalLink` mark and an `sr-only` "(opens in a
+  new tab)". Never hand-roll `target="_blank"`.
+- **Name the destination, not the data type** — "Open in Tenants", "PostHog", not "Profile",
+  "Details" or "Link". The reader decides whether to click from the text alone.
+- **No configuration, no link.** A link to a third-party tool renders only when the server can
+  build a working URL; otherwise omit the row — never a disabled link or `—`. Build such URLs on
+  the server so project ids and keys stay there.
+- **Link only to what is known to exist.** An id is not proof: a session id is issued even when
+  recording is off, so a replay link built from it opens an empty page. Link to a resource the API
+  has returned, or check before linking.
 
 ### List tables — `components/table`
 
@@ -266,6 +288,33 @@ grid-template-columns: repeat(auto-fill, minmax(min(var(--grid-card-min), 100%),
 - Set `--grid-card-min` from the card's narrowest _legible_ content (default 420px; below ~320px
   only for tiny tiles).
 - Give cards `h-full` so a row shares a bottom edge.
+
+### Timeline — `components/timeline`
+
+Any "what happened, in what order?" or "how far along is this?" — an activity history, an audit
+log, a provisioning track. Composition API adapted from ReUI's Timeline (MIT): `Timeline`
+(`value`, `orientation`, `size`) → `TimelineItem step={n}` → `TimelineHeader` (`TimelineDate`,
+`TimelineTitle`) + `TimelineIndicator` + `TimelineSeparator`, optional `TimelineContent`. Steps up
+to `value` are `completed`; the `value` step itself is `active`. Reference:
+`features/platform-admin/review-signup-request/ui/signup-visitor-section.tsx`.
+
+- **One active step — the one the record is about** (the request in a visitor's history). Steps
+  that led to it read as completed; later steps stay muted. With nothing to single out, the last
+  step is active.
+- **Oldest first.** A timeline reads as a story that ends at, or passes through, the event the
+  reader is looking at.
+- **Words, not event names** ("Viewed /signup", "Requested a workspace", not `$pageview`). Map
+  known events, humanise the rest. Non-active titles are `font-normal`.
+- **Leave out bookkeeping** (tool-internal events such as `$set`, `$web_vitals`) — filter at the
+  source, not in the component.
+- **Fold repeats** into one step with a muted `×n`; a refresh is not new information.
+- **Cap it and link to the source** (~15 steps; the full history is one `TextLink external` away).
+- **Semantics:** it is an ordered list — give it an `aria-label`. Titles are `<p>`, not headings,
+  because a timeline sits under a section heading; opt into a heading (`asChild`) only when the
+  timeline is the page. Dates are `<time dateTime>` in compact format.
+- **Colour means progress, not health.** Rings and connectors are `primary` at low opacity until
+  completed. Never tint a step by status — say a failure in its title. An indicator icon marks only
+  the active step. `size="sm"` inside panels and cards; the default on a page.
 
 ### Overlays — `ResponsivePanel`
 
@@ -377,8 +426,11 @@ mistaken for an edit. Reference: `features/submissions/ui/details/label-language
 - **A count that failed to load shows no number** — never `0`, which claims "empty".
 - **The same destination has one title, one icon and one count source** across sidebar, dashboard
   card and page.
-- **Label times honestly.** If the API records no event time, label the closest fact (`Last
-updated`, from `modifiedAt`). Never invent timeline events.
+- **Record the time with the actor, and show that time.** An event that matters to an audit
+  (a decision) stores who and when together, and the UI labels that time for the event
+  (`Decided`), once. `modifiedAt` moves for unrelated reasons (a downstream process), so never
+  show it as, or next to, the event time. Only records from before the time was stored fall back
+  to `Last updated`, labelled as such. Never invent timeline events.
 - **Who is a person, not an id.** Resolve actors to names best-effort; when unknown, show `Admin` +
   `TruncatedId` — the id never disappears.
 - **Why is shown verbatim, in full** — a quoted block (`bg-surface-container-lowest`,
@@ -392,6 +444,31 @@ updated`, from `modifiedAt`). Never invent timeline events.
 - **Exports outlive tokens.** A Hub-authenticated PDF links to the Hub page that signs on open; a
   share-link export (reader may have no account) keeps the signed URL and says once, muted, that
   links expire shortly.
+
+### Evidence from third-party tools
+
+What another tool recorded about a record's subject (an analytics profile behind a signup, a
+payment provider's risk check) is evidence for the reader's decision, not part of the record.
+Reference: `features/platform-admin/review-signup-request/ui/signup-visitor-section.tsx`.
+
+- **Its own `PanelSection`**, after the record it describes and before the decision, with the
+  tool's `TextLink external` in `aside`, named for the tool.
+- **Show what informs the decision, nothing more.** For a person's origin: city and country (with
+  time zone), browser, OS and device, referrer or campaign, landing page, first seen, and a
+  `Timeline` of recent steps with the record's own event active.
+- **Data minimisation.** Never show IP addresses, coordinates, postal codes, raw user agents or
+  accuracy fields: every operator would see them, and the decision does not need them. The tool's
+  own page has them for the rare case that does.
+- **Say which moment a value describes.** First-touch values are labelled as such ("First came
+  from", "First page"); unlabelled values are the latest.
+- **Never block the record on a third party.** Load when the record is opened, not per list row,
+  in its own `Suspense` boundary with a skeleton, while the rest of the panel stays usable. Cache
+  the answer briefly on the client so switching steps does not ask again.
+- **Honest states, never an error tone** — the record itself is fine. Found: rows and timeline.
+  The tool has no data: one muted line ("can take a few minutes to arrive") plus the link. The
+  tool did not answer: one muted line plus the link. Not configured: no section at all.
+- **Credentials stay on the server.** Read keys (read-only scopes) never reach the client; the
+  client receives finished URLs and ids that already appear in the tool's own URLs.
 
 ### Files & media
 
@@ -423,7 +500,7 @@ in `DataTableToolbar`; titled empty state; `PagedTableFooter`. Reference:
 - **One row badge, the most urgent fact** — the decision, unless the process behind it needs the
   reviewer (`Setup failed`, `attention`) or is still running (`Setting up`, `off`). The panel shows
   both.
-- **Columns appear when they have data** ("Decided by" hidden on the pending view).
+- **Columns appear when they have data** ("Decided by" and "Decided" hidden on the pending view).
 - **One entry point per row, never decision buttons in the row.** `Review` (secondary) when there
   is something to do, `View` (ghost) when closed; both open the Review-and-decide panel.
 - **Say only what the page can do** — the description names shipped actions only.
@@ -438,8 +515,9 @@ approvals, refunds tomorrow): **review → decide → outcome** in one `Responsi
 2. **At most one status strip** — the result of what the reviewer just did, otherwise a standing
    problem. Never two.
 3. **`PanelSection`s in the order the record lived:** _Request_ (what was submitted; carries the
-   state badge only while undecided) → _Decision_ (who, when, why, badge in `aside`) →
-   _Downstream process_ (what the decision produced, its badge, a link to where it now lives).
+   state badge only while undecided) → _Evidence_ (optional; see Evidence from third-party tools)
+   → _Decision_ (who, when, why, badge in `aside`) → _Downstream process_ (what the decision
+   produced, its badge, a link to where it now lives).
 4. **Footer** — only the next step the record allows (`Reject…` outline + `Approve…` default while
    undecided, `Retry …` after a failed process, `Check again` while running, nothing when closed).
 
@@ -450,7 +528,10 @@ approvals, refunds tomorrow): **review → decide → outcome** in one `Responsi
 - **Outcome:** return to the review step showing the updated record, the strip naming what
   happened (`success` / `destructive` if a process failed / `info` while running), and the
   reviewer's own name in the Decision section.
-- **A retry is not a new decision** — it records no new decider.
+- **A retry is not a new decision** — it records no new decider and no new decision time.
+- **The outcome keeps everything the review showed.** Decision actions return the same view model
+  as the list loader, so fields the Hub adds (evidence references, links) never vanish when the
+  panel shows the result (`project-structure.md` "Signup request slices").
 - **One state mapping in one file** (`describe*`, e.g. `signup-request-state.ts`) owns decision →
   tone, process → tone, the row badge and the allowed next step. Grid and panel both read it, so a
   `Setup failed` row always opens on a panel offering `Retry`.
@@ -561,7 +642,12 @@ Before finishing UI work, check:
 - [ ] Peer cards use `.grid-card-list`, not viewport breakpoints (§5).
 - [ ] Lists use `components/table`; the empty state has the list icon, a title and a way out (§5).
 - [ ] Overlays follow the table in §5, never stack, and have a title and description.
+- [ ] Inline links are `TextLink`; external ones use `external`; nothing links to an unconfigured
+      or unconfirmed target (§5).
+- [ ] Sequences of steps use `Timeline`: oldest first, one active step, words not event names (§5).
 - [ ] Values the reader came for wrap, never truncate; unset vs empty are distinct (§6).
+- [ ] Third-party evidence loads on open, never blocks the record, shows no personal data beyond
+      the decision's need, and disappears when unconfigured (§6).
 - [ ] Disabled controls say why; warnings are reachable; consequences stated once (§6).
 - [ ] No presigned URL outlives the view that signed it (§6).
 - [ ] Public pages use `PublicStatusPage` and have their own `error.tsx` (§6).

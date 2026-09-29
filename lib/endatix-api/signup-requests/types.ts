@@ -27,13 +27,6 @@ export interface SignupRequestListItem {
   decidedAt?: string | null;
   /** JSON bag. PostHog ids live here as postHogDistinctId and postHogSessionId. */
   metadata?: string | null;
-  /** Server-built review links. Absent when PostHog is not configured for the UI. */
-  activity?: SignupActivityLinks | null;
-}
-
-export interface SignupActivityLinks {
-  sessionHref?: string;
-  profileHref?: string;
 }
 
 export interface ListSignupRequestsRequest {

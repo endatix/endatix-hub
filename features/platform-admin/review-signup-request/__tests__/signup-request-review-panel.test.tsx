@@ -1,13 +1,15 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import type { SignupRequestView } from "../types";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { SignupRequestListItem } from "@/lib/endatix-api/signup-requests/types";
 import { Result } from "@/lib/result";
 import {
   approveSignupRequestAction,
+  getSignupVisitorAction,
   rejectSignupRequestAction,
   retrySignupProvisioningAction,
 } from "../review-signup-request.actions";
 import { SignupRequestReviewPanel } from "../ui/signup-request-review-panel";
+import { clearSignupVisitorCache } from "../ui/signup-visitor-section";
 
 vi.mock("@/lib/utils/hooks/use-media-query.hook", () => ({
   useMediaQuery: () => true,
@@ -19,11 +21,12 @@ vi.mock("../review-signup-request.actions", () => ({
   approveSignupRequestAction: vi.fn(),
   rejectSignupRequestAction: vi.fn(),
   retrySignupProvisioningAction: vi.fn(),
+  getSignupVisitorAction: vi.fn(),
 }));
 
 function request(
-  overrides: Partial<SignupRequestListItem> = {},
-): SignupRequestListItem {
+  overrides: Partial<SignupRequestView> = {},
+): SignupRequestView {
   return {
     id: "1",
     email: "prospect@example.com",
@@ -36,11 +39,12 @@ function request(
     decidedByUserId: null,
     createdAt: "2026-01-15T10:00:00.000Z",
     modifiedAt: null,
+    visitor: null,
     ...overrides,
   };
 }
 
-function renderPanel(item: SignupRequestListItem) {
+function renderPanel(item: SignupRequestView) {
   return render(
     <SignupRequestReviewPanel
       request={item}
@@ -61,6 +65,7 @@ class ResizeObserverStub {
 describe("SignupRequestReviewPanel", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    clearSignupVisitorCache();
     vi.stubGlobal("ResizeObserver", ResizeObserverStub);
   });
 
@@ -72,27 +77,92 @@ describe("SignupRequestReviewPanel", () => {
     expect(screen.getByText("Request")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Approve…" })).toBeTruthy();
     expect(screen.queryByLabelText("Workspace name")).toBeNull();
-    expect(screen.queryByText("Activity")).toBeNull();
+    expect(screen.queryByText("PostHog")).toBeNull();
   });
 
-  it("shows PostHog links only when the loader supplied them", () => {
-    // Act
-    renderPanel(
-      request({
-        activity: {
-          sessionHref: "https://us.posthog.com/project/1/replay/sess",
-          profileHref: "https://us.posthog.com/project/1/persons/anon",
-        },
+  it("keeps review actions usable while PostHog loads", async () => {
+    // Arrange
+    let resolveLookup: (lookup: {
+      status: "missing";
+      profileHref: string;
+    }) => void = () => {};
+    vi.mocked(getSignupVisitorAction).mockReturnValue(
+      new Promise((resolve) => {
+        resolveLookup = resolve;
       }),
     );
 
+    // Act
+    renderPanel(request({ visitor: { distinctId: "anon", sessionId: null } }));
+
     // Assert
-    expect(screen.getByRole("link", { name: "Session" }).getAttribute("href")).toBe(
-      "https://us.posthog.com/project/1/replay/sess",
+    expect(screen.getByRole("button", { name: "Approve…" })).toBeTruthy();
+    expect(
+      screen.getByText("Loading visitor details from PostHog"),
+    ).toBeTruthy();
+
+    resolveLookup({
+      status: "missing",
+      profileHref: "https://us.posthog.com/project/1/persons/anon",
+    });
+    await waitFor(() =>
+      expect(screen.getByText(/no activity for this visitor/)).toBeTruthy(),
     );
-    expect(screen.getByRole("link", { name: "Profile" }).getAttribute("href")).toBe(
-      "https://us.posthog.com/project/1/persons/anon",
+  });
+
+  it("shows what PostHog recorded when the request has a visitor", async () => {
+    // Arrange
+    vi.mocked(getSignupVisitorAction).mockResolvedValue({
+      status: "found",
+      visitor: {
+        profileHref: "https://us.posthog.com/project/1/persons/anon",
+        firstSeenAt: "2026-01-15T09:00:00.000Z",
+        location: "Sofia, Bulgaria",
+        timeZone: null,
+        browser: "Chrome 153",
+        os: "Mac OS X",
+        device: "Desktop",
+        cameFrom: "Direct visit (no referrer)",
+        campaign: null,
+        landingPage: "/signin",
+        timeline: [
+          {
+            kind: "pageview",
+            label: "Viewed /signup",
+            timestamp: "2026-01-15T09:59:00.000Z",
+            count: 2,
+          },
+          {
+            kind: "signup",
+            label: "Requested a workspace",
+            timestamp: "2026-01-15T10:00:00.000Z",
+            count: 1,
+          },
+        ],
+      },
+    });
+
+    // Act
+    renderPanel(request({ visitor: { distinctId: "anon", sessionId: null } }));
+
+    // Assert
+    await waitFor(() =>
+      expect(screen.getByText("Sofia, Bulgaria")).toBeTruthy(),
     );
+    expect(getSignupVisitorAction).toHaveBeenCalledWith({
+      distinctId: "anon",
+      sessionId: null,
+    });
+    expect(screen.getByText("Chrome 153 on Mac OS X")).toBeTruthy();
+    const steps = screen
+      .getByRole("list", { name: "Visitor activity recorded by PostHog" })
+      .querySelectorAll('[data-slot="timeline-item"]');
+    expect(steps[0].textContent).toContain("Viewed /signup ×2");
+    expect(steps[1].hasAttribute("data-active")).toBe(true);
+    expect(
+      screen.getByRole("link", { name: /PostHog/ }).getAttribute("href"),
+    ).toBe("https://us.posthog.com/project/1/persons/anon");
+    expect(screen.queryByText(/Session replay/)).toBeNull();
   });
 
   it("approves with the suggested workspace name and shows the outcome", async () => {
@@ -199,5 +269,60 @@ describe("SignupRequestReviewPanel", () => {
     expect(screen.queryByRole("button", { name: "Approve…" })).toBeNull();
     expect(retrySignupProvisioningAction).not.toHaveBeenCalled();
     expect(screen.getByText("Admin")).toBeTruthy();
+  });
+
+  it("keeps the visitor section after a decision", async () => {
+    // Arrange
+    const visitor = { distinctId: "anon", sessionId: null };
+    vi.mocked(getSignupVisitorAction).mockResolvedValue({
+      status: "missing",
+      profileHref: "https://us.posthog.com/project/1/persons/anon",
+    });
+    vi.mocked(rejectSignupRequestAction).mockResolvedValue(
+      Result.success(
+        request({
+          status: "rejected",
+          rejectionComment: "Spam.",
+          decidedByUserId: "42",
+          decidedAt: "2026-01-16T10:00:00.000Z",
+          visitor,
+        }),
+      ),
+    );
+    renderPanel(request({ visitor }));
+    await screen.findByRole("link", { name: /PostHog/ });
+    fireEvent.click(screen.getByRole("button", { name: "Reject…" }));
+    fireEvent.change(screen.getByLabelText("Why is this request rejected?"), {
+      target: { value: "Spam." },
+    });
+
+    // Act
+    fireEvent.click(screen.getByRole("button", { name: "Reject request" }));
+
+    // Assert
+    await waitFor(() =>
+      expect(screen.getByText("Request rejected")).toBeTruthy(),
+    );
+    const link = screen.getByRole("link", { name: /PostHog/ });
+    expect(link.getAttribute("target")).toBe("_blank");
+    expect(getSignupVisitorAction).toHaveBeenCalledOnce();
+    expect(screen.getByText("Decided")).toBeTruthy();
+    expect(screen.queryByText("Last updated")).toBeNull();
+  });
+
+  it("falls back to the last update for a decision without a timestamp", () => {
+    // Act
+    renderPanel(
+      request({
+        status: "rejected",
+        rejectionComment: "Spam.",
+        decidedByUserId: "42",
+        modifiedAt: "2026-01-16T10:00:00.000Z",
+      }),
+    );
+
+    // Assert
+    expect(screen.getByText("Last updated")).toBeTruthy();
+    expect(screen.queryByText("Decided")).toBeNull();
   });
 });

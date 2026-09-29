@@ -19,7 +19,6 @@ import {
 } from "@/components/ui/responsive-panel";
 import { Textarea } from "@/components/ui/textarea";
 import { formatPreciseDateTime } from "@/lib/date-utils";
-import type { SignupRequestListItem } from "@/lib/endatix-api/signup-requests/types";
 import { ErrorType, Result, type ResultType } from "@/lib/result";
 import {
   approveSignupRequestAction,
@@ -34,7 +33,7 @@ import {
   describeSignupRequest,
   suggestWorkspaceName,
 } from "../signup-request-state";
-import type { SignupReviewers } from "../types";
+import type { SignupReviewers, SignupRequestView } from "../types";
 import { SignupRequestDetails } from "./signup-request-details";
 
 type ReviewStep = "review" | "approve" | "reject";
@@ -42,7 +41,7 @@ type ReviewOutcome = "approved" | "rejected" | "retried";
 
 interface SignupRequestReviewPanelProps {
   /** Kept after close so the panel does not empty while it animates out. */
-  request: SignupRequestListItem | null;
+  request: SignupRequestView | null;
   open: boolean;
   reviewers: SignupReviewers;
   onOpenChange: (open: boolean) => void;
@@ -78,7 +77,7 @@ export function SignupRequestReviewPanel({
 function ReviewContent({
   request,
   reviewers,
-}: Readonly<{ request: SignupRequestListItem; reviewers: SignupReviewers }>) {
+}: Readonly<{ request: SignupRequestView; reviewers: SignupReviewers }>) {
   const router = useRouter();
   const ids = useId();
   const [current, setCurrent] = useState(request);
@@ -110,13 +109,13 @@ function ReviewContent({
   };
 
   const run = (
-    action: () => Promise<ResultType<SignupRequestListItem>>,
+    action: () => Promise<ResultType<SignupRequestView>>,
     completed: ReviewOutcome,
   ) => {
     setFieldError(null);
     setFailure(null);
     startTransition(async () => {
-      let result: ResultType<SignupRequestListItem>;
+      let result: ResultType<SignupRequestView>;
       try {
         result = await action();
       } catch (error) {
@@ -423,7 +422,7 @@ function ReviewStatusAlert({
   request,
   outcome,
 }: Readonly<{
-  request: SignupRequestListItem;
+  request: SignupRequestView;
   outcome: ReviewOutcome | null;
 }>) {
   if (outcome === "rejected") {
@@ -447,7 +446,7 @@ function ReviewStatusAlert({
 }
 
 function approvedStatusAlert(
-  request: SignupRequestListItem,
+  request: SignupRequestView,
   outcome: ReviewOutcome | null,
   workspace: string,
 ) {

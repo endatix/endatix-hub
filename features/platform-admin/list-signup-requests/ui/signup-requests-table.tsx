@@ -16,7 +16,6 @@ import {
 } from "@/components/table";
 import { HubPageLoadError } from "@/components/error-handling/error-page";
 import { StatusBadge } from "@/components/common/status-badge";
-import type { SignupRequestListItem } from "@/lib/endatix-api/signup-requests/types";
 import type { NormalizedPagedResponse } from "@/lib/endatix-api/shared/paged-response";
 import { Result, type ResultType } from "@/lib/result";
 import type { UrlSearchParamsUpdater } from "@/lib/utils/hooks/use-url-search-params-updater.hook";
@@ -29,7 +28,10 @@ import type { SignupRequestsUrlState } from "../signup-requests-url-state";
 import { DEFAULT_SIGNUP_REQUEST_STATUS_FILTER } from "../types";
 import { Button } from "@/components/ui/button";
 import { describeSignupRequest } from "../../review-signup-request/signup-request-state";
-import type { SignupReviewers } from "../../review-signup-request/types";
+import type {
+  SignupReviewers,
+  SignupRequestView,
+} from "../../review-signup-request/types";
 import { SignupRequestReviewPanel } from "../../review-signup-request/ui/signup-request-review-panel";
 import { SignupReviewerLabel } from "../../review-signup-request/ui/signup-reviewer-label";
 
@@ -37,7 +39,7 @@ import { SignupReviewerLabel } from "../../review-signup-request/ui/signup-revie
 const CREATED_CELL_CLASS_NAME = `hidden md:table-cell ${DATA_TABLE_SHRINK_WRAP_CLASS_NAME}`;
 
 interface SignupRequestsTableProps {
-  requests: NormalizedPagedResponse<SignupRequestListItem>;
+  requests: NormalizedPagedResponse<SignupRequestView>;
   reviewers: SignupReviewers;
   updateUrl: UrlSearchParamsUpdater;
   urlState: SignupRequestsUrlState;
@@ -52,7 +54,7 @@ export function SignupRequestsTableFromPromise({
 }: Readonly<
   Omit<SignupRequestsTableProps, "requests" | "reviewers"> & {
     requestsPromise: Promise<
-      ResultType<NormalizedPagedResponse<SignupRequestListItem>>
+      ResultType<NormalizedPagedResponse<SignupRequestView>>
     >;
     reviewersPromise: Promise<SignupReviewers>;
   }
@@ -87,7 +89,7 @@ function SignupRequestsTableWithReviewers({
   ...props
 }: Readonly<
   Omit<SignupRequestsTableProps, "requests" | "reviewers"> & {
-    requests: NormalizedPagedResponse<SignupRequestListItem>;
+    requests: NormalizedPagedResponse<SignupRequestView>;
     reviewersPromise: Promise<SignupReviewers>;
   }
 >) {
@@ -109,9 +111,7 @@ export function SignupRequestsTable({
   const { sorting, onSortingChange } = useListTableState(urlState, updateUrl);
   // The snapshot keeps the panel filled while it closes, and after a decision
   // moves the row off this filter.
-  const [reviewing, setReviewing] = useState<SignupRequestListItem | null>(
-    null,
-  );
+  const [reviewing, setReviewing] = useState<SignupRequestView | null>(null);
   const [isReviewOpen, setIsReviewOpen] = useState(false);
   const columns = useMemo(
     () =>
@@ -177,8 +177,8 @@ function buildColumns({
   onReview,
 }: {
   reviewers: SignupReviewers;
-  onReview: (request: SignupRequestListItem) => void;
-}): ColumnDef<SignupRequestListItem>[] {
+  onReview: (request: SignupRequestView) => void;
+}): ColumnDef<SignupRequestView>[] {
   return [
     {
       id: "email",
@@ -244,6 +244,21 @@ function buildColumns({
             reviewers={reviewers}
           />
         </span>
+      ),
+    },
+    {
+      id: "decidedAt",
+      accessorKey: "decidedAt",
+      enableSorting: false,
+      meta: {
+        headerClassName: "hidden lg:table-cell",
+        cellClassName: "hidden lg:table-cell",
+      },
+      header: () => (
+        <span className={dataTableColumnLabelClassName()}>Decided</span>
+      ),
+      cell: ({ row }) => (
+        <CellDate date={row.original.decidedAt ?? undefined} />
       ),
     },
     {
