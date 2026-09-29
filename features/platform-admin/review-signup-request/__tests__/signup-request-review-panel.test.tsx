@@ -326,12 +326,12 @@ describe("SignupRequestReviewPanel", () => {
     fireEvent.click(
       screen.getByRole("button", { name: "Approve and create workspace" }),
     );
-    await waitFor(() =>
-      expect(screen.getByText(/still being created/)).toBeTruthy(),
-    );
+    const checkAgain = await screen.findByRole("button", {
+      name: "Check again",
+    });
 
     // Act
-    fireEvent.click(screen.getByRole("button", { name: "Check again" }));
+    fireEvent.click(checkAgain);
 
     // Assert
     await waitFor(() =>
@@ -395,10 +395,8 @@ describe("SignupRequestReviewPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "Reject request" }));
 
     // Assert
-    await waitFor(() =>
-      expect(screen.getByText("Request rejected")).toBeTruthy(),
-    );
-    const link = screen.getByRole("link", { name: /PostHog/ });
+    await screen.findByText("Request rejected");
+    const link = await screen.findByRole("link", { name: /PostHog/ });
     expect(link.getAttribute("target")).toBe("_blank");
     expect(getSignupVisitorAction).toHaveBeenCalledOnce();
     expect(screen.getByText("Decided")).toBeTruthy();
