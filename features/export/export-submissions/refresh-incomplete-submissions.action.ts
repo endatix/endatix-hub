@@ -31,7 +31,7 @@ export type RefreshIncompleteSubmissionsResult =
  */
 export async function refreshIncompleteSubmissionsAction(
   formId: string,
-): Promise<RefreshIncompleteSubmissionsResult | never> {
+): Promise<RefreshIncompleteSubmissionsResult> {
   const session = await auth();
   const { requireHubAccess, checkPermission } = await authorization(session);
   await requireHubAccess();
