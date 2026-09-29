@@ -10,6 +10,10 @@ import {
 } from "react";
 import { useTrackEvent } from "@/features/analytics/posthog/client";
 import { prepareReportingExportAction } from "@/features/export/prepare-reporting-export";
+import {
+  catalogLocaleCodeLabel,
+  catalogLocaleEnglishName,
+} from "@/lib/localization";
 import { Result } from "@/lib/result";
 import {
   DEFAULT_REPORTING_LOCALE,
@@ -27,6 +31,7 @@ import {
   createFilterDraftFromListFilters,
   EMPTY_RANGE_ERRORS,
   hasFilterRangeErrors,
+  includesIncompleteSubmissions,
   pickDefaultExportFormatId,
   resolveDefaultLocale,
   showsCompletedAtFields,
@@ -38,7 +43,7 @@ import {
   type ExportFilterRangeErrors,
 } from "./export-dialog-filters";
 import {
-  formatPrepareSuccessSummary,
+  formatPrepareOutcome,
   getPhaseDescription,
   isBusyPhase,
   isControlsLocked,
@@ -47,8 +52,13 @@ import {
   showsPrepareOptions,
   showsRebuildEntry,
   type ExportDialogPhase,
+  type PrepareOutcome,
 } from "./export-dialog-phase";
 import { listFormReportingLocalesAction } from "./list-form-reporting-locales.action";
+import {
+  refreshIncompleteSubmissionsAction,
+  type IncompleteRefreshOutcome,
+} from "./refresh-incomplete-submissions.action";
 import type {
   TenantExportOption,
   TenantExportOptionGroup,
@@ -76,6 +86,9 @@ export type UseExportDialogArgs = {
 
 export type UseExportDialogResult = {
   phase: ExportDialogPhase;
+  includingIncomplete: boolean;
+  /** Set after an export that refreshed incomplete submissions first. */
+  incompleteRefresh: IncompleteRefreshOutcome | null;
   description: string;
   busy: boolean;
   controlsLocked: boolean;
@@ -88,7 +101,7 @@ export type UseExportDialogResult = {
   showExportSubmit: boolean;
   showGroupLabels: boolean;
   inlineError: string | null;
-  prepareSuccessSummary: string | null;
+  prepareOutcome: PrepareOutcome | null;
   fullRecompile: boolean;
   setFullRecompile: (fullRecompile: boolean) => void;
   exportFormatId: string;
@@ -110,7 +123,7 @@ export type UseExportDialogResult = {
   handleSubmit: (event: SubmitEvent<HTMLFormElement>) => Promise<void>;
   patchFilterDraft: (patch: Partial<ExportFilterDraft>) => void;
   setDateRange: (
-    key: "createdAt" | "startedAt" | "completedAt",
+    key: "createdAt" | "modifiedAt" | "startedAt" | "completedAt",
     side: "from" | "to",
     value: string,
   ) => void;
@@ -132,10 +145,13 @@ export function useExportDialog({
   const previousExportFormatIdRef = useRef<string | null>(null);
 
   const [phase, setPhase] = useState<ExportDialogPhase>("checking");
+  const [includingIncomplete, setIncludingIncomplete] = useState(false);
+  const [incompleteRefresh, setIncompleteRefresh] =
+    useState<IncompleteRefreshOutcome | null>(null);
   const [inlineError, setInlineError] = useState<string | null>(null);
-  const [prepareSuccessSummary, setPrepareSuccessSummary] = useState<
-    string | null
-  >(null);
+  const [prepareOutcome, setPrepareOutcome] = useState<PrepareOutcome | null>(
+    null,
+  );
   const [rebuildMode, setRebuildMode] = useState(false);
   const [fullRecompile, setFullRecompile] = useState(false);
   const [exportFormatId, setExportFormatId] = useState("");
@@ -173,7 +189,7 @@ export function useExportDialog({
     () =>
       formLocales.map((localeCode) => ({
         value: localeCode,
-        label: localeCode,
+        label: `${catalogLocaleEnglishName(localeCode)} ${catalogLocaleCodeLabel(localeCode)}`,
       })),
     [formLocales],
   );
@@ -241,7 +257,7 @@ export function useExportDialog({
   const handlePrepare = async () => {
     setPhase("preparing");
     setInlineError(null);
-    setPrepareSuccessSummary(null);
+    setPrepareOutcome(null);
 
     const result = await prepareReportingExportAction(formId, {
       fullRecompile,
@@ -252,12 +268,12 @@ export function useExportDialog({
       return;
     }
 
-    const successSummary = formatPrepareSuccessSummary(result.value);
+    const outcome = formatPrepareOutcome(result.value);
     setRebuildMode(false);
     setFullRecompile(false);
     const ready = await refreshReadiness();
     if (ready) {
-      setPrepareSuccessSummary(successSummary);
+      setPrepareOutcome(outcome);
     }
   };
 
@@ -276,9 +292,11 @@ export function useExportDialog({
     setFilterDraft(createFilterDraftFromListFilters(currentListFilters));
     setRangeErrors(EMPTY_RANGE_ERRORS);
     setLocaleDirty(false);
+    setIncludingIncomplete(false);
+    setIncompleteRefresh(null);
     previousExportFormatIdRef.current = null;
     setInlineError(null);
-    setPrepareSuccessSummary(null);
+    setPrepareOutcome(null);
     setRebuildMode(false);
     setFullRecompile(false);
 
@@ -363,7 +381,7 @@ export function useExportDialog({
   };
 
   const setDateRange = (
-    key: "createdAt" | "startedAt" | "completedAt",
+    key: "createdAt" | "modifiedAt" | "startedAt" | "completedAt",
     side: "from" | "to",
     value: string,
   ) => {
@@ -401,11 +419,28 @@ export function useExportDialog({
       locale: localeSelectValue,
     });
 
+    const includesIncomplete =
+      showRowFilters &&
+      includesIncompleteSubmissions(filterDraft.completionStatus);
+
     setPhase("exporting");
     setInlineError(null);
-    setPrepareSuccessSummary(null);
+    setPrepareOutcome(null);
+    setIncludingIncomplete(includesIncomplete);
+    setIncompleteRefresh(null);
 
     try {
+      if (includesIncomplete) {
+        const refresh = await refreshIncompleteSubmissionsAction(formId);
+        setIncludingIncomplete(false);
+        if (Result.isError(refresh)) {
+          setInlineError(refresh.message);
+          setPhase("error");
+          return;
+        }
+        setIncompleteRefresh(refresh.value);
+      }
+
       const result = await onExport({
         formatKey: selectedOption.formatKey,
         exportName: selectedOption.label,
@@ -428,6 +463,7 @@ export function useExportDialog({
       });
       setPhase("success");
     } catch {
+      setIncludingIncomplete(false);
       setInlineError(GENERIC_EXPORT_FAILURE_MESSAGE);
       setPhase("error");
     }
@@ -440,7 +476,12 @@ export function useExportDialog({
 
   return {
     phase,
-    description: getPhaseDescription(phase, { rebuildMode }),
+    includingIncomplete,
+    incompleteRefresh,
+    description: getPhaseDescription(phase, {
+      rebuildMode,
+      includingIncomplete,
+    }),
     busy,
     controlsLocked,
     rebuildMode,
@@ -453,7 +494,7 @@ export function useExportDialog({
     showExportSubmit: readinessPassed && !prepareCtaVisible && !rebuildMode,
     showGroupLabels: groups.length > 1,
     inlineError,
-    prepareSuccessSummary,
+    prepareOutcome,
     fullRecompile,
     setFullRecompile,
     exportFormatId,

@@ -11,22 +11,28 @@ const mockOnOpenChange = vi.fn();
 const mockTrackFeatureUsage = vi.fn();
 const mockListFormReportingLocalesAction = vi.fn();
 const mockPrepareReportingExportAction = vi.fn();
+const mockRefreshIncompleteSubmissionsAction = vi.fn();
 
 type ExportTarget = "Submissions" | "Codebook";
 
-type DialogContentMockProps = {
+type ExportPanelMockProps = {
   children: React.ReactNode;
-  showCloseButton?: boolean;
-  onInteractOutside?: (event: { preventDefault: () => void }) => void;
-  onEscapeKeyDown?: (event: { preventDefault: () => void }) => void;
-  onOpenAutoFocus?: (event: { preventDefault: () => void }) => void;
+  open: boolean;
+  desktopType?: string;
+  dismissible?: boolean;
+  onOpenChange: (open: boolean) => void;
 };
 
-let latestDialogContentProps: DialogContentMockProps | null = null;
+let latestPanelProps: ExportPanelMockProps | null = null;
 
 vi.mock("../list-form-reporting-locales.action", () => ({
   listFormReportingLocalesAction: (...args: unknown[]) =>
     mockListFormReportingLocalesAction(...args),
+}));
+
+vi.mock("../refresh-incomplete-submissions.action", () => ({
+  refreshIncompleteSubmissionsAction: (...args: unknown[]) =>
+    mockRefreshIncompleteSubmissionsAction(...args),
 }));
 
 vi.mock("@/features/export/prepare-reporting-export", () => ({
@@ -49,24 +55,29 @@ vi.mock("@/features/analytics/posthog/client", () => ({
   }),
 }));
 
-vi.mock("@/components/ui/dialog", () => ({
-  Dialog: ({ children, open }: { children: React.ReactNode; open: boolean }) =>
-    open ? <div>{children}</div> : null,
-  DialogContent: (props: DialogContentMockProps) => {
-    latestDialogContentProps = props;
-    return <div data-testid="dialog-content">{props.children}</div>;
+vi.mock("@/components/ui/responsive-panel", () => ({
+  ResponsivePanel: (props: ExportPanelMockProps) => {
+    latestPanelProps = props;
+    return props.open ? (
+      <div data-testid="export-panel" data-desktop-type={props.desktopType}>
+        {props.children}
+      </div>
+    ) : null;
   },
-  DialogDescription: ({ children }: { children: React.ReactNode }) => (
+  ResponsivePanelHeader: ({ children }: { children: React.ReactNode }) => (
+    <div>{children}</div>
+  ),
+  ResponsivePanelTitle: ({ children }: { children: React.ReactNode }) => (
+    <h1>{children}</h1>
+  ),
+  ResponsivePanelDescription: ({ children }: { children: React.ReactNode }) => (
     <p>{children}</p>
   ),
-  DialogFooter: ({ children }: { children: React.ReactNode }) => (
+  ResponsivePanelBody: ({ children }: { children: React.ReactNode }) => (
     <div>{children}</div>
   ),
-  DialogHeader: ({ children }: { children: React.ReactNode }) => (
-    <div>{children}</div>
-  ),
-  DialogTitle: ({ children }: { children: React.ReactNode }) => (
-    <h1>{children}</h1>
+  ResponsivePanelFooter: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="export-panel-footer">{children}</div>
   ),
 }));
 
@@ -76,6 +87,7 @@ vi.mock("@/components/ui/select", async (importOriginal) => {
   type SelectWalkProps = {
     id?: string;
     value?: unknown;
+    textValue?: string;
     children?: React.ReactNode;
   };
 
@@ -108,7 +120,9 @@ vi.mock("@/components/ui/select", async (importOriginal) => {
       }
 
       if (typeof child.props.value === "string") {
-        const label = textOf(child.props.children).trim();
+        const label = (
+          child.props.textValue ?? textOf(child.props.children)
+        ).trim();
         if (label) {
           opts.push({
             value: child.props.value,
@@ -355,7 +369,7 @@ async function waitForReady() {
 describe("ExportSubmissionsDialog", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    latestDialogContentProps = null;
+    latestPanelProps = null;
     mockListFormReportingLocalesAction.mockResolvedValue(
       Result.success(["default", "es", "fr"]),
     );
@@ -375,7 +389,7 @@ describe("ExportSubmissionsDialog", () => {
     render(<ExportSubmissionsDialog {...createProps()} />);
     expect(screen.getByText("Export submissions")).toBeDefined();
     await waitForReady();
-    expect(screen.getByText(/Choose a format/)).toBeDefined();
+    expect(screen.getByText(/Choose a file format/)).toBeDefined();
   });
 
   it("does not render when closed", () => {
@@ -427,8 +441,8 @@ describe("ExportSubmissionsDialog", () => {
     render(<ExportSubmissionsDialog {...createProps()} />);
     await waitForReady();
 
-    const completedFrom = screen.getAllByLabelText("From")[2];
-    const completedTo = screen.getAllByLabelText("To")[2];
+    const completedFrom = screen.getAllByLabelText("From")[3];
+    const completedTo = screen.getAllByLabelText("To")[3];
 
     fireEvent.change(completedFrom, { target: { value: "2026-01-10" } });
     fireEvent.change(completedTo, { target: { value: "2026-01-01" } });
@@ -462,6 +476,8 @@ describe("ExportSubmissionsDialog", () => {
           completionStatus: "completed",
           createdFrom: "2026-01-01",
           createdTo: undefined,
+          modifiedFrom: undefined,
+          modifiedTo: undefined,
           startedFrom: undefined,
           startedTo: undefined,
           completedFrom: undefined,
@@ -555,17 +571,133 @@ describe("ExportSubmissionsDialog", () => {
     expect(screen.getByRole("button", { name: /^export$/i })).toBeDefined();
   });
 
-  it("shows incomplete filter helper note", async () => {
+  it("says on the Completion field that incomplete submissions are updated first", async () => {
     render(<ExportSubmissionsDialog {...createProps()} />);
     await waitForReady();
+
+    expect(
+      screen.queryByText(/Incomplete submissions are updated first/i),
+    ).toBeNull();
 
     fireEvent.change(screen.getByTestId("export-submissions-completion"), {
       target: { value: "incomplete" },
     });
 
     expect(
-      screen.getByText(/Incomplete drafts are not in the read model yet/i),
+      screen.getByText(/Incomplete submissions are updated first/i),
     ).toBeDefined();
+    expect(screen.queryByText(/not in the read model yet/i)).toBeNull();
+    expect(latestPanelProps?.desktopType).toBe("complex");
+    expect(screen.getByTestId("export-panel-footer")).toBeDefined();
+  });
+
+  it("refreshes incomplete submissions before download", async () => {
+    let resolveRefresh: (value: unknown) => void = () => undefined;
+    mockRefreshIncompleteSubmissionsAction.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveRefresh = resolve;
+        }),
+    );
+
+    render(<ExportSubmissionsDialog {...createProps()} />);
+    await waitForReady();
+
+    fireEvent.change(screen.getByTestId("export-submissions-completion"), {
+      target: { value: "incomplete" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /^export$/i }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: /updating submissions/i }),
+      ).toBeDefined();
+    });
+    expect(
+      screen.getByText(/Updating incomplete submissions, then generating/i),
+    ).toBeDefined();
+    expect(latestPanelProps?.dismissible).toBe(false);
+    expect(mockOnExport).not.toHaveBeenCalled();
+
+    resolveRefresh(
+      Result.success({ kind: "refreshed", failed: 0, finished: true }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("CSV file downloaded")).toBeDefined();
+    });
+    expect(mockRefreshIncompleteSubmissionsAction).toHaveBeenCalledWith("100");
+    expect(mockOnExport).toHaveBeenCalled();
+    // The refresh is backfill only; it never recompiles the schema.
+    expect(mockPrepareReportingExportAction).not.toHaveBeenCalled();
+  });
+
+  it("does not refresh incomplete submissions when completion is completed", async () => {
+    render(<ExportSubmissionsDialog {...createProps()} />);
+    await waitForReady();
+
+    fireEvent.click(screen.getByRole("button", { name: /^export$/i }));
+
+    await waitFor(() => {
+      expect(mockOnExport).toHaveBeenCalled();
+    });
+    expect(mockRefreshIncompleteSubmissionsAction).not.toHaveBeenCalled();
+  });
+
+  it("does not download when the refresh fails", async () => {
+    mockRefreshIncompleteSubmissionsAction.mockResolvedValue(
+      Result.error("Failed to backfill submissions."),
+    );
+    render(<ExportSubmissionsDialog {...createProps()} />);
+    await waitForReady();
+
+    fireEvent.change(screen.getByTestId("export-submissions-completion"), {
+      target: { value: "all" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /^export$/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Failed to backfill submissions.")).toBeDefined();
+    });
+    expect(mockOnExport).not.toHaveBeenCalled();
+  });
+
+  it("still exports when the user cannot update submissions, and says so", async () => {
+    mockRefreshIncompleteSubmissionsAction.mockResolvedValue(
+      Result.success({ kind: "skipped" }),
+    );
+    render(<ExportSubmissionsDialog {...createProps()} />);
+    await waitForReady();
+
+    fireEvent.change(screen.getByTestId("export-submissions-completion"), {
+      target: { value: "all" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /^export$/i }));
+
+    await waitFor(() => {
+      expect(mockOnExport).toHaveBeenCalled();
+    });
+    expect(
+      await screen.findByText(/needs permission to edit this form/i),
+    ).toBeDefined();
+  });
+
+  it("warns after download when some incomplete submissions failed to update", async () => {
+    mockRefreshIncompleteSubmissionsAction.mockResolvedValue(
+      Result.success({ kind: "refreshed", failed: 2, finished: true }),
+    );
+    render(<ExportSubmissionsDialog {...createProps()} />);
+    await waitForReady();
+
+    fireEvent.change(screen.getByTestId("export-submissions-completion"), {
+      target: { value: "incomplete" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /^export$/i }));
+
+    expect(
+      await screen.findByText(/2 incomplete submissions could not be updated/i),
+    ).toBeDefined();
+    expect(mockOnExport).toHaveBeenCalled();
   });
 
   it("shows prepare CTA when schema is missing on open", async () => {
@@ -635,10 +767,42 @@ describe("ExportSubmissionsDialog", () => {
     });
     await waitForReady();
     expect(screen.getByText("Ready to export")).toBeDefined();
-    expect(screen.getByText(/Schema compiled/)).toBeDefined();
+    expect(screen.getByText(/You can export now/)).toBeDefined();
     expect(
       screen.queryByRole("button", { name: /prepare for export/i }),
     ).toBeNull();
+  });
+
+  it("warns when prepare finishes with failed submissions", async () => {
+    mockListFormReportingLocalesAction
+      .mockResolvedValueOnce(
+        Result.error("Form schema has not been compiled for this form."),
+      )
+      .mockResolvedValueOnce(Result.success(["default"]));
+    mockPrepareReportingExportAction.mockResolvedValue(
+      Result.success({
+        formDefinitionId: "1",
+        processed: 4,
+        skipped: 0,
+        failed: 2,
+        batches: 1,
+      }),
+    );
+
+    render(<ExportSubmissionsDialog {...createProps()} />);
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: /prepare for export/i }),
+      ).toBeDefined();
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /prepare for export/i }),
+    );
+
+    await waitForReady();
+    expect(screen.getByText("Ready, with failed submissions")).toBeDefined();
+    expect(screen.getByText(/missing from the export/i)).toBeDefined();
   });
 
   it("does not show prepare CTA in ready when schema is already compiled", async () => {
@@ -789,15 +953,8 @@ describe("ExportSubmissionsDialog", () => {
       expect(screen.getByRole("button", { name: /exporting/i })).toBeDefined();
     });
 
-    expect(latestDialogContentProps?.showCloseButton).toBe(false);
-
-    const interactEvent = { preventDefault: vi.fn() };
-    latestDialogContentProps?.onInteractOutside?.(interactEvent);
-    expect(interactEvent.preventDefault).toHaveBeenCalled();
-
-    const escapeEvent = { preventDefault: vi.fn() };
-    latestDialogContentProps?.onEscapeKeyDown?.(escapeEvent);
-    expect(escapeEvent.preventDefault).toHaveBeenCalled();
+    latestPanelProps?.onOpenChange(false);
+    expect(mockOnOpenChange).not.toHaveBeenCalled();
 
     resolveExport({ succeeded: true });
     await waitFor(() => {
@@ -809,11 +966,8 @@ describe("ExportSubmissionsDialog", () => {
     render(<ExportSubmissionsDialog {...createProps()} />);
     await waitForReady();
 
-    expect(latestDialogContentProps?.showCloseButton).toBe(true);
-
-    const interactEvent = { preventDefault: vi.fn() };
-    latestDialogContentProps?.onInteractOutside?.(interactEvent);
-    expect(interactEvent.preventDefault).not.toHaveBeenCalled();
+    latestPanelProps?.onOpenChange(false);
+    expect(mockOnOpenChange).toHaveBeenCalledWith(false);
   });
 
   it("does not track analytics when onExport rejects", async () => {
@@ -837,11 +991,7 @@ describe("ExportSubmissionsDialog", () => {
       target: { value: "cb-native" },
     });
 
-    expect(
-      screen.getByText(
-        "Codebook exports do not use submission row filters (test or dates).",
-      ),
-    ).toBeDefined();
+    expect(screen.getByText(/submission filters don't apply/i)).toBeDefined();
     expect(screen.queryByText("Include test submissions")).toBeNull();
   });
 
@@ -849,7 +999,7 @@ describe("ExportSubmissionsDialog", () => {
     render(<ExportSubmissionsDialog {...createProps()} />);
     await waitForReady();
 
-    expect(screen.queryByText("Locale")).toBeNull();
+    expect(screen.queryByText("Language")).toBeNull();
   });
 
   it("hides locale field for native codebook", async () => {
@@ -860,7 +1010,7 @@ describe("ExportSubmissionsDialog", () => {
       target: { value: "cb-native" },
     });
 
-    expect(screen.queryByText("Locale")).toBeNull();
+    expect(screen.queryByText("Language")).toBeNull();
   });
 
   it("exports native codebook without locale", async () => {
@@ -897,7 +1047,7 @@ describe("ExportSubmissionsDialog", () => {
       expect(localeSelect.value).toBe("default");
       expect(
         Array.from(localeSelect.options).map((option) => option.text),
-      ).toEqual(["default", "es", "fr"]);
+      ).toEqual(["English en", "Spanish es", "French fr"]);
     });
 
     fireEvent.change(screen.getByTestId("export-submissions-locale"), {
@@ -941,7 +1091,7 @@ describe("ExportSubmissionsDialog", () => {
     );
     await waitForReady();
 
-    expect(screen.queryByText("Locale")).toBeNull();
+    expect(screen.queryByText("Language")).toBeNull();
   });
 
   it("shows locale field for Shoji codebook", async () => {
@@ -952,7 +1102,7 @@ describe("ExportSubmissionsDialog", () => {
       target: { value: "cb-shoji" },
     });
 
-    expect(screen.getByText("Locale")).toBeDefined();
+    expect(screen.getByText("Language")).toBeDefined();
     await waitFor(() => {
       expect(mockListFormReportingLocalesAction).toHaveBeenCalledWith("100");
     });
@@ -979,9 +1129,9 @@ describe("ExportSubmissionsDialog", () => {
       (screen.getAllByLabelText("From")[0] as HTMLInputElement).value,
     ).toBe("2026-03-01");
     expect(
-      (screen.getAllByLabelText("From")[1] as HTMLInputElement).value,
+      (screen.getAllByLabelText("From")[2] as HTMLInputElement).value,
     ).toBe("2026-03-05");
-    expect((screen.getAllByLabelText("To")[1] as HTMLInputElement).value).toBe(
+    expect((screen.getAllByLabelText("To")[2] as HTMLInputElement).value).toBe(
       "2026-03-10",
     );
     expect(
@@ -1011,14 +1161,14 @@ describe("ExportSubmissionsDialog", () => {
     await waitForReady();
 
     expect(
-      (screen.getAllByLabelText("From")[1] as HTMLInputElement).value,
+      (screen.getAllByLabelText("From")[2] as HTMLInputElement).value,
     ).toBe("2026-04-03");
 
-    fireEvent.change(screen.getAllByLabelText("From")[1], {
+    fireEvent.change(screen.getAllByLabelText("From")[2], {
       target: { value: "2026-01-01" },
     });
     expect(
-      (screen.getAllByLabelText("From")[1] as HTMLInputElement).value,
+      (screen.getAllByLabelText("From")[2] as HTMLInputElement).value,
     ).toBe("2026-01-01");
 
     fireEvent.change(screen.getByTestId("export-submissions-format"), {
@@ -1053,9 +1203,9 @@ describe("ExportSubmissionsDialog", () => {
       (screen.getAllByLabelText("From")[0] as HTMLInputElement).value,
     ).toBe("2026-04-01");
     expect(
-      (screen.getAllByLabelText("From")[1] as HTMLInputElement).value,
+      (screen.getAllByLabelText("From")[2] as HTMLInputElement).value,
     ).toBe("2026-04-03");
-    expect((screen.getAllByLabelText("To")[1] as HTMLInputElement).value).toBe(
+    expect((screen.getAllByLabelText("To")[2] as HTMLInputElement).value).toBe(
       "2026-04-04",
     );
   });

@@ -19,8 +19,7 @@ vi.mock("@/features/auth/authorization", () => ({
 }));
 
 vi.mock("@/lib/feature-flags/flags", () => ({
-  reportingExportFlag: (...args: unknown[]) =>
-    mockReportingExportFlag(...args),
+  reportingExportFlag: (...args: unknown[]) => mockReportingExportFlag(...args),
 }));
 
 vi.mock("@/lib/endatix-api", () => ({
@@ -73,6 +72,42 @@ describe("prepareReportingExportAction", () => {
       skipped: 0,
       failed: 0,
     });
+  });
+
+  it("finishes when the last page is exactly the batch cap", async () => {
+    for (let batch = 1; batch < 100; batch += 1) {
+      mockBackfillSubmissions.mockResolvedValueOnce(
+        ApiResult.success({
+          processed: 1,
+          skipped: 0,
+          failed: 0,
+          hasMore: true,
+          nextAfterSubmissionId: `s-${batch}`,
+        }),
+      );
+    }
+
+    const result = await prepareReportingExportAction("form-1");
+
+    expect(mockBackfillSubmissions).toHaveBeenCalledTimes(100);
+    expect(Result.isSuccess(result)).toBe(true);
+  });
+
+  it("fails when submissions remain after the batch cap", async () => {
+    mockBackfillSubmissions.mockResolvedValue(
+      ApiResult.success({
+        processed: 1,
+        skipped: 0,
+        failed: 0,
+        hasMore: true,
+        nextAfterSubmissionId: "next",
+      }),
+    );
+
+    const result = await prepareReportingExportAction("form-1");
+
+    expect(mockBackfillSubmissions).toHaveBeenCalledTimes(100);
+    expect(Result.isError(result)).toBe(true);
   });
 
   it("passes replace and force when fullRecompile is true", async () => {

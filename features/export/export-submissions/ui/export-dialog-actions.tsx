@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { DialogFooter } from "@/components/ui/dialog";
+import { ResponsivePanelFooter } from "@/components/ui/responsive-panel";
 import { Spinner } from "@/components/loaders/spinner";
 import type { RefObject } from "react";
 import type { ExportDialogPhase } from "../export-dialog-phase";
@@ -14,6 +14,7 @@ interface ExportDialogActionsProps {
   showExportSubmit: boolean;
   showBackToExport: boolean;
   canExport: boolean;
+  includingIncomplete: boolean;
   exportButtonRef: RefObject<HTMLButtonElement | null>;
   onClose: () => void;
   onCancel: () => void;
@@ -28,6 +29,7 @@ function PrimaryActionButton({
   showPrepareCta,
   showExportSubmit,
   canExport,
+  includingIncomplete,
   exportButtonRef,
   onPrepare,
 }: Readonly<
@@ -39,6 +41,7 @@ function PrimaryActionButton({
     | "showPrepareCta"
     | "showExportSubmit"
     | "canExport"
+    | "includingIncomplete"
     | "exportButtonRef"
     | "onPrepare"
   >
@@ -50,7 +53,7 @@ function PrimaryActionButton({
         {isPreparing ? (
           <>
             <Spinner className="mr-2 h-4 w-4" />
-            Preparing...
+            Preparing…
           </>
         ) : (
           "Prepare for export"
@@ -64,6 +67,11 @@ function PrimaryActionButton({
   }
 
   const isSubmitting = phase === "exporting" || isExporting;
+  // The button names the stage that is running; the header says the rest.
+  const submitLabel = includingIncomplete
+    ? "Updating submissions…"
+    : "Exporting…";
+
   return (
     <Button
       ref={exportButtonRef}
@@ -73,7 +81,7 @@ function PrimaryActionButton({
       {isSubmitting ? (
         <>
           <Spinner className="mr-2 h-4 w-4" />
-          Exporting...
+          {submitLabel}
         </>
       ) : (
         "Export"
@@ -90,6 +98,7 @@ export function ExportDialogActions({
   showExportSubmit,
   showBackToExport,
   canExport,
+  includingIncomplete,
   exportButtonRef,
   onClose,
   onCancel,
@@ -98,16 +107,16 @@ export function ExportDialogActions({
 }: Readonly<ExportDialogActionsProps>) {
   if (phase === "success") {
     return (
-      <DialogFooter className="gap-2 sm:gap-2">
+      <ResponsivePanelFooter className="gap-2 sm:gap-2">
         <Button type="button" onClick={onClose}>
           Done
         </Button>
-      </DialogFooter>
+      </ResponsivePanelFooter>
     );
   }
 
   return (
-    <DialogFooter className="gap-2 sm:gap-2">
+    <ResponsivePanelFooter className="gap-2 sm:gap-2">
       {showBackToExport ? (
         <Button
           type="button"
@@ -134,9 +143,10 @@ export function ExportDialogActions({
         showPrepareCta={showPrepareCta}
         showExportSubmit={showExportSubmit}
         canExport={canExport}
+        includingIncomplete={includingIncomplete}
         exportButtonRef={exportButtonRef}
         onPrepare={onPrepare}
       />
-    </DialogFooter>
+    </ResponsivePanelFooter>
   );
 }

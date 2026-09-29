@@ -64,9 +64,10 @@ export function useSubmissionsExport() {
       return { succeeded: true };
     } catch (error) {
       const message = getExportFailureMessage(error);
-      TelemetryLogger.error(
-        "Submissions export failed",
-        undefined,
+      // A rejected download is a handled dialog error. console.error opens the
+      // Next.js dev overlay and hides the message already shown in the panel.
+      TelemetryLogger.warn(
+        `Submissions export failed: ${message}`,
         {
           "export.has_name": Boolean(exportName?.trim()),
           "export.fallback_filename_length": fallbackFilename.length,

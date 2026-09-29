@@ -2,12 +2,12 @@
 
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  ResponsivePanel,
+  ResponsivePanelBody,
+  ResponsivePanelDescription,
+  ResponsivePanelHeader,
+  ResponsivePanelTitle,
+} from "@/components/ui/responsive-panel";
 import type { SubmissionExportListFilters } from "../../export-url";
 import {
   useExportDialog,
@@ -52,43 +52,45 @@ export function ExportSubmissionsDialog({
   });
 
   return (
-    <Dialog open={open} onOpenChange={dialog.handleOpenChange}>
-      <DialogContent
-        className="sm:max-w-md"
-        showCloseButton={!dialog.busy}
-        onInteractOutside={(event) => {
-          if (dialog.busy) {
-            event.preventDefault();
-          }
-        }}
-        onEscapeKeyDown={(event) => {
-          if (dialog.busy) {
-            event.preventDefault();
-          }
-        }}
-        onOpenAutoFocus={(event) => {
-          const exportButton = dialog.exportButtonRef.current;
-          // Export submit is absent for prepare CTA and disabled while checking —
-          // let Radix autofocus the first interactive control in those cases.
-          if (!exportButton || exportButton.disabled) {
-            return;
-          }
+    <ResponsivePanel
+      open={open}
+      onOpenChange={dialog.handleOpenChange}
+      desktopType="complex"
+      dismissible={!dialog.busy}
+      onOpenAutoFocus={(event) => {
+        const exportButton = dialog.exportButtonRef.current;
+        // Land on Export so Enter exports with the prefilled choices. It is
+        // absent for the prepare CTA and disabled while checking; let Radix
+        // focus the first control then.
+        if (!exportButton || exportButton.disabled) {
+          return;
+        }
 
-          event.preventDefault();
-          exportButton.focus();
-        }}
+        event.preventDefault();
+        exportButton.focus();
+      }}
+      sheetContentClassName="flex h-full flex-col"
+      drawerContentClassName="flex flex-col"
+    >
+      <form
+        onSubmit={dialog.handleSubmit}
+        className="flex min-h-0 flex-1 flex-col"
       >
-        <form onSubmit={dialog.handleSubmit} className="flex flex-col gap-5">
-          <DialogHeader className="gap-2">
-            <DialogTitle>Export submissions</DialogTitle>
-            <DialogDescription>{dialog.description}</DialogDescription>
-          </DialogHeader>
+        <ResponsivePanelHeader className="gap-2">
+          <ResponsivePanelTitle>Export submissions</ResponsivePanelTitle>
+          <ResponsivePanelDescription aria-live="polite">
+            {dialog.description}
+          </ResponsivePanelDescription>
+        </ResponsivePanelHeader>
 
+        <ResponsivePanelBody>
           <ExportDialogStatusPanel
             phase={dialog.phase}
             rebuildMode={dialog.rebuildMode}
             inlineError={dialog.inlineError}
-            prepareSuccessSummary={dialog.prepareSuccessSummary}
+            prepareOutcome={dialog.prepareOutcome}
+            incompleteRefresh={dialog.incompleteRefresh}
+            exportName={dialog.selectedOption?.label}
           />
 
           {dialog.showPrepareOptions ? (
@@ -127,11 +129,12 @@ export function ExportSubmissionsDialog({
 
           {dialog.showRebuildEntry ? (
             <div className="flex justify-start">
+              {/* An action, so a quiet ghost button — not a link. */}
               <Button
                 type="button"
-                variant="link"
+                variant="ghost"
                 size="sm"
-                className="h-auto px-0 text-xs text-muted-foreground"
+                className="-ml-3 text-muted-foreground"
                 onClick={dialog.enterRebuildMode}
                 disabled={dialog.busy}
               >
@@ -139,24 +142,25 @@ export function ExportSubmissionsDialog({
               </Button>
             </div>
           ) : null}
+        </ResponsivePanelBody>
 
-          <ExportDialogActions
-            phase={dialog.phase}
-            busy={dialog.busy}
-            isExporting={isExporting}
-            showPrepareCta={dialog.showPrepareCta}
-            showExportSubmit={dialog.showExportSubmit}
-            showBackToExport={dialog.showBackToExport}
-            canExport={Boolean(dialog.selectedOption)}
-            exportButtonRef={dialog.exportButtonRef}
-            onClose={() => onOpenChange(false)}
-            onCancel={() => dialog.handleOpenChange(false)}
-            onBackToExport={dialog.exitRebuildMode}
-            onPrepare={() => void dialog.handlePrepare()}
-          />
-        </form>
-      </DialogContent>
-    </Dialog>
+        <ExportDialogActions
+          phase={dialog.phase}
+          busy={dialog.busy}
+          isExporting={isExporting}
+          showPrepareCta={dialog.showPrepareCta}
+          showExportSubmit={dialog.showExportSubmit}
+          showBackToExport={dialog.showBackToExport}
+          canExport={Boolean(dialog.selectedOption)}
+          includingIncomplete={dialog.includingIncomplete}
+          exportButtonRef={dialog.exportButtonRef}
+          onClose={() => onOpenChange(false)}
+          onCancel={() => dialog.handleOpenChange(false)}
+          onBackToExport={dialog.exitRebuildMode}
+          onPrepare={() => void dialog.handlePrepare()}
+        />
+      </form>
+    </ResponsivePanel>
   );
 }
 

@@ -44,13 +44,24 @@ const ResponsivePanelModeContext = createContext<ResponsivePanelMode | null>(
   null,
 );
 
+type ContentFocusEvent = Parameters<
+  NonNullable<ComponentProps<typeof DialogContent>["onOpenAutoFocus"]>
+>[0];
+
 interface ResponsivePanelProps {
   children: ReactNode;
   className?: string;
   contentClassName?: string;
   desktopType?: ResponsivePanelType;
+  /**
+   * False while work the panel started is running: hides the close button and
+   * ignores Escape, outside clicks and drag-to-close, so the only way out is
+   * the footer once the work ends.
+   */
+  dismissible?: boolean;
   dialogContentClassName?: string;
   drawerContentClassName?: string;
+  onOpenAutoFocus?: (event: ContentFocusEvent) => void;
   onOpenChange: (open: boolean) => void;
   open: boolean;
   sheetContentClassName?: string;
@@ -63,7 +74,9 @@ export function ResponsivePanel({
   contentClassName,
   desktopType = "complex",
   dialogContentClassName,
+  dismissible = true,
   drawerContentClassName,
+  onOpenAutoFocus,
   onOpenChange,
   open,
   sheetContentClassName,
@@ -76,6 +89,16 @@ export function ResponsivePanel({
       {children}
     </ResponsivePanelModeContext>
   );
+  const preventWhileLocked = (event: Event) => {
+    if (!dismissible) {
+      event.preventDefault();
+    }
+  };
+  const contentProps = {
+    onOpenAutoFocus,
+    onEscapeKeyDown: preventWhileLocked,
+    onInteractOutside: preventWhileLocked,
+  };
 
   if (mode === "dialog") {
     return (
@@ -83,6 +106,8 @@ export function ResponsivePanel({
         {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
         <DialogContent
           className={cn(className, contentClassName, dialogContentClassName)}
+          showCloseButton={dismissible}
+          {...contentProps}
         >
           {content}
         </DialogContent>
@@ -96,6 +121,8 @@ export function ResponsivePanel({
         {trigger && <SheetTrigger asChild>{trigger}</SheetTrigger>}
         <SheetContent
           side="right"
+          showCloseButton={dismissible}
+          {...contentProps}
           className={cn(
             "gap-0 overflow-hidden px-0 sm:max-w-lg",
             className,
@@ -110,9 +137,10 @@ export function ResponsivePanel({
   }
 
   return (
-    <Drawer open={open} onOpenChange={onOpenChange}>
+    <Drawer open={open} onOpenChange={onOpenChange} dismissible={dismissible}>
       {trigger && <DrawerTrigger asChild>{trigger}</DrawerTrigger>}
       <DrawerContent
+        onOpenAutoFocus={onOpenAutoFocus}
         className={cn(
           "h-[90vh] max-h-[90vh] gap-0 overflow-hidden px-0",
           className,

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  formatPrepareOutcome,
   getPhaseDescription,
   isBusyPhase,
   showsFiltersForm,
@@ -41,7 +42,8 @@ describe("export-dialog-phase", () => {
     expect(showsPrepareOptions("needsPrepare", false)).toBe(false);
     expect(showsPrepareOptions("needsPrepare", true)).toBe(true);
     expect(showsPrepareOptions("error", true)).toBe(true);
-    expect(showsPrepareOptions("preparing", true)).toBe(false);
+    expect(showsPrepareOptions("preparing", true)).toBe(true);
+    expect(showsPrepareOptions("preparing", false)).toBe(false);
     expect(showsPrepareOptions("ready", true)).toBe(false);
   });
 
@@ -56,6 +58,21 @@ describe("export-dialog-phase", () => {
     expect(
       getPhaseDescription("needsPrepare", { rebuildMode: true }),
     ).toContain("Rebuild");
-    expect(getPhaseDescription("ready")).toContain("Choose a format");
+    expect(getPhaseDescription("ready")).toContain("Choose a file format");
+    expect(
+      getPhaseDescription("exporting", { includingIncomplete: true }),
+    ).toContain("Updating incomplete submissions");
+  });
+
+  it("leaves batches out of the prepare outcome and flags failures", () => {
+    expect(
+      formatPrepareOutcome({ processed: 3, skipped: 1, failed: 0 }),
+    ).toEqual({
+      summary: "3 processed, 1 skipped, 0 failed. You can export now.",
+      failed: 0,
+    });
+    expect(
+      formatPrepareOutcome({ processed: 3, skipped: 0, failed: 2 }).summary,
+    ).toContain("missing from the export");
   });
 });
