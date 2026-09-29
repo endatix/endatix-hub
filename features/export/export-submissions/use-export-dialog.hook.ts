@@ -55,6 +55,10 @@ import {
   type PrepareOutcome,
 } from "./export-dialog-phase";
 import { listFormReportingLocalesAction } from "./list-form-reporting-locales.action";
+import {
+  refreshIncompleteSubmissionsAction,
+  type IncompleteRefreshOutcome,
+} from "./refresh-incomplete-submissions.action";
 import type {
   TenantExportOption,
   TenantExportOptionGroup,
@@ -83,6 +87,8 @@ export type UseExportDialogArgs = {
 export type UseExportDialogResult = {
   phase: ExportDialogPhase;
   includingIncomplete: boolean;
+  /** Set after an export that refreshed incomplete submissions first. */
+  incompleteRefresh: IncompleteRefreshOutcome | null;
   description: string;
   busy: boolean;
   controlsLocked: boolean;
@@ -140,6 +146,8 @@ export function useExportDialog({
 
   const [phase, setPhase] = useState<ExportDialogPhase>("checking");
   const [includingIncomplete, setIncludingIncomplete] = useState(false);
+  const [incompleteRefresh, setIncompleteRefresh] =
+    useState<IncompleteRefreshOutcome | null>(null);
   const [inlineError, setInlineError] = useState<string | null>(null);
   const [prepareOutcome, setPrepareOutcome] = useState<PrepareOutcome | null>(
     null,
@@ -285,6 +293,7 @@ export function useExportDialog({
     setRangeErrors(EMPTY_RANGE_ERRORS);
     setLocaleDirty(false);
     setIncludingIncomplete(false);
+    setIncompleteRefresh(null);
     previousExportFormatIdRef.current = null;
     setInlineError(null);
     setPrepareOutcome(null);
@@ -418,19 +427,18 @@ export function useExportDialog({
     setInlineError(null);
     setPrepareOutcome(null);
     setIncludingIncomplete(includesIncomplete);
+    setIncompleteRefresh(null);
 
     try {
       if (includesIncomplete) {
-        const refresh = await prepareReportingExportAction(formId, {
-          completionScope: "incomplete",
-        });
+        const refresh = await refreshIncompleteSubmissionsAction(formId);
+        setIncludingIncomplete(false);
         if (Result.isError(refresh)) {
-          setIncludingIncomplete(false);
           setInlineError(refresh.message);
           setPhase("error");
           return;
         }
-        setIncludingIncomplete(false);
+        setIncompleteRefresh(refresh.value);
       }
 
       const result = await onExport({
@@ -469,6 +477,7 @@ export function useExportDialog({
   return {
     phase,
     includingIncomplete,
+    incompleteRefresh,
     description: getPhaseDescription(phase, {
       rebuildMode,
       includingIncomplete,

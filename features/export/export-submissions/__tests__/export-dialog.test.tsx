@@ -11,6 +11,7 @@ const mockOnOpenChange = vi.fn();
 const mockTrackFeatureUsage = vi.fn();
 const mockListFormReportingLocalesAction = vi.fn();
 const mockPrepareReportingExportAction = vi.fn();
+const mockRefreshIncompleteSubmissionsAction = vi.fn();
 
 type ExportTarget = "Submissions" | "Codebook";
 
@@ -27,6 +28,11 @@ let latestPanelProps: ExportPanelMockProps | null = null;
 vi.mock("../list-form-reporting-locales.action", () => ({
   listFormReportingLocalesAction: (...args: unknown[]) =>
     mockListFormReportingLocalesAction(...args),
+}));
+
+vi.mock("../refresh-incomplete-submissions.action", () => ({
+  refreshIncompleteSubmissionsAction: (...args: unknown[]) =>
+    mockRefreshIncompleteSubmissionsAction(...args),
 }));
 
 vi.mock("@/features/export/prepare-reporting-export", () => ({
@@ -586,10 +592,8 @@ describe("ExportSubmissionsDialog", () => {
   });
 
   it("refreshes incomplete submissions before download", async () => {
-    let resolveRefresh: (
-      value: ReturnType<typeof Result.success>,
-    ) => void = () => undefined;
-    mockPrepareReportingExportAction.mockImplementation(
+    let resolveRefresh: (value: unknown) => void = () => undefined;
+    mockRefreshIncompleteSubmissionsAction.mockImplementation(
       () =>
         new Promise((resolve) => {
           resolveRefresh = resolve;
@@ -616,21 +620,16 @@ describe("ExportSubmissionsDialog", () => {
     expect(mockOnExport).not.toHaveBeenCalled();
 
     resolveRefresh(
-      Result.success({
-        formDefinitionId: "1",
-        processed: 1,
-        skipped: 0,
-        failed: 0,
-        batches: 1,
-      }),
+      Result.success({ kind: "refreshed", failed: 0, finished: true }),
     );
 
     await waitFor(() => {
-      expect(mockOnExport).toHaveBeenCalled();
+      expect(screen.getByText("CSV file downloaded")).toBeDefined();
     });
-    expect(mockPrepareReportingExportAction).toHaveBeenCalledWith("100", {
-      completionScope: "incomplete",
-    });
+    expect(mockRefreshIncompleteSubmissionsAction).toHaveBeenCalledWith("100");
+    expect(mockOnExport).toHaveBeenCalled();
+    // The refresh is backfill only; it never recompiles the schema.
+    expect(mockPrepareReportingExportAction).not.toHaveBeenCalled();
   });
 
   it("does not refresh incomplete submissions when completion is completed", async () => {
@@ -642,7 +641,63 @@ describe("ExportSubmissionsDialog", () => {
     await waitFor(() => {
       expect(mockOnExport).toHaveBeenCalled();
     });
-    expect(mockPrepareReportingExportAction).not.toHaveBeenCalled();
+    expect(mockRefreshIncompleteSubmissionsAction).not.toHaveBeenCalled();
+  });
+
+  it("does not download when the refresh fails", async () => {
+    mockRefreshIncompleteSubmissionsAction.mockResolvedValue(
+      Result.error("Failed to backfill submissions."),
+    );
+    render(<ExportSubmissionsDialog {...createProps()} />);
+    await waitForReady();
+
+    fireEvent.change(screen.getByTestId("export-submissions-completion"), {
+      target: { value: "all" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /^export$/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Failed to backfill submissions.")).toBeDefined();
+    });
+    expect(mockOnExport).not.toHaveBeenCalled();
+  });
+
+  it("still exports when the user cannot update submissions, and says so", async () => {
+    mockRefreshIncompleteSubmissionsAction.mockResolvedValue(
+      Result.success({ kind: "skipped" }),
+    );
+    render(<ExportSubmissionsDialog {...createProps()} />);
+    await waitForReady();
+
+    fireEvent.change(screen.getByTestId("export-submissions-completion"), {
+      target: { value: "all" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /^export$/i }));
+
+    await waitFor(() => {
+      expect(mockOnExport).toHaveBeenCalled();
+    });
+    expect(
+      await screen.findByText(/needs permission to edit this form/i),
+    ).toBeDefined();
+  });
+
+  it("warns after download when some incomplete submissions failed to update", async () => {
+    mockRefreshIncompleteSubmissionsAction.mockResolvedValue(
+      Result.success({ kind: "refreshed", failed: 2, finished: true }),
+    );
+    render(<ExportSubmissionsDialog {...createProps()} />);
+    await waitForReady();
+
+    fireEvent.change(screen.getByTestId("export-submissions-completion"), {
+      target: { value: "incomplete" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /^export$/i }));
+
+    expect(
+      await screen.findByText(/2 incomplete submissions could not be updated/i),
+    ).toBeDefined();
+    expect(mockOnExport).toHaveBeenCalled();
   });
 
   it("shows prepare CTA when schema is missing on open", async () => {

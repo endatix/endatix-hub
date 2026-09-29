@@ -471,6 +471,10 @@ Work the reader starts from a panel (prepare, export, retry) has **one voice per
 - **Panel** — not dismissible until the work ends (Overlays rule 8).
 - **Outcome** — a `success` `Alert` naming what was produced ("CSV file downloaded"), footer
   `Done`. Never a large centred icon plus a sentence that repeats the header.
+- **A supporting step never blocks the action it supports** unless it failed outright. If the
+  reader lacks the permission for it (refreshing incomplete submissions needs edit rights,
+  exporting does not) or it could only partly finish, run the action anyway and say so in the
+  outcome: one extra sentence, and `warning` when rows may be missing.
 
 ### View choices vs edits
 

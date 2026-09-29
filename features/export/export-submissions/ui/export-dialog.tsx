@@ -89,6 +89,7 @@ export function ExportSubmissionsDialog({
             rebuildMode={dialog.rebuildMode}
             inlineError={dialog.inlineError}
             prepareOutcome={dialog.prepareOutcome}
+            incompleteRefresh={dialog.incompleteRefresh}
             exportName={dialog.selectedOption?.label}
           />
 
