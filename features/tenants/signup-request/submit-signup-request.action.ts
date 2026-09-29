@@ -9,6 +9,14 @@ import { toResult } from "@/lib/result/map-api-result-to-result";
 import { getStringFormValue } from "@/lib/utils/form-data-utils";
 import { ServerActionState } from "@/lib/utils/zod-error-utils";
 
+/** Matches the API allowlist. Longer values are dropped, not rejected. */
+const POSTHOG_ID_MAX_LENGTH = 200;
+
+function boundedPostHogId(formData: FormData, key: string): string {
+  const value = getStringFormValue(formData, key).trim();
+  return value.length <= POSTHOG_ID_MAX_LENGTH ? value : "";
+}
+
 const GENERIC_SUCCESS_MESSAGE =
   "If your request is accepted, we will contact you at the email address provided.";
 
@@ -55,24 +63,23 @@ export async function submitSignupRequestAction(
   }
 
   const posthogEnabled = readPublicEndatixEnv().posthogProjectToken.length > 0;
-  const postHogDistinctId = getStringFormValue(formData, "postHogDistinctId").trim();
-  const postHogSessionId = getStringFormValue(formData, "postHogSessionId").trim();
+  const postHogDistinctId = boundedPostHogId(formData, "postHogDistinctId");
+  const postHogSessionId = boundedPostHogId(formData, "postHogSessionId");
 
   const api = new EndatixApi();
   const result = toResult(
     await api.signupRequests.create({
       ...validated.data,
-      ...(posthogEnabled && postHogDistinctId
-        ? { postHogDistinctId }
-        : {}),
+      ...(posthogEnabled && postHogDistinctId ? { postHogDistinctId } : {}),
       ...(posthogEnabled && postHogSessionId ? { postHogSessionId } : {}),
     }),
     {
-    fallbackMessage: "We could not submit your request. Please try again.",
-    preferredFields: ["email"],
-    logMessage: "Failed to submit signup request.",
-    loggerName: "tenants.signup-request",
-  });
+      fallbackMessage: "We could not submit your request. Please try again.",
+      preferredFields: ["email"],
+      logMessage: "Failed to submit signup request.",
+      loggerName: "tenants.signup-request",
+    },
+  );
 
   if (Result.isSuccess(result)) {
     return {

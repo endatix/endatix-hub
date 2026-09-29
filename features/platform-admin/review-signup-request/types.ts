@@ -34,7 +34,7 @@ export interface SignupVisitorEvent {
 
 /**
  * The review-relevant slice of a PostHog person. Deliberately excludes IP, coordinates
- * and postal code (`DESIGN.md` §6 "Evidence from other tools").
+ * and postal code (`DESIGN.md` "Evidence from third-party tools").
  */
 export interface SignupVisitor {
   profileHref: string;

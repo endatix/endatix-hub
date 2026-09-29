@@ -7,6 +7,7 @@ import { toResult } from "@/lib/result/map-api-result-to-result";
 import { revalidatePath } from "next/cache";
 import { listSignupRequests } from "../list-signup-requests/list-signup-requests.server";
 import { requirePlatformAdmin } from "../server";
+import type { PlatformAdminSession } from "../types";
 import { loadSignupVisitor } from "./load-signup-visitor.server";
 import { toSignupRequestView } from "./signup-request-view.server";
 import type {
@@ -164,20 +165,43 @@ export async function refreshSignupRequestAction(
   }
 
   const session = await requirePlatformAdmin();
-  const page = await listSignupRequests(session, {
-    status: "all",
-    search: trimmedEmail,
-    pageSize: 20,
-  });
-  if (Result.isError(page)) {
-    return page;
+  const match = await findSignupById(session, id, trimmedEmail);
+  if (Result.isSuccess(match)) {
+    revalidateSignupInbox();
   }
+  return match;
+}
 
-  revalidateSignupInbox();
-  const match = page.value.items.find((item) => item.id === id);
-  return match
-    ? Result.success(match)
-    : Result.error<SignupRequestView>("This request is no longer available.");
+const REFRESH_PAGE_SIZE = 20;
+
+async function findSignupById(
+  session: PlatformAdminSession,
+  id: string,
+  email: string,
+): Promise<ResultType<SignupRequestView>> {
+  let pageNumber = 1;
+  for (;;) {
+    const page = await listSignupRequests(session, {
+      status: "all",
+      search: email,
+      page: pageNumber,
+      pageSize: REFRESH_PAGE_SIZE,
+    });
+    if (Result.isError(page)) {
+      return page;
+    }
+
+    const match = page.value.items.find((item) => item.id === id);
+    if (match) {
+      return Result.success(match);
+    }
+    if (!page.value.hasNextPage) {
+      return Result.error<SignupRequestView>(
+        "This request is no longer available.",
+      );
+    }
+    pageNumber += 1;
+  }
 }
 
 /**

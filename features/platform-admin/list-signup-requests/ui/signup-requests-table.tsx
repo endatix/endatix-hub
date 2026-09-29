@@ -139,6 +139,7 @@ export function SignupRequestsTable({
       // Nobody has decided a pending request; the column only earns its width elsewhere.
       columnVisibility: {
         decidedBy: urlState.status !== DEFAULT_SIGNUP_REQUEST_STATUS_FILTER,
+        decidedAt: urlState.status !== DEFAULT_SIGNUP_REQUEST_STATUS_FILTER,
       },
     },
     onSortingChange,

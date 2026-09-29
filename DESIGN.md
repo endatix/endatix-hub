@@ -425,7 +425,9 @@ never starts per row. Reference: `review-signup-request/ui/signup-visitor-sectio
   action called while rendering updates the router mid-render).
 - **Skeleton the section, not the panel.** Keep the `PanelSection` masthead; replace only its body
   with `Skeleton` bars shaped like the rows to come, mark it `aria-busy`, and add an `sr-only` line
-  naming the wait ("Loading visitor details").
+  naming the wait ("Loading visitor details"). On a tinted section (`bg-surface-container-low`),
+  tint the bars (`bg-foreground/10`): the default `bg-accent` matches that surface, so the pulse
+  does not show.
 - **One request per opened record.** Cache the result on the client for a few minutes; changing
   step or reopening the same record must not ask again.
 - **Quiet states, never an error tone** — the record is fine, and `destructive` belongs to an
