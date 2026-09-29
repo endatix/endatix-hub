@@ -53,7 +53,7 @@ function PrimaryActionButton({
         {isPreparing ? (
           <>
             <Spinner className="mr-2 h-4 w-4" />
-            Preparing...
+            Preparing…
           </>
         ) : (
           "Prepare for export"
@@ -67,12 +67,10 @@ function PrimaryActionButton({
   }
 
   const isSubmitting = phase === "exporting" || isExporting;
-  let submitLabel = "Export";
-  if (includingIncomplete) {
-    submitLabel = "Including incomplete responses…";
-  } else if (isSubmitting) {
-    submitLabel = "Exporting...";
-  }
+  // The button names the stage that is running; the header says the rest.
+  const submitLabel = includingIncomplete
+    ? "Updating submissions…"
+    : "Exporting…";
 
   return (
     <Button

@@ -6,8 +6,10 @@ import {
   EXPORT_REQUEST_FILTER,
 } from "../../export-url";
 import {
+  completionStatusFromIsCompleteFilter,
   createFilterDraftFromListFilters,
   hasFilterRangeErrors,
+  includeTestSubmissionsFromGridFilter,
   pickDefaultExportFormatId,
   resolveDefaultLocale,
   showsCompletedAtFields,
@@ -27,6 +29,26 @@ describe("export-dialog-filters", () => {
     expect(draft.completionStatus).toBe(EXPORT_COMPLETION_STATUS.all);
     expect(draft.includeTestSubmissions).toBe(false);
     expect(draft.locale).toBe(DEFAULT_REPORTING_LOCALE);
+  });
+
+  it("maps the grid complete and test filters", () => {
+    expect(completionStatusFromIsCompleteFilter([])).toBe(
+      EXPORT_COMPLETION_STATUS.all,
+    );
+    expect(completionStatusFromIsCompleteFilter(["true"])).toBe(
+      EXPORT_COMPLETION_STATUS.completed,
+    );
+    expect(completionStatusFromIsCompleteFilter(["false"])).toBe(
+      EXPORT_COMPLETION_STATUS.incomplete,
+    );
+    expect(completionStatusFromIsCompleteFilter(["true", "false"])).toBe(
+      EXPORT_COMPLETION_STATUS.all,
+    );
+
+    expect(includeTestSubmissionsFromGridFilter([])).toBe(true);
+    expect(includeTestSubmissionsFromGridFilter(["false"])).toBe(false);
+    expect(includeTestSubmissionsFromGridFilter(["true"])).toBe(true);
+    expect(includeTestSubmissionsFromGridFilter(["true", "false"])).toBe(true);
   });
 
   it("defaults completion status for empty list filters", () => {
@@ -69,6 +91,8 @@ describe("export-dialog-filters", () => {
       completionStatus: EXPORT_COMPLETION_STATUS.completed,
       createdFrom: "2026-01-01",
       createdTo: undefined,
+      modifiedFrom: undefined,
+      modifiedTo: undefined,
       startedFrom: undefined,
       startedTo: undefined,
       completedFrom: undefined,

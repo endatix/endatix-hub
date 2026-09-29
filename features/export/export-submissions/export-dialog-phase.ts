@@ -43,7 +43,11 @@ export function showsPrepareOptions(
   phase: ExportDialogPhase,
   rebuildMode: boolean,
 ): boolean {
-  return rebuildMode && (phase === "needsPrepare" || phase === "error");
+  // Stays mounted, locked, while preparing so the panel does not jump.
+  return (
+    rebuildMode &&
+    (phase === "needsPrepare" || phase === "preparing" || phase === "error")
+  );
 }
 
 export function showsRebuildEntry(phase: ExportDialogPhase): boolean {
@@ -52,32 +56,43 @@ export function showsRebuildEntry(phase: ExportDialogPhase): boolean {
 
 export function getPhaseDescription(
   phase: ExportDialogPhase,
-  options: { rebuildMode?: boolean } = {},
+  options: { rebuildMode?: boolean; includingIncomplete?: boolean } = {},
 ): string {
   switch (phase) {
     case "checking":
-      return "Checking whether this form is ready for reporting export…";
+      return "Checking whether this form is ready for export…";
     case "needsPrepare":
       return options.rebuildMode
-        ? "Rebuild the reporting schema and flattened submissions, then return to export."
+        ? "Rebuild the reporting data for this form, then return to export."
         : "This form needs a one-time prepare step before you can export.";
     case "preparing":
-      return "Compiling the export schema and backfilling submissions. This can take a moment.";
+      return "Preparing reporting data. This can take a moment.";
     case "exporting":
-      return "Generating your file…";
+      return options.includingIncomplete
+        ? "Updating incomplete submissions, then generating your file…"
+        : "Generating your file…";
     case "success":
-      return "Your file has been downloaded.";
+      return "Your file is in your browser's downloads.";
     default:
-      return "Choose a format and filters. Date ranges are prefilled from the table when set. Press Enter to export with the current options.";
+      return "Choose a file format and which submissions to include.";
   }
 }
 
-export function formatPrepareSuccessSummary(summary: {
+export type PrepareOutcome = {
+  summary: string;
+  failed: number;
+};
+
+/** Counts the reader can act on; batches are bookkeeping and stay out. */
+export function formatPrepareOutcome(result: {
   processed: number;
   skipped: number;
   failed: number;
-  batches: number;
-}): string {
-  const batchLabel = summary.batches === 1 ? "batch" : "batches";
-  return `Schema compiled. Backfill finished: ${summary.processed} processed, ${summary.skipped} skipped, ${summary.failed} failed (${summary.batches} ${batchLabel}). You can export now.`;
+}): PrepareOutcome {
+  const counts = `${result.processed} processed, ${result.skipped} skipped, ${result.failed} failed.`;
+  const summary =
+    result.failed > 0
+      ? `${counts} Failed submissions are missing from the export until a rebuild succeeds.`
+      : `${counts} You can export now.`;
+  return { summary, failed: result.failed };
 }

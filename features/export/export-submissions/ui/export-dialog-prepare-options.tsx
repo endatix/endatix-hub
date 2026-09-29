@@ -15,7 +15,7 @@ export function ExportDialogPrepareOptions({
   disabled = false,
 }: Readonly<ExportDialogPrepareOptionsProps>) {
   return (
-    <div className="flex items-start gap-2 rounded-md border border-border/60 bg-muted/30 p-3">
+    <div className="flex items-start gap-2 rounded-lg bg-surface-container-low p-4">
       <Checkbox
         id="export-full-recompile"
         checked={fullRecompile}
@@ -24,11 +24,11 @@ export function ExportDialogPrepareOptions({
       />
       <div className="space-y-1">
         <Label htmlFor="export-full-recompile" className="font-normal">
-          Full recompile (replace schema + regenerate flattened data)
+          Full recompile
         </Label>
         <p className="text-xs text-muted-foreground">
-          Rebuilds the reporting schema from scratch and regenerates all
-          flattened submissions. Use after export or schema bug fixes.
+          Replaces the schema and reprocesses every submission. Use when answers
+          or columns are wrong in an export.
         </p>
       </div>
     </div>

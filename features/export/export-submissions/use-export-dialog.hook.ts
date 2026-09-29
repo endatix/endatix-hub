@@ -10,6 +10,10 @@ import {
 } from "react";
 import { useTrackEvent } from "@/features/analytics/posthog/client";
 import { prepareReportingExportAction } from "@/features/export/prepare-reporting-export";
+import {
+  catalogLocaleCodeLabel,
+  catalogLocaleEnglishName,
+} from "@/lib/localization";
 import { Result } from "@/lib/result";
 import {
   DEFAULT_REPORTING_LOCALE,
@@ -27,6 +31,7 @@ import {
   createFilterDraftFromListFilters,
   EMPTY_RANGE_ERRORS,
   hasFilterRangeErrors,
+  includesIncompleteSubmissions,
   pickDefaultExportFormatId,
   resolveDefaultLocale,
   showsCompletedAtFields,
@@ -38,7 +43,7 @@ import {
   type ExportFilterRangeErrors,
 } from "./export-dialog-filters";
 import {
-  formatPrepareSuccessSummary,
+  formatPrepareOutcome,
   getPhaseDescription,
   isBusyPhase,
   isControlsLocked,
@@ -47,6 +52,7 @@ import {
   showsPrepareOptions,
   showsRebuildEntry,
   type ExportDialogPhase,
+  type PrepareOutcome,
 } from "./export-dialog-phase";
 import { listFormReportingLocalesAction } from "./list-form-reporting-locales.action";
 import type {
@@ -89,7 +95,7 @@ export type UseExportDialogResult = {
   showExportSubmit: boolean;
   showGroupLabels: boolean;
   inlineError: string | null;
-  prepareSuccessSummary: string | null;
+  prepareOutcome: PrepareOutcome | null;
   fullRecompile: boolean;
   setFullRecompile: (fullRecompile: boolean) => void;
   exportFormatId: string;
@@ -111,7 +117,7 @@ export type UseExportDialogResult = {
   handleSubmit: (event: SubmitEvent<HTMLFormElement>) => Promise<void>;
   patchFilterDraft: (patch: Partial<ExportFilterDraft>) => void;
   setDateRange: (
-    key: "createdAt" | "startedAt" | "completedAt",
+    key: "createdAt" | "modifiedAt" | "startedAt" | "completedAt",
     side: "from" | "to",
     value: string,
   ) => void;
@@ -135,9 +141,9 @@ export function useExportDialog({
   const [phase, setPhase] = useState<ExportDialogPhase>("checking");
   const [includingIncomplete, setIncludingIncomplete] = useState(false);
   const [inlineError, setInlineError] = useState<string | null>(null);
-  const [prepareSuccessSummary, setPrepareSuccessSummary] = useState<
-    string | null
-  >(null);
+  const [prepareOutcome, setPrepareOutcome] = useState<PrepareOutcome | null>(
+    null,
+  );
   const [rebuildMode, setRebuildMode] = useState(false);
   const [fullRecompile, setFullRecompile] = useState(false);
   const [exportFormatId, setExportFormatId] = useState("");
@@ -175,7 +181,7 @@ export function useExportDialog({
     () =>
       formLocales.map((localeCode) => ({
         value: localeCode,
-        label: localeCode,
+        label: `${catalogLocaleEnglishName(localeCode)} ${catalogLocaleCodeLabel(localeCode)}`,
       })),
     [formLocales],
   );
@@ -243,7 +249,7 @@ export function useExportDialog({
   const handlePrepare = async () => {
     setPhase("preparing");
     setInlineError(null);
-    setPrepareSuccessSummary(null);
+    setPrepareOutcome(null);
 
     const result = await prepareReportingExportAction(formId, {
       fullRecompile,
@@ -254,12 +260,12 @@ export function useExportDialog({
       return;
     }
 
-    const successSummary = formatPrepareSuccessSummary(result.value);
+    const outcome = formatPrepareOutcome(result.value);
     setRebuildMode(false);
     setFullRecompile(false);
     const ready = await refreshReadiness();
     if (ready) {
-      setPrepareSuccessSummary(successSummary);
+      setPrepareOutcome(outcome);
     }
   };
 
@@ -281,7 +287,7 @@ export function useExportDialog({
     setIncludingIncomplete(false);
     previousExportFormatIdRef.current = null;
     setInlineError(null);
-    setPrepareSuccessSummary(null);
+    setPrepareOutcome(null);
     setRebuildMode(false);
     setFullRecompile(false);
 
@@ -366,7 +372,7 @@ export function useExportDialog({
   };
 
   const setDateRange = (
-    key: "createdAt" | "startedAt" | "completedAt",
+    key: "createdAt" | "modifiedAt" | "startedAt" | "completedAt",
     side: "from" | "to",
     value: string,
   ) => {
@@ -406,12 +412,11 @@ export function useExportDialog({
 
     const includesIncomplete =
       showRowFilters &&
-      (filterDraft.completionStatus === EXPORT_COMPLETION_STATUS.incomplete ||
-        filterDraft.completionStatus === EXPORT_COMPLETION_STATUS.all);
+      includesIncompleteSubmissions(filterDraft.completionStatus);
 
     setPhase("exporting");
     setInlineError(null);
-    setPrepareSuccessSummary(null);
+    setPrepareOutcome(null);
     setIncludingIncomplete(includesIncomplete);
 
     try {
@@ -464,7 +469,10 @@ export function useExportDialog({
   return {
     phase,
     includingIncomplete,
-    description: getPhaseDescription(phase, { rebuildMode }),
+    description: getPhaseDescription(phase, {
+      rebuildMode,
+      includingIncomplete,
+    }),
     busy,
     controlsLocked,
     rebuildMode,
@@ -477,7 +485,7 @@ export function useExportDialog({
     showExportSubmit: readinessPassed && !prepareCtaVisible && !rebuildMode,
     showGroupLabels: groups.length > 1,
     inlineError,
-    prepareSuccessSummary,
+    prepareOutcome,
     fullRecompile,
     setFullRecompile,
     exportFormatId,

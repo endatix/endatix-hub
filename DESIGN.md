@@ -134,7 +134,7 @@ Before building a control, check whether the vocabulary already exists here.
 | `components/common/locale-label.tsx` — `LocaleLabel`                     | A survey language as name + short code (`Spanish es`), anywhere                       |
 | `components/copy-to-clipboard.tsx` — `CopyToClipboard`                   | The copy affordance, `overlay` and `inline` layouts (below)                           |
 | `components/table` — `DataTableSurface` and friends                      | All list-table chrome (List tables, below)                                            |
-| `components/ui/responsive-panel.tsx` — `ResponsivePanel`                 | Desktop Sheet / Dialog ↔ mobile Drawer swap (Overlays, below)                         |
+| `components/ui/responsive-panel.tsx` — `ResponsivePanel`                 | Desktop Sheet / Dialog ↔ mobile Drawer swap; `dismissible` lock (Overlays, below)     |
 | `.grid-card-list` (`app/globals.css`)                                    | Peer-card grids without breakpoints (below)                                           |
 | `asset-storage/…/get-user-file/ui` — `SubmissionFileDialog`              | A submission file's preview + details dialog (§6 File answers)                        |
 | `components/public-status` — `PublicStatusPage`, `PublicStatusReference` | Every status page a non-Hub reader sees: respondents, link and export recipients (§6) |
@@ -167,6 +167,9 @@ decided by "Where UI for a shared concept lives" in `project-structure.md`.
 - **Alerts use the same mapping:** `info` for a consequence or a view choice, `warning` for a risk
   the operator is choosing, `success` for a completed write, `destructive` for a failure. Never
   `info` for a security-relevant choice.
+- **A batch that finished with some failures is `warning`, not `success`** — title says so
+  ("Ready, with failed submissions"), description gives the counts the reader can act on and what
+  the failures mean for them. Leave out bookkeeping (batch counts, internal step names).
 
 ### File Type Marks — `FileKindIcon`
 
@@ -202,7 +205,8 @@ carry an icon, under the same discipline.
 
 A link goes somewhere; a button does something. An inline destination (in prose, a
 `SummaryRow` value, a section `aside`) is a `TextLink` — never a hand-styled `<a>` or a `Button`
-dressed as text.
+dressed as text. The reverse holds too: a quiet action inside a panel ("Rebuild reporting data…")
+is a `ghost` button, never `variant="link"`.
 
 - **Internal links stay in the tab.** The reader keeps their place with Back (and
   `BackToTableButton` restores list state).
@@ -346,13 +350,20 @@ to `value` are `completed`; the `value` step itself is `active`. Reference:
 6. Widen a Dialog with an `sm:` prefix (`sm:max-w-4xl`) — `DialogContent` ships `sm:max-w-lg`
    and an unprefixed class loses to it.
 7. Every Hub dialog is shadcn — never a SurveyJS popup (§9).
+8. **Lock the panel while its own work runs:** `dismissible={false}` hides the close button and
+   ignores Escape, outside clicks and drag-to-close on every mode. Also guard `onOpenChange`, and
+   never leave a visible close control that silently does nothing.
+9. **A prefilled form opens on its primary action** (`onOpenAutoFocus` → focus the submit button)
+   so Enter runs it with the suggested choices. Fall back to Radix's default when the button is
+   absent or disabled.
 
 ### Buttons, inputs, chips
 
 - **Buttons:** primary (`primary` / `on_primary`, no shadow) for the one high-intent action;
   secondary (`secondary_container`); ghost (`primary` text) for low emphasis; `destructive` only
   to commit something final. A trailing ellipsis (`Reject…`) means "asks for more before it acts".
-  Spinners belong on action buttons, never list rows.
+  Spinners belong on action buttons, never list rows. A multi-stage action names the stage that
+  is running (`Updating submissions…` → `Exporting…`), in a short verb phrase.
 - **Inputs:** `surface_container_low` fill; on focus the ghost border goes from 15% to 100%
   `primary`. Labels `label-md` in `on_surface_variant`.
 - **Chips / tags:** `rounded-full` to distinguish from buttons; `tertiary_container` for neutral
@@ -377,6 +388,10 @@ Cross-cutting patterns first; recipes after them only add what is specific to th
 - **Show the source key as text, not in a tooltip.** On configuration pages the env var or setting
   name is a `font-mono text-xs text-on-surface-variant` sub-label under the human label — on
   every row, secrets included. A row of `CircleHelp` icons is noise standing in for design.
+- **Help is visible text, not a tooltip.** What a field means goes in one
+  `text-xs text-muted-foreground` line under its label or legend, wired with `aria-describedby`.
+  Siblings get one each or none (three date ranges → three lines). An `Info` icon on one label is
+  decoration.
 - **Literal values are monospace.** Nested detail rows indent `pl-4` in `text-xs
 text-muted-foreground` — no left-border rule.
 - **A value keeps its type everywhere** — a state is a `StatusBadge`, a language a `LocaleLabel`,
@@ -400,6 +415,12 @@ text-muted-foreground` — no left-border rule.
 - **Warn only about a reachable risk.** A warning that cannot come true teaches readers to ignore
   warnings.
 - **State the consequence once**, as one closing `Alert` — never a warning per field.
+- **A consequence of one choice sits under that control**, shown only while the choice is made
+  ("Incomplete submissions are updated first, so this export takes a little longer"). It is not
+  an `Alert` above the form; that is for the whole step.
+- **A section that cannot apply to the current choice keeps its masthead** and says why in its
+  description, with no body ("A codebook describes the form's questions, so submission filters
+  don't apply"). Disable single controls; drop a whole section's fields.
 - **Immutability belongs on the field it constrains** (a `Locked` badge + one line), not in the
   panel description.
 - **State lives in the section header.** An on/off section shows a `StatusBadge` in its `aside`;
@@ -430,10 +451,26 @@ never starts per row. Reference: `review-signup-request/ui/signup-visitor-sectio
   does not show.
 - **One request per opened record.** Cache the result on the client for a few minutes; changing
   step or reopening the same record must not ask again.
+- **A check before a form** (is this form ready to export?) skeletons the sections the form will
+  fill, mastheads kept, so the panel does not jump from a spinner line to a full form.
 - **Quiet states, never an error tone** — the record is fine, and `destructive` belongs to an
   action the reader just took. Source answered with nothing: one muted line. Source did not
   answer: one muted line, plus a link out when a URL is known. Not configured: omit the section.
   A missing fact inside a successful read is `—`.
+
+### Progress inside a panel
+
+Work the reader starts from a panel (prepare, export, retry) has **one voice per place**:
+
+- **Footer button** — spinner + the running stage's verb (Buttons, above).
+- **Header description** — one sentence for the step ("Updating incomplete submissions, then
+  generating your file…"), `aria-live="polite"` so the change is announced.
+- **Body** — no spinner row and no second progress line. Controls stay mounted and **locked**,
+  not hidden, so the reader can see what is being run and the panel does not jump. At most one
+  status `Alert` (§6 Review and decide rule 2 applies to every panel).
+- **Panel** — not dismissible until the work ends (Overlays rule 8).
+- **Outcome** — a `success` `Alert` naming what was produced ("CSV file downloaded"), footer
+  `Done`. Never a large centred icon plus a sentence that repeats the header.
 
 ### View choices vs edits
 
@@ -611,6 +648,21 @@ masthead and vocabulary, rows become controls. References:
   is an outcome, not a form: drop the track, lead with a `success` Alert naming what was created,
   and hand over the one artefact the user came for (e.g. the sign-in URL).
 
+**Configure and run** (export today; import, bulk actions tomorrow) — an overlay whose commit is
+an operation, not a saved record. Reference:
+`features/export/export-submissions/ui/export-dialog.tsx`.
+
+- `ResponsivePanel desktopType="complex"`: format + filters are 3+ fields.
+- **A `PanelSection` per question the reader answers** — what file (`File`: format, language),
+  which records (`Submissions`: completion, test, date ranges). Say where prefills came from in
+  the section description ("Prefilled from the filters on the submissions table").
+- Opens on the primary action (Overlays rule 9); runs as in Progress inside a panel.
+- **Readiness problems replace the form** with one `Alert` and the one step that fixes them
+  (`Prepare for export`); maintenance entry points (`Rebuild reporting data…`) are a ghost
+  button after the sections.
+- **Same noun as the list it came from** — the dialog exports _submissions_, so it never says
+  "responses".
+
 ### Recipe: file answers
 
 A SurveyJS `file` answer (`features/submissions/ui/answers/file-answer.tsx`) follows Files &
@@ -678,7 +730,13 @@ Before finishing UI work, check:
 - [ ] Values the reader came for wrap, never truncate; unset vs empty are distinct (§6).
 - [ ] Third-party evidence loads on open, never blocks the record, shows no personal data beyond
       the decision's need, and disappears when unconfigured (§6).
-- [ ] Disabled controls say why; warnings are reachable; consequences stated once (§6).
+- [ ] Disabled controls say why; warnings are reachable; consequences stated once, on the control
+      they follow from when there is one (§6).
+- [ ] Help text is a visible line under the label, for every sibling or none — no `Info`
+      tooltips (§6).
+- [ ] Running work: spinner + stage verb on the button, sentence in the header, nothing repeated
+      in the body; the panel is not dismissible until it ends (§5 Overlays, §6).
+- [ ] A batch with failures reports `warning` with counts, not `success` (§5).
 - [ ] No presigned URL outlives the view that signed it (§6).
 - [ ] Public pages use `PublicStatusPage` and have their own `error.tsx` (§6).
 - [ ] A new shared component has a row in the §5 index; a new decision is written back here as a

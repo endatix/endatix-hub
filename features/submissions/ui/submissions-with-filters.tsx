@@ -9,6 +9,10 @@ import {
   type SubmissionListUrlState,
 } from "@/features/submissions/list-submission-query";
 import { ExportSubmissionsButton } from "@/features/export";
+import {
+  completionStatusFromIsCompleteFilter,
+  includeTestSubmissionsFromGridFilter,
+} from "@/features/export/export-submissions/export-dialog-filters";
 import { SubmissionsFilterToolbar } from "@/features/submissions/ui/filters/submissions-filter-toolbar";
 import { NoSubmissionsEmptyState } from "@/features/submissions/ui/submissions-empty-state";
 import {
@@ -172,6 +176,9 @@ function SubmissionsContent({
       startedTo: dateFilters.startedAt.to,
       completedFrom: dateFilters.completedAt.from,
       completedTo: dateFilters.completedAt.to,
+      completionStatus: completionStatusFromIsCompleteFilter(isCompleteFilter),
+      includeTestSubmissions:
+        includeTestSubmissionsFromGridFilter(testSubmissionFilter),
     }),
     [
       dateFilters.createdAt.from,
@@ -182,6 +189,8 @@ function SubmissionsContent({
       dateFilters.startedAt.to,
       dateFilters.completedAt.from,
       dateFilters.completedAt.to,
+      isCompleteFilter,
+      testSubmissionFilter,
     ],
   );
 

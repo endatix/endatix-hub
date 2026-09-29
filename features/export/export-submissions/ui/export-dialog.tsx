@@ -56,7 +56,20 @@ export function ExportSubmissionsDialog({
       open={open}
       onOpenChange={dialog.handleOpenChange}
       desktopType="complex"
-      sheetContentClassName="flex h-full flex-col sm:max-w-md"
+      dismissible={!dialog.busy}
+      onOpenAutoFocus={(event) => {
+        const exportButton = dialog.exportButtonRef.current;
+        // Land on Export so Enter exports with the prefilled choices. It is
+        // absent for the prepare CTA and disabled while checking; let Radix
+        // focus the first control then.
+        if (!exportButton || exportButton.disabled) {
+          return;
+        }
+
+        event.preventDefault();
+        exportButton.focus();
+      }}
+      sheetContentClassName="flex h-full flex-col"
       drawerContentClassName="flex flex-col"
     >
       <form
@@ -65,7 +78,7 @@ export function ExportSubmissionsDialog({
       >
         <ResponsivePanelHeader className="gap-2">
           <ResponsivePanelTitle>Export submissions</ResponsivePanelTitle>
-          <ResponsivePanelDescription>
+          <ResponsivePanelDescription aria-live="polite">
             {dialog.description}
           </ResponsivePanelDescription>
         </ResponsivePanelHeader>
@@ -75,9 +88,8 @@ export function ExportSubmissionsDialog({
             phase={dialog.phase}
             rebuildMode={dialog.rebuildMode}
             inlineError={dialog.inlineError}
-            prepareSuccessSummary={dialog.prepareSuccessSummary}
-            completionStatus={dialog.filterDraft.completionStatus}
-            includingIncomplete={dialog.includingIncomplete}
+            prepareOutcome={dialog.prepareOutcome}
+            exportName={dialog.selectedOption?.label}
           />
 
           {dialog.showPrepareOptions ? (
@@ -116,11 +128,12 @@ export function ExportSubmissionsDialog({
 
           {dialog.showRebuildEntry ? (
             <div className="flex justify-start">
+              {/* An action, so a quiet ghost button — not a link. */}
               <Button
                 type="button"
-                variant="link"
+                variant="ghost"
                 size="sm"
-                className="h-auto px-0 text-xs text-muted-foreground"
+                className="-ml-3 text-muted-foreground"
                 onClick={dialog.enterRebuildMode}
                 disabled={dialog.busy}
               >
