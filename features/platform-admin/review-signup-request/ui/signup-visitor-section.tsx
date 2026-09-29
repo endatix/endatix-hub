@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, Globe } from "lucide-react";
-import { Suspense, use, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { PanelSection } from "@/components/common/panel-section";
 import { SummaryRow } from "@/components/common/summary-row";
 import { TextLink } from "@/components/common/text-link";
@@ -63,31 +63,35 @@ interface SignupVisitorSectionProps {
 
 /**
  * What PostHog recorded about the person who submitted the request. The lookup
- * suspends on its own, so the rest of the review sheet stays usable
- * (`DESIGN.md` §6 Evidence).
+ * starts after paint, so the rest of the review sheet stays usable
+ * (`DESIGN.md` §6 Evidence). A server action must not run during render:
+ * Next would update the router while this component is rendering.
  */
 export function SignupVisitorSection({
   visitor,
 }: Readonly<SignupVisitorSectionProps>) {
-  const lookup = loadVisitor(visitor);
+  const [result, setResult] = useState<SignupVisitorLookup | null>(null);
+  const { distinctId, sessionId } = visitor;
 
-  return (
-    <Suspense
-      fallback={
-        <VisitorFrame>
-          <VisitorSkeleton />
-        </VisitorFrame>
+  useEffect(() => {
+    let ignore = false;
+    loadVisitor({ distinctId, sessionId }).then((lookup) => {
+      if (!ignore) {
+        setResult(lookup);
       }
-    >
-      <VisitorResolved lookup={lookup} />
-    </Suspense>
-  );
-}
+    });
+    return () => {
+      ignore = true;
+    };
+  }, [distinctId, sessionId]);
 
-function VisitorResolved({
-  lookup,
-}: Readonly<{ lookup: Promise<SignupVisitorLookup> }>) {
-  const result = use(lookup);
+  if (!result) {
+    return (
+      <VisitorFrame>
+        <VisitorSkeleton />
+      </VisitorFrame>
+    );
+  }
 
   // Not configured, and nothing to link to: no section (§5 Links).
   if (result.status === "unavailable" && !result.profileHref) {

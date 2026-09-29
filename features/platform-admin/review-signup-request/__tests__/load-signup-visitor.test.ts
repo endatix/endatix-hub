@@ -38,26 +38,32 @@ describe("loadSignupVisitor", () => {
   it("summarises the person without IP, coordinates or postal code", async () => {
     // Arrange
     vi.mocked(getPostHogPersonByDistinctId).mockResolvedValue({
-      uuid: "p-1",
-      createdAt: "2026-09-29T05:56:26Z",
-      properties: {
-        $geoip_city_name: "Sofia",
-        $geoip_country_name: "Bulgaria",
-        $geoip_time_zone: "Europe/Sofia",
-        $geoip_latitude: 42.68,
-        $geoip_postal_code: "1000",
-        $ip: "203.0.113.7",
-        $browser: "Chrome",
-        $browser_version: 153,
-        $os: "Mac OS X",
-        $os_version: "10.15.7",
-        $device_type: "Desktop",
-        $initial_referring_domain: "$direct",
-        $initial_pathname: "/signin",
-        $initial_utm_source: "newsletter",
+      status: "ok",
+      value: {
+        uuid: "p-1",
+        createdAt: "2026-09-29T05:56:26Z",
+        properties: {
+          $geoip_city_name: "Sofia",
+          $geoip_country_name: "Bulgaria",
+          $geoip_time_zone: "Europe/Sofia",
+          $geoip_latitude: 42.68,
+          $geoip_postal_code: "1000",
+          $ip: "203.0.113.7",
+          $browser: "Chrome",
+          $browser_version: 153,
+          $os: "Mac OS X",
+          $os_version: "10.15.7",
+          $device_type: "Desktop",
+          $initial_referring_domain: "$direct",
+          $initial_pathname: "/signin",
+          $initial_utm_source: "newsletter",
+        },
       },
     });
-    vi.mocked(listPostHogPersonEvents).mockResolvedValue([]);
+    vi.mocked(listPostHogPersonEvents).mockResolvedValue({
+      status: "ok",
+      value: [],
+    });
 
     // Act
     const lookup = await loadSignupVisitor({
@@ -87,7 +93,9 @@ describe("loadSignupVisitor", () => {
 
   it("still links to PostHog when it has no person for the id", async () => {
     // Arrange
-    vi.mocked(getPostHogPersonByDistinctId).mockResolvedValue(null);
+    vi.mocked(getPostHogPersonByDistinctId).mockResolvedValue({
+      status: "absent",
+    });
 
     // Act & Assert
     await expect(
@@ -100,13 +108,22 @@ describe("loadSignupVisitor", () => {
 
   it("finds the person through the session when no distinct id was stored", async () => {
     // Arrange
-    vi.mocked(findPostHogPersonUuidBySessionId).mockResolvedValue("p-uuid");
-    vi.mocked(getPostHogPersonByUuid).mockResolvedValue({
-      uuid: "p-uuid",
-      createdAt: null,
-      properties: { $geoip_country_name: "Bulgaria" },
+    vi.mocked(findPostHogPersonUuidBySessionId).mockResolvedValue({
+      status: "ok",
+      value: "p-uuid",
     });
-    vi.mocked(listPostHogPersonEvents).mockResolvedValue([]);
+    vi.mocked(getPostHogPersonByUuid).mockResolvedValue({
+      status: "ok",
+      value: {
+        uuid: "p-uuid",
+        createdAt: null,
+        properties: { $geoip_country_name: "Bulgaria" },
+      },
+    });
+    vi.mocked(listPostHogPersonEvents).mockResolvedValue({
+      status: "ok",
+      value: [],
+    });
 
     // Act
     const lookup = await loadSignupVisitor({
@@ -125,9 +142,23 @@ describe("loadSignupVisitor", () => {
     );
   });
 
+  it("reports unavailable when the session query fails", async () => {
+    // Arrange
+    vi.mocked(findPostHogPersonUuidBySessionId).mockResolvedValue({
+      status: "unavailable",
+    });
+
+    // Act & Assert
+    await expect(
+      loadSignupVisitor({ distinctId: null, sessionId: "sess-1" }),
+    ).resolves.toEqual({ status: "unavailable", profileHref: null });
+  });
+
   it("reports unavailable when a session-only visitor is unknown", async () => {
     // Arrange
-    vi.mocked(findPostHogPersonUuidBySessionId).mockResolvedValue(null);
+    vi.mocked(findPostHogPersonUuidBySessionId).mockResolvedValue({
+      status: "absent",
+    });
 
     // Act & Assert
     await expect(
@@ -147,6 +178,49 @@ describe("loadSignupVisitor", () => {
       profileHref: null,
     });
     expect(getPostHogPersonByDistinctId).not.toHaveBeenCalled();
+  });
+
+  it("keeps a PostHog link when the person API fails", async () => {
+    // Arrange
+    vi.mocked(getPostHogPersonByDistinctId).mockResolvedValue({
+      status: "unavailable",
+    });
+
+    // Act & Assert
+    await expect(
+      loadSignupVisitor({ distinctId: "anon-1", sessionId: null }),
+    ).resolves.toEqual({
+      status: "unavailable",
+      profileHref: "https://us.posthog.com/project/42/persons/anon-1",
+    });
+  });
+
+  it("shows the person when the events query fails", async () => {
+    // Arrange
+    vi.mocked(getPostHogPersonByDistinctId).mockResolvedValue({
+      status: "ok",
+      value: {
+        uuid: "p-1",
+        createdAt: null,
+        properties: { $geoip_country_name: "Bulgaria" },
+      },
+    });
+    vi.mocked(listPostHogPersonEvents).mockResolvedValue({
+      status: "unavailable",
+    });
+
+    // Act
+    const lookup = await loadSignupVisitor({
+      distinctId: "anon-1",
+      sessionId: null,
+    });
+
+    // Assert
+    expect(lookup.status).toBe("found");
+    expect(lookup.status === "found" && lookup.visitor.timeline).toBeNull();
+    expect(lookup.status === "found" && lookup.visitor.location).toBe(
+      "Bulgaria",
+    );
   });
 });
 

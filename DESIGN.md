@@ -291,8 +291,18 @@ grid-template-columns: repeat(auto-fill, minmax(min(var(--grid-card-min), 100%),
 
 ### Timeline — `components/timeline`
 
-Any "what happened, in what order?" or "how far along is this?" — an activity history, an audit
-log, a provisioning track. Composition API adapted from ReUI's Timeline (MIT): `Timeline`
+For **one subject, in order**: what already happened to it, or how far a process has got.
+
+- **Use it for** the history or activity of one record or person (a visitor's steps up to a
+  signup, an audit trail, a submission's life), and for the progress of a process the reader is
+  not driving (provisioning, a job, a delivery).
+- **Not for** a set of facts (`SummaryRow`s — order is not the point), a state (`StatusBadge` or
+  `Alert`), the reader's place in a form (`PanelSteps` — those are sections still to fill, not
+  events that happened), or many records (a table).
+- Reach for it when the reader would otherwise scan a log to answer "what came first, and where
+  did it end?".
+
+Composition API adapted from ReUI's Timeline (MIT): `Timeline`
 (`value`, `orientation`, `size`) → `TimelineItem step={n}` → `TimelineHeader` (`TimelineDate`,
 `TimelineTitle`) + `TimelineIndicator` + `TimelineSeparator`, optional `TimelineContent`. Steps up
 to `value` are `completed`; the `value` step itself is `active`. Reference:
@@ -404,6 +414,25 @@ text-muted-foreground` — no left-border rule.
 - **Show the outcome in place; don't toast and close** when the result is a record the user needs
   to see (a toast disappears; the updated record is the proof).
 
+### Loading inside a panel
+
+A `ResponsivePanel` opens on the record the reader already has. Any further read — a third party,
+a slow detail — loads **inside the section that shows it**, while the header, the other sections
+and the footer stay usable (Sheet and Drawer alike). The list behind never waits on it, and it
+never starts per row. Reference: `review-signup-request/ui/signup-visitor-section.tsx`.
+
+- **Start the request after paint** — from an effect or an event, never during render (a server
+  action called while rendering updates the router mid-render).
+- **Skeleton the section, not the panel.** Keep the `PanelSection` masthead; replace only its body
+  with `Skeleton` bars shaped like the rows to come, mark it `aria-busy`, and add an `sr-only` line
+  naming the wait ("Loading visitor details").
+- **One request per opened record.** Cache the result on the client for a few minutes; changing
+  step or reopening the same record must not ask again.
+- **Quiet states, never an error tone** — the record is fine, and `destructive` belongs to an
+  action the reader just took. Source answered with nothing: one muted line. Source did not
+  answer: one muted line, plus a link out when a URL is known. Not configured: omit the section.
+  A missing fact inside a successful read is `—`.
+
 ### View choices vs edits
 
 A control that changes how a record is _read_ (label language on a submission) must never be
@@ -461,12 +490,8 @@ Reference: `features/platform-admin/review-signup-request/ui/signup-visitor-sect
   own page has them for the rare case that does.
 - **Say which moment a value describes.** First-touch values are labelled as such ("First came
   from", "First page"); unlabelled values are the latest.
-- **Never block the record on a third party.** Load when the record is opened, not per list row,
-  in its own `Suspense` boundary with a skeleton, while the rest of the panel stays usable. Cache
-  the answer briefly on the client so switching steps does not ask again.
-- **Honest states, never an error tone** — the record itself is fine. Found: rows and timeline.
-  The tool has no data: one muted line ("can take a few minutes to arrive") plus the link. The
-  tool did not answer: one muted line plus the link. Not configured: no section at all.
+- **Never block the record on a third party** — load it as in Loading inside a panel, including
+  its quiet states. "No data yet" says when to expect it ("can take a few minutes to arrive").
 - **Credentials stay on the server.** Read keys (read-only scopes) never reach the client; the
   client receives finished URLs and ids that already appear in the tool's own URLs.
 
@@ -644,7 +669,10 @@ Before finishing UI work, check:
 - [ ] Overlays follow the table in §5, never stack, and have a title and description.
 - [ ] Inline links are `TextLink`; external ones use `external`; nothing links to an unconfigured
       or unconfirmed target (§5).
-- [ ] Sequences of steps use `Timeline`: oldest first, one active step, words not event names (§5).
+- [ ] Sequences of steps use `Timeline` (one subject, oldest first, one active step, words not
+      event names) — never for a bag of facts, a status, or a form's own steps (§5).
+- [ ] A further read inside a panel skeletons only its section, starts after paint, and is asked
+      once per opened record (§6).
 - [ ] Values the reader came for wrap, never truncate; unset vs empty are distinct (§6).
 - [ ] Third-party evidence loads on open, never blocks the record, shows no personal data beyond
       the decision's need, and disappears when unconfigured (§6).

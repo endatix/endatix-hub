@@ -5,8 +5,8 @@ import "server-only";
  * show what PostHog recorded about someone. Needs a personal API key scoped to
  * `person:read` and `query:read`; the project token (`phc_…`) cannot read.
  *
- * Every call is best effort: missing config, a timeout or a non-2xx answer returns
- * `null`, and callers render nothing rather than an error.
+ * Every call is best effort: missing config, a timeout or a non-2xx answer is
+ * `unavailable` (404 is `absent`). Callers show a quiet fallback, not an error.
  */
 
 const REQUEST_TIMEOUT_MS = 5000;
@@ -30,6 +30,12 @@ export interface PostHogEvent {
   pathname: string | null;
 }
 
+/** `absent` is a real empty answer. `unavailable` is a failed or timed-out call. */
+export type PostHogRead<T> =
+  | { status: "ok"; value: T }
+  | { status: "absent" }
+  | { status: "unavailable" };
+
 export function readPostHogReadApiConfig(): PostHogReadApiConfig | null {
   const host = process.env.POSTHOG_UI_HOST?.trim().replace(/\/$/, "");
   const projectId = process.env.POSTHOG_PROJECT_ID?.trim();
@@ -48,7 +54,7 @@ export function postHogPersonUrl(
 export async function getPostHogPersonByDistinctId(
   config: PostHogReadApiConfig,
   distinctId: string,
-): Promise<PostHogPerson | null> {
+): Promise<PostHogRead<PostHogPerson>> {
   const body = await request<{
     results?: {
       uuid?: string;
@@ -56,43 +62,57 @@ export async function getPostHogPersonByDistinctId(
       properties?: Record<string, unknown>;
     }[];
   }>(config, `/persons/?distinct_id=${encodeURIComponent(distinctId)}`);
-  const person = body?.results?.[0];
+  if (body.status !== "ok") {
+    return body;
+  }
+
+  const person = body.value.results?.[0];
   if (!person?.uuid) {
-    return null;
+    return { status: "absent" };
   }
 
   return {
-    uuid: person.uuid,
-    createdAt: person.created_at ?? null,
-    properties: person.properties ?? {},
+    status: "ok",
+    value: {
+      uuid: person.uuid,
+      createdAt: person.created_at ?? null,
+      properties: person.properties ?? {},
+    },
   };
 }
 
 export async function getPostHogPersonByUuid(
   config: PostHogReadApiConfig,
   personUuid: string,
-): Promise<PostHogPerson | null> {
-  const person = await request<{
+): Promise<PostHogRead<PostHogPerson>> {
+  const body = await request<{
     uuid?: string;
     created_at?: string;
     properties?: Record<string, unknown>;
   }>(config, `/persons/${encodeURIComponent(personUuid)}/`);
-  if (!person?.uuid) {
-    return null;
+  if (body.status !== "ok") {
+    return body;
+  }
+
+  if (!body.value.uuid) {
+    return { status: "absent" };
   }
 
   return {
-    uuid: person.uuid,
-    createdAt: person.created_at ?? null,
-    properties: person.properties ?? {},
+    status: "ok",
+    value: {
+      uuid: body.value.uuid,
+      createdAt: body.value.created_at ?? null,
+      properties: body.value.properties ?? {},
+    },
   };
 }
 
-/** The person behind any event in a session; `null` when PostHog has none. */
+/** The person behind any event in a session. */
 export async function findPostHogPersonUuidBySessionId(
   config: PostHogReadApiConfig,
   sessionId: string,
-): Promise<string | null> {
+): Promise<PostHogRead<string>> {
   const body = await request<{ results?: unknown[][] }>(config, "/query/", {
     method: "POST",
     body: JSON.stringify({
@@ -104,8 +124,14 @@ export async function findPostHogPersonUuidBySessionId(
       },
     }),
   });
-  const uuid = body?.results?.[0]?.[0];
-  return typeof uuid === "string" && uuid ? uuid : null;
+  if (body.status !== "ok") {
+    return body;
+  }
+
+  const uuid = body.value.results?.[0]?.[0];
+  return typeof uuid === "string" && uuid
+    ? { status: "ok", value: uuid }
+    : { status: "absent" };
 }
 
 /**
@@ -116,7 +142,7 @@ export async function listPostHogPersonEvents(
   config: PostHogReadApiConfig,
   personUuid: string,
   limit: number,
-): Promise<PostHogEvent[] | null> {
+): Promise<PostHogRead<PostHogEvent[]>> {
   const body = await request<{ results?: unknown[][] }>(config, "/query/", {
     method: "POST",
     body: JSON.stringify({
@@ -133,29 +159,32 @@ export async function listPostHogPersonEvents(
       },
     }),
   });
-  if (!body?.results) {
-    return null;
+  if (body.status !== "ok" || !body.value.results) {
+    return { status: "unavailable" };
   }
 
-  return body.results.flatMap((row) => {
-    const [event, timestamp, pathname] = row;
-    return typeof event === "string" && typeof timestamp === "string"
-      ? [
-          {
-            event,
-            timestamp,
-            pathname: typeof pathname === "string" ? pathname : null,
-          },
-        ]
-      : [];
-  });
+  return {
+    status: "ok",
+    value: body.value.results.flatMap((row) => {
+      const [event, timestamp, pathname] = row;
+      return typeof event === "string" && typeof timestamp === "string"
+        ? [
+            {
+              event,
+              timestamp,
+              pathname: typeof pathname === "string" ? pathname : null,
+            },
+          ]
+        : [];
+    }),
+  };
 }
 
 async function request<T>(
   config: PostHogReadApiConfig,
   path: string,
   init?: RequestInit,
-): Promise<T | null> {
+): Promise<PostHogRead<T>> {
   try {
     const response = await fetch(
       `${config.host}/api/projects/${encodeURIComponent(config.projectId)}${path}`,
@@ -169,8 +198,14 @@ async function request<T>(
         signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       },
     );
-    return response.ok ? ((await response.json()) as T) : null;
+    if (response.status === 404) {
+      return { status: "absent" };
+    }
+    if (!response.ok) {
+      return { status: "unavailable" };
+    }
+    return { status: "ok", value: (await response.json()) as T };
   } catch {
-    return null;
+    return { status: "unavailable" };
   }
 }

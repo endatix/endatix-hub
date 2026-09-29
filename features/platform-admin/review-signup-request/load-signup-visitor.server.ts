@@ -19,6 +19,16 @@ const EVENTS_TO_READ = 50;
 const TIMELINE_STEPS = 15;
 const SIGNUP_EVENT = "signup_requested";
 
+function unavailable(
+  config: NonNullable<ReturnType<typeof readPostHogReadApiConfig>>,
+  distinctId: string | null,
+): SignupVisitorLookup {
+  return {
+    status: "unavailable",
+    profileHref: distinctId ? postHogPersonUrl(config, distinctId) : null,
+  };
+}
+
 export async function loadSignupVisitor(
   ref: SignupVisitorRef,
 ): Promise<SignupVisitorLookup> {
@@ -29,14 +39,26 @@ export async function loadSignupVisitor(
 
   let person = ref.distinctId
     ? await getPostHogPersonByDistinctId(config, ref.distinctId)
-    : null;
-  if (!person && ref.sessionId) {
-    const uuid = await findPostHogPersonUuidBySessionId(config, ref.sessionId);
-    person = uuid ? await getPostHogPersonByUuid(config, uuid) : null;
+    : ({ status: "absent" } as const);
+  if (person.status === "unavailable") {
+    return unavailable(config, ref.distinctId);
   }
 
-  if (!person) {
-    // Without a distinct id there is no person URL to fall back to.
+  if (person.status === "absent" && ref.sessionId) {
+    const uuid = await findPostHogPersonUuidBySessionId(config, ref.sessionId);
+    if (uuid.status === "unavailable") {
+      return unavailable(config, ref.distinctId);
+    }
+    person =
+      uuid.status === "ok"
+        ? await getPostHogPersonByUuid(config, uuid.value)
+        : { status: "absent" };
+    if (person.status === "unavailable") {
+      return unavailable(config, ref.distinctId);
+    }
+  }
+
+  if (person.status !== "ok") {
     return ref.distinctId
       ? {
           status: "missing",
@@ -45,19 +67,22 @@ export async function loadSignupVisitor(
       : { status: "unavailable", profileHref: null };
   }
 
-  const profileHref = postHogPersonUrl(config, ref.distinctId ?? person.uuid);
+  const profileHref = postHogPersonUrl(
+    config,
+    ref.distinctId ?? person.value.uuid,
+  );
   const events = await listPostHogPersonEvents(
     config,
-    person.uuid,
+    person.value.uuid,
     EVENTS_TO_READ,
   );
-  const props = person.properties;
+  const props = person.value.properties;
 
   return {
     status: "found",
     visitor: {
       profileHref,
-      firstSeenAt: person.createdAt,
+      firstSeenAt: person.value.createdAt,
       location: joinPresent(
         [latest(props, "geoip_city_name"), latest(props, "geoip_country_name")],
         ", ",
@@ -79,7 +104,7 @@ export async function loadSignupVisitor(
         " / ",
       ),
       landingPage: text(props, "$initial_pathname"),
-      timeline: events ? toTimeline(events) : null,
+      timeline: events.status === "ok" ? toTimeline(events.value) : null,
     },
   };
 }

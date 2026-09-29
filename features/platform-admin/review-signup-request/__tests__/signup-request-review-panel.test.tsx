@@ -110,6 +110,53 @@ describe("SignupRequestReviewPanel", () => {
     );
   });
 
+  it("hides the visitor section when PostHog is not configured", async () => {
+    // Arrange
+    vi.mocked(getSignupVisitorAction).mockResolvedValue({
+      status: "unavailable",
+      profileHref: null,
+    });
+
+    // Act
+    renderPanel(request({ visitor: { distinctId: "anon", sessionId: null } }));
+
+    // Assert
+    await waitFor(() => expect(getSignupVisitorAction).toHaveBeenCalled());
+    await waitFor(() => expect(screen.queryByText("Visitor")).toBeNull());
+    expect(screen.getByRole("button", { name: "Approve…" })).toBeTruthy();
+  });
+
+  it("says PostHog did not answer when the read API fails", async () => {
+    // Arrange
+    vi.mocked(getSignupVisitorAction).mockResolvedValue({
+      status: "unavailable",
+      profileHref: "https://us.posthog.com/project/1/persons/anon",
+    });
+
+    // Act
+    renderPanel(request({ visitor: { distinctId: "anon", sessionId: null } }));
+
+    // Assert
+    await waitFor(() =>
+      expect(screen.getByText(/did not answer/)).toBeTruthy(),
+    );
+    expect(
+      screen.getByRole("link", { name: /PostHog/ }).getAttribute("href"),
+    ).toBe("https://us.posthog.com/project/1/persons/anon");
+  });
+
+  it("hides the visitor section when the action throws", async () => {
+    // Arrange
+    vi.mocked(getSignupVisitorAction).mockRejectedValue(new Error("network"));
+
+    // Act
+    renderPanel(request({ visitor: { distinctId: "anon", sessionId: null } }));
+
+    // Assert
+    await waitFor(() => expect(screen.queryByText("Visitor")).toBeNull());
+    expect(screen.getByRole("button", { name: "Approve…" })).toBeTruthy();
+  });
+
   it("shows what PostHog recorded when the request has a visitor", async () => {
     // Arrange
     vi.mocked(getSignupVisitorAction).mockResolvedValue({
