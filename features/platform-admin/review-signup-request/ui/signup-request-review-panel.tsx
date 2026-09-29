@@ -22,6 +22,7 @@ import { formatPreciseDateTime } from "@/lib/date-utils";
 import { ErrorType, Result, type ResultType } from "@/lib/result";
 import {
   approveSignupRequestAction,
+  refreshSignupRequestAction,
   rejectSignupRequestAction,
   retrySignupProvisioningAction,
 } from "../review-signup-request.actions";
@@ -150,6 +151,21 @@ function ReviewContent({
     run(() => rejectSignupRequestAction(current.id, reason), "rejected");
   const retry = () =>
     run(() => retrySignupProvisioningAction(current.id), "retried");
+  const checkAgain = () => {
+    setFailure(null);
+    startTransition(async () => {
+      const result = await refreshSignupRequestAction(
+        current.id,
+        current.email,
+      );
+      if (Result.isError(result)) {
+        setFailure(result.message);
+        return;
+      }
+      setCurrent(result.value);
+      router.refresh();
+    });
+  };
 
   if (step === "approve") {
     return (
@@ -229,7 +245,7 @@ function ReviewContent({
             <Button
               variant="outline"
               disabled={isPending}
-              onClick={() => startTransition(() => router.refresh())}
+              onClick={checkAgain}
             >
               {isPending ? "Checking…" : "Check again"}
             </Button>

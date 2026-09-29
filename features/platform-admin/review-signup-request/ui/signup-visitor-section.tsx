@@ -255,8 +255,8 @@ function VisitorSkeleton() {
       <span className="sr-only">Loading visitor details from PostHog</span>
       {["w-32", "w-40", "w-24", "w-36"].map((width) => (
         <div key={width} className="flex items-center justify-between gap-4">
-          <Skeleton className="h-4 w-20" />
-          <Skeleton className={`h-4 ${width}`} />
+          <Skeleton className="h-4 w-20 bg-foreground/10" />
+          <Skeleton className={`h-4 bg-foreground/10 ${width}`} />
         </div>
       ))}
     </div>

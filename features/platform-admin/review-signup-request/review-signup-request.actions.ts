@@ -5,6 +5,7 @@ import { saasManagementFlag } from "@/lib/feature-flags/flags";
 import { Result, type ResultType } from "@/lib/result";
 import { toResult } from "@/lib/result/map-api-result-to-result";
 import { revalidatePath } from "next/cache";
+import { listSignupRequests } from "../list-signup-requests/list-signup-requests.server";
 import { requirePlatformAdmin } from "../server";
 import { loadSignupVisitor } from "./load-signup-visitor.server";
 import { toSignupRequestView } from "./signup-request-view.server";
@@ -141,6 +142,42 @@ export async function retrySignupProvisioningAction(
   }
 
   return result;
+}
+
+/**
+ * Re-read one signup after a decision. The pending queue no longer contains an
+ * approved row, so refreshing that list cannot update the open panel.
+ */
+export async function refreshSignupRequestAction(
+  signupRequestId: string,
+  email: string,
+): Promise<ResultType<SignupRequestView>> {
+  const guard = await guardSignupManagement();
+  if (guard) {
+    return guard;
+  }
+
+  const id = signupRequestId.trim();
+  const trimmedEmail = email.trim();
+  if (!id || !trimmedEmail) {
+    return Result.error<SignupRequestView>("Signup request is required.");
+  }
+
+  const session = await requirePlatformAdmin();
+  const page = await listSignupRequests(session, {
+    status: "all",
+    search: trimmedEmail,
+    pageSize: 20,
+  });
+  if (Result.isError(page)) {
+    return page;
+  }
+
+  revalidateSignupInbox();
+  const match = page.value.items.find((item) => item.id === id);
+  return match
+    ? Result.success(match)
+    : Result.error<SignupRequestView>("This request is no longer available.");
 }
 
 /**

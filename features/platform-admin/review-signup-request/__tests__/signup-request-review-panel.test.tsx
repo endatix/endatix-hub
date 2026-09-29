@@ -5,6 +5,7 @@ import { Result } from "@/lib/result";
 import {
   approveSignupRequestAction,
   getSignupVisitorAction,
+  refreshSignupRequestAction,
   rejectSignupRequestAction,
   retrySignupProvisioningAction,
 } from "../review-signup-request.actions";
@@ -21,6 +22,7 @@ vi.mock("../review-signup-request.actions", () => ({
   approveSignupRequestAction: vi.fn(),
   rejectSignupRequestAction: vi.fn(),
   retrySignupProvisioningAction: vi.fn(),
+  refreshSignupRequestAction: vi.fn(),
   getSignupVisitorAction: vi.fn(),
 }));
 
@@ -294,6 +296,52 @@ describe("SignupRequestReviewPanel", () => {
     expect(
       screen.getByLabelText("Workspace name").getAttribute("aria-invalid"),
     ).toBe("true");
+  });
+
+  it("replaces a pending setup with the refreshed request", async () => {
+    // Arrange
+    vi.mocked(approveSignupRequestAction).mockResolvedValue(
+      Result.success(
+        request({
+          status: "approved",
+          provisioningStatus: "pending",
+          tenantName: "Acme",
+          modifiedAt: "2026-01-16T10:00:00.000Z",
+        }),
+      ),
+    );
+    vi.mocked(refreshSignupRequestAction).mockResolvedValue(
+      Result.success(
+        request({
+          status: "approved",
+          provisioningStatus: "succeeded",
+          tenantName: "Acme",
+          approvedTenantId: "900",
+          modifiedAt: "2026-01-16T10:05:00.000Z",
+        }),
+      ),
+    );
+    renderPanel(request());
+    fireEvent.click(screen.getByRole("button", { name: "Approve…" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Approve and create workspace" }),
+    );
+    await waitFor(() =>
+      expect(screen.getByText(/still being created/)).toBeTruthy(),
+    );
+
+    // Act
+    fireEvent.click(screen.getByRole("button", { name: "Check again" }));
+
+    // Assert
+    await waitFor(() =>
+      expect(screen.getByText("Workspace ready")).toBeTruthy(),
+    );
+    expect(refreshSignupRequestAction).toHaveBeenCalledWith(
+      "1",
+      "prospect@example.com",
+    );
+    expect(screen.queryByRole("button", { name: "Check again" })).toBeNull();
   });
 
   it("offers a retry for a failed setup and names an unknown decider by id", () => {
