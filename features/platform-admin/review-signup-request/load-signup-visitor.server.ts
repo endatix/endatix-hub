@@ -8,6 +8,9 @@ import {
   postHogPersonUrl,
   readPostHogReadApiConfig,
   type PostHogEvent,
+  type PostHogPerson,
+  type PostHogRead,
+  type PostHogReadApiConfig,
 } from "@/features/analytics/posthog/server/posthog-read-api.server";
 import type {
   SignupVisitorEvent,
@@ -20,7 +23,7 @@ const TIMELINE_STEPS = 15;
 const SIGNUP_EVENT = "signup_requested";
 
 function unavailable(
-  config: NonNullable<ReturnType<typeof readPostHogReadApiConfig>>,
+  config: PostHogReadApiConfig,
   distinctId: string | null,
 ): SignupVisitorLookup {
   return {
@@ -37,54 +40,87 @@ export async function loadSignupVisitor(
     return { status: "unavailable", profileHref: null };
   }
 
-  let person = ref.distinctId
+  const resolved = await resolvePerson(config, ref);
+  if (resolved.outcome === "lookup") {
+    return resolved.lookup;
+  }
+
+  const events = await listPostHogPersonEvents(
+    config,
+    resolved.person.uuid,
+    EVENTS_TO_READ,
+  );
+  return foundVisitor(config, ref, resolved.person, events);
+}
+
+type PersonResolution =
+  | { outcome: "person"; person: PostHogPerson }
+  | { outcome: "lookup"; lookup: SignupVisitorLookup };
+
+/** Distinct id first. A session id is the fallback when that person is absent. */
+async function resolvePerson(
+  config: PostHogReadApiConfig,
+  ref: SignupVisitorRef,
+): Promise<PersonResolution> {
+  let person: PostHogRead<PostHogPerson> = ref.distinctId
     ? await getPostHogPersonByDistinctId(config, ref.distinctId)
-    : ({ status: "absent" } as const);
+    : { status: "absent" };
   if (person.status === "unavailable") {
-    return unavailable(config, ref.distinctId);
+    return { outcome: "lookup", lookup: unavailable(config, ref.distinctId) };
   }
 
   if (person.status === "absent" && ref.sessionId) {
-    const uuid = await findPostHogPersonUuidBySessionId(config, ref.sessionId);
-    if (uuid.status === "unavailable") {
-      return unavailable(config, ref.distinctId);
-    }
-    person =
-      uuid.status === "ok"
-        ? await getPostHogPersonByUuid(config, uuid.value)
-        : { status: "absent" };
+    person = await personFromSession(config, ref.sessionId);
     if (person.status === "unavailable") {
-      return unavailable(config, ref.distinctId);
+      return { outcome: "lookup", lookup: unavailable(config, ref.distinctId) };
     }
   }
 
-  if (person.status !== "ok") {
-    return ref.distinctId
+  if (person.status === "ok") {
+    return { outcome: "person", person: person.value };
+  }
+
+  return {
+    outcome: "lookup",
+    lookup: ref.distinctId
       ? {
           status: "missing",
           profileHref: postHogPersonUrl(config, { distinctId: ref.distinctId }),
         }
-      : { status: "unavailable", profileHref: null };
+      : { status: "unavailable", profileHref: null },
+  };
+}
+
+async function personFromSession(
+  config: PostHogReadApiConfig,
+  sessionId: string,
+): Promise<PostHogRead<PostHogPerson>> {
+  const uuid = await findPostHogPersonUuidBySessionId(config, sessionId);
+  if (uuid.status === "unavailable") {
+    return { status: "unavailable" };
+  }
+  if (uuid.status === "absent") {
+    return { status: "absent" };
   }
 
-  const profileHref = postHogPersonUrl(
-    config,
-    ref.distinctId
-      ? { distinctId: ref.distinctId }
-      : { uuid: person.value.uuid },
-  );
-  const events = await listPostHogPersonEvents(
-    config,
-    person.value.uuid,
-    EVENTS_TO_READ,
-  );
-  const props = person.value.properties;
+  return getPostHogPersonByUuid(config, uuid.value);
+}
 
+function foundVisitor(
+  config: PostHogReadApiConfig,
+  ref: SignupVisitorRef,
+  person: PostHogPerson,
+  events: PostHogRead<PostHogEvent[]>,
+): SignupVisitorLookup {
+  const props = person.properties;
   return {
     status: "found",
     visitor: {
-      profileHref,
-      firstSeenAt: person.value.createdAt,
+      profileHref: postHogPersonUrl(
+        config,
+        ref.distinctId ? { distinctId: ref.distinctId } : { uuid: person.uuid },
+      ),
+      firstSeenAt: person.createdAt,
       location: joinPresent(
         [latest(props, "geoip_city_name"), latest(props, "geoip_country_name")],
         ", ",
