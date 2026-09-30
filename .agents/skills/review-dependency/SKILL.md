@@ -106,6 +106,23 @@ Act on the verdict:
 
 If there is a `CLEANUP` line, run the `overrides` mode for those names after the merge.
 
+### Dependabot PR description
+
+When the PR author is Dependabot and the verdict is `MERGE`, keep Dependabot's description and append a
+bullet list of the advisories the script reported as fixed. Match each GHSA to an open Dependabot alert
+in `endatix/endatix-hub` when one exists; otherwise link the GitHub advisory. Take the score from CVSS v4
+when it is set, otherwise CVSS v3, and show the severity word next to it. A bullet is one line:
+
+```markdown
+### Advisories this PR closes
+
+- resolves [short title](https://github.com/endatix/endatix-hub/security/dependabot/<n>) — `CVE-…` — CVSS 6.9 (medium)
+```
+
+Use a list, not a table. Do not drop Dependabot's release notes or command block. If that heading is
+already present, replace only that section. Skip the edit when the verdict is not `MERGE`, or when the
+script fixed no advisory.
+
 ## Mode: `advisory` / `pkg` — choose the fix for a CVE or package
 
 `advisory` resolves the id through the GitHub advisory database (`gh api /advisories/...`).
