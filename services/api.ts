@@ -453,7 +453,9 @@ export const getSubmission = async (
   );
 
   if (!response.ok) {
-    throw new Error("Failed to fetch submission");
+    const error = new Error("Failed to fetch submission");
+    (error as Error & { status: number }).status = response.status;
+    throw error;
   }
 
   return response.json();

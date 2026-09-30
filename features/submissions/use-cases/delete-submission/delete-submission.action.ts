@@ -29,7 +29,6 @@ export async function deleteSubmissionAction(
   }
 
   revalidatePath(`/(main)/forms/${formId}/submissions`);
-  revalidatePath(`/(main)/forms/${formId}/submissions/${submissionId}`);
   revalidatePath(`/(main)/forms/${formId}`);
 
   return Result.success(submissionId);

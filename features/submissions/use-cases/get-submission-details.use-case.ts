@@ -20,7 +20,15 @@ export const getSubmissionDetailsUseCase = async ({
     const errorMessage = `Failed to load submission details: ${
       error instanceof Error ? error.message : "Unknown error"
     }`;
-    console.error(errorMessage);
+    const status =
+      error instanceof Error && "status" in error
+        ? (error as Error & { status?: number }).status
+        : undefined;
+    // A missing submission is the not-found page, including right after delete.
+    // console.error here becomes a Next.js dev overlay.
+    if (status !== 404) {
+      console.error(errorMessage);
+    }
 
     return Result.error(errorMessage);
   }

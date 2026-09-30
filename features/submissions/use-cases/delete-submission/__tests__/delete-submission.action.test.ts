@@ -37,7 +37,7 @@ describe("deleteSubmissionAction", () => {
     mockRequireHubAccess.mockResolvedValue(undefined);
   });
 
-  it("deletes via API and revalidates list, details, and form paths", async () => {
+  it("deletes via API and revalidates the list and form, not the deleted details page", async () => {
     mockDelete.mockResolvedValueOnce(ApiResult.success("sub-1"));
 
     const result = await deleteSubmissionAction("form-1", "sub-1");
@@ -47,7 +47,7 @@ describe("deleteSubmissionAction", () => {
     expect(mockRevalidatePath).toHaveBeenCalledWith(
       "/(main)/forms/form-1/submissions",
     );
-    expect(mockRevalidatePath).toHaveBeenCalledWith(
+    expect(mockRevalidatePath).not.toHaveBeenCalledWith(
       "/(main)/forms/form-1/submissions/sub-1",
     );
     expect(mockRevalidatePath).toHaveBeenCalledWith("/(main)/forms/form-1");
