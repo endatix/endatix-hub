@@ -29,6 +29,7 @@ import PlatformAdmins from "./platform-admins/platform-admins";
 import PublicTenants from "./public-tenants/public-tenants";
 import SignupRequests from "./signup-requests/signup-requests";
 import { Reporting } from "./reporting/reporting";
+import { Audience } from "./audience/audience";
 
 /** Resolved Endatix API origin via {@link requireApiUrl}. */
 export const getEdatixApiUrl = (): string => requireApiUrl();
@@ -77,6 +78,7 @@ export class EndatixApi {
   private _forms?: Forms;
   private _submissions?: Submissions;
   private _reporting?: Reporting;
+  private _audience?: Audience;
   private _agents?: Agents;
   private _auth?: Auth;
   private _account?: Account;
@@ -169,6 +171,11 @@ export class EndatixApi {
   get reporting(): Reporting {
     this._reporting ??= new Reporting(this);
     return this._reporting;
+  }
+
+  get audience(): Audience {
+    this._audience ??= new Audience(this);
+    return this._audience;
   }
 
   /**
