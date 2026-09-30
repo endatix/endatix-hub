@@ -39,8 +39,7 @@ is a standalone unit that must render on **every** surface — see §11.
 Creator chrome flags stay on the editor host's `ICreatorOptions`. The gear
 that opens Creator's own theme (light/dark, accent, scaling) is
 `showCreatorThemeSettings`, not `showThemeTab` (the survey Theme tab). Do not
-add a survey feature to hide that gear, and do not delete
-`applyEndatixCreatorTheme` — that paints Hub light/dark onto Creator chrome.
+add a survey feature to hide that gear.
 **Note:** revise this once Creator Presets are added with preference over presets as they can be injected per role or tenant - https://surveyjs.io/survey-creator/examples/basic-ui-preset/reactjs
 
 **Not in scope here:** API-persisted custom questions (`createCustomQuestionAction`),
