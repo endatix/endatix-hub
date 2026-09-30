@@ -189,7 +189,7 @@ function VisitorDetails({ visitor }: Readonly<{ visitor: SignupVisitor }>) {
         />
       </dl>
 
-      <div className="grid gap-2">
+      <div className="grid min-w-0 gap-2">
         <h4 className="text-sm text-muted-foreground">Recent activity</h4>
         {visitor.timeline === null && (
           <p className="text-sm text-muted-foreground">
