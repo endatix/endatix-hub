@@ -168,7 +168,7 @@ importers:
         version: 0.4.6(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       posthog-js:
         specifier: ^1.407.3
-        version: 1.407.3(preact-render-to-string@6.5.11)
+        version: 1.407.3(preact-render-to-string@6.5.11(preact@10.29.7))
       posthog-node:
         specifier: 5.45.0
         version: 5.45.0
@@ -4770,8 +4770,8 @@ packages:
   hermes-parser@0.25.1:
     resolution: {integrity: sha512-6pEjquH3rqaI6cYAXYPcz9MS4rY6R4ngRgrgfDshRptUZIc3lw0MCIJIGDj9++mfySOuPTHB4nrSW99BCvOPIA==}
 
-  hono@4.12.32:
-    resolution: {integrity: sha512-XcuyW9qE2kJn07PkecMOBd5Vq/hMy7mmGw+idz1yblbg9N17ijJODrvPkn7/dwL3Kulj8LcRJ69DLOWf91dRUg==}
+  hono@4.13.11:
+    resolution: {integrity: sha512-/SMX/RQNJn7oNmFwH6DtwDqcrzZU2otm1FD6OJe2cWF6cfy/F8hq0XVBv7xW3FTJshRQwuBnXHDq2kNsdZnshg==}
     engines: {node: '>=16.9.0'}
 
   hsl-to-hex@1.0.0:
@@ -8212,9 +8212,9 @@ snapshots:
       protobufjs: 8.7.1
       yargs: 17.7.3
 
-  '@hono/node-server@2.0.12(hono@4.12.32)':
+  '@hono/node-server@2.0.12(hono@4.13.11)':
     dependencies:
-      hono: 4.12.32
+      hono: 4.13.11
 
   '@hookform/resolvers@3.10.0(react-hook-form@7.62.0(react@19.2.8))':
     dependencies:
@@ -8399,7 +8399,7 @@ snapshots:
 
   '@modelcontextprotocol/sdk@1.30.0(supports-color@7.2.0)(zod@3.25.76)':
     dependencies:
-      '@hono/node-server': 2.0.12(hono@4.12.32)
+      '@hono/node-server': 2.0.12(hono@4.13.11)
       ajv: 8.20.0
       ajv-formats: 3.0.1(ajv@8.20.0)
       content-type: 1.0.5
@@ -8409,7 +8409,7 @@ snapshots:
       eventsource-parser: 3.1.0
       express: 5.2.1(supports-color@7.2.0)
       express-rate-limit: 8.6.1(express@5.2.1(supports-color@7.2.0))(supports-color@7.2.0)
-      hono: 4.12.32
+      hono: 4.13.11
       jose: 6.1.3
       json-schema-typed: 8.0.2
       pkce-challenge: 5.0.1
@@ -11928,7 +11928,7 @@ snapshots:
     dependencies:
       hermes-estree: 0.25.1
 
-  hono@4.12.32: {}
+  hono@4.13.11: {}
 
   hsl-to-hex@1.0.0:
     dependencies:
@@ -12834,7 +12834,7 @@ snapshots:
       picocolors: 1.1.1
       source-map-js: 1.2.1
 
-  posthog-js@1.407.3(preact-render-to-string@6.5.11):
+  posthog-js@1.407.3(preact-render-to-string@6.5.11(preact@10.29.7)):
     dependencies:
       '@posthog/browser-common': 0.2.3
       '@posthog/core': 1.45.1
