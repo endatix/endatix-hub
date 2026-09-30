@@ -59,4 +59,28 @@ describe("Timeline", () => {
     expect(screen.getByText("Created").tagName).toBe("P");
     expect(screen.getAllByText("Jan 15")[0].tagName).toBe("TIME");
   });
+
+  it("wraps long unbroken titles instead of overflowing the panel", () => {
+    // Arrange
+    const longPath =
+      "Viewed /forms/0040085011495605536/submissions/00553310610821145616?pageNo=1";
+
+    // Act
+    render(
+      <Timeline value={1} aria-label="Activity">
+        <TimelineItem step={1}>
+          <TimelineHeader>
+            <TimelineTitle>{longPath}</TimelineTitle>
+          </TimelineHeader>
+          <TimelineIndicator />
+        </TimelineItem>
+      </Timeline>,
+    );
+
+    // Assert — wrap-anywhere + min-w-0 keep path min-content from blowing the sheet
+    const title = screen.getByText(longPath);
+    expect(title.className).toContain("wrap-anywhere");
+    expect(title.className).toContain("min-w-0");
+    expect(screen.getByRole("listitem").className).toContain("min-w-0");
+  });
 });

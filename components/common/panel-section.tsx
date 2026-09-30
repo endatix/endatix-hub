@@ -24,7 +24,7 @@ export function PanelSection({
   return (
     <section
       className={cn(
-        "grid content-start gap-4 rounded-lg bg-surface-container-low p-4",
+        "grid min-w-0 content-start gap-4 rounded-lg bg-surface-container-low p-4",
         className,
       )}
     >

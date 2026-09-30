@@ -103,7 +103,7 @@ export function TimelineItem({
   return (
     <li
       className={cn(
-        "group/timeline-item relative flex flex-1 flex-col gap-0.5 group-data-[orientation=horizontal]/timeline:mt-8 group-data-[orientation=horizontal]/timeline:not-last:pe-8 group-data-[orientation=vertical]/timeline:ms-8 group-data-[orientation=vertical]/timeline:not-last:pb-(--timeline-gap) has-[+[data-completed]]:**:data-[slot=timeline-separator]:bg-primary",
+        "group/timeline-item relative flex min-w-0 flex-1 flex-col gap-0.5 group-data-[orientation=horizontal]/timeline:mt-8 group-data-[orientation=horizontal]/timeline:not-last:pe-8 group-data-[orientation=vertical]/timeline:ms-8 group-data-[orientation=vertical]/timeline:not-last:pb-(--timeline-gap) has-[+[data-completed]]:**:data-[slot=timeline-separator]:bg-primary",
         className,
       )}
       data-active={step === activeStep || undefined}
@@ -165,7 +165,9 @@ export function TimelineTitle({
   return (
     <Comp
       className={cn(
-        "text-sm font-medium break-words text-foreground",
+        // wrap-anywhere: unbroken paths must not set min-content (h1059), but
+        // spaces still win — break-all would split words like "Viewed".
+        "min-w-0 text-sm font-medium wrap-anywhere text-foreground",
         className,
       )}
       data-slot="timeline-title"
