@@ -42,31 +42,34 @@ describe("getSubmissionStartedAt", () => {
   });
 });
 
-describe("getElapsedTimeString compact format", () => {
-  it("formats duration as human shorthand", () => {
+describe("getElapsedTimeString", () => {
+  it("returns a dash when a bound is missing or the end is before the start", () => {
     // Arrange
     const startedAt = new Date("2026-01-01T10:00:00.000Z");
-    const completedAt = new Date("2026-01-01T10:01:41.000Z");
 
-    // Act
-    const duration = getElapsedTimeString(startedAt, completedAt, "compact");
-
-    // Assert
-    expect(duration).toBe("1m 41s");
+    // Act & Assert
+    expect(getElapsedTimeString(undefined, startedAt, "compact")).toBe("-");
+    expect(getElapsedTimeString(startedAt, undefined, "long")).toBe("-");
+    expect(
+      getElapsedTimeString(
+        startedAt,
+        new Date("2026-01-01T09:00:00.000Z"),
+        "compact",
+      ),
+    ).toBe("-");
   });
 
-  it("omits zero units and keeps seconds when only seconds elapsed", () => {
-    // Arrange
-    const startedAt = new Date("2026-01-01T10:00:00.000Z");
-    const completedAt = new Date("2026-01-01T12:03:00.000Z");
-    const zeroDurationEnd = new Date("2026-01-01T10:00:00.000Z");
+  it("rolls a multi-day completion into days", () => {
+    // Arrange — 50 days and 1 hour, plus minutes the table must not show
+    const startedAt = new Date("2026-01-01T00:00:00.000Z");
+    const completedAt = new Date("2026-02-20T01:09:52.000Z");
 
-    // Act
-    const withHours = getElapsedTimeString(startedAt, completedAt, "compact");
-    const zero = getElapsedTimeString(startedAt, zeroDurationEnd, "compact");
-
-    // Assert
-    expect(withHours).toBe("2h 3m");
-    expect(zero).toBe("0s");
+    // Act & Assert
+    expect(getElapsedTimeString(startedAt, completedAt, "compact")).toBe(
+      "50d 1h",
+    );
+    expect(getElapsedTimeString(startedAt, completedAt, "long")).toBe(
+      "50 days 1 hour",
+    );
   });
 });

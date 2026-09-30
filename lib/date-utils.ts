@@ -1,6 +1,7 @@
 /**
- * Shared Hub date helpers for list/grid surfaces (format + calendar-day validation).
- * Detail views, PDF, and exports should keep using `getFormattedDate` in `lib/utils.ts`.
+ * Shared Hub date helpers: calendar-day validation, list datetime formatters,
+ * and duration (`formatDuration`). Absolute detail/PDF timestamps stay on
+ * `getFormattedDate` in `lib/utils.ts`.
  */
 
 export const RELATIVE_DATE_CUTOFF_DAYS = 14;
@@ -155,4 +156,105 @@ export function formatRelativeOrCompactDateTime(
   }
 
   return formatCompactDateTime(dateValue, fallbackMessage);
+}
+
+export type DurationFormat = "short" | "long" | "compact";
+
+const SECOND = "second";
+const MINUTE = "minute";
+const HOUR = "hour";
+const DAY = "day";
+
+/**
+ * Formats a non-negative duration.
+ * `compact` is for dense grids (`50d 1h`). `long` is prose (`50 days 1 hour`).
+ * `short` is a clock (`HH:MM:SS`) with total hours, not rolled into days.
+ * Smaller units drop as the span grows: seconds under an hour, minutes under a day.
+ * Returns "-" for a negative or non-finite value.
+ */
+export function formatDuration(
+  durationMs: number,
+  format: DurationFormat = "compact",
+): string {
+  if (!Number.isFinite(durationMs) || durationMs < 0) {
+    return "-";
+  }
+
+  const totalSeconds = Math.floor(durationMs / MS_PER_SECOND);
+  const days = Math.floor(totalSeconds / (MS_PER_DAY / MS_PER_SECOND));
+
+  const hours = Math.floor(
+    (totalSeconds % (MS_PER_DAY / MS_PER_SECOND)) /
+      (MS_PER_HOUR / MS_PER_SECOND),
+  );
+
+  const minutes = Math.floor(
+    (totalSeconds % (MS_PER_HOUR / MS_PER_SECOND)) /
+      (MS_PER_MINUTE / MS_PER_SECOND),
+  );
+
+  const seconds = totalSeconds % (MS_PER_MINUTE / MS_PER_SECOND);
+
+  if (format === "short") {
+    const totalHours = Math.floor(totalSeconds / (MS_PER_HOUR / MS_PER_SECOND));
+    return [totalHours, minutes, seconds]
+      .map((part) => part.toString().padStart(2, "0"))
+      .join(":");
+  }
+
+  if (days > 0) {
+    return format === "compact"
+      ? joinCompact([
+          [days, "d"],
+          [hours, "h"],
+        ])
+      : joinLong([
+          [days, DAY],
+          [hours, HOUR],
+        ]);
+  }
+
+  if (hours > 0) {
+    return format === "compact"
+      ? joinCompact([
+          [hours, "h"],
+          [minutes, "m"],
+        ])
+      : joinLong([
+          [hours, HOUR],
+          [minutes, MINUTE],
+        ]);
+  }
+
+  if (minutes > 0) {
+    return format === "compact"
+      ? joinCompact([
+          [minutes, "m"],
+          [seconds, "s"],
+        ])
+      : joinLong([
+          [minutes, MINUTE],
+          [seconds, SECOND],
+        ]);
+  }
+
+  return format === "compact" ? `${seconds}s` : joinLong([[seconds, SECOND]]);
+}
+
+function joinCompact(parts: Array<[number, string]>): string {
+  const shown = parts.filter(([value]) => value > 0);
+  if (shown.length === 0) {
+    return `0${parts[parts.length - 1][1]}`;
+  }
+
+  return shown.map(([value, unit]) => `${value}${unit}`).join(" ");
+}
+
+function joinLong(parts: Array<[number, string]>): string {
+  const shown = parts.filter(([value]) => value > 0);
+  const units = shown.length === 0 ? [parts[parts.length - 1]] : shown;
+
+  return units
+    .map(([value, unit]) => `${value} ${unit}${value === 1 ? "" : "s"}`)
+    .join(" ");
 }

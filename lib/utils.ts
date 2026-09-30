@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { DateInput } from "./date-utils";
+import { DateInput, formatDuration, type DurationFormat } from "./date-utils";
 
 /**
  * Merges class names using clsx and tailwind-merge. Comes with ShadCN/UI
@@ -53,60 +53,26 @@ export function parseDate(date: Date): Date | null {
   }
 }
 
-type ElapsedTimeFormat = "short" | "long" | "compact";
-
 /**
- * Calculates and formats the elapsed time between two dates
- * @param startedAt - The start date/time
- * @param completedAt - The end date/time
- * @param format - `short` (HH:MM:SS), `long` (prose), or `compact` (`1m 41s`) for dense grids
- * @returns Formatted elapsed time, or "-" if invalid input
+ * Formats the elapsed time between two dates via `formatDuration`.
+ * Returns "-" when either date is missing or the end is before the start.
  */
 export function getElapsedTimeString(
   startedAt?: Date,
   completedAt?: Date,
-  format: ElapsedTimeFormat = "short",
+  format: DurationFormat = "short",
 ): string {
-  if (!startedAt || !completedAt) return "-";
-  if (completedAt < startedAt) return "-";
-
-  const diff = new Date(completedAt).getTime() - new Date(startedAt).getTime();
-  const hours = Math.floor(diff / (1000 * 60 * 60));
-  const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-  const secs = Math.floor((diff % (1000 * 60)) / 1000);
-
-  if (format === "short") {
-    const formattedHours = hours.toString().padStart(2, "0");
-    const formattedMins = mins.toString().padStart(2, "0");
-    const formattedSecs = secs.toString().padStart(2, "0");
-
-    return `${formattedHours}:${formattedMins}:${formattedSecs}`;
+  if (!startedAt || !completedAt) {
+    return "-";
   }
 
-  if (format === "compact") {
-    const parts: string[] = [];
-    if (hours > 0) {
-      parts.push(`${hours}h`);
-    }
-    if (mins > 0) {
-      parts.push(`${mins}m`);
-    }
-    if (secs > 0 || parts.length === 0) {
-      parts.push(`${secs}s`);
-    }
-
-    return parts.join(" ");
+  const start = new Date(startedAt).getTime();
+  const end = new Date(completedAt).getTime();
+  if (Number.isNaN(start) || Number.isNaN(end) || end < start) {
+    return "-";
   }
 
-  const formattedHours = hours.toString().padStart(1, "0");
-  const formattedMins = mins.toString().padStart(1, "0");
-  const formattedSecs = secs.toString().padStart(1, "0");
-
-  if (hours == 0) {
-    return `${formattedMins} minutes ${formattedSecs} seconds`;
-  }
-
-  return `${formattedHours} hours ${formattedMins} minutes`;
+  return formatDuration(end - start, format);
 }
 
 /**
