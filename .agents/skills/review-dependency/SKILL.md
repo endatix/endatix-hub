@@ -27,6 +27,30 @@ re-resolving it; `--include-pins` also tests exact pins such as `@types/react`.
 
 Exit code: `0` nothing to do / safe to merge, `1` action needed, `2` usage or tool error (read stderr).
 
+### Evidence: how a reviewer follows the diagnosis
+
+Every command the script runs is numbered as it runs (`[#7] $ pnpm update qs …   # scratch: REFRESH for qs 6.16.0, steps applied`),
+and every conclusion cites the commands behind it (`- proof: … -> HOLDS  [evidence #6-#8]`). The run
+ends with an **Evidence log** table — step, workspace, command, exit code, duration, and the fact the
+script took from the output (advisory counts by severity, `pnpm why` parents, the advisory's ranges, and
+for installs the versions read back from the lockfile, e.g. `-> lockfile: qs 6.16.0`). Workspaces name
+the scratch copy a command ran in (`checkout copy`, `PR head`, `PR merge-base`,
+`without override flatted`, `… lockfile regenerated from nothing`); `hub checkout` means read-only use
+of the real repo (`gh`, `git fetch`). Read-only lookups (`pnpm view`, `git show`) are counted under the
+table and listed in the JSON report.
+
+Structured output, for PR comments, CI artifacts or another agent:
+
+- `--json` — the JSON report on stdout; the human output moves to stderr.
+- `--json=<file>` — human output as usual, JSON report written to `<file>`.
+
+The report (`schemaVersion: 1`) holds `verdict`, `exitCode`, `environment` (pnpm, node, checkout SHA,
+uncommitted manifest changes), `result` (mode-specific: `plans` with parents, steps and proofs;
+`overrides` with resolved/below/reappearing per entry; or the PR `checks`, `versionChanges`,
+`advisories` and `findings`), `claims` (each conclusion with its evidence ids) and `commands` (every
+command, lookups included, with exit, duration, result and an output tail). The script also prints the
+evidence log when a tool fails, so the last row shows the command that broke.
+
 Prerequisites: `gh auth status` succeeds, network access to the npm registry, and `pnpm --version`
 matches the pin in `Dockerfile` (the `pr` mode prints a MISMATCH line otherwise — results may then
 differ from CI).
@@ -152,6 +176,8 @@ Keep it to the evidence the script printed:
    keeps nanoid 3.3.19 — no override needed").
 2. The commands or edits you applied (or recommend), copied from the "Apply in hub/" section.
 3. What you verified and the result, and anything escalated to a human (MAJOR, NO_PATCH, UNPROVEN, REVIEW).
+4. The evidence: cite the rows behind each conclusion (for example "proof holds, evidence #6-#8"),
+   and paste the Evidence log table when the answer goes into a PR comment or review.
 
 ## Limits
 

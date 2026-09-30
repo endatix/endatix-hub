@@ -50,6 +50,10 @@ node scripts/review-dependency.mjs pkg nanoid
 node scripts/review-dependency.mjs overrides [name...] [--fresh] [--include-pins]
 ```
 
+Each run ends with an evidence log: numbered commands with exit code, duration and the fact taken
+from their output, cited by every conclusion. Add `--json` (report on stdout) or `--json=<file>` for a
+machine-readable report.
+
 ## Standalone Asset Copy Script
 
 ### `copy-standalone.mjs`
