@@ -243,8 +243,9 @@ export function formatDuration(
 
 function joinCompact(parts: Array<[number, string]>): string {
   const shown = parts.filter(([value]) => value > 0);
+  const last = parts.at(-1);
   if (shown.length === 0) {
-    return `0${parts[parts.length - 1][1]}`;
+    return `0${last?.[1] ?? "s"}`;
   }
 
   return shown.map(([value, unit]) => `${value}${unit}`).join(" ");
@@ -252,7 +253,9 @@ function joinCompact(parts: Array<[number, string]>): string {
 
 function joinLong(parts: Array<[number, string]>): string {
   const shown = parts.filter(([value]) => value > 0);
-  const units = shown.length === 0 ? [parts[parts.length - 1]] : shown;
+  const last = parts.at(-1);
+  const zeroSeconds: [number, string] = [0, SECOND];
+  const units = shown.length === 0 ? [last ?? zeroSeconds] : shown;
 
   return units
     .map(([value, unit]) => `${value} ${unit}${value === 1 ? "" : "s"}`)
