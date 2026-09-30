@@ -34,6 +34,22 @@ The script will:
 2. Run `pnpm up` for all survey packages
 
 
+## Dependency Review Script
+
+### `review-dependency.mjs`
+
+Validates a Dependabot/lockfile PR, picks and proves the smallest fix for a CVE/GHSA, inspects a
+package, or tests each `pnpm-workspace.yaml` override for removal. Runs on a scratch copy — it never
+modifies the checkout — and ends with a `VERDICT:` line. Procedure and verdict meanings:
+[`.agents/skills/review-dependency/SKILL.md`](../.agents/skills/review-dependency/SKILL.md).
+
+```bash
+node scripts/review-dependency.mjs pr 1034
+node scripts/review-dependency.mjs advisory GHSA-2v37-7h3g-55p8
+node scripts/review-dependency.mjs pkg nanoid
+node scripts/review-dependency.mjs overrides [name...] [--fresh] [--include-pins]
+```
+
 ## Standalone Asset Copy Script
 
 ### `copy-standalone.mjs`
