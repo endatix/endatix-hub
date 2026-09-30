@@ -104,7 +104,15 @@ Act on the verdict:
 | `NEEDS_FIX` | Regenerate loses the fix or advisories were introduced: run `advisory <GHSA>` for each and apply. |
 | `BLOCKED`   | CI would fail. Ask Dependabot to rebase (`@dependabot rebase`) or fix the lockfile on the branch. |
 
-If there is a `CLEANUP` line, run the `overrides` mode for those names after the merge.
+If there is a `CLEANUP` line, the PR changes a package named in `pnpm-workspace.yaml` `overrides`. Run `overrides` for those names before merge. Read the entry and its note. Act on the result:
+
+| Result | On a Dependabot PR |
+| --- | --- |
+| `REMOVABLE` | Delete the entry and its note from `pnpm-workspace.yaml` on the PR branch, run `pnpm install` so the lockfile `overrides:` block matches, and push that commit. Re-run `pr <n>`; the `CLEANUP` line must be gone. |
+| `NEEDED` / `NEEDED+SCOPE` | Leave the entry. Say why, and apply a rescope only when the script prints one. |
+| `REVIEW` / `PIN` | Leave it. The note or the pin is a human decision. |
+
+Do this on the PR branch, not by editing the local checkout of another branch. A Dependabot PR that still carries a removable override is not ready to merge.
 
 ### Dependabot PR description
 
