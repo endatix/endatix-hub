@@ -73,8 +73,6 @@ overrides:
   vite: ^7.3.5
   # fast-uri 3.1.2 bump to adress CVE-2026-6321 & CVE-2026-6322. Remove on next shadcn bump
   fast-uri: ^3.1.2
-  # postcss Bump to 8.5.10 to address CVE-2026-41305. Remove with removal of next-auth if possible
-  postcss: ^8.5.18
   # ip-address bump to 10.1.1 is to fix CVE-2026-42338. Remove on the next shadcn bump
   ip-address: ^10.1.1
   # protobufjs bump to 8.7.1 to address multiple otel related vulnerabilities. Remove on next otel bump

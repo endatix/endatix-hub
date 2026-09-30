@@ -116,7 +116,7 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-testing-library": "^7.16.2",
     "jsdom": "^29.1.1",
-    "postcss": "^8.5.18",
+    "postcss": "^8.5.23",
     "prettier-plugin-tailwindcss": "^0.7.2",
     "sass": "^1.83.1",
     "shadcn": "^4.15.0",
