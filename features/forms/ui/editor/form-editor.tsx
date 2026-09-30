@@ -147,6 +147,7 @@ const defaultCreatorOptions: ICreatorOptions = {
   showDesignerTab: true,
   showLogicTab: true,
   showThemeTab: true,
+  showCreatorThemeSettings: false,
   themeForPreview: "Default",
 };
 
@@ -485,6 +486,7 @@ function FormEditor({
         const creatorOptions = {
           ...(options || defaultCreatorOptions),
           showSidebar: initialPropertyGridVisible,
+          showCreatorThemeSettings: false,
         };
         initAnyAnsweredGlobals();
         initQuestionLoopsGlobals();

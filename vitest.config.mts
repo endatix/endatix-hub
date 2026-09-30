@@ -11,11 +11,17 @@ export default defineConfig({
   resolve: {
     alias: {
       "server-only": path.resolve(__dirname, "test/mocks/server-only.ts"),
+      "next/server": path.resolve(__dirname, "node_modules/next/server.js"),
     },
   },
   test: {
     globals: true,
     environment: "jsdom",
+    server: {
+      deps: {
+        inline: ["next-auth"],
+      },
+    },
     exclude: [...configDefaults.exclude, "e2e/**"],
     coverage: {
       include: [

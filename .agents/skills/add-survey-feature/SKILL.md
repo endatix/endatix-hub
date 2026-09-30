@@ -25,16 +25,22 @@ survey features. Wire through `ExtensionModule` + `core-registry.ts` (or
 
 ## 1. Decide scope
 
-| Kind | Where the code lives | `type` | Registry | Example |
-|------|----------------------|--------|----------|---------|
-| Behavior on existing question types (tagbox, dropdown, …) | `lib/survey-features/{feature}/` | `feature` | `core-registry.ts` | blind-search-tagbox |
-| Always-on expression / formatting helper | `lib/survey-features/{feature}/` | `feature` + `static` | `core-registry.ts` | expression-formatting |
-| **Code-owned question type** | **`lib/questions/{question}/`** | `question` | `core-registry.ts` (adapter) | audio-recorder, drag-categorize |
-| Self-hosted / JSON ComponentCollection question | `hub/extensions/questions/` | `question` | `user-extensions.ts` | hello-world, country |
+| Kind                                                      | Where the code lives             | `type`               | Registry                     | Example                         |
+| --------------------------------------------------------- | -------------------------------- | -------------------- | ---------------------------- | ------------------------------- |
+| Behavior on existing question types (tagbox, dropdown, …) | `lib/survey-features/{feature}/` | `feature`            | `core-registry.ts`           | blind-search-tagbox             |
+| Always-on expression / formatting helper                  | `lib/survey-features/{feature}/` | `feature` + `static` | `core-registry.ts`           | expression-formatting           |
+| **Code-owned question type**                              | **`lib/questions/{question}/`**  | `question`           | `core-registry.ts` (adapter) | audio-recorder, drag-categorize |
+| Self-hosted / JSON ComponentCollection question           | `hub/extensions/questions/`      | `question`           | `user-extensions.ts`         | hello-world, country            |
 
 **A new question type is not a survey feature.** `survey-features/` is for behavior
 layered onto question types SurveyJS already ships. A question type you own in code
 is a standalone unit that must render on **every** surface — see §11.
+
+Creator chrome flags stay on the editor host's `ICreatorOptions`. The gear
+that opens Creator's own theme (light/dark, accent, scaling) is
+`showCreatorThemeSettings`, not `showThemeTab` (the survey Theme tab). Do not
+add a survey feature to hide that gear.
+**Note:** revise this once Creator Presets are added with preference over presets as they can be injected per role or tenant - https://surveyjs.io/survey-creator/examples/basic-ui-preset/reactjs
 
 **Not in scope here:** API-persisted custom questions (`createCustomQuestionAction`),
 `hub/customizations/` (deprecated — see h709), or vertical slices under
@@ -107,11 +113,11 @@ const myFeatureExtension: ExtensionModule = {
 
 ### Hook responsibilities
 
-| Hook | When | Examples |
-|------|------|----------|
-| `onInit` | Once per selected extension | `Serializer.addProperty`, `registerChoicesLazyLoadGuard` |
-| `onCreatorReady` | Each `SurveyCreator` instance | `onSurveyInstanceCreated` → bind preview surveys |
-| `onModelReady` | Each `Model` instance | `onChoicesSearch`, `onValueChanged` |
+| Hook             | When                          | Examples                                                 |
+| ---------------- | ----------------------------- | -------------------------------------------------------- |
+| `onInit`         | Once per selected extension   | `Serializer.addProperty`, `registerChoicesLazyLoadGuard` |
+| `onCreatorReady` | Each `SurveyCreator` instance | `onSurveyInstanceCreated` → bind preview surveys         |
+| `onModelReady`   | Each `Model` instance         | `onChoicesSearch`, `onValueChanged`                      |
 
 Read runtime context via `deps.getRuntimeState()` inside hooks when you need
 `formId`, JWT, etc. Do not attach Endatix state onto SurveyJS model objects.
@@ -170,10 +176,10 @@ export const MY_FEATURE_EXTENSION_ID = 'my-feature';
 
 ### `loading`: static vs dynamic
 
-| Mode | Use when |
-|------|----------|
-| **`static`** | Core platform features (blind-search, data-lists, expression-formatting). Eager module import; bindings no-op unless the question uses the feature. |
-| **`dynamic`** | Large optional add-ons, tenant-specific bundles, or rare question types. Use `load: () => import('…').then(m => m.default)`. |
+| Mode          | Use when                                                                                                                                            |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`static`**  | Core platform features (blind-search, data-lists, expression-formatting). Eager module import; bindings no-op unless the question uses the feature. |
+| **`dynamic`** | Large optional add-ons, tenant-specific bundles, or rare question types. Use `load: () => import('…').then(m => m.default)`.                        |
 
 ### `shouldLoad` — when to use (and when not to)
 
@@ -183,10 +189,10 @@ SurveyJS loads question types eagerly for the same reason — extension `onInit`
 handler registration are nanoseconds compared to parsing multi-MB form JSON on every
 respondent page load.
 
-| Approach | Cost | Use when |
-|----------|------|----------|
-| **No `shouldLoad` (eager)** | Static module + cheap per-event guards | Core features on common question types (tagbox, dropdown) |
-| **`usesQuestionType` only** | Regex scan on JSON string — still O(form size) | Large optional bundles tied to a question type |
+| Approach                    | Cost                                           | Use when                                                  |
+| --------------------------- | ---------------------------------------------- | --------------------------------------------------------- |
+| **No `shouldLoad` (eager)** | Static module + cheap per-event guards         | Core features on common question types (tagbox, dropdown) |
+| **`usesQuestionType` only** | Regex scan on JSON string — still O(form size) | Large optional bundles tied to a question type            |
 
 Do not traverse or fully parse form JSON on the client to detect custom Serializer
 properties — use eager core extensions with per-question guards, or (future) a
@@ -205,13 +211,13 @@ that manifest (whitelist) instead of client-side JSON analysis.
 
 ### Utils hierarchy — check before adding slice-local helpers
 
-| Layer | Path | Use for |
-|-------|------|---------|
-| Generic | `lib/utils/` | Domain-agnostic parse/format (`type-parsers.ts`, `type-validators.ts`) |
-| SurveyJS types/vocab | `lib/survey-js/` | Closed unions and constants that subset/extend vendor types. Prefer these over feature-local string lists. See `AGENTS.md` (SurveyJS domain). |
-| SurveyJS shared | `lib/utils/survey/` | Reusable SurveyJS compute/copy (`getChoicesFromSourceQuestion`, `copyChoiceItem`, `normalizeChoiceKey`, `extractUniqueChoicesBy`) |
-| Platform cross-feature | `lib/survey-features/infrastructure/` | Extension wiring shared across slices (`creator-survey-bindings`, `choice-source-mutual-exclusion`, lazy-load guards) |
-| Feature slice | `lib/survey-features/{feature}/` | edx Serializer props, Creator registry, bindings, feature-only product rules |
+| Layer                  | Path                                  | Use for                                                                                                                                       |
+| ---------------------- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Generic                | `lib/utils/`                          | Domain-agnostic parse/format (`type-parsers.ts`, `type-validators.ts`)                                                                        |
+| SurveyJS types/vocab   | `lib/survey-js/`                      | Closed unions and constants that subset/extend vendor types. Prefer these over feature-local string lists. See `AGENTS.md` (SurveyJS domain). |
+| SurveyJS shared        | `lib/utils/survey/`                   | Reusable SurveyJS compute/copy (`getChoicesFromSourceQuestion`, `copyChoiceItem`, `normalizeChoiceKey`, `extractUniqueChoicesBy`)             |
+| Platform cross-feature | `lib/survey-features/infrastructure/` | Extension wiring shared across slices (`creator-survey-bindings`, `choice-source-mutual-exclusion`, lazy-load guards)                         |
+| Feature slice          | `lib/survey-features/{feature}/`      | edx Serializer props, Creator registry, bindings, feature-only product rules                                                                  |
 
 **Rules:**
 
@@ -298,6 +304,7 @@ is absent from `propertyGrid.getQuestionByName("choices").columns` and present
 in the row detail panel with type `fileedit`.
 
 Relevant files:
+
 - `features/asset-storage/use-cases/upload-content-files/use-content-upload.hook.tsx` — registers `creator.onUploadFile`
 - `features/asset-storage/ui/hooks/use-storage-with-creator.hook.tsx` — called by `form-editor.tsx`
 
@@ -308,6 +315,7 @@ Relevant files:
 Custom question models that need file upload support should set `waitForUpload = true` and `storeDataAsText = false` (see `AudioQuestionModel`). The runner-side handler is already active; no extra wiring is required in the extension.
 
 Relevant files:
+
 - `features/asset-storage/use-cases/upload-user-files/use-storage-upload.hook.tsx` — registers `model.onUploadFiles`
 - `features/asset-storage/ui/hooks/use-storage-with-survey.hook.tsx` — called by `survey-component.tsx`
 
@@ -346,12 +354,12 @@ Run: `pnpm test` from `hub/` (filter by feature path).
 
 ## 9. Legacy patterns (do not copy)
 
-| Legacy | Replacement |
-|--------|-------------|
-| `useBlindSearchTagbox`-style install hooks in `form-editor` | `ExtensionModule` lifecycle |
-| `hub/customizations/questions/` + `discover-questions.mjs` | `hub/extensions/questions/` + `user-extensions.ts` |
-| Manual `initDataListsGlobals()` etc. in `form-editor` | h709: `onRegisterGlobals` + single designer bootstrap |
-| Greedy `customQuestions` loop in `form-editor` | Extension registry + designer load-all |
+| Legacy                                                        | Replacement                                                                      |
+| ------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `useBlindSearchTagbox`-style install hooks in `form-editor`   | `ExtensionModule` lifecycle                                                      |
+| `hub/customizations/questions/` + `discover-questions.mjs`    | `hub/extensions/questions/` + `user-extensions.ts`                               |
+| Manual `initDataListsGlobals()` etc. in `form-editor`         | h709: `onRegisterGlobals` + single designer bootstrap                            |
+| Greedy `customQuestions` loop in `form-editor`                | Extension registry + designer load-all                                           |
 | Client JSON property traversal in `shouldLoad` on large forms | Eager core extension + per-question guards; future `FormDependency` SSR manifest |
 
 ---
@@ -407,13 +415,13 @@ const xExtension: ExtensionModule = {
 An answer that renders in the runner but nowhere else is an incomplete question.
 Fallbacks print raw JSON — add an explicit case for each:
 
-| Surface | Wire-up |
-|---------|---------|
+| Surface                                             | Wire-up                                                                                                                                                        |
+| --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Runner / previews / submission view-edit / designer | Parent already calls `useSurveyExtensions` + `isReady` (e.g. survey-js-wrapper, view/edit-submission-core); do **not** re-wire inside nested survey components |
-| Submission details | component in the question folder + case in `features/submissions/ui/answers/answer-viewer.tsx` |
-| PDF export | model-only `registerXModel()` in `preparePdfModel` + case in `pdf-answer-viewer.tsx` (sole allowed non-extension register — Node has no React loader) |
-| Submission grid | entry in `lib/questions/questions-registry.ts` (`QuestionType` + `supportedInGrid`) |
-| Private-storage images | collect item URLs in `collect-model-storage-assets.ts` |
+| Submission details                                  | component in the question folder + case in `features/submissions/ui/answers/answer-viewer.tsx`                                                                 |
+| PDF export                                          | model-only `registerXModel()` in `preparePdfModel` + case in `pdf-answer-viewer.tsx` (sole allowed non-extension register — Node has no React loader)          |
+| Submission grid                                     | entry in `lib/questions/questions-registry.ts` (`QuestionType` + `supportedInGrid`)                                                                            |
+| Private-storage images                              | collect item URLs in `collect-model-storage-assets.ts`                                                                                                         |
 
 ### Split modules (internal helpers)
 
@@ -444,10 +452,10 @@ the opt-in stays gated by `ENDATIX_ENABLE_EXTENSIONS` like other core features.
 
 ### Known gaps (h709 / h742 — do not fix in feature PRs)
 
-| Gap | Today's workaround | Owner |
-|-----|-------------------|-------|
-| `core-registry` entry does not auto-run `onInit` | Every surface calls `useSurveyExtensions` | h709 unified bootstrap |
-| `onInit` runs in `useEffect` (after paint) | Gate `new Model` on `isReady` | h742 sync globals on survey surfaces |
-| Flag defaults off | Document `ENDATIX_ENABLE_EXTENSIONS=true` as required | h709 remove experimental gate |
-| No Node/server extension loader | PDF keeps `registerXModel()` | h709/h742 server-safe bootstrap |
-| Per-surface `isReady` glue duplicates | Accept until bootstrap lands | h709 remove per-surface glue |
+| Gap                                              | Today's workaround                                    | Owner                                |
+| ------------------------------------------------ | ----------------------------------------------------- | ------------------------------------ |
+| `core-registry` entry does not auto-run `onInit` | Every surface calls `useSurveyExtensions`             | h709 unified bootstrap               |
+| `onInit` runs in `useEffect` (after paint)       | Gate `new Model` on `isReady`                         | h742 sync globals on survey surfaces |
+| Flag defaults off                                | Document `ENDATIX_ENABLE_EXTENSIONS=true` as required | h709 remove experimental gate        |
+| No Node/server extension loader                  | PDF keeps `registerXModel()`                          | h709/h742 server-safe bootstrap      |
+| Per-surface `isReady` glue duplicates            | Accept until bootstrap lands                          | h709 remove per-surface glue         |

@@ -67,6 +67,7 @@ const defaultCreatorOptions: ICreatorOptions = {
   showTranslationTab: true,
   showDesignerTab: true,
   showLogicTab: true,
+  showCreatorThemeSettings: false,
   themeForPreview: "Default",
 };
 
@@ -209,7 +210,10 @@ function FormTemplateEditorContent({
       }
 
       try {
-        const newCreator = new SurveyCreator(options || defaultCreatorOptions);
+        const newCreator = new SurveyCreator({
+          ...(options || defaultCreatorOptions),
+          showCreatorThemeSettings: false,
+        });
 
         applyEndatixCreatorTheme(
           newCreator,
