@@ -14,8 +14,9 @@ nodeLinker: hoisted
 # majors behave identically. For a genuine same-day CVE patch add the package to
 # minimumReleaseAgeExclude rather than lowering the age.
 minimumReleaseAge: 1440 # minutes - no same-day publishes
-# GHSA-vcvr-r3jv-pc5j: next 16.3.6 and its @next/* platform packages shipped 2026-09-22.
-# Remove once they are older than minimumReleaseAge.
+# September 2026 security release: next 16.3.8 and its @next/* platform packages
+# (https://nextjs.org/blog/september-2026-security-release). Remove once they are
+# older than minimumReleaseAge.
 minimumReleaseAgeExclude:
   - next
   - "@next/env"
