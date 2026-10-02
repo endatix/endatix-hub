@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
+import { existsSync } from "node:fs";
 import packageJson from "../../package.json";
 import { type BuildIdentity, nullIfBlank } from "./build-identity";
 
@@ -102,8 +103,27 @@ function tryGit(git: RunGit, args: string[]): string | null {
   }
 }
 
+/**
+ * Where git is installed on the machines that build the Hub: Linux, Alpine
+ * (Docker build stage), GitHub runners and macOS (`/usr/bin`), Homebrew, and
+ * Git for Windows. A fixed path, not a `PATH` lookup, so a writable directory
+ * on `PATH` cannot substitute another `git` (Sonar S4036). Not found: the build
+ * has no git, and the build identity stays empty.
+ */
+const GIT_EXECUTABLES = [
+  "/usr/bin/git",
+  "/usr/local/bin/git",
+  "/opt/homebrew/bin/git",
+  String.raw`C:\Program Files\Git\cmd\git.exe`,
+];
+
 function runGit(args: string[]): string {
-  return execFileSync("git", args, {
+  const git = GIT_EXECUTABLES.find((candidate) => existsSync(candidate));
+  if (!git) {
+    throw new Error("git is not installed in a known location");
+  }
+
+  return execFileSync(git, args, {
     encoding: "utf8",
     stdio: ["ignore", "pipe", "ignore"],
   });

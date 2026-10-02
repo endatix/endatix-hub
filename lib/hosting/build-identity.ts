@@ -27,5 +27,5 @@ export function formatBuildIdentity(build: BuildIdentity | null): string {
 
 export function nullIfBlank(value: string | null | undefined): string | null {
   const trimmed = value?.trim();
-  return trimmed ? trimmed : null;
+  return trimmed || null;
 }
