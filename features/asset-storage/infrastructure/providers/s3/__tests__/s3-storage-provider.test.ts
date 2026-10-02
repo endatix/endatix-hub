@@ -6,7 +6,9 @@ import {
 } from "@aws-sdk/client-s3";
 import { Result } from "@/lib/result";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { sanitizeFetchHeaders } from "../../../fetch-header-utils";
 import { appendStorageReadQuery } from "../../../append-storage-read-query";
+import type { ContentFileMetadata, UserFileMetadata } from "../../../../types";
 import { S3StorageProvider } from "../s3-storage-provider";
 
 describe("S3StorageProvider", () => {
@@ -58,6 +60,119 @@ describe("S3StorageProvider", () => {
     );
     expect(uploadUrl.searchParams.get("X-Amz-Signature")).toBeTruthy();
     expect(upload.key).toBe("forms/form-1/submissions/sub-1/files/avatar.png");
+  });
+
+  it("signs only host when there is no metadata", async () => {
+    // Arrange
+    const provider = new S3StorageProvider();
+
+    // Act
+    const upload = await provider.generateUploadUrl({
+      containerName: "user-files",
+      folderPath: "forms/form-1/submissions/sub-1/files",
+      fileName: "avatar.png",
+    });
+
+    // Assert
+    expect(new URL(upload.url).searchParams.get("X-Amz-SignedHeaders")).toBe(
+      "host",
+    );
+  });
+
+  it("signs every x-amz-meta header the browser will send", async () => {
+    // Arrange
+    const provider = new S3StorageProvider();
+    const meta: UserFileMetadata = {
+      kind: "user",
+      displayName: "café.png",
+      contentType: "image/png",
+      formId: "form-1",
+      submissionId: "sub-1",
+      formLang: "en",
+      questionName: "question1",
+      uploadedBy: "user-1",
+      fileState: "original",
+    };
+
+    // Act
+    const upload = await provider.generateUploadUrl({
+      containerName: "user-files",
+      folderPath: "forms/form-1/submissions/sub-1/files",
+      fileName: "cafe.png",
+      blobUploadFileMetadata: meta,
+    });
+
+    // Assert
+    const uploadUrl = new URL(upload.url);
+    expect(signedMetaHeaderNames(upload.url)).toEqual(
+      metaHeaderNames(upload.headers),
+    );
+    expect(queryHasMetaHeader(upload.url)).toBe(false);
+    expect(upload.headers["x-amz-meta-filename"]).toBe("utf8:caf%C3%A9.png");
+    expect(sanitizeFetchHeaders(upload.headers)).toEqual(upload.headers);
+    expect(uploadUrl.searchParams.get("X-Amz-Signature")).toBeTruthy();
+  });
+
+  it("signs a non-Latin-1 file name as an ASCII utf8 value", async () => {
+    // Arrange
+    const provider = new S3StorageProvider();
+    const meta: UserFileMetadata = {
+      kind: "user",
+      displayName: "Билет.png",
+      contentType: "image/png",
+      formId: "form-1",
+      submissionId: "sub-1",
+      formLang: "bg",
+      questionName: "question1",
+      uploadedBy: "user-1",
+    };
+
+    // Act
+    const upload = await provider.generateUploadUrl({
+      containerName: "user-files",
+      folderPath: "forms/form-1/submissions/sub-1/files",
+      fileName: "ticket.png",
+      blobUploadFileMetadata: meta,
+    });
+
+    // Assert
+    expect(signedMetaHeaderNames(upload.url)).toEqual(
+      metaHeaderNames(upload.headers),
+    );
+    expect(queryHasMetaHeader(upload.url)).toBe(false);
+    expect(upload.headers["x-amz-meta-filename"]).toBe(
+      `utf8:${encodeURIComponent("Билет.png")}`,
+    );
+    expect(sanitizeFetchHeaders(upload.headers)).toEqual(upload.headers);
+  });
+
+  it("signs content-upload metadata the same way", async () => {
+    // Arrange
+    const provider = new S3StorageProvider();
+    const meta: ContentFileMetadata = {
+      kind: "content",
+      displayName: "logo.png",
+      contentType: "image/png",
+      uploadedBy: "user-1",
+      itemId: "form-1",
+      contentItemType: "form",
+    };
+
+    // Act
+    const upload = await provider.generateUploadUrl({
+      containerName: "content",
+      folderPath: "f/form-1",
+      fileName: "logo.png",
+      blobUploadFileMetadata: meta,
+    });
+
+    // Assert
+    expect(signedMetaHeaderNames(upload.url)).toEqual(
+      metaHeaderNames(upload.headers),
+    );
+    expect(queryHasMetaHeader(upload.url)).toBe(false);
+    expect(upload.headers["x-amz-meta-itemid"]).toBe("form-1");
+    expect(sanitizeFetchHeaders(upload.headers)).toEqual(upload.headers);
   });
 
   it("generates read queries that append to the canonical client URL", async () => {
@@ -250,3 +365,26 @@ describe("S3StorageProvider", () => {
     }
   });
 });
+
+function metaHeaderNames(headers: Record<string, string>): string[] {
+  return Object.keys(headers)
+    .filter((name) => name.startsWith("x-amz-meta-"))
+    .sort();
+}
+
+function signedMetaHeaderNames(url: string): string[] {
+  const signed = new URL(url).searchParams.get("X-Amz-SignedHeaders") ?? "";
+  return signed
+    .split(";")
+    .filter((name) => name.startsWith("x-amz-meta-"))
+    .sort();
+}
+
+function queryHasMetaHeader(url: string): boolean {
+  for (const key of new URL(url).searchParams.keys()) {
+    if (key.toLowerCase().startsWith("x-amz-meta-")) {
+      return true;
+    }
+  }
+  return false;
+}

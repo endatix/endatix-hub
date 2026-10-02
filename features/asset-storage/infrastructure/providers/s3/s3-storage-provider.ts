@@ -10,7 +10,10 @@ import {
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { Result } from "@/lib/result";
 import { mapWithConcurrency } from "@/lib/utils/map-with-concurrency";
-import type { ReadTokensResult as BulkReadTokensResult } from "../../../types";
+import type {
+  FileMetadata,
+  ReadTokensResult as BulkReadTokensResult,
+} from "../../../types";
 import type { IStorageProvider } from "../../core/storage-provider.interface";
 import { buildStorageObjectKey } from "../shared/storage-object-key";
 import { buildUserFileFolderPath } from "../../storage-utils";
@@ -33,7 +36,7 @@ import type {
   UploadUrlDescriptor,
 } from "../../core/storage-operation-types";
 import { toBlobUploadOptions } from "../shared/upload-metadata";
-import { toS3ObjectMetadata, toS3PresignedPutHeaders } from "./s3-put-headers";
+import { toS3PresignedPut } from "./s3-put-headers";
 import {
   getS3StorageConfig,
   toClientStorageConfig,
@@ -43,6 +46,46 @@ import type { ClientStorageConfig } from "../shared/client-storage-config";
 
 const LIST_HEAD_CONCURRENCY = 16;
 const PROVIDER_LABEL = "S3";
+
+interface PresignedPutCommand {
+  putInput: PutObjectCommand["input"];
+  headers: Record<string, string>;
+  unhoistableHeaders: Set<string>;
+}
+
+function buildPresignedPut(
+  bucket: string,
+  key: string,
+  meta: FileMetadata | undefined,
+): PresignedPutCommand {
+  if (meta === undefined) {
+    return {
+      putInput: { Bucket: bucket, Key: key },
+      headers: {},
+      unhoistableHeaders: new Set(),
+    };
+  }
+  return presignedPutFromMetadata(bucket, key, meta);
+}
+
+function presignedPutFromMetadata(
+  bucket: string,
+  key: string,
+  meta: FileMetadata,
+): PresignedPutCommand {
+  const options = toBlobUploadOptions(meta);
+  const signed = toS3PresignedPut(options);
+  return {
+    putInput: {
+      Bucket: bucket,
+      Key: key,
+      ContentType: options.blobHTTPHeaders.blobContentType,
+      Metadata: signed.metadata,
+    },
+    headers: signed.headers,
+    unhoistableHeaders: signed.unhoistableHeaders,
+  };
+}
 
 function toListItemFromHead(
   key: string,
@@ -55,21 +98,6 @@ function toListItemFromHead(
       contentType: head.ContentType ?? "",
     },
     metadata: head.Metadata as Record<string, string> | undefined,
-  };
-}
-
-function buildPutObjectInput(
-  bucket: string,
-  key: string,
-  meta: import("../../../types").FileMetadata,
-): PutObjectCommand["input"] {
-  const blob = toBlobUploadOptions(meta);
-  const metadata = toS3ObjectMetadata(blob.metadata);
-  return {
-    Bucket: bucket,
-    Key: key,
-    ContentType: blob.blobHTTPHeaders.blobContentType,
-    Metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
   };
 }
 
@@ -226,30 +254,21 @@ export class S3StorageProvider implements IStorageProvider {
       fileOptions.folderPath,
     );
 
-    const client = this.getClient();
-    let putInput: PutObjectCommand["input"] = {
-      Bucket: fileOptions.containerName,
-      Key: key,
-    };
-    let headers: Record<string, string> = {};
+    const put = buildPresignedPut(
+      fileOptions.containerName,
+      key,
+      fileOptions.blobUploadFileMetadata,
+    );
+    const url = await getSignedUrl(
+      this.getClient(),
+      new PutObjectCommand(put.putInput),
+      {
+        expiresIn: c.sasWriteExpirySeconds,
+        unhoistableHeaders: put.unhoistableHeaders,
+      },
+    );
 
-    if (fileOptions.blobUploadFileMetadata !== undefined) {
-      const blobOptions = toBlobUploadOptions(
-        fileOptions.blobUploadFileMetadata,
-      );
-      putInput = buildPutObjectInput(
-        fileOptions.containerName,
-        key,
-        fileOptions.blobUploadFileMetadata,
-      );
-      headers = toS3PresignedPutHeaders(blobOptions);
-    }
-
-    const url = await getSignedUrl(client, new PutObjectCommand(putInput), {
-      expiresIn: c.sasWriteExpirySeconds,
-    });
-
-    return { url, key, headers };
+    return { url, key, headers: put.headers };
   }
 
   /**
