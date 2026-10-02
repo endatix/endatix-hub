@@ -4,14 +4,21 @@ import { encodeHeaderValueForFetch } from "../../fetch-header-utils";
 const SIGNED_METADATA_PREFIX = "x-amz-meta-";
 const UTF8_SIGNED_PREFIX = "utf8:";
 
-/** ASCII only (code point > 127): signed bytes must match the SDK's UTF-8 hash. {@link encodeHeaderValueForFetch} stops at 255 because Azure content-disposition is never decoded. */
+/** A literal `utf8:` prefix is encoded too: {@link decodeHeaderValueFromFetch} would otherwise percent-decode it. Any code point above 127 is encoded so the signed bytes match the SDK's UTF-8 hash. {@link encodeHeaderValueForFetch} stops at 255 because Azure content-disposition is never decoded. */
 function encodeSignedS3MetadataValue(value: string): string {
-  for (const char of value) {
-    if (char.codePointAt(0)! > 127) {
-      return `${UTF8_SIGNED_PREFIX}${encodeURIComponent(value)}`;
-    }
+  if (value.startsWith(UTF8_SIGNED_PREFIX) || hasCodePointAboveAscii(value)) {
+    return `${UTF8_SIGNED_PREFIX}${encodeURIComponent(value)}`;
   }
   return value;
+}
+
+function hasCodePointAboveAscii(value: string): boolean {
+  for (const char of value) {
+    if (char.codePointAt(0)! > 127) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /** Bytes the browser sends, plus the metadata the SDK must sign. */

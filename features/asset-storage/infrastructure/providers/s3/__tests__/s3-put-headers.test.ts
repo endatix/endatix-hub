@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { UserFileMetadata } from "../../../../types";
+import { decodeHeaderValueFromFetch } from "../../../fetch-header-utils";
 import { toBlobUploadOptions } from "../../shared/upload-metadata";
 import { toS3PresignedPut } from "../s3-put-headers";
 
@@ -53,5 +54,20 @@ describe("toS3PresignedPut", () => {
     expect(cyrillicPut.metadata?.filename).toBe(
       cyrillicPut.headers["x-amz-meta-filename"],
     );
+  });
+
+  it("encodes an ASCII name that already starts with utf8:", () => {
+    // Arrange
+    const displayName = "utf8:a%20b.png";
+    const blobOptions = toBlobUploadOptions(userMetadata(displayName));
+
+    // Act
+    const put = toS3PresignedPut(blobOptions);
+
+    // Assert
+    const stored = `utf8:${encodeURIComponent(displayName)}`;
+    expect(put.headers["x-amz-meta-filename"]).toBe(stored);
+    expect(put.metadata?.filename).toBe(stored);
+    expect(decodeHeaderValueFromFetch(stored)).toBe(displayName);
   });
 });
