@@ -79,6 +79,21 @@ describe("resolveHubBuild", () => {
     expect(build).toEqual({ version: null, branch: "main", commit: SHA });
   });
 
+  it("treats a detached tag checkout as a release, not a branch named after the tag", () => {
+    // Act
+    const build = resolveHubBuild(
+      fakeGit({
+        describe: "v0.8.0",
+        "rev-parse HEAD": SHA,
+        "rev-parse --abbrev-ref HEAD": "HEAD",
+      }),
+      { GITHUB_REF_TYPE: "tag", GITHUB_REF_NAME: "v0.8.0" },
+    );
+
+    // Assert
+    expect(build).toEqual({ version: "0.8.0", branch: null, commit: SHA });
+  });
+
   it("takes the branch of a detached checkout from GitHub Actions", () => {
     // Act
     const build = resolveHubBuild(

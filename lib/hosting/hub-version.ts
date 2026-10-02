@@ -8,6 +8,13 @@ const NOT_A_RELEASE_PREFIX = "0.0.0";
 
 type RunGit = (args: string[]) => string;
 
+/** The GitHub Actions ref, when this build has one. Not the rest of the process environment. */
+type ReleaseEnv = {
+  GITHUB_REF_TYPE?: string;
+  GITHUB_HEAD_REF?: string;
+  GITHUB_REF_NAME?: string;
+};
+
 /**
  * The Hub build shown in About. `next.config.ts` resolves it once at build
  * ({@link resolveHubBuild}) and inlines `HUB_VERSION`, `HUB_BRANCH` and
@@ -27,13 +34,14 @@ export function getHubBuild(): BuildIdentity {
  *   (Dockerfile `HUB_VERSION`); else, on a release line, the tag HEAD sits
  *   exactly on. A feature branch on a tagged commit is still a feature build.
  * - branch: only for a build that is not a release. A detached checkout
- *   (GitHub Actions) takes it from `GITHUB_HEAD_REF` / `GITHUB_REF_NAME`.
+ *   takes `GITHUB_HEAD_REF` / `GITHUB_REF_NAME` only when `GITHUB_REF_TYPE`
+ *   is a branch. A tag checkout is a release line.
  * - commit: HEAD.
  * Without git every field the repository would answer is null.
  */
 export function resolveHubBuild(
   git: RunGit = runGit,
-  env: NodeJS.ProcessEnv = process.env,
+  env: ReleaseEnv = process.env,
 ): BuildIdentity {
   const branch = resolveBranch(git, env);
   const version =
@@ -73,10 +81,14 @@ function releaseTagAtHead(git: RunGit): string | null {
   return tag ? tag.replace(/^v/, "") : null;
 }
 
-function resolveBranch(git: RunGit, env: NodeJS.ProcessEnv): string | null {
+function resolveBranch(git: RunGit, env: ReleaseEnv): string | null {
   const branch = tryGit(git, ["rev-parse", "--abbrev-ref", "HEAD"]);
   if (branch && branch !== "HEAD") {
     return branch;
+  }
+
+  if (env.GITHUB_REF_TYPE === "tag") {
+    return null;
   }
 
   return nullIfBlank(env.GITHUB_HEAD_REF) ?? nullIfBlank(env.GITHUB_REF_NAME);
