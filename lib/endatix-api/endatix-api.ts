@@ -23,6 +23,7 @@ import { FormTemplates } from "./form-templates/form-templates";
 import Email from "./email/email";
 import { Themes } from "./themes/themes";
 import AuthAdmin from "./auth-admin/auth-admin";
+import System from "./system/system";
 import PlatformTenants from "./platform-tenants/platform-tenants";
 import PlatformAdmins from "./platform-admins/platform-admins";
 import PublicTenants from "./public-tenants/public-tenants";
@@ -90,6 +91,7 @@ export class EndatixApi {
   private _themes?: Themes;
   private _email?: Email;
   private _authAdmin?: AuthAdmin;
+  private _system?: System;
   private _platformTenants?: PlatformTenants;
   private _platformAdmins?: PlatformAdmins;
   private _publicTenants?: PublicTenants;
@@ -265,6 +267,11 @@ export class EndatixApi {
   get authAdmin(): AuthAdmin {
     this._authAdmin ??= new AuthAdmin(this);
     return this._authAdmin;
+  }
+
+  get system(): System {
+    this._system ??= new System(this);
+    return this._system;
   }
 
   get platformTenants(): PlatformTenants {

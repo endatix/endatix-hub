@@ -1,12 +1,25 @@
 import type { NextConfig } from "next";
 import { normalizeBasePath } from "./lib/hosting/base-path";
+import { getHubDeploymentId, resolveHubBuild } from "./lib/hosting/hub-version";
 import { getRewriteRuleFor } from "./lib/hosting/next-config-helper";
 import { Rewrite } from "next/dist/lib/load-custom-routes";
 import { withEndatix } from "@/features/config";
 import { OTEL_SERVER_EXTERNAL_PACKAGES } from "./features/telemetry/infrastructure/otel-server-externals";
 
+// Resolved once at build. `env` replaces each `process.env.HUB_*` read with its value
+// at build, so a standalone server (which never runs this file) still has them. Only
+// server code reads them (lib/hosting/hub-version.ts, from the About dialog's server
+// action), so they land in server chunks only; the release check greps .next/static.
+const hubBuild = resolveHubBuild();
+
 const nextConfig: NextConfig = {
-  /* config options here */
+  env: {
+    HUB_VERSION: hubBuild.version ?? "",
+    HUB_BRANCH: hubBuild.branch ?? "",
+    HUB_COMMIT: hubBuild.commit ?? "",
+  },
+  // Skew protection. Opaque hash of the build so ?dpl= is not the semver.
+  deploymentId: getHubDeploymentId(hubBuild),
   output: "standalone", // Used to decrease the size of the application, check https://nextjs.org/docs/pages/api-reference/next-config-js/output
   basePath: normalizeBasePath(),
   // Keep OTel + Azure exporters out of the server bundle so instrumentation and

@@ -83,4 +83,15 @@ describe("TruncatedId", () => {
     // Assert
     expect(mockWriteText).toHaveBeenCalledWith(id);
   });
+
+  it("keeps only the leading characters in prefix mode, like a short git commit", () => {
+    // Arrange
+    const sha = "8ef28cee396f8dfb959d40c34868314585659f28";
+
+    // Act
+    render(<TruncatedId id={sha} truncate="prefix" visibleChars={7} />);
+
+    // Assert
+    expect(screen.getByText("8ef28ce")).toBeDefined();
+  });
 });

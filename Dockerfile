@@ -10,9 +10,18 @@ RUN npm install -g pnpm@12.4.1 --ignore-scripts
 WORKDIR /app
 
 FROM base AS build
+# Only for builds without HUB_VERSION (forks, tag checkouts): next.config.ts
+# resolves the version with `git describe`. The final image stays git-free.
+RUN apk add --no-cache git
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm ci
 COPY . .
+# Our release pipeline passes the version from the git tag
+# (scripts/release-prepare.sh); package.json itself holds 0.0.0-local. Without
+# the arg, next.config.ts reads git: the release tag on main or a hotfix line,
+# otherwise branch and commit. The About dialog shows the result.
+ARG HUB_VERSION=""
+RUN if [ -n "${HUB_VERSION}" ]; then npm pkg set version="${HUB_VERSION}"; fi
 RUN pnpm run build
 
 FROM base

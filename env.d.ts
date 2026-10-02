@@ -2,6 +2,14 @@ declare namespace NodeJS {
   interface ProcessEnv {
     // Environment
     NODE_ENV: "development" | "production" | "test";
+    /** Inlined at build through next.config.ts `env`. Read only from server code, so never in the client bundle. */
+    HUB_VERSION?: string;
+    HUB_BRANCH?: string;
+    HUB_COMMIT?: string;
+    /** GitHub Actions ref, read at build to name a detached checkout's branch. */
+    GITHUB_REF_TYPE?: string;
+    GITHUB_HEAD_REF?: string;
+    GITHUB_REF_NAME?: string;
     REMOTE_IMAGE_HOSTNAMES?: string;
     ROBOTS_ALLOWED_DOMAINS?: string;
     ENDATIX_BASE_URL?: string;

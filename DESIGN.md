@@ -139,6 +139,7 @@ Before building a control, check whether the vocabulary already exists here.
 | `asset-storage/…/get-user-file/ui` — `SubmissionFileDialog`              | A submission file's preview + details dialog (§6 File answers)                        |
 | `components/public-status` — `PublicStatusPage`, `PublicStatusReference` | Every status page a non-Hub reader sees: respondents, link and export recipients (§6) |
 | `components/error-handling/error-page` — `ErrorPage`                     | Every full-page error a Hub user sees (rules: `AGENTS.md` "Error page chrome")        |
+| `features/about` — `ReleaseVersionLink`                                  | A Hub or API version, linked to its tracked GitHub release notes (Links, below)       |
 
 Add a row here in the same change that adds a shared component. Where it lives
 (`components/common/`, a graduated `components/<domain>/`, or `lib/<domain>/<slice>/ui/`) is
@@ -218,6 +219,11 @@ is a `ghost` button, never `variant="link"`.
 - **No configuration, no link.** A link to a third-party tool renders only when the server can
   build a working URL; otherwise omit the row — never a disabled link or `—`. Build such URLs on
   the server so project ids and keys stay there.
+- **Links to Endatix's own sites are measured in the Hub.** Build the URL in one helper that adds
+  `utm_source=endatix_hub`, `utm_medium=<where it was clicked>` and `utm_campaign=<purpose>`
+  (`lib/hosting/release-notes-url.ts`), and send a PostHog event on click (`TextLink onClick`).
+  The event is the measure: GitHub shows repo owners no UTM data, and `noreferrer` drops the
+  referrer. Never link to a third party's site with our UTM tags.
 - **Link only to what is known to exist.** An id is not proof: a session id is issued even when
   recording is off, so a replay link built from it opens an empty page. Link to a resource the API
   has returned, or check before linking.
@@ -332,12 +338,13 @@ to `value` are `completed`; the `value` step itself is `active`. Reference:
 
 ### Overlays — `ResponsivePanel`
 
-| Operation                         | Desktop                               | Mobile (`<768px`)       |
-| :-------------------------------- | :------------------------------------ | :---------------------- |
-| Simple create/edit, 1–2 fields    | `Dialog`                              | `Drawer`                |
-| Complex create/edit, 3+ fields    | Right `Sheet`                         | `Drawer`                |
-| Destructive/critical confirmation | `AlertDialog`                         | `AlertDialog`           |
-| Record detail / preview           | Right `Sheet` (or `Dialog` for media) | Full route, or `Drawer` |
+| Operation                         | Desktop                               | Mobile (`<768px`)        |
+| :-------------------------------- | :------------------------------------ | :----------------------- |
+| Simple create/edit, 1–2 fields    | `Dialog`                              | `Drawer`                 |
+| Complex create/edit, 3+ fields    | Right `Sheet`                         | `Drawer`                 |
+| Destructive/critical confirmation | `AlertDialog`                         | `AlertDialog`            |
+| Record detail / preview           | Right `Sheet` (or `Dialog` for media) | Full route, or `Drawer`  |
+| Short reference (About, versions) | `Dialog`                              | `Drawer`, content height |
 
 1. Use `ResponsivePanel` — `desktopType="simple"` (Dialog) or `"complex"` (Sheet). If a Dialog
    scrolls on desktop, it should be a Sheet.
@@ -353,9 +360,14 @@ to `value` are `completed`; the `value` step itself is `active`. Reference:
 8. **Lock the panel while its own work runs:** `dismissible={false}` hides the close button and
    ignores Escape, outside clicks and drag-to-close on every mode. Also guard `onOpenChange`, and
    never leave a visible close control that silently does nothing.
-9. **A prefilled form opens on its primary action** (`onOpenAutoFocus` → focus the submit button)
-   so Enter runs it with the suggested choices. Fall back to Radix's default when the button is
-   absent or disabled.
+9. **A short panel gets a short Drawer.** `ResponsivePanel` sizes the Drawer at `90vh` for forms;
+   a few rows of reference pass `drawerContentClassName="h-auto"`.
+10. **An overlay opened from a menu is rendered outside the menu.** Keep its `open` state in the
+    component that owns the `DropdownMenu`, set it from the item's `onSelect`, and render the
+    panel as the menu's sibling. Inside `DropdownMenuContent` it unmounts when the menu closes.
+11. **A prefilled form opens on its primary action** (`onOpenAutoFocus` → focus the submit button)
+    so Enter runs it with the suggested choices. Fall back to Radix's default when the button is
+    absent or disabled.
 
 ### Buttons, inputs, chips
 
@@ -395,7 +407,7 @@ Cross-cutting patterns first; recipes after them only add what is specific to th
 - **Literal values are monospace.** Nested detail rows indent `pl-4` in `text-xs
 text-muted-foreground` — no left-border rule.
 - **A value keeps its type everywhere** — a state is a `StatusBadge`, a language a `LocaleLabel`,
-  a format a `FileKindLabel`, an id a `TruncatedId`.
+  a format a `FileKindLabel`, an id a `TruncatedId`, a product version a `ReleaseVersionLink`.
 - **Omit what cannot apply** rather than showing it empty.
 - **Dense grids** (read-only matrix answers, `matrixdropdown-answer.tsx`): every column gets a
   minimum width, cells wrap (never a single-line `<Input>`), padding is tightened for the density
@@ -434,6 +446,45 @@ text-muted-foreground` — no left-border rule.
 - **`Back`, not `Cancel`,** on a step whose record is still open behind it.
 - **Show the outcome in place; don't toast and close** when the result is a record the user needs
   to see (a toast disappears; the updated record is the proof).
+
+### Reference information on demand
+
+Facts a reader needs now and then (the Hub and API versions while reporting an issue) are
+**one menu item away, not in the navigation.** The sidebar holds places to go. A fact that
+costs a request or needs the space of a row of its own does not belong in it. Reference:
+`features/about/view-versions/` (account menu → **About Endatix**).
+
+- **One entry point, where people look for it** — the account menu, after `Settings`, signed in
+  only. Not a chevron, a footer line or a tooltip on another item.
+- **A `simple` `ResponsivePanel`**: title names the thing ("About Endatix"), the description says
+  when it is useful ("Include them when you report an issue"), the body is `SummaryRow`s on a
+  nested surface.
+- **Read on open, never on page load**, and nothing reaches public HTML or the client bundle.
+  `next.config.ts` resolves the build and passes it through `env`, which inlines it where
+  `process.env.HUB_*` is read: server code only (`lib/hosting/hub-version.ts`), so it lands in
+  server chunks. Never assign `process.env` in `next.config.ts`: a standalone server does not
+  run that file, so the values are gone in production. `scripts/release-prepare.sh` fails if
+  the commit appears in `.next/static`. A complete read is
+  kept for the page; a partial one is asked again on the next open. Load as in Loading inside a
+  panel: skeleton the values, keep the labels.
+- **A value that did not load is `—`** (`sr-only` "Not available"); the rest stays usable, and the
+  copied text says `unavailable` for it.
+- **A release shows its version; any other build shows branch and commit.** A release
+  (`0.8.0`, `0.8.1-canary.3`) is a `ReleaseVersionLink` to its notes. A build that is not a release
+  is for developers: `BuildRef` puts the branch and the commit on their own right-aligned lines,
+  each after its git mark (`GitBranch`, `GitCommitHorizontal`), as `TruncatedId`s: a long branch
+  keeps both ends (`feat/h134-show-p…the-about-dialog`), the commit its first 7 characters
+  (`truncate="prefix"`), each with the full value in the tooltip and a copy on hover. Never
+  linked: the commit may exist only in a fork. The section's copy gives `main @ <full sha>`.
+- **Every Hub user sees branch and commit, not only admins.** They are what a user needs to file
+  an issue, including on a fork's deployment, and the commit is no secret. A later field (the git
+  remote) can follow the same rule.
+- **One home per fact.** The versions are not repeated on Admin → Environment: platform admins
+  have the same menu item, and a second copy is a second thing to keep in step.
+- **Copy sits on the group it copies.** The rows are a `PanelSection` ("Versions") with one
+  `CopyToClipboard` (`inline`) in its `aside` that copies every row as plain text. Not a footer
+  button (the footer is for actions that change something) and not an icon floating beside the
+  rows (it reads as belonging to neither).
 
 ### Loading inside a panel
 
@@ -726,7 +777,8 @@ Before finishing UI work, check:
 - [ ] Lists use `components/table`; the empty state has the list icon, a title and a way out (§5).
 - [ ] Overlays follow the table in §5, never stack, and have a title and description.
 - [ ] Inline links are `TextLink`; external ones use `external`; nothing links to an unconfigured
-      or unconfirmed target (§5).
+      or unconfirmed target; links to our own sites carry UTM tags and a click event (§5).
+- [ ] Occasional reference facts sit behind one menu item and load on open, not in the sidebar (§6).
 - [ ] Sequences of steps use `Timeline` (one subject, oldest first, one active step, words not
       event names) — never for a bag of facts, a status, or a form's own steps (§5).
 - [ ] A further read inside a panel skeletons only its section, starts after paint, and is asked

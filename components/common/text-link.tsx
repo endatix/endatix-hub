@@ -1,12 +1,14 @@
 import { ExternalLink } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
-import type { ReactNode } from "react";
+import type { MouseEventHandler, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 type TextLinkProps = {
   children: ReactNode;
   className?: string;
+  /** For analytics only; the link still navigates. */
+  onClick?: MouseEventHandler<HTMLAnchorElement>;
 } & (
   | { href: Route; external?: false }
   /** Leaves the Hub: new tab, trailing mark, and an `sr-only` notice. */
@@ -30,6 +32,7 @@ export function TextLink(props: Readonly<TextLinkProps>) {
         target="_blank"
         rel="noopener noreferrer"
         className={className}
+        onClick={props.onClick}
       >
         {props.children}
         <ExternalLink aria-hidden="true" className="size-3.5 shrink-0" />
@@ -39,7 +42,7 @@ export function TextLink(props: Readonly<TextLinkProps>) {
   }
 
   return (
-    <Link href={props.href} className={className}>
+    <Link href={props.href} className={className} onClick={props.onClick}>
       {props.children}
     </Link>
   );
