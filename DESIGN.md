@@ -459,7 +459,12 @@ costs a request or needs the space of a row of its own does not belong in it. Re
 - **A `simple` `ResponsivePanel`**: title names the thing ("About Endatix"), the description says
   when it is useful ("Include them when you report an issue"), the body is `SummaryRow`s on a
   nested surface.
-- **Read on open, never on page load**, and nothing reaches public HTML. A complete read is
+- **Read on open, never on page load**, and nothing reaches public HTML or the client bundle.
+  `next.config.ts` resolves the build and passes it through `env`, which inlines it where
+  `process.env.HUB_*` is read: server code only (`lib/hosting/hub-version.ts`), so it lands in
+  server chunks. Never assign `process.env` in `next.config.ts`: a standalone server does not
+  run that file, so the values are gone in production. `scripts/release-prepare.sh` fails if
+  the commit appears in `.next/static`. A complete read is
   kept for the page; a partial one is asked again on the next open. Load as in Loading inside a
   panel: skeleton the values, keep the labels.
 - **A value that did not load is `—`** (`sr-only` "Not available"); the rest stays usable, and the
@@ -471,6 +476,9 @@ costs a request or needs the space of a row of its own does not belong in it. Re
   keeps both ends (`feat/h134-show-p…the-about-dialog`), the commit its first 7 characters
   (`truncate="prefix"`), each with the full value in the tooltip and a copy on hover. Never
   linked: the commit may exist only in a fork. The section's copy gives `main @ <full sha>`.
+- **Every Hub user sees branch and commit, not only admins.** They are what a user needs to file
+  an issue, including on a fork's deployment, and the commit is no secret. A later field (the git
+  remote) can follow the same rule.
 - **One home per fact.** The versions are not repeated on Admin → Environment: platform admins
   have the same menu item, and a second copy is a second thing to keep in step.
 - **Copy sits on the group it copies.** The rows are a `PanelSection` ("Versions") with one

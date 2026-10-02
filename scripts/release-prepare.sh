@@ -34,6 +34,17 @@ if [ "${STAMPED}" != "${VERSION}" ]; then
   exit 1
 fi
 
+# The build identity (commit, branch) is inlined into server chunks only. It must never reach
+# the client bundle, which every visitor of a public form downloads.
+COMMIT="$(git rev-parse HEAD)"
+LEAK=0
+docker run --rm --platform linux/amd64 --entrypoint grep "${DOCKER_IMAGE}:${VERSION}" -rqF "${COMMIT}" .next/static || LEAK=$?
+case "${LEAK}" in
+  1) ;; # not found: the client bundle is clean
+  0) echo "::error::commit ${COMMIT} found in the image's .next/static (client bundle). Read HUB_* only from server code." >&2; exit 1 ;;
+  *) echo "::error::could not search the image's .next/static (grep exit ${LEAK})." >&2; exit 1 ;;
+esac
+
 # Helm chart, released in lockstep with the image. Stamping BOTH version and
 # appVersion with the release version is what makes the chart self-consistent:
 # the deployment template falls back to .Chart.Version for the image tag, so a

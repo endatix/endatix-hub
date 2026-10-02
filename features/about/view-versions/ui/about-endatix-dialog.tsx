@@ -29,7 +29,6 @@ export function AboutEndatixDialog({
   open,
   onOpenChange,
 }: Readonly<AboutEndatixDialogProps>) {
-  const versions = useProductVersions(open);
   useTrackOpen(open);
 
   return (
@@ -41,7 +40,7 @@ export function AboutEndatixDialog({
     >
       <AboutHeader />
       <ResponsivePanelBody>
-        <VersionList versions={versions} />
+        <VersionList versions={useProductVersions(open)} />
       </ResponsivePanelBody>
     </ResponsivePanel>
   );
@@ -64,18 +63,12 @@ interface VersionsProps {
 }
 
 function VersionList({ versions }: Readonly<VersionsProps>) {
-  const copy = (
-    <CopyToClipboard
-      layout="inline"
-      copyValue={() => formatVersions(versions)}
-      disabled={!versions?.hub && !versions?.api}
-      label="Copy versions"
-      buttonClassName="size-7"
-    />
-  );
-
   return (
-    <PanelSection icon={Tag} title="Versions" aside={copy}>
+    <PanelSection
+      icon={Tag}
+      title="Versions"
+      aside={<CopyVersions versions={versions} />}
+    >
       <dl className="grid gap-2" aria-busy={versions === undefined}>
         <SummaryRow
           label="Hub"
@@ -90,40 +83,65 @@ function VersionList({ versions }: Readonly<VersionsProps>) {
   );
 }
 
+function CopyVersions({ versions }: Readonly<VersionsProps>) {
+  return (
+    <CopyToClipboard
+      layout="inline"
+      copyValue={() => formatVersions(versions)}
+      disabled={!versions?.hub && !versions?.api}
+      label="Copy versions"
+      buttonClassName="size-7"
+    />
+  );
+}
+
 function VersionValue({
   product,
   versions,
 }: Readonly<VersionsProps & { product: keyof ProductVersions }>) {
   if (versions === undefined) {
-    return (
-      <>
-        <Skeleton className="h-4 w-24 bg-foreground/10" />
-        <span className="sr-only">Loading version</span>
-      </>
-    );
+    return <VersionSkeleton />;
   }
 
-  const build = versions[product];
+  return <ResolvedVersion product={product} build={versions[product]} />;
+}
+
+interface ResolvedVersionProps {
+  product: keyof ProductVersions;
+  build: ProductVersions[keyof ProductVersions];
+}
+
+function ResolvedVersion({ product, build }: Readonly<ResolvedVersionProps>) {
   if (build?.version) {
-    return (
-      <ReleaseVersionLink
-        product={product}
-        version={build.version}
-        source="about_dialog"
-      />
-    );
+    return <NotesLink product={product} version={build.version} />;
   }
 
   if (build?.branch || build?.commit) {
     return <BuildRef branch={build.branch} commit={build.commit} />;
   }
 
+  return <NotesLink product={product} version={null} />;
+}
+
+function NotesLink({
+  product,
+  version,
+}: Readonly<{ product: keyof ProductVersions; version: string | null }>) {
   return (
     <ReleaseVersionLink
       product={product}
-      version={null}
+      version={version}
       source="about_dialog"
     />
+  );
+}
+
+function VersionSkeleton() {
+  return (
+    <>
+      <Skeleton className="h-4 w-24 bg-foreground/10" />
+      <span className="sr-only">Loading version</span>
+    </>
   );
 }
 
