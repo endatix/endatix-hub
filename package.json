@@ -1,6 +1,6 @@
 {
   "name": "endatix-hub",
-  "version": "0.1.0",
+  "version": "0.0.0-local",
   "private": true,
   "scripts": {
     "predev": "node scripts/build-embed.mjs",

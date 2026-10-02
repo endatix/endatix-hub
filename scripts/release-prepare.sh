@@ -22,7 +22,17 @@ rm -rf build/packages/helm
 # QEMU emulation on every PR and every canary. Revisit if arm64 nodes appear —
 # the publish step would then need a manifest list, as the API's does.
 echo "──── Building container image ${DOCKER_IMAGE}:${VERSION} ────"
-docker build --platform linux/amd64 -t "${DOCKER_IMAGE}:${VERSION}" .
+docker build --platform linux/amd64 \
+  --build-arg HUB_VERSION="${VERSION}" \
+  -t "${DOCKER_IMAGE}:${VERSION}" .
+
+# The About dialog reports the bundled package.json version. Fail here, before
+# anything ships, if the image was not stamped with the release version.
+STAMPED="$(docker run --rm --platform linux/amd64 --entrypoint node "${DOCKER_IMAGE}:${VERSION}" -p "require('./package.json').version")"
+if [ "${STAMPED}" != "${VERSION}" ]; then
+  echo "::error::image reports version ${STAMPED}, expected ${VERSION}. Is HUB_VERSION passed to docker build?" >&2
+  exit 1
+fi
 
 # Helm chart, released in lockstep with the image. Stamping BOTH version and
 # appVersion with the release version is what makes the chart self-consistent:

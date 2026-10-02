@@ -1,6 +1,7 @@
 "use client";
 
-import { LogOut, Settings2, Sparkles } from "lucide-react";
+import { Info, LogOut, Settings2, Sparkles } from "lucide-react";
+import { useState } from "react";
 import Link from "next/link";
 import { ThemeSwitcher } from "@/components/controls/theme/theme-switcher";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -15,6 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useSidebar } from "@/components/ui/sidebar";
 import UserAvatar from "@/components/user/user-avatar";
+import { AboutEndatixDialog } from "@/features/about";
 import { SIGNOUT_PATH } from "@/features/auth/infrastructure/auth-constants";
 import { CurrentUserInfo } from "next-auth";
 
@@ -26,6 +28,7 @@ interface NavUserProps {
 
 const NavUser = ({ currentUser, trigger }: NavUserProps) => {
   const { isMobile } = useSidebar();
+  const [isAboutOpen, setIsAboutOpen] = useState(false);
   const isLoggedIn = currentUser !== null;
   const loginStatus = isLoggedIn ? "Signed in" : "Sign in";
   const { displayName, initials, email } = currentUser ?? {};
@@ -41,65 +44,76 @@ const NavUser = ({ currentUser, trigger }: NavUserProps) => {
   );
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild aria-label="my-account-dropdown">
-        {trigger ?? defaultTrigger}
-      </DropdownMenuTrigger>
-      <DropdownMenuContent
-        className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
-        side={isMobile ? "bottom" : "right"}
-        align="end"
-        sideOffset={4}
-      >
-        <DropdownMenuLabel className="p-0 font-normal">
-          <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-            <Avatar className="h-8 w-8 rounded-lg">
-              <AvatarImage src="" alt={displayName} />
-              <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
-            </Avatar>
-            <div className="grid min-w-0 flex-1 text-left text-sm leading-tight">
-              <span className="truncate font-medium">{email}</span>
-              <span className="truncate text-xs text-muted-foreground">
-                {loginStatus}
-              </span>
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild aria-label="my-account-dropdown">
+          {trigger ?? defaultTrigger}
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
+          side={isMobile ? "bottom" : "right"}
+          align="end"
+          sideOffset={4}
+        >
+          <DropdownMenuLabel className="p-0 font-normal">
+            <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+              <Avatar className="h-8 w-8 rounded-lg">
+                <AvatarImage src="" alt={displayName} />
+                <AvatarFallback className="rounded-lg">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+              <div className="grid min-w-0 flex-1 text-left text-sm leading-tight">
+                <span className="truncate font-medium">{email}</span>
+                <span className="truncate text-xs text-muted-foreground">
+                  {loginStatus}
+                </span>
+              </div>
             </div>
-          </div>
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <ThemeSwitcher source="account_menu" />
-        <DropdownMenuSeparator />
-        {isLoggedIn ? (
-          <>
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <ThemeSwitcher source="account_menu" />
+          <DropdownMenuSeparator />
+          {isLoggedIn ? (
+            <>
+              <DropdownMenuGroup>
+                <DropdownMenuItem asChild>
+                  <Link href="/settings/security">
+                    <Settings2 />
+                    Settings
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setIsAboutOpen(true)}>
+                  <Info />
+                  About Endatix
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+              <DropdownMenuSeparator />
+              <DropdownMenuGroup>
+                <DropdownMenuItem asChild>
+                  <Link href={SIGNOUT_PATH}>
+                    <LogOut />
+                    Sign out
+                  </Link>
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+            </>
+          ) : (
             <DropdownMenuGroup>
               <DropdownMenuItem asChild>
-                <Link href="/settings/security">
-                  <Settings2 />
-                  Settings
+                <Link href="/login">
+                  <Sparkles />
+                  Sign in
                 </Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem asChild>
-                <Link href={SIGNOUT_PATH}>
-                  <LogOut />
-                  Sign out
-                </Link>
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-          </>
-        ) : (
-          <DropdownMenuGroup>
-            <DropdownMenuItem asChild>
-              <Link href="/login">
-                <Sparkles />
-                Sign in
-              </Link>
-            </DropdownMenuItem>
-          </DropdownMenuGroup>
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+      {isLoggedIn && (
+        <AboutEndatixDialog open={isAboutOpen} onOpenChange={setIsAboutOpen} />
+      )}
+    </>
   );
 };
 

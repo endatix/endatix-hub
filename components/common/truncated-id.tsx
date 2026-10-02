@@ -28,6 +28,11 @@ interface TruncatedIdProps {
   id: string | null | undefined;
   emptyLabel?: string;
   visibleChars?: number;
+  /**
+   * `middle` (default) keeps head and tail: `abcd…wxyz`. `prefix` keeps only the
+   * first `visibleChars`, the convention for a git commit (`6e2bb10`).
+   */
+  truncate?: "middle" | "prefix";
   className?: string;
   copyLabel?: string;
 }
@@ -36,6 +41,7 @@ export function TruncatedId({
   id,
   emptyLabel = "N/A",
   visibleChars = DEFAULT_VISIBLE_CHARS,
+  truncate = "middle",
   className,
   copyLabel = "Copy ID",
 }: Readonly<TruncatedIdProps>) {
@@ -48,7 +54,10 @@ export function TruncatedId({
     );
   }
 
-  const displayValue = truncateId(trimmed, visibleChars);
+  const displayValue =
+    truncate === "prefix"
+      ? trimmed.slice(0, visibleChars)
+      : truncateId(trimmed, visibleChars);
   const isTruncated = displayValue !== trimmed;
 
   const idText = (

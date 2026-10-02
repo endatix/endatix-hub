@@ -1,12 +1,24 @@
 import type { NextConfig } from "next";
 import { normalizeBasePath } from "./lib/hosting/base-path";
+import { getHubDeploymentId, resolveHubBuild } from "./lib/hosting/hub-version";
 import { getRewriteRuleFor } from "./lib/hosting/next-config-helper";
 import { Rewrite } from "next/dist/lib/load-custom-routes";
 import { withEndatix } from "@/features/config";
 import { OTEL_SERVER_EXTERNAL_PACKAGES } from "./features/telemetry/infrastructure/otel-server-externals";
 
+// Resolved once at build and inlined, so the running server needs no git.
+// Read only by server code (the About dialog action), so it stays out of public HTML.
+const hubBuild = resolveHubBuild();
+
 const nextConfig: NextConfig = {
   /* config options here */
+  env: {
+    HUB_VERSION: hubBuild.version ?? "",
+    HUB_BRANCH: hubBuild.branch ?? "",
+    HUB_COMMIT: hubBuild.commit ?? "",
+  },
+  // Skew protection. Opaque hash of the build so ?dpl= is not the semver.
+  deploymentId: getHubDeploymentId(hubBuild),
   output: "standalone", // Used to decrease the size of the application, check https://nextjs.org/docs/pages/api-reference/next-config-js/output
   basePath: normalizeBasePath(),
   // Keep OTel + Azure exporters out of the server bundle so instrumentation and
