@@ -9,7 +9,17 @@ import {
   validateHexToken,
 } from "@/lib/utils/type-validators";
 import { redirect } from "next/navigation";
+import { readVisitorIp } from "@/lib/hosting/client-ip";
 import { HeaderBuilder } from "../lib/endatix-api/shared/header-builder";
+
+async function apiFetch(url: string, init: RequestInit = {}): Promise<Response> {
+  const visitor = await readVisitorIp();
+  const headers = new Headers(init.headers);
+  if (visitor) {
+    headers.set("X-Forwarded-For", visitor);
+  }
+  return fetch(url, { ...init, headers });
+}
 import { ActiveDefinition, Form, FormTemplate } from "../types";
 
 export const createForm = async (
@@ -22,7 +32,7 @@ export const createForm = async (
     .provideJson()
     .build();
 
-  const response = await fetch(`${requireApiUrl()}/forms`, {
+  const response = await apiFetch(`${requireApiUrl()}/forms`, {
     method: "POST",
     headers: headers,
     body: JSON.stringify(formRequest),
@@ -53,7 +63,7 @@ export const getForm = async (formId: string): Promise<Form> => {
     throw new TypeError(validateIdResult.message);
   }
 
-  const response = await fetch(
+  const response = await apiFetch(
     `${requireApiUrl()}/forms/${validateIdResult.value}`,
     requestOptions,
   );
@@ -89,7 +99,7 @@ export const updateForm = async (
     throw new TypeError(validateIdResult.message);
   }
 
-  const response = await fetch(
+  const response = await apiFetch(
     `${requireApiUrl()}/forms/${validateIdResult.value}`,
     {
       method: "PATCH",
@@ -117,7 +127,7 @@ export const deleteForm = async (formId: string): Promise<string> => {
 
   const headers = new HeaderBuilder().withAuth(session).build();
 
-  const response = await fetch(
+  const response = await apiFetch(
     `${requireApiUrl()}/forms/${validatedIdResult.value}`,
     {
       method: "DELETE",
@@ -155,7 +165,7 @@ export const getActiveFormDefinition = async (
   }
 
   requestOptions.headers = headerBuilder.build();
-  const response = await fetch(
+  const response = await apiFetch(
     `${requireApiUrl()}/forms/${validateIdResult.value}/definition`,
     requestOptions,
   );
@@ -189,7 +199,7 @@ export const updateFormDefinition = async (
     throw new TypeError(validateFormIdResult.message);
   }
 
-  const response = await fetch(
+  const response = await apiFetch(
     `${requireApiUrl()}/forms/${validateFormIdResult.value}/definition`,
     {
       method: "PATCH",
@@ -214,7 +224,7 @@ export const getFormTemplate = async (
     throw new TypeError(validateTemplateIdResult.message);
   }
 
-  const response = await fetch(
+  const response = await apiFetch(
     `${requireApiUrl()}/form-templates/${validateTemplateIdResult.value}`,
     {
       headers: headers,
@@ -248,7 +258,7 @@ export const updateFormTemplate = async (
     throw new TypeError(validateTemplateIdResult.message);
   }
 
-  const response = await fetch(
+  const response = await apiFetch(
     `${requireApiUrl()}/form-templates/${validateTemplateIdResult.value}`,
     {
       method: "PATCH",
@@ -278,7 +288,7 @@ export const deleteFormTemplate = async (
     throw new TypeError(validateTemplateIdResult.message);
   }
 
-  const response = await fetch(
+  const response = await apiFetch(
     `${requireApiUrl()}/form-templates/${validateTemplateIdResult.value}`,
     {
       method: "DELETE",
@@ -323,7 +333,7 @@ export const updateSubmission = async (
     .provideJson()
     .build();
 
-  const response = await fetch(
+  const response = await apiFetch(
     `${requireApiUrl()}/forms/${validateFormIdResult.value}/submissions/${validateSubmissionIdResult.value}`,
     {
       method: "PATCH",
@@ -375,7 +385,7 @@ export const updateSubmissionStatus = async (
     .provideJson()
     .build();
 
-  const response = await fetch(
+  const response = await apiFetch(
     `${requireApiUrl()}/forms/${validateFormIdResult.value}/submissions/${validateSubmissionIdResult.value}/status`,
     {
       method: "POST",
@@ -407,7 +417,7 @@ export const getPartialSubmissionPublic = async (
 
   const headers = new HeaderBuilder().acceptJson().build();
 
-  const response = await fetch(
+  const response = await apiFetch(
     `${requireApiUrl()}/forms/${validateFormIdResult.value}/submissions/by-token/${validateTokenResult.value}`,
     {
       headers: headers,
@@ -445,7 +455,7 @@ export const getSubmission = async (
 
   const headers = new HeaderBuilder().withAuth(session).acceptJson().build();
 
-  const response = await fetch(
+  const response = await apiFetch(
     `${requireApiUrl()}/forms/${validateFormIdResult.value}/submissions/${validateSubmissionIdResult.value}`,
     {
       headers: headers,
@@ -478,7 +488,7 @@ export const getCustomQuestions = async (): Promise<CustomQuestion[]> => {
   let totalPages = 1;
 
   while (page <= totalPages) {
-    const response = await fetch(
+    const response = await apiFetch(
       `${requireApiUrl()}/questions?page=${page}&pageSize=100`,
       {
         headers: headers,
@@ -517,7 +527,7 @@ export const createCustomQuestion = async (
     .provideJson()
     .build();
 
-  const response = await fetch(`${requireApiUrl()}/questions`, {
+  const response = await apiFetch(`${requireApiUrl()}/questions`, {
     method: "POST",
     headers: headers,
     body: JSON.stringify(request),
@@ -565,7 +575,7 @@ export const sendVerification = async (
 ): Promise<SendVerificationApiResponse> => {
   const headers = new HeaderBuilder().acceptJson().provideJson().build();
 
-  const response = await fetch(
+  const response = await apiFetch(
     `${requireApiUrl()}/auth/send-verification-email`,
     {
       method: "POST",
@@ -587,7 +597,7 @@ export const verifyEmail = async (
 ): Promise<VerifyEmailApiResponse> => {
   const headers = new HeaderBuilder().acceptJson().provideJson().build();
 
-  const response = await fetch(`${requireApiUrl()}/auth/verify-email`, {
+  const response = await apiFetch(`${requireApiUrl()}/auth/verify-email`, {
     method: "POST",
     headers: headers,
     body: JSON.stringify(request),
@@ -621,7 +631,7 @@ export const register = async (
 ): Promise<RegistrationResponse> => {
   const headers = new HeaderBuilder().acceptJson().provideJson().build();
 
-  const response = await fetch(`${requireApiUrl()}/auth/register`, {
+  const response = await apiFetch(`${requireApiUrl()}/auth/register`, {
     method: "POST",
     headers: headers,
     body: JSON.stringify(request),
