@@ -1,6 +1,7 @@
 version: 2
 updates:
   - package-ecosystem: "npm"        # Dependabot reads pnpm-lock.yaml
+    labels: ["dependencies"]
     directory: "/"
     schedule:
       interval: "weekly"
@@ -17,6 +18,7 @@ updates:
         update-types: ["minor", "patch"]
 
   - package-ecosystem: "github-actions"
+    labels: ["dependencies"]
     # "/" covers .github/workflows; composite actions are not scanned unless listed.
     directories:
       - "/"
@@ -28,6 +30,7 @@ updates:
       include: "scope"
 
   - package-ecosystem: "docker"
+    labels: ["dependencies"]
     directory: "/"
     schedule:
       interval: "weekly"
