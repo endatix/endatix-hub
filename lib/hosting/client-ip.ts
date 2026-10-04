@@ -1,10 +1,37 @@
-const MAX_HOPS = 5;
-const EVERYONE = new Set(["0.0.0.0/0", "::/0"]);
+/** Request header that carries the visitor address to the Endatix API. */
+export const ClientIpHeaders = Object.freeze({
+  FORWARDED_FOR: "X-Forwarded-For",
+} as const);
+
+/** Environment variables that configure visitor-address forwarding. */
+export const ClientIpEnv = Object.freeze({
+  TRUSTED_PROXIES: "ENDATIX_TRUSTED_PROXIES",
+} as const);
+
+const ClientIpLimits = Object.freeze({
+  /** Hops read from the right of X-Forwarded-For before giving up. */
+  MAX_HOPS: 5,
+  LIST_SEPARATOR: ",",
+  CIDR_SEPARATOR: "/",
+} as const);
+
+const IPV4_MAPPED_IPV6 = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/i;
+const IPV4_WITH_PORT = /^(\d+\.\d+\.\d+\.\d+):\d+$/;
+const IPV4_OCTET = /^\d{1,3}$/;
+const IPV6_GROUP = /^[0-9a-f]{1,4}$/i;
+
+export class TrustedProxiesConfigError extends Error {
+  constructor(message: string) {
+    super(`${ClientIpEnv.TRUSTED_PROXIES}: ${message}`);
+    this.name = "TrustedProxiesConfigError";
+  }
+}
 
 /**
  * One visitor address for outbound API calls.
  * Next.js keeps a client-supplied X-Forwarded-For and does not append the socket,
- * so an empty trusted list sends nothing.
+ * so an empty trusted list sends nothing. An invalid list also sends nothing;
+ * `check-environment` reports it at startup.
  */
 export async function readVisitorIp(): Promise<string | null> {
   if (typeof window !== "undefined") {
@@ -13,28 +40,63 @@ export async function readVisitorIp(): Promise<string | null> {
 
   try {
     const { headers } = await import("next/headers");
-    const forwardedFor = (await headers()).get("x-forwarded-for");
+    const forwardedFor = (await headers()).get(ClientIpHeaders.FORWARDED_FOR);
     return resolveClientIp(
       null,
       forwardedFor,
-      parseTrustedProxies(process.env.ENDATIX_TRUSTED_PROXIES),
+      parseTrustedProxies(process.env[ClientIpEnv.TRUSTED_PROXIES]),
     );
   } catch {
     return null;
   }
 }
 
+/**
+ * Sets the visitor address on outbound request headers, replacing any
+ * forwarded chain already there. Leaves the headers alone when there is none.
+ */
+export async function withVisitorIp(
+  init: RequestInit = {},
+): Promise<RequestInit> {
+  const visitor = await readVisitorIp();
+  if (!visitor) {
+    return init;
+  }
+  const headers = new Headers(init.headers);
+  headers.set(ClientIpHeaders.FORWARDED_FOR, visitor);
+  return { ...init, headers };
+}
+
 export function parseTrustedProxies(value: string | undefined): string[] {
   const entries = (value ?? "")
-    .split(",")
+    .split(ClientIpLimits.LIST_SEPARATOR)
     .map((entry) => entry.trim())
     .filter((entry) => entry.length > 0);
-  if (entries.some((entry) => EVERYONE.has(entry))) {
-    throw new Error(
-      "ENDATIX_TRUSTED_PROXIES cannot contain 0.0.0.0/0 or ::/0",
-    );
+  for (const entry of entries) {
+    assertTrustedProxyEntry(entry);
   }
   return entries;
+}
+
+function assertTrustedProxyEntry(entry: string): void {
+  const [base, prefixText, extra] = entry.split(ClientIpLimits.CIDR_SEPARATOR);
+  const address = normalizeIp(base ?? null);
+  const bytes = address ? addressBytes(address) : null;
+  if (!bytes || extra !== undefined) {
+    throw new TrustedProxiesConfigError(`"${entry}" is not an IP or CIDR`);
+  }
+  if (prefixText === undefined) {
+    return;
+  }
+  const prefix = Number(prefixText);
+  if (!/^\d+$/.test(prefixText) || prefix > bytes.length * 8) {
+    throw new TrustedProxiesConfigError(`"${entry}" has an invalid prefix`);
+  }
+  if (prefix === 0) {
+    throw new TrustedProxiesConfigError(
+      `"${entry}" trusts every address; list the proxy networks instead`,
+    );
+  }
 }
 
 export function resolveClientIp(
@@ -57,13 +119,13 @@ function firstUntrustedHop(
   trusted: readonly string[],
 ): string | null {
   const hops = (forwardedFor ?? "")
-    .split(",")
+    .split(ClientIpLimits.LIST_SEPARATOR)
     .map((hop) => normalizeIp(hop))
     .filter((hop): hop is string => hop !== null)
-    .slice(-MAX_HOPS);
+    .slice(-ClientIpLimits.MAX_HOPS);
   for (let index = hops.length - 1; index >= 0; index -= 1) {
     if (!isTrusted(hops[index], trusted)) {
-      return hops[index];
+      return addressBytes(hops[index]) ? hops[index] : null;
     }
   }
   return null;
@@ -78,7 +140,7 @@ function matches(ip: string, entry: string): boolean {
   if (!candidate) {
     return false;
   }
-  if (!candidate.includes("/")) {
+  if (!candidate.includes(ClientIpLimits.CIDR_SEPARATOR)) {
     return ip === candidate;
   }
   return cidrContains(ip, candidate);
@@ -92,14 +154,15 @@ function normalizeIp(value: string | null): string | null {
   const unbracketed = trimmed.startsWith("[")
     ? trimmed.slice(1, trimmed.indexOf("]"))
     : trimmed.split("%")[0];
-  const mapped = unbracketed.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/i);
-  return (mapped?.[1] ?? unbracketed).toLowerCase();
+  const withoutPort = unbracketed.match(IPV4_WITH_PORT)?.[1] ?? unbracketed;
+  const mapped = withoutPort.match(IPV4_MAPPED_IPV6);
+  return (mapped?.[1] ?? withoutPort).toLowerCase();
 }
 
 function cidrContains(ip: string, cidr: string): boolean {
-  const [base, prefixText] = cidr.split("/");
+  const [base, prefixText] = cidr.split(ClientIpLimits.CIDR_SEPARATOR);
   const prefix = Number(prefixText);
-  if (!base || !Number.isInteger(prefix)) {
+  if (!base || !Number.isInteger(prefix) || prefix <= 0) {
     return false;
   }
   const ipBytes = addressBytes(ip);
@@ -125,13 +188,18 @@ function samePrefix(left: number[], right: number[], prefix: number): boolean {
 
 function addressBytes(value: string): number[] | null {
   if (value.includes(".")) {
-    const parts = value.split(".").map((part) => Number(part));
-    if (parts.length !== 4 || parts.some((part) => part > 255 || part < 0)) {
-      return null;
-    }
-    return parts;
+    return ipv4Bytes(value);
   }
   return ipv6Bytes(value);
+}
+
+function ipv4Bytes(value: string): number[] | null {
+  const parts = value.split(".");
+  if (parts.length !== 4 || !parts.every((part) => IPV4_OCTET.test(part))) {
+    return null;
+  }
+  const bytes = parts.map((part) => Number(part));
+  return bytes.every((byte) => byte <= 255) ? bytes : null;
 }
 
 function ipv6Bytes(value: string): number[] | null {
@@ -158,7 +226,7 @@ function ipv6Groups(value: string): string[] | null {
   const head = halves[0] ? halves[0].split(":") : [];
   const tail = halves[1] ? halves[1].split(":") : [];
   const missing = 8 - (head.length + tail.length);
-  if (missing < 0) {
+  if (missing < 0 || (halves.length === 1 && missing !== 0)) {
     return null;
   }
   const groups = [...head, ...Array(missing).fill("0"), ...tail];
@@ -166,9 +234,9 @@ function ipv6Groups(value: string): string[] | null {
 }
 
 function groupBytes(group: string): [number, number] | null {
-  const parsed = Number.parseInt(group || "0", 16);
-  if (Number.isNaN(parsed) || parsed > 0xffff) {
+  if (!IPV6_GROUP.test(group)) {
     return null;
   }
+  const parsed = Number.parseInt(group, 16);
   return [(parsed >> 8) & 0xff, parsed & 0xff];
 }

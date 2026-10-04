@@ -1,5 +1,6 @@
 import { requireApiUrl } from "@/features/config/api-config";
 import { HeaderBuilder } from "@/lib/endatix-api/shared/header-builder";
+import { withVisitorIp } from "@/lib/hosting/client-ip";
 import { ApiResult, ApiErrorDetails } from "./shared/api-result";
 import { describeFetchFailure } from "./shared/describe-fetch-failure";
 import { ERROR_CODE } from "./shared/error-codes";
@@ -34,17 +35,6 @@ import { Reporting } from "./reporting/reporting";
 export const getEdatixApiUrl = (): string => requireApiUrl();
 
 const DEFAULT_HEADERS = {};
-
-async function applyVisitorIp(init: RequestInit): Promise<void> {
-  const { readVisitorIp } = await import("@/lib/hosting/client-ip");
-  const visitor = await readVisitorIp();
-  if (!visitor) {
-    return;
-  }
-  const headers = new Headers(init.headers);
-  headers.set("X-Forwarded-For", visitor);
-  init.headers = headers;
-}
 
 type RequestMethod = "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
 type RequestHeaders = Record<string, string>;
@@ -327,8 +317,7 @@ export class EndatixApi {
         return requestInitResult;
       }
 
-      const requestInit = requestInitResult.data;
-      await applyVisitorIp(requestInit);
+      const requestInit = await withVisitorIp(requestInitResult.data);
       const url = `${this.baseUrl}${endpoint}`;
 
       const response = await fetch(url, requestInit);
@@ -357,8 +346,7 @@ export class EndatixApi {
         return requestInitResult;
       }
 
-      const requestInit = requestInitResult.data;
-      await applyVisitorIp(requestInit);
+      const requestInit = await withVisitorIp(requestInitResult.data);
       const url = `${this.baseUrl}${endpoint}`;
       const response = await fetch(url, requestInit);
 

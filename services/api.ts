@@ -9,18 +9,13 @@ import {
   validateHexToken,
 } from "@/lib/utils/type-validators";
 import { redirect } from "next/navigation";
-import { readVisitorIp } from "@/lib/hosting/client-ip";
+import { withVisitorIp } from "@/lib/hosting/client-ip";
 import { HeaderBuilder } from "../lib/endatix-api/shared/header-builder";
-
-async function apiFetch(url: string, init: RequestInit = {}): Promise<Response> {
-  const visitor = await readVisitorIp();
-  const headers = new Headers(init.headers);
-  if (visitor) {
-    headers.set("X-Forwarded-For", visitor);
-  }
-  return fetch(url, { ...init, headers });
-}
 import { ActiveDefinition, Form, FormTemplate } from "../types";
+
+async function apiFetch(url: string, init?: RequestInit): Promise<Response> {
+  return fetch(url, await withVisitorIp(init));
+}
 
 export const createForm = async (
   formRequest: CreateFormRequest,
