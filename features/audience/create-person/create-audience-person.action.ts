@@ -21,6 +21,14 @@ const CREATE_LOG = {
   loggerName: "audience.people.create",
 } as const;
 
+function withoutBlankValues(
+  values: AudiencePropertyValues = {},
+): AudiencePropertyValues {
+  return Object.fromEntries(
+    Object.entries(values).filter(([, value]) => value.trim() !== ""),
+  );
+}
+
 export async function createAudiencePersonAction(
   input: CreateAudiencePersonInput,
 ): Promise<CreateAudiencePersonResult> {
@@ -31,7 +39,7 @@ export async function createAudiencePersonAction(
     (api) =>
       api.audience.createPerson(input.formId, {
         identifier,
-        values: input.values,
+        values: withoutBlankValues(input.values),
       }),
     CREATE_LOG,
   );

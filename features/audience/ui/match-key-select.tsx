@@ -9,6 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { AudienceIdentifierKind } from "@/lib/endatix-api/audience/types";
+import { AUDIENCE_IDENTIFIER_KINDS } from "./data-types";
 
 type MatchKeySelectProps = {
   identifierKind: AudienceIdentifierKind;
@@ -27,8 +28,9 @@ export function MatchKeySelect({
       <Select value={identifierKind} onValueChange={onChange} disabled={disabled}>
         <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
         <SelectContent>
-          <SelectItem value="email">Email</SelectItem>
-          <SelectItem value="external_id">External ID</SelectItem>
+          {AUDIENCE_IDENTIFIER_KINDS.map((entry) => (
+            <SelectItem key={entry.value} value={entry.value}>{entry.label}</SelectItem>
+          ))}
         </SelectContent>
       </Select>
     </>

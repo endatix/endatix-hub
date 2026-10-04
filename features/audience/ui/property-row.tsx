@@ -15,7 +15,7 @@ export function PropertyRow({ formId, property }: Readonly<Props>) {
       pending={row.pending}
       onEditNameChange={row.setEditName}
       onSave={row.rename}
-      onCancel={() => row.setEditing(false)}
+      onCancel={row.cancel}
     />
   ) : (
     <PropertyRowView

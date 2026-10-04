@@ -5,6 +5,7 @@ import type {
   AudienceProperty,
   AudiencePropertyValues,
 } from "@/lib/endatix-api/audience/types";
+import { identifierKindLabel, identifierKindPlaceholder } from "./data-types";
 import { NamedTextField } from "./named-text-field";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
@@ -40,9 +41,8 @@ function PropertyValueFields(props: {
 }
 
 export function PeopleAddFields(props: Readonly<PeopleAddFieldsProps>) {
-  const label = props.identifierKind === "email" ? "Email" : "External ID";
-  const placeholder =
-    props.identifierKind === "email" ? "alex@example.com" : "ext-1001";
+  const label = identifierKindLabel(props.identifierKind);
+  const placeholder = identifierKindPlaceholder(props.identifierKind);
   return (
     <div className="flex flex-wrap items-end gap-3">
       <NamedTextField id="person-identifier" label={label} value={props.identifier} placeholder={placeholder} disabled={props.pending} className="w-56" onChange={props.onIdentifierChange} />

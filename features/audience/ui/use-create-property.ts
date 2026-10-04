@@ -2,14 +2,14 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import type { AudienceDataType } from "@/lib/endatix-api/audience/types";
+import { AudienceDataType } from "@/lib/endatix-api/audience/types";
 import { runCreateProperty } from "./audience-runs";
 
 export function useCreateProperty(formId: string) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [name, setName] = useState("");
-  const [dataType, setDataType] = useState<AudienceDataType>("text");
+  const [dataType, setDataType] = useState<AudienceDataType>(AudienceDataType.Text);
 
   function create(): void {
     startTransition(async () => {

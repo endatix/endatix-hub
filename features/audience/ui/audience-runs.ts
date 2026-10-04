@@ -84,7 +84,7 @@ export async function runUpdatePersonValues(args: {
     await updateAudiencePersonAction({
       formId,
       membershipId: person.membershipId,
-      values: { ...person.values, [propertyId]: nextValue },
+      values: { [propertyId]: nextValue },
     }),
     "Person updated",
   );

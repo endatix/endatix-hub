@@ -1,16 +1,39 @@
 import type { IPagedRequest } from "../shared/types";
 
 /** Wire codes matching OSS `AudienceDataTypeCodes`. */
-export type AudienceDataType =
-  | "text"
-  | "number"
-  | "boolean"
-  | "date"
-  | "date_time"
-  | "single_choice"
-  | "multiple_choice";
+export const AudienceDataType = Object.freeze({
+  Text: "text",
+  Number: "number",
+  Boolean: "boolean",
+  Date: "date",
+  DateTime: "date_time",
+  SingleChoice: "single_choice",
+  MultipleChoice: "multiple_choice",
+} as const);
 
-export type AudienceIdentifierKind = "email" | "external_id";
+export type AudienceDataType =
+  (typeof AudienceDataType)[keyof typeof AudienceDataType];
+
+/** Wire codes matching OSS `AudienceIdentifierKindCodes`. */
+export const AudienceIdentifierKind = Object.freeze({
+  Email: "email",
+  ExternalId: "external_id",
+} as const);
+
+export type AudienceIdentifierKind =
+  (typeof AudienceIdentifierKind)[keyof typeof AudienceIdentifierKind];
+
+export function isAudienceIdentifierKind(
+  value: string,
+): value is AudienceIdentifierKind {
+  return (Object.values(AudienceIdentifierKind) as string[]).includes(value);
+}
+
+/** Paging limits matching OSS `AudiencePaging`. */
+export const AudiencePaging = Object.freeze({
+  DefaultPageSize: 50,
+  MaxPageSize: 5_000,
+} as const);
 
 export type AudienceSettings = {
   identifierKind: AudienceIdentifierKind;

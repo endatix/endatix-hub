@@ -2,7 +2,10 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
-import type { AudienceIdentifierKind } from "@/lib/endatix-api/audience/types";
+import {
+  isAudienceIdentifierKind,
+  type AudienceIdentifierKind,
+} from "@/lib/endatix-api/audience/types";
 import { runUpdateMatchKey } from "./audience-runs";
 
 export function useMatchKey(
@@ -13,8 +16,9 @@ export function useMatchKey(
   const [pending, startTransition] = useTransition();
 
   function change(value: string): void {
+    if (!isAudienceIdentifierKind(value) || value === identifierKind) return;
     startTransition(async () => {
-      if (await runUpdateMatchKey(value as AudienceIdentifierKind)) {
+      if (await runUpdateMatchKey(value)) {
         router.refresh();
       }
     });

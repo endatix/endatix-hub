@@ -17,23 +17,23 @@ import {
   type WirePerson,
   type WireProperty,
 } from "./mappers";
-import type {
-  AudiencePerson,
-  AudienceProperty,
-  AudienceSettings,
-  CreateAudiencePersonRequest,
-  CreateAudiencePropertyRequest,
-  ListAudiencePeopleRequest,
-  UpdateAudiencePersonRequest,
-  UpdateAudiencePropertyRequest,
-  UpdateAudienceSettingsRequest,
+import {
+  AudiencePaging,
+  type AudiencePerson,
+  type AudienceProperty,
+  type AudienceSettings,
+  type CreateAudiencePersonRequest,
+  type CreateAudiencePropertyRequest,
+  type ListAudiencePeopleRequest,
+  type UpdateAudiencePersonRequest,
+  type UpdateAudiencePropertyRequest,
+  type UpdateAudienceSettingsRequest,
 } from "./types";
 
 export type AudiencePeoplePage = NormalizedPagedResponse<AudiencePerson>;
 
 const SETTINGS_PATH = "/audience/settings";
 const DEFAULT_PAGE = 1;
-const DEFAULT_PAGE_SIZE = 50;
 
 export function buildListAudiencePeopleEndpoint(
   formId: string,
@@ -42,7 +42,7 @@ export function buildListAudiencePeopleEndpoint(
   const searchParams = new URLSearchParams();
   appendPagingQueryParams(searchParams, request, {
     page: DEFAULT_PAGE,
-    pageSize: DEFAULT_PAGE_SIZE,
+    pageSize: AudiencePaging.DefaultPageSize,
   });
   return buildEndpointWithQuery(
     formAudiencePath(formId, "people"),

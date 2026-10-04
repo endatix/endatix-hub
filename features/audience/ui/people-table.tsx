@@ -12,6 +12,7 @@ import type {
   AudiencePerson,
   AudienceProperty,
 } from "@/lib/endatix-api/audience/types";
+import { identifierKindLabel } from "./data-types";
 import { PersonTableRow } from "./person-table-row";
 
 type Props = {
@@ -25,7 +26,7 @@ function HeaderRow({
   identifierKind,
   properties,
 }: Pick<Props, "identifierKind" | "properties">) {
-  const label = identifierKind === "email" ? "Email" : "External ID";
+  const label = identifierKindLabel(identifierKind);
   return (
     <TableHeader>
       <TableRow>

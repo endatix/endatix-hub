@@ -30,6 +30,11 @@ export function PeopleSection(props: Readonly<Props>) {
       <p className="text-sm text-muted-foreground">
         Audience members ({props.totalPeople}). Remove drops this form only.
       </p>
+      {props.people.length < props.totalPeople && (
+        <p className="text-sm text-muted-foreground">
+          Showing the first {props.people.length} people.
+        </p>
+      )}
       <PeopleAddForm formId={props.formId} identifierKind={props.identifierKind} properties={props.properties} />
       <PeopleBody formId={props.formId} identifierKind={props.identifierKind} properties={props.properties} people={props.people} />
     </section>

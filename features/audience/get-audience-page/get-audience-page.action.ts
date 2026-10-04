@@ -3,10 +3,11 @@
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
 import { EndatixApi } from "@/lib/endatix-api";
-import type {
-  AudiencePerson,
-  AudienceProperty,
-  AudienceSettings,
+import {
+  AudiencePaging,
+  type AudiencePerson,
+  type AudienceProperty,
+  type AudienceSettings,
 } from "@/lib/endatix-api/audience/types";
 import type { AudiencePeoplePage } from "@/lib/endatix-api/audience/audience";
 import type { ApiResult } from "@/lib/endatix-api/shared/api-result";
@@ -22,6 +23,8 @@ export type AudiencePageData = {
 
 export type GetAudiencePageResult = Result<AudiencePageData>;
 
+const FIRST_PAGE = 1;
+
 function unwrapPart<T>(apiResult: ApiResult<T>, label: string): Result<T> {
   return toResult(apiResult, {
     fallbackMessage: `Failed to load audience ${label}.`,
@@ -35,7 +38,10 @@ async function fetchAudienceParts(formId: string) {
   return Promise.all([
     api.audience.getSettings(),
     api.audience.listProperties(formId),
-    api.audience.listPeople(formId, { page: 1, pageSize: 100 }),
+    api.audience.listPeople(formId, {
+      page: FIRST_PAGE,
+      pageSize: AudiencePaging.MaxPageSize,
+    }),
   ]);
 }
 
