@@ -7,11 +7,13 @@ import {
 } from "@/lib/questions/questions-registry";
 import { getSubmissionStartedAt } from "@/lib/utils";
 import { ColumnDef } from "@tanstack/react-table";
-import { CheckCircle2 } from "lucide-react";
 import { CellCompleteStatus } from "./cell-complete-status";
 import { CellCompletionTime } from "./cell-completion-time";
-import { CellDate } from "@/components/table";
-import { CellStatusDropdown } from "./cell-status-dropdown";
+import {
+  CellDate,
+  DATA_TABLE_SHRINK_WRAP_CLASS_NAME,
+} from "@/components/table";
+import { CellReviewStatus } from "./cell-review-status";
 import { ColumnHeader } from "./column-header";
 import type {
   DateFilterChangeHandler,
@@ -35,6 +37,8 @@ interface SubmissionSystemColumnsOptions {
 
 /** Icon/action columns stay compact; text columns keep a min width and share leftover space. */
 const COMPACT_COLUMN = "w-12 whitespace-nowrap";
+/** Badge columns shrink to the widest badge and never truncate their header. */
+const BADGE_COLUMN = `${DATA_TABLE_SHRINK_WRAP_CLASS_NAME} whitespace-nowrap`;
 const FLUID_COLUMN = "min-w-[6.5rem]";
 
 export function buildSubmissionSystemColumns({
@@ -72,27 +76,23 @@ export function buildSubmissionSystemColumns({
       id: "complete",
       accessorKey: "isComplete",
       meta: {
-        displayName: "Complete",
-        headerClassName: `${COMPACT_COLUMN} text-center`,
-        cellClassName: `${COMPACT_COLUMN} text-center`,
+        displayName: "Status",
+        headerClassName: BADGE_COLUMN,
+        cellClassName: BADGE_COLUMN,
       },
       header: ({ column }) => (
         <ColumnHeader
           column={column}
           isSorted={column.getIsSorted()}
           density="compact"
-          align="center"
-          title="Complete"
-          titleContent={
-            <CheckCircle2
-              className="size-3.5 text-muted-foreground"
-              aria-hidden="true"
-            />
-          }
+          title={column.columnDef.meta?.displayName ?? (column.id || "Column")}
         />
       ),
       cell: ({ row }) => (
-        <CellCompleteStatus isComplete={row.original.isComplete} />
+        <CellCompleteStatus
+          isComplete={row.original.isComplete}
+          collectionStatus={row.original.collectionStatus}
+        />
       ),
     },
     {
@@ -263,7 +263,7 @@ export function buildSubmissionSystemColumns({
       id: "status",
       accessorKey: "status",
       meta: {
-        displayName: "Status",
+        displayName: "Review",
         headerClassName: "min-w-[7.5rem]",
         cellClassName: "min-w-[7.5rem]",
       },
@@ -275,13 +275,7 @@ export function buildSubmissionSystemColumns({
           title={column.columnDef.meta?.displayName ?? (column.id || "Column")}
         />
       ),
-      cell: ({ row }) => (
-        <CellStatusDropdown
-          code={row.original.status}
-          submissionId={row.original.id}
-          formId={row.original.formId}
-        />
-      ),
+      cell: ({ row }) => <CellReviewStatus submission={row.original} />,
     },
   ];
 }

@@ -161,6 +161,16 @@ decided by "Where UI for a shared concept lives" in `project-structure.md`.
   `size-1.5 rounded-full bg-current` dot. No solid fills (primary is for actions), no per-state
   icons — differing shapes read as differing _kinds_ of information.
 - **One label per concept per page** ("Enabled/Disabled" _or_ "On/Off", everywhere).
+- **A lifecycle with many codes is grouped first; the tone follows the group, never the code.**
+  Collection status: still collecting (`In progress`, `Expired`) is `attention`, `Complete` is
+  `on`, ended without completing (`Screened out`, `Quota full`, `Abandoned`, `Cancelled`) is
+  `off` — a legitimate outcome, not a failure. The group, not the code, also decides what else
+  applies to the record. Reference: `features/submissions/ui/describe-collection-status.ts`.
+- **An unknown code is never shown raw.** It joins the neutral group and is humanised
+  (`panel_hold` → `Panel hold`), so a code added on the server reads like its siblings.
+- **One record, several status axes: the lifecycle is "Status", every other axis names itself.**
+  A submission's collection state is its Status; what a reviewer did afterwards is "Review"
+  (column, detail cell and filter alike). Never two columns or filters both called Status.
 - In a value column, either every row is a badge or every row is a literal. Mix only when the row
   kinds differ (a flag vs a URL), and then the literal is monospace.
 - A state is a badge **everywhere** it appears — table cell, panel header, review step. Never a
@@ -251,6 +261,13 @@ paged sortable grid look identical:
 - **Zebra parity is `index % 2 === 1`**, matching `DataTableGrid`.
 - **Column labels name what the column holds for the reader** ("Requester", "Submitted"), not the
   entity field (`Email`, `Created`).
+- **A badge column shrink-wraps** (`DATA_TABLE_SHRINK_WRAP_CLASS_NAME` + `whitespace-nowrap`),
+  left-aligned with its header. Never a fixed narrow width: the header truncates to `C…` and the
+  reader loses the one column they scan first. Icon-only columns stay `w-12`.
+- **A per-row control that cannot apply to this row yet is `—`** with an `sr-only` reason ("Not
+  reviewable until complete"), not a control that acts on nothing. A value already recorded still
+  shows, so nothing a user did disappears. The rule lives in the state mapping, so grid and detail
+  agree (`isReviewApplicable`, `features/submissions/ui/table/cell-review-status.tsx`).
 - Wiring (URL state, paging, loading skeletons): `project-structure.md` "List pages and tables".
 
 **Empty states — `DataTableEmpty` with `icon` + `title`, description as children:**
@@ -653,7 +670,8 @@ approvals, refunds tomorrow): **review → decide → outcome** in one `Responsi
   panel shows the result (`project-structure.md` "Signup request slices").
 - **One state mapping in one file** (`describe*`, e.g. `signup-request-state.ts`) owns decision →
   tone, process → tone, the row badge and the allowed next step. Grid and panel both read it, so a
-  `Setup failed` row always opens on a panel offering `Retry`.
+  `Setup failed` row always opens on a panel offering `Retry`. Same for submissions:
+  `describe-collection-status.ts` owns code → group → tone and whether Review applies.
 
 ### Recipe: read-only settings page
 
@@ -771,7 +789,8 @@ Before finishing UI work, check:
 
 - [ ] Only semantic tokens; any new token is registered in `@theme inline` (§2).
 - [ ] No 1px sectioning borders, no `Card` inside an overlay or around a table (§2, §4).
-- [ ] Every state is a `StatusBadge` in one of three tones, the same label everywhere (§5).
+- [ ] Every state is a `StatusBadge` in one of three tones, the same label everywhere; many codes
+      are grouped and the group picks the tone; only the lifecycle is called "Status" (§5).
 - [ ] File deliverables carry `FileKindLabel` on every surface; unknown kinds get the generic glyph (§5).
 - [ ] Peer cards use `.grid-card-list`, not viewport breakpoints (§5).
 - [ ] Lists use `components/table`; the empty state has the list icon, a title and a way out (§5).

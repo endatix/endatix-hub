@@ -71,7 +71,7 @@ describe("SubmissionsFilterToolbar", () => {
         .disabled,
     ).toBe(true);
     expect(
-      (screen.getByRole("button", { name: /status/i }) as HTMLButtonElement)
+      (screen.getByRole("button", { name: /review/i }) as HTMLButtonElement)
         .disabled,
     ).toBe(true);
     expect(

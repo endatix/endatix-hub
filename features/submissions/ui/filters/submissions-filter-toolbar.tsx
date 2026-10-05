@@ -64,7 +64,7 @@ export function SubmissionsFilterToolbar({
         disabled={disabled}
       />
       <FacetedFilter
-        title="Status"
+        title="Review"
         options={statusOptions}
         selectedValues={statusFilter}
         onValueChange={onStatusChange}

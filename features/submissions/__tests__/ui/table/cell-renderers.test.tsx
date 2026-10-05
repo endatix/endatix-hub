@@ -9,15 +9,27 @@ describe("CellCompleteStatus", () => {
     render(<CellCompleteStatus isComplete />);
 
     // Assert
-    expect(screen.getByLabelText("Complete")).toBeDefined();
+    expect(screen.getByText("Complete")).toBeDefined();
   });
 
-  it("exposes accessible Incomplete label for incomplete rows", () => {
+  it("shows In progress when the row is incomplete and has no collection status", () => {
     // Arrange & Act
     render(<CellCompleteStatus isComplete={false} />);
 
     // Assert
-    expect(screen.getByLabelText("Incomplete")).toBeDefined();
+    expect(
+      screen.getByText("In progress").closest("[data-tone]")?.getAttribute("data-tone"),
+    ).toBe("attention");
+  });
+
+  it("shows the collection status instead of the isComplete fallback", () => {
+    // Arrange & Act
+    render(<CellCompleteStatus isComplete={false} collectionStatus="cancelled" />);
+
+    // Assert
+    expect(
+      screen.getByText("Cancelled").closest("[data-tone]")?.getAttribute("data-tone"),
+    ).toBe("off");
   });
 });
 
