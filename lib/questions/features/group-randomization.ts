@@ -19,6 +19,17 @@ const selectBasePrototype = QuestionSelectBase.prototype as unknown as {
   randomizeArray?: ChoiceRandomizer;
 };
 
+/**
+ * Manual Entry is a positional format, so a new column changes the meaning of
+ * every field after it. Group already shipped as the third field; keeping
+ * Randomize behind it leaves `value|text|group` lines working as before.
+ * Any index above the serializer default of -1 sorts the column last.
+ */
+const RANDOMIZE_COLUMN_INDEX = 20;
+
+/** Buckets ungrouped items without colliding with an author's group name. */
+const UNGROUPED = Symbol("ungrouped");
+
 const originalRandomizeArray = Helpers.randomizeArray;
 const originalQuestionRandomizeArray = selectBasePrototype.randomizeArray;
 let isInitialized = false;
@@ -31,26 +42,37 @@ function isRandomChoiceOrder(obj: ItemValue): boolean {
 }
 
 /**
+ * Survey Creator builds the Manual Entry field list from `question.columns`,
+ * which carries every visible column whether or not its `visibleIf` passes, and
+ * it assigns each field as the raw typed string. A visible boolean column there
+ * would write `"true"` / `"false"` into every choice, and survey-core pins an
+ * item on `randomize === false`, so a string would silently unpin it.
+ * `onSettingValue` keeps the stored value a boolean whatever writes it.
+ */
+function coerceToPinnedBoolean(value: unknown): unknown {
+  if (typeof value !== "string") {
+    return value;
+  }
+
+  return value.trim().toLowerCase() === "false" ? false : true;
+}
+
+/**
  * SurveyJS 3 already registers `itemvalue.randomize` as hidden detail metadata.
  * A second `addProperties` is ignored (`fillAllProperties` keeps the first),
  * which is why the Choices table never showed the checkbox. Configure the
- * built-in property, and only register one if a later survey-core drops it.
+ * built-in property instead. There is no fallback: `findProperty` is typed as
+ * always returning one, and a survey-core that drops it should fail loudly at
+ * startup rather than ship a checkbox that saves a value nothing reads.
  */
 function configureChoiceRandomizationProperties(): void {
   const randomizeProperty = Serializer.findProperty("itemvalue", "randomize");
-  if (randomizeProperty) {
-    randomizeProperty.visible = true;
-    randomizeProperty.locationInTable = "column";
-    randomizeProperty.visibleIf = isRandomChoiceOrder;
-  } else {
-    Serializer.addProperty("itemvalue", {
-      name: "randomize:boolean",
-      default: true,
-      visible: true,
-      locationInTable: "column",
-      visibleIf: isRandomChoiceOrder,
-    });
-  }
+  randomizeProperty.visible = true;
+  randomizeProperty.locationInTable = "column";
+  randomizeProperty.visibleIndex = RANDOMIZE_COLUMN_INDEX;
+  randomizeProperty.visibleIf = isRandomChoiceOrder;
+  randomizeProperty.onSettingValue = (_obj, value) =>
+    coerceToPinnedBoolean(value);
 }
 
 /**
@@ -67,7 +89,6 @@ function addGroupColumn(): void {
   Serializer.addProperty("itemvalue", {
     name: "group",
     locationInTable: "column",
-    dependsOn: ["randomize"],
     visibleIf: isRandomChoiceOrder,
   });
 }
@@ -129,17 +150,43 @@ function addRandomizeGroupFeature() {
   isInitialized = true;
 }
 
+/**
+ * survey-core seeds a fresh `mulberry32` on every call, so handing one seed to
+ * every bucket gives two groups of the same size the same permutation. Mixing
+ * the group name into the seed keeps each bucket independent and still
+ * reproducible for a given survey seed. Zero is avoided because survey-core
+ * reads a falsy seed as "use `Date.now()`".
+ */
+function deriveBucketSeed(seed: number | undefined, key: string): number | undefined {
+  if (seed === undefined) {
+    return undefined;
+  }
+
+  let derived = seed;
+  for (let i = 0; i < key.length; i++) {
+    derived = Math.imul(derived ^ key.charCodeAt(i), 0x01000193) >>> 0;
+  }
+
+  return derived === 0 ? 1 : derived;
+}
+
 function groupRandomize<T>(array: T[], seed?: number): T[] {
-  const groups = new Map<string, T[]>();
+  const buckets = new Map<string | symbol, T[]>();
   array.forEach((item) => {
-    const key = hasGroup(item) ? item.group : "__default__";
-    const bucket = groups.get(key) ?? [];
-    bucket.push(item);
-    groups.set(key, bucket);
+    const key = hasGroup(item) ? item.group : UNGROUPED;
+    const bucket = buckets.get(key);
+    if (bucket) {
+      bucket.push(item);
+    } else {
+      buckets.set(key, [item]);
+    }
   });
 
-  return [...groups.values()].flatMap((items) =>
-    originalRandomizeArray([...items], seed),
+  return [...buckets.entries()].flatMap(([key, items]) =>
+    originalRandomizeArray(
+      items,
+      deriveBucketSeed(seed, typeof key === "string" ? key : ""),
+    ),
   );
 }
 
