@@ -21,11 +21,14 @@ const CREATE_LOG = {
   loggerName: "audience.people.create",
 } as const;
 
+/** Trimmed, without blanks: the API stores values as written and refuses padded numbers. */
 function withoutBlankValues(
   values: AudiencePropertyValues = {},
 ): AudiencePropertyValues {
   return Object.fromEntries(
-    Object.entries(values).filter(([, value]) => value.trim() !== ""),
+    Object.entries(values)
+      .map(([propertyId, value]) => [propertyId, value.trim()] as const)
+      .filter(([, value]) => value !== ""),
   );
 }
 

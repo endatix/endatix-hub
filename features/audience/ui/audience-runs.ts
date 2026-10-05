@@ -77,7 +77,9 @@ export async function runUpdatePersonValues(args: {
   propertyId: string;
   nextValue: string;
 }): Promise<boolean> {
-  const { formId, person, propertyId, nextValue } = args;
+  const { formId, person, propertyId } = args;
+  // The API stores values as written and refuses padded numbers; an empty value clears the cell.
+  const nextValue = args.nextValue.trim();
   if ((person.values[propertyId] ?? "") === nextValue) return false;
 
   return runAction(
