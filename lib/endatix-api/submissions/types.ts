@@ -38,6 +38,7 @@ export interface Submission extends ApiEntity {
   formId: EntityId;
   formDefinitionId: EntityId;
   isComplete: boolean;
+  collectionStatus?: string;
   isTestSubmission?: boolean;
   jsonData: JsonData;
   currentPage: number;

@@ -11,7 +11,8 @@ import {
 import { DEFAULT_CATALOG_LOCALE } from "@/lib/localization";
 import { TriangleAlert } from "lucide-react";
 import type { ReactNode } from "react";
-import { CellStatusDropdown } from "../table/cell-status-dropdown";
+import { CellReviewStatus } from "../table/cell-review-status";
+import { CellCompleteStatus } from "../table/cell-complete-status";
 import { LabelLanguageNotice, LabelLanguagePicker } from "./label-language";
 import { useSubmissionDetails } from "./submission-details-context";
 
@@ -64,6 +65,25 @@ function ValueText({ children }: Readonly<{ children: ReactNode }>) {
   );
 }
 
+/** Collection status first: it decides whether Review applies. */
+function StatusCells() {
+  const { submission } = useSubmissionDetails();
+
+  return (
+    <>
+      <MetaCell label="Status">
+        <CellCompleteStatus
+          isComplete={submission.isComplete}
+          collectionStatus={submission.collectionStatus}
+        />
+      </MetaCell>
+      <MetaCell label="Review">
+        <CellReviewStatus submission={submission} />
+      </MetaCell>
+    </>
+  );
+}
+
 export function MetadataCard() {
   const { submission, catalogLocales } = useSubmissionDetails();
 
@@ -92,19 +112,7 @@ export function MetadataCard() {
       <div
         className={`grid grid-cols-2 gap-px lg:grid-cols-4 ${metadataGridHairline}`}
       >
-        <MetaCell label="Status">
-          <CellStatusDropdown
-            code={submission.status}
-            submissionId={submission.id}
-            formId={submission.formId}
-          />
-        </MetaCell>
-        <MetaCell label="Is Complete">
-          <StatusBadge
-            tone={submission.isComplete ? "on" : "off"}
-            label={submission.isComplete ? "Yes" : "No"}
-          />
-        </MetaCell>
+        <StatusCells />
         <MetaCell label="Created at">
           <ValueText>{formatDate(submission.createdAt)}</ValueText>
         </MetaCell>

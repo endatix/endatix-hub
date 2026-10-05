@@ -108,7 +108,10 @@ describe("submission table column definitions", () => {
     ).toBe("Created");
     expect(
       columns.find((col) => col.id === "complete")?.meta?.displayName,
-    ).toBe("Complete");
+    ).toBe("Status");
+    expect(columns.find((col) => col.id === "status")?.meta?.displayName).toBe(
+      "Review",
+    );
     expect(
       columns.find((col) => col.id === "completedAt")?.meta?.displayName,
     ).toBe("Completed");
@@ -117,7 +120,7 @@ describe("submission table column definitions", () => {
     ).toBe("Time");
   });
 
-  it("keeps action columns compact and gives text columns a min width", () => {
+  it("keeps action columns compact, shrink-wraps badges and gives text columns a min width", () => {
     const columns = buildSubmissionSystemColumns();
 
     expect(
@@ -125,7 +128,7 @@ describe("submission table column definitions", () => {
     ).toContain("w-12");
     expect(
       columns.find((col) => col.id === "complete")?.meta?.headerClassName,
-    ).toContain("w-12");
+    ).toBe("w-px whitespace-nowrap");
     expect(
       columns.find((col) => col.id === "createdAt")?.meta?.cellClassName,
     ).toBe("min-w-[6.5rem]");

@@ -251,7 +251,7 @@ describe("SubmissionsWithFilters", () => {
       screen.queryByText("No submissions match current filters"),
     ).toBeNull();
     expect(
-      (screen.getByRole("button", { name: /status/i }) as HTMLButtonElement)
+      (screen.getByRole("button", { name: /review/i }) as HTMLButtonElement)
         .disabled,
     ).toBe(true);
     expect(
