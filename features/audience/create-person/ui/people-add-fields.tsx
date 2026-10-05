@@ -5,8 +5,8 @@ import type {
   AudienceProperty,
   AudiencePropertyValues,
 } from "@/lib/endatix-api/audience/types";
-import { identifierKindLabel, identifierKindPlaceholder } from "./data-types";
-import { NamedTextField } from "./named-text-field";
+import { identifierKindLabel, identifierKindPlaceholder } from "../../utils";
+import { NamedTextField } from "../../ui/named-text-field";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 

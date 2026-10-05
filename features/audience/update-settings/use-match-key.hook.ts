@@ -6,9 +6,10 @@ import {
   isAudienceIdentifierKind,
   type AudienceIdentifierKind,
 } from "@/lib/endatix-api/audience/types";
-import { runUpdateMatchKey } from "./audience-runs";
+import { runUpdateMatchKey } from "../audience-runs";
 
 export type MatchKeyState = {
+  formId: string;
   identifierKind: AudienceIdentifierKind;
   /** From the API: someone is on a form's audience somewhere in the tenant. */
   isLocked: boolean;
@@ -16,6 +17,7 @@ export type MatchKeyState = {
 };
 
 export function useMatchKey({
+  formId,
   identifierKind,
   isLocked,
   canManage,
@@ -26,7 +28,7 @@ export function useMatchKey({
   function change(value: string): void {
     if (!isAudienceIdentifierKind(value) || value === identifierKind) return;
     startTransition(async () => {
-      if (await runUpdateMatchKey(value)) {
+      if (await runUpdateMatchKey(formId, value)) {
         router.refresh();
       }
     });

@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { AudienceDataType } from "@/lib/endatix-api/audience/types";
-import { runCreateProperty } from "./audience-runs";
+import { runCreateProperty } from "../audience-runs";
 
 export function useCreateProperty(formId: string) {
   const router = useRouter();

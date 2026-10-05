@@ -12,8 +12,8 @@ import type {
   AudiencePerson,
   AudienceProperty,
 } from "@/lib/endatix-api/audience/types";
-import { identifierKindLabel } from "./data-types";
-import { PersonTableRow } from "./person-table-row";
+import { identifierKindLabel } from "../../utils";
+import { PersonTableRow } from "../../update-person/ui/person-table-row";
 
 type Props = {
   formId: string;

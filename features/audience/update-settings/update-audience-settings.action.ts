@@ -10,6 +10,7 @@ import { withHubAudienceApi } from "../shared/with-hub-audience-api";
 export type UpdateAudienceSettingsResult = Result<AudienceSettings>;
 
 export async function updateAudienceSettingsAction(
+  formId: string,
   identifierKind: AudienceIdentifierKind,
 ): Promise<UpdateAudienceSettingsResult> {
   return withHubAudienceApi(
@@ -18,6 +19,7 @@ export async function updateAudienceSettingsAction(
       fallbackMessage: "Failed to update audience settings.",
       logMessage: "Failed to update audience settings.",
       loggerName: "audience.settings.update",
+      formId,
     },
   );
 }

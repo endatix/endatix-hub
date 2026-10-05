@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import type { AudienceProperty } from "@/lib/endatix-api/audience/types";
-import { dataTypeLabel } from "./data-types";
+import { dataTypeLabel } from "../../utils";
 import { Pencil, Trash2 } from "lucide-react";
 
 type Props = {

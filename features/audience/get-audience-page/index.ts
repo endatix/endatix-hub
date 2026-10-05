@@ -1,5 +1,6 @@
-export { getAudiencePageAction } from "./get-audience-page.action";
-export type {
-  AudiencePageData,
-  GetAudiencePageResult,
-} from "./get-audience-page.action";
+export {
+  loadAudiencePage,
+  loadFormForAudience,
+} from "./load-audience-page.server";
+export type { AudiencePageData } from "./load-audience-page.server";
+export { parsePeoplePage } from "./parse-people-page";

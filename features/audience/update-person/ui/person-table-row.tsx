@@ -5,7 +5,7 @@ import type {
   AudienceProperty,
 } from "@/lib/endatix-api/audience/types";
 import { PersonRowCells } from "./person-row-cells";
-import { usePersonRow } from "./use-person-row";
+import { usePersonRow } from "../use-person-row.hook";
 
 type PersonTableRowProps = {
   formId: string;

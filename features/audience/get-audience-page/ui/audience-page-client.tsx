@@ -1,7 +1,7 @@
 "use client";
 
-import type { AudiencePageData } from "../get-audience-page";
-import { MatchKeySettings } from "./match-key-settings";
+import type { AudiencePageData } from "../index";
+import { MatchKeySettings } from "../../update-settings/ui/match-key-settings";
 import { PeopleSection } from "./people-section";
 import { PropertiesSection } from "./properties-section";
 
@@ -11,6 +11,7 @@ export function AudiencePageClient({ formId, data }: Readonly<Props>) {
   return (
     <div className="space-y-10">
       <MatchKeySettings
+        formId={formId}
         identifierKind={data.settings.identifierKind}
         isLocked={data.settings.isLocked}
         canManage={data.canManageMatchKey}
@@ -22,6 +23,8 @@ export function AudiencePageClient({ formId, data }: Readonly<Props>) {
         properties={data.properties}
         people={data.people}
         totalPeople={data.totalPeople}
+        page={data.page}
+        pageSize={data.pageSize}
       />
     </div>
   );

@@ -3,7 +3,7 @@
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { AudiencePerson } from "@/lib/endatix-api/audience/types";
-import { runDeletePerson, runUpdatePersonValues } from "./audience-runs";
+import { runDeletePerson, runUpdatePersonValues } from "../audience-runs";
 
 export function usePersonRow(formId: string, person: AudiencePerson) {
   const router = useRouter();

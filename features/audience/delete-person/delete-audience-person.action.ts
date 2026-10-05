@@ -15,6 +15,7 @@ export async function deleteAudiencePersonAction(
       fallbackMessage: "Failed to remove audience person.",
       logMessage: "Failed to remove audience person.",
       loggerName: "audience.people.delete",
+      formId,
     },
   );
 }

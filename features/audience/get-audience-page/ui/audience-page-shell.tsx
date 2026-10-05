@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import PageTitle from "@/components/headings/page-title";
-import { AudiencePageClient } from "@/features/audience/ui";
 import type { AudiencePageData } from "@/features/audience/get-audience-page";
+import { AudiencePageClient } from "./audience-page-client";
 
 type AudiencePageShellProps = {
   formId: string;

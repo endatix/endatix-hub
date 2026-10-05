@@ -3,13 +3,13 @@
 import { toast } from "@/components/ui/toast";
 import { Result } from "@/lib/result";
 import type { AudienceDataType } from "@/lib/endatix-api/audience/types";
-import { createAudiencePropertyAction } from "../create-property";
-import { deleteAudiencePropertyAction } from "../delete-property";
-import { updateAudiencePropertyAction } from "../update-property";
-import { createAudiencePersonAction } from "../create-person";
-import { deleteAudiencePersonAction } from "../delete-person";
-import { updateAudiencePersonAction } from "../update-person";
-import { updateAudienceSettingsAction } from "../update-settings";
+import { createAudiencePropertyAction } from "./create-property";
+import { deleteAudiencePropertyAction } from "./delete-property";
+import { updateAudiencePropertyAction } from "./update-property";
+import { createAudiencePersonAction } from "./create-person";
+import { deleteAudiencePersonAction } from "./delete-person";
+import { updateAudiencePersonAction } from "./update-person";
+import { updateAudienceSettingsAction } from "./update-settings";
 import type {
   AudienceIdentifierKind,
   AudiencePerson,
@@ -103,10 +103,11 @@ export async function runDeletePerson(
 }
 
 export async function runUpdateMatchKey(
+  formId: string,
   identifierKind: AudienceIdentifierKind,
 ): Promise<boolean> {
   return runAction(
-    await updateAudienceSettingsAction(identifierKind),
+    await updateAudienceSettingsAction(formId, identifierKind),
     "Match key updated",
   );
 }

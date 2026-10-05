@@ -1,8 +1,8 @@
 "use client";
 
 import type { AudienceProperty } from "@/lib/endatix-api/audience/types";
-import { PropertyCreateForm } from "./property-create-form";
-import { PropertyRow } from "./property-row";
+import { PropertyCreateForm } from "../../create-property/ui/property-create-form";
+import { PropertyRow } from "../../update-property/ui/property-row";
 
 type PropertiesSectionProps = {
   formId: string;

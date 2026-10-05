@@ -9,7 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { AudienceIdentifierKind } from "@/lib/endatix-api/audience/types";
-import { AUDIENCE_IDENTIFIER_KINDS } from "./data-types";
+import { AUDIENCE_IDENTIFIER_KINDS } from "../../utils";
 
 type MatchKeySelectProps = {
   identifierKind: AudienceIdentifierKind;

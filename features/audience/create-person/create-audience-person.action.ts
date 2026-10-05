@@ -44,6 +44,6 @@ export async function createAudiencePersonAction(
         identifier,
         values: withoutBlankValues(input.values),
       }),
-    CREATE_LOG,
+    { ...CREATE_LOG, formId: input.formId },
   );
 }

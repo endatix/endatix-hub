@@ -1,5 +1,5 @@
-export { getAudiencePageAction } from "./get-audience-page";
-export type { AudiencePageData, GetAudiencePageResult } from "./get-audience-page";
+export { loadAudiencePage, loadFormForAudience } from "./get-audience-page";
+export type { AudiencePageData } from "./get-audience-page";
 export { createAudiencePropertyAction } from "./create-property";
 export { updateAudiencePropertyAction } from "./update-property";
 export { deleteAudiencePropertyAction } from "./delete-property";

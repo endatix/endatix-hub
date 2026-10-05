@@ -45,6 +45,6 @@ export async function updateAudiencePropertyAction(
         input.propertyId,
         validated.value,
       ),
-    UPDATE_LOG,
+    { ...UPDATE_LOG, formId: input.formId },
   );
 }

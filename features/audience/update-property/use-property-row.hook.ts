@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { AudienceProperty } from "@/lib/endatix-api/audience/types";
-import { runDeleteProperty, runRenameProperty } from "./audience-runs";
+import { runDeleteProperty, runRenameProperty } from "../audience-runs";
 
 function useNameEditor(savedName: string) {
   const [editing, setEditing] = useState(false);

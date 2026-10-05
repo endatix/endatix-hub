@@ -1,7 +1,7 @@
 "use client";
 
 import { MatchKeySelect } from "./match-key-select";
-import { useMatchKey, type MatchKeyState } from "./use-match-key";
+import { useMatchKey, type MatchKeyState } from "../use-match-key.hook";
 
 const MATCH_KEY_HINTS = Object.freeze({
   locked:

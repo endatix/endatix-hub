@@ -5,7 +5,7 @@ import type {
   AudienceProperty,
 } from "@/lib/endatix-api/audience/types";
 import { PeopleAddFields } from "./people-add-fields";
-import { useAddPerson } from "./use-add-person";
+import { useAddPerson } from "../use-add-person.hook";
 
 type PeopleAddFormProps = {
   formId: string;

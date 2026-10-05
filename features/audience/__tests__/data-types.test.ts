@@ -4,7 +4,7 @@ import {
   AUDIENCE_DATA_TYPES,
   CREATABLE_DATA_TYPES,
   dataTypeLabel,
-} from "../data-types";
+} from "../utils";
 
 describe("audience data types", () => {
   it("leaves choice types out of the create list until choices can be edited", () => {

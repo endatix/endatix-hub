@@ -3,7 +3,7 @@
 import type { AudienceProperty } from "@/lib/endatix-api/audience/types";
 import { PropertyRowEdit } from "./property-row-edit";
 import { PropertyRowView } from "./property-row-view";
-import { usePropertyRow } from "./use-property-row";
+import { usePropertyRow } from "../use-property-row.hook";
 
 type Props = { formId: string; property: AudienceProperty };
 

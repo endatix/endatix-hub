@@ -6,7 +6,7 @@ import type {
   AudienceProperty,
   AudiencePropertyValues,
 } from "@/lib/endatix-api/audience/types";
-import { runCreatePerson } from "./audience-runs";
+import { runCreatePerson } from "../audience-runs";
 
 function emptyValues(properties: AudienceProperty[]): AudiencePropertyValues {
   const values: AudiencePropertyValues = {};

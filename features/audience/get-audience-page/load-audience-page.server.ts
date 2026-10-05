@@ -1,5 +1,3 @@
-"use server";
-
 import { auth } from "@/auth";
 import { authorization, Permissions } from "@/features/auth/authorization";
 import { EndatixApi } from "@/lib/endatix-api";
@@ -13,19 +11,19 @@ import type { AudiencePeoplePage } from "@/lib/endatix-api/audience/audience";
 import type { ApiResult } from "@/lib/endatix-api/shared/api-result";
 import { Result, toResult } from "@/lib/result";
 import type { MapApiResultToResultOptions } from "@/lib/result/map-api-result-to-result";
+import type { Form } from "@/types";
 
 export type AudiencePageData = {
   settings: AudienceSettings;
-  /** The match key is tenant-wide, so changing it needs the tenant settings permission. */
   canManageMatchKey: boolean;
   properties: AudienceProperty[];
   people: AudiencePerson[];
   totalPeople: number;
+  page: number;
+  pageSize: number;
 };
 
-export type GetAudiencePageResult = Result<AudiencePageData>;
-
-const FIRST_PAGE = 1;
+const PAGE_SIZE = AudiencePaging.DefaultPageSize;
 
 function unwrapPart<T>(apiResult: ApiResult<T>, label: string): Result<T> {
   return toResult(apiResult, {
@@ -35,45 +33,29 @@ function unwrapPart<T>(apiResult: ApiResult<T>, label: string): Result<T> {
   } as MapApiResultToResultOptions<T>);
 }
 
-async function fetchAudienceParts(formId: string) {
+async function fetchAudienceParts(formId: string, page: number) {
   const api = new EndatixApi((await auth())?.accessToken);
   return Promise.all([
     api.audience.getSettings(),
     api.audience.listProperties(formId),
-    api.audience.listPeople(formId, {
-      page: FIRST_PAGE,
-      pageSize: AudiencePaging.MaxPageSize,
-    }),
+    api.audience.listPeople(formId, { page, pageSize: PAGE_SIZE }),
   ]);
 }
 
-type AudiencePageParts = {
+type LoadedParts = {
   settings: AudienceSettings;
-  canManageMatchKey: boolean;
   properties: AudienceProperty[];
   people: AudiencePeoplePage;
 };
 
-function toPageData({
-  settings,
-  canManageMatchKey,
-  properties,
-  people,
-}: AudiencePageParts): AudiencePageData {
-  return {
-    settings,
-    canManageMatchKey,
-    properties,
-    people: [...people.items],
-    totalPeople: people.totalRecords,
-  };
-}
-
-type LoadedParts = Omit<AudiencePageParts, "canManageMatchKey">;
-
-async function loadAudienceParts(formId: string): Promise<Result<LoadedParts>> {
-  const [settingsApi, propertiesApi, peopleApi] =
-    await fetchAudienceParts(formId);
+async function loadAudienceParts(
+  formId: string,
+  page: number,
+): Promise<Result<LoadedParts>> {
+  const [settingsApi, propertiesApi, peopleApi] = await fetchAudienceParts(
+    formId,
+    page,
+  );
   const settings = unwrapPart(settingsApi, "settings");
   if (Result.isError(settings)) return settings;
   const properties = unwrapPart(propertiesApi, "properties");
@@ -88,22 +70,37 @@ async function loadAudienceParts(formId: string): Promise<Result<LoadedParts>> {
   });
 }
 
-export async function getAudiencePageAction(
+export async function loadAudiencePage(
   formId: string,
-): Promise<GetAudiencePageResult> {
+  page: number,
+): Promise<Result<AudiencePageData>> {
   const { requireHubAccess, checkPermission } = await authorization();
   await requireHubAccess();
 
   const [parts, matchKeyPermission] = await Promise.all([
-    loadAudienceParts(formId),
+    loadAudienceParts(formId, page),
     checkPermission(Permissions.Tenant.ManageSettings),
   ]);
   if (Result.isError(parts)) return parts;
 
-  return Result.success(
-    toPageData({
-      ...parts.value,
-      canManageMatchKey: matchKeyPermission.success,
-    }),
-  );
+  return Result.success({
+    settings: parts.value.settings,
+    canManageMatchKey: matchKeyPermission.success,
+    properties: parts.value.properties,
+    people: [...parts.value.people.items],
+    totalPeople: parts.value.people.totalRecords,
+    page,
+    pageSize: PAGE_SIZE,
+  });
+}
+
+export async function loadFormForAudience(
+  formId: string,
+): Promise<Result<Form>> {
+  const session = await auth();
+  return toResult(await new EndatixApi(session?.accessToken).forms.get(formId), {
+    fallbackMessage: "Failed to load form.",
+    logMessage: "Failed to load form for audience.",
+    loggerName: "audience.page",
+  });
 }

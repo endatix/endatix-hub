@@ -2,8 +2,8 @@
 
 import { Button } from "@/components/ui/button";
 import type { AudienceDataType } from "@/lib/endatix-api/audience/types";
-import { DataTypeSelect } from "./data-type-select";
-import { NamedTextField } from "./named-text-field";
+import { DataTypeSelect } from "../../ui/data-type-select";
+import { NamedTextField } from "../../ui/named-text-field";
 import { Plus } from "lucide-react";
 
 type Props = {

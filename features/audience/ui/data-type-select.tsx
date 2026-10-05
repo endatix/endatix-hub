@@ -9,7 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { AudienceDataType } from "@/lib/endatix-api/audience/types";
-import { CREATABLE_DATA_TYPES } from "./data-types";
+import { CREATABLE_DATA_TYPES } from "../utils";
 
 type DataTypeSelectProps = {
   value: AudienceDataType;

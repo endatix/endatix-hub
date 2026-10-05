@@ -37,6 +37,6 @@ export async function createAudiencePropertyAction(
         choicesJson: input.choicesJson,
         allowsOther: input.allowsOther ?? false,
       }),
-    CREATE_LOG,
+    { ...CREATE_LOG, formId: input.formId },
   );
 }

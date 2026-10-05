@@ -1,6 +1,6 @@
 "use client";
 
-import { useCreateProperty } from "./use-create-property";
+import { useCreateProperty } from "../use-create-property.hook";
 import { PropertyCreateFields } from "./property-create-fields";
 
 type PropertyCreateFormProps = {
