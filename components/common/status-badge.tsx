@@ -3,12 +3,13 @@
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
-export type StatusTone = "on" | "off" | "attention";
+export type StatusTone = "on" | "off" | "attention" | "idle";
 
 const TONE_VARIANT = {
   on: "success",
   off: "secondary",
   attention: "warning",
+  idle: "info",
 } as const;
 
 interface StatusBadgeProps {

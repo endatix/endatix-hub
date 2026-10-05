@@ -2,12 +2,14 @@ import type { StatusTone } from "@/components/common/status-badge";
 
 /**
  * Where the interview stands. The tone follows the group, never the code:
- * still collecting (`open`) waits, `complete` succeeded, `ended` closed without
+ * `unengaged` (the respondent has not answered anything yet) is idle, still
+ * collecting (`open`) waits, `complete` succeeded, `ended` closed without
  * completing — a legitimate outcome, not a failure.
  */
-export type CollectionStatusGroup = "open" | "complete" | "ended";
+export type CollectionStatusGroup = "unengaged" | "open" | "complete" | "ended";
 
 const GROUP_TONE: Record<CollectionStatusGroup, StatusTone> = {
+  unengaged: "idle",
   open: "attention",
   complete: "on",
   ended: "off",
@@ -18,6 +20,8 @@ const BUILT_IN: Record<
   string,
   { group: CollectionStatusGroup; label: string }
 > = {
+  not_started: { group: "unengaged", label: "Not started" },
+  viewed: { group: "unengaged", label: "Viewed" },
   in_progress: { group: "open", label: "In progress" },
   expired: { group: "open", label: "Expired" },
   complete: { group: "complete", label: "Complete" },
