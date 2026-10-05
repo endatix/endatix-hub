@@ -13,6 +13,12 @@ per feature; add a reference implementation to an existing recipe instead. Imple
 detail (pixel values, retry counts, vendor quirks) goes in code comments or a README beside the
 component.
 
+**This is an evolving document.** Every rule here records the current decision and the reason for
+it, not a law. When a real case shows a rule no longer fits, change the rule in the same change
+as the code, and keep the reason. Don't work around it locally, and don't leave the old wording
+behind. The new rule must still be general and keep §1's principles. Absolute wording ("never",
+"only") means "not without changing this file first".
+
 ---
 
 ## 1. Principles
@@ -124,7 +130,7 @@ Before building a control, check whether the vocabulary already exists here.
 
 | Component                                                                | Owns                                                                                  |
 | :----------------------------------------------------------------------- | :------------------------------------------------------------------------------------ |
-| `components/common/status-badge.tsx` — `StatusBadge`                     | The three-tone on / off / attention pill (Status vocabulary, below)                   |
+| `components/common/status-badge.tsx` — `StatusBadge`                     | The four-tone on / off / attention / idle pill (Status vocabulary, below)             |
 | `components/common/file-kind-icon.tsx` — `FileKindIcon`, `FileKindLabel` | The file-type mark and its icon+label row (File Type Marks, below)                    |
 | `components/common/panel-section.tsx` — `PanelSection`                   | A titled concern inside an overlay, on a nested surface (§6 Create / edit overlay)    |
 | `components/common/summary-row.tsx` — `SummaryRow`                       | Label-left / value-right rows (§6 Displaying values)                                  |
@@ -147,13 +153,14 @@ decided by "Where UI for a shared concept lives" in `project-structure.md`.
 
 ### Status vocabulary — `StatusBadge`
 
-**Three tones. There is no fourth.**
+**Four tones.** Add a fifth only by changing this table, with a state none of the four can express.
 
 | Tone        | Meaning                                                  | Badge variant | Example labels                       |
 | :---------- | :------------------------------------------------------- | :------------ | :----------------------------------- |
 | `on`        | Present / active / healthy / accepted                    | `success`     | Configured, Set, On, Enabled, Active |
 | `off`       | Absent, inactive or declined — **a legitimate state**    | `secondary`   | Not set, Off, Disabled, Rejected     |
 | `attention` | Required and missing, or waiting — the operator must act | `warning`     | Not configured, Expired, Pending     |
+| `idle`      | Exists, but nothing has happened yet — nobody to chase   | `info`        | Not started, Viewed                  |
 
 - `destructive` is only for something actively failing, or confirming a destructive action.
   Never for "empty", never for a declined request.
@@ -162,10 +169,15 @@ decided by "Where UI for a shared concept lives" in `project-structure.md`.
   icons — differing shapes read as differing _kinds_ of information.
 - **One label per concept per page** ("Enabled/Disabled" _or_ "On/Off", everywhere).
 - **A lifecycle with many codes is grouped first; the tone follows the group, never the code.**
-  Collection status: still collecting (`In progress`, `Expired`) is `attention`, `Complete` is
+  Collection status: not yet engaged (`Not started`, `Viewed` — the respondent has answered
+  nothing) is `idle`, still collecting (`In progress`, `Expired`) is `attention`, `Complete` is
   `on`, ended without completing (`Screened out`, `Quota full`, `Abandoned`, `Cancelled`) is
   `off` — a legitimate outcome, not a failure. The group, not the code, also decides what else
   applies to the record. Reference: `features/submissions/ui/describe-collection-status.ts`.
+- **`idle` is only the first step of a lifecycle** — the record exists and nothing has happened
+  to it. It is quieter than `attention` (no one has to act) and must not read as `off` (nothing
+  has ended). Never use it for "informational" or "optional"; a fact with no lifecycle has no
+  badge tone (§5 Alerts for callouts).
 - **An unknown code is never shown raw.** It joins the neutral group and is humanised
   (`panel_hold` → `Panel hold`), so a code added on the server reads like its siblings.
 - **One record, several status axes: the lifecycle is "Status", every other axis names itself.**
@@ -789,7 +801,7 @@ Before finishing UI work, check:
 
 - [ ] Only semantic tokens; any new token is registered in `@theme inline` (§2).
 - [ ] No 1px sectioning borders, no `Card` inside an overlay or around a table (§2, §4).
-- [ ] Every state is a `StatusBadge` in one of three tones, the same label everywhere; many codes
+- [ ] Every state is a `StatusBadge` in one of four tones, the same label everywhere; many codes
       are grouped and the group picks the tone; only the lifecycle is called "Status" (§5).
 - [ ] File deliverables carry `FileKindLabel` on every surface; unknown kinds get the generic glyph (§5).
 - [ ] Peer cards use `.grid-card-list`, not viewport breakpoints (§5).

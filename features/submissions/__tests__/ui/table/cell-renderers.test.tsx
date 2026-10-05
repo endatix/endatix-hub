@@ -18,18 +18,39 @@ describe("CellCompleteStatus", () => {
 
     // Assert
     expect(
-      screen.getByText("In progress").closest("[data-tone]")?.getAttribute("data-tone"),
+      screen
+        .getByText("In progress")
+        .closest("[data-tone]")
+        ?.getAttribute("data-tone"),
     ).toBe("attention");
   });
 
   it("shows the collection status instead of the isComplete fallback", () => {
     // Arrange & Act
-    render(<CellCompleteStatus isComplete={false} collectionStatus="cancelled" />);
+    render(
+      <CellCompleteStatus isComplete={false} collectionStatus="cancelled" />,
+    );
 
     // Assert
     expect(
-      screen.getByText("Cancelled").closest("[data-tone]")?.getAttribute("data-tone"),
+      screen
+        .getByText("Cancelled")
+        .closest("[data-tone]")
+        ?.getAttribute("data-tone"),
     ).toBe("off");
+  });
+
+  it.each([
+    ["not_started", "Not started"],
+    ["viewed", "Viewed"],
+  ])("shows %s in the idle tone, apart from In progress", (code, label) => {
+    // Arrange & Act
+    render(<CellCompleteStatus isComplete={false} collectionStatus={code} />);
+
+    // Assert
+    const badge = screen.getByText(label).closest("[data-tone]");
+    expect(badge?.getAttribute("data-tone")).toBe("idle");
+    expect(badge?.getAttribute("data-variant")).toBe("info");
   });
 });
 

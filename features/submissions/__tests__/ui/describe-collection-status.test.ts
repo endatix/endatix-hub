@@ -17,17 +17,28 @@ describe("describeCollectionStatus", () => {
       tone: "attention",
       label: "Expired",
     });
-    expect(describeCollectionStatus("not_started", false).label).toBe("Not started");
-    expect(describeCollectionStatus("viewed", false)).toEqual({
-      group: "open",
-      tone: "attention",
-      label: "Viewed",
-    });
     expect(describeCollectionStatus("screen_out", false)).toEqual({
       group: "ended",
       tone: "off",
       label: "Screened out",
     });
+  });
+
+  it("groups not-started and viewed as unengaged, apart from in progress", () => {
+    // Act & Assert
+    expect(describeCollectionStatus("not_started", false)).toEqual({
+      group: "unengaged",
+      tone: "idle",
+      label: "Not started",
+    });
+    expect(describeCollectionStatus("Viewed", false)).toEqual({
+      group: "unengaged",
+      tone: "idle",
+      label: "Viewed",
+    });
+    expect(describeCollectionStatus("in_progress", false).tone).toBe(
+      "attention",
+    );
   });
 
   it("falls back to isComplete when no code is supplied", () => {
@@ -61,14 +72,18 @@ describe("isReviewApplicable", () => {
     expect(isReviewApplicable(complete, "new")).toBe(true);
   });
 
-  it("does not apply to a submission still being collected or ended", () => {
+  it("does not apply to a submission not yet engaged, still being collected or ended", () => {
     // Arrange
     const inProgress = describeCollectionStatus("in_progress", false);
+    const notStarted = describeCollectionStatus("not_started", false);
+    const viewed = describeCollectionStatus("viewed", false);
     const screenedOut = describeCollectionStatus("screen_out", false);
 
     // Act & Assert
     expect(isReviewApplicable(inProgress, "new")).toBe(false);
     expect(isReviewApplicable(screenedOut, undefined)).toBe(false);
+    expect(isReviewApplicable(notStarted, "new")).toBe(false);
+    expect(isReviewApplicable(viewed, undefined)).toBe(false);
   });
 
   it("keeps a review already recorded on an incomplete submission", () => {
