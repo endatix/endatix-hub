@@ -1,10 +1,17 @@
 export const COMPLETE_TRIGGER_NAVIGATION_EXTENSION_ID =
   "complete-trigger-navigation";
 
-export const CHANGE_NAVIGATION_BUTTONS_ON_COMPLETE_PROPERTY =
-  "changeNavigationButtonsOnComplete";
+/**
+ * `edx` prefix per the other feature-slice properties (`edxHideUntilTyping`,
+ * `edxDataListId`, …). It also keeps the key off SurveyJS's own
+ * `settings.triggers.changeNavigationButtonsOnComplete`: a future
+ * survey-level property of that name would make `hasProperty()` in
+ * `registry.ts` skip Hub's registration.
+ */
+export const EDX_CHANGE_NAVIGATION_ON_COMPLETE_PROPERTY =
+  "edxChangeNavigationOnComplete";
 
-export const CHANGE_NAVIGATION_BUTTONS_ON_COMPLETE_DISPLAY_NAME =
+export const EDX_CHANGE_NAVIGATION_ON_COMPLETE_DISPLAY_NAME =
   "Replace Next with Complete when a complete trigger is met";
 
 /**
@@ -13,7 +20,4 @@ export const CHANGE_NAVIGATION_BUTTONS_ON_COMPLETE_DISPLAY_NAME =
  * resolved order, not this number — a SurveyJS bump that reorders the tab
  * must fail the test rather than silently move the checkbox.
  */
-export const CHANGE_NAVIGATION_BUTTONS_ON_COMPLETE_VISIBLE_INDEX = 7;
-
-export const COMPLETE_TRIGGER_NAVIGATION_CREATOR_BOUND_KEY =
-  "__endatixCompleteTriggerNavigationBound";
+export const EDX_CHANGE_NAVIGATION_ON_COMPLETE_VISIBLE_INDEX = 7;

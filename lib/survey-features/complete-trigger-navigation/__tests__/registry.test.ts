@@ -2,10 +2,13 @@ import { Model, Serializer } from "survey-core";
 import { PropertyGridModel } from "survey-creator-core";
 import { beforeAll, describe, expect, it } from "vitest";
 import {
-  CHANGE_NAVIGATION_BUTTONS_ON_COMPLETE_DISPLAY_NAME,
-  CHANGE_NAVIGATION_BUTTONS_ON_COMPLETE_PROPERTY,
+  EDX_CHANGE_NAVIGATION_ON_COMPLETE_DISPLAY_NAME,
+  EDX_CHANGE_NAVIGATION_ON_COMPLETE_PROPERTY,
 } from "../constants";
-import { registerCompleteTriggerNavigationProperty } from "../infrastructure/registry";
+import {
+  registerCompleteTriggerNavigationProperty,
+  revealCompleteTriggerNavigationProperty,
+} from "../infrastructure/registry";
 
 const TWO_PAGE_SURVEY = {
   pages: [
@@ -14,10 +17,10 @@ const TWO_PAGE_SURVEY = {
   ],
 };
 
-function navigationQuestionNames(model: Model): string[] {
+function panelQuestionNames(model: Model, panel: string): string[] {
   const grid = new PropertyGridModel(model);
-  const navigationPanel = grid.survey.getPanelByName("navigation");
-  return navigationPanel.questions.map((question) => question.name);
+  const found = grid.survey.getPanelByName(panel);
+  return found ? found.questions.map((question) => question.name) : [];
 }
 
 describe("registerCompleteTriggerNavigationProperty", () => {
@@ -29,7 +32,7 @@ describe("registerCompleteTriggerNavigationProperty", () => {
     // Act
     const property = Serializer.findProperty(
       "survey",
-      CHANGE_NAVIGATION_BUTTONS_ON_COMPLETE_PROPERTY,
+      EDX_CHANGE_NAVIGATION_ON_COMPLETE_PROPERTY,
     );
 
     // Assert
@@ -37,7 +40,7 @@ describe("registerCompleteTriggerNavigationProperty", () => {
     expect(property?.type).toBe("boolean");
     expect(property?.defaultValue).toBe(true);
     expect(property?.displayName).toBe(
-      CHANGE_NAVIGATION_BUTTONS_ON_COMPLETE_DISPLAY_NAME,
+      EDX_CHANGE_NAVIGATION_ON_COMPLETE_DISPLAY_NAME,
     );
     expect(property?.category).toBe("navigation");
   });
@@ -47,47 +50,63 @@ describe("registerCompleteTriggerNavigationProperty", () => {
     registerCompleteTriggerNavigationProperty();
     const property = Serializer.findProperty(
       "survey",
-      CHANGE_NAVIGATION_BUTTONS_ON_COMPLETE_PROPERTY,
+      EDX_CHANGE_NAVIGATION_ON_COMPLETE_PROPERTY,
     );
 
     // Assert
     expect(property?.category).toBe("navigation");
   });
 
-  it("places the property on the navigation tab immediately after showPrevButton", () => {
+  it("stays off the property grid until it is revealed, and still serializes", () => {
     // Arrange
+    const model = new Model(TWO_PAGE_SURVEY);
+    const stored = new Model({
+      ...TWO_PAGE_SURVEY,
+      [EDX_CHANGE_NAVIGATION_ON_COMPLETE_PROPERTY]: false,
+    });
+
+    // Act
+    const navigationNames = panelQuestionNames(model, "navigation");
+    const storedJson = stored.toJSON();
+
+    // Assert
+    expect(
+      navigationNames.includes(EDX_CHANGE_NAVIGATION_ON_COMPLETE_PROPERTY),
+    ).toBe(false);
+    expect(storedJson[EDX_CHANGE_NAVIGATION_ON_COMPLETE_PROPERTY]).toBe(false);
+  });
+
+  it("places the property on the navigation tab immediately after showPrevButton once revealed", () => {
+    // Arrange
+    revealCompleteTriggerNavigationProperty();
     const model = new Model(TWO_PAGE_SURVEY);
 
     // Act
-    const names = navigationQuestionNames(model);
+    const names = panelQuestionNames(model, "navigation");
     const previousButtonIndex = names.indexOf("showPrevButton");
     const propertyIndex = names.indexOf(
-      CHANGE_NAVIGATION_BUTTONS_ON_COMPLETE_PROPERTY,
+      EDX_CHANGE_NAVIGATION_ON_COMPLETE_PROPERTY,
     );
-    const othersPanel = new PropertyGridModel(model).survey.getPanelByName(
-      "others",
-    );
-    const onOthersTab = othersPanel?.questions.some(
-      (question) =>
-        question.name === CHANGE_NAVIGATION_BUTTONS_ON_COMPLETE_PROPERTY,
+    const onOthersTab = panelQuestionNames(model, "others").includes(
+      EDX_CHANGE_NAVIGATION_ON_COMPLETE_PROPERTY,
     );
 
     // Assert
     expect(previousButtonIndex).toBeGreaterThanOrEqual(0);
     expect(propertyIndex).toBe(previousButtonIndex + 1);
-    expect(onOthersTab).toBeFalsy();
+    expect(onOthersTab).toBe(false);
   });
 
   it("keeps false through toJSON and omits the default true", () => {
     // Arrange
     const turnedOff = new Model({
       ...TWO_PAGE_SURVEY,
-      [CHANGE_NAVIGATION_BUTTONS_ON_COMPLETE_PROPERTY]: false,
+      [EDX_CHANGE_NAVIGATION_ON_COMPLETE_PROPERTY]: false,
     });
     const leftOn = new Model(TWO_PAGE_SURVEY);
     const explicitTrue = new Model({
       ...TWO_PAGE_SURVEY,
-      [CHANGE_NAVIGATION_BUTTONS_ON_COMPLETE_PROPERTY]: true,
+      [EDX_CHANGE_NAVIGATION_ON_COMPLETE_PROPERTY]: true,
     });
 
     // Act
@@ -97,13 +116,15 @@ describe("registerCompleteTriggerNavigationProperty", () => {
     const reloaded = new Model(offJson);
 
     // Assert
-    expect(offJson[CHANGE_NAVIGATION_BUTTONS_ON_COMPLETE_PROPERTY]).toBe(false);
-    expect(onJson[CHANGE_NAVIGATION_BUTTONS_ON_COMPLETE_PROPERTY]).toBeUndefined();
+    expect(offJson[EDX_CHANGE_NAVIGATION_ON_COMPLETE_PROPERTY]).toBe(false);
     expect(
-      explicitTrueJson[CHANGE_NAVIGATION_BUTTONS_ON_COMPLETE_PROPERTY],
+      onJson[EDX_CHANGE_NAVIGATION_ON_COMPLETE_PROPERTY],
     ).toBeUndefined();
     expect(
-      reloaded.getPropertyValue(CHANGE_NAVIGATION_BUTTONS_ON_COMPLETE_PROPERTY),
+      explicitTrueJson[EDX_CHANGE_NAVIGATION_ON_COMPLETE_PROPERTY],
+    ).toBeUndefined();
+    expect(
+      reloaded.getPropertyValue(EDX_CHANGE_NAVIGATION_ON_COMPLETE_PROPERTY),
     ).toBe(false);
   });
 });
