@@ -38,6 +38,11 @@ describe("describeCollectionStatus", () => {
       label: "Panel hold",
     });
     expect(describeCollectionStatus("canceled", false).label).toBe("Canceled");
+    expect(describeCollectionStatus("constructor", false)).toEqual({
+      group: "ended",
+      tone: "off",
+      label: "Constructor",
+    });
   });
 });
 

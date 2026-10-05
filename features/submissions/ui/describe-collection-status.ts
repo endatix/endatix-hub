@@ -39,8 +39,8 @@ export function describeCollectionStatus(
   isComplete: boolean,
 ): CollectionStatusView {
   const supplied = code?.trim().toLowerCase();
-  const fallback = isComplete ? "complete" : "in_progress";
-  const known = BUILT_IN[supplied || fallback];
+  const key = supplied || (isComplete ? "complete" : "in_progress");
+  const known = Object.hasOwn(BUILT_IN, key) ? BUILT_IN[key] : undefined;
   const { group, label } = known ?? {
     group: "ended",
     label: humanizeCode(supplied ?? ""),

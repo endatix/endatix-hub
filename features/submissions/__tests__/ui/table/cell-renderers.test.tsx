@@ -17,7 +17,9 @@ describe("CellCompleteStatus", () => {
     render(<CellCompleteStatus isComplete={false} />);
 
     // Assert
-    expect(screen.getByText("In progress")).toBeDefined();
+    expect(
+      screen.getByText("In progress").closest("[data-tone]")?.getAttribute("data-tone"),
+    ).toBe("attention");
   });
 
   it("shows the collection status instead of the isComplete fallback", () => {
@@ -25,7 +27,9 @@ describe("CellCompleteStatus", () => {
     render(<CellCompleteStatus isComplete={false} collectionStatus="cancelled" />);
 
     // Assert
-    expect(screen.getByText("Cancelled")).toBeDefined();
+    expect(
+      screen.getByText("Cancelled").closest("[data-tone]")?.getAttribute("data-tone"),
+    ).toBe("off");
   });
 });
 
