@@ -1,7 +1,12 @@
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { useExtensionLoader } from "../use-extension-loader";
+import type { Model } from "survey-core";
+import type { SurveyCreatorModel } from "survey-creator-core";
 import type { ExtensionDefinition, ExtensionModule } from "../../types";
+
+const stubCreator = {} as unknown as SurveyCreatorModel;
+const stubModel = {} as unknown as Model;
 
 vi.mock("survey-react-ui", () => ({
   ReactElementFactory: {
@@ -84,6 +89,78 @@ describe("useExtensionLoader", () => {
     // Assert
     expect(onCreatorReady).toHaveBeenCalledTimes(1);
     expect(onCreatorReady).toHaveBeenCalledWith(mockCreator, expectedBaseDeps);
+  });
+
+  it("logs a rejected async onCreatorReady instead of leaving it unhandled", async () => {
+    // Arrange
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+    const chunkError = new Error("ChunkLoadError");
+    const allExtensions: ExtensionDefinition[] = [
+      createExtension("ext-rejects", {
+        onCreatorReady: () => Promise.reject(chunkError) as unknown as void,
+      }),
+      createExtension("ext-after", { onCreatorReady: vi.fn() }),
+    ];
+    const extensionIdsToLoad = ["ext-rejects", "ext-after"];
+
+    // Act
+    const { result } = renderHook(() =>
+      useExtensionLoader({ allExtensions, extensionIdsToLoad, runtimeDeps }),
+    );
+    await waitFor(() => {
+      expect(result.current.isReady).toBe(true);
+    });
+    act(() => {
+      result.current.onCreatorCreated(stubCreator);
+    });
+    await waitFor(() => {
+      expect(consoleError).toHaveBeenCalled();
+    });
+
+    // Assert
+    expect(consoleError).toHaveBeenCalledWith(
+      expect.stringContaining("ext-rejects"),
+      chunkError,
+    );
+    consoleError.mockRestore();
+  });
+
+  it("keeps running later extensions when one hook throws", async () => {
+    // Arrange
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+    const onModelReadyAfter = vi.fn();
+    const allExtensions: ExtensionDefinition[] = [
+      createExtension("ext-throws", {
+        onModelReady: () => {
+          throw new Error("boom");
+        },
+      }),
+      createExtension("ext-survives", { onModelReady: onModelReadyAfter }),
+    ];
+    const extensionIdsToLoad = ["ext-throws", "ext-survives"];
+
+    // Act
+    const { result } = renderHook(() =>
+      useExtensionLoader({ allExtensions, extensionIdsToLoad, runtimeDeps }),
+    );
+    await waitFor(() => {
+      expect(result.current.isReady).toBe(true);
+    });
+    act(() => {
+      result.current.onModelCreated(stubModel);
+    });
+
+    // Assert
+    expect(onModelReadyAfter).toHaveBeenCalledTimes(1);
+    expect(consoleError).toHaveBeenCalledWith(
+      expect.stringContaining("ext-throws"),
+      expect.any(Error),
+    );
+    consoleError.mockRestore();
   });
 
   it("returns isReady true after extensions load and onModelCreated invokes onModelReady", async () => {

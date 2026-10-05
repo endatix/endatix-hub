@@ -20,6 +20,45 @@ function getLoadingMode(extension: ExtensionDefinition): "static" | "dynamic" {
   return extension.loading;
 }
 
+function logExtensionError(extensionId: string, error: unknown): void {
+  console.error(`✗ [ExtensionLoader] Error: ${extensionId}`, error);
+}
+
+/**
+ * Runs a lifecycle hook so one extension cannot take down the others.
+ *
+ * A hook may be async (Creator bindings are commonly behind a dynamic
+ * import). Nothing awaits the hook, so without the rejection handler a
+ * ChunkLoadError after a deploy surfaces only as an unhandled rejection and
+ * the feature stays silently uninstalled.
+ */
+function runExtensionHook(extensionId: string, hook: () => unknown): void {
+  try {
+    const result = hook();
+    if (result instanceof Promise) {
+      result.catch((error: unknown) => logExtensionError(extensionId, error));
+    }
+  } catch (error) {
+    logExtensionError(extensionId, error);
+  }
+}
+
+/** Fans a lifecycle hook out to every loaded extension, in registry order. */
+function notifyExtensions(
+  extensions: ReadonlyArray<ExtensionDefinition>,
+  deps: ExtensionRuntimeDeps,
+  invoke: (mod: ExtensionModule, deps: ExtensionRuntimeDeps) => unknown,
+): void {
+  extensions.forEach((extension: ExtensionDefinition) => {
+    const mod = loadedModules.get(extension.id);
+    if (!mod) {
+      return;
+    }
+
+    runExtensionHook(extension.id, () => invoke(mod, deps));
+  });
+}
+
 function getStaticModule(
   extension: ExtensionDefinition,
 ): ExtensionModule | undefined {
@@ -84,7 +123,7 @@ function initializeStaticExtensions(extensions: ExtensionDefinition[]) {
       initializeModule(extension, mod);
       initializedExtensionIds.add(extension.id);
     } catch (error) {
-      console.error(`✗ [ExtensionLoader] Error: ${extension.id}`, error);
+      logExtensionError(extension.id, error);
     }
   });
 }
@@ -119,7 +158,7 @@ async function loadSingleExtension(ext: ExtensionDefinition) {
       }
       return initializeModule(ext, mod);
     } catch (error) {
-      console.error(`✗ [ExtensionLoader] Error: ${ext.id}`, error);
+      logExtensionError(ext.id, error);
       return undefined;
     } finally {
       loadingPromises.delete(ext.id);
@@ -198,24 +237,18 @@ export function useExtensionLoader({
   }, [extensionIdsKey]);
 
   const onModelCreated = useCallback(
-    (model: Model) => {
-      const currentRuntimeDeps = runtimeDepsRef.current;
-      extensionsToLoad.forEach((ext: ExtensionDefinition) => {
-        loadedModules.get(ext.id)?.onModelReady?.(model, currentRuntimeDeps);
-      });
-    },
+    (model: Model) =>
+      notifyExtensions(extensionsToLoad, runtimeDepsRef.current, (mod, deps) =>
+        mod.onModelReady?.(model, deps),
+      ),
     [extensionsToLoad],
   );
 
   const onCreatorCreated = useCallback(
-    (creator: SurveyCreatorModel) => {
-      const currentRuntimeDeps = runtimeDepsRef.current;
-      extensionsToLoad.forEach((ext: ExtensionDefinition) => {
-        loadedModules
-          .get(ext.id)
-          ?.onCreatorReady?.(creator, currentRuntimeDeps);
-      });
-    },
+    (creator: SurveyCreatorModel) =>
+      notifyExtensions(extensionsToLoad, runtimeDepsRef.current, (mod, deps) =>
+        mod.onCreatorReady?.(creator, deps),
+      ),
     [extensionsToLoad],
   );
 
