@@ -16,6 +16,18 @@ export const AUDIENCE_DATA_TYPES: ReadonlyArray<{
   { value: AudienceDataType.MultipleChoice, label: "Multiple choice" },
 ]);
 
+/**
+ * Types a new property can use. Choice types need choices, which the API requires and this tab
+ * has no editor for yet, so they are left out until the import wizard adds one.
+ */
+export const CREATABLE_DATA_TYPES = Object.freeze(
+  AUDIENCE_DATA_TYPES.filter(
+    (entry) =>
+      entry.value !== AudienceDataType.SingleChoice &&
+      entry.value !== AudienceDataType.MultipleChoice,
+  ),
+);
+
 export function dataTypeLabel(dataType: string): string {
   return (
     AUDIENCE_DATA_TYPES.find((entry) => entry.value === dataType)?.label ??

@@ -1,7 +1,7 @@
 "use server";
 
 import { auth } from "@/auth";
-import { authorization } from "@/features/auth/authorization";
+import { authorization, Permissions } from "@/features/auth/authorization";
 import { EndatixApi } from "@/lib/endatix-api";
 import {
   AudiencePaging,
@@ -16,6 +16,8 @@ import type { MapApiResultToResultOptions } from "@/lib/result/map-api-result-to
 
 export type AudiencePageData = {
   settings: AudienceSettings;
+  /** The match key is tenant-wide, so changing it needs the tenant settings permission. */
+  canManageMatchKey: boolean;
   properties: AudienceProperty[];
   people: AudiencePerson[];
   totalPeople: number;
@@ -45,25 +47,31 @@ async function fetchAudienceParts(formId: string) {
   ]);
 }
 
-function toPageData(
-  settings: AudienceSettings,
-  properties: AudienceProperty[],
-  people: AudiencePeoplePage,
-): AudiencePageData {
+type AudiencePageParts = {
+  settings: AudienceSettings;
+  canManageMatchKey: boolean;
+  properties: AudienceProperty[];
+  people: AudiencePeoplePage;
+};
+
+function toPageData({
+  settings,
+  canManageMatchKey,
+  properties,
+  people,
+}: AudiencePageParts): AudiencePageData {
   return {
     settings,
+    canManageMatchKey,
     properties,
     people: [...people.items],
     totalPeople: people.totalRecords,
   };
 }
 
-export async function getAudiencePageAction(
-  formId: string,
-): Promise<GetAudiencePageResult> {
-  const { requireHubAccess } = await authorization();
-  await requireHubAccess();
+type LoadedParts = Omit<AudiencePageParts, "canManageMatchKey">;
 
+async function loadAudienceParts(formId: string): Promise<Result<LoadedParts>> {
   const [settingsApi, propertiesApi, peopleApi] =
     await fetchAudienceParts(formId);
   const settings = unwrapPart(settingsApi, "settings");
@@ -73,7 +81,29 @@ export async function getAudiencePageAction(
   const people = unwrapPart(peopleApi, "people");
   if (Result.isError(people)) return people;
 
+  return Result.success({
+    settings: settings.value,
+    properties: properties.value,
+    people: people.value,
+  });
+}
+
+export async function getAudiencePageAction(
+  formId: string,
+): Promise<GetAudiencePageResult> {
+  const { requireHubAccess, checkPermission } = await authorization();
+  await requireHubAccess();
+
+  const [parts, matchKeyPermission] = await Promise.all([
+    loadAudienceParts(formId),
+    checkPermission(Permissions.Tenant.ManageSettings),
+  ]);
+  if (Result.isError(parts)) return parts;
+
   return Result.success(
-    toPageData(settings.value, properties.value, people.value),
+    toPageData({
+      ...parts.value,
+      canManageMatchKey: matchKeyPermission.success,
+    }),
   );
 }

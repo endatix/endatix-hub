@@ -8,10 +8,18 @@ import {
 } from "@/lib/endatix-api/audience/types";
 import { runUpdateMatchKey } from "./audience-runs";
 
-export function useMatchKey(
-  identifierKind: AudienceIdentifierKind,
-  hasMembers: boolean,
-) {
+export type MatchKeyState = {
+  identifierKind: AudienceIdentifierKind;
+  /** From the API: someone is on a form's audience somewhere in the tenant. */
+  isLocked: boolean;
+  canManage: boolean;
+};
+
+export function useMatchKey({
+  identifierKind,
+  isLocked,
+  canManage,
+}: MatchKeyState) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
@@ -24,5 +32,9 @@ export function useMatchKey(
     });
   }
 
-  return { pending: pending || hasMembers, change, identifierKind };
+  return {
+    disabled: pending || isLocked || !canManage,
+    change,
+    identifierKind,
+  };
 }

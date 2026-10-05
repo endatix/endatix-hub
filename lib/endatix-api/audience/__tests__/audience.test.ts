@@ -28,7 +28,10 @@ describe("buildListAudiencePeopleEndpoint", () => {
 
 describe("Audience settings", () => {
   it("reads and writes /audience/settings", async () => {
-    const settings = { identifierKind: AudienceIdentifierKind.Email };
+    const settings = {
+      identifierKind: AudienceIdentifierKind.Email,
+      isLocked: false,
+    };
     const get = vi.fn().mockResolvedValue(ApiResult.success(settings));
     const put = vi.fn().mockResolvedValue(ApiResult.success(settings));
     const audience = audienceWith({ get, put });

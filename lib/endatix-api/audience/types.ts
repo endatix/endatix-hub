@@ -37,6 +37,8 @@ export const AudiencePaging = Object.freeze({
 
 export type AudienceSettings = {
   identifierKind: AudienceIdentifierKind;
+  /** True while any person is on any form's audience in the tenant. */
+  isLocked: boolean;
 };
 
 export type AudienceProperty = {

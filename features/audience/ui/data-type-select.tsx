@@ -9,7 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { AudienceDataType } from "@/lib/endatix-api/audience/types";
-import { AUDIENCE_DATA_TYPES } from "./data-types";
+import { CREATABLE_DATA_TYPES } from "./data-types";
 
 type DataTypeSelectProps = {
   value: AudienceDataType;
@@ -28,7 +28,7 @@ export function DataTypeSelect({
       <Select value={value} disabled={disabled} onValueChange={(v) => onChange(v as AudienceDataType)}>
         <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
         <SelectContent>
-          {AUDIENCE_DATA_TYPES.map((entry) => (
+          {CREATABLE_DATA_TYPES.map((entry) => (
             <SelectItem key={entry.value} value={entry.value}>{entry.label}</SelectItem>
           ))}
         </SelectContent>

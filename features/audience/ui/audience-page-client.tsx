@@ -12,7 +12,8 @@ export function AudiencePageClient({ formId, data }: Readonly<Props>) {
     <div className="space-y-10">
       <MatchKeySettings
         identifierKind={data.settings.identifierKind}
-        hasMembers={data.totalPeople > 0}
+        isLocked={data.settings.isLocked}
+        canManage={data.canManageMatchKey}
       />
       <PropertiesSection formId={formId} properties={data.properties} />
       <PeopleSection
