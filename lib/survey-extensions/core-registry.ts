@@ -26,6 +26,10 @@ import {
   MATRIX_CAROUSEL_EXTENSION_ID,
   matrixCarouselExtension,
 } from "@/lib/survey-features/matrix-carousel";
+import {
+  COMPLETE_TRIGGER_NAVIGATION_EXTENSION_ID,
+  completeTriggerNavigationExtension,
+} from "@/lib/survey-features/complete-trigger-navigation";
 import { DRAG_CATEGORIZE_EXTENSION_ID } from "@/lib/questions/drag-categorize/constants";
 // The extension module, not the feature barrel — the barrel re-exports the
 // Creator bindings, which must not reach the respondent graph.
@@ -38,6 +42,7 @@ export {
   REGEX_MATCH_EXTENSION_ID,
   DRAG_CATEGORIZE_EXTENSION_ID,
   MATRIX_CAROUSEL_EXTENSION_ID,
+  COMPLETE_TRIGGER_NAVIGATION_EXTENSION_ID,
 };
 
 /**
@@ -121,6 +126,17 @@ export const coreExtensions: ExtensionDefinition[] = [
       name: "Matrix Carousel",
       description:
         "Adds a swipeable, one-statement-per-screen carousel presentation to the Matrix question type.",
+    },
+  },
+  {
+    id: COMPLETE_TRIGGER_NAVIGATION_EXTENSION_ID,
+    type: "feature",
+    loading: "static",
+    module: completeTriggerNavigationExtension,
+    metadata: {
+      name: "Complete trigger navigation",
+      description:
+        "Lets a form choose whether a Complete trigger replaces Next with Complete.",
     },
   },
   {
