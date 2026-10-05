@@ -16,14 +16,16 @@ export type CollectionStatusView = {
   label: string;
 };
 
-/**
- * One mapping for the submissions grid and the submission detail.
- * Three tones only — see DESIGN.md Status vocabulary.
- */
+/** Grid and detail share this map. An unknown code stays off and uses the code as its label. */
 export function describeCollectionStatus(
   code: string | undefined,
   isComplete: boolean,
 ): CollectionStatusView {
-  const resolved = code?.trim().toLowerCase() || (isComplete ? "complete" : "in_progress");
-  return BUILT_IN[resolved] ?? { tone: "off", label: resolved };
+  const supplied = code?.trim().toLowerCase();
+  if (supplied) {
+    return BUILT_IN[supplied] ?? { tone: "off", label: supplied };
+  }
+
+  const fallback = isComplete ? "complete" : "in_progress";
+  return BUILT_IN[fallback];
 }
