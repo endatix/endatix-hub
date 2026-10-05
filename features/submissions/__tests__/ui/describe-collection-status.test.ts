@@ -17,6 +17,12 @@ describe("describeCollectionStatus", () => {
       tone: "attention",
       label: "Expired",
     });
+    expect(describeCollectionStatus("not_started", false).label).toBe("Not started");
+    expect(describeCollectionStatus("viewed", false)).toEqual({
+      group: "open",
+      tone: "attention",
+      label: "Viewed",
+    });
     expect(describeCollectionStatus("screen_out", false)).toEqual({
       group: "ended",
       tone: "off",

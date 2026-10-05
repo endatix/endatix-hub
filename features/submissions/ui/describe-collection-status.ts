@@ -18,6 +18,8 @@ const BUILT_IN: Record<
   string,
   { group: CollectionStatusGroup; label: string }
 > = {
+  not_started: { group: "open", label: "Not started" },
+  viewed: { group: "open", label: "Viewed" },
   in_progress: { group: "open", label: "In progress" },
   expired: { group: "open", label: "Expired" },
   complete: { group: "complete", label: "Complete" },
