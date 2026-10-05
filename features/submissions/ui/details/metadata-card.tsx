@@ -1,7 +1,6 @@
 "use client";
 
 import { LocaleLabel } from "@/components/common/locale-label";
-import { StatusBadge } from "@/components/common/status-badge";
 import { Alert, AlertTitle } from "@/components/ui/alert";
 import {
   getElapsedTimeString,
