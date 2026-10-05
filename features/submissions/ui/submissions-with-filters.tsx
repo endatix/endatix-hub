@@ -9,10 +9,8 @@ import {
   type SubmissionListUrlState,
 } from "@/features/submissions/list-submission-query";
 import { ExportSubmissionsButton } from "@/features/export";
-import {
-  completionStatusFromIsCompleteFilter,
-  includeTestSubmissionsFromGridFilter,
-} from "@/features/export/export-submissions/export-dialog-filters";
+import { EXPORT_COMPLETION_STATUS } from "@/features/export/export-url";
+import { includeTestSubmissionsFromGridFilter } from "@/features/export/export-submissions/export-dialog-filters";
 import { SubmissionsFilterToolbar } from "@/features/submissions/ui/filters/submissions-filter-toolbar";
 import { NoSubmissionsEmptyState } from "@/features/submissions/ui/submissions-empty-state";
 import {
@@ -93,7 +91,7 @@ function submissionDateFiltersFromListState(
 type NavigationMode = "push" | "replace";
 
 interface UpdateSubmissionListUrlArgs {
-  isComplete: Set<string>;
+  collectionStatus: Set<string>;
   status: Set<string>;
   isTestSubmission: Set<string>;
   submitterDisplayId: string;
@@ -110,13 +108,13 @@ function SubmissionsContent({
   formId,
   hasAnySubmissions,
   useReportingExport = false,
-  isCompleteFilter,
+  collectionStatusFilter,
   statusFilter,
   testSubmissionFilter,
   submitterDisplayIdFilter,
   submitterEmailFilter,
   dateFilters,
-  onIsCompleteChange,
+  onCollectionStatusChange,
   onStatusChange,
   onTestSubmissionChange,
   onResetFilters,
@@ -135,13 +133,13 @@ function SubmissionsContent({
   formId: string;
   hasAnySubmissions: boolean;
   useReportingExport?: boolean;
-  isCompleteFilter: Set<string>;
+  collectionStatusFilter: Set<string>;
   statusFilter: Set<string>;
   testSubmissionFilter: Set<string>;
   submitterDisplayIdFilter: string;
   submitterEmailFilter: string;
   dateFilters: SubmissionDateFilters;
-  onIsCompleteChange: (values: Set<string>) => void;
+  onCollectionStatusChange: (values: Set<string>) => void;
   onStatusChange: (values: Set<string>) => void;
   onTestSubmissionChange: (values: Set<string>) => void;
   onResetFilters: () => void;
@@ -176,7 +174,7 @@ function SubmissionsContent({
       startedTo: dateFilters.startedAt.to,
       completedFrom: dateFilters.completedAt.from,
       completedTo: dateFilters.completedAt.to,
-      completionStatus: completionStatusFromIsCompleteFilter(isCompleteFilter),
+      completionStatus: EXPORT_COMPLETION_STATUS.all,
       includeTestSubmissions:
         includeTestSubmissionsFromGridFilter(testSubmissionFilter),
     }),
@@ -189,7 +187,6 @@ function SubmissionsContent({
       dateFilters.startedAt.to,
       dateFilters.completedAt.from,
       dateFilters.completedAt.to,
-      isCompleteFilter,
       testSubmissionFilter,
     ],
   );
@@ -274,10 +271,10 @@ function SubmissionsContent({
         className="mt-8 mb-4"
         filters={
           <SubmissionsFilterToolbar
-            isCompleteFilter={isCompleteFilter}
+            collectionStatusFilter={collectionStatusFilter}
             statusFilter={statusFilter}
             testSubmissionFilter={testSubmissionFilter}
-            onIsCompleteChange={onIsCompleteChange}
+            onCollectionStatusChange={onCollectionStatusChange}
             onStatusChange={onStatusChange}
             onTestSubmissionChange={onTestSubmissionChange}
             onResetFilters={onResetFilters}
@@ -351,8 +348,8 @@ export function SubmissionsWithFilters({
   useEffect(() => {
     rememberSubmissionListReturnTo(formId, searchParams.toString());
   }, [formId, searchParams]);
-  const [isCompleteFilter, setIsCompleteFilter] = useState<Set<string>>(
-    () => new Set(listState.isComplete),
+  const [collectionStatusFilter, setCollectionStatusFilter] = useState<Set<string>>(
+    () => new Set(listState.collectionStatus),
   );
   const [statusFilter, setStatusFilter] = useState<Set<string>>(
     () => new Set(listState.status),
@@ -387,7 +384,7 @@ export function SubmissionsWithFilters({
   }, [page.page, page.pageSize]);
 
   useEffect(() => {
-    setIsCompleteFilter(new Set(listState.isComplete));
+    setCollectionStatusFilter(new Set(listState.collectionStatus));
     setStatusFilter(new Set(listState.status));
     setTestSubmissionFilter(new Set(listState.isTestSubmission));
     setSubmitterDisplayIdFilter(listState.submitterDisplayId ?? "");
@@ -412,7 +409,7 @@ export function SubmissionsWithFilters({
   };
 
   const updateURL = ({
-    isComplete,
+    collectionStatus,
     status,
     isTestSubmission,
     submitterDisplayId,
@@ -428,7 +425,7 @@ export function SubmissionsWithFilters({
     const listState = submissionListUrlStateFromClientFilters({
       page,
       pageSize,
-      isComplete,
+      collectionStatus,
       status,
       isTestSubmission,
       submitterDisplayId,
@@ -465,7 +462,7 @@ export function SubmissionsWithFilters({
 
     submitterFilterDebounceRef.current = setTimeout(() => {
       updateURL({
-        isComplete: isCompleteFilter,
+        collectionStatus: collectionStatusFilter,
         status: statusFilter,
         isTestSubmission: testSubmissionFilter,
         submitterDisplayId: nextSubmitterDisplayId,
@@ -483,11 +480,11 @@ export function SubmissionsWithFilters({
     return clearPendingSubmitterFilterUpdate;
   }, []);
 
-  const handleIsCompleteChange = (values: Set<string>) => {
-    setIsCompleteFilter(values);
+  const handleCollectionStatusChange = (values: Set<string>) => {
+    setCollectionStatusFilter(values);
     setPagination((current) => ({ ...current, pageIndex: 0 }));
     updateURL({
-      isComplete: values,
+      collectionStatus: values,
       status: statusFilter,
       isTestSubmission: testSubmissionFilter,
       submitterDisplayId: submitterDisplayIdFilter,
@@ -503,7 +500,7 @@ export function SubmissionsWithFilters({
     setStatusFilter(values);
     setPagination((current) => ({ ...current, pageIndex: 0 }));
     updateURL({
-      isComplete: isCompleteFilter,
+      collectionStatus: collectionStatusFilter,
       status: values,
       isTestSubmission: testSubmissionFilter,
       submitterDisplayId: submitterDisplayIdFilter,
@@ -519,7 +516,7 @@ export function SubmissionsWithFilters({
     setTestSubmissionFilter(values);
     setPagination((current) => ({ ...current, pageIndex: 0 }));
     updateURL({
-      isComplete: isCompleteFilter,
+      collectionStatus: collectionStatusFilter,
       status: statusFilter,
       isTestSubmission: values,
       submitterDisplayId: submitterDisplayIdFilter,
@@ -542,7 +539,7 @@ export function SubmissionsWithFilters({
     setDateFilters(nextDateFilters);
     setPagination((current) => ({ ...current, pageIndex: 0 }));
     updateURL({
-      isComplete: isCompleteFilter,
+      collectionStatus: collectionStatusFilter,
       status: statusFilter,
       isTestSubmission: testSubmissionFilter,
       submitterDisplayId: submitterDisplayIdFilter,
@@ -568,7 +565,7 @@ export function SubmissionsWithFilters({
 
   const handleResetFilters = () => {
     const emptySet = new Set<string>();
-    setIsCompleteFilter(emptySet);
+    setCollectionStatusFilter(emptySet);
     setStatusFilter(emptySet);
     setTestSubmissionFilter(emptySet);
     setSubmitterDisplayIdFilter("");
@@ -576,7 +573,7 @@ export function SubmissionsWithFilters({
     setDateFilters(EMPTY_SUBMISSION_DATE_FILTERS);
     setPagination((current) => ({ ...current, pageIndex: 0 }));
     updateURL({
-      isComplete: emptySet,
+      collectionStatus: emptySet,
       status: emptySet,
       isTestSubmission: emptySet,
       submitterDisplayId: "",
@@ -594,7 +591,7 @@ export function SubmissionsWithFilters({
     const next = typeof updater === "function" ? updater(sorting) : updater;
     setSorting(next);
     updateURL({
-      isComplete: isCompleteFilter,
+      collectionStatus: collectionStatusFilter,
       status: statusFilter,
       isTestSubmission: testSubmissionFilter,
       submitterDisplayId: submitterDisplayIdFilter,
@@ -610,7 +607,7 @@ export function SubmissionsWithFilters({
   const handleResetSorting = () => {
     setSorting(EMPTY_INITIAL_SORTING);
     updateURL({
-      isComplete: isCompleteFilter,
+      collectionStatus: collectionStatusFilter,
       status: statusFilter,
       isTestSubmission: testSubmissionFilter,
       submitterDisplayId: submitterDisplayIdFilter,
@@ -625,7 +622,7 @@ export function SubmissionsWithFilters({
 
   const handleResetAllFiltersAndSorting = () => {
     const emptySet = new Set<string>();
-    setIsCompleteFilter(emptySet);
+    setCollectionStatusFilter(emptySet);
     setStatusFilter(emptySet);
     setTestSubmissionFilter(emptySet);
     setSubmitterDisplayIdFilter("");
@@ -634,7 +631,7 @@ export function SubmissionsWithFilters({
     setSorting(EMPTY_INITIAL_SORTING);
     setPagination((current) => ({ ...current, pageIndex: 0 }));
     updateURL({
-      isComplete: emptySet,
+      collectionStatus: emptySet,
       status: emptySet,
       isTestSubmission: emptySet,
       submitterDisplayId: "",
@@ -652,7 +649,7 @@ export function SubmissionsWithFilters({
     const next = typeof updater === "function" ? updater(pagination) : updater;
     setPagination(next);
     updateURL({
-      isComplete: isCompleteFilter,
+      collectionStatus: collectionStatusFilter,
       status: statusFilter,
       isTestSubmission: testSubmissionFilter,
       submitterDisplayId: submitterDisplayIdFilter,
@@ -684,13 +681,13 @@ export function SubmissionsWithFilters({
           formId={formId}
           hasAnySubmissions={hasAnySubmissions}
           useReportingExport={useReportingExport}
-          isCompleteFilter={isCompleteFilter}
+          collectionStatusFilter={collectionStatusFilter}
           statusFilter={statusFilter}
           testSubmissionFilter={testSubmissionFilter}
           submitterDisplayIdFilter={submitterDisplayIdFilter}
           submitterEmailFilter={submitterEmailFilter}
           dateFilters={dateFilters}
-          onIsCompleteChange={handleIsCompleteChange}
+          onCollectionStatusChange={handleCollectionStatusChange}
           onStatusChange={handleStatusChange}
           onTestSubmissionChange={handleTestSubmissionChange}
           onResetFilters={handleResetFilters}

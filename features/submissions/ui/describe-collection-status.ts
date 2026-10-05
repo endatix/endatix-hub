@@ -15,6 +15,22 @@ const GROUP_TONE: Record<CollectionStatusGroup, StatusTone> = {
   ended: "off",
 };
 
+/** Built-in codes the list facet can send. Order is the menu order. */
+export const COLLECTION_STATUS_FILTER_CODES = [
+  "not_started",
+  "viewed",
+  "in_progress",
+  "expired",
+  "complete",
+  "screen_out",
+  "quota_full",
+  "abandoned",
+  "cancelled",
+] as const;
+
+export type CollectionStatusFilterCode =
+  (typeof COLLECTION_STATUS_FILTER_CODES)[number];
+
 /** Built-in collection-status wire codes. Unknown codes are `ended`. */
 const BUILT_IN: Record<
   string,

@@ -17,7 +17,7 @@ function hasActiveSubmissionListFilters(
   listState: SubmissionListUrlState,
 ): boolean {
   return (
-    listState.isComplete.length > 0 ||
+    listState.collectionStatus.length > 0 ||
     listState.status.length > 0 ||
     listState.isTestSubmission.length > 0 ||
     Boolean(

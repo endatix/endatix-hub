@@ -21,7 +21,7 @@ describe("submission list return-to", () => {
     // Arrange
     rememberSubmissionListReturnTo(
       "form-1",
-      "page=2&pageSize=40&status=new&isComplete=true&sort=createdAt:desc",
+      "page=2&pageSize=40&status=new&collectionStatus=not_started&sort=createdAt:desc",
     );
 
     // Act
@@ -32,7 +32,7 @@ describe("submission list return-to", () => {
     expect(path).toContain("page=2");
     expect(path).toContain("pageSize=40");
     expect(path).toContain("status=new");
-    expect(path).toContain("isComplete=true");
+    expect(path).toContain("collectionStatus=not_started");
     expect(path).toContain("sort=createdAt%3Adesc");
   });
 

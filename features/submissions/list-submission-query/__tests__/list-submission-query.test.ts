@@ -13,7 +13,7 @@ describe("parseSubmissionListSearchParams + serializeSubmissionListSearchParams"
     const raw = {
       page: "2",
       pageSize: "20",
-      isComplete: "true,false",
+      collectionStatus: "not_started,in_progress",
       status: "new,approved",
       isTestSubmission: "true",
       createdFrom: "2024-03-01",
@@ -36,7 +36,7 @@ describe("parseSubmissionListSearchParams + serializeSubmissionListSearchParams"
     expect(submissionListUrlStateToListRequest(parsed)).toMatchObject({
       page: 2,
       pageSize: 20,
-      isComplete: ["true", "false"],
+      collectionStatus: ["not_started", "in_progress"],
       status: ["new", "approved"],
       isTestSubmission: ["true"],
       createdFrom: "2024-03-01",
@@ -345,7 +345,7 @@ describe("submissionListUrlStateFromClientFilters", () => {
     const state = submissionListUrlStateFromClientFilters({
       page: 1,
       pageSize: 10,
-      isComplete: new Set(["true", "bogus"]),
+      collectionStatus: new Set(["not_started", "bogus"]),
       status: new Set(["new", "hacker"]),
       isTestSubmission: new Set(["false"]),
       createdFrom: "2024-06-01",
@@ -355,7 +355,7 @@ describe("submissionListUrlStateFromClientFilters", () => {
       submitterEmail: " external@endatix.com ",
     });
 
-    expect(state.isComplete).toEqual(["true"]);
+    expect(state.collectionStatus).toEqual(["not_started"]);
     expect(state.status).toEqual(["new"]);
     expect(state.isTestSubmission).toEqual(["false"]);
     expect(state.createdFrom).toBe("2024-06-01");
@@ -370,7 +370,7 @@ describe("submissionListUrlStateFromClientFilters", () => {
     const state = submissionListUrlStateFromClientFilters({
       page: 1,
       pageSize: 10,
-      isComplete: new Set(),
+      collectionStatus: new Set(),
       status: new Set(),
       isTestSubmission: new Set(),
       sorting: [

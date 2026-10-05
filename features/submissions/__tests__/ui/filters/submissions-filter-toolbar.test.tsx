@@ -10,10 +10,10 @@ describe("SubmissionsFilterToolbar", () => {
     // Act
     render(
       <SubmissionsFilterToolbar
-        isCompleteFilter={new Set()}
+        collectionStatusFilter={new Set()}
         statusFilter={new Set()}
         testSubmissionFilter={new Set()}
-        onIsCompleteChange={onChange}
+        onCollectionStatusChange={onChange}
         onStatusChange={onChange}
         onTestSubmissionChange={onChange}
         onResetFilters={onChange}
@@ -31,10 +31,10 @@ describe("SubmissionsFilterToolbar", () => {
     // Act
     render(
       <SubmissionsFilterToolbar
-        isCompleteFilter={new Set()}
+        collectionStatusFilter={new Set()}
         statusFilter={new Set()}
         testSubmissionFilter={new Set(["true"])}
-        onIsCompleteChange={onChange}
+        onCollectionStatusChange={onChange}
         onStatusChange={onChange}
         onTestSubmissionChange={onChange}
         onResetFilters={onChange}
@@ -54,10 +54,10 @@ describe("SubmissionsFilterToolbar", () => {
     // Act
     render(
       <SubmissionsFilterToolbar
-        isCompleteFilter={new Set(["true"])}
+        collectionStatusFilter={new Set(["not_started"])}
         statusFilter={new Set()}
         testSubmissionFilter={new Set()}
-        onIsCompleteChange={onChange}
+        onCollectionStatusChange={onChange}
         onStatusChange={onChange}
         onTestSubmissionChange={onChange}
         onResetFilters={onChange}
@@ -67,7 +67,7 @@ describe("SubmissionsFilterToolbar", () => {
 
     // Assert
     expect(
-      (screen.getByRole("button", { name: /complete/i }) as HTMLButtonElement)
+      (screen.getByRole("button", { name: /^status/i }) as HTMLButtonElement)
         .disabled,
     ).toBe(true);
     expect(

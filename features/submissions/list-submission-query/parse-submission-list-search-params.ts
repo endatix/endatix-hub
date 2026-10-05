@@ -1,3 +1,4 @@
+import { COLLECTION_STATUS_FILTER_CODES } from "@/features/submissions/ui/describe-collection-status";
 import type { ListSubmissionsRequest } from "@/lib/endatix-api/submissions/types";
 import {
   parseCalendarDateYmd,
@@ -163,9 +164,9 @@ export function parseSubmissionListSearchParams(
   return {
     page,
     pageSize,
-    isComplete: parseSubmissionListFilterValues(
-      firstString(searchParams[searchParamKeys.isComplete]),
-      SUBMISSION_LIST_BOOLEAN_FILTER_VALUES,
+    collectionStatus: parseSubmissionListFilterValues(
+      firstString(searchParams[searchParamKeys.collectionStatus]),
+      COLLECTION_STATUS_FILTER_CODES,
     ),
     status: parseSubmissionListFilterValues(
       firstString(searchParams[searchParamKeys.status]),
@@ -211,7 +212,7 @@ export function submissionListUrlStateToListRequest(
     pageSize: state.pageSize,
     sortBy,
     sortDir,
-    isComplete: state.isComplete,
+    collectionStatus: state.collectionStatus,
     status: state.status,
     isTestSubmission: state.isTestSubmission,
     createdFrom: state.createdFrom,
@@ -284,7 +285,10 @@ export function isCanonicalSubmissionListUrl(
   }
 
   return (
-    isCanonicalJoinedFilter(firstString(raw.isComplete), parsed.isComplete) &&
+    isCanonicalJoinedFilter(
+      firstString(raw.collectionStatus),
+      parsed.collectionStatus,
+    ) &&
     isCanonicalJoinedFilter(firstString(raw.status), parsed.status) &&
     isCanonicalJoinedFilter(
       firstString(raw.isTestSubmission),

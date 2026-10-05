@@ -171,7 +171,7 @@ const submission: Submission = {
 const emptyListState: SubmissionListUrlState = {
   page: 1,
   pageSize: 10,
-  isComplete: [],
+  collectionStatus: [],
   status: [],
   isTestSubmission: [],
   sorting: [],

@@ -137,6 +137,7 @@ export interface ListSubmissionsRequest
     AuditDateFilters,
     DateRangeFilter<"started" | "completed"> {
   isComplete?: BooleanFilterValue[];
+  collectionStatus?: string[];
   status?: SubmissionReviewStatus[];
   isTestSubmission?: BooleanFilterValue[];
   submitterDisplayId?: string;
