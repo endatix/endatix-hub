@@ -10,7 +10,7 @@
   ],
   "pages": [
     {
-      "name": "age",
+      "name": "agePage",
       "elements": [
         {
           "type": "radiogroup",

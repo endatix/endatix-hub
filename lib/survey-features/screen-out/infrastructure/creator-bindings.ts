@@ -1,5 +1,8 @@
-import { editorLocalization, SurveyLogic } from "survey-creator-core";
-import { SCREEN_OUT_TRIGGER_CLASS, SCREEN_OUT_TRIGGER_TYPE } from "../constants";
+import { getLocaleStrings, SurveyLogic } from "survey-creator-core";
+import {
+  SCREEN_OUT_TRIGGER_CLASS,
+  SCREEN_OUT_TRIGGER_TYPE,
+} from "../constants";
 
 const LOGIC_NAME = `trigger_${SCREEN_OUT_TRIGGER_TYPE}`;
 
@@ -15,13 +18,10 @@ export function registerScreenOutLogicAction(): void {
     } as (typeof types)[number]);
   }
 
-  const locale = editorLocalization.getLocale("en") as {
-    lg?: Record<string, string>;
-  };
-  if (locale.lg) {
-    locale.lg[`${LOGIC_NAME}Name`] = "Screen out";
-    locale.lg[`${LOGIC_NAME}Description`] =
-      "When the logical expression evaluates to true, the survey ends and the respondent is screened out.";
-    locale.lg[`${LOGIC_NAME}Text`] = "respondent is screened out";
-  }
+  const translations = getLocaleStrings("en");
+  translations.triggers[SCREEN_OUT_TRIGGER_CLASS] = "Screen out";
+  translations.ed.lg[`${LOGIC_NAME}Name`] = "Screen out";
+  translations.ed.lg[`${LOGIC_NAME}Description`] =
+    "When the logical expression evaluates to true, the survey ends and the respondent is screened out.";
+  translations.ed.lg[`${LOGIC_NAME}Text`] = "respondent is screened out";
 }
