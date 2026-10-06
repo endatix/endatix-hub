@@ -89,11 +89,15 @@ vi.mock("@/features/export", () => ({
     listFilters,
   }: {
     disabled?: boolean;
-    listFilters?: { completionStatus?: string };
+    listFilters?: {
+      completionStatus?: string;
+      statusFilterWiderThanList?: boolean;
+    };
   }) => (
     <button
       disabled={disabled}
       data-completion-status={listFilters?.completionStatus}
+      data-wider-than-list={String(listFilters?.statusFilterWiderThanList)}
     >
       Export Submissions
     </button>
@@ -248,13 +252,28 @@ describe("SubmissionsWithFilters", () => {
   });
 
   it.each([
-    [[], "all"],
-    [["complete"], "completed"],
-    [["not_started", "viewed"], "incomplete"],
-    [["complete", "cancelled"], "all"],
+    [[], "all", false],
+    [["complete"], "completed", false],
+    [["in_progress"], "incomplete", true],
+    [["not_started", "viewed"], "incomplete", true],
+    [
+      [
+        "not_started",
+        "viewed",
+        "in_progress",
+        "expired",
+        "screen_out",
+        "quota_full",
+        "abandoned",
+        "cancelled",
+      ],
+      "incomplete",
+      false,
+    ],
+    [["complete", "cancelled"], "all", true],
   ])(
-    "prefills export completion from the Status filter %j as %s",
-    (collectionStatus, expected) => {
+    "prefills export completion from the Status filter %j as %s (wider than the list: %s)",
+    (collectionStatus, expected, wider) => {
       // Act
       renderSubmissionsWithFilters({
         formId: "form-1",
@@ -268,6 +287,11 @@ describe("SubmissionsWithFilters", () => {
           .getByRole("button", { name: "Export Submissions" })
           .getAttribute("data-completion-status"),
       ).toBe(expected);
+      expect(
+        screen
+          .getByRole("button", { name: "Export Submissions" })
+          .getAttribute("data-wider-than-list"),
+      ).toBe(String(wider));
     },
   );
 

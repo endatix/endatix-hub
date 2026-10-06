@@ -54,6 +54,11 @@ export interface SubmissionExportListFilters {
   maxSubmissionId?: string;
   locale?: string;
   completionStatus?: ExportCompletionStatusFilter;
+  /**
+   * The list's Status filter is narrower than any completion choice, so the
+   * prefilled completion exports rows the list hides. Shown, never sent.
+   */
+  statusFilterWiderThanList?: boolean;
 }
 
 export interface ReportingExportUrlOptions {

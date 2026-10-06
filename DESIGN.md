@@ -321,6 +321,12 @@ Reference: the submissions Status facet,
 - **Flows prefilled from the list keep following the facet** — when a facet changes shape, map
   the new values to what the flow understands (Status codes → the export's Completed /
   Incomplete / All) rather than dropping the prefill.
+- **A prefill that cannot match the list picks the narrowest choice that still holds every listed
+  row, and says so under that control.** Never widen further to dodge the mismatch (`All` for
+  "In progress" adds every complete row too). The note is one muted line on the field
+  ("The table's Status filter can't be applied to exports exactly…"), shown only when the list's
+  filter is narrower than any choice. Reference: `submission-export-list-filters.ts` +
+  `CompletionField` in `export-dialog-filters-form.tsx`.
 
 **Empty states — `DataTableEmpty` with `icon` + `title`, description as children:**
 

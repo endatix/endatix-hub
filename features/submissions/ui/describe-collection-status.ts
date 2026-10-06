@@ -70,6 +70,30 @@ export function isCompleteValuesFromCollectionStatus(
 }
 
 /**
+ * True when Completed / Incomplete / All selects exactly the rows the Status
+ * filter shows: no filter or every code (All), only Complete (Completed), or
+ * every not-complete code (Incomplete). Any other selection exports more than
+ * the list shows.
+ */
+export function completionCoversCollectionStatus(
+  codes: Iterable<string>,
+): boolean {
+  const selected = new Set(codes);
+  const selectsExactly = (expected: readonly string[]) =>
+    selected.size === expected.length &&
+    expected.every((code) => selected.has(code));
+  const notComplete = COLLECTION_STATUS_FILTER_CODES.filter(
+    (code) => code !== "complete",
+  );
+  return (
+    selected.size === 0 ||
+    selectsExactly(COLLECTION_STATUS_FILTER_CODES) ||
+    selectsExactly(["complete"]) ||
+    selectsExactly(notComplete)
+  );
+}
+
+/**
  * Legacy `isComplete` URL value (`true`, `false`, `true,false`) → the codes
  * it meant, so bookmarks and saved return links keep their filter.
  */

@@ -4,6 +4,7 @@ import {
   COLLECTION_STATUS_GROUPS,
   collectionStatusFromLegacyIsComplete,
   collectionStatusGroupTone,
+  completionCoversCollectionStatus,
   describeCollectionStatus,
   isCompleteValuesFromCollectionStatus,
   isReviewApplicable,
@@ -179,5 +180,33 @@ describe("collectionStatusFromLegacyIsComplete", () => {
     expect(collectionStatusFromLegacyIsComplete(undefined)).toEqual([]);
     expect(collectionStatusFromLegacyIsComplete("")).toEqual([]);
     expect(collectionStatusFromLegacyIsComplete("yes")).toEqual([]);
+  });
+});
+
+describe("completionCoversCollectionStatus", () => {
+  it("is true when Completed / Incomplete / All match the list exactly, including every code selected", () => {
+    // Arrange
+    const everyNotComplete = COLLECTION_STATUS_FILTER_CODES.filter(
+      (code) => code !== "complete",
+    );
+
+    // Act & Assert
+    expect(completionCoversCollectionStatus([])).toBe(true);
+    expect(completionCoversCollectionStatus(["complete"])).toBe(true);
+    expect(completionCoversCollectionStatus(everyNotComplete)).toBe(true);
+    expect(
+      completionCoversCollectionStatus([...COLLECTION_STATUS_FILTER_CODES]),
+    ).toBe(true);
+  });
+
+  it("is false when the list is narrower than any completion choice", () => {
+    // Act & Assert
+    expect(completionCoversCollectionStatus(["in_progress"])).toBe(false);
+    expect(completionCoversCollectionStatus(["not_started", "viewed"])).toBe(
+      false,
+    );
+    expect(completionCoversCollectionStatus(["complete", "cancelled"])).toBe(
+      false,
+    );
   });
 });
