@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Minus } from "lucide-react";
+import { Check, ChevronsUpDown, Minus } from "lucide-react";
 import { StatusBadge, StatusDot } from "@/components/common/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -45,22 +45,31 @@ interface FacetedFilterBaseProps {
   selectedValues: Set<string>;
   onValueChange: (values: Set<string>) => void;
   disabled?: boolean;
+  /**
+   * `toolbar` (default): a dashed pill named by `title`, for a list toolbar.
+   * `field`: a full-width form control under its own `<Label htmlFor={id}>`;
+   * it always names what is selected, `emptyLabel` when nothing is.
+   */
+  variant?: "toolbar" | "field";
+  id?: string;
+  /** Field only: ids of the help lines under the control. */
+  describedBy?: string;
+  /** Field only: what an empty selection means, e.g. "All statuses". */
+  emptyLabel?: string;
 }
 
+/**
+ * Flat `options`, or `groups` whose heading selects every option in it. A
+ * one-option group renders as a plain row.
+ */
 export type FacetedFilterProps = FacetedFilterBaseProps &
   (
     | { options: FacetedFilterOption[]; groups?: never }
     | { groups: readonly FacetedFilterGroup[]; options?: never }
   );
 
-export function FacetedFilter({
-  title,
-  options,
-  groups,
-  selectedValues,
-  onValueChange,
-  disabled = false,
-}: Readonly<FacetedFilterProps>) {
+export function FacetedFilter(props: Readonly<FacetedFilterProps>) {
+  const { groups, options, disabled = false } = props;
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -70,54 +79,143 @@ export function FacetedFilter({
   }, [disabled]);
 
   const sections = groups ?? toFacetedFilterGroups(options ?? []);
+  const isField = props.variant === "field";
 
   return (
     <Popover open={open} onOpenChange={disabled ? undefined : setOpen}>
       <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className="rounded-full border-dashed"
-          disabled={disabled}
-        >
-          {title}
-          <TriggerSummary
-            chips={summarizeSelection(sections, selectedValues)}
-            count={selectedValues.size}
-          />
+        <Button {...triggerButtonProps(props)}>
+          {isField ? (
+            <FieldTriggerContent {...props} sections={sections} />
+          ) : (
+            <ToolbarTriggerContent {...props} sections={sections} />
+          )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[260px] p-0" align="start">
-        <Command>
-          <CommandInput placeholder={title} />
-          <CommandList>
-            <CommandEmpty>No results found.</CommandEmpty>
-            {sections.map((section) => (
-              <FilterSection
-                key={section.label}
-                section={section}
-                grouped={groups !== undefined}
-                selectedValues={selectedValues}
-                onValueChange={onValueChange}
-              />
-            ))}
-            {selectedValues.size > 0 && (
-              <>
-                <CommandSeparator />
-                <CommandGroup>
-                  <CommandItem
-                    onSelect={() => onValueChange(new Set())}
-                    className="justify-center text-center"
-                  >
-                    Clear filters
-                  </CommandItem>
-                </CommandGroup>
-              </>
-            )}
-          </CommandList>
-        </Command>
+      <PopoverContent
+        className={cn(
+          "p-0",
+          isField ? "w-(--radix-popover-trigger-width)" : "w-[260px]",
+        )}
+        align="start"
+      >
+        <FacetedFilterMenu
+          {...props}
+          sections={sections}
+          grouped={groups !== undefined}
+        />
       </PopoverContent>
     </Popover>
+  );
+}
+
+function triggerButtonProps(props: Readonly<FacetedFilterBaseProps>) {
+  if (props.variant === "field") {
+    return {
+      id: props.id,
+      type: "button" as const,
+      variant: "outline" as const,
+      className: "h-auto min-h-9 w-full justify-between font-normal",
+      "aria-describedby": props.describedBy,
+      disabled: props.disabled,
+    };
+  }
+  return {
+    id: props.id,
+    type: "button" as const,
+    variant: "outline" as const,
+    size: "sm" as const,
+    className: "rounded-full border-dashed",
+    disabled: props.disabled,
+  };
+}
+
+type TriggerContentProps = Readonly<
+  FacetedFilterBaseProps & { sections: readonly FacetedFilterGroup[] }
+>;
+
+function ToolbarTriggerContent(props: TriggerContentProps) {
+  const { title, sections, selectedValues } = props;
+  return (
+    <>
+      {title}
+      <TriggerSummary
+        chips={summarizeSelection(sections, selectedValues)}
+        count={selectedValues.size}
+      />
+    </>
+  );
+}
+
+/** A field names its whole selection at every width and never goes blank. */
+function FieldTriggerContent(props: TriggerContentProps) {
+  const { emptyLabel, sections, selectedValues } = props;
+  const chips = summarizeSelection(sections, selectedValues);
+  return (
+    <>
+      <span className="flex flex-wrap items-center gap-1">
+        {chips.length === 0 ? (
+          <span className="text-muted-foreground">{emptyLabel}</span>
+        ) : (
+          <TriggerChips chips={chips} count={selectedValues.size} />
+        )}
+      </span>
+      <ChevronsUpDown className="size-4 opacity-50" aria-hidden="true" />
+    </>
+  );
+}
+
+interface FacetedFilterMenuProps extends FacetedFilterBaseProps {
+  sections: readonly FacetedFilterGroup[];
+  grouped: boolean;
+}
+
+function FacetedFilterMenu(props: Readonly<FacetedFilterMenuProps>) {
+  const { title, selectedValues, onValueChange } = props;
+  return (
+    <Command>
+      <CommandInput placeholder={title} />
+      <CommandList>
+        <CommandEmpty>No results found.</CommandEmpty>
+        <FilterSections {...props} />
+        {selectedValues.size > 0 && (
+          <ClearSelection
+            label={
+              props.variant === "field" ? "Clear selection" : "Clear filters"
+            }
+            onClear={() => onValueChange(new Set())}
+          />
+        )}
+      </CommandList>
+    </Command>
+  );
+}
+
+function FilterSections(props: Readonly<FacetedFilterMenuProps>) {
+  return props.sections.map((section) => (
+    <FilterSection
+      key={section.label}
+      section={section}
+      grouped={props.grouped}
+      selectedValues={props.selectedValues}
+      onValueChange={props.onValueChange}
+    />
+  ));
+}
+
+function ClearSelection({
+  label,
+  onClear,
+}: Readonly<{ label: string; onClear: () => void }>) {
+  return (
+    <>
+      <CommandSeparator />
+      <CommandGroup>
+        <CommandItem onSelect={onClear} className="justify-center text-center">
+          {label}
+        </CommandItem>
+      </CommandGroup>
+    </>
   );
 }
 

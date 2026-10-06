@@ -117,12 +117,8 @@ export function ExportSubmissionsDialog({
               filterDraft={dialog.filterDraft}
               rangeErrors={dialog.rangeErrors}
               showCompletedAt={dialog.showCompletedAt}
-              onCollectionStatusChange={(values) =>
-                dialog.patchFilterDraft({ collectionStatus: [...values] })
-              }
-              onIncludeTestChange={(includeTestSubmissions) =>
-                dialog.patchFilterDraft({ includeTestSubmissions })
-              }
+              tablePrefill={listFilters}
+              onPatchFilterDraft={dialog.patchFilterDraft}
               onDateRangeChange={dialog.setDateRange}
             />
           ) : null}

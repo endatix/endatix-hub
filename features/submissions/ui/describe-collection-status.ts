@@ -1,4 +1,5 @@
 import type { StatusTone } from "@/components/common/status-badge";
+import type { FacetedFilterGroup } from "@/components/table/faceted-filter-selection";
 
 export type CollectionStatusGroup = "unengaged" | "open" | "complete" | "ended";
 
@@ -102,3 +103,18 @@ function humanizeCode(code: string): string {
   const words = code.replaceAll(/[_-]+/g, " ").trim();
   return words.charAt(0).toUpperCase() + words.slice(1);
 }
+
+/**
+ * The Status facet's groups, each code as the badge the grid shows. One
+ * definition for every surface that filters by status (list toolbar, export
+ * dialog), so their menus cannot drift. Declared last: it reads `BUILT_IN`.
+ */
+export const COLLECTION_STATUS_FACET_GROUPS: readonly FacetedFilterGroup[] =
+  COLLECTION_STATUS_GROUPS.map(({ group, label, codes }) => ({
+    label,
+    tone: collectionStatusGroupTone(group),
+    options: codes.map((code) => {
+      const view = describeCollectionStatus(code, false);
+      return { label: view.label, value: code, tone: view.tone };
+    }),
+  }));

@@ -91,11 +91,13 @@ vi.mock("@/features/export", () => ({
     disabled?: boolean;
     listFilters?: {
       collectionStatus?: string[];
+      tableOnlyFilters?: string[];
     };
   }) => (
     <button
       disabled={disabled}
       data-collection-status={listFilters?.collectionStatus?.join("|") ?? ""}
+      data-table-only={listFilters?.tableOnlyFilters?.join("|") ?? ""}
     >
       Export Submissions
     </button>
@@ -270,6 +272,46 @@ describe("SubmissionsWithFilters", () => {
       ).toBe(expected);
     },
   );
+
+  it("tells export which table filters it cannot apply", () => {
+    // Act
+    renderSubmissionsWithFilters({
+      formId: "form-1",
+      hasAnySubmissions: true,
+      initialStatus: ["new"],
+    });
+
+    // Assert
+    expect(
+      screen
+        .getByRole("button", { name: "Export Submissions" })
+        .getAttribute("data-table-only"),
+    ).toBe("Review");
+  });
+
+  it("names a submitter filter only once it has non-blank text", () => {
+    // Arrange
+    renderSubmissionsWithFilters({ formId: "form-1", hasAnySubmissions: true });
+    const tableOnly = () =>
+      screen
+        .getByRole("button", { name: "Export Submissions" })
+        .getAttribute("data-table-only");
+
+    // Act & Assert
+    act(() => {
+      navigationMocks.systemColumnOptions.current?.onSubmitterDisplayIdFilterChange?.(
+        "   ",
+      );
+    });
+    expect(tableOnly()).toBe("");
+
+    act(() => {
+      navigationMocks.systemColumnOptions.current?.onSubmitterDisplayIdFilterChange?.(
+        "panelist-a",
+      );
+    });
+    expect(tableOnly()).toBe("Submitter");
+  });
 
   it("shows the true empty state when deep-linked filters exist but the form has no submissions", () => {
     // Act

@@ -5,6 +5,7 @@ import {
 } from "../../export-url";
 import {
   createFilterDraftFromListFilters,
+  rowFiltersMatch,
   hasFilterRangeErrors,
   includeTestSubmissionsFromGridFilter,
   pickDefaultExportFormatId,
@@ -121,5 +122,58 @@ describe("export-dialog-filters", () => {
         },
       ]),
     ).toBe("csv");
+  });
+
+  describe("rowFiltersMatch", () => {
+    const table = createFilterDraftFromListFilters({
+      collectionStatus: ["viewed", "not_started"],
+      createdFrom: "2026-01-01",
+      completedFrom: "2026-02-01",
+    });
+
+    it("matches the same codes in any order", () => {
+      const draft = { ...table, collectionStatus: ["not_started", "viewed"] };
+
+      expect(rowFiltersMatch(draft, table, { includeCompletedAt: true })).toBe(
+        true,
+      );
+    });
+
+    it("differs on status, test toggle or a shown date", () => {
+      const options = { includeCompletedAt: true };
+
+      expect(
+        rowFiltersMatch(
+          { ...table, collectionStatus: ["viewed"] },
+          table,
+          options,
+        ),
+      ).toBe(false);
+      expect(
+        rowFiltersMatch(
+          { ...table, includeTestSubmissions: true },
+          table,
+          options,
+        ),
+      ).toBe(false);
+      expect(
+        rowFiltersMatch(
+          { ...table, createdAt: { from: "2026-01-02", to: "" } },
+          table,
+          options,
+        ),
+      ).toBe(false);
+    });
+
+    it("ignores Completed at while it is hidden", () => {
+      const cleared = { ...table, completedAt: { from: "", to: "" } };
+
+      expect(
+        rowFiltersMatch(cleared, table, { includeCompletedAt: false }),
+      ).toBe(true);
+      expect(
+        rowFiltersMatch(cleared, table, { includeCompletedAt: true }),
+      ).toBe(false);
+    });
   });
 });

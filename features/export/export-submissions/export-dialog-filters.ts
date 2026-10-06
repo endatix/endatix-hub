@@ -95,6 +95,41 @@ function dateRangeDraft(from?: string, to?: string): DateRangeDraft {
   return { from: from ?? "", to: to ?? "" };
 }
 
+export const ROW_FILTER_DATE_KEYS = [
+  "createdAt",
+  "modifiedAt",
+  "startedAt",
+  "completedAt",
+] as const;
+
+/**
+ * True when the draft's row filters equal the table's prefill. Completed at
+ * only counts while it is shown: the dialog clears it when the Status choice
+ * has no complete rows, and that is not a change the user made.
+ */
+export function rowFiltersMatch(
+  draft: ExportFilterDraft,
+  table: ExportFilterDraft,
+  args: { includeCompletedAt: boolean },
+): boolean {
+  const dateKeys = ROW_FILTER_DATE_KEYS.filter(
+    (key) => key !== "completedAt" || args.includeCompletedAt,
+  );
+  return (
+    sameCodes(draft.collectionStatus, table.collectionStatus) &&
+    dateKeys.every((key) => sameRange(draft[key], table[key])) &&
+    draft.includeTestSubmissions === table.includeTestSubmissions
+  );
+}
+
+function sameCodes(a: readonly string[], b: readonly string[]): boolean {
+  return a.length === b.length && a.every((code) => b.includes(code));
+}
+
+function sameRange(a: DateRangeDraft, b: DateRangeDraft): boolean {
+  return a.from === b.from && a.to === b.to;
+}
+
 /**
  * Grid Submission Type filter → Include test submissions.
  * Production-only excludes tests. No selection, test-only, or both includes them,
@@ -124,7 +159,9 @@ export function showsSubmissionRowFilters(
   return true;
 }
 
-export function includesIncompleteSubmissions(codes: readonly string[]): boolean {
+export function includesIncompleteSubmissions(
+  codes: readonly string[],
+): boolean {
   return codes.length === 0 || codes.some((code) => code !== "complete");
 }
 

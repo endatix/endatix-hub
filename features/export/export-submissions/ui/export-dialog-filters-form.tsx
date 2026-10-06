@@ -15,14 +15,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { FacetedFilter } from "@/components/table";
-import {
-  COLLECTION_STATUS_GROUPS,
-  collectionStatusGroupTone,
-  describeCollectionStatus,
-} from "@/features/submissions/ui/describe-collection-status";
+import { Button } from "@/components/ui/button";
+import { COLLECTION_STATUS_FACET_GROUPS } from "@/features/submissions/ui/describe-collection-status";
+import type { SubmissionExportListFilters } from "../../export-url";
 import {
   DATE_RANGE_HINTS,
+  ROW_FILTER_DATE_KEYS,
+  createFilterDraftFromListFilters,
   includesIncompleteSubmissions,
+  rowFiltersMatch,
   type ExportFilterDraft,
   type ExportFilterRangeErrors,
 } from "../export-dialog-filters";
@@ -46,8 +47,9 @@ interface ExportDialogFiltersFormProps {
   filterDraft: ExportFilterDraft;
   rangeErrors: ExportFilterRangeErrors;
   showCompletedAt: boolean;
-  onCollectionStatusChange: (values: Set<string>) => void;
-  onIncludeTestChange: (include: boolean) => void;
+  /** The table's filters the dialog opened with; absent when not opened from a list. */
+  tablePrefill?: SubmissionExportListFilters;
+  onPatchFilterDraft: (patch: Partial<ExportFilterDraft>) => void;
   onDateRangeChange: (
     key: "createdAt" | "modifiedAt" | "startedAt" | "completedAt",
     side: "from" | "to",
@@ -70,8 +72,8 @@ export function ExportDialogFiltersForm({
   filterDraft,
   rangeErrors,
   showCompletedAt,
-  onCollectionStatusChange,
-  onIncludeTestChange,
+  tablePrefill,
+  onPatchFilterDraft,
   onDateRangeChange,
 }: Readonly<ExportDialogFiltersFormProps>) {
   return (
@@ -149,159 +151,242 @@ export function ExportDialogFiltersForm({
         ) : null}
       </PanelSection>
 
-      <PanelSection
-        icon={ListFilter}
-        title="Submissions"
-        description={
-          showRowFilters
-            ? "Prefilled from the filters on the submissions table."
-            : "A codebook describes the form's questions, so submission filters don't apply."
-        }
-      >
-        {showRowFilters ? (
-          <>
-            <CompletionField
-              filterDraft={filterDraft}
-              controlsLocked={controlsLocked}
-              onCollectionStatusChange={onCollectionStatusChange}
-            />
-
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="export-submissions-include-test"
-                checked={filterDraft.includeTestSubmissions}
-                onCheckedChange={(checked) =>
-                  onIncludeTestChange(checked === true)
-                }
-                disabled={controlsLocked}
-              />
-              <Label htmlFor="export-submissions-include-test">
-                Include test submissions
-              </Label>
-            </div>
-
-            <ExportDateRangeFieldset
-              legend="Created at"
-              hint={DATE_RANGE_HINTS.createdAt}
-              fromId="export-submissions-created-from"
-              toId="export-submissions-created-to"
-              errorId="export-submissions-created-range-error"
-              fromValue={filterDraft.createdAt.from}
-              toValue={filterDraft.createdAt.to}
-              error={rangeErrors.createdAt}
-              disabled={controlsLocked}
-              onFromChange={(value) =>
-                onDateRangeChange("createdAt", "from", value)
-              }
-              onToChange={(value) =>
-                onDateRangeChange("createdAt", "to", value)
-              }
-            />
-
-            <ExportDateRangeFieldset
-              legend="Modified at"
-              hint={DATE_RANGE_HINTS.modifiedAt}
-              fromId="export-submissions-modified-from"
-              toId="export-submissions-modified-to"
-              errorId="export-submissions-modified-range-error"
-              fromValue={filterDraft.modifiedAt.from}
-              toValue={filterDraft.modifiedAt.to}
-              error={rangeErrors.modifiedAt}
-              disabled={controlsLocked}
-              onFromChange={(value) =>
-                onDateRangeChange("modifiedAt", "from", value)
-              }
-              onToChange={(value) =>
-                onDateRangeChange("modifiedAt", "to", value)
-              }
-            />
-
-            <ExportDateRangeFieldset
-              legend="Started at"
-              hint={DATE_RANGE_HINTS.startedAt}
-              fromId="export-submissions-started-from"
-              toId="export-submissions-started-to"
-              errorId="export-submissions-started-range-error"
-              fromValue={filterDraft.startedAt.from}
-              toValue={filterDraft.startedAt.to}
-              error={rangeErrors.startedAt}
-              disabled={controlsLocked}
-              onFromChange={(value) =>
-                onDateRangeChange("startedAt", "from", value)
-              }
-              onToChange={(value) =>
-                onDateRangeChange("startedAt", "to", value)
-              }
-            />
-
-            {showCompletedAt ? (
-              <ExportDateRangeFieldset
-                legend="Completed at"
-                hint={DATE_RANGE_HINTS.completedAt}
-                fromId="export-submissions-completed-from"
-                toId="export-submissions-completed-to"
-                errorId="export-submissions-completed-range-error"
-                fromValue={filterDraft.completedAt.from}
-                toValue={filterDraft.completedAt.to}
-                error={rangeErrors.completedAt}
-                disabled={controlsLocked}
-                onFromChange={(value) =>
-                  onDateRangeChange("completedAt", "from", value)
-                }
-                onToChange={(value) =>
-                  onDateRangeChange("completedAt", "to", value)
-                }
-              />
-            ) : null}
-          </>
-        ) : null}
-      </PanelSection>
+      <SubmissionsSection
+        showRowFilters={showRowFilters}
+        filterDraft={filterDraft}
+        rangeErrors={rangeErrors}
+        showCompletedAt={showCompletedAt}
+        controlsLocked={controlsLocked}
+        tablePrefill={tablePrefill}
+        onPatchFilterDraft={onPatchFilterDraft}
+        onDateRangeChange={onDateRangeChange}
+      />
     </>
   );
 }
 
-const COMPLETION_HINT_ID = "export-submissions-completion-hint";
+type DateRangeKey = (typeof ROW_FILTER_DATE_KEYS)[number];
 
-const collectionStatusGroups = COLLECTION_STATUS_GROUPS.map(
-  ({ group, label, codes }) => ({
-    label,
-    tone: collectionStatusGroupTone(group),
-    options: codes.map((code) => {
-      const view = describeCollectionStatus(code, false);
-      return { label: view.label, value: code, tone: view.tone };
-    }),
-  }),
-);
-
-interface CompletionFieldProps {
+interface SubmissionsSectionProps {
+  showRowFilters: boolean;
   filterDraft: ExportFilterDraft;
+  rangeErrors: ExportFilterRangeErrors;
+  showCompletedAt: boolean;
   controlsLocked: boolean;
-  onCollectionStatusChange: (values: Set<string>) => void;
+  tablePrefill?: SubmissionExportListFilters;
+  onPatchFilterDraft: (patch: Partial<ExportFilterDraft>) => void;
+  onDateRangeChange: (
+    key: DateRangeKey,
+    side: "from" | "to",
+    value: string,
+  ) => void;
 }
 
-function CompletionField({
-  filterDraft,
-  controlsLocked,
-  onCollectionStatusChange,
-}: Readonly<CompletionFieldProps>) {
-  const showIncompleteHint = includesIncompleteSubmissions(
-    filterDraft.collectionStatus,
+/**
+ * Which submissions to export. Opened from the list, it starts on the list's
+ * filters and says so; once changed, it says that too and offers the way back.
+ */
+function SubmissionsSection(props: Readonly<SubmissionsSectionProps>) {
+  const table = useTableFilters(props);
+  return (
+    <PanelSection
+      icon={ListFilter}
+      title="Submissions"
+      description={submissionsDescription(props, table.matches)}
+      aside={table.resetAction}
+    >
+      {props.showRowFilters ? (
+        <>
+          <StatusField {...props} />
+          <IncludeTestField {...props} />
+          <DateRangeFields {...props} />
+        </>
+      ) : null}
+    </PanelSection>
   );
+}
+
+/** The table's prefill as a draft, whether the draft still matches it, and the way back. */
+function useTableFilters(props: Readonly<SubmissionsSectionProps>) {
+  const { tablePrefill, filterDraft, showCompletedAt, showRowFilters } = props;
+  const table = createFilterDraftFromListFilters(tablePrefill);
+  const matches = rowFiltersMatch(filterDraft, table, {
+    includeCompletedAt: showCompletedAt,
+  });
+  const canReset = Boolean(tablePrefill) && showRowFilters && !matches;
+  return {
+    matches,
+    resetAction: canReset ? (
+      <UseTableFiltersButton
+        disabled={props.controlsLocked}
+        onClick={() => resetToTable(props, table)}
+      />
+    ) : null,
+  };
+}
+
+/** Dates go through onDateRangeChange so their range errors clear too. */
+function resetToTable(
+  props: Readonly<SubmissionsSectionProps>,
+  table: ExportFilterDraft,
+) {
+  props.onPatchFilterDraft({
+    collectionStatus: table.collectionStatus,
+    includeTestSubmissions: table.includeTestSubmissions,
+  });
+  for (const key of ROW_FILTER_DATE_KEYS) {
+    props.onDateRangeChange(key, "from", table[key].from);
+    props.onDateRangeChange(key, "to", table[key].to);
+  }
+}
+
+/** `type="button"`: the dialog is a form, and this must not submit it. */
+function UseTableFiltersButton({
+  disabled,
+  onClick,
+}: Readonly<{ disabled: boolean; onClick: () => void }>) {
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="sm"
+      onClick={onClick}
+      disabled={disabled}
+    >
+      Use table filters
+    </Button>
+  );
+}
+
+function submissionsDescription(
+  props: Readonly<SubmissionsSectionProps>,
+  matchesTable: boolean,
+): string {
+  if (!props.showRowFilters) {
+    return "A codebook describes the form's questions, so submission filters don't apply.";
+  }
+  if (!props.tablePrefill) {
+    return "Choose which submissions to export.";
+  }
+  const origin = matchesTable
+    ? "Prefilled from the filters on the submissions table."
+    : "Changed from the filters on the submissions table.";
+  const tableOnly = props.tablePrefill.tableOnlyFilters ?? [];
+  if (tableOnly.length === 0) {
+    return origin;
+  }
+  return `${origin} Its ${joinNames(tableOnly)} ${tableOnly.length > 1 ? "filters don't" : "filter doesn't"} apply to exports, so the file can include rows the table hides.`;
+}
+
+function joinNames(names: readonly string[]): string {
+  if (names.length < 2) {
+    return names.join("");
+  }
+  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+}
+
+const STATUS_FIELD_ID = "export-submissions-status";
+const STATUS_HINT_ID = "export-submissions-status-hint";
+
+const STATUS_FACET = {
+  variant: "field",
+  id: STATUS_FIELD_ID,
+  title: "Status",
+  emptyLabel: "All statuses",
+  groups: COLLECTION_STATUS_FACET_GROUPS,
+} as const;
+
+/** Status, the same grouped facet as the list, as a labelled form field. */
+function StatusField(props: Readonly<SubmissionsSectionProps>) {
+  const codes = props.filterDraft.collectionStatus;
+  const showHint = includesIncompleteSubmissions(codes);
+  const onValueChange = (values: Set<string>) =>
+    props.onPatchFilterDraft({ collectionStatus: [...values] });
   return (
     <div className="grid gap-2">
+      <Label htmlFor={STATUS_FIELD_ID}>Status</Label>
       <FacetedFilter
-        title="Status"
-        groups={collectionStatusGroups}
-        selectedValues={new Set(filterDraft.collectionStatus)}
-        onValueChange={onCollectionStatusChange}
-        disabled={controlsLocked}
+        {...STATUS_FACET}
+        describedBy={showHint ? STATUS_HINT_ID : undefined}
+        selectedValues={new Set(codes)}
+        onValueChange={onValueChange}
+        disabled={props.controlsLocked}
       />
-      {showIncompleteHint ? (
-        <p id={COMPLETION_HINT_ID} className="text-xs text-muted-foreground">
-          Incomplete submissions are updated first, so this export takes a
-          little longer.
-        </p>
-      ) : null}
+      {showHint ? <IncompleteRefreshHint /> : null}
     </div>
+  );
+}
+
+/** The consequence of including incomplete rows, on the field that chooses them. */
+function IncompleteRefreshHint() {
+  return (
+    <p id={STATUS_HINT_ID} className="text-xs text-muted-foreground">
+      Incomplete submissions are updated first, so this export takes a little
+      longer.
+    </p>
+  );
+}
+
+function IncludeTestField(props: Readonly<SubmissionsSectionProps>) {
+  return (
+    <div className="flex items-center gap-2">
+      <Checkbox
+        id="export-submissions-include-test"
+        checked={props.filterDraft.includeTestSubmissions}
+        onCheckedChange={(checked) =>
+          props.onPatchFilterDraft({ includeTestSubmissions: checked === true })
+        }
+        disabled={props.controlsLocked}
+      />
+      <Label htmlFor="export-submissions-include-test">
+        Include test submissions
+      </Label>
+    </div>
+  );
+}
+
+const DATE_RANGE_FIELDS: ReadonlyArray<{
+  key: DateRangeKey;
+  legend: string;
+  idStem: string;
+}> = [
+  { key: "createdAt", legend: "Created at", idStem: "created" },
+  { key: "modifiedAt", legend: "Modified at", idStem: "modified" },
+  { key: "startedAt", legend: "Started at", idStem: "started" },
+  { key: "completedAt", legend: "Completed at", idStem: "completed" },
+];
+
+/** Completed at only while the Status choice can include complete submissions. */
+function visibleDateRangeFields(showCompletedAt: boolean) {
+  return DATE_RANGE_FIELDS.filter(
+    (field) => field.key !== "completedAt" || showCompletedAt,
+  );
+}
+
+function dateRangeIds(idStem: string) {
+  return {
+    fromId: `export-submissions-${idStem}-from`,
+    toId: `export-submissions-${idStem}-to`,
+    errorId: `export-submissions-${idStem}-range-error`,
+  };
+}
+
+function DateRangeFields(props: Readonly<SubmissionsSectionProps>) {
+  const { filterDraft, rangeErrors, controlsLocked, onDateRangeChange } = props;
+  return visibleDateRangeFields(props.showCompletedAt).map(
+    ({ key, legend, idStem }) => (
+      <ExportDateRangeFieldset
+        key={key}
+        legend={legend}
+        hint={DATE_RANGE_HINTS[key]}
+        {...dateRangeIds(idStem)}
+        fromValue={filterDraft[key].from}
+        toValue={filterDraft[key].to}
+        error={rangeErrors[key]}
+        disabled={controlsLocked}
+        onFromChange={(value) => onDateRangeChange(key, "from", value)}
+        onToChange={(value) => onDateRangeChange(key, "to", value)}
+      />
+    ),
   );
 }

@@ -56,6 +56,11 @@ export interface SubmissionExportListFilters {
   locale?: string;
   completionStatus?: ExportCompletionStatusFilter;
   collectionStatus?: string[];
+  /**
+   * Active list filters the export cannot apply (e.g. Review), named as the
+   * toolbar names them. Shown in the dialog, never sent.
+   */
+  tableOnlyFilters?: string[];
 }
 
 export interface ReportingExportUrlOptions {
