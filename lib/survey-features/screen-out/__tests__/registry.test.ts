@@ -1,13 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { isScreenOutTrigger, SCREEN_OUT_TRIGGER_TYPE } from "../constants";
+import {
+  isScreenOutTrigger,
+  SCREEN_OUT_TRIGGER_CLASS,
+} from "../constants";
 import { registerScreenOutTrigger } from "../infrastructure/registry";
 import { Serializer } from "survey-core";
 
 describe("screen-out trigger", () => {
   it("is the screenout type", () => {
-    expect(
-      isScreenOutTrigger({ getType: () => SCREEN_OUT_TRIGGER_TYPE }),
-    ).toBe(true);
+    expect(isScreenOutTrigger({ getType: () => SCREEN_OUT_TRIGGER_CLASS })).toBe(
+      true,
+    );
     expect(isScreenOutTrigger({ getType: () => "completetrigger" })).toBe(
       false,
     );
@@ -16,6 +19,6 @@ describe("screen-out trigger", () => {
 
   it("registers before form JSON is loaded", () => {
     registerScreenOutTrigger();
-    expect(Serializer.findClass(SCREEN_OUT_TRIGGER_TYPE)).toBeDefined();
+    expect(Serializer.findClass(SCREEN_OUT_TRIGGER_CLASS)).toBeDefined();
   });
 });

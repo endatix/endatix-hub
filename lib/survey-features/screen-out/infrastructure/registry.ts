@@ -1,9 +1,9 @@
 import { Serializer, SurveyTriggerComplete } from "survey-core";
-import { SCREEN_OUT_TRIGGER_TYPE } from "../constants";
+import { SCREEN_OUT_TRIGGER_CLASS } from "../constants";
 
 class ScreenOutTrigger extends SurveyTriggerComplete {
   public getType(): string {
-    return SCREEN_OUT_TRIGGER_TYPE;
+    return SCREEN_OUT_TRIGGER_CLASS;
   }
 }
 
@@ -16,7 +16,7 @@ export function registerScreenOutTrigger(): void {
   }
   registered = true;
   Serializer.addClass(
-    SCREEN_OUT_TRIGGER_TYPE,
+    SCREEN_OUT_TRIGGER_CLASS,
     [],
     () => new ScreenOutTrigger(),
     "completetrigger",
