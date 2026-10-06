@@ -13,7 +13,7 @@ describe("parseSubmissionListSearchParams + serializeSubmissionListSearchParams"
     const raw = {
       page: "2",
       pageSize: "20",
-      isComplete: "true,false",
+      collectionStatus: "not_started,in_progress",
       status: "new,approved",
       isTestSubmission: "true",
       createdFrom: "2024-03-01",
@@ -36,7 +36,7 @@ describe("parseSubmissionListSearchParams + serializeSubmissionListSearchParams"
     expect(submissionListUrlStateToListRequest(parsed)).toMatchObject({
       page: 2,
       pageSize: 20,
-      isComplete: ["true", "false"],
+      collectionStatus: ["not_started", "in_progress"],
       status: ["new", "approved"],
       isTestSubmission: ["true"],
       createdFrom: "2024-03-01",
@@ -345,7 +345,7 @@ describe("submissionListUrlStateFromClientFilters", () => {
     const state = submissionListUrlStateFromClientFilters({
       page: 1,
       pageSize: 10,
-      isComplete: new Set(["true", "bogus"]),
+      collectionStatus: new Set(["not_started", "bogus"]),
       status: new Set(["new", "hacker"]),
       isTestSubmission: new Set(["false"]),
       createdFrom: "2024-06-01",
@@ -355,7 +355,7 @@ describe("submissionListUrlStateFromClientFilters", () => {
       submitterEmail: " external@endatix.com ",
     });
 
-    expect(state.isComplete).toEqual(["true"]);
+    expect(state.collectionStatus).toEqual(["not_started"]);
     expect(state.status).toEqual(["new"]);
     expect(state.isTestSubmission).toEqual(["false"]);
     expect(state.createdFrom).toBe("2024-06-01");
@@ -370,7 +370,7 @@ describe("submissionListUrlStateFromClientFilters", () => {
     const state = submissionListUrlStateFromClientFilters({
       page: 1,
       pageSize: 10,
-      isComplete: new Set(),
+      collectionStatus: new Set(),
       status: new Set(),
       isTestSubmission: new Set(),
       sorting: [
@@ -384,5 +384,51 @@ describe("submissionListUrlStateFromClientFilters", () => {
       { id: "createdAt", desc: true },
       { id: "status", desc: false },
     ]);
+  });
+});
+
+describe("legacy isComplete URL", () => {
+  it("reads isComplete=true as the complete collection status", () => {
+    // Act
+    const parsed = parseSubmissionListSearchParams({ isComplete: "true" });
+
+    // Assert
+    expect(parsed.collectionStatus).toEqual(["complete"]);
+  });
+
+  it("reads isComplete=false as every not-complete collection status", () => {
+    // Act
+    const parsed = parseSubmissionListSearchParams({ isComplete: "false" });
+
+    // Assert
+    expect(parsed.collectionStatus).not.toContain("complete");
+    expect(parsed.collectionStatus).toContain("not_started");
+    expect(parsed.collectionStatus).toContain("cancelled");
+  });
+
+  it("lets collectionStatus win over a legacy isComplete", () => {
+    // Act
+    const parsed = parseSubmissionListSearchParams({
+      collectionStatus: "viewed",
+      isComplete: "true",
+    });
+
+    // Assert
+    expect(parsed.collectionStatus).toEqual(["viewed"]);
+  });
+
+  it("is never canonical, so the page redirects to collectionStatus", () => {
+    // Arrange
+    const raw = { isComplete: "true" };
+    const parsed = parseSubmissionListSearchParams(raw);
+
+    // Act
+    const canonical = isCanonicalSubmissionListUrl(raw, parsed);
+    const rewritten = serializeSubmissionListSearchParams(parsed).toString();
+
+    // Assert
+    expect(canonical).toBe(false);
+    expect(rewritten).toContain("collectionStatus=complete");
+    expect(rewritten).not.toContain("isComplete");
   });
 });

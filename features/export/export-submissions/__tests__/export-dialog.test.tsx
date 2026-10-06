@@ -86,6 +86,7 @@ vi.mock("@/components/ui/select", async (importOriginal) => {
 
   type SelectWalkProps = {
     id?: string;
+    "aria-describedby"?: string;
     value?: unknown;
     textValue?: string;
     children?: React.ReactNode;
@@ -137,20 +138,25 @@ vi.mock("@/components/ui/select", async (importOriginal) => {
     return opts;
   }
 
-  function findTriggerId(node: React.ReactNode): string | undefined {
-    let found: string | undefined;
+  function findTriggerProps(
+    node: React.ReactNode,
+  ): { id: string; describedBy?: string } | undefined {
+    let found: { id: string; describedBy?: string } | undefined;
     React.Children.forEach(node, (child) => {
       if (found || !React.isValidElement<SelectWalkProps>(child)) {
         return;
       }
 
       if (typeof child.props.id === "string") {
-        found = child.props.id;
+        found = {
+          id: child.props.id,
+          describedBy: child.props["aria-describedby"],
+        };
         return;
       }
 
       if (child.props.children) {
-        found = findTriggerId(child.props.children);
+        found = findTriggerProps(child.props.children);
       }
     });
     return found;
@@ -169,10 +175,12 @@ vi.mock("@/components/ui/select", async (importOriginal) => {
       disabled?: boolean;
     }) => {
       const items = walkOptions(children);
-      const triggerId = findTriggerId(children) ?? "select";
+      const trigger = findTriggerProps(children);
+      const triggerId = trigger?.id ?? "select";
       return (
         <select
           id={triggerId}
+          aria-describedby={trigger?.describedBy}
           value={value}
           onChange={(e) => onValueChange(e.target.value)}
           disabled={disabled}
@@ -589,6 +597,43 @@ describe("ExportSubmissionsDialog", () => {
     expect(screen.queryByText(/not in the read model yet/i)).toBeNull();
     expect(latestPanelProps?.desktopType).toBe("complex");
     expect(screen.getByTestId("export-panel-footer")).toBeDefined();
+  });
+
+  it("says under Completion when the table's Status filter is narrower than the export", async () => {
+    render(
+      <ExportSubmissionsDialog
+        {...createProps({
+          listFilters: {
+            completionStatus: "incomplete",
+            statusFilterWiderThanList: true,
+          },
+        })}
+      />,
+    );
+    await waitForReady();
+
+    const hint = screen.getByText(
+      /Status filter can't be applied to exports exactly/i,
+    );
+    expect(hint).toBeDefined();
+    expect(
+      screen
+        .getByTestId("export-submissions-completion")
+        .getAttribute("aria-describedby"),
+    ).toContain(hint.id);
+  });
+
+  it("does not warn when the prefill matches the table exactly", async () => {
+    render(
+      <ExportSubmissionsDialog
+        {...createProps({ listFilters: { completionStatus: "completed" } })}
+      />,
+    );
+    await waitForReady();
+
+    expect(
+      screen.queryByText(/Status filter can't be applied to exports exactly/i),
+    ).toBeNull();
   });
 
   it("refreshes incomplete submissions before download", async () => {

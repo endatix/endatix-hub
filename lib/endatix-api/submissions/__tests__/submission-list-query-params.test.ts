@@ -17,7 +17,7 @@ describe("appendSubmissionListFilters", () => {
   it("appends facet filter segments and typed date/sort query params", () => {
     const params = new URLSearchParams();
     appendSubmissionListFilters(params, {
-      isComplete: ["true"],
+      collectionStatus: ["not_started"],
       status: ["new", "read"],
       isTestSubmission: ["false"],
       sortBy: "createdAt",
@@ -31,7 +31,8 @@ describe("appendSubmissionListFilters", () => {
     });
 
     const filters = params.getAll(SUBMISSION_LIST_FILTER_QUERY_PARAM);
-    expect(filters).toContain(`${F.isComplete}:true`);
+    expect(filters).toContain(`${F.collectionStatus}:not_started`);
+    expect(filters.some((f) => f.startsWith(`${F.isComplete}:`))).toBe(false);
     expect(filters).toContain(`${F.status}:new|read`);
     expect(filters).toContain(`${F.isTestSubmission}:false`);
     expect(filters.some((f) => f.includes("createdAt"))).toBe(false);
@@ -49,7 +50,7 @@ describe("appendSubmissionListFilters", () => {
   it("skips date params that are not valid YYYY-MM-DD calendar days", () => {
     const params = new URLSearchParams();
     appendSubmissionListFilters(params, {
-      isComplete: ["true"],
+      collectionStatus: ["not_started"],
       createdFrom: "not-a-date",
       createdTo: "2024-13-40",
       completedFrom: "2024-02-30",
@@ -57,7 +58,8 @@ describe("appendSubmissionListFilters", () => {
     });
 
     const filters = params.getAll(SUBMISSION_LIST_FILTER_QUERY_PARAM);
-    expect(filters).toContain(`${F.isComplete}:true`);
+    expect(filters).toContain(`${F.collectionStatus}:not_started`);
+    expect(filters.some((f) => f.startsWith(`${F.isComplete}:`))).toBe(false);
     expect(params.has("createdFrom")).toBe(false);
     expect(params.has("createdTo")).toBe(false);
     expect(params.has("completedFrom")).toBe(false);

@@ -12,6 +12,7 @@ export const SUBMISSION_LIST_FILTER_QUERY_PARAM = "filter" as const;
 /** Wire field names for facet `filter` segments only (not dates). */
 export const SUBMISSION_LIST_FILTER_FIELD_NAMES = Object.freeze({
   isComplete: "isComplete",
+  collectionStatus: "collectionStatus",
   status: "status",
   isTestSubmission: "isTestSubmission",
   submitterDisplayId: "submitterDisplayId",
@@ -43,6 +44,12 @@ export function appendSubmissionListFilters(
     params.append(
       SUBMISSION_LIST_FILTER_QUERY_PARAM,
       `${SUBMISSION_LIST_FILTER_FIELD_NAMES.isComplete}:${request.isComplete.join("|")}`,
+    );
+  }
+  if (request.collectionStatus && request.collectionStatus.length > 0) {
+    params.append(
+      SUBMISSION_LIST_FILTER_QUERY_PARAM,
+      `${SUBMISSION_LIST_FILTER_FIELD_NAMES.collectionStatus}:${request.collectionStatus.join("|")}`,
     );
   }
   if (request.status && request.status.length > 0) {

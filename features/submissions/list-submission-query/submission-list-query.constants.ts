@@ -13,7 +13,7 @@ export const SUBMISSION_LIST_REVIEW_STATUS_VALUES = [
 export const SUBMISSION_LIST_URL_SEARCH_PARAM_KEYS = Object.freeze({
   page: "page",
   pageSize: "pageSize",
-  isComplete: "isComplete",
+  collectionStatus: "collectionStatus",
   status: "status",
   isTestSubmission: "isTestSubmission",
   createdFrom: "createdFrom",

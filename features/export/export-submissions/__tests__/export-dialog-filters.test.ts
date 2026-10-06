@@ -29,6 +29,25 @@ describe("export-dialog-filters", () => {
     expect(draft.completionStatus).toBe(EXPORT_COMPLETION_STATUS.all);
     expect(draft.includeTestSubmissions).toBe(false);
     expect(draft.locale).toBe(DEFAULT_REPORTING_LOCALE);
+    expect(draft.statusFilterWiderThanList).toBe(false);
+  });
+
+  it("carries the list's wider-than-list flag into the draft, never into the request", () => {
+    // Act
+    const draft = createFilterDraftFromListFilters({
+      completionStatus: EXPORT_COMPLETION_STATUS.incomplete,
+      statusFilterWiderThanList: true,
+    });
+    const request = toSubmissionExportListFilters(draft, {
+      showLocaleField: false,
+      showRowFilters: true,
+      showCompletedAt: false,
+      locale: DEFAULT_REPORTING_LOCALE,
+    });
+
+    // Assert
+    expect(draft.statusFilterWiderThanList).toBe(true);
+    expect(request).not.toHaveProperty("statusFilterWiderThanList");
   });
 
   it("maps the grid complete and test filters", () => {

@@ -1,3 +1,4 @@
+import { COLLECTION_STATUS_FILTER_CODES } from "@/features/submissions/ui/describe-collection-status";
 import {
   SUBMISSION_LIST_BOOLEAN_FILTER_VALUES,
   SUBMISSION_LIST_REVIEW_STATUS_VALUES,
@@ -25,7 +26,7 @@ function sortedSetToCsv(set: Set<string>): string | undefined {
 export function submissionListUrlStateFromClientFilters(input: {
   page: number;
   pageSize: number;
-  isComplete: Set<string>;
+  collectionStatus: Set<string>;
   status: Set<string>;
   isTestSubmission: Set<string>;
   createdFrom?: string;
@@ -43,9 +44,9 @@ export function submissionListUrlStateFromClientFilters(input: {
   return {
     page: input.page,
     pageSize: input.pageSize,
-    isComplete: parseSubmissionListFilterValues(
-      sortedSetToCsv(input.isComplete),
-      SUBMISSION_LIST_BOOLEAN_FILTER_VALUES,
+    collectionStatus: parseSubmissionListFilterValues(
+      sortedSetToCsv(input.collectionStatus),
+      COLLECTION_STATUS_FILTER_CODES,
     ),
     status: parseSubmissionListFilterValues(
       sortedSetToCsv(input.status),

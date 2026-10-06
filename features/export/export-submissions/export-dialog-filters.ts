@@ -24,6 +24,7 @@ export type ExportFilterDraft = {
   startedAt: DateRangeDraft;
   completedAt: DateRangeDraft;
   locale: string;
+  statusFilterWiderThanList: boolean;
 };
 
 export type ExportFilterRangeErrors = {
@@ -80,6 +81,7 @@ export function createEmptyFilterDraft(): ExportFilterDraft {
     startedAt: { ...EMPTY_DATE_RANGE },
     completedAt: { ...EMPTY_DATE_RANGE },
     locale: DEFAULT_REPORTING_LOCALE,
+    statusFilterWiderThanList: false,
   };
 }
 
@@ -90,24 +92,23 @@ export function createFilterDraftFromListFilters(
     includeTestSubmissions: listFilters?.includeTestSubmissions ?? false,
     completionStatus:
       listFilters?.completionStatus ?? DEFAULT_EXPORT_COMPLETION_STATUS,
-    createdAt: {
-      from: listFilters?.createdFrom ?? "",
-      to: listFilters?.createdTo ?? "",
-    },
-    modifiedAt: {
-      from: listFilters?.modifiedFrom ?? "",
-      to: listFilters?.modifiedTo ?? "",
-    },
-    startedAt: {
-      from: listFilters?.startedFrom ?? "",
-      to: listFilters?.startedTo ?? "",
-    },
-    completedAt: {
-      from: listFilters?.completedFrom ?? "",
-      to: listFilters?.completedTo ?? "",
-    },
+    createdAt: dateRangeDraft(listFilters?.createdFrom, listFilters?.createdTo),
+    modifiedAt: dateRangeDraft(
+      listFilters?.modifiedFrom,
+      listFilters?.modifiedTo,
+    ),
+    startedAt: dateRangeDraft(listFilters?.startedFrom, listFilters?.startedTo),
+    completedAt: dateRangeDraft(
+      listFilters?.completedFrom,
+      listFilters?.completedTo,
+    ),
     locale: listFilters?.locale?.trim() || DEFAULT_REPORTING_LOCALE,
+    statusFilterWiderThanList: listFilters?.statusFilterWiderThanList ?? false,
   };
+}
+
+function dateRangeDraft(from?: string, to?: string): DateRangeDraft {
+  return { from: from ?? "", to: to ?? "" };
 }
 
 /**

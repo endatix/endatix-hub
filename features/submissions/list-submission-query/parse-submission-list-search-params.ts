@@ -1,3 +1,7 @@
+import {
+  COLLECTION_STATUS_FILTER_CODES,
+  collectionStatusFromLegacyIsComplete,
+} from "@/features/submissions/ui/describe-collection-status";
 import type { ListSubmissionsRequest } from "@/lib/endatix-api/submissions/types";
 import {
   parseCalendarDateYmd,
@@ -140,6 +144,20 @@ export function parseSubmissionListSorting(
   return sorting;
 }
 
+const LEGACY_IS_COMPLETE_KEY = "isComplete";
+
+function parseCollectionStatusFilter(
+  searchParams: SubmissionListRawSearchParams,
+) {
+  const raw = firstString(searchParams[searchParamKeys.collectionStatus]);
+  if (raw !== undefined) {
+    return parseSubmissionListFilterValues(raw, COLLECTION_STATUS_FILTER_CODES);
+  }
+  return collectionStatusFromLegacyIsComplete(
+    firstString(searchParams[LEGACY_IS_COMPLETE_KEY]),
+  );
+}
+
 /**
  * Parses the search params from the URL.
  * @param searchParams - The search params to parse.
@@ -163,10 +181,7 @@ export function parseSubmissionListSearchParams(
   return {
     page,
     pageSize,
-    isComplete: parseSubmissionListFilterValues(
-      firstString(searchParams[searchParamKeys.isComplete]),
-      SUBMISSION_LIST_BOOLEAN_FILTER_VALUES,
-    ),
+    collectionStatus: parseCollectionStatusFilter(searchParams),
     status: parseSubmissionListFilterValues(
       firstString(searchParams[searchParamKeys.status]),
       SUBMISSION_LIST_REVIEW_STATUS_VALUES,
@@ -211,7 +226,7 @@ export function submissionListUrlStateToListRequest(
     pageSize: state.pageSize,
     sortBy,
     sortDir,
-    isComplete: state.isComplete,
+    collectionStatus: state.collectionStatus,
     status: state.status,
     isTestSubmission: state.isTestSubmission,
     createdFrom: state.createdFrom,
@@ -246,34 +261,40 @@ function isSubmissionListSortBy(
   return id !== undefined && SUBMISSION_LIST_API_SORT_FIELDS.has(id);
 }
 
-/**
- * True when raw searchParams already match the parsed/canonical list state
- * (defaults omitted, dates/sort/submitter filters unchanged by parse).
- */
-export function isCanonicalSubmissionListUrl(
+/** Paging and sort are in the URL only when they differ from the default. */
+function isCanonicalPagingAndSort(
   raw: SubmissionListRawSearchParams,
   parsed: SubmissionListUrlState,
 ): boolean {
   const rawPage = firstString(raw.page);
   const rawPageSize = firstString(raw.pageSize);
   const rawSort = firstString(raw.sort);
-
-  const canonicalPage =
-    parsed.page === SUBMISSION_LIST_DEFAULT_PAGE
-      ? rawPage === undefined
-      : rawPage === String(parsed.page);
-  const canonicalPageSize =
-    parsed.pageSize === SUBMISSION_LIST_DEFAULT_PAGE_SIZE
-      ? rawPageSize === undefined
-      : rawPageSize === String(parsed.pageSize);
-
   const serializedSort = serializeSubmissionListSorting(parsed.sorting);
-  const canonicalSort =
-    serializedSort === undefined
-      ? rawSort === undefined
-      : rawSort === serializedSort;
 
-  if (!canonicalPage || !canonicalPageSize || !canonicalSort) {
+  return (
+    (parsed.page === SUBMISSION_LIST_DEFAULT_PAGE
+      ? rawPage === undefined
+      : rawPage === String(parsed.page)) &&
+    (parsed.pageSize === SUBMISSION_LIST_DEFAULT_PAGE_SIZE
+      ? rawPageSize === undefined
+      : rawPageSize === String(parsed.pageSize)) &&
+    rawSort === serializedSort
+  );
+}
+
+/**
+ * True when raw searchParams already match the parsed/canonical list state
+ * (defaults omitted, dates/sort/submitter filters unchanged by parse, and no
+ * legacy `isComplete` key left to rewrite).
+ */
+export function isCanonicalSubmissionListUrl(
+  raw: SubmissionListRawSearchParams,
+  parsed: SubmissionListUrlState,
+): boolean {
+  if (
+    !isCanonicalPagingAndSort(raw, parsed) ||
+    raw[LEGACY_IS_COMPLETE_KEY] !== undefined
+  ) {
     return false;
   }
 
@@ -284,7 +305,10 @@ export function isCanonicalSubmissionListUrl(
   }
 
   return (
-    isCanonicalJoinedFilter(firstString(raw.isComplete), parsed.isComplete) &&
+    isCanonicalJoinedFilter(
+      firstString(raw.collectionStatus),
+      parsed.collectionStatus,
+    ) &&
     isCanonicalJoinedFilter(firstString(raw.status), parsed.status) &&
     isCanonicalJoinedFilter(
       firstString(raw.isTestSubmission),

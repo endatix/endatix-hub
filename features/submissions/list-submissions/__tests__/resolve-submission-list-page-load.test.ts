@@ -17,7 +17,7 @@ const FORM_ID = "42";
 const baseListState: SubmissionListUrlState = {
   page: 1,
   pageSize: 25,
-  isComplete: [],
+  collectionStatus: [],
   status: [],
   isTestSubmission: [],
   sorting: [],

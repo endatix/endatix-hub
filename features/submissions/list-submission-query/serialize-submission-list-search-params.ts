@@ -23,7 +23,11 @@ export function serializeSubmissionListSearchParams(
     params.set(searchParamKeys.pageSize, String(state.pageSize));
   }
 
-  setJoinedParam(params, searchParamKeys.isComplete, state.isComplete);
+  setJoinedParam(
+    params,
+    searchParamKeys.collectionStatus,
+    state.collectionStatus,
+  );
   setJoinedParam(params, searchParamKeys.status, state.status);
   setJoinedParam(
     params,

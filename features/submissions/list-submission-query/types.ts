@@ -2,6 +2,7 @@ import type {
   AuditDateFilters,
   DateRangeFilter,
 } from "@/lib/endatix-api/shared/types";
+import type { CollectionStatusFilterCode } from "@/features/submissions/ui/describe-collection-status";
 import type {
   BooleanFilterValue,
   SubmissionReviewStatus,
@@ -21,7 +22,7 @@ export type SubmissionListSortItem = {
 export type SubmissionListUrlState = {
   page: number;
   pageSize: number;
-  isComplete: BooleanFilterValue[];
+  collectionStatus: CollectionStatusFilterCode[];
   status: SubmissionReviewStatus[];
   isTestSubmission: BooleanFilterValue[];
   sorting: SubmissionListSortItem[];

@@ -1,13 +1,22 @@
 "use client";
 
 import { CheckSquare, Eye, Sparkles } from "lucide-react";
-import { FacetedFilter, ResetFiltersButton } from "@/components/table";
+import {
+  FacetedFilter,
+  type FacetedFilterGroup,
+  ResetFiltersButton,
+} from "@/components/table";
+import {
+  COLLECTION_STATUS_GROUPS,
+  collectionStatusGroupTone,
+  describeCollectionStatus,
+} from "@/features/submissions/ui/describe-collection-status";
 
 interface SubmissionsFilterToolbarProps {
-  isCompleteFilter: Set<string>;
+  collectionStatusFilter: Set<string>;
   statusFilter: Set<string>;
   testSubmissionFilter: Set<string>;
-  onIsCompleteChange: (values: Set<string>) => void;
+  onCollectionStatusChange: (values: Set<string>) => void;
   onStatusChange: (values: Set<string>) => void;
   onTestSubmissionChange: (values: Set<string>) => void;
   onResetFilters: () => void;
@@ -18,10 +27,15 @@ interface SubmissionsFilterToolbarProps {
   hasAdditionalFilters?: boolean;
 }
 
-const isCompleteOptions = [
-  { label: "Yes", value: "true" },
-  { label: "No", value: "false" },
-];
+const collectionStatusGroups: FacetedFilterGroup[] =
+  COLLECTION_STATUS_GROUPS.map(({ group, label, codes }) => ({
+    label,
+    tone: collectionStatusGroupTone(group),
+    options: codes.map((code) => {
+      const view = describeCollectionStatus(code, false);
+      return { label: view.label, value: code, tone: view.tone };
+    }),
+  }));
 
 const statusOptions = [
   { label: "New", value: "new", icon: Sparkles },
@@ -35,10 +49,10 @@ const testSubmissionOptions = [
 ];
 
 export function SubmissionsFilterToolbar({
-  isCompleteFilter,
+  collectionStatusFilter,
   statusFilter,
   testSubmissionFilter,
-  onIsCompleteChange,
+  onCollectionStatusChange,
   onStatusChange,
   onTestSubmissionChange,
   onResetFilters,
@@ -49,7 +63,7 @@ export function SubmissionsFilterToolbar({
   hasAdditionalFilters = false,
 }: SubmissionsFilterToolbarProps) {
   const hasActiveFilters =
-    isCompleteFilter.size > 0 ||
+    collectionStatusFilter.size > 0 ||
     statusFilter.size > 0 ||
     testSubmissionFilter.size > 0 ||
     hasAdditionalFilters;
@@ -57,10 +71,10 @@ export function SubmissionsFilterToolbar({
   return (
     <>
       <FacetedFilter
-        title="Complete"
-        options={isCompleteOptions}
-        selectedValues={isCompleteFilter}
-        onValueChange={onIsCompleteChange}
+        title="Status"
+        groups={collectionStatusGroups}
+        selectedValues={collectionStatusFilter}
+        onValueChange={onCollectionStatusChange}
         disabled={disabled}
       />
       <FacetedFilter
