@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Result } from "@/lib/result";
+import { COLLECTION_STATUS_FACET_GROUPS } from "@/features/submissions/ui/describe-collection-status";
 import {
   ExportSubmissionsDialog,
   type ExportSubmissionsDialogProps,
@@ -362,6 +363,7 @@ function createProps(
         ],
       },
     ],
+    statusGroups: COLLECTION_STATUS_FACET_GROUPS,
     listFilters: undefined,
     isExporting: false,
     onExport: mockOnExport,

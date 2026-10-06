@@ -8,5 +8,6 @@ export {
   parseOptionalLocaleQuery,
   parseOptionalPositiveIdQuery,
   parseReportingExportFormat,
+  parseSubmissionRowExportQuery,
 } from "./parse-export-query";
 export { useTenantExportFormats } from "./use-tenant-export-formats.hook";

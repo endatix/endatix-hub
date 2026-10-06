@@ -7,7 +7,6 @@ import {
   createFilterDraftFromListFilters,
   rowFiltersMatch,
   hasFilterRangeErrors,
-  includeTestSubmissionsFromGridFilter,
   pickDefaultExportFormatId,
   resolveDefaultLocale,
   showsCompletedAtFields,
@@ -27,13 +26,6 @@ describe("export-dialog-filters", () => {
     expect(draft.collectionStatus).toEqual(["in_progress"]);
     expect(draft.includeTestSubmissions).toBe(false);
     expect(draft.locale).toBe(DEFAULT_REPORTING_LOCALE);
-  });
-
-  it("maps the grid test filter", () => {
-    expect(includeTestSubmissionsFromGridFilter([])).toBe(true);
-    expect(includeTestSubmissionsFromGridFilter(["false"])).toBe(false);
-    expect(includeTestSubmissionsFromGridFilter(["true"])).toBe(true);
-    expect(includeTestSubmissionsFromGridFilter(["true", "false"])).toBe(true);
   });
 
   it("defaults to every status when the list has no status filter", () => {

@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { submissionExportListFilters } from "../../ui/submission-export-list-filters";
+import {
+  includeTestSubmissionsFromGridFilter,
+  submissionExportListFilters,
+} from "../../ui/submission-export-list-filters";
 
 const noDates = {
   createdAt: {},
@@ -64,5 +67,13 @@ describe("submissionExportListFilters", () => {
 
     // Assert
     expect(filters.tableOnlyFilters).toBeUndefined();
+  });
+
+  it("maps the grid test filter onto Include test submissions", () => {
+    // Act & Assert
+    expect(includeTestSubmissionsFromGridFilter([])).toBe(true);
+    expect(includeTestSubmissionsFromGridFilter(["false"])).toBe(false);
+    expect(includeTestSubmissionsFromGridFilter(["true"])).toBe(true);
+    expect(includeTestSubmissionsFromGridFilter(["true", "false"])).toBe(true);
   });
 });

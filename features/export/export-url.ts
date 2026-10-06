@@ -34,10 +34,6 @@ export const EXPORT_COMPLETION_STATUS = {
 export type ExportCompletionStatusFilter =
   (typeof EXPORT_COMPLETION_STATUS)[keyof typeof EXPORT_COMPLETION_STATUS];
 
-/** Hub dialog default — BI-friendly completed-only export. */
-export const DEFAULT_EXPORT_COMPLETION_STATUS =
-  EXPORT_COMPLETION_STATUS.completed;
-
 /** Filters inherited from the submissions list URL or custom export dialog. */
 export interface SubmissionExportListFilters {
   isTestSubmission?: string[];
@@ -165,30 +161,34 @@ function appendAllowedListFilters(
     appendSubmissionIdRangeFilter(params, filters);
   }
 
-  if (
-    allowsFilter(allowedFilters, EXPORT_REQUEST_FILTER.collectionStatus) &&
-    filters.collectionStatus &&
-    filters.collectionStatus.length > 0
-  ) {
-    params.set(
-      EXPORT_REQUEST_FILTER.collectionStatus,
-      filters.collectionStatus.join("|"),
-    );
-  } else if (
-    allowsFilter(allowedFilters, EXPORT_REQUEST_FILTER.completionStatus) &&
-    filters.completionStatus
-  ) {
-    params.set(
-      EXPORT_REQUEST_FILTER.completionStatus,
-      filters.completionStatus,
-    );
-  }
+  appendStatusFilters(params, filters, allowedFilters);
 
   if (
     allowsFilter(allowedFilters, EXPORT_REQUEST_FILTER.locale) &&
     filters.locale?.trim()
   ) {
     params.set(EXPORT_REQUEST_FILTER.locale, filters.locale.trim());
+  }
+}
+
+function appendStatusFilters(
+  params: URLSearchParams,
+  filters: SubmissionExportListFilters,
+  allowed: ReadonlyArray<string> | undefined,
+): void {
+  const codes = filters.collectionStatus;
+  if (
+    allowsFilter(allowed, EXPORT_REQUEST_FILTER.collectionStatus) &&
+    codes?.length
+  ) {
+    params.set(EXPORT_REQUEST_FILTER.collectionStatus, codes.join("|"));
+    return;
+  }
+  if (
+    allowsFilter(allowed, EXPORT_REQUEST_FILTER.completionStatus) &&
+    filters.completionStatus
+  ) {
+    params.set(EXPORT_REQUEST_FILTER.completionStatus, filters.completionStatus);
   }
 }
 

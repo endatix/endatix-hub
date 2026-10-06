@@ -13,6 +13,7 @@ const SUBMISSIONS_FILTERS = [
   "completedAtRange",
   "submissionIdRange",
   "completionStatus",
+  "collectionStatus",
 ] as const;
 
 describe("mapIncludeTestSubmissions", () => {
@@ -207,6 +208,32 @@ describe("export url builders", () => {
     expect(url).not.toContain("createdFrom=");
     expect(url).not.toContain("createdTo=");
     expect(url).toContain("completedFrom=");
+  });
+
+  it("attaches collectionStatus when allowed, and that wins over completionStatus", () => {
+    const url = buildReportingExportUrl({
+      formId: "100",
+      formatKey: "csv",
+      exportFormatId: "42",
+      listFilters: {
+        collectionStatus: ["in_progress", "expired"],
+        completionStatus: "completed",
+      },
+      allowedFilters: [...SUBMISSIONS_FILTERS],
+    });
+    expect(url).toContain("collectionStatus=in_progress%7Cexpired");
+    expect(url).not.toContain("completionStatus=");
+  });
+
+  it("omits collectionStatus when the facet is empty", () => {
+    const url = buildReportingExportUrl({
+      formId: "100",
+      formatKey: "csv",
+      exportFormatId: "42",
+      listFilters: { collectionStatus: [] },
+      allowedFilters: [...SUBMISSIONS_FILTERS],
+    });
+    expect(url).not.toContain("collectionStatus=");
   });
 
   it("attaches completionStatus values when allowed", () => {

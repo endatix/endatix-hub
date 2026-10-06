@@ -130,18 +130,6 @@ function sameRange(a: DateRangeDraft, b: DateRangeDraft): boolean {
   return a.from === b.from && a.to === b.to;
 }
 
-/**
- * Grid Submission Type filter → Include test submissions.
- * Production-only excludes tests. No selection, test-only, or both includes them,
- * matching a grid that is not limited to production rows.
- */
-export function includeTestSubmissionsFromGridFilter(
-  values: Iterable<string>,
-): boolean {
-  const selected = new Set(values);
-  return !(selected.has("false") && !selected.has("true"));
-}
-
 export function showsLocaleField(
   option: Pick<TenantExportOption, "allowedFilters">,
 ): boolean {
@@ -254,19 +242,27 @@ export function toSubmissionExportListFilters(
     if (draft.collectionStatus.length > 0) {
       filters.collectionStatus = draft.collectionStatus;
     }
-    filters.createdFrom = draft.createdAt.from || undefined;
-    filters.createdTo = draft.createdAt.to || undefined;
-    filters.modifiedFrom = draft.modifiedAt.from || undefined;
-    filters.modifiedTo = draft.modifiedAt.to || undefined;
-    filters.startedFrom = draft.startedAt.from || undefined;
-    filters.startedTo = draft.startedAt.to || undefined;
-    if (args.showCompletedAt) {
-      filters.completedFrom = draft.completedAt.from || undefined;
-      filters.completedTo = draft.completedAt.to || undefined;
-    }
+    applyDateDrafts(filters, draft, args.showCompletedAt);
   }
 
   return filters;
+}
+
+function applyDateDrafts(
+  filters: SubmissionExportListFilters,
+  draft: ExportFilterDraft,
+  showCompletedAt: boolean,
+): void {
+  filters.createdFrom = draft.createdAt.from || undefined;
+  filters.createdTo = draft.createdAt.to || undefined;
+  filters.modifiedFrom = draft.modifiedAt.from || undefined;
+  filters.modifiedTo = draft.modifiedAt.to || undefined;
+  filters.startedFrom = draft.startedAt.from || undefined;
+  filters.startedTo = draft.startedAt.to || undefined;
+  if (showCompletedAt) {
+    filters.completedFrom = draft.completedAt.from || undefined;
+    filters.completedTo = draft.completedAt.to || undefined;
+  }
 }
 
 export function clearCompletedAtRange(

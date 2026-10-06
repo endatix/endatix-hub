@@ -14,9 +14,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { FacetedFilter } from "@/components/table";
+import {
+  FacetedFilter,
+  type FacetedFilterGroup,
+} from "@/components/table";
 import { Button } from "@/components/ui/button";
-import { COLLECTION_STATUS_FACET_GROUPS } from "@/features/submissions/ui/describe-collection-status";
 import type { SubmissionExportListFilters } from "../../export-url";
 import {
   DATE_RANGE_HINTS,
@@ -34,6 +36,7 @@ import { ExportDateRangeFieldset } from "./export-date-range-fieldset";
 
 interface ExportDialogFiltersFormProps {
   groups: TenantExportOptionGroup[];
+  statusGroups: readonly FacetedFilterGroup[];
   showGroupLabels: boolean;
   exportFormatId: string;
   onExportFormatIdChange: (id: string) => void;
@@ -59,6 +62,7 @@ interface ExportDialogFiltersFormProps {
 
 export function ExportDialogFiltersForm({
   groups,
+  statusGroups,
   showGroupLabels,
   exportFormatId,
   onExportFormatIdChange,
@@ -158,6 +162,7 @@ export function ExportDialogFiltersForm({
         showCompletedAt={showCompletedAt}
         controlsLocked={controlsLocked}
         tablePrefill={tablePrefill}
+        statusGroups={statusGroups}
         onPatchFilterDraft={onPatchFilterDraft}
         onDateRangeChange={onDateRangeChange}
       />
@@ -174,6 +179,7 @@ interface SubmissionsSectionProps {
   showCompletedAt: boolean;
   controlsLocked: boolean;
   tablePrefill?: SubmissionExportListFilters;
+  statusGroups: readonly FacetedFilterGroup[];
   onPatchFilterDraft: (patch: Partial<ExportFilterDraft>) => void;
   onDateRangeChange: (
     key: DateRangeKey,
@@ -182,12 +188,8 @@ interface SubmissionsSectionProps {
   ) => void;
 }
 
-/**
- * Which submissions to export. Opened from the list, it starts on the list's
- * filters and says so; once changed, it says that too and offers the way back.
- */
 function SubmissionsSection(props: Readonly<SubmissionsSectionProps>) {
-  const table = useTableFilters(props);
+  const table = tableFilterChrome(props);
   return (
     <PanelSection
       icon={ListFilter}
@@ -206,8 +208,7 @@ function SubmissionsSection(props: Readonly<SubmissionsSectionProps>) {
   );
 }
 
-/** The table's prefill as a draft, whether the draft still matches it, and the way back. */
-function useTableFilters(props: Readonly<SubmissionsSectionProps>) {
+function tableFilterChrome(props: Readonly<SubmissionsSectionProps>) {
   const { tablePrefill, filterDraft, showCompletedAt, showRowFilters } = props;
   const table = createFilterDraftFromListFilters(tablePrefill);
   const matches = rowFiltersMatch(filterDraft, table, {
@@ -225,7 +226,6 @@ function useTableFilters(props: Readonly<SubmissionsSectionProps>) {
   };
 }
 
-/** Dates go through onDateRangeChange so their range errors clear too. */
 function resetToTable(
   props: Readonly<SubmissionsSectionProps>,
   table: ExportFilterDraft,
@@ -240,7 +240,6 @@ function resetToTable(
   }
 }
 
-/** `type="button"`: the dialog is a form, and this must not submit it. */
 function UseTableFiltersButton({
   disabled,
   onClick,
@@ -282,34 +281,24 @@ function joinNames(names: readonly string[]): string {
   if (names.length < 2) {
     return names.join("");
   }
-  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+  return `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
 }
 
 const STATUS_FIELD_ID = "export-submissions-status";
 const STATUS_HINT_ID = "export-submissions-status-hint";
 
-const STATUS_FACET = {
-  variant: "field",
-  id: STATUS_FIELD_ID,
-  title: "Status",
-  emptyLabel: "All statuses",
-  groups: COLLECTION_STATUS_FACET_GROUPS,
-} as const;
-
-/** Status, the same grouped facet as the list, as a labelled form field. */
 function StatusField(props: Readonly<SubmissionsSectionProps>) {
   const codes = props.filterDraft.collectionStatus;
   const showHint = includesIncompleteSubmissions(codes);
-  const onValueChange = (values: Set<string>) =>
-    props.onPatchFilterDraft({ collectionStatus: [...values] });
   return (
     <div className="grid gap-2">
       <Label htmlFor={STATUS_FIELD_ID}>Status</Label>
       <FacetedFilter
-        {...STATUS_FACET}
-        describedBy={showHint ? STATUS_HINT_ID : undefined}
+        {...statusFieldProps(props.statusGroups, showHint)}
         selectedValues={new Set(codes)}
-        onValueChange={onValueChange}
+        onValueChange={(values) =>
+          props.onPatchFilterDraft({ collectionStatus: [...values] })
+        }
         disabled={props.controlsLocked}
       />
       {showHint ? <IncompleteRefreshHint /> : null}
@@ -317,7 +306,20 @@ function StatusField(props: Readonly<SubmissionsSectionProps>) {
   );
 }
 
-/** The consequence of including incomplete rows, on the field that chooses them. */
+function statusFieldProps(
+  groups: readonly FacetedFilterGroup[],
+  showHint: boolean,
+) {
+  return {
+    variant: "field" as const,
+    id: STATUS_FIELD_ID,
+    title: "Status",
+    emptyLabel: "All statuses",
+    groups,
+    describedBy: showHint ? STATUS_HINT_ID : undefined,
+  };
+}
+
 function IncompleteRefreshHint() {
   return (
     <p id={STATUS_HINT_ID} className="text-xs text-muted-foreground">
@@ -356,7 +358,6 @@ const DATE_RANGE_FIELDS: ReadonlyArray<{
   { key: "completedAt", legend: "Completed at", idStem: "completed" },
 ];
 
-/** Completed at only while the Status choice can include complete submissions. */
 function visibleDateRangeFields(showCompletedAt: boolean) {
   return DATE_RANGE_FIELDS.filter(
     (field) => field.key !== "completedAt" || showCompletedAt,

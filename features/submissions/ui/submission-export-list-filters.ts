@@ -1,5 +1,4 @@
 import { useMemo } from "react";
-import { includeTestSubmissionsFromGridFilter } from "@/features/export/export-submissions/export-dialog-filters";
 import type { SubmissionExportListFilters } from "@/features/export/export-url";
 import type { SubmissionDateFilters } from "@/features/submissions/ui/table/date-filter-types";
 
@@ -10,6 +9,18 @@ export interface SubmissionListFiltersForExport {
   testSubmission: Iterable<string>;
   review: Iterable<string>;
   submitterFiltered: boolean;
+}
+
+/**
+ * Grid Submission Type filter → Include test submissions.
+ * Production-only excludes tests. No selection, test-only, or both includes them,
+ * matching a grid that is not limited to production rows.
+ */
+export function includeTestSubmissionsFromGridFilter(
+  values: Iterable<string>,
+): boolean {
+  const selected = new Set(values);
+  return !(selected.has("false") && !selected.has("true"));
 }
 
 /**

@@ -320,7 +320,8 @@ Reference: the submissions Status facet,
   rewrite the URL. A bookmark that silently drops its filter shows the reader the wrong rows.
 - **The same facet in a form is `variant="field"`, not a second control.** A dialog that filters
   the same records (export) reuses the list's facet and its groups
-  (`COLLECTION_STATUS_FACET_GROUPS`), so its menu, badges and search are the list's. As a field
+  (`COLLECTION_STATUS_FACET_GROUPS`), so its menu, badges and search are the list's. The list
+  passes those groups in (`statusGroups`); export does not import the mapping file. As a field
   it sits under its own `Label htmlFor`, spans the width like the fields around it, names its
   whole selection at every width, says what an empty selection means (`emptyLabel`: "All
   statuses" — never a blank field that reads as "none"), and wires its help line through

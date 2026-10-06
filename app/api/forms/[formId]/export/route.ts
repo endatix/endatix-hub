@@ -4,14 +4,10 @@ import { auth } from "@/auth";
 import { authorization } from "@/features/auth";
 import { reportingExportFlag } from "@/lib/feature-flags/flags";
 import {
-  parseCollectionStatusQuery,
-  parseCompletionStatusQuery,
-  parseIncludeTestSubmissionsQuery,
   parseLegacyExportFormat,
-  parseOptionalCalendarDateQuery,
   parseOptionalLocaleQuery,
-  parseOptionalPositiveIdQuery,
   parseReportingExportFormat,
+  parseSubmissionRowExportQuery,
 } from "@/features/export/export-submissions";
 import { isCodebookFormatKey } from "@/lib/endatix-api/reporting/reporting-export-wire";
 import { Result } from "@/lib/result";
@@ -39,9 +35,6 @@ export async function GET(
   const format = searchParams.get("format");
   const exportFormatId = searchParams.get("exportFormatId");
   const exportId = searchParams.get("exportId");
-  const includeTestSubmissionsParam = searchParams.get(
-    "includeTestSubmissions",
-  );
 
   const useReportingExport = await reportingExportFlag();
 
@@ -90,45 +83,7 @@ export async function GET(
   }
 
   if (!isCodebook) {
-    exportOptions.includeTestSubmissions = parseIncludeTestSubmissionsQuery(
-      includeTestSubmissionsParam,
-    );
-    exportOptions.createdFrom = parseOptionalCalendarDateQuery(
-      searchParams.get("createdFrom"),
-    );
-    exportOptions.createdTo = parseOptionalCalendarDateQuery(
-      searchParams.get("createdTo"),
-    );
-    exportOptions.modifiedFrom = parseOptionalCalendarDateQuery(
-      searchParams.get("modifiedFrom"),
-    );
-    exportOptions.modifiedTo = parseOptionalCalendarDateQuery(
-      searchParams.get("modifiedTo"),
-    );
-    exportOptions.startedFrom = parseOptionalCalendarDateQuery(
-      searchParams.get("startedFrom"),
-    );
-    exportOptions.startedTo = parseOptionalCalendarDateQuery(
-      searchParams.get("startedTo"),
-    );
-    exportOptions.completedFrom = parseOptionalCalendarDateQuery(
-      searchParams.get("completedFrom"),
-    );
-    exportOptions.completedTo = parseOptionalCalendarDateQuery(
-      searchParams.get("completedTo"),
-    );
-    exportOptions.minSubmissionId = parseOptionalPositiveIdQuery(
-      searchParams.get("minSubmissionId"),
-    );
-    exportOptions.maxSubmissionId = parseOptionalPositiveIdQuery(
-      searchParams.get("maxSubmissionId"),
-    );
-    exportOptions.completionStatus = parseCompletionStatusQuery(
-      searchParams.get("completionStatus"),
-    );
-    exportOptions.collectionStatus = parseCollectionStatusQuery(
-      searchParams.get("collectionStatus"),
-    );
+    Object.assign(exportOptions, parseSubmissionRowExportQuery(searchParams));
   }
 
   const endatix = new EndatixApi(session?.accessToken);
