@@ -14,6 +14,7 @@ import {
   type ExportDialogSubmitArgs,
 } from "../use-export-dialog.hook";
 import type { TenantExportOptionGroup } from "../map-tenant-export-options";
+import type { FacetedFilterGroup } from "@/components/table";
 import { ExportDialogActions } from "./export-dialog-actions";
 import { ExportDialogFiltersForm } from "./export-dialog-filters-form";
 import { ExportDialogPrepareOptions } from "./export-dialog-prepare-options";
@@ -25,6 +26,7 @@ interface ExportSubmissionsDialogProps {
   formId: string;
   /** Grouped by export target (Submissions / Codebook) — same grouping as the former dropdown. */
   groups: TenantExportOptionGroup[];
+  statusGroups: readonly FacetedFilterGroup[];
   listFilters?: SubmissionExportListFilters;
   isExporting: boolean;
   onExport: (
@@ -37,6 +39,7 @@ export function ExportSubmissionsDialog({
   onOpenChange,
   formId,
   groups,
+  statusGroups,
   listFilters,
   isExporting,
   onExport,
@@ -104,6 +107,7 @@ export function ExportSubmissionsDialog({
           {dialog.showFiltersForm ? (
             <ExportDialogFiltersForm
               groups={groups}
+              statusGroups={statusGroups}
               showGroupLabels={dialog.showGroupLabels}
               exportFormatId={dialog.exportFormatId}
               onExportFormatIdChange={dialog.setExportFormatId}
@@ -117,12 +121,8 @@ export function ExportSubmissionsDialog({
               filterDraft={dialog.filterDraft}
               rangeErrors={dialog.rangeErrors}
               showCompletedAt={dialog.showCompletedAt}
-              onCompletionStatusChange={(completionStatus) =>
-                dialog.patchFilterDraft({ completionStatus })
-              }
-              onIncludeTestChange={(includeTestSubmissions) =>
-                dialog.patchFilterDraft({ includeTestSubmissions })
-              }
+              tablePrefill={listFilters}
+              onPatchFilterDraft={dialog.patchFilterDraft}
               onDateRangeChange={dialog.setDateRange}
             />
           ) : null}

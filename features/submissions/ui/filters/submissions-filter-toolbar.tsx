@@ -1,16 +1,8 @@
 "use client";
 
 import { CheckSquare, Eye, Sparkles } from "lucide-react";
-import {
-  FacetedFilter,
-  type FacetedFilterGroup,
-  ResetFiltersButton,
-} from "@/components/table";
-import {
-  COLLECTION_STATUS_GROUPS,
-  collectionStatusGroupTone,
-  describeCollectionStatus,
-} from "@/features/submissions/ui/describe-collection-status";
+import { FacetedFilter, ResetFiltersButton } from "@/components/table";
+import { COLLECTION_STATUS_FACET_GROUPS } from "@/features/submissions/ui/describe-collection-status";
 
 interface SubmissionsFilterToolbarProps {
   collectionStatusFilter: Set<string>;
@@ -26,16 +18,6 @@ interface SubmissionsFilterToolbarProps {
   disabled?: boolean;
   hasAdditionalFilters?: boolean;
 }
-
-const collectionStatusGroups: FacetedFilterGroup[] =
-  COLLECTION_STATUS_GROUPS.map(({ group, label, codes }) => ({
-    label,
-    tone: collectionStatusGroupTone(group),
-    options: codes.map((code) => {
-      const view = describeCollectionStatus(code, false);
-      return { label: view.label, value: code, tone: view.tone };
-    }),
-  }));
 
 const statusOptions = [
   { label: "New", value: "new", icon: Sparkles },
@@ -72,7 +54,7 @@ export function SubmissionsFilterToolbar({
     <>
       <FacetedFilter
         title="Status"
-        groups={collectionStatusGroups}
+        groups={COLLECTION_STATUS_FACET_GROUPS}
         selectedValues={collectionStatusFilter}
         onValueChange={onCollectionStatusChange}
         disabled={disabled}

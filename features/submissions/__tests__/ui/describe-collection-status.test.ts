@@ -4,9 +4,7 @@ import {
   COLLECTION_STATUS_GROUPS,
   collectionStatusFromLegacyIsComplete,
   collectionStatusGroupTone,
-  completionCoversCollectionStatus,
   describeCollectionStatus,
-  isCompleteValuesFromCollectionStatus,
   isReviewApplicable,
 } from "../../ui/describe-collection-status";
 
@@ -149,22 +147,6 @@ describe("COLLECTION_STATUS_GROUPS", () => {
   });
 });
 
-describe("isCompleteValuesFromCollectionStatus", () => {
-  it("maps complete to true and every other code to false, once each", () => {
-    // Act & Assert
-    expect(isCompleteValuesFromCollectionStatus([])).toEqual([]);
-    expect(isCompleteValuesFromCollectionStatus(["complete"])).toEqual([
-      "true",
-    ]);
-    expect(
-      isCompleteValuesFromCollectionStatus(["not_started", "viewed"]),
-    ).toEqual(["false"]);
-    expect(
-      isCompleteValuesFromCollectionStatus(["complete", "cancelled"]).sort(),
-    ).toEqual(["false", "true"]);
-  });
-});
-
 describe("collectionStatusFromLegacyIsComplete", () => {
   it("maps true to complete and false to every other built-in code", () => {
     // Act & Assert
@@ -183,30 +165,3 @@ describe("collectionStatusFromLegacyIsComplete", () => {
   });
 });
 
-describe("completionCoversCollectionStatus", () => {
-  it("is true when Completed / Incomplete / All match the list exactly, including every code selected", () => {
-    // Arrange
-    const everyNotComplete = COLLECTION_STATUS_FILTER_CODES.filter(
-      (code) => code !== "complete",
-    );
-
-    // Act & Assert
-    expect(completionCoversCollectionStatus([])).toBe(true);
-    expect(completionCoversCollectionStatus(["complete"])).toBe(true);
-    expect(completionCoversCollectionStatus(everyNotComplete)).toBe(true);
-    expect(
-      completionCoversCollectionStatus([...COLLECTION_STATUS_FILTER_CODES]),
-    ).toBe(true);
-  });
-
-  it("is false when the list is narrower than any completion choice", () => {
-    // Act & Assert
-    expect(completionCoversCollectionStatus(["in_progress"])).toBe(false);
-    expect(completionCoversCollectionStatus(["not_started", "viewed"])).toBe(
-      false,
-    );
-    expect(completionCoversCollectionStatus(["complete", "cancelled"])).toBe(
-      false,
-    );
-  });
-});

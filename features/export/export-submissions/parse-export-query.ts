@@ -75,6 +75,19 @@ export function parseOptionalLocaleQuery(
   return trimmed;
 }
 
+export function parseCollectionStatusQuery(
+  value: string | null,
+): string | undefined {
+  const codes = value
+    ?.split("|")
+    .map((code) => code.trim().toLowerCase())
+    .filter((code) => /^[a-z0-9_-]{1,32}$/.test(code));
+  if (!codes || codes.length === 0) {
+    return undefined;
+  }
+  return codes.join("|");
+}
+
 export function parseCompletionStatusQuery(
   value: string | null,
 ): "all" | "completed" | "incomplete" | undefined {
@@ -83,4 +96,25 @@ export function parseCompletionStatusQuery(
   }
 
   return undefined;
+}
+
+export function parseSubmissionRowExportQuery(searchParams: URLSearchParams) {
+  const q = (key: string) => searchParams.get(key);
+  return {
+    includeTestSubmissions: parseIncludeTestSubmissionsQuery(
+      q("includeTestSubmissions"),
+    ),
+    createdFrom: parseOptionalCalendarDateQuery(q("createdFrom")),
+    createdTo: parseOptionalCalendarDateQuery(q("createdTo")),
+    modifiedFrom: parseOptionalCalendarDateQuery(q("modifiedFrom")),
+    modifiedTo: parseOptionalCalendarDateQuery(q("modifiedTo")),
+    startedFrom: parseOptionalCalendarDateQuery(q("startedFrom")),
+    startedTo: parseOptionalCalendarDateQuery(q("startedTo")),
+    completedFrom: parseOptionalCalendarDateQuery(q("completedFrom")),
+    completedTo: parseOptionalCalendarDateQuery(q("completedTo")),
+    minSubmissionId: parseOptionalPositiveIdQuery(q("minSubmissionId")),
+    maxSubmissionId: parseOptionalPositiveIdQuery(q("maxSubmissionId")),
+    completionStatus: parseCompletionStatusQuery(q("completionStatus")),
+    collectionStatus: parseCollectionStatusQuery(q("collectionStatus")),
+  };
 }

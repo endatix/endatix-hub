@@ -1,15 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
-  DEFAULT_EXPORT_COMPLETION_STATUS,
   DEFAULT_REPORTING_LOCALE,
-  EXPORT_COMPLETION_STATUS,
   EXPORT_REQUEST_FILTER,
 } from "../../export-url";
 import {
-  completionStatusFromIsCompleteFilter,
   createFilterDraftFromListFilters,
+  rowFiltersMatch,
   hasFilterRangeErrors,
-  includeTestSubmissionsFromGridFilter,
   pickDefaultExportFormatId,
   resolveDefaultLocale,
   showsCompletedAtFields,
@@ -22,58 +19,17 @@ describe("export-dialog-filters", () => {
   it("creates a draft from list filters with defaults", () => {
     const draft = createFilterDraftFromListFilters({
       createdFrom: "2026-01-01",
-      completionStatus: EXPORT_COMPLETION_STATUS.all,
+      collectionStatus: ["in_progress"],
     });
 
     expect(draft.createdAt.from).toBe("2026-01-01");
-    expect(draft.completionStatus).toBe(EXPORT_COMPLETION_STATUS.all);
+    expect(draft.collectionStatus).toEqual(["in_progress"]);
     expect(draft.includeTestSubmissions).toBe(false);
     expect(draft.locale).toBe(DEFAULT_REPORTING_LOCALE);
-    expect(draft.statusFilterWiderThanList).toBe(false);
   });
 
-  it("carries the list's wider-than-list flag into the draft, never into the request", () => {
-    // Act
-    const draft = createFilterDraftFromListFilters({
-      completionStatus: EXPORT_COMPLETION_STATUS.incomplete,
-      statusFilterWiderThanList: true,
-    });
-    const request = toSubmissionExportListFilters(draft, {
-      showLocaleField: false,
-      showRowFilters: true,
-      showCompletedAt: false,
-      locale: DEFAULT_REPORTING_LOCALE,
-    });
-
-    // Assert
-    expect(draft.statusFilterWiderThanList).toBe(true);
-    expect(request).not.toHaveProperty("statusFilterWiderThanList");
-  });
-
-  it("maps the grid complete and test filters", () => {
-    expect(completionStatusFromIsCompleteFilter([])).toBe(
-      EXPORT_COMPLETION_STATUS.all,
-    );
-    expect(completionStatusFromIsCompleteFilter(["true"])).toBe(
-      EXPORT_COMPLETION_STATUS.completed,
-    );
-    expect(completionStatusFromIsCompleteFilter(["false"])).toBe(
-      EXPORT_COMPLETION_STATUS.incomplete,
-    );
-    expect(completionStatusFromIsCompleteFilter(["true", "false"])).toBe(
-      EXPORT_COMPLETION_STATUS.all,
-    );
-
-    expect(includeTestSubmissionsFromGridFilter([])).toBe(true);
-    expect(includeTestSubmissionsFromGridFilter(["false"])).toBe(false);
-    expect(includeTestSubmissionsFromGridFilter(["true"])).toBe(true);
-    expect(includeTestSubmissionsFromGridFilter(["true", "false"])).toBe(true);
-  });
-
-  it("defaults completion status for empty list filters", () => {
-    expect(createFilterDraftFromListFilters().completionStatus).toBe(
-      DEFAULT_EXPORT_COMPLETION_STATUS,
-    );
+  it("defaults to every status when the list has no status filter", () => {
+    expect(createFilterDraftFromListFilters().collectionStatus).toEqual([]);
   });
 
   it("validates inverted date ranges", () => {
@@ -93,7 +49,7 @@ describe("export-dialog-filters", () => {
   it("builds request filters from the draft", () => {
     const draft = createFilterDraftFromListFilters({
       includeTestSubmissions: true,
-      completionStatus: EXPORT_COMPLETION_STATUS.completed,
+      collectionStatus: ["complete"],
       createdFrom: "2026-01-01",
       locale: "es",
     });
@@ -107,7 +63,7 @@ describe("export-dialog-filters", () => {
       }),
     ).toEqual({
       includeTestSubmissions: true,
-      completionStatus: EXPORT_COMPLETION_STATUS.completed,
+      collectionStatus: ["complete"],
       createdFrom: "2026-01-01",
       createdTo: undefined,
       modifiedFrom: undefined,
@@ -137,14 +93,10 @@ describe("export-dialog-filters", () => {
     expect(showsLocaleField({ allowedFilters: [] })).toBe(false);
   });
 
-  it("shows completed-at for completed and all only", () => {
-    expect(showsCompletedAtFields(EXPORT_COMPLETION_STATUS.completed)).toBe(
-      true,
-    );
-    expect(showsCompletedAtFields(EXPORT_COMPLETION_STATUS.all)).toBe(true);
-    expect(showsCompletedAtFields(EXPORT_COMPLETION_STATUS.incomplete)).toBe(
-      false,
-    );
+  it("shows completed-at unless every selected code is not complete", () => {
+    expect(showsCompletedAtFields([])).toBe(true);
+    expect(showsCompletedAtFields(["complete"])).toBe(true);
+    expect(showsCompletedAtFields(["in_progress"])).toBe(false);
   });
 
   it("prefers a submissions format as default", () => {
@@ -162,5 +114,58 @@ describe("export-dialog-filters", () => {
         },
       ]),
     ).toBe("csv");
+  });
+
+  describe("rowFiltersMatch", () => {
+    const table = createFilterDraftFromListFilters({
+      collectionStatus: ["viewed", "not_started"],
+      createdFrom: "2026-01-01",
+      completedFrom: "2026-02-01",
+    });
+
+    it("matches the same codes in any order", () => {
+      const draft = { ...table, collectionStatus: ["not_started", "viewed"] };
+
+      expect(rowFiltersMatch(draft, table, { includeCompletedAt: true })).toBe(
+        true,
+      );
+    });
+
+    it("differs on status, test toggle or a shown date", () => {
+      const options = { includeCompletedAt: true };
+
+      expect(
+        rowFiltersMatch(
+          { ...table, collectionStatus: ["viewed"] },
+          table,
+          options,
+        ),
+      ).toBe(false);
+      expect(
+        rowFiltersMatch(
+          { ...table, includeTestSubmissions: true },
+          table,
+          options,
+        ),
+      ).toBe(false);
+      expect(
+        rowFiltersMatch(
+          { ...table, createdAt: { from: "2026-01-02", to: "" } },
+          table,
+          options,
+        ),
+      ).toBe(false);
+    });
+
+    it("ignores Completed at while it is hidden", () => {
+      const cleared = { ...table, completedAt: { from: "", to: "" } };
+
+      expect(
+        rowFiltersMatch(cleared, table, { includeCompletedAt: false }),
+      ).toBe(true);
+      expect(
+        rowFiltersMatch(cleared, table, { includeCompletedAt: true }),
+      ).toBe(false);
+    });
   });
 });

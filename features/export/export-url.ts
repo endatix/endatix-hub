@@ -19,6 +19,7 @@ export const EXPORT_REQUEST_FILTER = {
   locale: "locale",
   columnScope: "columnScope",
   completionStatus: "completionStatus",
+  collectionStatus: "collectionStatus",
 } as const;
 
 export type ExportRequestFilter =
@@ -32,10 +33,6 @@ export const EXPORT_COMPLETION_STATUS = {
 
 export type ExportCompletionStatusFilter =
   (typeof EXPORT_COMPLETION_STATUS)[keyof typeof EXPORT_COMPLETION_STATUS];
-
-/** Hub dialog default — BI-friendly completed-only export. */
-export const DEFAULT_EXPORT_COMPLETION_STATUS =
-  EXPORT_COMPLETION_STATUS.completed;
 
 /** Filters inherited from the submissions list URL or custom export dialog. */
 export interface SubmissionExportListFilters {
@@ -54,11 +51,12 @@ export interface SubmissionExportListFilters {
   maxSubmissionId?: string;
   locale?: string;
   completionStatus?: ExportCompletionStatusFilter;
+  collectionStatus?: string[];
   /**
-   * The list's Status filter is narrower than any completion choice, so the
-   * prefilled completion exports rows the list hides. Shown, never sent.
+   * Active list filters the export cannot apply (e.g. Review), named as the
+   * toolbar names them. Shown in the dialog, never sent.
    */
-  statusFilterWiderThanList?: boolean;
+  tableOnlyFilters?: string[];
 }
 
 export interface ReportingExportUrlOptions {
@@ -163,21 +161,34 @@ function appendAllowedListFilters(
     appendSubmissionIdRangeFilter(params, filters);
   }
 
-  if (
-    allowsFilter(allowedFilters, EXPORT_REQUEST_FILTER.completionStatus) &&
-    filters.completionStatus
-  ) {
-    params.set(
-      EXPORT_REQUEST_FILTER.completionStatus,
-      filters.completionStatus,
-    );
-  }
+  appendStatusFilters(params, filters, allowedFilters);
 
   if (
     allowsFilter(allowedFilters, EXPORT_REQUEST_FILTER.locale) &&
     filters.locale?.trim()
   ) {
     params.set(EXPORT_REQUEST_FILTER.locale, filters.locale.trim());
+  }
+}
+
+function appendStatusFilters(
+  params: URLSearchParams,
+  filters: SubmissionExportListFilters,
+  allowed: ReadonlyArray<string> | undefined,
+): void {
+  const codes = filters.collectionStatus;
+  if (
+    allowsFilter(allowed, EXPORT_REQUEST_FILTER.collectionStatus) &&
+    codes?.length
+  ) {
+    params.set(EXPORT_REQUEST_FILTER.collectionStatus, codes.join("|"));
+    return;
+  }
+  if (
+    allowsFilter(allowed, EXPORT_REQUEST_FILTER.completionStatus) &&
+    filters.completionStatus
+  ) {
+    params.set(EXPORT_REQUEST_FILTER.completionStatus, filters.completionStatus);
   }
 }
 

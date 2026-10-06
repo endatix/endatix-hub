@@ -252,3 +252,59 @@ describe("FacetedFilter with flat options", () => {
     ]);
   });
 });
+
+describe("FacetedFilter as a form field", () => {
+  function renderField(selected: string[], onValueChange = vi.fn()) {
+    render(
+      <form onSubmit={(event) => event.preventDefault()}>
+        <label htmlFor="status-field">Status</label>
+        <FacetedFilter
+          variant="field"
+          id="status-field"
+          title="Status"
+          emptyLabel="All statuses"
+          describedBy="status-hint"
+          groups={groups}
+          selectedValues={new Set(selected)}
+          onValueChange={onValueChange}
+        />
+      </form>,
+    );
+    return onValueChange;
+  }
+
+  it("is labelled from outside and names an empty selection", () => {
+    // Act
+    renderField([]);
+
+    // Assert
+    const field = screen.getByLabelText("Status");
+    expect(field.textContent).toContain("All statuses");
+    expect(field.getAttribute("aria-describedby")).toBe("status-hint");
+    expect(field.getAttribute("type")).toBe("button");
+  });
+
+  it("names the selection at every width, a full group as its group", () => {
+    // Act
+    renderField(["not_started", "viewed", "complete"]);
+
+    // Assert
+    const field = screen.getByLabelText("Status");
+    expect(field.textContent).toContain("Not engaged");
+    expect(field.textContent).toContain("Complete");
+    expect(field.textContent).not.toContain("All statuses");
+    expect(field.querySelector(".lg\\:hidden")).toBeNull();
+  });
+
+  it("offers Clear selection rather than Clear filters", () => {
+    // Arrange
+    const onValueChange = renderField(["viewed"]);
+    fireEvent.click(screen.getByLabelText("Status"));
+
+    // Act
+    fireEvent.click(screen.getByRole("option", { name: "Clear selection" }));
+
+    // Assert
+    expect([...(onValueChange.mock.calls[0][0] as Set<string>)]).toEqual([]);
+  });
+});

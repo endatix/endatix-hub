@@ -24,6 +24,7 @@ import {
   buildReportingExportUrl,
   type SubmissionExportListFilters,
 } from "../../export-url";
+import type { FacetedFilterGroup } from "@/components/table";
 import { useSubmissionsExport } from "../use-submissions-export.hook";
 import { useTenantExportFormats } from "../use-tenant-export-formats.hook";
 import { ExportSubmissionsDialog } from "./export-dialog";
@@ -34,6 +35,7 @@ interface ExportSubmissionsButtonProps {
   disabled?: boolean;
   useReportingExport?: boolean;
   listFilters?: SubmissionExportListFilters;
+  statusGroups?: readonly FacetedFilterGroup[];
 }
 
 function ExportButtonContents({
@@ -55,6 +57,7 @@ export function ExportSubmissionsButton({
   disabled = false,
   useReportingExport = false,
   listFilters,
+  statusGroups = [],
 }: Readonly<ExportSubmissionsButtonProps>) {
   if (useReportingExport) {
     return (
@@ -63,6 +66,7 @@ export function ExportSubmissionsButton({
         className={className}
         disabled={disabled}
         listFilters={listFilters}
+        statusGroups={statusGroups}
       />
     );
   }
@@ -81,6 +85,7 @@ function ReportingExportSubmissionsButton({
   className,
   disabled,
   listFilters,
+  statusGroups = [],
 }: Readonly<Omit<ExportSubmissionsButtonProps, "useReportingExport">>) {
   const { isExporting, runExport } = useSubmissionsExport();
   const { options, groups, isLoading, isEmpty, loadError } =
@@ -155,6 +160,7 @@ function ReportingExportSubmissionsButton({
         onOpenChange={setDialogOpen}
         formId={formId}
         groups={groups}
+        statusGroups={statusGroups}
         listFilters={listFilters}
         isExporting={isExporting}
         onExport={async ({

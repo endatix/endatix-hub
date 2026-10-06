@@ -131,7 +131,7 @@ Before building a control, check whether the vocabulary already exists here.
 | Component                                                                | Owns                                                                                  |
 | :----------------------------------------------------------------------- | :------------------------------------------------------------------------------------ |
 | `components/common/status-badge.tsx` — `StatusBadge`, `StatusDot`        | The four-tone on / off / attention / idle pill, and its dot alone for a group label   |
-| `components/table/faceted-filter.tsx` — `FacetedFilter`                  | A toolbar facet: flat options, or `groups` with a select-all heading (Filters, below) |
+| `components/table/faceted-filter.tsx` — `FacetedFilter`                  | A facet: toolbar pill or form `field`; flat or grouped options (Filters, below)       |
 | `components/common/file-kind-icon.tsx` — `FileKindIcon`, `FileKindLabel` | The file-type mark and its icon+label row (File Type Marks, below)                    |
 | `components/common/panel-section.tsx` — `PanelSection`                   | A titled concern inside an overlay, on a nested surface (§6 Create / edit overlay)    |
 | `components/common/summary-row.tsx` — `SummaryRow`                       | Label-left / value-right rows (§6 Displaying values)                                  |
@@ -318,15 +318,17 @@ Reference: the submissions Status facet,
 - **A facet that replaces an older one keeps the old links working.** Read the old URL key into
   the new facet (`isComplete=true` → `collectionStatus=complete`) and let the canonical redirect
   rewrite the URL. A bookmark that silently drops its filter shows the reader the wrong rows.
-- **Flows prefilled from the list keep following the facet** — when a facet changes shape, map
-  the new values to what the flow understands (Status codes → the export's Completed /
-  Incomplete / All) rather than dropping the prefill.
-- **A prefill that cannot match the list picks the narrowest choice that still holds every listed
-  row, and says so under that control.** Never widen further to dodge the mismatch (`All` for
-  "In progress" adds every complete row too). The note is one muted line on the field
-  ("The table's Status filter can't be applied to exports exactly…"), shown only when the list's
-  filter is narrower than any choice. Reference: `submission-export-list-filters.ts` +
-  `CompletionField` in `export-dialog-filters-form.tsx`.
+- **The same facet in a form is `variant="field"`, not a second control.** A dialog that filters
+  the same records (export) reuses the list's facet and its groups
+  (`COLLECTION_STATUS_FACET_GROUPS`), so its menu, badges and search are the list's. The list
+  passes those groups in (`statusGroups`); export does not import the mapping file. As a field
+  it sits under its own `Label htmlFor`, spans the width like the fields around it, names its
+  whole selection at every width, says what an empty selection means (`emptyLabel`: "All
+  statuses" — never a blank field that reads as "none"), and wires its help line through
+  `describedBy`. Its clear item says "Clear selection".
+- **Flows prefilled from the list take the list's values exactly.** Send the same codes, not a
+  coarser mapping onto another control; a flow that cannot express a list filter names it
+  (Configure and run, below).
 
 **Empty states — `DataTableEmpty` with `icon` + `title`, description as children:**
 
@@ -785,8 +787,24 @@ an operation, not a saved record. Reference:
 
 - `ResponsivePanel desktopType="complex"`: format + filters are 3+ fields.
 - **A `PanelSection` per question the reader answers** — what file (`File`: format, language),
-  which records (`Submissions`: completion, test, date ranges). Say where prefills came from in
+  which records (`Submissions`: status, test, date ranges). Say where prefills came from in
   the section description ("Prefilled from the filters on the submissions table").
+- **Opened from a list, the records section starts on the list's filters and stays honest about
+  them.** Reference: `SubmissionsSection` in
+  `features/export/export-submissions/ui/export-dialog-filters-form.tsx`.
+  - Same values, same controls: the list's Status facet is the dialog's Status field, its dates
+    are the same date ranges.
+  - A list filter the flow cannot apply is named in the description, by its toolbar name, only
+    while it is active: "Its Review and Submitter filters don't apply to exports, so the file can
+    include rows the table hides." The list computes the names (`tableOnlyFilters`); they are
+    shown, never sent.
+  - Once the reader changes a prefilled value, the description says "Changed from the filters on
+    the submissions table." and the section `aside` offers **Use table filters** — a ghost
+    button with `type="button"` (the dialog is a form) that restores every prefilled value and
+    clears their errors. A value the dialog hid itself (Completed at, when no complete status is
+    chosen) is not a change the reader made.
+  - Opened without a list, the description says what to choose ("Choose which submissions to
+    export."), never "Prefilled".
 - Opens on the primary action (Overlays rule 9); runs as in Progress inside a panel.
 - **Readiness problems replace the form** with one `Alert` and the one step that fixes them
   (`Prepare for export`); maintenance entry points (`Rebuild reporting data…`) are a ghost
@@ -853,7 +871,10 @@ Before finishing UI work, check:
 - [ ] Peer cards use `.grid-card-list`, not viewport breakpoints (§5).
 - [ ] Lists use `components/table`; the empty state has the list icon, a title and a way out (§5).
 - [ ] A facet over states shows the column's badges; a grouped lifecycle filters group first,
-      with group labels distinct from code labels; old filter URLs still work (§5 Filters).
+      with group labels distinct from code labels; old filter URLs still work; a form reuses the
+      facet as a labelled `field` (§5 Filters).
+- [ ] A flow prefilled from a list takes its values exactly, names list filters it cannot apply,
+      and offers "Use table filters" once changed (§6 Configure and run).
 - [ ] Overlays follow the table in §5, never stack, and have a title and description.
 - [ ] Inline links are `TextLink`; external ones use `external`; nothing links to an unconfigured
       or unconfirmed target; links to our own sites carry UTM tags and a click event (§5).

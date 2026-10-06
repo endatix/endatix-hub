@@ -9,8 +9,9 @@ import {
   type SubmissionListUrlState,
 } from "@/features/submissions/list-submission-query";
 import { ExportSubmissionsButton } from "@/features/export";
+import { COLLECTION_STATUS_FACET_GROUPS } from "@/features/submissions/ui/describe-collection-status";
 import { SubmissionsFilterToolbar } from "@/features/submissions/ui/filters/submissions-filter-toolbar";
-import { submissionExportListFilters } from "@/features/submissions/ui/submission-export-list-filters";
+import { useSubmissionExportListFilters } from "@/features/submissions/ui/submission-export-list-filters";
 import { NoSubmissionsEmptyState } from "@/features/submissions/ui/submissions-empty-state";
 import {
   buildSubmissionDataColumns,
@@ -85,6 +86,18 @@ function submissionDateFiltersFromListState(
       to: listState.completedTo,
     },
   };
+}
+
+function getColumnHeaderText(col: ColumnDef<ParsedSubmission>): string {
+  if (col.meta?.displayName) {
+    return col.meta.displayName as string;
+  }
+
+  if (typeof col.header === "string") {
+    return col.header;
+  }
+
+  return col.id || "Column";
 }
 
 type NavigationMode = "push" | "replace";
@@ -163,31 +176,19 @@ function SubmissionsContent({
   const isTrueEmptyState = !hasAnySubmissions;
   const disableTableControls = isTrueEmptyState;
 
-  const exportListFilters = useMemo(
-    () =>
-      submissionExportListFilters(
-        dateFilters,
-        collectionStatusFilter,
-        testSubmissionFilter,
-      ),
-    [dateFilters, collectionStatusFilter, testSubmissionFilter],
-  );
+  const exportListFilters = useSubmissionExportListFilters({
+    dates: dateFilters,
+    collectionStatus: collectionStatusFilter,
+    testSubmission: testSubmissionFilter,
+    review: statusFilter,
+    submitterFiltered: Boolean(
+      submitterDisplayIdFilter.trim() || submitterEmailFilter.trim(),
+    ),
+  });
 
   useEffect(() => {
     setIsClient(true);
   }, []);
-
-  const getColumnHeaderText = (col: ColumnDef<ParsedSubmission>): string => {
-    if (col.meta?.displayName) {
-      return col.meta.displayName as string;
-    }
-
-    if (typeof col.header === "string") {
-      return col.header;
-    }
-
-    return col.id || "Column";
-  };
 
   const columnHeaders = allColumns
     .filter((col) => col.id && col.id !== "actions")
@@ -289,6 +290,7 @@ function SubmissionsContent({
               disabled={disableTableControls}
               useReportingExport={useReportingExport}
               listFilters={exportListFilters}
+              statusGroups={COLLECTION_STATUS_FACET_GROUPS}
             />
           </>
         }

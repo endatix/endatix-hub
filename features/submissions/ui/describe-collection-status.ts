@@ -1,4 +1,5 @@
 import type { StatusTone } from "@/components/common/status-badge";
+import type { FacetedFilterGroup } from "@/components/table/faceted-filter-selection";
 
 export type CollectionStatusGroup = "unengaged" | "open" | "complete" | "ended";
 
@@ -38,34 +39,6 @@ export function collectionStatusGroupTone(
   group: CollectionStatusGroup,
 ): StatusTone {
   return GROUP_TONE[group];
-}
-
-export function isCompleteValuesFromCollectionStatus(
-  codes: Iterable<string>,
-): Array<"true" | "false"> {
-  const values = new Set<"true" | "false">();
-  for (const code of codes) {
-    values.add(code === "complete" ? "true" : "false");
-  }
-  return [...values];
-}
-
-export function completionCoversCollectionStatus(
-  codes: Iterable<string>,
-): boolean {
-  const selected = new Set(codes);
-  const selectsExactly = (expected: readonly string[]) =>
-    selected.size === expected.length &&
-    expected.every((code) => selected.has(code));
-  const notComplete = COLLECTION_STATUS_FILTER_CODES.filter(
-    (code) => code !== "complete",
-  );
-  return (
-    selected.size === 0 ||
-    selectsExactly(COLLECTION_STATUS_FILTER_CODES) ||
-    selectsExactly(["complete"]) ||
-    selectsExactly(notComplete)
-  );
 }
 
 export function collectionStatusFromLegacyIsComplete(
@@ -130,3 +103,18 @@ function humanizeCode(code: string): string {
   const words = code.replaceAll(/[_-]+/g, " ").trim();
   return words.charAt(0).toUpperCase() + words.slice(1);
 }
+
+/**
+ * The Status facet's groups, each code as the badge the grid shows. One
+ * definition for every surface that filters by status (list toolbar, export
+ * dialog), so their menus cannot drift. Declared last: it reads `BUILT_IN`.
+ */
+export const COLLECTION_STATUS_FACET_GROUPS: readonly FacetedFilterGroup[] =
+  COLLECTION_STATUS_GROUPS.map(({ group, label, codes }) => ({
+    label,
+    tone: collectionStatusGroupTone(group),
+    options: codes.map((code) => {
+      const view = describeCollectionStatus(code, false);
+      return { label: view.label, value: code, tone: view.tone };
+    }),
+  }));

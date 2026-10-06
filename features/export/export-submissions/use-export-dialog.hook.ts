@@ -17,7 +17,6 @@ import {
 import { Result } from "@/lib/result";
 import {
   DEFAULT_REPORTING_LOCALE,
-  EXPORT_COMPLETION_STATUS,
   type SubmissionExportListFilters,
 } from "../export-url";
 import {
@@ -183,7 +182,7 @@ export function useExportDialog({
       )
     : false;
   const showLocale = selectedOption ? showsLocaleField(selectedOption) : false;
-  const showCompletedAt = showsCompletedAtFields(filterDraft.completionStatus);
+  const showCompletedAt = showsCompletedAtFields(filterDraft.collectionStatus);
 
   const localeSelectOptions = useMemo(
     () =>
@@ -354,7 +353,7 @@ export function useExportDialog({
   ]);
 
   useEffect(() => {
-    if (filterDraft.completionStatus !== EXPORT_COMPLETION_STATUS.incomplete) {
+    if (showsCompletedAtFields(filterDraft.collectionStatus)) {
       return;
     }
 
@@ -367,7 +366,7 @@ export function useExportDialog({
     setRangeErrors((current) =>
       current.completedAt == null ? current : { ...current, completedAt: null },
     );
-  }, [filterDraft.completionStatus]);
+  }, [filterDraft.collectionStatus]);
 
   const handleOpenChange = (nextOpen: boolean) => {
     if (!nextOpen && busy) {
@@ -421,7 +420,7 @@ export function useExportDialog({
 
     const includesIncomplete =
       showRowFilters &&
-      includesIncompleteSubmissions(filterDraft.completionStatus);
+      includesIncompleteSubmissions(filterDraft.collectionStatus);
 
     setPhase("exporting");
     setInlineError(null);

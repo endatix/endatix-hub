@@ -126,6 +126,7 @@ export interface ExportSubmissionsRequest
   locale?: string;
   /** Optional completion filter. Omit means all (API default). */
   completionStatus?: ExportCompletionStatus;
+  collectionStatus?: string;
   minSubmissionId?: string;
   maxSubmissionId?: string;
 }
