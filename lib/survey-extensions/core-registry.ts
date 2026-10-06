@@ -30,6 +30,7 @@ import {
   COMPLETE_TRIGGER_NAVIGATION_EXTENSION_ID,
   completeTriggerNavigationExtension,
 } from "@/lib/survey-features/complete-trigger-navigation";
+import { screenOutExtension } from "@/lib/survey-features/screen-out";
 import { DRAG_CATEGORIZE_EXTENSION_ID } from "@/lib/questions/drag-categorize/constants";
 // The extension module, not the feature barrel — the barrel re-exports the
 // Creator bindings, which must not reach the respondent graph.
@@ -137,6 +138,17 @@ export const coreExtensions: ExtensionDefinition[] = [
       name: "Complete trigger navigation",
       description:
         "Lets a form choose whether a Complete trigger replaces Next with Complete.",
+    },
+  },
+  {
+    id: "screen-out",
+    type: "feature",
+    loading: "static",
+    module: screenOutExtension,
+    metadata: {
+      name: "Screen out",
+      description:
+        "Ends the interview as screened out when a screen-out trigger runs.",
     },
   },
   {

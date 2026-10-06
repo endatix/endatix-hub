@@ -5,6 +5,7 @@ import { isValidAbsoluteUrl } from "@/lib/utils/url-utils";
 /** Events that can be overridden per form (excludes FormCreated — fires before per-form config exists). */
 export const EVENT_KEYS = [
   "SubmissionCompleted",
+  "SubmissionCollectionStatusChanged",
   "FormUpdated",
   "FormEnabledStateChanged",
   "FormDeleted",
@@ -16,6 +17,8 @@ export const WebhookSettingsSchema = z
     useCustomSettings: z.boolean(),
     "event-SubmissionCompleted-enabled": z.boolean().optional(),
     "event-SubmissionCompleted-url": z.string().optional(),
+    "event-SubmissionCollectionStatusChanged-enabled": z.boolean().optional(),
+    "event-SubmissionCollectionStatusChanged-url": z.string().optional(),
     "event-FormUpdated-enabled": z.boolean().optional(),
     "event-FormUpdated-url": z.string().optional(),
     "event-FormEnabledStateChanged-enabled": z.boolean().optional(),

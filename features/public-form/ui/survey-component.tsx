@@ -14,6 +14,10 @@ import { recaptchaConfig } from "@/features/recaptcha/recaptcha-config";
 import { SubmissionData } from "@/features/submissions/types";
 import { ApiResult, Submission } from "@/lib/endatix-api";
 import { useRichText } from "@/lib/survey-features/rich-text";
+import {
+  isScreenOutTrigger,
+  SCREEN_OUT_OUTCOME,
+} from "@/lib/survey-features/screen-out";
 import { useLoopAwareSummaryTable } from "@/lib/survey-features/summary-table";
 import { useFormRuntime } from "@/lib/form-runtime/form-runtime.context";
 import {
@@ -97,6 +101,7 @@ export default function SurveyComponent({
   useLoopAwareSummaryTable(surveyModel);
   const { trackException } = useTrackEvent();
   const submissionUpdateGuard = useRef<boolean>(false);
+  const screenOutRef = useRef(false);
   const originalCompletedHtmlRef = useRef<string | null>(null);
   const shellRef = useRef<HTMLDivElement>(null);
 
@@ -237,10 +242,16 @@ export default function SurveyComponent({
       clearQueue();
       sender.showCompletePage = true;
       event.showSaveInProgress("Saving your answers...");
+      const screenOut =
+        screenOutRef.current || isScreenOutTrigger(completeTriggerOf(event));
+      if (screenOut) {
+        screenOutRef.current = true;
+      }
       const submissionData = buildSubmissionData(
         sender,
-        true,
+        !screenOut,
         surveyLocales.length > 1,
+        screenOut ? SCREEN_OUT_OUTCOME : undefined,
       );
 
       startSubmitting(async () => {
@@ -326,6 +337,15 @@ export default function SurveyComponent({
     const unregisterStorage = registerStorageHandlers(surveyModel);
     const unregisterEmbed = registerEmbedHandlers(surveyModel);
     surveyModel.onComplete.add(submitForm);
+    const rememberScreenOut = (
+      _sender: SurveyModel,
+      options: { trigger: { getType: () => string } },
+    ) => {
+      if (isScreenOutTrigger(options.trigger)) {
+        screenOutRef.current = true;
+      }
+    };
+    surveyModel.onTriggerExecuted.add(rememberScreenOut);
     surveyModel.onValueChanged.add(trackPartialChange);
     surveyModel.onCurrentPageChanged.add(trackPartialChange);
     surveyModel.onDynamicPanelValueChanged.add(trackPartialChange);
@@ -335,6 +355,7 @@ export default function SurveyComponent({
       unregisterStorage();
       unregisterEmbed();
       surveyModel.onComplete.remove(submitForm);
+      surveyModel.onTriggerExecuted.remove(rememberScreenOut);
       surveyModel.onValueChanged.remove(trackPartialChange);
       surveyModel.onCurrentPageChanged.remove(trackPartialChange);
       surveyModel.onDynamicPanelValueChanged.remove(trackPartialChange);
@@ -393,16 +414,25 @@ export default function SurveyComponent({
   );
 }
 
+function completeTriggerOf(event: CompleteEvent) {
+  return event.completeTrigger;
+}
+
 function buildSubmissionData(
   sender: SurveyModel,
   isComplete: boolean,
   includeLanguage: boolean,
+  collectionOutcome?: string,
 ): SubmissionData {
   const submissionData: SubmissionData = {
     isComplete,
     jsonData: JSON.stringify(sender.data, null, 3),
     currentPage: sender.currentPageNo ?? 0,
   };
+
+  if (collectionOutcome) {
+    submissionData.collectionOutcome = collectionOutcome;
+  }
 
   if (includeLanguage) {
     submissionData.metadata = JSON.stringify({ language: sender.locale });

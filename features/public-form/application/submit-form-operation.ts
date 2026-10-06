@@ -2,6 +2,7 @@ import { getPostHog } from "@/features/analytics/posthog/server/node-client";
 import { getSession } from "@/features/auth";
 import { FormTokenCookieStore } from "@/features/public-form/infrastructure/cookie-store";
 import { SubmissionData } from "@/features/submissions/types";
+import { SCREEN_OUT_OUTCOME } from "@/lib/survey-features/screen-out";
 import { ApiResult, EndatixApi, ERROR_CODE } from "@/lib/endatix-api";
 import type { Submission } from "@/lib/endatix-api";
 import { Result } from "@/lib/result";
@@ -58,7 +59,12 @@ function syncSubmissionCookie(
     return;
   }
 
-  if (submissionData.isComplete === true || submission.isComplete === true) {
+  if (
+    submissionData.collectionOutcome === SCREEN_OUT_OUTCOME ||
+    submission.collectionStatus === SCREEN_OUT_OUTCOME ||
+    submissionData.isComplete === true ||
+    submission.isComplete === true
+  ) {
     tokenStore.deleteToken(formId);
     return;
   }
