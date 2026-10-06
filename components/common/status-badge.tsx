@@ -12,7 +12,6 @@ const TONE_VARIANT = {
   idle: "info",
 } as const;
 
-/** Same colours as the badge variants, for a dot shown without its pill. */
 const TONE_TEXT = {
   on: "text-success",
   off: "text-secondary-foreground",
@@ -43,10 +42,6 @@ export function StatusBadge({
   );
 }
 
-/**
- * The badge's dot alone, in the tone's colour — for a label that names a
- * group of states rather than one state (a filter group heading).
- */
 export function StatusDot({
   tone,
   className,

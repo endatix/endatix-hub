@@ -1,11 +1,5 @@
 import type { StatusTone } from "@/components/common/status-badge";
 
-/**
- * Where the interview stands. The tone follows the group, never the code:
- * `unengaged` (the respondent has not answered anything yet) is idle, still
- * collecting (`open`) waits, `complete` succeeded, `ended` closed without
- * completing — a legitimate outcome, not a failure.
- */
 export type CollectionStatusGroup = "unengaged" | "open" | "complete" | "ended";
 
 const GROUP_TONE: Record<CollectionStatusGroup, StatusTone> = {
@@ -15,13 +9,6 @@ const GROUP_TONE: Record<CollectionStatusGroup, StatusTone> = {
   ended: "off",
 };
 
-/**
- * The lifecycle groups with the built-in codes each holds, in menu order:
- * Complete first, because it is the outcome most readers filter for, then the
- * rest in lifecycle order. The list facet, its trigger summary and the export
- * prefill all read this. A group label never repeats a member's label, so a
- * chip that says "Ended" cannot be mistaken for one code.
- */
 export const COLLECTION_STATUS_GROUPS = [
   { group: "complete", label: "Complete", codes: ["complete"] },
   {
@@ -44,21 +31,15 @@ export const COLLECTION_STATUS_GROUPS = [
 export type CollectionStatusFilterCode =
   (typeof COLLECTION_STATUS_GROUPS)[number]["codes"][number];
 
-/** Built-in codes the list facet can send, in menu order. */
 export const COLLECTION_STATUS_FILTER_CODES: readonly CollectionStatusFilterCode[] =
   COLLECTION_STATUS_GROUPS.flatMap((entry) => entry.codes);
 
-/** Tone of a lifecycle group, for UI that shows a group rather than a code. */
 export function collectionStatusGroupTone(
   group: CollectionStatusGroup,
 ): StatusTone {
   return GROUP_TONE[group];
 }
 
-/**
- * Collection-status filter → the grid's old Complete (Yes / No) values, so
- * flows keyed on completion (the export prefill) keep following the grid.
- */
 export function isCompleteValuesFromCollectionStatus(
   codes: Iterable<string>,
 ): Array<"true" | "false"> {
@@ -69,12 +50,6 @@ export function isCompleteValuesFromCollectionStatus(
   return [...values];
 }
 
-/**
- * True when Completed / Incomplete / All selects exactly the rows the Status
- * filter shows: no filter or every code (All), only Complete (Completed), or
- * every not-complete code (Incomplete). Any other selection exports more than
- * the list shows.
- */
 export function completionCoversCollectionStatus(
   codes: Iterable<string>,
 ): boolean {
@@ -93,10 +68,6 @@ export function completionCoversCollectionStatus(
   );
 }
 
-/**
- * Legacy `isComplete` URL value (`true`, `false`, `true,false`) → the codes
- * it meant, so bookmarks and saved return links keep their filter.
- */
 export function collectionStatusFromLegacyIsComplete(
   value: string | undefined,
 ): CollectionStatusFilterCode[] {
@@ -111,7 +82,6 @@ export function collectionStatusFromLegacyIsComplete(
   );
 }
 
-/** Built-in collection-status wire codes. Unknown codes are `ended`. */
 const BUILT_IN: Record<
   string,
   { group: CollectionStatusGroup; label: string }
@@ -133,7 +103,6 @@ export type CollectionStatusView = {
   label: string;
 };
 
-/** Grid and detail share this map. An unknown code is `ended`, labelled from the code. */
 export function describeCollectionStatus(
   code: string | undefined,
   isComplete: boolean,
@@ -149,11 +118,6 @@ export function describeCollectionStatus(
   return { group, tone: GROUP_TONE[group], label };
 }
 
-/**
- * Review (new / read / approved) is for what the respondent submitted, so the
- * control shows once collection is complete. A review already recorded on an
- * incomplete submission still shows, so nothing a reviewer did disappears.
- */
 export function isReviewApplicable(
   collection: CollectionStatusView,
   reviewCode: string | undefined,

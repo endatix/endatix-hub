@@ -27,7 +27,6 @@ interface SubmissionsFilterToolbarProps {
   hasAdditionalFilters?: boolean;
 }
 
-/** Lifecycle groups, each code the badge the grid shows for it. */
 const collectionStatusGroups: FacetedFilterGroup[] =
   COLLECTION_STATUS_GROUPS.map(({ group, label, codes }) => ({
     label,

@@ -144,14 +144,8 @@ export function parseSubmissionListSorting(
   return sorting;
 }
 
-/** URL key of the Complete (Yes / No) facet that Status replaced. */
 const LEGACY_IS_COMPLETE_KEY = "isComplete";
 
-/**
- * `collectionStatus`, or the codes a legacy `isComplete` value meant when the
- * URL has no `collectionStatus` (a bookmark or a saved return link). The
- * canonical redirect then rewrites the URL to `collectionStatus`.
- */
 function parseCollectionStatusFilter(
   searchParams: SubmissionListRawSearchParams,
 ) {

@@ -292,7 +292,6 @@ function CompletionField({
 
 type FieldHint = { id: string; text: string };
 
-/** One muted line per consequence, each the target of the control's `aria-describedby`. */
 function FieldHints({ hints }: Readonly<{ hints: FieldHint[] }>) {
   return hints.map((hint) => (
     <p key={hint.id} id={hint.id} className="text-xs text-muted-foreground">

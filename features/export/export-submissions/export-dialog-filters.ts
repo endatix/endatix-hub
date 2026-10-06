@@ -24,7 +24,6 @@ export type ExportFilterDraft = {
   startedAt: DateRangeDraft;
   completedAt: DateRangeDraft;
   locale: string;
-  /** From the list prefill: say under Completion that the export is wider. */
   statusFilterWiderThanList: boolean;
 };
 

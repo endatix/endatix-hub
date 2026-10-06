@@ -5,11 +5,9 @@ export interface FacetedFilterOption {
   label: string;
   value: string;
   icon?: ComponentType<{ className?: string }>;
-  /** A state option: rendered as the `StatusBadge` the list shows for it. */
   tone?: StatusTone;
 }
 
-/** Options that belong together, selectable at once from their heading. */
 export interface FacetedFilterGroup {
   label: string;
   tone?: StatusTone;
@@ -24,7 +22,6 @@ export interface SelectionChip {
   tone?: StatusTone;
 }
 
-/** Flat options as one-option groups, so both shapes render one way. */
 export function toFacetedFilterGroups(
   options: readonly FacetedFilterOption[],
 ): FacetedFilterGroup[] {
@@ -61,7 +58,6 @@ export function toggleValue(
   return next;
 }
 
-/** A fully selected group clears; a partly or un-selected one fills. */
 export function toggleGroup(
   group: FacetedFilterGroup,
   selected: ReadonlySet<string>,
@@ -78,11 +74,6 @@ export function toggleGroup(
   return next;
 }
 
-/**
- * What the trigger shows, in menu order: a fully selected group of several
- * options is one chip with the group's label; anything else is one chip per
- * selected option.
- */
 export function summarizeSelection(
   groups: readonly FacetedFilterGroup[],
   selected: ReadonlySet<string>,

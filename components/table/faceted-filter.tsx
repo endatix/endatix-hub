@@ -38,7 +38,6 @@ export type {
   FacetedFilterOption,
 } from "./faceted-filter-selection";
 
-/** More chips than this collapse to "n selected". */
 const MAX_TRIGGER_CHIPS = 2;
 
 interface FacetedFilterBaseProps {
@@ -48,10 +47,6 @@ interface FacetedFilterBaseProps {
   disabled?: boolean;
 }
 
-/**
- * Flat `options`, or `groups` whose heading selects every option in it. A
- * one-option group renders as a plain row.
- */
 export type FacetedFilterProps = FacetedFilterBaseProps &
   (
     | { options: FacetedFilterOption[]; groups?: never }
@@ -180,17 +175,11 @@ function TriggerChip({ chip }: Readonly<{ chip: SelectionChip }>) {
 
 interface FilterSectionProps {
   section: FacetedFilterGroup;
-  /** From `groups`: every section is a top-level row, even with one option. */
   grouped: boolean;
   selectedValues: Set<string>;
   onValueChange: (values: Set<string>) => void;
 }
 
-/**
- * In a grouped facet every section is a heading row (checkbox, dot, label), so
- * a one-option group sits level with the others; its option has no row of its
- * own. Flat options render as plain rows.
- */
 function FilterSection(props: Readonly<FilterSectionProps>) {
   const { section, grouped, selectedValues: selected, onValueChange } = props;
   return (
@@ -231,7 +220,6 @@ const GROUP_SELECTION_SR_TEXT: Record<GroupSelection, string> = {
   none: "none selected",
 };
 
-/** A one-option heading is one choice: "selected", not "all selected". */
 function selectionSrText(size: number, selection: GroupSelection): string {
   if (size > 1) {
     return GROUP_SELECTION_SR_TEXT[selection];
@@ -268,7 +256,6 @@ function GroupHeadingRow(props: Readonly<GroupHeadingRowProps>) {
 
 interface OptionRowProps {
   option: FacetedFilterOption;
-  /** Set when the row sits under a group heading: indents it, and search finds it by the group. */
   groupLabel?: string;
   selected: boolean;
   onSelect: () => void;
