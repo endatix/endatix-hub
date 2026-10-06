@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  COLLECTION_STATUS_FILTER_CODES,
+  COLLECTION_STATUS_GROUPS,
+  collectionStatusFromLegacyIsComplete,
+  collectionStatusGroupTone,
   describeCollectionStatus,
+  isCompleteValuesFromCollectionStatus,
   isReviewApplicable,
 } from "../../ui/describe-collection-status";
 
@@ -92,5 +97,87 @@ describe("isReviewApplicable", () => {
 
     // Act & Assert
     expect(isReviewApplicable(inProgress, "Approved")).toBe(true);
+  });
+});
+
+describe("COLLECTION_STATUS_GROUPS", () => {
+  it("lists every filter code exactly once, Complete first, then lifecycle order", () => {
+    // Act
+    const codes = COLLECTION_STATUS_GROUPS.flatMap((entry) => entry.codes);
+
+    // Assert
+    expect(codes).toEqual([...COLLECTION_STATUS_FILTER_CODES]);
+    expect(new Set(codes).size).toBe(codes.length);
+    expect(COLLECTION_STATUS_GROUPS.map((entry) => entry.group)).toEqual([
+      "complete",
+      "unengaged",
+      "open",
+      "ended",
+    ]);
+  });
+
+  it("puts each code in the group describeCollectionStatus gives it", () => {
+    // Act & Assert
+    for (const entry of COLLECTION_STATUS_GROUPS) {
+      for (const code of entry.codes) {
+        expect(describeCollectionStatus(code, false).group).toBe(entry.group);
+      }
+    }
+  });
+
+  it("never labels a multi-code group like one of its members", () => {
+    // Act & Assert
+    for (const entry of COLLECTION_STATUS_GROUPS) {
+      if (entry.codes.length < 2) {
+        continue;
+      }
+      const memberLabels = entry.codes.map(
+        (code) => describeCollectionStatus(code, false).label,
+      );
+      expect(memberLabels).not.toContain(entry.label);
+    }
+  });
+
+  it("gives a group the tone its codes have", () => {
+    // Act & Assert
+    for (const entry of COLLECTION_STATUS_GROUPS) {
+      expect(collectionStatusGroupTone(entry.group)).toBe(
+        describeCollectionStatus(entry.codes[0], false).tone,
+      );
+    }
+  });
+});
+
+describe("isCompleteValuesFromCollectionStatus", () => {
+  it("maps complete to true and every other code to false, once each", () => {
+    // Act & Assert
+    expect(isCompleteValuesFromCollectionStatus([])).toEqual([]);
+    expect(isCompleteValuesFromCollectionStatus(["complete"])).toEqual([
+      "true",
+    ]);
+    expect(
+      isCompleteValuesFromCollectionStatus(["not_started", "viewed"]),
+    ).toEqual(["false"]);
+    expect(
+      isCompleteValuesFromCollectionStatus(["complete", "cancelled"]).sort(),
+    ).toEqual(["false", "true"]);
+  });
+});
+
+describe("collectionStatusFromLegacyIsComplete", () => {
+  it("maps true to complete and false to every other built-in code", () => {
+    // Act & Assert
+    expect(collectionStatusFromLegacyIsComplete("true")).toEqual(["complete"]);
+    expect(collectionStatusFromLegacyIsComplete("false")).toEqual(
+      COLLECTION_STATUS_FILTER_CODES.filter((code) => code !== "complete"),
+    );
+  });
+
+  it("means no filter for both values, none, or junk", () => {
+    // Act & Assert
+    expect(collectionStatusFromLegacyIsComplete("true,false")).toEqual([]);
+    expect(collectionStatusFromLegacyIsComplete(undefined)).toEqual([]);
+    expect(collectionStatusFromLegacyIsComplete("")).toEqual([]);
+    expect(collectionStatusFromLegacyIsComplete("yes")).toEqual([]);
   });
 });

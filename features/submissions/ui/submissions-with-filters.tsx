@@ -9,9 +9,8 @@ import {
   type SubmissionListUrlState,
 } from "@/features/submissions/list-submission-query";
 import { ExportSubmissionsButton } from "@/features/export";
-import { EXPORT_COMPLETION_STATUS } from "@/features/export/export-url";
-import { includeTestSubmissionsFromGridFilter } from "@/features/export/export-submissions/export-dialog-filters";
 import { SubmissionsFilterToolbar } from "@/features/submissions/ui/filters/submissions-filter-toolbar";
+import { submissionExportListFilters } from "@/features/submissions/ui/submission-export-list-filters";
 import { NoSubmissionsEmptyState } from "@/features/submissions/ui/submissions-empty-state";
 import {
   buildSubmissionDataColumns,
@@ -165,30 +164,13 @@ function SubmissionsContent({
   const disableTableControls = isTrueEmptyState;
 
   const exportListFilters = useMemo(
-    () => ({
-      createdFrom: dateFilters.createdAt.from,
-      createdTo: dateFilters.createdAt.to,
-      modifiedFrom: dateFilters.modifiedAt.from,
-      modifiedTo: dateFilters.modifiedAt.to,
-      startedFrom: dateFilters.startedAt.from,
-      startedTo: dateFilters.startedAt.to,
-      completedFrom: dateFilters.completedAt.from,
-      completedTo: dateFilters.completedAt.to,
-      completionStatus: EXPORT_COMPLETION_STATUS.all,
-      includeTestSubmissions:
-        includeTestSubmissionsFromGridFilter(testSubmissionFilter),
-    }),
-    [
-      dateFilters.createdAt.from,
-      dateFilters.createdAt.to,
-      dateFilters.modifiedAt.from,
-      dateFilters.modifiedAt.to,
-      dateFilters.startedAt.from,
-      dateFilters.startedAt.to,
-      dateFilters.completedAt.from,
-      dateFilters.completedAt.to,
-      testSubmissionFilter,
-    ],
+    () =>
+      submissionExportListFilters(
+        dateFilters,
+        collectionStatusFilter,
+        testSubmissionFilter,
+      ),
+    [dateFilters, collectionStatusFilter, testSubmissionFilter],
   );
 
   useEffect(() => {
@@ -348,9 +330,9 @@ export function SubmissionsWithFilters({
   useEffect(() => {
     rememberSubmissionListReturnTo(formId, searchParams.toString());
   }, [formId, searchParams]);
-  const [collectionStatusFilter, setCollectionStatusFilter] = useState<Set<string>>(
-    () => new Set(listState.collectionStatus),
-  );
+  const [collectionStatusFilter, setCollectionStatusFilter] = useState<
+    Set<string>
+  >(() => new Set(listState.collectionStatus));
   const [statusFilter, setStatusFilter] = useState<Set<string>>(
     () => new Set(listState.status),
   );

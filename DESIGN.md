@@ -130,7 +130,8 @@ Before building a control, check whether the vocabulary already exists here.
 
 | Component                                                                | Owns                                                                                  |
 | :----------------------------------------------------------------------- | :------------------------------------------------------------------------------------ |
-| `components/common/status-badge.tsx` — `StatusBadge`                     | The four-tone on / off / attention / idle pill (Status vocabulary, below)             |
+| `components/common/status-badge.tsx` — `StatusBadge`, `StatusDot`        | The four-tone on / off / attention / idle pill, and its dot alone for a group label   |
+| `components/table/faceted-filter.tsx` — `FacetedFilter`                  | A toolbar facet: flat options, or `groups` with a select-all heading (Filters, below) |
 | `components/common/file-kind-icon.tsx` — `FileKindIcon`, `FileKindLabel` | The file-type mark and its icon+label row (File Type Marks, below)                    |
 | `components/common/panel-section.tsx` — `PanelSection`                   | A titled concern inside an overlay, on a nested surface (§6 Create / edit overlay)    |
 | `components/common/summary-row.tsx` — `SummaryRow`                       | Label-left / value-right rows (§6 Displaying values)                                  |
@@ -174,6 +175,14 @@ decided by "Where UI for a shared concept lives" in `project-structure.md`.
   `on`, ended without completing (`Screened out`, `Quota full`, `Abandoned`, `Cancelled`) is
   `off` — a legitimate outcome, not a failure. The group, not the code, also decides what else
   applies to the record. Reference: `features/submissions/ui/describe-collection-status.ts`.
+- **A group has its own label, never a member's** (`Not engaged`, `Collecting`, `Complete`,
+  `Ended`). A group called "In progress" that holds the code "In progress" makes a chip ambiguous:
+  the reader cannot tell one code from the whole group. A one-code group may share its code's
+  label, because it is shown as that code. The mapping file owns the groups, their order and
+  labels (`COLLECTION_STATUS_GROUPS`), so the column, the filter and any prefill agree.
+- **A record's lifecycle word must not collide with the form's.** "Closed" and "Open" already
+  describe a form (accepting responses or not; a closed survey's public page), so a submission
+  group never uses them. Name what happened to the response, not to the form.
 - **`idle` is only the first step of a lifecycle** — the record exists and nothing has happened
   to it. It is quieter than `attention` (no one has to act) and must not read as `off` (nothing
   has ended). Never use it for "informational" or "optional"; a fact with no lifecycle has no
@@ -281,6 +290,37 @@ paged sortable grid look identical:
   shows, so nothing a user did disappears. The rule lives in the state mapping, so grid and detail
   agree (`isReviewApplicable`, `features/submissions/ui/table/cell-review-status.tsx`).
 - Wiring (URL state, paging, loading skeletons): `project-structure.md` "List pages and tables".
+
+**Filters — `FacetedFilter`.** A facet speaks the vocabulary of the column it filters.
+Reference: the submissions Status facet,
+`features/submissions/ui/filters/submissions-filter-toolbar.tsx`.
+
+- **A facet over states shows each option as its `StatusBadge`** (`tone` on the option): the
+  same pill, tone and label as the column, so the reader matches a row to a choice by sight.
+  Plain options keep plain labels; never mix badges and plain labels in one facet.
+- **A grouped lifecycle is filtered group first** (`groups`). Each group is one top-level row — a
+  tri-state checkbox, the group's `StatusDot` and its label — that selects or clears every code
+  in it. Its codes sit indented beneath as badges, so a reader can still narrow to one.
+- **Every top-level row has the same anatomy.** A group with one code (Complete) is a top-level
+  row like the others — checkbox, dot, label — with no child row. Shown as a lone badge it reads
+  as a child that lost its parent.
+- **The choice most readers want comes first; the rest follow the lifecycle.** The submissions
+  facet leads with Complete (the outcome people filter for), then Not engaged → Collecting →
+  Ended. A one-code group is the natural lead: it is the only row with no children, so it sits
+  above the nested part of the menu instead of interrupting it.
+- **The trigger summarises in the same terms.** A fully selected group is one chip with the
+  group's label and tone; otherwise one chip per code, in menu order; more than two chips
+  collapse to `n selected`.
+- **Search finds a group by its name** as well as its codes ("ended" lists every ended code).
+- **The URL and the API carry codes; a group is a shorthand for its codes.** When the API gains a
+  category filter, the heading sends the category and the UI does not change. Until then a new
+  code in a group must be added to the mapping, or the heading silently stops covering it.
+- **A facet that replaces an older one keeps the old links working.** Read the old URL key into
+  the new facet (`isComplete=true` → `collectionStatus=complete`) and let the canonical redirect
+  rewrite the URL. A bookmark that silently drops its filter shows the reader the wrong rows.
+- **Flows prefilled from the list keep following the facet** — when a facet changes shape, map
+  the new values to what the flow understands (Status codes → the export's Completed /
+  Incomplete / All) rather than dropping the prefill.
 
 **Empty states — `DataTableEmpty` with `icon` + `title`, description as children:**
 
@@ -806,6 +846,8 @@ Before finishing UI work, check:
 - [ ] File deliverables carry `FileKindLabel` on every surface; unknown kinds get the generic glyph (§5).
 - [ ] Peer cards use `.grid-card-list`, not viewport breakpoints (§5).
 - [ ] Lists use `components/table`; the empty state has the list icon, a title and a way out (§5).
+- [ ] A facet over states shows the column's badges; a grouped lifecycle filters group first,
+      with group labels distinct from code labels; old filter URLs still work (§5 Filters).
 - [ ] Overlays follow the table in §5, never stack, and have a title and description.
 - [ ] Inline links are `TextLink`; external ones use `external`; nothing links to an unconfigured
       or unconfirmed target; links to our own sites carry UTM tags and a click event (§5).

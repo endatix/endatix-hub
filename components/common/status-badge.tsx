@@ -12,6 +12,14 @@ const TONE_VARIANT = {
   idle: "info",
 } as const;
 
+/** Same colours as the badge variants, for a dot shown without its pill. */
+const TONE_TEXT = {
+  on: "text-success",
+  off: "text-secondary-foreground",
+  attention: "text-warning",
+  idle: "text-info",
+} as const;
+
 interface StatusBadgeProps {
   tone: StatusTone;
   label: string;
@@ -32,5 +40,26 @@ export function StatusBadge({
       <span aria-hidden="true" className="size-1.5 rounded-full bg-current" />
       {label}
     </Badge>
+  );
+}
+
+/**
+ * The badge's dot alone, in the tone's colour — for a label that names a
+ * group of states rather than one state (a filter group heading).
+ */
+export function StatusDot({
+  tone,
+  className,
+}: Readonly<{ tone: StatusTone; className?: string }>) {
+  return (
+    <span
+      aria-hidden="true"
+      data-tone={tone}
+      className={cn(
+        "size-2 shrink-0 rounded-full bg-current",
+        TONE_TEXT[tone],
+        className,
+      )}
+    />
   );
 }

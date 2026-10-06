@@ -84,8 +84,19 @@ vi.mock(
 );
 
 vi.mock("@/features/export", () => ({
-  ExportSubmissionsButton: ({ disabled }: { disabled?: boolean }) => (
-    <button disabled={disabled}>Export Submissions</button>
+  ExportSubmissionsButton: ({
+    disabled,
+    listFilters,
+  }: {
+    disabled?: boolean;
+    listFilters?: { completionStatus?: string };
+  }) => (
+    <button
+      disabled={disabled}
+      data-completion-status={listFilters?.completionStatus}
+    >
+      Export Submissions
+    </button>
   ),
 }));
 
@@ -182,6 +193,7 @@ function renderSubmissionsWithFilters({
   formId,
   hasAnySubmissions,
   initialStatus,
+  initialCollectionStatus,
   initialSorting,
   initialPage = 1,
   initialPageSize = 10,
@@ -192,6 +204,7 @@ function renderSubmissionsWithFilters({
   formId: string;
   hasAnySubmissions: boolean;
   initialStatus?: string[];
+  initialCollectionStatus?: string[];
   initialSorting?: SubmissionListUrlState["sorting"];
   initialPage?: number;
   initialPageSize?: number;
@@ -210,6 +223,8 @@ function renderSubmissionsWithFilters({
     page: initialPage,
     pageSize: initialPageSize,
     status: (initialStatus ?? []) as SubmissionListUrlState["status"],
+    collectionStatus: (initialCollectionStatus ??
+      []) as SubmissionListUrlState["collectionStatus"],
     sorting: initialSorting ?? [],
   };
 
@@ -231,6 +246,30 @@ describe("SubmissionsWithFilters", () => {
     navigationMocks.systemColumnOptions.current = undefined;
     localStorage.clear();
   });
+
+  it.each([
+    [[], "all"],
+    [["complete"], "completed"],
+    [["not_started", "viewed"], "incomplete"],
+    [["complete", "cancelled"], "all"],
+  ])(
+    "prefills export completion from the Status filter %j as %s",
+    (collectionStatus, expected) => {
+      // Act
+      renderSubmissionsWithFilters({
+        formId: "form-1",
+        hasAnySubmissions: true,
+        initialCollectionStatus: collectionStatus,
+      });
+
+      // Assert
+      expect(
+        screen
+          .getByRole("button", { name: "Export Submissions" })
+          .getAttribute("data-completion-status"),
+      ).toBe(expected);
+    },
+  );
 
   it("shows the true empty state when deep-linked filters exist but the form has no submissions", () => {
     // Act

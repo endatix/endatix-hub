@@ -12,6 +12,7 @@ export {
 export type { DateFilterValue } from "./date-filter-types";
 export {
   FacetedFilter,
+  type FacetedFilterGroup,
   type FacetedFilterOption,
   type FacetedFilterProps,
 } from "./faceted-filter";

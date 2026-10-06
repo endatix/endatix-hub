@@ -1,4 +1,7 @@
-import { COLLECTION_STATUS_FILTER_CODES } from "@/features/submissions/ui/describe-collection-status";
+import {
+  COLLECTION_STATUS_FILTER_CODES,
+  collectionStatusFromLegacyIsComplete,
+} from "@/features/submissions/ui/describe-collection-status";
 import type { ListSubmissionsRequest } from "@/lib/endatix-api/submissions/types";
 import {
   parseCalendarDateYmd,
@@ -141,6 +144,26 @@ export function parseSubmissionListSorting(
   return sorting;
 }
 
+/** URL key of the Complete (Yes / No) facet that Status replaced. */
+const LEGACY_IS_COMPLETE_KEY = "isComplete";
+
+/**
+ * `collectionStatus`, or the codes a legacy `isComplete` value meant when the
+ * URL has no `collectionStatus` (a bookmark or a saved return link). The
+ * canonical redirect then rewrites the URL to `collectionStatus`.
+ */
+function parseCollectionStatusFilter(
+  searchParams: SubmissionListRawSearchParams,
+) {
+  const raw = firstString(searchParams[searchParamKeys.collectionStatus]);
+  if (raw !== undefined) {
+    return parseSubmissionListFilterValues(raw, COLLECTION_STATUS_FILTER_CODES);
+  }
+  return collectionStatusFromLegacyIsComplete(
+    firstString(searchParams[LEGACY_IS_COMPLETE_KEY]),
+  );
+}
+
 /**
  * Parses the search params from the URL.
  * @param searchParams - The search params to parse.
@@ -164,10 +187,7 @@ export function parseSubmissionListSearchParams(
   return {
     page,
     pageSize,
-    collectionStatus: parseSubmissionListFilterValues(
-      firstString(searchParams[searchParamKeys.collectionStatus]),
-      COLLECTION_STATUS_FILTER_CODES,
-    ),
+    collectionStatus: parseCollectionStatusFilter(searchParams),
     status: parseSubmissionListFilterValues(
       firstString(searchParams[searchParamKeys.status]),
       SUBMISSION_LIST_REVIEW_STATUS_VALUES,
@@ -247,34 +267,40 @@ function isSubmissionListSortBy(
   return id !== undefined && SUBMISSION_LIST_API_SORT_FIELDS.has(id);
 }
 
-/**
- * True when raw searchParams already match the parsed/canonical list state
- * (defaults omitted, dates/sort/submitter filters unchanged by parse).
- */
-export function isCanonicalSubmissionListUrl(
+/** Paging and sort are in the URL only when they differ from the default. */
+function isCanonicalPagingAndSort(
   raw: SubmissionListRawSearchParams,
   parsed: SubmissionListUrlState,
 ): boolean {
   const rawPage = firstString(raw.page);
   const rawPageSize = firstString(raw.pageSize);
   const rawSort = firstString(raw.sort);
-
-  const canonicalPage =
-    parsed.page === SUBMISSION_LIST_DEFAULT_PAGE
-      ? rawPage === undefined
-      : rawPage === String(parsed.page);
-  const canonicalPageSize =
-    parsed.pageSize === SUBMISSION_LIST_DEFAULT_PAGE_SIZE
-      ? rawPageSize === undefined
-      : rawPageSize === String(parsed.pageSize);
-
   const serializedSort = serializeSubmissionListSorting(parsed.sorting);
-  const canonicalSort =
-    serializedSort === undefined
-      ? rawSort === undefined
-      : rawSort === serializedSort;
 
-  if (!canonicalPage || !canonicalPageSize || !canonicalSort) {
+  return (
+    (parsed.page === SUBMISSION_LIST_DEFAULT_PAGE
+      ? rawPage === undefined
+      : rawPage === String(parsed.page)) &&
+    (parsed.pageSize === SUBMISSION_LIST_DEFAULT_PAGE_SIZE
+      ? rawPageSize === undefined
+      : rawPageSize === String(parsed.pageSize)) &&
+    rawSort === serializedSort
+  );
+}
+
+/**
+ * True when raw searchParams already match the parsed/canonical list state
+ * (defaults omitted, dates/sort/submitter filters unchanged by parse, and no
+ * legacy `isComplete` key left to rewrite).
+ */
+export function isCanonicalSubmissionListUrl(
+  raw: SubmissionListRawSearchParams,
+  parsed: SubmissionListUrlState,
+): boolean {
+  if (
+    !isCanonicalPagingAndSort(raw, parsed) ||
+    raw[LEGACY_IS_COMPLETE_KEY] !== undefined
+  ) {
     return false;
   }
 

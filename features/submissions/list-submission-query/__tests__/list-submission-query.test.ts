@@ -386,3 +386,49 @@ describe("submissionListUrlStateFromClientFilters", () => {
     ]);
   });
 });
+
+describe("legacy isComplete URL", () => {
+  it("reads isComplete=true as the complete collection status", () => {
+    // Act
+    const parsed = parseSubmissionListSearchParams({ isComplete: "true" });
+
+    // Assert
+    expect(parsed.collectionStatus).toEqual(["complete"]);
+  });
+
+  it("reads isComplete=false as every not-complete collection status", () => {
+    // Act
+    const parsed = parseSubmissionListSearchParams({ isComplete: "false" });
+
+    // Assert
+    expect(parsed.collectionStatus).not.toContain("complete");
+    expect(parsed.collectionStatus).toContain("not_started");
+    expect(parsed.collectionStatus).toContain("cancelled");
+  });
+
+  it("lets collectionStatus win over a legacy isComplete", () => {
+    // Act
+    const parsed = parseSubmissionListSearchParams({
+      collectionStatus: "viewed",
+      isComplete: "true",
+    });
+
+    // Assert
+    expect(parsed.collectionStatus).toEqual(["viewed"]);
+  });
+
+  it("is never canonical, so the page redirects to collectionStatus", () => {
+    // Arrange
+    const raw = { isComplete: "true" };
+    const parsed = parseSubmissionListSearchParams(raw);
+
+    // Act
+    const canonical = isCanonicalSubmissionListUrl(raw, parsed);
+    const rewritten = serializeSubmissionListSearchParams(parsed).toString();
+
+    // Assert
+    expect(canonical).toBe(false);
+    expect(rewritten).toContain("collectionStatus=complete");
+    expect(rewritten).not.toContain("isComplete");
+  });
+});

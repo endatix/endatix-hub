@@ -15,21 +15,77 @@ const GROUP_TONE: Record<CollectionStatusGroup, StatusTone> = {
   ended: "off",
 };
 
-/** Built-in codes the list facet can send. Order is the menu order. */
-export const COLLECTION_STATUS_FILTER_CODES = [
-  "not_started",
-  "viewed",
-  "in_progress",
-  "expired",
-  "complete",
-  "screen_out",
-  "quota_full",
-  "abandoned",
-  "cancelled",
-] as const;
+/**
+ * The lifecycle groups with the built-in codes each holds, in menu order:
+ * Complete first, because it is the outcome most readers filter for, then the
+ * rest in lifecycle order. The list facet, its trigger summary and the export
+ * prefill all read this. A group label never repeats a member's label, so a
+ * chip that says "Ended" cannot be mistaken for one code.
+ */
+export const COLLECTION_STATUS_GROUPS = [
+  { group: "complete", label: "Complete", codes: ["complete"] },
+  {
+    group: "unengaged",
+    label: "Not engaged",
+    codes: ["not_started", "viewed"],
+  },
+  { group: "open", label: "Collecting", codes: ["in_progress", "expired"] },
+  {
+    group: "ended",
+    label: "Ended",
+    codes: ["screen_out", "quota_full", "abandoned", "cancelled"],
+  },
+] as const satisfies ReadonlyArray<{
+  group: CollectionStatusGroup;
+  label: string;
+  codes: readonly string[];
+}>;
 
 export type CollectionStatusFilterCode =
-  (typeof COLLECTION_STATUS_FILTER_CODES)[number];
+  (typeof COLLECTION_STATUS_GROUPS)[number]["codes"][number];
+
+/** Built-in codes the list facet can send, in menu order. */
+export const COLLECTION_STATUS_FILTER_CODES: readonly CollectionStatusFilterCode[] =
+  COLLECTION_STATUS_GROUPS.flatMap((entry) => entry.codes);
+
+/** Tone of a lifecycle group, for UI that shows a group rather than a code. */
+export function collectionStatusGroupTone(
+  group: CollectionStatusGroup,
+): StatusTone {
+  return GROUP_TONE[group];
+}
+
+/**
+ * Collection-status filter → the grid's old Complete (Yes / No) values, so
+ * flows keyed on completion (the export prefill) keep following the grid.
+ */
+export function isCompleteValuesFromCollectionStatus(
+  codes: Iterable<string>,
+): Array<"true" | "false"> {
+  const values = new Set<"true" | "false">();
+  for (const code of codes) {
+    values.add(code === "complete" ? "true" : "false");
+  }
+  return [...values];
+}
+
+/**
+ * Legacy `isComplete` URL value (`true`, `false`, `true,false`) → the codes
+ * it meant, so bookmarks and saved return links keep their filter.
+ */
+export function collectionStatusFromLegacyIsComplete(
+  value: string | undefined,
+): CollectionStatusFilterCode[] {
+  const flags = new Set(value?.split(",") ?? []);
+  const complete = flags.has("true");
+  const incomplete = flags.has("false");
+  if (complete === incomplete) {
+    return [];
+  }
+  return COLLECTION_STATUS_FILTER_CODES.filter(
+    (code) => (code === "complete") === complete,
+  );
+}
 
 /** Built-in collection-status wire codes. Unknown codes are `ended`. */
 const BUILT_IN: Record<
