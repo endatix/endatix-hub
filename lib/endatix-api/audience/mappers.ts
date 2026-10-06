@@ -6,7 +6,11 @@ import {
   type NormalizedPagedResponse,
 } from "../shared/paged-response";
 import type { PagedResponse } from "../shared/types";
-import type { AudiencePerson, AudienceProperty } from "./types";
+import type {
+  AudienceImportResult,
+  AudiencePerson,
+  AudienceProperty,
+} from "./types";
 
 export type WireProperty = Omit<
   AudienceProperty,
@@ -99,6 +103,18 @@ export function mapPersonResult(
 ): ApiResult<AudiencePerson> {
   return response.success
     ? ApiResult.success(mapPerson(response.data))
+    : response;
+}
+
+export type WireImport = Omit<AudienceImportResult, "importId"> & {
+  importId: string | number;
+};
+
+export function mapImportResult(
+  response: ApiResult<WireImport>,
+): ApiResult<AudienceImportResult> {
+  return response.success
+    ? ApiResult.success({ ...response.data, importId: asId(response.data.importId) })
     : response;
 }
 

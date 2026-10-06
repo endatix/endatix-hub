@@ -8,6 +8,8 @@ import {
 import type { PagedResponse } from "../shared/types";
 import {
   formAudiencePath,
+  mapImportResult,
+  type WireImport,
   mapPeoplePageResult,
   mapPersonResult,
   mapProperty,
@@ -21,12 +23,14 @@ import {
   AudiencePaging,
   type AudiencePerson,
   type AudienceProperty,
+  type AudienceImportResult,
   type AudienceSettings,
   type CreateAudiencePersonRequest,
   type CreateAudiencePropertyRequest,
   type ListAudiencePeopleRequest,
   type UpdateAudiencePersonRequest,
   type UpdateAudiencePropertyRequest,
+  type ImportAudienceCsvRequest,
   type UpdateAudienceSettingsRequest,
 } from "./types";
 
@@ -194,6 +198,21 @@ export class Audience {
 
     return this.endatix.delete(
       formAudiencePath(formId, "people", membershipId),
+    );
+  }
+
+  async importCsv(
+    formId: string,
+    body: ImportAudienceCsvRequest,
+  ): Promise<ApiResult<AudienceImportResult>> {
+    const idCheck = requireEndatixId(formId, "formId");
+    if (!idCheck.success) return idCheck;
+
+    return mapImportResult(
+      await this.endatix.post<WireImport>(
+        formAudiencePath(formId, "import"),
+        body,
+      ),
     );
   }
 }
