@@ -4,6 +4,9 @@ import { SIGNIN_PATH } from "./auth-constants";
 import { supportsFederatedLogout } from "./federated-logout.types";
 import { getPostLogoutRedirectUri } from "./oidc-logout.utils";
 import { isValidAbsoluteUrl } from "@/lib/utils/url-utils";
+import { TelemetryLogger } from "@/features/telemetry";
+
+const LOGGER_NAME = "auth.logout";
 
 /**
  * Resolves the federated logout URL for the provider.
@@ -15,15 +18,8 @@ export function resolveFederatedLogoutUrl(token: JWT | null): string | null {
     return null;
   }
 
-  const authUrl = process.env.AUTH_URL;
-
+  const authUrl = readAuthUrl();
   if (!authUrl) {
-    console.warn("Federated logout requested but AUTH_URL is missing");
-    return null;
-  }
-
-  if (!isValidAbsoluteUrl(authUrl)) {
-    console.warn("Federated logout requested but AUTH_URL is not a valid URL");
     return null;
   }
 
@@ -43,7 +39,35 @@ export function resolveFederatedLogoutUrl(token: JWT | null): string | null {
       ),
     });
   } catch (error) {
-    console.warn("Failed to resolve federated logout URL", error);
+    TelemetryLogger.error(
+      "Failed to resolve federated logout URL",
+      error,
+      { reason: "logout_url_failed" },
+      LOGGER_NAME,
+    );
     return null;
   }
+}
+
+function readAuthUrl(): string | null {
+  const authUrl = process.env.AUTH_URL;
+  if (!authUrl) {
+    warnLogout(
+      "Federated logout requested but AUTH_URL is missing",
+      "auth_url_missing",
+    );
+    return null;
+  }
+  if (!isValidAbsoluteUrl(authUrl)) {
+    warnLogout(
+      "Federated logout requested but AUTH_URL is not a valid URL",
+      "auth_url_invalid",
+    );
+    return null;
+  }
+  return authUrl;
+}
+
+function warnLogout(message: string, reason: string): void {
+  TelemetryLogger.warn(message, { reason }, LOGGER_NAME);
 }

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AuthTokenSchema, KeycloakTokenResponse } from "./types";
-import { getSessionCookieOptions } from "../infrastructure/session-utils";
+import {
+  getSessionCookieOptions,
+  secureCookieFromAuthUrl,
+} from "../infrastructure/session-utils";
 import { decodeJwt } from "jose";
 import { apiResponses } from "@/lib/utils/route-handlers";
 import { encode } from "next-auth/jwt";
@@ -19,7 +22,9 @@ export async function createSessionFromToken(
   request: NextRequest,
 ) {
   try {
-    const useSecureCookies = request.nextUrl.protocol === "https:";
+    const useSecureCookies = process.env.AUTH_URL
+      ? secureCookieFromAuthUrl()
+      : request.nextUrl.protocol === "https:";
     const sessionCookieOptions = getSessionCookieOptions(useSecureCookies);
     const userInfo = decodeJwt(tokenData.id_token);
 
