@@ -2,7 +2,6 @@ import { auth } from "@/auth";
 import { authorization, Permissions } from "@/features/auth/authorization";
 import { EndatixApi } from "@/lib/endatix-api";
 import {
-  AudiencePaging,
   type AudiencePerson,
   type AudienceProperty,
   type AudienceSettings,
@@ -12,6 +11,7 @@ import type { ApiResult } from "@/lib/endatix-api/shared/api-result";
 import { Result, toResult } from "@/lib/result";
 import type { MapApiResultToResultOptions } from "@/lib/result/map-api-result-to-result";
 import type { Form } from "@/types";
+import type { PeoplePaging } from "./parse-people-page";
 
 export type AudiencePageData = {
   settings: AudienceSettings;
@@ -23,8 +23,6 @@ export type AudiencePageData = {
   pageSize: number;
 };
 
-const PAGE_SIZE = AudiencePaging.DefaultPageSize;
-
 function unwrapPart<T>(apiResult: ApiResult<T>, label: string): Result<T> {
   return toResult(apiResult, {
     fallbackMessage: `Failed to load audience ${label}.`,
@@ -33,12 +31,12 @@ function unwrapPart<T>(apiResult: ApiResult<T>, label: string): Result<T> {
   } as MapApiResultToResultOptions<T>);
 }
 
-async function fetchAudienceParts(formId: string, page: number) {
+async function fetchAudienceParts(formId: string, paging: PeoplePaging) {
   const api = new EndatixApi((await auth())?.accessToken);
   return Promise.all([
     api.audience.getSettings(),
     api.audience.listProperties(formId),
-    api.audience.listPeople(formId, { page, pageSize: PAGE_SIZE }),
+    api.audience.listPeople(formId, paging),
   ]);
 }
 
@@ -50,11 +48,11 @@ type LoadedParts = {
 
 async function loadAudienceParts(
   formId: string,
-  page: number,
+  paging: PeoplePaging,
 ): Promise<Result<LoadedParts>> {
   const [settingsApi, propertiesApi, peopleApi] = await fetchAudienceParts(
     formId,
-    page,
+    paging,
   );
   const settings = unwrapPart(settingsApi, "settings");
   if (Result.isError(settings)) return settings;
@@ -70,15 +68,16 @@ async function loadAudienceParts(
   });
 }
 
+/** Paging comes back from the API: it clamps a page past the end to the last page. */
 export async function loadAudiencePage(
   formId: string,
-  page: number,
+  paging: PeoplePaging,
 ): Promise<Result<AudiencePageData>> {
   const { requireHubAccess, checkPermission } = await authorization();
   await requireHubAccess();
 
   const [parts, matchKeyPermission] = await Promise.all([
-    loadAudienceParts(formId, page),
+    loadAudienceParts(formId, paging),
     checkPermission(Permissions.Tenant.ManageSettings),
   ]);
   if (Result.isError(parts)) return parts;
@@ -89,8 +88,8 @@ export async function loadAudiencePage(
     properties: parts.value.properties,
     people: [...parts.value.people.items],
     totalPeople: parts.value.people.totalRecords,
-    page,
-    pageSize: PAGE_SIZE,
+    page: parts.value.people.page,
+    pageSize: parts.value.people.pageSize,
   });
 }
 
@@ -98,9 +97,12 @@ export async function loadFormForAudience(
   formId: string,
 ): Promise<Result<Form>> {
   const session = await auth();
-  return toResult(await new EndatixApi(session?.accessToken).forms.get(formId), {
-    fallbackMessage: "Failed to load form.",
-    logMessage: "Failed to load form for audience.",
-    loggerName: "audience.page",
-  });
+  return toResult(
+    await new EndatixApi(session?.accessToken).forms.get(formId),
+    {
+      fallbackMessage: "Failed to load form.",
+      logMessage: "Failed to load form for audience.",
+      loggerName: "audience.page",
+    },
+  );
 }

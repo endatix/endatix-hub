@@ -1,15 +1,25 @@
 "use client";
 
+import { Users } from "lucide-react";
+import {
+  DataTableEmpty,
+  DataTableSurface,
+  PagedTableFooter,
+} from "@/components/table";
 import type {
   AudienceIdentifierKind,
   AudiencePerson,
   AudienceProperty,
 } from "@/lib/endatix-api/audience/types";
-import Link from "next/link";
-import { PeopleAddForm } from "../../create-person/ui/people-add-form";
+import { useUrlSearchParamsUpdater } from "@/lib/utils/hooks/use-url-search-params-updater.hook";
+import { AddPersonPanel } from "../../create-person/ui/add-person-panel";
+import { RemovePersonDialog } from "../../delete-person/ui/remove-person-dialog";
+import { EditPersonPanel } from "../../update-person/ui/edit-person-panel";
+import { useRowOverlay } from "../../use-panel-state.hook";
 import { PeopleTable } from "./people-table";
+import { SectionHeader } from "./section-header";
 
-type Props = {
+type PeopleSectionProps = {
   formId: string;
   identifierKind: AudienceIdentifierKind;
   properties: AudienceProperty[];
@@ -19,63 +29,96 @@ type Props = {
   pageSize: number;
 };
 
-function PeopleBody({
-  formId,
-  identifierKind,
-  properties,
-  people,
-}: Pick<Props, "formId" | "identifierKind" | "properties" | "people">) {
-  if (people.length === 0) {
-    return <p className="text-sm text-muted-foreground">No people yet.</p>;
-  }
+type RowTargets = {
+  onEdit: (person: AudiencePerson) => void;
+  onRemove: (person: AudiencePerson) => void;
+};
+type Paging = Pick<PeopleSectionProps, "page" | "pageSize" | "totalPeople">;
+
+function pagerState({ page, pageSize, totalPeople }: Paging) {
+  const totalPages = Math.ceil(totalPeople / pageSize);
+  return {
+    page,
+    pageSize,
+    totalPages,
+    totalRecords: totalPeople,
+    hasNextPage: page < totalPages,
+  };
+}
+
+function PeoplePager(props: Readonly<Paging>) {
+  const { updateUrl } = useUrlSearchParamsUpdater();
   return (
-    <PeopleTable
-      formId={formId}
-      identifierKind={identifierKind}
-      properties={properties}
-      people={people}
+    <PagedTableFooter
+      variant="surface"
+      entityLabel="people"
+      {...pagerState(props)}
+      onPageChange={(next) => updateUrl({ page: String(next) })}
+      onPageSizeChange={(size) =>
+        updateUrl({ pageSize: String(size), page: "1" })
+      }
     />
   );
 }
 
-function PeoplePager({
-  formId,
-  page,
-  pageSize,
-  totalPeople,
-}: Pick<Props, "formId" | "page" | "pageSize" | "totalPeople">) {
-  const pageCount = Math.ceil(totalPeople / pageSize);
-  if (pageCount <= 1) return null;
+function PeopleSurface(props: Readonly<PeopleSectionProps & RowTargets>) {
   return (
-    <p className="flex gap-3 text-sm text-muted-foreground">
-      {page > 1 ? (
-        <Link href={`/forms/${formId}/audience?page=${page - 1}`}>Previous</Link>
-      ) : null}
-      <span>
-        Page {page} of {pageCount}
-      </span>
-      {page < pageCount ? (
-        <Link href={`/forms/${formId}/audience?page=${page + 1}`}>Next</Link>
-      ) : null}
-    </p>
+    <DataTableSurface data-slot="audience-people-table">
+      {props.totalPeople === 0 ? (
+        <DataTableEmpty icon={Users} title="No people yet">
+          Add the people this form is for. Each person can have their own value
+          for every property.
+        </DataTableEmpty>
+      ) : (
+        <>
+          <PeopleTable {...props} />
+          <PeoplePager {...props} />
+        </>
+      )}
+    </DataTableSurface>
   );
 }
 
-export function PeopleSection(props: Readonly<Props>) {
+type Overlays = ReturnType<typeof useRowOverlay<AudiencePerson>>;
+type OverlayProps = Pick<PeopleSectionProps, "formId" | "properties"> & {
+  row: Overlays;
+};
+
+/** One overlay at a time: the row's edit panel or its remove confirmation. */
+function PeopleOverlays({ row, ...props }: Readonly<OverlayProps>) {
+  const editKey = row.editing?.membershipId ?? "closed";
   return (
-    <section className="space-y-4">
-      <h2 className="text-lg font-semibold">People</h2>
-      <p className="text-sm text-muted-foreground">
-        Audience members ({props.totalPeople}). Remove drops this form only.
-      </p>
-      <PeoplePager
-        formId={props.formId}
-        page={props.page}
-        pageSize={props.pageSize}
-        totalPeople={props.totalPeople}
+    <>
+      <EditPersonPanel
+        key={editKey}
+        {...props}
+        person={row.editing}
+        onClose={row.close}
       />
-      <PeopleAddForm formId={props.formId} identifierKind={props.identifierKind} properties={props.properties} />
-      <PeopleBody formId={props.formId} identifierKind={props.identifierKind} properties={props.properties} people={props.people} />
+      <RemovePersonDialog
+        {...props}
+        person={row.deleting}
+        onClose={row.close}
+      />
+    </>
+  );
+}
+
+const DESCRIPTION =
+  "Who this form is for. Removing someone takes them off this form only.";
+
+export function PeopleSection(props: Readonly<PeopleSectionProps>) {
+  const row = useRowOverlay<AudiencePerson>();
+  return (
+    <section aria-labelledby="audience-people" className="flex flex-col gap-4">
+      <SectionHeader
+        id="audience-people"
+        title="People"
+        description={DESCRIPTION}
+        action={<AddPersonPanel {...props} />}
+      />
+      <PeopleSurface {...props} onEdit={row.edit} onRemove={row.remove} />
+      <PeopleOverlays {...props} row={row} />
     </section>
   );
 }

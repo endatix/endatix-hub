@@ -1,35 +1,33 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
-import type {
-  AudienceProperty,
-  AudiencePropertyValues,
-} from "@/lib/endatix-api/audience/types";
-import { runCreatePerson } from "../audience-runs";
+import { useState } from "react";
+import { useAudienceMutation } from "../use-audience-mutation.hook";
+import { usePanelOpen, useValueMap } from "../use-panel-state.hook";
+import { createAudiencePersonAction } from "./create-audience-person.action";
 
-function emptyValues(properties: AudienceProperty[]): AudiencePropertyValues {
-  const values: AudiencePropertyValues = {};
-  for (const property of properties) values[property.id] = "";
-  return values;
+/** The new person being typed: identifier and optional values. */
+function usePersonDraft() {
+  const [identifier, setIdentifier] = useState("");
+  const values = useValueMap();
+  const reset = () => {
+    setIdentifier("");
+    values.reset();
+  };
+  return { ...values, identifier, setIdentifier, reset };
 }
 
-export function useAddPerson(formId: string, properties: AudienceProperty[]) {
-  const router = useRouter();
-  const [pending, startTransition] = useTransition();
-  const [identifier, setIdentifier] = useState("");
-  const [values, setValues] = useState(() => emptyValues(properties));
-  const setValue = (propertyId: string, value: string) =>
-    setValues((current) => ({ ...current, [propertyId]: value }));
-
-  function create(): void {
-    startTransition(async () => {
-      if (!(await runCreatePerson(formId, identifier, values))) return;
-      setIdentifier("");
-      setValues(emptyValues(properties));
-      router.refresh();
-    });
-  }
-
-  return { pending, identifier, setIdentifier, values, setValue, create };
+/** State for the Add person panel; reopening it starts from an empty form. */
+export function useAddPerson(formId: string) {
+  const draft = usePersonDraft();
+  const { run, clearError, status } = useAudienceMutation();
+  const panel = usePanelOpen(() => {
+    draft.reset();
+    clearError();
+  }, status.pending);
+  const { identifier, values } = draft;
+  const action = () =>
+    createAudiencePersonAction({ formId, identifier, values });
+  const submit = () =>
+    run({ action, successMessage: "Person added", onSuccess: panel.close });
+  return { ...draft, ...panel, ...status, submit };
 }

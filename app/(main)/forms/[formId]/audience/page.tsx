@@ -6,7 +6,7 @@ import { AudiencePageShell } from "@/features/audience/get-audience-page/ui/audi
 import {
   loadAudiencePage,
   loadFormForAudience,
-  parsePeoplePage,
+  parsePeoplePaging,
 } from "@/features/audience/get-audience-page";
 import { personalizationFlag } from "@/lib/feature-flags";
 import { Result, type Error as ResultError } from "@/lib/result";
@@ -15,7 +15,7 @@ import { redirect } from "next/navigation";
 
 type Params = {
   params: Promise<{ formId: string }>;
-  searchParams: Promise<{ page?: SearchParam }>;
+  searchParams: Promise<{ page?: SearchParam; pageSize?: SearchParam }>;
 };
 
 function failedLoad(result: ResultError) {
@@ -24,6 +24,13 @@ function failedLoad(result: ResultError) {
   ) : (
     <HubPageLoadError result={result} />
   );
+}
+
+function pagingFrom(query: Awaited<Params["searchParams"]>) {
+  return parsePeoplePaging({
+    page: firstSearchParam(query.page),
+    pageSize: firstSearchParam(query.pageSize),
+  });
 }
 
 export default async function FormAudiencePage({
@@ -40,8 +47,8 @@ export default async function FormAudiencePage({
   const form = await loadFormForAudience(formId);
   if (Result.isError(form)) return failedLoad(form);
 
-  const page = parsePeoplePage(firstSearchParam((await searchParams).page));
-  const audience = await loadAudiencePage(formId, page);
+  const paging = pagingFrom(await searchParams);
+  const audience = await loadAudiencePage(formId, paging);
   if (Result.isError(audience)) return failedLoad(audience);
 
   return (

@@ -134,6 +134,9 @@ Before building a control, check whether the vocabulary already exists here.
 | `components/table/faceted-filter.tsx` — `FacetedFilter`                  | A facet: toolbar pill or form `field`; flat or grouped options (Filters, below)       |
 | `components/common/file-kind-icon.tsx` — `FileKindIcon`, `FileKindLabel` | The file-type mark and its icon+label row (File Type Marks, below)                    |
 | `components/common/panel-section.tsx` — `PanelSection`                   | A titled concern inside an overlay, on a nested surface (§6 Create / edit overlay)    |
+| `components/common/panel-form.tsx` — `PanelForm`, `PanelFormError`       | A create/edit overlay as one form: header, failure strip, sections, Cancel + submit   |
+| `components/common/field-with-help.tsx` — `FieldWithHelp`                | A label, its control and the one visible help line under it (§6 Displaying values)    |
+| `components/common/pending-button.tsx` — `PendingButton`                 | An action button that swaps to a spinner and its running verb (Buttons, below)        |
 | `components/common/summary-row.tsx` — `SummaryRow`                       | Label-left / value-right rows (§6 Displaying values)                                  |
 | `components/common/truncated-id.tsx` — `TruncatedId`                     | A long id shortened to head…tail with a copy affordance                               |
 | `components/common/text-link.tsx` — `TextLink`                           | An inline link; `external` for one that leaves the Hub (Links, below)                 |
@@ -273,12 +276,14 @@ paged sortable grid look identical:
 | `dataTableColumnLabelClassName`                                                             | The uppercase muted column title                                        |
 | `DATA_TABLE_SHRINK_WRAP_CLASS_NAME`                                                         | Shrink a column to its content                                          |
 | `PagedTableFooter`, `DataTableToolbar`, `DataTableSkeleton`                                 | Pagination, filter bar, loading state                                   |
+| `StaticDataTable`, `StaticDataTableRow`, `dataTableCell`                                    | A few known rows on the helpers above: static header, zebra rows        |
+| `DataTableRowActions`                                                                       | The trailing ghost icon actions of a row, each named for its row        |
 
 - **A table is not card content.** Title, description and primary action sit **above**
   `DataTableSurface` as plain `h2` + `p` + `Button`. A `Card` is for controls and prose.
 - **Class-name helpers before TanStack.** A handful of static rows needs `DataTableSurface` +
-  `Table` + the helpers, not a table instance. Pass `isStatic: true` to the header helper when the
-  header never scrolls under sticky positioning.
+  `StaticDataTable` (the helpers, assembled), not a table instance. Pass `isStatic: true` to the
+  header helper when you hand-roll the header and it never scrolls under sticky positioning.
 - **Zebra parity is `index % 2 === 1`**, matching `DataTableGrid`.
 - **Column labels name what the column holds for the reader** ("Requester", "Submitted"), not the
   entity field (`Email`, `Created`).
@@ -289,6 +294,16 @@ paged sortable grid look identical:
   reviewable until complete"), not a control that acts on nothing. A value already recorded still
   shows, so nothing a user did disappears. The rule lives in the state mapping, so grid and detail
   agree (`isReviewApplicable`, `features/submissions/ui/table/cell-review-status.tsx`).
+- **Rows are read, not edited in place.** A record list never puts inputs in its cells or saves on
+  blur: a row is edited in its own overlay and deleted through an `AlertDialog` (§6 Controls &
+  consequences). The table stays a surface for scanning.
+- **Row actions** are ghost icon buttons in a trailing `Actions` column (`DataTableRowActions`).
+  Each `aria-label` names the action _and_ the row ("Remove ada@example.com from this form"). An
+  action that cannot apply to a row is omitted, not disabled ("Edit" on a person when the list has
+  no properties to edit).
+- **User-defined columns** (one per property, field or answer): every column gets a minimum width,
+  values wrap, an unset cell is `—` with `sr-only` "Not set", and the table scrolls in
+  `overflow-x-auto` instead of squeezing columns.
 - Wiring (URL state, paging, loading skeletons): `project-structure.md` "List pages and tables".
 
 **Filters — `FacetedFilter`.** A facet speaks the vocabulary of the column it filters.
@@ -452,9 +467,18 @@ to `value` are `completed`; the `value` step itself is `active`. Reference:
   secondary (`secondary_container`); ghost (`primary` text) for low emphasis; `destructive` only
   to commit something final. A trailing ellipsis (`Reject…`) means "asks for more before it acts".
   Spinners belong on action buttons, never list rows. A multi-stage action names the stage that
-  is running (`Updating submissions…` → `Exporting…`), in a short verb phrase.
+  is running (`Updating submissions…` → `Exporting…`), in a short verb phrase (`PendingButton`).
+  **One primary per page:** when a page has several list sections, the create action of the main
+  task is primary and the others are `outline` (a form's audience: `Add person` primary,
+  `Add property` outline).
 - **Inputs:** `surface_container_low` fill; on focus the ghost border goes from 15% to 100%
   `primary`. Labels `label-md` in `on_surface_variant`.
+- **Typed values use the control that produces their wire format**, so the API never refuses a
+  value the form let through: a date is `type="date"` (`YYYY-MM-DD`), a date-time
+  `datetime-local`, a number `type="number"`, a yes/no a `Select` (`Yes` / `No`), a choice from a
+  list a `Select` or checkboxes. Free text is for text only. An optional value can always be
+  emptied: a select carries an explicit `Not set` first option, and emptying clears the stored
+  value rather than saving `""`. Reference: `features/audience/ui/property-value-field.tsx`.
 - **Chips / tags:** `rounded-full` to distinguish from buttons; `tertiary_container` for neutral
   data tags. Status tags are `StatusBadge`.
 
@@ -512,6 +536,18 @@ text-muted-foreground` — no left-border rule.
   don't apply"). Disable single controls; drop a whole section's fields.
 - **Immutability belongs on the field it constrains** (a `Locked` badge + one line), not in the
   panel description.
+- **A key derived from a name is previewed before it is fixed.** While the reader types, the
+  field's help line shows the key it will produce ("Variable name `cost_center`. It never
+  changes…"), or why none can be made, with the submit disabled. In the edit overlay the key is a
+  read-only `SummaryRow` (copyable) with a `Locked` badge beside it.
+- **A delete names its blast radius:** the confirmation says what else goes, with a count when
+  there is one ("Its values are deleted for all 1,240 people on this form's audience"), and what
+  stays ("They stay on the audience of any other form"). The `AlertDialog` stays open while it
+  runs (spinner + verb on the destructive button) and shows a failure inside it; it never closes
+  on click and leaves the outcome to a toast.
+- **A setting wider than the page says its scope.** A tenant-wide control surfaced on a record
+  page (the match key on a form's audience) says so in its description, and its disabled line
+  says who can change it or when it can change again.
 - **State lives in the section header.** An on/off section shows a `StatusBadge` in its `aside`;
   the switch sets it, the badge reports it.
 - **Prefill what can be suggested, and say where it came from** ("Suggested from the company name").
@@ -519,7 +555,8 @@ text-muted-foreground` — no left-border rule.
   a description saying who will read it.
 - **Errors land where they belong.** Field validation under the field (`aria-invalid`,
   `aria-describedby`); anything else a `destructive` Alert at the top, with the form keeping its
-  values.
+  values — `PanelForm` puts that strip (`PanelFormError`) at the top of the body and stays open.
+  A single control outside an overlay (a select in a card) shows its failure in its help line.
 - **`Back`, not `Cancel`,** on a step whose record is still open behind it.
 - **Show the outcome in place; don't toast and close** when the result is a record the user needs
   to see (a toast disappears; the updated record is the proof).
@@ -749,14 +786,18 @@ Reference: `features/platform-admin/view-environment-settings/ui/`.
 
 ### Recipe: tenant settings page (review and change)
 
-Pages under `app/(main)/settings/…`. Reference:
-`features/export/manage-export-formats/ui/export-formats-settings.tsx`.
+Pages under `app/(main)/settings/…`, and record-scoped collection pages that follow the same
+shape. References: `features/export/manage-export-formats/ui/export-formats-settings.tsx`; a
+form's audience, `features/audience/get-audience-page/ui/` (match-key card, then the People and
+Properties sections).
 
 1. **Masthead** — `h1.text-3xl.font-semibold.tracking-tight` + muted one-sentence purpose in
    `page.tsx` (a `SettingsPageHeader` waiting to be extracted — do that as its own change).
 2. **A `Card` per standalone control**, the control constrained (`max-w-md`).
 3. **A list section per collection** (list-page recipe, no `Card` around it).
-4. **Create/edit via `ResponsivePanel`, delete via `AlertDialog`.**
+4. **Create/edit via `ResponsivePanel` (`PanelForm`), delete via `AlertDialog`.**
+5. **Sections in the order the reader sets things up** — a choice that later locks (the match key)
+   before the lists that depend on it.
 
 A row's identity column carries the name plus inline state badges (`Default`), not a name stacked
 over a pill.
@@ -875,6 +916,9 @@ Before finishing UI work, check:
       facet as a labelled `field` (§5 Filters).
 - [ ] A flow prefilled from a list takes its values exactly, names list filters it cannot apply,
       and offers "Use table filters" once changed (§6 Configure and run).
+- [ ] Record lists are read-only rows with named row actions; edits open an overlay, deletes an
+      `AlertDialog` that names what goes with it (§5, §6).
+- [ ] Typed values use typed controls, and an optional value can be emptied (§5 Inputs).
 - [ ] Overlays follow the table in §5, never stack, and have a title and description.
 - [ ] Inline links are `TextLink`; external ones use `external`; nothing links to an unconfigured
       or unconfirmed target; links to our own sites carry UTM tags and a click event (§5).

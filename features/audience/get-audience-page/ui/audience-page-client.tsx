@@ -1,31 +1,31 @@
 "use client";
 
 import type { AudiencePageData } from "../index";
-import { MatchKeySettings } from "../../update-settings/ui/match-key-settings";
+import { MatchKeyCard } from "../../update-settings/ui/match-key-card";
 import { PeopleSection } from "./people-section";
 import { PropertiesSection } from "./properties-section";
 
 type Props = { formId: string; data: AudiencePageData };
 
+/**
+ * Setup order, top to bottom: the match key (chosen once, before anyone is added), the people
+ * this form is for, then the properties that become their columns.
+ */
 export function AudiencePageClient({ formId, data }: Readonly<Props>) {
+  const { settings, canManageMatchKey, ...lists } = data;
   return (
-    <div className="space-y-10">
-      <MatchKeySettings
+    <div className="flex flex-col gap-10">
+      <MatchKeyCard
         formId={formId}
-        identifierKind={data.settings.identifierKind}
-        isLocked={data.settings.isLocked}
-        canManage={data.canManageMatchKey}
+        {...settings}
+        canManage={canManageMatchKey}
       />
-      <PropertiesSection formId={formId} properties={data.properties} />
       <PeopleSection
         formId={formId}
-        identifierKind={data.settings.identifierKind}
-        properties={data.properties}
-        people={data.people}
-        totalPeople={data.totalPeople}
-        page={data.page}
-        pageSize={data.pageSize}
+        identifierKind={settings.identifierKind}
+        {...lists}
       />
+      <PropertiesSection formId={formId} {...lists} />
     </div>
   );
 }

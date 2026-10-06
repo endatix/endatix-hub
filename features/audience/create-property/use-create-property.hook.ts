@@ -1,24 +1,47 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { AudienceDataType } from "@/lib/endatix-api/audience/types";
-import { runCreateProperty } from "../audience-runs";
+import { useAudienceMutation } from "../use-audience-mutation.hook";
+import { usePanelOpen } from "../use-panel-state.hook";
+import { variableNameFromName } from "../utils";
+import { createAudiencePropertyAction } from "./create-audience-property.action";
 
-export function useCreateProperty(formId: string) {
-  const router = useRouter();
-  const [pending, startTransition] = useTransition();
+/** The new property being typed, with the variable name it would get. */
+function usePropertyDraft() {
   const [name, setName] = useState("");
-  const [dataType, setDataType] = useState<AudienceDataType>(AudienceDataType.Text);
+  const [dataType, setDataType] = useState<AudienceDataType>(
+    AudienceDataType.Text,
+  );
+  const reset = () => {
+    setName("");
+    setDataType(AudienceDataType.Text);
+  };
+  return {
+    name,
+    setName,
+    dataType,
+    setDataType,
+    variableName: variableNameFromName(name),
+    reset,
+  };
+}
 
-  function create(): void {
-    startTransition(async () => {
-      if (await runCreateProperty(formId, name, dataType)) {
-        setName("");
-        router.refresh();
-      }
+/** State for the Add property panel; reopening it starts from an empty form. */
+export function useCreateProperty(formId: string) {
+  const draft = usePropertyDraft();
+  const { run, clearError, status } = useAudienceMutation();
+  const reset = () => {
+    draft.reset();
+    clearError();
+  };
+  const panel = usePanelOpen(reset, status.pending);
+  const { name, dataType } = draft;
+  const submit = () =>
+    run({
+      action: () => createAudiencePropertyAction({ formId, name, dataType }),
+      successMessage: "Property added",
+      onSuccess: panel.close,
     });
-  }
-
-  return { pending, name, setName, dataType, setDataType, create };
+  return { ...draft, ...panel, ...status, submit };
 }
