@@ -19,6 +19,7 @@ export const EXPORT_REQUEST_FILTER = {
   locale: "locale",
   columnScope: "columnScope",
   completionStatus: "completionStatus",
+  collectionStatus: "collectionStatus",
 } as const;
 
 export type ExportRequestFilter =
@@ -54,11 +55,7 @@ export interface SubmissionExportListFilters {
   maxSubmissionId?: string;
   locale?: string;
   completionStatus?: ExportCompletionStatusFilter;
-  /**
-   * The list's Status filter is narrower than any completion choice, so the
-   * prefilled completion exports rows the list hides. Shown, never sent.
-   */
-  statusFilterWiderThanList?: boolean;
+  collectionStatus?: string[];
 }
 
 export interface ReportingExportUrlOptions {
@@ -164,6 +161,15 @@ function appendAllowedListFilters(
   }
 
   if (
+    allowsFilter(allowedFilters, EXPORT_REQUEST_FILTER.collectionStatus) &&
+    filters.collectionStatus &&
+    filters.collectionStatus.length > 0
+  ) {
+    params.set(
+      EXPORT_REQUEST_FILTER.collectionStatus,
+      filters.collectionStatus.join("|"),
+    );
+  } else if (
     allowsFilter(allowedFilters, EXPORT_REQUEST_FILTER.completionStatus) &&
     filters.completionStatus
   ) {

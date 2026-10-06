@@ -1,5 +1,6 @@
 export { ExportSubmissionsButton } from "./ui/export-submissions-button";
 export {
+  parseCollectionStatusQuery,
   parseCompletionStatusQuery,
   parseIncludeTestSubmissionsQuery,
   parseLegacyExportFormat,

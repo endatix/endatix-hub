@@ -40,34 +40,6 @@ export function collectionStatusGroupTone(
   return GROUP_TONE[group];
 }
 
-export function isCompleteValuesFromCollectionStatus(
-  codes: Iterable<string>,
-): Array<"true" | "false"> {
-  const values = new Set<"true" | "false">();
-  for (const code of codes) {
-    values.add(code === "complete" ? "true" : "false");
-  }
-  return [...values];
-}
-
-export function completionCoversCollectionStatus(
-  codes: Iterable<string>,
-): boolean {
-  const selected = new Set(codes);
-  const selectsExactly = (expected: readonly string[]) =>
-    selected.size === expected.length &&
-    expected.every((code) => selected.has(code));
-  const notComplete = COLLECTION_STATUS_FILTER_CODES.filter(
-    (code) => code !== "complete",
-  );
-  return (
-    selected.size === 0 ||
-    selectsExactly(COLLECTION_STATUS_FILTER_CODES) ||
-    selectsExactly(["complete"]) ||
-    selectsExactly(notComplete)
-  );
-}
-
 export function collectionStatusFromLegacyIsComplete(
   value: string | undefined,
 ): CollectionStatusFilterCode[] {

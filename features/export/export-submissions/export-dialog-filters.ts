@@ -1,11 +1,8 @@
 import type { ExportTarget } from "@/lib/endatix-api/reporting/reporting";
 import { isCodebookFormatKey } from "@/lib/endatix-api/reporting/reporting-export-wire";
 import {
-  DEFAULT_EXPORT_COMPLETION_STATUS,
   DEFAULT_REPORTING_LOCALE,
-  EXPORT_COMPLETION_STATUS,
   EXPORT_REQUEST_FILTER,
-  type ExportCompletionStatusFilter,
   type SubmissionExportListFilters,
 } from "../export-url";
 import type { TenantExportOption } from "./map-tenant-export-options";
@@ -18,13 +15,12 @@ export type DateRangeDraft = {
 /** Cohesive draft of dialog filter fields (not a wall of loose useState). */
 export type ExportFilterDraft = {
   includeTestSubmissions: boolean;
-  completionStatus: ExportCompletionStatusFilter;
+  collectionStatus: string[];
   createdAt: DateRangeDraft;
   modifiedAt: DateRangeDraft;
   startedAt: DateRangeDraft;
   completedAt: DateRangeDraft;
   locale: string;
-  statusFilterWiderThanList: boolean;
 };
 
 export type ExportFilterRangeErrors = {
@@ -63,25 +59,15 @@ export const DATE_RANGE_HINTS = {
   completedAt: "When the respondent submitted the form.",
 } as const;
 
-export const COMPLETION_STATUS_OPTIONS: ReadonlyArray<{
-  value: ExportCompletionStatusFilter;
-  label: string;
-}> = [
-  { value: EXPORT_COMPLETION_STATUS.completed, label: "Completed" },
-  { value: EXPORT_COMPLETION_STATUS.incomplete, label: "Incomplete" },
-  { value: EXPORT_COMPLETION_STATUS.all, label: "All" },
-];
-
 export function createEmptyFilterDraft(): ExportFilterDraft {
   return {
     includeTestSubmissions: false,
-    completionStatus: DEFAULT_EXPORT_COMPLETION_STATUS,
+    collectionStatus: [],
     createdAt: { ...EMPTY_DATE_RANGE },
     modifiedAt: { ...EMPTY_DATE_RANGE },
     startedAt: { ...EMPTY_DATE_RANGE },
     completedAt: { ...EMPTY_DATE_RANGE },
     locale: DEFAULT_REPORTING_LOCALE,
-    statusFilterWiderThanList: false,
   };
 }
 
@@ -90,8 +76,7 @@ export function createFilterDraftFromListFilters(
 ): ExportFilterDraft {
   return {
     includeTestSubmissions: listFilters?.includeTestSubmissions ?? false,
-    completionStatus:
-      listFilters?.completionStatus ?? DEFAULT_EXPORT_COMPLETION_STATUS,
+    collectionStatus: listFilters?.collectionStatus ?? [],
     createdAt: dateRangeDraft(listFilters?.createdFrom, listFilters?.createdTo),
     modifiedAt: dateRangeDraft(
       listFilters?.modifiedFrom,
@@ -103,31 +88,11 @@ export function createFilterDraftFromListFilters(
       listFilters?.completedTo,
     ),
     locale: listFilters?.locale?.trim() || DEFAULT_REPORTING_LOCALE,
-    statusFilterWiderThanList: listFilters?.statusFilterWiderThanList ?? false,
   };
 }
 
 function dateRangeDraft(from?: string, to?: string): DateRangeDraft {
   return { from: from ?? "", to: to ?? "" };
-}
-
-/**
- * Grid Complete filter (Yes/No) → export completion.
- * No selection, or both, matches the grid: every completion state.
- */
-export function completionStatusFromIsCompleteFilter(
-  values: Iterable<string>,
-): ExportCompletionStatusFilter {
-  const selected = new Set(values);
-  const complete = selected.has("true");
-  const incomplete = selected.has("false");
-  if (complete && !incomplete) {
-    return EXPORT_COMPLETION_STATUS.completed;
-  }
-  if (incomplete && !complete) {
-    return EXPORT_COMPLETION_STATUS.incomplete;
-  }
-  return EXPORT_COMPLETION_STATUS.all;
 }
 
 /**
@@ -159,23 +124,12 @@ export function showsSubmissionRowFilters(
   return true;
 }
 
-/** Incomplete and All need a refresh of incomplete submissions before export. */
-export function includesIncompleteSubmissions(
-  completionStatus: ExportCompletionStatusFilter,
-): boolean {
-  return (
-    completionStatus === EXPORT_COMPLETION_STATUS.incomplete ||
-    completionStatus === EXPORT_COMPLETION_STATUS.all
-  );
+export function includesIncompleteSubmissions(codes: readonly string[]): boolean {
+  return codes.length === 0 || codes.some((code) => code !== "complete");
 }
 
-export function showsCompletedAtFields(
-  completionStatus: ExportCompletionStatusFilter,
-): boolean {
-  return (
-    completionStatus === EXPORT_COMPLETION_STATUS.completed ||
-    completionStatus === EXPORT_COMPLETION_STATUS.all
-  );
+export function showsCompletedAtFields(codes: readonly string[]): boolean {
+  return codes.length === 0 || codes.includes("complete");
 }
 
 export function resolveDefaultLocale(
@@ -260,7 +214,9 @@ export function toSubmissionExportListFilters(
 
   if (args.showRowFilters) {
     filters.includeTestSubmissions = draft.includeTestSubmissions;
-    filters.completionStatus = draft.completionStatus;
+    if (draft.collectionStatus.length > 0) {
+      filters.collectionStatus = draft.collectionStatus;
+    }
     filters.createdFrom = draft.createdAt.from || undefined;
     filters.createdTo = draft.createdAt.to || undefined;
     filters.modifiedFrom = draft.modifiedAt.from || undefined;

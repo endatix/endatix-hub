@@ -1,12 +1,5 @@
-import {
-  completionStatusFromIsCompleteFilter,
-  includeTestSubmissionsFromGridFilter,
-} from "@/features/export/export-submissions/export-dialog-filters";
+import { includeTestSubmissionsFromGridFilter } from "@/features/export/export-submissions/export-dialog-filters";
 import type { SubmissionExportListFilters } from "@/features/export/export-url";
-import {
-  completionCoversCollectionStatus,
-  isCompleteValuesFromCollectionStatus,
-} from "@/features/submissions/ui/describe-collection-status";
 import type { SubmissionDateFilters } from "@/features/submissions/ui/table/date-filter-types";
 
 export function submissionExportListFilters(
@@ -14,23 +7,12 @@ export function submissionExportListFilters(
   collectionStatus: Iterable<string>,
   testSubmission: Iterable<string>,
 ): SubmissionExportListFilters {
+  const codes = [...collectionStatus];
   return {
     ...exportDateRanges(dates),
-    ...exportCompletion([...collectionStatus]),
+    collectionStatus: codes.length > 0 ? codes : undefined,
     includeTestSubmissions:
       includeTestSubmissionsFromGridFilter(testSubmission),
-  };
-}
-
-function exportCompletion(
-  collectionStatus: readonly string[],
-): SubmissionExportListFilters {
-  return {
-    completionStatus: completionStatusFromIsCompleteFilter(
-      isCompleteValuesFromCollectionStatus(collectionStatus),
-    ),
-    statusFilterWiderThanList:
-      !completionCoversCollectionStatus(collectionStatus),
   };
 }
 

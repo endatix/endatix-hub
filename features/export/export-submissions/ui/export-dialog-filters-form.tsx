@@ -14,9 +14,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { type ExportCompletionStatusFilter } from "../../export-url";
+import { FacetedFilter } from "@/components/table";
 import {
-  COMPLETION_STATUS_OPTIONS,
+  COLLECTION_STATUS_GROUPS,
+  collectionStatusGroupTone,
+  describeCollectionStatus,
+} from "@/features/submissions/ui/describe-collection-status";
+import {
   DATE_RANGE_HINTS,
   includesIncompleteSubmissions,
   type ExportFilterDraft,
@@ -42,7 +46,7 @@ interface ExportDialogFiltersFormProps {
   filterDraft: ExportFilterDraft;
   rangeErrors: ExportFilterRangeErrors;
   showCompletedAt: boolean;
-  onCompletionStatusChange: (status: ExportCompletionStatusFilter) => void;
+  onCollectionStatusChange: (values: Set<string>) => void;
   onIncludeTestChange: (include: boolean) => void;
   onDateRangeChange: (
     key: "createdAt" | "modifiedAt" | "startedAt" | "completedAt",
@@ -66,7 +70,7 @@ export function ExportDialogFiltersForm({
   filterDraft,
   rangeErrors,
   showCompletedAt,
-  onCompletionStatusChange,
+  onCollectionStatusChange,
   onIncludeTestChange,
   onDateRangeChange,
 }: Readonly<ExportDialogFiltersFormProps>) {
@@ -159,7 +163,7 @@ export function ExportDialogFiltersForm({
             <CompletionField
               filterDraft={filterDraft}
               controlsLocked={controlsLocked}
-              onCompletionStatusChange={onCompletionStatusChange}
+              onCollectionStatusChange={onCollectionStatusChange}
             />
 
             <div className="flex items-center gap-2">
@@ -257,96 +261,47 @@ export function ExportDialogFiltersForm({
 }
 
 const COMPLETION_HINT_ID = "export-submissions-completion-hint";
-const WIDER_THAN_LIST_HINT_ID = "export-submissions-completion-wider-hint";
+
+const collectionStatusGroups = COLLECTION_STATUS_GROUPS.map(
+  ({ group, label, codes }) => ({
+    label,
+    tone: collectionStatusGroupTone(group),
+    options: codes.map((code) => {
+      const view = describeCollectionStatus(code, false);
+      return { label: view.label, value: code, tone: view.tone };
+    }),
+  }),
+);
 
 interface CompletionFieldProps {
   filterDraft: ExportFilterDraft;
   controlsLocked: boolean;
-  onCompletionStatusChange: (status: ExportCompletionStatusFilter) => void;
+  onCollectionStatusChange: (values: Set<string>) => void;
 }
 
-/**
- * Completion, with the consequences of the choice under it — not a standing
- * alert above the form: incomplete rows are refreshed first, and the table's
- * Status filter may be narrower than any choice here.
- */
 function CompletionField({
   filterDraft,
   controlsLocked,
-  onCompletionStatusChange,
+  onCollectionStatusChange,
 }: Readonly<CompletionFieldProps>) {
-  const hints = completionHints(filterDraft);
+  const showIncompleteHint = includesIncompleteSubmissions(
+    filterDraft.collectionStatus,
+  );
   return (
     <div className="grid gap-2">
-      <Label htmlFor="export-submissions-completion">Completion</Label>
-      <CompletionSelect
-        value={filterDraft.completionStatus}
-        describedBy={hints.map((hint) => hint.id).join(" ") || undefined}
+      <FacetedFilter
+        title="Status"
+        groups={collectionStatusGroups}
+        selectedValues={new Set(filterDraft.collectionStatus)}
+        onValueChange={onCollectionStatusChange}
         disabled={controlsLocked}
-        onChange={onCompletionStatusChange}
       />
-      <FieldHints hints={hints} />
+      {showIncompleteHint ? (
+        <p id={COMPLETION_HINT_ID} className="text-xs text-muted-foreground">
+          Incomplete submissions are updated first, so this export takes a
+          little longer.
+        </p>
+      ) : null}
     </div>
   );
-}
-
-type FieldHint = { id: string; text: string };
-
-function FieldHints({ hints }: Readonly<{ hints: FieldHint[] }>) {
-  return hints.map((hint) => (
-    <p key={hint.id} id={hint.id} className="text-xs text-muted-foreground">
-      {hint.text}
-    </p>
-  ));
-}
-
-const COMPLETION_ITEMS = COMPLETION_STATUS_OPTIONS.map((option) => (
-  <SelectItem key={option.value} value={option.value}>
-    {option.label}
-  </SelectItem>
-));
-
-interface CompletionSelectProps {
-  value: ExportCompletionStatusFilter;
-  describedBy?: string;
-  disabled: boolean;
-  onChange: (status: ExportCompletionStatusFilter) => void;
-}
-
-function CompletionSelect(props: Readonly<CompletionSelectProps>) {
-  const onValueChange = (value: string) =>
-    props.onChange(value as ExportCompletionStatusFilter);
-  return (
-    <Select
-      value={props.value}
-      onValueChange={onValueChange}
-      disabled={props.disabled}
-    >
-      <SelectTrigger
-        id="export-submissions-completion"
-        className="w-full"
-        aria-describedby={props.describedBy}
-      >
-        <SelectValue placeholder="Select completion" />
-      </SelectTrigger>
-      <SelectContent>{COMPLETION_ITEMS}</SelectContent>
-    </Select>
-  );
-}
-
-function completionHints(draft: ExportFilterDraft): FieldHint[] {
-  const hints: FieldHint[] = [];
-  if (draft.statusFilterWiderThanList) {
-    hints.push({
-      id: WIDER_THAN_LIST_HINT_ID,
-      text: "The table's Status filter can't be applied to exports exactly, so this export can include statuses the table hides.",
-    });
-  }
-  if (includesIncompleteSubmissions(draft.completionStatus)) {
-    hints.push({
-      id: COMPLETION_HINT_ID,
-      text: "Incomplete submissions are updated first, so this export takes a little longer.",
-    });
-  }
-  return hints;
 }

@@ -75,6 +75,19 @@ export function parseOptionalLocaleQuery(
   return trimmed;
 }
 
+export function parseCollectionStatusQuery(
+  value: string | null,
+): string | undefined {
+  const codes = value
+    ?.split("|")
+    .map((code) => code.trim().toLowerCase())
+    .filter((code) => /^[a-z0-9_-]{1,32}$/.test(code));
+  if (!codes || codes.length === 0) {
+    return undefined;
+  }
+  return codes.join("|");
+}
+
 export function parseCompletionStatusQuery(
   value: string | null,
 ): "all" | "completed" | "incomplete" | undefined {

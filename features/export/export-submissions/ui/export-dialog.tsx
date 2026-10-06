@@ -117,8 +117,8 @@ export function ExportSubmissionsDialog({
               filterDraft={dialog.filterDraft}
               rangeErrors={dialog.rangeErrors}
               showCompletedAt={dialog.showCompletedAt}
-              onCompletionStatusChange={(completionStatus) =>
-                dialog.patchFilterDraft({ completionStatus })
+              onCollectionStatusChange={(values) =>
+                dialog.patchFilterDraft({ collectionStatus: [...values] })
               }
               onIncludeTestChange={(includeTestSubmissions) =>
                 dialog.patchFilterDraft({ includeTestSubmissions })

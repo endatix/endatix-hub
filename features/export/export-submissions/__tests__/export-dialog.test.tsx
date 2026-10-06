@@ -316,7 +316,7 @@ function createProps(
               "createdAtRange",
               "startedAtRange",
               "completedAtRange",
-              "completionStatus",
+              "collectionStatus",
             ],
           },
           {
@@ -331,7 +331,7 @@ function createProps(
               "createdAtRange",
               "startedAtRange",
               "completedAtRange",
-              "completionStatus",
+              "collectionStatus",
             ],
           },
         ],
@@ -391,6 +391,9 @@ describe("ExportSubmissionsDialog", () => {
       }),
     );
     mockOnExport.mockResolvedValue({ succeeded: true });
+    mockRefreshIncompleteSubmissionsAction.mockResolvedValue(
+      Result.success({ kind: "refreshed", failed: 0, finished: true }),
+    );
   });
 
   it("renders the dialog title and description when open", async () => {
@@ -409,19 +412,19 @@ describe("ExportSubmissionsDialog", () => {
     render(<ExportSubmissionsDialog {...createProps()} />);
     await waitForReady();
     expect(screen.getByText("Include test submissions")).toBeDefined();
-    expect(screen.getByText("Completion")).toBeDefined();
+    expect(screen.getByRole("button", { name: /status/i })).toBeDefined();
     expect(screen.getByText("Created at")).toBeDefined();
     expect(screen.getByText("Started at")).toBeDefined();
     expect(screen.getByText("Completed at")).toBeDefined();
   });
 
-  it("hides completed-at fields when completion is incomplete", async () => {
-    render(<ExportSubmissionsDialog {...createProps()} />);
+  it("hides completed-at fields when only incomplete statuses are selected", async () => {
+    render(
+      <ExportSubmissionsDialog
+        {...createProps({ listFilters: { collectionStatus: ["in_progress"] } })}
+      />,
+    );
     await waitForReady();
-
-    fireEvent.change(screen.getByTestId("export-submissions-completion"), {
-      target: { value: "incomplete" },
-    });
 
     expect(screen.queryByText("Completed at")).toBeNull();
   });
@@ -481,7 +484,6 @@ describe("ExportSubmissionsDialog", () => {
         fallbackExtension: "csv",
         filters: {
           includeTestSubmissions: false,
-          completionStatus: "completed",
           createdFrom: "2026-01-01",
           createdTo: undefined,
           modifiedFrom: undefined,
@@ -579,61 +581,14 @@ describe("ExportSubmissionsDialog", () => {
     expect(screen.getByRole("button", { name: /^export$/i })).toBeDefined();
   });
 
-  it("says on the Completion field that incomplete submissions are updated first", async () => {
+  it("says incomplete submissions are updated first unless only Complete is selected", async () => {
     render(<ExportSubmissionsDialog {...createProps()} />);
     await waitForReady();
 
     expect(
-      screen.queryByText(/Incomplete submissions are updated first/i),
-    ).toBeNull();
-
-    fireEvent.change(screen.getByTestId("export-submissions-completion"), {
-      target: { value: "incomplete" },
-    });
-
-    expect(
       screen.getByText(/Incomplete submissions are updated first/i),
     ).toBeDefined();
-    expect(screen.queryByText(/not in the read model yet/i)).toBeNull();
     expect(latestPanelProps?.desktopType).toBe("complex");
-    expect(screen.getByTestId("export-panel-footer")).toBeDefined();
-  });
-
-  it("says under Completion when the table's Status filter is narrower than the export", async () => {
-    render(
-      <ExportSubmissionsDialog
-        {...createProps({
-          listFilters: {
-            completionStatus: "incomplete",
-            statusFilterWiderThanList: true,
-          },
-        })}
-      />,
-    );
-    await waitForReady();
-
-    const hint = screen.getByText(
-      /Status filter can't be applied to exports exactly/i,
-    );
-    expect(hint).toBeDefined();
-    expect(
-      screen
-        .getByTestId("export-submissions-completion")
-        .getAttribute("aria-describedby"),
-    ).toContain(hint.id);
-  });
-
-  it("does not warn when the prefill matches the table exactly", async () => {
-    render(
-      <ExportSubmissionsDialog
-        {...createProps({ listFilters: { completionStatus: "completed" } })}
-      />,
-    );
-    await waitForReady();
-
-    expect(
-      screen.queryByText(/Status filter can't be applied to exports exactly/i),
-    ).toBeNull();
   });
 
   it("refreshes incomplete submissions before download", async () => {
@@ -648,9 +603,6 @@ describe("ExportSubmissionsDialog", () => {
     render(<ExportSubmissionsDialog {...createProps()} />);
     await waitForReady();
 
-    fireEvent.change(screen.getByTestId("export-submissions-completion"), {
-      target: { value: "incomplete" },
-    });
     fireEvent.click(screen.getByRole("button", { name: /^export$/i }));
 
     await waitFor(() => {
@@ -677,8 +629,12 @@ describe("ExportSubmissionsDialog", () => {
     expect(mockPrepareReportingExportAction).not.toHaveBeenCalled();
   });
 
-  it("does not refresh incomplete submissions when completion is completed", async () => {
-    render(<ExportSubmissionsDialog {...createProps()} />);
+  it("does not refresh incomplete submissions when only Complete is selected", async () => {
+    render(
+      <ExportSubmissionsDialog
+        {...createProps({ listFilters: { collectionStatus: ["complete"] } })}
+      />,
+    );
     await waitForReady();
 
     fireEvent.click(screen.getByRole("button", { name: /^export$/i }));
@@ -696,9 +652,6 @@ describe("ExportSubmissionsDialog", () => {
     render(<ExportSubmissionsDialog {...createProps()} />);
     await waitForReady();
 
-    fireEvent.change(screen.getByTestId("export-submissions-completion"), {
-      target: { value: "all" },
-    });
     fireEvent.click(screen.getByRole("button", { name: /^export$/i }));
 
     await waitFor(() => {
@@ -714,9 +667,6 @@ describe("ExportSubmissionsDialog", () => {
     render(<ExportSubmissionsDialog {...createProps()} />);
     await waitForReady();
 
-    fireEvent.change(screen.getByTestId("export-submissions-completion"), {
-      target: { value: "all" },
-    });
     fireEvent.click(screen.getByRole("button", { name: /^export$/i }));
 
     await waitFor(() => {
@@ -734,9 +684,6 @@ describe("ExportSubmissionsDialog", () => {
     render(<ExportSubmissionsDialog {...createProps()} />);
     await waitForReady();
 
-    fireEvent.change(screen.getByTestId("export-submissions-completion"), {
-      target: { value: "incomplete" },
-    });
     fireEvent.click(screen.getByRole("button", { name: /^export$/i }));
 
     expect(
@@ -1159,7 +1106,7 @@ describe("ExportSubmissionsDialog", () => {
         {...createProps({
           listFilters: {
             includeTestSubmissions: true,
-            completionStatus: "all",
+            collectionStatus: ["in_progress"],
             createdFrom: "2026-03-01",
             createdTo: "2026-03-15",
             startedFrom: "2026-03-05",
@@ -1183,10 +1130,7 @@ describe("ExportSubmissionsDialog", () => {
       (screen.getByLabelText("Include test submissions") as HTMLInputElement)
         .checked,
     ).toBe(true);
-    expect(
-      (screen.getByTestId("export-submissions-completion") as HTMLSelectElement)
-        .value,
-    ).toBe("all");
+    expect(screen.getByRole("button", { name: /status/i })).toBeDefined();
   });
 
   it("re-prefills grid filters including startedAt after close and reopen", async () => {
@@ -1197,7 +1141,7 @@ describe("ExportSubmissionsDialog", () => {
       startedTo: "2026-04-04",
       completedFrom: "2026-04-05",
       completedTo: "2026-04-06",
-      completionStatus: "all" as const,
+      collectionStatus: ["in_progress"],
     };
 
     const { rerender } = render(

@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { authorization } from "@/features/auth";
 import { reportingExportFlag } from "@/lib/feature-flags/flags";
 import {
+  parseCollectionStatusQuery,
   parseCompletionStatusQuery,
   parseIncludeTestSubmissionsQuery,
   parseLegacyExportFormat,
@@ -124,6 +125,9 @@ export async function GET(
     );
     exportOptions.completionStatus = parseCompletionStatusQuery(
       searchParams.get("completionStatus"),
+    );
+    exportOptions.collectionStatus = parseCollectionStatusQuery(
+      searchParams.get("collectionStatus"),
     );
   }
 
