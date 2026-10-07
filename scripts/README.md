@@ -67,3 +67,14 @@ Avoids `cp -r` shell commands, which fail on Windows because pnpm runs scripts t
 ```bash
 node scripts/copy-standalone.mjs
 ```
+
+## Dev Certificate Script
+
+### `with-dev-cert.mjs`
+
+Runs a Node CLI (`next`, `playwright`, `node`) with the local .NET HTTPS dev certificate trusted through `NODE_EXTRA_CA_CERTS`, so the Hub reaches `https://localhost:5001` without turning certificate checks off. The `dev*`, `run:standalone` and `test:e2e*` package scripts use it. Details: `e2e/README.md` → Screen-out.
+
+```bash
+pnpm setup:dev                                    # export the PEM once (any OS)
+node scripts/with-dev-cert.mjs playwright test   # what pnpm test:e2e runs
+```

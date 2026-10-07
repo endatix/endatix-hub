@@ -122,22 +122,19 @@ security add-generic-password -U -a e2e -s endatix-hub-e2e -w
 # type the password, then press Return
 ```
 
-The API is WebHost (`dotnet run` in `oss/src/Endatix.WebHost`), `https://localhost:5001` and `http://localhost:5000`. Node does not trust that dev certificate. Export it once, then pass it when Playwright starts. Do not put `NODE_EXTRA_CA_CERTS` in `.env`: dotenv does not expand `$HOME` or `%USERPROFILE%`, and Node reads the variable before Playwright loads `.env`. Do not set `NODE_TLS_REJECT_UNAUTHORIZED`.
+The API is WebHost (`dotnet run` in `oss/src/Endatix.WebHost`), `https://localhost:5001` and `http://localhost:5000`. Node does not trust its dev certificate, so every `pnpm dev*`, `pnpm run:standalone` and `pnpm test:e2e*` script runs through `scripts/with-dev-cert.mjs`. It sets `NODE_EXTRA_CA_CERTS` to `~/.aspnet/https/aspnetapp.pem` for the child process only. Other invalid certificates are still rejected. Export the certificate once, on macOS, Linux or Windows:
 
 ```bash
-# macOS and Linux
-mkdir -p ~/.aspnet/https
-dotnet dev-certs https -ep ~/.aspnet/https/aspnetapp.pem --format PEM
-NODE_EXTRA_CA_CERTS="$HOME/.aspnet/https/aspnetapp.pem" pnpm test:e2e --grep "Screen-out" --workers=1
-```
-
-```powershell
-# Windows PowerShell
-New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.aspnet\https"
-dotnet dev-certs https -ep "$env:USERPROFILE\.aspnet\https\aspnetapp.pem" --format PEM
-$env:NODE_EXTRA_CA_CERTS = "$env:USERPROFILE\.aspnet\https\aspnetapp.pem"
+pnpm setup:dev
 pnpm test:e2e --grep "Screen-out" --workers=1
 ```
+
+`pnpm setup:dev` creates the folder and runs `dotnet dev-certs https -ep <path> --format PEM`: the public certificate only, no `-p`. After the .NET dev certificate is regenerated, run it again; the wrapper warns when the file is missing, expired or holds a private key.
+
+- `ENDATIX_DEV_CERT_PATH` points at another file, for example the Windows file from WSL (`/mnt/c/Users/<you>/.aspnet/https/aspnetapp.pem`). Set it in the shell, not in `.env`: Node reads `NODE_EXTRA_CA_CERTS` before `.env` loads.
+- An existing `NODE_EXTRA_CA_CERTS` (for example a corporate proxy CA) is kept: both certificates go into one temporary bundle.
+- Without the file, the scripts still run and only warn, so a remote or `http` API needs nothing.
+- Do not set `NODE_TLS_REJECT_UNAUTHORIZED`. A container that calls the host API mounts the PEM read-only and sets `NODE_EXTRA_CA_CERTS`; do not copy it into an image.
 
 The iframe case opens WebHost `/dev/embed-host?view=bare` with `formId`, `hubBaseUrl`, and `token`
 (see `AGENTS.md` → Embed SDK). The URL token is a share access token with `submit`, not the hex
