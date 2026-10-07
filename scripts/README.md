@@ -68,6 +68,12 @@ Avoids `cp -r` shell commands, which fail on Windows because pnpm runs scripts t
 node scripts/copy-standalone.mjs
 ```
 
+## Dev Server Script
+
+### `dev.mjs`
+
+`pnpm dev`, `pnpm dev:inspect` and `pnpm dev-https` run it. It builds the embed SDK, discovers custom questions, then starts `next dev` through `with-dev-cert.mjs`. Each step prints one status line, and its own output shows only when it fails. Extra args go to `next dev` (`pnpm dev -p 3001`).
+
 ## Dev Certificate Script
 
 ### `with-dev-cert.mjs`

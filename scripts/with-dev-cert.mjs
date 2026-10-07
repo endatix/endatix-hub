@@ -21,23 +21,30 @@ import {
 import { createRequire } from "node:module";
 import { homedir, tmpdir } from "node:os";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 
 const require = createRequire(import.meta.url);
 const hubRoot = path.resolve(import.meta.dirname, "..");
 const DEFAULT_PEM = path.join(homedir(), ".aspnet", "https", "aspnetapp.pem");
 let bundleFile;
 
-const [command, ...args] = process.argv.slice(2);
-if (!command) {
-  fail("Usage: node scripts/with-dev-cert.mjs <command> [args...] | --export");
-}
-if (command === "--export") {
-  exportDevCertificate(process.env.ENDATIX_DEV_CERT_PATH || DEFAULT_PEM);
-} else {
-  runWithDevCert(command, args);
+// Runs only as a CLI; `scripts/dev.mjs` imports runWithDevCert instead.
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const [command, ...args] = process.argv.slice(2);
+  if (!command) {
+    fail(
+      "Usage: node scripts/with-dev-cert.mjs <command> [args...] | --export",
+    );
+  }
+  if (command === "--export") {
+    exportDevCertificate(process.env.ENDATIX_DEV_CERT_PATH || DEFAULT_PEM);
+  } else {
+    runWithDevCert(command, args);
+  }
 }
 
-function runWithDevCert(name, rest) {
+/** Starts `name` (node or a Hub dependency bin) with the dev certificate trusted. */
+export function runWithDevCert(name, rest) {
   const child = spawn(process.execPath, [...resolveEntry(name), ...rest], {
     stdio: "inherit",
     env: withDevCertEnv(process.env),
@@ -121,9 +128,12 @@ function withDevCertEnv(env) {
   }
   const existing = env.NODE_EXTRA_CA_CERTS;
   if (!existing || path.resolve(existing) === path.resolve(pem)) {
+    ok("dev certificate trusted", pem);
     return { ...env, NODE_EXTRA_CA_CERTS: pem };
   }
-  return { ...env, NODE_EXTRA_CA_CERTS: bundle(existing, certificate) ?? pem };
+  const bundled = bundle(existing, certificate);
+  ok("dev certificate trusted", bundled ? `${pem} + ${existing}` : pem);
+  return { ...env, NODE_EXTRA_CA_CERTS: bundled ?? pem };
 }
 
 /** Returns the PEM text, or undefined with a warning when it is not usable. */
@@ -197,6 +207,10 @@ function exportDevCertificate(pem) {
     }
     process.exit(code ?? 1);
   });
+}
+
+function ok(label, detail) {
+  console.log(` \x1b[32m✓\x1b[0m ${label} \x1b[2m(${detail})\x1b[0m`);
 }
 
 function warn(message) {

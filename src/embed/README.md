@@ -38,7 +38,7 @@ They build has ES2020 target and IIFE (Immediately Invoked Function Expression) 
 |--------|-------------|
 | `pnpm build:embed` | Build the embed SDK once |
 | `pnpm dev:embed` | Watch mode - rebuild on file changes |
-| `pnpm dev` | Runs `predev` (builds embed) then starts Next.js dev server |
+| `pnpm dev` | Builds embed, then starts the Next.js dev server (`scripts/dev.mjs`) |
 | `pnpm build` | Runs `prebuild` (builds embed) then builds Next.js app |
 
 ### Usage
@@ -56,16 +56,7 @@ pnpm dev
 
 ## Integration with Next.js
 
-The embed SDK is built **before** the Next.js dev server starts via the `predev` hook in `package.json`:
-
-```json
-{
-  "scripts": {
-    "predev": "node scripts/build-embed.mjs",
-    "dev": "pnpm discover-questions && node scripts/with-dev-cert.mjs next dev"
-  }
-}
-```
+The embed SDK is built **before** the Next.js dev server starts. `pnpm dev` runs `scripts/dev.mjs`, which builds the embed SDK, discovers custom questions, then starts `next dev` with the .NET dev certificate trusted. Each step prints one status line; its output appears only when it fails.
 
 ## Usage on Third-Party Sites
 
@@ -148,6 +139,6 @@ The parent site can send messages to the iframe using the same event names.
 
 1. Use Turborepo's `build` pipeline to automatically build the embed SDK
 2. Leverage Turborepo's caching for faster builds
-3. Eliminate the custom `predev`/`prebuild` hooks
+3. Eliminate `scripts/dev.mjs` and the custom `prebuild` hook
 
 After the migration, this file and the custom build scripts should be removed.
