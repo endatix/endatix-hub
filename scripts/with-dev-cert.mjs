@@ -128,11 +128,11 @@ function withDevCertEnv(env) {
   }
   const existing = env.NODE_EXTRA_CA_CERTS;
   if (!existing || path.resolve(existing) === path.resolve(pem)) {
-    ok("dev certificate trusted", pem);
+    ok("dev certificate trusted", [pem]);
     return { ...env, NODE_EXTRA_CA_CERTS: pem };
   }
   const bundled = bundle(existing, certificate);
-  ok("dev certificate trusted", bundled ? `${pem} + ${existing}` : pem);
+  ok("dev certificate trusted", bundled ? [pem, existing] : [pem]);
   return { ...env, NODE_EXTRA_CA_CERTS: bundled ?? pem };
 }
 
@@ -209,8 +209,20 @@ function exportDevCertificate(pem) {
   });
 }
 
-function ok(label, detail) {
-  console.log(` \x1b[32m✓\x1b[0m ${label} \x1b[2m(${detail})\x1b[0m`);
+/** A status line, then each file on its own muted line (paths are long). */
+function ok(label, files) {
+  console.log(` \x1b[32m✓\x1b[0m ${label}`);
+  for (const file of files) {
+    console.log(`   \x1b[2m${displayPath(file)}\x1b[0m`);
+  }
+}
+
+/** Shortens the home folder to `~`. */
+function displayPath(file) {
+  const home = homedir();
+  return file.startsWith(home + path.sep)
+    ? `~${file.slice(home.length)}`
+    : file;
 }
 
 function warn(message) {
