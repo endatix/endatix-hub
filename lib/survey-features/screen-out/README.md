@@ -9,7 +9,7 @@ trigger; the reference for adding more (skill `add-survey-feature` §12).
 
 `screenouttrigger` extends `completetrigger`, so the respondent sees the
 thank-you page (use `completedHtmlOnCondition` for a screen-out message).
-`survey-component.tsx` detects it through `onTriggerExecuted` and saves the
+`survey-component.tsx` reads `completeTrigger` on `onComplete` and saves the
 submission with `isComplete: false` and `collectionOutcome: "screen_out"`.
 Fixture: `__tests__/fixtures/age-gate.json`.
 

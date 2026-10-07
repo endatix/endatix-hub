@@ -16,9 +16,11 @@ const trigger = {
 
 describe("registerCreatorLogicTrigger", () => {
   it("adds one Logic tab action and the locale strings Creator reads", () => {
+    // Act
     registerCreatorLogicTrigger(trigger);
     registerCreatorLogicTrigger(trigger);
 
+    // Assert
     const matches = SurveyLogic.types.filter(
       (type) => type.name === "trigger_samplegate",
     );

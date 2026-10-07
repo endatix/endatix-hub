@@ -56,8 +56,9 @@ function passwordFromKeychain(): string | undefined {
     return undefined;
   }
   try {
+    // Absolute path: a PATH lookup could run a planted `security` binary.
     return execFileSync(
-      "security",
+      "/usr/bin/security",
       ["find-generic-password", "-a", "e2e", "-s", KEYCHAIN_SERVICE, "-w"],
       { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] },
     ).trim();
@@ -225,7 +226,10 @@ export async function deleteForm(
   api: EndatixApi,
   formId: string,
 ): Promise<void> {
-  await api.forms.delete(formId);
+  const deleted = await api.forms.delete(formId);
+  if (!deleted.success) {
+    throw new Error(`Delete form ${formId} failed: ${deleted.error.message}`);
+  }
 }
 
 /** Delete on success. On failure, or when E2E_KEEP_DATA=1, leave the forms and record their ids. */
@@ -235,9 +239,7 @@ export async function releaseScreenOutForms(
   keep: boolean,
 ): Promise<"deleted" | "kept"> {
   if (!keep) {
-    for (const formId of formIds) {
-      await deleteForm(api, formId);
-    }
+    await Promise.all(formIds.map((formId) => deleteForm(api, formId)));
     return "deleted";
   }
 

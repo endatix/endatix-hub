@@ -8,6 +8,8 @@ import {
   useFormRuntime,
 } from "@/lib/form-runtime/form-runtime.context";
 import { useSurveyExtensions } from "@/lib/survey-extensions/ui/use-survey-extensions";
+// constants, not the barrel: the barrel pulls survey-core into this chunk.
+import { SCREEN_OUT_OUTCOME } from "@/lib/survey-features/screen-out/constants";
 import dynamic from "next/dynamic";
 import AlreadyResponded from "./already-responded";
 import SubmissionAlreadyCompleted from "./submission-already-completed";
@@ -37,7 +39,7 @@ const SurveyJsWrapper = (props: SurveyJsWrapperProps) => {
 
   if (
     survey.submissionPhase === "completed" ||
-    survey.submission?.collectionStatus === "screen_out"
+    survey.submission?.collectionStatus === SCREEN_OUT_OUTCOME
   ) {
     return <SubmissionAlreadyCompleted variant={survey.variant} />;
   }

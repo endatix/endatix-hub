@@ -101,7 +101,6 @@ export default function SurveyComponent({
   useLoopAwareSummaryTable(surveyModel);
   const { trackException } = useTrackEvent();
   const submissionUpdateGuard = useRef<boolean>(false);
-  const screenOutRef = useRef(false);
   const originalCompletedHtmlRef = useRef<string | null>(null);
   const shellRef = useRef<HTMLDivElement>(null);
 
@@ -242,11 +241,9 @@ export default function SurveyComponent({
       clearQueue();
       sender.showCompletePage = true;
       event.showSaveInProgress("Saving your answers...");
-      const screenOut =
-        screenOutRef.current || isScreenOutTrigger(completeTriggerOf(event));
-      if (screenOut) {
-        screenOutRef.current = true;
-      }
+      // survey-core passes the trigger that completed the survey, for both an
+      // immediate trigger and the Complete button it enables.
+      const screenOut = isScreenOutTrigger(event.completeTrigger);
       const submissionData = buildSubmissionData(
         sender,
         !screenOut,
@@ -330,10 +327,6 @@ export default function SurveyComponent({
   );
 
   useEffect(() => {
-    screenOutRef.current = false;
-  }, [surveyModel]);
-
-  useEffect(() => {
     if (!surveyModel) {
       return;
     }
@@ -341,15 +334,6 @@ export default function SurveyComponent({
     const unregisterStorage = registerStorageHandlers(surveyModel);
     const unregisterEmbed = registerEmbedHandlers(surveyModel);
     surveyModel.onComplete.add(submitForm);
-    const rememberScreenOut = (
-      _sender: SurveyModel,
-      options: { trigger: { getType: () => string } },
-    ) => {
-      if (isScreenOutTrigger(options.trigger)) {
-        screenOutRef.current = true;
-      }
-    };
-    surveyModel.onTriggerExecuted.add(rememberScreenOut);
     surveyModel.onValueChanged.add(trackPartialChange);
     surveyModel.onCurrentPageChanged.add(trackPartialChange);
     surveyModel.onDynamicPanelValueChanged.add(trackPartialChange);
@@ -359,7 +343,6 @@ export default function SurveyComponent({
       unregisterStorage();
       unregisterEmbed();
       surveyModel.onComplete.remove(submitForm);
-      surveyModel.onTriggerExecuted.remove(rememberScreenOut);
       surveyModel.onValueChanged.remove(trackPartialChange);
       surveyModel.onCurrentPageChanged.remove(trackPartialChange);
       surveyModel.onDynamicPanelValueChanged.remove(trackPartialChange);
@@ -416,10 +399,6 @@ export default function SurveyComponent({
       <Survey model={surveyModel} />
     </div>
   );
-}
-
-function completeTriggerOf(event: CompleteEvent) {
-  return event.completeTrigger;
 }
 
 function buildSubmissionData(

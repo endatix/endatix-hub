@@ -38,7 +38,7 @@ describe("age gate", () => {
     survey.nextPage();
 
     // Assert
-    expect(survey.isCompleted).toBe(false);
+    expect(survey.state).toBe("running");
     expect(survey.currentPage.name).toBe("alcohol");
     expect(survey.getQuestionByName("favoriteAlcohol").isVisible).toBe(true);
   });

@@ -1,8 +1,8 @@
 import { getPostHog } from "@/features/analytics/posthog/server/node-client";
 import { getSession } from "@/features/auth";
 import { FormTokenCookieStore } from "@/features/public-form/infrastructure/cookie-store";
+import { collectionDisposition } from "@/features/submissions/domain/collection-status";
 import { SubmissionData } from "@/features/submissions/types";
-import { SCREEN_OUT_OUTCOME } from "@/lib/survey-features/screen-out";
 import { ApiResult, EndatixApi, ERROR_CODE } from "@/lib/endatix-api";
 import type { Submission } from "@/lib/endatix-api";
 import { Result } from "@/lib/result";
@@ -59,12 +59,14 @@ function syncSubmissionCookie(
     return;
   }
 
-  if (
-    submissionData.collectionOutcome === SCREEN_OUT_OUTCOME ||
-    submission.collectionStatus === SCREEN_OUT_OUTCOME ||
+  const isFinished =
     submissionData.isComplete === true ||
-    submission.isComplete === true
-  ) {
+    submissionData.collectionOutcome !== undefined ||
+    collectionDisposition(
+      submission.collectionStatus,
+      submission.isComplete === true,
+    ) !== "open";
+  if (isFinished) {
     tokenStore.deleteToken(formId);
     return;
   }

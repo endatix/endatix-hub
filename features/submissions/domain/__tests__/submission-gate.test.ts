@@ -42,6 +42,17 @@ describe("resolveSubmissionGate", () => {
     ).toBe("completed");
   });
 
+  it("never resumes a completed submission with an unknown status", () => {
+    expect(
+      resolveSubmissionGate({
+        ...open,
+        hasSubmission: true,
+        collectionStatus: "custom_code",
+        isComplete: true,
+      }),
+    ).toBe("completed");
+  });
+
   it("resumes an in-progress token and closes a screened one", () => {
     const token = { ...open, hasUrlToken: true, hasSubmission: true };
 

@@ -26,19 +26,24 @@ function triggerTypeChoices(creator: SurveyCreatorModel) {
 
 describe("screen-out Creator bindings", () => {
   it("keeps a stored screen-out trigger when Creator loads the form", () => {
+    // Arrange & Act
     const creator = new SurveyCreatorModel({});
     creator.JSON = FORM_JSON;
 
+    // Assert
     expect(creator.JSON.triggers).toEqual(FORM_JSON.triggers);
   });
 
   it("labels choices Creator rendered before onCreatorReady resolved", async () => {
+    // Arrange
     const creator = new SurveyCreatorModel({ showLogicTab: true });
     creator.JSON = FORM_JSON;
     triggerTypeChoices(creator);
 
+    // Act
     await screenOutExtension.onCreatorReady?.(creator, deps);
 
+    // Assert
     expect(triggerTypeChoices(creator)).toContainEqual({
       value: SCREEN_OUT_TRIGGER_CLASS,
       text: "Screen out",
@@ -46,24 +51,29 @@ describe("screen-out Creator bindings", () => {
   });
 
   it("adds Screen out to the Logic tab", async () => {
+    // Arrange
     const creator = new SurveyCreatorModel({ showLogicTab: true });
     creator.JSON = FORM_JSON;
-    await screenOutExtension.onCreatorReady?.(creator, deps);
 
+    // Act
+    await screenOutExtension.onCreatorReady?.(creator, deps);
     creator.activeTab = "logic";
     const logic = creator.getPlugin("logic") as unknown as {
       model: SurveyLogic;
     };
 
+    // Assert
     expect(logic.model.getTypeByName("trigger_screenout")?.displayName).toBe(
       "Screen out",
     );
   });
 
   it("registers the Logic tab action once", () => {
+    // Act
     registerScreenOutCreatorUi();
     registerScreenOutCreatorUi();
 
+    // Assert
     const names = SurveyLogic.types.map((type) => type.name);
     expect(names.filter((name) => name === "trigger_screenout")).toHaveLength(
       1,
