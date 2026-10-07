@@ -13,23 +13,29 @@ interface StartNewResponseButtonProps {
 export function StartNewResponseButton({
   formId,
 }: Readonly<StartNewResponseButtonProps>) {
-  const router = useRouter();
-  const [isPending, startTransition] = useTransition();
-
-  const handleStartNew = () =>
-    startTransition(async () => {
-      const result = await startNewResponseAction(formId);
-      if (Result.isSuccess(result)) router.refresh();
-    });
+  const { isPending, startNewResponse } = useStartNewResponse(formId);
 
   return (
     <button
       className={publicStatusClassNames.action}
       disabled={isPending}
-      onClick={handleStartNew}
+      onClick={startNewResponse}
       type="button"
     >
       Start a new response
     </button>
   );
+}
+
+function useStartNewResponse(formId: string) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+
+  const startNewResponse = () =>
+    startTransition(async () => {
+      const result = await startNewResponseAction(formId);
+      if (Result.isSuccess(result)) router.refresh();
+    });
+
+  return { isPending, startNewResponse };
 }

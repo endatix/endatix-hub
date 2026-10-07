@@ -30,26 +30,34 @@ const PHASE_BY_DISPOSITION: Record<CollectionDisposition, SubmissionGatePhase> =
  * draft. Otherwise only an open interview resumes. A screen-out shows the
  * normal completed page, so the respondent is not told they were screened out.
  */
-export function resolveSubmissionGate({
-  canStartNewSubmission,
-  hasUserSubmitted,
-  hasUrlToken,
-  hasSubmission,
-  collectionStatus,
-  isComplete,
-}: ResolveSubmissionGateInput): SubmissionGatePhase {
-  const disposition = collectionDisposition(collectionStatus, isComplete);
-  const hasOpenDraft = hasSubmission && disposition === "open";
-  const isBlocked =
-    !hasUrlToken && hasUserSubmitted && !canStartNewSubmission && !hasOpenDraft;
+export function resolveSubmissionGate(
+  input: ResolveSubmissionGateInput,
+): SubmissionGatePhase {
+  const disposition = collectionDisposition(
+    input.collectionStatus,
+    input.isComplete,
+  );
 
-  if (isBlocked) {
+  if (isBlockedRevisit(input, disposition)) {
     return "blocked";
   }
 
-  if (collectionStatus === SCREEN_OUT_STATUS) {
+  if (input.collectionStatus === SCREEN_OUT_STATUS) {
     return "completed";
   }
 
   return PHASE_BY_DISPOSITION[disposition];
+}
+
+function isBlockedRevisit(
+  input: ResolveSubmissionGateInput,
+  disposition: CollectionDisposition,
+): boolean {
+  const hasOpenDraft = input.hasSubmission && disposition === "open";
+  return (
+    !input.hasUrlToken &&
+    input.hasUserSubmitted &&
+    !input.canStartNewSubmission &&
+    !hasOpenDraft
+  );
 }

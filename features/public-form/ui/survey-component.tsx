@@ -411,15 +411,13 @@ function buildSubmissionData(
   outcome: SaveOutcome,
   includeLanguage: boolean,
 ): SubmissionData {
+  const isScreenOut = outcome === SCREEN_OUT_OUTCOME;
   const submissionData: SubmissionData = {
     isComplete: outcome === "complete",
     jsonData: JSON.stringify(sender.data, null, 3),
     currentPage: sender.currentPageNo ?? 0,
+    ...(isScreenOut && { collectionOutcome: SCREEN_OUT_OUTCOME }),
   };
-
-  if (outcome === SCREEN_OUT_OUTCOME) {
-    submissionData.collectionOutcome = SCREEN_OUT_OUTCOME;
-  }
 
   if (includeLanguage) {
     submissionData.metadata = JSON.stringify({ language: sender.locale });
