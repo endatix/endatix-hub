@@ -239,7 +239,7 @@ function findDotnet() {
   const roots = [
     process.env.DOTNET_ROOT,
     ...(process.platform === "win32"
-      ? [path.join(process.env.ProgramFiles ?? "C:\\Program Files", "dotnet")]
+      ? [path.join(process.env.ProgramFiles ?? String.raw`C:\Program Files`, "dotnet")]
       : [
           "/usr/local/share/dotnet",
           "/usr/share/dotnet",
