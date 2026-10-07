@@ -15,7 +15,7 @@ import { SubmissionData } from "@/features/submissions/types";
 import { ApiResult, Submission } from "@/lib/endatix-api";
 import { useRichText } from "@/lib/survey-features/rich-text";
 import {
-  isScreenedOutOnComplete,
+  createScreenOutDecision,
   SCREEN_OUT_OUTCOME,
 } from "@/lib/survey-features/screen-out";
 import { useLoopAwareSummaryTable } from "@/lib/survey-features/summary-table";
@@ -103,6 +103,7 @@ export default function SurveyComponent({
   const submissionUpdateGuard = useRef<boolean>(false);
   const originalCompletedHtmlRef = useRef<string | null>(null);
   const shellRef = useRef<HTMLDivElement>(null);
+  const decideScreenOutRef = useRef(createScreenOutDecision());
 
   // SurveyComponent is only ever loaded client-side (see
   // dynamic(..., { ssr: false }) in survey-js-wrapper.tsx), so there's no
@@ -241,10 +242,7 @@ export default function SurveyComponent({
       clearQueue();
       sender.showCompletePage = true;
       event.showSaveInProgress("Saving your answers...");
-      const outcome: SaveOutcome = isScreenedOutOnComplete(
-        sender,
-        event.completeTrigger,
-      )
+      const outcome: SaveOutcome = decideScreenOutRef.current(sender, event)
         ? SCREEN_OUT_OUTCOME
         : "complete";
       const submissionData = buildSubmissionData(

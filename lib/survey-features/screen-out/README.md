@@ -9,11 +9,13 @@ trigger; the reference for adding more (skill `add-survey-feature` §12).
 
 `screenouttrigger` extends `completetrigger`, so the respondent sees the
 thank-you page (use `completedHtmlOnCondition` for a screen-out message).
-On `onComplete`, `survey-component.tsx` calls `isScreenedOutOnComplete`
-(`completion-outcome.ts`) and saves the submission with `isComplete: false` and
-`collectionOutcome: "screen_out"`. It checks `completeTrigger` and also any
-screen-out trigger whose expression still holds, because "Try again" omits the
-trigger and a screen-out must win over a Complete trigger that also holds.
+On the first `onComplete`, `survey-component.tsx` asks the decision from
+`createScreenOutDecision` (`completion-outcome.ts`) and saves a screen-out with
+`isComplete: false` and `collectionOutcome: "screen_out"`. A screen-out trigger
+that ended the survey is a screen-out. When a Complete trigger ended it, a
+screen-out condition that also holds wins. A normal finish never is: re-running
+conditions there would count negated conditions on unanswered or hidden
+questions. "Try again" omits the trigger, so it reuses the first decision.
 Fixture: `__tests__/fixtures/age-gate.json`.
 
 ## Registration

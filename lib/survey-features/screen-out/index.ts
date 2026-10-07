@@ -4,7 +4,9 @@ export {
   isScreenOutTrigger,
 } from "./constants";
 export {
-  isScreenedOutOnComplete,
+  createScreenOutDecision,
+  type CompletingEvent,
   type CompletingSurvey,
+  type ScreenOutDecision,
 } from "./completion-outcome";
 export { screenOutExtension } from "./infrastructure/screen-out.extension";

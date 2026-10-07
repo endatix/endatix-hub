@@ -1,7 +1,7 @@
 "use server";
 
 import { FormTokenCookieStore } from "@/features/public-form/infrastructure/cookie-store";
-import { Result, type ResultType } from "@/lib/result";
+import type { ResultType } from "@/lib/result";
 import { cookies } from "next/headers";
 
 /**

@@ -1,6 +1,6 @@
 import { Model, type CompleteEvent } from "survey-core";
 import { describe, expect, it } from "vitest";
-import { isScreenedOutOnComplete } from "../completion-outcome";
+import { createScreenOutDecision } from "../completion-outcome";
 import { registerScreenOutTrigger } from "../infrastructure/registry";
 
 registerScreenOutTrigger();
@@ -21,9 +21,15 @@ function captureCompletions(survey: Model): CompleteEvent[] {
   return events;
 }
 
-describe("isScreenedOutOnComplete", () => {
+/** What survey-core's "Try again" action runs (private in its typings). */
+function tryAgain(survey: Model): void {
+  (survey as unknown as { saveDataOnComplete(): void }).saveDataOnComplete();
+}
+
+describe("createScreenOutDecision", () => {
   it("screens out when the screen-out trigger ends the survey", () => {
     // Arrange
+    const decide = createScreenOutDecision();
     const survey = new Model(AGE_GATE);
     const completions = captureCompletions(survey);
     survey.setValue("age", 16);
@@ -32,32 +38,30 @@ describe("isScreenedOutOnComplete", () => {
     survey.nextPage();
 
     // Assert
-    expect(
-      isScreenedOutOnComplete(survey, completions[0].completeTrigger),
-    ).toBe(true);
+    expect(decide(survey, completions[0])).toBe(true);
   });
 
-  it("still screens out on Try again, which omits the trigger", () => {
+  it("keeps the screen-out on Try again, which omits the trigger", () => {
     // Arrange
+    const decide = createScreenOutDecision();
     const survey = new Model(AGE_GATE);
     const completions = captureCompletions(survey);
     survey.setValue("age", 16);
     survey.nextPage();
+    decide(survey, completions[0]);
 
-    // Act: what survey-core's "Try again" action runs (private in its typings)
-    (survey as unknown as { saveDataOnComplete(): void }).saveDataOnComplete();
+    // Act
+    tryAgain(survey);
 
     // Assert
     expect(completions[1].completeTrigger).toBeUndefined();
-    expect(
-      isScreenedOutOnComplete(survey, completions[1].completeTrigger),
-    ).toBe(true);
+    expect(decide(survey, completions[1])).toBe(true);
   });
 
   it("screens out when a Complete trigger was recorded first", () => {
     // Arrange
+    const decide = createScreenOutDecision();
     const survey = new Model({
-      ...AGE_GATE,
       pages: [
         {
           name: "only",
@@ -81,13 +85,12 @@ describe("isScreenedOutOnComplete", () => {
 
     // Assert
     expect(completions[0].completeTrigger?.getType()).toBe("completetrigger");
-    expect(
-      isScreenedOutOnComplete(survey, completions[0].completeTrigger),
-    ).toBe(true);
+    expect(decide(survey, completions[0])).toBe(true);
   });
 
   it("completes normally when no screen-out condition holds", () => {
     // Arrange
+    const decide = createScreenOutDecision();
     const survey = new Model(AGE_GATE);
     const completions = captureCompletions(survey);
     survey.setValue("age", 30);
@@ -97,8 +100,50 @@ describe("isScreenedOutOnComplete", () => {
     survey.completeLastPage();
 
     // Assert
-    expect(
-      isScreenedOutOnComplete(survey, completions[0].completeTrigger),
-    ).toBe(false);
+    expect(decide(survey, completions[0])).toBe(false);
+  });
+
+  it("completes normally when a negated condition holds on a hidden, unanswered question", () => {
+    // Arrange
+    const decide = createScreenOutDecision();
+    const survey = new Model({
+      pages: [
+        {
+          name: "only",
+          elements: [
+            { type: "text", name: "country" },
+            { type: "text", name: "employed", visibleIf: "{country} = 'US'" },
+          ],
+        },
+      ],
+      triggers: [{ type: "screenout", expression: "{employed} != 'yes'" }],
+    });
+    const completions = captureCompletions(survey);
+    survey.setValue("country", "DE");
+
+    // Act
+    survey.completeLastPage();
+
+    // Assert
+    expect(survey.runCondition("{employed} != 'yes'")).toBe(true);
+    expect(decide(survey, completions[0])).toBe(false);
+  });
+
+  it("keeps a normal completion on Try again", () => {
+    // Arrange
+    const decide = createScreenOutDecision();
+    const survey = new Model(AGE_GATE);
+    const completions = captureCompletions(survey);
+    survey.setValue("age", 30);
+    survey.nextPage();
+    survey.completeLastPage();
+    decide(survey, completions[0]);
+    survey.setValue("age", 16);
+
+    // Act
+    tryAgain(survey);
+
+    // Assert
+    expect(decide(survey, completions[1])).toBe(false);
   });
 });
