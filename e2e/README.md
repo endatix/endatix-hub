@@ -131,6 +131,7 @@ pnpm test:e2e --grep "Screen-out" --workers=1
 
 `pnpm setup:dev` creates the folder and runs `dotnet dev-certs https -ep <path> --format PEM`: the public certificate only, no `-p`. After the .NET dev certificate is regenerated, run it again; the wrapper warns when the file is missing, expired or holds a private key.
 
+- `pnpm setup:dev` runs `dotnet` from `DOTNET_ROOT` or the SDK installers' default folder, not from `PATH`. Set `DOTNET_ROOT` when the SDK lives elsewhere (for example asdf or a custom install).
 - `ENDATIX_DEV_CERT_PATH` points at another file, for example the Windows file from WSL (`/mnt/c/Users/<you>/.aspnet/https/aspnetapp.pem`). Set it in the shell, not in `.env`: Node reads `NODE_EXTRA_CA_CERTS` before `.env` loads.
 - An existing `NODE_EXTRA_CA_CERTS` (for example a corporate proxy CA) is kept: both certificates go into one temporary bundle.
 - Without the file, the scripts still run and only warn, so a remote or `http` API needs nothing.

@@ -207,20 +207,20 @@ function removeBundle() {
  * create the folder, so it is created here, readable by the current user only.
  */
 function exportDevCertificate(pem, name) {
-  mkdirSync(path.dirname(pem), { recursive: true, mode: 0o700 });
-  // dotnet resolves from PATH: its install location differs by OS and SDK
-  // installer, and this runs only on a developer machine.
-  const exporter = spawn(
-    "dotnet",
-    ["dev-certs", "https", "-ep", pem, "--format", "PEM"],
-    {
-      stdio: "inherit",
-    },
-  );
-  exporter.on("error", () =>
+  const dotnet = findDotnet();
+  if (!dotnet) {
     fail(
-      "dotnet was not found. Install the .NET SDK, then run: pnpm setup:dev",
-    ),
+      "dotnet was not found. Install the .NET SDK, or set DOTNET_ROOT to its folder, then run: pnpm setup:dev",
+    );
+  }
+  mkdirSync(path.dirname(pem), { recursive: true, mode: 0o700 });
+  const exporter = spawn(
+    dotnet,
+    ["dev-certs", "https", "-ep", pem, "--format", "PEM"],
+    { stdio: "inherit" },
+  );
+  exporter.on("error", (error) =>
+    fail(`Could not run dotnet: ${error.message}`),
   );
   exporter.on("exit", (code) => {
     if (code === 0) {
@@ -228,6 +228,31 @@ function exportDevCertificate(pem, name) {
     }
     process.exit(code ?? 1);
   });
+}
+
+/**
+ * The dotnet executable by absolute path, not looked up through PATH:
+ * DOTNET_ROOT first, then the SDK installers' default folders.
+ */
+function findDotnet() {
+  const executable = process.platform === "win32" ? "dotnet.exe" : "dotnet";
+  const roots = [
+    process.env.DOTNET_ROOT,
+    ...(process.platform === "win32"
+      ? [path.join(process.env.ProgramFiles ?? "C:\\Program Files", "dotnet")]
+      : [
+          "/usr/local/share/dotnet",
+          "/usr/share/dotnet",
+          "/usr/lib/dotnet",
+          "/usr/lib64/dotnet",
+          "/opt/homebrew/opt/dotnet/libexec",
+          "/snap/dotnet-sdk/current",
+        ]),
+    path.join(homedir(), ".dotnet"),
+  ].filter(Boolean);
+  return roots
+    .map((root) => path.join(root, executable))
+    .find((candidate) => existsSync(candidate));
 }
 
 function warn(message) {
