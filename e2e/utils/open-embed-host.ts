@@ -7,17 +7,22 @@ type OpenEmbedHostOptions = {
   formId: string;
   heightMode?: "fill";
   containerHeightPx?: number;
+  token?: string;
 };
 
 export function playgroundEmbedHostHref(
   playgroundOrigin: string,
   formId: string,
   hubBaseUrl: string,
+  token?: string,
 ): string {
   const url = new URL("/dev/embed-host", playgroundOrigin);
   url.searchParams.set("formId", formId);
   url.searchParams.set("view", "bare");
   url.searchParams.set("hubBaseUrl", hubBaseUrl);
+  if (token) {
+    url.searchParams.set("token", token);
+  }
   return url.toString();
 }
 
@@ -33,7 +38,12 @@ export async function openEmbedHost(
   const playground = process.env.E2E_EMBED_HOST_URL;
   if (playground && options.heightMode !== "fill" && options.baseURL) {
     await page.goto(
-      playgroundEmbedHostHref(playground, options.formId, options.baseURL),
+      playgroundEmbedHostHref(
+        playground,
+        options.formId,
+        options.baseURL,
+        options.token,
+      ),
     );
     return;
   }
@@ -42,7 +52,8 @@ export async function openEmbedHost(
   const path = isFill ? "/__mock_host_fill__" : "/__mock_host__";
   const containerPx =
     options.containerHeightPx ?? EMBED_FILL_CONTAINER_HEIGHT_PX;
-  const script = `<script src="${options.baseURL}/embed/v1/embed.js" data-form-id="${options.formId}"${isFill ? ' data-height-mode="fill"' : ""}></script>`;
+  const tokenAttr = options.token ? ` data-token="${options.token}"` : "";
+  const script = `<script src="${options.baseURL}/embed/v1/embed.js" data-form-id="${options.formId}"${isFill ? ' data-height-mode="fill"' : ""}${tokenAttr}></script>`;
   const body = isFill
     ? `<!DOCTYPE html><html><head><title>Fill host</title></head><body>
         <div style="height: ${containerPx}px; border: 1px solid #ccc;">${script}</div>
