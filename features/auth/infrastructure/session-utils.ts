@@ -1,5 +1,10 @@
 import { CookiesOptions } from "@auth/core/types";
 
+/** The public origin Auth.js uses to pick the cookie name (`AUTH_URL`). */
+export function readAuthPublicUrl(): string | undefined {
+  return process.env.AUTH_URL || undefined;
+}
+
 /**
  * Whether the Auth.js session cookie uses the `__Secure-` prefix.
  * AUTH_URL is the public origin the browser uses. When it is set, its scheme
@@ -7,7 +12,7 @@ import { CookiesOptions } from "@auth/core/types";
  * When it is missing, the request protocol is used (direct HTTP or HTTPS).
  * An invalid AUTH_URL does not fall through to forwarded headers.
  */
-export function useSecureSessionCookie(
+export function shouldUseSecureSessionCookie(
   authUrl: string | undefined,
   requestProtocol: string | null | undefined,
 ): boolean {
@@ -34,7 +39,6 @@ export function sessionCookieName(useSecureCookies: boolean): string {
  * Returns the session cookie options for the given secure cookies flag.
  * Replicates Auth.js `defaultCookies` for the session token.
  */
-
 export function getSessionCookieOptions(
   useSecureCookies: boolean,
 ): Pick<CookiesOptions, "sessionToken"> {

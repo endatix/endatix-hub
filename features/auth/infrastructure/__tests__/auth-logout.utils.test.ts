@@ -7,6 +7,12 @@ import { ISupportsFederatedLogout } from "../federated-logout.types";
 
 const mocks = vi.hoisted(() => ({
   getProvider: vi.fn(),
+  telemetryWarn: vi.fn(),
+  telemetryError: vi.fn(),
+}));
+
+vi.mock("@/features/telemetry", () => ({
+  TelemetryLogger: { warn: mocks.telemetryWarn, error: mocks.telemetryError },
 }));
 
 vi.mock("../auth-provider-registry", () => ({
@@ -68,22 +74,20 @@ describe("resolveFederatedLogoutUrl", () => {
 
   it("returns null when AUTH_URL is not a valid URL", () => {
     process.env.AUTH_URL = "not-a-valid-url";
-    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
     const logoutUrl = resolveFederatedLogoutUrl(token);
 
     expect(logoutUrl).toBeNull();
     expect(mocks.getProvider).not.toHaveBeenCalled();
-    expect(warnSpy).toHaveBeenCalledWith(
+    expect(mocks.telemetryWarn).toHaveBeenCalledWith(
       "Federated logout requested but AUTH_URL is not a valid URL",
+      { reason: "auth_url_invalid" },
+      "auth.logout",
     );
-
-    warnSpy.mockRestore();
   });
 
   it("returns null when the provider fails to resolve federated logout", () => {
     const error = new Error("Provider logout failed");
-    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     vi.mocked(mockProvider.resolveFederatedLogoutUrl).mockImplementation(() => {
       throw error;
     });
@@ -91,11 +95,11 @@ describe("resolveFederatedLogoutUrl", () => {
     const logoutUrl = resolveFederatedLogoutUrl(token);
 
     expect(logoutUrl).toBeNull();
-    expect(warnSpy).toHaveBeenCalledWith(
+    expect(mocks.telemetryError).toHaveBeenCalledWith(
       "Failed to resolve federated logout URL",
       error,
+      { reason: "logout_url_failed" },
+      "auth.logout",
     );
-
-    warnSpy.mockRestore();
   });
 });

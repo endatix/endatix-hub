@@ -2,15 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { AuthTokenSchema, KeycloakTokenResponse } from "./types";
 import {
   getSessionCookieOptions,
-  useSecureSessionCookie,
+  readAuthPublicUrl,
+  shouldUseSecureSessionCookie,
 } from "../infrastructure/session-utils";
 import { decodeJwt } from "jose";
 import { apiResponses } from "@/lib/utils/route-handlers";
 import { encode } from "next-auth/jwt";
-import {
-  flattenFieldErrors,
-  parseZodError,
-} from "@/lib/utils/zod-error-utils";
+import { flattenFieldErrors, parseZodError } from "@/lib/utils/zod-error-utils";
 import { authConfig } from "@/auth";
 import { KEYCLOAK_ID } from "../infrastructure/providers";
 import { invalidateUserAuthorizationCache } from "../authorization/application/authorization-data.provider";
@@ -22,8 +20,8 @@ export async function createSessionFromToken(
   request: NextRequest,
 ) {
   try {
-    const useSecureCookies = useSecureSessionCookie(
-      process.env.AUTH_URL,
+    const useSecureCookies = shouldUseSecureSessionCookie(
+      readAuthPublicUrl(),
       request.nextUrl.protocol,
     );
     const sessionCookieOptions = getSessionCookieOptions(useSecureCookies);

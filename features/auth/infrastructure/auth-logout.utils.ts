@@ -1,12 +1,10 @@
 import type { JWT } from "next-auth/jwt";
 import { authRegistry } from "./auth-provider-registry";
-import { SIGNIN_PATH } from "./auth-constants";
+import { LOGOUT_LOGGER_NAME, SIGNIN_PATH } from "./auth-constants";
 import { supportsFederatedLogout } from "./federated-logout.types";
 import { getPostLogoutRedirectUri } from "./oidc-logout.utils";
 import { isValidAbsoluteUrl } from "@/lib/utils/url-utils";
 import { TelemetryLogger } from "@/features/telemetry";
-
-const LOGGER_NAME = "auth.logout";
 
 /**
  * Resolves the federated logout URL for the provider.
@@ -43,7 +41,7 @@ export function resolveFederatedLogoutUrl(token: JWT | null): string | null {
       "Failed to resolve federated logout URL",
       error,
       { reason: "logout_url_failed" },
-      LOGGER_NAME,
+      LOGOUT_LOGGER_NAME,
     );
     return null;
   }
@@ -69,5 +67,5 @@ function readAuthUrl(): string | null {
 }
 
 function warnLogout(message: string, reason: string): void {
-  TelemetryLogger.warn(message, { reason }, LOGGER_NAME);
+  TelemetryLogger.warn(message, { reason }, LOGOUT_LOGGER_NAME);
 }

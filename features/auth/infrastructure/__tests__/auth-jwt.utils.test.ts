@@ -18,11 +18,16 @@ vi.mock("next/headers", () => ({
   headers: mocks.headers,
 }));
 
+vi.mock("@/features/telemetry", () => ({
+  TelemetryLogger: { warn: vi.fn(), error: vi.fn() },
+}));
+
 import { getAuthJwtFromRequest } from "../auth-jwt.utils";
 
 describe("getAuthJwtFromRequest", () => {
   beforeEach(() => {
     process.env.AUTH_SECRET = "auth-secret";
+    vi.stubEnv("AUTH_URL", "https://hub.example.com");
     vi.mocked(headers).mockResolvedValue(new Headers());
     vi.mocked(getToken).mockResolvedValue({
       provider: "keycloak",
@@ -32,6 +37,7 @@ describe("getAuthJwtFromRequest", () => {
 
   afterEach(() => {
     vi.clearAllMocks();
+    vi.unstubAllEnvs();
     delete process.env.AUTH_SECRET;
   });
 
@@ -41,6 +47,7 @@ describe("getAuthJwtFromRequest", () => {
     expect(getToken).toHaveBeenCalledWith({
       req: { headers: expect.any(Headers) },
       secret: "auth-secret",
+      secureCookie: true,
     });
     expect(token).toEqual({
       provider: "keycloak",
