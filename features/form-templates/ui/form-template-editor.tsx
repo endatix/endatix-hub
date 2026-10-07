@@ -22,6 +22,7 @@ import {
 import { JSON_CHANGED_TYPE } from "@/lib/survey-features/json-editor/json-editor-state";
 import { useJsonEditor } from "@/lib/survey-features/json-editor/use-json-editor.hook";
 import { useRichTextEditing } from "@/lib/survey-features/rich-text";
+import { registerScreenOutLogicAction } from "@/lib/survey-features/screen-out/infrastructure/creator-bindings";
 import {
   SurveyDesignSaveButton,
   SurveyDesignStatusBadge,
@@ -210,6 +211,7 @@ function FormTemplateEditorContent({
       }
 
       try {
+        registerScreenOutLogicAction();
         const newCreator = new SurveyCreator({
           ...(options || defaultCreatorOptions),
           showCreatorThemeSettings: false,

@@ -36,6 +36,7 @@ import {
 } from "@/lib/survey-features/json-editor/use-json-editor.hook";
 import { useQuestionLoops } from "@/lib/survey-features/question-loops";
 import { useRichTextEditing } from "@/lib/survey-features/rich-text";
+import { registerScreenOutLogicAction } from "@/lib/survey-features/screen-out/infrastructure/creator-bindings";
 import { useLoopAwareSummaryTableEditing } from "@/lib/survey-features/summary-table";
 import {
   useCreatorJson,
@@ -491,6 +492,7 @@ function FormEditor({
         initAnyAnsweredGlobals();
         initQuestionLoopsGlobals();
         initFormDiagnosticsGlobals();
+        registerScreenOutLogicAction();
         const newCreator = new SurveyCreator(creatorOptions);
         applyEndatixCreatorTheme(
           newCreator,
