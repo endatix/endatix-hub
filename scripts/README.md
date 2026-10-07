@@ -72,11 +72,14 @@ node scripts/copy-standalone.mjs
 
 ### `dev.mjs`
 
-`pnpm dev`, `pnpm dev:inspect` and `pnpm dev-https` run it. It builds the embed SDK, discovers custom questions, then starts `next dev` through `with-dev-cert.mjs`. Each step prints one status line, and its own output shows only when it fails. Extra args go to `next dev` (`pnpm dev -p 3001`).
+`pnpm dev`, `pnpm dev:inspect` and `pnpm dev-https` run it. It builds the embed SDK, discovers custom questions, then starts `next dev` through `with-dev-cert.mjs`. Each step prints one status line, and its own output shows when it fails or warns. Extra args go to `next dev` (`pnpm dev -p 3001`).
 
 ## Dev Certificate Script
 
-### `with-dev-cert.mjs`
+### `with-dev-cert.mjs` and `dev-cert.mjs`
+
+`with-dev-cert.mjs` is the CLI; the logic lives in `dev-cert.mjs`, which `dev.mjs` imports.
+
 
 Runs a Node CLI (`next`, `playwright`, `node`) with the local .NET HTTPS dev certificate trusted through `NODE_EXTRA_CA_CERTS`, so the Hub reaches `https://localhost:5001` without turning certificate checks off. The `dev*`, `run:standalone` and `test:e2e*` package scripts use it. Details: `e2e/README.md` → Screen-out.
 

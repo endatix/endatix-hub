@@ -139,6 +139,6 @@ The parent site can send messages to the iframe using the same event names.
 
 1. Use Turborepo's `build` pipeline to automatically build the embed SDK
 2. Leverage Turborepo's caching for faster builds
-3. Eliminate `scripts/dev.mjs` and the custom `prebuild` hook
+3. Drop the embed build step from `scripts/dev.mjs` (keep its dev certificate and question steps) and the custom `prebuild` hook
 
 After the migration, this file and the custom build scripts should be removed.
