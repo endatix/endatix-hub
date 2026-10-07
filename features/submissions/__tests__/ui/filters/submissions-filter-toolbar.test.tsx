@@ -139,17 +139,20 @@ describe("SubmissionsFilterToolbar", () => {
       .getAllByRole("option")
       .map((option) => option.textContent ?? "");
     expect(names[0]).toMatch(/^Complete/);
-    for (const heading of [/^not engaged/i, /^collecting/i, /^ended/i]) {
+    for (const heading of [/^not started/i, /^in progress/i, /^screened out/i]) {
       expect(screen.getByRole("option", { name: heading })).toBeDefined();
     }
     const notStarted = screen.getByRole("option", { name: /^not started/i });
     expect(
       notStarted.querySelector("[data-tone]")?.getAttribute("data-tone"),
     ).toBe("idle");
-    const cancelled = screen.getByRole("option", { name: /^cancelled/i });
+    const screenedOut = screen.getByRole("option", { name: /^screened out/i });
     expect(
-      cancelled.querySelector("[data-tone]")?.getAttribute("data-tone"),
+      screenedOut.querySelector("[data-tone]")?.getAttribute("data-tone"),
     ).toBe("off");
+    expect(screen.queryByRole("option", { name: /^cancelled/i })).toBeNull();
+    expect(screen.queryByRole("option", { name: /^expired/i })).toBeNull();
+    expect(screen.queryByRole("option", { name: /^viewed/i })).toBeNull();
   });
 
   it("selects every ended code from the Ended heading", () => {
@@ -158,24 +161,21 @@ describe("SubmissionsFilterToolbar", () => {
     fireEvent.click(screen.getByRole("button", { name: /^status/i }));
 
     // Act
-    fireEvent.click(screen.getByRole("option", { name: /^ended/i }));
+    fireEvent.click(screen.getByRole("option", { name: /^screened out/i }));
 
     // Assert
     expect([...(onChange.mock.calls[0][0] as Set<string>)].sort()).toEqual([
-      "abandoned",
-      "cancelled",
-      "quota_full",
       "screen_out",
     ]);
   });
 
-  it("names a fully selected lifecycle group on the Status trigger", () => {
+  it("names the selected status when its group has one code", () => {
     // Act
-    renderToolbar(["not_started", "viewed"]);
+    renderToolbar(["not_started"]);
 
     // Assert
     expect(
       screen.getByRole("button", { name: /^status/i }).textContent,
-    ).toContain("Not engaged");
+    ).toContain("Not started");
   });
 });

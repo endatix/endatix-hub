@@ -105,8 +105,13 @@ describe("COLLECTION_STATUS_GROUPS", () => {
     const codes = COLLECTION_STATUS_GROUPS.flatMap((entry) => entry.codes);
 
     // Assert
-    expect(codes).toEqual([...COLLECTION_STATUS_FILTER_CODES]);
-    expect(new Set(codes).size).toBe(codes.length);
+    expect(codes).toEqual([
+      "complete",
+      "not_started",
+      "in_progress",
+      "screen_out",
+    ]);
+    expect(new Set(codes)).toEqual(new Set(COLLECTION_STATUS_FILTER_CODES));
     expect(COLLECTION_STATUS_GROUPS.map((entry) => entry.group)).toEqual([
       "complete",
       "unengaged",
@@ -148,12 +153,14 @@ describe("COLLECTION_STATUS_GROUPS", () => {
 });
 
 describe("collectionStatusFromLegacyIsComplete", () => {
-  it("maps true to complete and false to every other built-in code", () => {
+  it("maps true to complete and false to the other offered codes", () => {
     // Act & Assert
     expect(collectionStatusFromLegacyIsComplete("true")).toEqual(["complete"]);
-    expect(collectionStatusFromLegacyIsComplete("false")).toEqual(
-      COLLECTION_STATUS_FILTER_CODES.filter((code) => code !== "complete"),
-    );
+    expect(collectionStatusFromLegacyIsComplete("false")).toEqual([
+      "not_started",
+      "in_progress",
+      "screen_out",
+    ]);
   });
 
   it("means no filter for both values, none, or junk", () => {

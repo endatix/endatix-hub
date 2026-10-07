@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   collectionDisposition,
   isSubmissionEditable,
+  OFFERED_COLLECTION_STATUSES,
   RESUMABLE_COLLECTION_STATUSES,
 } from "../collection-status";
 
@@ -40,6 +41,17 @@ describe("collectionDisposition", () => {
       expect(disposition).toBe(expected);
     },
   );
+});
+
+describe("OFFERED_COLLECTION_STATUSES", () => {
+  it("offers only the codes a filter can select today", () => {
+    expect([...OFFERED_COLLECTION_STATUSES]).toEqual([
+      "not_started",
+      "in_progress",
+      "complete",
+      "screen_out",
+    ]);
+  });
 });
 
 describe("isSubmissionEditable", () => {

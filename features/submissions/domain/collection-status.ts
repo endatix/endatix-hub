@@ -14,6 +14,18 @@ export const RESUMABLE_COLLECTION_STATUSES = [
 export const SCREEN_OUT_STATUS = "screen_out";
 
 /**
+ * Codes the submissions filter and the export status filter offer.
+ * `viewed`, `expired`, `abandoned`, `quota_full`, and `cancelled` stay in the
+ * catalog and on badges, and stay out of the filter until something writes them.
+ */
+export const OFFERED_COLLECTION_STATUSES = [
+  "not_started",
+  "in_progress",
+  "complete",
+  SCREEN_OUT_STATUS,
+] as const;
+
+/**
  * The API rejects every edit of a screened-out submission, staff edits
  * included, until endatix/endatix#1179. Hide the editor instead of failing at
  * save.

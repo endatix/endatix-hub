@@ -1,6 +1,9 @@
 import type { StatusTone } from "@/components/common/status-badge";
 import type { FacetedFilterGroup } from "@/components/table/faceted-filter-selection";
-import { CLOSED_COLLECTION_STATUSES } from "@/features/submissions/domain/collection-status";
+import {
+  CLOSED_COLLECTION_STATUSES,
+  OFFERED_COLLECTION_STATUSES,
+} from "@/features/submissions/domain/collection-status";
 
 export type CollectionStatusGroup = "unengaged" | "open" | "complete" | "ended";
 
@@ -11,7 +14,11 @@ const GROUP_TONE: Record<CollectionStatusGroup, StatusTone> = {
   ended: "off",
 };
 
-export const COLLECTION_STATUS_GROUPS = [
+const OFFERED_COLLECTION_STATUS_SET: ReadonlySet<string> = new Set(
+  OFFERED_COLLECTION_STATUSES,
+);
+
+const COLLECTION_STATUS_GROUP_DEFINITIONS = [
   { group: "complete", label: "Complete", codes: ["complete"] },
   {
     group: "unengaged",
@@ -31,10 +38,10 @@ export const COLLECTION_STATUS_GROUPS = [
 }>;
 
 export type CollectionStatusFilterCode =
-  (typeof COLLECTION_STATUS_GROUPS)[number]["codes"][number];
+  (typeof OFFERED_COLLECTION_STATUSES)[number];
 
 export const COLLECTION_STATUS_FILTER_CODES: readonly CollectionStatusFilterCode[] =
-  COLLECTION_STATUS_GROUPS.flatMap((entry) => entry.codes);
+  OFFERED_COLLECTION_STATUSES;
 
 export function collectionStatusGroupTone(
   group: CollectionStatusGroup,
@@ -70,6 +77,16 @@ const BUILT_IN: Record<
   abandoned: { group: "ended", label: "Abandoned" },
   cancelled: { group: "ended", label: "Cancelled" },
 };
+
+export const COLLECTION_STATUS_GROUPS = COLLECTION_STATUS_GROUP_DEFINITIONS.map(
+  (entry) => {
+    const codes = entry.codes.filter((code) =>
+      OFFERED_COLLECTION_STATUS_SET.has(code),
+    );
+    const label = codes.length === 1 ? BUILT_IN[codes[0]].label : entry.label;
+    return { group: entry.group, label, codes };
+  },
+).filter((entry) => entry.codes.length > 0);
 
 export type CollectionStatusView = {
   group: CollectionStatusGroup;
