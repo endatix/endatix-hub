@@ -4,7 +4,7 @@ import {
   createOnBehalf,
   releaseScreenOutForms,
   e2eCredentials,
-  readCollectionStatus,
+  readSubmissionOutcome,
   seedScreenOutForm,
   signInE2eApi,
   trySecondOnBehalf,
@@ -39,6 +39,9 @@ test.describe("Screen-out", () => {
         const completed = await seedScreenOutForm(api, {
           isPublic: false,
           limitOnePerUser: true,
+        }).catch(async (error: unknown) => {
+          await releaseScreenOutForms(api, [screened.formId], true);
+          throw error;
         });
 
         const formIds = [screened.formId, completed.formId];
@@ -59,7 +62,7 @@ test.describe("Screen-out", () => {
           ).toBe(true);
 
           await answerAge(page, surface, screened, "Under 18");
-          await expectStatus(api, screened, "screen_out");
+          await expectStatus(api, screened, "screen_out", false);
           await expectLocked(api, screened);
           await expectReloadedCopy(
             page,
@@ -68,7 +71,7 @@ test.describe("Screen-out", () => {
           );
 
           await answerAge(page, surface, completed, "18 or older");
-          await expectStatus(api, completed, "complete");
+          await expectStatus(api, completed, "complete", true);
           await expectLocked(api, completed);
           await expectReloadedCopy(
             page,
@@ -92,7 +95,7 @@ test.describe("Screen-out", () => {
         });
         await runSeeded(api, seeded, async () => {
           await answerAge(page, surface, seeded, "Under 18");
-          await expectStatus(api, seeded, "screen_out");
+          await expectStatus(api, seeded, "screen_out", false);
           await expectTokenClosed(api, seeded);
 
           const second = await createOnBehalf(
@@ -131,7 +134,7 @@ test.describe("Screen-out", () => {
           await survey
             .getByText("Thanks for your interest")
             .waitFor({ timeout: 15_000 });
-          await expectStatus(api, seeded, "screen_out");
+          await expectStatus(api, seeded, "screen_out", false);
           await expectTokenClosed(api, seeded);
         });
       });
@@ -145,7 +148,7 @@ test.describe("Screen-out", () => {
         });
         await runSeeded(api, seeded, async () => {
           await answerAge(page, surface, seeded, "Under 18");
-          await expectStatus(api, seeded, "screen_out");
+          await expectStatus(api, seeded, "screen_out", false);
 
           const again = await api.submissions.public.updateByToken(
             seeded.formId,
@@ -271,10 +274,11 @@ async function expectStatus(
   api: EndatixApi,
   seeded: ScreenOutForm,
   status: string,
+  isComplete: boolean,
 ): Promise<void> {
   await expect
-    .poll(() => readCollectionStatus(api, seeded.formId, seeded.submissionId))
-    .toBe(status);
+    .poll(() => readSubmissionOutcome(api, seeded.formId, seeded.submissionId))
+    .toEqual({ collectionStatus: status, isComplete });
 }
 
 async function expectTokenClosed(

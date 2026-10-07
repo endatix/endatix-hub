@@ -111,6 +111,8 @@ creates the form and the on-behalf submission. The browser only opens the share 
 # hub/.env
 E2E_EMAIL="admin@example.com"          # falls back to SMOKE_TEST_EMAIL
 E2E_API_URL="https://localhost:5001/api"   # optional; falls back to ENDATIX_API_URL
+# Trust the local .NET dev cert. Set before Playwright starts. Do not disable TLS checks.
+# NODE_EXTRA_CA_CERTS=$HOME/.aspnet/https/aspnetapp.pem
 # E2E_EMBED_HOST_URL=http://localhost:5000   # iframe path; HTTPS :5001 cannot load HTTP Hub embed.js
 ```
 

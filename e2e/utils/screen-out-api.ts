@@ -28,13 +28,6 @@ export function e2eApiBaseUrl(): string {
   );
 }
 
-function allowLocalDevCertificate(baseUrl: string): void {
-  const host = new URL(baseUrl).hostname;
-  if (host === "localhost" || host === "127.0.0.1") {
-    process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
-  }
-}
-
 const KEYCHAIN_SERVICE = "endatix-hub-e2e";
 
 export function e2eCredentials():
@@ -74,7 +67,6 @@ export async function signInE2eApi(): Promise<EndatixApi> {
   }
 
   const baseUrl = e2eApiBaseUrl();
-  allowLocalDevCertificate(baseUrl);
   const anonymous = new EndatixApi(undefined, { baseUrl });
   const signedIn = await anonymous.auth.signIn(credentials);
   if (!signedIn.success) {
@@ -103,20 +95,28 @@ export async function createAgeGateForm(
   }
 
   const formId = created.data.id;
-  const published = await api.put(`/forms/${formId}/definition`, {
-    isDraft: false,
-    jsonData: ageGateJson(options.changeNavigationOnComplete),
-  });
-  if (!published.success) {
-    throw new Error(`Publish definition failed: ${published.error.message}`);
-  }
+  try {
+    const published = await api.put(`/forms/${formId}/definition`, {
+      isDraft: false,
+      jsonData: ageGateJson(options.changeNavigationOnComplete),
+    });
+    if (!published.success) {
+      throw new Error(`Publish definition failed: ${published.error.message}`);
+    }
 
-  const updated = await api.forms.update(formId, options);
-  if (!updated.success) {
-    throw new Error(`Update form failed: ${updated.error.message}`);
-  }
+    const updated = await api.forms.update(formId, {
+      isPublic: options.isPublic,
+      limitOnePerUser: options.limitOnePerUser,
+    });
+    if (!updated.success) {
+      throw new Error(`Update form failed: ${updated.error.message}`);
+    }
 
-  return formId;
+    return formId;
+  } catch (error) {
+    await releaseScreenOutForms(api, [formId], true);
+    throw error;
+  }
 }
 
 export async function createOnBehalf(
@@ -179,30 +179,37 @@ export async function seedScreenOutForm(
   },
 ): Promise<ScreenOutForm> {
   const formId = await createAgeGateForm(api, options);
-  const submitterId = `e2e-${formId}`;
-  const submission = await createOnBehalf(api, formId, submitterId);
-  const shareToken = await createShareAccessToken(
-    api,
-    formId,
-    submission.submissionId,
-  );
-  return { api, formId, submitterId, shareToken, ...submission };
+  try {
+    const submitterId = `e2e-${formId}`;
+    const submission = await createOnBehalf(api, formId, submitterId);
+    const shareToken = await createShareAccessToken(
+      api,
+      formId,
+      submission.submissionId,
+    );
+    return { api, formId, submitterId, shareToken, ...submission };
+  } catch (error) {
+    await releaseScreenOutForms(api, [formId], true);
+    throw error;
+  }
 }
 
-export async function readCollectionStatus(
+export async function readSubmissionOutcome(
   api: EndatixApi,
   formId: string,
   submissionId: string,
-): Promise<string | undefined> {
-  // Authenticated get by id. After complete, the hex by-token path is rejected when
-  // IsSubmissionTokenValidAfterCompletion is off; screen_out still leaves IsComplete false.
-  const submission = await api.get<{ collectionStatus?: string }>(
-    `/forms/${formId}/submissions/${submissionId}`,
-  );
+): Promise<{ collectionStatus?: string; isComplete: boolean }> {
+  const submission = await api.get<{
+    collectionStatus?: string;
+    isComplete: boolean;
+  }>(`/forms/${formId}/submissions/${submissionId}`);
   if (!submission.success) {
     throw new Error(`Read submission failed: ${submission.error.message}`);
   }
-  return submission.data.collectionStatus;
+  return {
+    collectionStatus: submission.data.collectionStatus,
+    isComplete: submission.data.isComplete,
+  };
 }
 
 export async function trySecondOnBehalf(
