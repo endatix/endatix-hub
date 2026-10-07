@@ -33,3 +33,19 @@ export function collectionDisposition(
 
   return "open";
 }
+
+/**
+ * Message shown when an edit of a screened-out submission fails. The API
+ * locks these rows for every caller until staff edits are allowed.
+ */
+export const SCREENED_OUT_EDIT_ERROR =
+  "Screened-out submissions can't be edited yet.";
+
+/** The save error to show for a submission, by its collection status. */
+export function editSubmissionErrorMessage(
+  collectionStatus: string | undefined,
+): string {
+  return collectionStatus === "screen_out"
+    ? SCREENED_OUT_EDIT_ERROR
+    : "Failed to save changes";
+}

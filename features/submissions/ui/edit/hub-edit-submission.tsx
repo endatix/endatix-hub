@@ -1,6 +1,7 @@
 "use client";
 
 import { toast } from "@/components/ui/toast";
+import { editSubmissionErrorMessage } from "@/features/submissions/domain/collection-status";
 import { editSubmissionUseCase } from "@/features/submissions/use-cases/edit-submission.use-case";
 import { Submission } from "@/lib/endatix-api";
 import { useDesignerRuntime } from "@/lib/designer-runtime";
@@ -33,11 +34,11 @@ export function HubEditSubmission({
         router.push(`/forms/${submission.formId}/submissions/${submission.id}`);
       } catch (error) {
         console.error(error);
-        toast.error("Failed to save changes");
+        toast.error(editSubmissionErrorMessage(submission.collectionStatus));
         throw error;
       }
     },
-    [router, submission.formId, submission.id],
+    [router, submission.formId, submission.id, submission.collectionStatus],
   );
 
   const onDiscard = useCallback(() => {

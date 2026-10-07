@@ -1,6 +1,7 @@
 "use client";
 
 import { toast } from "@/components/ui/toast";
+import { editSubmissionErrorMessage } from "@/features/submissions/domain/collection-status";
 import { editSubmissionByAccessTokenUseCase } from "@/features/public-submissions/edit/edit-submission-by-access-token.use-case";
 import type { Submission } from "@/lib/endatix-api";
 import { useFormRuntime } from "@/lib/form-runtime/form-runtime.context";
@@ -55,12 +56,12 @@ export function PublicEditSubmission({
           );
         } else {
           console.error(error);
-          toast.error("Failed to save changes");
+          toast.error(editSubmissionErrorMessage(submission.collectionStatus));
         }
         throw error;
       }
     },
-    [formId, token],
+    [formId, token, submission.collectionStatus],
   );
 
   const onDiscard = useCallback(() => {
