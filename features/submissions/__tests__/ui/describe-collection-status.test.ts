@@ -1,8 +1,10 @@
+import { SHIPPED_COLLECTION_STATUSES } from "@/features/submissions/domain";
 import { describe, expect, it } from "vitest";
 import {
-  COLLECTION_STATUS_FILTER_CODES,
   COLLECTION_STATUS_GROUPS,
+  collectionStatusFacetGroups,
   collectionStatusFromLegacyIsComplete,
+  collectionStatusGroups,
   collectionStatusGroupTone,
   describeCollectionStatus,
   isReviewApplicable,
@@ -100,7 +102,7 @@ describe("isReviewApplicable", () => {
 });
 
 describe("COLLECTION_STATUS_GROUPS", () => {
-  it("lists every filter code exactly once, Complete first, then lifecycle order", () => {
+  it("offers every shipped code once, Complete first, then lifecycle order", () => {
     // Act
     const codes = COLLECTION_STATUS_GROUPS.flatMap((entry) => entry.codes);
 
@@ -111,12 +113,37 @@ describe("COLLECTION_STATUS_GROUPS", () => {
       "in_progress",
       "screen_out",
     ]);
-    expect(new Set(codes)).toEqual(new Set(COLLECTION_STATUS_FILTER_CODES));
-    expect(COLLECTION_STATUS_GROUPS.map((entry) => entry.group)).toEqual([
-      "complete",
-      "unengaged",
-      "open",
-      "ended",
+    expect([...codes].sort()).toEqual([...SHIPPED_COLLECTION_STATUSES].sort());
+    expect(COLLECTION_STATUS_GROUPS.map((entry) => entry.label)).toEqual([
+      "Complete",
+      "Not engaged",
+      "Collecting",
+      "Ended",
+    ]);
+  });
+
+  it("adds a selected unshipped code to its group so it can be cleared", () => {
+    // Act
+    const groups = collectionStatusGroups(["viewed", "cancelled", "bogus"]);
+
+    // Assert
+    expect(groups.map((entry) => [entry.group, entry.codes])).toEqual([
+      ["complete", ["complete"]],
+      ["unengaged", ["not_started", "viewed"]],
+      ["open", ["in_progress"]],
+      ["ended", ["screen_out", "cancelled"]],
+    ]);
+  });
+
+  it("gives facet options the badge label and tone", () => {
+    // Act
+    const ended = collectionStatusFacetGroups().find(
+      (group) => group.label === "Ended",
+    );
+
+    // Assert
+    expect(ended?.options).toEqual([
+      { label: "Screened out", value: "screen_out", tone: "off" },
     ]);
   });
 
@@ -153,13 +180,18 @@ describe("COLLECTION_STATUS_GROUPS", () => {
 });
 
 describe("collectionStatusFromLegacyIsComplete", () => {
-  it("maps true to complete and false to the other offered codes", () => {
+  it("maps true to complete and false to every other built-in code", () => {
     // Act & Assert
     expect(collectionStatusFromLegacyIsComplete("true")).toEqual(["complete"]);
     expect(collectionStatusFromLegacyIsComplete("false")).toEqual([
       "not_started",
+      "viewed",
       "in_progress",
+      "expired",
       "screen_out",
+      "quota_full",
+      "abandoned",
+      "cancelled",
     ]);
   });
 
@@ -171,4 +203,3 @@ describe("collectionStatusFromLegacyIsComplete", () => {
     expect(collectionStatusFromLegacyIsComplete("yes")).toEqual([]);
   });
 });
-

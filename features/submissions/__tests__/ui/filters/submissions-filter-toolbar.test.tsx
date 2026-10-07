@@ -139,7 +139,11 @@ describe("SubmissionsFilterToolbar", () => {
       .getAllByRole("option")
       .map((option) => option.textContent ?? "");
     expect(names[0]).toMatch(/^Complete/);
-    for (const heading of [/^not started/i, /^in progress/i, /^screened out/i]) {
+    for (const heading of [
+      /^not started/i,
+      /^in progress/i,
+      /^screened out/i,
+    ]) {
       expect(screen.getByRole("option", { name: heading })).toBeDefined();
     }
     const notStarted = screen.getByRole("option", { name: /^not started/i });
@@ -155,7 +159,7 @@ describe("SubmissionsFilterToolbar", () => {
     expect(screen.queryByRole("option", { name: /^viewed/i })).toBeNull();
   });
 
-  it("selects every ended code from the Ended heading", () => {
+  it("selects Screened out from its own row", () => {
     // Arrange
     const onChange = renderToolbar([]);
     fireEvent.click(screen.getByRole("button", { name: /^status/i }));
@@ -164,7 +168,23 @@ describe("SubmissionsFilterToolbar", () => {
     fireEvent.click(screen.getByRole("option", { name: /^screened out/i }));
 
     // Assert
+    expect([...(onChange.mock.calls[0][0] as Set<string>)]).toEqual([
+      "screen_out",
+    ]);
+  });
+
+  it("shows a selected unshipped code from an old link under its group heading", () => {
+    // Arrange
+    const onChange = renderToolbar(["cancelled"]);
+    fireEvent.click(screen.getByRole("button", { name: /^status/i }));
+
+    // Act
+    fireEvent.click(screen.getByRole("option", { name: /^ended/i }));
+
+    // Assert
+    expect(screen.getByRole("option", { name: /^cancelled/i })).toBeDefined();
     expect([...(onChange.mock.calls[0][0] as Set<string>)].sort()).toEqual([
+      "cancelled",
       "screen_out",
     ]);
   });

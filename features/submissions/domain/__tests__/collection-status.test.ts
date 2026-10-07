@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   collectionDisposition,
+  BUILT_IN_COLLECTION_STATUSES,
+  COLLECTION_STATUS_CATALOG,
+  isBuiltInCollectionStatus,
   isSubmissionEditable,
-  OFFERED_COLLECTION_STATUSES,
   RESUMABLE_COLLECTION_STATUSES,
+  SHIPPED_COLLECTION_STATUSES,
 } from "../collection-status";
 
 describe("collectionDisposition", () => {
@@ -43,14 +46,43 @@ describe("collectionDisposition", () => {
   );
 });
 
-describe("OFFERED_COLLECTION_STATUSES", () => {
-  it("offers only the codes a filter can select today", () => {
-    expect([...OFFERED_COLLECTION_STATUSES]).toEqual([
+describe("COLLECTION_STATUS_CATALOG", () => {
+  it("defines each built-in code once, in lifecycle order", () => {
+    // Act & Assert
+    expect(BUILT_IN_COLLECTION_STATUSES).toEqual([
+      "not_started",
+      "viewed",
+      "in_progress",
+      "expired",
+      "complete",
+      "screen_out",
+      "quota_full",
+      "abandoned",
+      "cancelled",
+    ]);
+    expect(new Set(BUILT_IN_COLLECTION_STATUSES).size).toBe(
+      COLLECTION_STATUS_CATALOG.length,
+    );
+  });
+
+  it("ships only the codes the API writes today", () => {
+    // Act & Assert
+    expect(SHIPPED_COLLECTION_STATUSES).toEqual([
       "not_started",
       "in_progress",
       "complete",
       "screen_out",
     ]);
+  });
+
+  it.each([
+    ["viewed", true],
+    ["cancelled", true],
+    ["custom_code", false],
+    ["", false],
+  ])("treats %s as built-in: %s", (code, expected) => {
+    // Act & Assert
+    expect(isBuiltInCollectionStatus(code)).toBe(expected);
   });
 });
 

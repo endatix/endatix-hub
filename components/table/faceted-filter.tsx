@@ -1,7 +1,11 @@
 "use client";
 
 import { Check, ChevronsUpDown, Minus } from "lucide-react";
-import { StatusBadge, StatusDot } from "@/components/common/status-badge";
+import {
+  StatusBadge,
+  StatusDot,
+  type StatusTone,
+} from "@/components/common/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -333,23 +337,35 @@ interface GroupHeadingRowProps {
 
 function GroupHeadingRow(props: Readonly<GroupHeadingRowProps>) {
   const { section, selection, onSelect } = props;
-  const keywords = [section.label, ...section.options.map((o) => o.label)];
+  const { label, tone } = headingFace(section);
   return (
     <CommandItem
       value={`group:${section.label}`}
-      keywords={keywords}
+      keywords={[section.label, ...section.options.map((o) => o.label)]}
       onSelect={onSelect}
       data-selection={selection}
       className="font-medium"
     >
       <SelectionBox selection={selection} />
-      {section.tone && <StatusDot tone={section.tone} />}
-      <span>{section.label}</span>
+      {tone && <StatusDot tone={tone} />}
+      <span>{label}</span>
       <span className="sr-only">
         , {selectionSrText(section.options.length, selection)}
       </span>
     </CommandItem>
   );
+}
+
+/** A one-option group's row stands for that option, so it carries its name. */
+function headingFace(section: FacetedFilterGroup): {
+  label: string;
+  tone?: StatusTone;
+} {
+  const [onlyOption] = section.options.length === 1 ? section.options : [];
+  return {
+    label: onlyOption?.label ?? section.label,
+    tone: onlyOption?.tone ?? section.tone,
+  };
 }
 
 interface OptionRowProps {

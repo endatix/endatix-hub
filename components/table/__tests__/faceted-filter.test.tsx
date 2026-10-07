@@ -121,6 +121,33 @@ describe("FacetedFilter with groups", () => {
     expect(complete.textContent).toContain("not selected");
   });
 
+  it("names a one-option group's row after its option, not the group", () => {
+    // Arrange
+    render(
+      <FacetedFilter
+        title="Status"
+        groups={[
+          {
+            label: "Ended",
+            tone: "off",
+            options: [
+              { label: "Screened out", value: "screen_out", tone: "off" },
+            ],
+          },
+        ]}
+        selectedValues={new Set()}
+        onValueChange={vi.fn()}
+      />,
+    );
+
+    // Act
+    openMenu();
+
+    // Assert
+    expect(row(/^screened out/i)).toBeDefined();
+    expect(screen.queryByRole("option", { name: /^ended/i })).toBeNull();
+  });
+
   it("toggles a one-option group's value from its row", () => {
     // Arrange
     const onValueChange = renderGrouped(["viewed"]);
