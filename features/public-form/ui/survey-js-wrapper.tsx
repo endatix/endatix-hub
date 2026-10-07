@@ -11,6 +11,8 @@ import { useSurveyExtensions } from "@/lib/survey-extensions/ui/use-survey-exten
 import dynamic from "next/dynamic";
 import AlreadyResponded from "./already-responded";
 import SubmissionAlreadyCompleted from "./submission-already-completed";
+import { StartNewResponseButton } from "./start-new-response-button";
+import SubmissionClosed from "./submission-closed";
 
 const SurveyComponent = dynamic(() => import("./survey-component"), {
   ssr: false,
@@ -34,8 +36,22 @@ const SurveyJsWrapper = (props: SurveyJsWrapperProps) => {
     );
   }
 
-  if (shouldShowSubmissionCompleted(survey)) {
-    return <SubmissionAlreadyCompleted variant={survey.variant} />;
+  const startOver = survey.canStartOver ? (
+    <StartNewResponseButton formId={survey.formId} />
+  ) : null;
+
+  if (survey.submissionPhase === "completed") {
+    return (
+      <SubmissionAlreadyCompleted variant={survey.variant}>
+        {startOver}
+      </SubmissionAlreadyCompleted>
+    );
+  }
+
+  if (survey.submissionPhase === "closed") {
+    return (
+      <SubmissionClosed variant={survey.variant}>{startOver}</SubmissionClosed>
+    );
   }
 
   return (
@@ -97,18 +113,5 @@ const SurveyJsWrapperInner = (props: SurveyJsWrapperProps) => {
     />
   );
 };
-
-function shouldShowSubmissionCompleted(
-  survey: PublicSurveyRuntimeProps,
-): boolean {
-  const isShareOrEmbed =
-    survey.variant === "share" || survey.variant === "embed";
-
-  if (!isShareOrEmbed) {
-    return false;
-  }
-
-  return Boolean(survey.urlToken && survey.submission?.isComplete);
-}
 
 export default SurveyJsWrapper;

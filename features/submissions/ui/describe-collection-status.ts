@@ -1,5 +1,6 @@
 import type { StatusTone } from "@/components/common/status-badge";
 import type { FacetedFilterGroup } from "@/components/table/faceted-filter-selection";
+import { CLOSED_COLLECTION_STATUSES } from "@/features/submissions/domain/collection-status";
 
 export type CollectionStatusGroup = "unengaged" | "open" | "complete" | "ended";
 
@@ -21,7 +22,7 @@ export const COLLECTION_STATUS_GROUPS = [
   {
     group: "ended",
     label: "Ended",
-    codes: ["screen_out", "quota_full", "abandoned", "cancelled"],
+    codes: CLOSED_COLLECTION_STATUSES,
   },
 ] as const satisfies ReadonlyArray<{
   group: CollectionStatusGroup;

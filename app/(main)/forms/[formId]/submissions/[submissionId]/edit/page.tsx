@@ -4,6 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { getSubmissionDetailsUseCase } from "@/features/submissions/use-cases/get-submission-details.use-case";
 import { BackToSubmissionsButton } from "@/features/submissions/ui/details/back-to-submissions-button";
 import { Result } from "@/lib/result";
+import { isSubmissionEditable } from "@/features/submissions/domain";
 import { HubEditSubmission } from "@/features/submissions/ui/edit/edit-submission";
 import { NotFoundComponent } from "@/components/error-handling/not-found";
 import { auth } from "@/auth";
@@ -49,6 +50,10 @@ export default async function EditSubmissionPage({ params }: Params) {
   }
   const submission = submissionResult.value;
 
+  if (!isSubmissionEditable(submission.collectionStatus)) {
+    return <SubmissionNotEditable formId={formId} />;
+  }
+
   return (
     <Suspense fallback={<SubmissionDataSkeleton />}>
       <AssetStorageProvider>
@@ -62,6 +67,23 @@ export default async function EditSubmissionPage({ params }: Params) {
         </DesignerRuntimeProvider>
       </AssetStorageProvider>
     </Suspense>
+  );
+}
+
+function SubmissionNotEditable({ formId }: Readonly<{ formId: string }>) {
+  return (
+    <NotFoundComponent
+      notFoundCode={null}
+      notFoundTitle="Can't edit this submission"
+      notFoundSubtitle="Screened-out submissions can't be edited yet."
+      notFoundMessage="You can still view it and download its files."
+    >
+      <BackToSubmissionsButton
+        formId={formId}
+        text="All form submissions"
+        variant="default"
+      />
+    </NotFoundComponent>
   );
 }
 

@@ -20,6 +20,8 @@ export type SubmissionLinkErrorKind =
   /** Any rejected token - expired or not genuine. The page does not say which. */
   | "expired"
   | "notFound"
+  /** The submission can no longer be changed. Does not say why. */
+  | "locked"
   | "formUnavailable";
 
 /** What the link was for; it is the verb in the copy. */
@@ -74,6 +76,13 @@ function getPresentation(
         tone: "neutral",
         title: "We couldn't find that submission.",
         message: "It may have been deleted, or the link is invalid.",
+      };
+    case "locked":
+      return {
+        icon: ShieldX,
+        tone: "neutral",
+        title: "You can't edit this submission.",
+        message: "This response can no longer be changed.",
       };
     case "formUnavailable":
       return {

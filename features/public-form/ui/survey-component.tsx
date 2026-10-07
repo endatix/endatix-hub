@@ -14,6 +14,10 @@ import { recaptchaConfig } from "@/features/recaptcha/recaptcha-config";
 import { SubmissionData } from "@/features/submissions/types";
 import { ApiResult, Submission } from "@/lib/endatix-api";
 import { useRichText } from "@/lib/survey-features/rich-text";
+import {
+  createScreenOutDecision,
+  SCREEN_OUT_OUTCOME,
+} from "@/lib/survey-features/screen-out";
 import { useLoopAwareSummaryTable } from "@/lib/survey-features/summary-table";
 import { useFormRuntime } from "@/lib/form-runtime/form-runtime.context";
 import {
@@ -99,6 +103,7 @@ export default function SurveyComponent({
   const submissionUpdateGuard = useRef<boolean>(false);
   const originalCompletedHtmlRef = useRef<string | null>(null);
   const shellRef = useRef<HTMLDivElement>(null);
+  const decideScreenOutRef = useRef(createScreenOutDecision());
 
   // SurveyComponent is only ever loaded client-side (see
   // dynamic(..., { ssr: false }) in survey-js-wrapper.tsx), so there's no
@@ -219,7 +224,7 @@ export default function SurveyComponent({
       }
 
       enqueueSubmission(
-        buildSubmissionData(sender, false, surveyLocales.length > 1),
+        buildSubmissionData(sender, "partial", surveyLocales.length > 1),
       );
     },
     [enqueueSubmission, surveyLocales.length],
@@ -237,9 +242,12 @@ export default function SurveyComponent({
       clearQueue();
       sender.showCompletePage = true;
       event.showSaveInProgress("Saving your answers...");
+      const outcome: SaveOutcome = decideScreenOutRef.current(sender, event)
+        ? SCREEN_OUT_OUTCOME
+        : "complete";
       const submissionData = buildSubmissionData(
         sender,
-        true,
+        outcome,
         surveyLocales.length > 1,
       );
 
@@ -393,15 +401,20 @@ export default function SurveyComponent({
   );
 }
 
+/** A partial save, a normal finish, or a screen-out (stored with `isComplete` false). */
+type SaveOutcome = "partial" | "complete" | typeof SCREEN_OUT_OUTCOME;
+
 function buildSubmissionData(
   sender: SurveyModel,
-  isComplete: boolean,
+  outcome: SaveOutcome,
   includeLanguage: boolean,
 ): SubmissionData {
+  const isScreenOut = outcome === SCREEN_OUT_OUTCOME;
   const submissionData: SubmissionData = {
-    isComplete,
+    isComplete: outcome === "complete",
     jsonData: JSON.stringify(sender.data, null, 3),
     currentPage: sender.currentPageNo ?? 0,
+    ...(isScreenOut && { collectionOutcome: SCREEN_OUT_OUTCOME }),
   };
 
   if (includeLanguage) {

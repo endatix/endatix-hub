@@ -16,6 +16,15 @@ vi.mock("@/lib/survey-extensions/ui/use-survey-extensions", () => ({
   })),
 }));
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh: vi.fn() }),
+}));
+
+vi.mock(
+  "@/features/public-form/application/actions/start-new-response.action",
+  () => ({ startNewResponseAction: vi.fn() }),
+);
+
 vi.mock("next/dynamic", () => ({
   default: () =>
     function MockSurveyComponent({
@@ -48,7 +57,7 @@ const defaultProps: SurveyJsWrapperProps = {
       modifiedAt: new Date(),
     },
     formId: "form-1",
-    submissionPhase: "active",
+    submissionPhase: "resume",
     isRespondentTestMode: false,
     storageConfig: null,
     variant: "share",
@@ -70,13 +79,46 @@ describe("SurveyJsWrapper", () => {
     expect(screen.queryByTestId("respondent-test-mode-badge")).toBeNull();
   });
 
-  it("renders submission already completed when access token submission is complete on page load", () => {
+  it("renders the closed status for a closed submission", () => {
+    // Arrange
+    const survey = { ...defaultProps.survey, submissionPhase: "closed" as const };
+
+    // Act
+    render(<SurveyJsWrapper {...defaultProps} survey={survey} />);
+
+    // Assert
+    expect(screen.getByText("Response recorded")).toBeDefined();
+    expect(
+      screen.getByText("This response is closed and cannot be continued."),
+    ).toBeDefined();
+    expect(screen.queryByText("Start a new response")).toBeNull();
+  });
+
+  it.each([["closed"], ["completed"]] as const)(
+    "offers a new response on a %s cookie submission when the form allows it",
+    (submissionPhase) => {
+      // Arrange
+      const survey = {
+        ...defaultProps.survey,
+        submissionPhase,
+        canStartOver: true,
+      };
+
+      // Act
+      render(<SurveyJsWrapper {...defaultProps} survey={survey} />);
+
+      // Assert
+      expect(screen.getByText("Start a new response")).toBeDefined();
+    },
+  );
+
+  it("renders submission already completed when the gate phase is completed", () => {
     render(
       <SurveyJsWrapper
         {...defaultProps}
         survey={{
           ...defaultProps.survey,
-          submissionPhase: "active",
+          submissionPhase: "completed",
           urlToken: "access-token",
           submission: {
             id: "submission-1",
@@ -87,8 +129,8 @@ describe("SurveyJsWrapper", () => {
             currentPage: 0,
             metadata: "{}",
             token: "submission-token",
-            createdAt: new Date().toISOString(),
-            modifiedAt: new Date().toISOString(),
+            createdAt: new Date(),
+            modifiedAt: new Date(),
             status: "completed",
           },
         }}

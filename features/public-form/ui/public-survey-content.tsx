@@ -79,6 +79,7 @@ export async function PublicSurveyContent({
     isRespondentTestMode,
     submission,
     submissionPhase,
+    canStartOver,
   } = pageResult;
   const shouldLoadReCaptcha =
     activeDefinition.requiresReCaptcha && recaptchaConfig.isReCaptchaEnabled();
@@ -86,6 +87,7 @@ export async function PublicSurveyContent({
     activeDefinition,
     formId,
     submissionPhase,
+    canStartOver,
     isRespondentTestMode,
     submission,
     storageConfig: getClientStorageConfig(),

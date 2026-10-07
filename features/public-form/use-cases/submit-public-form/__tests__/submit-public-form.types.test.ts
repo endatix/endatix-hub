@@ -29,6 +29,42 @@ describe("SubmitPublicFormRequestSchema", () => {
     expect(result.success).toBe(false);
   });
 
+  it("keeps a screen-out outcome", () => {
+    // Arrange
+    const body = {
+      submissionData: {
+        isComplete: false,
+        jsonData: "{}",
+        collectionOutcome: "screen_out",
+      },
+    };
+
+    // Act
+    const result = SubmitPublicFormRequestSchema.safeParse(body);
+
+    // Assert
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.submissionData.collectionOutcome).toBe("screen_out");
+    }
+  });
+
+  it("rejects any other collection outcome", () => {
+    // Arrange
+    const body = {
+      submissionData: {
+        jsonData: "{}",
+        collectionOutcome: "complete",
+      },
+    };
+
+    // Act
+    const result = SubmitPublicFormRequestSchema.safeParse(body);
+
+    // Assert
+    expect(result.success).toBe(false);
+  });
+
   it("rejects non-string urlToken", () => {
     const result = SubmitPublicFormRequestSchema.safeParse({
       submissionData: { jsonData: "{}" },

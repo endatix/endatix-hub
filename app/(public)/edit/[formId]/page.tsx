@@ -6,6 +6,7 @@ import {
 import { AssetStorageProvider } from "@/features/asset-storage/server";
 import { getSubmissionByAccessTokenUseCase } from "@/features/public-submissions/edit/get-submission-by-access-token.use-case";
 import { resolveSubmissionFormDefinition } from "@/features/public-submissions/resolve-submission-form-definition";
+import { isSubmissionEditable } from "@/features/submissions/domain";
 import { PublicEditSubmission } from "@/features/submissions/ui/edit/edit-submission";
 import { Result } from "@/lib/result";
 import { FormRuntimeProvider } from "@/lib/form-runtime/form-runtime.context";
@@ -62,6 +63,10 @@ export default async function PublicEditSubmissionPage({
   if (Result.isError(definitionResult)) {
     console.error(definitionResult.message);
     return <SubmissionLinkError action="edit" kind="formUnavailable" />;
+  }
+
+  if (!isSubmissionEditable(submission.collectionStatus)) {
+    return <SubmissionLinkError action="edit" kind="locked" />;
   }
 
   submission.formDefinition = definitionResult.value;

@@ -34,6 +34,7 @@ type WebhookEvent = {
 /** Form-level webhook UI: Form Created is tenant-only (fires before per-form config exists). */
 const WEBHOOK_EVENTS = [
   { key: "SubmissionCompleted", label: "Submission Completed" },
+  { key: "SubmissionCollectionStatusChanged", label: "Collection Status Changed" },
   { key: "FormUpdated", label: "Form Updated" },
   { key: "FormEnabledStateChanged", label: "Form Enabled State Changed" },
   { key: "FormDeleted", label: "Form Deleted" },

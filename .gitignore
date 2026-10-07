@@ -46,6 +46,7 @@ certificates
 # Playwright
 /test-results/
 /playwright-report/
+/e2e/.screen-out-kept.json
 /blob-report/
 /playwright/.cache/
 package-lock.json

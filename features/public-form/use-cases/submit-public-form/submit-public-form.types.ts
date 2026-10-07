@@ -1,3 +1,5 @@
+// constants, not the barrel: the barrel loads survey-core and registers the trigger class.
+import { SCREEN_OUT_OUTCOME } from "@/lib/survey-features/screen-out/constants";
 import { z } from "zod";
 
 const SubmissionDataSchema = z.object({
@@ -6,6 +8,7 @@ const SubmissionDataSchema = z.object({
   currentPage: z.number().optional(),
   metadata: z.string().optional(),
   reCaptchaToken: z.string().optional(),
+  collectionOutcome: z.literal(SCREEN_OUT_OUTCOME).optional(),
 });
 
 export const SubmitPublicFormRequestSchema = z.object({
