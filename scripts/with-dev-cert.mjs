@@ -32,7 +32,10 @@ if (!command) {
   fail("Usage: node scripts/with-dev-cert.mjs <command> [args...] | --export");
 }
 if (command === "--export") {
-  exportDevCertificate(process.env.ENDATIX_DEV_CERT_PATH || DEFAULT_PEM);
+  exportDevCertificate(
+    process.env.ENDATIX_DEV_CERT_PATH || DEFAULT_PEM,
+    certificateName(process.env),
+  );
 } else {
   runWithDevCert(command, args);
 }
@@ -43,10 +46,16 @@ function runWithDevCert(name, rest) {
     env: withDevCertEnv(process.env),
   });
 
-  // Ctrl+C already reaches the child through the terminal; a second SIGINT makes
-  // Playwright force-quit and skip cleanup. So SIGINT only keeps this process
-  // alive until the child exits. Signals sent to this process alone are forwarded.
-  process.on("SIGINT", () => {});
+  // In a terminal, Ctrl+C already reaches the child; a second SIGINT makes
+  // Playwright force-quit and skip cleanup. Without a terminal (a process
+  // manager signalling this PID), SIGINT is forwarded. Either way this process
+  // stays until the child exits.
+  const terminalDeliversSigint = Boolean(process.stdin.isTTY);
+  process.on("SIGINT", () => {
+    if (!terminalDeliversSigint) {
+      child.kill("SIGINT");
+    }
+  });
   const forwarded =
     process.platform === "win32"
       ? ["SIGTERM", "SIGBREAK"]
@@ -92,13 +101,16 @@ function binEntry(pkg, name) {
     return undefined;
   }
   const { bin } = JSON.parse(readFileSync(manifestPath, "utf8"));
-  const relative =
-    typeof bin === "string"
-      ? pkg.split("/").pop() === name
-        ? bin
-        : undefined
-      : bin?.[name];
+  const relative = binPath(bin, pkg, name);
   return relative ? path.join(path.dirname(manifestPath), relative) : undefined;
+}
+
+/** A string `bin` is named after the package (without its scope). */
+function binPath(bin, pkg, name) {
+  if (typeof bin === "string") {
+    return pkg.split("/").pop() === name ? bin : undefined;
+  }
+  return bin?.[name];
 }
 
 /**
@@ -108,14 +120,15 @@ function binEntry(pkg, name) {
  */
 function withDevCertEnv(env) {
   const pem = env.ENDATIX_DEV_CERT_PATH || DEFAULT_PEM;
+  const name = certificateName(env);
   if (!existsSync(pem)) {
     warn(
-      `Dev certificate not found at ${pem}. https://localhost API calls will fail.`,
+      `Dev certificate not found (${name}). https://localhost API calls will fail.`,
     );
     warn("Export it once: pnpm setup:dev");
     return env;
   }
-  const certificate = readCertificate(pem);
+  const certificate = readCertificate(pem, name);
   if (!certificate) {
     return env;
   }
@@ -126,12 +139,26 @@ function withDevCertEnv(env) {
   return { ...env, NODE_EXTRA_CA_CERTS: bundle(existing, certificate) ?? pem };
 }
 
+/**
+ * How messages name the certificate. A path set through ENDATIX_DEV_CERT_PATH
+ * is named by the variable: environment values are not echoed to logs.
+ */
+function certificateName(env) {
+  return env.ENDATIX_DEV_CERT_PATH ? "ENDATIX_DEV_CERT_PATH" : DEFAULT_PEM;
+}
+
 /** Returns the PEM text, or undefined with a warning when it is not usable. */
-function readCertificate(pem) {
-  const text = readFileSync(pem, "utf8");
+function readCertificate(pem, name) {
+  let text;
+  try {
+    text = readFileSync(pem, "utf8");
+  } catch {
+    warn(`Dev certificate cannot be read (${name}). Check its permissions.`);
+    return undefined;
+  }
   if (text.includes("PRIVATE KEY")) {
     warn(
-      `${pem} contains a private key, so it is not used. Delete it and run: pnpm setup:dev`,
+      `Dev certificate (${name}) contains a private key, so it is not used. Delete it and run: pnpm setup:dev`,
     );
     return undefined;
   }
@@ -143,7 +170,9 @@ function readCertificate(pem) {
       );
     }
   } catch {
-    warn(`${pem} is not a PEM certificate. Export it again: pnpm setup:dev`);
+    warn(
+      `Dev certificate (${name}) is not a PEM certificate. Export it again: pnpm setup:dev`,
+    );
     return undefined;
   }
   return text;
@@ -156,7 +185,7 @@ function bundle(existing, certificate) {
     existingText = readFileSync(existing, "utf8");
   } catch {
     warn(
-      `NODE_EXTRA_CA_CERTS points to ${existing}, which cannot be read. Using the dev certificate only.`,
+      "The NODE_EXTRA_CA_CERTS file cannot be read. Using the dev certificate only.",
     );
     return undefined;
   }
@@ -177,8 +206,10 @@ function removeBundle() {
  * Exports the public dev certificate (no private key: no -p). dotnet does not
  * create the folder, so it is created here, readable by the current user only.
  */
-function exportDevCertificate(pem) {
+function exportDevCertificate(pem, name) {
   mkdirSync(path.dirname(pem), { recursive: true, mode: 0o700 });
+  // dotnet resolves from PATH: its install location differs by OS and SDK
+  // installer, and this runs only on a developer machine.
   const exporter = spawn(
     "dotnet",
     ["dev-certs", "https", "-ep", pem, "--format", "PEM"],
@@ -193,7 +224,7 @@ function exportDevCertificate(pem) {
   );
   exporter.on("exit", (code) => {
     if (code === 0) {
-      console.log(` \x1b[32m✓\x1b[0m Dev certificate exported to ${pem}`);
+      console.log(` \x1b[32m✓\x1b[0m Dev certificate exported (${name})`);
     }
     process.exit(code ?? 1);
   });
