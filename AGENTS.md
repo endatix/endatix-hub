@@ -231,7 +231,7 @@ Screen-out (customer age gate, one-per-user, iframe + share + public) is Playwri
 cd hub && pnpm test:e2e --grep "Screen-out"
 ```
 
-Needs Hub `http://localhost:3000`, API `https://localhost:5001`, embed host `http://localhost:5000/dev/embed-host`. Login is `E2E_EMAIL` plus the macOS keychain item `endatix-hub-e2e` (account `e2e`). Details: `e2e/README.md` → Screen-out.
+Needs Hub `http://localhost:3000`, API `https://localhost:5001` (`dotnet run` in `oss/src/Endatix.WebHost`), embed host `http://localhost:5000/dev/embed-host`. Login is `E2E_EMAIL` plus `E2E_PASSWORD` (macOS may omit the password and use keychain item `endatix-hub-e2e`, account `e2e`). Trust the dev cert with `NODE_EXTRA_CA_CERTS` on the Playwright command, not in `.env`. Paths differ by OS. Details: `e2e/README.md` → Screen-out.
 
 Evidence of a green run is the Playwright result and `pnpm exec playwright show-report`. Each test annotates its `formId`. Passing tests delete the form. Failures, and `E2E_KEEP_DATA=1`, leave the form and append it to gitignored `e2e/.screen-out-kept.json`. Do not keep rows on success.
 

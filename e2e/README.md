@@ -111,18 +111,32 @@ creates the form and the on-behalf submission. The browser only opens the share 
 # hub/.env
 E2E_EMAIL="admin@example.com"          # falls back to SMOKE_TEST_EMAIL
 E2E_API_URL="https://localhost:5001/api"   # optional; falls back to ENDATIX_API_URL
-# Trust the local .NET dev cert. Set before Playwright starts. Do not disable TLS checks.
-# NODE_EXTRA_CA_CERTS=$HOME/.aspnet/https/aspnetapp.pem
 # E2E_EMBED_HOST_URL=http://localhost:5000   # iframe path; HTTPS :5001 cannot load HTTP Hub embed.js
 ```
 
-Keep the password out of `.env`. On macOS, store it in the login keychain. The helper reads the
-service `endatix-hub-e2e` when `E2E_PASSWORD` is unset. Quote the value because `#` starts a comment
-in `.env`.
+Keep the password out of `.env` when you can. Quote it if you must set `E2E_PASSWORD` there, because `#` starts a comment. On macOS the helper reads keychain service `endatix-hub-e2e`, account `e2e`, when `E2E_PASSWORD` is unset. Windows and Linux have no keychain lookup; set `E2E_PASSWORD` in the shell for that run.
 
 ```bash
+# macOS only
 security add-generic-password -U -a e2e -s endatix-hub-e2e -w
 # type the password, then press Return
+```
+
+The API is WebHost (`dotnet run` in `oss/src/Endatix.WebHost`), `https://localhost:5001` and `http://localhost:5000`. Node does not trust that dev certificate. Export it once, then pass it when Playwright starts. Do not put `NODE_EXTRA_CA_CERTS` in `.env`: dotenv does not expand `$HOME` or `%USERPROFILE%`, and Node reads the variable before Playwright loads `.env`. Do not set `NODE_TLS_REJECT_UNAUTHORIZED`.
+
+```bash
+# macOS and Linux
+mkdir -p ~/.aspnet/https
+dotnet dev-certs https -ep ~/.aspnet/https/aspnetapp.pem --format PEM
+NODE_EXTRA_CA_CERTS="$HOME/.aspnet/https/aspnetapp.pem" pnpm test:e2e --grep "Screen-out" --workers=1
+```
+
+```powershell
+# Windows PowerShell
+New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.aspnet\https"
+dotnet dev-certs https -ep "$env:USERPROFILE\.aspnet\https\aspnetapp.pem" --format PEM
+$env:NODE_EXTRA_CA_CERTS = "$env:USERPROFILE\.aspnet\https\aspnetapp.pem"
+pnpm test:e2e --grep "Screen-out" --workers=1
 ```
 
 The iframe case opens WebHost `/dev/embed-host?view=bare` with `formId`, `hubBaseUrl`, and `token`
