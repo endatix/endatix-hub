@@ -30,14 +30,19 @@ describe("SubmitPublicFormRequestSchema", () => {
   });
 
   it("keeps a screen-out outcome", () => {
-    const result = SubmitPublicFormRequestSchema.safeParse({
+    // Arrange
+    const body = {
       submissionData: {
         isComplete: false,
         jsonData: "{}",
         collectionOutcome: "screen_out",
       },
-    });
+    };
 
+    // Act
+    const result = SubmitPublicFormRequestSchema.safeParse(body);
+
+    // Assert
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.submissionData.collectionOutcome).toBe("screen_out");
@@ -45,13 +50,18 @@ describe("SubmitPublicFormRequestSchema", () => {
   });
 
   it("rejects any other collection outcome", () => {
-    const result = SubmitPublicFormRequestSchema.safeParse({
+    // Arrange
+    const body = {
       submissionData: {
         jsonData: "{}",
         collectionOutcome: "complete",
       },
-    });
+    };
 
+    // Act
+    const result = SubmitPublicFormRequestSchema.safeParse(body);
+
+    // Assert
     expect(result.success).toBe(false);
   });
 

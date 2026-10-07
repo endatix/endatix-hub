@@ -16,6 +16,15 @@ vi.mock("@/lib/survey-extensions/ui/use-survey-extensions", () => ({
   })),
 }));
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh: vi.fn() }),
+}));
+
+vi.mock(
+  "@/features/public-form/application/actions/start-new-response.action",
+  () => ({ startNewResponseAction: vi.fn() }),
+);
+
 vi.mock("next/dynamic", () => ({
   default: () =>
     function MockSurveyComponent({
@@ -70,48 +79,38 @@ describe("SurveyJsWrapper", () => {
     expect(screen.queryByTestId("respondent-test-mode-badge")).toBeNull();
   });
 
-  it("shows the completed page when a screen-out is reloaded", () => {
-    render(
-      <SurveyJsWrapper
-        {...defaultProps}
-        survey={{
-          ...defaultProps.survey,
-          submissionPhase: "closed",
-          submission: {
-            id: "submission-1",
-            formId: "form-1",
-            formDefinitionId: "definition-1",
-            isComplete: false,
-            collectionStatus: "screen_out",
-            jsonData: "{}",
-            currentPage: 0,
-            metadata: "{}",
-            token: "submission-token",
-            createdAt: new Date(),
-            modifiedAt: new Date(),
-            status: "draft",
-          },
-        }}
-      />,
-    );
+  it("renders the closed status for a closed submission", () => {
+    // Arrange
+    const survey = { ...defaultProps.survey, submissionPhase: "closed" as const };
 
-    expect(screen.getByText("This form has already been completed.")).toBeDefined();
-    expect(screen.queryByText("Response recorded")).toBeNull();
-  });
+    // Act
+    render(<SurveyJsWrapper {...defaultProps} survey={survey} />);
 
-  it("renders the closed status for a non-screen-out closed submission", () => {
-    render(
-      <SurveyJsWrapper
-        {...defaultProps}
-        survey={{ ...defaultProps.survey, submissionPhase: "closed" }}
-      />,
-    );
-
+    // Assert
     expect(screen.getByText("Response recorded")).toBeDefined();
     expect(
       screen.getByText("This response is closed and cannot be continued."),
     ).toBeDefined();
+    expect(screen.queryByText("Start a new response")).toBeNull();
   });
+
+  it.each([["closed"], ["completed"]] as const)(
+    "offers a new response on a %s cookie submission when the form allows it",
+    (submissionPhase) => {
+      // Arrange
+      const survey = {
+        ...defaultProps.survey,
+        submissionPhase,
+        canStartOver: true,
+      };
+
+      // Act
+      render(<SurveyJsWrapper {...defaultProps} survey={survey} />);
+
+      // Assert
+      expect(screen.getByText("Start a new response")).toBeDefined();
+    },
+  );
 
   it("renders submission already completed when the gate phase is completed", () => {
     render(

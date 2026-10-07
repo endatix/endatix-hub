@@ -106,6 +106,7 @@ const successResult: LoadPublicSurveyPageResult = {
     requiresReCaptcha: false,
   },
   submissionPhase: "resume",
+  canStartOver: false,
   isRespondentTestMode: true,
   submission: {
     id: "submission-1",

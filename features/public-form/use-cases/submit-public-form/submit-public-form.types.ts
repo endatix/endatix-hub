@@ -1,4 +1,5 @@
-import { SCREEN_OUT_OUTCOME } from "@/lib/survey-features/screen-out";
+// constants, not the barrel: the barrel loads survey-core and registers the trigger class.
+import { SCREEN_OUT_OUTCOME } from "@/lib/survey-features/screen-out/constants";
 import { z } from "zod";
 
 const SubmissionDataSchema = z.object({

@@ -13,6 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { toast } from "@/components/ui/toast";
 import { useTrackEvent } from "@/features/analytics/posthog";
+import { isSubmissionEditable } from "@/features/submissions/domain";
 import { getSubmissionListReturnPath } from "@/features/submissions/list-submission-query";
 import { withBasePath } from "@/lib/hosting";
 import { cn } from "@/lib/utils";
@@ -43,6 +44,8 @@ import {
 } from "./submission-display-locale.store";
 import { useSubmissionDetails } from "./submission-details-context";
 
+const NOT_EDITABLE_HINT = "Screened-out submissions can't be edited yet.";
+
 interface SubmissionDetailsHeaderProps {
   submissionId: string;
   formId: string;
@@ -61,6 +64,7 @@ export function SubmissionDetailsHeader({
   const { data: session } = useSession();
   const { trackEvent } = useTrackEvent();
   const { submission } = useSubmissionDetails();
+  const canEdit = isSubmissionEditable(submission.collectionStatus);
   const displayLocale = useSyncExternalStore(
     subscribeSubmissionDisplayLocale,
     () => getSubmissionDisplayLocale(submissionId),
@@ -224,16 +228,29 @@ export function SubmissionDetailsHeader({
             )}
             <span className="hidden sm:inline">Copy JSON</span>
           </Button>
-          <Button variant="outline" asChild className="hidden sm:flex">
-            <Link href={`/forms/${formId}/submissions/${submissionId}/edit`}>
+          {canEdit ? (
+            <Button variant="outline" asChild className="hidden sm:flex">
+              <Link href={`/forms/${formId}/submissions/${submissionId}/edit`}>
+                <FilePenLine className="size-4" />
+                <span className="hidden sm:inline">Edit</span>
+              </Link>
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              disabled
+              title={NOT_EDITABLE_HINT}
+              className="hidden sm:flex"
+            >
               <FilePenLine className="size-4" />
               <span className="hidden sm:inline">Edit</span>
-            </Link>
-          </Button>
+            </Button>
+          )}
           <SubmissionActionsDropdown
             formId={formId}
             submissionId={submissionId}
             status={submission.status}
+            canEdit={canEdit}
             onShareLinksOpen={() => setIsShareLinksOpen(true)}
             onDeleteOpen={() => setIsDeleteOpen(true)}
             className="text-muted-foreground"
@@ -268,6 +285,7 @@ interface SubmissionActionsDropdownProps extends React.ComponentProps<
   submissionId: string;
   formId: string;
   status: string;
+  canEdit: boolean;
   onShareLinksOpen: () => void;
   onDeleteOpen: () => void;
 }
@@ -276,6 +294,7 @@ function SubmissionActionsDropdown({
   submissionId,
   formId,
   status,
+  canEdit,
   onShareLinksOpen,
   onDeleteOpen,
   ...props
@@ -295,12 +314,14 @@ function SubmissionActionsDropdown({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="text-muted-foreground" align="end">
-        <DropdownMenuItem className="cursor-pointer md:hidden" asChild>
-          <Link href={`/forms/${formId}/submissions/${submissionId}/edit`}>
-            <FilePenLine className="mr-2 size-4" />
-            <span>Edit</span>
-          </Link>
-        </DropdownMenuItem>
+        {canEdit && (
+          <DropdownMenuItem className="cursor-pointer md:hidden" asChild>
+            <Link href={`/forms/${formId}/submissions/${submissionId}/edit`}>
+              <FilePenLine className="mr-2 size-4" />
+              <span>Edit</span>
+            </Link>
+          </DropdownMenuItem>
+        )}
 
         <DropdownMenuItem asChild className="cursor-pointer">
           <Link href={`/forms/${formId}/submissions/${submissionId}/files`}>

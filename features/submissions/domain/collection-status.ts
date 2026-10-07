@@ -1,51 +1,59 @@
 /**
- * Built-in codes that end the interview. `expired` stays open until
- * resume-after-expiry is decided. The submissions UI groups these as "Ended".
+ * Mirrors the API: `Submission.IsResumableCollection` in
+ * `oss/src/Endatix.Core/Entities/Submission.cs`. Both copies must agree, and
+ * `collection-status.test.ts` pins this list.
+ */
+export const RESUMABLE_COLLECTION_STATUSES = [
+  "not_started",
+  "viewed",
+  "in_progress",
+  "expired",
+] as const;
+
+/** Stored when a screen-out trigger ends the interview. */
+export const SCREEN_OUT_STATUS = "screen_out";
+
+/**
+ * The API rejects every edit of a screened-out submission, staff edits
+ * included, until endatix/endatix#1179. Hide the editor instead of failing at
+ * save.
+ */
+export function isSubmissionEditable(
+  collectionStatus: string | undefined,
+): boolean {
+  return collectionStatus !== SCREEN_OUT_STATUS;
+}
+
+/**
+ * Built-in codes that end the interview without completing it. The submissions
+ * UI groups these as "Ended", along with unknown codes.
  */
 export const CLOSED_COLLECTION_STATUSES = [
-  "screen_out",
+  SCREEN_OUT_STATUS,
   "quota_full",
   "abandoned",
   "cancelled",
 ] as const;
 
-const CLOSED_COLLECTION_STATUS_SET: ReadonlySet<string> = new Set(
-  CLOSED_COLLECTION_STATUSES,
+const RESUMABLE_COLLECTION_STATUS_SET: ReadonlySet<string> = new Set(
+  RESUMABLE_COLLECTION_STATUSES,
 );
 
 export type CollectionDisposition = "open" | "complete" | "closed";
 
 /**
- * Missing and unknown codes stay open unless `IsComplete` is set. `IsComplete`
- * also covers rows written before `collectionStatus` existed.
+ * `IsComplete` covers rows written before `collectionStatus` existed. Any other
+ * code the API would not resume, unknown codes included, is closed.
  */
 export function collectionDisposition(
   collectionStatus: string | undefined,
   isComplete: boolean,
 ): CollectionDisposition {
-  if (collectionStatus && CLOSED_COLLECTION_STATUS_SET.has(collectionStatus)) {
-    return "closed";
-  }
-
   if (collectionStatus === "complete" || isComplete) {
     return "complete";
   }
 
-  return "open";
-}
-
-/**
- * Message shown when an edit of a screened-out submission fails. The API
- * locks these rows for every caller until staff edits are allowed.
- */
-export const SCREENED_OUT_EDIT_ERROR =
-  "Screened-out submissions can't be edited yet.";
-
-/** The save error to show for a submission, by its collection status. */
-export function editSubmissionErrorMessage(
-  collectionStatus: string | undefined,
-): string {
-  return collectionStatus === "screen_out"
-    ? SCREENED_OUT_EDIT_ERROR
-    : "Failed to save changes";
+  const isResumable =
+    !collectionStatus || RESUMABLE_COLLECTION_STATUS_SET.has(collectionStatus);
+  return isResumable ? "open" : "closed";
 }

@@ -15,7 +15,7 @@ import { SubmissionData } from "@/features/submissions/types";
 import { ApiResult, Submission } from "@/lib/endatix-api";
 import { useRichText } from "@/lib/survey-features/rich-text";
 import {
-  isScreenOutTrigger,
+  isScreenedOutOnComplete,
   SCREEN_OUT_OUTCOME,
 } from "@/lib/survey-features/screen-out";
 import { useLoopAwareSummaryTable } from "@/lib/survey-features/summary-table";
@@ -223,7 +223,7 @@ export default function SurveyComponent({
       }
 
       enqueueSubmission(
-        buildSubmissionData(sender, false, surveyLocales.length > 1),
+        buildSubmissionData(sender, "partial", surveyLocales.length > 1),
       );
     },
     [enqueueSubmission, surveyLocales.length],
@@ -241,14 +241,16 @@ export default function SurveyComponent({
       clearQueue();
       sender.showCompletePage = true;
       event.showSaveInProgress("Saving your answers...");
-      // survey-core passes the trigger that completed the survey, for both an
-      // immediate trigger and the Complete button it enables.
-      const screenOut = isScreenOutTrigger(event.completeTrigger);
+      const outcome: SaveOutcome = isScreenedOutOnComplete(
+        sender,
+        event.completeTrigger,
+      )
+        ? SCREEN_OUT_OUTCOME
+        : "complete";
       const submissionData = buildSubmissionData(
         sender,
-        !screenOut,
+        outcome,
         surveyLocales.length > 1,
-        screenOut ? SCREEN_OUT_OUTCOME : undefined,
       );
 
       startSubmitting(async () => {
@@ -401,20 +403,22 @@ export default function SurveyComponent({
   );
 }
 
+/** A partial save, a normal finish, or a screen-out (stored with `isComplete` false). */
+type SaveOutcome = "partial" | "complete" | typeof SCREEN_OUT_OUTCOME;
+
 function buildSubmissionData(
   sender: SurveyModel,
-  isComplete: boolean,
+  outcome: SaveOutcome,
   includeLanguage: boolean,
-  collectionOutcome?: string,
 ): SubmissionData {
   const submissionData: SubmissionData = {
-    isComplete,
+    isComplete: outcome === "complete",
     jsonData: JSON.stringify(sender.data, null, 3),
     currentPage: sender.currentPageNo ?? 0,
   };
 
-  if (collectionOutcome) {
-    submissionData.collectionOutcome = collectionOutcome;
+  if (outcome === SCREEN_OUT_OUTCOME) {
+    submissionData.collectionOutcome = SCREEN_OUT_OUTCOME;
   }
 
   if (includeLanguage) {

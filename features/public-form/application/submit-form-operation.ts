@@ -1,7 +1,7 @@
 import { getPostHog } from "@/features/analytics/posthog/server/node-client";
 import { getSession } from "@/features/auth";
 import { FormTokenCookieStore } from "@/features/public-form/infrastructure/cookie-store";
-import { collectionDisposition } from "@/features/submissions/domain/collection-status";
+import { collectionDisposition } from "@/features/submissions/domain";
 import { SubmissionData } from "@/features/submissions/types";
 import { ApiResult, EndatixApi, ERROR_CODE } from "@/lib/endatix-api";
 import type { Submission } from "@/lib/endatix-api";

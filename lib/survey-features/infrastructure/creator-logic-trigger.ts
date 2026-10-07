@@ -1,3 +1,4 @@
+import { Serializer } from "survey-core";
 import { getLocaleStrings, SurveyLogic } from "survey-creator-core";
 
 /**
@@ -35,9 +36,16 @@ export function registerCreatorLogicTrigger(
   labelLogicTrigger(trigger);
 }
 
+type LogicType = {
+  name: string;
+  baseClass?: string;
+  incorrectClasses?: string[];
+};
+
 function addLogicTriggerType(trigger: CreatorLogicTrigger): void {
   const logicName = `trigger_${trigger.type}`;
-  const types = SurveyLogic.types as Array<{ name: string }>;
+  const types = SurveyLogic.types as LogicType[];
+  excludeFromParentLogicType(types, trigger.className);
   if (types.some((type) => type.name === logicName)) {
     return;
   }
@@ -48,7 +56,29 @@ function addLogicTriggerType(trigger: CreatorLogicTrigger): void {
     propertyName: "expression",
     isUniqueItem: true,
     isInvisible: true,
-  } as (typeof types)[number]);
+  } as LogicType);
+}
+
+/**
+ * Creator matches Logic types by class hierarchy, so a subclass of
+ * `completetrigger` would also show as "Complete survey", and removing that
+ * action deletes the trigger. `incorrectClasses` is how Creator opts a parent
+ * type out (`LogicItemEditor.hasNeededTypes`).
+ */
+function excludeFromParentLogicType(
+  types: LogicType[],
+  className: string,
+): void {
+  const parentClass = Serializer.findClass(className)?.parentName;
+  const parentType = types.find((type) => type.baseClass === parentClass);
+  if (!parentClass || !parentType) {
+    return;
+  }
+
+  const incorrectClasses = parentType.incorrectClasses ?? [];
+  if (!incorrectClasses.includes(className)) {
+    parentType.incorrectClasses = [...incorrectClasses, className];
+  }
 }
 
 function labelLogicTrigger(trigger: CreatorLogicTrigger): void {

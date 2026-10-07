@@ -68,6 +68,25 @@ describe("screen-out Creator bindings", () => {
     );
   });
 
+  it("shows a screen-out rule only as Screen out, not also as Complete survey", async () => {
+    // Arrange
+    const creator = new SurveyCreatorModel({ showLogicTab: true });
+    creator.JSON = FORM_JSON;
+    await screenOutExtension.onCreatorReady?.(creator, deps);
+
+    // Act
+    creator.activeTab = "logic";
+    const logic = creator.getPlugin("logic") as unknown as {
+      model: SurveyLogic;
+    };
+
+    // Assert
+    const actionTypes = logic.model.items[0].actions.map(
+      (action) => action.logicTypeName,
+    );
+    expect(actionTypes).toEqual(["trigger_screenout"]);
+  });
+
   it("registers the Logic tab action once", () => {
     // Act
     registerScreenOutCreatorUi();

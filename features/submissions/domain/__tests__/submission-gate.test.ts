@@ -15,98 +15,133 @@ describe("resolveSubmissionGate", () => {
     ["viewed", "resume"],
     ["in_progress", "resume"],
     ["expired", "resume"],
-    ["custom_code", "resume"],
     ["complete", "completed"],
-    ["screen_out", "closed"],
+    ["screen_out", "completed"],
     ["quota_full", "closed"],
     ["abandoned", "closed"],
     ["cancelled", "closed"],
+    ["custom_code", "closed"],
   ] as const)("maps %s to %s", (collectionStatus, phase) => {
-    expect(
-      resolveSubmissionGate({
-        ...open,
-        hasSubmission: true,
-        collectionStatus,
-        isComplete: collectionStatus === "complete",
-      }),
-    ).toBe(phase);
+    // Arrange
+    const input = {
+      ...open,
+      hasSubmission: true,
+      collectionStatus,
+      isComplete: collectionStatus === "complete",
+    };
+
+    // Act
+    const result = resolveSubmissionGate(input);
+
+    // Assert
+    expect(result).toBe(phase);
   });
 
   it("treats a missing status with isComplete as completed", () => {
-    expect(
-      resolveSubmissionGate({
-        ...open,
-        hasSubmission: true,
-        isComplete: true,
-      }),
-    ).toBe("completed");
+    // Arrange
+    const input = { ...open, hasSubmission: true, isComplete: true };
+
+    // Act
+    const result = resolveSubmissionGate(input);
+
+    // Assert
+    expect(result).toBe("completed");
   });
 
   it("never resumes a completed submission with an unknown status", () => {
-    expect(
-      resolveSubmissionGate({
+    // Arrange
+    const input = {
+      ...open,
+      hasSubmission: true,
+      collectionStatus: "custom_code",
+      isComplete: true,
+    };
+
+    // Act
+    const result = resolveSubmissionGate(input);
+
+    // Assert
+    expect(result).toBe("completed");
+  });
+
+  it.each([
+    ["in_progress", false, "resume"],
+    ["screen_out", false, "completed"],
+    ["cancelled", false, "closed"],
+    ["complete", true, "completed"],
+  ] as const)(
+    "maps a URL token on %s to %s",
+    (collectionStatus, isComplete, phase) => {
+      // Arrange
+      const input = {
         ...open,
+        hasUrlToken: true,
         hasSubmission: true,
-        collectionStatus: "custom_code",
-        isComplete: true,
-      }),
-    ).toBe("completed");
-  });
+        collectionStatus,
+        isComplete,
+      };
 
-  it("resumes an in-progress token and closes a screened one", () => {
-    const token = { ...open, hasUrlToken: true, hasSubmission: true };
+      // Act
+      const result = resolveSubmissionGate(input);
 
-    expect(
-      resolveSubmissionGate({ ...token, collectionStatus: "in_progress" }),
-    ).toBe("resume");
-    expect(
-      resolveSubmissionGate({ ...token, collectionStatus: "screen_out" }),
-    ).toBe("closed");
-    expect(
-      resolveSubmissionGate({
-        ...token,
-        collectionStatus: "complete",
-        isComplete: true,
-      }),
-    ).toBe("completed");
-  });
+      // Assert
+      expect(result).toBe(phase);
+    },
+  );
 
-  it("blocks a one-per-user revisit when the loaded submission is finished", () => {
-    const revisit = {
+  it.each([
+    ["screen_out", false],
+    ["complete", true],
+  ] as const)(
+    "blocks a one-per-user revisit when the loaded submission is %s",
+    (collectionStatus, isComplete) => {
+      // Arrange
+      const input = {
+        ...open,
+        canStartNewSubmission: false,
+        hasUserSubmitted: true,
+        hasSubmission: true,
+        collectionStatus,
+        isComplete,
+      };
+
+      // Act
+      const result = resolveSubmissionGate(input);
+
+      // Assert
+      expect(result).toBe("blocked");
+    },
+  );
+
+  it("resumes a one-per-user draft", () => {
+    // Arrange
+    const input = {
       ...open,
       canStartNewSubmission: false,
       hasUserSubmitted: true,
       hasSubmission: true,
+      collectionStatus: "in_progress",
     };
 
-    expect(
-      resolveSubmissionGate({ ...revisit, collectionStatus: "screen_out" }),
-    ).toBe("blocked");
-    expect(
-      resolveSubmissionGate({
-        ...revisit,
-        collectionStatus: "complete",
-        isComplete: true,
-      }),
-    ).toBe("blocked");
+    // Act
+    const result = resolveSubmissionGate(input);
+
+    // Assert
+    expect(result).toBe("resume");
   });
 
-  it("resumes a one-per-user draft and blocks when nothing is open", () => {
-    const revisit = {
+  it("blocks a one-per-user revisit with no submission loaded", () => {
+    // Arrange
+    const input = {
       ...open,
       canStartNewSubmission: false,
       hasUserSubmitted: true,
     };
 
-    expect(
-      resolveSubmissionGate({
-        ...revisit,
-        hasSubmission: true,
-        collectionStatus: "in_progress",
-      }),
-    ).toBe("resume");
-    expect(resolveSubmissionGate({ ...revisit, hasSubmission: false })).toBe(
-      "blocked",
-    );
+    // Act
+    const result = resolveSubmissionGate(input);
+
+    // Assert
+    expect(result).toBe("blocked");
   });
 });

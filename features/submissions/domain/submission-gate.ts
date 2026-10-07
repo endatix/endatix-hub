@@ -1,4 +1,8 @@
-import { collectionDisposition } from "./collection-status";
+import {
+  collectionDisposition,
+  SCREEN_OUT_STATUS,
+  type CollectionDisposition,
+} from "./collection-status";
 
 /** What the respondent may do with the loaded submission. */
 export type SubmissionGatePhase = "resume" | "completed" | "closed" | "blocked";
@@ -13,11 +17,18 @@ export interface ResolveSubmissionGateInput {
   isComplete: boolean;
 }
 
+const PHASE_BY_DISPOSITION: Record<CollectionDisposition, SubmissionGatePhase> =
+  {
+    open: "resume",
+    complete: "completed",
+    closed: "closed",
+  };
+
 /**
  * One decision for share, embed, and any later caller.
- * A URL token resumes only an open interview. A finished code on that token
- * stays on this submission. Without a token, one-per-user blocks a new start
- * once there is no open draft.
+ * Without a URL token, one-per-user blocks a new start once there is no open
+ * draft. Otherwise only an open interview resumes. A screen-out shows the
+ * normal completed page, so the respondent is not told they were screened out.
  */
 export function resolveSubmissionGate({
   canStartNewSubmission,
@@ -28,28 +39,17 @@ export function resolveSubmissionGate({
   isComplete,
 }: ResolveSubmissionGateInput): SubmissionGatePhase {
   const disposition = collectionDisposition(collectionStatus, isComplete);
-
-  if (hasUrlToken) {
-    if (disposition === "complete") {
-      return "completed";
-    }
-    if (disposition === "closed") {
-      return "closed";
-    }
-    return "resume";
-  }
-
   const hasOpenDraft = hasSubmission && disposition === "open";
-  if (hasUserSubmitted && !canStartNewSubmission && !hasOpenDraft) {
+  const isBlocked =
+    !hasUrlToken && hasUserSubmitted && !canStartNewSubmission && !hasOpenDraft;
+
+  if (isBlocked) {
     return "blocked";
   }
 
-  if (disposition === "complete") {
+  if (collectionStatus === SCREEN_OUT_STATUS) {
     return "completed";
   }
-  if (disposition === "closed") {
-    return "closed";
-  }
 
-  return "resume";
+  return PHASE_BY_DISPOSITION[disposition];
 }

@@ -1,7 +1,7 @@
 import {
   resolveSubmissionGate,
   type SubmissionGatePhase,
-} from "@/features/submissions/domain/submission-gate";
+} from "@/features/submissions/domain";
 import type { FormTokenCookieStore } from "@/features/public-form/infrastructure/cookie-store";
 import { getActiveDefinitionUseCase } from "@/features/public-form/use-cases/get-active-definition.use-case";
 import { getPartialSubmissionUseCase } from "@/features/public-form/use-cases/get-partial-submission.use-case";
@@ -35,6 +35,7 @@ export type LoadPublicSurveyPageQuery = {
  * @param kind - The kind of result.
  * @param activeDefinition - The active definition.
  * @param submissionPhase - The submission gate phase for the survey session.
+ * @param canStartOver - Whether a finished cookie submission may be replaced by a new one.
  * @param isRespondentTestMode - Whether the respondent is submitting a test response.
  * @param submission - The submission.
  */
@@ -43,6 +44,7 @@ export type LoadPublicSurveyPageResult =
       kind: "success";
       activeDefinition: ActiveDefinition;
       submissionPhase: SubmissionGatePhase;
+      canStartOver: boolean;
       isRespondentTestMode: boolean;
       submission?: Submission;
     }
@@ -119,6 +121,7 @@ export async function loadPublicSurveyPageUseCase({
       collectionStatus: submissionResult.value?.collectionStatus,
       isComplete: submissionResult.value?.isComplete ?? false,
     }),
+    canStartOver: publicFormAccessResult.value.canStartNewSubmission,
     isRespondentTestMode: publicFormAccessResult.value.isRespondentTestMode,
     submission: submissionResult.value,
   };
@@ -165,6 +168,7 @@ async function loadAccessTokenSurveyPage({
       collectionStatus: submissionResult.value.collectionStatus,
       isComplete: submissionResult.value.isComplete,
     }),
+    canStartOver: false,
     isRespondentTestMode: publicFormAccessResult.value.isRespondentTestMode,
     submission: submissionResult.value,
   };

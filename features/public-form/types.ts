@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { SubmissionGatePhase } from "@/features/submissions/domain/submission-gate";
+import type { SubmissionGatePhase } from "@/features/submissions/domain";
 import type { Submission } from "@/lib/endatix-api";
 import type { ClientStorageConfig } from "@endatix/storage-core";
 import type { ActiveDefinition } from "@/types";
@@ -10,6 +10,11 @@ export type PublicSurveyRuntimeProps = {
   activeDefinition: ActiveDefinition;
   formId: string;
   submissionPhase: SubmissionGatePhase;
+  /**
+   * The finished submission came from the cookie and the form allows another
+   * response, so the closed or completed page offers a new one.
+   */
+  canStartOver?: boolean;
   isRespondentTestMode: boolean;
   storageConfig: ClientStorageConfig | null;
   submission?: Submission;

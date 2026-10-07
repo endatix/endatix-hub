@@ -7,7 +7,8 @@ const MESSAGE = "This response is closed and cannot be continued.";
 
 export default function SubmissionClosed({
   variant,
-}: Readonly<{ variant: PublicSurveyVariant }>) {
+  children,
+}: Readonly<{ variant: PublicSurveyVariant; children?: React.ReactNode }>) {
   return (
     <PublicStatusPage
       icon={CircleOff}
@@ -15,6 +16,8 @@ export default function SubmissionClosed({
       title={TITLE}
       tone="neutral"
       layout={variant === "embed" ? "embed" : "page"}
-    />
+    >
+      {children}
+    </PublicStatusPage>
   );
 }

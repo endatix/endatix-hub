@@ -1,5 +1,6 @@
 "use client";
 
+import { isSubmissionEditable } from "@/features/submissions/domain";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenuContent,
@@ -58,12 +59,14 @@ export function RowActions<TData>({ row }: RowActionsProps<TData>) {
           className="text-muted-foreground"
           align="start"
         >
-          <DropdownMenuItem asChild className="cursor-pointer">
-            <Link href={`/forms/${item.formId}/submissions/${item.id}/edit`}>
-              <FilePenLine className="mr-2 h-4 w-4" />
-              <span>Edit</span>
-            </Link>
-          </DropdownMenuItem>
+          {isSubmissionEditable(item.collectionStatus) && (
+            <DropdownMenuItem asChild className="cursor-pointer">
+              <Link href={`/forms/${item.formId}/submissions/${item.id}/edit`}>
+                <FilePenLine className="mr-2 h-4 w-4" />
+                <span>Edit</span>
+              </Link>
+            </DropdownMenuItem>
+          )}
           <DropdownMenuSeparator />
           <DropdownMenuItem className="cursor-not-allowed">
             <FileDown className="mr-2 h-4 w-4" />
