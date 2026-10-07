@@ -1,8 +1,15 @@
 import type { StatusTone } from "@/components/common/status-badge";
 import type { FacetedFilterGroup } from "@/components/table/faceted-filter-selection";
-import { CLOSED_COLLECTION_STATUSES } from "@/features/submissions/domain/collection-status";
+import {
+  BUILT_IN_COLLECTION_STATUSES,
+  collectionStatusGroupOf,
+  isBuiltInCollectionStatus,
+  SHIPPED_COLLECTION_STATUSES,
+  type CollectionStatusCode,
+  type CollectionStatusGroup,
+} from "@/features/submissions/domain";
 
-export type CollectionStatusGroup = "unengaged" | "open" | "complete" | "ended";
+export type { CollectionStatusGroup };
 
 const GROUP_TONE: Record<CollectionStatusGroup, StatusTone> = {
   unengaged: "idle",
@@ -11,30 +18,31 @@ const GROUP_TONE: Record<CollectionStatusGroup, StatusTone> = {
   ended: "off",
 };
 
-export const COLLECTION_STATUS_GROUPS = [
-  { group: "complete", label: "Complete", codes: ["complete"] },
-  {
-    group: "unengaged",
-    label: "Not engaged",
-    codes: ["not_started", "viewed"],
-  },
-  { group: "open", label: "Collecting", codes: ["in_progress", "expired"] },
-  {
-    group: "ended",
-    label: "Ended",
-    codes: CLOSED_COLLECTION_STATUSES,
-  },
-] as const satisfies ReadonlyArray<{
-  group: CollectionStatusGroup;
-  label: string;
-  codes: readonly string[];
-}>;
+/** Menu order: Complete first, then the lifecycle. */
+const GROUP_LABEL = {
+  complete: "Complete",
+  unengaged: "Not engaged",
+  open: "Collecting",
+  ended: "Ended",
+} as const satisfies Record<CollectionStatusGroup, string>;
 
-export type CollectionStatusFilterCode =
-  (typeof COLLECTION_STATUS_GROUPS)[number]["codes"][number];
+const STATUS_LABEL: Record<CollectionStatusCode, string> = {
+  not_started: "Not started",
+  viewed: "Viewed",
+  in_progress: "In progress",
+  expired: "Expired",
+  complete: "Complete",
+  screen_out: "Screened out",
+  quota_full: "Quota full",
+  abandoned: "Abandoned",
+  cancelled: "Cancelled",
+};
 
-export const COLLECTION_STATUS_FILTER_CODES: readonly CollectionStatusFilterCode[] =
-  COLLECTION_STATUS_GROUPS.flatMap((entry) => entry.codes);
+/**
+ * A code the list URL may filter by. Every built-in code parses, so a saved link
+ * to an unshipped code keeps its filter; the menu offers only shipped codes.
+ */
+export type CollectionStatusFilterCode = CollectionStatusCode;
 
 export function collectionStatusGroupTone(
   group: CollectionStatusGroup,
@@ -42,6 +50,7 @@ export function collectionStatusGroupTone(
   return GROUP_TONE[group];
 }
 
+/** Maps the old `isComplete` URL flag: `true` is complete, `false` every other built-in code. */
 export function collectionStatusFromLegacyIsComplete(
   value: string | undefined,
 ): CollectionStatusFilterCode[] {
@@ -51,25 +60,45 @@ export function collectionStatusFromLegacyIsComplete(
   if (complete === incomplete) {
     return [];
   }
-  return COLLECTION_STATUS_FILTER_CODES.filter(
+  return BUILT_IN_COLLECTION_STATUSES.filter(
     (code) => (code === "complete") === complete,
   );
 }
 
-const BUILT_IN: Record<
-  string,
-  { group: CollectionStatusGroup; label: string }
-> = {
-  not_started: { group: "unengaged", label: "Not started" },
-  viewed: { group: "unengaged", label: "Viewed" },
-  in_progress: { group: "open", label: "In progress" },
-  expired: { group: "open", label: "Expired" },
-  complete: { group: "complete", label: "Complete" },
-  screen_out: { group: "ended", label: "Screened out" },
-  quota_full: { group: "ended", label: "Quota full" },
-  abandoned: { group: "ended", label: "Abandoned" },
-  cancelled: { group: "ended", label: "Cancelled" },
+export type CollectionStatusGroupEntry = {
+  group: CollectionStatusGroup;
+  label: string;
+  codes: CollectionStatusCode[];
 };
+
+/**
+ * The Status facet's groups in menu order: shipped codes, plus any built-in
+ * code already selected (from an old link) so its chip shows and can be
+ * cleared. Empty groups are left out.
+ */
+export function collectionStatusGroups(
+  selected: Iterable<string> = [],
+): CollectionStatusGroupEntry[] {
+  const offered = new Set<CollectionStatusCode>(SHIPPED_COLLECTION_STATUSES);
+  for (const code of selected) {
+    if (isBuiltInCollectionStatus(code)) {
+      offered.add(code);
+    }
+  }
+
+  return (Object.keys(GROUP_LABEL) as CollectionStatusGroup[])
+    .map((group) => ({
+      group,
+      label: GROUP_LABEL[group],
+      codes: BUILT_IN_COLLECTION_STATUSES.filter(
+        (code) => offered.has(code) && collectionStatusGroupOf(code) === group,
+      ),
+    }))
+    .filter((entry) => entry.codes.length > 0);
+}
+
+/** The groups a fresh menu offers: shipped codes only. */
+export const COLLECTION_STATUS_GROUPS = collectionStatusGroups();
 
 export type CollectionStatusView = {
   group: CollectionStatusGroup;
@@ -83,11 +112,9 @@ export function describeCollectionStatus(
 ): CollectionStatusView {
   const supplied = code?.trim().toLowerCase();
   const key = supplied || (isComplete ? "complete" : "in_progress");
-  const known = Object.hasOwn(BUILT_IN, key) ? BUILT_IN[key] : undefined;
-  const { group, label } = known ?? {
-    group: "ended",
-    label: humanizeCode(supplied ?? ""),
-  };
+  const { group, label } = isBuiltInCollectionStatus(key)
+    ? { group: collectionStatusGroupOf(key), label: STATUS_LABEL[key] }
+    : { group: "ended" as const, label: humanizeCode(supplied ?? "") };
 
   return { group, tone: GROUP_TONE[group], label };
 }
@@ -108,10 +135,13 @@ function humanizeCode(code: string): string {
 /**
  * The Status facet's groups, each code as the badge the grid shows. One
  * definition for every surface that filters by status (list toolbar, export
- * dialog), so their menus cannot drift. Declared last: it reads `BUILT_IN`.
+ * dialog), so their menus cannot drift. Pass the current selection so a
+ * selected unshipped code stays visible.
  */
-export const COLLECTION_STATUS_FACET_GROUPS: readonly FacetedFilterGroup[] =
-  COLLECTION_STATUS_GROUPS.map(({ group, label, codes }) => ({
+export function collectionStatusFacetGroups(
+  selected: Iterable<string> = [],
+): FacetedFilterGroup[] {
+  return collectionStatusGroups(selected).map(({ group, label, codes }) => ({
     label,
     tone: collectionStatusGroupTone(group),
     options: codes.map((code) => {
@@ -119,3 +149,8 @@ export const COLLECTION_STATUS_FACET_GROUPS: readonly FacetedFilterGroup[] =
       return { label: view.label, value: code, tone: view.tone };
     }),
   }));
+}
+
+/** The facet groups a fresh menu offers: shipped codes only. */
+export const COLLECTION_STATUS_FACET_GROUPS: readonly FacetedFilterGroup[] =
+  collectionStatusFacetGroups();

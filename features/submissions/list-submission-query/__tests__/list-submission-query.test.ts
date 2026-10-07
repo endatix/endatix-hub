@@ -387,6 +387,18 @@ describe("submissionListUrlStateFromClientFilters", () => {
   });
 });
 
+describe("collectionStatus URL with unshipped codes", () => {
+  it("keeps built-in codes the menu no longer offers", () => {
+    // Act
+    const parsed = parseSubmissionListSearchParams({
+      collectionStatus: "viewed,expired,cancelled,bogus",
+    });
+
+    // Assert
+    expect(parsed.collectionStatus).toEqual(["viewed", "expired", "cancelled"]);
+  });
+});
+
 describe("legacy isComplete URL", () => {
   it("reads isComplete=true as the complete collection status", () => {
     // Act

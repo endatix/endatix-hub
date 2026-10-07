@@ -1,7 +1,5 @@
-import {
-  COLLECTION_STATUS_FILTER_CODES,
-  collectionStatusFromLegacyIsComplete,
-} from "@/features/submissions/ui/describe-collection-status";
+import { BUILT_IN_COLLECTION_STATUSES } from "@/features/submissions/domain";
+import { collectionStatusFromLegacyIsComplete } from "@/features/submissions/ui/describe-collection-status";
 import type { ListSubmissionsRequest } from "@/lib/endatix-api/submissions/types";
 import {
   parseCalendarDateYmd,
@@ -151,7 +149,7 @@ function parseCollectionStatusFilter(
 ) {
   const raw = firstString(searchParams[searchParamKeys.collectionStatus]);
   if (raw !== undefined) {
-    return parseSubmissionListFilterValues(raw, COLLECTION_STATUS_FILTER_CODES);
+    return parseSubmissionListFilterValues(raw, BUILT_IN_COLLECTION_STATUSES);
   }
   return collectionStatusFromLegacyIsComplete(
     firstString(searchParams[LEGACY_IS_COMPLETE_KEY]),

@@ -9,7 +9,7 @@ import {
   type SubmissionListUrlState,
 } from "@/features/submissions/list-submission-query";
 import { ExportSubmissionsButton } from "@/features/export";
-import { COLLECTION_STATUS_FACET_GROUPS } from "@/features/submissions/ui/describe-collection-status";
+import { collectionStatusFacetGroups } from "@/features/submissions/ui/describe-collection-status";
 import { SubmissionsFilterToolbar } from "@/features/submissions/ui/filters/submissions-filter-toolbar";
 import { useSubmissionExportListFilters } from "@/features/submissions/ui/submission-export-list-filters";
 import { NoSubmissionsEmptyState } from "@/features/submissions/ui/submissions-empty-state";
@@ -290,7 +290,7 @@ function SubmissionsContent({
               disabled={disableTableControls}
               useReportingExport={useReportingExport}
               listFilters={exportListFilters}
-              statusGroups={COLLECTION_STATUS_FACET_GROUPS}
+              statusGroups={collectionStatusFacetGroups(collectionStatusFilter)}
             />
           </>
         }

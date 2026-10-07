@@ -1,4 +1,4 @@
-import { COLLECTION_STATUS_FILTER_CODES } from "@/features/submissions/ui/describe-collection-status";
+import { BUILT_IN_COLLECTION_STATUSES } from "@/features/submissions/domain";
 import {
   SUBMISSION_LIST_BOOLEAN_FILTER_VALUES,
   SUBMISSION_LIST_REVIEW_STATUS_VALUES,
@@ -46,7 +46,7 @@ export function submissionListUrlStateFromClientFilters(input: {
     pageSize: input.pageSize,
     collectionStatus: parseSubmissionListFilterValues(
       sortedSetToCsv(input.collectionStatus),
-      COLLECTION_STATUS_FILTER_CODES,
+      BUILT_IN_COLLECTION_STATUSES,
     ),
     status: parseSubmissionListFilterValues(
       sortedSetToCsv(input.status),
