@@ -41,20 +41,18 @@ if (command === "--export") {
 }
 
 function runWithDevCert(name, rest) {
+  // On Unix the child leads its own process group, so a SIGINT (terminal
+  // Ctrl+C or a signal to this PID) reaches only this process. It is forwarded
+  // once. A second SIGINT makes Playwright force-quit and skip cleanup.
+  // Windows shares the console; detaching would open a second window.
   const child = spawn(process.execPath, [...resolveEntry(name), ...rest], {
     stdio: "inherit",
     env: withDevCertEnv(process.env),
+    detached: process.platform !== "win32",
   });
 
-  // In a terminal, Ctrl+C already reaches the child; a second SIGINT makes
-  // Playwright force-quit and skip cleanup. Without a terminal (a process
-  // manager signalling this PID), SIGINT is forwarded. Either way this process
-  // stays until the child exits.
-  const terminalDeliversSigint = Boolean(process.stdin.isTTY);
   process.on("SIGINT", () => {
-    if (!terminalDeliversSigint) {
-      child.kill("SIGINT");
-    }
+    child.kill("SIGINT");
   });
   const forwarded =
     process.platform === "win32"
