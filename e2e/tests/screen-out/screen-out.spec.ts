@@ -23,6 +23,7 @@ test.describe("Screen-out", () => {
   let api: EndatixApi;
 
   test.beforeAll(async () => {
+    // Local runs without Hub credentials skip; CI sets E2E_EMAIL and E2E_PASSWORD.
     test.skip(!e2eCredentials(), "Set E2E_EMAIL and E2E_PASSWORD.");
     api = await signInE2eApi();
   });
