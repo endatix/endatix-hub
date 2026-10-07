@@ -211,13 +211,13 @@ that manifest (whitelist) instead of client-side JSON analysis.
 
 ### Utils hierarchy — check before adding slice-local helpers
 
-| Layer                  | Path                                  | Use for                                                                                                                                       |
-| ---------------------- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| Generic                | `lib/utils/`                          | Domain-agnostic parse/format (`type-parsers.ts`, `type-validators.ts`)                                                                        |
-| SurveyJS types/vocab   | `lib/survey-js/`                      | Closed unions and constants that subset/extend vendor types. Prefer these over feature-local string lists. See `AGENTS.md` (SurveyJS domain). |
-| SurveyJS shared        | `lib/utils/survey/`                   | Reusable SurveyJS compute/copy (`getChoicesFromSourceQuestion`, `copyChoiceItem`, `normalizeChoiceKey`, `extractUniqueChoicesBy`)             |
-| Platform cross-feature | `lib/survey-features/infrastructure/` | Extension wiring shared across slices (`creator-survey-bindings`, `choice-source-mutual-exclusion`, lazy-load guards)                         |
-| Feature slice          | `lib/survey-features/{feature}/`      | edx Serializer props, Creator registry, bindings, feature-only product rules                                                                  |
+| Layer                  | Path                                  | Use for                                                                                                                                        |
+| ---------------------- | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Generic                | `lib/utils/`                          | Domain-agnostic parse/format (`type-parsers.ts`, `type-validators.ts`)                                                                         |
+| SurveyJS types/vocab   | `lib/survey-js/`                      | Closed unions and constants that subset/extend vendor types. Prefer these over feature-local string lists. See `AGENTS.md` (SurveyJS domain).  |
+| SurveyJS shared        | `lib/utils/survey/`                   | Reusable SurveyJS compute/copy (`getChoicesFromSourceQuestion`, `copyChoiceItem`, `normalizeChoiceKey`, `extractUniqueChoicesBy`)              |
+| Platform cross-feature | `lib/survey-features/infrastructure/` | Extension wiring shared across slices (`creator-survey-bindings`, `choice-source-mutual-exclusion`, lazy-load guards, `creator-logic-trigger`) |
+| Feature slice          | `lib/survey-features/{feature}/`      | edx Serializer props, Creator registry, bindings, feature-only product rules                                                                   |
 
 **Rules:**
 
@@ -349,6 +349,7 @@ Run: `pnpm test` from `hub/` (filter by feature path).
 - [ ] `creator-bindings.ts` and `survey-bindings.ts` separated
 - [ ] Tests for state, registry, and bindings
 - [ ] `ENDATIX_ENABLE_EXTENSIONS=true` required until h709 PR-2 lands (extensions off = runtime no-op)
+- [ ] No feature calls in editor or preview hosts (`form-editor`, `form-template-editor`, `preview-form`). If the Creator UI only works with the flag on, say so in the feature README — do not route around the gate.
 
 ---
 
@@ -452,10 +453,55 @@ the opt-in stays gated by `ENDATIX_ENABLE_EXTENSIONS` like other core features.
 
 ### Known gaps (h709 / h742 — do not fix in feature PRs)
 
-| Gap                                              | Today's workaround                                    | Owner                                |
-| ------------------------------------------------ | ----------------------------------------------------- | ------------------------------------ |
-| `core-registry` entry does not auto-run `onInit` | Every surface calls `useSurveyExtensions`             | h709 unified bootstrap               |
-| `onInit` runs in `useEffect` (after paint)       | Gate `new Model` on `isReady`                         | h742 sync globals on survey surfaces |
-| Flag defaults off                                | Document `ENDATIX_ENABLE_EXTENSIONS=true` as required | h709 remove experimental gate        |
-| No Node/server extension loader                  | PDF keeps `registerXModel()`                          | h709/h742 server-safe bootstrap      |
-| Per-surface `isReady` glue duplicates            | Accept until bootstrap lands                          | h709 remove per-surface glue         |
+| Gap                                                 | Today's workaround                                                  | Owner                                |
+| --------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------ |
+| `core-registry` entry does not auto-run `onInit`    | Every surface calls `useSurveyExtensions`                           | h709 unified bootstrap               |
+| `onInit` runs in `useEffect` (after paint)          | Gate `new Model` on `isReady`                                       | h742 sync globals on survey surfaces |
+| Flag defaults off                                   | Document `ENDATIX_ENABLE_EXTENSIONS=true` as required               | h709 remove experimental gate        |
+| No Node/server extension loader                     | PDF keeps `registerXModel()`                                        | h709/h742 server-safe bootstrap      |
+| Per-surface `isReady` glue duplicates               | Accept until bootstrap lands                                        | h709 remove per-surface glue         |
+| Core Creator UI absent with the flag off            | Document `ENDATIX_ENABLE_EXTENSIONS=true` in the feature README     | h709 remove experimental gate        |
+| `onCreatorReady` resolves after `new SurveyCreator` | `creator.updateLocalizedStrings()` after late Creator globals (§12) | h709 awaited designer lane           |
+
+---
+
+## 12. Custom triggers and other Creator-global registries
+
+**Canonical example:** [lib/survey-features/screen-out](lib/survey-features/screen-out).
+
+A custom trigger has two halves, and they register in different places:
+
+| Half                                                                           | Where                                                      | Why                                                                                                                                                                                                                                                                            |
+| ------------------------------------------------------------------------------ | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `Serializer.addClass("xtrigger", [], () => new XTrigger(), "completetrigger")` | **Module scope** of `x.extension.ts`, idempotent           | It is the form JSON schema. survey-core registers its own triggers the same way (`trigger.ts`). Without it, `fromJSON` → `toJSON` (Creator load, JSON editor save) silently deletes the trigger, whatever the flag. Move into `onInit` when h709 makes `onInit` unconditional. |
+| Creator UI: Logic tab action + labels                                          | `onCreatorReady` → dynamic import of `creator-bindings.ts` | Keeps `survey-creator-core` out of the respondent graph.                                                                                                                                                                                                                       |
+
+Use the shared helper — do not hand-roll `SurveyLogic.types` pushes:
+
+```typescript
+// creator-bindings.ts
+import { registerCreatorLogicTrigger } from '@/lib/survey-features/infrastructure/creator-logic-trigger';
+
+export function bindXToCreator(creator: SurveyCreatorModel): void {
+  registerCreatorLogicTrigger({ type: 'x', className: 'xtrigger', label: '…', description: '…', actionText: '…' });
+  creator.updateLocalizedStrings();
+}
+```
+
+How Creator reads these (survey-creator-core 3.x) — none of it is copied at construction:
+
+- Property grid trigger dropdown: `editorLocalization.getTriggerName(class)` → `triggers.<class>`.
+  The `{value, text}` choices are **snapshotted** when the triggers matrix cell is built.
+- Logic tab: `SurveyLogic.types` is read when the tab **activates**; labels from `ed.lg.trigger_<type>{Name,Description,Text}`.
+- All lookups fall back to `getLocaleStrings("en")`. Write there only; `editorLocalization.getLocale("")` is the same object.
+
+`onCreatorReady` resolves after `new SurveyCreator`, so the survey's property grid
+already holds the raw class name. `creator.updateLocalizedStrings()` re-selects the
+element and refreshes the active tab. `creator-bindings.test.ts` in screen-out fails
+without it — keep that test shape for new triggers.
+
+**Not `onSurveyInstanceCreated`.** It fires per survey instance (designer, preview,
+property grid, `logic-items`, …) — use it (or `onPreviewSurveyCreated`) for
+per-instance behavior on Creator-made surveys, e.g. a Preview-tab message. It is
+too late and too frequent for process-wide registries: the `logic-items` survey is
+created after `SurveyLogic` already read `types`.

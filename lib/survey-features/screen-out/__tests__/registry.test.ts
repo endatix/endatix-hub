@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { editorLocalization, getLocaleStrings } from "survey-creator-core";
 import { isScreenOutTrigger, SCREEN_OUT_TRIGGER_CLASS } from "../constants";
-import { registerScreenOutLogicAction } from "../infrastructure/creator-bindings";
+import { registerScreenOutCreatorUi } from "../infrastructure/creator-bindings";
 import { registerScreenOutTrigger } from "../infrastructure/registry";
 import { Serializer } from "survey-core";
 
@@ -22,7 +22,7 @@ describe("screen-out trigger", () => {
   });
 
   it("labels the trigger Screen out", () => {
-    registerScreenOutLogicAction();
+    registerScreenOutCreatorUi();
     const strings = getLocaleStrings("en");
 
     expect(strings.triggers[SCREEN_OUT_TRIGGER_CLASS]).toBe("Screen out");

@@ -5,7 +5,6 @@ import { useAnyAnswered } from "@/lib/survey-features/any-answered";
 import { useRichTextEditing } from "@/lib/survey-features/rich-text";
 import { useLoopAwareSummaryTableEditing } from "@/lib/survey-features/summary-table";
 import { useSurveyExtensions } from "@/lib/survey-extensions/ui/use-survey-extensions";
-import { registerScreenOutLogicAction } from "@/lib/survey-features/screen-out/infrastructure/creator-bindings";
 import { SURVEY_CREATOR_BUILT_IN_TAB } from "@/lib/survey-js";
 import { applyEndatixCreatorTheme } from "@/lib/themes/creator-theme";
 import { registerThemes } from "@/lib/themes/survey-theme";
@@ -61,35 +60,22 @@ const PreviewForm = ({ model, slkVal }: PreviewFormProps) => {
       return;
     }
 
-    let cancelled = false;
-    let cleanupQuestionLoops: (() => void) | undefined;
+    if (slkVal) {
+      slk(slkVal);
+    }
 
-    const initialize = async () => {
-      if (slkVal) {
-        slk(slkVal);
-      }
+    initAnyAnsweredGlobals();
+    initQuestionLoopsGlobals();
+    const newCreator = new SurveyCreator(creatorOptions);
+    const cleanupQuestionLoops = bindQuestionLoops(newCreator);
+    newCreator.JSON = model;
+    newCreator.activeTab = SURVEY_CREATOR_BUILT_IN_TAB.preview;
+    newCreator.theme = BorderlessLight;
 
-      initAnyAnsweredGlobals();
-      initQuestionLoopsGlobals();
-      if (cancelled) {
-        return;
-      }
-
-      registerScreenOutLogicAction();
-      const newCreator = new SurveyCreator(creatorOptions);
-      cleanupQuestionLoops = bindQuestionLoops(newCreator);
-      newCreator.JSON = model;
-      newCreator.activeTab = SURVEY_CREATOR_BUILT_IN_TAB.preview;
-      newCreator.theme = BorderlessLight;
-
-      onCreatorCreated(newCreator);
-      setCreator(newCreator);
-    };
-
-    void initialize();
+    onCreatorCreated(newCreator);
+    setCreator(newCreator);
 
     return () => {
-      cancelled = true;
       cleanupQuestionLoops?.();
     };
   }, [
