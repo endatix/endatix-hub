@@ -48,7 +48,7 @@ const defaultProps: SurveyJsWrapperProps = {
       modifiedAt: new Date(),
     },
     formId: "form-1",
-    submissionPhase: "active",
+    submissionPhase: "resume",
     isRespondentTestMode: false,
     storageConfig: null,
     variant: "share",
@@ -70,13 +70,56 @@ describe("SurveyJsWrapper", () => {
     expect(screen.queryByTestId("respondent-test-mode-badge")).toBeNull();
   });
 
-  it("renders submission already completed when access token submission is complete on page load", () => {
+  it("shows the completed page when a screen-out is reloaded", () => {
     render(
       <SurveyJsWrapper
         {...defaultProps}
         survey={{
           ...defaultProps.survey,
-          submissionPhase: "active",
+          submissionPhase: "closed",
+          submission: {
+            id: "submission-1",
+            formId: "form-1",
+            formDefinitionId: "definition-1",
+            isComplete: false,
+            collectionStatus: "screen_out",
+            jsonData: "{}",
+            currentPage: 0,
+            metadata: "{}",
+            token: "submission-token",
+            createdAt: new Date(),
+            modifiedAt: new Date(),
+            status: "draft",
+          },
+        }}
+      />,
+    );
+
+    expect(screen.getByText("This form has already been completed.")).toBeDefined();
+    expect(screen.queryByText("Response recorded")).toBeNull();
+  });
+
+  it("renders the closed status for a non-screen-out closed submission", () => {
+    render(
+      <SurveyJsWrapper
+        {...defaultProps}
+        survey={{ ...defaultProps.survey, submissionPhase: "closed" }}
+      />,
+    );
+
+    expect(screen.getByText("Response recorded")).toBeDefined();
+    expect(
+      screen.getByText("This response is closed and cannot be continued."),
+    ).toBeDefined();
+  });
+
+  it("renders submission already completed when the gate phase is completed", () => {
+    render(
+      <SurveyJsWrapper
+        {...defaultProps}
+        survey={{
+          ...defaultProps.survey,
+          submissionPhase: "completed",
           urlToken: "access-token",
           submission: {
             id: "submission-1",
@@ -87,8 +130,8 @@ describe("SurveyJsWrapper", () => {
             currentPage: 0,
             metadata: "{}",
             token: "submission-token",
-            createdAt: new Date().toISOString(),
-            modifiedAt: new Date().toISOString(),
+            createdAt: new Date(),
+            modifiedAt: new Date(),
             status: "completed",
           },
         }}

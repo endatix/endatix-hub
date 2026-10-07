@@ -1,5 +1,7 @@
-import { resolveSubmissionGate } from "@/features/public-form/domain/submission-gate";
-import type { SubmissionGatePhase } from "@/features/public-form/domain/submission-gate";
+import {
+  resolveSubmissionGate,
+  type SubmissionGatePhase,
+} from "@/features/submissions/domain/submission-gate";
 import type { FormTokenCookieStore } from "@/features/public-form/infrastructure/cookie-store";
 import { getActiveDefinitionUseCase } from "@/features/public-form/use-cases/get-active-definition.use-case";
 import { getPartialSubmissionUseCase } from "@/features/public-form/use-cases/get-partial-submission.use-case";
@@ -106,18 +108,16 @@ export async function loadPublicSurveyPageUseCase({
     return { kind: "notFound" };
   }
 
-  const hasResumableDraft = Boolean(
-    submissionResult.value?.id && !submissionResult.value.isComplete,
-  );
-
   return {
     kind: "success",
     activeDefinition: activeDefinitionResult.value,
     submissionPhase: resolveSubmissionGate({
       canStartNewSubmission: publicFormAccessResult.value.canStartNewSubmission,
       hasUserSubmitted: publicFormAccessResult.value.hasUserSubmitted,
-      hasResumableDraft,
       hasUrlToken: false,
+      hasSubmission: Boolean(submissionResult.value?.id),
+      collectionStatus: submissionResult.value?.collectionStatus,
+      isComplete: submissionResult.value?.isComplete ?? false,
     }),
     isRespondentTestMode: publicFormAccessResult.value.isRespondentTestMode,
     submission: submissionResult.value,
@@ -154,18 +154,16 @@ async function loadAccessTokenSurveyPage({
     return { kind: "notFound" };
   }
 
-  const hasResumableDraft = Boolean(
-    submissionResult.value.id && !submissionResult.value.isComplete,
-  );
-
   return {
     kind: "success",
     activeDefinition: activeDefinitionResult.value,
     submissionPhase: resolveSubmissionGate({
       canStartNewSubmission: publicFormAccessResult.value.canStartNewSubmission,
       hasUserSubmitted: publicFormAccessResult.value.hasUserSubmitted,
-      hasResumableDraft,
       hasUrlToken: true,
+      hasSubmission: Boolean(submissionResult.value.id),
+      collectionStatus: submissionResult.value.collectionStatus,
+      isComplete: submissionResult.value.isComplete,
     }),
     isRespondentTestMode: publicFormAccessResult.value.isRespondentTestMode,
     submission: submissionResult.value,

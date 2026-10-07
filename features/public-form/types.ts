@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { SubmissionGatePhase } from "@/features/public-form/domain/submission-gate";
+import type { SubmissionGatePhase } from "@/features/submissions/domain/submission-gate";
 import type { Submission } from "@/lib/endatix-api";
 import type { ClientStorageConfig } from "@endatix/storage-core";
 import type { ActiveDefinition } from "@/types";

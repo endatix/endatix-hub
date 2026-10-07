@@ -167,7 +167,7 @@ describe("loadPublicSurveyPageUseCase", () => {
 
     expect(result).toMatchObject({
       kind: "success",
-      submissionPhase: "active",
+      submissionPhase: "resume",
       activeDefinition,
     });
   });
@@ -195,7 +195,7 @@ describe("loadPublicSurveyPageUseCase", () => {
 
     expect(result).toMatchObject({
       kind: "success",
-      submissionPhase: "active",
+      submissionPhase: "resume",
       submission: { id: "submission-1" },
     });
   });
@@ -218,7 +218,7 @@ describe("loadPublicSurveyPageUseCase", () => {
     if (result.kind === "success") {
       expect(result.activeDefinition.jsonData).toBe('{"title":"Snapshot"}');
       expect(result.submission).toBe(accessTokenSubmission);
-      expect(result.submissionPhase).toBe("active");
+      expect(result.submissionPhase).toBe("resume");
     }
 
     expect(getSubmissionByAccessTokenUseCase).toHaveBeenCalledWith({
@@ -254,7 +254,7 @@ describe("loadPublicSurveyPageUseCase", () => {
 
     expect(result.kind).toBe("success");
     if (result.kind === "success") {
-      expect(result.submissionPhase).toBe("active");
+      expect(result.submissionPhase).toBe("completed");
       expect(result.submission).toBe(completedSubmission);
     }
     expect(getActiveDefinitionUseCase).not.toHaveBeenCalled();
@@ -477,7 +477,10 @@ describe("loadPublicSurveyPageUseCase", () => {
         "Thank you for your interest. Unfortunately, this survey can no longer be completed.",
         undefined,
         ERROR_CODE.FORM_UNAVAILABLE,
-        { problemTitle: "This survey is no longer available.", problemMediaType: "application/problem+json" },
+        {
+          problemTitle: "This survey is no longer available.",
+          problemMediaType: "application/problem+json",
+        },
       ),
     );
 

@@ -11,6 +11,7 @@ import { useSurveyExtensions } from "@/lib/survey-extensions/ui/use-survey-exten
 import dynamic from "next/dynamic";
 import AlreadyResponded from "./already-responded";
 import SubmissionAlreadyCompleted from "./submission-already-completed";
+import SubmissionClosed from "./submission-closed";
 
 const SurveyComponent = dynamic(() => import("./survey-component"), {
   ssr: false,
@@ -34,8 +35,15 @@ const SurveyJsWrapper = (props: SurveyJsWrapperProps) => {
     );
   }
 
-  if (shouldShowSubmissionCompleted(survey)) {
+  if (
+    survey.submissionPhase === "completed" ||
+    survey.submission?.collectionStatus === "screen_out"
+  ) {
     return <SubmissionAlreadyCompleted variant={survey.variant} />;
+  }
+
+  if (survey.submissionPhase === "closed") {
+    return <SubmissionClosed variant={survey.variant} />;
   }
 
   return (
@@ -97,18 +105,5 @@ const SurveyJsWrapperInner = (props: SurveyJsWrapperProps) => {
     />
   );
 };
-
-function shouldShowSubmissionCompleted(
-  survey: PublicSurveyRuntimeProps,
-): boolean {
-  const isShareOrEmbed =
-    survey.variant === "share" || survey.variant === "embed";
-
-  if (!isShareOrEmbed) {
-    return false;
-  }
-
-  return Boolean(survey.urlToken && survey.submission?.isComplete);
-}
 
 export default SurveyJsWrapper;

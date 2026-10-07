@@ -330,6 +330,10 @@ export default function SurveyComponent({
   );
 
   useEffect(() => {
+    screenOutRef.current = false;
+  }, [surveyModel]);
+
+  useEffect(() => {
     if (!surveyModel) {
       return;
     }

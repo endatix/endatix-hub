@@ -64,7 +64,7 @@ test.describe("Screen-out", () => {
           await expectReloadedCopy(
             page,
             surface,
-            "This response is closed and cannot be continued.",
+            "This form has already been completed.",
           );
 
           await answerAge(page, surface, completed, "18 or older");
