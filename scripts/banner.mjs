@@ -58,13 +58,19 @@ export async function printBanner() {
   if (depth < 24) {
     return;
   }
-  for (let frame = 0; frame <= FRAMES; frame++) {
-    await sleep(FRAME_MS);
-    const sweep = frame === FRAMES ? null : easeInOut(frame / (FRAMES - 1));
-    // Back to the first logo row, clear and redraw each line, then return
-    // below the blank line.
-    const lines = draw(sweep).map((line) => `\x1b[2K${line}`);
-    out.write(`\x1b[${ICON.length + 1}A\r${lines.join("\n")}\n\n`);
+  await playSweep(0, draw, out);
+}
+
+/** One frame of the colour sweep, then the next, until the logo settles on brand blue. */
+async function playSweep(frame, draw, out) {
+  await sleep(FRAME_MS);
+  const sweep = frame === FRAMES ? null : easeInOut(frame / (FRAMES - 1));
+  // Back to the first logo row, clear and redraw each line, then return
+  // below the blank line.
+  const lines = draw(sweep).map((line) => `\x1b[2K${line}`);
+  out.write(`\x1b[${ICON.length + 1}A\r${lines.join("\n")}\n\n`);
+  if (frame < FRAMES) {
+    await playSweep(frame + 1, draw, out);
   }
 }
 

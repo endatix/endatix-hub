@@ -27,9 +27,8 @@ export function logAuthProviders(
     if (status.state === "active") {
       console.info(`  ${styles.green("✓")} ${status.id}`);
     } else {
-      console.warn(
-        `  ${styles.red("✗")} ${status.id} ${styles.dim(`(${reason(status)})`)}`,
-      );
+      const detail = styles.dim(`(${reason(status)})`);
+      console.warn(`  ${styles.red("✗")} ${status.id} ${detail}`);
     }
   }
 }
