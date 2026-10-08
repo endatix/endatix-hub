@@ -96,11 +96,11 @@ It can be deployed to on-premise servers, cloud environments such as **Azure**, 
    - `SESSION_SECRET` — `openssl rand -hex 32`
    - `AUTH_SECRET` — `npx auth secret`
      Optional behind a proxy: `AUTH_URL`, `AUTH_TRUST_HOST`. See `.env.example` for the full key list.
-4. Run the development server with `pnpm dev`
+4. Run the development server with `pnpm dev`. With a .NET SDK installed, the first run exports the API's dev certificate so the Hub trusts `https://localhost:5001`; a remote or `http` API needs nothing.
 5. Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
 > [!TIP]
-> You can also run the website with self-signed SSL enabled by running `pnpm dev-https`, which will make the website available at [https://localhost:3000](https://localhost:3000).
+> You can also run the website with self-signed SSL enabled by running `pnpm dev-https`, which will make the website available at [https://localhost:3000](https://localhost:3000). The server still trusts the local API's dev certificate.
 > More info at [Next.js documentation](https://vercel.com/guides/access-nextjs-localhost-https-certificate-self-signed).
 
 > [!NOTE]

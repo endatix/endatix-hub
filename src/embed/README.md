@@ -62,7 +62,7 @@ The embed SDK is built **before** the Next.js dev server starts via the `predev`
 {
   "scripts": {
     "predev": "node scripts/build-embed.mjs",
-    "dev": "pnpm discover-questions && cross-env NODE_TLS_REJECT_UNAUTHORIZED=0 next dev"
+    "dev": "pnpm discover-questions && node scripts/with-dev-cert.mjs next dev"
   }
 }
 ```
