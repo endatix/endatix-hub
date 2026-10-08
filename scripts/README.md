@@ -68,9 +68,17 @@ Avoids `cp -r` shell commands, which fail on Windows because pnpm runs scripts t
 node scripts/copy-standalone.mjs
 ```
 
+## Dev Server Script
+
+### `dev.mjs`
+
+`pnpm dev`, `pnpm dev:inspect` and `pnpm dev-https` run it. It builds the embed SDK, discovers custom questions, then starts `next dev` through `dev-cert.mjs` (`runWithDevCert`). Each step prints one status line, and its own output shows when it fails or warns (writes to stderr). Extra args go to `next dev` (`pnpm dev -p 3001`).
+
 ## Dev Certificate Script
 
-### `with-dev-cert.mjs`
+### `with-dev-cert.mjs` and `dev-cert.mjs`
+
+`with-dev-cert.mjs` is the CLI; the logic lives in `dev-cert.mjs`, which `dev.mjs` imports.
 
 Runs a Node CLI (`next`, `playwright`, `node`) with the local .NET HTTPS dev certificate trusted through `NODE_EXTRA_CA_CERTS`, so the Hub reaches `https://localhost:5001` without turning certificate checks off. `dev`, `dev:inspect`, `dev-https`, `run:standalone` and all `test:e2e*` package scripts use it (`dev:embed` does not). Details: `e2e/README.md` → Screen-out.
 

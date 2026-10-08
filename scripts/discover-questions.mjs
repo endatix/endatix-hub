@@ -34,10 +34,10 @@ try {
       })
       .sort(); // Sort for consistent ordering
   } else {
-    console.log(`⚠️ Questions directory not found: ${questionsDir}`);
+    console.warn(`⚠️ Questions directory not found: ${questionsDir}`);
   }
 } catch (error) {
-  console.log(`⚠️ Error reading questions directory: ${error.message}`);
+  console.warn(`⚠️ Error reading questions directory: ${error.message}`);
 }
 
 // Generate the registry content

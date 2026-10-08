@@ -122,7 +122,7 @@ security add-generic-password -U -a e2e -s endatix-hub-e2e -w
 # type the password, then press Return
 ```
 
-The API is WebHost (`dotnet run` in `oss/src/Endatix.WebHost`), `https://localhost:5001` and `http://localhost:5000`. Node does not trust its dev certificate, so `pnpm dev`, `dev:inspect`, `dev-https`, `run:standalone`, `test:e2e`, `test:e2e:ui`, `test:e2e:smoke` and `test:e2e:debug` run through `scripts/with-dev-cert.mjs` (`dev:embed` does not call the API and does not). It sets `NODE_EXTRA_CA_CERTS` to `~/.aspnet/https/aspnetapp.pem` for the child process only. Other invalid certificates are still rejected. When that file is missing and a .NET SDK is installed, the first run exports it, the way `next dev --experimental-https` creates its own certificate on demand:
+The API is WebHost (`dotnet run` in `oss/src/Endatix.WebHost`), `https://localhost:5001` and `http://localhost:5000`. Node does not trust its dev certificate, so `pnpm dev`, `dev:inspect`, `dev-https`, `run:standalone`, `test:e2e`, `test:e2e:ui`, `test:e2e:smoke` and `test:e2e:debug` run through `scripts/with-dev-cert.mjs` (the three dev scripts through `scripts/dev.mjs`, which uses the same `scripts/dev-cert.mjs`; `dev:embed` does not call the API and does not). It sets `NODE_EXTRA_CA_CERTS` to `~/.aspnet/https/aspnetapp.pem` for the child process only. Other invalid certificates are still rejected. When that file is missing and a .NET SDK is installed, the first run exports it, the way `next dev --experimental-https` creates its own certificate on demand:
 
 ```bash
 pnpm test:e2e --grep "Screen-out" --workers=1
