@@ -2,6 +2,7 @@ import { NextAuthConfig } from "next-auth";
 import { AuthProviderRegistry } from "./auth-provider-registry";
 import { AuthPresentation } from "./types";
 import { invalidateUserAuthorizationCache } from "../authorization/application/authorization-data.provider";
+import { configuredSecureCookies } from "./session-utils";
 
 // Safe margin in seconds to expire session before actual expiration
 const SESSION_EXPIRATION_SAFE_MARGIN_SECONDS = 10;
@@ -92,13 +93,19 @@ export function createAuthConfig(
       signOut: "/signout",
       error: "/auth-error",
     },
-    session: {
-      strategy: "jwt",
-      ...(process.env.SESSION_MAX_AGE_IN_MINUTES && {
-        maxAge: parseInt(process.env.SESSION_MAX_AGE_IN_MINUTES) * 60,
-        updateAge: parseInt(process.env.SESSION_MAX_AGE_IN_MINUTES) * 60,
-      }),
-    },
+    session: sessionConfig(),
     trustHost: true,
+    useSecureCookies: configuredSecureCookies(),
+  };
+}
+
+function sessionConfig(): NextAuthConfig["session"] {
+  const maxAgeMinutes = process.env.SESSION_MAX_AGE_IN_MINUTES;
+  return {
+    strategy: "jwt",
+    ...(maxAgeMinutes && {
+      maxAge: parseInt(maxAgeMinutes) * 60,
+      updateAge: parseInt(maxAgeMinutes) * 60,
+    }),
   };
 }

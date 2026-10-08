@@ -16,14 +16,13 @@ export function resolveFederatedLogoutUrl(token: JWT | null): string | null {
     return null;
   }
 
-  const authUrl = readAuthUrl();
-  if (!authUrl) {
+  const provider = authRegistry.getProvider(token.provider);
+  if (!supportsFederatedLogout(provider)) {
     return null;
   }
 
-  const provider = authRegistry.getProvider(token.provider);
-
-  if (!supportsFederatedLogout(provider)) {
+  const authUrl = readAuthUrl();
+  if (!authUrl) {
     return null;
   }
 

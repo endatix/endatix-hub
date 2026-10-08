@@ -2,6 +2,7 @@ import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { getToken } from "next-auth/jwt";
 import { TelemetryLogger } from "@/features/telemetry";
 import {
+  configuredSecureCookies,
   sessionCookieName,
   shouldUseSecureSessionCookie,
 } from "../session-utils";
@@ -25,9 +26,14 @@ const SECURE = "__Secure-authjs.session-token";
 const PLAIN = "authjs.session-token";
 
 describe("shouldUseSecureSessionCookie", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it.each([
     ["HTTP direct", undefined, "http", false, PLAIN],
     ["HTTPS direct", undefined, "https", true, SECURE],
+    ["no forwarded proto", undefined, null, true, SECURE],
     [
       "HTTP internal, public https",
       "https://hub.example.com",
@@ -38,7 +44,7 @@ describe("shouldUseSecureSessionCookie", () => {
     [
       "HTTPS internal, public https",
       "https://hub.example.com",
-      "https:",
+      "https",
       true,
       SECURE,
     ],
@@ -57,16 +63,46 @@ describe("shouldUseSecureSessionCookie", () => {
       PLAIN,
     ],
   ])(
-    "%s writes and reads %s",
-    (_label, authUrl, requestProtocol, secure, cookieName) => {
-      const useSecure = shouldUseSecureSessionCookie(authUrl, requestProtocol);
+    "%s picks the expected cookie name",
+    (_label, authUrl, forwardedProto, secure, cookieName) => {
+      vi.stubEnv("AUTH_URL", authUrl);
+      vi.stubEnv("NEXTAUTH_URL", undefined);
+      const requestHeaders = new Headers();
+      if (forwardedProto) {
+        requestHeaders.set("x-forwarded-proto", forwardedProto);
+      }
+
+      const useSecure = shouldUseSecureSessionCookie(requestHeaders);
+
       expect(useSecure).toBe(secure);
       expect(sessionCookieName(useSecure)).toBe(cookieName);
     },
   );
 
   it("does not use the request protocol when AUTH_URL is not a URL", () => {
-    expect(shouldUseSecureSessionCookie("not a url", "https")).toBe(false);
+    vi.stubEnv("AUTH_URL", "not a url");
+    const requestHeaders = new Headers({ "x-forwarded-proto": "https" });
+
+    expect(shouldUseSecureSessionCookie(requestHeaders)).toBe(false);
+  });
+
+  it("uses NEXTAUTH_URL when AUTH_URL is unset, like Auth.js", () => {
+    vi.stubEnv("AUTH_URL", undefined);
+    vi.stubEnv("NEXTAUTH_URL", "https://hub.example.com");
+    const requestHeaders = new Headers({ "x-forwarded-proto": "http" });
+
+    expect(shouldUseSecureSessionCookie(requestHeaders)).toBe(true);
+  });
+});
+
+describe("configuredSecureCookies", () => {
+  it.each([
+    [undefined, undefined],
+    ["https://hub.example.com", true],
+    ["http://localhost:3000", false],
+    ["not a url", false],
+  ])("AUTH_URL %s gives %s", (authUrl, expected) => {
+    expect(configuredSecureCookies(authUrl)).toBe(expected);
   });
 });
 

@@ -78,10 +78,29 @@ describe("resolveFederatedLogoutUrl", () => {
     const logoutUrl = resolveFederatedLogoutUrl(token);
 
     expect(logoutUrl).toBeNull();
-    expect(mocks.getProvider).not.toHaveBeenCalled();
+    expect(mockProvider.resolveFederatedLogoutUrl).not.toHaveBeenCalled();
     expect(mocks.telemetryWarn).toHaveBeenCalledWith(
       "Federated logout requested but AUTH_URL is not a valid URL",
       { reason: "auth_url_invalid" },
+      "auth.logout",
+    );
+  });
+
+  it("does not warn about AUTH_URL for a provider without federated logout", () => {
+    delete process.env.AUTH_URL;
+    mocks.getProvider.mockReturnValue({ id: "endatix" });
+
+    expect(resolveFederatedLogoutUrl(token)).toBeNull();
+    expect(mocks.telemetryWarn).not.toHaveBeenCalled();
+  });
+
+  it("warns when a federated provider is used and AUTH_URL is missing", () => {
+    delete process.env.AUTH_URL;
+
+    expect(resolveFederatedLogoutUrl(token)).toBeNull();
+    expect(mocks.telemetryWarn).toHaveBeenCalledWith(
+      "Federated logout requested but AUTH_URL is missing",
+      { reason: "auth_url_missing" },
       "auth.logout",
     );
   });

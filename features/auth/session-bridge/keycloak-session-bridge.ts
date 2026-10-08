@@ -1,11 +1,12 @@
+import type { CookieOption } from "@auth/core/types";
 import { NextRequest, NextResponse } from "next/server";
 import { AuthTokenSchema, KeycloakTokenResponse } from "./types";
 import {
   getSessionCookieOptions,
-  readAuthPublicUrl,
+  sessionCookieChunks,
   shouldUseSecureSessionCookie,
 } from "../infrastructure/session-utils";
-import { decodeJwt } from "jose";
+import { decodeJwt, type JWTPayload } from "jose";
 import { apiResponses } from "@/lib/utils/route-handlers";
 import { encode } from "next-auth/jwt";
 import { flattenFieldErrors, parseZodError } from "@/lib/utils/zod-error-utils";
@@ -20,10 +21,7 @@ export async function createSessionFromToken(
   request: NextRequest,
 ) {
   try {
-    const useSecureCookies = shouldUseSecureSessionCookie(
-      readAuthPublicUrl(),
-      request.nextUrl.protocol,
-    );
+    const useSecureCookies = shouldUseSecureSessionCookie(request.headers);
     const sessionCookieOptions = getSessionCookieOptions(useSecureCookies);
     const userInfo = decodeJwt(tokenData.id_token);
 
@@ -35,21 +33,9 @@ export async function createSessionFromToken(
       });
     }
 
-    const expires = new Date(Date.now() + tokenData.expires_in * 1000);
-    const authTokenPayload = {
-      id: userInfo.sub ?? userInfo.id,
-      email: userInfo.email,
-      name: userInfo.name ?? userInfo.nickname ?? userInfo.preferred_username,
-      picture: userInfo.picture,
-      access_token: tokenData.access_token,
-      refresh_token: tokenData.refresh_token,
-      provider: KEYCLOAK_ID,
-      iat: Math.floor(Date.now() / 1000),
-      expires_at: expires,
-    };
-
-    const validatedAuthTokenResult =
-      AuthTokenSchema.safeParse(authTokenPayload);
+    const validatedAuthTokenResult = AuthTokenSchema.safeParse(
+      toAuthTokenPayload(tokenData, userInfo),
+    );
 
     if (!validatedAuthTokenResult.success) {
       const parsedAuthTokenErrors = parseZodError(
@@ -85,11 +71,11 @@ export async function createSessionFromToken(
       },
     });
 
-    response.cookies.set(
-      sessionCookieName,
-      jwt,
-      sessionCookieOptions.sessionToken.options,
-    );
+    setSessionCookie(request, response, {
+      name: sessionCookieName,
+      value: jwt,
+      options: sessionCookieOptions.sessionToken.options,
+    });
 
     return response;
   } catch (error) {
@@ -98,5 +84,48 @@ export async function createSessionFromToken(
       title: SERVER_ERROR_TITLE,
       detail: error instanceof Error ? error.message : String(error),
     });
+  }
+}
+
+function toAuthTokenPayload(
+  tokenData: KeycloakTokenResponse,
+  userInfo: JWTPayload,
+) {
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  return {
+    id: userInfo.sub ?? userInfo.id,
+    email: userInfo.email,
+    name: userInfo.name ?? userInfo.nickname ?? userInfo.preferred_username,
+    picture: userInfo.picture,
+    access_token: tokenData.access_token,
+    refresh_token: tokenData.refresh_token,
+    // Kept for Keycloak federated logout (id_token_hint).
+    id_token: tokenData.id_token,
+    provider: KEYCLOAK_ID,
+    iat: nowSeconds,
+    // Epoch seconds, like a regular sign-in, so the jwt callback can expire it.
+    expires_at: nowSeconds + tokenData.expires_in,
+  };
+}
+
+/**
+ * Writes the session token in Auth.js chunks. Auth.js joins every cookie whose
+ * name starts with the session cookie name, so leftovers from an earlier
+ * session are expired.
+ */
+function setSessionCookie(
+  request: NextRequest,
+  response: NextResponse,
+  cookie: { name: string; value: string; options?: CookieOption["options"] },
+): void {
+  const chunks = sessionCookieChunks(cookie.name, cookie.value);
+  const written = new Set(chunks.map((chunk) => chunk.name));
+  for (const chunk of chunks) {
+    response.cookies.set(chunk.name, chunk.value, cookie.options);
+  }
+  for (const { name } of request.cookies.getAll()) {
+    if (name.startsWith(cookie.name) && !written.has(name)) {
+      response.cookies.set(name, "", { ...cookie.options, maxAge: 0 });
+    }
   }
 }

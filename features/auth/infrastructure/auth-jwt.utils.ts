@@ -4,16 +4,9 @@ import { headers } from "next/headers";
 import { TelemetryLogger } from "@/features/telemetry";
 import { LOGOUT_LOGGER_NAME } from "./auth-constants";
 import {
-  readAuthPublicUrl,
   sessionCookieName,
   shouldUseSecureSessionCookie,
 } from "./session-utils";
-
-/**
- * Auth.js `createActionURL` (used by `auth()` and `signOut()`) assumes https
- * when the request carries no `x-forwarded-proto`.
- */
-const AUTHJS_DEFAULT_PROTOCOL = "https";
 
 /**
  * Gets the authentication JWT from the request headers.
@@ -21,12 +14,7 @@ const AUTHJS_DEFAULT_PROTOCOL = "https";
  */
 export async function getAuthJwtFromRequest(): Promise<JWT | null> {
   const requestHeaders = await headers();
-  // Ignored when AUTH_URL is set. Without it this matches Auth.js `signOut()`,
-  // which picks the cookie it clears from x-forwarded-proto.
-  const secureCookie = shouldUseSecureSessionCookie(
-    readAuthPublicUrl(),
-    requestHeaders.get("x-forwarded-proto") ?? AUTHJS_DEFAULT_PROTOCOL,
-  );
+  const secureCookie = shouldUseSecureSessionCookie(requestHeaders);
   const token = await getToken({
     req: { headers: new Headers(requestHeaders) },
     secret: process.env.AUTH_SECRET,
