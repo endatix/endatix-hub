@@ -1,6 +1,7 @@
-// The `pnpm dev` banner, laid out like the Endatix wordmark: the paperclip from
-// public/assets/icons/icon.svg as ASCII art, with the product name and build
-// beside it. Printed only in a terminal; CI and piped logs get no banner.
+// The `pnpm dev` banner, laid out like the Endatix wordmark: the icon from
+// public/assets/icons/icon.svg as 12 x 12 Braille dots, with the product name
+// in bold and the build beside it. Printed only in a terminal; CI and piped
+// logs get no banner.
 
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
@@ -9,10 +10,10 @@ import { styleText } from "node:util";
 
 const hubRoot = path.resolve(import.meta.dirname, "..");
 
-// The paperclip: an outer loop from bottom-left to top-right and the inner
-// wire closing at the bottom.
-const ICON = ["   __", "  / /\\", " / / /", "/_/ /", "\\__/"];
-const TITLE_ROW = 2;
+// The blue square with the paperclip cut out, at the smallest size where the
+// clip still reads (6 x 3 characters).
+const ICON = ["⣾⣿⡿⣛⢿⣷", "⣿⢫⠪⢊⢜⣿", "⢿⣦⣭⣵⣿⡿"];
+const TITLE_ROW = 1;
 const TITLE = "Endatix Hub";
 const BRAND = [0, 84, 209]; // #0054D1
 // Synthwave sweep: hot pink, purple, cyan.

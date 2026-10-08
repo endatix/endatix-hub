@@ -76,7 +76,7 @@ node scripts/copy-standalone.mjs
 
 ### `banner.mjs`
 
-The `pnpm dev` banner, laid out like the Endatix wordmark: the paperclip from `public/assets/icons/icon.svg` as ASCII art in brand blue with `Endatix Hub` and the build beside it: `v0.8.0` for a release, otherwise `branch @ commit`, by the same rules as the About dialog (`lib/hosting/hub-version.ts`; `__tests__/dev-banner.test.ts` keeps them in step). In a 24-bit colour terminal a synthwave gradient sweeps across it once (about 400 ms, while the setup steps run). 256 or 16 colours print it without the sweep, `NO_COLOR` prints it uncoloured, and CI or piped output gets no banner.
+The `pnpm dev` banner, laid out like the Endatix wordmark: the icon from `public/assets/icons/icon.svg` as 12 × 12 Braille dots in brand blue, with `Endatix Hub` in bold with `Endatix Hub` and the build beside it: `v0.8.0` for a release, otherwise `branch @ commit`, by the same rules as the About dialog (`lib/hosting/hub-version.ts`; `__tests__/dev-banner.test.ts` keeps them in step). In a 24-bit colour terminal a synthwave gradient sweeps across it once (about 400 ms, while the setup steps run). 256 or 16 colours print it without the sweep, `NO_COLOR` prints it uncoloured, and CI or piped output gets no banner.
 
 ## Dev Certificate Script
 
