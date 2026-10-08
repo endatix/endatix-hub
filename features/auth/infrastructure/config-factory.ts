@@ -104,8 +104,8 @@ function sessionConfig(): NextAuthConfig["session"] {
   return {
     strategy: "jwt",
     ...(maxAgeMinutes && {
-      maxAge: parseInt(maxAgeMinutes) * 60,
-      updateAge: parseInt(maxAgeMinutes) * 60,
+      maxAge: Number.parseInt(maxAgeMinutes, 10) * 60,
+      updateAge: Number.parseInt(maxAgeMinutes, 10) * 60,
     }),
   };
 }
