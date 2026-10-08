@@ -72,7 +72,7 @@ node scripts/copy-standalone.mjs
 
 ### `dev.mjs`
 
-`pnpm dev`, `pnpm dev:inspect` and `pnpm dev-https` run it. It builds the embed SDK, discovers custom questions, then starts `next dev` through `with-dev-cert.mjs`. Each step prints one status line, and its own output shows when it fails or warns (writes to stderr). Extra args go to `next dev` (`pnpm dev -p 3001`).
+`pnpm dev`, `pnpm dev:inspect` and `pnpm dev-https` run it. It builds the embed SDK, discovers custom questions, then starts `next dev` through `dev-cert.mjs` (`runWithDevCert`). Each step prints one status line, and its own output shows when it fails or warns (writes to stderr). Extra args go to `next dev` (`pnpm dev -p 3001`).
 
 ## Dev Certificate Script
 
