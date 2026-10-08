@@ -18,7 +18,7 @@ export function checkNodeVersion() {
   const { engines } = packageJson as PackageJson;
 
   if (!engines || !engines.node) {
-    console.log(getSuccessMessage());
+    console.log(getSuccessMessage(nodeRuntimeVersion));
     return;
   }
 
@@ -29,18 +29,15 @@ export function checkNodeVersion() {
   ) {
     console.log(getWarningMessage(nodeRuntimeVersion, engines.node));
   } else {
-    console.log(getInfoMessage(nodeRuntimeVersion));
-    console.log(getSuccessMessage());
+    console.log(getSuccessMessage(nodeRuntimeVersion));
   }
 }
 
 
-const getInfoMessage = (nodeRuntimeVersion: string) => {
-  return `📦 Node version is ${nodeRuntimeVersion}`;
-};
-
-const getSuccessMessage = () => {
-  return `${styles.success("Node version check passed")}`;
+/** One line, like the dev.mjs steps: `✓ Node version check passed (v22.20.0)`. */
+const getSuccessMessage = (nodeRuntimeVersion: string) => {
+  const version = styles.dim(`(${nodeRuntimeVersion})`);
+  return styles.success(`Node version check passed ${version}`);
 };
 
 const getWarningMessage = (nodeRuntimeVersion: string, engines: string) => {
