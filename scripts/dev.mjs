@@ -32,7 +32,7 @@ const STEPS = [
 // The steps are independent, so they run together; lines print in step order.
 const results = await Promise.all(STEPS.map(runStep));
 results.forEach(report);
-runWithDevCert("next", ["dev", ...process.argv.slice(2)]);
+await runWithDevCert("next", ["dev", ...process.argv.slice(2)]);
 
 /** Runs a setup script with its output captured. */
 async function runStep(step) {

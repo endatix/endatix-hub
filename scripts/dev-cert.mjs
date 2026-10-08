@@ -4,7 +4,7 @@
 // not in .env. Commands run as `node <bin entry>` (no shell), so args are passed
 // as-is on Windows, macOS and Linux. CLI: with-dev-cert.mjs. Used by dev.mjs.
 
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { X509Certificate } from "node:crypto";
 import {
   existsSync,
@@ -17,6 +17,7 @@ import {
 import { createRequire } from "node:module";
 import { constants, homedir, tmpdir } from "node:os";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { styleText } from "node:util";
 
 const require = createRequire(import.meta.url);
@@ -28,12 +29,15 @@ const BIN_PACKAGES = { next: "next", playwright: "@playwright/test" };
 let bundleDir;
 
 /** Starts `name` (node, next or playwright) with the dev certificate trusted. */
-export function runWithDevCert(name, rest) {
+export async function runWithDevCert(name, rest) {
   // The child stays in this process's group, so the terminal's Ctrl+C, Ctrl+\,
   // Ctrl+Z, SIGHUP on close and SIGWINCH reach the whole tree (Next's forked
   // server included), as they do without the wrapper.
   const env = withDevCertEnv(process.env);
-  const args = [...rest, ...nextHttpsArgs(name, rest, env.NODE_EXTRA_CA_CERTS)];
+  const args = [
+    ...rest,
+    ...(await nextHttpsArgs(name, rest, env.NODE_EXTRA_CA_CERTS)),
+  ];
   const child = spawn(process.execPath, [...resolveEntry(name), ...args], {
     stdio: "inherit",
     env,
@@ -76,11 +80,12 @@ function forwardSignals(child) {
 
 /**
  * `next dev --experimental-https` replaces NODE_EXTRA_CA_CERTS for its server
- * with mkcert's root CA, which would drop the dev certificate. So Next gets its
- * own mkcert key and certificate plus a CA bundle of mkcert's root and what this
- * process trusts. On the first run Next has not created them yet.
+ * with mkcert's root CA, which would drop the dev certificate. So the wrapper
+ * asks Next's own mkcert helper for the certificate (created or reused exactly
+ * as `next dev` would) and passes it with a CA bundle of mkcert's root and what
+ * this process trusts.
  */
-function nextHttpsArgs(name, rest, trustedCa) {
+async function nextHttpsArgs(name, rest, trustedCa) {
   const wantsHttps = name === "next" && rest.includes("--experimental-https");
   const choseFiles = rest.some((arg) =>
     arg.startsWith("--experimental-https-"),
@@ -88,43 +93,48 @@ function nextHttpsArgs(name, rest, trustedCa) {
   if (!wantsHttps || choseFiles || !trustedCa) {
     return [];
   }
-  const key = path.join(hubRoot, "certificates", "localhost-key.pem");
-  const cert = path.join(hubRoot, "certificates", "localhost.pem");
-  const rootCa = path.join(mkcertCaRoot(), "rootCA.pem");
-  if (![key, cert, rootCa].every((file) => existsSync(file))) {
+  const certificate = await nextSelfSignedCertificate(hostnameArg(rest));
+  if (!certificate?.rootCA) {
     warn(
-      "Next creates its HTTPS certificate on this first run, so the server does not trust the dev certificate yet. Restart pnpm dev-https once it is created.",
+      "Next's HTTPS certificate helper is unavailable, so the dev server does not trust the dev certificate.",
     );
     return [];
   }
   const caBundle = writeBundle("next-https-ca.pem", [
-    readFileSync(rootCa, "utf8"),
+    readFileSync(certificate.rootCA, "utf8"),
     readFileSync(trustedCa, "utf8"),
   ]);
   return [
     "--experimental-https-key",
-    key,
+    certificate.key,
     "--experimental-https-cert",
-    cert,
+    certificate.cert,
     "--experimental-https-ca",
     caBundle,
   ];
 }
 
-/** mkcert's CA folder: CAROOT, else its per-OS default. */
-function mkcertCaRoot() {
-  if (process.env.CAROOT) {
-    return process.env.CAROOT;
+/**
+ * Next's internal `createSelfSignedCertificate` (next/dist/lib/mkcert). Not a
+ * public API: if a Next upgrade moves it, dev-https falls back to Next's own
+ * handling and only the warning above appears.
+ */
+async function nextSelfSignedCertificate(host) {
+  try {
+    const helper = require.resolve("next/dist/lib/mkcert.js", {
+      paths: [hubRoot],
+    });
+    const { createSelfSignedCertificate } = await import(pathToFileURL(helper));
+    return await createSelfSignedCertificate(host);
+  } catch {
+    return undefined;
   }
-  if (IS_WINDOWS) {
-    return path.join(process.env.LOCALAPPDATA ?? homedir(), "mkcert");
-  }
-  if (process.platform === "darwin") {
-    return path.join(homedir(), "Library", "Application Support", "mkcert");
-  }
-  const dataHome =
-    process.env.XDG_DATA_HOME || path.join(homedir(), ".local", "share");
-  return path.join(dataHome, "mkcert");
+}
+
+/** The `-H` / `--hostname` value Next gives mkcert, if any. */
+function hostnameArg(rest) {
+  const index = rest.findIndex((arg) => arg === "-H" || arg === "--hostname");
+  return index === -1 ? undefined : rest[index + 1];
 }
 
 /** Exits with the child's code, or ends by the child's signal so callers see an interrupt. */
@@ -169,14 +179,7 @@ function resolveEntry(name) {
 function withDevCertEnv(env) {
   const pem = env.ENDATIX_DEV_CERT_PATH || DEFAULT_PEM;
   const name = certificateName(env);
-  if (!existsSync(pem)) {
-    // A caller that trusts its own CA (the SaaS AppHost exports the dev
-    // certificate itself) needs no warning.
-    if (!env.NODE_EXTRA_CA_CERTS) {
-      warn(
-        `Dev certificate not found (${name}). Calls to an https://localhost API need it; export it once: pnpm setup:dev`,
-      );
-    }
+  if (!existsSync(pem) && !exportOnFirstUse(env)) {
     return env;
   }
   const certificate = readCertificate(pem, name);
@@ -260,7 +263,7 @@ function warnAboutKeyFile(pem, name) {
 function expiredMessage(validTo, name) {
   const date = validTo.toISOString().slice(0, 10);
   return name === DEFAULT_PEM
-    ? `Dev certificate expired on ${date}. Run: dotnet dev-certs https --trust, then delete it and run: pnpm setup:dev`
+    ? `Dev certificate expired on ${date}. Run: dotnet dev-certs https --trust, then pnpm setup:dev`
     : `Dev certificate (${name}) expired on ${date}. Export it again where it came from, or unset ENDATIX_DEV_CERT_PATH and run: pnpm setup:dev`;
 }
 
@@ -306,7 +309,6 @@ function removeBundle() {
  */
 export function exportDevCertificate(env) {
   const pem = env.ENDATIX_DEV_CERT_PATH || DEFAULT_PEM;
-  const name = certificateName(env);
   if (env.ENDATIX_DEV_CERT_PATH && existsSync(pem)) {
     fail(
       "ENDATIX_DEV_CERT_PATH names an existing certificate, so it is not replaced. Unset it to export this machine's certificate.",
@@ -318,21 +320,38 @@ export function exportDevCertificate(env) {
       "dotnet SDK not found. Install it, or set DOTNET_ROOT to its folder, then run: pnpm setup:dev",
     );
   }
+  return runExport(dotnet, pem, certificateName(env));
+}
+
+/**
+ * A missing certificate is exported on first use when a .NET SDK is found.
+ * Without an SDK (a remote or http API), or when the caller trusts its own CA
+ * (the SaaS AppHost) or names its own file, nothing is exported and nothing is
+ * printed.
+ */
+function exportOnFirstUse(env) {
+  if (env.NODE_EXTRA_CA_CERTS || env.ENDATIX_DEV_CERT_PATH) {
+    return false;
+  }
+  const dotnet = findDotnet();
+  return dotnet ? runExport(dotnet, DEFAULT_PEM, DEFAULT_PEM) : false;
+}
+
+function runExport(dotnet, pem, name) {
   mkdirSync(path.dirname(pem), { recursive: true, mode: 0o700 });
-  const exporter = spawn(
+  const { status, error } = spawnSync(
     dotnet,
     ["dev-certs", "https", "-ep", pem, "--format", "PEM"],
     { stdio: "inherit" },
   );
-  exporter.on("error", (error) =>
-    fail(`Could not run dotnet: ${error.message}`),
+  if (status === 0) {
+    ok("dev certificate exported", [name]);
+    return true;
+  }
+  warn(
+    `Could not export the dev certificate: ${error?.message ?? `dotnet exited ${status}`}`,
   );
-  exporter.on("exit", (code) => {
-    if (code === 0) {
-      ok("dev certificate exported", [name]);
-    }
-    process.exit(code ?? 1);
-  });
+  return false;
 }
 
 /**

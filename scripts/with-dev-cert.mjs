@@ -11,7 +11,7 @@ if (!command) {
   fail("Usage: node scripts/with-dev-cert.mjs <command> [args...] | --export");
 }
 if (command === "--export") {
-  exportDevCertificate(process.env);
+  process.exit(exportDevCertificate(process.env) ? 0 : 1);
 } else {
-  runWithDevCert(command, args);
+  await runWithDevCert(command, args);
 }
