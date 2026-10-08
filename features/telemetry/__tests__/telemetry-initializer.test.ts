@@ -167,9 +167,7 @@ describe("TelemetryInitializer", () => {
 
       // Assert
       expect(consoleLog).toHaveBeenCalledWith(
-        expect.stringContaining(
-          "Telemetry off (set APPLICATIONINSIGHTS_CONNECTION_STRING",
-        ),
+        expect.stringContaining("Telemetry off (check docs to enable OTel)"),
       );
       expect(consoleWarn).not.toHaveBeenCalled();
       expect(listeners.size).toBe(0);

@@ -14,7 +14,7 @@ import styles from "@/lib/utils/console-styles";
 
 /** Running without an exporter is a valid setup, so this is a hint, not a warning. */
 export const NO_EXPORTER_MESSAGE =
-  "· Telemetry off (set APPLICATIONINSIGHTS_CONNECTION_STRING or OTEL_EXPORTER_OTLP_ENDPOINT)";
+  "· Telemetry off (check docs to enable OTel)";
 
 /**
  * Upper bound for flushing before the process exits. Exporters retry with their
