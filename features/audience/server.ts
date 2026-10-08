@@ -8,3 +8,4 @@ export { updateAudiencePersonAction } from "./update-person";
 export { deleteAudiencePersonAction } from "./delete-person";
 export { updateAudienceSettingsAction } from "./update-settings";
 export { importAudienceCsvAction } from "./import-csv";
+export { generateAudienceLinksAction } from "./generate-links/generate-audience-links.action";

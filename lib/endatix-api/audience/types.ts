@@ -105,6 +105,18 @@ export type ImportAudienceCsvRequest = {
   propertyColumns?: Record<string, string>;
 };
 
+export type IssuedAudienceLink = {
+  membershipId: string;
+  token: string;
+};
+
+export type RedeemedAudienceLink = {
+  submissionId: string;
+  snapshot: string;
+  created: boolean;
+  accessToken: string;
+};
+
 export type UpdateAudienceSettingsRequest = {
   identifierKind: AudienceIdentifierKind;
 };

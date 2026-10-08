@@ -31,6 +31,8 @@ import {
   type UpdateAudiencePersonRequest,
   type UpdateAudiencePropertyRequest,
   type ImportAudienceCsvRequest,
+  type IssuedAudienceLink,
+  type RedeemedAudienceLink,
   type UpdateAudienceSettingsRequest,
 } from "./types";
 
@@ -214,5 +216,45 @@ export class Audience {
         body,
       ),
     );
+  }
+
+  async generateLinks(
+    formId: string,
+  ): Promise<ApiResult<IssuedAudienceLink[]>> {
+    const idCheck = requireEndatixId(formId, "formId");
+    if (!idCheck.success) return idCheck;
+
+    const response = await this.endatix.post<
+      { membershipId: number | string; token: string }[]
+    >(formAudiencePath(formId, "links"), {});
+    if (!response.success) return response;
+    return ApiResult.success(
+      response.data.map((link) => ({
+        membershipId: String(link.membershipId),
+        token: link.token,
+      })),
+    );
+  }
+
+  async redeemLink(
+    formId: string,
+    token: string,
+  ): Promise<ApiResult<RedeemedAudienceLink>> {
+    const idCheck = requireEndatixId(formId, "formId");
+    if (!idCheck.success) return idCheck;
+
+    const response = await this.endatix.post<{
+      submissionId: number | string;
+      snapshot: string;
+      created: boolean;
+      accessToken: string;
+    }>(formAudiencePath(formId, "links", token, "redeem"), {});
+    if (!response.success) return response;
+    return ApiResult.success({
+      submissionId: String(response.data.submissionId),
+      snapshot: response.data.snapshot,
+      created: response.data.created,
+      accessToken: response.data.accessToken,
+    });
   }
 }
