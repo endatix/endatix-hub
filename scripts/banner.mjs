@@ -1,149 +1,217 @@
-// The `pnpm dev` banner: the Endatix paperclip (public/assets/icons/icon.svg)
-// as half-block pixel art, with the Hub, Next.js and Node versions beside it.
-// Printed only in a terminal; CI and piped logs get no banner.
+// The `pnpm dev` banner, laid out like the Endatix wordmark: the icon
+// (public/assets/icons/icon.svg, rendered as 12 x 12 Braille dots) with the
+// product name and build beside it. Printed only in a terminal; CI and piped
+// logs get no banner.
 
-import { readFileSync } from "node:fs";
-import { createRequire } from "node:module";
-import { homedir } from "node:os";
+import { execFileSync } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { styleText } from "node:util";
 
-const require = createRequire(import.meta.url);
 const hubRoot = path.resolve(import.meta.dirname, "..");
 
-// 10 x 10 pixels, two per character row: an outer loop and the inner wire on
-// 45-degree strokes, which stay crisp at this size.
-const LOGO = [
-  "......###.",
-  ".....#...#",
-  "....#..#.#",
-  "...#..#..#",
-  "..#..#..#.",
-  ".#..#..#..",
-  "#..#..#...",
-  "#.#..#....",
-  "#...#.....",
-  ".###......",
-];
+// The blue square with the paperclip cut out, from icon.svg at 12 x 12 dots.
+const ICON = ["⣾⣿⡿⣛⢿⣷", "⣿⢫⠪⢊⢜⣿", "⢿⣦⣭⣵⣿⡿"];
+const TITLE_ROW = 1;
 const BRAND = [0, 84, 209]; // #0054D1
-const HIGHLIGHT = [120, 175, 255];
-const FRAMES = 8;
-const FRAME_MS = 40;
+// Synthwave sweep: hot pink, purple, cyan.
+const SWEEP = [
+  [255, 42, 109],
+  [185, 103, 255],
+  [5, 217, 232],
+];
+const FRAMES = 12;
+const FRAME_MS = 35;
 
 /**
- * Prints the banner and, in a colour terminal, sweeps a highlight across the
- * clip once (about 300 ms; run it alongside other startup work).
+ * Prints the banner. In a 24-bit colour terminal a synthwave gradient sweeps
+ * across the icon and title once (about 400 ms; run it alongside other work)
+ * and settles on brand blue.
  */
 export async function printBanner() {
   const out = process.stdout;
   if (!out.isTTY || process.env.CI) {
     return;
   }
-  const paint = colourPainter(out);
-  const text = headerLines();
+  const title = "Endatix Hub";
+  const build = styleText("dim", formatBuild(hubBuildIdentity()));
+  if (!rendersBraille()) {
+    out.write(`${styleText("bold", title)}  ${build}\n\n`);
+    return;
+  }
+  const truecolor = (out.getColorDepth?.() ?? 1) >= 24;
   const draw = (sweep) =>
-    halfBlockRows(LOGO).map((cells, row) => {
-      const logo = cells
-        .map(({ glyph, diagonal }) =>
-          glyph === " " ? " " : paint(glyph, glow(diagonal, sweep)),
-        )
-        .join("");
-      return `  ${logo}   ${text[row] ?? ""}`.trimEnd();
+    ICON.map((icon, row) => {
+      const logo = paint(icon, 0, sweep, truecolor, out);
+      if (row !== TITLE_ROW) {
+        return `  ${logo}`;
+      }
+      const name = paint(title, ICON[0].length + 2, sweep, truecolor, out);
+      return `  ${logo}  ${styleText("bold", name)}  ${build}`;
     });
 
-  const rows = draw(null);
-  out.write(`${rows.join("\n")}\n\n`);
-  if (!paint.animates) {
+  out.write(`${draw(null).join("\n")}\n\n`);
+  if (!truecolor) {
     return;
   }
   for (let frame = 0; frame <= FRAMES; frame++) {
     await sleep(FRAME_MS);
     const sweep = frame === FRAMES ? null : frame / (FRAMES - 1);
-    // Back to the first logo row, redraw it, then return below the blank line.
-    out.write(`\x1b[${rows.length + 1}A\r${draw(sweep).join("\n")}\n\n`);
+    // Back to the icon's first row, redraw, then return below the blank line.
+    out.write(`\x1b[${ICON.length + 1}A\r${draw(sweep).join("\n")}\n\n`);
   }
-}
-
-/** Version lines beside the logo, top row left empty to centre them. */
-function headerLines() {
-  const hub = readVersion(path.join(hubRoot, "package.json"));
-  const next = readVersion(
-    require.resolve("next/package.json", { paths: [hubRoot] }),
-  );
-  const hubVersion = `v${hub}`;
-  const title = `${styleText("bold", "Endatix Hub")} ${styleText("dim", hubVersion)}`;
-  const versions = `Next.js ${next} · Node ${process.version}`;
-  return [
-    "",
-    title,
-    styleText("dim", versions),
-    styleText("dim", shortPath(hubRoot)),
-  ];
-}
-
-function readVersion(manifest) {
-  try {
-    return JSON.parse(readFileSync(manifest, "utf8")).version ?? "?";
-  } catch {
-    return "?";
-  }
-}
-
-function shortPath(dir) {
-  const home = homedir();
-  return process.platform !== "win32" && dir.startsWith(home + path.sep)
-    ? `~${dir.slice(home.length)}`
-    : dir;
-}
-
-/** Two pixel rows per character: ▀ top, ▄ bottom, █ both. */
-function halfBlockRows(pixels) {
-  const rows = [];
-  for (let y = 0; y < pixels.length; y += 2) {
-    const top = pixels[y];
-    const bottom = pixels[y + 1] ?? ".".repeat(top.length);
-    rows.push(
-      [...top].map((pixel, x) => {
-        const on = [pixel === "#", bottom[x] === "#"];
-        const glyph = on[0] ? (on[1] ? "█" : "▀") : on[1] ? "▄" : " ";
-        return { glyph, diagonal: (x + y) / (top.length + pixels.length) };
-      }),
-    );
-  }
-  return rows;
-}
-
-/** 0..1: how strongly a cell glows while the sweep passes its diagonal. */
-function glow(diagonal, sweep) {
-  if (sweep === null) {
-    return 0;
-  }
-  return Math.max(0, 1 - Math.abs(diagonal - sweep) * 5);
 }
 
 /**
- * Colours by what the terminal supports (Node's hasColors honours NO_COLOR and
- * FORCE_COLOR). Only 24-bit colour animates; fewer colours print the plain logo.
+ * The same rules as lib/hosting/hub-version.ts `resolveHubBuild`, which this
+ * plain-Node script cannot import (TypeScript, extensionless imports):
+ * - version: a stamped package.json version (not `0.0.0-*`), else on a release
+ *   line (`main`, `hotfix/*`, a tag checkout) the `v*` tag HEAD sits exactly on;
+ * - branch: only when there is no version; commit: HEAD.
+ * `__tests__/dev-banner.test.ts` pins the two against each other.
+ *
+ * @param {(args: string[]) => string} [git]
+ * @param {string} [packageVersion]
+ * @param {{ GITHUB_REF_TYPE?: string; GITHUB_HEAD_REF?: string; GITHUB_REF_NAME?: string }} [env]
  */
-function colourPainter(out) {
-  const depth = out.getColorDepth?.() ?? 1;
-  let paint;
-  if (depth >= 24) {
-    paint = (glyph, amount) => {
-      const [r, g, b] = BRAND.map((c, i) =>
-        Math.round(c + (HIGHLIGHT[i] - c) * amount),
-      );
-      return `\x1b[38;2;${r};${g};${b}m${glyph}\x1b[0m`;
-    };
-  } else if (depth >= 8) {
-    paint = (glyph) => `\x1b[38;5;26m${glyph}\x1b[0m`;
-  } else if (depth >= 4) {
-    paint = (glyph) => `\x1b[34m${glyph}\x1b[0m`;
-  } else {
-    paint = (glyph) => glyph;
+export function hubBuildIdentity(
+  git = runGit,
+  packageVersion = readPackageVersion(),
+  env = process.env,
+) {
+  const branch = resolveBranch(git, env);
+  const stamped = packageVersion.startsWith("0.0.0") ? null : packageVersion;
+  const version =
+    stamped ?? (isReleaseLine(branch) ? releaseTagAtHead(git) : null);
+  const commit = tryGit(git, ["rev-parse", "HEAD"]);
+  return { version, branch: version ? null : branch, commit };
+}
+
+/** `v0.8.0`, or `branch @ short commit`. */
+export function formatBuild({ version, branch, commit }) {
+  if (version) {
+    return `v${version}`;
   }
-  paint.animates = depth >= 24;
-  return paint;
+  if (!branch && !commit) {
+    return "local build";
+  }
+  return `${branch ?? "unknown branch"} @ ${commit?.slice(0, 7) ?? "unknown"}`;
+}
+
+function resolveBranch(git, env) {
+  const branch = tryGit(git, ["rev-parse", "--abbrev-ref", "HEAD"]);
+  if (branch && branch !== "HEAD") {
+    return branch;
+  }
+  if (env.GITHUB_REF_TYPE === "tag") {
+    return null;
+  }
+  return blankToNull(env.GITHUB_HEAD_REF) ?? blankToNull(env.GITHUB_REF_NAME);
+}
+
+function isReleaseLine(branch) {
+  return branch === null || branch === "main" || branch.startsWith("hotfix/");
+}
+
+function releaseTagAtHead(git) {
+  const tag = tryGit(git, [
+    "describe",
+    "--tags",
+    "--exact-match",
+    "--match",
+    "v[0-9]*",
+  ]);
+  return tag ? tag.replace(/^v/, "") : null;
+}
+
+function tryGit(git, args) {
+  try {
+    return blankToNull(git(args));
+  } catch {
+    return null;
+  }
+}
+
+function blankToNull(value) {
+  return value?.trim() || null;
+}
+
+// Fixed paths, as in hub-version.ts: no PATH lookup (Sonar S4036).
+const GIT_EXECUTABLES = [
+  "/usr/bin/git",
+  "/usr/local/bin/git",
+  "/opt/homebrew/bin/git",
+  String.raw`C:\Program Files\Git\cmd\git.exe`,
+];
+
+function runGit(args) {
+  const git = GIT_EXECUTABLES.find((candidate) => existsSync(candidate));
+  if (!git) {
+    throw new Error("git is not installed in a known location");
+  }
+  return execFileSync(git, args, {
+    cwd: hubRoot,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "ignore"],
+  });
+}
+
+function readPackageVersion() {
+  try {
+    const manifest = path.join(hubRoot, "package.json");
+    return JSON.parse(readFileSync(manifest, "utf8")).version ?? "0.0.0";
+  } catch {
+    return "0.0.0";
+  }
+}
+
+/** The legacy Windows console has no Braille glyphs; other terminals do. */
+function rendersBraille() {
+  if (process.env.TERM === "dumb") {
+    return false;
+  }
+  if (process.platform === "win32") {
+    return (
+      Boolean(process.env.WT_SESSION) || process.env.TERM_PROGRAM === "vscode"
+    );
+  }
+  return true;
+}
+
+/**
+ * Colours each character of `text`, which starts at column `offset`. Without
+ * a sweep (or without 24-bit colour) everything is brand blue.
+ */
+function paint(text, offset, sweep, truecolor, out) {
+  const span = ICON[0].length + 2 + "Endatix Hub".length;
+  return [...text]
+    .map((char, i) => {
+      if (char === " ") {
+        return char;
+      }
+      const [r, g, b] = truecolor
+        ? colourAt((offset + i) / span, sweep)
+        : BRAND;
+      return truecolor
+        ? `\x1b[38;2;${r};${g};${b}m${char}\x1b[39m`
+        : styleText("blue", char, { stream: out });
+    })
+    .join("");
+}
+
+/** Brand blue, or the synthwave band while the sweep passes this column. */
+function colourAt(position, sweep) {
+  if (sweep === null) {
+    return BRAND;
+  }
+  const distance = position - sweep * 1.4 + 0.2;
+  if (distance < 0 || distance > 0.4) {
+    return BRAND;
+  }
+  const t = distance / 0.4; // 0..1 across the band
+  const [from, to] = t < 0.5 ? [SWEEP[0], SWEEP[1]] : [SWEEP[1], SWEEP[2]];
+  const local = t < 0.5 ? t * 2 : (t - 0.5) * 2;
+  return from.map((c, i) => Math.round(c + (to[i] - c) * local));
 }
 
 function sleep(ms) {
