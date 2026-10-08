@@ -1,7 +1,6 @@
-// The `pnpm dev` banner, laid out like the Endatix wordmark: the icon
-// (public/assets/icons/icon.svg as 8 x 8 pixel art: the blue square with the
-// white paperclip) with the product name and build beside it. Printed only in
-// a colour terminal; CI and piped logs get no banner.
+// The `pnpm dev` banner, laid out like the Endatix wordmark: the paperclip from
+// public/assets/icons/icon.svg as ASCII art, with the product name and build
+// beside it. Printed only in a terminal; CI and piped logs get no banner.
 
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
@@ -10,24 +9,12 @@ import { styleText } from "node:util";
 
 const hubRoot = path.resolve(import.meta.dirname, "..");
 
-// B blue, W white, . terminal background (the rounded corners). Drawn with
-// half blocks (two square pixels per character, each with its own colour), so
-// rows meet without the gaps Braille dots leave.
-const ICON = [
-  ".BBBBBB.",
-  "BBBBWWBB",
-  "BBBWBBWB",
-  "BBWBBBWB",
-  "BWBBBWBB",
-  "BWBBWBBB",
-  "BBWWBBBB",
-  ".BBBBBB.",
-];
-const ICON_ROWS = ICON.length / 2;
-const TITLE_ROW = 1;
+// The paperclip: an outer loop from bottom-left to top-right and the inner
+// wire closing at the bottom.
+const ICON = ["   __", "  / /\\", " / / /", "/_/ /", "\\__/"];
+const TITLE_ROW = 2;
 const TITLE = "Endatix Hub";
 const BRAND = [0, 84, 209]; // #0054D1
-const WHITE = [255, 255, 255];
 // Synthwave sweep: hot pink, purple, cyan.
 const SWEEP = [
   [255, 42, 109],
@@ -49,18 +36,13 @@ export async function printBanner() {
   }
   const build = styleText("dim", formatBuild(hubBuildIdentity()));
   const depth = out.getColorDepth?.() ?? 1;
-  if (depth < 4) {
-    // A two-tone icon needs colour (NO_COLOR, TERM=dumb): title only.
-    out.write(`${styleText("bold", TITLE)}  ${build}\n\n`);
-    return;
-  }
-  const colour = colourCodes(depth);
   const draw = (sweep) =>
-    iconRows(colour, sweep).map((logo, row) => {
+    ICON.map((line, row) => {
+      const logo = paint(line.padEnd(ICON_WIDTH), 0, depth, sweep);
       if (row !== TITLE_ROW) {
-        return `  ${logo}`;
+        return `  ${logo}`.trimEnd();
       }
-      const name = paintTitle(colour, sweep);
+      const name = paint(TITLE, ICON_WIDTH + 2, depth, sweep);
       return `  ${logo}  ${styleText("bold", name)}  ${build}`;
     });
 
@@ -71,8 +53,10 @@ export async function printBanner() {
   for (let frame = 0; frame <= FRAMES; frame++) {
     await sleep(FRAME_MS);
     const sweep = frame === FRAMES ? null : frame / (FRAMES - 1);
-    // Back to the icon's first row, redraw, then return below the blank line.
-    out.write(`\x1b[${ICON_ROWS + 1}A\r${draw(sweep).join("\n")}\n\n`);
+    // Back to the first logo row, clear and redraw each line, then return
+    // below the blank line.
+    const lines = draw(sweep).map((line) => `\x1b[2K${line}`);
+    out.write(`\x1b[${ICON.length + 1}A\r${lines.join("\n")}\n\n`);
   }
 }
 
@@ -179,78 +163,31 @@ function readPackageVersion() {
   }
 }
 
-/** Two pixels per character: ▀ with the top as text colour and the bottom as background. */
-function iconRows(colour, sweep) {
-  const rows = [];
-  for (let y = 0; y < ICON.length; y += 2) {
-    const cells = [...ICON[y]].map((top, x) => {
-      const bottom = ICON[y + 1][x];
-      const at = (pixel) => pixelColour(pixel, x / SPAN, sweep);
-      if (top === "." && bottom === ".") {
-        return " ";
-      }
-      if (top === ".") {
-        return colour.paint("▄", at(bottom));
-      }
-      if (bottom === ".") {
-        return colour.paint("▀", at(top));
-      }
-      return colour.paint("▀", at(top), at(bottom));
-    });
-    rows.push(cells.join(""));
-  }
-  return rows;
-}
-
-/** White stays white; blue takes the sweep while it passes. */
-function pixelColour(pixel, position, sweep) {
-  return pixel === "W" ? WHITE : colourAt(position, sweep);
-}
-
-const SPAN = ICON[0].length + 2 + TITLE.length;
-
-function paintTitle(colour, sweep) {
-  const offset = ICON[0].length + 2;
-  return [...TITLE]
-    .map((char, i) =>
-      char === " "
-        ? char
-        : colour.paint(char, colourAt((offset + i) / SPAN, sweep)),
-    )
-    .join("");
-}
+const ICON_WIDTH = Math.max(...ICON.map((line) => line.length));
+const SPAN = ICON_WIDTH + 2 + TITLE.length;
 
 /**
- * Escape codes for 24-bit colour, else the nearest of 256 or 16 colours (brand
- * blue 26 / 34, white 15 / 97). The sweep runs only in 24-bit colour.
+ * Colours each character of `text`, which starts at column `offset`: brand blue
+ * (the nearest of 256 or 16 colours below 24-bit), the synthwave band while the
+ * sweep passes, plain text without colour (NO_COLOR, TERM=dumb).
  */
-function colourCodes(depth) {
-  const fg = (rgb) => {
-    if (depth >= 24) {
-      return `38;2;${rgb.join(";")}`;
-    }
-    const white = rgb === WHITE;
-    if (depth >= 8) {
-      return white ? "38;5;15" : "38;5;26";
-    }
-    return white ? "97" : "34";
-  };
-  const bg = (rgb) => {
-    if (depth >= 24) {
-      return `48;2;${rgb.join(";")}`;
-    }
-    const white = rgb === WHITE;
-    if (depth >= 8) {
-      return white ? "48;5;15" : "48;5;26";
-    }
-    return white ? "107" : "44";
-  };
-  return {
-    paint: (glyph, top, bottom) => {
-      const codes = bottom ? `${fg(top)};${bg(bottom)}` : fg(top);
-      return `\x1b[${codes}m${glyph}\x1b[0m`;
-    },
-  };
+function paint(text, offset, depth, sweep) {
+  if (depth < 4) {
+    return text;
+  }
+  return [...text]
+    .map((char, i) => {
+      if (char === " ") {
+        return char;
+      }
+      if (depth < 24) {
+        const code = depth >= 8 ? "38;5;26" : "34";
+        return `\x1b[${code}m${char}\x1b[39m`;
+      }
+      const rgb = colourAt((offset + i) / SPAN, sweep).join(";");
+      return `\x1b[38;2;${rgb}m${char}\x1b[39m`;
+    })
+    .join("");
 }
 
 /** Brand blue, or the synthwave band while the sweep passes this column. */
