@@ -248,7 +248,7 @@ export class Audience {
       snapshot: string;
       created: boolean;
       accessToken: string;
-    }>(formAudiencePath(formId, "links", token, "redeem"), {});
+    }>(formAudiencePath(formId, "links", token, "redeem"), {}, { requireAuth: false });
     if (!response.success) return response;
     return ApiResult.success({
       submissionId: String(response.data.submissionId),
