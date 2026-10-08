@@ -1,0 +1,28 @@
+{
+  "title": "{ciudad}",
+  "pages": [
+    {
+      "name": "page1",
+      "elements": [
+        {
+          "type": "text",
+          "name": "familySize",
+          "title": "Family size",
+          "defaultValueExpression": "{tama_o_de_familia}"
+        },
+        {
+          "type": "text",
+          "name": "ageInMonths",
+          "title": "Age in months",
+          "defaultValueExpression": "{edac} * 12"
+        },
+        {
+          "type": "text",
+          "name": "olderAdult",
+          "title": "Shown when edac is at least 50",
+          "visibleIf": "{edac} >= 50"
+        }
+      ]
+    }
+  ]
+}
