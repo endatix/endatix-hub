@@ -14,6 +14,7 @@ import type {
 } from "@/lib/endatix-api/audience/types";
 import { useUrlSearchParamsUpdater } from "@/lib/utils/hooks/use-url-search-params-updater.hook";
 import { AddPersonPanel } from "../../create-person/ui/add-person-panel";
+import { GenerateLinksPanel } from "../../generate-links/ui/generate-links-panel";
 import { ImportCsvPanel } from "../../import-csv/ui/import-csv-panel";
 import { RemovePersonDialog } from "../../delete-person/ui/remove-person-dialog";
 import { EditPersonPanel } from "../../update-person/ui/edit-person-panel";
@@ -131,6 +132,7 @@ export function PeopleSection(props: Readonly<PeopleSectionProps>) {
               formId={props.formId}
               properties={props.properties}
             />
+            <GenerateLinksPanel formId={props.formId} />
             <AddPersonPanel {...props} />
           </div>
         }
