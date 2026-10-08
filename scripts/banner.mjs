@@ -19,13 +19,16 @@ const SWEEP = [
   [185, 103, 255],
   [5, 217, 232],
 ];
-const FRAMES = 12;
-const FRAME_MS = 35;
+const SWEEP_MS = 600;
+const FRAME_MS = 30;
+const FRAMES = Math.round(SWEEP_MS / FRAME_MS);
 
 /**
  * Prints the banner. In a 24-bit colour terminal a synthwave gradient sweeps
- * across the icon and title once (about 400 ms; run it alongside other work)
- * and settles on brand blue.
+ * across the icon and title once (about 600 ms, eased at both ends; run it
+ * alongside other work) and settles on brand blue. Each frame redraws the
+ * banner by moving the cursor up, so nothing else may print until it ends:
+ * `next dev` starts after it, and a longer sweep is a slower startup.
  */
 export async function printBanner() {
   const out = process.stdout;
@@ -57,7 +60,7 @@ export async function printBanner() {
   }
   for (let frame = 0; frame <= FRAMES; frame++) {
     await sleep(FRAME_MS);
-    const sweep = frame === FRAMES ? null : frame / (FRAMES - 1);
+    const sweep = frame === FRAMES ? null : easeInOut(frame / (FRAMES - 1));
     // Back to the first logo row, clear and redraw each line, then return
     // below the blank line.
     const lines = draw(sweep).map((line) => `\x1b[2K${line}`);
@@ -137,6 +140,11 @@ function colourAt(position, sweep) {
   const [from, to] = t < 0.5 ? [SWEEP[0], SWEEP[1]] : [SWEEP[1], SWEEP[2]];
   const local = t < 0.5 ? t * 2 : (t - 0.5) * 2;
   return from.map((c, i) => Math.round(c + (to[i] - c) * local));
+}
+
+/** Slow at the start and end, fastest through the middle. */
+function easeInOut(t) {
+  return t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2;
 }
 
 function sleep(ms) {

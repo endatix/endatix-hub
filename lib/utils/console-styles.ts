@@ -21,20 +21,27 @@ const styles = {
   tip: (text: string) => `\x1b[36m💡\x1b[0m ${text}`,
 };
 
-/** Environment variables; only CI, TERM, TERM_PROGRAM and WT_SESSION are read. */
+/**
+ * Environment variables; only CI, TERM, TERM_PROGRAM, WT_SESSION and
+ * NEXT_PRIVATE_PROMPT_OUTPUT are read.
+ */
 export type TerminalEnv = Readonly<Record<string, string | undefined>>;
 
 /**
  * Whether startup logs may use emoji icons. Off without a terminal (CI, piped
  * logs), with TERM=dumb, and in the legacy Windows console, where emoji render
  * at the wrong width; Windows Terminal and the VS Code terminal render them.
+ * `next dev` pipes its server's output through the CLI (to hold it while the
+ * upgrade prompt is open) and sets NEXT_PRIVATE_PROMPT_OUTPUT when that pipe
+ * ends on a terminal, so the pipe counts as one.
  */
 export function supportsEmoji(
   env: TerminalEnv = process.env,
   stream: { isTTY?: boolean } = process.stdout,
   platform: NodeJS.Platform = process.platform,
 ): boolean {
-  if (!stream.isTTY || env.CI || env.TERM === "dumb") {
+  const terminal = stream.isTTY || env.NEXT_PRIVATE_PROMPT_OUTPUT === "1";
+  if (!terminal || env.CI || env.TERM === "dumb") {
     return false;
   }
   if (platform === "win32") {

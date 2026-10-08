@@ -32,6 +32,13 @@ const cases: Case[] = [
     expected: false,
   },
   {
+    name: "next dev's piped server output on a macOS terminal",
+    env: { NEXT_PRIVATE_PROMPT_OUTPUT: "1" },
+    isTTY: false,
+    platform: "darwin",
+    expected: true,
+  },
+  {
     name: "CI",
     env: { CI: "true" },
     isTTY: true,

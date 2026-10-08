@@ -1,37 +1,11 @@
 import { AuthPresentation, IAuthProvider } from "./types";
 import { EndatixAuthProvider } from "./providers/endatix-auth-provider";
-import { icon } from "@/lib/utils/console-styles";
 
-const LOGGED_PROVIDERS = Symbol.for("endatix.auth.loggedProviders");
-
-function logProviderStatus(id: string, active: boolean): void {
-  logProviderOnce(id, () =>
-    active
-      ? console.info(`${icon("🔐", "✓")} Auth provider ${id} active`)
-      : console.warn(
-          `${icon("🔐", "!")} Auth provider ${id} not activated: its configuration is invalid`,
-        ),
-  );
-}
-
-/**
- * Logs a provider's status once per process. The registry module is evaluated
- * again per route compile in `next dev` and in every `next build` worker, so a
- * module-level flag is not enough. During `next build` (NEXT_PHASE, set before
- * Next starts its workers) nothing is logged.
- */
-function logProviderOnce(key: string, log: () => void): void {
-  if (process.env.NEXT_PHASE === "phase-production-build") {
-    return;
-  }
-  const store = globalThis as { [LOGGED_PROVIDERS]?: Set<string> };
-  const logged = (store[LOGGED_PROVIDERS] ??= new Set<string>());
-  if (logged.has(key)) {
-    return;
-  }
-  logged.add(key);
-  log();
-}
+/** A registered provider's state: active, or why it is not. */
+export type AuthProviderStatus =
+  | { id: string; state: "active" }
+  | { id: string; state: "invalid-config" }
+  | { id: string; state: "failed"; error: unknown };
 
 /**
  * Registry for managing auth providers. Replaces the AuthProviderRouter
@@ -40,9 +14,12 @@ function logProviderOnce(key: string, log: () => void): void {
 export class AuthProviderRegistry {
   private readonly _allProviders = new Map<string, IAuthProvider>();
   private readonly _activeProviders = new Map<string, IAuthProvider>();
+  private readonly _failures = new Map<string, unknown>();
 
   /**
    * Register a provider. If validation passes, it becomes active immediately.
+   * Nothing is logged here: the module is evaluated again per route in
+   * `next dev`, so the startup check reports the statuses once instead.
    */
   register(provider: IAuthProvider): void {
     if (this._allProviders.has(provider.id)) {
@@ -56,14 +33,8 @@ export class AuthProviderRegistry {
       if (shouldActivate) {
         this._activeProviders.set(provider.id, provider);
       }
-      logProviderStatus(provider.id, shouldActivate);
     } catch (error) {
-      logProviderOnce(`${provider.id}:error`, () =>
-        console.warn(
-          `${icon("⚠️", "!")} Provider ${provider.id} registration failed:`,
-          error,
-        ),
-      );
+      this._failures.set(provider.id, error);
     }
   }
 
@@ -87,6 +58,21 @@ export class AuthProviderRegistry {
    */
   getActiveProviders(): IAuthProvider[] {
     return Array.from(this._activeProviders.values());
+  }
+
+  /**
+   * Get the status of every registered provider, in registration order.
+   */
+  getProviderStatuses(): AuthProviderStatus[] {
+    return Array.from(this._allProviders.keys()).map((id) => {
+      if (this._activeProviders.has(id)) {
+        return { id, state: "active" };
+      }
+      if (this._failures.has(id)) {
+        return { id, state: "failed", error: this._failures.get(id) };
+      }
+      return { id, state: "invalid-config" };
+    });
   }
 
   /**

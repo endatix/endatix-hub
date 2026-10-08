@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthProviderRegistry } from "../auth-provider-registry";
+import { logAuthProviders } from "../log-auth-providers";
 import type { IAuthProvider } from "../types";
 
 vi.mock("../providers/endatix-auth-provider", () => ({
@@ -11,74 +12,123 @@ vi.mock("../providers/endatix-auth-provider", () => ({
   },
 }));
 
-const LOGGED_PROVIDERS = Symbol.for("endatix.auth.loggedProviders");
-
 function provider(id: string, valid: boolean): IAuthProvider {
   return { id, validateConfig: () => valid } as unknown as IAuthProvider;
 }
 
-describe("AuthProviderRegistry status logging", () => {
+function throwingProvider(id: string, error: Error): IAuthProvider {
+  return {
+    id,
+    validateConfig: () => {
+      throw error;
+    },
+  } as unknown as IAuthProvider;
+}
+
+describe("AuthProviderRegistry statuses", () => {
+  it("reports each provider's state in registration order", () => {
+    // Arrange
+    const registry = new AuthProviderRegistry();
+    const error = new Error("missing issuer");
+
+    // Act
+    registry.register(provider("endatix", true));
+    registry.register(provider("google", false));
+    registry.register(throwingProvider("keycloak", error));
+
+    // Assert
+    expect(registry.getProviderStatuses()).toEqual([
+      { id: "endatix", state: "active" },
+      { id: "google", state: "invalid-config" },
+      { id: "keycloak", state: "failed", error },
+    ]);
+  });
+
+  it("logs nothing on registration, though the module loads again", async () => {
+    // Arrange
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.resetModules();
+
+    // Act
+    await import("../auth-provider-registry");
+    new AuthProviderRegistry().register(provider("google", false));
+
+    // Assert
+    expect(info).not.toHaveBeenCalled();
+    expect(warn).not.toHaveBeenCalled();
+    vi.restoreAllMocks();
+  });
+});
+
+describe("logAuthProviders", () => {
   beforeEach(() => {
-    delete (globalThis as Record<symbol, unknown>)[LOGGED_PROVIDERS];
     vi.spyOn(console, "info").mockImplementation(() => {});
     vi.spyOn(console, "warn").mockImplementation(() => {});
   });
 
   afterEach(() => {
-    vi.unstubAllEnvs();
     vi.restoreAllMocks();
   });
 
-  it("logs an active provider once per process, though the module loads again", () => {
+  it("lists each active provider on its own row under the title", () => {
     // Arrange
-    const first = new AuthProviderRegistry();
-    const second = new AuthProviderRegistry();
+    const registry = new AuthProviderRegistry();
+    registry.register(provider("endatix", true));
+    registry.register(provider("keycloak", true));
 
     // Act
-    first.register(provider("keycloak", true));
-    second.register(provider("keycloak", true));
+    logAuthProviders(registry);
 
     // Assert
-    expect(console.info).toHaveBeenCalledOnce();
-    expect(console.info).toHaveBeenCalledWith(
-      expect.stringContaining("Auth provider keycloak active"),
+    const rows = vi.mocked(console.info).mock.calls.map(([row]) => row);
+    expect(rows).toEqual([
+      expect.stringContaining("Auth providers:"),
+      expect.stringMatching(/✓.* endatix$/),
+      expect.stringMatching(/✓.* keycloak$/),
+    ]);
+    expect(console.warn).not.toHaveBeenCalled();
+  });
+
+  it("crosses out a provider whose configuration is invalid", () => {
+    // Arrange
+    const registry = new AuthProviderRegistry();
+    registry.register(provider("endatix", true));
+    registry.register(provider("google", false));
+
+    // Act
+    logAuthProviders(registry);
+
+    // Assert
+    expect(console.warn).toHaveBeenCalledWith(
+      expect.stringMatching(/✗.* google .*\(invalid configuration\)/),
     );
   });
 
-  it("logs nothing during next build", () => {
+  it("gives the error message for a provider that failed to register", () => {
     // Arrange
-    vi.stubEnv("NEXT_PHASE", "phase-production-build");
+    const registry = new AuthProviderRegistry();
+    const error = new Error("missing issuer");
+    registry.register(throwingProvider("keycloak", error));
 
     // Act
-    new AuthProviderRegistry().register(provider("keycloak", true));
+    logAuthProviders(registry);
 
     // Assert
-    expect(console.info).not.toHaveBeenCalled();
-  });
-
-  it("stays quiet when Next evaluates the module again", async () => {
-    // Arrange — a fresh evaluation, then another, as a route compile does.
-    delete (globalThis as Record<symbol, unknown>)[LOGGED_PROVIDERS];
-    vi.resetModules();
-
-    // Act
-    await import("../auth-provider-registry");
-    vi.resetModules();
-    await import("../auth-provider-registry");
-
-    // Assert
-    expect(console.warn).toHaveBeenCalledOnce();
-  });
-
-  it("warns once for a provider whose configuration is invalid", () => {
-    // Act
-    new AuthProviderRegistry().register(provider("google", false));
-    new AuthProviderRegistry().register(provider("google", false));
-
-    // Assert
-    expect(console.warn).toHaveBeenCalledOnce();
     expect(console.warn).toHaveBeenCalledWith(
-      expect.stringContaining("Auth provider google not activated"),
+      expect.stringMatching(
+        /✗.* keycloak .*\(registration failed: missing issuer\)/,
+      ),
+    );
+  });
+
+  it("warns when no provider is active", () => {
+    // Act
+    logAuthProviders(new AuthProviderRegistry());
+
+    // Assert
+    expect(console.warn).toHaveBeenCalledWith(
+      expect.stringMatching(/Auth providers:.*\(none active\)/),
     );
   });
 });

@@ -75,7 +75,7 @@ node scripts/copy-standalone.mjs
 
 ### `banner.mjs`
 
-The `pnpm dev` banner. The icon from `public/assets/icons/icon.svg` is 16 × 16 Braille dots in brand blue, with `Endatix Hub` in bold beside it and the build muted on the next line: `v0.8.0` for a release, otherwise `branch @ commit`. The name comes from `lib/hosting/hub-build.mjs`, the same resolver the About dialog uses. In a 24-bit colour terminal a synthwave gradient sweeps across it once (about 400 ms, while the setup steps run). 256 or 16 colours print it without the sweep, `NO_COLOR` prints it uncoloured, and CI or piped output gets no banner. The legacy Windows console prints the name and build only, because Braille there is the wrong width.
+The `pnpm dev` banner. The icon from `public/assets/icons/icon.svg` is 16 × 16 Braille dots in brand blue, with `Endatix Hub` in bold beside it and the build muted on the next line: `v0.8.0` for a release, otherwise `branch @ commit`. The name comes from `lib/hosting/hub-build.mjs`, the same resolver the About dialog uses. In a 24-bit colour terminal a synthwave gradient sweeps across it once (about 600 ms, eased at both ends, while the setup steps run). 256 or 16 colours print it without the sweep, `NO_COLOR` prints it uncoloured, and CI or piped output gets no banner. The legacy Windows console prints the name and build only, because Braille there is the wrong width.
 
 ## Dev Certificate Script
 
