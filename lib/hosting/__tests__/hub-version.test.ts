@@ -1,9 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import {
-  getHubBuild,
-  getHubDeploymentId,
-  resolveHubBuild,
-} from "../hub-version";
+import { resolveHubBuild } from "../hub-build.mjs";
+import { getHubBuild, getHubDeploymentId } from "../hub-version";
 
 const SHA = "8ef28cee396f8dfb959d40c34868314585659f28";
 
