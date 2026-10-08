@@ -5,6 +5,7 @@ const AUTH_ERROR_PATH = "/auth-error";
 const SIGNOUT_PATH = "/signout";
 const SESSION_BRIDGE_PATH = "/session-bridge";
 const UNAUTHORIZED_PATH = "/unauthorized";
+const LOGOUT_LOGGER_NAME = "auth.logout";
 
 const AUTH_ROUTES = [
   SIGNIN_PATH,
@@ -54,6 +55,7 @@ export {
   AUTH_ERROR_PATH,
   SIGNOUT_PATH,
   UNAUTHORIZED_PATH,
+  LOGOUT_LOGGER_NAME,
   HUB_PATHS,
   isTenantPublicAuthPath,
 };
