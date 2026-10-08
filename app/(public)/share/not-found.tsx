@@ -12,8 +12,8 @@ export default function NotFound() {
     <PublicStatusPage
       icon={SearchX}
       layout="page"
-      message="Check the link and try again."
-      title="We couldn't find that survey."
+      message="Check the address and try again."
+      title="Page not found."
       tone="neutral"
     />
   );

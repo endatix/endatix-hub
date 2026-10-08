@@ -44,6 +44,8 @@ const nextConfig: NextConfig = {
     globalNotFound: true,
     // Native Turbopack React Compiler (Babel plugin kept as --webpack fallback)
     turbopackRustReactCompiler: true,
+    // Dev-only: drop unused Turbopack compile cache from memory and disk.
+    turbopackGc: true,
   },
   images: {
     remotePatterns: [],

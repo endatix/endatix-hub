@@ -1,4 +1,4 @@
-import { optimizeImage } from "next/dist/server/image-optimizer";
+import { optimizeImage } from "next/dist/server/image-optimizer/transform";
 
 const DEFAULT_IMAGE_WIDTH = 800;
 const SVG_CONTENT_TYPE = "image/svg+xml";

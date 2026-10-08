@@ -72,7 +72,7 @@ vi.mock("@azure/storage-blob", () => ({
   },
   generateBlobSASQueryParameters: vi.fn(),
 }));
-vi.mock("next/dist/server/image-optimizer");
+vi.mock("next/dist/server/image-optimizer/transform");
 
 // 3. Re-import after env changes so the runtime sees updated process.env.
 const loadStorageProvider = async () => {

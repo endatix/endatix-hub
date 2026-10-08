@@ -3,8 +3,12 @@
 import { signOut } from "@/auth";
 import { getAuthJwtFromRequest } from "../../infrastructure/auth-jwt.utils";
 import { resolveFederatedLogoutUrl } from "../../infrastructure/auth-logout.utils";
-import { SIGNIN_PATH } from "../../infrastructure/auth-constants";
+import {
+  LOGOUT_LOGGER_NAME,
+  SIGNIN_PATH,
+} from "../../infrastructure/auth-constants";
 import { redirect } from "next/navigation";
+import { TelemetryLogger } from "@/features/telemetry";
 
 type ExternalRedirectUrl = `${string}:${string}`;
 
@@ -20,7 +24,7 @@ export async function logoutAction() {
   try {
     federatedLogoutUrl = resolveFederatedLogoutUrl(token);
   } catch (error) {
-    console.warn("Failed to resolve federated logout URL", error);
+    logLogoutFailure(error);
   }
 
   if (federatedLogoutUrl) {
@@ -28,4 +32,13 @@ export async function logoutAction() {
   }
 
   redirect(SIGNIN_PATH);
+}
+
+function logLogoutFailure(error: unknown): void {
+  TelemetryLogger.error(
+    "Failed to resolve federated logout URL",
+    error,
+    { reason: "logout_url_failed" },
+    LOGOUT_LOGGER_NAME,
+  );
 }

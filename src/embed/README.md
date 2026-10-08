@@ -56,7 +56,7 @@ pnpm dev
 
 ## Integration with Next.js
 
-The embed SDK is built **before** the Next.js dev server starts. `pnpm dev` runs `scripts/dev.mjs`, which builds the embed SDK, discovers custom questions, then starts `next dev` with the .NET dev certificate trusted. Each step prints one status line; its output appears only when it fails.
+The embed SDK is built **before** the Next.js dev server starts. `pnpm dev` runs `scripts/dev.mjs`, which builds the embed SDK, discovers custom questions, then starts `next dev` with the .NET dev certificate trusted. Each step prints one status line; its output appears only when it fails or warns.
 
 ## Usage on Third-Party Sites
 

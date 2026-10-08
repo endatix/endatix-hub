@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { optimizeImageSize } from "../../infrastructure/image-service";
-import { optimizeImage } from "next/dist/server/image-optimizer";
+import { optimizeImage } from "next/dist/server/image-optimizer/transform";
 
-vi.mock("next/dist/server/image-optimizer");
+vi.mock("next/dist/server/image-optimizer/transform");
 
 describe("Image Service", () => {
   const mockBuffer = Buffer.from("test");
