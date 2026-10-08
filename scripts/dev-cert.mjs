@@ -38,6 +38,10 @@ export async function runWithDevCert(name, rest) {
     ...rest,
     ...(await nextHttpsArgs(name, rest, env.NODE_EXTRA_CA_CERTS)),
   ];
+  // One blank line sets the status lines apart from the child's own output.
+  if (printedStatus) {
+    console.log("");
+  }
   const child = spawn(process.execPath, [...resolveEntry(name), ...args], {
     stdio: "inherit",
     env,
@@ -193,7 +197,8 @@ function withDevCertEnv(env) {
       : undefined;
   if (!certificate.expired) {
     ok(
-      "dev certificate trusted",
+      "dev certificate",
+      "trusted",
       bundled ? [name, "with NODE_EXTRA_CA_CERTS"] : [name],
     );
   }
@@ -345,7 +350,7 @@ function runExport(dotnet, pem, name) {
     { stdio: "inherit" },
   );
   if (status === 0) {
-    ok("dev certificate exported", [name]);
+    ok("dev certificate", "exported", [name]);
     return true;
   }
   const reason = error?.message ?? `dotnet exited ${status}`;
@@ -395,12 +400,18 @@ function findDotnet() {
 // styleText drops colors when the stream is not a terminal or NO_COLOR is set.
 const STDERR = { stream: process.stderr };
 
+let printedStatus = false;
+
 /**
- * A status line, then each detail on its own muted line (paths are long). Details
- * are the default path or a variable name, never an environment value.
+ * A status line in the same shape as dev.mjs (`✓ label (result)`), then each
+ * detail on its own muted line (paths are long). Details are the default path
+ * or a variable name, never an environment value.
  */
-function ok(label, details) {
-  console.log(` ${styleText("green", "✓")} ${label}`);
+function ok(label, result, details) {
+  printedStatus = true;
+  const wrapped = `(${result})`;
+  const shown = styleText("dim", wrapped);
+  console.log(` ${styleText("green", "✓")} ${label} ${shown}`);
   for (const detail of details) {
     console.log(`   ${styleText("dim", displayPath(detail))}`);
   }
@@ -414,6 +425,7 @@ function displayPath(file) {
 }
 
 export function warn(message) {
+  printedStatus = true;
   console.warn(` ${styleText("yellow", "!", STDERR)} ${message}`);
 }
 
