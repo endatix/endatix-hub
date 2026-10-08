@@ -161,14 +161,17 @@ describe("TelemetryInitializer", () => {
       );
     });
 
-    it("warns and registers nothing when no exporter is configured", () => {
+    it("hints at the exporter settings and registers nothing when none is configured", () => {
       // Act
       createInitializer().initialize();
 
       // Assert
-      expect(consoleWarn).toHaveBeenCalledWith(
-        "No telemetry exporter configured",
+      expect(consoleLog).toHaveBeenCalledWith(
+        expect.stringContaining(
+          "Telemetry off (set APPLICATIONINSIGHTS_CONNECTION_STRING",
+        ),
       );
+      expect(consoleWarn).not.toHaveBeenCalled();
       expect(listeners.size).toBe(0);
     });
 

@@ -67,7 +67,7 @@ describe("experimental-config", () => {
       logExperimentalStatus({ extensions: true });
 
       expect(logSpy).toHaveBeenCalledWith(
-        "🚧 Endatix experimental features (use with caution):",
+        expect.stringContaining("Endatix experiments (use with caution):"),
       );
       expect(logSpy).toHaveBeenCalledWith(
         expect.stringContaining("extensions"),

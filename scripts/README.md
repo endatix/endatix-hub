@@ -74,6 +74,10 @@ node scripts/copy-standalone.mjs
 
 `pnpm dev`, `pnpm dev:inspect` and `pnpm dev-https` run it. It builds the embed SDK, discovers custom questions, then starts `next dev` through `dev-cert.mjs` (`runWithDevCert`). Each step prints one status line, and its own output shows when it fails or warns (writes to stderr). Extra args go to `next dev` (`pnpm dev -p 3001`).
 
+### `banner.mjs`
+
+The `pnpm dev` banner: the Endatix paperclip (`public/assets/icons/icon.svg`) as half-block pixel art in brand blue, with the Hub, Next.js and Node versions. In a 24-bit colour terminal a highlight sweeps across the clip once (about 300 ms, while the setup steps run). Fewer colours print the plain logo, `NO_COLOR` drops colour, and CI or piped output gets no banner.
+
 ## Dev Certificate Script
 
 ### `with-dev-cert.mjs` and `dev-cert.mjs`

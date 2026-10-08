@@ -1,5 +1,37 @@
 import { AuthPresentation, IAuthProvider } from "./types";
 import { EndatixAuthProvider } from "./providers/endatix-auth-provider";
+import { icon } from "@/lib/utils/console-styles";
+
+const LOGGED_PROVIDERS = Symbol.for("endatix.auth.loggedProviders");
+
+function logProviderStatus(id: string, active: boolean): void {
+  logProviderOnce(id, () =>
+    active
+      ? console.info(`${icon("🔐", "✓")} Auth provider ${id} active`)
+      : console.warn(
+          `${icon("🔐", "!")} Auth provider ${id} not activated: its configuration is invalid`,
+        ),
+  );
+}
+
+/**
+ * Logs a provider's status once per process. The registry module is evaluated
+ * again per route compile in `next dev` and in every `next build` worker, so a
+ * module-level flag is not enough. During `next build` (NEXT_PHASE, set before
+ * Next starts its workers) nothing is logged.
+ */
+function logProviderOnce(key: string, log: () => void): void {
+  if (process.env.NEXT_PHASE === "phase-production-build") {
+    return;
+  }
+  const store = globalThis as { [LOGGED_PROVIDERS]?: Set<string> };
+  const logged = (store[LOGGED_PROVIDERS] ??= new Set<string>());
+  if (logged.has(key)) {
+    return;
+  }
+  logged.add(key);
+  log();
+}
 
 /**
  * Registry for managing auth providers. Replaces the AuthProviderRouter
@@ -23,12 +55,8 @@ export class AuthProviderRegistry {
       const shouldActivate = provider.validateConfig();
       if (shouldActivate) {
         this._activeProviders.set(provider.id, provider);
-        console.info(`🔐 Provider ${provider.id} validated and activated`);
-      } else {
-        console.warn(
-          `🔐 Provider ${provider.id} validation failed: not activated`,
-        );
       }
+      logProviderStatus(provider.id, shouldActivate);
     } catch (error) {
       console.warn(`⚠️ Provider ${provider.id} registration failed:`, error);
     }
@@ -64,7 +92,7 @@ export class AuthProviderRegistry {
       id: provider.id,
       name: provider.name,
       type: provider.type,
-      ...provider.getPresentationOptions()
+      ...provider.getPresentationOptions(),
     }));
   }
 }
