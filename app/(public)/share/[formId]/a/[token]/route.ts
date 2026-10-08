@@ -9,9 +9,7 @@ export async function GET(request: Request, { params }: RouteParams) {
   const { formId, token } = await params;
   const redeemed = await new EndatixApi().audience.redeemLink(formId, token);
   if (!redeemed.success) {
-    return new NextResponse("This personalised link could not be opened.", {
-      status: 404,
-    });
+    return new NextResponse(redeemed.error.message, { status: 404 });
   }
 
   const store = new FormTokenCookieStore(await cookies());
