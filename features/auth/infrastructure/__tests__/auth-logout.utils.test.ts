@@ -35,6 +35,7 @@ describe("resolveFederatedLogoutUrl", () => {
 
   beforeEach(() => {
     process.env.AUTH_URL = "https://hub.endatix.test";
+    delete process.env.NEXTAUTH_URL;
     delete process.env.NEXT_PUBLIC_BASE_PATH;
     mocks.getProvider.mockReturnValue(
       mockProvider as IAuthProvider & ISupportsFederatedLogout,
@@ -47,6 +48,7 @@ describe("resolveFederatedLogoutUrl", () => {
   afterEach(() => {
     vi.clearAllMocks();
     delete process.env.AUTH_URL;
+    delete process.env.NEXTAUTH_URL;
     delete process.env.NEXT_PUBLIC_BASE_PATH;
   });
 
@@ -103,6 +105,20 @@ describe("resolveFederatedLogoutUrl", () => {
       { reason: "auth_url_missing" },
       "auth.logout",
     );
+  });
+
+  it("uses NEXTAUTH_URL when AUTH_URL is unset, like the session cookie", () => {
+    delete process.env.AUTH_URL;
+    process.env.NEXTAUTH_URL = "https://legacy.endatix.test";
+
+    const logoutUrl = resolveFederatedLogoutUrl(token);
+
+    expect(logoutUrl).toBe("https://idp.endatix.test/logout");
+    expect(mockProvider.resolveFederatedLogoutUrl).toHaveBeenCalledWith({
+      token,
+      postLogoutRedirectUri: "https://legacy.endatix.test/signin",
+    });
+    expect(mocks.telemetryWarn).not.toHaveBeenCalled();
   });
 
   it("returns null when the provider fails to resolve federated logout", () => {

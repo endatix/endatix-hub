@@ -13,7 +13,7 @@ vi.mock("../../authorization/application/authorization-data.provider", () => ({
 }));
 
 const SECURE = "__Secure-authjs.session-token";
-const CHUNK_SIZE = 4096 - 160;
+const PLAIN = "authjs.session-token";
 
 function unsignedJwt(payload: Record<string, unknown>): string {
   const part = (value: object) =>
@@ -21,84 +21,78 @@ function unsignedJwt(payload: Record<string, unknown>): string {
   return `${part({ alg: "none" })}.${part(payload)}.`;
 }
 
-const idToken = unsignedJwt({ sub: "user-1", email: "a@example.com" });
 const tokenData: KeycloakTokenResponse = {
   access_token: "access",
   refresh_token: "refresh",
   expires_in: 300,
   refresh_expires_in: 1800,
-  id_token: idToken,
+  id_token: unsignedJwt({ sub: "user-1", email: "a@example.com" }),
   token_type: "Bearer",
   scope: "openid",
   session_state: "state",
   issued_token_type: "urn:ietf:params:oauth:token-type:access_token",
 };
 
-function bridgeRequest(cookie?: string): NextRequest {
-  const headers = new Headers({ "x-forwarded-proto": "https" });
-  if (cookie) {
-    headers.set("cookie", cookie);
-  }
-  return new NextRequest("http://localhost:3000/api/session-bridge", {
+function bridgeRequest(forwardedProto: string): NextRequest {
+  return new NextRequest("http://localhost:3000/api/auth/session-bridge", {
     method: "POST",
-    headers,
+    headers: { "x-forwarded-proto": forwardedProto },
   });
 }
 
 describe("createSessionFromToken", () => {
   beforeEach(() => {
-    vi.stubEnv("AUTH_URL", "https://hub.example.com");
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-01-01T00:00:00Z"));
+    vi.stubEnv("NEXTAUTH_URL", undefined);
     vi.mocked(encode).mockResolvedValue("jwe");
   });
 
   afterEach(() => {
-    vi.useRealTimers();
     vi.unstubAllEnvs();
     vi.clearAllMocks();
   });
 
-  it("keeps the id_token and stores expires_at in epoch seconds", async () => {
-    // Act
-    await createSessionFromToken(tokenData, bridgeRequest());
+  it("writes the secure cookie when AUTH_URL is https behind an http proxy", async () => {
+    // Arrange
+    vi.stubEnv("AUTH_URL", "https://hub.example.com");
 
-    // Assert
-    const nowSeconds = Math.floor(Date.now() / 1000);
-    expect(encode).toHaveBeenCalledWith(
-      expect.objectContaining({
-        salt: SECURE,
-        token: expect.objectContaining({
-          id_token: idToken,
-          iat: nowSeconds,
-          expires_at: nowSeconds + 300,
-        }),
-      }),
+    // Act
+    const response = await createSessionFromToken(
+      tokenData,
+      bridgeRequest("http"),
     );
-  });
-
-  it("writes one cookie when the token fits", async () => {
-    // Act
-    const response = await createSessionFromToken(tokenData, bridgeRequest());
 
     // Assert
     expect(response.cookies.get(SECURE)?.value).toBe("jwe");
+    expect(encode).toHaveBeenCalledWith(
+      expect.objectContaining({ salt: SECURE }),
+    );
   });
 
-  it("splits a large token into Auth.js chunks and expires stale ones", async () => {
+  it("writes the plain cookie when AUTH_URL is http", async () => {
     // Arrange
-    const large = "x".repeat(CHUNK_SIZE + 10);
-    vi.mocked(encode).mockResolvedValue(large);
-    const request = bridgeRequest(`${SECURE}=old; ${SECURE}.2=old; other=1`);
+    vi.stubEnv("AUTH_URL", "http://localhost:3000");
 
     // Act
-    const response = await createSessionFromToken(tokenData, request);
+    const response = await createSessionFromToken(
+      tokenData,
+      bridgeRequest("https"),
+    );
 
     // Assert
-    expect(response.cookies.get(`${SECURE}.0`)?.value).toHaveLength(CHUNK_SIZE);
-    expect(response.cookies.get(`${SECURE}.1`)?.value).toHaveLength(10);
-    expect(response.cookies.get(SECURE)?.maxAge).toBe(0);
-    expect(response.cookies.get(`${SECURE}.2`)?.maxAge).toBe(0);
-    expect(response.cookies.get("other")).toBeUndefined();
+    expect(response.cookies.get(PLAIN)?.value).toBe("jwe");
+  });
+
+  it("follows x-forwarded-proto when no public URL is set", async () => {
+    // Arrange
+    vi.stubEnv("AUTH_URL", undefined);
+
+    // Act
+    const response = await createSessionFromToken(
+      tokenData,
+      bridgeRequest("https"),
+    );
+
+    // Assert
+    expect(response.cookies.get(SECURE)?.value).toBe("jwe");
   });
 });

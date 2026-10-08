@@ -29,10 +29,9 @@ export const AuthTokenSchema = zod.object({
   picture: zod.string().optional(),
   access_token: zod.string(),
   refresh_token: zod.string(),
-  id_token: zod.string(),
   provider: zod.string(),
   iat: zod.number(),
-  expires_at: zod.number(),
+  expires_at: zod.date(),
 });
 
 export type AuthToken = zod.infer<typeof AuthTokenSchema>;

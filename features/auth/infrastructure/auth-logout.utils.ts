@@ -5,6 +5,7 @@ import { supportsFederatedLogout } from "./federated-logout.types";
 import { getPostLogoutRedirectUri } from "./oidc-logout.utils";
 import { isValidAbsoluteUrl } from "@/lib/utils/url-utils";
 import { TelemetryLogger } from "@/features/telemetry";
+import { readAuthPublicUrl } from "./session-utils";
 
 /**
  * Resolves the federated logout URL for the provider.
@@ -46,8 +47,9 @@ export function resolveFederatedLogoutUrl(token: JWT | null): string | null {
   }
 }
 
+/** The same public URL the session cookie uses: `AUTH_URL`, then `NEXTAUTH_URL`. */
 function readAuthUrl(): string | null {
-  const authUrl = process.env.AUTH_URL;
+  const authUrl = readAuthPublicUrl();
   if (!authUrl) {
     warnLogout(
       "Federated logout requested but AUTH_URL is missing",

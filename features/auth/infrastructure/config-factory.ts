@@ -2,7 +2,7 @@ import { NextAuthConfig } from "next-auth";
 import { AuthProviderRegistry } from "./auth-provider-registry";
 import { AuthPresentation } from "./types";
 import { invalidateUserAuthorizationCache } from "../authorization/application/authorization-data.provider";
-import { configuredSecureCookies } from "./session-utils";
+import { configuredSecureCookies, readAuthPublicUrl } from "./session-utils";
 
 // Safe margin in seconds to expire session before actual expiration
 const SESSION_EXPIRATION_SAFE_MARGIN_SECONDS = 10;
@@ -95,7 +95,7 @@ export function createAuthConfig(
     },
     session: sessionConfig(),
     trustHost: true,
-    useSecureCookies: configuredSecureCookies(),
+    useSecureCookies: configuredSecureCookies(readAuthPublicUrl()),
   };
 }
 

@@ -26,6 +26,10 @@ const SECURE = "__Secure-authjs.session-token";
 const PLAIN = "authjs.session-token";
 
 describe("shouldUseSecureSessionCookie", () => {
+  beforeEach(() => {
+    vi.stubEnv("NEXTAUTH_URL", undefined);
+  });
+
   afterEach(() => {
     vi.unstubAllEnvs();
   });
@@ -66,7 +70,6 @@ describe("shouldUseSecureSessionCookie", () => {
     "%s picks the expected cookie name",
     (_label, authUrl, forwardedProto, secure, cookieName) => {
       vi.stubEnv("AUTH_URL", authUrl);
-      vi.stubEnv("NEXTAUTH_URL", undefined);
       const requestHeaders = new Headers();
       if (forwardedProto) {
         requestHeaders.set("x-forwarded-proto", forwardedProto);
@@ -108,6 +111,7 @@ describe("configuredSecureCookies", () => {
 
 describe("getAuthJwtFromRequest", () => {
   beforeEach(() => {
+    vi.stubEnv("NEXTAUTH_URL", undefined);
     headerBag.delete("x-forwarded-proto");
     headerBag.delete("cookie");
     vi.mocked(getToken).mockReset();

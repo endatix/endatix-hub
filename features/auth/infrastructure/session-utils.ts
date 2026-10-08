@@ -18,7 +18,7 @@ export function readAuthPublicUrl(): string | undefined {
  * invalid URL gives false. Without one it is undefined and the request decides.
  */
 export function configuredSecureCookies(
-  authUrl: string | undefined = readAuthPublicUrl(),
+  authUrl: string | undefined,
 ): boolean | undefined {
   if (!authUrl) {
     return undefined;
@@ -36,7 +36,7 @@ export function configuredSecureCookies(
  * value (https when missing), which is what Auth.js `auth()` and `signOut()` use.
  */
 export function shouldUseSecureSessionCookie(requestHeaders: Headers): boolean {
-  const configured = configuredSecureCookies();
+  const configured = configuredSecureCookies(readAuthPublicUrl());
   if (configured !== undefined) {
     return configured;
   }
@@ -52,30 +52,6 @@ function normalizeProtocol(value: string): string {
 export function sessionCookieName(useSecureCookies: boolean): string {
   const cookiePrefix = useSecureCookies ? "__Secure-" : "";
   return `${cookiePrefix}authjs.session-token`;
-}
-
-/** Auth.js `SessionStore` chunk size: the 4096-byte limit minus an empty cookie. */
-const SESSION_COOKIE_CHUNK_SIZE = 4096 - 160;
-
-/**
- * Splits a session token the way Auth.js `SessionStore` does: one cookie, or
- * `name.0`, `name.1`, ... when it exceeds the chunk size.
- */
-export function sessionCookieChunks(
-  name: string,
-  value: string,
-): { name: string; value: string }[] {
-  const count = Math.ceil(value.length / SESSION_COOKIE_CHUNK_SIZE);
-  if (count <= 1) {
-    return [{ name, value }];
-  }
-  return Array.from({ length: count }, (_, index) => ({
-    name: `${name}.${index}`,
-    value: value.slice(
-      index * SESSION_COOKIE_CHUNK_SIZE,
-      (index + 1) * SESSION_COOKIE_CHUNK_SIZE,
-    ),
-  }));
 }
 
 /**
