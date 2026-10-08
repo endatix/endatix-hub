@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveHubBuild } from "@/lib/hosting/hub-version";
+import { resolveHubBuild } from "@/lib/hosting/hub-build.mjs";
 import { formatBuild, hubBuildIdentity } from "../scripts/banner.mjs";
 
 const SHA = "8ef28cee396f8dfb959d40c34868314585659f28";

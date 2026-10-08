@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 import { normalizeBasePath } from "./lib/hosting/base-path";
-import { getHubDeploymentId, resolveHubBuild } from "./lib/hosting/hub-version";
+import { resolveHubBuild } from "./lib/hosting/hub-build.mjs";
+import { getHubDeploymentId } from "./lib/hosting/hub-version";
 import { getRewriteRuleFor } from "./lib/hosting/next-config-helper";
 import { Rewrite } from "next/dist/lib/load-custom-routes";
 import { withEndatix } from "@/features/config";
@@ -9,7 +10,8 @@ import { OTEL_SERVER_EXTERNAL_PACKAGES } from "./features/telemetry/infrastructu
 // Resolved once at build. `env` replaces each `process.env.HUB_*` read with its value
 // at build, so a standalone server (which never runs this file) still has them. Only
 // server code reads them (lib/hosting/hub-version.ts, from the About dialog's server
-// action), so they land in server chunks only; the release check greps .next/static.
+// action) and does not import hub-build.mjs, so they land in server chunks only;
+// the release check greps .next/static.
 const hubBuild = resolveHubBuild();
 
 const nextConfig: NextConfig = {
