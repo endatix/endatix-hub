@@ -47,7 +47,7 @@ export function resolveFederatedLogoutUrl(token: JWT | null): string | null {
   }
 }
 
-/** The same public URL the session cookie uses: `AUTH_URL`, then `NEXTAUTH_URL`. */
+/** The same public URL the session cookie uses (`AUTH_URL`). */
 function readAuthUrl(): string | null {
   const authUrl = readAuthPublicUrl();
   if (!authUrl) {

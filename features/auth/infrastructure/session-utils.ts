@@ -6,9 +6,12 @@ import { CookiesOptions } from "@auth/core/types";
  */
 const AUTHJS_DEFAULT_PROTOCOL = "https";
 
-/** The public origin Auth.js uses: `AUTH_URL`, then the legacy `NEXTAUTH_URL`. */
+/**
+ * The public origin (`AUTH_URL`). Hub never supported the legacy NextAuth v4
+ * `NEXTAUTH_URL`, so it is not read here.
+ */
 export function readAuthPublicUrl(): string | undefined {
-  return process.env.AUTH_URL || process.env.NEXTAUTH_URL || undefined;
+  return process.env.AUTH_URL || undefined;
 }
 
 /**

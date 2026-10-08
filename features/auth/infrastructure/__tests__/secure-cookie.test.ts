@@ -26,10 +26,6 @@ const SECURE = "__Secure-authjs.session-token";
 const PLAIN = "authjs.session-token";
 
 describe("shouldUseSecureSessionCookie", () => {
-  beforeEach(() => {
-    vi.stubEnv("NEXTAUTH_URL", undefined);
-  });
-
   afterEach(() => {
     vi.unstubAllEnvs();
   });
@@ -89,12 +85,14 @@ describe("shouldUseSecureSessionCookie", () => {
     expect(shouldUseSecureSessionCookie(requestHeaders)).toBe(false);
   });
 
-  it("uses NEXTAUTH_URL when AUTH_URL is unset, like Auth.js", () => {
+  it("ignores the legacy NEXTAUTH_URL, which Hub never supported", () => {
+    // Arrange
     vi.stubEnv("AUTH_URL", undefined);
     vi.stubEnv("NEXTAUTH_URL", "https://hub.example.com");
     const requestHeaders = new Headers({ "x-forwarded-proto": "http" });
 
-    expect(shouldUseSecureSessionCookie(requestHeaders)).toBe(true);
+    // Act & Assert
+    expect(shouldUseSecureSessionCookie(requestHeaders)).toBe(false);
   });
 });
 
@@ -111,7 +109,6 @@ describe("configuredSecureCookies", () => {
 
 describe("getAuthJwtFromRequest", () => {
   beforeEach(() => {
-    vi.stubEnv("NEXTAUTH_URL", undefined);
     headerBag.delete("x-forwarded-proto");
     headerBag.delete("cookie");
     vi.mocked(getToken).mockReset();

@@ -42,7 +42,6 @@ function bridgeRequest(forwardedProto: string): NextRequest {
 
 describe("createSessionFromToken", () => {
   beforeEach(() => {
-    vi.stubEnv("NEXTAUTH_URL", undefined);
     vi.mocked(encode).mockResolvedValue("jwe");
   });
 
@@ -82,17 +81,25 @@ describe("createSessionFromToken", () => {
     expect(response.cookies.get(PLAIN)?.value).toBe("jwe");
   });
 
-  it("follows x-forwarded-proto when no public URL is set", async () => {
-    // Arrange
-    vi.stubEnv("AUTH_URL", undefined);
+  it.each([
+    ["https", SECURE, true],
+    ["http", PLAIN, false],
+  ])(
+    "follows x-forwarded-proto %s when no public URL is set",
+    async (forwardedProto, cookieName, secure) => {
+      // Arrange
+      vi.stubEnv("AUTH_URL", undefined);
 
-    // Act
-    const response = await createSessionFromToken(
-      tokenData,
-      bridgeRequest("https"),
-    );
+      // Act
+      const response = await createSessionFromToken(
+        tokenData,
+        bridgeRequest(forwardedProto),
+      );
 
-    // Assert
-    expect(response.cookies.get(SECURE)?.value).toBe("jwe");
-  });
+      // Assert
+      const cookie = response.cookies.get(cookieName);
+      expect(cookie?.value).toBe("jwe");
+      expect(cookie?.secure ?? false).toBe(secure);
+    },
+  );
 });
