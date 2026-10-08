@@ -58,7 +58,12 @@ export class AuthProviderRegistry {
       }
       logProviderStatus(provider.id, shouldActivate);
     } catch (error) {
-      console.warn(`⚠️ Provider ${provider.id} registration failed:`, error);
+      logProviderOnce(`${provider.id}:error`, () =>
+        console.warn(
+          `${icon("⚠️", "!")} Provider ${provider.id} registration failed:`,
+          error,
+        ),
+      );
     }
   }
 

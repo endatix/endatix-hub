@@ -3,12 +3,8 @@
 // in bold and the build, muted, below it. Printed only in a terminal; CI and piped
 // logs get no banner.
 
-import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
-import path from "node:path";
 import { styleText } from "node:util";
-
-const hubRoot = path.resolve(import.meta.dirname, "..");
+import { resolveHubBuild } from "../lib/hosting/hub-build.mjs";
 
 // The blue square with the paperclip cut out (8 x 4 characters). Four rows
 // centre the two text lines and keep both loops of the clip visible.
@@ -37,6 +33,10 @@ export async function printBanner() {
     return;
   }
   const build = styleText("dim", formatBuild(hubBuildIdentity()));
+  if (!terminalDrawsBraille()) {
+    out.write(`  ${styleText("bold", TITLE)}\n  ${build}\n\n`);
+    return;
+  }
   const depth = out.getColorDepth?.() ?? 1;
   const draw = (sweep) =>
     ICON.map((line, row) => {
@@ -66,28 +66,24 @@ export async function printBanner() {
 }
 
 /**
- * The same rules as lib/hosting/hub-version.ts `resolveHubBuild`, which this
- * plain-Node script cannot import (TypeScript, extensionless imports):
- * - version: a stamped package.json version (not `0.0.0-*`), else on a release
- *   line (`main`, `hotfix/*`, a tag checkout) the `v*` tag HEAD sits exactly on;
- * - branch: only when there is no version; commit: HEAD.
- * `__tests__/dev-banner.test.ts` pins the two against each other.
- *
+ * Same resolver as the About dialog (`resolveHubBuild`).
  * @param {(args: string[]) => string} [git]
- * @param {string} [packageVersion]
- * @param {{ GITHUB_REF_TYPE?: string; GITHUB_HEAD_REF?: string; GITHUB_REF_NAME?: string }} [env]
+ * @param {import("../lib/hosting/hub-build.mjs").ReleaseEnv} [env]
  */
-export function hubBuildIdentity(
-  git = runGit,
-  packageVersion = readPackageVersion(),
-  env = process.env,
-) {
-  const branch = resolveBranch(git, env);
-  const stamped = packageVersion.startsWith("0.0.0") ? null : packageVersion;
-  const version =
-    stamped ?? (isReleaseLine(branch) ? releaseTagAtHead(git) : null);
-  const commit = tryGit(git, ["rev-parse", "HEAD"]);
-  return { version, branch: version ? null : branch, commit };
+export function hubBuildIdentity(git, env = process.env) {
+  return resolveHubBuild(git, env);
+}
+
+/**
+ * Braille is one cell wide in Windows Terminal, VS Code, macOS and Linux.
+ * The legacy Windows console draws it at the wrong width, so the wordmark
+ * would shove the title. That console gets the name and build only.
+ */
+function terminalDrawsBraille(env = process.env) {
+  if (process.platform !== "win32") {
+    return true;
+  }
+  return Boolean(env.WT_SESSION) || env.TERM_PROGRAM === "vscode";
 }
 
 /** `v0.8.0`, or `branch @ short commit`. */
@@ -99,73 +95,6 @@ export function formatBuild({ version, branch, commit }) {
     return "local build";
   }
   return `${branch ?? "unknown branch"} @ ${commit?.slice(0, 7) ?? "unknown"}`;
-}
-
-function resolveBranch(git, env) {
-  const branch = tryGit(git, ["rev-parse", "--abbrev-ref", "HEAD"]);
-  if (branch && branch !== "HEAD") {
-    return branch;
-  }
-  if (env.GITHUB_REF_TYPE === "tag") {
-    return null;
-  }
-  return blankToNull(env.GITHUB_HEAD_REF) ?? blankToNull(env.GITHUB_REF_NAME);
-}
-
-function isReleaseLine(branch) {
-  return branch === null || branch === "main" || branch.startsWith("hotfix/");
-}
-
-function releaseTagAtHead(git) {
-  const tag = tryGit(git, [
-    "describe",
-    "--tags",
-    "--exact-match",
-    "--match",
-    "v[0-9]*",
-  ]);
-  return tag ? tag.replace(/^v/, "") : null;
-}
-
-function tryGit(git, args) {
-  try {
-    return blankToNull(git(args));
-  } catch {
-    return null;
-  }
-}
-
-function blankToNull(value) {
-  return value?.trim() || null;
-}
-
-// Fixed paths, as in hub-version.ts: no PATH lookup (Sonar S4036).
-const GIT_EXECUTABLES = [
-  "/usr/bin/git",
-  "/usr/local/bin/git",
-  "/opt/homebrew/bin/git",
-  String.raw`C:\Program Files\Git\cmd\git.exe`,
-];
-
-function runGit(args) {
-  const git = GIT_EXECUTABLES.find((candidate) => existsSync(candidate));
-  if (!git) {
-    throw new Error("git is not installed in a known location");
-  }
-  return execFileSync(git, args, {
-    cwd: hubRoot,
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "ignore"],
-  });
-}
-
-function readPackageVersion() {
-  try {
-    const manifest = path.join(hubRoot, "package.json");
-    return JSON.parse(readFileSync(manifest, "utf8")).version ?? "0.0.0";
-  } catch {
-    return "0.0.0";
-  }
 }
 
 const ICON_WIDTH = Math.max(...ICON.map((line) => line.length));

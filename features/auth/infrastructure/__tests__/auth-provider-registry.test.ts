@@ -56,6 +56,20 @@ describe("AuthProviderRegistry status logging", () => {
     expect(console.info).not.toHaveBeenCalled();
   });
 
+  it("stays quiet when Next evaluates the module again", async () => {
+    // Arrange — a fresh evaluation, then another, as a route compile does.
+    delete (globalThis as Record<symbol, unknown>)[LOGGED_PROVIDERS];
+    vi.resetModules();
+
+    // Act
+    await import("../auth-provider-registry");
+    vi.resetModules();
+    await import("../auth-provider-registry");
+
+    // Assert
+    expect(console.warn).toHaveBeenCalledOnce();
+  });
+
   it("warns once for a provider whose configuration is invalid", () => {
     // Act
     new AuthProviderRegistry().register(provider("google", false));

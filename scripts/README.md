@@ -33,7 +33,6 @@ The script will:
 1. Change to the hub directory
 2. Run `pnpm up` for all survey packages
 
-
 ## Dependency Review Script
 
 ### `review-dependency.mjs`
@@ -76,7 +75,7 @@ node scripts/copy-standalone.mjs
 
 ### `banner.mjs`
 
-The `pnpm dev` banner, laid out like the Endatix wordmark: the icon from `public/assets/icons/icon.svg` as 16 × 16 Braille dots in brand blue, with `Endatix Hub` in bold and the build, muted, below it with `Endatix Hub` and the build beside it: `v0.8.0` for a release, otherwise `branch @ commit`, by the same rules as the About dialog (`lib/hosting/hub-version.ts`; `__tests__/dev-banner.test.ts` keeps them in step). In a 24-bit colour terminal a synthwave gradient sweeps across it once (about 400 ms, while the setup steps run). 256 or 16 colours print it without the sweep, `NO_COLOR` prints it uncoloured, and CI or piped output gets no banner.
+The `pnpm dev` banner. The icon from `public/assets/icons/icon.svg` is 16 × 16 Braille dots in brand blue, with `Endatix Hub` in bold beside it and the build muted on the next line: `v0.8.0` for a release, otherwise `branch @ commit`. The name comes from `lib/hosting/hub-build.mjs`, the same resolver the About dialog uses. In a 24-bit colour terminal a synthwave gradient sweeps across it once (about 400 ms, while the setup steps run). 256 or 16 colours print it without the sweep, `NO_COLOR` prints it uncoloured, and CI or piped output gets no banner. The legacy Windows console prints the name and build only, because Braille there is the wrong width.
 
 ## Dev Certificate Script
 

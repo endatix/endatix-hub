@@ -16,10 +16,16 @@ function fakeGit(answers: Record<string, string>) {
   };
 }
 
+type ReleaseEnv = {
+  GITHUB_REF_TYPE?: string;
+  GITHUB_HEAD_REF?: string;
+  GITHUB_REF_NAME?: string;
+};
+
 type Case = {
   name: string;
   git: Record<string, string>;
-  env: Record<string, string>;
+  env: ReleaseEnv;
 };
 
 const cases: Case[] = [
@@ -66,7 +72,7 @@ describe("dev banner build identity", () => {
       const git = fakeGit(testCase.git);
 
       // Act
-      const banner = hubBuildIdentity(git, "0.0.0-local", testCase.env);
+      const banner = hubBuildIdentity(git, testCase.env);
 
       // Assert
       expect(banner).toEqual(resolveHubBuild(git, testCase.env));

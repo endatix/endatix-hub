@@ -10,11 +10,10 @@ import { TelemetryConfig } from "./telemetry-config";
 import { TelemetryRuntime } from "./telemetry-runtime";
 import { TelemetrySdk } from "./telemetry-sdk";
 import { TelemetryLogger } from "./telemetry-logger";
-import styles from "@/lib/utils/console-styles";
+import styles, { icon } from "@/lib/utils/console-styles";
 
 /** Running without an exporter is a valid setup, so this is a hint, not a warning. */
-export const NO_EXPORTER_MESSAGE =
-  "· Telemetry off (check docs to enable OTel)";
+export const NO_EXPORTER_MESSAGE = "Telemetry off (check docs to enable OTel)";
 
 /**
  * Upper bound for flushing before the process exits. Exporters retry with their
@@ -49,7 +48,7 @@ export class TelemetryInitializer {
     }
 
     if (!this.sdk) {
-      console.log(styles.dim(NO_EXPORTER_MESSAGE));
+      console.log(styles.dim(`${icon("·", "-")} ${NO_EXPORTER_MESSAGE}`));
       return;
     }
 
