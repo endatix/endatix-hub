@@ -75,6 +75,6 @@ node scripts/copy-standalone.mjs
 Runs a Node CLI (`next`, `playwright`, `node`) with the local .NET HTTPS dev certificate trusted through `NODE_EXTRA_CA_CERTS`, so the Hub reaches `https://localhost:5001` without turning certificate checks off. `dev`, `dev:inspect`, `dev-https`, `run:standalone` and all `test:e2e*` package scripts use it (`dev:embed` does not). Details: `e2e/README.md` → Screen-out.
 
 ```bash
-pnpm setup:dev                                    # export the PEM once (any OS)
+pnpm setup:dev                                    # export the PEM again (first use exports it)
 node scripts/with-dev-cert.mjs playwright test   # what pnpm test:e2e runs
 ```
