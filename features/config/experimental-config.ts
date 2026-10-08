@@ -1,5 +1,5 @@
 // Relative: next.config.ts loads this file, and its compile has no "@/" alias.
-import { icon } from "../../lib/utils/console-styles";
+import styles, { icon } from "../../lib/utils/console-styles";
 
 /**
  * Experimental features configuration.
@@ -46,7 +46,7 @@ export function logExperimentalStatus(config: ExperimentalConfig): void {
     // Same shape as Next's own "- Experiments (use with caution):" list.
     console.log(`${icon("🚧", "-")} Endatix experiments (use with caution):`);
     experiments.forEach((feature) => {
-      const symbol = feature.enabled ? "\x1b[32m✓\x1b[0m" : "\x1b[90m·\x1b[0m";
+      const symbol = feature.enabled ? styles.green("✓") : styles.dim("·");
       console.log(`  ${symbol} ${feature.name}`);
     });
   }

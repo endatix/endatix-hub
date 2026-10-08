@@ -13,7 +13,8 @@ import { TelemetryLogger } from "./telemetry-logger";
 import styles, { icon } from "@/lib/utils/console-styles";
 
 /** Running without an exporter is a valid setup, so this is a hint, not a warning. */
-export const NO_EXPORTER_MESSAGE = "Telemetry off (check docs to enable OTel)";
+export const NO_EXPORTER_MESSAGE =
+  "Telemetry off (set APPLICATIONINSIGHTS_CONNECTION_STRING or OTEL_EXPORTER_OTLP_ENDPOINT)";
 
 /**
  * Upper bound for flushing before the process exits. Exporters retry with their

@@ -1,5 +1,9 @@
-import { describe, expect, it } from "vitest";
-import { supportsEmoji, type TerminalEnv } from "../console-styles";
+import { describe, expect, it, vi } from "vitest";
+import styles, {
+  supportsColor,
+  supportsEmoji,
+  type TerminalEnv,
+} from "../console-styles";
 
 type Case = {
   name: string;
@@ -74,6 +78,46 @@ const cases: Case[] = [
     expected: true,
   },
 ];
+
+describe("supportsColor", () => {
+  it.each([
+    ["a terminal", {}, true, true],
+    ["piped output", {}, false, false],
+    [
+      "next dev's pipe on a terminal",
+      { NEXT_PRIVATE_PROMPT_OUTPUT: "1" },
+      false,
+      true,
+    ],
+    ["NO_COLOR", { NO_COLOR: "1" }, true, false],
+    ["TERM=dumb", { TERM: "dumb" }, true, false],
+    ["FORCE_COLOR on a pipe", { FORCE_COLOR: "1" }, false, true],
+    [
+      "NO_COLOR over FORCE_COLOR",
+      { NO_COLOR: "1", FORCE_COLOR: "1" },
+      true,
+      false,
+    ],
+  ] as const)("in %s", (_name, env, isTTY, expected) => {
+    // Act
+    const result = supportsColor(env, { isTTY });
+
+    // Assert
+    expect(result).toBe(expected);
+  });
+
+  it("leaves the mark uncoloured when the terminal has no colour", () => {
+    // Arrange
+    vi.stubEnv("NO_COLOR", "1");
+
+    // Act
+    const painted = styles.green("✓");
+
+    // Assert
+    expect(painted).toBe("✓");
+    vi.unstubAllEnvs();
+  });
+});
 
 describe("supportsEmoji", () => {
   it.each(cases)("in $name gives $expected", (testCase) => {
