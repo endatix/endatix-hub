@@ -348,9 +348,8 @@ function runExport(dotnet, pem, name) {
     ok("dev certificate exported", [name]);
     return true;
   }
-  warn(
-    `Could not export the dev certificate: ${error?.message ?? `dotnet exited ${status}`}`,
-  );
+  const reason = error?.message ?? `dotnet exited ${status}`;
+  warn(`Could not export the dev certificate: ${reason}`);
   return false;
 }
 
