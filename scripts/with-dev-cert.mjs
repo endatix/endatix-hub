@@ -42,22 +42,22 @@ if (command === "--export") {
 }
 
 function runWithDevCert(name, rest) {
-  const child = spawn(process.execPath, [...resolveEntry(name), ...rest], {
+  // The child stays in this process's group, so the terminal's Ctrl+C, Ctrl+\,
+  // Ctrl+Z, SIGHUP on close and SIGWINCH reach the whole tree (Next's forked
+  // server included), as they do without the wrapper.
+  const env = withDevCertEnv(process.env);
+  const args = [...rest, ...nextHttpsArgs(name, rest, env.NODE_EXTRA_CA_CERTS)];
+  const child = spawn(process.execPath, [...resolveEntry(name), ...args], {
     stdio: "inherit",
-    env: withDevCertEnv(process.env),
-    // Unix: the child leads its own process group, so terminal Ctrl+C reaches
-    // only this process and is forwarded exactly once per press. A second press
-    // then force-quits Playwright, as the user intends. Windows shares the
-    // console instead (detaching would open a second window).
-    detached: !IS_WINDOWS,
+    env,
   });
   forwardSignals(child);
   child.on("error", (error) =>
     fail(`Could not start "${name}": ${error.message}`),
   );
   child.on("exit", (code, signal) => exitLike(code, signal));
-  // If this process ends first (an error or a crash it can handle), do not
-  // leave a detached child running. A SIGKILL to this PID cannot be handled.
+  // If this process ends first (an error or a crash it can handle), stop the
+  // child too. A SIGKILL to this PID cannot be handled.
   process.on("exit", () => {
     if (child.exitCode === null && child.signalCode === null) {
       child.kill("SIGTERM");
@@ -67,20 +67,77 @@ function runWithDevCert(name, rest) {
 }
 
 /**
- * Unix forwards SIGINT, SIGTERM and SIGHUP. On Windows the console already
- * delivers Ctrl+C and Ctrl+Break to the child, and child.kill() with any signal
- * terminates it at once, so only SIGTERM is forwarded and the others just keep
- * this process alive until the child exits.
+ * SIGTERM, which a process manager or IDE sends to this PID alone, is
+ * forwarded. SIGINT is forwarded only without a terminal: in a terminal the
+ * child already gets Ctrl+C from the tty (and pnpm forwards one more), so a
+ * forwarded copy would be a duplicate. On Windows the console delivers Ctrl+C
+ * and Ctrl+Break itself, and child.kill() with any signal terminates at once.
+ * Handlers that do not forward keep this process alive until the child exits.
  */
 function forwardSignals(child) {
-  const forwarded = IS_WINDOWS ? ["SIGTERM"] : ["SIGINT", "SIGTERM", "SIGHUP"];
-  for (const signal of forwarded) {
-    process.on(signal, () => child.kill(signal));
-  }
+  process.on("SIGTERM", () => child.kill("SIGTERM"));
+  const forwardSigint = !IS_WINDOWS && !process.stdin.isTTY;
+  process.on("SIGINT", () => {
+    if (forwardSigint) {
+      child.kill("SIGINT");
+    }
+  });
   if (IS_WINDOWS) {
-    process.on("SIGINT", () => {});
     process.on("SIGBREAK", () => {});
   }
+}
+
+/**
+ * `next dev --experimental-https` replaces NODE_EXTRA_CA_CERTS for its server
+ * with mkcert's root CA, which would drop the dev certificate. So Next gets its
+ * own mkcert key and certificate plus a CA bundle of mkcert's root and what this
+ * process trusts. On the first run Next has not created them yet.
+ */
+function nextHttpsArgs(name, rest, trustedCa) {
+  const wantsHttps = name === "next" && rest.includes("--experimental-https");
+  const choseFiles = rest.some((arg) =>
+    arg.startsWith("--experimental-https-"),
+  );
+  if (!wantsHttps || choseFiles || !trustedCa) {
+    return [];
+  }
+  const key = path.join(hubRoot, "certificates", "localhost-key.pem");
+  const cert = path.join(hubRoot, "certificates", "localhost.pem");
+  const rootCa = path.join(mkcertCaRoot(), "rootCA.pem");
+  if (![key, cert, rootCa].every((file) => existsSync(file))) {
+    warn(
+      "Next creates its HTTPS certificate on this first run, so the server does not trust the dev certificate yet. Restart pnpm dev-https once it is created.",
+    );
+    return [];
+  }
+  const caBundle = writeBundle("next-https-ca.pem", [
+    readFileSync(rootCa, "utf8"),
+    readFileSync(trustedCa, "utf8"),
+  ]);
+  return [
+    "--experimental-https-key",
+    key,
+    "--experimental-https-cert",
+    cert,
+    "--experimental-https-ca",
+    caBundle,
+  ];
+}
+
+/** mkcert's CA folder: CAROOT, else its per-OS default. */
+function mkcertCaRoot() {
+  if (process.env.CAROOT) {
+    return process.env.CAROOT;
+  }
+  if (IS_WINDOWS) {
+    return path.join(process.env.LOCALAPPDATA ?? homedir(), "mkcert");
+  }
+  if (process.platform === "darwin") {
+    return path.join(homedir(), "Library", "Application Support", "mkcert");
+  }
+  const dataHome =
+    process.env.XDG_DATA_HOME || path.join(homedir(), ".local", "share");
+  return path.join(dataHome, "mkcert");
 }
 
 /** Exits with the child's code, or ends by the child's signal so callers see an interrupt. */
@@ -126,10 +183,13 @@ function withDevCertEnv(env) {
   const pem = env.ENDATIX_DEV_CERT_PATH || DEFAULT_PEM;
   const name = certificateName(env);
   if (!existsSync(pem)) {
-    warn(
-      `Dev certificate not found (${name}). https://localhost API calls will fail.`,
-    );
-    warn("Export it once: pnpm setup:dev");
+    // A caller that trusts its own CA (the SaaS AppHost exports the dev
+    // certificate itself) needs no warning.
+    if (!env.NODE_EXTRA_CA_CERTS) {
+      warn(
+        `Dev certificate not found (${name}). Calls to an https://localhost API need it; export it once: pnpm setup:dev`,
+      );
+    }
     return env;
   }
   const certificate = readCertificate(pem, name);
@@ -166,12 +226,11 @@ function readCertificate(pem, name) {
     );
     return undefined;
   }
+  warnAboutKeyFile(pem, name);
   try {
     const validTo = new Date(new X509Certificate(text).validTo);
     if (validTo < new Date()) {
-      warn(
-        `Dev certificate expired on ${validTo.toISOString().slice(0, 10)}. Run: dotnet dev-certs https --trust, then pnpm setup:dev.`,
-      );
+      warn(expiredMessage(validTo, name));
     }
   } catch {
     warn(
@@ -180,6 +239,29 @@ function readCertificate(pem, name) {
     return undefined;
   }
   return text;
+}
+
+/**
+ * `dotnet dev-certs https -ep x.pem --format PEM --no-password` writes the
+ * private key next to the certificate as `x.key`. Nothing here needs it.
+ */
+function warnAboutKeyFile(pem, name) {
+  const keyFile = path.join(
+    path.dirname(pem),
+    `${path.basename(pem, path.extname(pem))}.key`,
+  );
+  if (existsSync(keyFile)) {
+    warn(
+      `A private key file sits next to the dev certificate (${name}, .key). Nothing needs it; delete it.`,
+    );
+  }
+}
+
+function expiredMessage(validTo, name) {
+  const date = validTo.toISOString().slice(0, 10);
+  return name === DEFAULT_PEM
+    ? `Dev certificate expired on ${date}. Run: dotnet dev-certs https --trust, then delete it and run: pnpm setup:dev`
+    : `Dev certificate (${name}) expired on ${date}. Export it again where it came from, or unset ENDATIX_DEV_CERT_PATH and run: pnpm setup:dev`;
 }
 
 /** Writes both certificates to a temp file, removed when this process exits. */
@@ -193,14 +275,19 @@ function bundle(existing, certificate) {
     );
     return undefined;
   }
-  // A fresh private folder (0700) and an exclusive create: another user cannot
-  // pre-create or swap the file to add a CA of their own.
-  bundleDir = mkdtempSync(path.join(tmpdir(), "endatix-hub-ca-"));
-  const file = path.join(bundleDir, "bundle.pem");
-  writeFileSync(file, `${existingText.trimEnd()}\n${certificate}`, {
-    mode: 0o600,
-    flag: "wx",
-  });
+  return writeBundle("ca-bundle.pem", [existingText, certificate]);
+}
+
+/**
+ * Writes certificates into one file in a private folder (0700, created once)
+ * with an exclusive create, so another user cannot pre-create or swap it to
+ * add a CA of their own. Removed when this process exits.
+ */
+function writeBundle(fileName, pemTexts) {
+  bundleDir ??= mkdtempSync(path.join(tmpdir(), "endatix-hub-ca-"));
+  const file = path.join(bundleDir, fileName);
+  const content = pemTexts.map((text) => text.trimEnd()).join("\n");
+  writeFileSync(file, `${content}\n`, { mode: 0o600, flag: "wx" });
   return file;
 }
 
@@ -263,13 +350,18 @@ function findDotnet() {
             process.env.ProgramFiles ?? String.raw`C:\Program Files`,
             "dotnet",
           ),
+          // dotnet-install.ps1 default
+          process.env.LOCALAPPDATA &&
+            path.join(process.env.LOCALAPPDATA, "Microsoft", "dotnet"),
         ]
       : [
           "/usr/local/share/dotnet",
           "/usr/share/dotnet",
           "/usr/lib/dotnet",
           "/usr/lib64/dotnet",
-          "/opt/homebrew/opt/dotnet/libexec",
+          "/opt/homebrew/opt/dotnet/libexec", // Homebrew, Apple silicon
+          "/usr/local/opt/dotnet/libexec", // Homebrew, Intel
+          "/home/linuxbrew/.linuxbrew/opt/dotnet/libexec",
           "/snap/dotnet-sdk/current",
         ]),
     path.join(homedir(), ".dotnet"),
