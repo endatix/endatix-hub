@@ -1,6 +1,6 @@
 // The `pnpm dev` banner, laid out like the Endatix wordmark: the icon from
-// public/assets/icons/icon.svg as 12 x 12 Braille dots, with the product name
-// in bold and the build beside it. Printed only in a terminal; CI and piped
+// public/assets/icons/icon.svg as 16 x 16 Braille dots, with the product name
+// in bold and the build, muted, below it. Printed only in a terminal; CI and piped
 // logs get no banner.
 
 import { execFileSync } from "node:child_process";
@@ -10,10 +10,11 @@ import { styleText } from "node:util";
 
 const hubRoot = path.resolve(import.meta.dirname, "..");
 
-// The blue square with the paperclip cut out, at the smallest size where the
-// clip still reads (6 x 3 characters).
-const ICON = ["⣾⣿⡿⣛⢿⣷", "⣿⢫⠪⢊⢜⣿", "⢿⣦⣭⣵⣿⡿"];
+// The blue square with the paperclip cut out (8 x 4 characters). Four rows
+// centre the two text lines and keep both loops of the clip visible.
+const ICON = ["⣾⣿⣿⡿⠿⢿⣿⣷", "⣿⡿⢋⠔⣩⢇⣿⣿", "⣿⡇⢏⣘⡵⢋⣼⣿", "⢿⣿⣶⣤⣶⣿⣿⡿"];
 const TITLE_ROW = 1;
+const BUILD_ROW = 2;
 const TITLE = "Endatix Hub";
 const BRAND = [0, 84, 209]; // #0054D1
 // Synthwave sweep: hot pink, purple, cyan.
@@ -40,11 +41,14 @@ export async function printBanner() {
   const draw = (sweep) =>
     ICON.map((line, row) => {
       const logo = paint(line.padEnd(ICON_WIDTH), 0, depth, sweep);
-      if (row !== TITLE_ROW) {
-        return `  ${logo}`.trimEnd();
+      if (row === TITLE_ROW) {
+        const name = paint(TITLE, ICON_WIDTH + 2, depth, sweep);
+        return `  ${logo}  ${styleText("bold", name)}`;
       }
-      const name = paint(TITLE, ICON_WIDTH + 2, depth, sweep);
-      return `  ${logo}  ${styleText("bold", name)}  ${build}`;
+      if (row === BUILD_ROW) {
+        return `  ${logo}  ${build}`;
+      }
+      return `  ${logo}`.trimEnd();
     });
 
   out.write(`${draw(null).join("\n")}\n\n`);
