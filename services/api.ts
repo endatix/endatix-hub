@@ -478,33 +478,39 @@ export interface CustomQuestion {
 export const getCustomQuestions = async (): Promise<CustomQuestion[]> => {
   const session = await getSession();
   const headers = new HeaderBuilder().withAuth(session).build();
-  const questions: CustomQuestion[] = [];
-  let page = 1;
-  let totalPages = 1;
+  return collectCustomQuestions(headers, 1, 1, []);
+};
 
-  while (page <= totalPages) {
-    const response = await apiFetch(
-      `${requireApiUrl()}/questions?page=${page}&pageSize=100`,
-      {
-        headers: headers,
-      },
-    );
-
-    if (!response.ok) {
-      throw new Error("Failed to fetch custom questions");
-    }
-
-    const payload: {
-      items?: CustomQuestion[];
-      totalPages?: number;
-    } = await response.json();
-    questions.push(...(payload.items ?? []));
-    totalPages = payload.totalPages ?? 1;
-    page += 1;
+async function collectCustomQuestions(
+  headers: HeadersInit,
+  page: number,
+  totalPages: number,
+  questions: CustomQuestion[],
+): Promise<CustomQuestion[]> {
+  if (page > totalPages) {
+    return questions;
   }
 
-  return questions;
-};
+  const response = await apiFetch(
+    `${requireApiUrl()}/questions?page=${page}&pageSize=100`,
+    { headers },
+  );
+  if (!response.ok) {
+    throw new Error("Failed to fetch custom questions");
+  }
+
+  const payload: {
+    items?: CustomQuestion[];
+    totalPages?: number;
+  } = await response.json();
+  questions.push(...(payload.items ?? []));
+  return collectCustomQuestions(
+    headers,
+    page + 1,
+    payload.totalPages ?? 1,
+    questions,
+  );
+}
 
 export interface CreateCustomQuestionRequest {
   name: string;

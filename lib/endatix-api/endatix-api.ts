@@ -324,6 +324,8 @@ export class EndatixApi {
 
       return await this.handleResponse<T>(response, endpoint, method);
     } catch (error) {
+      const { unstable_rethrow } = await import("next/navigation");
+      unstable_rethrow(error);
       return this.handleNetworkError<T>(error, endpoint, method);
     }
   }
@@ -360,6 +362,8 @@ export class EndatixApi {
 
       return ApiResult.success(response);
     } catch (error) {
+      const { unstable_rethrow } = await import("next/navigation");
+      unstable_rethrow(error);
       return this.handleNetworkError<Response>(error, endpoint, method);
     }
   }

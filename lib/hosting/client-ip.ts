@@ -38,15 +38,23 @@ export async function readVisitorIp(): Promise<string | null> {
     return null;
   }
 
+  let trusted: string[];
+  try {
+    trusted = parseTrustedProxies(process.env[ClientIpEnv.TRUSTED_PROXIES]);
+  } catch {
+    return null;
+  }
+  if (trusted.length === 0) {
+    return null;
+  }
+
   try {
     const { headers } = await import("next/headers");
     const forwardedFor = (await headers()).get(ClientIpHeaders.FORWARDED_FOR);
-    return resolveClientIp(
-      null,
-      forwardedFor,
-      parseTrustedProxies(process.env[ClientIpEnv.TRUSTED_PROXIES]),
-    );
-  } catch {
+    return resolveClientIp(null, forwardedFor, trusted);
+  } catch (error) {
+    const { unstable_rethrow } = await import("next/navigation");
+    unstable_rethrow(error);
     return null;
   }
 }
@@ -154,8 +162,9 @@ function normalizeIp(value: string | null): string | null {
   const unbracketed = trimmed.startsWith("[")
     ? trimmed.slice(1, trimmed.indexOf("]"))
     : trimmed.split("%")[0];
-  const withoutPort = unbracketed.match(IPV4_WITH_PORT)?.[1] ?? unbracketed;
-  const mapped = withoutPort.match(IPV4_MAPPED_IPV6);
+  const withPort = IPV4_WITH_PORT.exec(unbracketed);
+  const withoutPort = withPort?.[1] ?? unbracketed;
+  const mapped = IPV4_MAPPED_IPV6.exec(withoutPort);
   return (mapped?.[1] ?? withoutPort).toLowerCase();
 }
 
@@ -198,7 +207,7 @@ function ipv4Bytes(value: string): number[] | null {
   if (parts.length !== 4 || !parts.every((part) => IPV4_OCTET.test(part))) {
     return null;
   }
-  const bytes = parts.map((part) => Number(part));
+  const bytes = parts.map(Number);
   return bytes.every((byte) => byte <= 255) ? bytes : null;
 }
 
@@ -229,7 +238,7 @@ function ipv6Groups(value: string): string[] | null {
   if (missing < 0 || (halves.length === 1 && missing !== 0)) {
     return null;
   }
-  const groups = [...head, ...Array(missing).fill("0"), ...tail];
+  const groups = [...head, ...new Array(missing).fill("0"), ...tail];
   return groups.length === 8 ? groups : null;
 }
 
