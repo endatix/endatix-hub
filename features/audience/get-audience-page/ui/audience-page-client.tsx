@@ -3,13 +3,12 @@
 import type { AudiencePageData } from "../index";
 import { MatchKeyCard } from "../../update-settings/ui/match-key-card";
 import { PeopleSection } from "./people-section";
-import { PropertiesSection } from "./properties-section";
 
 type Props = { formId: string; data: AudiencePageData };
 
 /**
- * Setup order, top to bottom: the match key (chosen once, before anyone is added), the people
- * this form is for, then the properties that become their columns.
+ * Setup order, top to bottom: the match key (chosen once, before anyone is added), then the
+ * people this form is for.
  */
 export function AudiencePageClient({ formId, data }: Readonly<Props>) {
   const { settings, canManageMatchKey, ...lists } = data;
@@ -25,7 +24,6 @@ export function AudiencePageClient({ formId, data }: Readonly<Props>) {
         identifierKind={settings.identifierKind}
         {...lists}
       />
-      <PropertiesSection formId={formId} {...lists} />
     </div>
   );
 }

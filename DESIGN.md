@@ -469,8 +469,7 @@ to `value` are `completed`; the `value` step itself is `active`. Reference:
   Spinners belong on action buttons, never list rows. A multi-stage action names the stage that
   is running (`Updating submissions…` → `Exporting…`), in a short verb phrase (`PendingButton`).
   **One primary per page:** when a page has several list sections, the create action of the main
-  task is primary and the others are `outline` (a form's audience: `Add person` primary,
-  `Add property` outline).
+  task is primary and the others are `outline`.
 - **Inputs:** `surface_container_low` fill; on focus the ghost border goes from 15% to 100%
   `primary`. Labels `label-md` in `on_surface_variant`.
 - **Typed values use the control that produces their wire format**, so the API never refuses a
@@ -788,8 +787,8 @@ Reference: `features/platform-admin/view-environment-settings/ui/`.
 
 Pages under `app/(main)/settings/…`, and record-scoped collection pages that follow the same
 shape. References: `features/export/manage-export-formats/ui/export-formats-settings.tsx`; a
-form's audience, `features/audience/get-audience-page/ui/` (match-key card, then the People and
-Properties sections).
+form's audience, `features/audience/get-audience-page/ui/` (match-key card, then the People
+section).
 
 1. **Masthead** — `h1.text-3xl.font-semibold.tracking-tight` + muted one-sentence purpose in
    `page.tsx` (a `SettingsPageHeader` waiting to be extracted — do that as its own change).
