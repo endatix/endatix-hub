@@ -33,7 +33,6 @@ The script will:
 1. Change to the hub directory
 2. Run `pnpm up` for all survey packages
 
-
 ## Dependency Review Script
 
 ### `review-dependency.mjs`
@@ -73,6 +72,10 @@ node scripts/copy-standalone.mjs
 ### `dev.mjs`
 
 `pnpm dev`, `pnpm dev:inspect` and `pnpm dev-https` run it. It builds the embed SDK, discovers custom questions, then starts `next dev` through `dev-cert.mjs` (`runWithDevCert`). Each step prints one status line, and its own output shows when it fails or warns (writes to stderr). Extra args go to `next dev` (`pnpm dev -p 3001`).
+
+### `banner.mjs`
+
+The `pnpm dev` banner. The icon from `public/assets/icons/icon.svg` is 16 × 16 Braille dots in brand blue, with `Endatix Hub` in bold beside it and the build muted on the next line: `v0.8.0` for a release, otherwise `branch @ commit`. The name comes from `lib/hosting/hub-build.mjs`, the same resolver the About dialog uses. In a 24-bit colour terminal a synthwave gradient sweeps across it once (about 600 ms, eased at both ends, while the setup steps run). 256 or 16 colours print it without the sweep, `NO_COLOR` prints it uncoloured, and CI or piped output gets no banner. The legacy Windows console prints the name and build only, because Braille there is the wrong width.
 
 ## Dev Certificate Script
 

@@ -10,6 +10,7 @@ import { spawn } from "node:child_process";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { styleText } from "node:util";
+import { printBanner } from "./banner.mjs";
 import { runWithDevCert } from "./dev-cert.mjs";
 
 const QUESTION_REGISTRY = path.join(
@@ -29,8 +30,12 @@ const STEPS = [
   },
 ];
 
-// The steps are independent, so they run together; lines print in step order.
-const results = await Promise.all(STEPS.map(runStep));
+// The steps are independent, so they run together (and alongside the banner's
+// short animation); their lines print in step order once all are done.
+const [, results] = await Promise.all([
+  printBanner(),
+  Promise.all(STEPS.map(runStep)),
+]);
 results.forEach(report);
 const failed = results.find((result) => result.code !== 0);
 if (failed) {

@@ -173,8 +173,6 @@ export function validateEnv(): { valid: boolean; errors: string[] } {
  * correctly without proper environment configuration.
  */
 export function checkEnvironment(): void {
-  console.log(styles.dim("Checking environment variables..."));
-  logExperimentalStatus(getExperimentalConfig());
   const { valid, errors } = validateEnv();
   if (!valid) {
     console.error(
@@ -199,8 +197,9 @@ export function checkEnvironment(): void {
       );
     }
   } else {
-    console.log(`${styles.success("Environment validation passed")}`);
+    console.log(styles.success("Environment validation passed"));
   }
+  logExperimentalStatus(getExperimentalConfig());
 }
 
 if (process.env.VITEST !== "true") {

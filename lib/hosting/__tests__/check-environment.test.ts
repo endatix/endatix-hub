@@ -65,7 +65,7 @@ describe("check-environment", () => {
       checkEnvironment();
 
       expect(logSpy).toHaveBeenCalledWith(
-        "🚧 Endatix experimental features (use with caution):",
+        expect.stringContaining("Endatix experiments (use with caution):"),
       );
       expect(logSpy).toHaveBeenCalledWith(
         expect.stringContaining("extensions"),
