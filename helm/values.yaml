@@ -102,34 +102,39 @@ nodeSelector: {}
 
 # Extra environment variables as raw EnvVar objects; both `value` and
 # `valueFrom` work. For Hub env vars the chart does not expose itself
-# (storage, Slack, server-only API keys, ...). Appended AFTER every variable
-# the chart renders, which matters twice: $(VAR) interpolation only resolves
-# variables declared earlier in the list, so these can reference AUTH_URL and
-# friends; and where a name is declared twice, the last declaration is the one
-# the container ends up with.
+# (storage, Slack, ...). Appended AFTER every variable the chart renders, so
+# $(VAR) in these resolves names declared earlier in `env` (AUTH_URL and
+# friends) plus anything extraEnvFrom supplies.
 #
-# What this CANNOT do is change build-time config. NEXT_PUBLIC_* keys,
-# nextConfig.env and basePath are inlined into the image when it is built, so
-# setting them here has no effect on the code that already read them.
+# Do not repeat a name the chart already sets; use its named value instead.
+# Kubernetes keeps the last declaration, but duplicate names in `env` confuse
+# patch-based upgrades (removing the override later can drop both entries).
+#
+# What this CANNOT do is change build-time config. Keys inlined into the image
+# when it is built (NEXT_PUBLIC_*, nextConfig.env, basePath) are already fixed;
+# the only exceptions are the deprecated NEXT_PUBLIC_* aliases the Hub still
+# maps onto their ENDATIX_* names at startup.
 extraEnv: []
 #  - name: STORAGE_PROVIDER
 #    value: "azure"
-#  - name: POSTHOG_PERSONAL_API_KEY
+#  - name: STORAGE_AZURE_ACCOUNT_KEY
 #    valueFrom:
 #      secretKeyRef:
 #        name: endatix-hub-server-secrets
-#        key: posthog-personal-api-key
+#        key: storage-azure-account-key
 
 # Extra envFrom sources — secretRef / configMapRef — for pulling in a whole
 # Secret at once, which is the shape external-secret operators produce. Every
 # key becomes an env var under its own name, so the Secret's keys must be the
-# env var names (POSTHOG_PERSONAL_API_KEY, not posthog-personal-api-key).
+# env var names (STORAGE_AZURE_ACCOUNT_KEY, not storage-azure-account-key).
 # Mind the precedence: Kubernetes lets an explicit `env` entry win over
-# anything envFrom supplies, even an empty one, so this can only ADD variables,
-# never override one the chart sets itself. Use extraEnv for that.
+# anything envFrom supplies, even an empty one, so this can only ADD variables
+# the chart does not set. A missing Secret or ConfigMap blocks new pods
+# (CreateContainerConfigError) unless the source sets `optional: true`.
 #
-# Env is read once at container start: adding a key to the Secret later does
-# not reach running pods until they restart.
+# Both knobs, like the chart's own secretKeyRefs, are read once at container
+# start: a changed Secret does not reach running pods until they restart
+# (kubectl rollout restart, or a reloader).
 extraEnvFrom: []
 #  - secretRef:
 #      name: endatix-hub-server-secrets

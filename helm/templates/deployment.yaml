@@ -132,9 +132,8 @@ spec:
               value: {{ ternary "0" "" .Values.otel.enabled | quote }}
             {{- with .Values.extraEnv }}
 
-            # Consumer-supplied, and deliberately last: $(VAR) interpolation only
-            # sees names declared above, and a repeated name resolves to the final
-            # declaration. See values.yaml for what this still cannot do.
+            # Consumer-supplied, and deliberately last so $(VAR) can reference the
+            # chart's own variables. See values.yaml for what this cannot do.
             {{- toYaml . | nindent 12 }}
             {{- end }}
           {{- with .Values.extraEnvFrom }}
