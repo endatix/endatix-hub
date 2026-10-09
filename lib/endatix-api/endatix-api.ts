@@ -1,5 +1,6 @@
 import { requireApiUrl } from "@/features/config/api-config";
 import { HeaderBuilder } from "@/lib/endatix-api/shared/header-builder";
+import { withVisitorIp } from "@/lib/hosting/client-ip";
 import { ApiResult, ApiErrorDetails } from "./shared/api-result";
 import { describeFetchFailure } from "./shared/describe-fetch-failure";
 import { ERROR_CODE } from "./shared/error-codes";
@@ -302,25 +303,24 @@ export class EndatixApi {
     options: RequestOptions = {},
   ): Promise<ApiResult<T>> {
     const method = options.method || "GET";
+    const requestInitResult = this.initializeRequest(
+      endpoint,
+      options,
+      (headerBuilder) => {
+        headerBuilder.acceptJson();
+      },
+    );
+
+    if (ApiResult.isError(requestInitResult)) {
+      return requestInitResult;
+    }
+
+    // Outside the fetch catch so a headers() bailout is not turned into an API error.
+    const requestInit = await withVisitorIp(requestInitResult.data);
+    const url = `${this.baseUrl}${endpoint}`;
 
     try {
-      const requestInitResult = this.initializeRequest(
-        endpoint,
-        options,
-        (headerBuilder) => {
-          headerBuilder.acceptJson();
-        },
-      );
-
-      if (ApiResult.isError(requestInitResult)) {
-        return requestInitResult;
-      }
-
-      const requestInit = requestInitResult.data;
-      const url = `${this.baseUrl}${endpoint}`;
-
       const response = await fetch(url, requestInit);
-
       return await this.handleResponse<T>(response, endpoint, method);
     } catch (error) {
       return this.handleNetworkError<T>(error, endpoint, method);
@@ -337,16 +337,16 @@ export class EndatixApi {
     options: RequestOptions = {},
   ): Promise<ApiResult<Response>> {
     const method = options.method || "GET";
+    const requestInitResult = this.initializeRequest(endpoint, options);
+
+    if (ApiResult.isError(requestInitResult)) {
+      return requestInitResult;
+    }
+
+    const requestInit = await withVisitorIp(requestInitResult.data);
+    const url = `${this.baseUrl}${endpoint}`;
 
     try {
-      const requestInitResult = this.initializeRequest(endpoint, options);
-
-      if (ApiResult.isError(requestInitResult)) {
-        return requestInitResult;
-      }
-
-      const requestInit = requestInitResult.data;
-      const url = `${this.baseUrl}${endpoint}`;
       const response = await fetch(url, requestInit);
 
       if (!response.ok) {
