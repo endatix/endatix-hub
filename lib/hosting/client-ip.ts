@@ -53,10 +53,20 @@ export async function readVisitorIp(): Promise<string | null> {
     const forwardedFor = (await headers()).get(ClientIpHeaders.FORWARDED_FOR);
     return resolveClientIp(null, forwardedFor, trusted);
   } catch (error) {
-    const { unstable_rethrow } = await import("next/navigation");
-    unstable_rethrow(error);
-    return null;
+    // headers() outside a request is an ordinary Error. Bailouts from
+    // prerender (dynamic rendering, redirect, notFound) must keep propagating.
+    if (isOutsideRequest(error)) {
+      return null;
+    }
+    throw error;
   }
+}
+
+function isOutsideRequest(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    error.message.includes("was called outside a request scope")
+  );
 }
 
 /**

@@ -303,29 +303,26 @@ export class EndatixApi {
     options: RequestOptions = {},
   ): Promise<ApiResult<T>> {
     const method = options.method || "GET";
+    const requestInitResult = this.initializeRequest(
+      endpoint,
+      options,
+      (headerBuilder) => {
+        headerBuilder.acceptJson();
+      },
+    );
+
+    if (ApiResult.isError(requestInitResult)) {
+      return requestInitResult;
+    }
+
+    // Outside the fetch catch so a headers() bailout is not turned into an API error.
+    const requestInit = await withVisitorIp(requestInitResult.data);
+    const url = `${this.baseUrl}${endpoint}`;
 
     try {
-      const requestInitResult = this.initializeRequest(
-        endpoint,
-        options,
-        (headerBuilder) => {
-          headerBuilder.acceptJson();
-        },
-      );
-
-      if (ApiResult.isError(requestInitResult)) {
-        return requestInitResult;
-      }
-
-      const requestInit = await withVisitorIp(requestInitResult.data);
-      const url = `${this.baseUrl}${endpoint}`;
-
       const response = await fetch(url, requestInit);
-
       return await this.handleResponse<T>(response, endpoint, method);
     } catch (error) {
-      const { unstable_rethrow } = await import("next/navigation");
-      unstable_rethrow(error);
       return this.handleNetworkError<T>(error, endpoint, method);
     }
   }
@@ -340,16 +337,16 @@ export class EndatixApi {
     options: RequestOptions = {},
   ): Promise<ApiResult<Response>> {
     const method = options.method || "GET";
+    const requestInitResult = this.initializeRequest(endpoint, options);
+
+    if (ApiResult.isError(requestInitResult)) {
+      return requestInitResult;
+    }
+
+    const requestInit = await withVisitorIp(requestInitResult.data);
+    const url = `${this.baseUrl}${endpoint}`;
 
     try {
-      const requestInitResult = this.initializeRequest(endpoint, options);
-
-      if (ApiResult.isError(requestInitResult)) {
-        return requestInitResult;
-      }
-
-      const requestInit = await withVisitorIp(requestInitResult.data);
-      const url = `${this.baseUrl}${endpoint}`;
       const response = await fetch(url, requestInit);
 
       if (!response.ok) {
@@ -362,8 +359,6 @@ export class EndatixApi {
 
       return ApiResult.success(response);
     } catch (error) {
-      const { unstable_rethrow } = await import("next/navigation");
-      unstable_rethrow(error);
       return this.handleNetworkError<Response>(error, endpoint, method);
     }
   }
