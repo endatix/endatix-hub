@@ -59,10 +59,12 @@ describe("checkNodeVersion", () => {
     );
   };
 
-  const assertInfoMessage = (version: string) => {
-    expect(consoleSpy).toHaveBeenCalledWith(
-      expect.stringContaining(`Node version is ${version}`),
-    );
+  /** One line: the success text with the version beside it in brackets. */
+  const assertVersionOnSuccessLine = (version: string) => {
+    expect(consoleSpy).toHaveBeenCalledOnce();
+    const [line] = consoleSpy.mock.calls[0] as [string];
+    expect(line).toContain(messages.success());
+    expect(line).toContain(`(${version})`);
   };
 
   const setRuntimeNodeVersion = (version: string) => {
@@ -91,7 +93,7 @@ describe("checkNodeVersion", () => {
 
     // Assert
     assertSuccessMessage();
-    assertInfoMessage(validVersion);
+    assertVersionOnSuccessLine(validVersion);
   });
 
   it("should log warning when node version is lower than required", () => {
@@ -128,7 +130,7 @@ describe("checkNodeVersion", () => {
 
     // Assert
     assertSuccessMessage();
-    assertInfoMessage(prereleaseVersion);
+    assertVersionOnSuccessLine(prereleaseVersion);
   });
 
   it("should handle invalid futureprerelease versions correctly", () => {
@@ -166,7 +168,7 @@ describe("checkNodeVersion", () => {
 
     // Assert
     assertSuccessMessage();
-    assertInfoMessage(exactVersion);
+    assertVersionOnSuccessLine(exactVersion);
   });
 
   it("should handle no engines in package.json", () => {

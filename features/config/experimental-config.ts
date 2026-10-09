@@ -1,3 +1,6 @@
+// Relative: next.config.ts loads this file, and its compile has no "@/" alias.
+import styles, { icon } from "../../lib/utils/console-styles";
+
 /**
  * Experimental features configuration.
  * Defaults are off; enable via env (ENDATIX_ENABLE_EXTENSIONS=true).
@@ -40,12 +43,12 @@ export function logExperimentalStatus(config: ExperimentalConfig): void {
   const hasExperiments = experiments.some((e) => e.enabled);
 
   if (hasExperiments) {
-    console.log("🚧 Endatix experimental features (use with caution):");
+    // Same shape as Next's own "- Experiments (use with caution):" list.
+    console.log(`${icon("🚧", "-")} Endatix experiments (use with caution):`);
     experiments.forEach((feature) => {
-      const symbol = feature.enabled ? "\x1b[32m✓\x1b[0m" : "\x1b[90m·\x1b[0m";
+      const symbol = feature.enabled ? styles.green("✓") : styles.dim("·");
       console.log(`  ${symbol} ${feature.name}`);
     });
-    console.log("");
   }
 
   process.env.__ENDATIX_LOGGED = "true";

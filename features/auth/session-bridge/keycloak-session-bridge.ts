@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AuthTokenSchema, KeycloakTokenResponse } from "./types";
-import { getSessionCookieOptions } from "../infrastructure/session-utils";
+import {
+  getSessionCookieOptions,
+  shouldUseSecureSessionCookie,
+} from "../infrastructure/session-utils";
 import { decodeJwt } from "jose";
 import { apiResponses } from "@/lib/utils/route-handlers";
 import { encode } from "next-auth/jwt";
-import {
-  flattenFieldErrors,
-  parseZodError,
-} from "@/lib/utils/zod-error-utils";
+import { flattenFieldErrors, parseZodError } from "@/lib/utils/zod-error-utils";
 import { authConfig } from "@/auth";
 import { KEYCLOAK_ID } from "../infrastructure/providers";
 import { invalidateUserAuthorizationCache } from "../authorization/application/authorization-data.provider";
@@ -19,7 +19,7 @@ export async function createSessionFromToken(
   request: NextRequest,
 ) {
   try {
-    const useSecureCookies = request.nextUrl.protocol === "https:";
+    const useSecureCookies = shouldUseSecureSessionCookie(request.headers);
     const sessionCookieOptions = getSessionCookieOptions(useSecureCookies);
     const userInfo = decodeJwt(tokenData.id_token);
 

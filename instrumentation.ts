@@ -21,5 +21,12 @@ export async function register() {
     await import("@/lib/hosting/check-node-version");
     await import("@/lib/hosting/check-environment");
     await import("@/instrumentation.node");
+
+    // Once per process: the registry module itself is evaluated again per
+    // route in `next dev`. `@/auth` first, so custom providers are registered.
+    await import("@/auth");
+    const { logAuthProviders } =
+      await import("@/features/auth/infrastructure/log-auth-providers");
+    logAuthProviders();
   }
 }

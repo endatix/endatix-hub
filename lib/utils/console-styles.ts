@@ -1,24 +1,79 @@
+function paint(code: string, text: string): string {
+  return supportsColor() ? `\x1b[${code}m${text}\x1b[0m` : text;
+}
+
 const styles = {
-  // Text styles
-  bold: (text: string) => `\x1b[1m${text}\x1b[0m`,
-  dim: (text: string) => `\x1b[2m${text}\x1b[0m`,
-  italic: (text: string) => `\x1b[3m${text}\x1b[0m`,
-  underline: (text: string) => `\x1b[4m${text}\x1b[0m`,
+  bold: (text: string) => paint("1", text),
+  dim: (text: string) => paint("2", text),
+  italic: (text: string) => paint("3", text),
+  underline: (text: string) => paint("4", text),
 
-  // Colors
-  green: (text: string) => `\x1b[32m${text}\x1b[0m`,
-  red: (text: string) => `\x1b[31m${text}\x1b[0m`,
-  yellow: (text: string) => `\x1b[33m${text}\x1b[0m`,
-  blue: (text: string) => `\x1b[34m${text}\x1b[0m`,
-  magenta: (text: string) => `\x1b[35m${text}\x1b[0m`,
-  cyan: (text: string) => `\x1b[36m${text}\x1b[0m`,
+  green: (text: string) => paint("32", text),
+  red: (text: string) => paint("31", text),
+  yellow: (text: string) => paint("33", text),
+  blue: (text: string) => paint("34", text),
+  magenta: (text: string) => paint("35", text),
+  cyan: (text: string) => paint("36", text),
 
-  // Symbols
-  success: (text: string) => `\x1b[32m✓\x1b[0m ${text}`,
-  error: (text: string) => `\x1b[31m✗\x1b[0m ${text}`,
-  warning: (text: string) => `\x1b[33m▴\x1b[0m ${text}`,
-  info: (text: string) => `\x1b[36mℹ\x1b[0m ${text}`,
-  tip: (text: string) => `\x1b[36m💡\x1b[0m ${text}`,
+  success: (text: string) => `${paint("32", "✓")} ${text}`,
+  error: (text: string) => `${paint("31", "✗")} ${text}`,
+  warning: (text: string) => `${paint("33", "▴")} ${text}`,
+  info: (text: string) => `${paint("36", "ℹ")} ${text}`,
+  tip: (text: string) => `${paint("36", "💡")} ${text}`,
 };
+
+/**
+ * Environment variables the terminal checks read: CI, TERM, TERM_PROGRAM,
+ * WT_SESSION, NO_COLOR, FORCE_COLOR and NEXT_PRIVATE_PROMPT_OUTPUT.
+ */
+export type TerminalEnv = Readonly<Record<string, string | undefined>>;
+
+/**
+ * Whether startup logs may use emoji icons. Off without a terminal (CI, piped
+ * logs), with TERM=dumb, and in the legacy Windows console, where emoji render
+ * at the wrong width; Windows Terminal and the VS Code terminal render them.
+ * `next dev` pipes its server's output through the CLI (to hold it while the
+ * upgrade prompt is open) and sets NEXT_PRIVATE_PROMPT_OUTPUT when that pipe
+ * ends on a terminal, so the pipe counts as one.
+ */
+export function supportsEmoji(
+  env: TerminalEnv = process.env,
+  stream: { isTTY?: boolean } = process.stdout,
+  platform: NodeJS.Platform = process.platform,
+): boolean {
+  const terminal = stream.isTTY || env.NEXT_PRIVATE_PROMPT_OUTPUT === "1";
+  if (!terminal || env.CI || env.TERM === "dumb") {
+    return false;
+  }
+  if (platform === "win32") {
+    return Boolean(env.WT_SESSION) || env.TERM_PROGRAM === "vscode";
+  }
+  return true;
+}
+
+/**
+ * Whether startup logs may use ANSI colour. Off when output is piped, when
+ * `NO_COLOR` is set, and when `TERM` is `dumb`. `FORCE_COLOR` turns it back on
+ * for a pipe. `next dev` sets `NEXT_PRIVATE_PROMPT_OUTPUT` when its pipe ends
+ * on a terminal, so that pipe counts as one. Colour stays on in the legacy
+ * Windows console; only emoji is dropped there.
+ */
+export function supportsColor(
+  env: TerminalEnv = process.env,
+  stream: { isTTY?: boolean } = process.stdout,
+): boolean {
+  if (env.NO_COLOR || env.TERM === "dumb") {
+    return false;
+  }
+  if (env.FORCE_COLOR && env.FORCE_COLOR !== "0") {
+    return true;
+  }
+  return Boolean(stream.isTTY) || env.NEXT_PRIVATE_PROMPT_OUTPUT === "1";
+}
+
+/** The emoji where the terminal renders it, otherwise a plain symbol. */
+export function icon(emoji: string, fallback: string): string {
+  return supportsEmoji() ? emoji : fallback;
+}
 
 export default styles;

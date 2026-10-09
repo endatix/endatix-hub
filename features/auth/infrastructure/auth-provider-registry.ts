@@ -1,6 +1,12 @@
 import { AuthPresentation, IAuthProvider } from "./types";
 import { EndatixAuthProvider } from "./providers/endatix-auth-provider";
 
+/** A registered provider's state: active, or why it is not. */
+export type AuthProviderStatus =
+  | { id: string; state: "active" }
+  | { id: string; state: "invalid-config" }
+  | { id: string; state: "failed"; error: unknown };
+
 /**
  * Registry for managing auth providers. Replaces the AuthProviderRouter
  * and provides a cleaner API for registering and retrieving providers.
@@ -8,9 +14,12 @@ import { EndatixAuthProvider } from "./providers/endatix-auth-provider";
 export class AuthProviderRegistry {
   private readonly _allProviders = new Map<string, IAuthProvider>();
   private readonly _activeProviders = new Map<string, IAuthProvider>();
+  private readonly _failures = new Map<string, unknown>();
 
   /**
    * Register a provider. If validation passes, it becomes active immediately.
+   * Nothing is logged here: the module is evaluated again per route in
+   * `next dev`, so the startup check reports the statuses once instead.
    */
   register(provider: IAuthProvider): void {
     if (this._allProviders.has(provider.id)) {
@@ -23,14 +32,9 @@ export class AuthProviderRegistry {
       const shouldActivate = provider.validateConfig();
       if (shouldActivate) {
         this._activeProviders.set(provider.id, provider);
-        console.info(`🔐 Provider ${provider.id} validated and activated`);
-      } else {
-        console.warn(
-          `🔐 Provider ${provider.id} validation failed: not activated`,
-        );
       }
     } catch (error) {
-      console.warn(`⚠️ Provider ${provider.id} registration failed:`, error);
+      this._failures.set(provider.id, error);
     }
   }
 
@@ -57,6 +61,21 @@ export class AuthProviderRegistry {
   }
 
   /**
+   * Get the status of every registered provider, in registration order.
+   */
+  getProviderStatuses(): AuthProviderStatus[] {
+    return Array.from(this._allProviders.keys()).map((id) => {
+      if (this._activeProviders.has(id)) {
+        return { id, state: "active" };
+      }
+      if (this._failures.has(id)) {
+        return { id, state: "failed", error: this._failures.get(id) };
+      }
+      return { id, state: "invalid-config" };
+    });
+  }
+
+  /**
    * Get the auth presentation options for the active providers.
    */
   getAuthPresentationOptions(): AuthPresentation[] {
@@ -64,7 +83,7 @@ export class AuthProviderRegistry {
       id: provider.id,
       name: provider.name,
       type: provider.type,
-      ...provider.getPresentationOptions()
+      ...provider.getPresentationOptions(),
     }));
   }
 }

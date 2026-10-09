@@ -46,7 +46,7 @@ pnpm test:e2e --debug
 ### Prerequisites
 
 1. If you are running tests for the first time, install Playwright browsers: `pnpm exec playwright install`
-2. Start the dev server: `pnpm dev` (runs on port 3000 by default)
+2. Start the dev server: `pnpm dev` (runs on port 3000 by default). With a .NET SDK installed, the first run exports the local API's dev certificate.
 3. Configure environment variables in `.env` file (see below)
 
 ### Environment Variables
@@ -122,22 +122,20 @@ security add-generic-password -U -a e2e -s endatix-hub-e2e -w
 # type the password, then press Return
 ```
 
-The API is WebHost (`dotnet run` in `oss/src/Endatix.WebHost`), `https://localhost:5001` and `http://localhost:5000`. Node does not trust that dev certificate. Export it once, then pass it when Playwright starts. Do not put `NODE_EXTRA_CA_CERTS` in `.env`: dotenv does not expand `$HOME` or `%USERPROFILE%`, and Node reads the variable before Playwright loads `.env`. Do not set `NODE_TLS_REJECT_UNAUTHORIZED`.
+The API is WebHost (`dotnet run` in `oss/src/Endatix.WebHost`), `https://localhost:5001` and `http://localhost:5000`. Node does not trust its dev certificate, so `pnpm dev`, `dev:inspect`, `dev-https`, `run:standalone`, `test:e2e`, `test:e2e:ui`, `test:e2e:smoke` and `test:e2e:debug` run through `scripts/with-dev-cert.mjs` (the three dev scripts through `scripts/dev.mjs`, which uses the same `scripts/dev-cert.mjs`; `dev:embed` does not call the API and does not). It sets `NODE_EXTRA_CA_CERTS` to `~/.aspnet/https/aspnetapp.pem` for the child process only. Other invalid certificates are still rejected. When that file is missing and a .NET SDK is installed, the first run exports it, the way `next dev --experimental-https` creates its own certificate on demand:
 
 ```bash
-# macOS and Linux
-mkdir -p ~/.aspnet/https
-dotnet dev-certs https -ep ~/.aspnet/https/aspnetapp.pem --format PEM
-NODE_EXTRA_CA_CERTS="$HOME/.aspnet/https/aspnetapp.pem" pnpm test:e2e --grep "Screen-out" --workers=1
-```
-
-```powershell
-# Windows PowerShell
-New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.aspnet\https"
-dotnet dev-certs https -ep "$env:USERPROFILE\.aspnet\https\aspnetapp.pem" --format PEM
-$env:NODE_EXTRA_CA_CERTS = "$env:USERPROFILE\.aspnet\https\aspnetapp.pem"
 pnpm test:e2e --grep "Screen-out" --workers=1
 ```
+
+The export creates the folder and runs `dotnet dev-certs https -ep <path> --format PEM`: the public certificate only, no `-p`. After the .NET dev certificate is regenerated, export it again with `pnpm setup:dev`. The wrapper warns when the file is expired, holds a private key or has a `.key` file next to it (from an export with `--no-password`).
+
+- The export runs `dotnet` from `DOTNET_ROOT` or the SDK installers' default folders (including Homebrew, Linuxbrew and `dotnet-install`), not from `PATH`. Set `DOTNET_ROOT` when the SDK lives elsewhere (for example mise, asdf, nix or a custom install).
+- `ENDATIX_DEV_CERT_PATH` points at another file, for example the Windows file from WSL (`/mnt/c/Users/<you>/.aspnet/https/aspnetapp.pem`). Set it in the shell, not in `.env`: Node reads `NODE_EXTRA_CA_CERTS` before `.env` loads.
+- An existing `NODE_EXTRA_CA_CERTS` (for example a corporate proxy CA) is kept: both certificates go into one temporary bundle.
+- Without a .NET SDK, nothing is exported and nothing is printed, so a remote or `http` API needs nothing. When the caller already sets `NODE_EXTRA_CA_CERTS` (the SaaS AppHost does) or names its own file with `ENDATIX_DEV_CERT_PATH`, nothing is exported either.
+- `pnpm dev-https`: Next replaces `NODE_EXTRA_CA_CERTS` for its server with its mkcert root CA. The wrapper asks Next's own mkcert helper for the certificate (created on first use, as `next dev` would) and passes it with a bundle of that CA and the dev certificate.
+- Do not set `NODE_TLS_REJECT_UNAUTHORIZED`. A container that calls the host API mounts the PEM read-only and sets `NODE_EXTRA_CA_CERTS`; do not copy it into an image.
 
 The iframe case opens WebHost `/dev/embed-host?view=bare` with `formId`, `hubBaseUrl`, and `token`
 (see `AGENTS.md` → Embed SDK). The URL token is a share access token with `submit`, not the hex
