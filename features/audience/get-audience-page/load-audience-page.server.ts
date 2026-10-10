@@ -8,10 +8,14 @@ import {
 } from "@/lib/endatix-api/audience/types";
 import type { AudiencePeoplePage } from "@/lib/endatix-api/audience/audience";
 import type { ApiResult } from "@/lib/endatix-api/shared/api-result";
+import { personalizationFlag } from "@/lib/feature-flags";
 import { Result, toResult } from "@/lib/result";
 import type { MapApiResultToResultOptions } from "@/lib/result/map-api-result-to-result";
 import type { Form } from "@/types";
 import type { PeoplePaging } from "./parse-people-page";
+
+const DISABLED_MESSAGE =
+  "Personalization is not enabled for this environment.";
 
 export type AudiencePageData = {
   settings: AudienceSettings;
@@ -99,6 +103,7 @@ export async function loadAudiencePage(
 ): Promise<Result<AudiencePageData>> {
   const { requireHubAccess, checkPermission } = await authorization();
   await requireHubAccess();
+  if (!(await personalizationFlag())) return Result.error(DISABLED_MESSAGE);
 
   const [parts, matchKeyPermission] = await Promise.all([
     loadAudienceParts(formId, paging),
@@ -112,6 +117,8 @@ export async function loadAudiencePage(
 export async function loadFormForAudience(
   formId: string,
 ): Promise<Result<Form>> {
+  if (!(await personalizationFlag())) return Result.error(DISABLED_MESSAGE);
+
   const session = await auth();
   return toResult(
     await new EndatixApi(session?.accessToken).forms.get(formId),

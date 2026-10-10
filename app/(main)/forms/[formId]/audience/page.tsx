@@ -62,7 +62,7 @@ export default async function FormAudiencePage({
   await requireHubAccess();
 
   const { formId } = await params;
-  if (!(await personalizationFlag())) redirect(`/forms/${formId}`);
+  if (!(await personalizationFlag())) return redirect(`/forms/${formId}`);
 
   return audienceView(formId, await searchParams);
 }
