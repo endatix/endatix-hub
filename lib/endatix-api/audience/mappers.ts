@@ -114,7 +114,10 @@ export function mapImportResult(
   response: ApiResult<WireImport>,
 ): ApiResult<AudienceImportResult> {
   return response.success
-    ? ApiResult.success({ ...response.data, importId: asId(response.data.importId) })
+    ? ApiResult.success({
+        ...response.data,
+        importId: String(response.data.importId),
+      })
     : response;
 }
 
