@@ -79,18 +79,32 @@ export function identifierKindHelp(kind: AudienceIdentifierKind): string {
   return IDENTIFIER_KIND_UI[kind]?.help ?? "";
 }
 
+function isAsciiLetterOrDigit(char: string): boolean {
+  const code = char.charCodeAt(0);
+  return (code >= 48 && code <= 57) || (code >= 97 && code <= 122);
+}
+
+function appendSlugChar(slug: string, char: string, gap: boolean): string {
+  return gap && slug.length > 0 ? `${slug}_${char}` : slug + char;
+}
+
 /**
  * The variable name the API derives from a property name (`Property.Slugify` in OSS): lower-case
  * ASCII letters and digits, every other run of characters becomes one `_`. Empty when the name
  * has no ASCII letter or digit, which the API refuses.
  */
 export function variableNameFromName(name: string): string {
-  return name
-    .trim()
-    .toLowerCase()
-    .replaceAll(/[^a-z0-9]+/g, "_")
-    .replace(/^_+/, "")
-    .replace(/_+$/, "");
+  let slug = "";
+  let gap = false;
+  for (const char of name.trim().toLowerCase()) {
+    if (!isAsciiLetterOrDigit(char)) {
+      gap = true;
+      continue;
+    }
+    slug = appendSlugChar(slug, char, gap);
+    gap = false;
+  }
+  return slug;
 }
 
 /** Choice keys of a choice property; empty for other types or unparsable JSON. */
