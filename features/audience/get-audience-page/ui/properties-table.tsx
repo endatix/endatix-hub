@@ -12,7 +12,7 @@ import {
   type StaticDataTableColumn,
 } from "@/components/table";
 import { VariableName } from "../../ui/variable-name";
-import { dataTypeLabel } from "../../utils";
+import { dataTypeLabel } from "../../property-types";
 
 type RowHandlers = {
   onRename: (property: AudienceProperty) => void;

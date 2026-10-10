@@ -6,7 +6,7 @@ import { PanelForm } from "@/components/common/panel-form";
 import { useCreateProperty } from "../use-create-property.hook";
 import { PropertyFields } from "./property-fields";
 
-/** Outline, not primary: on this page the main action is adding people. */
+/** Primary: it is the one action on the Properties view (DESIGN.md §5 Buttons). */
 const PANEL = Object.freeze({
   title: "Add property",
   description:
@@ -16,7 +16,7 @@ const PANEL = Object.freeze({
   pendingLabel: "Adding…",
   desktopType: "simple",
   trigger: (
-    <Button variant="outline">
+    <Button>
       <Plus />
       Add property
     </Button>

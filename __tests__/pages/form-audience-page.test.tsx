@@ -12,6 +12,7 @@ vi.mock("@/features/auth/authorization", () => ({
 
 vi.mock("@/lib/feature-flags", () => ({
   personalizationFlag: vi.fn(),
+  formAnalyticsFlag: vi.fn().mockResolvedValue(false),
 }));
 
 vi.mock("next/navigation", () => ({

@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { Users } from "lucide-react";
 import {
   DataTableEmpty,
@@ -29,6 +30,9 @@ type PeopleSectionProps = {
   pageSize: number;
   totalPages: number;
   hasNextPage: boolean;
+  viewSwitch?: ReactNode;
+  /** The locked match key, said once where people are listed. */
+  matchKeyNote?: ReactNode;
 };
 
 type RowTargets = {
@@ -114,7 +118,12 @@ export function PeopleSection(props: Readonly<PeopleSectionProps>) {
       <SectionHeader
         id="audience-people"
         title="People"
-        description={DESCRIPTION}
+        description={
+          <>
+            {DESCRIPTION} {props.matchKeyNote}
+          </>
+        }
+        viewSwitch={props.viewSwitch}
         action={<AddPersonPanel {...props} />}
       />
       <PeopleSurface {...props} onEdit={row.edit} onRemove={row.remove} />

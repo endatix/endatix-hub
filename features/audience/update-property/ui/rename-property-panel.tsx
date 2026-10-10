@@ -12,6 +12,7 @@ import { LockedPropertyFacts } from "./locked-property-facts";
 type RenamePropertyPanelProps = {
   formId: string;
   property: AudienceProperty | null;
+  open: boolean;
   onClose: () => void;
 };
 type NameEditor = {
@@ -22,9 +23,9 @@ type NameEditor = {
 
 const NAME_ID = "rename-property-name";
 
-function panelProps({ property, onClose }: RenamePropertyPanelProps) {
+function panelProps({ property, open, onClose }: RenamePropertyPanelProps) {
   return {
-    open: property !== null,
+    open: open && property !== null,
     onOpenChange: (open: boolean) => !open && onClose(),
     title: "Rename property",
     description:
@@ -71,7 +72,7 @@ function RenameFields({ form, property }: Readonly<RenameFieldsProps>) {
   );
 }
 
-/** Render it with `key` set to the property id so each property opens fresh. */
+/** Render it with a `key` that changes on every open so each opening starts fresh. */
 export function RenamePropertyPanel(props: Readonly<RenamePropertyPanelProps>) {
   const { formId, property, onClose: onDone } = props;
   const form = useRenameProperty({ formId, property, onDone });

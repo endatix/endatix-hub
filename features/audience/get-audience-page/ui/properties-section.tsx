@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { Columns3 } from "lucide-react";
 import { DataTableEmpty, DataTableSurface } from "@/components/table";
 import type { AudienceProperty } from "@/lib/endatix-api/audience/types";
@@ -14,6 +15,7 @@ type PropertiesSectionProps = {
   formId: string;
   properties: AudienceProperty[];
   totalPeople: number;
+  viewSwitch?: ReactNode;
 };
 
 type RowTargets = {
@@ -46,31 +48,41 @@ type OverlayProps = PropertiesSectionProps & { row: Overlays };
 
 /** One overlay at a time: the row's rename panel or its delete confirmation. */
 function PropertyOverlays({ row, ...props }: Readonly<OverlayProps>) {
-  const renameKey = row.editing?.id ?? "closed";
   return (
     <>
       <RenamePropertyPanel
-        key={renameKey}
+        key={row.session}
         {...props}
-        property={row.editing}
+        property={row.target}
+        open={row.isEditing}
         onClose={row.close}
       />
       <DeletePropertyDialog
         {...props}
-        property={row.deleting}
+        property={row.target}
+        open={row.isDeleting}
         onClose={row.close}
       />
     </>
   );
 }
 
-function PropertiesHeader({ formId }: Readonly<{ formId: string }>) {
+type PropertiesHeaderProps = Pick<
+  PropertiesSectionProps,
+  "formId" | "viewSwitch"
+>;
+
+function PropertiesHeader({
+  formId,
+  viewSwitch,
+}: Readonly<PropertiesHeaderProps>) {
   const action = <AddPropertyPanel formId={formId} />;
   return (
     <SectionHeader
       id="audience-properties"
       title="Properties"
       description={DESCRIPTION}
+      viewSwitch={viewSwitch}
       action={action}
     />
   );
@@ -88,7 +100,7 @@ export function PropertiesSection(props: Readonly<PropertiesSectionProps>) {
       aria-labelledby="audience-properties"
       className="flex flex-col gap-4"
     >
-      <PropertiesHeader formId={props.formId} />
+      <PropertiesHeader formId={props.formId} viewSwitch={props.viewSwitch} />
       <PropertiesSurface {...surface} />
       <PropertyOverlays {...props} row={row} />
     </section>

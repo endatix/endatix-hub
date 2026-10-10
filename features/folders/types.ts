@@ -2,6 +2,7 @@ import type { Folder } from "@/lib/endatix-api/folders/types";
 import type { PageError } from "@/lib/errors/page-error";
 import type { FolderContentsPreview } from "@/features/folders/view-folder-management/folder-contents-preview";
 import type { Route } from "next";
+import type { NavSwitcherModel } from "@/components/layout-ui/navigation/nav-switcher";
 import type { Form, FormTemplate } from "@/types";
 
 export type FormsNavFolder = {
@@ -33,15 +34,7 @@ type BreadcrumbPageItem = {
   label: string;
 };
 
-type BreadcrumbDropdownItem = {
-  type: "dropdown";
-  label: string;
-  options: Array<{
-    label: string;
-    href: Route;
-    isActive?: boolean;
-  }>;
-};
+type BreadcrumbDropdownItem = { type: "dropdown" } & NavSwitcherModel;
 
 export type FormsBreadcrumbItem =
   | BreadcrumbLinkItem

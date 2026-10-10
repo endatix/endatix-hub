@@ -1,6 +1,4 @@
 import { auth } from "@/auth";
-import PageTitle from "@/components/headings/page-title";
-import { getSession } from "@/features/auth";
 import { authorization } from "@/features/auth/authorization";
 import {
   buildSubmissionListPath,
@@ -8,6 +6,7 @@ import {
   parseSubmissionListSearchParams,
 } from "@/features/submissions/list-submission-query";
 import { SubmissionListSection } from "@/features/submissions/list-submissions";
+import { FormWorkspaceHeader } from "@/features/forms/form-workspace";
 import { SubmissionsTableSkeleton } from "@/features/submissions/ui/table/submissions-table-skeleton";
 import { PagedListFrame } from "@/components/table";
 import { EndatixApi } from "@/lib/endatix-api";
@@ -56,9 +55,7 @@ export default async function ResponsesPage({ params, searchParams }: Params) {
 
   return (
     <>
-      <Suspense fallback={<PageTitle title="Submissions..." />}>
-        <PageTitleData formId={formId} />
-      </Suspense>
+      <FormWorkspaceHeader title="Submissions" />
       <PagedListFrame
         listKey={listQueryKey(listState)}
         fallback={<SubmissionsListSkeleton pageSize={listState.pageSize} />}
@@ -67,16 +64,6 @@ export default async function ResponsesPage({ params, searchParams }: Params) {
       </PagedListFrame>
     </>
   );
-}
-
-async function PageTitleData({ formId }: Readonly<{ formId: string }>) {
-  const session = await getSession();
-  const api = new EndatixApi(session ?? undefined);
-  const formResult = await api.forms.get(formId);
-
-  const formName = formResult.success ? formResult.data.name : "Form";
-
-  return <PageTitle title={`Submissions for ${formName}`} />;
 }
 
 function SubmissionsListSkeleton({ pageSize }: Readonly<{ pageSize: number }>) {

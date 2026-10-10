@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import type { AudienceDataType } from "@/lib/endatix-api/audience/types";
 import { FieldWithHelp, helpId } from "@/components/common/field-with-help";
 import { OptionsSelect } from "../../ui/options-select";
-import { CREATABLE_DATA_TYPES } from "../../utils";
+import { CREATABLE_DATA_TYPES } from "../../property-types";
 
 const NAME_ID = "add-property-name";
 const TYPE_ID = "add-property-type";

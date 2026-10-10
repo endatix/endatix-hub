@@ -1,92 +1,100 @@
 "use client";
 
+import Link from "next/link";
+import type { Route } from "next";
+import { Link2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
-  Sheet,
-  SheetContent,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+  ResponsivePanel,
+  ResponsivePanelBody,
+  ResponsivePanelDescription,
+  ResponsivePanelFooter,
+  ResponsivePanelHeader,
+  ResponsivePanelTitle,
+} from "@/components/ui/responsive-panel";
 import { Form } from "@/types";
-import FormDetails from "./form-details";
-import { useState, useEffect } from "react";
-import { getFormAction } from "../application/actions/get-form.action";
-import { Result } from "@/lib/result";
-import { Loader2 } from "lucide-react";
+import {
+  FormDesignButton,
+  NO_OPTIONAL_SECTIONS,
+  type FormWorkspaceFlags,
+} from "../form-workspace";
+import { FormPageLinks } from "../form-workspace/ui/form-page-links";
+import { FormSummaryCards } from "../form-workspace/ui/form-summary-cards";
 
-interface FormSheetProps extends React.ComponentPropsWithoutRef<typeof Sheet> {
+interface FormSheetProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   selectedForm: Form | null;
-  enableEditing?: boolean;
+  workspaceFlags?: FormWorkspaceFlags;
 }
 
+function FormPreviewFooter({ form }: Readonly<{ form: Form }>) {
+  return (
+    <ResponsivePanelFooter>
+      <Button variant="outline" asChild>
+        <Link href={`/share/${form.id}` as Route} target="_blank">
+          <Link2 />
+          Share link
+        </Link>
+      </Button>
+      <FormDesignButton formId={form.id} variant="default" />
+    </ResponsivePanelFooter>
+  );
+}
+
+function FormPreviewHeader({ form }: Readonly<{ form: Form }>) {
+  return (
+    <ResponsivePanelHeader>
+      <ResponsivePanelTitle className="text-xl break-words">
+        {form.name}
+      </ResponsivePanelTitle>
+      <ResponsivePanelDescription>
+        {form.description ||
+          "What this form has collected, and where to go next."}
+      </ResponsivePanelDescription>
+    </ResponsivePanelHeader>
+  );
+}
+
+/**
+ * Share link opens the public page in a new tab, like the card's quick link; the Share dialog
+ * would stack an overlay on this one (DESIGN.md §5 Overlays rule 5).
+ */
+function FormPreviewContent({
+  form,
+  flags,
+}: Readonly<{ form: Form; flags: FormWorkspaceFlags }>) {
+  return (
+    <>
+      <FormPreviewHeader form={form} />
+      <ResponsivePanelBody className="gap-6">
+        <FormSummaryCards form={form} className="[--grid-card-min:180px]" />
+        <FormPageLinks formId={form.id} flags={flags} />
+      </ResponsivePanelBody>
+      <FormPreviewFooter form={form} />
+    </>
+  );
+}
+
+/**
+ * A form picked from the list, as a record preview (DESIGN.md §5 Overlays): its facts and the
+ * ways into it. Read-only — settings are edited on the form's Settings page.
+ */
 const FormSheet = ({
   selectedForm,
-  enableEditing = false,
-  ...props
+  workspaceFlags = NO_OPTIONAL_SECTIONS,
+  open,
+  onOpenChange,
 }: FormSheetProps) => {
-  const [fullForm, setFullForm] = useState<Form | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-
-  // Fetch full form data when sheet opens
-  useEffect(() => {
-    if (props.open && selectedForm?.id) {
-      setIsLoading(true);
-      getFormAction(selectedForm.id)
-        .then((result) => {
-          if (Result.isSuccess(result)) {
-            setFullForm(result.value);
-          } else {
-            console.error("Failed to fetch form details:", result.message);
-            setFullForm(selectedForm); // Fallback to the list form data
-          }
-        })
-        .catch((error) => {
-          console.error("Failed to fetch form details:", error);
-          setFullForm(selectedForm); // Fallback to the list form data
-        })
-        .finally(() => {
-          setIsLoading(false);
-        });
-    }
-  }, [props.open, selectedForm?.id, selectedForm]);
-
-  if (!selectedForm) {
-    return null;
-  }
-
-  const handleFormDeleted = () => {
-    props.onOpenChange?.(false);
-  };
-
-  const displayForm = fullForm || selectedForm;
-
+  if (!selectedForm) return null;
   return (
-    selectedForm && (
-      <Sheet {...props}>
-        <SheetContent className="w-[600px] sm:w-[640px] sm:max-w-none overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle className="sr-only">{selectedForm?.name}</SheetTitle>
-          </SheetHeader>
-          {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : (
-            <div className="mt-8 pb-6">
-              <FormDetails
-                form={displayForm}
-                mode="sheet"
-                enableEditing={enableEditing}
-                showHeader={true}
-                onFormDeleted={handleFormDeleted}
-                titleSize="text-2xl"
-              />
-            </div>
-          )}
-          <SheetFooter></SheetFooter>
-        </SheetContent>
-      </Sheet>
-    )
+    <ResponsivePanel
+      open={open}
+      onOpenChange={onOpenChange}
+      desktopType="complex"
+    >
+      <FormPreviewContent form={selectedForm} flags={workspaceFlags} />
+    </ResponsivePanel>
   );
 };
 export default FormSheet;
