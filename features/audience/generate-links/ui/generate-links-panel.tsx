@@ -14,7 +14,9 @@ function linkUrl(formId: string, token: string): string {
   return `${origin}/share/${formId}/a/${token}`;
 }
 
-export function GenerateLinksPanel({ formId }: Readonly<GenerateLinksPanelProps>) {
+export function GenerateLinksPanel({
+  formId,
+}: Readonly<GenerateLinksPanelProps>) {
   const [links, setLinks] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -33,7 +35,12 @@ export function GenerateLinksPanel({ formId }: Readonly<GenerateLinksPanelProps>
 
   return (
     <div className="flex flex-col gap-2">
-      <Button type="button" variant="outline" disabled={pending} onClick={issue}>
+      <Button
+        type="button"
+        variant="outline"
+        disabled={pending}
+        onClick={issue}
+      >
         <Link2 />
         Personalised links
       </Button>
@@ -43,7 +50,11 @@ export function GenerateLinksPanel({ formId }: Readonly<GenerateLinksPanelProps>
           {links.map((href) => (
             <li key={href} className="flex items-center gap-2">
               <span className="truncate">{href}</span>
-              <CopyToClipboard value={href} />
+              <CopyToClipboard
+                copyValue={href}
+                layout="inline"
+                label={`Copy link ${href}`}
+              />
             </li>
           ))}
         </ul>

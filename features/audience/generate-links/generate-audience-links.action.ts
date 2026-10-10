@@ -2,7 +2,7 @@
 
 import type { IssuedAudienceLink } from "@/lib/endatix-api/audience/types";
 import { Result } from "@/lib/result";
-import { withHubAudienceApi } from "../shared/with-hub-audience-api";
+import { withHubAudienceApi } from "../shared/with-hub-audience-api.server";
 
 export async function generateAudienceLinksAction(
   formId: string,
