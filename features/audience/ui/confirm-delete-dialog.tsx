@@ -85,9 +85,7 @@ function ConfirmHeader({
   );
 }
 
-type ConfirmFooterProps = ConfirmButtonProps;
-
-function ConfirmFooter(props: Readonly<ConfirmFooterProps>) {
+function ConfirmFooter(props: Readonly<ConfirmButtonProps>) {
   return (
     <AlertDialogFooter>
       <AlertDialogCancel disabled={props.pending}>Cancel</AlertDialogCancel>

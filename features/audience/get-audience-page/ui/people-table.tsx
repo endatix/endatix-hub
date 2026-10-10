@@ -1,20 +1,18 @@
 "use client";
 
 import { Pencil, Trash2 } from "lucide-react";
-import { DATA_TABLE_SHRINK_WRAP_CLASS_NAME as SHRINK } from "@/components/table";
 import type {
   AudienceIdentifierKind,
   AudiencePerson,
   AudienceProperty,
 } from "@/lib/endatix-api/audience/types";
 import {
+  DATA_TABLE_SHRINK_WRAP_CLASS_NAME as SHRINK,
   DataTableRowActions,
-  type DataTableRowAction,
-} from "@/components/table";
-import {
   dataTableCell,
   StaticDataTable,
   StaticDataTableRow,
+  type DataTableRowAction,
   type StaticDataTableCell,
   type StaticDataTableColumn,
 } from "@/components/table";

@@ -31,24 +31,27 @@ export function matchKeyHint({
   return canManage ? MATCH_KEY_HINTS.open : MATCH_KEY_HINTS.noPermission;
 }
 
-export function useMatchKey({
-  formId,
-  identifierKind,
-  isLocked,
-  canManage,
-}: MatchKeyState) {
-  const mutation = useAudienceMutation();
-  const change = (value: string) => {
-    if (!isAudienceIdentifierKind(value) || value === identifierKind) return;
-    mutation.run({
-      action: () => updateAudienceSettingsAction(formId, value),
+function saveMatchKey(
+  state: MatchKeyState,
+  run: ReturnType<typeof useAudienceMutation>["run"],
+) {
+  return (value: string) => {
+    if (!isAudienceIdentifierKind(value) || value === state.identifierKind) {
+      return;
+    }
+    run({
+      action: () => updateAudienceSettingsAction(state.formId, value),
       successMessage: "Match key updated",
     });
   };
+}
+
+export function useMatchKey(state: MatchKeyState) {
+  const mutation = useAudienceMutation();
   return {
-    disabled: mutation.pending || isLocked || !canManage,
+    disabled: mutation.pending || state.isLocked || !state.canManage,
     error: mutation.error,
-    change,
-    hint: matchKeyHint({ isLocked, canManage }),
+    change: saveMatchKey(state, mutation.run),
+    hint: matchKeyHint(state),
   };
 }

@@ -46,6 +46,22 @@ type LoadedParts = {
   people: AudiencePeoplePage;
 };
 
+function combineParts(
+  settings: Result<AudienceSettings>,
+  properties: Result<AudienceProperty[]>,
+  people: Result<AudiencePeoplePage>,
+): Result<LoadedParts> {
+  if (Result.isError(settings)) return settings;
+  if (Result.isError(properties)) return properties;
+  if (Result.isError(people)) return people;
+
+  return Result.success({
+    settings: settings.value,
+    properties: properties.value,
+    people: people.value,
+  });
+}
+
 async function loadAudienceParts(
   formId: string,
   paging: PeoplePaging,
@@ -54,18 +70,26 @@ async function loadAudienceParts(
     formId,
     paging,
   );
-  const settings = unwrapPart(settingsApi, "settings");
-  if (Result.isError(settings)) return settings;
-  const properties = unwrapPart(propertiesApi, "properties");
-  if (Result.isError(properties)) return properties;
-  const people = unwrapPart(peopleApi, "people");
-  if (Result.isError(people)) return people;
+  return combineParts(
+    unwrapPart(settingsApi, "settings"),
+    unwrapPart(propertiesApi, "properties"),
+    unwrapPart(peopleApi, "people"),
+  );
+}
 
-  return Result.success({
-    settings: settings.value,
-    properties: properties.value,
-    people: people.value,
-  });
+function toPageData(
+  parts: LoadedParts,
+  canManageMatchKey: boolean,
+): AudiencePageData {
+  return {
+    settings: parts.settings,
+    canManageMatchKey,
+    properties: parts.properties,
+    people: [...parts.people.items],
+    totalPeople: parts.people.totalRecords,
+    page: parts.people.page,
+    pageSize: parts.people.pageSize,
+  };
 }
 
 /** Paging comes back from the API: it clamps a page past the end to the last page. */
@@ -82,15 +106,7 @@ export async function loadAudiencePage(
   ]);
   if (Result.isError(parts)) return parts;
 
-  return Result.success({
-    settings: parts.value.settings,
-    canManageMatchKey: matchKeyPermission.success,
-    properties: parts.value.properties,
-    people: [...parts.value.people.items],
-    totalPeople: parts.value.people.totalRecords,
-    page: parts.value.people.page,
-    pageSize: parts.value.people.pageSize,
-  });
+  return Result.success(toPageData(parts.value, matchKeyPermission.success));
 }
 
 export async function loadFormForAudience(

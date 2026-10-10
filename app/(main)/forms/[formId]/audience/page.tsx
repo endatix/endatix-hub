@@ -15,7 +15,7 @@ import { redirect } from "next/navigation";
 
 type Params = {
   params: Promise<{ formId: string }>;
-  searchParams: Promise<{ page?: SearchParam; pageSize?: SearchParam }>;
+  searchParams: Promise<{ page: SearchParam; pageSize: SearchParam }>;
 };
 
 function failedLoad(result: ResultError) {
@@ -33,6 +33,25 @@ function pagingFrom(query: Awaited<Params["searchParams"]>) {
   });
 }
 
+async function audienceView(
+  formId: string,
+  query: Awaited<Params["searchParams"]>,
+) {
+  const form = await loadFormForAudience(formId);
+  if (Result.isError(form)) return failedLoad(form);
+
+  const audience = await loadAudiencePage(formId, pagingFrom(query));
+  if (Result.isError(audience)) return failedLoad(audience);
+
+  return (
+    <AudiencePageShell
+      formId={formId}
+      formName={form.value.name}
+      data={audience.value}
+    />
+  );
+}
+
 export default async function FormAudiencePage({
   params,
   searchParams,
@@ -44,18 +63,5 @@ export default async function FormAudiencePage({
   const { formId } = await params;
   if (!(await personalizationFlag())) redirect(`/forms/${formId}`);
 
-  const form = await loadFormForAudience(formId);
-  if (Result.isError(form)) return failedLoad(form);
-
-  const paging = pagingFrom(await searchParams);
-  const audience = await loadAudiencePage(formId, paging);
-  if (Result.isError(audience)) return failedLoad(audience);
-
-  return (
-    <AudiencePageShell
-      formId={formId}
-      formName={form.value.name}
-      data={audience.value}
-    />
-  );
+  return audienceView(formId, await searchParams);
 }

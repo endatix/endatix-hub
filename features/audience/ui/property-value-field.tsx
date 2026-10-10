@@ -116,10 +116,9 @@ function ChoiceCheckbox({
 function MultipleChoice(props: Readonly<FieldProps>) {
   const picked = pickedKeys(props.value);
   return (
-    <div
-      role="group"
+    <fieldset
       aria-labelledby={`${props.id}-label`}
-      className="grid gap-2"
+      className="m-0 grid min-w-0 gap-2 border-0 p-0"
     >
       {choiceKeysOf(props.property).map((choice) => (
         <ChoiceCheckbox
@@ -129,7 +128,7 @@ function MultipleChoice(props: Readonly<FieldProps>) {
           field={props}
         />
       ))}
-    </div>
+    </fieldset>
   );
 }
 

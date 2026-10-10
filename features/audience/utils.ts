@@ -89,7 +89,8 @@ export function variableNameFromName(name: string): string {
     .trim()
     .toLowerCase()
     .replaceAll(/[^a-z0-9]+/g, "_")
-    .replaceAll(/^_+|_+$/g, "");
+    .replace(/^_+/, "")
+    .replace(/_+$/, "");
 }
 
 /** Choice keys of a choice property; empty for other types or unparsable JSON. */

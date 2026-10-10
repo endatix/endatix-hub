@@ -24,14 +24,10 @@ export type WirePerson = {
   values: Record<string, string>;
 };
 
-export function asId(value: string | number): string {
-  return String(value);
-}
-
 export function mapProperty(wire: WireProperty): AudienceProperty {
   return {
-    id: asId(wire.id),
-    formId: asId(wire.formId),
+    id: String(wire.id),
+    formId: String(wire.formId),
     variableName: wire.variableName,
     name: wire.name,
     dataType: wire.dataType,
@@ -39,7 +35,7 @@ export function mapProperty(wire: WireProperty): AudienceProperty {
     dataListId:
       wire.dataListId === null || wire.dataListId === undefined
         ? wire.dataListId
-        : asId(wire.dataListId),
+        : String(wire.dataListId),
     choicesJson: wire.choicesJson,
     allowsOther: wire.allowsOther,
   };
@@ -47,8 +43,8 @@ export function mapProperty(wire: WireProperty): AudienceProperty {
 
 export function mapPerson(wire: WirePerson): AudiencePerson {
   return {
-    membershipId: asId(wire.membershipId),
-    audienceMemberId: asId(wire.audienceMemberId),
+    membershipId: String(wire.membershipId),
+    audienceMemberId: String(wire.audienceMemberId),
     identifier: wire.identifier,
     values: wire.values ?? {},
   };
