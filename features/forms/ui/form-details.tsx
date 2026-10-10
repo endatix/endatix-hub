@@ -3,18 +3,13 @@
 import { Button } from "@/components/ui/button";
 import {
   Share2,
-  List,
   MoreHorizontal,
   Trash2,
-  FilePen,
   Save,
-  BarChart3,
-  Users,
   Globe,
   Lock,
 } from "lucide-react";
 import { Form } from "@/types";
-import Link from "next/link";
 import { SectionTitle } from "@/components/headings/section-title";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -159,11 +154,11 @@ interface FormDetailsProps {
   mode?: "sheet" | "page";
   enableEditing?: boolean;
   showHeader?: boolean;
-  enableAnalytics?: boolean;
-  enableAudience?: boolean;
   folderLink?: FormFolderLinkProps;
   onFormDeleted?: () => void; // Callback for when form is successfully deleted
   titleSize?: "text-xl" | "text-2xl" | "text-3xl" | "text-4xl";
+  /** A page title in place of the form's name (the Settings page); hides folder and description. */
+  pageTitle?: string;
 }
 
 const FormDetails = ({
@@ -171,11 +166,10 @@ const FormDetails = ({
   mode = "page",
   enableEditing = false,
   showHeader = true,
-  enableAnalytics = false,
-  enableAudience = false,
   folderLink,
   onFormDeleted,
   titleSize = "text-4xl",
+  pageTitle,
 }: FormDetailsProps) => {
   const [pending, startTransition] = useTransition();
   const [isEnabled, setIsEnabled] = useState(form?.isEnabled);
@@ -586,11 +580,11 @@ const FormDetails = ({
         {/* Header - conditionally rendered for flexibility */}
         {showHeader && (
           <div>
-            {displayedFolderLink ? (
+            {displayedFolderLink && !pageTitle ? (
               <FormFolderLink {...displayedFolderLink} className="mb-2" />
             ) : null}
-            <PageTitle title={form?.name} className={titleSize} />
-            {form?.description && (
+            <PageTitle title={pageTitle ?? form?.name} className={titleSize} />
+            {!pageTitle && form?.description && (
               <p className="text-muted-foreground">{form.description}</p>
             )}
           </div>
@@ -598,12 +592,6 @@ const FormDetails = ({
 
         {/* Action Buttons */}
         <div className="ml-auto flex justify-end space-x-2">
-          <Button variant={"outline"} asChild>
-            <Link href={{ pathname: `/forms/${form.id}/design` }}>
-              <FilePen className="mr-2 h-4 w-4" />
-              Design
-            </Link>
-          </Button>
           <Button
             variant={"outline"}
             onClick={() => setIsShareDialogOpen(true)}
@@ -611,32 +599,6 @@ const FormDetails = ({
             <Share2 className="mr-2 h-4 w-4" />
             Share
           </Button>
-          <Button variant={"outline"} asChild>
-            <Link
-              href={{
-                pathname: `/forms/${form.id}/submissions`,
-              }}
-            >
-              <List className="mr-1 h-4 w-4" />
-              Submissions
-            </Link>
-          </Button>
-          {enableAnalytics && (
-            <Button variant="outline" asChild>
-              <Link href={`/forms/${form.id}/analytics`}>
-                <BarChart3 className="mr-2 h-4 w-4" />
-                Analytics
-              </Link>
-            </Button>
-          )}
-          {enableAudience && (
-            <Button variant="outline" asChild>
-              <Link href={`/forms/${form.id}/audience`}>
-                <Users className="mr-2 h-4 w-4" />
-                Audience
-              </Link>
-            </Button>
-          )}
           <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="icon">

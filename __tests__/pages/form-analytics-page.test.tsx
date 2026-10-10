@@ -14,6 +14,7 @@ vi.mock("@/features/auth/authorization", () => ({
 
 vi.mock("@/lib/feature-flags", () => ({
   formAnalyticsFlag: vi.fn(),
+  personalizationFlag: vi.fn().mockResolvedValue(false),
 }));
 
 vi.mock("@/services/api", () => ({
@@ -22,6 +23,7 @@ vi.mock("@/services/api", () => ({
 
 vi.mock("next/navigation", () => ({
   redirect: vi.fn(),
+  usePathname: () => "/forms/f1/analytics",
 }));
 
 vi.mock("@/features/form-analytics/ui/survey-dashboard-wrapper", () => ({
@@ -111,8 +113,8 @@ describe("Form Analytics Page", () => {
       params: Promise.resolve({ formId: "f1" }),
     });
 
-    const { getByText, getByTestId, container } = render(result);
-    expect(getByText(/Reporting: Reporting Form/i)).toBeDefined();
+    const { getByText, getByRole, getByTestId, container } = render(result);
+    expect(getByRole("heading", { name: "Analytics" })).toBeDefined();
     expect(getByText(/Survey analytics and charts/i)).toBeDefined();
     expect(getByTestId("survey-dashboard-wrapper")).toBeDefined();
     expect(container).toMatchSnapshot();

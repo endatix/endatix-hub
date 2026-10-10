@@ -7,6 +7,7 @@ import { deleteAudiencePropertyAction } from "../delete-audience-property.action
 type DeletePropertyDialogProps = {
   formId: string;
   property: AudienceProperty | null;
+  open: boolean;
   totalPeople: number;
   onClose: () => void;
 };
@@ -26,18 +27,16 @@ export function valuesConsequence(totalPeople: number): string {
   return `Its values are deleted for all ${people} on this form's audience.`;
 }
 
-export function DeletePropertyDialog({
-  formId,
-  property,
-  totalPeople,
-  onClose,
-}: Readonly<DeletePropertyDialogProps>) {
+export function DeletePropertyDialog(
+  props: Readonly<DeletePropertyDialogProps>,
+) {
+  const { formId, property, open, totalPeople, onClose } = props;
   const title = `Delete ${property?.name ?? "property"}?`;
   const action = () => deleteAudiencePropertyAction(formId, property?.id ?? "");
   return (
     <ConfirmDeleteDialog
       {...COPY}
-      open={property !== null}
+      open={open && property !== null}
       title={title}
       action={action}
       onClose={onClose}

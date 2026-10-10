@@ -4,7 +4,7 @@ import { useState } from "react";
 import { AudienceDataType } from "@/lib/endatix-api/audience/types";
 import { useAudienceMutation } from "../use-audience-mutation.hook";
 import { usePanelOpen } from "../use-panel-state.hook";
-import { variableNameFromName } from "../utils";
+import { variableNameFromName } from "../property-types";
 import { createAudiencePropertyAction } from "./create-audience-property.action";
 
 /** The new property being typed, with the variable name it would get. */

@@ -3,6 +3,7 @@ import { authorization } from "@/features/auth/authorization";
 import { AssetStorageProvider } from "@/features/asset-storage/server";
 import { getFormsListPromise } from "@/features/forms/list-forms/list-forms.server";
 import { FormsListSection } from "@/features/forms/list-forms/ui/forms-list-section";
+import { getFormWorkspaceFlags } from "@/features/forms/form-workspace/form-workspace-flags.server";
 import { FormsListSkeleton } from "@/features/forms/list-forms/ui/forms-list-skeleton";
 import { FormsListToolbar } from "@/features/forms/list-forms/ui/forms-list-toolbar";
 import { parseFormsListParams } from "@/features/forms/list-forms/utils";
@@ -63,6 +64,7 @@ export default async function FolderSlugFormsPage({
     folderId: folder.id,
   });
   const formsPromise = getFormsListPromise(listRequest, session);
+  const workspaceFlags = await getFormWorkspaceFlags();
 
   return (
     <AssetStorageProvider>
@@ -80,6 +82,7 @@ export default async function FolderSlugFormsPage({
           <FormsListSection
             formsPromise={formsPromise}
             scope="folder"
+            workspaceFlags={workspaceFlags}
             emptyState={<NoFolderFormsEmptyState />}
             filteredEmptyState={<NoMatchingFormsEmptyState />}
           />

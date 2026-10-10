@@ -16,6 +16,7 @@ import {
   Lock,
   MoreVertical,
   Save,
+  Users,
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import {
@@ -41,6 +42,8 @@ type FormCardProps = React.ComponentProps<typeof Card> & {
   form: Form;
   folderContext?: FormFolderChipProps;
   isSelected: boolean;
+  /** The Audience quick link; only when the tenant has audiences. */
+  showAudienceLink?: boolean;
   onSaveAsTemplate: () => void;
 };
 
@@ -82,10 +85,23 @@ const SubmissionsLabel: React.FC<SubmissionsLabelProps> = ({
   );
 };
 
+function AudienceQuickLink({ formId }: Readonly<{ formId: string }>) {
+  return (
+    <Link
+      href={`/forms/${formId}/audience`}
+      className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 text-sm leading-none whitespace-nowrap text-muted-foreground hover:text-foreground"
+    >
+      <Users className="size-4 shrink-0" />
+      Audience
+    </Link>
+  );
+}
+
 const FormCard = ({
   form,
   folderContext,
   isSelected,
+  showAudienceLink = false,
   onSaveAsTemplate,
   className,
   ...props
@@ -282,6 +298,7 @@ const FormCard = ({
               <List className="size-4 shrink-0" />
               Submissions
             </Link>
+            {showAudienceLink ? <AudienceQuickLink formId={form.id} /> : null}
           </div>
           <div className="relative flex h-full shrink-0 items-center opacity-0 transition-opacity group-hover:opacity-100">
             <DropdownMenu
