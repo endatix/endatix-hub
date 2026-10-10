@@ -9,6 +9,7 @@ import {
   FilePen,
   Save,
   BarChart3,
+  Users,
   Globe,
   Lock,
 } from "lucide-react";
@@ -159,6 +160,7 @@ interface FormDetailsProps {
   enableEditing?: boolean;
   showHeader?: boolean;
   enableAnalytics?: boolean;
+  enableAudience?: boolean;
   folderLink?: FormFolderLinkProps;
   onFormDeleted?: () => void; // Callback for when form is successfully deleted
   titleSize?: "text-xl" | "text-2xl" | "text-3xl" | "text-4xl";
@@ -170,6 +172,7 @@ const FormDetails = ({
   enableEditing = false,
   showHeader = true,
   enableAnalytics = false,
+  enableAudience = false,
   folderLink,
   onFormDeleted,
   titleSize = "text-4xl",
@@ -623,6 +626,14 @@ const FormDetails = ({
               <Link href={`/forms/${form.id}/analytics`}>
                 <BarChart3 className="mr-2 h-4 w-4" />
                 Analytics
+              </Link>
+            </Button>
+          )}
+          {enableAudience && (
+            <Button variant="outline" asChild>
+              <Link href={`/forms/${form.id}/audience`}>
+                <Users className="mr-2 h-4 w-4" />
+                Audience
               </Link>
             </Button>
           )}

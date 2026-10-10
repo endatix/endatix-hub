@@ -41,6 +41,12 @@ export const saasManagementFlag = flag<boolean>({
   defaultValue: false,
 });
 
+/** Audience / personalization module (properties + people on a form). */
+export const personalizationFlag = flag<boolean>({
+  key: "personalization",
+  defaultValue: false,
+});
+
 export const getAllFlags = async (): Promise<FeatureFlagConfig> => ({
   experimentalFeatures: await experimentalFeaturesFlag(),
   advancedAnalytics: await advancedAnalyticsFlag(),
@@ -50,4 +56,5 @@ export const getAllFlags = async (): Promise<FeatureFlagConfig> => ({
   reportingExport: await reportingExportFlag(),
   tenantManagement: await tenantManagementFlag(),
   saasManagement: await saasManagementFlag(),
+  personalization: await personalizationFlag(),
 });
