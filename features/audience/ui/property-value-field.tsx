@@ -8,7 +8,12 @@ import {
   AudienceDataType,
   type AudienceProperty,
 } from "@/lib/endatix-api/audience/types";
-import { choiceKeysOf } from "../utils";
+import {
+  choiceKeysOf,
+  fromLocalDateTimeInput,
+  parseKeyArray,
+  toLocalDateTimeInput,
+} from "../utils";
 import { OptionsSelect, type SelectOption } from "./options-select";
 
 /** Radix Select cannot hold "", so "not set" travels as this key and maps back to "". */
@@ -36,10 +41,16 @@ const INPUT_TYPES: Readonly<Partial<Record<AudienceDataType, string>>> =
     [AudienceDataType.DateTime]: "datetime-local",
   });
 
-/** `datetime-local` shows minutes only; a stored value with seconds or an offset is trimmed for display. */
+const isDateTime = (property: AudienceProperty) =>
+  property.dataType === AudienceDataType.DateTime;
+
+/** A date-time shows in the reader's time zone and is sent back with their offset. */
 function inputValue(property: AudienceProperty, value: string): string {
-  if (property.dataType !== AudienceDataType.DateTime) return value;
-  return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(value) ? value.slice(0, 16) : "";
+  return isDateTime(property) ? toLocalDateTimeInput(value) : value;
+}
+
+function outputValue(property: AudienceProperty, input: string): string {
+  return isDateTime(property) ? fromLocalDateTimeInput(input) : input;
 }
 
 function TypedInput({
@@ -54,7 +65,7 @@ function TypedInput({
       type={INPUT_TYPES[property.dataType] ?? "text"}
       step={property.dataType === AudienceDataType.Number ? "any" : undefined}
       value={inputValue(property, value)}
-      onChange={(event) => onChange(event.target.value)}
+      onChange={(event) => onChange(outputValue(property, event.target.value))}
     />
   );
 }
@@ -74,13 +85,12 @@ function NullableSelect({
   );
 }
 
-function pickedKeys(value: string): string[] {
-  try {
-    const parsed: unknown = JSON.parse(value);
-    return Array.isArray(parsed) ? parsed.map(String) : [];
-  } catch {
-    return [];
-  }
+/**
+ * The choices to offer: the property's own, plus any stored key outside them (an `AllowsOther`
+ * value, or a data-list property with no inline choices), so a stored value is never hidden.
+ */
+function offeredKeys(property: AudienceProperty, stored: string[]): string[] {
+  return [...new Set([...choiceKeysOf(property), ...stored])];
 }
 
 function toggledValue(picked: string[], key: string, checked: boolean): string {
@@ -114,13 +124,13 @@ function ChoiceCheckbox({
 }
 
 function MultipleChoice(props: Readonly<FieldProps>) {
-  const picked = pickedKeys(props.value);
+  const picked = parseKeyArray(props.value) ?? [];
   return (
     <fieldset
       aria-labelledby={`${props.id}-label`}
       className="m-0 grid min-w-0 gap-2 border-0 p-0"
     >
-      {choiceKeysOf(props.property).map((choice) => (
+      {offeredKeys(props.property, picked).map((choice) => (
         <ChoiceCheckbox
           key={choice}
           choice={choice}
@@ -132,9 +142,15 @@ function MultipleChoice(props: Readonly<FieldProps>) {
   );
 }
 
-const keyOptions = (property: AudienceProperty): SelectOption[] => [
+const keyOptions = (
+  property: AudienceProperty,
+  value: string,
+): SelectOption[] => [
   NOT_SET_OPTION,
-  ...choiceKeysOf(property).map((key) => ({ value: key, label: key })),
+  ...offeredKeys(property, value ? [value] : []).map((key) => ({
+    value: key,
+    label: key,
+  })),
 ];
 
 /** One control per data type; anything else is a typed `<input>`. */
@@ -145,7 +161,10 @@ const CONTROLS: Readonly<
     <NullableSelect {...props} options={BOOLEAN_OPTIONS} />
   ),
   [AudienceDataType.SingleChoice]: (props) => (
-    <NullableSelect {...props} options={keyOptions(props.property)} />
+    <NullableSelect
+      {...props}
+      options={keyOptions(props.property, props.value)}
+    />
   ),
   [AudienceDataType.MultipleChoice]: (props) => <MultipleChoice {...props} />,
 });

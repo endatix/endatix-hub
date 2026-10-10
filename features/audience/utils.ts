@@ -5,38 +5,6 @@ import {
   type AudiencePropertyValues,
 } from "@/lib/endatix-api/audience/types";
 
-export const AUDIENCE_DATA_TYPES: ReadonlyArray<{
-  value: AudienceDataType;
-  label: string;
-}> = Object.freeze([
-  { value: AudienceDataType.Text, label: "Text" },
-  { value: AudienceDataType.Number, label: "Number" },
-  { value: AudienceDataType.Boolean, label: "Boolean" },
-  { value: AudienceDataType.Date, label: "Date" },
-  { value: AudienceDataType.DateTime, label: "Date & time" },
-  { value: AudienceDataType.SingleChoice, label: "Single choice" },
-  { value: AudienceDataType.MultipleChoice, label: "Multiple choice" },
-]);
-
-/**
- * Types a new property can use. Choice types need choices, which the API requires and this tab
- * has no editor for yet, so they are left out until the import wizard adds one.
- */
-export const CREATABLE_DATA_TYPES = Object.freeze(
-  AUDIENCE_DATA_TYPES.filter(
-    (entry) =>
-      entry.value !== AudienceDataType.SingleChoice &&
-      entry.value !== AudienceDataType.MultipleChoice,
-  ),
-);
-
-export function dataTypeLabel(dataType: string): string {
-  return (
-    AUDIENCE_DATA_TYPES.find((entry) => entry.value === dataType)?.label ??
-    dataType
-  );
-}
-
 const IDENTIFIER_KIND_UI: Readonly<
   Record<
     AudienceIdentifierKind,
@@ -88,34 +56,51 @@ function appendSlugChar(slug: string, char: string, gap: boolean): string {
   return gap && slug.length > 0 ? `${slug}_${char}` : slug + char;
 }
 
-/**
- * The variable name the API derives from a property name (`Property.Slugify` in OSS): lower-case
- * ASCII letters and digits, every other run of characters becomes one `_`. Empty when the name
- * has no ASCII letter or digit, which the API refuses.
- */
-export function variableNameFromName(name: string): string {
-  let slug = "";
-  let gap = false;
-  for (const char of name.trim().toLowerCase()) {
-    if (!isAsciiLetterOrDigit(char)) {
-      gap = true;
-      continue;
-    }
-    slug = appendSlugChar(slug, char, gap);
-    gap = false;
+/** A JSON array of keys (choices, or a multiple-choice value); `undefined` when it is not one. */
+export function parseKeyArray(
+  json: string | null | undefined,
+): string[] | undefined {
+  if (!json) return undefined;
+  try {
+    const parsed: unknown = JSON.parse(json);
+    return Array.isArray(parsed) ? parsed.map(String) : undefined;
+  } catch {
+    return undefined;
   }
-  return slug;
 }
 
 /** Choice keys of a choice property; empty for other types or unparsable JSON. */
 export function choiceKeysOf(property: AudienceProperty): string[] {
-  if (!property.choicesJson) return [];
-  try {
-    const parsed: unknown = JSON.parse(property.choicesJson);
-    return Array.isArray(parsed) ? parsed.map(String) : [];
-  } catch {
-    return [];
-  }
+  return parseKeyArray(property.choicesJson) ?? [];
+}
+
+const pad2 = (n: number) => String(n).padStart(2, "0");
+const HAS_OFFSET = /(?:Z|[+-]\d{2}:?\d{2})$/i;
+
+/**
+ * A stored date-time as a `datetime-local` value in the reader's time zone. A stored value with
+ * no offset is UTC, as the API reads it (`DateTimeStyles.AssumeUniversal`). Empty when unreadable.
+ */
+export function toLocalDateTimeInput(value: string): string {
+  if (!value) return "";
+  const date = new Date(HAS_OFFSET.test(value) ? value : `${value}Z`);
+  if (Number.isNaN(date.getTime())) return "";
+  const day = `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+  return `${day}T${pad2(date.getHours())}:${pad2(date.getMinutes())}`;
+}
+
+/**
+ * A `datetime-local` value as ISO 8601 with the reader's offset (`2026-03-01T09:00+02:00`), so the
+ * API stores the instant they meant instead of reading the wall time as UTC.
+ */
+export function fromLocalDateTimeInput(local: string): string {
+  if (!local) return "";
+  const date = new Date(local);
+  if (Number.isNaN(date.getTime())) return local;
+  const minutes = -date.getTimezoneOffset();
+  const sign = minutes >= 0 ? "+" : "-";
+  const abs = Math.abs(minutes);
+  return `${local.slice(0, 16)}${sign}${pad2(Math.floor(abs / 60))}:${pad2(abs % 60)}`;
 }
 
 const BOOLEAN_LABELS: Readonly<Record<string, string>> = Object.freeze({
@@ -133,24 +118,18 @@ export function formatPropertyValue(
     case AudienceDataType.Boolean:
       return BOOLEAN_LABELS[value] ?? value;
     case AudienceDataType.DateTime:
-      return value.replace("T", " ");
+      return toLocalDateTimeInput(value).replace("T", " ") || value;
     case AudienceDataType.MultipleChoice:
-      return parseKeys(value)?.join(", ") ?? value;
+      return parseKeyArray(value)?.join(", ") ?? value;
     default:
       return value;
   }
 }
 
-function parseKeys(value: string): string[] | undefined {
-  try {
-    const parsed: unknown = JSON.parse(value);
-    return Array.isArray(parsed) ? parsed.map(String) : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
-/** Only the values that differ from what the person has; an emptied value clears its cell. */
+/**
+ * Only the values that differ from what the person has; an emptied value clears its cell. Both
+ * sides are compared trimmed, so a stored value with stray spaces is not rewritten untouched.
+ */
 export function changedValues(
   saved: AudiencePropertyValues,
   edited: AudiencePropertyValues,
@@ -158,7 +137,7 @@ export function changedValues(
   const changes: AudiencePropertyValues = {};
   for (const [propertyId, value] of Object.entries(edited)) {
     const next = value.trim();
-    if (next !== (saved[propertyId] ?? "")) changes[propertyId] = next;
+    if (next !== (saved[propertyId] ?? "").trim()) changes[propertyId] = next;
   }
   return changes;
 }

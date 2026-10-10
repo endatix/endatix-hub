@@ -14,11 +14,7 @@ export function AudiencePageClient({ formId, data }: Readonly<Props>) {
   const { settings, canManageMatchKey, ...lists } = data;
   return (
     <div className="flex flex-col gap-10">
-      <MatchKeyCard
-        formId={formId}
-        {...settings}
-        canManage={canManageMatchKey}
-      />
+      <MatchKeyCard {...settings} canManage={canManageMatchKey} />
       <PeopleSection
         formId={formId}
         identifierKind={settings.identifierKind}

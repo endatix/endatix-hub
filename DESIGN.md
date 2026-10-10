@@ -477,7 +477,11 @@ to `value` are `completed`; the `value` step itself is `active`. Reference:
   `datetime-local`, a number `type="number"`, a yes/no a `Select` (`Yes` / `No`), a choice from a
   list a `Select` or checkboxes. Free text is for text only. An optional value can always be
   emptied: a select carries an explicit `Not set` first option, and emptying clears the stored
-  value rather than saving `""`. Reference: `features/audience/ui/property-value-field.tsx`.
+  value rather than saving `""`. A date-time is shown in the reader's time zone and sent with
+  their offset (`2026-03-01T09:00+02:00`): `datetime-local` has no zone, and an API that reads a
+  bare wall time as UTC would store a different instant. A choice control always offers the
+  stored value, even one outside its list, so nothing stored is hidden or silently cleared.
+  Reference: `features/audience/ui/property-value-field.tsx`.
 - **Chips / tags:** `rounded-full` to distinguish from buttons; `tertiary_container` for neutral
   data tags. Status tags are `StatusBadge`.
 

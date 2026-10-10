@@ -27,23 +27,22 @@ type PeopleSectionProps = {
   totalPeople: number;
   page: number;
   pageSize: number;
+  totalPages: number;
+  hasNextPage: boolean;
 };
 
 type RowTargets = {
   onEdit: (person: AudiencePerson) => void;
   onRemove: (person: AudiencePerson) => void;
 };
-type Paging = Pick<PeopleSectionProps, "page" | "pageSize" | "totalPeople">;
+type Paging = Pick<
+  PeopleSectionProps,
+  "page" | "pageSize" | "totalPeople" | "totalPages" | "hasNextPage"
+>;
 
-function pagerState({ page, pageSize, totalPeople }: Paging) {
-  const totalPages = Math.ceil(totalPeople / pageSize);
-  return {
-    page,
-    pageSize,
-    totalPages,
-    totalRecords: totalPeople,
-    hasNextPage: page < totalPages,
-  };
+/** Paging as the API returned it; the footer never recomputes it. */
+function pagerState({ totalPeople, ...paging }: Paging) {
+  return { ...paging, totalRecords: totalPeople };
 }
 
 function PeoplePager(props: Readonly<Paging>) {
@@ -86,18 +85,19 @@ type OverlayProps = Pick<PeopleSectionProps, "formId" | "properties"> & {
 
 /** One overlay at a time: the row's edit panel or its remove confirmation. */
 function PeopleOverlays({ row, ...props }: Readonly<OverlayProps>) {
-  const editKey = row.editing?.membershipId ?? "closed";
   return (
     <>
       <EditPersonPanel
-        key={editKey}
+        key={row.session}
         {...props}
-        person={row.editing}
+        person={row.target}
+        open={row.isEditing}
         onClose={row.close}
       />
       <RemovePersonDialog
         {...props}
-        person={row.deleting}
+        person={row.target}
+        open={row.isDeleting}
         onClose={row.close}
       />
     </>

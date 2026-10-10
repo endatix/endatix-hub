@@ -8,7 +8,6 @@ import { useAudienceMutation } from "../use-audience-mutation.hook";
 import { updateAudienceSettingsAction } from "./update-audience-settings.action";
 
 export type MatchKeyState = {
-  formId: string;
   identifierKind: AudienceIdentifierKind;
   /** From the API: someone is on a form's audience somewhere in the tenant. */
   isLocked: boolean;
@@ -40,7 +39,7 @@ function saveMatchKey(
       return;
     }
     run({
-      action: () => updateAudienceSettingsAction(state.formId, value),
+      action: () => updateAudienceSettingsAction(value),
       successMessage: "Match key updated",
     });
   };

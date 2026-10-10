@@ -1,6 +1,6 @@
-import { auth } from "@/auth";
-import { authorization, Permissions } from "@/features/auth/authorization";
-import { EndatixApi } from "@/lib/endatix-api";
+import "server-only";
+
+import type { EndatixApi } from "@/lib/endatix-api";
 import {
   type AudiencePerson,
   type AudienceProperty,
@@ -8,14 +8,10 @@ import {
 } from "@/lib/endatix-api/audience/types";
 import type { AudiencePeoplePage } from "@/lib/endatix-api/audience/audience";
 import type { ApiResult } from "@/lib/endatix-api/shared/api-result";
-import { personalizationFlag } from "@/lib/feature-flags";
 import { Result, toResult } from "@/lib/result";
 import type { MapApiResultToResultOptions } from "@/lib/result/map-api-result-to-result";
 import type { Form } from "@/types";
 import type { PeoplePaging } from "./parse-people-page";
-
-const DISABLED_MESSAGE =
-  "Personalization is not enabled for this environment.";
 
 export type AudiencePageData = {
   settings: AudienceSettings;
@@ -25,6 +21,9 @@ export type AudiencePageData = {
   totalPeople: number;
   page: number;
   pageSize: number;
+  /** From the API, so the footer and the server agree on paging. */
+  totalPages: number;
+  hasNextPage: boolean;
 };
 
 function unwrapPart<T>(apiResult: ApiResult<T>, label: string): Result<T> {
@@ -35,8 +34,11 @@ function unwrapPart<T>(apiResult: ApiResult<T>, label: string): Result<T> {
   } as MapApiResultToResultOptions<T>);
 }
 
-async function fetchAudienceParts(formId: string, paging: PeoplePaging) {
-  const api = new EndatixApi((await auth())?.accessToken);
+function fetchAudienceParts(
+  api: EndatixApi,
+  formId: string,
+  paging: PeoplePaging,
+) {
   return Promise.all([
     api.audience.getSettings(),
     api.audience.listProperties(formId),
@@ -67,10 +69,12 @@ function combineParts(
 }
 
 async function loadAudienceParts(
+  api: EndatixApi,
   formId: string,
   paging: PeoplePaging,
 ): Promise<Result<LoadedParts>> {
   const [settingsApi, propertiesApi, peopleApi] = await fetchAudienceParts(
+    api,
     formId,
     paging,
   );
@@ -93,39 +97,38 @@ function toPageData(
     totalPeople: parts.people.totalRecords,
     page: parts.people.page,
     pageSize: parts.people.pageSize,
+    totalPages: parts.people.totalPages,
+    hasNextPage: parts.people.hasNextPage,
   };
 }
 
-/** Paging comes back from the API: it clamps a page past the end to the last page. */
+/**
+ * The audience tab's data. The page has already checked Hub access and the flag once and passes
+ * its client; paging comes back from the API, which clamps a page past the end to the last page.
+ */
+export type AudiencePageRequest = {
+  api: EndatixApi;
+  formId: string;
+  paging: PeoplePaging;
+  canManageMatchKey: boolean;
+};
+
 export async function loadAudiencePage(
-  formId: string,
-  paging: PeoplePaging,
+  request: AudiencePageRequest,
 ): Promise<Result<AudiencePageData>> {
-  const { requireHubAccess, checkPermission } = await authorization();
-  await requireHubAccess();
-  if (!(await personalizationFlag())) return Result.error(DISABLED_MESSAGE);
-
-  const [parts, matchKeyPermission] = await Promise.all([
-    loadAudienceParts(formId, paging),
-    checkPermission(Permissions.Tenant.ManageSettings),
-  ]);
+  const { api, formId, paging, canManageMatchKey } = request;
+  const parts = await loadAudienceParts(api, formId, paging);
   if (Result.isError(parts)) return parts;
-
-  return Result.success(toPageData(parts.value, matchKeyPermission.success));
+  return Result.success(toPageData(parts.value, canManageMatchKey));
 }
 
 export async function loadFormForAudience(
+  api: EndatixApi,
   formId: string,
 ): Promise<Result<Form>> {
-  if (!(await personalizationFlag())) return Result.error(DISABLED_MESSAGE);
-
-  const session = await auth();
-  return toResult(
-    await new EndatixApi(session?.accessToken).forms.get(formId),
-    {
-      fallbackMessage: "Failed to load form.",
-      logMessage: "Failed to load form for audience.",
-      loggerName: "audience.page",
-    },
-  );
+  return toResult(await api.forms.get(formId), {
+    fallbackMessage: "Failed to load form.",
+    logMessage: "Failed to load form for audience.",
+    loggerName: "audience.page",
+  });
 }

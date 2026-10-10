@@ -7,6 +7,7 @@ import { deleteAudiencePersonAction } from "../delete-audience-person.action";
 type RemovePersonDialogProps = {
   formId: string;
   person: AudiencePerson | null;
+  open: boolean;
   onClose: () => void;
 };
 
@@ -19,18 +20,15 @@ const COPY = Object.freeze({
   successMessage: "Person removed from this form",
 });
 
-export function RemovePersonDialog({
-  formId,
-  person,
-  onClose,
-}: Readonly<RemovePersonDialogProps>) {
+export function RemovePersonDialog(props: Readonly<RemovePersonDialogProps>) {
+  const { formId, person, open, onClose } = props;
   const title = `Remove ${person?.identifier ?? "person"} from this form?`;
   const action = () =>
     deleteAudiencePersonAction(formId, person?.membershipId ?? "");
   return (
     <ConfirmDeleteDialog
       {...COPY}
-      open={person !== null}
+      open={open && person !== null}
       title={title}
       action={action}
       onClose={onClose}

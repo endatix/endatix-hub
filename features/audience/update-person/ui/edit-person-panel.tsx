@@ -11,14 +11,20 @@ import { useEditPerson } from "../use-edit-person.hook";
 type EditPersonPanelProps = {
   formId: string;
   person: AudiencePerson | null;
+  open: boolean;
   properties: AudienceProperty[];
   onClose: () => void;
 };
 
 /** The identifier is the title: it cannot change. A Sheet once there are 3+ properties. */
-function panelProps({ person, properties, onClose }: EditPersonPanelProps) {
+function panelProps({
+  person,
+  open,
+  properties,
+  onClose,
+}: EditPersonPanelProps) {
   return {
-    open: person !== null,
+    open: open && person !== null,
     onOpenChange: (open: boolean) => !open && onClose(),
     title: person?.identifier,
     description:
@@ -31,7 +37,7 @@ function panelProps({ person, properties, onClose }: EditPersonPanelProps) {
   };
 }
 
-/** Render it with `key` set to the person's membership id so each person opens fresh. */
+/** Render it with a `key` that changes on every open so each opening starts fresh. */
 export function EditPersonPanel(props: Readonly<EditPersonPanelProps>) {
   const form = useEditPerson({
     formId: props.formId,

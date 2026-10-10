@@ -45,6 +45,7 @@ describe("EditPersonPanel", () => {
     const onClose = vi.fn();
     render(
       <EditPersonPanel
+        open
         formId="1"
         person={PERSON}
         properties={[textProperty("a", "City"), textProperty("b", "Team")]}
@@ -75,6 +76,7 @@ describe("EditPersonPanel", () => {
     const onClose = vi.fn();
     render(
       <EditPersonPanel
+        open
         formId="1"
         person={PERSON}
         properties={[textProperty("a", "City")]}
@@ -96,6 +98,7 @@ describe("EditPersonPanel", () => {
     const onClose = vi.fn();
     render(
       <EditPersonPanel
+        open
         formId="1"
         person={PERSON}
         properties={[textProperty("a", "City")]}

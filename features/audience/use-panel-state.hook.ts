@@ -25,13 +25,29 @@ export function useValueMap(initial: AudiencePropertyValues = {}) {
   return { values, setValue, reset: () => setValues({}) };
 }
 
-/** The row a list's edit overlay or delete confirmation is open for; one at a time. */
+type RowOverlayMode = "edit" | "delete";
+
+/**
+ * The row a list's edit overlay or delete confirmation is for; one at a time. Closing keeps the
+ * row, so the overlay keeps its content while it animates out. `session` changes on every open,
+ * so a panel keyed by it starts fresh even when the same row is opened again.
+ */
 export function useRowOverlay<T>() {
-  const [editing, setEditing] = useState<T | null>(null);
-  const [deleting, setDeleting] = useState<T | null>(null);
-  const close = () => {
-    setEditing(null);
-    setDeleting(null);
+  const [target, setTarget] = useState<T | null>(null);
+  const [mode, setMode] = useState<RowOverlayMode | null>(null);
+  const [session, setSession] = useState(0);
+  const open = (next: RowOverlayMode) => (row: T) => {
+    setTarget(row);
+    setMode(next);
+    setSession((count) => count + 1);
   };
-  return { editing, deleting, edit: setEditing, remove: setDeleting, close };
+  return {
+    target,
+    session,
+    isEditing: mode === "edit",
+    isDeleting: mode === "delete",
+    edit: open("edit"),
+    remove: open("delete"),
+    close: () => setMode(null),
+  };
 }

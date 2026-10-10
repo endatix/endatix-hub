@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Result } from "@/lib/result";
 
+vi.mock("server-only", () => ({}));
+
 vi.mock("@/auth", () => ({
   auth: vi.fn(),
 }));
@@ -38,7 +40,8 @@ describe("withHubAudienceApi", () => {
     vi.mocked(personalizationFlag).mockResolvedValue(false);
     const run = vi.fn();
 
-    const { withHubAudienceApi } = await import("../with-hub-audience-api");
+    const { withHubAudienceApi } =
+      await import("../with-hub-audience-api.server");
     const result = await withHubAudienceApi(run, {
       formId: "1",
       fallbackMessage: "failed",
@@ -54,5 +57,27 @@ describe("withHubAudienceApi", () => {
     }
     expect(run).not.toHaveBeenCalled();
     expect(EndatixApi).not.toHaveBeenCalled();
+  });
+
+  it("refreshes no form page after a tenant-wide change", async () => {
+    // Arrange
+    const { personalizationFlag } = await import("@/lib/feature-flags");
+    const { revalidatePath } = await import("next/cache");
+    vi.mocked(personalizationFlag).mockResolvedValue(true);
+    const run = vi.fn().mockResolvedValue({ success: true, data: {} });
+
+    // Act
+    const { withHubAudienceApi } =
+      await import("../with-hub-audience-api.server");
+    const result = await withHubAudienceApi(run, {
+      fallbackMessage: "failed",
+      logMessage: "failed",
+      loggerName: "audience.test",
+    });
+
+    // Assert
+    expect(Result.isSuccess(result)).toBe(true);
+    expect(run).toHaveBeenCalledOnce();
+    expect(revalidatePath).not.toHaveBeenCalled();
   });
 });
