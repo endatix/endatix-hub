@@ -84,6 +84,27 @@ export type UpdateAudiencePersonRequest = {
   values: AudiencePropertyValues;
 };
 
+export type AudienceImportRejection = {
+  rowNumber: number;
+  reason: string;
+};
+
+export type AudienceImportResult = {
+  importId: string;
+  createdCount: number;
+  updatedCount: number;
+  skippedCount: number;
+  rejectedCount: number;
+  rejections: AudienceImportRejection[];
+};
+
+export type ImportAudienceCsvRequest = {
+  csvText: string;
+  identifierColumn: string;
+  fileName: string;
+  propertyColumns?: Record<string, string>;
+};
+
 export type UpdateAudienceSettingsRequest = {
   identifierKind: AudienceIdentifierKind;
 };
