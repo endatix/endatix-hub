@@ -6,17 +6,23 @@ import { AudiencePageShell } from "@/features/audience/get-audience-page/ui/audi
 import {
   loadAudiencePage,
   loadFormForAudience,
+  parseAudienceView,
   parsePeoplePaging,
 } from "@/features/audience/get-audience-page";
+import { FormWorkspaceHeader } from "@/features/forms/form-workspace";
+import { getFormWorkspaceFlags } from "@/features/forms/form-workspace/form-workspace-flags.server";
 import { EndatixApi } from "@/lib/endatix-api";
-import { personalizationFlag } from "@/lib/feature-flags";
 import { Result, type Error as ResultError } from "@/lib/result";
 import { firstSearchParam, type SearchParam } from "@/lib/utils/next-utils";
 import { redirect } from "next/navigation";
 
 type Params = {
   params: Promise<{ formId: string }>;
-  searchParams: Promise<{ page: SearchParam; pageSize: SearchParam }>;
+  searchParams: Promise<{
+    page?: SearchParam;
+    pageSize?: SearchParam;
+    view?: SearchParam;
+  }>;
 };
 
 function failedLoad(result: ResultError) {
@@ -53,7 +59,8 @@ async function audienceView({ query, ...request }: AudienceRequest) {
   return (
     <AudiencePageShell
       formId={formId}
-      formName={form.value.name}
+      header={<FormWorkspaceHeader title="Audience" />}
+      view={parseAudienceView(firstSearchParam(query.view))}
       data={audience.value}
     />
   );
@@ -64,7 +71,8 @@ async function guardAudiencePage(formId: string) {
   const session = await auth();
   const { requireHubAccess, checkPermission } = await authorization(session);
   await requireHubAccess();
-  if (!(await personalizationFlag())) return redirect(`/forms/${formId}`);
+  const flags = await getFormWorkspaceFlags();
+  if (!flags.audience) return redirect(`/forms/${formId}`);
   const permission = await checkPermission(Permissions.Tenant.ManageSettings);
   return {
     api: new EndatixApi(session?.accessToken),

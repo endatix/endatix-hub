@@ -9,6 +9,7 @@ vi.mock("next/navigation", () => ({
     push: vi.fn(),
     refresh: vi.fn(),
   }),
+  usePathname: () => "/forms",
 }));
 
 vi.mock("@/components/ui/toast", () => ({

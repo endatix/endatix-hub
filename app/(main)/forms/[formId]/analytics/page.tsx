@@ -5,9 +5,9 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
-import { formAnalyticsFlag } from "@/lib/feature-flags";
 import { redirect } from "next/navigation";
-import PageTitle from "@/components/headings/page-title";
+import { FormWorkspaceHeader } from "@/features/forms/form-workspace";
+import { getFormWorkspaceFlags } from "@/features/forms/form-workspace/form-workspace-flags.server";
 import { SurveyDashboardWrapper } from "@/features/form-analytics/ui/survey-dashboard-wrapper";
 import { getSurveyLicenseKey } from "@/features/config/server";
 import { SurveyLicenseProvider } from "@/features/config/survey-license-provider";
@@ -21,8 +21,8 @@ export default async function FormAnalyticsPage({ params }: Readonly<Params>) {
   const { requireHubAccess } = await authorization(session);
   await requireHubAccess();
 
-  const reportingEnabled = await formAnalyticsFlag();
-  if (!reportingEnabled) {
+  const flags = await getFormWorkspaceFlags();
+  if (!flags.analytics) {
     const { formId } = await params;
     redirect(`/forms/${formId}`);
   }
@@ -53,17 +53,10 @@ export default async function FormAnalyticsPage({ params }: Readonly<Params>) {
 
   return (
     <div className="container py-6">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <PageTitle title={`Reporting: ${form.name}`} className="text-2xl" />
-          <p className="mt-1 text-muted-foreground">
-            Survey analytics and charts (v1: mocked data).
-          </p>
-        </div>
-        <Button variant="outline" asChild>
-          <Link href={`/forms/${formId}`}>Back to form</Link>
-        </Button>
-      </div>
+      <FormWorkspaceHeader
+        title="Analytics"
+        description="Survey analytics and charts (v1: mocked data)."
+      />
       {/* disabled for now until we add subission JSON data via the API */}
       <SurveyLicenseProvider value={getSurveyLicenseKey()}>
         <SurveyDashboardWrapper surveyJson={null} />
