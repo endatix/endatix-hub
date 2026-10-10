@@ -9,7 +9,7 @@ type VariableTarget = {
 /** Frozen audience values. Call after metadata and URL variables so these win. */
 export function applyPersonalizationToModel(
   model: VariableTarget,
-  personalization: PersonalizationVariables,
+  personalization: PersonalizationVariables | undefined,
 ): void {
   const variables = personalization?.variables;
   if (!variables) {
