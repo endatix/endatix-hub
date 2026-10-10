@@ -47,15 +47,6 @@ export function identifierKindHelp(kind: AudienceIdentifierKind): string {
   return IDENTIFIER_KIND_UI[kind]?.help ?? "";
 }
 
-function isAsciiLetterOrDigit(char: string): boolean {
-  const code = char.codePointAt(0) ?? -1;
-  return (code >= 48 && code <= 57) || (code >= 97 && code <= 122);
-}
-
-function appendSlugChar(slug: string, char: string, gap: boolean): string {
-  return gap && slug.length > 0 ? `${slug}_${char}` : slug + char;
-}
-
 /** A JSON array of keys (choices, or a multiple-choice value); `undefined` when it is not one. */
 export function parseKeyArray(
   json: string | null | undefined,
