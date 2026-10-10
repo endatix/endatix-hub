@@ -37,10 +37,11 @@ async function audienceView(
   formId: string,
   query: Awaited<Params["searchParams"]>,
 ) {
-  const form = await loadFormForAudience(formId);
+  const [form, audience] = await Promise.all([
+    loadFormForAudience(formId),
+    loadAudiencePage(formId, pagingFrom(query)),
+  ]);
   if (Result.isError(form)) return failedLoad(form);
-
-  const audience = await loadAudiencePage(formId, pagingFrom(query));
   if (Result.isError(audience)) return failedLoad(audience);
 
   return (

@@ -11,6 +11,18 @@ type Mutation = {
   onSuccess?: () => void;
 };
 
+const REJECTED_MESSAGE = "Something went wrong. Try again.";
+
+async function runAction(
+  action: Mutation["action"],
+): Promise<Result<unknown> | "rejected"> {
+  try {
+    return await action();
+  } catch {
+    return "rejected";
+  }
+}
+
 /**
  * Runs one audience write from a panel or dialog. A failure stays in `error` for the caller to
  * show inside the overlay, which keeps its values; a success toasts, runs `onSuccess` (close the
@@ -23,7 +35,8 @@ export function useAudienceMutation() {
   const run = ({ action, successMessage, onSuccess }: Mutation) => {
     setError(null);
     startTransition(async () => {
-      const result = await action();
+      const result = await runAction(action);
+      if (result === "rejected") return setError(REJECTED_MESSAGE);
       if (Result.isError(result)) return setError(result.message);
       toast.success(successMessage);
       onSuccess?.();

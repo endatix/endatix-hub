@@ -90,4 +90,27 @@ describe("EditPersonPanel", () => {
     expect(await screen.findByText("'City' must be a number.")).toBeTruthy();
     expect(onClose).not.toHaveBeenCalled();
   });
+
+  it("keeps the panel open when the action rejects", async () => {
+    vi.mocked(updateAudiencePersonAction).mockRejectedValue(new Error("boom"));
+    const onClose = vi.fn();
+    render(
+      <EditPersonPanel
+        formId="1"
+        person={PERSON}
+        properties={[textProperty("a", "City")]}
+        onClose={onClose}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("City"), {
+      target: { value: "Plovdiv" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+
+    expect(
+      await screen.findByText("Something went wrong. Try again."),
+    ).toBeTruthy();
+    expect(onClose).not.toHaveBeenCalled();
+  });
 });
