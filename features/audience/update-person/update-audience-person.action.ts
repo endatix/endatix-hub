@@ -1,5 +1,6 @@
 "use server";
 
+import { Permissions } from "@/features/auth/authorization";
 import type {
   AudiencePerson,
   AudiencePropertyValues,
@@ -24,6 +25,7 @@ export async function updateAudiencePersonAction(
         values: input.values,
       }),
     {
+      permission: Permissions.Forms.Edit,
       fallbackMessage: "Failed to update audience person.",
       logMessage: "Failed to update audience person.",
       loggerName: "audience.people.update",

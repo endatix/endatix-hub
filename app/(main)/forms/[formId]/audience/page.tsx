@@ -59,16 +59,21 @@ async function audienceView({ query, ...request }: AudienceRequest) {
   );
 }
 
-/** The one guard for this page: Hub access, the flag, then the client the loaders use. */
+/** Hub access and form view, the flag, then the client the loaders use. */
 async function guardAudiencePage(formId: string) {
   const session = await auth();
-  const { requireHubAccess, checkPermission } = await authorization(session);
-  await requireHubAccess();
+  const { requireAllPermissions, checkPermission } = await authorization(session);
+  await requireAllPermissions([
+    Permissions.Access.Hub,
+    Permissions.Forms.View,
+  ]);
   if (!(await personalizationFlag())) return redirect(`/forms/${formId}`);
-  const permission = await checkPermission(Permissions.Tenant.ManageSettings);
+  const manageSettings = await checkPermission(
+    Permissions.Tenant.ManageSettings,
+  );
   return {
     api: new EndatixApi(session?.accessToken),
-    canManageMatchKey: permission.success,
+    canManageMatchKey: manageSettings.success,
   };
 }
 

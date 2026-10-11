@@ -1,5 +1,6 @@
 "use server";
 
+import { Permissions } from "@/features/auth/authorization";
 import { Result } from "@/lib/result";
 import { withHubAudienceApi } from "../shared/with-hub-audience-api.server";
 
@@ -12,6 +13,7 @@ export async function deleteAudiencePersonAction(
   return withHubAudienceApi(
     (api) => api.audience.deletePerson(formId, membershipId),
     {
+      permission: Permissions.Forms.Edit,
       fallbackMessage: "Failed to remove audience person.",
       logMessage: "Failed to remove audience person.",
       loggerName: "audience.people.delete",

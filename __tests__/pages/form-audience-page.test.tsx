@@ -6,9 +6,12 @@ vi.mock("@/auth", () => ({
   auth: vi.fn(),
 }));
 
-vi.mock("@/features/auth/authorization", () => ({
-  authorization: vi.fn(),
-}));
+vi.mock("@/features/auth/authorization", async () => {
+  const actual = await vi.importActual<
+    typeof import("@/features/auth/authorization")
+  >("@/features/auth/authorization");
+  return { ...actual, authorization: vi.fn() };
+});
 
 vi.mock("@/lib/feature-flags", () => ({
   personalizationFlag: vi.fn(),
@@ -41,14 +44,18 @@ vi.mock(
 );
 
 describe("Form Audience Page", () => {
-  const requireHubAccess = vi.fn().mockResolvedValue(undefined);
+  const requireAllPermissions = vi.fn().mockResolvedValue(undefined);
+  const checkPermission = vi.fn().mockResolvedValue({ success: false });
 
   beforeEach(async () => {
     vi.clearAllMocks();
     const { auth } = await import("@/auth");
     const { authorization } = await import("@/features/auth/authorization");
     vi.mocked(auth).mockResolvedValue({ accessToken: "token" } as never);
-    vi.mocked(authorization).mockResolvedValue({ requireHubAccess } as never);
+    vi.mocked(authorization).mockResolvedValue({
+      requireAllPermissions,
+      checkPermission,
+    } as never);
   });
 
   it("redirects to the form when personalization is off", async () => {
@@ -73,6 +80,10 @@ describe("Form Audience Page", () => {
     ).rejects.toThrow("NEXT_REDIRECT");
 
     expect(redirect).toHaveBeenCalledWith("/forms/f1");
+    expect(requireAllPermissions).toHaveBeenCalledWith([
+      "access.apps.hub",
+      "forms.view",
+    ]);
     expect(loadFormForAudience).not.toHaveBeenCalled();
     expect(loadAudiencePage).not.toHaveBeenCalled();
   });

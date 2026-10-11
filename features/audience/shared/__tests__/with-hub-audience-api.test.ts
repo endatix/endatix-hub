@@ -9,6 +9,7 @@ vi.mock("@/auth", () => ({
 
 vi.mock("@/features/auth/authorization", () => ({
   authorization: vi.fn(),
+  Permissions: { Access: { Hub: "access.apps.hub" } },
 }));
 
 vi.mock("@/lib/feature-flags", () => ({
@@ -24,14 +25,16 @@ vi.mock("@/lib/endatix-api", () => ({
 }));
 
 describe("withHubAudienceApi", () => {
-  const requireHubAccess = vi.fn().mockResolvedValue(undefined);
+  const requireAllPermissions = vi.fn().mockResolvedValue(undefined);
 
   beforeEach(async () => {
     vi.clearAllMocks();
     const { auth } = await import("@/auth");
     const { authorization } = await import("@/features/auth/authorization");
     vi.mocked(auth).mockResolvedValue({ accessToken: "token" } as never);
-    vi.mocked(authorization).mockResolvedValue({ requireHubAccess } as never);
+    vi.mocked(authorization).mockResolvedValue({
+      requireAllPermissions,
+    } as never);
   });
 
   it("returns an error when personalization is off", async () => {
@@ -43,6 +46,7 @@ describe("withHubAudienceApi", () => {
     const { withHubAudienceApi } =
       await import("../with-hub-audience-api.server");
     const result = await withHubAudienceApi(run, {
+      permission: "forms.edit",
       formId: "1",
       fallbackMessage: "failed",
       logMessage: "failed",
@@ -55,6 +59,10 @@ describe("withHubAudienceApi", () => {
         "Personalization is not enabled for this environment.",
       );
     }
+    expect(requireAllPermissions).toHaveBeenCalledWith([
+      "access.apps.hub",
+      "forms.edit",
+    ]);
     expect(run).not.toHaveBeenCalled();
     expect(EndatixApi).not.toHaveBeenCalled();
   });
@@ -70,6 +78,7 @@ describe("withHubAudienceApi", () => {
     const { withHubAudienceApi } =
       await import("../with-hub-audience-api.server");
     const result = await withHubAudienceApi(run, {
+      permission: "forms.edit",
       fallbackMessage: "failed",
       logMessage: "failed",
       loggerName: "audience.test",

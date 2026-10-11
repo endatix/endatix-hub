@@ -1,5 +1,6 @@
 "use server";
 
+import { Permissions } from "@/features/auth/authorization";
 import type {
   AudienceIdentifierKind,
   AudienceSettings,
@@ -16,6 +17,7 @@ export async function updateAudienceSettingsAction(
   return withHubAudienceApi(
     (api) => api.audience.updateSettings({ identifierKind }),
     {
+      permission: Permissions.Tenant.ManageSettings,
       fallbackMessage: "Failed to update audience settings.",
       logMessage: "Failed to update audience settings.",
       loggerName: "audience.settings.update",

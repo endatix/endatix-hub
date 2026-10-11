@@ -8,6 +8,8 @@ import type { MapApiResultToResultOptions } from "@/lib/result/map-api-result-to
 import { requireAudienceApi } from "./require-audience-api.server";
 
 type ToResultOptions = {
+  /** Hub permission for this write (`forms.edit`, `tenant.settings.manage`, …). */
+  permission: string;
   fallbackMessage: string;
   logMessage: string;
   loggerName: string;
@@ -23,10 +25,9 @@ export async function withHubAudienceApi<T>(
   run: (api: EndatixApi) => Promise<ApiResult<T>>,
   options: ToResultOptions,
 ): Promise<Result<T>> {
-  const api = await requireAudienceApi();
+  const { formId, permission, ...log } = options;
+  const api = await requireAudienceApi(permission);
   if (Result.isError(api)) return api;
-
-  const { formId, ...log } = options;
   const result = toResult(
     await run(api.value),
     log as MapApiResultToResultOptions<T>,

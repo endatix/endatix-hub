@@ -1,5 +1,6 @@
 "use server";
 
+import { Permissions } from "@/features/auth/authorization";
 import type {
   AudiencePerson,
   AudiencePropertyValues,
@@ -16,6 +17,7 @@ export type CreateAudiencePersonInput = {
 export type CreateAudiencePersonResult = Result<AudiencePerson>;
 
 const CREATE_LOG = {
+  permission: Permissions.Forms.Edit,
   fallbackMessage: "Failed to add audience person.",
   logMessage: "Failed to add audience person.",
   loggerName: "audience.people.create",

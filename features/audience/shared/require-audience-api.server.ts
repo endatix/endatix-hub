@@ -1,7 +1,7 @@
 import "server-only";
 
 import { auth } from "@/auth";
-import { authorization } from "@/features/auth/authorization";
+import { authorization, Permissions } from "@/features/auth/authorization";
 import { EndatixApi } from "@/lib/endatix-api";
 import { personalizationFlag } from "@/lib/feature-flags";
 import { Result, type ResultType } from "@/lib/result";
@@ -10,17 +10,18 @@ export const PERSONALIZATION_DISABLED_MESSAGE =
   "Personalization is not enabled for this environment.";
 
 /**
- * Checks Hub access and the `personalization` flag once, returning the API client for audience
- * reads and writes. Throws (redirects) on missing Hub access, like `requireHubAccess`.
+ * Hub access, the named permission, and the `personalization` flag. The API still enforces
+ * its own permission; this is the Hub check so a missing grant never reaches it.
+ * Missing Hub access or the permission redirects, like `requirePermission`.
  */
-export async function requireAudienceApi(): Promise<ResultType<EndatixApi>> {
+export async function requireAudienceApi(
+  permission: string,
+): Promise<ResultType<EndatixApi>> {
   const session = await auth();
-  const { requireHubAccess } = await authorization(session);
-  const [, isEnabled] = await Promise.all([
-    requireHubAccess(),
-    personalizationFlag(),
-  ]);
-  return isEnabled
-    ? Result.success(new EndatixApi(session?.accessToken))
-    : Result.error(PERSONALIZATION_DISABLED_MESSAGE);
+  const { requireAllPermissions } = await authorization(session);
+  await requireAllPermissions([Permissions.Access.Hub, permission]);
+  if (!(await personalizationFlag())) {
+    return Result.error(PERSONALIZATION_DISABLED_MESSAGE);
+  }
+  return Result.success(new EndatixApi(session?.accessToken));
 }
