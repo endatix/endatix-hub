@@ -811,6 +811,9 @@ A settings page asks "what is true?"; an overlay asks "what do you want to be tr
 masthead and vocabulary, rows become controls. References:
 `features/platform-admin/create-tenant/ui/create-tenant-panel.tsx`,
 `features/platform-admin/update-tenant/ui/edit-tenant-sheet.tsx`.
+Single-submit create with draft + lock + in-panel failure (the common case):
+`features/audience/create-person/` (`PanelForm` + `use-add-person.hook.ts`). Wiring layers are in
+`project-structure.md` (**PanelForm state**).
 
 1. **Header** — title + one sentence describing the _current step_.
 2. **`PanelSteps`** (multi-step only) — the progress track, first in the body.
@@ -824,6 +827,10 @@ masthead and vocabulary, rows become controls. References:
   section titles. The last input step is a **review built from `SummaryRow`**. The terminal step
   is an outcome, not a form: drop the track, lead with a `success` Alert naming what was created,
   and hand over the one artefact the user came for (e.g. the sign-in URL).
+- **State is not in the chrome.** `PanelForm` does not own field values. A slice hook (or, for a
+  multi-step outcome, the panel itself) owns the draft, open/reset, and the write; the feature's
+  mutation helper owns `pending` / in-panel `error` / toast + refresh. See **PanelForm state** in
+  `project-structure.md`.
 
 **Configure and run** (export today; import, bulk actions tomorrow) — an overlay whose commit is
 an operation, not a saved record. Reference:
