@@ -10,7 +10,7 @@ import type { Form } from "@/types";
 type Params = { params: Promise<{ formId: string }> };
 
 /** A form's home: its facts at a glance. Its settings are edited on the Settings page. */
-export default async function FormOverviewPage({ params }: Params) {
+export default async function FormOverviewPage({ params }: Readonly<Params>) {
   const { requireHubAccess } = await authorization();
   await requireHubAccess();
 

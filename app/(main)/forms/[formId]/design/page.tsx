@@ -15,7 +15,7 @@ import { FormAssistantProvider } from "@/features/forms/use-cases/design-form/fo
 import { getCurrentConversationUseCase } from "@/features/forms/use-cases/design-form/get-current-conversation.use-case";
 import { aiFeaturesFlag } from "@/lib/feature-flags/flags";
 import { getFormDesignReturn } from "@/features/forms/form-workspace";
-import { firstSearchParam, type SearchParam } from "@/lib/utils/next-utils";
+import { firstSearchParam, type SearchParamValue } from "@/lib/utils/next-utils";
 import { EndatixApi } from "@/lib/endatix-api";
 import { Result, toResult } from "@/lib/result";
 import { Form } from "@/types";
@@ -24,7 +24,7 @@ import { Suspense } from "react";
 
 type Params = {
   params: Promise<{ formId: string }>;
-  searchParams: Promise<{ from?: SearchParam }>;
+  searchParams: Promise<{ from?: SearchParamValue }>;
 };
 
 function formNotFound() {
@@ -57,7 +57,7 @@ function parseFormDefinitionJson(jsonData: string | undefined): object | null {
 export default async function FormDesignerPage({
   params,
   searchParams,
-}: Params) {
+}: Readonly<Params>) {
   const session = await auth();
   const { requireHubAccess } = await authorization(session);
   await requireHubAccess();

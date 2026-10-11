@@ -13,15 +13,15 @@ import { requireAudienceApi } from "@/features/audience/shared/require-audience-
 import { FormWorkspaceHeader } from "@/features/forms/form-workspace";
 import type { EndatixApi } from "@/lib/endatix-api";
 import { Result, type Error as ResultError } from "@/lib/result";
-import { firstSearchParam, type SearchParam } from "@/lib/utils/next-utils";
+import { firstSearchParam, type SearchParamValue } from "@/lib/utils/next-utils";
 import { redirect } from "next/navigation";
 
 type Params = {
   params: Promise<{ formId: string }>;
   searchParams: Promise<{
-    page?: SearchParam;
-    pageSize?: SearchParam;
-    view?: SearchParam;
+    page?: SearchParamValue;
+    pageSize?: SearchParamValue;
+    view?: SearchParamValue;
   }>;
 };
 

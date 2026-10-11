@@ -2,7 +2,7 @@ import type { Route } from "next";
 import { Clock, Globe, List, Lock, Power } from "lucide-react";
 import { StatCard } from "@/components/common/stat-card";
 import { StatusBadge } from "@/components/common/status-badge";
-import { cn, getFormattedDate } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import type { Form } from "@/types";
 import { formatRelativeOrCompactDateTime } from "@/lib/date-utils";
 

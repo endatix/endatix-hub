@@ -2,7 +2,9 @@ import { FormPageHeaderSlot } from "@/features/forms/form-workspace/ui/form-page
 
 type Params = { params: Promise<{ formId: string }> };
 
-export default async function FormSettingsHeaderSlot({ params }: Params) {
+export default async function FormSettingsHeaderSlot({
+  params,
+}: Readonly<Params>) {
   const { formId } = await params;
   return <FormPageHeaderSlot formId={formId} active="settings" />;
 }

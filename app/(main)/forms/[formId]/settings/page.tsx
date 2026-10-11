@@ -14,7 +14,7 @@ type Params = { params: Promise<{ formId: string }> };
  * Everything about a form that is not its design: going live, respondent rules, folder,
  * metadata and webhooks. Kept as one page until the settings revamp splits it by concern.
  */
-export default async function FormSettingsPage({ params }: Params) {
+export default async function FormSettingsPage({ params }: Readonly<Params>) {
   const session = await auth();
   const { requireHubAccess } = await authorization(session);
   await requireHubAccess();

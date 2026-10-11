@@ -13,7 +13,6 @@ import { EndatixApi } from "@/lib/endatix-api";
 import { listQueryKey } from "@/lib/list-page/list-query-key";
 import type { Metadata, ResolvingMetadata, Route } from "next";
 import { redirect } from "next/navigation";
-import { Suspense } from "react";
 
 type Params = {
   readonly params: Promise<{ formId: string }>;
