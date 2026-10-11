@@ -39,7 +39,7 @@ export function useFreshRecord<T>(
   const [settled, setSettled] = useState<Settled<T> | null>(null);
   useEffect(() => {
     let current = true;
-    readOrNull(read, key).then((value) => {
+    void readOrNull(read, key).then((value) => {
       if (current) setSettled({ key, value });
     });
     return () => {

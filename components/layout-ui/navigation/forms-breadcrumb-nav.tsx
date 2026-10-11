@@ -65,7 +65,7 @@ function linkItems(items: FormsBreadcrumbItem[]): LinkItem[] {
 /** Below `md`, only the current crumb stays out; the rest sit in the ellipsis. */
 function CompactTrail({ items }: Readonly<{ items: FormsBreadcrumbItem[] }>) {
   const earlier = linkItems(items.slice(0, -1));
-  const last = items[items.length - 1];
+  const last = items.at(-1);
   return (
     <>
       {earlier.length > 0 ? <CollapsedChunk items={earlier} first /> : null}

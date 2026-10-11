@@ -96,7 +96,7 @@ function DeleteFormDialog({
 function useDeleteForm(form: FormRecord, onDone: () => void) {
   const router = useRouter();
   const [, startTransition] = useTransition();
-  return async () => {
+  return () => {
     startTransition(async () => {
       const result = await deleteFormAction(form.id);
       if (Result.isError(result)) {
