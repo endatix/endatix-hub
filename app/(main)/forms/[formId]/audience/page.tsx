@@ -9,9 +9,9 @@ import {
   parseAudienceView,
   parsePeoplePaging,
 } from "@/features/audience/get-audience-page";
+import { requireAudienceApi } from "@/features/audience/shared/require-audience-api.server";
 import { FormWorkspaceHeader } from "@/features/forms/form-workspace";
-import { getFormWorkspaceFlags } from "@/features/forms/form-workspace/form-workspace-flags.server";
-import { EndatixApi } from "@/lib/endatix-api";
+import type { EndatixApi } from "@/lib/endatix-api";
 import { Result, type Error as ResultError } from "@/lib/result";
 import { firstSearchParam, type SearchParam } from "@/lib/utils/next-utils";
 import { redirect } from "next/navigation";
@@ -66,24 +66,16 @@ async function audienceView({ query, ...request }: AudienceRequest) {
   );
 }
 
-/** Hub access and form view, the flag, then the client the loaders use. */
+/** View gate shared with the actions, plus whether this reader may change the match key. */
 async function guardAudiencePage(formId: string) {
+  const api = await requireAudienceApi(Permissions.Forms.View);
+  if (Result.isError(api)) return redirect(`/forms/${formId}`);
   const session = await auth();
-  const { requireAllPermissions, checkPermission } =
-    await authorization(session);
-  await requireAllPermissions([
-    Permissions.Access.Hub,
-    Permissions.Forms.View,
-  ]);
-  const flags = await getFormWorkspaceFlags();
-  if (!flags.audience) return redirect(`/forms/${formId}`);
+  const { checkPermission } = await authorization(session);
   const manageSettings = await checkPermission(
     Permissions.Tenant.ManageSettings,
   );
-  return {
-    api: new EndatixApi(session?.accessToken),
-    canManageMatchKey: manageSettings.success,
-  };
+  return { api: api.value, canManageMatchKey: manageSettings.success };
 }
 
 export default async function FormAudiencePage({

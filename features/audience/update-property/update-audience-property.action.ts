@@ -1,5 +1,6 @@
 "use server";
 
+import { Permissions } from "@/features/auth/authorization";
 import type { AudienceProperty } from "@/lib/endatix-api/audience/types";
 import { Result } from "@/lib/result";
 import { withHubAudienceApi } from "../shared/with-hub-audience-api.server";
@@ -14,6 +15,7 @@ export type UpdateAudiencePropertyInput = {
 export type UpdateAudiencePropertyResult = Result<AudienceProperty>;
 
 const UPDATE_LOG = {
+  permission: Permissions.Forms.Edit,
   fallbackMessage: "Failed to update audience property.",
   logMessage: "Failed to update audience property.",
   loggerName: "audience.properties.update",
