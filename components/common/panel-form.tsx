@@ -79,29 +79,9 @@ function PanelFormFooter(props: Readonly<PanelFormProps>) {
   );
 }
 
-function PanelFormContent(props: Readonly<PanelFormProps>) {
-  return (
-    <>
-      <ResponsivePanelHeader>
-        <ResponsivePanelTitle className="break-words">
-          {props.title}
-        </ResponsivePanelTitle>
-        <ResponsivePanelDescription>
-          {props.description}
-        </ResponsivePanelDescription>
-      </ResponsivePanelHeader>
-      <ResponsivePanelBody className="grid content-start gap-5">
-        <PanelFormError title={props.errorTitle} message={props.error} />
-        {props.children}
-      </ResponsivePanelBody>
-      <PanelFormFooter {...props} />
-    </>
-  );
-}
-
 /**
- * A create/edit overlay as one form: header, an error strip that keeps the values, the caller's
- * sections, and Cancel + a submit that names its running verb. Locked while it saves.
+ * Create/edit overlay as one form (DESIGN.md §6): header, failure strip, caller's `PanelSection`s,
+ * Cancel + submit. `display: contents` keeps Header/Body/Footer on the panel chrome flex stack.
  */
 export function PanelForm(props: Readonly<PanelFormProps>) {
   const { open, onOpenChange, desktopType, trigger, pending, onSubmit } = props;
@@ -114,8 +94,20 @@ export function PanelForm(props: Readonly<PanelFormProps>) {
       {...{ open, onOpenChange, desktopType, trigger }}
       dismissible={!pending}
     >
-      <form className="flex h-full min-h-0 flex-col" onSubmit={submit}>
-        <PanelFormContent {...props} />
+      <form className="contents" onSubmit={submit}>
+        <ResponsivePanelHeader>
+          <ResponsivePanelTitle className="break-words">
+            {props.title}
+          </ResponsivePanelTitle>
+          <ResponsivePanelDescription>
+            {props.description}
+          </ResponsivePanelDescription>
+        </ResponsivePanelHeader>
+        <ResponsivePanelBody>
+          <PanelFormError title={props.errorTitle} message={props.error} />
+          {props.children}
+        </ResponsivePanelBody>
+        <PanelFormFooter {...props} />
       </form>
     </ResponsivePanel>
   );

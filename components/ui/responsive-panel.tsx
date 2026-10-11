@@ -105,7 +105,12 @@ export function ResponsivePanel({
       <Dialog open={open} onOpenChange={onOpenChange}>
         {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
         <DialogContent
-          className={cn(className, contentClassName, dialogContentClassName)}
+          className={cn(
+            "flex max-h-[min(90vh,40rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-lg",
+            className,
+            contentClassName,
+            dialogContentClassName,
+          )}
           showCloseButton={dismissible}
           {...contentProps}
         >
@@ -161,13 +166,21 @@ export function ResponsivePanelHeader({
   const mode = useResponsivePanelMode();
 
   if (mode === "dialog") {
-    return <DialogHeader className={className} {...props} />;
+    return (
+      <DialogHeader
+        className={cn(
+          "shrink-0 px-6 py-5 pr-12 text-left sm:text-left",
+          className,
+        )}
+        {...props}
+      />
+    );
   }
 
   if (mode === "sheet") {
     return (
       <SheetHeader
-        className={cn("shrink-0 px-6 py-5 pr-12", className)}
+        className={cn("shrink-0 p-0 px-6 py-5 pr-12", className)}
         {...props}
       />
     );
@@ -220,7 +233,7 @@ export function ResponsivePanelBody({
   return (
     <div
       className={cn(
-        "flex min-h-0 flex-1 flex-col content-start justify-start gap-5 overflow-y-auto px-6 py-5",
+        "grid min-h-0 flex-1 content-start gap-5 overflow-y-auto px-6 py-5",
         className,
       )}
       {...props}
@@ -234,7 +247,7 @@ export function ResponsivePanelFooter({
 }: ComponentProps<"div">) {
   const mode = useResponsivePanelMode();
   const panelClassName = cn(
-    "shrink-0 border-t bg-background px-6 py-4 sm:flex-row sm:justify-end",
+    "mt-auto shrink-0 border-t bg-background p-0 px-6 py-4 sm:flex-row sm:justify-end",
     className,
   );
 
