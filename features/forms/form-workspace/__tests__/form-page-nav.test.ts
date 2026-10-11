@@ -4,7 +4,7 @@ import { buildFormPageNav } from "../form-page-nav";
 const flags = { analytics: false, audience: true };
 const input = {
   formId: "f1",
-  formName: "Muestra Co",
+  formName: "Cedar Grove Pulse",
   folder: { name: "Flows", slug: "flows" },
   flags,
 };
@@ -18,7 +18,7 @@ describe("buildFormPageNav", () => {
     expect(trail).toEqual([
       { type: "link", label: "Forms", href: "/forms" },
       { type: "link", label: "Flows", href: "/forms/folders/flows" },
-      { type: "page", label: "Muestra Co" },
+      { type: "page", label: "Cedar Grove Pulse" },
     ]);
   });
 
@@ -67,7 +67,7 @@ describe("buildFormPageNav", () => {
     expect(nav.switcher).toBeUndefined();
     expect(nav.trail.at(-1)).toEqual({
       type: "link",
-      label: "Muestra Co",
+      label: "Cedar Grove Pulse",
       href: "/forms/f1",
     });
   });

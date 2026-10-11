@@ -625,9 +625,9 @@ moving between:
 | The reader moves between…               | Control                                                | Example                           |
 | :-------------------------------------- | :----------------------------------------------------- | :-------------------------------- |
 | Areas of the Hub                        | Sidebar                                                | Forms, Data lists, Settings       |
-| Up to a parent                          | Header trail (breadcrumb)                              | `Forms › Flows › Muestra Co`      |
+| Up to a parent                          | Header trail (breadcrumb)                              | `Forms › Flows › Cedar Grove Pulse`      |
 | Siblings at one level of the trail      | A `dropdown` crumb (`NavSwitcher`)                     | `Flows ▾` lists the other folders |
-| Aspects of one record                   | `NavSwitcher` after the trail, past a vertical divider | `Muestra Co │ Submissions ▾`      |
+| Aspects of one record                   | `NavSwitcher` after the trail, past a vertical divider | `Cedar Grove Pulse │ Submissions ▾`      |
 | Views of one page                       | `LinkTabs` (segmented, `?view=`)                       | People / Properties               |
 | Panes that are not worth a URL          | Radix `Tabs`, inside a panel                           | —                                 |
 | Into an immersive editor and back       | A button in, one Back out (`?from=`)                   | Design                            |
