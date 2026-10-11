@@ -26,7 +26,7 @@ type DeleteFormDialogProps = {
   onOpenChange: (open: boolean) => void;
   formName: string;
   submissionsCount: number;
-  onDelete: () => Promise<void>;
+  onDelete: () => void;
 };
 
 function DeleteFormDialog({
