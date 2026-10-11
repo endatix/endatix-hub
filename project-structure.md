@@ -293,6 +293,23 @@ Action rules:
 - The **API-client** side of a paged list (request type, exported `buildList<Entity>Endpoint`, `list()` returning a normalized page, a separate bounded `listAll()` for pickers, which don't support lazy loading. Prefer list with paging where possible) has exactly one documented shape — see AGENTS.md "Paged list sort and calendar From/To → The one list-client shape" and its reference implementation `lib/endatix-api/themes/`.
 - Wired this way: `admin/tenants`, `admin/platform-admins`, `admin/signup-requests`, `settings/organization/users`, `settings/organization/roles`, `forms`, `forms/folders/[folderSlug]`, `data-lists` (`DataListsBrowser`), and `forms/[formId]/submissions` (server section).
 - **Submissions list** (`/forms/[formId]/submissions`): loader + page-load outcome live in `features/submissions/list-submissions/` (not in `app/`). URL parse helpers stay in `list-submission-query/`. See AGENTS.md "Page-load outcomes".
+- **Audience** (`/forms/[formId]/audience`): behind `personalizationFlag` (`FLAG_PERSONALIZATION` / PostHog key `personalization`, default off). The overview Audience button, the page (redirect when off), loaders, and every mutation via `withHubAudienceApi` all check the flag. The page only composes; load and paging live in `features/audience/get-audience-page/`. People are paged with `?page=` and `?pageSize=`. Property columns come from the API; creating and renaming properties is a later workspace slice, not this page. Create/edit panel wiring: see **PanelForm state** below.
+
+##### PanelForm state (create / edit overlay wiring)
+
+A single-submit create or edit overlay has three layers. Do not invent a fourth (no React Hook Form, no feature-wide form context) unless the overlay is multi-step with its own outcome (then keep state in the panel, as `create-tenant-panel.tsx` does).
+
+| Layer | Owns | Lives |
+| --- | --- | --- |
+| **Chrome** | Header, body scroll, footer, failure strip, Cancel + pending submit | `components/common/panel-form.tsx` (`PanelForm`) |
+| **Feature write lifecycle** | `pending` / `error`, toast + `router.refresh` on success, failure stays in the overlay so values are kept | One shared hook per feature that writes this way — audience: `useAudienceMutation` |
+| **Slice wiring** | Draft fields, open/reset/lock-while-pending, `submit` → action + `onSuccess: close` | Optional `use-{noun}.hook.ts` in the slice — reference: `features/audience/create-person/use-add-person.hook.ts` |
+
+Shared panel primitives (same feature, several slices) stay next to the mutation hook, not inside one slice: audience uses `usePanelOpen`, `useValueMap`, `useRowOverlay` in `use-panel-state.hook.ts`.
+
+**One call site is fine.** The slice hook is not extracted for reuse; it keeps the panel file as copy + `PanelForm` + field sections, and keeps DESIGN overlay rules (reset on open, refuse dismiss while pending, error in-panel) out of JSX. Mirror it for the next create panel (e.g. add property); do not merge create and edit into one generic hook — edit often differs (row-keyed open, save only changed fields: `useEditPerson`).
+
+**When to colocate instead:** a tiny private `useConfirm…` used only by an `AlertDialog` in the same file is OK (`confirm-delete-dialog.tsx`). Prefer a `use-*.hook.ts` file when the return value spreads into `PanelForm` and a sibling edit hook already exists.
 
 ##### Forms list scope model (`/forms`)
 

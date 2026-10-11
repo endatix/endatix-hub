@@ -40,6 +40,10 @@ export {
   DATA_TABLE_SURFACE_CLASS_NAME,
   DataTableSurface,
 } from "./data-table-surface";
+export {
+  DataTableRowActions,
+  type DataTableRowAction,
+} from "./data-table-row-actions";
 export { DataTableToolbar } from "./data-table-toolbar";
 export { PagedCardList } from "./paged-card-list";
 export { PagedListFrame } from "./paged-list-frame";
@@ -53,6 +57,13 @@ export {
   type PagedTableFooterProps,
 } from "./paged-table-footer";
 export { ResetFiltersButton } from "./reset-filters-button";
+export {
+  dataTableCell,
+  StaticDataTable,
+  StaticDataTableRow,
+  type StaticDataTableCell,
+  type StaticDataTableColumn,
+} from "./static-data-table";
 export { TableEmptyRow } from "./table-empty-row";
 export { TableSearchInput } from "./table-search-input";
 export {

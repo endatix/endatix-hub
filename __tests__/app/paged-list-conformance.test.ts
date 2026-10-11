@@ -33,6 +33,8 @@ const files = ["app", "features", "components"]
 const UNKEYED_PAGED_PAGES: Record<string, string> = {
   "app/(main)/data-lists/[dataListId]/page.tsx":
     "items keep Suspense inside the client details section",
+  "app/(main)/forms/[formId]/audience/page.tsx":
+    "awaits the people page on the server and re-renders with new props; no client promise to go stale",
 };
 
 describe("paged list conformance", () => {
