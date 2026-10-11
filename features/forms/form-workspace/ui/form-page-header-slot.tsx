@@ -4,12 +4,10 @@ import FormsBreadcrumbNav from "@/components/layout-ui/navigation/forms-breadcru
 import { Skeleton } from "@/components/ui/skeleton";
 import { NavSwitcher } from "@/components/layout-ui/navigation/nav-switcher";
 import { Separator } from "@/components/ui/separator";
+import { getWorkspaceForm } from "../load-workspace-form.server";
 import { loadFormPageNav } from "../form-workspace.server";
-import {
-  isFormDesignPrimary,
-  type FormWorkspaceSectionId,
-} from "../form-workspace-sections";
-import { FormDesignButton } from "./form-design-button";
+import type { FormWorkspaceSectionId } from "../form-workspace-sections";
+import { FormRecordActions } from "./form-record-actions";
 
 type Props = { formId: string; active?: FormWorkspaceSectionId };
 
@@ -31,20 +29,38 @@ async function FormPageNav({ formId, active }: Readonly<Props>) {
   );
 }
 
+async function FormRecordActionsSlot({ formId, active }: Readonly<Props>) {
+  const result = await getWorkspaceForm(formId);
+  const loaded = result.success ? result.data : null;
+  return (
+    <FormRecordActions
+      formId={formId}
+      from={active}
+      form={
+        loaded
+          ? {
+              id: loaded.id,
+              name: loaded.name,
+              submissionsCount: loaded.submissionsCount,
+            }
+          : null
+      }
+    />
+  );
+}
+
 /**
  * The sticky header of a form's pages: the trail to the form, a divider, the switcher of its
- * pages, and the way into the designer in the header's action area.
+ * pages, and the record actions (Design, Share, more).
  */
 export function FormPageHeaderSlot(props: Readonly<Props>) {
   return (
     <MainHeader
       sticky
       actions={
-        <FormDesignButton
-          formId={props.formId}
-          from={props.active}
-          variant={isFormDesignPrimary(props.active) ? "default" : "outline"}
-        />
+        <Suspense fallback={<Skeleton className="h-9 w-44" />}>
+          <FormRecordActionsSlot {...props} />
+        </Suspense>
       }
       breadcrumb={
         <Suspense fallback={<Skeleton className="h-4 w-[260px]" />}>

@@ -1,5 +1,4 @@
 export {
-  getActiveFormWorkspaceSection,
   getFormDesignHref,
   getFormDesignReturn,
   getFormWorkspaceSectionLabel,

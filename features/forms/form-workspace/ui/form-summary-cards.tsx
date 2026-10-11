@@ -6,10 +6,11 @@ import { cn } from "@/lib/utils";
 import type { Form } from "@/types";
 import { formatRelativeOrCompactDateTime } from "@/lib/date-utils";
 
-function submissionsCard(form: Form) {
+function submissionsCard(form: Form, pending: boolean) {
   const count = form.submissionsCount ?? 0;
   return (
     <StatCard
+      pending={pending}
       icon={List}
       label="Submissions"
       value={count.toLocaleString()}
@@ -19,10 +20,11 @@ function submissionsCard(form: Form) {
   );
 }
 
-function statusCard(form: Form, settings: Route) {
+function statusCard(form: Form, settings: Route, pending: boolean) {
   const on = form.isEnabled;
   return (
     <StatCard
+      pending={pending}
       icon={Power}
       label="Status"
       value={
@@ -50,11 +52,12 @@ const VISIBILITY = Object.freeze({
   },
 });
 
-function visibilityCard(form: Form, settings: Route) {
+function visibilityCard(form: Form, settings: Route, pending: boolean) {
   const v = form.isPublic ? VISIBILITY.public : VISIBILITY.private;
   const tone = form.isPublic ? "on" : "off";
   return (
     <StatCard
+      pending={pending}
       icon={v.icon}
       label="Visibility"
       value={<StatusBadge tone={tone} label={v.label} />}
@@ -64,10 +67,11 @@ function visibilityCard(form: Form, settings: Route) {
   );
 }
 
-function modifiedCard(form: Form) {
+function modifiedCard(form: Form, pending: boolean) {
   const now = new Date();
   return (
     <StatCard
+      pending={pending}
       icon={Clock}
       label="Last changed"
       value={
@@ -80,21 +84,29 @@ function modifiedCard(form: Form) {
   );
 }
 
+type FormSummaryCardsProps = {
+  form: Form;
+  /** The facts are being read again (a preview opened on a list row). */
+  pending?: boolean;
+  className?: string;
+};
+
 /**
  * The form's facts as cards: what came back, whether it is collecting, who can answer, and
  * when it last changed. Each card opens the page where it is explored or changed.
  */
 export function FormSummaryCards({
   form,
+  pending = false,
   className,
-}: Readonly<{ form: Form; className?: string }>) {
+}: Readonly<FormSummaryCardsProps>) {
   const settings = `/forms/${form.id}/settings` as Route;
   return (
     <div className={cn("grid-card-list [--grid-card-min:200px]", className)}>
-      {submissionsCard(form)}
-      {statusCard(form, settings)}
-      {visibilityCard(form, settings)}
-      {modifiedCard(form)}
+      {submissionsCard(form, pending)}
+      {statusCard(form, settings, pending)}
+      {visibilityCard(form, settings, pending)}
+      {modifiedCard(form, pending)}
     </div>
   );
 }

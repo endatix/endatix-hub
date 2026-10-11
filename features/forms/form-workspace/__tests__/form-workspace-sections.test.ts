@@ -1,10 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
-  getActiveFormWorkspaceSection,
   getFormDesignHref,
   getFormDesignReturn,
   getFormWorkspaceSections,
-  isFormDesignPrimary,
 } from "../form-workspace-sections";
 
 describe("getFormWorkspaceSections", () => {
@@ -41,26 +39,6 @@ describe("getFormWorkspaceSections", () => {
   });
 });
 
-describe("getActiveFormWorkspaceSection", () => {
-  it.each([
-    ["/forms/f1", "overview"],
-    ["/forms/f1/", "overview"],
-    ["/forms/f1/submissions/s9/edit", "submissions"],
-    ["/forms/f1/audience", "audience"],
-  ])("maps %s to %s", (pathname, expected) => {
-    // Act & Assert
-    expect(getActiveFormWorkspaceSection(pathname, "f1")).toBe(expected);
-  });
-
-  it.each(["/forms", "/forms/f10/audience", "/forms/f1/design"])(
-    "has no active section for %s",
-    (pathname) => {
-      // Act & Assert
-      expect(getActiveFormWorkspaceSection(pathname, "f1")).toBeUndefined();
-    },
-  );
-});
-
 describe("getFormDesignHref", () => {
   it.each([
     [undefined, "/forms/f1/design"],
@@ -93,14 +71,3 @@ describe("getFormDesignReturn", () => {
   );
 });
 
-describe("isFormDesignPrimary", () => {
-  it.each([
-    ["overview", true],
-    ["submissions", true],
-    ["settings", true],
-    ["audience", false],
-  ] as const)("is %s → %s", (page, expected) => {
-    // Act & Assert
-    expect(isFormDesignPrimary(page)).toBe(expected);
-  });
-});

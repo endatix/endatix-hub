@@ -12,7 +12,9 @@ import {
   ResponsivePanelHeader,
   ResponsivePanelTitle,
 } from "@/components/ui/responsive-panel";
+import { useFreshRecord } from "@/lib/utils/hooks";
 import { Form } from "@/types";
+import { getFormAction } from "../application/actions/get-form.action";
 import {
   FormDesignButton,
   NO_OPTIONAL_SECTIONS,
@@ -56,23 +58,52 @@ function FormPreviewHeader({ form }: Readonly<{ form: Form }>) {
   );
 }
 
+type PreviewBodyProps = {
+  form: Form;
+  flags: FormWorkspaceFlags;
+  refreshing: boolean;
+};
+
 /**
  * Share link opens the public page in a new tab, like the card's quick link; the Share dialog
  * would stack an overlay on this one (DESIGN.md §5 Overlays rule 5).
  */
-function FormPreviewContent({
+function FormPreviewBody({
   form,
   flags,
-}: Readonly<{ form: Form; flags: FormWorkspaceFlags }>) {
+  refreshing,
+}: Readonly<PreviewBodyProps>) {
   return (
     <>
       <FormPreviewHeader form={form} />
       <ResponsivePanelBody className="gap-6">
-        <FormSummaryCards form={form} className="[--grid-card-min:180px]" />
+        <FormSummaryCards
+          form={form}
+          pending={refreshing}
+          className="[--grid-card-min:180px]"
+        />
         <FormPageLinks formId={form.id} flags={flags} />
       </ResponsivePanelBody>
       <FormPreviewFooter form={form} />
     </>
+  );
+}
+
+/**
+ * Mounted only while the panel is open, so each opening re-reads the form: its counts and status
+ * move without the list knowing (DESIGN.md §6 Fresh facts in a preview).
+ */
+function FormPreviewContent({
+  snapshot,
+  flags,
+}: Readonly<{ snapshot: Form; flags: FormWorkspaceFlags }>) {
+  const fresh = useFreshRecord(snapshot, snapshot.id, getFormAction);
+  return (
+    <FormPreviewBody
+      form={fresh.record}
+      flags={flags}
+      refreshing={fresh.refreshing}
+    />
   );
 }
 
@@ -93,7 +124,7 @@ const FormSheet = ({
       onOpenChange={onOpenChange}
       desktopType="complex"
     >
-      <FormPreviewContent form={selectedForm} flags={workspaceFlags} />
+      <FormPreviewContent snapshot={selectedForm} flags={workspaceFlags} />
     </ResponsivePanel>
   );
 };

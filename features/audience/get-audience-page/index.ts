@@ -1,7 +1,4 @@
-export {
-  loadAudiencePage,
-  loadFormForAudience,
-} from "./load-audience-page.server";
+export { loadAudiencePage } from "./load-audience-page.server";
 export type { AudiencePageData } from "./load-audience-page.server";
 export { parsePeoplePaging } from "./parse-people-page";
 export {

@@ -79,18 +79,6 @@ export function getFormWorkspaceSections(
   );
 }
 
-/** The section a path belongs to; `undefined` outside the form's pages (designer, forms list). */
-export function getActiveFormWorkspaceSection(
-  pathname: string,
-  formId: string,
-): FormWorkspaceSectionId | undefined {
-  const base = `/forms/${formId}`;
-  if (pathname === base || pathname === `${base}/`) return "overview";
-  if (!pathname.startsWith(`${base}/`)) return undefined;
-  const segment = pathname.slice(base.length + 1).split("/")[0];
-  return SECTIONS.find((section) => section.path === `/${segment}`)?.id;
-}
-
 /** Opens the designer, remembering the page to return to when it closes. */
 export function getFormDesignHref(
   formId: string,
@@ -122,15 +110,3 @@ export function getFormWorkspaceSectionLabel(
   return SECTIONS.find((section) => section.id === id)?.label ?? id;
 }
 
-/** Pages whose own task has the primary button (Audience: Add person). */
-const PAGES_WITH_OWN_PRIMARY: ReadonlySet<FormWorkspaceSectionId> = new Set([
-  "audience",
-]);
-
-/**
- * Design is the record's main action, so it is primary in the header unless the page already
- * has a primary action of its own (one primary per page, DESIGN.md §5 Buttons).
- */
-export function isFormDesignPrimary(active?: FormWorkspaceSectionId): boolean {
-  return !active || !PAGES_WITH_OWN_PRIMARY.has(active);
-}

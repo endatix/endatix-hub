@@ -30,6 +30,8 @@ type PeopleSectionProps = {
   pageSize: number;
   totalPages: number;
   hasNextPage: boolean;
+  /** Without `forms.edit` the list is read-only: no add, edit or remove controls. */
+  canEdit: boolean;
   viewSwitch?: ReactNode;
   /** The locked match key, said once where people are listed. */
   matchKeyNote?: ReactNode;
@@ -64,7 +66,9 @@ function PeoplePager(props: Readonly<Paging>) {
   );
 }
 
-function PeopleSurface(props: Readonly<PeopleSectionProps & RowTargets>) {
+type PeopleSurfaceProps = PeopleSectionProps & { handlers?: RowTargets };
+
+function PeopleSurface(props: Readonly<PeopleSurfaceProps>) {
   return (
     <DataTableSurface data-slot="audience-people-table">
       {props.totalPeople === 0 ? (
@@ -111,23 +115,32 @@ function PeopleOverlays({ row, ...props }: Readonly<OverlayProps>) {
 const DESCRIPTION =
   "Who this form is for. Removing someone takes them off this form only.";
 
+function PeopleHeader(props: Readonly<PeopleSectionProps>) {
+  return (
+    <SectionHeader
+      id="audience-people"
+      title="People"
+      description={
+        <>
+          {DESCRIPTION} {props.matchKeyNote}
+        </>
+      }
+      viewSwitch={props.viewSwitch}
+      action={props.canEdit ? <AddPersonPanel {...props} /> : null}
+    />
+  );
+}
+
 export function PeopleSection(props: Readonly<PeopleSectionProps>) {
   const row = useRowOverlay<AudiencePerson>();
+  const handlers = props.canEdit
+    ? { onEdit: row.edit, onRemove: row.remove }
+    : undefined;
   return (
     <section aria-labelledby="audience-people" className="flex flex-col gap-4">
-      <SectionHeader
-        id="audience-people"
-        title="People"
-        description={
-          <>
-            {DESCRIPTION} {props.matchKeyNote}
-          </>
-        }
-        viewSwitch={props.viewSwitch}
-        action={<AddPersonPanel {...props} />}
-      />
-      <PeopleSurface {...props} onEdit={row.edit} onRemove={row.remove} />
-      <PeopleOverlays {...props} row={row} />
+      <PeopleHeader {...props} />
+      <PeopleSurface {...props} handlers={handlers} />
+      {props.canEdit ? <PeopleOverlays {...props} row={row} /> : null}
     </section>
   );
 }

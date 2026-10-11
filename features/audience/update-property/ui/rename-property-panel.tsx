@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { AudienceProperty } from "@/lib/endatix-api/audience/types";
 import { PanelForm } from "@/components/common/panel-form";
+import { closeWhenIdle } from "../../use-panel-state.hook";
 import { useRenameProperty } from "../use-rename-property.hook";
 import { LockedPropertyFacts } from "./locked-property-facts";
 
@@ -23,10 +24,12 @@ type NameEditor = {
 
 const NAME_ID = "rename-property-name";
 
-function panelProps({ property, open, onClose }: RenamePropertyPanelProps) {
+type PanelState = RenamePropertyPanelProps & { pending: boolean };
+
+function panelProps({ property, open, onClose, pending }: PanelState) {
   return {
     open: open && property !== null,
-    onOpenChange: (open: boolean) => !open && onClose(),
+    onOpenChange: closeWhenIdle(pending, onClose),
     title: "Rename property",
     description:
       "Changes the label shown in the Hub. Surveys and exports keep using the variable name.",
@@ -79,7 +82,7 @@ export function RenamePropertyPanel(props: Readonly<RenamePropertyPanelProps>) {
   return (
     <PanelForm
       {...form}
-      {...panelProps(props)}
+      {...panelProps({ ...props, pending: form.pending })}
       submitDisabled={!form.name.trim()}
       onSubmit={form.submit}
     >

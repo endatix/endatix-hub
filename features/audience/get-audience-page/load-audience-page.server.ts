@@ -10,12 +10,13 @@ import type { AudiencePeoplePage } from "@/lib/endatix-api/audience/audience";
 import type { ApiResult } from "@/lib/endatix-api/shared/api-result";
 import { Result, toResult } from "@/lib/result";
 import type { MapApiResultToResultOptions } from "@/lib/result/map-api-result-to-result";
-import type { Form } from "@/types";
 import type { PeoplePaging } from "./parse-people-page";
 
 export type AudiencePageData = {
   settings: AudienceSettings;
   canManageMatchKey: boolean;
+  /** Whether this reader may add, change or remove people and properties (`forms.edit`). */
+  canEdit: boolean;
   properties: AudienceProperty[];
   people: AudiencePerson[];
   totalPeople: number;
@@ -85,13 +86,15 @@ async function loadAudienceParts(
   );
 }
 
+type Capabilities = Pick<AudiencePageData, "canManageMatchKey" | "canEdit">;
+
 function toPageData(
   parts: LoadedParts,
-  canManageMatchKey: boolean,
+  capabilities: Capabilities,
 ): AudiencePageData {
   return {
     settings: parts.settings,
-    canManageMatchKey,
+    ...capabilities,
     properties: parts.properties,
     people: [...parts.people.items],
     totalPeople: parts.people.totalRecords,
@@ -106,29 +109,19 @@ function toPageData(
  * The audience tab's data. The page has already checked Hub access and the flag once and passes
  * its client; paging comes back from the API, which clamps a page past the end to the last page.
  */
-export type AudiencePageRequest = {
+export type AudiencePageRequest = Capabilities & {
   api: EndatixApi;
   formId: string;
   paging: PeoplePaging;
-  canManageMatchKey: boolean;
 };
 
 export async function loadAudiencePage(
   request: AudiencePageRequest,
 ): Promise<Result<AudiencePageData>> {
-  const { api, formId, paging, canManageMatchKey } = request;
+  const { api, formId, paging, canManageMatchKey, canEdit } = request;
   const parts = await loadAudienceParts(api, formId, paging);
   if (Result.isError(parts)) return parts;
-  return Result.success(toPageData(parts.value, canManageMatchKey));
-}
-
-export async function loadFormForAudience(
-  api: EndatixApi,
-  formId: string,
-): Promise<Result<Form>> {
-  return toResult(await api.forms.get(formId), {
-    fallbackMessage: "Failed to load form.",
-    logMessage: "Failed to load form for audience.",
-    loggerName: "audience.page",
-  });
+  return Result.success(
+    toPageData(parts.value, { canManageMatchKey, canEdit }),
+  );
 }

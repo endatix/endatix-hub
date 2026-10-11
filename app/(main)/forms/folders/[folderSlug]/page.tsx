@@ -64,7 +64,6 @@ export default async function FolderSlugFormsPage({
     folderId: folder.id,
   });
   const formsPromise = getFormsListPromise(listRequest, session);
-  const workspaceFlags = await getFormWorkspaceFlags();
 
   return (
     <AssetStorageProvider>
@@ -79,16 +78,26 @@ export default async function FolderSlugFormsPage({
           listKey={listQueryKey(listRequest)}
           fallback={<FormsListSkeleton pageSize={listRequest.pageSize} />}
         >
-          <FormsListSection
-            formsPromise={formsPromise}
-            scope="folder"
-            workspaceFlags={workspaceFlags}
-            emptyState={<NoFolderFormsEmptyState />}
-            filteredEmptyState={<NoMatchingFormsEmptyState />}
-          />
+          <FolderFormsListSection formsPromise={formsPromise} />
         </PagedListFrame>
       </PagedListUrlProvider>
     </AssetStorageProvider>
+  );
+}
+
+/** Reads the workspace flags inside the Suspense boundary, so the shell streams first. */
+async function FolderFormsListSection({
+  formsPromise,
+}: Readonly<{ formsPromise: ReturnType<typeof getFormsListPromise> }>) {
+  const workspaceFlags = await getFormWorkspaceFlags();
+  return (
+    <FormsListSection
+      formsPromise={formsPromise}
+      scope="folder"
+      workspaceFlags={workspaceFlags}
+      emptyState={<NoFolderFormsEmptyState />}
+      filteredEmptyState={<NoMatchingFormsEmptyState />}
+    />
   );
 }
 

@@ -7,9 +7,9 @@ import {
 } from "@/features/submissions/list-submission-query";
 import { SubmissionListSection } from "@/features/submissions/list-submissions";
 import { FormWorkspaceHeader } from "@/features/forms/form-workspace";
+import { getWorkspaceForm } from "@/features/forms/form-workspace/load-workspace-form.server";
 import { SubmissionsTableSkeleton } from "@/features/submissions/ui/table/submissions-table-skeleton";
 import { PagedListFrame } from "@/components/table";
-import { EndatixApi } from "@/lib/endatix-api";
 import { listQueryKey } from "@/lib/list-page/list-query-key";
 import type { Metadata, ResolvingMetadata, Route } from "next";
 import { redirect } from "next/navigation";
@@ -28,8 +28,7 @@ export async function generateMetadata(
   await requireHubAccess();
 
   const { formId } = await params;
-  const api = new EndatixApi(session?.accessToken);
-  const formResult = await api.forms.get(formId);
+  const formResult = await getWorkspaceForm(formId);
 
   const formName = formResult.success ? formResult.data.name : "Form";
 

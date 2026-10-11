@@ -15,6 +15,8 @@ type PropertiesSectionProps = {
   formId: string;
   properties: AudienceProperty[];
   totalPeople: number;
+  /** Without `forms.edit` the list is read-only: no add, rename or delete controls. */
+  canEdit: boolean;
   viewSwitch?: ReactNode;
 };
 
@@ -28,8 +30,8 @@ const DESCRIPTION =
 
 function PropertiesSurface({
   properties,
-  ...targets
-}: Readonly<RowTargets & { properties: AudienceProperty[] }>) {
+  targets,
+}: Readonly<{ properties: AudienceProperty[]; targets?: RowTargets }>) {
   return (
     <DataTableSurface data-slot="audience-properties-table">
       {properties.length === 0 ? (
@@ -37,7 +39,7 @@ function PropertiesSurface({
           Add a property for each fact you want to keep per person.
         </DataTableEmpty>
       ) : (
-        <PropertiesTable properties={properties} {...targets} />
+        <PropertiesTable properties={properties} handlers={targets} />
       )}
     </DataTableSurface>
   );
@@ -69,14 +71,15 @@ function PropertyOverlays({ row, ...props }: Readonly<OverlayProps>) {
 
 type PropertiesHeaderProps = Pick<
   PropertiesSectionProps,
-  "formId" | "viewSwitch"
+  "formId" | "viewSwitch" | "canEdit"
 >;
 
 function PropertiesHeader({
   formId,
   viewSwitch,
+  canEdit,
 }: Readonly<PropertiesHeaderProps>) {
-  const action = <AddPropertyPanel formId={formId} />;
+  const action = canEdit ? <AddPropertyPanel formId={formId} /> : null;
   return (
     <SectionHeader
       id="audience-properties"
@@ -90,19 +93,17 @@ function PropertiesHeader({
 
 export function PropertiesSection(props: Readonly<PropertiesSectionProps>) {
   const row = useRowOverlay<AudienceProperty>();
-  const surface = {
-    properties: props.properties,
-    onRename: row.edit,
-    onDelete: row.remove,
-  };
+  const targets = props.canEdit
+    ? { onRename: row.edit, onDelete: row.remove }
+    : undefined;
   return (
     <section
       aria-labelledby="audience-properties"
       className="flex flex-col gap-4"
     >
-      <PropertiesHeader formId={props.formId} viewSwitch={props.viewSwitch} />
-      <PropertiesSurface {...surface} />
-      <PropertyOverlays {...props} row={row} />
+      <PropertiesHeader {...props} />
+      <PropertiesSurface properties={props.properties} targets={targets} />
+      {props.canEdit ? <PropertyOverlays {...props} row={row} /> : null}
     </section>
   );
 }

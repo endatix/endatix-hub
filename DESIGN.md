@@ -423,6 +423,8 @@ value and one sentence. Reference: `features/forms/form-workspace/ui/form-summar
 - **Peer cards share a row**: `.grid-card-list` with a `--grid-card-min` chosen so the cards fill
   the row at the common width (no empty column after the last card); a narrow panel lowers it.
 - **A count that failed to load shows no number** (§6 Counts).
+- **A value being read again is `pending`:** the icon and label stay, and the value and sentence
+  are skeleton bars (§6 Fresh facts in a preview).
 
 ### Timeline — `components/timeline`
 
@@ -510,9 +512,10 @@ to `value` are `completed`; the `value` step itself is `active`. Reference:
   **One primary per page:** when a page has several list sections, the create action of the main
   task is primary and the others are `outline`. A view (§6 Record workspace) counts as a page:
   `Add person` is primary on a form's People view, `Add property` on its Properties view.
-- **A record's main action sits in the header's action area** and is primary unless the page
-  already has a primary of its own (§6 Record workspace). A button that goes to another page is a
-  `Link` styled as a button (`Button asChild`), so it can open in a new tab and shows its URL.
+- **A record's main action sits in the header's action area and is always primary** (`Design`
+  on every form page). The page's own create action stays in the page. A button that goes to
+  another page is a `Link` styled as a button (`Button asChild`), so it can open in a new tab
+  and shows its URL.
 - **Inputs:** `surface_container_low` fill; on focus the ghost border goes from 15% to 100%
   `primary`. Labels `label-md` in `on_surface_variant`.
 - **Typed values use the control that produces their wire format**, so the API never refuses a
@@ -655,10 +658,8 @@ moving between:
 - **`h1` names the page** the reader is on; the trail carries the context (the record, the
   folder). A record's own home (its Overview) titles itself with the record's name.
 - **A description only when it says something the title and trail cannot** ("mocked data").
-- **One row:** title left, the page's own actions right. A record-wide action (the editor
-  entry) goes to the header's action area instead, so page actions and record actions never
-  compete. A legacy component that renders its own actions (the form settings) takes the page
-  title (`pageTitle`) rather than adding a second row under a masthead.
+- **One row:** title left, the page's own actions right (Audience: Add person). Record-wide
+  actions are not repeated here.
 
 ### Reference information on demand
 
@@ -713,14 +714,48 @@ never starts per row. Reference: `review-signup-request/ui/signup-visitor-sectio
   naming the wait ("Loading visitor details"). On a tinted section (`bg-surface-container-low`),
   tint the bars (`bg-foreground/10`): the default `bg-accent` matches that surface, so the pulse
   does not show.
-- **One request per opened record.** Cache the result on the client for a few minutes; changing
-  step or reopening the same record must not ask again.
+- **One request per opened record.** Cache a slow or third-party read (evidence, versions) on the
+  client for a few minutes; changing step or reopening the same record must not ask again. The
+  record's own facts that change by themselves are the exception: they are read again on every
+  open and never cached (Fresh facts in a preview, below).
 - **A check before a form** (is this form ready to export?) skeletons the sections the form will
   fill, mastheads kept, so the panel does not jump from a spinner line to a full form.
 - **Quiet states, never an error tone** — the record is fine, and `destructive` belongs to an
   action the reader just took. Source answered with nothing: one muted line. Source did not
   answer: one muted line, plus a link out when a URL is known. Not configured: omit the section.
   A missing fact inside a successful read is `—`.
+
+### Fresh facts in a preview
+
+**Problem.** An overlay opened from a list (a record's sheet, a details panel) starts with the
+row the list loaded, which may be minutes old. The Hub has no push channel (no websockets or
+SignalR), so nothing tells the page that a respondent submitted, a colleague disabled the record
+or a job finished. A reader who opens a record to check it is shown old facts and may act on them.
+
+**Pattern: open on the snapshot, re-read on open, skeleton what moves.** The overlay is where
+the reader pays attention, so read again there. Reference: `useFreshRecord`
+(`lib/utils/hooks/`) in `features/forms/ui/form-sheet.tsx`.
+
+- **Sort the fields first.** _Stable_ fields change only when someone edits them on purpose: the
+  name, the id, the links built from the id. _Volatile_ fields change without the reader: counts,
+  lifecycle state, visibility, last changed, anything a respondent, a colleague or a job can
+  move. Treat a field as volatile when in doubt.
+- **Open at once on the snapshot.** The title, description, links and footer render from the
+  row immediately, so the overlay is never blank and its actions work during the read.
+- **Read the record again on every open.** Re-read when the panel opens, after paint, and never
+  for every row or on hover. Do not cache the answer, because the next opening should read
+  again. Mount the read inside the overlay content, which unmounts on close, so this needs no
+  extra code.
+- **Skeleton only the volatile values.** Keep each fact's chrome (icon, label, card) and replace
+  the value and its sentence (`StatCard pending`), with an `sr-only` "Loading …". Showing the
+  old value and swapping it makes numbers jump and lets the reader act on stale data in between.
+- **A failed re-read keeps the snapshot quietly.** It is what the list shows, so it is not
+  wrong, only old. Do not show an error tone or a toast for a read the reader did not ask for.
+- **Drop a late answer.** If the overlay switched record or closed, the answer is discarded.
+- **The list behind is not refreshed** by the preview. It refreshes on navigation or after a
+  write (`router.refresh()`).
+- **A page does not need this:** a server page reads on navigation. Use it only where a client
+  surface shows data loaded earlier. Revisit it if the Hub gains a push channel.
 
 ### Progress inside a panel
 
@@ -914,16 +949,17 @@ records.
   at the record as the current crumb, and the record's pages are a `NavSwitcher` past a vertical
   divider, each with its icon (`NAV_ICONS`), the current one checked and on a hover surface so it
   reads as a control. Pages appear by flag, never disabled.
-- **The editor entry is the record's main action**, in the header's action area on every page
-  (`Design`): primary unless the page already has a primary of its own (Audience's
-  `Add person`), where it is `outline`. Secondary record actions (`Share`) stay `outline` beside
-  the title.
+- **Record actions live in the header, the same on every page.** `Design` is the one primary.
+  `Share` is `outline` beside it from `md` up; below that it is the first item of the `…` menu,
+  with Save as template and Delete. The form card's `…` menu matches that pair and adds Move to
+  folder (a list action). Reference: `form-record-actions.tsx`, `form-card.tsx`.
 - **The Overview is facts, not settings:** `StatCard`s for what a reader checks first (§5 Fact
   cards). Edits live on a **Settings** page.
 - **A record's sheet on a list is a read-only preview** (§5 Overlays): its name, the same fact
   cards, the list of its pages, and a footer of `Share link` (the public page in a new tab, as on
   the record's card) + the editor entry. A sheet holding the settings form becomes a second,
-  cramped settings page.
+  cramped settings page. The sheet re-reads the record when it opens and skeletons the fact
+  cards until that read lands (§6 Fresh facts in a preview).
 - **An immersive editor is entered by a button, never a page in the switcher.** It takes the
   whole screen with its own chrome (Creator's tabs and sidebars) and saves explicitly, so it shows
   no workspace navigation — more chrome would crowd it and every extra exit is a way to lose
@@ -1082,6 +1118,8 @@ Before finishing UI work, check:
       event names) — never for a bag of facts, a status, or a form's own steps (§5).
 - [ ] A further read inside a panel skeletons only its section, starts after paint, and is asked
       once per opened record (§6).
+- [ ] An overlay opened on a list row re-reads the record on every open, skeletons only the
+      volatile facts, and keeps the snapshot quietly if the read fails (§6 Fresh facts).
 - [ ] Values the reader came for wrap, never truncate; unset vs empty are distinct (§6).
 - [ ] Third-party evidence loads on open, never blocks the record, shows no personal data beyond
       the decision's need, and disappears when unconfigured (§6).

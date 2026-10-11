@@ -16,6 +16,7 @@ import {
   Lock,
   MoreVertical,
   Save,
+  Trash2,
   Users,
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
@@ -35,6 +36,7 @@ import { listFoldersAction } from "@/features/folders/server";
 import { moveFormToFolderAction } from "@/features/folders/move-form-to-folder";
 import { toast } from "@/components/ui/toast";
 import { Result } from "@/lib/result";
+import { DeleteFormConfirm } from "@/features/forms/ui/delete-form-confirm";
 import { useRouter } from "next/navigation";
 import type { Route } from "next";
 
@@ -121,6 +123,7 @@ const FormCard = ({
     form.folderId ?? NO_FOLDER_VALUE,
   );
   const [isMovePending, setIsMovePending] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   useEffect(() => {
     setCurrentFolderId(form.folderId ?? NO_FOLDER_VALUE);
@@ -327,6 +330,14 @@ const FormCard = ({
                   Save as Template
                 </DropdownMenuItem>
                 <DropdownMenuItem
+                  variant="destructive"
+                  className="cursor-pointer"
+                  onSelect={() => setDeleteOpen(true)}
+                >
+                  <Trash2 className="mr-2 size-4" />
+                  Delete
+                </DropdownMenuItem>
+                <DropdownMenuItem
                   className="cursor-pointer"
                   onSelect={(event) => {
                     event.preventDefault();
@@ -342,6 +353,11 @@ const FormCard = ({
           </div>
         </div>
       </CardFooter>
+      <DeleteFormConfirm
+        form={form}
+        open={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+      />
       <MoveToFolderDialog
         open={moveDialogOpen}
         onOpenChange={setMoveDialogOpen}

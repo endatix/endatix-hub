@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import type { Route } from "next";
 import Link from "next/link";
 import { ArrowUpRight, type LucideIcon } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 type StatCardProps = {
@@ -12,6 +13,8 @@ type StatCardProps = {
   detail: ReactNode;
   /** Where the fact is explored or changed; the whole card becomes that link. */
   href?: Route;
+  /** The value is being read again: skeleton value and detail, keep icon and label. */
+  pending?: boolean;
 };
 
 function StatCardIcon({ icon: Icon }: Readonly<{ icon: LucideIcon }>) {
@@ -19,6 +22,24 @@ function StatCardIcon({ icon: Icon }: Readonly<{ icon: LucideIcon }>) {
     <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
       <Icon className="size-4" aria-hidden="true" />
     </span>
+  );
+}
+
+function StatCardValue(props: Readonly<StatCardProps>) {
+  if (props.pending) {
+    return (
+      <div className="grid gap-3" aria-busy="true">
+        <span className="sr-only">Loading {props.label}</span>
+        <Skeleton className="h-8 w-20" />
+        <Skeleton className="h-4 w-32" />
+      </div>
+    );
+  }
+  return (
+    <>
+      <div className="text-2xl font-semibold tracking-tight">{props.value}</div>
+      <div className="text-sm text-muted-foreground">{props.detail}</div>
+    </>
   );
 }
 
@@ -34,8 +55,7 @@ function StatCardBody(props: Readonly<StatCardProps>) {
           <ArrowUpRight className="size-4 text-muted-foreground transition-colors group-hover:text-foreground" />
         ) : null}
       </div>
-      <div className="text-2xl font-semibold tracking-tight">{props.value}</div>
-      <div className="text-sm text-muted-foreground">{props.detail}</div>
+      <StatCardValue {...props} />
     </>
   );
 }

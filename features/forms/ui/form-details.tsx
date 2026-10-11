@@ -1,14 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import {
-  Share2,
-  MoreHorizontal,
-  Trash2,
-  Save,
-  Globe,
-  Lock,
-} from "lucide-react";
+import { Globe, Lock } from "lucide-react";
 import { Form } from "@/types";
 import { SectionTitle } from "@/components/headings/section-title";
 import { Switch } from "@/components/ui/switch";
@@ -18,14 +11,7 @@ import { updateFormStatusAction } from "../application/actions/update-form-statu
 import { updateFormVisibilityAction } from "../application/actions/update-form-visibility.action";
 import { toast } from "@/components/ui/toast";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,15 +22,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { deleteFormAction } from "../application/actions/delete-form.action";
 import { Result } from "@/lib/result";
 import { getFormattedDate } from "@/lib/utils";
 import { useRouter } from "next/navigation";
-import { SaveAsTemplateDialog } from "./save-as-template-dialog";
-import { AlertTriangle } from "lucide-react";
-import PageTitle from "@/components/headings/page-title";
 import { WebhookSettings } from "./webhook-settings";
-import { ShareDialog } from "./share-dialog";
 import { updateFormSettingsAction } from "../application/actions/update-form-settings.action";
 import { getTenantSettingsAction } from "../application/actions/get-tenant-settings.action";
 import {
@@ -70,107 +51,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { FormFolderLink, type FormFolderLinkProps } from "./form-folder-link";
-
-interface DeleteFormDialogProps {
-  isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
-  formName: string;
-  submissionsCount: number;
-  onDelete: () => Promise<void>;
-}
-
-const DeleteFormDialog = ({
-  isOpen,
-  onOpenChange,
-  formName,
-  submissionsCount,
-  onDelete,
-}: DeleteFormDialogProps) => {
-  const [formNameInput, setFormNameInput] = useState("");
-
-  const handleOpenChange = (open: boolean) => {
-    onOpenChange(open);
-    if (!open) {
-      setFormNameInput("");
-    }
-  };
-
-  const handleDeleteClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    if (formNameInput !== formName) {
-      toast.error("Form name doesn't match");
-      return;
-    }
-    onDelete();
-  };
-
-  return (
-    <AlertDialog open={isOpen} onOpenChange={handleOpenChange}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>
-            Are you sure you want to delete form <strong>{formName}</strong>?
-          </AlertDialogTitle>
-          <AlertDialogDescription className="mb-1 space-y-4">
-            <span className="flex items-center gap-2 font-medium text-destructive">
-              <AlertTriangle className="h-4 w-4" />
-              This action will permanently delete the form, all its definitions
-              and submissions, and cannot be undone.
-            </span>
-            <span className="block text-sm">
-              <strong>{formName}</strong> has{" "}
-              <strong>{submissionsCount}</strong> submissions.
-            </span>
-            <span className="block text-sm">
-              To confirm, type the name of the form below:
-            </span>
-          </AlertDialogDescription>
-          <Input
-            type="text"
-            placeholder={`Type "${formName}"`}
-            value={formNameInput}
-            onChange={(e) => setFormNameInput(e.target.value)}
-            className="mt-1 w-full"
-          />
-        </AlertDialogHeader>
-
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction
-            onClick={handleDeleteClick}
-            className="bg-destructive hover:bg-destructive/90"
-          >
-            Delete Form
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-  );
-};
 
 interface FormDetailsProps {
   form: Form;
-  mode?: "sheet" | "page";
   enableEditing?: boolean;
-  showHeader?: boolean;
-  folderLink?: FormFolderLinkProps;
-  onFormDeleted?: () => void; // Callback for when form is successfully deleted
-  titleSize?: "text-xl" | "text-2xl" | "text-3xl" | "text-4xl";
-  /** A page title in place of the form's name (the Settings page); hides folder and description. */
-  pageTitle?: string;
 }
 
-const FormDetails = ({
-  form,
-  mode = "page",
-  enableEditing = false,
-  showHeader = true,
-  folderLink,
-  onFormDeleted,
-  titleSize = "text-4xl",
-  pageTitle,
-}: FormDetailsProps) => {
+const FormDetails = ({ form, enableEditing = false }: FormDetailsProps) => {
   const [pending, startTransition] = useTransition();
   const [isEnabled, setIsEnabled] = useState(form?.isEnabled);
   const [isPublic, setIsPublic] = useState(form?.isPublic);
@@ -194,10 +81,6 @@ const FormDetails = ({
   const [selectedFolderId, setSelectedFolderId] = useState<string>(
     () => form.folderId ?? "__none__",
   );
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isSaveAsTemplateOpen, setIsSaveAsTemplateOpen] = useState(false);
-  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [isEnableLimitWarningOpen, setIsEnableLimitWarningOpen] =
     useState(false);
   const [isEnableLimitErrorOpen, setIsEnableLimitErrorOpen] = useState(false);
@@ -282,34 +165,6 @@ const FormDetails = ({
     }
     return folders;
   }, [folders, form.folderId]);
-
-  const displayedFolderLink = useMemo((): FormFolderLinkProps | undefined => {
-    if (mode === "sheet") {
-      return undefined;
-    }
-
-    if (!folderLink && !enableEditing) {
-      return undefined;
-    }
-
-    if (selectedFolderId === "__none__") {
-      return { label: "Unassigned", unassigned: true };
-    }
-
-    const folder = folderSelectItems.find(
-      (candidate) => candidate.id === selectedFolderId,
-    );
-    if (folder) {
-      return {
-        label: folder.name,
-        immutable: folder.immutable,
-        isActive: folder.isActive,
-        folderSlug: folder.slug || undefined,
-      };
-    }
-
-    return folderLink;
-  }, [mode, enableEditing, folderLink, folderSelectItems, selectedFolderId]);
 
   const enabledLabel = form?.isEnabled ? "Enabled" : "Disabled";
   const visibilityLabel = isPublic ? "Public" : "Private";
@@ -531,101 +386,8 @@ const FormDetails = ({
     });
   };
 
-  const handleDialogOpenChange = (open: boolean) => {
-    setIsDialogOpen(open);
-  };
-
-  const handleDelete = async () => {
-    startTransition(async () => {
-      const result = await deleteFormAction(form.id);
-      if (result === undefined || Result.isError(result)) {
-        toast.error({
-          title: "Failed to delete form",
-          description: result?.message || "",
-        });
-        return;
-      }
-
-      if (Result.isSuccess(result)) {
-        toast.success({
-          title: (
-            <>
-              <strong>{form.name}</strong> deleted successfully
-            </>
-          ),
-        });
-        setIsDialogOpen(false);
-        onFormDeleted?.();
-        setTimeout(() => {
-          router.push("/forms");
-          router.refresh();
-        }, 1000);
-      }
-    });
-  };
-
-  const handleOpenDeleteDialog = () => {
-    setIsDropdownOpen(false);
-    setIsDialogOpen(true);
-  };
-
-  const handleOpenSaveAsTemplate = () => {
-    setIsDropdownOpen(false);
-    setIsSaveAsTemplateOpen(true);
-  };
-
   return (
     <div>
-      <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
-        {/* Header - conditionally rendered for flexibility */}
-        {showHeader && (
-          <div>
-            {displayedFolderLink && !pageTitle ? (
-              <FormFolderLink {...displayedFolderLink} className="mb-2" />
-            ) : null}
-            <PageTitle title={pageTitle ?? form?.name} className={titleSize} />
-            {!pageTitle && form?.description && (
-              <p className="text-muted-foreground">{form.description}</p>
-            )}
-          </div>
-        )}
-
-        {/* Action Buttons */}
-        <div className="ml-auto flex justify-end space-x-2">
-          <Button
-            variant={"outline"}
-            onClick={() => setIsShareDialogOpen(true)}
-          >
-            <Share2 className="mr-2 h-4 w-4" />
-            Share
-          </Button>
-          <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon">
-                <MoreHorizontal className="h-4 w-4" />
-                <span className="sr-only">More options</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                className="cursor-pointer"
-                onClick={handleOpenSaveAsTemplate}
-              >
-                <Save className="mr-2 h-4 w-4" />
-                Save as Template
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                className="cursor-pointer text-destructive"
-                onClick={handleOpenDeleteDialog}
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
-
       {/* Form Details */}
       <div className="mx-auto max-w-2xl">
         <SectionTitle title="Form details" headingClassName="text-xl mt-4" />
@@ -865,27 +627,6 @@ const FormDetails = ({
       <WebhookSettings
         formId={form.id}
         initialSettings={form.webHookSettingsJson}
-      />
-
-      <ShareDialog
-        formId={form.id}
-        open={isShareDialogOpen}
-        onOpenChange={setIsShareDialogOpen}
-      />
-
-      <SaveAsTemplateDialog
-        formId={form.id}
-        formName={form.name}
-        open={isSaveAsTemplateOpen}
-        onOpenChange={setIsSaveAsTemplateOpen}
-      />
-
-      <DeleteFormDialog
-        isOpen={isDialogOpen}
-        onOpenChange={handleDialogOpenChange}
-        formName={form.name}
-        submissionsCount={form.submissionsCount || 0}
-        onDelete={handleDelete}
       />
 
       <AlertDialog

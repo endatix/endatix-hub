@@ -46,25 +46,33 @@ const TYPE_CELL = `text-sm text-muted-foreground ${SHRINK}`;
 
 function propertyCells(
   property: AudienceProperty,
-  handlers: RowHandlers,
+  handlers?: RowHandlers,
 ): StaticDataTableCell[] {
-  const actions = (
-    <DataTableRowActions actions={propertyActions(property, handlers)} />
-  );
-  return [
+  const cells = [
     dataTableCell("name", property.name, NAME_CELL),
     dataTableCell("variable", <VariableName value={property.variableName} />),
     dataTableCell("type", dataTypeLabel(property.dataType), TYPE_CELL),
-    dataTableCell("actions", actions, `text-right ${SHRINK}`),
   ];
+  if (!handlers) return cells;
+  const actions = (
+    <DataTableRowActions actions={propertyActions(property, handlers)} />
+  );
+  return [...cells, dataTableCell("actions", actions, `text-right ${SHRINK}`)];
 }
+
+type PropertiesTableProps = {
+  properties: AudienceProperty[];
+  /** Omitted for a read-only reader: the table has no actions column. */
+  handlers?: RowHandlers;
+};
 
 export function PropertiesTable({
   properties,
-  ...handlers
-}: Readonly<RowHandlers & { properties: AudienceProperty[] }>) {
+  handlers,
+}: Readonly<PropertiesTableProps>) {
+  const columns = handlers ? COLUMNS : COLUMNS.slice(0, -1);
   return (
-    <StaticDataTable columns={COLUMNS}>
+    <StaticDataTable columns={columns}>
       {properties.map((property, index) => (
         <StaticDataTableRow
           key={property.id}

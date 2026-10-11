@@ -1,4 +1,4 @@
-export { loadAudiencePage, loadFormForAudience } from "./get-audience-page";
+export { loadAudiencePage } from "./get-audience-page";
 export type { AudiencePageData } from "./get-audience-page";
 export { createAudiencePropertyAction } from "./create-property";
 export { updateAudiencePropertyAction } from "./update-property";
