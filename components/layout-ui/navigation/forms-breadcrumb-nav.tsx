@@ -13,6 +13,7 @@ import {
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -57,13 +58,43 @@ function chunks(list: FormsBreadcrumbItem[], at: string, first = false) {
  * of a long trail into a menu, and a `dropdown` crumb switches between siblings (folders, or a
  * form's pages with their icons).
  */
+function linkItems(items: FormsBreadcrumbItem[]): LinkItem[] {
+  return items.filter((item): item is LinkItem => item.type === "link");
+}
+
+/** Below `md`, only the current crumb stays out; the rest sit in the ellipsis. */
+function CompactTrail({ items }: Readonly<{ items: FormsBreadcrumbItem[] }>) {
+  const earlier = linkItems(items.slice(0, -1));
+  const last = items[items.length - 1];
+  return (
+    <>
+      {earlier.length > 0 ? <CollapsedChunk items={earlier} first /> : null}
+      {last ? (
+        <BreadcrumbChunk item={last} isFirst={earlier.length === 0} />
+      ) : null}
+    </>
+  );
+}
+
 export default function FormsBreadcrumbNav({
   items,
 }: Readonly<FormsBreadcrumbNavProps>) {
   const { head, hidden, tail } = splitTrail(items);
+  if (items.length <= 1) {
+    return (
+      <Breadcrumb className="min-w-0">
+        <BreadcrumbList className="flex-nowrap">
+          {chunks(items, "only", true)}
+        </BreadcrumbList>
+      </Breadcrumb>
+    );
+  }
   return (
-    <Breadcrumb>
-      <BreadcrumbList>
+    <Breadcrumb className="min-w-0">
+      <BreadcrumbList className="flex-nowrap md:hidden">
+        <CompactTrail items={items} />
+      </BreadcrumbList>
+      <BreadcrumbList className="hidden flex-nowrap md:flex">
         {chunks(head, "head", true)}
         {hidden.length > 0 ? <CollapsedChunk items={hidden} /> : null}
         {chunks(tail, "tail")}
@@ -82,20 +113,25 @@ function CollapsedMenu({ items }: Readonly<{ items: LinkItem[] }>) {
         <BreadcrumbEllipsis className="size-6" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start">
-        {items.map((item) => (
-          <DropdownMenuItem key={item.href} asChild>
-            <Link href={item.href}>{item.label}</Link>
-          </DropdownMenuItem>
-        ))}
+        <DropdownMenuGroup>
+          {items.map((item) => (
+            <DropdownMenuItem key={item.href} asChild>
+              <Link href={item.href}>{item.label}</Link>
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
   );
 }
 
-function CollapsedChunk({ items }: Readonly<{ items: LinkItem[] }>) {
+function CollapsedChunk({
+  items,
+  first = false,
+}: Readonly<{ items: LinkItem[]; first?: boolean }>) {
   return (
     <>
-      <BreadcrumbSeparator />
+      {first ? null : <BreadcrumbSeparator />}
       <BreadcrumbItem>
         <CollapsedMenu items={items} />
       </BreadcrumbItem>
@@ -112,10 +148,14 @@ function BreadcrumbChunk({
       {isFirst ? null : <BreadcrumbSeparator />}
       <BreadcrumbItem>
         {item.type === "page" ? (
-          <BreadcrumbPage>{item.label}</BreadcrumbPage>
+          <BreadcrumbPage className="max-w-40 truncate md:max-w-64">
+            {item.label}
+          </BreadcrumbPage>
         ) : item.type === "link" ? (
           <BreadcrumbLink asChild>
-            <Link href={item.href}>{item.label}</Link>
+            <Link href={item.href} className="max-w-40 truncate md:max-w-64">
+              {item.label}
+            </Link>
           </BreadcrumbLink>
         ) : (
           <NavSwitcher {...item} />

@@ -31,19 +31,38 @@ describe("FormsBreadcrumbNav", () => {
     expect(screen.getByRole("link", { name: "Forms" })).toBeDefined();
   });
 
+  it("keeps a short trail on one line below md by folding every crumb but the last", () => {
+    // Arrange
+    const trail: FormsBreadcrumbItem[] = [
+      link("Forms", "/forms"),
+      link("Flows", "/forms/folders/flows"),
+      { type: "page", label: "Muestra Co" },
+    ];
+
+    // Act
+    render(<FormsBreadcrumbNav items={trail} />);
+
+    // Assert — wide trail shows Flows; the narrow trail only shows it from the ellipsis
+    expect(screen.getByRole("link", { name: "Flows" })).toBeDefined();
+    expect(
+      screen.getByRole("button", { name: "Show the rest of the trail" }),
+    ).toBeDefined();
+    expect(screen.getAllByText("Muestra Co")).toHaveLength(2);
+  });
+
   it("folds the middle of a long trail and keeps the first crumb and last two", () => {
     // Arrange & Act
     render(<FormsBreadcrumbNav items={FORM_TRAIL} />);
 
     // Assert
-    expect(screen.getByRole("link", { name: "Forms" })).toBeDefined();
+    expect(screen.getAllByRole("link", { name: "Forms" })).toHaveLength(1);
     expect(screen.queryByRole("link", { name: "Flows" })).toBeNull();
     expect(
-      screen.getByRole("button", { name: "Show the rest of the trail" }),
-    ).toBeDefined();
-    expect(screen.getByRole("link", { name: "Muestra Co" })).toBeDefined();
+      screen.getAllByRole("button", { name: "Show the rest of the trail" }),
+    ).toHaveLength(2);
+    expect(screen.getAllByRole("link", { name: "Muestra Co" })).toHaveLength(1);
     expect(
-      screen.getByRole("button", { name: "Audience navigation" }),
-    ).toBeDefined();
+      screen.getAllByRole("button", { name: "Audience navigation" }),
+    ).toHaveLength(2);
   });
 });

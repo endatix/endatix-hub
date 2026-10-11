@@ -330,14 +330,6 @@ const FormCard = ({
                   Save as Template
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  variant="destructive"
-                  className="cursor-pointer"
-                  onSelect={() => setDeleteOpen(true)}
-                >
-                  <Trash2 className="mr-2 size-4" />
-                  Delete
-                </DropdownMenuItem>
-                <DropdownMenuItem
                   className="cursor-pointer"
                   onSelect={(event) => {
                     event.preventDefault();
@@ -347,6 +339,15 @@ const FormCard = ({
                 >
                   <FolderInput className="mr-2 size-4" />
                   Move to folder
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  variant="destructive"
+                  className="cursor-pointer"
+                  onSelect={() => setDeleteOpen(true)}
+                >
+                  <Trash2 className="mr-2 size-4" />
+                  Delete
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

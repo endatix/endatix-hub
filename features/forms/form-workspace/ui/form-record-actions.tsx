@@ -7,6 +7,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { DeleteFormConfirm } from "@/features/forms/ui/delete-form-confirm";
@@ -71,6 +72,7 @@ export function FormRecordActions({
             <Save />
             Save as Template
           </DropdownMenuItem>
+          <DropdownMenuSeparator />
           <DropdownMenuItem
             variant="destructive"
             disabled={!form}
