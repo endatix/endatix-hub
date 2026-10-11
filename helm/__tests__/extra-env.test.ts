@@ -43,13 +43,14 @@ describe("helm extra env passthrough", () => {
 
   test("extraEnvFrom renders as the container's envFrom", () => {
     // Arrange
-    const envFromBlock =
-      /\{\{- with \.Values\.extraEnvFrom \}\}\s+(#.*\s+)*envFrom:/;
+    const blockStart = deployment.indexOf("{{- with .Values.extraEnvFrom }}");
+    const blockEnd = deployment.indexOf("{{- end }}", blockStart);
 
     // Act
-    const rendersEnvFrom = envFromBlock.test(deployment);
+    const block = deployment.slice(blockStart, blockEnd);
 
     // Assert
-    expect(rendersEnvFrom).toBe(true);
+    expect(blockStart).toBeGreaterThan(-1);
+    expect(block).toMatch(/^\s*envFrom:$/m);
   });
 });
