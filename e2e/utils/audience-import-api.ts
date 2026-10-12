@@ -11,12 +11,14 @@ import { deleteForm, e2eCredentials, signInE2eApi } from "./screen-out-api";
 const FIXTURES = path.join(process.cwd(), "e2e/fixtures/audience");
 
 const NUMBER_HEADERS = new Set([
-  "iddomicilio",
-  "NSE_LOC",
-  "edac",
-  "ni",
-  "idPainel",
+  "household_id",
+  "ses_local",
+  "age",
+  "household_size",
+  "panel_id",
 ]);
+
+const IDENTIFIER_COLUMN = "external_id";
 
 export type PanelImport = {
   api: EndatixApi;
@@ -56,11 +58,11 @@ export async function importPanelCsv(
     await createColumns(api, formId, headers);
     const imported = await api.audience.importCsv(formId, {
       csvText,
-      identifierColumn: "businessid",
+      identifierColumn: IDENTIFIER_COLUMN,
       fileName,
       propertyColumns: Object.fromEntries(
         headers
-          .filter((header) => header !== "businessid")
+          .filter((header) => header !== IDENTIFIER_COLUMN)
           .map((header) => [slugifyPropertyName(header), header]),
       ),
     });
@@ -92,7 +94,7 @@ async function useExternalId(api: EndatixApi): Promise<void> {
   });
   if (!updated.success) {
     throw new Error(
-      `Match key must be external id for businessid. ${updated.error.message}`,
+      `Match key must be external id for ${IDENTIFIER_COLUMN}. ${updated.error.message}`,
     );
   }
 }
@@ -103,7 +105,7 @@ async function createColumns(
   headers: string[],
 ): Promise<void> {
   for (const header of headers) {
-    if (header === "businessid") {
+    if (header === IDENTIFIER_COLUMN) {
       continue;
     }
     const created = await api.audience.createProperty(formId, {
