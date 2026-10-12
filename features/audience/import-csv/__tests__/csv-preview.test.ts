@@ -1,21 +1,45 @@
 import { describe, expect, it } from "vitest";
-import {
-  countCsvDataRows,
-  exceedsImportLimit,
-  readCsvHeaders,
-} from "../csv-preview";
+import { Result } from "@/lib/result";
+import { readCsvPreview } from "../csv-preview";
 
-describe("csv preview", () => {
-  it("reads a quoted header and counts the data rows", () => {
-    const csv = 'email,"display name"\nada@example.com,Ada\n';
+function preview(csv: string) {
+  const read = readCsvPreview(csv);
+  if (Result.isError(read)) throw new Error(read.message);
+  return read.value;
+}
 
-    expect(readCsvHeaders(csv)).toEqual(["email", "display name"]);
-    expect(countCsvDataRows(csv)).toBe(1);
-    expect(exceedsImportLimit(5001)).toBe(true);
+function problem(csv: string): string {
+  const read = readCsvPreview(csv);
+  return Result.isError(read) ? read.message : "";
+}
+
+describe("readCsvPreview", () => {
+  it("reads quoted headers, and samples each column's first values", () => {
+    const csv =
+      '﻿email,"display, name"\nada@example.com,Ada\n\ngrace@example.com,"Grace ""G"""\n';
+
+    expect(preview(csv)).toEqual({
+      headers: ["email", "display, name"],
+      samples: {
+        email: ["ada@example.com", "grace@example.com"],
+        "display, name": ["Ada", 'Grace "G"'],
+      },
+      rowCount: 2,
+    });
   });
 
-  it("returns null when the file has no header", () => {
-    expect(readCsvHeaders("   ")).toBeNull();
-    expect(countCsvDataRows("")).toBe(0);
+  it("counts a quoted cell with a line break as one row", () => {
+    const csv = 'id,note\r\n1,"two\r\nlines"\r\n2,plain\r\n';
+
+    expect(preview(csv).rowCount).toBe(2);
+    expect(preview(csv).samples.note).toEqual(["two\r\nlines", "plain"]);
+  });
+
+  it("explains a file it cannot import", () => {
+    expect(problem("   ")).toMatch(/no header row/);
+    expect(problem("email\n")).toMatch(/no people/);
+    expect(problem(`email\n${"a@b.co\n".repeat(5_001)}`)).toMatch(
+      /5,001 rows\. Import up to 5,000/,
+    );
   });
 });

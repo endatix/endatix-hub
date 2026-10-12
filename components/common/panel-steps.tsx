@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -41,53 +42,89 @@ function stepStatus(position: number, current: number): StepStatus {
   return position === current ? "current" : "upcoming";
 }
 
+/**
+ * A new step starts at the top: the panel body is shared by every step, so without this a step
+ * opens at the scroll position the previous one was left at.
+ */
+function useScrollToStart(current: number) {
+  const ref = useRef<HTMLOListElement>(null);
+  const shown = useRef(current);
+  useEffect(() => {
+    if (shown.current === current) return;
+    shown.current = current;
+    ref.current?.scrollIntoView?.({ block: "nearest" });
+  }, [current]);
+  return ref;
+}
+
+type StepItemProps = {
+  label: string;
+  position: number;
+  current: number;
+  last: boolean;
+};
+
+function StepMarker({
+  status,
+  position,
+}: Readonly<{ status: StepStatus; position: number }>) {
+  return (
+    <span
+      aria-hidden="true"
+      className={cn(
+        "flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-medium",
+        STEP_STATUS[status].marker,
+      )}
+    >
+      {status === "complete" ? <Check className="size-3.5" /> : position}
+    </span>
+  );
+}
+
+function StepConnector({ className }: Readonly<{ className: string }>) {
+  return (
+    <span
+      aria-hidden="true"
+      className={cn("h-px min-w-2 flex-1 rounded-full", className)}
+    />
+  );
+}
+
+function StepItem({ label, position, current, last }: Readonly<StepItemProps>) {
+  const status = stepStatus(position, current);
+  const style = STEP_STATUS[status];
+  return (
+    <li
+      aria-current={status === "current" ? "step" : undefined}
+      className="flex min-w-0 flex-1 items-center gap-2 last:flex-none"
+    >
+      <StepMarker status={status} position={position} />
+      <span className={cn("truncate text-xs", style.label)}>
+        {label}
+        <span className="sr-only">{style.srLabel}</span>
+      </span>
+      {last ? null : <StepConnector className={style.connector} />}
+    </li>
+  );
+}
+
 export function PanelSteps({
   steps,
   current,
   className,
 }: Readonly<PanelStepsProps>) {
+  const ref = useScrollToStart(current);
   return (
-    <ol className={cn("flex items-center gap-2", className)}>
-      {steps.map((label, index) => {
-        const position = index + 1;
-        const status = stepStatus(position, current);
-        const style = STEP_STATUS[status];
-
-        return (
-          <li
-            key={label}
-            aria-current={status === "current" ? "step" : undefined}
-            className="flex min-w-0 flex-1 items-center gap-2 last:flex-none"
-          >
-            <span
-              aria-hidden="true"
-              className={cn(
-                "flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-medium",
-                style.marker,
-              )}
-            >
-              {status === "complete" ? (
-                <Check className="size-3.5" />
-              ) : (
-                position
-              )}
-            </span>
-            <span className={cn("truncate text-xs", style.label)}>
-              {label}
-              <span className="sr-only">{style.srLabel}</span>
-            </span>
-            {position < steps.length && (
-              <span
-                aria-hidden="true"
-                className={cn(
-                  "h-px min-w-2 flex-1 rounded-full",
-                  style.connector,
-                )}
-              />
-            )}
-          </li>
-        );
-      })}
+    <ol ref={ref} className={cn("flex items-center gap-2", className)}>
+      {steps.map((label, index) => (
+        <StepItem
+          key={label}
+          label={label}
+          position={index + 1}
+          current={current}
+          last={index === steps.length - 1}
+        />
+      ))}
     </ol>
   );
 }

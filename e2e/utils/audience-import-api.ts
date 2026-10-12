@@ -52,7 +52,7 @@ export async function importPanelCsv(
 ): Promise<PanelImport> {
   const formId = await createForm(api, formName);
   try {
-    await useExternalId(api);
+    await switchMatchKeyToExternalId(api);
     const csvText = panelCsv(fileName);
     const headers = csvText.split(/\r?\n/, 1)[0]?.split(",") ?? [];
     await createColumns(api, formId, headers);
@@ -88,7 +88,7 @@ async function createForm(api: EndatixApi, name: string): Promise<string> {
   return created.data.id;
 }
 
-async function useExternalId(api: EndatixApi): Promise<void> {
+async function switchMatchKeyToExternalId(api: EndatixApi): Promise<void> {
   const updated = await api.audience.updateSettings({
     identifierKind: AudienceIdentifierKind.ExternalId,
   });

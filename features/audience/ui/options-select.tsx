@@ -16,6 +16,8 @@ export type OptionsSelectProps = {
   options: readonly SelectOption[];
   disabled: boolean;
   describedBy?: string;
+  /** Shown while `value` is `""`: nothing is chosen yet. */
+  placeholder?: string;
   onChange: (value: string) => void;
 };
 
@@ -42,7 +44,7 @@ export function OptionsSelect(props: Readonly<OptionsSelectProps>) {
         aria-describedby={props.describedBy}
         className="w-full"
       >
-        <SelectValue />
+        <SelectValue placeholder={props.placeholder} />
       </SelectTrigger>
       <SelectContent>
         <OptionItems options={props.options} />

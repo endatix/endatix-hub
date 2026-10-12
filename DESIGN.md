@@ -144,7 +144,8 @@ Before building a control, check whether the vocabulary already exists here.
 | `components/table/faceted-filter.tsx` — `FacetedFilter`                                           | A facet: toolbar pill or form `field`; flat or grouped options (Filters, below)                            |
 | `components/common/file-kind-icon.tsx` — `FileKindIcon`, `FileKindLabel`                          | The file-type mark and its icon+label row (File Type Marks, below)                                         |
 | `components/common/panel-section.tsx` — `PanelSection`                                            | A titled concern inside an overlay, on a nested surface (§6 Create / edit overlay)                         |
-| `components/common/panel-form.tsx` — `PanelForm`, `PanelFormError`                                | A create/edit overlay as one form: header, failure strip, sections, Cancel + submit                        |
+| `components/common/panel-form.tsx` — `PanelForm`, `PanelFormError`                                | A create/edit overlay as one form: header, failure strip, sections, Cancel or Back + submit                |
+| `components/common/panel-steps.tsx` — `PanelSteps`                                                | The progress track of a multi-step overlay, first in its body (§6 Create / edit overlay)                   |
 | `components/common/field-with-help.tsx` — `FieldWithHelp`                                         | A label, its control and the one visible help line under it (§6 Displaying values)                         |
 | `components/common/pending-button.tsx` — `PendingButton`                                          | An action button that swaps to a spinner and its running verb (Buttons, below)                             |
 | `components/common/summary-row.tsx` — `SummaryRow`                                                | Label-left / value-right rows (§6 Displaying values)                                                       |
@@ -622,16 +623,16 @@ text-muted-foreground` — no left-border rule.
 Every move has one control, and each control does one kind of move. Pick by what the reader is
 moving between:
 
-| The reader moves between…               | Control                                                | Example                           |
-| :-------------------------------------- | :----------------------------------------------------- | :-------------------------------- |
-| Areas of the Hub                        | Sidebar                                                | Forms, Data lists, Settings       |
-| Up to a parent                          | Header trail (breadcrumb)                              | `Forms › Flows › Cedar Grove Pulse`      |
-| Siblings at one level of the trail      | A `dropdown` crumb (`NavSwitcher`)                     | `Flows ▾` lists the other folders |
-| Aspects of one record                   | `NavSwitcher` after the trail, past a vertical divider | `Cedar Grove Pulse │ Submissions ▾`      |
-| Views of one page                       | `LinkTabs` (segmented, `?view=`)                       | People / Properties               |
-| Panes that are not worth a URL          | Radix `Tabs`, inside a panel                           | —                                 |
-| Into an immersive editor and back       | A button in, one Back out (`?from=`)                   | Design                            |
-| From a record back to the filtered list | `lib/list-page/table-return-to` + `BackToTableButton`  | a submission back to its list     |
+| The reader moves between…               | Control                                                | Example                             |
+| :-------------------------------------- | :----------------------------------------------------- | :---------------------------------- |
+| Areas of the Hub                        | Sidebar                                                | Forms, Data lists, Settings         |
+| Up to a parent                          | Header trail (breadcrumb)                              | `Forms › Flows › Cedar Grove Pulse` |
+| Siblings at one level of the trail      | A `dropdown` crumb (`NavSwitcher`)                     | `Flows ▾` lists the other folders   |
+| Aspects of one record                   | `NavSwitcher` after the trail, past a vertical divider | `Cedar Grove Pulse │ Submissions ▾` |
+| Views of one page                       | `LinkTabs` (segmented, `?view=`)                       | People / Properties                 |
+| Panes that are not worth a URL          | Radix `Tabs`, inside a panel                           | —                                   |
+| Into an immersive editor and back       | A button in, one Back out (`?from=`)                   | Design                              |
+| From a record back to the filtered list | `lib/list-page/table-return-to` + `BackToTableButton`  | a submission back to its list       |
 
 - **Everything a reader would share or reload is a URL** — a page, a view (`?view=`), a filter.
   Only panes inside an overlay may be unaddressable.
@@ -993,13 +994,24 @@ Single-submit create with draft + lock + in-panel failure (the common case):
   section titles. The last input step is a **review built from `SummaryRow`**. The terminal step
   is an outcome, not a form: drop the track, lead with a `success` Alert naming what was created,
   and hand over the one artefact the user came for (e.g. the sign-in URL).
+- **A multi-step form is still one `PanelForm`.** The slice hook owns the step and hands the panel
+  that step's header sentence, submit label and handlers. From step 2 the secondary button is
+  `Back` (`onBack`), never `Cancel`: the earlier choices are still there. The outcome step has
+  one button, `Done` (`cancelable={false}`), because Cancel would offer to undo what already
+  happened. `Continue` is disabled until the step can be left. A new step opens at the top of the
+  body (`PanelSteps` scrolls itself into view), not at the previous step's scroll position. Steps
+  are an ordered list, so a later step slots in without renumbering the others. Reference:
+  `features/audience/import-csv/use-import-csv.hook.ts`.
+- **Nothing is written before the last input step.** Earlier steps only read and choose, so
+  closing the panel on any of them costs nothing. The review step's primary names what it will
+  do with a count ("Import 20 rows"), not "Confirm".
 - **State is not in the chrome.** `PanelForm` does not own field values. A slice hook (or, for a
   multi-step outcome, the panel itself) owns the draft, open/reset, and the write; the feature's
   mutation helper owns `pending` / in-panel `error` / toast + refresh. See **PanelForm state** in
   `project-structure.md`.
 
-**Configure and run** (export today; import, bulk actions tomorrow) — an overlay whose commit is
-an operation, not a saved record. Reference:
+**Configure and run** (export today; bulk actions tomorrow; a file import is below) — an
+overlay whose commit is an operation, not a saved record. Reference:
 `features/export/export-submissions/ui/export-dialog.tsx`.
 
 - `ResponsivePanel desktopType="complex"`: format + filters are 3+ fields.
@@ -1028,6 +1040,59 @@ an operation, not a saved record. Reference:
   button after the sections.
 - **Same noun as the list it came from** — the dialog exports _submissions_, so it never says
   "responses".
+
+**Import from a file** (audience people today; data lists and other bulk loads tomorrow) — the
+reverse of export: a file the reader brings, read into records they already have. It is a
+multi-step create overlay (above) whose steps answer, in order: _which file_, _which column is
+which_, _what will happen_. Reference: `features/audience/import-csv/`.
+
+- **Steps: File → Columns → Review → outcome.** A question the file raises later (new
+  properties, what to overwrite, rows nobody matched) is its own step before Review, named for
+  the question. The panel opens from an `outline` button beside the list's primary create
+  action, since importing is the second way to add.
+- **State the limits before the file is chosen.** The file field's help line says the row limit
+  and that the first row names the columns. Once a file is read, the same line says what was
+  read (`panel.csv: 20 rows, 12 columns.`). A file that cannot be imported (no header, no rows,
+  over the limit) is that field's error, in the line, with what to do. It is not an alert,
+  because the reader fixes it by choosing another file.
+- **The browser reads to preview; the server decides.** Parse the file in the browser for the
+  header, a sample and the row count, with a real CSV reader (quoted commas and line breaks).
+  Refuse what the server certainly refuses (over the limit) before sending it. Every other check
+  belongs to the server, and its answers come back as rejected rows.
+- **Every choice is made against real values.** Under each column, its help line shows its
+  first values from the file, `·` apart because a value may hold a comma ("Values like London,
+  UK · Leeds"). A column name alone
+  does not tell the reader what the column holds.
+- **Suggest, say so, never guess.** The identifier column is suggested from its name ("Suggested
+  from its name."). Each other column is matched to the target whose key its name produces
+  (`Family size` → `family_size`). When nothing matches, the identifier select stays empty
+  with a placeholder and `Continue` waits. A wrong silent guess would match every row to the
+  wrong person.
+- **Map from the file's side.** One row per column, in file order: its name (monospace, a
+  literal), its sample, and a select of targets with `Don't import` first. A target fed by
+  one column leaves the other columns' selects, so two columns can never fill one target. The
+  section `aside` keeps a running tally ("4 of 11 imported"), so a column left unhandled shows.
+- **What is read by convention is listed, not offered.** Columns the server maps by their names
+  (`brands__nike` for a choice property) appear read-only under the selects, so the reader
+  knows they will be imported. A target the file cannot fill yet is named in the section
+  description, with the column name it would need.
+- **Review is built from the choices**, as `SummaryRow`s: the file, its rows, the identifier
+  column, each target with the column that fills it, and the columns left out ("Not
+  imported"), so a forgotten column shows before anything is written. Then one consequence `Alert`
+  (`info`) on how rows meet existing records: what they are matched by, that an existing record
+  is updated rather than added twice, what an empty cell does, and that a rejected row does not
+  stop the others.
+- **The outcome is shown in the panel.** No toast, and the list behind it is refreshed. The
+  batch `Alert` is `success` only when nothing was rejected, otherwise `warning`. Its sentence
+  gives the counts that are not zero ("18 added, 2 updated, 3 rejected") and what to do next.
+  Rejected rows follow in a `StaticDataTable` (`Row`, `Reason`), numbered as in the file. When
+  the server reports only the first rows, the section says "The first 50 of 1,290". The footer
+  is `Done`.
+- **When a file outgrows the request, the import becomes a page.** A load the server must run as
+  a background job (more rows than one request takes, or a check of the whole file before
+  mapping) needs progress that survives the tab closing. It moves to its own route
+  (`…/audience/import`) with the same steps and rules. The panel is right only while the
+  import finishes within one request.
 
 ### Recipe: file answers
 
@@ -1130,6 +1195,11 @@ Before finishing UI work, check:
 - [ ] Running work: spinner + stage verb on the button, sentence in the header, nothing repeated
       in the body; the panel is not dismissible until it ends (§5 Overlays, §6).
 - [ ] A batch with failures reports `warning` with counts, not `success` (§5).
+- [ ] A file import states its limits before the file, shows sample values under every column,
+      says where each suggestion came from, writes nothing before Review, names the count on its
+      button, and shows the outcome and rejected rows in the panel (§6 Import from a file).
+- [ ] A multi-step overlay shows `Back` from step 2 and only `Done` on its outcome (§6 Create /
+      edit overlay).
 - [ ] No presigned URL outlives the view that signed it (§6).
 - [ ] Public pages use `PublicStatusPage` and have their own `error.tsx` (§6).
 - [ ] Seen in the running app: screenshots at desktop width and below 768px for overlays, in light

@@ -1,5 +1,6 @@
 "use server";
 
+import { Permissions } from "@/features/auth/authorization";
 import type { AudienceImportResult } from "@/lib/endatix-api/audience/types";
 import { Result } from "@/lib/result";
 import { withHubAudienceApi } from "../shared/with-hub-audience-api.server";
@@ -13,6 +14,7 @@ export type ImportAudienceCsvInput = {
 };
 
 const IMPORT_LOG = {
+  permission: Permissions.Forms.Edit,
   fallbackMessage: "Failed to import audience.",
   logMessage: "Failed to import audience.",
   loggerName: "audience.import",

@@ -27,6 +27,10 @@ export type PanelFormProps = {
   submitLabel: string;
   pendingLabel: string;
   submitDisabled?: boolean;
+  /** A later step of a multi-step form: `Back` replaces `Cancel`. */
+  onBack?: () => void;
+  /** `false` on an outcome step, whose submit (`Done`) is the only way out. */
+  cancelable?: boolean;
   onSubmit: () => void;
   children: ReactNode;
 };
@@ -46,18 +50,18 @@ export function PanelFormError({
   );
 }
 
-function CancelButton({
-  pending,
-  onCancel,
-}: Readonly<{ pending: boolean; onCancel: () => void }>) {
+/** `Back` on a later step, `Cancel` otherwise, nothing on an outcome step (DESIGN.md §6). */
+function SecondaryButton(props: Readonly<PanelFormProps>) {
+  const { onBack, cancelable = true, pending } = props;
+  if (!onBack && !cancelable) return null;
   return (
     <Button
       type="button"
       variant="outline"
       disabled={pending}
-      onClick={onCancel}
+      onClick={onBack ?? (() => props.onOpenChange(false))}
     >
-      Cancel
+      {onBack ? "Back" : "Cancel"}
     </Button>
   );
 }
@@ -66,10 +70,7 @@ function PanelFormFooter(props: Readonly<PanelFormProps>) {
   const { pending, submitLabel: label, pendingLabel, submitDisabled } = props;
   return (
     <ResponsivePanelFooter>
-      <CancelButton
-        pending={pending}
-        onCancel={() => props.onOpenChange(false)}
-      />
+      <SecondaryButton {...props} />
       <PendingButton
         type="submit"
         disabled={submitDisabled}
@@ -81,7 +82,8 @@ function PanelFormFooter(props: Readonly<PanelFormProps>) {
 
 /**
  * Create/edit overlay as one form (DESIGN.md §6): header, failure strip, caller's `PanelSection`s,
- * Cancel + submit. `display: contents` keeps Header/Body/Footer on the panel chrome flex stack.
+ * Cancel (or Back) + submit. A wizard passes its current step's labels and handlers.
+ * `display: contents` keeps Header/Body/Footer on the panel chrome flex stack.
  */
 export function PanelForm(props: Readonly<PanelFormProps>) {
   const { open, onOpenChange, desktopType, trigger, pending, onSubmit } = props;
