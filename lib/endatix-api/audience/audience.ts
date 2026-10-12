@@ -245,7 +245,7 @@ export class Audience {
 
     return mapRedeemedLinkResult(
       await this.endatix.post<WireRedeemedLink>(
-        formAudiencePath(formId, "links", token, "redeem"),
+        formAudiencePath(formId, "links", encodeURIComponent(token), "redeem"),
         {},
         { requireAuth: false },
       ),

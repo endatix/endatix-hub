@@ -46,4 +46,10 @@ describe("csv", () => {
     expect(text).toContain('" Zoë ""Z"" ","a,b"');
     expect(readCsvRecords(text)).toEqual(rows);
   });
+
+  it("prefixes a cell a spreadsheet would run as a formula", () => {
+    expect(writeCsv([["=cmd", "+1", "-2", "@x"]])).toContain(
+      "'=cmd,'+1,'-2,'@x",
+    );
+  });
 });

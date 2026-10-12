@@ -78,8 +78,11 @@ export function readCsvRecords(text: string): string[][] {
   return new CsvRecordReader(text.replace(/^﻿/, "")).read();
 }
 
+const FORMULA = /^[=+\-@\t\r]/;
+
 function csvCell(value: string): string {
-  return NEEDS_QUOTES.test(value) ? `"${value.replaceAll('"', '""')}"` : value;
+  const safe = FORMULA.test(value) ? `'${value}` : value;
+  return NEEDS_QUOTES.test(safe) ? `"${safe.replaceAll('"', '""')}"` : safe;
 }
 
 /**
