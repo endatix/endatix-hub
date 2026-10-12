@@ -9,7 +9,10 @@ import {
   signInForAudience,
 } from "../../utils/audience-import-api";
 import { playgroundEmbedHostHref } from "../../utils/open-embed-host";
-import { createShareAccessToken } from "../../utils/screen-out-api";
+import {
+  createShareAccessToken,
+  trySecondOnBehalf,
+} from "../../utils/screen-out-api";
 
 const FIXTURE = "cedar-grove-pulse.csv";
 const SUBJECT = "CG-000001-01";
@@ -27,6 +30,7 @@ type OnBehalfBody = {
 
 type StoredSubmission = {
   jsonData: string;
+  isComplete: boolean;
   personalization?: { variables?: Record<string, unknown> } | null;
 };
 
@@ -115,7 +119,13 @@ function shareUrl(formId: string, token: string, city?: string): string {
   return url.toString();
 }
 
-async function openSurvey(
+function surfaceOf(page: Page, kind: SurfaceKind, formId: string): SurveySurface {
+  return kind === "share"
+    ? page
+    : page.frameLocator(`iframe[id^="edxf-${formId}"]`);
+}
+
+async function gotoSurface(
   page: Page,
   kind: SurfaceKind,
   formId: string,
@@ -124,17 +134,24 @@ async function openSurvey(
 ): Promise<SurveySurface> {
   if (kind === "share") {
     await page.goto(shareUrl(formId, token, city));
-    const survey = page.locator(".sd-root-modern");
-    await survey.waitFor({ timeout: 30_000 });
-    return survey;
+  } else {
+    await page.goto(
+      playgroundEmbedHostHref(embedHostOrigin(), formId, hubBaseUrl(), token),
+    );
   }
+  return surfaceOf(page, kind, formId);
+}
 
-  await page.goto(
-    playgroundEmbedHostHref(embedHostOrigin(), formId, hubBaseUrl(), token),
-  );
-  const frame = page.frameLocator(`iframe[id^="edxf-${formId}"]`);
-  await frame.locator(".sd-root-modern").waitFor({ timeout: 30_000 });
-  return frame;
+async function openSurvey(
+  page: Page,
+  kind: SurfaceKind,
+  formId: string,
+  token: string,
+  city?: string,
+): Promise<SurveySurface> {
+  const surface = await gotoSurface(page, kind, formId, token, city);
+  await surface.locator(".sd-root-modern").waitFor({ timeout: 30_000 });
+  return surface;
 }
 
 async function expectFrozen(survey: SurveySurface): Promise<void> {
@@ -178,61 +195,74 @@ async function expectStoredAnswer(
     throw new Error(`Read submission failed: ${read.error.message}`);
   }
   const answers = JSON.parse(read.data.jsonData) as Record<string, unknown>;
+  expect(read.data.isComplete).toBe(true);
   expect(answers.familySize).toBe("9 people");
   expect(read.data.personalization?.variables?.city).toBe(CITY);
   expect(read.data.personalization?.variables?.age).toBe(65);
 }
 
+const ALREADY_SUBMITTED = "This form has already been completed.";
+
+async function expectThankYou(surface: SurveySurface): Promise<void> {
+  await expect(surface.getByText("Thank you")).toBeVisible({ timeout: 15_000 });
+  await expect(surface.getByText(ALREADY_SUBMITTED)).toBeVisible();
+}
+
+async function completeSurvey(survey: SurveySurface): Promise<void> {
+  await survey.getByRole("button", { name: "Complete" }).click();
+  await survey.getByText("Thank you").waitFor({ timeout: 15_000 });
+}
+
 test.describe("On-behalf personalization", () => {
-  test.describe.configure({ mode: "serial" });
   test.setTimeout(120_000);
 
-  for (const surface of SURFACES) {
-    test(`${surface} shows the frozen values and keeps an edited answer`, async ({
-      page,
-    }) => {
-      const api = await signInForAudience();
-      test.skip(!api, "Set E2E_EMAIL and E2E_PASSWORD.");
-      const form = await preparePanelForm(api!, `Cedar Grove ${surface}`, FIXTURE);
-      try {
-        await publishSurvey(api!, form.formId);
-        await importFirstRow(api!, form.formId);
-        const opened = await openOnBehalf(api!, form.formId);
+  test("one response shows the frozen values, then thank you on reload", async ({
+    page,
+  }) => {
+    const api = await signInForAudience();
+    test.skip(!api, "Set E2E_EMAIL and E2E_PASSWORD.");
+    const form = await preparePanelForm(api!, "Cedar Grove one response", FIXTURE);
+    try {
+      await publishSurvey(api!, form.formId);
+      await importFirstRow(api!, form.formId);
+      const opened = await openOnBehalf(api!, form.formId);
 
-        let survey = await openSurvey(
+      const share = await openSurvey(page, "share", form.formId, opened.shareToken);
+      await expectFrozen(share);
+      const withCity = await openSurvey(
+        page,
+        "share",
+        form.formId,
+        opened.shareToken,
+        "Other",
+      );
+      await expect(withCity.getByText(CITY)).toBeVisible();
+      await expect(withCity.getByText("Other")).toHaveCount(0);
+
+      const iframe = await openSurvey(page, "iframe", form.formId, opened.shareToken);
+      await expectFrozen(iframe);
+
+      const back = await openSurvey(page, "share", form.formId, opened.shareToken);
+      await editFamilySize(page, back);
+      await completeSurvey(back);
+
+      for (const surface of SURFACES) {
+        const returned = await gotoSurface(
           page,
           surface,
           form.formId,
           opened.shareToken,
         );
-        await expectFrozen(survey);
-        if (surface === "share") {
-          survey = await openSurvey(
-            page,
-            surface,
-            form.formId,
-            opened.shareToken,
-            "Other",
-          );
-          await expect(survey.getByText(CITY)).toBeVisible();
-          await expect(survey.getByText("Other")).toHaveCount(0);
-        }
-
-        await editFamilySize(page, survey);
-        await expectStoredAnswer(api!, form.formId, opened.submissionId);
-
-        const reopened = await openSurvey(
-          page,
-          surface,
-          form.formId,
-          opened.shareToken,
-        );
-        await expect(questionInput(reopened, "Family size")).toHaveValue(
-          "9 people",
-        );
-      } finally {
-        await form.cleanup();
+        await expectThankYou(returned);
       }
-    });
-  }
+
+      await expectStoredAnswer(api!, form.formId, opened.submissionId);
+      const second = await trySecondOnBehalf(api!, form.formId, SUBJECT);
+      expect(second.success, "limit one per user refuses a second submission").toBe(
+        false,
+      );
+    } finally {
+      await form.cleanup();
+    }
+  });
 });
