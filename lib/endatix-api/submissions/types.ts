@@ -50,6 +50,11 @@ export interface Submission extends ApiEntity {
   submitterId?: EntityId;
   submitterDisplayId?: string;
   submitterProfile?: Record<string, string>;
+  personalization?: {
+    identifier: string;
+    capturedAt: string;
+    variables: Record<string, unknown>;
+  } | null;
 
   // Optional navigation properties
   formDefinition?: FormDefinition;

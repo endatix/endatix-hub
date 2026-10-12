@@ -9,7 +9,9 @@ import type { PagedResponse } from "../shared/types";
 import {
   formAudiencePath,
   mapImportResult,
+  mapRedeemedLinkResult,
   type WireImport,
+  type WireRedeemedLink,
   mapPeoplePageResult,
   mapPersonResult,
   mapProperty,
@@ -31,6 +33,8 @@ import {
   type UpdateAudiencePersonRequest,
   type UpdateAudiencePropertyRequest,
   type ImportAudienceCsvRequest,
+  type IssuedAudienceLink,
+  type RedeemedAudienceLink,
   type UpdateAudienceSettingsRequest,
 } from "./types";
 
@@ -67,9 +71,7 @@ export class Audience {
     return this.endatix.put<AudienceSettings>(SETTINGS_PATH, body);
   }
 
-  async listProperties(
-    formId: string,
-  ): Promise<ApiResult<AudienceProperty[]>> {
+  async listProperties(formId: string): Promise<ApiResult<AudienceProperty[]>> {
     const idCheck = requireEndatixId(formId, "formId");
     if (!idCheck.success) {
       return idCheck;
@@ -212,6 +214,40 @@ export class Audience {
       await this.endatix.post<WireImport>(
         formAudiencePath(formId, "import"),
         body,
+      ),
+    );
+  }
+
+  async generateLinks(
+    formId: string,
+  ): Promise<ApiResult<IssuedAudienceLink[]>> {
+    const idCheck = requireEndatixId(formId, "formId");
+    if (!idCheck.success) return idCheck;
+
+    const response = await this.endatix.post<
+      { membershipId: number | string; token: string }[]
+    >(formAudiencePath(formId, "links"), {});
+    if (!response.success) return response;
+    return ApiResult.success(
+      response.data.map((link) => ({
+        membershipId: String(link.membershipId),
+        token: link.token,
+      })),
+    );
+  }
+
+  async redeemLink(
+    formId: string,
+    token: string,
+  ): Promise<ApiResult<RedeemedAudienceLink>> {
+    const idCheck = requireEndatixId(formId, "formId");
+    if (!idCheck.success) return idCheck;
+
+    return mapRedeemedLinkResult(
+      await this.endatix.post<WireRedeemedLink>(
+        formAudiencePath(formId, "links", encodeURIComponent(token), "redeem"),
+        {},
+        { requireAuth: false },
       ),
     );
   }

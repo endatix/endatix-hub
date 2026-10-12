@@ -7,6 +7,7 @@ import {
 } from "../shared/paged-response";
 import type { PagedResponse } from "../shared/types";
 import type {
+  RedeemedAudienceLink,
   AudienceImportResult,
   AudiencePerson,
   AudienceProperty,
@@ -134,4 +135,19 @@ export function mapPeoplePageResult(
       items: response.data.items.map(mapPerson),
     }),
   );
+}
+
+export type WireRedeemedLink = Omit<RedeemedAudienceLink, "submissionId"> & {
+  submissionId: string | number;
+};
+
+export function mapRedeemedLinkResult(
+  response: ApiResult<WireRedeemedLink>,
+): ApiResult<RedeemedAudienceLink> {
+  return response.success
+    ? ApiResult.success({
+        ...response.data,
+        submissionId: String(response.data.submissionId),
+      })
+    : response;
 }

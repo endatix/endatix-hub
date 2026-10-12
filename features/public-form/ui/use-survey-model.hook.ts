@@ -4,6 +4,7 @@ import { Submission } from "@/lib/endatix-api";
 import { initializeCustomQuestions } from "@/lib/questions";
 import { registerAudioQuestion } from "@/lib/questions/audio-recorder";
 import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";
+import { applyPersonalizationToModel } from "@/lib/personalization/apply-personalization";
 import { applyVariablesToModel } from "../application/use-dynamic-variables.hook";
 import { questionLoaderModule } from "@/lib/questions/question-loader-module";
 import { customQuestions as customQuestionsList } from "@/customizations/questions/question-registry";
@@ -104,6 +105,7 @@ export function useSurveyModel({
     const unbindQuestionLoops = bindQuestionLoops(model);
     onModelCreated?.(model);
     processSearchParams(model);
+    applyPersonalizationToModel(model, initialSubmission?.personalization);
 
     setSurveyModel(model);
     isInitializedRef.current = true;
