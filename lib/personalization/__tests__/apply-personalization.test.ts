@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { applyPersonalizationToModel } from "../apply-personalization";
 
 describe("applyPersonalizationToModel", () => {
@@ -14,6 +14,29 @@ describe("applyPersonalizationToModel", () => {
 
     expect(values.get("city")).toBe("03. MIDWEST - COLUMBUS");
     expect(values.get("age")).toBe(65);
+  });
+
+  it("re-runs an empty calculated default after the variables land", () => {
+    const rerun = vi.fn();
+    const model = {
+      setVariable: () => {},
+      getAllQuestions: () => [
+        {
+          defaultValueExpression: "{age} * 12",
+          isEmpty: () => true,
+          runDefaultValueExpression: rerun,
+        },
+        {
+          defaultValueExpression: "{city}",
+          isEmpty: () => false,
+          runDefaultValueExpression: rerun,
+        },
+      ],
+    };
+
+    applyPersonalizationToModel(model, { variables: { age: 65 } });
+
+    expect(rerun).toHaveBeenCalledOnce();
   });
 
   it("leaves the model alone when there is no snapshot", () => {

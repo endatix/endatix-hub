@@ -133,14 +133,18 @@ test.describe("On-behalf embed", () => {
         .locator(".sd-question")
         .filter({ hasText: "Family size" })
         .locator("input");
-      await family.fill("9 people");
-      await page.waitForResponse(
+      await family.click();
+      await family.fill("");
+      const saved = page.waitForResponse(
         (response) =>
           response.url().includes("/submissions") &&
           response.request().method() !== "GET" &&
           response.ok(),
         { timeout: 20_000 },
       );
+      await family.pressSequentially("9 people");
+      await family.press("Tab");
+      await saved;
 
       const reopened = await openEmbed(page, form.formId, opened.token);
       await expect(
