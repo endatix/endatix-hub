@@ -41,10 +41,17 @@ test.describe("Audience panel CSV", () => {
   test.describe.configure({ mode: "serial" });
   test.setTimeout(180_000);
 
+  // Live Hub/API session; CI without E2E_EMAIL / E2E_PASSWORD has nothing to call.
+  test.beforeEach(() => {
+    test.skip(!e2eCredentials(), "Set E2E_EMAIL and E2E_PASSWORD.");
+  });
+
   test("the wizard imports the Cedar Grove Pulse sample", async ({ page }) => {
     const api = await signInForAudience();
-    test.skip(!api, "Set E2E_EMAIL and E2E_PASSWORD.");
-    const form = await preparePanelForm(api!, "Cedar Grove Pulse UI", SAMPLE);
+    if (!api) {
+      throw new Error("E2E sign-in failed");
+    }
+    const form = await preparePanelForm(api, "Cedar Grove Pulse UI", SAMPLE);
     try {
       await openAudience(page, form.formId);
       await page.getByRole("button", { name: "Import CSV" }).click();
@@ -77,8 +84,10 @@ test.describe("Audience panel CSV", () => {
     page,
   }) => {
     const api = await signInForAudience();
-    test.skip(!api, "Set E2E_EMAIL and E2E_PASSWORD.");
-    const form = await preparePanelForm(api!, "Cedar Grove Pulse cap", SAMPLE);
+    if (!api) {
+      throw new Error("E2E sign-in failed");
+    }
+    const form = await preparePanelForm(api, "Cedar Grove Pulse cap", SAMPLE);
     try {
       await openAudience(page, form.formId);
       const actions = recordServerActions(page);
@@ -105,12 +114,14 @@ test.describe("Audience panel CSV", () => {
     page,
   }) => {
     const api = await signInForAudience();
-    test.skip(!api, "Set E2E_EMAIL and E2E_PASSWORD.");
-    const panel = await importPanelCsv(api!, "Cedar Grove Pulse", SAMPLE);
+    if (!api) {
+      throw new Error("E2E sign-in failed");
+    }
+    const panel = await importPanelCsv(api, "Cedar Grove Pulse", SAMPLE);
     try {
       expect(panel.result.rejectedCount).toBe(0);
       expect(panel.result.createdCount).toBe(20);
-      const people = await api!.audience.listPeople(panel.formId, {
+      const people = await api.audience.listPeople(panel.formId, {
         page: 1,
         pageSize: 50,
       });
@@ -134,16 +145,18 @@ test.describe("Audience panel CSV", () => {
 
   test("5000-row sample imports at the MVP cap", async () => {
     const api = await signInForAudience();
-    test.skip(!api, "Set E2E_EMAIL and E2E_PASSWORD.");
+    if (!api) {
+      throw new Error("E2E sign-in failed");
+    }
     const panel = await importPanelCsv(
-      api!,
+      api,
       "Cedar Grove Pulse 5000",
       SAMPLE_5000,
     );
     try {
       expect(panel.result.rejectedCount).toBe(0);
       expect(panel.result.createdCount).toBe(5000);
-      const people = await api!.audience.listPeople(panel.formId, {
+      const people = await api.audience.listPeople(panel.formId, {
         page: 1,
         pageSize: 1,
       });
