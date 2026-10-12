@@ -18,6 +18,13 @@ type AddPersonPanelProps = {
   properties: AudienceProperty[];
 };
 
+function withoutMatchKey(
+  properties: readonly AudienceProperty[],
+  kind: AudienceIdentifierKind,
+) {
+  return properties.filter((property) => property.variableName !== kind);
+}
+
 const TRIGGER = (
   <Button>
     <Plus />
@@ -54,7 +61,7 @@ export function AddPersonPanel(props: Readonly<AddPersonPanelProps>) {
       <PersonValueFields
         idPrefix="add-person"
         description="Optional. A field left empty is not set."
-        properties={props.properties}
+        properties={withoutMatchKey(props.properties, props.identifierKind)}
         editor={form}
       />
     </PanelForm>

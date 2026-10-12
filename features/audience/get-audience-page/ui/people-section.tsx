@@ -89,7 +89,10 @@ function PeopleSurface(props: Readonly<PeopleSurfaceProps>) {
 }
 
 type Overlays = ReturnType<typeof useRowOverlay<AudiencePerson>>;
-type OverlayProps = Pick<PeopleSectionProps, "formId" | "properties"> & {
+type OverlayProps = Pick<
+  PeopleSectionProps,
+  "formId" | "identifierKind" | "properties"
+> & {
   row: Overlays;
 };
 

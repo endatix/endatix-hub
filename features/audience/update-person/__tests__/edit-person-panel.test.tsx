@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import {
   AudienceDataType,
+  AudienceIdentifierKind,
   type AudiencePerson,
   type AudienceProperty,
 } from "@/lib/endatix-api/audience/types";
@@ -48,6 +49,7 @@ describe("EditPersonPanel", () => {
         open
         formId="1"
         person={PERSON}
+        identifierKind={AudienceIdentifierKind.Email}
         properties={[textProperty("a", "City"), textProperty("b", "Team")]}
         onClose={onClose}
       />,
@@ -79,6 +81,7 @@ describe("EditPersonPanel", () => {
         open
         formId="1"
         person={PERSON}
+        identifierKind={AudienceIdentifierKind.Email}
         properties={[textProperty("a", "City")]}
         onClose={onClose}
       />,
@@ -101,6 +104,7 @@ describe("EditPersonPanel", () => {
         open
         formId="1"
         person={PERSON}
+        identifierKind={AudienceIdentifierKind.Email}
         properties={[textProperty("a", "City")]}
         onClose={onClose}
       />,
@@ -115,5 +119,49 @@ describe("EditPersonPanel", () => {
       await screen.findByText("Something went wrong. Try again."),
     ).toBeTruthy();
     expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("shows the match key above the properties and does not save it", async () => {
+    vi.mocked(updateAudiencePersonAction).mockResolvedValue(
+      Result.success(PERSON),
+    );
+    const person = { ...PERSON, identifier: "CG-000003-01", values: { a: "2" } };
+    render(
+      <EditPersonPanel
+        open
+        formId="1"
+        person={person}
+        identifierKind={AudienceIdentifierKind.ExternalId}
+        properties={[
+          textProperty("age", "age"),
+          textProperty("id", "external_id"),
+          textProperty("a", "household_size"),
+        ]}
+        onClose={vi.fn()}
+      />,
+    );
+
+    const identifier = screen.getByRole("heading", { name: "Identifier" });
+    const properties = screen.getByRole("heading", { name: "Properties" });
+    expect(
+      identifier.compareDocumentPosition(properties) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    const id = screen.getByLabelText("External ID");
+    expect(id).toHaveProperty("disabled", true);
+    expect(id).toHaveProperty("value", "CG-000003-01");
+    expect(screen.queryByLabelText("external_id")).toBeNull();
+    fireEvent.change(screen.getByLabelText("household_size"), {
+      target: { value: "4" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+
+    await waitFor(() =>
+      expect(updateAudiencePersonAction).toHaveBeenCalledWith({
+        formId: "1",
+        membershipId: "9",
+        values: { a: "4" },
+      }),
+    );
   });
 });
