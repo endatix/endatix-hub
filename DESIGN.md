@@ -531,8 +531,10 @@ to `value` are `completed`; the `value` step itself is `active`. Reference:
   bare wall time as UTC would store a different instant. A choice control always offers the
   stored value, even one outside its list, so nothing stored is hidden or silently cleared.
   Reference: `features/audience/ui/property-value-field.tsx`.
-- **Chips / tags:** `rounded-full` to distinguish from buttons; `tertiary_container` for neutral
-  data tags. Status tags are `StatusBadge`.
+- **Chips / tags:** `rounded-full` to distinguish from buttons. Status tags are `StatusBadge`,
+  and its dot marks a state. A role tag says what a row _is_, not its state (`Match key` on the
+  property that copies the match key). It is a `Badge variant="secondary"` with no dot, placed
+  after the row's name, so the reader does not read it as a status.
 
 ---
 
@@ -603,7 +605,11 @@ text-muted-foreground` — no left-border rule.
 - **A record's key appears once, as the key.** A field that copies it (a property named like the
   audience match key, `email` or `external_id`) is left out of the table and the add and edit
   overlays. Editing it could not change who the record is, so it would only be an empty second
-  copy. Filter it once, where the list is handed to them (`valueProperties`).
+  copy. Filter it once, where the list is handed to them (`valueProperties`). Where the fields
+  themselves are what the page lists (the Properties view), that field is pinned first with a
+  `Match key` tag and one line saying where the key shows instead. That way, its absence from the
+  other places is explained where the reader would look for it. Reference:
+  `features/audience/get-audience-page/ui/properties-table.tsx`.
 - **A key derived from a name is previewed before it is fixed.** While the reader types, the
   field's help line shows the key it will produce ("Variable name `cost_center`. It never
   changes…"), or why none can be made, with the submit disabled. In the edit overlay the key is a
@@ -1257,7 +1263,8 @@ Before finishing UI work, check:
       edit overlay).
 - [ ] An edit overlay is titled by its task and mirrors its create overlay's sections. Values it
       cannot change are `LockedValue` rows, never disabled inputs, and a copy of the record's key
-      is not a field (§6 Controls, Create / edit overlay).
+      is not a field; where fields are listed, it is pinned first with a role tag and says why
+      (§5 Chips, §6 Controls, Create / edit overlay).
 - [ ] No presigned URL outlives the view that signed it (§6).
 - [ ] Public pages use `PublicStatusPage` and have their own `error.tsx` (§6).
 - [ ] Seen in the running app: screenshots at desktop width and below 768px for overlays, in light

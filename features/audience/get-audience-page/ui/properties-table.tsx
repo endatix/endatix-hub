@@ -10,9 +10,14 @@ import {
   type StaticDataTableCell,
   type StaticDataTableColumn,
 } from "@/components/table";
-import type { AudienceProperty } from "@/lib/endatix-api/audience/types";
+import { Badge } from "@/components/ui/badge";
+import type {
+  AudienceIdentifierKind,
+  AudienceProperty,
+} from "@/lib/endatix-api/audience/types";
 import { VariableName } from "../../ui/variable-name";
 import { dataTypeLabel } from "../../property-types";
+import { identifierKindLabel, matchKeyFirst } from "../../utils";
 
 type RowHandlers = {
   onRename: (property: AudienceProperty) => void;
@@ -44,12 +49,39 @@ function propertyActions(property: AudienceProperty, handlers: RowHandlers) {
 const NAME_CELL = "text-sm font-medium break-words whitespace-normal";
 const TYPE_CELL = `text-sm text-muted-foreground ${SHRINK}`;
 
+type NameProps = { property: AudienceProperty; kind: AudienceIdentifierKind };
+
+/** Pinned first and tagged: it copies the match key, so People shows it as the identifier. */
+function MatchKeyName({ property, kind }: Readonly<NameProps>) {
+  const label = identifierKindLabel(kind);
+  return (
+    <span className="flex flex-col gap-1">
+      <span className="inline-flex flex-wrap items-center gap-2">
+        {property.name}
+        <Badge variant="secondary">Match key</Badge>
+      </span>
+      <span className="text-xs font-normal text-muted-foreground">
+        {`People are matched by ${label}, so the people table shows it as their identifier, not as a property.`}
+      </span>
+    </span>
+  );
+}
+
+function PropertyName({ property, kind }: Readonly<NameProps>) {
+  return property.variableName === kind ? (
+    <MatchKeyName property={property} kind={kind} />
+  ) : (
+    property.name
+  );
+}
+
 function propertyCells(
-  property: AudienceProperty,
+  { property, kind }: NameProps,
   handlers?: RowHandlers,
 ): StaticDataTableCell[] {
+  const name = <PropertyName property={property} kind={kind} />;
   const cells = [
-    dataTableCell("name", property.name, NAME_CELL),
+    dataTableCell("name", name, NAME_CELL),
     dataTableCell("variable", <VariableName value={property.variableName} />),
     dataTableCell("type", dataTypeLabel(property.dataType), TYPE_CELL),
   ];
@@ -61,23 +93,26 @@ function propertyCells(
 }
 
 type PropertiesTableProps = {
+  identifierKind: AudienceIdentifierKind;
   properties: AudienceProperty[];
   /** Omitted for a read-only reader: the table has no actions column. */
   handlers?: RowHandlers;
 };
 
+/** The match-key property is pinned first; the rest keep their order. */
 export function PropertiesTable({
+  identifierKind: kind,
   properties,
   handlers,
 }: Readonly<PropertiesTableProps>) {
   const columns = handlers ? COLUMNS : COLUMNS.slice(0, -1);
   return (
     <StaticDataTable columns={columns}>
-      {properties.map((property, index) => (
+      {matchKeyFirst(properties, kind).map((property, index) => (
         <StaticDataTableRow
           key={property.id}
           index={index}
-          cells={propertyCells(property, handlers)}
+          cells={propertyCells({ property, kind }, handlers)}
         />
       ))}
     </StaticDataTable>

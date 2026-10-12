@@ -59,6 +59,17 @@ export function valueProperties(
   return properties.filter((property) => property.variableName !== kind);
 }
 
+/** The property named like the match key first, then the rest in their order. */
+export function matchKeyFirst(
+  properties: readonly AudienceProperty[],
+  kind: AudienceIdentifierKind,
+): AudienceProperty[] {
+  return [
+    ...properties.filter((property) => property.variableName === kind),
+    ...valueProperties(properties, kind),
+  ];
+}
+
 /** A JSON array of keys (choices, or a multiple-choice value); `undefined` when it is not one. */
 export function parseKeyArray(
   json: string | null | undefined,

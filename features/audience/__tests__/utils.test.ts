@@ -8,6 +8,7 @@ import {
   changedValues,
   choiceKeysOf,
   formatPropertyValue,
+  matchKeyFirst,
   fromLocalDateTimeInput,
   parseKeyArray,
   toLocalDateTimeInput,
@@ -153,6 +154,26 @@ describe("choiceKeysOf", () => {
       [],
     );
     expect(choiceKeysOf(property(AudienceDataType.Text))).toEqual([]);
+  });
+});
+
+describe("matchKeyFirst", () => {
+  it("moves the match-key property to the front and keeps the others in order", () => {
+    const properties = ["age", "external_id", "city"].map((variableName) => ({
+      id: variableName,
+      formId: "1",
+      variableName,
+      name: variableName,
+      dataType: AudienceDataType.Text,
+      sortOrder: 0,
+      allowsOther: false,
+    }));
+
+    expect(
+      matchKeyFirst(properties, AudienceIdentifierKind.ExternalId).map(
+        (p) => p.variableName,
+      ),
+    ).toEqual(["external_id", "age", "city"]);
   });
 });
 
