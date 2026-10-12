@@ -1,9 +1,9 @@
 import { expect, test } from "@playwright/test";
 import { SignInPage } from "../../pages/auth/sign-in.page";
+import { variableNameFromName } from "@/features/audience/property-types";
 import {
   importPanelCsv,
   signInForAudience,
-  slugifyPropertyName,
 } from "../../utils/audience-import-api";
 import { deleteForm, e2eCredentials } from "../../utils/screen-out-api";
 
@@ -68,7 +68,7 @@ test.describe("Audience panel CSV", () => {
       if (people.success) {
         expect(people.data.totalRecords).toBe(5000);
       }
-      expect(slugifyPropertyName("family_size")).toBe("family_size");
+      expect(variableNameFromName("family_size")).toBe("family_size");
     } finally {
       await deleteForm(api!, panel.formId);
     }

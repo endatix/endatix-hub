@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type {
   AudienceIdentifierKind,
@@ -75,14 +75,21 @@ type FileState = { file: LoadedFile | null; problem: string | null };
 /** The chosen file and its preview, or why it cannot be imported; `onRead` gets its headers. */
 function useImportFile(onRead: (headers: string[]) => void) {
   const [state, setState] = useState<FileState>(NO_FILE);
+  const generation = useRef(0);
   const pick = async (picked: File) => {
+    const current = ++generation.current;
     const read = await readFile(picked);
+    if (current !== generation.current) return;
     if (Result.isError(read))
       return setState({ file: null, problem: read.message });
     setState({ file: read.value, problem: null });
     onRead(read.value.preview.headers);
   };
-  return { ...state, pick, reset: () => setState(NO_FILE) };
+  const reset = () => {
+    generation.current += 1;
+    setState(NO_FILE);
+  };
+  return { ...state, pick, reset };
 }
 
 type ChoiceState = {

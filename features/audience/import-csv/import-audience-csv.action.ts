@@ -4,6 +4,7 @@ import { Permissions } from "@/features/auth/authorization";
 import type { AudienceImportResult } from "@/lib/endatix-api/audience/types";
 import { Result } from "@/lib/result";
 import { withHubAudienceApi } from "../shared/with-hub-audience-api.server";
+import { readCsvPreview } from "./csv-preview";
 
 export type ImportAudienceCsvInput = {
   formId: string;
@@ -20,12 +21,21 @@ const IMPORT_LOG = {
   loggerName: "audience.import",
 } as const;
 
-export async function importAudienceCsvAction(
+function rejectUnusable(
   input: ImportAudienceCsvInput,
-): Promise<Result<AudienceImportResult>> {
+): Result<AudienceImportResult> | null {
   if (!input.identifierColumn.trim()) {
     return Result.validationError("Choose the identifier column.");
   }
+  const preview = readCsvPreview(input.csvText);
+  return Result.isError(preview) ? preview : null;
+}
+
+export async function importAudienceCsvAction(
+  input: ImportAudienceCsvInput,
+): Promise<Result<AudienceImportResult>> {
+  const rejected = rejectUnusable(input);
+  if (rejected) return rejected;
 
   return withHubAudienceApi(
     (api) =>

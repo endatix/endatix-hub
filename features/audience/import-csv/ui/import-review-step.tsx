@@ -22,7 +22,6 @@ const Literal = ({ value }: Readonly<{ value: string }>) => (
   <span className="font-mono">{value}</span>
 );
 
-/** Each property the file fills, labelled by the property, valued by its column. */
 /** Columns the import leaves out, so a forgotten one shows before anything is written. */
 function SkippedRow({ wizard, file, setup }: Readonly<ReviewProps>) {
   const { identifierColumn, columns } = wizard.choices;

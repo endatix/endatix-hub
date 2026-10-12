@@ -6,6 +6,7 @@ import {
   AudienceIdentifierKind,
   type AudienceImportResult,
 } from "@/lib/endatix-api/audience/types";
+import { variableNameFromName } from "@/features/audience/property-types";
 import { deleteForm, e2eCredentials, signInE2eApi } from "./screen-out-api";
 
 const FIXTURES = path.join(process.cwd(), "e2e/fixtures/audience");
@@ -28,14 +29,6 @@ export type PanelImport = {
 
 export function panelCsv(fileName: string): string {
   return readFileSync(path.join(FIXTURES, fileName), "utf8");
-}
-
-export function slugifyPropertyName(name: string): string {
-  return name
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "");
 }
 
 export async function signInForAudience(): Promise<EndatixApi | undefined> {
@@ -63,7 +56,7 @@ export async function importPanelCsv(
       propertyColumns: Object.fromEntries(
         headers
           .filter((header) => header !== IDENTIFIER_COLUMN)
-          .map((header) => [slugifyPropertyName(header), header]),
+          .map((header) => [variableNameFromName(header), header]),
       ),
     });
     if (!imported.success) {
@@ -99,23 +92,32 @@ async function switchMatchKeyToExternalId(api: EndatixApi): Promise<void> {
   }
 }
 
+async function createColumn(
+  api: EndatixApi,
+  formId: string,
+  header: string,
+): Promise<void> {
+  const created = await api.audience.createProperty(formId, {
+    name: header,
+    dataType: NUMBER_HEADERS.has(header)
+      ? AudienceDataType.Number
+      : AudienceDataType.Text,
+  });
+  if (!created.success) {
+    throw new Error(
+      `Create property ${header} failed: ${created.error.message}`,
+    );
+  }
+}
+
 async function createColumns(
   api: EndatixApi,
   formId: string,
   headers: string[],
 ): Promise<void> {
-  for (const header of headers) {
-    if (header === IDENTIFIER_COLUMN) {
-      continue;
-    }
-    const created = await api.audience.createProperty(formId, {
-      name: header,
-      dataType: NUMBER_HEADERS.has(header)
-        ? AudienceDataType.Number
-        : AudienceDataType.Text,
-    });
-    if (!created.success) {
-      throw new Error(`Create property ${header} failed: ${created.error.message}`);
-    }
-  }
+  await Promise.all(
+    headers
+      .filter((header) => header !== IDENTIFIER_COLUMN)
+      .map((header) => createColumn(api, formId, header)),
+  );
 }

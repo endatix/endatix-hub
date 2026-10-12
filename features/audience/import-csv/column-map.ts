@@ -5,7 +5,8 @@ import {
 } from "@/lib/endatix-api/audience/types";
 import { variableNameFromName } from "../property-types";
 
-export const SKIP_COLUMN = "skip";
+/** Not a variable name, so a property or header called `skip` stays selectable. */
+export const SKIP_COLUMN = ":skip";
 
 /** What each file column feeds: a property's variable name, or `SKIP_COLUMN`. */
 export type ColumnMap = Record<string, string>;

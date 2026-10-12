@@ -91,4 +91,8 @@ describe("column choices", () => {
       age: "age",
     });
   });
+
+  it("keeps a property whose variable name is skip", () => {
+    expect(propertyColumnMap({ notes: "skip" })).toEqual({ skip: "notes" });
+  });
 });
