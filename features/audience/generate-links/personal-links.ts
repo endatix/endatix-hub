@@ -13,7 +13,8 @@ export function personalLinkUrl(
   formId: string,
   token: string,
 ): string {
-  return `${origin}${withBasePath(`/share/${formId}/a/${token}`)}`;
+  const path = withBasePath(`/share/${formId}/a/${token}`);
+  return `${origin}${path}`;
 }
 
 /** `personalised-links-<form>-2026-10-12.csv`: dated, so a second batch never overwrites the first. */

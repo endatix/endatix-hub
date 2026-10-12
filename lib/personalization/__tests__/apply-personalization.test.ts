@@ -3,17 +3,17 @@ import { applyPersonalizationToModel } from "../apply-personalization";
 
 describe("applyPersonalizationToModel", () => {
   it("overwrites a URL variable with the frozen value", () => {
-    const values = new Map<string, unknown>([["ciudad", "from-url"]]);
+    const values = new Map<string, unknown>([["city", "from-url"]]);
     const model = {
       setVariable: (name: string, value: unknown) => values.set(name, value),
     };
 
     applyPersonalizationToModel(model, {
-      variables: { ciudad: "03. ANTIOQUIA - MEDELLIN", edac: 65 },
+      variables: { city: "03. MIDWEST - COLUMBUS", age: 65 },
     });
 
-    expect(values.get("ciudad")).toBe("03. ANTIOQUIA - MEDELLIN");
-    expect(values.get("edac")).toBe(65);
+    expect(values.get("city")).toBe("03. MIDWEST - COLUMBUS");
+    expect(values.get("age")).toBe(65);
   });
 
   it("leaves the model alone when there is no snapshot", () => {

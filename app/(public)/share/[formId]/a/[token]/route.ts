@@ -1,5 +1,6 @@
 import { FormTokenCookieStore } from "@/features/public-form/infrastructure/cookie-store";
 import { EndatixApi } from "@/lib/endatix-api";
+import { withBasePath } from "@/lib/hosting";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
@@ -14,5 +15,7 @@ export async function GET(request: Request, { params }: RouteParams) {
 
   const store = new FormTokenCookieStore(await cookies());
   store.setToken({ formId, token: redeemed.data.accessToken });
-  return NextResponse.redirect(new URL(`/share/${formId}`, request.url));
+  return NextResponse.redirect(
+    new URL(withBasePath(`/share/${formId}`), request.url),
+  );
 }

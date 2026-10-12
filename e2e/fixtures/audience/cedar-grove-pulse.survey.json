@@ -1,5 +1,5 @@
 {
-  "title": "{ciudad}",
+  "title": "{city}",
   "pages": [
     {
       "name": "page1",
@@ -8,19 +8,19 @@
           "type": "text",
           "name": "familySize",
           "title": "Family size",
-          "defaultValueExpression": "{tama_o_de_familia}"
+          "defaultValueExpression": "{family_size}"
         },
         {
           "type": "text",
           "name": "ageInMonths",
           "title": "Age in months",
-          "defaultValueExpression": "{edac} * 12"
+          "defaultValueExpression": "{age} * 12"
         },
         {
           "type": "text",
           "name": "olderAdult",
-          "title": "Shown when edac is at least 50",
-          "visibleIf": "{edac} >= 50"
+          "title": "Shown when age is at least 50",
+          "visibleIf": "{age} >= 50"
         }
       ]
     }
