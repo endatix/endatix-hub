@@ -1,7 +1,8 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   AudienceDataType,
+  AudienceIdentifierKind,
   type AudiencePerson,
   type AudienceProperty,
 } from "@/lib/endatix-api/audience/types";
@@ -36,7 +37,18 @@ const PERSON: AudiencePerson = {
   values: { a: "Sofia", b: "Sales" },
 };
 
+// Radix tooltips (the identifier's copy affordance) measure with ResizeObserver.
+class ResizeObserverStub {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+
 describe("EditPersonPanel", () => {
+  beforeEach(() => {
+    vi.stubGlobal("ResizeObserver", ResizeObserverStub);
+  });
+
   it("saves only the value that changed", async () => {
     // Arrange
     vi.mocked(updateAudiencePersonAction).mockResolvedValue(
@@ -48,6 +60,7 @@ describe("EditPersonPanel", () => {
         open
         formId="1"
         person={PERSON}
+        identifierKind={AudienceIdentifierKind.Email}
         properties={[textProperty("a", "City"), textProperty("b", "Team")]}
         onClose={onClose}
       />,
@@ -79,6 +92,7 @@ describe("EditPersonPanel", () => {
         open
         formId="1"
         person={PERSON}
+        identifierKind={AudienceIdentifierKind.Email}
         properties={[textProperty("a", "City")]}
         onClose={onClose}
       />,
@@ -101,6 +115,7 @@ describe("EditPersonPanel", () => {
         open
         formId="1"
         person={PERSON}
+        identifierKind={AudienceIdentifierKind.Email}
         properties={[textProperty("a", "City")]}
         onClose={onClose}
       />,
@@ -115,5 +130,35 @@ describe("EditPersonPanel", () => {
       await screen.findByText("Something went wrong. Try again."),
     ).toBeTruthy();
     expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("names the task and shows the match key as a locked row above the values", () => {
+    // Arrange
+    const person = { ...PERSON, identifier: "CG-000003-01" };
+
+    // Act
+    render(
+      <EditPersonPanel
+        open
+        formId="1"
+        person={person}
+        identifierKind={AudienceIdentifierKind.ExternalId}
+        properties={[textProperty("a", "household_size")]}
+        onClose={vi.fn()}
+      />,
+    );
+
+    // Assert
+    expect(screen.getByRole("heading", { name: "Edit person" })).toBeTruthy();
+    const personSection = screen.getByRole("heading", { name: "Person" });
+    const values = screen.getByRole("heading", { name: "Properties" });
+    expect(
+      personSection.compareDocumentPosition(values) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(screen.getByText("External ID").tagName).toBe("DT");
+    expect(screen.getAllByText("CG-000003-01")).toHaveLength(1);
+    expect(screen.getByText("Locked")).toBeTruthy();
+    expect(screen.queryByRole("textbox", { name: "External ID" })).toBeNull();
   });
 });

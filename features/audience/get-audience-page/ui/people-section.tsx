@@ -19,6 +19,7 @@ import { ImportCsvPanel } from "../../import-csv/ui/import-csv-panel";
 import { RemovePersonDialog } from "../../delete-person/ui/remove-person-dialog";
 import { EditPersonPanel } from "../../update-person/ui/edit-person-panel";
 import { useRowOverlay } from "../../use-panel-state.hook";
+import { valueProperties } from "../../utils";
 import { PeopleTable } from "./people-table";
 import { SectionHeader } from "./section-header";
 
@@ -89,7 +90,10 @@ function PeopleSurface(props: Readonly<PeopleSurfaceProps>) {
 }
 
 type Overlays = ReturnType<typeof useRowOverlay<AudiencePerson>>;
-type OverlayProps = Pick<PeopleSectionProps, "formId" | "properties"> & {
+type OverlayProps = Pick<
+  PeopleSectionProps,
+  "formId" | "identifierKind" | "properties"
+> & {
   row: Overlays;
 };
 
@@ -124,7 +128,10 @@ function PeopleActions(props: Readonly<PeopleSectionProps>) {
     <div className="flex flex-wrap gap-2">
       <ImportCsvPanel {...props} />
       <GenerateLinksPanel {...props} />
-      <AddPersonPanel {...props} />
+      <AddPersonPanel
+        {...props}
+        properties={valueProperties(props.properties, props.identifierKind)}
+      />
     </div>
   );
 }
@@ -145,16 +152,21 @@ function PeopleHeader(props: Readonly<PeopleSectionProps>) {
   );
 }
 
+/** Import keeps every property as a target; the rest show and edit only value properties. */
 export function PeopleSection(props: Readonly<PeopleSectionProps>) {
   const row = useRowOverlay<AudiencePerson>();
+  const values = {
+    ...props,
+    properties: valueProperties(props.properties, props.identifierKind),
+  };
   const handlers = props.canEdit
     ? { onEdit: row.edit, onRemove: row.remove }
     : undefined;
   return (
     <section aria-labelledby="audience-people" className="flex flex-col gap-4">
       <PeopleHeader {...props} />
-      <PeopleSurface {...props} handlers={handlers} />
-      {props.canEdit ? <PeopleOverlays {...props} row={row} /> : null}
+      <PeopleSurface {...values} handlers={handlers} />
+      {props.canEdit ? <PeopleOverlays {...values} row={row} /> : null}
     </section>
   );
 }

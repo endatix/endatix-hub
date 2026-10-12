@@ -3,7 +3,10 @@
 import type { ReactNode } from "react";
 import { Columns3 } from "lucide-react";
 import { DataTableEmpty, DataTableSurface } from "@/components/table";
-import type { AudienceProperty } from "@/lib/endatix-api/audience/types";
+import type {
+  AudienceIdentifierKind,
+  AudienceProperty,
+} from "@/lib/endatix-api/audience/types";
 import { AddPropertyPanel } from "../../create-property/ui/add-property-panel";
 import { DeletePropertyDialog } from "../../delete-property/ui/delete-property-dialog";
 import { RenamePropertyPanel } from "../../update-property/ui/rename-property-panel";
@@ -13,6 +16,7 @@ import { SectionHeader } from "./section-header";
 
 type PropertiesSectionProps = {
   formId: string;
+  identifierKind: AudienceIdentifierKind;
   properties: AudienceProperty[];
   totalPeople: number;
   /** Without `forms.edit` the list is read-only: no add, rename or delete controls. */
@@ -28,18 +32,20 @@ type RowTargets = {
 const DESCRIPTION =
   "The facts kept for each person on this form, such as a department or a plan. Each one is a column in the people table.";
 
-function PropertiesSurface({
-  properties,
-  targets,
-}: Readonly<{ properties: AudienceProperty[]; targets?: RowTargets }>) {
+type SurfaceProps = Pick<
+  PropertiesSectionProps,
+  "identifierKind" | "properties"
+> & { targets?: RowTargets };
+
+function PropertiesSurface({ targets, ...table }: Readonly<SurfaceProps>) {
   return (
     <DataTableSurface data-slot="audience-properties-table">
-      {properties.length === 0 ? (
+      {table.properties.length === 0 ? (
         <DataTableEmpty icon={Columns3} title="No properties yet">
           Add a property for each fact you want to keep per person.
         </DataTableEmpty>
       ) : (
-        <PropertiesTable properties={properties} handlers={targets} />
+        <PropertiesTable {...table} handlers={targets} />
       )}
     </DataTableSurface>
   );
@@ -102,7 +108,11 @@ export function PropertiesSection(props: Readonly<PropertiesSectionProps>) {
       className="flex flex-col gap-4"
     >
       <PropertiesHeader {...props} />
-      <PropertiesSurface properties={props.properties} targets={targets} />
+      <PropertiesSurface
+        identifierKind={props.identifierKind}
+        properties={props.properties}
+        targets={targets}
+      />
       {props.canEdit ? <PropertyOverlays {...props} row={row} /> : null}
     </section>
   );

@@ -47,6 +47,29 @@ export function identifierKindHelp(kind: AudienceIdentifierKind): string {
   return IDENTIFIER_KIND_UI[kind]?.help ?? "";
 }
 
+/**
+ * The properties a person has values for. One named like the match key (`email`,
+ * `external_id`) would be an empty second copy of the identifier that cannot change who the
+ * person is, so it is left out of the table and the add and edit panels.
+ */
+export function valueProperties(
+  properties: readonly AudienceProperty[],
+  kind: AudienceIdentifierKind,
+): AudienceProperty[] {
+  return properties.filter((property) => property.variableName !== kind);
+}
+
+/** The property named like the match key first, then the rest in their order. */
+export function matchKeyFirst(
+  properties: readonly AudienceProperty[],
+  kind: AudienceIdentifierKind,
+): AudienceProperty[] {
+  return [
+    ...properties.filter((property) => property.variableName === kind),
+    ...valueProperties(properties, kind),
+  ];
+}
+
 /** A JSON array of keys (choices, or a multiple-choice value); `undefined` when it is not one. */
 export function parseKeyArray(
   json: string | null | undefined,

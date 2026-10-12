@@ -32,19 +32,19 @@ function ViewSwitch({ formId, view, data }: Readonly<Props>) {
 function ActiveView(props: Readonly<Props>) {
   const { settings, canManageMatchKey: _, ...lists } = props.data;
   const viewSwitch = <ViewSwitch {...props} />;
-  const section = { formId: props.formId, viewSwitch, ...lists };
+  const { identifierKind } = settings;
+  const section = {
+    formId: props.formId,
+    viewSwitch,
+    identifierKind,
+    ...lists,
+  };
   if (props.view === AudienceView.Properties)
     return <PropertiesSection {...section} />;
   const note = settings.isLocked ? (
-    <MatchKeySummary identifierKind={settings.identifierKind} />
+    <MatchKeySummary identifierKind={identifierKind} />
   ) : null;
-  return (
-    <PeopleSection
-      {...section}
-      identifierKind={settings.identifierKind}
-      matchKeyNote={note}
-    />
-  );
+  return <PeopleSection {...section} matchKeyNote={note} />;
 }
 
 export function AudiencePageClient(props: Readonly<Props>) {

@@ -150,6 +150,7 @@ Before building a control, check whether the vocabulary already exists here.
 | `components/common/download-menu.tsx` — `DownloadMenu`                                            | The one Download control: a button for one format, a menu of formats with file marks (§6 Hand over a file) |
 | `components/common/pending-button.tsx` — `PendingButton`                                          | An action button that swaps to a spinner and its running verb (Buttons, below)                             |
 | `components/common/summary-row.tsx` — `SummaryRow`                                                | Label-left / value-right rows (§6 Displaying values)                                                       |
+| `components/common/locked-value.tsx` — `LockedValue`                                              | A value an overlay can never change, with its `Locked` badge, as a `SummaryRow` value (§6 Controls)        |
 | `components/common/truncated-id.tsx` — `TruncatedId`                                              | A long id shortened to head…tail with a copy affordance                                                    |
 | `components/common/text-link.tsx` — `TextLink`                                                    | An inline link; `external` for one that leaves the Hub (Links, below)                                      |
 | `components/layout-ui/navigation/nav-switcher.tsx` — `NavSwitcher`                                | The current choice among siblings as a menu, with icons and a check (§6 Record workspace)                  |
@@ -530,8 +531,13 @@ to `value` are `completed`; the `value` step itself is `active`. Reference:
   bare wall time as UTC would store a different instant. A choice control always offers the
   stored value, even one outside its list, so nothing stored is hidden or silently cleared.
   Reference: `features/audience/ui/property-value-field.tsx`.
-- **Chips / tags:** `rounded-full` to distinguish from buttons; `tertiary_container` for neutral
-  data tags. Status tags are `StatusBadge`.
+- **Chips / tags:** `rounded-full` to distinguish from buttons. Status tags are `StatusBadge`,
+  and its dot marks a state. A role tag says what a row _is_, not its state (`Identifier` on the
+  property that copies the match key). It is a `Badge variant="secondary"` with no dot, placed
+  after the row's name, so the reader does not read it as a status. It may carry the icon of the
+  section that owns the concept elsewhere (`UserRound`, the Person section of Add and Edit person),
+  and its help line reuses that section's wording ("It matches … across forms"), so one idea looks
+  and reads the same on every surface.
 
 ---
 
@@ -594,6 +600,19 @@ text-muted-foreground` — no left-border rule.
   badge where the reader works (the audience match key in the People description).
 - **Immutability belongs on the field it constrains** (a `Locked` badge + one line), not in the
   panel description.
+- **A value an edit can never change is a read-only row, not a disabled input.** Show it as a
+  `SummaryRow` whose value is wrapped in `LockedValue`, copyable when it is a key or an id, with
+  one `text-xs` line saying why it never changes. A disabled input means "not now" (the first rule
+  here), fades the value the reader came to check, and cannot be copied. Reference:
+  `features/audience/update-person/ui/edit-person-panel.tsx`.
+- **A record's key appears once, as the key.** A field that copies it (a property named like the
+  audience match key, `email` or `external_id`) is left out of the table and the add and edit
+  overlays. Editing it could not change who the record is, so it would only be an empty second
+  copy. Filter it once, where the list is handed to them (`valueProperties`). Where the fields
+  themselves are what the page lists (the Properties view), that field is pinned first with an
+  `Identifier` tag and one line saying where the key shows instead. That way, its absence from the
+  other places is explained where the reader would look for it. Reference:
+  `features/audience/get-audience-page/ui/properties-table.tsx`.
 - **A key derived from a name is previewed before it is fixed.** While the reader types, the
   field's help line shows the key it will produce ("Variable name `cost_center`. It never
   changes…"), or why none can be made, with the submit disabled. In the edit overlay the key is a
@@ -1017,12 +1036,19 @@ Single-submit create with draft + lock + in-panel failure (the common case):
 `features/audience/create-person/` (`PanelForm` + `use-add-person.hook.ts`). Wiring layers are in
 `project-structure.md` (**PanelForm state**).
 
-1. **Header** — title + one sentence describing the _current step_.
+1. **Header** — title + one sentence describing the _current step_. The title names the task
+   (`Add person`, `Edit person`, `Rename property`), not the record: the record's identity is the
+   first section, so it is said once, with its label and type.
 2. **`PanelSteps`** (multi-step only) — the progress track, first in the body.
 3. **`PanelSection` per concern** — icon, title, optional description, optional `aside` for
    status, on `bg-surface-container-low`. One icon per section, none on fields.
 4. **Closing `Alert`** when the step has a consequence worth stating.
 
+- **An edit overlay mirrors its create overlay.** It has the same sections in the same order
+  under the same titles and icons. A field that became fixed on create is shown as a locked row
+  in that section (Controls & consequences). `Add person`'s Person section holds the identifier
+  input, and `Edit person`'s holds the identifier as a locked row. The reader recognises the
+  shape, and one concept keeps one section name.
 - **A section owns its own surface.** Shared field groups (`TenantAccessFields`) render their own
   `PanelSection`; call sites never wrap them in a tinted `div`.
 - **Multi-step:** show the track, don't narrate "Step 2 of 3". Step labels are nouns matching the
@@ -1238,6 +1264,10 @@ Before finishing UI work, check:
       so (§6 Hand over a file).
 - [ ] A multi-step overlay shows `Back` from step 2 and only `Done` on its outcome (§6 Create /
       edit overlay).
+- [ ] An edit overlay is titled by its task and mirrors its create overlay's sections. Values it
+      cannot change are `LockedValue` rows, never disabled inputs, and a copy of the record's key
+      is not a field; where fields are listed, it is pinned first with a role tag and says why
+      (§5 Chips, §6 Controls, Create / edit overlay).
 - [ ] No presigned URL outlives the view that signed it (§6).
 - [ ] Public pages use `PublicStatusPage` and have their own `error.tsx` (§6).
 - [ ] Seen in the running app: screenshots at desktop width and below 768px for overlays, in light

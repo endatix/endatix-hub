@@ -1,4 +1,4 @@
-import { StatusBadge } from "@/components/common/status-badge";
+import { LockedValue } from "@/components/common/locked-value";
 import { SummaryRow } from "@/components/common/summary-row";
 import type { AudienceProperty } from "@/lib/endatix-api/audience/types";
 import { VariableName } from "../../ui/variable-name";
@@ -7,10 +7,9 @@ import { dataTypeLabel } from "../../property-types";
 /** The key, copyable, with the lock on the field it constrains (DESIGN.md §6). */
 function LockedVariableName({ value }: Readonly<{ value: string }>) {
   return (
-    <span className="inline-flex flex-wrap items-center justify-end gap-2">
+    <LockedValue>
       <VariableName value={value} />
-      <StatusBadge tone="off" label="Locked" />
-    </span>
+    </LockedValue>
   );
 }
 
