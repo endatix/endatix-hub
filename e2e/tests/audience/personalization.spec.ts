@@ -11,6 +11,7 @@ import {
 import { playgroundEmbedHostHref } from "../../utils/open-embed-host";
 import {
   createShareAccessToken,
+  e2eCredentials,
   trySecondOnBehalf,
 } from "../../utils/screen-out-api";
 
@@ -216,16 +217,23 @@ async function completeSurvey(survey: SurveySurface): Promise<void> {
 test.describe("On-behalf personalization", () => {
   test.setTimeout(120_000);
 
+  // Live Hub/API session; CI without E2E_EMAIL / E2E_PASSWORD has nothing to call.
+  test.beforeEach(() => {
+    test.skip(!e2eCredentials(), "Set E2E_EMAIL and E2E_PASSWORD.");
+  });
+
   test("one response shows the frozen values, then thank you on reload", async ({
     page,
   }) => {
     const api = await signInForAudience();
-    test.skip(!api, "Set E2E_EMAIL and E2E_PASSWORD.");
-    const form = await preparePanelForm(api!, "Cedar Grove one response", FIXTURE);
+    if (!api) {
+      throw new Error("E2E sign-in failed");
+    }
+    const form = await preparePanelForm(api, "Cedar Grove one response", FIXTURE);
     try {
-      await publishSurvey(api!, form.formId);
-      await importFirstRow(api!, form.formId);
-      const opened = await openOnBehalf(api!, form.formId);
+      await publishSurvey(api, form.formId);
+      await importFirstRow(api, form.formId);
+      const opened = await openOnBehalf(api, form.formId);
 
       const share = await openSurvey(page, "share", form.formId, opened.shareToken);
       await expectFrozen(share);
@@ -256,8 +264,8 @@ test.describe("On-behalf personalization", () => {
         await expectThankYou(returned);
       }
 
-      await expectStoredAnswer(api!, form.formId, opened.submissionId);
-      const second = await trySecondOnBehalf(api!, form.formId, SUBJECT);
+      await expectStoredAnswer(api, form.formId, opened.submissionId);
+      const second = await trySecondOnBehalf(api, form.formId, SUBJECT);
       expect(second.success, "limit one per user refuses a second submission").toBe(
         false,
       );
