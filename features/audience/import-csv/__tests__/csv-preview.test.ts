@@ -35,6 +35,25 @@ describe("readCsvPreview", () => {
     expect(preview(csv).samples.note).toEqual(["two\r\nlines", "plain"]);
   });
 
+  it("ends a record at a lone carriage return, as old Mac exports write", () => {
+    const csv = "id,city\r1,Columbus\r2,Dayton\r";
+
+    expect(preview(csv).rowCount).toBe(2);
+    expect(preview(csv).samples.city).toEqual(["Columbus", "Dayton"]);
+  });
+
+  it("counts a line of commas as a row, as the API does, and drops only empty lines", () => {
+    const csv = "id,city\n1,Columbus\n\n,\n";
+
+    expect(preview(csv).rowCount).toBe(2);
+  });
+
+  it("refuses two columns with the same name, whatever their case", () => {
+    expect(problem("Email,city,email\na@b.co,X,c@d.co\n")).toMatch(
+      /more than one column named email/,
+    );
+  });
+
   it("explains a file it cannot import", () => {
     expect(problem("   ")).toMatch(/no header row/);
     expect(problem("email\n")).toMatch(/no people/);

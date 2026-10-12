@@ -21,11 +21,15 @@ const NUMBER_HEADERS = new Set([
 
 const IDENTIFIER_COLUMN = "external_id";
 
-export type PanelImport = {
+/** A form with a property per fixture column, under the external id match key. */
+export type PanelForm = {
   api: EndatixApi;
   formId: string;
-  result: AudienceImportResult;
+  /** Deletes the form, then puts back the tenant match key the test found. */
+  cleanup: () => Promise<void>;
 };
+
+export type PanelImport = PanelForm & { result: AudienceImportResult };
 
 export function panelCsv(fileName: string): string {
   return readFileSync(path.join(FIXTURES, fileName), "utf8");
@@ -38,19 +42,50 @@ export async function signInForAudience(): Promise<EndatixApi | undefined> {
   return signInE2eApi();
 }
 
+/** The fixture's header cells; the fixtures quote no header. */
+export function panelCsvHeaders(fileName: string): string[] {
+  return panelCsv(fileName).split(/\r?\n/, 1)[0]?.split(",") ?? [];
+}
+
+/**
+ * Creates the form, switches the tenant to the external id match key and adds a property per
+ * column. Cleanup deletes the form and restores the match key it found.
+ */
+export async function preparePanelForm(
+  api: EndatixApi,
+  formName: string,
+  fileName: string,
+): Promise<PanelForm> {
+  const formId = await createForm(api, formName);
+  let restoreMatchKey: () => Promise<void> = async () => {};
+  const cleanup = async () => {
+    try {
+      await deleteForm(api, formId);
+    } finally {
+      await restoreMatchKey();
+    }
+  };
+  try {
+    restoreMatchKey = await switchMatchKeyToExternalId(api);
+    await createColumns(api, formId, panelCsvHeaders(fileName));
+    return { api, formId, cleanup };
+  } catch (error) {
+    await cleanup();
+    throw error;
+  }
+}
+
+/** Imports the fixture through the API, every column mapped to its property. */
 export async function importPanelCsv(
   api: EndatixApi,
   formName: string,
   fileName: string,
 ): Promise<PanelImport> {
-  const formId = await createForm(api, formName);
+  const form = await preparePanelForm(api, formName, fileName);
   try {
-    await switchMatchKeyToExternalId(api);
-    const csvText = panelCsv(fileName);
-    const headers = csvText.split(/\r?\n/, 1)[0]?.split(",") ?? [];
-    await createColumns(api, formId, headers);
-    const imported = await api.audience.importCsv(formId, {
-      csvText,
+    const headers = panelCsvHeaders(fileName);
+    const imported = await api.audience.importCsv(form.formId, {
+      csvText: panelCsv(fileName),
       identifierColumn: IDENTIFIER_COLUMN,
       fileName,
       propertyColumns: Object.fromEntries(
@@ -62,9 +97,9 @@ export async function importPanelCsv(
     if (!imported.success) {
       throw new Error(`Import failed: ${imported.error.message}`);
     }
-    return { api, formId, result: imported.data };
+    return { ...form, result: imported.data };
   } catch (error) {
-    await deleteForm(api, formId);
+    await form.cleanup();
     throw error;
   }
 }
@@ -81,7 +116,19 @@ async function createForm(api: EndatixApi, name: string): Promise<string> {
   return created.data.id;
 }
 
-async function switchMatchKeyToExternalId(api: EndatixApi): Promise<void> {
+/**
+ * The match key is tenant-wide, so the switch returns a restore that puts back the value it
+ * found. Restoring is best effort: a tenant that still has people keeps its key locked.
+ */
+async function switchMatchKeyToExternalId(
+  api: EndatixApi,
+): Promise<() => Promise<void>> {
+  const current = await api.audience.getSettings();
+  if (!current.success) {
+    throw new Error(`Read audience settings failed: ${current.error.message}`);
+  }
+  const previous = current.data.identifierKind;
+  if (previous === AudienceIdentifierKind.ExternalId) return async () => {};
   const updated = await api.audience.updateSettings({
     identifierKind: AudienceIdentifierKind.ExternalId,
   });
@@ -90,6 +137,9 @@ async function switchMatchKeyToExternalId(api: EndatixApi): Promise<void> {
       `Match key must be external id for ${IDENTIFIER_COLUMN}. ${updated.error.message}`,
     );
   }
+  return async () => {
+    await api.audience.updateSettings({ identifierKind: previous });
+  };
 }
 
 async function createColumn(

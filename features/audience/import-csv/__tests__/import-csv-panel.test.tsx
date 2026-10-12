@@ -107,4 +107,22 @@ describe("ImportCsvPanel", () => {
       expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull(),
     );
   });
+  it("keeps a failed import on the review step and clears it on Back", async () => {
+    vi.mocked(importAudienceCsvAction).mockResolvedValue(
+      Result.validationError("The CSV has no 'age' column."),
+    );
+    openWithFile();
+    await screen.findByText(/panel\.csv/);
+    fireEvent.click(continueButton());
+    fireEvent.click(continueButton());
+    fireEvent.click(screen.getByRole("button", { name: "Import 2 rows" }));
+
+    expect(
+      await screen.findByText("The CSV has no 'age' column."),
+    ).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Back" }));
+
+    expect(screen.queryByText("The CSV has no 'age' column.")).toBeNull();
+    expect(screen.getByText("Identifier column")).toBeTruthy();
+  });
 });

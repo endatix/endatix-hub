@@ -178,16 +178,20 @@ function useImportWrite() {
   return { pending, ...outcome, run, reset: () => setOutcome(NOT_RUN) };
 }
 
-/** Where the wizard is, and the steps either side of it. */
-function useImportSteps() {
+/** Where the wizard is, and the steps either side of it; `onBack` runs before each step back. */
+function useImportSteps(onBack: () => void) {
   const [step, setStep] = useState<ImportStep>("file");
   const previous = PREVIOUS[step];
+  const back = () => {
+    onBack();
+    if (previous) setStep(previous);
+  };
   return {
     step,
     stepNumber: STEP_NUMBER[step],
     next: NEXT[step],
     setStep,
-    back: previous ? () => setStep(previous) : undefined,
+    back: previous ? back : undefined,
   };
 }
 
@@ -220,7 +224,8 @@ export function useImportCsv(setup: ImportCsvSetup) {
   const choices = useColumnChoices(setup);
   const { reset: resetFile, ...source } = useImportFile(choices.suggest);
   const { run, reset, ...write } = useImportWrite();
-  const { next, setStep, ...steps } = useImportSteps();
+  // A failed import's message belongs to the review step; going back to change a choice clears it.
+  const { next, setStep, ...steps } = useImportSteps(reset);
   const panel = usePanelOpen(() => {
     resetFile();
     reset();
