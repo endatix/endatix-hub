@@ -120,7 +120,12 @@ describe("ImportCsvPanel", () => {
     expect(
       await screen.findByText("The CSV has no 'age' column."),
     ).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Back" }));
+    // The message can land a tick before the import stops pending; Back is disabled until then.
+    const back = screen.getByRole("button", {
+      name: "Back",
+    }) as HTMLButtonElement;
+    await waitFor(() => expect(back.disabled).toBe(false));
+    fireEvent.click(back);
 
     expect(screen.queryByText("The CSV has no 'age' column.")).toBeNull();
     expect(screen.getByText("Identifier column")).toBeTruthy();
