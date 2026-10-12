@@ -38,9 +38,9 @@ pnpm test:e2e --grep "Embed Form"
 
 ```bash
 cd hub
-E2E_EMAIL="tech@endatix.com" pnpm test:e2e --grep "On-behalf personalization" --workers=1
-E2E_EMAIL="tech@endatix.com" pnpm test:e2e:ui --grep "On-behalf personalization"
-E2E_EMAIL="tech@endatix.com" pnpm test:e2e:debug --grep "On-behalf personalization"
+E2E_EMAIL="you@example.com" pnpm test:e2e --grep "On-behalf personalization" --workers=1
+E2E_EMAIL="you@example.com" pnpm test:e2e:ui --grep "On-behalf personalization"
+E2E_EMAIL="you@example.com" pnpm test:e2e:debug --grep "On-behalf personalization"
 ```
 
 The password is the macOS keychain item `endatix-hub-e2e`, account `e2e`, when `E2E_PASSWORD` is unset. Hub is `http://localhost:3000`. The API is WebHost on `https://localhost:5001` (`E2E_API_URL`, default `https://localhost:5001/api`).
