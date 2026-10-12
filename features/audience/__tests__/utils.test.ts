@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   AudienceDataType,
+  AudienceIdentifierKind,
   type AudienceProperty,
 } from "@/lib/endatix-api/audience/types";
 import {
@@ -10,6 +11,7 @@ import {
   fromLocalDateTimeInput,
   parseKeyArray,
   toLocalDateTimeInput,
+  valueProperties,
 } from "../utils";
 
 function property(
@@ -151,5 +153,31 @@ describe("choiceKeysOf", () => {
       [],
     );
     expect(choiceKeysOf(property(AudienceDataType.Text))).toEqual([]);
+  });
+});
+
+describe("valueProperties", () => {
+  it("leaves out the property named like the match key, and only that one", () => {
+    const named = (variableName: string): AudienceProperty => ({
+      id: variableName,
+      formId: "1",
+      variableName,
+      name: variableName,
+      dataType: AudienceDataType.Text,
+      sortOrder: 0,
+      allowsOther: false,
+    });
+    const properties = [named("external_id"), named("email"), named("age")];
+
+    expect(
+      valueProperties(properties, AudienceIdentifierKind.ExternalId).map(
+        (p) => p.variableName,
+      ),
+    ).toEqual(["email", "age"]);
+    expect(
+      valueProperties(properties, AudienceIdentifierKind.Email).map(
+        (p) => p.variableName,
+      ),
+    ).toEqual(["external_id", "age"]);
   });
 });

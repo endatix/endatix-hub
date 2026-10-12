@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   AudienceDataType,
   AudienceIdentifierKind,
@@ -37,7 +37,18 @@ const PERSON: AudiencePerson = {
   values: { a: "Sofia", b: "Sales" },
 };
 
+// Radix tooltips (the identifier's copy affordance) measure with ResizeObserver.
+class ResizeObserverStub {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+
 describe("EditPersonPanel", () => {
+  beforeEach(() => {
+    vi.stubGlobal("ResizeObserver", ResizeObserverStub);
+  });
+
   it("saves only the value that changed", async () => {
     // Arrange
     vi.mocked(updateAudiencePersonAction).mockResolvedValue(
@@ -121,47 +132,33 @@ describe("EditPersonPanel", () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 
-  it("shows the match key above the properties and does not save it", async () => {
-    vi.mocked(updateAudiencePersonAction).mockResolvedValue(
-      Result.success(PERSON),
-    );
-    const person = { ...PERSON, identifier: "CG-000003-01", values: { a: "2" } };
+  it("names the task and shows the match key as a locked row above the values", () => {
+    // Arrange
+    const person = { ...PERSON, identifier: "CG-000003-01" };
+
+    // Act
     render(
       <EditPersonPanel
         open
         formId="1"
         person={person}
         identifierKind={AudienceIdentifierKind.ExternalId}
-        properties={[
-          textProperty("age", "age"),
-          textProperty("id", "external_id"),
-          textProperty("a", "household_size"),
-        ]}
+        properties={[textProperty("a", "household_size")]}
         onClose={vi.fn()}
       />,
     );
 
-    const identifier = screen.getByRole("heading", { name: "Identifier" });
-    const properties = screen.getByRole("heading", { name: "Properties" });
+    // Assert
+    expect(screen.getByRole("heading", { name: "Edit person" })).toBeTruthy();
+    const personSection = screen.getByRole("heading", { name: "Person" });
+    const values = screen.getByRole("heading", { name: "Properties" });
     expect(
-      identifier.compareDocumentPosition(properties) &
+      personSection.compareDocumentPosition(values) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
-    const id = screen.getByLabelText("External ID");
-    expect(id).toHaveProperty("disabled", true);
-    expect(id).toHaveProperty("value", "CG-000003-01");
-    expect(screen.queryByLabelText("external_id")).toBeNull();
-    fireEvent.change(screen.getByLabelText("household_size"), {
-      target: { value: "4" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
-
-    await waitFor(() =>
-      expect(updateAudiencePersonAction).toHaveBeenCalledWith({
-        formId: "1",
-        membershipId: "9",
-        values: { a: "4" },
-      }),
-    );
+    expect(screen.getByText("External ID").tagName).toBe("DT");
+    expect(screen.getAllByText("CG-000003-01")).toHaveLength(1);
+    expect(screen.getByText("Locked")).toBeTruthy();
+    expect(screen.queryByRole("textbox", { name: "External ID" })).toBeNull();
   });
 });

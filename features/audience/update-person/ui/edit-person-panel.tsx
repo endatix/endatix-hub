@@ -1,61 +1,82 @@
 "use client";
 
-import { KeyRound } from "lucide-react";
+import { UserRound } from "lucide-react";
 import type {
   AudienceIdentifierKind,
   AudiencePerson,
   AudienceProperty,
 } from "@/lib/endatix-api/audience/types";
-import { FieldWithHelp } from "@/components/common/field-with-help";
+import { LockedValue } from "@/components/common/locked-value";
 import { PanelForm } from "@/components/common/panel-form";
 import { PanelSection } from "@/components/common/panel-section";
-import { Input } from "@/components/ui/input";
+import { SummaryRow } from "@/components/common/summary-row";
+import CopyToClipboard from "@/components/copy-to-clipboard";
 import { PersonValueFields } from "../../ui/person-value-fields";
-import { identifierKindHelp, identifierKindLabel } from "../../utils";
+import { identifierKindLabel } from "../../utils";
 import { closeWhenIdle } from "../../use-panel-state.hook";
 import { useEditPerson } from "../use-edit-person.hook";
-
-const IDENTIFIER_ID = "edit-person-identifier";
 
 type EditPersonPanelProps = {
   formId: string;
   person: AudiencePerson | null;
   open: boolean;
   identifierKind: AudienceIdentifierKind;
+  /** Value properties only: the People section leaves out one named like the match key. */
   properties: AudienceProperty[];
   onClose: () => void;
 };
 
-/** The match key, above the properties, with the key mark. It is not a property value. */
-function MatchKeyField({
-  kind,
-  identifier,
-}: Readonly<{ kind: AudienceIdentifierKind; identifier: string }>) {
+type IdentityProps = { kind: AudienceIdentifierKind; identifier: string };
+
+function CopyableIdentifier({ kind, identifier }: Readonly<IdentityProps>) {
   return (
-    <PanelSection
-      icon={KeyRound}
-      title="Identifier"
-      description="How this person is matched. It cannot be changed."
-    >
-      <FieldWithHelp
-        id={IDENTIFIER_ID}
-        label={identifierKindLabel(kind)}
-        help={identifierKindHelp(kind)}
-      >
-        <Input id={IDENTIFIER_ID} value={identifier} disabled readOnly />
-      </FieldWithHelp>
+    <span className="inline-flex min-w-0 items-center gap-1">
+      <span className="break-all">{identifier}</span>
+      <CopyToClipboard
+        layout="inline"
+        copyValue={identifier}
+        label={`Copy ${identifierKindLabel(kind)} ${identifier}`}
+      />
+    </span>
+  );
+}
+
+function IdentifierRow(props: Readonly<IdentityProps>) {
+  return (
+    <dl>
+      <SummaryRow
+        label={identifierKindLabel(props.kind)}
+        value={
+          <LockedValue>
+            <CopyableIdentifier {...props} />
+          </LockedValue>
+        }
+      />
+    </dl>
+  );
+}
+
+type PersonIdentityProps = {
+  kind: AudienceIdentifierKind;
+  person: AudiencePerson | null;
+};
+
+/** Who is being edited: the match key as a locked row, in the section Add person fills in. */
+function PersonIdentity({ kind, person }: Readonly<PersonIdentityProps>) {
+  if (!person) return null;
+  return (
+    <PanelSection icon={UserRound} title="Person">
+      <div className="grid gap-3">
+        <IdentifierRow kind={kind} identifier={person.identifier} />
+        <p className="text-xs text-muted-foreground">
+          It matches this person across forms, so it never changes.
+        </p>
+      </div>
     </PanelSection>
   );
 }
 
-function valueProperties(
-  properties: readonly AudienceProperty[],
-  kind: AudienceIdentifierKind,
-) {
-  return properties.filter((property) => property.variableName !== kind);
-}
-
-/** The identifier is the title: it cannot change. A Sheet once there are 3+ properties. */
+/** The title names the task; the person is the first section. A Sheet once there are 3+ properties. */
 type PanelState = EditPersonPanelProps & { pending: boolean };
 
 function panelProps({
@@ -68,7 +89,7 @@ function panelProps({
   return {
     open: open && person !== null,
     onOpenChange: closeWhenIdle(pending, onClose),
-    title: person?.identifier,
+    title: "Edit person",
     description:
       "Values for this person on this form. Emptying a field clears it.",
     errorTitle: "Changes not saved",
@@ -86,13 +107,11 @@ export function EditPersonPanel(props: Readonly<EditPersonPanelProps>) {
   const panel = panelProps({ ...props, pending: form.pending });
   return (
     <PanelForm {...form} {...panel} onSubmit={form.submit}>
-      {person ? (
-        <MatchKeyField kind={props.identifierKind} identifier={person.identifier} />
-      ) : null}
+      <PersonIdentity kind={props.identifierKind} person={person} />
       <PersonValueFields
         idPrefix="edit-person"
         description="Only the fields you change are saved."
-        properties={valueProperties(props.properties, props.identifierKind)}
+        properties={props.properties}
         editor={form}
       />
     </PanelForm>
