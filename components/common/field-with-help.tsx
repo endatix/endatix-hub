@@ -4,7 +4,8 @@ import { cn } from "@/lib/utils";
 
 type FieldWithHelpProps = {
   id: string;
-  label: string;
+  /** Usually text; a literal from a file (a column name) may come monospace. */
+  label: ReactNode;
   /** One visible line under the control; wire the control with `aria-describedby={helpId(id)}`. */
   help: ReactNode;
   invalid?: boolean;

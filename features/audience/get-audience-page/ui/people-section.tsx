@@ -14,6 +14,7 @@ import type {
 } from "@/lib/endatix-api/audience/types";
 import { useUrlSearchParamsUpdater } from "@/lib/utils/hooks/use-url-search-params-updater.hook";
 import { AddPersonPanel } from "../../create-person/ui/add-person-panel";
+import { ImportCsvPanel } from "../../import-csv/ui/import-csv-panel";
 import { RemovePersonDialog } from "../../delete-person/ui/remove-person-dialog";
 import { EditPersonPanel } from "../../update-person/ui/edit-person-panel";
 import { useRowOverlay } from "../../use-panel-state.hook";
@@ -73,8 +74,8 @@ function PeopleSurface(props: Readonly<PeopleSurfaceProps>) {
     <DataTableSurface data-slot="audience-people-table">
       {props.totalPeople === 0 ? (
         <DataTableEmpty icon={Users} title="No people yet">
-          Add the people this form is for. Each person can have their own value
-          for every property.
+          Add the people this form is for, one at a time or from a CSV file.
+          Each person can have their own value for every property.
         </DataTableEmpty>
       ) : (
         <>
@@ -115,6 +116,17 @@ function PeopleOverlays({ row, ...props }: Readonly<OverlayProps>) {
 const DESCRIPTION =
   "Who this form is for. Removing someone takes them off this form only.";
 
+/** Import is `outline` beside the view's one primary action, Add person (DESIGN.md §5 Buttons). */
+function PeopleActions(props: Readonly<PeopleSectionProps>) {
+  if (!props.canEdit) return null;
+  return (
+    <div className="flex flex-wrap gap-2">
+      <ImportCsvPanel {...props} />
+      <AddPersonPanel {...props} />
+    </div>
+  );
+}
+
 function PeopleHeader(props: Readonly<PeopleSectionProps>) {
   return (
     <SectionHeader
@@ -126,7 +138,7 @@ function PeopleHeader(props: Readonly<PeopleSectionProps>) {
         </>
       }
       viewSwitch={props.viewSwitch}
-      action={props.canEdit ? <AddPersonPanel {...props} /> : null}
+      action={<PeopleActions {...props} />}
     />
   );
 }

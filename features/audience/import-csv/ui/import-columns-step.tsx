@@ -1,0 +1,220 @@
+"use client";
+
+import { Columns3, KeyRound } from "lucide-react";
+import { FieldWithHelp, helpId } from "@/components/common/field-with-help";
+import { PanelSection } from "@/components/common/panel-section";
+import { SummaryRow } from "@/components/common/summary-row";
+import type { AudienceProperty } from "@/lib/endatix-api/audience/types";
+import { dataTypeLabel } from "../../property-types";
+import { OptionsSelect, type SelectOption } from "../../ui/options-select";
+import { identifierKindLabel } from "../../utils";
+import {
+  choiceColumnGroups,
+  importableProperties,
+  isChoiceProperty,
+  mappableColumns,
+  SKIP_COLUMN,
+  type ChoiceColumnGroup,
+  type ColumnMap,
+} from "../column-map";
+import { sampleLabel } from "../import-labels";
+import type {
+  ImportCsvSetup,
+  ImportWizard,
+  LoadedFile,
+} from "../use-import-csv.hook";
+
+type StepProps = { wizard: ImportWizard; setup: ImportCsvSetup };
+type LoadedStepProps = StepProps & { file: LoadedFile };
+
+const IDENTIFIER_ID = "import-identifier";
+const SKIP_OPTION: SelectOption = { value: SKIP_COLUMN, label: "Don't import" };
+
+function identifierHelp({ wizard, file, setup }: LoadedStepProps): string {
+  const { identifierColumn, suggestedIdentifier } = wizard.choices;
+  if (!identifierColumn) {
+    return `No column is named like the ${identifierKindLabel(setup.identifierKind).toLowerCase()}. Choose the one that holds it.`;
+  }
+  const sample = sampleLabel(file.preview.samples[identifierColumn]);
+  return identifierColumn === suggestedIdentifier
+    ? `Suggested from its name. ${sample}`
+    : sample;
+}
+
+/** Every named column of the file, as the identifier's choices. */
+function namedColumns(headers: string[]): SelectOption[] {
+  return headers
+    .filter(Boolean)
+    .map((header) => ({ value: header, label: header }));
+}
+
+function IdentifierField(props: Readonly<LoadedStepProps>) {
+  const { wizard, file } = props;
+  return (
+    <FieldWithHelp
+      id={IDENTIFIER_ID}
+      label="Identifier column"
+      help={identifierHelp(props)}
+    >
+      <OptionsSelect
+        id={IDENTIFIER_ID}
+        value={wizard.choices.identifierColumn}
+        options={namedColumns(file.preview.headers)}
+        placeholder="Choose a column"
+        describedBy={helpId(IDENTIFIER_ID)}
+        disabled={wizard.pending}
+        onChange={wizard.choices.chooseIdentifier}
+      />
+    </FieldWithHelp>
+  );
+}
+
+function IdentifierSection(props: Readonly<LoadedStepProps>) {
+  const kind = identifierKindLabel(props.setup.identifierKind).toLowerCase();
+  return (
+    <PanelSection
+      icon={KeyRound}
+      title="Identifier"
+      description={`People are matched across forms by ${kind}. Choose the column that holds it.`}
+    >
+      <IdentifierField {...props} />
+    </PanelSection>
+  );
+}
+
+/** Properties another column already feeds: one column per property. */
+function takenByOthers(column: string, columns: ColumnMap): Set<string> {
+  return new Set(
+    Object.entries(columns)
+      .filter(([other]) => other !== column)
+      .map(([, variableName]) => variableName),
+  );
+}
+
+/** Don't import, then every property no other column feeds yet. */
+function propertyOptions(
+  column: string,
+  wizard: ImportWizard,
+  properties: readonly AudienceProperty[],
+): SelectOption[] {
+  const taken = takenByOthers(column, wizard.choices.columns);
+  const free = importableProperties(properties).filter(
+    (property) => !taken.has(property.variableName),
+  );
+  return [
+    SKIP_OPTION,
+    ...free.map((property) => ({
+      value: property.variableName,
+      label: `${property.name} · ${dataTypeLabel(property.dataType)}`,
+    })),
+  ];
+}
+
+type ColumnFieldProps = LoadedStepProps & { column: string; index: number };
+
+function ColumnField({ column, index, ...props }: Readonly<ColumnFieldProps>) {
+  const { wizard, file, setup } = props;
+  const id = `import-column-${index}`;
+  return (
+    <FieldWithHelp
+      id={id}
+      label={<span className="font-mono">{column}</span>}
+      help={sampleLabel(file.preview.samples[column])}
+    >
+      <OptionsSelect
+        id={id}
+        value={wizard.choices.columns[column] ?? SKIP_COLUMN}
+        options={propertyOptions(column, wizard, setup.properties)}
+        describedBy={helpId(id)}
+        disabled={wizard.pending}
+        onChange={(value) => wizard.choices.setColumn(column, value)}
+      />
+    </FieldWithHelp>
+  );
+}
+
+/** Choice properties fill from `variable__choice` columns by name; listed so nothing is a surprise. */
+function ChoiceColumns({ groups }: Readonly<{ groups: ChoiceColumnGroup[] }>) {
+  if (groups.length === 0) return null;
+  return (
+    <div className="grid gap-2">
+      <p className="text-xs text-muted-foreground">
+        Read by their names, so they need no choice:
+      </p>
+      <dl className="grid gap-2">
+        {groups.map(({ property, columns }) => (
+          <SummaryRow
+            key={property.id}
+            label={property.name}
+            value={<span className="font-mono">{columns.join(", ")}</span>}
+          />
+        ))}
+      </dl>
+    </div>
+  );
+}
+
+function columnsDescription(
+  properties: readonly AudienceProperty[],
+  groups: ChoiceColumnGroup[],
+): string {
+  if (properties.length === 0) {
+    return "This form has no properties yet, so only the identifier is imported. Add properties on the Properties view to import more columns.";
+  }
+  const read = new Set(groups.map((group) => group.property.id));
+  const unread = properties.filter(
+    (property) => isChoiceProperty(property) && !read.has(property.id),
+  );
+  const base =
+    "Each column fills one property. Columns named like a property are matched already.";
+  if (unread.length === 0) return base;
+  const names = unread.map((property) => property.name).join(", ");
+  return `${base} ${names}: choice properties fill only from columns named like ${unread[0].variableName}__choice.`;
+}
+
+function ColumnTally({
+  wizard,
+  columns,
+}: Readonly<{ wizard: ImportWizard; columns: string[] }>) {
+  if (columns.length === 0) return null;
+  const map = wizard.choices.columns;
+  const imported = columns.filter(
+    (column) => (map[column] ?? SKIP_COLUMN) !== SKIP_COLUMN,
+  );
+  return (
+    <span className="text-xs text-muted-foreground">
+      {imported.length} of {columns.length} imported
+    </span>
+  );
+}
+
+function ColumnsSection(props: Readonly<LoadedStepProps>) {
+  const { file, setup, wizard } = props;
+  const { headers } = file.preview;
+  const identifier = wizard.choices.identifierColumn;
+  const columns = mappableColumns(headers, identifier, setup.properties);
+  const groups = choiceColumnGroups(headers, setup.properties);
+  return (
+    <PanelSection
+      icon={Columns3}
+      title="Columns"
+      description={columnsDescription(setup.properties, groups)}
+      aside={<ColumnTally wizard={wizard} columns={columns} />}
+    >
+      {columns.map((column, index) => (
+        <ColumnField key={column} {...props} column={column} index={index} />
+      ))}
+      <ChoiceColumns groups={groups} />
+    </PanelSection>
+  );
+}
+
+/** Step 2: the identifier, then a property (or nothing) for every other column. */
+export function ImportColumnsStep(props: Readonly<LoadedStepProps>) {
+  return (
+    <>
+      <IdentifierSection {...props} />
+      <ColumnsSection {...props} />
+    </>
+  );
+}
