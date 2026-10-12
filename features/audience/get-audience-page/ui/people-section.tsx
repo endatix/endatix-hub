@@ -123,7 +123,7 @@ function PeopleActions(props: Readonly<PeopleSectionProps>) {
   return (
     <div className="flex flex-wrap gap-2">
       <ImportCsvPanel {...props} />
-      <GenerateLinksPanel formId={props.formId} />
+      <GenerateLinksPanel {...props} />
       <AddPersonPanel {...props} />
     </div>
   );

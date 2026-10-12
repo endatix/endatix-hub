@@ -9,7 +9,9 @@ import type { PagedResponse } from "../shared/types";
 import {
   formAudiencePath,
   mapImportResult,
+  mapRedeemedLinkResult,
   type WireImport,
+  type WireRedeemedLink,
   mapPeoplePageResult,
   mapPersonResult,
   mapProperty,
@@ -69,9 +71,7 @@ export class Audience {
     return this.endatix.put<AudienceSettings>(SETTINGS_PATH, body);
   }
 
-  async listProperties(
-    formId: string,
-  ): Promise<ApiResult<AudienceProperty[]>> {
+  async listProperties(formId: string): Promise<ApiResult<AudienceProperty[]>> {
     const idCheck = requireEndatixId(formId, "formId");
     if (!idCheck.success) {
       return idCheck;
@@ -243,18 +243,12 @@ export class Audience {
     const idCheck = requireEndatixId(formId, "formId");
     if (!idCheck.success) return idCheck;
 
-    const response = await this.endatix.post<{
-      submissionId: number | string;
-      snapshot: string;
-      created: boolean;
-      accessToken: string;
-    }>(formAudiencePath(formId, "links", token, "redeem"), {}, { requireAuth: false });
-    if (!response.success) return response;
-    return ApiResult.success({
-      submissionId: String(response.data.submissionId),
-      snapshot: response.data.snapshot,
-      created: response.data.created,
-      accessToken: response.data.accessToken,
-    });
+    return mapRedeemedLinkResult(
+      await this.endatix.post<WireRedeemedLink>(
+        formAudiencePath(formId, "links", token, "redeem"),
+        {},
+        { requireAuth: false },
+      ),
+    );
   }
 }

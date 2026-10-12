@@ -1,64 +1,108 @@
 "use client";
 
-import { useState } from "react";
-import { Link2 } from "lucide-react";
+import { Info, Link2, Users } from "lucide-react";
+import { PanelForm } from "@/components/common/panel-form";
+import { PanelSection } from "@/components/common/panel-section";
+import { SummaryRow } from "@/components/common/summary-row";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import CopyToClipboard from "@/components/copy-to-clipboard";
-import { Result } from "@/lib/result";
-import { generateAudienceLinksAction } from "../generate-audience-links.action";
+import {
+  useGenerateLinks,
+  type GenerateLinks,
+  type GenerateLinksSetup,
+} from "../use-generate-links.hook";
+import { LinksOutcome } from "./links-outcome";
 
-type GenerateLinksPanelProps = { formId: string };
+const TRIGGER = (
+  <Button variant="outline">
+    <Link2 />
+    Personalised links
+  </Button>
+);
 
-function linkUrl(formId: string, token: string): string {
-  const origin = globalThis.location?.origin ?? "";
-  return `${origin}/share/${formId}/a/${token}`;
+const PANEL = {
+  desktopType: "complex",
+  trigger: TRIGGER,
+  title: "Personalised links",
+  errorTitle: "Links not created",
+  pendingLabel: "Generating…",
+} as const;
+
+function RecipientsSection({ totalPeople }: Readonly<GenerateLinksSetup>) {
+  const description =
+    totalPeople === 0
+      ? "This form has no people yet. Add or import people first."
+      : "Everyone on this form who has no link yet. People who already have one keep it.";
+  return (
+    <PanelSection
+      icon={Users}
+      title="Who gets a link"
+      description={description}
+    >
+      <dl className="grid gap-3">
+        <SummaryRow
+          label="People on this form"
+          value={totalPeople.toLocaleString()}
+        />
+      </dl>
+    </PanelSection>
+  );
 }
 
-export function GenerateLinksPanel({
-  formId,
-}: Readonly<GenerateLinksPanelProps>) {
-  const [links, setLinks] = useState<string[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
-
-  async function issue() {
-    setPending(true);
-    setError(null);
-    const result = await generateAudienceLinksAction(formId);
-    setPending(false);
-    if (Result.isError(result)) {
-      setError(result.message);
-      return;
-    }
-    setLinks(result.value.map((link) => linkUrl(formId, link.token)));
-  }
-
+/** The consequence, once: the file is the only copy of the links (DESIGN.md §6). */
+function OnlyCopyNote() {
   return (
-    <div className="flex flex-col gap-2">
-      <Button
-        type="button"
-        variant="outline"
-        disabled={pending}
-        onClick={issue}
-      >
-        <Link2 />
-        Personalised links
-      </Button>
-      {error ? <p className="text-sm text-destructive">{error}</p> : null}
-      {links.length === 0 ? null : (
-        <ul className="max-h-40 overflow-auto text-sm">
-          {links.map((href) => (
-            <li key={href} className="flex items-center gap-2">
-              <span className="truncate">{href}</span>
-              <CopyToClipboard
-                copyValue={href}
-                layout="inline"
-                label={`Copy link ${href}`}
-              />
-            </li>
-          ))}
-        </ul>
+    <Alert variant="info">
+      <Info />
+      <AlertTitle>The file is the only copy</AlertTitle>
+      <AlertDescription>
+        Each link is shown once, when it is made, and downloads as a CSV. Anyone
+        with a link can open that person&apos;s response, so keep the file safe.
+        A response starts when its link is first opened.
+      </AlertDescription>
+    </Alert>
+  );
+}
+
+function describeStep({ batch }: GenerateLinks): string {
+  if (!batch)
+    return "One link per person, each opening that person's own response.";
+  return batch.links.length > 0
+    ? "The links are ready to send from your own email or panel tool."
+    : "Nothing new to send: no one on this form is without a link.";
+}
+
+function stepProps(run: GenerateLinks, setup: GenerateLinksSetup) {
+  const done = run.batch !== null;
+  return {
+    open: run.open,
+    onOpenChange: run.openChange,
+    pending: run.pending,
+    error: run.error,
+    description: describeStep(run),
+    submitLabel: done ? "Done" : "Generate and download",
+    submitDisabled: !done && setup.totalPeople === 0,
+    cancelable: !done,
+    onSubmit: done ? () => run.openChange(false) : run.generate,
+  };
+}
+
+/**
+ * Personalised links (DESIGN.md §6 Configure and run, Hand over a file): who gets one, the
+ * consequence, then the file saved at once and the outcome in place.
+ */
+export function GenerateLinksPanel(setup: Readonly<GenerateLinksSetup>) {
+  const run = useGenerateLinks(setup);
+  return (
+    <PanelForm {...PANEL} {...stepProps(run, setup)}>
+      {run.batch ? (
+        <LinksOutcome run={run} batch={run.batch} setup={setup} />
+      ) : (
+        <>
+          <RecipientsSection {...setup} />
+          <OnlyCopyNote />
+        </>
       )}
-    </div>
+    </PanelForm>
   );
 }

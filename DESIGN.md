@@ -147,6 +147,7 @@ Before building a control, check whether the vocabulary already exists here.
 | `components/common/panel-form.tsx` — `PanelForm`, `PanelFormError`                                | A create/edit overlay as one form: header, failure strip, sections, Cancel or Back + submit                |
 | `components/common/panel-steps.tsx` — `PanelSteps`                                                | The progress track of a multi-step overlay, first in its body (§6 Create / edit overlay)                   |
 | `components/common/field-with-help.tsx` — `FieldWithHelp`                                         | A label, its control and the one visible help line under it (§6 Displaying values)                         |
+| `components/common/download-menu.tsx` — `DownloadMenu`                                            | The one Download control: a button for one format, a menu of formats with file marks (§6 Hand over a file) |
 | `components/common/pending-button.tsx` — `PendingButton`                                          | An action button that swaps to a spinner and its running verb (Buttons, below)                             |
 | `components/common/summary-row.tsx` — `SummaryRow`                                                | Label-left / value-right rows (§6 Displaying values)                                                       |
 | `components/common/truncated-id.tsx` — `TruncatedId`                                              | A long id shortened to head…tail with a copy affordance                                                    |
@@ -817,6 +818,40 @@ mistaken for an edit. Reference: `features/submissions/ui/details/label-language
   share-link export (reader may have no account) keeps the signed URL and says once, muted, that
   links expire shortly.
 
+### Hand over a file
+
+A file the reader takes away (a data list's items, personalised links, an export) comes through
+one control and one set of helpers, whether the server builds it or the browser does. References:
+`DownloadMenu` on a data list's page, `features/audience/generate-links/`.
+
+- **One control: `DownloadMenu`.** One format is an `outline` button that names it with its
+  file mark ("Download CSV"). Several formats are a `Download ▾` menu whose items are
+  `FileKindLabel`s. While a file is fetched, the control spins, says "Downloading…" and takes no
+  second click.
+- **One code path per source.** A file the server builds comes through `downloadFromUrl`
+  (`lib/utils/files-download.ts`): the server's file name, and its reason when it refuses
+  (`DownloadError`), shown as the toast. A file the browser builds is written with `writeCsv`
+  (`lib/utils/csv.ts`) and saved with `downloadText`. Never hand-roll the fetch-blob-anchor dance
+  in a page.
+- **CSV is UTF-8 with a byte-order mark and CRLF**, so Excel shows accents and non-Latin names
+  correctly. Name columns with the same keys the Hub reads, so a file the Hub writes can be
+  imported back (the links file's first column is `email` or `external_id`, the match key's wire
+  name, which the import suggests from).
+- **Date the file name** (`personalised-links-<form>-2026-10-12.csv`), so a second file never
+  overwrites the first in the reader's downloads.
+- **A file that is the only copy is saved the moment it exists.** Personalised links are stored
+  only as hashes, so the API returns each token once. The panel saves the file as soon as the
+  answer arrives, without a second click, and says so in a `success` Alert ("20 links
+  downloaded … It is the only copy"). Then it offers `Download CSV` again while it stays open.
+  Before the run, one `info` Alert says the file will be the only copy and who can use it.
+  Nothing new to hand over is `info` ("Everyone already has a link"), and no empty file is
+  saved.
+- **Read what labels the file before writing what it labels.** When the write returns ids and
+  the file needs names (a person's identifier for each token), read the names first. If the
+  read fails after the write, the one-time answer can no longer be labelled.
+- **Show a few rows to try, not the file.** The outcome may preview the first rows (each value a
+  reader might paste gets a copy affordance) and says the file has them all.
+
 ### Evidence from third-party tools
 
 What another tool recorded about a record's subject (an analytics profile behind a signup, a
@@ -1198,6 +1233,9 @@ Before finishing UI work, check:
 - [ ] A file import states its limits before the file, shows sample values under every column,
       says where each suggestion came from, writes nothing before Review, names the count on its
       button, and shows the outcome and rejected rows in the panel (§6 Import from a file).
+- [ ] Files go out through `DownloadMenu` and the shared download helpers; CSV carries a BOM and
+      re-importable headers; a file that is the only copy is saved the moment it exists and said
+      so (§6 Hand over a file).
 - [ ] A multi-step overlay shows `Back` from step 2 and only `Done` on its outcome (§6 Create /
       edit overlay).
 - [ ] No presigned URL outlives the view that signed it (§6).
