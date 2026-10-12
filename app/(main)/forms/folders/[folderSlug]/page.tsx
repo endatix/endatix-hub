@@ -3,6 +3,7 @@ import { authorization } from "@/features/auth/authorization";
 import { AssetStorageProvider } from "@/features/asset-storage/server";
 import { getFormsListPromise } from "@/features/forms/list-forms/list-forms.server";
 import { FormsListSection } from "@/features/forms/list-forms/ui/forms-list-section";
+import { getFormWorkspaceFlags } from "@/features/forms/form-workspace/form-workspace-flags.server";
 import { FormsListSkeleton } from "@/features/forms/list-forms/ui/forms-list-skeleton";
 import { FormsListToolbar } from "@/features/forms/list-forms/ui/forms-list-toolbar";
 import { parseFormsListParams } from "@/features/forms/list-forms/utils";
@@ -77,15 +78,26 @@ export default async function FolderSlugFormsPage({
           listKey={listQueryKey(listRequest)}
           fallback={<FormsListSkeleton pageSize={listRequest.pageSize} />}
         >
-          <FormsListSection
-            formsPromise={formsPromise}
-            scope="folder"
-            emptyState={<NoFolderFormsEmptyState />}
-            filteredEmptyState={<NoMatchingFormsEmptyState />}
-          />
+          <FolderFormsListSection formsPromise={formsPromise} />
         </PagedListFrame>
       </PagedListUrlProvider>
     </AssetStorageProvider>
+  );
+}
+
+/** Reads the workspace flags inside the Suspense boundary, so the shell streams first. */
+async function FolderFormsListSection({
+  formsPromise,
+}: Readonly<{ formsPromise: ReturnType<typeof getFormsListPromise> }>) {
+  const workspaceFlags = await getFormWorkspaceFlags();
+  return (
+    <FormsListSection
+      formsPromise={formsPromise}
+      scope="folder"
+      workspaceFlags={workspaceFlags}
+      emptyState={<NoFolderFormsEmptyState />}
+      filteredEmptyState={<NoMatchingFormsEmptyState />}
+    />
   );
 }
 

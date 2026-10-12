@@ -1,31 +1,30 @@
-import { auth } from "@/auth";
-import { authorization, Permissions } from "@/features/auth/authorization";
-import { HubPageLoadError } from "@/components/error-handling/error-page";
-import { FormAudienceNotFound } from "@/features/audience/get-audience-page/ui/form-audience-not-found";
+import { Permissions } from "@/features/auth/authorization";
 import { AudiencePageShell } from "@/features/audience/get-audience-page/ui/audience-page-shell";
 import {
   loadAudiencePage,
-  loadFormForAudience,
+  parseAudienceView,
   parsePeoplePaging,
 } from "@/features/audience/get-audience-page";
-import { EndatixApi } from "@/lib/endatix-api";
-import { personalizationFlag } from "@/lib/feature-flags";
-import { Result, type Error as ResultError } from "@/lib/result";
-import { firstSearchParam, type SearchParam } from "@/lib/utils/next-utils";
+import { requireAudienceAccess } from "@/features/audience/shared/require-audience-api.server";
+import { FormWorkspaceHeader } from "@/features/forms/form-workspace";
+import { loadWorkspaceForm } from "@/features/forms/form-workspace/load-workspace-form.server";
+import { FormLoadError } from "@/features/forms/form-workspace/ui/form-load-error";
+import type { EndatixApi } from "@/lib/endatix-api";
+import { Result } from "@/lib/result";
+import {
+  firstSearchParam,
+  type SearchParamValue,
+} from "@/lib/utils/next-utils";
 import { redirect } from "next/navigation";
 
 type Params = {
   params: Promise<{ formId: string }>;
-  searchParams: Promise<{ page: SearchParam; pageSize: SearchParam }>;
+  searchParams: Promise<{
+    page?: SearchParamValue;
+    pageSize?: SearchParamValue;
+    view?: SearchParamValue;
+  }>;
 };
-
-function failedLoad(result: ResultError) {
-  return result.statusCode === 404 ? (
-    <FormAudienceNotFound />
-  ) : (
-    <HubPageLoadError result={result} />
-  );
-}
 
 function pagingFrom(query: Awaited<Params["searchParams"]>) {
   return parsePeoplePaging({
@@ -39,41 +38,44 @@ type AudienceRequest = {
   formId: string;
   query: Awaited<Params["searchParams"]>;
   canManageMatchKey: boolean;
+  canEdit: boolean;
 };
 
 async function audienceView({ query, ...request }: AudienceRequest) {
-  const { api, formId } = request;
+  const { formId } = request;
   const [form, audience] = await Promise.all([
-    loadFormForAudience(api, formId),
+    loadWorkspaceForm(formId, "audience"),
     loadAudiencePage({ ...request, paging: pagingFrom(query) }),
   ]);
-  if (Result.isError(form)) return failedLoad(form);
-  if (Result.isError(audience)) return failedLoad(audience);
+  if (Result.isError(form)) return <FormLoadError result={form} />;
+  if (Result.isError(audience)) return <FormLoadError result={audience} />;
 
   return (
     <AudiencePageShell
       formId={formId}
-      formName={form.value.name}
+      header={<FormWorkspaceHeader title="Audience" />}
+      view={parseAudienceView(firstSearchParam(query.view))}
       data={audience.value}
     />
   );
 }
 
-/** Hub access and form view, the flag, then the client the loaders use. */
+/**
+ * View gate shared with the actions, plus which writes this reader may make, so the page
+ * hides the controls an action would refuse instead of letting the action redirect.
+ */
 async function guardAudiencePage(formId: string) {
-  const session = await auth();
-  const { requireAllPermissions, checkPermission } = await authorization(session);
-  await requireAllPermissions([
-    Permissions.Access.Hub,
-    Permissions.Forms.View,
+  const access = await requireAudienceAccess(Permissions.Forms.View);
+  if (Result.isError(access)) return redirect(`/forms/${formId}`);
+  const { api, checkPermission } = access.value;
+  const [manageSettings, editForms] = await Promise.all([
+    checkPermission(Permissions.Tenant.ManageSettings),
+    checkPermission(Permissions.Forms.Edit),
   ]);
-  if (!(await personalizationFlag())) return redirect(`/forms/${formId}`);
-  const manageSettings = await checkPermission(
-    Permissions.Tenant.ManageSettings,
-  );
   return {
-    api: new EndatixApi(session?.accessToken),
+    api,
     canManageMatchKey: manageSettings.success,
+    canEdit: editForms.success,
   };
 }
 

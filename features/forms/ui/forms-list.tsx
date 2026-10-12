@@ -7,17 +7,23 @@ import type { FormFolderChipProps } from "./form-folder-chip";
 import { useState, useMemo } from "react";
 import FormSheet from "./form-sheet";
 import { SaveAsTemplateDialog } from "./save-as-template-dialog";
+import {
+  NO_OPTIONAL_SECTIONS,
+  type FormWorkspaceFlags,
+} from "../form-workspace";
 
 type FormDataProps = {
   forms: Form[];
   showFolderContext?: boolean;
   folderContextById?: ReadonlyMap<string, FormFolderContext>;
+  workspaceFlags?: FormWorkspaceFlags;
 };
 
 const FormsList = ({
   forms,
   showFolderContext = false,
   folderContextById,
+  workspaceFlags = NO_OPTIONAL_SECTIONS,
 }: FormDataProps) => {
   const [selectedFormId, setSelectedFormId] = useState<string | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
@@ -92,6 +98,7 @@ const FormsList = ({
             form={form}
             folderContext={resolveFolderContext(form)}
             isSelected={form.id === selectedFormId}
+            showAudienceLink={workspaceFlags.audience}
             onClick={() => handleFormSelected(form.id)}
             onSaveAsTemplate={() => handleSaveAsTemplateClick(form.id)}
           />
@@ -102,7 +109,7 @@ const FormsList = ({
         open={isSheetOpen}
         onOpenChange={handleOnOpenChange}
         selectedForm={selectedForm ?? null}
-        enableEditing={true}
+        workspaceFlags={workspaceFlags}
       />
 
       {saveAsTemplateForm && (

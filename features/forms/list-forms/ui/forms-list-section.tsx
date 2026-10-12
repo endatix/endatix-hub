@@ -10,6 +10,7 @@ import { normalizePagedResponse } from "@/lib/endatix-api/shared/paged-response"
 import { usePagedListUrl } from "@/components/table";
 import { Result } from "@/lib/result";
 import type { FormsListResult } from "../list-forms.server";
+import type { FormWorkspaceFlags } from "../../form-workspace";
 import {
   hasActiveFormsListFilters,
   isTenantWideFormsList,
@@ -22,6 +23,7 @@ interface FormsListSectionProps {
   filteredEmptyState: ReactNode;
   scope: "root" | "folder";
   folderContextById?: ReadonlyMap<string, FormFolderContext>;
+  workspaceFlags?: FormWorkspaceFlags;
 }
 
 export function FormsListSection({
@@ -30,6 +32,7 @@ export function FormsListSection({
   filteredEmptyState,
   scope,
   folderContextById,
+  workspaceFlags,
 }: Readonly<FormsListSectionProps>) {
   const listResult = use(formsPromise);
   const router = useRouter();
@@ -69,6 +72,7 @@ export function FormsListSection({
           forms={[...pagedForms.items]}
           showFolderContext={showFolderContext}
           folderContextById={folderContextById}
+          workspaceFlags={workspaceFlags}
         />
       )}
       {pagedForms.totalRecords > 0 ? (

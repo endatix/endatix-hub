@@ -15,6 +15,7 @@ vi.mock("@/features/auth/authorization", async () => {
 
 vi.mock("@/lib/feature-flags", () => ({
   personalizationFlag: vi.fn(),
+  formAnalyticsFlag: vi.fn().mockResolvedValue(false),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -25,23 +26,16 @@ vi.mock("next/navigation", () => ({
 
 vi.mock("@/features/audience/get-audience-page", () => ({
   loadAudiencePage: vi.fn(),
-  loadFormForAudience: vi.fn(),
   parsePeoplePaging: vi.fn(() => ({ page: 1, pageSize: 50 })),
 }));
 
-vi.mock(
-  "@/features/audience/get-audience-page/ui/audience-page-shell",
-  () => ({
-    AudiencePageShell: () => null,
-  }),
-);
+vi.mock("@/features/audience/get-audience-page/ui/audience-page-shell", () => ({
+  AudiencePageShell: () => null,
+}));
 
-vi.mock(
-  "@/features/audience/get-audience-page/ui/form-audience-not-found",
-  () => ({
-    FormAudienceNotFound: () => null,
-  }),
-);
+vi.mock("@/features/forms/form-workspace/load-workspace-form.server", () => ({
+  loadWorkspaceForm: vi.fn(),
+}));
 
 describe("Form Audience Page", () => {
   const requireAllPermissions = vi.fn().mockResolvedValue(undefined);
@@ -61,9 +55,10 @@ describe("Form Audience Page", () => {
   it("redirects to the form when personalization is off", async () => {
     const { personalizationFlag } = await import("@/lib/feature-flags");
     const { redirect } = await import("next/navigation");
-    const { loadAudiencePage, loadFormForAudience } = await import(
-      "@/features/audience/get-audience-page"
-    );
+    const { loadAudiencePage } =
+      await import("@/features/audience/get-audience-page");
+    const { loadWorkspaceForm } =
+      await import("@/features/forms/form-workspace/load-workspace-form.server");
     vi.mocked(personalizationFlag).mockResolvedValue(false);
 
     const FormAudiencePage = (
@@ -84,7 +79,7 @@ describe("Form Audience Page", () => {
       "access.apps.hub",
       "forms.view",
     ]);
-    expect(loadFormForAudience).not.toHaveBeenCalled();
+    expect(loadWorkspaceForm).not.toHaveBeenCalled();
     expect(loadAudiencePage).not.toHaveBeenCalled();
   });
 });

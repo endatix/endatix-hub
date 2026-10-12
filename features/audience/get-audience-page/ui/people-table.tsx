@@ -23,16 +23,25 @@ type RowHandlers = {
   onRemove: (person: AudiencePerson) => void;
 };
 
-type PeopleTableProps = RowHandlers & {
+type PeopleTableProps = {
   identifierKind: AudienceIdentifierKind;
   properties: AudienceProperty[];
   people: AudiencePerson[];
+  /** Omitted for a read-only reader: the table has no actions column. */
+  handlers?: RowHandlers;
+};
+
+const ACTIONS_COLUMN: StaticDataTableColumn = {
+  key: "actions",
+  label: "Actions",
+  className: `text-right ${SHRINK}`,
 };
 
 /** The identifier column is named for the match key; one column per property; then actions. */
 function peopleColumns(
   kind: AudienceIdentifierKind,
   properties: AudienceProperty[],
+  withActions: boolean,
 ): StaticDataTableColumn[] {
   return [
     {
@@ -45,7 +54,7 @@ function peopleColumns(
       label: p.name,
       className: "min-w-[8rem]",
     })),
-    { key: "actions", label: "Actions", className: `text-right ${SHRINK}` },
+    ...(withActions ? [ACTIONS_COLUMN] : []),
   ];
 }
 
@@ -82,20 +91,18 @@ const ACTIONS_CELL = `text-right ${SHRINK}`;
 function personCells(
   person: AudiencePerson,
   properties: AudienceProperty[],
-  handlers: RowHandlers,
+  handlers?: RowHandlers,
 ): StaticDataTableCell[] {
-  const actions = personActions(person, properties.length > 0, handlers);
   const value = (p: AudienceProperty) =>
     formatPropertyValue(p, person.values[p.id]) ?? NOT_SET;
-  return [
+  const cells = [
     dataTableCell("identifier", person.identifier, IDENTIFIER_CELL),
     ...properties.map((p) => dataTableCell(p.id, value(p), VALUE_CELL)),
-    dataTableCell(
-      "actions",
-      <DataTableRowActions actions={actions} />,
-      ACTIONS_CELL,
-    ),
   ];
+  if (!handlers) return cells;
+  const actions = personActions(person, properties.length > 0, handlers);
+  const menu = <DataTableRowActions actions={actions} />;
+  return [...cells, dataTableCell("actions", menu, ACTIONS_CELL)];
 }
 
 /**
@@ -106,10 +113,11 @@ export function PeopleTable({
   identifierKind,
   properties,
   people,
-  ...handlers
+  handlers,
 }: Readonly<PeopleTableProps>) {
+  const columns = peopleColumns(identifierKind, properties, Boolean(handlers));
   return (
-    <StaticDataTable columns={peopleColumns(identifierKind, properties)}>
+    <StaticDataTable columns={columns}>
       {people.map((person, index) => (
         <StaticDataTableRow
           key={person.membershipId}

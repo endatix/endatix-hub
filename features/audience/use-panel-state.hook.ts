@@ -17,6 +17,13 @@ export function usePanelOpen(reset: () => void, pending: boolean) {
   return { open, openChange, close: () => setOpen(false) };
 }
 
+/** `onOpenChange` for a row's edit panel: it cannot be closed while its own write runs. */
+export function closeWhenIdle(pending: boolean, onClose: () => void) {
+  return (open: boolean) => {
+    if (!open && !pending) onClose();
+  };
+}
+
 /** Property values being edited, keyed by property id. */
 export function useValueMap(initial: AudiencePropertyValues = {}) {
   const [values, setValues] = useState<AudiencePropertyValues>(initial);

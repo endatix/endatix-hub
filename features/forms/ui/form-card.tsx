@@ -16,6 +16,8 @@ import {
   Lock,
   MoreVertical,
   Save,
+  Trash2,
+  Users,
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import {
@@ -34,6 +36,7 @@ import { listFoldersAction } from "@/features/folders/server";
 import { moveFormToFolderAction } from "@/features/folders/move-form-to-folder";
 import { toast } from "@/components/ui/toast";
 import { Result } from "@/lib/result";
+import { DeleteFormConfirm } from "@/features/forms/ui/delete-form-confirm";
 import { useRouter } from "next/navigation";
 import type { Route } from "next";
 
@@ -41,6 +44,8 @@ type FormCardProps = React.ComponentProps<typeof Card> & {
   form: Form;
   folderContext?: FormFolderChipProps;
   isSelected: boolean;
+  /** The Audience quick link; only when the tenant has audiences. */
+  showAudienceLink?: boolean;
   onSaveAsTemplate: () => void;
 };
 
@@ -82,10 +87,23 @@ const SubmissionsLabel: React.FC<SubmissionsLabelProps> = ({
   );
 };
 
+function AudienceQuickLink({ formId }: Readonly<{ formId: string }>) {
+  return (
+    <Link
+      href={`/forms/${formId}/audience`}
+      className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 text-sm leading-none whitespace-nowrap text-muted-foreground hover:text-foreground"
+    >
+      <Users className="size-4 shrink-0" />
+      Audience
+    </Link>
+  );
+}
+
 const FormCard = ({
   form,
   folderContext,
   isSelected,
+  showAudienceLink = false,
   onSaveAsTemplate,
   className,
   ...props
@@ -105,6 +123,7 @@ const FormCard = ({
     form.folderId ?? NO_FOLDER_VALUE,
   );
   const [isMovePending, setIsMovePending] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   useEffect(() => {
     setCurrentFolderId(form.folderId ?? NO_FOLDER_VALUE);
@@ -282,6 +301,7 @@ const FormCard = ({
               <List className="size-4 shrink-0" />
               Submissions
             </Link>
+            {showAudienceLink ? <AudienceQuickLink formId={form.id} /> : null}
           </div>
           <div className="relative flex h-full shrink-0 items-center opacity-0 transition-opacity group-hover:opacity-100">
             <DropdownMenu
@@ -320,11 +340,25 @@ const FormCard = ({
                   <FolderInput className="mr-2 size-4" />
                   Move to folder
                 </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  variant="destructive"
+                  className="cursor-pointer"
+                  onSelect={() => setDeleteOpen(true)}
+                >
+                  <Trash2 className="mr-2 size-4" />
+                  Delete
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
         </div>
       </CardFooter>
+      <DeleteFormConfirm
+        form={form}
+        open={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+      />
       <MoveToFolderDialog
         open={moveDialogOpen}
         onOpenChange={setMoveDialogOpen}
