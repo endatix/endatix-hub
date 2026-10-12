@@ -32,14 +32,20 @@ cd hub
 pnpm test:e2e --grep "Embed Form"
 ```
 
-### Debug Mode
+### Agents
+
+`pnpm test:e2e`, `test:e2e:ui`, `test:e2e:debug` and `test:e2e:smoke` run through `scripts/with-dev-cert.mjs`. That sets `NODE_EXTRA_CA_CERTS` to the .NET dev certificate for the child process, so Node trusts `https://localhost:5001` without `NODE_TLS_REJECT_UNAUTHORIZED`. `pnpm exec playwright` does not. pnpm appends flags such as `--grep` to the script. Do not add a second `--`: Playwright then treats `--grep` as a file name and reports no tests. `pnpm` keeps `--debug` for itself, so use `test:e2e:debug` instead of adding `--debug`. Playwright will not take `--ui` and `--debug` together.
 
 ```bash
-# Run with UI
-pnpm test:e2e --ui
-# or
-pnpm test:e2e --debug
+cd hub
+E2E_EMAIL="tech@endatix.com" pnpm test:e2e --grep "On-behalf personalization" --workers=1
+E2E_EMAIL="tech@endatix.com" pnpm test:e2e:ui --grep "On-behalf personalization"
+E2E_EMAIL="tech@endatix.com" pnpm test:e2e:debug --grep "On-behalf personalization"
 ```
+
+The password is the macOS keychain item `endatix-hub-e2e`, account `e2e`, when `E2E_PASSWORD` is unset. Hub is `http://localhost:3000`. The API is WebHost on `https://localhost:5001` (`E2E_API_URL`, default `https://localhost:5001/api`).
+
+**Share and iframe.** A `share` test opens `/share/{formId}?token=…` on the page. An `iframe` test opens WebHost `/dev/embed-host?view=bare` (`E2E_EMBED_HOST_URL`, default `http://localhost:5000`) and works inside `iframe[id^="edxf-{formId}"]`. The token is a share access token with `submit`, not the hex on-behalf token. Do not build an iframe around `/share`. Clicks stay inside `.sd-root-modern`. A query such as `?city=` is a share-URL check. The playground host does not forward it into the iframe. After the browser saves, read `GET /forms/{formId}/submissions/{submissionId}` and assert `jsonData` and `personalization`. Reference: `tests/screen-out/screen-out.spec.ts`, `tests/audience/personalization.spec.ts`.
 
 ## Embed Tests
 
@@ -137,10 +143,7 @@ The export creates the folder and runs `dotnet dev-certs https -ep <path> --form
 - `pnpm dev-https`: Next replaces `NODE_EXTRA_CA_CERTS` for its server with its mkcert root CA. The wrapper asks Next's own mkcert helper for the certificate (created on first use, as `next dev` would) and passes it with a bundle of that CA and the dev certificate.
 - Do not set `NODE_TLS_REJECT_UNAUTHORIZED`. A container that calls the host API mounts the PEM read-only and sets `NODE_EXTRA_CA_CERTS`; do not copy it into an image.
 
-The iframe case opens WebHost `/dev/embed-host?view=bare` with `formId`, `hubBaseUrl`, and `token`
-(see `AGENTS.md` → Embed SDK). The URL token is a share access token with `submit`, not the hex
-on-behalf token. Do not load `/share` inside a hand-built iframe. Survey clicks stay inside
-`.sd-root-modern` so they do not hit the Next.js dev toolbar.
+Share and iframe opens, the dev certificate, and the commands agents should run are under **Agents** above. Survey clicks stay inside `.sd-root-modern`.
 
 ### Names
 

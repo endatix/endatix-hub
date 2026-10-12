@@ -1,22 +1,32 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type FrameLocator, type Page } from "@playwright/test";
+import { variableNameFromName } from "@/features/audience/property-types";
+import type { EndatixApi } from "@/lib/endatix-api/endatix-api";
 import {
   panelCsv,
   preparePanelForm,
   signInForAudience,
 } from "../../utils/audience-import-api";
+import { playgroundEmbedHostHref } from "../../utils/open-embed-host";
 import { createShareAccessToken } from "../../utils/screen-out-api";
-import { variableNameFromName } from "@/features/audience/property-types";
-import type { EndatixApi } from "@/lib/endatix-api/endatix-api";
 
 const FIXTURE = "cedar-grove-pulse.csv";
 const SUBJECT = "CG-000001-01";
 const CITY = "03. MIDWEST - COLUMBUS";
 const FIXTURES = path.join(process.cwd(), "e2e/fixtures/audience");
+const SURFACES = ["share", "iframe"] as const;
+
+type SurfaceKind = (typeof SURFACES)[number];
+type SurveySurface = Page | FrameLocator;
 
 type OnBehalfBody = {
   id: string;
+  personalization?: { variables?: Record<string, unknown> } | null;
+};
+
+type StoredSubmission = {
+  jsonData: string;
   personalization?: { variables?: Record<string, unknown> } | null;
 };
 
@@ -25,14 +35,21 @@ function oneRowCsv(): string {
   return `${header}\n${first}\n`;
 }
 
-function surveyJson(): string {
-  return readFileSync(path.join(FIXTURES, "cedar-grove-pulse.survey.json"), "utf8");
+function hubBaseUrl(): string {
+  return process.env.BASE_URL ?? "http://localhost:3000";
+}
+
+function embedHostOrigin(): string {
+  return process.env.E2E_EMBED_HOST_URL ?? "http://localhost:5000";
 }
 
 async function publishSurvey(api: EndatixApi, formId: string): Promise<void> {
   const published = await api.put(`/forms/${formId}/definition`, {
     isDraft: false,
-    jsonData: surveyJson(),
+    jsonData: readFileSync(
+      path.join(FIXTURES, "cedar-grove-pulse.survey.json"),
+      "utf8",
+    ),
   });
   if (!published.success) {
     throw new Error(`Publish definition failed: ${published.error.message}`);
@@ -67,7 +84,7 @@ async function importFirstRow(api: EndatixApi, formId: string): Promise<void> {
 async function openOnBehalf(
   api: EndatixApi,
   formId: string,
-): Promise<{ submissionId: string; token: string }> {
+): Promise<{ submissionId: string; shareToken: string }> {
   const created = await api.post<OnBehalfBody>(
     `/forms/${formId}/submissions/onbehalf`,
     {
@@ -85,73 +102,137 @@ async function openOnBehalf(
       "On-behalf did not return the frozen city and age. The API needs on-behalf personalization.",
     );
   }
-  const token = await createShareAccessToken(api, formId, created.data.id);
-  return { submissionId: created.data.id, token };
+  return {
+    submissionId: created.data.id,
+    shareToken: await createShareAccessToken(api, formId, created.data.id),
+  };
 }
 
-function embedUrl(formId: string, token: string, city?: string): string {
-  const url = new URL(
-    `/embed/${formId}`,
-    process.env.BASE_URL ?? "http://localhost:3000",
-  );
+function shareUrl(formId: string, token: string, city?: string): string {
+  const url = new URL(`/share/${formId}`, hubBaseUrl());
   url.searchParams.set("token", token);
   if (city) url.searchParams.set("city", city);
   return url.toString();
 }
 
-async function openEmbed(page: Page, formId: string, token: string, city?: string) {
-  await page.goto(embedUrl(formId, token, city));
-  const survey = page.locator(".sd-root-modern, .sd-root");
-  await survey.waitFor({ timeout: 30_000 });
-  return survey;
+async function openSurvey(
+  page: Page,
+  kind: SurfaceKind,
+  formId: string,
+  token: string,
+  city?: string,
+): Promise<SurveySurface> {
+  if (kind === "share") {
+    await page.goto(shareUrl(formId, token, city));
+    const survey = page.locator(".sd-root-modern");
+    await survey.waitFor({ timeout: 30_000 });
+    return survey;
+  }
+
+  await page.goto(
+    playgroundEmbedHostHref(embedHostOrigin(), formId, hubBaseUrl(), token),
+  );
+  const frame = page.frameLocator(`iframe[id^="edxf-${formId}"]`);
+  await frame.locator(".sd-root-modern").waitFor({ timeout: 30_000 });
+  return frame;
 }
 
-test.describe("On-behalf embed", () => {
+async function expectFrozen(survey: SurveySurface): Promise<void> {
+  await expect(survey.getByText(CITY)).toBeVisible();
+  await expect(survey.getByText("Shown when age is at least 50")).toBeVisible();
+  await expect(questionInput(survey, "Age in months")).toHaveValue("780");
+}
+
+function questionInput(survey: SurveySurface, title: string) {
+  return survey
+    .locator(".sd-question")
+    .filter({ hasText: title })
+    .locator("input");
+}
+
+async function editFamilySize(page: Page, survey: SurveySurface): Promise<void> {
+  const family = questionInput(survey, "Family size");
+  await family.click();
+  await family.fill("");
+  const saved = page.waitForResponse(
+    (response) =>
+      response.url().includes("/submissions") &&
+      response.request().method() !== "GET" &&
+      response.ok(),
+    { timeout: 20_000 },
+  );
+  await family.pressSequentially("9 people");
+  await family.press("Tab");
+  await saved;
+}
+
+async function expectStoredAnswer(
+  api: EndatixApi,
+  formId: string,
+  submissionId: string,
+): Promise<void> {
+  const read = await api.get<StoredSubmission>(
+    `/forms/${formId}/submissions/${submissionId}`,
+  );
+  if (!read.success) {
+    throw new Error(`Read submission failed: ${read.error.message}`);
+  }
+  const answers = JSON.parse(read.data.jsonData) as Record<string, unknown>;
+  expect(answers.familySize).toBe("9 people");
+  expect(read.data.personalization?.variables?.city).toBe(CITY);
+  expect(read.data.personalization?.variables?.age).toBe(65);
+}
+
+test.describe("On-behalf personalization", () => {
+  test.describe.configure({ mode: "serial" });
   test.setTimeout(120_000);
 
-  test("frozen city and age show, and an edited answer stays", async ({ page }) => {
-    const api = await signInForAudience();
-    test.skip(!api, "Set E2E_EMAIL and E2E_PASSWORD.");
-    const form = await preparePanelForm(api!, "Cedar Grove embed", FIXTURE);
-    try {
-      await publishSurvey(api!, form.formId);
-      await importFirstRow(api!, form.formId);
-      const opened = await openOnBehalf(api!, form.formId);
+  for (const surface of SURFACES) {
+    test(`${surface} shows the frozen values and keeps an edited answer`, async ({
+      page,
+    }) => {
+      const api = await signInForAudience();
+      test.skip(!api, "Set E2E_EMAIL and E2E_PASSWORD.");
+      const form = await preparePanelForm(api!, `Cedar Grove ${surface}`, FIXTURE);
+      try {
+        await publishSurvey(api!, form.formId);
+        await importFirstRow(api!, form.formId);
+        const opened = await openOnBehalf(api!, form.formId);
 
-      const survey = await openEmbed(page, form.formId, opened.token);
-      await expect(survey.getByText(CITY)).toBeVisible();
-      await expect(survey.getByText("Shown when age is at least 50")).toBeVisible();
-      await expect(
-        survey.locator(".sd-question").filter({ hasText: "Age in months" }).locator("input"),
-      ).toHaveValue("780");
+        let survey = await openSurvey(
+          page,
+          surface,
+          form.formId,
+          opened.shareToken,
+        );
+        await expectFrozen(survey);
+        if (surface === "share") {
+          survey = await openSurvey(
+            page,
+            surface,
+            form.formId,
+            opened.shareToken,
+            "Other",
+          );
+          await expect(survey.getByText(CITY)).toBeVisible();
+          await expect(survey.getByText("Other")).toHaveCount(0);
+        }
 
-      const replaced = await openEmbed(page, form.formId, opened.token, "Other");
-      await expect(replaced.getByText(CITY)).toBeVisible();
-      await expect(replaced.getByText("Other")).toHaveCount(0);
+        await editFamilySize(page, survey);
+        await expectStoredAnswer(api!, form.formId, opened.submissionId);
 
-      const family = replaced
-        .locator(".sd-question")
-        .filter({ hasText: "Family size" })
-        .locator("input");
-      await family.click();
-      await family.fill("");
-      const saved = page.waitForResponse(
-        (response) =>
-          response.url().includes("/submissions") &&
-          response.request().method() !== "GET" &&
-          response.ok(),
-        { timeout: 20_000 },
-      );
-      await family.pressSequentially("9 people");
-      await family.press("Tab");
-      await saved;
-
-      const reopened = await openEmbed(page, form.formId, opened.token);
-      await expect(
-        reopened.locator(".sd-question").filter({ hasText: "Family size" }).locator("input"),
-      ).toHaveValue("9 people");
-    } finally {
-      await form.cleanup();
-    }
-  });
+        const reopened = await openSurvey(
+          page,
+          surface,
+          form.formId,
+          opened.shareToken,
+        );
+        await expect(questionInput(reopened, "Family size")).toHaveValue(
+          "9 people",
+        );
+      } finally {
+        await form.cleanup();
+      }
+    });
+  }
 });
