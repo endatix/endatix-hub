@@ -10,6 +10,13 @@ type DefaultQuestion = {
 
 type VariableTarget = {
   setVariable: (name: string, value: unknown) => void;
+};
+
+/**
+ * `runDefaultValueExpression` exists on SurveyJS questions but is protected, so the
+ * public model type cannot declare it. The cast stays inside this helper.
+ */
+type ModelWithDefaults = VariableTarget & {
   getAllQuestions?: () => DefaultQuestion[];
 };
 
@@ -27,7 +34,8 @@ export function applyPersonalizationToModel(
     model.setVariable(name, value);
   }
   // A calculated default is evaluated once, before these variables exist.
-  for (const question of model.getAllQuestions?.() ?? []) {
+  const questions = (model as ModelWithDefaults).getAllQuestions?.() ?? [];
+  for (const question of questions) {
     if (question.defaultValueExpression && question.isEmpty()) {
       question.runDefaultValueExpression();
     }
