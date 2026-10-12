@@ -115,7 +115,7 @@ export function FormDetailsView({
   onSaveMetadata,
   onEnableLimitWarningOpenChange,
   onEnableLimitErrorOpenChange,
-}: FormDetailsViewProps) {
+}: Readonly<FormDetailsViewProps>) {
   return (
     <div>
       <div className="mx-auto max-w-2xl">

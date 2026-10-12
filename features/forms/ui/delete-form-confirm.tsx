@@ -47,7 +47,7 @@ function DeleteFormDialog({
       toast.error("Form name doesn't match");
       return;
     }
-    void onDelete();
+    onDelete();
   };
 
   return (
