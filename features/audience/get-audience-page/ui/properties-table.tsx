@@ -1,6 +1,6 @@
 "use client";
 
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, UserRound } from "lucide-react";
 import {
   DATA_TABLE_SHRINK_WRAP_CLASS_NAME as SHRINK,
   DataTableRowActions,
@@ -51,17 +51,20 @@ const TYPE_CELL = `text-sm text-muted-foreground ${SHRINK}`;
 
 type NameProps = { property: AudienceProperty; kind: AudienceIdentifierKind };
 
-/** Pinned first and tagged: it copies the match key, so People shows it as the identifier. */
+/** Pinned first, tagged with the Person section's icon and wording from the edit panel. */
 function MatchKeyName({ property, kind }: Readonly<NameProps>) {
   const label = identifierKindLabel(kind);
   return (
     <span className="flex flex-col gap-1">
       <span className="inline-flex flex-wrap items-center gap-2">
         {property.name}
-        <Badge variant="secondary">Match key</Badge>
+        <Badge variant="secondary">
+          <UserRound aria-hidden="true" />
+          Identifier
+        </Badge>
       </span>
       <span className="text-xs font-normal text-muted-foreground">
-        {`People are matched by ${label}, so the people table shows it as their identifier, not as a property.`}
+        {`It matches each person across forms, so the people table shows it as their ${label}, not as a property.`}
       </span>
     </span>
   );

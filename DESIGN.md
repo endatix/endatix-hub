@@ -532,9 +532,12 @@ to `value` are `completed`; the `value` step itself is `active`. Reference:
   stored value, even one outside its list, so nothing stored is hidden or silently cleared.
   Reference: `features/audience/ui/property-value-field.tsx`.
 - **Chips / tags:** `rounded-full` to distinguish from buttons. Status tags are `StatusBadge`,
-  and its dot marks a state. A role tag says what a row _is_, not its state (`Match key` on the
+  and its dot marks a state. A role tag says what a row _is_, not its state (`Identifier` on the
   property that copies the match key). It is a `Badge variant="secondary"` with no dot, placed
-  after the row's name, so the reader does not read it as a status.
+  after the row's name, so the reader does not read it as a status. It may carry the icon of the
+  section that owns the concept elsewhere (`UserRound`, the Person section of Add and Edit person),
+  and its help line reuses that section's wording ("It matches … across forms"), so one idea looks
+  and reads the same on every surface.
 
 ---
 
@@ -606,8 +609,8 @@ text-muted-foreground` — no left-border rule.
   audience match key, `email` or `external_id`) is left out of the table and the add and edit
   overlays. Editing it could not change who the record is, so it would only be an empty second
   copy. Filter it once, where the list is handed to them (`valueProperties`). Where the fields
-  themselves are what the page lists (the Properties view), that field is pinned first with a
-  `Match key` tag and one line saying where the key shows instead. That way, its absence from the
+  themselves are what the page lists (the Properties view), that field is pinned first with an
+  `Identifier` tag and one line saying where the key shows instead. That way, its absence from the
   other places is explained where the reader would look for it. Reference:
   `features/audience/get-audience-page/ui/properties-table.tsx`.
 - **A key derived from a name is previewed before it is fixed.** While the reader types, the

@@ -40,13 +40,15 @@ describe("PropertiesTable", () => {
 
     // Assert
     const [, first, second, third] = screen.getAllByRole("row");
-    expect(within(first!).getByText("Match key")).toBeTruthy();
+    expect(within(first!).getByText("Identifier")).toBeTruthy();
     expect(
-      within(first!).getByText(/People are matched by External ID/),
+      within(first!).getByText(
+        "It matches each person across forms, so the people table shows it as their External ID, not as a property.",
+      ),
     ).toBeTruthy();
     expect(within(second!).getAllByText("age").length).toBeGreaterThan(0);
     expect(within(third!).getAllByText("city").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Match key")).toHaveLength(1);
+    expect(screen.getAllByText("Identifier")).toHaveLength(1);
   });
 
   it("tags nothing when no property is named like the match key", () => {
@@ -57,6 +59,6 @@ describe("PropertiesTable", () => {
       />,
     );
 
-    expect(screen.queryByText("Match key")).toBeNull();
+    expect(screen.queryByText("Identifier")).toBeNull();
   });
 });
