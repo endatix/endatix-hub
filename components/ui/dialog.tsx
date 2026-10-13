@@ -33,6 +33,7 @@ function DialogClose({
 
 function DialogOverlay({
   className,
+  onClick,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Overlay>) {
   return (
@@ -43,6 +44,10 @@ function DialogOverlay({
         className,
       )}
       {...props}
+      onClick={(event) => {
+        event.stopPropagation();
+        onClick?.(event);
+      }}
     />
   );
 }
@@ -51,6 +56,7 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
+  onClick,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean;
@@ -65,6 +71,10 @@ function DialogContent({
           className,
         )}
         {...props}
+        onClick={(event) => {
+          event.stopPropagation();
+          onClick?.(event);
+        }}
       >
         {children}
         {showCloseButton && (

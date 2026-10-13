@@ -34,6 +34,7 @@ function DropdownMenuTrigger({
 function DropdownMenuContent({
   className,
   sideOffset = 4,
+  onClick,
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.Content>) {
   return (
@@ -46,6 +47,10 @@ function DropdownMenuContent({
           className,
         )}
         {...props}
+        onClick={(event) => {
+          event.stopPropagation();
+          onClick?.(event);
+        }}
       />
     </DropdownMenuPrimitive.Portal>
   );
