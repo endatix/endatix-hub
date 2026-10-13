@@ -397,7 +397,7 @@ Any set of peer cards uses `.grid-card-list` (`app/globals.css`), never viewport
 
 ```
 grid-template-columns: repeat(auto-fill, minmax(min(var(--grid-card-min), 100%), 1fr));
---grid-card-min: 420px;  /* per page: className="grid-card-list [--grid-card-min:360px]" */
+--grid-card-min: 380px;  /* per page: className="grid-card-list [--grid-card-min:360px]" */
 ```
 
 - **Why:** the collapsible sidebar changes the content width without changing the viewport, so
@@ -405,8 +405,11 @@ grid-template-columns: repeat(auto-fill, minmax(min(var(--grid-card-min), 100%),
   with one knob instead of a breakpoint ladder.
 - `auto-fill`, **not** `auto-fit` — card width must not depend on card count.
 - Keep the `min(…, 100%)` guard, or narrow containers overflow.
-- Set `--grid-card-min` from the card's narrowest _legible_ content (default 420px; below ~320px
-  only for tiny tiles).
+- Set `--grid-card-min` from the card's narrowest _legible_ content (default 380px; below ~320px
+  only for tiny tiles). Three columns need `3 × min + 48px`: 1188px at the default. A card that
+  needs more than its track holds (a footer of four links) loses an action to overflow, so move the
+  action into the card's menu instead of raising the minimum.
+- The grid owns the card's width. A card inside it does not set its own `min-w-*`.
 - Give cards `h-full` so a row shares a bottom edge.
 
 ### Fact cards — `StatCard`
