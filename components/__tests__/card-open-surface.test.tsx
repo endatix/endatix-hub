@@ -9,16 +9,9 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
 }));
 
-vi.mock("@/features/folders/server", () => ({
-  listFoldersAction: vi.fn(),
-}));
-
-vi.mock("@/features/folders/move-form-to-folder", () => ({
-  moveFormToFolderAction: vi.fn(),
-}));
-
-vi.mock("@/features/folders/move-template-to-folder", () => ({
-  moveTemplateToFolderAction: vi.fn(),
+vi.mock("@/features/folders/move-to-folder/move-item-to-folder", () => ({
+  loadFolderChoices: vi.fn(),
+  moveItemToFolder: vi.fn(),
 }));
 
 vi.mock(
@@ -32,8 +25,7 @@ vi.mock("@/features/forms/ui/delete-form-confirm", () => ({
     createPortal(<input aria-label="Confirm form name" />, document.body),
 }));
 
-vi.mock("@/features/folders/ui/move-to-folder-dialog", () => ({
-  NO_FOLDER_VALUE: "__none__",
+vi.mock("@/features/folders/move-to-folder/ui/move-to-folder-dialog", () => ({
   MoveToFolderDialog: () =>
     createPortal(<button type="button">Move</button>, document.body),
 }));
@@ -76,13 +68,19 @@ function renderTemplateCard(onClick: () => void, onPreviewClick = vi.fn()) {
 
 describe.each([
   { card: "FormCard", title: "Customer survey", renderCard: renderFormCard },
-  { card: "FormTemplateCard", title: "Onboarding", renderCard: renderTemplateCard },
+  {
+    card: "FormTemplateCard",
+    title: "Onboarding",
+    renderCard: renderTemplateCard,
+  },
 ])("$card", ({ title, renderCard }) => {
   it("opens when its body is clicked or activated from the keyboard", () => {
     // Arrange
     const onClick = vi.fn();
     renderCard(onClick);
-    const surface = screen.getByRole("button", { name: new RegExp(title, "i") });
+    const surface = screen.getByRole("button", {
+      name: new RegExp(title, "i"),
+    });
 
     // Act
     fireEvent.click(screen.getByText(title));

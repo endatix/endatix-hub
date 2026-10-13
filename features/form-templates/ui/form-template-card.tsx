@@ -29,10 +29,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoveToFolderDialog, useMoveToFolder } from "@/features/folders/ui";
-import { moveTemplateToFolderAction } from "@/features/folders/move-template-to-folder";
+import {
+  MoveToFolderDialog,
+  useMoveToFolder,
+} from "@/features/folders/move-to-folder";
 import { toast } from "@/components/ui/toast";
-import type { Route } from "next";
 
 type FormTemplateCardProps = React.ComponentProps<typeof Card> & {
   template: FormTemplate;
@@ -54,10 +55,8 @@ const FormTemplateCard = ({
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const router = useRouter();
   const { openMoveDialog, dialogProps } = useMoveToFolder({
-    item: { ...template, kind: "template" },
-    move: moveTemplateToFolderAction,
-    folderRoute: (slug) =>
-      `/forms/templates/folders/${encodeURIComponent(slug)}` as Route,
+    ...template,
+    kind: "template",
   });
 
   const handleUseTemplate = () => {

@@ -28,10 +28,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoveToFolderDialog, useMoveToFolder } from "@/features/folders/ui";
-import { moveFormToFolderAction } from "@/features/folders/move-form-to-folder";
+import {
+  MoveToFolderDialog,
+  useMoveToFolder,
+} from "@/features/folders/move-to-folder";
 import { DeleteFormConfirm } from "@/features/forms/ui/delete-form-confirm";
-import type { Route } from "next";
 
 type FormCardProps = React.ComponentProps<typeof Card> & {
   form: Form;
@@ -106,10 +107,8 @@ const FormCard = ({
   const getVisibilityLabel = () => (form.isPublic ? "Public" : "Private");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const { openMoveDialog, dialogProps } = useMoveToFolder({
-    item: { ...form, kind: "form" },
-    move: moveFormToFolderAction,
-    folderRoute: (slug) =>
-      `/forms/folders/${encodeURIComponent(slug)}` as Route,
+    ...form,
+    kind: "form",
   });
   const [deleteOpen, setDeleteOpen] = useState(false);
 
