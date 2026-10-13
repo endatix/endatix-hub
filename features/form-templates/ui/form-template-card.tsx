@@ -18,11 +18,10 @@ import {
   FilePen,
   FilePlus2,
   FolderInput,
-  FolderOpen,
   Loader2,
   MoreVertical,
 } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { runCreateFormFromTemplate } from "../application/run-create-form-from-template.client";
 import {
   DropdownMenu,
@@ -30,14 +29,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  MoveToFolderDialog,
-  NO_FOLDER_VALUE,
-} from "@/features/folders/ui/move-to-folder-dialog";
-import { listFoldersAction } from "@/features/folders/server";
+import { MoveToFolderDialog, useMoveToFolder } from "@/features/folders/ui";
 import { moveTemplateToFolderAction } from "@/features/folders/move-template-to-folder";
 import { toast } from "@/components/ui/toast";
-import { Result } from "@/lib/result";
 import type { Route } from "next";
 
 type FormTemplateCardProps = React.ComponentProps<typeof Card> & {
@@ -58,22 +52,13 @@ const FormTemplateCard = ({
 }: FormTemplateCardProps) => {
   const [isPending, startTransition] = useTransition();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [moveDialogOpen, setMoveDialogOpen] = useState(false);
-  const [availableFolders, setAvailableFolders] = useState<
-    { id: string; name: string; slug?: string }[]
-  >([]);
-  const [currentFolderId, setCurrentFolderId] = useState<string>(
-    template.folderId ?? NO_FOLDER_VALUE,
-  );
-  const [selectedFolderId, setSelectedFolderId] = useState<string>(
-    template.folderId ?? NO_FOLDER_VALUE,
-  );
-  useEffect(() => {
-    setCurrentFolderId(template.folderId ?? NO_FOLDER_VALUE);
-  }, [template.folderId]);
-
-  const [isMovePending, setIsMovePending] = useState(false);
   const router = useRouter();
+  const { openMoveDialog, dialogProps } = useMoveToFolder({
+    item: { ...template, kind: "template" },
+    move: moveTemplateToFolderAction,
+    folderRoute: (slug) =>
+      `/forms/templates/folders/${encodeURIComponent(slug)}` as Route,
+  });
 
   const handleUseTemplate = () => {
     if (requireFolderAssignment) {
@@ -96,83 +81,9 @@ const FormTemplateCard = ({
     }
   };
 
-  const handleOpenMoveDialog = async () => {
+  const handleOpenMoveDialog = () => {
     setIsDropdownOpen(false);
-    const listResult = await listFoldersAction();
-    if (Result.isError(listResult)) {
-      toast.error(listResult.message);
-      return;
-    }
-
-    const activeFolders = listResult.value
-      .filter((folder) => folder.isActive)
-      .map((folder) => ({
-        id: folder.id,
-        name: folder.name,
-        slug: folder.slug,
-      }));
-
-    setAvailableFolders(activeFolders);
-    setSelectedFolderId(currentFolderId);
-    setMoveDialogOpen(true);
-  };
-
-  const handleMoveToFolder = async () => {
-    if (selectedFolderId === currentFolderId) {
-      return;
-    }
-
-    setIsMovePending(true);
-    const moveResult = await moveTemplateToFolderAction(
-      template.id,
-      selectedFolderId === NO_FOLDER_VALUE ? null : selectedFolderId,
-    );
-    setIsMovePending(false);
-
-    if (Result.isError(moveResult)) {
-      toast.error({
-        title: "Cannot move template to folder",
-        description: moveResult.message,
-      });
-      return;
-    }
-
-    const targetFolder =
-      selectedFolderId === NO_FOLDER_VALUE
-        ? null
-        : availableFolders.find((folder) => folder.id === selectedFolderId);
-    const targetFolderSlug = targetFolder?.slug;
-
-    toast.success({
-      title: "Template moved successfully",
-      description: (
-        <>
-          <strong>{template.name}</strong>
-          {targetFolder ? (
-            <>
-              {" "}
-              was moved to <strong>{targetFolder.name}</strong>.
-            </>
-          ) : (
-            <> was removed from its folder.</>
-          )}
-        </>
-      ),
-      SvgIcon: FolderOpen,
-      action:
-        targetFolderSlug && selectedFolderId !== NO_FOLDER_VALUE
-          ? {
-              label: "Open folder",
-              onClick: () => {
-                router.push(
-                  `/forms/templates/folders/${encodeURIComponent(targetFolderSlug)}` as Route,
-                );
-              },
-            }
-          : undefined,
-    });
-    setCurrentFolderId(selectedFolderId);
-    setMoveDialogOpen(false);
+    return openMoveDialog();
   };
 
   return (
@@ -279,18 +190,7 @@ const FormTemplateCard = ({
           </div>
         </div>
       </CardFooter>
-      <MoveToFolderDialog
-        open={moveDialogOpen}
-        onOpenChange={setMoveDialogOpen}
-        title="Move template to folder"
-        fieldId={`move-template-folder-${template.id}`}
-        selectedFolderId={selectedFolderId}
-        onFolderChange={setSelectedFolderId}
-        folderOptions={availableFolders}
-        isMovePending={isMovePending}
-        canMove={selectedFolderId !== currentFolderId}
-        onMove={() => void handleMoveToFolder()}
-      />
+      <MoveToFolderDialog {...dialogProps} />
     </Card>
   );
 };

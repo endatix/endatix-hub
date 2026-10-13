@@ -10,7 +10,6 @@ import Link from "next/link";
 import {
   FilePen,
   FolderInput,
-  FolderOpen,
   Globe,
   Link2,
   List,
@@ -20,7 +19,7 @@ import {
   Trash2,
   Users,
 } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,16 +28,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  MoveToFolderDialog,
-  NO_FOLDER_VALUE,
-} from "@/features/folders/ui/move-to-folder-dialog";
-import { listFoldersAction } from "@/features/folders/server";
+import { MoveToFolderDialog, useMoveToFolder } from "@/features/folders/ui";
 import { moveFormToFolderAction } from "@/features/folders/move-form-to-folder";
-import { toast } from "@/components/ui/toast";
-import { Result } from "@/lib/result";
 import { DeleteFormConfirm } from "@/features/forms/ui/delete-form-confirm";
-import { useRouter } from "next/navigation";
 import type { Route } from "next";
 
 type FormCardProps = React.ComponentProps<typeof Card> & {
@@ -112,107 +104,23 @@ const FormCard = ({
 }: FormCardProps) => {
   const getFormLabel = () => (form.isEnabled ? "Enabled" : "Disabled");
   const getVisibilityLabel = () => (form.isPublic ? "Public" : "Private");
-  const router = useRouter();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [moveDialogOpen, setMoveDialogOpen] = useState(false);
-  const [availableFolders, setAvailableFolders] = useState<
-    { id: string; name: string; slug?: string }[]
-  >([]);
-  const [currentFolderId, setCurrentFolderId] = useState<string>(
-    form.folderId ?? NO_FOLDER_VALUE,
-  );
-  const [selectedFolderId, setSelectedFolderId] = useState<string>(
-    form.folderId ?? NO_FOLDER_VALUE,
-  );
-  const [isMovePending, setIsMovePending] = useState(false);
+  const { openMoveDialog, dialogProps } = useMoveToFolder({
+    item: { ...form, kind: "form" },
+    move: moveFormToFolderAction,
+    folderRoute: (slug) =>
+      `/forms/folders/${encodeURIComponent(slug)}` as Route,
+  });
   const [deleteOpen, setDeleteOpen] = useState(false);
-
-  useEffect(() => {
-    setCurrentFolderId(form.folderId ?? NO_FOLDER_VALUE);
-  }, [form.folderId]);
 
   const handleOpenSaveAsTemplate = () => {
     setIsDropdownOpen(false);
     onSaveAsTemplate();
   };
 
-  const handleOpenMoveDialog = async () => {
+  const handleOpenMoveDialog = () => {
     setIsDropdownOpen(false);
-    const listResult = await listFoldersAction();
-    if (Result.isError(listResult)) {
-      toast.error(listResult.message);
-      return;
-    }
-
-    const activeFolders = listResult.value
-      .filter((folder) => folder.isActive)
-      .map((folder) => ({
-        id: folder.id,
-        name: folder.name,
-        slug: folder.slug,
-      }));
-
-    setAvailableFolders(activeFolders);
-    setSelectedFolderId(currentFolderId);
-    setMoveDialogOpen(true);
-  };
-
-  const handleMoveToFolder = async () => {
-    if (selectedFolderId === currentFolderId) {
-      return;
-    }
-
-    setIsMovePending(true);
-    const moveResult = await moveFormToFolderAction(
-      form.id,
-      selectedFolderId === NO_FOLDER_VALUE ? null : selectedFolderId,
-    );
-    setIsMovePending(false);
-
-    if (Result.isError(moveResult)) {
-      toast.error({
-        title: "Cannot move form to folder",
-        description: moveResult.message,
-      });
-      return;
-    }
-
-    const targetFolder =
-      selectedFolderId === NO_FOLDER_VALUE
-        ? null
-        : availableFolders.find((folder) => folder.id === selectedFolderId);
-    const targetFolderSlug = targetFolder?.slug;
-
-    toast.success({
-      title: "Form moved successfully",
-      description: (
-        <>
-          <strong>{form.name}</strong>
-          {targetFolder ? (
-            <>
-              {" "}
-              was moved to <strong>{targetFolder.name}</strong>.
-            </>
-          ) : (
-            <> was removed from its folder.</>
-          )}
-        </>
-      ),
-      SvgIcon: FolderOpen,
-      action:
-        targetFolderSlug && selectedFolderId !== NO_FOLDER_VALUE
-          ? {
-              label: "Open folder",
-              onClick: () => {
-                router.push(
-                  `/forms/folders/${encodeURIComponent(targetFolderSlug)}` as Route,
-                );
-              },
-            }
-          : undefined,
-    });
-    setCurrentFolderId(selectedFolderId);
-    setMoveDialogOpen(false);
+    return openMoveDialog();
   };
 
   return (
@@ -361,18 +269,7 @@ const FormCard = ({
         open={deleteOpen}
         onClose={() => setDeleteOpen(false)}
       />
-      <MoveToFolderDialog
-        open={moveDialogOpen}
-        onOpenChange={setMoveDialogOpen}
-        title="Move form to folder"
-        fieldId={`move-form-folder-${form.id}`}
-        selectedFolderId={selectedFolderId}
-        onFolderChange={setSelectedFolderId}
-        folderOptions={availableFolders}
-        isMovePending={isMovePending}
-        canMove={selectedFolderId !== currentFolderId}
-        onMove={() => void handleMoveToFolder()}
-      />
+      <MoveToFolderDialog {...dialogProps} />
     </Card>
   );
 };
