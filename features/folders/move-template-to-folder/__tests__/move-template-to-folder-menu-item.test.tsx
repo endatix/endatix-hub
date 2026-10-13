@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MoveTemplateToFolderMenuItem } from "../ui/move-template-to-folder-menu-item";
-import { NO_FOLDER_VALUE } from "@/features/folders/ui/move-to-folder-dialog";
+import { NO_FOLDER_VALUE } from "@/features/folders/move-to-folder/move-to-folder";
 
 const mockListFoldersAction = vi.fn();
 const mockMoveTemplateToFolderAction = vi.fn();
@@ -53,8 +53,7 @@ vi.mock("@/components/ui/toast", () => ({
   },
 }));
 
-vi.mock("@/features/folders/ui/move-to-folder-dialog", () => ({
-  NO_FOLDER_VALUE: "__none__",
+vi.mock("@/features/folders/move-to-folder/ui/move-to-folder-dialog", () => ({
   MoveToFolderDialog: ({
     open,
     onFolderChange,

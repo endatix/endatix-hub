@@ -18,15 +18,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { NO_FOLDER_VALUE } from "../move-to-folder";
 
 export interface MoveToFolderOption {
   id: string;
   name: string;
 }
 
-export const NO_FOLDER_VALUE = "__none__";
-
-interface MoveToFolderDialogProps {
+export interface MoveToFolderDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;

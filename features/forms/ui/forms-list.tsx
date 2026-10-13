@@ -99,7 +99,7 @@ const FormsList = ({
             folderContext={resolveFolderContext(form)}
             isSelected={form.id === selectedFormId}
             showAudienceLink={workspaceFlags.audience}
-            onClick={() => handleFormSelected(form.id)}
+            onOpen={() => handleFormSelected(form.id)}
             onSaveAsTemplate={() => handleSaveAsTemplateClick(form.id)}
           />
         ))}
