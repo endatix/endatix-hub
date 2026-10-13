@@ -44,11 +44,12 @@ const template = {
   description: "New hire checklist",
 } as FormTemplate;
 
-function renderFormCard(onClick: () => void) {
+function renderFormCard(onClick: () => void, showAudienceLink = false) {
   return render(
     <FormCard
       form={form}
       isSelected={false}
+      showAudienceLink={showAudienceLink}
       onOpen={onClick}
       onSaveAsTemplate={vi.fn()}
     />,
@@ -125,6 +126,39 @@ describe("FormCard", () => {
 
     // Assert
     expect(onClick).not.toHaveBeenCalled();
+  });
+});
+
+describe("FormCard audience link", () => {
+  it("is a menu item that links to the audience, not a footer link", () => {
+    // Arrange
+    renderFormCard(vi.fn(), true);
+
+    // Act
+    fireEvent.keyDown(screen.getByRole("button", { name: "More options" }), {
+      key: "Enter",
+    });
+    const item = screen.getByRole("menuitem", { name: "Audience" });
+
+    // Assert
+    expect(item.getAttribute("href")).toBe("/forms/1/audience");
+    expect(screen.queryByRole("link", { name: "Audience" })).toBeNull();
+  });
+
+  it("is absent when the tenant has no audiences", () => {
+    // Arrange
+    renderFormCard(vi.fn());
+
+    // Act
+    fireEvent.keyDown(screen.getByRole("button", { name: "More options" }), {
+      key: "Enter",
+    });
+
+    // Assert
+    expect(
+      screen.getByRole("menuitem", { name: /save as template/i }),
+    ).toBeTruthy();
+    expect(screen.queryByRole("menuitem", { name: "Audience" })).toBeNull();
   });
 });
 

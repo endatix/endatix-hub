@@ -40,7 +40,7 @@ type FormCardProps = Omit<React.ComponentProps<typeof Card>, "onClick"> & {
   form: Form;
   folderContext?: FormFolderChipProps;
   isSelected: boolean;
-  /** The Audience quick link; only when the tenant has audiences. */
+  /** The Audience item in the card's menu; only when the tenant has audiences. */
   showAudienceLink?: boolean;
   onSaveAsTemplate: () => void;
 };
@@ -83,15 +83,15 @@ const SubmissionsLabel: React.FC<SubmissionsLabelProps> = ({
   );
 };
 
-function AudienceQuickLink({ formId }: Readonly<{ formId: string }>) {
+/** In the card's menu, not its footer: a fourth footer link does not fit a card at the grid minimum. */
+function AudienceMenuItem({ formId }: Readonly<{ formId: string }>) {
   return (
-    <Link
-      href={`/forms/${formId}/audience`}
-      className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 text-sm leading-none whitespace-nowrap text-muted-foreground hover:text-foreground"
-    >
-      <Users className="size-4 shrink-0" />
-      Audience
-    </Link>
+    <DropdownMenuItem asChild className="cursor-pointer">
+      <Link href={`/forms/${formId}/audience`}>
+        <Users className="mr-2 size-4" />
+        Audience
+      </Link>
+    </DropdownMenuItem>
   );
 }
 
@@ -127,7 +127,7 @@ const FormCard = ({
   return (
     <Card
       className={cn(
-        "group flex h-[230px] w-full max-w-full min-w-[420px] flex-col gap-0 py-0",
+        "group flex h-[230px] w-full max-w-full flex-col gap-0 py-0",
         isSelected ? "border-primary bg-accent" : "",
         className,
       )}
@@ -213,7 +213,6 @@ const FormCard = ({
               <List className="size-4 shrink-0" />
               Submissions
             </Link>
-            {showAudienceLink ? <AudienceQuickLink formId={form.id} /> : null}
           </div>
           <div className="relative flex h-full shrink-0 items-center opacity-0 transition-opacity group-hover:opacity-100">
             <DropdownMenu
@@ -234,6 +233,7 @@ const FormCard = ({
               <DropdownMenuContent align="end" side="top" forceMount>
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                {showAudienceLink && <AudienceMenuItem formId={form.id} />}
                 <DropdownMenuItem
                   className="cursor-pointer"
                   onClick={handleOpenSaveAsTemplate}

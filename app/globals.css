@@ -235,9 +235,11 @@
    * `auto-fill` (not `auto-fit`) keeps card width constant when there are fewer
    * cards than fit; `min(…, 100%)` stops the track overflowing narrow screens.
    * Override the minimum per page with `[--grid-card-min:360px]`.
+   * 380px: three columns from a 1188px container (420px needed 1308px, which a laptop with the
+   * sidebar open does not reach), and the form and template card footers still fit their links.
    */
   .grid-card-list {
-    --grid-card-min: 420px;
+    --grid-card-min: 380px;
     @apply grid gap-6;
     grid-template-columns: repeat(
       auto-fill,
