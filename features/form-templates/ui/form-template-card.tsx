@@ -35,7 +35,12 @@ import {
 } from "@/features/folders/move-to-folder";
 import { toast } from "@/components/ui/toast";
 
-type FormTemplateCardProps = React.ComponentProps<typeof Card> & {
+type FormTemplateCardProps = Omit<
+  React.ComponentProps<typeof Card>,
+  "onClick"
+> & {
+  /** Opens the template: a click on the card body, or its button from the keyboard. */
+  onOpen?: () => void;
   template: FormTemplate;
   isSelected: boolean;
   onPreviewClick?: (templateId: string) => void;
@@ -48,7 +53,7 @@ const FormTemplateCard = ({
   onPreviewClick,
   requireFolderAssignment = false,
   className,
-  onClick,
+  onOpen,
   ...props
 }: FormTemplateCardProps) => {
   const [isPending, startTransition] = useTransition();
@@ -95,7 +100,8 @@ const FormTemplateCard = ({
       {...props}
     >
       <CardOpenSurface
-        onClick={onClick}
+        label={template.name}
+        onOpen={onOpen}
         className="flex min-h-0 min-w-0 flex-1 cursor-pointer flex-col rounded-t-md transition-colors group-hover:bg-muted/45"
       >
         <CardHeader className="shrink-0 p-4 pt-4 pb-2">

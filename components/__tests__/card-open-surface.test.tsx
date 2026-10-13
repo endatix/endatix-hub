@@ -49,7 +49,7 @@ function renderFormCard(onClick: () => void) {
     <FormCard
       form={form}
       isSelected={false}
-      onClick={onClick}
+      onOpen={onClick}
       onSaveAsTemplate={vi.fn()}
     />,
   );
@@ -60,7 +60,7 @@ function renderTemplateCard(onClick: () => void, onPreviewClick = vi.fn()) {
     <FormTemplateCard
       template={template}
       isSelected={false}
-      onClick={onClick}
+      onOpen={onClick}
       onPreviewClick={onPreviewClick}
     />,
   );
@@ -74,21 +74,19 @@ describe.each([
     renderCard: renderTemplateCard,
   },
 ])("$card", ({ title, renderCard }) => {
-  it("opens when its body is clicked or activated from the keyboard", () => {
+  it("opens from a native button named after the card", () => {
     // Arrange
-    const onClick = vi.fn();
-    renderCard(onClick);
-    const surface = screen.getByRole("button", {
-      name: new RegExp(title, "i"),
-    });
+    const onOpen = vi.fn();
+    renderCard(onOpen);
+    const opener = screen.getByRole("button", { name: title });
 
     // Act
-    fireEvent.click(screen.getByText(title));
-    fireEvent.keyDown(surface, { key: "Enter" });
-    fireEvent.keyDown(surface, { key: " " });
+    fireEvent.click(opener);
 
     // Assert
-    expect(onClick).toHaveBeenCalledTimes(3);
+    expect(opener.tagName).toBe("BUTTON");
+    expect(opener.getAttribute("type")).toBe("button");
+    expect(onOpen).toHaveBeenCalledTimes(1);
   });
 
   it("keeps a click inside the move dialog off the card", () => {

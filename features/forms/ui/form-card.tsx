@@ -34,7 +34,9 @@ import {
 } from "@/features/folders/move-to-folder";
 import { DeleteFormConfirm } from "@/features/forms/ui/delete-form-confirm";
 
-type FormCardProps = React.ComponentProps<typeof Card> & {
+type FormCardProps = Omit<React.ComponentProps<typeof Card>, "onClick"> & {
+  /** Opens the form: a click on the card body, or its button from the keyboard. */
+  onOpen?: () => void;
   form: Form;
   folderContext?: FormFolderChipProps;
   isSelected: boolean;
@@ -100,7 +102,7 @@ const FormCard = ({
   showAudienceLink = false,
   onSaveAsTemplate,
   className,
-  onClick,
+  onOpen,
   ...props
 }: FormCardProps) => {
   const getFormLabel = () => (form.isEnabled ? "Enabled" : "Disabled");
@@ -132,7 +134,8 @@ const FormCard = ({
       {...props}
     >
       <CardOpenSurface
-        onClick={onClick}
+        label={form.name}
+        onOpen={onOpen}
         className="flex min-h-0 min-w-0 flex-1 cursor-pointer flex-col rounded-t-md transition-colors group-hover:bg-muted/45"
       >
         <div className="flex shrink-0 flex-col gap-2 p-4 pt-4 pb-2">
