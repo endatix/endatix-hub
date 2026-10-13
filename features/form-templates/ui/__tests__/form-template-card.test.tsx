@@ -47,9 +47,12 @@ describe("FormTemplateCard", () => {
 
     // Act
     fireEvent.click(screen.getByText("Onboarding"));
+    fireEvent.keyDown(screen.getByRole("button", { name: /onboarding/i }), {
+      key: " ",
+    });
 
     // Assert
-    expect(onClick).toHaveBeenCalledTimes(1);
+    expect(onClick).toHaveBeenCalledTimes(2);
   });
 
   it("keeps a click inside the move dialog off the card", () => {

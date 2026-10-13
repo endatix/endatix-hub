@@ -48,16 +48,19 @@ function renderCard(onClick: () => void) {
 }
 
 describe("FormCard", () => {
-  it("opens the form when its body is clicked", () => {
+  it("opens the form when its body is clicked or activated from the keyboard", () => {
     // Arrange
     const onClick = vi.fn();
     renderCard(onClick);
 
     // Act
     fireEvent.click(screen.getByText("Customer survey"));
+    fireEvent.keyDown(screen.getByRole("button", { name: /customer survey/i }), {
+      key: "Enter",
+    });
 
     // Assert
-    expect(onClick).toHaveBeenCalledTimes(1);
+    expect(onClick).toHaveBeenCalledTimes(2);
   });
 
   it("keeps a click inside the delete dialog off the card", () => {

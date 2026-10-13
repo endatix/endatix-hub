@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { CardOpenSurface } from "@/components/card-open-surface";
 import { Card, CardContent, CardFooter, CardTitle } from "@/components/ui/card";
 import { Form } from "@/types";
 import { Badge } from "@/components/ui/badge";
@@ -223,11 +224,9 @@ const FormCard = ({
       )}
       {...props}
     >
-      {/* The click opens the sheet from the card body only: the card also holds the delete and move dialogs as
-          React children, and their clicks bubble through the React tree even though they render in a portal. */}
-      <div
-        className="flex min-h-0 min-w-0 flex-1 cursor-pointer flex-col rounded-t-md transition-colors group-hover:bg-muted/45"
+      <CardOpenSurface
         onClick={onClick}
+        className="flex min-h-0 min-w-0 flex-1 cursor-pointer flex-col rounded-t-md transition-colors group-hover:bg-muted/45"
       >
         <div className="flex shrink-0 flex-col gap-2 p-4 pt-4 pb-2">
           {folderContext ? (
@@ -269,7 +268,7 @@ const FormCard = ({
             </div>
           </div>
         </CardContent>
-      </div>
+      </CardOpenSurface>
       <CardFooter className="mt-auto flex h-16 min-w-0 cursor-default items-center overflow-hidden rounded-b-[6px] border-t bg-muted px-4 py-0 [.border-t]:pt-0">
         <div className="flex h-full w-full min-w-0 items-center justify-between gap-2">
           <div className="flex min-h-0 min-w-0 flex-1 flex-nowrap items-center gap-x-3 overflow-x-auto overflow-y-hidden opacity-0 transition-opacity group-hover:opacity-100">

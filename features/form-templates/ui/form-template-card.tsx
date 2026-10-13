@@ -2,6 +2,7 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { CardOpenSurface } from "@/components/card-open-surface";
 import { cn } from "@/lib/utils";
 import {
   Card,
@@ -183,11 +184,9 @@ const FormTemplateCard = ({
       )}
       {...props}
     >
-      {/* The click opens the sheet from the card body only: the card also holds the move dialog as a React
-          child, and its clicks bubble through the React tree even though they render in a portal. */}
-      <div
-        className="flex min-h-0 min-w-0 flex-1 cursor-pointer flex-col rounded-t-md transition-colors group-hover:bg-muted/45"
+      <CardOpenSurface
         onClick={onClick}
+        className="flex min-h-0 min-w-0 flex-1 cursor-pointer flex-col rounded-t-md transition-colors group-hover:bg-muted/45"
       >
         <CardHeader className="shrink-0 p-4 pt-4 pb-2">
           <CardTitle
@@ -203,7 +202,7 @@ const FormTemplateCard = ({
             {template.description}
           </p>
         </CardContent>
-      </div>
+      </CardOpenSurface>
       <CardFooter className="mt-auto flex h-16 min-w-0 cursor-default items-center overflow-hidden rounded-b-[6px] border-t bg-muted px-4 py-0 [.border-t]:pt-0">
         <div className="flex h-full w-full min-w-0 items-center justify-between gap-2">
           <div className="flex min-w-0 flex-nowrap items-center gap-x-3 overflow-x-auto overflow-y-hidden opacity-0 transition-opacity group-hover:opacity-100">
