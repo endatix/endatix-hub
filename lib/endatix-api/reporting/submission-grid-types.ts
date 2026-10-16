@@ -4,6 +4,17 @@ import type { ListSubmissionsRequest } from "../submissions/types";
 /** Answer filter a column supports; `null` when it cannot be filtered. */
 export type SubmissionGridFilterType = "text" | "date" | "datetime";
 
+/** `auto`: picked from the schema; `user`: added by a form editor. */
+export type SubmissionGridSearchSource = "auto" | "user";
+
+/** A form's search keys used of the cap, and of the slots kept for people. */
+export interface SubmissionGridSearchSlots {
+  used: number;
+  max: number;
+  userUsed: number;
+  userMax: number;
+}
+
 /** One column of a form's compiled reporting schema, in schema order. */
 export interface SubmissionGridColumn {
   key: string;
@@ -18,6 +29,10 @@ export interface SubmissionGridColumn {
    * then a column with a `filterType` is filterable.
    */
   searchable?: boolean;
+  /** The column is a search key whose search copy is still being rebuilt. */
+  searchPending?: boolean;
+  /** Who made the column a search key; `null` when it is not one. */
+  searchSource?: SubmissionGridSearchSource | null;
   pageName: string | null;
   pageTitle: string | null;
   panelTitle: string | null;
@@ -40,6 +55,24 @@ export interface SubmissionGridColumnsResponse {
   schemaReady: boolean;
   readiness: SubmissionGridReadiness;
   columns: SubmissionGridColumn[];
+  /** Left out by APIs that cannot choose search keys. */
+  searchSlots?: SubmissionGridSearchSlots;
+}
+
+/** One of a form's search keys, as the search-keys endpoints return it. */
+export interface SubmissionGridSearchKey {
+  key: string;
+  source: SubmissionGridSearchSource;
+  filterType: SubmissionGridFilterType;
+  /** Its search copy is still being rebuilt. */
+  pending: boolean;
+}
+
+/** `POST` / `DELETE forms/{formId}/reporting/search-keys` */
+export interface SubmissionGridSearchKeysResponse {
+  formId: EntityId;
+  keys: SubmissionGridSearchKey[];
+  slots: SubmissionGridSearchSlots;
 }
 
 export interface ListSubmissionGridColumnsRequest {

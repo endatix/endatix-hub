@@ -7,7 +7,7 @@ import type { Route } from "next";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import {
-  canIncludeInProgressSubmissions,
+  canEditForm,
   loadSubmissionGridColumns,
 } from "../browse-submissions.server";
 import { describeGridReadiness } from "../grid-readiness";
@@ -16,6 +16,7 @@ import { applicableAnswerFilters } from "../submission-grid-answer-filters";
 import {
   resolveVisibleAnswerColumns,
   type AnswerColumn,
+  type ColumnSearchAccess,
 } from "../submission-grid-columns";
 import {
   buildSubmissionGridPath,
@@ -76,8 +77,7 @@ type SubmissionGridProps = {
 
 async function SubmissionGrid(props: Readonly<SubmissionGridProps>) {
   const { formId, urlState, columns } = props;
-  const canIncludeInProgress = await canIncludeInProgressSubmissions();
-  const banner = describeGridReadiness({ ...columns, canIncludeInProgress });
+  const canIncludeInProgress = await canEditForm();
   const answerColumns = resolveVisibleAnswerColumns(
     columns.catalog,
     urlState.columns,
@@ -87,12 +87,21 @@ async function SubmissionGrid(props: Readonly<SubmissionGridProps>) {
     <SubmissionGridShell
       formId={formId}
       catalog={columns.catalog}
+      columnSearch={columnSearchAccess(columns, canIncludeInProgress)}
       hasSubmissions={columns.readiness.submissions > 0}
-      banner={banner}
+      banner={describeGridReadiness({ ...columns, canIncludeInProgress })}
     >
       <SubmissionGridRows {...rows} />
     </SubmissionGridShell>
   );
+}
+
+/** Choosing filterable columns needs `forms.edit`, as including in-progress does. */
+function columnSearchAccess(
+  columns: SubmissionGridProps["columns"],
+  canEdit: boolean,
+): ColumnSearchAccess {
+  return { canEdit, slots: columns.searchSlots };
 }
 
 type SubmissionGridRowsProps = {

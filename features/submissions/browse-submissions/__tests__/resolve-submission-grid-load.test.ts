@@ -84,6 +84,25 @@ describe("resolveSubmissionGridColumnsLoad", () => {
       catalog: [],
     });
   });
+
+  it("keeps the form's search slots for the column picker", () => {
+    // Arrange
+    const searchSlots = { used: 52, max: 64, userUsed: 2, userMax: 14 };
+
+    // Act
+    const load = resolveSubmissionGridColumnsLoad(
+      Result.success({
+        formId: "1",
+        schemaReady: true,
+        readiness: READINESS,
+        columns: [],
+        searchSlots,
+      }),
+    );
+
+    // Assert
+    expect(load).toMatchObject({ kind: "ready", searchSlots });
+  });
 });
 
 describe("resolveSubmissionGridRowsLoad", () => {

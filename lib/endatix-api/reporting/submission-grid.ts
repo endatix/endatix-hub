@@ -21,6 +21,7 @@ import type {
   SubmissionGridAnswerFilterCoverage,
   SubmissionGridColumnsResponse,
   SubmissionGridRow,
+  SubmissionGridSearchKeysResponse,
 } from "./submission-grid-types";
 
 /** One page of grid rows, normalized for UI (adds `hasNextPage`). */
@@ -46,6 +47,20 @@ export function buildListSubmissionGridColumnsEndpoint(
 
   return buildEndpointWithQuery(
     `/forms/${formId}/reporting/columns`,
+    searchParams,
+  );
+}
+
+/**
+ * Builds `forms/{formId}/reporting/search-keys`. A column key can hold `/`,
+ * so a key to remove goes in the query, not the path.
+ */
+export function buildSearchKeysEndpoint(formId: string, key?: string): string {
+  const searchParams = new URLSearchParams();
+  appendQueryParam(searchParams, "key", key);
+
+  return buildEndpointWithQuery(
+    `/forms/${formId}/reporting/search-keys`,
     searchParams,
   );
 }
@@ -100,6 +115,36 @@ export class SubmissionGrid {
     return this.endatix.get<SubmissionGridColumnsResponse>(
       buildListSubmissionGridColumnsEndpoint(validFormId.value, request),
     );
+  }
+
+  /**
+   * Makes a column filterable in a slot kept for people. The key comes back
+   * `pending` while the form's search copy is rebuilt in the background.
+   */
+  async addSearchKey(
+    formId: string,
+    key: string,
+  ): Promise<ApiResult<SubmissionGridSearchKeysResponse>> {
+    const target = validateSearchKeyTarget(formId, key);
+    return ApiResult.isSuccess(target)
+      ? this.endatix.post<SubmissionGridSearchKeysResponse>(
+          buildSearchKeysEndpoint(target.data.formId),
+          { key: target.data.key },
+        )
+      : target;
+  }
+
+  /** Stops a key a person added from being filterable; automatic keys stay. */
+  async removeSearchKey(
+    formId: string,
+    key: string,
+  ): Promise<ApiResult<SubmissionGridSearchKeysResponse>> {
+    const target = validateSearchKeyTarget(formId, key);
+    return ApiResult.isSuccess(target)
+      ? this.endatix.delete<SubmissionGridSearchKeysResponse>(
+          buildSearchKeysEndpoint(target.data.formId, target.data.key),
+        )
+      : target;
   }
 
   /** One page of rows with the answers for `request.columns`. */
@@ -159,4 +204,18 @@ export class SubmissionGrid {
       ),
     });
   }
+}
+
+function validateSearchKeyTarget(
+  formId: string,
+  key: string,
+): ApiResult<{ formId: string; key: string }> {
+  const validFormId = validateEndatixId(formId, "formId");
+  if (Result.isError(validFormId)) {
+    return ApiResult.validationError(validFormId.message);
+  }
+
+  return key.trim()
+    ? ApiResult.success({ formId: validFormId.value, key })
+    : ApiResult.validationError("A column key is required.");
 }

@@ -8,7 +8,10 @@ import {
 import { ExportSubmissionsButton } from "@/features/export";
 import { collectionStatusFacetGroups } from "@/features/submissions/ui/describe-collection-status";
 import { CheckSquare, Eye, Sparkles } from "lucide-react";
-import type { AnswerColumn } from "../submission-grid-columns";
+import type {
+  AnswerColumn,
+  ColumnSearchAccess,
+} from "../submission-grid-columns";
 import { exportFiltersFromGrid } from "../submission-grid-export-filters";
 import { SUBMISSION_GRID_URL_KEYS as keys } from "../submission-grid-url.constants";
 import {
@@ -44,15 +47,13 @@ const OPTION_FACETS = [
 type ToolbarProps = {
   formId: string;
   catalog: readonly AnswerColumn[];
+  columnSearch: ColumnSearchAccess;
   /** No submissions yet: the filters have nothing to narrow. */
   disabled: boolean;
 };
 
-export function SubmissionGridToolbar({
-  formId,
-  catalog,
-  disabled,
-}: Readonly<ToolbarProps>) {
+export function SubmissionGridToolbar(props: Readonly<ToolbarProps>) {
+  const { disabled } = props;
   return (
     <DataTableToolbar
       className="mt-8 mb-4"
@@ -63,15 +64,22 @@ export function SubmissionGridToolbar({
           <ResetButton disabled={disabled} />
         </>
       }
-      actions={<ToolbarActions {...{ formId, catalog, disabled }} />}
+      actions={<ToolbarActions {...props} />}
     />
   );
 }
 
-function ToolbarActions({ formId, catalog, disabled }: Readonly<ToolbarProps>) {
+function ToolbarActions({
+  formId,
+  catalog,
+  columnSearch,
+  disabled,
+}: Readonly<ToolbarProps>) {
   return (
     <>
-      <SubmissionGridColumnPicker catalog={catalog} disabled={disabled} />
+      <SubmissionGridColumnPicker
+        {...{ formId, catalog, columnSearch, disabled }}
+      />
       <ExportButton formId={formId} disabled={disabled} />
     </>
   );
@@ -130,7 +138,7 @@ function ResetButton({ disabled }: Readonly<{ disabled: boolean }>) {
 function ExportButton({
   formId,
   disabled,
-}: Readonly<Omit<ToolbarProps, "catalog">>) {
+}: Readonly<Pick<ToolbarProps, "formId" | "disabled">>) {
   const { urlState } = useSubmissionGridUrl();
   return (
     <ExportSubmissionsButton

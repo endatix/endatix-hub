@@ -34,6 +34,7 @@ function column(
     title: `Title of ${key}`,
     questionType: "text",
     filterType: "text",
+    search: { state: "ready", source: "auto" },
     placement: {
       pageName: "page1",
       pageTitle: "Page one",

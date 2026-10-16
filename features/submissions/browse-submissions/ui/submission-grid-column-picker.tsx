@@ -36,7 +36,15 @@ import {
 import {
   resolveVisibleAnswerColumns,
   type AnswerColumn,
+  type ColumnSearchAccess,
 } from "../submission-grid-columns";
+import { useSearchKeyChanges } from "@/features/submissions/choose-filterable-questions/use-search-key-changes.hook";
+import {
+  ColumnSearchAction,
+  ColumnSearchMark,
+  ColumnSearchSummary,
+  type PickerSearch,
+} from "./column-picker-search";
 import { columnsUpdate } from "../submission-grid-url-updates";
 import { useSubmissionGridUrl } from "./submission-grid-url-context";
 
@@ -44,7 +52,10 @@ import { useSubmissionGridUrl } from "./submission-grid-url-context";
 export const COLUMN_PICKER_RENDER_LIMIT = 200;
 
 type ColumnPickerProps = {
+  formId: string;
   catalog: readonly AnswerColumn[];
+  /** Marks filterable columns; editors also change which ones are. */
+  columnSearch: ColumnSearchAccess;
   disabled: boolean;
 };
 
@@ -52,29 +63,31 @@ type ColumnPickerProps = {
  * Picks the grid's answer columns: search by title or key, grouped by page
  * and panel. Changes stay a draft until Apply writes them to the URL.
  */
-export function SubmissionGridColumnPicker({
-  catalog,
-  disabled,
-}: Readonly<ColumnPickerProps>) {
-  const { open, setOpen, visibleKeys, apply } = useColumnPicker(catalog);
+export function SubmissionGridColumnPicker(props: Readonly<ColumnPickerProps>) {
+  const { open, setOpen, panel, apply } = useColumnPicker(props);
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="sm" disabled={disabled}>
+        <Button variant="outline" size="sm" disabled={props.disabled}>
           <Settings2 />
           <span className="sr-only sm:not-sr-only">Columns</span>
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-80 p-0">
-        <ColumnPickerPanel {...{ catalog, visibleKeys }} onApply={apply} />
+        <ColumnPickerPanel {...panel} onApply={apply} />
       </PopoverContent>
     </Popover>
   );
 }
 
-/** Apply writes the URL and closes; the rows reload with those columns. */
-function useColumnPicker(catalog: readonly AnswerColumn[]) {
+/**
+ * Apply writes the URL and closes; the rows reload with those columns.
+ * Search key changes live here, outside the panel, so one that is running
+ * finishes after the picker closes.
+ */
+function useColumnPicker({ formId, catalog, columnSearch }: ColumnPickerProps) {
   const [open, setOpen] = useState(false);
+  const changes = useSearchKeyChanges(formId);
   const { urlState, updateUrl } = useSubmissionGridUrl();
   const visibleKeys = useMemo(
     () =>
@@ -87,12 +100,14 @@ function useColumnPicker(catalog: readonly AnswerColumn[]) {
     updateUrl(columnsUpdate(keys));
     setOpen(false);
   };
-  return { open, setOpen, visibleKeys, apply };
+  const search = { access: columnSearch, changes };
+  return { open, setOpen, panel: { catalog, visibleKeys, search }, apply };
 }
 
 type PanelProps = {
   catalog: readonly AnswerColumn[];
   visibleKeys: readonly string[];
+  search: PickerSearch;
   /** No keys: back to the default view. */
   onApply: (keys: readonly string[]) => void;
 };
@@ -113,6 +128,7 @@ function ColumnPickerPanel(props: Readonly<PanelProps>) {
       </div>
       <MatchActions picker={picker} />
       <ColumnGroupList picker={picker} />
+      <ColumnSearchSummary {...props.search} />
       <PickerFooter picker={picker} {...props} />
     </div>
   );
@@ -120,7 +136,11 @@ function ColumnPickerPanel(props: Readonly<PanelProps>) {
 
 type ColumnPickerDraft = ReturnType<typeof useColumnPickerDraft>;
 
-function useColumnPickerDraft({ catalog, visibleKeys }: Readonly<PanelProps>) {
+function useColumnPickerDraft({
+  catalog,
+  visibleKeys,
+  search,
+}: Readonly<PanelProps>) {
   const groups = useMemo(() => groupColumnsByPlacement(catalog), [catalog]);
   const [query, setQuery] = useState("");
   const deferredQuery = useDeferredValue(query);
@@ -130,7 +150,7 @@ function useColumnPickerDraft({ catalog, visibleKeys }: Readonly<PanelProps>) {
   );
   const [draft, setDraft] = useState<readonly string[]>(visibleKeys);
   const visible = useMemo(() => new Set(draft), [draft]);
-  return { query, setQuery, matches, draft, setDraft, visible };
+  return { query, setQuery, matches, draft, setDraft, visible, search };
 }
 
 /** Show all and Hide all act on every matching column, drawn or not. */
@@ -245,9 +265,22 @@ function ColumnOption({
   column,
   picker,
 }: Readonly<{ column: AnswerColumn; picker: ColumnPickerDraft }>) {
+  return (
+    <div className="flex items-center gap-1 pr-2 hover:bg-accent">
+      <ColumnVisibility column={column} picker={picker} />
+      <ColumnSearchMark column={column} />
+      <ColumnSearchAction column={column} {...picker.search} />
+    </div>
+  );
+}
+
+function ColumnVisibility({
+  column,
+  picker,
+}: Readonly<{ column: AnswerColumn; picker: ColumnPickerDraft }>) {
   const checked = picker.visible.has(column.key);
   return (
-    <label className="flex items-center gap-2 py-1 pr-3 pl-6 text-sm hover:bg-accent">
+    <label className="flex min-w-0 flex-1 items-center gap-2 py-1 pl-6 text-sm">
       <Checkbox
         checked={checked}
         disabled={!checked && !canShowMoreColumns(picker.draft)}
