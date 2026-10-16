@@ -65,6 +65,13 @@ analytics:
   posthogProjectToken: ""
   posthogHost: "https://us.i.posthog.com"
   posthogUiHost: ""
+  # Numeric PostHog project id. Server-only. Needed with the personal API key for
+  # the signup review Visitor section.
+  posthogProjectId: ""
+  # Server-only personal API key (person:read, query:read). Not the project token.
+  # When secretName is set, the chart reads key "posthog-personal-api-key" from that
+  # Secret instead (optional — missing key leaves the env unset).
+  posthogPersonalApiKey: ""
   # `posthog` to evaluate Hub flags via PostHog. Empty / `environment` uses FLAG_*.
   flagProvider: ""
 

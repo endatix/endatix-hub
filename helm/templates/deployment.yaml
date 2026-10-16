@@ -102,6 +102,18 @@ spec:
               value: {{ .Values.analytics.posthogHost | quote }}
             - name: POSTHOG_UI_HOST
               value: {{ .Values.analytics.posthogUiHost | quote }}
+            - name: POSTHOG_PROJECT_ID
+              value: {{ .Values.analytics.posthogProjectId | quote }}
+            - name: POSTHOG_PERSONAL_API_KEY
+            {{- if .Values.analytics.secretName }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.analytics.secretName }}
+                  key: posthog-personal-api-key
+                  optional: true
+            {{- else }}
+              value: {{ .Values.analytics.posthogPersonalApiKey | quote }}
+            {{- end }}
             - name: FLAG_PROVIDER
               value: {{ .Values.analytics.flagProvider | quote }}
 
