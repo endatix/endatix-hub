@@ -72,13 +72,16 @@ export interface SubmissionGridRow {
   submitterDisplayId?: string;
   submitterProfile?: Record<string, string>;
   rowState: SubmissionGridRowState;
-  /** Keyed by the requested column keys; a key without an answer is left out. */
+  /** Keyed by the requested column keys; missing and null answers are left out. */
   answers: Record<string, unknown>;
   answersSource: SubmissionGridAnswersSource;
 }
 
+/** The rows endpoint refuses more answer keys than this. */
+export const MAX_SUBMISSION_GRID_ROW_COLUMNS = 500;
+
 /** The submissions list query plus the answer keys to return. */
 export interface ListSubmissionGridRowsRequest extends ListSubmissionsRequest {
-  /** Answer keys to return. None are returned when empty. */
+  /** Answer keys to return, at most {@link MAX_SUBMISSION_GRID_ROW_COLUMNS}. None are returned when empty. */
   columns: readonly string[];
 }

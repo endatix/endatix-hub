@@ -110,8 +110,36 @@ describe("SubmissionGrid", () => {
     expect(get).not.toHaveBeenCalled();
   });
 
-  it("builds rows from the submissions list until the rows endpoint ships", async () => {
+  it("reads rows from the reporting rows endpoint", async () => {
     // Arrange
+    const page = {
+      items: [],
+      page: 1,
+      pageSize: 10,
+      totalRecords: 0,
+      totalPages: 0,
+    };
+    const get = vi.fn().mockResolvedValue(ApiResult.success(page));
+    const list = vi.fn();
+    const grid = new SubmissionGrid({
+      get,
+      submissions: { list },
+    } as unknown as EndatixApi);
+
+    // Act
+    const result = await grid.listRows("5", { columns: ["q1"] });
+
+    // Assert
+    expect(get).toHaveBeenCalledWith(
+      "/forms/5/reporting/submissions?page=1&pageSize=10&columns=q1",
+    );
+    expect(list).not.toHaveBeenCalled();
+    expect(ApiResult.isSuccess(result) && result.data.hasNextPage).toBe(false);
+  });
+
+  it("builds rows from the submissions list when the rows endpoint answers 404", async () => {
+    // Arrange
+    const get = vi.fn().mockResolvedValue(ApiResult.notFoundError("Not found"));
     const list = vi
       .fn()
       .mockResolvedValue(
@@ -124,6 +152,7 @@ describe("SubmissionGrid", () => {
         }),
       );
     const grid = new SubmissionGrid({
+      get,
       submissions: { list },
     } as unknown as EndatixApi);
 
@@ -135,5 +164,22 @@ describe("SubmissionGrid", () => {
     expect(ApiResult.isSuccess(result) && result.data.items[0].answers).toEqual(
       { q1: "Yes" },
     );
+  });
+
+  it("returns other failures without falling back", async () => {
+    // Arrange
+    const get = vi.fn().mockResolvedValue(ApiResult.serverError("Boom"));
+    const list = vi.fn();
+    const grid = new SubmissionGrid({
+      get,
+      submissions: { list },
+    } as unknown as EndatixApi);
+
+    // Act
+    const result = await grid.listRows("5", { columns: [] });
+
+    // Assert
+    expect(ApiResult.isSuccess(result)).toBe(false);
+    expect(list).not.toHaveBeenCalled();
   });
 });

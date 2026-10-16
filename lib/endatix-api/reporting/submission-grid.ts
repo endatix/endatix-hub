@@ -1,7 +1,7 @@
 import { Result } from "@/lib/result";
 import { validateEndatixId } from "@/lib/utils/type-validators";
 import { EndatixApi } from "../endatix-api";
-import { ApiResult } from "../shared/api-result";
+import { ApiResult, isNotFoundError } from "../shared/api-result";
 import {
   normalizePagedResponse,
   type NormalizedPagedResponse,
@@ -11,6 +11,7 @@ import {
   appendQueryParam,
   buildEndpointWithQuery,
 } from "../shared/query-params";
+import type { PagedResponse } from "../shared/types";
 import { appendSubmissionListFilters } from "../submissions/submission-list-query-params";
 import { toSubmissionGridRow } from "./submission-grid-rows-from-submissions";
 import type {
@@ -91,13 +92,30 @@ export class SubmissionGrid {
       return ApiResult.validationError(validFormId.message);
     }
 
-    return this.listRowsFromSubmissions(validFormId.value, request);
+    const response = await this.getRows(validFormId.value, request);
+    return isNotFoundError(response)
+      ? this.listRowsFromSubmissions(validFormId.value, request)
+      : response;
+  }
+
+  private async getRows(
+    formId: string,
+    request: ListSubmissionGridRowsRequest,
+  ): Promise<ApiResult<SubmissionGridRowsPage>> {
+    const response = await this.endatix.get<PagedResponse<SubmissionGridRow>>(
+      buildListSubmissionGridRowsEndpoint(formId, request),
+    );
+    if (!ApiResult.isSuccess(response)) {
+      return response;
+    }
+
+    return ApiResult.success(normalizePagedResponse(response.data));
   }
 
   /**
-   * Stand-in until `GET forms/{formId}/reporting/submissions` ships: reads the
-   * submissions list and picks the answers from raw `jsonData`. Replace the
-   * body with a GET of {@link buildListSubmissionGridRowsEndpoint}.
+   * For an API that has the columns endpoint but not the rows endpoint yet
+   * (404): reads the submissions list and picks the answers from raw
+   * `jsonData`, the way the rows endpoint does for rows not prepared.
    */
   private async listRowsFromSubmissions(
     formId: string,

@@ -2,9 +2,9 @@ import type { Submission } from "../submissions/types";
 import type { SubmissionGridRow } from "./submission-grid-types";
 
 /**
- * Stand-in for `GET forms/{formId}/reporting/submissions` until that endpoint
- * ships: a row built from `GET forms/{formId}/submissions`, the way the
- * endpoint builds rows that are not prepared. Answers come from the raw
+ * Fallback for an API without `GET forms/{formId}/reporting/submissions`: a
+ * row built from `GET forms/{formId}/submissions`, the way the endpoint builds
+ * rows that are not prepared. Answers come from the raw
  * `jsonData`, so only keys that equal a question name are found; the rest are
  * left out.
  */

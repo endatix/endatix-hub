@@ -108,6 +108,18 @@ describe("resolveVisibleAnswerColumns", () => {
     // Assert
     expect(visible.map((column) => column.key)).toEqual(["c", "a"]);
   });
+
+  it("stops at the number of columns the rows endpoint accepts", () => {
+    // Arrange
+    const keys = Array.from({ length: 501 }, (_, index) => `q${index}`);
+    const catalog = toAnswerColumns(keys.map((key) => wireColumn(key)));
+
+    // Act
+    const visible = resolveVisibleAnswerColumns(catalog, keys);
+
+    // Assert
+    expect(visible).toHaveLength(500);
+  });
 });
 
 describe("readAnswer", () => {

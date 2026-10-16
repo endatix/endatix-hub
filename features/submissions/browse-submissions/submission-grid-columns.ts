@@ -1,7 +1,8 @@
-import type {
-  SubmissionGridColumn,
-  SubmissionGridFilterType,
-  SubmissionGridRow,
+import {
+  MAX_SUBMISSION_GRID_ROW_COLUMNS,
+  type SubmissionGridColumn,
+  type SubmissionGridFilterType,
+  type SubmissionGridRow,
 } from "@/lib/endatix-api/reporting/submission-grid-types";
 
 /**
@@ -66,7 +67,8 @@ export function toAnswerColumns(
 
 /**
  * The answer columns to show, in order. Requested keys the schema no longer
- * has are dropped. Without a request, the first question columns show.
+ * has are dropped, and the rest stop at what the rows endpoint accepts.
+ * Without a request, the first question columns show.
  */
 export function resolveVisibleAnswerColumns(
   catalog: readonly AnswerColumn[],
@@ -79,7 +81,9 @@ export function resolveVisibleAnswerColumns(
   }
 
   const byKey = new Map(catalog.map((column) => [column.key, column]));
-  return requestedKeys.flatMap((key) => byKey.get(key) ?? []);
+  return requestedKeys
+    .flatMap((key) => byKey.get(key) ?? [])
+    .slice(0, MAX_SUBMISSION_GRID_ROW_COLUMNS);
 }
 
 /**
