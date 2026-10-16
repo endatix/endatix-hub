@@ -10,6 +10,7 @@ import {
 import { NoMatchingSubmissionsEmptyState } from "@/features/submissions/ui/submissions-empty-state";
 import type { SubmissionGridRowsPage } from "@/lib/endatix-api/reporting/submission-grid";
 import {
+  functionalUpdate,
   getCoreRowModel,
   useReactTable,
   type SortingState,
@@ -37,6 +38,7 @@ import {
   useSubmissionGridUrl,
   type SubmissionGridUrl,
 } from "./submission-grid-url-context";
+import { useSubmissionGridView } from "./submission-grid-view-context";
 
 export type SubmissionGridTableProps = {
   page: SubmissionGridRowsPage;
@@ -73,17 +75,18 @@ function useSubmissionGridTable(
   const columns = useGridColumns(props, grid);
   const sorting = sortingFromUrlState(grid.urlState);
   const data = useRowData(props.page);
+  const view = useSubmissionGridView();
   return useReactTable({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getRowId: (row) => row.id,
     manualSorting: true,
-    state: { sorting },
-    onSortingChange: (updater: Updater<SortingState>) => {
-      const next = typeof updater === "function" ? updater(sorting) : updater;
-      grid.updateUrl(sortUpdate(next));
-    },
+    enableColumnResizing: true,
+    state: { sorting, ...view.tableLayout },
+    onColumnSizingChange: view.onColumnSizingChange,
+    onSortingChange: (updater: Updater<SortingState>) =>
+      grid.updateUrl(sortUpdate(functionalUpdate(updater, sorting))),
   });
 }
 

@@ -8,12 +8,17 @@ import {
   parseSubmissionGridUrl,
   type SubmissionGridUrlState,
 } from "../submission-grid-url";
+import {
+  applyViewDefaults,
+  type SubmissionGridViewDefaults,
+} from "../submission-grid-view";
 
 /**
  * The grid's one URL writer. Toolbar, banner and table share it, so a filter,
  * a page change and the debounced text filters never race each other.
  */
 export type SubmissionGridUrl = {
+  /** The URL, with the saved view's columns, page size and sort where it says nothing. */
   urlState: SubmissionGridUrlState;
   updateUrl: UrlSearchParamsUpdater;
   isPending: boolean;
@@ -24,10 +29,17 @@ export type SubmissionGridUrl = {
 
 const SubmissionGridUrlContext = createContext<SubmissionGridUrl | null>(null);
 
+type SubmissionGridUrlProviderProps = {
+  /** From the saved view; stable between server renders. */
+  viewDefaults: SubmissionGridViewDefaults;
+  children: ReactNode;
+};
+
 export function SubmissionGridUrlProvider({
+  viewDefaults,
   children,
-}: Readonly<{ children: ReactNode }>) {
-  const value = useSubmissionGridUrlState();
+}: Readonly<SubmissionGridUrlProviderProps>) {
+  const value = useSubmissionGridUrlState(viewDefaults);
   return (
     <SubmissionGridUrlContext value={value}>
       {children}
@@ -35,13 +47,15 @@ export function SubmissionGridUrlProvider({
   );
 }
 
-function useSubmissionGridUrlState(): SubmissionGridUrl {
+function useSubmissionGridUrlState(
+  viewDefaults: SubmissionGridViewDefaults,
+): SubmissionGridUrl {
   const { values, setValue, searchParams, updateUrl, isPending } =
     useTableFiltersUrlState(SUBMISSION_GRID_TEXT_FILTER_KEYS);
-  const urlState = useMemo(
-    () => parseSubmissionGridUrl(Object.fromEntries(searchParams)),
-    [searchParams],
-  );
+  const urlState = useMemo(() => {
+    const raw = Object.fromEntries(searchParams);
+    return applyViewDefaults(parseSubmissionGridUrl(raw), raw, viewDefaults);
+  }, [searchParams, viewDefaults]);
   return useMemo(
     () => ({
       urlState,

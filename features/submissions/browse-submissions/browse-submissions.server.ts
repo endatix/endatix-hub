@@ -1,13 +1,18 @@
 import { authorization, Permissions } from "@/features/auth/authorization";
 import type { SessionData } from "@/features/auth";
 import { EndatixApi } from "@/lib/endatix-api";
-import { toResult } from "@/lib/result";
+import { Result, toResult } from "@/lib/result";
 import {
   resolveSubmissionGridColumnsLoad,
   resolveSubmissionGridRowsLoad,
   type SubmissionGridColumnsLoad,
   type SubmissionGridRowsLoad,
 } from "./resolve-submission-grid-load";
+import {
+  DEFAULT_SUBMISSION_VIEW_SETTINGS,
+  readViewSettings,
+  type SubmissionGridViewLoad,
+} from "./submission-grid-view";
 import {
   toSubmissionGridRowsRequest,
   type SubmissionGridUrlState,
@@ -59,8 +64,32 @@ export async function loadSubmissionGridRows({
   return resolveSubmissionGridRowsLoad(formId, urlState, result);
 }
 
-/** Including in-progress submissions needs `forms.edit`; a miss hides the control. */
-export async function canIncludeInProgressSubmissions(): Promise<boolean> {
+/** A view that cannot be read shows the defaults and cannot be saved over. */
+export async function loadSubmissionGridView(
+  formId: string,
+  session: SessionData | undefined,
+): Promise<SubmissionGridViewLoad> {
+  const api = new EndatixApi(session);
+  const result = toResult(await api.reporting.submissionViews.get(formId), {
+    fallbackMessage: "Unable to load the submissions view.",
+    logMessage: "Failed to load submission grid view.",
+    loggerName: LOGGER_NAME,
+  });
+  if (Result.isError(result)) {
+    return { revision: null, settings: DEFAULT_SUBMISSION_VIEW_SETTINGS };
+  }
+
+  return {
+    revision: result.value.revision,
+    settings: readViewSettings(result.value.settings),
+  };
+}
+
+/**
+ * Form editors (`forms.edit`) include in-progress submissions and save the
+ * view; a miss hides those controls.
+ */
+export async function canEditSubmissionGrid(): Promise<boolean> {
   const { checkPermission } = await authorization();
   const result = await checkPermission(Permissions.Forms.Edit);
   return result.success;
