@@ -82,6 +82,44 @@ describe("serializeSubmissionGridUrl", () => {
     // Assert
     expect(Object.fromEntries(query)).toEqual(raw);
   });
+
+  it("round-trips answer filters whose keys hold separators", () => {
+    // Arrange
+    const raw = {
+      "answer.contains.panel:name.first": "Ann",
+      "answer.from.born~date": "2026-01-01",
+      "answer.to.born~date": "2026-01-31",
+    };
+
+    // Act
+    const state = parseSubmissionGridUrl(raw);
+    const query = serializeSubmissionGridUrl(state);
+
+    // Assert
+    expect(state.answerFilters).toEqual([
+      { operator: "contains", key: "panel:name.first", value: "Ann" },
+      { operator: "from", key: "born~date", value: "2026-01-01" },
+      { operator: "to", key: "born~date", value: "2026-01-31" },
+    ]);
+    expect(Object.fromEntries(query)).toEqual(raw);
+  });
+
+  it("survives a reload through the encoded query string", () => {
+    // Arrange
+    const state = parseSubmissionGridUrl({
+      "answer.contains.a&b=c": "x & y",
+    });
+
+    // Act
+    const reloaded = parseSubmissionGridUrl(
+      Object.fromEntries(
+        new URLSearchParams(serializeSubmissionGridUrl(state).toString()),
+      ),
+    );
+
+    // Assert
+    expect(reloaded.answerFilters).toEqual(state.answerFilters);
+  });
 });
 
 describe("isCanonicalSubmissionGridUrl", () => {
@@ -111,6 +149,26 @@ describe("isCanonicalSubmissionGridUrl", () => {
     [{ status: "read,bogus" }],
     [{ sort: "createdAt:sideways" }],
   ])("rewrites %j", (raw) => {
+    expect(isCanonicalSubmissionGridUrl(raw, parseSubmissionGridUrl(raw))).toBe(
+      false,
+    );
+  });
+
+  it("accepts answer filters its own state serializes to", () => {
+    // Arrange
+    const raw = { "answer.contains.q1": "acme", "answer.to.d1": "2026-01-31" };
+
+    // Act & Assert
+    expect(isCanonicalSubmissionGridUrl(raw, parseSubmissionGridUrl(raw))).toBe(
+      true,
+    );
+  });
+
+  it.each([
+    [{ "answer.from.d1": "31/01/2026" }],
+    [{ "answer.between.q1": "x" }],
+    [{ "answer.contains.q1": " acme " }],
+  ])("rewrites the answer filter in %j", (raw) => {
     expect(isCanonicalSubmissionGridUrl(raw, parseSubmissionGridUrl(raw))).toBe(
       false,
     );
@@ -158,5 +216,18 @@ describe("toSubmissionGridRowsRequest", () => {
       submitterProfileFilter: { field: "email", value: "a@b.c" },
       columns: ["q1"],
     });
+  });
+
+  it("passes the answer filters on", () => {
+    // Arrange
+    const state = parseSubmissionGridUrl({ "answer.contains.q1": "acme" });
+
+    // Act
+    const request = toSubmissionGridRowsRequest(state, []);
+
+    // Assert
+    expect(request.answerFilters).toEqual([
+      { operator: "contains", key: "q1", value: "acme" },
+    ]);
   });
 });

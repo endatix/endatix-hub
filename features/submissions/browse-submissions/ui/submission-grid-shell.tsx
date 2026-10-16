@@ -33,7 +33,7 @@ export function SubmissionGridShell({
 }: Readonly<SubmissionGridShellProps>) {
   useRememberListQuery(formId);
   return (
-    <SubmissionGridUrlProvider>
+    <SubmissionGridUrlProvider catalog={catalog}>
       <SubmissionGridToolbar
         formId={formId}
         catalog={catalog}

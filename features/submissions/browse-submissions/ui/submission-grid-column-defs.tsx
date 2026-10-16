@@ -35,12 +35,21 @@ type TextFilter = {
   onChange: (value: string) => void;
 };
 
+type DateFilter = {
+  value: DateFilterValue;
+  onChange: (value: DateFilterValue) => void;
+};
+
 /** Header filters, wired to the grid's URL by the caller. */
 export type SubmissionGridColumnFilters = {
   dates: Record<SubmissionGridDateStem, DateFilterValue>;
   onDateChange: (stem: SubmissionGridDateStem, value: DateFilterValue) => void;
   submitterDisplayId: TextFilter;
   submitterEmail: TextFilter;
+  /** "Contains" on a column whose filter type is `text`. */
+  answerText: (column: AnswerColumn) => TextFilter;
+  /** From/To on a `date` or `datetime` column. */
+  answerDate: (column: AnswerColumn) => DateFilter;
 };
 
 const COMPACT_COLUMN = "w-12 whitespace-nowrap";
@@ -191,5 +200,22 @@ function answerHeaderFilter(
   const isEmail =
     isSubmitterProfileColumn(column) &&
     submitterProfileField(column.key).toLowerCase() === "email";
-  return isEmail ? { textFilter: filters.submitterEmail } : {};
+  return isEmail
+    ? { textFilter: filters.submitterEmail }
+    : answerFilterByType(column, filters);
+}
+
+function answerFilterByType(
+  column: AnswerColumn,
+  filters: SubmissionGridColumnFilters,
+): Partial<HeaderProps> {
+  switch (column.filterType) {
+    case "text":
+      return { textFilter: filters.answerText(column) };
+    case "date":
+    case "datetime":
+      return { dateFilter: filters.answerDate(column) };
+    default:
+      return {};
+  }
 }

@@ -20,6 +20,12 @@ const FILTERS: SubmissionGridColumnFilters = {
     onChange: vi.fn(),
   },
   submitterEmail: { value: "", placeholder: "Email", onChange: vi.fn() },
+  answerText: (column) => ({
+    value: "",
+    placeholder: `text:${column.key}`,
+    onChange: vi.fn(),
+  }),
+  answerDate: () => ({ value: {}, onChange: vi.fn() }),
 };
 
 function wireColumn(key: string, kind = "Simple"): SubmissionGridColumn {

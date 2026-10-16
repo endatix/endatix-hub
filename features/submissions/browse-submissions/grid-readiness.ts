@@ -1,4 +1,7 @@
-import type { SubmissionGridReadiness } from "@/lib/endatix-api/reporting/submission-grid-types";
+import type {
+  SubmissionGridAnswerFilterCoverage,
+  SubmissionGridReadiness,
+} from "@/lib/endatix-api/reporting/submission-grid-types";
 import { formatInteger } from "@/lib/utils/formatters";
 
 /** Submissions whose answers the grid reads raw because they are not prepared. */
@@ -51,7 +54,7 @@ export function countUnprepared(
 const NO_SCHEMA_BANNER: GridReadinessBanner = {
   title: "This form's reporting data is not prepared",
   lines: [
-    "Answers show from each submission as entered. Prepare the form to read them from reporting data.",
+    "Answers show from each submission as entered. Prepare the form to read them from reporting data and to filter by them.",
   ],
   showPrepare: true,
   showIncludeInProgress: false,
@@ -88,6 +91,70 @@ function describeUnprepared(
     showPrepare: counts.completed > 0,
     showIncludeInProgress: counts.inProgress > 0 && canIncludeInProgress,
   };
+}
+
+export type DescribeRowsBannerInput = {
+  /** Set when the rows were read with answer filters. */
+  coverage?: SubmissionGridAnswerFilterCoverage;
+  /** The form lost its schema, so the rows were read without answer filters. */
+  answerFiltersNotPrepared?: boolean;
+  canIncludeInProgress: boolean;
+};
+
+const ANSWER_FILTERS_NOT_PREPARED_BANNER: GridReadinessBanner = {
+  title: "Answer filters are off",
+  lines: [
+    "This form's reporting data is not prepared, so the rows below are not filtered by answers. Prepare the form to filter by them.",
+  ],
+  showPrepare: true,
+  showIncludeInProgress: false,
+};
+
+/**
+ * What one page of rows says about its answer filters: which submissions the
+ * filters could not check, or that they were not applied at all.
+ */
+export function describeRowsBanner({
+  coverage,
+  answerFiltersNotPrepared,
+  canIncludeInProgress,
+}: DescribeRowsBannerInput): GridReadinessBanner | null {
+  if (answerFiltersNotPrepared) {
+    return ANSWER_FILTERS_NOT_PREPARED_BANNER;
+  }
+
+  return coverage ? describeUnchecked(coverage, canIncludeInProgress) : null;
+}
+
+function describeUnchecked(
+  coverage: SubmissionGridAnswerFilterCoverage,
+  canIncludeInProgress: boolean,
+): GridReadinessBanner | null {
+  const lines = uncheckedLines(coverage);
+  if (lines.length === 0) {
+    return null;
+  }
+
+  return {
+    title: "Some submissions were not checked",
+    lines,
+    showPrepare: coverage.uncheckedCompleted > 0,
+    showIncludeInProgress:
+      coverage.uncheckedInProgress > 0 && canIncludeInProgress,
+  };
+}
+
+function uncheckedLines({
+  uncheckedCompleted: completed,
+  uncheckedInProgress: inProgress,
+}: SubmissionGridAnswerFilterCoverage): string[] {
+  const notChecked = "so the answer filters did not check them.";
+  return [
+    completed > 0 &&
+      `${submissions(completed)} completed ${verb(completed)} not prepared, ${notChecked}`,
+    inProgress > 0 &&
+      `${submissions(inProgress)} in progress ${verb(inProgress)} not included, ${notChecked}`,
+  ].filter((line): line is string => typeof line === "string");
 }
 
 function unpreparedLines({

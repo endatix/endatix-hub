@@ -44,6 +44,7 @@ export type AnswerColumn = {
   kind: string;
   title: string;
   questionType: string | null;
+  /** The answer filter the column offers; `null` when it offers none. */
   filterType: SubmissionGridFilterType | null;
   placement: AnswerColumnPlacement;
 };
@@ -56,13 +57,25 @@ export function toAnswerColumns(
     kind: column.kind,
     title: column.title || column.key,
     questionType: column.questionType,
-    filterType: column.filterType,
+    filterType: answerFilterType(column),
     placement: {
       pageName: column.pageName,
       pageTitle: column.pageTitle,
       panelTitle: column.panelTitle,
     },
   }));
+}
+
+/**
+ * Only search keys can be filtered. A submitter column keeps the profile
+ * filters of the list instead.
+ */
+function answerFilterType(
+  column: SubmissionGridColumn,
+): SubmissionGridFilterType | null {
+  const filterable =
+    column.searchable !== false && column.kind !== SUBMITTER_PROFILE_KIND;
+  return filterable ? column.filterType : null;
 }
 
 /**

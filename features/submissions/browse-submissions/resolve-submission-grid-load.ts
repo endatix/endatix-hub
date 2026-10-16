@@ -1,7 +1,8 @@
 import type { SubmissionGridRowsPage } from "@/lib/endatix-api/reporting/submission-grid";
-import type {
-  SubmissionGridColumnsResponse,
-  SubmissionGridReadiness,
+import {
+  REPORTING_NOT_PREPARED_ERROR_CODE,
+  type SubmissionGridColumnsResponse,
+  type SubmissionGridReadiness,
 } from "@/lib/endatix-api/reporting/submission-grid-types";
 import {
   Result,
@@ -28,7 +29,12 @@ export type SubmissionGridColumnsLoad =
     };
 
 export type SubmissionGridRowsLoad =
-  | { kind: "ready"; page: SubmissionGridRowsPage }
+  | {
+      kind: "ready";
+      page: SubmissionGridRowsPage;
+      /** Read without the answer filters: the form has no schema to filter by. */
+      answerFiltersNotPrepared?: true;
+    }
   | { kind: "error"; result: ResultError }
   | { kind: "redirect"; href: string };
 
@@ -68,6 +74,23 @@ export function resolveSubmissionGridRowsLoad(
   }
 
   return { kind: "ready", page: result.value };
+}
+
+/** 409: the form has no compiled schema, so its answers cannot be filtered. */
+export function isReportingNotPrepared(result: ResultType<unknown>): boolean {
+  return (
+    Result.isError(result) &&
+    result.errorCode === REPORTING_NOT_PREPARED_ERROR_CODE
+  );
+}
+
+/** Marks rows that were read again without their answer filters. */
+export function withAnswerFiltersNotPrepared(
+  load: SubmissionGridRowsLoad,
+): SubmissionGridRowsLoad {
+  return load.kind === "ready"
+    ? { ...load, answerFiltersNotPrepared: true }
+    : load;
 }
 
 function canonicalPage(requested: number, totalPages: number): number {
