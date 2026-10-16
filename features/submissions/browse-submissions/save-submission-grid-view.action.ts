@@ -23,7 +23,7 @@ export type SaveSubmissionGridViewResult = Result<SubmissionView>;
 export async function saveSubmissionGridViewAction(
   formId: string,
   view: SubmissionView,
-): Promise<SaveSubmissionGridViewResult | never> {
+): Promise<SaveSubmissionGridViewResult> {
   const session = await auth();
   const { requireHubAccess, requirePermission } = await authorization(session);
   await requireHubAccess();

@@ -7,7 +7,7 @@ import type { CSSProperties, KeyboardEvent, PointerEvent } from "react";
 const DEFAULT_MIN_COLUMN_WIDTH = 48;
 const KEYBOARD_STEP = 16;
 const HANDLE_CLASS_NAME =
-  "absolute top-0 right-0 h-full w-1.5 cursor-col-resize touch-none select-none hover:bg-primary/40 focus-visible:bg-primary/60 focus-visible:outline-none";
+  "absolute top-0 right-0 h-full w-1.5 cursor-col-resize border-0 bg-transparent p-0 touch-none select-none hover:bg-primary/40 focus-visible:bg-primary/60 focus-visible:outline-none";
 
 /**
  * Inline width for a header the user resized; `undefined` leaves the column
@@ -38,11 +38,9 @@ export function ColumnResizeHandle<TData>({
   }
 
   return (
-    <div
-      role="separator"
-      aria-orientation="vertical"
-      aria-label="Resize column"
-      tabIndex={0}
+    <button
+      type="button"
+      aria-label="Resize column (arrow keys; double-click resets)"
       onPointerDown={(event) => startDrag(event, header)}
       onKeyDown={(event) => resizeByKey(event, header)}
       onDoubleClick={() => clearColumnWidth(header)}
@@ -52,7 +50,7 @@ export function ColumnResizeHandle<TData>({
 }
 
 function startDrag<TData>(
-  event: PointerEvent<HTMLDivElement>,
+  event: PointerEvent<HTMLButtonElement>,
   header: Header<TData, unknown>,
 ) {
   const cell = event.currentTarget.parentElement;
@@ -85,7 +83,7 @@ function followPointer(
 }
 
 function resizeByKey<TData>(
-  event: KeyboardEvent<HTMLDivElement>,
+  event: KeyboardEvent<HTMLButtonElement>,
   header: Header<TData, unknown>,
 ) {
   const step = { ArrowLeft: -KEYBOARD_STEP, ArrowRight: KEYBOARD_STEP }[
