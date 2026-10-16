@@ -130,6 +130,18 @@ spec:
               value: {{ ternary .Values.otel.protocol "" .Values.otel.enabled | quote }}
             - name: NEXT_OTEL_VERBOSE
               value: {{ ternary "0" "" .Values.otel.enabled | quote }}
+            {{- with .Values.extraEnv }}
+
+            # Consumer-supplied, and deliberately last so $(VAR) can reference the
+            # chart's own variables. See values.yaml for what this cannot do.
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with .Values.extraEnvFrom }}
+
+          # Bulk sources. An explicit `env` entry above outranks anything here.
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
 
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
