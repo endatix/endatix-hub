@@ -39,18 +39,14 @@ export function SubmissionGridShell({
   catalog,
   hasSubmissions,
   banner,
-  view,
-  canSaveView,
   children,
+  ...viewProps
 }: Readonly<SubmissionGridShellProps>) {
   useRememberListQuery(formId);
+  const disabled = !hasSubmissions;
   return (
-    <SubmissionGridProviders {...{ formId, catalog, view, canSaveView }}>
-      <SubmissionGridToolbar
-        formId={formId}
-        catalog={catalog}
-        disabled={!hasSubmissions}
-      />
+    <SubmissionGridProviders {...{ formId, catalog, ...viewProps }}>
+      <SubmissionGridToolbar {...{ formId, catalog, disabled }} />
       <SubmissionGridViewError />
       {banner && <ReadinessBanner formId={formId} banner={banner} />}
       {hasSubmissions ? children : <NoSubmissionsEmptyState />}

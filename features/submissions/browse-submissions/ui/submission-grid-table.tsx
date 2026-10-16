@@ -38,7 +38,10 @@ import {
   useSubmissionGridUrl,
   type SubmissionGridUrl,
 } from "./submission-grid-url-context";
-import { useSubmissionGridView } from "./submission-grid-view-context";
+import {
+  useSubmissionGridView,
+  type SubmissionGridView,
+} from "./submission-grid-view-context";
 
 export type SubmissionGridTableProps = {
   page: SubmissionGridRowsPage;
@@ -75,19 +78,25 @@ function useSubmissionGridTable(
   const columns = useGridColumns(props, grid);
   const sorting = sortingFromUrlState(grid.urlState);
   const data = useRowData(props.page);
-  const view = useSubmissionGridView();
   return useReactTable({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getRowId: (row) => row.id,
     manualSorting: true,
-    enableColumnResizing: true,
-    state: { sorting, ...view.tableLayout },
-    onColumnSizingChange: view.onColumnSizingChange,
+    ...resizableView(useSubmissionGridView(), sorting),
     onSortingChange: (updater: Updater<SortingState>) =>
       grid.updateUrl(sortUpdate(functionalUpdate(updater, sorting))),
   });
+}
+
+/** Widths, visibility and order come from the unsaved view. */
+function resizableView(view: SubmissionGridView, sorting: SortingState) {
+  return {
+    enableColumnResizing: true,
+    state: { sorting, ...view.tableLayout },
+    onColumnSizingChange: view.onColumnSizingChange,
+  };
 }
 
 function useRowData({ items }: SubmissionGridRowsPage) {

@@ -37,24 +37,23 @@ export function ColumnResizeHandle<TData>({
     return null;
   }
 
-  const resize = (width: number) => setColumnWidth(header, width);
   return (
     <div
       role="separator"
       aria-orientation="vertical"
       aria-label="Resize column"
       tabIndex={0}
-      onPointerDown={(event) => startDrag(event, resize)}
-      onKeyDown={(event) => resizeByKey(event, header, resize)}
+      onPointerDown={(event) => startDrag(event, header)}
+      onKeyDown={(event) => resizeByKey(event, header)}
       onDoubleClick={() => clearColumnWidth(header)}
       className={HANDLE_CLASS_NAME}
     />
   );
 }
 
-function startDrag(
+function startDrag<TData>(
   event: PointerEvent<HTMLDivElement>,
-  resize: (width: number) => void,
+  header: Header<TData, unknown>,
 ) {
   const cell = event.currentTarget.parentElement;
   if (!cell) {
@@ -66,7 +65,7 @@ function startDrag(
   const startWidth = cell.getBoundingClientRect().width;
   event.currentTarget.setPointerCapture(event.pointerId);
   followPointer(event.currentTarget, (move) =>
-    resize(startWidth + move.clientX - startX),
+    setColumnWidth(header, startWidth + move.clientX - startX),
   );
 }
 
@@ -88,7 +87,6 @@ function followPointer(
 function resizeByKey<TData>(
   event: KeyboardEvent<HTMLDivElement>,
   header: Header<TData, unknown>,
-  resize: (width: number) => void,
 ) {
   const step = { ArrowLeft: -KEYBOARD_STEP, ArrowRight: KEYBOARD_STEP }[
     event.key
@@ -103,7 +101,7 @@ function resizeByKey<TData>(
     header.column.id in header.getContext().table.getState().columnSizing
       ? header.column.getSize()
       : cell.getBoundingClientRect().width;
-  resize(current + step);
+  setColumnWidth(header, current + step);
 }
 
 function setColumnWidth<TData>(header: Header<TData, unknown>, width: number) {

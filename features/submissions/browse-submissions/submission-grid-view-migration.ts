@@ -70,24 +70,29 @@ export function readLegacyColumnViewOnce(
   storage: Storage,
 ): LegacyColumnView | null {
   try {
-    if (!claimMigration(storage, formId)) {
-      return null;
-    }
-
-    const visibility = readStored(
-      storage,
-      legacyColumnVisibilityKey(formId),
-      LegacyVisibilitySchema,
-    )?.columnVisibility;
-    const order = readStored(
-      storage,
-      legacyColumnOrderKey(formId),
-      LegacyOrderSchema,
-    )?.columnOrder;
-    return visibility || order ? { visibility, order } : null;
+    return claimMigration(storage, formId)
+      ? readLegacyKeys(storage, formId)
+      : null;
   } catch {
     return null;
   }
+}
+
+function readLegacyKeys(
+  storage: Storage,
+  formId: string,
+): LegacyColumnView | null {
+  const visibility = readStored(
+    storage,
+    legacyColumnVisibilityKey(formId),
+    LegacyVisibilitySchema,
+  )?.columnVisibility;
+  const order = readStored(
+    storage,
+    legacyColumnOrderKey(formId),
+    LegacyOrderSchema,
+  )?.columnOrder;
+  return visibility || order ? { visibility, order } : null;
 }
 
 /** False when this grid already read the form's legacy view. */

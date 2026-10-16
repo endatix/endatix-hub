@@ -119,14 +119,23 @@ function useSubmissionGridViewState({
   useLegacyViewMigration({ formId, catalog, view, setLayout, updateUrl });
   const saving = useSaveView({ formId, catalog, view, layout, grid });
   return {
-    tableLayout: tableLayoutFromView(layout),
-    onColumnSizingChange: (updater) =>
-      setLayout((current) => withSizing(current, updater)),
-    hiddenMetadata: layout.hiddenMetadata,
-    setMetadataVisible: (id, visible) =>
-      setLayout((current) => withMetadataVisible(current, id, visible)),
+    ...layoutControls(layout, setLayout),
     canSave: canSaveView && view.revision !== null,
     ...saving,
+  };
+}
+
+/** The unsaved layout as table state, and the setters that change it. */
+function layoutControls(layout: SubmissionGridLayout, setLayout: LayoutSetter) {
+  return {
+    tableLayout: tableLayoutFromView(layout),
+    onColumnSizingChange: (updater: Updater<ColumnSizingState>) =>
+      setLayout((current) => withSizing(current, updater)),
+    hiddenMetadata: layout.hiddenMetadata,
+    setMetadataVisible: (
+      id: SubmissionGridMetadataColumnId,
+      visible: boolean,
+    ) => setLayout((current) => withMetadataVisible(current, id, visible)),
   };
 }
 
@@ -217,10 +226,7 @@ function useSaveView({ formId, catalog, view, layout, grid }: SaveInput) {
   const save = () => {
     const { revision } = view;
     if (revision === null) return;
-    const settings = settingsFromGrid(view.settings, {
-      ...gridSnapshot(grid.urlState, catalog),
-      layout,
-    });
+    const settings = settingsToSave({ view, layout, grid, catalog });
     startSaving(async () => {
       const outcome = saveViewOutcome(
         await saveSubmissionGridViewAction(formId, { revision, settings }),
@@ -231,6 +237,19 @@ function useSaveView({ formId, catalog, view, layout, grid }: SaveInput) {
     });
   };
   return { isSaving, save, saveError };
+}
+
+/** What the grid shows now, as view settings over the ones read. */
+function settingsToSave({
+  view,
+  layout,
+  grid,
+  catalog,
+}: Omit<SaveInput, "formId">) {
+  return settingsFromGrid(view.settings, {
+    ...gridSnapshot(grid.urlState, catalog),
+    layout,
+  });
 }
 
 function gridSnapshot(

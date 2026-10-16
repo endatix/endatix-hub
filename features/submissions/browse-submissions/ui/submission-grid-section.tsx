@@ -80,26 +80,32 @@ type SubmissionGridProps = {
 async function SubmissionGrid(props: Readonly<SubmissionGridProps>) {
   const { formId, urlState, columns, view } = props;
   const canEdit = await canEditSubmissionGrid();
-  const banner = describeGridReadiness({
-    ...columns,
-    canIncludeInProgress: canEdit,
-  });
   const answerColumns = resolveVisibleAnswerColumns(
     columns.catalog,
     urlState.columns,
   );
   return (
     <SubmissionGridShell
+      {...gridChrome(columns, canEdit)}
       formId={formId}
-      catalog={columns.catalog}
-      hasSubmissions={columns.readiness.submissions > 0}
-      banner={banner}
       view={view}
-      canSaveView={canEdit}
     >
       <SubmissionGridRows {...{ formId, urlState, answerColumns }} />
     </SubmissionGridShell>
   );
+}
+
+/** Editors include in-progress submissions and save the view. */
+function gridChrome(columns: SubmissionGridProps["columns"], canEdit: boolean) {
+  return {
+    catalog: columns.catalog,
+    hasSubmissions: columns.readiness.submissions > 0,
+    banner: describeGridReadiness({
+      ...columns,
+      canIncludeInProgress: canEdit,
+    }),
+    canSaveView: canEdit,
+  };
 }
 
 type SubmissionGridRowsProps = {
