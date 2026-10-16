@@ -39,6 +39,13 @@ jobs:
   node-build:
     name: "Endatix Hub: Build & Test"
     runs-on: ubuntu-latest
+    # Production + id-token: the SonarCloud token comes from Infisical over OIDC,
+    # as in endatix-relay and the shared canary workflow (same identity).
+    environment:
+      name: Production
+    permissions:
+      contents: read
+      id-token: write # OIDC for Infisical, not repo write
     defaults:
       run:
         working-directory: "."
@@ -48,6 +55,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0 # Sonar needs history for new-code and blame
+          persist-credentials: false
 
       - name: 🧰 Setup Node & pnpm and install dependencies
         uses: ./.github/actions/setup-node-pnpm
@@ -82,13 +90,28 @@ jobs:
           json-summary-path: ".coverage/endatix-hub/coverage-summary.json"
           json-final-path: ".coverage/endatix-hub/coverage-final.json"
 
-      # CI-based analysis with the Vitest lcov (sonar-project.properties). Skipped on
-      # fork PRs, which get no SONAR_TOKEN.
+      # Fetched only now, after install, tests and build, so no dependency script or
+      # build step sees the Infisical secrets. Fork and Dependabot PRs get no OIDC
+      # secrets: skip the fetch, and the scan with it.
+      - name: 🔐 Fetch secrets (Infisical, OIDC)
+        if: >-
+          github.actor != 'dependabot[bot]' &&
+          (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        uses: Infisical/secrets-action@03d3fa38607956c493f53c6633f94006a13c47ae # v1.0.7
+        with:
+          method: "oidc"
+          env-slug: "dev"
+          project-slug: "github-actions-for-endatix"
+          identity-id: "403af1ed-7046-480f-a100-c4482b8a89ac"
+          recursive: true
+
+      # CI-based analysis with the Vitest lcov (sonar-project.properties); fails the
+      # job on a red quality gate. Skipped when Infisical gave no token.
       - name: 🔎 SonarCloud analysis
-        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        if: env.ENDATIX_HUB_REPO_SONAR_TOKEN != ''
         uses: SonarSource/sonarqube-scan-action@d209202bc7d53ff1cc128f7f907dac145c9d6ae9 # v8.3.0
         env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_TOKEN: ${{ env.ENDATIX_HUB_REPO_SONAR_TOKEN }}
 
   # Build validation on PRs; canary release on main — publishes only after the
   # tests above pass. docker-image makes the shared workflow log into GHCR and
