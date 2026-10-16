@@ -18,8 +18,9 @@ name: Build, Test & Release
 # branch required by semantic-release's branch validation.
 
 on:
+  # Every PR, stacked ones included (base = another feature branch): they need
+  # tests and the SonarCloud coverage too. The canary job only builds on PRs.
   pull_request:
-    branches: [main, "hotfix/**"] # PRs into maintenance-line branches validate too
   push:
     branches: [main, "hotfix/**"] # hotfix/X.Y.x pushes publish vX.Y.Z-hotfix.N builds
   workflow_dispatch:
@@ -45,6 +46,8 @@ jobs:
     steps:
       - name: 🔍 Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # Sonar needs history for new-code and blame
 
       - name: 🧰 Setup Node & pnpm and install dependencies
         uses: ./.github/actions/setup-node-pnpm
@@ -78,6 +81,14 @@ jobs:
           name: "Endatix Hub"
           json-summary-path: ".coverage/endatix-hub/coverage-summary.json"
           json-final-path: ".coverage/endatix-hub/coverage-final.json"
+
+      # CI-based analysis with the Vitest lcov (sonar-project.properties). Skipped on
+      # fork PRs, which get no SONAR_TOKEN.
+      - name: 🔎 SonarCloud analysis
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        uses: SonarSource/sonarqube-scan-action@d209202bc7d53ff1cc128f7f907dac145c9d6ae9 # v8.3.0
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
   # Build validation on PRs; canary release on main — publishes only after the
   # tests above pass. docker-image makes the shared workflow log into GHCR and
