@@ -77,6 +77,13 @@ export function sortingFromUrlState(
     : [];
 }
 
+/** No keys: back to the default view. */
+export function columnsUpdate(
+  columnKeys: readonly string[],
+): SubmissionGridUrlUpdate {
+  return { [keys.columns]: columnKeys.join(",") || null };
+}
+
 export const CLEAR_SORT_UPDATE: SubmissionGridUrlUpdate = { [keys.sort]: null };
 
 export const CLEAR_FILTERS_UPDATE: SubmissionGridUrlUpdate = Object.fromEntries(

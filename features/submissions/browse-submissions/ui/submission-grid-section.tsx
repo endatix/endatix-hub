@@ -72,6 +72,7 @@ async function SubmissionGrid(props: Readonly<SubmissionGridProps>) {
   return (
     <SubmissionGridShell
       formId={formId}
+      catalog={columns.catalog}
       hasSubmissions={columns.readiness.submissions > 0}
       banner={banner}
     >
