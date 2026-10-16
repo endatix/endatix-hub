@@ -113,8 +113,8 @@ type PanelProps = {
 };
 
 /** Mounts on each open, so the draft starts from the grid's columns. */
-function ColumnPickerPanel(props: Readonly<PanelProps>) {
-  const picker = useColumnPickerDraft(props);
+function ColumnPickerPanel({ search, ...props }: Readonly<PanelProps>) {
+  const picker = useColumnPickerDraft({ search, ...props });
   return (
     <div className="flex flex-col">
       <div className="border-b p-2">
@@ -128,7 +128,7 @@ function ColumnPickerPanel(props: Readonly<PanelProps>) {
       </div>
       <MatchActions picker={picker} />
       <ColumnGroupList picker={picker} />
-      <ColumnSearchSummary {...props.search} />
+      <ColumnSearchSummary {...search} />
       <PickerFooter picker={picker} {...props} />
     </div>
   );
@@ -309,7 +309,7 @@ function ColumnOptionText({ column }: Readonly<{ column: AnswerColumn }>) {
   );
 }
 
-type FooterProps = PanelProps & { picker: ColumnPickerDraft };
+type FooterProps = Omit<PanelProps, "search"> & { picker: ColumnPickerDraft };
 
 function PickerFooter({ picker, catalog, visibleKeys, onApply }: FooterProps) {
   const { draft } = picker;

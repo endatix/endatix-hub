@@ -57,18 +57,17 @@ type QuestionRowsProps = {
   changes: SearchKeyChanges;
 };
 
-function QuestionRows({ questions, canEdit, changes }: QuestionRowsProps) {
+function QuestionRows(props: Readonly<QuestionRowsProps>) {
+  const { questions, canEdit, changes } = props;
   if (questions.length === 0) {
     return <p className="text-sm text-muted-foreground">None yet.</p>;
   }
 
-  const canRemove = (question: FilterableQuestion) =>
-    canEdit && question.source === "user";
   return (
     <ul className="divide-y rounded-md border">
       {questions.map((question) => (
         <QuestionRow key={question.key} question={question}>
-          {canRemove(question) && (
+          {canEdit && question.source === "user" && (
             <RemoveSearchKeyButton target={question} changes={changes} />
           )}
         </QuestionRow>
