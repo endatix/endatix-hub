@@ -66,6 +66,24 @@ describe("buildListSubmissionGridRowsEndpoint", () => {
     });
   });
 
+  it("sends one answer param per filter with the key percent-encoded", () => {
+    // Act
+    const endpoint = buildListSubmissionGridRowsEndpoint("5", {
+      columns: [],
+      answerFilters: [
+        { operator: "contains", key: "panel:name", value: "a:b c" },
+        { operator: "from", key: "born", value: "2026-01-01" },
+      ],
+    });
+
+    // Assert
+    const query = new URL(endpoint, "https://hub.test").searchParams;
+    expect(query.getAll("answer")).toEqual([
+      "contains:panel%3Aname:a:b c",
+      "from:born:2026-01-01",
+    ]);
+  });
+
   it("asks for no answers when no column is visible", () => {
     expect(buildListSubmissionGridRowsEndpoint("5", { columns: [] })).toBe(
       "/forms/5/reporting/submissions?page=1&pageSize=10",
@@ -140,17 +158,15 @@ describe("SubmissionGrid", () => {
   it("builds rows from the submissions list when the rows endpoint answers 404", async () => {
     // Arrange
     const get = vi.fn().mockResolvedValue(ApiResult.notFoundError("Not found"));
-    const list = vi
-      .fn()
-      .mockResolvedValue(
-        ApiResult.success({
-          items: [submission()],
-          page: 1,
-          pageSize: 10,
-          totalRecords: 1,
-          totalPages: 1,
-        }),
-      );
+    const list = vi.fn().mockResolvedValue(
+      ApiResult.success({
+        items: [submission()],
+        page: 1,
+        pageSize: 10,
+        totalRecords: 1,
+        totalPages: 1,
+      }),
+    );
     const grid = new SubmissionGrid({
       get,
       submissions: { list },
@@ -164,6 +180,50 @@ describe("SubmissionGrid", () => {
     expect(ApiResult.isSuccess(result) && result.data.items[0].answers).toEqual(
       { q1: "Yes" },
     );
+  });
+
+  it("keeps the answer filter coverage of the page", async () => {
+    // Arrange
+    const coverage = { uncheckedCompleted: 3, uncheckedInProgress: 1 };
+    const get = vi.fn().mockResolvedValue(
+      ApiResult.success({
+        items: [],
+        page: 1,
+        pageSize: 10,
+        totalRecords: 0,
+        totalPages: 0,
+        answerFilterCoverage: coverage,
+      }),
+    );
+    const grid = new SubmissionGrid({ get } as unknown as EndatixApi);
+
+    // Act
+    const result = await grid.listRows("5", { columns: [] });
+
+    // Assert
+    expect(
+      ApiResult.isSuccess(result) && result.data.answerFilterCoverage,
+    ).toEqual(coverage);
+  });
+
+  it("does not fall back to the submissions list with answer filters", async () => {
+    // Arrange
+    const get = vi.fn().mockResolvedValue(ApiResult.notFoundError("Not found"));
+    const list = vi.fn();
+    const grid = new SubmissionGrid({
+      get,
+      submissions: { list },
+    } as unknown as EndatixApi);
+
+    // Act
+    const result = await grid.listRows("5", {
+      columns: [],
+      answerFilters: [{ operator: "contains", key: "q1", value: "x" }],
+    });
+
+    // Assert
+    expect(ApiResult.isSuccess(result)).toBe(false);
+    expect(list).not.toHaveBeenCalled();
   });
 
   it("returns other failures without falling back", async () => {

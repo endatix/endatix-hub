@@ -3,9 +3,11 @@ import { getSession } from "@/features/auth";
 import type { Route } from "next";
 import { redirect } from "next/navigation";
 import { loadSubmissionGridRows } from "../browse-submissions.server";
+import { describeRowsBanner } from "../grid-readiness";
 import type { SubmissionGridRowsLoad } from "../resolve-submission-grid-load";
 import type { AnswerColumn } from "../submission-grid-columns";
 import type { SubmissionGridUrlState } from "../submission-grid-url";
+import { ReadinessBanner } from "./readiness-banner";
 import { SubmissionGridTable } from "./submission-grid-table";
 
 type SubmissionGridRowsSectionProps = {
@@ -13,6 +15,8 @@ type SubmissionGridRowsSectionProps = {
   urlState: SubmissionGridUrlState;
   answerColumns: AnswerColumn[];
   submitterLabel: string;
+  /** Including in-progress submissions needs `forms.edit`. */
+  canIncludeInProgress: boolean;
 };
 
 /**
@@ -34,7 +38,7 @@ export async function SubmissionGridRowsSection(
 
 function renderRows(
   outcome: SubmissionGridRowsLoad,
-  { answerColumns, submitterLabel }: SubmissionGridRowsSectionProps,
+  props: SubmissionGridRowsSectionProps,
 ) {
   switch (outcome.kind) {
     case "redirect":
@@ -42,12 +46,28 @@ function renderRows(
     case "error":
       return <HubPageLoadError result={outcome.result} />;
     case "ready":
-      return (
-        <SubmissionGridTable
-          page={outcome.page}
-          answerColumns={answerColumns}
-          submitterLabel={submitterLabel}
-        />
-      );
+      return <ReadyRows outcome={outcome} {...props} />;
   }
+}
+
+type ReadyRowsProps = SubmissionGridRowsSectionProps & {
+  outcome: Extract<SubmissionGridRowsLoad, { kind: "ready" }>;
+};
+
+function ReadyRows({ outcome, ...props }: Readonly<ReadyRowsProps>) {
+  const banner = describeRowsBanner({
+    coverage: outcome.page.answerFilterCoverage,
+    answerFiltersNotPrepared: outcome.answerFiltersNotPrepared,
+    canIncludeInProgress: props.canIncludeInProgress,
+  });
+  return (
+    <>
+      {banner && <ReadinessBanner formId={props.formId} banner={banner} />}
+      <SubmissionGridTable
+        page={outcome.page}
+        answerColumns={props.answerColumns}
+        submitterLabel={props.submitterLabel}
+      />
+    </>
+  );
 }

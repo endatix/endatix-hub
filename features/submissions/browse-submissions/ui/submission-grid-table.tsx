@@ -16,13 +16,19 @@ import {
   type Updater,
 } from "@tanstack/react-table";
 import { useMemo } from "react";
+import {
+  answerDateFilter,
+  answerFilterUrlKey,
+  matchesStoredChoiceValue,
+} from "../submission-grid-answer-filters";
 import type { AnswerColumn } from "../submission-grid-columns";
 import {
   SUBMISSION_GRID_PAGE_SIZE_OPTIONS,
   SUBMISSION_GRID_URL_KEYS as keys,
 } from "../submission-grid-url.constants";
 import {
-  CLEAR_FILTERS_UPDATE,
+  answerDateRangeUpdate,
+  clearFiltersUpdate,
   dateFiltersByStem,
   dateRangeUpdate,
   hasActiveFilters,
@@ -105,21 +111,51 @@ function useGridColumns(
   );
 }
 
+type TextFilterOf = (
+  key: string,
+  placeholder: string,
+) => SubmissionGridColumnFilters["submitterEmail"];
+
 function toColumnFilters(
-  { urlState, updateUrl, textFilters, setTextFilter }: SubmissionGridUrl,
+  grid: SubmissionGridUrl,
   submitterLabel: string,
 ): SubmissionGridColumnFilters {
-  const textFilter = (key: string, placeholder: string) => ({
+  const { urlState, updateUrl, textFilters, setTextFilter } = grid;
+  const textFilter: TextFilterOf = (key, placeholder) => ({
     value: textFilters[key] ?? "",
     placeholder,
-    onChange: (value: string) => setTextFilter(key, value),
+    onChange: (value) => setTextFilter(key, value),
   });
   return {
     dates: dateFiltersByStem(urlState),
     onDateChange: (stem, value) => updateUrl(dateRangeUpdate(stem, value)),
     submitterDisplayId: textFilter(keys.submitterDisplayId, submitterLabel),
     submitterEmail: textFilter(keys.submitterEmail, "Email"),
+    ...answerColumnFilters(grid, textFilter),
   };
+}
+
+function answerColumnFilters(
+  { urlState, updateUrl }: SubmissionGridUrl,
+  textFilter: TextFilterOf,
+): Pick<SubmissionGridColumnFilters, "answerText" | "answerDate"> {
+  return {
+    answerText: (column) =>
+      textFilter(
+        answerFilterUrlKey("contains", column.key),
+        answerTextPlaceholder(column),
+      ),
+    answerDate: ({ key }) => ({
+      value: answerDateFilter(urlState.answerFilters, key),
+      onChange: (value) => updateUrl(answerDateRangeUpdate(key, value)),
+    }),
+  };
+}
+
+function answerTextPlaceholder(column: AnswerColumn): string {
+  return matchesStoredChoiceValue(column)
+    ? "Contains (stored choice value)"
+    : "Contains";
 }
 
 function GridEmpty({ grid }: Readonly<{ grid: SubmissionGridUrl }>) {
@@ -129,7 +165,7 @@ function GridEmpty({ grid }: Readonly<{ grid: SubmissionGridUrl }>) {
 
   return (
     <NoMatchingSubmissionsEmptyState
-      onClearFilters={() => grid.updateUrl(CLEAR_FILTERS_UPDATE)}
+      onClearFilters={() => grid.updateUrl(clearFiltersUpdate(grid.urlState))}
     />
   );
 }

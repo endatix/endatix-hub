@@ -12,6 +12,7 @@ import {
 } from "../browse-submissions.server";
 import { describeGridReadiness } from "../grid-readiness";
 import type { SubmissionGridColumnsLoad } from "../resolve-submission-grid-load";
+import { applicableAnswerFilters } from "../submission-grid-answer-filters";
 import {
   resolveVisibleAnswerColumns,
   type AnswerColumn,
@@ -47,12 +48,24 @@ export async function SubmissionGridSection(
     return <HubPageLoadError result={columns.result} />;
   }
 
-  const urlState = parseSubmissionGridUrl(searchParams);
+  const urlState = parseGridUrl(searchParams, columns.catalog);
   if (!isCanonicalSubmissionGridUrl(searchParams, urlState)) {
     redirect(buildSubmissionGridPath(formId, urlState) as Route);
   }
 
   return <SubmissionGrid {...{ formId, urlState, columns }} />;
+}
+
+/** Answer filters the form cannot apply leave the URL, so it names what shows. */
+function parseGridUrl(
+  searchParams: SubmissionGridRawSearchParams,
+  catalog: readonly AnswerColumn[],
+): SubmissionGridUrlState {
+  const urlState = parseSubmissionGridUrl(searchParams);
+  return {
+    ...urlState,
+    answerFilters: applicableAnswerFilters(urlState.answerFilters, catalog),
+  };
 }
 
 type SubmissionGridProps = {
@@ -69,6 +82,7 @@ async function SubmissionGrid(props: Readonly<SubmissionGridProps>) {
     columns.catalog,
     urlState.columns,
   );
+  const rows = { formId, urlState, answerColumns, canIncludeInProgress };
   return (
     <SubmissionGridShell
       formId={formId}
@@ -76,7 +90,7 @@ async function SubmissionGrid(props: Readonly<SubmissionGridProps>) {
       hasSubmissions={columns.readiness.submissions > 0}
       banner={banner}
     >
-      <SubmissionGridRows {...{ formId, urlState, answerColumns }} />
+      <SubmissionGridRows {...rows} />
     </SubmissionGridShell>
   );
 }
@@ -85,6 +99,7 @@ type SubmissionGridRowsProps = {
   formId: string;
   urlState: SubmissionGridUrlState;
   answerColumns: AnswerColumn[];
+  canIncludeInProgress: boolean;
 };
 
 /** The rows frame: keyed by the list query, so each query mounts fresh rows. */

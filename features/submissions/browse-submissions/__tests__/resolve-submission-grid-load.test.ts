@@ -6,8 +6,10 @@ import type {
 } from "@/lib/endatix-api/reporting/submission-grid-types";
 import { Result } from "@/lib/result";
 import {
+  isReportingNotPrepared,
   resolveSubmissionGridColumnsLoad,
   resolveSubmissionGridRowsLoad,
+  withAnswerFiltersNotPrepared,
 } from "../resolve-submission-grid-load";
 import { parseSubmissionGridUrl } from "../submission-grid-url";
 
@@ -131,5 +133,36 @@ describe("resolveSubmissionGridRowsLoad", () => {
 
     // Assert
     expect(load.kind).toBe("ready");
+  });
+});
+
+describe("isReportingNotPrepared", () => {
+  it.each([
+    [Result.error("No schema", undefined, "reporting_not_prepared"), true],
+    [Result.error("Conflict", undefined, "conflict"), false],
+    [Result.success(1), false],
+  ])("reads %j as %s", (result, expected) => {
+    expect(isReportingNotPrepared(result)).toBe(expected);
+  });
+});
+
+describe("withAnswerFiltersNotPrepared", () => {
+  it("marks ready rows as read without answer filters", () => {
+    // Arrange
+    const load = { kind: "ready" as const, page: rowsPage(0) };
+
+    // Act & Assert
+    expect(withAnswerFiltersNotPrepared(load)).toEqual({
+      ...load,
+      answerFiltersNotPrepared: true,
+    });
+  });
+
+  it("leaves a redirect as it is", () => {
+    // Arrange
+    const load = { kind: "redirect" as const, href: "/forms/1/submissions" };
+
+    // Act & Assert
+    expect(withAnswerFiltersNotPrepared(load)).toBe(load);
   });
 });

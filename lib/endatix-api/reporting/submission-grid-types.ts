@@ -13,6 +13,11 @@ export interface SubmissionGridColumn {
   title: string;
   questionType: string | null;
   filterType: SubmissionGridFilterType | null;
+  /**
+   * Whether answer filters may use this column. Older APIs leave it out;
+   * then a column with a `filterType` is filterable.
+   */
+  searchable?: boolean;
   pageName: string | null;
   pageTitle: string | null;
   panelTitle: string | null;
@@ -80,8 +85,41 @@ export interface SubmissionGridRow {
 /** The rows endpoint refuses more answer keys than this. */
 export const MAX_SUBMISSION_GRID_ROW_COLUMNS = 500;
 
+/** The rows endpoint refuses more answer filters than this. */
+export const MAX_SUBMISSION_GRID_ANSWER_FILTERS = 10;
+
+/** The longest text a `contains` answer filter may search for. */
+export const MAX_SUBMISSION_GRID_CONTAINS_LENGTH = 200;
+
+/**
+ * `contains` works on `text` columns; `from` / `to` on `date` and `datetime`
+ * columns, as an inclusive `yyyy-MM-dd` calendar day.
+ */
+export type SubmissionGridAnswerOperator = "contains" | "from" | "to";
+
+/** One answer filter; filters combine with AND, and with the metadata filters. */
+export interface SubmissionGridAnswerFilter {
+  operator: SubmissionGridAnswerOperator;
+  key: string;
+  value: string;
+}
+
+/**
+ * Submissions the answer filters could not check because their prepared data
+ * is missing or stale. Present only when the request had answer filters.
+ */
+export interface SubmissionGridAnswerFilterCoverage {
+  uncheckedCompleted: number;
+  uncheckedInProgress: number;
+}
+
 /** The submissions list query plus the answer keys to return. */
 export interface ListSubmissionGridRowsRequest extends ListSubmissionsRequest {
   /** Answer keys to return, at most {@link MAX_SUBMISSION_GRID_ROW_COLUMNS}. None are returned when empty. */
   columns: readonly string[];
+  /** At most {@link MAX_SUBMISSION_GRID_ANSWER_FILTERS}. */
+  answerFilters?: readonly SubmissionGridAnswerFilter[];
 }
+
+/** 409 from the rows endpoint: the form has no compiled schema to filter answers by. */
+export const REPORTING_NOT_PREPARED_ERROR_CODE = "reporting_not_prepared";
