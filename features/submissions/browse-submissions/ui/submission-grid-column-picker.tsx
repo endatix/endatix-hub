@@ -196,7 +196,7 @@ function ColumnGroupList({ picker }: Readonly<{ picker: ColumnPickerDraft }>) {
   );
   const hiddenCount = countColumns(picker.matches) - countRendered(rendered);
   return (
-    <div className="max-h-80 overflow-y-auto py-1" role="group">
+    <div className="max-h-80 overflow-y-auto py-1">
       {rendered.map((item) => (
         <ColumnGroup key={item.group.id} item={item} picker={picker} />
       ))}
