@@ -23,6 +23,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
+import type { Route } from "next";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -126,18 +127,25 @@ function RowActionsContent({ row, onOpen }: Readonly<RowMenuProps>) {
 }
 
 function RowOpenItems({ row, onOpen }: Readonly<RowMenuProps>) {
-  const path = `/forms/${row.formId}/submissions/${row.id}`;
   return (
     <>
       {isSubmissionEditable(row.collectionStatus) && (
-        <MenuLink href={`${path}/edit`} icon={FilePenLine} label="Edit" />
+        <MenuLink
+          href={`/forms/${row.formId}/submissions/${row.id}/edit`}
+          icon={FilePenLine}
+          label="Edit"
+        />
       )}
       <MenuAction
         icon={LinkIcon}
         label="Share Links"
         onSelect={() => onOpen("shareLinks")}
       />
-      <MenuLink href={`${path}/files`} icon={Files} label="View Files" />
+      <MenuLink
+        href={`/forms/${row.formId}/submissions/${row.id}/files`}
+        icon={Files}
+        label="View Files"
+      />
       <DownloadFilesDropdownItem formId={row.formId} submissionId={row.id} />
     </>
   );
@@ -145,11 +153,11 @@ function RowOpenItems({ row, onOpen }: Readonly<RowMenuProps>) {
 
 type MenuItemProps = { icon: LucideIcon; label: string };
 
-function MenuLink({
+function MenuLink<T extends string>({
   href,
   icon: Icon,
   label,
-}: Readonly<MenuItemProps & { href: string }>) {
+}: Readonly<MenuItemProps & { href: Route<T> }>) {
   return (
     <DropdownMenuItem asChild className="cursor-pointer">
       <Link href={href}>
