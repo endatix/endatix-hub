@@ -68,5 +68,3 @@ overrides:
   "@protobufjs/utf8": ^1.1.2
   # @opentelemetry/sdk-node bump to 0.221.0 to address CVE-2026-59892. Remove with next @azure/monitor-opentelemetry bump
   "@opentelemetry/sdk-node": ^0.221.0
-  # sharp bump to 0.35.3 is to address multiple CVEs. Bump with next next-js, next-auth and posthog bumps
-  sharp: ^0.35.3
