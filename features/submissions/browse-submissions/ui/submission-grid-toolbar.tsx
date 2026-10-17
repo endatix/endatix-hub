@@ -20,6 +20,7 @@ import {
 } from "../submission-grid-url-updates";
 import { SubmissionGridColumnPicker } from "./submission-grid-column-picker";
 import { useSubmissionGridUrl } from "./submission-grid-url-context";
+import { SubmissionGridViewMenu } from "./submission-grid-view-menu";
 
 const OPTION_FACETS = [
   {
@@ -72,6 +73,7 @@ function ToolbarActions({ formId, catalog, disabled }: Readonly<ToolbarProps>) {
   return (
     <>
       <SubmissionGridColumnPicker catalog={catalog} disabled={disabled} />
+      <SubmissionGridViewMenu disabled={disabled} />
       <ExportButton formId={formId} disabled={disabled} />
     </>
   );

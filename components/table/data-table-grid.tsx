@@ -7,6 +7,7 @@ import {
   dataTableBodyRowClassName,
   dataTableHeaderCellClassName,
 } from "./data-table-chrome";
+import { ColumnResizeHandle, resizedHeaderStyle } from "./column-resize-handle";
 import "./data-table-column-meta";
 import { DataTablePendingRows } from "./data-table-skeleton-rows";
 import { useHeldHeight } from "./use-held-height";
@@ -18,7 +19,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { flexRender, type Table as TanstackTable } from "@tanstack/react-table";
+import {
+  flexRender,
+  type Header,
+  type Table as TanstackTable,
+} from "@tanstack/react-table";
 
 type DataTableGridProps<TData> = {
   table: TanstackTable<TData>;
@@ -32,7 +37,9 @@ type DataTableGridProps<TData> = {
 };
 
 /**
- * Shared TanStack header/body chrome used by Hub list surfaces.
+ * Shared TanStack header/body chrome used by Hub list surfaces. A table with
+ * `enableColumnResizing: true` gets resize handles; a resized column keeps
+ * its `columnSizing` width, the others stay automatic.
  */
 export function DataTableGrid<TData>({
   table,
@@ -91,21 +98,7 @@ export function DataTableGrid<TData>({
               className="border-0 hover:bg-transparent"
             >
               {headerGroup.headers.map((header) => (
-                <TableHead
-                  key={header.id}
-                  colSpan={header.colSpan}
-                  className={dataTableHeaderCellClassName({
-                    isPinnedLeft: header.column.getIsPinned() === "left",
-                    className: header.column.columnDef.meta?.headerClassName,
-                  })}
-                >
-                  {header.isPlaceholder
-                    ? null
-                    : flexRender(
-                        header.column.columnDef.header,
-                        header.getContext(),
-                      )}
-                </TableHead>
+                <DataTableHeaderCell key={header.id} header={header} />
               ))}
             </TableRow>
           ))}
@@ -113,5 +106,27 @@ export function DataTableGrid<TData>({
         <TableBody aria-busy={isPending || undefined}>{bodyRows}</TableBody>
       </Table>
     </div>
+  );
+}
+
+/** Resize handles and widths only on tables with `enableColumnResizing: true`. */
+function DataTableHeaderCell<TData>({
+  header,
+}: Readonly<{ header: Header<TData, unknown> }>) {
+  const isResizable = header.getContext().table.options.enableColumnResizing;
+  return (
+    <TableHead
+      colSpan={header.colSpan}
+      className={dataTableHeaderCellClassName({
+        isPinnedLeft: header.column.getIsPinned() === "left",
+        className: header.column.columnDef.meta?.headerClassName,
+      })}
+      style={isResizable === true ? resizedHeaderStyle(header) : undefined}
+    >
+      {header.isPlaceholder
+        ? null
+        : flexRender(header.column.columnDef.header, header.getContext())}
+      {isResizable === true && <ColumnResizeHandle header={header} />}
+    </TableHead>
   );
 }
