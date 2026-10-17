@@ -1,7 +1,8 @@
 name: Build, Test & Release
 
 # Thin consumer of endatix/release-workflows (see its README):
-#   • PR to main → tests (below) + build validation in the shared pipeline
+#   • any PR (stacked ones included) → tests (below) + SonarCloud + build
+#     validation in the shared pipeline
 #     (scripts/release-prepare.sh @ 0.0.0-ci — builds the image and packages
 #     the chart, publishes nothing)
 #   • push main  → tests, then canary vX.Y.Z-canary.N: semantic-release builds
@@ -18,8 +19,9 @@ name: Build, Test & Release
 # branch required by semantic-release's branch validation.
 
 on:
+  # Every PR, stacked ones included (base = another feature branch): they need
+  # tests and the SonarCloud coverage too. The canary job only builds on PRs.
   pull_request:
-    branches: [main, "hotfix/**"] # PRs into maintenance-line branches validate too
   push:
     branches: [main, "hotfix/**"] # hotfix/X.Y.x pushes publish vX.Y.Z-hotfix.N builds
   workflow_dispatch:
@@ -38,6 +40,13 @@ jobs:
   node-build:
     name: "Endatix Hub: Build & Test"
     runs-on: ubuntu-latest
+    # Production + id-token: the SonarCloud token comes from Infisical over OIDC,
+    # as in endatix-relay and the shared canary workflow (same identity).
+    environment:
+      name: Production
+    permissions:
+      contents: read
+      id-token: write # OIDC for Infisical, not repo write
     defaults:
       run:
         working-directory: "."
@@ -45,6 +54,9 @@ jobs:
     steps:
       - name: 🔍 Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # Sonar needs history for new-code and blame
+          persist-credentials: false
 
       - name: 🧰 Setup Node & pnpm and install dependencies
         uses: ./.github/actions/setup-node-pnpm
@@ -71,6 +83,7 @@ jobs:
         with:
           format: cobertura
           file: .coverage/endatix-hub/cobertura-coverage.xml
+          coverage-reporter-version: v0.6.22 # pinned: the Coveralls number depends on its parser
 
       - name: 📊 Endatix Hub Coverage
         uses: davelosert/vitest-coverage-report-action@c4bbc33a89b7ace0e63d35f1f7d4bcee31155a73 # v2.13.0
@@ -78,6 +91,44 @@ jobs:
           name: "Endatix Hub"
           json-summary-path: ".coverage/endatix-hub/coverage-summary.json"
           json-final-path: ".coverage/endatix-hub/coverage-final.json"
+
+      # Fetched only now, after install, tests and build, so no dependency script or
+      # build step sees the Infisical secrets. As in endatix-relay: `prod` on main,
+      # `dev` everywhere else, so PR code never reaches release secrets.
+      # Fork and Dependabot PRs get no OIDC secrets: they skip the scan, with a notice.
+      - name: 🔐 Fetch secrets (Infisical, OIDC)
+        id: infisical
+        if: >-
+          github.actor != 'dependabot[bot]' &&
+          (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        uses: Infisical/secrets-action@03d3fa38607956c493f53c6633f94006a13c47ae # v1.0.7
+        with:
+          method: "oidc"
+          env-slug: ${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }}
+          project-slug: "github-actions-for-endatix"
+          identity-id: "403af1ed-7046-480f-a100-c4482b8a89ac"
+          # Root folder only (no recursive): keeps folders such as the GitHub App
+          # credentials out of this job.
+
+      - name: ℹ️ No SonarCloud analysis on fork and Dependabot PRs
+        if: steps.infisical.outcome == 'skipped'
+        run: echo "::notice::SonarCloud analysis skipped - fork and Dependabot PRs get no Infisical secrets."
+
+      - name: ❌ Require the SonarCloud token
+        if: steps.infisical.outcome == 'success' && env.ENDATIX_HUB_REPO_SONAR_TOKEN == ''
+        env:
+          ENV_SLUG: ${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }}
+        run: |
+          echo "::error::ENDATIX_HUB_REPO_SONAR_TOKEN is missing from the Infisical '$ENV_SLUG' environment (root folder)."
+          exit 1
+
+      # CI-based analysis with the Vitest lcov (sonar-project.properties); fails the
+      # job on a red quality gate.
+      - name: 🔎 SonarCloud analysis
+        if: env.ENDATIX_HUB_REPO_SONAR_TOKEN != ''
+        uses: SonarSource/sonarqube-scan-action@d209202bc7d53ff1cc128f7f907dac145c9d6ae9 # v8.3.0
+        env:
+          SONAR_TOKEN: ${{ env.ENDATIX_HUB_REPO_SONAR_TOKEN }}
 
   # Build validation on PRs; canary release on main — publishes only after the
   # tests above pass. docker-image makes the shared workflow log into GHCR and
