@@ -1,6 +1,11 @@
 import {
+  columnSearchOf,
+  type ColumnSearch,
+} from "@/features/submissions/choose-filterable-questions/filterable-questions";
+import {
   MAX_SUBMISSION_GRID_ROW_COLUMNS,
   type SubmissionGridColumn,
+  type SubmissionGridSearchSlots,
   type SubmissionGridFilterType,
   type SubmissionGridRow,
 } from "@/lib/endatix-api/reporting/submission-grid-types";
@@ -44,38 +49,46 @@ export type AnswerColumn = {
   kind: string;
   title: string;
   questionType: string | null;
-  /** The answer filter the column offers; `null` when it offers none. */
+  /** The answer filter the column offers now; `null` when it offers none. */
   filterType: SubmissionGridFilterType | null;
+  /** Whether answer filters can use the column, or could once an editor adds it. */
+  search: ColumnSearch;
   placement: AnswerColumnPlacement;
+};
+
+/** What the grid may do about filterable columns for this user. */
+export type ColumnSearchAccess = {
+  /** `forms.edit`: make columns filterable and remove the ones people chose. */
+  canEdit: boolean;
+  /** Left out by an API that cannot choose search keys. */
+  slots?: SubmissionGridSearchSlots;
 };
 
 export function toAnswerColumns(
   columns: readonly SubmissionGridColumn[],
 ): AnswerColumn[] {
-  return columns.map((column) => ({
+  return columns.map((column) =>
+    toAnswerColumn(column, columnSearchOf(column)),
+  );
+}
+
+function toAnswerColumn(
+  column: SubmissionGridColumn,
+  search: ColumnSearch,
+): AnswerColumn {
+  return {
     key: column.key,
     kind: column.kind,
     title: column.title || column.key,
     questionType: column.questionType,
-    filterType: answerFilterType(column),
+    filterType: search.state === "ready" ? column.filterType : null,
+    search,
     placement: {
       pageName: column.pageName,
       pageTitle: column.pageTitle,
       panelTitle: column.panelTitle,
     },
-  }));
-}
-
-/**
- * Only search keys can be filtered. A submitter column keeps the profile
- * filters of the list instead.
- */
-function answerFilterType(
-  column: SubmissionGridColumn,
-): SubmissionGridFilterType | null {
-  const filterable =
-    column.searchable !== false && column.kind !== SUBMITTER_PROFILE_KIND;
-  return filterable ? column.filterType : null;
+  };
 }
 
 /**

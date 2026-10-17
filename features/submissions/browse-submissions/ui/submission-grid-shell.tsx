@@ -5,7 +5,10 @@ import { NoSubmissionsEmptyState } from "@/features/submissions/ui/submissions-e
 import { useSearchParams } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
 import type { GridReadinessBanner } from "../grid-readiness";
-import type { AnswerColumn } from "../submission-grid-columns";
+import type {
+  AnswerColumn,
+  ColumnSearchAccess,
+} from "../submission-grid-columns";
 import { ReadinessBanner } from "./readiness-banner";
 import { SubmissionGridToolbar } from "./submission-grid-toolbar";
 import { SubmissionGridUrlProvider } from "./submission-grid-url-context";
@@ -14,6 +17,7 @@ type SubmissionGridShellProps = {
   formId: string;
   /** Every answer column the form has; the column picker chooses from it. */
   catalog: readonly AnswerColumn[];
+  columnSearch: ColumnSearchAccess;
   hasSubmissions: boolean;
   banner: GridReadinessBanner | null;
   /** The keyed rows frame; it remounts per list query, the shell does not. */
@@ -27,6 +31,7 @@ type SubmissionGridShellProps = {
 export function SubmissionGridShell({
   formId,
   catalog,
+  columnSearch,
   hasSubmissions,
   banner,
   children,
@@ -35,8 +40,7 @@ export function SubmissionGridShell({
   return (
     <SubmissionGridUrlProvider catalog={catalog}>
       <SubmissionGridToolbar
-        formId={formId}
-        catalog={catalog}
+        {...{ formId, catalog, columnSearch }}
         disabled={!hasSubmissions}
       />
       {banner && <ReadinessBanner formId={formId} banner={banner} />}

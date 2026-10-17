@@ -3,6 +3,7 @@ import {
   REPORTING_NOT_PREPARED_ERROR_CODE,
   type SubmissionGridColumnsResponse,
   type SubmissionGridReadiness,
+  type SubmissionGridSearchSlots,
 } from "@/lib/endatix-api/reporting/submission-grid-types";
 import {
   Result,
@@ -26,6 +27,8 @@ export type SubmissionGridColumnsLoad =
       schemaReady: boolean;
       readiness: SubmissionGridReadiness;
       catalog: AnswerColumn[];
+      /** Left out by an API that cannot choose search keys. */
+      searchSlots?: SubmissionGridSearchSlots;
     };
 
 export type SubmissionGridRowsLoad =
@@ -52,6 +55,7 @@ export function resolveSubmissionGridColumnsLoad(
     schemaReady: result.value.schemaReady,
     readiness: result.value.readiness,
     catalog: toAnswerColumns(result.value.columns),
+    ...(result.value.searchSlots && { searchSlots: result.value.searchSlots }),
   };
 }
 
