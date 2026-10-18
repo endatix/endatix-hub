@@ -11,6 +11,17 @@ import {
  * there is frozen into the bundle and the operator's runtime env can never reach it.
  */
 
+/**
+ * Every key `withEndatix` may put in `nextConfig.env`. A key added here is inlined into
+ * the published image at build: it must never be something an operator sets per deployment.
+ */
+const ALLOWED_BUILD_ENV_KEYS = [
+  "AUTH_KEYCLOAK_CLIENT_ID",
+  "AUTH_KEYCLOAK_ENABLED",
+  "AUTH_KEYCLOAK_ISSUER",
+  "SESSION_MAX_AGE_IN_MINUTES",
+];
+
 /** Env names the runtime storage path reads, plus the retired `ENDATIX_RESOLVED_*` build mirror. */
 const STORAGE_ENV_KEY = /STORAGE|S3|AZURE|^ENDATIX_RESOLVED_/;
 
@@ -43,22 +54,30 @@ describe("storage config stays runtime", () => {
     resetResolveEndatixSettingsCacheForTests();
   });
 
-  it("writes no storage key into nextConfig.env", () => {
-    const built = withEndatix({});
+  it.each([
+    ["no storage env", {}],
+    ["S3 storage env", RUNTIME_S3_ENV],
+  ])(
+    "nextConfig.env holds only the allowed build-time keys when built with %s",
+    (_label, buildEnv) => {
+      Object.assign(process.env, buildEnv);
 
-    expect(
-      Object.keys(built.env ?? {}).filter((key) => STORAGE_ENV_KEY.test(key)),
-      "nextConfig.env keys are inlined at build, so storage would be frozen to the " +
-        "build machine's env. Read storage from process.env at runtime instead.",
-    ).toEqual([]);
-  });
+      const built = withEndatix({});
+
+      expect(
+        Object.keys(built.env ?? {}).sort(),
+        "nextConfig.env keys are inlined into the image at build. Storage and other " +
+          "per-deployment settings must be read from process.env at runtime instead.",
+      ).toEqual(ALLOWED_BUILD_ENV_KEYS);
+    },
+  );
 
   it("enables the provider from runtime env on an image built without storage", () => {
     const built = withEndatix({});
 
-    // Runtime of the published image: the build's nextConfig.env (inlined), plus the
-    // operator's env.
-    process.env = { ...process.env, ...built.env, ...RUNTIME_S3_ENV };
+    // Runtime of the published image: the operator's env, overridden by the build's
+    // nextConfig.env, since the inlined literal wins over anything set at runtime.
+    process.env = { ...process.env, ...RUNTIME_S3_ENV, ...built.env };
     resetResolveEndatixSettingsCacheForTests();
 
     const profile = getRuntimeStorageProfile();
