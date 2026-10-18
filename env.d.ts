@@ -145,13 +145,6 @@ declare namespace NodeJS {
     // Feature-flag provider: `posthog` or omit/`environment` for FLAG_* env vars.
     FLAG_PROVIDER?: string;
 
-    // Build-time mirror from withEndatix (resolveEndatixSettings envPatch) — flags and hostnames only, never secrets
-    ENDATIX_RESOLVED_STORAGE_VERSION?: string;
-    ENDATIX_RESOLVED_STORAGE_PROVIDER?: string;
-    ENDATIX_RESOLVED_AZURE_CREDENTIALS?: string;
-    ENDATIX_RESOLVED_S3_CREDENTIALS?: string;
-    ENDATIX_RESOLVED_IMAGE_REMOTE_HOSTNAMES?: string;
-
     // Application settings
     /** @deprecated Build-time inlined. Use ENDATIX_IS_DEBUG_MODE. */
     NEXT_PUBLIC_IS_DEBUG_MODE?: string; // Application-level debug flag

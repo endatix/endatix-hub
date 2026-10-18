@@ -36,7 +36,7 @@ function collectS3ImageHostname(): string | null {
 }
 
 /**
- * Hostnames allowed for `next/images` remote optimization and mirrored in `ENDATIX_RESOLVED_*`.
+ * Hostnames allowed for `next/images` remote optimization (build-time `images.remotePatterns`).
  * Single source of truth: same matrix as bootstrap (`STORAGE_PROVIDER` + provider env).
  */
 export function collectStorageImageRemoteHostnamesFromEnv(
