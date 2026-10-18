@@ -13,7 +13,6 @@ const IGNORED_DIRECTORIES = new Set([
   "node_modules",
   ".next",
   ".git",
-  ".claude",
   ".coverage",
   "coverage",
   "dist",
@@ -21,6 +20,15 @@ const IGNORED_DIRECTORIES = new Set([
   "playwright-report",
   "test-results",
 ]);
+
+/**
+ * Agent tools (`.claude`, `.cursor`, ...) check out copies of the repo into
+ * `<dot-directory>/worktrees`. Matching only that shape keeps a real `worktrees` source
+ * folder visible to the guards.
+ */
+function isAgentWorktrees(parent: string, entry: string): boolean {
+  return entry === "worktrees" && path.basename(parent).startsWith(".");
+}
 
 const SOURCE_EXTENSIONS = [".ts", ".tsx"];
 
@@ -42,6 +50,7 @@ function* walk(root: string, current: string): Generator<string> {
 
     if (stats.isDirectory()) {
       if (IGNORED_DIRECTORIES.has(entry)) continue;
+      if (isAgentWorktrees(current, entry)) continue;
       yield* walk(root, absolute);
       continue;
     }

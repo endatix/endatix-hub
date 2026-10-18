@@ -22,7 +22,7 @@ export default defineConfig({
         inline: ["next-auth"],
       },
     },
-    exclude: [...configDefaults.exclude, "e2e/**", ".claude/worktrees/**"],
+    exclude: [...configDefaults.exclude, "e2e/**", "**/.*/worktrees/**"],
     coverage: {
       include: [
         "app/**/*.{ts,tsx}",
