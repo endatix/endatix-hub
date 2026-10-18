@@ -67,6 +67,18 @@ Avoids `cp -r` shell commands, which fail on Windows because pnpm runs scripts t
 node scripts/copy-standalone.mjs
 ```
 
+## Runtime Storage Check Script
+
+### `check-runtime-storage.mjs`
+
+Smoke check that the standalone build reads storage settings at runtime (endatix-hub#1134). It fails if `.next/required-server-files.json` has any storage key in `config.env`, since Next inlines those at build. It then starts `.next/standalone/server.js` with `STORAGE_PROVIDER=s3` set at runtime only, and fails if the server logs `Storage service is not enabled` or `Failed to prepare server`. CI runs it after `pnpm build`. Run it on a build made with no `STORAGE_*` env.
+
+**Usage:**
+
+```bash
+pnpm build && pnpm check:runtime-storage
+```
+
 ## Dev Server Script
 
 ### `dev.mjs`

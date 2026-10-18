@@ -12,6 +12,7 @@
     "dev:embed": "node scripts/build-embed.mjs --watch",
     "build": "next build",
     "build:standalone": "pnpm build && node scripts/copy-standalone.mjs",
+    "check:runtime-storage": "node scripts/check-runtime-storage.mjs",
     "run:standalone": "pnpm build:standalone && node scripts/with-dev-cert.mjs node --trace-warnings .next/standalone/server.js",
     "start": "next start",
     "lint": "eslint",
