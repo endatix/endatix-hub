@@ -13,6 +13,7 @@ const IGNORED_DIRECTORIES = new Set([
   "node_modules",
   ".next",
   ".git",
+  ".claude",
   ".coverage",
   "coverage",
   "dist",
