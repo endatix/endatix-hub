@@ -27,7 +27,7 @@ export type DescribeGridReadinessInput = {
  * Splits the submissions that are not prepared into completed and in
  * progress. The counts do not say which prepared rows are complete, so
  * prepared rows are taken as completed first: in-progress rows are prepared
- * only on request. The two counts always add up to the unprepared total.
+ * only on request. Rows being prepared are counted once, as `preparing`.
  */
 export function countUnprepared(
   readiness: SubmissionGridReadiness,
@@ -42,7 +42,10 @@ export function countUnprepared(
   );
 
   return {
-    completed: Math.max(0, readiness.completedSubmissions - readiness.prepared),
+    completed: Math.max(
+      0,
+      readiness.completedSubmissions - readiness.prepared - readiness.pending,
+    ),
     inProgress: Math.max(0, inProgress - preparedInProgress),
     preparing: readiness.pending,
   };
