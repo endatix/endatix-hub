@@ -118,6 +118,13 @@ export function limitRenderedColumns(
   return rendered;
 }
 
+/** Each column's position in the form, which shown columns are placed by. */
+export function columnOrder(
+  catalog: readonly AnswerColumn[],
+): ReadonlyMap<string, number> {
+  return new Map(catalog.map((column, index) => [column.key, index]));
+}
+
 /**
  * Shows `keys` after the visible ones, in the order given, while they fit
  * the rows request (key count and `columns=` length). Visible keys keep
