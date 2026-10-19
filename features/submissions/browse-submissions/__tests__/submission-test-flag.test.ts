@@ -50,10 +50,7 @@ describe("testMarkMenuItem", () => {
 describe("testMarkOutcome", () => {
   it("says the submission is now a test submission", () => {
     // Act
-    const outcome = testMarkOutcome(
-      true,
-      Result.success({ isTestSubmission: true }),
-    );
+    const outcome = testMarkOutcome(true, Result.success(undefined));
 
     // Assert
     expect(outcome).toEqual({
@@ -65,18 +62,15 @@ describe("testMarkOutcome", () => {
 
   it("says the submission is now real", () => {
     // Act
-    const outcome = testMarkOutcome(
-      false,
-      Result.success({ isTestSubmission: false }),
-    );
+    const outcome = testMarkOutcome(false, Result.success(undefined));
 
     // Assert
     expect(outcome.message).toBe("Marked as a real submission.");
   });
 
-  it("names the existing submission on submission_exists", () => {
+  it("keeps the API's message and names the existing submission on submission_exists", () => {
     // Arrange
-    const conflict = Result.error<{ isTestSubmission: boolean }>(
+    const conflict = Result.error<void>(
       "A submission already exists for this user and form.",
       undefined,
       "submission_exists",
@@ -89,8 +83,8 @@ describe("testMarkOutcome", () => {
     // Assert
     expect(outcome).toEqual({
       variant: "error",
-      message:
-        "The submitter already has a real submission on this form. Mark that one as test first.",
+      message: "A submission already exists for this user and form.",
+      hint: "Mark the submitter's real submission as test first.",
       refresh: false,
       existingSubmissionId: "7",
     });
@@ -131,9 +125,10 @@ describe("deleteTestsConfirmCopy", () => {
     });
   });
 
-  it("asks without a count while it is unknown", () => {
+  it("says the count could not be read", () => {
     expect(deleteTestsConfirmCopy(null)).toEqual({
       title: "Delete all test submissions?",
+      note: "The number of test submissions could not be read.",
       canDelete: true,
     });
   });

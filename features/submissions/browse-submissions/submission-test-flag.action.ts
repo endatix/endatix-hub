@@ -3,12 +3,20 @@
 import { auth } from "@/auth";
 import { authorization, Permissions } from "@/features/auth/authorization";
 import { EndatixApi } from "@/lib/endatix-api";
-import type { DeleteTestSubmissionsResponse } from "@/lib/endatix-api/submissions/types";
+import type {
+  DeleteTestSubmissionsResponse,
+  Submission,
+} from "@/lib/endatix-api/submissions/types";
 import { Result, toResult } from "@/lib/result";
 import { revalidatePath } from "next/cache";
-import type { SubmissionTestMark } from "./submission-test-flag";
 
 const LOGGER_NAME = "submissions.browse-submissions.test-flag";
+
+/** Counting and deleting a form's test submissions (the API checks the same two). */
+const DELETE_TESTS_PERMISSIONS = [
+  Permissions.Forms.Test,
+  Permissions.Submissions.Delete,
+];
 
 /**
  * Marks a submission as test or as real. Marking as real fails with
@@ -19,16 +27,14 @@ export async function setSubmissionTestAction(
   formId: string,
   submissionId: string,
   isTest: boolean,
-): Promise<Result<SubmissionTestMark>> {
+): Promise<Result<void>> {
   const api = await authorizedApi([Permissions.Forms.Test]);
   const kind = isTest ? "test" : "real";
-  const result = toResult(
+  const result = toResult<Submission, void>(
     await api.submissions.setTest(formId, submissionId, isTest),
     {
       ...failureOptions(`Unable to mark the submission as ${kind}.`),
-      mapData: (submission) => ({
-        isTestSubmission: submission.isTestSubmission ?? isTest,
-      }),
+      mapData: () => undefined,
     },
   );
   if (Result.isSuccess(result)) revalidateGrid(formId);
@@ -39,10 +45,7 @@ export async function setSubmissionTestAction(
 export async function deleteTestSubmissionsAction(
   formId: string,
 ): Promise<Result<DeleteTestSubmissionsResponse>> {
-  const api = await authorizedApi([
-    Permissions.Forms.Test,
-    Permissions.Submissions.Delete,
-  ]);
+  const api = await authorizedApi(DELETE_TESTS_PERMISSIONS);
   const result = toResult(
     await api.submissions.deleteTests(formId),
     failureOptions("Unable to delete the test submissions."),
@@ -55,10 +58,7 @@ export async function deleteTestSubmissionsAction(
 export async function countTestSubmissionsAction(
   formId: string,
 ): Promise<Result<number>> {
-  const api = await authorizedApi([
-    Permissions.Forms.Test,
-    Permissions.Submissions.Delete,
-  ]);
+  const api = await authorizedApi(DELETE_TESTS_PERMISSIONS);
   return toResult(
     await api.submissions.list(formId, {
       isTestSubmission: ["true"],
@@ -66,7 +66,7 @@ export async function countTestSubmissionsAction(
       pageSize: 1,
     }),
     {
-      fallbackMessage: "Unable to count the test submissions.",
+      ...failureOptions("Unable to count the test submissions."),
       mapData: (page) => page.totalRecords,
     },
   );

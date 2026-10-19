@@ -18,7 +18,7 @@ import { toast } from "@/components/ui/toast";
 import { Result } from "@/lib/result";
 import { FlaskConical } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import {
   countTestSubmissionsAction,
   deleteTestSubmissionsAction,
@@ -60,10 +60,13 @@ type DeleteTestSubmissions = ReturnType<typeof useDeleteTestSubmissions>;
 function useTestSubmissionCount(formId: string) {
   const [count, setCount] = useState<number | null>(null);
   const [isCounting, startCounting] = useTransition();
+  const latest = useRef(0);
   const recount = () => {
+    const request = ++latest.current; // a reopen supersedes an earlier count
     setCount(null);
     startCounting(async () => {
       const result = await countTestSubmissionsAction(formId);
+      if (request !== latest.current) return;
       setCount(Result.isSuccess(result) ? result.value : null);
     });
   };
@@ -76,6 +79,7 @@ function useDeleteTestSubmissions(formId: string) {
   const deletion = useConfirmDelete(formId, () => setOpen(false));
 
   const onOpenChange = (next: boolean) => {
+    if (deletion.isDeleting) return; // a refusal must stay on screen
     setOpen(next);
     deletion.clearError();
     if (next) recount();
@@ -112,7 +116,7 @@ function DeleteTestSubmissionsContent(props: Readonly<DeleteTestSubmissions>) {
       <AlertDialogHeader>
         <AlertDialogTitle>{title}</AlertDialogTitle>
         <AlertDialogDescription>
-          {DELETE_TESTS_DESCRIPTION}
+          {props.isCounting ? null : copy.note} {DELETE_TESTS_DESCRIPTION}
         </AlertDialogDescription>
       </AlertDialogHeader>
       {props.error && (

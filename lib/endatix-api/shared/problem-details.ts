@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isDecimalDigitString } from "@/lib/utils/type-validators";
 
 /**
  * The schema for a ProblemDetails object. More information about the ProblemDetails object can be found here: https://datatracker.ietf.org/doc/html/rfc7807
@@ -43,7 +44,8 @@ function readExistingId(record: Record<string, unknown>): string | undefined {
   const field =
     typeof errorCode === "string" ? EXISTING_ID_FIELDS[errorCode] : undefined;
   const id = field ? record[field] : undefined;
-  return typeof id === "string" ? id : undefined;
+  // An Endatix id only: the Hub builds routes from it.
+  return typeof id === "string" && isDecimalDigitString(id) ? id : undefined;
 }
 
 /**

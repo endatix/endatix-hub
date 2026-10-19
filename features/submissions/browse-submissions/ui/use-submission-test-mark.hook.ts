@@ -53,6 +53,7 @@ function showTestMarkOutcome(
   const existing = outcome.existingSubmissionId;
   toast[outcome.variant]({
     title: outcome.message,
+    description: outcome.hint,
     action: existing
       ? { label: "Open submission", onClick: () => openSubmission(existing) }
       : undefined,

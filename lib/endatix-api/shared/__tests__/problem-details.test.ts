@@ -64,6 +64,21 @@ describe('parseProblemDetails existingId', () => {
     expect(result?.existingId).toBe('1526934587983265792');
   });
 
+  it('leaves out an existingId that is not an Endatix id', () => {
+    // Arrange
+    const data = {
+      status: 409,
+      errorCode: 'submission_exists',
+      submissionId: '../../settings',
+    };
+
+    // Act
+    const result = parseProblemDetails(data);
+
+    // Assert
+    expect(result?.existingId).toBeUndefined();
+  });
+
   it('leaves existingId out for other error codes', () => {
     // Arrange
     const data = { status: 409, errorCode: 'conflict', submissionId: '1' };

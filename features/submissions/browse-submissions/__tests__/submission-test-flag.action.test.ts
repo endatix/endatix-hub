@@ -75,7 +75,7 @@ describe("setSubmissionTestAction", () => {
     const result = await setSubmissionTestAction("5", "9", true);
 
     // Assert
-    expect(result).toEqual(Result.success({ isTestSubmission: true }));
+    expect(result).toEqual(Result.success(undefined));
     expect(mockSetTest).toHaveBeenCalledWith("5", "9", true);
     expect(mockRevalidatePath).toHaveBeenCalledWith("/forms/5/submissions");
   });
