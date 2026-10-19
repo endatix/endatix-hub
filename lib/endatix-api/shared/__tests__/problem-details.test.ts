@@ -46,3 +46,32 @@ describe('parseProblemDetails', () => {
     expect(result).toBeNull();
   });
 });
+
+describe('parseProblemDetails existingId', () => {
+  it('reads the submission a submission_exists 409 names', () => {
+    // Arrange
+    const data = {
+      status: 409,
+      detail: 'A submission already exists for this user and form.',
+      errorCode: 'submission_exists',
+      submissionId: '1526934587983265792',
+    };
+
+    // Act
+    const result = parseProblemDetails(data);
+
+    // Assert
+    expect(result?.existingId).toBe('1526934587983265792');
+  });
+
+  it('leaves existingId out for other error codes', () => {
+    // Arrange
+    const data = { status: 409, errorCode: 'conflict', submissionId: '1' };
+
+    // Act
+    const result = parseProblemDetails(data);
+
+    // Assert
+    expect(result?.existingId).toBeUndefined();
+  });
+});

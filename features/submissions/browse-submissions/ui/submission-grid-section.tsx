@@ -9,6 +9,7 @@ import type { ReactNode } from "react";
 import {
   canEditForm,
   loadSubmissionGridColumns,
+  loadSubmissionTestAccess,
 } from "../browse-submissions.server";
 import { describeGridReadiness } from "../grid-readiness";
 import type { SubmissionGridColumnsLoad } from "../resolve-submission-grid-load";
@@ -77,7 +78,10 @@ type SubmissionGridProps = {
 
 async function SubmissionGrid(props: Readonly<SubmissionGridProps>) {
   const { formId, urlState, columns } = props;
-  const canIncludeInProgress = await canEditForm();
+  const [canIncludeInProgress, testAccess] = await Promise.all([
+    canEditForm(),
+    loadSubmissionTestAccess(),
+  ]);
   const answerColumns = resolveVisibleAnswerColumns(
     columns.catalog,
     urlState.columns,
@@ -88,6 +92,7 @@ async function SubmissionGrid(props: Readonly<SubmissionGridProps>) {
       formId={formId}
       catalog={columns.catalog}
       columnSearch={columnSearchAccess(columns, canIncludeInProgress)}
+      testAccess={testAccess}
       hasSubmissions={columns.readiness.submissions > 0}
       banner={describeGridReadiness({ ...columns, canIncludeInProgress })}
     >

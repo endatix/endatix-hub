@@ -5,6 +5,7 @@ import { NoSubmissionsEmptyState } from "@/features/submissions/ui/submissions-e
 import { useSearchParams } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
 import type { GridReadinessBanner } from "../grid-readiness";
+import type { SubmissionTestAccess } from "../submission-test-flag";
 import type {
   AnswerColumn,
   ColumnSearchAccess,
@@ -12,12 +13,15 @@ import type {
 import { ReadinessBanner } from "./readiness-banner";
 import { SubmissionGridToolbar } from "./submission-grid-toolbar";
 import { SubmissionGridUrlProvider } from "./submission-grid-url-context";
+import { SubmissionTestAccessProvider } from "./submission-test-access-context";
 
 type SubmissionGridShellProps = {
   formId: string;
   /** Every answer column the form has; the column picker chooses from it. */
   catalog: readonly AnswerColumn[];
   columnSearch: ColumnSearchAccess;
+  /** Mark as test / Mark as real in each row, Delete test submissions in the toolbar. */
+  testAccess: SubmissionTestAccess;
   hasSubmissions: boolean;
   banner: GridReadinessBanner | null;
   /** The keyed rows frame; it remounts per list query, the shell does not. */
@@ -32,6 +36,7 @@ export function SubmissionGridShell({
   formId,
   catalog,
   columnSearch,
+  testAccess,
   hasSubmissions,
   banner,
   children,
@@ -39,12 +44,14 @@ export function SubmissionGridShell({
   useRememberListQuery(formId);
   return (
     <SubmissionGridUrlProvider catalog={catalog}>
-      <SubmissionGridToolbar
-        {...{ formId, catalog, columnSearch }}
-        disabled={!hasSubmissions}
-      />
-      {banner && <ReadinessBanner formId={formId} banner={banner} />}
-      {hasSubmissions ? children : <NoSubmissionsEmptyState />}
+      <SubmissionTestAccessProvider access={testAccess}>
+        <SubmissionGridToolbar
+          {...{ formId, catalog, columnSearch }}
+          disabled={!hasSubmissions}
+        />
+        {banner && <ReadinessBanner formId={formId} banner={banner} />}
+        {hasSubmissions ? children : <NoSubmissionsEmptyState />}
+      </SubmissionTestAccessProvider>
     </SubmissionGridUrlProvider>
   );
 }

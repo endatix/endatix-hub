@@ -15,6 +15,12 @@ import {
   toSubmissionGridRowsRequest,
   type SubmissionGridUrlState,
 } from "./submission-grid-url";
+import {
+  NO_SUBMISSION_TEST_ACCESS,
+  SUBMISSION_TEST_PERMISSIONS,
+  submissionTestAccess,
+  type SubmissionTestAccess,
+} from "./submission-test-flag";
 
 const LOGGER_NAME = "submissions.browse";
 
@@ -88,4 +94,13 @@ export async function canEditForm(): Promise<boolean> {
   const { checkPermission } = await authorization();
   const result = await checkPermission(Permissions.Forms.Edit);
   return result.success;
+}
+
+/** Marking and deleting test submissions; a miss hides those controls. */
+export async function loadSubmissionTestAccess(): Promise<SubmissionTestAccess> {
+  const { evaluatePermissions } = await authorization();
+  const result = await evaluatePermissions(SUBMISSION_TEST_PERMISSIONS);
+  return result.success
+    ? submissionTestAccess(result.data)
+    : NO_SUBMISSION_TEST_ACCESS;
 }

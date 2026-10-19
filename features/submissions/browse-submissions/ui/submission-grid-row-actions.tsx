@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import {
   FilePenLine,
   Files,
+  FlaskConical,
   LinkIcon,
   MoreHorizontal,
   Trash2,
@@ -26,19 +27,27 @@ import { useSession } from "next-auth/react";
 import type { Route } from "next";
 import Link from "next/link";
 import { useState } from "react";
+import {
+  useSubmissionTestMark,
+  type SubmissionTestMarkItem,
+} from "./use-submission-test-mark.hook";
 
 type RowProps = { row: SubmissionGridRow };
 
 type RowDialog = "shareLinks" | "delete";
 
-type RowMenuProps = RowProps & { onOpen: (dialog: RowDialog) => void };
+type RowMenuProps = RowProps & {
+  onOpen: (dialog: RowDialog) => void;
+  testMark: SubmissionTestMarkItem | null;
+};
 
 /** The row's menu and the dialogs it opens. */
 export function SubmissionGridRowActions({ row }: Readonly<RowProps>) {
   const [dialog, setDialog] = useState<RowDialog | null>(null);
+  const testMark = useSubmissionTestMark(row);
   return (
     <>
-      <RowActionsMenu row={row} onOpen={setDialog} />
+      <RowActionsMenu row={row} onOpen={setDialog} testMark={testMark} />
       <RowDialogs row={row} dialog={dialog} onClose={() => setDialog(null)} />
     </>
   );
@@ -107,7 +116,7 @@ function RowActionsMenu(props: Readonly<RowMenuProps>) {
   );
 }
 
-function RowActionsContent({ row, onOpen }: Readonly<RowMenuProps>) {
+function RowActionsContent({ row, onOpen, testMark }: Readonly<RowMenuProps>) {
   return (
     <DropdownMenuContent
       onClick={(event) => event.stopPropagation()}
@@ -115,6 +124,7 @@ function RowActionsContent({ row, onOpen }: Readonly<RowMenuProps>) {
       align="start"
     >
       <RowOpenItems row={row} onOpen={onOpen} />
+      {testMark && <TestMarkItem testMark={testMark} />}
       <DropdownMenuSeparator />
       <MenuAction
         icon={Trash2}
@@ -126,7 +136,10 @@ function RowActionsContent({ row, onOpen }: Readonly<RowMenuProps>) {
   );
 }
 
-function RowOpenItems({ row, onOpen }: Readonly<RowMenuProps>) {
+function RowOpenItems({
+  row,
+  onOpen,
+}: Readonly<Omit<RowMenuProps, "testMark">>) {
   return (
     <>
       {isSubmissionEditable(row.collectionStatus) && (
@@ -151,6 +164,19 @@ function RowOpenItems({ row, onOpen }: Readonly<RowMenuProps>) {
   );
 }
 
+function TestMarkItem({
+  testMark,
+}: Readonly<{ testMark: SubmissionTestMarkItem }>) {
+  return (
+    <MenuAction
+      icon={FlaskConical}
+      label={testMark.label}
+      onSelect={testMark.mark}
+      disabled={testMark.isPending}
+    />
+  );
+}
+
 type MenuItemProps = { icon: LucideIcon; label: string };
 
 function MenuLink<T extends string>({
@@ -171,6 +197,7 @@ function MenuLink<T extends string>({
 type MenuActionProps = MenuItemProps & {
   onSelect: () => void;
   className?: string;
+  disabled?: boolean;
 };
 
 function MenuAction({
@@ -178,11 +205,13 @@ function MenuAction({
   label,
   onSelect,
   className,
+  disabled,
 }: Readonly<MenuActionProps>) {
   return (
     <DropdownMenuItem
       className={cn("cursor-pointer", className)}
       onSelect={onSelect}
+      disabled={disabled}
     >
       <Icon className="mr-2 h-4 w-4" />
       <span>{label}</span>

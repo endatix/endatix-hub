@@ -29,7 +29,23 @@ export const ProblemDetailsSchema = z.object({
  */
 export type ProblemDetails = z.infer<typeof ProblemDetailsSchema> & {
   detail: string;
+  /** The resource a 409 ran into (the API's `ExistingResource`), when its error code names one. */
+  existingId?: string;
 };
+
+/** The extension field each `ExistingResource` error code puts its id under. */
+const EXISTING_ID_FIELDS: Readonly<Record<string, string>> = {
+  submission_exists: "submissionId",
+};
+
+function readExistingId(
+  record: Record<string, unknown>,
+  errorCode: string | undefined,
+): string | undefined {
+  const field = errorCode ? EXISTING_ID_FIELDS[errorCode] : undefined;
+  const id = field ? record[field] : undefined;
+  return typeof id === "string" ? id : undefined;
+}
 
 /**
  * Normalize common ProblemDetails shapes (camelCase RFC7807 and PascalCase .NET defaults).
@@ -84,6 +100,10 @@ export function parseProblemDetails(data: unknown): ProblemDetails | null {
       errorCode: result.data.errorCode,
       traceId: result.data.traceId,
       fields: result.data.fields,
+      existingId: readExistingId(
+        normalized as Record<string, unknown>,
+        result.data.errorCode,
+      ),
     };
   }
 
