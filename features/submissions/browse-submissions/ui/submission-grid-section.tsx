@@ -39,7 +39,7 @@ export async function SubmissionGridSection(
   props: Readonly<SubmissionGridSectionProps>,
 ) {
   const { formId, searchParams } = props;
-  const columns = await loadSubmissionGridColumns(formId, await getSession());
+  const { columns, ...access } = await loadGridInputs(formId);
   if (columns.kind === "unavailable") {
     return props.unavailable;
   }
@@ -52,19 +52,37 @@ export async function SubmissionGridSection(
     redirect(buildSubmissionGridPath(formId, urlState) as Route);
   }
 
-  return <SubmissionGrid {...{ formId, urlState, columns }} />;
+  return <SubmissionGrid {...{ formId, urlState, columns, ...access }} />;
+}
+
+/** Only the rows wait for the columns; the other reads start together. */
+async function loadGridInputs(formId: string) {
+  const [columns, canIncludeInProgress, config] = await Promise.all([
+    getSession().then((session) => loadSubmissionGridColumns(formId, session)),
+    canIncludeInProgressSubmissions(),
+    getClientEndatixConfig(),
+  ]);
+  return {
+    columns,
+    canIncludeInProgress,
+    submitterLabel: config.submitterPrimaryFilterLabel,
+  };
 }
 
 type SubmissionGridProps = {
   formId: string;
   urlState: SubmissionGridUrlState;
   columns: Extract<SubmissionGridColumnsLoad, { kind: "ready" }>;
+  canIncludeInProgress: boolean;
+  submitterLabel: string;
 };
 
-async function SubmissionGrid(props: Readonly<SubmissionGridProps>) {
-  const { formId, urlState, columns } = props;
-  const canIncludeInProgress = await canIncludeInProgressSubmissions();
-  const banner = describeGridReadiness({ ...columns, canIncludeInProgress });
+function SubmissionGrid(props: Readonly<SubmissionGridProps>) {
+  const { formId, urlState, columns, submitterLabel } = props;
+  const banner = describeGridReadiness({
+    ...columns,
+    canIncludeInProgress: props.canIncludeInProgress,
+  });
   const answerColumns = resolveVisibleAnswerColumns(
     columns.catalog,
     urlState.columns,
@@ -75,7 +93,9 @@ async function SubmissionGrid(props: Readonly<SubmissionGridProps>) {
       hasSubmissions={columns.readiness.submissions > 0}
       banner={banner}
     >
-      <SubmissionGridRows {...{ formId, urlState, answerColumns }} />
+      <SubmissionGridRows
+        {...{ formId, urlState, answerColumns, submitterLabel }}
+      />
     </SubmissionGridShell>
   );
 }
@@ -84,20 +104,17 @@ type SubmissionGridRowsProps = {
   formId: string;
   urlState: SubmissionGridUrlState;
   answerColumns: AnswerColumn[];
+  submitterLabel: string;
 };
 
 /** The rows frame: keyed by the list query, so each query mounts fresh rows. */
-async function SubmissionGridRows(props: Readonly<SubmissionGridRowsProps>) {
-  const { submitterPrimaryFilterLabel } = await getClientEndatixConfig();
+function SubmissionGridRows(props: Readonly<SubmissionGridRowsProps>) {
   return (
     <PagedListFrame
       listKey={listQueryKey(props.urlState)}
       fallback={<GridRowsSkeleton {...props} />}
     >
-      <SubmissionGridRowsSection
-        {...props}
-        submitterLabel={submitterPrimaryFilterLabel}
-      />
+      <SubmissionGridRowsSection {...props} />
     </PagedListFrame>
   );
 }
