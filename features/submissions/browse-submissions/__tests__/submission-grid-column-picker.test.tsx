@@ -1,7 +1,14 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { AnswerColumn } from "../submission-grid-columns";
-import { parseSubmissionGridUrl } from "../submission-grid-url";
+import { buildListSubmissionGridRowsEndpoint } from "@/lib/endatix-api/reporting/submission-grid";
+import {
+  resolveVisibleAnswerColumns,
+  type AnswerColumn,
+} from "../submission-grid-columns";
+import {
+  parseSubmissionGridUrl,
+  toSubmissionGridRowsRequest,
+} from "../submission-grid-url";
 import {
   COLUMN_PICKER_RENDER_LIMIT,
   SubmissionGridColumnPicker,
@@ -13,6 +20,9 @@ vi.mock("../ui/submission-grid-url-context", () => ({
 }));
 
 const updateUrl = vi.fn();
+
+/** Kestrel's default `MaxRequestLineSize`: method, target, version and CRLF. */
+const API_REQUEST_LINE_LIMIT = 8192;
 
 function column(
   key: string,
@@ -162,5 +172,31 @@ describe("SubmissionGridColumnPicker", () => {
     expect(drawn).toBe(COLUMN_PICKER_RENDER_LIMIT);
     expect(note).not.toBeNull();
     expect(optionLabels()).toHaveLength(11);
+  });
+
+  it("keeps the rows request within the API's request line on Show all", () => {
+    // Arrange
+    const large = Array.from({ length: 1000 }, (_, index) => {
+      const key = `respondent_answer_${String(index).padStart(4, "0")}`;
+      return column(key, `Question ${index}`);
+    });
+    renderPicker(large[0].key, large);
+
+    // Act
+    fireEvent.click(screen.getByRole("button", { name: "Show all" }));
+    apply();
+
+    // Assert
+    const urlState = parseSubmissionGridUrl(updateUrl.mock.calls[0][0]);
+    const keys = resolveVisibleAnswerColumns(large, urlState.columns).map(
+      (visible) => visible.key,
+    );
+    const target = `/api${buildListSubmissionGridRowsEndpoint(
+      "1561761724447588352",
+      toSubmissionGridRowsRequest(urlState, keys),
+    )}`;
+    expect(`GET ${target} HTTP/1.1\r\n`.length).toBeLessThanOrEqual(
+      API_REQUEST_LINE_LIMIT,
+    );
   });
 });
