@@ -35,7 +35,6 @@ import {
   showColumns,
   toggleColumn,
   type ColumnPickerGroup,
-  type GroupSelection,
   type RenderedColumnGroup,
 } from "../submission-grid-column-picker";
 import { useSearchKeyChanges } from "@/features/submissions/choose-filterable-questions/use-search-key-changes.hook";
