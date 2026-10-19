@@ -85,7 +85,7 @@ export function buildSubmissionGridColumns(
 }
 
 function header(title: string, extra: Partial<HeaderProps> = {}) {
-  function GridColumnHeader({ column }: GridHeader) {
+  function GridColumnHeader({ column }: Readonly<GridHeader>) {
     return (
       <DataTableColumnHeader
         column={column}

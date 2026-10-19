@@ -2,12 +2,12 @@ import {
   columnSearchOf,
   type ColumnSearch,
 } from "@/features/submissions/choose-filterable-questions/filterable-questions";
-import {
-  MAX_SUBMISSION_GRID_ROW_COLUMNS,
-  type SubmissionGridColumn,
-  type SubmissionGridSearchSlots,
-  type SubmissionGridFilterType,
-  type SubmissionGridRow,
+import { fitRowColumns } from "@/lib/endatix-api/reporting/submission-grid-row-columns";
+import type {
+  SubmissionGridColumn,
+  SubmissionGridSearchSlots,
+  SubmissionGridFilterType,
+  SubmissionGridRow,
 } from "@/lib/endatix-api/reporting/submission-grid-types";
 
 /**
@@ -105,9 +105,9 @@ export function resolveVisibleAnswerColumns(
   }
 
   const byKey = new Map(catalog.map((column) => [column.key, column]));
-  return requestedKeys
-    .flatMap((key) => byKey.get(key) ?? [])
-    .slice(0, MAX_SUBMISSION_GRID_ROW_COLUMNS);
+  const known = requestedKeys.flatMap((key) => byKey.get(key) ?? []);
+  const fitted = fitRowColumns(known.map((column) => column.key));
+  return known.slice(0, fitted.length);
 }
 
 /**
@@ -154,5 +154,20 @@ export function formatAnswerValue(value: unknown): string | null {
     return items.length > 0 ? items.join(", ") : null;
   }
 
-  return typeof value === "object" ? JSON.stringify(value) : String(value);
+  return formatScalar(value);
+}
+
+function formatScalar(value: unknown): string | null {
+  switch (typeof value) {
+    case "string":
+      return value;
+    case "number":
+    case "boolean":
+    case "bigint":
+      return value.toString();
+    case "object":
+      return JSON.stringify(value);
+    default:
+      return null;
+  }
 }

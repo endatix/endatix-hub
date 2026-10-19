@@ -15,7 +15,6 @@ import { SubmissionGridUrlProvider } from "./submission-grid-url-context";
 
 type SubmissionGridShellProps = {
   formId: string;
-  /** Every answer column the form has; the column picker chooses from it. */
   catalog: readonly AnswerColumn[];
   columnSearch: ColumnSearchAccess;
   hasSubmissions: boolean;
