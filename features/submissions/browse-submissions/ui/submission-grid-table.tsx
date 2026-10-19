@@ -9,13 +9,17 @@ import {
 } from "@/components/table";
 import { NoMatchingSubmissionsEmptyState } from "@/features/submissions/ui/submissions-empty-state";
 import type { SubmissionGridRowsPage } from "@/lib/endatix-api/reporting/submission-grid";
+import type { SubmissionGridRow } from "@/lib/endatix-api/reporting/submission-grid-types";
 import {
   functionalUpdate,
   getCoreRowModel,
   useReactTable,
+  type Row,
   type SortingState,
   type Updater,
 } from "@tanstack/react-table";
+import type { UrlSearchParamsUpdater } from "@/lib/utils/hooks/use-url-search-params-updater.hook";
+import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 import type { AnswerColumn } from "../submission-grid-columns";
 import {
@@ -51,23 +55,36 @@ export type SubmissionGridTableProps = {
 };
 
 export function SubmissionGridTable(props: Readonly<SubmissionGridTableProps>) {
-  const { page } = props;
   const grid = useSubmissionGridUrl();
   const table = useSubmissionGridTable(props, grid);
+  const openSubmission = useOpenSubmission();
   return (
     <DataTableSurface data-slot="submission-grid">
       <DataTableGrid
         table={table}
         isPending={grid.isPending}
-        hasRows={page.items.length > 0}
+        hasRows={props.page.items.length > 0}
         empty={<GridEmpty grid={grid} />}
+        onRowClick={openSubmission}
       />
-      <PagedTableFooter
-        {...createPagedTableFooterProps(page, "submissions", grid.updateUrl)}
-        pageSizeOptions={SUBMISSION_GRID_PAGE_SIZE_OPTIONS}
-        variant="surface"
-      />
+      <GridFooter page={props.page} updateUrl={grid.updateUrl} />
     </DataTableSurface>
+  );
+}
+
+function GridFooter({
+  page,
+  updateUrl,
+}: Readonly<{
+  page: SubmissionGridRowsPage;
+  updateUrl: UrlSearchParamsUpdater;
+}>) {
+  return (
+    <PagedTableFooter
+      {...createPagedTableFooterProps(page, "submissions", updateUrl)}
+      pageSizeOptions={SUBMISSION_GRID_PAGE_SIZE_OPTIONS}
+      variant="surface"
+    />
   );
 }
 
@@ -132,6 +149,14 @@ function toColumnFilters(
     submitterDisplayId: textFilter(keys.submitterDisplayId, submitterLabel),
     submitterEmail: textFilter(keys.submitterEmail, "Email"),
   };
+}
+
+function useOpenSubmission() {
+  const router = useRouter();
+  return ({ original }: Row<SubmissionGridRow>) =>
+    router.push(`/forms/${original.formId}/submissions/${original.id}`, {
+      scroll: false,
+    });
 }
 
 function GridEmpty({ grid }: Readonly<{ grid: SubmissionGridUrl }>) {

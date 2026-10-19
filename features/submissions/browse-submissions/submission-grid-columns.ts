@@ -24,7 +24,6 @@ export const SUBMISSION_GRID_METADATA_COLUMN_IDS = [
 export type SubmissionGridMetadataColumnId =
   (typeof SUBMISSION_GRID_METADATA_COLUMN_IDS)[number];
 
-/** How many answer columns show before a view picks them. */
 export const DEFAULT_VISIBLE_ANSWER_COLUMNS = 10;
 
 const DEFAULT_VIEW_KINDS: ReadonlySet<string> = new Set(["Simple"]);
@@ -38,7 +37,6 @@ export type AnswerColumnPlacement = {
   panelTitle: string | null;
 };
 
-/** A schema column the grid can show answers for. */
 export type AnswerColumn = {
   key: string;
   kind: string;
@@ -110,7 +108,6 @@ export function readAnswer(
   return row.submitterProfile?.[submitterProfileField(column.key)];
 }
 
-/** The profile field a submitter column shows (`submitter_email` → `email`). */
 export function submitterProfileField(key: string): string {
   return key.startsWith(SUBMITTER_PROFILE_KEY_PREFIX)
     ? key.slice(SUBMITTER_PROFILE_KEY_PREFIX.length)
@@ -121,7 +118,6 @@ export function isSubmitterProfileColumn(column: AnswerColumn): boolean {
   return column.kind === SUBMITTER_PROFILE_KIND;
 }
 
-/** One line of text for a cell; `null` when there is no answer. */
 export function formatAnswerValue(value: unknown): string | null {
   if (value === undefined || value === null || value === "") {
     return null;

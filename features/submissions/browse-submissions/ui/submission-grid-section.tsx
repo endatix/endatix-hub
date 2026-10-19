@@ -44,7 +44,7 @@ export async function SubmissionGridSection(
   props: Readonly<SubmissionGridSectionProps>,
 ) {
   const { formId, searchParams } = props;
-  const [columns, view] = await loadColumnsAndView(formId);
+  const { columns, view, ...access } = await loadGridInputs(formId);
   if (columns.kind === "unavailable") {
     return props.unavailable;
   }
@@ -58,15 +58,24 @@ export async function SubmissionGridSection(
   }
 
   const gridState = withSavedView(urlState, searchParams, view.settings);
-  return <SubmissionGrid {...{ formId, urlState: gridState, columns, view }} />;
+  return (
+    <SubmissionGrid
+      {...{ formId, urlState: gridState, columns, view, ...access }}
+    />
+  );
 }
 
-async function loadColumnsAndView(formId: string) {
-  const session = await getSession();
-  return Promise.all([
-    loadSubmissionGridColumns(formId, session),
-    loadSubmissionGridView(formId, session),
+/** Only the rows wait for the columns; the other reads start together. */
+async function loadGridInputs(formId: string) {
+  const session = getSession();
+  const [columns, view, canEdit, config] = await Promise.all([
+    session.then((current) => loadSubmissionGridColumns(formId, current)),
+    session.then((current) => loadSubmissionGridView(formId, current)),
+    canEditSubmissionGrid(),
+    getClientEndatixConfig(),
   ]);
+  const submitterLabel = config.submitterPrimaryFilterLabel;
+  return { columns, view, canEdit, submitterLabel };
 }
 
 type SubmissionGridProps = {
@@ -75,22 +84,25 @@ type SubmissionGridProps = {
   urlState: SubmissionGridUrlState;
   columns: Extract<SubmissionGridColumnsLoad, { kind: "ready" }>;
   view: SubmissionGridViewLoad;
+  canEdit: boolean;
+  submitterLabel: string;
 };
 
-async function SubmissionGrid(props: Readonly<SubmissionGridProps>) {
-  const { formId, urlState, columns, view } = props;
-  const canEdit = await canEditSubmissionGrid();
+function SubmissionGrid(props: Readonly<SubmissionGridProps>) {
+  const { formId, urlState, columns, view, submitterLabel } = props;
   const answerColumns = resolveVisibleAnswerColumns(
     columns.catalog,
     urlState.columns,
   );
   return (
     <SubmissionGridShell
-      {...gridChrome(columns, canEdit)}
+      {...gridChrome(columns, props.canEdit)}
       formId={formId}
       view={view}
     >
-      <SubmissionGridRows {...{ formId, urlState, answerColumns }} />
+      <SubmissionGridRows
+        {...{ formId, urlState, answerColumns, submitterLabel }}
+      />
     </SubmissionGridShell>
   );
 }
@@ -112,20 +124,17 @@ type SubmissionGridRowsProps = {
   formId: string;
   urlState: SubmissionGridUrlState;
   answerColumns: AnswerColumn[];
+  submitterLabel: string;
 };
 
 /** The rows frame: keyed by the list query, so each query mounts fresh rows. */
-async function SubmissionGridRows(props: Readonly<SubmissionGridRowsProps>) {
-  const { submitterPrimaryFilterLabel } = await getClientEndatixConfig();
+function SubmissionGridRows(props: Readonly<SubmissionGridRowsProps>) {
   return (
     <PagedListFrame
       listKey={listQueryKey(props.urlState)}
       fallback={<GridRowsSkeleton {...props} />}
     >
-      <SubmissionGridRowsSection
-        {...props}
-        submitterLabel={submitterPrimaryFilterLabel}
-      />
+      <SubmissionGridRowsSection {...props} />
     </PagedListFrame>
   );
 }
