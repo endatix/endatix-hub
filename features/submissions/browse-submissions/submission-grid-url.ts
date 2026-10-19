@@ -228,7 +228,9 @@ function parsePageSize(value: string | undefined): number {
 
   const options = SUBMISSION_GRID_PAGE_SIZE_OPTIONS;
   return (
-    options.find((option) => parsed <= option) ?? options[options.length - 1]
+    options.find((option) => parsed <= option) ??
+    options.at(-1) ??
+    SUBMISSION_GRID_DEFAULT_PAGE_SIZE
   );
 }
 

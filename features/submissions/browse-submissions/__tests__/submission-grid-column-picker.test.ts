@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
+import {
+  fitsRowColumns,
+  rowColumnsUsage,
+} from "@/lib/endatix-api/reporting/submission-grid-row-columns";
 import { MAX_SUBMISSION_GRID_ROW_COLUMNS } from "@/lib/endatix-api/reporting/submission-grid-types";
 import {
-  canShowMoreColumns,
   columnKeysOf,
+  columnOrder,
   filterColumnGroups,
   groupColumnsByPlacement,
   groupLabel,
@@ -203,12 +207,49 @@ describe("limitRenderedColumns", () => {
 });
 
 describe("column selection", () => {
-  it("adds shown columns after the visible ones and keeps their order", () => {
+  const formOrder = columnOrder(
+    ["q1", "q2", "q3", "q4", "q5"].map((key) => column(key)),
+  );
+
+  it("puts shown columns at their place in the form", () => {
     // Act
-    const next = showColumns(["q3", "q1"], ["q1", "q2", "q4"]);
+    const next = showColumns(["q1", "q3", "q5"], ["q4", "q2"], formOrder);
 
     // Assert
-    expect(next).toEqual(["q3", "q1", "q2", "q4"]);
+    expect(next).toEqual(["q1", "q2", "q3", "q4", "q5"]);
+  });
+
+  it("puts a hidden and shown again column back where it was", () => {
+    // Act
+    const next = toggleColumn(
+      toggleColumn(["q1", "q2", "q3"], "q2", formOrder),
+      "q2",
+      formOrder,
+    );
+
+    // Assert
+    expect(next).toEqual(["q1", "q2", "q3"]);
+  });
+
+  it("keeps a visible order that differs from the form", () => {
+    // Act
+    const next = showColumns(["q3", "q1"], ["q2"], formOrder);
+
+    // Assert
+    expect(next).toEqual(["q2", "q3", "q1"]);
+  });
+
+  it("never drops a visible column to fit a new one", () => {
+    // Arrange
+    const keys = Array.from({ length: 600 }, (_, index) => `q${index}`);
+    const order = columnOrder(keys.map((key) => column(key)));
+    const visible = keys.slice(100, 600);
+
+    // Act
+    const next = showColumns(visible, ["q0"], order);
+
+    // Assert
+    expect(next).toEqual(visible);
   });
 
   it("stops at the number of columns the rows endpoint accepts", () => {
@@ -216,17 +257,25 @@ describe("column selection", () => {
     const keys = Array.from({ length: 1000 }, (_, index) => `q${index}`);
 
     // Act
-    const next = showColumns([], keys);
+    const next = showColumns(
+      [],
+      keys,
+      columnOrder(keys.map((key) => column(key))),
+    );
 
     // Assert
     expect(next).toHaveLength(MAX_SUBMISSION_GRID_ROW_COLUMNS);
-    expect(canShowMoreColumns(next)).toBe(false);
+    expect(fitsRowColumns(rowColumnsUsage(next), "q")).toBe(false);
   });
 
   it("hides columns and toggles one", () => {
     // Act
     const hidden = hideColumns(["q1", "q2", "q3"], ["q2", "missing"]);
-    const toggled = toggleColumn(toggleColumn(hidden, "q1"), "q4");
+    const toggled = toggleColumn(
+      toggleColumn(hidden, "q1", formOrder),
+      "q4",
+      formOrder,
+    );
 
     // Assert
     expect(hidden).toEqual(["q1", "q3"]);
@@ -253,7 +302,7 @@ describe("picked columns reach the rows request", () => {
     const catalog = Array.from({ length: 1000 }, (_, index) =>
       column(`q${index}`),
     );
-    const picked = showColumns([], ["q7", "q2", "q999"]);
+    const picked = showColumns([], ["q7", "q2", "q999"], columnOrder(catalog));
 
     // Act
     const { columns } = columnsUpdate(picked);
@@ -265,7 +314,7 @@ describe("picked columns reach the rows request", () => {
     );
 
     // Assert
-    expect(request.columns).toEqual(["q7", "q2", "q999"]);
+    expect(request.columns).toEqual(["q2", "q7", "q999"]);
   });
 
   it("goes back to the default view when nothing is picked", () => {

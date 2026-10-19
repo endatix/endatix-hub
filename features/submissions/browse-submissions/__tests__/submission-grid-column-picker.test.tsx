@@ -1,7 +1,14 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { AnswerColumn } from "../submission-grid-columns";
-import { parseSubmissionGridUrl } from "../submission-grid-url";
+import { buildListSubmissionGridRowsEndpoint } from "@/lib/endatix-api/reporting/submission-grid";
+import {
+  resolveVisibleAnswerColumns,
+  type AnswerColumn,
+} from "../submission-grid-columns";
+import {
+  parseSubmissionGridUrl,
+  toSubmissionGridRowsRequest,
+} from "../submission-grid-url";
 import {
   COLUMN_PICKER_RENDER_LIMIT,
   SubmissionGridColumnPicker,
@@ -13,6 +20,9 @@ vi.mock("../ui/submission-grid-url-context", () => ({
 }));
 
 const updateUrl = vi.fn();
+
+/** Kestrel's default `MaxRequestLineSize`: method, target, version and CRLF. */
+const API_REQUEST_LINE_LIMIT = 8192;
 
 function column(
   key: string,
@@ -36,18 +46,30 @@ const catalog = [
   column("phone", "Phone", "Contact"),
 ];
 
-function renderPicker(columns: string, columnsCatalog = catalog) {
+function renderClosed(
+  columns: string | undefined,
+  columnsCatalog = catalog,
+  isPending = false,
+) {
   vi.mocked(useSubmissionGridUrl).mockReturnValue({
     urlState: parseSubmissionGridUrl({ columns }),
     updateUrl,
-    isPending: false,
+    isPending,
     textFilters: {},
     setTextFilter: vi.fn(),
   });
   render(
     <SubmissionGridColumnPicker catalog={columnsCatalog} disabled={false} />,
   );
-  fireEvent.click(screen.getByRole("button", { name: /columns/i }));
+  return screen.getByRole("button", { name: /columns/i });
+}
+
+function renderPicker(columns: string | undefined, columnsCatalog = catalog) {
+  fireEvent.click(renderClosed(columns, columnsCatalog));
+}
+
+function isDisabled(element: HTMLElement): boolean {
+  return (element as HTMLButtonElement).disabled;
 }
 
 function search(query: string) {
@@ -111,7 +133,7 @@ describe("SubmissionGridColumnPicker", () => {
 
     // Act
     fireEvent.click(
-      screen.getByRole("checkbox", { name: /show all columns in .*contact/i }),
+      screen.getByRole("checkbox", { name: /columns in .*contact/i }),
     );
     apply();
 
@@ -162,5 +184,123 @@ describe("SubmissionGridColumnPicker", () => {
     expect(drawn).toBe(COLUMN_PICKER_RENDER_LIMIT);
     expect(note).not.toBeNull();
     expect(optionLabels()).toHaveLength(11);
+  });
+
+  it("keeps the rows request within the API's request line on Show all", () => {
+    // Arrange
+    const large = Array.from({ length: 1000 }, (_, index) => {
+      const key = `respondent_answer_${String(index).padStart(4, "0")}`;
+      return column(key, `Question ${index}`);
+    });
+    renderPicker(large[0].key, large);
+
+    // Act
+    fireEvent.click(screen.getByRole("button", { name: "Show all" }));
+    apply();
+
+    // Assert
+    const urlState = parseSubmissionGridUrl(updateUrl.mock.calls[0][0]);
+    const keys = resolveVisibleAnswerColumns(large, urlState.columns).map(
+      (visible) => visible.key,
+    );
+    const target = `/api${buildListSubmissionGridRowsEndpoint(
+      "1561761724447588352",
+      toSubmissionGridRowsRequest(urlState, keys),
+    )}`;
+    expect(`GET ${target} HTTP/1.1\r\n`.length).toBeLessThanOrEqual(
+      API_REQUEST_LINE_LIMIT,
+    );
+  });
+
+  it("offers Show all and Hide all only when they change something", () => {
+    // Arrange
+    renderPicker("q1,q2,email,phone");
+    const showAll = screen.getByRole("button", { name: "Show all" });
+    const hideAll = screen.getByRole("button", { name: "Hide all" });
+
+    // Act
+    fireEvent.click(hideAll);
+
+    // Assert
+    expect([isDisabled(showAll), isDisabled(hideAll)]).toEqual([false, true]);
+  });
+
+  it("disables a group heading that cannot show more once the view is full", () => {
+    // Arrange
+    const keys = Array.from({ length: 501 }, (_, index) => `q${index}`);
+    const full = keys.map((key, index) =>
+      column(key, `Question ${index}`, index === 500 ? "Extra" : null),
+    );
+    renderPicker(keys.slice(0, 500).join(","), full);
+    search("question 500");
+
+    // Act
+    const heading = screen.getByRole("checkbox", { name: /extra/i });
+
+    // Assert
+    expect(isDisabled(heading)).toBe(true);
+    expect(
+      isDisabled(screen.getByRole("checkbox", { name: /^Question 500/ })),
+    ).toBe(true);
+    expect(screen.getByText(/the view is full/i)).toBeTruthy();
+  });
+
+  it("cannot be opened while the form has no columns", () => {
+    // Act
+    const trigger = renderClosed(undefined, []);
+
+    // Assert
+    expect(isDisabled(trigger)).toBe(true);
+  });
+
+  it("cannot be opened while the grid is applying a change", () => {
+    // Act
+    const trigger = renderClosed("q1", catalog, true);
+
+    // Assert
+    expect(isDisabled(trigger)).toBe(true);
+  });
+
+  it("offers Default only when the view is not the default", () => {
+    // Act
+    renderPicker(undefined);
+
+    // Assert
+    expect(isDisabled(screen.getByRole("button", { name: "Default" }))).toBe(
+      true,
+    );
+  });
+
+  it("discards the draft when closed without Apply", () => {
+    // Arrange
+    const trigger = renderClosed("q1");
+    fireEvent.click(trigger);
+    fireEvent.click(screen.getByRole("checkbox", { name: /phone/i }));
+
+    // Act
+    fireEvent.keyDown(document.activeElement ?? document.body, {
+      key: "Escape",
+    });
+    fireEvent.click(trigger);
+
+    // Assert
+    const phone = screen.getByRole("checkbox", { name: /phone/i });
+    expect(phone.getAttribute("data-state")).toBe("unchecked");
+    expect(updateUrl).not.toHaveBeenCalled();
+  });
+
+  it("keeps Apply off when the draft is back to the grid's columns", () => {
+    // Arrange
+    renderPicker("q1,q2");
+    const q2 = () => screen.getByRole("checkbox", { name: /last name/i });
+
+    // Act
+    fireEvent.click(q2());
+    fireEvent.click(q2());
+
+    // Assert
+    expect(isDisabled(screen.getByRole("button", { name: "Apply" }))).toBe(
+      true,
+    );
   });
 });
