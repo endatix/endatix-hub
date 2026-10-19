@@ -22,6 +22,7 @@ import {
 } from "react";
 import {
   columnKeysOf,
+  columnOrder,
   countColumns,
   filterColumnGroups,
   groupColumnsByPlacement,
@@ -124,6 +125,7 @@ type ColumnPickerDraft = ReturnType<typeof useColumnPickerDraft>;
 
 function useColumnPickerDraft({ catalog, visibleKeys }: Readonly<PanelProps>) {
   const groups = useMemo(() => groupColumnsByPlacement(catalog), [catalog]);
+  const order = useMemo(() => columnOrder(catalog), [catalog]);
   const [query, setQuery] = useState("");
   const deferredQuery = useDeferredValue(query);
   const matches = useMemo(
@@ -137,7 +139,17 @@ function useColumnPickerDraft({ catalog, visibleKeys }: Readonly<PanelProps>) {
     () => isFullFor(matches, visible, (key) => fitsRowColumns(usage, key)),
     [matches, visible, usage],
   );
-  return { query, setQuery, matches, draft, setDraft, visible, usage, full };
+  return {
+    query,
+    setQuery,
+    matches,
+    draft,
+    setDraft,
+    visible,
+    usage,
+    full,
+    order,
+  };
 }
 
 /** Some hidden match no longer fits the rows request. */
@@ -152,18 +164,23 @@ function isFullFor(
 /** Show all and Hide all act on every matching column, drawn or not. */
 function MatchActions({ picker }: Readonly<{ picker: ColumnPickerDraft }>) {
   const keys = columnKeysOf(picker.matches);
-  const update = (change: typeof showColumns) => () =>
-    picker.setDraft((draft) => change(draft, keys));
+  const show = (draft: readonly string[]) =>
+    showColumns(draft, keys, picker.order);
+  const update = (change: (draft: readonly string[]) => string[]) => () =>
+    picker.setDraft((draft) => change(draft));
   return (
     <div className="flex items-center gap-1 border-b px-2 py-1 text-xs">
       <PickerCount>{matchSummary(keys.length, picker.query)}</PickerCount>
       <BulkButton
         disabled={keys.length === 0 || picker.full}
-        onClick={update(showColumns)}
+        onClick={update(show)}
       >
         Show all
       </BulkButton>
-      <BulkButton disabled={keys.length === 0} onClick={update(hideColumns)}>
+      <BulkButton
+        disabled={keys.length === 0}
+        onClick={update((draft) => hideColumns(draft, keys))}
+      >
         Hide all
       </BulkButton>
     </div>
@@ -236,7 +253,8 @@ function GroupHeading({
 }: Readonly<{ group: ColumnPickerGroup; picker: ColumnPickerDraft }>) {
   const selection = groupSelection(group, picker.visible);
   const label = groupLabel(group);
-  const toggle = () => picker.setDraft(toggleGroup(group, selection));
+  const toggle = () =>
+    picker.setDraft(toggleGroup(group, selection, picker.order));
   return (
     <label className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-muted-foreground">
       <Checkbox
@@ -251,10 +269,16 @@ function GroupHeading({
   );
 }
 
-function toggleGroup(group: ColumnPickerGroup, selection: GroupSelection) {
+function toggleGroup(
+  group: ColumnPickerGroup,
+  selection: GroupSelection,
+  order: ReadonlyMap<string, number>,
+) {
   const keys = columnKeysOf([group]);
   return (draft: readonly string[]) =>
-    selection === "all" ? hideColumns(draft, keys) : showColumns(draft, keys);
+    selection === "all"
+      ? hideColumns(draft, keys)
+      : showColumns(draft, keys, order);
 }
 
 function ColumnOption({
@@ -268,7 +292,9 @@ function ColumnOption({
         checked={checked}
         disabled={!checked && !fitsRowColumns(picker.usage, column.key)}
         onCheckedChange={() =>
-          picker.setDraft((draft) => toggleColumn(draft, column.key))
+          picker.setDraft((draft) =>
+            toggleColumn(draft, column.key, picker.order),
+          )
         }
       />
       <ColumnOptionText column={column} />

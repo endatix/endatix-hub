@@ -126,17 +126,44 @@ export function columnOrder(
 }
 
 /**
- * Shows `keys` after the visible ones, in the order given, while they fit
- * the rows request (key count and `columns=` length). Visible keys keep
- * their order.
+ * Shows `keys` at their place in the form, as many as fit the rows request
+ * (key count and `columns=` length); earlier ones in the form first.
+ * Visible keys stay, in their order.
  */
 export function showColumns(
   visibleKeys: readonly string[],
   keys: readonly string[],
+  order: ReadonlyMap<string, number>,
 ): string[] {
   const visible = new Set(visibleKeys);
-  const added = keys.filter((key) => !visible.has(key));
-  return fitRowColumns([...visibleKeys, ...added]);
+  const added = [...new Set(keys)]
+    .filter((key) => !visible.has(key))
+    .sort((a, b) => position(order, a) - position(order, b));
+  return mergeByOrder(visibleKeys, fitRowColumns(added, visibleKeys), order);
+}
+
+/** Each added key goes before the first visible key later in the form. */
+function mergeByOrder(
+  visibleKeys: readonly string[],
+  added: readonly string[],
+  order: ReadonlyMap<string, number>,
+): string[] {
+  const merged: string[] = [];
+  let next = 0;
+  for (const key of visibleKeys) {
+    while (
+      next < added.length &&
+      position(order, added[next]) < position(order, key)
+    ) {
+      merged.push(added[next++]);
+    }
+    merged.push(key);
+  }
+  return [...merged, ...added.slice(next)];
+}
+
+function position(order: ReadonlyMap<string, number>, key: string): number {
+  return order.get(key) ?? Number.POSITIVE_INFINITY;
 }
 
 export function hideColumns(
@@ -150,10 +177,11 @@ export function hideColumns(
 export function toggleColumn(
   visibleKeys: readonly string[],
   key: string,
+  order: ReadonlyMap<string, number>,
 ): string[] {
   return visibleKeys.includes(key)
     ? hideColumns(visibleKeys, [key])
-    : showColumns(visibleKeys, [key]);
+    : showColumns(visibleKeys, [key], order);
 }
 
 export type GroupSelection = "all" | "some" | "none";

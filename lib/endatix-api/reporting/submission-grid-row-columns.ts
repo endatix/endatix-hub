@@ -26,9 +26,15 @@ export function fitsRowColumns(usage: RowColumnsUsage, key: string): boolean {
   );
 }
 
-/** The longest prefix of `keys` the rows endpoint accepts. */
-export function fitRowColumns(keys: readonly string[]): string[] {
-  let usage: RowColumnsUsage = { count: 0, bytes: 0 };
+/**
+ * The longest prefix of `keys` the rows endpoint accepts after the keys
+ * already requested (`after`).
+ */
+export function fitRowColumns(
+  keys: readonly string[],
+  after: readonly string[] = [],
+): string[] {
+  let usage = rowColumnsUsage(after);
   const fitted: string[] = [];
   for (const key of keys) {
     if (!fitsRowColumns(usage, key)) break;

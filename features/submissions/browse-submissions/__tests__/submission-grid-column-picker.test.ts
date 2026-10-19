@@ -257,7 +257,11 @@ describe("column selection", () => {
     const keys = Array.from({ length: 1000 }, (_, index) => `q${index}`);
 
     // Act
-    const next = showColumns([], keys);
+    const next = showColumns(
+      [],
+      keys,
+      columnOrder(keys.map((key) => column(key))),
+    );
 
     // Assert
     expect(next).toHaveLength(MAX_SUBMISSION_GRID_ROW_COLUMNS);
@@ -267,7 +271,11 @@ describe("column selection", () => {
   it("hides columns and toggles one", () => {
     // Act
     const hidden = hideColumns(["q1", "q2", "q3"], ["q2", "missing"]);
-    const toggled = toggleColumn(toggleColumn(hidden, "q1"), "q4");
+    const toggled = toggleColumn(
+      toggleColumn(hidden, "q1", formOrder),
+      "q4",
+      formOrder,
+    );
 
     // Assert
     expect(hidden).toEqual(["q1", "q3"]);
@@ -294,7 +302,7 @@ describe("picked columns reach the rows request", () => {
     const catalog = Array.from({ length: 1000 }, (_, index) =>
       column(`q${index}`),
     );
-    const picked = showColumns([], ["q7", "q2", "q999"]);
+    const picked = showColumns([], ["q7", "q2", "q999"], columnOrder(catalog));
 
     // Act
     const { columns } = columnsUpdate(picked);
@@ -306,7 +314,7 @@ describe("picked columns reach the rows request", () => {
     );
 
     // Assert
-    expect(request.columns).toEqual(["q7", "q2", "q999"]);
+    expect(request.columns).toEqual(["q2", "q7", "q999"]);
   });
 
   it("goes back to the default view when nothing is picked", () => {
