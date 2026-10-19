@@ -53,10 +53,21 @@ describe("testSubmissionMode", () => {
     ).toEqual({ showBadge: true, startOverSubmissionId: null });
   });
 
-  it("offers Start over on a test run opened as a person, in test mode", () => {
+  it("offers Start over on a person's test run to a viewer who may test, even outside test mode", () => {
     expect(
-      testSubmissionMode({ isRespondentTestMode: true, submission: testRun }),
+      testSubmissionMode({
+        isRespondentTestMode: false,
+        canStartOverTest: true,
+        submission: testRun,
+      }),
     ).toEqual({ showBadge: true, startOverSubmissionId: "21" });
+  });
+
+  it("does not offer Start over to a viewer who may not test, even in test mode", () => {
+    expect(
+      testSubmissionMode({ isRespondentTestMode: true, submission: testRun })
+        .startOverSubmissionId,
+    ).toBeNull();
   });
 
   it.each([
@@ -79,6 +90,7 @@ describe("testSubmissionMode", () => {
     expect(
       testSubmissionMode({
         isRespondentTestMode: true,
+        canStartOverTest: true,
         submission: testRun,
         urlToken: "access-token",
       }).startOverSubmissionId,

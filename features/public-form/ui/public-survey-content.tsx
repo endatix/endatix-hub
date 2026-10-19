@@ -74,22 +74,13 @@ export async function PublicSurveyContent({
     );
   }
 
-  const {
-    activeDefinition,
-    isRespondentTestMode,
-    submission,
-    submissionPhase,
-    canStartOver,
-  } = pageResult;
+  const { kind: _kind, ...page } = pageResult;
   const shouldLoadReCaptcha =
-    activeDefinition.requiresReCaptcha && recaptchaConfig.isReCaptchaEnabled();
+    page.activeDefinition.requiresReCaptcha &&
+    recaptchaConfig.isReCaptchaEnabled();
   const surveyRuntime: PublicSurveyRuntimeProps = {
-    activeDefinition,
+    ...page,
     formId,
-    submissionPhase,
-    canStartOver,
-    isRespondentTestMode,
-    submission,
     storageConfig: getClientStorageConfig(),
     urlToken,
     variant,

@@ -34,7 +34,11 @@ vi.mock(
 
 vi.mock("next/dynamic", () => ({
   default: () =>
-    function MockSurveyComponent({ testBadge }: { testBadge?: React.ReactNode }) {
+    function MockSurveyComponent({
+      testBadge,
+    }: {
+      testBadge?: React.ReactNode;
+    }) {
       return (
         <>
           {testBadge}
@@ -105,7 +109,10 @@ describe("SurveyJsWrapper", () => {
 
   it("renders the closed status for a closed submission", () => {
     // Arrange
-    const survey = { ...defaultProps.survey, submissionPhase: "closed" as const };
+    const survey = {
+      ...defaultProps.survey,
+      submissionPhase: "closed" as const,
+    };
 
     // Act
     render(<SurveyJsWrapper {...defaultProps} survey={survey} />);
@@ -162,7 +169,9 @@ describe("SurveyJsWrapper", () => {
     );
 
     expect(screen.getByText("Thank you")).toBeDefined();
-    expect(screen.getByText("This form has already been completed.")).toBeDefined();
+    expect(
+      screen.getByText("This form has already been completed."),
+    ).toBeDefined();
     expect(screen.queryByTestId("survey-component")).toBeNull();
   });
 
@@ -184,7 +193,8 @@ describe("SurveyJsWrapper", () => {
         {...defaultProps}
         survey={{
           ...defaultProps.survey,
-          isRespondentTestMode: true,
+          isRespondentTestMode: false,
+          canStartOverTest: true,
           submission: testRun(false),
         }}
       />,
@@ -202,6 +212,7 @@ describe("SurveyJsWrapper", () => {
           submissionPhase: "completed",
           canStartOver: true,
           isRespondentTestMode: true,
+          canStartOverTest: true,
           submission: testRun(true),
         }}
       />,
@@ -233,7 +244,9 @@ describe("SurveyJsWrapper", () => {
     fireEvent.click(screen.getByTestId("survey-component"));
 
     expect(screen.getByTestId("survey-component")).toBeDefined();
-    expect(screen.queryByText("This form has already been completed.")).toBeNull();
+    expect(
+      screen.queryByText("This form has already been completed."),
+    ).toBeNull();
     expect(screen.queryByText("Already Responded")).toBeNull();
   });
 
