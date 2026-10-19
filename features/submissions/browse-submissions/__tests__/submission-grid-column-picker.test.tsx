@@ -270,4 +270,37 @@ describe("SubmissionGridColumnPicker", () => {
       true,
     );
   });
+
+  it("discards the draft when closed without Apply", () => {
+    // Arrange
+    const trigger = renderClosed("q1");
+    fireEvent.click(trigger);
+    fireEvent.click(screen.getByRole("checkbox", { name: /phone/i }));
+
+    // Act
+    fireEvent.keyDown(document.activeElement ?? document.body, {
+      key: "Escape",
+    });
+    fireEvent.click(trigger);
+
+    // Assert
+    const phone = screen.getByRole("checkbox", { name: /phone/i });
+    expect(phone.getAttribute("data-state")).toBe("unchecked");
+    expect(updateUrl).not.toHaveBeenCalled();
+  });
+
+  it("keeps Apply off when the draft is back to the grid's columns", () => {
+    // Arrange
+    renderPicker("q1,q2");
+    const q2 = () => screen.getByRole("checkbox", { name: /last name/i });
+
+    // Act
+    fireEvent.click(q2());
+    fireEvent.click(q2());
+
+    // Assert
+    expect(isDisabled(screen.getByRole("button", { name: "Apply" }))).toBe(
+      true,
+    );
+  });
 });
