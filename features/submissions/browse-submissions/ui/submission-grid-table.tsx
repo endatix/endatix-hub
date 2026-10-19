@@ -127,7 +127,6 @@ function toColumnFilters(
   };
 }
 
-/** A row opens its submission, as on the legacy grid. */
 function useOpenSubmission() {
   const router = useRouter();
   return ({ original }: Row<SubmissionGridRow>) =>

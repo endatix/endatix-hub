@@ -33,7 +33,6 @@ type RowDialog = "shareLinks" | "delete";
 
 type RowMenuProps = RowProps & { onOpen: (dialog: RowDialog) => void };
 
-/** The row's menu and the dialogs it opens. */
 export function SubmissionGridRowActions({ row }: Readonly<RowProps>) {
   const [dialog, setDialog] = useState<RowDialog | null>(null);
   return (

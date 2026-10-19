@@ -34,7 +34,6 @@ type SubmissionGridSectionProps = {
   unavailable: ReactNode;
 };
 
-/** The submissions grid read from the form's prepared reporting data. */
 export async function SubmissionGridSection(
   props: Readonly<SubmissionGridSectionProps>,
 ) {

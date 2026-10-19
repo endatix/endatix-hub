@@ -35,7 +35,6 @@ type TextFilter = {
   onChange: (value: string) => void;
 };
 
-/** Header filters, wired to the grid's URL by the caller. */
 export type SubmissionGridColumnFilters = {
   dates: Record<SubmissionGridDateStem, DateFilterValue>;
   onDateChange: (stem: SubmissionGridDateStem, value: DateFilterValue) => void;

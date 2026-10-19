@@ -11,7 +11,6 @@ import {
   type SubmissionGridUrlState,
 } from "./submission-grid-url";
 
-/** A change to the list's URL, in the shape `updateUrl` takes. */
 export type SubmissionGridUrlUpdate = Record<string, string | null>;
 
 export type SubmissionGridDateStem =
@@ -41,7 +40,6 @@ export function dateRangeUpdate(
   };
 }
 
-/** The URL's From/To bounds per date column, as the header filters take them. */
 export function dateFiltersByStem(
   state: SubmissionGridUrlState,
 ): Record<SubmissionGridDateStem, DateFilterValue> {

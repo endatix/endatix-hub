@@ -1,14 +1,12 @@
 import type { SubmissionGridReadiness } from "@/lib/endatix-api/reporting/submission-grid-types";
 import { formatInteger } from "@/lib/utils/formatters";
 
-/** Submissions whose answers the grid reads raw because they are not prepared. */
 export type UnpreparedCounts = {
   completed: number;
   inProgress: number;
   preparing: number;
 };
 
-/** What the readiness banner says and offers; `null` hides it. */
 export type GridReadinessBanner = {
   title: string;
   lines: string[];
@@ -19,7 +17,6 @@ export type GridReadinessBanner = {
 export type DescribeGridReadinessInput = {
   schemaReady: boolean;
   readiness: SubmissionGridReadiness;
-  /** Including in-progress submissions needs `forms.edit`. */
   canIncludeInProgress: boolean;
 };
 
