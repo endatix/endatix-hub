@@ -56,80 +56,94 @@ export function DeleteTestSubmissionsButton({
 
 type DeleteTestSubmissions = ReturnType<typeof useDeleteTestSubmissions>;
 
-function useDeleteTestSubmissions(formId: string) {
-  const router = useRouter();
-  const [open, setOpen] = useState(false);
+/** Counts on open; null while counting or when the count cannot be read. */
+function useTestSubmissionCount(formId: string) {
   const [count, setCount] = useState<number | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [isCounting, startCounting] = useTransition();
-  const [isDeleting, startDeleting] = useTransition();
-
-  const onOpenChange = (next: boolean) => {
-    setOpen(next);
-    setError(null);
+  const recount = () => {
     setCount(null);
-    if (!next) return;
     startCounting(async () => {
       const result = await countTestSubmissionsAction(formId);
       setCount(Result.isSuccess(result) ? result.value : null);
     });
   };
-
-  const confirm = () =>
-    startDeleting(async () => {
-      const outcome = deleteTestsOutcome(
-        await deleteTestSubmissionsAction(formId),
-      );
-      if (outcome.variant === "error") {
-        setError(outcome.message);
-        return;
-      }
-      toast.success(outcome.message);
-      setOpen(false);
-      router.refresh();
-    });
-
-  return { open, onOpenChange, count, error, isCounting, isDeleting, confirm };
+  return { count, isCounting, recount };
 }
 
-function DeleteTestSubmissionsContent({
-  count,
-  error,
-  isCounting,
-  isDeleting,
-  confirm,
-}: Readonly<DeleteTestSubmissions>) {
-  const copy = deleteTestsConfirmCopy(count);
+function useDeleteTestSubmissions(formId: string) {
+  const [open, setOpen] = useState(false);
+  const { count, isCounting, recount } = useTestSubmissionCount(formId);
+  const deletion = useConfirmDelete(formId, () => setOpen(false));
+
+  const onOpenChange = (next: boolean) => {
+    setOpen(next);
+    deletion.clearError();
+    if (next) recount();
+  };
+
+  return { open, onOpenChange, count, isCounting, ...deletion };
+}
+
+/** A refusal stays in the dialog; a success closes it and reads the rows again. */
+function useConfirmDelete(formId: string, close: () => void) {
+  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+  const [isDeleting, startDeleting] = useTransition();
+  const confirm = () =>
+    startDeleting(async () => {
+      const result = await deleteTestSubmissionsAction(formId);
+      const outcome = deleteTestsOutcome(result);
+      if (outcome.variant === "error") return setError(outcome.message);
+      toast.success(outcome.message);
+      close();
+      router.refresh();
+    });
+  return { error, clearError: () => setError(null), isDeleting, confirm };
+}
+
+const DELETE_TESTS_DESCRIPTION =
+  "Test submissions in every status are removed from the grid, form counts, and exports. This cannot be undone from Hub.";
+
+function DeleteTestSubmissionsContent(props: Readonly<DeleteTestSubmissions>) {
+  const copy = deleteTestsConfirmCopy(props.count);
+  const title = props.isCounting ? "Counting test submissions…" : copy.title;
   return (
     <AlertDialogContent>
       <AlertDialogHeader>
-        <AlertDialogTitle>
-          {isCounting ? "Counting test submissions…" : copy.title}
-        </AlertDialogTitle>
+        <AlertDialogTitle>{title}</AlertDialogTitle>
         <AlertDialogDescription>
-          Test submissions in every status are removed from the grid, form
-          counts, and exports. This cannot be undone from Hub.
+          {DELETE_TESTS_DESCRIPTION}
         </AlertDialogDescription>
       </AlertDialogHeader>
-      {error && (
+      {props.error && (
         <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription>{props.error}</AlertDescription>
         </Alert>
       )}
-      <AlertDialogFooter>
-        <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-        <AlertDialogAction
-          disabled={isCounting || isDeleting || !copy.canDelete}
-          onClick={(event) => {
-            event.preventDefault();
-            confirm();
-          }}
-          className="bg-destructive hover:bg-destructive/90"
-        >
-          {isDeleting && <Spinner className="mr-2 h-4 w-4" />}
-          {isDeleting ? "Deleting..." : "Delete"}
-        </AlertDialogAction>
-      </AlertDialogFooter>
+      <DeleteTestSubmissionsFooter {...props} canDelete={copy.canDelete} />
     </AlertDialogContent>
+  );
+}
+
+type FooterProps = DeleteTestSubmissions & { canDelete: boolean };
+
+function DeleteTestSubmissionsFooter(props: Readonly<FooterProps>) {
+  const { isDeleting, confirm } = props;
+  const onClick = (event: React.MouseEvent) => {
+    event.preventDefault();
+    confirm();
+  };
+  return (
+    <AlertDialogFooter>
+      <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+      <AlertDialogAction
+        disabled={props.isCounting || isDeleting || !props.canDelete}
+        onClick={onClick}
+        className="bg-destructive hover:bg-destructive/90"
+      >
+        {isDeleting && <Spinner className="mr-2 h-4 w-4" />}
+        {isDeleting ? "Deleting..." : "Delete"}
+      </AlertDialogAction>
+    </AlertDialogFooter>
   );
 }

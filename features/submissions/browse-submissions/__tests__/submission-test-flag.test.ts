@@ -160,16 +160,16 @@ describe("deleteTestsOutcome", () => {
 describe("submissionTestAccess", () => {
   it("marks with forms.test alone", () => {
     expect(
-      submissionTestAccess({ "forms.test": true, "submissions.delete": false }),
+      submissionTestAccess({ formsTest: true, submissionsDelete: false }),
     ).toEqual({ canMark: true, canDeleteTests: false });
   });
 
   it("deletes test submissions only with forms.test and submissions.delete", () => {
     expect(
-      submissionTestAccess({ "forms.test": true, "submissions.delete": true }),
+      submissionTestAccess({ formsTest: true, submissionsDelete: true }),
     ).toEqual({ canMark: true, canDeleteTests: true });
     expect(
-      submissionTestAccess({ "forms.test": false, "submissions.delete": true }),
+      submissionTestAccess({ formsTest: false, submissionsDelete: true }),
     ).toEqual({ canMark: false, canDeleteTests: false });
   });
 });

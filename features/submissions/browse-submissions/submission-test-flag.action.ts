@@ -21,15 +21,11 @@ export async function setSubmissionTestAction(
   isTest: boolean,
 ): Promise<Result<SubmissionTestMark>> {
   const api = await authorizedApi([Permissions.Forms.Test]);
-  const failure = isTest
-    ? "Unable to mark the submission as test."
-    : "Unable to mark the submission as real.";
+  const kind = isTest ? "test" : "real";
   const result = toResult(
     await api.submissions.setTest(formId, submissionId, isTest),
     {
-      fallbackMessage: failure,
-      logMessage: failure,
-      loggerName: LOGGER_NAME,
+      ...failureOptions(`Unable to mark the submission as ${kind}.`),
       mapData: (submission) => ({
         isTestSubmission: submission.isTestSubmission ?? isTest,
       }),
@@ -47,12 +43,10 @@ export async function deleteTestSubmissionsAction(
     Permissions.Forms.Test,
     Permissions.Submissions.Delete,
   ]);
-  const failure = "Unable to delete the test submissions.";
-  const result = toResult(await api.submissions.deleteTests(formId), {
-    fallbackMessage: failure,
-    logMessage: failure,
-    loggerName: LOGGER_NAME,
-  });
+  const result = toResult(
+    await api.submissions.deleteTests(formId),
+    failureOptions("Unable to delete the test submissions."),
+  );
   if (Result.isSuccess(result)) revalidateGrid(formId);
   return result;
 }
@@ -84,6 +78,14 @@ async function authorizedApi(permissions: string[]): Promise<EndatixApi> {
   const { requireAllPermissions } = await authorization(session);
   await requireAllPermissions([Permissions.Access.Hub, ...permissions]);
   return new EndatixApi(session?.accessToken);
+}
+
+function failureOptions(failure: string) {
+  return {
+    fallbackMessage: failure,
+    logMessage: failure,
+    loggerName: LOGGER_NAME,
+  };
 }
 
 function revalidateGrid(formId: string) {

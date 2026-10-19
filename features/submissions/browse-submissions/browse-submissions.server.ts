@@ -17,7 +17,6 @@ import {
 } from "./submission-grid-url";
 import {
   NO_SUBMISSION_TEST_ACCESS,
-  SUBMISSION_TEST_PERMISSIONS,
   submissionTestAccess,
   type SubmissionTestAccess,
 } from "./submission-test-flag";
@@ -99,8 +98,11 @@ export async function canEditForm(): Promise<boolean> {
 /** Marking and deleting test submissions; a miss hides those controls. */
 export async function loadSubmissionTestAccess(): Promise<SubmissionTestAccess> {
   const { evaluatePermissions } = await authorization();
-  const result = await evaluatePermissions(SUBMISSION_TEST_PERMISSIONS);
-  return result.success
-    ? submissionTestAccess(result.data)
-    : NO_SUBMISSION_TEST_ACCESS;
+  const { Forms, Submissions } = Permissions;
+  const result = await evaluatePermissions([Forms.Test, Submissions.Delete]);
+  if (!result.success) return NO_SUBMISSION_TEST_ACCESS;
+  return submissionTestAccess({
+    formsTest: result.data[Forms.Test],
+    submissionsDelete: result.data[Submissions.Delete],
+  });
 }

@@ -1,6 +1,5 @@
 import type { DeleteTestSubmissionsResponse } from "@/lib/endatix-api/submissions/types";
-import { Permissions } from "@/features/auth/authorization/domain/permissions";
-import { Result } from "@/lib/result";
+import { Result, type Error as ResultError } from "@/lib/result";
 
 export type SubmissionTestMark = { isTestSubmission: boolean };
 
@@ -17,19 +16,14 @@ export const NO_SUBMISSION_TEST_ACCESS: SubmissionTestAccess = {
   canDeleteTests: false,
 };
 
-/** The permissions `submissionTestAccess` reads. */
-export const SUBMISSION_TEST_PERMISSIONS = [
-  Permissions.Forms.Test,
-  Permissions.Submissions.Delete,
-] as const;
-
-export function submissionTestAccess(
-  granted: Readonly<Record<string, boolean>>,
-): SubmissionTestAccess {
-  const canMark = granted[Permissions.Forms.Test] === true;
+/** Deleting test submissions needs `submissions.delete` on top of `forms.test`. */
+export function submissionTestAccess(granted: {
+  formsTest: boolean;
+  submissionsDelete: boolean;
+}): SubmissionTestAccess {
   return {
-    canMark,
-    canDeleteTests: canMark && granted[Permissions.Submissions.Delete] === true,
+    canMark: granted.formsTest,
+    canDeleteTests: granted.formsTest && granted.submissionsDelete,
   };
 }
 
@@ -78,15 +72,22 @@ export function testMarkOutcome(
       refresh: true,
     };
   }
-  if (result.errorCode === SUBMISSION_EXISTS && result.existingId) {
-    return {
-      variant: "error",
-      message: SUBMISSION_EXISTS_MESSAGE,
-      refresh: false,
-      existingSubmissionId: result.existingId,
-    };
+  return markFailure(result);
+}
+
+/** `submission_exists` names the real submission that blocks Mark as real. */
+function markFailure(result: ResultError): TestMarkOutcome {
+  const existing =
+    result.errorCode === SUBMISSION_EXISTS ? result.existingId : undefined;
+  if (!existing) {
+    return { variant: "error", message: result.message, refresh: false };
   }
-  return { variant: "error", message: result.message, refresh: false };
+  return {
+    variant: "error",
+    message: SUBMISSION_EXISTS_MESSAGE,
+    refresh: false,
+    existingSubmissionId: existing,
+  };
 }
 
 function testSubmissions(count: number): string {

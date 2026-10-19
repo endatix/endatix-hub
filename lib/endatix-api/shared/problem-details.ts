@@ -38,11 +38,10 @@ const EXISTING_ID_FIELDS: Readonly<Record<string, string>> = {
   submission_exists: "submissionId",
 };
 
-function readExistingId(
-  record: Record<string, unknown>,
-  errorCode: string | undefined,
-): string | undefined {
-  const field = errorCode ? EXISTING_ID_FIELDS[errorCode] : undefined;
+function readExistingId(record: Record<string, unknown>): string | undefined {
+  const { errorCode } = record;
+  const field =
+    typeof errorCode === "string" ? EXISTING_ID_FIELDS[errorCode] : undefined;
   const id = field ? record[field] : undefined;
   return typeof id === "string" ? id : undefined;
 }
@@ -87,27 +86,22 @@ export function parseProblemDetails(data: unknown): ProblemDetails | null {
   const normalized = normalizeProblemDetailsCandidate(data);
   const result = ProblemDetailsSchema.safeParse(normalized);
 
-  if (result.success) {
-    const title = result.data.title ?? "Error";
-    return {
-      type: result.data.type ?? "about:blank",
-      title,
-      status: result.data.status,
-      // Keep `detail` a guaranteed string for consumers; fall back to the title when the
-      // producer omitted it.
-      detail: result.data.detail ?? title,
-      instance: result.data.instance,
-      errorCode: result.data.errorCode,
-      traceId: result.data.traceId,
-      fields: result.data.fields,
-      existingId: readExistingId(
-        normalized as Record<string, unknown>,
-        result.data.errorCode,
-      ),
-    };
-  }
+  if (!result.success) return null;
 
-  return null;
+  const title = result.data.title ?? "Error";
+  return {
+    type: result.data.type ?? "about:blank",
+    title,
+    status: result.data.status,
+    // Keep `detail` a guaranteed string for consumers; fall back to the title when the
+    // producer omitted it.
+    detail: result.data.detail ?? title,
+    instance: result.data.instance,
+    errorCode: result.data.errorCode,
+    traceId: result.data.traceId,
+    fields: result.data.fields,
+    existingId: readExistingId(normalized as Record<string, unknown>),
+  };
 }
 
 /**

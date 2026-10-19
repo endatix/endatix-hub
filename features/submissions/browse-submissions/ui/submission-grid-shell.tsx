@@ -32,25 +32,34 @@ type SubmissionGridShellProps = {
  * Owns the grid's URL state and the chrome around the rows: toolbar and
  * readiness banner stay mounted while the rows reload.
  */
-export function SubmissionGridShell({
-  formId,
-  catalog,
-  columnSearch,
-  testAccess,
-  hasSubmissions,
-  banner,
-  children,
-}: Readonly<SubmissionGridShellProps>) {
+export function SubmissionGridShell(props: Readonly<SubmissionGridShellProps>) {
+  const { hasSubmissions, banner, children, ...chrome } = props;
+  const { formId } = chrome;
   useRememberListQuery(formId);
+  return (
+    <GridProviders {...chrome}>
+      <SubmissionGridToolbar {...chrome} disabled={!hasSubmissions} />
+      {banner && <ReadinessBanner formId={formId} banner={banner} />}
+      {hasSubmissions ? children : <NoSubmissionsEmptyState />}
+    </GridProviders>
+  );
+}
+
+type GridProvidersProps = Pick<
+  SubmissionGridShellProps,
+  "catalog" | "testAccess" | "children"
+>;
+
+/** URL state and test permissions, shared by the toolbar and every row. */
+function GridProviders({
+  catalog,
+  testAccess,
+  children,
+}: Readonly<GridProvidersProps>) {
   return (
     <SubmissionGridUrlProvider catalog={catalog}>
       <SubmissionTestAccessProvider access={testAccess}>
-        <SubmissionGridToolbar
-          {...{ formId, catalog, columnSearch }}
-          disabled={!hasSubmissions}
-        />
-        {banner && <ReadinessBanner formId={formId} banner={banner} />}
-        {hasSubmissions ? children : <NoSubmissionsEmptyState />}
+        {children}
       </SubmissionTestAccessProvider>
     </SubmissionGridUrlProvider>
   );

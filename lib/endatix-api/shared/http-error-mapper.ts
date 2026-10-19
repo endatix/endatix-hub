@@ -1,6 +1,6 @@
 import { ApiErrorDetails, ApiResult } from "./api-result";
 import { getErrorMessageWithFallback } from "./error-codes";
-import { parseErrorResponse } from "./problem-details";
+import { parseErrorResponse, type ProblemDetails } from "./problem-details";
 
 /**
  * Maps a non-OK fetch Response to an ApiResult error using shared problem-details parsing
@@ -28,21 +28,7 @@ export async function mapResponseToApiError<T>(
     }
   }
 
-  const problemMediaType = response.headers
-    .get("content-type")
-    ?.split(";")[0]
-    ?.trim()
-    .toLowerCase();
-
-  const enrichedDetails: ApiErrorDetails = {
-    ...details,
-    statusCode: details.statusCode ?? response.status,
-    details: problemDetails?.detail ?? details.details,
-    traceId: problemDetails?.traceId ?? details.traceId,
-    problemTitle: problemDetails?.title ?? details.problemTitle,
-    problemMediaType: problemMediaType || details.problemMediaType,
-    existingId: problemDetails?.existingId ?? details.existingId,
-  };
+  const enrichedDetails = enrichDetails(details, response, problemDetails);
 
   const retryAfter = response.headers.get("Retry-After");
   const retryAfterSeconds = parseRetryAfter(retryAfter);
@@ -61,6 +47,32 @@ export async function mapResponseToApiError<T>(
     detailsWithRetryAfter,
     problemDetails?.fields,
   );
+}
+
+/** The request's details, completed from the response and its problem details. */
+function enrichDetails(
+  details: ApiErrorDetails,
+  response: Response,
+  problemDetails: ProblemDetails | null,
+): ApiErrorDetails {
+  const problemMediaType = mediaTypeOf(response);
+  return {
+    ...details,
+    statusCode: details.statusCode ?? response.status,
+    details: problemDetails?.detail ?? details.details,
+    traceId: problemDetails?.traceId ?? details.traceId,
+    problemTitle: problemDetails?.title ?? details.problemTitle,
+    problemMediaType: problemMediaType || details.problemMediaType,
+    existingId: problemDetails?.existingId ?? details.existingId,
+  };
+}
+
+function mediaTypeOf(response: Response): string | undefined {
+  return response.headers
+    .get("content-type")
+    ?.split(";")[0]
+    ?.trim()
+    .toLowerCase();
 }
 
 function parseRetryAfter(retryAfter: string | null): number | undefined {

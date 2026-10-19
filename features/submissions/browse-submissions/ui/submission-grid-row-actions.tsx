@@ -36,8 +36,9 @@ type RowProps = { row: SubmissionGridRow };
 
 type RowDialog = "shareLinks" | "delete";
 
-type RowMenuProps = RowProps & {
-  onOpen: (dialog: RowDialog) => void;
+type RowOpenProps = RowProps & { onOpen: (dialog: RowDialog) => void };
+
+type RowMenuProps = RowOpenProps & {
   testMark: SubmissionTestMarkItem | null;
 };
 
@@ -136,10 +137,7 @@ function RowActionsContent({ row, onOpen, testMark }: Readonly<RowMenuProps>) {
   );
 }
 
-function RowOpenItems({
-  row,
-  onOpen,
-}: Readonly<Omit<RowMenuProps, "testMark">>) {
+function RowOpenItems({ row, onOpen }: Readonly<RowOpenProps>) {
   return (
     <>
       {isSubmissionEditable(row.collectionStatus) && (

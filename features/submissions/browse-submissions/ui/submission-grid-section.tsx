@@ -78,10 +78,7 @@ type SubmissionGridProps = {
 
 async function SubmissionGrid(props: Readonly<SubmissionGridProps>) {
   const { formId, urlState, columns } = props;
-  const [canIncludeInProgress, testAccess] = await Promise.all([
-    canEditForm(),
-    loadSubmissionTestAccess(),
-  ]);
+  const { canIncludeInProgress, access } = await loadGridAccess(columns);
   const answerColumns = resolveVisibleAnswerColumns(
     columns.catalog,
     urlState.columns,
@@ -91,14 +88,23 @@ async function SubmissionGrid(props: Readonly<SubmissionGridProps>) {
     <SubmissionGridShell
       formId={formId}
       catalog={columns.catalog}
-      columnSearch={columnSearchAccess(columns, canIncludeInProgress)}
-      testAccess={testAccess}
+      {...access}
       hasSubmissions={columns.readiness.submissions > 0}
       banner={describeGridReadiness({ ...columns, canIncludeInProgress })}
     >
       <SubmissionGridRows {...rows} />
     </SubmissionGridShell>
   );
+}
+
+/** What the user may change on the grid; a missing permission hides the control. */
+async function loadGridAccess(columns: SubmissionGridProps["columns"]) {
+  const [canIncludeInProgress, testAccess] = await Promise.all([
+    canEditForm(),
+    loadSubmissionTestAccess(),
+  ]);
+  const columnSearch = columnSearchAccess(columns, canIncludeInProgress);
+  return { canIncludeInProgress, access: { columnSearch, testAccess } };
 }
 
 /** Choosing filterable columns needs `forms.edit`, as including in-progress does. */

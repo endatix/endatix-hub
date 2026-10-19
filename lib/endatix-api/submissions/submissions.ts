@@ -317,23 +317,10 @@ export class Submissions {
     submissionId: string,
     isTest: boolean,
   ): Promise<ApiResult<Submission>> {
-    const validateFormIdResult = validateEndatixId(formId, "formId");
-    if (Result.isError(validateFormIdResult)) {
-      return ApiResult.validationError(validateFormIdResult.message);
-    }
+    const path = submissionPath(formId, submissionId);
+    if (Result.isError(path)) return ApiResult.validationError(path.message);
 
-    const validateSubmissionIdResult = validateEndatixId(
-      submissionId,
-      "submissionId",
-    );
-    if (Result.isError(validateSubmissionIdResult)) {
-      return ApiResult.validationError(validateSubmissionIdResult.message);
-    }
-
-    return this.endatix.patch<Submission>(
-      `/forms/${validateFormIdResult.value}/submissions/${validateSubmissionIdResult.value}/test`,
-      { isTest },
-    );
+    return this.endatix.patch<Submission>(`${path.value}/test`, { isTest });
   }
 
   /**
@@ -352,4 +339,15 @@ export class Submissions {
       {},
     );
   }
+}
+
+/** `/forms/{formId}/submissions/{submissionId}`, once both ids are valid. */
+function submissionPath(formId: string, submissionId: string): Result<string> {
+  const validFormId = validateEndatixId(formId, "formId");
+  if (Result.isError(validFormId)) return validFormId;
+  const validSubmissionId = validateEndatixId(submissionId, "submissionId");
+  if (Result.isError(validSubmissionId)) return validSubmissionId;
+  return Result.success(
+    `/forms/${validFormId.value}/submissions/${validSubmissionId.value}`,
+  );
 }
