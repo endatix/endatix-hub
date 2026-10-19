@@ -9,6 +9,7 @@ import type { ReactNode } from "react";
 import {
   canEditForm,
   loadSubmissionGridColumns,
+  loadSubmissionTestAccess,
 } from "../browse-submissions.server";
 import { describeGridReadiness } from "../grid-readiness";
 import type { SubmissionGridColumnsLoad } from "../resolve-submission-grid-load";
@@ -77,7 +78,7 @@ type SubmissionGridProps = {
 
 async function SubmissionGrid(props: Readonly<SubmissionGridProps>) {
   const { formId, urlState, columns } = props;
-  const canIncludeInProgress = await canEditForm();
+  const { canIncludeInProgress, access } = await loadGridAccess(columns);
   const answerColumns = resolveVisibleAnswerColumns(
     columns.catalog,
     urlState.columns,
@@ -87,13 +88,23 @@ async function SubmissionGrid(props: Readonly<SubmissionGridProps>) {
     <SubmissionGridShell
       formId={formId}
       catalog={columns.catalog}
-      columnSearch={columnSearchAccess(columns, canIncludeInProgress)}
+      {...access}
       hasSubmissions={columns.readiness.submissions > 0}
       banner={describeGridReadiness({ ...columns, canIncludeInProgress })}
     >
       <SubmissionGridRows {...rows} />
     </SubmissionGridShell>
   );
+}
+
+/** What the user may change on the grid; a missing permission hides the control. */
+async function loadGridAccess(columns: SubmissionGridProps["columns"]) {
+  const [canIncludeInProgress, testAccess] = await Promise.all([
+    canEditForm(),
+    loadSubmissionTestAccess(),
+  ]);
+  const columnSearch = columnSearchAccess(columns, canIncludeInProgress);
+  return { canIncludeInProgress, access: { columnSearch, testAccess } };
 }
 
 /** Choosing filterable columns needs `forms.edit`, as including in-progress does. */

@@ -216,3 +216,8 @@ export interface SubmissionQuery extends PaginationQuery {
 
 // Keep existing SubmissionData type available for features
 export type SubmissionData = CreateSubmissionDto;
+
+/** `POST forms/{formId}/submissions/test/delete`. */
+export interface DeleteTestSubmissionsResponse {
+  deletedCount: number;
+}
