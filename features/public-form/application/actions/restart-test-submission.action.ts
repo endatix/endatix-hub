@@ -24,7 +24,8 @@ async function testerApi(): Promise<ResultType<EndatixApi>> {
 
 /**
  * Start over: discards the test submission and points the form cookie at a new one for the same
- * person. A 404 keeps its `statusCode`: the person was removed from the form.
+ * person. A 404 keeps its status and detail. "Person not found on this form." is the only one
+ * that means the person was removed.
  */
 export async function restartTestSubmissionAction(
   formId: string,

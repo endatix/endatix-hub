@@ -50,15 +50,13 @@ describe("useTestAsPerson", () => {
     expect(toast.error).toHaveBeenCalledWith("The person is not on this form.");
   });
 
-  it("says so when the browser blocks the tab, without opening another", async () => {
+  it("says so when the browser blocks the tab, without opening a submission", async () => {
     const open = vi.spyOn(window, "open").mockReturnValue(null);
-    vi.mocked(openTestSubmissionAction).mockResolvedValue(
-      Result.success({ url: "/share/1" }),
-    );
 
     await renderHook(() => useTestAsPerson("1")).result.current(PERSON);
 
     expect(open).toHaveBeenCalledTimes(1);
+    expect(openTestSubmissionAction).not.toHaveBeenCalled();
     expect(toast.error).toHaveBeenCalledWith(expect.stringMatching(/pop-ups/));
   });
 });

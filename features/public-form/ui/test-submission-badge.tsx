@@ -10,6 +10,8 @@ export type TestStartOver = { formId: string; submissionId: string };
 
 const PERSON_REMOVED =
   "This person is no longer on this form, so this test submission cannot start over.";
+/** Detail from Restart when the membership is gone. Other 404s keep Start over. */
+const PERSON_NOT_ON_FORM = "Person not found on this form.";
 const REJECTED = "Start over failed. Try again.";
 
 async function restartOrFailure({ formId, submissionId }: TestStartOver) {
@@ -22,7 +24,8 @@ async function restartOrFailure({ formId, submissionId }: TestStartOver) {
 
 /**
  * Start over: the action swaps the form cookie to a new test submission and the page reloads on
- * it. A 404 means the person was removed, so the button goes and the reason stays.
+ * it. Only "Person not found on this form." hides the button. A missing submission or form is
+ * the same 404 and can be tried again.
  */
 function useStartOver(startOver: TestStartOver) {
   const router = useRouter();
@@ -34,8 +37,10 @@ function useStartOver(startOver: TestStartOver) {
     startTransition(async () => {
       const result = await restartOrFailure(startOver);
       if (Result.isSuccess(result)) return router.refresh();
-      setPersonRemoved(result.statusCode === 404);
-      setProblem(result.statusCode === 404 ? PERSON_REMOVED : result.message);
+      const removed =
+        result.statusCode === 404 && result.message === PERSON_NOT_ON_FORM;
+      setPersonRemoved(removed);
+      setProblem(removed ? PERSON_REMOVED : result.message);
     });
   };
   return { pending, problem, canRun: !personRemoved, run };

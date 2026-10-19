@@ -42,7 +42,9 @@ describe("TestSubmissionBadge", () => {
 
   it("hides Start over and says why when the person was removed", async () => {
     vi.mocked(restartTestSubmissionAction).mockResolvedValue(
-      Result.error("Not found", undefined, undefined, { statusCode: 404 }),
+      Result.error("Person not found on this form.", undefined, undefined, {
+        statusCode: 404,
+      }),
     );
     render(<TestSubmissionBadge startOver={START_OVER} />);
 
@@ -50,6 +52,21 @@ describe("TestSubmissionBadge", () => {
 
     expect(await screen.findByText(/no longer on this form/)).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Start over" })).toBeNull();
+    expect(refresh).not.toHaveBeenCalled();
+  });
+
+  it("keeps Start over when a 404 is not the person", async () => {
+    vi.mocked(restartTestSubmissionAction).mockResolvedValue(
+      Result.error("Submission not found.", undefined, undefined, {
+        statusCode: 404,
+      }),
+    );
+    render(<TestSubmissionBadge startOver={START_OVER} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Start over" }));
+
+    expect(await screen.findByText("Submission not found.")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Start over" })).toBeTruthy();
     expect(refresh).not.toHaveBeenCalled();
   });
 
