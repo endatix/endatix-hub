@@ -4,7 +4,7 @@ import {
   type AnswerColumn,
 } from "./submission-grid-columns";
 
-/** A run of columns from one page and panel of the form, in schema order. */
+/** All columns of one page and panel of the form, in schema order. */
 export type ColumnPickerGroup = {
   id: string;
   /** Page title, or the page name when it has none; `null` outside a page. */

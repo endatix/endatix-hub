@@ -133,7 +133,7 @@ describe("SubmissionGridColumnPicker", () => {
 
     // Act
     fireEvent.click(
-      screen.getByRole("checkbox", { name: /show all columns in .*contact/i }),
+      screen.getByRole("checkbox", { name: /columns in .*contact/i }),
     );
     apply();
 

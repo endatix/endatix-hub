@@ -241,8 +241,12 @@ function BulkButton(props: Readonly<ComponentProps<typeof Button>>) {
 }
 
 function matchSummary(count: number, query: string): string {
-  const noun = count === 1 ? "column" : "columns";
+  const noun = columnNoun(count);
   return query.trim() ? `${count} matching ${noun}` : `${count} ${noun}`;
+}
+
+function columnNoun(count: number): string {
+  return count === 1 ? "column" : "columns";
 }
 
 function ColumnGroupList({ picker }: Readonly<{ picker: ColumnPickerState }>) {
@@ -257,7 +261,7 @@ function ColumnGroupList({ picker }: Readonly<{ picker: ColumnPickerState }>) {
       {rendered.length === 0 && <PickerNote>No columns match.</PickerNote>}
       {hiddenCount > 0 && (
         <PickerNote>
-          {hiddenCount} more columns. Search to find them.
+          {hiddenCount} more {columnNoun(hiddenCount)}. Search to find them.
         </PickerNote>
       )}
     </div>
@@ -292,7 +296,7 @@ function GroupHeading({
   return (
     <label className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-muted-foreground">
       <Checkbox
-        aria-label={`Show all columns in ${label}`}
+        aria-label={`Columns in ${label}`}
         {...groupCheckbox(group, draft)}
       />
       <span className="truncate" title={label}>
@@ -339,7 +343,10 @@ function ColumnOptionText({ column }: Readonly<{ column: AnswerColumn }>) {
         {column.title}
       </span>
       {column.title !== column.key && (
-        <span className="max-w-24 truncate text-xs text-muted-foreground">
+        <span
+          className="max-w-24 truncate text-xs text-muted-foreground"
+          title={column.key}
+        >
           {column.key}
         </span>
       )}
