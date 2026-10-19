@@ -63,9 +63,7 @@ function StartOver({ startOver }: Readonly<{ startOver: TestStartOver }>) {
     <>
       {canRun ? <StartOverButton pending={pending} run={run} /> : null}
       {problem ? (
-        <span className={styles.note} role="status">
-          {problem}
-        </span>
+        <output className={styles.note}>{problem}</output>
       ) : null}
     </>
   );
