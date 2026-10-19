@@ -88,10 +88,6 @@ function ColumnPickerTrigger({ disabled }: Readonly<{ disabled: boolean }>) {
   );
 }
 
-/**
- * Apply writes the URL and closes; the rows reload with those columns. The
- * trigger waits for that load, so a reopened draft starts from them.
- */
 function useColumnPicker(catalog: readonly AnswerColumn[]) {
   const [open, setOpen] = useState(false);
   const { urlState, updateUrl, isPending } = useSubmissionGridUrl();
@@ -114,11 +110,10 @@ type PanelProps = {
   catalog: readonly AnswerColumn[];
   visibleKeys: readonly string[];
   isDefault: boolean;
-  /** No keys: back to the default view. */
   onApply: (keys: readonly string[]) => void;
 };
 
-/** Mounts on each open, so the draft starts from the grid's columns. */
+/** Radix unmounts closed popover content, so each open starts a fresh draft. */
 function ColumnPickerPanel(props: Readonly<PanelProps>) {
   const picker = useColumnPickerState(props);
   return (
@@ -168,7 +163,6 @@ function useColumnSearch(catalog: readonly AnswerColumn[]) {
   return { query, setQuery, deferredQuery, matches, settled };
 }
 
-/** The draft's keys and what the controls may do to them. */
 function useColumnDraft(
   catalog: readonly AnswerColumn[],
   visibleKeys: readonly string[],
@@ -178,7 +172,6 @@ function useColumnDraft(
   return useMemo(() => columnDraft(keys, setKeys, order), [keys, order]);
 }
 
-/** `adds(keys)`: whether showing `keys` would add any of them. */
 function columnDraft(
   keys: readonly string[],
   setKeys: Dispatch<SetStateAction<readonly string[]>>,
@@ -208,20 +201,26 @@ function MatchActions({ picker }: Readonly<{ picker: ColumnPickerState }>) {
       <PickerCount>
         {matchSummary(keys.length, search.deferredQuery)}
       </PickerCount>
-      <BulkActions keys={keys} picker={picker} />
+      <BulkActions matchingKeys={keys} picker={picker} />
     </div>
   );
 }
 
-/** Show all and Hide all act on every matching column, drawn or not. */
-function BulkActions({
-  keys,
-  picker: { search, draft },
-}: Readonly<{ keys: readonly string[]; picker: ColumnPickerState }>) {
-  const canHide = keys.some((key) => draft.visible.has(key));
+type BulkActionsProps = {
+  matchingKeys: readonly string[];
+  picker: ColumnPickerState;
+};
+
+function BulkActions({ matchingKeys, picker }: Readonly<BulkActionsProps>) {
+  const { search, draft } = picker;
+  const canHide = matchingKeys.some((key) => draft.visible.has(key));
   const actions = [
-    { label: "Show all", can: draft.adds(keys), run: () => draft.show(keys) },
-    { label: "Hide all", can: canHide, run: () => draft.hide(keys) },
+    {
+      label: "Show all",
+      can: draft.adds(matchingKeys),
+      run: () => draft.show(matchingKeys),
+    },
+    { label: "Hide all", can: canHide, run: () => draft.hide(matchingKeys) },
   ];
   return actions.map(({ label, can, run }) => (
     <BulkButton key={label} disabled={!search.settled || !can} onClick={run}>
@@ -306,7 +305,6 @@ function GroupHeading({
   );
 }
 
-/** Ticks a whole group; a fully shown group hides instead. */
 function groupCheckbox(group: ColumnPickerGroup, draft: ColumnDraft) {
   const keys = columnKeysOf([group]);
   const selection = groupSelection(group, draft.visible);
@@ -335,7 +333,6 @@ function ColumnOption({
   );
 }
 
-/** The title, and the key when it differs, since search matches both. */
 function ColumnOptionText({ column }: Readonly<{ column: AnswerColumn }>) {
   return (
     <>

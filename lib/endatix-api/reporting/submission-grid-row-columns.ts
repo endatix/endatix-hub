@@ -3,21 +3,16 @@ import { MAX_SUBMISSION_GRID_ROW_COLUMNS } from "./submission-grid-types";
 /**
  * Bytes the encoded `columns=` value may take. The API refuses a request
  * line over 8,192 bytes (Kestrel's default `MaxRequestLineSize`); the path,
- * paging, sort and filters need the rest. 500 descriptive question names
- * pass the key cap but not this one.
+ * paging, sort and filters need the rest.
  */
 export const MAX_SUBMISSION_GRID_COLUMNS_PARAM_BYTES = 6_144;
 
-const ENCODED_COMMA_BYTES = 3;
-
-/** How much of the rows request's column limits `keys` already use. */
 export type RowColumnsUsage = { count: number; bytes: number };
 
 export function rowColumnsUsage(keys: readonly string[]): RowColumnsUsage {
   return keys.reduce(addRowColumn, { count: 0, bytes: 0 });
 }
 
-/** Whether `key` still fits after the keys `usage` counts. */
 export function fitsRowColumns(usage: RowColumnsUsage, key: string): boolean {
   const next = addRowColumn(usage, key);
   return (
@@ -44,9 +39,9 @@ export function fitRowColumns(
   return fitted;
 }
 
-/** Each key costs its form-encoded length; each comma between keys `%2C`. */
+/** Costs as URLSearchParams writes them: form-encoded keys, commas as `%2C`. */
 function addRowColumn(usage: RowColumnsUsage, key: string): RowColumnsUsage {
-  const separator = usage.count > 0 ? ENCODED_COMMA_BYTES : 0;
+  const separator = usage.count > 0 ? encodedLength(",") : 0;
   return {
     count: usage.count + 1,
     bytes: usage.bytes + separator + encodedLength(key),

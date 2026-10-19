@@ -4,7 +4,6 @@ import {
   type AnswerColumn,
 } from "./submission-grid-columns";
 
-/** All columns of one page and panel of the form, in schema order. */
 export type ColumnPickerGroup = {
   id: string;
   /** Page title, or the page name when it has none; `null` outside a page. */
@@ -120,7 +119,6 @@ export function limitRenderedColumns(
   return rendered;
 }
 
-/** Each column's position in the form, which shown columns are placed by. */
 export function columnOrder(
   catalog: readonly AnswerColumn[],
 ): ReadonlyMap<string, number> {
@@ -144,7 +142,6 @@ export function showColumns(
   return mergeByOrder(visibleKeys, fitRowColumns(added, visibleKeys), order);
 }
 
-/** Each added key goes before the first visible key later in the form. */
 function mergeByOrder(
   visibleKeys: readonly string[],
   added: readonly string[],
