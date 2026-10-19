@@ -9,12 +9,15 @@ import {
 } from "@/components/table";
 import { NoMatchingSubmissionsEmptyState } from "@/features/submissions/ui/submissions-empty-state";
 import type { SubmissionGridRowsPage } from "@/lib/endatix-api/reporting/submission-grid";
+import type { SubmissionGridRow } from "@/lib/endatix-api/reporting/submission-grid-types";
 import {
   getCoreRowModel,
   useReactTable,
+  type Row,
   type SortingState,
   type Updater,
 } from "@tanstack/react-table";
+import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 import type { AnswerColumn } from "../submission-grid-columns";
 import {
@@ -49,6 +52,7 @@ export function SubmissionGridTable(props: Readonly<SubmissionGridTableProps>) {
   const { page } = props;
   const grid = useSubmissionGridUrl();
   const table = useSubmissionGridTable(props, grid);
+  const openSubmission = useOpenSubmission();
   return (
     <DataTableSurface data-slot="submission-grid">
       <DataTableGrid
@@ -56,6 +60,7 @@ export function SubmissionGridTable(props: Readonly<SubmissionGridTableProps>) {
         isPending={grid.isPending}
         hasRows={page.items.length > 0}
         empty={<GridEmpty grid={grid} />}
+        onRowClick={openSubmission}
       />
       <PagedTableFooter
         {...createPagedTableFooterProps(page, "submissions", grid.updateUrl)}
@@ -120,6 +125,15 @@ function toColumnFilters(
     submitterDisplayId: textFilter(keys.submitterDisplayId, submitterLabel),
     submitterEmail: textFilter(keys.submitterEmail, "Email"),
   };
+}
+
+/** A row opens its submission, as on the legacy grid. */
+function useOpenSubmission() {
+  const router = useRouter();
+  return ({ original }: Row<SubmissionGridRow>) =>
+    router.push(`/forms/${original.formId}/submissions/${original.id}`, {
+      scroll: false,
+    });
 }
 
 function GridEmpty({ grid }: Readonly<{ grid: SubmissionGridUrl }>) {
