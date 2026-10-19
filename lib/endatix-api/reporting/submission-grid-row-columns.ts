@@ -10,7 +10,10 @@ export const MAX_SUBMISSION_GRID_COLUMNS_PARAM_BYTES = 6_144;
 export type RowColumnsUsage = { count: number; bytes: number };
 
 export function rowColumnsUsage(keys: readonly string[]): RowColumnsUsage {
-  return keys.reduce(addRowColumn, { count: 0, bytes: 0 });
+  return keys.reduce((usage, key) => addRowColumn(usage, key), {
+    count: 0,
+    bytes: 0,
+  });
 }
 
 export function fitsRowColumns(usage: RowColumnsUsage, key: string): boolean {
