@@ -4,14 +4,12 @@ import type {
 } from "@/lib/endatix-api/reporting/submission-grid-types";
 import { formatInteger } from "@/lib/utils/formatters";
 
-/** Submissions whose answers the grid reads raw because they are not prepared. */
 export type UnpreparedCounts = {
   completed: number;
   inProgress: number;
   preparing: number;
 };
 
-/** What the readiness banner says and offers; `null` hides it. */
 export type GridReadinessBanner = {
   title: string;
   lines: string[];
@@ -22,7 +20,6 @@ export type GridReadinessBanner = {
 export type DescribeGridReadinessInput = {
   schemaReady: boolean;
   readiness: SubmissionGridReadiness;
-  /** Including in-progress submissions needs `forms.edit`. */
   canIncludeInProgress: boolean;
 };
 
@@ -30,25 +27,24 @@ export type DescribeGridReadinessInput = {
  * Splits the submissions that are not prepared into completed and in
  * progress. The counts do not say which prepared rows are complete, so
  * prepared rows are taken as completed first: in-progress rows are prepared
- * only on request. The two counts always add up to the unprepared total.
+ * only on request. Rows being prepared are counted once, as `preparing`.
  */
-export function countUnprepared(
-  readiness: SubmissionGridReadiness,
-): UnpreparedCounts {
-  const inProgress = Math.max(
-    0,
-    readiness.submissions - readiness.completedSubmissions,
-  );
-  const preparedInProgress = Math.max(
-    0,
-    readiness.prepared - readiness.completedSubmissions,
-  );
-
+export function countUnprepared({
+  submissions,
+  completedSubmissions: completed,
+  prepared,
+  pending,
+}: SubmissionGridReadiness): UnpreparedCounts {
+  const preparedInProgress = atLeastZero(prepared - completed);
   return {
-    completed: Math.max(0, readiness.completedSubmissions - readiness.prepared),
-    inProgress: Math.max(0, inProgress - preparedInProgress),
-    preparing: readiness.pending,
+    completed: atLeastZero(completed - prepared - pending),
+    inProgress: atLeastZero(submissions - completed - preparedInProgress),
+    preparing: pending,
   };
+}
+
+function atLeastZero(count: number): number {
+  return Math.max(0, count);
 }
 
 const NO_SCHEMA_BANNER: GridReadinessBanner = {

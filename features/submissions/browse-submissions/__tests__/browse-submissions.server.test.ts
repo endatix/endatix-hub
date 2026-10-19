@@ -1,9 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiResult } from "@/lib/endatix-api/shared/api-result";
-import { loadSubmissionGridRows } from "../browse-submissions.server";
+import { Permissions } from "@/features/auth/authorization";
+import {
+  canIncludeInProgressSubmissions,
+  loadSubmissionGridRows,
+} from "../browse-submissions.server";
 import { parseSubmissionGridUrl } from "../submission-grid-url";
 
 const listRows = vi.fn();
+const checkPermission = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/endatix-api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/endatix-api")>();
@@ -14,7 +19,7 @@ vi.mock("@/lib/endatix-api", async (importOriginal) => {
 });
 
 vi.mock("@/features/auth/authorization", () => ({
-  authorization: vi.fn(),
+  authorization: async () => ({ checkPermission }),
   Permissions: { Forms: { Edit: "forms.edit" } },
 }));
 
@@ -94,5 +99,34 @@ describe("loadSubmissionGridRows", () => {
     // Assert
     expect(load.kind).toBe("error");
     expect(listRows).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("canIncludeInProgressSubmissions", () => {
+  beforeEach(() => {
+    checkPermission.mockReset();
+  });
+
+  it("allows users who may edit the form", async () => {
+    // Arrange
+    checkPermission.mockResolvedValue({ success: true, data: true });
+
+    // Act
+    const allowed = await canIncludeInProgressSubmissions();
+
+    // Assert
+    expect(allowed).toBe(true);
+    expect(checkPermission).toHaveBeenCalledWith(Permissions.Forms.Edit);
+  });
+
+  it("hides the action from users who may not edit the form", async () => {
+    // Arrange
+    checkPermission.mockResolvedValue({
+      success: false,
+      error: { type: "ACCESS_DENIED", message: "Access denied" },
+    });
+
+    // Act & Assert
+    expect(await canIncludeInProgressSubmissions()).toBe(false);
   });
 });

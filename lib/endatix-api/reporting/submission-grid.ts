@@ -83,7 +83,6 @@ function toAnswerParam({ operator, key, value }: SubmissionGridAnswerFilter) {
   return `${operator}:${encodeURIComponent(key)}:${value}`;
 }
 
-/** The submissions grid read from a form's prepared reporting data. */
 export class SubmissionGrid {
   constructor(private readonly endatix: EndatixApi) {}
 

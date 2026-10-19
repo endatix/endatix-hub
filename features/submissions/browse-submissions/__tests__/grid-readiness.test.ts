@@ -144,7 +144,7 @@ describe("describeGridReadiness", () => {
     expect(banner?.showIncludeInProgress).toBe(false);
   });
 
-  it("says how many submissions are being prepared", () => {
+  it("does not count submissions being prepared as not prepared", () => {
     // Act
     const banner = describeGridReadiness({
       schemaReady: true,
@@ -153,7 +153,28 @@ describe("describeGridReadiness", () => {
     });
 
     // Assert
-    expect(banner?.lines).toContain("3 submissions are being prepared.");
+    expect(banner).toMatchObject({
+      lines: ["3 submissions are being prepared."],
+      showPrepare: false,
+    });
+  });
+
+  it("offers Prepare for the completed submissions neither prepared nor pending", () => {
+    // Act
+    const banner = describeGridReadiness({
+      schemaReady: true,
+      readiness: readiness({ submissions: 8, prepared: 4, pending: 3 }),
+      canIncludeInProgress: true,
+    });
+
+    // Assert
+    expect(banner).toMatchObject({
+      lines: [
+        "1 submission completed is not prepared.",
+        "3 submissions are being prepared.",
+      ],
+      showPrepare: true,
+    });
   });
 });
 

@@ -39,7 +39,6 @@ export type SubmissionGridSort = {
   direction: SortDir;
 };
 
-/** Parsed `/forms/:formId/submissions` searchParams for the submissions grid. */
 export type SubmissionGridUrlState = {
   page: number;
   pageSize: number;
@@ -124,7 +123,6 @@ export function buildSubmissionGridPath(
     : `/forms/${formId}/submissions`;
 }
 
-/** The API request for one page of rows with the answers of `columns`. */
 export function toSubmissionGridRowsRequest(
   state: SubmissionGridUrlState,
   columns: readonly string[],

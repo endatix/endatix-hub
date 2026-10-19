@@ -5,7 +5,6 @@ import type {
 import { Result } from "@/lib/result";
 import { formatInteger } from "@/lib/utils/formatters";
 
-/** What to tell the user after a readiness action, and whether to reload the grid. */
 export type ReadinessActionOutcome = {
   variant: "success" | "warning" | "error";
   message: string;

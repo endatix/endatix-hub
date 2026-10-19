@@ -73,7 +73,6 @@ type GridProps = Readonly<{
   searchParams: Awaited<Params["searchParams"]>;
 }>;
 
-/** Reads prepared reporting data; the legacy grid renders when the API has no grid. */
 function ReportingGrid({
   formId,
   searchParams,
@@ -90,7 +89,6 @@ function ReportingGrid({
   );
 }
 
-/** The grid built from definition fields; used while the Reporting flag is off. */
 function LegacySubmissionsGrid({ formId, searchParams }: GridProps) {
   const listState = parseSubmissionListSearchParams(searchParams);
 

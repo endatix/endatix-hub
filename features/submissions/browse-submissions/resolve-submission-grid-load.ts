@@ -16,7 +16,6 @@ import {
   type SubmissionGridUrlState,
 } from "./submission-grid-url";
 
-/** The form's grid columns, or why the grid cannot render. */
 export type SubmissionGridColumnsLoad =
   /** 404: the Reporting module is off or the form is missing; another grid takes over. */
   | { kind: "unavailable" }

@@ -31,7 +31,6 @@ type RowProps = { row: SubmissionGridRow };
 const stopPropagation = (event: React.SyntheticEvent) =>
   event.stopPropagation();
 
-/** The review control, or a dash while the submission is still being collected. */
 export function ReviewStatusCell({ row }: Readonly<RowProps>) {
   const collection = describeCollectionStatus(
     row.collectionStatus,
