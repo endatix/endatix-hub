@@ -17,6 +17,7 @@ import {
   type SortingState,
   type Updater,
 } from "@tanstack/react-table";
+import type { UrlSearchParamsUpdater } from "@/lib/utils/hooks/use-url-search-params-updater.hook";
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 import type { AnswerColumn } from "../submission-grid-columns";
@@ -49,7 +50,6 @@ export type SubmissionGridTableProps = {
 };
 
 export function SubmissionGridTable(props: Readonly<SubmissionGridTableProps>) {
-  const { page } = props;
   const grid = useSubmissionGridUrl();
   const table = useSubmissionGridTable(props, grid);
   const openSubmission = useOpenSubmission();
@@ -58,16 +58,28 @@ export function SubmissionGridTable(props: Readonly<SubmissionGridTableProps>) {
       <DataTableGrid
         table={table}
         isPending={grid.isPending}
-        hasRows={page.items.length > 0}
+        hasRows={props.page.items.length > 0}
         empty={<GridEmpty grid={grid} />}
         onRowClick={openSubmission}
       />
-      <PagedTableFooter
-        {...createPagedTableFooterProps(page, "submissions", grid.updateUrl)}
-        pageSizeOptions={SUBMISSION_GRID_PAGE_SIZE_OPTIONS}
-        variant="surface"
-      />
+      <GridFooter page={props.page} updateUrl={grid.updateUrl} />
     </DataTableSurface>
+  );
+}
+
+function GridFooter({
+  page,
+  updateUrl,
+}: Readonly<{
+  page: SubmissionGridRowsPage;
+  updateUrl: UrlSearchParamsUpdater;
+}>) {
+  return (
+    <PagedTableFooter
+      {...createPagedTableFooterProps(page, "submissions", updateUrl)}
+      pageSizeOptions={SUBMISSION_GRID_PAGE_SIZE_OPTIONS}
+      variant="surface"
+    />
   );
 }
 

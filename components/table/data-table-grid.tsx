@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/table";
 import {
   flexRender,
+  type Header,
   type Row,
   type Table as TanstackTable,
 } from "@tanstack/react-table";
@@ -87,25 +88,29 @@ function GridHeader<TData>({
           className="border-0 hover:bg-transparent"
         >
           {headerGroup.headers.map((header) => (
-            <TableHead
-              key={header.id}
-              colSpan={header.colSpan}
-              className={dataTableHeaderCellClassName({
-                isPinnedLeft: header.column.getIsPinned() === "left",
-                className: header.column.columnDef.meta?.headerClassName,
-              })}
-            >
-              {header.isPlaceholder
-                ? null
-                : flexRender(
-                    header.column.columnDef.header,
-                    header.getContext(),
-                  )}
-            </TableHead>
+            <GridHeaderCell key={header.id} header={header} />
           ))}
         </TableRow>
       ))}
     </TableHeader>
+  );
+}
+
+function GridHeaderCell<TData>({
+  header,
+}: Readonly<{ header: Header<TData, unknown> }>) {
+  return (
+    <TableHead
+      colSpan={header.colSpan}
+      className={dataTableHeaderCellClassName({
+        isPinnedLeft: header.column.getIsPinned() === "left",
+        className: header.column.columnDef.meta?.headerClassName,
+      })}
+    >
+      {header.isPlaceholder
+        ? null
+        : flexRender(header.column.columnDef.header, header.getContext())}
+    </TableHead>
   );
 }
 

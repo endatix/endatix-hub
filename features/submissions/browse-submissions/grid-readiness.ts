@@ -26,26 +26,22 @@ export type DescribeGridReadinessInput = {
  * prepared rows are taken as completed first: in-progress rows are prepared
  * only on request. Rows being prepared are counted once, as `preparing`.
  */
-export function countUnprepared(
-  readiness: SubmissionGridReadiness,
-): UnpreparedCounts {
-  const inProgress = Math.max(
-    0,
-    readiness.submissions - readiness.completedSubmissions,
-  );
-  const preparedInProgress = Math.max(
-    0,
-    readiness.prepared - readiness.completedSubmissions,
-  );
-
+export function countUnprepared({
+  submissions,
+  completedSubmissions: completed,
+  prepared,
+  pending,
+}: SubmissionGridReadiness): UnpreparedCounts {
+  const preparedInProgress = atLeastZero(prepared - completed);
   return {
-    completed: Math.max(
-      0,
-      readiness.completedSubmissions - readiness.prepared - readiness.pending,
-    ),
-    inProgress: Math.max(0, inProgress - preparedInProgress),
-    preparing: readiness.pending,
+    completed: atLeastZero(completed - prepared - pending),
+    inProgress: atLeastZero(submissions - completed - preparedInProgress),
+    preparing: pending,
   };
+}
+
+function atLeastZero(count: number): number {
+  return Math.max(0, count);
 }
 
 const NO_SCHEMA_BANNER: GridReadinessBanner = {
