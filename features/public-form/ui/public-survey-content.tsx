@@ -18,6 +18,28 @@ export type PublicSurveyContentProps = {
   variant: PublicSurveyRuntimeProps["variant"];
 };
 
+type LoadedPage = Extract<
+  Awaited<ReturnType<typeof loadPublicSurveyPageUseCase>>,
+  { kind: "success" }
+>;
+
+/** The props sent to the client, field by field: nothing new crosses to the browser by default. */
+function toSurveyRuntime(
+  page: LoadedPage,
+  request: PublicSurveyContentProps,
+): PublicSurveyRuntimeProps {
+  return {
+    activeDefinition: page.activeDefinition,
+    submissionPhase: page.submissionPhase,
+    canStartOver: page.canStartOver,
+    isRespondentTestMode: page.isRespondentTestMode,
+    canStartOverTest: page.canStartOverTest,
+    submission: page.submission,
+    storageConfig: getClientStorageConfig(),
+    ...request,
+  };
+}
+
 export async function PublicSurveyContent({
   formId,
   urlToken,
@@ -74,17 +96,14 @@ export async function PublicSurveyContent({
     );
   }
 
-  const { kind: _kind, ...page } = pageResult;
   const shouldLoadReCaptcha =
-    page.activeDefinition.requiresReCaptcha &&
+    pageResult.activeDefinition.requiresReCaptcha &&
     recaptchaConfig.isReCaptchaEnabled();
-  const surveyRuntime: PublicSurveyRuntimeProps = {
-    ...page,
+  const surveyRuntime = toSurveyRuntime(pageResult, {
     formId,
-    storageConfig: getClientStorageConfig(),
     urlToken,
     variant,
-  };
+  });
 
   return (
     <>

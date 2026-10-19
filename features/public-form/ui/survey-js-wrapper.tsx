@@ -3,7 +3,10 @@
 import { AssetStorageClientProvider } from "@/features/asset-storage/client";
 import type { EmbedFormInfo } from "@/features/embed-form/types";
 import type { PublicSurveyRuntimeProps } from "@/features/public-form/types";
-import { testSubmissionMode } from "@/features/public-form/test-submission-mode";
+import {
+  isPersonTestSubmission,
+  testSubmissionMode,
+} from "@/features/public-form/test-submission-mode";
 import {
   FormRuntimeProvider,
   useFormRuntime,
@@ -27,8 +30,8 @@ export type SurveyJsWrapperProps = {
 };
 
 /**
- * The test badge, and which Start over the page offers: on a test submission opened as a person
- * the badge's Start over replaces the cookie one, which would only forget the token.
+ * The test badge, and which Start over the page offers. A person's test submission never offers
+ * the cookie one, which would only forget the token; a viewer with `forms.test` gets the badge's.
  */
 function testControls(survey: PublicSurveyRuntimeProps) {
   const mode = testSubmissionMode(survey);
@@ -40,10 +43,14 @@ function testControls(survey: PublicSurveyRuntimeProps) {
     <TestSubmissionBadge startOver={startOver} />
   ) : null;
   const cookieStartOver =
-    survey.canStartOver && !startOver ? (
+    survey.canStartOver && !isPersonTestSubmission(survey.submission) ? (
       <StartNewResponseButton formId={survey.formId} />
     ) : null;
-  return { badge, cookieStartOver, testRunId: submissionId ?? undefined };
+  return {
+    badge,
+    cookieStartOver,
+    testSubmissionKey: submissionId ?? undefined,
+  };
 }
 
 type TestControls = ReturnType<typeof testControls>;
@@ -93,7 +100,7 @@ const SurveyJsWrapper = (props: SurveyJsWrapperProps) => {
   // Start over loads a new submission into the same page: remount so the survey starts empty.
   return (
     <FormRuntimeProvider
-      key={controls.testRunId}
+      key={controls.testSubmissionKey}
       initialState={{
         formId: survey.formId,
         submissionId: survey.submission?.id,

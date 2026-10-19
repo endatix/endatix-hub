@@ -3,7 +3,7 @@ import { PersonalizationSource } from "@/lib/endatix-api/submissions/types";
 
 export type TestSubmissionModeInput = {
   isRespondentTestMode: boolean;
-  /** The signed-in viewer has `forms.test`; checked only for a test run (`isPersonTestRun`). */
+  /** The signed-in viewer has `forms.test`; checked only for a test submission (`isPersonTestSubmission`). */
   canStartOverTest?: boolean;
   submission?: Submission;
   urlToken?: string;
@@ -16,12 +16,14 @@ export type TestSubmissionMode = {
 };
 
 /** A test submission opened with Test as this person: the only kind Start over applies to. */
-export function isPersonTestRun(submission: Submission | undefined): boolean {
+export function isPersonTestSubmission(
+  submission: Submission | undefined,
+): boolean {
   return submission?.personalization?.source === PersonalizationSource.Test;
 }
 
 /**
- * Start over swaps the form cookie's token, so it applies only to a person's test run loaded from
+ * Start over swaps the form cookie's token, so it applies only to a person's test submission loaded from
  * that cookie, never to a URL-token page, and only for a viewer who may test forms.
  */
 function startOverSubmissionId({
@@ -30,7 +32,7 @@ function startOverSubmissionId({
   urlToken,
 }: TestSubmissionModeInput): string | null {
   if (!canStartOverTest || urlToken || !submission?.id) return null;
-  return isPersonTestRun(submission) ? String(submission.id) : null;
+  return isPersonTestSubmission(submission) ? String(submission.id) : null;
 }
 
 /** What the respondent page says about testing: the badge, and whether it can start over. */

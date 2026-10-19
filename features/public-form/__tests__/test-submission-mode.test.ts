@@ -20,7 +20,7 @@ function submission(overrides: Partial<Submission> = {}): Submission {
   };
 }
 
-const testRun = submission({
+const testSubmission = submission({
   isTestSubmission: true,
   personalization: {
     identifier: "tester@example.com",
@@ -49,24 +49,29 @@ describe("testSubmissionMode", () => {
 
   it("shows the badge on a test submission even outside test mode", () => {
     expect(
-      testSubmissionMode({ isRespondentTestMode: false, submission: testRun }),
+      testSubmissionMode({
+        isRespondentTestMode: false,
+        submission: testSubmission,
+      }),
     ).toEqual({ showBadge: true, startOverSubmissionId: null });
   });
 
-  it("offers Start over on a person's test run to a viewer who may test, even outside test mode", () => {
+  it("offers Start over on a person's test submission to a viewer who may test, even outside test mode", () => {
     expect(
       testSubmissionMode({
         isRespondentTestMode: false,
         canStartOverTest: true,
-        submission: testRun,
+        submission: testSubmission,
       }),
     ).toEqual({ showBadge: true, startOverSubmissionId: "21" });
   });
 
   it("does not offer Start over to a viewer who may not test, even in test mode", () => {
     expect(
-      testSubmissionMode({ isRespondentTestMode: true, submission: testRun })
-        .startOverSubmissionId,
+      testSubmissionMode({
+        isRespondentTestMode: true,
+        submission: testSubmission,
+      }).startOverSubmissionId,
     ).toBeNull();
   });
 
@@ -77,7 +82,7 @@ describe("testSubmissionMode", () => {
   ])("does not offer Start over on a %s personalization", (source) => {
     const other = submission({
       isTestSubmission: true,
-      personalization: { ...testRun.personalization!, source },
+      personalization: { ...testSubmission.personalization!, source },
     });
 
     expect(
@@ -91,7 +96,7 @@ describe("testSubmissionMode", () => {
       testSubmissionMode({
         isRespondentTestMode: true,
         canStartOverTest: true,
-        submission: testRun,
+        submission: testSubmission,
         urlToken: "access-token",
       }).startOverSubmissionId,
     ).toBeNull();

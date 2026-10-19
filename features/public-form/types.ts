@@ -16,7 +16,7 @@ export type PublicSurveyRuntimeProps = {
    */
   canStartOver?: boolean;
   isRespondentTestMode: boolean;
-  /** The viewer may Start over this person's test run (`forms.test`, checked by the Hub). */
+  /** The viewer may Start over this person's test submission (`forms.test`, checked by the Hub). */
   canStartOverTest?: boolean;
   storageConfig: ClientStorageConfig | null;
   submission?: Submission;

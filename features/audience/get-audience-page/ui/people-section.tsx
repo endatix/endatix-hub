@@ -77,11 +77,11 @@ type PeopleSurfaceProps = PeopleSectionProps & { handlers: RowHandlers };
 const FILTERED_EMPTY: Record<string, { title: string; body: string }> = {
   [AudiencePeopleTestFilter.Real]: {
     title: "No real people",
-    body: "Everyone on this form is a test person.",
+    body: "No person on this form is a real person.",
   },
   [AudiencePeopleTestFilter.Test]: {
     title: "No test people",
-    body: "Add a test person, or import people as test people, to try the form as them.",
+    body: "No person on this form is a test person. Add a test person, or import people as test people, to try the form as them.",
   },
 };
 

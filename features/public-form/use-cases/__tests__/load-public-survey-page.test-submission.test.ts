@@ -44,7 +44,7 @@ const cookieSubmission: Submission = {
   status: "draft",
 };
 
-const personTestRun: Submission = {
+const personTestSubmission: Submission = {
   ...cookieSubmission,
   isTestSubmission: true,
   personalization: {
@@ -55,7 +55,7 @@ const personTestRun: Submission = {
   },
 };
 
-describe("loadPublicSurveyPageUseCase on a person's test run", () => {
+describe("loadPublicSurveyPageUseCase on a person's test submission", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // A public form: the API never reports test mode for it.
@@ -81,7 +81,7 @@ describe("loadPublicSurveyPageUseCase on a person's test run", () => {
 
   it("lets a viewer with forms.test Start over, even when the API says no test mode", async () => {
     vi.mocked(getPartialSubmissionUseCase).mockResolvedValue(
-      ApiResult.success(personTestRun),
+      ApiResult.success(personTestSubmission),
     );
     vi.mocked(viewerCanTestFormsUseCase).mockResolvedValue(true);
 
@@ -90,7 +90,7 @@ describe("loadPublicSurveyPageUseCase on a person's test run", () => {
     expect(result.kind === "success" && result.canStartOverTest).toBe(true);
   });
 
-  it("does not check forms.test for a submission that is not a person's test run", async () => {
+  it("does not check forms.test for a submission that is not a person's test submission", async () => {
     vi.mocked(getPartialSubmissionUseCase).mockResolvedValue(
       ApiResult.success(cookieSubmission),
     );

@@ -69,7 +69,7 @@ const defaultProps: SurveyJsWrapperProps = {
   },
 };
 
-function testRun(isComplete: boolean): Submission {
+function testSubmission(isComplete: boolean): Submission {
   return {
     id: "submission-21",
     formId: "form-1",
@@ -195,7 +195,7 @@ describe("SurveyJsWrapper", () => {
           ...defaultProps.survey,
           isRespondentTestMode: false,
           canStartOverTest: true,
-          submission: testRun(false),
+          submission: testSubmission(false),
         }}
       />,
     );
@@ -203,7 +203,7 @@ describe("SurveyJsWrapper", () => {
     expect(screen.getByRole("button", { name: "Start over" })).toBeDefined();
   });
 
-  it("replaces the cookie Start a new response with the badge on a finished test run", () => {
+  it("replaces the cookie Start a new response with the badge on a finished test submission", () => {
     render(
       <SurveyJsWrapper
         {...defaultProps}
@@ -213,13 +213,30 @@ describe("SurveyJsWrapper", () => {
           canStartOver: true,
           isRespondentTestMode: true,
           canStartOverTest: true,
-          submission: testRun(true),
+          submission: testSubmission(true),
         }}
       />,
     );
 
     expect(screen.getByRole("button", { name: "Start over" })).toBeDefined();
     expect(screen.queryByText("Start a new response")).toBeNull();
+  });
+
+  it("hides the cookie Start a new response on a person's test submission even without forms.test", () => {
+    render(
+      <SurveyJsWrapper
+        {...defaultProps}
+        survey={{
+          ...defaultProps.survey,
+          submissionPhase: "completed",
+          canStartOver: true,
+          submission: testSubmission(true),
+        }}
+      />,
+    );
+
+    expect(screen.queryByText("Start a new response")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Start over" })).toBeNull();
   });
 
   it("badges a test submission for a respondent outside test mode, without Start over", () => {
@@ -229,7 +246,7 @@ describe("SurveyJsWrapper", () => {
         survey={{
           ...defaultProps.survey,
           submissionPhase: "completed",
-          submission: testRun(true),
+          submission: testSubmission(true),
         }}
       />,
     );

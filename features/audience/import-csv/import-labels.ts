@@ -23,7 +23,6 @@ const OUTCOME_PARTS: OutcomeParts = [
 /** A test import never writes to people already here, so they are skipped, not "unchanged". */
 const TEST_OUTCOME_PARTS: OutcomeParts = [
   ["createdCount", "added as test people"],
-  ["updatedCount", "updated"],
   ["skippedCount", "skipped because they are already on this form"],
   ["rejectedCount", "rejected"],
 ];

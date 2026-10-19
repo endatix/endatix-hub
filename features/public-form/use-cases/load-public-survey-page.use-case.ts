@@ -7,7 +7,7 @@ import { getActiveDefinitionUseCase } from "@/features/public-form/use-cases/get
 import { getPartialSubmissionUseCase } from "@/features/public-form/use-cases/get-partial-submission.use-case";
 import { getPublicFormAccessUseCase } from "@/features/public-form/use-cases/get-public-form-access.use-case";
 import { viewerCanTestFormsUseCase } from "@/features/public-form/use-cases/viewer-can-test-forms.use-case";
-import { isPersonTestRun } from "@/features/public-form/test-submission-mode";
+import { isPersonTestSubmission } from "@/features/public-form/test-submission-mode";
 import { getSubmissionByAccessTokenUseCase } from "@/features/public-submissions/edit/get-submission-by-access-token.use-case";
 import { resolveSubmissionFormDefinition } from "@/features/public-submissions/resolve-submission-form-definition";
 import {
@@ -40,7 +40,7 @@ export type LoadPublicSurveyPageQuery = {
  * @param submissionPhase - The submission gate phase for the survey session.
  * @param canStartOver - Whether a finished cookie submission may be replaced by a new one.
  * @param isRespondentTestMode - Whether the respondent is submitting a test response.
- * @param canStartOverTest - Whether the viewer may Start over the person's test run in the cookie.
+ * @param canStartOverTest - Whether the viewer may Start over the person's test submission in the cookie.
  * @param submission - The submission.
  */
 export type LoadPublicSurveyPageResult =
@@ -125,7 +125,7 @@ export async function loadPublicSurveyPageUseCase({
     ),
     canStartOver: publicFormAccessResult.value.canStartNewSubmission,
     isRespondentTestMode: publicFormAccessResult.value.isRespondentTestMode,
-    canStartOverTest: await canStartOverTestRun(submissionResult.value),
+    canStartOverTest: await canStartOverPersonTest(submissionResult.value),
     submission: submissionResult.value,
   };
 }
@@ -190,11 +190,13 @@ function submissionPhaseFor(
   });
 }
 
-/** Asks for `forms.test` only when the cookie holds a person's test run. */
-async function canStartOverTestRun(
+/** Asks for `forms.test` only when the cookie holds a person's test submission. */
+async function canStartOverPersonTest(
   submission: Submission | undefined,
 ): Promise<boolean> {
-  return isPersonTestRun(submission) && (await viewerCanTestFormsUseCase());
+  return (
+    isPersonTestSubmission(submission) && (await viewerCanTestFormsUseCase())
+  );
 }
 
 const RESPONDENT_COPY_MAX_LENGTH = 240;

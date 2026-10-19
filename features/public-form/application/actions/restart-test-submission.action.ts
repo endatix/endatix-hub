@@ -1,8 +1,7 @@
 "use server";
 
-import { auth } from "@/auth";
-import { authorization, Permissions } from "@/features/auth/authorization";
 import { FormTokenCookieStore } from "@/features/public-form/infrastructure/cookie-store";
+import { testerSessionUseCase } from "@/features/public-form/use-cases/viewer-can-test-forms.use-case";
 import { EndatixApi } from "@/lib/endatix-api";
 import { Result, toResult, type ResultType } from "@/lib/result";
 import { cookies } from "next/headers";
@@ -18,14 +17,9 @@ const RESTART_LOG = {
 
 /** The respondent page is public, so a missing grant is a `Result` error, never a redirect. */
 async function testerApi(): Promise<ResultType<EndatixApi>> {
-  const session = await auth();
-  const { checkAllPermissions } = await authorization(session);
-  const allowed = await checkAllPermissions([
-    Permissions.Access.Hub,
-    Permissions.Forms.Test,
-  ]);
-  if (!allowed.success) return Result.error(NOT_ALLOWED);
-  return Result.success(new EndatixApi(session?.accessToken));
+  const session = await testerSessionUseCase();
+  if (!session) return Result.error(NOT_ALLOWED);
+  return Result.success(new EndatixApi(session.accessToken));
 }
 
 /**
