@@ -335,19 +335,19 @@ function ColumnOption({
 
 function ColumnOptionText({ column }: Readonly<{ column: AnswerColumn }>) {
   return (
-    <>
-      <span className="min-w-0 flex-1 truncate" title={column.title}>
+    <span className="flex min-w-0 flex-1 flex-col">
+      <span className="truncate" title={column.title}>
         {column.title}
       </span>
       {column.title !== column.key && (
         <span
-          className="max-w-24 truncate text-xs text-muted-foreground"
+          className="truncate text-xs text-muted-foreground"
           title={column.key}
         >
           {column.key}
         </span>
       )}
-    </>
+    </span>
   );
 }
 
