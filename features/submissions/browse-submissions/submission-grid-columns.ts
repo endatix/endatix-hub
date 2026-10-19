@@ -128,5 +128,20 @@ export function formatAnswerValue(value: unknown): string | null {
     return items.length > 0 ? items.join(", ") : null;
   }
 
-  return typeof value === "object" ? JSON.stringify(value) : String(value);
+  return formatScalar(value);
+}
+
+function formatScalar(value: unknown): string | null {
+  switch (typeof value) {
+    case "string":
+      return value;
+    case "number":
+    case "boolean":
+    case "bigint":
+      return value.toString();
+    case "object":
+      return JSON.stringify(value);
+    default:
+      return null;
+  }
 }
