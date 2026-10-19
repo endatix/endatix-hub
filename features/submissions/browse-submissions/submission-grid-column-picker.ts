@@ -1,4 +1,4 @@
-import { MAX_SUBMISSION_GRID_ROW_COLUMNS } from "@/lib/endatix-api/reporting/submission-grid-types";
+import { fitRowColumns } from "@/lib/endatix-api/reporting/submission-grid-row-columns";
 import {
   isSubmitterProfileColumn,
   type AnswerColumn,
@@ -119,8 +119,9 @@ export function limitRenderedColumns(
 }
 
 /**
- * Shows `keys` after the visible ones, in the order given, until the rows
- * endpoint's column limit. Visible keys keep their order.
+ * Shows `keys` after the visible ones, in the order given, while they fit
+ * the rows request (key count and `columns=` length). Visible keys keep
+ * their order.
  */
 export function showColumns(
   visibleKeys: readonly string[],
@@ -128,7 +129,7 @@ export function showColumns(
 ): string[] {
   const visible = new Set(visibleKeys);
   const added = keys.filter((key) => !visible.has(key));
-  return [...visibleKeys, ...added].slice(0, MAX_SUBMISSION_GRID_ROW_COLUMNS);
+  return fitRowColumns([...visibleKeys, ...added]);
 }
 
 export function hideColumns(
@@ -161,9 +162,4 @@ export function groupSelection(
 
 export function columnKeysOf(groups: readonly ColumnPickerGroup[]): string[] {
   return groups.flatMap((group) => group.columns.map((column) => column.key));
-}
-
-/** Whether another column can be shown under the rows endpoint's limit. */
-export function canShowMoreColumns(visibleKeys: readonly string[]): boolean {
-  return visibleKeys.length < MAX_SUBMISSION_GRID_ROW_COLUMNS;
 }

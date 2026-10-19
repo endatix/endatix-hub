@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
+import {
+  fitsRowColumns,
+  rowColumnsUsage,
+} from "@/lib/endatix-api/reporting/submission-grid-row-columns";
 import { MAX_SUBMISSION_GRID_ROW_COLUMNS } from "@/lib/endatix-api/reporting/submission-grid-types";
 import {
-  canShowMoreColumns,
   columnKeysOf,
   filterColumnGroups,
   groupColumnsByPlacement,
@@ -220,7 +223,7 @@ describe("column selection", () => {
 
     // Assert
     expect(next).toHaveLength(MAX_SUBMISSION_GRID_ROW_COLUMNS);
-    expect(canShowMoreColumns(next)).toBe(false);
+    expect(fitsRowColumns(rowColumnsUsage(next), "q")).toBe(false);
   });
 
   it("hides columns and toggles one", () => {

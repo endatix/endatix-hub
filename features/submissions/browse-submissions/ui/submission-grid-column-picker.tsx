@@ -8,7 +8,10 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { MAX_SUBMISSION_GRID_ROW_COLUMNS } from "@/lib/endatix-api/reporting/submission-grid-types";
+import {
+  fitsRowColumns,
+  rowColumnsUsage,
+} from "@/lib/endatix-api/reporting/submission-grid-row-columns";
 import { Settings2 } from "lucide-react";
 import {
   useDeferredValue,
@@ -18,7 +21,6 @@ import {
   type ReactNode,
 } from "react";
 import {
-  canShowMoreColumns,
   columnKeysOf,
   countColumns,
   filterColumnGroups,
@@ -130,7 +132,21 @@ function useColumnPickerDraft({ catalog, visibleKeys }: Readonly<PanelProps>) {
   );
   const [draft, setDraft] = useState<readonly string[]>(visibleKeys);
   const visible = useMemo(() => new Set(draft), [draft]);
-  return { query, setQuery, matches, draft, setDraft, visible };
+  const usage = useMemo(() => rowColumnsUsage(draft), [draft]);
+  const full = useMemo(
+    () => isFullFor(matches, visible, (key) => fitsRowColumns(usage, key)),
+    [matches, visible, usage],
+  );
+  return { query, setQuery, matches, draft, setDraft, visible, usage, full };
+}
+
+/** Some hidden match no longer fits the rows request. */
+function isFullFor(
+  matches: readonly ColumnPickerGroup[],
+  visible: ReadonlySet<string>,
+  fits: (key: string) => boolean,
+): boolean {
+  return columnKeysOf(matches).some((key) => !visible.has(key) && !fits(key));
 }
 
 /** Show all and Hide all act on every matching column, drawn or not. */
@@ -142,7 +158,7 @@ function MatchActions({ picker }: Readonly<{ picker: ColumnPickerDraft }>) {
     <div className="flex items-center gap-1 border-b px-2 py-1 text-xs">
       <PickerCount>{matchSummary(keys.length, picker.query)}</PickerCount>
       <BulkButton
-        disabled={keys.length === 0 || !canShowMoreColumns(picker.draft)}
+        disabled={keys.length === 0 || picker.full}
         onClick={update(showColumns)}
       >
         Show all
@@ -250,7 +266,7 @@ function ColumnOption({
     <label className="flex items-center gap-2 py-1 pr-3 pl-6 text-sm hover:bg-accent">
       <Checkbox
         checked={checked}
-        disabled={!checked && !canShowMoreColumns(picker.draft)}
+        disabled={!checked && !fitsRowColumns(picker.usage, column.key)}
         onCheckedChange={() =>
           picker.setDraft((draft) => toggleColumn(draft, column.key))
         }
@@ -282,7 +298,7 @@ function PickerFooter({ picker, catalog, visibleKeys, onApply }: FooterProps) {
   const { draft } = picker;
   return (
     <div className="flex items-center gap-2 border-t p-2 text-xs">
-      <PickerCount>{footerSummary(draft.length, catalog.length)}</PickerCount>
+      <PickerCount>{footerSummary(picker, catalog.length)}</PickerCount>
       <Button variant="ghost" size="sm" onClick={() => onApply([])}>
         Default
       </Button>
@@ -297,12 +313,15 @@ function PickerFooter({ picker, catalog, visibleKeys, onApply }: FooterProps) {
   );
 }
 
-function footerSummary(shown: number, total: number): string {
-  if (shown === 0) return "Choose at least one column";
-  if (shown >= MAX_SUBMISSION_GRID_ROW_COLUMNS) {
-    return `${shown} of ${total} shown (the most allowed)`;
-  }
-  return `${shown} of ${total} shown`;
+function footerSummary(
+  { draft, full }: ColumnPickerDraft,
+  total: number,
+): string {
+  if (draft.length === 0) return "Choose at least one column";
+  const shown = `${draft.length} of ${total} shown`;
+  return full
+    ? `${shown}. The view is full: hide a column to show another.`
+    : shown;
 }
 
 function sameKeys(a: readonly string[], b: readonly string[]): boolean {
