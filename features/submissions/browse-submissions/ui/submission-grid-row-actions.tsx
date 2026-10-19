@@ -129,13 +129,7 @@ function RowActionsContent({ row, onOpen }: Readonly<RowMenuProps>) {
 function RowOpenItems({ row, onOpen }: Readonly<RowMenuProps>) {
   return (
     <>
-      {isSubmissionEditable(row.collectionStatus) && (
-        <MenuLink
-          href={`/forms/${row.formId}/submissions/${row.id}/edit`}
-          icon={FilePenLine}
-          label="Edit"
-        />
-      )}
+      <EditItem row={row} />
       <MenuAction
         icon={LinkIcon}
         label="Share Links"
@@ -148,6 +142,20 @@ function RowOpenItems({ row, onOpen }: Readonly<RowMenuProps>) {
       />
       <DownloadFilesDropdownItem formId={row.formId} submissionId={row.id} />
     </>
+  );
+}
+
+function EditItem({ row }: Readonly<RowProps>) {
+  if (!isSubmissionEditable(row.collectionStatus)) {
+    return null;
+  }
+
+  return (
+    <MenuLink
+      href={`/forms/${row.formId}/submissions/${row.id}/edit`}
+      icon={FilePenLine}
+      label="Edit"
+    />
   );
 }
 
