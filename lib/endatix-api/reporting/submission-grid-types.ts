@@ -42,7 +42,6 @@ export interface ListSubmissionGridColumnsRequest {
   locale?: string;
 }
 
-/** Where a row's prepared data stands. */
 export type SubmissionGridRowState =
   | "prepared"
   | "stale"
