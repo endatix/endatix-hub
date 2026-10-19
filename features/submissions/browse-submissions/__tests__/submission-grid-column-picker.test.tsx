@@ -239,6 +239,9 @@ describe("SubmissionGridColumnPicker", () => {
 
     // Assert
     expect(isDisabled(heading)).toBe(true);
+    expect(
+      isDisabled(screen.getByRole("checkbox", { name: /^Question 500/ })),
+    ).toBe(true);
     expect(screen.getByText(/the view is full/i)).toBeTruthy();
   });
 
