@@ -59,26 +59,34 @@ export function SubmissionGridColumnPicker({
   catalog,
   disabled,
 }: Readonly<ColumnPickerProps>) {
-  const { open, setOpen, visibleKeys, apply } = useColumnPicker(catalog);
+  const { open, setOpen, visibleKeys, apply, isDefault, isPending } =
+    useColumnPicker(catalog);
+  const unavailable = disabled || catalog.length === 0 || isPending;
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="sm" disabled={disabled}>
+        <Button variant="outline" size="sm" disabled={unavailable}>
           <Settings2 />
           <span className="sr-only sm:not-sr-only">Columns</span>
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-80 p-0">
-        <ColumnPickerPanel {...{ catalog, visibleKeys }} onApply={apply} />
+        <ColumnPickerPanel
+          {...{ catalog, visibleKeys, isDefault }}
+          onApply={apply}
+        />
       </PopoverContent>
     </Popover>
   );
 }
 
-/** Apply writes the URL and closes; the rows reload with those columns. */
+/**
+ * Apply writes the URL and closes; the rows reload with those columns. The
+ * trigger waits for that load, so a reopened draft starts from them.
+ */
 function useColumnPicker(catalog: readonly AnswerColumn[]) {
   const [open, setOpen] = useState(false);
-  const { urlState, updateUrl } = useSubmissionGridUrl();
+  const { urlState, updateUrl, isPending } = useSubmissionGridUrl();
   const visibleKeys = useMemo(
     () =>
       resolveVisibleAnswerColumns(catalog, urlState.columns).map(
@@ -90,12 +98,14 @@ function useColumnPicker(catalog: readonly AnswerColumn[]) {
     updateUrl(columnsUpdate(keys));
     setOpen(false);
   };
-  return { open, setOpen, visibleKeys, apply };
+  const isDefault = urlState.columns === undefined;
+  return { open, setOpen, visibleKeys, apply, isDefault, isPending };
 }
 
 type PanelProps = {
   catalog: readonly AnswerColumn[];
   visibleKeys: readonly string[];
+  isDefault: boolean;
   /** No keys: back to the default view. */
   onApply: (keys: readonly string[]) => void;
 };
@@ -139,8 +149,12 @@ function useColumnPickerDraft({ catalog, visibleKeys }: Readonly<PanelProps>) {
     () => isFullFor(matches, visible, (key) => fitsRowColumns(usage, key)),
     [matches, visible, usage],
   );
+  // Bulk actions wait for the matches to catch up with what was typed.
+  const settled = query === deferredQuery;
   return {
     query,
+    deferredQuery,
+    settled,
     setQuery,
     matches,
     draft,
@@ -163,23 +177,27 @@ function isFullFor(
 
 /** Show all and Hide all act on every matching column, drawn or not. */
 function MatchActions({ picker }: Readonly<{ picker: ColumnPickerDraft }>) {
+  const { draft, visible, settled } = picker;
   const keys = columnKeysOf(picker.matches);
-  const show = (draft: readonly string[]) =>
-    showColumns(draft, keys, picker.order);
-  const update = (change: (draft: readonly string[]) => string[]) => () =>
-    picker.setDraft((draft) => change(draft));
+  const show = (current: readonly string[]) =>
+    showColumns(current, keys, picker.order);
+  const update = (change: (current: readonly string[]) => string[]) => () =>
+    picker.setDraft((current) => change(current));
+  const canHide = keys.some((key) => visible.has(key));
   return (
     <div className="flex items-center gap-1 border-b px-2 py-1 text-xs">
-      <PickerCount>{matchSummary(keys.length, picker.query)}</PickerCount>
+      <PickerCount>
+        {matchSummary(keys.length, picker.deferredQuery)}
+      </PickerCount>
       <BulkButton
-        disabled={keys.length === 0 || picker.full}
+        disabled={!settled || show(draft).length === draft.length}
         onClick={update(show)}
       >
         Show all
       </BulkButton>
       <BulkButton
-        disabled={keys.length === 0}
-        onClick={update((draft) => hideColumns(draft, keys))}
+        disabled={!settled || !canHide}
+        onClick={update((current) => hideColumns(current, keys))}
       >
         Hide all
       </BulkButton>
@@ -253,14 +271,16 @@ function GroupHeading({
 }: Readonly<{ group: ColumnPickerGroup; picker: ColumnPickerDraft }>) {
   const selection = groupSelection(group, picker.visible);
   const label = groupLabel(group);
-  const toggle = () =>
-    picker.setDraft(toggleGroup(group, selection, picker.order));
+  const change = toggleGroup(group, selection, picker.order);
+  const inert = change(picker.draft).length === picker.draft.length;
+  const toggle = () => picker.setDraft(change);
   return (
     <label className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-muted-foreground">
       <Checkbox
         aria-label={`Show all columns in ${label}`}
         checked={selection === "some" ? "indeterminate" : selection === "all"}
         onCheckedChange={toggle}
+        disabled={selection !== "all" && inert}
       />
       <span className="truncate" title={label}>
         {label}
@@ -320,12 +340,18 @@ function ColumnOptionText({ column }: Readonly<{ column: AnswerColumn }>) {
 
 type FooterProps = PanelProps & { picker: ColumnPickerDraft };
 
-function PickerFooter({ picker, catalog, visibleKeys, onApply }: FooterProps) {
+function PickerFooter(props: FooterProps) {
+  const { picker, catalog, visibleKeys, isDefault, onApply } = props;
   const { draft } = picker;
   return (
     <div className="flex items-center gap-2 border-t p-2 text-xs">
       <PickerCount>{footerSummary(picker, catalog.length)}</PickerCount>
-      <Button variant="ghost" size="sm" onClick={() => onApply([])}>
+      <Button
+        variant="ghost"
+        size="sm"
+        disabled={isDefault}
+        onClick={() => onApply([])}
+      >
         Default
       </Button>
       <Button
