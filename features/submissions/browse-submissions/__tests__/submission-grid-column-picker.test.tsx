@@ -46,18 +46,30 @@ const catalog = [
   column("phone", "Phone", "Contact"),
 ];
 
-function renderPicker(columns: string, columnsCatalog = catalog) {
+function renderClosed(
+  columns: string | undefined,
+  columnsCatalog = catalog,
+  isPending = false,
+) {
   vi.mocked(useSubmissionGridUrl).mockReturnValue({
     urlState: parseSubmissionGridUrl({ columns }),
     updateUrl,
-    isPending: false,
+    isPending,
     textFilters: {},
     setTextFilter: vi.fn(),
   });
   render(
     <SubmissionGridColumnPicker catalog={columnsCatalog} disabled={false} />,
   );
-  fireEvent.click(screen.getByRole("button", { name: /columns/i }));
+  return screen.getByRole("button", { name: /columns/i });
+}
+
+function renderPicker(columns: string | undefined, columnsCatalog = catalog) {
+  fireEvent.click(renderClosed(columns, columnsCatalog));
+}
+
+function isDisabled(element: HTMLElement): boolean {
+  return (element as HTMLButtonElement).disabled;
 }
 
 function search(query: string) {
@@ -197,6 +209,62 @@ describe("SubmissionGridColumnPicker", () => {
     )}`;
     expect(`GET ${target} HTTP/1.1\r\n`.length).toBeLessThanOrEqual(
       API_REQUEST_LINE_LIMIT,
+    );
+  });
+
+  it("offers Show all and Hide all only when they change something", () => {
+    // Arrange
+    renderPicker("q1,q2,email,phone");
+    const showAll = screen.getByRole("button", { name: "Show all" });
+    const hideAll = screen.getByRole("button", { name: "Hide all" });
+
+    // Act
+    fireEvent.click(hideAll);
+
+    // Assert
+    expect([isDisabled(showAll), isDisabled(hideAll)]).toEqual([false, true]);
+  });
+
+  it("disables a group heading that cannot show more once the view is full", () => {
+    // Arrange
+    const keys = Array.from({ length: 501 }, (_, index) => `q${index}`);
+    const full = keys.map((key, index) =>
+      column(key, `Question ${index}`, index === 500 ? "Extra" : null),
+    );
+    renderPicker(keys.slice(0, 500).join(","), full);
+    search("question 500");
+
+    // Act
+    const heading = screen.getByRole("checkbox", { name: /extra/i });
+
+    // Assert
+    expect(isDisabled(heading)).toBe(true);
+    expect(screen.getByText(/the view is full/i)).toBeTruthy();
+  });
+
+  it("cannot be opened while the form has no columns", () => {
+    // Act
+    const trigger = renderClosed(undefined, []);
+
+    // Assert
+    expect(isDisabled(trigger)).toBe(true);
+  });
+
+  it("cannot be opened while the grid is applying a change", () => {
+    // Act
+    const trigger = renderClosed("q1", catalog, true);
+
+    // Assert
+    expect(isDisabled(trigger)).toBe(true);
+  });
+
+  it("offers Default only when the view is not the default", () => {
+    // Act
+    renderPicker(undefined);
+
+    // Assert
+    expect(isDisabled(screen.getByRole("button", { name: "Default" }))).toBe(
+      true,
     );
   });
 });
