@@ -11,6 +11,7 @@ import type {
   AudienceImportResult,
   AudiencePerson,
   AudienceProperty,
+  OpenedTestSubmission,
 } from "./types";
 
 export type WireProperty = Omit<
@@ -27,6 +28,7 @@ export type WirePerson = {
   audienceMemberId: string | number;
   identifier: string;
   values: Record<string, string>;
+  isTest?: boolean;
 };
 
 export function mapProperty(wire: WireProperty): AudienceProperty {
@@ -52,6 +54,7 @@ export function mapPerson(wire: WirePerson): AudiencePerson {
     audienceMemberId: String(wire.audienceMemberId),
     identifier: wire.identifier,
     values: wire.values ?? {},
+    isTest: wire.isTest ?? false,
   };
 }
 
@@ -148,6 +151,21 @@ export function mapRedeemedLinkResult(
     ? ApiResult.success({
         ...response.data,
         submissionId: String(response.data.submissionId),
+      })
+    : response;
+}
+
+export type WireTestSubmission = Omit<OpenedTestSubmission, "submissionId"> & {
+  submissionId: string | number;
+};
+
+export function mapTestSubmissionResult(
+  response: ApiResult<WireTestSubmission>,
+): ApiResult<OpenedTestSubmission> {
+  return response.success
+    ? ApiResult.success({
+        submissionId: String(response.data.submissionId),
+        token: response.data.token,
       })
     : response;
 }

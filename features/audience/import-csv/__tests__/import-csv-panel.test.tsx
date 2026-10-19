@@ -50,8 +50,18 @@ function openWithFile() {
 
 const continueButton = () => screen.getByRole("button", { name: "Continue" });
 
+// Radix Checkbox measures with ResizeObserver.
+class ResizeObserverStub {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+
 describe("ImportCsvPanel", () => {
-  beforeEach(() => vi.mocked(importAudienceCsvAction).mockReset());
+  beforeEach(() => {
+    vi.stubGlobal("ResizeObserver", ResizeObserverStub);
+    vi.mocked(importAudienceCsvAction).mockReset();
+  });
 
   it("states the limits before a file, then what it read", async () => {
     openWithFile();
@@ -101,6 +111,7 @@ describe("ImportCsvPanel", () => {
         identifierColumn: "external_id",
         fileName: "panel.csv",
         propertyColumns: { age: "age" },
+        isTest: false,
       }),
     );
     await waitFor(() =>
@@ -129,5 +140,34 @@ describe("ImportCsvPanel", () => {
 
     expect(screen.queryByText("The CSV has no 'age' column.")).toBeNull();
     expect(screen.getByText("Identifier column")).toBeTruthy();
+  });
+
+  it("imports as test people, and the review says existing people are skipped", async () => {
+    vi.mocked(importAudienceCsvAction).mockResolvedValue(
+      Result.success({
+        importId: "9",
+        createdCount: 1,
+        updatedCount: 0,
+        skippedCount: 1,
+        rejectedCount: 0,
+        rejections: [],
+      }),
+    );
+    openWithFile();
+    await screen.findByText(/panel\.csv/);
+    fireEvent.click(continueButton());
+    fireEvent.click(continueButton());
+
+    expect(screen.getByText("Existing people are updated")).toBeTruthy();
+    fireEvent.click(
+      screen.getByRole("checkbox", { name: "Import as test people" }),
+    );
+    expect(screen.getByText("Existing people are skipped")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Import 2 rows" }));
+
+    await screen.findByText("Import finished");
+    expect(importAudienceCsvAction).toHaveBeenCalledWith(
+      expect.objectContaining({ isTest: true }),
+    );
   });
 });

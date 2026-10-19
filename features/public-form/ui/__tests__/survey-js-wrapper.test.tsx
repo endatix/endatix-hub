@@ -1,4 +1,6 @@
 import type { SurveyJsWrapperProps } from "@/features/public-form/ui/survey-js-wrapper";
+import type { Submission } from "@/lib/endatix-api";
+import { PersonalizationSource } from "@/lib/endatix-api/submissions/types";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import SurveyJsWrapper from "../survey-js-wrapper";
@@ -25,18 +27,17 @@ vi.mock(
   () => ({ startNewResponseAction: vi.fn() }),
 );
 
+vi.mock(
+  "@/features/public-form/application/actions/restart-test-submission.action",
+  () => ({ restartTestSubmissionAction: vi.fn() }),
+);
+
 vi.mock("next/dynamic", () => ({
   default: () =>
-    function MockSurveyComponent({
-      isRespondentTestMode,
-    }: {
-      isRespondentTestMode?: boolean;
-    }) {
+    function MockSurveyComponent({ testBadge }: { testBadge?: React.ReactNode }) {
       return (
         <>
-          {isRespondentTestMode ? (
-            <div data-testid="respondent-test-mode-badge">Test response - not counted</div>
-          ) : null}
+          {testBadge}
           <button data-testid="survey-component" type="button">
             Complete
           </button>
@@ -63,6 +64,29 @@ const defaultProps: SurveyJsWrapperProps = {
     variant: "share",
   },
 };
+
+function testRun(isComplete: boolean): Submission {
+  return {
+    id: "submission-21",
+    formId: "form-1",
+    formDefinitionId: "definition-1",
+    isComplete,
+    isTestSubmission: true,
+    jsonData: "{}",
+    currentPage: 0,
+    metadata: "{}",
+    token: "submission-token",
+    createdAt: new Date(),
+    modifiedAt: new Date(),
+    status: isComplete ? "completed" : "draft",
+    personalization: {
+      identifier: "tester@example.com",
+      capturedAt: "2026-10-19T00:00:00Z",
+      variables: {},
+      source: PersonalizationSource.Test,
+    },
+  };
+}
 
 describe("SurveyJsWrapper", () => {
   it("renders already responded when initial phase is blocked", () => {
@@ -151,7 +175,56 @@ describe("SurveyJsWrapper", () => {
     );
 
     expect(screen.getByTestId("respondent-test-mode-badge")).toBeDefined();
-    expect(screen.getByText("Test response - not counted")).toBeDefined();
+    expect(screen.queryByRole("button", { name: "Start over" })).toBeNull();
+  });
+
+  it("offers Start over in the badge on a test submission opened as a person", () => {
+    render(
+      <SurveyJsWrapper
+        {...defaultProps}
+        survey={{
+          ...defaultProps.survey,
+          isRespondentTestMode: true,
+          submission: testRun(false),
+        }}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Start over" })).toBeDefined();
+  });
+
+  it("replaces the cookie Start a new response with the badge on a finished test run", () => {
+    render(
+      <SurveyJsWrapper
+        {...defaultProps}
+        survey={{
+          ...defaultProps.survey,
+          submissionPhase: "completed",
+          canStartOver: true,
+          isRespondentTestMode: true,
+          submission: testRun(true),
+        }}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Start over" })).toBeDefined();
+    expect(screen.queryByText("Start a new response")).toBeNull();
+  });
+
+  it("badges a test submission for a respondent outside test mode, without Start over", () => {
+    render(
+      <SurveyJsWrapper
+        {...defaultProps}
+        survey={{
+          ...defaultProps.survey,
+          submissionPhase: "completed",
+          submission: testRun(true),
+        }}
+      />,
+    );
+
+    expect(screen.getByTestId("respondent-test-mode-badge")).toBeDefined();
+    expect(screen.queryByRole("button", { name: "Start over" })).toBeNull();
   });
 
   it("keeps the survey visible after client-side submit so SurveyJS can show its thank-you page", () => {

@@ -3,16 +3,19 @@
 import { AssetStorageClientProvider } from "@/features/asset-storage/client";
 import type { EmbedFormInfo } from "@/features/embed-form/types";
 import type { PublicSurveyRuntimeProps } from "@/features/public-form/types";
+import { testSubmissionMode } from "@/features/public-form/test-submission-mode";
 import {
   FormRuntimeProvider,
   useFormRuntime,
 } from "@/lib/form-runtime/form-runtime.context";
 import { useSurveyExtensions } from "@/lib/survey-extensions/ui/use-survey-extensions";
 import dynamic from "next/dynamic";
+import type { ReactNode } from "react";
 import AlreadyResponded from "./already-responded";
 import SubmissionAlreadyCompleted from "./submission-already-completed";
 import { StartNewResponseButton } from "./start-new-response-button";
 import SubmissionClosed from "./submission-closed";
+import { TestSubmissionBadge } from "./test-submission-badge";
 
 const SurveyComponent = dynamic(() => import("./survey-component"), {
   ssr: false,
@@ -22,6 +25,49 @@ export type SurveyJsWrapperProps = {
   extensionIdsToLoad?: string[];
   survey: PublicSurveyRuntimeProps;
 };
+
+/**
+ * The test badge, and which Start over the page offers: on a test submission opened as a person
+ * the badge's Start over replaces the cookie one, which would only forget the token.
+ */
+function testControls(survey: PublicSurveyRuntimeProps) {
+  const mode = testSubmissionMode(survey);
+  const submissionId = mode.startOverSubmissionId;
+  const startOver = submissionId
+    ? { formId: survey.formId, submissionId }
+    : undefined;
+  const badge = mode.showBadge ? (
+    <TestSubmissionBadge startOver={startOver} />
+  ) : null;
+  const cookieStartOver =
+    survey.canStartOver && !startOver ? (
+      <StartNewResponseButton formId={survey.formId} />
+    ) : null;
+  return { badge, cookieStartOver, testRunId: submissionId ?? undefined };
+}
+
+type TestControls = ReturnType<typeof testControls>;
+
+/** A completed or closed submission: its status page, with the test badge when it applies. */
+function FinishedSubmission({
+  survey,
+  controls,
+}: Readonly<{ survey: PublicSurveyRuntimeProps; controls: TestControls }>) {
+  const StatusPage =
+    survey.submissionPhase === "completed"
+      ? SubmissionAlreadyCompleted
+      : SubmissionClosed;
+  return (
+    <>
+      {controls.badge}
+      <StatusPage variant={survey.variant}>
+        {controls.cookieStartOver}
+      </StatusPage>
+    </>
+  );
+}
+
+type InnerProps = SurveyJsWrapperProps & { testBadge: ReactNode };
 
 const SurveyJsWrapper = (props: SurveyJsWrapperProps) => {
   const { survey } = props;
@@ -36,26 +82,18 @@ const SurveyJsWrapper = (props: SurveyJsWrapperProps) => {
     );
   }
 
-  const startOver = survey.canStartOver ? (
-    <StartNewResponseButton formId={survey.formId} />
-  ) : null;
-
-  if (survey.submissionPhase === "completed") {
-    return (
-      <SubmissionAlreadyCompleted variant={survey.variant}>
-        {startOver}
-      </SubmissionAlreadyCompleted>
-    );
+  const controls = testControls(survey);
+  if (
+    survey.submissionPhase === "completed" ||
+    survey.submissionPhase === "closed"
+  ) {
+    return <FinishedSubmission survey={survey} controls={controls} />;
   }
 
-  if (survey.submissionPhase === "closed") {
-    return (
-      <SubmissionClosed variant={survey.variant}>{startOver}</SubmissionClosed>
-    );
-  }
-
+  // Start over loads a new submission into the same page: remount so the survey starts empty.
   return (
     <FormRuntimeProvider
+      key={controls.testRunId}
       initialState={{
         formId: survey.formId,
         submissionId: survey.submission?.id,
@@ -64,14 +102,14 @@ const SurveyJsWrapper = (props: SurveyJsWrapperProps) => {
       }}
     >
       <AssetStorageClientProvider config={survey.storageConfig}>
-        <SurveyJsWrapperInner {...props} />
+        <SurveyJsWrapperInner {...props} testBadge={controls.badge} />
       </AssetStorageClientProvider>
     </FormRuntimeProvider>
   );
 };
 
-const SurveyJsWrapperInner = (props: SurveyJsWrapperProps) => {
-  const { extensionIdsToLoad, survey } = props;
+const SurveyJsWrapperInner = (props: InnerProps) => {
+  const { extensionIdsToLoad, survey, testBadge } = props;
   const { activeDefinition } = survey;
 
   const formRuntime = useFormRuntime();
@@ -107,7 +145,7 @@ const SurveyJsWrapperInner = (props: SurveyJsWrapperProps) => {
       customQuestions={activeDefinition.customQuestions}
       requiresReCaptcha={activeDefinition.requiresReCaptcha}
       isEmbed={survey.variant === "embed"}
-      isRespondentTestMode={survey.isRespondentTestMode}
+      testBadge={testBadge}
       embedForm={embedForm}
       onModelCreated={onModelCreated}
     />

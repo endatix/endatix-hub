@@ -17,6 +17,24 @@ describe("import labels", () => {
     );
   });
 
+  it("says a test import skipped the people already here", () => {
+    expect(
+      outcomeCounts(
+        {
+          importId: "1",
+          createdCount: 1,
+          updatedCount: 0,
+          skippedCount: 2,
+          rejectedCount: 0,
+          rejections: [],
+        },
+        { asTest: true },
+      ),
+    ).toBe(
+      "1 added as test people, 2 skipped because they are already on this form",
+    );
+  });
+
   it("says rows and sample values in words", () => {
     expect(rowCountLabel(1)).toBe("1 row");
     expect(sampleLabel(["London, UK", "Leeds"])).toBe(

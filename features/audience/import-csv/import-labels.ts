@@ -11,17 +11,30 @@ export function sampleLabel(values: readonly string[] | undefined): string {
   return `Values like ${values.join(" · ")}`;
 }
 
-const OUTCOME_PARTS: ReadonlyArray<[keyof AudienceImportResult, string]> = [
+type OutcomeParts = ReadonlyArray<[keyof AudienceImportResult, string]>;
+
+const OUTCOME_PARTS: OutcomeParts = [
   ["createdCount", "added"],
   ["updatedCount", "updated"],
   ["skippedCount", "already on this form with nothing to change"],
   ["rejectedCount", "rejected"],
 ];
 
+/** A test import never writes to people already here, so they are skipped, not "unchanged". */
+const TEST_OUTCOME_PARTS: OutcomeParts = [
+  ["createdCount", "added as test people"],
+  ["updatedCount", "updated"],
+  ["skippedCount", "skipped because they are already on this form"],
+  ["rejectedCount", "rejected"],
+];
+
 /** The counts the reader can act on, zeros left out: `18 added, 2 updated, 3 rejected`. */
-export function outcomeCounts(result: AudienceImportResult): string {
-  const parts = OUTCOME_PARTS.filter(([key]) => Number(result[key]) > 0).map(
-    ([key, label]) => `${Number(result[key]).toLocaleString()} ${label}`,
-  );
+export function outcomeCounts(
+  result: AudienceImportResult,
+  { asTest = false }: { asTest?: boolean } = {},
+): string {
+  const parts = (asTest ? TEST_OUTCOME_PARTS : OUTCOME_PARTS)
+    .filter(([key]) => Number(result[key]) > 0)
+    .map(([key, label]) => `${Number(result[key]).toLocaleString()} ${label}`);
   return parts.length > 0 ? parts.join(", ") : "Nothing changed";
 }

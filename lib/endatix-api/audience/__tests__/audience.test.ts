@@ -2,7 +2,11 @@ import { describe, expect, it, vi } from "vitest";
 import type { EndatixApi } from "../../endatix-api";
 import { ApiResult } from "../../shared/api-result";
 import { Audience, buildListAudiencePeopleEndpoint } from "../audience";
-import { AudienceDataType, AudienceIdentifierKind } from "../types";
+import {
+  AudienceDataType,
+  AudienceIdentifierKind,
+  AudiencePeopleTestFilter,
+} from "../types";
 
 const FORM_ID = "1525035735390879744";
 const MEMBERSHIP_ID = "1526934587983265792";
@@ -23,6 +27,19 @@ describe("buildListAudiencePeopleEndpoint", () => {
     expect(
       buildListAudiencePeopleEndpoint(FORM_ID, { page: 3, pageSize: 5_000 }),
     ).toBe(`/forms/${FORM_ID}/audience/people?page=3&pageSize=5000`);
+  });
+
+  it("sends the test filter, and leaves out the default all", () => {
+    expect(
+      buildListAudiencePeopleEndpoint(FORM_ID, {
+        test: AudiencePeopleTestFilter.Test,
+      }),
+    ).toBe(`/forms/${FORM_ID}/audience/people?page=1&pageSize=50&test=test`);
+    expect(
+      buildListAudiencePeopleEndpoint(FORM_ID, {
+        test: AudiencePeopleTestFilter.All,
+      }),
+    ).toBe(`/forms/${FORM_ID}/audience/people?page=1&pageSize=50`);
   });
 });
 
@@ -117,7 +134,29 @@ describe("Audience people", () => {
       audienceMemberId: "12",
       identifier: "Ext-ABC",
       values: { [PROPERTY_ID]: "Sales" },
+      isTest: false,
     });
+  });
+
+  it("sends isTest on create and reads it back", async () => {
+    const post = vi.fn().mockResolvedValue(
+      ApiResult.success({
+        membershipId: 11,
+        audienceMemberId: 12,
+        identifier: "tester@example.com",
+        values: {},
+        isTest: true,
+      }),
+    );
+    const body = { identifier: "tester@example.com", isTest: true };
+
+    const result = await audienceWith({ post }).createPerson(FORM_ID, body);
+
+    expect(post).toHaveBeenCalledWith(
+      `/forms/${FORM_ID}/audience/people`,
+      body,
+    );
+    expect(result.success && result.data.isTest).toBe(true);
   });
 
   it("puts values and deletes by membership id", async () => {
@@ -156,5 +195,58 @@ describe("Audience people", () => {
 
     expect(result.success && result.data.items[0].membershipId).toBe("11");
     expect(result.success && result.data.hasNextPage).toBe(false);
+  });
+});
+
+describe("Audience test submissions", () => {
+  const SUBMISSION_ID = "1526934587983265799";
+
+  it("opens a test submission for a person and maps the id to a string", async () => {
+    const post = vi
+      .fn()
+      .mockResolvedValue(ApiResult.success({ submissionId: 21, token: "t1" }));
+
+    const result = await audienceWith({ post }).openTestSubmission(
+      FORM_ID,
+      MEMBERSHIP_ID,
+    );
+
+    expect(post).toHaveBeenCalledWith(
+      `/forms/${FORM_ID}/audience/test-submissions`,
+      { membershipId: MEMBERSHIP_ID },
+    );
+    expect(result.success && result.data).toEqual({
+      submissionId: "21",
+      token: "t1",
+    });
+  });
+
+  it("starts a test submission over by its id", async () => {
+    const post = vi
+      .fn()
+      .mockResolvedValue(ApiResult.success({ submissionId: 22, token: "t2" }));
+
+    const result = await audienceWith({ post }).restartTestSubmission(
+      FORM_ID,
+      SUBMISSION_ID,
+    );
+
+    expect(post).toHaveBeenCalledWith(
+      `/forms/${FORM_ID}/audience/test-submissions/${SUBMISSION_ID}/restart`,
+      {},
+    );
+    expect(result.success && result.data.submissionId).toBe("22");
+  });
+
+  it("rejects an invalid submission id without calling the API", async () => {
+    const post = vi.fn();
+
+    const result = await audienceWith({ post }).restartTestSubmission(
+      FORM_ID,
+      "bad",
+    );
+
+    expect(post).not.toHaveBeenCalled();
+    expect(result.success).toBe(false);
   });
 });

@@ -2,6 +2,7 @@ import "server-only";
 
 import type { EndatixApi } from "@/lib/endatix-api";
 import {
+  type AudiencePeopleTestFilter,
   type AudiencePerson,
   type AudienceProperty,
   type AudienceSettings,
@@ -10,13 +11,17 @@ import type { AudiencePeoplePage } from "@/lib/endatix-api/audience/audience";
 import type { ApiResult } from "@/lib/endatix-api/shared/api-result";
 import { Result, toResult } from "@/lib/result";
 import type { MapApiResultToResultOptions } from "@/lib/result/map-api-result-to-result";
-import type { PeoplePaging } from "./parse-people-page";
+import type { PeopleQuery } from "./parse-people-page";
 
 export type AudiencePageData = {
   settings: AudienceSettings;
   canManageMatchKey: boolean;
   /** Whether this reader may add, change or remove people and properties (`forms.edit`). */
   canEdit: boolean;
+  /** Whether this reader may open a test submission as a person (`forms.test`). */
+  canTest: boolean;
+  /** The All / Real / Test filter the list was read with; `totalPeople` counts that set. */
+  testFilter: AudiencePeopleTestFilter;
   properties: AudienceProperty[];
   people: AudiencePerson[];
   totalPeople: number;
@@ -38,7 +43,7 @@ function unwrapPart<T>(apiResult: ApiResult<T>, label: string): Result<T> {
 function fetchAudienceParts(
   api: EndatixApi,
   formId: string,
-  paging: PeoplePaging,
+  paging: PeopleQuery,
 ) {
   return Promise.all([
     api.audience.getSettings(),
@@ -72,7 +77,7 @@ function combineParts(
 async function loadAudienceParts(
   api: EndatixApi,
   formId: string,
-  paging: PeoplePaging,
+  paging: PeopleQuery,
 ): Promise<Result<LoadedParts>> {
   const [settingsApi, propertiesApi, peopleApi] = await fetchAudienceParts(
     api,
@@ -86,15 +91,20 @@ async function loadAudienceParts(
   );
 }
 
-type Capabilities = Pick<AudiencePageData, "canManageMatchKey" | "canEdit">;
+type Capabilities = Pick<
+  AudiencePageData,
+  "canManageMatchKey" | "canEdit" | "canTest"
+>;
 
 function toPageData(
   parts: LoadedParts,
   capabilities: Capabilities,
+  testFilter: AudiencePeopleTestFilter,
 ): AudiencePageData {
   return {
     settings: parts.settings,
     ...capabilities,
+    testFilter,
     properties: parts.properties,
     people: [...parts.people.items],
     totalPeople: parts.people.totalRecords,
@@ -112,16 +122,14 @@ function toPageData(
 export type AudiencePageRequest = Capabilities & {
   api: EndatixApi;
   formId: string;
-  paging: PeoplePaging;
+  paging: PeopleQuery;
 };
 
 export async function loadAudiencePage(
   request: AudiencePageRequest,
 ): Promise<Result<AudiencePageData>> {
-  const { api, formId, paging, canManageMatchKey, canEdit } = request;
+  const { api, formId, paging, ...capabilities } = request;
   const parts = await loadAudienceParts(api, formId, paging);
   if (Result.isError(parts)) return parts;
-  return Result.success(
-    toPageData(parts.value, { canManageMatchKey, canEdit }),
-  );
+  return Result.success(toPageData(parts.value, capabilities, paging.test));
 }

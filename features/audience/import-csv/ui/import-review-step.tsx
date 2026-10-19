@@ -5,6 +5,7 @@ import { PanelSection } from "@/components/common/panel-section";
 import { SummaryRow } from "@/components/common/summary-row";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { identifierKindLabel } from "../../utils";
+import { TestPersonCheckbox } from "../../ui/test-person-checkbox";
 import { mappableColumns, SKIP_COLUMN } from "../column-map";
 import type {
   ImportCsvSetup,
@@ -55,19 +56,41 @@ function MappedRows({ wizard, setup }: Readonly<ReviewProps>) {
     ));
 }
 
+const UPDATE_NOTE = {
+  title: "Existing people are updated",
+  body: "A person already here gets the file's values, and an empty cell keeps the value they have.",
+};
+const TEST_NOTE = {
+  title: "Existing people are skipped",
+  body: "Only people new to this form are added, as test people. A person already here is skipped and keeps their values.",
+};
+
 /** The consequence, once: how a row meets the people already here (DESIGN.md §6). */
-function MatchingNote({ setup }: Readonly<Pick<ReviewProps, "setup">>) {
+function MatchingNote({ wizard, setup }: Readonly<Omit<ReviewProps, "file">>) {
   const matchedBy = identifierKindLabel(setup.identifierKind).toLowerCase();
+  const note = wizard.choices.asTest ? TEST_NOTE : UPDATE_NOTE;
   return (
     <Alert variant="info">
       <Info />
-      <AlertTitle>Existing people are updated</AlertTitle>
+      <AlertTitle>{note.title}</AlertTitle>
       <AlertDescription>
-        Rows are matched by {matchedBy}. A person already here gets the
-        file&apos;s values, and an empty cell keeps the value they have. A row
-        that fails a check is rejected, and the other rows still import.
+        Rows are matched by {matchedBy}. {note.body} A row that fails a check is
+        rejected, and the other rows still import.
       </AlertDescription>
     </Alert>
+  );
+}
+
+function ImportAsTest({ wizard }: Readonly<Pick<ReviewProps, "wizard">>) {
+  return (
+    <TestPersonCheckbox
+      id="import-as-test"
+      label="Import as test people"
+      help="Test people are never sent a personalised link. Use them to try the form with Test as this person."
+      checked={wizard.choices.asTest}
+      disabled={wizard.pending}
+      onCheckedChange={wizard.choices.setAsTest}
+    />
   );
 }
 
@@ -82,7 +105,8 @@ export function ImportReviewStep(props: Readonly<ReviewProps>) {
       >
         <ReviewRows {...props} />
       </PanelSection>
-      <MatchingNote setup={props.setup} />
+      <ImportAsTest wizard={props.wizard} />
+      <MatchingNote wizard={props.wizard} setup={props.setup} />
     </>
   );
 }

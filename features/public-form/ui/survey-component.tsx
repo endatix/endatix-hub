@@ -27,6 +27,7 @@ import {
   useRef,
   useTransition,
   type CSSProperties,
+  type ReactNode,
 } from "react";
 import {
   CompleteEvent,
@@ -43,7 +44,6 @@ import { Survey } from "survey-react-ui";
 import { TriangleAlert } from "lucide-react";
 import { useSubmissionQueue } from "../application/submission-queue";
 import { LanguageSelector } from "./language-selector";
-import { TestSubmissionBadge } from "./test-submission-badge";
 import styles from "./survey-component.module.css";
 import { useSurveyModel } from "./use-survey-model.hook";
 import { useSurveyTheme } from "./use-survey-theme.hook";
@@ -56,7 +56,8 @@ interface SurveyComponentProps {
   customQuestions?: string[];
   requiresReCaptcha?: boolean;
   isEmbed?: boolean;
-  isRespondentTestMode?: boolean;
+  /** The test badge the page decided on, or nothing for a real respondent. */
+  testBadge?: ReactNode;
   embedForm?: EmbedFormInfo;
   onModelCreated?: (model: Model) => void;
   onSubmitSuccess?: (result: SubmissionOperation) => void;
@@ -76,7 +77,7 @@ export default function SurveyComponent({
   customQuestions,
   requiresReCaptcha,
   isEmbed = false,
-  isRespondentTestMode,
+  testBadge,
   embedForm,
   onModelCreated,
   onSubmitSuccess,
@@ -391,7 +392,7 @@ export default function SurveyComponent({
         } as CSSProperties
       }
     >
-      {isRespondentTestMode && <TestSubmissionBadge />}
+      {testBadge}
       <LanguageSelector
         availableLocales={surveyLocales}
         surveyModel={surveyModel}

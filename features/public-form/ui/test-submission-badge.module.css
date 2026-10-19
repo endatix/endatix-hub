@@ -3,6 +3,12 @@
   right: 1rem;
   bottom: 1rem;
   z-index: 50;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  max-width: calc(100vw - 2rem);
 }
 
 .badge {
@@ -29,6 +35,49 @@
   width: 0.875rem;
   height: 0.875rem;
   flex-shrink: 0;
+}
+
+.action,
+.note {
+  box-sizing: border-box;
+  border-radius: 9999px;
+  box-shadow: 0 8px 24px rgb(0, 52, 94, 0.18);
+  font-size: 0.75rem;
+  font-family: inherit;
+  line-height: 1.25;
+}
+
+.action {
+  padding: 0.5rem 0.875rem;
+  border: 1px solid var(--warning, hsl(32 90% 46%));
+  background-color: var(--background, hsl(0 0% 100%));
+  color: var(--foreground, hsl(222 47% 11%));
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.action:hover:not(:disabled) {
+  background-color: var(--muted, hsl(210 40% 96%));
+}
+
+.action:focus-visible {
+  outline: 2px solid var(--ring, hsl(215 20% 65%));
+  outline-offset: 2px;
+}
+
+.action:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.note {
+  flex-basis: 100%;
+  max-width: min(22rem, calc(100vw - 2rem));
+  margin-left: auto;
+  padding: 0.5rem 0.875rem;
+  border-radius: 0.75rem;
+  background-color: var(--background, hsl(0 0% 100%));
+  color: var(--foreground, hsl(222 47% 11%));
 }
 
 :global(html.dark) .badge {

@@ -15,7 +15,7 @@ import type {
 } from "@/lib/endatix-api/audience/types";
 import { outcomeCounts } from "../import-labels";
 
-type ResultProps = { result: AudienceImportResult };
+type ResultProps = { result: AudienceImportResult; asTest?: boolean };
 
 const REJECTION_COLUMNS = [
   { key: "row", label: "Row", className: DATA_TABLE_SHRINK_WRAP_CLASS_NAME },
@@ -23,7 +23,7 @@ const REJECTION_COLUMNS = [
 ] as const;
 
 /** A batch with rejected rows is `warning`, never `success` (DESIGN.md §5 Status vocabulary). */
-function OutcomeAlert({ result }: Readonly<ResultProps>) {
+function OutcomeAlert({ result, asTest }: Readonly<ResultProps>) {
   const clean = result.rejectedCount === 0;
   const Icon = clean ? CircleCheckBig : TriangleAlert;
   return (
@@ -33,7 +33,7 @@ function OutcomeAlert({ result }: Readonly<ResultProps>) {
         {clean ? "Import finished" : "Import finished with rejected rows"}
       </AlertTitle>
       <AlertDescription>
-        {outcomeCounts(result)}.{" "}
+        {outcomeCounts(result, { asTest })}.{" "}
         {clean
           ? "The People list shows them."
           : "Fix the rejected rows in the file and import it again: people already imported are matched, not added twice."}
@@ -78,10 +78,10 @@ function RejectedRows({ result }: Readonly<ResultProps>) {
 }
 
 /** The outcome step: what happened, then the rows to fix. Shown in place, not as a toast. */
-export function ImportResultSummary({ result }: Readonly<ResultProps>) {
+export function ImportResultSummary({ result, asTest }: Readonly<ResultProps>) {
   return (
     <>
-      <OutcomeAlert result={result} />
+      <OutcomeAlert result={result} asTest={asTest} />
       <RejectedRows result={result} />
     </>
   );

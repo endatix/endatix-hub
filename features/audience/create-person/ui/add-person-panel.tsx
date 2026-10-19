@@ -8,6 +8,7 @@ import type {
 } from "@/lib/endatix-api/audience/types";
 import { PanelForm } from "@/components/common/panel-form";
 import { PersonValueFields } from "../../ui/person-value-fields";
+import { TestPersonCheckbox } from "../../ui/test-person-checkbox";
 import { identifierKindLabel } from "../../utils";
 import { useAddPerson } from "../use-add-person.hook";
 import { PersonIdentifierField } from "./person-identifier-field";
@@ -40,6 +41,33 @@ function panelProps({ identifierKind, properties }: AddPersonPanelProps) {
   };
 }
 
+function valueFieldProps({ properties }: AddPersonPanelProps) {
+  return {
+    idPrefix: "add-person",
+    description: "Optional. A field left empty is not set.",
+    properties,
+  };
+}
+
+type TestEditor = {
+  isTest: boolean;
+  setIsTest: (value: boolean) => void;
+  pending: boolean;
+};
+
+function AddAsTestField({ form }: Readonly<{ form: TestEditor }>) {
+  return (
+    <TestPersonCheckbox
+      id="add-person-test"
+      label="Add as test person"
+      help="A test person is never sent a personalised link. Use them to try the form with Test as this person."
+      checked={form.isTest}
+      disabled={form.pending}
+      onCheckedChange={form.setIsTest}
+    />
+  );
+}
+
 export function AddPersonPanel(props: Readonly<AddPersonPanelProps>) {
   const form = useAddPerson(props.formId);
   return (
@@ -51,12 +79,8 @@ export function AddPersonPanel(props: Readonly<AddPersonPanelProps>) {
       onSubmit={form.submit}
     >
       <PersonIdentifierField kind={props.identifierKind} form={form} />
-      <PersonValueFields
-        idPrefix="add-person"
-        description="Optional. A field left empty is not set."
-        properties={props.properties}
-        editor={form}
-      />
+      <PersonValueFields {...valueFieldProps(props)} editor={form} />
+      <AddAsTestField form={form} />
     </PanelForm>
   );
 }
