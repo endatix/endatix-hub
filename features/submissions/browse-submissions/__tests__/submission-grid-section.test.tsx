@@ -162,6 +162,20 @@ describe("SubmissionGridSection", () => {
     });
   });
 
+  it("hands the shell every answer column for the picker", async () => {
+    // Arrange
+    loads.columns.mockResolvedValue(READY);
+
+    // Act
+    const shell = await renderSection({ columns: "q2" });
+
+    // Assert
+    const catalogKeys = (shell.props.catalog as { key: string }[]).map(
+      (column) => column.key,
+    );
+    expect(catalogKeys).toEqual(["q1", "q2"]);
+  });
+
   it("offers Include in-progress only to users who may edit the form", async () => {
     // Arrange
     loads.columns.mockResolvedValue({
