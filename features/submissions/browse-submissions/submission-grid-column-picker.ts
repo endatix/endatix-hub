@@ -89,7 +89,9 @@ export function groupLabel(group: ColumnPickerGroup): string {
   return parts.length > 0 ? parts.join(" › ") : "Other";
 }
 
-export function countColumns(groups: readonly ColumnPickerGroup[]): number {
+export function countColumns(
+  groups: readonly { columns: readonly unknown[] }[],
+): number {
   return groups.reduce((total, group) => total + group.columns.length, 0);
 }
 
