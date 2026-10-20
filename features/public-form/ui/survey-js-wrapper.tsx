@@ -4,8 +4,14 @@ import { AssetStorageClientProvider } from "@/features/asset-storage/client";
 import type { EmbedFormInfo } from "@/features/embed-form/types";
 import type { PublicSurveyRuntimeProps } from "@/features/public-form/types";
 import {
+  StartOver,
+  startOverTarget,
+  TestInspector,
+} from "@/features/public-form/inspect-test-submission";
+import {
   isPersonTestSubmission,
-  testSubmissionMode,
+  testCornerFor,
+  testWriteToken,
 } from "@/features/public-form/test-submission-mode";
 import {
   FormRuntimeProvider,
@@ -13,12 +19,13 @@ import {
 } from "@/lib/form-runtime/form-runtime.context";
 import { useSurveyExtensions } from "@/lib/survey-extensions/ui/use-survey-extensions";
 import dynamic from "next/dynamic";
+import type { SurveyModel } from "survey-core";
 import AlreadyResponded from "./already-responded";
 import SubmissionAlreadyCompleted from "./submission-already-completed";
 import { StartNewResponseButton } from "./start-new-response-button";
 import SubmissionClosed from "./submission-closed";
-import type { TestSubmissionView } from "./survey-component";
-import { TestSubmissionBadge } from "./test-submission-badge";
+import type { RenderTestCorner, TestSubmissionView } from "./survey-component";
+import { TestSubmissionNotice } from "./test-submission-notice";
 
 const SurveyComponent = dynamic(() => import("./survey-component"), {
   ssr: false,
@@ -30,33 +37,50 @@ export type SurveyJsWrapperProps = {
 };
 
 /**
- * The test badge, and which Start over the page offers. A person's test submission never offers
- * the cookie one, which would only forget the token; a viewer with `forms.test` gets the badge's.
+ * The page's test corner. A tester gets the Test inspector, except in embeds, which keep the
+ * notice plus Start over. Every other viewer of a test page gets the notice; a real respondent nothing.
+ */
+function testCornerRenderer(
+  survey: PublicSurveyRuntimeProps,
+): RenderTestCorner {
+  const corner = testCornerFor(survey);
+  const view = survey.testInspector;
+  if (corner === "none") return () => null;
+  if (corner === "inspector" && view && survey.variant !== "embed") {
+    return function renderInspector(model: SurveyModel | null) {
+      return <TestInspector model={model} view={view} />;
+    };
+  }
+  const startOver = startOverTarget(view);
+  return function renderNotice() {
+    return (
+      <TestSubmissionNotice>
+        {startOver ? <StartOver startOver={startOver} /> : null}
+      </TestSubmissionNotice>
+    );
+  };
+}
+
+/**
+ * The test corner, and which Start over the page offers. A person's test submission never offers
+ * the cookie one, which would only forget the token; a viewer with `forms.test` gets the corner's.
  */
 function testControls(survey: PublicSurveyRuntimeProps) {
-  const mode = testSubmissionMode(survey);
-  const submissionId = mode.startOverSubmissionId;
-  const startOver = submissionId
-    ? { formId: survey.formId, submissionId }
-    : undefined;
-  const badge = mode.showBadge ? (
-    <TestSubmissionBadge startOver={startOver} />
-  ) : null;
   const cookieStartOver =
     survey.canStartOver && !isPersonTestSubmission(survey.submission) ? (
       <StartNewResponseButton formId={survey.formId} />
     ) : null;
   return {
-    badge,
+    renderCorner: testCornerRenderer(survey),
     cookieStartOver,
-    testSubmissionKey: submissionId ?? undefined,
-    writeToken: mode.writeToken,
+    testSubmissionKey: startOverTarget(survey.testInspector)?.submissionId,
+    writeToken: testWriteToken(survey),
   };
 }
 
 type TestControls = ReturnType<typeof testControls>;
 
-/** A completed or closed submission: its status page, with the test badge when it applies. */
+/** A completed or closed submission: its status page, with the test corner when it applies. */
 function FinishedSubmission({
   survey,
   controls,
@@ -67,7 +91,7 @@ function FinishedSubmission({
       : SubmissionClosed;
   return (
     <>
-      {controls.badge}
+      {controls.renderCorner(null)}
       <StatusPage variant={survey.variant}>
         {controls.cookieStartOver}
       </StatusPage>
@@ -115,7 +139,7 @@ const SurveyJsWrapper = (props: SurveyJsWrapperProps) => {
         <SurveyJsWrapperInner
           {...props}
           testSubmission={{
-            badge: controls.badge,
+            renderCorner: controls.renderCorner,
             writeToken: controls.writeToken,
           }}
         />

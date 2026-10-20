@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
+import { toTestInspectorView } from "@/features/public-form/inspect-test-submission/test-inspector-view";
 import type { Submission } from "@/lib/endatix-api";
 import { PersonalizationSource } from "@/lib/endatix-api/submissions/types";
-import { testSubmissionMode } from "../test-submission-mode";
+import {
+  canStartOverTestSubmission,
+  testCornerFor,
+  testWriteToken,
+} from "../test-submission-mode";
 
 function submission(overrides: Partial<Submission> = {}): Submission {
   return {
@@ -30,107 +35,112 @@ const testSubmission = submission({
   },
 });
 
-describe("testSubmissionMode", () => {
-  it("shows nothing on a real submission for a respondent", () => {
+const view = toTestInspectorView({
+  formId: "1",
+  submission: testSubmission,
+  canStartOver: true,
+});
+
+describe("testCornerFor", () => {
+  const pages = {
+    "test submission": {
+      isRespondentTestMode: false,
+      submission: testSubmission,
+    },
+    "test mode": { isRespondentTestMode: true, submission: undefined },
+    real: { isRespondentTestMode: false, submission: submission() },
+  } as const;
+  const progress = {
+    "in progress": false,
+    completed: true,
+  } as const;
+
+  const viewers = ["tester", "other viewer"] as const;
+  const expected = {
+    tester: {
+      "test submission": "inspector",
+      "test mode": "inspector",
+      real: "none",
+    },
+    "other viewer": {
+      "test submission": "notice",
+      "test mode": "notice",
+      real: "none",
+    },
+  } as const;
+  const rows = viewers.flatMap((viewer) =>
+    (Object.keys(pages) as (keyof typeof pages)[]).flatMap((page) =>
+      (Object.keys(progress) as (keyof typeof progress)[]).map((phase) => ({
+        viewer,
+        page,
+        phase,
+        corner: expected[viewer][page],
+      })),
+    ),
+  );
+
+  // The corner never depends on the phase: completed pages keep it, with no model.
+  it.each(rows)("a $viewer on a $page page, $phase: $corner", (row) => {
+    const { isRespondentTestMode, submission: loaded } = pages[row.page];
     expect(
-      testSubmissionMode({
-        isRespondentTestMode: false,
-        submission: submission(),
+      testCornerFor({
+        isRespondentTestMode,
+        submission: loaded && { ...loaded, isComplete: progress[row.phase] },
+        testInspector: row.viewer === "tester" ? view : null,
       }),
-    ).toEqual({ showBadge: false, startOverSubmissionId: null });
+    ).toBe(row.corner);
   });
+});
 
-  it("shows the badge in test mode without a submission", () => {
-    expect(testSubmissionMode({ isRespondentTestMode: true })).toEqual({
-      showBadge: true,
-      startOverSubmissionId: null,
-    });
-  });
-
-  it("shows the badge on a test submission even outside test mode", () => {
-    expect(
-      testSubmissionMode({
-        isRespondentTestMode: false,
-        submission: testSubmission,
-      }),
-    ).toEqual({
-      showBadge: true,
-      startOverSubmissionId: null,
-      writeToken: "t",
-    });
-  });
-
-  it("offers Start over on a person's test submission to a viewer who may test, even outside test mode", () => {
-    expect(
-      testSubmissionMode({
-        isRespondentTestMode: false,
-        canStartOverTest: true,
-        submission: testSubmission,
-      }),
-    ).toEqual({
-      showBadge: true,
-      startOverSubmissionId: "21",
-      writeToken: "t",
-    });
-  });
-
-  it("does not offer Start over to a viewer who may not test, even in test mode", () => {
-    expect(
-      testSubmissionMode({
-        isRespondentTestMode: true,
-        submission: testSubmission,
-      }).startOverSubmissionId,
-    ).toBeNull();
+describe("canStartOverTestSubmission", () => {
+  it("applies to a person's test submission from the cookie", () => {
+    expect(canStartOverTestSubmission({ submission: testSubmission })).toBe(
+      true,
+    );
   });
 
   it.each([
     PersonalizationSource.Link,
     PersonalizationSource.OnBehalf,
     undefined,
-  ])("does not offer Start over on a %s personalization", (source) => {
+  ])("does not apply to a %s personalization", (source) => {
     const other = submission({
       isTestSubmission: true,
       personalization: { ...testSubmission.personalization!, source },
     });
 
-    expect(
-      testSubmissionMode({ isRespondentTestMode: true, submission: other })
-        .startOverSubmissionId,
-    ).toBeNull();
+    expect(canStartOverTestSubmission({ submission: other })).toBe(false);
   });
 
-  it("does not offer Start over on a URL-token page, which ignores the cookie", () => {
+  it("does not apply on a URL-token page, which ignores the cookie", () => {
     expect(
-      testSubmissionMode({
-        isRespondentTestMode: true,
-        canStartOverTest: true,
+      canStartOverTestSubmission({
         submission: testSubmission,
         urlToken: "access-token",
-      }).startOverSubmissionId,
-    ).toBeNull();
+      }),
+    ).toBe(false);
   });
 
-  it("saves a person's test submission with its own token, not the form cookie", () => {
+  it("does not apply before the submission has an id", () => {
     expect(
-      testSubmissionMode({
-        isRespondentTestMode: false,
-        submission: testSubmission,
-      }).writeToken,
-    ).toBe("t");
+      canStartOverTestSubmission({
+        submission: { ...testSubmission, id: "" },
+      }),
+    ).toBe(false);
+  });
+});
+
+describe("testWriteToken", () => {
+  it("saves a person's test submission with its own token, not the form cookie", () => {
+    expect(testWriteToken({ submission: testSubmission })).toBe("t");
   });
 
   it("leaves every other page on the cookie or its URL token", () => {
-    const real = submission({ isTestSubmission: true });
     expect(
-      testSubmissionMode({ isRespondentTestMode: true, submission: real })
-        .writeToken,
+      testWriteToken({ submission: submission({ isTestSubmission: true }) }),
     ).toBeUndefined();
     expect(
-      testSubmissionMode({
-        isRespondentTestMode: false,
-        submission: testSubmission,
-        urlToken: "access",
-      }).writeToken,
+      testWriteToken({ submission: testSubmission, urlToken: "access" }),
     ).toBeUndefined();
   });
 });

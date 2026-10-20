@@ -4,7 +4,7 @@ import { restartTestSubmissionAction } from "@/features/public-form/application/
 import { Result } from "@/lib/result";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import styles from "./test-submission-badge.module.css";
+import styles from "./start-over.module.css";
 
 export type TestStartOver = { formId: string; submissionId: string };
 
@@ -22,28 +22,48 @@ async function restartOrFailure({ formId, submissionId }: TestStartOver) {
   }
 }
 
+export type StartOverControls = {
+  pending: boolean;
+  problem: string | null;
+  canRun: boolean;
+  run: () => void;
+};
+
 /**
  * Start over: the action swaps the form cookie to a new test submission and the page reloads on
  * it. Only "Person not found on this form." hides the button. A missing submission or form is
  * the same 404 and can be tried again.
+ *
+ * Pass null when this page has nothing to replace. The hook still has to run: the menu unmounts
+ * when it closes, and a "person removed" result has to outlive that.
  */
-function useStartOver(startOver: TestStartOver) {
+export function useStartOver(
+  startOver: TestStartOver | null,
+): StartOverControls {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [problem, setProblem] = useState<string | null>(null);
   const [personRemoved, setPersonRemoved] = useState(false);
   const run = () => {
+    if (!startOver) return;
     setProblem(null);
     startTransition(async () => {
-      const result = await restartOrFailure(startOver);
-      if (Result.isSuccess(result)) return router.refresh();
-      const removed =
-        result.statusCode === 404 && result.message === PERSON_NOT_ON_FORM;
-      setPersonRemoved(removed);
-      setProblem(removed ? PERSON_REMOVED : result.message);
+      const failure = await restartedFailure(startOver);
+      if (!failure) return router.refresh();
+      setPersonRemoved(failure.removed);
+      setProblem(failure.problem);
     });
   };
-  return { pending, problem, canRun: !personRemoved, run };
+  const canRun = startOver !== null && !personRemoved;
+  return { pending, problem, canRun, run };
+}
+
+async function restartedFailure(startOver: TestStartOver) {
+  const result = await restartOrFailure(startOver);
+  if (Result.isSuccess(result)) return null;
+  const removed =
+    result.statusCode === 404 && result.message === PERSON_NOT_ON_FORM;
+  return { removed, problem: removed ? PERSON_REMOVED : result.message };
 }
 
 function StartOverButton({
@@ -62,53 +82,14 @@ function StartOverButton({
   );
 }
 
-function StartOver({ startOver }: Readonly<{ startOver: TestStartOver }>) {
+export function StartOver({
+  startOver,
+}: Readonly<{ startOver: TestStartOver }>) {
   const { pending, problem, canRun, run } = useStartOver(startOver);
   return (
     <>
       {canRun ? <StartOverButton pending={pending} run={run} /> : null}
-      {problem ? (
-        <output className={styles.note}>{problem}</output>
-      ) : null}
+      {problem ? <output className={styles.note}>{problem}</output> : null}
     </>
-  );
-}
-
-const WARNING_ICON = (
-  <svg
-    aria-hidden="true"
-    className={styles.icon}
-    fill="none"
-    viewBox="0 0 16 16"
-  >
-    <path
-      d="M8 5.25V8.5M8 11h.007M7.07 2.76 1.34 12.5A1.07 1.07 0 0 0 2.27 14h11.46a1.07 1.07 0 0 0 .93-1.5L8.93 2.76a1.07 1.07 0 0 0-1.86 0Z"
-      stroke="currentColor"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth="1.5"
-    />
-  </svg>
-);
-
-/**
- * Corner indicator that the respondent is submitting a test submission. Positioned like the
- * Next.js dev overlay; on a test submission opened as a person it carries Start over.
- */
-export function TestSubmissionBadge({
-  startOver,
-}: Readonly<{ startOver?: TestStartOver }>) {
-  return (
-    <aside
-      aria-label="Test submission"
-      className={styles.anchor}
-      data-testid="respondent-test-mode-badge"
-    >
-      <span className={styles.badge}>
-        {WARNING_ICON}
-        You are submitting a test submission
-      </span>
-      {startOver ? <StartOver startOver={startOver} /> : null}
-    </aside>
   );
 }

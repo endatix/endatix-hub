@@ -2,7 +2,9 @@ import { getActiveDefinitionUseCase } from "@/features/public-form/use-cases/get
 import { getPartialSubmissionUseCase } from "@/features/public-form/use-cases/get-partial-submission.use-case";
 import { getPublicFormAccessUseCase } from "@/features/public-form/use-cases/get-public-form-access.use-case";
 import { loadPublicSurveyPageUseCase } from "@/features/public-form/use-cases/load-public-survey-page.use-case";
-import { viewerCanTestFormsUseCase } from "@/features/public-form/use-cases/viewer-can-test-forms.use-case";
+import { auth } from "@/auth";
+import { authorization } from "@/features/auth/authorization";
+import { getSubmissionByAccessTokenUseCase } from "@/features/public-submissions/edit/get-submission-by-access-token.use-case";
 import { ApiResult, type Submission } from "@/lib/endatix-api";
 import { PersonalizationSource } from "@/lib/endatix-api/submissions/types";
 import { Result } from "@/lib/result";
@@ -22,9 +24,24 @@ vi.mock(
   () => ({ getPublicFormAccessUseCase: vi.fn() }),
 );
 vi.mock(
-  "@/features/public-form/use-cases/viewer-can-test-forms.use-case",
-  () => ({ viewerCanTestFormsUseCase: vi.fn() }),
+  "@/features/public-submissions/edit/get-submission-by-access-token.use-case",
+  () => ({ getSubmissionByAccessTokenUseCase: vi.fn() }),
 );
+vi.mock("@/auth", () => ({ auth: vi.fn() }));
+vi.mock("@/lib/feature-flags", () => ({
+  personalizationFlag: vi.fn(async () => true),
+}));
+vi.mock("@/features/auth/authorization", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/features/auth/authorization")>()),
+  authorization: vi.fn(),
+}));
+
+/** The signed-in viewer may test forms, or not. */
+function viewerMayTest(allowed: boolean) {
+  vi.mocked(authorization).mockResolvedValue({
+    checkAllPermissions: vi.fn(async () => ({ success: allowed })),
+  } as never);
+}
 
 const formId = "form-1";
 const tokenStore = {} as never;
@@ -55,6 +72,13 @@ const personTestSubmission: Submission = {
   },
 };
 
+/** A URL-token page reads the definition from its submission. */
+const formDefinition = {
+  id: "definition-1",
+  formId,
+  jsonData: "{}",
+} as Submission["formDefinition"];
+
 describe("loadPublicSurveyPageUseCase on a person's test submission", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -79,25 +103,74 @@ describe("loadPublicSurveyPageUseCase on a person's test submission", () => {
     );
   });
 
-  it("lets a viewer with forms.test Start over, even when the API says no test mode", async () => {
+  it("gives a viewer with forms.test the Test inspector with Start over, even when the API says no test mode", async () => {
     vi.mocked(getPartialSubmissionUseCase).mockResolvedValue(
       ApiResult.success(personTestSubmission),
     );
-    vi.mocked(viewerCanTestFormsUseCase).mockResolvedValue(true);
+    viewerMayTest(true);
 
     const result = await loadPublicSurveyPageUseCase({ formId, tokenStore });
 
-    expect(result.kind === "success" && result.canStartOverTest).toBe(true);
+    expect(result.kind === "success" && result.testInspector).toMatchObject({
+      formId,
+      submissionId: "submission-21",
+      canStartOver: true,
+      submitter: { identifier: "tester@example.com" },
+    });
   });
 
-  it("does not check forms.test for a submission that is not a person's test submission", async () => {
+  it("gives any other viewer of a test submission no view, so the page shows only the notice", async () => {
+    vi.mocked(getPartialSubmissionUseCase).mockResolvedValue(
+      ApiResult.success(personTestSubmission),
+    );
+    viewerMayTest(false);
+
+    const result = await loadPublicSurveyPageUseCase({ formId, tokenStore });
+
+    expect(result.kind === "success" && result.testInspector).toBeNull();
+  });
+
+  it("never calls auth() for a real respondent", async () => {
     vi.mocked(getPartialSubmissionUseCase).mockResolvedValue(
       ApiResult.success(cookieSubmission),
     );
 
     const result = await loadPublicSurveyPageUseCase({ formId, tokenStore });
 
-    expect(result.kind === "success" && result.canStartOverTest).toBe(false);
-    expect(viewerCanTestFormsUseCase).not.toHaveBeenCalled();
+    expect(result.kind === "success" && result.testInspector).toBeNull();
+    expect(auth).not.toHaveBeenCalled();
+    expect(authorization).not.toHaveBeenCalled();
+  });
+
+  it("never calls auth() for a real respondent on a URL-token page", async () => {
+    vi.mocked(getSubmissionByAccessTokenUseCase).mockResolvedValue(
+      Result.success({ ...cookieSubmission, formDefinition }),
+    );
+
+    await loadPublicSurveyPageUseCase({
+      formId,
+      tokenStore,
+      urlToken: "access-token",
+    });
+
+    expect(auth).not.toHaveBeenCalled();
+  });
+
+  it("does not offer Start over on a URL-token test page, which ignores the cookie", async () => {
+    vi.mocked(getSubmissionByAccessTokenUseCase).mockResolvedValue(
+      Result.success({ ...personTestSubmission, formDefinition }),
+    );
+    viewerMayTest(true);
+
+    const result = await loadPublicSurveyPageUseCase({
+      formId,
+      tokenStore,
+      urlToken: "access-token",
+    });
+
+    expect(auth).toHaveBeenCalledTimes(1);
+    expect(result.kind === "success" && result.testInspector).toMatchObject({
+      canStartOver: false,
+    });
   });
 });

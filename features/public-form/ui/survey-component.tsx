@@ -48,8 +48,14 @@ import styles from "./survey-component.module.css";
 import { useSurveyModel } from "./use-survey-model.hook";
 import { useSurveyTheme } from "./use-survey-theme.hook";
 
-/** The badge to show, and the token saves go with instead of the form cookie's. */
-export type TestSubmissionView = { badge: ReactNode; writeToken?: string };
+/** Draws the test corner beside the survey; the completed and closed pages pass no model. */
+export type RenderTestCorner = (model: SurveyModel | null) => ReactNode;
+
+/** The test corner to draw, and the token saves go with instead of the form cookie's. */
+export type TestSubmissionView = {
+  renderCorner: RenderTestCorner;
+  writeToken?: string;
+};
 
 interface SurveyComponentProps {
   definition: string;
@@ -395,7 +401,7 @@ export default function SurveyComponent({
         } as CSSProperties
       }
     >
-      {testSubmission?.badge}
+      {testSubmission?.renderCorner(surveyModel)}
       <LanguageSelector
         availableLocales={surveyLocales}
         surveyModel={surveyModel}

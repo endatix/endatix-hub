@@ -35,7 +35,7 @@ what they came for. The UX pattern — two audiences, anatomy, tones, copy — i
 | `EmbedHeightReporter`                     | Posts iframe height for every embed status page                                         |
 | `EmbedAlreadyRespondedReporter`           | Tells the host page the respondent already responded                                    |
 | `PublicSurveySkeleton`                    | The loading state before any of the above resolves                                      |
-| `TestSubmissionBadge`, `LanguageSelector` | Chrome around a live survey — not status pages, listed so they are not mistaken for one |
+| `TestSubmissionNotice`, `TestInspector`, `LanguageSelector` | Chrome around a live survey — not status pages, listed so they are not mistaken for one |
 
 **Out of this family, on purpose:**
 

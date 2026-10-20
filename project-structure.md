@@ -154,6 +154,10 @@ Unauthenticated tenant sign-in / self-registration lives here, not under `platfo
 - `review-signup-request/` owns the decision: the approve, reject and retry actions, the review panel, the reviewer-name loader (`listSignupReviewers`), and `signup-request-state.ts`, the one mapping from decision and provisioning to tones, row badge and next step. The grid imports the state mapping and mounts the panel. It never decides itself. `SignupRequestView` (`review-signup-request/types.ts`) is what both render. `toSignupRequestView` (`signup-request-view.server.ts`) builds it for the list loader and every decision action: it drops the opaque `metadata` and keeps only the PostHog visitor reference. `load-signup-visitor.server.ts` turns that reference into the panel's Visitor section on demand, through `features/analytics/posthog/server/posthog-read-api.server.ts`. The panel calls `getSignupVisitorAction` after paint; a server action during render updates the router while the section is rendering. Keep Hub-only fields off `lib/endatix-api` types.
 - UX pattern: `DESIGN.md` §6 "Recipe: list page" (review queue) and "Recipe: review and decide", and "Evidence from third-party tools" for the Visitor section.
 
+### Test inspector (`features/public-form/inspect-test-submission`)
+
+The Shared Form's corner on a test page. `testCornerFor` (`features/public-form/test-submission-mode.ts`) is the one gate: inspector, notice, or none. The server checks `forms.test` only on a test page, so a real respondent's load never reaches `auth()`, and builds a `TestInspectorView` with `toTestInspectorView`, the only reader of the wire `Submission` for it. The slice exports the lazy `TestInspector` (its own chunk, requested only when a view arrives), `toTestInspectorView`, and `StartOver`; the trigger, menu and panels stay internal. `SurveyComponent` takes `renderCorner(model)`, so the inspector gets the model it sits beside. Embeds keep the plain notice plus Start over.
+
 ### Reporting export slices (`features/export`)
 
 Reporting export is a dedicated feature (not nested under `forms/` or `submissions/`). Slices map to API capabilities and UI surfaces:
