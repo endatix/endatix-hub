@@ -44,7 +44,6 @@ export type AnswerColumn = {
   kind: string;
   title: string;
   questionType: string | null;
-  /** The answer filter the column offers; `null` when it offers none. */
   filterType: SubmissionGridFilterType | null;
   placement: AnswerColumnPlacement;
 };
@@ -66,10 +65,6 @@ export function toAnswerColumns(
   }));
 }
 
-/**
- * Only search keys can be filtered. A submitter column keeps the profile
- * filters of the list instead.
- */
 function answerFilterType(
   column: SubmissionGridColumn,
 ): SubmissionGridFilterType | null {

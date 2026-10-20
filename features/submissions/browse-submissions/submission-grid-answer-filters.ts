@@ -35,7 +35,6 @@ export function answerFilterUrlKey(
   return `${URL_KEY_PREFIX}${operator}.${key}`;
 }
 
-/** The grid owns every `answer.` key, so a malformed one leaves the URL. */
 export function isAnswerFilterUrlKey(name: string): boolean {
   return name.startsWith(URL_KEY_PREFIX);
 }
@@ -81,7 +80,6 @@ export function applicableAnswerFilters(
   );
 }
 
-/** URL keys of the `contains` filters, for the one debounced text writer. */
 export function answerTextFilterUrlKeys(
   catalog: readonly AnswerColumn[],
 ): string[] {
@@ -90,7 +88,6 @@ export function answerTextFilterUrlKeys(
     .map((column) => answerFilterUrlKey("contains", column.key));
 }
 
-/** A date column's From/To bounds, as its header filter takes them. */
 export function answerDateFilter(
   filters: readonly SubmissionGridAnswerFilter[],
   key: string,
@@ -101,7 +98,6 @@ export function answerDateFilter(
   return { from: bound("from"), to: bound("to") };
 }
 
-/** Dropdown and radio answers are stored as the choice value, not its text. */
 export function matchesStoredChoiceValue(column: AnswerColumn): boolean {
   return CHOICE_QUESTION_TYPES.has(column.questionType ?? "");
 }

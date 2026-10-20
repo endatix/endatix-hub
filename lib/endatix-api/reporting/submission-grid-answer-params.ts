@@ -25,7 +25,6 @@ export function toAnswerParam({
   return `${operator}:${encodeURIComponent(key)}:${value}`;
 }
 
-/** What the `answer=` params cost on the wire, separators included. */
 export function answerParamsBytes(
   filters: readonly SubmissionGridAnswerFilter[],
 ): number {
@@ -34,7 +33,6 @@ export function answerParamsBytes(
   return params.toString().length;
 }
 
-/** The longest prefix of `filters` within the count and byte limits. */
 export function fitAnswerFilters(
   filters: readonly SubmissionGridAnswerFilter[],
 ): SubmissionGridAnswerFilter[] {

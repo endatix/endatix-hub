@@ -31,7 +31,6 @@ export type SubmissionGridRowsLoad =
   | {
       kind: "ready";
       page: SubmissionGridRowsPage;
-      /** Read without the answer filters: the form has no schema to filter by. */
       answerFiltersNotPrepared?: true;
     }
   | { kind: "error"; result: ResultError }
@@ -83,7 +82,6 @@ export function isReportingNotPrepared(result: ResultType<unknown>): boolean {
   );
 }
 
-/** Marks rows that were read again without their answer filters. */
 export function withAnswerFiltersNotPrepared(
   load: SubmissionGridRowsLoad,
 ): SubmissionGridRowsLoad {

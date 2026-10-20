@@ -42,10 +42,6 @@ export type LoadSubmissionGridRowsInput = {
   session: SessionData | undefined;
 };
 
-/**
- * One page of rows. When the form has no schema to filter answers by, the
- * page is read again without answer filters, so metadata filters still work.
- */
 export async function loadSubmissionGridRows(
   input: LoadSubmissionGridRowsInput,
 ): Promise<SubmissionGridRowsLoad> {

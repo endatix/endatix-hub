@@ -45,9 +45,7 @@ export type SubmissionGridColumnFilters = {
   onDateChange: (stem: SubmissionGridDateStem, value: DateFilterValue) => void;
   submitterDisplayId: TextFilter;
   submitterEmail: TextFilter;
-  /** "Contains" on a column whose filter type is `text`. */
   answerText: (column: AnswerColumn) => TextFilter;
-  /** From/To on a `date` or `datetime` column. */
   answerDate: (column: AnswerColumn) => DateFilter;
 };
 

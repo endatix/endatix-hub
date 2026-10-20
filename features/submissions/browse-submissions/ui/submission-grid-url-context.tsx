@@ -27,7 +27,6 @@ export type SubmissionGridUrl = {
 const SubmissionGridUrlContext = createContext<SubmissionGridUrl | null>(null);
 
 type SubmissionGridUrlProviderProps = {
-  /** The form's answer columns; each text one adds a debounced filter. */
   catalog: readonly AnswerColumn[];
   children: ReactNode;
 };

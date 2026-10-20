@@ -55,10 +55,6 @@ export async function SubmissionGridSection(
   return <SubmissionGrid {...{ formId, urlState, columns, ...access }} />;
 }
 
-/**
- * Answer filters the form cannot apply leave the URL, so it names what
- * shows. Without a schema none apply yet, so a link keeps them for later.
- */
 function parseGridUrl(
   searchParams: SubmissionGridRawSearchParams,
   { schemaReady, catalog }: ReadyColumns,
@@ -74,7 +70,6 @@ function parseGridUrl(
   };
 }
 
-/** The rows request: without a schema, no answer filter is sent. */
 function rowsUrlState(
   urlState: SubmissionGridUrlState,
   { schemaReady }: ReadyColumns,

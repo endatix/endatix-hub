@@ -21,7 +21,6 @@ export type DescribeGridReadinessInput = {
   schemaReady: boolean;
   readiness: SubmissionGridReadiness;
   canIncludeInProgress: boolean;
-  /** The URL has answer filters; with a schema, the rows' coverage banner speaks for them. */
   hasAnswerFilters?: boolean;
 };
 
@@ -61,10 +60,6 @@ const NO_SCHEMA_BANNER: GridReadinessBanner = {
   showIncludeInProgress: false,
 };
 
-/**
- * One banner speaks at a time: while answer filters are applied, the rows'
- * coverage banner counts the submissions they could not check.
- */
 export function describeGridReadiness({
   schemaReady,
   readiness,
@@ -109,9 +104,7 @@ function describeUnprepared(
 }
 
 export type DescribeRowsBannerInput = {
-  /** Set when the rows were read with answer filters. */
   coverage?: SubmissionGridAnswerFilterCoverage;
-  /** The form lost its schema, so the rows were read without answer filters. */
   answerFiltersNotPrepared?: boolean;
   canIncludeInProgress: boolean;
 };
@@ -125,10 +118,6 @@ const ANSWER_FILTERS_NOT_PREPARED_BANNER: GridReadinessBanner = {
   showIncludeInProgress: false,
 };
 
-/**
- * What one page of rows says about its answer filters: which submissions the
- * filters could not check, or that they were not applied at all.
- */
 export function describeRowsBanner({
   coverage,
   answerFiltersNotPrepared,
