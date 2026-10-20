@@ -92,7 +92,11 @@ type SubmissionGridProps = {
 function SubmissionGrid(props: Readonly<SubmissionGridProps>) {
   const { formId, urlState, columns, submitterLabel } = props;
   const { catalog, readiness } = columns;
-  const answerColumns = resolveVisibleAnswerColumns(catalog, urlState.columns);
+  const answerColumns = resolveVisibleAnswerColumns(
+    catalog,
+    urlState.columns,
+    urlState.answerFilters,
+  );
   const { canIncludeInProgress } = props;
   return (
     <SubmissionGridShell

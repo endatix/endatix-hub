@@ -8,8 +8,10 @@ import {
   parseAnswerFilters,
 } from "../submission-grid-answer-filters";
 import { buildListSubmissionGridRowsEndpoint } from "@/lib/endatix-api/reporting/submission-grid";
-import { fitRowColumns } from "@/lib/endatix-api/reporting/submission-grid-row-columns";
-import { toAnswerColumns } from "../submission-grid-columns";
+import {
+  resolveVisibleAnswerColumns,
+  toAnswerColumns,
+} from "../submission-grid-columns";
 
 /** Kestrel's default `MaxRequestLineSize`; the headroom covers metadata filters. */
 const KESTREL_MAX_REQUEST_LINE_BYTES = 8_192;
@@ -130,25 +132,33 @@ describe("applicableAnswerFilters", () => {
 describe("answer filters on the rows request line", () => {
   it("stays under the API's request line limit with the widest columns", () => {
     // Arrange
-    const columns = fitRowColumns(
-      Array.from({ length: 500 }, (_, i) => `question_${i}`),
+    const questions = Array.from({ length: 500 }, (_, i) =>
+      wireColumn({ key: `question_${i}` }),
     );
-    const catalog = toAnswerColumns(
-      Array.from({ length: 10 }, (_, i) => wireColumn({ key: `вопрос_${i}` })),
+    const texts = Array.from({ length: 10 }, (_, i) =>
+      wireColumn({ key: `вопрос_${i}` }),
     );
-    const filters = catalog.map((column) => ({
+    const catalog = toAnswerColumns([...questions, ...texts]);
+    const filters = texts.map((column) => ({
       operator: "contains" as const,
       key: column.key,
       value: "я".repeat(200),
     }));
 
     // Act
+    const answerFilters = applicableAnswerFilters(filters, catalog);
+    const columns = resolveVisibleAnswerColumns(
+      catalog,
+      catalog.map((column) => column.key),
+      answerFilters,
+    ).map((column) => column.key);
     const endpoint = buildListSubmissionGridRowsEndpoint("9007199254740993", {
       columns,
-      answerFilters: applicableAnswerFilters(filters, catalog),
+      answerFilters,
     });
 
     // Assert
+    expect(answerFilters.length).toBeGreaterThan(0);
     expect(`GET ${endpoint} HTTP/1.1`.length).toBeLessThanOrEqual(
       KESTREL_MAX_REQUEST_LINE_BYTES - 512,
     );

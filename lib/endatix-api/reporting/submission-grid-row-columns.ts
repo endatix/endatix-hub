@@ -26,13 +26,16 @@ export function fitsRowColumns(usage: RowColumnsUsage, key: string): boolean {
 
 /**
  * The longest prefix of `keys` the rows endpoint accepts after the keys
- * already requested (`after`).
+ * already requested (`after`), leaving `reservedBytes` to other params that
+ * share the budget.
  */
 export function fitRowColumns(
   keys: readonly string[],
   after: readonly string[] = [],
+  reservedBytes = 0,
 ): string[] {
-  let usage = rowColumnsUsage(after);
+  const used = rowColumnsUsage(after);
+  let usage = { ...used, bytes: used.bytes + reservedBytes };
   const fitted: string[] = [];
   for (const key of keys) {
     if (!fitsRowColumns(usage, key)) break;

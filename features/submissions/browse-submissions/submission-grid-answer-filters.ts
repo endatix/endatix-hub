@@ -1,6 +1,6 @@
 import type { DateFilterValue } from "@/components/table/date-filter-types";
+import { fitAnswerFilters } from "@/lib/endatix-api/reporting/submission-grid-answer-params";
 import {
-  MAX_SUBMISSION_GRID_ANSWER_FILTERS,
   MAX_SUBMISSION_GRID_CONTAINS_LENGTH,
   type SubmissionGridAnswerFilter,
   type SubmissionGridAnswerOperator,
@@ -64,7 +64,8 @@ export function answerFilterUrlEntries(
 
 /**
  * The filters the form's columns can apply: keys with a fitting filter type,
- * up to the API's limit. The rest would fail the whole request.
+ * up to the API's count and the request line's byte budget. The rest would
+ * fail the whole request.
  */
 export function applicableAnswerFilters(
   filters: readonly SubmissionGridAnswerFilter[],
@@ -73,9 +74,11 @@ export function applicableAnswerFilters(
   const filterTypes = new Map(
     catalog.map((column) => [column.key, column.filterType]),
   );
-  return filters
-    .filter(({ operator, key }) => operatorFits(operator, filterTypes.get(key)))
-    .slice(0, MAX_SUBMISSION_GRID_ANSWER_FILTERS);
+  return fitAnswerFilters(
+    filters.filter(({ operator, key }) =>
+      operatorFits(operator, filterTypes.get(key)),
+    ),
+  );
 }
 
 /** URL keys of the `contains` filters, for the one debounced text writer. */

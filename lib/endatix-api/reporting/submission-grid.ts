@@ -13,11 +13,11 @@ import {
 } from "../shared/query-params";
 import type { PagedResponse } from "../shared/types";
 import { appendSubmissionListFilters } from "../submissions/submission-list-query-params";
+import { toAnswerParam } from "./submission-grid-answer-params";
 import { toSubmissionGridRow } from "./submission-grid-rows-from-submissions";
 import type {
   ListSubmissionGridColumnsRequest,
   ListSubmissionGridRowsRequest,
-  SubmissionGridAnswerFilter,
   SubmissionGridAnswerFilterCoverage,
   SubmissionGridColumnsResponse,
   SubmissionGridRow,
@@ -73,14 +73,6 @@ export function buildListSubmissionGridRowsEndpoint(
     `/forms/${formId}/reporting/submissions`,
     searchParams,
   );
-}
-
-/**
- * `{operator}:{key}:{value}`. A schema key can hold `:`, so the key is
- * percent-encoded; the value is everything after the second `:`.
- */
-function toAnswerParam({ operator, key, value }: SubmissionGridAnswerFilter) {
-  return `${operator}:${encodeURIComponent(key)}:${value}`;
 }
 
 export class SubmissionGrid {
