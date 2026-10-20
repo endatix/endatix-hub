@@ -8,7 +8,7 @@ import {
   removeSearchKeyAction,
 } from "@/features/submissions/choose-filterable-questions/choose-filterable-questions.action";
 import type { SearchKeyChange } from "@/features/submissions/column-search";
-import { searchKeyOutcome } from "@/features/submissions/choose-filterable-questions/search-key-outcome";
+import { searchKeyOutcome } from "./search-key-outcome";
 
 const ACTIONS = {
   add: addSearchKeyAction,

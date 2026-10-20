@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { toast } from "@/components/ui/toast";
 import { Result } from "@/lib/result";
 import { removeSearchKeyAction } from "../choose-filterable-questions.action";
-import { SEARCH_KEYS_BUSY_MESSAGE } from "../search-key-outcome";
+import { SEARCH_KEYS_BUSY_MESSAGE } from "@/features/submissions/ui/search-key-outcome";
 import { FilterableQuestionsList } from "../ui/filterable-questions-list";
 
 const refresh = vi.fn();

@@ -4,7 +4,7 @@ import { Result } from "@/lib/result";
 import {
   SEARCH_KEYS_BUSY_MESSAGE,
   searchKeyOutcome,
-} from "../search-key-outcome";
+} from "@/features/submissions/ui/search-key-outcome";
 
 const RESPONSE: SubmissionGridSearchKeysResponse = {
   formId: "1",
