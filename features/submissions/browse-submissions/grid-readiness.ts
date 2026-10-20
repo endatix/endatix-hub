@@ -152,13 +152,16 @@ function uncheckedLines({
   uncheckedCompleted: completed,
   uncheckedInProgress: inProgress,
 }: SubmissionGridAnswerFilterCoverage): string[] {
-  const notChecked = "so the answer filters did not check them.";
   return [
     completed > 0 &&
-      `${submissions(completed)} completed ${verb(completed)} not prepared, ${notChecked}`,
+      `${submissions(completed)} completed ${verb(completed)} not prepared, ${notChecked(completed)}`,
     inProgress > 0 &&
-      `${submissions(inProgress)} in progress ${verb(inProgress)} not included, ${notChecked}`,
+      `${submissions(inProgress)} in progress ${verb(inProgress)} not included, ${notChecked(inProgress)}`,
   ].filter((line): line is string => typeof line === "string");
+}
+
+function notChecked(count: number): string {
+  return `so the answer filters did not check ${count === 1 ? "it" : "them"}.`;
 }
 
 function unpreparedLines({
