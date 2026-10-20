@@ -21,6 +21,8 @@ export type DescribeGridReadinessInput = {
   schemaReady: boolean;
   readiness: SubmissionGridReadiness;
   canIncludeInProgress: boolean;
+  /** The URL has answer filters; with a schema, the rows' coverage banner speaks for them. */
+  hasAnswerFilters?: boolean;
 };
 
 /**
@@ -47,6 +49,9 @@ function atLeastZero(count: number): number {
   return Math.max(0, count);
 }
 
+const ANSWER_FILTERS_NOT_APPLIED_LINE =
+  "The answer filters in this link are not applied until the form is prepared.";
+
 const NO_SCHEMA_BANNER: GridReadinessBanner = {
   title: "This form's reporting data is not prepared",
   lines: [
@@ -56,20 +61,34 @@ const NO_SCHEMA_BANNER: GridReadinessBanner = {
   showIncludeInProgress: false,
 };
 
+/**
+ * One banner speaks at a time: while answer filters are applied, the rows'
+ * coverage banner counts the submissions they could not check.
+ */
 export function describeGridReadiness({
   schemaReady,
   readiness,
   canIncludeInProgress,
+  hasAnswerFilters,
 }: DescribeGridReadinessInput): GridReadinessBanner | null {
   if (readiness.submissions === 0) {
     return null;
   }
 
   if (!schemaReady) {
-    return NO_SCHEMA_BANNER;
+    return hasAnswerFilters ? withFiltersNotApplied() : NO_SCHEMA_BANNER;
   }
 
-  return describeUnprepared(countUnprepared(readiness), canIncludeInProgress);
+  return hasAnswerFilters
+    ? null
+    : describeUnprepared(countUnprepared(readiness), canIncludeInProgress);
+}
+
+function withFiltersNotApplied(): GridReadinessBanner {
+  return {
+    ...NO_SCHEMA_BANNER,
+    lines: [...NO_SCHEMA_BANNER.lines, ANSWER_FILTERS_NOT_APPLIED_LINE],
+  };
 }
 
 function describeUnprepared(
