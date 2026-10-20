@@ -79,6 +79,8 @@ const READY: SubmissionGridColumnsLoad = {
   catalog: [answerColumn("q1"), answerColumn("q2")],
 };
 
+const SLOTS = { used: 52, max: 64, userUsed: 2, userMax: 14 };
+
 type Leaf = { type: string; props: Record<string, any> };
 
 async function renderSection(searchParams: Record<string, string> = {}) {
@@ -185,6 +187,25 @@ describe("SubmissionGridSection", () => {
     // Assert
     expect(shell.props.banner).toMatchObject({ showIncludeInProgress: false });
   });
+
+  it.each([
+    ["an editor", true, SLOTS, { canEdit: true, slots: SLOTS }],
+    ["a viewer", false, SLOTS, { canEdit: false, slots: SLOTS }],
+    ["an API without search keys", true, undefined, { canEdit: true }],
+  ])(
+    "hands the picker what %s may do about filterable columns",
+    async (_, canEdit, searchSlots, expected) => {
+      // Arrange
+      loads.columns.mockResolvedValue({ ...READY, searchSlots });
+      loads.canIncludeInProgress.mockResolvedValue(canEdit);
+
+      // Act
+      const shell = await renderSection();
+
+      // Assert
+      expect(shell.props.columnSearch).toEqual(expected);
+    },
+  );
 
   it("lets the coverage banner speak while answer filters are applied", async () => {
     // Arrange
