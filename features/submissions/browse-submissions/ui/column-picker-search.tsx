@@ -68,7 +68,7 @@ export function ColumnSearchSummary({
   access,
   changes,
 }: Readonly<PickerSearch>) {
-  if (!canChangeSearchKeys(access) || !access.slots) return null;
+  if (!access.canEdit || !access.slots) return null;
 
   return (
     <div className="flex items-center gap-1 border-t px-2 py-1 text-xs">
