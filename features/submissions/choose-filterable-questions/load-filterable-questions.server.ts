@@ -6,7 +6,6 @@ import type {
   SubmissionGridSearchSlots,
 } from "@/lib/endatix-api/reporting/submission-grid-types";
 import { reportingExportFlag } from "@/lib/feature-flags/flags";
-import type { Session } from "next-auth";
 import {
   Result,
   toResult,
@@ -20,7 +19,10 @@ import {
 
 /** The form's filterable questions, or why the settings leave them out. */
 export type FilterableQuestionsLoad =
-  /** Flag off, no reporting for the form, or an API that cannot choose keys. */
+  /**
+   * Flag off, no reporting for the form, no compiled schema yet, or an API
+   * that cannot choose keys.
+   */
   | { kind: "hidden" }
   /** Logged by `toResult`; kept whole so its support fields survive. */
   | { kind: "error"; result: ResultError }
@@ -45,14 +47,16 @@ export async function loadFilterableQuestions(
   }
 
   const session = await auth();
-  const api = new EndatixApi(session?.accessToken);
-  const [columns, canEdit] = await Promise.all([
-    api.reporting.submissionGrid.listColumns(formId),
-    canEditForm(session),
+  const { checkPermission } = await authorization(session);
+  const [columns, edit] = await Promise.all([
+    new EndatixApi(session?.accessToken).reporting.submissionGrid.listColumns(
+      formId,
+    ),
+    checkPermission(Permissions.Forms.Edit),
   ]);
   return resolveFilterableQuestionsLoad(
     toResult(columns, LOAD_FAILURE),
-    canEdit,
+    edit.success,
   );
 }
 
@@ -66,15 +70,9 @@ export function resolveFilterableQuestionsLoad(
       : { kind: "error", result };
   }
 
-  const { columns, searchSlots } = result.value;
-  if (!searchSlots) return { kind: "hidden" };
+  const { schemaReady, columns, searchSlots } = result.value;
+  if (!schemaReady || !searchSlots) return { kind: "hidden" };
 
   const questions = listFilterableQuestions(columns);
   return { kind: "ready", questions, slots: searchSlots, canEdit };
-}
-
-async function canEditForm(session: Session | null): Promise<boolean> {
-  const { checkPermission } = await authorization(session);
-  const result = await checkPermission(Permissions.Forms.Edit);
-  return result.success;
 }

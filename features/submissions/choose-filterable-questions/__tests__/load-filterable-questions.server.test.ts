@@ -102,6 +102,17 @@ describe("resolveFilterableQuestionsLoad", () => {
     expect(load).toEqual({ kind: "hidden" });
   });
 
+  it("hides the section until the form has a compiled schema", () => {
+    // Act
+    const load = resolveFilterableQuestionsLoad(
+      Result.success(columnsResponse({ schemaReady: false, columns: [] })),
+      true,
+    );
+
+    // Assert
+    expect(load).toEqual({ kind: "hidden" });
+  });
+
   it("hides the section when the form has no reporting (404)", () => {
     // Arrange
     const notFound = Result.error<SubmissionGridColumnsResponse>(

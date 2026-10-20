@@ -48,7 +48,7 @@ describe("FilterableQuestionsList", () => {
     expect(screen.getByText("Automatic")).toBeTruthy();
     expect(screen.getByText("Chosen")).toBeTruthy();
     expect(screen.getByText("Preparing")).toBeTruthy();
-    expect(screen.getByText(/52 of 64 filterable/)).toBeTruthy();
+    expect(screen.getByText(/52 of 64 questions are filterable/)).toBeTruthy();
     expect(screen.getByText(/2 of 14 chosen/)).toBeTruthy();
   });
 
@@ -69,6 +69,7 @@ describe("FilterableQuestionsList", () => {
     renderList(false);
 
     // Assert
+    expect(screen.queryByText(/add more/i)).toBeNull();
     expect(
       screen.queryByRole("button", { name: /from filterable columns/i }),
     ).toBeNull();
