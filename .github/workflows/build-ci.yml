@@ -134,13 +134,12 @@ jobs:
           SONAR_TOKEN: ${{ env.ENDATIX_HUB_REPO_SONAR_TOKEN }}
 
       # Fails the job on red bugs, vulnerabilities, hotspots or coverage; duplication
-      # only warns (endatix/endatix#1319). Reads the scanner's report-task.txt.
+      # only warns (endatix/endatix#1319). Same script as endatix/endatix.
       - name: 🚦 SonarCloud quality gate
         if: env.ENDATIX_HUB_REPO_SONAR_TOKEN != ''
         run: node scripts/sonar-gate.mjs
         env:
           SONAR_TOKEN: ${{ env.ENDATIX_HUB_REPO_SONAR_TOKEN }}
-          SONAR_REPORT_TASK: .scannerwork/report-task.txt
           SONAR_ADVISORY_METRICS: new_duplicated_lines_density
 
   # Build validation on PRs; canary release on main — publishes only after the

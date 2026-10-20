@@ -1,209 +1,118 @@
 import { describe, expect, it } from "vitest";
 import {
-  annotations,
   evaluateGate,
-  parseAdvisoryMetrics,
   parseReportTask,
-  summaryMarkdown,
+  sonarApiUrl,
 } from "../lib/sonar-gate.mjs";
+
+// Ported from endatix/endatix scripts/__tests__/sonar-gate.test.mjs; keep the two in step.
 
 const ADVISORY = ["new_duplicated_lines_density"];
 
 function condition(
   metricKey: string,
-  status: "OK" | "ERROR",
-  actualValue: string,
-  comparator = "GT",
+  status: string,
+  actualValue = "1",
   errorThreshold = "1",
 ) {
-  return {
-    status,
-    metricKey,
-    comparator,
-    periodIndex: 1,
-    errorThreshold,
-    actualValue,
-  };
+  return { metricKey, status, actualValue, errorThreshold, comparator: "GT" };
 }
 
-function sonarWay(overrides: Record<string, "OK" | "ERROR"> = {}) {
-  const status = (metric: string) => overrides[metric] ?? "OK";
-  const conditions = [
-    condition("new_reliability_rating", status("new_reliability_rating"), "1"),
-    condition("new_security_rating", status("new_security_rating"), "1"),
-    condition(
-      "new_maintainability_rating",
-      status("new_maintainability_rating"),
-      "1",
-    ),
-    condition(
-      "new_coverage",
-      status("new_coverage"),
-      status("new_coverage") === "ERROR" ? "70.4" : "85.0",
-      "LT",
-      "80",
-    ),
-    condition(
-      "new_duplicated_lines_density",
-      status("new_duplicated_lines_density"),
-      status("new_duplicated_lines_density") === "ERROR" ? "6.2" : "0.1",
-      "GT",
-      "3",
-    ),
-    condition(
-      "new_security_hotspots_reviewed",
-      status("new_security_hotspots_reviewed"),
-      "100.0",
-      "LT",
-      "100",
-    ),
-  ];
-  return {
-    status: conditions.some((c) => c.status === "ERROR") ? "ERROR" : "OK",
-    conditions,
-  };
-}
+// A gate red on duplication only.
+const DUPLICATION_ONLY = {
+  status: "ERROR",
+  conditions: [
+    condition("new_reliability_rating", "OK"),
+    condition("new_coverage", "OK", "93.5", "80"),
+    condition("new_duplicated_lines_density", "ERROR", "4.7", "3"),
+  ],
+};
 
 describe("evaluateGate", () => {
-  it("passes with a warning when duplication is the only red condition", () => {
+  it("passes a gate red only on duplication, with a warning", () => {
     // Act
-    const result = evaluateGate(
-      sonarWay({ new_duplicated_lines_density: "ERROR" }),
+    const verdict = evaluateGate(DUPLICATION_ONLY, ADVISORY);
+
+    // Assert
+    expect(verdict.passed).toBe(true);
+    expect(verdict.advisory.map((c) => c.metricKey)).toEqual([
+      "new_duplicated_lines_density",
+    ]);
+    expect(verdict.blocking).toEqual([]);
+  });
+
+  it("fails on a red coverage condition even next to an advisory one", () => {
+    // Arrange
+    const status = {
+      status: "ERROR",
+      conditions: [
+        ...DUPLICATION_ONLY.conditions,
+        condition("new_coverage", "ERROR", "61.0", "80"),
+      ],
+    };
+
+    // Act
+    const verdict = evaluateGate(status, ADVISORY);
+
+    // Assert
+    expect(verdict.passed).toBe(false);
+    expect(verdict.blocking.map((c) => c.metricKey)).toEqual(["new_coverage"]);
+    expect(verdict.advisory).toHaveLength(1);
+  });
+
+  it("passes a green gate with nothing to report", () => {
+    // Act
+    const verdict = evaluateGate(
+      { status: "OK", conditions: [condition("new_coverage", "OK")] },
       ADVISORY,
     );
 
     // Assert
-    expect(result.passed).toBe(true);
-    expect(result.failures).toEqual([]);
-    expect(result.warnings.map((c) => c.metricKey)).toEqual([
-      "new_duplicated_lines_density",
-    ]);
-    expect(annotations(result)).toEqual([
-      "::warning title=SonarCloud (advisory)::new_duplicated_lines_density = 6.2 (fails when > 3)",
-    ]);
+    expect(verdict).toEqual({ passed: true, blocking: [], advisory: [] });
   });
 
-  it("fails when coverage is red", () => {
-    // Act
-    const result = evaluateGate(sonarWay({ new_coverage: "ERROR" }), ADVISORY);
-
-    // Assert
-    expect(result.passed).toBe(false);
-    expect(result.failures.map((c) => c.metricKey)).toEqual(["new_coverage"]);
-    expect(annotations(result)).toEqual([
-      "::error title=SonarCloud quality gate::new_coverage = 70.4 (fails when < 80)",
-    ]);
-  });
-
-  it("fails on a red bug condition even when duplication is red too", () => {
-    // Act
-    const result = evaluateGate(
-      sonarWay({
-        new_reliability_rating: "ERROR",
-        new_duplicated_lines_density: "ERROR",
-      }),
-      ADVISORY,
-    );
-
-    // Assert
-    expect(result.passed).toBe(false);
-    expect(result.failures.map((c) => c.metricKey)).toEqual([
-      "new_reliability_rating",
-    ]);
-    expect(result.warnings.map((c) => c.metricKey)).toEqual([
-      "new_duplicated_lines_density",
-    ]);
-  });
-
-  it("passes with no annotations when the gate is OK", () => {
-    // Act
-    const result = evaluateGate(sonarWay(), ADVISORY);
-
-    // Assert
-    expect(result.passed).toBe(true);
-    expect(annotations(result)).toEqual([]);
-  });
-
-  it("fails when SonarCloud reports ERROR without a red condition", () => {
+  it("fails a red gate with no red condition, so an unknown failure is never waved through", () => {
     // Act & Assert
     expect(
       evaluateGate({ status: "ERROR", conditions: [] }, ADVISORY).passed,
     ).toBe(false);
   });
-
-  it("makes duplication fail when it is removed from the advisory list", () => {
-    // Act
-    const result = evaluateGate(
-      sonarWay({ new_duplicated_lines_density: "ERROR" }),
-      parseAdvisoryMetrics(""),
-    );
-
-    // Assert
-    expect(result.passed).toBe(false);
-  });
-});
-
-describe("parseAdvisoryMetrics", () => {
-  it("defaults to duplication when unset", () => {
-    // Act & Assert
-    expect(parseAdvisoryMetrics(undefined)).toEqual([
-      "new_duplicated_lines_density",
-    ]);
-  });
-
-  it("splits and trims a comma-separated list", () => {
-    // Act & Assert
-    expect(
-      parseAdvisoryMetrics(" new_duplicated_lines_density , new_coverage "),
-    ).toEqual(["new_duplicated_lines_density", "new_coverage"]);
-  });
 });
 
 describe("parseReportTask", () => {
-  it("reads the scanner's key=value lines, keeping '=' inside values", () => {
+  it("reads the key=value lines the scanner writes", () => {
+    // Arrange
+    const text = [
+      "organization=endatix",
+      "projectKey=endatix_endatix-hub",
+      "serverUrl=https://sonarcloud.io",
+      "dashboardUrl=https://sonarcloud.io/dashboard?id=endatix_endatix-hub&pullRequest=1160",
+      "ceTaskId=AZ1",
+      "ceTaskUrl=https://sonarcloud.io/api/ce/task?id=AZ1",
+    ].join("\n");
+
     // Act
-    const report = parseReportTask(
-      [
-        "organization=endatix",
-        "projectKey=endatix_endatix-hub",
-        "serverUrl=https://sonarcloud.io",
-        "dashboardUrl=https://sonarcloud.io/dashboard?id=endatix_endatix-hub&pullRequest=1",
-        "ceTaskId=AZ-task",
-        "",
-      ].join("\n"),
-    );
+    const task = parseReportTask(text);
 
     // Assert
-    expect(report.serverUrl).toBe("https://sonarcloud.io");
-    expect(report.ceTaskId).toBe("AZ-task");
-    expect(report.dashboardUrl).toBe(
-      "https://sonarcloud.io/dashboard?id=endatix_endatix-hub&pullRequest=1",
+    expect(task.ceTaskId).toBe("AZ1");
+    expect(task.ceTaskUrl).toBe("https://sonarcloud.io/api/ce/task?id=AZ1");
+    expect(task.dashboardUrl).toBe(
+      "https://sonarcloud.io/dashboard?id=endatix_endatix-hub&pullRequest=1160",
     );
   });
 });
 
-describe("summaryMarkdown", () => {
-  it("marks duplication as an advisory warning in the table", () => {
-    // Arrange
-    const result = evaluateGate(
-      sonarWay({ new_duplicated_lines_density: "ERROR" }),
-      ADVISORY,
-    );
-
-    // Act
-    const markdown = summaryMarkdown(
-      result,
-      ADVISORY,
-      "https://sonarcloud.io/dashboard?id=x",
-    );
-
-    // Assert
-    expect(markdown).toContain(
-      "### SonarCloud quality gate: ✅ Passed with warnings",
-    );
-    expect(markdown).toContain(
-      "| new_duplicated_lines_density (advisory) | 6.2 | > 3 | ⚠️ warning |",
-    );
-    expect(markdown).toContain("| new_coverage | 85.0 | < 80 | ✅ ok |");
+describe("sonarApiUrl", () => {
+  it("keeps the fixed host and puts report values in the query only", () => {
+    // Act & Assert
+    expect(
+      sonarApiUrl("https://sonarcloud.io", "/api/ce/task", {
+        id: "AZ1@evil.example/x?y",
+      }),
+    ).toBe("https://sonarcloud.io/api/ce/task?id=AZ1%40evil.example%2Fx%3Fy");
+    expect(() =>
+      sonarApiUrl("https://sonarcloud.io", "/api/ce/task", { id: undefined }),
+    ).toThrow(/no id/);
   });
 });
