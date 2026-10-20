@@ -54,7 +54,12 @@ type BodyProps = { wizard: ImportWizard; setup: ImportCsvSetup };
 
 function ActiveStep({ wizard, setup }: Readonly<BodyProps>) {
   const { step, file, result } = wizard;
-  if (step === "done") return result && <ImportResultSummary result={result} />;
+  if (step === "done")
+    return (
+      result && (
+        <ImportResultSummary result={result} asTest={wizard.choices.asTest} />
+      )
+    );
   if (step === "file" || !file) return <ImportFileStep wizard={wizard} />;
   const props = { wizard, setup, file };
   return step === "columns" ? (

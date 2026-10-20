@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   AudienceDataType,
   AudienceIdentifierKind,
+  AudiencePeopleTestFilter,
   type AudiencePerson,
   type AudienceProperty,
 } from "@/lib/endatix-api/audience/types";
@@ -33,6 +34,9 @@ vi.mock("../../import-csv/ui/import-csv-panel", () => ({
 vi.mock("../../delete-person/ui/remove-person-dialog", () => ({
   RemovePersonDialog: () => null,
 }));
+vi.mock("../../test-as-person/open-test-submission.action", () => ({
+  openTestSubmissionAction: vi.fn(),
+}));
 
 const textProperty = (
   id: string,
@@ -53,6 +57,27 @@ const PERSON: AudiencePerson = {
   audienceMemberId: "7",
   identifier: "CG-000003-01",
   values: { city: "Sofia", ext: "CG-000003-01" },
+  isTest: false,
+};
+
+const TEST_PERSON: AudiencePerson = {
+  membershipId: "10",
+  audienceMemberId: "8",
+  identifier: "tester@example.com",
+  values: {},
+  isTest: true,
+};
+
+const LIST = {
+  formId: "1",
+  identifierKind: AudienceIdentifierKind.Email,
+  properties: [] as AudienceProperty[],
+  totalPeople: 2,
+  page: 1,
+  pageSize: 50,
+  totalPages: 1,
+  hasNextPage: false,
+  testFilter: AudiencePeopleTestFilter.All,
 };
 
 // Radix tooltips (the identifier's copy affordance) measure with ResizeObserver.
@@ -79,16 +104,13 @@ describe("PeopleSection", () => {
     ];
     render(
       <PeopleSection
-        formId="1"
+        {...LIST}
         identifierKind={AudienceIdentifierKind.ExternalId}
         properties={properties}
         people={[PERSON]}
         totalPeople={1}
-        page={1}
-        pageSize={50}
-        totalPages={1}
-        hasNextPage={false}
         canEdit
+        canTest={false}
       />,
     );
 
@@ -126,5 +148,53 @@ describe("PeopleSection", () => {
         values: { city: "Plovdiv" },
       }),
     );
+  });
+
+  it("badges test people and offers Test as this person with forms.test alone", () => {
+    render(
+      <PeopleSection
+        {...LIST}
+        people={[PERSON, TEST_PERSON]}
+        canEdit={false}
+        canTest
+      />,
+    );
+
+    const rows = screen.getAllByRole("row").slice(1);
+    expect(rows[0].textContent).not.toContain("Test");
+    expect(rows[1].textContent).toContain("Test");
+    expect(
+      screen.getByRole("button", {
+        name: "Test as this person: tester@example.com",
+      }),
+    ).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /^Remove / })).toBeNull();
+  });
+
+  it("leaves out Test as this person without forms.test", () => {
+    render(
+      <PeopleSection {...LIST} people={[PERSON]} canEdit canTest={false} />,
+    );
+
+    expect(screen.queryByRole("button", { name: /^Test as this person/ })).toBeNull();
+  });
+
+  it("says the filter found nobody, with a way back to everyone", () => {
+    render(
+      <PeopleSection
+        {...LIST}
+        people={[]}
+        totalPeople={0}
+        testFilter={AudiencePeopleTestFilter.Test}
+        canEdit
+        canTest
+      />,
+    );
+
+    expect(screen.getByText("No test people")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Clear filters" })).toBeTruthy();
+    expect(
+      screen.getByRole("combobox", { name: "Filter people by test or real" }),
+    ).toBeTruthy();
   });
 });

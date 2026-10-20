@@ -35,6 +35,7 @@ const PERSON: AudiencePerson = {
   audienceMemberId: "7",
   identifier: "ada@example.com",
   values: { a: "Sofia", b: "Sales" },
+  isTest: false,
 };
 
 // Radix tooltips (the identifier's copy affordance) measure with ResizeObserver.

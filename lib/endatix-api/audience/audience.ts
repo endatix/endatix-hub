@@ -10,8 +10,10 @@ import {
   formAudiencePath,
   mapImportResult,
   mapRedeemedLinkResult,
+  mapTestSubmissionResult,
   type WireImport,
   type WireRedeemedLink,
+  type WireTestSubmission,
   mapPeoplePageResult,
   mapPersonResult,
   mapProperty,
@@ -23,6 +25,7 @@ import {
 } from "./mappers";
 import {
   AudiencePaging,
+  AudiencePeopleTestFilter,
   type AudiencePerson,
   type AudienceProperty,
   type AudienceImportResult,
@@ -34,6 +37,7 @@ import {
   type UpdateAudiencePropertyRequest,
   type ImportAudienceCsvRequest,
   type IssuedAudienceLink,
+  type OpenedTestSubmission,
   type RedeemedAudienceLink,
   type UpdateAudienceSettingsRequest,
 } from "./types";
@@ -52,6 +56,9 @@ export function buildListAudiencePeopleEndpoint(
     page: DEFAULT_PAGE,
     pageSize: AudiencePaging.DefaultPageSize,
   });
+  if (request.test && request.test !== AudiencePeopleTestFilter.All) {
+    searchParams.set("test", request.test);
+  }
   return buildEndpointWithQuery(
     formAudiencePath(formId, "people"),
     searchParams,
@@ -248,6 +255,50 @@ export class Audience {
         formAudiencePath(formId, "links", encodeURIComponent(token), "redeem"),
         {},
         { requireAuth: false },
+      ),
+    );
+  }
+
+  /** Test as this person: a new test submission on the current definition and their current values. */
+  async openTestSubmission(
+    formId: string,
+    membershipId: string,
+  ): Promise<ApiResult<OpenedTestSubmission>> {
+    const idsCheck = requireFormAndEntityIds(
+      formId,
+      membershipId,
+      "membershipId",
+    );
+    if (!idsCheck.success) return idsCheck;
+
+    return mapTestSubmissionResult(
+      await this.endatix.post<WireTestSubmission>(
+        formAudiencePath(formId, "test-submissions"),
+        { membershipId },
+      ),
+    );
+  }
+
+  /**
+   * Start over: deletes the test submission and opens a new one for the same person. `token` is
+   * the one the test submission was opened with; the API refuses any other.
+   */
+  async restartTestSubmission(
+    formId: string,
+    submissionId: string,
+    token: string,
+  ): Promise<ApiResult<OpenedTestSubmission>> {
+    const idsCheck = requireFormAndEntityIds(
+      formId,
+      submissionId,
+      "submissionId",
+    );
+    if (!idsCheck.success) return idsCheck;
+
+    return mapTestSubmissionResult(
+      await this.endatix.post<WireTestSubmission>(
+        formAudiencePath(formId, "test-submissions", submissionId, "restart"),
+        { token },
       ),
     );
   }

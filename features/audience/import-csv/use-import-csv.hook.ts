@@ -54,6 +54,7 @@ const NO_CHOICES: ChoiceState = {
   identifierColumn: "",
   suggestedIdentifier: "",
   columns: {},
+  asTest: false,
 };
 const UNREADABLE = "The file could not be read. Save it as CSV and try again.";
 const REJECTED = "Something went wrong. Try again.";
@@ -97,6 +98,8 @@ type ChoiceState = {
   /** The column the file's names suggested, so the field can say where its value came from. */
   suggestedIdentifier: string;
   columns: ColumnMap;
+  /** Import as test people: only people new to the form are added, as test people. */
+  asTest: boolean;
 };
 
 function withColumn(
@@ -124,6 +127,7 @@ function suggestedChoices(
     identifierColumn: identifier,
     suggestedIdentifier: identifier,
     columns,
+    asTest: false,
   };
 }
 
@@ -137,6 +141,8 @@ function useColumnChoices(setup: ImportCsvSetup) {
       setState((current) => withColumn(current, column, variableName)),
     chooseIdentifier: (column: string) =>
       setState((current) => withIdentifier(current, column)),
+    setAsTest: (asTest: boolean) =>
+      setState((current) => ({ ...current, asTest })),
   };
 }
 
@@ -206,6 +212,7 @@ function importInput(
     fileName: file.name,
     identifierColumn: choices.identifierColumn,
     propertyColumns: propertyColumnMap(choices.columns),
+    isTest: choices.asTest,
   };
 }
 

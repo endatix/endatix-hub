@@ -7,20 +7,23 @@ import {
   DataTableSurface,
   PagedTableFooter,
 } from "@/components/table";
-import type {
-  AudienceIdentifierKind,
-  AudiencePerson,
-  AudienceProperty,
+import {
+  AudiencePeopleTestFilter,
+  type AudienceIdentifierKind,
+  type AudiencePerson,
+  type AudienceProperty,
 } from "@/lib/endatix-api/audience/types";
 import { useUrlSearchParamsUpdater } from "@/lib/utils/hooks/use-url-search-params-updater.hook";
 import { AddPersonPanel } from "../../create-person/ui/add-person-panel";
 import { GenerateLinksPanel } from "../../generate-links/ui/generate-links-panel";
 import { ImportCsvPanel } from "../../import-csv/ui/import-csv-panel";
 import { RemovePersonDialog } from "../../delete-person/ui/remove-person-dialog";
+import { useTestAsPerson } from "../../test-as-person/use-test-as-person.hook";
 import { EditPersonPanel } from "../../update-person/ui/edit-person-panel";
 import { useRowOverlay } from "../../use-panel-state.hook";
 import { valueProperties } from "../../utils";
-import { PeopleTable } from "./people-table";
+import { PeopleTable, type RowHandlers } from "./people-table";
+import { PeopleTestFilter } from "./people-test-filter";
 import { SectionHeader } from "./section-header";
 
 type PeopleSectionProps = {
@@ -35,15 +38,15 @@ type PeopleSectionProps = {
   hasNextPage: boolean;
   /** Without `forms.edit` the list is read-only: no add, edit or remove controls. */
   canEdit: boolean;
+  /** With `forms.test` each row offers Test as this person. */
+  canTest: boolean;
+  /** All / Real / Test; `totalPeople` counts the filtered set. */
+  testFilter: AudiencePeopleTestFilter;
   viewSwitch?: ReactNode;
   /** The locked match key, said once where people are listed. */
   matchKeyNote?: ReactNode;
 };
 
-type RowTargets = {
-  onEdit: (person: AudiencePerson) => void;
-  onRemove: (person: AudiencePerson) => void;
-};
 type Paging = Pick<
   PeopleSectionProps,
   "page" | "pageSize" | "totalPeople" | "totalPages" | "hasNextPage"
@@ -69,16 +72,54 @@ function PeoplePager(props: Readonly<Paging>) {
   );
 }
 
-type PeopleSurfaceProps = PeopleSectionProps & { handlers?: RowTargets };
+type PeopleSurfaceProps = PeopleSectionProps & { handlers: RowHandlers };
+
+const FILTERED_EMPTY: Record<string, { title: string; body: string }> = {
+  [AudiencePeopleTestFilter.Real]: {
+    title: "No real people",
+    body: "No person on this form is a real person.",
+  },
+  [AudiencePeopleTestFilter.Test]: {
+    title: "No test people",
+    body: "No person on this form is a test person. Add a test person, or import people as test people, to try the form as them.",
+  },
+};
+
+/** Nobody matches the Real or Test filter; Clear filters goes back to everyone. */
+function FilteredEmpty({
+  title,
+  body,
+}: Readonly<{ title: string; body: string }>) {
+  const { updateUrl } = useUrlSearchParamsUpdater();
+  return (
+    <DataTableEmpty
+      icon={Users}
+      title={title}
+      onClearFilters={() => updateUrl({ test: null, page: "1" })}
+    >
+      {body}
+    </DataTableEmpty>
+  );
+}
+
+function PeopleEmpty({
+  testFilter,
+}: Readonly<Pick<PeopleSectionProps, "testFilter">>) {
+  const filtered = FILTERED_EMPTY[testFilter];
+  if (filtered) return <FilteredEmpty {...filtered} />;
+  return (
+    <DataTableEmpty icon={Users} title="No people yet">
+      Add the people this form is for, one at a time or from a CSV file. Each
+      person can have their own value for every property.
+    </DataTableEmpty>
+  );
+}
 
 function PeopleSurface(props: Readonly<PeopleSurfaceProps>) {
   return (
     <DataTableSurface data-slot="audience-people-table">
       {props.totalPeople === 0 ? (
-        <DataTableEmpty icon={Users} title="No people yet">
-          Add the people this form is for, one at a time or from a CSV file.
-          Each person can have their own value for every property.
-        </DataTableEmpty>
+        <PeopleEmpty testFilter={props.testFilter} />
       ) : (
         <>
           <PeopleTable {...props} />
@@ -152,19 +193,37 @@ function PeopleHeader(props: Readonly<PeopleSectionProps>) {
   );
 }
 
+/** Row actions this reader may run: edit and remove with `forms.edit`, test with `forms.test`. */
+function useRowHandlers(
+  props: Readonly<PeopleSectionProps>,
+  row: Overlays,
+): RowHandlers {
+  const testAs = useTestAsPerson(props.formId);
+  return {
+    ...(props.canEdit ? { onEdit: row.edit, onRemove: row.remove } : {}),
+    ...(props.canTest ? { onTest: testAs } : {}),
+  };
+}
+
+/** The filter shows once there is someone to filter, and stays while a filter is on. */
+function showsTestFilter({ totalPeople, testFilter }: PeopleSectionProps) {
+  return totalPeople > 0 || testFilter !== AudiencePeopleTestFilter.All;
+}
+
 /** Import keeps every property as a target; the rest show and edit only value properties. */
 export function PeopleSection(props: Readonly<PeopleSectionProps>) {
   const row = useRowOverlay<AudiencePerson>();
+  const handlers = useRowHandlers(props, row);
   const values = {
     ...props,
     properties: valueProperties(props.properties, props.identifierKind),
   };
-  const handlers = props.canEdit
-    ? { onEdit: row.edit, onRemove: row.remove }
-    : undefined;
   return (
     <section aria-labelledby="audience-people" className="flex flex-col gap-4">
       <PeopleHeader {...props} />
+      {showsTestFilter(props) ? (
+        <PeopleTestFilter value={props.testFilter} />
+      ) : null}
       <PeopleSurface {...values} handlers={handlers} />
       {props.canEdit ? <PeopleOverlays {...values} row={row} /> : null}
     </section>

@@ -1,6 +1,7 @@
 "use client";
 
-import { Pencil, Trash2 } from "lucide-react";
+import { FlaskConical, Pencil, Trash2 } from "lucide-react";
+import { StatusBadge } from "@/components/common/status-badge";
 import type {
   AudienceIdentifierKind,
   AudiencePerson,
@@ -18,17 +19,18 @@ import {
 } from "@/components/table";
 import { formatPropertyValue, identifierKindLabel } from "../../utils";
 
-type RowHandlers = {
-  onEdit: (person: AudiencePerson) => void;
-  onRemove: (person: AudiencePerson) => void;
+/** Each handler is present only when the reader may run it; none means no actions column. */
+export type RowHandlers = {
+  onEdit?: (person: AudiencePerson) => void;
+  onRemove?: (person: AudiencePerson) => void;
+  onTest?: (person: AudiencePerson) => void;
 };
 
 type PeopleTableProps = {
   identifierKind: AudienceIdentifierKind;
   properties: AudienceProperty[];
   people: AudiencePerson[];
-  /** Omitted for a read-only reader: the table has no actions column. */
-  handlers?: RowHandlers;
+  handlers: RowHandlers;
 };
 
 const ACTIONS_COLUMN: StaticDataTableColumn = {
@@ -37,11 +39,14 @@ const ACTIONS_COLUMN: StaticDataTableColumn = {
   className: `text-right ${SHRINK}`,
 };
 
+const hasActions = ({ onEdit, onRemove, onTest }: RowHandlers) =>
+  Boolean(onEdit || onRemove || onTest);
+
 /** The identifier column is named for the match key; one column per property; then actions. */
 function peopleColumns(
   kind: AudienceIdentifierKind,
   properties: AudienceProperty[],
-  withActions: boolean,
+  handlers: RowHandlers,
 ): StaticDataTableColumn[] {
   return [
     {
@@ -54,27 +59,48 @@ function peopleColumns(
       label: p.name,
       className: "min-w-[8rem]",
     })),
-    ...(withActions ? [ACTIONS_COLUMN] : []),
+    ...(hasActions(handlers) ? [ACTIONS_COLUMN] : []),
   ];
 }
 
-/** Edit appears only when there is a value to edit (DESIGN.md §6 "Omit what cannot apply"). */
+type ActionSpec = {
+  run: ((person: AudiencePerson) => void) | undefined;
+  label: (identifier: string) => string;
+  icon: DataTableRowAction["icon"];
+};
+
+/** Test, edit, remove; Edit only when there is a value to edit (DESIGN.md §6 "Omit what cannot apply"). */
+function actionSpecs(handlers: RowHandlers, hasValues: boolean): ActionSpec[] {
+  return [
+    {
+      run: handlers.onTest,
+      label: (id) => `Test as this person: ${id}`,
+      icon: FlaskConical,
+    },
+    {
+      run: hasValues ? handlers.onEdit : undefined,
+      label: (id) => `Edit values for ${id}`,
+      icon: Pencil,
+    },
+    {
+      run: handlers.onRemove,
+      label: (id) => `Remove ${id} from this form`,
+      icon: Trash2,
+    },
+  ];
+}
+
+/** The row's actions the reader may run; a missing handler leaves its action out. */
 function personActions(
   person: AudiencePerson,
-  canEdit: boolean,
+  hasValues: boolean,
   handlers: RowHandlers,
 ): DataTableRowAction[] {
-  const edit = {
-    label: `Edit values for ${person.identifier}`,
-    icon: Pencil,
-    onClick: () => handlers.onEdit(person),
-  };
-  const remove = {
-    label: `Remove ${person.identifier} from this form`,
-    icon: Trash2,
-    onClick: () => handlers.onRemove(person),
-  };
-  return canEdit ? [edit, remove] : [remove];
+  return actionSpecs(handlers, hasValues).flatMap(({ run, label, icon }) =>
+    run
+      ? [{ label: label(person.identifier), icon, onClick: () => run(person) }]
+      : [],
+  );
 }
 
 const NOT_SET = (
@@ -88,18 +114,30 @@ const IDENTIFIER_CELL = "text-sm font-medium break-all whitespace-normal";
 const VALUE_CELL = "text-sm break-words whitespace-normal";
 const ACTIONS_CELL = `text-right ${SHRINK}`;
 
+/** A test person carries a Test badge beside their identifier, in the tone of test submissions. */
+function IdentifierCell({ person }: Readonly<{ person: AudiencePerson }>) {
+  if (!person.isTest) return person.identifier;
+  return (
+    <span className="inline-flex flex-wrap items-center gap-2">
+      {person.identifier}
+      <StatusBadge tone="attention" label="Test" />
+    </span>
+  );
+}
+
 function personCells(
   person: AudiencePerson,
   properties: AudienceProperty[],
-  handlers?: RowHandlers,
+  handlers: RowHandlers,
 ): StaticDataTableCell[] {
   const value = (p: AudienceProperty) =>
     formatPropertyValue(p, person.values[p.id]) ?? NOT_SET;
+  const identifier = <IdentifierCell person={person} />;
   const cells = [
-    dataTableCell("identifier", person.identifier, IDENTIFIER_CELL),
+    dataTableCell("identifier", identifier, IDENTIFIER_CELL),
     ...properties.map((p) => dataTableCell(p.id, value(p), VALUE_CELL)),
   ];
-  if (!handlers) return cells;
+  if (!hasActions(handlers)) return cells;
   const actions = personActions(person, properties.length > 0, handlers);
   const menu = <DataTableRowActions actions={actions} />;
   return [...cells, dataTableCell("actions", menu, ACTIONS_CELL)];
@@ -115,7 +153,7 @@ export function PeopleTable({
   people,
   handlers,
 }: Readonly<PeopleTableProps>) {
-  const columns = peopleColumns(identifierKind, properties, Boolean(handlers));
+  const columns = peopleColumns(identifierKind, properties, handlers);
   return (
     <StaticDataTable columns={columns}>
       {people.map((person, index) => (

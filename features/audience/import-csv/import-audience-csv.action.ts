@@ -12,6 +12,7 @@ export type ImportAudienceCsvInput = {
   identifierColumn: string;
   fileName: string;
   propertyColumns: Record<string, string>;
+  isTest?: boolean;
 };
 
 const IMPORT_LOG = {
@@ -44,6 +45,7 @@ export async function importAudienceCsvAction(
         identifierColumn: input.identifierColumn,
         fileName: input.fileName,
         propertyColumns: input.propertyColumns,
+        isTest: input.isTest === true,
       }),
     { ...IMPORT_LOG, formId: input.formId },
   );

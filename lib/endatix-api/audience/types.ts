@@ -61,6 +61,8 @@ export type AudiencePerson = {
   audienceMemberId: string;
   identifier: string;
   values: AudiencePropertyValues;
+  /** A test person: set when added, never changed, never sent a personalised link. */
+  isTest: boolean;
 };
 
 export type CreateAudiencePropertyRequest = {
@@ -78,6 +80,7 @@ export type UpdateAudiencePropertyRequest = {
 export type CreateAudiencePersonRequest = {
   identifier: string;
   values?: AudiencePropertyValues;
+  isTest?: boolean;
 };
 
 export type UpdateAudiencePersonRequest = {
@@ -103,6 +106,8 @@ export type ImportAudienceCsvRequest = {
   identifierColumn: string;
   fileName: string;
   propertyColumns?: Record<string, string>;
+  /** People new to the form become test people; people already on it are skipped. */
+  isTest?: boolean;
 };
 
 export type IssuedAudienceLink = {
@@ -121,4 +126,28 @@ export type UpdateAudienceSettingsRequest = {
   identifierKind: AudienceIdentifierKind;
 };
 
-export type ListAudiencePeopleRequest = IPagedRequest;
+/** Wire values of the people list's `test` query (exact lowercase); `all` is the default. */
+export const AudiencePeopleTestFilter = Object.freeze({
+  All: "all",
+  Real: "real",
+  Test: "test",
+} as const);
+
+export type AudiencePeopleTestFilter =
+  (typeof AudiencePeopleTestFilter)[keyof typeof AudiencePeopleTestFilter];
+
+export function isAudiencePeopleTestFilter(
+  value: string,
+): value is AudiencePeopleTestFilter {
+  return (Object.values(AudiencePeopleTestFilter) as string[]).includes(value);
+}
+
+export type ListAudiencePeopleRequest = IPagedRequest & {
+  test?: AudiencePeopleTestFilter;
+};
+
+/** A new test submission and the token the respondent page opens it with. */
+export type OpenedTestSubmission = {
+  submissionId: string;
+  token: string;
+};

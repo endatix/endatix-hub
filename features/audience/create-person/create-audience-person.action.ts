@@ -12,6 +12,7 @@ export type CreateAudiencePersonInput = {
   formId: string;
   identifier: string;
   values?: AudiencePropertyValues;
+  isTest?: boolean;
 };
 
 export type CreateAudiencePersonResult = Result<AudiencePerson>;
@@ -45,6 +46,7 @@ export async function createAudiencePersonAction(
       api.audience.createPerson(input.formId, {
         identifier,
         values: withoutBlankValues(input.values),
+        isTest: input.isTest === true,
       }),
     { ...CREATE_LOG, formId: input.formId },
   );

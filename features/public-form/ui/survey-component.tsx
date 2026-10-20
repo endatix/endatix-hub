@@ -27,6 +27,7 @@ import {
   useRef,
   useTransition,
   type CSSProperties,
+  type ReactNode,
 } from "react";
 import {
   CompleteEvent,
@@ -43,10 +44,12 @@ import { Survey } from "survey-react-ui";
 import { TriangleAlert } from "lucide-react";
 import { useSubmissionQueue } from "../application/submission-queue";
 import { LanguageSelector } from "./language-selector";
-import { TestSubmissionBadge } from "./test-submission-badge";
 import styles from "./survey-component.module.css";
 import { useSurveyModel } from "./use-survey-model.hook";
 import { useSurveyTheme } from "./use-survey-theme.hook";
+
+/** The badge to show, and the token saves go with instead of the form cookie's. */
+export type TestSubmissionView = { badge: ReactNode; writeToken?: string };
 
 interface SurveyComponentProps {
   definition: string;
@@ -56,7 +59,8 @@ interface SurveyComponentProps {
   customQuestions?: string[];
   requiresReCaptcha?: boolean;
   isEmbed?: boolean;
-  isRespondentTestMode?: boolean;
+  /** What the page decided for a test submission; nothing for a real respondent. */
+  testSubmission?: TestSubmissionView;
   embedForm?: EmbedFormInfo;
   onModelCreated?: (model: Model) => void;
   onSubmitSuccess?: (result: SubmissionOperation) => void;
@@ -76,14 +80,14 @@ export default function SurveyComponent({
   customQuestions,
   requiresReCaptcha,
   isEmbed = false,
-  isRespondentTestMode,
+  testSubmission,
   embedForm,
   onModelCreated,
   onSubmitSuccess,
 }: SurveyComponentProps) {
   const formRuntime = useFormRuntime();
   const { stateRef, updateState } = formRuntime;
-  const runtimeToken = stateRef.current.token;
+  const runtimeToken = stateRef.current.token ?? testSubmission?.writeToken;
 
   const { error: surveyModelError, surveyModel } = useSurveyModel({
     formId,
@@ -391,7 +395,7 @@ export default function SurveyComponent({
         } as CSSProperties
       }
     >
-      {isRespondentTestMode && <TestSubmissionBadge />}
+      {testSubmission?.badge}
       <LanguageSelector
         availableLocales={surveyLocales}
         surveyModel={surveyModel}

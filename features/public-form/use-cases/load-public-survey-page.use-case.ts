@@ -6,6 +6,8 @@ import type { FormTokenCookieStore } from "@/features/public-form/infrastructure
 import { getActiveDefinitionUseCase } from "@/features/public-form/use-cases/get-active-definition.use-case";
 import { getPartialSubmissionUseCase } from "@/features/public-form/use-cases/get-partial-submission.use-case";
 import { getPublicFormAccessUseCase } from "@/features/public-form/use-cases/get-public-form-access.use-case";
+import { viewerCanTestFormsUseCase } from "@/features/public-form/use-cases/viewer-can-test-forms.use-case";
+import { isPersonTestSubmission } from "@/features/public-form/test-submission-mode";
 import { getSubmissionByAccessTokenUseCase } from "@/features/public-submissions/edit/get-submission-by-access-token.use-case";
 import { resolveSubmissionFormDefinition } from "@/features/public-submissions/resolve-submission-form-definition";
 import {
@@ -14,6 +16,7 @@ import {
   isNotFoundError,
   type Submission,
 } from "@/lib/endatix-api";
+import type { PublicFormAccessResponse } from "@/lib/endatix-api/forms/types";
 import { ERROR_CODE } from "@/lib/endatix-api/shared/error-codes";
 import { Result, type ResultType } from "@/lib/result";
 import type { ActiveDefinition } from "@/types";
@@ -37,6 +40,7 @@ export type LoadPublicSurveyPageQuery = {
  * @param submissionPhase - The submission gate phase for the survey session.
  * @param canStartOver - Whether a finished cookie submission may be replaced by a new one.
  * @param isRespondentTestMode - Whether the respondent is submitting a test response.
+ * @param canStartOverTest - Whether the viewer may Start over the person's test submission in the cookie.
  * @param submission - The submission.
  */
 export type LoadPublicSurveyPageResult =
@@ -46,6 +50,7 @@ export type LoadPublicSurveyPageResult =
       submissionPhase: SubmissionGatePhase;
       canStartOver: boolean;
       isRespondentTestMode: boolean;
+      canStartOverTest: boolean;
       submission?: Submission;
     }
   | {
@@ -113,16 +118,14 @@ export async function loadPublicSurveyPageUseCase({
   return {
     kind: "success",
     activeDefinition: activeDefinitionResult.value,
-    submissionPhase: resolveSubmissionGate({
-      canStartNewSubmission: publicFormAccessResult.value.canStartNewSubmission,
-      hasUserSubmitted: publicFormAccessResult.value.hasUserSubmitted,
-      hasUrlToken: false,
-      hasSubmission: Boolean(submissionResult.value?.id),
-      collectionStatus: submissionResult.value?.collectionStatus,
-      isComplete: submissionResult.value?.isComplete ?? false,
-    }),
+    submissionPhase: submissionPhaseFor(
+      publicFormAccessResult.value,
+      submissionResult.value,
+      false,
+    ),
     canStartOver: publicFormAccessResult.value.canStartNewSubmission,
     isRespondentTestMode: publicFormAccessResult.value.isRespondentTestMode,
+    canStartOverTest: await canStartOverPersonTest(submissionResult.value),
     submission: submissionResult.value,
   };
 }
@@ -160,18 +163,40 @@ async function loadAccessTokenSurveyPage({
   return {
     kind: "success",
     activeDefinition: activeDefinitionResult.value,
-    submissionPhase: resolveSubmissionGate({
-      canStartNewSubmission: publicFormAccessResult.value.canStartNewSubmission,
-      hasUserSubmitted: publicFormAccessResult.value.hasUserSubmitted,
-      hasUrlToken: true,
-      hasSubmission: Boolean(submissionResult.value.id),
-      collectionStatus: submissionResult.value.collectionStatus,
-      isComplete: submissionResult.value.isComplete,
-    }),
+    submissionPhase: submissionPhaseFor(
+      publicFormAccessResult.value,
+      submissionResult.value,
+      true,
+    ),
     canStartOver: false,
     isRespondentTestMode: publicFormAccessResult.value.isRespondentTestMode,
+    canStartOverTest: false,
     submission: submissionResult.value,
   };
+}
+
+function submissionPhaseFor(
+  access: PublicFormAccessResponse,
+  submission: Submission | undefined,
+  hasUrlToken: boolean,
+): SubmissionGatePhase {
+  return resolveSubmissionGate({
+    canStartNewSubmission: access.canStartNewSubmission,
+    hasUserSubmitted: access.hasUserSubmitted,
+    hasUrlToken,
+    hasSubmission: Boolean(submission?.id),
+    collectionStatus: submission?.collectionStatus,
+    isComplete: submission?.isComplete ?? false,
+  });
+}
+
+/** Asks for `forms.test` only when the cookie holds a person's test submission. */
+async function canStartOverPersonTest(
+  submission: Submission | undefined,
+): Promise<boolean> {
+  return (
+    isPersonTestSubmission(submission) && (await viewerCanTestFormsUseCase())
+  );
 }
 
 const RESPONDENT_COPY_MAX_LENGTH = 240;

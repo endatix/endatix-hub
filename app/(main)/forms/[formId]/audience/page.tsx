@@ -4,6 +4,7 @@ import {
   loadAudiencePage,
   parseAudienceView,
   parsePeoplePaging,
+  parsePeopleTestFilter,
 } from "@/features/audience/get-audience-page";
 import { requireAudienceAccess } from "@/features/audience/shared/require-audience-api.server";
 import { FormWorkspaceHeader } from "@/features/forms/form-workspace";
@@ -23,14 +24,19 @@ type Params = {
     page?: SearchParamValue;
     pageSize?: SearchParamValue;
     view?: SearchParamValue;
+    test?: SearchParamValue;
   }>;
 };
 
-function pagingFrom(query: Awaited<Params["searchParams"]>) {
-  return parsePeoplePaging({
+function peopleQueryFrom(query: Awaited<Params["searchParams"]>) {
+  const paging = parsePeoplePaging({
     page: firstSearchParam(query.page),
     pageSize: firstSearchParam(query.pageSize),
   });
+  return {
+    ...paging,
+    test: parsePeopleTestFilter(firstSearchParam(query.test)),
+  };
 }
 
 type AudienceRequest = {
@@ -39,13 +45,14 @@ type AudienceRequest = {
   query: Awaited<Params["searchParams"]>;
   canManageMatchKey: boolean;
   canEdit: boolean;
+  canTest: boolean;
 };
 
 async function audienceView({ query, ...request }: AudienceRequest) {
   const { formId } = request;
   const [form, audience] = await Promise.all([
     loadWorkspaceForm(formId, "audience"),
-    loadAudiencePage({ ...request, paging: pagingFrom(query) }),
+    loadAudiencePage({ ...request, paging: peopleQueryFrom(query) }),
   ]);
   if (Result.isError(form)) return <FormLoadError result={form} />;
   if (Result.isError(audience)) return <FormLoadError result={audience} />;
@@ -68,14 +75,16 @@ async function guardAudiencePage(formId: string) {
   const access = await requireAudienceAccess(Permissions.Forms.View);
   if (Result.isError(access)) return redirect(`/forms/${formId}`);
   const { api, checkPermission } = access.value;
-  const [manageSettings, editForms] = await Promise.all([
+  const [manageSettings, editForms, testForms] = await Promise.all([
     checkPermission(Permissions.Tenant.ManageSettings),
     checkPermission(Permissions.Forms.Edit),
+    checkPermission(Permissions.Forms.Test),
   ]);
   return {
     api,
     canManageMatchKey: manageSettings.success,
     canEdit: editForms.success,
+    canTest: testForms.success,
   };
 }
 

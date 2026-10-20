@@ -34,6 +34,16 @@ export const SUBMISSION_STATUS = {
 // Domain Entities (what we work with in the app)
 // ============================================================================
 
+/** Who froze a submission's personalization: matches OSS `PersonalizationSources`. */
+export const PersonalizationSource = Object.freeze({
+  Link: "link",
+  OnBehalf: "on_behalf",
+  Test: "test",
+} as const);
+
+export type PersonalizationSource =
+  (typeof PersonalizationSource)[keyof typeof PersonalizationSource];
+
 export interface Submission extends ApiEntity {
   formId: EntityId;
   formDefinitionId: EntityId;
@@ -54,6 +64,8 @@ export interface Submission extends ApiEntity {
     identifier: string;
     capturedAt: string;
     variables: Record<string, unknown>;
+    /** Absent on snapshots written before sources were recorded. */
+    source?: PersonalizationSource;
   } | null;
 
   // Optional navigation properties
