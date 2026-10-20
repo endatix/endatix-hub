@@ -19,50 +19,45 @@ vi.mock("next/navigation", () => ({
 vi.mock("../save-submission-grid-view.action", () => ({
   saveSubmissionGridViewAction: vi.fn(),
 }));
-vi.mock("@/components/ui/dropdown-menu", () => ({
-  DropdownMenu: ({ children }: { children: ReactNode }) => (
-    <div>{children}</div>
-  ),
-  DropdownMenuTrigger: ({ children }: { children: ReactNode }) => (
-    <>{children}</>
-  ),
-  DropdownMenuContent: ({ children }: { children: ReactNode }) => (
-    <div>{children}</div>
-  ),
-  DropdownMenuLabel: ({ children }: { children: ReactNode }) => (
-    <span>{children}</span>
-  ),
-  DropdownMenuSeparator: () => <hr />,
-  DropdownMenuItem: ({
-    children,
-    onSelect,
-  }: {
-    children: ReactNode;
-    onSelect?: () => void;
-  }) => (
-    <button type="button" role="menuitem" onClick={onSelect}>
-      {children}
-    </button>
-  ),
-  DropdownMenuCheckboxItem: ({
-    children,
-    checked,
-    onCheckedChange,
-  }: {
-    children: ReactNode;
-    checked: boolean;
-    onCheckedChange: (checked: boolean) => void;
-  }) => (
-    <button
-      type="button"
-      role="menuitemcheckbox"
-      aria-checked={checked}
-      onClick={() => onCheckedChange(!checked)}
-    >
-      {children}
-    </button>
-  ),
-}));
+vi.mock("@/components/ui/dropdown-menu", () => {
+  const Pass = ({ children }: { children: ReactNode }) => <>{children}</>;
+  return {
+    DropdownMenu: Pass,
+    DropdownMenuTrigger: Pass,
+    DropdownMenuContent: Pass,
+    DropdownMenuLabel: Pass,
+    DropdownMenuSeparator: () => <hr />,
+    DropdownMenuItem: ({
+      children,
+      onSelect,
+    }: {
+      children: ReactNode;
+      onSelect?: () => void;
+    }) => (
+      <button type="button" role="menuitem" onClick={onSelect}>
+        {children}
+      </button>
+    ),
+    DropdownMenuCheckboxItem: ({
+      children,
+      checked,
+      onCheckedChange,
+    }: {
+      children: ReactNode;
+      checked: boolean;
+      onCheckedChange: (checked: boolean) => void;
+    }) => (
+      <button
+        type="button"
+        role="menuitemcheckbox"
+        aria-checked={checked}
+        onClick={() => onCheckedChange(!checked)}
+      >
+        {children}
+      </button>
+    ),
+  };
+});
 
 const SAVED: SubmissionGridViewLoad = {
   revision: "3",
