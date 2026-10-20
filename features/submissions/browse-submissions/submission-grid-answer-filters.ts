@@ -80,6 +80,26 @@ export function applicableAnswerFilters(
   );
 }
 
+/**
+ * The filters the URL keeps: the ones that apply, plus any on a column whose
+ * search copy is being prepared. Those wait in the URL, unsent, until the
+ * column is ready, so a link does not lose them.
+ */
+export function keptAnswerFilters(
+  filters: readonly SubmissionGridAnswerFilter[],
+  catalog: readonly AnswerColumn[],
+): SubmissionGridAnswerFilter[] {
+  const applied = new Set(applicableAnswerFilters(filters, catalog));
+  const preparing = new Set(
+    catalog
+      .filter((column) => column.search.state === "preparing")
+      .map((column) => column.key),
+  );
+  return filters.filter(
+    (filter) => applied.has(filter) || preparing.has(filter.key),
+  );
+}
+
 export function answerTextFilterUrlKeys(
   catalog: readonly AnswerColumn[],
 ): string[] {

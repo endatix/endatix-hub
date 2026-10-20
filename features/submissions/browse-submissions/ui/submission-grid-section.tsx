@@ -12,7 +12,10 @@ import {
 } from "../browse-submissions.server";
 import { describeGridReadiness } from "../grid-readiness";
 import type { SubmissionGridColumnsLoad } from "../resolve-submission-grid-load";
-import { applicableAnswerFilters } from "../submission-grid-answer-filters";
+import {
+  applicableAnswerFilters,
+  keptAnswerFilters,
+} from "../submission-grid-answer-filters";
 import {
   resolveVisibleAnswerColumns,
   type AnswerColumn,
@@ -67,7 +70,7 @@ function parseGridUrl(
 
   return {
     ...urlState,
-    answerFilters: applicableAnswerFilters(urlState.answerFilters, catalog),
+    answerFilters: keptAnswerFilters(urlState.answerFilters, catalog),
   };
 }
 
@@ -97,18 +100,18 @@ type SubmissionGridProps = {
 
 function SubmissionGrid(props: Readonly<SubmissionGridProps>) {
   const { formId, columns, submitterLabel, canIncludeInProgress } = props;
-  const hasAnswerFilters = props.urlState.answerFilters.length > 0;
+  const rows = rowsRequest(props.urlState, columns);
   return (
     <SubmissionGridShell
       formId={formId}
       catalog={columns.catalog}
       columnSearch={columnSearchAccess(columns, canIncludeInProgress)}
       hasSubmissions={columns.readiness.submissions > 0}
-      banner={describeGridReadiness({ ...columns, ...props, hasAnswerFilters })}
+      banner={gridBanner(props, rows.urlState.answerFilters.length)}
     >
       <SubmissionGridRows
         {...{ formId, submitterLabel, canIncludeInProgress }}
-        {...rowsRequest(props.urlState, columns)}
+        {...rows}
       />
     </SubmissionGridShell>
   );
@@ -122,11 +125,31 @@ function columnSearchAccess(
   return { canEdit, slots: columns.searchSlots };
 }
 
-/** The rows' URL state and visible columns: without a schema, no answer filter is sent. */
+/**
+ * The readiness banner. Without a schema it says the link's filters wait for
+ * Prepare; with one, it steps aside for the rows' coverage while filters are
+ * sent, and says when filters wait for a column still being prepared.
+ */
+function gridBanner(props: Readonly<SubmissionGridProps>, sentFilters: number) {
+  const { columns, urlState } = props;
+  const inUrl = urlState.answerFilters.length;
+  return describeGridReadiness({
+    ...columns,
+    ...props,
+    hasAnswerFilters: columns.schemaReady ? sentFilters > 0 : inUrl > 0,
+    answerFiltersWaiting: columns.schemaReady && inUrl > sentFilters,
+  });
+}
+
+/**
+ * The rows' URL state and visible columns. Only the filters that apply are
+ * sent: none without a schema, none on a column still being prepared.
+ */
 function rowsRequest(urlState: SubmissionGridUrlState, columns: ReadyColumns) {
-  const rowsState = columns.schemaReady
-    ? urlState
-    : { ...urlState, answerFilters: [] };
+  const answerFilters = columns.schemaReady
+    ? applicableAnswerFilters(urlState.answerFilters, columns.catalog)
+    : [];
+  const rowsState = { ...urlState, answerFilters };
   const answerColumns = resolveVisibleAnswerColumns(
     columns.catalog,
     rowsState.columns,

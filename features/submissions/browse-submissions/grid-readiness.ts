@@ -22,6 +22,8 @@ export type DescribeGridReadinessInput = {
   readiness: SubmissionGridReadiness;
   canIncludeInProgress: boolean;
   hasAnswerFilters?: boolean;
+  /** The URL has answer filters on columns still being prepared. */
+  answerFiltersWaiting?: boolean;
 };
 
 /**
@@ -51,6 +53,9 @@ function atLeastZero(count: number): number {
 const ANSWER_FILTERS_NOT_APPLIED_LINE =
   "The answer filters in this link are not applied until the form is prepared.";
 
+const ANSWER_FILTERS_WAITING_LINE =
+  "Answer filters on columns still being prepared are not applied yet.";
+
 const NO_SCHEMA_BANNER: GridReadinessBanner = {
   title: "This form's reporting data is not prepared",
   lines: [
@@ -60,7 +65,14 @@ const NO_SCHEMA_BANNER: GridReadinessBanner = {
   showIncludeInProgress: false,
 };
 
-export function describeGridReadiness({
+export function describeGridReadiness(
+  input: DescribeGridReadinessInput,
+): GridReadinessBanner | null {
+  const banner = describeReadiness(input);
+  return input.answerFiltersWaiting ? withFiltersWaiting(banner) : banner;
+}
+
+function describeReadiness({
   schemaReady,
   readiness,
   canIncludeInProgress,
@@ -77,6 +89,20 @@ export function describeGridReadiness({
   return hasAnswerFilters
     ? null
     : describeUnprepared(countUnprepared(readiness), canIncludeInProgress);
+}
+
+/** Says the waiting filters are not applied, on its own or under the banner. */
+function withFiltersWaiting(
+  banner: GridReadinessBanner | null,
+): GridReadinessBanner {
+  return banner
+    ? { ...banner, lines: [...banner.lines, ANSWER_FILTERS_WAITING_LINE] }
+    : {
+        title: "Some answer filters are not applied yet",
+        lines: [ANSWER_FILTERS_WAITING_LINE],
+        showPrepare: false,
+        showIncludeInProgress: false,
+      };
 }
 
 function withFiltersNotApplied(): GridReadinessBanner {
