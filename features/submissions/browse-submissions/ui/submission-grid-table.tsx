@@ -1,4 +1,8 @@
 "use client";
+"use no memo";
+
+// TanStack Table keeps one table instance, so the React Compiler would cache
+// what reads it and miss in-place state changes (column visibility, sizing).
 
 import {
   createPagedTableFooterProps,
@@ -11,6 +15,7 @@ import { NoMatchingSubmissionsEmptyState } from "@/features/submissions/ui/submi
 import type { SubmissionGridRowsPage } from "@/lib/endatix-api/reporting/submission-grid";
 import type { SubmissionGridRow } from "@/lib/endatix-api/reporting/submission-grid-types";
 import {
+  functionalUpdate,
   getCoreRowModel,
   useReactTable,
   type Row,
@@ -41,6 +46,10 @@ import {
   useSubmissionGridUrl,
   type SubmissionGridUrl,
 } from "./submission-grid-url-context";
+import {
+  useSubmissionGridView,
+  type SubmissionGridView,
+} from "./submission-grid-view-context";
 
 export type SubmissionGridTableProps = {
   page: SubmissionGridRowsPage;
@@ -96,12 +105,18 @@ function useSubmissionGridTable(
     getCoreRowModel: getCoreRowModel(),
     getRowId: (row) => row.id,
     manualSorting: true,
-    state: { sorting },
-    onSortingChange: (updater: Updater<SortingState>) => {
-      const next = typeof updater === "function" ? updater(sorting) : updater;
-      grid.updateUrl(sortUpdate(next));
-    },
+    ...resizableView(useSubmissionGridView(), sorting),
+    onSortingChange: (updater: Updater<SortingState>) =>
+      grid.updateUrl(sortUpdate(functionalUpdate(updater, sorting))),
   });
+}
+
+function resizableView(view: SubmissionGridView, sorting: SortingState) {
+  return {
+    enableColumnResizing: true,
+    state: { sorting, ...view.tableLayout },
+    onColumnSizingChange: view.onColumnSizingChange,
+  };
 }
 
 function useRowData({ items }: SubmissionGridRowsPage) {

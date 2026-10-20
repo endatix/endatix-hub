@@ -102,6 +102,7 @@ function actionsColumn(): GridColumn {
   return {
     id: "actions",
     enableSorting: false,
+    enableResizing: false,
     meta: sized(COMPACT_COLUMN),
     header: () => <span className="sr-only">Actions</span>,
     cell: ({ row }) => <SubmissionGridRowActions row={row.original} />,

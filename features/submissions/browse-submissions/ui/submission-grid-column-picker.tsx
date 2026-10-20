@@ -89,7 +89,7 @@ function ColumnPickerTrigger({ disabled }: Readonly<{ disabled: boolean }>) {
 
 function useColumnPicker(catalog: readonly AnswerColumn[]) {
   const [open, setOpen] = useState(false);
-  const { urlState, updateUrl, isPending } = useSubmissionGridUrl();
+  const { urlState, urlSets, updateUrl, isPending } = useSubmissionGridUrl();
   const visibleKeys = useMemo(
     () =>
       resolveVisibleAnswerColumns(catalog, urlState.columns).map(
@@ -101,7 +101,7 @@ function useColumnPicker(catalog: readonly AnswerColumn[]) {
     updateUrl(columnsUpdate(keys));
     setOpen(false);
   };
-  const isDefault = urlState.columns === undefined;
+  const isDefault = !urlSets.columns;
   return { open, setOpen, visibleKeys, apply, isDefault, isPending };
 }
 

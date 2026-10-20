@@ -7,6 +7,7 @@ import { ExportMappings } from "./export-mappings";
 import { ExportCapabilities } from "./export-capabilities";
 import { ExportNamingConventions } from "./export-naming-conventions";
 import { SubmissionGrid } from "./submission-grid";
+import { SubmissionViews } from "./submission-view";
 import type {
   BackfillSubmissionsRequest,
   BackfillSubmissionsResponse,
@@ -20,6 +21,7 @@ export class Reporting {
   private _exportCapabilities?: ExportCapabilities;
   private _exportNamingConventions?: ExportNamingConventions;
   private _submissionGrid?: SubmissionGrid;
+  private _submissionViews?: SubmissionViews;
 
   constructor(private readonly endatix: EndatixApi) {}
 
@@ -46,6 +48,11 @@ export class Reporting {
   get submissionGrid(): SubmissionGrid {
     this._submissionGrid ??= new SubmissionGrid(this.endatix);
     return this._submissionGrid;
+  }
+
+  get submissionViews(): SubmissionViews {
+    this._submissionViews ??= new SubmissionViews(this.endatix);
+    return this._submissionViews;
   }
 
   async compileSchema(
