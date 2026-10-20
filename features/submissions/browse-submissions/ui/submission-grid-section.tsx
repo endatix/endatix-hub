@@ -52,17 +52,25 @@ export async function SubmissionGridSection(
     return <HubPageLoadError result={columns.result} />;
   }
 
+  const urlState = gridUrlState(formId, searchParams, view);
+  return <SubmissionGrid {...{ formId, urlState, columns, view, ...access }} />;
+}
+
+/**
+ * The state the grid shows: a non-canonical URL redirects first, then the
+ * saved view fills in what the URL leaves out.
+ */
+function gridUrlState(
+  formId: string,
+  searchParams: SubmissionGridRawSearchParams,
+  view: SubmissionGridViewLoad,
+): SubmissionGridUrlState {
   const urlState = parseSubmissionGridUrl(searchParams);
   if (!isCanonicalSubmissionGridUrl(searchParams, urlState)) {
     redirect(buildSubmissionGridPath(formId, urlState) as Route);
   }
 
-  const gridState = withSavedView(urlState, searchParams, view.settings);
-  return (
-    <SubmissionGrid
-      {...{ formId, urlState: gridState, columns, view, ...access }}
-    />
-  );
+  return withSavedView(urlState, searchParams, view.settings);
 }
 
 /** Only the rows wait for the columns; the other reads start together. */
