@@ -19,7 +19,6 @@ import {
 import {
   resolveVisibleAnswerColumns,
   type AnswerColumn,
-  type ColumnSearchAccess,
 } from "../submission-grid-columns";
 import {
   buildSubmissionGridPath,
@@ -78,14 +77,14 @@ type ReadyColumns = Extract<SubmissionGridColumnsLoad, { kind: "ready" }>;
 
 /** Only the rows wait for the columns; the other reads start together. */
 async function loadGridInputs(formId: string) {
-  const [columns, canIncludeInProgress, config] = await Promise.all([
+  const [columns, canEdit, config] = await Promise.all([
     getSession().then((session) => loadSubmissionGridColumns(formId, session)),
     canEditForm(),
     getClientEndatixConfig(),
   ]);
   return {
     columns,
-    canIncludeInProgress,
+    canEdit,
     submitterLabel: config.submitterPrimaryFilterLabel,
   };
 }
@@ -94,35 +93,29 @@ type SubmissionGridProps = {
   formId: string;
   urlState: SubmissionGridUrlState;
   columns: ReadyColumns;
-  canIncludeInProgress: boolean;
+  /** `forms.edit`: include in-progress submissions and choose filterable columns. */
+  canEdit: boolean;
   submitterLabel: string;
 };
 
 function SubmissionGrid(props: Readonly<SubmissionGridProps>) {
-  const { formId, columns, submitterLabel, canIncludeInProgress } = props;
+  const { formId, columns, submitterLabel, canEdit } = props;
   const rows = rowsRequest(props.urlState, columns);
   return (
     <SubmissionGridShell
       formId={formId}
       catalog={columns.catalog}
-      columnSearch={columnSearchAccess(columns, canIncludeInProgress)}
+      columnSearch={{ canEdit, slots: columns.searchSlots }}
       hasSubmissions={columns.readiness.submissions > 0}
       banner={gridBanner(props, rows.urlState.answerFilters.length)}
     >
       <SubmissionGridRows
-        {...{ formId, submitterLabel, canIncludeInProgress }}
+        {...{ formId, submitterLabel }}
+        canIncludeInProgress={canEdit}
         {...rows}
       />
     </SubmissionGridShell>
   );
-}
-
-/** Choosing filterable columns needs `forms.edit`, as including in-progress does. */
-function columnSearchAccess(
-  columns: SubmissionGridProps["columns"],
-  canEdit: boolean,
-): ColumnSearchAccess {
-  return { canEdit, slots: columns.searchSlots };
 }
 
 /**
@@ -136,6 +129,7 @@ function gridBanner(props: Readonly<SubmissionGridProps>, sentFilters: number) {
   return describeGridReadiness({
     ...columns,
     ...props,
+    canIncludeInProgress: props.canEdit,
     hasAnswerFilters: columns.schemaReady ? sentFilters > 0 : inUrl > 0,
     answerFiltersWaiting: columns.schemaReady && inUrl > sentFilters,
   });
