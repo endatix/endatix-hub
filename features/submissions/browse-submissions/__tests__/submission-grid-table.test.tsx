@@ -217,3 +217,47 @@ describe("SubmissionGridTable answer filters", () => {
     expect(screen.getByPlaceholderText("Email")).toBeTruthy();
   });
 });
+
+describe("SubmissionGridTable preparing filters", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    router.replace.mockClear();
+    router.refresh.mockClear();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("offers no filter input while a column is preparing, only Refresh", () => {
+    // Arrange
+    const city = wireColumn({ key: "city", searchPending: true });
+    renderTable([row()], toAnswerColumns([city]));
+    openColumnMenu("city");
+
+    // Act
+    fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
+
+    // Assert
+    expect(screen.getByText(/this filter is being prepared/i)).toBeTruthy();
+    expect(screen.queryByPlaceholderText("Contains")).toBeNull();
+    expect(router.refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it("filters the column once the catalog says it is ready", () => {
+    // Arrange
+    const city = wireColumn({ key: "city", searchPending: false });
+    renderTable([row()], toAnswerColumns([city]));
+    openColumnMenu("city");
+
+    // Act
+    fireEvent.change(screen.getByPlaceholderText("Contains"), {
+      target: { value: "Sofia" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Apply" }));
+    act(() => vi.advanceTimersByTime(350));
+
+    // Assert
+    expect(replacedQuery().get("answer.contains.city")).toBe("Sofia");
+  });
+});
