@@ -51,33 +51,35 @@ async function getJson(url, deadline = Date.now() + TIMEOUT_MS) {
   return response.json();
 }
 
-async function waitForAnalysis(ceTaskId) {
-  const ceTaskUrl = sonarApiUrl(SONAR_HOST, "/api/ce/task", { id: ceTaskId });
-  const deadline = Date.now() + TIMEOUT_MS;
-  while (Date.now() < deadline) {
-    const { task } = await getJson(ceTaskUrl, deadline);
-    if (task.status === "SUCCESS") return task.analysisId;
-    if (task.status === "FAILED" || task.status === "CANCELED") {
-      throw new Error(
-        `SonarCloud analysis ${task.status}: ${task.errorMessage ?? "no message"}`,
-      );
-    }
-    await sleep(POLL_MS);
+// Polls the background task until SonarCloud has computed the analysis; recursive, as getJson's retry.
+async function waitForAnalysis(ceTaskUrl, deadline = Date.now() + TIMEOUT_MS) {
+  const { task } = await getJson(ceTaskUrl, deadline);
+  if (task.status === "SUCCESS") return task.analysisId;
+  if (task.status === "FAILED" || task.status === "CANCELED") {
+    throw new Error(
+      `SonarCloud analysis ${task.status}: ${task.errorMessage ?? "no message"}`,
+    );
   }
-  throw new Error(
-    `SonarCloud analysis did not finish within ${TIMEOUT_MS / 1000}s: ${ceTaskUrl}`,
-  );
+  if (Date.now() + POLL_MS >= deadline) {
+    throw new Error(
+      `SonarCloud analysis did not finish within ${TIMEOUT_MS / 1000}s: ${ceTaskUrl}`,
+    );
+  }
+  await sleep(POLL_MS);
+  return waitForAnalysis(ceTaskUrl, deadline);
 }
 
 function report(verdict, dashboardUrl) {
   for (const c of verdict.advisory) {
+    const message = `${describeCondition(c)}. Fix it later; it does not fail the build. ${dashboardUrl}`;
     console.log(
-      `::warning title=SonarCloud (advisory)::${escapeCommand(`${describeCondition(c)}. Fix it later; it does not fail the build. ${dashboardUrl}`)}`,
+      `::warning title=SonarCloud (advisory)::${escapeCommand(message)}`,
     );
   }
   for (const c of verdict.blocking) {
+    const message = `${describeCondition(c)}. ${dashboardUrl}`;
     console.log(
-      `::error title=SonarCloud quality gate::${escapeCommand(`${describeCondition(c)}. ${dashboardUrl}`)}`,
+      `::error title=SonarCloud quality gate::${escapeCommand(message)}`,
     );
   }
   if (!process.env.GITHUB_STEP_SUMMARY) return;
@@ -100,7 +102,9 @@ function report(verdict, dashboardUrl) {
 
 async function main() {
   const task = parseReportTask(readFileSync(REPORT_TASK, "utf8"));
-  const analysisId = await waitForAnalysis(task.ceTaskId);
+  const analysisId = await waitForAnalysis(
+    sonarApiUrl(SONAR_HOST, "/api/ce/task", { id: task.ceTaskId }),
+  );
   const { projectStatus } = await getJson(
     sonarApiUrl(SONAR_HOST, "/api/qualitygates/project_status", { analysisId }),
   );
