@@ -91,14 +91,24 @@ export function readViewSettings(value: unknown): SubmissionViewSettings {
   }
 
   const columns = Array.isArray(value.columns) ? value.columns : [];
-  return {
-    ...value,
-    v: 1,
-    columns: columns.filter(
-      (column): column is SubmissionViewColumnSetting =>
-        isRecord(column) && typeof column.key === "string",
-    ),
-  };
+  return { ...value, v: 1, columns: columns.flatMap(readColumnSetting) };
+}
+
+/** A width that is not a finite number would reach the table and the next save. */
+function readColumnSetting(column: unknown): SubmissionViewColumnSetting[] {
+  if (!isRecord(column) || typeof column.key !== "string") {
+    return [];
+  }
+
+  const { width, visible, ...rest } = column;
+  return [
+    {
+      ...rest,
+      key: column.key,
+      ...(Number.isFinite(width) && { width: width as number }),
+      ...(typeof visible === "boolean" && { visible }),
+    },
+  ];
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
