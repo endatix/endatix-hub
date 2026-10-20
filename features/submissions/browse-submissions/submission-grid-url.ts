@@ -17,7 +17,7 @@ import type {
 import { firstSearchParam, type SearchParam } from "@/lib/utils/next-utils";
 import {
   answerFilterUrlEntries,
-  isAnswerFilterUrlKey,
+  hasAnswerFilterPrefix,
   parseAnswerFilters,
 } from "./submission-grid-answer-filters";
 import {
@@ -281,7 +281,7 @@ function parseColumnKeys(value: string | undefined): string[] | undefined {
 function writtenKeys(raw: SubmissionGridRawSearchParams): string[] {
   return [
     ...Object.values(keys),
-    ...Object.keys(raw).filter(isAnswerFilterUrlKey),
+    ...Object.keys(raw).filter(hasAnswerFilterPrefix),
   ];
 }
 

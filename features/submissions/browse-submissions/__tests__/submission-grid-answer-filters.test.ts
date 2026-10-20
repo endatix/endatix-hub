@@ -4,7 +4,7 @@ import {
   answerDateFilter,
   answerTextFilterUrlKeys,
   applicableAnswerFilters,
-  matchesStoredChoiceValue,
+  filtersByStoredChoiceValue,
   parseAnswerFilters,
 } from "../submission-grid-answer-filters";
 import { buildListSubmissionGridRowsEndpoint } from "@/lib/endatix-api/reporting/submission-grid";
@@ -209,7 +209,7 @@ describe("answerDateFilter", () => {
   });
 });
 
-describe("matchesStoredChoiceValue", () => {
+describe("filtersByStoredChoiceValue", () => {
   it.each([
     ["dropdown", true],
     ["radiogroup", true],
@@ -219,6 +219,6 @@ describe("matchesStoredChoiceValue", () => {
     const [column] = toAnswerColumns([wireColumn({ key: "q", questionType })]);
 
     // Act & Assert
-    expect(matchesStoredChoiceValue(column)).toBe(expected);
+    expect(filtersByStoredChoiceValue(column)).toBe(expected);
   });
 });

@@ -68,9 +68,13 @@ export function toAnswerColumns(
 function answerFilterType(
   column: SubmissionGridColumn,
 ): SubmissionGridFilterType | null {
-  const filterable =
-    column.searchable !== false && column.kind !== SUBMITTER_PROFILE_KIND;
-  return filterable ? column.filterType : null;
+  return isSearchKey(column) && !isSubmitterProfileColumn(column)
+    ? column.filterType
+    : null;
+}
+
+function isSearchKey(column: SubmissionGridColumn): boolean {
+  return column.searchable !== false;
 }
 
 /**
@@ -130,7 +134,9 @@ export function submitterProfileField(key: string): string {
     : key;
 }
 
-export function isSubmitterProfileColumn(column: AnswerColumn): boolean {
+export function isSubmitterProfileColumn(
+  column: Pick<AnswerColumn, "kind">,
+): boolean {
   return column.kind === SUBMITTER_PROFILE_KIND;
 }
 

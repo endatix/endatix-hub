@@ -23,7 +23,7 @@ import { useMemo } from "react";
 import {
   answerDateFilter,
   answerFilterUrlKey,
-  matchesStoredChoiceValue,
+  filtersByStoredChoiceValue,
 } from "../submission-grid-answer-filters";
 import type { AnswerColumn } from "../submission-grid-columns";
 import {
@@ -170,7 +170,7 @@ function answerColumnFilters(
 }
 
 function answerTextPlaceholder(column: AnswerColumn): string {
-  return matchesStoredChoiceValue(column)
+  return filtersByStoredChoiceValue(column)
     ? "Contains (stored choice value)"
     : "Contains";
 }

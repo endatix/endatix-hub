@@ -35,7 +35,7 @@ export function answerFilterUrlKey(
   return `${URL_KEY_PREFIX}${operator}.${key}`;
 }
 
-export function isAnswerFilterUrlKey(name: string): boolean {
+export function hasAnswerFilterPrefix(name: string): boolean {
   return name.startsWith(URL_KEY_PREFIX);
 }
 
@@ -98,7 +98,7 @@ export function answerDateFilter(
   return { from: bound("from"), to: bound("to") };
 }
 
-export function matchesStoredChoiceValue(column: AnswerColumn): boolean {
+export function filtersByStoredChoiceValue(column: AnswerColumn): boolean {
   return CHOICE_QUESTION_TYPES.has(column.questionType ?? "");
 }
 
@@ -112,7 +112,7 @@ function parseAnswerFilter(
 }
 
 function parseUrlKey(name: string): AnswerFilterTarget | undefined {
-  if (!isAnswerFilterUrlKey(name)) {
+  if (!hasAnswerFilterPrefix(name)) {
     return undefined;
   }
 
