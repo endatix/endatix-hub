@@ -263,6 +263,10 @@ it("renders the xlsx glyph", () => {
 - Render+assert or a table of `expect(fn())` with no setup → `// Act & Assert`.
 - Skip labels only when the whole `it` is a one-liner (`expect(fn()).toBe(x)`). Folders: [`project-structure.md`](project-structure.md) Testing Convention.
 
+## SonarCloud quality gate
+
+SonarCloud Free can't edit the "Sonar way" gate, so `build-ci.yml` applies it with [`scripts/sonar-gate.mjs`](scripts/sonar-gate.mjs) after the scan (same policy as endatix/endatix#1319). Red bugs, vulnerabilities, hotspots or coverage on new code fail the job. Duplication (`SONAR_ADVISORY_METRICS`) only warns. When a block reaches its third copy, open a `tech-debt` issue for it. Add `sonar.cpd.exclusions` only for boilerplate the SonarCloud duplication data shows.
+
 ## Mirrored OSS rules
 
 Some Hub modules re-implement an OSS Core rule so the UI can validate before a round trip. Both copies must agree: a Hub-only rule rejects input the API accepts and strands rows already holding that value.

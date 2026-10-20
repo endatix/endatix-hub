@@ -125,13 +125,22 @@ jobs:
           echo "::error::ENDATIX_HUB_REPO_SONAR_TOKEN is missing from the Infisical '$ENV_SLUG' environment (root folder)."
           exit 1
 
-      # CI-based analysis with the Vitest lcov (sonar-project.properties); fails the
-      # job on a red quality gate.
+      # CI-based analysis with the Vitest lcov (sonar-project.properties). The scan
+      # itself does not wait for the quality gate; the next step applies it.
       - name: 🔎 SonarCloud analysis
         if: env.ENDATIX_HUB_REPO_SONAR_TOKEN != ''
         uses: SonarSource/sonarqube-scan-action@d209202bc7d53ff1cc128f7f907dac145c9d6ae9 # v8.3.0
         env:
           SONAR_TOKEN: ${{ env.ENDATIX_HUB_REPO_SONAR_TOKEN }}
+
+      # Fails the job on red bugs, vulnerabilities, hotspots or coverage; duplication
+      # only warns (endatix/endatix#1319). Same script as endatix/endatix.
+      - name: 🚦 SonarCloud quality gate
+        if: env.ENDATIX_HUB_REPO_SONAR_TOKEN != ''
+        run: node scripts/sonar-gate.mjs
+        env:
+          SONAR_TOKEN: ${{ env.ENDATIX_HUB_REPO_SONAR_TOKEN }}
+          SONAR_ADVISORY_METRICS: new_duplicated_lines_density
 
   # Build validation on PRs; canary release on main — publishes only after the
   # tests above pass. docker-image makes the shared workflow log into GHCR and
