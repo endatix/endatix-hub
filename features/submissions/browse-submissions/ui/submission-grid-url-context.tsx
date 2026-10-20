@@ -68,7 +68,8 @@ function useSubmissionGridUrlState(
 /**
  * Metadata and answer text filter keys in one list, so one writer commits
  * them all. The list keeps its identity while its keys do: each navigation
- * hands the shell a new catalog array, and a new list would drop a filter not yet committed.
+ * hands the shell a new catalog array, and a new list would drop a filter
+ * not yet committed.
  */
 function useTextFilterKeys(catalog: readonly AnswerColumn[]): string[] {
   const signature = JSON.stringify(answerTextFilterUrlKeys(catalog));

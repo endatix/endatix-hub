@@ -111,7 +111,7 @@ function parseAnswerFilter(
   rawValue: string | undefined,
 ): SubmissionGridAnswerFilter | undefined {
   const target = parseUrlKey(name);
-  const value = normalizeValue(target?.operator, rawValue?.trim());
+  const value = target && normalizeValue(target.operator, rawValue?.trim());
   return target && value ? { ...target, value } : undefined;
 }
 
@@ -130,10 +130,10 @@ function parseUrlKey(name: string): AnswerFilterTarget | undefined {
 }
 
 function normalizeValue(
-  operator: SubmissionGridAnswerOperator | undefined,
+  operator: SubmissionGridAnswerOperator,
   value: string | undefined,
 ): string | undefined {
-  if (!operator || !value) {
+  if (!value) {
     return undefined;
   }
 
