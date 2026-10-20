@@ -3,7 +3,6 @@ import type {
   SubmissionGridSearchSource,
 } from "@/lib/endatix-api/reporting/submission-grid-types";
 
-/** A question answer filters can use, as the form's settings list it. */
 export type FilterableQuestion = {
   key: string;
   title: string;
@@ -11,10 +10,7 @@ export type FilterableQuestion = {
   preparing: boolean;
 };
 
-/**
- * The form's search keys in schema order. Only an API that reports
- * `searchSource` can say which questions they are.
- */
+/** Only an API that reports `searchSource` can say which columns are keys. */
 export function listFilterableQuestions(
   columns: readonly SubmissionGridColumn[],
 ): FilterableQuestion[] {

@@ -4,10 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Hourglass, RefreshCw } from "lucide-react";
 import { useRefreshColumns } from "@/features/submissions/ui/use-search-key-changes.hook";
 
-/**
- * A header filter whose search copy is being rebuilt: no inputs until the
- * columns say it is ready, and a way to read them again.
- */
 export function PreparingFilterNote() {
   const { isPending, refresh } = useRefreshColumns();
   return (

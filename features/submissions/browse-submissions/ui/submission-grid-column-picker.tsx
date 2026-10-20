@@ -58,7 +58,6 @@ export const COLUMN_PICKER_RENDER_LIMIT = 200;
 type ColumnPickerProps = {
   formId: string;
   catalog: readonly AnswerColumn[];
-  /** Marks filterable columns; editors also change which ones are. */
   columnSearch: ColumnSearchAccess;
   disabled: boolean;
 };
@@ -91,10 +90,6 @@ function ColumnPickerTrigger({ disabled }: Readonly<{ disabled: boolean }>) {
   );
 }
 
-/**
- * Search key changes live here, outside the panel, so one that is running
- * finishes after the picker closes.
- */
 function useColumnPicker({ formId, catalog, columnSearch }: ColumnPickerProps) {
   const [open, setOpen] = useState(false);
   const changes = useSearchKeyChanges(formId);

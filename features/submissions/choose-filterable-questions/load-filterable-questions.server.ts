@@ -17,14 +17,8 @@ import {
   type FilterableQuestion,
 } from "./filterable-questions";
 
-/** The form's filterable questions, or why the settings leave them out. */
 export type FilterableQuestionsLoad =
-  /**
-   * Flag off, no reporting for the form, no compiled schema yet, or an API
-   * that cannot choose keys.
-   */
   | { kind: "hidden" }
-  /** Logged by `toResult`; kept whole so its support fields survive. */
   | { kind: "error"; result: ResultError }
   | {
       kind: "ready";

@@ -14,7 +14,6 @@ const LOGGER_NAME = "submissions.choose-filterable-questions";
 
 export type SearchKeysResult = Result<SubmissionGridSearchKeysResponse>;
 
-/** Makes a column filterable; its filter is preparing until the rebuild ends. */
 export async function addSearchKeyAction(
   formId: string,
   key: string,
@@ -26,7 +25,6 @@ export async function addSearchKeyAction(
   );
 }
 
-/** Stops a column an editor chose from being filterable. */
 export async function removeSearchKeyAction(
   formId: string,
   key: string,
@@ -58,13 +56,11 @@ async function changeSearchKeys(
   return result;
 }
 
-/** The grid and the settings both show which columns are filterable. */
 function revalidateFormReporting(formId: string) {
   revalidatePath(`/forms/${formId}/submissions`);
   revalidatePath(`/forms/${formId}/settings`);
 }
 
-/** Redirects without `forms.edit`; an error when the flag is off. */
 async function refuseSearchKeyChange(
   session: Session | null,
 ): Promise<SearchKeysResult | null> {

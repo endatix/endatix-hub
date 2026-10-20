@@ -17,7 +17,6 @@ type FilterableQuestionsListProps = {
   formId: string;
   questions: readonly FilterableQuestion[];
   slots: SubmissionGridSearchSlots;
-  /** `forms.edit`: remove the questions people chose. */
   canEdit: boolean;
 };
 
@@ -41,7 +40,6 @@ export function FilterableQuestionsList({
 
 type SlotsUsedProps = { slots: SubmissionGridSearchSlots; canEdit: boolean };
 
-/** Only editors are pointed at the picker, where they can add more. */
 function SlotsUsed({ slots, canEdit }: Readonly<SlotsUsedProps>) {
   return (
     <p className="flex-1">

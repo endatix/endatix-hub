@@ -22,7 +22,6 @@ export type DescribeGridReadinessInput = {
   readiness: SubmissionGridReadiness;
   canIncludeInProgress: boolean;
   hasAnswerFilters?: boolean;
-  /** The URL has answer filters on columns still being prepared. */
   answerFiltersWaiting?: boolean;
 };
 
@@ -91,7 +90,6 @@ function describeReadiness({
     : describeUnprepared(countUnprepared(readiness), canIncludeInProgress);
 }
 
-/** Says the waiting filters are not applied, on its own or under the banner. */
 function withFiltersWaiting(
   banner: GridReadinessBanner | null,
 ): GridReadinessBanner {

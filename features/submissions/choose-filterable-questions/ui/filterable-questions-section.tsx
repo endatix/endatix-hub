@@ -2,10 +2,6 @@ import { SectionTitle } from "@/components/headings/section-title";
 import { loadFilterableQuestions } from "../load-filterable-questions.server";
 import { FilterableQuestionsList } from "./filterable-questions-list";
 
-/**
- * The form's settings: which questions the submissions grid can filter,
- * picked automatically or chosen by editors. Hidden without reporting.
- */
 export async function FilterableQuestionsSection({
   formId,
 }: Readonly<{ formId: string }>) {

@@ -76,10 +76,6 @@ async function listGridRows(
   );
 }
 
-/**
- * Including in-progress submissions and choosing filterable columns need
- * `forms.edit`; a miss hides those controls.
- */
 export async function canEditForm(): Promise<boolean> {
   const { checkPermission } = await authorization();
   const result = await checkPermission(Permissions.Forms.Edit);

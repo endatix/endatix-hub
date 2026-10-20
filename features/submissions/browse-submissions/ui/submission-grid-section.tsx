@@ -14,7 +14,7 @@ import { describeGridReadiness } from "../grid-readiness";
 import type { SubmissionGridColumnsLoad } from "../resolve-submission-grid-load";
 import {
   applicableAnswerFilters,
-  keptAnswerFilters,
+  applicableOrPreparingAnswerFilters,
 } from "../submission-grid-answer-filters";
 import {
   resolveVisibleAnswerColumns,
@@ -69,7 +69,10 @@ function parseGridUrl(
 
   return {
     ...urlState,
-    answerFilters: keptAnswerFilters(urlState.answerFilters, catalog),
+    answerFilters: applicableOrPreparingAnswerFilters(
+      urlState.answerFilters,
+      catalog,
+    ),
   };
 }
 
@@ -93,7 +96,6 @@ type SubmissionGridProps = {
   formId: string;
   urlState: SubmissionGridUrlState;
   columns: ReadyColumns;
-  /** `forms.edit`: include in-progress submissions and choose filterable columns. */
   canEdit: boolean;
   submitterLabel: string;
 };
@@ -118,11 +120,6 @@ function SubmissionGrid(props: Readonly<SubmissionGridProps>) {
   );
 }
 
-/**
- * The readiness banner. Without a schema it says the link's filters wait for
- * Prepare; with one, it steps aside for the rows' coverage while filters are
- * sent, and says when filters wait for a column still being prepared.
- */
 function gridBanner(props: Readonly<SubmissionGridProps>, sentFilters: number) {
   const { columns, urlState } = props;
   const inUrl = urlState.answerFilters.length;
@@ -135,14 +132,8 @@ function gridBanner(props: Readonly<SubmissionGridProps>, sentFilters: number) {
   });
 }
 
-/**
- * The rows' URL state and visible columns. Only the filters that apply are
- * sent: none without a schema, none on a column still being prepared.
- */
 function rowsRequest(urlState: SubmissionGridUrlState, columns: ReadyColumns) {
-  const answerFilters = columns.schemaReady
-    ? applicableAnswerFilters(urlState.answerFilters, columns.catalog)
-    : [];
+  const answerFilters = sentAnswerFilters(urlState, columns);
   const rowsState = { ...urlState, answerFilters };
   const answerColumns = resolveVisibleAnswerColumns(
     columns.catalog,
@@ -150,6 +141,16 @@ function rowsRequest(urlState: SubmissionGridUrlState, columns: ReadyColumns) {
     rowsState.answerFilters,
   );
   return { urlState: rowsState, answerColumns };
+}
+
+/** None without a schema; none on a column still being prepared. */
+function sentAnswerFilters(
+  urlState: SubmissionGridUrlState,
+  { schemaReady, catalog }: ReadyColumns,
+) {
+  return schemaReady
+    ? applicableAnswerFilters(urlState.answerFilters, catalog)
+    : [];
 }
 
 type SubmissionGridRowsProps = {

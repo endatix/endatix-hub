@@ -51,7 +51,6 @@ export function RemoveSearchKeyButton({
   );
 }
 
-/** Reads the columns again: the only way a preparing filter turns ready. */
 export function RefreshSearchKeysButton({
   changes,
   className,
