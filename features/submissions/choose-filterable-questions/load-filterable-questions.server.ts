@@ -7,7 +7,12 @@ import type {
 } from "@/lib/endatix-api/reporting/submission-grid-types";
 import { reportingExportFlag } from "@/lib/feature-flags/flags";
 import type { Session } from "next-auth";
-import { Result, toResult, type ResultType } from "@/lib/result";
+import {
+  Result,
+  toResult,
+  type Error as ResultError,
+  type ResultType,
+} from "@/lib/result";
 import {
   listFilterableQuestions,
   type FilterableQuestion,
@@ -17,7 +22,8 @@ import {
 export type FilterableQuestionsLoad =
   /** Flag off, no reporting for the form, or an API that cannot choose keys. */
   | { kind: "hidden" }
-  | { kind: "error"; message: string }
+  /** Logged by `toResult`; kept whole so its support fields survive. */
+  | { kind: "error"; result: ResultError }
   | {
       kind: "ready";
       questions: FilterableQuestion[];
@@ -57,7 +63,7 @@ export function resolveFilterableQuestionsLoad(
   if (Result.isError(result)) {
     return result.statusCode === 404
       ? { kind: "hidden" }
-      : { kind: "error", message: result.message };
+      : { kind: "error", result };
   }
 
   const { columns, searchSlots } = result.value;

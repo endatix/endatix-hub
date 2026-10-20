@@ -124,7 +124,7 @@ describe("resolveFilterableQuestionsLoad", () => {
     // Act & Assert
     expect(resolveFilterableQuestionsLoad(failure, true)).toEqual({
       kind: "error",
-      message: "Boom",
+      result: failure,
     });
   });
 });

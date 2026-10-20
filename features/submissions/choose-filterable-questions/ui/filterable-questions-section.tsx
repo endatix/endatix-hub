@@ -16,7 +16,10 @@ export async function FilterableQuestionsSection({
     <section className="mx-auto max-w-2xl py-4">
       <SectionTitle title="Filterable questions" headingClassName="text-xl" />
       {load.kind === "error" ? (
-        <p className="text-sm text-destructive">{load.message}</p>
+        <p className="text-sm text-muted-foreground">
+          The filterable questions could not be loaded. Refresh the page to try
+          again.
+        </p>
       ) : (
         <FilterableQuestionsList formId={formId} {...load} />
       )}

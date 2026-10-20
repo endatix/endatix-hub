@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { Result } from "@/lib/result";
+import { Result, type Error as ResultError } from "@/lib/result";
 import { loadFilterableQuestions } from "../load-filterable-questions.server";
 import { FilterableQuestionsSection } from "../ui/filterable-questions-section";
 
@@ -16,7 +16,7 @@ describe("FilterableQuestionsSection", () => {
       result: Result.error("Upstream exploded", undefined, undefined, {
         statusCode: 500,
         traceId: "trace-1",
-      }),
+      }) as ResultError,
     });
 
     // Act
