@@ -143,4 +143,28 @@ describe("TestInspector", () => {
     expect(screen.queryByRole("menuitem", { name: "Start over" })).toBeNull();
     expect(refresh).not.toHaveBeenCalled();
   });
+
+  it("keeps Start over hidden after the menu closes once the person is removed", async () => {
+    vi.mocked(restartTestSubmissionAction).mockResolvedValue(
+      Result.error("Person not found on this form.", undefined, undefined, {
+        statusCode: 404,
+      }),
+    );
+    const view = toTestInspectorView({
+      formId: "form-1",
+      submission: personTest,
+      canStartOver: true,
+    });
+    render(<TestInspector model={null} view={view} />);
+    openMenu();
+    fireEvent.click(screen.getByRole("menuitem", { name: "Start over" }));
+    expect(await screen.findByText(/no longer on this form/)).toBeTruthy();
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
+
+    openMenu();
+    expect(screen.getByText(/no longer on this form/)).toBeTruthy();
+    expect(screen.queryByRole("menuitem", { name: "Start over" })).toBeNull();
+  });
 });

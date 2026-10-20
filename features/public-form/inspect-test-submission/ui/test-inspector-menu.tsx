@@ -1,13 +1,12 @@
 "use client";
 
 import {
-  startOverTarget,
   submissionDetailsHref,
   type TestInspectorView,
 } from "@/features/public-form/inspect-test-submission/test-inspector-view";
 import { useOptionalFormRuntime } from "@/lib/form-runtime/form-runtime.context";
 import { DropdownMenu } from "radix-ui";
-import { useStartOver, type TestStartOver } from "./start-over";
+import type { StartOverControls } from "./start-over";
 import styles from "./test-inspector.module.css";
 
 type RowProps = { label: string; hint?: string; icon?: string };
@@ -38,9 +37,9 @@ function LinkRow({
   );
 }
 
-/** Start over from the menu: the badge's flow, unchanged. The menu stays open to show a problem. */
-function StartOverRow({ startOver }: Readonly<{ startOver: TestStartOver }>) {
-  const { pending, problem, canRun, run } = useStartOver(startOver);
+/** Start over from the menu. The result lives on the trigger, so closing the menu does not forget it. */
+function StartOverRow({ restart }: Readonly<{ restart: StartOverControls }>) {
+  const { pending, problem, canRun, run } = restart;
   return (
     <>
       {canRun ? (
@@ -85,21 +84,25 @@ function IdentityRows({ view }: Readonly<{ view: TestInspectorView }>) {
 }
 
 /** Where the tester goes next: the submission, the Audience, or a fresh test submission. */
-function ActionRows({ view }: Readonly<{ view: TestInspectorView }>) {
-  const startOver = startOverTarget(view);
+function ActionRows({
+  restart,
+  view,
+}: Readonly<{ restart: StartOverControls | null; view: TestInspectorView }>) {
+  const submissionHref = useSubmissionHref(view);
   return (
     <>
-      <LinkRow href={useSubmissionHref(view)} label="Submission" />
+      <LinkRow href={submissionHref} label="Submission" />
       <LinkRow href={view.links.audience} label="Audience" />
-      {startOver ? <StartOverRow startOver={startOver} /> : null}
+      {restart ? <StartOverRow restart={restart} /> : null}
     </>
   );
 }
 
 /** The Test inspector's rows, top to bottom. */
 export function TestInspectorMenu({
+  restart,
   view,
-}: Readonly<{ view: TestInspectorView }>) {
+}: Readonly<{ restart: StartOverControls | null; view: TestInspectorView }>) {
   return (
     <DropdownMenu.Content
       align="end"
@@ -110,7 +113,7 @@ export function TestInspectorMenu({
     >
       <IdentityRows view={view} />
       <DropdownMenu.Separator className={styles.separator} />
-      <ActionRows view={view} />
+      <ActionRows restart={restart} view={view} />
       <DropdownMenu.Separator className={styles.separator} />
       <InertRow hint="Coming soon" icon="⚙" label="Preferences" />
     </DropdownMenu.Content>

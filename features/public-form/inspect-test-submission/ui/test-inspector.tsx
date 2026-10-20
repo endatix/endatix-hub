@@ -1,8 +1,12 @@
 "use client";
 
-import type { TestInspectorView } from "@/features/public-form/inspect-test-submission/test-inspector-view";
+import {
+  startOverTarget,
+  type TestInspectorView,
+} from "@/features/public-form/inspect-test-submission/test-inspector-view";
 import { DropdownMenu } from "radix-ui";
 import type { SurveyModel } from "survey-core";
+import { useStartOver } from "./start-over";
 import { TestInspectorMenu } from "./test-inspector-menu";
 import { TestInspectorTrigger } from "./test-inspector-trigger";
 import styles from "./test-inspector.module.css";
@@ -24,16 +28,25 @@ export default function TestInspector({ view }: Readonly<TestInspectorProps>) {
       className={styles.anchor}
       data-testid="test-inspector"
     >
-      <DropdownMenu.Root modal={false}>
-        <DropdownMenu.Trigger asChild>
-          <TestInspectorTrigger />
-        </DropdownMenu.Trigger>
-        <DropdownMenu.Portal>
-          <div className={styles.theme}>
-            <TestInspectorMenu view={view} />
-          </div>
-        </DropdownMenu.Portal>
-      </DropdownMenu.Root>
+      <InspectorDropdown view={view} />
     </aside>
+  );
+}
+
+/** Holds Start over across menu open and close. The menu itself unmounts when it closes. */
+function InspectorDropdown({ view }: Readonly<{ view: TestInspectorView }>) {
+  const target = startOverTarget(view);
+  const restart = useStartOver(target);
+  return (
+    <DropdownMenu.Root modal={false}>
+      <DropdownMenu.Trigger asChild>
+        <TestInspectorTrigger />
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <div className={styles.theme}>
+          <TestInspectorMenu restart={target ? restart : null} view={view} />
+        </div>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
   );
 }
