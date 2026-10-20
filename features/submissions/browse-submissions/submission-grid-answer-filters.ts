@@ -1,11 +1,12 @@
 import type { DateFilterValue } from "@/components/table/date-filter-types";
+import { fitAnswerFilters } from "@/lib/endatix-api/reporting/submission-grid-answer-params";
 import {
-  MAX_SUBMISSION_GRID_ANSWER_FILTERS,
   MAX_SUBMISSION_GRID_CONTAINS_LENGTH,
   type SubmissionGridAnswerFilter,
   type SubmissionGridAnswerOperator,
   type SubmissionGridFilterType,
 } from "@/lib/endatix-api/reporting/submission-grid-types";
+import { parseCalendarDateYmd } from "@/lib/endatix-api/shared/list-query";
 import { firstSearchParam, type SearchParam } from "@/lib/utils/next-utils";
 import type { AnswerColumn } from "./submission-grid-columns";
 
@@ -15,7 +16,6 @@ const OPERATORS: ReadonlySet<string> = new Set<SubmissionGridAnswerOperator>([
   "from",
   "to",
 ]);
-const CALENDAR_DAY = /^\d{4}-\d{2}-\d{2}$/;
 const CHOICE_QUESTION_TYPES: ReadonlySet<string> = new Set([
   "dropdown",
   "radiogroup",
@@ -35,15 +35,14 @@ export function answerFilterUrlKey(
   return `${URL_KEY_PREFIX}${operator}.${key}`;
 }
 
-/** The grid owns every `answer.` key, so a malformed one leaves the URL. */
-export function isAnswerFilterUrlKey(name: string): boolean {
+export function hasAnswerFilterPrefix(name: string): boolean {
   return name.startsWith(URL_KEY_PREFIX);
 }
 
 /**
  * Every well-formed answer filter in the URL, in URL order. A `contains`
  * longer than the API accepts is cut to that length; a bound that is not a
- * `yyyy-MM-dd` day is dropped.
+ * real `yyyy-MM-dd` calendar day is dropped.
  */
 export function parseAnswerFilters(
   raw: Record<string, SearchParam>,
@@ -64,7 +63,8 @@ export function answerFilterUrlEntries(
 
 /**
  * The filters the form's columns can apply: keys with a fitting filter type,
- * up to the API's limit. The rest would fail the whole request.
+ * up to the API's count and the request line's byte budget. The rest would
+ * fail the whole request.
  */
 export function applicableAnswerFilters(
   filters: readonly SubmissionGridAnswerFilter[],
@@ -73,12 +73,13 @@ export function applicableAnswerFilters(
   const filterTypes = new Map(
     catalog.map((column) => [column.key, column.filterType]),
   );
-  return filters
-    .filter(({ operator, key }) => operatorFits(operator, filterTypes.get(key)))
-    .slice(0, MAX_SUBMISSION_GRID_ANSWER_FILTERS);
+  return fitAnswerFilters(
+    filters.filter(({ operator, key }) =>
+      operatorFits(operator, filterTypes.get(key)),
+    ),
+  );
 }
 
-/** URL keys of the `contains` filters, for the one debounced text writer. */
 export function answerTextFilterUrlKeys(
   catalog: readonly AnswerColumn[],
 ): string[] {
@@ -87,7 +88,6 @@ export function answerTextFilterUrlKeys(
     .map((column) => answerFilterUrlKey("contains", column.key));
 }
 
-/** A date column's From/To bounds, as its header filter takes them. */
 export function answerDateFilter(
   filters: readonly SubmissionGridAnswerFilter[],
   key: string,
@@ -98,8 +98,7 @@ export function answerDateFilter(
   return { from: bound("from"), to: bound("to") };
 }
 
-/** Dropdown and radio answers are stored as the choice value, not its text. */
-export function matchesStoredChoiceValue(column: AnswerColumn): boolean {
+export function filtersByStoredChoiceValue(column: AnswerColumn): boolean {
   return CHOICE_QUESTION_TYPES.has(column.questionType ?? "");
 }
 
@@ -108,12 +107,12 @@ function parseAnswerFilter(
   rawValue: string | undefined,
 ): SubmissionGridAnswerFilter | undefined {
   const target = parseUrlKey(name);
-  const value = normalizeValue(target?.operator, rawValue?.trim());
+  const value = target && normalizeValue(target.operator, rawValue?.trim());
   return target && value ? { ...target, value } : undefined;
 }
 
 function parseUrlKey(name: string): AnswerFilterTarget | undefined {
-  if (!isAnswerFilterUrlKey(name)) {
+  if (!hasAnswerFilterPrefix(name)) {
     return undefined;
   }
 
@@ -127,10 +126,10 @@ function parseUrlKey(name: string): AnswerFilterTarget | undefined {
 }
 
 function normalizeValue(
-  operator: SubmissionGridAnswerOperator | undefined,
+  operator: SubmissionGridAnswerOperator,
   value: string | undefined,
 ): string | undefined {
-  if (!operator || !value) {
+  if (!value) {
     return undefined;
   }
 
@@ -138,7 +137,7 @@ function normalizeValue(
     return value.slice(0, MAX_SUBMISSION_GRID_CONTAINS_LENGTH);
   }
 
-  return CALENDAR_DAY.test(value) ? value : undefined;
+  return parseCalendarDateYmd(value);
 }
 
 function operatorFits(

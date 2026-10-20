@@ -48,7 +48,7 @@ export async function SubmissionGridSection(
     return <HubPageLoadError result={columns.result} />;
   }
 
-  const urlState = parseGridUrl(searchParams, columns.catalog);
+  const urlState = parseGridUrl(searchParams, columns);
   if (!isCanonicalSubmissionGridUrl(searchParams, urlState)) {
     redirect(buildSubmissionGridPath(formId, urlState) as Route);
   }
@@ -56,17 +56,22 @@ export async function SubmissionGridSection(
   return <SubmissionGrid {...{ formId, urlState, columns, ...access }} />;
 }
 
-/** Answer filters the form cannot apply leave the URL, so it names what shows. */
 function parseGridUrl(
   searchParams: SubmissionGridRawSearchParams,
-  catalog: readonly AnswerColumn[],
+  { schemaReady, catalog }: ReadyColumns,
 ): SubmissionGridUrlState {
   const urlState = parseSubmissionGridUrl(searchParams);
+  if (!schemaReady) {
+    return urlState;
+  }
+
   return {
     ...urlState,
     answerFilters: applicableAnswerFilters(urlState.answerFilters, catalog),
   };
 }
+
+type ReadyColumns = Extract<SubmissionGridColumnsLoad, { kind: "ready" }>;
 
 /** Only the rows wait for the columns; the other reads start together. */
 async function loadGridInputs(formId: string) {
@@ -85,27 +90,25 @@ async function loadGridInputs(formId: string) {
 type SubmissionGridProps = {
   formId: string;
   urlState: SubmissionGridUrlState;
-  columns: Extract<SubmissionGridColumnsLoad, { kind: "ready" }>;
+  columns: ReadyColumns;
   canIncludeInProgress: boolean;
   submitterLabel: string;
 };
 
 function SubmissionGrid(props: Readonly<SubmissionGridProps>) {
-  const { formId, urlState, columns, submitterLabel } = props;
-  const { catalog, readiness } = columns;
-  const answerColumns = resolveVisibleAnswerColumns(catalog, urlState.columns);
-  const { canIncludeInProgress } = props;
+  const { formId, columns, submitterLabel, canIncludeInProgress } = props;
+  const hasAnswerFilters = props.urlState.answerFilters.length > 0;
   return (
     <SubmissionGridShell
       formId={formId}
-      catalog={catalog}
+      catalog={columns.catalog}
       columnSearch={columnSearchAccess(columns, canIncludeInProgress)}
-      hasSubmissions={readiness.submissions > 0}
-      banner={describeGridReadiness({ ...columns, ...props })}
+      hasSubmissions={columns.readiness.submissions > 0}
+      banner={describeGridReadiness({ ...columns, ...props, hasAnswerFilters })}
     >
       <SubmissionGridRows
-        {...{ formId, urlState, answerColumns, submitterLabel }}
-        canIncludeInProgress={canIncludeInProgress}
+        {...{ formId, submitterLabel, canIncludeInProgress }}
+        {...rowsRequest(props.urlState, columns)}
       />
     </SubmissionGridShell>
   );
@@ -117,6 +120,19 @@ function columnSearchAccess(
   canEdit: boolean,
 ): ColumnSearchAccess {
   return { canEdit, slots: columns.searchSlots };
+}
+
+/** The rows' URL state and visible columns: without a schema, no answer filter is sent. */
+function rowsRequest(urlState: SubmissionGridUrlState, columns: ReadyColumns) {
+  const rowsState = columns.schemaReady
+    ? urlState
+    : { ...urlState, answerFilters: [] };
+  const answerColumns = resolveVisibleAnswerColumns(
+    columns.catalog,
+    rowsState.columns,
+    rowsState.answerFilters,
+  );
+  return { urlState: rowsState, answerColumns };
 }
 
 type SubmissionGridRowsProps = {

@@ -15,7 +15,6 @@ type SubmissionGridRowsSectionProps = {
   urlState: SubmissionGridUrlState;
   answerColumns: AnswerColumn[];
   submitterLabel: string;
-  /** Including in-progress submissions needs `forms.edit`. */
   canIncludeInProgress: boolean;
 };
 

@@ -41,7 +41,6 @@ export function dateRangeUpdate(
   };
 }
 
-/** A date answer column's From/To; a new filter starts from the first page. */
 export function answerDateRangeUpdate(
   key: string,
   value: DateFilterValue,
@@ -113,7 +112,6 @@ const CLEAR_METADATA_FILTERS_UPDATE: SubmissionGridUrlUpdate =
     ].map((key) => [key, null]),
   );
 
-/** Clears the metadata filters and every answer filter, hidden columns' too. */
 export function clearFiltersUpdate(
   state: SubmissionGridUrlState,
 ): SubmissionGridUrlUpdate {

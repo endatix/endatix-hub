@@ -2,8 +2,10 @@ import {
   columnSearchOf,
   type ColumnSearch,
 } from "@/features/submissions/choose-filterable-questions/filterable-questions";
+import { answerParamsBytes } from "@/lib/endatix-api/reporting/submission-grid-answer-params";
 import { fitRowColumns } from "@/lib/endatix-api/reporting/submission-grid-row-columns";
 import type {
+  SubmissionGridAnswerFilter,
   SubmissionGridColumn,
   SubmissionGridSearchSlots,
   SubmissionGridFilterType,
@@ -91,12 +93,14 @@ function toAnswerColumn(
 
 /**
  * The answer columns to show, in order. Requested keys the schema no longer
- * has are dropped, and the rest stop at what the rows endpoint accepts.
- * Without a request, the first question columns show.
+ * has are dropped, and the rest stop at what the rows endpoint accepts
+ * beside the answer filters' params. Without a request, the first question
+ * columns show.
  */
 export function resolveVisibleAnswerColumns(
   catalog: readonly AnswerColumn[],
   requestedKeys: readonly string[] | undefined,
+  answerFilters: readonly SubmissionGridAnswerFilter[] = [],
 ): AnswerColumn[] {
   if (requestedKeys === undefined) {
     return catalog
@@ -106,7 +110,11 @@ export function resolveVisibleAnswerColumns(
 
   const byKey = new Map(catalog.map((column) => [column.key, column]));
   const known = requestedKeys.flatMap((key) => byKey.get(key) ?? []);
-  const fitted = fitRowColumns(known.map((column) => column.key));
+  const fitted = fitRowColumns(
+    known.map((column) => column.key),
+    [],
+    answerParamsBytes(answerFilters),
+  );
   return known.slice(0, fitted.length);
 }
 
@@ -140,7 +148,9 @@ export function submitterProfileField(key: string): string {
     : key;
 }
 
-export function isSubmitterProfileColumn(column: AnswerColumn): boolean {
+export function isSubmitterProfileColumn(
+  column: Pick<AnswerColumn, "kind">,
+): boolean {
   return column.kind === SUBMITTER_PROFILE_KIND;
 }
 

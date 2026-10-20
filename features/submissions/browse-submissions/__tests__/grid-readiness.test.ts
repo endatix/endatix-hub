@@ -209,7 +209,7 @@ describe("describeRowsBanner", () => {
     });
     expect(banner?.lines).toEqual([
       "3 submissions completed are not prepared, so the answer filters did not check them.",
-      "1 submission in progress is not included, so the answer filters did not check them.",
+      "1 submission in progress is not included, so the answer filters did not check it.",
     ]);
   });
 

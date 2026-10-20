@@ -21,6 +21,7 @@ export type DescribeGridReadinessInput = {
   schemaReady: boolean;
   readiness: SubmissionGridReadiness;
   canIncludeInProgress: boolean;
+  hasAnswerFilters?: boolean;
 };
 
 /**
@@ -47,6 +48,9 @@ function atLeastZero(count: number): number {
   return Math.max(0, count);
 }
 
+const ANSWER_FILTERS_NOT_APPLIED_LINE =
+  "The answer filters in this link are not applied until the form is prepared.";
+
 const NO_SCHEMA_BANNER: GridReadinessBanner = {
   title: "This form's reporting data is not prepared",
   lines: [
@@ -60,16 +64,26 @@ export function describeGridReadiness({
   schemaReady,
   readiness,
   canIncludeInProgress,
+  hasAnswerFilters,
 }: DescribeGridReadinessInput): GridReadinessBanner | null {
   if (readiness.submissions === 0) {
     return null;
   }
 
   if (!schemaReady) {
-    return NO_SCHEMA_BANNER;
+    return hasAnswerFilters ? withFiltersNotApplied() : NO_SCHEMA_BANNER;
   }
 
-  return describeUnprepared(countUnprepared(readiness), canIncludeInProgress);
+  return hasAnswerFilters
+    ? null
+    : describeUnprepared(countUnprepared(readiness), canIncludeInProgress);
+}
+
+function withFiltersNotApplied(): GridReadinessBanner {
+  return {
+    ...NO_SCHEMA_BANNER,
+    lines: [...NO_SCHEMA_BANNER.lines, ANSWER_FILTERS_NOT_APPLIED_LINE],
+  };
 }
 
 function describeUnprepared(
@@ -90,9 +104,7 @@ function describeUnprepared(
 }
 
 export type DescribeRowsBannerInput = {
-  /** Set when the rows were read with answer filters. */
   coverage?: SubmissionGridAnswerFilterCoverage;
-  /** The form lost its schema, so the rows were read without answer filters. */
   answerFiltersNotPrepared?: boolean;
   canIncludeInProgress: boolean;
 };
@@ -106,10 +118,6 @@ const ANSWER_FILTERS_NOT_PREPARED_BANNER: GridReadinessBanner = {
   showIncludeInProgress: false,
 };
 
-/**
- * What one page of rows says about its answer filters: which submissions the
- * filters could not check, or that they were not applied at all.
- */
 export function describeRowsBanner({
   coverage,
   answerFiltersNotPrepared,
@@ -144,13 +152,16 @@ function uncheckedLines({
   uncheckedCompleted: completed,
   uncheckedInProgress: inProgress,
 }: SubmissionGridAnswerFilterCoverage): string[] {
-  const notChecked = "so the answer filters did not check them.";
   return [
     completed > 0 &&
-      `${submissions(completed)} completed ${verb(completed)} not prepared, ${notChecked}`,
+      `${submissions(completed)} completed ${verb(completed)} not prepared, ${notChecked(completed)}`,
     inProgress > 0 &&
-      `${submissions(inProgress)} in progress ${verb(inProgress)} not included, ${notChecked}`,
+      `${submissions(inProgress)} in progress ${verb(inProgress)} not included, ${notChecked(inProgress)}`,
   ].filter((line): line is string => typeof line === "string");
+}
+
+function notChecked(count: number): string {
+  return `so the answer filters did not check ${count === 1 ? "it" : "them"}.`;
 }
 
 function unpreparedLines({

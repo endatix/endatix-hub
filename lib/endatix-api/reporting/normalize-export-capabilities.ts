@@ -42,9 +42,7 @@ export function normalizeExportCapability(
       "Dropped invalid export capability during normalization",
       {
         "capability.target": parseErrorMessage(capability.target),
-        "capability.deliveryFormat": parseErrorMessage(
-          capability.deliveryFormat,
-        ),
+        "capability.deliveryFormat": parseErrorMessage(capability.deliveryFormat),
         "capability.profile": parseErrorMessage(capability.profile),
         "capability.wireKey": parseErrorMessage(capability.wireKey),
         "capability.label": parseErrorMessage(capability.label),
