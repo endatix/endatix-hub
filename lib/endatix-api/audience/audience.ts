@@ -279,10 +279,14 @@ export class Audience {
     );
   }
 
-  /** Start over: deletes the test submission and opens a new one for the same person. */
+  /**
+   * Start over: deletes the test submission and opens a new one for the same person. `token` is
+   * the one the test submission was opened with; the API refuses any other.
+   */
   async restartTestSubmission(
     formId: string,
     submissionId: string,
+    token: string,
   ): Promise<ApiResult<OpenedTestSubmission>> {
     const idsCheck = requireFormAndEntityIds(
       formId,
@@ -294,7 +298,7 @@ export class Audience {
     return mapTestSubmissionResult(
       await this.endatix.post<WireTestSubmission>(
         formAudiencePath(formId, "test-submissions", submissionId, "restart"),
-        {},
+        { token },
       ),
     );
   }

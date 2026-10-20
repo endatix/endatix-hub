@@ -53,7 +53,11 @@ describe("testSubmissionMode", () => {
         isRespondentTestMode: false,
         submission: testSubmission,
       }),
-    ).toEqual({ showBadge: true, startOverSubmissionId: null });
+    ).toEqual({
+      showBadge: true,
+      startOverSubmissionId: null,
+      writeToken: "t",
+    });
   });
 
   it("offers Start over on a person's test submission to a viewer who may test, even outside test mode", () => {
@@ -63,7 +67,11 @@ describe("testSubmissionMode", () => {
         canStartOverTest: true,
         submission: testSubmission,
       }),
-    ).toEqual({ showBadge: true, startOverSubmissionId: "21" });
+    ).toEqual({
+      showBadge: true,
+      startOverSubmissionId: "21",
+      writeToken: "t",
+    });
   });
 
   it("does not offer Start over to a viewer who may not test, even in test mode", () => {
@@ -100,5 +108,29 @@ describe("testSubmissionMode", () => {
         urlToken: "access-token",
       }).startOverSubmissionId,
     ).toBeNull();
+  });
+
+  it("saves a person's test submission with its own token, not the form cookie", () => {
+    expect(
+      testSubmissionMode({
+        isRespondentTestMode: false,
+        submission: testSubmission,
+      }).writeToken,
+    ).toBe("t");
+  });
+
+  it("leaves every other page on the cookie or its URL token", () => {
+    const real = submission({ isTestSubmission: true });
+    expect(
+      testSubmissionMode({ isRespondentTestMode: true, submission: real })
+        .writeToken,
+    ).toBeUndefined();
+    expect(
+      testSubmissionMode({
+        isRespondentTestMode: false,
+        submission: testSubmission,
+        urlToken: "access",
+      }).writeToken,
+    ).toBeUndefined();
   });
 });

@@ -48,6 +48,9 @@ import styles from "./survey-component.module.css";
 import { useSurveyModel } from "./use-survey-model.hook";
 import { useSurveyTheme } from "./use-survey-theme.hook";
 
+/** The badge to show, and the token saves go with instead of the form cookie's. */
+export type TestSubmissionView = { badge: ReactNode; writeToken?: string };
+
 interface SurveyComponentProps {
   definition: string;
   formId: string;
@@ -56,8 +59,8 @@ interface SurveyComponentProps {
   customQuestions?: string[];
   requiresReCaptcha?: boolean;
   isEmbed?: boolean;
-  /** The test badge the page decided on, or nothing for a real respondent. */
-  testBadge?: ReactNode;
+  /** What the page decided for a test submission; nothing for a real respondent. */
+  testSubmission?: TestSubmissionView;
   embedForm?: EmbedFormInfo;
   onModelCreated?: (model: Model) => void;
   onSubmitSuccess?: (result: SubmissionOperation) => void;
@@ -77,14 +80,14 @@ export default function SurveyComponent({
   customQuestions,
   requiresReCaptcha,
   isEmbed = false,
-  testBadge,
+  testSubmission,
   embedForm,
   onModelCreated,
   onSubmitSuccess,
 }: SurveyComponentProps) {
   const formRuntime = useFormRuntime();
   const { stateRef, updateState } = formRuntime;
-  const runtimeToken = stateRef.current.token;
+  const runtimeToken = stateRef.current.token ?? testSubmission?.writeToken;
 
   const { error: surveyModelError, surveyModel } = useSurveyModel({
     formId,
@@ -392,7 +395,7 @@ export default function SurveyComponent({
         } as CSSProperties
       }
     >
-      {testBadge}
+      {testSubmission?.badge}
       <LanguageSelector
         availableLocales={surveyLocales}
         surveyModel={surveyModel}

@@ -59,4 +59,20 @@ describe("useTestAsPerson", () => {
     expect(openTestSubmissionAction).not.toHaveBeenCalled();
     expect(toast.error).toHaveBeenCalledWith(expect.stringMatching(/pop-ups/));
   });
+
+  it("ignores a second click while the first is opening", async () => {
+    const tab = fakeTab();
+    const open = vi
+      .spyOn(window, "open")
+      .mockReturnValue(tab as unknown as Window);
+    vi.mocked(openTestSubmissionAction).mockResolvedValue(
+      Result.success({ url: "/share/1" }),
+    );
+    const testAs = renderHook(() => useTestAsPerson("1")).result.current;
+
+    await Promise.all([testAs(PERSON), testAs(PERSON)]);
+
+    expect(open).toHaveBeenCalledTimes(1);
+    expect(openTestSubmissionAction).toHaveBeenCalledTimes(1);
+  });
 });

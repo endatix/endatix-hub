@@ -35,14 +35,18 @@ vi.mock(
 vi.mock("next/dynamic", () => ({
   default: () =>
     function MockSurveyComponent({
-      testBadge,
+      testSubmission,
     }: {
-      testBadge?: React.ReactNode;
+      testSubmission?: { badge: React.ReactNode; writeToken?: string };
     }) {
       return (
         <>
-          {testBadge}
-          <button data-testid="survey-component" type="button">
+          {testSubmission?.badge}
+          <button
+            data-testid="survey-component"
+            data-write-token={testSubmission?.writeToken}
+            type="button"
+          >
             Complete
           </button>
         </>
@@ -201,6 +205,19 @@ describe("SurveyJsWrapper", () => {
     );
 
     expect(screen.getByRole("button", { name: "Start over" })).toBeDefined();
+  });
+
+  it("saves a person's test submission with its own token, so another tab's cookie swap cannot redirect it", () => {
+    render(
+      <SurveyJsWrapper
+        {...defaultProps}
+        survey={{ ...defaultProps.survey, submission: testSubmission(false) }}
+      />,
+    );
+
+    expect(
+      screen.getByTestId("survey-component").getAttribute("data-write-token"),
+    ).toBe("submission-token");
   });
 
   it("replaces the cookie Start a new response with the badge on a finished test submission", () => {

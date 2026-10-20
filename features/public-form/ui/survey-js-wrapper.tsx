@@ -13,11 +13,11 @@ import {
 } from "@/lib/form-runtime/form-runtime.context";
 import { useSurveyExtensions } from "@/lib/survey-extensions/ui/use-survey-extensions";
 import dynamic from "next/dynamic";
-import type { ReactNode } from "react";
 import AlreadyResponded from "./already-responded";
 import SubmissionAlreadyCompleted from "./submission-already-completed";
 import { StartNewResponseButton } from "./start-new-response-button";
 import SubmissionClosed from "./submission-closed";
+import type { TestSubmissionView } from "./survey-component";
 import { TestSubmissionBadge } from "./test-submission-badge";
 
 const SurveyComponent = dynamic(() => import("./survey-component"), {
@@ -50,6 +50,7 @@ function testControls(survey: PublicSurveyRuntimeProps) {
     badge,
     cookieStartOver,
     testSubmissionKey: submissionId ?? undefined,
+    writeToken: mode.writeToken,
   };
 }
 
@@ -74,7 +75,9 @@ function FinishedSubmission({
   );
 }
 
-type InnerProps = SurveyJsWrapperProps & { testBadge: ReactNode };
+type InnerProps = SurveyJsWrapperProps & {
+  testSubmission: TestSubmissionView;
+};
 
 const SurveyJsWrapper = (props: SurveyJsWrapperProps) => {
   const { survey } = props;
@@ -109,14 +112,20 @@ const SurveyJsWrapper = (props: SurveyJsWrapperProps) => {
       }}
     >
       <AssetStorageClientProvider config={survey.storageConfig}>
-        <SurveyJsWrapperInner {...props} testBadge={controls.badge} />
+        <SurveyJsWrapperInner
+          {...props}
+          testSubmission={{
+            badge: controls.badge,
+            writeToken: controls.writeToken,
+          }}
+        />
       </AssetStorageClientProvider>
     </FormRuntimeProvider>
   );
 };
 
 const SurveyJsWrapperInner = (props: InnerProps) => {
-  const { extensionIdsToLoad, survey, testBadge } = props;
+  const { extensionIdsToLoad, survey, testSubmission } = props;
   const { activeDefinition } = survey;
 
   const formRuntime = useFormRuntime();
@@ -152,7 +161,7 @@ const SurveyJsWrapperInner = (props: InnerProps) => {
       customQuestions={activeDefinition.customQuestions}
       requiresReCaptcha={activeDefinition.requiresReCaptcha}
       isEmbed={survey.variant === "embed"}
-      testBadge={testBadge}
+      testSubmission={testSubmission}
       embedForm={embedForm}
       onModelCreated={onModelCreated}
     />

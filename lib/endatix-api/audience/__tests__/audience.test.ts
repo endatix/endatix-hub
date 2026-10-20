@@ -229,11 +229,12 @@ describe("Audience test submissions", () => {
     const result = await audienceWith({ post }).restartTestSubmission(
       FORM_ID,
       SUBMISSION_ID,
+      "old-token",
     );
 
     expect(post).toHaveBeenCalledWith(
       `/forms/${FORM_ID}/audience/test-submissions/${SUBMISSION_ID}/restart`,
-      {},
+      { token: "old-token" },
     );
     expect(result.success && result.data.submissionId).toBe("22");
   });
@@ -244,6 +245,7 @@ describe("Audience test submissions", () => {
     const result = await audienceWith({ post }).restartTestSubmission(
       FORM_ID,
       "bad",
+      "old-token",
     );
 
     expect(post).not.toHaveBeenCalled();

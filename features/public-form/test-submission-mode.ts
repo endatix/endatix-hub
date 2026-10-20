@@ -13,6 +13,8 @@ export type TestSubmissionMode = {
   showBadge: boolean;
   /** The test submission the badge's Start over replaces, or null when it has none. */
   startOverSubmissionId: string | null;
+  /** The token saves go with instead of the form cookie's, or undefined to use the cookie. */
+  writeToken: string | undefined;
 };
 
 /** A test submission opened with Test as this person: the only kind Start over applies to. */
@@ -35,6 +37,19 @@ function startOverSubmissionId({
   return isPersonTestSubmission(submission) ? String(submission.id) : null;
 }
 
+/**
+ * A person's test submission loaded from the cookie saves with its own token. Test as this person
+ * and Start over repoint the form cookie, so a tab already open on another test submission would
+ * otherwise write its answers into the new one.
+ */
+function writeToken({
+  submission,
+  urlToken,
+}: TestSubmissionModeInput): string | undefined {
+  if (urlToken || !isPersonTestSubmission(submission)) return undefined;
+  return submission?.token || undefined;
+}
+
 /** What the respondent page says about testing: the badge, and whether it can start over. */
 export function testSubmissionMode(
   input: TestSubmissionModeInput,
@@ -43,5 +58,6 @@ export function testSubmissionMode(
     showBadge:
       input.isRespondentTestMode || input.submission?.isTestSubmission === true,
     startOverSubmissionId: startOverSubmissionId(input),
+    writeToken: writeToken(input),
   };
 }
