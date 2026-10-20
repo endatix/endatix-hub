@@ -2,18 +2,16 @@
 
 import { Badge } from "@/components/ui/badge";
 import type { SubmissionGridSearchSlots } from "@/lib/endatix-api/reporting/submission-grid-types";
-import {
-  describeUserSlots,
-  type FilterableQuestion,
-} from "../filterable-questions";
-import {
-  useSearchKeyChanges,
-  type SearchKeyChanges,
-} from "../use-search-key-changes.hook";
+import { describeUserSlots } from "@/features/submissions/column-search";
 import {
   RefreshSearchKeysButton,
   RemoveSearchKeyButton,
-} from "./search-key-buttons";
+} from "@/features/submissions/ui/search-key-buttons";
+import {
+  useSearchKeyChanges,
+  type SearchKeyChanges,
+} from "@/features/submissions/ui/use-search-key-changes.hook";
+import type { FilterableQuestion } from "../filterable-questions";
 
 type FilterableQuestionsListProps = {
   formId: string;

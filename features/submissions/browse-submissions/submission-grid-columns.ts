@@ -1,7 +1,8 @@
 import {
   columnSearchOf,
+  SUBMITTER_PROFILE_KIND,
   type ColumnSearch,
-} from "@/features/submissions/choose-filterable-questions/filterable-questions";
+} from "@/features/submissions/column-search";
 import { answerParamsBytes } from "@/lib/endatix-api/reporting/submission-grid-answer-params";
 import { fitRowColumns } from "@/lib/endatix-api/reporting/submission-grid-row-columns";
 import type {
@@ -34,7 +35,6 @@ export type SubmissionGridMetadataColumnId =
 export const DEFAULT_VISIBLE_ANSWER_COLUMNS = 10;
 
 const DEFAULT_VIEW_KINDS: ReadonlySet<string> = new Set(["Simple"]);
-const SUBMITTER_PROFILE_KIND = "SubmitterProfile";
 const SUBMITTER_PROFILE_KEY_PREFIX = "submitter_";
 
 /** Where a question sits in the form; the column picker groups by it. */

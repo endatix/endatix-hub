@@ -1,6 +1,6 @@
 import type { SubmissionGridSearchKeysResponse } from "@/lib/endatix-api/reporting/submission-grid-types";
 import { Result } from "@/lib/result";
-import type { SearchKeyChange } from "./filterable-questions";
+import type { SearchKeyChange } from "@/features/submissions/column-search";
 
 /** What to tell the editor, and whether to read the columns again. */
 export type SearchKeyOutcome = {

@@ -6,7 +6,7 @@ import { RefreshCw, X } from "lucide-react";
 import type {
   SearchKeyChanges,
   SearchKeyTarget,
-} from "../use-search-key-changes.hook";
+} from "./use-search-key-changes.hook";
 
 type SearchKeyButtonProps = {
   target: SearchKeyTarget;

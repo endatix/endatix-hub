@@ -6,9 +6,9 @@ import { useTransition } from "react";
 import {
   addSearchKeyAction,
   removeSearchKeyAction,
-} from "./choose-filterable-questions.action";
-import type { SearchKeyChange } from "./filterable-questions";
-import { searchKeyOutcome } from "./search-key-outcome";
+} from "@/features/submissions/choose-filterable-questions/choose-filterable-questions.action";
+import type { SearchKeyChange } from "@/features/submissions/column-search";
+import { searchKeyOutcome } from "@/features/submissions/choose-filterable-questions/search-key-outcome";
 
 const ACTIONS = {
   add: addSearchKeyAction,

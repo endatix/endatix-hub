@@ -3,13 +3,13 @@
 import {
   describeUserSlots,
   searchKeyChangeFor,
-} from "@/features/submissions/choose-filterable-questions/filterable-questions";
+} from "@/features/submissions/column-search";
 import {
   AddSearchKeyButton,
   RefreshSearchKeysButton,
   RemoveSearchKeyButton,
-} from "@/features/submissions/choose-filterable-questions/ui/search-key-buttons";
-import type { SearchKeyChanges } from "@/features/submissions/choose-filterable-questions/use-search-key-changes.hook";
+} from "@/features/submissions/ui/search-key-buttons";
+import type { SearchKeyChanges } from "@/features/submissions/ui/use-search-key-changes.hook";
 import { Filter, Hourglass } from "lucide-react";
 import type {
   AnswerColumn,
