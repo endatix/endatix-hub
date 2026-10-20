@@ -1,3 +1,7 @@
+import {
+  MAX_SUBMISSION_GRID_COLUMNS_PARAM_BYTES,
+  rowColumnsUsage,
+} from "@/lib/endatix-api/reporting/submission-grid-row-columns";
 import { describe, expect, it } from "vitest";
 import { SUBMISSION_GRID_METADATA_COLUMN_IDS } from "../submission-grid-columns";
 import {
@@ -70,6 +74,18 @@ describe("readLegacyColumnViewOnce", () => {
     expect(storage.getItem(legacyColumnVisibilityKey(FORM_ID))).not.toBeNull();
   });
 
+  it("keeps a readable key when the other one is corrupt", () => {
+    // Arrange
+    const storage = legacyStorage({ data_q1: true });
+    storage.setItem(legacyColumnOrderKey(FORM_ID), "{not json");
+
+    // Act
+    const legacy = readLegacyColumnViewOnce(FORM_ID, storage);
+
+    // Assert
+    expect(legacy).toEqual({ visibility: { data_q1: true } });
+  });
+
   it("reads malformed entries as nothing", () => {
     // Arrange
     const storage = memoryStorage({
@@ -113,6 +129,27 @@ describe("migrateLegacyColumnView", () => {
 
     // Assert
     expect(migrated?.answerKeys).toEqual(["q3", "submitter_email", "q1"]);
+  });
+
+  it("moves over only as many questions as the rows request can carry", () => {
+    // Arrange
+    const keys = Array.from(
+      { length: 300 },
+      (_, index) => `question_with_a_descriptive_name_${index}`,
+    );
+    const legacy = {
+      visibility: Object.fromEntries(keys.map((key) => [`data_${key}`, true])),
+    };
+
+    // Act
+    const migrated = migrateLegacyColumnView(legacy, new Set(keys));
+
+    // Assert
+    const usage = rowColumnsUsage(migrated?.answerKeys ?? []);
+    expect(usage.count).toBeGreaterThan(0);
+    expect(usage.bytes).toBeLessThanOrEqual(
+      MAX_SUBMISSION_GRID_COLUMNS_PARAM_BYTES,
+    );
   });
 
   it("keeps this grid's default answers when no question was shown", () => {

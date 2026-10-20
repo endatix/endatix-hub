@@ -50,6 +50,25 @@ describe("readViewSettings", () => {
     });
   });
 
+  it("drops widths and visibility the grid cannot use", () => {
+    // Act
+    const settings = readViewSettings({
+      v: 1,
+      columns: [
+        { key: "q1", width: "wide", visible: "yes" },
+        { key: "q2", width: Number.NaN },
+        { key: "q3", width: 220, visible: false },
+      ],
+    });
+
+    // Assert
+    expect(settings.columns).toEqual([
+      { key: "q1" },
+      { key: "q2" },
+      { key: "q3", width: 220, visible: false },
+    ]);
+  });
+
   it("reads anything that is not an object as the default view", () => {
     expect(readViewSettings("nope")).toBe(DEFAULT_SUBMISSION_VIEW_SETTINGS);
   });

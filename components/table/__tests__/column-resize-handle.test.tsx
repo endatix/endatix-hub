@@ -113,6 +113,28 @@ describe("ColumnResizeHandle", () => {
     expect(nameHeader().style.width).toBe("");
   });
 
+  it("gives the resized column's cells its width too", () => {
+    // Arrange
+    render(<Grid initial={{ name: 90 }} />);
+
+    // Act
+    const cell = screen.getByRole("cell", { name: "Acme" });
+
+    // Assert
+    expect(cell.style.width).toBe("90px");
+  });
+
+  it("steps from the width on screen when the stored width is not shown", () => {
+    // Arrange
+    render(<Grid initial={{ name: 60 }} />);
+
+    // Act
+    fireEvent.keyDown(handle(), { key: "ArrowLeft" });
+
+    // Assert
+    expect(nameHeader().style.width).toBe("104px");
+  });
+
   it("starts the keyboard from the width on screen", () => {
     // Arrange
     render(<Grid />);
