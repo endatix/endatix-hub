@@ -60,6 +60,7 @@ describe("toAnswerColumns", () => {
       title: "Title of q1",
       questionType: "text",
       filterType: "text",
+      search: { state: "ready", source: null },
       placement: {
         pageName: "page1",
         pageTitle: "Page one",

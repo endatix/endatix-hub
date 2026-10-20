@@ -1,9 +1,16 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { toast } from "@/components/ui/toast";
+import {
+  addSearchKeyAction,
+  removeSearchKeyAction,
+} from "@/features/submissions/choose-filterable-questions/choose-filterable-questions.action";
+import { Result } from "@/lib/result";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { buildListSubmissionGridRowsEndpoint } from "@/lib/endatix-api/reporting/submission-grid";
 import {
   resolveVisibleAnswerColumns,
   type AnswerColumn,
+  type ColumnSearchAccess,
 } from "../submission-grid-columns";
 import {
   parseSubmissionGridUrl,
@@ -19,7 +26,20 @@ vi.mock("../ui/submission-grid-url-context", () => ({
   useSubmissionGridUrl: vi.fn(),
 }));
 
+const refresh = vi.fn();
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
+
+vi.mock("@/components/ui/toast", () => ({
+  toast: { success: vi.fn(), error: vi.fn() },
+}));
+
+vi.mock(
+  "@/features/submissions/choose-filterable-questions/choose-filterable-questions.action",
+  () => ({ addSearchKeyAction: vi.fn(), removeSearchKeyAction: vi.fn() }),
+);
+
 const updateUrl = vi.fn();
+const SLOTS = { used: 53, max: 64, userUsed: 3, userMax: 14 };
 
 /** Kestrel's default `MaxRequestLineSize`: method, target, version and CRLF. */
 const API_REQUEST_LINE_LIMIT = 8192;
@@ -27,7 +47,13 @@ const API_REQUEST_LINE_LIMIT = 8192;
 function column(
   key: string,
   title: string,
-  panelTitle: string | null = null,
+  {
+    panelTitle = null,
+    search = { state: "ready", source: "auto" },
+  }: Partial<{
+    panelTitle: string | null;
+    search: AnswerColumn["search"];
+  }> = {},
 ): AnswerColumn {
   return {
     key,
@@ -35,6 +61,7 @@ function column(
     title,
     questionType: "text",
     filterType: "text",
+    search,
     placement: { pageName: "page1", pageTitle: "Page one", panelTitle },
   };
 }
@@ -42,14 +69,23 @@ function column(
 const catalog = [
   column("q1", "First name"),
   column("q2", "Last name"),
-  column("email", "Mail", "Contact"),
-  column("phone", "Phone", "Contact"),
+  column("email", "Mail", { panelTitle: "Contact" }),
+  column("phone", "Phone", { panelTitle: "Contact" }),
 ];
+
+type RenderOptions = {
+  catalog?: AnswerColumn[];
+  isPending?: boolean;
+  columnSearch?: ColumnSearchAccess;
+};
 
 function renderClosed(
   columns: string | undefined,
-  columnsCatalog = catalog,
-  isPending = false,
+  {
+    catalog: columnsCatalog = catalog,
+    isPending = false,
+    columnSearch = { canEdit: false },
+  }: RenderOptions = {},
 ) {
   vi.mocked(useSubmissionGridUrl).mockReturnValue({
     urlState: parseSubmissionGridUrl({ columns }),
@@ -59,13 +95,24 @@ function renderClosed(
     setTextFilter: vi.fn(),
   });
   render(
-    <SubmissionGridColumnPicker catalog={columnsCatalog} disabled={false} />,
+    <SubmissionGridColumnPicker
+      formId="1"
+      catalog={columnsCatalog}
+      columnSearch={columnSearch}
+      disabled={false}
+    />,
   );
   return screen.getByRole("button", { name: /columns/i });
 }
 
-function renderPicker(columns: string | undefined, columnsCatalog = catalog) {
-  fireEvent.click(renderClosed(columns, columnsCatalog));
+function renderPicker(
+  columns: string | undefined,
+  columnsCatalog = catalog,
+  columnSearch: ColumnSearchAccess = { canEdit: false },
+) {
+  fireEvent.click(
+    renderClosed(columns, { catalog: columnsCatalog, columnSearch }),
+  );
 }
 
 function isDisabled(element: HTMLElement): boolean {
@@ -229,7 +276,9 @@ describe("SubmissionGridColumnPicker", () => {
     // Arrange
     const keys = Array.from({ length: 501 }, (_, index) => `q${index}`);
     const full = keys.map((key, index) =>
-      column(key, `Question ${index}`, index === 500 ? "Extra" : null),
+      column(key, `Question ${index}`, {
+        panelTitle: index === 500 ? "Extra" : null,
+      }),
     );
     renderPicker(keys.slice(0, 500).join(","), full);
     search("question 500");
@@ -247,7 +296,7 @@ describe("SubmissionGridColumnPicker", () => {
 
   it("cannot be opened while the form has no columns", () => {
     // Act
-    const trigger = renderClosed(undefined, []);
+    const trigger = renderClosed(undefined, { catalog: [] });
 
     // Assert
     expect(isDisabled(trigger)).toBe(true);
@@ -255,7 +304,7 @@ describe("SubmissionGridColumnPicker", () => {
 
   it("cannot be opened while the grid is applying a change", () => {
     // Act
-    const trigger = renderClosed("q1", catalog, true);
+    const trigger = renderClosed("q1", { isPending: true });
 
     // Assert
     expect(isDisabled(trigger)).toBe(true);
@@ -302,5 +351,137 @@ describe("SubmissionGridColumnPicker", () => {
     expect(isDisabled(screen.getByRole("button", { name: "Apply" }))).toBe(
       true,
     );
+  });
+});
+
+describe("SubmissionGridColumnPicker filterable columns", () => {
+  const searchCatalog = [
+    column("name", "Name"),
+    column("born", "Born", {
+      search: { state: "preparing", source: "user" },
+    }),
+    column("city", "City", { search: { state: "eligible", source: null } }),
+    column("notes", "Notes", { search: { state: "ready", source: "user" } }),
+  ];
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("marks filterable and preparing columns but offers no changes without edit", () => {
+    // Act
+    renderPicker("name", searchCatalog, { canEdit: false, slots: SLOTS });
+
+    // Assert
+    expect(screen.getAllByText("Filterable")).toHaveLength(2);
+    expect(screen.getByText("Filter preparing")).toBeTruthy();
+    expect(
+      screen.queryByRole("button", { name: "Make filterable" }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: /from filterable columns/i }),
+    ).toBeNull();
+    expect(screen.queryByText(/chosen/)).toBeNull();
+  });
+
+  it("offers editors no changes when the API cannot choose search keys", () => {
+    // Act
+    renderPicker("name", searchCatalog, { canEdit: true });
+
+    // Assert
+    expect(
+      screen.queryByRole("button", { name: "Make filterable" }),
+    ).toBeNull();
+    expect(screen.queryAllByRole("button", { name: /born|notes/i })).toEqual(
+      [],
+    );
+    expect(screen.getAllByText("Filterable")).toHaveLength(2);
+  });
+
+  it("lets an editor add eligible columns and remove only people's picks", () => {
+    // Act
+    renderPicker("name", searchCatalog, { canEdit: true, slots: SLOTS });
+
+    // Assert
+    expect(
+      screen.getAllByRole("button", { name: "Make filterable" }),
+    ).toHaveLength(1);
+    expect(
+      screen
+        .getAllByRole("button", { name: /from filterable columns/i })
+        .map((button) => button.getAttribute("aria-label")),
+    ).toEqual([
+      "Remove Born from filterable columns",
+      "Remove Notes from filterable columns",
+    ]);
+    expect(screen.getByText("Filterable: 3 of 14 chosen")).toBeTruthy();
+  });
+
+  it("makes a column filterable and says it is preparing", async () => {
+    // Arrange
+    vi.mocked(addSearchKeyAction).mockResolvedValue(
+      Result.success({ formId: "1", keys: [], slots: SLOTS }),
+    );
+    renderPicker("name", searchCatalog, { canEdit: true, slots: SLOTS });
+
+    // Act
+    fireEvent.click(screen.getByRole("button", { name: "Make filterable" }));
+
+    // Assert
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith(
+        '"City" is filterable once its answers are prepared.',
+      ),
+    );
+    expect(addSearchKeyAction).toHaveBeenCalledWith("1", "city");
+  });
+
+  it("shows the cap message when the 15th pick is refused", async () => {
+    // Arrange
+    const cap = "A form can have 14 chosen search keys and 64 in all.";
+    vi.mocked(addSearchKeyAction).mockResolvedValue(
+      Result.validationError(cap, undefined, undefined, { statusCode: 400 }),
+    );
+    renderPicker("name", searchCatalog, { canEdit: true, slots: SLOTS });
+
+    // Act
+    fireEvent.click(screen.getByRole("button", { name: "Make filterable" }));
+
+    // Assert
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith(cap));
+    expect(refresh).not.toHaveBeenCalled();
+  });
+  it("removes a person's pick from the filterable columns", async () => {
+    // Arrange
+    vi.mocked(removeSearchKeyAction).mockResolvedValue(
+      Result.success({ formId: "1", keys: [], slots: SLOTS }),
+    );
+    renderPicker("name", searchCatalog, { canEdit: true, slots: SLOTS });
+
+    // Act
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Remove Notes from filterable columns",
+      }),
+    );
+
+    // Assert
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith(
+        '"Notes" is no longer filterable.',
+      ),
+    );
+    expect(removeSearchKeyAction).toHaveBeenCalledWith("1", "notes");
+  });
+
+  it("reads the columns again on Refresh", () => {
+    // Arrange
+    renderPicker("name", searchCatalog, { canEdit: true, slots: SLOTS });
+
+    // Act
+    fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
+
+    // Assert
+    expect(refresh).toHaveBeenCalledTimes(1);
   });
 });

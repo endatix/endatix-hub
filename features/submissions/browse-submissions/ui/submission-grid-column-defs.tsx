@@ -24,6 +24,7 @@ import {
   CollectionStatusCell,
   CompletionTimeCell,
 } from "./submission-grid-cells";
+import { PreparingFilterNote } from "./preparing-filter-note";
 import { SubmissionGridRowActions } from "./submission-grid-row-actions";
 
 type GridColumn = ColumnDef<SubmissionGridRow>;
@@ -206,6 +207,10 @@ function answerFilterByType(
   column: AnswerColumn,
   filters: SubmissionGridColumnFilters,
 ): Partial<HeaderProps> {
+  if (column.search.state === "preparing") {
+    return { facetFilter: <PreparingFilterNote /> };
+  }
+
   switch (column.filterType) {
     case "text":
       return { textFilter: filters.answerText(column) };

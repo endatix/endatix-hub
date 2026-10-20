@@ -1,8 +1,14 @@
+import {
+  columnSearchOf,
+  SUBMITTER_PROFILE_KIND,
+  type ColumnSearch,
+} from "@/features/submissions/column-search";
 import { answerParamsBytes } from "@/lib/endatix-api/reporting/submission-grid-answer-params";
 import { fitRowColumns } from "@/lib/endatix-api/reporting/submission-grid-row-columns";
 import type {
   SubmissionGridAnswerFilter,
   SubmissionGridColumn,
+  SubmissionGridSearchSlots,
   SubmissionGridFilterType,
   SubmissionGridRow,
 } from "@/lib/endatix-api/reporting/submission-grid-types";
@@ -29,7 +35,6 @@ export type SubmissionGridMetadataColumnId =
 export const DEFAULT_VISIBLE_ANSWER_COLUMNS = 10;
 
 const DEFAULT_VIEW_KINDS: ReadonlySet<string> = new Set(["Simple"]);
-const SUBMITTER_PROFILE_KIND = "SubmitterProfile";
 const SUBMITTER_PROFILE_KEY_PREFIX = "submitter_";
 
 /** Where a question sits in the form; the column picker groups by it. */
@@ -45,36 +50,41 @@ export type AnswerColumn = {
   title: string;
   questionType: string | null;
   filterType: SubmissionGridFilterType | null;
+  search: ColumnSearch;
   placement: AnswerColumnPlacement;
+};
+
+export type ColumnSearchAccess = {
+  canEdit: boolean;
+  /** Left out by an API that cannot choose search keys. */
+  slots?: SubmissionGridSearchSlots;
 };
 
 export function toAnswerColumns(
   columns: readonly SubmissionGridColumn[],
 ): AnswerColumn[] {
-  return columns.map((column) => ({
+  return columns.map((column) =>
+    toAnswerColumn(column, columnSearchOf(column)),
+  );
+}
+
+function toAnswerColumn(
+  column: SubmissionGridColumn,
+  search: ColumnSearch,
+): AnswerColumn {
+  return {
     key: column.key,
     kind: column.kind,
     title: column.title || column.key,
     questionType: column.questionType,
-    filterType: answerFilterType(column),
+    filterType: search.state === "ready" ? column.filterType : null,
+    search,
     placement: {
       pageName: column.pageName,
       pageTitle: column.pageTitle,
       panelTitle: column.panelTitle,
     },
-  }));
-}
-
-function answerFilterType(
-  column: SubmissionGridColumn,
-): SubmissionGridFilterType | null {
-  return isSearchKey(column) && !isSubmitterProfileColumn(column)
-    ? column.filterType
-    : null;
-}
-
-function isSearchKey(column: SubmissionGridColumn): boolean {
-  return column.searchable !== false;
+  };
 }
 
 /**

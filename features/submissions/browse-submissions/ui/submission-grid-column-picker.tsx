@@ -37,10 +37,18 @@ import {
   type ColumnPickerGroup,
   type RenderedColumnGroup,
 } from "../submission-grid-column-picker";
+import { useSearchKeyChanges } from "@/features/submissions/ui/use-search-key-changes.hook";
 import {
   resolveVisibleAnswerColumns,
   type AnswerColumn,
+  type ColumnSearchAccess,
 } from "../submission-grid-columns";
+import {
+  ColumnSearchAction,
+  ColumnSearchMark,
+  ColumnSearchSummary,
+  type PickerSearch,
+} from "./column-picker-search";
 import { columnsUpdate } from "../submission-grid-url-updates";
 import { useSubmissionGridUrl } from "./submission-grid-url-context";
 
@@ -48,7 +56,9 @@ import { useSubmissionGridUrl } from "./submission-grid-url-context";
 export const COLUMN_PICKER_RENDER_LIMIT = 200;
 
 type ColumnPickerProps = {
+  formId: string;
   catalog: readonly AnswerColumn[];
+  columnSearch: ColumnSearchAccess;
   disabled: boolean;
 };
 
@@ -56,21 +66,14 @@ type ColumnPickerProps = {
  * Picks the grid's answer columns: search by title or key, grouped by page
  * and panel. Changes stay a draft until Apply writes them to the URL.
  */
-export function SubmissionGridColumnPicker({
-  catalog,
-  disabled,
-}: Readonly<ColumnPickerProps>) {
-  const { open, setOpen, visibleKeys, apply, isDefault, isPending } =
-    useColumnPicker(catalog);
-  const unavailable = disabled || catalog.length === 0 || isPending;
+export function SubmissionGridColumnPicker(props: Readonly<ColumnPickerProps>) {
+  const { open, setOpen, panel, apply, isPending } = useColumnPicker(props);
+  const unavailable = props.disabled || props.catalog.length === 0 || isPending;
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <ColumnPickerTrigger disabled={unavailable} />
       <PopoverContent align="end" className="w-80 p-0">
-        <ColumnPickerPanel
-          {...{ catalog, visibleKeys, isDefault }}
-          onApply={apply}
-        />
+        <ColumnPickerPanel {...panel} onApply={apply} />
       </PopoverContent>
     </Popover>
   );
@@ -87,8 +90,9 @@ function ColumnPickerTrigger({ disabled }: Readonly<{ disabled: boolean }>) {
   );
 }
 
-function useColumnPicker(catalog: readonly AnswerColumn[]) {
+function useColumnPicker({ formId, catalog, columnSearch }: ColumnPickerProps) {
   const [open, setOpen] = useState(false);
+  const changes = useSearchKeyChanges(formId);
   const { urlState, updateUrl, isPending } = useSubmissionGridUrl();
   const visibleKeys = useMemo(
     () =>
@@ -102,13 +106,16 @@ function useColumnPicker(catalog: readonly AnswerColumn[]) {
     setOpen(false);
   };
   const isDefault = urlState.columns === undefined;
-  return { open, setOpen, visibleKeys, apply, isDefault, isPending };
+  const filterable = { access: columnSearch, changes };
+  const panel = { catalog, visibleKeys, isDefault, filterable };
+  return { open, setOpen, panel, apply, isPending };
 }
 
 type PanelProps = {
   catalog: readonly AnswerColumn[];
   visibleKeys: readonly string[];
   isDefault: boolean;
+  filterable: PickerSearch;
   onApply: (keys: readonly string[]) => void;
 };
 
@@ -128,6 +135,7 @@ function ColumnPickerPanel(props: Readonly<PanelProps>) {
       </div>
       <MatchActions picker={picker} />
       <ColumnGroupList picker={picker} />
+      <ColumnSearchSummary {...props.filterable} />
       <PickerFooter picker={picker} {...props} />
     </div>
   );
@@ -136,7 +144,11 @@ function ColumnPickerPanel(props: Readonly<PanelProps>) {
 type ColumnPickerState = ReturnType<typeof useColumnPickerState>;
 type ColumnDraft = ReturnType<typeof columnDraft>;
 
-function useColumnPickerState({ catalog, visibleKeys }: Readonly<PanelProps>) {
+function useColumnPickerState({
+  catalog,
+  visibleKeys,
+  filterable,
+}: Readonly<PanelProps>) {
   const search = useColumnSearch(catalog);
   const draft = useColumnDraft(catalog, visibleKeys);
   const full = useMemo(
@@ -146,7 +158,7 @@ function useColumnPickerState({ catalog, visibleKeys }: Readonly<PanelProps>) {
       ),
     [search.matches, draft],
   );
-  return { search, draft, full };
+  return { search, draft, full, filterable };
 }
 
 function useColumnSearch(catalog: readonly AnswerColumn[]) {
@@ -254,7 +266,7 @@ function ColumnGroupList({ picker }: Readonly<{ picker: ColumnPickerState }>) {
   return (
     <div className="max-h-80 overflow-y-auto py-1">
       {rendered.map((item) => (
-        <ColumnGroup key={item.group.id} item={item} draft={picker.draft} />
+        <ColumnGroup key={item.group.id} item={item} picker={picker} />
       ))}
       {rendered.length === 0 && <PickerNote>No columns match.</PickerNote>}
       {hiddenCount > 0 && (
@@ -272,15 +284,16 @@ function PickerNote({ children }: Readonly<{ children: ReactNode }>) {
 
 type ColumnGroupProps = {
   item: RenderedColumnGroup;
-  draft: ColumnDraft;
+  picker: ColumnPickerState;
 };
 
-function ColumnGroup({ item, draft }: Readonly<ColumnGroupProps>) {
+function ColumnGroup({ item, picker }: Readonly<ColumnGroupProps>) {
+  const { draft, filterable } = picker;
   return (
     <section className="pb-1">
       <GroupHeading group={item.group} draft={draft} />
       {item.columns.map((column) => (
-        <ColumnOption key={column.key} column={column} draft={draft} />
+        <ColumnOption key={column.key} {...{ column, draft, filterable }} />
       ))}
     </section>
   );
@@ -315,13 +328,33 @@ function groupCheckbox(group: ColumnPickerGroup, draft: ColumnDraft) {
   };
 }
 
+type ColumnOptionProps = {
+  column: AnswerColumn;
+  draft: ColumnDraft;
+  filterable: PickerSearch;
+};
+
 function ColumnOption({
+  column,
+  draft,
+  filterable,
+}: Readonly<ColumnOptionProps>) {
+  return (
+    <div className="flex items-center gap-1 pr-2 hover:bg-accent">
+      <ColumnVisibility column={column} draft={draft} />
+      <ColumnSearchMark column={column} />
+      <ColumnSearchAction column={column} {...filterable} />
+    </div>
+  );
+}
+
+function ColumnVisibility({
   column,
   draft,
 }: Readonly<{ column: AnswerColumn; draft: ColumnDraft }>) {
   const checked = draft.visible.has(column.key);
   return (
-    <label className="flex items-center gap-2 py-1 pr-3 pl-6 text-sm hover:bg-accent">
+    <label className="flex min-w-0 flex-1 items-center gap-2 py-1 pl-6 text-sm">
       <Checkbox
         checked={checked}
         disabled={!checked && !draft.fits(column.key)}

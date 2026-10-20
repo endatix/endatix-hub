@@ -1,0 +1,94 @@
+"use client";
+
+import { Badge } from "@/components/ui/badge";
+import type { SubmissionGridSearchSlots } from "@/lib/endatix-api/reporting/submission-grid-types";
+import { describeUserSlots } from "@/features/submissions/column-search";
+import {
+  RefreshSearchKeysButton,
+  RemoveSearchKeyButton,
+} from "@/features/submissions/ui/search-key-buttons";
+import {
+  useSearchKeyChanges,
+  type SearchKeyChanges,
+} from "@/features/submissions/ui/use-search-key-changes.hook";
+import type { FilterableQuestion } from "../filterable-questions";
+
+type FilterableQuestionsListProps = {
+  formId: string;
+  questions: readonly FilterableQuestion[];
+  slots: SubmissionGridSearchSlots;
+  canEdit: boolean;
+};
+
+export function FilterableQuestionsList({
+  formId,
+  questions,
+  slots,
+  canEdit,
+}: Readonly<FilterableQuestionsListProps>) {
+  const changes = useSearchKeyChanges(formId);
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <SlotsUsed slots={slots} canEdit={canEdit} />
+        <RefreshSearchKeysButton changes={changes} />
+      </div>
+      <QuestionRows {...{ questions, canEdit, changes }} />
+    </div>
+  );
+}
+
+type SlotsUsedProps = { slots: SubmissionGridSearchSlots; canEdit: boolean };
+
+function SlotsUsed({ slots, canEdit }: Readonly<SlotsUsedProps>) {
+  return (
+    <p className="flex-1">
+      {slots.used} of {slots.max} questions are filterable. Editors&apos; picks:{" "}
+      {describeUserSlots(slots)}.
+      {canEdit && " Add more from the column picker of the submissions grid."}
+    </p>
+  );
+}
+
+type QuestionRowsProps = {
+  questions: readonly FilterableQuestion[];
+  canEdit: boolean;
+  changes: SearchKeyChanges;
+};
+
+function QuestionRows(props: Readonly<QuestionRowsProps>) {
+  const { questions, canEdit, changes } = props;
+  if (questions.length === 0) {
+    return <p className="text-sm text-muted-foreground">None yet.</p>;
+  }
+
+  return (
+    <ul className="divide-y rounded-md border">
+      {questions.map((question) => (
+        <QuestionRow key={question.key} question={question}>
+          {canEdit && question.source === "user" && (
+            <RemoveSearchKeyButton target={question} changes={changes} />
+          )}
+        </QuestionRow>
+      ))}
+    </ul>
+  );
+}
+
+function QuestionRow({
+  question,
+  children,
+}: Readonly<{ question: FilterableQuestion; children: React.ReactNode }>) {
+  return (
+    <li className="flex items-center gap-2 px-3 py-2 text-sm">
+      <span className="min-w-0 flex-1 truncate" title={question.key}>
+        {question.title}
+      </span>
+      {question.preparing && <Badge variant="outline">Preparing</Badge>}
+      <Badge variant="secondary">
+        {question.source === "user" ? "Chosen" : "Automatic"}
+      </Badge>
+      {children}
+    </li>
+  );
+}

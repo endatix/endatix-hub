@@ -176,6 +176,28 @@ describe("toAnswerColumns filter types", () => {
     expect(column.filterType).toBeNull();
   });
 
+  it("offers no answer filter while the column's search copy is preparing", () => {
+    // Act
+    const [column] = toAnswerColumns([
+      wireColumn({ key: "city", searchable: true, searchPending: true }),
+    ]);
+
+    // Assert
+    expect(column.filterType).toBeNull();
+    expect(column.search).toEqual({ state: "preparing", source: null });
+  });
+
+  it("drops a URL filter on a column that is still preparing", () => {
+    // Arrange
+    const catalog = toAnswerColumns([
+      wireColumn({ key: "city", searchPending: true, searchSource: "user" }),
+    ]);
+    const filters = parseAnswerFilters({ "answer.contains.city": "Sofia" });
+
+    // Act & Assert
+    expect(applicableAnswerFilters(filters, catalog)).toEqual([]);
+  });
+
   it("leaves submitter columns to the list's profile filters", () => {
     // Act
     const [column] = toAnswerColumns([

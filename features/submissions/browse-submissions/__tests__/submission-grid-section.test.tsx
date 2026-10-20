@@ -21,7 +21,7 @@ vi.mock("@/features/config/server", () => ({
 }));
 vi.mock("../browse-submissions.server", () => ({
   loadSubmissionGridColumns: loads.columns,
-  canIncludeInProgressSubmissions: loads.canIncludeInProgress,
+  canEditForm: loads.canIncludeInProgress,
 }));
 vi.mock("@/components/error-handling/error-page", () => ({
   HubPageLoadError: function HubPageLoadError() {
@@ -60,6 +60,7 @@ function answerColumn(key: string) {
     title: `Title of ${key}`,
     questionType: "text",
     filterType: "text" as const,
+    search: { state: "ready" as const, source: null },
     placement: { pageName: null, pageTitle: null, panelTitle: null },
   };
 }
@@ -77,6 +78,8 @@ const READY: SubmissionGridColumnsLoad = {
   },
   catalog: [answerColumn("q1"), answerColumn("q2")],
 };
+
+const SLOTS = { used: 52, max: 64, userUsed: 2, userMax: 14 };
 
 type Leaf = { type: string; props: Record<string, any> };
 
@@ -185,6 +188,25 @@ describe("SubmissionGridSection", () => {
     expect(shell.props.banner).toMatchObject({ showIncludeInProgress: false });
   });
 
+  it.each([
+    ["an editor", true, SLOTS, { canEdit: true, slots: SLOTS }],
+    ["a viewer", false, SLOTS, { canEdit: false, slots: SLOTS }],
+    ["an API without search keys", true, undefined, { canEdit: true }],
+  ])(
+    "hands the picker what %s may do about filterable columns",
+    async (_, canEdit, searchSlots, expected) => {
+      // Arrange
+      loads.columns.mockResolvedValue({ ...READY, searchSlots });
+      loads.canIncludeInProgress.mockResolvedValue(canEdit);
+
+      // Act
+      const shell = await renderSection();
+
+      // Assert
+      expect(shell.props.columnSearch).toEqual(expected);
+    },
+  );
+
   it("lets the coverage banner speak while answer filters are applied", async () => {
     // Arrange
     loads.columns.mockResolvedValue(READY);
@@ -210,6 +232,29 @@ describe("SubmissionGridSection", () => {
     // Assert
     expect(shell.props.banner.lines).toContain(
       "The answer filters in this link are not applied until the form is prepared.",
+    );
+    const rows = (shell.props.children as Leaf).props.children as Leaf;
+    expect(rows.props.urlState.answerFilters).toEqual([]);
+  });
+
+  it("keeps a filter on a column still being prepared, sends none, and says so", async () => {
+    // Arrange
+    const preparing = {
+      ...answerColumn("q2"),
+      filterType: null,
+      search: { state: "preparing" as const, source: "user" as const },
+    };
+    loads.columns.mockResolvedValue({
+      ...READY,
+      catalog: [answerColumn("q1"), preparing],
+    });
+
+    // Act
+    const shell = await renderSection({ "answer.contains.q2": "acme" });
+
+    // Assert
+    expect(shell.props.banner.lines).toContain(
+      "Answer filters on columns still being prepared are not applied yet.",
     );
     const rows = (shell.props.children as Leaf).props.children as Leaf;
     expect(rows.props.urlState.answerFilters).toEqual([]);

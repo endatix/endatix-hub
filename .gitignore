@@ -54,3 +54,6 @@ customizations/questions/question-registry.ts
 
 # embed bundle is produced by `pnpm build:embed` (also runs in predev/prebuild)
 /public/embed/v1/
+
+# local agent checkouts
+.claude/worktrees/

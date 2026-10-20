@@ -80,6 +80,21 @@ export function applicableAnswerFilters(
   );
 }
 
+export function applicableOrPreparingAnswerFilters(
+  filters: readonly SubmissionGridAnswerFilter[],
+  catalog: readonly AnswerColumn[],
+): SubmissionGridAnswerFilter[] {
+  const applied = new Set(applicableAnswerFilters(filters, catalog));
+  const preparing = new Set(
+    catalog
+      .filter((column) => column.search.state === "preparing")
+      .map((column) => column.key),
+  );
+  return filters.filter(
+    (filter) => applied.has(filter) || preparing.has(filter.key),
+  );
+}
+
 export function answerTextFilterUrlKeys(
   catalog: readonly AnswerColumn[],
 ): string[] {

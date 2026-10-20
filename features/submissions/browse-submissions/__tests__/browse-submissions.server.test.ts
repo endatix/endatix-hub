@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiResult } from "@/lib/endatix-api/shared/api-result";
 import { Permissions } from "@/features/auth/authorization";
 import {
-  canIncludeInProgressSubmissions,
+  canEditForm,
   loadSubmissionGridRows,
 } from "../browse-submissions.server";
 import { parseSubmissionGridUrl } from "../submission-grid-url";
@@ -102,7 +102,7 @@ describe("loadSubmissionGridRows", () => {
   });
 });
 
-describe("canIncludeInProgressSubmissions", () => {
+describe("canEditForm", () => {
   beforeEach(() => {
     checkPermission.mockReset();
   });
@@ -112,7 +112,7 @@ describe("canIncludeInProgressSubmissions", () => {
     checkPermission.mockResolvedValue({ success: true, data: true });
 
     // Act
-    const allowed = await canIncludeInProgressSubmissions();
+    const allowed = await canEditForm();
 
     // Assert
     expect(allowed).toBe(true);
@@ -127,6 +127,6 @@ describe("canIncludeInProgressSubmissions", () => {
     });
 
     // Act & Assert
-    expect(await canIncludeInProgressSubmissions()).toBe(false);
+    expect(await canEditForm()).toBe(false);
   });
 });

@@ -76,8 +76,7 @@ async function listGridRows(
   );
 }
 
-/** Including in-progress submissions needs `forms.edit`; a miss hides the control. */
-export async function canIncludeInProgressSubmissions(): Promise<boolean> {
+export async function canEditForm(): Promise<boolean> {
   const { checkPermission } = await authorization();
   const result = await checkPermission(Permissions.Forms.Edit);
   return result.success;

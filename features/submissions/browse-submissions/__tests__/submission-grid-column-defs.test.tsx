@@ -1,3 +1,4 @@
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { SubmissionGridColumn } from "@/lib/endatix-api/reporting/submission-grid-types";
 import {
@@ -10,6 +11,7 @@ import {
 } from "../ui/submission-grid-column-defs";
 
 vi.mock("next-auth/react", () => ({ useSession: () => ({ data: null }) }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 
 const FILTERS: SubmissionGridColumnFilters = {
   dates: { created: {}, modified: {}, started: {}, completed: {} },
@@ -28,7 +30,11 @@ const FILTERS: SubmissionGridColumnFilters = {
   answerDate: () => ({ value: {}, onChange: vi.fn() }),
 };
 
-function wireColumn(key: string, kind = "Simple"): SubmissionGridColumn {
+function wireColumn(
+  key: string,
+  kind = "Simple",
+  overrides: Partial<SubmissionGridColumn> = {},
+): SubmissionGridColumn {
   return {
     key,
     kind,
@@ -38,7 +44,27 @@ function wireColumn(key: string, kind = "Simple"): SubmissionGridColumn {
     pageName: null,
     pageTitle: null,
     panelTitle: null,
+    ...overrides,
   };
+}
+
+/** Renders the header of the one answer column and opens its menu. */
+function openAnswerHeaderMenu(column: SubmissionGridColumn) {
+  const [definition] = buildSubmissionGridColumns(
+    toAnswerColumns([column]),
+    FILTERS,
+  ).slice(-1);
+  const Header = definition.header as (props: unknown) => React.ReactNode;
+  const tableColumn = {
+    id: definition.id,
+    getCanSort: () => false,
+    getIsSorted: () => false,
+  };
+  render(<>{Header({ column: tableColumn })}</>);
+  fireEvent.pointerDown(screen.getByRole("button", { name: /column menu/i }), {
+    button: 0,
+    ctrlKey: false,
+  });
 }
 
 describe("buildSubmissionGridColumns", () => {
@@ -76,5 +102,34 @@ describe("buildSubmissionGridColumns", () => {
       "completedAt",
       "createdAt",
     ]);
+  });
+});
+
+describe("answer column header filters", () => {
+  it("shows a preparing note instead of inputs while the search copy rebuilds", () => {
+    // Act
+    openAnswerHeaderMenu(
+      wireColumn("city", "Simple", {
+        filterType: "text",
+        searchPending: true,
+        searchSource: "user",
+      }),
+    );
+
+    // Assert
+    expect(screen.getByText(/this filter is being prepared/i)).toBeTruthy();
+    expect(screen.getByRole("button", { name: /refresh/i })).toBeTruthy();
+    expect(screen.queryByLabelText("Filter")).toBeNull();
+  });
+
+  it("shows the text filter once the column is ready", () => {
+    // Act
+    openAnswerHeaderMenu(
+      wireColumn("city", "Simple", { filterType: "text", searchable: true }),
+    );
+
+    // Assert
+    expect(screen.getByPlaceholderText("text:city")).toBeTruthy();
+    expect(screen.queryByText(/this filter is being prepared/i)).toBeNull();
   });
 });

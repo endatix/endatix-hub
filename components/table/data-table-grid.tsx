@@ -1,4 +1,8 @@
 "use client";
+"use no memo";
+
+// TanStack Table keeps one table instance, so the React Compiler would cache
+// what reads it and miss in-place state changes (column visibility, sizing).
 
 import type { ReactNode } from "react";
 import {
