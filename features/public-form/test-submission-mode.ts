@@ -1,20 +1,18 @@
+import type { TestInspectorView } from "@/features/public-form/inspect-test-submission/test-inspector-view";
 import type { Submission } from "@/lib/endatix-api";
 import { PersonalizationSource } from "@/lib/endatix-api/submissions/types";
 
-export type TestSubmissionModeInput = {
+export type TestPageInput = {
   isRespondentTestMode: boolean;
-  /** The signed-in viewer has `forms.test`; checked only for a test submission (`isPersonTestSubmission`). */
-  canStartOverTest?: boolean;
   submission?: Submission;
-  urlToken?: string;
 };
 
-export type TestSubmissionMode = {
-  showBadge: boolean;
-  /** The test submission the badge's Start over replaces, or null when it has none. */
-  startOverSubmissionId: string | null;
-  /** The token saves go with instead of the form cookie's, or undefined to use the cookie. */
-  writeToken: string | undefined;
+/** What the page's corner shows: the Test inspector for a tester, the plain notice, or nothing. */
+export type TestCorner = "inspector" | "notice" | "none";
+
+export type TestCornerInput = TestPageInput & {
+  /** Built by the server only for a viewer with `forms.test`; null for everyone else. */
+  testInspector: TestInspectorView | null;
 };
 
 /** A test submission opened with Test as this person: the only kind Start over applies to. */
@@ -24,17 +22,34 @@ export function isPersonTestSubmission(
   return submission?.personalization?.source === PersonalizationSource.Test;
 }
 
+/** Test mode or a test submission: the page says so. A real respondent's page never does. */
+export function isTestPage({
+  isRespondentTestMode,
+  submission,
+}: TestPageInput): boolean {
+  return isRespondentTestMode || submission?.isTestSubmission === true;
+}
+
 /**
  * Start over swaps the form cookie's token, so it applies only to a person's test submission loaded from
- * that cookie, never to a URL-token page, and only for a viewer who may test forms.
+ * that cookie, never to a URL-token page. Whether the viewer may test forms is the caller's check.
  */
-function startOverSubmissionId({
-  canStartOverTest,
+export function canStartOverTestSubmission({
   submission,
   urlToken,
-}: TestSubmissionModeInput): string | null {
-  if (!canStartOverTest || urlToken || !submission?.id) return null;
-  return isPersonTestSubmission(submission) ? String(submission.id) : null;
+}: {
+  submission?: Submission;
+  urlToken?: string;
+}): boolean {
+  return (
+    !urlToken && Boolean(submission?.id) && isPersonTestSubmission(submission)
+  );
+}
+
+/** inspector: a test page and a tester's view. notice: a test page, no view. none: a real respondent. */
+export function testCornerFor(survey: TestCornerInput): TestCorner {
+  if (!isTestPage(survey)) return "none";
+  return survey.testInspector ? "inspector" : "notice";
 }
 
 /**
@@ -42,22 +57,13 @@ function startOverSubmissionId({
  * and Start over repoint the form cookie, so a tab already open on another test submission would
  * otherwise write its answers into the new one.
  */
-function writeToken({
+export function testWriteToken({
   submission,
   urlToken,
-}: TestSubmissionModeInput): string | undefined {
+}: {
+  submission?: Submission;
+  urlToken?: string;
+}): string | undefined {
   if (urlToken || !isPersonTestSubmission(submission)) return undefined;
   return submission?.token || undefined;
-}
-
-/** What the respondent page says about testing: the badge, and whether it can start over. */
-export function testSubmissionMode(
-  input: TestSubmissionModeInput,
-): TestSubmissionMode {
-  return {
-    showBadge:
-      input.isRespondentTestMode || input.submission?.isTestSubmission === true,
-    startOverSubmissionId: startOverSubmissionId(input),
-    writeToken: writeToken(input),
-  };
 }

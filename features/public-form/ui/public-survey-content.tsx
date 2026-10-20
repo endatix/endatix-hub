@@ -33,7 +33,7 @@ function toSurveyRuntime(
     submissionPhase: page.submissionPhase,
     canStartOver: page.canStartOver,
     isRespondentTestMode: page.isRespondentTestMode,
-    canStartOverTest: page.canStartOverTest,
+    testInspector: page.testInspector,
     submission: page.submission,
     storageConfig: getClientStorageConfig(),
     ...request,

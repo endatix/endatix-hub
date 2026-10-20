@@ -7,7 +7,14 @@ import { getActiveDefinitionUseCase } from "@/features/public-form/use-cases/get
 import { getPartialSubmissionUseCase } from "@/features/public-form/use-cases/get-partial-submission.use-case";
 import { getPublicFormAccessUseCase } from "@/features/public-form/use-cases/get-public-form-access.use-case";
 import { viewerCanTestFormsUseCase } from "@/features/public-form/use-cases/viewer-can-test-forms.use-case";
-import { isPersonTestSubmission } from "@/features/public-form/test-submission-mode";
+import {
+  toTestInspectorView,
+  type TestInspectorView,
+} from "@/features/public-form/inspect-test-submission/test-inspector-view";
+import {
+  canStartOverTestSubmission,
+  isTestPage,
+} from "@/features/public-form/test-submission-mode";
 import { getSubmissionByAccessTokenUseCase } from "@/features/public-submissions/edit/get-submission-by-access-token.use-case";
 import { resolveSubmissionFormDefinition } from "@/features/public-submissions/resolve-submission-form-definition";
 import {
@@ -40,7 +47,7 @@ export type LoadPublicSurveyPageQuery = {
  * @param submissionPhase - The submission gate phase for the survey session.
  * @param canStartOver - Whether a finished cookie submission may be replaced by a new one.
  * @param isRespondentTestMode - Whether the respondent is submitting a test response.
- * @param canStartOverTest - Whether the viewer may Start over the person's test submission in the cookie.
+ * @param testInspector - The Test inspector's view; only for a viewer who may test forms on a test page.
  * @param submission - The submission.
  */
 export type LoadPublicSurveyPageResult =
@@ -50,7 +57,7 @@ export type LoadPublicSurveyPageResult =
       submissionPhase: SubmissionGatePhase;
       canStartOver: boolean;
       isRespondentTestMode: boolean;
-      canStartOverTest: boolean;
+      testInspector: TestInspectorView | null;
       submission?: Submission;
     }
   | {
@@ -115,19 +122,12 @@ export async function loadPublicSurveyPageUseCase({
     return { kind: "notFound" };
   }
 
-  return {
-    kind: "success",
+  return loadedPage({
+    formId,
+    access: publicFormAccessResult.value,
     activeDefinition: activeDefinitionResult.value,
-    submissionPhase: submissionPhaseFor(
-      publicFormAccessResult.value,
-      submissionResult.value,
-      false,
-    ),
-    canStartOver: publicFormAccessResult.value.canStartNewSubmission,
-    isRespondentTestMode: publicFormAccessResult.value.isRespondentTestMode,
-    canStartOverTest: await canStartOverPersonTest(submissionResult.value),
     submission: submissionResult.value,
-  };
+  });
 }
 
 async function loadAccessTokenSurveyPage({
@@ -160,18 +160,36 @@ async function loadAccessTokenSurveyPage({
     return { kind: "notFound" };
   }
 
+  return loadedPage({
+    formId,
+    access: publicFormAccessResult.value,
+    activeDefinition: activeDefinitionResult.value,
+    submission: submissionResult.value,
+    urlToken,
+  });
+}
+
+type LoadedPageQuery = {
+  formId: string;
+  access: PublicFormAccessResponse;
+  activeDefinition: ActiveDefinition;
+  submission: Submission | undefined;
+  urlToken?: string;
+};
+
+/** The page that loaded. A URL-token page never offers the cookie's new response. */
+async function loadedPage(
+  query: LoadedPageQuery,
+): Promise<LoadPublicSurveyPageResult> {
+  const { access, activeDefinition, submission, urlToken } = query;
   return {
     kind: "success",
-    activeDefinition: activeDefinitionResult.value,
-    submissionPhase: submissionPhaseFor(
-      publicFormAccessResult.value,
-      submissionResult.value,
-      true,
-    ),
-    canStartOver: false,
-    isRespondentTestMode: publicFormAccessResult.value.isRespondentTestMode,
-    canStartOverTest: false,
-    submission: submissionResult.value,
+    activeDefinition,
+    submissionPhase: submissionPhaseFor(access, submission, Boolean(urlToken)),
+    canStartOver: urlToken ? false : access.canStartNewSubmission,
+    isRespondentTestMode: access.isRespondentTestMode,
+    testInspector: await testInspectorFor(query),
+    submission,
   };
 }
 
@@ -190,13 +208,26 @@ function submissionPhaseFor(
   });
 }
 
-/** Asks for `forms.test` only when the cookie holds a person's test submission. */
-async function canStartOverPersonTest(
-  submission: Submission | undefined,
-): Promise<boolean> {
-  return (
-    isPersonTestSubmission(submission) && (await viewerCanTestFormsUseCase())
-  );
+/**
+ * The tester's view of a test page. Asks for `forms.test` only when the page is a test page, so a
+ * real respondent's load never reaches `auth()`.
+ */
+async function testInspectorFor({
+  formId,
+  access,
+  submission,
+  urlToken,
+}: LoadedPageQuery): Promise<TestInspectorView | null> {
+  const testPage = isTestPage({
+    isRespondentTestMode: access.isRespondentTestMode,
+    submission,
+  });
+  if (!testPage || !(await viewerCanTestFormsUseCase())) return null;
+  return toTestInspectorView({
+    formId,
+    submission,
+    canStartOver: canStartOverTestSubmission({ submission, urlToken }),
+  });
 }
 
 const RESPONDENT_COPY_MAX_LENGTH = 240;
