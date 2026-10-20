@@ -54,6 +54,7 @@ function renderView(view: SubmissionGridViewLoad, query = "") {
     urlState: parseSubmissionGridUrl(
       Object.fromEntries(navigation.searchParams),
     ),
+    urlSets: { sort: false, columns: navigation.searchParams.has("columns") },
     updateUrl,
     isPending: false,
     textFilters: {},

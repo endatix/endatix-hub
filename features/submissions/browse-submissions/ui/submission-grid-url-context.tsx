@@ -20,12 +20,19 @@ import {
 export type SubmissionGridUrl = {
   /** The URL, with the saved view's columns, page size and sort where it says nothing. */
   urlState: SubmissionGridUrlState;
+  /**
+   * What the URL itself sets, before the saved view fills in. Clearing a
+   * value the view supplies changes nothing, so its reset is not offered.
+   */
+  urlSets: SubmissionGridUrlSets;
   updateUrl: UrlSearchParamsUpdater;
   isPending: boolean;
   /** Uncommitted text filter values, keyed by URL key. */
   textFilters: Record<string, string>;
   setTextFilter: (key: string, value: string) => void;
 };
+
+export type SubmissionGridUrlSets = { sort: boolean; columns: boolean };
 
 const SubmissionGridUrlContext = createContext<SubmissionGridUrl | null>(null);
 
@@ -52,19 +59,27 @@ function useSubmissionGridUrlState(
 ): SubmissionGridUrl {
   const { values, setValue, searchParams, updateUrl, isPending } =
     useTableFiltersUrlState(SUBMISSION_GRID_TEXT_FILTER_KEYS);
-  const urlState = useMemo(() => {
+  const { urlState, urlSets } = useMemo(() => {
     const raw = Object.fromEntries(searchParams);
-    return applyViewDefaults(parseSubmissionGridUrl(raw), raw, viewDefaults);
+    const parsed = parseSubmissionGridUrl(raw);
+    return {
+      urlState: applyViewDefaults(parsed, raw, viewDefaults),
+      urlSets: {
+        sort: parsed.sort !== undefined,
+        columns: parsed.columns !== undefined,
+      },
+    };
   }, [searchParams, viewDefaults]);
   return useMemo(
     () => ({
       urlState,
+      urlSets,
       updateUrl,
       isPending,
       textFilters: values,
       setTextFilter: setValue,
     }),
-    [urlState, updateUrl, isPending, values, setValue],
+    [urlState, urlSets, updateUrl, isPending, values, setValue],
   );
 }
 

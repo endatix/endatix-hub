@@ -115,7 +115,7 @@ function OptionFacets({ disabled }: Readonly<{ disabled: boolean }>) {
 }
 
 function ResetButton({ disabled }: Readonly<{ disabled: boolean }>) {
-  const { urlState, updateUrl } = useSubmissionGridUrl();
+  const { urlState, urlSets, updateUrl } = useSubmissionGridUrl();
   return (
     <ResetFiltersButton
       onClick={() => updateUrl(CLEAR_FILTERS_UPDATE)}
@@ -124,7 +124,7 @@ function ResetButton({ disabled }: Readonly<{ disabled: boolean }>) {
         updateUrl({ ...CLEAR_FILTERS_UPDATE, ...CLEAR_SORT_UPDATE })
       }
       hasFilters={hasActiveFilters(urlState)}
-      hasSorting={urlState.sort !== undefined}
+      hasSorting={urlSets.sort}
       disabled={disabled}
     />
   );
