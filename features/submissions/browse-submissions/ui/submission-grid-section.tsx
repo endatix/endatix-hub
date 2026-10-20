@@ -70,13 +70,6 @@ function parseGridUrl(
   };
 }
 
-function rowsUrlState(
-  urlState: SubmissionGridUrlState,
-  { schemaReady }: ReadyColumns,
-): SubmissionGridUrlState {
-  return schemaReady ? urlState : { ...urlState, answerFilters: [] };
-}
-
 type ReadyColumns = Extract<SubmissionGridColumnsLoad, { kind: "ready" }>;
 
 /** Only the rows wait for the columns; the other reads start together. */
@@ -103,12 +96,6 @@ type SubmissionGridProps = {
 
 function SubmissionGrid(props: Readonly<SubmissionGridProps>) {
   const { formId, columns, submitterLabel, canIncludeInProgress } = props;
-  const urlState = rowsUrlState(props.urlState, columns);
-  const answerColumns = resolveVisibleAnswerColumns(
-    columns.catalog,
-    urlState.columns,
-    urlState.answerFilters,
-  );
   const hasAnswerFilters = props.urlState.answerFilters.length > 0;
   return (
     <SubmissionGridShell
@@ -118,11 +105,24 @@ function SubmissionGrid(props: Readonly<SubmissionGridProps>) {
       banner={describeGridReadiness({ ...columns, ...props, hasAnswerFilters })}
     >
       <SubmissionGridRows
-        {...{ formId, urlState, answerColumns, submitterLabel }}
-        canIncludeInProgress={canIncludeInProgress}
+        {...{ formId, submitterLabel, canIncludeInProgress }}
+        {...rowsRequest(props.urlState, columns)}
       />
     </SubmissionGridShell>
   );
+}
+
+/** The rows' URL state and visible columns: without a schema, no answer filter is sent. */
+function rowsRequest(urlState: SubmissionGridUrlState, columns: ReadyColumns) {
+  const rowsState = columns.schemaReady
+    ? urlState
+    : { ...urlState, answerFilters: [] };
+  const answerColumns = resolveVisibleAnswerColumns(
+    columns.catalog,
+    rowsState.columns,
+    rowsState.answerFilters,
+  );
+  return { urlState: rowsState, answerColumns };
 }
 
 type SubmissionGridRowsProps = {
