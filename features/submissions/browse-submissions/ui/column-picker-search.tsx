@@ -53,7 +53,7 @@ export function ColumnSearchAction({
   access,
   changes,
 }: Readonly<PickerSearch & { column: AnswerColumn }>) {
-  const change = searchKeyChangeFor(column.search, access.canEdit);
+  const change = searchKeyChangeFor(column.search, canChangeSearchKeys(access));
   const target = { key: column.key, title: column.title };
   if (change === "add") {
     return <AddSearchKeyButton target={target} changes={changes} />;
@@ -68,7 +68,7 @@ export function ColumnSearchSummary({
   access,
   changes,
 }: Readonly<PickerSearch>) {
-  if (!access.canEdit || !access.slots) return null;
+  if (!canChangeSearchKeys(access) || !access.slots) return null;
 
   return (
     <div className="flex items-center gap-1 border-t px-2 py-1 text-xs">
@@ -78,4 +78,12 @@ export function ColumnSearchSummary({
       <RefreshSearchKeysButton changes={changes} className="h-7 px-2 text-xs" />
     </div>
   );
+}
+
+/**
+ * Editors change search keys only on an API that reports the form's slots;
+ * an older API has no search-keys endpoints to call.
+ */
+function canChangeSearchKeys(access: ColumnSearchAccess): boolean {
+  return access.canEdit && access.slots !== undefined;
 }
