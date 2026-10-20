@@ -8,8 +8,10 @@ import {
   parseSubmissionGridUrl,
   type SubmissionGridUrlState,
 } from "../submission-grid-url";
+import type { SubmissionViewSettings } from "@/lib/endatix-api/reporting/submission-view-types";
 import {
   applyViewDefaults,
+  viewDefaults,
   type SubmissionGridViewDefaults,
 } from "../submission-grid-view";
 
@@ -37,16 +39,16 @@ export type SubmissionGridUrlSets = { sort: boolean; columns: boolean };
 const SubmissionGridUrlContext = createContext<SubmissionGridUrl | null>(null);
 
 type SubmissionGridUrlProviderProps = {
-  /** From the saved view; stable between server renders. */
-  viewDefaults: SubmissionGridViewDefaults;
+  viewSettings: SubmissionViewSettings;
   children: ReactNode;
 };
 
 export function SubmissionGridUrlProvider({
-  viewDefaults,
+  viewSettings,
   children,
 }: Readonly<SubmissionGridUrlProviderProps>) {
-  const value = useSubmissionGridUrlState(viewDefaults);
+  const defaults = useMemo(() => viewDefaults(viewSettings), [viewSettings]);
+  const value = useSubmissionGridUrlState(defaults);
   return (
     <SubmissionGridUrlContext value={value}>
       {children}

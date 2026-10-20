@@ -107,7 +107,6 @@ function useSubmissionGridTable(
   });
 }
 
-/** Widths, visibility and order come from the unsaved view. */
 function resizableView(view: SubmissionGridView, sorting: SortingState) {
   return {
     enableColumnResizing: true,

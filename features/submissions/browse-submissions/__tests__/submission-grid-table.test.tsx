@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { SubmissionGridRow } from "@/lib/endatix-api/reporting/submission-grid-types";
 import { normalizePagedResponse } from "@/lib/endatix-api/shared/paged-response";
+import type { SubmissionGridViewLoad } from "../submission-grid-view";
 import { SubmissionGridTable } from "../ui/submission-grid-table";
 import { SubmissionGridUrlProvider } from "../ui/submission-grid-url-context";
 import { SubmissionGridViewProvider } from "../ui/submission-grid-view-context";
@@ -19,6 +20,11 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => searchParams,
 }));
 vi.mock("next-auth/react", () => ({ useSession: () => ({ data: null }) }));
+
+const UNREAD_VIEW: SubmissionGridViewLoad = {
+  revision: null,
+  settings: { v: 1, columns: [] },
+};
 
 function row(overrides: Partial<SubmissionGridRow> = {}): SubmissionGridRow {
   return {
@@ -46,11 +52,11 @@ function renderTable(rows: SubmissionGridRow[]) {
     totalPages: 1,
   });
   return render(
-    <SubmissionGridUrlProvider viewDefaults={{}}>
+    <SubmissionGridUrlProvider viewSettings={UNREAD_VIEW.settings}>
       <SubmissionGridViewProvider
         formId="7"
         catalog={[]}
-        view={{ revision: null, settings: { v: 1, columns: [] } }}
+        view={UNREAD_VIEW}
         canSaveView={false}
       >
         <SubmissionGridTable

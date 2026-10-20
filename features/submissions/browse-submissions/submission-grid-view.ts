@@ -24,21 +24,17 @@ import {
   SUBMISSION_GRID_URL_KEYS as keys,
 } from "./submission-grid-url.constants";
 
-/** The view a form has before anyone saves one. */
 export const DEFAULT_SUBMISSION_VIEW_SETTINGS: SubmissionViewSettings = {
   v: 1,
   columns: [],
 };
 
-/** The form's shared grid view; `revision` is `null` when it could not be read. */
 export type SubmissionGridViewLoad = {
   revision: string | null;
   settings: SubmissionViewSettings;
 };
 
-/** What a view sets that the URL can override: answer columns, page size, sort. */
 export type SubmissionGridViewDefaults = {
-  /** Visible answer keys in order; `undefined` keeps the grid's default. */
   columns?: string[];
   pageSize?: number;
   sort?: SubmissionGridSort;
@@ -54,7 +50,6 @@ export type SubmissionGridLayout = {
   widths: Readonly<Record<string, number>>;
 };
 
-/** The grid's current state that a save writes back as the view. */
 export type SubmissionGridViewSnapshot = {
   answerKeys: readonly string[];
   pageSize: number;
@@ -62,7 +57,6 @@ export type SubmissionGridViewSnapshot = {
   layout: SubmissionGridLayout;
 };
 
-/** The parts of the TanStack table state a view decides. */
 export type SubmissionGridTableLayout = {
   columnOrder: ColumnOrderState;
   columnVisibility: VisibilityState;
@@ -94,7 +88,6 @@ export function readViewSettings(value: unknown): SubmissionViewSettings {
   return { ...value, v: 1, columns: columns.flatMap(readColumnSetting) };
 }
 
-/** A width that is not a finite number would reach the table and the next save. */
 function readColumnSetting(column: unknown): SubmissionViewColumnSetting[] {
   if (!isRecord(column) || typeof column.key !== "string") {
     return [];
@@ -129,7 +122,6 @@ export function viewDefaults(
   };
 }
 
-/** `applyViewDefaults` with the defaults read from saved settings. */
 export function withSavedView(
   state: SubmissionGridUrlState,
   raw: SubmissionGridRawSearchParams,
@@ -177,7 +169,6 @@ export function layoutFromSettings(
   };
 }
 
-/** Listed metadata ids first, the rest in the grid's own order. */
 export function completeMetadataOrder(
   keys: readonly string[],
 ): SubmissionGridMetadataColumnId[] {
@@ -188,7 +179,6 @@ export function completeMetadataOrder(
   return [...listed, ...rest];
 }
 
-/** Row actions stay first, metadata follows in view order, then answers. */
 export function tableLayoutFromView(
   layout: SubmissionGridLayout,
 ): SubmissionGridTableLayout {
@@ -206,7 +196,6 @@ export function tableLayoutFromView(
   };
 }
 
-/** Table column sizes back as view widths; row actions have none. */
 export function widthsFromColumnSizing(
   sizing: ColumnSizingState,
 ): Record<string, number> {
@@ -278,7 +267,6 @@ function viewKeyOf(columnId: string): string | undefined {
     : undefined;
 }
 
-/** A saved size the footer does not offer is ignored. */
 function offeredPageSize(pageSize: number | undefined): number | undefined {
   const offered: readonly number[] = SUBMISSION_GRID_PAGE_SIZE_OPTIONS;
   return pageSize !== undefined && offered.includes(pageSize)
@@ -286,7 +274,6 @@ function offeredPageSize(pageSize: number | undefined): number | undefined {
     : undefined;
 }
 
-/** A saved sort on a column the API cannot sort by is ignored. */
 function sortableSort(
   sort: SubmissionViewSettings["sort"],
 ): SubmissionGridSort | undefined {

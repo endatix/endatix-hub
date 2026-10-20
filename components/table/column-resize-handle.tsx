@@ -3,7 +3,6 @@
 import type { Column, Header, Table } from "@tanstack/react-table";
 import type { CSSProperties, KeyboardEvent, PointerEvent } from "react";
 
-/** Narrowest a column can be dragged to, unless its `minSize` says more. */
 const DEFAULT_MIN_COLUMN_WIDTH = 48;
 const KEYBOARD_STEP = 16;
 const HANDLE_CLASS_NAME =
@@ -72,7 +71,6 @@ function startDrag<TData>(
   );
 }
 
-/** Calls `onMove` until the captured pointer is released. */
 function followPointer(
   handle: HTMLElement,
   onMove: (event: globalThis.PointerEvent) => void,

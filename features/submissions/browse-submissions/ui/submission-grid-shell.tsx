@@ -3,13 +3,10 @@
 import { rememberSubmissionListReturnTo } from "@/features/submissions/list-submission-query";
 import { NoSubmissionsEmptyState } from "@/features/submissions/ui/submissions-empty-state";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useMemo, type ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import type { GridReadinessBanner } from "../grid-readiness";
 import type { AnswerColumn } from "../submission-grid-columns";
-import {
-  viewDefaults,
-  type SubmissionGridViewLoad,
-} from "../submission-grid-view";
+import type { SubmissionGridViewLoad } from "../submission-grid-view";
 import { ReadinessBanner } from "./readiness-banner";
 import { SubmissionGridToolbar } from "./submission-grid-toolbar";
 import { SubmissionGridUrlProvider } from "./submission-grid-url-context";
@@ -21,9 +18,7 @@ type SubmissionGridShellProps = {
   catalog: readonly AnswerColumn[];
   hasSubmissions: boolean;
   banner: GridReadinessBanner | null;
-  /** The form's shared view; the URL overrides its columns, page size and sort. */
   view: SubmissionGridViewLoad;
-  /** Form editors get Save view. */
   canSaveView: boolean;
   /** The keyed rows frame; it remounts per list query, the shell does not. */
   children: ReactNode;
@@ -58,15 +53,13 @@ type ProvidersProps = Pick<
   "formId" | "catalog" | "view" | "canSaveView" | "children"
 >;
 
-/** URL state with the saved view filled in, then the unsaved view on top. */
 function SubmissionGridProviders({
   view,
   children,
   ...props
 }: Readonly<ProvidersProps>) {
-  const defaults = useMemo(() => viewDefaults(view.settings), [view.settings]);
   return (
-    <SubmissionGridUrlProvider viewDefaults={defaults}>
+    <SubmissionGridUrlProvider viewSettings={view.settings}>
       <SubmissionGridViewProvider view={view} {...props}>
         {children}
       </SubmissionGridViewProvider>

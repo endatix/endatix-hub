@@ -64,7 +64,6 @@ export async function loadSubmissionGridRows({
   return resolveSubmissionGridRowsLoad(formId, urlState, result);
 }
 
-/** A view that cannot be read shows the defaults and cannot be saved over. */
 export async function loadSubmissionGridView(
   formId: string,
   session: SessionData | undefined,
@@ -85,10 +84,6 @@ export async function loadSubmissionGridView(
   };
 }
 
-/**
- * Form editors (`forms.edit`) include in-progress submissions and save the
- * view; a miss hides those controls.
- */
 export async function canEditSubmissionGrid(): Promise<boolean> {
   const { checkPermission } = await authorization();
   const result = await checkPermission(Permissions.Forms.Edit);

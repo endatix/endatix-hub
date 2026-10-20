@@ -33,7 +33,6 @@ const METADATA_COLUMN_LABELS: Record<SubmissionGridMetadataColumnId, string> = {
   status: "Review",
 };
 
-/** Shows or hides the grid's own columns; form editors also save the view. */
 export function SubmissionGridViewMenu({
   disabled,
 }: Readonly<{ disabled: boolean }>) {
@@ -87,7 +86,6 @@ function MetadataColumnItems({ view }: ViewProps) {
   );
 }
 
-/** Why the last Save view did not go through, e.g. someone saved first. */
 export function SubmissionGridViewError() {
   const { saveError } = useSubmissionGridView();
   if (!saveError) {

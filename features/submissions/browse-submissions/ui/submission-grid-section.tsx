@@ -39,7 +39,6 @@ type SubmissionGridSectionProps = {
   unavailable: ReactNode;
 };
 
-/** The submissions grid read from the form's prepared reporting data. */
 export async function SubmissionGridSection(
   props: Readonly<SubmissionGridSectionProps>,
 ) {
@@ -56,10 +55,6 @@ export async function SubmissionGridSection(
   return <SubmissionGrid {...{ formId, urlState, columns, view, ...access }} />;
 }
 
-/**
- * The state the grid shows: a non-canonical URL redirects first, then the
- * saved view fills in what the URL leaves out.
- */
 function gridUrlState(
   formId: string,
   searchParams: SubmissionGridRawSearchParams,
@@ -88,7 +83,6 @@ async function loadGridInputs(formId: string) {
 
 type SubmissionGridProps = {
   formId: string;
-  /** The URL with the saved view filled in where the URL says nothing. */
   urlState: SubmissionGridUrlState;
   columns: Extract<SubmissionGridColumnsLoad, { kind: "ready" }>;
   view: SubmissionGridViewLoad;
@@ -115,7 +109,6 @@ function SubmissionGrid(props: Readonly<SubmissionGridProps>) {
   );
 }
 
-/** Editors include in-progress submissions and save the view. */
 function gridChrome(columns: SubmissionGridProps["columns"], canEdit: boolean) {
   return {
     catalog: columns.catalog,

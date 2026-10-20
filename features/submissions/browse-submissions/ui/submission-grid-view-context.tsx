@@ -45,7 +45,6 @@ import {
   type SubmissionGridUrl,
 } from "./submission-grid-url-context";
 
-/** The view the grid shows, with the changes not saved yet. */
 export type SubmissionGridView = {
   tableLayout: SubmissionGridTableLayout;
   onColumnSizingChange: (updater: Updater<ColumnSizingState>) => void;
@@ -54,17 +53,14 @@ export type SubmissionGridView = {
     id: SubmissionGridMetadataColumnId,
     visible: boolean,
   ) => void;
-  /** Form editors save; a view that could not be read cannot be saved over. */
   canSave: boolean;
   isSaving: boolean;
   save: () => void;
-  /** Why the last save did not go through; shown inline above the rows. */
   saveError: string | null;
 };
 
 const VIEW_SAVED_MESSAGE = "View saved for everyone on this form.";
 
-/** URL params the saved view fills in; a save or reload clears them. */
 const VIEW_OVERRIDE_UPDATE = {
   [keys.columns]: null,
   [keys.pageSize]: null,
@@ -125,7 +121,6 @@ function useSubmissionGridViewState({
   };
 }
 
-/** The unsaved layout as table state, and the setters that change it. */
 function layoutControls(layout: SubmissionGridLayout, setLayout: LayoutSetter) {
   return {
     tableLayout: tableLayoutFromView(layout),
@@ -139,7 +134,6 @@ function layoutControls(layout: SubmissionGridLayout, setLayout: LayoutSetter) {
   };
 }
 
-/** The read view's layout; a new revision (a save, a reload) starts over. */
 function useViewLayout(view: SubmissionGridViewLoad) {
   const [state, setState] = useState(() => ({
     revision: view.revision,
@@ -188,11 +182,6 @@ type MigrationInput = {
   updateUrl: SubmissionGridUrl["updateUrl"];
 };
 
-/**
- * Once per form and browser, while nobody has saved a view: the legacy grid's
- * column choice becomes the unsaved view. Answer columns go to the URL, so
- * the rows load them, unless the URL already picks columns.
- */
 function useLegacyViewMigration(input: MigrationInput) {
   const { formId, catalog, view, setLayout, updateUrl } = input;
   const urlHasColumns = useSearchParams().has(keys.columns);
@@ -215,10 +204,6 @@ type SaveInput = {
   grid: SubmissionGridUrl;
 };
 
-/**
- * Saves what the grid shows. Saved or refused as stale, the grid then reads
- * the view again (see `useReloadView`).
- */
 function useSaveView({ formId, catalog, view, layout, grid }: SaveInput) {
   const reloadView = useReloadView(grid.updateUrl);
   const [isSaving, startSaving] = useTransition();
@@ -239,7 +224,6 @@ function useSaveView({ formId, catalog, view, layout, grid }: SaveInput) {
   return { isSaving, save, saveError };
 }
 
-/** What the grid shows now, as view settings over the ones read. */
 function settingsToSave({
   view,
   layout,
@@ -264,10 +248,6 @@ function gridSnapshot(
   };
 }
 
-/**
- * Reads the saved view again with the URL's own column, page size and sort
- * choices cleared, so the grid shows exactly what is saved.
- */
 function useReloadView(updateUrl: SubmissionGridUrl["updateUrl"]) {
   const router = useRouter();
   return () => {

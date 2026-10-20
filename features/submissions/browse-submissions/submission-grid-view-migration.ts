@@ -6,15 +6,12 @@ import {
   type SubmissionGridLayout,
 } from "./submission-grid-view";
 
-/** Column visibility and order the legacy grid kept in the browser. */
 export type LegacyColumnView = {
   visibility?: Record<string, boolean>;
   order?: string[];
 };
 
-/** The legacy view in this grid's terms, shown as the unsaved view. */
 export type MigratedColumnView = {
-  /** Answer keys to show in order; `undefined` keeps the grid's default. */
   answerKeys?: string[];
   layout: SubmissionGridLayout;
 };
@@ -95,7 +92,6 @@ function readLegacyKeys(
   return visibility || order ? { visibility, order } : null;
 }
 
-/** False when this grid already read the form's legacy view. */
 function claimMigration(storage: Storage, formId: string): boolean {
   const marker = legacyViewMigratedKey(formId);
   if (storage.getItem(marker) !== null) {
@@ -120,7 +116,6 @@ function readStored<T>(
   return parsed.success ? parsed.data : undefined;
 }
 
-/** A corrupt key reads as nothing without costing the other key. */
 function parseJson(stored: string): unknown {
   try {
     return JSON.parse(stored);
@@ -155,7 +150,6 @@ export function migrateLegacyColumnView(
   return changed ? { answerKeys, layout } : null;
 }
 
-/** Saved order first; visibility-only ids after it. */
 function orderedLegacyIds(legacy: LegacyColumnView): string[] {
   return [
     ...new Set([
@@ -171,7 +165,7 @@ function migratedAnswerKeys(
   catalogKeys: ReadonlySet<string>,
 ): string[] | undefined {
   const shown = legacyIds.filter((id) => visibility[id] === true);
-  if (!shown.some((id) => id.startsWith(LEGACY_DATA_PREFIX))) {
+  if (!shown.some(isLegacyQuestionId)) {
     return undefined;
   }
 
@@ -183,9 +177,12 @@ function migratedAnswerKeys(
   return keys.length > 0 ? keys : undefined;
 }
 
-/** `data_q1` → `q1`, `submitterProfile_email` → `submitter_email`. */
+function isLegacyQuestionId(legacyId: string): boolean {
+  return legacyId.startsWith(LEGACY_DATA_PREFIX);
+}
+
 function answerKeyOf(legacyId: string): string | undefined {
-  if (legacyId.startsWith(LEGACY_DATA_PREFIX)) {
+  if (isLegacyQuestionId(legacyId)) {
     return legacyId.slice(LEGACY_DATA_PREFIX.length);
   }
 

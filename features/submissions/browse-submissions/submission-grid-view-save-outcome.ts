@@ -7,7 +7,6 @@ const CONFLICT_STATUS = 409;
 export const VIEW_CONFLICT_MESSAGE =
   "Someone saved this view after you opened it. Their view is loaded now; make your changes again to save.";
 
-/** What the grid does after Save view. A conflict reloads the latest view. */
 export type SaveViewOutcome =
   | { kind: "saved"; view: SubmissionView }
   | { kind: "conflict"; message: string }

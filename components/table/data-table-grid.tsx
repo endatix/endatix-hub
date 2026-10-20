@@ -99,7 +99,6 @@ function GridHeader<TData>({
   );
 }
 
-/** Resize handles and widths only on tables with `enableColumnResizing: true`. */
 function GridHeaderCell<TData>({
   header,
 }: Readonly<{ header: Header<TData, unknown> }>) {
