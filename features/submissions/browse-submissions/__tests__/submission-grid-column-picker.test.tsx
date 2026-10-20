@@ -1,5 +1,8 @@
 import { toast } from "@/components/ui/toast";
-import { addSearchKeyAction } from "@/features/submissions/choose-filterable-questions/choose-filterable-questions.action";
+import {
+  addSearchKeyAction,
+  removeSearchKeyAction,
+} from "@/features/submissions/choose-filterable-questions/choose-filterable-questions.action";
 import { Result } from "@/lib/result";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -447,5 +450,38 @@ describe("SubmissionGridColumnPicker filterable columns", () => {
     // Assert
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith(cap));
     expect(refresh).not.toHaveBeenCalled();
+  });
+  it("removes a person's pick from the filterable columns", async () => {
+    // Arrange
+    vi.mocked(removeSearchKeyAction).mockResolvedValue(
+      Result.success({ formId: "1", keys: [], slots: SLOTS }),
+    );
+    renderPicker("name", searchCatalog, { canEdit: true, slots: SLOTS });
+
+    // Act
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Remove Notes from filterable columns",
+      }),
+    );
+
+    // Assert
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith(
+        '"Notes" is no longer filterable.',
+      ),
+    );
+    expect(removeSearchKeyAction).toHaveBeenCalledWith("1", "notes");
+  });
+
+  it("reads the columns again on Refresh", () => {
+    // Arrange
+    renderPicker("name", searchCatalog, { canEdit: true, slots: SLOTS });
+
+    // Act
+    fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
+
+    // Assert
+    expect(refresh).toHaveBeenCalledTimes(1);
   });
 });
