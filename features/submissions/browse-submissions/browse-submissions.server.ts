@@ -2,9 +2,12 @@ import { authorization, Permissions } from "@/features/auth/authorization";
 import type { SessionData } from "@/features/auth";
 import { EndatixApi } from "@/lib/endatix-api";
 import { toResult } from "@/lib/result";
+import type { ListSubmissionGridRowsRequest } from "@/lib/endatix-api/reporting/submission-grid-types";
 import {
+  isReportingNotPrepared,
   resolveSubmissionGridColumnsLoad,
   resolveSubmissionGridRowsLoad,
+  withAnswerFiltersNotPrepared,
   type SubmissionGridColumnsLoad,
   type SubmissionGridRowsLoad,
 } from "./resolve-submission-grid-load";
@@ -39,15 +42,31 @@ export type LoadSubmissionGridRowsInput = {
   session: SessionData | undefined;
 };
 
-export async function loadSubmissionGridRows({
-  formId,
-  urlState,
-  columnKeys,
-  session,
-}: LoadSubmissionGridRowsInput): Promise<SubmissionGridRowsLoad> {
+export async function loadSubmissionGridRows(
+  input: LoadSubmissionGridRowsInput,
+): Promise<SubmissionGridRowsLoad> {
+  const { formId, urlState } = input;
+  const request = toSubmissionGridRowsRequest(urlState, input.columnKeys);
+  const result = await listGridRows(input, request);
+  if (!request.answerFilters?.length || !isReportingNotPrepared(result)) {
+    return resolveSubmissionGridRowsLoad(formId, urlState, result);
+  }
+
+  const unfiltered = await listGridRows(input, {
+    ...request,
+    answerFilters: [],
+  });
+  return withAnswerFiltersNotPrepared(
+    resolveSubmissionGridRowsLoad(formId, urlState, unfiltered),
+  );
+}
+
+async function listGridRows(
+  { formId, session }: LoadSubmissionGridRowsInput,
+  request: ListSubmissionGridRowsRequest,
+) {
   const api = new EndatixApi(session);
-  const request = toSubmissionGridRowsRequest(urlState, columnKeys);
-  const result = toResult(
+  return toResult(
     await api.reporting.submissionGrid.listRows(formId, request),
     {
       fallbackMessage: "Unable to load submissions. Please try again.",
@@ -55,8 +74,6 @@ export async function loadSubmissionGridRows({
       loggerName: LOGGER_NAME,
     },
   );
-
-  return resolveSubmissionGridRowsLoad(formId, urlState, result);
 }
 
 /** Including in-progress submissions needs `forms.edit`; a miss hides the control. */

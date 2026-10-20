@@ -13,16 +13,25 @@ import {
 } from "../shared/query-params";
 import type { PagedResponse } from "../shared/types";
 import { appendSubmissionListFilters } from "../submissions/submission-list-query-params";
+import { toAnswerParam } from "./submission-grid-answer-params";
 import { toSubmissionGridRow } from "./submission-grid-rows-from-submissions";
 import type {
   ListSubmissionGridColumnsRequest,
   ListSubmissionGridRowsRequest,
+  SubmissionGridAnswerFilterCoverage,
   SubmissionGridColumnsResponse,
   SubmissionGridRow,
 } from "./submission-grid-types";
 
 /** One page of grid rows, normalized for UI (adds `hasNextPage`). */
-export type SubmissionGridRowsPage = NormalizedPagedResponse<SubmissionGridRow>;
+export type SubmissionGridRowsPage =
+  NormalizedPagedResponse<SubmissionGridRow> & {
+    answerFilterCoverage?: SubmissionGridAnswerFilterCoverage;
+  };
+
+type SubmissionGridRowsResponse = PagedResponse<SubmissionGridRow> & {
+  answerFilterCoverage?: SubmissionGridAnswerFilterCoverage;
+};
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_PAGE_SIZE = 10;
@@ -43,7 +52,7 @@ export function buildListSubmissionGridColumnsEndpoint(
 
 /**
  * Builds `GET forms/{formId}/reporting/submissions`: the submissions list
- * query plus `columns=k1,k2`.
+ * query plus `columns=k1,k2` and one `answer=` per answer filter.
  */
 export function buildListSubmissionGridRowsEndpoint(
   formId: string,
@@ -56,6 +65,9 @@ export function buildListSubmissionGridRowsEndpoint(
   });
   appendSubmissionListFilters(searchParams, request);
   appendQueryParam(searchParams, "columns", request.columns.join(","));
+  request.answerFilters?.forEach((filter) =>
+    searchParams.append("answer", toAnswerParam(filter)),
+  );
 
   return buildEndpointWithQuery(
     `/forms/${formId}/reporting/submissions`,
@@ -92,7 +104,7 @@ export class SubmissionGrid {
     }
 
     const response = await this.getRows(validFormId.value, request);
-    return isNotFoundError(response)
+    return isNotFoundError(response) && !request.answerFilters?.length
       ? this.listRowsFromSubmissions(validFormId.value, request)
       : response;
   }
@@ -101,20 +113,25 @@ export class SubmissionGrid {
     formId: string,
     request: ListSubmissionGridRowsRequest,
   ): Promise<ApiResult<SubmissionGridRowsPage>> {
-    const response = await this.endatix.get<PagedResponse<SubmissionGridRow>>(
+    const response = await this.endatix.get<SubmissionGridRowsResponse>(
       buildListSubmissionGridRowsEndpoint(formId, request),
     );
     if (!ApiResult.isSuccess(response)) {
       return response;
     }
 
-    return ApiResult.success(normalizePagedResponse(response.data));
+    const { answerFilterCoverage } = response.data;
+    return ApiResult.success({
+      ...normalizePagedResponse(response.data),
+      ...(answerFilterCoverage && { answerFilterCoverage }),
+    });
   }
 
   /**
    * For an API that has the columns endpoint but not the rows endpoint yet
    * (404): reads the submissions list and picks the answers from raw
-   * `jsonData`, the way the rows endpoint does for rows not prepared.
+   * `jsonData`, the way the rows endpoint does for rows not prepared. The
+   * list cannot filter answers, so answer filters never fall back here.
    */
   private async listRowsFromSubmissions(
     formId: string,

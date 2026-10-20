@@ -1,4 +1,7 @@
-import type { SubmissionGridReadiness } from "@/lib/endatix-api/reporting/submission-grid-types";
+import type {
+  SubmissionGridAnswerFilterCoverage,
+  SubmissionGridReadiness,
+} from "@/lib/endatix-api/reporting/submission-grid-types";
 import { formatInteger } from "@/lib/utils/formatters";
 
 export type UnpreparedCounts = {
@@ -18,6 +21,7 @@ export type DescribeGridReadinessInput = {
   schemaReady: boolean;
   readiness: SubmissionGridReadiness;
   canIncludeInProgress: boolean;
+  hasAnswerFilters?: boolean;
 };
 
 /**
@@ -44,10 +48,13 @@ function atLeastZero(count: number): number {
   return Math.max(0, count);
 }
 
+const ANSWER_FILTERS_NOT_APPLIED_LINE =
+  "The answer filters in this link are not applied until the form is prepared.";
+
 const NO_SCHEMA_BANNER: GridReadinessBanner = {
   title: "This form's reporting data is not prepared",
   lines: [
-    "Answers show from each submission as entered. Prepare the form to read them from reporting data.",
+    "Answers show from each submission as entered. Prepare the form to read them from reporting data and to filter by them.",
   ],
   showPrepare: true,
   showIncludeInProgress: false,
@@ -57,16 +64,26 @@ export function describeGridReadiness({
   schemaReady,
   readiness,
   canIncludeInProgress,
+  hasAnswerFilters,
 }: DescribeGridReadinessInput): GridReadinessBanner | null {
   if (readiness.submissions === 0) {
     return null;
   }
 
   if (!schemaReady) {
-    return NO_SCHEMA_BANNER;
+    return hasAnswerFilters ? withFiltersNotApplied() : NO_SCHEMA_BANNER;
   }
 
-  return describeUnprepared(countUnprepared(readiness), canIncludeInProgress);
+  return hasAnswerFilters
+    ? null
+    : describeUnprepared(countUnprepared(readiness), canIncludeInProgress);
+}
+
+function withFiltersNotApplied(): GridReadinessBanner {
+  return {
+    ...NO_SCHEMA_BANNER,
+    lines: [...NO_SCHEMA_BANNER.lines, ANSWER_FILTERS_NOT_APPLIED_LINE],
+  };
 }
 
 function describeUnprepared(
@@ -84,6 +101,67 @@ function describeUnprepared(
     showPrepare: counts.completed > 0,
     showIncludeInProgress: counts.inProgress > 0 && canIncludeInProgress,
   };
+}
+
+export type DescribeRowsBannerInput = {
+  coverage?: SubmissionGridAnswerFilterCoverage;
+  answerFiltersNotPrepared?: boolean;
+  canIncludeInProgress: boolean;
+};
+
+const ANSWER_FILTERS_NOT_PREPARED_BANNER: GridReadinessBanner = {
+  title: "Answer filters are off",
+  lines: [
+    "This form's reporting data is not prepared, so the rows below are not filtered by answers. Prepare the form to filter by them.",
+  ],
+  showPrepare: true,
+  showIncludeInProgress: false,
+};
+
+export function describeRowsBanner({
+  coverage,
+  answerFiltersNotPrepared,
+  canIncludeInProgress,
+}: DescribeRowsBannerInput): GridReadinessBanner | null {
+  if (answerFiltersNotPrepared) {
+    return ANSWER_FILTERS_NOT_PREPARED_BANNER;
+  }
+
+  return coverage ? describeUnchecked(coverage, canIncludeInProgress) : null;
+}
+
+function describeUnchecked(
+  coverage: SubmissionGridAnswerFilterCoverage,
+  canIncludeInProgress: boolean,
+): GridReadinessBanner | null {
+  const lines = uncheckedLines(coverage);
+  if (lines.length === 0) {
+    return null;
+  }
+
+  return {
+    title: "Some submissions were not checked",
+    lines,
+    showPrepare: coverage.uncheckedCompleted > 0,
+    showIncludeInProgress:
+      coverage.uncheckedInProgress > 0 && canIncludeInProgress,
+  };
+}
+
+function uncheckedLines({
+  uncheckedCompleted: completed,
+  uncheckedInProgress: inProgress,
+}: SubmissionGridAnswerFilterCoverage): string[] {
+  return [
+    completed > 0 &&
+      `${submissions(completed)} completed ${verb(completed)} not prepared, ${notChecked(completed)}`,
+    inProgress > 0 &&
+      `${submissions(inProgress)} in progress ${verb(inProgress)} not included, ${notChecked(inProgress)}`,
+  ].filter((line): line is string => typeof line === "string");
+}
+
+function notChecked(count: number): string {
+  return `so the answer filters did not check ${count === 1 ? "it" : "them"}.`;
 }
 
 function unpreparedLines({

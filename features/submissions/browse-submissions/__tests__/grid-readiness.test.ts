@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { SubmissionGridReadiness } from "@/lib/endatix-api/reporting/submission-grid-types";
-import { countUnprepared, describeGridReadiness } from "../grid-readiness";
+import {
+  countUnprepared,
+  describeGridReadiness,
+  describeRowsBanner,
+} from "../grid-readiness";
 
 function readiness(
   overrides: Partial<SubmissionGridReadiness> = {},
@@ -170,6 +174,72 @@ describe("describeGridReadiness", () => {
         "3 submissions are being prepared.",
       ],
       showPrepare: true,
+    });
+  });
+});
+
+describe("describeRowsBanner", () => {
+  it("hides the banner without answer filters", () => {
+    expect(describeRowsBanner({ canIncludeInProgress: true })).toBeNull();
+  });
+
+  it("hides the banner when the filters checked every submission", () => {
+    // Act
+    const banner = describeRowsBanner({
+      coverage: { uncheckedCompleted: 0, uncheckedInProgress: 0 },
+      canIncludeInProgress: true,
+    });
+
+    // Assert
+    expect(banner).toBeNull();
+  });
+
+  it("counts unchecked submissions and offers both actions to an editor", () => {
+    // Act
+    const banner = describeRowsBanner({
+      coverage: { uncheckedCompleted: 3, uncheckedInProgress: 1 },
+      canIncludeInProgress: true,
+    });
+
+    // Assert
+    expect(banner).toMatchObject({
+      title: "Some submissions were not checked",
+      showPrepare: true,
+      showIncludeInProgress: true,
+    });
+    expect(banner?.lines).toEqual([
+      "3 submissions completed are not prepared, so the answer filters did not check them.",
+      "1 submission in progress is not included, so the answer filters did not check it.",
+    ]);
+  });
+
+  it("shows the in-progress count without its action to a viewer", () => {
+    // Act
+    const banner = describeRowsBanner({
+      coverage: { uncheckedCompleted: 0, uncheckedInProgress: 2 },
+      canIncludeInProgress: false,
+    });
+
+    // Assert
+    expect(banner).toMatchObject({
+      showPrepare: false,
+      showIncludeInProgress: false,
+    });
+    expect(banner?.lines).toHaveLength(1);
+  });
+
+  it("says the answer filters are off and offers Prepare without a schema", () => {
+    // Act
+    const banner = describeRowsBanner({
+      answerFiltersNotPrepared: true,
+      canIncludeInProgress: true,
+    });
+
+    // Assert
+    expect(banner).toMatchObject({
+      title: "Answer filters are off",
+      showPrepare: true,
+      showIncludeInProgress: false,
     });
   });
 });
