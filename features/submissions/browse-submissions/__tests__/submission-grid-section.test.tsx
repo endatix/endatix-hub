@@ -185,6 +185,36 @@ describe("SubmissionGridSection", () => {
     expect(shell.props.banner).toMatchObject({ showIncludeInProgress: false });
   });
 
+  it("lets the coverage banner speak while answer filters are applied", async () => {
+    // Arrange
+    loads.columns.mockResolvedValue(READY);
+
+    // Act
+    const shell = await renderSection({ "answer.contains.q1": "acme" });
+
+    // Assert
+    expect(shell.props.banner).toBeNull();
+  });
+
+  it("keeps a link's answer filters without a schema, sends none, and says so", async () => {
+    // Arrange
+    loads.columns.mockResolvedValue({
+      ...READY,
+      schemaReady: false,
+      catalog: [],
+    });
+
+    // Act
+    const shell = await renderSection({ "answer.contains.q1": "acme" });
+
+    // Assert
+    expect(shell.props.banner.lines).toContain(
+      "The answer filters in this link are not applied until the form is prepared.",
+    );
+    const rows = (shell.props.children as Leaf).props.children as Leaf;
+    expect(rows.props.urlState.answerFilters).toEqual([]);
+  });
+
   it("starts the permission and config reads without waiting for the columns", async () => {
     // Arrange
     let answerColumns!: (load: SubmissionGridColumnsLoad) => void;
