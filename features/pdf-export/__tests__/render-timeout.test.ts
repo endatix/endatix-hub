@@ -69,6 +69,8 @@ describe("renderTimeoutMs", () => {
   it("reads the override as seconds", () => {
     // Arrange - a host with a shorter request cap than Azure's
     vi.stubEnv(TIMEOUT_ENV_VAR, "8");
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-01-01T00:00:00.000Z"));
 
     // Act & Assert
     expect(renderTimeoutMs()).toBe(8_000);
