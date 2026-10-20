@@ -1,4 +1,4 @@
-import { MAX_SUBMISSION_GRID_ROW_COLUMNS } from "@/lib/endatix-api/reporting/submission-grid-types";
+import { fitRowColumns } from "@/lib/endatix-api/reporting/submission-grid-row-columns";
 import { z } from "zod";
 import {
   completeMetadataOrder,
@@ -116,8 +116,17 @@ function readStored<T>(
     return undefined;
   }
 
-  const parsed = schema.safeParse(JSON.parse(stored));
+  const parsed = schema.safeParse(parseJson(stored));
   return parsed.success ? parsed.data : undefined;
+}
+
+/** A corrupt key reads as nothing without costing the other key. */
+function parseJson(stored: string): unknown {
+  try {
+    return JSON.parse(stored);
+  } catch {
+    return undefined;
+  }
 }
 
 /**
@@ -166,10 +175,11 @@ function migratedAnswerKeys(
     return undefined;
   }
 
-  const keys = shown
-    .flatMap((id) => answerKeyOf(id) ?? [])
-    .filter((key) => catalogKeys.has(key))
-    .slice(0, MAX_SUBMISSION_GRID_ROW_COLUMNS);
+  const keys = fitRowColumns(
+    shown
+      .flatMap((id) => answerKeyOf(id) ?? [])
+      .filter((key) => catalogKeys.has(key)),
+  );
   return keys.length > 0 ? keys : undefined;
 }
 
