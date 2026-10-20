@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   save: vi.fn(),
   flag: vi.fn(),
   requirePermission: vi.fn(),
+  revalidatePath: vi.fn(),
 }));
 
 vi.mock("@/auth", () => ({ auth: async () => ({ accessToken: "token" }) }));
@@ -17,6 +18,7 @@ vi.mock("@/features/auth/authorization", () => ({
   }),
   Permissions: { Forms: { Edit: "forms.edit" } },
 }));
+vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
 vi.mock("@/lib/feature-flags/flags", () => ({
   reportingExportFlag: mocks.flag,
 }));
@@ -46,6 +48,9 @@ describe("saveSubmissionGridViewAction", () => {
     expect(mocks.requirePermission).toHaveBeenCalledWith("forms.edit");
     expect(mocks.save).toHaveBeenCalledWith("42", VIEW);
     expect(result).toEqual(Result.success(saved));
+    expect(mocks.revalidatePath).toHaveBeenCalledWith(
+      "/(main)/forms/42/submissions",
+    );
   });
 
   it("keeps the 409 status so the grid can reload", async () => {
@@ -59,6 +64,7 @@ describe("saveSubmissionGridViewAction", () => {
 
     // Assert
     expect(Result.isError(result) && result.statusCode).toBe(409);
+    expect(mocks.revalidatePath).not.toHaveBeenCalled();
   });
 
   it("refuses when reporting is off, without calling the API", async () => {

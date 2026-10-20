@@ -11,6 +11,7 @@ import {
 import { reportingExportFlag } from "@/lib/feature-flags/flags";
 import { Result } from "@/lib/result";
 import { toResult } from "@/lib/result/map-api-result-to-result";
+import { revalidatePath } from "next/cache";
 
 const LOGGER_NAME = "submissions.browse.save-view";
 
@@ -37,7 +38,11 @@ export async function saveSubmissionGridViewAction(
 
   const api = new EndatixApi(session?.accessToken);
   const saved = await api.reporting.submissionViews.save(formId, view);
-  return toResult(saved, saveResultOptions(saved));
+  const result = toResult(saved, saveResultOptions(saved));
+  if (Result.isSuccess(result)) {
+    revalidatePath(`/(main)/forms/${formId}/submissions`);
+  }
+  return result;
 }
 
 /** A stale revision is an expected race, not an operational failure. */
