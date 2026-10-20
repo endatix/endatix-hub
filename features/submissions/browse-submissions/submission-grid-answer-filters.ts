@@ -6,6 +6,7 @@ import {
   type SubmissionGridAnswerOperator,
   type SubmissionGridFilterType,
 } from "@/lib/endatix-api/reporting/submission-grid-types";
+import { parseCalendarDateYmd } from "@/lib/endatix-api/shared/list-query";
 import { firstSearchParam, type SearchParam } from "@/lib/utils/next-utils";
 import type { AnswerColumn } from "./submission-grid-columns";
 
@@ -15,7 +16,6 @@ const OPERATORS: ReadonlySet<string> = new Set<SubmissionGridAnswerOperator>([
   "from",
   "to",
 ]);
-const CALENDAR_DAY = /^\d{4}-\d{2}-\d{2}$/;
 const CHOICE_QUESTION_TYPES: ReadonlySet<string> = new Set([
   "dropdown",
   "radiogroup",
@@ -43,7 +43,7 @@ export function isAnswerFilterUrlKey(name: string): boolean {
 /**
  * Every well-formed answer filter in the URL, in URL order. A `contains`
  * longer than the API accepts is cut to that length; a bound that is not a
- * `yyyy-MM-dd` day is dropped.
+ * real `yyyy-MM-dd` calendar day is dropped.
  */
 export function parseAnswerFilters(
   raw: Record<string, SearchParam>,
@@ -138,7 +138,7 @@ function normalizeValue(
     return value.slice(0, MAX_SUBMISSION_GRID_CONTAINS_LENGTH);
   }
 
-  return CALENDAR_DAY.test(value) ? value : undefined;
+  return parseCalendarDateYmd(value);
 }
 
 function operatorFits(
