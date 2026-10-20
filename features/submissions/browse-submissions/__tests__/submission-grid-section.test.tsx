@@ -216,6 +216,29 @@ describe("SubmissionGridSection", () => {
     expect(rows.props.urlState.answerFilters).toEqual([]);
   });
 
+  it("keeps a filter on a column still being prepared, sends none, and says so", async () => {
+    // Arrange
+    const preparing = {
+      ...answerColumn("q2"),
+      filterType: null,
+      search: { state: "preparing" as const, source: "user" as const },
+    };
+    loads.columns.mockResolvedValue({
+      ...READY,
+      catalog: [answerColumn("q1"), preparing],
+    });
+
+    // Act
+    const shell = await renderSection({ "answer.contains.q2": "acme" });
+
+    // Assert
+    expect(shell.props.banner.lines).toContain(
+      "Answer filters on columns still being prepared are not applied yet.",
+    );
+    const rows = (shell.props.children as Leaf).props.children as Leaf;
+    expect(rows.props.urlState.answerFilters).toEqual([]);
+  });
+
   it("drops a filter the form cannot apply through the canonical redirect", async () => {
     // Arrange
     loads.columns.mockResolvedValue(READY);

@@ -381,6 +381,20 @@ describe("SubmissionGridColumnPicker filterable columns", () => {
     expect(screen.queryByText(/chosen/)).toBeNull();
   });
 
+  it("offers editors no changes when the API cannot choose search keys", () => {
+    // Act
+    renderPicker("name", searchCatalog, { canEdit: true });
+
+    // Assert
+    expect(
+      screen.queryByRole("button", { name: "Make filterable" }),
+    ).toBeNull();
+    expect(screen.queryAllByRole("button", { name: /born|notes/i })).toEqual(
+      [],
+    );
+    expect(screen.getAllByText("Filterable")).toHaveLength(2);
+  });
+
   it("lets an editor add eligible columns and remove only people's picks", () => {
     // Act
     renderPicker("name", searchCatalog, { canEdit: true, slots: SLOTS });
