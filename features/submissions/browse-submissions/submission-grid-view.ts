@@ -105,7 +105,7 @@ function readColumnSetting(column: unknown): SubmissionViewColumnSetting[] {
     {
       ...rest,
       key: column.key,
-      ...(Number.isFinite(width) && { width: width as number }),
+      ...(typeof width === "number" && Number.isFinite(width) && { width }),
       ...(typeof visible === "boolean" && { visible }),
     },
   ];
@@ -129,10 +129,6 @@ export function viewDefaults(
   };
 }
 
-/**
- * The state the grid shows: what the URL says, and the view's columns, page
- * size and sort where the URL says nothing.
- */
 /** `applyViewDefaults` with the defaults read from saved settings. */
 export function withSavedView(
   state: SubmissionGridUrlState,
@@ -142,6 +138,10 @@ export function withSavedView(
   return applyViewDefaults(state, raw, viewDefaults(settings));
 }
 
+/**
+ * The state the grid shows: what the URL says, and the view's columns, page
+ * size and sort where the URL says nothing.
+ */
 export function applyViewDefaults(
   state: SubmissionGridUrlState,
   raw: SubmissionGridRawSearchParams,

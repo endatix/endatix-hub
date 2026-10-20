@@ -24,8 +24,9 @@ export interface SubmissionViewSort {
 }
 
 /**
- * Settings v1 of a form's submissions grid view. `columns` lists only the
- * columns someone changed. Properties the Hub does not know are kept.
+ * Settings v1 of a form's submissions grid view. A column not listed keeps
+ * its default; the Hub saves every metadata column and the visible answer
+ * columns. Properties the Hub does not know are kept.
  */
 export interface SubmissionViewSettings {
   v: 1;
