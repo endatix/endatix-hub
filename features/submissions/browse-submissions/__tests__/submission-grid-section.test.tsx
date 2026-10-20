@@ -215,6 +215,44 @@ describe("SubmissionGridSection", () => {
     expect(rows.props.urlState.answerFilters).toEqual([]);
   });
 
+  it("drops a filter the form cannot apply through the canonical redirect", async () => {
+    // Arrange
+    loads.columns.mockResolvedValue(READY);
+
+    // Act & Assert
+    await expect(
+      renderSection({
+        "answer.from.q1": "2026-01-01",
+        "answer.contains.q2": "acme",
+        "answer.contains.gone": "x",
+      }),
+    ).rejects.toThrow("REDIRECT /forms/7/submissions?answer.contains.q2=acme");
+  });
+
+  it("gives up visible columns for the bytes the answer filters take", async () => {
+    // Arrange
+    const catalog = Array.from({ length: 500 }, (_, i) =>
+      answerColumn(`question_${i}`),
+    );
+    loads.columns.mockResolvedValue({ ...READY, catalog });
+    const columns = catalog.map((column) => column.key).join(",");
+    const visibleCount = async (raw: Record<string, string>) => {
+      const shell = await renderSection({ columns, ...raw });
+      const rows = (shell.props.children as Leaf).props.children as Leaf;
+      return (rows.props.answerColumns as unknown[]).length;
+    };
+
+    // Act
+    const unfiltered = await visibleCount({});
+    const filtered = await visibleCount({
+      "answer.contains.question_0": "я".repeat(200),
+    });
+
+    // Assert
+    expect(filtered).toBeGreaterThan(0);
+    expect(filtered).toBeLessThan(unfiltered);
+  });
+
   it("starts the permission and config reads without waiting for the columns", async () => {
     // Arrange
     let answerColumns!: (load: SubmissionGridColumnsLoad) => void;
