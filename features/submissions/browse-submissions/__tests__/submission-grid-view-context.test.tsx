@@ -50,6 +50,7 @@ const catalog: AnswerColumn[] = ["q1", "q2"].map((key) => ({
 
 function renderView(view: SubmissionGridViewLoad, query = "") {
   navigation.searchParams = new URLSearchParams(query);
+  globalThis.history.replaceState(null, "", `/forms/42/submissions?${query}`);
   vi.mocked(useSubmissionGridUrl).mockReturnValue({
     urlState: parseSubmissionGridUrl(
       Object.fromEntries(navigation.searchParams),

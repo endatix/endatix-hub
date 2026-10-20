@@ -270,10 +270,11 @@ function gridSnapshot(
  */
 function useReloadView(updateUrl: SubmissionGridUrl["updateUrl"]) {
   const router = useRouter();
-  const searchParams = useSearchParams();
   return () => {
+    // Read after the save's await: the user may have changed the URL since.
+    const current = new URLSearchParams(globalThis.location.search);
     const overrides = Object.keys(VIEW_OVERRIDE_UPDATE);
-    if (overrides.some((key) => searchParams.has(key))) {
+    if (overrides.some((key) => current.has(key))) {
       updateUrl(VIEW_OVERRIDE_UPDATE);
     } else {
       router.refresh();
