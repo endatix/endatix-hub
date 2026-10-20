@@ -41,8 +41,8 @@ export function RemoveSearchKeyButton({
       variant="ghost"
       size="icon"
       className={cn("size-6 shrink-0", className)}
-      aria-label={`Stop filtering ${target.title}`}
-      title="Stop filtering"
+      aria-label={`Remove ${target.title} from filterable columns`}
+      title="Remove from filterable columns"
       disabled={changes.isPending}
       onClick={() => changes.change("remove", target)}
     >

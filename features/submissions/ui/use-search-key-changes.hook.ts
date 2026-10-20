@@ -21,21 +21,29 @@ export type SearchKeyTarget = { key: string; title: string };
 export type SearchKeyChanges = ReturnType<typeof useSearchKeyChanges>;
 
 /**
- * Adds or removes a column's search key, says how it went, and reads the
- * columns again. There is no polling: `refresh` reads them on request.
+ * Adds or removes a column's search key and says how it went. The action
+ * revalidates the grid and the settings, so the page reads the columns again.
  */
 export function useSearchKeyChanges(formId: string) {
-  const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  const { isPending, startTransition, refresh } = useRefreshColumns();
   const change = (kind: SearchKeyChange, target: SearchKeyTarget) => {
     startTransition(async () => {
       const result = await ACTIONS[kind](formId, target.key);
       const outcome = searchKeyOutcome(kind, target.title, result);
       toast[outcome.variant](outcome.message);
-      if (outcome.refresh) router.refresh();
     });
   };
-  const refresh = () => startTransition(() => router.refresh());
 
   return { isPending, change, refresh };
+}
+
+/**
+ * Reads the columns again on request: the Hub has no push channel, so this
+ * is how a preparing column is seen to turn ready. No polling.
+ */
+export function useRefreshColumns() {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const refresh = () => startTransition(() => router.refresh());
+  return { isPending, startTransition, refresh };
 }

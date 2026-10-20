@@ -376,7 +376,7 @@ describe("SubmissionGridColumnPicker filterable columns", () => {
       screen.queryByRole("button", { name: "Make filterable" }),
     ).toBeNull();
     expect(
-      screen.queryByRole("button", { name: /stop filtering/i }),
+      screen.queryByRole("button", { name: /from filterable columns/i }),
     ).toBeNull();
     expect(screen.queryByText(/chosen/)).toBeNull();
   });
@@ -405,13 +405,16 @@ describe("SubmissionGridColumnPicker filterable columns", () => {
     ).toHaveLength(1);
     expect(
       screen
-        .getAllByRole("button", { name: /stop filtering/i })
+        .getAllByRole("button", { name: /from filterable columns/i })
         .map((button) => button.getAttribute("aria-label")),
-    ).toEqual(["Stop filtering Born", "Stop filtering Notes"]);
+    ).toEqual([
+      "Remove Born from filterable columns",
+      "Remove Notes from filterable columns",
+    ]);
     expect(screen.getByText("Filterable: 3 of 14 chosen")).toBeTruthy();
   });
 
-  it("makes a column filterable and reads the columns again", async () => {
+  it("makes a column filterable and says it is preparing", async () => {
     // Arrange
     vi.mocked(addSearchKeyAction).mockResolvedValue(
       Result.success({ formId: "1", keys: [], slots: SLOTS }),
@@ -422,11 +425,12 @@ describe("SubmissionGridColumnPicker filterable columns", () => {
     fireEvent.click(screen.getByRole("button", { name: "Make filterable" }));
 
     // Assert
-    await waitFor(() => expect(refresh).toHaveBeenCalled());
-    expect(addSearchKeyAction).toHaveBeenCalledWith("1", "city");
-    expect(toast.success).toHaveBeenCalledWith(
-      '"City" is filterable once its answers are prepared.',
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith(
+        '"City" is filterable once its answers are prepared.',
+      ),
     );
+    expect(addSearchKeyAction).toHaveBeenCalledWith("1", "city");
   });
 
   it("shows the cap message when the 15th pick is refused", async () => {

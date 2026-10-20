@@ -13,21 +13,19 @@ const RESPONSE: SubmissionGridSearchKeysResponse = {
 };
 
 describe("searchKeyOutcome", () => {
-  it("says an added column filters once prepared, and reads the columns again", () => {
+  it("says an added column filters once prepared", () => {
     expect(searchKeyOutcome("add", "City", Result.success(RESPONSE))).toEqual({
       variant: "success",
       message: '"City" is filterable once its answers are prepared.',
-      refresh: true,
     });
   });
 
-  it("confirms a removal and reads the columns again", () => {
+  it("confirms a removal", () => {
     expect(
       searchKeyOutcome("remove", "City", Result.success(RESPONSE)),
     ).toMatchObject({
       variant: "success",
       message: '"City" is no longer filterable.',
-      refresh: true,
     });
   });
 
@@ -45,7 +43,6 @@ describe("searchKeyOutcome", () => {
     expect(searchKeyOutcome("add", "City", refused)).toEqual({
       variant: "error",
       message: cap,
-      refresh: false,
     });
   });
 
@@ -62,7 +59,6 @@ describe("searchKeyOutcome", () => {
     expect(searchKeyOutcome("add", "City", busy)).toEqual({
       variant: "error",
       message: SEARCH_KEYS_BUSY_MESSAGE,
-      refresh: false,
     });
   });
 });

@@ -2,11 +2,10 @@ import type { SubmissionGridSearchKeysResponse } from "@/lib/endatix-api/reporti
 import { Result } from "@/lib/result";
 import type { SearchKeyChange } from "@/features/submissions/column-search";
 
-/** What to tell the editor, and whether to read the columns again. */
+/** What to tell the editor. */
 export type SearchKeyOutcome = {
   variant: "success" | "error";
   message: string;
-  refresh: boolean;
 };
 
 const SERVICE_UNAVAILABLE = 503;
@@ -29,7 +28,6 @@ export function searchKeyOutcome(
     return {
       variant: "error",
       message: busy ? SEARCH_KEYS_BUSY_MESSAGE : result.message,
-      refresh: false,
     };
   }
 
@@ -37,5 +35,5 @@ export function searchKeyOutcome(
     change === "add"
       ? `"${title}" is filterable once its answers are prepared.`
       : `"${title}" is no longer filterable.`;
-  return { variant: "success", message, refresh: true };
+  return { variant: "success", message };
 }

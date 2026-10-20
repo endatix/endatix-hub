@@ -118,7 +118,7 @@ describe("answer column header filters", () => {
 
     // Assert
     expect(screen.getByText(/this filter is being prepared/i)).toBeTruthy();
-    expect(screen.getByRole("button", { name: /check again/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /refresh/i })).toBeTruthy();
     expect(screen.queryByLabelText("Filter")).toBeNull();
   });
 

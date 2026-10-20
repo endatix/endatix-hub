@@ -2,16 +2,14 @@
 
 import { Button } from "@/components/ui/button";
 import { Hourglass, RefreshCw } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useTransition } from "react";
+import { useRefreshColumns } from "@/features/submissions/ui/use-search-key-changes.hook";
 
 /**
  * A header filter whose search copy is being rebuilt: no inputs until the
  * columns say it is ready, and a way to read them again.
  */
 export function PreparingFilterNote() {
-  const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  const { isPending, refresh } = useRefreshColumns();
   return (
     <div className="w-56 space-y-2 text-xs">
       <PreparingHint />
@@ -20,10 +18,10 @@ export function PreparingFilterNote() {
         size="sm"
         className="w-full"
         disabled={isPending}
-        onClick={() => startTransition(() => router.refresh())}
+        onClick={refresh}
       >
         <RefreshCw className="size-3.5" />
-        Check again
+        Refresh
       </Button>
     </div>
   );

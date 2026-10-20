@@ -33,7 +33,7 @@ export async function removeSearchKeyAction(
 ): Promise<SearchKeysResult> {
   return changeSearchKeys(
     formId,
-    "Unable to stop filtering the column.",
+    "Unable to remove the column from filterable columns.",
     (api) => api.reporting.submissionGrid.removeSearchKey(formId, key),
   );
 }

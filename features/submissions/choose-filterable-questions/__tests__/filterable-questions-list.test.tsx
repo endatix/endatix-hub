@@ -59,9 +59,9 @@ describe("FilterableQuestionsList", () => {
     // Assert
     expect(
       screen
-        .getAllByRole("button", { name: /stop filtering/i })
+        .getAllByRole("button", { name: /from filterable columns/i })
         .map((button) => button.getAttribute("aria-label")),
-    ).toEqual(["Stop filtering City"]);
+    ).toEqual(["Remove City from filterable columns"]);
   });
 
   it("offers no remove without forms.edit", () => {
@@ -70,7 +70,7 @@ describe("FilterableQuestionsList", () => {
 
     // Assert
     expect(
-      screen.queryByRole("button", { name: /stop filtering/i }),
+      screen.queryByRole("button", { name: /from filterable columns/i }),
     ).toBeNull();
   });
 
@@ -85,7 +85,9 @@ describe("FilterableQuestionsList", () => {
 
     // Act
     fireEvent.click(
-      screen.getByRole("button", { name: "Stop filtering City" }),
+      screen.getByRole("button", {
+        name: "Remove City from filterable columns",
+      }),
     );
 
     // Assert
