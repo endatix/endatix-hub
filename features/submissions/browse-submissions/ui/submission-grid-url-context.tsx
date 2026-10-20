@@ -61,28 +61,35 @@ function useSubmissionGridUrlState(
 ): SubmissionGridUrl {
   const { values, setValue, searchParams, updateUrl, isPending } =
     useTableFiltersUrlState(SUBMISSION_GRID_TEXT_FILTER_KEYS);
-  const { urlState, urlSets } = useMemo(() => {
-    const raw = Object.fromEntries(searchParams);
-    const parsed = parseSubmissionGridUrl(raw);
-    return {
-      urlState: applyViewDefaults(parsed, raw, viewDefaults),
-      urlSets: {
-        sort: parsed.sort !== undefined,
-        columns: parsed.columns !== undefined,
-      },
-    };
-  }, [searchParams, viewDefaults]);
+  const url = useMemo(
+    () => readGridUrl(searchParams, viewDefaults),
+    [searchParams, viewDefaults],
+  );
   return useMemo(
     () => ({
-      urlState,
-      urlSets,
+      ...url,
       updateUrl,
       isPending,
       textFilters: values,
       setTextFilter: setValue,
     }),
-    [urlState, urlSets, updateUrl, isPending, values, setValue],
+    [url, updateUrl, isPending, values, setValue],
   );
+}
+
+function readGridUrl(
+  searchParams: URLSearchParams,
+  viewDefaults: SubmissionGridViewDefaults,
+): Pick<SubmissionGridUrl, "urlState" | "urlSets"> {
+  const raw = Object.fromEntries(searchParams);
+  const parsed = parseSubmissionGridUrl(raw);
+  return {
+    urlState: applyViewDefaults(parsed, raw, viewDefaults),
+    urlSets: {
+      sort: parsed.sort !== undefined,
+      columns: parsed.columns !== undefined,
+    },
+  };
 }
 
 export function useSubmissionGridUrl(): SubmissionGridUrl {

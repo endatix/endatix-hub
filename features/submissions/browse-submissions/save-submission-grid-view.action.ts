@@ -36,7 +36,14 @@ export async function saveSubmissionGridViewAction(
     );
   }
 
-  const api = new EndatixApi(session?.accessToken);
+  return saveView(new EndatixApi(session?.accessToken), formId, view);
+}
+
+async function saveView(
+  api: EndatixApi,
+  formId: string,
+  view: SubmissionView,
+): Promise<SaveSubmissionGridViewResult> {
   const saved = await api.reporting.submissionViews.save(formId, view);
   const result = toResult(saved, saveResultOptions(saved));
   if (Result.isSuccess(result)) {

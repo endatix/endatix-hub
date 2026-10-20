@@ -46,11 +46,15 @@ const catalog = [
   column("phone", "Phone", "Contact"),
 ];
 
+type RenderOptions = { isPending?: boolean; urlSetsColumns?: boolean };
+
 function renderClosed(
   columns: string | undefined,
   columnsCatalog = catalog,
-  isPending = false,
-  urlSetsColumns = columns !== undefined,
+  {
+    isPending = false,
+    urlSetsColumns = columns !== undefined,
+  }: RenderOptions = {},
 ) {
   vi.mocked(useSubmissionGridUrl).mockReturnValue({
     urlState: parseSubmissionGridUrl({ columns }),
@@ -257,7 +261,7 @@ describe("SubmissionGridColumnPicker", () => {
 
   it("cannot be opened while the grid is applying a change", () => {
     // Act
-    const trigger = renderClosed("q1", catalog, true);
+    const trigger = renderClosed("q1", catalog, { isPending: true });
 
     // Assert
     expect(isDisabled(trigger)).toBe(true);
@@ -265,7 +269,7 @@ describe("SubmissionGridColumnPicker", () => {
 
   it("offers no Default while the columns come from the saved view", () => {
     // Arrange
-    fireEvent.click(renderClosed("q2,q1", catalog, false, false));
+    fireEvent.click(renderClosed("q2,q1", catalog, { urlSetsColumns: false }));
 
     // Act
     const defaultButton = screen.getByRole("button", { name: "Default" });
