@@ -100,7 +100,7 @@ describe("ColumnResizeHandle", () => {
 
   it("resizes with the arrow keys and resets on double-click", () => {
     // Arrange
-    render(<Grid initial={{ name: 200 }} />);
+    render(<Grid initial={{ name: ON_SCREEN_WIDTH }} />);
 
     // Act
     fireEvent.keyDown(handle(), { key: "ArrowRight" });
@@ -109,7 +109,7 @@ describe("ColumnResizeHandle", () => {
     fireEvent.doubleClick(handle());
 
     // Assert
-    expect(wider).toBe("216px");
+    expect(wider).toBe("136px");
     expect(nameHeader().style.width).toBe("");
   });
 
