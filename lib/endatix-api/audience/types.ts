@@ -1,4 +1,5 @@
 import type { IPagedRequest } from "../shared/types";
+import type { PersonalizationSource } from "../submissions/types";
 
 /** Wire codes matching OSS `AudienceDataTypeCodes`. */
 export const AudienceDataType = Object.freeze({
@@ -87,6 +88,25 @@ export type AudiencePerson = {
   /** A test person: set when added, never changed, never sent a personalised link. */
   isTest: boolean;
   link: AudienceLinkStatus;
+};
+
+/** One of a participant's submissions on the form, newest first on `AudienceParticipant`. */
+export type ParticipantSubmission = {
+  id: string;
+  createdAt: string;
+  completedAt: string | null;
+  isComplete: boolean;
+  /** The submission status code, such as `new`. */
+  status: string;
+  isTest: boolean;
+  /** Who froze its values; null when the submission has no Snapshot. */
+  snapshotSource: PersonalizationSource | null;
+};
+
+/** One participant on a form, with the newest 50 of their submissions and how many they have. */
+export type AudienceParticipant = AudiencePerson & {
+  submissions: ParticipantSubmission[];
+  submissionTotal: number;
 };
 
 export type CreateAudiencePropertyRequest = {

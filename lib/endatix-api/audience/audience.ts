@@ -15,17 +15,20 @@ import {
   type WireRedeemedLink,
   type WireTestSubmission,
   mapPeoplePageResult,
+  mapParticipantResult,
   mapPersonResult,
   mapProperty,
   mapPropertyResult,
   requireEndatixId,
   requireFormAndEntityIds,
+  type WireParticipant,
   type WirePerson,
   type WireProperty,
 } from "./mappers";
 import {
   AudiencePaging,
   AudiencePeopleTestFilter,
+  type AudienceParticipant,
   type AudiencePerson,
   type AudienceProperty,
   type AudienceImportResult,
@@ -153,6 +156,21 @@ export class Audience {
     return mapPeoplePageResult(
       await this.endatix.get<PagedResponse<WirePerson>>(
         buildListAudiencePeopleEndpoint(formId, request),
+      ),
+    );
+  }
+
+  /** One participant by audience member id (not membership id), with their newest submissions. */
+  async getParticipant(
+    formId: string,
+    memberId: string,
+  ): Promise<ApiResult<AudienceParticipant>> {
+    const idsCheck = requireFormAndEntityIds(formId, memberId, "memberId");
+    if (!idsCheck.success) return idsCheck;
+
+    return mapParticipantResult(
+      await this.endatix.get<WireParticipant>(
+        formAudiencePath(formId, "people", memberId),
       ),
     );
   }

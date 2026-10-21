@@ -1,7 +1,6 @@
 "use client";
 
 import { Info, UserRound } from "lucide-react";
-import type { Route } from "next";
 import {
   AudienceLinkStatusKind,
   type AudienceIdentifierKind,
@@ -9,6 +8,7 @@ import {
   type AudienceProperty,
 } from "@/lib/endatix-api/audience/types";
 import { TextLink } from "@/components/common/text-link";
+import { formRoutes } from "@/lib/routes/form-routes";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { LockedValue } from "@/components/common/locked-value";
 import { PanelForm } from "@/components/common/panel-form";
@@ -85,7 +85,7 @@ type OpenedLinkNoteProps = { formId: string; person: AudiencePerson | null };
 type ViewResponseProps = { formId: string; submissionId: string };
 
 function ViewResponse({ formId, submissionId }: Readonly<ViewResponseProps>) {
-  const href = `/forms/${formId}/submissions/${submissionId}` as Route;
+  const href = formRoutes.submission(formId, submissionId);
   return <TextLink href={href}>View response</TextLink>;
 }
 

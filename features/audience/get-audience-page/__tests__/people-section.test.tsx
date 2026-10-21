@@ -137,7 +137,9 @@ describe("PeopleSection", () => {
     );
 
     // Assert — identity locked; identifier property absent from editable values
-    expect(await screen.findByRole("heading", { name: "Edit person" })).toBeTruthy();
+    expect(
+      await screen.findByRole("heading", { name: "Edit person" }),
+    ).toBeTruthy();
     const lockedLabel = screen
       .getAllByText("External ID")
       .find((node) => node.tagName === "DT");
@@ -183,12 +185,33 @@ describe("PeopleSection", () => {
     expect(screen.queryByRole("button", { name: /^Remove / })).toBeNull();
   });
 
+  it("links each identifier to the participant's page for a reader who may edit", () => {
+    render(
+      <PeopleSection {...LIST} people={[PERSON]} canEdit canTest={false} />,
+    );
+
+    const identifier = screen.getByRole("link", { name: "CG-000003-01" });
+    expect(identifier.getAttribute("href")).toBe(
+      "/forms/1/audience/participants/7",
+    );
+  });
+
+  it("keeps the identifier plain text without forms.edit, which the page needs", () => {
+    render(
+      <PeopleSection {...LIST} people={[PERSON]} canEdit={false} canTest />,
+    );
+
+    expect(screen.queryByRole("link", { name: "CG-000003-01" })).toBeNull();
+  });
+
   it("leaves out Test as this person without forms.test", () => {
     render(
       <PeopleSection {...LIST} people={[PERSON]} canEdit canTest={false} />,
     );
 
-    expect(screen.queryByRole("button", { name: /^Test as this person/ })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: /^Test as this person/ }),
+    ).toBeNull();
   });
 
   it("says the filter found nobody, with a way back to everyone", () => {

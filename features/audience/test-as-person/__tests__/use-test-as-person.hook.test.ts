@@ -10,6 +10,8 @@ vi.mock("../open-test-submission.action", () => ({
   openTestSubmissionAction: vi.fn(),
 }));
 vi.mock("@/components/ui/toast", () => ({ toast: { error: vi.fn() } }));
+const refresh = vi.fn();
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
 
 const PERSON = {
   membershipId: "9",
@@ -37,6 +39,17 @@ describe("useTestAsPerson", () => {
     expect(tab.opener).toBeNull();
   });
 
+  it("refreshes the page once the test submission is open, so it lists the new submission", async () => {
+    vi.spyOn(window, "open").mockReturnValue(fakeTab() as unknown as Window);
+    vi.mocked(openTestSubmissionAction).mockResolvedValue(
+      Result.success({ url: "/share/1" }),
+    );
+
+    await renderHook(() => useTestAsPerson("1")).result.current(PERSON);
+
+    expect(refresh).toHaveBeenCalledTimes(1);
+  });
+
   it("closes the tab and toasts when the action fails", async () => {
     const tab = fakeTab();
     vi.spyOn(window, "open").mockReturnValue(tab as unknown as Window);
@@ -48,6 +61,7 @@ describe("useTestAsPerson", () => {
 
     expect(tab.close).toHaveBeenCalled();
     expect(toast.error).toHaveBeenCalledWith("The person is not on this form.");
+    expect(refresh).not.toHaveBeenCalled();
   });
 
   it("says so when the browser blocks the tab, without opening a submission", async () => {

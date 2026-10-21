@@ -1,5 +1,6 @@
 import type { Route } from "next";
 import type { LinkTab } from "@/components/common/link-tabs";
+import { formRoutes } from "@/lib/routes/form-routes";
 
 export const AudienceView = Object.freeze({
   People: "people",
@@ -21,12 +22,12 @@ export function audienceViewTabs(
   formId: string,
   counts: ViewCounts,
 ): LinkTab[] {
-  const base = `/forms/${formId}/audience`;
+  const base = formRoutes.audience(formId);
   return [
     {
       id: AudienceView.People,
       label: "People",
-      href: base as Route,
+      href: base,
       count: counts.people,
     },
     {

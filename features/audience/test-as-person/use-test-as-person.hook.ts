@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "@/components/ui/toast";
 import type { AudiencePerson } from "@/lib/endatix-api/audience/types";
 import { Result } from "@/lib/result";
@@ -18,16 +19,20 @@ async function openOrFailure(formId: string, membershipId: string) {
   }
 }
 
-/** Points the open tab at the respondent page once the cookie is set; a failure closes it and toasts. */
+/**
+ * Points the open tab at the respondent page once the cookie is set; a failure closes it and
+ * toasts. Returns whether the test submission was opened.
+ */
 async function openInTab(tab: Window, formId: string, membershipId: string) {
   const opened = await openOrFailure(formId, membershipId);
   if (Result.isError(opened)) {
     tab.close();
     toast.error(opened.message);
-    return;
+    return false;
   }
   tab.opener = null;
   tab.location.href = opened.value.url;
+  return true;
 }
 
 /**
@@ -35,8 +40,10 @@ async function openInTab(tab: Window, formId: string, membershipId: string) {
  * reader's gesture, and is pointed at the respondent page once the cookie is set. A blocked tab
  * stops here: the action would create a test submission and replace this browser's form cookie.
  * A click while one is opening is ignored, so a double-click opens one test submission, not two.
+ * Once it is open the page reads again, so a list of their submissions shows the new one.
  */
 export function useTestAsPerson(formId: string) {
+  const router = useRouter();
   const opening = useRef(false);
   return async (person: AudiencePerson) => {
     if (opening.current) return;
@@ -47,7 +54,7 @@ export function useTestAsPerson(formId: string) {
     }
     opening.current = true;
     try {
-      await openInTab(tab, formId, person.membershipId);
+      if (await openInTab(tab, formId, person.membershipId)) router.refresh();
     } finally {
       opening.current = false;
     }
