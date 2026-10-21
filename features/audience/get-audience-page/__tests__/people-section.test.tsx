@@ -58,6 +58,7 @@ const PERSON: AudiencePerson = {
   identifier: "CG-000003-01",
   values: { city: "Sofia", ext: "CG-000003-01" },
   isTest: false,
+  link: { status: "none" },
 };
 
 const TEST_PERSON: AudiencePerson = {
@@ -66,7 +67,18 @@ const TEST_PERSON: AudiencePerson = {
   identifier: "tester@example.com",
   values: {},
   isTest: true,
+  link: { status: "none" },
 };
+
+const withLink = (
+  membershipId: string,
+  link: AudiencePerson["link"],
+): AudiencePerson => ({
+  ...PERSON,
+  membershipId,
+  identifier: `p${membershipId}@example.com`,
+  link,
+});
 
 const LIST = {
   formId: "1",
@@ -196,5 +208,58 @@ describe("PeopleSection", () => {
     expect(
       screen.getByRole("combobox", { name: "Filter people by test or real" }),
     ).toBeTruthy();
+  });
+  it("shows Link only when someone on the page has a link", () => {
+    render(
+      <PeopleSection
+        {...LIST}
+        people={[PERSON, TEST_PERSON]}
+        canEdit={false}
+        canTest={false}
+      />,
+    );
+
+    expect(screen.queryByRole("columnheader", { name: "Link" })).toBeNull();
+  });
+
+  it("says each link's status, and an opened one goes to its response", () => {
+    const people = [
+      withLink("1", { status: "none" }),
+      withLink("2", { status: "issued" }),
+      withLink("3", {
+        status: "opened",
+        openedAt: "2026-10-20T09:30:00Z",
+        submissionId: "55",
+      }),
+      withLink("4", { status: "opened", openedAt: "2026-10-20T10:00:00Z" }),
+      TEST_PERSON,
+    ];
+    render(
+      <PeopleSection
+        {...LIST}
+        people={people}
+        totalPeople={people.length}
+        canEdit={false}
+        canTest={false}
+      />,
+    );
+
+    const headers = screen.getAllByRole("columnheader");
+    const linkColumn = headers.findIndex((h) => h.textContent === "Link");
+    const linkCells = screen
+      .getAllByRole("row")
+      .slice(1)
+      .map((row) => row.querySelectorAll("td")[linkColumn]);
+    expect(linkCells.map((cell) => cell.textContent)).toEqual([
+      "Not issued",
+      "Issued",
+      expect.stringContaining("Opened"),
+      "Opened",
+      expect.stringContaining("—"),
+    ]);
+    const links = screen.getAllByRole("link");
+    expect(links).toHaveLength(1);
+    expect(links[0].getAttribute("href")).toBe("/forms/1/submissions/55");
+    expect(links[0].textContent).toContain("Opened");
   });
 });

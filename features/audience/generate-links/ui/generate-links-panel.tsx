@@ -58,7 +58,8 @@ function OnlyCopyNote() {
       <AlertDescription>
         Each link is shown once, when it is made, and downloads as a CSV. Anyone
         with a link can open that person&apos;s response, so keep the file safe.
-        A response starts when its link is first opened.
+        A response starts when its link is first opened, with the form and that
+        person&apos;s values as they are then.
       </AlertDescription>
     </Alert>
   );

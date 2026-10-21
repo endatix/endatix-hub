@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import type { AudienceIdentifierKind } from "@/lib/endatix-api/audience/types";
 import { Result } from "@/lib/result";
 import { downloadText } from "@/lib/utils/files-download";
@@ -43,6 +44,7 @@ const NOT_RUN: WriteOutcome = { error: null, batch: null };
 
 /** The one write; a batch is saved as a file the moment it arrives. */
 function useLinksWrite(setup: GenerateLinksSetup) {
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [outcome, setOutcome] = useState<WriteOutcome>(NOT_RUN);
   const generate = () =>
@@ -57,6 +59,7 @@ function useLinksWrite(setup: GenerateLinksSetup) {
       };
       setOutcome({ error: null, batch });
       if (batch.links.length > 0) saveBatch(setup, batch);
+      router.refresh();
     });
   return { pending, ...outcome, generate, reset: () => setOutcome(NOT_RUN) };
 }

@@ -9,6 +9,10 @@ import { GenerateLinksPanel } from "../ui/generate-links-panel";
 vi.mock("@/lib/utils/hooks/use-media-query.hook", () => ({
   useMediaQuery: () => true,
 }));
+const { refresh } = vi.hoisted(() => ({ refresh: vi.fn() }));
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh }),
+}));
 vi.mock("../generate-audience-links.action", () => ({
   generateAudienceLinksAction: vi.fn(),
 }));
@@ -30,6 +34,7 @@ describe("GenerateLinksPanel", () => {
   beforeEach(() => {
     vi.mocked(generateAudienceLinksAction).mockReset();
     downloadText.mockReset();
+    refresh.mockReset();
     vi.spyOn(filesDownload, "downloadText").mockImplementation(downloadText);
   });
 
@@ -73,6 +78,7 @@ describe("GenerateLinksPanel", () => {
     expect(fileName).toMatch(/^personalised-links-42-\d{4}-\d{2}-\d{2}\.csv$/);
     fireEvent.click(screen.getByRole("button", { name: "Download CSV" }));
     expect(downloadText).toHaveBeenCalledTimes(2);
+    expect(refresh).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
   });
 

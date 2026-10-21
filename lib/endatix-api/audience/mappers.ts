@@ -6,12 +6,14 @@ import {
   type NormalizedPagedResponse,
 } from "../shared/paged-response";
 import type { PagedResponse } from "../shared/types";
-import type {
-  RedeemedAudienceLink,
-  AudienceImportResult,
-  AudiencePerson,
-  AudienceProperty,
-  OpenedTestSubmission,
+import {
+  AudienceLinkStatusKind,
+  type AudienceLinkStatus,
+  type RedeemedAudienceLink,
+  type AudienceImportResult,
+  type AudiencePerson,
+  type AudienceProperty,
+  type OpenedTestSubmission,
 } from "./types";
 
 export type WireProperty = Omit<
@@ -23,12 +25,20 @@ export type WireProperty = Omit<
   dataListId?: string | number | null;
 };
 
+export type WireLinkStatus = {
+  status: string;
+  openedAt?: string | null;
+  submissionId?: string | number | null;
+};
+
 export type WirePerson = {
   membershipId: string | number;
   audienceMemberId: string | number;
   identifier: string;
   values: Record<string, string>;
   isTest?: boolean;
+  /** Missing from an API older than link status; read as `none`. */
+  link?: WireLinkStatus | null;
 };
 
 export function mapProperty(wire: WireProperty): AudienceProperty {
@@ -55,7 +65,32 @@ export function mapPerson(wire: WirePerson): AudiencePerson {
     identifier: wire.identifier,
     values: wire.values ?? {},
     isTest: wire.isTest ?? false,
+    link: mapLinkStatus(wire.link),
   };
+}
+
+/** An unknown status reads as `none`, so the list never claims a link it cannot name. */
+function mapLinkStatus(
+  wire: WireLinkStatus | null | undefined,
+): AudienceLinkStatus {
+  switch (wire?.status) {
+    case AudienceLinkStatusKind.Issued:
+      return { status: AudienceLinkStatusKind.Issued };
+    case AudienceLinkStatusKind.Opened:
+      return openedLink(wire);
+    default:
+      return { status: AudienceLinkStatusKind.None };
+  }
+}
+
+function openedLink(wire: WireLinkStatus): AudienceLinkStatus {
+  const opened = {
+    status: AudienceLinkStatusKind.Opened,
+    openedAt: wire.openedAt ?? "",
+  };
+  return wire.submissionId == null
+    ? opened
+    : { ...opened, submissionId: String(wire.submissionId) };
 }
 
 export function formAudiencePath(

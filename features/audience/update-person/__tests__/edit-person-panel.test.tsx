@@ -36,7 +36,29 @@ const PERSON: AudiencePerson = {
   identifier: "ada@example.com",
   values: { a: "Sofia", b: "Sales" },
   isTest: false,
+  link: { status: "none" },
 };
+
+const OPENED: AudiencePerson = {
+  ...PERSON,
+  link: {
+    status: "opened",
+    openedAt: "2026-10-20T09:30:00Z",
+    submissionId: "55",
+  },
+};
+
+const renderPanel = (person: AudiencePerson) =>
+  render(
+    <EditPersonPanel
+      open
+      formId="1"
+      person={person}
+      identifierKind={AudienceIdentifierKind.Email}
+      properties={[textProperty("a", "City")]}
+      onClose={vi.fn()}
+    />,
+  );
 
 // Radix tooltips (the identifier's copy affordance) measure with ResizeObserver.
 class ResizeObserverStub {
@@ -161,5 +183,40 @@ describe("EditPersonPanel", () => {
     expect(screen.getAllByText("CG-000003-01")).toHaveLength(1);
     expect(screen.getByText("Locked")).toBeTruthy();
     expect(screen.queryByRole("textbox", { name: "External ID" })).toBeNull();
+  });
+  it("says an opened person's response keeps its values, links to it, and still saves", () => {
+    renderPanel(OPENED);
+
+    expect(
+      screen.getByText(/keeps the values from when the link was opened/),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("link", { name: "View response" }).getAttribute("href"),
+    ).toBe("/forms/1/submissions/55");
+    expect(
+      screen
+        .getByRole("button", { name: "Save changes" })
+        .hasAttribute("disabled"),
+    ).toBe(false);
+  });
+
+  it("keeps the note but no response link once that submission was deleted", () => {
+    renderPanel({
+      ...PERSON,
+      link: { status: "opened", openedAt: "2026-10-20T09:30:00Z" },
+    });
+
+    expect(
+      screen.getByText(/keeps the values from when the link was opened/),
+    ).toBeTruthy();
+    expect(screen.queryByRole("link", { name: "View response" })).toBeNull();
+  });
+
+  it("says nothing about a response before the link is opened", () => {
+    renderPanel({ ...PERSON, link: { status: "issued" } });
+
+    expect(
+      screen.queryByText(/keeps the values from when the link was opened/),
+    ).toBeNull();
   });
 });

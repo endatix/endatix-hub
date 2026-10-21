@@ -1,11 +1,15 @@
 "use client";
 
-import { UserRound } from "lucide-react";
-import type {
-  AudienceIdentifierKind,
-  AudiencePerson,
-  AudienceProperty,
+import { Info, UserRound } from "lucide-react";
+import type { Route } from "next";
+import {
+  AudienceLinkStatusKind,
+  type AudienceIdentifierKind,
+  type AudiencePerson,
+  type AudienceProperty,
 } from "@/lib/endatix-api/audience/types";
+import { TextLink } from "@/components/common/text-link";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { LockedValue } from "@/components/common/locked-value";
 import { PanelForm } from "@/components/common/panel-form";
 import { PanelSection } from "@/components/common/panel-section";
@@ -76,6 +80,37 @@ function PersonIdentity({ kind, person }: Readonly<PersonIdentityProps>) {
   );
 }
 
+type OpenedLinkNoteProps = { formId: string; person: AudiencePerson | null };
+
+type ViewResponseProps = { formId: string; submissionId: string };
+
+function ViewResponse({ formId, submissionId }: Readonly<ViewResponseProps>) {
+  const href = `/forms/${formId}/submissions/${submissionId}` as Route;
+  return <TextLink href={href}>View response</TextLink>;
+}
+
+/** An opened link froze its response's values; saving still reaches links not yet opened. */
+function OpenedLinkNote({ formId, person }: Readonly<OpenedLinkNoteProps>) {
+  const link = person?.link;
+  if (link?.status !== AudienceLinkStatusKind.Opened) return null;
+  const { submissionId } = link;
+  return (
+    <Alert variant="info" role="status">
+      <Info />
+      <AlertTitle>Their link is already opened</AlertTitle>
+      <AlertDescription>
+        <p>{OPENED_NOTE}</p>
+        {submissionId && (
+          <ViewResponse formId={formId} submissionId={submissionId} />
+        )}
+      </AlertDescription>
+    </Alert>
+  );
+}
+
+const OPENED_NOTE =
+  "Their response keeps the values from when the link was opened. Changes here apply to links not yet opened.";
+
 /** The title names the task; the person is the first section. A Sheet once there are 3+ properties. */
 type PanelState = EditPersonPanelProps & { pending: boolean };
 
@@ -108,6 +143,7 @@ export function EditPersonPanel(props: Readonly<EditPersonPanelProps>) {
   return (
     <PanelForm {...form} {...panel} onSubmit={form.submit}>
       <PersonIdentity kind={props.identifierKind} person={person} />
+      <OpenedLinkNote formId={formId} person={person} />
       <PersonValueFields
         idPrefix="edit-person"
         description="Only the fields you change are saved."
