@@ -10,13 +10,17 @@ import {
 import { isSupportedCarryForwardQuestionType } from "@/lib/survey-features/carry-forward/supported-question-types";
 import {
   DISPLAY_MODE_PROPERTY,
+  GRID_ONLY_PROPERTIES,
   IMAGE_URL_PROPERTY,
   ITEM_VALUE_CLASS,
   MATRIX_TYPE,
   PROGRESS_INDICATOR_TYPE_PROPERTY,
   SHOW_PROGRESS_INDICATOR_PROPERTY,
 } from "../constants";
-import { registerMatrixCarouselSchema } from "../infrastructure/registry";
+import {
+  registerMatrixCarouselSchema,
+  resetMatrixCarouselRegistryForTests,
+} from "../infrastructure/registry";
 
 describe("registerMatrixCarouselSchema", () => {
   beforeAll(() => {
@@ -116,13 +120,33 @@ describe("registerMatrixCarouselSchema", () => {
     expect(isSupportedCarryForwardQuestionType(MATRIX_TYPE)).toBe(false);
   });
 
-  it("hides grid-only properties in the carousel property grid without removing them from serialization", () => {
+  it.each(GRID_ONLY_PROPERTIES)("hides grid-only %s in the carousel property grid without removing it from serialization", (name) => {
     // Act
-    const property = Serializer.findProperty(MATRIX_TYPE, "showHeader");
+    const property = Serializer.findProperty(MATRIX_TYPE, name);
 
     // Assert
     expect(property?.visibleIf?.({ edxDisplayMode: "carousel" })).toBe(false);
     expect(property?.visibleIf?.({ edxDisplayMode: "grid" })).toBe(true);
+  });
+
+  it.each(["matrixdropdown", "matrixdynamic"])("leaves the grid-only properties of %s ungated", (type) => {
+    // Act
+    const gated = GRID_ONLY_PROPERTIES.filter(
+      (name) => Serializer.findProperty(type, name)?.visibleIf?.({ edxDisplayMode: "carousel" }) === false,
+    );
+
+    // Assert
+    expect(gated).toEqual([]);
+  });
+
+  it("restores the vendor visibleIf of the grid-only properties on reset", () => {
+    // Act
+    resetMatrixCarouselRegistryForTests();
+    const afterReset = GRID_ONLY_PROPERTIES.map((name) => Serializer.findProperty(MATRIX_TYPE, name)?.visibleIf);
+    registerMatrixCarouselSchema();
+
+    // Assert
+    expect(afterReset).toEqual(GRID_ONLY_PROPERTIES.map(() => undefined));
   });
 
   it("registers imageUrl on the shared itemvalue base as type file with showMode form", () => {
