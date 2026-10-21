@@ -17,6 +17,8 @@ import { SubmissionViewOptions } from "./submission-view-options";
 
 interface SubmissionDetailsContentProps {
   customQuestions: CustomQuestion[];
+  /** Forms.Edit, checked on the server: shows Open participant on the Submitter tab. */
+  canOpenParticipant: boolean;
 }
 
 type TabId = "answers" | "submitter" | "variables" | "calculated";
@@ -30,6 +32,7 @@ const TABS: { id: TabId; label: string }[] = [
 
 export function SubmissionDetailsContent({
   customQuestions,
+  canOpenParticipant,
 }: Readonly<SubmissionDetailsContentProps>) {
   const { submission, surveyModel } = useSubmissionDetails();
   const [activeTab, setActiveTab] = useState<TabId>("answers");
@@ -77,7 +80,9 @@ export function SubmissionDetailsContent({
       </>
     );
   } else if (activeTab === "submitter") {
-    tabPanel = <SubmitterDetailsPanel />;
+    tabPanel = (
+      <SubmitterDetailsPanel canOpenParticipant={canOpenParticipant} />
+    );
   } else if (activeTab === "variables") {
     tabPanel = <DynamicVariablesList surveyModel={surveyModel} />;
   } else if (activeTab === "calculated") {

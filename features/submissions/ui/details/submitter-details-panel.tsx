@@ -10,9 +10,10 @@ import {
 } from "@/components/ui/empty";
 import { UserRoundSearch } from "lucide-react";
 import { useMemo } from "react";
+import { DASH_NO_DATA } from "./format-details-date";
 import { useSubmissionDetails } from "./submission-details-context";
-
-const DASH_NO_DATA = "—";
+import { SubmitterFact } from "./submitter-fact";
+import { SubmitterParticipant } from "./submitter-participant";
 
 function formatOptionalValue(value?: string | number | null): string {
   if (value === undefined || value === null) {
@@ -23,7 +24,14 @@ function formatOptionalValue(value?: string | number | null): string {
   return stringValue.length > 0 ? stringValue : DASH_NO_DATA;
 }
 
-export function SubmitterDetailsPanel() {
+interface SubmitterDetailsPanelProps {
+  /** Forms.Edit, checked on the server: the participant page is for editors only. */
+  canOpenParticipant: boolean;
+}
+
+export function SubmitterDetailsPanel({
+  canOpenParticipant,
+}: Readonly<SubmitterDetailsPanelProps>) {
   const { submission } = useSubmissionDetails();
   const profileEntries = useMemo(
     () =>
@@ -66,43 +74,17 @@ export function SubmitterDetailsPanel() {
         />
       </div>
 
+      <SubmitterParticipant
+        canOpenParticipant={canOpenParticipant}
+        formId={String(submission.formId)}
+        personalization={submission.personalization}
+      />
+
       {profileEntries.length > 0 ? (
         <SubmitterProfileList entries={profileEntries} />
       ) : (
         <EmptySubmitterProfile />
       )}
-    </div>
-  );
-}
-
-interface SubmitterFactProps {
-  label: string;
-  value: string;
-  copyValue?: string;
-}
-
-function SubmitterFact({
-  label,
-  value,
-  copyValue,
-}: Readonly<SubmitterFactProps>) {
-  return (
-    <div className="rounded-md border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <span className="text-[10px] font-bold tracking-widest text-slate-500 uppercase">
-          {label}
-        </span>
-        {copyValue && (
-          <CopyToClipboard
-            copyValue={copyValue}
-            layout="inline"
-            buttonClassName="size-6 hover:bg-slate-100 dark:hover:bg-slate-800"
-          />
-        )}
-      </div>
-      <span className="text-sm font-semibold break-all text-slate-900 dark:text-slate-100">
-        {value}
-      </span>
     </div>
   );
 }

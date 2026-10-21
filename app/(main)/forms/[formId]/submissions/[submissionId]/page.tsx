@@ -1,8 +1,9 @@
 import { auth } from "@/auth";
 import { Skeleton } from "@/components/ui/skeleton";
-import { authorization } from "@/features/auth/authorization";
+import { authorization, Permissions } from "@/features/auth/authorization";
 import { PdfEmbedView } from "@/features/pdf-export/embed-submission/pdf-embed-view";
 import SubmissionDetails from "@/features/submissions/ui/details/submission-details";
+import { personalizationFlag } from "@/lib/feature-flags";
 import { Suspense } from "react";
 
 type Params = {
@@ -17,7 +18,7 @@ type Params = {
 
 export default async function SubmissionPage({ params, searchParams }: Params) {
   const session = await auth();
-  const { requireHubAccess } = await authorization(session);
+  const { requireHubAccess, checkPermission } = await authorization(session);
   await requireHubAccess();
 
   const { formId, submissionId } = await params;
@@ -31,11 +32,34 @@ export default async function SubmissionPage({ params, searchParams }: Params) {
     );
   }
 
+  const canOpenParticipant = await canOpenParticipantPage(checkPermission);
   return (
     <Suspense fallback={<SubmissionDataSkeleton />}>
-      <SubmissionDetails formId={formId} submissionId={submissionId} />
+      <SubmissionDetails
+        canOpenParticipant={canOpenParticipant}
+        formId={formId}
+        submissionId={submissionId}
+      />
     </Suspense>
   );
+}
+
+type CheckPermission = Awaited<
+  ReturnType<typeof authorization>
+>["checkPermission"];
+
+/**
+ * The participant page needs `forms.edit` and the personalization flag; without either it
+ * redirects, so Open participant is hidden rather than left as a dead end.
+ */
+async function canOpenParticipantPage(
+  checkPermission: CheckPermission,
+): Promise<boolean> {
+  const [edit, personalization] = await Promise.all([
+    checkPermission(Permissions.Forms.Edit),
+    personalizationFlag(),
+  ]);
+  return edit.success && personalization;
 }
 
 const metadataGridHairline = "bg-border/10 dark:bg-foreground/8";
@@ -142,6 +166,4 @@ function SubmissionDataSkeleton() {
       </section>
     </div>
   );
-
-
 }

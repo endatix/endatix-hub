@@ -27,6 +27,7 @@ const personTest: Submission = {
     capturedAt: "2026-10-19T08:00:00Z",
     variables: { tier: "gold", age: 36 },
     source: PersonalizationSource.Test,
+    memberId: "7",
   },
 };
 
@@ -59,7 +60,10 @@ describe("toTestInspectorView", () => {
       },
       links: {
         submissionDetails: "/forms/form-1/submissions/21",
-        audience: "/forms/form-1/audience?test=test",
+        participant: {
+          label: "Participant",
+          href: "/forms/form-1/audience/participants/7",
+        },
       },
       canStartOver: true,
     });
@@ -91,8 +95,25 @@ describe("toTestInspectorView", () => {
     expect(view.submissionId).toBeNull();
     expect(view.links).toEqual({
       submissionDetails: null,
-      audience: "/forms/form-1/audience?test=test",
+      participant: {
+        label: "Audience",
+        href: "/forms/form-1/audience?test=test",
+      },
     });
     expect(view.submitter.identifier).toBeNull();
+  });
+
+  it("opens Audience filtered to test participants when the Snapshot names no member", () => {
+    const { memberId: _, ...withoutMember } = personTest.personalization!;
+    const view = toTestInspectorView({
+      formId: "form-1",
+      submission: { ...personTest, personalization: withoutMember },
+      canStartOver: true,
+    });
+
+    expect(view.links.participant).toEqual({
+      label: "Audience",
+      href: "/forms/form-1/audience?test=test",
+    });
   });
 });

@@ -13,29 +13,8 @@ import type { ReactNode } from "react";
 import { CellReviewStatus } from "../table/cell-review-status";
 import { CellCompleteStatus } from "../table/cell-complete-status";
 import { LabelLanguageNotice, LabelLanguagePicker } from "./label-language";
+import { DASH_NO_DATA, formatDetailsDate } from "./format-details-date";
 import { useSubmissionDetails } from "./submission-details-context";
-
-const DASH_NO_DATA = "—";
-
-const formatDate = (date?: Date): string => {
-  if (!date) {
-    return DASH_NO_DATA;
-  }
-
-  const parsedDate = parseDate(date);
-  if (!parsedDate) {
-    return DASH_NO_DATA;
-  }
-
-  return parsedDate.toLocaleString("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
-    month: "short",
-    day: "2-digit",
-    year: "numeric",
-    hour12: true,
-  });
-};
 
 /** 1px hairlines via gap; faint in light mode; dark theme uses neutral (not --border blue) */
 const metadataGridHairline = "bg-border/10 dark:bg-foreground/8";
@@ -113,16 +92,16 @@ export function MetadataCard() {
       >
         <StatusCells />
         <MetaCell label="Created at">
-          <ValueText>{formatDate(submission.createdAt)}</ValueText>
+          <ValueText>{formatDetailsDate(submission.createdAt)}</ValueText>
         </MetaCell>
         <MetaCell label="Last modified">
-          <ValueText>{formatDate(submission.modifiedAt)}</ValueText>
+          <ValueText>{formatDetailsDate(submission.modifiedAt)}</ValueText>
         </MetaCell>
         <MetaCell label="Started at">
-          <ValueText>{formatDate(submission.startedAt)}</ValueText>
+          <ValueText>{formatDetailsDate(submission.startedAt)}</ValueText>
         </MetaCell>
         <MetaCell label="Completed at">
-          <ValueText>{formatDate(submission.completedAt)}</ValueText>
+          <ValueText>{formatDetailsDate(submission.completedAt)}</ValueText>
         </MetaCell>
         <MetaCell label="Completion time">
           <ValueText>{completionTime}</ValueText>

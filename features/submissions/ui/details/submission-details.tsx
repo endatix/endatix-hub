@@ -15,11 +15,14 @@ import { SubmissionDetailsProvider } from "./submission-details-context";
 interface SubmissionDetailsProps {
   formId: string;
   submissionId: string;
+  /** Forms.Edit, checked on the server: shows Open participant on the Submitter tab. */
+  canOpenParticipant: boolean;
 }
 
 async function SubmissionDetails({
   formId,
   submissionId,
+  canOpenParticipant,
 }: Readonly<SubmissionDetailsProps>) {
   let customQuestions: CustomQuestion[] = [];
   const submissionPromise = getSubmissionDetailsUseCase({
@@ -70,7 +73,10 @@ async function SubmissionDetails({
         <AssetStorageProvider>
           <div className="flex w-full flex-col gap-6">
             <MetadataCard />
-            <SubmissionDetailsContent customQuestions={customQuestions} />
+            <SubmissionDetailsContent
+              canOpenParticipant={canOpenParticipant}
+              customQuestions={customQuestions}
+            />
           </div>
         </AssetStorageProvider>
       </DesignerRuntimeProvider>

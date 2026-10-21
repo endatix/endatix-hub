@@ -83,7 +83,7 @@ function IdentityRows({ view }: Readonly<{ view: TestInspectorView }>) {
   );
 }
 
-/** Where the tester goes next: the submission, the Audience, or a fresh test submission. */
+/** Where the tester goes next: the submission, its participant, or a fresh test submission. */
 function ActionRows({
   restart,
   view,
@@ -92,7 +92,10 @@ function ActionRows({
   return (
     <>
       <LinkRow href={submissionHref} label="Submission" />
-      <LinkRow href={view.links.audience} label="Audience" />
+      <LinkRow
+        href={view.links.participant.href}
+        label={view.links.participant.label}
+      />
       {restart ? <StartOverRow restart={restart} /> : null}
     </>
   );

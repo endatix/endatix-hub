@@ -66,6 +66,8 @@ export interface Submission extends ApiEntity {
     variables: Record<string, unknown>;
     /** Absent on snapshots written before sources were recorded. */
     source?: PersonalizationSource;
+    /** The audience member the Snapshot was taken for; absent on link Snapshots written before members were recorded. */
+    memberId?: EntityId;
   } | null;
 
   // Optional navigation properties

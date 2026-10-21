@@ -1,5 +1,6 @@
 import type { Submission } from "@/lib/endatix-api";
 import type { PersonalizationSource } from "@/lib/endatix-api/submissions/types";
+import { formRoutes } from "@/lib/routes/form-routes";
 
 /** What the Test inspector may show; built on the server, only for a viewer with `forms.test`. */
 export type TestInspectorView = {
@@ -9,7 +10,7 @@ export type TestInspectorView = {
   submitter: InspectedSubmitter;
   /** The Snapshot: frozen values the survey was opened with. Null when none was captured. */
   snapshot: InspectedSnapshot | null;
-  links: { submissionDetails: string | null; audience: string };
+  links: { submissionDetails: string | null; participant: ParticipantLink };
   canStartOver: boolean;
 };
 
@@ -20,6 +21,15 @@ export type InspectedSubmitter = {
   source: PersonalizationSource | null;
   /** Submitter fields, sorted by name. */
   fields: ReadonlyArray<readonly [name: string, value: string]>;
+};
+
+/**
+ * The participant the Snapshot names, else Audience filtered to test participants. The label
+ * follows the target, so a tester is never told "Participant" for a list of everyone.
+ */
+export type ParticipantLink = {
+  label: "Participant" | "Audience";
+  href: string;
 };
 
 export type InspectedSnapshot = {
@@ -40,7 +50,20 @@ export function submissionDetailsHref(
   formId: string,
   submissionId: string | null | undefined,
 ): string | null {
-  return submissionId ? `/forms/${formId}/submissions/${submissionId}` : null;
+  return submissionId ? formRoutes.submission(formId, submissionId) : null;
+}
+
+function participantLink(
+  formId: string,
+  submission: Submission | undefined,
+): ParticipantLink {
+  const memberId = submission?.personalization?.memberId;
+  return memberId
+    ? { label: "Participant", href: formRoutes.participant(formId, memberId) }
+    : {
+        label: "Audience",
+        href: formRoutes.audience(formId, { test: "test" }),
+      };
 }
 
 function inspectedSubmitter(
@@ -86,7 +109,7 @@ export function toTestInspectorView({
     snapshot: inspectedSnapshot(submission),
     links: {
       submissionDetails: submissionDetailsHref(formId, submissionId),
-      audience: `/forms/${formId}/audience?test=test`,
+      participant: participantLink(formId, submission),
     },
     canStartOver,
   };
