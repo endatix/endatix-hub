@@ -134,21 +134,25 @@ const PARTICIPANT_LINK =
 
 type IdentifierCellProps = CellProps & { canOpen: boolean };
 
-/** The identifier opens the participant's page; a test person also carries a Test badge. */
-function IdentifierCell({
+/** The identifier opens the participant's page for a reader who may reach it. */
+function ParticipantLink({
   formId,
   person,
   canOpen,
 }: Readonly<IdentifierCellProps>) {
+  if (!canOpen) return person.identifier;
   const href = formRoutes.participant(formId, person.audienceMemberId);
-  const identifier = canOpen ? (
+  return (
     <Link href={href} className={PARTICIPANT_LINK}>
       {person.identifier}
     </Link>
-  ) : (
-    person.identifier
   );
-  if (!person.isTest) return identifier;
+}
+
+/** A test person also carries a Test badge, in the tone of test submissions. */
+function IdentifierCell(props: Readonly<IdentifierCellProps>) {
+  const identifier = <ParticipantLink {...props} />;
+  if (!props.person.isTest) return identifier;
   return (
     <span className="inline-flex flex-wrap items-center gap-2">
       {identifier}
@@ -210,10 +214,9 @@ function personCells(
 ): StaticDataTableCell[] {
   const value = (p: AudienceProperty) =>
     formatPropertyValue(p, person.values[p.id]) ?? <NotSet />;
-  const identifier = (
-    <IdentifierCell formId={formId} person={person} canOpen={canEdit} />
-  );
-  const link = <LinkCell formId={formId} person={person} />;
+  const cell = { formId, person };
+  const identifier = <IdentifierCell {...cell} canOpen={canEdit} />;
+  const link = <LinkCell {...cell} />;
   const cells = [
     dataTableCell("identifier", identifier, IDENTIFIER_CELL),
     ...(showLink ? [dataTableCell("link", link, SHRINK)] : []),

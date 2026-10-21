@@ -59,6 +59,29 @@ function fetchParticipantParts({
   ]);
 }
 
+type Parts = Awaited<ReturnType<typeof fetchParticipantParts>>;
+
+function toPageData(
+  [participantApi, propertiesApi, settingsApi]: Parts,
+  canTest: boolean,
+): Result<ParticipantPageData> {
+  const participant = unwrapPart(participantApi, "details");
+  if (Result.isError(participant)) return participant;
+  const properties = unwrapPart(propertiesApi, "properties");
+  if (Result.isError(properties)) return properties;
+  const settings = unwrapPart(settingsApi, "settings");
+  if (Result.isError(settings)) return settings;
+  const { identifierKind } = settings.value;
+  return Result.success({
+    participant: participant.value,
+    identifierKind,
+    properties: valueProperties(properties.value, identifierKind),
+    canTest,
+  });
+}
+
+const GONE = Result.success<ParticipantPage>({ status: "gone" });
+
 /**
  * One participant's page: the participant, the form's properties and the match key, read in
  * parallel. The page has already checked Hub access, `forms.edit` and the flag. A member id that
@@ -68,26 +91,10 @@ export async function loadParticipantPage(
   request: ParticipantPageRequest,
 ): Promise<Result<ParticipantPage>> {
   if (Result.isError(validateEndatixId(request.memberId, "memberId")))
-    return Result.success({ status: "gone" });
-  const [participantApi, propertiesApi, settingsApi] =
-    await fetchParticipantParts(request);
-  if (isGone(participantApi)) return Result.success({ status: "gone" });
-
-  const participant = unwrapPart(participantApi, "details");
-  if (Result.isError(participant)) return participant;
-  const properties = unwrapPart(propertiesApi, "properties");
-  if (Result.isError(properties)) return properties;
-  const settings = unwrapPart(settingsApi, "settings");
-  if (Result.isError(settings)) return settings;
-
-  const { identifierKind } = settings.value;
-  return Result.success({
-    status: "found",
-    data: {
-      participant: participant.value,
-      identifierKind,
-      properties: valueProperties(properties.value, identifierKind),
-      canTest: request.canTest,
-    },
-  });
+    return GONE;
+  const parts = await fetchParticipantParts(request);
+  if (isGone(parts[0])) return GONE;
+  const data = toPageData(parts, request.canTest);
+  if (Result.isError(data)) return data;
+  return Result.success({ status: "found", data: data.value });
 }

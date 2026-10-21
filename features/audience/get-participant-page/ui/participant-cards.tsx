@@ -54,34 +54,41 @@ export function ValuesCard({
   );
 }
 
+type OpenedLink = Extract<
+  AudienceParticipant["link"],
+  { status: typeof AudienceLinkStatusKind.Opened }
+>;
+
+type OpenedRowsProps = { formId: string; link: OpenedLink };
+
+/** When it was opened, and its response while that submission still exists. */
+function OpenedRows({ formId, link }: Readonly<OpenedRowsProps>) {
+  const { submissionId } = link;
+  const response = submissionId ? (
+    <TextLink href={formRoutes.submission(formId, submissionId)}>
+      View response
+    </TextLink>
+  ) : null;
+  return (
+    <>
+      <SummaryRow label="Opened on" value={<CellDate date={link.openedAt} />} />
+      {response ? <SummaryRow label="Response" value={response} /> : null}
+    </>
+  );
+}
+
 type LinkCardProps = { formId: string; participant: AudienceParticipant };
 
 /** Their personalised link: shown only once one was issued (a test participant never has one). */
 export function LinkCard({ formId, participant }: Readonly<LinkCardProps>) {
   const { link } = participant;
   if (link.status === AudienceLinkStatusKind.None) return null;
-  const opened = link.status === AudienceLinkStatusKind.Opened ? link : null;
+  const status = <LinkStatusBadge status={link.status} />;
   return (
     <FactCard title="Link">
-      <SummaryRow
-        label="Status"
-        value={<LinkStatusBadge status={link.status} />}
-      />
-      {opened ? (
-        <SummaryRow
-          label="Opened on"
-          value={<CellDate date={opened.openedAt} />}
-        />
-      ) : null}
-      {opened?.submissionId ? (
-        <SummaryRow
-          label="Response"
-          value={
-            <TextLink href={formRoutes.submission(formId, opened.submissionId)}>
-              View response
-            </TextLink>
-          }
-        />
+      <SummaryRow label="Status" value={status} />
+      {link.status === AudienceLinkStatusKind.Opened ? (
+        <OpenedRows formId={formId} link={link} />
       ) : null}
     </FactCard>
   );

@@ -154,6 +154,13 @@ describe("ParticipantPage", () => {
     within(rows[1]).getByText("No Snapshot");
   });
 
+  it("counts the submissions when every one of them is shown", () => {
+    renderPage({ submissionTotal: 2 });
+
+    screen.getByText("2 submissions");
+    expect(screen.queryByText(/Newest/)).toBeNull();
+  });
+
   it("says so when the participant has no submissions", () => {
     renderPage({ submissions: [], submissionTotal: 0 });
 

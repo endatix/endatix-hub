@@ -2,7 +2,7 @@
 
 import { ArrowUpRight, FileText } from "lucide-react";
 import Link from "next/link";
-import { StatusBadge } from "@/components/common/status-badge";
+import { StatusBadge, type StatusTone } from "@/components/common/status-badge";
 import {
   CellDate,
   DATA_TABLE_SHRINK_WRAP_CLASS_NAME as SHRINK,
@@ -13,7 +13,6 @@ import {
   dataTableCell,
   type StaticDataTableColumn,
 } from "@/components/table";
-import { describeCollectionStatus } from "@/features/submissions/ui/describe-collection-status";
 import type { ParticipantSubmission } from "@/lib/endatix-api/audience/types";
 import {
   PersonalizationSource,
@@ -33,6 +32,15 @@ const SOURCE_LABEL: Record<SnapshotSource, string> = {
   [PersonalizationSource.Link]: "Personalised link",
   [PersonalizationSource.OnBehalf]: "On behalf",
   [PersonalizationSource.Test]: "Test",
+};
+
+/** The read carries only `isComplete`, so these two are all it can say (labels as in Submissions). */
+const COMPLETION: Record<
+  "complete" | "inProgress",
+  { tone: StatusTone; label: string }
+> = {
+  complete: { tone: "on", label: "Complete" },
+  inProgress: { tone: "attention", label: "In progress" },
 };
 
 const DETAILS_LINK =
@@ -55,11 +63,8 @@ function CreatedCell({
 function StatusCell({
   submission,
 }: Readonly<{ submission: ParticipantSubmission }>) {
-  const { tone, label } = describeCollectionStatus(
-    undefined,
-    submission.isComplete,
-  );
-  return <StatusBadge tone={tone} label={label} />;
+  const completion = submission.isComplete ? "complete" : "inProgress";
+  return <StatusBadge {...COMPLETION[completion]} />;
 }
 
 /** Who froze its values; `—` when the submission has no Snapshot. */
@@ -122,10 +127,31 @@ function SubmissionsTable({
   );
 }
 
-/** "Newest 2 of 37": the page shows at most 50 and says how many there are. */
+/** "2 submissions" when all are shown; "Newest 50 of 137" when the read cut the list. */
 function countLine({ submissions, total }: ParticipantSubmissionsProps) {
-  return `Newest ${submissions.length} of ${total}`;
+  if (submissions.length < total)
+    return `Newest ${submissions.length} of ${total}`;
+  return total === 1 ? "1 submission" : `${total} submissions`;
 }
+
+function SubmissionsHeader(props: Readonly<ParticipantSubmissionsProps>) {
+  return (
+    <div className="flex flex-wrap items-baseline justify-between gap-2">
+      <h2 id="participant-submissions" className="text-lg font-semibold">
+        Submissions
+      </h2>
+      {props.total > 0 ? (
+        <p className="text-sm text-muted-foreground">{countLine(props)}</p>
+      ) : null}
+    </div>
+  );
+}
+
+const NO_SUBMISSIONS = (
+  <DataTableEmpty icon={FileText} title="No submissions yet">
+    Their submissions on this form show here, test ones included.
+  </DataTableEmpty>
+);
 
 /**
  * Their submissions on this form, newest first: the link's, the ones made on their behalf, and
@@ -140,22 +166,9 @@ export function ParticipantSubmissions(
       aria-labelledby="participant-submissions"
       className="flex flex-col gap-3"
     >
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 id="participant-submissions" className="text-lg font-semibold">
-          Submissions
-        </h2>
-        {empty ? null : (
-          <p className="text-sm text-muted-foreground">{countLine(props)}</p>
-        )}
-      </div>
+      <SubmissionsHeader {...props} />
       <DataTableSurface>
-        {empty ? (
-          <DataTableEmpty icon={FileText} title="No submissions yet">
-            Their submissions on this form show here, test ones included.
-          </DataTableEmpty>
-        ) : (
-          <SubmissionsTable {...props} />
-        )}
+        {empty ? NO_SUBMISSIONS : <SubmissionsTable {...props} />}
       </DataTableSurface>
     </section>
   );

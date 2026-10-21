@@ -341,6 +341,37 @@ describe("Audience participant", () => {
     link: { status: "none" },
   };
 
+  /** The wire above as the Hub reads it: ids as strings, a left-out source as null. */
+  const MAPPED_PARTICIPANT = {
+    membershipId: "981",
+    audienceMemberId: "7",
+    identifier: "P-1001",
+    values: { "11": "Gold" },
+    isTest: true,
+    link: { status: "none" },
+    submissionTotal: 37,
+    submissions: [
+      {
+        id: "5521",
+        createdAt: "2026-10-21T09:00:00Z",
+        completedAt: null,
+        isComplete: false,
+        status: "new",
+        isTest: true,
+        snapshotSource: "test",
+      },
+      {
+        id: "5520",
+        createdAt: "2026-10-20T09:00:00Z",
+        completedAt: "2026-10-20T09:05:00Z",
+        isComplete: true,
+        status: "seen",
+        isTest: false,
+        snapshotSource: null,
+      },
+    ],
+  };
+
   it("reads one participant by member id and maps ids to strings", async () => {
     const get = vi.fn().mockResolvedValue(ApiResult.success(wireParticipant));
 
@@ -352,35 +383,7 @@ describe("Audience participant", () => {
     expect(get).toHaveBeenCalledWith(
       `/forms/${FORM_ID}/audience/people/${MEMBER_ID}`,
     );
-    expect(result.success && result.data).toEqual({
-      membershipId: "981",
-      audienceMemberId: "7",
-      identifier: "P-1001",
-      values: { "11": "Gold" },
-      isTest: true,
-      link: { status: "none" },
-      submissionTotal: 37,
-      submissions: [
-        {
-          id: "5521",
-          createdAt: "2026-10-21T09:00:00Z",
-          completedAt: null,
-          isComplete: false,
-          status: "new",
-          isTest: true,
-          snapshotSource: "test",
-        },
-        {
-          id: "5520",
-          createdAt: "2026-10-20T09:00:00Z",
-          completedAt: "2026-10-20T09:05:00Z",
-          isComplete: true,
-          status: "seen",
-          isTest: false,
-          snapshotSource: null,
-        },
-      ],
-    });
+    expect(result.success && result.data).toEqual(MAPPED_PARTICIPANT);
   });
 
   it("reads an unknown Snapshot source as none", async () => {
