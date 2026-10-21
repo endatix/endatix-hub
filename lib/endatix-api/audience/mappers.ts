@@ -70,7 +70,7 @@ export function mapPerson(wire: WirePerson): AudiencePerson {
 }
 
 /** An unknown status reads as `none`, so the list never claims a link it cannot name. */
-export function mapLinkStatus(
+function mapLinkStatus(
   wire: WireLinkStatus | null | undefined,
 ): AudienceLinkStatus {
   switch (wire?.status) {

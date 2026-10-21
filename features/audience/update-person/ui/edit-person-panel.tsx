@@ -1,13 +1,14 @@
 "use client";
 
 import { Info, UserRound } from "lucide-react";
-import Link from "next/link";
+import type { Route } from "next";
 import {
   AudienceLinkStatusKind,
   type AudienceIdentifierKind,
   type AudiencePerson,
   type AudienceProperty,
 } from "@/lib/endatix-api/audience/types";
+import { TextLink } from "@/components/common/text-link";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { LockedValue } from "@/components/common/locked-value";
 import { PanelForm } from "@/components/common/panel-form";
@@ -84,14 +85,8 @@ type OpenedLinkNoteProps = { formId: string; person: AudiencePerson | null };
 type ViewResponseProps = { formId: string; submissionId: string };
 
 function ViewResponse({ formId, submissionId }: Readonly<ViewResponseProps>) {
-  return (
-    <Link
-      href={`/forms/${formId}/submissions/${submissionId}`}
-      className="font-medium underline underline-offset-4"
-    >
-      View response
-    </Link>
-  );
+  const href = `/forms/${formId}/submissions/${submissionId}` as Route;
+  return <TextLink href={href}>View response</TextLink>;
 }
 
 /** An opened link froze its response's values; saving still reaches links not yet opened. */
@@ -100,7 +95,7 @@ function OpenedLinkNote({ formId, person }: Readonly<OpenedLinkNoteProps>) {
   if (link?.status !== AudienceLinkStatusKind.Opened) return null;
   const { submissionId } = link;
   return (
-    <Alert variant="info">
+    <Alert variant="info" role="status">
       <Info />
       <AlertTitle>Their link is already opened</AlertTitle>
       <AlertDescription>
