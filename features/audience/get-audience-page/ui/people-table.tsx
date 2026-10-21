@@ -1,6 +1,6 @@
 "use client";
 
-import { FlaskConical, Pencil, Trash2 } from "lucide-react";
+import { ArrowUpRight, FlaskConical, Pencil, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { StatusBadge, type StatusTone } from "@/components/common/status-badge";
 import {
@@ -169,9 +169,10 @@ function LinkCell({
   return (
     <Link
       href={`/forms/${formId}/submissions/${link.submissionId}`}
-      className="rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+      className="inline-flex items-center gap-1 rounded-md text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
     >
       {badge}
+      <ArrowUpRight aria-hidden="true" className="size-4" />
       <span className="sr-only">
         : view the response of {person.identifier}
       </span>
