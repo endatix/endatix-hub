@@ -14,11 +14,11 @@ type FormWorkspaceHeaderProps = {
 
 function WorkspaceTitle(props: Readonly<FormWorkspaceHeaderProps>) {
   const title = (
-    <PageTitle title={props.title} className="min-w-0 text-2xl break-words" />
+    <PageTitle title={props.title} className="text-2xl break-words" />
   );
   if (!props.titleBadge) return title;
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex min-w-0 flex-wrap items-center gap-2">
       {title}
       {props.titleBadge}
     </div>
