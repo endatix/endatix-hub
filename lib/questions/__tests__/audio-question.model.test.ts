@@ -6,8 +6,8 @@ import {
 } from "@/lib/questions/audio-recorder/audio-question.model";
 
 
-interface IRootElement {
-  rootElement: HTMLElement | undefined;
+interface IQuestionElement {
+  questionElement: HTMLElement | undefined;
 }
 
 class TestAudioQuestionModel extends AudioQuestionModel {
@@ -593,7 +593,7 @@ describe("AudioQuestionModel", () => {
 
       audioQuestion.afterRenderQuestionElement(mockElement);
 
-      expect((audioQuestion as unknown as IRootElement).rootElement).toBe(
+      expect((audioQuestion as unknown as IQuestionElement).questionElement).toBe(
         mockElement,
       );
     });
@@ -606,7 +606,7 @@ describe("AudioQuestionModel", () => {
 
       expect(stopRecordingSpy).toHaveBeenCalled();
       expect(
-        (audioQuestion as unknown as IRootElement).rootElement,
+        (audioQuestion as unknown as IQuestionElement).questionElement,
       ).toBeUndefined();
     });
   });

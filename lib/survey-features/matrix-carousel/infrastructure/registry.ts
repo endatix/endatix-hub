@@ -35,6 +35,20 @@ import {
 
 let isMatrixCarouselRegistryInitialized = false;
 
+// matrix declares these properties itself (as of SurveyJS 3.2), and
+// Serializer.addProperty on an existing own property is a no-op, so the gate
+// goes on the registered property instead.
+function setGridOnlyPropertiesVisibleIf(
+  visibleIf: ((obj: { edxDisplayMode?: string }) => boolean) | undefined,
+): void {
+  GRID_ONLY_PROPERTIES.forEach((name) => {
+    const property = Serializer.findProperty(MATRIX_TYPE, name);
+    if (property) {
+      property.visibleIf = visibleIf as (obj: unknown) => boolean;
+    }
+  });
+}
+
 function isCarouselMode(obj: { edxDisplayMode?: string }): boolean {
   return obj.edxDisplayMode === DISPLAY_MODE_CAROUSEL;
 }
@@ -242,12 +256,7 @@ export function registerMatrixCarouselSchema(): void {
     // matrix questions: visibleIf only hides the property in the grid, it
     // does not deserialize/remove it, so existing grid-mode JSON using these
     // properties keeps working unchanged.
-    GRID_ONLY_PROPERTIES.forEach((name) => {
-      Serializer.addProperty(MATRIX_TYPE, {
-        name,
-        visibleIf: (obj: { edxDisplayMode?: string }) => !isCarouselMode(obj),
-      });
-    });
+    setGridOnlyPropertiesVisibleIf((obj: { edxDisplayMode?: string }) => !isCarouselMode(obj));
   }
 
   if (!Serializer.findProperty(ITEM_VALUE_CLASS, IMAGE_URL_PROPERTY)) {
@@ -286,9 +295,7 @@ export function resetMatrixCarouselRegistryForTests(): void {
     }
   });
 
-  GRID_ONLY_PROPERTIES.forEach((name) => {
-    Serializer.addProperty(MATRIX_TYPE, { name, visibleIf: undefined });
-  });
+  setGridOnlyPropertiesVisibleIf(undefined);
 
   if (Serializer.findProperty(ITEM_VALUE_CLASS, IMAGE_URL_PROPERTY)) {
     Serializer.removeProperty(ITEM_VALUE_CLASS, IMAGE_URL_PROPERTY);
