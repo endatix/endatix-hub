@@ -10,22 +10,13 @@ import {
 } from "@/components/ui/empty";
 import { UserRoundSearch } from "lucide-react";
 import { useMemo } from "react";
-import { DASH_NO_DATA } from "./format-details-date";
+import type { Submission } from "@/lib/endatix-api";
+import { DASH_NO_DATA, formatOptionalValue } from "./format-details";
 import { useSubmissionDetails } from "./submission-details-context";
 import { SubmitterFact } from "./submitter-fact";
 import { SubmitterParticipant } from "./submitter-participant";
 
-function formatOptionalValue(value?: string | number | null): string {
-  if (value === undefined || value === null) {
-    return DASH_NO_DATA;
-  }
-
-  const stringValue = String(value).trim();
-  return stringValue.length > 0 ? stringValue : DASH_NO_DATA;
-}
-
 interface SubmitterDetailsPanelProps {
-  /** Forms.Edit, checked on the server: the participant page is for editors only. */
   canOpenParticipant: boolean;
 }
 
@@ -53,26 +44,7 @@ export function SubmitterDetailsPanel({
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <SubmitterFact
-          label="Submitter ID"
-          value={formatOptionalValue(submission.submitterDisplayId)}
-          copyValue={submission.submitterDisplayId}
-        />
-        <SubmitterFact
-          label="Submitter record ID"
-          value={formatOptionalValue(submission.submitterId)}
-          copyValue={
-            submission.submitterId === undefined
-              ? undefined
-              : String(submission.submitterId)
-          }
-        />
-        <SubmitterFact
-          label="Test submission"
-          value={submission.isTestSubmission ? "Yes" : "No"}
-        />
-      </div>
+      <SubmitterIdentity submission={submission} />
 
       <SubmitterParticipant
         canOpenParticipant={canOpenParticipant}
@@ -85,6 +57,22 @@ export function SubmitterDetailsPanel({
       ) : (
         <EmptySubmitterProfile />
       )}
+    </div>
+  );
+}
+
+function SubmitterIdentity({
+  submission,
+}: Readonly<{ submission: Submission }>) {
+  const { submitterDisplayId, submitterId, isTestSubmission } = submission;
+  return (
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <SubmitterFact copyable label="Submitter ID" value={submitterDisplayId} />
+      <SubmitterFact copyable label="Submitter record ID" value={submitterId} />
+      <SubmitterFact
+        label="Test submission"
+        value={isTestSubmission ? "Yes" : "No"}
+      />
     </div>
   );
 }

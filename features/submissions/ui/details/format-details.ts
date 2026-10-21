@@ -18,3 +18,10 @@ export function formatDetailsDate(date?: Date): string {
     hour12: true,
   });
 }
+
+/** A value as text, trimmed; a dash when it is missing or blank. */
+export function formatOptionalValue(value?: string | number | null): string {
+  const text =
+    value === undefined || value === null ? "" : String(value).trim();
+  return text.length > 0 ? text : DASH_NO_DATA;
+}

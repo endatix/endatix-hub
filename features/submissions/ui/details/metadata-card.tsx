@@ -13,7 +13,7 @@ import type { ReactNode } from "react";
 import { CellReviewStatus } from "../table/cell-review-status";
 import { CellCompleteStatus } from "../table/cell-complete-status";
 import { LabelLanguageNotice, LabelLanguagePicker } from "./label-language";
-import { DASH_NO_DATA, formatDetailsDate } from "./format-details-date";
+import { DASH_NO_DATA, formatDetailsDate } from "./format-details";
 import { useSubmissionDetails } from "./submission-details-context";
 
 /** 1px hairlines via gap; faint in light mode; dark theme uses neutral (not --border blue) */
