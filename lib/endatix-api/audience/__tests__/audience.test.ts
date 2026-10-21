@@ -135,6 +135,7 @@ describe("Audience people", () => {
       identifier: "Ext-ABC",
       values: { [PROPERTY_ID]: "Sales" },
       isTest: false,
+      link: { status: "none" },
     });
   });
 
@@ -195,6 +196,62 @@ describe("Audience people", () => {
 
     expect(result.success && result.data.items[0].membershipId).toBe("11");
     expect(result.success && result.data.hasNextPage).toBe(false);
+  });
+});
+
+describe("Audience people link status", () => {
+  const pageOf = (...items: unknown[]) =>
+    ApiResult.success({
+      page: 1,
+      pageSize: 50,
+      totalRecords: items.length,
+      totalPages: 1,
+      items,
+    });
+  const wirePerson = (membershipId: number, link?: unknown) => ({
+    membershipId,
+    audienceMemberId: membershipId + 100,
+    identifier: `p${membershipId}@b.co`,
+    values: {},
+    link,
+  });
+
+  it("reads each link status, keeping the opened submission id", async () => {
+    const get = vi.fn().mockResolvedValue(
+      pageOf(
+        wirePerson(1, { status: "none" }),
+        wirePerson(2, { status: "issued" }),
+        wirePerson(3, {
+          status: "opened",
+          openedAt: "2026-10-20T09:30:00Z",
+          submissionId: "1562340635426422784",
+        }),
+        wirePerson(4, { status: "opened", openedAt: "2026-10-20T10:00:00Z" }),
+      ),
+    );
+
+    const result = await audienceWith({ get }).listPeople(FORM_ID);
+
+    expect(result.success && result.data.items.map((p) => p.link)).toEqual([
+      { status: "none" },
+      { status: "issued" },
+      {
+        status: "opened",
+        openedAt: "2026-10-20T09:30:00Z",
+        submissionId: "1562340635426422784",
+      },
+      { status: "opened", openedAt: "2026-10-20T10:00:00Z" },
+    ]);
+  });
+
+  it("reads a person without a link field as none (an API before link status)", async () => {
+    const get = vi.fn().mockResolvedValue(pageOf(wirePerson(1)));
+
+    const result = await audienceWith({ get }).listPeople(FORM_ID);
+
+    expect(result.success && result.data.items[0].link).toEqual({
+      status: "none",
+    });
   });
 });
 

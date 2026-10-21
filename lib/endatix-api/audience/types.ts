@@ -56,6 +56,29 @@ export type AudienceProperty = {
 /** Property values keyed by property id (JSON object keys are strings). */
 export type AudiencePropertyValues = Record<string, string>;
 
+/** Wire codes matching OSS `AudienceLinkStatusResponse.Status`. */
+export const AudienceLinkStatusKind = Object.freeze({
+  None: "none",
+  Issued: "issued",
+  Opened: "opened",
+} as const);
+
+export type AudienceLinkStatusKind =
+  (typeof AudienceLinkStatusKind)[keyof typeof AudienceLinkStatusKind];
+
+/**
+ * Whether the person's personalised link was issued and opened. A test person is always `none`.
+ * An opened link has no `submissionId` once its submission was deleted.
+ */
+export type AudienceLinkStatus =
+  | { status: typeof AudienceLinkStatusKind.None }
+  | { status: typeof AudienceLinkStatusKind.Issued }
+  | {
+      status: typeof AudienceLinkStatusKind.Opened;
+      openedAt: string;
+      submissionId?: string;
+    };
+
 export type AudiencePerson = {
   membershipId: string;
   audienceMemberId: string;
@@ -63,6 +86,7 @@ export type AudiencePerson = {
   values: AudiencePropertyValues;
   /** A test person: set when added, never changed, never sent a personalised link. */
   isTest: boolean;
+  link: AudienceLinkStatus;
 };
 
 export type CreateAudiencePropertyRequest = {

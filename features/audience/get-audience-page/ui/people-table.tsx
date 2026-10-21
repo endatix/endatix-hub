@@ -1,11 +1,14 @@
 "use client";
 
 import { FlaskConical, Pencil, Trash2 } from "lucide-react";
-import { StatusBadge } from "@/components/common/status-badge";
-import type {
-  AudienceIdentifierKind,
-  AudiencePerson,
-  AudienceProperty,
+import Link from "next/link";
+import { StatusBadge, type StatusTone } from "@/components/common/status-badge";
+import {
+  AudienceLinkStatusKind,
+  type AudienceIdentifierKind,
+  type AudienceLinkStatusKind as LinkStatusKind,
+  type AudiencePerson,
+  type AudienceProperty,
 } from "@/lib/endatix-api/audience/types";
 import {
   DATA_TABLE_SHRINK_WRAP_CLASS_NAME as SHRINK,
@@ -27,6 +30,7 @@ export type RowHandlers = {
 };
 
 type PeopleTableProps = {
+  formId: string;
   identifierKind: AudienceIdentifierKind;
   properties: AudienceProperty[];
   people: AudiencePerson[];
@@ -39,14 +43,26 @@ const ACTIONS_COLUMN: StaticDataTableColumn = {
   className: `text-right ${SHRINK}`,
 };
 
+const LINK_COLUMN: StaticDataTableColumn = {
+  key: "link",
+  label: "Link",
+  className: SHRINK,
+};
+
 const hasActions = ({ onEdit, onRemove, onTest }: RowHandlers) =>
   Boolean(onEdit || onRemove || onTest);
 
-/** The identifier column is named for the match key; one column per property; then actions. */
+/** Link shows only when someone on this page has one, read from the page's own rows. */
+const hasLinks = (people: AudiencePerson[]) =>
+  people.some((p) => p.link.status !== AudienceLinkStatusKind.None);
+
+type ColumnOptions = { showLink: boolean; handlers: RowHandlers };
+
+/** The identifier column is named for the match key; Link; one column per property; then actions. */
 function peopleColumns(
   kind: AudienceIdentifierKind,
   properties: AudienceProperty[],
-  handlers: RowHandlers,
+  { showLink, handlers }: ColumnOptions,
 ): StaticDataTableColumn[] {
   return [
     {
@@ -54,6 +70,7 @@ function peopleColumns(
       label: identifierKindLabel(kind),
       className: "min-w-[14rem]",
     },
+    ...(showLink ? [LINK_COLUMN] : []),
     ...properties.map((p) => ({
       key: p.id,
       label: p.name,
@@ -125,16 +142,57 @@ function IdentifierCell({ person }: Readonly<{ person: AudiencePerson }>) {
   );
 }
 
+const LINK_BADGE: Record<LinkStatusKind, { tone: StatusTone; label: string }> =
+  {
+    none: { tone: "off", label: "Not issued" },
+    issued: { tone: "idle", label: "Issued" },
+    opened: { tone: "on", label: "Opened" },
+  };
+
+const NO_TEST_LINK = (
+  <span className="text-muted-foreground">
+    <span aria-hidden="true">—</span>
+    <span className="sr-only">No link: a test person</span>
+  </span>
+);
+
+/** Not issued, Issued, or Opened; Opened goes to the response while it still exists. */
+function LinkCell({
+  formId,
+  person,
+}: Readonly<{ formId: string; person: AudiencePerson }>) {
+  if (person.isTest) return NO_TEST_LINK;
+  const { link } = person;
+  const badge = <StatusBadge {...LINK_BADGE[link.status]} />;
+  if (link.status !== AudienceLinkStatusKind.Opened || !link.submissionId)
+    return badge;
+  return (
+    <Link
+      href={`/forms/${formId}/submissions/${link.submissionId}`}
+      className="rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+    >
+      {badge}
+      <span className="sr-only">
+        : view the response of {person.identifier}
+      </span>
+    </Link>
+  );
+}
+
+type CellOptions = ColumnOptions & { formId: string };
+
 function personCells(
   person: AudiencePerson,
   properties: AudienceProperty[],
-  handlers: RowHandlers,
+  { formId, showLink, handlers }: CellOptions,
 ): StaticDataTableCell[] {
   const value = (p: AudienceProperty) =>
     formatPropertyValue(p, person.values[p.id]) ?? NOT_SET;
   const identifier = <IdentifierCell person={person} />;
+  const link = <LinkCell formId={formId} person={person} />;
   const cells = [
     dataTableCell("identifier", identifier, IDENTIFIER_CELL),
+    ...(showLink ? [dataTableCell("link", link, SHRINK)] : []),
     ...properties.map((p) => dataTableCell(p.id, value(p), VALUE_CELL)),
   ];
   if (!hasActions(handlers)) return cells;
@@ -148,19 +206,21 @@ function personCells(
  * so the table stays a reading surface (DESIGN.md §5 List tables).
  */
 export function PeopleTable({
+  formId,
   identifierKind,
   properties,
   people,
   handlers,
 }: Readonly<PeopleTableProps>) {
-  const columns = peopleColumns(identifierKind, properties, handlers);
+  const options = { formId, showLink: hasLinks(people), handlers };
+  const columns = peopleColumns(identifierKind, properties, options);
   return (
     <StaticDataTable columns={columns}>
       {people.map((person, index) => (
         <StaticDataTableRow
           key={person.membershipId}
           index={index}
-          cells={personCells(person, properties, handlers)}
+          cells={personCells(person, properties, options)}
         />
       ))}
     </StaticDataTable>

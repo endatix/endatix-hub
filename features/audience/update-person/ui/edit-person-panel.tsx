@@ -1,11 +1,14 @@
 "use client";
 
-import { UserRound } from "lucide-react";
-import type {
-  AudienceIdentifierKind,
-  AudiencePerson,
-  AudienceProperty,
+import { Info, UserRound } from "lucide-react";
+import Link from "next/link";
+import {
+  AudienceLinkStatusKind,
+  type AudienceIdentifierKind,
+  type AudiencePerson,
+  type AudienceProperty,
 } from "@/lib/endatix-api/audience/types";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { LockedValue } from "@/components/common/locked-value";
 import { PanelForm } from "@/components/common/panel-form";
 import { PanelSection } from "@/components/common/panel-section";
@@ -76,6 +79,34 @@ function PersonIdentity({ kind, person }: Readonly<PersonIdentityProps>) {
   );
 }
 
+type OpenedLinkNoteProps = { formId: string; person: AudiencePerson | null };
+
+/** An opened link froze its response's values; saving still reaches links not yet opened. */
+function OpenedLinkNote({ formId, person }: Readonly<OpenedLinkNoteProps>) {
+  const link = person?.link;
+  if (link?.status !== AudienceLinkStatusKind.Opened) return null;
+  return (
+    <Alert variant="info">
+      <Info />
+      <AlertTitle>Their link is already opened</AlertTitle>
+      <AlertDescription>
+        <p>
+          Their response keeps the values from when the link was opened. Changes
+          here apply to links not yet opened.
+        </p>
+        {link.submissionId && (
+          <Link
+            href={`/forms/${formId}/submissions/${link.submissionId}`}
+            className="font-medium underline underline-offset-4"
+          >
+            View response
+          </Link>
+        )}
+      </AlertDescription>
+    </Alert>
+  );
+}
+
 /** The title names the task; the person is the first section. A Sheet once there are 3+ properties. */
 type PanelState = EditPersonPanelProps & { pending: boolean };
 
@@ -108,6 +139,7 @@ export function EditPersonPanel(props: Readonly<EditPersonPanelProps>) {
   return (
     <PanelForm {...form} {...panel} onSubmit={form.submit}>
       <PersonIdentity kind={props.identifierKind} person={person} />
+      <OpenedLinkNote formId={formId} person={person} />
       <PersonValueFields
         idPrefix="edit-person"
         description="Only the fields you change are saved."
