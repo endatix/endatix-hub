@@ -81,31 +81,40 @@ function PersonIdentity({ kind, person }: Readonly<PersonIdentityProps>) {
 
 type OpenedLinkNoteProps = { formId: string; person: AudiencePerson | null };
 
+type ViewResponseProps = { formId: string; submissionId: string };
+
+function ViewResponse({ formId, submissionId }: Readonly<ViewResponseProps>) {
+  return (
+    <Link
+      href={`/forms/${formId}/submissions/${submissionId}`}
+      className="font-medium underline underline-offset-4"
+    >
+      View response
+    </Link>
+  );
+}
+
 /** An opened link froze its response's values; saving still reaches links not yet opened. */
 function OpenedLinkNote({ formId, person }: Readonly<OpenedLinkNoteProps>) {
   const link = person?.link;
   if (link?.status !== AudienceLinkStatusKind.Opened) return null;
+  const { submissionId } = link;
   return (
     <Alert variant="info">
       <Info />
       <AlertTitle>Their link is already opened</AlertTitle>
       <AlertDescription>
-        <p>
-          Their response keeps the values from when the link was opened. Changes
-          here apply to links not yet opened.
-        </p>
-        {link.submissionId && (
-          <Link
-            href={`/forms/${formId}/submissions/${link.submissionId}`}
-            className="font-medium underline underline-offset-4"
-          >
-            View response
-          </Link>
+        <p>{OPENED_NOTE}</p>
+        {submissionId && (
+          <ViewResponse formId={formId} submissionId={submissionId} />
         )}
       </AlertDescription>
     </Alert>
   );
 }
+
+const OPENED_NOTE =
+  "Their response keeps the values from when the link was opened. Changes here apply to links not yet opened.";
 
 /** The title names the task; the person is the first section. A Sheet once there are 3+ properties. */
 type PanelState = EditPersonPanelProps & { pending: boolean };

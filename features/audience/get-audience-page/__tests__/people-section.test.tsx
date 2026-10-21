@@ -137,9 +137,7 @@ describe("PeopleSection", () => {
     );
 
     // Assert — identity locked; identifier property absent from editable values
-    expect(
-      await screen.findByRole("heading", { name: "Edit person" }),
-    ).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "Edit person" })).toBeTruthy();
     const lockedLabel = screen
       .getAllByText("External ID")
       .find((node) => node.tagName === "DT");
@@ -190,9 +188,7 @@ describe("PeopleSection", () => {
       <PeopleSection {...LIST} people={[PERSON]} canEdit canTest={false} />,
     );
 
-    expect(
-      screen.queryByRole("button", { name: /^Test as this person/ }),
-    ).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Test as this person/ })).toBeNull();
   });
 
   it("says the filter found nobody, with a way back to everyone", () => {

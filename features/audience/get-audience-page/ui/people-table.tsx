@@ -2,11 +2,12 @@
 
 import { ArrowUpRight, FlaskConical, Pencil, Trash2 } from "lucide-react";
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { StatusBadge, type StatusTone } from "@/components/common/status-badge";
 import {
   AudienceLinkStatusKind,
   type AudienceIdentifierKind,
-  type AudienceLinkStatusKind as LinkStatusKind,
+  type AudienceLinkStatus,
   type AudiencePerson,
   type AudienceProperty,
 } from "@/lib/endatix-api/audience/types";
@@ -142,12 +143,13 @@ function IdentifierCell({ person }: Readonly<{ person: AudiencePerson }>) {
   );
 }
 
-const LINK_BADGE: Record<LinkStatusKind, { tone: StatusTone; label: string }> =
-  {
-    none: { tone: "off", label: "Not issued" },
-    issued: { tone: "idle", label: "Issued" },
-    opened: { tone: "on", label: "Opened" },
-  };
+type LinkBadge = { tone: StatusTone; label: string };
+
+const LINK_BADGE: Record<AudienceLinkStatus["status"], LinkBadge> = {
+  none: { tone: "off", label: "Not issued" },
+  issued: { tone: "idle", label: "Issued" },
+  opened: { tone: "on", label: "Opened" },
+};
 
 const NO_TEST_LINK = (
   <span className="text-muted-foreground">
@@ -156,27 +158,45 @@ const NO_TEST_LINK = (
   </span>
 );
 
+const RESPONSE_LINK =
+  "inline-flex items-center gap-1 rounded-md text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none";
+
+type CellProps = { formId: string; person: AudiencePerson };
+
+type ResponseLinkProps = {
+  formId: string;
+  submissionId: string;
+  identifier: string;
+  children: ReactNode;
+};
+
+/** The badge goes to Submission Details; the arrow marks it as a link. */
+function ResponseLink(props: Readonly<ResponseLinkProps>) {
+  const { formId, submissionId } = props;
+  return (
+    <Link
+      href={`/forms/${formId}/submissions/${submissionId}`}
+      className={RESPONSE_LINK}
+    >
+      {props.children}
+      <ArrowUpRight aria-hidden="true" className="size-4" />
+      <span className="sr-only">: view the response of {props.identifier}</span>
+    </Link>
+  );
+}
+
 /** Not issued, Issued, or Opened; Opened goes to the response while it still exists. */
-function LinkCell({
-  formId,
-  person,
-}: Readonly<{ formId: string; person: AudiencePerson }>) {
+function LinkCell({ formId, person }: Readonly<CellProps>) {
   if (person.isTest) return NO_TEST_LINK;
   const { link } = person;
   const badge = <StatusBadge {...LINK_BADGE[link.status]} />;
   if (link.status !== AudienceLinkStatusKind.Opened || !link.submissionId)
     return badge;
+  const { submissionId } = link;
   return (
-    <Link
-      href={`/forms/${formId}/submissions/${link.submissionId}`}
-      className="inline-flex items-center gap-1 rounded-md text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-    >
+    <ResponseLink {...{ formId, submissionId }} identifier={person.identifier}>
       {badge}
-      <ArrowUpRight aria-hidden="true" className="size-4" />
-      <span className="sr-only">
-        : view the response of {person.identifier}
-      </span>
-    </Link>
+    </ResponseLink>
   );
 }
 
@@ -206,14 +226,9 @@ function personCells(
  * People on this form, one column per property. Cells are read-only: a row is edited in a panel,
  * so the table stays a reading surface (DESIGN.md §5 List tables).
  */
-export function PeopleTable({
-  formId,
-  identifierKind,
-  properties,
-  people,
-  handlers,
-}: Readonly<PeopleTableProps>) {
-  const options = { formId, showLink: hasLinks(people), handlers };
+export function PeopleTable(props: Readonly<PeopleTableProps>) {
+  const { identifierKind, properties, people } = props;
+  const options = { ...props, showLink: hasLinks(people) };
   const columns = peopleColumns(identifierKind, properties, options);
   return (
     <StaticDataTable columns={columns}>
