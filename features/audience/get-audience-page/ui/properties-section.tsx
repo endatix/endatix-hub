@@ -111,12 +111,7 @@ export function PropertiesSection(props: Readonly<PropertiesSectionProps>) {
       className="flex flex-col gap-4"
     >
       <PropertiesHeader {...props} />
-      <PropertiesSurface
-        identifierKind={props.identifierKind}
-        properties={props.properties}
-        review={props.review}
-        targets={targets}
-      />
+      <PropertiesSurface {...props} targets={targets} />
       {props.canEdit ? <PropertyOverlays {...props} row={row} /> : null}
     </section>
   );

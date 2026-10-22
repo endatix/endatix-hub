@@ -41,6 +41,18 @@ function reviewOf(
   };
 }
 
+function coverageInput(
+  surveyJson: object,
+  presets: ReturnType<typeof toSurveyPresets>,
+  coverage: AudienceVariables["coverage"],
+): CoverageInput {
+  return {
+    variableNames: variableNamesOf(presets),
+    read: undeclaredReferences(surveyJson),
+    coverage,
+  };
+}
+
 /**
  * The form's Audience verdicts, the same for the designer and the Audience tab: findings, and per
  * property and participant what the form reads and who filled it in. Empty without Properties (Q10).
@@ -54,11 +66,7 @@ export function reviewAudience(
     return reviewOf({ variableNames: [], read: new Set(), coverage }, []);
   }
   const presets = toSurveyPresets(variablePresets);
-  const input = {
-    variableNames: variableNamesOf(presets),
-    read: undeclaredReferences(surveyJson),
-    coverage,
-  };
+  const input = coverageInput(surveyJson, presets, coverage);
   const linted = lintFindings(surveyJson, presets);
   const unused = unusedProperties(
     input.variableNames,

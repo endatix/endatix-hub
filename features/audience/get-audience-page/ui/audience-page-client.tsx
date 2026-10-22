@@ -40,6 +40,14 @@ function ViewSwitch({ formId, view, data }: Readonly<Props>) {
   return <LinkTabs label="Audience view" tabs={tabs} activeId={view} />;
 }
 
+/** The designer's verdicts on the saved form, computed once per load. */
+function useAudienceReview(data: AudienceReviewData | null) {
+  return useMemo(
+    () => data && reviewAudience(data.surveyJson, data.variables),
+    [data],
+  );
+}
+
 /**
  * People is the tab's task and opens first; Properties is a second view of the same tab
  * (the columns people have), switched with link tabs so each view has its own URL.
@@ -48,12 +56,7 @@ function ActiveView(props: Readonly<Props>) {
   const { settings, canManageMatchKey: _, ...lists } = props.data;
   const viewSwitch = <ViewSwitch {...props} />;
   const { identifierKind } = settings;
-  const { reviewData } = props;
-  const review = useMemo(
-    () =>
-      reviewData && reviewAudience(reviewData.surveyJson, reviewData.variables),
-    [reviewData],
-  );
+  const review = useAudienceReview(props.reviewData);
   const section = {
     formId: props.formId,
     viewSwitch,

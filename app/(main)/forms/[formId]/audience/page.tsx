@@ -59,21 +59,24 @@ function listSearchFrom(query: Awaited<Params["searchParams"]>): string {
   });
 }
 
+/** The form, then what the Audience tab reviews of its saved definition. */
+async function formWithReview(api: EndatixApi, formId: string) {
+  const form = await loadWorkspaceForm(formId, "audience");
+  if (Result.isError(form)) return { form, reviewData: null };
+  const { activeDefinitionId } = form.value;
+  const reviewData = await loadAudienceReview({
+    api,
+    formId,
+    activeDefinitionId,
+  });
+  return { form, reviewData };
+}
+
 async function audienceView({ query, ...request }: AudienceRequest) {
   const { formId } = request;
-  const formResult = loadWorkspaceForm(formId, "audience");
-  const [form, audience, reviewData] = await Promise.all([
-    formResult,
+  const [{ form, reviewData }, audience] = await Promise.all([
+    formWithReview(request.api, formId),
     loadAudiencePage({ ...request, paging: peopleQueryFrom(query) }),
-    formResult.then((loaded) =>
-      Result.isSuccess(loaded)
-        ? loadAudienceReview({
-            api: request.api,
-            formId,
-            activeDefinitionId: loaded.value.activeDefinitionId,
-          })
-        : null,
-    ),
   ]);
   if (Result.isError(form)) return <FormLoadError result={form} />;
   if (Result.isError(audience)) return <FormLoadError result={audience} />;
