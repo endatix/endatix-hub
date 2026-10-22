@@ -228,7 +228,7 @@ export function useExtensionLoader({
       }
     };
 
-    init();
+    void init();
     return () => {
       mountedRef.current = false;
     };

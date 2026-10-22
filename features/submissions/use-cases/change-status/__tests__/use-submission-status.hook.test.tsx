@@ -70,6 +70,20 @@ describe("useSubmissionStatus", () => {
     expect(toast.error).toHaveBeenCalledWith(error);
   });
 
+  it("shows an error when the status change throws", async () => {
+    vi.mocked(changeStatusAction).mockRejectedValueOnce(
+      new Error("Network error"),
+    );
+
+    const { result } = renderHook(() => useSubmissionStatus(mockProps));
+
+    await act(async () => {
+      result.current.handleStatusChange();
+    });
+
+    expect(toast.error).toHaveBeenCalledWith("Failed to update status");
+  });
+
   it("should toggle between new and read status", () => {
     // Test with new status
     const { result: newResult } = renderHook(() =>

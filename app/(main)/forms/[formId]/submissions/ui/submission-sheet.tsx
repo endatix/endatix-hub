@@ -33,7 +33,7 @@ const SubmissionSheet = ({ submission }: SubmissionSheetProps) => {
   const [questions, setQuestions] = useState<Question[]>();
 
   useEffect(() => {
-    const changeSelectedSubmission = async () => {
+    const changeSelectedSubmission = () => {
       startTransition(async () => {
         const getDefinitionRequest: GetDefinitionRequest = {
           formId: params.formId,
@@ -72,13 +72,9 @@ const SubmissionSheet = ({ submission }: SubmissionSheetProps) => {
       });
     };
 
-    const fetchDefinition = async () => {
-      if (submission) {
-        await changeSelectedSubmission();
-      }
-    };
-
-    fetchDefinition();
+    if (submission) {
+      changeSelectedSubmission();
+    }
   }, [submission, params]);
 
   return (

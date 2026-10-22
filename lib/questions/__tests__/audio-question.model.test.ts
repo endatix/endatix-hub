@@ -27,7 +27,7 @@ const mockAudioContext = {
   createAnalyser: vi.fn(),
   createScriptProcessor: vi.fn(),
   destination: {},
-  close: vi.fn(),
+  close: vi.fn().mockResolvedValue(undefined),
   sampleRate: 48000,
 };
 

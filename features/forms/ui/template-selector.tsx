@@ -70,7 +70,9 @@ export default function TemplateSelector({
       setLoading(false);
     };
 
-    fetchTemplates();
+    void fetchTemplates().catch(() => {
+      setError("Failed to load templates");
+    });
   }, []);
 
   // Filter templates when search query changes

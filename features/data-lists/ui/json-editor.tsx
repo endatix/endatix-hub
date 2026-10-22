@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { TelemetryLogger } from "@/features/telemetry";
 import { useTheme } from "next-themes";
 import type { Editor } from "ace-builds";
 import type { CSSProperties } from "react";
@@ -130,9 +131,13 @@ export function JsonEditor({
 
     let cleanupListener: (() => void) | undefined;
 
-    initEditor().then((cleanup) => {
-      cleanupListener = cleanup;
-    });
+    void initEditor()
+      .then((cleanup) => {
+        cleanupListener = cleanup;
+      })
+      .catch((error: unknown) => {
+        TelemetryLogger.error("Failed to load the JSON editor", error);
+      });
 
     return () => {
       cancelled = true;

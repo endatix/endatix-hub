@@ -1,8 +1,10 @@
 "use client";
 
 import { toast } from "@/components/ui/toast";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { useTransition } from "react";
 import { changeStatusAction } from "./change-status.action";
+import { ChangeStatusResult } from "./types";
 import { SubmissionStatus, SubmissionStatusKind } from "@/types";
 
 interface UseSubmissionStatusProps {
@@ -10,6 +12,13 @@ interface UseSubmissionStatusProps {
   formId: string;
   status: string;
 }
+
+const toFailedStatusChange = (error: unknown): ChangeStatusResult => {
+  if (isRedirectError(error)) {
+    throw error;
+  }
+  return { success: false };
+};
 
 export const useSubmissionStatus = ({
   submissionId,
@@ -22,13 +31,13 @@ export const useSubmissionStatus = ({
     ? SubmissionStatus.fromCode(SubmissionStatusKind.Read)
     : SubmissionStatus.fromCode(SubmissionStatusKind.New);
 
-  const handleStatusChange = async () => {
+  const handleStatusChange = () => {
     startTransition(async () => {
       const statusResult = await changeStatusAction({
         submissionId,
         formId,
         status: nextStatus.value,
-      });
+      }).catch(toFailedStatusChange);
 
       if (statusResult.success) {
         toast.success("Status updated successfully");
