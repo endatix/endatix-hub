@@ -30,6 +30,7 @@ describe("buildFormPageNav", () => {
     expect(switcher).toEqual({
       label: "Audience",
       icon: "users",
+      compactLabel: true,
       options: [
         {
           label: "Overview",

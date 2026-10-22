@@ -7,7 +7,13 @@ import {
 } from "../shared/paged-response";
 import type { PagedResponse } from "../shared/types";
 import {
+  PersonalizationSource,
+  type PersonalizationSource as PersonalizationSourceCode,
+} from "../submissions/types";
+import {
   AudienceLinkStatusKind,
+  type AudienceParticipant,
+  type ParticipantSubmission,
   type AudienceLinkStatus,
   type RedeemedAudienceLink,
   type AudienceImportResult,
@@ -91,6 +97,58 @@ function openedLink(wire: WireLinkStatus): AudienceLinkStatus {
   return wire.submissionId == null
     ? opened
     : { ...opened, submissionId: String(wire.submissionId) };
+}
+
+export type WireParticipantSubmission = Omit<
+  ParticipantSubmission,
+  "id" | "snapshotSource"
+> & {
+  id: string | number;
+  /** Left out when the submission has no Snapshot. */
+  snapshotSource?: string | null;
+};
+
+export type WireParticipant = WirePerson & {
+  submissions?: WireParticipantSubmission[];
+  submissionTotal?: number;
+};
+
+const SNAPSHOT_SOURCES: readonly string[] = Object.values(
+  PersonalizationSource,
+);
+
+/** An unknown source reads as none, so the page never names a source it cannot label. */
+function mapSnapshotSource(
+  wire: string | null | undefined,
+): PersonalizationSourceCode | null {
+  return wire && SNAPSHOT_SOURCES.includes(wire)
+    ? (wire as PersonalizationSourceCode)
+    : null;
+}
+
+function mapParticipantSubmission(
+  wire: WireParticipantSubmission,
+): ParticipantSubmission {
+  return {
+    id: String(wire.id),
+    createdAt: wire.createdAt,
+    completedAt: wire.completedAt ?? null,
+    isComplete: wire.isComplete,
+    isTest: wire.isTest,
+    snapshotSource: mapSnapshotSource(wire.snapshotSource),
+  };
+}
+
+export function mapParticipantResult(
+  response: ApiResult<WireParticipant>,
+): ApiResult<AudienceParticipant> {
+  if (!response.success) return response;
+  const { submissions = [], submissionTotal } = response.data;
+  return ApiResult.success({
+    ...mapPerson(response.data),
+    submissions: submissions.map(mapParticipantSubmission),
+    submissionTotal: submissionTotal ?? submissions.length,
+  });
 }
 
 export function formAudiencePath(

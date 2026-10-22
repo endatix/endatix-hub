@@ -21,6 +21,7 @@ function fakeTab() {
 }
 
 describe("useTestAsPerson", () => {
+  const onOpened = vi.fn();
   beforeEach(() => vi.clearAllMocks());
 
   it("opens the tab on the click and points it at the respondent page", async () => {
@@ -37,6 +38,19 @@ describe("useTestAsPerson", () => {
     expect(tab.opener).toBeNull();
   });
 
+  it("calls onOpened once the test submission is open, so a page can list it", async () => {
+    vi.spyOn(window, "open").mockReturnValue(fakeTab() as unknown as Window);
+    vi.mocked(openTestSubmissionAction).mockResolvedValue(
+      Result.success({ url: "/share/1" }),
+    );
+
+    await renderHook(() => useTestAsPerson("1", onOpened)).result.current(
+      PERSON,
+    );
+
+    expect(onOpened).toHaveBeenCalledTimes(1);
+  });
+
   it("closes the tab and toasts when the action fails", async () => {
     const tab = fakeTab();
     vi.spyOn(window, "open").mockReturnValue(tab as unknown as Window);
@@ -44,10 +58,13 @@ describe("useTestAsPerson", () => {
       Result.error("The person is not on this form."),
     );
 
-    await renderHook(() => useTestAsPerson("1")).result.current(PERSON);
+    await renderHook(() => useTestAsPerson("1", onOpened)).result.current(
+      PERSON,
+    );
 
     expect(tab.close).toHaveBeenCalled();
     expect(toast.error).toHaveBeenCalledWith("The person is not on this form.");
+    expect(onOpened).not.toHaveBeenCalled();
   });
 
   it("says so when the browser blocks the tab, without opening a submission", async () => {

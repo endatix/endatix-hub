@@ -1,6 +1,12 @@
 "use client";
 
+import { useEffect } from "react";
 import { LinkTabs } from "@/components/common/link-tabs";
+import { rememberTableReturnTo } from "@/lib/list-page/table-return-to";
+import {
+  AUDIENCE_TABLE_KEY,
+  parseAudienceReturnQuery,
+} from "../audience-return-to";
 import type { AudiencePageData } from "../index";
 import { AudienceView, audienceViewTabs } from "../audience-view";
 import { MatchKeyCard } from "../../update-settings/ui/match-key-card";
@@ -8,7 +14,13 @@ import { MatchKeySummary } from "../../update-settings/ui/match-key-summary";
 import { PeopleSection } from "./people-section";
 import { PropertiesSection } from "./properties-section";
 
-type Props = { formId: string; view: AudienceView; data: AudiencePageData };
+type Props = {
+  formId: string;
+  view: AudienceView;
+  data: AudiencePageData;
+  /** The list URL's query, already whitelisted, so Back can restore it. */
+  listSearch: string;
+};
 
 /** The match key is a setup step while it can change; once locked, People states it. */
 function MatchKeySetup({ data }: Readonly<Pick<Props, "data">>) {
@@ -48,6 +60,16 @@ function ActiveView(props: Readonly<Props>) {
 }
 
 export function AudiencePageClient(props: Readonly<Props>) {
+  const { formId, listSearch } = props;
+  useEffect(() => {
+    rememberTableReturnTo(
+      AUDIENCE_TABLE_KEY,
+      listSearch,
+      parseAudienceReturnQuery,
+      formId,
+    );
+  }, [formId, listSearch]);
+
   return (
     <div className="flex flex-col gap-8">
       <MatchKeySetup data={props.data} />

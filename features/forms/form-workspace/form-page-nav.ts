@@ -48,7 +48,7 @@ function pageSwitcher(
   );
   const label = getFormWorkspaceSectionLabel(active);
   const icon = options.find((option) => option.isActive)?.icon;
-  return { label, icon, options };
+  return { label, icon, options, compactLabel: true };
 }
 
 export type FormPageNav = {

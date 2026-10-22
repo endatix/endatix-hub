@@ -9,6 +9,8 @@ type AudiencePageShellProps = {
   header: ReactNode;
   view: AudienceView;
   data: AudiencePageData;
+  /** Whitelisted list query (`page`, `pageSize`, `view`, `test`) for Back from a participant. */
+  listSearch: string;
 };
 
 export function AudiencePageShell({

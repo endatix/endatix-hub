@@ -1,5 +1,6 @@
 "use client";
 
+import type { Route } from "next";
 import type { AudiencePerson } from "@/lib/endatix-api/audience/types";
 import { ConfirmDeleteDialog } from "../../ui/confirm-delete-dialog";
 import { deleteAudiencePersonAction } from "../delete-audience-person.action";
@@ -9,6 +10,8 @@ type RemovePersonDialogProps = {
   person: AudiencePerson | null;
   open: boolean;
   onClose: () => void;
+  /** Opened from the participant's own page: go here once they are removed. */
+  afterRemove?: Route;
 };
 
 const CONSEQUENCE =
@@ -32,6 +35,7 @@ export function RemovePersonDialog(props: Readonly<RemovePersonDialogProps>) {
       title={title}
       action={action}
       onClose={onClose}
+      afterDelete={props.afterRemove}
     >
       {CONSEQUENCE}
     </ConfirmDeleteDialog>

@@ -1,13 +1,10 @@
 "use client";
 
-import { ArrowUpRight, FlaskConical, Pencil, Trash2 } from "lucide-react";
+import { FlaskConical, Pencil, Trash2 } from "lucide-react";
 import Link from "next/link";
-import type { ReactNode } from "react";
-import { StatusBadge, type StatusTone } from "@/components/common/status-badge";
 import {
   AudienceLinkStatusKind,
   type AudienceIdentifierKind,
-  type AudienceLinkStatus,
   type AudiencePerson,
   type AudienceProperty,
 } from "@/lib/endatix-api/audience/types";
@@ -21,6 +18,11 @@ import {
   type StaticDataTableCell,
   type StaticDataTableColumn,
 } from "@/components/table";
+import { formRoutes } from "@/lib/routes/form-routes";
+import { LinkStatusBadge } from "../../ui/link-status-badge";
+import { NotSet } from "../../ui/not-set";
+import { SubmissionLink } from "../../ui/submission-link";
+import { WithTestBadge } from "../../ui/test-badge";
 import { formatPropertyValue, identifierKindLabel } from "../../utils";
 
 /** Each handler is present only when the reader may run it; none means no actions column. */
@@ -36,6 +38,8 @@ type PeopleTableProps = {
   properties: AudienceProperty[];
   people: AudiencePerson[];
   handlers: RowHandlers;
+  /** The participant page needs `forms.edit`; without it the identifier is plain text. */
+  canEdit: boolean;
 };
 
 const ACTIONS_COLUMN: StaticDataTableColumn = {
@@ -121,96 +125,73 @@ function personActions(
   );
 }
 
-const NOT_SET = (
-  <span className="text-muted-foreground">
-    <span aria-hidden="true">—</span>
-    <span className="sr-only">Not set</span>
-  </span>
-);
-
 const IDENTIFIER_CELL = "text-sm font-medium break-all whitespace-normal";
 const VALUE_CELL = "text-sm break-words whitespace-normal";
 const ACTIONS_CELL = `text-right ${SHRINK}`;
 
-/** A test person carries a Test badge beside their identifier, in the tone of test submissions. */
-function IdentifierCell({ person }: Readonly<{ person: AudiencePerson }>) {
-  if (!person.isTest) return person.identifier;
+const PARTICIPANT_LINK =
+  "rounded-sm underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none";
+
+type IdentifierCellProps = CellProps & { canOpen: boolean };
+
+/** The identifier opens the participant's page for a reader who may reach it. */
+function ParticipantLink({
+  formId,
+  person,
+  canOpen,
+}: Readonly<IdentifierCellProps>) {
+  if (!canOpen) return person.identifier;
+  const href = formRoutes.participant(formId, person.audienceMemberId);
   return (
-    <span className="inline-flex flex-wrap items-center gap-2">
+    <Link href={href} className={PARTICIPANT_LINK}>
       {person.identifier}
-      <StatusBadge tone="attention" label="Test" />
-    </span>
-  );
-}
-
-type LinkBadge = { tone: StatusTone; label: string };
-
-const LINK_BADGE: Record<AudienceLinkStatus["status"], LinkBadge> = {
-  none: { tone: "off", label: "Not issued" },
-  issued: { tone: "idle", label: "Issued" },
-  opened: { tone: "on", label: "Opened" },
-};
-
-const NO_TEST_LINK = (
-  <span className="text-muted-foreground">
-    <span aria-hidden="true">—</span>
-    <span className="sr-only">No link: a test person</span>
-  </span>
-);
-
-const RESPONSE_LINK =
-  "inline-flex items-center gap-1 rounded-md text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none";
-
-type CellProps = { formId: string; person: AudiencePerson };
-
-type ResponseLinkProps = {
-  formId: string;
-  submissionId: string;
-  identifier: string;
-  children: ReactNode;
-};
-
-/** The badge goes to Submission Details; the arrow marks it as a link. */
-function ResponseLink(props: Readonly<ResponseLinkProps>) {
-  const { formId, submissionId } = props;
-  return (
-    <Link
-      href={`/forms/${formId}/submissions/${submissionId}`}
-      className={RESPONSE_LINK}
-    >
-      {props.children}
-      <ArrowUpRight aria-hidden="true" className="size-4" />
-      <span className="sr-only">: view the response of {props.identifier}</span>
     </Link>
   );
 }
+
+/** A test person also carries a Test badge, in the tone of test submissions. */
+function IdentifierCell(props: Readonly<IdentifierCellProps>) {
+  return (
+    <WithTestBadge isTest={props.person.isTest}>
+      <ParticipantLink {...props} />
+    </WithTestBadge>
+  );
+}
+
+const NO_TEST_LINK = <NotSet label="No link: a test person" />;
+
+type CellProps = { formId: string; person: AudiencePerson };
 
 /** Not issued, Issued, or Opened; Opened goes to the response while it still exists. */
 function LinkCell({ formId, person }: Readonly<CellProps>) {
   if (person.isTest) return NO_TEST_LINK;
   const { link } = person;
-  const badge = <StatusBadge {...LINK_BADGE[link.status]} />;
+  const badge = <LinkStatusBadge status={link.status} />;
   if (link.status !== AudienceLinkStatusKind.Opened || !link.submissionId)
     return badge;
   const { submissionId } = link;
   return (
-    <ResponseLink {...{ formId, submissionId }} identifier={person.identifier}>
+    <SubmissionLink
+      {...{ formId, submissionId }}
+      srLabel={`: view the response of ${person.identifier}`}
+    >
       {badge}
-    </ResponseLink>
+    </SubmissionLink>
   );
 }
 
-type CellOptions = ColumnOptions & { formId: string };
+type CellOptions = ColumnOptions & { formId: string; canEdit: boolean };
 
 function personCells(
   person: AudiencePerson,
   properties: AudienceProperty[],
-  { formId, showLink, handlers }: CellOptions,
+  { formId, showLink, handlers, canEdit }: CellOptions,
 ): StaticDataTableCell[] {
   const value = (p: AudienceProperty) =>
-    formatPropertyValue(p, person.values[p.id]) ?? NOT_SET;
-  const identifier = <IdentifierCell person={person} />;
-  const link = <LinkCell formId={formId} person={person} />;
+    formatPropertyValue(p, person.values[p.id]) ?? <NotSet />;
+  const cell = { formId, person };
+  const identifier = <IdentifierCell {...cell} canOpen={canEdit} />;
+  const link = <LinkCell {...cell} />;
   const cells = [
     dataTableCell("identifier", identifier, IDENTIFIER_CELL),
     ...(showLink ? [dataTableCell("link", link, SHRINK)] : []),

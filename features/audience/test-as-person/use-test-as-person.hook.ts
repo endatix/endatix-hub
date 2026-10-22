@@ -18,16 +18,20 @@ async function openOrFailure(formId: string, membershipId: string) {
   }
 }
 
-/** Points the open tab at the respondent page once the cookie is set; a failure closes it and toasts. */
+/**
+ * Points the open tab at the respondent page once the cookie is set; a failure closes it and
+ * toasts. Returns whether the test submission was opened.
+ */
 async function openInTab(tab: Window, formId: string, membershipId: string) {
   const opened = await openOrFailure(formId, membershipId);
   if (Result.isError(opened)) {
     tab.close();
     toast.error(opened.message);
-    return;
+    return false;
   }
   tab.opener = null;
   tab.location.href = opened.value.url;
+  return true;
 }
 
 /**
@@ -35,8 +39,9 @@ async function openInTab(tab: Window, formId: string, membershipId: string) {
  * reader's gesture, and is pointed at the respondent page once the cookie is set. A blocked tab
  * stops here: the action would create a test submission and replace this browser's form cookie.
  * A click while one is opening is ignored, so a double-click opens one test submission, not two.
+ * `onOpened` runs once it is open, for a page that lists their submissions.
  */
-export function useTestAsPerson(formId: string) {
+export function useTestAsPerson(formId: string, onOpened?: () => void) {
   const opening = useRef(false);
   return async (person: AudiencePerson) => {
     if (opening.current) return;
@@ -47,7 +52,7 @@ export function useTestAsPerson(formId: string) {
     }
     opening.current = true;
     try {
-      await openInTab(tab, formId, person.membershipId);
+      if (await openInTab(tab, formId, person.membershipId)) onOpened?.();
     } finally {
       opening.current = false;
     }

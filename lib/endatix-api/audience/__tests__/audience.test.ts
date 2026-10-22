@@ -309,3 +309,131 @@ describe("Audience test submissions", () => {
     expect(result.success).toBe(false);
   });
 });
+
+describe("Audience participant", () => {
+  const MEMBER_ID = "1526934587983265795";
+  const wireParticipant = {
+    submissions: [
+      {
+        id: 5521,
+        createdAt: "2026-10-21T09:00:00Z",
+        completedAt: null,
+        isComplete: false,
+        isTest: true,
+        snapshotSource: "test",
+      },
+      {
+        id: 5520,
+        createdAt: "2026-10-20T09:00:00Z",
+        completedAt: "2026-10-20T09:05:00Z",
+        isComplete: true,
+        isTest: false,
+      },
+    ],
+    submissionTotal: 37,
+    membershipId: 981,
+    audienceMemberId: 7,
+    identifier: "P-1001",
+    values: { "11": "Gold" },
+    isTest: true,
+    link: { status: "none" },
+  };
+
+  /** The wire above as the Hub reads it: ids as strings, a left-out source as null. */
+  const MAPPED_PARTICIPANT = {
+    membershipId: "981",
+    audienceMemberId: "7",
+    identifier: "P-1001",
+    values: { "11": "Gold" },
+    isTest: true,
+    link: { status: "none" },
+    submissionTotal: 37,
+    submissions: [
+      {
+        id: "5521",
+        createdAt: "2026-10-21T09:00:00Z",
+        completedAt: null,
+        isComplete: false,
+        isTest: true,
+        snapshotSource: "test",
+      },
+      {
+        id: "5520",
+        createdAt: "2026-10-20T09:00:00Z",
+        completedAt: "2026-10-20T09:05:00Z",
+        isComplete: true,
+        isTest: false,
+        snapshotSource: null,
+      },
+    ],
+  };
+
+  it("reads one participant by member id and maps ids to strings", async () => {
+    const get = vi.fn().mockResolvedValue(ApiResult.success(wireParticipant));
+
+    const result = await audienceWith({ get }).getParticipant(
+      FORM_ID,
+      MEMBER_ID,
+    );
+
+    expect(get).toHaveBeenCalledWith(
+      `/forms/${FORM_ID}/audience/people/${MEMBER_ID}`,
+    );
+    expect(result.success && result.data).toEqual(MAPPED_PARTICIPANT);
+  });
+
+  it("reads an unknown Snapshot source as none", async () => {
+    const wire = {
+      ...wireParticipant,
+      submissions: [{ ...wireParticipant.submissions[0], snapshotSource: "x" }],
+    };
+    const get = vi.fn().mockResolvedValue(ApiResult.success(wire));
+
+    const result = await audienceWith({ get }).getParticipant(
+      FORM_ID,
+      MEMBER_ID,
+    );
+
+    expect(
+      result.success && result.data.submissions[0].snapshotSource,
+    ).toBeNull();
+  });
+
+  it("reads a participant with no submissions left out as none of them", async () => {
+    const { submissions: _, submissionTotal: __, ...wire } = wireParticipant;
+    const get = vi.fn().mockResolvedValue(ApiResult.success(wire));
+
+    const result = await audienceWith({ get }).getParticipant(
+      FORM_ID,
+      MEMBER_ID,
+    );
+
+    expect(result.success && result.data).toMatchObject({
+      submissions: [],
+      submissionTotal: 0,
+    });
+  });
+
+  it("passes a 404 through so the page can say the participant is gone", async () => {
+    const notFound = ApiResult.notFoundError(
+      "Participant not found on this form.",
+    );
+    const get = vi.fn().mockResolvedValue(notFound);
+
+    const result = await audienceWith({ get }).getParticipant(
+      FORM_ID,
+      MEMBER_ID,
+    );
+
+    expect(result).toBe(notFound);
+  });
+
+  it("rejects an invalid member id without calling the API", async () => {
+    const get = vi.fn();
+
+    const result = await audienceWith({ get }).getParticipant(FORM_ID, "7/x");
+
+    expect(get).not.toHaveBeenCalled();
+    expect(result.success).toBe(false);
+  });
+});

@@ -1,5 +1,6 @@
 import { Permissions } from "@/features/auth/authorization";
 import { AudiencePageShell } from "@/features/audience/get-audience-page/ui/audience-page-shell";
+import { audienceListSearch } from "@/features/audience/get-audience-page/audience-return-to";
 import {
   loadAudiencePage,
   parseAudienceView,
@@ -48,6 +49,15 @@ type AudienceRequest = {
   canTest: boolean;
 };
 
+function listSearchFrom(query: Awaited<Params["searchParams"]>): string {
+  return audienceListSearch({
+    page: firstSearchParam(query.page),
+    pageSize: firstSearchParam(query.pageSize),
+    view: firstSearchParam(query.view),
+    test: firstSearchParam(query.test),
+  });
+}
+
 async function audienceView({ query, ...request }: AudienceRequest) {
   const { formId } = request;
   const [form, audience] = await Promise.all([
@@ -62,6 +72,7 @@ async function audienceView({ query, ...request }: AudienceRequest) {
       formId={formId}
       header={<FormWorkspaceHeader title="Audience" />}
       view={parseAudienceView(firstSearchParam(query.view))}
+      listSearch={listSearchFrom(query)}
       data={audience.value}
     />
   );
