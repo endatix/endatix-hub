@@ -1,18 +1,15 @@
+import type { AudienceUsage } from "../../audience-usage";
 import type { AudienceFinding } from "./types";
 
 /**
- * Properties the form never reads. A name a question or calculated value also declares is left to
- * the collision warning: the linter counts that name as declared, so it never shows up as read.
+ * Properties the form never reads. A name a question or calculated value also declares counts as
+ * read: the collision warning says what is wrong with it.
  */
-export function unusedProperties(
-  variableNames: string[],
-  read: Set<string>,
-  collisions: Set<string>,
-): AudienceFinding[] {
+export function unusedProperties({
+  variableNames,
+  read,
+}: AudienceUsage): AudienceFinding[] {
   return variableNames
-    .filter((name) => {
-      const key = name.toLowerCase();
-      return !read.has(key) && !collisions.has(key);
-    })
+    .filter((name) => !read.includes(name.toLowerCase()))
     .map((variableName) => ({ kind: "unused-property", variableName }));
 }

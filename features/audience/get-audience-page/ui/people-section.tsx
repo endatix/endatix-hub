@@ -25,7 +25,7 @@ import { valueProperties } from "../../utils";
 import { PeopleTable, type RowHandlers } from "./people-table";
 import { PeopleTestFilter } from "./people-test-filter";
 import { SectionHeader } from "./section-header";
-import type { AudienceReview } from "@/lib/personalization/authoring";
+import type { UsageVerdicts } from "@/lib/personalization/audience-usage";
 
 type PeopleSectionProps = {
   formId: string;
@@ -46,8 +46,8 @@ type PeopleSectionProps = {
   viewSwitch?: ReactNode;
   /** The locked match key, said once where people are listed. */
   matchKeyNote?: ReactNode;
-  /** The saved form's Audience review: marks participants missing values it reads. */
-  review?: AudienceReview | null;
+  /** The saved form's Audience verdicts: marks participants missing values it reads. */
+  verdicts?: UsageVerdicts | null;
 };
 
 type Paging = Pick<

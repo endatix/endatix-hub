@@ -49,7 +49,7 @@ const DESCRIBE: {
     description: COLLISION_EFFECT[declaredBy](variable),
   }),
   "not-filled-in": ({ variableName, filledReal, real }) => ({
-    title: `{${variableName}} is not filled in for ${(real - filledReal).toLocaleString()} of ${real.toLocaleString()} participants`,
+    title: `{${variableName}} is not filled in for ${(real - filledReal).toLocaleString()} of ${real.toLocaleString()} real participants`,
     description:
       "The form reads this Property, and those participants have no value for it.",
   }),

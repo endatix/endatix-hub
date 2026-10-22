@@ -1,4 +1,5 @@
 import type { ILintFix } from "survey-core/linter";
+import type { UsageVerdicts } from "../../audience-usage";
 
 export type AudienceFix = ILintFix;
 
@@ -31,12 +32,4 @@ export type AudienceFinding =
       real: number;
     };
 
-/** Whether the form reads a property, and how many real participants filled it in. */
-export type PropertyUse = { used: boolean; filledReal: number; real: number };
-
-export type AudienceReview = {
-  findings: AudienceFinding[];
-  forProperty(variableName: string): PropertyUse;
-  /** Of the properties the form reads, those a participant with `filled` values lacks. */
-  notFilledIn(filled: string[]): string[];
-};
+export type AudienceReview = UsageVerdicts & { findings: AudienceFinding[] };
