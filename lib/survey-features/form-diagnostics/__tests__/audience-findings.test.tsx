@@ -82,11 +82,16 @@ describe("Audience findings in Diagnostics", () => {
     expect(await screen.findByText("{seats} is never used")).toBeTruthy();
   });
 
-  it("reviews again when the Creator loads the form", () => {
+  it("reviews again when the Creator loads the form with Diagnostics open", () => {
     const creator = new SurveyCreatorModel({});
     const plugin = new FormDiagnosticsPlugin(creator);
-    const audience = audienceWith([UNUSED]);
+    creator.addTab({ name: "form-diagnostics", plugin, title: "Diagnostics" });
+    creator.activeTab = "form-diagnostics";
+    const audience = audienceWith([]);
     plugin.audience = audience;
+    vi.mocked(audience.review).mockImplementation(() => ({
+      findings: creator.JSON.pages?.length ? [UNUSED] : [],
+    }));
 
     creator.JSON = { elements: [{ type: "text", name: "q" }] };
 

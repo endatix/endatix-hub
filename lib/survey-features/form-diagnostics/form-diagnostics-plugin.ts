@@ -20,8 +20,6 @@ export class FormDiagnosticsPlugin extends Base implements ICreatorPlugin {
   constructor(public readonly creator: SurveyCreatorModel) {
     super();
     this.updateStats();
-    // The designer loads the saved form after a `?tab=` deep link has opened this tab.
-    creator.onDesignerSurveyCreated.add(() => this.updateAudienceFindings());
   }
 
   public get model(): this {
@@ -151,6 +149,15 @@ export class FormDiagnosticsPlugin extends Base implements ICreatorPlugin {
     this.updateStats();
     // A Property added in the Audience tab since the designer opened.
     void this.audience?.refresh().then(() => this.updateAudienceFindings());
+  }
+
+  /**
+   * The Creator calls this on the active tab once a new survey is in place, as when it loads the
+   * saved form after a `?tab=` deep link has opened this tab (`onDesignerSurveyCreated` is earlier,
+   * while `creator.JSON` still reads the old survey).
+   */
+  public update() {
+    this.updateStats();
   }
 
   public deactivate(): boolean {
