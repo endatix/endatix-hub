@@ -45,6 +45,8 @@ type PeopleTableProps = {
   canEdit: boolean;
   /** The saved form's Audience verdicts: marks participants missing values it reads. */
   verdicts?: UsageVerdicts | null;
+  /** Every Property, the match key's included; defaults to `properties`. */
+  allProperties?: AudienceProperty[];
 };
 
 const ACTIONS_COLUMN: StaticDataTableColumn = {
@@ -158,17 +160,14 @@ function ParticipantLink({
 }
 
 /**
- * The variable names this person has a value for. The match-key Property is their identifier, so
- * it is always filled in (the table lists only the other Properties). An empty value is no value,
- * as the API counts it.
+ * The variable names this person has a value for, across every Property, the match key's included
+ * (its value is what the form reads, not the identifier). An empty value is no value, as the API
+ * counts it.
  */
-function filledNames(
-  person: AudiencePerson,
-  properties: AudienceProperty[],
-  identifierKind: AudienceIdentifierKind,
-) {
-  const filled = properties.filter((p) => (person.values[p.id] ?? "") !== "");
-  return [identifierKind, ...filled.map((p) => p.variableName)];
+function filledNames(person: AudiencePerson, properties: AudienceProperty[]) {
+  return properties
+    .filter((p) => (person.values[p.id] ?? "") !== "")
+    .map((p) => p.variableName);
 }
 
 type NotFilledInProps = { names: string[]; properties: AudienceProperty[] };
@@ -191,15 +190,11 @@ function NotFilledIn({ names, properties }: Readonly<NotFilledInProps>) {
 /** Test participants are marked too: Preview as shows their missing values empty. */
 function notFilledInMark(
   person: AudiencePerson,
-  properties: AudienceProperty[],
-  {
-    identifierKind,
-    verdicts,
-  }: Pick<CellOptions, "identifierKind" | "verdicts">,
+  { allProperties, verdicts }: Pick<CellOptions, "allProperties" | "verdicts">,
 ) {
-  const filled = filledNames(person, properties, identifierKind);
+  const filled = filledNames(person, allProperties);
   const missing = verdicts?.notFilledIn(filled) ?? [];
-  return <NotFilledIn names={missing} properties={properties} />;
+  return <NotFilledIn names={missing} properties={allProperties} />;
 }
 
 /** A test person also carries a Test badge, in the tone of test submissions. */
@@ -240,15 +235,15 @@ type CellOptions = ColumnOptions & {
   formId: string;
   canEdit: boolean;
   verdicts?: UsageVerdicts | null;
-  identifierKind: AudienceIdentifierKind;
+  /** Every Property, the match key's included: the mark checks the values the form reads. */
+  allProperties: AudienceProperty[];
 };
 
 function identifierCell(
   person: AudiencePerson,
-  properties: AudienceProperty[],
   { formId, canEdit, ...mark }: Omit<CellOptions, keyof ColumnOptions>,
 ): StaticDataTableCell {
-  const notFilledIn = notFilledInMark(person, properties, mark);
+  const notFilledIn = notFilledInMark(person, mark);
   const identifier = (
     <IdentifierCell
       formId={formId}
@@ -270,7 +265,7 @@ function personCells(
   const cell = { formId, person };
   const link = <LinkCell {...cell} />;
   const cells = [
-    identifierCell(person, properties, { formId, canEdit, ...mark }),
+    identifierCell(person, { formId, canEdit, ...mark }),
     ...(showLink ? [dataTableCell("link", link, SHRINK)] : []),
     ...properties.map((p) => dataTableCell(p.id, value(p), VALUE_CELL)),
   ];
@@ -286,7 +281,11 @@ function personCells(
  */
 export function PeopleTable(props: Readonly<PeopleTableProps>) {
   const { identifierKind, properties, people } = props;
-  const options = { ...props, showLink: hasLinks(people) };
+  const options = {
+    ...props,
+    allProperties: props.allProperties ?? properties,
+    showLink: hasLinks(people),
+  };
   const columns = peopleColumns(identifierKind, properties, options);
   return (
     <StaticDataTable columns={columns}>

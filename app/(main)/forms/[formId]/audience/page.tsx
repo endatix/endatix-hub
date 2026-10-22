@@ -52,7 +52,6 @@ type AudienceRequest = {
   canManageMatchKey: boolean;
   canEdit: boolean;
   canTest: boolean;
-  checkPermission: CheckPermission;
 };
 
 function listSearchFrom(query: Awaited<Params["searchParams"]>): string {
@@ -86,21 +85,29 @@ async function formWithUsage(
   return { form, usage };
 }
 
-async function audienceView({ query, ...request }: AudienceRequest) {
-  const { formId } = request;
+/** The active view and the list query Back restores. */
+function viewFrom(query: Awaited<Params["searchParams"]>) {
+  return {
+    view: parseAudienceView(firstSearchParam(query.view)),
+    listSearch: listSearchFrom(query),
+  };
+}
+
+async function audienceView(
+  { query, ...request }: AudienceRequest,
+  checkPermission: CheckPermission,
+) {
   const [{ form, usage }, audience] = await Promise.all([
-    formWithUsage(request, request.checkPermission),
+    formWithUsage(request, checkPermission),
     loadAudiencePage({ ...request, paging: peopleQueryFrom(query) }),
   ]);
   if (Result.isError(form)) return <FormLoadError result={form} />;
   if (Result.isError(audience)) return <FormLoadError result={audience} />;
-
   return (
     <AudiencePageShell
-      formId={formId}
+      formId={request.formId}
       header={<FormWorkspaceHeader title="Audience" />}
-      view={parseAudienceView(firstSearchParam(query.view))}
-      listSearch={listSearchFrom(query)}
+      {...viewFrom(query)}
       data={audience.value}
       usage={usage}
     />
@@ -134,6 +141,7 @@ export default async function FormAudiencePage({
   searchParams,
 }: Readonly<Params>) {
   const { formId } = await params;
-  const guard = await guardAudiencePage(formId);
-  return audienceView({ ...guard, formId, query: await searchParams });
+  const { checkPermission, ...guard } = await guardAudiencePage(formId);
+  const query = await searchParams;
+  return audienceView({ ...guard, formId, query }, checkPermission);
 }

@@ -220,6 +220,7 @@ export function PeopleSection(props: Readonly<PeopleSectionProps>) {
   const values = {
     ...props,
     properties: valueProperties(props.properties, props.identifierKind),
+    allProperties: props.properties,
   };
   return (
     <section aria-labelledby="audience-people" className="flex flex-col gap-4">
