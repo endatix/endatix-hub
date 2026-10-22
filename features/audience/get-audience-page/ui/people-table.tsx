@@ -19,9 +19,9 @@ import {
   type StaticDataTableCell,
   type StaticDataTableColumn,
 } from "@/components/table";
-import type { AudienceReview } from "@/lib/personalization/authoring";
+import type { UsageVerdicts } from "@/lib/personalization/audience-usage";
 import { formRoutes } from "@/lib/routes/form-routes";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/common/status-badge";
 import { LinkStatusBadge } from "../../ui/link-status-badge";
 import { NotSet } from "../../ui/not-set";
 import { SubmissionLink } from "../../ui/submission-link";
@@ -43,8 +43,8 @@ type PeopleTableProps = {
   handlers: RowHandlers;
   /** The participant page needs `forms.edit`; without it the identifier is plain text. */
   canEdit: boolean;
-  /** The saved form's Audience review: marks participants missing values it reads. */
-  review?: AudienceReview | null;
+  /** The saved form's Audience verdicts: marks participants missing values it reads. */
+  verdicts?: UsageVerdicts | null;
 };
 
 const ACTIONS_COLUMN: StaticDataTableColumn = {
@@ -157,11 +157,18 @@ function ParticipantLink({
   );
 }
 
-/** The names of the properties this person has a value for. */
-function filledNames(person: AudiencePerson, properties: AudienceProperty[]) {
-  return properties
-    .filter((p) => (person.values[p.id] ?? "") !== "")
-    .map((p) => p.variableName);
+/**
+ * The variable names this person has a value for. The match-key Property is their identifier, so
+ * it is always filled in (the table lists only the other Properties). An empty value is no value,
+ * as the API counts it.
+ */
+function filledNames(
+  person: AudiencePerson,
+  properties: AudienceProperty[],
+  identifierKind: AudienceIdentifierKind,
+) {
+  const filled = properties.filter((p) => (person.values[p.id] ?? "") !== "");
+  return [identifierKind, ...filled.map((p) => p.variableName)];
 }
 
 type NotFilledInProps = { names: string[]; properties: AudienceProperty[] };
@@ -175,23 +182,23 @@ function NotFilledIn({ names, properties }: Readonly<NotFilledInProps>) {
     )
     .join(", ");
   return (
-    <Badge
-      variant="outline"
-      className="border-orange-300 text-orange-700 dark:border-orange-800 dark:text-orange-300"
-      aria-label={`Not filled in: ${label}`}
-      title={`Not filled in: ${label}`}
-    >
-      {names.length} not filled in
-    </Badge>
+    <span role="note" aria-label={`Not filled in: ${label}`} title={label}>
+      <StatusBadge tone="attention" label={`${names.length} not filled in`} />
+    </span>
   );
 }
 
+/** Test participants are marked too: Preview as shows their missing values empty. */
 function notFilledInMark(
   person: AudiencePerson,
   properties: AudienceProperty[],
-  review: AudienceReview | null | undefined,
+  {
+    identifierKind,
+    verdicts,
+  }: Pick<CellOptions, "identifierKind" | "verdicts">,
 ) {
-  const missing = review?.notFilledIn(filledNames(person, properties)) ?? [];
+  const filled = filledNames(person, properties, identifierKind);
+  const missing = verdicts?.notFilledIn(filled) ?? [];
   return <NotFilledIn names={missing} properties={properties} />;
 }
 
@@ -232,21 +239,22 @@ function LinkCell({ formId, person }: Readonly<CellProps>) {
 type CellOptions = ColumnOptions & {
   formId: string;
   canEdit: boolean;
-  review?: AudienceReview | null;
+  verdicts?: UsageVerdicts | null;
+  identifierKind: AudienceIdentifierKind;
 };
 
 function identifierCell(
   person: AudiencePerson,
   properties: AudienceProperty[],
-  { formId, canEdit, review }: Omit<CellOptions, keyof ColumnOptions>,
+  { formId, canEdit, ...mark }: Omit<CellOptions, keyof ColumnOptions>,
 ): StaticDataTableCell {
-  const mark = notFilledInMark(person, properties, review);
+  const notFilledIn = notFilledInMark(person, properties, mark);
   const identifier = (
     <IdentifierCell
       formId={formId}
       person={person}
       canOpen={canEdit}
-      notFilledIn={mark}
+      notFilledIn={notFilledIn}
     />
   );
   return dataTableCell("identifier", identifier, IDENTIFIER_CELL);
@@ -255,14 +263,14 @@ function identifierCell(
 function personCells(
   person: AudiencePerson,
   properties: AudienceProperty[],
-  { formId, showLink, handlers, canEdit, review }: CellOptions,
+  { formId, showLink, handlers, canEdit, ...mark }: CellOptions,
 ): StaticDataTableCell[] {
   const value = (p: AudienceProperty) =>
     formatPropertyValue(p, person.values[p.id]) ?? <NotSet />;
   const cell = { formId, person };
   const link = <LinkCell {...cell} />;
   const cells = [
-    identifierCell(person, properties, { formId, canEdit, review }),
+    identifierCell(person, properties, { formId, canEdit, ...mark }),
     ...(showLink ? [dataTableCell("link", link, SHRINK)] : []),
     ...properties.map((p) => dataTableCell(p.id, value(p), VALUE_CELL)),
   ];

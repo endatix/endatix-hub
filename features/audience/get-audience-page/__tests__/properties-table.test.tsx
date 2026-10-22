@@ -68,8 +68,7 @@ describe("PropertiesTable coverage", () => {
     vi.stubGlobal("ResizeObserver", ResizeObserverStub);
   });
 
-  const review = {
-    findings: [],
+  const verdicts = {
     notFilledIn: () => [],
     forProperty: (name: string) =>
       name === "tier"
@@ -82,13 +81,13 @@ describe("PropertiesTable coverage", () => {
       <PropertiesTable
         identifierKind={AudienceIdentifierKind.Email}
         properties={[named("tier"), named("seats")]}
-        review={review}
+        verdicts={verdicts}
       />,
     );
 
     const [header, tier, seats] = screen.getAllByRole("row");
     expect(within(header!).getByText("Used in form")).toBeTruthy();
-    expect(within(header!).getByText("Filled in")).toBeTruthy();
+    expect(within(header!).getByText("Filled in (real)")).toBeTruthy();
     expect(within(tier!).getByText("Used")).toBeTruthy();
     expect(within(tier!).getByText("4,790 of 4,810")).toBeTruthy();
     expect(within(seats!).getByText("Not used")).toBeTruthy();

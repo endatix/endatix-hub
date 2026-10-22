@@ -28,9 +28,10 @@ const authoringIndexOnly = {
   group: [
     "@/lib/personalization/authoring/*",
     "**/personalization/authoring/*",
+    "!@/lib/personalization/authoring/usage",
   ],
   message:
-    "Import Audience authoring from @/lib/personalization/authoring (its index.ts) only.",
+    "Import Audience authoring from @/lib/personalization/authoring (its index.ts), or the Creator-free @/lib/personalization/authoring/usage, only.",
 };
 
 const eslintConfig = defineConfig([

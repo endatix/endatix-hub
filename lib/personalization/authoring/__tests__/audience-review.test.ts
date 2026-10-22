@@ -292,6 +292,19 @@ describe("Audience coverage", () => {
     expect(review.findings.map((f) => f.kind)).not.toContain("not-filled-in");
   });
 
+  it("counts a property a question also names as used", () => {
+    const review = reviewAudience(
+      form(
+        { type: "text", name: "seats" },
+        { type: "text", name: "q", title: "{tier}" },
+      ),
+      counted(40, [{ variableName: "seats", filledReal: 40 }]),
+    );
+
+    expect(review.forProperty("seats").used).toBe(true);
+    expect(review.findings.map((f) => f.kind)).not.toContain("unused-property");
+  });
+
   it("lists what one participant has not filled in, among what the form reads", () => {
     const review = reviewAudience(
       form({ type: "text", name: "q", title: "{tier} {seats}" }),

@@ -15,7 +15,12 @@ import type {
   AudienceIdentifierKind,
   AudienceProperty,
 } from "@/lib/endatix-api/audience/types";
-import type { AudienceReview } from "@/lib/personalization/authoring";
+import type {
+  PropertyUse,
+  UsageVerdicts,
+} from "@/lib/personalization/audience-usage";
+import { StatusBadge } from "@/components/common/status-badge";
+import { NotSet } from "../../ui/not-set";
 import { VariableName } from "../../ui/variable-name";
 import { dataTypeLabel } from "../../property-types";
 import { identifierKindLabel, matchKeyFirst } from "../../utils";
@@ -32,7 +37,7 @@ const COLUMNS: readonly StaticDataTableColumn[] = Object.freeze([
 ]);
 const COVERAGE_COLUMNS: readonly StaticDataTableColumn[] = Object.freeze([
   { key: "used", label: "Used in form", className: SHRINK },
-  { key: "filled", label: "Filled in", className: SHRINK },
+  { key: "filled", label: "Filled in (real)", className: SHRINK },
 ]);
 const ACTIONS_COLUMN: StaticDataTableColumn = {
   key: "actions",
@@ -87,34 +92,38 @@ function PropertyName({ property, kind }: Readonly<NameProps>) {
   );
 }
 
+function filledIn({ filledReal, real }: PropertyUse) {
+  if (real === 0) return <NotSet label="No real participants" />;
+  return `${filledReal.toLocaleString()} of ${real.toLocaleString()}`;
+}
+
 /** What the saved form reads and how many real participants filled it in (the designer's verdict). */
 function coverageCells(
   property: AudienceProperty,
-  review: AudienceReview,
+  verdicts: UsageVerdicts,
 ): StaticDataTableCell[] {
-  const use = review.forProperty(property.variableName);
+  const use = verdicts.forProperty(property.variableName);
   const used = use.used ? (
-    <Badge variant="secondary">Used</Badge>
+    <StatusBadge tone="on" label="Used" />
   ) : (
-    <span className="text-muted-foreground">Not used</span>
+    <StatusBadge tone="off" label="Not used" />
   );
-  const filled = `${use.filledReal.toLocaleString()} of ${use.real.toLocaleString()}`;
   return [
     dataTableCell("used", used, TYPE_CELL),
-    dataTableCell("filled", filled, TYPE_CELL),
+    dataTableCell("filled", filledIn(use), TYPE_CELL),
   ];
 }
 
 function propertyCells(
   { property, kind }: NameProps,
-  { handlers, review }: Pick<PropertiesTableProps, "handlers" | "review">,
+  { handlers, verdicts }: Pick<PropertiesTableProps, "handlers" | "verdicts">,
 ): StaticDataTableCell[] {
   const name = <PropertyName property={property} kind={kind} />;
   const cells = [
     dataTableCell("name", name, NAME_CELL),
     dataTableCell("variable", <VariableName value={property.variableName} />),
     dataTableCell("type", dataTypeLabel(property.dataType), TYPE_CELL),
-    ...(review ? coverageCells(property, review) : []),
+    ...(verdicts ? coverageCells(property, verdicts) : []),
   ];
   if (!handlers) return cells;
   const actions = (
@@ -128,17 +137,17 @@ type PropertiesTableProps = {
   properties: AudienceProperty[];
   /** Omitted for a read-only reader: the table has no actions column. */
   handlers?: RowHandlers;
-  /** The saved form's Audience review; without one there are no coverage columns. */
-  review?: AudienceReview | null;
+  /** The saved form's Audience verdicts; without one there are no coverage columns. */
+  verdicts?: UsageVerdicts | null;
 };
 
 function tableColumns({
   handlers,
-  review,
-}: Pick<PropertiesTableProps, "handlers" | "review">) {
+  verdicts,
+}: Pick<PropertiesTableProps, "handlers" | "verdicts">) {
   return [
     ...COLUMNS,
-    ...(review ? COVERAGE_COLUMNS : []),
+    ...(verdicts ? COVERAGE_COLUMNS : []),
     ...(handlers ? [ACTIONS_COLUMN] : []),
   ];
 }
@@ -148,15 +157,15 @@ export function PropertiesTable({
   identifierKind: kind,
   properties,
   handlers,
-  review,
+  verdicts,
 }: Readonly<PropertiesTableProps>) {
   return (
-    <StaticDataTable columns={tableColumns({ handlers, review })}>
+    <StaticDataTable columns={tableColumns({ handlers, verdicts })}>
       {matchKeyFirst(properties, kind).map((property, index) => (
         <StaticDataTableRow
           key={property.id}
           index={index}
-          cells={propertyCells({ property, kind }, { handlers, review })}
+          cells={propertyCells({ property, kind }, { handlers, verdicts })}
         />
       ))}
     </StaticDataTable>

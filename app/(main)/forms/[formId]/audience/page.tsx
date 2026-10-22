@@ -3,12 +3,16 @@ import { AudiencePageShell } from "@/features/audience/get-audience-page/ui/audi
 import { audienceListSearch } from "@/features/audience/get-audience-page/audience-return-to";
 import {
   loadAudiencePage,
-  loadAudienceReview,
+  loadAudienceUsage,
   parseAudienceView,
   parsePeoplePaging,
   parsePeopleTestFilter,
 } from "@/features/audience/get-audience-page";
-import { requireAudienceAccess } from "@/features/audience/shared/require-audience-api.server";
+import {
+  requireAudienceAccess,
+  type AudienceAccess,
+} from "@/features/audience/shared/require-audience-api.server";
+import { loadAudienceVariables } from "@/features/audience/server";
 import { FormWorkspaceHeader } from "@/features/forms/form-workspace";
 import { loadWorkspaceForm } from "@/features/forms/form-workspace/load-workspace-form.server";
 import { FormLoadError } from "@/features/forms/form-workspace/ui/form-load-error";
@@ -48,6 +52,7 @@ type AudienceRequest = {
   canManageMatchKey: boolean;
   canEdit: boolean;
   canTest: boolean;
+  checkPermission: CheckPermission;
 };
 
 function listSearchFrom(query: Awaited<Params["searchParams"]>): string {
@@ -59,23 +64,32 @@ function listSearchFrom(query: Awaited<Params["searchParams"]>): string {
   });
 }
 
-/** The form, then what the Audience tab reviews of its saved definition. */
-async function formWithReview(api: EndatixApi, formId: string) {
-  const form = await loadWorkspaceForm(formId, "audience");
-  if (Result.isError(form)) return { form, reviewData: null };
+type CheckPermission = AudienceAccess["checkPermission"];
+
+/** The form and its variables together, then what its saved definition reads of them. */
+async function formWithUsage(
+  { api, formId }: Pick<AudienceRequest, "api" | "formId">,
+  checkPermission: CheckPermission,
+) {
+  const [form, variables] = await Promise.all([
+    loadWorkspaceForm(formId, "audience"),
+    loadAudienceVariables({ api, formId, checkPermission }),
+  ]);
+  if (Result.isError(form)) return { form, usage: null };
   const { activeDefinitionId } = form.value;
-  const reviewData = await loadAudienceReview({
+  const usage = await loadAudienceUsage({
     api,
     formId,
     activeDefinitionId,
+    variables,
   });
-  return { form, reviewData };
+  return { form, usage };
 }
 
 async function audienceView({ query, ...request }: AudienceRequest) {
   const { formId } = request;
-  const [{ form, reviewData }, audience] = await Promise.all([
-    formWithReview(request.api, formId),
+  const [{ form, usage }, audience] = await Promise.all([
+    formWithUsage(request, request.checkPermission),
     loadAudiencePage({ ...request, paging: peopleQueryFrom(query) }),
   ]);
   if (Result.isError(form)) return <FormLoadError result={form} />;
@@ -88,7 +102,7 @@ async function audienceView({ query, ...request }: AudienceRequest) {
       view={parseAudienceView(firstSearchParam(query.view))}
       listSearch={listSearchFrom(query)}
       data={audience.value}
-      reviewData={reviewData}
+      usage={usage}
     />
   );
 }
@@ -108,6 +122,7 @@ async function guardAudiencePage(formId: string) {
   ]);
   return {
     api,
+    checkPermission,
     canManageMatchKey: manageSettings.success,
     canEdit: editForms.success,
     canTest: testForms.success,

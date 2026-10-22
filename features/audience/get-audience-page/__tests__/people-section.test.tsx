@@ -219,8 +219,7 @@ describe("PeopleSection", () => {
   });
 
   it("marks a participant missing values the saved form reads", () => {
-    const review = {
-      findings: [],
+    const verdicts = {
       forProperty: () => ({ used: true, filledReal: 0, real: 0 }),
       notFilledIn: (filled: string[]) =>
         ["city", "tier"].filter((name) => !filled.includes(name)),
@@ -239,7 +238,7 @@ describe("PeopleSection", () => {
         ]}
         canEdit={false}
         canTest={false}
-        review={review}
+        verdicts={verdicts}
       />,
     );
 
@@ -249,6 +248,30 @@ describe("PeopleSection", () => {
     ).toBeTruthy();
     expect(within(missing!).getByLabelText("Not filled in: Tier")).toBeTruthy();
     expect(complete!.textContent).not.toContain("not filled in");
+  });
+
+  it("counts the identifier as filled in when the form reads the match key", () => {
+    const verdicts = {
+      forProperty: () => ({ used: true, filledReal: 0, real: 0 }),
+      notFilledIn: (filled: string[]) =>
+        ["external_id", "city"].filter((name) => !filled.includes(name)),
+    };
+    render(
+      <PeopleSection
+        {...LIST}
+        identifierKind={AudienceIdentifierKind.ExternalId}
+        properties={[
+          textProperty("ext", "external_id"),
+          textProperty("city", "city", "City"),
+        ]}
+        people={[PERSON]}
+        canEdit={false}
+        canTest={false}
+        verdicts={verdicts}
+      />,
+    );
+
+    expect(screen.queryByText(/not filled in/)).toBeNull();
   });
 
   it("says the filter found nobody, with a way back to everyone", () => {
