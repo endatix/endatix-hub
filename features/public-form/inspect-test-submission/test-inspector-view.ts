@@ -41,6 +41,8 @@ export type TestInspectorViewInput = {
   formId: string;
   submission: Submission | undefined;
   canStartOver: boolean;
+  /** The tester may open the participant page (it needs `forms.edit`); else the row opens Audience. */
+  canOpenParticipant: boolean;
 };
 
 const byName = (a: string, b: string) => a.localeCompare(b);
@@ -56,9 +58,10 @@ export function submissionDetailsHref(
 function participantLink(
   formId: string,
   submission: Submission | undefined,
+  canOpenParticipant: boolean,
 ): ParticipantLink {
   const memberId = submission?.personalization?.memberId;
-  return memberId
+  return canOpenParticipant && memberId
     ? { label: "Participant", href: formRoutes.participant(formId, memberId) }
     : {
         label: "Audience",
@@ -100,6 +103,7 @@ export function toTestInspectorView({
   formId,
   submission,
   canStartOver,
+  canOpenParticipant,
 }: TestInspectorViewInput): TestInspectorView {
   const submissionId = submission?.id ? String(submission.id) : null;
   return {
@@ -109,7 +113,7 @@ export function toTestInspectorView({
     snapshot: inspectedSnapshot(submission),
     links: {
       submissionDetails: submissionDetailsHref(formId, submissionId),
-      participant: participantLink(formId, submission),
+      participant: participantLink(formId, submission, canOpenParticipant),
     },
     canStartOver,
   };

@@ -17,6 +17,14 @@ const SOURCE_LABELS: Record<PersonalizationSource, string> = {
   [PersonalizationSource.Test]: "Test as this participant",
 };
 
+/** A source this Hub does not know yet (a newer API) is shown as sent, never as missing. */
+function snapshotSourceLabel(source: string | undefined): string {
+  if (!source) return "Not recorded";
+  return Object.hasOwn(SOURCE_LABELS, source)
+    ? SOURCE_LABELS[source as PersonalizationSource]
+    : source;
+}
+
 const HEADING_ID = "submitter-participant";
 
 interface SubmitterParticipantProps {
@@ -70,7 +78,7 @@ function ParticipantHeading({ href }: Readonly<{ href: Route | null }>) {
 
 function SnapshotFacts({ snapshot }: Readonly<{ snapshot: Snapshot }>) {
   const { identifier, source, capturedAt } = snapshot;
-  const sourceLabel = source ? SOURCE_LABELS[source] : "Not recorded";
+  const sourceLabel = snapshotSourceLabel(source);
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
       <SubmitterFact copyable label="Identifier" value={identifier} />

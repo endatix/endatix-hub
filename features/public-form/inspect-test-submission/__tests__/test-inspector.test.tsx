@@ -47,6 +47,7 @@ describe("TestInspector", () => {
       formId: "form-1",
       submission: personTest,
       canStartOver: true,
+      canOpenParticipant: true,
     });
     render(<TestInspector model={null} view={view} />);
 
@@ -60,6 +61,7 @@ describe("TestInspector", () => {
       formId: "form-1",
       submission: personTest,
       canStartOver: true,
+      canOpenParticipant: true,
     });
     render(<TestInspector model={null} view={view} />);
 
@@ -91,6 +93,7 @@ describe("TestInspector", () => {
       formId: "form-1",
       submission: undefined,
       canStartOver: false,
+      canOpenParticipant: true,
     });
     render(
       <FormRuntimeProvider
@@ -116,6 +119,7 @@ describe("TestInspector", () => {
       formId: "form-1",
       submission: personTest,
       canStartOver: true,
+      canOpenParticipant: true,
     });
     render(<TestInspector model={null} view={view} />);
     openMenu();
@@ -136,6 +140,7 @@ describe("TestInspector", () => {
       formId: "form-1",
       submission: personTest,
       canStartOver: true,
+      canOpenParticipant: true,
     });
     render(<TestInspector model={null} view={view} />);
     openMenu();
@@ -157,6 +162,7 @@ describe("TestInspector", () => {
       formId: "form-1",
       submission: personTest,
       canStartOver: true,
+      canOpenParticipant: true,
     });
     render(<TestInspector model={null} view={view} />);
     openMenu();

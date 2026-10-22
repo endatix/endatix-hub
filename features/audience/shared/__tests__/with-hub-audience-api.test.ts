@@ -9,7 +9,10 @@ vi.mock("@/auth", () => ({
 
 vi.mock("@/features/auth/authorization", () => ({
   authorization: vi.fn(),
-  Permissions: { Access: { Hub: "access.apps.hub" } },
+  Permissions: {
+    Access: { Hub: "access.apps.hub" },
+    Forms: { Edit: "forms.edit" },
+  },
 }));
 
 vi.mock("@/lib/feature-flags", () => ({

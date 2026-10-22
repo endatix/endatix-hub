@@ -39,6 +39,7 @@ const view = toTestInspectorView({
   formId: "1",
   submission: testSubmission,
   canStartOver: true,
+  canOpenParticipant: false,
 });
 
 describe("testCornerFor", () => {

@@ -38,6 +38,7 @@ describe("toTestInspectorView", () => {
         formId: "form-1",
         submission: personTest,
         canStartOver: true,
+        canOpenParticipant: true,
       }),
     ).toEqual({
       formId: "form-1",
@@ -74,6 +75,7 @@ describe("toTestInspectorView", () => {
       formId: "form-1",
       submission: { ...base, submitterDisplayId: "Ada Lovelace" },
       canStartOver: false,
+      canOpenParticipant: true,
     });
 
     expect(view.snapshot).toBeNull();
@@ -90,6 +92,7 @@ describe("toTestInspectorView", () => {
       formId: "form-1",
       submission: undefined,
       canStartOver: false,
+      canOpenParticipant: true,
     });
 
     expect(view.submissionId).toBeNull();
@@ -109,6 +112,21 @@ describe("toTestInspectorView", () => {
       formId: "form-1",
       submission: { ...personTest, personalization: withoutMember },
       canStartOver: true,
+      canOpenParticipant: true,
+    });
+
+    expect(view.links.participant).toEqual({
+      label: "Audience",
+      href: "/forms/form-1/audience?test=test",
+    });
+  });
+
+  it("opens Audience instead when the tester may not open the participant page", () => {
+    const view = toTestInspectorView({
+      formId: "form-1",
+      submission: personTest,
+      canStartOver: true,
+      canOpenParticipant: false,
     });
 
     expect(view.links.participant).toEqual({

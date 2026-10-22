@@ -64,6 +64,23 @@ describe("SubmitterParticipant", () => {
     expect(screen.getByText("Test as this participant")).toBeTruthy();
   });
 
+  it("shows a source this Hub does not know as sent, and a missing one as not recorded", () => {
+    const { rerender } = renderSection({
+      ...linkSnapshot,
+      source: "lookup" as PersonalizationSource,
+    });
+    expect(screen.getByText("lookup")).toBeTruthy();
+
+    rerender(
+      <SubmitterParticipant
+        canOpenParticipant
+        formId="form-1"
+        personalization={{ ...linkSnapshot, source: undefined }}
+      />,
+    );
+    expect(screen.getByText("Not recorded")).toBeTruthy();
+  });
+
   it("hides Open participant from a viewer who cannot edit the form", () => {
     renderSection(linkSnapshot, false);
 

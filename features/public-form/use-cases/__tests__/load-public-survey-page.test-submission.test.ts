@@ -36,10 +36,12 @@ vi.mock("@/features/auth/authorization", async (importOriginal) => ({
   authorization: vi.fn(),
 }));
 
-/** The signed-in viewer may test forms, or not. */
-function viewerMayTest(allowed: boolean) {
+/** The signed-in viewer may test forms, or not; a tester may also edit forms, or not. */
+function viewerMayTest(allowed: boolean, canEdit = true) {
+  vi.mocked(auth).mockResolvedValue({ accessToken: "token" } as never);
   vi.mocked(authorization).mockResolvedValue({
     checkAllPermissions: vi.fn(async () => ({ success: allowed })),
+    checkPermission: vi.fn(async () => ({ success: canEdit })),
   } as never);
 }
 
@@ -117,6 +119,19 @@ describe("loadPublicSurveyPageUseCase on a person's test submission", () => {
       canStartOver: true,
       submitter: { identifier: "tester@example.com" },
     });
+  });
+
+  it("points a tester who may not edit forms at Audience, not the participant page that would send them away", async () => {
+    vi.mocked(getPartialSubmissionUseCase).mockResolvedValue(
+      ApiResult.success(personTestSubmission),
+    );
+    viewerMayTest(true, false);
+
+    const result = await loadPublicSurveyPageUseCase({ formId, tokenStore });
+
+    expect(
+      result.kind === "success" && result.testInspector?.links.participant,
+    ).toEqual({ label: "Audience", href: "/forms/form-1/audience?test=test" });
   });
 
   it("gives any other viewer of a test submission no view, so the page shows only the notice", async () => {
