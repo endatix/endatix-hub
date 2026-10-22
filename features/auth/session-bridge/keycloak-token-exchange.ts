@@ -73,8 +73,7 @@ export async function exchangeKeycloakToken(
 
     return ApiResult.success(keycloakTokenData);
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : String(error) ?? "Unknown error";
+    const errorMessage = describeError(error);
 
     if (errorMessage.includes("fetch failed")) {
       return ApiResult.networkError(
@@ -89,4 +88,14 @@ export async function exchangeKeycloakToken(
       });
     }
   }
+}
+
+function describeError(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  if (typeof error === "string") {
+    return error;
+  }
+  return JSON.stringify(error) ?? "Unknown error";
 }
