@@ -266,7 +266,7 @@ it("renders the xlsx glyph", () => {
 
 ## SonarCloud quality gate
 
-SonarCloud Free can't edit the "Sonar way" gate, so `build-ci.yml` applies it with [`scripts/sonar-gate.mjs`](scripts/sonar-gate.mjs) after the scan (same policy as endatix/endatix#1319). Red bugs, vulnerabilities, hotspots or coverage on new code fail the job. Duplication (`SONAR_ADVISORY_METRICS`) only warns. When a block reaches its third copy, open a `tech-debt` issue for it. Add `sonar.cpd.exclusions` only for boilerplate the SonarCloud duplication data shows.
+SonarCloud Free can't edit the "Sonar way" gate, so `build-ci.yml` applies it with [`scripts/sonar-gate.mjs`](scripts/sonar-gate.mjs) after the scan (same policy as endatix/endatix#1319). On PRs, red bugs, vulnerabilities, hotspots or coverage on new code fail the job, and duplication (`SONAR_ADVISORY_METRICS`) only warns. On pushes to `main` the gate only reports (`*`): the code is already merged, and the PR was the place to stop it. New code on `main` starts at the last stable release (`sonar.projectVersion` from the latest `vX.Y.Z` tag). When a block reaches its third copy, open a `tech-debt` issue for it. Add `sonar.cpd.exclusions` only for boilerplate the SonarCloud duplication data shows.
 
 ## Mirrored OSS rules
 

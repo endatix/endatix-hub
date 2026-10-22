@@ -60,6 +60,35 @@ describe("evaluateGate", () => {
     expect(verdict.advisory).toHaveLength(1);
   });
 
+  it("reports every red condition as a warning when the advisory list is *", () => {
+    // Arrange
+    const status = {
+      status: "ERROR",
+      conditions: [
+        ...DUPLICATION_ONLY.conditions,
+        condition("new_coverage", "ERROR", "61.0", "80"),
+      ],
+    };
+
+    // Act
+    const verdict = evaluateGate(status, ["*"]);
+
+    // Assert
+    expect(verdict.passed).toBe(true);
+    expect(verdict.blocking).toEqual([]);
+    expect(verdict.advisory.map((c) => c.metricKey)).toEqual([
+      "new_duplicated_lines_density",
+      "new_coverage",
+    ]);
+  });
+
+  it("still fails an unexplained red gate when the advisory list is *", () => {
+    // Act & Assert
+    expect(
+      evaluateGate({ status: "ERROR", conditions: [] }, ["*"]).passed,
+    ).toBe(false);
+  });
+
   it("passes a green gate with nothing to report", () => {
     // Act
     const verdict = evaluateGate(
