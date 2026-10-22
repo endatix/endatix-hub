@@ -16,8 +16,9 @@ type Params = { params: Promise<{ formId: string; memberId: string }> };
 export const metadata: Metadata = { title: "Participant" };
 
 /**
- * Reading a participant needs `forms.edit` (the API's own gate); a reader without it is
- * redirected. With the personalization flag off the page goes back to the form.
+ * Reading a participant needs Hub access and `forms.edit` (the API's own gate).
+ * `requireAudienceAccess` requires both and redirects when either is missing. With the
+ * personalization flag off the page goes back to the form.
  */
 async function guardParticipantPage(formId: string) {
   const access = await requireAudienceAccess(Permissions.Forms.Edit);
