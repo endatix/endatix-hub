@@ -28,7 +28,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ReactElementFactory } from "survey-react-ui";
 import { FormDiagnosticsPlugin } from "../form-diagnostics-plugin";
-import { AudienceFindings } from "./audience-findings";
+import { AudienceFindings, useAudienceFindings } from "./audience-findings";
 import { ConvertLargeChoiceLists } from "./convert-large-choice-lists";
 
 interface FormDiagnosticsViewProps {
@@ -72,6 +72,7 @@ export const FormDiagnosticsView = ({
   model,
 }: Readonly<FormDiagnosticsViewProps>) => {
   const stats = model?.stats;
+  const audienceFindings = useAudienceFindings(model);
 
   const issues = useMemo(() => {
     if (!stats) return [];
@@ -133,9 +134,7 @@ export const FormDiagnosticsView = ({
   }
 
   const requiresReCaptcha = model.requiresReCaptcha;
-  const audienceFindingCount = model.audience
-    ? model.audienceFindings.length
-    : 0;
+  const audienceFindingCount = audienceFindings.length;
   const isPublic = model.isPublic;
   const infoAlertClassName =
     "text-blue-600 border-blue-200 bg-blue-50 dark:bg-blue-950/20 dark:text-blue-400 dark:border-blue-800";
@@ -335,7 +334,7 @@ export const FormDiagnosticsView = ({
 
           {audienceFindingCount > 0 && (
             <AudienceFindings
-              findings={model.audienceFindings}
+              findings={audienceFindings}
               onFix={(finding) => model.applyAudienceFix(finding)}
             />
           )}

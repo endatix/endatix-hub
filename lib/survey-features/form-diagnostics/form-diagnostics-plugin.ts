@@ -20,6 +20,8 @@ export class FormDiagnosticsPlugin extends Base implements ICreatorPlugin {
   constructor(public readonly creator: SurveyCreatorModel) {
     super();
     this.updateStats();
+    // The designer loads the saved form after a `?tab=` deep link has opened this tab.
+    creator.onDesignerSurveyCreated.add(() => this.updateAudienceFindings());
   }
 
   public get model(): this {

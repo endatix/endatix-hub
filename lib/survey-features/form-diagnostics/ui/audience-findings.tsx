@@ -1,10 +1,12 @@
 "use client";
 
 import { AlertTriangle } from "lucide-react";
+import { useCallback, useSyncExternalStore } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { AudienceFinding } from "@/lib/personalization/authoring";
+import type { FormDiagnosticsPlugin } from "../form-diagnostics-plugin";
 
 const WARNING_CLASS =
   "text-orange-600 border-orange-200 bg-orange-50 dark:bg-orange-950/20 dark:text-orange-400 dark:border-orange-800";
@@ -47,6 +49,26 @@ function findingKey(finding: AudienceFinding): string {
   return finding.kind === "unused-property"
     ? `${finding.kind}:${finding.variableName}`
     : `${finding.kind}:${finding.path}:${finding.variable}`;
+}
+
+const FINDINGS = "audienceFindings";
+const NONE: AudienceFinding[] = [];
+
+/** The plugin's findings, re-rendered when they change (a refresh lands, a fix applies). */
+export function useAudienceFindings(
+  model: FormDiagnosticsPlugin | undefined,
+): AudienceFinding[] {
+  const subscribe = useCallback(
+    (onChange: () => void) => {
+      if (!model) return () => {};
+      const key = `audience-findings-${Math.random()}`;
+      model.registerPropertyChangedHandlers([FINDINGS], onChange, key);
+      return () => model.unregisterPropertyChangedHandlers([FINDINGS], key);
+    },
+    [model],
+  );
+  const read = () => (model?.audience ? model.audienceFindings : NONE);
+  return useSyncExternalStore(subscribe, read, read);
 }
 
 type AudienceFindingsProps = {

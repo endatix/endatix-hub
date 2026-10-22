@@ -71,6 +71,28 @@ describe("Audience findings in Diagnostics", () => {
     expect(audience.review).toHaveBeenCalledTimes(3);
   });
 
+  it("shows findings that arrive after the tab rendered", async () => {
+    const audience = audienceWith([]);
+    const plugin = pluginWith(audience);
+    render(<FormDiagnosticsView model={plugin} />);
+
+    vi.mocked(audience.review).mockReturnValue({ findings: [UNUSED] });
+    plugin.activate();
+
+    expect(await screen.findByText("{seats} is never used")).toBeTruthy();
+  });
+
+  it("reviews again when the Creator loads the form", () => {
+    const creator = new SurveyCreatorModel({});
+    const plugin = new FormDiagnosticsPlugin(creator);
+    const audience = audienceWith([UNUSED]);
+    plugin.audience = audience;
+
+    creator.JSON = { elements: [{ type: "text", name: "q" }] };
+
+    expect(plugin.audienceFindings).toEqual([UNUSED]);
+  });
+
   it("shows no Personalization section without Audience variables", () => {
     render(<FormDiagnosticsView model={pluginWith(undefined)} />);
 
