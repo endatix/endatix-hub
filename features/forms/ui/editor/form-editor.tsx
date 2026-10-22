@@ -13,6 +13,11 @@ import {
 import { StoredTheme } from "@/features/themes/types";
 import { updateFormThemeAction } from "@/features/themes/update-form-theme";
 import { useDesignerRuntime } from "@/lib/designer-runtime";
+import type { AudienceVariables } from "@/lib/endatix-api/audience/types";
+import {
+  createAudienceAuthoring,
+  type CreatorHooks,
+} from "@/lib/personalization/authoring";
 import { registerAudioQuestionUI } from "@/lib/questions/audio-recorder";
 import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";
 import {
@@ -124,6 +129,9 @@ SvgRegistry.registerIcon("icon-question-loops", questionLoopsIcon);
 
 registerThemes();
 
+/** The form's Audience variables for Preview as; absent with the flag off or no access. */
+type DesignerAudience = CreatorHooks & { variables: AudienceVariables };
+
 interface FormEditorProps {
   formId: string;
   formJson: object | null;
@@ -132,6 +140,7 @@ interface FormEditorProps {
   themeId?: string;
   isPublic?: boolean;
   formIsEnabled?: boolean;
+  audience?: DesignerAudience | null;
   initialPropertyGridVisible?: boolean;
   onThemeModificationChange?: (isModified: boolean) => void;
   onSaveHandlerReady?: (saveHandler: () => Promise<void>) => void;
@@ -160,6 +169,17 @@ function nameToTitle(name: string): string {
   return words.join(" ");
 }
 
+function bindAudience(
+  creator: SurveyCreatorModel,
+  audience: DesignerAudience | null | undefined,
+) {
+  if (!audience) return undefined;
+  return createAudienceAuthoring(audience.variables)?.bindToCreator(
+    creator,
+    audience,
+  );
+}
+
 function FormEditor({
   formJson,
   formId,
@@ -168,6 +188,7 @@ function FormEditor({
   themeId,
   isPublic,
   formIsEnabled,
+  audience,
   initialPropertyGridVisible = true,
   onThemeModificationChange,
   onSaveHandlerReady,
@@ -499,6 +520,7 @@ function FormEditor({
         );
         const cleanupQuestionLoops = bindQuestionLoops(newCreator);
         const cleanupFormDiagnostics = bindFormDiagnostics(newCreator);
+        const unbindAudience = bindAudience(newCreator, audience);
 
         setCreator(newCreator);
 
@@ -539,6 +561,7 @@ function FormEditor({
         return () => {
           cleanupQuestionLoops?.();
           cleanupFormDiagnostics?.();
+          unbindAudience?.();
           unregisterJsonEditor();
           unregisterStorage();
         };
@@ -557,6 +580,7 @@ function FormEditor({
     creator,
     initialPropertyGridVisible,
     formJson,
+    audience,
     registerStorageHandlers,
     registerJsonEditor,
     isExtensionsReady,
@@ -677,4 +701,4 @@ function FormEditor({
   );
 }
 export default FormEditor;
-export type { FormEditorProps };
+export type { DesignerAudience, FormEditorProps };

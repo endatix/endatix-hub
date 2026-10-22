@@ -11,11 +11,16 @@ import { getSurveyLicenseKey } from "@/features/config/server";
 import { SurveyLicenseProvider } from "@/features/config/survey-license-provider";
 import { DesignerRuntimeProvider } from "@/lib/designer-runtime";
 import FormEditorLoader from "@/features/forms/ui/editor/form-editor-loader";
+import { getAudienceVariablesAction } from "@/features/audience/get-audience-variables";
+import { loadAudienceVariables } from "@/features/audience/server";
 import { FormAssistantProvider } from "@/features/forms/use-cases/design-form/form-assistant.context";
 import { getCurrentConversationUseCase } from "@/features/forms/use-cases/design-form/get-current-conversation.use-case";
 import { aiFeaturesFlag } from "@/lib/feature-flags/flags";
 import { getFormDesignReturn } from "@/features/forms/form-workspace";
-import { firstSearchParam, type SearchParamValue } from "@/lib/utils/next-utils";
+import {
+  firstSearchParam,
+  type SearchParamValue,
+} from "@/lib/utils/next-utils";
 import { EndatixApi } from "@/lib/endatix-api";
 import { Result, toResult } from "@/lib/result";
 import { Form } from "@/types";
@@ -59,7 +64,7 @@ export default async function FormDesignerPage({
   searchParams,
 }: Readonly<Params>) {
   const session = await auth();
-  const { requireHubAccess } = await authorization(session);
+  const { requireHubAccess, checkPermission } = await authorization(session);
   await requireHubAccess();
 
   const { formId } = await params;
@@ -67,17 +72,19 @@ export default async function FormDesignerPage({
   const chatContextPromise = getCurrentConversationUseCase(formId, session);
 
   const api = new EndatixApi(session?.accessToken);
-  const [settingsRes, foldersRes, formResult] = await Promise.all([
-    api.tenant.getSettings(),
-    api.folders.list(),
-    api.forms.get(formId).then((apiResult) =>
-      toResult(apiResult, {
-        fallbackMessage: "Failed to load form.",
-        logMessage: "Failed to load form for design.",
-        loggerName: "forms.design",
-      }),
-    ),
-  ]);
+  const [settingsRes, foldersRes, formResult, audienceVariables] =
+    await Promise.all([
+      api.tenant.getSettings(),
+      api.folders.list(),
+      api.forms.get(formId).then((apiResult) =>
+        toResult(apiResult, {
+          fallbackMessage: "Failed to load form.",
+          logMessage: "Failed to load form for design.",
+          loggerName: "forms.design",
+        }),
+      ),
+      loadAudienceVariables({ api, formId, checkPermission }),
+    ]);
 
   if (Result.isError(formResult)) {
     if (formResult.statusCode === 404) {
@@ -127,6 +134,10 @@ export default async function FormDesignerPage({
     themeId: form.themeId ?? undefined,
     isPublic: form.isPublic,
     formIsEnabled: form.isEnabled,
+    audience: audienceVariables && {
+      variables: audienceVariables,
+      refresh: getAudienceVariablesAction.bind(null, formId),
+    },
     designReturn: getFormDesignReturn(
       formId,
       firstSearchParam((await searchParams).from),

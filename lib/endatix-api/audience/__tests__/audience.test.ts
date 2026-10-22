@@ -437,3 +437,33 @@ describe("Audience participant", () => {
     expect(result.success).toBe(false);
   });
 });
+
+describe("Audience variables", () => {
+  const variables = {
+    variablePresets: {
+      definition: { elements: [{ type: "text", name: "tier" }] },
+      presets: [{ name: "maria@acme.test", variables: { tier: "gold" } }],
+      totalPresets: 1,
+    },
+    coverage: { participants: { test: 0, real: 0 }, properties: [] },
+    editing: { allowAdd: false, allowEdit: false, allowDelete: false },
+  };
+
+  it("reads the form's variables for the designer", async () => {
+    const get = vi.fn().mockResolvedValue(ApiResult.success(variables));
+
+    const result = await audienceWith({ get }).getVariables(FORM_ID);
+
+    expect(get).toHaveBeenCalledWith(`/forms/${FORM_ID}/audience/variables`);
+    expect(result.success && result.data).toEqual(variables);
+  });
+
+  it("rejects an invalid form id without calling the API", async () => {
+    const get = vi.fn();
+
+    const result = await audienceWith({ get }).getVariables("7/x");
+
+    expect(get).not.toHaveBeenCalled();
+    expect(result.success).toBe(false);
+  });
+});

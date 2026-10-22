@@ -62,6 +62,28 @@ const eslintConfig = defineConfig([
       ...tempRuleOverrides,
     },
   },
+  // Before the narrower no-restricted-imports blocks: a later block replaces this rule for its files.
+  {
+    files: ["**/*.ts", "**/*.tsx"],
+    ignores: ["lib/personalization/authoring/**"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: [
+                "@/lib/personalization/authoring/*",
+                "**/personalization/authoring/*",
+              ],
+              message:
+                "Import Audience authoring from @/lib/personalization/authoring (its index.ts) only.",
+            },
+          ],
+        },
+      ],
+    },
+  },
   {
     files: ["features/asset-storage/infrastructure/core/**/*.ts"],
     rules: {

@@ -43,6 +43,7 @@ import {
   type OpenedTestSubmission,
   type RedeemedAudienceLink,
   type UpdateAudienceSettingsRequest,
+  type AudienceVariables,
 } from "./types";
 
 export type AudiencePeoplePage = NormalizedPagedResponse<AudiencePerson>;
@@ -172,6 +173,16 @@ export class Audience {
       await this.endatix.get<WireParticipant>(
         formAudiencePath(formId, "people", memberId),
       ),
+    );
+  }
+
+  /** The form's Variables and Test participant values, for the designer's Preview as. */
+  async getVariables(formId: string): Promise<ApiResult<AudienceVariables>> {
+    const idCheck = requireEndatixId(formId, "formId");
+    if (!idCheck.success) return idCheck;
+
+    return this.endatix.get<AudienceVariables>(
+      formAudiencePath(formId, "variables"),
     );
   }
 
