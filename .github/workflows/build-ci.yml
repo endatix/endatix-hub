@@ -125,6 +125,15 @@ jobs:
           echo "::error::ENDATIX_HUB_REPO_SONAR_TOKEN is missing from the Infisical '$ENV_SLUG' environment (root folder)."
           exit 1
 
+      # New code on main runs from the last stable release ("Previous version" in
+      # SonarCloud). Without a version every analysis is "not provided" and the new-code
+      # period never resets. Canary tags (v*-*) are skipped; fetch-depth 0 brings the tags.
+      - name: 🏷️ SonarCloud project version (last stable tag)
+        if: env.ENDATIX_HUB_REPO_SONAR_TOKEN != ''
+        run: |
+          tag=$(git describe --tags --abbrev=0 --match 'v[0-9]*' --exclude '*-*' 2>/dev/null || echo v0.0.0)
+          echo "SONAR_PROJECT_VERSION=${tag#v}" >> "$GITHUB_ENV"
+
       # CI-based analysis with the Vitest lcov (sonar-project.properties). The scan
       # itself does not wait for the quality gate; the next step applies it.
       - name: 🔎 SonarCloud analysis
@@ -132,15 +141,19 @@ jobs:
         uses: SonarSource/sonarqube-scan-action@d209202bc7d53ff1cc128f7f907dac145c9d6ae9 # v8.3.0
         env:
           SONAR_TOKEN: ${{ env.ENDATIX_HUB_REPO_SONAR_TOKEN }}
+        with:
+          args: -Dsonar.projectVersion=${{ env.SONAR_PROJECT_VERSION }}
 
-      # Fails the job on red bugs, vulnerabilities, hotspots or coverage; duplication
-      # only warns (endatix/endatix#1319). Same script as endatix/endatix.
+      # PRs: fails the job on red bugs, vulnerabilities, hotspots or coverage; duplication
+      # only warns (endatix/endatix#1319). Pushes (main, hotfix): report only (`*`), since
+      # the code is already merged and a red gate would only hold back the canary.
+      # Same script as endatix/endatix.
       - name: 🚦 SonarCloud quality gate
         if: env.ENDATIX_HUB_REPO_SONAR_TOKEN != ''
         run: node scripts/sonar-gate.mjs
         env:
           SONAR_TOKEN: ${{ env.ENDATIX_HUB_REPO_SONAR_TOKEN }}
-          SONAR_ADVISORY_METRICS: new_duplicated_lines_density
+          SONAR_ADVISORY_METRICS: ${{ github.event_name == 'pull_request' && 'new_duplicated_lines_density' || '*' }}
 
   # Build validation on PRs; canary release on main — publishes only after the
   # tests above pass. docker-image makes the shared workflow log into GHCR and
