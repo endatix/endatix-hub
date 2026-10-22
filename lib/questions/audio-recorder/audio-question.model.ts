@@ -29,7 +29,7 @@ export class AudioQuestionModel extends QuestionFileModelBase {
   private analyser: AnalyserNode | undefined;
   private processor: ScriptProcessorNode | undefined;
   private audioData: Float32Array[] = [];
-  private rootElement: HTMLElement | undefined;
+  private questionElement: HTMLElement | undefined;
 
   public getType(): string {
     return AUDIO_RECORDER_TYPE;
@@ -137,13 +137,13 @@ export class AudioQuestionModel extends QuestionFileModelBase {
 
   public afterRenderQuestionElement(el: HTMLElement): void {
     super.afterRenderQuestionElement(el);
-    this.rootElement = el;
+    this.questionElement = el;
   }
 
   public beforeDestroyQuestionElement(el: HTMLElement): void {
     super.beforeDestroyQuestionElement(el);
     this.stopRecording();
-    this.rootElement = undefined;
+    this.questionElement = undefined;
   }
 
   public uploadAudioRecording(files: File[]) {
@@ -223,7 +223,7 @@ export class AudioQuestionModel extends QuestionFileModelBase {
   }
 
   private get canvasHtmlElement() {
-    return this.rootElement?.querySelector(
+    return this.questionElement?.querySelector(
       `#${this.canvasId}`,
     ) as HTMLCanvasElement;
   }
