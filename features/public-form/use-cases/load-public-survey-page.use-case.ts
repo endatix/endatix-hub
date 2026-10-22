@@ -6,7 +6,7 @@ import type { FormTokenCookieStore } from "@/features/public-form/infrastructure
 import { getActiveDefinitionUseCase } from "@/features/public-form/use-cases/get-active-definition.use-case";
 import { getPartialSubmissionUseCase } from "@/features/public-form/use-cases/get-partial-submission.use-case";
 import { getPublicFormAccessUseCase } from "@/features/public-form/use-cases/get-public-form-access.use-case";
-import { viewerCanTestFormsUseCase } from "@/features/public-form/use-cases/viewer-can-test-forms.use-case";
+import { testerAccessUseCase } from "@/features/public-form/use-cases/viewer-can-test-forms.use-case";
 import {
   toTestInspectorView,
   type TestInspectorView,
@@ -222,11 +222,14 @@ async function testInspectorFor({
     isRespondentTestMode: access.isRespondentTestMode,
     submission,
   });
-  if (!testPage || !(await viewerCanTestFormsUseCase())) return null;
+  if (!testPage) return null;
+  const tester = await testerAccessUseCase();
+  if (!tester) return null;
   return toTestInspectorView({
     formId,
     submission,
     canStartOver: canStartOverTestSubmission({ submission, urlToken }),
+    canOpenParticipant: tester.canOpenParticipant,
   });
 }
 

@@ -6,7 +6,10 @@ import {
   ParticipantGone,
   ParticipantPage,
 } from "@/features/audience/get-participant-page";
-import { requireAudienceAccess } from "@/features/audience/shared/require-audience-api.server";
+import {
+  PARTICIPANT_PAGE_PERMISSION,
+  requireAudienceAccess,
+} from "@/features/audience/shared/require-audience-api.server";
 import { loadWorkspaceForm } from "@/features/forms/form-workspace/load-workspace-form.server";
 import { FormLoadError } from "@/features/forms/form-workspace/ui/form-load-error";
 import { Result } from "@/lib/result";
@@ -21,7 +24,7 @@ export const metadata: Metadata = { title: "Participant" };
  * personalization flag off the page goes back to the form.
  */
 async function guardParticipantPage(formId: string) {
-  const access = await requireAudienceAccess(Permissions.Forms.Edit);
+  const access = await requireAudienceAccess(PARTICIPANT_PAGE_PERMISSION);
   if (Result.isError(access)) return redirect(`/forms/${formId}`);
   const { api, checkPermission } = access.value;
   const testForms = await checkPermission(Permissions.Forms.Test);

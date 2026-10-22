@@ -10,3 +10,7 @@ export { updateAudienceSettingsAction } from "./update-settings";
 export { importAudienceCsvAction } from "./import-csv";
 export { generateAudienceLinksAction } from "./generate-links/generate-audience-links.action";
 export { openTestSubmissionAction } from "./test-as-person";
+export {
+  canAccessAudience,
+  PARTICIPANT_PAGE_PERMISSION,
+} from "./shared/require-audience-api.server";

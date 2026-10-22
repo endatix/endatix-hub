@@ -10,20 +10,19 @@ import {
 } from "@/components/ui/empty";
 import { UserRoundSearch } from "lucide-react";
 import { useMemo } from "react";
+import type { Submission } from "@/lib/endatix-api";
+import { DASH_NO_DATA, formatOptionalValue } from "./format-details";
 import { useSubmissionDetails } from "./submission-details-context";
+import { SubmitterFact } from "./submitter-fact";
+import { SubmitterParticipant } from "./submitter-participant";
 
-const DASH_NO_DATA = "—";
-
-function formatOptionalValue(value?: string | number | null): string {
-  if (value === undefined || value === null) {
-    return DASH_NO_DATA;
-  }
-
-  const stringValue = String(value).trim();
-  return stringValue.length > 0 ? stringValue : DASH_NO_DATA;
+interface SubmitterDetailsPanelProps {
+  canOpenParticipant: boolean;
 }
 
-export function SubmitterDetailsPanel() {
+export function SubmitterDetailsPanel({
+  canOpenParticipant,
+}: Readonly<SubmitterDetailsPanelProps>) {
   const { submission } = useSubmissionDetails();
   const profileEntries = useMemo(
     () =>
@@ -45,26 +44,13 @@ export function SubmitterDetailsPanel() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <SubmitterFact
-          label="Submitter ID"
-          value={formatOptionalValue(submission.submitterDisplayId)}
-          copyValue={submission.submitterDisplayId}
-        />
-        <SubmitterFact
-          label="Submitter record ID"
-          value={formatOptionalValue(submission.submitterId)}
-          copyValue={
-            submission.submitterId === undefined
-              ? undefined
-              : String(submission.submitterId)
-          }
-        />
-        <SubmitterFact
-          label="Test submission"
-          value={submission.isTestSubmission ? "Yes" : "No"}
-        />
-      </div>
+      <SubmitterIdentity submission={submission} />
+
+      <SubmitterParticipant
+        canOpenParticipant={canOpenParticipant}
+        formId={String(submission.formId)}
+        personalization={submission.personalization}
+      />
 
       {profileEntries.length > 0 ? (
         <SubmitterProfileList entries={profileEntries} />
@@ -75,34 +61,18 @@ export function SubmitterDetailsPanel() {
   );
 }
 
-interface SubmitterFactProps {
-  label: string;
-  value: string;
-  copyValue?: string;
-}
-
-function SubmitterFact({
-  label,
-  value,
-  copyValue,
-}: Readonly<SubmitterFactProps>) {
+function SubmitterIdentity({
+  submission,
+}: Readonly<{ submission: Submission }>) {
+  const { submitterDisplayId, submitterId, isTestSubmission } = submission;
   return (
-    <div className="rounded-md border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <span className="text-[10px] font-bold tracking-widest text-slate-500 uppercase">
-          {label}
-        </span>
-        {copyValue && (
-          <CopyToClipboard
-            copyValue={copyValue}
-            layout="inline"
-            buttonClassName="size-6 hover:bg-slate-100 dark:hover:bg-slate-800"
-          />
-        )}
-      </div>
-      <span className="text-sm font-semibold break-all text-slate-900 dark:text-slate-100">
-        {value}
-      </span>
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <SubmitterFact copyable label="Submitter ID" value={submitterDisplayId} />
+      <SubmitterFact copyable label="Submitter record ID" value={submitterId} />
+      <SubmitterFact
+        label="Test submission"
+        value={isTestSubmission ? "Yes" : "No"}
+      />
     </div>
   );
 }

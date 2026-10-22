@@ -1,5 +1,6 @@
 import type { Submission } from "@/lib/endatix-api";
 import type { PersonalizationSource } from "@/lib/endatix-api/submissions/types";
+import { formRoutes } from "@/lib/routes/form-routes";
 
 /** What the Test inspector may show; built on the server, only for a viewer with `forms.test`. */
 export type TestInspectorView = {
@@ -9,7 +10,7 @@ export type TestInspectorView = {
   submitter: InspectedSubmitter;
   /** The Snapshot: frozen values the survey was opened with. Null when none was captured. */
   snapshot: InspectedSnapshot | null;
-  links: { submissionDetails: string | null; audience: string };
+  links: { submissionDetails: string | null; participant: ParticipantLink };
   canStartOver: boolean;
 };
 
@@ -22,6 +23,15 @@ export type InspectedSubmitter = {
   fields: ReadonlyArray<readonly [name: string, value: string]>;
 };
 
+/**
+ * The participant the Snapshot names, else Audience filtered to test participants. The label
+ * follows the target, so a tester is never told "Participant" for a list of everyone.
+ */
+export type ParticipantLink = {
+  label: "Participant" | "Audience";
+  href: string;
+};
+
 export type InspectedSnapshot = {
   capturedAt: string;
   values: ReadonlyArray<{ name: string; value: unknown }>;
@@ -31,6 +41,8 @@ export type TestInspectorViewInput = {
   formId: string;
   submission: Submission | undefined;
   canStartOver: boolean;
+  /** The tester may open the participant page (it needs `forms.edit`); else the row opens Audience. */
+  canOpenParticipant: boolean;
 };
 
 const byName = (a: string, b: string) => a.localeCompare(b);
@@ -40,7 +52,21 @@ export function submissionDetailsHref(
   formId: string,
   submissionId: string | null | undefined,
 ): string | null {
-  return submissionId ? `/forms/${formId}/submissions/${submissionId}` : null;
+  return submissionId ? formRoutes.submission(formId, submissionId) : null;
+}
+
+function participantLink(
+  formId: string,
+  submission: Submission | undefined,
+  canOpenParticipant: boolean,
+): ParticipantLink {
+  const memberId = submission?.personalization?.memberId;
+  return canOpenParticipant && memberId
+    ? { label: "Participant", href: formRoutes.participant(formId, memberId) }
+    : {
+        label: "Audience",
+        href: formRoutes.audience(formId, { test: "test" }),
+      };
 }
 
 function inspectedSubmitter(
@@ -77,6 +103,7 @@ export function toTestInspectorView({
   formId,
   submission,
   canStartOver,
+  canOpenParticipant,
 }: TestInspectorViewInput): TestInspectorView {
   const submissionId = submission?.id ? String(submission.id) : null;
   return {
@@ -86,7 +113,7 @@ export function toTestInspectorView({
     snapshot: inspectedSnapshot(submission),
     links: {
       submissionDetails: submissionDetailsHref(formId, submissionId),
-      audience: `/forms/${formId}/audience?test=test`,
+      participant: participantLink(formId, submission, canOpenParticipant),
     },
     canStartOver,
   };

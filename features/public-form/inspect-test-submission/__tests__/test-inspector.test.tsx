@@ -24,6 +24,7 @@ const personTest = {
     capturedAt: "2026-10-19T08:00:00Z",
     variables: { tier: "gold" },
     source: PersonalizationSource.Test,
+    memberId: "7",
   },
 } as unknown as Submission;
 
@@ -46,6 +47,7 @@ describe("TestInspector", () => {
       formId: "form-1",
       submission: personTest,
       canStartOver: true,
+      canOpenParticipant: true,
     });
     render(<TestInspector model={null} view={view} />);
 
@@ -54,11 +56,12 @@ describe("TestInspector", () => {
     expect(screen.queryByRole("menu")).toBeNull();
   });
 
-  it("lists the rows, with Submission and Audience opening in a new tab", () => {
+  it("lists the rows, with Submission and Participant opening in a new tab", () => {
     const view = toTestInspectorView({
       formId: "form-1",
       submission: personTest,
       canStartOver: true,
+      canOpenParticipant: true,
     });
     render(<TestInspector model={null} view={view} />);
 
@@ -69,7 +72,7 @@ describe("TestInspector", () => {
       "Submitting asada@example.com›",
       "Snapshot1 value›",
       "Submission↗",
-      "Audience↗",
+      "Participant↗",
       "Start over",
       "PreferencesComing soon⚙",
     ]);
@@ -79,8 +82,10 @@ describe("TestInspector", () => {
     );
     expect(submission.getAttribute("target")).toBe("_blank");
     expect(
-      screen.getByRole("menuitem", { name: /Audience/ }).getAttribute("href"),
-    ).toBe("/forms/form-1/audience?test=test");
+      screen
+        .getByRole("menuitem", { name: /Participant/ })
+        .getAttribute("href"),
+    ).toBe("/forms/form-1/audience/participants/7");
   });
 
   it("links to the submission the first save created", () => {
@@ -88,6 +93,7 @@ describe("TestInspector", () => {
       formId: "form-1",
       submission: undefined,
       canStartOver: false,
+      canOpenParticipant: true,
     });
     render(
       <FormRuntimeProvider
@@ -113,6 +119,7 @@ describe("TestInspector", () => {
       formId: "form-1",
       submission: personTest,
       canStartOver: true,
+      canOpenParticipant: true,
     });
     render(<TestInspector model={null} view={view} />);
     openMenu();
@@ -133,6 +140,7 @@ describe("TestInspector", () => {
       formId: "form-1",
       submission: personTest,
       canStartOver: true,
+      canOpenParticipant: true,
     });
     render(<TestInspector model={null} view={view} />);
     openMenu();
@@ -154,6 +162,7 @@ describe("TestInspector", () => {
       formId: "form-1",
       submission: personTest,
       canStartOver: true,
+      canOpenParticipant: true,
     });
     render(<TestInspector model={null} view={view} />);
     openMenu();

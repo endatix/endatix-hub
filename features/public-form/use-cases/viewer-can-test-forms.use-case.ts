@@ -21,7 +21,18 @@ export async function testerSessionUseCase(): Promise<Session | null> {
   return allowed.success ? session : null;
 }
 
-/** Whether the signed-in viewer may test forms (`forms.test`). */
-export async function viewerCanTestFormsUseCase(): Promise<boolean> {
-  return (await testerSessionUseCase()) !== null;
+/** What a tester may reach from the Test inspector; null when the viewer may not test forms. */
+export type TesterAccess = { canOpenParticipant: boolean };
+
+/**
+ * The tester's reach from the Test inspector, or null for anyone else. The participant page
+ * needs `forms.edit` on top of the tester's grants (`PARTICIPANT_PAGE_PERMISSION` in
+ * `features/audience`, which this feature cannot import without a cycle).
+ */
+export async function testerAccessUseCase(): Promise<TesterAccess | null> {
+  const session = await testerSessionUseCase();
+  if (!session) return null;
+  const { checkPermission } = await authorization(session);
+  const canEdit = await checkPermission(Permissions.Forms.Edit);
+  return { canOpenParticipant: canEdit.success };
 }

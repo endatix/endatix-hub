@@ -30,7 +30,7 @@ export async function requireAudienceAccess(
   const session = await auth();
   const { requireAllPermissions, checkPermission } =
     await authorization(session);
-  await requireAllPermissions([Permissions.Access.Hub, permission]);
+  await requireAllPermissions(audienceGrants(permission));
   if (!(await personalizationFlag())) {
     return Result.error(PERSONALIZATION_DISABLED_MESSAGE);
   }
@@ -38,6 +38,26 @@ export async function requireAudienceAccess(
     api: new EndatixApi(session?.accessToken),
     checkPermission,
   });
+}
+
+/** The grant the participant page needs beyond Hub access: the API's own gate for reading one participant. */
+export const PARTICIPANT_PAGE_PERMISSION = Permissions.Forms.Edit;
+
+const audienceGrants = (permission: string) => [
+  Permissions.Access.Hub,
+  permission,
+];
+
+/**
+ * Whether the signed-in viewer would pass `requireAudienceAccess(permission)`, without
+ * redirecting: for a link elsewhere in the Hub that must not lead to a page that sends the
+ * viewer away.
+ */
+export async function canAccessAudience(permission: string): Promise<boolean> {
+  if (!(await personalizationFlag())) return false;
+  const { checkAllPermissions } = await authorization(await auth());
+  const allowed = await checkAllPermissions(audienceGrants(permission));
+  return allowed.success;
 }
 
 /** `requireAudienceAccess` for callers that only need the API client. */
