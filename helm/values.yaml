@@ -91,11 +91,15 @@ otel:
   protocol: grpc
   serviceName: endatix-hub
 
+# Ephemeral storage covers the /tmp emptyDir (the root filesystem is read-only) and
+# container logs. Past the limit the kubelet evicts the pod instead of filling the node.
 resources:
   requests:
     cpu: 100m
     memory: 256Mi
+    ephemeral-storage: 256Mi
   limits:
     memory: 512Mi
+    ephemeral-storage: 1Gi
 
 nodeSelector: {}

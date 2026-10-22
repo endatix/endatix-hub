@@ -74,7 +74,7 @@ export async function exchangeKeycloakToken(
     return ApiResult.success(keycloakTokenData);
   } catch (error) {
     const errorMessage =
-      error instanceof Error ? error.message : String(error) ?? "Unknown error";
+      error instanceof Error ? error.message : String(error ?? "Unknown error");
 
     if (errorMessage.includes("fetch failed")) {
       return ApiResult.networkError(
