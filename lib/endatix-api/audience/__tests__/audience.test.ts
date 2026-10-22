@@ -319,7 +319,6 @@ describe("Audience participant", () => {
         createdAt: "2026-10-21T09:00:00Z",
         completedAt: null,
         isComplete: false,
-        status: "new",
         isTest: true,
         snapshotSource: "test",
       },
@@ -328,7 +327,6 @@ describe("Audience participant", () => {
         createdAt: "2026-10-20T09:00:00Z",
         completedAt: "2026-10-20T09:05:00Z",
         isComplete: true,
-        status: "seen",
         isTest: false,
       },
     ],
@@ -356,7 +354,6 @@ describe("Audience participant", () => {
         createdAt: "2026-10-21T09:00:00Z",
         completedAt: null,
         isComplete: false,
-        status: "new",
         isTest: true,
         snapshotSource: "test",
       },
@@ -365,7 +362,6 @@ describe("Audience participant", () => {
         createdAt: "2026-10-20T09:00:00Z",
         completedAt: "2026-10-20T09:05:00Z",
         isComplete: true,
-        status: "seen",
         isTest: false,
         snapshotSource: null,
       },
@@ -401,6 +397,21 @@ describe("Audience participant", () => {
     expect(
       result.success && result.data.submissions[0].snapshotSource,
     ).toBeNull();
+  });
+
+  it("reads a participant with no submissions left out as none of them", async () => {
+    const { submissions: _, submissionTotal: __, ...wire } = wireParticipant;
+    const get = vi.fn().mockResolvedValue(ApiResult.success(wire));
+
+    const result = await audienceWith({ get }).getParticipant(
+      FORM_ID,
+      MEMBER_ID,
+    );
+
+    expect(result.success && result.data).toMatchObject({
+      submissions: [],
+      submissionTotal: 0,
+    });
   });
 
   it("passes a 404 through so the page can say the participant is gone", async () => {

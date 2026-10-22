@@ -6,7 +6,6 @@ import { getTableReturnHref } from "@/lib/list-page/table-return-to";
 import { formRoutes } from "@/lib/routes/form-routes";
 import {
   AUDIENCE_TABLE_KEY,
-  audienceListHrefFromQuery,
   parseAudienceReturnQuery,
 } from "../audience-return-to";
 
@@ -30,7 +29,7 @@ export function useAudienceReturnHref(formId: string): Route {
   const fallback = formRoutes.audience(formId);
   const [href, setHref] = useState<Route>(fallback);
   const buildHref = useCallback(
-    (query: string) => audienceListHrefFromQuery(formId, query),
+    (search: string) => formRoutes.audience(formId, { search }),
     [formId],
   );
 

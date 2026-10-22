@@ -1,6 +1,4 @@
-import type { Route } from "next";
 import { AudiencePaging } from "@/lib/endatix-api/audience/types";
-import { formRoutes } from "@/lib/routes/form-routes";
 import { AudienceView, parseAudienceView } from "./audience-view";
 import {
   parsePeoplePaging,
@@ -45,14 +43,4 @@ export function parseAudienceReturnQuery(query: string): string {
     view: raw.get("view") ?? undefined,
     test: raw.get("test") ?? undefined,
   });
-}
-
-/** `/forms/{formId}/audience` plus an already-validated query. */
-export function audienceListHrefFromQuery(
-  formId: string,
-  query: string,
-): Route {
-  const path = formRoutes.audience(formId);
-  // `Route` is a Next template literal; the validated query is not one.
-  return (query ? `${path}?${query}` : path) as Route;
 }

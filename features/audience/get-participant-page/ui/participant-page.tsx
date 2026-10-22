@@ -7,14 +7,15 @@ import {
   Trash2,
   type LucideIcon,
 } from "lucide-react";
-import { StatusBadge } from "@/components/common/status-badge";
 import { TextLink } from "@/components/common/text-link";
 import { Button } from "@/components/ui/button";
 import { FormWorkspaceHeader } from "@/features/forms/form-workspace";
+import { useRouter } from "next/navigation";
 import type { Route } from "next";
 import type { AudienceParticipant } from "@/lib/endatix-api/audience/types";
 import { useAudienceReturnHref } from "../../get-audience-page/ui/use-audience-return-href";
 import { RemovePersonDialog } from "../../delete-person/ui/remove-person-dialog";
+import { TEST_BADGE } from "../../ui/test-badge";
 import { useTestAsPerson } from "../../test-as-person/use-test-as-person.hook";
 import { EditPersonPanel } from "../../update-person/ui/edit-person-panel";
 import { useRowOverlay } from "../../use-panel-state.hook";
@@ -38,9 +39,13 @@ type ActionSpec = {
   run: (participant: AudienceParticipant) => void;
 };
 
-/** Test as (with `forms.test`), Edit values (when there is a value to edit), Remove. */
+/**
+ * Test as (with `forms.test`), Edit values (when there is a value to edit), Remove. A test
+ * submission reads the page again, so their submissions show the new one.
+ */
 function useActionSpecs({ overlay, ...props }: ActionsProps): ActionSpec[] {
-  const testAs = useTestAsPerson(props.formId);
+  const router = useRouter();
+  const testAs = useTestAsPerson(props.formId, router.refresh);
   return [
     {
       show: props.canTest,
@@ -94,8 +99,6 @@ function ParticipantOverlays(props: Readonly<ActionsProps>) {
     </>
   );
 }
-
-const TEST_BADGE = <StatusBadge tone="attention" label="Test" />;
 
 /** Back to Audience, then who they are (DESIGN.md §6 Page masthead) with their actions. */
 function ParticipantMasthead(props: Readonly<ActionsProps>) {

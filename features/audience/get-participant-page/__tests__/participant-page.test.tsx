@@ -55,7 +55,6 @@ const submission = (
   createdAt: "2026-10-21T09:00:00Z",
   completedAt: null,
   isComplete: false,
-  status: "new",
   isTest: false,
   snapshotSource: "link",
   ...overrides,

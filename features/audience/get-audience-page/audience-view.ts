@@ -1,4 +1,3 @@
-import type { Route } from "next";
 import type { LinkTab } from "@/components/common/link-tabs";
 import { formRoutes } from "@/lib/routes/form-routes";
 
@@ -33,7 +32,9 @@ export function audienceViewTabs(
     {
       id: AudienceView.Properties,
       label: "Properties",
-      href: `${base}?view=${AudienceView.Properties}` as Route,
+      href: formRoutes.audience(formId, {
+        search: `view=${AudienceView.Properties}`,
+      }),
       count: counts.properties,
     },
   ];

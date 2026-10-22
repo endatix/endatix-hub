@@ -1,9 +1,7 @@
 "use client";
 
-import { ArrowUpRight, FlaskConical, Pencil, Trash2 } from "lucide-react";
+import { FlaskConical, Pencil, Trash2 } from "lucide-react";
 import Link from "next/link";
-import type { ReactNode } from "react";
-import { StatusBadge } from "@/components/common/status-badge";
 import {
   AudienceLinkStatusKind,
   type AudienceIdentifierKind,
@@ -23,6 +21,8 @@ import {
 import { formRoutes } from "@/lib/routes/form-routes";
 import { LinkStatusBadge } from "../../ui/link-status-badge";
 import { NotSet } from "../../ui/not-set";
+import { SubmissionLink } from "../../ui/submission-link";
+import { WithTestBadge } from "../../ui/test-badge";
 import { formatPropertyValue, identifierKindLabel } from "../../utils";
 
 /** Each handler is present only when the reader may run it; none means no actions column. */
@@ -151,44 +151,16 @@ function ParticipantLink({
 
 /** A test person also carries a Test badge, in the tone of test submissions. */
 function IdentifierCell(props: Readonly<IdentifierCellProps>) {
-  const identifier = <ParticipantLink {...props} />;
-  if (!props.person.isTest) return identifier;
   return (
-    <span className="inline-flex flex-wrap items-center gap-2">
-      {identifier}
-      <StatusBadge tone="attention" label="Test" />
-    </span>
+    <WithTestBadge isTest={props.person.isTest}>
+      <ParticipantLink {...props} />
+    </WithTestBadge>
   );
 }
 
 const NO_TEST_LINK = <NotSet label="No link: a test person" />;
 
-const RESPONSE_LINK =
-  "inline-flex items-center gap-1 rounded-md text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none";
-
 type CellProps = { formId: string; person: AudiencePerson };
-
-type ResponseLinkProps = {
-  formId: string;
-  submissionId: string;
-  identifier: string;
-  children: ReactNode;
-};
-
-/** The badge goes to Submission Details; the arrow marks it as a link. */
-function ResponseLink(props: Readonly<ResponseLinkProps>) {
-  const { formId, submissionId } = props;
-  return (
-    <Link
-      href={formRoutes.submission(formId, submissionId)}
-      className={RESPONSE_LINK}
-    >
-      {props.children}
-      <ArrowUpRight aria-hidden="true" className="size-4" />
-      <span className="sr-only">: view the response of {props.identifier}</span>
-    </Link>
-  );
-}
 
 /** Not issued, Issued, or Opened; Opened goes to the response while it still exists. */
 function LinkCell({ formId, person }: Readonly<CellProps>) {
@@ -199,9 +171,12 @@ function LinkCell({ formId, person }: Readonly<CellProps>) {
     return badge;
   const { submissionId } = link;
   return (
-    <ResponseLink {...{ formId, submissionId }} identifier={person.identifier}>
+    <SubmissionLink
+      {...{ formId, submissionId }}
+      srLabel={`: view the response of ${person.identifier}`}
+    >
       {badge}
-    </ResponseLink>
+    </SubmissionLink>
   );
 }
 

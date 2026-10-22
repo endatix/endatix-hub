@@ -9,6 +9,15 @@ describe("formRoutes", () => {
     );
   });
 
+  it("opens a form's Audience at a list query the page already validated", () => {
+    expect(formRoutes.audience("12", { search: "page=2&test=test" })).toBe(
+      "/forms/12/audience?page=2&test=test",
+    );
+    expect(formRoutes.audience("12", { search: "" })).toBe(
+      "/forms/12/audience",
+    );
+  });
+
   it("opens one participant by their audience member id", () => {
     expect(formRoutes.participant("12", "7")).toBe(
       "/forms/12/audience/participants/7",

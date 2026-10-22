@@ -96,8 +96,6 @@ export type ParticipantSubmission = {
   createdAt: string;
   completedAt: string | null;
   isComplete: boolean;
-  /** The submission status code, such as `new`. */
-  status: string;
   isTest: boolean;
   /** Who froze its values; null when the submission has no Snapshot. */
   snapshotSource: PersonalizationSource | null;

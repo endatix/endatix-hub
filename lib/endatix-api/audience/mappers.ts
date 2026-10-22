@@ -109,8 +109,8 @@ export type WireParticipantSubmission = Omit<
 };
 
 export type WireParticipant = WirePerson & {
-  submissions: WireParticipantSubmission[];
-  submissionTotal: number;
+  submissions?: WireParticipantSubmission[];
+  submissionTotal?: number;
 };
 
 const SNAPSHOT_SOURCES: readonly string[] = Object.values(
@@ -134,7 +134,6 @@ function mapParticipantSubmission(
     createdAt: wire.createdAt,
     completedAt: wire.completedAt ?? null,
     isComplete: wire.isComplete,
-    status: wire.status,
     isTest: wire.isTest,
     snapshotSource: mapSnapshotSource(wire.snapshotSource),
   };
@@ -144,11 +143,11 @@ export function mapParticipantResult(
   response: ApiResult<WireParticipant>,
 ): ApiResult<AudienceParticipant> {
   if (!response.success) return response;
-  const { submissions, submissionTotal } = response.data;
+  const { submissions = [], submissionTotal } = response.data;
   return ApiResult.success({
     ...mapPerson(response.data),
-    submissions: (submissions ?? []).map(mapParticipantSubmission),
-    submissionTotal,
+    submissions: submissions.map(mapParticipantSubmission),
+    submissionTotal: submissionTotal ?? submissions.length,
   });
 }
 

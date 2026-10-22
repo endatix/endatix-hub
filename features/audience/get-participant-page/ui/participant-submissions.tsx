@@ -1,7 +1,7 @@
 "use client";
 
-import { ArrowUpRight, FileText } from "lucide-react";
-import Link from "next/link";
+import { FileText } from "lucide-react";
+import { useId } from "react";
 import { StatusBadge, type StatusTone } from "@/components/common/status-badge";
 import {
   CellDate,
@@ -18,8 +18,9 @@ import {
   PersonalizationSource,
   type PersonalizationSource as SnapshotSource,
 } from "@/lib/endatix-api/submissions/types";
-import { formRoutes } from "@/lib/routes/form-routes";
 import { NotSet } from "../../ui/not-set";
+import { SubmissionLink } from "../../ui/submission-link";
+import { WithTestBadge } from "../../ui/test-badge";
 
 const COLUMNS: StaticDataTableColumn[] = [
   { key: "created", label: "Created", className: "min-w-[12rem]" },
@@ -43,20 +44,14 @@ const COMPLETION: Record<
   inProgress: { tone: "attention", label: "In progress" },
 };
 
-const DETAILS_LINK =
-  "inline-flex items-center gap-1 rounded-md text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none";
-
 /** A test submission carries the Test badge beside when it was created. */
 function CreatedCell({
   submission,
 }: Readonly<{ submission: ParticipantSubmission }>) {
-  const created = <CellDate date={submission.createdAt} />;
-  if (!submission.isTest) return created;
   return (
-    <span className="inline-flex flex-wrap items-center gap-2">
-      {created}
-      <StatusBadge tone="attention" label="Test" />
-    </span>
+    <WithTestBadge isTest={submission.isTest}>
+      <CellDate date={submission.createdAt} />
+    </WithTestBadge>
   );
 }
 
@@ -76,21 +71,6 @@ function SourceCell({
   return SOURCE_LABEL[snapshotSource];
 }
 
-type DetailsLinkProps = { formId: string; submissionId: string };
-
-function DetailsLink({ formId, submissionId }: Readonly<DetailsLinkProps>) {
-  return (
-    <Link
-      href={formRoutes.submission(formId, submissionId)}
-      className={DETAILS_LINK}
-    >
-      View
-      <ArrowUpRight aria-hidden="true" className="size-4" />
-      <span className="sr-only"> submission {submissionId}</span>
-    </Link>
-  );
-}
-
 function submissionCells(formId: string, submission: ParticipantSubmission) {
   return [
     dataTableCell("created", <CreatedCell submission={submission} />),
@@ -98,7 +78,13 @@ function submissionCells(formId: string, submission: ParticipantSubmission) {
     dataTableCell("source", <SourceCell submission={submission} />, SHRINK),
     dataTableCell(
       "open",
-      <DetailsLink formId={formId} submissionId={submission.id} />,
+      <SubmissionLink
+        formId={formId}
+        submissionId={submission.id}
+        srLabel={` submission ${submission.id}`}
+      >
+        View
+      </SubmissionLink>,
       `text-right ${SHRINK}`,
     ),
   ];
@@ -134,10 +120,13 @@ function countLine({ submissions, total }: ParticipantSubmissionsProps) {
   return total === 1 ? "1 submission" : `${total} submissions`;
 }
 
-function SubmissionsHeader(props: Readonly<ParticipantSubmissionsProps>) {
+function SubmissionsHeader({
+  headingId,
+  ...props
+}: Readonly<ParticipantSubmissionsProps & { headingId: string }>) {
   return (
     <div className="flex flex-wrap items-baseline justify-between gap-2">
-      <h2 id="participant-submissions" className="text-lg font-semibold">
+      <h2 id={headingId} className="text-lg font-semibold">
         Submissions
       </h2>
       {props.total > 0 ? (
@@ -160,13 +149,11 @@ const NO_SUBMISSIONS = (
 export function ParticipantSubmissions(
   props: Readonly<ParticipantSubmissionsProps>,
 ) {
+  const headingId = useId();
   const empty = props.submissions.length === 0;
   return (
-    <section
-      aria-labelledby="participant-submissions"
-      className="flex flex-col gap-3"
-    >
-      <SubmissionsHeader {...props} />
+    <section aria-labelledby={headingId} className="flex flex-col gap-3">
+      <SubmissionsHeader {...props} headingId={headingId} />
       <DataTableSurface>
         {empty ? NO_SUBMISSIONS : <SubmissionsTable {...props} />}
       </DataTableSurface>
