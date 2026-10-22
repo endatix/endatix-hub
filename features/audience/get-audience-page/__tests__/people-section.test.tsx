@@ -250,28 +250,33 @@ describe("PeopleSection", () => {
     expect(complete!.textContent).not.toContain("not filled in");
   });
 
-  it("counts the identifier as filled in when the form reads the match key", () => {
+  it("checks the match key's own value when the form reads it", () => {
     const verdicts = {
       forProperty: () => ({ used: true, filledReal: 0, real: 0 }),
       notFilledIn: (filled: string[]) =>
         ["external_id", "city"].filter((name) => !filled.includes(name)),
     };
+    const withoutKeyValue = { ...PERSON, membershipId: "11", values: { city: "Ruse" } };
     render(
       <PeopleSection
         {...LIST}
         identifierKind={AudienceIdentifierKind.ExternalId}
         properties={[
-          textProperty("ext", "external_id"),
+          textProperty("ext", "external_id", "External ID"),
           textProperty("city", "city", "City"),
         ]}
-        people={[PERSON]}
+        people={[PERSON, withoutKeyValue]}
         canEdit={false}
         canTest={false}
         verdicts={verdicts}
       />,
     );
 
-    expect(screen.queryByText(/not filled in/)).toBeNull();
+    const [withKey, withoutKey] = screen.getAllByRole("row").slice(1);
+    expect(withKey!.textContent).not.toContain("not filled in");
+    expect(
+      within(withoutKey!).getByLabelText("Not filled in: External ID"),
+    ).toBeTruthy();
   });
 
   it("says the filter found nobody, with a way back to everyone", () => {
