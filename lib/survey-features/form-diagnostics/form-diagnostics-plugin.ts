@@ -4,6 +4,8 @@ import {
   SurveyCreatorModel,
   SurveyLogic,
 } from "survey-creator-core";
+import type { AudienceFinding } from "@/lib/personalization/authoring";
+import type { DiagnosticsAudience } from "./form-diagnostics-context";
 import {
   analyzeSurvey,
   analyzeSurveyModel,
@@ -90,8 +92,30 @@ export class FormDiagnosticsPlugin extends Base implements ICreatorPlugin {
     this.setPropertyValue("availableDataListNames", val);
   }
 
+  /** Set by the designer when the form has Audience variables (personalization). */
+  public audience: DiagnosticsAudience | undefined;
+
+  /** Warnings only: nothing here blocks a save. */
+  public get audienceFindings(): AudienceFinding[] {
+    return this.getPropertyValue("audienceFindings") ?? [];
+  }
+
+  public set audienceFindings(val: AudienceFinding[]) {
+    this.setPropertyValue("audienceFindings", val);
+  }
+
+  public applyAudienceFix(finding: AudienceFinding) {
+    this.audience?.applyFix(finding);
+    this.updateAudienceFindings();
+  }
+
+  private updateAudienceFindings() {
+    this.audienceFindings = this.audience?.review().findings ?? [];
+  }
+
   public updateStats() {
     if (!this.creator) return;
+    this.updateAudienceFindings();
 
     const baseStats = analyzeSurvey(this.creator.text || "");
 
@@ -117,6 +141,8 @@ export class FormDiagnosticsPlugin extends Base implements ICreatorPlugin {
 
   public activate() {
     this.updateStats();
+    // A Property added in the Audience tab since the designer opened.
+    void this.audience?.refresh().then(() => this.updateAudienceFindings());
   }
 
   public deactivate(): boolean {

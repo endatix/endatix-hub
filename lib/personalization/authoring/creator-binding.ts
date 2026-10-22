@@ -8,7 +8,10 @@ import {
 import type { AudienceVariables } from "@/lib/endatix-api/audience/types";
 import { Result } from "@/lib/result";
 import { canonicalizeCreatorTabId, ENDATIX_CREATOR_TAB } from "@/lib/survey-js";
+import { applyAudienceFix } from "./apply-fix";
+import type { AudienceFinding, AudienceReview } from "./findings/types";
 import { addNoneToPreviewAs } from "./preview-as-none";
+import { reviewAudience } from "./review";
 import { toSurveyPresets } from "./to-survey-presets";
 
 export interface CreatorHooks {
@@ -23,6 +26,10 @@ export type CreatorBinding = {
   /** Unbinds: no further reads, and a read in flight is dropped. */
   (): void;
   refresh(): Promise<void>;
+  /** The canvas's Audience findings, against the variables read last. */
+  review(): AudienceReview;
+  /** Applies a finding's fix to the canvas; a finding without one is left alone. */
+  applyFix(finding: AudienceFinding): void;
 };
 
 const AUDIENCE_VP_STRINGS = {
@@ -63,6 +70,7 @@ function previewPlugin(creator: SurveyCreatorModel): TabTestPlugin | null {
 }
 
 type BindingState = {
+  variables: AudienceVariables;
   applied: AudienceVariables["variablePresets"] | undefined;
   latest: number;
   bound: boolean;
@@ -74,6 +82,7 @@ function applyVariables(
   variables: AudienceVariables,
   state: BindingState,
 ): void {
+  state.variables = variables;
   const presets = variables.variablePresets;
   if (
     state.applied !== undefined &&
@@ -143,7 +152,12 @@ export function bindToCreator(
   audience: DesignerAudience,
 ): CreatorBinding {
   initGlobals();
-  const state: BindingState = { applied: undefined, latest: 0, bound: true };
+  const state: BindingState = {
+    variables: audience.variables,
+    applied: undefined,
+    latest: 0,
+    bound: true,
+  };
   applyVariables(creator, audience.variables, state);
   const refresh = () => refreshVariables(creator, audience, state);
   const stopWatching = onPreviewOpened(creator, (plugin, atBind) => {
@@ -154,7 +168,15 @@ export function bindToCreator(
     state.bound = false;
     stopWatching();
   };
-  return Object.assign(unbind, { refresh });
+  return Object.assign(unbind, {
+    refresh,
+    review: () => reviewAudience(creator.JSON, state.variables),
+    applyFix: (finding: AudienceFinding) => {
+      if (finding.kind === "unknown-variable" && finding.fix) {
+        applyAudienceFix(creator, finding.fix);
+      }
+    },
+  });
 }
 
 /** Only the latest read applies; one that lands after unbind, fails, or throws is dropped. */
