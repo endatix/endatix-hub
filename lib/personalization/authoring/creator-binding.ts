@@ -21,12 +21,32 @@ export type CreatorBinding = {
   refresh(): Promise<void>;
 };
 
-/** Audience words for the Creator's preset UI; "preset" never reaches the screen. */
+/** Audience words for every `vp.*` string the Creator shows: "preset" never reaches the screen. */
 export function initGlobals(): void {
-  const vp = getLocaleStrings("en").vp;
-  vp.selectorTitle = "Preview as";
-  vp.noPreset = "None";
-  vp.editorTitle = "Test participant values";
+  Object.assign(getLocaleStrings("en").vp, {
+    selectorTitle: "Preview as",
+    noPreset: "None",
+    view: "Test participant values",
+    viewTitle: "Variable values",
+    edit: "Edit test participant values",
+    editorTitle: "Test participant values",
+    presetName: "Test participant",
+    addPreset: "Add test participant",
+    newPresetName: "New test participant",
+    deletePreset: "Remove test participant",
+    presetNameIsNotUnique: "A test participant with this identifier exists",
+    presetNameIsEmpty: "Enter the test participant's identifier",
+    listNameColumn: "Test participant",
+  });
+}
+
+/** The Preview plugin, only when Preview is a tab (`getPlugin` alone would create it). */
+function previewPlugin(creator: SurveyCreatorModel): TabTestPlugin | null {
+  const hasPreview = creator.tabs.some(
+    (tab) => canonicalizeCreatorTabId(tab.id) === ENDATIX_CREATOR_TAB.preview,
+  );
+  if (!hasPreview) return null;
+  return creator.getPlugin(ENDATIX_CREATOR_TAB.preview) as TabTestPlugin;
 }
 
 function applyVariables(
@@ -40,45 +60,35 @@ function applyVariables(
     ? toSurveyPresets(presets)
     : (undefined as unknown as ISurveyVariablePresets);
 
-  const manager = previewPresetManager(creator);
+  const manager = previewPlugin(creator)?.variablePresets;
   if (manager) {
     Object.assign(manager, variables.editing);
   }
 }
 
-// The manager lives on the Preview plugin, so only look it up when Preview is a tab.
-function previewPresetManager(creator: SurveyCreatorModel) {
-  const hasPreview = creator.tabs.some(
-    (tab) => canonicalizeCreatorTabId(tab.id) === ENDATIX_CREATOR_TAB.preview,
-  );
-  if (!hasPreview) return null;
-  return (creator.getPlugin(ENDATIX_CREATOR_TAB.preview) as TabTestPlugin)
-    .variablePresets;
-}
-
-/**
- * Calls `onOpen` whenever the Preview tab opens, and once now when it is already open (a `?tab=`
- * deep link activates it before this binds). Returns the unsubscribe.
- */
+/** Calls `onOpen` whenever the Preview tab opens, and once now when it is open already. */
 function onPreviewOpened(
   creator: SurveyCreatorModel,
-  onOpen: (atBind: boolean) => void,
+  onOpen: (plugin: TabTestPlugin, atBind: boolean) => void,
 ): () => void {
-  const isPreview = () =>
-    canonicalizeCreatorTabId(creator.activeTab) === ENDATIX_CREATOR_TAB.preview;
-  const onActiveTabChanged = () => {
-    if (isPreview()) onOpen(false);
+  const openPreview = (atBind: boolean) => {
+    const isPreview =
+      canonicalizeCreatorTabId(creator.activeTab) ===
+      ENDATIX_CREATOR_TAB.preview;
+    const plugin = isPreview ? previewPlugin(creator) : null;
+    if (plugin) onOpen(plugin, atBind);
   };
+  const onActiveTabChanged = () => openPreview(false);
   creator.onActiveTabChanged.add(onActiveTabChanged);
-  if (isPreview()) onOpen(true);
+  openPreview(true);
   return () => creator.onActiveTabChanged.remove(onActiveTabChanged);
 }
 
 /**
  * Picking a participant writes nothing (Q5): the Creator applies the values to the Preview survey
  * itself, inside its construction callback, so `{variable}` defaults see them. Opening Preview reads
- * the variables again; not at bind, since the page has just loaded them. Preview rebuilds its view
- * model on every activation, so None goes into the selector each time.
+ * the variables again. Preview rebuilds its view model on every activation, so None goes into the
+ * selector each time. The designer keeps the binding for the Creator's lifetime.
  */
 export function bindToCreator(
   creator: SurveyCreatorModel,
@@ -87,27 +97,28 @@ export function bindToCreator(
 ): CreatorBinding {
   initGlobals();
   applyVariables(creator, variables);
-  const state = { bound: true };
-  const refresh = () => refreshVariables(creator, hooks, state);
-  const stopWatching = onPreviewOpened(creator, (atBind) => {
-    addNoneToPreviewAs(creator);
+  const reads = { latest: 0, bound: true };
+  const refresh = () => refreshVariables(creator, hooks, reads);
+  const stopWatching = onPreviewOpened(creator, (plugin, atBind) => {
+    addNoneToPreviewAs(plugin);
     if (!atBind) void refresh();
   });
   const unbind = () => {
-    state.bound = false;
+    reads.bound = false;
     stopWatching();
   };
   return Object.assign(unbind, { refresh });
 }
 
-/** A read that lands after unbind is dropped. */
+/** Only the latest read applies; one that lands after unbind is dropped. */
 async function refreshVariables(
   creator: SurveyCreatorModel,
   hooks: CreatorHooks,
-  state: { bound: boolean },
+  reads: { latest: number; bound: boolean },
 ): Promise<void> {
+  const read = ++reads.latest;
   const fresh = await hooks.refresh();
-  if (state.bound && Result.isSuccess(fresh)) {
+  if (reads.bound && read === reads.latest && Result.isSuccess(fresh)) {
     applyVariables(creator, fresh.value);
   }
 }

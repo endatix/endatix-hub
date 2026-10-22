@@ -17,10 +17,7 @@ import { FormAssistantProvider } from "@/features/forms/use-cases/design-form/fo
 import { getCurrentConversationUseCase } from "@/features/forms/use-cases/design-form/get-current-conversation.use-case";
 import { aiFeaturesFlag } from "@/lib/feature-flags/flags";
 import { getFormDesignReturn } from "@/features/forms/form-workspace";
-import {
-  firstSearchParam,
-  type SearchParamValue,
-} from "@/lib/utils/next-utils";
+import { firstSearchParam, type SearchParamValue } from "@/lib/utils/next-utils";
 import { EndatixApi } from "@/lib/endatix-api";
 import { Result, toResult } from "@/lib/result";
 import { Form } from "@/types";

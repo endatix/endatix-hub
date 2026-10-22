@@ -124,6 +124,36 @@ describe("Preview as in the designer", () => {
     expect(vp.editorTitle).toBe("Test participant values");
   });
 
+  it("never says preset on screen", () => {
+    createAudienceAuthoring(variables())!.bindToCreator(designer(), {
+      refresh: noRefresh,
+    });
+
+    const vp = getLocaleStrings("en").vp as Record<string, string>;
+    expect(Object.values(vp).filter((text) => /preset/i.test(text))).toEqual(
+      [],
+    );
+  });
+
+  it("applies only the latest read when Preview opens twice", async () => {
+    const creator = designer();
+    const reads: ((value: Result<AudienceVariables>) => void)[] = [];
+    const refresh = () =>
+      new Promise<Result<AudienceVariables>>((resolve) => reads.push(resolve));
+    const binding = createAudienceAuthoring(variables())!.bindToCreator(
+      creator,
+      { refresh },
+    );
+
+    const first = binding.refresh();
+    const second = binding.refresh();
+    reads[1](Result.success(variables([{ name: BOB, variables: {} }])));
+    reads[0](Result.success(variables([{ name: MARIA, variables: {} }])));
+    await Promise.all([first, second]);
+
+    expect(creator.variablePresets?.presets?.map((p) => p.name)).toEqual([BOB]);
+  });
+
   it("takes the editing gates from the API", () => {
     const creator = designer();
     const editable = {

@@ -1,19 +1,14 @@
 import { ComputedUpdater, type Action, type ListModel } from "survey-core";
-import {
-  getLocaleStrings,
-  type SurveyCreatorModel,
-  type TabTestPlugin,
-} from "survey-creator-core";
-import { ENDATIX_CREATOR_TAB } from "@/lib/survey-js";
+import { getLocaleStrings, type TabTestPlugin } from "survey-creator-core";
 
 // Survey Creator 3.2.2's selector lists only the presets, so after picking one there is no way back
 // to None, and it hides itself below two presets. This is the only file that reaches into the
-// Preview view model for it: re-check it on every SurveyJS upgrade.
+// Preview view model for it: re-check it on every SurveyJS upgrade (the tests fail if it breaks).
 
-/** The Preview view model members this file relies on; `updateVariablePresetActions` is private. */
+/** The Preview view model members this file relies on; the two methods are private. */
 type PreviewView = {
   selectVariablePresetAction: Action;
-  survey?: { state: string };
+  isSurveyRunning(): boolean;
   updateVariablePresetActions(): void;
 };
 
@@ -21,12 +16,9 @@ const NONE_ID = "";
 const withNone = new WeakSet<PreviewView>();
 
 /** Adds None as the selector's first item to the Preview built for the current activation. */
-export function addNoneToPreviewAs(creator: SurveyCreatorModel): void {
-  const plugin = creator.getPlugin(ENDATIX_CREATOR_TAB.preview) as
-    | TabTestPlugin
-    | undefined;
-  const view = plugin?.model as unknown as PreviewView | undefined;
-  if (!plugin || !view || withNone.has(view)) return;
+export function addNoneToPreviewAs(plugin: TabTestPlugin): void {
+  const view = plugin.model as unknown as PreviewView | undefined;
+  if (!view || withNone.has(view)) return;
 
   withNone.add(view);
   const update = view.updateVariablePresetActions.bind(view);
@@ -46,10 +38,9 @@ function prependNone(view: PreviewView, activeName: string): void {
   const none = { id: NONE_ID, title: getLocaleStrings("en").vp.noPreset };
 
   list.setItems([none, ...presets]);
-  list.selectedItem = list.actions.find((item) => item.id === activeName)!;
+  list.selectedItem =
+    list.actions.find((item) => item.id === activeName) ?? list.actions[0];
   action.visible = new ComputedUpdater(
-    () =>
-      presets.length > 0 &&
-      ["running", "starting"].includes(view.survey?.state ?? ""),
+    () => presets.length > 0 && view.isSurveyRunning(),
   ) as unknown as boolean;
 }
