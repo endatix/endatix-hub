@@ -22,6 +22,17 @@ const tempRuleOverrides = {
   "react-hooks/refs": "off",
 };
 
+// A later no-restricted-imports block replaces the rule's options for its files, so every block
+// spreads this pattern in too.
+const authoringIndexOnly = {
+  group: [
+    "@/lib/personalization/authoring/*",
+    "**/personalization/authoring/*",
+  ],
+  message:
+    "Import Audience authoring from @/lib/personalization/authoring (its index.ts) only.",
+};
+
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
@@ -63,12 +74,20 @@ const eslintConfig = defineConfig([
     },
   },
   {
+    files: ["**/*.ts", "**/*.tsx"],
+    ignores: ["lib/personalization/authoring/**"],
+    rules: {
+      "no-restricted-imports": ["error", { patterns: [authoringIndexOnly] }],
+    },
+  },
+  {
     files: ["features/asset-storage/infrastructure/core/**/*.ts"],
     rules: {
       "no-restricted-imports": [
         "error",
         {
           patterns: [
+            authoringIndexOnly,
             {
               group: [
                 "../providers/*",
@@ -97,6 +116,7 @@ const eslintConfig = defineConfig([
         "error",
         {
           patterns: [
+            authoringIndexOnly,
             {
               group: ["next", "next/*", "react", "react/*", "@/*"],
               message:
@@ -117,6 +137,7 @@ const eslintConfig = defineConfig([
         "error",
         {
           patterns: [
+            authoringIndexOnly,
             {
               group: [
                 "../azure/*",

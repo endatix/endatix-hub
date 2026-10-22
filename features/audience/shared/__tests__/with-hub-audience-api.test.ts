@@ -92,4 +92,35 @@ describe("withHubAudienceApi", () => {
     expect(run).toHaveBeenCalledOnce();
     expect(revalidatePath).not.toHaveBeenCalled();
   });
+  it("returns an error instead of redirecting a background read without the grant", async () => {
+    const { personalizationFlag } = await import("@/lib/feature-flags");
+    const { authorization } = await import("@/features/auth/authorization");
+    const checkAllPermissions = vi
+      .fn()
+      .mockResolvedValue(Result.error("forbidden"));
+    vi.mocked(personalizationFlag).mockResolvedValue(true);
+    vi.mocked(authorization).mockResolvedValue({
+      requireAllPermissions,
+      checkAllPermissions,
+    } as never);
+    const run = vi.fn();
+
+    const { withHubAudienceApi } =
+      await import("../with-hub-audience-api.server");
+    const result = await withHubAudienceApi(run, {
+      permission: "forms.edit",
+      background: true,
+      fallbackMessage: "failed",
+      logMessage: "failed",
+      loggerName: "audience.test",
+    });
+
+    expect(Result.isError(result)).toBe(true);
+    expect(requireAllPermissions).not.toHaveBeenCalled();
+    expect(checkAllPermissions).toHaveBeenCalledWith([
+      "access.apps.hub",
+      "forms.edit",
+    ]);
+    expect(run).not.toHaveBeenCalled();
+  });
 });

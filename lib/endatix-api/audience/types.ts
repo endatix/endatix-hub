@@ -193,3 +193,43 @@ export type OpenedTestSubmission = {
   submissionId: string;
   token: string;
 };
+
+/** One Test participant's values, named by their identifier. */
+export type AudienceVariablePreset = {
+  name: string;
+  /** Variable name → value, typed as the respondent's `personalization`. */
+  variables: Record<string, unknown>;
+};
+
+/** The form's Variables in SurveyJS's variable presets shape, without importing survey-core. */
+export type AudienceVariablePresets = {
+  /** Survey JSON whose top-level questions are the variables, one per Property. */
+  definition: Record<string, unknown>;
+  /** The first 20 Test participants by when they were added, ordered by identifier. */
+  presets: AudienceVariablePreset[];
+  /** Every Test participant on the form; more than `presets` holds past 20. */
+  totalPresets: number;
+};
+
+export type AudienceVariableCoverage = {
+  participants: { test: number; real: number };
+  properties: {
+    variableName: string;
+    filledTest: number;
+    filledReal: number;
+  }[];
+};
+
+/** What the designer's Test participant values editor may change. */
+export type AudiencePresetEditing = {
+  allowAdd: boolean;
+  allowEdit: boolean;
+  allowDelete: boolean;
+};
+
+export type AudienceVariables = {
+  /** `null` when the form has no Properties. */
+  variablePresets: AudienceVariablePresets | null;
+  coverage: AudienceVariableCoverage;
+  editing: AudiencePresetEditing;
+};

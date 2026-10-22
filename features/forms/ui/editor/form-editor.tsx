@@ -14,6 +14,10 @@ import {
 import { StoredTheme } from "@/features/themes/types";
 import { updateFormThemeAction } from "@/features/themes/update-form-theme";
 import { useDesignerRuntime } from "@/lib/designer-runtime";
+import {
+  bindAudienceToCreator,
+  type DesignerAudience,
+} from "@/lib/personalization/authoring";
 import { registerAudioQuestionUI } from "@/lib/questions/audio-recorder";
 import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";
 import {
@@ -133,6 +137,8 @@ interface FormEditorProps {
   themeId?: string;
   isPublic?: boolean;
   formIsEnabled?: boolean;
+  /** The form's Audience variables for Preview as; absent with the flag off or no access. */
+  audience?: DesignerAudience | null;
   initialPropertyGridVisible?: boolean;
   onThemeModificationChange?: (isModified: boolean) => void;
   onSaveHandlerReady?: (saveHandler: () => Promise<void>) => void;
@@ -169,6 +175,7 @@ function FormEditor({
   themeId,
   isPublic,
   formIsEnabled,
+  audience,
   initialPropertyGridVisible = true,
   onThemeModificationChange,
   onSaveHandlerReady,
@@ -500,6 +507,9 @@ function FormEditor({
         );
         const cleanupQuestionLoops = bindQuestionLoops(newCreator);
         const cleanupFormDiagnostics = bindFormDiagnostics(newCreator);
+        const unbindAudience = audience
+          ? bindAudienceToCreator(newCreator, audience)
+          : undefined;
 
         setCreator(newCreator);
 
@@ -540,6 +550,7 @@ function FormEditor({
         return () => {
           cleanupQuestionLoops?.();
           cleanupFormDiagnostics?.();
+          unbindAudience?.();
           unregisterJsonEditor();
           unregisterStorage();
         };
@@ -561,6 +572,7 @@ function FormEditor({
     creator,
     initialPropertyGridVisible,
     formJson,
+    audience,
     registerStorageHandlers,
     registerJsonEditor,
     isExtensionsReady,
@@ -681,4 +693,4 @@ function FormEditor({
   );
 }
 export default FormEditor;
-export type { FormEditorProps };
+export type { DesignerAudience, FormEditorProps };
