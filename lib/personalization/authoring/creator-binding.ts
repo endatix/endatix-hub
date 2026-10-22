@@ -82,7 +82,6 @@ function applyVariables(
   variables: AudienceVariables,
   state: BindingState,
 ): void {
-  state.variables = variables;
   const presets = variables.variablePresets;
   if (
     state.applied !== undefined &&
@@ -152,12 +151,7 @@ export function bindToCreator(
   audience: DesignerAudience,
 ): CreatorBinding {
   initGlobals();
-  const state: BindingState = {
-    variables: audience.variables,
-    applied: undefined,
-    latest: 0,
-    bound: true,
-  };
+  const state = newState(audience.variables);
   applyVariables(creator, audience.variables, state);
   const refresh = () => refreshVariables(creator, audience, state);
   const stopWatching = onPreviewOpened(creator, (plugin, atBind) => {
@@ -168,15 +162,23 @@ export function bindToCreator(
     state.bound = false;
     stopWatching();
   };
-  return Object.assign(unbind, {
-    refresh,
+  return Object.assign(unbind, { refresh, ...reviewing(creator, state) });
+}
+
+function newState(variables: AudienceVariables): BindingState {
+  return { variables, applied: undefined, latest: 0, bound: true };
+}
+
+/** Findings against the variables read last, and their fixes on the canvas. */
+function reviewing(creator: SurveyCreatorModel, state: BindingState) {
+  return {
     review: () => reviewAudience(creator.JSON, state.variables),
     applyFix: (finding: AudienceFinding) => {
       if (finding.kind === "unknown-variable" && finding.fix) {
         applyAudienceFix(creator, finding.fix);
       }
     },
-  });
+  };
 }
 
 /** Only the latest read applies; one that lands after unbind, fails, or throws is dropped. */
@@ -194,6 +196,7 @@ async function refreshVariables(
     return;
   }
   if (state.bound && read === state.latest && Result.isSuccess(fresh)) {
+    state.variables = fresh.value;
     applyVariables(creator, fresh.value, state);
   }
 }

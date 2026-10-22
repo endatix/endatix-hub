@@ -134,7 +134,6 @@ export const FormDiagnosticsView = ({
   }
 
   const requiresReCaptcha = model.requiresReCaptcha;
-  const audienceFindingCount = audienceFindings.length;
   const isPublic = model.isPublic;
   const infoAlertClassName =
     "text-blue-600 border-blue-200 bg-blue-50 dark:bg-blue-950/20 dark:text-blue-400 dark:border-blue-800";
@@ -332,12 +331,10 @@ export const FormDiagnosticsView = ({
             attentionClassName={infoAlertClassName}
           />
 
-          {audienceFindingCount > 0 && (
-            <AudienceFindings
-              findings={audienceFindings}
-              onFix={(finding) => model.applyAudienceFix(finding)}
-            />
-          )}
+          <AudienceFindings
+            findings={audienceFindings}
+            onFix={(finding) => model.applyAudienceFix(finding)}
+          />
 
           {issues.length > 0 ? (
             <div className="space-y-3 pt-2">
@@ -373,7 +370,7 @@ export const FormDiagnosticsView = ({
               ))}
             </div>
           ) : (
-            audienceFindingCount === 0 && (
+            audienceFindings.length === 0 && (
               <Alert className="border-green-200 bg-green-50 text-green-600 dark:border-green-800 dark:bg-green-950/20 dark:text-green-400">
                 <CheckCircle2 className="h-4 w-4" />
                 <AlertTitle>All Good!</AlertTitle>

@@ -28,32 +28,37 @@ function referenceName(finding: ILintFinding): string {
   return String(data.root ?? data.name ?? data.variable ?? "");
 }
 
+type At = { variable: string; path: string; elementName?: string };
+
+const BY_RULE: Record<
+  string,
+  (at: At, finding: ILintFinding) => AudienceFinding
+> = {
+  [UNKNOWN]: (at, finding) => ({
+    kind: "unknown-variable",
+    ...at,
+    suggestion: finding.suggestion,
+    fix: finding.fix,
+  }),
+  [COLLISION]: (at) => ({ kind: "variable-collision", ...at }),
+};
+
 function toFinding(
   finding: ILintFinding,
   variableNames: Set<string>,
 ): AudienceFinding | null {
-  const at = { path: finding.path, elementName: finding.elementName };
-  const variable = referenceName(finding);
-  if (finding.ruleId === UNKNOWN) {
-    return {
-      kind: "unknown-variable",
-      variable,
-      ...at,
-      suggestion: finding.suggestion,
-      fix: finding.fix,
-    };
-  }
-  if (finding.ruleId === COLLISION) {
-    return { kind: "variable-collision", variable, ...at };
-  }
+  const at: At = {
+    variable: referenceName(finding),
+    path: finding.path,
+    elementName: finding.elementName,
+  };
+  const build = BY_RULE[finding.ruleId];
+  if (build) return build(at, finding);
   // survey-core 3.2.2 raises these for question references only; keep the ones about a variable.
-  if (
-    TYPE_RULES.has(finding.ruleId) &&
-    variableNames.has(variable.toLowerCase())
-  ) {
-    return { kind: "type-mismatch", variable, ...at, message: finding.message };
-  }
-  return null;
+  return TYPE_RULES.has(finding.ruleId) &&
+    variableNames.has(at.variable.toLowerCase())
+    ? { kind: "type-mismatch", ...at, message: finding.message }
+    : null;
 }
 
 /**
