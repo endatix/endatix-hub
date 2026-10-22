@@ -22,12 +22,15 @@ export interface CreatorHooks {
 /** What the designer binds: the variables read with the page, and how to read them again. */
 export type DesignerAudience = CreatorHooks & { variables: AudienceVariables };
 
+/** The designer reads only the findings; coverage per property and participant is the Audience tab's. */
+type DesignerReview = Pick<AudienceReview, "findings">;
+
 export type CreatorBinding = {
   /** Unbinds: no further reads, and a read in flight is dropped. */
   (): void;
   refresh(): Promise<void>;
   /** The canvas's Audience findings, against the variables read last. */
-  review(): Promise<AudienceReview>;
+  review(): Promise<DesignerReview>;
   /** Applies a finding's fix to the canvas; a finding without one is left alone. */
   applyFix(finding: AudienceFinding): void;
 };
@@ -175,13 +178,13 @@ function newState(variables: AudienceVariables): BindingState {
  */
 function reviewing(creator: SurveyCreatorModel, state: BindingState) {
   let reviewer: typeof reviewAudience | undefined;
-  const review = (): AudienceReview => {
+  const review = (): DesignerReview => {
     if (!reviewer) return { findings: [] };
     const { findings } = reviewer(creator.JSON, state.variables);
     return { findings: findings.map((f) => withCanvasFix(creator, f)) };
   };
   return {
-    review: async (): Promise<AudienceReview> => {
+    review: async (): Promise<DesignerReview> => {
       if (!state.variables.variablePresets) return { findings: [] };
       reviewer ??= (await import("./review")).reviewAudience;
       return review();

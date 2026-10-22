@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   AudienceDataType,
@@ -137,7 +143,9 @@ describe("PeopleSection", () => {
     );
 
     // Assert — identity locked; identifier property absent from editable values
-    expect(await screen.findByRole("heading", { name: "Edit person" })).toBeTruthy();
+    expect(
+      await screen.findByRole("heading", { name: "Edit person" }),
+    ).toBeTruthy();
     const lockedLabel = screen
       .getAllByText("External ID")
       .find((node) => node.tagName === "DT");
@@ -210,6 +218,39 @@ describe("PeopleSection", () => {
     expect(
       screen.queryByRole("button", { name: /^Test as this person/ }),
     ).toBeNull();
+  });
+
+  it("marks a participant missing values the saved form reads", () => {
+    const review = {
+      findings: [],
+      forProperty: () => ({ used: true, filledReal: 0, real: 0 }),
+      notFilledIn: (filled: string[]) =>
+        ["city", "tier"].filter((name) => !filled.includes(name)),
+    };
+    const properties = [
+      textProperty("city", "city", "City"),
+      textProperty("tier", "tier", "Tier"),
+    ];
+    render(
+      <PeopleSection
+        {...LIST}
+        properties={properties}
+        people={[
+          PERSON,
+          { ...TEST_PERSON, values: { city: "Ruse", tier: "gold" } },
+        ]}
+        canEdit={false}
+        canTest={false}
+        review={review}
+      />,
+    );
+
+    const [missing, complete] = screen.getAllByRole("row").slice(1);
+    expect(
+      within(missing!).getByText("1 not filled in", { exact: false }),
+    ).toBeTruthy();
+    expect(within(missing!).getByLabelText("Not filled in: Tier")).toBeTruthy();
+    expect(complete!.textContent).not.toContain("not filled in");
   });
 
   it("says the filter found nobody, with a way back to everyone", () => {

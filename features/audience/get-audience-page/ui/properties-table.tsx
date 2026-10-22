@@ -15,6 +15,7 @@ import type {
   AudienceIdentifierKind,
   AudienceProperty,
 } from "@/lib/endatix-api/audience/types";
+import type { AudienceReview } from "@/lib/personalization/authoring";
 import { VariableName } from "../../ui/variable-name";
 import { dataTypeLabel } from "../../property-types";
 import { identifierKindLabel, matchKeyFirst } from "../../utils";
@@ -28,8 +29,16 @@ const COLUMNS: readonly StaticDataTableColumn[] = Object.freeze([
   { key: "name", label: "Property", className: "min-w-[12rem]" },
   { key: "variable", label: "Variable name" },
   { key: "type", label: "Type", className: SHRINK },
-  { key: "actions", label: "Actions", className: `text-right ${SHRINK}` },
 ]);
+const COVERAGE_COLUMNS: readonly StaticDataTableColumn[] = Object.freeze([
+  { key: "used", label: "Used in form", className: SHRINK },
+  { key: "filled", label: "Filled in", className: SHRINK },
+]);
+const ACTIONS_COLUMN: StaticDataTableColumn = {
+  key: "actions",
+  label: "Actions",
+  className: `text-right ${SHRINK}`,
+};
 
 function propertyActions(property: AudienceProperty, handlers: RowHandlers) {
   return [
@@ -78,15 +87,34 @@ function PropertyName({ property, kind }: Readonly<NameProps>) {
   );
 }
 
+/** What the saved form reads and how many real participants filled it in (the designer's verdict). */
+function coverageCells(
+  property: AudienceProperty,
+  review: AudienceReview,
+): StaticDataTableCell[] {
+  const use = review.forProperty(property.variableName);
+  const used = use.used ? (
+    <Badge variant="secondary">Used</Badge>
+  ) : (
+    <span className="text-muted-foreground">Not used</span>
+  );
+  const filled = `${use.filledReal.toLocaleString()} of ${use.real.toLocaleString()}`;
+  return [
+    dataTableCell("used", used, TYPE_CELL),
+    dataTableCell("filled", filled, TYPE_CELL),
+  ];
+}
+
 function propertyCells(
   { property, kind }: NameProps,
-  handlers?: RowHandlers,
+  { handlers, review }: Pick<PropertiesTableProps, "handlers" | "review">,
 ): StaticDataTableCell[] {
   const name = <PropertyName property={property} kind={kind} />;
   const cells = [
     dataTableCell("name", name, NAME_CELL),
     dataTableCell("variable", <VariableName value={property.variableName} />),
     dataTableCell("type", dataTypeLabel(property.dataType), TYPE_CELL),
+    ...(review ? coverageCells(property, review) : []),
   ];
   if (!handlers) return cells;
   const actions = (
@@ -100,6 +128,8 @@ type PropertiesTableProps = {
   properties: AudienceProperty[];
   /** Omitted for a read-only reader: the table has no actions column. */
   handlers?: RowHandlers;
+  /** The saved form's Audience review; without one there are no coverage columns. */
+  review?: AudienceReview | null;
 };
 
 /** The match-key property is pinned first; the rest keep their order. */
@@ -107,15 +137,20 @@ export function PropertiesTable({
   identifierKind: kind,
   properties,
   handlers,
+  review,
 }: Readonly<PropertiesTableProps>) {
-  const columns = handlers ? COLUMNS : COLUMNS.slice(0, -1);
+  const columns = [
+    ...COLUMNS,
+    ...(review ? COVERAGE_COLUMNS : []),
+    ...(handlers ? [ACTIONS_COLUMN] : []),
+  ];
   return (
     <StaticDataTable columns={columns}>
       {matchKeyFirst(properties, kind).map((property, index) => (
         <StaticDataTableRow
           key={property.id}
           index={index}
-          cells={propertyCells({ property, kind }, handlers)}
+          cells={propertyCells({ property, kind }, { handlers, review })}
         />
       ))}
     </StaticDataTable>

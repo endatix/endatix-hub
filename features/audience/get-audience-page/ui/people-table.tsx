@@ -2,6 +2,7 @@
 
 import { FlaskConical, Pencil, Trash2 } from "lucide-react";
 import Link from "next/link";
+import type { ReactNode } from "react";
 import {
   AudienceLinkStatusKind,
   type AudienceIdentifierKind,
@@ -18,7 +19,9 @@ import {
   type StaticDataTableCell,
   type StaticDataTableColumn,
 } from "@/components/table";
+import type { AudienceReview } from "@/lib/personalization/authoring";
 import { formRoutes } from "@/lib/routes/form-routes";
+import { Badge } from "@/components/ui/badge";
 import { LinkStatusBadge } from "../../ui/link-status-badge";
 import { NotSet } from "../../ui/not-set";
 import { SubmissionLink } from "../../ui/submission-link";
@@ -40,6 +43,8 @@ type PeopleTableProps = {
   handlers: RowHandlers;
   /** The participant page needs `forms.edit`; without it the identifier is plain text. */
   canEdit: boolean;
+  /** The saved form's Audience review: marks participants missing values it reads. */
+  review?: AudienceReview | null;
 };
 
 const ACTIONS_COLUMN: StaticDataTableColumn = {
@@ -132,7 +137,10 @@ const ACTIONS_CELL = `text-right ${SHRINK}`;
 const PARTICIPANT_LINK =
   "rounded-sm underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none";
 
-type IdentifierCellProps = CellProps & { canOpen: boolean };
+type IdentifierCellProps = CellProps & {
+  canOpen: boolean;
+  notFilledIn?: ReactNode;
+};
 
 /** The identifier opens the participant's page for a reader who may reach it. */
 function ParticipantLink({
@@ -149,12 +157,44 @@ function ParticipantLink({
   );
 }
 
+/** The names of the properties this person has a value for. */
+function filledNames(person: AudiencePerson, properties: AudienceProperty[]) {
+  return properties
+    .filter((p) => (person.values[p.id] ?? "") !== "")
+    .map((p) => p.variableName);
+}
+
+type NotFilledInProps = { names: string[]; properties: AudienceProperty[] };
+
+/** The properties the saved form reads that this person has no value for. */
+function NotFilledIn({ names, properties }: Readonly<NotFilledInProps>) {
+  if (names.length === 0) return null;
+  const label = names
+    .map(
+      (name) => properties.find((p) => p.variableName === name)?.name ?? name,
+    )
+    .join(", ");
+  return (
+    <Badge
+      variant="outline"
+      className="border-orange-300 text-orange-700 dark:border-orange-800 dark:text-orange-300"
+      aria-label={`Not filled in: ${label}`}
+      title={`Not filled in: ${label}`}
+    >
+      {names.length} not filled in
+    </Badge>
+  );
+}
+
 /** A test person also carries a Test badge, in the tone of test submissions. */
 function IdentifierCell(props: Readonly<IdentifierCellProps>) {
   return (
-    <WithTestBadge isTest={props.person.isTest}>
-      <ParticipantLink {...props} />
-    </WithTestBadge>
+    <span className="inline-flex flex-wrap items-center gap-2">
+      <WithTestBadge isTest={props.person.isTest}>
+        <ParticipantLink {...props} />
+      </WithTestBadge>
+      {props.notFilledIn}
+    </span>
   );
 }
 
@@ -180,17 +220,25 @@ function LinkCell({ formId, person }: Readonly<CellProps>) {
   );
 }
 
-type CellOptions = ColumnOptions & { formId: string; canEdit: boolean };
+type CellOptions = ColumnOptions & {
+  formId: string;
+  canEdit: boolean;
+  review?: AudienceReview | null;
+};
 
 function personCells(
   person: AudiencePerson,
   properties: AudienceProperty[],
-  { formId, showLink, handlers, canEdit }: CellOptions,
+  { formId, showLink, handlers, canEdit, review }: CellOptions,
 ): StaticDataTableCell[] {
   const value = (p: AudienceProperty) =>
     formatPropertyValue(p, person.values[p.id]) ?? <NotSet />;
   const cell = { formId, person };
-  const identifier = <IdentifierCell {...cell} canOpen={canEdit} />;
+  const missing = review?.notFilledIn(filledNames(person, properties)) ?? [];
+  const notFilledIn = <NotFilledIn names={missing} properties={properties} />;
+  const identifier = (
+    <IdentifierCell {...cell} canOpen={canEdit} notFilledIn={notFilledIn} />
+  );
   const link = <LinkCell {...cell} />;
   const cells = [
     dataTableCell("identifier", identifier, IDENTIFIER_CELL),

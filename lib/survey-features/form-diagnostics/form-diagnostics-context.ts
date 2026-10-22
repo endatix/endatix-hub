@@ -1,8 +1,5 @@
 import type { SurveyCreatorModel } from "survey-creator-core";
-import type {
-  AudienceFinding,
-  AudienceReview,
-} from "@/lib/personalization/authoring";
+import type { AudienceFinding } from "@/lib/personalization/authoring";
 import { FORM_DIAGNOSTICS_PLUGIN_NAME } from "./constants";
 import { FormDiagnosticsPlugin } from "./form-diagnostics-plugin";
 
@@ -80,7 +77,7 @@ export function applyFormDiagnosticsContext(
 
 /** The form's Audience variables as Diagnostics reads them: the designer's Audience binding. */
 export interface DiagnosticsAudience {
-  review(): Promise<AudienceReview>;
+  review(): Promise<{ findings: AudienceFinding[] }>;
   applyFix(finding: AudienceFinding): void;
   refresh(): Promise<void>;
 }

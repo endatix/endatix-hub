@@ -155,9 +155,9 @@ describe("reviewAudience", () => {
   it("reviews nothing when the form has no properties", () => {
     const none = { ...variables(), variablePresets: null };
 
-    expect(
-      reviewAudience(form({ type: "html", name: "h", html: "{x}" }), none),
-    ).toEqual({ findings: [] });
+    const json = form({ type: "html", name: "h", html: "{x}" });
+
+    expect(reviewAudience(json, none).findings).toEqual([]);
   });
 });
 
@@ -228,5 +228,90 @@ describe("Audience fix in the designer", () => {
     expect(creator.survey.getQuestionByName("plan").title).toBe(
       "Your plan is {tierr}",
     );
+  });
+});
+
+describe("Audience coverage", () => {
+  const counted = (
+    real: number,
+    properties: { variableName: string; filledReal: number }[],
+  ): AudienceVariables => ({
+    ...variables(),
+    coverage: {
+      participants: { test: 1, real },
+      properties: properties.map((p) => ({ ...p, filledTest: 1 })),
+    },
+  });
+  const readsTier = form({ type: "text", name: "q", title: "{tier}" });
+
+  it("says whether the form reads a property, and how many filled it in", () => {
+    const review = reviewAudience(
+      readsTier,
+      counted(40, [
+        { variableName: "tier", filledReal: 38 },
+        { variableName: "seats", filledReal: 40 },
+      ]),
+    );
+
+    expect(review.forProperty("tier")).toEqual({
+      used: true,
+      filledReal: 38,
+      real: 40,
+    });
+    expect(review.forProperty("Seats")).toEqual({
+      used: false,
+      filledReal: 40,
+      real: 40,
+    });
+  });
+
+  it("warns when real participants have not filled in a property the form reads", () => {
+    const review = reviewAudience(
+      readsTier,
+      counted(40, [{ variableName: "tier", filledReal: 38 }]),
+    );
+
+    expect(review.findings).toContainEqual({
+      kind: "not-filled-in",
+      variableName: "tier",
+      filledReal: 38,
+      real: 40,
+    });
+  });
+
+  it("does not warn about a property every participant filled in, or one the form never reads", () => {
+    const review = reviewAudience(
+      readsTier,
+      counted(40, [
+        { variableName: "tier", filledReal: 40 },
+        { variableName: "seats", filledReal: 0 },
+      ]),
+    );
+
+    expect(review.findings.map((f) => f.kind)).not.toContain("not-filled-in");
+  });
+
+  it("lists what one participant has not filled in, among what the form reads", () => {
+    const review = reviewAudience(
+      form({ type: "text", name: "q", title: "{tier} {seats}" }),
+      variables(),
+    );
+
+    expect(review.notFilledIn(["seats"])).toEqual(["tier"]);
+    expect(review.notFilledIn(["TIER", "seats"])).toEqual([]);
+  });
+
+  it("knows nothing without properties", () => {
+    const review = reviewAudience(readsTier, {
+      ...variables(),
+      variablePresets: null,
+    });
+
+    expect(review.forProperty("tier")).toEqual({
+      used: false,
+      filledReal: 0,
+      real: 0,
+    });
+    expect(review.notFilledIn([])).toEqual([]);
   });
 });
