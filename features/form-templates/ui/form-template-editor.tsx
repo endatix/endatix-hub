@@ -179,7 +179,6 @@ function FormTemplateEditorContent({
       }
 
       setOriginalName(name);
-      setName(name);
       toast.success("Template name updated");
       setIsEditingName(false);
     } finally {
@@ -415,13 +414,13 @@ function FormTemplateEditorContent({
               autoFocus
             />
           ) : (
-            <span
-              className="px-1 text-lg font-bold hover:rounded hover:border hover:border-border"
+            <button
+              type="button"
+              className="cursor-text px-1 text-lg font-bold hover:rounded hover:border hover:border-border"
               onClick={() => setIsEditingName(true)}
-              style={{ cursor: "text" }}
             >
               {name}
-            </span>
+            </button>
           )}
         </div>
         <div className="flex items-center gap-2">

@@ -65,13 +65,13 @@ export default function FormEditorHeader({
             autoFocus
           />
         ) : (
-          <span
-            className="px-1 text-lg font-bold hover:rounded hover:border hover:border-border"
+          <button
+            type="button"
+            className="cursor-text px-1 text-lg font-bold hover:rounded hover:border hover:border-border"
             onClick={() => setIsEditingName(true)}
-            style={{ cursor: "text" }}
           >
             {name}
-          </span>
+          </button>
         )}
         <FormPublicStatus isPublic={isPublic} />
       </div>

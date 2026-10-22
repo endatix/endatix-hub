@@ -80,7 +80,6 @@ export const useFormEditorHeader = ({
         }
 
         setOriginalName(name);
-        setName(name);
         toast.success("Form name updated");
       });
     }
