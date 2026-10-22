@@ -1,4 +1,3 @@
-import { undeclaredReferences } from "./lint-findings";
 import type { AudienceFinding } from "./types";
 
 /**
@@ -6,11 +5,10 @@ import type { AudienceFinding } from "./types";
  * the collision warning: the linter counts that name as declared, so it never shows up as read.
  */
 export function unusedProperties(
-  json: object,
   variableNames: string[],
+  read: Set<string>,
   collisions: Set<string>,
 ): AudienceFinding[] {
-  const read = undeclaredReferences(json);
   return variableNames
     .filter((name) => {
       const key = name.toLowerCase();

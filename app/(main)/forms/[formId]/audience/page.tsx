@@ -3,6 +3,7 @@ import { AudiencePageShell } from "@/features/audience/get-audience-page/ui/audi
 import { audienceListSearch } from "@/features/audience/get-audience-page/audience-return-to";
 import {
   loadAudiencePage,
+  loadAudienceReview,
   parseAudienceView,
   parsePeoplePaging,
   parsePeopleTestFilter,
@@ -60,9 +61,19 @@ function listSearchFrom(query: Awaited<Params["searchParams"]>): string {
 
 async function audienceView({ query, ...request }: AudienceRequest) {
   const { formId } = request;
-  const [form, audience] = await Promise.all([
-    loadWorkspaceForm(formId, "audience"),
+  const formResult = loadWorkspaceForm(formId, "audience");
+  const [form, audience, reviewData] = await Promise.all([
+    formResult,
     loadAudiencePage({ ...request, paging: peopleQueryFrom(query) }),
+    formResult.then((loaded) =>
+      Result.isSuccess(loaded)
+        ? loadAudienceReview({
+            api: request.api,
+            formId,
+            activeDefinitionId: loaded.value.activeDefinitionId,
+          })
+        : null,
+    ),
   ]);
   if (Result.isError(form)) return <FormLoadError result={form} />;
   if (Result.isError(audience)) return <FormLoadError result={audience} />;
@@ -74,6 +85,7 @@ async function audienceView({ query, ...request }: AudienceRequest) {
       view={parseAudienceView(firstSearchParam(query.view))}
       listSearch={listSearchFrom(query)}
       data={audience.value}
+      reviewData={reviewData}
     />
   );
 }
