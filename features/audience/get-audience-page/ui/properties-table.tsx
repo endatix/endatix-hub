@@ -132,6 +132,17 @@ type PropertiesTableProps = {
   review?: AudienceReview | null;
 };
 
+function tableColumns({
+  handlers,
+  review,
+}: Pick<PropertiesTableProps, "handlers" | "review">) {
+  return [
+    ...COLUMNS,
+    ...(review ? COVERAGE_COLUMNS : []),
+    ...(handlers ? [ACTIONS_COLUMN] : []),
+  ];
+}
+
 /** The match-key property is pinned first; the rest keep their order. */
 export function PropertiesTable({
   identifierKind: kind,
@@ -139,13 +150,8 @@ export function PropertiesTable({
   handlers,
   review,
 }: Readonly<PropertiesTableProps>) {
-  const columns = [
-    ...COLUMNS,
-    ...(review ? COVERAGE_COLUMNS : []),
-    ...(handlers ? [ACTIONS_COLUMN] : []),
-  ];
   return (
-    <StaticDataTable columns={columns}>
+    <StaticDataTable columns={tableColumns({ handlers, review })}>
       {matchKeyFirst(properties, kind).map((property, index) => (
         <StaticDataTableRow
           key={property.id}

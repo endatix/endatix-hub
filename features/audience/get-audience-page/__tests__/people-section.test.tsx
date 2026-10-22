@@ -143,9 +143,7 @@ describe("PeopleSection", () => {
     );
 
     // Assert — identity locked; identifier property absent from editable values
-    expect(
-      await screen.findByRole("heading", { name: "Edit person" }),
-    ).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "Edit person" })).toBeTruthy();
     const lockedLabel = screen
       .getAllByText("External ID")
       .find((node) => node.tagName === "DT");

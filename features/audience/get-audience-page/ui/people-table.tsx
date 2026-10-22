@@ -186,6 +186,15 @@ function NotFilledIn({ names, properties }: Readonly<NotFilledInProps>) {
   );
 }
 
+function notFilledInMark(
+  person: AudiencePerson,
+  properties: AudienceProperty[],
+  review: AudienceReview | null | undefined,
+) {
+  const missing = review?.notFilledIn(filledNames(person, properties)) ?? [];
+  return <NotFilledIn names={missing} properties={properties} />;
+}
+
 /** A test person also carries a Test badge, in the tone of test submissions. */
 function IdentifierCell(props: Readonly<IdentifierCellProps>) {
   return (
@@ -226,6 +235,23 @@ type CellOptions = ColumnOptions & {
   review?: AudienceReview | null;
 };
 
+function identifierCell(
+  person: AudiencePerson,
+  properties: AudienceProperty[],
+  { formId, canEdit, review }: Omit<CellOptions, keyof ColumnOptions>,
+): StaticDataTableCell {
+  const mark = notFilledInMark(person, properties, review);
+  const identifier = (
+    <IdentifierCell
+      formId={formId}
+      person={person}
+      canOpen={canEdit}
+      notFilledIn={mark}
+    />
+  );
+  return dataTableCell("identifier", identifier, IDENTIFIER_CELL);
+}
+
 function personCells(
   person: AudiencePerson,
   properties: AudienceProperty[],
@@ -234,14 +260,9 @@ function personCells(
   const value = (p: AudienceProperty) =>
     formatPropertyValue(p, person.values[p.id]) ?? <NotSet />;
   const cell = { formId, person };
-  const missing = review?.notFilledIn(filledNames(person, properties)) ?? [];
-  const notFilledIn = <NotFilledIn names={missing} properties={properties} />;
-  const identifier = (
-    <IdentifierCell {...cell} canOpen={canEdit} notFilledIn={notFilledIn} />
-  );
   const link = <LinkCell {...cell} />;
   const cells = [
-    dataTableCell("identifier", identifier, IDENTIFIER_CELL),
+    identifierCell(person, properties, { formId, canEdit, review }),
     ...(showLink ? [dataTableCell("link", link, SHRINK)] : []),
     ...properties.map((p) => dataTableCell(p.id, value(p), VALUE_CELL)),
   ];
