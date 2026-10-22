@@ -25,6 +25,6 @@ describe("Form participant header", () => {
     render(
       await Header({ params: Promise.resolve({ formId: "f1", memberId: "m1" }) }),
     );
-    screen.getByText("f1:audience");
+    expect(screen.getByText("f1:audience")).toBeDefined();
   });
 });

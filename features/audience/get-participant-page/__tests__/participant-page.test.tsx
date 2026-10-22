@@ -165,7 +165,7 @@ describe("ParticipantPage", () => {
   it("says so when the participant has no submissions", () => {
     renderPage({ submissions: [], submissionTotal: 0 });
 
-    screen.getByText("No submissions yet");
+    expect(screen.getByText("No submissions yet")).toBeDefined();
   });
 
   it("tests as this participant and reads the page again once it is open", async () => {
@@ -197,7 +197,9 @@ describe("ParticipantPage", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Edit values" }));
 
-    await screen.findByRole("dialog", { name: "Edit person" });
+    expect(
+      await screen.findByRole("dialog", { name: "Edit person" }),
+    ).toBeDefined();
   });
 
   it("returns to the Audience page and test filter this tab last had", async () => {

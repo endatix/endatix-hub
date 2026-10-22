@@ -94,7 +94,7 @@ describe("Form participant page", () => {
     const Page = await openAsEditor();
 
     render(await Page({ params }));
-    screen.getByText("gone f1");
+    expect(screen.getByText("gone f1")).toBeDefined();
   });
 
   it("shows the participant when the read finds them", async () => {

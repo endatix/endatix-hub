@@ -398,9 +398,9 @@ describe("Audience participant", () => {
       MEMBER_ID,
     );
 
-    expect(result.success && result.data.submissions[0].snapshotSource).toBe(
-      null,
-    );
+    expect(
+      result.success && result.data.submissions[0].snapshotSource,
+    ).toBeNull();
   });
 
   it("passes a 404 through so the page can say the participant is gone", async () => {
