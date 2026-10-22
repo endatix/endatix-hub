@@ -346,29 +346,19 @@
 @utility container {
   margin-inline: auto;
   padding-inline: 2rem;
-  @media (width >= --theme(--breakpoint-sm)) {
-    & {
-      max-width: 640px;
-    }
+  @variant sm {
+    max-width: 640px;
   }
-  @media (width >= --theme(--breakpoint-md)) {
-    & {
-      max-width: 768px;
-    }
+  @variant md {
+    max-width: 768px;
   }
-  @media (width >= --theme(--breakpoint-lg)) {
-    & {
-      max-width: 1024px;
-    }
+  @variant lg {
+    max-width: 1024px;
   }
-  @media (width >= --theme(--breakpoint-xl)) {
-    & {
-      max-width: 1280px;
-    }
+  @variant xl {
+    max-width: 1280px;
   }
-  @media (width >= --theme(--breakpoint-2xl)) {
-    & {
-      max-width: 1400px;
-    }
+  @variant 2xl {
+    max-width: 1400px;
   }
 }

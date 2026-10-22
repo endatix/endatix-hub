@@ -26,4 +26,14 @@ describe("exchangeKeycloakToken", () => {
       details: "boom",
     });
   });
+
+  it("reports a thrown object as JSON", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue({ code: 500 }));
+
+    const result = await exchangeKeycloakToken("mobile-jwt");
+
+    expect(!result.success && result.error.details).toEqual({
+      details: '{"code":500}',
+    });
+  });
 });
