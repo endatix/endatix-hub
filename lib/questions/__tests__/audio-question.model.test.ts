@@ -203,6 +203,55 @@ describe("AudioQuestionModel", () => {
       expect(audioQuestion.isRecording).toBe(false);
     });
 
+    it("logs a failed audio context close and still keeps the recording", async () => {
+      const consoleSpy = vi
+        .spyOn(console, "debug")
+        .mockImplementation(() => {});
+      const closeError = new Error("already closed");
+      mockAudioContext.close.mockRejectedValueOnce(closeError);
+      const uploadSpy = vi
+        .spyOn(audioQuestion, "uploadAudioRecording")
+        .mockImplementation(() => {});
+      (audioQuestion as unknown as { audioData: Float32Array[] }).audioData = [
+        new Float32Array([0.1, 0.2, 0.3]),
+      ];
+      audioQuestion.afterRenderQuestionElement(
+        mockHTMLElement as unknown as HTMLElement,
+      );
+
+      await audioQuestion.startRecording();
+      await audioQuestion.stopRecording();
+      await Promise.resolve();
+
+      expect(uploadSpy).toHaveBeenCalled();
+      expect(consoleSpy).toHaveBeenCalledWith("Recording error", closeError);
+      consoleSpy.mockRestore();
+    });
+
+    it("logs a failed stop and flags the recording error", async () => {
+      const consoleSpy = vi
+        .spyOn(console, "debug")
+        .mockImplementation(() => {});
+      const disconnectError = new Error("node already disconnected");
+      audioQuestion.afterRenderQuestionElement(
+        mockHTMLElement as unknown as HTMLElement,
+      );
+      await audioQuestion.startRecording();
+      mockProcessor.disconnect = vi.fn(() => {
+        throw disconnectError;
+      });
+
+      const errorsSpy = vi
+        .spyOn(audioQuestion, "errors", "set")
+        .mockImplementation(() => {});
+
+      await audioQuestion.stopRecording();
+
+      expect(consoleSpy).toHaveBeenCalledWith("Recording error", disconnectError);
+      expect(errorsSpy).toHaveBeenCalledOnce();
+      consoleSpy.mockRestore();
+    });
+
     it("should handle recording errors gracefully", async () => {
       const consoleSpy = vi
         .spyOn(console, "debug")
