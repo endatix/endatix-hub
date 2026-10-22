@@ -60,6 +60,26 @@ export async function canAccessAudience(permission: string): Promise<boolean> {
   return allowed.success;
 }
 
+export const AUDIENCE_ACCESS_DENIED_MESSAGE =
+  "You no longer have access to this form's Audience.";
+
+/**
+ * `requireAudienceApi` for a background read: a missing grant (or an expired session) is a
+ * `Result` error, never a redirect, so the page the read runs under keeps its unsaved state.
+ */
+export async function checkAudienceApi(
+  permission: string,
+): Promise<ResultType<EndatixApi>> {
+  if (!(await personalizationFlag())) {
+    return Result.error(PERSONALIZATION_DISABLED_MESSAGE);
+  }
+  const session = await auth();
+  const { checkAllPermissions } = await authorization(session);
+  const allowed = await checkAllPermissions(audienceGrants(permission));
+  if (!allowed.success) return Result.error(AUDIENCE_ACCESS_DENIED_MESSAGE);
+  return Result.success(new EndatixApi(session?.accessToken));
+}
+
 /** `requireAudienceAccess` for callers that only need the API client. */
 export async function requireAudienceApi(
   permission: string,

@@ -11,7 +11,7 @@ import type {
 } from "@/lib/endatix-api/audience/types";
 import { Result } from "@/lib/result";
 import { applyPersonalizationToModel } from "../../apply-personalization";
-import { createAudienceAuthoring } from "..";
+import { bindAudienceToCreator } from "..";
 
 const MARIA = "maria@acme.test";
 const BOB = "bob@acme.test";
@@ -87,23 +87,12 @@ function selectorList(creator: SurveyCreatorModel) {
   return { action, list, titles: () => list.actions.map((item) => item.title) };
 }
 
-describe("createAudienceAuthoring", () => {
-  it("is null without variables", () => {
-    expect(createAudienceAuthoring(null)).toBeNull();
-  });
-
-  it("is null when the form has no properties", () => {
-    expect(
-      createAudienceAuthoring({ ...variables(), variablePresets: null }),
-    ).toBeNull();
-  });
-});
-
 describe("Preview as in the designer", () => {
   it("lists the form's test participants by identifier", () => {
     const creator = designer();
 
-    createAudienceAuthoring(variables())!.bindToCreator(creator, {
+    bindAudienceToCreator(creator, {
+      variables: variables(),
       refresh: noRefresh,
     });
 
@@ -114,7 +103,8 @@ describe("Preview as in the designer", () => {
   });
 
   it("names the selector Preview as, with None, and the editor Test participant values", () => {
-    createAudienceAuthoring(variables())!.bindToCreator(designer(), {
+    bindAudienceToCreator(designer(), {
+      variables: variables(),
       refresh: noRefresh,
     });
 
@@ -125,7 +115,8 @@ describe("Preview as in the designer", () => {
   });
 
   it("never says preset on screen", () => {
-    createAudienceAuthoring(variables())!.bindToCreator(designer(), {
+    bindAudienceToCreator(designer(), {
+      variables: variables(),
       refresh: noRefresh,
     });
 
@@ -140,10 +131,10 @@ describe("Preview as in the designer", () => {
     const reads: ((value: Result<AudienceVariables>) => void)[] = [];
     const refresh = () =>
       new Promise<Result<AudienceVariables>>((resolve) => reads.push(resolve));
-    const binding = createAudienceAuthoring(variables())!.bindToCreator(
-      creator,
-      { refresh },
-    );
+    const binding = bindAudienceToCreator(creator, {
+      variables: variables(),
+      refresh,
+    });
 
     const first = binding.refresh();
     const second = binding.refresh();
@@ -154,27 +145,48 @@ describe("Preview as in the designer", () => {
     expect(creator.variablePresets?.presets?.map((p) => p.name)).toEqual([BOB]);
   });
 
-  it("takes the editing gates from the API", () => {
+  // Edits made there would only reach the local container and vanish on the next Preview open.
+  it("keeps the values editor read-only even when the API allows editing", () => {
     const creator = designer();
     const editable = {
       ...variables(),
-      editing: { allowAdd: true, allowEdit: false, allowDelete: false },
+      editing: { allowAdd: true, allowEdit: true, allowDelete: true },
     };
 
-    createAudienceAuthoring(editable)!.bindToCreator(creator, {
-      refresh: noRefresh,
-    });
+    bindAudienceToCreator(creator, { variables: editable, refresh: noRefresh });
 
     expect(presetManager(creator)).toMatchObject({
-      allowAdd: true,
+      allowAdd: false,
       allowEdit: false,
       allowDelete: false,
     });
   });
 
+  it("says how many test participants the selector leaves out", () => {
+    const creator = designer();
+    const firstPage = variables();
+    firstPage.variablePresets!.totalPresets = 35;
+    bindAudienceToCreator(creator, {
+      variables: firstPage,
+      refresh: noRefresh,
+    });
+
+    creator.activeTab = "preview";
+
+    const { list, titles } = selectorList(creator);
+    expect(titles()).toEqual([
+      "None",
+      MARIA,
+      BOB,
+      "33 more in the Audience tab",
+    ]);
+    expect(list.actions.at(-1)?.enabled).toBe(false);
+  });
+
   it("starts a {variable} default filled, as the shared form does", () => {
     const creator = designer();
-    createAudienceAuthoring(variables())!.bindToCreator(creator, {
+    bindAudienceToCreator(creator, {
+      variables: variables(),
       refresh: noRefresh,
     });
 
@@ -188,7 +200,8 @@ describe("Preview as in the designer", () => {
 
   it("pipes the participant's values into text and conditions", () => {
     const creator = designer();
-    createAudienceAuthoring(variables())!.bindToCreator(creator, {
+    bindAudienceToCreator(creator, {
+      variables: variables(),
       refresh: noRefresh,
     });
 
@@ -205,7 +218,8 @@ describe("Preview as in the designer", () => {
 
   it("offers None first, and picking it previews without values", () => {
     const creator = designer();
-    createAudienceAuthoring(variables())!.bindToCreator(creator, {
+    bindAudienceToCreator(creator, {
+      variables: variables(),
       refresh: noRefresh,
     });
     previewAs(creator, MARIA);
@@ -222,9 +236,10 @@ describe("Preview as in the designer", () => {
 
   it("shows the selector for a form with one test participant", () => {
     const creator = designer();
-    createAudienceAuthoring(
-      variables([{ name: MARIA, variables: { tier: "gold" } }]),
-    )!.bindToCreator(creator, { refresh: noRefresh });
+    bindAudienceToCreator(creator, {
+      variables: variables([{ name: MARIA, variables: { tier: "gold" } }]),
+      refresh: noRefresh,
+    });
 
     creator.activeTab = "preview";
 
@@ -236,7 +251,8 @@ describe("Preview as in the designer", () => {
   // The condition editor lists `creator.variablePresetsModel`'s names (it is not exported to test directly).
   it("declares the variables to the condition editor", () => {
     const creator = designer();
-    createAudienceAuthoring(variables())!.bindToCreator(creator, {
+    bindAudienceToCreator(creator, {
+      variables: variables(),
       refresh: noRefresh,
     });
 
@@ -249,7 +265,7 @@ describe("Preview as in the designer", () => {
   it("does not read again when a participant is picked", async () => {
     const creator = designer();
     const refresh = vi.fn(noRefresh);
-    createAudienceAuthoring(variables())!.bindToCreator(creator, { refresh });
+    bindAudienceToCreator(creator, { variables: variables(), refresh });
     creator.activeTab = "preview";
     await flush();
     refresh.mockClear();
@@ -262,13 +278,55 @@ describe("Preview as in the designer", () => {
 });
 
 describe("Preview as refresh", () => {
+  it("shows Preview as once a form loaded without properties gets them", async () => {
+    const creator = designer();
+    const refresh = vi.fn(noRefresh);
+    bindAudienceToCreator(creator, {
+      variables: { ...variables(), variablePresets: null },
+      refresh,
+    });
+    expect(creator.variablePresets).toBeUndefined();
+
+    creator.activeTab = "preview";
+    await flush();
+
+    expect(refresh).toHaveBeenCalledOnce();
+    expect(creator.variablePresets?.presets).toHaveLength(2);
+  });
+
+  it("keeps what it has when the refresh rejects", async () => {
+    const creator = designer();
+    const refresh = () => Promise.reject(new Error("Failed to fetch"));
+    const binding = bindAudienceToCreator(creator, {
+      variables: variables(),
+      refresh,
+    });
+
+    await expect(binding.refresh()).resolves.toBeUndefined();
+
+    expect(creator.variablePresets?.presets).toHaveLength(2);
+  });
+
+  it("keeps the container when the refresh brings the same values", async () => {
+    const creator = designer();
+    const binding = bindAudienceToCreator(creator, {
+      variables: variables(),
+      refresh: noRefresh,
+    });
+    const before = creator.variablePresets;
+
+    await binding.refresh();
+
+    expect(creator.variablePresets).toBe(before);
+  });
+
   it("reads the variables again when the Preview tab opens", async () => {
     const creator = designer();
     const carol = { name: "carol@acme.test", variables: { tier: "gold" } };
     const refresh = vi.fn(() =>
       Promise.resolve(Result.success(variables([carol]))),
     );
-    createAudienceAuthoring(variables())!.bindToCreator(creator, { refresh });
+    bindAudienceToCreator(creator, { variables: variables(), refresh });
 
     creator.activeTab = "preview";
     await flush();
@@ -288,10 +346,10 @@ describe("Preview as refresh", () => {
         ),
       ),
     );
-    const binding = createAudienceAuthoring(variables())!.bindToCreator(
-      creator,
-      { refresh },
-    );
+    const binding = bindAudienceToCreator(creator, {
+      variables: variables(),
+      refresh,
+    });
     previewAs(creator, MARIA);
     await flush();
 
@@ -308,10 +366,10 @@ describe("Preview as refresh", () => {
       Promise.resolve(
         Result.success({ ...variables(), variablePresets: null }),
       );
-    const binding = createAudienceAuthoring(variables())!.bindToCreator(
-      creator,
-      { refresh },
-    );
+    const binding = bindAudienceToCreator(creator, {
+      variables: variables(),
+      refresh,
+    });
 
     await binding.refresh();
 
@@ -322,10 +380,10 @@ describe("Preview as refresh", () => {
     const creator = designer();
     const refresh = () =>
       Promise.resolve(Result.error<AudienceVariables>("Network down"));
-    const binding = createAudienceAuthoring(variables())!.bindToCreator(
-      creator,
-      { refresh },
-    );
+    const binding = bindAudienceToCreator(creator, {
+      variables: variables(),
+      refresh,
+    });
 
     await binding.refresh();
 
@@ -335,10 +393,10 @@ describe("Preview as refresh", () => {
   it("stops reading once unbound", async () => {
     const creator = designer();
     const refresh = vi.fn(noRefresh);
-    const unbind = createAudienceAuthoring(variables())!.bindToCreator(
-      creator,
-      { refresh },
-    );
+    const unbind = bindAudienceToCreator(creator, {
+      variables: variables(),
+      refresh,
+    });
 
     unbind();
     creator.activeTab = "preview";

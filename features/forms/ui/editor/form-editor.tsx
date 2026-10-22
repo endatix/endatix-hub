@@ -13,10 +13,9 @@ import {
 import { StoredTheme } from "@/features/themes/types";
 import { updateFormThemeAction } from "@/features/themes/update-form-theme";
 import { useDesignerRuntime } from "@/lib/designer-runtime";
-import type { AudienceVariables } from "@/lib/endatix-api/audience/types";
 import {
-  createAudienceAuthoring,
-  type CreatorHooks,
+  bindAudienceToCreator,
+  type DesignerAudience,
 } from "@/lib/personalization/authoring";
 import { registerAudioQuestionUI } from "@/lib/questions/audio-recorder";
 import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";
@@ -129,9 +128,6 @@ SvgRegistry.registerIcon("icon-question-loops", questionLoopsIcon);
 
 registerThemes();
 
-/** The form's Audience variables for Preview as; absent with the flag off or no access. */
-type DesignerAudience = CreatorHooks & { variables: AudienceVariables };
-
 interface FormEditorProps {
   formId: string;
   formJson: object | null;
@@ -140,6 +136,7 @@ interface FormEditorProps {
   themeId?: string;
   isPublic?: boolean;
   formIsEnabled?: boolean;
+  /** The form's Audience variables for Preview as; absent with the flag off or no access. */
   audience?: DesignerAudience | null;
   initialPropertyGridVisible?: boolean;
   onThemeModificationChange?: (isModified: boolean) => void;
@@ -167,17 +164,6 @@ function nameToTitle(name: string): string {
     .filter(Boolean)
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase());
   return words.join(" ");
-}
-
-function bindAudience(
-  creator: SurveyCreatorModel,
-  audience: DesignerAudience | null | undefined,
-) {
-  if (!audience) return undefined;
-  return createAudienceAuthoring(audience.variables)?.bindToCreator(
-    creator,
-    audience,
-  );
 }
 
 function FormEditor({
@@ -520,7 +506,9 @@ function FormEditor({
         );
         const cleanupQuestionLoops = bindQuestionLoops(newCreator);
         const cleanupFormDiagnostics = bindFormDiagnostics(newCreator);
-        const unbindAudience = bindAudience(newCreator, audience);
+        const unbindAudience = audience
+          ? bindAudienceToCreator(newCreator, audience)
+          : undefined;
 
         setCreator(newCreator);
 
