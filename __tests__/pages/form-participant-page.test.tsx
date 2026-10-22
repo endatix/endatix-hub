@@ -9,6 +9,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 vi.mock("@/features/audience/shared/require-audience-api.server", () => ({
+  PARTICIPANT_PAGE_PERMISSION: "forms.edit",
   requireAudienceAccess: vi.fn(),
 }));
 
@@ -34,15 +35,12 @@ describe("Form participant page", () => {
   });
 
   it("sends a reader who cannot edit the form back to it", async () => {
-    const { requireAudienceAccess } = await import(
-      "@/features/audience/shared/require-audience-api.server"
-    );
+    const { requireAudienceAccess } =
+      await import("@/features/audience/shared/require-audience-api.server");
     const { redirect } = await import("next/navigation");
     vi.mocked(requireAudienceAccess).mockResolvedValue(Result.error("no"));
     const Page = (
-      await import(
-        "@/app/(main)/forms/[formId]/audience/participants/[memberId]/page"
-      )
+      await import("@/app/(main)/forms/[formId]/audience/participants/[memberId]/page")
     ).default;
 
     await expect(Page({ params })).rejects.toThrow("NEXT_REDIRECT");
@@ -50,15 +48,12 @@ describe("Form participant page", () => {
   });
 
   it("shows the load error when the form or the participant read fails", async () => {
-    const { requireAudienceAccess } = await import(
-      "@/features/audience/shared/require-audience-api.server"
-    );
-    const { loadWorkspaceForm } = await import(
-      "@/features/forms/form-workspace/load-workspace-form.server"
-    );
-    const { loadParticipantPage } = await import(
-      "@/features/audience/get-participant-page"
-    );
+    const { requireAudienceAccess } =
+      await import("@/features/audience/shared/require-audience-api.server");
+    const { loadWorkspaceForm } =
+      await import("@/features/forms/form-workspace/load-workspace-form.server");
+    const { loadParticipantPage } =
+      await import("@/features/audience/get-participant-page");
     vi.mocked(requireAudienceAccess).mockResolvedValue(
       Result.success({
         api: {},
@@ -70,9 +65,7 @@ describe("Form participant page", () => {
       Result.success({ status: "gone" }),
     );
     const Page = (
-      await import(
-        "@/app/(main)/forms/[formId]/audience/participants/[memberId]/page"
-      )
+      await import("@/app/(main)/forms/[formId]/audience/participants/[memberId]/page")
     ).default;
 
     render(await Page({ params }));
@@ -85,9 +78,8 @@ describe("Form participant page", () => {
   });
 
   it("shows the gone state when the participant is no longer on the form", async () => {
-    const { loadParticipantPage } = await import(
-      "@/features/audience/get-participant-page"
-    );
+    const { loadParticipantPage } =
+      await import("@/features/audience/get-participant-page");
     vi.mocked(loadParticipantPage).mockResolvedValue(
       Result.success({ status: "gone" }),
     );
@@ -98,9 +90,8 @@ describe("Form participant page", () => {
   });
 
   it("shows the participant when the read finds them", async () => {
-    const { loadParticipantPage } = await import(
-      "@/features/audience/get-participant-page"
-    );
+    const { loadParticipantPage } =
+      await import("@/features/audience/get-participant-page");
     vi.mocked(loadParticipantPage).mockResolvedValue(
       Result.success({
         status: "found",
@@ -127,12 +118,10 @@ describe("Form participant page", () => {
 });
 
 async function openAsEditor() {
-  const { requireAudienceAccess } = await import(
-    "@/features/audience/shared/require-audience-api.server"
-  );
-  const { loadWorkspaceForm } = await import(
-    "@/features/forms/form-workspace/load-workspace-form.server"
-  );
+  const { requireAudienceAccess } =
+    await import("@/features/audience/shared/require-audience-api.server");
+  const { loadWorkspaceForm } =
+    await import("@/features/forms/form-workspace/load-workspace-form.server");
   vi.mocked(requireAudienceAccess).mockResolvedValue(
     Result.success({
       api: { id: "api" },
@@ -141,8 +130,6 @@ async function openAsEditor() {
   );
   vi.mocked(loadWorkspaceForm).mockResolvedValue(Result.success({}));
   return (
-    await import(
-      "@/app/(main)/forms/[formId]/audience/participants/[memberId]/page"
-    )
+    await import("@/app/(main)/forms/[formId]/audience/participants/[memberId]/page")
   ).default;
 }
