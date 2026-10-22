@@ -1,6 +1,6 @@
 import { toast } from "@/components/ui/toast";
 import { updateFormNameAction } from "@/features/forms/application/actions/update-form-name.action";
-import { Result } from "@/lib/result";
+import { Result, toActionFailure } from "@/lib/result";
 import {
   useCallback,
   useEffect,
@@ -61,10 +61,12 @@ export const useFormEditorHeader = ({
   const [isSaving, setIsSaving] = useState(false);
   const [showSavedSuccess, setShowSavedSuccess] = useState(false);
 
-  const handleNameSave = useCallback(async () => {
+  const handleNameSave = useCallback(() => {
     if (name !== originalName) {
       startTransition(async () => {
-        const updateNameResult = await updateFormNameAction(formId, name);
+        const updateNameResult = await updateFormNameAction(formId, name).catch(
+          toActionFailure<string>("Something went wrong. Try again."),
+        );
         if (updateNameResult === undefined) {
           toast.error("Could not proceed with updating form name");
           return;

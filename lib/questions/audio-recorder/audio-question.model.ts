@@ -111,7 +111,7 @@ export class AudioQuestionModel extends QuestionFileModelBase {
       this.analyser!.disconnect();
       this.source!.disconnect();
       this.stream!.getTracks().forEach((track) => track.stop());
-      this.audioContext!.close();
+      void this.audioContext!.close().catch(this.logRecordingError);
 
       const merged = this.flattenArray(this.audioData);
       const wavBlob = this.encodeWAV(merged, 48000);
@@ -119,7 +119,7 @@ export class AudioQuestionModel extends QuestionFileModelBase {
         type: "audio/wav",
       });
     } catch (error) {
-      console.debug("Recording error", error);
+      this.logRecordingError(error);
     }
 
     this.isRecording = false;
@@ -130,6 +130,10 @@ export class AudioQuestionModel extends QuestionFileModelBase {
 
     this.uploadAudioRecording([recordingFile]);
   }
+
+  private readonly logRecordingError = (error: unknown): void => {
+    console.debug("Recording error", error);
+  };
 
   public clearRecording(): void {
     this.clearValue(true);
@@ -142,7 +146,7 @@ export class AudioQuestionModel extends QuestionFileModelBase {
 
   public beforeDestroyQuestionElement(el: HTMLElement): void {
     super.beforeDestroyQuestionElement(el);
-    this.stopRecording();
+    void this.stopRecording().catch(this.logRecordingError);
     this.questionElement = undefined;
   }
 

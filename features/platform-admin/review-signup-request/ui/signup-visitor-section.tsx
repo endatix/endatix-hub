@@ -75,7 +75,7 @@ export function SignupVisitorSection({
 
   useEffect(() => {
     let ignore = false;
-    loadVisitor({ distinctId, sessionId }).then((lookup) => {
+    void loadVisitor({ distinctId, sessionId }).then((lookup) => {
       if (!ignore) {
         setResult(lookup);
       }

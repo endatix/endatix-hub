@@ -19,12 +19,16 @@ interface SessionCardProps {
 }
 
 export default function SessionCard({ session }: SessionCardProps) {
-  const copyToClipboard = (value: string) => {
-    navigator.clipboard.writeText(value);
-    toast.success({
-      title: "JWT copied to clipboard",
-      description: value.substring(0, 84) + "...",
-    });
+  const copyToClipboard = async (value: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      toast.success({
+        title: "JWT copied to clipboard",
+        description: value.substring(0, 84) + "...",
+      });
+    } catch {
+      toast.error("Could not copy the JWT");
+    }
   };
 
   return (
@@ -41,7 +45,7 @@ export default function SessionCard({ session }: SessionCardProps) {
             </span>
             <Copy
               aria-label="Copy JWT"
-              onClick={() => copyToClipboard(session?.accessToken ?? "")}
+              onClick={() => void copyToClipboard(session?.accessToken ?? "")}
               className="w-4 h-4 cursor-pointer"
             />
           </p>

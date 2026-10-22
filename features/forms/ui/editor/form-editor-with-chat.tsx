@@ -67,7 +67,7 @@ export default function FormEditorWithChat({
   const shouldRenderEditor = hasNonEmptyFormJson || conversationLoaded;
 
   useEffect(() => {
-    const initializeConversation = async () => {
+    const initializeConversation = () => {
       if (chatContext?.error) {
         setConversationLoaded(true);
         return;

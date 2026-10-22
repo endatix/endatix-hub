@@ -65,7 +65,7 @@ export function SubmissionAnswers({
     if (!surveyModel) {
       return;
     }
-    prefetchPrivateReadUrlsForModel(surveyModel);
+    void prefetchPrivateReadUrlsForModel(surveyModel);
   }, [surveyModel, prefetchPrivateReadUrlsForModel]);
 
   useEffect(() => {

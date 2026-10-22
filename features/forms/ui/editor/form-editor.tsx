@@ -1,6 +1,7 @@
 "use client";
 
 import { toast } from "@/components/ui/toast";
+import { TelemetryLogger } from "@/features/telemetry";
 import { customQuestions } from "@/customizations/questions/question-registry";
 import { useStorageWithCreator } from "@/features/asset-storage/client";
 import { useSurveyLicenseKey } from "@/features/config/survey-license-provider";
@@ -549,7 +550,10 @@ function FormEditor({
       }
     };
 
-    initializeNewCreator();
+    void initializeNewCreator().catch((error: unknown) => {
+      TelemetryLogger.error("Error loading custom questions", error);
+      toast.error("Failed to load custom questions");
+    });
   }, [
     formId,
     options,
