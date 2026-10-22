@@ -111,8 +111,14 @@ export class FormDiagnosticsPlugin extends Base implements ICreatorPlugin {
     this.updateAudienceFindings();
   }
 
+  /** A failing review shows nothing: warnings never stand in the way of the designer. */
   private updateAudienceFindings() {
-    this.audienceFindings = this.audience?.review().findings ?? [];
+    try {
+      this.audienceFindings = this.audience?.review().findings ?? [];
+    } catch (error) {
+      console.warn("Audience review failed.", error);
+      this.audienceFindings = [];
+    }
   }
 
   public updateStats() {

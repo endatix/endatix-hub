@@ -7,75 +7,62 @@ import {
 } from "survey-core/linter";
 import type { AudienceFinding } from "./types";
 
+// survey-core 3.2.2 checks types and choices against question references only, never a variable,
+// so expression/type-mismatch and expression/unknown-choice have nothing to say about Properties.
 const UNKNOWN = "reference/unknown";
 const COLLISION = "variable/collision";
-const TYPE_RULES = new Set([
-  "expression/type-mismatch",
-  "expression/unknown-choice",
-]);
-const KEPT = new Set([UNKNOWN, COLLISION, ...TYPE_RULES]);
+/** A `{name}` whose root nothing declares; an unknown segment inside a question is not ours. */
+const NOT_FOUND = "notFound";
 
-/** Only the rules the Audience reports; the rest of the linter stays off. */
-function onlyRules(kept: Set<string>): Record<string, LintSeverity> {
+/** Only the given rules, as warnings; the rest of the linter stays off. */
+function onlyRules(kept: string[]): Record<string, LintSeverity> {
   return Object.fromEntries(
-    getRules().map((rule) => [rule.id, kept.has(rule.id) ? "warning" : "off"]),
+    getRules().map((rule) => [
+      rule.id,
+      kept.includes(rule.id) ? "warning" : "off",
+    ]),
   );
 }
 
-/** The linter's `{name}` root: `{tier.label}` is `tier`. */
-function referenceName(finding: ILintFinding): string {
-  const data = finding.messageData;
-  return String(data.root ?? data.name ?? data.variable ?? "");
+function isUnknownRoot(finding: ILintFinding): boolean {
+  return finding.ruleId === UNKNOWN && finding.reason === NOT_FOUND;
 }
 
-type At = { variable: string; path: string; elementName?: string };
-
-const BY_RULE: Record<
-  string,
-  (at: At, finding: ILintFinding) => AudienceFinding
-> = {
-  [UNKNOWN]: (at, finding) => ({
-    kind: "unknown-variable",
+function toFinding(finding: ILintFinding): AudienceFinding | null {
+  const data = finding.messageData;
+  const at = { path: finding.path, elementName: finding.elementName };
+  if (isUnknownRoot(finding)) {
+    return {
+      kind: "unknown-variable",
+      variable: String(data.root ?? data.name),
+      ...at,
+      suggestion: finding.suggestion,
+      fix: finding.fix,
+    };
+  }
+  if (finding.ruleId !== COLLISION) return null;
+  return {
+    kind: "variable-collision",
+    variable: String(data.variable ?? data.name),
     ...at,
-    suggestion: finding.suggestion,
-    fix: finding.fix,
-  }),
-  [COLLISION]: (at) => ({ kind: "variable-collision", ...at }),
-};
-
-function toFinding(
-  finding: ILintFinding,
-  variableNames: Set<string>,
-): AudienceFinding | null {
-  const at: At = {
-    variable: referenceName(finding),
-    path: finding.path,
-    elementName: finding.elementName,
+    declaredBy: data.kind === "question" ? "question" : "calculatedValue",
   };
-  const build = BY_RULE[finding.ruleId];
-  if (build) return build(at, finding);
-  // survey-core 3.2.2 raises these for question references only; keep the ones about a variable.
-  return TYPE_RULES.has(finding.ruleId) &&
-    variableNames.has(at.variable.toLowerCase())
-    ? { kind: "type-mismatch", ...at, message: finding.message }
-    : null;
 }
 
 /**
- * Unknown references, collisions and type checks from survey-core's linter, given the variables as
- * a plain presets object. Custom variables (calculated values) count as declared there.
+ * Unknown references and collisions from survey-core's linter, given the variables as a plain
+ * presets object. Calculated values (the designer's custom variables) count as declared there.
  */
 export function lintFindings(
   json: object,
   presets: ISurveyVariablePresets,
-  variableNames: Set<string>,
 ): AudienceFinding[] {
   const { findings } = lintSurvey(json, {
     variablePresets: presets,
-    rules: onlyRules(KEPT),
+    rules: onlyRules([UNKNOWN, COLLISION]),
   });
   return findings
-    .map((finding) => toFinding(finding, variableNames))
+    .map(toFinding)
     .filter((finding): finding is AudienceFinding => finding !== null);
 }
 
@@ -84,10 +71,10 @@ export function lintFindings(
  * linter's reference walk (expressions, piped texts, defaults, triggers), with no variables declared.
  */
 export function undeclaredReferences(json: object): Set<string> {
-  const { findings } = lintSurvey(json, {
-    rules: onlyRules(new Set([UNKNOWN])),
-  });
+  const { findings } = lintSurvey(json, { rules: onlyRules([UNKNOWN]) });
   return new Set(
-    findings.map((finding) => referenceName(finding).toLowerCase()),
+    findings
+      .filter(isUnknownRoot)
+      .map((finding) => String(finding.messageData.root).toLowerCase()),
   );
 }

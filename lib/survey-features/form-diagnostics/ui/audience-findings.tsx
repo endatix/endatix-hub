@@ -18,8 +18,12 @@ type Finding<K extends AudienceFinding["kind"]> = Extract<
   { kind: K }
 >;
 
-const NOT_DECLARED =
-  "No Audience property, question or custom variable has this name, so it shows empty.";
+const NOT_DECLARED = "No Property, question or calculated value has this name.";
+
+const DECLARED_BY = {
+  question: "question",
+  calculatedValue: "calculated value",
+} as const;
 
 const DESCRIBE: {
   [K in AudienceFinding["kind"]]: (finding: Finding<K>) => Described;
@@ -31,17 +35,13 @@ const DESCRIBE: {
       : NOT_DECLARED,
     fixLabel: fix && suggestion ? `Use {${suggestion}}` : undefined,
   }),
-  "variable-collision": ({ variable }) => ({
-    title: `A question hides the property {${variable}}`,
-    description: `The question and the Audience property share the name "${variable}": the participant's value replaces the answer stored under it. Rename the question.`,
-  }),
-  "type-mismatch": ({ variable, message }) => ({
-    title: `A condition on {${variable}} cannot be met`,
-    description: message,
+  "variable-collision": ({ variable, declaredBy }) => ({
+    title: `A ${DECLARED_BY[declaredBy]} hides the Property {${variable}}`,
+    description: `The ${DECLARED_BY[declaredBy]} and the Property share the name "${variable}", so {${variable}} does not always read the participant's value. Rename the ${DECLARED_BY[declaredBy]}.`,
   }),
   "unused-property": ({ variableName }) => ({
     title: `{${variableName}} is never used`,
-    description: "The form does not read this Audience property.",
+    description: "The form does not read this Property.",
   }),
 };
 
@@ -51,10 +51,12 @@ export function describeAudienceFinding(finding: AudienceFinding): Described {
   return describe(finding);
 }
 
-function findingKey(finding: AudienceFinding): string {
-  return finding.kind === "unused-property"
-    ? `${finding.kind}:${finding.variableName}`
-    : `${finding.kind}:${finding.path}:${finding.variable}`;
+function findingKey(finding: AudienceFinding, index: number): string {
+  const at =
+    finding.kind === "unused-property"
+      ? finding.variableName
+      : `${finding.path}:${finding.variable}`;
+  return `${finding.kind}:${at}:${index}`;
 }
 
 const FINDINGS = "audienceFindings";
@@ -138,9 +140,9 @@ export function AudienceFindings({
   return (
     <section aria-labelledby={HEADING_ID} className="space-y-3 pt-2">
       <FindingsHeading count={findings.length} />
-      {findings.map((finding) => (
+      {findings.map((finding, index) => (
         <AudienceFindingAlert
-          key={findingKey(finding)}
+          key={findingKey(finding, index)}
           finding={finding}
           onFix={onFix}
         />

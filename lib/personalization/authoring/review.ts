@@ -23,8 +23,7 @@ export function reviewAudience(
 
   const presets = toSurveyPresets(variables.variablePresets);
   const names = variableNamesOf(presets);
-  const lowered = new Set(names.map((name) => name.toLowerCase()));
-  const linted = lintFindings(surveyJson, presets, lowered);
+  const linted = lintFindings(surveyJson, presets);
   const collisions = new Set(
     linted
       .filter((finding) => finding.kind === "variable-collision")

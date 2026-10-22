@@ -8,7 +8,7 @@ import {
 import type { AudienceVariables } from "@/lib/endatix-api/audience/types";
 import { Result } from "@/lib/result";
 import { canonicalizeCreatorTabId, ENDATIX_CREATOR_TAB } from "@/lib/survey-js";
-import { applyAudienceFix } from "./apply-fix";
+import { applyAudienceFix, canFixOnCanvas } from "./apply-fix";
 import type { AudienceFinding, AudienceReview } from "./findings/types";
 import { addNoneToPreviewAs } from "./preview-as-none";
 import { reviewAudience } from "./review";
@@ -169,16 +169,29 @@ function newState(variables: AudienceVariables): BindingState {
   return { variables, applied: undefined, latest: 0, bound: true };
 }
 
-/** Findings against the variables read last, and their fixes on the canvas. */
+/** Findings against the variables read last; a fix the canvas cannot take is left out. */
 function reviewing(creator: SurveyCreatorModel, state: BindingState) {
   return {
-    review: () => reviewAudience(creator.JSON, state.variables),
+    review: (): AudienceReview => {
+      const { findings } = reviewAudience(creator.JSON, state.variables);
+      return { findings: findings.map((f) => withCanvasFix(creator, f)) };
+    },
     applyFix: (finding: AudienceFinding) => {
       if (finding.kind === "unknown-variable" && finding.fix) {
         applyAudienceFix(creator, finding.fix);
       }
     },
   };
+}
+
+function withCanvasFix(
+  creator: SurveyCreatorModel,
+  finding: AudienceFinding,
+): AudienceFinding {
+  if (finding.kind !== "unknown-variable" || !finding.fix) return finding;
+  return canFixOnCanvas(creator, finding.fix)
+    ? finding
+    : { ...finding, fix: undefined };
 }
 
 /** Only the latest read applies; one that lands after unbind, fails, or throws is dropped. */

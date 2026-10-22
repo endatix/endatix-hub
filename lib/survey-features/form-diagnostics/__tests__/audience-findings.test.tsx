@@ -93,6 +93,32 @@ describe("Audience findings in Diagnostics", () => {
     expect(plugin.audienceFindings).toEqual([UNUSED]);
   });
 
+  it("shows no findings, and keeps working, when the review throws", () => {
+    const audience = audienceWith([]);
+    vi.mocked(audience.review).mockImplementation(() => {
+      throw new Error("linter broke");
+    });
+
+    expect(() => pluginWith(audience)).not.toThrow();
+    expect(pluginWith(audience).audienceFindings).toEqual([]);
+  });
+
+  it("names a calculated value that collides with a property", () => {
+    const collision: AudienceFinding = {
+      kind: "variable-collision",
+      variable: "seats",
+      path: "calculatedValues[0].name",
+      declaredBy: "calculatedValue",
+    };
+    render(
+      <FormDiagnosticsView model={pluginWith(audienceWith([collision]))} />,
+    );
+
+    expect(
+      screen.getByText("A calculated value hides the Property {seats}"),
+    ).toBeTruthy();
+  });
+
   it("shows no Personalization section without Audience variables", () => {
     render(<FormDiagnosticsView model={pluginWith(undefined)} />);
 

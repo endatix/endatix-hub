@@ -19,13 +19,8 @@ export type AudienceFinding =
       variable: string;
       path: string;
       elementName?: string;
-    }
-  | {
-      kind: "type-mismatch";
-      variable: string;
-      path: string;
-      elementName?: string;
-      message: string;
+      /** What else declares the name: its value replaces the variable's, or the other way round. */
+      declaredBy: "question" | "calculatedValue";
     }
   | { kind: "unused-property"; variableName: string };
 

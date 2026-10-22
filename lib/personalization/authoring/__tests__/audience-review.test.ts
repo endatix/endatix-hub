@@ -79,8 +79,34 @@ describe("reviewAudience", () => {
         kind: "variable-collision",
         variable: "seats",
         elementName: "seats",
+        declaredBy: "question",
       }),
     );
+  });
+
+  it("says when a calculated value collides with a variable", () => {
+    const json = {
+      calculatedValues: [{ name: "seats", expression: "1" }],
+      ...form(usesBoth),
+    };
+
+    expect(reviewAudience(json, variables()).findings).toContainEqual(
+      expect.objectContaining({
+        kind: "variable-collision",
+        variable: "seats",
+        declaredBy: "calculatedValue",
+      }),
+    );
+  });
+
+  it("leaves an unknown segment inside a question to the linter", () => {
+    const json = form(usesBoth, {
+      type: "html",
+      name: "hi",
+      html: "{both.nope}",
+    });
+
+    expect(reviewAudience(json, variables()).findings).toEqual([]);
   });
 
   it("names a property the form never reads", () => {
@@ -135,6 +161,25 @@ describe("reviewAudience", () => {
 });
 
 describe("Audience fix in the designer", () => {
+  it("offers no fix for a translated text the canvas cannot take", () => {
+    const creator = new SurveyCreatorModel({});
+    creator.JSON = form(usesBoth, {
+      type: "text",
+      name: "plan",
+      title: { default: "Your plan is {tierr}", de: "Ihr Plan: {tierr}" },
+    });
+    const binding = bindAudienceToCreator(creator, {
+      variables: variables(),
+      refresh: () => Promise.resolve(Result.success(variables())),
+    });
+
+    const fixes = binding
+      .review()
+      .findings.map((finding) => ("fix" in finding ? finding.fix : undefined));
+
+    expect(fixes.every((fix) => fix === undefined)).toBe(true);
+  });
+
   it("respells the reference on the canvas, as one undoable edit", () => {
     const creator = new SurveyCreatorModel({});
     creator.JSON = form(usesBoth, {

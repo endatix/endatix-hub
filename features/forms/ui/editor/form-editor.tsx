@@ -569,6 +569,7 @@ function FormEditor({
           cleanupQuestionLoops?.();
           cleanupFormDiagnostics?.();
           unbindReplacedSurveys();
+          applyFormDiagnosticsAudience(newCreator, undefined);
           unbindAudience?.();
           unregisterJsonEditor();
           unregisterStorage();
