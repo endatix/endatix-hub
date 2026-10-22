@@ -47,7 +47,10 @@ describe("FormsBreadcrumbNav", () => {
     expect(
       screen.getByRole("button", { name: "Show the rest of the trail" }),
     ).toBeDefined();
-    expect(screen.getAllByText("Cedar Grove Pulse")).toHaveLength(2);
+    const current = screen.getAllByText("Cedar Grove Pulse");
+    expect(current).toHaveLength(2);
+    expect(current[0].className).toContain("block");
+    expect(current[0].className).toContain("truncate");
   });
 
   it("folds the middle of a long trail and keeps the first crumb and last two", () => {

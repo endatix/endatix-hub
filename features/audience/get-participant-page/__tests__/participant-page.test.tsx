@@ -106,6 +106,7 @@ describe("ParticipantPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.stubGlobal("ResizeObserver", ResizeObserverStub);
+    sessionStorage.clear();
   });
 
   it("names the participant, marks a test participant and lists their values", () => {
@@ -197,6 +198,20 @@ describe("ParticipantPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Edit values" }));
 
     await screen.findByRole("dialog", { name: "Edit person" });
+  });
+
+  it("returns to the Audience page and test filter this tab last had", async () => {
+    sessionStorage.setItem(
+      "ehx_table_return_audience_1",
+      "page=2&test=test&from=https://evil",
+    );
+    renderPage();
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("link", { name: "Audience" }).getAttribute("href"),
+      ).toBe("/forms/1/audience?page=2&test=test"),
+    );
   });
 
   it("removes the participant and returns to Audience", async () => {

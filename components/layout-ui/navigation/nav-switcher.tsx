@@ -23,12 +23,15 @@ export type NavSwitcherModel = {
   label: string;
   /** The current option's icon, shown on the trigger so it reads as a control. */
   icon?: NavIconName;
+  /** Below `sm`, the trigger keeps the icon and the button name, and hides the word. */
+  compactLabel?: boolean;
   options: NavSwitcherOption[];
 };
 
 function NavSwitcherTrigger({
   label,
   icon,
+  compactLabel,
 }: Readonly<Omit<NavSwitcherModel, "options">>) {
   const Icon = icon ? NAV_ICONS[icon] : null;
   return (
@@ -39,7 +42,7 @@ function NavSwitcherTrigger({
         aria-label={`${label} navigation`}
       >
         {Icon ? <Icon className="size-4 text-muted-foreground" /> : null}
-        {label}
+        <span className={compactLabel ? "hidden sm:inline" : undefined}>{label}</span>
         <ChevronDownIcon className="size-3.5 text-muted-foreground" />
       </button>
     </DropdownMenuTrigger>

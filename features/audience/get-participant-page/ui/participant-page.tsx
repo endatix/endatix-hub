@@ -11,8 +11,9 @@ import { StatusBadge } from "@/components/common/status-badge";
 import { TextLink } from "@/components/common/text-link";
 import { Button } from "@/components/ui/button";
 import { FormWorkspaceHeader } from "@/features/forms/form-workspace";
+import type { Route } from "next";
 import type { AudienceParticipant } from "@/lib/endatix-api/audience/types";
-import { formRoutes } from "@/lib/routes/form-routes";
+import { useAudienceReturnHref } from "../../get-audience-page/ui/use-audience-return-href";
 import { RemovePersonDialog } from "../../delete-person/ui/remove-person-dialog";
 import { useTestAsPerson } from "../../test-as-person/use-test-as-person.hook";
 import { EditPersonPanel } from "../../update-person/ui/edit-person-panel";
@@ -25,7 +26,10 @@ type ParticipantPageProps = ParticipantPageData & { formId: string };
 
 type Overlays = ReturnType<typeof useRowOverlay<AudienceParticipant>>;
 
-type ActionsProps = ParticipantPageProps & { overlay: Overlays };
+type ActionsProps = ParticipantPageProps & {
+  overlay: Overlays;
+  audienceHref: Route;
+};
 
 type ActionSpec = {
   show: boolean;
@@ -72,9 +76,9 @@ function ParticipantActions(props: Readonly<ActionsProps>) {
 
 /** The edit panel refreshes this page; Remove goes back to Audience, where they no longer are. */
 function ParticipantOverlays(props: Readonly<ActionsProps>) {
-  const { formId, overlay, identifierKind, properties } = props;
+  const { formId, overlay, identifierKind, properties, audienceHref } = props;
   const target = { formId, person: overlay.target, onClose: overlay.close };
-  const afterRemove = formRoutes.audience(formId);
+  const afterRemove = audienceHref;
   return (
     <>
       <EditPersonPanel
@@ -95,10 +99,10 @@ const TEST_BADGE = <StatusBadge tone="attention" label="Test" />;
 
 /** Back to Audience, then who they are (DESIGN.md §6 Page masthead) with their actions. */
 function ParticipantMasthead(props: Readonly<ActionsProps>) {
-  const { participant } = props;
+  const { participant, audienceHref } = props;
   return (
     <>
-      <TextLink href={formRoutes.audience(props.formId)} className="self-start">
+      <TextLink href={audienceHref} className="self-start">
         <ArrowLeft aria-hidden="true" className="size-4" />
         Audience
       </TextLink>
@@ -112,16 +116,10 @@ function ParticipantMasthead(props: Readonly<ActionsProps>) {
   );
 }
 
-/**
- * One participant on a form: who they are, their values, their link once issued, and their
- * newest submissions. Only readers with `forms.edit` reach it.
- */
-export function ParticipantPage(props: Readonly<ParticipantPageProps>) {
-  const overlay = useRowOverlay<AudienceParticipant>();
+function ParticipantBody(props: Readonly<ParticipantPageProps>) {
   const { formId, participant } = props;
   return (
-    <div className="flex flex-col gap-6">
-      <ParticipantMasthead {...props} overlay={overlay} />
+    <>
       <div className="grid-card-list">
         <ValuesCard {...props} />
         <LinkCard {...props} />
@@ -131,7 +129,23 @@ export function ParticipantPage(props: Readonly<ParticipantPageProps>) {
         submissions={participant.submissions}
         total={participant.submissionTotal}
       />
-      <ParticipantOverlays {...props} overlay={overlay} />
+    </>
+  );
+}
+
+/**
+ * One participant on a form: who they are, their values, their link once issued, and their
+ * newest submissions. Only readers with `forms.edit` reach it.
+ */
+export function ParticipantPage(props: Readonly<ParticipantPageProps>) {
+  const overlay = useRowOverlay<AudienceParticipant>();
+  const audienceHref = useAudienceReturnHref(props.formId);
+  const shared = { ...props, overlay, audienceHref };
+  return (
+    <div className="flex flex-col gap-6">
+      <ParticipantMasthead {...shared} />
+      <ParticipantBody {...props} />
+      <ParticipantOverlays {...shared} />
     </div>
   );
 }

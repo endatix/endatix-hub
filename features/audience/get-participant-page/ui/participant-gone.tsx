@@ -1,10 +1,13 @@
+"use client";
+
 import Link from "next/link";
 import { NotFoundComponent } from "@/components/error-handling/not-found";
 import { Button } from "@/components/ui/button";
-import { formRoutes } from "@/lib/routes/form-routes";
+import { useAudienceReturnHref } from "../../get-audience-page/ui/use-audience-return-href";
 
 /** The participant was removed from this form (the API answers 404), or the link is wrong. */
 export function ParticipantGone({ formId }: Readonly<{ formId: string }>) {
+  const audienceHref = useAudienceReturnHref(formId);
   return (
     <NotFoundComponent
       notFoundCode={null}
@@ -13,7 +16,7 @@ export function ParticipantGone({ formId }: Readonly<{ formId: string }>) {
       notFoundMessage="They were removed from this form's audience, or the link is wrong. They stay on any other form they are on."
     >
       <Button asChild>
-        <Link href={formRoutes.audience(formId)}>Back to Audience</Link>
+        <Link href={audienceHref}>Back to Audience</Link>
       </Button>
     </NotFoundComponent>
   );
