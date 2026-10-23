@@ -9,3 +9,4 @@ export type {
   AudienceFix,
   AudienceReview,
 } from "./findings/types";
+export { testParticipantPresets } from "./test-participant-presets";

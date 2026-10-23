@@ -447,6 +447,7 @@ describe("Audience variables", () => {
     },
     coverage: { participants: { test: 0, real: 0 }, properties: [] },
     editing: { allowAdd: false, allowEdit: false, allowDelete: false },
+    readOnlyPresets: [],
   };
 
   it("reads the form's variables for the designer", async () => {
