@@ -185,6 +185,9 @@ function FormEditor({
   const slkVal = useSurveyLicenseKey();
   const designerRuntime = useDesignerRuntime();
   const isCreatorInitializedRef = useRef(false);
+  // The Creator is built asynchronously, so its bindings' cleanup lands here and runs on unmount.
+  const isMountedRef = useRef(false);
+  const unbindCreatorRef = useRef<(() => void) | null>(null);
   const [creator, setCreator] = useState<SurveyCreator | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -463,6 +466,15 @@ function FormEditor({
   }, [creator, questionClasses]);
 
   useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      unbindCreatorRef.current?.();
+      unbindCreatorRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
     const initializeNewCreator = async () => {
       if (creator || isCreatorInitializedRef.current) {
         return;
@@ -549,7 +561,7 @@ function FormEditor({
 
         isCreatorInitializedRef.current = true;
 
-        return () => {
+        const unbindCreator = () => {
           cleanupQuestionLoops?.();
           cleanupFormDiagnostics?.();
           unbindReplacedSurveys();
@@ -557,6 +569,11 @@ function FormEditor({
           unregisterJsonEditor();
           unregisterStorage();
         };
+        if (isMountedRef.current) {
+          unbindCreatorRef.current = unbindCreator;
+        } else {
+          unbindCreator();
+        }
       } catch (error) {
         console.error("Error loading custom questions:", error);
       } finally {

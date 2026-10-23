@@ -96,6 +96,25 @@ describe("disposeReplacedSurveys", () => {
     expect(bar.isDisposed).toBe(false);
   });
 
+  it("disposes the Themes survey once Preview renders after a tab switch", () => {
+    const creator = designer();
+    disposeReplacedSurveys(creator);
+    creator.activeTab = "theme";
+    const themeSurvey = (
+      creator.getPlugin("theme") as unknown as {
+        model: { survey: SurveyModel };
+      }
+    ).model.survey;
+    render(themeSurvey);
+
+    creator.activeTab = "preview";
+    expect(themeSurvey.isDisposed).toBe(false);
+    render(previewSurvey(creator));
+
+    expect(themeSurvey.isDisposed).toBe(true);
+    expect(previewSurvey(creator).isDisposed).toBe(false);
+  });
+
   it("keeps the designer survey", () => {
     const creator = designer();
     disposeReplacedSurveys(creator);

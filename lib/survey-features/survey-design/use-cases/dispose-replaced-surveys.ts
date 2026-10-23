@@ -27,18 +27,17 @@ function disposeReplaced(replaced: SurveyModel, successor: SurveyModel): void {
 
 /**
  * Disposes the surveys a Preview or Theme restart replaced, once a successor has rendered: React no
- * longer holds them by then. Returns the unbind.
+ * longer holds them by then. One set for both tabs: each builds a new survey on every activation, so
+ * the survey of the tab just left is replaced too. Returns the unbind.
  */
 export function disposeReplacedSurveys(
   creator: SurveyCreatorModel,
 ): () => void {
-  const live = new Map<string, Set<SurveyModel>>();
+  const surveys = new Set<SurveyModel>();
 
   const onSurveyCreated = (_: unknown, options: SurveyInstanceCreatedEvent) => {
     if (!RESTARTED_SURVEY_AREAS.has(options.area)) return;
 
-    const surveys = live.get(options.area) ?? new Set<SurveyModel>();
-    live.set(options.area, surveys);
     const survey = options.survey;
     surveys.add(survey);
     survey.onAfterRenderSurvey.add(() => {
@@ -53,6 +52,6 @@ export function disposeReplacedSurveys(
   creator.onSurveyInstanceCreated.add(onSurveyCreated);
   return () => {
     creator.onSurveyInstanceCreated.remove(onSurveyCreated);
-    live.forEach((surveys) => surveys.clear());
+    surveys.clear();
   };
 }
