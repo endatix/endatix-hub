@@ -57,3 +57,8 @@ customizations/questions/question-registry.ts
 
 # local agent checkouts
 .claude/worktrees/
+# agent skills: per-developer config, evidence and work files
+.agents/endatix-models.local.yaml
+.agents/endatix-workspace.local.yaml
+.agents/evidence/
+.agents/work/
