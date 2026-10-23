@@ -47,9 +47,13 @@ function openPanel(row: RegExp) {
   fireEvent.click(screen.getByRole("menuitem", { name: row }));
 }
 
+/** A panel field is a menu item named "name: value", so arrow keys and screen readers reach it. */
 function fieldValue(name: string) {
-  const term = screen.getByText(name, { selector: "dt" });
-  return term.nextElementSibling?.textContent;
+  const prefix = `${name}: `;
+  const field = screen
+    .getAllByRole("menuitem")
+    .find((item) => item.getAttribute("aria-label")?.startsWith(prefix));
+  return field?.getAttribute("aria-label")?.slice(prefix.length);
 }
 
 const writeText = vi.fn<(text: string) => Promise<void>>();
@@ -76,7 +80,7 @@ describe("TestInspector panels", () => {
     expect(panel.textContent).toContain("Frozen");
     expect(fieldValue("Identifier")).toBe("ada@example.com");
     expect(fieldValue("Label")).toBe("Ada Lovelace");
-    expect(fieldValue("Source")).toBe("Test as this person");
+    expect(fieldValue("Snapshot source")).toBe("Test as this participant");
     expect(fieldValue("email")).toBe("ada@example.com");
     expect(fieldValue("team")).toBe("Engines");
   });
@@ -88,8 +92,35 @@ describe("TestInspector panels", () => {
 
     expect(fieldValue("Identifier")).toBe("—");
     expect(fieldValue("Label")).toBe("—");
-    expect(fieldValue("Source")).toBe("—");
-    expect(screen.getByText("No submitter fields")).toBeTruthy();
+    expect(fieldValue("Snapshot source")).toBe("—");
+    expect(screen.getByText("No Submitter fields")).toBeTruthy();
+  });
+
+  it("shows a Snapshot source this Hub does not know yet as sent", () => {
+    renderInspector({
+      ...personTest,
+      personalization: { ...personTest.personalization, source: "kiosk" },
+    } as unknown as Submission);
+
+    openPanel(/Submitting as/);
+
+    expect(fieldValue("Snapshot source")).toBe("kiosk");
+  });
+
+  it("lets the arrow keys reach each value", async () => {
+    renderInspector();
+    openPanel(/Snapshot/);
+    await waitFor(() =>
+      expect(document.activeElement?.textContent).toMatch(/Back$/),
+    );
+
+    fireEvent.keyDown(document.activeElement as Element, { key: "ArrowDown" });
+
+    await waitFor(() =>
+      expect(document.activeElement?.getAttribute("aria-label")).toMatch(
+        /^Captured: /,
+      ),
+    );
   });
 
   it("shows the Snapshot's frozen values and when they were captured", () => {
@@ -141,6 +172,19 @@ describe("TestInspector panels", () => {
     expect(JSON.parse(writeText.mock.calls[0][0])).toEqual({
       capturedAt: "2026-10-19T08:00:00Z",
       variables: { seats: 3, tier: "gold" },
+    });
+  });
+
+  it("copies an empty Snapshot in the same shape", async () => {
+    renderInspector({ id: "22", formId: "form-1" } as unknown as Submission);
+    openPanel(/Snapshot/);
+
+    fireEvent.click(screen.getByRole("menuitem", { name: "Copy as JSON" }));
+
+    await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1));
+    expect(JSON.parse(writeText.mock.calls[0][0])).toEqual({
+      capturedAt: null,
+      variables: {},
     });
   });
 

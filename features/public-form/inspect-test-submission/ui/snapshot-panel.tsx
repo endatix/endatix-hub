@@ -9,12 +9,14 @@ const capturedFormat = new Intl.DateTimeFormat(undefined, {
   timeStyle: "short",
 });
 
+/** The same shape with or without a Snapshot, so a pasted copy always reads the same way. */
 function snapshotJson(snapshot: InspectedSnapshot | null) {
-  if (!snapshot) return null;
-  const variables = snapshot.values.map(({ name, value }) => [name, value]);
+  const values = snapshot?.values ?? [];
   return {
-    capturedAt: snapshot.capturedAt,
-    variables: Object.fromEntries(variables),
+    capturedAt: snapshot?.capturedAt ?? null,
+    variables: Object.fromEntries(
+      values.map(({ name, value }) => [name, value]),
+    ),
   };
 }
 

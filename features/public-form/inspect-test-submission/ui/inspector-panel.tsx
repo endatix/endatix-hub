@@ -16,22 +16,31 @@ export function displayValue(value: unknown): string {
 
 export type PanelField = readonly [name: string, value: unknown];
 
+/** An inert menu item named "name: value": in a menu only items take focus, so arrow keys and screen readers reach it. */
+function PanelFieldItem({
+  field: [name, value],
+}: Readonly<{ field: PanelField }>) {
+  const shown = displayValue(value);
+  return (
+    <DropdownMenu.Item
+      aria-label={`${name}: ${shown}`}
+      className={styles.field}
+      onSelect={(event) => event.preventDefault()}
+      textValue={name}
+    >
+      <span className={styles.fieldName}>{name}</span>
+      <span className={styles.fieldValue}>{shown}</span>
+    </DropdownMenu.Item>
+  );
+}
+
 /** Name and value pairs, or `empty` when there are none. */
 export function PanelFields({
   empty,
   fields,
 }: Readonly<{ empty?: string; fields: ReadonlyArray<PanelField> }>) {
   if (fields.length === 0) return <p className={styles.empty}>{empty}</p>;
-  return (
-    <dl className={styles.fields}>
-      {fields.map(([name, value]) => (
-        <div className={styles.field} key={name}>
-          <dt>{name}</dt>
-          <dd>{displayValue(value)}</dd>
-        </div>
-      ))}
-    </dl>
-  );
+  return fields.map((field) => <PanelFieldItem field={field} key={field[0]} />);
 }
 
 /** Back, which takes focus when the panel opens, then the title and the Frozen tag. */
@@ -59,7 +68,8 @@ type InspectorPanelProps = {
 };
 
 /**
- * A drill-in from the menu, tagged Frozen: its values were fixed when the Snapshot was captured.
+ * A drill-in from the menu, tagged Frozen: it shows what the test submission was stored with,
+ * which editing the person later does not change.
  * Back takes focus on open, so Enter, then Esc or Enter on Back, round-trips from the keyboard.
  */
 export function InspectorPanel({

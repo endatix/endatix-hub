@@ -1,19 +1,13 @@
 "use client";
 
 import type { InspectedSubmitter } from "@/features/public-form/inspect-test-submission/test-inspector-view";
-import { PersonalizationSource } from "@/lib/endatix-api/submissions/types";
+import { snapshotSourceLabel } from "@/lib/personalization/snapshot-source";
 import {
   InspectorPanel,
   PanelFields,
   type PanelField,
 } from "./inspector-panel";
 import styles from "./test-inspector.module.css";
-
-const SOURCE_LABELS: Record<PersonalizationSource, string> = {
-  [PersonalizationSource.Test]: "Test as this person",
-  [PersonalizationSource.Link]: "Personalised link",
-  [PersonalizationSource.OnBehalf]: "On behalf",
-};
 
 function submitterJson({
   identifier,
@@ -25,15 +19,17 @@ function submitterJson({
 }
 
 function identityFields(submitter: InspectedSubmitter): PanelField[] {
-  const source = submitter.source ? SOURCE_LABELS[submitter.source] : null;
+  const source = submitter.source
+    ? snapshotSourceLabel(submitter.source)
+    : null;
   return [
     ["Identifier", submitter.identifier],
     ["Label", submitter.label],
-    ["Source", source],
+    ["Snapshot source", source],
   ];
 }
 
-/** Who the test submits as: identifier, Label, how the Snapshot was frozen, and the Submitter fields. */
+/** Who the test submits as: identifier, Label, the Snapshot source, and the Submitter fields. */
 export function SubmittingAsPanel({
   submitter,
   onBack,
@@ -46,7 +42,7 @@ export function SubmittingAsPanel({
     >
       <PanelFields fields={identityFields(submitter)} />
       <p className={styles.sectionLabel}>Submitter fields</p>
-      <PanelFields empty="No submitter fields" fields={submitter.fields} />
+      <PanelFields empty="No Submitter fields" fields={submitter.fields} />
     </InspectorPanel>
   );
 }
