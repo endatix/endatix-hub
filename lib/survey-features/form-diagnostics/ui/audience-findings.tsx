@@ -1,7 +1,7 @@
 "use client";
 
 import { AlertTriangle } from "lucide-react";
-import { useCallback, useSyncExternalStore } from "react";
+import { useCallback, useId, useSyncExternalStore } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -66,14 +66,14 @@ const NONE: AudienceFinding[] = [];
 export function useAudienceFindings(
   model: FormDiagnosticsPlugin | undefined,
 ): AudienceFinding[] {
+  const key = `audience-findings-${useId()}`;
   const subscribe = useCallback(
     (onChange: () => void) => {
       if (!model) return () => {};
-      const key = `audience-findings-${Math.random()}`;
       model.registerPropertyChangedHandlers([FINDINGS], onChange, key);
       return () => model.unregisterPropertyChangedHandlers([FINDINGS], key);
     },
-    [model],
+    [model, key],
   );
   const read = () => (model?.audience ? model.audienceFindings : NONE);
   return useSyncExternalStore(subscribe, read, read);
@@ -84,7 +84,9 @@ type FindingAlertProps = {
   onFix: (finding: AudienceFinding) => void;
 };
 
-function FixButton({ label, onClick }: { label: string; onClick: () => void }) {
+type FixButtonProps = { label: string; onClick: () => void };
+
+function FixButton({ label, onClick }: Readonly<FixButtonProps>) {
   return (
     <Button
       type="button"
@@ -123,7 +125,7 @@ type AudienceFindingsProps = {
 
 const HEADING_ID = "diagnostics-personalization";
 
-function FindingsHeading({ count }: { count: number }) {
+function FindingsHeading({ count }: Readonly<{ count: number }>) {
   return (
     <h4 id={HEADING_ID} className="flex items-center gap-2 text-sm font-medium">
       Personalization <Badge variant="secondary">{count}</Badge>

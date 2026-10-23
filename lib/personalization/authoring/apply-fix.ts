@@ -24,7 +24,10 @@ function step(node: unknown, segment: string): unknown {
 function resolve(creator: SurveyCreatorModel, path: string): Target | null {
   const segments = path.split(".");
   const key = segments.pop() ?? "";
-  const owner = segments.reduce<unknown>(step, creator.survey) as Node;
+  const owner = segments.reduce<unknown>(
+    (node, segment) => step(node, segment),
+    creator.survey,
+  ) as Node;
   const property =
     PROPERTY.test(key) && typeof owner?.getType === "function"
       ? Serializer.findProperty(owner.getType(), key)
