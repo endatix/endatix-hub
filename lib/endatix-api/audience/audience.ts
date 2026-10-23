@@ -95,7 +95,9 @@ export class Audience {
       return response;
     }
 
-    return ApiResult.success(response.data.map(mapProperty));
+    return ApiResult.success(
+      response.data.map((property) => mapProperty(property)),
+    );
   }
 
   async createProperty(

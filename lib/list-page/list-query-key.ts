@@ -13,7 +13,7 @@ export function listQueryKey(request: object): string {
 
 function canonicalize(value: unknown): unknown {
   if (Array.isArray(value)) {
-    return value.map(canonicalize);
+    return value.map((item) => canonicalize(item));
   }
 
   if (value !== null && typeof value === "object") {

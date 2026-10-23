@@ -1,7 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { registerMarkdownRenderer } from "../markdown-renderer";
 import { SurveyModel, TextMarkdownEvent } from "survey-core";
-import { Survey } from "survey-react-ui";
 
 vi.mock("@/lib/utils/html-sanitizer", () => ({
   htmlSanitizer: {

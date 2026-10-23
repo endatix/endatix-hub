@@ -13,7 +13,6 @@ import {
   FolderLock,
   MoreVertical,
   Pencil,
-  Search,
 } from "lucide-react";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";

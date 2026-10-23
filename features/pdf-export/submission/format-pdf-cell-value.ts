@@ -11,7 +11,7 @@ export function formatPdfCellValue(value: unknown): string {
 
   if (Array.isArray(value)) {
     return value
-      .map(formatPdfCellValue)
+      .map((value) => formatPdfCellValue(value))
       .filter((part) => part.length > 0)
       .join(", ");
   }

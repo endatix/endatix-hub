@@ -171,11 +171,8 @@ function nameToTitle(name: string): string {
 function FormEditor({
   formJson,
   formId,
-  formName,
   options,
   themeId,
-  isPublic,
-  formIsEnabled,
   audience,
   initialPropertyGridVisible = true,
   onThemeModificationChange,

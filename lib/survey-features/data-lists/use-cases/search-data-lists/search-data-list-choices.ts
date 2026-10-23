@@ -40,7 +40,7 @@ export async function searchDataListChoices(
   }
 
   return ApiResult.success({
-    items: response.data.items.map(mapPublicChoiceToSurveyItem),
+    items: response.data.items.map((item) => mapPublicChoiceToSurveyItem(item)),
     total: response.data.totalRecords,
   });
 }

@@ -50,7 +50,7 @@ export function choiceColumnGroups(
   properties: readonly AudienceProperty[],
 ): ChoiceColumnGroup[] {
   return properties
-    .filter(isChoiceProperty)
+    .filter((property) => isChoiceProperty(property))
     .map((property) => ({
       property,
       columns: choiceColumnsOf(property, headers),

@@ -146,7 +146,9 @@ export function mapParticipantResult(
   const { submissions = [], submissionTotal } = response.data;
   return ApiResult.success({
     ...mapPerson(response.data),
-    submissions: submissions.map(mapParticipantSubmission),
+    submissions: submissions.map((submission) =>
+      mapParticipantSubmission(submission),
+    ),
     submissionTotal: submissionTotal ?? submissions.length,
   });
 }
@@ -228,7 +230,7 @@ export function mapPeoplePageResult(
   return ApiResult.success(
     normalizePagedResponse({
       ...response.data,
-      items: response.data.items.map(mapPerson),
+      items: response.data.items.map((person) => mapPerson(person)),
     }),
   );
 }

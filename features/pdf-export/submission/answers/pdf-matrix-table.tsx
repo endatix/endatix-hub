@@ -93,7 +93,7 @@ export const PdfMatrixTable = ({ columns, rows }: PdfMatrixTableProps) => {
         {headerRow}
         {firstRow ? renderDataRow(firstRow) : null}
       </View>
-      {remainingRows.map(renderDataRow)}
+      {remainingRows.map((row) => renderDataRow(row))}
     </View>
   );
 };

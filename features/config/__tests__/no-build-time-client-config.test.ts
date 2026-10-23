@@ -60,7 +60,9 @@ describe("public client config stays request-time", () => {
       REPO_ROOT,
       /legacy-public-env\.server/,
     ).filter((file) => file !== LEGACY_SERVER_MODULE);
-    const clientImporters = importers.filter(isClientModule);
+    const clientImporters = importers.filter((importer) =>
+      isClientModule(importer),
+    );
 
     expect(
       clientImporters,
