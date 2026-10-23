@@ -19,9 +19,17 @@ function container(
 describe("testParticipantPresets", () => {
   it("saves only Test participants, leaving out every read-only preset", () => {
     const edited = container(
-      { name: MARIA, description: "Test participant", variables: { tier: "gold" } },
+      {
+        name: MARIA,
+        description: "Test participant",
+        variables: { tier: "gold" },
+      },
       { name: BOB, description: "Participant", variables: { tier: "silver" } },
-      { name: ANA, description: "Test participant", variables: { tier: "bronze" } },
+      {
+        name: ANA,
+        description: "Test participant",
+        variables: { tier: "bronze" },
+      },
     );
 
     expect(testParticipantPresets(edited, [BOB])).toEqual([
