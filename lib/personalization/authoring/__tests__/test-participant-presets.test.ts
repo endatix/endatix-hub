@@ -49,6 +49,17 @@ describe("testParticipantPresets", () => {
     ]);
   });
 
+  it("keeps a name that differs only in capitals: the API owns the match key", () => {
+    const edited = container({
+      name: "Bob@acme.test",
+      variables: { tier: "silver" },
+    });
+
+    expect(testParticipantPresets(edited, [BOB])).toEqual([
+      { name: "Bob@acme.test", variables: { tier: "silver" } },
+    ]);
+  });
+
   it("saves nothing when the form has no presets", () => {
     expect(testParticipantPresets(undefined, [])).toEqual([]);
     expect(testParticipantPresets({}, [BOB])).toEqual([]);
