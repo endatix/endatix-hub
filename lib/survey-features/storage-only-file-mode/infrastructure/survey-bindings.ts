@@ -47,7 +47,7 @@ export function bindStorageOnlyFileModeToSurvey(survey: Model): () => void {
   survey
     .getAllQuestions(false, false, true)
     .filter(isFileStorageQuestion)
-    .forEach(enforceStorageOnlyFileMode);
+    .forEach((question) => enforceStorageOnlyFileMode(question));
 
   survey.onQuestionAdded.add(handleQuestionAdded);
 

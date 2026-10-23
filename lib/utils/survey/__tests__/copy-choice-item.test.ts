@@ -6,7 +6,7 @@ import {
   Serializer,
   SurveyModel,
 } from "survey-core";
-import { copyChoiceItem, copyChoiceItemWithMedia } from "../copy-choice-item";
+import { copyChoiceItemWithMedia } from "../copy-choice-item";
 
 describe("copyChoiceItemWithMedia", () => {
   it("copies imageLink from imagepicker source to imagepicker target", () => {

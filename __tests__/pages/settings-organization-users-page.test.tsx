@@ -2,7 +2,6 @@ import SettingsOrganizationUsersPage from "@/app/(main)/settings/organization/us
 import * as authModule from "@/auth";
 import * as authFeature from "@/features/auth/authorization";
 import { Permissions } from "@/features/auth/authorization";
-import { EndatixApi } from "@/lib/endatix-api";
 import { act, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 

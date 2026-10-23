@@ -3,7 +3,6 @@
 import { authorization } from "@/features/auth/authorization";
 import { TelemetryLogger } from "@/features/telemetry";
 import { CreateFormTemplateRequest } from "@/lib/form-types";
-import { Result } from "@/lib/result";
 import { ApiResult, EndatixApi } from "@/lib/endatix-api";
 import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";

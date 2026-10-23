@@ -2,7 +2,7 @@ import type { Route } from "next";
 import type { AudiencePeopleTestFilter } from "@/lib/endatix-api/audience/types";
 
 const formPath = (formId: string, ...segments: string[]) =>
-  `/forms/${[formId, ...segments].map(encodeURIComponent).join("/")}`;
+  `/forms/${[formId, ...segments].map((segment) => encodeURIComponent(segment)).join("/")}`;
 
 // `Route` is a Next template literal; a path with a query is not one.
 const withQuery = (path: string, query: string) =>

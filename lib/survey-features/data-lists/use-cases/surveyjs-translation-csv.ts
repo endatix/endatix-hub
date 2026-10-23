@@ -35,7 +35,9 @@ function escapeCsvField(field: string): string {
 }
 
 function toCsv(rows: string[][]): string {
-  return rows.map((row) => row.map(escapeCsvField).join(",")).join("\r\n");
+  return rows
+    .map((row) => row.map((field) => escapeCsvField(field)).join(","))
+    .join("\r\n");
 }
 
 export function appendDataListRowsToSurveyCsv(
@@ -62,7 +64,7 @@ export function appendDataListRowsToSurveyCsv(
           resolveLabelForSurveyHeader(item.labels, localeHeader, index === 0),
         );
       });
-      return row.map(escapeCsvField).join(",");
+      return row.map((field) => escapeCsvField(field)).join(",");
     }),
   );
 

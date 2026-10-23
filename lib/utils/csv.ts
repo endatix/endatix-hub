@@ -90,6 +90,6 @@ function csvCell(value: string): string {
  * non-Latin names) correctly; `readCsvRecords` reads it back unchanged.
  */
 export function writeCsv(rows: readonly (readonly string[])[]): string {
-  const lines = rows.map((row) => row.map(csvCell).join(","));
+  const lines = rows.map((row) => row.map((value) => csvCell(value)).join(","));
   return `${BOM}${lines.join("\r\n")}\r\n`;
 }

@@ -31,7 +31,9 @@ export function getRolePermissionSummary(
     };
   }
 
-  const count = role.permissions.filter(isAssignablePermissionName).length;
+  const count = role.permissions.filter((permissionName) =>
+    isAssignablePermissionName(permissionName),
+  ).length;
 
   return {
     kind: "permission-count",
