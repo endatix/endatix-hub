@@ -46,6 +46,7 @@ import {
   useCreatorJson,
   useCreatorTabUrl,
 } from "@/lib/survey-features/survey-design/ui";
+import { disposeReplacedSurveys } from "@/lib/survey-features/survey-design/use-cases/dispose-replaced-surveys";
 import { applyEndatixCreatorTheme } from "@/lib/themes/creator-theme";
 import { registerThemes } from "@/lib/themes/survey-theme";
 import { useEndatixCreatorTheme } from "@/lib/themes/use-endatix-themes";
@@ -184,6 +185,9 @@ function FormEditor({
   const slkVal = useSurveyLicenseKey();
   const designerRuntime = useDesignerRuntime();
   const isCreatorInitializedRef = useRef(false);
+  // The Creator is built asynchronously, so its bindings' cleanup lands here and runs on unmount.
+  const isMountedRef = useRef(false);
+  const unbindCreatorRef = useRef<(() => void) | null>(null);
   const [creator, setCreator] = useState<SurveyCreator | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -462,6 +466,15 @@ function FormEditor({
   }, [creator, questionClasses]);
 
   useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      unbindCreatorRef.current?.();
+      unbindCreatorRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
     const initializeNewCreator = async () => {
       if (creator || isCreatorInitializedRef.current) {
         return;
@@ -507,6 +520,7 @@ function FormEditor({
         );
         const cleanupQuestionLoops = bindQuestionLoops(newCreator);
         const cleanupFormDiagnostics = bindFormDiagnostics(newCreator);
+        const unbindReplacedSurveys = disposeReplacedSurveys(newCreator);
         const unbindAudience = audience
           ? bindAudienceToCreator(newCreator, audience)
           : undefined;
@@ -547,13 +561,19 @@ function FormEditor({
 
         isCreatorInitializedRef.current = true;
 
-        return () => {
+        const unbindCreator = () => {
           cleanupQuestionLoops?.();
           cleanupFormDiagnostics?.();
+          unbindReplacedSurveys();
           unbindAudience?.();
           unregisterJsonEditor();
           unregisterStorage();
         };
+        if (isMountedRef.current) {
+          unbindCreatorRef.current = unbindCreator;
+        } else {
+          unbindCreator();
+        }
       } catch (error) {
         console.error("Error loading custom questions:", error);
       } finally {
