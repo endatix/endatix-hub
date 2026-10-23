@@ -410,7 +410,8 @@ Single-context. `GLOSSARY.md` and `docs/adr/` at the root are created lazily by 
 - Test: `pnpm test:coverage` (Vitest, one run); e2e: `pnpm test:e2e`
 - Lint: `pnpm lint`
 - Run: `pnpm dev` (http://localhost:3000)
-- PR title scope: `#[0-9]+`
+- PR title scope: `h[0-9]+|deps|deps-dev`
+- Branch name: `<type>/h<issue>-<slug>`
 
 ### Verification
 
