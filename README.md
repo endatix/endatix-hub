@@ -145,3 +145,4 @@ Keep log attributes safe and scalar. Do not log tokens, cookies, raw request bod
 To learn more about Endatix, take a look at the following resources:
 
 - [Endatix Documentation](https://docs.endatix.com/docs/category/getting-started) — product overview and API
+- [Contributing](CONTRIBUTING.md) — how to name branches and pull requests

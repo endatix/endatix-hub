@@ -391,6 +391,40 @@ When the Endatix API exposes a catalog for options, labels, or descriptions (cap
 - In server actions or server-only code, import tracking helpers from `features/analytics/posthog/server`.
 - Do not include tokens, emails, raw form values, or other PII in analytics properties. Prefer safe booleans, ids that are already public in the UI, feature names, and action names.
 
+## Agent skills
+
+Paths and commands below are relative to this repo's root, whether it is a standalone clone or a submodule of another repo. A parent repo's `## Agent skills` section describes that repo, not this one.
+
+### Issue tracker
+
+Endatix GitHub issues on the Overlord project, filed and tracked through the `track-work` skill. See `docs/agents/issue-tracker.md`.
+
+### Domain docs
+
+Single-context. `GLOSSARY.md` and `docs/adr/` at the root are created lazily by `domain-modeling`. Until then, Hub route and feature names live in endatix-saas at `.agents/skills/docs-contribution/resources/agent-glossary.md` (the superproject, when this repo is its `hub/` submodule). See `docs/agents/domain.md`.
+
+### Commands
+
+- Prerequisites: Node from `.nvmrc` and pnpm within `engines.pnpm` (see [Toolchain](#toolchain-node--pnpm)); `pnpm install` first. `pnpm dev` needs an Endatix API (`ENDATIX_BASE_URL`, see `.env.example`). e2e starts no server: it needs the Hub already running on `pnpm dev` (`BASE_URL`, default http://localhost:3000), the API (`E2E_API_URL`, default `https://localhost:5001/api`) and `E2E_EMAIL` plus `E2E_PASSWORD` (macOS can use the keychain instead of the password; see [Tests](#tests) and `e2e/README.md`)
+- Build: `pnpm build`
+- Test: `pnpm test:coverage` (Vitest, one run); e2e: `pnpm test:e2e`
+- Lint: `pnpm lint`
+- Run: `pnpm dev` (http://localhost:3000)
+- PR title scope: `h[0-9]+|deps|deps-dev` (the full title and branch rules are in [CONTRIBUTING.md](CONTRIBUTING.md))
+- Branch name: `<type>/h<issue>-<slug>`
+
+### Verification
+
+No verify skill in this repo. Run the Hub with `pnpm dev` against an API and check the change in the browser; `next-dev-loop` covers runtime checks, Playwright (`pnpm test:e2e`) the scripted ones. When this repo is the `hub/` submodule of endatix-saas, that workspace's `verify-endatix` and `clean-code` skills also cover the Hub; use them from there.
+
+### Shared folders
+
+- Always in the main checkout, also from a worktree: `common=$(git rev-parse --path-format=absolute --git-common-dir)`, then `dirname "$common"` when its name is `.git`, else `git --git-dir="$common" rev-parse --show-toplevel` (a submodule). Removing a worktree deletes its gitignored files.
+- Work files (plans, review reports, handoffs): `.agents/work/<YYYY-MM-DD>-<slug>/`
+- Evidence (screenshots, videos, logs): `.agents/evidence/<YYYY-MM-DD>-<slug>/`
+- A skill ends its report with the absolute path of every file it wrote there.
+- Model roles: `.agents/endatix-models.local.yaml`, one section per harness. Gitignored and per checkout: each worktree has its own copy, lost when the worktree is removed.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 # This is NOT the Next.js you know
