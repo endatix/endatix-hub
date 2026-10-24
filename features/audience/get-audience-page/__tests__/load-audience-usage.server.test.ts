@@ -1,3 +1,4 @@
+import { Serializer } from "survey-core";
 import { describe, expect, it, vi } from "vitest";
 import type { EndatixApi } from "@/lib/endatix-api";
 import type { AudienceVariables } from "@/lib/endatix-api/audience/types";
@@ -25,6 +26,7 @@ const VARIABLES: AudienceVariables = {
     properties: [{ variableName: "tier", filledTest: 0, filledReal: 2 }],
   },
   editing: { allowAdd: false, allowEdit: false, allowDelete: false },
+  readOnlyPresets: [],
 };
 const SAVED = { elements: [{ type: "text", name: "q", title: "{tier}" }] };
 
@@ -75,5 +77,46 @@ describe("loadAudienceUsage", () => {
     expect(
       await loadAudienceUsage({ api: garbled.api, ...request }),
     ).toBeNull();
+  });
+
+  it("leaves coverage out when the saved JSON is not a survey object", async () => {
+    for (const jsonData of ["[]", "true", '"x"', "5"]) {
+      const { api } = apiWith(ApiResult.success({ jsonData }));
+
+      expect(await loadAudienceUsage({ api, ...request })).toBeNull();
+    }
+  });
+
+  it("does not load the definition when the form has no Properties", async () => {
+    const { api, get } = apiWith(ApiResult.success({ jsonData: "{}" }));
+
+    expect(
+      await loadAudienceUsage({
+        api,
+        ...request,
+        variables: { ...VARIABLES, variablePresets: null },
+      }),
+    ).toBeNull();
+    expect(get).not.toHaveBeenCalled();
+  });
+
+  it("reads a variable piped through a drag-categorize choice", async () => {
+    Serializer.removeClass("dragcategorize");
+    const saved = {
+      elements: [
+        {
+          type: "dragcategorize",
+          name: "sort",
+          choices: [{ value: "a", text: "Plan {tier}" }],
+        },
+      ],
+    };
+    const { api } = apiWith(
+      ApiResult.success({ jsonData: JSON.stringify(saved) }),
+    );
+
+    const usage = await loadAudienceUsage({ api, ...request });
+
+    expect(usage?.read).toContain("tier");
   });
 });

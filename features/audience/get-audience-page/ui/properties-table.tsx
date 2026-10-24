@@ -94,7 +94,7 @@ function PropertyName({ property, kind }: Readonly<NameProps>) {
 
 function filledIn({ filledReal, real }: PropertyUse) {
   if (real === 0) return <NotSet label="No real participants" />;
-  return `${filledReal.toLocaleString()} of ${real.toLocaleString()}`;
+  return `${filledReal.toLocaleString("en-US")} of ${real.toLocaleString("en-US")}`;
 }
 
 /** What the saved form reads and how many real participants filled it in (the designer's verdict). */
