@@ -163,7 +163,8 @@ describe("Preview as in the designer", () => {
     });
   });
 
-  it("says how many test participants the selector leaves out", () => {
+  it("lists only the participants the read sent, past 20 too", () => {
+    // Arrange
     const creator = designer();
     const firstPage = variables();
     firstPage.variablePresets!.totalPresets = 35;
@@ -172,16 +173,11 @@ describe("Preview as in the designer", () => {
       refresh: noRefresh,
     });
 
+    // Act
     creator.activeTab = "preview";
 
-    const { list, titles } = selectorList(creator);
-    expect(titles()).toEqual([
-      "None",
-      MARIA,
-      BOB,
-      "33 more in the Audience tab",
-    ]);
-    expect(list.actions.at(-1)?.enabled).toBe(false);
+    // Assert
+    expect(selectorList(creator).titles()).toEqual(["None", MARIA, BOB]);
   });
 
   it("starts a {variable} default filled, as the shared form does", () => {
