@@ -184,8 +184,13 @@ export function isAudiencePeopleTestFilter(
   return (Object.values(AudiencePeopleTestFilter) as string[]).includes(value);
 }
 
+/** The people list's longest `search`, matching OSS (as long as an identifier can be). */
+export const MAX_AUDIENCE_SEARCH_LENGTH = 256;
+
 export type ListAudiencePeopleRequest = IPagedRequest & {
   test?: AudiencePeopleTestFilter;
+  /** Part of an identifier, matched ignoring case. */
+  search?: string;
 };
 
 /** A new test submission and the token the respondent page opens it with. */
