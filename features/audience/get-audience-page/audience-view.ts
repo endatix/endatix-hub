@@ -17,7 +17,7 @@ export function parseAudienceView(value: string | undefined): AudienceView {
 type ViewCounts = { people: number; properties: number };
 
 /** Its own page (it needs `forms.edit`), switched to from the same tabs. */
-export const PREVIEW_AS_TAB_ID = "preview-as";
+const PREVIEW_AS_TAB_ID = "preview-as";
 
 type ViewOptions = {
   /** Whether this reader may preview the form as a participant (`forms.edit`). */

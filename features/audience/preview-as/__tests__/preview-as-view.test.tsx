@@ -68,10 +68,16 @@ const MARIA = person("7", "maria@acme.test", true, { "11": "Gold" });
 const JO = person("8", "jo@acme.test", true);
 const SAM = person("20", "sam@acme.com", false);
 const FORM = { elements: [{ type: "text", name: "plan" }] };
+const THEME = JSON.stringify({ cssVariables: {} });
 
 function data(overrides: Partial<PreviewAsData> = {}): PreviewAsData {
   return {
-    form: { definition: FORM, savedAt: "2026-10-23T14:30:00Z" },
+    form: {
+      definition: FORM,
+      savedAt: "2026-10-23T14:30:00Z",
+      theme: THEME,
+      customQuestions: [],
+    },
     hasVariables: true,
     testParticipants: [MARIA, JO],
     totalTest: 2,
@@ -151,15 +157,64 @@ describe("PreviewAsView", () => {
       { scroll: false },
     );
     fireEvent.keyDown(participants(), { key: "ArrowUp" });
-    expect(router.replace).toHaveBeenCalledTimes(1);
+    expect(router.replace).toHaveBeenLastCalledWith(
+      "/forms/1/audience/preview-as?member=7&q=acme",
+      { scroll: false },
+    );
+  });
+
+  it("keeps moving while the previous step is still loading", () => {
+    renderView({ search: "acme", matches: [SAM], totalMatches: 1 });
+
+    fireEvent.keyDown(participants(), { key: "ArrowDown" });
+    fireEvent.keyDown(participants(), { key: "ArrowDown" });
+
+    expect(router.replace).toHaveBeenLastCalledWith(
+      "/forms/1/audience/preview-as?member=20&q=acme",
+      { scroll: false },
+    );
+    expect(
+      screen
+        .getByRole("option", { name: /sam@acme.com/ })
+        .getAttribute("aria-selected"),
+    ).toBe("true");
+  });
+
+  it("lists a linked participant who is in neither list, selected", () => {
+    renderView({
+      selected: { status: "found", person: SAM, variables: {} },
+    });
+
+    const previewing = screen.getByRole("group", { name: "Previewing" });
+    expect(
+      within(previewing).getByRole("option").getAttribute("aria-selected"),
+    ).toBe("true");
+  });
+
+  it("says so when every match is already listed", () => {
+    renderView({ search: "maria", matches: [MARIA], totalMatches: 1 });
+
+    screen.getByText("Every match is listed above.");
   });
 
   it("stops at the ends of the list", () => {
     renderView();
 
     fireEvent.keyDown(participants(), { key: "ArrowUp" });
+    fireEvent.keyDown(participants(), { key: "Home" });
 
     expect(router.replace).not.toHaveBeenCalled();
+  });
+
+  it("jumps to the last participant with End", () => {
+    renderView();
+
+    fireEvent.keyDown(participants(), { key: "End" });
+
+    expect(router.replace).toHaveBeenCalledWith(
+      "/forms/1/audience/preview-as?member=8",
+      { scroll: false },
+    );
   });
 
   it("previews a participant on click", () => {

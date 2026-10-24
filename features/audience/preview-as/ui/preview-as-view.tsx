@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition, type ReactNode } from "react";
+import { useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { TextLink } from "@/components/common/text-link";
@@ -25,8 +25,33 @@ const shownOf = (shown: number, total: number, what: string) =>
     ? `First ${shown} of ${total} ${what}. Search to find the rest.`
     : undefined;
 
+function matchesNote(shown: number, others: number, total: number) {
+  if (total === 0) return "Nobody on this form matches.";
+  if (others === 0) return "Every match is listed above.";
+  return shownOf(shown, total, "matches");
+}
+
+/** The previewed participant, when a link names one neither list holds. */
+function previewingGroup(
+  groups: PickerGroup[],
+  person: AudiencePerson | undefined,
+): PickerGroup[] {
+  const listed = groups.some((group) =>
+    group.people.some((p) => p.audienceMemberId === person?.audienceMemberId),
+  );
+  return person && !listed ? [{ label: "Previewing", people: [person] }] : [];
+}
+
 /** Test participants first; a search adds everyone it finds who is not already listed. */
 function pickerGroups(props: PreviewAsViewProps): PickerGroup[] {
+  const groups = listGroups(props);
+  return [
+    ...previewingGroup(groups, selectedPerson(props.selected)),
+    ...groups,
+  ];
+}
+
+function listGroups(props: PreviewAsViewProps): PickerGroup[] {
   const { testParticipants, totalTest, matches, totalMatches, search } = props;
   const test: PickerGroup = {
     label: "Test participants",
@@ -42,10 +67,7 @@ function pickerGroups(props: PreviewAsViewProps): PickerGroup[] {
   const found: PickerGroup = {
     label: `Matching “${search}”`,
     people: others,
-    note:
-      totalMatches === 0
-        ? "Nobody on this form matches."
-        : shownOf(matches.length, totalMatches, "matches"),
+    note: matchesNote(matches.length, others.length, totalMatches),
   };
   return [test, found];
 }
@@ -107,7 +129,7 @@ function PreviewPane(
       <div className="rounded-xl border bg-card">
         <PreviewSurvey
           key={selected.person.audienceMemberId}
-          definition={form.definition}
+          {...form}
           variables={selected.variables}
         />
       </div>
@@ -128,14 +150,35 @@ function BackToAudience({ formId }: Readonly<{ formId: string }>) {
  * Audience Preview as: participants on the left, the saved form on the right as the selected
  * one gets it. The participant and the search live in the URL, so a preview can be linked to.
  */
+/**
+ * The participant the list shows as selected. It moves on a key press at once, before the
+ * server answers, so a second press steps on from it; a new server selection resets it.
+ */
+function useActiveMember(serverId: string | undefined) {
+  const [active, setActive] = useState(serverId);
+  const [seen, setSeen] = useState(serverId);
+  if (serverId !== seen) {
+    setSeen(serverId);
+    setActive(serverId);
+  }
+  return [active, setActive] as const;
+}
+
 export function PreviewAsView(props: Readonly<PreviewAsViewProps>) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const { formId, search } = props;
+  const [activeId, setActiveId] = useActiveMember(
+    selectedPerson(props.selected)?.audienceMemberId,
+  );
   const go = (query: { member?: string; search?: string }) =>
     startTransition(() =>
       router.replace(formRoutes.previewAs(formId, query), { scroll: false }),
     );
+  const select = (member: string) => {
+    setActiveId(member);
+    go({ member, search });
+  };
   return (
     <div className="flex flex-col gap-6">
       <BackToAudience formId={formId} />
@@ -144,8 +187,8 @@ export function PreviewAsView(props: Readonly<PreviewAsViewProps>) {
         <ParticipantPicker
           groups={pickerGroups(props)}
           search={search}
-          selectedId={selectedPerson(props.selected)?.audienceMemberId}
-          onSelect={(member) => go({ member, search })}
+          selectedId={activeId}
+          onSelect={select}
           onSearch={(next) => go({ search: next })}
         />
         <PreviewPane {...props} pending={pending} />
