@@ -21,6 +21,19 @@ function audienceSearch(query: AudienceQuery): string {
   return new URLSearchParams({ test }).toString();
 }
 
+type PreviewAsQuery = {
+  member?: string;
+  search?: string;
+};
+
+function previewAsSearch({ member, search }: PreviewAsQuery): string {
+  const query = new URLSearchParams();
+  if (member) query.set("member", member);
+  const q = search?.trim();
+  if (q) query.set("q", q);
+  return query.toString();
+}
+
 /**
  * The one owner of a form's Hub URLs that features link to across slices. It sits in `lib/` so
  * the Test inspector and Submission Details can link to a participant without importing
@@ -29,6 +42,12 @@ function audienceSearch(query: AudienceQuery): string {
 export const formRoutes = Object.freeze({
   audience(formId: string, query: AudienceQuery = {}): Route {
     return withQuery(formPath(formId, "audience"), audienceSearch(query));
+  },
+  previewAs(formId: string, query: PreviewAsQuery = {}): Route {
+    return withQuery(
+      formPath(formId, "audience", "preview-as"),
+      previewAsSearch(query),
+    );
   },
   participant(formId: string, memberId: string): Route {
     return formPath(formId, "audience", "participants", memberId) as Route;

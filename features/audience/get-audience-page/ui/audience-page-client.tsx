@@ -30,10 +30,11 @@ function MatchKeySetup({ data }: Readonly<Pick<Props, "data">>) {
 }
 
 function ViewSwitch({ formId, view, data }: Readonly<Props>) {
-  const tabs = audienceViewTabs(formId, {
-    people: data.totalPeople,
-    properties: data.properties.length,
-  });
+  const tabs = audienceViewTabs(
+    formId,
+    { people: data.totalPeople, properties: data.properties.length },
+    { previewAs: data.canEdit },
+  );
   return <LinkTabs label="Audience view" tabs={tabs} activeId={view} />;
 }
 
