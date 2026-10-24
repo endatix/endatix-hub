@@ -131,7 +131,7 @@ function onPreviewOpened(
   return () => creator.onActiveTabChanged.remove(onActiveTabChanged);
 }
 
-/** Test participants the API left out of `presets` (it sends the first 20). */
+/** Participants, test and real, the API left out of `presets` (it sends the first 20). */
 function hiddenParticipants(state: BindingState): number {
   const presets = state.applied;
   return presets
