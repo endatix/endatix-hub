@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { SurveyCreatorModel } from "survey-creator-core";
 import type { AudienceVariables } from "@/lib/endatix-api/audience/types";
 import { Result } from "@/lib/result";
-import { bindAudienceToCreator, reviewAudience } from "..";
+import { bindAudienceToCreator } from "..";
+import { reviewAudience } from "../review";
 
 function variables(
   definition: object[] = [
@@ -161,7 +162,7 @@ describe("reviewAudience", () => {
 });
 
 describe("Audience fix in the designer", () => {
-  it("offers no fix for a translated text the canvas cannot take", () => {
+  it("offers no fix for a translated text the canvas cannot take", async () => {
     const creator = new SurveyCreatorModel({});
     creator.JSON = form(usesBoth, {
       type: "text",
@@ -173,14 +174,15 @@ describe("Audience fix in the designer", () => {
       refresh: () => Promise.resolve(Result.success(variables())),
     });
 
-    const fixes = binding
-      .review()
-      .findings.map((finding) => ("fix" in finding ? finding.fix : undefined));
+    const { findings } = await binding.review();
+    const fixes = findings.map((finding) =>
+      "fix" in finding ? finding.fix : undefined,
+    );
 
     expect(fixes.every((fix) => fix === undefined)).toBe(true);
   });
 
-  it("respells the reference on the canvas, as one undoable edit", () => {
+  it("respells the reference on the canvas, as one undoable edit", async () => {
     const creator = new SurveyCreatorModel({});
     creator.JSON = form(usesBoth, {
       type: "text",
@@ -191,14 +193,14 @@ describe("Audience fix in the designer", () => {
       variables: variables(),
       refresh: () => Promise.resolve(Result.success(variables())),
     });
-    const [finding] = binding.review().findings;
+    const [finding] = (await binding.review()).findings;
 
     binding.applyFix(finding);
 
     expect(creator.survey.getQuestionByName("plan").title).toBe(
       "Your plan is {tier}",
     );
-    expect(binding.review().findings).toEqual([]);
+    expect((await binding.review()).findings).toEqual([]);
     creator.undo();
     expect(creator.survey.getQuestionByName("plan").title).toBe(
       "Your plan is {tierr}",

@@ -11,7 +11,6 @@ import { canonicalizeCreatorTabId, ENDATIX_CREATOR_TAB } from "@/lib/survey-js";
 import { applyAudienceFix, canFixOnCanvas } from "./apply-fix";
 import type { AudienceFinding, AudienceReview } from "./findings/types";
 import { addNoneToPreviewAs } from "./preview-as-none";
-import { reviewAudience } from "./review";
 import { toSurveyPresets } from "./to-survey-presets";
 
 export interface CreatorHooks {
@@ -27,7 +26,7 @@ export type CreatorBinding = {
   (): void;
   refresh(): Promise<void>;
   /** The canvas's Audience findings, against the variables read last. */
-  review(): AudienceReview;
+  review(): Promise<AudienceReview>;
   /** Applies a finding's fix to the canvas; a finding without one is left alone. */
   applyFix(finding: AudienceFinding): void;
 };
@@ -169,10 +168,14 @@ function newState(variables: AudienceVariables): BindingState {
   return { variables, applied: undefined, latest: 0, bound: true };
 }
 
-/** Findings against the variables read last; a fix the canvas cannot take is left out. */
+/**
+ * Findings against the variables read last; a fix the canvas cannot take is left out. The linter
+ * loads on the first review, so a designer without Properties never downloads it.
+ */
 function reviewing(creator: SurveyCreatorModel, state: BindingState) {
   return {
-    review: (): AudienceReview => {
+    review: async (): Promise<AudienceReview> => {
+      const { reviewAudience } = await import("./review");
       const { findings } = reviewAudience(creator.JSON, state.variables);
       return { findings: findings.map((f) => withCanvasFix(creator, f)) };
     },
@@ -194,22 +197,24 @@ function withCanvasFix(
     : { ...finding, fix: undefined };
 }
 
-/** Only the latest read applies; one that lands after unbind, fails, or throws is dropped. */
+/**
+ * Only the latest read applies; one that lands after unbind, fails, or throws is dropped. Never
+ * rejects: Preview and Diagnostics call it without waiting.
+ */
 async function refreshVariables(
   creator: SurveyCreatorModel,
   hooks: CreatorHooks,
   state: BindingState,
 ): Promise<void> {
   const read = ++state.latest;
-  let fresh: Result<AudienceVariables>;
   try {
-    fresh = await hooks.refresh();
+    const fresh = await hooks.refresh();
+    if (state.bound && read === state.latest && Result.isSuccess(fresh)) {
+      state.variables = fresh.value;
+      applyVariables(creator, fresh.value, state);
+    }
   } catch {
-    // Offline, or a stale server action after a deploy: keep what Preview has.
-    return;
-  }
-  if (state.bound && read === state.latest && Result.isSuccess(fresh)) {
-    state.variables = fresh.value;
-    applyVariables(creator, fresh.value, state);
+    // Offline, a stale server action after a deploy, or variables the Creator rejects: keep what
+    // Preview has.
   }
 }

@@ -567,9 +567,9 @@ function FormEditor({
 
         const unbindCreator = () => {
           cleanupQuestionLoops?.();
+          applyFormDiagnosticsAudience(newCreator, undefined);
           cleanupFormDiagnostics?.();
           unbindReplacedSurveys();
-          applyFormDiagnosticsAudience(newCreator, undefined);
           unbindAudience?.();
           unregisterJsonEditor();
           unregisterStorage();

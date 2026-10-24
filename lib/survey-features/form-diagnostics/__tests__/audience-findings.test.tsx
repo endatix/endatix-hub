@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { SurveyCreatorModel } from "survey-creator-core";
 import type { AudienceFinding } from "@/lib/personalization/authoring";
@@ -21,24 +27,24 @@ const UNUSED: AudienceFinding = {
 
 function audienceWith(findings: AudienceFinding[]): DiagnosticsAudience {
   return {
-    review: vi.fn(() => ({ findings })),
+    review: vi.fn(() => Promise.resolve({ findings })),
     applyFix: vi.fn(),
     refresh: vi.fn(() => Promise.resolve()),
   };
 }
 
-function pluginWith(audience?: DiagnosticsAudience) {
+async function pluginWith(audience?: DiagnosticsAudience) {
   const plugin = new FormDiagnosticsPlugin(new SurveyCreatorModel({}));
   plugin.audience = audience;
-  plugin.updateStats();
+  await plugin.updateAudienceFindings();
   return plugin;
 }
 
 describe("Audience findings in Diagnostics", () => {
-  it("lists them as warnings, with the suggested spelling", () => {
+  it("lists them as warnings, with the suggested spelling", async () => {
     render(
       <FormDiagnosticsView
-        model={pluginWith(audienceWith([MISSPELLED, UNUSED]))}
+        model={await pluginWith(audienceWith([MISSPELLED, UNUSED]))}
       />,
     );
 
@@ -49,66 +55,108 @@ describe("Audience findings in Diagnostics", () => {
     expect(within(section).queryByText(/critical/i)).toBeNull();
   });
 
-  it("applies the fix and reviews again", () => {
+  it("applies the fix and reviews again", async () => {
     const audience = audienceWith([MISSPELLED]);
-    const plugin = pluginWith(audience);
+    const plugin = await pluginWith(audience);
     render(<FormDiagnosticsView model={plugin} />);
+    vi.mocked(audience.review).mockResolvedValue({ findings: [] });
 
     fireEvent.click(screen.getByRole("button", { name: "Use {tier}" }));
 
     expect(audience.applyFix).toHaveBeenCalledWith(MISSPELLED);
-    expect(audience.review).toHaveBeenCalledTimes(2);
+    await waitFor(() =>
+      expect(screen.queryByText("{tierr} is not declared")).toBeNull(),
+    );
   });
 
   it("reads the variables again when the tab opens", async () => {
     const audience = audienceWith([]);
-    const plugin = pluginWith(audience);
+    const plugin = await pluginWith(audience);
 
     plugin.activate();
-    await Promise.resolve();
 
     expect(audience.refresh).toHaveBeenCalledOnce();
-    expect(audience.review).toHaveBeenCalledTimes(3);
+    await waitFor(() => expect(audience.review).toHaveBeenCalledTimes(3));
+  });
+
+  it("keeps the findings already shown when refresh rejects", async () => {
+    const audience = audienceWith([UNUSED]);
+    vi.mocked(audience.refresh).mockRejectedValue(new Error("offline"));
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const plugin = await pluginWith(audience);
+
+    plugin.activate();
+
+    await waitFor(() =>
+      expect(console.warn).toHaveBeenCalledWith(
+        "Audience refresh failed.",
+        expect.any(Error),
+      ),
+    );
+    expect(plugin.audienceFindings).toEqual([UNUSED]);
   });
 
   it("shows findings that arrive after the tab rendered", async () => {
     const audience = audienceWith([]);
-    const plugin = pluginWith(audience);
+    const plugin = await pluginWith(audience);
     render(<FormDiagnosticsView model={plugin} />);
 
-    vi.mocked(audience.review).mockReturnValue({ findings: [UNUSED] });
+    vi.mocked(audience.review).mockResolvedValue({ findings: [UNUSED] });
     plugin.activate();
 
     expect(await screen.findByText("{seats} is never used")).toBeTruthy();
   });
 
-  it("reviews again when the Creator loads the form with Diagnostics open", () => {
+  it("reviews again when the Creator loads the form with Diagnostics open", async () => {
     const creator = new SurveyCreatorModel({});
     const plugin = new FormDiagnosticsPlugin(creator);
     creator.addTab({ name: "form-diagnostics", plugin, title: "Diagnostics" });
     creator.activeTab = "form-diagnostics";
     const audience = audienceWith([]);
     plugin.audience = audience;
-    vi.mocked(audience.review).mockImplementation(() => ({
-      findings: creator.JSON.pages?.length ? [UNUSED] : [],
-    }));
+    vi.mocked(audience.review).mockImplementation(() =>
+      Promise.resolve({
+        findings: creator.JSON.pages?.length ? [UNUSED] : [],
+      }),
+    );
 
     creator.JSON = { elements: [{ type: "text", name: "q" }] };
+
+    await waitFor(() => expect(plugin.audienceFindings).toEqual([UNUSED]));
+    // Once per load: the Creator's second `update()` and `applyTheme` bring no new survey.
+    creator.applyTheme({});
+    expect(audience.review).toHaveBeenCalledOnce();
+  });
+
+  it("keeps only the latest review when an earlier one lands late", async () => {
+    const audience = audienceWith([]);
+    const plugin = await pluginWith(audience);
+    let landLate: (review: { findings: AudienceFinding[] }) => void = () => {};
+    vi.mocked(audience.review)
+      .mockImplementationOnce(
+        () => new Promise((resolve) => (landLate = resolve)),
+      )
+      .mockResolvedValueOnce({ findings: [UNUSED] });
+
+    const late = plugin.updateAudienceFindings();
+    await plugin.updateAudienceFindings();
+    landLate({ findings: [MISSPELLED] });
+    await late;
 
     expect(plugin.audienceFindings).toEqual([UNUSED]);
   });
 
-  it("shows no findings, and keeps working, when the review throws", () => {
+  it("shows no findings, and keeps working, when the review throws", async () => {
     const audience = audienceWith([]);
-    vi.mocked(audience.review).mockImplementation(() => {
-      throw new Error("linter broke");
-    });
+    vi.mocked(audience.review).mockRejectedValue(new Error("linter broke"));
+    vi.spyOn(console, "warn").mockImplementation(() => {});
 
-    expect(() => pluginWith(audience)).not.toThrow();
-    expect(pluginWith(audience).audienceFindings).toEqual([]);
+    const plugin = await pluginWith(audience);
+
+    expect(plugin.audienceFindings).toEqual([]);
   });
 
-  it("names a calculated value that collides with a property", () => {
+  it("names a calculated value that collides with a property", async () => {
     const collision: AudienceFinding = {
       kind: "variable-collision",
       variable: "seats",
@@ -116,7 +164,9 @@ describe("Audience findings in Diagnostics", () => {
       declaredBy: "calculatedValue",
     };
     render(
-      <FormDiagnosticsView model={pluginWith(audienceWith([collision]))} />,
+      <FormDiagnosticsView
+        model={await pluginWith(audienceWith([collision]))}
+      />,
     );
 
     expect(
@@ -124,8 +174,8 @@ describe("Audience findings in Diagnostics", () => {
     ).toBeTruthy();
   });
 
-  it("shows no Personalization section without Audience variables", () => {
-    render(<FormDiagnosticsView model={pluginWith(undefined)} />);
+  it("shows no Personalization section without Audience variables", async () => {
+    render(<FormDiagnosticsView model={await pluginWith(undefined)} />);
 
     expect(
       screen.queryByRole("region", { name: /Personalization/ }),

@@ -1,4 +1,4 @@
-import { Base, SvgRegistry } from "survey-core";
+import { Base, SvgRegistry, type SurveyModel } from "survey-core";
 import {
   ICreatorPlugin,
   SurveyCreatorModel,
@@ -104,24 +104,34 @@ export class FormDiagnosticsPlugin extends Base implements ICreatorPlugin {
     this.setPropertyValue("audienceFindings", val);
   }
 
-  public applyAudienceFix(finding: AudienceFinding) {
+  public applyAudienceFix(finding: AudienceFinding): Promise<void> {
     this.audience?.applyFix(finding);
-    this.updateAudienceFindings();
+    return this.updateAudienceFindings();
   }
 
-  /** A failing review shows nothing: warnings never stand in the way of the designer. */
-  private updateAudienceFindings() {
+  private latestReview = 0;
+
+  /**
+   * Only the latest review lands. A failing review shows nothing: warnings never stand in the way
+   * of the designer.
+   */
+  public async updateAudienceFindings(): Promise<void> {
+    const review = ++this.latestReview;
+    let findings: AudienceFinding[] = [];
     try {
-      this.audienceFindings = this.audience?.review().findings ?? [];
+      findings = (await this.audience?.review())?.findings ?? [];
     } catch (error) {
       console.warn("Audience review failed.", error);
-      this.audienceFindings = [];
     }
+    if (review === this.latestReview) this.audienceFindings = findings;
   }
+
+  /** The survey `update()` analyzed last: a call that brings no new one is skipped. */
+  private analyzedSurvey: SurveyModel | undefined;
 
   public updateStats() {
     if (!this.creator) return;
-    this.updateAudienceFindings();
+    void this.updateAudienceFindings();
 
     const baseStats = analyzeSurvey(this.creator.text || "");
 
@@ -147,16 +157,27 @@ export class FormDiagnosticsPlugin extends Base implements ICreatorPlugin {
 
   public activate() {
     this.updateStats();
-    // A Property added in the Audience tab since the designer opened.
-    void this.audience?.refresh().then(() => this.updateAudienceFindings());
+    // A Property added in the Audience tab since the designer opened. A failed refresh keeps the
+    // findings `updateStats` already showed.
+    void this.audience
+      ?.refresh()
+      .then(() => this.updateAudienceFindings())
+      .catch((error: unknown) => {
+        console.warn("Audience refresh failed.", error);
+      });
   }
 
   /**
    * The Creator calls this on the active tab once a new survey is in place, as when it loads the
    * saved form after a `?tab=` deep link has opened this tab (`onDesignerSurveyCreated` is earlier,
-   * while `creator.JSON` still reads the old survey).
+   * while `creator.JSON` still reads the old survey). The Creator calls it twice per load, since
+   * `updatePlugin("designer")` updates the active tab too, and again on `applyTheme`: only a new
+   * survey is analyzed.
    */
   public update() {
+    const survey = this.creator?.survey;
+    if (survey === this.analyzedSurvey) return;
+    this.analyzedSurvey = survey;
     this.updateStats();
   }
 

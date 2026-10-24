@@ -80,7 +80,7 @@ export function applyFormDiagnosticsContext(
 
 /** The form's Audience variables as Diagnostics reads them: the designer's Audience binding. */
 export interface DiagnosticsAudience {
-  review(): AudienceReview;
+  review(): Promise<AudienceReview>;
   applyFix(finding: AudienceFinding): void;
   refresh(): Promise<void>;
 }
@@ -93,5 +93,5 @@ export function applyFormDiagnosticsAudience(
   const plugin = getFormDiagnosticsPlugin(creator);
   if (!plugin) return;
   plugin.audience = audience;
-  plugin.updateStats();
+  void plugin.updateAudienceFindings();
 }

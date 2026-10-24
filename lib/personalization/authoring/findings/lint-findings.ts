@@ -24,6 +24,10 @@ function onlyRules(kept: string[]): Record<string, LintSeverity> {
   );
 }
 
+// Built once: every review lints twice.
+const AUDIENCE_RULES = onlyRules([UNKNOWN, COLLISION]);
+const UNKNOWN_RULES = onlyRules([UNKNOWN]);
+
 function isUnknownRoot(finding: ILintFinding): boolean {
   return finding.ruleId === UNKNOWN && finding.reason === NOT_FOUND;
 }
@@ -59,7 +63,7 @@ export function lintFindings(
 ): AudienceFinding[] {
   const { findings } = lintSurvey(json, {
     variablePresets: presets,
-    rules: onlyRules([UNKNOWN, COLLISION]),
+    rules: AUDIENCE_RULES,
   });
   return findings
     .map(toFinding)
@@ -71,7 +75,7 @@ export function lintFindings(
  * linter's reference walk (expressions, piped texts, defaults, triggers), with no variables declared.
  */
 export function undeclaredReferences(json: object): Set<string> {
-  const { findings } = lintSurvey(json, { rules: onlyRules([UNKNOWN]) });
+  const { findings } = lintSurvey(json, { rules: UNKNOWN_RULES });
   return new Set(
     findings
       .filter(isUnknownRoot)

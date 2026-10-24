@@ -333,7 +333,7 @@ export const FormDiagnosticsView = ({
 
           <AudienceFindings
             findings={audienceFindings}
-            onFix={(finding) => model.applyAudienceFix(finding)}
+            onFix={(finding) => void model.applyAudienceFix(finding)}
           />
 
           {issues.length > 0 ? (

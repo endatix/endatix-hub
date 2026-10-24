@@ -4,7 +4,6 @@ export {
   type CreatorHooks,
   type DesignerAudience,
 } from "./creator-binding";
-export { reviewAudience } from "./review";
 export type {
   AudienceFinding,
   AudienceFix,
