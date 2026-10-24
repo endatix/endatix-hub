@@ -62,3 +62,46 @@ describe("PropertiesTable", () => {
     expect(screen.queryByText("Identifier")).toBeNull();
   });
 });
+
+describe("PropertiesTable coverage", () => {
+  beforeEach(() => {
+    vi.stubGlobal("ResizeObserver", ResizeObserverStub);
+  });
+
+  const verdicts = {
+    notFilledIn: () => [],
+    forProperty: (name: string) =>
+      name === "tier"
+        ? { used: true, filledReal: 4790, real: 4810 }
+        : { used: false, filledReal: 0, real: 4810 },
+  };
+
+  it("says which properties the saved form reads and how many filled them in", () => {
+    render(
+      <PropertiesTable
+        identifierKind={AudienceIdentifierKind.Email}
+        properties={[named("tier"), named("seats")]}
+        verdicts={verdicts}
+      />,
+    );
+
+    const [header, tier, seats] = screen.getAllByRole("row");
+    expect(within(header!).getByText("Used in form")).toBeTruthy();
+    expect(within(header!).getByText("Filled in (real)")).toBeTruthy();
+    expect(within(tier!).getByText("Used")).toBeTruthy();
+    expect(within(tier!).getByText("4,790 of 4,810")).toBeTruthy();
+    expect(within(seats!).getByText("Not used")).toBeTruthy();
+    expect(within(seats!).getByText("0 of 4,810")).toBeTruthy();
+  });
+
+  it("has no coverage columns without a review", () => {
+    render(
+      <PropertiesTable
+        identifierKind={AudienceIdentifierKind.Email}
+        properties={[named("tier")]}
+      />,
+    );
+
+    expect(screen.queryByText("Used in form")).toBeNull();
+  });
+});

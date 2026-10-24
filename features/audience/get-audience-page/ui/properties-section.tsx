@@ -13,6 +13,7 @@ import { RenamePropertyPanel } from "../../update-property/ui/rename-property-pa
 import { useRowOverlay } from "../../use-panel-state.hook";
 import { PropertiesTable } from "./properties-table";
 import { SectionHeader } from "./section-header";
+import type { UsageVerdicts } from "@/lib/personalization/audience-usage";
 
 type PropertiesSectionProps = {
   formId: string;
@@ -22,6 +23,8 @@ type PropertiesSectionProps = {
   /** Without `forms.edit` the list is read-only: no add, rename or delete controls. */
   canEdit: boolean;
   viewSwitch?: ReactNode;
+  /** The saved form's Audience verdicts, for the coverage columns. */
+  verdicts?: UsageVerdicts | null;
 };
 
 type RowTargets = {
@@ -34,7 +37,7 @@ const DESCRIPTION =
 
 type SurfaceProps = Pick<
   PropertiesSectionProps,
-  "identifierKind" | "properties"
+  "identifierKind" | "properties" | "verdicts"
 > & { targets?: RowTargets };
 
 function PropertiesSurface({ targets, ...table }: Readonly<SurfaceProps>) {
@@ -108,11 +111,7 @@ export function PropertiesSection(props: Readonly<PropertiesSectionProps>) {
       className="flex flex-col gap-4"
     >
       <PropertiesHeader {...props} />
-      <PropertiesSurface
-        identifierKind={props.identifierKind}
-        properties={props.properties}
-        targets={targets}
-      />
+      <PropertiesSurface {...props} targets={targets} />
       {props.canEdit ? <PropertyOverlays {...props} row={row} /> : null}
     </section>
   );

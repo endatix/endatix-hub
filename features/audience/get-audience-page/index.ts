@@ -11,3 +11,4 @@ export {
   parseAudienceView,
 } from "./audience-view";
 export type { PeoplePaging, PeopleQuery } from "./parse-people-page";
+export { loadAudienceUsage } from "./load-audience-usage.server";
