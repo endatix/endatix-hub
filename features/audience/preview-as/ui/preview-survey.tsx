@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { ITheme, Model } from "survey-core";
 import "survey-core/survey-core.css";
 import { Survey } from "survey-react-ui";
@@ -44,38 +44,61 @@ function parseTheme(theme: string | undefined): ITheme | undefined {
   }
 }
 
-/**
- * The saved form for one participant, with the form's own theme and questions, as the shared
- * form renders it. Nothing listens to its answers, so nothing is written. Rebuilt when the
- * content changes, not on every server refresh.
- */
-export function PreviewSurvey(props: Readonly<PreviewSurveyProps>) {
+function buildModel({ definition, variables, theme }: PreviewSurveyProps) {
+  const model = previewAsModel(definition, variables);
+  applyFormSurveyTheme(model, parseTheme(theme));
+  return model;
+}
+
+type Runtime = {
+  initGlobals: () => void;
+  bindToSurvey: (model: Model) => (() => void) | undefined;
+};
+
+/** Builds the model once the shared form's runtime is ready; returns the cleanup. */
+function mountModel(
+  content: string,
+  runtime: Runtime,
+  onModel: (m: Model) => void,
+) {
+  const props = JSON.parse(content) as PreviewSurveyProps;
+  let unbind: (() => void) | undefined;
+  let cancelled = false;
+  void prepareRuntime(props.customQuestions).then(() => {
+    if (cancelled) return;
+    runtime.initGlobals();
+    const model = buildModel(props);
+    unbind = runtime.bindToSurvey(model) ?? undefined;
+    onModel(model);
+  });
+  return () => {
+    cancelled = true;
+    unbind?.();
+  };
+}
+
+/** A model per content, not per server refresh: a refresh hands over equal but new objects. */
+function usePreviewModel(props: PreviewSurveyProps) {
   const [model, setModel] = useState<Model | null>(null);
   const { initGlobals: initAnyAnswered } = useAnyAnswered();
   const { initGlobals: initLoops, bindToSurvey } = useQuestionLoops();
-  const latest = useRef(props);
-  latest.current = props;
   const content = JSON.stringify(props);
-
   useEffect(() => {
-    const { definition, variables, theme, customQuestions } = latest.current;
-    let unbind: (() => void) | undefined;
-    let cancelled = false;
-    void prepareRuntime(customQuestions).then(() => {
-      if (cancelled) return;
+    const initGlobals = () => {
       initAnyAnswered();
       initLoops();
-      const next = previewAsModel(definition, variables);
-      applyFormSurveyTheme(next, parseTheme(theme));
-      unbind = bindToSurvey(next) ?? undefined;
-      setModel(next);
-    });
-    return () => {
-      cancelled = true;
-      unbind?.();
     };
+    return mountModel(content, { initGlobals, bindToSurvey }, setModel);
   }, [content, initAnyAnswered, initLoops, bindToSurvey]);
+  return model;
+}
 
+/**
+ * The saved form for one participant, with the form's own theme and questions, as the shared
+ * form renders it. Nothing listens to its answers, so nothing is written.
+ */
+export function PreviewSurvey(props: Readonly<PreviewSurveyProps>) {
+  const model = usePreviewModel(props);
   if (!model)
     return <p className="text-sm text-muted-foreground">Loading the form…</p>;
   return <Survey model={model} />;

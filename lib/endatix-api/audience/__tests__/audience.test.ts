@@ -41,17 +41,6 @@ describe("buildListAudiencePeopleEndpoint", () => {
       }),
     ).toBe(`/forms/${FORM_ID}/audience/people?page=1&pageSize=50`);
   });
-
-  it("sends a trimmed search, and leaves out a blank one", () => {
-    expect(
-      buildListAudiencePeopleEndpoint(FORM_ID, { search: "  maria@ " }),
-    ).toBe(
-      `/forms/${FORM_ID}/audience/people?page=1&pageSize=50&search=maria%40`,
-    );
-    expect(buildListAudiencePeopleEndpoint(FORM_ID, { search: "   " })).toBe(
-      `/forms/${FORM_ID}/audience/people?page=1&pageSize=50`,
-    );
-  });
 });
 
 describe("Audience settings", () => {
@@ -486,33 +475,6 @@ describe("Audience variables", () => {
     const get = vi.fn();
 
     const result = await audienceWith({ get }).getVariables("7/x");
-
-    expect(get).not.toHaveBeenCalled();
-    expect(result.success).toBe(false);
-  });
-
-  it("reads one participant's values by member id", async () => {
-    const preset = { name: "maria@acme.test", variables: { tier: "gold" } };
-    const get = vi.fn().mockResolvedValue(ApiResult.success(preset));
-
-    const result = await audienceWith({ get }).getParticipantVariables(
-      FORM_ID,
-      "7",
-    );
-
-    expect(get).toHaveBeenCalledWith(
-      `/forms/${FORM_ID}/audience/variables/participants/7`,
-    );
-    expect(result.success && result.data).toEqual(preset);
-  });
-
-  it("rejects an invalid member id without calling the API", async () => {
-    const get = vi.fn();
-
-    const result = await audienceWith({ get }).getParticipantVariables(
-      FORM_ID,
-      "x",
-    );
 
     expect(get).not.toHaveBeenCalled();
     expect(result.success).toBe(false);

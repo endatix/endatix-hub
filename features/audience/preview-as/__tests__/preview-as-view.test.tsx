@@ -53,20 +53,20 @@ const property = (id: string, name: string): AudienceProperty => ({
 const person = (
   memberId: string,
   identifier: string,
-  isTest: boolean,
-  values: Record<string, string> = {},
+  overrides: Partial<AudiencePerson> = {},
 ): AudiencePerson => ({
   membershipId: `9${memberId}`,
   audienceMemberId: memberId,
   identifier,
-  values,
-  isTest,
+  values: {},
+  isTest: true,
   link: { status: "none" },
+  ...overrides,
 });
 
-const MARIA = person("7", "maria@acme.test", true, { "11": "Gold" });
-const JO = person("8", "jo@acme.test", true);
-const SAM = person("20", "sam@acme.com", false);
+const MARIA = person("7", "maria@acme.test", { values: { "11": "Gold" } });
+const JO = person("8", "jo@acme.test");
+const SAM = person("20", "sam@acme.com", { isTest: false });
 const FORM = { elements: [{ type: "text", name: "plan" }] };
 const THEME = JSON.stringify({ cssVariables: {} });
 
