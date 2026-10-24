@@ -307,6 +307,20 @@ describe("Preview as refresh", () => {
     expect(creator.variablePresets?.presets).toHaveLength(2);
   });
 
+  it("keeps what it has when the variables read cannot be applied", async () => {
+    const creator = designer();
+    const malformed = variables();
+    Object.assign(malformed.variablePresets!, { presets: null });
+    const binding = bindAudienceToCreator(creator, {
+      variables: variables(),
+      refresh: () => Promise.resolve(Result.success(malformed)),
+    });
+
+    await expect(binding.refresh()).resolves.toBeUndefined();
+
+    expect(creator.variablePresets?.presets).toHaveLength(2);
+  });
+
   it("keeps the container when the refresh brings the same values", async () => {
     const creator = designer();
     const binding = bindAudienceToCreator(creator, {

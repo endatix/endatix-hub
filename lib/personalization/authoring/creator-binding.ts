@@ -8,6 +8,9 @@ import {
 import type { AudienceVariables } from "@/lib/endatix-api/audience/types";
 import { Result } from "@/lib/result";
 import { canonicalizeCreatorTabId, ENDATIX_CREATOR_TAB } from "@/lib/survey-js";
+import { applyAudienceFix, canFixOnCanvas } from "./apply-fix";
+import type { AudienceFinding, AudienceReview } from "./findings/types";
+import type { reviewAudience } from "./review";
 import { addNoneToPreviewAs } from "./preview-as-none";
 import { toSurveyPresets } from "./to-survey-presets";
 
@@ -23,6 +26,10 @@ export type CreatorBinding = {
   /** Unbinds: no further reads, and a read in flight is dropped. */
   (): void;
   refresh(): Promise<void>;
+  /** The canvas's Audience findings, against the variables read last. */
+  review(): Promise<AudienceReview>;
+  /** Applies a finding's fix to the canvas; a finding without one is left alone. */
+  applyFix(finding: AudienceFinding): void;
 };
 
 const AUDIENCE_VP_STRINGS = {
@@ -63,6 +70,7 @@ function previewPlugin(creator: SurveyCreatorModel): TabTestPlugin | null {
 }
 
 type BindingState = {
+  variables: AudienceVariables;
   applied: AudienceVariables["variablePresets"] | undefined;
   latest: number;
   bound: boolean;
@@ -143,7 +151,7 @@ export function bindToCreator(
   audience: DesignerAudience,
 ): CreatorBinding {
   initGlobals();
-  const state: BindingState = { applied: undefined, latest: 0, bound: true };
+  const state = newState(audience.variables);
   applyVariables(creator, audience.variables, state);
   const refresh = () => refreshVariables(creator, audience, state);
   const stopWatching = onPreviewOpened(creator, (plugin, atBind) => {
@@ -154,24 +162,82 @@ export function bindToCreator(
     state.bound = false;
     stopWatching();
   };
-  return Object.assign(unbind, { refresh });
+  return Object.assign(unbind, { refresh, ...reviewing(creator, state) });
 }
 
-/** Only the latest read applies; one that lands after unbind, fails, or throws is dropped. */
+function newState(variables: AudienceVariables): BindingState {
+  return { variables, applied: undefined, latest: 0, bound: true };
+}
+
+/**
+ * Findings against the variables read last; a fix the canvas cannot take is left out. The linter
+ * loads on the first review, so a designer without Properties never downloads it.
+ */
+function reviewing(creator: SurveyCreatorModel, state: BindingState) {
+  let reviewer: typeof reviewAudience | undefined;
+  const review = (): AudienceReview => {
+    if (!reviewer) return { findings: [] };
+    const { findings } = reviewer(creator.JSON, state.variables);
+    return { findings: findings.map((f) => withCanvasFix(creator, f)) };
+  };
+  return {
+    review: async (): Promise<AudienceReview> => {
+      if (!state.variables.variablePresets) return { findings: [] };
+      reviewer ??= (await import("./review")).reviewAudience;
+      return review();
+    },
+    /**
+     * A fix carries the whole rewritten text, so it is computed again from the canvas as it is now:
+     * one built at review time would undo an edit made since, or an earlier fix in the same text.
+     */
+    applyFix: (finding: AudienceFinding) => {
+      const fix = currentFix(review().findings, finding);
+      if (fix) applyAudienceFix(creator, fix);
+    },
+  };
+}
+
+/** The fix the same misspelling has now; none once it is gone. */
+function currentFix(findings: AudienceFinding[], finding: AudienceFinding) {
+  if (finding.kind !== "unknown-variable") return undefined;
+  const same = findings.find(
+    (f) =>
+      f.kind === "unknown-variable" &&
+      f.path === finding.path &&
+      f.variable === finding.variable &&
+      f.suggestion === finding.suggestion,
+  );
+  return same?.kind === "unknown-variable" ? same.fix : undefined;
+}
+
+function withCanvasFix(
+  creator: SurveyCreatorModel,
+  finding: AudienceFinding,
+): AudienceFinding {
+  if (finding.kind !== "unknown-variable" || !finding.fix) return finding;
+  return canFixOnCanvas(creator, finding.fix)
+    ? finding
+    : { ...finding, fix: undefined };
+}
+
+/**
+ * Only the latest read applies; one that lands after unbind, fails, or throws is dropped. Never
+ * rejects: Preview and Diagnostics call it without waiting.
+ */
 async function refreshVariables(
   creator: SurveyCreatorModel,
   hooks: CreatorHooks,
   state: BindingState,
 ): Promise<void> {
   const read = ++state.latest;
-  let fresh: Result<AudienceVariables>;
   try {
-    fresh = await hooks.refresh();
+    const fresh = await hooks.refresh();
+    if (state.bound && read === state.latest && Result.isSuccess(fresh)) {
+      applyVariables(creator, fresh.value, state);
+      state.variables = fresh.value;
+    }
   } catch {
-    // Offline, or a stale server action after a deploy: keep what Preview has.
-    return;
-  }
-  if (state.bound && read === state.latest && Result.isSuccess(fresh)) {
-    applyVariables(creator, fresh.value, state);
+    // Offline, a stale server action after a deploy, or variables the Creator rejects: keep what
+    // Preview has.
   }
 }

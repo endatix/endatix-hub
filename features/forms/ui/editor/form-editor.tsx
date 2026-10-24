@@ -33,7 +33,10 @@ import {
   useConvertInlineChoicesUi,
 } from "@/lib/survey-features/data-lists";
 import { useSurveyDesigner } from "@/lib/survey-features/designer/design-survey.context";
-import { useFormDiagnostics } from "@/lib/survey-features/form-diagnostics";
+import {
+  applyFormDiagnosticsAudience,
+  useFormDiagnostics,
+} from "@/lib/survey-features/form-diagnostics";
 import { JSON_CHANGED_TYPE } from "@/lib/survey-features/json-editor/json-editor-state";
 import {
   JsonEditorState,
@@ -521,6 +524,7 @@ function FormEditor({
         const unbindAudience = audience
           ? bindAudienceToCreator(newCreator, audience)
           : undefined;
+        applyFormDiagnosticsAudience(newCreator, unbindAudience);
 
         setCreator(newCreator);
 
@@ -560,6 +564,7 @@ function FormEditor({
 
         const unbindCreator = () => {
           cleanupQuestionLoops?.();
+          applyFormDiagnosticsAudience(newCreator, undefined);
           cleanupFormDiagnostics?.();
           unbindReplacedSurveys();
           unbindAudience?.();

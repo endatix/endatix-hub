@@ -91,6 +91,7 @@ vi.mock("@/lib/survey-features/any-answered", () => ({
 }));
 
 vi.mock("@/lib/survey-features/form-diagnostics", () => ({
+  applyFormDiagnosticsAudience: vi.fn(),
   useFormDiagnostics: () => ({
     initGlobals: vi.fn(),
     bindToCreator: () => vi.fn(),

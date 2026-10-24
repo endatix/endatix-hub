@@ -1,14 +1,22 @@
-import { Base, SvgRegistry } from "survey-core";
+import { Base, SvgRegistry, type SurveyModel } from "survey-core";
 import {
   ICreatorPlugin,
   SurveyCreatorModel,
   SurveyLogic,
 } from "survey-creator-core";
+import { TelemetryLogger } from "@/features/telemetry";
+import type { AudienceFinding } from "@/lib/personalization/authoring";
+import type { DiagnosticsAudience } from "./form-diagnostics-context";
 import {
   analyzeSurvey,
   analyzeSurveyModel,
   FormDiagnosticsStats,
 } from "./form-diagnostics-logic";
+
+const LOGGER_NAME = "form-diagnostics.audience";
+
+/** One empty list, so a snapshot read before the first review stays the same reference. */
+const NO_FINDINGS: AudienceFinding[] = [];
 
 /**
  * Survey Creator plugin for the Form Diagnostics feature.
@@ -90,8 +98,51 @@ export class FormDiagnosticsPlugin extends Base implements ICreatorPlugin {
     this.setPropertyValue("availableDataListNames", val);
   }
 
+  /** Set by the designer when the form has Audience variables (personalization). */
+  public audience: DiagnosticsAudience | undefined;
+
+  /** Warnings only: nothing here blocks a save. */
+  public get audienceFindings(): AudienceFinding[] {
+    return this.getPropertyValue("audienceFindings") ?? NO_FINDINGS;
+  }
+
+  public set audienceFindings(val: AudienceFinding[]) {
+    this.setPropertyValue("audienceFindings", val);
+  }
+
+  public applyAudienceFix(finding: AudienceFinding): Promise<void> {
+    this.audience?.applyFix(finding);
+    return this.updateAudienceFindings();
+  }
+
+  private latestReview = 0;
+
+  /**
+   * Only the latest review lands. A failing review shows nothing: warnings never stand in the way
+   * of the designer.
+   */
+  public async updateAudienceFindings(): Promise<void> {
+    const review = ++this.latestReview;
+    let findings: AudienceFinding[] = [];
+    try {
+      findings = (await this.audience?.review())?.findings ?? [];
+    } catch (error) {
+      TelemetryLogger.error("Audience review failed.", error, {}, LOGGER_NAME);
+    }
+    if (review === this.latestReview) this.audienceFindings = findings;
+  }
+
+  /** The survey `update()` analyzed last: a call that brings no new one is skipped. */
+  private analyzedSurvey: SurveyModel | undefined;
+
   public updateStats() {
+    this.analyze();
+    void this.updateAudienceFindings();
+  }
+
+  private analyze() {
     if (!this.creator) return;
+    this.analyzedSurvey = this.creator.survey;
 
     const baseStats = analyzeSurvey(this.creator.text || "");
 
@@ -115,7 +166,38 @@ export class FormDiagnosticsPlugin extends Base implements ICreatorPlugin {
       (this.creator.survey as any)?.requiresReCaptcha === true;
   }
 
+  /**
+   * Reviews once, after reading the variables again: a Property added in the Audience tab since the
+   * designer opened. Until then the tab keeps the findings it showed last.
+   */
   public activate() {
+    if (!this.audience) {
+      this.updateStats();
+      return;
+    }
+    this.analyze();
+    void this.audience
+      .refresh()
+      .catch((error: unknown) => {
+        TelemetryLogger.error(
+          "Audience refresh failed.",
+          error,
+          {},
+          LOGGER_NAME,
+        );
+      })
+      .then(() => this.updateAudienceFindings());
+  }
+
+  /**
+   * The Creator calls this on the active tab once a new survey is in place, as when it loads the
+   * saved form after a `?tab=` deep link has opened this tab (`onDesignerSurveyCreated` is earlier,
+   * while `creator.JSON` still reads the old survey). The Creator calls it twice per load, since
+   * `updatePlugin("designer")` updates the active tab too, and again on `applyTheme`: only a new
+   * survey is analyzed.
+   */
+  public update() {
+    if (this.creator?.survey === this.analyzedSurvey) return;
     this.updateStats();
   }
 
