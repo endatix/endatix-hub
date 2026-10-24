@@ -20,6 +20,11 @@ import {
 } from "@/features/config/experimental-config";
 import { getRuntimeStorageProfile } from "@/features/config/resolve-endatix-settings";
 import styles from "../utils/console-styles";
+import {
+  ClientIpEnv,
+  parseTrustedProxies,
+  TrustedProxiesConfigError,
+} from "./client-ip";
 
 type EnvConfig = {
   name: string;
@@ -130,6 +135,18 @@ function collectEnvVarErrors(configs: EnvConfig[]): string[] {
   return errors;
 }
 
+function collectTrustedProxyErrors(): string[] {
+  try {
+    parseTrustedProxies(process.env[ClientIpEnv.TRUSTED_PROXIES]);
+    return [];
+  } catch (error) {
+    if (error instanceof TrustedProxiesConfigError) {
+      return [`${error.message}. Visitor IPs are not forwarded to the API.`];
+    }
+    throw error;
+  }
+}
+
 function collectStorageErrors(): string[] {
   const storageProfile = getRuntimeStorageProfile();
   const storageErrors = validateStorageProfile(storageProfile);
@@ -156,6 +173,7 @@ export function validateEnv(): { valid: boolean; errors: string[] } {
   const errors = [
     ...collectApiOriginErrors(),
     ...collectEnvVarErrors(envVars),
+    ...collectTrustedProxyErrors(),
     ...collectStorageErrors(),
   ];
 
