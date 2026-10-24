@@ -16,15 +16,12 @@ export function parseAudienceView(value: string | undefined): AudienceView {
 
 type ViewCounts = { people: number; properties: number };
 
-/** Its own page (it needs `forms.edit`), switched to from the same tabs. */
 const PREVIEW_AS_TAB_ID = "preview-as";
 
 type ViewOptions = {
-  /** Whether this reader may preview the form as a participant (`forms.edit`). */
   previewAs?: boolean;
 };
 
-/** Preview as follows, for a reader who may use it, once the form has Properties. */
 function previewAsTabs(formId: string, show: boolean): LinkTab[] {
   if (!show) return [];
   const href = formRoutes.previewAs(formId);

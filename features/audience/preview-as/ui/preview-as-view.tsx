@@ -40,7 +40,6 @@ function SavedLine({ savedAt }: Readonly<{ savedAt: string }>) {
   );
 }
 
-/** Why there is no form to show, or `null` when there is one. */
 function emptyReason(props: PreviewAsViewProps): string | null {
   if (!props.form) return "Save the form in the designer to preview it.";
   if (!props.hasVariables)
@@ -83,11 +82,7 @@ function BackToAudience({ formId }: Readonly<{ formId: string }>) {
   );
 }
 
-/**
- * The participant the list shows as selected. It moves on a key press at once, before the
- * server answers, so a second press steps on from it; a new server selection resets it.
- */
-function useActiveMember(serverId: string | undefined) {
+function useOptimisticSelection(serverId: string | undefined) {
   const [active, setActive] = useState(serverId);
   const [seen, setSeen] = useState(serverId);
   if (serverId !== seen) {
@@ -97,7 +92,6 @@ function useActiveMember(serverId: string | undefined) {
   return [active, setActive] as const;
 }
 
-/** The participant and the search live in the URL, so a preview can be linked to. */
 function usePreviewNavigation({
   formId,
   search,
@@ -105,7 +99,7 @@ function usePreviewNavigation({
 }: PreviewAsViewProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [activeId, setActiveId] = useActiveMember(
+  const [activeId, setActiveId] = useOptimisticSelection(
     previewedPerson(selected)?.audienceMemberId,
   );
   const go = (query: { member?: string; search?: string }) =>

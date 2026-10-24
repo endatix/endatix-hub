@@ -3,8 +3,6 @@ import type { EndatixApi } from "../../endatix-api";
 import { ApiResult } from "../../shared/api-result";
 import { Audience, buildListAudiencePeopleEndpoint } from "../audience";
 
-// Preview as (endatix-hub#1181): people search and one participant's values.
-
 const FORM_ID = "1525035735390879744";
 
 function audienceWith(methods: Partial<Record<string, unknown>>) {

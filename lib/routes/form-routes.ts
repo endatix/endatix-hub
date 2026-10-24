@@ -22,9 +22,7 @@ function audienceSearch(query: AudienceQuery): string {
 }
 
 type PreviewAsQuery = {
-  /** The audience member id to preview as. */
   member?: string;
-  /** Part of an identifier, to find any participant. */
   search?: string;
 };
 

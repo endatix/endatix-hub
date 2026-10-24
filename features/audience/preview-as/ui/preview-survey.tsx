@@ -55,7 +55,6 @@ type Runtime = {
   bindToSurvey: (model: Model) => (() => void) | undefined;
 };
 
-/** Builds the model once the shared form's runtime is ready; returns the cleanup. */
 function mountModel(
   content: string,
   runtime: Runtime,

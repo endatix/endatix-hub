@@ -34,7 +34,6 @@ function notFilledIn({ person, properties }: ParticipantStripProps) {
 
 type ActionProps = ParticipantStripProps & { onEdit: () => void };
 
-/** Test as (with `forms.test`) and Edit values (when there is a value to edit). */
 function useStripActions({ onEdit, ...props }: ActionProps) {
   const testAs = useTestAsPerson(props.formId);
   const actions = [
