@@ -51,6 +51,7 @@ function variables(
       properties: [],
     },
     editing: { allowAdd: false, allowEdit: false, allowDelete: false },
+    readOnlyPresets: [],
   };
 }
 

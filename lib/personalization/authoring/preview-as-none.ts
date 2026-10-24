@@ -18,7 +18,7 @@ const withNone = new WeakSet<PreviewView>();
 
 /**
  * Adds None as the selector's first item to the Preview built for the current activation, and,
- * when the API sent only some Test participants, a last item that says how many are left out.
+ * when the API sent only some participants, a last item that says how many are left out.
  */
 export function addNoneToPreviewAs(
   plugin: TabTestPlugin,

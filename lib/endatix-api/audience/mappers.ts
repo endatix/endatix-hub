@@ -19,6 +19,7 @@ import {
   type AudienceImportResult,
   type AudiencePerson,
   type AudienceProperty,
+  type AudienceVariables,
   type OpenedTestSubmission,
 } from "./types";
 
@@ -194,6 +195,22 @@ export function mapPropertyResult(
 ): ApiResult<AudienceProperty> {
   return response.success
     ? ApiResult.success(mapProperty(response.data))
+    : response;
+}
+
+/** An API from before endatix#1359 leaves out `readOnlyPresets`. */
+export type WireVariables = Omit<AudienceVariables, "readOnlyPresets"> & {
+  readOnlyPresets?: string[];
+};
+
+export function mapVariablesResult(
+  response: ApiResult<WireVariables>,
+): ApiResult<AudienceVariables> {
+  return response.success
+    ? ApiResult.success({
+        ...response.data,
+        readOnlyPresets: response.data.readOnlyPresets ?? [],
+      })
     : response;
 }
 

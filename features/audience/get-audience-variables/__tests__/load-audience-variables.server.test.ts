@@ -25,6 +25,7 @@ const VARIABLES: AudienceVariables = {
   },
   coverage: { participants: { test: 1, real: 0 }, properties: [] },
   editing: { allowAdd: false, allowEdit: false, allowDelete: false },
+  readOnlyPresets: [],
 };
 
 function apiWith(variables: ApiResult<AudienceVariables>) {

@@ -19,11 +19,13 @@ import {
   mapPersonResult,
   mapProperty,
   mapPropertyResult,
+  mapVariablesResult,
   requireEndatixId,
   requireFormAndEntityIds,
   type WireParticipant,
   type WirePerson,
   type WireProperty,
+  type WireVariables,
 } from "./mappers";
 import {
   AudiencePaging,
@@ -183,8 +185,10 @@ export class Audience {
     const idCheck = requireEndatixId(formId, "formId");
     if (!idCheck.success) return idCheck;
 
-    return this.endatix.get<AudienceVariables>(
-      formAudiencePath(formId, "variables"),
+    return mapVariablesResult(
+      await this.endatix.get<WireVariables>(
+        formAudiencePath(formId, "variables"),
+      ),
     );
   }
 

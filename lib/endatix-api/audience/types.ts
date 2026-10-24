@@ -194,7 +194,7 @@ export type OpenedTestSubmission = {
   token: string;
 };
 
-/** One Test participant's values, named by their identifier. */
+/** One participant's values, named by their identifier. */
 export type AudienceVariablePreset = {
   name: string;
   /** Variable name → value, typed as the respondent's `personalization`. */
@@ -205,9 +205,9 @@ export type AudienceVariablePreset = {
 export type AudienceVariablePresets = {
   /** Survey JSON whose top-level questions are the variables, one per Property. */
   definition: Record<string, unknown>;
-  /** The first 20 Test participants by when they were added, ordered by identifier. */
+  /** Up to 20 participants: Test participants first, then real ones, each group by identifier. */
   presets: AudienceVariablePreset[];
-  /** Every Test participant on the form; more than `presets` holds past 20. */
+  /** Every participant on the form, test and real; more than `presets` holds past 20. */
   totalPresets: number;
 };
 
@@ -232,4 +232,6 @@ export type AudienceVariables = {
   variablePresets: AudienceVariablePresets | null;
   coverage: AudienceVariableCoverage;
   editing: AudiencePresetEditing;
+  /** The real participants among `presets`, by name: preview-only, never saved. */
+  readOnlyPresets: string[];
 };
