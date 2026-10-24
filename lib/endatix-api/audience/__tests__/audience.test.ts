@@ -459,6 +459,18 @@ describe("Audience variables", () => {
     expect(result.success && result.data).toEqual(variables);
   });
 
+  it("reads no read-only presets from an API that leaves them out", async () => {
+    // Arrange
+    const { readOnlyPresets: _, ...older } = variables;
+    const get = vi.fn().mockResolvedValue(ApiResult.success(older));
+
+    // Act
+    const result = await audienceWith({ get }).getVariables(FORM_ID);
+
+    // Assert
+    expect(result.success && result.data.readOnlyPresets).toEqual([]);
+  });
+
   it("rejects an invalid form id without calling the API", async () => {
     const get = vi.fn();
 
