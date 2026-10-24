@@ -19,6 +19,7 @@ function variables(
     },
     coverage: { participants: { test: 0, real: 0 }, properties: [] },
     editing: { allowAdd: false, allowEdit: false, allowDelete: false },
+    readOnlyPresets: [],
   };
 }
 
