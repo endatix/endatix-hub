@@ -5,13 +5,17 @@ import {
   type SurveyCreatorModel,
   type TabTestPlugin,
 } from "survey-creator-core";
-import type { AudienceVariables } from "@/lib/endatix-api/audience/types";
+import type {
+  AudienceVariablePreset,
+  AudienceVariables,
+} from "@/lib/endatix-api/audience/types";
 import { Result } from "@/lib/result";
 import { canonicalizeCreatorTabId, ENDATIX_CREATOR_TAB } from "@/lib/survey-js";
 import { applyAudienceFix, canFixOnCanvas } from "./apply-fix";
+import type { ParticipantFinder } from "./find-participant";
 import type { AudienceFinding, AudienceReview } from "./findings/types";
 import type { reviewAudience } from "./review";
-import { addNoneToPreviewAs } from "./preview-as-none";
+import { extendPreviewAs, type FindParticipantOption } from "./preview-as-none";
 import { toSurveyPresets } from "./to-survey-presets";
 
 export interface CreatorHooks {
@@ -19,8 +23,22 @@ export interface CreatorHooks {
   refresh(): Promise<Result<AudienceVariables>>;
 }
 
-/** What the designer binds: the variables read with the page, and how to read them again. */
-export type DesignerAudience = CreatorHooks & { variables: AudienceVariables };
+/** The variables read with the page, and how to read them again. */
+export type BoundAudience = CreatorHooks & { variables: AudienceVariables };
+
+/** What the designer binds, and the reads behind its Find participant. */
+export type DesignerAudience = BoundAudience & {
+  participants: ParticipantFinder;
+};
+
+/** Previews the form as a participant found past the selector, adding them to it. */
+export type PreviewAs = (
+  preset: AudienceVariablePreset,
+  isTest: boolean,
+) => void;
+
+/** Opens the designer's Find participant; the pick goes to `previewAs`. */
+export type FindParticipant = (previewAs: PreviewAs) => void;
 
 export type CreatorBinding = {
   /** Unbinds: no further reads, and a read in flight is dropped. */
@@ -30,6 +48,8 @@ export type CreatorBinding = {
   review(): Promise<AudienceReview>;
   /** Applies a finding's fix to the canvas; a finding without one is left alone. */
   applyFix(finding: AudienceFinding): void;
+  /** Real participants, from the read and picked since: preview-only, never saved. */
+  readOnlyPresets(): string[];
 };
 
 const AUDIENCE_VP_STRINGS = {
@@ -69,9 +89,13 @@ function previewPlugin(creator: SurveyCreatorModel): TabTestPlugin | null {
   return creator.getPlugin(ENDATIX_CREATOR_TAB.preview) as TabTestPlugin;
 }
 
+type PickedParticipant = { preset: AudienceVariablePreset; isTest: boolean };
+
 type BindingState = {
   variables: AudienceVariables;
   applied: AudienceVariables["variablePresets"] | undefined;
+  /** Found with Find participant, by name: kept in the selector for the session. */
+  picked: Map<string, PickedParticipant>;
   latest: number;
   bound: boolean;
 };
@@ -90,12 +114,59 @@ function applyVariables(
     return;
   }
   state.applied = presets;
+  installPresets(creator, state);
+}
+
+/** The read's participants, then those picked since that the read does not list. */
+function installPresets(
+  creator: SurveyCreatorModel,
+  state: BindingState,
+): void {
+  const presets = state.applied;
   // No properties any more: an empty container hides Preview as again. The setter's type has no
   // empty case, though the Creator handles one.
   creator.variablePresets = presets
-    ? toSurveyPresets(presets)
+    ? toSurveyPresets({
+        ...presets,
+        presets: [...presets.presets, ...pickedOutsideRead(state)],
+      })
     : (undefined as unknown as ISurveyVariablePresets);
   lockValuesEditor(creator);
+}
+
+function pickedOutsideRead(state: BindingState): AudienceVariablePreset[] {
+  const read = new Set(state.applied?.presets.map((preset) => preset.name));
+  return [...state.picked.values()]
+    .map(({ preset }) => preset)
+    .filter((preset) => !read.has(preset.name));
+}
+
+/**
+ * Previews as a participant: one the read listed is only selected; any other is added, or, picked
+ * again, takes the values just read. A real one joins the read-only names, so the save leaves them
+ * out.
+ */
+function previewAs(
+  creator: SurveyCreatorModel,
+  state: BindingState,
+  picked: PickedParticipant,
+): void {
+  if (!state.applied) return;
+  const { preset } = picked;
+  const inRead = state.applied.presets.some((p) => p.name === preset.name);
+  if (!inRead) {
+    state.picked.set(preset.name, picked);
+    installPresets(creator, state);
+  }
+  const manager = previewPlugin(creator)?.variablePresets;
+  if (manager) manager.active = preset.name;
+}
+
+function readOnlyPresets(state: BindingState): string[] {
+  const picked = [...state.picked.values()]
+    .filter(({ isTest }) => !isTest)
+    .map(({ preset }) => preset.name);
+  return [...new Set([...state.variables.readOnlyPresets, ...picked])];
 }
 
 /**
@@ -131,42 +202,70 @@ function onPreviewOpened(
   return () => creator.onActiveTabChanged.remove(onActiveTabChanged);
 }
 
-/** Participants, test and real, the API left out of `presets` (it sends the first 20). */
-function hiddenParticipants(state: BindingState): number {
+/** Participants the API left out of `presets` (it sends the first 20). */
+function hasMoreParticipants(state: BindingState): boolean {
   const presets = state.applied;
-  return presets
-    ? Math.max(0, presets.totalPresets - presets.presets.length)
-    : 0;
+  return !!presets && presets.totalPresets > presets.presets.length;
 }
 
 /**
  * Picking a participant writes nothing (Q5): the Creator applies the values to the Preview survey
  * itself, inside its construction callback, so `{variable}` defaults see them. Opening Preview reads
  * the variables again, so Properties added after the page loaded show up too. Preview rebuilds its
- * view model on every activation, so None goes into the selector each time. The designer keeps the
- * binding for the Creator's lifetime.
+ * view model on every activation, so None (and Find participant, given `onFindParticipant`) goes
+ * into it each time. The designer keeps the binding for the Creator's lifetime.
  */
 export function bindToCreator(
   creator: SurveyCreatorModel,
-  audience: DesignerAudience,
+  audience: BoundAudience,
+  onFindParticipant?: FindParticipant,
 ): CreatorBinding {
   initGlobals();
   const state = newState(audience.variables);
   applyVariables(creator, audience.variables, state);
   const refresh = () => refreshVariables(creator, audience, state);
   const stopWatching = onPreviewOpened(creator, (plugin, atBind) => {
-    addNoneToPreviewAs(plugin, () => hiddenParticipants(state));
+    extendPreviewAs(plugin, finding(creator, state, onFindParticipant));
     if (!atBind) void refresh();
   });
   const unbind = () => {
     state.bound = false;
     stopWatching();
   };
-  return Object.assign(unbind, { refresh, ...reviewing(creator, state) });
+  return Object.assign(unbind, { refresh, ...reading(creator, state) });
+}
+
+/** What the binding answers from the variables read last and the participants picked since. */
+function reading(creator: SurveyCreatorModel, state: BindingState) {
+  return {
+    readOnlyPresets: () => readOnlyPresets(state),
+    ...reviewing(creator, state),
+  };
+}
+
+/** Find participant in the Preview toolbar: shown past the read's participants, the pick previewed. */
+function finding(
+  creator: SurveyCreatorModel,
+  state: BindingState,
+  onFindParticipant: FindParticipant | undefined,
+): FindParticipantOption | undefined {
+  if (!onFindParticipant) return undefined;
+  const pick: PreviewAs = (preset, isTest) =>
+    previewAs(creator, state, { preset, isTest });
+  return {
+    hasMore: () => hasMoreParticipants(state),
+    find: () => onFindParticipant(pick),
+  };
 }
 
 function newState(variables: AudienceVariables): BindingState {
-  return { variables, applied: undefined, latest: 0, bound: true };
+  return {
+    variables,
+    applied: undefined,
+    picked: new Map(),
+    latest: 0,
+    bound: true,
+  };
 }
 
 /**

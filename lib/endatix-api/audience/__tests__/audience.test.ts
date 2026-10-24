@@ -41,6 +41,17 @@ describe("buildListAudiencePeopleEndpoint", () => {
       }),
     ).toBe(`/forms/${FORM_ID}/audience/people?page=1&pageSize=50`);
   });
+
+  it("sends the search trimmed, and leaves out a blank one", () => {
+    expect(
+      buildListAudiencePeopleEndpoint(FORM_ID, { search: "  ana@acme " }),
+    ).toBe(
+      `/forms/${FORM_ID}/audience/people?page=1&pageSize=50&search=ana%40acme`,
+    );
+    expect(buildListAudiencePeopleEndpoint(FORM_ID, { search: "  " })).toBe(
+      `/forms/${FORM_ID}/audience/people?page=1&pageSize=50`,
+    );
+  });
 });
 
 describe("Audience settings", () => {

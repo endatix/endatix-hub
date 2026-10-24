@@ -14,10 +14,7 @@ import {
 import { StoredTheme } from "@/features/themes/types";
 import { updateFormThemeAction } from "@/features/themes/update-form-theme";
 import { useDesignerRuntime } from "@/lib/designer-runtime";
-import {
-  bindAudienceToCreator,
-  type DesignerAudience,
-} from "@/lib/personalization/authoring";
+import type { DesignerAudience } from "@/lib/personalization/authoring";
 import { registerAudioQuestionUI } from "@/lib/questions/audio-recorder";
 import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";
 import {
@@ -58,6 +55,7 @@ import "ace-builds/src-noconflict/ace";
 import "ace-builds/src-noconflict/ext-searchbox";
 import "ace-builds/src-noconflict/theme-github_light_default";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useDesignerAudience } from "./use-designer-audience";
 import type { Question } from "survey-core";
 import { JsonObject, Serializer, slk, SvgRegistry } from "survey-core";
 import "survey-core/i18n";
@@ -190,6 +188,7 @@ function FormEditor({
   const unbindCreatorRef = useRef<(() => void) | null>(null);
   const [creator, setCreator] = useState<SurveyCreator | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [bindAudience, findParticipantDialog] = useDesignerAudience(audience);
 
   const {
     hasUnsavedChanges,
@@ -521,9 +520,7 @@ function FormEditor({
         const cleanupQuestionLoops = bindQuestionLoops(newCreator);
         const cleanupFormDiagnostics = bindFormDiagnostics(newCreator);
         const unbindReplacedSurveys = disposeReplacedSurveys(newCreator);
-        const unbindAudience = audience
-          ? bindAudienceToCreator(newCreator, audience)
-          : undefined;
+        const unbindAudience = bindAudience(newCreator);
         applyFormDiagnosticsAudience(newCreator, unbindAudience);
 
         setCreator(newCreator);
@@ -594,7 +591,7 @@ function FormEditor({
     creator,
     initialPropertyGridVisible,
     formJson,
-    audience,
+    bindAudience,
     registerStorageHandlers,
     registerJsonEditor,
     isExtensionsReady,
@@ -698,6 +695,7 @@ function FormEditor({
         request={customQuestionRequest}
         onClose={() => setCustomQuestionRequest(null)}
       />
+      {findParticipantDialog}
 
       {isCreatorLoading ? (
         <div className="flex h-[calc(100vh-80px)] items-center justify-center">
