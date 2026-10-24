@@ -26,6 +26,10 @@ export type PreviewAsForm = {
   definition: object;
   /** When it was last saved, ISO. */
   savedAt: string;
+  /** The form's theme JSON, as the shared form applies it; none for the default. */
+  theme?: string;
+  /** The custom question JSON the shared form registers for this definition. */
+  customQuestions: string[];
 };
 
 export type PreviewAsSelection =
@@ -94,9 +98,16 @@ async function loadForm({
     "form",
   );
   if (Result.isError(saved)) return saved;
-  const definition = parseDefinition(saved.value.jsonData);
-  const savedAt = String(saved.value.modifiedAt ?? saved.value.createdAt);
-  return Result.success(definition && { definition, savedAt });
+  const { jsonData, modifiedAt, createdAt, themeModel, customQuestions } =
+    saved.value;
+  const definition = parseDefinition(jsonData);
+  if (!definition) return Result.success(null);
+  return Result.success({
+    definition,
+    savedAt: new Date(modifiedAt ?? createdAt).toISOString(),
+    theme: themeModel,
+    customQuestions: customQuestions ?? [],
+  });
 }
 
 const listPage = { page: 1, pageSize: PREVIEW_LIST_SIZE };
@@ -147,10 +158,10 @@ async function loadLists(request: PreviewAsRequest): Promise<Result<Lists>> {
   });
 }
 
-/** The participant the link names, else the first one listed. */
+/** The participant the link names, else the first match of a search, else the first Test one. */
 function memberToPreview(request: PreviewAsRequest, lists: Lists) {
   if (request.memberId) return request.memberId;
-  const first = lists.test.items[0] ?? lists.matches?.items[0];
+  const first = lists.matches?.items[0] ?? lists.test.items[0];
   return first?.audienceMemberId;
 }
 

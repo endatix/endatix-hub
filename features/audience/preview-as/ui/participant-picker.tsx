@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState, type KeyboardEvent } from "react";
+import { useEffect, useId, useState, type KeyboardEvent } from "react";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import type { AudiencePerson } from "@/lib/endatix-api/audience/types";
@@ -23,11 +23,16 @@ type ParticipantPickerProps = {
 };
 
 const STEP: Record<string, number> = { ArrowDown: 1, ArrowUp: -1 };
+const JUMP: Record<string, (ids: string[]) => string | undefined> = {
+  Home: (ids) => ids[0],
+  End: (ids) => ids.at(-1),
+};
+const isListKey = (key: string) => key in STEP || key in JUMP;
 
-/** The next member id an arrow key moves to; none past either end. */
+/** The member id a key moves to: one step with the arrows (none past either end), or an end. */
 function stepFrom(ids: string[], selectedId: string | undefined, key: string) {
+  if (key in JUMP) return JUMP[key](ids);
   const step = STEP[key];
-  if (!step) return undefined;
   const at = selectedId ? ids.indexOf(selectedId) : -1;
   if (at === -1) return step > 0 ? ids[0] : undefined;
   return ids[at + step];
@@ -105,11 +110,19 @@ export function ParticipantPicker(props: Readonly<ParticipantPickerProps>) {
     group.people.map((person) => person.audienceMemberId),
   );
   const onKeyDown = (event: KeyboardEvent) => {
-    if (!STEP[event.key]) return;
+    if (!isListKey(event.key)) return;
     event.preventDefault();
     const next = stepFrom(ids, selectedId, event.key);
-    if (next) onSelect(next);
+    if (next && next !== selectedId) onSelect(next);
   };
+  const activeOption =
+    selectedId && ids.includes(selectedId) ? optionId(selectedId) : undefined;
+  useEffect(() => {
+    if (!activeOption) return;
+    document
+      .getElementById(activeOption)
+      ?.scrollIntoView?.({ block: "nearest" });
+  }, [activeOption]);
   return (
     <div className="flex flex-col gap-3">
       <SearchField {...props} />
@@ -117,7 +130,7 @@ export function ParticipantPicker(props: Readonly<ParticipantPickerProps>) {
         role="listbox"
         aria-label="Participants"
         tabIndex={0}
-        aria-activedescendant={selectedId ? optionId(selectedId) : undefined}
+        aria-activedescendant={activeOption}
         onKeyDown={onKeyDown}
         className="flex flex-col gap-4 rounded-xl border bg-card p-2 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
       >

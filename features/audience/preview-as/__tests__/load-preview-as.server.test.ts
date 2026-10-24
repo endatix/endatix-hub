@@ -48,6 +48,8 @@ const JO = person("8", "jo@acme.test", true);
 const REAL = person("20", "sam@acme.com", false);
 
 const FORM_JSON = { elements: [{ type: "text", name: "plan" }] };
+const THEME = JSON.stringify({ cssVariables: { "--sjs-primary": "#c00" } });
+const CUSTOM_QUESTION = JSON.stringify({ name: "rating-stars" });
 
 const VARIABLES: AudienceVariables = {
   variablePresets: {
@@ -125,6 +127,8 @@ function apiWith(overrides: Overrides = {}) {
         formId: "1",
         isDraft: false,
         jsonData: JSON.stringify(FORM_JSON),
+        themeModel: THEME,
+        customQuestions: [CUSTOM_QUESTION],
         createdAt: "2026-10-20T08:00:00Z",
         modifiedAt: "2026-10-23T14:30:00Z",
       }),
@@ -168,7 +172,9 @@ describe("loadPreviewAs", () => {
     expect(data.matches).toBeNull();
     expect(data.form).toEqual({
       definition: FORM_JSON,
-      savedAt: "2026-10-23T14:30:00Z",
+      savedAt: "2026-10-23T14:30:00.000Z",
+      theme: THEME,
+      customQuestions: [CUSTOM_QUESTION],
     });
     expect(api.audience.getParticipantVariables).toHaveBeenCalledWith("1", "7");
     expect(data.selected).toEqual({
@@ -190,6 +196,18 @@ describe("loadPreviewAs", () => {
     });
     expect(data.search).toBe("acme");
     expect(data.matches).toEqual([REAL, MARIA]);
+  });
+
+  it("previews the first match of a search", async () => {
+    const api = apiWith();
+
+    const data = await load(api, { search: "acme" });
+
+    expect(api.audience.getParticipantVariables).toHaveBeenCalledWith(
+      "1",
+      "20",
+    );
+    expect(data.selected).toMatchObject({ status: "found", person: REAL });
   });
 
   it("previews the participant the link names", async () => {
