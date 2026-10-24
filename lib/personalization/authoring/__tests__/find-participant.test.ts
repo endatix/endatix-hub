@@ -1,12 +1,17 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Action, ListModel } from "survey-core";
 import { SurveyCreatorModel, type TabTestPlugin } from "survey-creator-core";
-import type {
-  AudienceVariablePreset,
-  AudienceVariables,
+import {
+  AudienceIdentifierKind,
+  type AudienceVariablePreset,
+  type AudienceVariables,
 } from "@/lib/endatix-api/audience/types";
 import { Result } from "@/lib/result";
-import { bindAudienceToCreator, type PreviewAs } from "..";
+import {
+  bindAudienceToCreator,
+  type PreviewAs,
+  testParticipantPresets,
+} from "..";
 
 const MARIA = "maria@acme.test";
 const BOB = "bob@acme.test";
@@ -152,20 +157,38 @@ describe("Find participant in the designer's Preview", () => {
 
     // Act
     pick(ANA, false);
-    const readOnly = binding.readOnlyPresets();
-    // What hub#1204's testParticipantPresets keeps: every preset not named read-only.
-    const saved = creator.variablePresets?.presets
-      ?.filter((preset) => !readOnly.includes(preset.name))
-      .map((preset) => preset.name);
+    const saved = testParticipantPresets(
+      creator.variablePresets,
+      binding.readOnlyPresets(),
+      AudienceIdentifierKind.Email,
+    );
 
     // Assert
-    expect(readOnly).toEqual([BOB, ANA.name]);
-    expect(saved).toEqual([MARIA]);
+    expect(binding.readOnlyPresets()).toEqual([BOB, ANA.name]);
+    expect(saved.map((preset) => preset.name)).toEqual([MARIA]);
     expect(preview(creator).variablePresets).toMatchObject({
       allowAdd: false,
       allowEdit: false,
       allowDelete: false,
     });
+  });
+
+  it("leaves out a picked real participant's email written with other capitals", () => {
+    // Arrange
+    const { creator, binding, pick } = designerWith(60);
+    pick(ANA, false);
+    const edited = structuredClone(creator.variablePresets!);
+    edited.presets!.push({ name: " Ana@ACME.test", variables: { tier: "x" } });
+
+    // Act
+    const saved = testParticipantPresets(
+      edited,
+      binding.readOnlyPresets(),
+      AudienceIdentifierKind.Email,
+    );
+
+    // Assert
+    expect(saved.map((preset) => preset.name)).toEqual([MARIA]);
   });
 
   it("does not make a picked Test participant read-only", () => {

@@ -103,7 +103,7 @@ describe("Preview as in the designer", () => {
     ]);
   });
 
-  it("names the selector Preview as, with None, and the editor Test participant values", () => {
+  it("names the selector Preview as, with None, and the editor Participant values", () => {
     bindAudienceToCreator(designer(), {
       variables: variables(),
       refresh: noRefresh,
@@ -112,7 +112,32 @@ describe("Preview as in the designer", () => {
     const vp = getLocaleStrings("en").vp;
     expect(vp.selectorTitle).toBe("Preview as");
     expect(vp.noPreset).toBe("None");
-    expect(vp.editorTitle).toBe("Test participant values");
+    expect(vp.editorTitle).toBe("Participant values");
+  });
+
+  // The list holds real participants too; only Test participants can be added, removed or saved.
+  it("says participant for the whole list and test participant for adding one", () => {
+    // Act
+    bindAudienceToCreator(designer(), {
+      variables: variables(),
+      refresh: noRefresh,
+    });
+
+    // Assert
+    const vp = getLocaleStrings("en").vp;
+    expect([vp.view, vp.presetName, vp.listNameColumn]).toEqual([
+      "Participant values",
+      "Participant",
+      "Participant",
+    ]);
+    expect(vp.presetNameIsNotUnique).toBe(
+      "A participant with this identifier exists",
+    );
+    expect([vp.addPreset, vp.newPresetName, vp.edit]).toEqual([
+      "Add test participant",
+      "New test participant",
+      "Edit test participant values",
+    ]);
   });
 
   it("never says preset on screen", () => {
