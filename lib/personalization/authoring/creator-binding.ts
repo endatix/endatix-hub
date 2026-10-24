@@ -52,20 +52,22 @@ export type CreatorBinding = {
   readOnlyPresets(): string[];
 };
 
+// The selector and the values editor list every participant, test and real; only Test participants
+// can be added, removed or saved, so those strings say so.
 const AUDIENCE_VP_STRINGS = {
   selectorTitle: "Preview as",
   noPreset: "None",
-  view: "Test participant values",
+  view: "Participant values",
   viewTitle: "Variable values",
   edit: "Edit test participant values",
-  editorTitle: "Test participant values",
-  presetName: "Test participant",
+  editorTitle: "Participant values",
+  presetName: "Participant",
   addPreset: "Add test participant",
   newPresetName: "New test participant",
   deletePreset: "Remove test participant",
-  presetNameIsNotUnique: "A test participant with this identifier exists",
+  presetNameIsNotUnique: "A participant with this identifier exists",
   presetNameIsEmpty: "Enter the test participant's identifier",
-  listNameColumn: "Test participant",
+  listNameColumn: "Participant",
 };
 
 /**
