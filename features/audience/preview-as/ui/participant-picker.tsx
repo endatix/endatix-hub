@@ -35,7 +35,6 @@ const JUMP: Record<string, (ids: string[]) => string | undefined> = {
 };
 const isListKey = (key: string) => key in STEP || key in JUMP;
 
-/** The member id a key moves to: one step with the arrows (none past either end), or an end. */
 function stepFrom(ids: string[], selectedId: string | undefined, key: string) {
   if (key in JUMP) return JUMP[key](ids);
   const step = STEP[key];
@@ -125,7 +124,6 @@ function useScrollIntoView(id: string | undefined) {
   }, [id]);
 }
 
-/** Arrow keys, Home and End select another option; the selected one is scrolled into view. */
 function useListKeys(ids: string[], props: ListProps) {
   const { selectedId, onSelect, optionId } = props;
   const activeOption =

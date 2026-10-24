@@ -28,7 +28,6 @@ function matchesNote(shown: number, others: number, total: number) {
   return shownOf(shown, total, "matches");
 }
 
-/** A search adds everyone it finds who is not already listed as a Test participant. */
 function matchesGroup(data: ListData): PickerGroup[] {
   const { testParticipants, matches, totalMatches, search } = data;
   if (!matches) return [];
@@ -44,7 +43,6 @@ export function previewedPerson(
   return selected?.status === "found" ? selected.person : undefined;
 }
 
-/** The previewed participant, when a link names one neither list holds. */
 function previewingGroup(groups: PickerGroup[], data: ListData): PickerGroup[] {
   const person = previewedPerson(data.selected);
   if (!person) return [];

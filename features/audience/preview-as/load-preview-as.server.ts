@@ -116,7 +116,6 @@ async function loadForm({
 
 type Values<T> = { [K in keyof T]: T[K] extends Result<infer V> ? V : never };
 
-/** Every part's value, or the first part that failed. */
 function allOk<T extends Record<string, Result<unknown>>>(
   parts: T,
 ): Result<Values<T>> {
