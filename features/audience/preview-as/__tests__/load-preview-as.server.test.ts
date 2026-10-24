@@ -83,57 +83,57 @@ type Overrides = {
   participant?: ApiResult<unknown>;
 };
 
-function apiWith(overrides: Overrides = {}) {
-  const audience = {
-    getSettings: vi.fn().mockResolvedValue(
-      ApiResult.success({
-        identifierKind: AudienceIdentifierKind.Email,
-        isLocked: true,
-      }),
-    ),
-    listProperties: vi
-      .fn()
-      .mockResolvedValue(
-        ApiResult.success([property("10", "email"), property("11", "tier")]),
-      ),
+const SETTINGS = ApiResult.success({
+  identifierKind: AudienceIdentifierKind.Email,
+  isLocked: true,
+});
+const PROPERTIES = ApiResult.success([
+  property("10", "email"),
+  property("11", "tier"),
+]);
+const MARIA_VALUES = ApiResult.success({
+  name: "maria@acme.test",
+  variables: { tier: "gold", region: null },
+});
+const SAVED_DEFINITION = ApiResult.success({
+  id: "55",
+  formId: "1",
+  isDraft: false,
+  jsonData: JSON.stringify(FORM_JSON),
+  themeModel: THEME,
+  customQuestions: [CUSTOM_QUESTION],
+  createdAt: "2026-10-20T08:00:00Z",
+  modifiedAt: "2026-10-23T14:30:00Z",
+});
+
+const participantById = (_formId: string, memberId: string) =>
+  ApiResult.success(
+    [MARIA, JO, REAL].find((p) => p.audienceMemberId === memberId),
+  );
+
+function audienceWith(overrides: Overrides) {
+  return {
+    getSettings: vi.fn().mockResolvedValue(SETTINGS),
+    listProperties: vi.fn().mockResolvedValue(PROPERTIES),
     getVariables: vi
       .fn()
       .mockResolvedValue(ApiResult.success(overrides.variables ?? VARIABLES)),
     listPeople: vi.fn((_formId: string, request: { search?: string }) =>
       Promise.resolve(request.search ? page([REAL, MARIA]) : page([MARIA, JO])),
     ),
-    getParticipant: vi
+    getParticipant: vi.fn(
+      async (formId: string, memberId: string) =>
+        overrides.participant ?? participantById(formId, memberId),
+    ),
+    getParticipantVariables: vi
       .fn()
-      .mockImplementation((_formId: string, memberId: string) =>
-        Promise.resolve(
-          overrides.participant ??
-            ApiResult.success(
-              [MARIA, JO, REAL].find((p) => p.audienceMemberId === memberId),
-            ),
-        ),
-      ),
-    getParticipantVariables: vi.fn().mockResolvedValue(
-      overrides.participantVariables ??
-        ApiResult.success({
-          name: "maria@acme.test",
-          variables: { tier: "gold", region: null },
-        }),
-    ),
+      .mockResolvedValue(overrides.participantVariables ?? MARIA_VALUES),
   };
-  const definitions = {
-    get: vi.fn().mockResolvedValue(
-      ApiResult.success({
-        id: "55",
-        formId: "1",
-        isDraft: false,
-        jsonData: JSON.stringify(FORM_JSON),
-        themeModel: THEME,
-        customQuestions: [CUSTOM_QUESTION],
-        createdAt: "2026-10-20T08:00:00Z",
-        modifiedAt: "2026-10-23T14:30:00Z",
-      }),
-    ),
-  };
+}
+
+function apiWith(overrides: Overrides = {}) {
+  const audience = audienceWith(overrides);
+  const definitions = { get: vi.fn().mockResolvedValue(SAVED_DEFINITION) };
   return { audience, definitions } as unknown as EndatixApi & {
     audience: typeof audience;
     definitions: typeof definitions;

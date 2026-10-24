@@ -2,11 +2,13 @@ import "server-only";
 
 import type { EndatixApi } from "@/lib/endatix-api";
 import type { AudiencePeoplePage } from "@/lib/endatix-api/audience/audience";
+import type { FormDefinitionDto } from "@/lib/endatix-api/definitions/types";
 import {
   AudiencePeopleTestFilter,
   type AudienceIdentifierKind,
   type AudiencePerson,
   type AudienceProperty,
+  type AudienceSettings,
   type AudienceVariablePreset,
   type AudienceVariables,
 } from "@/lib/endatix-api/audience/types";
@@ -87,6 +89,17 @@ function parseDefinition(jsonData: string): object | null {
   }
 }
 
+function toPreviewForm(saved: FormDefinitionDto): PreviewAsForm | null {
+  const definition = parseDefinition(saved.jsonData);
+  if (!definition) return null;
+  return {
+    definition,
+    savedAt: new Date(saved.modifiedAt ?? saved.createdAt).toISOString(),
+    theme: saved.themeModel,
+    customQuestions: saved.customQuestions ?? [],
+  };
+}
+
 async function loadForm({
   api,
   formId,
@@ -98,34 +111,34 @@ async function loadForm({
     "form",
   );
   if (Result.isError(saved)) return saved;
-  const { jsonData, modifiedAt, createdAt, themeModel, customQuestions } =
-    saved.value;
-  const definition = parseDefinition(jsonData);
-  if (!definition) return Result.success(null);
-  return Result.success({
-    definition,
-    savedAt: new Date(modifiedAt ?? createdAt).toISOString(),
-    theme: themeModel,
-    customQuestions: customQuestions ?? [],
-  });
+  return Result.success(toPreviewForm(saved.value));
+}
+
+type Values<T> = { [K in keyof T]: T[K] extends Result<infer V> ? V : never };
+
+/** Every part's value, or the first part that failed. */
+function allOk<T extends Record<string, Result<unknown>>>(
+  parts: T,
+): Result<Values<T>> {
+  const failed = Object.values(parts).find((part) => Result.isError(part));
+  if (failed && Result.isError(failed)) return failed;
+  const values = Object.entries(parts).map(([key, part]) => [
+    key,
+    Result.isSuccess(part) ? part.value : undefined,
+  ]);
+  return Result.success(Object.fromEntries(values) as Values<T>);
 }
 
 const listPage = { page: 1, pageSize: PREVIEW_LIST_SIZE };
 
-function fetchLists({ api, formId, search }: PreviewAsRequest) {
+async function searchPeople({ api, formId, search }: PreviewAsRequest) {
   const query = search?.trim();
-  return Promise.all([
-    api.audience.listPeople(formId, {
-      test: AudiencePeopleTestFilter.Test,
-      ...listPage,
-    }),
-    query
-      ? api.audience.listPeople(formId, { search: query, ...listPage })
-      : Promise.resolve(null),
-    api.audience.getVariables(formId),
-    api.audience.listProperties(formId),
-    api.audience.getSettings(),
-  ]);
+  if (!query) return Result.success(null);
+  const found = await api.audience.listPeople(formId, {
+    search: query,
+    ...listPage,
+  });
+  return unwrap(found, "search");
 }
 
 type Lists = {
@@ -133,28 +146,27 @@ type Lists = {
   matches: AudiencePeoplePage | null;
   variables: AudienceVariables;
   properties: AudienceProperty[];
-  identifierKind: AudienceIdentifierKind;
+  settings: AudienceSettings;
 };
 
 async function loadLists(request: PreviewAsRequest): Promise<Result<Lists>> {
-  const [testApi, matchesApi, variablesApi, propertiesApi, settingsApi] =
-    await fetchLists(request);
-  const test = unwrap(testApi, "test participants");
-  if (Result.isError(test)) return test;
-  const matches = matchesApi && unwrap(matchesApi, "search");
-  if (matches && Result.isError(matches)) return matches;
-  const variables = unwrap(variablesApi, "variables");
-  if (Result.isError(variables)) return variables;
-  const properties = unwrap(propertiesApi, "properties");
-  if (Result.isError(properties)) return properties;
-  const settings = unwrap(settingsApi, "settings");
-  if (Result.isError(settings)) return settings;
-  return Result.success({
-    test: test.value,
-    matches: matches?.value ?? null,
-    variables: variables.value,
-    properties: properties.value,
-    identifierKind: settings.value.identifierKind,
+  const { api, formId } = request;
+  const [test, matches, variables, properties, settings] = await Promise.all([
+    api.audience.listPeople(formId, {
+      test: AudiencePeopleTestFilter.Test,
+      ...listPage,
+    }),
+    searchPeople(request),
+    api.audience.getVariables(formId),
+    api.audience.listProperties(formId),
+    api.audience.getSettings(),
+  ]);
+  return allOk({
+    test: unwrap(test, "test participants"),
+    matches,
+    variables: unwrap(variables, "variables"),
+    properties: unwrap(properties, "properties"),
+    settings: unwrap(settings, "settings"),
   });
 }
 
@@ -165,25 +177,28 @@ function memberToPreview(request: PreviewAsRequest, lists: Lists) {
   return first?.audienceMemberId;
 }
 
-async function loadSelection(
-  { api, formId }: PreviewAsRequest,
-  memberId: string,
-): Promise<Result<PreviewAsSelection>> {
-  const [personApi, presetApi] = await Promise.all([
+function fetchSelection({ api, formId }: PreviewAsRequest, memberId: string) {
+  return Promise.all([
     api.audience.getParticipant(formId, memberId),
     api.audience.getParticipantVariables(formId, memberId),
   ]);
-  if (isNotFoundError(personApi) || isNotFoundError(presetApi))
+}
+
+async function loadSelection(
+  request: PreviewAsRequest,
+  memberId: string,
+): Promise<Result<PreviewAsSelection>> {
+  const [person, preset] = await fetchSelection(request, memberId);
+  if (isNotFoundError(person) || isNotFoundError(preset))
     return Result.success({ status: "gone" });
-  const person = unwrap<AudiencePerson>(personApi, "participant");
-  if (Result.isError(person)) return person;
-  const preset = unwrap<AudienceVariablePreset>(presetApi, "values");
-  if (Result.isError(preset)) return preset;
-  return Result.success({
-    status: "found",
-    person: person.value,
-    variables: preset.value.variables,
+  const found = allOk({
+    person: unwrap<AudiencePerson>(person, "participant"),
+    values: unwrap<AudienceVariablePreset>(preset, "values"),
   });
+  if (Result.isError(found)) return found;
+  const { person: participant, values } = found.value;
+  const { variables } = values;
+  return Result.success({ status: "found", person: participant, variables });
 }
 
 async function selectionFor(request: PreviewAsRequest, lists: Lists) {
@@ -191,6 +206,33 @@ async function selectionFor(request: PreviewAsRequest, lists: Lists) {
   if (!lists.variables.variablePresets || !memberId)
     return Result.success(null);
   return loadSelection(request, memberId);
+}
+
+type Loaded = {
+  form: PreviewAsForm | null;
+  lists: Lists;
+  selected: PreviewAsSelection | null;
+};
+
+function toPreviewAsData(
+  { form, lists, selected }: Loaded,
+  request: PreviewAsRequest,
+): PreviewAsData {
+  const { test, matches, variables, properties, settings } = lists;
+  const { identifierKind } = settings;
+  return {
+    form,
+    hasVariables: variables.variablePresets !== null,
+    testParticipants: [...test.items],
+    totalTest: test.totalRecords,
+    search: request.search?.trim() ?? "",
+    matches: matches ? [...matches.items] : null,
+    totalMatches: matches?.totalRecords ?? 0,
+    selected,
+    identifierKind,
+    properties: valueProperties(properties, identifierKind),
+    canTest: request.canTest,
+  };
 }
 
 /**
@@ -205,22 +247,11 @@ export async function loadPreviewAs(
     loadForm(request),
     loadLists(request),
   ]);
-  if (Result.isError(form)) return form;
-  if (Result.isError(lists)) return lists;
-  const selected = await selectionFor(request, lists.value);
+  const loaded = allOk({ form, lists });
+  if (Result.isError(loaded)) return loaded;
+  const selected = await selectionFor(request, loaded.value.lists);
   if (Result.isError(selected)) return selected;
-  const { test, matches, variables, properties, identifierKind } = lists.value;
-  return Result.success({
-    form: form.value,
-    hasVariables: variables.variablePresets !== null,
-    testParticipants: [...test.items],
-    totalTest: test.totalRecords,
-    search: request.search?.trim() ?? "",
-    matches: matches ? [...matches.items] : null,
-    totalMatches: matches?.totalRecords ?? 0,
-    selected: selected.value,
-    identifierKind,
-    properties: valueProperties(properties, identifierKind),
-    canTest: request.canTest,
-  });
+  return Result.success(
+    toPreviewAsData({ ...loaded.value, selected: selected.value }, request),
+  );
 }

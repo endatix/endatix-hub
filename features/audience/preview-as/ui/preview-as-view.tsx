@@ -5,13 +5,13 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { TextLink } from "@/components/common/text-link";
 import { CellDate } from "@/components/table";
-import type { AudiencePerson } from "@/lib/endatix-api/audience/types";
 import { formRoutes } from "@/lib/routes/form-routes";
 import { cn } from "@/lib/utils";
 import { useAudienceReturnHref } from "../../get-audience-page/ui/use-audience-return-href";
 import type { PreviewAsData } from "../load-preview-as.server";
-import { ParticipantPicker, type PickerGroup } from "./participant-picker";
+import { ParticipantPicker } from "./participant-picker";
 import { ParticipantStrip } from "./participant-strip";
+import { pickerGroups, previewedPerson } from "./picker-groups";
 import { PreviewSurvey } from "./preview-survey";
 
 type PreviewAsViewProps = PreviewAsData & {
@@ -19,64 +19,6 @@ type PreviewAsViewProps = PreviewAsData & {
   /** The form's workspace header, composed by the route so this feature does not import forms. */
   header?: ReactNode;
 };
-
-const shownOf = (shown: number, total: number, what: string) =>
-  total > shown
-    ? `First ${shown} of ${total} ${what}. Search to find the rest.`
-    : undefined;
-
-function matchesNote(shown: number, others: number, total: number) {
-  if (total === 0) return "Nobody on this form matches.";
-  if (others === 0) return "Every match is listed above.";
-  return shownOf(shown, total, "matches");
-}
-
-/** The previewed participant, when a link names one neither list holds. */
-function previewingGroup(
-  groups: PickerGroup[],
-  person: AudiencePerson | undefined,
-): PickerGroup[] {
-  const listed = groups.some((group) =>
-    group.people.some((p) => p.audienceMemberId === person?.audienceMemberId),
-  );
-  return person && !listed ? [{ label: "Previewing", people: [person] }] : [];
-}
-
-/** Test participants first; a search adds everyone it finds who is not already listed. */
-function pickerGroups(props: PreviewAsViewProps): PickerGroup[] {
-  const groups = listGroups(props);
-  return [
-    ...previewingGroup(groups, selectedPerson(props.selected)),
-    ...groups,
-  ];
-}
-
-function listGroups(props: PreviewAsViewProps): PickerGroup[] {
-  const { testParticipants, totalTest, matches, totalMatches, search } = props;
-  const test: PickerGroup = {
-    label: "Test participants",
-    people: testParticipants,
-    note:
-      totalTest === 0
-        ? "No Test participants yet."
-        : shownOf(testParticipants.length, totalTest, "Test participants"),
-  };
-  if (!matches) return [test];
-  const listed = new Set(testParticipants.map((p) => p.audienceMemberId));
-  const others = matches.filter((p) => !listed.has(p.audienceMemberId));
-  const found: PickerGroup = {
-    label: `Matching “${search}”`,
-    people: others,
-    note: matchesNote(matches.length, others.length, totalMatches),
-  };
-  return [test, found];
-}
-
-function selectedPerson(
-  selected: PreviewAsData["selected"],
-): AudiencePerson | undefined {
-  return selected?.status === "found" ? selected.person : undefined;
-}
 
 function Notice({ children }: Readonly<{ children: ReactNode }>) {
   return (
@@ -110,20 +52,15 @@ function emptyReason(props: PreviewAsViewProps): string | null {
   return null;
 }
 
-function PreviewPane(
-  props: Readonly<PreviewAsViewProps & { pending: boolean }>,
-) {
-  const reason = emptyReason(props);
+type PaneProps = PreviewAsViewProps & { pending: boolean };
+
+function PreviewPane(props: Readonly<PaneProps>) {
   const { form, selected } = props;
-  if (reason || !form || selected?.status !== "found")
-    return <Notice>{reason}</Notice>;
+  if (!form || selected?.status !== "found")
+    return <Notice>{emptyReason(props)}</Notice>;
+  const pane = cn("flex min-w-0 flex-col gap-4", props.pending && "opacity-60");
   return (
-    <div
-      className={cn(
-        "flex min-w-0 flex-col gap-4",
-        props.pending && "opacity-60",
-      )}
-    >
+    <div className={pane}>
       <ParticipantStrip {...props} person={selected.person} />
       <SavedLine savedAt={form.savedAt} />
       <div className="rounded-xl border bg-card">
@@ -147,10 +84,6 @@ function BackToAudience({ formId }: Readonly<{ formId: string }>) {
 }
 
 /**
- * Audience Preview as: participants on the left, the saved form on the right as the selected
- * one gets it. The participant and the search live in the URL, so a preview can be linked to.
- */
-/**
  * The participant the list shows as selected. It moves on a key press at once, before the
  * server answers, so a second press steps on from it; a new server selection resets it.
  */
@@ -164,12 +97,16 @@ function useActiveMember(serverId: string | undefined) {
   return [active, setActive] as const;
 }
 
-export function PreviewAsView(props: Readonly<PreviewAsViewProps>) {
+/** The participant and the search live in the URL, so a preview can be linked to. */
+function usePreviewNavigation({
+  formId,
+  search,
+  selected,
+}: PreviewAsViewProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const { formId, search } = props;
   const [activeId, setActiveId] = useActiveMember(
-    selectedPerson(props.selected)?.audienceMemberId,
+    previewedPerson(selected)?.audienceMemberId,
   );
   const go = (query: { member?: string; search?: string }) =>
     startTransition(() =>
@@ -179,17 +116,26 @@ export function PreviewAsView(props: Readonly<PreviewAsViewProps>) {
     setActiveId(member);
     go({ member, search });
   };
+  return { pending, activeId, select, find: (q: string) => go({ search: q }) };
+}
+
+/**
+ * Audience Preview as: participants on the left, the saved form on the right as the selected
+ * one gets it.
+ */
+export function PreviewAsView(props: Readonly<PreviewAsViewProps>) {
+  const { pending, activeId, select, find } = usePreviewNavigation(props);
   return (
     <div className="flex flex-col gap-6">
-      <BackToAudience formId={formId} />
+      <BackToAudience formId={props.formId} />
       {props.header}
       <div className="grid gap-6 md:grid-cols-[18rem_minmax(0,1fr)]">
         <ParticipantPicker
           groups={pickerGroups(props)}
-          search={search}
+          search={props.search}
           selectedId={activeId}
           onSelect={select}
-          onSearch={(next) => go({ search: next })}
+          onSearch={find}
         />
         <PreviewPane {...props} pending={pending} />
       </div>

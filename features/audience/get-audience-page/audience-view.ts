@@ -24,31 +24,20 @@ type ViewOptions = {
   previewAs?: boolean;
 };
 
-function previewAsTab(formId: string): LinkTab {
-  return {
-    id: PREVIEW_AS_TAB_ID,
-    label: "Preview as",
-    href: formRoutes.previewAs(formId),
-  };
+/** Preview as follows, for a reader who may use it, once the form has Properties. */
+function previewAsTabs(formId: string, show: boolean): LinkTab[] {
+  if (!show) return [];
+  const href = formRoutes.previewAs(formId);
+  return [{ id: PREVIEW_AS_TAB_ID, label: "Preview as", href }];
 }
 
-/**
- * People is the bare tab URL; Properties is a view of it, so the tab link stays canonical.
- * Preview as follows, once the form has Properties to preview with.
- */
-export function audienceViewTabs(
-  formId: string,
-  counts: ViewCounts,
-  { previewAs = false }: ViewOptions = {},
-): LinkTab[] {
-  const base = formRoutes.audience(formId);
-  const preview =
-    previewAs && counts.properties > 0 ? [previewAsTab(formId)] : [];
+/** People is the bare tab URL; Properties is a view of it, so the tab link stays canonical. */
+function listTabs(formId: string, counts: ViewCounts): LinkTab[] {
   return [
     {
       id: AudienceView.People,
       label: "People",
-      href: base,
+      href: formRoutes.audience(formId),
       count: counts.people,
     },
     {
@@ -59,6 +48,14 @@ export function audienceViewTabs(
       }),
       count: counts.properties,
     },
-    ...preview,
   ];
+}
+
+export function audienceViewTabs(
+  formId: string,
+  counts: ViewCounts,
+  { previewAs = false }: ViewOptions = {},
+): LinkTab[] {
+  const preview = previewAsTabs(formId, previewAs && counts.properties > 0);
+  return [...listTabs(formId, counts), ...preview];
 }

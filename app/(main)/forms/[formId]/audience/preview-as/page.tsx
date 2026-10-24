@@ -35,13 +35,17 @@ async function guardPreviewAs(formId: string) {
   return { api, canTest: testForms.success };
 }
 
-export default async function FormPreviewAsPage({
-  params,
-  searchParams,
-}: Readonly<Params>) {
-  const { formId } = await params;
-  const query = await searchParams;
-  const guard = await guardPreviewAs(formId);
+const HEADER = (
+  <FormWorkspaceHeader
+    title="Preview as"
+    description="The saved form as each participant gets it. Nothing you do here is saved."
+  />
+);
+
+type Query = Awaited<Params["searchParams"]>;
+type Guard = Awaited<ReturnType<typeof guardPreviewAs>>;
+
+async function previewAs(guard: Guard, formId: string, query: Query) {
   const form = await loadWorkspaceForm(formId, "audience.preview-as");
   if (Result.isError(form)) return <FormLoadError result={form} />;
   const preview = await loadPreviewAs({
@@ -52,18 +56,18 @@ export default async function FormPreviewAsPage({
     search: firstSearchParam(query.q),
   });
   if (Result.isError(preview)) return <FormLoadError result={preview} />;
+  return <PreviewAsView formId={formId} header={HEADER} {...preview.value} />;
+}
+
+export default async function FormPreviewAsPage({
+  params,
+  searchParams,
+}: Readonly<Params>) {
+  const { formId } = await params;
+  const guard = await guardPreviewAs(formId);
   return (
     <div className="container py-6">
-      <PreviewAsView
-        formId={formId}
-        header={
-          <FormWorkspaceHeader
-            title="Preview as"
-            description="The saved form as each participant gets it. Nothing you do here is saved."
-          />
-        }
-        {...preview.value}
-      />
+      {await previewAs(guard, formId, await searchParams)}
     </div>
   );
 }
