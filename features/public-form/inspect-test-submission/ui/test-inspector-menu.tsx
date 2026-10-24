@@ -6,7 +6,11 @@ import {
 } from "@/features/public-form/inspect-test-submission/test-inspector-view";
 import { useOptionalFormRuntime } from "@/lib/form-runtime/form-runtime.context";
 import { DropdownMenu } from "radix-ui";
+import { useState } from "react";
+import { SnapshotPanel } from "./snapshot-panel";
 import type { StartOverControls } from "./start-over";
+import { StayOpenItem } from "./stay-open-item";
+import { SubmittingAsPanel } from "./submitting-as-panel";
 import styles from "./test-inspector.module.css";
 
 type RowProps = { label: string; hint?: string; icon?: string };
@@ -72,14 +76,89 @@ function snapshotHint({ snapshot }: TestInspectorView): string {
   return count === 1 ? "1 value" : `${count} values`;
 }
 
-/** Who the test submits as and what it was opened with; the panels come next. */
-function IdentityRows({ view }: Readonly<{ view: TestInspectorView }>) {
-  const identifier = view.submitter.identifier ?? "Anonymous";
+type PanelName = "submitter" | "snapshot";
+
+/** Which panel is open, and which row to focus once Back closes it. */
+type PanelNavigation = {
+  panel: PanelName | null;
+  returnedFrom: PanelName | null;
+  open: (panel: PanelName) => void;
+  back: () => void;
+  /** Esc in a panel goes back instead of closing the menu. */
+  onEscape: (event: KeyboardEvent) => void;
+};
+
+function usePanelNavigation(): PanelNavigation {
+  const [panel, setPanel] = useState<PanelName | null>(null);
+  const [returnedFrom, setReturnedFrom] = useState<PanelName | null>(null);
+  const back = () => {
+    setReturnedFrom(panel);
+    setPanel(null);
+  };
+  const onEscape = (event: KeyboardEvent) => {
+    if (!panel) return;
+    event.preventDefault();
+    back();
+  };
+  return { panel, returnedFrom, open: setPanel, back, onEscape };
+}
+
+type PanelRowProps = RowProps & {
+  /** Takes focus on mount: the row Back returns to. */
+  focused: boolean;
+  onOpen: () => void;
+};
+
+/** A row that drills into its panel; the menu stays open. */
+function PanelRow({ label, hint, focused, onOpen }: Readonly<PanelRowProps>) {
   return (
-    <>
-      <InertRow hint={identifier} icon="›" label="Submitting as" />
-      <InertRow hint={snapshotHint(view)} icon="›" label="Snapshot" />
-    </>
+    <StayOpenItem className={styles.row} focused={focused} onAct={onOpen}>
+      <span>{label}</span>
+      {hint ? <span className={styles.hint}>{hint}</span> : null}
+      <span aria-hidden="true">›</span>
+    </StayOpenItem>
+  );
+}
+
+function identityRows(view: TestInspectorView) {
+  return [
+    {
+      panel: "submitter",
+      label: "Submitting as",
+      hint: view.submitter.identifier ?? "Anonymous",
+    },
+    { panel: "snapshot", label: "Snapshot", hint: snapshotHint(view) },
+  ] as const;
+}
+
+type NavigatedProps = { view: TestInspectorView; nav: PanelNavigation };
+
+/** Who the test submits as and what it was opened with. Each drills into its Frozen panel. */
+function IdentityRows({ view, nav }: Readonly<NavigatedProps>) {
+  return identityRows(view).map(({ panel, label, hint }) => (
+    <PanelRow
+      focused={nav.returnedFrom === panel}
+      hint={hint}
+      key={panel}
+      label={label}
+      onOpen={() => nav.open(panel)}
+    />
+  ));
+}
+
+function OpenPanel({
+  panel,
+  view,
+  onBack,
+}: Readonly<{
+  panel: PanelName;
+  view: TestInspectorView;
+  onBack: () => void;
+}>) {
+  return panel === "submitter" ? (
+    <SubmittingAsPanel onBack={onBack} submitter={view.submitter} />
+  ) : (
+    <SnapshotPanel onBack={onBack} snapshot={view.snapshot} />
   );
 }
 
@@ -101,24 +180,45 @@ function ActionRows({
   );
 }
 
-/** The Test inspector's rows, top to bottom. */
-export function TestInspectorMenu({
+type MenuProps = { restart: StartOverControls | null; view: TestInspectorView };
+
+/** The rows, top to bottom, until one drills into a panel. */
+function MenuRows({
   restart,
   view,
-}: Readonly<{ restart: StartOverControls | null; view: TestInspectorView }>) {
+  nav,
+}: Readonly<MenuProps & NavigatedProps>) {
+  return (
+    <>
+      <IdentityRows nav={nav} view={view} />
+      <DropdownMenu.Separator className={styles.separator} />
+      <ActionRows restart={restart} view={view} />
+      <DropdownMenu.Separator className={styles.separator} />
+      <InertRow hint="Coming soon" icon="⚙" label="Preferences" />
+    </>
+  );
+}
+
+/**
+ * The Test inspector's menu. Esc in a panel goes back to the rows; Esc in the rows closes the
+ * menu and Radix returns focus to the trigger. Closing unmounts it, so it reopens on the rows.
+ */
+export function TestInspectorMenu({ restart, view }: Readonly<MenuProps>) {
+  const nav = usePanelNavigation();
   return (
     <DropdownMenu.Content
       align="end"
       aria-label="Test inspector"
       className={styles.menu}
+      onEscapeKeyDown={nav.onEscape}
       side="top"
       sideOffset={8}
     >
-      <IdentityRows view={view} />
-      <DropdownMenu.Separator className={styles.separator} />
-      <ActionRows restart={restart} view={view} />
-      <DropdownMenu.Separator className={styles.separator} />
-      <InertRow hint="Coming soon" icon="⚙" label="Preferences" />
+      {nav.panel ? (
+        <OpenPanel onBack={nav.back} panel={nav.panel} view={view} />
+      ) : (
+        <MenuRows nav={nav} restart={restart} view={view} />
+      )}
     </DropdownMenu.Content>
   );
 }

@@ -1,28 +1,17 @@
 import type { Route } from "next";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import {
-  PersonalizationSource,
-  type Submission,
-} from "@/lib/endatix-api/submissions/types";
+import type { Submission } from "@/lib/endatix-api/submissions/types";
+import { snapshotSourceLabel } from "@/lib/personalization/snapshot-source";
 import { formRoutes } from "@/lib/routes/form-routes";
 import { formatDetailsDate } from "./format-details";
 import { SubmitterFact } from "./submitter-fact";
 
 type Snapshot = NonNullable<Submission["personalization"]>;
 
-const SOURCE_LABELS: Record<PersonalizationSource, string> = {
-  [PersonalizationSource.Link]: "Personalised link",
-  [PersonalizationSource.OnBehalf]: "On behalf",
-  [PersonalizationSource.Test]: "Test as this participant",
-};
-
-/** A source this Hub does not know yet (a newer API) is shown as sent, never as missing. */
-function snapshotSourceLabel(source: string | undefined): string {
-  if (!source) return "Not recorded";
-  return Object.hasOwn(SOURCE_LABELS, source)
-    ? SOURCE_LABELS[source as PersonalizationSource]
-    : source;
+/** A Snapshot without a recorded source predates sources. */
+function recordedSourceLabel(source: string | undefined): string {
+  return source ? snapshotSourceLabel(source) : "Not recorded";
 }
 
 const HEADING_ID = "submitter-participant";
@@ -78,7 +67,7 @@ function ParticipantHeading({ href }: Readonly<{ href: Route | null }>) {
 
 function SnapshotFacts({ snapshot }: Readonly<{ snapshot: Snapshot }>) {
   const { identifier, source, capturedAt } = snapshot;
-  const sourceLabel = snapshotSourceLabel(source);
+  const sourceLabel = recordedSourceLabel(source);
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
       <SubmitterFact copyable label="Identifier" value={identifier} />

@@ -80,6 +80,8 @@
   box-sizing: border-box;
   min-width: 15rem;
   max-width: min(20rem, calc(100vw - 2rem));
+  max-height: var(--radix-dropdown-menu-content-available-height);
+  overflow-y: auto;
   padding: 0.25rem;
   border: 1px solid var(--ti-border);
   border-radius: 0.75rem;
@@ -137,4 +139,94 @@
   padding: 0.375rem 0.625rem 0.5rem;
   color: var(--ti-amber);
   font-size: 0.75rem;
+}
+
+.panel {
+  width: 18rem;
+  max-width: 100%;
+}
+
+.panelHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.125rem 0.25rem 0.375rem 0;
+  border-bottom: 1px solid var(--ti-border);
+  margin-bottom: 0.25rem;
+}
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.375rem 0.5rem;
+  border-radius: 0.5rem;
+  color: var(--ti-muted);
+  outline: none;
+  cursor: pointer;
+  user-select: none;
+}
+
+.back[data-highlighted] {
+  background-color: var(--ti-bg-hover);
+  color: var(--ti-fg);
+}
+
+.panelTitle {
+  flex: 1;
+  font-weight: 600;
+}
+
+.frozen {
+  padding: 0.0625rem 0.375rem;
+  border: 1px solid var(--ti-border);
+  border-radius: 9999px;
+  color: var(--ti-muted);
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.sectionLabel {
+  margin: 0.5rem 0.625rem 0.125rem;
+  color: var(--ti-muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.field {
+  display: grid;
+  grid-template-columns: minmax(5rem, 40%) 1fr;
+  gap: 0.5rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 0.5rem;
+  outline: none;
+  cursor: default;
+}
+
+.field[data-highlighted] {
+  background-color: var(--ti-bg-hover);
+}
+
+.fieldName {
+  overflow: hidden;
+  color: var(--ti-muted);
+  text-overflow: ellipsis;
+}
+
+.fieldValue {
+  overflow-wrap: anywhere;
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 0.75rem;
+}
+
+.empty {
+  margin: 0;
+  padding: 0.25rem 0.625rem;
+  color: var(--ti-muted);
+  font-style: italic;
 }
