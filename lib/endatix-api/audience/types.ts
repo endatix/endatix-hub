@@ -186,6 +186,8 @@ export function isAudiencePeopleTestFilter(
 
 export type ListAudiencePeopleRequest = IPagedRequest & {
   test?: AudiencePeopleTestFilter;
+  /** Part of an identifier, matched ignoring case; blank is no search. */
+  search?: string;
 };
 
 /** A new test submission and the token the respondent page opens it with. */
@@ -194,7 +196,7 @@ export type OpenedTestSubmission = {
   token: string;
 };
 
-/** One Test participant's values, named by their identifier. */
+/** One participant's values, named by their identifier. */
 export type AudienceVariablePreset = {
   name: string;
   /** Variable name → value, typed as the respondent's `personalization`. */

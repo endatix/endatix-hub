@@ -16,12 +16,34 @@ export function parseAudienceView(value: string | undefined): AudienceView {
 
 type ViewCounts = { people: number; properties: number };
 
-/** People is the bare tab URL; Properties is a view of it, so the tab link stays canonical. */
+/** Its own page (it needs `forms.edit`), switched to from the same tabs. */
+export const PREVIEW_AS_TAB_ID = "preview-as";
+
+type ViewOptions = {
+  /** Whether this reader may preview the form as a participant (`forms.edit`). */
+  previewAs?: boolean;
+};
+
+function previewAsTab(formId: string): LinkTab {
+  return {
+    id: PREVIEW_AS_TAB_ID,
+    label: "Preview as",
+    href: formRoutes.previewAs(formId),
+  };
+}
+
+/**
+ * People is the bare tab URL; Properties is a view of it, so the tab link stays canonical.
+ * Preview as follows, once the form has Properties to preview with.
+ */
 export function audienceViewTabs(
   formId: string,
   counts: ViewCounts,
+  { previewAs = false }: ViewOptions = {},
 ): LinkTab[] {
   const base = formRoutes.audience(formId);
+  const preview =
+    previewAs && counts.properties > 0 ? [previewAsTab(formId)] : [];
   return [
     {
       id: AudienceView.People,
@@ -37,5 +59,6 @@ export function audienceViewTabs(
       }),
       count: counts.properties,
     },
+    ...preview,
   ];
 }

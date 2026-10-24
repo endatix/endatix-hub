@@ -38,4 +38,32 @@ describe("audienceViewTabs", () => {
       },
     ]);
   });
+
+  it("adds Preview as for a reader who may edit the form", () => {
+    // Act
+    const tabs = audienceViewTabs(
+      "f1",
+      { people: 2, properties: 3 },
+      { previewAs: true },
+    );
+
+    // Assert
+    expect(tabs.at(-1)).toEqual({
+      id: "preview-as",
+      label: "Preview as",
+      href: "/forms/f1/audience/preview-as",
+    });
+  });
+
+  it("leaves Preview as out on a form with no Properties", () => {
+    // Act
+    const tabs = audienceViewTabs(
+      "f1",
+      { people: 2, properties: 0 },
+      { previewAs: true },
+    );
+
+    // Assert
+    expect(tabs.map((tab) => tab.id)).toEqual(["people", "properties"]);
+  });
 });
