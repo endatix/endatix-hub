@@ -19,7 +19,7 @@ export type AudienceFinding =
       variable: string;
       path: string;
       elementName?: string;
-      /** What else declares the name: its value replaces the variable's, or the other way round. */
+      /** What else declares the name: a question loses its answer, a calculated value races it. */
       declaredBy: "question" | "calculatedValue";
     }
   | { kind: "unused-property"; variableName: string };

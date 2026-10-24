@@ -4,6 +4,7 @@ import {
   SurveyCreatorModel,
   SurveyLogic,
 } from "survey-creator-core";
+import { TelemetryLogger } from "@/features/telemetry";
 import type { AudienceFinding } from "@/lib/personalization/authoring";
 import type { DiagnosticsAudience } from "./form-diagnostics-context";
 import {
@@ -11,6 +12,11 @@ import {
   analyzeSurveyModel,
   FormDiagnosticsStats,
 } from "./form-diagnostics-logic";
+
+const LOGGER_NAME = "form-diagnostics.audience";
+
+/** One empty list, so a snapshot read before the first review stays the same reference. */
+const NO_FINDINGS: AudienceFinding[] = [];
 
 /**
  * Survey Creator plugin for the Form Diagnostics feature.
@@ -97,7 +103,7 @@ export class FormDiagnosticsPlugin extends Base implements ICreatorPlugin {
 
   /** Warnings only: nothing here blocks a save. */
   public get audienceFindings(): AudienceFinding[] {
-    return this.getPropertyValue("audienceFindings") ?? [];
+    return this.getPropertyValue("audienceFindings") ?? NO_FINDINGS;
   }
 
   public set audienceFindings(val: AudienceFinding[]) {
@@ -121,7 +127,7 @@ export class FormDiagnosticsPlugin extends Base implements ICreatorPlugin {
     try {
       findings = (await this.audience?.review())?.findings ?? [];
     } catch (error) {
-      console.warn("Audience review failed.", error);
+      TelemetryLogger.error("Audience review failed.", error, {}, LOGGER_NAME);
     }
     if (review === this.latestReview) this.audienceFindings = findings;
   }
@@ -130,8 +136,13 @@ export class FormDiagnosticsPlugin extends Base implements ICreatorPlugin {
   private analyzedSurvey: SurveyModel | undefined;
 
   public updateStats() {
-    if (!this.creator) return;
+    this.analyze();
     void this.updateAudienceFindings();
+  }
+
+  private analyze() {
+    if (!this.creator) return;
+    this.analyzedSurvey = this.creator.survey;
 
     const baseStats = analyzeSurvey(this.creator.text || "");
 
@@ -155,16 +166,27 @@ export class FormDiagnosticsPlugin extends Base implements ICreatorPlugin {
       (this.creator.survey as any)?.requiresReCaptcha === true;
   }
 
+  /**
+   * Reviews once, after reading the variables again: a Property added in the Audience tab since the
+   * designer opened. Until then the tab keeps the findings it showed last.
+   */
   public activate() {
-    this.updateStats();
-    // A Property added in the Audience tab since the designer opened. A failed refresh keeps the
-    // findings `updateStats` already showed.
+    if (!this.audience) {
+      this.updateStats();
+      return;
+    }
+    this.analyze();
     void this.audience
-      ?.refresh()
-      .then(() => this.updateAudienceFindings())
+      .refresh()
       .catch((error: unknown) => {
-        console.warn("Audience refresh failed.", error);
-      });
+        TelemetryLogger.error(
+          "Audience refresh failed.",
+          error,
+          {},
+          LOGGER_NAME,
+        );
+      })
+      .then(() => this.updateAudienceFindings());
   }
 
   /**
@@ -175,9 +197,7 @@ export class FormDiagnosticsPlugin extends Base implements ICreatorPlugin {
    * survey is analyzed.
    */
   public update() {
-    const survey = this.creator?.survey;
-    if (survey === this.analyzedSurvey) return;
-    this.analyzedSurvey = survey;
+    if (this.creator?.survey === this.analyzedSurvey) return;
     this.updateStats();
   }
 

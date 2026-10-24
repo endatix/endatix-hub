@@ -85,7 +85,10 @@ export interface DiagnosticsAudience {
   refresh(): Promise<void>;
 }
 
-/** Shows the form's Audience findings in Diagnostics; `undefined` removes them. */
+/**
+ * Shows the form's Audience findings in Diagnostics; `undefined` removes them. A closed tab reviews
+ * on `activate`, so binding at Creator init neither lints the not-yet-loaded form nor loads the linter.
+ */
 export function applyFormDiagnosticsAudience(
   creator: SurveyCreatorModel,
   audience: DiagnosticsAudience | undefined,
@@ -93,5 +96,6 @@ export function applyFormDiagnosticsAudience(
   const plugin = getFormDiagnosticsPlugin(creator);
   if (!plugin) return;
   plugin.audience = audience;
+  if (audience && creator.activeTab !== FORM_DIAGNOSTICS_PLUGIN_NAME) return;
   void plugin.updateAudienceFindings();
 }

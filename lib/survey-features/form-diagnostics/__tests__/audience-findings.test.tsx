@@ -7,6 +7,7 @@ import {
 } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { SurveyCreatorModel } from "survey-creator-core";
+import { TelemetryLogger } from "@/features/telemetry";
 import type { AudienceFinding } from "@/lib/personalization/authoring";
 import { FormDiagnosticsPlugin } from "../form-diagnostics-plugin";
 import type { DiagnosticsAudience } from "../form-diagnostics-context";
@@ -69,29 +70,38 @@ describe("Audience findings in Diagnostics", () => {
     );
   });
 
-  it("reads the variables again when the tab opens", async () => {
+  it("reads the variables again when the tab opens, then reviews once", async () => {
+    // Arrange
     const audience = audienceWith([]);
     const plugin = await pluginWith(audience);
+    vi.mocked(audience.review).mockClear();
 
+    // Act
     plugin.activate();
 
+    // Assert
     expect(audience.refresh).toHaveBeenCalledOnce();
-    await waitFor(() => expect(audience.review).toHaveBeenCalledTimes(3));
+    expect(audience.review).not.toHaveBeenCalled();
+    await waitFor(() => expect(audience.review).toHaveBeenCalledOnce());
   });
 
   it("keeps the findings already shown when refresh rejects", async () => {
     const audience = audienceWith([UNUSED]);
     vi.mocked(audience.refresh).mockRejectedValue(new Error("offline"));
-    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const logged = vi
+      .spyOn(TelemetryLogger, "error")
+      .mockImplementation(() => {});
     const plugin = await pluginWith(audience);
+    vi.mocked(audience.review).mockClear();
 
     plugin.activate();
 
-    await waitFor(() =>
-      expect(console.warn).toHaveBeenCalledWith(
-        "Audience refresh failed.",
-        expect.any(Error),
-      ),
+    await waitFor(() => expect(audience.review).toHaveBeenCalledOnce());
+    expect(logged).toHaveBeenCalledWith(
+      "Audience refresh failed.",
+      expect.any(Error),
+      {},
+      "form-diagnostics.audience",
     );
     expect(plugin.audienceFindings).toEqual([UNUSED]);
   });
@@ -170,7 +180,9 @@ describe("Audience findings in Diagnostics", () => {
     );
 
     expect(
-      screen.getByText("A calculated value hides the Property {seats}"),
+      screen.getByText(
+        "A calculated value shares its name with the Property {seats}",
+      ),
     ).toBeTruthy();
   });
 

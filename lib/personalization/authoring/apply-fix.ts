@@ -61,12 +61,12 @@ export function applyAudienceFix(
 ): void {
   const targets = targetsOf(creator, fix);
   if (!targets) return;
-  creator.undoRedoManager.startTransaction(fix.reason);
+  creator.startUndoRedoTransaction(fix.reason);
   try {
     targets.forEach(({ owner, key }, i) => {
       owner[key] = fix.edits[i].value;
     });
   } finally {
-    creator.undoRedoManager.stopTransaction();
+    creator.stopUndoRedoTransaction();
   }
 }

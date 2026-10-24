@@ -66,7 +66,7 @@ export function lintFindings(
     rules: AUDIENCE_RULES,
   });
   return findings
-    .map(toFinding)
+    .map((finding) => toFinding(finding))
     .filter((finding): finding is AudienceFinding => finding !== null);
 }
 
@@ -78,7 +78,7 @@ export function undeclaredReferences(json: object): Set<string> {
   const { findings } = lintSurvey(json, { rules: UNKNOWN_RULES });
   return new Set(
     findings
-      .filter(isUnknownRoot)
+      .filter((finding) => isUnknownRoot(finding))
       .map((finding) => String(finding.messageData.root).toLowerCase()),
   );
 }

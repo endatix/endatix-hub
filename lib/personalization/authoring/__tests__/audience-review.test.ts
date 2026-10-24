@@ -182,6 +182,29 @@ describe("Audience fix in the designer", () => {
     expect(fixes.every((fix) => fix === undefined)).toBe(true);
   });
 
+  it("keeps an earlier fix when a second one comes from the same review", async () => {
+    // Arrange
+    const creator = new SurveyCreatorModel({});
+    creator.JSON = form(usesBoth, {
+      type: "text",
+      name: "plan",
+      title: "{tierr} for {seatz}",
+    });
+    const binding = bindAudienceToCreator(creator, {
+      variables: variables(),
+      refresh: () => Promise.resolve(Result.success(variables())),
+    });
+    const { findings } = await binding.review();
+
+    // Act
+    findings.forEach((finding) => binding.applyFix(finding));
+
+    // Assert
+    expect(creator.survey.getQuestionByName("plan").title).toBe(
+      "{tier} for {seats}",
+    );
+  });
+
   it("respells the reference on the canvas, as one undoable edit", async () => {
     const creator = new SurveyCreatorModel({});
     creator.JSON = form(usesBoth, {

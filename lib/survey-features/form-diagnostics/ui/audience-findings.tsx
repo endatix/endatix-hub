@@ -25,6 +25,15 @@ const DECLARED_BY = {
   calculatedValue: "calculated value",
 } as const;
 
+// survey-core's variable/collision: the Property is set with setVariable, which deletes a root
+// question's answer under the same key; a calculated value writes the same slot, last one wins.
+const COLLISION_EFFECT = {
+  question: (variable: string) =>
+    `The Property replaces the answer to the question "${variable}", and {${variable}} reads the Property. Rename the question.`,
+  calculatedValue: (variable: string) =>
+    `The calculated value and the Property write the same "${variable}", so {${variable}} reads whichever was set last. Rename the calculated value.`,
+} as const;
+
 const DESCRIBE: {
   [K in AudienceFinding["kind"]]: (finding: Finding<K>) => Described;
 } = {
@@ -36,8 +45,8 @@ const DESCRIBE: {
     fixLabel: fix && suggestion ? `Use {${suggestion}}` : undefined,
   }),
   "variable-collision": ({ variable, declaredBy }) => ({
-    title: `A ${DECLARED_BY[declaredBy]} hides the Property {${variable}}`,
-    description: `The ${DECLARED_BY[declaredBy]} and the Property share the name "${variable}", so {${variable}} does not always read the participant's value. Rename the ${DECLARED_BY[declaredBy]}.`,
+    title: `A ${DECLARED_BY[declaredBy]} shares its name with the Property {${variable}}`,
+    description: COLLISION_EFFECT[declaredBy](variable),
   }),
   "unused-property": ({ variableName }) => ({
     title: `{${variableName}} is never used`,

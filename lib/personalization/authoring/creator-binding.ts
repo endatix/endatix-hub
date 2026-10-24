@@ -10,6 +10,7 @@ import { Result } from "@/lib/result";
 import { canonicalizeCreatorTabId, ENDATIX_CREATOR_TAB } from "@/lib/survey-js";
 import { applyAudienceFix, canFixOnCanvas } from "./apply-fix";
 import type { AudienceFinding, AudienceReview } from "./findings/types";
+import type { reviewAudience } from "./review";
 import { addNoneToPreviewAs } from "./preview-as-none";
 import { toSurveyPresets } from "./to-survey-presets";
 
@@ -173,18 +174,40 @@ function newState(variables: AudienceVariables): BindingState {
  * loads on the first review, so a designer without Properties never downloads it.
  */
 function reviewing(creator: SurveyCreatorModel, state: BindingState) {
+  let reviewer: typeof reviewAudience | undefined;
+  const review = (): AudienceReview => {
+    if (!reviewer) return { findings: [] };
+    const { findings } = reviewer(creator.JSON, state.variables);
+    return { findings: findings.map((f) => withCanvasFix(creator, f)) };
+  };
   return {
     review: async (): Promise<AudienceReview> => {
-      const { reviewAudience } = await import("./review");
-      const { findings } = reviewAudience(creator.JSON, state.variables);
-      return { findings: findings.map((f) => withCanvasFix(creator, f)) };
+      if (!state.variables.variablePresets) return { findings: [] };
+      reviewer ??= (await import("./review")).reviewAudience;
+      return review();
     },
+    /**
+     * A fix carries the whole rewritten text, so it is computed again from the canvas as it is now:
+     * one built at review time would undo an edit made since, or an earlier fix in the same text.
+     */
     applyFix: (finding: AudienceFinding) => {
-      if (finding.kind === "unknown-variable" && finding.fix) {
-        applyAudienceFix(creator, finding.fix);
-      }
+      const fix = currentFix(review().findings, finding);
+      if (fix) applyAudienceFix(creator, fix);
     },
   };
+}
+
+/** The fix the same misspelling has now; none once it is gone. */
+function currentFix(findings: AudienceFinding[], finding: AudienceFinding) {
+  if (finding.kind !== "unknown-variable") return undefined;
+  const same = findings.find(
+    (f) =>
+      f.kind === "unknown-variable" &&
+      f.path === finding.path &&
+      f.variable === finding.variable &&
+      f.suggestion === finding.suggestion,
+  );
+  return same?.kind === "unknown-variable" ? same.fix : undefined;
 }
 
 function withCanvasFix(
@@ -210,8 +233,8 @@ async function refreshVariables(
   try {
     const fresh = await hooks.refresh();
     if (state.bound && read === state.latest && Result.isSuccess(fresh)) {
-      state.variables = fresh.value;
       applyVariables(creator, fresh.value, state);
+      state.variables = fresh.value;
     }
   } catch {
     // Offline, a stale server action after a deploy, or variables the Creator rejects: keep what
