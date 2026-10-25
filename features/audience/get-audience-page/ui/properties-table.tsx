@@ -15,9 +15,10 @@ import type {
   AudienceIdentifierKind,
   AudienceProperty,
 } from "@/lib/endatix-api/audience/types";
-import type {
-  PropertyUse,
-  UsageVerdicts,
+import {
+  formatCount,
+  type PropertyUse,
+  type UsageVerdicts,
 } from "@/lib/personalization/audience-usage";
 import { StatusBadge } from "@/components/common/status-badge";
 import { NotSet } from "../../ui/not-set";
@@ -94,7 +95,7 @@ function PropertyName({ property, kind }: Readonly<NameProps>) {
 
 function filledIn({ filledReal, real }: PropertyUse) {
   if (real === 0) return <NotSet label="No real participants" />;
-  return `${filledReal.toLocaleString("en-US")} of ${real.toLocaleString("en-US")} filled`;
+  return `${formatCount(filledReal)} of ${formatCount(real)} filled`;
 }
 
 /** What the saved form reads and how many real participants filled it in (the designer's verdict). */

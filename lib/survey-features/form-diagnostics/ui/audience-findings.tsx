@@ -6,6 +6,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { AudienceFinding } from "@/lib/personalization/authoring";
+import { formatCount } from "@/lib/personalization/audience-usage";
 import type { FormDiagnosticsPlugin } from "../form-diagnostics-plugin";
 
 const WARNING_CLASS =
@@ -49,7 +50,7 @@ const DESCRIBE: {
     description: COLLISION_EFFECT[declaredBy](variable),
   }),
   "not-filled-in": ({ variableName, filledReal, real }) => ({
-    title: `{${variableName}} is not filled in for ${(real - filledReal).toLocaleString("en-US")} of ${real.toLocaleString("en-US")} real participants`,
+    title: `{${variableName}} is not filled in for ${formatCount(real - filledReal)} of ${formatCount(real)} real participants`,
     description:
       "The form reads this Property, and those participants have no value for it.",
   }),

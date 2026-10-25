@@ -51,6 +51,11 @@ function notFilledIn(
   });
 }
 
+/** A count as the server and every browser render it, whatever the viewer's locale. */
+export function formatCount(count: number): string {
+  return count.toLocaleString("en-US");
+}
+
 export function usageVerdicts(usage: AudienceUsage): UsageVerdicts {
   const read = new Set(usage.read);
   return {
