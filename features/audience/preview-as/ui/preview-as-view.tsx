@@ -11,10 +11,15 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { TextLink } from "@/components/common/text-link";
 import { CellDate } from "@/components/table";
+import type { AudiencePerson } from "@/lib/endatix-api/audience/types";
 import { formRoutes } from "@/lib/routes/form-routes";
 import { cn } from "@/lib/utils";
 import { useAudienceReturnHref } from "../../get-audience-page/ui/use-audience-return-href";
-import type { PreviewAsData } from "../load-preview-as.server";
+import type {
+  PreviewAsData,
+  PreviewAsForm,
+  PreviewAsSelection,
+} from "../load-preview-as.server";
 import { ParticipantPicker } from "./participant-picker";
 import { ParticipantStrip } from "./participant-strip";
 import { pickerGroups, previewedPerson } from "./picker-groups";
@@ -70,26 +75,44 @@ function listedPerson(props: PreviewAsViewProps, id: string | undefined) {
   return people.find((person) => person.audienceMemberId === id);
 }
 
-function PreviewPane(props: Readonly<PaneProps>) {
+type Previewed = {
+  form: PreviewAsForm;
+  person: AudiencePerson;
+  /** The server's selection, which the form renders once it is the highlighted person. */
+  server: Extract<PreviewAsSelection, { status: "found" }>;
+};
+
+/** The highlighted person, who may be ahead of the server's selection while the URL catches up. */
+function previewed(props: PaneProps): Previewed | null {
   const { form, selected } = props;
   const server = selected?.status === "found" ? selected : undefined;
   const person = listedPerson(props, props.activeId) ?? server?.person;
-  if (!form || !person || !server) return <Notice>{emptyReason(props)}</Notice>;
+  return form && person && server ? { form, person, server } : null;
+}
+
+function SurveyCard({ form, person, server }: Readonly<Previewed>) {
+  return (
+    <div className="rounded-xl border bg-card">
+      <PreviewSurvey
+        key={person.audienceMemberId}
+        {...form}
+        variables={server.variables}
+      />
+    </div>
+  );
+}
+
+function PreviewPane(props: Readonly<PaneProps>) {
+  const shown = previewed(props);
+  if (!shown) return <Notice>{emptyReason(props)}</Notice>;
+  const { person, server } = shown;
   const caughtUp = server.person.audienceMemberId === person.audienceMemberId;
   const pane = cn("flex min-w-0 flex-col gap-4", props.pending && "opacity-60");
   return (
     <div className={pane}>
       <ParticipantStrip {...props} person={person} />
-      <SavedLine savedAt={form.savedAt} />
-      {caughtUp ? (
-        <div className="rounded-xl border bg-card">
-          <PreviewSurvey
-            key={person.audienceMemberId}
-            {...form}
-            variables={server.variables}
-          />
-        </div>
-      ) : null}
+      <SavedLine savedAt={shown.form.savedAt} />
+      {caughtUp ? <SurveyCard {...shown} /> : null}
     </div>
   );
 }

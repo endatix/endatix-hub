@@ -104,10 +104,11 @@ describe("Form Preview as page", () => {
     render(await Page({ params, searchParams }));
 
     expect(screen.getByText("preview f1 canTest=false")).toBeTruthy();
+    const request = loadPreviewAs.mock.calls[0][0];
+    await expect(request.activeDefinitionId).resolves.toBe("55");
     expect(loadPreviewAs).toHaveBeenCalledWith(
       expect.objectContaining({
         formId: "f1",
-        activeDefinitionId: "55",
         memberId: "7",
         search: "acme",
         canTest: false,
@@ -123,7 +124,9 @@ describe("Form Preview as page", () => {
     render(await Page({ params, searchParams }));
 
     expect(screen.getByText("load error")).toBeTruthy();
-    expect(loadPreviewAs).not.toHaveBeenCalled();
+    // The lists start beside the form read; without a form there is no definition to load.
+    const request = loadPreviewAs.mock.calls[0][0];
+    await expect(request.activeDefinitionId).resolves.toBeUndefined();
   });
 
   it("shows the load error when the preview read fails", async () => {

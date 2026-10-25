@@ -228,14 +228,22 @@ function usageOf(
   return form ? savedFormUsage(form.definition, variables, formId) : null;
 }
 
-/** Value properties for Edit values, and every one for "Not filled in". */
+/** Value properties for Edit values; every one, the match key's included, for "Not filled in". */
 function propertiesOf(
   properties: AudienceProperty[],
   identifierKind: AudienceIdentifierKind,
 ) {
   return {
+    identifierKind,
     properties: valueProperties(properties, identifierKind),
     allProperties: properties,
+  };
+}
+
+function matchesOf(matches: AudiencePeoplePage | null) {
+  return {
+    matches: matches ? [...matches.items] : null,
+    totalMatches: matches?.totalRecords ?? 0,
   };
 }
 
@@ -251,10 +259,8 @@ function toPreviewAsData(
     testParticipants: [...test.items],
     totalTest: test.totalRecords,
     search: request.search?.trim() ?? "",
-    matches: matches ? [...matches.items] : null,
-    totalMatches: matches?.totalRecords ?? 0,
+    ...matchesOf(matches),
     selected,
-    identifierKind,
     ...propertiesOf(properties, identifierKind),
     usage: usageOf(form, lists, request.formId),
     canTest: request.canTest,
