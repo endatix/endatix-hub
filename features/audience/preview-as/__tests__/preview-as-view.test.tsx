@@ -87,6 +87,7 @@ function data(overrides: Partial<PreviewAsData> = {}): PreviewAsData {
     selected: { status: "found", person: MARIA, variables: { tier: "gold" } },
     identifierKind: AudienceIdentifierKind.Email,
     properties: [property("11", "Tier"), property("12", "Region")],
+    usage: null,
     canTest: true,
     ...overrides,
   };
@@ -248,7 +249,18 @@ describe("PreviewAsView", () => {
   });
 
   it("shows the participant's values and what they have not filled in", () => {
-    renderView();
+    renderView({
+      properties: [
+        property("11", "Tier"),
+        property("12", "Region"),
+        property("13", "Address"),
+      ],
+      usage: {
+        variableNames: ["tier", "region", "address"],
+        read: ["region"],
+        coverage: { participants: { test: 2, real: 0 }, properties: [] },
+      },
+    });
 
     const strip = screen.getByRole("region", { name: "maria@acme.test" });
     expect(within(strip).getByText("Gold")).toBeTruthy();

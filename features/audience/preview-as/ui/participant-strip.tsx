@@ -14,6 +14,10 @@ import { TEST_BADGE } from "../../ui/test-badge";
 import { useTestAsPerson } from "../../test-as-person/use-test-as-person.hook";
 import { EditPersonPanel } from "../../update-person/ui/edit-person-panel";
 import { useRowOverlay } from "../../use-panel-state.hook";
+import {
+  usageVerdicts,
+  type AudienceUsage,
+} from "@/lib/personalization/audience-usage";
 import { formatPropertyValue } from "../../utils";
 
 type Overlay = ReturnType<typeof useRowOverlay<AudiencePerson>>;
@@ -23,13 +27,27 @@ type ParticipantStripProps = {
   person: AudiencePerson;
   identifierKind: AudienceIdentifierKind;
   properties: AudienceProperty[];
+  /** What the saved form reads, the same verdict as the People list. */
+  usage: AudienceUsage | null;
   canTest: boolean;
 };
 
-function notFilledIn({ person, properties }: ParticipantStripProps) {
-  const missing = properties.filter((p) => !person.values[p.id]);
+function filledNames(person: AudiencePerson, properties: AudienceProperty[]) {
+  return properties
+    .filter((p) => (person.values[p.id] ?? "") !== "")
+    .map((p) => p.variableName);
+}
+
+function notFilledIn({ person, properties, usage }: ParticipantStripProps) {
+  if (!usage) return "Every value is filled in.";
+  const missing = usageVerdicts(usage).notFilledIn(
+    filledNames(person, properties),
+  );
   if (missing.length === 0) return "Every value is filled in.";
-  return `Not filled in: ${missing.map((p) => p.name).join(", ")}`;
+  const labels = missing.map(
+    (name) => properties.find((p) => p.variableName === name)?.name ?? name,
+  );
+  return `Not filled in: ${labels.join(", ")}`;
 }
 
 type ActionProps = ParticipantStripProps & { onEdit: () => void };

@@ -18,6 +18,8 @@ import {
 } from "@/lib/endatix-api/shared/api-result";
 import { Result, toResult } from "@/lib/result";
 import type { MapApiResultToResultOptions } from "@/lib/result/map-api-result-to-result";
+import type { AudienceUsage } from "@/lib/personalization/audience-usage";
+import { audienceUsage } from "@/lib/personalization/authoring/usage";
 import { valueProperties } from "../utils";
 
 /** One page of each list: the rest are found by search. */
@@ -60,6 +62,8 @@ export type PreviewAsData = {
   identifierKind: AudienceIdentifierKind;
   /** Value properties only, for Edit values. */
   properties: AudienceProperty[];
+  /** What the saved form reads; `null` when there is no saved form to read. */
+  usage: AudienceUsage | null;
   canTest: boolean;
 };
 
@@ -230,6 +234,7 @@ function toPreviewAsData(
     selected,
     identifierKind,
     properties: valueProperties(properties, identifierKind),
+    usage: form ? audienceUsage(form.definition, variables) : null,
     canTest: request.canTest,
   };
 }
