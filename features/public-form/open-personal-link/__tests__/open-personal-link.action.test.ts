@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiResult } from "@/lib/endatix-api/shared/api-result";
+import { ErrorType, Result } from "@/lib/result";
 import { openPersonalLinkAction } from "../open-personal-link.action";
 
 const redeemLink = vi.fn();
@@ -34,36 +35,40 @@ describe("openPersonalLinkAction", () => {
 
     const opened = await openPersonalLinkAction(FORM_ID, LINK_TOKEN);
 
-    expect(opened).toEqual({ kind: "opened" });
+    expect(Result.isSuccess(opened)).toBe(true);
     expect(redeemLink).toHaveBeenCalledWith(FORM_ID, LINK_TOKEN);
     expect(JSON.parse(cookieJar.set.mock.calls[0][1])).toEqual({
       [FORM_ID]: "submission-token",
     });
   });
 
-  it("answers notFound for a link the API does not know, and sets no cookie", async () => {
+  it("answers that the link is not valid when the API does not know it, and sets no cookie", async () => {
     redeemLink.mockResolvedValue(ApiResult.notFoundError("Link not found"));
 
-    expect(await openPersonalLinkAction(FORM_ID, LINK_TOKEN)).toEqual({
-      kind: "notFound",
-    });
+    const opened = await openPersonalLinkAction(FORM_ID, LINK_TOKEN);
+
+    expect(Result.isError(opened) && opened.errorType).toBe(
+      ErrorType.ValidationError,
+    );
     expect(cookieJar.set).not.toHaveBeenCalled();
   });
 
-  it("answers notFound for a malformed form id", async () => {
+  it("answers that the link is not valid for a malformed form id", async () => {
     redeemLink.mockResolvedValue(ApiResult.validationError("Invalid formId"));
 
-    expect(await openPersonalLinkAction("abc", LINK_TOKEN)).toEqual({
-      kind: "notFound",
-    });
+    const opened = await openPersonalLinkAction("abc", LINK_TOKEN);
+
+    expect(Result.isError(opened) && opened.errorType).toBe(
+      ErrorType.ValidationError,
+    );
   });
 
-  it("answers unavailable when the API fails, so the respondent can try again", async () => {
+  it("answers a retryable error when the API fails", async () => {
     redeemLink.mockResolvedValue(ApiResult.serverError("Busy"));
 
-    expect(await openPersonalLinkAction(FORM_ID, LINK_TOKEN)).toEqual({
-      kind: "unavailable",
-    });
+    const opened = await openPersonalLinkAction(FORM_ID, LINK_TOKEN);
+
+    expect(Result.isError(opened) && opened.errorType).toBe(ErrorType.Error);
     expect(cookieJar.set).not.toHaveBeenCalled();
   });
 });

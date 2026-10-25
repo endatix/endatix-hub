@@ -4,7 +4,8 @@ import {
   PublicStatusPage,
   publicStatusClassNames,
 } from "@/components/public-status/public-status-page";
-import { CircleAlert, Link2Off, LoaderCircle } from "lucide-react";
+import { ErrorType, Result } from "@/lib/result";
+import { Link2Off, LoaderCircle, TriangleAlert } from "lucide-react";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -40,9 +41,9 @@ export function OpenPersonalLink({
   if (phase === "unavailable") {
     return (
       <PublicStatusPage
-        icon={CircleAlert}
+        icon={TriangleAlert}
         layout="page"
-        title="The link could not be opened. Try again."
+        title="The link could not be opened."
         tone="warning"
       >
         <button
@@ -62,31 +63,40 @@ export function OpenPersonalLink({
       layout="page"
       title="Opening your survey…"
       tone="neutral"
-    />
+    >
+      <noscript>
+        <p>Turn on JavaScript in your browser to open your survey.</p>
+      </noscript>
+    </PublicStatusPage>
   );
 }
 
 function useOpenPersonalLink(formId: string, token: string) {
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>("opening");
-  const started = useRef(false);
+  const startedFor = useRef<string | null>(null);
 
   const open = useCallback(async () => {
     setPhase("opening");
-    const opened = await openPersonalLinkAction(formId, token);
-    if (opened.kind === "opened") {
+    // A dropped connection or a redeployed Hub rejects the call; both may pass on a retry.
+    const opened = await openPersonalLinkAction(formId, token).catch(() =>
+      Result.error<void>("The link could not be opened."),
+    );
+    if (Result.isSuccess(opened)) {
       router.replace(`/share/${formId}` as Route);
       return;
     }
-    setPhase(opened.kind);
+    const notValid = opened.errorType === ErrorType.ValidationError;
+    setPhase(notValid ? "notFound" : "unavailable");
   }, [formId, token, router]);
 
   useEffect(() => {
-    // Strict Mode mounts twice in development; the link is redeemed once per page load.
-    if (started.current) return;
-    started.current = true;
+    // Strict Mode mounts twice in development; each link is redeemed once per page load.
+    const link = `${formId}/${token}`;
+    if (startedFor.current === link) return;
+    startedFor.current = link;
     void open();
-  }, [open]);
+  }, [formId, token, open]);
 
   return { phase, retry: open };
 }

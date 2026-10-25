@@ -6,33 +6,39 @@ import {
   isNotFoundError,
   isValidationError,
 } from "@/lib/endatix-api/shared/api-result";
-import { Result } from "@/lib/result";
+import { Result, type ResultType } from "@/lib/result";
+import { toResult } from "@/lib/result/map-api-result-to-result";
 import { cookies } from "next/headers";
 
-/** `notFound`: the link is not valid. `unavailable`: trying again may help. */
-export type OpenedPersonalLink =
-  | { kind: "opened" }
-  | { kind: "notFound" }
-  | { kind: "unavailable" };
+const LINK_NOT_VALID = "This link is not valid.";
+
+const OPEN_LOG = {
+  fallbackMessage: "The link could not be opened.",
+  logMessage: "Failed to open a personalized link.",
+  loggerName: "public-form.open-personal-link",
+} as const;
 
 /**
  * Redeems a personalized link without a Hub session and keeps the submission's token in the form
  * cookie, so `/share/{formId}` opens that one submission. A POST only: the link's page calls it
  * after paint, so a mail scanner's GET never marks the link Opened (endatix-hub#1211).
+ *
+ * An unknown link is a validation error (nothing to retry); any other error may pass on a retry.
  */
 export async function openPersonalLinkAction(
   formId: string,
   token: string,
-): Promise<OpenedPersonalLink> {
+): Promise<ResultType<void>> {
   const redeemed = await new EndatixApi().audience.redeemLink(formId, token);
-  if (!redeemed.success) {
+  const opened = toResult(redeemed, {
+    ...OPEN_LOG,
+    mapData: (link) => link.accessToken,
+  });
+  if (Result.isError(opened)) {
     const missing = isNotFoundError(redeemed) || isValidationError(redeemed);
-    return { kind: missing ? "notFound" : "unavailable" };
+    return missing ? Result.validationError(LINK_NOT_VALID) : opened;
   }
 
   const store = new FormTokenCookieStore(await cookies());
-  const stored = store.setToken({ formId, token: redeemed.data.accessToken });
-  if (Result.isError(stored)) return { kind: "unavailable" };
-
-  return { kind: "opened" };
+  return store.setToken({ formId, token: opened.value });
 }

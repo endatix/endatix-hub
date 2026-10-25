@@ -5,6 +5,9 @@ type PersonalLinkPageProps = {
   params: Promise<{ formId: string; token: string }>;
 };
 
+/** Rendered per request and never cached: each link is one participant's. */
+export const dynamic = "force-dynamic";
+
 /** The token is in the path: no Referer carries it to a site the survey links to. */
 export const metadata: Metadata = { referrer: "no-referrer" };
 
