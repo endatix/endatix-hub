@@ -121,7 +121,9 @@ function useLatestRead(
   dispatch: Dispatch<SearchEvent>,
 ) {
   const latest = useRef(0);
-  const dropReads = useCallback(() => void latest.current++, []);
+  const dropReads = useCallback(() => {
+    latest.current += 1;
+  }, []);
   const read = useCallback(
     async (cursor?: ParticipantCursor) => {
       const id = ++latest.current;
