@@ -14,9 +14,5 @@ export type {
   ParticipantCursor,
   ParticipantFinder,
 } from "./find-participant";
-export type {
-  AudienceFinding,
-  AudienceFix,
-  AudienceReview,
-} from "./findings/types";
+export type { AudienceFinding, AudienceFix, AudienceReview } from "../coverage";
 export { testParticipantPresets } from "./test-participant-presets";

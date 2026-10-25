@@ -561,6 +561,31 @@ Keep **selection policy** in the owning feature (e.g. public-form language picke
 
 Import from `@/lib/localization` (root barrel) or a slice path such as `@/lib/localization/catalog`.
 
+### `lib/personalization` domain
+
+Audience values inside a form. It is cross-feature: the public form, the designer, the Audience tab and Diagnostics all read it, so none of them owns it. It has two entries, one per runtime:
+
+| Path                                             | Runtime     | Owns                                                                                                                                                | Consumers                                                                                                                        |
+| ------------------------------------------------ | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `apply-personalization.ts`                       | respondent  | Snapshot values onto a survey model                                                                                                                 | `features/public-form`, `features/audience/preview-as`                                                                           |
+| `snapshot-source.ts`                             | any         | A Snapshot's source label                                                                                                                           | Test inspector, Submission Details                                                                                               |
+| `to-survey-presets.ts`                           | any         | Wire presets → `ISurveyVariablePresets`, shared by both entries                                                                                     | `authoring/`, `coverage/`                                                                                                        |
+| `coverage/` (`@/lib/personalization/coverage`)   | server-safe | What the form reads (`audienceUsage`, `lintedUsage`), coverage verdicts (`usageVerdicts`), the Audience findings (`reviewAudience`) and their types | `load-audience-usage.server.ts`, the Audience tab, the designer (lazily), Diagnostics (types, through the `authoring` re-export) |
+| `authoring/` (`@/lib/personalization/authoring`) | client      | The Creator binding (`bindAudienceToCreator`), Preview as, Find participant, the designer's save body, applying a fix to the canvas                 | `features/forms/ui/editor`, the design page (types)                                                                              |
+
+`coverage/` is survey-core only and imports nothing from `authoring/`; `no-client-imports.test.ts` fails on a React, lucide, Creator or `"use client"` import there, and on any import outside survey-core, `survey-lint`, the API types, `to-survey-presets` and `coverage/` itself. Server files that need an `authoring/` contract type use `import type`. Import only through the two `index.ts` files (eslint `no-restricted-imports`), with one exception: the coverage verdicts (`usageVerdicts`) have their own browser entry, `@/lib/personalization/coverage/audience-usage`, and the `coverage` index exports only their types. The index brings `survey-core/linter`, and Turbopack keeps it in a client bundle even when only the verdicts are used (+135 KB on the Audience tab).
+
+### `lib/survey-features/survey-lint` domain
+
+The one home for **definition analysis**: checks that need only the survey JSON. Server-safe and UI-free: survey-core and `survey-core/linter` only, nothing from `lib/personalization`, `form-diagnostics` or `features/` (pinned by `__tests__/no-client-imports.test.ts`). It holds the Hub's only `lintSurvey` call (`runLint`). Import from `@/lib/survey-features/survey-lint`.
+
+What goes where:
+
+- A check that needs only the definition (unknown references, collisions, undeclared roots, a SurveyJS rule subset) → `survey-lint`.
+- A check that needs Audience data (Properties, participants, counts) → `lib/personalization/coverage`, built on `survey-lint`. To learn which Properties a form reads, call `audienceUsage`; do not scan again.
+- Rendering findings → `lib/survey-features/form-diagnostics/ui/`.
+- Applying a lint fix to the Creator canvas is Creator-side, never `survey-lint`: it stays in `personalization/authoring` while the binding is its only caller.
+
 ### `lib/survey-js` domain
 
 Shared SurveyJS + Creator **types/vocab** only — no behavior, no choice helpers. Vendor types first; Hub unions close vendor `string`s.

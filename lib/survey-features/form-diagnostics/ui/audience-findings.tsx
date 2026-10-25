@@ -6,7 +6,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { AudienceFinding } from "@/lib/personalization/authoring";
-import { formatCount } from "@/lib/personalization/audience-usage";
+import { formatCount } from "@/lib/utils/formatters";
 import type { FormDiagnosticsPlugin } from "../form-diagnostics-plugin";
 
 const WARNING_CLASS =

@@ -2,7 +2,7 @@ import type { AudienceVariableCoverage } from "@/lib/endatix-api/audience/types"
 
 /**
  * What a saved form reads of its Audience variables, small enough to send to the browser: worked
- * out on the server by `audienceUsage` (authoring), read here without SurveyJS.
+ * out on the server by `audienceUsage`, read here without SurveyJS.
  */
 export type AudienceUsage = {
   /** The form's variable names, in tab order. */
@@ -49,11 +49,6 @@ function notFilledIn(
     const key = name.toLowerCase();
     return read.has(key) && !has.has(key);
   });
-}
-
-/** A count as the server and every browser render it, whatever the viewer's locale. */
-export function formatCount(count: number): string {
-  return count.toLocaleString("en-US");
 }
 
 export function usageVerdicts(usage: AudienceUsage): UsageVerdicts {

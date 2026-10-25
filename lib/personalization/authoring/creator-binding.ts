@@ -11,15 +11,18 @@ import type {
 } from "@/lib/endatix-api/audience/types";
 import { Result } from "@/lib/result";
 import { canonicalizeCreatorTabId, ENDATIX_CREATOR_TAB } from "@/lib/survey-js";
+import type {
+  AudienceFinding,
+  AudienceReview,
+  reviewAudience,
+} from "../coverage";
+import { toSurveyPresets } from "../to-survey-presets";
 import { applyAudienceFix, canFixOnCanvas } from "./apply-fix";
 import type { ParticipantFinder } from "./find-participant";
-import type { AudienceFinding, AudienceReview } from "./findings/types";
-import type { reviewAudience } from "./review";
 import {
   extendEveryPreview,
   type FindParticipantOption,
 } from "./preview-as-none";
-import { toSurveyPresets } from "./to-survey-presets";
 
 export interface CreatorHooks {
   /** Reads the form's variables again (a property or participant edited in the Audience tab). */
@@ -292,7 +295,7 @@ function reviewing(creator: SurveyCreatorModel, state: BindingState) {
   return {
     review: async (): Promise<AudienceReview> => {
       if (!state.variables.variablePresets) return { findings: [] };
-      reviewer ??= (await import("./review")).reviewAudience;
+      reviewer ??= (await import("../coverage/review")).reviewAudience;
       return review();
     },
     /**

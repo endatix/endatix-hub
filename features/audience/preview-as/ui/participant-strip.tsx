@@ -17,7 +17,7 @@ import { useRowOverlay } from "../../use-panel-state.hook";
 import {
   usageVerdicts,
   type AudienceUsage,
-} from "@/lib/personalization/audience-usage";
+} from "@/lib/personalization/coverage/audience-usage";
 import { formatPropertyValue } from "../../utils";
 
 type Overlay = ReturnType<typeof useRowOverlay<AudiencePerson>>;

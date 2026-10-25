@@ -1,6 +1,6 @@
 import { Serializer } from "survey-core";
 import type { SurveyCreatorModel } from "survey-creator-core";
-import type { AudienceFix } from "./findings/types";
+import type { AudienceFix } from "../coverage";
 
 const SEGMENT = /^([A-Za-z_$][\w$]*)(?:\[(\d+)\])?$/;
 const PROPERTY = /^[A-Za-z_$][\w$]*$/;

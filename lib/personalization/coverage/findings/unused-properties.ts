@@ -1,4 +1,4 @@
-import { usageVerdicts, type AudienceUsage } from "../../audience-usage";
+import { usageVerdicts, type AudienceUsage } from "../audience-usage";
 import type { AudienceFinding } from "./types";
 
 /**
