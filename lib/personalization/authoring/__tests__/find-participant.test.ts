@@ -118,6 +118,20 @@ describe("Find participant in the designer's Preview", () => {
     expect(findAction(creator)?.isVisible).toBe(true);
   });
 
+  // The screen-out extension calls updateLocalizedStrings, so Creator rebuilds the open tab with no tab change.
+  it("comes back when Creator rebuilds the open Preview without a tab change", () => {
+    // Arrange
+    const { creator } = designerWith(60, variables(60), "before bind");
+
+    // Act
+    creator.updateLocalizedStrings();
+
+    // Assert
+    expect(findActions(creator)).toHaveLength(1);
+    expect(findAction(creator)?.isVisible).toBe(true);
+    expect(selectorTitles(creator)[0]).toBe("None");
+  });
+
   it("is removed when the designer lets go of the Creator", () => {
     // Arrange
     const { creator, binding } = designerWith(60);

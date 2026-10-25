@@ -15,7 +15,10 @@ import { applyAudienceFix, canFixOnCanvas } from "./apply-fix";
 import type { ParticipantFinder } from "./find-participant";
 import type { AudienceFinding, AudienceReview } from "./findings/types";
 import type { reviewAudience } from "./review";
-import { extendPreviewAs, type FindParticipantOption } from "./preview-as-none";
+import {
+  extendEveryPreview,
+  type FindParticipantOption,
+} from "./preview-as-none";
 import { toSurveyPresets } from "./to-survey-presets";
 
 export interface CreatorHooks {
@@ -186,29 +189,28 @@ function lockValuesEditor(creator: SurveyCreatorModel): void {
   }
 }
 
-/**
- * Calls `onOpen` whenever the Preview tab opens, and once now when it is open already. Stopping
- * runs the undo the last call returned.
- */
+/** Calls `onOpen` whenever the author switches to the Preview tab. */
 function onPreviewOpened(
   creator: SurveyCreatorModel,
-  onOpen: (plugin: TabTestPlugin, atBind: boolean) => () => void,
+  onOpen: () => void,
 ): () => void {
-  let undo = () => {};
-  const openPreview = (atBind: boolean) => {
-    const isPreview =
-      canonicalizeCreatorTabId(creator.activeTab) ===
-      ENDATIX_CREATOR_TAB.preview;
-    const plugin = isPreview ? previewPlugin(creator) : null;
-    if (plugin) undo = onOpen(plugin, atBind);
+  const onActiveTabChanged = () => {
+    const tab = canonicalizeCreatorTabId(creator.activeTab);
+    if (tab === ENDATIX_CREATOR_TAB.preview) onOpen();
   };
-  const onActiveTabChanged = () => openPreview(false);
   creator.onActiveTabChanged.add(onActiveTabChanged);
-  openPreview(true);
-  return () => {
-    creator.onActiveTabChanged.remove(onActiveTabChanged);
-    undo();
-  };
+  return () => creator.onActiveTabChanged.remove(onActiveTabChanged);
+}
+
+/** None and Find participant on every Preview Creator builds; nothing without a Preview tab. */
+function extendPreview(
+  creator: SurveyCreatorModel,
+  state: BindingState,
+  onFindParticipant: FindParticipant | undefined,
+): () => void {
+  const plugin = previewPlugin(creator);
+  if (!plugin) return () => undefined;
+  return extendEveryPreview(plugin, finding(creator, state, onFindParticipant));
 }
 
 /** Participants the API left out of `presets` (it sends the first 20). */
@@ -233,13 +235,12 @@ export function bindToCreator(
   const state = newState(audience.variables);
   applyVariables(creator, audience.variables, state);
   const refresh = () => refreshVariables(creator, audience, state);
-  const stopWatching = onPreviewOpened(creator, (plugin, atBind) => {
-    if (!atBind) void refresh();
-    return extendPreviewAs(plugin, finding(creator, state, onFindParticipant));
-  });
+  const stopExtending = extendPreview(creator, state, onFindParticipant);
+  const stopWatching = onPreviewOpened(creator, () => void refresh());
   const unbind = () => {
     state.bound = false;
     stopWatching();
+    stopExtending();
   };
   return Object.assign(unbind, { refresh, ...reading(creator, state) });
 }

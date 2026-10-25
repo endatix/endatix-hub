@@ -3,8 +3,10 @@ import { getLocString, type TabTestPlugin } from "survey-creator-core";
 
 // Survey Creator 3.2.2's selector lists only the presets, so after picking one there is no way back
 // to None, and it hides itself below two presets. This is the only file that reaches into the
-// Preview view model for it, and for the Find participant action it puts in the page toolbar:
-// re-check it on every SurveyJS upgrade (the tests fail if it breaks).
+// Preview view model for it, and for the Find participant action it puts in the page toolbar; it
+// also wraps the Preview plugin's activate, because Creator rebuilds the open tab's view model
+// without a tab change (refreshPlugin, from updateLocalizedStrings). Re-check it on every SurveyJS
+// upgrade (the tests fail if it breaks).
 
 /** The Preview view model members this file relies on; the two methods are private. */
 type PreviewView = {
@@ -25,6 +27,26 @@ const NONE_ID = "";
 const FIND_ID = "endatix-find-participant";
 /** Each extended view's undo, so a second call for the same view hands back the same one. */
 const undos = new WeakMap<PreviewView, () => void>();
+
+/**
+ * Extends every Preview view model Creator builds for this plugin: the one open now, each tab
+ * switch, and each rebuild of the open tab. Returns how to stop and take the extension out.
+ */
+export function extendEveryPreview(
+  plugin: TabTestPlugin,
+  findParticipant?: FindParticipantOption,
+): () => void {
+  let undo = extendPreviewAs(plugin, findParticipant);
+  const activate = plugin.activate;
+  plugin.activate = function (this: TabTestPlugin) {
+    activate.call(this);
+    undo = extendPreviewAs(plugin, findParticipant);
+  };
+  return () => {
+    plugin.activate = activate;
+    undo();
+  };
+}
 
 /**
  * Adds None as the selector's first item to the Preview built for the current activation, and,
