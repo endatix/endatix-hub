@@ -7,7 +7,7 @@ import type { AudienceVariableCoverage } from "@/lib/endatix-api/audience/types"
 export type AudienceUsage = {
   /** The form's variable names, in tab order. */
   variableNames: string[];
-  /** Lower-cased names the form reads, including one a question or calculated value also uses. */
+  /** Lower-cased Property names the form reads, one a question or calculated value also uses included. */
   read: string[];
   /** Real and Test participants, and per Property how many filled it in. */
   coverage: AudienceVariableCoverage;
@@ -23,29 +23,25 @@ export type UsageVerdicts = {
   notFilledIn(filled: string[]): string[];
 };
 
-function propertyUse(usage: AudienceUsage, variableName: string): PropertyUse {
-  const key = variableName.toLowerCase();
-  const counted = usage.coverage.properties.find(
-    (p) => p.variableName.toLowerCase() === key,
-  );
-  return {
-    used: usage.read.includes(key),
-    filledReal: counted?.filledReal ?? 0,
-    real: usage.coverage.participants.real,
-  };
-}
-
-function notFilledIn(usage: AudienceUsage, filled: string[]): string[] {
-  const has = new Set(filled.map((name) => name.toLowerCase()));
-  return usage.variableNames.filter((name) => {
-    const key = name.toLowerCase();
-    return usage.read.includes(key) && !has.has(key);
-  });
-}
-
 export function usageVerdicts(usage: AudienceUsage): UsageVerdicts {
-  return {
-    forProperty: (variableName) => propertyUse(usage, variableName),
-    notFilledIn: (filled) => notFilledIn(usage, filled),
+  const read = new Set(usage.read);
+  const forProperty = (variableName: string): PropertyUse => {
+    const key = variableName.toLowerCase();
+    const counted = usage.coverage.properties.find(
+      (p) => p.variableName.toLowerCase() === key,
+    );
+    return {
+      used: read.has(key),
+      filledReal: counted?.filledReal ?? 0,
+      real: usage.coverage.participants.real,
+    };
   };
+  const notFilledIn = (filled: string[]) => {
+    const has = new Set(filled.map((name) => name.toLowerCase()));
+    return usage.variableNames.filter((name) => {
+      const key = name.toLowerCase();
+      return read.has(key) && !has.has(key);
+    });
+  };
+  return { forProperty, notFilledIn };
 }

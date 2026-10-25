@@ -19,35 +19,44 @@ function variableNamesOf(presets: ISurveyVariablePresets) {
   }
 }
 
-function collisionsIn(findings: AudienceFinding[]): string[] {
-  return findings.flatMap((finding) =>
-    finding.kind === "variable-collision"
-      ? [finding.variable.toLowerCase()]
-      : [],
-  );
+/** Every name the form reads: the undeclared references, and the names a question also declares. */
+function readBy(surveyJson: object, linted: AudienceFinding[]): Set<string> {
+  const read = undeclaredReferences(surveyJson);
+  for (const finding of linted) {
+    if (finding.kind === "variable-collision") {
+      read.add(finding.variable.toLowerCase());
+    }
+  }
+  return read;
 }
 
-/** What the form reads, given the linter's findings for it (they name the collisions). */
-export function usageOf(
+/**
+ * The linter's findings and what the form reads of its Properties, from one lint; `null` when the
+ * form has no Properties.
+ */
+export function lintedUsage(
   surveyJson: object,
-  presets: ISurveyVariablePresets,
-  linted: AudienceFinding[],
-): Omit<AudienceUsage, "coverage"> {
-  const read = new Set([
-    ...undeclaredReferences(surveyJson),
-    ...collisionsIn(linted),
-  ]);
-  return { variableNames: variableNamesOf(presets), read: [...read] };
+  variables: AudienceVariables,
+): { findings: AudienceFinding[]; usage: AudienceUsage } | null {
+  if (!variables.variablePresets) return null;
+  const presets = toSurveyPresets(variables.variablePresets);
+  const findings = lintFindings(surveyJson, presets);
+  const read = readBy(surveyJson, findings);
+  const variableNames = variableNamesOf(presets);
+  const usage = {
+    variableNames,
+    read: variableNames
+      .map((name) => name.toLowerCase())
+      .filter((key) => read.has(key)),
+    coverage: variables.coverage,
+  };
+  return { findings, usage };
 }
 
-/** What the saved form reads of its variables; `null` when the form has no Properties. */
+/** What the saved form reads of its Properties; `null` when the form has no Properties. */
 export function audienceUsage(
   surveyJson: object,
   variables: AudienceVariables,
 ): AudienceUsage | null {
-  if (!variables.variablePresets) return null;
-  const presets = toSurveyPresets(variables.variablePresets);
-  const linted = lintFindings(surveyJson, presets);
-  const read = usageOf(surveyJson, presets, linted);
-  return { ...read, coverage: variables.coverage };
+  return lintedUsage(surveyJson, variables)?.usage ?? null;
 }

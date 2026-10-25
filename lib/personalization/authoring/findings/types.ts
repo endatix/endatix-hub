@@ -1,5 +1,4 @@
 import type { ILintFix } from "survey-core/linter";
-import type { UsageVerdicts } from "../../audience-usage";
 
 export type AudienceFix = ILintFix;
 
@@ -32,4 +31,4 @@ export type AudienceFinding =
       real: number;
     };
 
-export type AudienceReview = UsageVerdicts & { findings: AudienceFinding[] };
+export type AudienceReview = { findings: AudienceFinding[] };
