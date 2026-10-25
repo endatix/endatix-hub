@@ -35,7 +35,11 @@ function apiWith(definition: ApiResult<unknown>) {
   return { api: { definitions: { get } } as unknown as EndatixApi, get };
 }
 
-const request = { formId: "1", activeDefinitionId: "5", variables: VARIABLES };
+const request = {
+  formId: "1",
+  activeDefinitionId: "5",
+  variables: Promise.resolve(VARIABLES),
+};
 
 describe("loadAudienceUsage", () => {
   it("sends the names the saved form reads, not the form", async () => {
@@ -53,7 +57,7 @@ describe("loadAudienceUsage", () => {
     });
   });
 
-  it("reads nothing for a form never saved, or without variables", async () => {
+  it("reads nothing for a form never saved", async () => {
     const { api, get } = apiWith(ApiResult.success({}));
 
     expect(
@@ -63,10 +67,23 @@ describe("loadAudienceUsage", () => {
         activeDefinitionId: undefined,
       }),
     ).toBeNull();
-    expect(
-      await loadAudienceUsage({ api, ...request, variables: null }),
-    ).toBeNull();
     expect(get).not.toHaveBeenCalled();
+  });
+
+  it("reads the saved form while the variables are still loading", async () => {
+    const { api, get } = apiWith(
+      ApiResult.success({ jsonData: JSON.stringify(SAVED) }),
+    );
+    let loaded!: (variables: AudienceVariables) => void;
+    const variables = new Promise<AudienceVariables>((resolve) => {
+      loaded = resolve;
+    });
+
+    const usage = loadAudienceUsage({ api, ...request, variables });
+
+    expect(get).toHaveBeenCalledWith("1", "5");
+    loaded(VARIABLES);
+    expect((await usage)?.read).toEqual(["tier"]);
   });
 
   it("leaves coverage out when the read fails or the definition is not JSON", async () => {
@@ -87,17 +104,18 @@ describe("loadAudienceUsage", () => {
     }
   });
 
-  it("does not load the definition when the form has no Properties", async () => {
-    const { api, get } = apiWith(ApiResult.success({ jsonData: "{}" }));
+  it("leaves coverage out without variables, or when the form has no Properties", async () => {
+    const { api } = apiWith(ApiResult.success({ jsonData: "{}" }));
 
-    expect(
-      await loadAudienceUsage({
-        api,
-        ...request,
-        variables: { ...VARIABLES, variablePresets: null },
-      }),
-    ).toBeNull();
-    expect(get).not.toHaveBeenCalled();
+    for (const variables of [null, { ...VARIABLES, variablePresets: null }]) {
+      expect(
+        await loadAudienceUsage({
+          api,
+          ...request,
+          variables: Promise.resolve(variables),
+        }),
+      ).toBeNull();
+    }
   });
 
   it("reads a variable piped through a drag-categorize choice", async () => {

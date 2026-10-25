@@ -10,3 +10,4 @@ export {
   parseCreatorTabUrlSlug,
   serializeCreatorTabUrlSlug,
 } from "./creator/tab-url";
+export { parseSurveyJson } from "./survey-json";

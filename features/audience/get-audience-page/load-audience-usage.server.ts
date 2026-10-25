@@ -7,28 +7,31 @@ import type { AudienceUsage } from "@/lib/personalization/audience-usage";
 import { audienceUsage } from "@/lib/personalization/authoring/usage";
 import { Result, toResult } from "@/lib/result";
 import { registerCoreSurveyModels } from "@/lib/survey-extensions/server";
+import { parseSurveyJson } from "@/lib/survey-js";
 
 export type AudienceUsageRequest = {
   api: EndatixApi;
   formId: string;
   /** The form's saved definition; a form never saved reads nothing. */
   activeDefinitionId?: string;
-  /** From `loadAudienceVariables`: `null` for a reader who may not edit, or when it failed. */
-  variables: AudienceVariables | null;
+  /** From `loadAudienceVariables`, still loading: the saved form is read alongside it. */
+  variables: Promise<AudienceVariables | null>;
 };
 
-function isSurveyObject(value: unknown): value is object {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function parseDefinition(jsonData: string | undefined): object | null {
-  if (!jsonData) return null;
-  try {
-    const parsed: unknown = JSON.parse(jsonData);
-    return isSurveyObject(parsed) ? parsed : null;
-  } catch {
-    return null;
-  }
+async function loadSavedForm(
+  api: EndatixApi,
+  formId: string,
+  activeDefinitionId: string,
+): Promise<object | null> {
+  const saved = toResult(
+    await api.definitions.get(formId, activeDefinitionId),
+    {
+      fallbackMessage: "Failed to load the saved form for Audience coverage.",
+      logMessage: "Failed to load the saved form for Audience coverage.",
+      loggerName: "audience.coverage",
+    },
+  );
+  return Result.isError(saved) ? null : parseSurveyJson(saved.value.jsonData);
 }
 
 /** A custom piece's own properties (drag-categorize choice text) are read only once it is registered. */
@@ -61,16 +64,11 @@ export async function loadAudienceUsage({
   activeDefinitionId,
   variables,
 }: AudienceUsageRequest): Promise<AudienceUsage | null> {
-  if (!activeDefinitionId || !variables?.variablePresets) return null;
-  const saved = toResult(
-    await api.definitions.get(formId, activeDefinitionId),
-    {
-      fallbackMessage: "Failed to load the saved form for Audience coverage.",
-      logMessage: "Failed to load the saved form for Audience coverage.",
-      loggerName: "audience.coverage",
-    },
-  );
-  if (Result.isError(saved)) return null;
-  const surveyJson = parseDefinition(saved.value.jsonData);
-  return surveyJson ? coverageOf(surveyJson, variables, formId) : null;
+  if (!activeDefinitionId) return null;
+  const [loaded, surveyJson] = await Promise.all([
+    variables,
+    loadSavedForm(api, formId, activeDefinitionId),
+  ]);
+  if (!loaded?.variablePresets || !surveyJson) return null;
+  return coverageOf(surveyJson, loaded, formId);
 }

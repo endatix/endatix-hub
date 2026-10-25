@@ -65,21 +65,25 @@ function listSearchFrom(query: Awaited<Params["searchParams"]>): string {
 
 type CheckPermission = AudienceAccess["checkPermission"];
 
-/** The form and its variables together, then what its saved definition reads of them. */
+/**
+ * The form, and for an editor what its saved definition reads of the variables: the API's
+ * variables read needs `forms.edit`, so a reader who may only view gets no coverage. The variables
+ * load while the form does, and the saved definition alongside them once the form names it.
+ */
 async function formWithUsage(
-  { api, formId }: Pick<AudienceRequest, "api" | "formId">,
+  { api, formId, canEdit }: Pick<AudienceRequest, "api" | "formId" | "canEdit">,
   checkPermission: CheckPermission,
 ) {
-  const [form, variables] = await Promise.all([
-    loadWorkspaceForm(formId, "audience"),
-    loadAudienceVariables({ api, formId, checkPermission }),
-  ]);
+  if (!canEdit) {
+    return { form: await loadWorkspaceForm(formId, "audience"), usage: null };
+  }
+  const variables = loadAudienceVariables({ api, formId, checkPermission });
+  const form = await loadWorkspaceForm(formId, "audience");
   if (Result.isError(form)) return { form, usage: null };
-  const { activeDefinitionId } = form.value;
   const usage = await loadAudienceUsage({
     api,
     formId,
-    activeDefinitionId,
+    activeDefinitionId: form.value.activeDefinitionId,
     variables,
   });
   return { form, usage };
