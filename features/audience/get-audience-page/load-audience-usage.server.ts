@@ -3,8 +3,10 @@ import "server-only";
 import { TelemetryLogger } from "@/features/telemetry";
 import type { EndatixApi } from "@/lib/endatix-api";
 import type { AudienceVariables } from "@/lib/endatix-api/audience/types";
-import type { AudienceUsage } from "@/lib/personalization/audience-usage";
-import { audienceUsage } from "@/lib/personalization/authoring/usage";
+import {
+  audienceUsage,
+  type AudienceUsage,
+} from "@/lib/personalization/coverage";
 import { Result, toResult } from "@/lib/result";
 import { registerCoreSurveyModels } from "@/lib/survey-extensions/server";
 import { parseSurveyJson } from "@/lib/survey-js";

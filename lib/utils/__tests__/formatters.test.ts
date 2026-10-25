@@ -2,6 +2,7 @@ import {
   formatBytes,
   formatNumber,
   formatInteger,
+  formatCount,
   formatCurrency,
   formatDecimalNumber,
   formatDateTime,
@@ -44,6 +45,14 @@ describe("formatNumber", () => {
   it("should format billions with B suffix", () => {
     expect(formatNumber(1000000000)).toBe("1B");
     expect(formatNumber(5500000000)).toBe("5.5B");
+  });
+});
+
+describe("formatCount", () => {
+  it("groups thousands with a comma, whatever the viewer's locale", () => {
+    expect(formatCount(4790)).toBe("4,790");
+    expect(formatCount(1234567)).toBe("1,234,567");
+    expect(formatCount(0)).toBe("0");
   });
 });
 

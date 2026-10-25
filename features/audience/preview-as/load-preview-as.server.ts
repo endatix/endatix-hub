@@ -19,7 +19,7 @@ import {
 } from "@/lib/endatix-api/shared/api-result";
 import { Result, toResult } from "@/lib/result";
 import type { MapApiResultToResultOptions } from "@/lib/result/map-api-result-to-result";
-import type { AudienceUsage } from "@/lib/personalization/audience-usage";
+import type { AudienceUsage } from "@/lib/personalization/coverage";
 import { parseSurveyJson } from "@/lib/survey-js";
 import { savedFormUsage } from "../get-audience-page/load-audience-usage.server";
 import { valueProperties } from "../utils";

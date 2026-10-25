@@ -28,10 +28,12 @@ const authoringIndexOnly = {
   group: [
     "@/lib/personalization/authoring/*",
     "**/personalization/authoring/*",
-    "!@/lib/personalization/authoring/usage",
+    "@/lib/personalization/coverage/*",
+    "**/personalization/coverage/*",
+    "!@/lib/personalization/coverage/audience-usage",
   ],
   message:
-    "Import Audience authoring from @/lib/personalization/authoring (its index.ts), or the Creator-free @/lib/personalization/authoring/usage, only.",
+    "Import Audience authoring from @/lib/personalization/authoring (client), or the Creator-free @/lib/personalization/coverage (server-safe), through their index.ts only. Browser code that needs only the verdicts imports @/lib/personalization/coverage/audience-usage, which leaves the linter out of the bundle.",
 };
 
 const eslintConfig = defineConfig([
@@ -80,7 +82,10 @@ const eslintConfig = defineConfig([
   },
   {
     files: ["**/*.ts", "**/*.tsx"],
-    ignores: ["lib/personalization/authoring/**"],
+    ignores: [
+      "lib/personalization/authoring/**",
+      "lib/personalization/coverage/**",
+    ],
     rules: {
       "no-restricted-imports": ["error", { patterns: [authoringIndexOnly] }],
     },

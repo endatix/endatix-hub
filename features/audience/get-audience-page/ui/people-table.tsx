@@ -19,7 +19,7 @@ import {
   type StaticDataTableCell,
   type StaticDataTableColumn,
 } from "@/components/table";
-import type { UsageVerdicts } from "@/lib/personalization/audience-usage";
+import type { UsageVerdicts } from "@/lib/personalization/coverage";
 import { formRoutes } from "@/lib/routes/form-routes";
 import { StatusBadge } from "@/components/common/status-badge";
 import { LinkStatusBadge } from "../../ui/link-status-badge";

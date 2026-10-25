@@ -68,6 +68,11 @@ function formatInteger(
   }).format(value);
 }
 
+/** A count as the server and every browser render it, whatever the viewer's locale. */
+function formatCount(count: number): string {
+  return count.toLocaleString("en-US");
+}
+
 /**
  * Formats a number as currency.
  * @param value - The number to format
@@ -206,6 +211,7 @@ function formatValue(value: unknown): string {
 export {
   formatNumber,
   formatInteger,
+  formatCount,
   formatCurrency,
   formatDecimalNumber,
   formatDateTime,

@@ -4,7 +4,7 @@ import { useEffect, useMemo } from "react";
 import {
   usageVerdicts,
   type AudienceUsage,
-} from "@/lib/personalization/audience-usage";
+} from "@/lib/personalization/coverage/audience-usage";
 import { LinkTabs } from "@/components/common/link-tabs";
 import { rememberTableReturnTo } from "@/lib/list-page/table-return-to";
 import {

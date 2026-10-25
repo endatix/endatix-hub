@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import type { AudiencePageData } from "@/features/audience/get-audience-page";
-import type { AudienceUsage } from "@/lib/personalization/audience-usage";
+import type { AudienceUsage } from "@/lib/personalization/coverage";
 import type { AudienceView } from "../audience-view";
 import { AudiencePageClient } from "./audience-page-client";
 

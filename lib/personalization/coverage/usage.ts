@@ -3,12 +3,11 @@ import {
   type ISurveyVariablePresets,
 } from "survey-core";
 import type { AudienceVariables } from "@/lib/endatix-api/audience/types";
-import type { AudienceUsage } from "../audience-usage";
-import { lintFindings, undeclaredReferences } from "./findings/lint-findings";
+import { undeclaredReferences } from "@/lib/survey-features/survey-lint";
+import { toSurveyPresets } from "../to-survey-presets";
+import type { AudienceUsage } from "./audience-usage";
+import { lintFindings } from "./findings/lint-findings";
 import type { AudienceFinding } from "./findings/types";
-import { toSurveyPresets } from "./to-survey-presets";
-
-// The authoring door without the Creator: survey-core only, so the server can run it.
 
 function variableNamesOf(presets: ISurveyVariablePresets) {
   const model = new SurveyVariablePresets(presets);

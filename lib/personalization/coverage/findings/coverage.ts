@@ -1,4 +1,4 @@
-import { usageVerdicts, type AudienceUsage } from "../../audience-usage";
+import { usageVerdicts, type AudienceUsage } from "../audience-usage";
 import type { AudienceFinding } from "./types";
 
 /** A Property the form reads that some real participants have not filled in. */

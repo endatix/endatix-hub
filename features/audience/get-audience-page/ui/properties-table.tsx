@@ -15,11 +15,11 @@ import type {
   AudienceIdentifierKind,
   AudienceProperty,
 } from "@/lib/endatix-api/audience/types";
-import {
-  formatCount,
-  type PropertyUse,
-  type UsageVerdicts,
-} from "@/lib/personalization/audience-usage";
+import type {
+  PropertyUse,
+  UsageVerdicts,
+} from "@/lib/personalization/coverage";
+import { formatCount } from "@/lib/utils/formatters";
 import { StatusBadge } from "@/components/common/status-badge";
 import { NotSet } from "../../ui/not-set";
 import { VariableName } from "../../ui/variable-name";

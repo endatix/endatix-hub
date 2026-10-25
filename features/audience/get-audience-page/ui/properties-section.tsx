@@ -13,7 +13,7 @@ import { RenamePropertyPanel } from "../../update-property/ui/rename-property-pa
 import { useRowOverlay } from "../../use-panel-state.hook";
 import { PropertiesTable } from "./properties-table";
 import { SectionHeader } from "./section-header";
-import type { UsageVerdicts } from "@/lib/personalization/audience-usage";
+import type { UsageVerdicts } from "@/lib/personalization/coverage";
 
 type PropertiesSectionProps = {
   formId: string;

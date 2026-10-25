@@ -25,7 +25,7 @@ import { valueProperties } from "../../utils";
 import { PeopleTable, type RowHandlers } from "./people-table";
 import { PeopleTestFilter } from "./people-test-filter";
 import { SectionHeader } from "./section-header";
-import type { UsageVerdicts } from "@/lib/personalization/audience-usage";
+import type { UsageVerdicts } from "@/lib/personalization/coverage";
 
 type PeopleSectionProps = {
   formId: string;
