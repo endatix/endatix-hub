@@ -195,6 +195,26 @@ export class Audience {
     );
   }
 
+  /**
+   * Saves the designer's edited presets as Test participants, matched by identifier; nothing is
+   * deleted, and a real participant sent back changed fails the whole save. Returns the variables
+   * read again.
+   */
+  async saveTestParticipants(
+    formId: string,
+    presets: AudienceVariablePreset[],
+  ): Promise<ApiResult<AudienceVariables>> {
+    const idCheck = requireEndatixId(formId, "formId");
+    if (!idCheck.success) return idCheck;
+
+    return mapVariablesResult(
+      await this.endatix.put<WireVariables>(
+        formAudiencePath(formId, "variables", "test-participants"),
+        { presets },
+      ),
+    );
+  }
+
   /** One participant's values (real or test) by audience member id, for Preview as. */
   async getParticipantVariables(
     formId: string,

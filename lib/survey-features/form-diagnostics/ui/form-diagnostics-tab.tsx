@@ -331,10 +331,7 @@ export const FormDiagnosticsView = ({
             attentionClassName={infoAlertClassName}
           />
 
-          <AudienceFindings
-            findings={audienceFindings}
-            onFix={(finding) => void model.applyAudienceFix(finding)}
-          />
+          <AudienceFindings findings={audienceFindings} actions={model} />
 
           {issues.length > 0 ? (
             <div className="space-y-3 pt-2">

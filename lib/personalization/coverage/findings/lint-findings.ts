@@ -13,18 +13,29 @@ import type { AudienceFinding } from "./types";
 // Built once: every review lints twice (here and in undeclaredReferences).
 const AUDIENCE_RULES = lintRules([LINT_RULE.unknown, LINT_RULE.collision]);
 
+// OSS `Property.Slugify`: lower-case ASCII letters and digits, any other run becomes one `_`. A name
+// that slug keeps (case aside, since variables match case-insensitively) is declared by a Property
+// named after it.
+const KEPT_BY_SLUG = /^[a-z0-9]+(?:_[a-z0-9]+)*$/i;
+
+function unknownVariable(finding: ILintFinding): AudienceFinding {
+  const data = finding.messageData;
+  const variable = String(data.root ?? data.name);
+  return {
+    kind: "unknown-variable",
+    variable,
+    path: finding.path,
+    elementName: finding.elementName,
+    suggestion: finding.suggestion,
+    fix: finding.fix,
+    canAddProperty: KEPT_BY_SLUG.test(variable),
+  };
+}
+
 function toFinding(finding: ILintFinding): AudienceFinding | null {
   const data = finding.messageData;
   const at = { path: finding.path, elementName: finding.elementName };
-  if (isUnknownRoot(finding)) {
-    return {
-      kind: "unknown-variable",
-      variable: String(data.root ?? data.name),
-      ...at,
-      suggestion: finding.suggestion,
-      fix: finding.fix,
-    };
-  }
+  if (isUnknownRoot(finding)) return unknownVariable(finding);
   if (finding.ruleId !== LINT_RULE.collision) return null;
   return {
     kind: "variable-collision",

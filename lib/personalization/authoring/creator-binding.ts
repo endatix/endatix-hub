@@ -4,6 +4,7 @@ import {
   getLocaleStrings,
   type SurveyCreatorModel,
   type TabTestPlugin,
+  type VariablePresetEditingEvent,
 } from "survey-creator-core";
 import type {
   AudienceVariablePreset,
@@ -23,14 +24,30 @@ import {
   extendEveryPreview,
   type FindParticipantOption,
 } from "./preview-as-none";
+import {
+  type AddAudienceProperty,
+  addAudienceProperty,
+  saveOnEdit,
+  type TestParticipantSave,
+  valuesEditorPolicy,
+  withUnsaved,
+  type WriteTarget,
+} from "./designer-writes";
 
 export interface CreatorHooks {
   /** Reads the form's variables again (a property or participant edited in the Audience tab). */
   refresh(): Promise<Result<AudienceVariables>>;
 }
 
-/** The variables read with the page, and how to read them again. */
-export type BoundAudience = CreatorHooks & { variables: AudienceVariables };
+/**
+ * The variables read with the page, how to read them again, and, given `testParticipants`, how the
+ * Test participant values editor saves (without it the editor stays read-only).
+ */
+export type BoundAudience = CreatorHooks & {
+  variables: AudienceVariables;
+  testParticipants?: TestParticipantSave;
+  addProperty?: AddAudienceProperty;
+};
 
 /** What the designer binds, and the reads behind its Find participant. */
 export type DesignerAudience = BoundAudience & {
@@ -54,9 +71,19 @@ export type CreatorBinding = {
   review(): Promise<AudienceReview>;
   /** Applies a finding's fix to the canvas; a finding without one is left alone. */
   applyFix(finding: AudienceFinding): void;
+  /**
+   * Add as Audience property for an undeclared variable, then reads the variables again so the
+   * warning clears. A failure is shown in the designer; never rejects.
+   */
+  addProperty(finding: AudienceFinding): Promise<void>;
   /** Real participants, from the read and picked since: preview-only, never saved. */
   readOnlyPresets(): string[];
 };
+
+export type {
+  AddAudienceProperty,
+  TestParticipantSave,
+} from "./designer-writes";
 
 // The selector and the values editor list every participant, test and real; only Test participants
 // can be added, removed or saved, so those strings say so.
@@ -104,6 +131,11 @@ type BindingState = {
   applied: AudienceVariables["variablePresets"] | undefined;
   /** Found with Find participant, by name: kept in the selector for the session. */
   picked: Map<string, PickedParticipant>;
+  /** Test participant edits not saved yet; kept over every read until a save lands. */
+  unsaved: AudienceVariablePreset[];
+  canSave: boolean;
+  canAddProperty: boolean;
+  /** The latest read or save: only its answer applies. */
   latest: number;
   bound: boolean;
 };
@@ -136,10 +168,13 @@ function installPresets(
   creator.variablePresets = presets
     ? toSurveyPresets({
         ...presets,
-        presets: [...presets.presets, ...pickedOutsideRead(state)],
+        presets: withUnsaved(
+          [...presets.presets, ...pickedOutsideRead(state)],
+          state.unsaved,
+        ),
       })
     : (undefined as unknown as ISurveyVariablePresets);
-  lockValuesEditor(creator);
+  applyEditorPolicy(creator, state);
 }
 
 function pickedOutsideRead(state: BindingState): AudienceVariablePreset[] {
@@ -177,19 +212,52 @@ function readOnlyPresets(state: BindingState): string[] {
   return [...new Set([...state.variables.readOnlyPresets, ...picked])];
 }
 
-/**
- * Read-only until edits save (endatix#1348): the values editor writes only to the local container,
- * and the next Preview open would replace it, so the API's `editing` gates are not applied yet.
- */
-function lockValuesEditor(creator: SurveyCreatorModel): void {
+/** The API's `editing` gates for the values editor, read-only when the designer cannot save. */
+function applyEditorPolicy(
+  creator: SurveyCreatorModel,
+  state: BindingState,
+): void {
   const manager = previewPlugin(creator)?.variablePresets;
   if (manager) {
-    Object.assign(manager, {
-      allowAdd: false,
-      allowEdit: false,
-      allowDelete: false,
-    });
+    Object.assign(manager, valuesEditorPolicy(state.variables, state.canSave));
   }
+}
+
+/**
+ * A real participant opens in display mode, name included, so renaming one can never save their
+ * values as a new Test participant. The Creator asks per preset each time the editor lists it.
+ */
+function lockRealParticipants({
+  creator,
+  readOnlyPresets,
+}: WriteTarget): () => void {
+  const onEditing = (_: unknown, options: VariablePresetEditingEvent) => {
+    if (!readOnlyPresets().includes(options.preset.name)) return;
+    options.allowEdit = false;
+    options.allowDelete = false;
+  };
+  creator.onVariablePresetEditing.add(onEditing);
+  return () => creator.onVariablePresetEditing.remove(onEditing);
+}
+
+/** The binding as the designer's writes see it: the save and Add as Audience property. */
+function writeTarget(
+  creator: SurveyCreatorModel,
+  state: BindingState,
+  refresh: () => Promise<void>,
+): WriteTarget {
+  return {
+    creator,
+    isBound: () => state.bound,
+    readOnlyPresets: () => readOnlyPresets(state),
+    pending: state,
+    begin: () => {
+      const write = ++state.latest;
+      return () => write === state.latest;
+    },
+    apply: (variables) => applyRead(creator, variables, state),
+    refresh,
+  };
 }
 
 /** Calls `onOpen` whenever the author switches to the Preview tab. */
@@ -235,17 +303,44 @@ export function bindToCreator(
   onFindParticipant?: FindParticipant,
 ): CreatorBinding {
   initGlobals();
-  const state = newState(audience.variables);
+  const state = newState(audience);
   applyVariables(creator, audience.variables, state);
   const refresh = () => refreshVariables(creator, audience, state);
-  const stopExtending = extendPreview(creator, state, onFindParticipant);
-  const stopWatching = onPreviewOpened(creator, () => void refresh());
-  const unbind = () => {
-    state.bound = false;
-    stopWatching();
-    stopExtending();
+  const target = writeTarget(creator, state, refresh);
+  const unbind = unbinding(state, [
+    extendPreview(creator, state, onFindParticipant),
+    ...watching(target, audience),
+  ]);
+  return Object.assign(unbind, {
+    refresh,
+    ...writing(target, audience),
+    ...reading(creator, state),
+  });
+}
+
+/** Reads again on every Preview open, locks real participants, and saves on the editor's Apply. */
+function watching(target: WriteTarget, audience: BoundAudience) {
+  return [
+    onPreviewOpened(target.creator, () => void target.refresh()),
+    lockRealParticipants(target),
+    saveOnEdit(target, audience.testParticipants),
+  ];
+}
+
+/** What the binding writes besides Test participant values, which save on the editor's Apply. */
+function writing(target: WriteTarget, audience: BoundAudience) {
+  return {
+    addProperty: (finding: AudienceFinding) =>
+      addAudienceProperty(target, audience.addProperty, finding),
   };
-  return Object.assign(unbind, { refresh, ...reading(creator, state) });
+}
+
+/** Unbinds: a read or write in flight is dropped, and every Creator hook removed. */
+function unbinding(state: BindingState, stops: (() => void)[]): () => void {
+  return () => {
+    state.bound = false;
+    stops.forEach((stop) => stop());
+  };
 }
 
 /** What the binding answers from the variables read last and the participants picked since. */
@@ -271,11 +366,14 @@ function finding(
   };
 }
 
-function newState(variables: AudienceVariables): BindingState {
+function newState(audience: BoundAudience): BindingState {
   return {
-    variables,
+    variables: audience.variables,
     applied: undefined,
     picked: new Map(),
+    unsaved: [],
+    canSave: !!audience.testParticipants,
+    canAddProperty: !!audience.addProperty,
     latest: 0,
     bound: true,
   };
@@ -290,7 +388,7 @@ function reviewing(creator: SurveyCreatorModel, state: BindingState) {
   const review = (): AudienceReview => {
     if (!reviewer) return { findings: [] };
     const { findings } = reviewer(creator.JSON, state.variables);
-    return { findings: findings.map((f) => withCanvasFix(creator, f)) };
+    return { findings: findings.map(withDesignerActions(creator, state)) };
   };
   return {
     review: async (): Promise<AudienceReview> => {
@@ -322,14 +420,31 @@ function currentFix(findings: AudienceFinding[], finding: AudienceFinding) {
   return same?.kind === "unknown-variable" ? same.fix : undefined;
 }
 
-function withCanvasFix(
+/** A fix only when the canvas can take it; Add as Audience property only when the designer can. */
+const withDesignerActions =
+  (creator: SurveyCreatorModel, { canAddProperty }: BindingState) =>
+  (finding: AudienceFinding): AudienceFinding => {
+    if (finding.kind !== "unknown-variable") return finding;
+    const fix =
+      finding.fix && canFixOnCanvas(creator, finding.fix)
+        ? finding.fix
+        : undefined;
+    return {
+      ...finding,
+      fix,
+      canAddProperty: canAddProperty && finding.canAddProperty,
+    };
+  };
+
+/** A read becomes the binding's: its participants, read-only names and editing policy. */
+function applyRead(
   creator: SurveyCreatorModel,
-  finding: AudienceFinding,
-): AudienceFinding {
-  if (finding.kind !== "unknown-variable" || !finding.fix) return finding;
-  return canFixOnCanvas(creator, finding.fix)
-    ? finding
-    : { ...finding, fix: undefined };
+  variables: AudienceVariables,
+  state: BindingState,
+): void {
+  applyVariables(creator, variables, state);
+  state.variables = variables;
+  applyEditorPolicy(creator, state);
 }
 
 /**
@@ -345,8 +460,7 @@ async function refreshVariables(
   try {
     const fresh = await hooks.refresh();
     if (state.bound && read === state.latest && Result.isSuccess(fresh)) {
-      applyVariables(creator, fresh.value, state);
-      state.variables = fresh.value;
+      applyRead(creator, fresh.value, state);
     }
   } catch {
     // Offline, a stale server action after a deploy, or variables the Creator rejects: keep what

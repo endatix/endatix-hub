@@ -63,6 +63,30 @@ describe("reviewAudience", () => {
     ]);
   });
 
+  // The API names a Property's variable by lower-casing its name and joining ASCII letter and digit
+  // runs with `_`; only a name that survives that unchanged is declared by adding it.
+  it("offers Add as Audience property only for a name a Property would keep", () => {
+    // Arrange
+    const json = form(usesBoth, {
+      type: "html",
+      name: "hi",
+      html: "{City_2} {_region}",
+    });
+
+    // Act
+    const { findings } = reviewAudience(json, variables());
+
+    // Assert
+    expect(
+      findings.map((f) =>
+        f.kind === "unknown-variable" ? [f.variable, f.canAddProperty] : f,
+      ),
+    ).toEqual([
+      ["City_2", true],
+      ["_region", false],
+    ]);
+  });
+
   it("does not warn about custom variables", () => {
     const json = {
       calculatedValues: [{ name: "campaign" }],

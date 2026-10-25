@@ -13,6 +13,8 @@ export type AudienceFinding =
       /** The declared name it most likely meant. */
       suggestion?: string;
       fix?: AudienceFix;
+      /** Whether a Property named after `variable` declares it: Add as Audience property. */
+      canAddProperty: boolean;
     }
   | {
       kind: "variable-collision";
