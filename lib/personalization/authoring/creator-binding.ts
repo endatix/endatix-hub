@@ -186,22 +186,29 @@ function lockValuesEditor(creator: SurveyCreatorModel): void {
   }
 }
 
-/** Calls `onOpen` whenever the Preview tab opens, and once now when it is open already. */
+/**
+ * Calls `onOpen` whenever the Preview tab opens, and once now when it is open already. Stopping
+ * runs the undo the last call returned.
+ */
 function onPreviewOpened(
   creator: SurveyCreatorModel,
-  onOpen: (plugin: TabTestPlugin, atBind: boolean) => void,
+  onOpen: (plugin: TabTestPlugin, atBind: boolean) => () => void,
 ): () => void {
+  let undo = () => {};
   const openPreview = (atBind: boolean) => {
     const isPreview =
       canonicalizeCreatorTabId(creator.activeTab) ===
       ENDATIX_CREATOR_TAB.preview;
     const plugin = isPreview ? previewPlugin(creator) : null;
-    if (plugin) onOpen(plugin, atBind);
+    if (plugin) undo = onOpen(plugin, atBind);
   };
   const onActiveTabChanged = () => openPreview(false);
   creator.onActiveTabChanged.add(onActiveTabChanged);
   openPreview(true);
-  return () => creator.onActiveTabChanged.remove(onActiveTabChanged);
+  return () => {
+    creator.onActiveTabChanged.remove(onActiveTabChanged);
+    undo();
+  };
 }
 
 /** Participants the API left out of `presets` (it sends the first 20). */
@@ -227,8 +234,8 @@ export function bindToCreator(
   applyVariables(creator, audience.variables, state);
   const refresh = () => refreshVariables(creator, audience, state);
   const stopWatching = onPreviewOpened(creator, (plugin, atBind) => {
-    extendPreviewAs(plugin, finding(creator, state, onFindParticipant));
     if (!atBind) void refresh();
+    return extendPreviewAs(plugin, finding(creator, state, onFindParticipant));
   });
   const unbind = () => {
     state.bound = false;

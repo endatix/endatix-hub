@@ -23,31 +23,54 @@ export type FindParticipantOption = {
 
 const NONE_ID = "";
 const FIND_ID = "endatix-find-participant";
-const extended = new WeakSet<PreviewView>();
+/** Each extended view's undo, so a second call for the same view hands back the same one. */
+const undos = new WeakMap<PreviewView, () => void>();
 
 /**
  * Adds None as the selector's first item to the Preview built for the current activation, and,
- * when given, a Find participant action after the selector.
+ * when given, a Find participant action after the selector. Returns how to take both out again.
  */
 export function extendPreviewAs(
   plugin: TabTestPlugin,
   findParticipant?: FindParticipantOption,
-): void {
+): () => void {
   const view = plugin.model as unknown as PreviewView | undefined;
-  if (!view || extended.has(view)) return;
+  if (!view) return () => undefined;
+  const known = undos.get(view);
+  if (known) return known;
 
-  extended.add(view);
-  const showFind = findParticipant
-    ? addFindAction(view, findParticipant)
-    : () => undefined;
-  const refresh = () =>
-    showFind(prependNone(view, plugin.variablePresets.active));
-  const update = view.updateVariablePresetActions.bind(view);
-  view.updateVariablePresetActions = () => {
-    update();
-    refresh();
+  const find = findParticipant && addFindAction(view, findParticipant);
+  const refresh = () => {
+    const shown = prependNone(view, plugin.variablePresets.active);
+    find?.show(shown);
   };
+  const original = runAfterUpdates(view, refresh);
   refresh();
+  const undo = () => restore(view, original, find);
+  undos.set(view, undo);
+  return undo;
+}
+
+/** Runs `after` each time Creator rebuilds the selector; returns Creator's own method. */
+function runAfterUpdates(view: PreviewView, after: () => void): () => void {
+  const original = view.updateVariablePresetActions;
+  view.updateVariablePresetActions = () => {
+    original.call(view);
+    after();
+  };
+  return original;
+}
+
+/** Puts Creator's own selector back, without None, and takes Find participant out. */
+function restore(
+  view: PreviewView,
+  original: () => void,
+  find: FindAction | undefined,
+): void {
+  undos.delete(view);
+  view.updateVariablePresetActions = original;
+  find?.remove();
+  original.call(view);
 }
 
 /** Returns whether the selector has participants to show. */
@@ -68,11 +91,16 @@ function prependNone(view: PreviewView, activeName: string): boolean {
   return presets.length > 0;
 }
 
-/** Returns how to show the action: with the selector, while participants are left out of it. */
+type FindAction = { show(selectorShown: boolean): void; remove(): void };
+
+/**
+ * The action, put after the selector. It shows with the selector while participants are left out
+ * of it, and goes back in when Preview rebuilds its toolbar (`buildActions` replaces the list).
+ */
 function addFindAction(
   view: PreviewView,
   { find, hasMore }: FindParticipantOption,
-): (selectorShown: boolean) => void {
+): FindAction {
   const action = new Action({
     id: FIND_ID,
     css: "svc-variable-presets-view",
@@ -80,13 +108,19 @@ function addFindAction(
     visible: false,
     action: () => find(),
   });
-  insertAfterSelector(view, action);
-  return (selectorShown) => {
-    const visible = selectorShown && hasMore();
-    action.visible = new ComputedUpdater(
-      () => visible && view.isSurveyRunning(),
-    ) as unknown as boolean;
+  return {
+    show: (selectorShown) => showFind(view, action, selectorShown && hasMore()),
+    remove: () => {
+      view.pages.actions = view.pages.actions.filter((a) => a !== action);
+    },
   };
+}
+
+function showFind(view: PreviewView, action: Action, visible: boolean): void {
+  if (!view.pages.actions.includes(action)) insertAfterSelector(view, action);
+  action.visible = new ComputedUpdater(
+    () => visible && view.isSurveyRunning(),
+  ) as unknown as boolean;
 }
 
 function insertAfterSelector(view: PreviewView, action: Action): void {

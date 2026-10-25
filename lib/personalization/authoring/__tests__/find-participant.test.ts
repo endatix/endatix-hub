@@ -61,10 +61,17 @@ function selectorTitles(creator: SurveyCreatorModel) {
   return list.actions.map((item) => item.title);
 }
 
+type Opened = "after bind" | "before bind";
+
 /** A designer bound with a read of `total` participants, Preview open; `pick` is what Find hands over. */
-function designerWith(total: number, refreshed = variables(total)) {
+function designerWith(
+  total: number,
+  refreshed = variables(total),
+  opened: Opened = "after bind",
+) {
   const creator = new SurveyCreatorModel({ showPreview: true });
   creator.JSON = FORM_JSON;
+  if (opened === "before bind") creator.activeTab = "preview";
   let previewAs: PreviewAs | undefined;
   const onFind = vi.fn((pick: PreviewAs) => (previewAs = pick));
   const binding = bindAudienceToCreator(
@@ -83,7 +90,46 @@ function designerWith(total: number, refreshed = variables(total)) {
   return { creator, binding, onFind, pick };
 }
 
+function findActions(creator: SurveyCreatorModel) {
+  return preview(creator).model.pages.actions.filter((a) => a.id === FIND_ID);
+}
+
 describe("Find participant in the designer's Preview", () => {
+  // `?tab=preview`: the Creator is on Preview before the binding attaches.
+  it("is offered when Preview was already open at bind time", () => {
+    // Act
+    const { creator } = designerWith(60, variables(60), "before bind");
+
+    // Assert
+    expect(findAction(creator)?.isVisible).toBe(true);
+  });
+
+  // The form arriving with Preview open rebuilds its toolbar (TabTestPlugin.update → buildActions).
+  it("stays, once, when Preview rebuilds its toolbar", () => {
+    // Arrange
+    const { creator } = designerWith(60, variables(60), "before bind");
+
+    // Act
+    creator.JSON = { ...FORM_JSON, title: "Arrived after the tab" };
+    preview(creator).update();
+
+    // Assert
+    expect(findActions(creator)).toHaveLength(1);
+    expect(findAction(creator)?.isVisible).toBe(true);
+  });
+
+  it("is removed when the designer lets go of the Creator", () => {
+    // Arrange
+    const { creator, binding } = designerWith(60);
+
+    // Act
+    binding();
+
+    // Assert
+    expect(findActions(creator)).toHaveLength(0);
+    expect(selectorTitles(creator)).not.toContain("None");
+  });
+
   it("is offered when the form has more participants than the selector lists", () => {
     // Arrange
     const { creator, onFind } = designerWith(60);
@@ -193,14 +239,16 @@ describe("Find participant in the designer's Preview", () => {
 
   it("ignores a pick that lands after the designer let go of the Creator", () => {
     // Arrange
-    const { creator, binding, pick } = designerWith(60);
+    const { creator, binding, onFind } = designerWith(60);
+    findAction(creator)?.action?.();
+    const previewAs = onFind.mock.calls[0][0];
     binding();
 
     // Act
-    pick(ANA, false);
+    previewAs(ANA, false);
 
     // Assert
-    expect(selectorTitles(creator)).toEqual(["None", MARIA, BOB]);
+    expect(selectorTitles(creator)).toEqual([MARIA, BOB]);
     expect(binding.readOnlyPresets()).toEqual([BOB]);
   });
 
