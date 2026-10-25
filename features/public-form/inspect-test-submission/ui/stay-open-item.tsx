@@ -8,6 +8,9 @@ type StayOpenItemProps = {
   onAct: () => void;
   /** Takes focus once true. Radix menu items take programmatic focus. */
   focused?: boolean;
+  disabled?: boolean;
+  /** What typeahead matches, when the text holds a glyph. */
+  textValue?: string;
   children: ReactNode;
 };
 
@@ -19,22 +22,22 @@ function useFocusWhen(focused: boolean) {
   return item;
 }
 
-/** A menu item whose action keeps the menu open: drill in, Back, Copy as JSON. */
+/** A menu item whose action keeps the menu open: drill in, Back, Copy as JSON, Start over. */
 export function StayOpenItem({
-  className,
   onAct,
   focused = false,
   children,
+  ...item
 }: Readonly<StayOpenItemProps>) {
-  const item = useFocusWhen(focused);
+  const ref = useFocusWhen(focused);
   return (
     <DropdownMenu.Item
-      className={className}
+      {...item}
       onSelect={(event) => {
         event.preventDefault();
         onAct();
       }}
-      ref={item}
+      ref={ref}
     >
       {children}
     </DropdownMenu.Item>

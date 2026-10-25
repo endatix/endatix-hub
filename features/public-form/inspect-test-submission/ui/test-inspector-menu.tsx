@@ -47,16 +47,9 @@ function StartOverRow({ restart }: Readonly<{ restart: StartOverControls }>) {
   return (
     <>
       {canRun ? (
-        <DropdownMenu.Item
-          className={styles.row}
-          disabled={pending}
-          onSelect={(event) => {
-            event.preventDefault();
-            run();
-          }}
-        >
+        <StayOpenItem className={styles.row} disabled={pending} onAct={run}>
           Start over
-        </DropdownMenu.Item>
+        </StayOpenItem>
       ) : null}
       {problem ? <output className={styles.problem}>{problem}</output> : null}
     </>
