@@ -64,6 +64,7 @@ const VARIABLES: AudienceVariables = {
   },
   coverage: { participants: { test: 2, real: 1 }, properties: [] },
   editing: { allowAdd: true, allowEdit: true, allowDelete: false },
+  readOnlyPresets: [],
 };
 
 const page = (items: AudiencePerson[]) =>

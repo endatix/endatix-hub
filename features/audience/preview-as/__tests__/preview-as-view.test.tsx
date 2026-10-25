@@ -95,8 +95,20 @@ function data(overrides: Partial<PreviewAsData> = {}): PreviewAsData {
 const renderView = (overrides: Partial<PreviewAsData> = {}) =>
   render(<PreviewAsView formId="1" {...data(overrides)} />);
 
-const participants = () =>
-  screen.getByRole("listbox", { name: "Participants" });
+const participants = () => screen.getByRole("region", { name: "Participants" });
+const options = () => within(participants()).getAllByRole("button");
+const isSelected = (option: HTMLElement) =>
+  option.getAttribute("aria-current") === "true";
+
+/** A key on the focused participant, as a reader presses it; focus starts on the tabbable one. */
+function press(key: string) {
+  const focused = document.activeElement;
+  const target = options().includes(focused as HTMLElement)
+    ? (focused as HTMLElement)
+    : options().find((option) => option.tabIndex === 0)!;
+  target.focus();
+  fireEvent.keyDown(target, { key });
+}
 
 // Radix measures with ResizeObserver.
 class ResizeObserverStub {
@@ -114,19 +126,19 @@ describe("PreviewAsView", () => {
   it("lists the Test participants with the previewed one selected", () => {
     renderView();
 
-    const options = within(participants()).getAllByRole("option");
-    expect(options.map((option) => option.textContent)).toEqual([
+    expect(options().map((option) => option.textContent)).toEqual([
       expect.stringContaining("maria@acme.test"),
       expect.stringContaining("jo@acme.test"),
     ]);
-    expect(options[0].getAttribute("aria-selected")).toBe("true");
+    expect(isSelected(options()[0])).toBe(true);
+    expect(options()[0].tabIndex).toBe(0);
+    expect(options()[1].tabIndex).toBe(-1);
   });
 
   it("lists the search matches after the Test participants, without repeating one", () => {
     renderView({ search: "acme", matches: [SAM, MARIA], totalMatches: 2 });
 
-    const options = within(participants()).getAllByRole("option");
-    expect(options.map((option) => option.textContent)).toEqual([
+    expect(options().map((option) => option.textContent)).toEqual([
       expect.stringContaining("maria@acme.test"),
       expect.stringContaining("jo@acme.test"),
       expect.stringContaining("sam@acme.com"),
@@ -151,12 +163,12 @@ describe("PreviewAsView", () => {
   it("moves through the list with the arrow keys", () => {
     renderView({ search: "acme", matches: [SAM], totalMatches: 1 });
 
-    fireEvent.keyDown(participants(), { key: "ArrowDown" });
+    press("ArrowDown");
     expect(router.replace).toHaveBeenLastCalledWith(
       "/forms/1/audience/preview-as?member=8&q=acme",
       { scroll: false },
     );
-    fireEvent.keyDown(participants(), { key: "ArrowUp" });
+    press("ArrowUp");
     expect(router.replace).toHaveBeenLastCalledWith(
       "/forms/1/audience/preview-as?member=7&q=acme",
       { scroll: false },
@@ -166,18 +178,16 @@ describe("PreviewAsView", () => {
   it("keeps moving while the previous step is still loading", () => {
     renderView({ search: "acme", matches: [SAM], totalMatches: 1 });
 
-    fireEvent.keyDown(participants(), { key: "ArrowDown" });
-    fireEvent.keyDown(participants(), { key: "ArrowDown" });
+    press("ArrowDown");
+    press("ArrowDown");
 
     expect(router.replace).toHaveBeenLastCalledWith(
       "/forms/1/audience/preview-as?member=20&q=acme",
       { scroll: false },
     );
-    expect(
-      screen
-        .getByRole("option", { name: /sam@acme.com/ })
-        .getAttribute("aria-selected"),
-    ).toBe("true");
+    const sam = screen.getByRole("button", { name: /sam@acme.com/ });
+    expect(isSelected(sam)).toBe(true);
+    expect(document.activeElement).toBe(sam);
   });
 
   it("lists a linked participant who is in neither list, selected", () => {
@@ -185,23 +195,21 @@ describe("PreviewAsView", () => {
       selected: { status: "found", person: SAM, variables: {} },
     });
 
-    const previewing = screen.getByRole("group", { name: "Previewing" });
-    expect(
-      within(previewing).getByRole("option").getAttribute("aria-selected"),
-    ).toBe("true");
+    const previewing = screen.getByRole("list", { name: "Previewing" });
+    expect(isSelected(within(previewing).getByRole("button"))).toBe(true);
   });
 
   it("says so when every match is already listed", () => {
     renderView({ search: "maria", matches: [MARIA], totalMatches: 1 });
 
-    screen.getByText("Every match is listed above.");
+    expect(screen.getByText("Every match is listed above.")).toBeTruthy();
   });
 
   it("stops at the ends of the list", () => {
     renderView();
 
-    fireEvent.keyDown(participants(), { key: "ArrowUp" });
-    fireEvent.keyDown(participants(), { key: "Home" });
+    press("ArrowUp");
+    press("Home");
 
     expect(router.replace).not.toHaveBeenCalled();
   });
@@ -209,7 +217,7 @@ describe("PreviewAsView", () => {
   it("jumps to the last participant with End", () => {
     renderView();
 
-    fireEvent.keyDown(participants(), { key: "End" });
+    press("End");
 
     expect(router.replace).toHaveBeenCalledWith(
       "/forms/1/audience/preview-as?member=8",
@@ -220,7 +228,7 @@ describe("PreviewAsView", () => {
   it("previews a participant on click", () => {
     renderView();
 
-    fireEvent.click(screen.getByRole("option", { name: /jo@acme.test/ }));
+    fireEvent.click(screen.getByRole("button", { name: /jo@acme.test/ }));
 
     expect(router.replace).toHaveBeenCalledWith(
       "/forms/1/audience/preview-as?member=8",
@@ -232,8 +240,8 @@ describe("PreviewAsView", () => {
     renderView();
 
     const strip = screen.getByRole("region", { name: "maria@acme.test" });
-    within(strip).getByText("Gold");
-    within(strip).getByText("Not filled in: Region");
+    expect(within(strip).getByText("Gold")).toBeTruthy();
+    expect(within(strip).getByText("Not filled in: Region")).toBeTruthy();
   });
 
   it("renders the saved form with the participant's values and its save time", () => {
@@ -243,6 +251,8 @@ describe("PreviewAsView", () => {
       expect.objectContaining({
         definition: FORM,
         variables: { tier: "gold" },
+        theme: THEME,
+        customQuestions: [],
       }),
     );
     screen.getByText(/Saved form, last saved/);

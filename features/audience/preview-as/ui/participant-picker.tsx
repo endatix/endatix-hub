@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  useEffect,
-  useId,
-  useState,
-  type FormEvent,
-  type KeyboardEvent,
-} from "react";
+import { useEffect, useId, useState, type KeyboardEvent } from "react";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import type { AudiencePerson } from "@/lib/endatix-api/audience/types";
@@ -45,16 +39,15 @@ function stepFrom(ids: string[], selectedId: string | undefined, key: string) {
 
 const SEARCH_ICON =
   "pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground";
-const LISTBOX =
-  "flex flex-col gap-4 rounded-xl border bg-card p-2 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none";
+const LIST = "flex flex-col gap-4 rounded-xl border bg-card p-2";
 const OPTION =
-  "cursor-pointer rounded-md px-2 py-1.5 text-sm break-all hover:bg-muted";
+  "w-full rounded-md px-2 py-1.5 text-left text-sm break-all hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none";
 
 type SearchFieldProps = Pick<ParticipantPickerProps, "search" | "onSearch">;
 
 function SearchField({ search, onSearch }: Readonly<SearchFieldProps>) {
   const [query, setQuery] = useState(search);
-  const submit = (event: FormEvent) => {
+  const submit = (event: { preventDefault: () => void }) => {
     event.preventDefault();
     onSearch(query);
   };
@@ -73,44 +66,48 @@ function SearchField({ search, onSearch }: Readonly<SearchFieldProps>) {
   );
 }
 
-type OptionsProps = {
-  group: PickerGroup;
+type ListProps = ParticipantPickerProps & {
   optionId: (memberId: string) => string;
-  selectedId?: string;
-  onSelect: (memberId: string) => void;
+  /** The one option in the tab order: the selected one, else the first. */
+  tabbableId?: string;
+  onKeyDown: (event: KeyboardEvent, memberId: string) => void;
 };
 
-function GroupOptions({
-  group,
-  optionId,
-  selectedId,
-  onSelect,
-}: Readonly<OptionsProps>) {
+type GroupProps = ListProps & { group: PickerGroup };
+
+function GroupOptions(props: Readonly<GroupProps>) {
+  const { group, optionId, selectedId, tabbableId, onSelect } = props;
   return group.people.map(({ audienceMemberId: id, identifier, isTest }) => (
-    <div
-      key={id}
-      id={optionId(id)}
-      role="option"
-      aria-selected={id === selectedId}
-      onClick={() => onSelect(id)}
-      className={cn(OPTION, id === selectedId && "bg-muted font-medium")}
-    >
-      <WithTestBadge isTest={isTest}>{identifier}</WithTestBadge>
-    </div>
+    <li key={id}>
+      <button
+        type="button"
+        id={optionId(id)}
+        aria-current={id === selectedId ? "true" : undefined}
+        tabIndex={id === tabbableId ? 0 : -1}
+        onClick={() => onSelect(id)}
+        onKeyDown={(event) => props.onKeyDown(event, id)}
+        className={cn(OPTION, id === selectedId && "bg-muted font-medium")}
+      >
+        <WithTestBadge isTest={isTest}>{identifier}</WithTestBadge>
+      </button>
+    </li>
   ));
 }
 
-function Group(props: Readonly<OptionsProps>) {
+function Group(props: Readonly<GroupProps>) {
   const { label, note } = props.group;
+  const heading = useId();
   return (
-    <div role="group" aria-label={label}>
-      <div
-        role="presentation"
+    <div>
+      <p
+        id={heading}
         className="px-2 pb-1 text-xs font-medium text-muted-foreground"
       >
         {label}
-      </div>
-      <GroupOptions {...props} />
+      </p>
+      <ul aria-labelledby={heading}>
+        <GroupOptions {...props} />
+      </ul>
       {note ? (
         <p className="px-2 pt-1 text-xs text-muted-foreground">{note}</p>
       ) : null}
@@ -124,56 +121,45 @@ function useScrollIntoView(id: string | undefined) {
   }, [id]);
 }
 
-function useListKeys(ids: string[], props: ListProps) {
-  const { selectedId, onSelect, optionId } = props;
-  const activeOption =
-    selectedId && ids.includes(selectedId) ? optionId(selectedId) : undefined;
-  useScrollIntoView(activeOption);
-  const onKeyDown = (event: KeyboardEvent) => {
+/** Arrow keys, Home and End move focus and the selection to another participant. */
+function useListKeys(
+  ids: string[],
+  props: ParticipantPickerProps,
+  optionId: (id: string) => string,
+) {
+  const { selectedId, onSelect } = props;
+  const listed =
+    selectedId && ids.includes(selectedId) ? selectedId : undefined;
+  useScrollIntoView(listed && optionId(listed));
+  const onKeyDown = (event: KeyboardEvent, from: string) => {
     if (!isListKey(event.key)) return;
     event.preventDefault();
-    const next = stepFrom(ids, selectedId, event.key);
-    if (next && next !== selectedId) onSelect(next);
+    const next = stepFrom(ids, from, event.key);
+    if (!next || next === from) return;
+    document.getElementById(optionId(next))?.focus();
+    onSelect(next);
   };
-  return { activeOption, onKeyDown };
-}
-
-type ListProps = ParticipantPickerProps & {
-  optionId: (memberId: string) => string;
-};
-
-function OptionList(props: Readonly<ListProps>) {
-  const ids = props.groups.flatMap((g) =>
-    g.people.map((p) => p.audienceMemberId),
-  );
-  const { activeOption, onKeyDown } = useListKeys(ids, props);
-  return (
-    <div
-      role="listbox"
-      aria-label="Participants"
-      tabIndex={0}
-      aria-activedescendant={activeOption}
-      onKeyDown={onKeyDown}
-      className={LISTBOX}
-    >
-      {props.groups.map((group) => (
-        <Group key={group.label} {...props} group={group} />
-      ))}
-    </div>
-  );
+  return { tabbableId: listed ?? ids[0], onKeyDown };
 }
 
 /**
- * Test participants, then everyone a search finds, as one listbox: a click or a key previews
- * another one, while focus stays on the list.
+ * Test participants, then everyone a search finds: a click or a key previews another one.
  */
 export function ParticipantPicker(props: Readonly<ParticipantPickerProps>) {
   const base = useId();
   const optionId = (memberId: string) => `${base}-${memberId}`;
+  const ids = props.groups.flatMap((g) =>
+    g.people.map((p) => p.audienceMemberId),
+  );
+  const list = { ...props, ...useListKeys(ids, props, optionId), optionId };
   return (
     <div className="flex flex-col gap-3">
       <SearchField {...props} />
-      <OptionList {...props} optionId={optionId} />
+      <section aria-label="Participants" className={LIST}>
+        {props.groups.map((group) => (
+          <Group key={group.label} {...list} group={group} />
+        ))}
+      </section>
     </div>
   );
 }
