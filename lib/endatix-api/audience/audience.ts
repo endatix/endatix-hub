@@ -46,6 +46,7 @@ import {
   type RedeemedAudienceLink,
   type UpdateAudienceSettingsRequest,
   type AudienceVariables,
+  type AudienceVariablePreset,
 } from "./types";
 
 export type AudiencePeoplePage = NormalizedPagedResponse<AudiencePerson>;
@@ -65,6 +66,8 @@ export function buildListAudiencePeopleEndpoint(
   if (request.test && request.test !== AudiencePeopleTestFilter.All) {
     searchParams.set("test", request.test);
   }
+  const search = request.search?.trim();
+  if (search) searchParams.set("search", search);
   return buildEndpointWithQuery(
     formAudiencePath(formId, "people"),
     searchParams,
@@ -189,6 +192,19 @@ export class Audience {
       await this.endatix.get<WireVariables>(
         formAudiencePath(formId, "variables"),
       ),
+    );
+  }
+
+  /** One participant's values (real or test) by audience member id, for Preview as. */
+  async getParticipantVariables(
+    formId: string,
+    memberId: string,
+  ): Promise<ApiResult<AudienceVariablePreset>> {
+    const idsCheck = requireFormAndEntityIds(formId, memberId, "memberId");
+    if (!idsCheck.success) return idsCheck;
+
+    return this.endatix.get<AudienceVariablePreset>(
+      formAudiencePath(formId, "variables", "participants", memberId),
     );
   }
 

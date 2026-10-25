@@ -186,6 +186,8 @@ export function isAudiencePeopleTestFilter(
 
 export type ListAudiencePeopleRequest = IPagedRequest & {
   test?: AudiencePeopleTestFilter;
+  /** Part of an identifier, matched ignoring case; blank is no search. */
+  search?: string;
 };
 
 /** A new test submission and the token the respondent page opens it with. */

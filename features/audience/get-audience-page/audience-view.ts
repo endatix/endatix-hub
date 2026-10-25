@@ -16,17 +16,25 @@ export function parseAudienceView(value: string | undefined): AudienceView {
 
 type ViewCounts = { people: number; properties: number };
 
+const PREVIEW_AS_TAB_ID = "preview-as";
+
+type ViewOptions = {
+  previewAs?: boolean;
+};
+
+function previewAsTabs(formId: string, show: boolean): LinkTab[] {
+  if (!show) return [];
+  const href = formRoutes.previewAs(formId);
+  return [{ id: PREVIEW_AS_TAB_ID, label: "Preview as", href }];
+}
+
 /** People is the bare tab URL; Properties is a view of it, so the tab link stays canonical. */
-export function audienceViewTabs(
-  formId: string,
-  counts: ViewCounts,
-): LinkTab[] {
-  const base = formRoutes.audience(formId);
+function listTabs(formId: string, counts: ViewCounts): LinkTab[] {
   return [
     {
       id: AudienceView.People,
       label: "People",
-      href: base,
+      href: formRoutes.audience(formId),
       count: counts.people,
     },
     {
@@ -38,4 +46,13 @@ export function audienceViewTabs(
       count: counts.properties,
     },
   ];
+}
+
+export function audienceViewTabs(
+  formId: string,
+  counts: ViewCounts,
+  { previewAs = false }: ViewOptions = {},
+): LinkTab[] {
+  const preview = previewAsTabs(formId, previewAs && counts.properties > 0);
+  return [...listTabs(formId, counts), ...preview];
 }

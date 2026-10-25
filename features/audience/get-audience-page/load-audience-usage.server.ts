@@ -34,8 +34,12 @@ async function loadSavedForm(
   return Result.isError(saved) ? null : parseSurveyJson(saved.value.jsonData);
 }
 
-/** A custom piece's own properties (drag-categorize choice text) are read only once it is registered. */
-function coverageOf(
+/**
+ * What a saved form reads of its variables, the verdict People and Preview as share; `null` without
+ * Properties or when the lint fails. A custom piece's own properties (drag-categorize choice text) are
+ * read only once it is registered.
+ */
+export function savedFormUsage(
   surveyJson: object,
   variables: AudienceVariables,
   formId: string,
@@ -70,5 +74,5 @@ export async function loadAudienceUsage({
     loadSavedForm(api, formId, activeDefinitionId),
   ]);
   if (!loaded?.variablePresets || !surveyJson) return null;
-  return coverageOf(surveyJson, loaded, formId);
+  return savedFormUsage(surveyJson, loaded, formId);
 }
