@@ -51,24 +51,40 @@ function emptyReason(props: PreviewAsViewProps): string | null {
   return null;
 }
 
-type PaneProps = PreviewAsViewProps & { pending: boolean };
+type PaneProps = PreviewAsViewProps & {
+  pending: boolean;
+  activeId?: string;
+};
+
+function listedPerson(props: PreviewAsViewProps, id: string | undefined) {
+  if (!id) return undefined;
+  const people = [...props.testParticipants, ...(props.matches ?? [])];
+  const previewing = previewedPerson(props.selected);
+  if (previewing) people.push(previewing);
+  return people.find((person) => person.audienceMemberId === id);
+}
 
 function PreviewPane(props: Readonly<PaneProps>) {
   const { form, selected } = props;
-  if (!form || selected?.status !== "found")
+  const server = selected?.status === "found" ? selected : undefined;
+  const person = listedPerson(props, props.activeId) ?? server?.person;
+  if (!form || !person || !server)
     return <Notice>{emptyReason(props)}</Notice>;
+  const caughtUp = server.person.audienceMemberId === person.audienceMemberId;
   const pane = cn("flex min-w-0 flex-col gap-4", props.pending && "opacity-60");
   return (
     <div className={pane}>
-      <ParticipantStrip {...props} person={selected.person} />
+      <ParticipantStrip {...props} person={person} />
       <SavedLine savedAt={form.savedAt} />
-      <div className="rounded-xl border bg-card">
-        <PreviewSurvey
-          key={selected.person.audienceMemberId}
-          {...form}
-          variables={selected.variables}
-        />
-      </div>
+      {caughtUp ? (
+        <div className="rounded-xl border bg-card">
+          <PreviewSurvey
+            key={person.audienceMemberId}
+            {...form}
+            variables={server.variables}
+          />
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -131,7 +147,7 @@ export function PreviewAsView(props: Readonly<PreviewAsViewProps>) {
           onSelect={select}
           onSearch={find}
         />
-        <PreviewPane {...props} pending={pending} />
+        <PreviewPane {...props} pending={pending} activeId={activeId} />
       </div>
     </div>
   );

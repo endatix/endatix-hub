@@ -176,6 +176,18 @@ describe("PreviewAsView", () => {
     );
   });
 
+  it("shows the highlighted participant while the page catches up", () => {
+    renderView({ search: "acme", matches: [SAM], totalMatches: 1 });
+
+    press("ArrowDown");
+
+    expect(
+      screen.getByRole("region", { name: "jo@acme.test" }),
+    ).toBeTruthy();
+    expect(screen.queryByRole("region", { name: "maria@acme.test" })).toBeNull();
+    expect(screen.queryByTestId("survey")).toBeNull();
+  });
+
   it("keeps moving while the previous step is still loading", () => {
     renderView({ search: "acme", matches: [SAM], totalMatches: 1 });
 
