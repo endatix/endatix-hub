@@ -119,4 +119,68 @@ describe("loadAudienceUsage", () => {
 
     expect(usage?.read).toContain("tier");
   });
+
+  async function usageOf(saved: object) {
+    const { api } = apiWith(
+      ApiResult.success({ jsonData: JSON.stringify(saved) }),
+    );
+    return loadAudienceUsage({ api, ...request });
+  }
+
+  it("reads the expressions of a question type only the browser registers", async () => {
+    const usage = await usageOf({
+      elements: [
+        {
+          type: "tenant-rating",
+          name: "rating",
+          visibleIf: "{tier} = 'gold'",
+        },
+        { type: "text", name: "q", title: "Plan" },
+      ],
+    });
+
+    expect(usage?.read).toEqual(["tier"]);
+  });
+
+  it("reads a custom question nested in a panel and a dynamic panel", async () => {
+    const usage = await usageOf({
+      elements: [
+        {
+          type: "panel",
+          name: "p",
+          elements: [
+            { type: "tenant-rating", name: "a", visibleIf: "{tier} = 'x'" },
+          ],
+        },
+        {
+          type: "paneldynamic",
+          name: "d",
+          templateElements: [
+            { type: "tenant-rating", name: "b", enableIf: "{seats} > 1" },
+          ],
+        },
+      ],
+    });
+
+    expect(usage?.read).toEqual(["tier", "seats"]);
+  });
+
+  it("reads a variable in a screen-out trigger", async () => {
+    const usage = await usageOf({
+      elements: [{ type: "text", name: "q" }],
+      triggers: [{ type: "screenout", expression: "{seats} < 2" }],
+    });
+
+    expect(usage?.read).toEqual(["seats"]);
+  });
+
+  it("reads a variable an audio recorder shows on", async () => {
+    const usage = await usageOf({
+      elements: [
+        { type: "audiorecorder", name: "voice", visibleIf: "{tier} = 'x'" },
+      ],
+    });
+
+    expect(usage?.read).toEqual(["tier"]);
+  });
 });

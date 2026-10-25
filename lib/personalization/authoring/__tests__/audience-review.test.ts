@@ -153,6 +153,17 @@ describe("reviewAudience", () => {
     expect(reviewAudience(json, variables()).findings).toEqual([]);
   });
 
+  it("reads a question type only the browser registers, with no finding about it", () => {
+    const json = form(
+      { type: "tenant-rating", name: "rating", visibleIf: "{tier} = 'gold'" },
+      { type: "tenant-rating", name: "count", title: "{seats} seats" },
+    );
+
+    const { findings } = reviewAudience(json, variables());
+
+    expect(findings).toEqual([]);
+  });
+
   it("reviews nothing when the form has no properties", () => {
     const none = { ...variables(), variablePresets: null };
 

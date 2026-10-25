@@ -5,8 +5,8 @@ import type { EndatixApi } from "@/lib/endatix-api";
 import type { AudienceVariables } from "@/lib/endatix-api/audience/types";
 import type { AudienceUsage } from "@/lib/personalization/audience-usage";
 import { audienceUsage } from "@/lib/personalization/authoring/usage";
-import { registerDragCategorizeModel } from "@/lib/questions/drag-categorize/drag-categorize.registry";
 import { Result, toResult } from "@/lib/result";
+import { registerCoreSurveyModels } from "@/lib/survey-extensions/server";
 
 export type AudienceUsageRequest = {
   api: EndatixApi;
@@ -31,13 +31,13 @@ function parseDefinition(jsonData: string | undefined): object | null {
   }
 }
 
-/** Drag to categorize choice text is a reference only after that class is registered. */
+/** A custom piece's own properties (drag-categorize choice text) are read only once it is registered. */
 function coverageOf(
   surveyJson: object,
   variables: AudienceVariables,
   formId: string,
 ): AudienceUsage | null {
-  registerDragCategorizeModel();
+  registerCoreSurveyModels();
   try {
     return audienceUsage(surveyJson, variables);
   } catch (error) {
