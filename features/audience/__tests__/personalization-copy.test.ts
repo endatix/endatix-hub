@@ -7,6 +7,9 @@ const REPO_ROOT = path.resolve(__dirname, "../../..");
 /**
  * One name per personalization action and US spelling, as in GLOSSARY.md and the docs
  * (endatix-hub#1212). Code identifiers such as `test-as-person` are not copy and stay.
+ *
+ * Scans non-test `.ts`/`.tsx` sources only, which is why this file's own patterns do not match.
+ * Tests assert the copy through the components they render.
  */
 describe("personalization copy", () => {
   it("names the test action Test as this participant", () => {
