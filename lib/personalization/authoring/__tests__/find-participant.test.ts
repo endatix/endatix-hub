@@ -191,6 +191,19 @@ describe("Find participant in the designer's Preview", () => {
     expect(saved.map((preset) => preset.name)).toEqual([MARIA]);
   });
 
+  it("ignores a pick that lands after the designer let go of the Creator", () => {
+    // Arrange
+    const { creator, binding, pick } = designerWith(60);
+    binding();
+
+    // Act
+    pick(ANA, false);
+
+    // Assert
+    expect(selectorTitles(creator)).toEqual(["None", MARIA, BOB]);
+    expect(binding.readOnlyPresets()).toEqual([BOB]);
+  });
+
   it("does not make a picked Test participant read-only", () => {
     // Arrange
     const { binding, pick } = designerWith(60);

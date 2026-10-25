@@ -145,6 +145,33 @@ describe("findParticipants", () => {
     );
   });
 
+  it("reads the first page of real participants alongside the first Test page", async () => {
+    // Arrange
+    let releaseTests = () => {};
+    const testsHeld = new Promise<void>((resolve) => {
+      releaseTests = resolve;
+    });
+    const { api, listPeople } = apiWith(2, 3);
+    const read = listPeople.getMockImplementation()!;
+    listPeople.mockImplementation(async (formId, request) => {
+      if (request.test === "test") await testsHeld;
+      return read(formId, request);
+    });
+
+    // Act
+    const pending = identifiersOf(api, { search: "" });
+    const startedBeforeTestsLanded = listPeople.mock.calls.map(
+      ([, request]) => request.test,
+    );
+    releaseTests();
+    const page = await pending;
+
+    // Assert
+    expect(startedBeforeTestsLanded).toEqual(["test", "real"]);
+    expect(page.participants).toHaveLength(5);
+    expect(listPeople).toHaveBeenCalledTimes(2);
+  });
+
   it("passes a failed read on", async () => {
     // Arrange
     const listPeople = vi

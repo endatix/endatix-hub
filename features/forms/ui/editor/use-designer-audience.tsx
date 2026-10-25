@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useMemo, useState } from "react";
+import { type ReactNode, useCallback, useState } from "react";
 import type { SurveyCreatorModel } from "survey-creator-core";
 import {
   bindAudienceToCreator,
@@ -23,8 +23,9 @@ export function useDesignerAudience(
   audience: DesignerAudience | null | undefined,
 ): [bind: Bind, dialog: ReactNode] {
   const [request, setRequest] = useState<FindParticipantRequest | null>(null);
-  const bind = useMemo(
-    () => binder(audience, (previewAs) => setRequest({ previewAs })),
+  const bind = useCallback<Bind>(
+    (creator) =>
+      bindIfAny(creator, audience, (p) => setRequest({ previewAs: p })),
     [audience],
   );
   const close = () => setRequest(null);
@@ -38,12 +39,12 @@ export function useDesignerAudience(
   return [bind, dialog];
 }
 
-function binder(
+function bindIfAny(
+  creator: SurveyCreatorModel,
   audience: DesignerAudience | null | undefined,
   onFindParticipant: FindParticipant,
-): Bind {
-  return (creator) =>
-    audience
-      ? bindAudienceToCreator(creator, audience, onFindParticipant)
-      : undefined;
+): CreatorBinding | undefined {
+  return audience
+    ? bindAudienceToCreator(creator, audience, onFindParticipant)
+    : undefined;
 }

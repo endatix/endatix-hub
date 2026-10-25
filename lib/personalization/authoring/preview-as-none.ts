@@ -3,7 +3,8 @@ import { getLocString, type TabTestPlugin } from "survey-creator-core";
 
 // Survey Creator 3.2.2's selector lists only the presets, so after picking one there is no way back
 // to None, and it hides itself below two presets. This is the only file that reaches into the
-// Preview view model for it: re-check it on every SurveyJS upgrade (the tests fail if it breaks).
+// Preview view model for it, and for the Find participant action it puts in the page toolbar:
+// re-check it on every SurveyJS upgrade (the tests fail if it breaks).
 
 /** The Preview view model members this file relies on; the two methods are private. */
 type PreviewView = {

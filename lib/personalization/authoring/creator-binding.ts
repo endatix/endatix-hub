@@ -153,7 +153,7 @@ function previewAs(
   state: BindingState,
   picked: PickedParticipant,
 ): void {
-  if (!state.applied) return;
+  if (!state.bound || !state.applied) return;
   const { preset } = picked;
   const inRead = state.applied.presets.some((p) => p.name === preset.name);
   if (!inRead) {
