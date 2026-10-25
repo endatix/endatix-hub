@@ -12,6 +12,10 @@ import { SurveyLicenseProvider } from "@/features/config/survey-license-provider
 import { DesignerRuntimeProvider } from "@/lib/designer-runtime";
 import FormEditorLoader from "@/features/forms/ui/editor/form-editor-loader";
 import { getAudienceVariablesAction } from "@/features/audience/get-audience-variables";
+import {
+  findParticipantsAction,
+  getParticipantPresetAction,
+} from "@/features/audience/find-participant";
 import { loadAudienceVariables } from "@/features/audience/server";
 import { FormAssistantProvider } from "@/features/forms/use-cases/design-form/form-assistant.context";
 import { getCurrentConversationUseCase } from "@/features/forms/use-cases/design-form/get-current-conversation.use-case";
@@ -22,6 +26,8 @@ import { firstSearchParam, type SearchParamValue } from "@/lib/utils/next-utils"
 import { EndatixApi } from "@/lib/endatix-api";
 import { Result, toResult } from "@/lib/result";
 import { Form } from "@/types";
+import type { AudienceVariables } from "@/lib/endatix-api/audience/types";
+import type { DesignerAudience } from "@/lib/personalization/authoring";
 import Link from "next/link";
 import { Suspense } from "react";
 
@@ -119,10 +125,7 @@ export default async function FormDesignerPage({
     themeId: form.themeId ?? undefined,
     isPublic: form.isPublic,
     formIsEnabled: form.isEnabled,
-    audience: audienceVariables && {
-      variables: audienceVariables,
-      refresh: getAudienceVariablesAction.bind(null, formId),
-    },
+    audience: audienceVariables && designerAudience(formId, audienceVariables),
     designReturn: getFormDesignReturn(
       formId,
       firstSearchParam((await searchParams).from),
@@ -157,4 +160,19 @@ export default async function FormDesignerPage({
       </Suspense>
     </div>
   );
+}
+
+/** The variables read with the page, and the form's reads behind Preview as. */
+function designerAudience(
+  formId: string,
+  variables: AudienceVariables,
+): DesignerAudience {
+  return {
+    variables,
+    refresh: getAudienceVariablesAction.bind(null, formId),
+    participants: {
+      find: findParticipantsAction.bind(null, formId),
+      preset: getParticipantPresetAction.bind(null, formId),
+    },
+  };
 }
