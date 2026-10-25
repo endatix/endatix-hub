@@ -207,7 +207,8 @@
   cursor: default;
 }
 
-.field[data-highlighted] {
+.field[data-highlighted],
+.empty[data-highlighted] {
   background-color: var(--ti-bg-hover);
 }
 
@@ -225,8 +226,10 @@
 }
 
 .empty {
-  margin: 0;
   padding: 0.25rem 0.625rem;
+  border-radius: 0.5rem;
   color: var(--ti-muted);
   font-style: italic;
+  outline: none;
+  cursor: default;
 }

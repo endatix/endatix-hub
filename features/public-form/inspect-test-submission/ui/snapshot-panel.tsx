@@ -1,13 +1,8 @@
 "use client";
 
 import type { InspectedSnapshot } from "@/features/public-form/inspect-test-submission/test-inspector-view";
-import { InspectorPanel, PanelFields } from "./inspector-panel";
-import styles from "./test-inspector.module.css";
-
-const capturedFormat = new Intl.DateTimeFormat(undefined, {
-  dateStyle: "medium",
-  timeStyle: "short",
-});
+import { formatDetailsDateTime, toValidDate } from "@/lib/date-utils";
+import { InspectorPanel, PanelFields, PanelSection } from "./inspector-panel";
 
 /** The same shape with or without a Snapshot, so a pasted copy always reads the same way. */
 function snapshotJson(snapshot: InspectedSnapshot | null) {
@@ -20,11 +15,10 @@ function snapshotJson(snapshot: InspectedSnapshot | null) {
   };
 }
 
+/** As Submission Details shows it, so the same Snapshot reads the same on both pages. */
 function capturedAt(snapshot: InspectedSnapshot | null): string | null {
-  const captured = snapshot?.capturedAt ? new Date(snapshot.capturedAt) : null;
-  return captured && !Number.isNaN(captured.getTime())
-    ? capturedFormat.format(captured)
-    : null;
+  const captured = toValidDate(snapshot?.capturedAt);
+  return captured ? formatDetailsDateTime(captured) : null;
 }
 
 /** The Snapshot: the frozen values the survey was opened with, and when they were captured. */
@@ -40,10 +34,10 @@ export function SnapshotPanel({
       title="Snapshot"
     >
       <PanelFields fields={[["Captured", capturedAt(snapshot)]]} />
-      <p className={styles.sectionLabel}>Values</p>
-      <PanelFields
+      <PanelSection
         empty="No Snapshot values"
         fields={values.map(({ name, value }) => [name, value] as const)}
+        title="Values"
       />
     </InspectorPanel>
   );

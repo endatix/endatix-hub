@@ -5,9 +5,9 @@ import { snapshotSourceLabel } from "@/lib/personalization/snapshot-source";
 import {
   InspectorPanel,
   PanelFields,
+  PanelSection,
   type PanelField,
 } from "./inspector-panel";
-import styles from "./test-inspector.module.css";
 
 function submitterJson({
   identifier,
@@ -41,8 +41,11 @@ export function SubmittingAsPanel({
       title="Submitting as"
     >
       <PanelFields fields={identityFields(submitter)} />
-      <p className={styles.sectionLabel}>Submitter fields</p>
-      <PanelFields empty="No Submitter fields" fields={submitter.fields} />
+      <PanelSection
+        empty="No Submitter fields"
+        fields={submitter.fields}
+        title="Submitter fields"
+      />
     </InspectorPanel>
   );
 }
