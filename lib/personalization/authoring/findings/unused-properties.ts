@@ -1,20 +1,13 @@
-import { undeclaredReferences } from "./lint-findings";
+import { usageVerdicts, type AudienceUsage } from "../../audience-usage";
 import type { AudienceFinding } from "./types";
 
 /**
- * Properties the form never reads. A name a question or calculated value also declares is left to
- * the collision warning: the linter counts that name as declared, so it never shows up as read.
+ * Properties the form never reads. A name a question or calculated value also declares counts as
+ * read: the collision warning says what is wrong with it.
  */
-export function unusedProperties(
-  json: object,
-  variableNames: string[],
-  collisions: Set<string>,
-): AudienceFinding[] {
-  const read = undeclaredReferences(json);
-  return variableNames
-    .filter((name) => {
-      const key = name.toLowerCase();
-      return !read.has(key) && !collisions.has(key);
-    })
+export function unusedProperties(usage: AudienceUsage): AudienceFinding[] {
+  const { forProperty } = usageVerdicts(usage);
+  return usage.variableNames
+    .filter((name) => !forProperty(name).used)
     .map((variableName) => ({ kind: "unused-property", variableName }));
 }

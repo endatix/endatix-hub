@@ -6,6 +6,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { AudienceFinding } from "@/lib/personalization/authoring";
+import { formatCount } from "@/lib/personalization/audience-usage";
 import type { FormDiagnosticsPlugin } from "../form-diagnostics-plugin";
 
 const WARNING_CLASS =
@@ -48,6 +49,11 @@ const DESCRIBE: {
     title: `A ${DECLARED_BY[declaredBy]} shares its name with the Property {${variable}}`,
     description: COLLISION_EFFECT[declaredBy](variable),
   }),
+  "not-filled-in": ({ variableName, filledReal, real }) => ({
+    title: `{${variableName}} is not filled in for ${formatCount(real - filledReal)} of ${formatCount(real)} real participants`,
+    description:
+      "The form reads this Property, and those participants have no value for it.",
+  }),
   "unused-property": ({ variableName }) => ({
     title: `{${variableName}} is never used`,
     description: "The form does not read this Property.",
@@ -62,9 +68,9 @@ export function describeAudienceFinding(finding: AudienceFinding): Described {
 
 function findingKey(finding: AudienceFinding, index: number): string {
   const at =
-    finding.kind === "unused-property"
-      ? finding.variableName
-      : `${finding.path}:${finding.variable}`;
+    "path" in finding
+      ? `${finding.path}:${finding.variable}`
+      : finding.variableName;
   return `${finding.kind}:${at}:${index}`;
 }
 

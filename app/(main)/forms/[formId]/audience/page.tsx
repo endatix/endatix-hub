@@ -3,11 +3,16 @@ import { AudiencePageShell } from "@/features/audience/get-audience-page/ui/audi
 import { audienceListSearch } from "@/features/audience/get-audience-page/audience-return-to";
 import {
   loadAudiencePage,
+  loadAudienceUsage,
   parseAudienceView,
   parsePeoplePaging,
   parsePeopleTestFilter,
 } from "@/features/audience/get-audience-page";
-import { requireAudienceAccess } from "@/features/audience/shared/require-audience-api.server";
+import {
+  requireAudienceAccess,
+  type AudienceAccess,
+} from "@/features/audience/shared/require-audience-api.server";
+import { loadAudienceVariables } from "@/features/audience/server";
 import { FormWorkspaceHeader } from "@/features/forms/form-workspace";
 import { loadWorkspaceForm } from "@/features/forms/form-workspace/load-workspace-form.server";
 import { FormLoadError } from "@/features/forms/form-workspace/ui/form-load-error";
@@ -58,22 +63,57 @@ function listSearchFrom(query: Awaited<Params["searchParams"]>): string {
   });
 }
 
-async function audienceView({ query, ...request }: AudienceRequest) {
-  const { formId } = request;
-  const [form, audience] = await Promise.all([
-    loadWorkspaceForm(formId, "audience"),
+type CheckPermission = AudienceAccess["checkPermission"];
+
+/**
+ * The form, and for an editor what its saved definition reads of the variables: the API's
+ * variables read needs `forms.edit`, so a reader who may only view gets no coverage. The variables
+ * load while the form does, and the saved definition alongside them once the form names it.
+ */
+async function formWithUsage(
+  { api, formId, canEdit }: Pick<AudienceRequest, "api" | "formId" | "canEdit">,
+  checkPermission: CheckPermission,
+) {
+  if (!canEdit) {
+    return { form: await loadWorkspaceForm(formId, "audience"), usage: null };
+  }
+  const variables = loadAudienceVariables({ api, formId, checkPermission });
+  const form = await loadWorkspaceForm(formId, "audience");
+  if (Result.isError(form)) return { form, usage: null };
+  const usage = await loadAudienceUsage({
+    api,
+    formId,
+    activeDefinitionId: form.value.activeDefinitionId,
+    variables,
+  });
+  return { form, usage };
+}
+
+/** The active view and the list query Back restores. */
+function viewFrom(query: Awaited<Params["searchParams"]>) {
+  return {
+    view: parseAudienceView(firstSearchParam(query.view)),
+    listSearch: listSearchFrom(query),
+  };
+}
+
+async function audienceView(
+  { query, ...request }: AudienceRequest,
+  checkPermission: CheckPermission,
+) {
+  const [{ form, usage }, audience] = await Promise.all([
+    formWithUsage(request, checkPermission),
     loadAudiencePage({ ...request, paging: peopleQueryFrom(query) }),
   ]);
   if (Result.isError(form)) return <FormLoadError result={form} />;
   if (Result.isError(audience)) return <FormLoadError result={audience} />;
-
   return (
     <AudiencePageShell
-      formId={formId}
+      formId={request.formId}
       header={<FormWorkspaceHeader title="Audience" />}
-      view={parseAudienceView(firstSearchParam(query.view))}
-      listSearch={listSearchFrom(query)}
+      {...viewFrom(query)}
       data={audience.value}
+      usage={usage}
     />
   );
 }
@@ -93,6 +133,7 @@ async function guardAudiencePage(formId: string) {
   ]);
   return {
     api,
+    checkPermission,
     canManageMatchKey: manageSettings.success,
     canEdit: editForms.success,
     canTest: testForms.success,
@@ -104,6 +145,7 @@ export default async function FormAudiencePage({
   searchParams,
 }: Readonly<Params>) {
   const { formId } = await params;
-  const guard = await guardAudiencePage(formId);
-  return audienceView({ ...guard, formId, query: await searchParams });
+  const { checkPermission, ...guard } = await guardAudiencePage(formId);
+  const query = await searchParams;
+  return audienceView({ ...guard, formId, query }, checkPermission);
 }

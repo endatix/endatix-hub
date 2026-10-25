@@ -25,6 +25,7 @@ import { valueProperties } from "../../utils";
 import { PeopleTable, type RowHandlers } from "./people-table";
 import { PeopleTestFilter } from "./people-test-filter";
 import { SectionHeader } from "./section-header";
+import type { UsageVerdicts } from "@/lib/personalization/audience-usage";
 
 type PeopleSectionProps = {
   formId: string;
@@ -45,6 +46,8 @@ type PeopleSectionProps = {
   viewSwitch?: ReactNode;
   /** The locked match key, said once where people are listed. */
   matchKeyNote?: ReactNode;
+  /** The saved form's Audience verdicts: marks participants missing values it reads. */
+  verdicts?: UsageVerdicts | null;
 };
 
 type Paging = Pick<
@@ -217,6 +220,7 @@ export function PeopleSection(props: Readonly<PeopleSectionProps>) {
   const values = {
     ...props,
     properties: valueProperties(props.properties, props.identifierKind),
+    allProperties: props.properties,
   };
   return (
     <section aria-labelledby="audience-people" className="flex flex-col gap-4">

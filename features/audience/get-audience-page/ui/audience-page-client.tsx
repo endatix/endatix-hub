@@ -1,6 +1,10 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
+import {
+  usageVerdicts,
+  type AudienceUsage,
+} from "@/lib/personalization/audience-usage";
 import { LinkTabs } from "@/components/common/link-tabs";
 import { rememberTableReturnTo } from "@/lib/list-page/table-return-to";
 import {
@@ -20,6 +24,8 @@ type Props = {
   data: AudiencePageData;
   /** The list URL's query, already whitelisted, so Back can restore it. */
   listSearch: string;
+  /** What the saved form reads of its variables; `null` leaves the coverage out. */
+  usage: AudienceUsage | null;
 };
 
 /** The match key is a setup step while it can change; once locked, People states it. */
@@ -37,6 +43,11 @@ function ViewSwitch({ formId, view, data }: Readonly<Props>) {
   return <LinkTabs label="Audience view" tabs={tabs} activeId={view} />;
 }
 
+/** The designer's verdicts on the saved form. */
+function useVerdicts(usage: AudienceUsage | null) {
+  return useMemo(() => usage && usageVerdicts(usage), [usage]);
+}
+
 /**
  * People is the tab's task and opens first; Properties is a second view of the same tab
  * (the columns people have), switched with link tabs so each view has its own URL.
@@ -45,10 +56,12 @@ function ActiveView(props: Readonly<Props>) {
   const { settings, canManageMatchKey: _, ...lists } = props.data;
   const viewSwitch = <ViewSwitch {...props} />;
   const { identifierKind } = settings;
+  const verdicts = useVerdicts(props.usage);
   const section = {
     formId: props.formId,
     viewSwitch,
     identifierKind,
+    verdicts,
     ...lists,
   };
   if (props.view === AudienceView.Properties)

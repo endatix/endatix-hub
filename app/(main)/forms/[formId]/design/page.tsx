@@ -17,6 +17,7 @@ import { FormAssistantProvider } from "@/features/forms/use-cases/design-form/fo
 import { getCurrentConversationUseCase } from "@/features/forms/use-cases/design-form/get-current-conversation.use-case";
 import { aiFeaturesFlag } from "@/lib/feature-flags/flags";
 import { getFormDesignReturn } from "@/features/forms/form-workspace";
+import { parseSurveyJson } from "@/lib/survey-js";
 import { firstSearchParam, type SearchParamValue } from "@/lib/utils/next-utils";
 import { EndatixApi } from "@/lib/endatix-api";
 import { Result, toResult } from "@/lib/result";
@@ -41,19 +42,6 @@ function formNotFound() {
       </Button>
     </NotFoundComponent>
   );
-}
-
-function parseFormDefinitionJson(jsonData: string | undefined): object | null {
-  if (!jsonData) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(jsonData) as object;
-  } catch (error) {
-    console.error("Failed to parse form definition JSON:", error);
-    return null;
-  }
 }
 
 export default async function FormDesignerPage({
@@ -121,7 +109,7 @@ export default async function FormDesignerPage({
     formDefinitionJson = definitionResult.value.jsonData;
     // A stored definition that is not valid JSON must not take the whole route
     // segment into error.tsx - open the designer empty, as it did before.
-    formJson = parseFormDefinitionJson(formDefinitionJson);
+    formJson = parseSurveyJson(formDefinitionJson);
   }
 
   const props: FormDesignerWrapperProps = {

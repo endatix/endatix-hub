@@ -22,6 +22,13 @@ export type AudienceFinding =
       /** What else declares the name: a question loses its answer, a calculated value races it. */
       declaredBy: "question" | "calculatedValue";
     }
-  | { kind: "unused-property"; variableName: string };
+  | { kind: "unused-property"; variableName: string }
+  | {
+      kind: "not-filled-in";
+      variableName: string;
+      /** Real participants with a value, of `real` on the form. */
+      filledReal: number;
+      real: number;
+    };
 
 export type AudienceReview = { findings: AudienceFinding[] };

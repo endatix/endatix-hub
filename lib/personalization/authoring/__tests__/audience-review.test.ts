@@ -3,7 +3,9 @@ import { SurveyCreatorModel } from "survey-creator-core";
 import type { AudienceVariables } from "@/lib/endatix-api/audience/types";
 import { Result } from "@/lib/result";
 import { bindAudienceToCreator } from "..";
+import { usageVerdicts } from "@/lib/personalization/audience-usage";
 import { reviewAudience } from "../review";
+import { audienceUsage } from "../usage";
 
 function variables(
   definition: object[] = [
@@ -153,12 +155,23 @@ describe("reviewAudience", () => {
     expect(reviewAudience(json, variables()).findings).toEqual([]);
   });
 
+  it("reads a question type only the browser registers, with no finding about it", () => {
+    const json = form(
+      { type: "tenant-rating", name: "rating", visibleIf: "{tier} = 'gold'" },
+      { type: "tenant-rating", name: "count", title: "{seats} seats" },
+    );
+
+    const { findings } = reviewAudience(json, variables());
+
+    expect(findings).toEqual([]);
+  });
+
   it("reviews nothing when the form has no properties", () => {
     const none = { ...variables(), variablePresets: null };
 
-    expect(
-      reviewAudience(form({ type: "html", name: "h", html: "{x}" }), none),
-    ).toEqual({ findings: [] });
+    const json = form({ type: "html", name: "h", html: "{x}" });
+
+    expect(reviewAudience(json, none).findings).toEqual([]);
   });
 });
 
@@ -229,5 +242,109 @@ describe("Audience fix in the designer", () => {
     expect(creator.survey.getQuestionByName("plan").title).toBe(
       "Your plan is {tierr}",
     );
+  });
+});
+
+describe("Audience coverage", () => {
+  const counted = (
+    real: number,
+    properties: { variableName: string; filledReal: number }[],
+  ): AudienceVariables => ({
+    ...variables(),
+    coverage: {
+      participants: { test: 1, real },
+      properties: properties.map((p) => ({ ...p, filledTest: 1 })),
+    },
+  });
+  const readsTier = form({ type: "text", name: "q", title: "{tier}" });
+  const verdicts = (json: object, read: AudienceVariables) => {
+    const usage = audienceUsage(json, read);
+    if (!usage) throw new Error("expected Properties");
+    return usageVerdicts(usage);
+  };
+
+  it("says whether the form reads a property, and how many filled it in", () => {
+    const review = verdicts(
+      readsTier,
+      counted(40, [
+        { variableName: "tier", filledReal: 38 },
+        { variableName: "seats", filledReal: 40 },
+      ]),
+    );
+
+    expect(review.forProperty("tier")).toEqual({
+      used: true,
+      filledReal: 38,
+      real: 40,
+    });
+    expect(review.forProperty("Seats")).toEqual({
+      used: false,
+      filledReal: 40,
+      real: 40,
+    });
+  });
+
+  it("warns when real participants have not filled in a property the form reads", () => {
+    const review = reviewAudience(
+      readsTier,
+      counted(40, [{ variableName: "tier", filledReal: 38 }]),
+    );
+
+    expect(review.findings).toContainEqual({
+      kind: "not-filled-in",
+      variableName: "tier",
+      filledReal: 38,
+      real: 40,
+    });
+  });
+
+  it("does not warn about a property every participant filled in, or one the form never reads", () => {
+    const review = reviewAudience(
+      readsTier,
+      counted(40, [
+        { variableName: "tier", filledReal: 40 },
+        { variableName: "seats", filledReal: 0 },
+      ]),
+    );
+
+    expect(review.findings.map((f) => f.kind)).not.toContain("not-filled-in");
+  });
+
+  it("counts a property a question also names as used", () => {
+    const json = form(
+      { type: "text", name: "seats" },
+      { type: "text", name: "q", title: "{tier}" },
+    );
+    const read = counted(40, [{ variableName: "seats", filledReal: 40 }]);
+
+    const review = reviewAudience(json, read);
+
+    expect(review.findings.map((f) => f.kind)).not.toContain("unused-property");
+    expect(verdicts(json, read).forProperty("seats").used).toBe(true);
+  });
+
+  it("lists what one participant has not filled in, among what the form reads", () => {
+    const review = verdicts(
+      form({ type: "text", name: "q", title: "{tier} {seats}" }),
+      variables(),
+    );
+
+    expect(review.notFilledIn(["seats"])).toEqual(["tier"]);
+    expect(review.notFilledIn(["TIER", "seats"])).toEqual([]);
+  });
+
+  it("sends only the Property names the form reads", () => {
+    const usage = audienceUsage(
+      form({ type: "text", name: "q", title: "{Tier} {city} {seats}" }),
+      variables(),
+    );
+
+    expect(usage?.read).toEqual(["tier", "seats"]);
+  });
+
+  it("knows nothing without properties", () => {
+    expect(
+      audienceUsage(readsTier, { ...variables(), variablePresets: null }),
+    ).toBeNull();
   });
 });

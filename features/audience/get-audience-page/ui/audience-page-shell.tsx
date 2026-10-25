@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import type { AudiencePageData } from "@/features/audience/get-audience-page";
+import type { AudienceUsage } from "@/lib/personalization/audience-usage";
 import type { AudienceView } from "../audience-view";
 import { AudiencePageClient } from "./audience-page-client";
 
@@ -11,6 +12,8 @@ type AudiencePageShellProps = {
   data: AudiencePageData;
   /** Whitelisted list query (`page`, `pageSize`, `view`, `test`) for Back from a participant. */
   listSearch: string;
+  /** What the saved form reads of its variables; `null` leaves the coverage out. */
+  usage: AudienceUsage | null;
 };
 
 export function AudiencePageShell({

@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   AudienceDataType,
@@ -210,6 +216,67 @@ describe("PeopleSection", () => {
     expect(
       screen.queryByRole("button", { name: /^Test as this person/ }),
     ).toBeNull();
+  });
+
+  it("marks a participant missing values the saved form reads", () => {
+    const verdicts = {
+      forProperty: () => ({ used: true, filledReal: 0, real: 0 }),
+      notFilledIn: (filled: string[]) =>
+        ["city", "tier"].filter((name) => !filled.includes(name)),
+    };
+    const properties = [
+      textProperty("city", "city", "City"),
+      textProperty("tier", "tier", "Tier"),
+    ];
+    render(
+      <PeopleSection
+        {...LIST}
+        properties={properties}
+        people={[
+          PERSON,
+          { ...TEST_PERSON, values: { city: "Ruse", tier: "gold" } },
+        ]}
+        canEdit={false}
+        canTest={false}
+        verdicts={verdicts}
+      />,
+    );
+
+    const [missing, complete] = screen.getAllByRole("row").slice(1);
+    expect(
+      within(missing!).getByText("1 not filled in", { exact: false }),
+    ).toBeTruthy();
+    expect(within(missing!).getByLabelText("Not filled in: Tier")).toBeTruthy();
+    expect(complete!.textContent).not.toContain("not filled in");
+  });
+
+  it("checks the match key's own value when the form reads it", () => {
+    const verdicts = {
+      forProperty: () => ({ used: true, filledReal: 0, real: 0 }),
+      notFilledIn: (filled: string[]) =>
+        ["external_id", "city"].filter((name) => !filled.includes(name)),
+    };
+    const withoutKeyValue = { ...PERSON, membershipId: "11", values: { city: "Ruse" } };
+    render(
+      <PeopleSection
+        {...LIST}
+        identifierKind={AudienceIdentifierKind.ExternalId}
+        properties={[
+          textProperty("ext", "external_id", "External ID"),
+          textProperty("city", "city", "City"),
+        ]}
+        people={[PERSON, withoutKeyValue]}
+        canEdit={false}
+        canTest={false}
+        verdicts={verdicts}
+      />,
+    );
+
+    const [withKey, withoutKey] = screen.getAllByRole("row").slice(1);
+    expect(withKey!.textContent).not.toContain("not filled in");
+    expect(
+      within(withoutKey!).getByLabelText("Not filled in: External ID"),
+    ).toBeTruthy();
   });
 
   it("says the filter found nobody, with a way back to everyone", () => {

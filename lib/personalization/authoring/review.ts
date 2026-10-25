@@ -1,35 +1,26 @@
-import { SurveyVariablePresets } from "survey-core";
 import type { AudienceVariables } from "@/lib/endatix-api/audience/types";
-import { lintFindings } from "./findings/lint-findings";
+import { notFilledInFindings } from "./findings/coverage";
 import type { AudienceReview } from "./findings/types";
 import { unusedProperties } from "./findings/unused-properties";
-import { toSurveyPresets } from "./to-survey-presets";
+import { lintedUsage } from "./usage";
 
-function variableNamesOf(presets: ReturnType<typeof toSurveyPresets>) {
-  const model = new SurveyVariablePresets(presets);
-  try {
-    return model.getVariableNames();
-  } finally {
-    model.dispose();
-  }
-}
-
-/** The form's Audience findings: none when the form has no Properties (Q10). */
+/**
+ * The form's Audience findings, the same for the designer and the Audience tab: the linter's, the
+ * Properties it never reads, and the ones real participants have not filled in. Empty without
+ * Properties (Q10).
+ */
 export function reviewAudience(
   surveyJson: object,
   variables: AudienceVariables,
 ): AudienceReview {
-  if (!variables.variablePresets) return { findings: [] };
-
-  const presets = toSurveyPresets(variables.variablePresets);
-  const names = variableNamesOf(presets);
-  const linted = lintFindings(surveyJson, presets);
-  const collisions = new Set(
-    linted
-      .filter((finding) => finding.kind === "variable-collision")
-      .map((finding) => finding.variable.toLowerCase()),
-  );
+  const linted = lintedUsage(surveyJson, variables);
+  if (!linted) return { findings: [] };
+  const { findings, usage } = linted;
   return {
-    findings: [...linted, ...unusedProperties(surveyJson, names, collisions)],
+    findings: [
+      ...findings,
+      ...unusedProperties(usage),
+      ...notFilledInFindings(usage),
+    ],
   };
 }

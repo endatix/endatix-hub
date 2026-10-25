@@ -11,6 +11,7 @@ import { TelemetryLogger } from "@/features/telemetry";
 import type { AudienceFinding } from "@/lib/personalization/authoring";
 import { FormDiagnosticsPlugin } from "../form-diagnostics-plugin";
 import type { DiagnosticsAudience } from "../form-diagnostics-context";
+import { describeAudienceFinding } from "../ui/audience-findings";
 import { FormDiagnosticsView } from "../ui/form-diagnostics-tab";
 
 const MISSPELLED: AudienceFinding = {
@@ -192,5 +193,20 @@ describe("Audience findings in Diagnostics", () => {
     expect(
       screen.queryByRole("region", { name: /Personalization/ }),
     ).toBeNull();
+  });
+});
+
+describe("describeAudienceFinding", () => {
+  it("counts the participants without a value the way the Audience tab does", () => {
+    const { title } = describeAudienceFinding({
+      kind: "not-filled-in",
+      variableName: "tier",
+      filledReal: 4790,
+      real: 6810,
+    });
+
+    expect(title).toBe(
+      "{tier} is not filled in for 2,020 of 6,810 real participants",
+    );
   });
 });
