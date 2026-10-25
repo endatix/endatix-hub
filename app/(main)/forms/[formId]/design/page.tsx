@@ -18,10 +18,7 @@ import { getCurrentConversationUseCase } from "@/features/forms/use-cases/design
 import { aiFeaturesFlag } from "@/lib/feature-flags/flags";
 import { getFormDesignReturn } from "@/features/forms/form-workspace";
 import { parseSurveyJson } from "@/lib/survey-js";
-import {
-  firstSearchParam,
-  type SearchParamValue,
-} from "@/lib/utils/next-utils";
+import { firstSearchParam, type SearchParamValue } from "@/lib/utils/next-utils";
 import { EndatixApi } from "@/lib/endatix-api";
 import { Result, toResult } from "@/lib/result";
 import { Form } from "@/types";

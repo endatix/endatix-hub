@@ -23,25 +23,38 @@ export type UsageVerdicts = {
   notFilledIn(filled: string[]): string[];
 };
 
+function propertyUse(
+  usage: AudienceUsage,
+  read: Set<string>,
+  variableName: string,
+): PropertyUse {
+  const key = variableName.toLowerCase();
+  const counted = usage.coverage.properties.find(
+    (p) => p.variableName.toLowerCase() === key,
+  );
+  return {
+    used: read.has(key),
+    filledReal: counted?.filledReal ?? 0,
+    real: usage.coverage.participants.real,
+  };
+}
+
+function notFilledIn(
+  usage: AudienceUsage,
+  read: Set<string>,
+  filled: string[],
+): string[] {
+  const has = new Set(filled.map((name) => name.toLowerCase()));
+  return usage.variableNames.filter((name) => {
+    const key = name.toLowerCase();
+    return read.has(key) && !has.has(key);
+  });
+}
+
 export function usageVerdicts(usage: AudienceUsage): UsageVerdicts {
   const read = new Set(usage.read);
-  const forProperty = (variableName: string): PropertyUse => {
-    const key = variableName.toLowerCase();
-    const counted = usage.coverage.properties.find(
-      (p) => p.variableName.toLowerCase() === key,
-    );
-    return {
-      used: read.has(key),
-      filledReal: counted?.filledReal ?? 0,
-      real: usage.coverage.participants.real,
-    };
+  return {
+    forProperty: (variableName) => propertyUse(usage, read, variableName),
+    notFilledIn: (filled) => notFilledIn(usage, read, filled),
   };
-  const notFilledIn = (filled: string[]) => {
-    const has = new Set(filled.map((name) => name.toLowerCase()));
-    return usage.variableNames.filter((name) => {
-      const key = name.toLowerCase();
-      return read.has(key) && !has.has(key);
-    });
-  };
-  return { forProperty, notFilledIn };
 }

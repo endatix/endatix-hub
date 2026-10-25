@@ -143,9 +143,7 @@ describe("PeopleSection", () => {
     );
 
     // Assert — identity locked; identifier property absent from editable values
-    expect(
-      await screen.findByRole("heading", { name: "Edit person" }),
-    ).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "Edit person" })).toBeTruthy();
     const lockedLabel = screen
       .getAllByText("External ID")
       .find((node) => node.tagName === "DT");
@@ -258,11 +256,7 @@ describe("PeopleSection", () => {
       notFilledIn: (filled: string[]) =>
         ["external_id", "city"].filter((name) => !filled.includes(name)),
     };
-    const withoutKeyValue = {
-      ...PERSON,
-      membershipId: "11",
-      values: { city: "Ruse" },
-    };
+    const withoutKeyValue = { ...PERSON, membershipId: "11", values: { city: "Ruse" } };
     render(
       <PeopleSection
         {...LIST}
