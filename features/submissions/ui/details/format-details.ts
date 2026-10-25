@@ -1,22 +1,10 @@
-import { parseDate } from "@/lib/utils";
+import { formatDetailsDateTime } from "@/lib/date-utils";
 
 export const DASH_NO_DATA = "—";
 
 /** A Submission Details date and time, e.g. "Oct 19, 2026, 12:00 PM"; a dash when missing or invalid. */
 export function formatDetailsDate(date?: Date): string {
-  const parsedDate = date ? parseDate(date) : null;
-  if (!parsedDate) {
-    return DASH_NO_DATA;
-  }
-
-  return parsedDate.toLocaleString("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
-    month: "short",
-    day: "2-digit",
-    year: "numeric",
-    hour12: true,
-  });
+  return formatDetailsDateTime(date, DASH_NO_DATA);
 }
 
 /** A value as text, trimmed; a dash when it is missing or blank. */

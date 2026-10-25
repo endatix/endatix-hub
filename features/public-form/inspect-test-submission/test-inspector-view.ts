@@ -1,5 +1,4 @@
 import type { Submission } from "@/lib/endatix-api";
-import type { PersonalizationSource } from "@/lib/endatix-api/submissions/types";
 import { formRoutes } from "@/lib/routes/form-routes";
 
 /** What the Test inspector may show; built on the server, only for a viewer with `forms.test`. */
@@ -18,7 +17,8 @@ export type InspectedSubmitter = {
   /** The person's match-key value from the Snapshot, else the Submitter Label. */
   identifier: string | null;
   label: string | null;
-  source: PersonalizationSource | null;
+  /** As sent: a source this Hub does not know yet (a newer API) passes through. */
+  source: string | null;
   /** Submitter fields, sorted by name. */
   fields: ReadonlyArray<readonly [name: string, value: string]>;
 };
