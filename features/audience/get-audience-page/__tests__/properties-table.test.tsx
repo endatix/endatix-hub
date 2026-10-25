@@ -89,9 +89,9 @@ describe("PropertiesTable coverage", () => {
     expect(within(header!).getByText("Used in form")).toBeTruthy();
     expect(within(header!).getByText("Filled in (real)")).toBeTruthy();
     expect(within(tier!).getByText("Used")).toBeTruthy();
-    expect(within(tier!).getByText("4,790 of 4,810")).toBeTruthy();
+    expect(within(tier!).getByText("4,790 of 4,810 filled")).toBeTruthy();
     expect(within(seats!).getByText("Not used")).toBeTruthy();
-    expect(within(seats!).getByText("0 of 4,810")).toBeTruthy();
+    expect(within(seats!).getByText("0 of 4,810 filled")).toBeTruthy();
   });
 
   it("has no coverage columns without a review", () => {
