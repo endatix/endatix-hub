@@ -22,10 +22,10 @@ function testNote({ testParticipants, totalTest }: ListData) {
   return shownOf(testParticipants.length, totalTest, "Test participants");
 }
 
-function matchesNote(shown: number, others: number, total: number) {
+function matchesNote(page: number, others: number, total: number) {
   if (total === 0) return "Nobody on this form matches.";
-  if (others === 0) return "Every match is listed above.";
-  return shownOf(shown, total, "matches");
+  if (others === 0 && total <= page) return "Every match is listed above.";
+  return shownOf(page, total, "matches");
 }
 
 function matchesGroup(data: ListData): PickerGroup[] {

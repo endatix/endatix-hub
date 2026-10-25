@@ -205,6 +205,17 @@ describe("PreviewAsView", () => {
     expect(screen.getByText("Every match is listed above.")).toBeTruthy();
   });
 
+  it("does not claim every match is listed when later hits are past this page", () => {
+    renderView({
+      search: "acme",
+      matches: [MARIA, JO],
+      totalMatches: 4,
+    });
+
+    expect(screen.queryByText("Every match is listed above.")).toBeNull();
+    expect(screen.getByText(/First 2 of 4 matches/)).toBeTruthy();
+  });
+
   it("stops at the ends of the list", () => {
     renderView();
 
