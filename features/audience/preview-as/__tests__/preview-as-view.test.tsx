@@ -1,11 +1,12 @@
 import {
+  act,
   fireEvent,
   render,
   screen,
   waitFor,
   within,
 } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   AudienceDataType,
   AudienceIdentifierKind,
@@ -87,6 +88,7 @@ function data(overrides: Partial<PreviewAsData> = {}): PreviewAsData {
     selected: { status: "found", person: MARIA, variables: { tier: "gold" } },
     identifierKind: AudienceIdentifierKind.Email,
     properties: [property("11", "Tier"), property("12", "Region")],
+    allProperties: [property("11", "Tier"), property("12", "Region")],
     usage: null,
     canTest: true,
     ...overrides,
@@ -111,6 +113,11 @@ function press(key: string) {
   fireEvent.keyDown(target, { key });
 }
 
+/** The page loads a selection once it rests (`SELECT_SETTLE_MS`). */
+function settle() {
+  act(() => vi.advanceTimersByTime(250));
+}
+
 // Radix measures with ResizeObserver.
 class ResizeObserverStub {
   observe() {}
@@ -122,6 +129,10 @@ describe("PreviewAsView", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.stubGlobal("ResizeObserver", ResizeObserverStub);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("lists the Test participants with the previewed one selected", () => {
@@ -162,14 +173,17 @@ describe("PreviewAsView", () => {
   });
 
   it("moves through the list with the arrow keys", () => {
+    vi.useFakeTimers();
     renderView({ search: "acme", matches: [SAM], totalMatches: 1 });
 
     press("ArrowDown");
+    settle();
     expect(router.replace).toHaveBeenLastCalledWith(
       "/forms/1/audience/preview-as?member=8&q=acme",
       { scroll: false },
     );
     press("ArrowUp");
+    settle();
     expect(router.replace).toHaveBeenLastCalledWith(
       "/forms/1/audience/preview-as?member=7&q=acme",
       { scroll: false },
@@ -181,18 +195,20 @@ describe("PreviewAsView", () => {
 
     press("ArrowDown");
 
+    expect(screen.getByRole("region", { name: "jo@acme.test" })).toBeTruthy();
     expect(
-      screen.getByRole("region", { name: "jo@acme.test" }),
-    ).toBeTruthy();
-    expect(screen.queryByRole("region", { name: "maria@acme.test" })).toBeNull();
+      screen.queryByRole("region", { name: "maria@acme.test" }),
+    ).toBeNull();
     expect(screen.queryByTestId("survey")).toBeNull();
   });
 
   it("keeps moving while the previous step is still loading", () => {
+    vi.useFakeTimers();
     renderView({ search: "acme", matches: [SAM], totalMatches: 1 });
 
     press("ArrowDown");
     press("ArrowDown");
+    settle();
 
     expect(router.replace).toHaveBeenLastCalledWith(
       "/forms/1/audience/preview-as?member=20&q=acme",
@@ -201,6 +217,22 @@ describe("PreviewAsView", () => {
     const sam = screen.getByRole("button", { name: /sam@acme.com/ });
     expect(isSelected(sam)).toBe(true);
     expect(document.activeElement).toBe(sam);
+  });
+
+  it("loads only where a held arrow key stops", () => {
+    vi.useFakeTimers();
+    renderView({ search: "acme", matches: [SAM], totalMatches: 1 });
+
+    press("ArrowDown");
+    press("ArrowDown");
+    expect(router.replace).not.toHaveBeenCalled();
+    settle();
+
+    expect(router.replace).toHaveBeenCalledTimes(1);
+    expect(router.replace).toHaveBeenCalledWith(
+      "/forms/1/audience/preview-as?member=20&q=acme",
+      { scroll: false },
+    );
   });
 
   it("lists a linked participant who is in neither list, selected", () => {
@@ -230,18 +262,22 @@ describe("PreviewAsView", () => {
   });
 
   it("stops at the ends of the list", () => {
+    vi.useFakeTimers();
     renderView();
 
     press("ArrowUp");
     press("Home");
+    settle();
 
     expect(router.replace).not.toHaveBeenCalled();
   });
 
   it("jumps to the last participant with End", () => {
+    vi.useFakeTimers();
     renderView();
 
     press("End");
+    settle();
 
     expect(router.replace).toHaveBeenCalledWith(
       "/forms/1/audience/preview-as?member=8",
@@ -250,9 +286,11 @@ describe("PreviewAsView", () => {
   });
 
   it("previews a participant on click", () => {
+    vi.useFakeTimers();
     renderView();
 
     fireEvent.click(screen.getByRole("button", { name: /jo@acme.test/ }));
+    settle();
 
     expect(router.replace).toHaveBeenCalledWith(
       "/forms/1/audience/preview-as?member=8",
@@ -261,12 +299,14 @@ describe("PreviewAsView", () => {
   });
 
   it("shows the participant's values and what they have not filled in", () => {
+    const properties = [
+      property("11", "Tier"),
+      property("12", "Region"),
+      property("13", "Address"),
+    ];
     renderView({
-      properties: [
-        property("11", "Tier"),
-        property("12", "Region"),
-        property("13", "Address"),
-      ],
+      properties,
+      allProperties: properties,
       usage: {
         variableNames: ["tier", "region", "address"],
         read: ["region"],
@@ -277,6 +317,24 @@ describe("PreviewAsView", () => {
     const strip = screen.getByRole("region", { name: "maria@acme.test" });
     expect(within(strip).getByText("Gold")).toBeTruthy();
     expect(within(strip).getByText("Not filled in: Region")).toBeTruthy();
+  });
+
+  it("counts the match key's value as filled in, as the People list does", () => {
+    const email = property("10", "Email");
+    const maria = { ...MARIA, values: { "10": "maria@acme.test" } };
+    renderView({
+      testParticipants: [maria, JO],
+      selected: { status: "found", person: maria, variables: {} },
+      allProperties: [email, property("11", "Tier")],
+      usage: {
+        variableNames: ["email", "tier"],
+        read: ["email", "tier"],
+        coverage: { participants: { test: 2, real: 0 }, properties: [] },
+      },
+    });
+
+    const strip = screen.getByRole("region", { name: "maria@acme.test" });
+    expect(within(strip).getByText("Not filled in: Tier")).toBeTruthy();
   });
 
   it("renders the saved form with the participant's values and its save time", () => {

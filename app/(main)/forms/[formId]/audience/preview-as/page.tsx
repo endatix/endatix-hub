@@ -45,16 +45,23 @@ const HEADER = (
 type Query = Awaited<Params["searchParams"]>;
 type Guard = Awaited<ReturnType<typeof guardPreviewAs>>;
 
+/** The lists do not need the form, so they start beside it; only the saved definition waits. */
 async function previewAs(guard: Guard, formId: string, query: Query) {
-  const form = await loadWorkspaceForm(formId, "audience.preview-as");
+  const formLoad = loadWorkspaceForm(formId, "audience.preview-as");
+  const activeDefinitionId = formLoad.then((loaded) =>
+    Result.isSuccess(loaded) ? loaded.value.activeDefinitionId : undefined,
+  );
+  const [form, preview] = await Promise.all([
+    formLoad,
+    loadPreviewAs({
+      ...guard,
+      formId,
+      activeDefinitionId,
+      memberId: firstSearchParam(query.member),
+      search: firstSearchParam(query.q),
+    }),
+  ]);
   if (Result.isError(form)) return <FormLoadError result={form} />;
-  const preview = await loadPreviewAs({
-    ...guard,
-    formId,
-    activeDefinitionId: form.value.activeDefinitionId,
-    memberId: firstSearchParam(query.member),
-    search: firstSearchParam(query.q),
-  });
   if (Result.isError(preview)) return <FormLoadError result={preview} />;
   return <PreviewAsView formId={formId} header={HEADER} {...preview.value} />;
 }

@@ -80,6 +80,8 @@ const page = (items: AudiencePerson[]) =>
 
 type Overrides = {
   variables?: AudienceVariables;
+  properties?: AudienceProperty[];
+  jsonData?: string;
   participantVariables?: ApiResult<unknown>;
   participant?: ApiResult<unknown>;
 };
@@ -115,7 +117,13 @@ const participantById = (_formId: string, memberId: string) =>
 function audienceWith(overrides: Overrides) {
   return {
     getSettings: vi.fn().mockResolvedValue(SETTINGS),
-    listProperties: vi.fn().mockResolvedValue(PROPERTIES),
+    listProperties: vi
+      .fn()
+      .mockResolvedValue(
+        overrides.properties
+          ? ApiResult.success(overrides.properties)
+          : PROPERTIES,
+      ),
     getVariables: vi
       .fn()
       .mockResolvedValue(ApiResult.success(overrides.variables ?? VARIABLES)),
@@ -134,7 +142,14 @@ function audienceWith(overrides: Overrides) {
 
 function apiWith(overrides: Overrides = {}) {
   const audience = audienceWith(overrides);
-  const definitions = { get: vi.fn().mockResolvedValue(SAVED_DEFINITION) };
+  const saved =
+    overrides.jsonData === undefined
+      ? SAVED_DEFINITION
+      : ApiResult.success({
+          ...SAVED_DEFINITION.data,
+          jsonData: overrides.jsonData,
+        });
+  const definitions = { get: vi.fn().mockResolvedValue(saved) };
   return { audience, definitions } as unknown as EndatixApi & {
     audience: typeof audience;
     definitions: typeof definitions;
@@ -147,7 +162,7 @@ const request = (
 ): PreviewAsRequest => ({
   api,
   formId: "1",
-  activeDefinitionId: "55",
+  activeDefinitionId: Promise.resolve("55"),
   canTest: true,
   ...extra,
 });
@@ -236,6 +251,39 @@ describe("loadPreviewAs", () => {
     expect(data.selected).toEqual({ status: "gone" });
   });
 
+  it("treats a link whose id never named anyone as no longer on the form", async () => {
+    const invalid = ApiResult.validationError("Invalid member id.");
+    const api = apiWith({
+      participant: invalid,
+      participantVariables: invalid,
+    });
+
+    const data = await load(api, { memberId: "abc" });
+
+    expect(data.selected).toEqual({ status: "gone" });
+  });
+
+  it("has no form to show when the saved JSON is not a survey object", async () => {
+    const data = await load(apiWith({ jsonData: "[]" }));
+
+    expect(data.form).toBeNull();
+    expect(data.usage).toBeNull();
+  });
+
+  it("works out what the saved form reads, as the People list does", async () => {
+    const jsonData = JSON.stringify({
+      elements: [{ type: "text", name: "plan", visibleIf: "{tier} = 'gold'" }],
+    });
+
+    const data = await load(apiWith({ jsonData }));
+
+    expect(data.usage?.read).toEqual(["tier"]);
+    expect(data.allProperties).toEqual([
+      property("10", "email"),
+      property("11", "tier"),
+    ]);
+  });
+
   it("keeps only value properties for Edit values", async () => {
     const data = await load(apiWith());
 
@@ -244,7 +292,10 @@ describe("loadPreviewAs", () => {
   });
 
   it("previews nobody on a form with no Properties", async () => {
-    const api = apiWith({ variables: { ...VARIABLES, variablePresets: null } });
+    const api = apiWith({
+      variables: { ...VARIABLES, variablePresets: null },
+      properties: [],
+    });
 
     const data = await load(api);
 
@@ -256,7 +307,9 @@ describe("loadPreviewAs", () => {
   it("has no form to show before the first save", async () => {
     const api = apiWith();
 
-    const data = await load(api, { activeDefinitionId: undefined });
+    const data = await load(api, {
+      activeDefinitionId: Promise.resolve(undefined),
+    });
 
     expect(data.form).toBeNull();
     expect(api.definitions.get).not.toHaveBeenCalled();

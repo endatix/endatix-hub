@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ITheme, Model } from "survey-core";
 import "survey-core/survey-core.css";
 import { Survey } from "survey-react-ui";
 import { customQuestions as registryQuestions } from "@/customizations/questions/question-registry";
+import { TelemetryLogger } from "@/features/telemetry";
 import { initializeCustomQuestions } from "@/lib/questions";
 import { registerAudioQuestion } from "@/lib/questions/audio-recorder";
 import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";
@@ -21,18 +22,25 @@ type PreviewSurveyProps = {
   customQuestions: string[];
 };
 
-let isRuntimeReady = false;
-
-/** What the shared form registers before it builds a model (`use-survey-model.hook.ts`). */
-async function prepareRuntime(customQuestions: string[]) {
-  if (customQuestions.length) initializeCustomQuestions(customQuestions);
-  if (isRuntimeReady) return;
+async function registerRuntime() {
   registerAudioQuestion();
   addRandomizeGroupFeature();
   await Promise.allSettled(
     registryQuestions.map((name) => questionLoaderModule.loadQuestion(name)),
   );
-  isRuntimeReady = true;
+}
+
+/** One registration for every mount, started again only after it failed. */
+let registration: Promise<void> | null = null;
+
+/** What the shared form registers before it builds a model (`use-survey-model.hook.ts`). */
+async function prepareRuntime(customQuestions: string[]) {
+  registration ??= registerRuntime().catch((error: unknown) => {
+    registration = null;
+    throw error;
+  });
+  await registration;
+  if (customQuestions.length) initializeCustomQuestions(customQuestions);
 }
 
 function parseTheme(theme: string | undefined): ITheme | undefined {
@@ -55,41 +63,75 @@ type Runtime = {
   bindToSurvey: (model: Model) => (() => void) | undefined;
 };
 
+type Mounted = { model: Model } | { failed: true } | null;
+
+function logFailure(error: unknown) {
+  TelemetryLogger.error(
+    "Failed to build the Preview as form.",
+    error,
+    undefined,
+    "audience.preview-as",
+  );
+}
+
+type Mount = {
+  props: PreviewSurveyProps;
+  runtime: Runtime;
+  onMounted: (mounted: Mounted) => void;
+};
+
+type Live = { cancelled: boolean; model?: Model; unbind?: () => void };
+
+function mountInto(live: Live, { props, runtime, onMounted }: Mount) {
+  if (live.cancelled) return;
+  runtime.initGlobals();
+  live.model = buildModel(props);
+  live.unbind = runtime.bindToSurvey(live.model) ?? undefined;
+  onMounted({ model: live.model });
+}
+
+function unmount(live: Live, onMounted: Mount["onMounted"]) {
+  live.cancelled = true;
+  live.unbind?.();
+  onMounted(null);
+  live.model?.dispose();
+}
+
+/** Builds the model once the runtime is ready; a failure anywhere shows, instead of loading forever. */
 function mountModel(
   content: string,
   runtime: Runtime,
-  onModel: (m: Model) => void,
+  onMounted: Mount["onMounted"],
 ) {
   const props = JSON.parse(content) as PreviewSurveyProps;
-  let unbind: (() => void) | undefined;
-  let cancelled = false;
-  void prepareRuntime(props.customQuestions).then(() => {
-    if (cancelled) return;
-    runtime.initGlobals();
-    const model = buildModel(props);
-    unbind = runtime.bindToSurvey(model) ?? undefined;
-    onModel(model);
-  });
-  return () => {
-    cancelled = true;
-    unbind?.();
-  };
+  const live: Live = { cancelled: false };
+  prepareRuntime(props.customQuestions)
+    .then(() => mountInto(live, { props, runtime, onMounted }))
+    .catch((error: unknown) => {
+      logFailure(error);
+      if (!live.cancelled) onMounted({ failed: true });
+    });
+  return () => unmount(live, onMounted);
 }
 
 /** A model per content, not per server refresh: a refresh hands over equal but new objects. */
-function usePreviewModel(props: PreviewSurveyProps) {
-  const [model, setModel] = useState<Model | null>(null);
+function usePreviewModel(props: PreviewSurveyProps): Mounted {
+  const [mounted, setMounted] = useState<Mounted>(null);
   const { initGlobals: initAnyAnswered } = useAnyAnswered();
   const { initGlobals: initLoops, bindToSurvey } = useQuestionLoops();
-  const content = JSON.stringify(props);
+  const { definition, variables, theme, customQuestions } = props;
+  const content = useMemo(
+    () => JSON.stringify({ definition, variables, theme, customQuestions }),
+    [definition, variables, theme, customQuestions],
+  );
   useEffect(() => {
     const initGlobals = () => {
       initAnyAnswered();
       initLoops();
     };
-    return mountModel(content, { initGlobals, bindToSurvey }, setModel);
+    return mountModel(content, { initGlobals, bindToSurvey }, setMounted);
   }, [content, initAnyAnswered, initLoops, bindToSurvey]);
-  return model;
+  return mounted;
 }
 
 /**
@@ -97,8 +139,14 @@ function usePreviewModel(props: PreviewSurveyProps) {
  * form renders it. Nothing listens to its answers, so nothing is written.
  */
 export function PreviewSurvey(props: Readonly<PreviewSurveyProps>) {
-  const model = usePreviewModel(props);
-  if (!model)
+  const mounted = usePreviewModel(props);
+  if (mounted && "failed" in mounted)
+    return (
+      <p role="alert" className="p-6 text-sm text-destructive">
+        The form could not be shown. Reload the page to try again.
+      </p>
+    );
+  if (!mounted)
     return <p className="text-sm text-muted-foreground">Loading the form…</p>;
-  return <Survey model={model} />;
+  return <Survey model={mounted.model} />;
 }

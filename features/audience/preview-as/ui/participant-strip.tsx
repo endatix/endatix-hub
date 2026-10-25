@@ -27,6 +27,8 @@ type ParticipantStripProps = {
   person: AudiencePerson;
   identifierKind: AudienceIdentifierKind;
   properties: AudienceProperty[];
+  /** Every Property, the match key's included, as the People list counts them. */
+  allProperties: AudienceProperty[];
   /** What the saved form reads, the same verdict as the People list. */
   usage: AudienceUsage | null;
   canTest: boolean;
@@ -38,14 +40,14 @@ function filledNames(person: AudiencePerson, properties: AudienceProperty[]) {
     .map((p) => p.variableName);
 }
 
-function notFilledIn({ person, properties, usage }: ParticipantStripProps) {
+function notFilledIn({ person, allProperties, usage }: ParticipantStripProps) {
   if (!usage) return "Every value is filled in.";
   const missing = usageVerdicts(usage).notFilledIn(
-    filledNames(person, properties),
+    filledNames(person, allProperties),
   );
   if (missing.length === 0) return "Every value is filled in.";
   const labels = missing.map(
-    (name) => properties.find((p) => p.variableName === name)?.name ?? name,
+    (name) => allProperties.find((p) => p.variableName === name)?.name ?? name,
   );
   return `Not filled in: ${labels.join(", ")}`;
 }

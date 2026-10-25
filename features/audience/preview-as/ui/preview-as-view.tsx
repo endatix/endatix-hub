@@ -1,6 +1,12 @@
 "use client";
 
-import { useState, useTransition, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+  type ReactNode,
+} from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { TextLink } from "@/components/common/text-link";
@@ -68,8 +74,7 @@ function PreviewPane(props: Readonly<PaneProps>) {
   const { form, selected } = props;
   const server = selected?.status === "found" ? selected : undefined;
   const person = listedPerson(props, props.activeId) ?? server?.person;
-  if (!form || !person || !server)
-    return <Notice>{emptyReason(props)}</Notice>;
+  if (!form || !person || !server) return <Notice>{emptyReason(props)}</Notice>;
   const caughtUp = server.person.audienceMemberId === person.audienceMemberId;
   const pane = cn("flex min-w-0 flex-col gap-4", props.pending && "opacity-60");
   return (
@@ -108,25 +113,50 @@ function useOptimisticSelection(serverId: string | undefined) {
   return [active, setActive] as const;
 }
 
+/** How long the selection rests before the page loads it: a held arrow key loads only where it stops. */
+const SELECT_SETTLE_MS = 250;
+
+/** Runs the latest call once calls stop for `ms`; a direct call drops the one waiting. */
+function useSettled(ms: number) {
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const cancel = () => clearTimeout(timer.current);
+  useEffect(() => cancel, []);
+  const later = (run: () => void) => {
+    cancel();
+    timer.current = setTimeout(run, ms);
+  };
+  return { later, cancel };
+}
+
+function usePreviewUrl(formId: string) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const go = (query: { member?: string; search?: string }) =>
+    startTransition(() =>
+      router.replace(formRoutes.previewAs(formId, query), { scroll: false }),
+    );
+  return { pending, go };
+}
+
 function usePreviewNavigation({
   formId,
   search,
   selected,
 }: PreviewAsViewProps) {
-  const router = useRouter();
-  const [pending, startTransition] = useTransition();
+  const { pending, go } = usePreviewUrl(formId);
   const [activeId, setActiveId] = useOptimisticSelection(
     previewedPerson(selected)?.audienceMemberId,
   );
-  const go = (query: { member?: string; search?: string }) =>
-    startTransition(() =>
-      router.replace(formRoutes.previewAs(formId, query), { scroll: false }),
-    );
+  const settled = useSettled(SELECT_SETTLE_MS);
   const select = (member: string) => {
     setActiveId(member);
-    go({ member, search });
+    settled.later(() => go({ member, search }));
   };
-  return { pending, activeId, select, find: (q: string) => go({ search: q }) };
+  const find = (q: string) => {
+    settled.cancel();
+    go({ search: q });
+  };
+  return { pending, activeId, select, find };
 }
 
 /**

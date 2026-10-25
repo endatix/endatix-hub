@@ -14,12 +14,14 @@ import {
 } from "@/lib/endatix-api/audience/types";
 import {
   isNotFoundError,
+  isValidationError,
   type ApiResult,
 } from "@/lib/endatix-api/shared/api-result";
 import { Result, toResult } from "@/lib/result";
 import type { MapApiResultToResultOptions } from "@/lib/result/map-api-result-to-result";
 import type { AudienceUsage } from "@/lib/personalization/audience-usage";
-import { audienceUsage } from "@/lib/personalization/authoring/usage";
+import { parseSurveyJson } from "@/lib/survey-js";
+import { savedFormUsage } from "../get-audience-page/load-audience-usage.server";
 import { valueProperties } from "../utils";
 
 /** One page of each list: the rest are found by search. */
@@ -62,7 +64,9 @@ export type PreviewAsData = {
   identifierKind: AudienceIdentifierKind;
   /** Value properties only, for Edit values. */
   properties: AudienceProperty[];
-  /** What the saved form reads; `null` when there is no saved form to read. */
+  /** Every Property, the match key's included: what "Not filled in" counts, as on People. */
+  allProperties: AudienceProperty[];
+  /** What the saved form reads, the People list's verdict; `null` when there is none to read. */
   usage: AudienceUsage | null;
   canTest: boolean;
 };
@@ -70,8 +74,8 @@ export type PreviewAsData = {
 export type PreviewAsRequest = {
   api: EndatixApi;
   formId: string;
-  /** From the form the page already read; none before the first save. */
-  activeDefinitionId?: string;
+  /** From the form the page is still reading, so the lists start without it; none before the first save. */
+  activeDefinitionId: Promise<string | undefined>;
   memberId?: string;
   search?: string;
   canTest: boolean;
@@ -85,16 +89,8 @@ function unwrap<T>(apiResult: ApiResult<T>, label: string): Result<T> {
   } as MapApiResultToResultOptions<T>);
 }
 
-function parseDefinition(jsonData: string): object | null {
-  try {
-    return JSON.parse(jsonData) as object;
-  } catch {
-    return null;
-  }
-}
-
 function toPreviewForm(saved: FormDefinitionDto): PreviewAsForm | null {
-  const definition = parseDefinition(saved.jsonData);
+  const definition = parseSurveyJson(saved.jsonData);
   if (!definition) return null;
   return {
     definition,
@@ -109,11 +105,9 @@ async function loadForm({
   formId,
   activeDefinitionId,
 }: PreviewAsRequest): Promise<Result<PreviewAsForm | null>> {
-  if (!activeDefinitionId) return Result.success(null);
-  const saved = unwrap(
-    await api.definitions.get(formId, activeDefinitionId),
-    "form",
-  );
+  const definitionId = await activeDefinitionId;
+  if (!definitionId) return Result.success(null);
+  const saved = unwrap(await api.definitions.get(formId, definitionId), "form");
   if (Result.isError(saved)) return saved;
   return Result.success(toPreviewForm(saved.value));
 }
@@ -187,12 +181,17 @@ function fetchSelection({ api, formId }: PreviewAsRequest, memberId: string) {
   ]);
 }
 
+/** A link to someone no longer on the form, or with an id that never named anyone (hand-edited). */
+function isMissing<T>(result: ApiResult<T>): boolean {
+  return isNotFoundError(result) || isValidationError(result);
+}
+
 async function loadSelection(
   request: PreviewAsRequest,
   memberId: string,
 ): Promise<Result<PreviewAsSelection>> {
   const [person, preset] = await fetchSelection(request, memberId);
-  if (isNotFoundError(person) || isNotFoundError(preset))
+  if (isMissing(person) || isMissing(preset))
     return Result.success({ status: "gone" });
   const found = allOk({
     person: unwrap<AudiencePerson>(person, "participant"),
@@ -204,10 +203,14 @@ async function loadSelection(
   return Result.success({ status: "found", person: participant, variables });
 }
 
+/** The Audience tab's own test for showing Preview as. */
+function hasProperties(lists: Lists): boolean {
+  return lists.properties.length > 0;
+}
+
 async function selectionFor(request: PreviewAsRequest, lists: Lists) {
   const memberId = memberToPreview(request, lists);
-  if (!lists.variables.variablePresets || !memberId)
-    return Result.success(null);
+  if (!hasProperties(lists) || !memberId) return Result.success(null);
   return loadSelection(request, memberId);
 }
 
@@ -217,15 +220,34 @@ type Loaded = {
   selected: PreviewAsSelection | null;
 };
 
+function usageOf(
+  form: PreviewAsForm | null,
+  { variables }: Lists,
+  formId: string,
+) {
+  return form ? savedFormUsage(form.definition, variables, formId) : null;
+}
+
+/** Value properties for Edit values, and every one for "Not filled in". */
+function propertiesOf(
+  properties: AudienceProperty[],
+  identifierKind: AudienceIdentifierKind,
+) {
+  return {
+    properties: valueProperties(properties, identifierKind),
+    allProperties: properties,
+  };
+}
+
 function toPreviewAsData(
   { form, lists, selected }: Loaded,
   request: PreviewAsRequest,
 ): PreviewAsData {
-  const { test, matches, variables, properties, settings } = lists;
+  const { test, matches, properties, settings } = lists;
   const { identifierKind } = settings;
   return {
     form,
-    hasVariables: variables.variablePresets !== null,
+    hasVariables: hasProperties(lists),
     testParticipants: [...test.items],
     totalTest: test.totalRecords,
     search: request.search?.trim() ?? "",
@@ -233,8 +255,8 @@ function toPreviewAsData(
     totalMatches: matches?.totalRecords ?? 0,
     selected,
     identifierKind,
-    properties: valueProperties(properties, identifierKind),
-    usage: form ? audienceUsage(form.definition, variables) : null,
+    ...propertiesOf(properties, identifierKind),
+    usage: usageOf(form, lists, request.formId),
     canTest: request.canTest,
   };
 }
