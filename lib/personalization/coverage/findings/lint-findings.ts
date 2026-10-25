@@ -18,6 +18,11 @@ const AUDIENCE_RULES = lintRules([LINT_RULE.unknown, LINT_RULE.collision]);
 // named after it.
 const KEPT_BY_SLUG = /^[a-z0-9]+(?:_[a-z0-9]+)*$/i;
 
+/** Whether a Property named after `variable` declares `{variable}`. */
+export function declaresAsProperty(variable: string): boolean {
+  return KEPT_BY_SLUG.test(variable);
+}
+
 function unknownVariable(finding: ILintFinding): AudienceFinding {
   const data = finding.messageData;
   const variable = String(data.root ?? data.name);
@@ -28,7 +33,7 @@ function unknownVariable(finding: ILintFinding): AudienceFinding {
     elementName: finding.elementName,
     suggestion: finding.suggestion,
     fix: finding.fix,
-    canAddProperty: KEPT_BY_SLUG.test(variable),
+    canAddProperty: declaresAsProperty(variable),
   };
 }
 

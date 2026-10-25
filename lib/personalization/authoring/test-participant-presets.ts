@@ -16,15 +16,28 @@ export function testParticipantPresets(
   readOnlyPresets: readonly string[],
   identifierKind: AudienceIdentifierKind,
 ): AudienceVariablePreset[] {
-  const readOnly = new Set(
-    readOnlyPresets.map((name) => matchKey(name, identifierKind)),
-  );
+  const isReadOnly = readOnlyMatcher(readOnlyPresets, identifierKind);
   return (edited?.presets ?? [])
-    .filter((preset) => !readOnly.has(matchKey(preset.name, identifierKind)))
+    .filter((preset) => !isReadOnly(preset.name))
     .map(({ name, variables }) => ({
       name,
       variables: structuredClone(variables),
     }));
+}
+
+/**
+ * Whether a name is one of the read-only presets by the tenant's match key: the one check the
+ * editor's lock and the save share, so a row the save would leave out is never editable as a Test
+ * participant.
+ */
+export function readOnlyMatcher(
+  readOnlyPresets: readonly string[],
+  identifierKind: AudienceIdentifierKind,
+): (name: string) => boolean {
+  const readOnly = new Set(
+    readOnlyPresets.map((name) => matchKey(name, identifierKind)),
+  );
+  return (name) => readOnly.has(matchKey(name, identifierKind));
 }
 
 /**

@@ -100,6 +100,28 @@ describe("Add as Audience property", () => {
     expect(await unknownNames(binding)).toEqual([["city", true]]);
   });
 
+  it("adds once when the author clicks twice", async () => {
+    // Arrange
+    const addProperty = vi.fn<AddProperty>(() =>
+      Promise.resolve(Result.success(undefined)),
+    );
+    const binding = bindAudienceToCreator(designer(), {
+      variables: variables("tier"),
+      refresh: () => Promise.resolve(Result.success(variables("tier", "city"))),
+      addProperty,
+    });
+    const [finding] = (await binding.review()).findings;
+
+    // Act
+    await Promise.all([
+      binding.addProperty(finding),
+      binding.addProperty(finding),
+    ]);
+
+    // Assert
+    expect(addProperty).toHaveBeenCalledTimes(1);
+  });
+
   it("adds nothing for a finding that does not offer it", async () => {
     // Arrange
     const addProperty = vi.fn<AddProperty>();

@@ -1,193 +1,28 @@
 import { describe, expect, it, vi } from "vitest";
-import type { ISurveyVariablePreset } from "survey-core";
-import { SurveyCreatorModel, type TabTestPlugin } from "survey-creator-core";
+import { bindAudienceToCreator } from "..";
+import { Result } from "@/lib/result";
 import {
   AudienceIdentifierKind,
-  type AudienceVariablePreset,
   type AudienceVariables,
 } from "@/lib/endatix-api/audience/types";
-import { Result } from "@/lib/result";
-import { type BoundAudience, bindAudienceToCreator } from "..";
-
-const MARIA = "maria@acme.test";
-const BOB = "bob@acme.test";
-const ANA = "ana@acme.test";
-
-const FORM_JSON = {
-  elements: [{ type: "text", name: "plan", title: "Your plan is {tier}" }],
-};
-
-function variables(
-  presets: AudienceVariablePreset[] = [
-    { name: MARIA, variables: { tier: "gold" } },
-    { name: BOB, variables: { tier: "silver" } },
-  ],
-  readOnlyPresets: string[] = [BOB],
-): AudienceVariables {
-  return {
-    variablePresets: {
-      definition: { elements: [{ type: "text", name: "tier" }] },
-      presets,
-      totalPresets: presets.length,
-    },
-    coverage: { participants: { test: 1, real: 1 }, properties: [] },
-    editing: { allowAdd: true, allowEdit: true, allowDelete: false },
-    readOnlyPresets,
-  };
-}
-
-type Save = NonNullable<BoundAudience["testParticipants"]>["save"];
-
-function designer() {
-  const creator = new SurveyCreatorModel({ showPreview: true });
-  creator.JSON = FORM_JSON;
-  return creator;
-}
-
-function bind(
-  creator: SurveyCreatorModel,
-  overrides: Partial<BoundAudience> & { save?: Save } = {},
-) {
-  const { save, ...rest } = overrides;
-  return bindAudienceToCreator(creator, {
-    variables: variables(),
-    refresh: () => Promise.resolve(Result.success(variables())),
-    testParticipants: {
-      identifierKind: AudienceIdentifierKind.Email,
-      save:
-        save ?? vi.fn<Save>(() => Promise.resolve(Result.success(variables()))),
-    },
-    ...rest,
-  });
-}
-
-function presetManager(creator: SurveyCreatorModel) {
-  return (creator.getPlugin("preview") as TabTestPlugin).variablePresets;
-}
-
-function operations(creator: SurveyCreatorModel, name: string) {
-  const preset = creator.variablePresets.presets?.find((p) => p.name === name);
-  return presetManager(creator).getPresetOperations(
-    preset as ISurveyVariablePreset,
-  );
-}
-
-/** What the editor's Apply does: the whole edited list back into the container. */
-function applyEdit(
-  creator: SurveyCreatorModel,
-  edit: (presets: ISurveyVariablePreset[]) => ISurveyVariablePreset[],
-) {
-  const presets = structuredClone(creator.variablePresets.presets ?? []);
-  presetManager(creator).setPresets(edit(presets));
-}
-
-function withTier(name: string, tier: string) {
-  return (presets: ISurveyVariablePreset[]) =>
-    presets.map((p) => (p.name === name ? { ...p, variables: { tier } } : p));
-}
-
-const names = (creator: SurveyCreatorModel) =>
-  creator.variablePresets.presets?.map((p) => p.name);
-
-const tierOf = (creator: SurveyCreatorModel, name: string) =>
-  creator.variablePresets.presets?.find((p) => p.name === name)?.variables
-    ?.tier;
-
-const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
-
-describe("Test participant values editor", () => {
-  it("lets the author add and edit Test participants, and never delete one", () => {
-    // Arrange
-    const creator = designer();
-
-    // Act
-    bind(creator);
-
-    // Assert
-    expect(presetManager(creator)).toMatchObject({
-      allowAdd: true,
-      allowEdit: true,
-      allowDelete: false,
-    });
-    expect(operations(creator, MARIA)).toEqual({
-      allowEdit: true,
-      allowDelete: false,
-    });
-  });
-
-  it("locks a real participant, so they can't be renamed, edited or deleted", () => {
-    // Arrange
-    const creator = designer();
-
-    // Act
-    bind(creator);
-
-    // Assert
-    expect(operations(creator, BOB)).toEqual({
-      allowEdit: false,
-      allowDelete: false,
-    });
-  });
-
-  it("keeps the editor read-only when the API allows no editing", () => {
-    // Arrange
-    const creator = designer();
-    const readOnly = {
-      ...variables(),
-      editing: { allowAdd: false, allowEdit: false, allowDelete: false },
-    };
-
-    // Act
-    bind(creator, { variables: readOnly });
-
-    // Assert
-    expect(presetManager(creator)).toMatchObject({
-      allowAdd: false,
-      allowEdit: false,
-      allowDelete: false,
-    });
-  });
-
-  it("keeps the editor read-only when the designer cannot save", () => {
-    // Arrange
-    const creator = designer();
-
-    // Act
-    bindAudienceToCreator(creator, {
-      variables: variables(),
-      refresh: () => Promise.resolve(Result.success(variables())),
-    });
-
-    // Assert
-    expect(presetManager(creator).canEdit).toBe(false);
-  });
-
-  it("locks whoever the latest read lists as real", async () => {
-    // Arrange
-    const creator = designer();
-    const fresh = variables(
-      [
-        { name: MARIA, variables: { tier: "gold" } },
-        { name: BOB, variables: { tier: "silver" } },
-      ],
-      [MARIA],
-    );
-    const binding = bind(creator, {
-      refresh: () => Promise.resolve(Result.success(fresh)),
-    });
-
-    // Act
-    await binding.refresh();
-
-    // Assert
-    expect(binding.readOnlyPresets()).toEqual([MARIA]);
-    expect(operations(creator, MARIA).allowEdit).toBe(false);
-    expect(operations(creator, BOB).allowEdit).toBe(true);
-  });
-});
+import {
+  MARIA,
+  BOB,
+  ANA,
+  variables,
+  designer,
+  bind,
+  presetManager,
+  applyEdit,
+  withTier,
+  names,
+  tierOf,
+  flush,
+  type Save,
+} from "./write-back-fixtures";
 
 describe("Saving Test participant values", () => {
-  it("saves the whole edited list of Test participants in one call", async () => {
+  it("saves the added and changed Test participants in one call", async () => {
     // Arrange
     const creator = designer();
     const save = vi.fn<Save>(() =>
@@ -226,7 +61,68 @@ describe("Saving Test participant values", () => {
     await flush();
 
     // Assert
-    expect(save.mock.calls[0][0].map((p) => p.name)).toEqual([MARIA]);
+    expect(save).not.toHaveBeenCalled();
+  });
+
+  it("tells the author a row named like a real participant was not saved", async () => {
+    // Arrange
+    const creator = designer();
+    const notify = vi.spyOn(creator, "notify");
+    bind(creator);
+
+    // Act
+    applyEdit(creator, (presets) => [
+      ...presets,
+      { name: BOB.toUpperCase(), variables: { tier: "bronze" } },
+    ]);
+    await flush();
+
+    // Assert
+    expect(notify).toHaveBeenCalledWith(
+      expect.stringContaining(BOB.toUpperCase()),
+      "error",
+    );
+  });
+
+  it("sends nothing when Apply changes nothing", async () => {
+    // Arrange
+    const creator = designer();
+    const save = vi.fn<Save>();
+    bind(creator, { save });
+
+    // Act
+    applyEdit(creator, (presets) => presets);
+    await flush();
+
+    // Assert
+    expect(save).not.toHaveBeenCalled();
+  });
+
+  // The PUT reconciles by identifier, so a Test participant sent unchanged would overwrite a change
+  // made on the Audience tab since the designer read it.
+  it("leaves out Test participants the author did not change", async () => {
+    // Arrange
+    const creator = designer();
+    const save = vi.fn<Save>(() =>
+      Promise.resolve(Result.success(variables())),
+    );
+    bind(creator, {
+      save,
+      variables: variables([
+        { name: MARIA, variables: { tier: "gold" } },
+        { name: ANA, variables: { tier: "bronze" } },
+        { name: BOB, variables: { tier: "silver" } },
+      ]),
+    });
+
+    // Act
+    applyEdit(creator, withTier(ANA, "platinum"));
+    await flush();
+
+    // Assert
+    expect(save).toHaveBeenCalledWith([
+      { name: ANA, variables: { tier: "platinum" } },
+    ]);
   });
 
   it("matches external ids exactly, so another case is a new Test participant", async () => {
@@ -253,7 +149,6 @@ describe("Saving Test participant values", () => {
 
     // Assert
     expect(save.mock.calls[0][0].map((p) => p.name)).toEqual([
-      MARIA,
       BOB.toUpperCase(),
     ]);
   });
@@ -395,5 +290,65 @@ describe("Saving Test participant values", () => {
 
     // Assert
     expect(save).not.toHaveBeenCalled();
+  });
+
+  it("shows changes made elsewhere to Test participants the failed edit did not touch", async () => {
+    // Arrange
+    const creator = designer();
+    const fresh = variables([
+      { name: MARIA, variables: { tier: "gold" } },
+      { name: ANA, variables: { tier: "changed-on-audience-tab" } },
+      { name: BOB, variables: { tier: "silver" } },
+    ]);
+    const binding = bind(creator, {
+      variables: variables([
+        { name: MARIA, variables: { tier: "gold" } },
+        { name: ANA, variables: { tier: "bronze" } },
+        { name: BOB, variables: { tier: "silver" } },
+      ]),
+      save: () => Promise.resolve(Result.error("Server unavailable")),
+      refresh: () => Promise.resolve(Result.success(fresh)),
+    });
+    applyEdit(creator, withTier(MARIA, "platinum"));
+    await flush();
+
+    // Act
+    await binding.refresh();
+
+    // Assert
+    expect(tierOf(creator, MARIA)).toBe("platinum");
+    expect(tierOf(creator, ANA)).toBe("changed-on-audience-tab");
+  });
+
+  it("forgets a discarded draft, so the next read does not bring it back", async () => {
+    // Arrange
+    const creator = designer();
+    const binding = bind(creator, {
+      save: () => Promise.resolve(Result.validationError("not an email")),
+      refresh: () =>
+        Promise.resolve(
+          Result.success(
+            variables([
+              { name: MARIA, variables: { tier: "gold" } },
+              { name: BOB, variables: { tier: "bronze" } },
+            ]),
+          ),
+        ),
+    });
+    applyEdit(creator, (presets) => [
+      ...presets,
+      { name: "New test participant", variables: { tier: "x" } },
+    ]);
+    await flush();
+
+    // Act
+    applyEdit(creator, (presets) =>
+      presets.filter((p) => p.name !== "New test participant"),
+    );
+    await flush();
+    await binding.refresh();
+
+    // Assert
+    expect(names(creator)).toEqual([MARIA, BOB]);
   });
 });
