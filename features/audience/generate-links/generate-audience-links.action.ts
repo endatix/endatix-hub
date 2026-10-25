@@ -15,8 +15,8 @@ import type { PersonalLink } from "./personal-links";
 
 const LINKS_LOG = {
   permission: Permissions.Forms.Edit,
-  fallbackMessage: "Failed to create personalised links.",
-  logMessage: "Failed to create personalised links.",
+  fallbackMessage: "Failed to create personalized links.",
+  logMessage: "Failed to create personalized links.",
   loggerName: "audience.links",
 } as const;
 

@@ -65,7 +65,7 @@ function useLinksWrite(setup: GenerateLinksSetup) {
 }
 
 /**
- * Generate personalised links, then hand the file over at once: the tokens exist only in this
+ * Generate personalized links, then hand the file over at once: the tokens exist only in this
  * answer, so the file is saved as soon as it arrives and can be saved again while the panel is
  * open (DESIGN.md §6 Hand over a file).
  */

@@ -1,7 +1,7 @@
 import { PersonalizationSource } from "@/lib/endatix-api/submissions/types";
 
 const SOURCE_LABELS: Record<PersonalizationSource, string> = {
-  [PersonalizationSource.Link]: "Personalised link",
+  [PersonalizationSource.Link]: "Personalized link",
   [PersonalizationSource.OnBehalf]: "On behalf",
   [PersonalizationSource.Test]: "Test as this participant",
 };

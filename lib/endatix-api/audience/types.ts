@@ -68,7 +68,7 @@ export type AudienceLinkStatusKind =
   (typeof AudienceLinkStatusKind)[keyof typeof AudienceLinkStatusKind];
 
 /**
- * Whether the person's personalised link was issued and opened. A test person is always `none`.
+ * Whether the person's personalized link was issued and opened. A test person is always `none`.
  * An opened link has no `submissionId` once its submission was deleted.
  */
 export type AudienceLinkStatus =
@@ -85,7 +85,7 @@ export type AudiencePerson = {
   audienceMemberId: string;
   identifier: string;
   values: AudiencePropertyValues;
-  /** A test person: set when added, never changed, never sent a personalised link. */
+  /** A test person: set when added, never changed, never sent a personalized link. */
   isTest: boolean;
   link: AudienceLinkStatus;
 };

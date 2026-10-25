@@ -35,7 +35,7 @@ async function openInTab(tab: Window, formId: string, membershipId: string) {
 }
 
 /**
- * Test as this person. The tab opens on the click, while the browser still counts it as the
+ * Test as this participant. The tab opens on the click, while the browser still counts it as the
  * reader's gesture, and is pointed at the respondent page once the cookie is set. A blocked tab
  * stops here: the action would create a test submission and replace this browser's form cookie.
  * A click while one is opening is ignored, so a double-click opens one test submission, not two.

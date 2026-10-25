@@ -79,7 +79,7 @@ function OpenedRows({ formId, link }: Readonly<OpenedRowsProps>) {
 
 type LinkCardProps = { formId: string; participant: AudienceParticipant };
 
-/** Their personalised link: shown only once one was issued (a test participant never has one). */
+/** Their personalized link: shown only once one was issued (a test participant never has one). */
 export function LinkCard({ formId, participant }: Readonly<LinkCardProps>) {
   const { link } = participant;
   if (link.status === AudienceLinkStatusKind.None) return null;

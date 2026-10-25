@@ -842,7 +842,7 @@ mistaken for an edit. Reference: `features/submissions/ui/details/label-language
 
 ### Hand over a file
 
-A file the reader takes away (a data list's items, personalised links, an export) comes through
+A file the reader takes away (a data list's items, personalized links, an export) comes through
 one control and one set of helpers, whether the server builds it or the browser does. References:
 `DownloadMenu` on a data list's page, `features/audience/generate-links/`.
 
@@ -859,9 +859,9 @@ one control and one set of helpers, whether the server builds it or the browser 
   correctly. Name columns with the same keys the Hub reads, so a file the Hub writes can be
   imported back (the links file's first column is `email` or `external_id`, the match key's wire
   name, which the import suggests from).
-- **Date the file name** (`personalised-links-<form>-2026-10-12.csv`), so a second file never
+- **Date the file name** (`personalized-links-<form>-2026-10-12.csv`), so a second file never
   overwrites the first in the reader's downloads.
-- **A file that is the only copy is saved the moment it exists.** Personalised links are stored
+- **A file that is the only copy is saved the moment it exists.** Personalized links are stored
   only as hashes, so the API returns each token once. The panel saves the file as soon as the
   answer arrives, without a second click, and says so in a `success` Alert ("20 links
   downloaded … It is the only copy"). Then it offers `Download CSV` again while it stays open.
