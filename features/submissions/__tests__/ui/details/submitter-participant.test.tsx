@@ -35,7 +35,7 @@ describe("SubmitterParticipant", () => {
 
     expect(screen.getByRole("heading", { name: "Participant" })).toBeTruthy();
     expect(screen.getByText("ada@example.com")).toBeTruthy();
-    expect(screen.getByText("Personalised link")).toBeTruthy();
+    expect(screen.getByText("Personalized link")).toBeTruthy();
     expect(screen.getByText(/Oct 19, 2026/)).toBeTruthy();
     expect(
       screen

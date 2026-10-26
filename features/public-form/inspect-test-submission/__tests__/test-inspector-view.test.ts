@@ -32,7 +32,7 @@ const personTest: Submission = {
 };
 
 describe("toTestInspectorView", () => {
-  it("maps a submission opened with Test as this person", () => {
+  it("maps a submission opened with Test as this participant", () => {
     expect(
       toTestInspectorView({
         formId: "form-1",

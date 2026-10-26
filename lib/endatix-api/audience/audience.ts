@@ -310,7 +310,7 @@ export class Audience {
     );
   }
 
-  /** Test as this person: a new test submission on the current definition and their current values. */
+  /** Test as this participant: a new test submission on the current definition and their current values. */
   async openTestSubmission(
     formId: string,
     membershipId: string,

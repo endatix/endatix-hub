@@ -41,7 +41,7 @@ type PeopleSectionProps = {
   hasNextPage: boolean;
   /** Without `forms.edit` the list is read-only: no add, edit or remove controls. */
   canEdit: boolean;
-  /** With `forms.test` each row offers Test as this person. */
+  /** With `forms.test` each row offers Test as this participant. */
   canTest: boolean;
   /** With `forms.test` and a submissions grant, each test person's row offers Copy test link. */
   canCopyTestLink?: boolean;

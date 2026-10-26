@@ -159,8 +159,13 @@ describe("ImportCsvPanel", () => {
     fireEvent.click(continueButton());
 
     expect(screen.getByText("Existing people are updated")).toBeTruthy();
+    expect(
+      screen.getByText(
+        "Test participants are never sent a personalized link. Use them to try the form with Test as this participant.",
+      ),
+    ).toBeTruthy();
     fireEvent.click(
-      screen.getByRole("checkbox", { name: "Import as test people" }),
+      screen.getByRole("checkbox", { name: "Import as test participants" }),
     );
     expect(screen.getByText("Existing people are skipped")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Import 2 rows" }));

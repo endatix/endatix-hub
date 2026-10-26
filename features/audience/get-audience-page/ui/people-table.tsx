@@ -114,7 +114,7 @@ type RowAction = Omit<ActionSpec, "run"> & {
 const ROW_ACTIONS: RowAction[] = [
   {
     handler: "onTest",
-    label: (id) => `Test as this person: ${id}`,
+    label: (id) => `Test as this participant: ${id}`,
     icon: FlaskConical,
   },
   {

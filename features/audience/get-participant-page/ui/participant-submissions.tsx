@@ -30,7 +30,7 @@ const COLUMNS: StaticDataTableColumn[] = [
 ];
 
 const SOURCE_LABEL: Record<SnapshotSource, string> = {
-  [PersonalizationSource.Link]: "Personalised link",
+  [PersonalizationSource.Link]: "Personalized link",
   [PersonalizationSource.OnBehalf]: "On behalf",
   [PersonalizationSource.Test]: "Test",
 };

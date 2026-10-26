@@ -29,7 +29,7 @@ describe("personal links file", () => {
 
   it("dates the file name so a second batch never overwrites the first", () => {
     expect(linksFileName("42", new Date("2026-10-12T09:30:00Z"))).toBe(
-      "personalised-links-42-2026-10-12.csv",
+      "personalized-links-42-2026-10-12.csv",
     );
   });
 });
