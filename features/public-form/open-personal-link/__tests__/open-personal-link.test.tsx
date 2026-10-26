@@ -5,13 +5,17 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Result } from "@/lib/result";
 import { OpenPersonalLink } from "../ui/open-personal-link";
 
-const { openPersonalLinkAction, replace } = vi.hoisted(() => ({
+const { openPersonalLinkAction, replace, logError } = vi.hoisted(() => ({
   openPersonalLinkAction: vi.fn(),
   replace: vi.fn(),
+  logError: vi.fn(),
 }));
 
 vi.mock("../open-personal-link.action", () => ({ openPersonalLinkAction }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ replace }) }));
+vi.mock("@/features/telemetry", () => ({
+  TelemetryLogger: { error: logError },
+}));
 
 const FORM_ID = "1525035735390879744";
 const LINK_TOKEN = "link-token";
@@ -53,7 +57,9 @@ describe("OpenPersonalLink", () => {
 
     render(<OpenPersonalLink formId={FORM_ID} token={LINK_TOKEN} />);
 
-    expect(await screen.findByText("This link is not valid.")).toBeTruthy();
+    expect(
+      await screen.findByRole("heading", { name: "This link is not valid." }),
+    ).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Try again" })).toBeNull();
     expect(replace).not.toHaveBeenCalled();
   });
@@ -84,5 +90,51 @@ describe("OpenPersonalLink", () => {
     expect(openPersonalLinkAction).toHaveBeenCalledTimes(1);
     expect(replace).not.toHaveBeenCalled();
     vi.unstubAllGlobals();
+  });
+
+  it("logs a rejected call without the link's token", async () => {
+    const failure = new TypeError("Failed to fetch");
+    openPersonalLinkAction.mockRejectedValue(failure);
+
+    render(<OpenPersonalLink formId={FORM_ID} token={LINK_TOKEN} />);
+    await screen.findByRole("button", { name: "Try again" });
+
+    expect(logError).toHaveBeenCalledWith(
+      "Failed to open a personalized link.",
+      failure,
+      { formId: FORM_ID },
+      "public-form.open-personal-link",
+    );
+    expect(JSON.stringify(logError.mock.calls)).not.toContain(LINK_TOKEN);
+  });
+
+  it("spins the loader while it opens the link", () => {
+    openPersonalLinkAction.mockReturnValue(new Promise(() => {}));
+
+    const { container } = render(
+      <OpenPersonalLink formId={FORM_ID} token={LINK_TOKEN} />,
+    );
+
+    expect(container.querySelector("svg")?.getAttribute("class")).toMatch(
+      /spin/,
+    );
+  });
+
+  it("announces each state in one polite live region", async () => {
+    openPersonalLinkAction.mockResolvedValue(
+      Result.validationError("This link is not valid."),
+    );
+
+    render(<OpenPersonalLink formId={FORM_ID} token={LINK_TOKEN} />);
+    const region = screen.getByRole("status");
+    expect(region.getAttribute("aria-live")).toBe("polite");
+    expect(region.textContent).toBe("Opening your survey…");
+
+    await waitFor(() =>
+      expect(screen.getByRole("status").textContent).toBe(
+        "This link is not valid.",
+      ),
+    );
+    expect(screen.getByRole("status")).toBe(region);
   });
 });
