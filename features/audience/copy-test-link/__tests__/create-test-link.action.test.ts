@@ -1,10 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Permissions } from "@/features/auth/authorization";
+import { TelemetryLogger } from "@/features/telemetry";
 import { ApiResult } from "@/lib/endatix-api/shared/api-result";
 import { Result } from "@/lib/result";
 import { requireAudienceAccess } from "../../shared/require-audience-api.server";
 import { createTestLinkAction } from "../create-test-link.action";
 
+vi.mock("@/features/telemetry", () => ({
+  TelemetryLogger: { error: vi.fn() },
+}));
 vi.mock("../../shared/require-audience-api.server", () => ({
   requireAudienceAccess: vi.fn(),
 }));
@@ -18,11 +22,12 @@ const SEVEN_DAYS = 60 * 24 * 7;
 const getParticipant = vi.fn();
 const openTestSubmission = vi.fn();
 const createAccessToken = vi.fn();
+const deleteSubmission = vi.fn();
 const checkPermission = vi.fn();
 
 const api = {
   audience: { getParticipant, openTestSubmission },
-  submissions: { createAccessToken },
+  submissions: { createAccessToken, delete: deleteSubmission },
 };
 
 function participant(isTest: boolean) {
@@ -141,14 +146,60 @@ describe("createTestLinkAction", () => {
     expect(createAccessToken).not.toHaveBeenCalled();
   });
 
-  it("returns the token failure after the test submission was opened", async () => {
+  it("deletes the test submission it opened when the token fails, and returns the token error", async () => {
     createAccessToken.mockResolvedValue(
       ApiResult.serverError("Could not create the token."),
+    );
+    deleteSubmission.mockResolvedValue(ApiResult.success("deleted"));
+
+    const result = await createTestLinkAction(FORM_ID, MEMBER_ID, SEVEN_DAYS);
+
+    expect(Result.isError(result) && result.message).toBe(
+      "Could not create the token.",
+    );
+    expect(deleteSubmission).toHaveBeenCalledWith(FORM_ID, SUBMISSION_ID);
+    expect(rollbackLogs()).toHaveLength(0);
+  });
+
+  it("logs a failed cleanup by ids and error code only, and still returns the token error", async () => {
+    createAccessToken.mockResolvedValue(
+      ApiResult.serverError("Could not create the token."),
+    );
+    deleteSubmission.mockResolvedValue(
+      ApiResult.serverError("Delete failed.", undefined, "delete_failed"),
     );
 
     const result = await createTestLinkAction(FORM_ID, MEMBER_ID, SEVEN_DAYS);
 
-    expect(Result.isError(result)).toBe(true);
-    expect(openTestSubmission).toHaveBeenCalledTimes(1);
+    expect(Result.isError(result) && result.message).toBe(
+      "Could not create the token.",
+    );
+    expect(rollbackLogs()).toEqual([
+      [
+        expect.stringMatching(/test submission/),
+        undefined,
+        {
+          formId: FORM_ID,
+          submissionId: SUBMISSION_ID,
+          errorCode: "delete_failed",
+        },
+        "audience.test-links.create",
+      ],
+    ]);
+  });
+
+  it("deletes nothing when the token is minted", async () => {
+    await createTestLinkAction(FORM_ID, MEMBER_ID, SEVEN_DAYS);
+
+    expect(deleteSubmission).not.toHaveBeenCalled();
   });
 });
+
+/** The rollback's own log: the API-error logs from `toResult` carry no submission id. */
+const rollbackLogs = () =>
+  vi
+    .mocked(TelemetryLogger.error)
+    .mock.calls.filter(
+      ([, , attributes]) =>
+        (attributes as Record<string, unknown> | undefined)?.submissionId,
+    );

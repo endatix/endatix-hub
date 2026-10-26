@@ -1,11 +1,13 @@
 "use server";
 
 import { Permissions } from "@/features/auth/authorization";
+import { TelemetryLogger } from "@/features/telemetry";
 import {
   clampExpiryMinutes,
   DEFAULT_EXPIRY_MINUTES,
 } from "@/lib/share-links/share-link-expiry";
 import type { EndatixApi } from "@/lib/endatix-api";
+import { ApiResult } from "@/lib/endatix-api/shared/api-result";
 import { withBasePath } from "@/lib/hosting";
 import { Result, toResult } from "@/lib/result";
 import { requireAudienceAccess } from "../shared/require-audience-api.server";
@@ -82,9 +84,24 @@ async function mintLink(
 }
 
 /**
+ * Deletes the test submission a failed mint left without a link. A failed delete is logged by
+ * ids and error code only, so a leftover can be found.
+ */
+async function rollBack(api: EndatixApi, formId: string, submissionId: string) {
+  const deleted = await api.submissions.delete(formId, submissionId);
+  if (ApiResult.isSuccess(deleted)) return;
+  TelemetryLogger.error(
+    "Failed to delete a test submission after its test link failed",
+    undefined,
+    { formId, submissionId, errorCode: deleted.error.errorCode },
+    LOG.loggerName,
+  );
+}
+
+/**
  * Copy test link: a new test submission for a test person, and a `submit` link to it that
- * opens without a login, also on a private form. The two calls are not atomic: when the token
- * fails, the test submission stays, and Delete test submissions removes it.
+ * opens without a login, also on a private form. When the token fails, the test submission is
+ * deleted again and the token's error is returned.
  */
 export async function createTestLinkAction(
   formId: string,
@@ -98,11 +115,10 @@ export async function createTestLinkAction(
     return Result.error(NO_ACCESS);
   }
 
-  const submissionId = await openForTestPerson(api, formId, memberId);
-  if (Result.isError(submissionId)) return submissionId;
-  return mintLink(api, {
-    formId,
-    submissionId: submissionId.value,
-    expiryMinutes,
-  });
+  const opened = await openForTestPerson(api, formId, memberId);
+  if (Result.isError(opened)) return opened;
+  const submissionId = opened.value;
+  const link = await mintLink(api, { formId, submissionId, expiryMinutes });
+  if (Result.isError(link)) await rollBack(api, formId, submissionId);
+  return link;
 }
