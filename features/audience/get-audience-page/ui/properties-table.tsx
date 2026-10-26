@@ -79,7 +79,7 @@ function MatchKeyName({ property, kind }: Readonly<NameProps>) {
         </Badge>
       </span>
       <span className="text-xs font-normal text-muted-foreground">
-        {`It matches each person across forms, so the people table shows it as their ${label}, not as a property.`}
+        {`It matches each participant across forms, so the participants table shows it as their ${label}, not as a property.`}
       </span>
     </span>
   );

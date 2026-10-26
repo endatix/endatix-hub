@@ -43,7 +43,7 @@ describe("GenerateLinksPanel", () => {
     openPanel(0);
 
     // Assert
-    expect(screen.getByText(/no people yet/)).toBeTruthy();
+    expect(screen.getByText(/no participants yet/)).toBeTruthy();
     expect(
       (
         screen.getByRole("button", {

@@ -43,7 +43,7 @@ const SECTIONS: ReadonlyArray<{
   },
   {
     id: "audience",
-    label: "Audience",
+    label: "Participants",
     path: "/audience",
     icon: "users",
     flag: "audience",
@@ -109,4 +109,3 @@ export function getFormWorkspaceSectionLabel(
 ): string {
   return SECTIONS.find((section) => section.id === id)?.label ?? id;
 }
-

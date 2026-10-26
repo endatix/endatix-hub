@@ -16,9 +16,9 @@ export type MatchKeyState = {
 
 const MATCH_KEY_HINTS = Object.freeze({
   locked:
-    "Locked while any form in your organization has people on its audience. Remove them to change it.",
+    "Locked while any form in your organization has participants. Remove them to change it.",
   noPermission: "Only people who manage organization settings can change it.",
-  open: "Choose it before adding people. It locks once anyone is added to any form.",
+  open: "Choose it before adding participants. It locks once anyone is added to any form.",
 } as const);
 
 /** The one line under the select: why it is disabled, or when it will lock. */

@@ -69,11 +69,11 @@ type PersonIdentityProps = {
 function PersonIdentity({ kind, person }: Readonly<PersonIdentityProps>) {
   if (!person) return null;
   return (
-    <PanelSection icon={UserRound} title="Person">
+    <PanelSection icon={UserRound} title="Participant">
       <div className="grid gap-3">
         <IdentifierRow kind={kind} identifier={person.identifier} />
         <p className="text-xs text-muted-foreground">
-          It matches this person across forms, so it never changes.
+          It matches this participant across forms, so it never changes.
         </p>
       </div>
     </PanelSection>
@@ -124,9 +124,9 @@ function panelProps({
   return {
     open: open && person !== null,
     onOpenChange: closeWhenIdle(pending, onClose),
-    title: "Edit person",
+    title: "Edit participant",
     description:
-      "Values for this person on this form. Emptying a field clears it.",
+      "Values for this participant on this form. Emptying a field clears it.",
     errorTitle: "Changes not saved",
     submitLabel: "Save changes",
     pendingLabel: "Saving…",

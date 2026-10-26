@@ -34,10 +34,19 @@ export type AudiencePageData = {
   hasNextPage: boolean;
 };
 
-function unwrapPart<T>(apiResult: ApiResult<T>, label: string): Result<T> {
+const PART_NAMES = {
+  settings: "settings",
+  properties: "properties",
+  people: "participants",
+};
+
+function unwrapPart<T>(
+  apiResult: ApiResult<T>,
+  label: keyof typeof PART_NAMES,
+): Result<T> {
   return toResult(apiResult, {
-    fallbackMessage: `Failed to load audience ${label}.`,
-    logMessage: `Failed to load audience ${label}.`,
+    fallbackMessage: `Failed to load the form's ${PART_NAMES[label]}.`,
+    logMessage: `Failed to load the form's ${PART_NAMES[label]}.`,
     loggerName: `audience.${label}`,
   } as MapApiResultToResultOptions<T>);
 }

@@ -43,7 +43,7 @@ describe("PropertiesTable", () => {
     expect(within(first!).getByText("Identifier")).toBeTruthy();
     expect(
       within(first!).getByText(
-        "It matches each person across forms, so the people table shows it as their External ID, not as a property.",
+        "It matches each participant across forms, so the participants table shows it as their External ID, not as a property.",
       ),
     ).toBeTruthy();
     expect(within(second!).getAllByText("age").length).toBeGreaterThan(0);

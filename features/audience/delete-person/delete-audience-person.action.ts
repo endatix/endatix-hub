@@ -14,8 +14,8 @@ export async function deleteAudiencePersonAction(
     (api) => api.audience.deletePerson(formId, membershipId),
     {
       permission: Permissions.Forms.Edit,
-      fallbackMessage: "Failed to remove audience person.",
-      logMessage: "Failed to remove audience person.",
+      fallbackMessage: "Failed to remove the participant.",
+      logMessage: "Failed to remove the participant.",
       loggerName: "audience.people.delete",
       formId,
     },

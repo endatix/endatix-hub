@@ -36,7 +36,7 @@ function NothingNew() {
       <AlertTitle>Everyone already has a link</AlertTitle>
       <AlertDescription>
         Links are shown once, when they are made, so there is nothing new to
-        download. People added later get theirs the next time you generate
+        download. Participants added later get theirs the next time you generate
         links.
       </AlertDescription>
     </Alert>

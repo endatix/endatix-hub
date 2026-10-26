@@ -80,7 +80,7 @@ describe("Audience findings in Diagnostics", () => {
     );
   });
 
-  it("adds an undeclared variable as an Audience property and reviews again", async () => {
+  it("adds an undeclared variable as a property and reviews again", async () => {
     // Arrange
     const audience = audienceWith([UNDECLARED]);
     const plugin = await pluginWith(audience);
@@ -88,9 +88,7 @@ describe("Audience findings in Diagnostics", () => {
     vi.mocked(audience.review).mockResolvedValue({ findings: [] });
 
     // Act
-    fireEvent.click(
-      screen.getByRole("button", { name: "Add as Audience property" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Add as property" }));
 
     // Assert
     expect(audience.addProperty).toHaveBeenCalledWith(UNDECLARED);
@@ -109,7 +107,7 @@ describe("Audience findings in Diagnostics", () => {
 
     // Assert
     expect(
-      screen.queryByRole("button", { name: "Add as Audience property" }),
+      screen.queryByRole("button", { name: "Add as property" }),
     ).toBeNull();
   });
 

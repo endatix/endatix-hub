@@ -14,8 +14,8 @@ export async function deleteAudiencePropertyAction(
     (api) => api.audience.deleteProperty(formId, propertyId),
     {
       permission: Permissions.Forms.Edit,
-      fallbackMessage: "Failed to delete audience property.",
-      logMessage: "Failed to delete audience property.",
+      fallbackMessage: "Failed to delete the property.",
+      logMessage: "Failed to delete the property.",
       loggerName: "audience.properties.delete",
       formId,
     },

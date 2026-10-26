@@ -28,7 +28,7 @@ export type InspectedSubmitter = {
  * follows the target, so a tester is never told "Participant" for a list of everyone.
  */
 export type ParticipantLink = {
-  label: "Participant" | "Audience";
+  label: "Participant" | "Participants";
   href: string;
 };
 
@@ -64,7 +64,7 @@ function participantLink(
   return canOpenParticipant && memberId
     ? { label: "Participant", href: formRoutes.participant(formId, memberId) }
     : {
-        label: "Audience",
+        label: "Participants",
         href: formRoutes.audience(formId, { test: "test" }),
       };
 }

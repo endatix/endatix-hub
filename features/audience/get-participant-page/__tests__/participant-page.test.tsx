@@ -244,11 +244,11 @@ describe("ParticipantPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Edit values" }));
 
     expect(
-      await screen.findByRole("dialog", { name: "Edit person" }),
+      await screen.findByRole("dialog", { name: "Edit participant" }),
     ).toBeDefined();
   });
 
-  it("returns to the Audience page and test filter this tab last had", async () => {
+  it("returns to the Participants page and test filter this tab last had", async () => {
     sessionStorage.setItem(
       "ehx_table_return_audience_1",
       "page=2&test=test&from=https://evil",
@@ -257,12 +257,12 @@ describe("ParticipantPage", () => {
 
     await waitFor(() =>
       expect(
-        screen.getByRole("link", { name: "Audience" }).getAttribute("href"),
+        screen.getByRole("link", { name: "Participants" }).getAttribute("href"),
       ).toBe("/forms/1/audience?page=2&test=test"),
     );
   });
 
-  it("removes the participant and returns to Audience", async () => {
+  it("removes the participant and returns to Participants", async () => {
     vi.mocked(deleteAudiencePersonAction).mockResolvedValue(
       Result.success(undefined),
     );

@@ -17,8 +17,8 @@ const DECLARE_LOG = {
   // Runs inside the designer: a redirect would throw away the author's unsaved edits, and a
   // revalidation would render the whole design page again for a write the binding reads back.
   background: true,
-  fallbackMessage: "Failed to add the Audience property.",
-  logMessage: "Failed to add an Audience property from the designer.",
+  fallbackMessage: "Failed to add the property.",
+  logMessage: "Failed to add a property from the designer.",
   loggerName: "audience.properties.declare",
 } as const;
 

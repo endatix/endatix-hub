@@ -11,7 +11,7 @@ import { CREATABLE_DATA_TYPES } from "../../property-types";
 const NAME_ID = "add-property-name";
 const TYPE_ID = "add-property-type";
 const TYPE_HELP =
-  "Values are checked against the type when people are added or edited.";
+  "Values are checked against the type when participants are added or edited.";
 
 type PropertyEditor = {
   name: string;

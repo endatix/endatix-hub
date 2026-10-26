@@ -10,7 +10,7 @@ import { PropertyFields } from "./property-fields";
 const PANEL = Object.freeze({
   title: "Add property",
   description:
-    "A column on this form's audience. Each person can have one value for it.",
+    "A column in this form's participants table. Each participant can have one value for it.",
   errorTitle: "Property not added",
   submitLabel: "Add property",
   pendingLabel: "Adding…",

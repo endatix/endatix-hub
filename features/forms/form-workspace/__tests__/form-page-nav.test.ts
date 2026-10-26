@@ -28,7 +28,7 @@ describe("buildFormPageNav", () => {
 
     // Assert
     expect(switcher).toEqual({
-      label: "Audience",
+      label: "Participants",
       icon: "users",
       compactLabel: true,
       options: [
@@ -45,7 +45,7 @@ describe("buildFormPageNav", () => {
           isActive: false,
         },
         {
-          label: "Audience",
+          label: "Participants",
           href: "/forms/f1/audience",
           icon: "users",
           isActive: true,

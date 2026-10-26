@@ -121,7 +121,7 @@ describe("loadPublicSurveyPageUseCase on a person's test submission", () => {
     });
   });
 
-  it("points a tester who may not edit forms at Audience, not the participant page that would send them away", async () => {
+  it("points a tester who may not edit forms at Participants, not the participant page that would send them away", async () => {
     vi.mocked(getPartialSubmissionUseCase).mockResolvedValue(
       ApiResult.success(personTestSubmission),
     );
@@ -131,7 +131,10 @@ describe("loadPublicSurveyPageUseCase on a person's test submission", () => {
 
     expect(
       result.kind === "success" && result.testInspector?.links.participant,
-    ).toEqual({ label: "Audience", href: "/forms/form-1/audience?test=test" });
+    ).toEqual({
+      label: "Participants",
+      href: "/forms/form-1/audience?test=test",
+    });
   });
 
   it("gives any other viewer of a test submission no view, so the page shows only the notice", async () => {

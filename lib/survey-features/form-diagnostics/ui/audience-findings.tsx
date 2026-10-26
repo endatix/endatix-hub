@@ -49,7 +49,7 @@ const DESCRIBE: {
       ? `Did you mean {${suggestion}}? ${NOT_DECLARED}`
       : NOT_DECLARED,
     fixLabel: fix && suggestion ? `Use {${suggestion}}` : undefined,
-    addPropertyLabel: canAddProperty ? "Add as Audience property" : undefined,
+    addPropertyLabel: canAddProperty ? "Add as property" : undefined,
   }),
   "variable-collision": ({ variable, declaredBy }) => ({
     title: `A ${DECLARED_BY[declaredBy]} shares its name with the Property {${variable}}`,

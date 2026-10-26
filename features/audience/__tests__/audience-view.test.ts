@@ -18,7 +18,7 @@ describe("parseAudienceView", () => {
 });
 
 describe("audienceViewTabs", () => {
-  it("links People to the bare tab URL and carries both counts", () => {
+  it("links Participants to the bare tab URL and carries both counts", () => {
     // Act
     const tabs = audienceViewTabs("f1", { people: 1240, properties: 3 });
 
@@ -26,7 +26,7 @@ describe("audienceViewTabs", () => {
     expect(tabs).toEqual([
       {
         id: "people",
-        label: "People",
+        label: "Participants",
         href: "/forms/f1/audience",
         count: 1240,
       },

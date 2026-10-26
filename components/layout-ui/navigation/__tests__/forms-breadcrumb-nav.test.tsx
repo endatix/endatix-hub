@@ -16,8 +16,8 @@ const FORM_TRAIL: FormsBreadcrumbItem[] = [
   link("Cedar Grove Pulse", "/forms/f1"),
   {
     type: "dropdown",
-    label: "Audience",
-    options: [{ label: "Audience", href: "/forms/f1/audience" as Route }],
+    label: "Participants",
+    options: [{ label: "Participants", href: "/forms/f1/audience" as Route }],
   },
 ];
 
@@ -63,9 +63,11 @@ describe("FormsBreadcrumbNav", () => {
     expect(
       screen.getAllByRole("button", { name: "Show the rest of the trail" }),
     ).toHaveLength(2);
-    expect(screen.getAllByRole("link", { name: "Cedar Grove Pulse" })).toHaveLength(1);
     expect(
-      screen.getAllByRole("button", { name: "Audience navigation" }),
+      screen.getAllByRole("link", { name: "Cedar Grove Pulse" }),
+    ).toHaveLength(1);
+    expect(
+      screen.getAllByRole("button", { name: "Participants navigation" }),
     ).toHaveLength(2);
   });
 });

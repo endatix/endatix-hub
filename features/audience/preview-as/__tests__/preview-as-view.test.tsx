@@ -387,7 +387,7 @@ describe("PreviewAsView", () => {
     fireEvent.click(screen.getByRole("button", { name: "Edit values" }));
 
     expect(
-      await screen.findByRole("dialog", { name: "Edit person" }),
+      await screen.findByRole("dialog", { name: "Edit participant" }),
     ).toBeDefined();
   });
 

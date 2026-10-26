@@ -31,8 +31,8 @@ const PANEL = {
 function RecipientsSection({ totalPeople }: Readonly<GenerateLinksSetup>) {
   const description =
     totalPeople === 0
-      ? "This form has no people yet. Add or import people first."
-      : "Everyone on this form who has no link yet. People who already have one keep it.";
+      ? "This form has no participants yet. Add or import participants first."
+      : "Every participant on this form who has no link yet. Participants who already have one keep it.";
   return (
     <PanelSection
       icon={Users}
@@ -41,7 +41,7 @@ function RecipientsSection({ totalPeople }: Readonly<GenerateLinksSetup>) {
     >
       <dl className="grid gap-3">
         <SummaryRow
-          label="People on this form"
+          label="Participants on this form"
           value={totalPeople.toLocaleString()}
         />
       </dl>
@@ -57,9 +57,9 @@ function OnlyCopyNote() {
       <AlertTitle>The file is the only copy</AlertTitle>
       <AlertDescription>
         Each link is shown once, when it is made, and downloads as a CSV. Anyone
-        with a link can open that person&apos;s response, so keep the file safe.
-        A response starts when its link is first opened, with the form and that
-        person&apos;s values as they are then.
+        with a link can open that participant&apos;s response, so keep the file
+        safe. A response starts when its link is first opened, with the form and
+        that participant&apos;s values as they are then.
       </AlertDescription>
     </Alert>
   );
@@ -67,7 +67,7 @@ function OnlyCopyNote() {
 
 function describeStep({ batch }: GenerateLinks): string {
   if (!batch)
-    return "One link per person, each opening that person's own response.";
+    return "One link per participant, each opening that participant's own response.";
   return batch.links.length > 0
     ? "The links are ready to send from your own email or panel tool."
     : "Nothing new to send: no one on this form is without a link.";
