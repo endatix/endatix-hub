@@ -85,8 +85,8 @@ function ImportAsTest({ wizard }: Readonly<Pick<ReviewProps, "wizard">>) {
   return (
     <TestPersonCheckbox
       id="import-as-test"
-      label="Import as test people"
-      help="Test people are never sent a personalized link. Use them to try the form with Test as this participant."
+      label="Import as test participants"
+      help="Test participants are never sent a personalized link. Use them to try the form with Test as this participant."
       checked={wizard.choices.asTest}
       disabled={wizard.pending}
       onCheckedChange={wizard.choices.setAsTest}
