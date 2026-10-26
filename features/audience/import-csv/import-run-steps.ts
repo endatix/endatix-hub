@@ -68,8 +68,12 @@ export const readImport = (formId: string, importId: string) =>
 function replaces(current: RunState, view: AudienceImportView): boolean {
   if (current.kind === "idle" || current.view.importId !== view.importId)
     return false;
-  return !isTerminal(current.view.status) || isTerminal(view.status);
+  return !hasEnded(current.view) || hasEnded(view);
 }
+
+/** It will not move again: a stopped write that can resume has not ended. */
+const hasEnded = (view: AudienceImportView) =>
+  isTerminal(view.status) && !view.canResume;
 
 /** Shows a newer view of the import on screen; an ended import lets go of the file's rows. */
 export function showView(ctx: RunContext, view: AudienceImportView) {

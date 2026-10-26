@@ -95,15 +95,9 @@ describe("ImportCsvPanel: a running import", () => {
     ).toBeTruthy();
   });
 
-  it("offers Resume for a stopped write, and resumes it", async () => {
+  it("offers Resume for a stopped write, and follows the resumed write", async () => {
     // Arrange
-    const stopped = view({
-      ...CHECKED,
-      status: "failed",
-      canResume: true,
-      failure: "The write stopped.",
-    });
-    serveReads(Result.success(stopped));
+    serveReads(Result.success(stoppedWrite()));
     vi.mocked(moveAudienceImportAction).mockResolvedValue(
       Result.success({ ...CHECKED, status: "writing" }),
     );
@@ -115,13 +109,12 @@ describe("ImportCsvPanel: a running import", () => {
     );
 
     // Assert
-    await waitFor(() =>
-      expect(moveAudienceImportAction).toHaveBeenCalledWith({
-        formId: "1",
-        importId: "9",
-        to: "writing",
-      }),
-    );
+    expect(await screen.findByText(/rows written/)).toBeTruthy();
+    expect(moveAudienceImportAction).toHaveBeenCalledWith({
+      formId: "1",
+      importId: "9",
+      to: "writing",
+    });
   });
 
   it("continues a cut-off upload only with the same file", async () => {
