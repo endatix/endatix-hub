@@ -264,6 +264,24 @@ describe("loadPublicSurveyPageUseCase", () => {
     }
   });
 
+  it.each([ERROR_CODE.TOKEN_REVOKED, ERROR_CODE.TOKEN_EXPIRED, ERROR_CODE.INVALID_ACCESS_TOKEN])(
+    "shows the invalid-link page when the access check refuses the token with %s",
+    async (errorCode) => {
+      vi.mocked(getPublicFormAccessUseCase).mockResolvedValue(
+        Result.validationError("Token refused", undefined, errorCode),
+      );
+
+      const result = await loadPublicSurveyPageUseCase({
+        formId,
+        tokenStore,
+        urlToken: token,
+      });
+
+      expect(result).toEqual({ kind: "tokenSubmissionError", errorCode });
+      expect(getSubmissionByAccessTokenUseCase).not.toHaveBeenCalled();
+    },
+  );
+
   it("keeps the submission-token path for an opaque cookie token", async () => {
     const cookieTokenStore = {
       getToken: vi.fn().mockReturnValue(Result.success("opaque-token")),

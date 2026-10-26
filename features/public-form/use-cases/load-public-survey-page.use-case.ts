@@ -144,7 +144,10 @@ async function loadAccessTokenSurveyPage({
   });
 
   if (Result.isError(publicFormAccessResult)) {
-    return mapAccessFailure(publicFormAccessResult);
+    const { errorCode } = publicFormAccessResult;
+    return errorCode && REFUSED_TOKEN_CODES.has(errorCode)
+      ? { kind: "tokenSubmissionError", errorCode }
+      : mapAccessFailure(publicFormAccessResult);
   }
 
   const submissionResult = await loadAccessTokenSubmission({
@@ -248,6 +251,14 @@ async function testInspectorFor({
 }
 
 const RESPONDENT_COPY_MAX_LENGTH = 240;
+
+/** The token itself is refused (expired, revoked, tampered): the reader needs a new link, not a retry. */
+const REFUSED_TOKEN_CODES: ReadonlySet<string> = new Set([
+  ERROR_CODE.INVALID_TOKEN,
+  ERROR_CODE.INVALID_ACCESS_TOKEN,
+  ERROR_CODE.TOKEN_EXPIRED,
+  ERROR_CODE.TOKEN_REVOKED,
+]);
 
 function mapAccessFailure(result: ResultType<unknown>): Extract<
   LoadPublicSurveyPageResult,
