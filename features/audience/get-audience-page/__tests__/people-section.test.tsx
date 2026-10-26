@@ -89,15 +89,13 @@ const withLink = (
   link,
 });
 
+const EDIT = "Edit participant";
+
 const LIST = {
   formId: "1",
   identifierKind: AudienceIdentifierKind.Email,
   properties: [] as AudienceProperty[],
-  importLimits: {
-    maxRows: 5_000,
-    maxBytes: 20_971_520,
-    runsInBackground: false,
-  },
+  importLimits: { maxRows: 5_000, maxBytes: 20_971_520, runsInBackground: false },
   totalPeople: 2,
   page: 1,
   pageSize: 50,
@@ -151,9 +149,7 @@ describe("PeopleSection", () => {
     );
 
     // Assert — identity locked; identifier property absent from editable values
-    expect(
-      await screen.findByRole("heading", { name: "Edit participant" }),
-    ).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: EDIT })).toBeTruthy();
     const lockedLabel = screen
       .getAllByText("External ID")
       .find((node) => node.tagName === "DT");
