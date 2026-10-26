@@ -45,3 +45,32 @@ export function redactLinkTokensInEvent(
 ): CaptureResult | null {
   return event ? (redactDeep(event) as CaptureResult) : event;
 }
+
+/** posthog-js keeps these from the first page in its persistence and sends them with `/flags`. */
+const STORED_URL_PROPERTIES = [
+  "$initial_person_info",
+  "$client_session_props",
+  "$initial_referrer_info",
+  "$referrer",
+];
+
+type StoredProperties = {
+  get_property: (key: string) => unknown;
+  register: (properties: Record<string, unknown>) => void;
+};
+
+/**
+ * Rewrites the URLs posthog-js stored from the first page. `before_send` never sees the `/flags`
+ * request, which sends them as person properties, so they are cleaned where they are kept.
+ */
+export function redactStoredLinkTokens(posthog: StoredProperties): void {
+  const changed: Record<string, unknown> = {};
+  for (const key of STORED_URL_PROPERTIES) {
+    const value = posthog.get_property(key);
+    if (value === undefined) continue;
+    const redacted = redactDeep(value);
+    if (JSON.stringify(redacted) !== JSON.stringify(value))
+      changed[key] = redacted;
+  }
+  if (Object.keys(changed).length > 0) posthog.register(changed);
+}

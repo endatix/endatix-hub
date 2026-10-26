@@ -3,7 +3,10 @@
  */
 import posthog from "posthog-js";
 import { PostHogClientOptions, PostHogConfig } from "../shared/types";
-import { redactLinkTokensInEvent } from "./redact-link-tokens";
+import {
+  redactLinkTokensInEvent,
+  redactStoredLinkTokens,
+} from "./redact-link-tokens";
 
 // Default PostHog configuration
 const defaultOptions: PostHogClientOptions = {
@@ -76,8 +79,12 @@ export const initPostHog = (
       bootstrap: {
         distinctID: mergedOptions.distinctId || undefined,
       },
-      // Personalized links and access-token URLs carry credentials (endatix-hub#1211).
-      before_send: redactLinkTokensInEvent,
+      // Personalized links and access-token URLs carry credentials (endatix-hub#1211). The first
+      // capture stores the first page's URL, which `/flags` sends later, so it is cleaned here too.
+      before_send: (event) => {
+        redactStoredLinkTokens(posthog);
+        return redactLinkTokensInEvent(event);
+      },
     });
 
     if (config.debug) {

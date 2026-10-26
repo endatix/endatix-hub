@@ -1,8 +1,9 @@
 import type { CaptureResult } from "posthog-js";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   redactLinkTokens,
   redactLinkTokensInEvent,
+  redactStoredLinkTokens,
 } from "../client/redact-link-tokens";
 
 describe("redactLinkTokens", () => {
@@ -79,5 +80,43 @@ describe("redactLinkTokensInEvent", () => {
 
   it("passes a dropped event through", () => {
     expect(redactLinkTokensInEvent(null)).toBeNull();
+  });
+});
+
+describe("redactStoredLinkTokens", () => {
+  it("rewrites the stored URL properties posthog-js sends with feature flag calls", () => {
+    const stored: Record<string, unknown> = {
+      $initial_person_info: {
+        r: "$direct",
+        u: "https://hub.example.com/share/42?token=jwt.secret",
+      },
+      $client_session_props: {
+        sessionId: "s1",
+        props: { u: "https://hub.example.com/share/42/a/secret-token" },
+      },
+    };
+    const posthog = {
+      get_property: (key: string) => stored[key],
+      register: (props: Record<string, unknown>) =>
+        Object.assign(stored, props),
+    };
+
+    redactStoredLinkTokens(posthog);
+
+    expect(JSON.stringify(stored)).not.toContain("secret");
+    expect(stored.$initial_person_info).toEqual({
+      r: "$direct",
+      u: "https://hub.example.com/share/42",
+    });
+  });
+
+  it("writes nothing when no stored URL carries a token", () => {
+    const register = vi.fn();
+    redactStoredLinkTokens({
+      get_property: () => ({ u: "https://hub.example.com/forms/42" }),
+      register,
+    });
+
+    expect(register).not.toHaveBeenCalled();
   });
 });
