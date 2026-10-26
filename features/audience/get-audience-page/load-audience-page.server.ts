@@ -20,6 +20,8 @@ export type AudiencePageData = {
   canEdit: boolean;
   /** Whether this reader may open a test submission as a person (`forms.test`). */
   canTest: boolean;
+  /** Whether this reader may copy a test link for a test person (`canCopyTestLink`). */
+  canCopyTestLink: boolean;
   /** The All / Real / Test filter the list was read with; `totalPeople` counts that set. */
   testFilter: AudiencePeopleTestFilter;
   properties: AudienceProperty[];
@@ -93,7 +95,7 @@ async function loadAudienceParts(
 
 type Capabilities = Pick<
   AudiencePageData,
-  "canManageMatchKey" | "canEdit" | "canTest"
+  "canManageMatchKey" | "canEdit" | "canTest" | "canCopyTestLink"
 >;
 
 function toPageData(
