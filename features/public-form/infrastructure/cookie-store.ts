@@ -1,4 +1,5 @@
 import { Result } from "@/lib/result";
+import { isAccessToken, parseTokenExpiry } from "@/lib/utils";
 import { ResponseCookie } from "next/dist/compiled/@edge-runtime/cookies";
 import { ReadonlyRequestCookies } from "next/dist/server/web/spec-extension/adapters/request-cookies";
 
@@ -23,6 +24,12 @@ type BaseCookieOptions = Omit<
 >;
 
 
+
+/** A link's access token carries its own expiry; past it, the entry is as good as gone. */
+function isExpiredAccessToken(token: string): boolean {
+  const expiry = isAccessToken(token) ? parseTokenExpiry(token) : null;
+  return expiry !== null && expiry <= Date.now();
+}
 
 class FormTokenCookieStore {
   private readonly COOKIE_CONFIG: CookieConfig;
@@ -90,7 +97,7 @@ class FormTokenCookieStore {
     try {
       const tokens = JSON.parse(cookie.value);
       const token = tokens[formId];
-      return token
+      return token && !isExpiredAccessToken(token)
         ? Result.success(token)
         : Result.error("No token found for the current form");
     } catch (error) {
