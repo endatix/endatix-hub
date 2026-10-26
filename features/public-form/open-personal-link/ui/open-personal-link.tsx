@@ -4,6 +4,8 @@ import {
   PublicStatusPage,
   publicStatusClassNames,
 } from "@/components/public-status/public-status-page";
+import SubmissionAlreadyCompleted from "@/features/public-form/ui/submission-already-completed";
+import { ERROR_CODE } from "@/lib/endatix-api/shared/error-codes";
 import { ErrorType, Result } from "@/lib/result";
 import { Link2Off, LoaderCircle, TriangleAlert } from "lucide-react";
 import type { Route } from "next";
@@ -13,7 +15,7 @@ import { openPersonalLinkAction } from "../open-personal-link.action";
 
 type OpenPersonalLinkProps = { formId: string; token: string };
 
-type Phase = "opening" | "notFound" | "unavailable";
+type Phase = "opening" | "notFound" | "ended" | "unavailable";
 
 /**
  * The personalized link's page. It redeems by POST after it mounts, never while it renders, so a
@@ -36,6 +38,10 @@ export function OpenPersonalLink({
         tone="neutral"
       />
     );
+  }
+
+  if (phase === "ended") {
+    return <SubmissionAlreadyCompleted variant="share" />;
   }
 
   if (phase === "unavailable") {
@@ -71,6 +77,14 @@ export function OpenPersonalLink({
   );
 }
 
+function failedPhase(failure: Result<void>): Phase {
+  if (Result.isSuccess(failure)) return "opening";
+  if (failure.errorCode === ERROR_CODE.SUBMISSION_ENDED) return "ended";
+  return failure.errorType === ErrorType.ValidationError
+    ? "notFound"
+    : "unavailable";
+}
+
 function useOpenPersonalLink(formId: string, token: string) {
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>("opening");
@@ -86,8 +100,7 @@ function useOpenPersonalLink(formId: string, token: string) {
       router.replace(`/share/${formId}` as Route);
       return;
     }
-    const notValid = opened.errorType === ErrorType.ValidationError;
-    setPhase(notValid ? "notFound" : "unavailable");
+    setPhase(failedPhase(opened));
   }, [formId, token, router]);
 
   useEffect(() => {

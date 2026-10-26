@@ -64,6 +64,21 @@ describe("openPersonalLinkAction", () => {
     );
   });
 
+  it("answers submission_ended for a link whose submission has ended, and sets no cookie", async () => {
+    redeemLink.mockResolvedValue(
+      ApiResult.conflictError(
+        "Submission ended",
+        undefined,
+        "submission_ended",
+      ),
+    );
+
+    const opened = await openPersonalLinkAction(FORM_ID, LINK_TOKEN);
+
+    expect(Result.isError(opened) && opened.errorCode).toBe("submission_ended");
+    expect(cookieJar.set).not.toHaveBeenCalled();
+  });
+
   it("answers a retryable error when the API fails", async () => {
     redeemLink.mockResolvedValue(ApiResult.serverError("Busy"));
 

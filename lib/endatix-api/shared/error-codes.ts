@@ -22,6 +22,7 @@ const ERROR_CODES = Object.freeze({
   invalid_access_token: "Token is invalid or has expired.",
   token_expired: "This link has expired.",
   token_revoked: "This link is no longer valid.",
+  submission_ended: "This form has already been completed.",
   unknown_error: "An unknown error occurred.",
 } as const);
 
@@ -47,6 +48,7 @@ const ERROR_CODE = Object.freeze({
   INVALID_ACCESS_TOKEN: "invalid_access_token",
   TOKEN_EXPIRED: "token_expired",
   TOKEN_REVOKED: "token_revoked",
+  SUBMISSION_ENDED: "submission_ended",
   UNKNOWN_ERROR: "unknown_error",
 } as const);
 

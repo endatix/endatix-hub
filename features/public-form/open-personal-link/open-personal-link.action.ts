@@ -23,7 +23,8 @@ const OPEN_LOG = {
  * form cookie, never in a URL, so `/share/{formId}` opens that one submission, on a private form too. A POST only: the link's page calls it
  * after paint, so a mail scanner's GET never marks the link Opened (endatix-hub#1211).
  *
- * An unknown link is a validation error (nothing to retry); any other error may pass on a retry.
+ * An unknown link is a validation error (nothing to retry). A link whose submission has ended keeps
+ * redeem's `submission_ended` code, for the already-completed page. Any other error may pass on a retry.
  */
 export async function openPersonalLinkAction(
   formId: string,

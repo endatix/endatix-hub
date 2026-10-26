@@ -58,6 +58,20 @@ describe("OpenPersonalLink", () => {
     expect(replace).not.toHaveBeenCalled();
   });
 
+  it("says the survey is already submitted when the link's submission has ended", async () => {
+    openPersonalLinkAction.mockResolvedValue(
+      Result.error("Already submitted", undefined, "submission_ended"),
+    );
+
+    render(<OpenPersonalLink formId={FORM_ID} token={LINK_TOKEN} />);
+
+    expect(
+      await screen.findByText("This form has already been completed."),
+    ).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Try again" })).toBeNull();
+    expect(replace).not.toHaveBeenCalled();
+  });
+
   it("offers Try again when the link could not be opened, and opens it on the retry", async () => {
     openPersonalLinkAction
       .mockResolvedValueOnce(Result.error("Busy"))
