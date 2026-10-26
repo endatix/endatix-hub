@@ -15,7 +15,8 @@ export type TestLink = { url: string; expiresAt: string };
 
 const MIN_EXPIRY_MINUTES = 60;
 
-const NO_SHARE_ACCESS = "You need access to submissions to copy a test link.";
+const NO_ACCESS =
+  "You need permission to test and edit forms, and to view submissions, to copy a test link.";
 const REAL_PERSON = "Test links are only for test participants.";
 
 const LOG = {
@@ -27,7 +28,11 @@ const LOG = {
 const testLinkExpiry = (minutes: number) =>
   Math.max(MIN_EXPIRY_MINUTES, clampExpiryMinutes(minutes));
 
-/** The test submission's id; a real person gets none, since a link holder would see their values. */
+/**
+ * The test submission's id; a real person gets none, since a link holder would see their values.
+ * This rule holds for this action only: the API opens a test submission for anyone, and Share
+ * Submission can still share one opened with Test as this participant.
+ */
 async function openForTestPerson(
   api: EndatixApi,
   formId: string,
@@ -90,7 +95,7 @@ export async function createTestLinkAction(
   if (Result.isError(access)) return access;
   const { api, checkPermission } = access.value;
   if (!(await canCopyTestLink(checkPermission))) {
-    return Result.error(NO_SHARE_ACCESS);
+    return Result.error(NO_ACCESS);
   }
 
   const submissionId = await openForTestPerson(api, formId, memberId);

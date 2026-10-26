@@ -46,7 +46,11 @@ describe("createTestLinkAction", () => {
     vi.mocked(requireAudienceAccess).mockResolvedValue(
       Result.success({ api, checkPermission } as never),
     );
-    grant(Permissions.Forms.Test, Permissions.Submissions.View);
+    grant(
+      Permissions.Forms.Test,
+      Permissions.Forms.Edit,
+      Permissions.Submissions.View,
+    );
     getParticipant.mockResolvedValue(participant(true));
     openTestSubmission.mockResolvedValue(
       ApiResult.success({ submissionId: SUBMISSION_ID, token: "cookie" }),
@@ -105,15 +109,24 @@ describe("createTestLinkAction", () => {
     expect(openTestSubmission).not.toHaveBeenCalled();
   });
 
-  it("refuses a reader who cannot share submissions, before reading the person", async () => {
-    grant(Permissions.Forms.Test);
+  it.each([
+    ["share submissions", [Permissions.Forms.Test, Permissions.Forms.Edit]],
+    [
+      "read participants",
+      [Permissions.Forms.Test, Permissions.Submissions.View],
+    ],
+  ])(
+    "refuses a reader who cannot %s, before reading the person",
+    async (_, granted) => {
+      grant(...granted);
 
-    const result = await createTestLinkAction(FORM_ID, MEMBER_ID, SEVEN_DAYS);
+      const result = await createTestLinkAction(FORM_ID, MEMBER_ID, SEVEN_DAYS);
 
-    expect(Result.isError(result)).toBe(true);
-    expect(getParticipant).not.toHaveBeenCalled();
-    expect(openTestSubmission).not.toHaveBeenCalled();
-  });
+      expect(Result.isError(result)).toBe(true);
+      expect(getParticipant).not.toHaveBeenCalled();
+      expect(openTestSubmission).not.toHaveBeenCalled();
+    },
+  );
 
   it("returns the open failure and mints no token", async () => {
     openTestSubmission.mockResolvedValue(

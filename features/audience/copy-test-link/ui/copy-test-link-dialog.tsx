@@ -4,12 +4,13 @@ import { Link2 } from "lucide-react";
 import { ShareLinkRow } from "@/components/common/share-link-row";
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  ResponsivePanel,
+  ResponsivePanelBody,
+  ResponsivePanelDescription,
+  ResponsivePanelFooter,
+  ResponsivePanelHeader,
+  ResponsivePanelTitle,
+} from "@/components/ui/responsive-panel";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -74,7 +75,7 @@ function CopiedLink({ link }: Readonly<{ link: TestLink }>) {
       title="Test link"
       description="Opens one test submission. Anyone with it can fill it in."
       value={link.url}
-      copyLabel="Copy test link again"
+      copyLabel="Copy this link"
       className="gap-2 p-3"
       footer={formatExpiresIn(link.expiresAt)}
     />
@@ -82,66 +83,91 @@ function CopiedLink({ link }: Readonly<{ link: TestLink }>) {
 }
 
 const copyLabel = (pending: boolean, copied: boolean) => {
-  if (pending) return "Copying...";
-  return copied ? "Copy a new link" : "Copy link";
+  if (pending) return "Creating...";
+  return copied ? "Create and copy another" : "Create and copy link";
 };
 
-type BodyProps = Omit<CopyTestLinkDialogProps, "open" | "onOpenChange"> & {
+type PanelProps = Omit<CopyTestLinkDialogProps, "person"> & {
   person: TestPerson;
 };
 
-/** Mounted per person, so a new person starts with no link and the 7-day lifetime. */
-function CopyTestLinkBody({ formId, person, onCreated }: Readonly<BodyProps>) {
-  const testLink = useCopyTestLink(formId, person.audienceMemberId, onCreated);
-  const { link, pending } = testLink;
+function CopyTestLinkHeader({ identifier }: Readonly<{ identifier: string }>) {
   return (
-    <div className="flex flex-col gap-3">
-      <ExpirySelect
-        value={testLink.expiryMinutes}
-        onChange={testLink.setExpiryMinutes}
-      />
-      {link ? <CopiedLink link={link} /> : null}
-      <Button className="self-end" disabled={pending} onClick={testLink.copy}>
-        {copyLabel(pending, link !== null)}
-      </Button>
-    </div>
-  );
-}
-
-function CopyTestLinkHeader({ identifier }: Readonly<{ identifier?: string }>) {
-  return (
-    <DialogHeader className="space-y-1">
-      <DialogTitle>Copy test link</DialogTitle>
-      <DialogDescription>
+    <ResponsivePanelHeader>
+      <ResponsivePanelTitle>Copy test link</ResponsivePanelTitle>
+      <ResponsivePanelDescription>
         A link to a new test submission as{" "}
         <span className="font-medium break-all text-foreground">
           {identifier}
         </span>
         . It opens without a login, also on a private form, and each copy makes
         a new test submission.
-      </DialogDescription>
-    </DialogHeader>
+      </ResponsivePanelDescription>
+    </ResponsivePanelHeader>
+  );
+}
+
+type TestLinkState = ReturnType<typeof useCopyTestLink>;
+
+type ContentProps = Readonly<{ testLink: TestLinkState }>;
+
+function CreateButton({ testLink: { pending, link, copy } }: ContentProps) {
+  return (
+    <ResponsivePanelFooter>
+      <Button disabled={pending} onClick={copy}>
+        {copyLabel(pending, link !== null)}
+      </Button>
+    </ResponsivePanelFooter>
+  );
+}
+
+function CopyTestLinkContent({ testLink }: ContentProps) {
+  return (
+    <>
+      <ResponsivePanelBody className="flex flex-col gap-3">
+        <ExpirySelect
+          value={testLink.expiryMinutes}
+          onChange={testLink.setExpiryMinutes}
+        />
+        {testLink.link ? <CopiedLink link={testLink.link} /> : null}
+      </ResponsivePanelBody>
+      <CreateButton testLink={testLink} />
+    </>
+  );
+}
+
+/** Locked while a link is being created (DESIGN.md Overlays rule 8). */
+function CopyTestLinkPanel({ person, ...props }: Readonly<PanelProps>) {
+  const { formId, open, onOpenChange, onCreated } = props;
+  const testLink = useCopyTestLink(formId, person.audienceMemberId, onCreated);
+  return (
+    <ResponsivePanel
+      {...{ open, onOpenChange }}
+      desktopType="simple"
+      dismissible={!testLink.pending}
+      drawerContentClassName="h-auto"
+    >
+      <CopyTestLinkHeader identifier={person.identifier} />
+      <CopyTestLinkContent testLink={testLink} />
+    </ResponsivePanel>
   );
 }
 
 /**
  * Copy test link: a link to a new test submission as this test person, for a colleague
- * without an Endatix login. Each copy makes a new test submission.
+ * without an Endatix login. Mounted per person, so a new person starts with no link and the
+ * 7-day lifetime.
  */
-export function CopyTestLinkDialog(props: Readonly<CopyTestLinkDialogProps>) {
-  const { open, onOpenChange, person, ...body } = props;
+export function CopyTestLinkDialog({
+  person,
+  ...props
+}: Readonly<CopyTestLinkDialogProps>) {
+  if (!person) return null;
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="gap-3 sm:max-w-lg">
-        <CopyTestLinkHeader identifier={person?.identifier} />
-        {person ? (
-          <CopyTestLinkBody
-            key={person.audienceMemberId}
-            {...body}
-            person={person}
-          />
-        ) : null}
-      </DialogContent>
-    </Dialog>
+    <CopyTestLinkPanel
+      key={person.audienceMemberId}
+      {...props}
+      person={person}
+    />
   );
 }

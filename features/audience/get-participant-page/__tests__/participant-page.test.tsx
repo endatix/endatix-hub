@@ -208,7 +208,9 @@ describe("ParticipantPage", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Copy test link" }));
     const dialog = screen.getByRole("dialog", { name: "Copy test link" });
-    fireEvent.click(within(dialog).getByRole("button", { name: "Copy link" }));
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: "Create and copy link" }),
+    );
 
     await waitFor(() => expect(router.refresh).toHaveBeenCalled());
     expect(createTestLinkAction).toHaveBeenCalledWith("1", "7", 60 * 24 * 7);
