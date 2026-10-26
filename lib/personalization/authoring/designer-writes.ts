@@ -328,5 +328,5 @@ function addPropertyFailedMessage(
   detail: string | undefined,
 ): string {
   const reason = detail ? ` ${detail}` : "";
-  return `{${variable}} was not added as a property.${reason}`;
+  return `{${variable}} was not added as a participant property.${reason}`;
 }

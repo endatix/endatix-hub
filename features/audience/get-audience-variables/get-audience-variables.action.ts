@@ -14,7 +14,7 @@ export async function getAudienceVariablesAction(
     // Runs unasked on every Preview open: a redirect would throw away the author's unsaved edits.
     background: true,
     fallbackMessage: "Failed to load the form's participant properties.",
-    logMessage: "Failed to refresh Audience variables for the designer.",
+    logMessage: "Failed to refresh participant properties for the designer.",
     loggerName: "audience.variables.refresh",
   });
 }

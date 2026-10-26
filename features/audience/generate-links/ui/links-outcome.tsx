@@ -50,8 +50,8 @@ function DownloadedAlert({ batch, setup }: Readonly<OutcomeProps>) {
       <CircleCheckBig />
       <AlertTitle>{linkCount(batch.links.length)} downloaded</AlertTitle>
       <AlertDescription>
-        {batch.fileName} has one row per person: their {kind} and their link. It
-        is the only copy, so keep it until the links are sent.
+        {batch.fileName} has one row per participant: their {kind} and their
+        link. It is the only copy, so keep it until the links are sent.
       </AlertDescription>
     </Alert>
   );

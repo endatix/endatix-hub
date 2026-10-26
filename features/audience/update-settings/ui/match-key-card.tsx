@@ -16,7 +16,7 @@ import { useMatchKey, type MatchKeyState } from "../use-match-key.hook";
 
 const SELECT_ID = "audience-match-key";
 const DESCRIPTION =
-  "How a participant is recognised on every form in your organization, so they are one participant everywhere.";
+  "How participants are matched across every form in your organization.";
 
 function MatchKeyHeader({ isLocked }: Readonly<{ isLocked: boolean }>) {
   return (

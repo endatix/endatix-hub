@@ -34,19 +34,14 @@ export type AudiencePageData = {
   hasNextPage: boolean;
 };
 
-const PART_NAMES = {
-  settings: "settings",
-  properties: "properties",
-  people: "participants",
-};
-
 function unwrapPart<T>(
   apiResult: ApiResult<T>,
-  label: keyof typeof PART_NAMES,
+  label: string,
+  message: string,
 ): Result<T> {
   return toResult(apiResult, {
-    fallbackMessage: `Failed to load the form's ${PART_NAMES[label]}.`,
-    logMessage: `Failed to load the form's ${PART_NAMES[label]}.`,
+    fallbackMessage: message,
+    logMessage: message,
     loggerName: `audience.${label}`,
   } as MapApiResultToResultOptions<T>);
 }
@@ -96,9 +91,9 @@ async function loadAudienceParts(
     paging,
   );
   return combineParts(
-    unwrapPart(settingsApi, "settings"),
-    unwrapPart(propertiesApi, "properties"),
-    unwrapPart(peopleApi, "people"),
+    unwrapPart(settingsApi, "settings", "Failed to load the match key."),
+    unwrapPart(propertiesApi, "properties", "Failed to load the properties."),
+    unwrapPart(peopleApi, "people", "Failed to load the participants."),
   );
 }
 

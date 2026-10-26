@@ -12,7 +12,7 @@ import FormPublicStatus from "./form-public-status";
 interface FormEditorHeaderProps extends FormEditorHeaderState {
   isCurrentThemeModified: boolean;
   isPublic?: boolean;
-  /** Names where Back goes ("Back to Audience"); it does not save. */
+  /** Names where Back goes ("Back to Participants"); it does not save. */
   backLabel: string;
 }
 

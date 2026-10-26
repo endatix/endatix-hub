@@ -24,11 +24,11 @@ export type InspectedSubmitter = {
 };
 
 /**
- * The participant the Snapshot names, else Audience filtered to test participants. The label
+ * The participant the Snapshot names, else the Participants tab filtered to test participants. The label
  * follows the target, so a tester is never told "Participant" for a list of everyone.
  */
 export type ParticipantLink = {
-  label: "Participant" | "Participants";
+  label: "Participant" | "Test participants";
   href: string;
 };
 
@@ -64,7 +64,7 @@ function participantLink(
   return canOpenParticipant && memberId
     ? { label: "Participant", href: formRoutes.participant(formId, memberId) }
     : {
-        label: "Participants",
+        label: "Test participants",
         href: formRoutes.audience(formId, { test: "test" }),
       };
 }

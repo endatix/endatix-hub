@@ -132,7 +132,12 @@ export class FormDiagnosticsPlugin extends Base implements ICreatorPlugin {
     try {
       findings = (await this.audience?.review())?.findings ?? [];
     } catch (error) {
-      TelemetryLogger.error("Audience review failed.", error, {}, LOGGER_NAME);
+      TelemetryLogger.error(
+        "Personalization review failed.",
+        error,
+        {},
+        LOGGER_NAME,
+      );
     }
     if (review === this.latestReview) this.audienceFindings = findings;
   }
@@ -185,7 +190,7 @@ export class FormDiagnosticsPlugin extends Base implements ICreatorPlugin {
       .refresh()
       .catch((error: unknown) => {
         TelemetryLogger.error(
-          "Audience refresh failed.",
+          "Personalization refresh failed.",
           error,
           {},
           LOGGER_NAME,

@@ -87,7 +87,7 @@ type PeopleSurfaceProps = PeopleSectionProps & { handlers: RowHandlers };
 const FILTERED_EMPTY: Record<string, { title: string; body: string }> = {
   [AudiencePeopleTestFilter.Real]: {
     title: "No real participants",
-    body: "Every participant on this form is a test participant.",
+    body: "No participant on this form is a real participant.",
   },
   [AudiencePeopleTestFilter.Test]: {
     title: "No test participants",
@@ -170,7 +170,7 @@ function PeopleOverlays({ row, ...props }: Readonly<OverlayProps>) {
 }
 
 const DESCRIPTION =
-  "Who this form is for. Removing someone takes them off this form only.";
+  "Who this form is for. Removing a participant takes them off this form only.";
 
 /** Import is `outline` beside the view's one primary action, Add participant (DESIGN.md §5 Buttons). */
 function PeopleActions(props: Readonly<PeopleSectionProps>) {

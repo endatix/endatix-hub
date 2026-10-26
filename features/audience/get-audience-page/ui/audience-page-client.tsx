@@ -41,7 +41,7 @@ function ViewSwitch({ formId, view, data }: Readonly<Props>) {
     { people: data.totalPeople, properties: data.properties.length },
     { previewAs: data.canEdit },
   );
-  return <LinkTabs label="Audience view" tabs={tabs} activeId={view} />;
+  return <LinkTabs label="Participants view" tabs={tabs} activeId={view} />;
 }
 
 /** The designer's verdicts on the saved form. */
