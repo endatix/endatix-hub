@@ -316,6 +316,9 @@ describe("ImportCsvPanel: a running import", () => {
         "The stopped import is discarded. Participants it already wrote stay on this form; its other rows are not written.",
       ),
     ).toBeTruthy();
+    vi.mocked(moveAudienceImportAction).mockResolvedValue(
+      Result.success(view({ status: "canceled", canResume: false })),
+    );
     fireEvent.click(button("Discard and start over"));
 
     // Assert
@@ -324,7 +327,11 @@ describe("ImportCsvPanel: a running import", () => {
         "Up to 100,000 rows and 50 MB. The first row names the columns.",
       ),
     ).toBeTruthy();
-    expect(moveAudienceImportAction).not.toHaveBeenCalled();
+    expect(moveAudienceImportAction).toHaveBeenCalledWith({
+      formId: "1",
+      importId: "9",
+      to: "canceled",
+    });
   });
 
   it("keeps the stopped import when the scripter changes their mind", async () => {

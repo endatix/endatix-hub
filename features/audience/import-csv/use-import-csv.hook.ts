@@ -311,8 +311,9 @@ function runControls(wizard: Wizard, limits: AudienceImportLimits) {
     error: run.error,
     advance: () => advanceWizard(wizard),
     continueWith: (picked: File) => continueWithFile(run, picked, limits),
-    // A stopped import is let go here; the API discards it when the new one starts.
-    startNew: () => {
+    startNew: async () => {
+      const view = run.state.kind === "server" ? run.state.view : null;
+      if (view?.canResume) await run.cancel();
       run.dismiss();
       wizard.steps.restart();
     },

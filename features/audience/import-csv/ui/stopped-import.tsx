@@ -21,7 +21,7 @@ function DiscardActions({ onDiscard, onKeep }: Readonly<DiscardProps>) {
   );
 }
 
-/** Starting over asks first: the API discards the stopped import when the new one starts. */
+/** Starting over asks first; confirming cancels the stopped import on the server. */
 function DiscardConfirm(props: Readonly<DiscardProps>) {
   return (
     <Alert variant="warning">
