@@ -70,7 +70,13 @@ function ActiveView(props: Readonly<Props>) {
   const note = settings.isLocked ? (
     <MatchKeySummary identifierKind={identifierKind} />
   ) : null;
-  return <PeopleSection {...section} matchKeyNote={note} />;
+  return (
+    <PeopleSection
+      {...section}
+      importLimits={settings.importLimits}
+      matchKeyNote={note}
+    />
+  );
 }
 
 export function AudiencePageClient(props: Readonly<Props>) {

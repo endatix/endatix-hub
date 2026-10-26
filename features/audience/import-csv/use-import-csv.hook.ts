@@ -1,19 +1,24 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
-import type {
-  AudienceIdentifierKind,
-  AudienceImportResult,
-  AudienceProperty,
+import { useRef, useState } from "react";
+import {
+  AudienceImportStatus,
+  type AudienceIdentifierKind,
+  type AudienceImportLimits,
+  type AudienceImportView,
+  type AudienceProperty,
+  type StartAudienceImportRequest,
 } from "@/lib/endatix-api/audience/types";
 import { Result } from "@/lib/result";
+import type { CsvRow } from "@/lib/utils/csv";
 import { usePanelOpen } from "../use-panel-state.hook";
+import { readCsvFile, type CsvPreview } from "./csv-preview";
+import { isTerminal } from "./import-run";
+import { sizeLabel } from "./import-labels";
 import {
-  importAudienceCsvAction,
-  type ImportAudienceCsvInput,
-} from "./import-audience-csv.action";
-import { readCsvPreview, type CsvPreview } from "./csv-preview";
+  useAudienceImport,
+  type AudienceImportRun,
+} from "./use-audience-import.hook";
 import {
   propertyColumnMap,
   SKIP_COLUMN,
@@ -21,7 +26,10 @@ import {
   type ColumnMap,
 } from "./column-map";
 
-/** Steps before the import runs; the outcome (`done`) is not a step of the track. */
+/**
+ * The wizard's steps; the outcome (`done`) is not a step of the track. Leaving the step before
+ * Review starts the import, so a step added before Review keeps that order.
+ */
 export const IMPORT_STEPS = ["File", "Columns", "Review"] as const;
 
 export type ImportStep = "file" | "columns" | "review" | "done";
@@ -45,9 +53,10 @@ export type ImportCsvSetup = {
   formId: string;
   identifierKind: AudienceIdentifierKind;
   properties: AudienceProperty[];
+  importLimits: AudienceImportLimits;
 };
 
-export type LoadedFile = { name: string; text: string; preview: CsvPreview };
+export type LoadedFile = { name: string; preview: CsvPreview; rows: CsvRow[] };
 
 const NO_FILE: FileState = { file: null, problem: null };
 const NO_CHOICES: ChoiceState = {
@@ -57,15 +66,21 @@ const NO_CHOICES: ChoiceState = {
   asTest: false,
 };
 const UNREADABLE = "The file could not be read. Save it as CSV and try again.";
-const REJECTED = "Something went wrong. Try again.";
 
-async function readFile(picked: File): Promise<Result<LoadedFile>> {
+async function readFile(
+  picked: File,
+  limits: AudienceImportLimits,
+): Promise<Result<LoadedFile>> {
+  if (picked.size > limits.maxBytes) {
+    return Result.validationError(
+      `The file is ${sizeLabel(picked.size)}. Import files up to ${sizeLabel(limits.maxBytes)}.`,
+    );
+  }
   try {
-    const text = await picked.text();
-    const preview = readCsvPreview(text);
-    if (Result.isError(preview)) return preview;
+    const read = readCsvFile(await picked.text(), limits.maxRows);
+    if (Result.isError(read)) return read;
     const name = picked.name || "audience.csv";
-    return Result.success({ name, text, preview: preview.value });
+    return Result.success({ name, ...read.value });
   } catch {
     return Result.validationError(UNREADABLE);
   }
@@ -73,18 +88,21 @@ async function readFile(picked: File): Promise<Result<LoadedFile>> {
 
 type FileState = { file: LoadedFile | null; problem: string | null };
 
-/** The chosen file and its preview, or why it cannot be imported; `onRead` gets its headers. */
-function useImportFile(onRead: (headers: string[]) => void) {
+/** The chosen file and its preview, or why it cannot be imported; `onRead` gets the file. */
+function useImportFile(
+  limits: AudienceImportLimits,
+  onRead: (file: LoadedFile) => void,
+) {
   const [state, setState] = useState<FileState>(NO_FILE);
   const generation = useRef(0);
   const pick = async (picked: File) => {
     const current = ++generation.current;
-    const read = await readFile(picked);
+    const read = await readFile(picked, limits);
     if (current !== generation.current) return;
     if (Result.isError(read))
       return setState({ file: null, problem: read.message });
     setState({ file: read.value, problem: null });
-    onRead(read.value.preview.headers);
+    onRead(read.value);
   };
   const reset = () => {
     generation.current += 1;
@@ -98,7 +116,7 @@ type ChoiceState = {
   /** The column the file's names suggested, so the field can say where its value came from. */
   suggestedIdentifier: string;
   columns: ColumnMap;
-  /** Import as test people: only people new to the form are added, as test people. */
+  /** Import as test participants: only those new to the form are added, as test participants. */
   asTest: boolean;
 };
 
@@ -110,7 +128,7 @@ function withColumn(
   return { ...state, columns: { ...state.columns, [column]: variableName } };
 }
 
-/** The identifier column feeds no property: it is the person, not one of their values. */
+/** The identifier column feeds no property: it is the participant, not one of their values. */
 function withIdentifier(state: ChoiceState, column: string): ChoiceState {
   return {
     ...withColumn(state, column, SKIP_COLUMN),
@@ -131,7 +149,7 @@ function suggestedChoices(
   };
 }
 
-/** Which column identifies people, which one was suggested, and what each other column feeds. */
+/** Which column identifies participants, which one was suggested, and what each other column feeds. */
 function useColumnChoices(setup: ImportCsvSetup) {
   const [state, setState] = useState<ChoiceState>(NO_CHOICES);
   return {
@@ -148,102 +166,126 @@ function useColumnChoices(setup: ImportCsvSetup) {
 
 export type ImportChoices = ReturnType<typeof useColumnChoices>;
 
-async function importOrFailure(input: ImportAudienceCsvInput) {
-  try {
-    return await importAudienceCsvAction(input);
-  } catch {
-    return Result.error<AudienceImportResult>(REJECTED);
-  }
-}
-
-type WriteOutcome = {
-  error: string | null;
-  result: AudienceImportResult | null;
-};
-const NOT_RUN: WriteOutcome = { error: null, result: null };
-
-/**
- * The one write. A failure stays in `error` on the review step, which keeps every choice; a
- * success is shown in the panel (not a toast) and refreshes the list behind it.
- */
-function useImportWrite() {
-  const router = useRouter();
-  const [pending, startTransition] = useTransition();
-  const [outcome, setOutcome] = useState<WriteOutcome>(NOT_RUN);
-  const run = (input: ImportAudienceCsvInput, onDone: () => void) => {
-    setOutcome(NOT_RUN);
-    startTransition(async () => {
-      const imported = await importOrFailure(input);
-      if (Result.isError(imported))
-        return setOutcome({ error: imported.message, result: null });
-      setOutcome({ error: null, result: imported.value });
-      onDone();
-      router.refresh();
-    });
-  };
-  return { pending, ...outcome, run, reset: () => setOutcome(NOT_RUN) };
-}
-
-/** Where the wizard is, and the steps either side of it; `onBack` runs before each step back. */
-function useImportSteps(onBack: () => void) {
+/** Where the wizard is before the import starts, and the steps either side of it. */
+function useImportSteps() {
   const [step, setStep] = useState<ImportStep>("file");
   const previous = PREVIOUS[step];
-  const back = () => {
-    onBack();
-    if (previous) setStep(previous);
-  };
   return {
     step,
-    stepNumber: STEP_NUMBER[step],
     next: NEXT[step],
     setStep,
-    back: previous ? back : undefined,
+    back: previous ? () => setStep(previous) : undefined,
   };
 }
 
-function importInput(
-  setup: ImportCsvSetup,
+function startRequest(
   file: LoadedFile,
   choices: ImportChoices,
-): ImportAudienceCsvInput {
+): StartAudienceImportRequest {
   return {
-    formId: setup.formId,
-    csvText: file.text,
     fileName: file.name,
+    headers: file.preview.headers,
+    rowCount: file.preview.rowCount,
     identifierColumn: choices.identifierColumn,
     propertyColumns: propertyColumnMap(choices.columns),
     isTest: choices.asTest,
   };
 }
 
-/** Whether the footer's main button may run: a file read, then an identifier chosen. */
-export function canContinue({ step, file, choices }: ImportWizard): boolean {
-  if (step === "file") return file !== null;
-  if (step === "columns") return choices.identifierColumn !== "";
-  return true;
+const uploadFile = (file: LoadedFile) => ({
+  name: file.name,
+  headers: file.preview.headers,
+  rows: file.rows,
+});
+
+/** The import's view while one runs; `null` before it starts. */
+export const runView = (run: AudienceImportRun): AudienceImportView | null =>
+  run.state.kind === "idle" ? null : run.state.view;
+
+/** A running import shows on Review; one that ended (and cannot resume) is the outcome. */
+function runStep(run: AudienceImportRun): ImportStep | null {
+  const view = runView(run);
+  if (!view) return null;
+  return isTerminal(view.status) && !view.canResume ? "done" : "review";
+}
+
+/** What the footer's main button does on Review and the outcome, or `null` while it waits. */
+function runAction(run: AudienceImportRun, close: () => void) {
+  const view = runView(run);
+  if (!view || run.state.kind === "uploading") return null;
+  if (view.status === AudienceImportStatus.Checked) return run.confirm;
+  if (view.canResume) return run.resume;
+  if (run.canSendAgain) return run.sendAgain;
+  if (!isTerminal(view.status)) return null;
+  return () => {
+    run.dismiss();
+    close();
+  };
+}
+
+/** Whether the footer's main button may run: a file read, an identifier chosen, then the run's action. */
+export function canContinue(wizard: ImportWizard): boolean {
+  if (wizard.step === "file") return wizard.file !== null;
+  if (wizard.step === "columns") return wizard.choices.identifierColumn !== "";
+  return wizard.runAction !== null;
 }
 
 /**
- * The Import people wizard: file → columns → review → outcome, in one panel. Opening it starts
- * over; nothing is written before the review step's Import.
+ * The Import participants wizard: file → columns → review → outcome, in one panel. Leaving the
+ * Columns step starts a staged import and uploads the file; nothing is written before Confirm.
+ * A running import outlives the panel: closing it keeps the import, and the panel opens on it.
  */
 export function useImportCsv(setup: ImportCsvSetup) {
   const choices = useColumnChoices(setup);
-  const { reset: resetFile, ...source } = useImportFile(choices.suggest);
-  const { run, reset, ...write } = useImportWrite();
-  // A failed import's message belongs to the review step; going back to change a choice clears it.
-  const { next, setStep, ...steps } = useImportSteps(reset);
+  const { reset: resetFile, ...source } = useImportFile(
+    setup.importLimits,
+    (file) => choices.suggest(file.preview.headers),
+  );
+  const steps = useImportSteps();
+  const opener = useRef<() => void>(() => undefined);
+  const run = useAudienceImport(setup.formId, {
+    onFound: () => opener.current(),
+  });
   const panel = usePanelOpen(() => {
+    const view = runView(run);
+    if (view && !isTerminal(view.status)) return;
+    if (view && !view.canResume) run.dismiss();
     resetFile();
-    reset();
-    setStep("file");
-  }, write.pending);
-  const advance = () => {
-    if (next) return setStep(next);
-    if (steps.step !== "review" || !source.file) return panel.close();
-    run(importInput(setup, source.file, choices), () => setStep("done"));
+    steps.setStep("file");
+  }, run.pending);
+  opener.current = () => panel.openChange(true);
+  const ran = runStep(run);
+  const advance = async () => {
+    if (ran) return runAction(run, panel.close)?.();
+    if (steps.next !== "review") return steps.next && steps.setStep(steps.next);
+    if (!source.file) return;
+    const file = source.file;
+    if (await run.start(startRequest(file, choices), uploadFile(file)))
+      steps.setStep("review");
   };
-  return { ...steps, ...write, ...source, ...panel, choices, advance };
+  // A failed start's message belongs to the Columns step; going back to change a choice clears it.
+  const back = steps.back && (() => (run.dismiss(), steps.back?.()));
+  const continueWith = async (picked: File) => {
+    const read = await readFile(picked, setup.importLimits);
+    await run.continueWith(
+      Result.isSuccess(read) ? Result.success(uploadFile(read.value)) : read,
+    );
+  };
+  const step = ran ?? steps.step;
+  return {
+    ...source,
+    ...panel,
+    step,
+    stepNumber: STEP_NUMBER[step],
+    back: ran ? undefined : back,
+    choices,
+    run,
+    runAction: runAction(run, panel.close),
+    pending: run.pending,
+    error: run.error,
+    advance,
+    continueWith,
+  };
 }
 
 export type ImportWizard = ReturnType<typeof useImportCsv>;

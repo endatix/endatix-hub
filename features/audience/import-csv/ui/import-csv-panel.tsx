@@ -4,13 +4,18 @@ import { Upload } from "lucide-react";
 import { PanelForm } from "@/components/common/panel-form";
 import { PanelSteps } from "@/components/common/panel-steps";
 import { Button } from "@/components/ui/button";
-import { rowCountLabel } from "../import-labels";
+import {
+  AudienceImportStatus,
+  type AudienceImportView,
+} from "@/lib/endatix-api/audience/types";
+import { isTerminal } from "../import-run";
+import { participantCountLabel } from "../import-labels";
 import {
   canContinue,
   IMPORT_STEPS,
+  runView,
   useImportCsv,
   type ImportCsvSetup,
-  type ImportStep,
   type ImportWizard,
 } from "../use-import-csv.hook";
 import { ImportColumnsStep } from "./import-columns-step";
@@ -18,84 +23,114 @@ import { ImportFileStep } from "./import-file-step";
 import { ImportResultSummary } from "./import-result-summary";
 import { ImportReviewStep } from "./import-review-step";
 
-const TRIGGER = (
-  <Button variant="outline">
-    <Upload />
-    Import CSV
-  </Button>
-);
-
-const STEP_DESCRIPTION: Record<ImportStep, string> = {
-  file: "Add people from a CSV file. Nothing is written until you confirm.",
-  columns: "Choose the column that identifies people and what the others fill.",
-  review: "Check what the import will do, then run it.",
-  done: "The import has finished. The People list behind this panel is up to date.",
-};
-
-/** One sentence for the step, or for the running import, announced as it changes. */
-function ImportDescription({ wizard }: Readonly<{ wizard: ImportWizard }>) {
-  const rows = wizard.file ? rowCountLabel(wizard.file.preview.rowCount) : "";
+/** While an import is unfinished the trigger says so; the panel opens on it. */
+function trigger(view: AudienceImportView | null) {
+  const running = view !== null && !isTerminal(view.status);
   return (
-    <span aria-live="polite">
-      {wizard.pending
-        ? `Importing ${rows}. Keep this panel open until it finishes.`
-        : STEP_DESCRIPTION[wizard.step]}
-    </span>
+    <Button variant="outline">
+      <Upload />
+      {running ? "Import in progress" : "Import CSV"}
+    </Button>
   );
 }
 
+const STEP_DESCRIPTION = {
+  file: "Add participants from a CSV file. Nothing is written until you confirm.",
+  columns:
+    "Choose the column that identifies participants and what the others fill. Continue sends the file and checks it.",
+} as const;
+
+const KEEPS_GOING = "You can close this panel or this tab: the import keeps going.";
+
+function runningDescription(wizard: ImportWizard, view: AudienceImportView): string {
+  const background = view.runsInBackground ? ` ${KEEPS_GOING}` : "";
+  if (wizard.run.state.kind === "uploading")
+    return "Sending the file. Keep this tab open until it is sent.";
+  switch (view.status) {
+    case AudienceImportStatus.Uploading:
+      return "The upload stopped before the whole file was sent.";
+    case AudienceImportStatus.Checking:
+      return `The rows are being checked. Nothing is written yet.${background}`;
+    case AudienceImportStatus.Checked:
+      return "This is what the import will do. Nothing is written until you import.";
+    case AudienceImportStatus.Writing:
+      return view.runsInBackground
+        ? `Writing participants. ${KEEPS_GOING}`
+        : "Writing participants. Keep this panel open until it finishes.";
+    default:
+      return view.canResume
+        ? "The import stopped before it finished."
+        : "The import has ended. The People list behind this panel is up to date.";
+  }
+}
+
+/** One sentence for the step, or for the running import, announced as it changes. */
+function ImportDescription({ wizard }: Readonly<{ wizard: ImportWizard }>) {
+  const view = runView(wizard.run);
+  const text =
+    view === null
+      ? STEP_DESCRIPTION[wizard.step === "columns" ? "columns" : "file"]
+      : runningDescription(wizard, view);
+  return <span aria-live="polite">{text}</span>;
+}
+
 function submitLabel(wizard: ImportWizard): string {
+  const view = runView(wizard.run);
+  if (!view) return "Continue";
   if (wizard.step === "done") return "Done";
-  if (wizard.step !== "review" || !wizard.file) return "Continue";
-  return `Import ${rowCountLabel(wizard.file.preview.rowCount)}`;
+  if (view.canResume) return "Resume import";
+  if (wizard.run.canSendAgain) return "Send the rest of the file";
+  if (view.status !== AudienceImportStatus.Checked || !view.check)
+    return "Import participants";
+  const { newCount, existingCount } = view.check;
+  return `Import ${participantCountLabel(newCount + existingCount)}`;
 }
 
 type BodyProps = { wizard: ImportWizard; setup: ImportCsvSetup };
 
 function ActiveStep({ wizard, setup }: Readonly<BodyProps>) {
-  const { step, file, result } = wizard;
-  if (step === "done")
+  const { step, file } = wizard;
+  const view = runView(wizard.run);
+  if (step === "done") return view && <ImportResultSummary view={view} />;
+  if (step === "review")
     return (
-      result && (
-        <ImportResultSummary result={result} asTest={wizard.choices.asTest} />
-      )
+      <ImportReviewStep wizard={wizard} identifierKind={setup.identifierKind} />
     );
-  if (step === "file" || !file) return <ImportFileStep wizard={wizard} />;
-  const props = { wizard, setup, file };
-  return step === "columns" ? (
-    <ImportColumnsStep {...props} />
-  ) : (
-    <ImportReviewStep {...props} />
-  );
+  if (step === "file" || !file)
+    return <ImportFileStep wizard={wizard} limits={setup.importLimits} />;
+  return <ImportColumnsStep wizard={wizard} setup={setup} file={file} />;
 }
 
 const PANEL = {
   desktopType: "complex",
-  trigger: TRIGGER,
-  title: "Import people",
+  title: "Import participants",
   errorTitle: "Import failed",
-  pendingLabel: "Importing…",
 } as const;
 
 /** What `PanelForm` shows for the wizard's current step. */
 function stepProps(wizard: ImportWizard) {
+  const running = runView(wizard.run) !== null;
   return {
     open: wizard.open,
     onOpenChange: wizard.openChange,
+    trigger: trigger(runView(wizard.run)),
     pending: wizard.pending,
+    pendingLabel: wizard.step === "columns" ? "Starting…" : "Saving…",
     error: wizard.error,
     description: <ImportDescription wizard={wizard} />,
     submitLabel: submitLabel(wizard),
     submitDisabled: !canContinue(wizard),
     onBack: wizard.back,
     cancelable: wizard.step !== "done",
-    onSubmit: wizard.advance,
+    cancelLabel: running ? "Close" : undefined,
+    onSubmit: () => void wizard.advance(),
   };
 }
 
 /**
- * Import people from a CSV (DESIGN.md §6 Recipe: create / edit overlay, Steps in a panel): file,
- * columns, review, then the outcome in place. The panel locks while the import runs.
+ * Import participants from a CSV (DESIGN.md §6 Recipe: create / edit overlay, Steps in a panel):
+ * file, columns, then Review follows the upload and the Check, and the outcome shows in place.
+ * Closing the panel never cancels: Cancel import does, until the import is confirmed.
  */
 export function ImportCsvPanel(setup: Readonly<ImportCsvSetup>) {
   const wizard = useImportCsv(setup);
