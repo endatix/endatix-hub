@@ -36,10 +36,19 @@ export const AudiencePaging = Object.freeze({
   MaxPageSize: 5_000,
 } as const);
 
+/** How large a CSV this host imports; larger where imports run as background jobs. */
+export type AudienceImportLimits = {
+  maxRows: number;
+  maxBytes: number;
+  /** Whether imports run in the background, so the scripter may close the page. */
+  runsInBackground: boolean;
+};
+
 export type AudienceSettings = {
   identifierKind: AudienceIdentifierKind;
   /** True while any person is on any form's audience in the tenant. */
   isLocked: boolean;
+  importLimits: AudienceImportLimits;
 };
 
 export type AudienceProperty = {
@@ -134,6 +143,7 @@ export type AudienceImportRejection = {
   reason: string;
 };
 
+/** What the one-request import (`POST …/audience/import`) wrote; the e2e seeding uses it. */
 export type AudienceImportResult = {
   importId: string;
   createdCount: number;
@@ -148,9 +158,98 @@ export type ImportAudienceCsvRequest = {
   identifierColumn: string;
   fileName: string;
   propertyColumns?: Record<string, string>;
-  /** People new to the form become test people; people already on it are skipped. */
+  /** Participants new to the form become test participants; those already on it are skipped. */
   isTest?: boolean;
 };
+
+/** Wire codes matching OSS `AudienceImportStatusCodes`. */
+export const AudienceImportStatus = Object.freeze({
+  Uploading: "uploading",
+  Checking: "checking",
+  Checked: "checked",
+  Writing: "writing",
+  Completed: "completed",
+  Canceled: "canceled",
+  Failed: "failed",
+  Expired: "expired",
+} as const);
+
+export type AudienceImportStatus =
+  (typeof AudienceImportStatus)[keyof typeof AudienceImportStatus];
+
+/** The Check's counts: a preview of what the write will do. */
+export type AudienceImportCheck = {
+  newCount: number;
+  existingCount: number;
+  rejectedCount: number;
+};
+
+/** What the write has written so far. */
+export type AudienceImportWritten = {
+  writtenRowCount: number;
+  createdCount: number;
+  updatedCount: number;
+  skippedCount: number;
+  rejectedCount: number;
+};
+
+/** One staged import as the API reports it; `status` may be one this Hub does not know. */
+export type AudienceImportView = {
+  importId: string;
+  status: string;
+  fileName: string;
+  /** The file's header row; staged cells follow it. Missing from an API before endatix#1412. */
+  headers?: string[];
+  isTest: boolean;
+  upload: {
+    rowCount: number;
+    chunkSize: number;
+    /** The chunks still to send, while uploading. */
+    missingChunks: number[];
+  };
+  runsInBackground: boolean;
+  checkedRowCount: number;
+  /** Null until the Check has read every row. */
+  check: AudienceImportCheck | null;
+  written: AudienceImportWritten;
+  /** The first 50 rejected rows, in row order. */
+  rejections: AudienceImportRejection[];
+  failure: string | null;
+  canResume: boolean;
+  createdAt: string;
+  finishedAt: string | null;
+};
+
+/** The import id that reads the form's unfinished import. */
+export const CURRENT_IMPORT = "current";
+
+export type StartAudienceImportRequest = {
+  fileName: string;
+  headers: string[];
+  rowCount: number;
+  identifierColumn: string;
+  /** Property variable name → the column it is read from. */
+  propertyColumns: Record<string, string>;
+  /** Participants new to the form become test participants; those already on it are skipped. */
+  isTest: boolean;
+};
+
+/** One data row: its cells in header order, and whether a stray quote made it unreliable. */
+export type AudienceImportRow = { cells: string[]; malformed: boolean };
+
+export type AudienceImportChunk = {
+  /** The spreadsheet row of the first row; row 1 is the header row. */
+  firstRowNumber: number;
+  rows: AudienceImportRow[];
+};
+
+/** A chunk and its place in the file, from 0; the place goes in the path, the rows in the body. */
+export type IndexedImportChunk = AudienceImportChunk & { index: number };
+
+/** `writing` confirms a checked import or resumes a stopped write; `canceled` stops it. */
+export type AudienceImportMove =
+  | typeof AudienceImportStatus.Writing
+  | typeof AudienceImportStatus.Canceled;
 
 export type IssuedAudienceLink = {
   membershipId: string;

@@ -7,6 +7,7 @@ import { SummaryRow } from "@/components/common/summary-row";
 import type { AudienceProperty } from "@/lib/endatix-api/audience/types";
 import { dataTypeLabel } from "../../property-types";
 import { OptionsSelect, type SelectOption } from "../../ui/options-select";
+import { TestPersonCheckbox } from "../../ui/test-person-checkbox";
 import { identifierKindLabel } from "../../utils";
 import {
   choiceColumnGroups,
@@ -75,7 +76,7 @@ function IdentifierSection(props: Readonly<LoadedStepProps>) {
     <PanelSection
       icon={KeyRound}
       title="Identifier"
-      description={`People are matched across forms by ${kind}. Choose the column that holds it.`}
+      description={`Participants are matched across forms by ${kind}. Choose the column that holds it.`}
     >
       <IdentifierField {...props} />
     </PanelSection>
@@ -209,12 +210,27 @@ function ColumnsSection(props: Readonly<LoadedStepProps>) {
   );
 }
 
-/** Step 2: the identifier, then a property (or nothing) for every other column. */
+/** Fixed when the import starts, with the columns, so it is chosen here. */
+function ImportAsTest({ wizard }: Readonly<{ wizard: ImportWizard }>) {
+  return (
+    <TestPersonCheckbox
+      id="import-as-test"
+      label="Import as test participants"
+      help="Test participants are never sent a personalized link. Use them to try the form with Test as this participant."
+      checked={wizard.choices.asTest}
+      disabled={wizard.pending}
+      onCheckedChange={wizard.choices.setAsTest}
+    />
+  );
+}
+
+/** Step 2: the identifier, a property (or nothing) for every other column, and test or real. */
 export function ImportColumnsStep(props: Readonly<LoadedStepProps>) {
   return (
     <>
       <IdentifierSection {...props} />
       <ColumnsSection {...props} />
+      <ImportAsTest wizard={props.wizard} />
     </>
   );
 }

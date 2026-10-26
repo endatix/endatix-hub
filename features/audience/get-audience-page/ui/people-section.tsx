@@ -10,6 +10,7 @@ import {
 import {
   AudiencePeopleTestFilter,
   type AudienceIdentifierKind,
+  type AudienceImportLimits,
   type AudiencePerson,
   type AudienceProperty,
 } from "@/lib/endatix-api/audience/types";
@@ -33,6 +34,8 @@ type PeopleSectionProps = {
   formId: string;
   identifierKind: AudienceIdentifierKind;
   properties: AudienceProperty[];
+  /** How large a CSV this host imports, stated before a file is chosen. */
+  importLimits: AudienceImportLimits;
   people: AudiencePerson[];
   totalPeople: number;
   page: number;

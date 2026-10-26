@@ -29,10 +29,10 @@ describe("personalization copy", () => {
       ),
       "utf8",
     );
-    const review = readFileSync(
+    const columns = readFileSync(
       path.join(
         REPO_ROOT,
-        "features/audience/import-csv/ui/import-review-step.tsx",
+        "features/audience/import-csv/ui/import-columns-step.tsx",
       ),
       "utf8",
     );
@@ -41,8 +41,8 @@ describe("personalization copy", () => {
     expect(add).toContain(
       'help="A test participant is never sent a personalized link. Use them to try the form with Test as this participant."',
     );
-    expect(review).toContain('label="Import as test participants"');
-    expect(review).toContain(
+    expect(columns).toContain('label="Import as test participants"');
+    expect(columns).toContain(
       'help="Test participants are never sent a personalized link. Use them to try the form with Test as this participant."',
     );
   });

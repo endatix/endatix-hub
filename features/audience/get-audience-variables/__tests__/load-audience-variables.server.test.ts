@@ -46,6 +46,12 @@ type CheckPermission = AudienceVariablesRequest["checkPermission"];
 const allowed: CheckPermission = async () =>
   ({ success: true }) as Awaited<ReturnType<CheckPermission>>;
 
+const INLINE_LIMITS = {
+  maxRows: 5_000,
+  maxBytes: 20 * 1024 * 1024,
+  runsInBackground: false,
+};
+
 describe("loadAudienceVariables", () => {
   beforeEach(() => {
     personalizationFlag.mockResolvedValue(true);
@@ -126,6 +132,7 @@ describe("loadDesignerAudience", () => {
       ApiResult.success({
         identifierKind: AudienceIdentifierKind.ExternalId,
         isLocked: true,
+        importLimits: INLINE_LIMITS,
       }),
     );
 
@@ -165,6 +172,7 @@ describe("loadDesignerAudience", () => {
       ApiResult.success({
         identifierKind: AudienceIdentifierKind.Email,
         isLocked: false,
+        importLimits: INLINE_LIMITS,
       }),
     );
 

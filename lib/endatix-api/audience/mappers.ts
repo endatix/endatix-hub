@@ -16,8 +16,11 @@ import {
   type ParticipantSubmission,
   type AudienceLinkStatus,
   type RedeemedAudienceLink,
+  type AudienceImportLimits,
   type AudienceImportResult,
+  type AudienceImportView,
   type AudiencePerson,
+  type AudienceSettings,
   type AudienceProperty,
   type AudienceVariables,
   type OpenedTestSubmission,
@@ -235,6 +238,39 @@ export function mapImportResult(
         importId: String(response.data.importId),
       })
     : response;
+}
+
+export type WireImportView = Omit<AudienceImportView, "importId"> & {
+  importId: string | number;
+};
+
+export function mapImportViewResult(
+  response: ApiResult<WireImportView>,
+): ApiResult<AudienceImportView> {
+  if (!response.success) return response;
+  const { importId, ...view } = response.data;
+  return ApiResult.success({ ...view, importId: String(importId) });
+}
+
+/** What a host without staged imports takes: one request, matching OSS before endatix#1407. */
+const INLINE_IMPORT_LIMITS: AudienceImportLimits = Object.freeze({
+  maxRows: 5_000,
+  maxBytes: 20 * 1024 * 1024,
+  runsInBackground: false,
+});
+
+export type WireSettings = Omit<AudienceSettings, "importLimits"> & {
+  importLimits?: AudienceImportLimits | null;
+};
+
+export function mapSettingsResult(
+  response: ApiResult<WireSettings>,
+): ApiResult<AudienceSettings> {
+  if (!response.success) return response;
+  return ApiResult.success({
+    ...response.data,
+    importLimits: response.data.importLimits ?? INLINE_IMPORT_LIMITS,
+  });
 }
 
 export function mapPeoplePageResult(

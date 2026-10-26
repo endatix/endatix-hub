@@ -5,33 +5,31 @@ describe("import labels", () => {
   it("names the counts that are not zero", () => {
     expect(
       outcomeCounts({
-        importId: "1",
+        writtenRowCount: 1_202,
         createdCount: 1_200,
         updatedCount: 0,
         skippedCount: 2,
         rejectedCount: 3,
-        rejections: [],
       }),
     ).toBe(
       "1,200 added, 2 already on this form with nothing to change, 3 rejected",
     );
   });
 
-  it("says a test import skipped the people already here", () => {
+  it("says a test import skipped the participants already here", () => {
     expect(
       outcomeCounts(
         {
-          importId: "1",
+          writtenRowCount: 3,
           createdCount: 1,
           updatedCount: 0,
           skippedCount: 2,
           rejectedCount: 0,
-          rejections: [],
         },
         { asTest: true },
       ),
     ).toBe(
-      "1 added as test people, 2 skipped because they are already on this form",
+      "1 added as test participants, 2 skipped because they are already on this form",
     );
   });
 
