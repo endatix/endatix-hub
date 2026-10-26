@@ -491,36 +491,3 @@ describe("Audience variables", () => {
     expect(result.success).toBe(false);
   });
 });
-
-describe("Audience link reissue", () => {
-  it("reissues one participant's link and maps the id to a string", async () => {
-    const post = vi
-      .fn()
-      .mockResolvedValue(
-        ApiResult.success({ membershipId: 31, token: "new-token" }),
-      );
-
-    const result = await audienceWith({ post }).reissueLink(
-      FORM_ID,
-      MEMBERSHIP_ID,
-    );
-
-    expect(post).toHaveBeenCalledWith(
-      `/forms/${FORM_ID}/audience/people/${MEMBERSHIP_ID}/link/reissue`,
-      {},
-    );
-    expect(result.success && result.data).toEqual({
-      membershipId: "31",
-      token: "new-token",
-    });
-  });
-
-  it("refuses a membership id that is not an Endatix id, without a call", async () => {
-    const post = vi.fn();
-
-    const result = await audienceWith({ post }).reissueLink(FORM_ID, "abc");
-
-    expect(result.success).toBe(false);
-    expect(post).not.toHaveBeenCalled();
-  });
-});

@@ -36,7 +36,7 @@ export type RowHandlers = {
   onTest?: (person: AudiencePerson) => void;
   /** Offered on test persons only: a link holder sees every value of the person. */
   onCopyTestLink?: (person: AudiencePerson) => void;
-  /** Offered on real persons whose link was issued or opened. */
+  /** Offered on real participants whose link was issued or opened. */
   onReissueLink?: (person: AudiencePerson) => void;
 };
 
@@ -112,7 +112,7 @@ type RowAction = Omit<ActionSpec, "run"> & {
 
 /**
  * Copy test link or Reissue link, test, edit, remove; Copy test link only on a test person,
- * Reissue link only on a real person with a link, Edit only when there is a value to edit
+ * Reissue link only on a real participant with a link, Edit only when there is a value to edit
  * (DESIGN.md §6 "Omit what cannot apply"). The link actions come first, so the actions every row
  * has line up from the right on test and real rows alike.
  */

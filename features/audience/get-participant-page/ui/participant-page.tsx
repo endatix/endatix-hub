@@ -20,8 +20,7 @@ import { CopyTestLinkDialog } from "../../copy-test-link/ui/copy-test-link-dialo
 import { useCopyTestLinkDialog } from "../../copy-test-link/ui/use-copy-test-link-dialog.hook";
 import { RemovePersonDialog } from "../../delete-person/ui/remove-person-dialog";
 import { hasLinkToReissue } from "../../reissue-link/has-link-to-reissue";
-import { ReissueLinkDialog } from "../../reissue-link/ui/reissue-link-dialog";
-import { useReissueLinkDialog } from "../../reissue-link/ui/use-reissue-link-dialog.hook";
+import { ReissueLinkOverlay } from "../../reissue-link/ui/reissue-link-dialog";
 import { TEST_BADGE } from "../../ui/test-badge";
 import { useTestAsPerson } from "../../test-as-person/use-test-as-person.hook";
 import { EditPersonPanel } from "../../update-person/ui/edit-person-panel";
@@ -37,7 +36,6 @@ type Overlays = ReturnType<typeof useRowOverlay<AudienceParticipant>>;
 type ActionsProps = ParticipantPageProps & {
   overlay: Overlays;
   testLink: ReturnType<typeof useCopyTestLinkDialog>;
-  reissue: ReturnType<typeof useReissueLinkDialog>;
   audienceHref: Route;
 };
 
@@ -83,7 +81,7 @@ function useActionSpecs(props: ActionsProps): ActionSpec[] {
       show: hasLinkToReissue(props.participant),
       label: "Reissue link",
       icon: RotateCw,
-      run: props.reissue.open,
+      run: overlay.reissue,
     },
     ...useTestSpecs(props),
     {
@@ -112,7 +110,10 @@ function ParticipantActions(props: Readonly<ActionsProps>) {
     ));
 }
 
-/** The edit panel refreshes this page; Remove goes back to Audience, where they no longer are. */
+/**
+ * The edit panel and Reissue link refresh this page; Remove goes back to Audience, where they no
+ * longer are.
+ */
 function ParticipantOverlays(props: Readonly<ActionsProps>) {
   const { formId, overlay, identifierKind, properties, audienceHref } = props;
   const target = { formId, person: overlay.target, onClose: overlay.close };
@@ -129,6 +130,7 @@ function ParticipantOverlays(props: Readonly<ActionsProps>) {
         open={overlay.isDeleting}
         afterRemove={afterRemove}
       />
+      <ReissueLinkOverlay formId={formId} overlay={overlay} />
     </>
   );
 }
@@ -188,20 +190,14 @@ function ParticipantTestLink({ formId, testLink }: Readonly<ActionsProps>) {
 export function ParticipantPage(props: Readonly<ParticipantPageProps>) {
   const overlay = useRowOverlay<AudienceParticipant>();
   const testLink = useCopyTestLinkDialog();
-  const reissue = useReissueLinkDialog();
   const audienceHref = useAudienceReturnHref(props.formId);
-  const shared = { ...props, overlay, testLink, reissue, audienceHref };
+  const shared = { ...props, overlay, testLink, audienceHref };
   return (
     <div className="flex flex-col gap-6">
       <ParticipantMasthead {...shared} />
       <ParticipantBody {...props} />
       <ParticipantOverlays {...shared} />
       <ParticipantTestLink {...shared} />
-      <ReissueLinkDialog
-        key={reissue.session}
-        formId={props.formId}
-        {...reissue.dialog}
-      />
     </div>
   );
 }

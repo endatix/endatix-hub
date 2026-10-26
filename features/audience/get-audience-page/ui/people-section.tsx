@@ -21,8 +21,7 @@ import { AddPersonPanel } from "../../create-person/ui/add-person-panel";
 import { GenerateLinksPanel } from "../../generate-links/ui/generate-links-panel";
 import { ImportCsvPanel } from "../../import-csv/ui/import-csv-panel";
 import { RemovePersonDialog } from "../../delete-person/ui/remove-person-dialog";
-import { ReissueLinkDialog } from "../../reissue-link/ui/reissue-link-dialog";
-import { useReissueLinkDialog } from "../../reissue-link/ui/use-reissue-link-dialog.hook";
+import { ReissueLinkOverlay } from "../../reissue-link/ui/reissue-link-dialog";
 import { useTestAsPerson } from "../../test-as-person/use-test-as-person.hook";
 import { EditPersonPanel } from "../../update-person/ui/edit-person-panel";
 import { useRowOverlay } from "../../use-panel-state.hook";
@@ -150,7 +149,7 @@ type OverlayProps = Pick<
   row: Overlays;
 };
 
-/** One overlay at a time: the row's edit panel or its remove confirmation. */
+/** One overlay at a time: the row's edit panel, its remove confirmation or Reissue link. */
 function PeopleOverlays({ row, ...props }: Readonly<OverlayProps>) {
   return (
     <>
@@ -167,6 +166,7 @@ function PeopleOverlays({ row, ...props }: Readonly<OverlayProps>) {
         open={row.isDeleting}
         onClose={row.close}
       />
+      <ReissueLinkOverlay formId={props.formId} overlay={row} />
     </>
   );
 }
@@ -205,11 +205,6 @@ function PeopleHeader(props: Readonly<PeopleSectionProps>) {
   );
 }
 
-type LinkOpeners = {
-  copyTestLink: (person: AudiencePerson) => void;
-  reissueLink: (person: AudiencePerson) => void;
-};
-
 /**
  * Row actions this reader may run: Reissue link, edit and remove with `forms.edit`, test with
  * `forms.test`, Copy test link with `canCopyTestLink`.
@@ -217,13 +212,13 @@ type LinkOpeners = {
 function useRowHandlers(
   props: Readonly<PeopleSectionProps>,
   row: Overlays,
-  { copyTestLink, reissueLink }: LinkOpeners,
+  copyTestLink: (person: AudiencePerson) => void,
 ): RowHandlers {
   const testAs = useTestAsPerson(props.formId);
   const edits = {
+    onReissueLink: row.reissue,
     onEdit: row.edit,
     onRemove: row.remove,
-    onReissueLink: reissueLink,
   };
   return {
     ...(props.canEdit ? edits : {}),
@@ -247,11 +242,7 @@ const withValueProperties = (props: Readonly<PeopleSectionProps>) => ({
 export function PeopleSection(props: Readonly<PeopleSectionProps>) {
   const row = useRowOverlay<AudiencePerson>();
   const testLink = useCopyTestLinkDialog();
-  const reissue = useReissueLinkDialog();
-  const handlers = useRowHandlers(props, row, {
-    copyTestLink: testLink.open,
-    reissueLink: reissue.open,
-  });
+  const handlers = useRowHandlers(props, row, testLink.open);
   const values = withValueProperties(props);
   return (
     <section aria-labelledby="audience-people" className="flex flex-col gap-4">
@@ -262,11 +253,6 @@ export function PeopleSection(props: Readonly<PeopleSectionProps>) {
       <PeopleSurface {...values} handlers={handlers} />
       {props.canEdit ? <PeopleOverlays {...values} row={row} /> : null}
       <CopyTestLinkDialog formId={props.formId} {...testLink.dialog} />
-      <ReissueLinkDialog
-        key={reissue.session}
-        formId={props.formId}
-        {...reissue.dialog}
-      />
     </section>
   );
 }

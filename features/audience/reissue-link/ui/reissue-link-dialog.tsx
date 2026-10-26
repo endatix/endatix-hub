@@ -43,7 +43,7 @@ function NewLink({ url }: Readonly<{ url: string }>) {
     <ShareLinkRow
       icon={Link2}
       title="New link"
-      description="Opens their survey without a login. Anyone with it can fill it in."
+      description="Opens their form without a login. Anyone with it can fill it in."
       value={url}
       copyLabel="Copy the new link"
       className="gap-2 p-3"
@@ -113,37 +113,48 @@ function ReissueLinkContent({
   );
 }
 
-type OpenDialogProps = Omit<ReissueLinkDialogProps, "person"> & {
-  person: LinkHolder;
-};
-
-function OpenReissueLinkDialog({ formId, person, ...props }: OpenDialogProps) {
-  const state = useReissueLink({ formId, membershipId: person.membershipId });
-  const openChange = (open: boolean) => {
-    if (!open) state.close(props.onClose);
+/**
+ * Reissue link: a new link for a participant who lost theirs, after a warning that the old one
+ * stops working. The new link is shown with a copy button, so a refused clipboard still leaves
+ * it on screen. Key it by the overlay's session, so each open starts at the warning.
+ */
+export function ReissueLinkDialog({
+  formId,
+  person,
+  open,
+  onClose,
+}: Readonly<ReissueLinkDialogProps>) {
+  const membershipId = person?.membershipId ?? "";
+  const state = useReissueLink({ formId, membershipId }, onClose);
+  const openChange = (next: boolean) => {
+    if (!next) state.close();
   };
   return (
-    <AlertDialog open={props.open} onOpenChange={openChange}>
-      <ReissueLinkContent identifier={person.identifier} state={state} />
+    <AlertDialog open={open && person !== null} onOpenChange={openChange}>
+      <ReissueLinkContent identifier={person?.identifier ?? ""} state={state} />
     </AlertDialog>
   );
 }
 
-/**
- * Reissue link: a new link for a participant who lost theirs, after a warning that the old one
- * stops working. The new link is shown with a copy button, so a refused clipboard still leaves
- * it on screen. Mounted per participant, so each one starts at the warning.
- */
-export function ReissueLinkDialog({
-  person,
-  ...props
-}: Readonly<ReissueLinkDialogProps>) {
-  if (!person) return null;
+type RowOverlay = {
+  target: LinkHolder | null;
+  session: number;
+  isReissuing: boolean;
+  close: () => void;
+};
+
+/** Reissue link as a list's row overlay (`useRowOverlay`): a fresh dialog on every open. */
+export function ReissueLinkOverlay({
+  formId,
+  overlay,
+}: Readonly<{ formId: string; overlay: RowOverlay }>) {
   return (
-    <OpenReissueLinkDialog
-      key={person.membershipId}
-      {...props}
-      person={person}
+    <ReissueLinkDialog
+      key={overlay.session}
+      formId={formId}
+      person={overlay.target}
+      open={overlay.isReissuing}
+      onClose={overlay.close}
     />
   );
 }

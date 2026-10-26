@@ -98,11 +98,7 @@ const LIST = {
   formId: "1",
   identifierKind: AudienceIdentifierKind.Email,
   properties: [] as AudienceProperty[],
-  importLimits: {
-    maxRows: 5_000,
-    maxBytes: 20_971_520,
-    runsInBackground: false,
-  },
+  importLimits: { maxRows: 5_000, maxBytes: 20_971_520, runsInBackground: false },
   totalPeople: 2,
   page: 1,
   pageSize: 50,

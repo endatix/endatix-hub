@@ -15,9 +15,6 @@ import { useReissueLink } from "../use-reissue-link.hook";
 
 const router = { refresh: vi.fn(), push: vi.fn() };
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
-vi.mock("@/components/ui/toast", () => ({
-  toast: { success: vi.fn(), error: vi.fn() },
-}));
 vi.mock("../reissue-audience-link.action", () => ({
   reissueAudienceLinkAction: vi.fn(),
 }));
@@ -90,7 +87,8 @@ describe("ReissueLinkDialog", () => {
 
     expect(await screen.findByText(message)).toBeTruthy();
     expect(screen.queryByDisplayValue(/share/)).toBeNull();
-    expect(reissueButton()).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(router.refresh).not.toHaveBeenCalled();
   });
 
   it("refreshes the list when it closes after a reissue", async () => {
@@ -113,7 +111,7 @@ describe("useReissueLink", () => {
       Result.success({ membershipId: "981", token: "new-token" }),
     );
     const { result } = renderHook(() =>
-      useReissueLink({ formId: "1", membershipId: "981" }),
+      useReissueLink({ formId: "1", membershipId: "981" }, vi.fn()),
     );
 
     await act(() =>
