@@ -5,17 +5,20 @@ import { toast } from "@/components/ui/toast";
 import {
   DEFAULT_EXPIRY_MINUTES,
   formatExpiresIn,
-} from "@/features/submissions/share-links/share-link-expiry";
+} from "@/lib/share-links/share-link-expiry";
 import { Result } from "@/lib/result";
 import { createTestLinkAction, type TestLink } from "./create-test-link.action";
 
 const REJECTED = "Something went wrong. Try again.";
 
-async function createOrFailure(
-  formId: string,
-  memberId: string,
-  expiryMinutes: number,
-) {
+type TestLinkRequest = {
+  formId: string;
+  memberId: string;
+  expiryMinutes: number;
+};
+
+async function createOrFailure(request: TestLinkRequest) {
+  const { formId, memberId, expiryMinutes } = request;
   try {
     return await createTestLinkAction(formId, memberId, expiryMinutes);
   } catch {
@@ -40,6 +43,37 @@ function announce(link: TestLink, copied: boolean) {
   });
 }
 
+/** Creates the link and copies its absolute URL; a failure toasts and returns null. */
+async function createAndCopy(request: TestLinkRequest) {
+  const created = await createOrFailure(request);
+  if (Result.isError(created)) {
+    toast.error(created.message);
+    return null;
+  }
+  const url = `${window.location.origin}${created.value.url}`;
+  const link = { ...created.value, url };
+  announce(link, await writeToClipboard(url));
+  return link;
+}
+
+/** Runs one task at a time: a call while one runs is ignored. */
+function useOneAtATime() {
+  const [pending, setPending] = useState(false);
+  const running = useRef(false);
+  const run = async (task: () => Promise<void>) => {
+    if (running.current) return;
+    running.current = true;
+    setPending(true);
+    try {
+      await task();
+    } finally {
+      running.current = false;
+      setPending(false);
+    }
+  };
+  return { pending, run };
+}
+
 /**
  * Copy test link for one test person: each copy opens a new test submission and copies an
  * absolute link to it. A click while one is being created is ignored, so a double-click makes
@@ -52,31 +86,13 @@ export function useCopyTestLink(
 ) {
   const [expiryMinutes, setExpiryMinutes] = useState(DEFAULT_EXPIRY_MINUTES);
   const [link, setLink] = useState<TestLink | null>(null);
-  const [pending, setPending] = useState(false);
-  const creating = useRef(false);
-
-  const copy = async () => {
-    if (creating.current) return;
-    creating.current = true;
-    setPending(true);
-    try {
-      const created = await createOrFailure(formId, memberId, expiryMinutes);
-      if (Result.isError(created)) {
-        toast.error(created.message);
-        return;
-      }
-      const absolute = {
-        ...created.value,
-        url: `${window.location.origin}${created.value.url}`,
-      };
-      setLink(absolute);
-      announce(absolute, await writeToClipboard(absolute.url));
+  const { pending, run } = useOneAtATime();
+  const copy = () =>
+    run(async () => {
+      const created = await createAndCopy({ formId, memberId, expiryMinutes });
+      if (!created) return;
+      setLink(created);
       onCreated?.();
-    } finally {
-      creating.current = false;
-      setPending(false);
-    }
-  };
-
+    });
   return { expiryMinutes, setExpiryMinutes, link, pending, copy };
 }

@@ -102,36 +102,45 @@ type ActionSpec = {
 
 type RowFacts = { hasValues: boolean; isTest: boolean };
 
+type RowAction = Omit<ActionSpec, "run"> & {
+  handler: keyof RowHandlers;
+  appliesTo?: (row: RowFacts) => boolean;
+};
+
 /**
  * Test, copy test link, edit, remove; Copy test link only on a test person, Edit only when there
  * is a value to edit (DESIGN.md §6 "Omit what cannot apply").
  */
-function actionSpecs(
-  handlers: RowHandlers,
-  { hasValues, isTest }: RowFacts,
-): ActionSpec[] {
-  return [
-    {
-      run: handlers.onTest,
-      label: (id) => `Test as this person: ${id}`,
-      icon: FlaskConical,
-    },
-    {
-      run: isTest ? handlers.onCopyTestLink : undefined,
-      label: (id) => `Copy test link: ${id}`,
-      icon: Link2,
-    },
-    {
-      run: hasValues ? handlers.onEdit : undefined,
-      label: (id) => `Edit values for ${id}`,
-      icon: Pencil,
-    },
-    {
-      run: handlers.onRemove,
-      label: (id) => `Remove ${id} from this form`,
-      icon: Trash2,
-    },
-  ];
+const ROW_ACTIONS: RowAction[] = [
+  {
+    handler: "onTest",
+    label: (id) => `Test as this person: ${id}`,
+    icon: FlaskConical,
+  },
+  {
+    handler: "onCopyTestLink",
+    label: (id) => `Copy test link: ${id}`,
+    icon: Link2,
+    appliesTo: (row) => row.isTest,
+  },
+  {
+    handler: "onEdit",
+    label: (id) => `Edit values for ${id}`,
+    icon: Pencil,
+    appliesTo: (row) => row.hasValues,
+  },
+  {
+    handler: "onRemove",
+    label: (id) => `Remove ${id} from this form`,
+    icon: Trash2,
+  },
+];
+
+function actionSpecs(handlers: RowHandlers, row: RowFacts): ActionSpec[] {
+  return ROW_ACTIONS.map(({ handler, appliesTo, ...spec }) => ({
+    ...spec,
+    run: (appliesTo?.(row) ?? true) ? handlers[handler] : undefined,
+  }));
 }
 
 /** The row's actions the reader may run; a missing handler leaves its action out. */

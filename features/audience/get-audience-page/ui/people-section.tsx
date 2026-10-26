@@ -223,15 +223,17 @@ function showsTestFilter({ totalPeople, testFilter }: PeopleSectionProps) {
 }
 
 /** Import keeps every property as a target; the rest show and edit only value properties. */
+const withValueProperties = (props: Readonly<PeopleSectionProps>) => ({
+  ...props,
+  properties: valueProperties(props.properties, props.identifierKind),
+  allProperties: props.properties,
+});
+
 export function PeopleSection(props: Readonly<PeopleSectionProps>) {
   const row = useRowOverlay<AudiencePerson>();
   const testLink = useCopyTestLinkDialog();
   const handlers = useRowHandlers(props, row, testLink.open);
-  const values = {
-    ...props,
-    properties: valueProperties(props.properties, props.identifierKind),
-    allProperties: props.properties,
-  };
+  const values = withValueProperties(props);
   return (
     <section aria-labelledby="audience-people" className="flex flex-col gap-4">
       <PeopleHeader {...props} />

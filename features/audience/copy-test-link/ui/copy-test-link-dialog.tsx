@@ -21,8 +21,9 @@ import {
 import {
   EXPIRY_OPTIONS,
   formatExpiresIn,
-} from "@/features/submissions/share-links/share-link-expiry";
+} from "@/lib/share-links/share-link-expiry";
 import type { AudiencePerson } from "@/lib/endatix-api/audience/types";
+import type { TestLink } from "../create-test-link.action";
 import { useCopyTestLink } from "../use-copy-test-link.hook";
 
 export type TestPerson = Pick<
@@ -41,32 +42,49 @@ type CopyTestLinkDialogProps = {
 
 const EXPIRY_ID = "test-link-expiry";
 
+const EXPIRY_ITEMS = EXPIRY_OPTIONS.map((option) => (
+  <SelectItem key={option.value} value={String(option.value)}>
+    {option.label}
+  </SelectItem>
+));
+
 type ExpiryProps = { value: number; onChange: (minutes: number) => void };
 
+/** The Share Submission presets, 1 hour to 60 days. */
 function ExpirySelect({ value, onChange }: Readonly<ExpiryProps>) {
   return (
     <div className="flex flex-col gap-2 rounded-lg bg-surface-container-low p-3 sm:flex-row sm:items-center sm:justify-between">
       <Label htmlFor={EXPIRY_ID} className="text-sm font-medium">
         Link lifetime
       </Label>
-      <Select
-        value={String(value)}
-        onValueChange={(next) => onChange(Number(next))}
-      >
+      <Select value={String(value)} onValueChange={(v) => onChange(Number(v))}>
         <SelectTrigger id={EXPIRY_ID} className="h-9 w-full sm:w-40">
           <SelectValue />
         </SelectTrigger>
-        <SelectContent>
-          {EXPIRY_OPTIONS.map((option) => (
-            <SelectItem key={option.value} value={String(option.value)}>
-              {option.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
+        <SelectContent>{EXPIRY_ITEMS}</SelectContent>
       </Select>
     </div>
   );
 }
+
+function CopiedLink({ link }: Readonly<{ link: TestLink }>) {
+  return (
+    <ShareLinkRow
+      icon={Link2}
+      title="Test link"
+      description="Opens one test submission. Anyone with it can fill it in."
+      value={link.url}
+      copyLabel="Copy test link again"
+      className="gap-2 p-3"
+      footer={formatExpiresIn(link.expiresAt)}
+    />
+  );
+}
+
+const copyLabel = (pending: boolean, copied: boolean) => {
+  if (pending) return "Copying...";
+  return copied ? "Copy a new link" : "Copy link";
+};
 
 type BodyProps = Omit<CopyTestLinkDialogProps, "open" | "onOpenChange"> & {
   person: TestPerson;
@@ -82,26 +100,27 @@ function CopyTestLinkBody({ formId, person, onCreated }: Readonly<BodyProps>) {
         value={testLink.expiryMinutes}
         onChange={testLink.setExpiryMinutes}
       />
-      {link ? (
-        <ShareLinkRow
-          icon={Link2}
-          title="Test link"
-          description="Opens one test submission. Anyone with it can fill it in."
-          value={link.url}
-          copyLabel="Copy test link again"
-          className="gap-2 p-3"
-          footer={formatExpiresIn(link.expiresAt)}
-        />
-      ) : null}
-      <Button
-        type="button"
-        className="self-end"
-        disabled={pending}
-        onClick={testLink.copy}
-      >
-        {pending ? "Copying..." : link ? "Copy a new link" : "Copy link"}
+      {link ? <CopiedLink link={link} /> : null}
+      <Button className="self-end" disabled={pending} onClick={testLink.copy}>
+        {copyLabel(pending, link !== null)}
       </Button>
     </div>
+  );
+}
+
+function CopyTestLinkHeader({ identifier }: Readonly<{ identifier?: string }>) {
+  return (
+    <DialogHeader className="space-y-1">
+      <DialogTitle>Copy test link</DialogTitle>
+      <DialogDescription>
+        A link to a new test submission as{" "}
+        <span className="font-medium break-all text-foreground">
+          {identifier}
+        </span>
+        . It opens without a login, also on a private form, and each copy makes
+        a new test submission.
+      </DialogDescription>
+    </DialogHeader>
   );
 }
 
@@ -109,30 +128,16 @@ function CopyTestLinkBody({ formId, person, onCreated }: Readonly<BodyProps>) {
  * Copy test link: a link to a new test submission as this test person, for a colleague
  * without an Endatix login. Each copy makes a new test submission.
  */
-export function CopyTestLinkDialog({
-  open,
-  onOpenChange,
-  person,
-  ...props
-}: Readonly<CopyTestLinkDialogProps>) {
+export function CopyTestLinkDialog(props: Readonly<CopyTestLinkDialogProps>) {
+  const { open, onOpenChange, person, ...body } = props;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="gap-3 sm:max-w-lg">
-        <DialogHeader className="space-y-1">
-          <DialogTitle>Copy test link</DialogTitle>
-          <DialogDescription>
-            A link to a new test submission as{" "}
-            <span className="font-medium break-all text-foreground">
-              {person?.identifier}
-            </span>
-            . It opens without a login, also on a private form, and each copy
-            makes a new test submission.
-          </DialogDescription>
-        </DialogHeader>
+        <CopyTestLinkHeader identifier={person?.identifier} />
         {person ? (
           <CopyTestLinkBody
             key={person.audienceMemberId}
-            {...props}
+            {...body}
             person={person}
           />
         ) : null}

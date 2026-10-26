@@ -4,7 +4,7 @@ import { Permissions } from "@/features/auth/authorization";
 import {
   clampExpiryMinutes,
   DEFAULT_EXPIRY_MINUTES,
-} from "@/features/submissions/share-links/share-link-expiry";
+} from "@/lib/share-links/share-link-expiry";
 import type { EndatixApi } from "@/lib/endatix-api";
 import { withBasePath } from "@/lib/hosting";
 import { Result, toResult } from "@/lib/result";
@@ -48,6 +48,34 @@ async function openForTestPerson(
   return Result.success(opened.value.submissionId);
 }
 
+type MintRequest = {
+  formId: string;
+  submissionId: string;
+  expiryMinutes: number;
+};
+
+const shareUrl = (formId: string, token: string) =>
+  withBasePath(`/share/${formId}?${new URLSearchParams({ token })}`);
+
+/** A `submit` token: the guest fills in and completes this one submission, and edits nothing after. */
+async function mintLink(
+  api: EndatixApi,
+  { formId, submissionId, expiryMinutes }: MintRequest,
+): Promise<Result<TestLink>> {
+  const minted = toResult(
+    await api.submissions.createAccessToken({
+      formId,
+      submissionId,
+      expiryMinutes: testLinkExpiry(expiryMinutes),
+      permissions: ["submit"],
+    }),
+    LOG,
+  );
+  if (Result.isError(minted)) return minted;
+  const { token, expiresAt } = minted.value;
+  return Result.success({ url: shareUrl(formId, token), expiresAt });
+}
+
 /**
  * Copy test link: a new test submission for a test person, and a `submit` link to it that
  * opens without a login, also on a private form. The two calls are not atomic: when the token
@@ -67,21 +95,9 @@ export async function createTestLinkAction(
 
   const submissionId = await openForTestPerson(api, formId, memberId);
   if (Result.isError(submissionId)) return submissionId;
-
-  const minted = toResult(
-    await api.submissions.createAccessToken({
-      formId,
-      submissionId: submissionId.value,
-      expiryMinutes: testLinkExpiry(expiryMinutes),
-      permissions: ["submit"],
-    }),
-    LOG,
-  );
-  if (Result.isError(minted)) return minted;
-
-  const params = new URLSearchParams({ token: minted.value.token });
-  return Result.success({
-    url: withBasePath(`/share/${formId}?${params.toString()}`),
-    expiresAt: minted.value.expiresAt,
+  return mintLink(api, {
+    formId,
+    submissionId: submissionId.value,
+    expiryMinutes,
   });
 }

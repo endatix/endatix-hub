@@ -44,15 +44,10 @@ type ActionSpec = {
 };
 
 /**
- * Test as (with `forms.test`), Copy test link (a test participant, with `canCopyTestLink`), Edit
- * values (when there is a value to edit), Remove. A test submission reads the page again, so
- * their submissions show the new one.
+ * Test as (with `forms.test`) and Copy test link (a test participant, with `canCopyTestLink`). A
+ * test submission reads the page again, so their submissions show the new one.
  */
-function useActionSpecs({
-  overlay,
-  testLink,
-  ...props
-}: ActionsProps): ActionSpec[] {
+function useTestSpecs({ testLink, ...props }: ActionsProps): ActionSpec[] {
   const router = useRouter();
   const testAs = useTestAsPerson(props.formId, router.refresh);
   return [
@@ -68,6 +63,14 @@ function useActionSpecs({
       icon: Link2,
       run: testLink.open,
     },
+  ];
+}
+
+/** The test actions, Edit values (when there is a value to edit), Remove. */
+function useActionSpecs(props: ActionsProps): ActionSpec[] {
+  const { overlay } = props;
+  return [
+    ...useTestSpecs(props),
     {
       show: props.properties.length > 0,
       label: "Edit values",
@@ -94,15 +97,11 @@ function ParticipantActions(props: Readonly<ActionsProps>) {
     ));
 }
 
-/**
- * The edit panel and each test link refresh this page; Remove goes back to Audience, where they
- * no longer are.
- */
+/** The edit panel refreshes this page; Remove goes back to Audience, where they no longer are. */
 function ParticipantOverlays(props: Readonly<ActionsProps>) {
-  const { formId, overlay, testLink, identifierKind, properties } = props;
-  const router = useRouter();
+  const { formId, overlay, identifierKind, properties, audienceHref } = props;
   const target = { formId, person: overlay.target, onClose: overlay.close };
-  const afterRemove = props.audienceHref;
+  const afterRemove = audienceHref;
   return (
     <>
       <EditPersonPanel
@@ -114,11 +113,6 @@ function ParticipantOverlays(props: Readonly<ActionsProps>) {
         {...target}
         open={overlay.isDeleting}
         afterRemove={afterRemove}
-      />
-      <CopyTestLinkDialog
-        formId={formId}
-        {...testLink.dialog}
-        onCreated={router.refresh}
       />
     </>
   );
@@ -160,6 +154,18 @@ function ParticipantBody(props: Readonly<ParticipantPageProps>) {
   );
 }
 
+/** Each copied test link reads the page again, so their submissions show the new one. */
+function ParticipantTestLink({ formId, testLink }: Readonly<ActionsProps>) {
+  const router = useRouter();
+  return (
+    <CopyTestLinkDialog
+      formId={formId}
+      {...testLink.dialog}
+      onCreated={router.refresh}
+    />
+  );
+}
+
 /**
  * One participant on a form: who they are, their values, their link once issued, and their
  * newest submissions. Only readers with `forms.edit` reach it.
@@ -174,6 +180,7 @@ export function ParticipantPage(props: Readonly<ParticipantPageProps>) {
       <ParticipantMasthead {...shared} />
       <ParticipantBody {...props} />
       <ParticipantOverlays {...shared} />
+      <ParticipantTestLink {...shared} />
     </div>
   );
 }
