@@ -9,7 +9,7 @@ import {
   type StartAudienceImportRequest,
 } from "@/lib/endatix-api/audience/types";
 import { Result } from "@/lib/result";
-import { isPolling, type UploadFile } from "./import-run";
+import { isPolling, isTerminal, type UploadFile } from "./import-run";
 import {
   continueUpload,
   moveImport,
@@ -51,21 +51,36 @@ function useLatest<T>(value: T) {
   return ref;
 }
 
-/** Reads the import every 2 s while the server works on it (Check or write), paused while hidden. */
+/**
+ * The import the server works on while nobody here waits for a reply: a Check, a write, or an
+ * upload another tab (or an earlier visit) is sending.
+ */
+function watchedImport(state: RunState, held: HeldFile | null): string | null {
+  if (state.kind !== "server") return null;
+  const { status, importId } = state.view;
+  const elsewhere =
+    status === AudienceImportStatus.Uploading && held?.importId !== importId;
+  return isPolling(status) || elsewhere ? importId : null;
+}
+
+/** Reads that import every 2 s, paused while hidden; a read that lands after cleanup is dropped. */
 function usePolling(
   formId: string,
-  state: RunState,
+  importId: string | null,
   onRead: (view: AudienceImportView) => void,
 ) {
-  const view = state.kind === "server" ? state.view : null;
-  const importId = view && isPolling(view.status) ? view.importId : null;
   const onReadRef = useLatest(onRead);
   useEffect(() => {
     if (!importId) return;
-    return everyWhileVisible(async () => {
+    let live = true;
+    const stop = everyWhileVisible(async () => {
       const read = await readImport(formId, importId);
-      if (Result.isSuccess(read)) onReadRef.current(read.value);
+      if (live && Result.isSuccess(read)) onReadRef.current(read.value);
     }, POLL_INTERVAL_MS);
+    return () => {
+      live = false;
+      stop();
+    };
   }, [formId, importId, onReadRef]);
 }
 
@@ -86,13 +101,22 @@ function useCurrentImport(
   }, [formId, onFoundRef]);
 }
 
-/** Refreshes the People list once a write completes, whether or not the panel is open. */
-function useRefreshOnComplete(state: RunState) {
+/** The ended import whose write changed the People list, keyed so it refreshes once. */
+function endedWrite(state: RunState): string | null {
+  if (state.kind !== "server" || !isTerminal(state.view.status)) return null;
+  const { status, importId, written } = state.view;
+  const wrote =
+    status === AudienceImportStatus.Completed || written.writtenRowCount > 0;
+  return wrote ? `${importId}:${status}` : null;
+}
+
+/** Refreshes the People list once a write ends, completed or stopped partway, panel open or not. */
+function useRefreshAfterWrite(state: RunState) {
   const router = useRouter();
-  const status = state.kind === "server" ? state.view.status : null;
+  const ended = endedWrite(state);
   useEffect(() => {
-    if (status === AudienceImportStatus.Completed) router.refresh();
-  }, [status, router]);
+    if (ended) router.refresh();
+  }, [ended, router]);
 }
 
 /** The import's state and the context the run steps act on. */
@@ -166,8 +190,10 @@ export function useAudienceImport(
     );
     onFound();
   });
-  usePolling(formId, state, (view) => showView(ctx, view));
-  useRefreshOnComplete(state);
+  usePolling(formId, watchedImport(state, ctx.file.current), (view) =>
+    showView(ctx, view),
+  );
+  useRefreshAfterWrite(state);
   const canSendAgain = canSendAgainOf(state, ctx.file.current);
   return { state, ...flags, canSendAgain, ...runActions(ctx, state) };
 }

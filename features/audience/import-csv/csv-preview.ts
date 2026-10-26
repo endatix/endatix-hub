@@ -56,6 +56,18 @@ function fileProblem(
   return `The file has ${rowCount.toLocaleString()} rows. Import up to ${maxRows.toLocaleString()} at a time, so split it into smaller files.`;
 }
 
+/** The longest cell the API stages, matching OSS `StageAudienceImportChunkValidator.MaxCellLength`. */
+const MAX_CELL_LENGTH = 4_000;
+
+/** The first row with a cell the API would refuse; an unclosed quote is the usual cause. */
+function cellProblem(rows: readonly CsvRow[]): string | null {
+  const at = rows.findIndex((row) =>
+    row.cells.some((cell) => cell.trim().length > MAX_CELL_LENGTH),
+  );
+  if (at < 0) return null;
+  return `Row ${at + 2} has a cell longer than ${MAX_CELL_LENGTH.toLocaleString()} characters. Shorten it, or check the row for a stray quote.`;
+}
+
 /** A read file: its preview for the choices, and every data row for the upload. */
 export type CsvFile = { preview: CsvPreview; rows: CsvRow[] };
 
@@ -63,7 +75,8 @@ export type CsvFile = { preview: CsvPreview; rows: CsvRow[] };
 export function readCsvFile(csvText: string, maxRows: number): Result<CsvFile> {
   const [header, ...rows] = readCsvRows(csvText);
   const headers = (header?.cells ?? []).map((cell) => cell.trim());
-  const problem = fileProblem(headers, rows.length, maxRows);
+  const problem =
+    fileProblem(headers, rows.length, maxRows) ?? cellProblem(rows);
   if (problem) return Result.validationError(problem);
   const cells = rows.map((row) => row.cells);
   return Result.success({

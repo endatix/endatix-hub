@@ -8,7 +8,7 @@ import {
   AudienceImportStatus,
   type AudienceImportView,
 } from "@/lib/endatix-api/audience/types";
-import { isTerminal } from "../import-run";
+import { confirmCount, isTerminal } from "../import-run";
 import { participantCountLabel } from "../import-labels";
 import {
   canContinue,
@@ -54,7 +54,9 @@ const STATUS_DESCRIPTION: Record<string, (background: boolean) => string> = {
   [AudienceImportStatus.Writing]: (background) =>
     background
       ? `Writing participants. ${KEEPS_GOING}`
-      : "Writing participants. Keep this panel open until it finishes.",
+      : "Writing participants. Keep this tab open until it finishes.",
+  [AudienceImportStatus.Completed]: () =>
+    "The import has finished. The People list behind this panel is up to date.",
 };
 
 function runningDescription(
@@ -67,7 +69,7 @@ function runningDescription(
   if (describe) return describe(view.runsInBackground);
   return view.canResume
     ? "The import stopped before it finished."
-    : "The import has ended. The People list behind this panel is up to date.";
+    : "The import has ended.";
 }
 
 /** One sentence for the step, or for the running import, announced as it changes. */
@@ -86,10 +88,9 @@ function submitLabel(wizard: ImportWizard): string {
   if (wizard.step === "done") return "Done";
   if (view.canResume) return "Resume import";
   if (wizard.run.canSendAgain) return "Send the rest of the file";
-  if (view.status !== AudienceImportStatus.Checked || !view.check)
+  if (view.status !== AudienceImportStatus.Checked)
     return "Import participants";
-  const { newCount, existingCount } = view.check;
-  return `Import ${participantCountLabel(newCount + existingCount)}`;
+  return `Import ${participantCountLabel(confirmCount(view))}`;
 }
 
 type BodyProps = { wizard: ImportWizard; setup: ImportCsvSetup };
@@ -110,7 +111,7 @@ function ActiveStep({ wizard, setup }: Readonly<BodyProps>) {
 const PANEL = {
   desktopType: "complex",
   title: "Import participants",
-  errorTitle: "Import failed",
+  errorTitle: "The import needs attention",
 } as const;
 
 /** What `PanelForm` shows for the wizard's current step. */
@@ -121,7 +122,7 @@ function stepProps(wizard: ImportWizard) {
     onOpenChange: wizard.openChange,
     trigger: trigger(runView(wizard.run)),
     pending: wizard.pending,
-    pendingLabel: wizard.step === "columns" ? "Starting…" : "Saving…",
+    pendingLabel: wizard.step === "columns" ? "Starting…" : "Working…",
     error: wizard.error,
     description: <ImportDescription wizard={wizard} />,
     submitLabel: submitLabel(wizard),

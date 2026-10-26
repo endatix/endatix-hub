@@ -16,6 +16,7 @@ import {
 import {
   chunkRowCount,
   importChunk,
+  isTerminal,
   rowsSent,
   sameFileProblem,
   uploadChunks,
@@ -60,12 +61,22 @@ export async function safely<T>(call: Promise<Result<T>>): Promise<Result<T>> {
 export const readImport = (formId: string, importId: string) =>
   safely(getAudienceImportAction({ formId, importId }));
 
-/** Shows a view of the import on screen, never one of another import. */
+/**
+ * Whether a view read now may replace what is on screen: only for the import shown, and never
+ * moving one that ended back to a running status (a read that left before the move landed late).
+ */
+function replaces(current: RunState, view: AudienceImportView): boolean {
+  if (current.kind === "idle" || current.view.importId !== view.importId)
+    return false;
+  return !isTerminal(current.view.status) || isTerminal(view.status);
+}
+
+/** Shows a newer view of the import on screen; an ended import lets go of the file's rows. */
 export function showView(ctx: RunContext, view: AudienceImportView) {
+  if (isTerminal(view.status) && ctx.file.current?.importId === view.importId)
+    ctx.file.current = null;
   ctx.setState((current) =>
-    current.kind !== "idle" && current.view.importId !== view.importId
-      ? current
-      : { kind: "server", view },
+    replaces(current, view) ? { kind: "server", view } : current,
   );
 }
 
@@ -73,7 +84,10 @@ function markSent(ctx: RunContext, view: AudienceImportView, index: number) {
   const rows = chunkRowCount(view.upload, index);
   ctx.setState((current) =>
     current.kind === "uploading" && current.view.importId === view.importId
-      ? { ...current, sent: current.sent + rows }
+      ? {
+          ...current,
+          sent: Math.min(view.upload.rowCount, current.sent + rows),
+        }
       : current,
   );
 }
@@ -95,7 +109,7 @@ function chunkSender(
     );
 }
 
-/** The view that moved past uploading, or a fresh read: responses to parallel chunks arrive in any order. */
+/** The view that moved past uploading, or a fresh read when the upload stopped short. */
 async function showLatest(
   ctx: RunContext,
   view: AudienceImportView,
@@ -133,7 +147,7 @@ async function openRunning(ctx: RunContext, refused: ResultError) {
     return false;
   }
   ctx.setNotice(ALREADY_RUNNING);
-  showView(ctx, current.value);
+  ctx.setState({ kind: "server", view: current.value });
   return true;
 }
 
@@ -170,7 +184,9 @@ export async function continueUpload(
     : sameFileProblem(view, picked.value);
   ctx.setError(problem);
   if (problem || Result.isError(picked)) return;
+  ctx.setPending(true);
   const fresh = await readImport(ctx.formId, view.importId);
+  ctx.setPending(false);
   const current = Result.isSuccess(fresh) ? fresh.value : view;
   if (current.status !== AudienceImportStatus.Uploading)
     return showView(ctx, current);

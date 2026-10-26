@@ -54,76 +54,43 @@ export const canCancel = (status: string) => CANCELABLE.includes(status);
 /** It will not move again; a status this Hub does not know counts as one. */
 export const isTerminal = (status: string) => !UNFINISHED.includes(status);
 
-const CONFLICT = 409;
-
 export type UploadRequest = {
   missing: readonly number[];
   send: (index: number) => Promise<Result<AudienceImportView>>;
   onSent: (index: number) => void;
-  concurrency?: number;
-  retries?: number;
 };
 
-type UploadState = {
-  queue: number[];
-  failure: Result<AudienceImportView> | null;
-  latest: AudienceImportView | null;
-};
+/** Worth one more try: a thrown call (no status) or a server that is busy or down (5xx). */
+const isTransient = (failed: { statusCode?: number }) =>
+  failed.statusCode === undefined || failed.statusCode >= 500;
 
 async function sendWithRetry(
-  request: UploadRequest,
+  send: UploadRequest["send"],
   index: number,
 ): Promise<Result<AudienceImportView>> {
-  let result = await request.send(index);
-  for (let retry = 0; retry < (request.retries ?? 1); retry++) {
-    if (Result.isSuccess(result) || result.statusCode === CONFLICT) break;
-    result = await request.send(index);
-  }
-  return result;
-}
-
-/** Keeps the view that moved past uploading: responses to parallel chunks arrive in any order. */
-function newer(
-  latest: AudienceImportView | null,
-  view: AudienceImportView,
-): AudienceImportView {
-  const uploading = view.status === AudienceImportStatus.Uploading;
-  return latest && latest.status !== AudienceImportStatus.Uploading && uploading
-    ? latest
-    : view;
-}
-
-async function worker(request: UploadRequest, state: UploadState) {
-  while (state.queue.length > 0 && !state.failure) {
-    const index = state.queue.shift()!;
-    const result = await sendWithRetry(request, index);
-    if (Result.isError(result)) {
-      state.failure ??= result;
-      return;
-    }
-    state.latest = newer(state.latest, result.value);
-    request.onSent(index);
-  }
+  const result = await send(index);
+  return Result.isError(result) && isTransient(result) ? send(index) : result;
 }
 
 /**
- * Sends the missing chunks a few at a time, each retried once. The first chunk that still fails
- * stops the upload; a 409 (the import takes no more rows) is not retried. Returns the newest view,
- * or `null` when nothing was missing.
+ * Sends the missing chunks one after another, a transient failure retried once. Next dispatches
+ * server actions one at a time per client, so parallel sends would only queue; sending in order
+ * keeps Cancel behind at most one chunk. The first chunk that still fails stops the upload.
+ * Returns the last view, or `null` when nothing was missing.
  */
-export async function uploadChunks(
-  request: UploadRequest,
-): Promise<Result<AudienceImportView | null>> {
-  const state: UploadState = {
-    queue: [...request.missing],
-    failure: null,
-    latest: null,
-  };
-  const workers = Array.from({ length: request.concurrency ?? 3 }, () =>
-    worker(request, state),
-  );
-  await Promise.all(workers);
-  return state.failure ?? Result.success(state.latest);
+export async function uploadChunks({
+  missing,
+  send,
+  onSent,
+}: UploadRequest): Promise<Result<AudienceImportView | null>> {
+  let latest: AudienceImportView | null = null;
+  for (const index of missing) {
+    const result = await sendWithRetry(send, index);
+    if (Result.isError(result)) return result;
+    latest = result.value;
+    onSent(index);
+  }
+  return Result.success(latest);
 }
 
 /** The file a cut-off upload continues from: its name, header row and data rows. */
@@ -142,11 +109,12 @@ export function sameFileProblem(
     return `This file is ${file.name}, but the import is of ${view.fileName}. ${again}`;
   }
   if (file.rows.length !== view.upload.rowCount) {
-    return `This file has ${rowCountLabel(file.rows.length)}, but the import has ${view.upload.rowCount.toLocaleString()}. ${again}`;
+    return `This file has ${rowCountLabel(file.rows.length)}, but the import has ${rowCountLabel(view.upload.rowCount)}. ${again}`;
   }
+  // An import recorded by the one-request route has no header row ([]); name and rows must do.
   const { headers } = view;
   const same =
-    !headers ||
+    !headers?.length ||
     (headers.length === file.headers.length &&
       headers.every((header, at) => header === file.headers[at]));
   return same ? null : `This file's columns differ from the import's. ${again}`;
@@ -167,4 +135,10 @@ export function rowsSent(view: AudienceImportView): number {
     0,
   );
   return view.upload.rowCount - missing;
+}
+
+/** Participants a confirm would write: a test import skips those already on the form. */
+export function confirmCount({ check, isTest }: AudienceImportView): number {
+  if (!check) return 0;
+  return isTest ? check.newCount : check.newCount + check.existingCount;
 }

@@ -6,6 +6,7 @@ import {
   importChunk,
   isPolling,
   isTerminal,
+  sameFileProblem,
   uploadChunks,
 } from "../import-run";
 
@@ -90,96 +91,106 @@ describe("import status", () => {
   });
 });
 
-/** A sender whose chunks settle when the test says so, recording how many were in flight. */
-function controlledSender() {
-  const pending = new Map<
-    number,
-    (result: Result<AudienceImportView>) => void
-  >();
-  let inFlight = 0;
-  let maxInFlight = 0;
-  const send = vi.fn(
-    (index: number) =>
-      new Promise<Result<AudienceImportView>>((resolve) => {
-        inFlight += 1;
-        maxInFlight = Math.max(maxInFlight, inFlight);
-        pending.set(index, (result) => {
-          inFlight -= 1;
-          pending.delete(index);
-          resolve(result);
-        });
-      }),
-  );
-  const settle = async (index: number, result: Result<AudienceImportView>) => {
-    pending.get(index)?.(result);
-    await vi.waitFor(() => undefined);
-  };
-  return { send, settle, pending, maxInFlight: () => maxInFlight };
-}
+const failure = (statusCode?: number) =>
+  Result.error<AudienceImportView>("It failed.", undefined, undefined, {
+    statusCode,
+  });
 
 describe("uploadChunks", () => {
-  it("keeps three chunks in flight, reports rows sent, and returns the view that left uploading", async () => {
+  it("sends the chunks one after another, reporting each, and returns the last view", async () => {
     // Arrange
-    const sender = controlledSender();
-    const onSent = vi.fn();
-    const upload = uploadChunks({
-      missing: [0, 1, 2, 3, 4],
-      send: sender.send,
-      onSent,
+    const sent: number[] = [];
+    let inFlight = 0;
+    const send = vi.fn(async (index: number) => {
+      inFlight += 1;
+      expect(inFlight).toBe(1);
+      await Promise.resolve();
+      inFlight -= 1;
+      return Result.success(viewWith(index === 2 ? "checking" : "uploading"));
     });
 
     // Act
-    await vi.waitFor(() => expect(sender.pending.size).toBe(3));
-    for (const index of [0, 1, 2, 3]) {
-      await sender.settle(index, Result.success(viewWith("uploading")));
-    }
-    await vi.waitFor(() => expect(sender.pending.has(4)).toBe(true));
-    await sender.settle(4, Result.success(viewWith("checking")));
-    const result = await upload;
+    const result = await uploadChunks({
+      missing: [0, 1, 2],
+      send,
+      onSent: (index) => sent.push(index),
+    });
 
     // Assert
-    expect(sender.maxInFlight()).toBe(3);
-    expect(onSent.mock.calls.map(([index]) => index)).toEqual([0, 1, 2, 3, 4]);
+    expect(sent).toEqual([0, 1, 2]);
     expect(Result.isSuccess(result) && result.value?.status).toBe("checking");
   });
 
-  it("retries a failed chunk once, then stops with its error", async () => {
+  it.each([
+    { what: "a thrown call", result: failure() },
+    { what: "a 503", result: failure(503) },
+  ])("retries $what once, then stops with its error", async ({ result }) => {
     // Arrange
-    const send = vi
-      .fn()
-      .mockResolvedValue(
-        Result.error<AudienceImportView>("The network is down."),
-      );
+    const send = vi.fn().mockResolvedValue(result);
 
     // Act
-    const result = await uploadChunks({ missing: [0], send, onSent: vi.fn() });
-
-    // Assert
-    expect(send).toHaveBeenCalledTimes(2);
-    expect(Result.isError(result) && result.message).toBe(
-      "The network is down.",
-    );
-  });
-
-  it("stops at once when the import no longer takes rows (409)", async () => {
-    // Arrange
-    const conflict = Result.error<AudienceImportView>(
-      "The import is canceled; it takes no more rows.",
-      undefined,
-      undefined,
-      { statusCode: 409 },
-    );
-    const send = vi.fn().mockResolvedValue(conflict);
-
-    // Act
-    const result = await uploadChunks({
-      missing: [0, 1, 2, 3, 4, 5],
+    const upload = await uploadChunks({
+      missing: [0, 1],
       send,
       onSent: vi.fn(),
     });
 
     // Assert
-    expect(send).toHaveBeenCalledTimes(3);
-    expect(Result.isError(result) && result.statusCode).toBe(409);
+    expect(send.mock.calls.map(([index]) => index)).toEqual([0, 0]);
+    expect(Result.isError(upload) && upload.message).toBe("It failed.");
+  });
+
+  it.each([
+    { what: "the import no longer takes rows (409)", statusCode: 409 },
+    { what: "the chunk does not fit the import (400)", statusCode: 400 },
+  ])("stops without a retry when $what", async ({ statusCode }) => {
+    // Arrange
+    const send = vi.fn().mockResolvedValue(failure(statusCode));
+
+    // Act
+    const result = await uploadChunks({
+      missing: [0, 1, 2],
+      send,
+      onSent: vi.fn(),
+    });
+
+    // Assert
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(Result.isError(result) && result.statusCode).toBe(statusCode);
+  });
+});
+
+describe("sameFileProblem", () => {
+  const file = {
+    name: "panel.csv",
+    headers: ["email"],
+    rows: [{ cells: ["a"], malformed: false }],
+  };
+  const one = {
+    ...viewWith("uploading"),
+    upload: { rowCount: 1, chunkSize: 1_000, missingChunks: [0] },
+  };
+
+  it("treats an empty header row as unknown, as an import from the one-request route has", () => {
+    // Act & Assert
+    expect(sameFileProblem({ ...one, headers: [] }, file)).toBeNull();
+    expect(sameFileProblem({ ...one, headers: ["id"] }, file)).toBe(
+      "This file's columns differ from the import's. Choose panel.csv again.",
+    );
+  });
+
+  it("names both row counts in words", () => {
+    // Act & Assert
+    expect(
+      sameFileProblem(
+        {
+          ...viewWith("uploading"),
+          upload: { rowCount: 1_300, chunkSize: 1_000, missingChunks: [] },
+        },
+        file,
+      ),
+    ).toBe(
+      "This file has 1 row, but the import has 1,300 rows. Choose panel.csv again.",
+    );
   });
 });

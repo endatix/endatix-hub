@@ -14,7 +14,7 @@ import {
 } from "@/lib/endatix-api/audience/types";
 import { identifierKindLabel } from "../../utils";
 import { canCancel, rowsSent } from "../import-run";
-import { checkCounts, rowCountLabel } from "../import-labels";
+import { checkCounts, outcomeCounts, rowCountLabel } from "../import-labels";
 import { runView, type ImportWizard } from "../use-import-csv.hook";
 import { RejectedRows } from "./import-result-summary";
 
@@ -58,6 +58,18 @@ function phaseOf(wizard: ImportWizard, view: AudienceImportView): Phase | null {
   if (state.kind === "uploading")
     return phase(SENDING, state.sent, view.upload.rowCount);
   return SERVER_PHASES[view.status]?.(view) ?? null;
+}
+
+/** What the write has done so far, zeros left out, once it has written a row. */
+function WrittenSoFar({ view }: Readonly<{ view: AudienceImportView }>) {
+  const { written, isTest, status } = view;
+  if (status !== AudienceImportStatus.Writing || written.writtenRowCount === 0)
+    return null;
+  return (
+    <p className="text-sm">
+      {outcomeCounts(written, { asTest: isTest })} so far
+    </p>
+  );
 }
 
 function PhaseProgress({ phase }: Readonly<{ phase: Phase }>) {
@@ -226,6 +238,7 @@ function ProgressSection({
       description={sectionDescription(view)}
     >
       <ImportBody wizard={wizard} view={view} />
+      <WrittenSoFar view={view} />
       <CancelImport wizard={wizard} view={view} />
     </PanelSection>
   );

@@ -13,7 +13,7 @@ import { Result } from "@/lib/result";
 import type { CsvRow } from "@/lib/utils/csv";
 import { usePanelOpen } from "../use-panel-state.hook";
 import { readCsvFile, type CsvPreview } from "./csv-preview";
-import { isTerminal } from "./import-run";
+import { confirmCount, isTerminal } from "./import-run";
 import { sizeLabel } from "./import-labels";
 import {
   useAudienceImport,
@@ -27,27 +27,32 @@ import {
 } from "./column-map";
 
 /**
- * The wizard's steps; the outcome (`done`) is not a step of the track. Leaving the step before
- * Review starts the import, so a step added before Review keeps that order.
+ * The wizard's steps in order, with the label its track shows; the outcome (`done`) is not one.
+ * Reaching `START_STEP` starts the import, so a step added before it keeps that order.
  */
-export const IMPORT_STEPS = ["File", "Columns", "Review"] as const;
+const STEPS = [
+  { id: "file", label: "File" },
+  { id: "columns", label: "Columns" },
+  { id: "review", label: "Review" },
+] as const;
 
-export type ImportStep = "file" | "columns" | "review" | "done";
+export type ImportStep = (typeof STEPS)[number]["id"] | "done";
 
-const STEP_NUMBER: Record<ImportStep, number> = {
-  file: 1,
-  columns: 2,
-  review: 3,
-  done: 4,
-};
-const NEXT: Partial<Record<ImportStep, ImportStep>> = {
-  file: "columns",
-  columns: "review",
-};
-const PREVIOUS: Partial<Record<ImportStep, ImportStep>> = {
-  columns: "file",
-  review: "columns",
-};
+export const IMPORT_STEPS: readonly string[] = STEPS.map((step) => step.label);
+
+/** The step whose arrival starts the import; the run's progress and preview show there. */
+const START_STEP: ImportStep = "review";
+
+const ORDER: readonly ImportStep[] = STEPS.map((step) => step.id);
+
+/** The step `offset` away along the track, or `undefined` past either end or from the outcome. */
+function stepAt(step: ImportStep, offset: number): ImportStep | undefined {
+  const at = ORDER.indexOf(step);
+  return at < 0 ? undefined : ORDER[at + offset];
+}
+
+const stepNumber = (step: ImportStep) =>
+  step === "done" ? ORDER.length + 1 : ORDER.indexOf(step) + 1;
 
 export type ImportCsvSetup = {
   formId: string;
@@ -171,11 +176,11 @@ export type ImportChoices = ReturnType<typeof useColumnChoices>;
 
 /** Where the wizard is before the import starts, and the steps either side of it. */
 function useImportSteps() {
-  const [step, setStep] = useState<ImportStep>("file");
-  const previous = PREVIOUS[step];
+  const [step, setStep] = useState<ImportStep>(ORDER[0]);
+  const previous = stepAt(step, -1);
   return {
     step,
-    next: NEXT[step],
+    next: stepAt(step, 1),
     setStep,
     back: previous ? () => setStep(previous) : undefined,
   };
@@ -209,21 +214,20 @@ export const runView = (run: AudienceImportRun): AudienceImportView | null =>
 function runStep(run: AudienceImportRun): ImportStep | null {
   const view = runView(run);
   if (!view) return null;
-  return isTerminal(view.status) && !view.canResume ? "done" : "review";
+  return isTerminal(view.status) && !view.canResume ? "done" : START_STEP;
 }
 
 /** What the footer's main button does on Review and the outcome, or `null` while it waits. */
 function runAction(run: AudienceImportRun, close: () => void) {
   const view = runView(run);
   if (!view || run.state.kind === "uploading") return null;
-  if (view.status === AudienceImportStatus.Checked) return run.confirm;
+  if (view.status === AudienceImportStatus.Checked)
+    return confirmCount(view) > 0 ? run.confirm : null;
   if (view.canResume) return run.resume;
   if (run.canSendAgain) return run.sendAgain;
-  if (!isTerminal(view.status)) return null;
-  return () => {
-    run.dismiss();
-    close();
-  };
+  // Done only closes: the outcome stays on screen while the panel animates out, and the next
+  // open lets the ended import go and starts over.
+  return isTerminal(view.status) ? close : null;
 }
 
 /** Whether the footer's main button may run: a file read, an identifier chosen, then the run's action. */
@@ -263,10 +267,10 @@ type Wizard = {
 /** The footer's main button: the next step, the start after Columns, or the run's own action. */
 async function advanceWizard({ file, choices, steps, run, close }: Wizard) {
   if (runStep(run)) return runAction(run, close)?.();
-  if (steps.next !== "review") return steps.next && steps.setStep(steps.next);
+  if (steps.next !== START_STEP) return steps.next && steps.setStep(steps.next);
   if (!file) return;
   if (await run.start(startRequest(file, choices), uploadFile(file)))
-    steps.setStep("review");
+    steps.setStep(START_STEP);
 }
 
 /** Where the wizard is: the run's step once an import exists, else the local one with its Back. */
@@ -278,7 +282,7 @@ function stepState(
   const step = ran ?? steps.step;
   // A failed start's message belongs to the Columns step; going back to change a choice clears it.
   const back = steps.back && (() => (run.dismiss(), steps.back?.()));
-  return { step, stepNumber: STEP_NUMBER[step], back: ran ? undefined : back };
+  return { step, stepNumber: stepNumber(step), back: ran ? undefined : back };
 }
 
 /** Reads a re-chosen file and continues the cut-off upload from it, or says why it cannot. */
@@ -318,7 +322,7 @@ export function useImportCsv(setup: ImportCsvSetup) {
   const steps = useImportSteps();
   const { run, panel } = useRunPanel(setup, () => {
     reset();
-    steps.setStep("file");
+    steps.setStep(ORDER[0]);
   });
   const wizard = { file: source.file, choices, steps, run, close: panel.close };
   return {

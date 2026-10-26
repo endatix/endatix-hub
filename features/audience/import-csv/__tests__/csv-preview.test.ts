@@ -66,4 +66,12 @@ describe("readCsvFile", () => {
       /5,001 rows\. Import up to 5,000/,
     );
   });
+
+  it("refuses a cell longer than the API takes, naming its row", () => {
+    expect(
+      problem(`email,note\na@b.co,ok\nc@d.co,${"x".repeat(4_001)}\n`),
+    ).toBe(
+      "Row 3 has a cell longer than 4,000 characters. Shorten it, or check the row for a stray quote.",
+    );
+  });
 });
