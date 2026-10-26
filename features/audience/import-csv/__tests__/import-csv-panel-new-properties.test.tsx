@@ -124,6 +124,9 @@ describe("ImportCsvPanel: new properties from the file's columns", () => {
     // Assert
     expect(screen.getByText("1 mapped, 2 to create, 0 ignored")).toBeTruthy();
     expect(within(track()).getByText("New properties")).toBeTruthy();
+    expect(
+      screen.getByText(/Continue goes on to the new properties/),
+    ).toBeTruthy();
 
     // Act
     pick("segment", "Don't import");
@@ -132,6 +135,9 @@ describe("ImportCsvPanel: new properties from the file's columns", () => {
     // Assert
     expect(screen.getByText("1 mapped, 0 to create, 2 ignored")).toBeTruthy();
     expect(within(track()).queryByText("New properties")).toBeNull();
+    expect(
+      screen.getByText(/Continue sends the file and checks it/),
+    ).toBeTruthy();
     fireEvent.click(continueButton());
     await waitFor(() => expect(startAudienceImportAction).toHaveBeenCalled());
     expect(startAudienceImportAction).toHaveBeenCalledWith(
@@ -229,6 +235,77 @@ describe("ImportCsvPanel: new properties from the file's columns", () => {
     // Assert
     expect(nameInput("segment").value).toBe("Segment 2");
     expect(screen.queryByText(/already writes/)).toBeNull();
+  });
+
+  it("waits for the form check still running before it creates anything", async () => {
+    // Arrange
+    let answer: (
+      value: Result<{ variable: string; declaredBy: "question" }[]>,
+    ) => void = () => undefined;
+    vi.mocked(checkPropertyNamesAction).mockReturnValue(
+      new Promise((resolve) => {
+        answer = resolve;
+      }),
+    );
+    await openOnNewProperties();
+
+    // Act
+    fireEvent.click(button("Create 1 property"));
+    answer(Result.success([{ variable: "segment", declaredBy: "question" }]));
+
+    // Assert
+    expect(
+      await screen.findByText(/A question in this form already writes segment/),
+    ).toBeTruthy();
+    expect(createAudiencePropertyAction).not.toHaveBeenCalled();
+  });
+
+  it("asks the form again after a check that failed", async () => {
+    // Arrange
+    vi.mocked(checkPropertyNamesAction)
+      .mockResolvedValueOnce(Result.error("The form could not be read."))
+      .mockResolvedValue(
+        Result.success([{ variable: "segment", declaredBy: "question" }]),
+      );
+    await openOnNewProperties();
+    await waitFor(() =>
+      expect(checkPropertyNamesAction).toHaveBeenCalledTimes(1),
+    );
+
+    // Act
+    fireEvent.blur(nameInput("segment"));
+
+    // Assert
+    expect(
+      await screen.findByText(/A question in this form already writes segment/),
+    ).toBeTruthy();
+  });
+
+  it("keeps a created single choice mapped to its column after Back", async () => {
+    // Arrange
+    vi.mocked(createAudiencePropertyAction).mockResolvedValue(
+      Result.success({
+        ...created("Segment", "segment"),
+        dataType: AudienceDataType.SingleChoice,
+        choicesJson: '["A","B"]',
+      }),
+    );
+    vi.mocked(startAudienceImportAction).mockResolvedValue(
+      Result.validationError("The import could not start."),
+    );
+    await openOnNewProperties();
+    fireEvent.click(button("Create 1 property"));
+    await screen.findByText("The import could not start.");
+
+    // Act
+    fireEvent.click(button("Back"));
+
+    // Assert
+    const select = (await screen.findByLabelText(
+      "segment",
+    )) as HTMLSelectElement;
+    expect(select.value).toBe("segment");
+    expect(screen.queryByText(/fill only from columns named like/)).toBeNull();
   });
 
   it("warns when an existing property already has the name", async () => {

@@ -12,6 +12,11 @@ describe("suggestDataType", () => {
     expect(typeOf(["1,200", "15"])).toBe(AudienceDataType.Text);
   });
 
+  it("keeps codes with a leading zero as text, so the zero is not read away", () => {
+    expect(typeOf(["00123", "10001", "02134"])).toBe(AudienceDataType.Text);
+    expect(typeOf(["0", "0.5", "10"])).toBe(AudienceDataType.Number);
+  });
+
   it("suggests date only for real YYYY-MM-DD dates", () => {
     expect(typeOf(["2025-01-02", "2024-02-29", "2023-12-31"])).toBe(
       AudienceDataType.Date,

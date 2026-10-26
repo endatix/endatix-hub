@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   AudienceDataType,
   type AudienceProperty,
@@ -33,9 +33,10 @@ function columnValues(file: LoadedFile, column: string): string[] {
 
 /** Each queued column's draft before any edit, worked out once per file. */
 function useBaseDrafts(file: LoadedFile | null) {
-  const cache = useRef({ file, drafts: new Map<string, PropertyDraft>() });
-  if (cache.current.file !== file) cache.current = { file, drafts: new Map() };
-  const { drafts } = cache.current;
+  const { drafts } = useMemo(
+    () => ({ file, drafts: new Map<string, PropertyDraft>() }),
+    [file],
+  );
   return (column: string): PropertyDraft => {
     let draft = drafts.get(column);
     if (!draft) {
@@ -50,36 +51,57 @@ const variablesToAsk = (names: readonly string[]) => [
   ...new Set(names.flatMap((name) => candidateVariables(name))),
 ];
 
-/** The lower-case variables the saved form writes, with what writes them. */
+/** The lower-case variables the saved form writes, with what writes them; `null` when the check failed. */
 async function formTaken(formId: string, variables: string[]) {
   const result = await checkPropertyNamesAction(formId, variables);
-  // A failed check only loses the warning; it never holds the import.
-  if (Result.isError(result)) return [];
+  if (Result.isError(result)) return null;
   return result.value.map(
     ({ variable, declaredBy }) => [variable.toLowerCase(), declaredBy] as const,
   );
 }
 
+/** One request per variable, kept while it runs and after it answers; a failed one is asked again. */
+function useFormAnswers(formId: string) {
+  const known = useRef(new Map<string, VariableHolder>());
+  const asked = useRef(new Map<string, Promise<void>>());
+  const ask = (variables: string[], onAnswer: () => void) => {
+    const request = formTaken(formId, variables).then((taken) => {
+      // A failed check only loses the warning until the next blur or Continue asks again.
+      if (!taken) return variables.forEach((v) => asked.current.delete(v));
+      taken.forEach(([variable, holder]) =>
+        known.current.set(variable, holder),
+      );
+      onAnswer();
+    });
+    variables.forEach((variable) => asked.current.set(variable, request));
+  };
+  const reset = () => {
+    known.current = new Map();
+    asked.current = new Map();
+  };
+  return { known, asked, ask, reset };
+}
+
 /**
  * What the saved form already writes, by lower-case variable name, from the server's lint. Each
- * name is asked about once, with the suffixed names a suggestion may take.
+ * name is asked about with the suffixed names a suggestion may take; a check waits for one running.
  */
 function useFormCollisions(formId: string) {
   const [found, setFound] = useState<ReadonlyMap<string, VariableHolder>>(
     new Map(),
   );
-  const asked = useRef(new Set<string>());
-  /** Asks about the names not asked yet; resolves to the lower-case variables found taken. */
+  const answers = useFormAnswers(formId);
+  /** Resolves, once every answer is in, to the lower-case variables of `names` the form writes. */
   const check = async (names: readonly string[]): Promise<string[]> => {
-    const fresh = variablesToAsk(names).filter((v) => !asked.current.has(v));
-    if (fresh.length === 0) return [];
-    for (const variable of fresh) asked.current.add(variable);
-    const taken = await formTaken(formId, fresh);
-    setFound((current) => new Map([...current, ...taken]));
-    return taken.map(([variable]) => variable);
+    const variables = variablesToAsk(names);
+    const fresh = variables.filter((v) => !answers.asked.current.has(v));
+    if (fresh.length > 0)
+      answers.ask(fresh, () => setFound(new Map(answers.known.current)));
+    await Promise.all(variables.map((v) => answers.asked.current.get(v)));
+    return variables.filter((v) => answers.known.current.has(v));
   };
   const reset = () => {
-    asked.current = new Set();
+    answers.reset();
     setFound(new Map());
   };
   return { found, check, reset };
@@ -192,7 +214,7 @@ function useDraftCreates(formId: string, onCreated: OnCreated) {
 type Collisions = ReturnType<typeof useFormCollisions>;
 type Creates = ReturnType<typeof useDraftCreates>;
 
-/** Asks the form about the names first: a warning found only now shows, and the next Continue creates. */
+/** Waits for the form's answer first: a warning not shown yet shows, and the next Continue creates. */
 async function createChecked(
   drafts: CheckedDraft[],
   collisions: Collisions,
@@ -200,8 +222,9 @@ async function createChecked(
 ): Promise<ColumnMap | null> {
   creates.setError(null);
   const taken = await collisions.check(drafts.map((draft) => draft.name));
-  if (drafts.some((draft) => taken.includes(draft.check.variableName)))
-    return null;
+  const unseen = (draft: CheckedDraft) =>
+    !draft.check.holder && taken.includes(draft.check.variableName);
+  if (drafts.some((draft) => unseen(draft))) return null;
   return creates.run(drafts);
 }
 

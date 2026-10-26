@@ -42,6 +42,8 @@ const STEP_DESCRIPTION = {
   file: "Add participants from a CSV file. Nothing is written until you confirm.",
   columns:
     "Choose the column that identifies participants and what the others fill. Continue sends the file and checks it.",
+  columnsWithNew:
+    "Choose the column that identifies participants and what the others fill. Continue goes on to the new properties.",
   properties:
     "Name each new property and confirm its type. Continue creates them, then sends the file and checks it.",
 } as const;
@@ -79,16 +81,19 @@ function runningDescription(
   return "The import has ended.";
 }
 
+function descriptionKey(wizard: ImportWizard): keyof typeof STEP_DESCRIPTION {
+  const { step } = wizard;
+  if (step === "properties") return step;
+  if (step !== "columns") return "file";
+  return wizard.newProperties.drafts.length > 0 ? "columnsWithNew" : step;
+}
+
 /** One sentence for the step, or for the running import, announced as it changes. */
 function ImportDescription({ wizard }: Readonly<{ wizard: ImportWizard }>) {
   const view = runView(wizard.run);
   let text: string;
   if (view === null) {
-    const { step } = wizard;
-    text =
-      STEP_DESCRIPTION[
-        step === "columns" || step === "properties" ? step : "file"
-      ];
+    text = STEP_DESCRIPTION[descriptionKey(wizard)];
   } else {
     text = runningDescription(wizard, view);
   }

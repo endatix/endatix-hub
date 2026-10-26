@@ -58,7 +58,7 @@ function UseSuggestedName({ wizard, draft }: Readonly<DraftProps>) {
   return (
     <Button
       type="button"
-      variant="ghost"
+      variant="outline"
       size="sm"
       className="justify-self-start"
       disabled={wizard.pending}
@@ -96,7 +96,6 @@ function NameField(props: Readonly<DraftProps>) {
       help={nameHelp(check)}
     >
       <Input {...nameInputProps(props, id)} />
-      <UseSuggestedName {...props} />
     </FieldWithHelp>
   );
 }
@@ -162,6 +161,7 @@ function DraftFields(props: Readonly<DraftProps>) {
     <div className="grid gap-3">
       <p className="font-mono text-sm">{props.draft.column}</p>
       <NameField {...props} />
+      <UseSuggestedName {...props} />
       <TypeField {...props} />
     </div>
   );

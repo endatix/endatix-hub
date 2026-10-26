@@ -115,23 +115,25 @@ export function suggestColumnMap(
   return map;
 }
 
-const decisionOf = (map: ColumnMap, column: string) =>
-  map[column] ?? SKIP_COLUMN;
+/** What a column's decision does; a decision kind added later is counted by name, never as mapped. */
+type DecisionKind = keyof ColumnTally;
+
+/** The one place a decision is read: `SKIP_COLUMN`, `CREATE_COLUMN`, or a property's variable name. */
+function decisionKind(decision: string | undefined): DecisionKind {
+  if (decision === undefined || decision === SKIP_COLUMN) return "ignored";
+  if (decision === CREATE_COLUMN) return "toCreate";
+  return "mapped";
+}
 
 /** The columns queued to become new properties, in file order. */
 export function queuedColumns(columns: string[], map: ColumnMap): string[] {
-  return columns.filter((column) => decisionOf(map, column) === CREATE_COLUMN);
+  return columns.filter((column) => decisionKind(map[column]) === "toCreate");
 }
 
 /** The running tally the Columns step shows, so a column left unhandled is seen at a glance. */
 export function columnTally(columns: string[], map: ColumnMap): ColumnTally {
   const tally: ColumnTally = { mapped: 0, toCreate: 0, ignored: 0 };
-  for (const column of columns) {
-    const decision = decisionOf(map, column);
-    if (decision === CREATE_COLUMN) tally.toCreate += 1;
-    else if (decision === SKIP_COLUMN) tally.ignored += 1;
-    else tally.mapped += 1;
-  }
+  for (const column of columns) tally[decisionKind(map[column])] += 1;
   return tally;
 }
 
@@ -139,10 +141,7 @@ export function columnTally(columns: string[], map: ColumnMap): ColumnTally {
 export function propertyColumnMap(map: ColumnMap): Record<string, string> {
   return Object.fromEntries(
     Object.entries(map)
-      .filter(
-        ([, variableName]) =>
-          variableName !== SKIP_COLUMN && variableName !== CREATE_COLUMN,
-      )
+      .filter(([, decision]) => decisionKind(decision) === "mapped")
       .map(([column, variableName]) => [variableName, column]),
   );
 }

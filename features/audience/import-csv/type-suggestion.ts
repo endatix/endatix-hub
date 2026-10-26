@@ -30,8 +30,13 @@ const DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
 const DATE_TIME =
   /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.\d{1,7})?)?(?:Z|[+-](\d{2}):(\d{2}))?$/;
 
+/** A zero before another digit (`00123`): a code such as a postcode or an ID, not a quantity. */
+const LEADING_ZERO = /^[+-]?0\d/;
+
 const isNumber = (value: string) =>
-  NUMBER.test(value) && Number.isFinite(Number(value));
+  NUMBER.test(value) &&
+  !LEADING_ZERO.test(value) &&
+  Number.isFinite(Number(value));
 
 function isDate(value: string): boolean {
   const match = DATE.exec(value);

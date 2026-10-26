@@ -35,6 +35,9 @@ async function savedForm(
   return ApiResult.success(parseSurveyJson(definition.data.jsonData));
 }
 
+/** More names than any file's new properties and their suggestions ask about at once. */
+const MAX_NAMES = 500;
+
 /**
  * Which of the variable names a new property would get the saved form already writes as data
  * (a root question or a calculated value), so the New properties step can warn before creating.
@@ -44,6 +47,8 @@ export async function checkPropertyNamesAction(
   formId: string,
   names: string[],
 ): Promise<Result<VariableCollision[]>> {
+  if (names.length > MAX_NAMES)
+    return Result.validationError(`Check up to ${MAX_NAMES} names at a time.`);
   return withHubAudienceApi(async (api) => {
     const json = await savedForm(api, formId);
     if (!ApiResult.isSuccess(json)) return json;

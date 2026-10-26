@@ -217,6 +217,7 @@ function useImportSteps(steps: readonly StepDef[], onRestart: () => void) {
   return {
     step,
     order,
+    labels: steps.map((s) => s.label),
     next: stepAt(order, step, 1),
     setStep,
     back: previous ? () => setStep(previous) : undefined,
@@ -353,9 +354,7 @@ function stepState({ steps, run, newProperties }: Wizard) {
   return {
     step,
     stepNumber: stepNumber(steps.order, step),
-    stepLabels: stepsFor(steps.order.includes("properties")).map(
-      (s) => s.label,
-    ),
+    stepLabels: steps.labels,
     back: ran ? undefined : back,
   };
 }
@@ -426,7 +425,11 @@ function useQueuedProperties(
   const queued = queuedColumns(file?.preview.headers ?? [], choices.columns);
   const { formId } = setup;
   const newProperties = useNewProperties({
-    ...{ formId, file, queued, properties, onCreated },
+    formId,
+    file,
+    queued,
+    properties,
+    onCreated,
   });
   return { newProperties, properties, createdProperties, resetCreated };
 }

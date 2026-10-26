@@ -13,7 +13,6 @@ import {
   choiceColumnGroups,
   columnTally,
   CREATE_COLUMN,
-  importableProperties,
   isChoiceProperty,
   mappableColumns,
   SKIP_COLUMN,
@@ -98,16 +97,28 @@ function takenByOthers(column: string, columns: ColumnMap): Set<string> {
   );
 }
 
+/** Properties no other column feeds; a choice property this wizard created from the column stays its own. */
+function freeProperties(
+  column: string,
+  columns: ColumnMap,
+  properties: readonly AudienceProperty[],
+) {
+  const taken = takenByOthers(column, columns);
+  return properties.filter(
+    (property) =>
+      !taken.has(property.variableName) &&
+      (!isChoiceProperty(property) ||
+        property.variableName === columns[column]),
+  );
+}
+
 /** Don't import, create a new property, then every property no other column feeds yet. */
 function propertyOptions(
   column: string,
   wizard: ImportWizard,
   properties: readonly AudienceProperty[],
 ): SelectOption[] {
-  const taken = takenByOthers(column, wizard.choices.columns);
-  const free = importableProperties(properties).filter(
-    (property) => !taken.has(property.variableName),
-  );
+  const free = freeProperties(column, wizard.choices.columns, properties);
   return [
     SKIP_OPTION,
     CREATE_OPTION,
@@ -162,17 +173,30 @@ function ChoiceColumns({ groups }: Readonly<{ groups: ChoiceColumnGroup[] }>) {
   );
 }
 
-function columnsDescription(
+/** Choice properties no column fills: neither read from `variable__choice` columns nor mapped here. */
+function unreadChoices(
   properties: readonly AudienceProperty[],
+  groups: ChoiceColumnGroup[],
+  columns: ColumnMap,
+) {
+  const read = new Set([
+    ...groups.map((group) => group.property.variableName),
+    ...Object.values(columns),
+  ]);
+  return properties.filter(
+    (property) =>
+      isChoiceProperty(property) && !read.has(property.variableName),
+  );
+}
+
+function columnsDescription(
+  { properties, choices }: ImportWizard,
   groups: ChoiceColumnGroup[],
 ): string {
   if (properties.length === 0) {
     return "This form has no properties yet, so each column can become a new one.";
   }
-  const read = new Set(groups.map((group) => group.property.id));
-  const unread = properties.filter(
-    (property) => isChoiceProperty(property) && !read.has(property.id),
-  );
+  const unread = unreadChoices(properties, groups, choices.columns);
   const base =
     "Each column fills one property. Columns named like a property are matched already; the others become new properties.";
   if (unread.length === 0) return base;
@@ -213,7 +237,7 @@ function ColumnsSection(props: Readonly<LoadedStepProps>) {
     <PanelSection
       icon={Columns3}
       title="Columns"
-      description={columnsDescription(wizard.properties, groups)}
+      description={columnsDescription(wizard, groups)}
       aside={<ColumnTally wizard={wizard} columns={columns} />}
     >
       {columns.map((column, index) => (
