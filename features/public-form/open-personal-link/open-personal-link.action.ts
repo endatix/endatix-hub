@@ -1,6 +1,7 @@
 "use server";
 
 import { FormTokenCookieStore } from "@/features/public-form/infrastructure/cookie-store";
+import { TelemetryLogger } from "@/features/telemetry";
 import { EndatixApi } from "@/lib/endatix-api";
 import {
   isNotFoundError,
@@ -41,5 +42,15 @@ export async function openPersonalLinkAction(
   }
 
   const store = new FormTokenCookieStore(await cookies());
-  return store.setToken({ formId, token: opened.value });
+  const stored = store.setToken({ formId, token: opened.value });
+  if (Result.isError(stored)) {
+    TelemetryLogger.error(
+      OPEN_LOG.logMessage,
+      undefined,
+      { reason: stored.message },
+      OPEN_LOG.loggerName,
+    );
+    return Result.error(OPEN_LOG.fallbackMessage);
+  }
+  return stored;
 }

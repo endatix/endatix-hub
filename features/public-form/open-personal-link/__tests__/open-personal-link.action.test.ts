@@ -64,6 +64,24 @@ describe("openPersonalLinkAction", () => {
     );
   });
 
+  it("answers a retryable error when the cookie cannot be written", async () => {
+    redeemLink.mockResolvedValue(
+      ApiResult.success({
+        submissionId: "22",
+        created: true,
+        submissionAccessToken: "22.1893456000.s.stamp~sig",
+        submissionAccessTokenExpiresAt: "2030-01-01T00:00:00Z",
+      }),
+    );
+    cookieJar.get.mockReturnValue({ value: "not json" });
+
+    const opened = await openPersonalLinkAction(FORM_ID, LINK_TOKEN);
+
+    expect(Result.isError(opened) && opened.message).toBe(
+      "The link could not be opened.",
+    );
+  });
+
   it("answers submission_ended for a link whose submission has ended, and sets no cookie", async () => {
     redeemLink.mockResolvedValue(
       ApiResult.conflictError(

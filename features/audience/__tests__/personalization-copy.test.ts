@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { scanSourceFiles } from "@/features/config/__tests__/support/scan-source-files";
@@ -18,5 +19,31 @@ describe("personalization copy", () => {
 
   it("spells personalized the US way", () => {
     expect(scanSourceFiles(REPO_ROOT, /personalis/i)).toEqual([]);
+  });
+
+  it("names the add and import test toggles test participant", () => {
+    const add = readFileSync(
+      path.join(
+        REPO_ROOT,
+        "features/audience/create-person/ui/add-person-panel.tsx",
+      ),
+      "utf8",
+    );
+    const review = readFileSync(
+      path.join(
+        REPO_ROOT,
+        "features/audience/import-csv/ui/import-review-step.tsx",
+      ),
+      "utf8",
+    );
+
+    expect(add).toContain('label="Add as test participant"');
+    expect(add).toContain(
+      'help="A test participant is never sent a personalized link. Use them to try the form with Test as this participant."',
+    );
+    expect(review).toContain('label="Import as test participants"');
+    expect(review).toContain(
+      'help="Test participants are never sent a personalized link. Use them to try the form with Test as this participant."',
+    );
   });
 });

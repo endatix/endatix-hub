@@ -12,7 +12,12 @@ import type { FormDiagnosticsPlugin } from "../form-diagnostics-plugin";
 const WARNING_CLASS =
   "text-orange-600 border-orange-200 bg-orange-50 dark:bg-orange-950/20 dark:text-orange-400 dark:border-orange-800";
 
-type Described = { title: string; description: string; fixLabel?: string };
+type Described = {
+  title: string;
+  description: string;
+  fixLabel?: string;
+  addPropertyLabel?: string;
+};
 
 type Finding<K extends AudienceFinding["kind"]> = Extract<
   AudienceFinding,
@@ -38,12 +43,13 @@ const COLLISION_EFFECT = {
 const DESCRIBE: {
   [K in AudienceFinding["kind"]]: (finding: Finding<K>) => Described;
 } = {
-  "unknown-variable": ({ variable, suggestion, fix }) => ({
+  "unknown-variable": ({ variable, suggestion, fix, canAddProperty }) => ({
     title: `{${variable}} is not declared`,
     description: suggestion
       ? `Did you mean {${suggestion}}? ${NOT_DECLARED}`
       : NOT_DECLARED,
     fixLabel: fix && suggestion ? `Use {${suggestion}}` : undefined,
+    addPropertyLabel: canAddProperty ? "Add as Audience property" : undefined,
   }),
   "variable-collision": ({ variable, declaredBy }) => ({
     title: `A ${DECLARED_BY[declaredBy]} shares its name with the Property {${variable}}`,
@@ -94,10 +100,13 @@ export function useAudienceFindings(
   return useSyncExternalStore(subscribe, read, read);
 }
 
-type FindingAlertProps = {
-  finding: AudienceFinding;
-  onFix: (finding: AudienceFinding) => void;
-};
+/** What a finding's buttons do: the Diagnostics plugin. */
+type FindingActions = Pick<
+  FormDiagnosticsPlugin,
+  "applyAudienceFix" | "addAudienceProperty"
+>;
+
+type FindingAlertProps = { finding: AudienceFinding; actions: FindingActions };
 
 type FixButtonProps = { label: string; onClick: () => void };
 
@@ -107,7 +116,7 @@ function FixButton({ label, onClick }: Readonly<FixButtonProps>) {
       type="button"
       size="sm"
       variant="outline"
-      className="mt-2"
+      className="mt-2 mr-2"
       onClick={onClick}
     >
       {label}
@@ -115,8 +124,31 @@ function FixButton({ label, onClick }: Readonly<FixButtonProps>) {
   );
 }
 
-function AudienceFindingAlert({ finding, onFix }: Readonly<FindingAlertProps>) {
-  const { title, description, fixLabel } = describeAudienceFinding(finding);
+function FindingButtons({ finding, actions }: Readonly<FindingAlertProps>) {
+  const { fixLabel, addPropertyLabel } = describeAudienceFinding(finding);
+  return (
+    <>
+      {fixLabel && (
+        <FixButton
+          label={fixLabel}
+          onClick={() => void actions.applyAudienceFix(finding)}
+        />
+      )}
+      {addPropertyLabel && (
+        <FixButton
+          label={addPropertyLabel}
+          onClick={() => void actions.addAudienceProperty(finding)}
+        />
+      )}
+    </>
+  );
+}
+
+function AudienceFindingAlert({
+  finding,
+  actions,
+}: Readonly<FindingAlertProps>) {
+  const { title, description } = describeAudienceFinding(finding);
   const where = "elementName" in finding ? finding.elementName : undefined;
   return (
     <Alert className={WARNING_CLASS}>
@@ -125,9 +157,7 @@ function AudienceFindingAlert({ finding, onFix }: Readonly<FindingAlertProps>) {
       <AlertDescription className="text-xs opacity-90">
         {description}
         {where && <span className="mt-1 block">In &quot;{where}&quot;.</span>}
-        {fixLabel && (
-          <FixButton label={fixLabel} onClick={() => onFix(finding)} />
-        )}
+        <FindingButtons finding={finding} actions={actions} />
       </AlertDescription>
     </Alert>
   );
@@ -135,7 +165,7 @@ function AudienceFindingAlert({ finding, onFix }: Readonly<FindingAlertProps>) {
 
 type AudienceFindingsProps = {
   findings: AudienceFinding[];
-  onFix: (finding: AudienceFinding) => void;
+  actions: FindingActions;
 };
 
 const HEADING_ID = "diagnostics-personalization";
@@ -151,7 +181,7 @@ function FindingsHeading({ count }: Readonly<{ count: number }>) {
 /** The Personalization warnings in the Diagnostics tab; nothing when there are none. */
 export function AudienceFindings({
   findings,
-  onFix,
+  actions,
 }: Readonly<AudienceFindingsProps>) {
   if (findings.length === 0) return null;
   return (
@@ -161,7 +191,7 @@ export function AudienceFindings({
         <AudienceFindingAlert
           key={findingKey(finding, index)}
           finding={finding}
-          onFix={onFix}
+          actions={actions}
         />
       ))}
     </section>
