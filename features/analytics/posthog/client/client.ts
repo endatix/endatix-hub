@@ -3,6 +3,7 @@
  */
 import posthog from "posthog-js";
 import { PostHogClientOptions, PostHogConfig } from "../shared/types";
+import { redactLinkTokensInEvent } from "./redact-link-tokens";
 
 // Default PostHog configuration
 const defaultOptions: PostHogClientOptions = {
@@ -75,6 +76,8 @@ export const initPostHog = (
       bootstrap: {
         distinctID: mergedOptions.distinctId || undefined,
       },
+      // Personalized links and access-token URLs carry credentials (endatix-hub#1211).
+      before_send: redactLinkTokensInEvent,
     });
 
     if (config.debug) {

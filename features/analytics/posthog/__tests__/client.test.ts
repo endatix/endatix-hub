@@ -110,6 +110,21 @@ describe("PostHog Client", () => {
       );
     });
 
+    it("redacts personalized link tokens before any event is sent", () => {
+      initPostHog(mockConfig, mockOptions);
+
+      const { before_send: beforeSend } = vi.mocked(posthog.init).mock
+        .calls[0][1] as { before_send: (event: unknown) => unknown };
+      const sent = beforeSend({
+        event: "$pageview",
+        properties: {
+          $current_url: "https://hub.example.com/share/42/a/secret",
+        },
+      });
+
+      expect(JSON.stringify(sent)).not.toContain("secret");
+    });
+
     it("should not initialize when PostHog is disabled", () => {
       // Arrange
       const disabledConfig = { ...mockConfig, enabled: false };
