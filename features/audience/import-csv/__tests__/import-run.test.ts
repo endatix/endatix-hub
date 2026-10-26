@@ -140,6 +140,29 @@ describe("uploadChunks", () => {
     expect(Result.isError(upload) && upload.message).toBe("It failed.");
   });
 
+  it("stops after the in-flight chunk when shouldContinue becomes false", async () => {
+    // Arrange
+    const sent: number[] = [];
+    let allowMore = true;
+    const send = vi.fn(async (index: number) => {
+      if (index === 1) allowMore = false;
+      return Result.success(viewWith("uploading"));
+    });
+
+    // Act
+    const result = await uploadChunks({
+      missing: [0, 1, 2],
+      send,
+      onSent: (index) => sent.push(index),
+      shouldContinue: () => allowMore,
+    });
+
+    // Assert
+    expect(sent).toEqual([0, 1]);
+    expect(send).toHaveBeenCalledTimes(2);
+    expect(Result.isSuccess(result)).toBe(true);
+  });
+
   it.each([
     { what: "the import no longer takes rows (409)", statusCode: 409 },
     { what: "the chunk does not fit the import (400)", statusCode: 400 },

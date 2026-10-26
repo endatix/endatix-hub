@@ -14,6 +14,10 @@ import {
   startAudienceImportAction,
 } from "./audience-import.action";
 import {
+  chunkRowParts,
+  IMPORT_CHUNK_BODY_BYTES,
+} from "./import-chunk-payload";
+import {
   chunkRowCount,
   importChunk,
   isTerminal,
@@ -48,6 +52,8 @@ export type RunContext = {
   setNotice: (notice: string | null) => void;
   setPending: (pending: boolean) => void;
   file: RefObject<HeldFile | null>;
+  /** Set when cancel is requested during an upload; stops further chunk sends. */
+  uploadCancel: RefObject<boolean>;
 };
 
 export async function safely<T>(call: Promise<Result<T>>): Promise<Result<T>> {
@@ -103,14 +109,25 @@ function chunkSender(
 ) {
   const { importId, upload } = view;
   const place = { chunkSize: upload.chunkSize, columns: file.headers.length };
-  return (index: number) =>
-    safely(
-      sendAudienceImportChunkAction({
-        formId,
-        importId,
-        chunk: { index, ...importChunk(file.rows, { index, ...place }) },
-      }),
-    );
+  return async (index: number) => {
+    const chunk = { index, ...importChunk(file.rows, { index, ...place }) };
+    const rowParts = chunkRowParts(chunk, IMPORT_CHUNK_BODY_BYTES);
+    const expectedRows = chunk.rows.length;
+    let latest: Result<AudienceImportView> = Result.error("No chunk was sent.");
+    for (const rows of rowParts) {
+      latest = await safely(
+        sendAudienceImportChunkAction({
+          formId,
+          importId,
+          chunk: { ...chunk, rows },
+          expectedRows:
+            rowParts.length > 1 ? expectedRows : undefined,
+        }),
+      );
+      if (Result.isError(latest)) return latest;
+    }
+    return latest;
+  };
 }
 
 /** The view that moved past uploading, or a fresh read when the upload stopped short. */
@@ -131,14 +148,17 @@ export async function uploadRows(
   view: AudienceImportView,
   file: UploadFile,
 ) {
+  ctx.uploadCancel.current = false;
   ctx.file.current = { ...file, importId: view.importId };
   ctx.setState({ kind: "uploading", view, sent: rowsSent(view) });
   const sent = await uploadChunks({
     missing: view.upload.missingChunks,
     send: chunkSender(ctx.formId, view, file),
     onSent: (index) => markSent(ctx, view, index),
+    shouldContinue: () => !ctx.uploadCancel.current,
   });
-  if (Result.isError(sent) && sent.statusCode !== CONFLICT)
+  const canceled = ctx.uploadCancel.current;
+  if (Result.isError(sent) && !canceled && sent.statusCode !== CONFLICT)
     ctx.setError(sent.message);
   await showLatest(ctx, view, Result.isSuccess(sent) ? sent.value : null);
 }
@@ -203,6 +223,7 @@ export async function moveImport(
   view: AudienceImportView,
   to: AudienceImportMove,
 ) {
+  if (to === AudienceImportStatus.Canceled) ctx.uploadCancel.current = true;
   ctx.setError(null);
   ctx.setPending(true);
   const { formId } = ctx;

@@ -126,6 +126,7 @@ function useRunContext(formId: string) {
   const [notice, setNotice] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const file = useRef<HeldFile | null>(null);
+  const uploadCancel = useRef(false);
   const ctx: RunContext = {
     formId,
     setState,
@@ -133,6 +134,7 @@ function useRunContext(formId: string) {
     setNotice,
     setPending,
     file,
+    uploadCancel,
   };
   return { state, error, notice, pending, ctx };
 }

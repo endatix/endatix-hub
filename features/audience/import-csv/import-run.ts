@@ -58,6 +58,8 @@ export type UploadRequest = {
   missing: readonly number[];
   send: (index: number) => Promise<Result<AudienceImportView>>;
   onSent: (index: number) => void;
+  /** When false after a chunk finishes, no further chunks are sent. */
+  shouldContinue?: () => boolean;
 };
 
 /** Worth one more try: a thrown call (no status) or a server that is busy or down (5xx). */
@@ -82,13 +84,16 @@ export async function uploadChunks({
   missing,
   send,
   onSent,
+  shouldContinue = () => true,
 }: UploadRequest): Promise<Result<AudienceImportView | null>> {
   let latest: AudienceImportView | null = null;
   for (const index of missing) {
+    if (!shouldContinue()) break;
     const result = await sendWithRetry(send, index);
     if (Result.isError(result)) return result;
     latest = result.value;
     onSent(index);
+    if (!shouldContinue()) break;
   }
   return Result.success(latest);
 }
