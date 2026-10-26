@@ -1,6 +1,6 @@
 "use client";
 
-import { FlaskConical, Pencil, Trash2 } from "lucide-react";
+import { FlaskConical, Link2, Pencil, Trash2 } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import {
@@ -33,6 +33,8 @@ export type RowHandlers = {
   onEdit?: (person: AudiencePerson) => void;
   onRemove?: (person: AudiencePerson) => void;
   onTest?: (person: AudiencePerson) => void;
+  /** Offered on test persons only: a link holder sees every value of the person. */
+  onCopyTestLink?: (person: AudiencePerson) => void;
 };
 
 type PeopleTableProps = {
@@ -61,8 +63,8 @@ const LINK_COLUMN: StaticDataTableColumn = {
   className: SHRINK,
 };
 
-const hasActions = ({ onEdit, onRemove, onTest }: RowHandlers) =>
-  Boolean(onEdit || onRemove || onTest);
+const hasActions = (handlers: RowHandlers) =>
+  Object.values(handlers).some(Boolean);
 
 /** Link shows only when someone on this page has one, read from the page's own rows. */
 const hasLinks = (people: AudiencePerson[]) =>
@@ -98,13 +100,26 @@ type ActionSpec = {
   icon: DataTableRowAction["icon"];
 };
 
-/** Test, edit, remove; Edit only when there is a value to edit (DESIGN.md §6 "Omit what cannot apply"). */
-function actionSpecs(handlers: RowHandlers, hasValues: boolean): ActionSpec[] {
+type RowFacts = { hasValues: boolean; isTest: boolean };
+
+/**
+ * Test, copy test link, edit, remove; Copy test link only on a test person, Edit only when there
+ * is a value to edit (DESIGN.md §6 "Omit what cannot apply").
+ */
+function actionSpecs(
+  handlers: RowHandlers,
+  { hasValues, isTest }: RowFacts,
+): ActionSpec[] {
   return [
     {
       run: handlers.onTest,
       label: (id) => `Test as this person: ${id}`,
       icon: FlaskConical,
+    },
+    {
+      run: isTest ? handlers.onCopyTestLink : undefined,
+      label: (id) => `Copy test link: ${id}`,
+      icon: Link2,
     },
     {
       run: hasValues ? handlers.onEdit : undefined,
@@ -125,7 +140,8 @@ function personActions(
   hasValues: boolean,
   handlers: RowHandlers,
 ): DataTableRowAction[] {
-  return actionSpecs(handlers, hasValues).flatMap(({ run, label, icon }) =>
+  const facts = { hasValues, isTest: person.isTest };
+  return actionSpecs(handlers, facts).flatMap(({ run, label, icon }) =>
     run
       ? [{ label: label(person.identifier), icon, onClick: () => run(person) }]
       : [],

@@ -14,6 +14,7 @@ import {
   type ParticipantSubmission,
 } from "@/lib/endatix-api/audience/types";
 import { Result } from "@/lib/result";
+import { createTestLinkAction } from "../../copy-test-link/create-test-link.action";
 import { deleteAudiencePersonAction } from "../../delete-person/delete-audience-person.action";
 import { openTestSubmissionAction } from "../../test-as-person/open-test-submission.action";
 import { ParticipantPage } from "../ui/participant-page";
@@ -34,6 +35,9 @@ vi.mock("../../update-person/update-audience-person.action", () => ({
 }));
 vi.mock("../../test-as-person/open-test-submission.action", () => ({
   openTestSubmissionAction: vi.fn(),
+}));
+vi.mock("../../copy-test-link/create-test-link.action", () => ({
+  createTestLinkAction: vi.fn(),
 }));
 
 const TIER: AudienceProperty = {
@@ -77,6 +81,7 @@ const PARTICIPANT: AudienceParticipant = {
 function renderPage(
   participant: Partial<AudienceParticipant> = {},
   canTest = true,
+  canCopyTestLink = true,
 ) {
   return render(
     <ParticipantPage
@@ -85,6 +90,7 @@ function renderPage(
       identifierKind={AudienceIdentifierKind.Email}
       properties={[TIER, REGION]}
       canTest={canTest}
+      canCopyTestLink={canCopyTestLink}
     />,
   );
 }
@@ -189,6 +195,32 @@ describe("ParticipantPage", () => {
     expect(
       screen.queryByRole("button", { name: "Test as this participant" }),
     ).toBeNull();
+  });
+
+  it("copies a test link for a test participant and reads the page again", async () => {
+    vi.mocked(createTestLinkAction).mockResolvedValue(
+      Result.success({
+        url: "/share/1?token=signed.token",
+        expiresAt: "2026-11-02T10:00:00Z",
+      }),
+    );
+    renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: "Copy test link" }));
+    const dialog = screen.getByRole("dialog", { name: "Copy test link" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Copy link" }));
+
+    await waitFor(() => expect(router.refresh).toHaveBeenCalled());
+    expect(createTestLinkAction).toHaveBeenCalledWith("1", "7", 60 * 24 * 7);
+  });
+
+  it.each([
+    ["a real participant", { isTest: false }, true],
+    ["a reader who cannot share submissions", {}, false],
+  ])("leaves out Copy test link for %s", (_, participant, canCopy) => {
+    renderPage(participant, true, canCopy);
+
+    expect(screen.queryByRole("button", { name: "Copy test link" })).toBeNull();
   });
 
   it("opens the edit panel on Edit values", async () => {

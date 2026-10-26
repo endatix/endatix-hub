@@ -10,6 +10,7 @@ import {
   PARTICIPANT_PAGE_PERMISSION,
   requireAudienceAccess,
 } from "@/features/audience/shared/require-audience-api.server";
+import { canCopyTestLink } from "@/features/audience/copy-test-link";
 import { loadWorkspaceForm } from "@/features/forms/form-workspace/load-workspace-form.server";
 import { FormLoadError } from "@/features/forms/form-workspace/ui/form-load-error";
 import { Result } from "@/lib/result";
@@ -27,8 +28,11 @@ async function guardParticipantPage(formId: string) {
   const access = await requireAudienceAccess(PARTICIPANT_PAGE_PERMISSION);
   if (Result.isError(access)) return redirect(`/forms/${formId}`);
   const { api, checkPermission } = access.value;
-  const testForms = await checkPermission(Permissions.Forms.Test);
-  return { api, canTest: testForms.success };
+  const [testForms, copyTestLink] = await Promise.all([
+    checkPermission(Permissions.Forms.Test),
+    canCopyTestLink(checkPermission),
+  ]);
+  return { api, canTest: testForms.success, canCopyTestLink: copyTestLink };
 }
 
 export default async function FormParticipantPage({

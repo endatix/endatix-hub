@@ -43,6 +43,9 @@ vi.mock("../../delete-person/ui/remove-person-dialog", () => ({
 vi.mock("../../test-as-person/open-test-submission.action", () => ({
   openTestSubmissionAction: vi.fn(),
 }));
+vi.mock("../../copy-test-link/create-test-link.action", () => ({
+  createTestLinkAction: vi.fn(),
+}));
 
 const textProperty = (
   id: string,
@@ -143,7 +146,9 @@ describe("PeopleSection", () => {
     );
 
     // Assert — identity locked; identifier property absent from editable values
-    expect(await screen.findByRole("heading", { name: "Edit person" })).toBeTruthy();
+    expect(
+      await screen.findByRole("heading", { name: "Edit person" }),
+    ).toBeTruthy();
     const lockedLabel = screen
       .getAllByText("External ID")
       .find((node) => node.tagName === "DT");
@@ -187,6 +192,50 @@ describe("PeopleSection", () => {
       }),
     ).toBeTruthy();
     expect(screen.queryByRole("button", { name: /^Remove / })).toBeNull();
+  });
+
+  it("offers Copy test link on test people only, and opens it with a 7-day lifetime", () => {
+    render(
+      <PeopleSection
+        {...LIST}
+        people={[PERSON, TEST_PERSON]}
+        canEdit={false}
+        canTest
+        canCopyTestLink
+      />,
+    );
+
+    expect(
+      screen.queryByRole("button", { name: "Copy test link: CG-000003-01" }),
+    ).toBeNull();
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Copy test link: tester@example.com",
+      }),
+    );
+
+    const dialog = screen.getByRole("dialog", { name: "Copy test link" });
+    expect(dialog.textContent).toContain("tester@example.com");
+    expect(
+      within(dialog).getByRole("combobox", { name: "Link lifetime" })
+        .textContent,
+    ).toBe("7 days");
+  });
+
+  it("leaves out Copy test link for a reader who cannot share submissions", () => {
+    render(
+      <PeopleSection
+        {...LIST}
+        people={[TEST_PERSON]}
+        canEdit={false}
+        canTest
+        canCopyTestLink={false}
+      />,
+    );
+
+    expect(
+      screen.queryByRole("button", { name: /^Copy test link/ }),
+    ).toBeNull();
   });
 
   it("links each identifier to the participant's page for a reader who may edit", () => {
@@ -256,7 +305,11 @@ describe("PeopleSection", () => {
       notFilledIn: (filled: string[]) =>
         ["external_id", "city"].filter((name) => !filled.includes(name)),
     };
-    const withoutKeyValue = { ...PERSON, membershipId: "11", values: { city: "Ruse" } };
+    const withoutKeyValue = {
+      ...PERSON,
+      membershipId: "11",
+      values: { city: "Ruse" },
+    };
     render(
       <PeopleSection
         {...LIST}

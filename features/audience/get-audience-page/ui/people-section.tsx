@@ -14,6 +14,8 @@ import {
   type AudienceProperty,
 } from "@/lib/endatix-api/audience/types";
 import { useUrlSearchParamsUpdater } from "@/lib/utils/hooks/use-url-search-params-updater.hook";
+import { CopyTestLinkDialog } from "../../copy-test-link/ui/copy-test-link-dialog";
+import { useCopyTestLinkDialog } from "../../copy-test-link/ui/use-copy-test-link-dialog.hook";
 import { AddPersonPanel } from "../../create-person/ui/add-person-panel";
 import { GenerateLinksPanel } from "../../generate-links/ui/generate-links-panel";
 import { ImportCsvPanel } from "../../import-csv/ui/import-csv-panel";
@@ -41,6 +43,8 @@ type PeopleSectionProps = {
   canEdit: boolean;
   /** With `forms.test` each row offers Test as this person. */
   canTest: boolean;
+  /** With `forms.test` and a submissions grant, each test person's row offers Copy test link. */
+  canCopyTestLink?: boolean;
   /** All / Real / Test; `totalPeople` counts the filtered set. */
   testFilter: AudiencePeopleTestFilter;
   viewSwitch?: ReactNode;
@@ -196,15 +200,20 @@ function PeopleHeader(props: Readonly<PeopleSectionProps>) {
   );
 }
 
-/** Row actions this reader may run: edit and remove with `forms.edit`, test with `forms.test`. */
+/**
+ * Row actions this reader may run: edit and remove with `forms.edit`, test with `forms.test`,
+ * Copy test link with `canCopyTestLink`.
+ */
 function useRowHandlers(
   props: Readonly<PeopleSectionProps>,
   row: Overlays,
+  copyTestLink: (person: AudiencePerson) => void,
 ): RowHandlers {
   const testAs = useTestAsPerson(props.formId);
   return {
     ...(props.canEdit ? { onEdit: row.edit, onRemove: row.remove } : {}),
     ...(props.canTest ? { onTest: testAs } : {}),
+    ...(props.canCopyTestLink ? { onCopyTestLink: copyTestLink } : {}),
   };
 }
 
@@ -216,7 +225,8 @@ function showsTestFilter({ totalPeople, testFilter }: PeopleSectionProps) {
 /** Import keeps every property as a target; the rest show and edit only value properties. */
 export function PeopleSection(props: Readonly<PeopleSectionProps>) {
   const row = useRowOverlay<AudiencePerson>();
-  const handlers = useRowHandlers(props, row);
+  const testLink = useCopyTestLinkDialog();
+  const handlers = useRowHandlers(props, row, testLink.open);
   const values = {
     ...props,
     properties: valueProperties(props.properties, props.identifierKind),
@@ -230,6 +240,7 @@ export function PeopleSection(props: Readonly<PeopleSectionProps>) {
       ) : null}
       <PeopleSurface {...values} handlers={handlers} />
       {props.canEdit ? <PeopleOverlays {...values} row={row} /> : null}
+      <CopyTestLinkDialog formId={props.formId} {...testLink.dialog} />
     </section>
   );
 }

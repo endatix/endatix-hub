@@ -3,6 +3,7 @@
 import {
   ArrowLeft,
   FlaskConical,
+  Link2,
   Pencil,
   Trash2,
   type LucideIcon,
@@ -14,6 +15,8 @@ import { useRouter } from "next/navigation";
 import type { Route } from "next";
 import type { AudienceParticipant } from "@/lib/endatix-api/audience/types";
 import { useAudienceReturnHref } from "../../get-audience-page/ui/use-audience-return-href";
+import { CopyTestLinkDialog } from "../../copy-test-link/ui/copy-test-link-dialog";
+import { useCopyTestLinkDialog } from "../../copy-test-link/ui/use-copy-test-link-dialog.hook";
 import { RemovePersonDialog } from "../../delete-person/ui/remove-person-dialog";
 import { TEST_BADGE } from "../../ui/test-badge";
 import { useTestAsPerson } from "../../test-as-person/use-test-as-person.hook";
@@ -29,6 +32,7 @@ type Overlays = ReturnType<typeof useRowOverlay<AudienceParticipant>>;
 
 type ActionsProps = ParticipantPageProps & {
   overlay: Overlays;
+  testLink: ReturnType<typeof useCopyTestLinkDialog>;
   audienceHref: Route;
 };
 
@@ -40,10 +44,15 @@ type ActionSpec = {
 };
 
 /**
- * Test as (with `forms.test`), Edit values (when there is a value to edit), Remove. A test
- * submission reads the page again, so their submissions show the new one.
+ * Test as (with `forms.test`), Copy test link (a test participant, with `canCopyTestLink`), Edit
+ * values (when there is a value to edit), Remove. A test submission reads the page again, so
+ * their submissions show the new one.
  */
-function useActionSpecs({ overlay, ...props }: ActionsProps): ActionSpec[] {
+function useActionSpecs({
+  overlay,
+  testLink,
+  ...props
+}: ActionsProps): ActionSpec[] {
   const router = useRouter();
   const testAs = useTestAsPerson(props.formId, router.refresh);
   return [
@@ -52,6 +61,12 @@ function useActionSpecs({ overlay, ...props }: ActionsProps): ActionSpec[] {
       label: "Test as this participant",
       icon: FlaskConical,
       run: testAs,
+    },
+    {
+      show: props.canCopyTestLink && props.participant.isTest,
+      label: "Copy test link",
+      icon: Link2,
+      run: testLink.open,
     },
     {
       show: props.properties.length > 0,
@@ -79,11 +94,15 @@ function ParticipantActions(props: Readonly<ActionsProps>) {
     ));
 }
 
-/** The edit panel refreshes this page; Remove goes back to Audience, where they no longer are. */
+/**
+ * The edit panel and each test link refresh this page; Remove goes back to Audience, where they
+ * no longer are.
+ */
 function ParticipantOverlays(props: Readonly<ActionsProps>) {
-  const { formId, overlay, identifierKind, properties, audienceHref } = props;
+  const { formId, overlay, testLink, identifierKind, properties } = props;
+  const router = useRouter();
   const target = { formId, person: overlay.target, onClose: overlay.close };
-  const afterRemove = audienceHref;
+  const afterRemove = props.audienceHref;
   return (
     <>
       <EditPersonPanel
@@ -95,6 +114,11 @@ function ParticipantOverlays(props: Readonly<ActionsProps>) {
         {...target}
         open={overlay.isDeleting}
         afterRemove={afterRemove}
+      />
+      <CopyTestLinkDialog
+        formId={formId}
+        {...testLink.dialog}
+        onCreated={router.refresh}
       />
     </>
   );
@@ -142,8 +166,9 @@ function ParticipantBody(props: Readonly<ParticipantPageProps>) {
  */
 export function ParticipantPage(props: Readonly<ParticipantPageProps>) {
   const overlay = useRowOverlay<AudienceParticipant>();
+  const testLink = useCopyTestLinkDialog();
   const audienceHref = useAudienceReturnHref(props.formId);
-  const shared = { ...props, overlay, audienceHref };
+  const shared = { ...props, overlay, testLink, audienceHref };
   return (
     <div className="flex flex-col gap-6">
       <ParticipantMasthead {...shared} />
