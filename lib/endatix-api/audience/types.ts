@@ -243,6 +243,9 @@ export type AudienceImportChunk = {
   rows: AudienceImportRow[];
 };
 
+/** A chunk and its place in the file, from 0; the place goes in the path, the rows in the body. */
+export type IndexedImportChunk = AudienceImportChunk & { index: number };
+
 /** `writing` confirms a checked import or resumes a stopped write; `canceled` stops it. */
 export type AudienceImportMove =
   | typeof AudienceImportStatus.Writing

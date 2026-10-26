@@ -5,99 +5,85 @@ import { useRouter } from "next/navigation";
 import {
   AudienceImportStatus,
   CURRENT_IMPORT,
-  type AudienceImportMove,
   type AudienceImportView,
   type StartAudienceImportRequest,
 } from "@/lib/endatix-api/audience/types";
 import { Result } from "@/lib/result";
+import { isPolling, type UploadFile } from "./import-run";
 import {
-  getAudienceImportAction,
-  moveAudienceImportAction,
-  sendAudienceImportChunkAction,
-  startAudienceImportAction,
-} from "./audience-import.action";
-import {
-  chunkRowCount,
-  importChunk,
-  isPolling,
-  rowsSent,
-  sameFileProblem,
-  uploadChunks,
-  type UploadFile,
-} from "./import-run";
+  continueUpload,
+  moveImport,
+  readImport,
+  showView,
+  startImport,
+  type HeldFile,
+  type RunContext,
+  type RunState,
+} from "./import-run-steps";
+
+export type { RunState } from "./import-run-steps";
 
 /** How often a checking or writing import is read again while the tab is visible. */
 export const POLL_INTERVAL_MS = 2_000;
 
-const CONFLICT = 409;
-const REJECTED = "Something went wrong. Try again.";
-const ALREADY_RUNNING =
-  "An import of this form is already running, so it is shown instead of your file.";
-
-/**
- * Where the form's import stands. `uploading` is this tab sending the file; `server` is anything
- * the API reports, rendered by `view.status`, including an upload this tab cannot finish alone.
- */
-export type RunState =
-  | { kind: "idle" }
-  | { kind: "uploading"; view: AudienceImportView; sent: number }
-  | { kind: "server"; view: AudienceImportView };
-
 const IDLE: RunState = { kind: "idle" };
 
-async function safely<T>(call: Promise<Result<T>>): Promise<Result<T>> {
-  try {
-    return await call;
-  } catch {
-    return Result.error<T>(REJECTED);
-  }
+/** Runs `read` every `ms` and when the tab shows again; never while hidden or while one is running. */
+function everyWhileVisible(read: () => Promise<void>, ms: number): () => void {
+  let busy = false;
+  const tick = async () => {
+    if (busy || document.visibilityState === "hidden") return;
+    busy = true;
+    await read().finally(() => (busy = false));
+  };
+  const timer = setInterval(tick, ms);
+  document.addEventListener("visibilitychange", tick);
+  return () => {
+    clearInterval(timer);
+    document.removeEventListener("visibilitychange", tick);
+  };
 }
 
-/** Reads the import every 2 s while the server works on it, skipping while the tab is hidden. */
+/** The latest callback, for an effect that must not restart when it changes. */
+function useLatest<T>(value: T) {
+  const ref = useRef(value);
+  ref.current = value;
+  return ref;
+}
+
+/** Reads the import every 2 s while the server works on it (Check or write), paused while hidden. */
 function usePolling(
   formId: string,
   state: RunState,
   onRead: (view: AudienceImportView) => void,
 ) {
   const view = state.kind === "server" ? state.view : null;
-  const importId = view?.importId;
-  const polling = view !== null && isPolling(view.status);
-  const onReadRef = useRef(onRead);
-  onReadRef.current = onRead;
+  const importId = view && isPolling(view.status) ? view.importId : null;
+  const onReadRef = useLatest(onRead);
   useEffect(() => {
-    if (!polling || !importId) return;
-    let reading = false;
-    const read = async () => {
-      if (reading || document.visibilityState === "hidden") return;
-      reading = true;
-      const result = await safely(getAudienceImportAction({ formId, importId }));
-      reading = false;
-      if (Result.isSuccess(result)) onReadRef.current(result.value);
-    };
-    const timer = setInterval(read, POLL_INTERVAL_MS);
-    document.addEventListener("visibilitychange", read);
-    return () => {
-      clearInterval(timer);
-      document.removeEventListener("visibilitychange", read);
-    };
-  }, [formId, importId, polling]);
+    if (!importId) return;
+    return everyWhileVisible(async () => {
+      const read = await readImport(formId, importId);
+      if (Result.isSuccess(read)) onReadRef.current(read.value);
+    }, POLL_INTERVAL_MS);
+  }, [formId, importId, onReadRef]);
 }
 
 /** Opens on the form's unfinished import, if it has one (B5). */
-function useCurrentImport(formId: string, onFound: (view: AudienceImportView) => void) {
-  const onFoundRef = useRef(onFound);
-  onFoundRef.current = onFound;
+function useCurrentImport(
+  formId: string,
+  onFound: (view: AudienceImportView) => void,
+) {
+  const onFoundRef = useLatest(onFound);
   useEffect(() => {
     let live = true;
-    void safely(getAudienceImportAction({ formId, importId: CURRENT_IMPORT })).then(
-      (read) => {
-        if (live && Result.isSuccess(read)) onFoundRef.current(read.value);
-      },
-    );
+    void readImport(formId, CURRENT_IMPORT).then((read) => {
+      if (live && Result.isSuccess(read)) onFoundRef.current(read.value);
+    });
     return () => {
       live = false;
     };
-  }, [formId]);
+  }, [formId, onFoundRef]);
 }
 
 /** Refreshes the People list once a write completes, whether or not the panel is open. */
@@ -109,6 +95,62 @@ function useRefreshOnComplete(state: RunState) {
   }, [status, router]);
 }
 
+/** The import's state and the context the run steps act on. */
+function useRunContext(formId: string) {
+  const [state, setState] = useState<RunState>(IDLE);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+  const file = useRef<HeldFile | null>(null);
+  const ctx: RunContext = {
+    formId,
+    setState,
+    setError,
+    setNotice,
+    setPending,
+    file,
+  };
+  return { state, error, notice, pending, ctx };
+}
+
+/** Back to no import: the outcome was read, or a failed start is left behind. */
+function dismissRun(ctx: RunContext) {
+  ctx.file.current = null;
+  ctx.setError(null);
+  ctx.setNotice(null);
+  ctx.setState(IDLE);
+}
+
+/** A failed upload this tab still holds the rows for. */
+function canSendAgainOf(state: RunState, file: HeldFile | null): boolean {
+  return (
+    state.kind === "server" &&
+    state.view.status === AudienceImportStatus.Uploading &&
+    file?.importId === state.view.importId
+  );
+}
+
+function runActions(ctx: RunContext, state: RunState) {
+  const view = state.kind === "idle" ? null : state.view;
+  const continueWith = async (picked: Result<UploadFile>) => {
+    if (state.kind === "server") await continueUpload(ctx, state.view, picked);
+  };
+  const move = (to: Parameters<typeof moveImport>[2]) => async () => {
+    if (view) await moveImport(ctx, view, to);
+  };
+  return {
+    start: (request: StartAudienceImportRequest, file: UploadFile) =>
+      startImport(ctx, request, file),
+    continueWith,
+    sendAgain: () =>
+      ctx.file.current && continueWith(Result.success(ctx.file.current)),
+    confirm: move(AudienceImportStatus.Writing),
+    resume: move(AudienceImportStatus.Writing),
+    cancel: move(AudienceImportStatus.Canceled),
+    dismiss: () => dismissRun(ctx),
+  };
+}
+
 /**
  * The form's staged import: start it, send the file in chunks, follow the Check and the write,
  * confirm, cancel or resume. `onFound` runs when the form already has an unfinished import.
@@ -117,153 +159,17 @@ export function useAudienceImport(
   formId: string,
   { onFound }: { onFound: () => void },
 ) {
-  const [state, setState] = useState<RunState>(IDLE);
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
-  /** The rows this tab can send for an import, so a failed upload can be sent again. */
-  const file = useRef<(UploadFile & { importId: string }) | null>(null);
-
-  /** Shows a view of the import on screen, never one of another import. */
-  const show = (view: AudienceImportView) =>
-    setState((current) =>
-      current.kind !== "idle" && current.view.importId !== view.importId
-        ? current
-        : { kind: "server", view },
-    );
-  const read = (importId: string) =>
-    safely(getAudienceImportAction({ formId, importId }));
-
+  const { state, ctx, ...flags } = useRunContext(formId);
   useCurrentImport(formId, (view) => {
-    setState((current) => (current.kind === "idle" ? { kind: "server", view } : current));
+    ctx.setState((current) =>
+      current.kind === "idle" ? { kind: "server", view } : current,
+    );
     onFound();
   });
-  usePolling(formId, state, show);
+  usePolling(formId, state, (view) => showView(ctx, view));
   useRefreshOnComplete(state);
-
-  const markSent = (importId: string, rows: number) =>
-    setState((current) =>
-      current.kind === "uploading" && current.view.importId === importId
-        ? { ...current, sent: current.sent + rows }
-        : current,
-    );
-
-  const upload = async (view: AudienceImportView, rows: UploadFile) => {
-    const { importId, upload: shape } = view;
-    file.current = { ...rows, importId };
-    setState({ kind: "uploading", view, sent: rowsSent(view) });
-    const sent = await uploadChunks({
-      missing: shape.missingChunks,
-      send: (index) =>
-        safely(
-          sendAudienceImportChunkAction({
-            formId,
-            importId,
-            index,
-            chunk: importChunk(rows.rows, {
-              index,
-              chunkSize: shape.chunkSize,
-              columns: rows.headers.length,
-            }),
-          }),
-        ),
-      onSent: (index) => markSent(importId, chunkRowCount(shape, index)),
-    });
-    if (Result.isError(sent) && sent.statusCode !== CONFLICT) setError(sent.message);
-    const moved = Result.isSuccess(sent) ? sent.value : null;
-    if (moved && moved.status !== AudienceImportStatus.Uploading) return show(moved);
-    const fresh = await read(importId);
-    show(Result.isSuccess(fresh) ? fresh.value : view);
-  };
-
-  const start = async (
-    request: StartAudienceImportRequest,
-    rows: UploadFile,
-  ): Promise<boolean> => {
-    setError(null);
-    setNotice(null);
-    setPending(true);
-    const started = await safely(startAudienceImportAction({ formId, ...request }));
-    if (Result.isSuccess(started)) {
-      setPending(false);
-      void upload(started.value, rows);
-      return true;
-    }
-    const current =
-      started.statusCode === CONFLICT ? await read(CURRENT_IMPORT) : null;
-    setPending(false);
-    if (!current || Result.isError(current)) {
-      setError(started.message);
-      return false;
-    }
-    setNotice(ALREADY_RUNNING);
-    show(current.value);
-    return true;
-  };
-
-  /** Continues a cut-off upload from a re-chosen file, if it is the same file. */
-  const continueWith = async (picked: Result<UploadFile>) => {
-    if (state.kind !== "server") return;
-    const problem = Result.isError(picked)
-      ? picked.message
-      : sameFileProblem(state.view, picked.value);
-    setError(problem);
-    if (problem || Result.isError(picked)) return;
-    const rows = picked.value;
-    const fresh = await read(state.view.importId);
-    const view = Result.isSuccess(fresh) ? fresh.value : state.view;
-    if (view.status !== AudienceImportStatus.Uploading) return show(view);
-    void upload(view, rows);
-  };
-
-  const canSendAgain =
-    state.kind === "server" &&
-    state.view.status === AudienceImportStatus.Uploading &&
-    file.current?.importId === state.view.importId;
-
-  const sendAgain = () => {
-    if (!canSendAgain || !file.current) return;
-    setError(null);
-    void continueWith(Result.success(file.current));
-  };
-
-  const move = async (to: AudienceImportMove) => {
-    if (state.kind === "idle") return;
-    const { importId } = state.view;
-    setError(null);
-    setPending(true);
-    const moved = await safely(moveAudienceImportAction({ formId, importId, to }));
-    if (Result.isError(moved)) {
-      setError(moved.message);
-      const fresh = await read(importId);
-      if (Result.isSuccess(fresh)) show(fresh.value);
-    } else {
-      show(moved.value);
-    }
-    setPending(false);
-  };
-
-  const dismiss = () => {
-    file.current = null;
-    setState(IDLE);
-    setError(null);
-    setNotice(null);
-  };
-
-  return {
-    state,
-    error,
-    notice,
-    pending,
-    canSendAgain,
-    start,
-    continueWith,
-    sendAgain,
-    confirm: () => move(AudienceImportStatus.Writing),
-    resume: () => move(AudienceImportStatus.Writing),
-    cancel: () => move(AudienceImportStatus.Canceled),
-    dismiss,
-  };
+  const canSendAgain = canSendAgainOf(state, ctx.file.current);
+  return { state, ...flags, canSendAgain, ...runActions(ctx, state) };
 }
 
 export type AudienceImportRun = ReturnType<typeof useAudienceImport>;

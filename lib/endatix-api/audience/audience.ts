@@ -37,7 +37,7 @@ import {
   type AudienceParticipant,
   type AudiencePerson,
   type AudienceProperty,
-  type AudienceImportChunk,
+  type IndexedImportChunk,
   type AudienceImportResult,
   type ImportAudienceCsvRequest,
   type AudienceImportMove,
@@ -314,8 +314,7 @@ export class Audience {
   async sendImportChunk(
     formId: string,
     importId: string,
-    index: number,
-    chunk: AudienceImportChunk,
+    { index, ...chunk }: IndexedImportChunk,
   ): Promise<ApiResult<AudienceImportView>> {
     const idsCheck = requireFormAndEntityIds(formId, importId, "importId");
     if (!idsCheck.success) return idsCheck;

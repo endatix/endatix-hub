@@ -41,7 +41,11 @@ const success = (data: unknown) =>
 
 describe("Audience settings import limits", () => {
   it("reads the host's import limits", async () => {
-    const limits = { maxRows: 100_000, maxBytes: 52_428_800, runsInBackground: true };
+    const limits = {
+      maxRows: 100_000,
+      maxBytes: 52_428_800,
+      runsInBackground: true,
+    };
     const get = success({
       identifierKind: AudienceIdentifierKind.Email,
       isLocked: false,
@@ -97,12 +101,12 @@ describe("Audience staged imports", () => {
       rows: [{ cells: ["a@b.co", "40"], malformed: false }],
     };
 
-    await audienceWith({ put }).sendImportChunk(FORM_ID, IMPORT_ID, 1, chunk);
+    await audienceWith({ put }).sendImportChunk(FORM_ID, IMPORT_ID, {
+      index: 1,
+      ...chunk,
+    });
 
-    expect(put).toHaveBeenCalledWith(
-      `${IMPORTS}/${IMPORT_ID}/chunks/1`,
-      chunk,
-    );
+    expect(put).toHaveBeenCalledWith(`${IMPORTS}/${IMPORT_ID}/chunks/1`, chunk);
   });
 
   it("reads one import, or the form's current one", async () => {

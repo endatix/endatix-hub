@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, type ComponentProps } from "react";
 import {
   usageVerdicts,
   type AudienceUsage,
@@ -49,6 +49,25 @@ function useVerdicts(usage: AudienceUsage | null) {
   return useMemo(() => usage && usageVerdicts(usage), [usage]);
 }
 
+type PeopleViewProps = Omit<
+  ComponentProps<typeof PeopleSection>,
+  "importLimits" | "matchKeyNote"
+> & { settings: AudiencePageData["settings"] };
+
+/** The locked match key is said once where participants are listed; the import limits go to Import CSV. */
+function PeopleView({ settings, ...section }: Readonly<PeopleViewProps>) {
+  const note = settings.isLocked ? (
+    <MatchKeySummary identifierKind={settings.identifierKind} />
+  ) : null;
+  return (
+    <PeopleSection
+      {...section}
+      importLimits={settings.importLimits}
+      matchKeyNote={note}
+    />
+  );
+}
+
 /**
  * People is the tab's task and opens first; Properties is a second view of the same tab
  * (the columns people have), switched with link tabs so each view has its own URL.
@@ -67,16 +86,7 @@ function ActiveView(props: Readonly<Props>) {
   };
   if (props.view === AudienceView.Properties)
     return <PropertiesSection {...section} />;
-  const note = settings.isLocked ? (
-    <MatchKeySummary identifierKind={identifierKind} />
-  ) : null;
-  return (
-    <PeopleSection
-      {...section}
-      importLimits={settings.importLimits}
-      matchKeyNote={note}
-    />
-  );
+  return <PeopleView {...section} settings={settings} />;
 }
 
 export function AudiencePageClient(props: Readonly<Props>) {

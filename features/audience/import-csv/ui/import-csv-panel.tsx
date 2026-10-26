@@ -40,28 +40,34 @@ const STEP_DESCRIPTION = {
     "Choose the column that identifies participants and what the others fill. Continue sends the file and checks it.",
 } as const;
 
-const KEEPS_GOING = "You can close this panel or this tab: the import keeps going.";
+const KEEPS_GOING =
+  "You can close this panel or this tab: the import keeps going.";
 
-function runningDescription(wizard: ImportWizard, view: AudienceImportView): string {
-  const background = view.runsInBackground ? ` ${KEEPS_GOING}` : "";
+/** What the server is doing, by status; `background` is whether it goes on without this tab. */
+const STATUS_DESCRIPTION: Record<string, (background: boolean) => string> = {
+  [AudienceImportStatus.Uploading]: () =>
+    "The upload stopped before the whole file was sent.",
+  [AudienceImportStatus.Checking]: (background) =>
+    `The rows are being checked. Nothing is written yet.${background ? ` ${KEEPS_GOING}` : ""}`,
+  [AudienceImportStatus.Checked]: () =>
+    "This is what the import will do. Nothing is written until you import.",
+  [AudienceImportStatus.Writing]: (background) =>
+    background
+      ? `Writing participants. ${KEEPS_GOING}`
+      : "Writing participants. Keep this panel open until it finishes.",
+};
+
+function runningDescription(
+  wizard: ImportWizard,
+  view: AudienceImportView,
+): string {
   if (wizard.run.state.kind === "uploading")
     return "Sending the file. Keep this tab open until it is sent.";
-  switch (view.status) {
-    case AudienceImportStatus.Uploading:
-      return "The upload stopped before the whole file was sent.";
-    case AudienceImportStatus.Checking:
-      return `The rows are being checked. Nothing is written yet.${background}`;
-    case AudienceImportStatus.Checked:
-      return "This is what the import will do. Nothing is written until you import.";
-    case AudienceImportStatus.Writing:
-      return view.runsInBackground
-        ? `Writing participants. ${KEEPS_GOING}`
-        : "Writing participants. Keep this panel open until it finishes.";
-    default:
-      return view.canResume
-        ? "The import stopped before it finished."
-        : "The import has ended. The People list behind this panel is up to date.";
-  }
+  const describe = STATUS_DESCRIPTION[view.status];
+  if (describe) return describe(view.runsInBackground);
+  return view.canResume
+    ? "The import stopped before it finished."
+    : "The import has ended. The People list behind this panel is up to date.";
 }
 
 /** One sentence for the step, or for the running import, announced as it changes. */

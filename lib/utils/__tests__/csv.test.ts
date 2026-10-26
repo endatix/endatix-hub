@@ -57,7 +57,8 @@ describe("csv", () => {
 describe("readCsvRows", () => {
   it("marks a row with a stray quote as malformed, as the API's CSV parser does", () => {
     // Arrange
-    const text = 'id,note\n1,ab"c\n2,"ok" ,x\n3,"closed"tail\n4, "spaced"\n5,"open';
+    const text =
+      'id,note\n1,ab"c\n2,"ok" ,x\n3,"closed"tail\n4, "spaced"\n5,"open';
 
     // Act
     const rows = readCsvRows(text);

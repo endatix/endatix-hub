@@ -13,7 +13,10 @@ const FIELD_ID = "import-file";
 type FileStepProps = { wizard: ImportWizard; limits: AudienceImportLimits };
 
 /** What the help line says: this host's limits before a file, what was read after, or why it can't be. */
-function fileHelp({ wizard: { file, problem }, limits }: FileStepProps): string {
+function fileHelp({
+  wizard: { file, problem },
+  limits,
+}: FileStepProps): string {
   if (problem) return problem;
   if (!file) return `${limitsLabel(limits)} The first row names the columns.`;
   const { rowCount, headers } = file.preview;

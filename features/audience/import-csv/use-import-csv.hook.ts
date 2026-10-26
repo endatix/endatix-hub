@@ -88,6 +88,11 @@ async function readFile(
 
 type FileState = { file: LoadedFile | null; problem: string | null };
 
+const fileStateOf = (read: Result<LoadedFile>): FileState =>
+  Result.isError(read)
+    ? { file: null, problem: read.message }
+    : { file: read.value, problem: null };
+
 /** The chosen file and its preview, or why it cannot be imported; `onRead` gets the file. */
 function useImportFile(
   limits: AudienceImportLimits,
@@ -99,10 +104,8 @@ function useImportFile(
     const current = ++generation.current;
     const read = await readFile(picked, limits);
     if (current !== generation.current) return;
-    if (Result.isError(read))
-      return setState({ file: null, problem: read.message });
-    setState({ file: read.value, problem: null });
-    onRead(read.value);
+    setState(fileStateOf(read));
+    if (Result.isSuccess(read)) onRead(read.value);
   };
   const reset = () => {
     generation.current += 1;
@@ -231,17 +234,10 @@ export function canContinue(wizard: ImportWizard): boolean {
 }
 
 /**
- * The Import participants wizard: file → columns → review → outcome, in one panel. Leaving the
- * Columns step starts a staged import and uploads the file; nothing is written before Confirm.
- * A running import outlives the panel: closing it keeps the import, and the panel opens on it.
+ * The run and the panel around it: opening the panel starts over unless an import is running, and
+ * the panel opens by itself on the form's unfinished import.
  */
-export function useImportCsv(setup: ImportCsvSetup) {
-  const choices = useColumnChoices(setup);
-  const { reset: resetFile, ...source } = useImportFile(
-    setup.importLimits,
-    (file) => choices.suggest(file.preview.headers),
-  );
-  const steps = useImportSteps();
+function useRunPanel(setup: ImportCsvSetup, startOver: () => void) {
   const opener = useRef<() => void>(() => undefined);
   const run = useAudienceImport(setup.formId, {
     onFound: () => opener.current(),
@@ -250,41 +246,88 @@ export function useImportCsv(setup: ImportCsvSetup) {
     const view = runView(run);
     if (view && !isTerminal(view.status)) return;
     if (view && !view.canResume) run.dismiss();
-    resetFile();
-    steps.setStep("file");
+    startOver();
   }, run.pending);
   opener.current = () => panel.openChange(true);
+  return { run, panel };
+}
+
+type Wizard = {
+  file: LoadedFile | null;
+  choices: ImportChoices;
+  steps: ReturnType<typeof useImportSteps>;
+  run: AudienceImportRun;
+  close: () => void;
+};
+
+/** The footer's main button: the next step, the start after Columns, or the run's own action. */
+async function advanceWizard({ file, choices, steps, run, close }: Wizard) {
+  if (runStep(run)) return runAction(run, close)?.();
+  if (steps.next !== "review") return steps.next && steps.setStep(steps.next);
+  if (!file) return;
+  if (await run.start(startRequest(file, choices), uploadFile(file)))
+    steps.setStep("review");
+}
+
+/** Where the wizard is: the run's step once an import exists, else the local one with its Back. */
+function stepState(
+  steps: ReturnType<typeof useImportSteps>,
+  run: AudienceImportRun,
+) {
   const ran = runStep(run);
-  const advance = async () => {
-    if (ran) return runAction(run, panel.close)?.();
-    if (steps.next !== "review") return steps.next && steps.setStep(steps.next);
-    if (!source.file) return;
-    const file = source.file;
-    if (await run.start(startRequest(file, choices), uploadFile(file)))
-      steps.setStep("review");
-  };
+  const step = ran ?? steps.step;
   // A failed start's message belongs to the Columns step; going back to change a choice clears it.
   const back = steps.back && (() => (run.dismiss(), steps.back?.()));
-  const continueWith = async (picked: File) => {
-    const read = await readFile(picked, setup.importLimits);
-    await run.continueWith(
-      Result.isSuccess(read) ? Result.success(uploadFile(read.value)) : read,
-    );
+  return { step, stepNumber: STEP_NUMBER[step], back: ran ? undefined : back };
+}
+
+/** Reads a re-chosen file and continues the cut-off upload from it, or says why it cannot. */
+async function continueWithFile(
+  run: AudienceImportRun,
+  picked: File,
+  limits: AudienceImportLimits,
+) {
+  const read = await readFile(picked, limits);
+  await run.continueWith(
+    Result.isSuccess(read) ? Result.success(uploadFile(read.value)) : read,
+  );
+}
+
+/** The footer's action, the run's pending and error, and the re-chosen file, for the panel. */
+function runControls(wizard: Wizard, limits: AudienceImportLimits) {
+  const { run, close } = wizard;
+  return {
+    runAction: runAction(run, close),
+    pending: run.pending,
+    error: run.error,
+    advance: () => advanceWizard(wizard),
+    continueWith: (picked: File) => continueWithFile(run, picked, limits),
   };
-  const step = ran ?? steps.step;
+}
+
+/**
+ * The Import participants wizard: file → columns → review → outcome, in one panel. Leaving the
+ * Columns step starts a staged import and uploads the file; nothing is written before Confirm.
+ * A running import outlives the panel: closing it keeps the import, and the panel opens on it.
+ */
+export function useImportCsv(setup: ImportCsvSetup) {
+  const choices = useColumnChoices(setup);
+  const { reset, ...source } = useImportFile(setup.importLimits, (file) =>
+    choices.suggest(file.preview.headers),
+  );
+  const steps = useImportSteps();
+  const { run, panel } = useRunPanel(setup, () => {
+    reset();
+    steps.setStep("file");
+  });
+  const wizard = { file: source.file, choices, steps, run, close: panel.close };
   return {
     ...source,
     ...panel,
-    step,
-    stepNumber: STEP_NUMBER[step],
-    back: ran ? undefined : back,
+    ...stepState(steps, run),
     choices,
     run,
-    runAction: runAction(run, panel.close),
-    pending: run.pending,
-    error: run.error,
-    advance,
-    continueWith,
+    ...runControls(wizard, setup.importLimits),
   };
 }
 

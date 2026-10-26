@@ -64,7 +64,8 @@ function endingOf(view: AudienceImportView): Ending {
   if (view.status === AudienceImportStatus.Failed)
     return {
       title: "Import failed",
-      body: view.failure ?? "The import could not finish. Import the file again.",
+      body:
+        view.failure ?? "The import could not finish. Import the file again.",
       failed: true,
     };
   return {

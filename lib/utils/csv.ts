@@ -57,7 +57,8 @@ class CsvRecordReader {
       this.quoted = true;
       return;
     }
-    if (char === '"' || (this.closed && !BLANK.test(char))) this.malformed = true;
+    if (char === '"' || (this.closed && !BLANK.test(char)))
+      this.malformed = true;
     this.cell += char;
   }
 

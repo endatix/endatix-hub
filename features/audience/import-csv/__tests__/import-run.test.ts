@@ -68,26 +68,34 @@ describe("importChunk", () => {
 
 describe("import status", () => {
   it.each([
-    ["uploading", false, true, false],
-    ["checking", true, true, false],
-    ["checked", false, true, false],
-    ["writing", true, false, false],
-    ["completed", false, false, true],
-    ["canceled", false, false, true],
-    ["failed", false, false, true],
-    ["expired", false, false, true],
-    ["paused-by-a-newer-api", false, false, true],
-  ])("%s: polls %s, cancels %s, terminal %s", (status, polls, cancels, ends) => {
+    { status: "uploading", polls: false, cancels: true, ends: false },
+    { status: "checking", polls: true, cancels: true, ends: false },
+    { status: "checked", polls: false, cancels: true, ends: false },
+    { status: "writing", polls: true, cancels: false, ends: false },
+    { status: "completed", polls: false, cancels: false, ends: true },
+    { status: "canceled", polls: false, cancels: false, ends: true },
+    { status: "failed", polls: false, cancels: false, ends: true },
+    { status: "expired", polls: false, cancels: false, ends: true },
+    {
+      status: "paused-by-a-newer-api",
+      polls: false,
+      cancels: false,
+      ends: true,
+    },
+  ])("$status: polls $polls, cancels $cancels, terminal $ends", (row) => {
     // Act & Assert
-    expect(isPolling(status)).toBe(polls);
-    expect(canCancel(status)).toBe(cancels);
-    expect(isTerminal(status)).toBe(ends);
+    expect(isPolling(row.status)).toBe(row.polls);
+    expect(canCancel(row.status)).toBe(row.cancels);
+    expect(isTerminal(row.status)).toBe(row.ends);
   });
 });
 
 /** A sender whose chunks settle when the test says so, recording how many were in flight. */
 function controlledSender() {
-  const pending = new Map<number, (result: Result<AudienceImportView>) => void>();
+  const pending = new Map<
+    number,
+    (result: Result<AudienceImportView>) => void
+  >();
   let inFlight = 0;
   let maxInFlight = 0;
   const send = vi.fn(
@@ -139,14 +147,18 @@ describe("uploadChunks", () => {
     // Arrange
     const send = vi
       .fn()
-      .mockResolvedValue(Result.error<AudienceImportView>("The network is down."));
+      .mockResolvedValue(
+        Result.error<AudienceImportView>("The network is down."),
+      );
 
     // Act
     const result = await uploadChunks({ missing: [0], send, onSent: vi.fn() });
 
     // Assert
     expect(send).toHaveBeenCalledTimes(2);
-    expect(Result.isError(result) && result.message).toBe("The network is down.");
+    expect(Result.isError(result) && result.message).toBe(
+      "The network is down.",
+    );
   });
 
   it("stops at once when the import no longer takes rows (409)", async () => {

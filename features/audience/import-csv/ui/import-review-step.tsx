@@ -32,22 +32,32 @@ function acceptedRows(view: AudienceImportView): number {
     : view.upload.rowCount;
 }
 
+type PhaseName = { title: string; unit: string };
+
+const SENDING: PhaseName = { title: "Sending the file", unit: "sent" };
+const CHECKING: PhaseName = { title: "Checking rows", unit: "checked" };
+const WRITING: PhaseName = { title: "Writing participants", unit: "written" };
+
+const phase = (name: PhaseName, done: number, of: number): Phase => ({
+  ...name,
+  done,
+  of,
+});
+
+/** The server's phases worth a counter, by status. */
+const SERVER_PHASES: Record<string, (view: AudienceImportView) => Phase> = {
+  [AudienceImportStatus.Checking]: (view) =>
+    phase(CHECKING, view.checkedRowCount, view.upload.rowCount),
+  [AudienceImportStatus.Writing]: (view) =>
+    phase(WRITING, view.written.writtenRowCount, acceptedRows(view)),
+};
+
 /** How far the phase the import is in got, or `null` once there is nothing to wait for. */
 function phaseOf(wizard: ImportWizard, view: AudienceImportView): Phase | null {
   const { state } = wizard.run;
-  const rows = view.upload.rowCount;
   if (state.kind === "uploading")
-    return { title: "Sending the file", done: state.sent, of: rows, unit: "sent" };
-  if (view.status === AudienceImportStatus.Checking)
-    return { title: "Checking rows", done: view.checkedRowCount, of: rows, unit: "checked" };
-  if (view.status === AudienceImportStatus.Writing)
-    return {
-      title: "Writing participants",
-      done: view.written.writtenRowCount,
-      of: acceptedRows(view),
-      unit: "written",
-    };
-  return null;
+    return phase(SENDING, state.sent, view.upload.rowCount);
+  return SERVER_PHASES[view.status]?.(view) ?? null;
 }
 
 function PhaseProgress({ phase }: Readonly<{ phase: Phase }>) {
@@ -55,8 +65,9 @@ function PhaseProgress({ phase }: Readonly<{ phase: Phase }>) {
   return (
     <div className="grid gap-2">
       <Progress value={percent} aria-label={phase.title} />
-      <p className="text-sm tabular-nums text-muted-foreground">
-        {phase.done.toLocaleString()} of {phase.of.toLocaleString()} rows {phase.unit}
+      <p className="text-sm text-muted-foreground tabular-nums">
+        {phase.done.toLocaleString()} of {phase.of.toLocaleString()} rows{" "}
+        {phase.unit}
       </p>
     </div>
   );
@@ -64,14 +75,18 @@ function PhaseProgress({ phase }: Readonly<{ phase: Phase }>) {
 
 const REPICK_ID = "import-repick";
 
+function chooseAgainHelp(view: AudienceImportView): string {
+  const sent = `${rowsSent(view).toLocaleString()} of ${view.upload.rowCount.toLocaleString()} rows`;
+  return `The upload stopped before the whole file was sent (${sent}). Choose ${view.fileName} again to continue it.`;
+}
+
 /** An upload this tab cannot finish from memory: the scripter chooses the same file again. */
-function ChooseAgain({ wizard, view }: Readonly<{ wizard: ImportWizard; view: AudienceImportView }>) {
+function ChooseAgain({
+  wizard,
+  view,
+}: Readonly<{ wizard: ImportWizard; view: AudienceImportView }>) {
   return (
-    <FieldWithHelp
-      id={REPICK_ID}
-      label="CSV file"
-      help={`The upload stopped before the whole file was sent (${rowsSent(view).toLocaleString()} of ${view.upload.rowCount.toLocaleString()} rows). Choose ${view.fileName} again to continue it.`}
-    >
+    <FieldWithHelp id={REPICK_ID} label="CSV file" help={chooseAgainHelp(view)}>
       <Input
         id={REPICK_ID}
         type="file"
@@ -97,7 +112,13 @@ const TEST_NOTE = {
 };
 
 /** The consequence, once: how a row meets the participants already here (DESIGN.md §6). */
-function MatchingNote({ view, identifierKind }: Readonly<{ view: AudienceImportView; identifierKind: AudienceIdentifierKind }>) {
+function MatchingNote({
+  view,
+  identifierKind,
+}: Readonly<{
+  view: AudienceImportView;
+  identifierKind: AudienceIdentifierKind;
+}>) {
   const matchedBy = identifierKindLabel(identifierKind).toLowerCase();
   const note = view.isTest ? TEST_NOTE : UPDATE_NOTE;
   return (
@@ -105,8 +126,8 @@ function MatchingNote({ view, identifierKind }: Readonly<{ view: AudienceImportV
       <Info />
       <AlertTitle>{note.title}</AlertTitle>
       <AlertDescription>
-        Rows are matched by {matchedBy}. {note.body} A rejected row is left
-        out, and the other rows still import.
+        Rows are matched by {matchedBy}. {note.body} A rejected row is left out,
+        and the other rows still import.
       </AlertDescription>
     </Alert>
   );
@@ -125,7 +146,10 @@ function StoppedAlert({ view }: Readonly<{ view: AudienceImportView }>) {
   );
 }
 
-function CancelImport({ wizard, view }: Readonly<{ wizard: ImportWizard; view: AudienceImportView }>) {
+function CancelImport({
+  wizard,
+  view,
+}: Readonly<{ wizard: ImportWizard; view: AudienceImportView }>) {
   if (!canCancel(view.status)) return null;
   return (
     <div>
@@ -145,46 +169,81 @@ function sectionDescription(view: AudienceImportView): string {
   return `${view.fileName} · ${rowCountLabel(view.upload.rowCount)}`;
 }
 
-function ImportBody({ wizard, view }: Readonly<{ wizard: ImportWizard; view: AudienceImportView }>) {
+function ImportBody({
+  wizard,
+  view,
+}: Readonly<{ wizard: ImportWizard; view: AudienceImportView }>) {
   const phase = phaseOf(wizard, view);
   if (phase) return <PhaseProgress phase={phase} />;
-  if (view.status === AudienceImportStatus.Uploading && !wizard.run.canSendAgain)
+  if (
+    view.status === AudienceImportStatus.Uploading &&
+    !wizard.run.canSendAgain
+  )
     return <ChooseAgain wizard={wizard} view={view} />;
   if (view.check) return <p className="text-sm">{checkCounts(view.check)}</p>;
   return null;
 }
 
-/** Step 3: the import's upload and Check as they run, then the preview to confirm. */
-export function ImportReviewStep({ wizard, identifierKind }: Readonly<ReviewProps>) {
-  const view = runView(wizard.run);
-  if (!view) return null;
-  const checked = view.status === AudienceImportStatus.Checked;
+function Notice({ notice }: Readonly<{ notice: string | null }>) {
+  if (!notice) return null;
+  return (
+    <Alert variant="info">
+      <Info />
+      <AlertDescription>{notice}</AlertDescription>
+    </Alert>
+  );
+}
+
+/** The Check's preview: the rows it rejected, and how a row meets the participants already here. */
+function CheckedDetails({
+  view,
+  identifierKind,
+}: Readonly<{
+  view: AudienceImportView;
+  identifierKind: AudienceIdentifierKind;
+}>) {
+  if (view.status !== AudienceImportStatus.Checked) return null;
   return (
     <>
-      {wizard.run.notice ? (
-        <Alert variant="info">
-          <Info />
-          <AlertDescription>{wizard.run.notice}</AlertDescription>
-        </Alert>
-      ) : null}
+      <RejectedRows
+        rejections={view.rejections}
+        rejectedCount={view.check?.rejectedCount ?? 0}
+      />
+      <MatchingNote view={view} identifierKind={identifierKind} />
+    </>
+  );
+}
+
+/** The import's file, its progress or preview, and Cancel while nothing is written. */
+function ProgressSection({
+  wizard,
+  view,
+}: Readonly<{ wizard: ImportWizard; view: AudienceImportView }>) {
+  return (
+    <PanelSection
+      icon={ClipboardCheck}
+      title={phaseOf(wizard, view)?.title ?? "Review"}
+      description={sectionDescription(view)}
+    >
+      <ImportBody wizard={wizard} view={view} />
+      <CancelImport wizard={wizard} view={view} />
+    </PanelSection>
+  );
+}
+
+/** Step 3: the import's upload and Check as they run, then the preview to confirm. */
+export function ImportReviewStep({
+  wizard,
+  identifierKind,
+}: Readonly<ReviewProps>) {
+  const view = runView(wizard.run);
+  if (!view) return null;
+  return (
+    <>
+      <Notice notice={wizard.run.notice} />
       {view.canResume ? <StoppedAlert view={view} /> : null}
-      <PanelSection
-        icon={ClipboardCheck}
-        title={phaseOf(wizard, view)?.title ?? "Review"}
-        description={sectionDescription(view)}
-      >
-        <ImportBody wizard={wizard} view={view} />
-        <CancelImport wizard={wizard} view={view} />
-      </PanelSection>
-      {checked ? (
-        <>
-          <RejectedRows
-            rejections={view.rejections}
-            rejectedCount={view.check?.rejectedCount ?? 0}
-          />
-          <MatchingNote view={view} identifierKind={identifierKind} />
-        </>
-      ) : null}
+      <ProgressSection wizard={wizard} view={view} />
+      <CheckedDetails view={view} identifierKind={identifierKind} />
     </>
   );
 }

@@ -2,9 +2,9 @@
 
 import { Permissions } from "@/features/auth/authorization";
 import type {
-  AudienceImportChunk,
   AudienceImportMove,
   AudienceImportView,
+  IndexedImportChunk,
   StartAudienceImportRequest,
 } from "@/lib/endatix-api/audience/types";
 import type { Result } from "@/lib/result";
@@ -25,23 +25,24 @@ export async function startAudienceImportAction({
 }: StartAudienceImportRequest & {
   formId: string;
 }): Promise<Result<AudienceImportView>> {
-  return withHubAudienceApi((api) => api.audience.startImport(formId, request), {
-    ...IMPORT_LOG,
-    fallbackMessage: "The import could not start.",
-  });
+  return withHubAudienceApi(
+    (api) => api.audience.startImport(formId, request),
+    {
+      ...IMPORT_LOG,
+      fallbackMessage: "The import could not start.",
+    },
+  );
 }
 
 export async function sendAudienceImportChunkAction({
   formId,
   importId,
-  index,
   chunk,
-}: ImportRef & {
-  index: number;
-  chunk: AudienceImportChunk;
-}): Promise<Result<AudienceImportView>> {
+}: ImportRef & { chunk: IndexedImportChunk }): Promise<
+  Result<AudienceImportView>
+> {
   return withHubAudienceApi(
-    (api) => api.audience.sendImportChunk(formId, importId, index, chunk),
+    (api) => api.audience.sendImportChunk(formId, importId, chunk),
     { ...IMPORT_LOG, fallbackMessage: "Part of the file could not be sent." },
   );
 }
@@ -63,9 +64,15 @@ export async function moveAudienceImportAction({
   formId,
   importId,
   to,
-}: ImportRef & { to: AudienceImportMove }): Promise<Result<AudienceImportView>> {
+}: ImportRef & { to: AudienceImportMove }): Promise<
+  Result<AudienceImportView>
+> {
   return withHubAudienceApi(
     (api) => api.audience.moveImport(formId, importId, to),
-    { ...IMPORT_LOG, fallbackMessage: "The import could not be changed.", formId },
+    {
+      ...IMPORT_LOG,
+      fallbackMessage: "The import could not be changed.",
+      formId,
+    },
   );
 }

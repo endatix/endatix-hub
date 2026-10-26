@@ -17,7 +17,9 @@ export function sampleLabel(values: readonly string[] | undefined): string {
 
 /** `1 participant`, `1,200 participants`. */
 export function participantCountLabel(count: number): string {
-  return count === 1 ? "1 participant" : `${count.toLocaleString()} participants`;
+  return count === 1
+    ? "1 participant"
+    : `${count.toLocaleString()} participants`;
 }
 
 const MEGABYTE = 1024 * 1024;
@@ -43,7 +45,8 @@ export function checkCounts(check: AudienceImportCheck): string {
         : `${check.newCount.toLocaleString()} new participants`),
     check.existingCount > 0 &&
       `${check.existingCount.toLocaleString()} already on this form`,
-    check.rejectedCount > 0 && `${check.rejectedCount.toLocaleString()} rejected`,
+    check.rejectedCount > 0 &&
+      `${check.rejectedCount.toLocaleString()} rejected`,
   ].filter(Boolean);
   return parts.length > 0 ? parts.join(", ") : "No rows to import";
 }
