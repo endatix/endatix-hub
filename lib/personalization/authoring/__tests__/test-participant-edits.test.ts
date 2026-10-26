@@ -1,7 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { ISurveyVariablePresets } from "survey-core";
-import { AudienceIdentifierKind } from "@/lib/endatix-api/audience/types";
-import { testParticipantPresets } from "..";
+import {
+  AudienceIdentifierKind,
+  type AudienceVariablePreset,
+} from "@/lib/endatix-api/audience/types";
+import { testParticipantEdits, type WriteTarget } from "../designer-writes";
+import { readOnlyMatcher } from "../read-only-match";
 
 const EMAIL = AudienceIdentifierKind.Email;
 const EXTERNAL_ID = AudienceIdentifierKind.ExternalId;
@@ -20,7 +24,21 @@ function container(
   };
 }
 
-describe("testParticipantPresets", () => {
+/** The rows an Apply would save, with `readOnly` real participants, nothing saved before. */
+function rowsToSave(
+  edited: ISurveyVariablePresets | undefined,
+  readOnly: string[],
+  kind: AudienceIdentifierKind,
+): AudienceVariablePreset[] {
+  const target = {
+    creator: { variablePresets: edited, notify: vi.fn() },
+    isReadOnly: readOnlyMatcher(readOnly, kind),
+    saved: () => [],
+  } as unknown as WriteTarget;
+  return testParticipantEdits(target);
+}
+
+describe("testParticipantEdits", () => {
   it("saves only Test participants, leaving out every read-only preset", () => {
     // Arrange
     const edited = container(
@@ -38,7 +56,7 @@ describe("testParticipantPresets", () => {
     );
 
     // Act & Assert
-    expect(testParticipantPresets(edited, [BOB], EMAIL)).toEqual([
+    expect(rowsToSave(edited, [BOB], EMAIL)).toEqual([
       { name: MARIA, variables: { tier: "gold" } },
       { name: ANA, variables: { tier: "bronze" } },
     ]);
@@ -52,7 +70,7 @@ describe("testParticipantPresets", () => {
     );
 
     // Act & Assert
-    expect(testParticipantPresets(edited, [BOB, PICKED], EMAIL)).toEqual([
+    expect(rowsToSave(edited, [BOB, PICKED], EMAIL)).toEqual([
       { name: MARIA, variables: { tier: "gold" } },
     ]);
   });
@@ -65,7 +83,7 @@ describe("testParticipantPresets", () => {
     );
 
     // Act & Assert
-    expect(testParticipantPresets(edited, [BOB], EMAIL)).toEqual([
+    expect(rowsToSave(edited, [BOB], EMAIL)).toEqual([
       { name: MARIA, variables: { tier: "gold" } },
     ]);
   });
@@ -75,7 +93,7 @@ describe("testParticipantPresets", () => {
     const edited = container({ name: "AbC", variables: { tier: "silver" } });
 
     // Act & Assert
-    expect(testParticipantPresets(edited, ["abc"], EXTERNAL_ID)).toEqual([
+    expect(rowsToSave(edited, ["abc"], EXTERNAL_ID)).toEqual([
       { name: "AbC", variables: { tier: "silver" } },
     ]);
   });
@@ -86,7 +104,7 @@ describe("testParticipantPresets", () => {
     const edited = container({ name: MARIA, variables });
 
     // Act
-    const [saved] = testParticipantPresets(edited, [], EMAIL);
+    const [saved] = rowsToSave(edited, [], EMAIL);
     variables.tier = "silver";
 
     // Assert
@@ -95,7 +113,7 @@ describe("testParticipantPresets", () => {
 
   it("saves nothing when the form has no presets", () => {
     // Act & Assert
-    expect(testParticipantPresets(undefined, [], EMAIL)).toEqual([]);
-    expect(testParticipantPresets({}, [BOB], EMAIL)).toEqual([]);
+    expect(rowsToSave(undefined, [], EMAIL)).toEqual([]);
+    expect(rowsToSave({}, [BOB], EMAIL)).toEqual([]);
   });
 });

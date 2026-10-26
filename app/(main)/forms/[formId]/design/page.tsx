@@ -16,7 +16,12 @@ import {
   findParticipantsAction,
   getParticipantPresetAction,
 } from "@/features/audience/find-participant";
-import { loadAudienceVariables } from "@/features/audience/server";
+import { declareAudienceVariableAction } from "@/features/audience/create-property";
+import { saveTestParticipantsAction } from "@/features/audience/save-test-participants";
+import {
+  type DesignerAudienceRead,
+  loadDesignerAudience,
+} from "@/features/audience/server";
 import { FormAssistantProvider } from "@/features/forms/use-cases/design-form/form-assistant.context";
 import { getCurrentConversationUseCase } from "@/features/forms/use-cases/design-form/get-current-conversation.use-case";
 import { aiFeaturesFlag } from "@/lib/feature-flags/flags";
@@ -26,7 +31,6 @@ import { firstSearchParam, type SearchParamValue } from "@/lib/utils/next-utils"
 import { EndatixApi } from "@/lib/endatix-api";
 import { Result, toResult } from "@/lib/result";
 import { Form } from "@/types";
-import type { AudienceVariables } from "@/lib/endatix-api/audience/types";
 import type { DesignerAudience } from "@/lib/personalization/authoring";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -63,7 +67,7 @@ export default async function FormDesignerPage({
   const chatContextPromise = getCurrentConversationUseCase(formId, session);
 
   const api = new EndatixApi(session?.accessToken);
-  const [settingsRes, foldersRes, formResult, audienceVariables] =
+  const [settingsRes, foldersRes, formResult, audienceForDesign] =
     await Promise.all([
       api.tenant.getSettings(),
       api.folders.list(),
@@ -74,7 +78,7 @@ export default async function FormDesignerPage({
           loggerName: "forms.design",
         }),
       ),
-      loadAudienceVariables({ api, formId, checkPermission }),
+      loadDesignerAudience({ api, formId, checkPermission }),
     ]);
 
   if (Result.isError(formResult)) {
@@ -125,7 +129,7 @@ export default async function FormDesignerPage({
     themeId: form.themeId ?? undefined,
     isPublic: form.isPublic,
     formIsEnabled: form.isEnabled,
-    audience: audienceVariables && designerAudience(formId, audienceVariables),
+    audience: audienceForDesign && designerAudience(formId, audienceForDesign),
     designReturn: getFormDesignReturn(
       formId,
       firstSearchParam((await searchParams).from),
@@ -162,14 +166,21 @@ export default async function FormDesignerPage({
   );
 }
 
-/** The variables read with the page, and the form's reads behind Preview as. */
+/** The variables read with the page, and the form's reads and writes behind Preview as. */
 function designerAudience(
   formId: string,
-  variables: AudienceVariables,
+  { variables, identifierKind }: DesignerAudienceRead,
 ): DesignerAudience {
   return {
     variables,
     refresh: getAudienceVariablesAction.bind(null, formId),
+    testParticipants: identifierKind
+      ? {
+          identifierKind,
+          save: saveTestParticipantsAction.bind(null, formId),
+        }
+      : undefined,
+    addProperty: declareAudienceVariableAction.bind(null, formId),
     participants: {
       find: findParticipantsAction.bind(null, formId),
       preset: getParticipantPresetAction.bind(null, formId),

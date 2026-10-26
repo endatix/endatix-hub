@@ -171,8 +171,8 @@ describe("Preview as in the designer", () => {
     expect(creator.variablePresets?.presets?.map((p) => p.name)).toEqual([BOB]);
   });
 
-  // Edits made there would only reach the local container and vanish on the next Preview open.
-  it("keeps the values editor read-only even when the API allows editing", () => {
+  // Without a save, edits would only reach the local container and vanish on the next Preview open.
+  it("keeps the values editor read-only without a save, even when the API allows editing", () => {
     const creator = designer();
     const editable = {
       ...variables(),

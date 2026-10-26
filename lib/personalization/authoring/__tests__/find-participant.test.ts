@@ -7,11 +7,7 @@ import {
   type AudienceVariables,
 } from "@/lib/endatix-api/audience/types";
 import { Result } from "@/lib/result";
-import {
-  bindAudienceToCreator,
-  type PreviewAs,
-  testParticipantPresets,
-} from "..";
+import { bindAudienceToCreator, type PreviewAs } from "..";
 
 const MARIA = "maria@acme.test";
 const BOB = "bob@acme.test";
@@ -89,6 +85,46 @@ function designerWith(
   };
   return { creator, binding, onFind, pick };
 }
+
+type Save = (
+  presets: AudienceVariablePreset[],
+) => Promise<Result<AudienceVariables>>;
+
+/** As `designerWith(60)`, saving Test participant values with `save`, edits allowed. */
+function designerSaving(save: Save) {
+  const creator = new SurveyCreatorModel({ showPreview: true });
+  creator.JSON = FORM_JSON;
+  const read = {
+    ...variables(60),
+    editing: { allowAdd: true, allowEdit: true, allowDelete: false },
+  };
+  let previewAs: PreviewAs | undefined;
+  bindAudienceToCreator(
+    creator,
+    {
+      variables: read,
+      refresh: () => Promise.resolve(Result.success(read)),
+      testParticipants: { identifierKind: AudienceIdentifierKind.Email, save },
+    },
+    (pick) => (previewAs = pick),
+  );
+  creator.activeTab = "preview";
+  const pick = (preset: AudienceVariablePreset, isTest: boolean) => {
+    findAction(creator)?.action?.();
+    previewAs!(preset, isTest);
+  };
+  /** What the editor's Apply does, with `rows` appended and Maria's tier changed. */
+  const apply = (...rows: AudienceVariablePreset[]) => {
+    const presets = structuredClone(creator.variablePresets.presets ?? []);
+    const edited = presets.map((p) =>
+      p.name === MARIA ? { ...p, variables: { tier: "platinum" } } : p,
+    );
+    preview(creator).variablePresets.setPresets([...edited, ...rows]);
+  };
+  return { creator, pick, apply };
+}
+
+const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 function findActions(creator: SurveyCreatorModel) {
   return preview(creator).model.pages.actions.filter((a) => a.id === FIND_ID);
@@ -211,44 +247,40 @@ describe("Find participant in the designer's Preview", () => {
     expect(preview(creator).variablePresets.active).toBe(ANA.name);
   });
 
-  it("keeps a picked real participant read-only, so a save leaves them out", () => {
+  it("keeps a picked real participant read-only, so a save leaves them out", async () => {
     // Arrange
-    const { creator, binding, pick } = designerWith(60);
+    const save = vi.fn<Save>(() =>
+      Promise.resolve(Result.success(variables(60))),
+    );
+    const { creator, pick, apply } = designerSaving(save);
+    pick(ANA, false);
 
     // Act
-    pick(ANA, false);
-    const saved = testParticipantPresets(
-      creator.variablePresets,
-      binding.readOnlyPresets(),
-      AudienceIdentifierKind.Email,
-    );
+    apply();
+    await flush();
 
     // Assert
-    expect(binding.readOnlyPresets()).toEqual([BOB, ANA.name]);
-    expect(saved.map((preset) => preset.name)).toEqual([MARIA]);
-    expect(preview(creator).variablePresets).toMatchObject({
-      allowAdd: false,
-      allowEdit: false,
-      allowDelete: false,
-    });
+    expect(save.mock.calls[0][0].map((preset) => preset.name)).toEqual([MARIA]);
+    const operations = preview(creator).variablePresets.getPresetOperations(
+      creator.variablePresets.presets!.find((p) => p.name === ANA.name)!,
+    );
+    expect(operations.allowEdit).toBe(false);
   });
 
-  it("leaves out a picked real participant's email written with other capitals", () => {
+  it("leaves out a picked real participant's email written with other capitals", async () => {
     // Arrange
-    const { creator, binding, pick } = designerWith(60);
+    const save = vi.fn<Save>(() =>
+      Promise.resolve(Result.success(variables(60))),
+    );
+    const { pick, apply } = designerSaving(save);
     pick(ANA, false);
-    const edited = structuredClone(creator.variablePresets!);
-    edited.presets!.push({ name: " Ana@ACME.test", variables: { tier: "x" } });
 
     // Act
-    const saved = testParticipantPresets(
-      edited,
-      binding.readOnlyPresets(),
-      AudienceIdentifierKind.Email,
-    );
+    apply({ name: " Ana@ACME.test", variables: { tier: "x" } });
+    await flush();
 
     // Assert
-    expect(saved.map((preset) => preset.name)).toEqual([MARIA]);
+    expect(save.mock.calls[0][0].map((preset) => preset.name)).toEqual([MARIA]);
   });
 
   it("ignores a pick that lands after the designer let go of the Creator", () => {

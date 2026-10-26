@@ -50,3 +50,29 @@ describe("one participant's variables", () => {
     expect(result.success).toBe(false);
   });
 });
+
+describe("saving Test participant values", () => {
+  it("puts the whole edited list and reads back the variables, real ones included", async () => {
+    // Arrange
+    const presets = [{ name: "maria@acme.test", variables: { tier: "gold" } }];
+    const read = {
+      variablePresets: null,
+      coverage: { participants: { test: 1, real: 0 }, properties: [] },
+      editing: { allowAdd: false, allowEdit: false, allowDelete: false },
+    };
+    const put = vi.fn().mockResolvedValue(ApiResult.success(read));
+
+    // Act
+    const result = await audienceWith({ put }).saveTestParticipants(
+      FORM_ID,
+      presets,
+    );
+
+    // Assert
+    expect(put).toHaveBeenCalledWith(
+      `/forms/${FORM_ID}/audience/variables/test-participants`,
+      { presets },
+    );
+    expect(result.success && result.data.readOnlyPresets).toEqual([]);
+  });
+});

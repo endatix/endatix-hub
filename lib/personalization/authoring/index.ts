@@ -15,4 +15,3 @@ export type {
   ParticipantFinder,
 } from "./find-participant";
 export type { AudienceFinding, AudienceFix, AudienceReview } from "../coverage";
-export { testParticipantPresets } from "./test-participant-presets";
