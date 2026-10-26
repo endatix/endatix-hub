@@ -11,5 +11,6 @@ export type {
   AudienceFix,
   AudienceReview,
 } from "./findings/types";
+export { declaresAsProperty } from "./findings/lint-findings";
 export { reviewAudience } from "./review";
 export { audienceUsage, lintedUsage } from "./usage";

@@ -3,3 +3,4 @@ export type {
   CreateAudiencePropertyInput,
   CreateAudiencePropertyResult,
 } from "./create-audience-property.action";
+export { declareAudienceVariableAction } from "./declare-audience-variable.action";

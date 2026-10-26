@@ -115,6 +115,11 @@ export class FormDiagnosticsPlugin extends Base implements ICreatorPlugin {
     return this.updateAudienceFindings();
   }
 
+  public async addAudienceProperty(finding: AudienceFinding): Promise<void> {
+    await this.audience?.addProperty(finding);
+    return this.updateAudienceFindings();
+  }
+
   private latestReview = 0;
 
   /**

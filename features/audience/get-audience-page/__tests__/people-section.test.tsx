@@ -43,6 +43,9 @@ vi.mock("../../delete-person/ui/remove-person-dialog", () => ({
 vi.mock("../../test-as-person/open-test-submission.action", () => ({
   openTestSubmissionAction: vi.fn(),
 }));
+vi.mock("../../copy-test-link/create-test-link.action", () => ({
+  createTestLinkAction: vi.fn(),
+}));
 
 const textProperty = (
   id: string,
@@ -190,6 +193,74 @@ describe("PeopleSection", () => {
     expect(screen.queryByRole("button", { name: /^Remove / })).toBeNull();
   });
 
+  it("offers Copy test link on test people only, and opens it with a 7-day lifetime", () => {
+    render(
+      <PeopleSection
+        {...LIST}
+        people={[PERSON, TEST_PERSON]}
+        canEdit={false}
+        canTest
+        canCopyTestLink
+      />,
+    );
+
+    expect(
+      screen.queryByRole("button", { name: "Copy test link: CG-000003-01" }),
+    ).toBeNull();
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Copy test link: tester@example.com",
+      }),
+    );
+
+    const dialog = screen.getByRole("dialog", { name: "Copy test link" });
+    expect(dialog.textContent).toContain("tester@example.com");
+    expect(
+      within(dialog).getByRole("combobox", { name: "Link lifetime" })
+        .textContent,
+    ).toBe("7 days");
+  });
+
+  it("puts Copy test link first, so the actions both rows share line up", () => {
+    render(
+      <PeopleSection
+        {...LIST}
+        people={[PERSON, TEST_PERSON]}
+        canEdit
+        canTest
+        canCopyTestLink
+      />,
+    );
+
+    const [real, test] = screen.getAllByRole("row").slice(1);
+    const actions = (row: HTMLElement) =>
+      within(row)
+        .getAllByRole("button")
+        .map(
+          (b) =>
+            /^(Copy test link|Test as|Remove)/.exec(b.ariaLabel ?? "")?.[1],
+        )
+        .filter(Boolean);
+    expect(actions(test)).toEqual(["Copy test link", "Test as", "Remove"]);
+    expect(actions(real)).toEqual(["Test as", "Remove"]);
+  });
+
+  it("leaves out Copy test link for a reader who cannot share submissions", () => {
+    render(
+      <PeopleSection
+        {...LIST}
+        people={[TEST_PERSON]}
+        canEdit={false}
+        canTest
+        canCopyTestLink={false}
+      />,
+    );
+
+    expect(
+      screen.queryByRole("button", { name: /^Copy test link/ }),
+    ).toBeNull();
+  });
+
   it("links each identifier to the participant's page for a reader who may edit", () => {
     render(
       <PeopleSection {...LIST} people={[PERSON]} canEdit canTest={false} />,
@@ -257,7 +328,11 @@ describe("PeopleSection", () => {
       notFilledIn: (filled: string[]) =>
         ["external_id", "city"].filter((name) => !filled.includes(name)),
     };
-    const withoutKeyValue = { ...PERSON, membershipId: "11", values: { city: "Ruse" } };
+    const withoutKeyValue = {
+      ...PERSON,
+      membershipId: "11",
+      values: { city: "Ruse" },
+    };
     render(
       <PeopleSection
         {...LIST}

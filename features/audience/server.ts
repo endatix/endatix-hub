@@ -1,6 +1,10 @@
 export { loadAudiencePage } from "./get-audience-page";
 export type { AudiencePageData } from "./get-audience-page";
-export { loadAudienceVariables } from "./get-audience-variables/load-audience-variables.server";
+export {
+  loadAudienceVariables,
+  loadDesignerAudience,
+} from "./get-audience-variables/load-audience-variables.server";
+export type { DesignerAudienceRead } from "./get-audience-variables/load-audience-variables.server";
 export { createAudiencePropertyAction } from "./create-property";
 export { updateAudiencePropertyAction } from "./update-property";
 export { deleteAudiencePropertyAction } from "./delete-property";

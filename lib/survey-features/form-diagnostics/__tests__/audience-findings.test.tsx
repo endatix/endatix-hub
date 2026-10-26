@@ -21,6 +21,14 @@ const MISSPELLED: AudienceFinding = {
   elementName: "plan",
   suggestion: "tier",
   fix: { reason: "renameReference", edits: [] },
+  canAddProperty: false,
+};
+const UNDECLARED: AudienceFinding = {
+  kind: "unknown-variable",
+  variable: "city",
+  path: "pages[0].elements[0].title",
+  elementName: "plan",
+  canAddProperty: true,
 };
 const UNUSED: AudienceFinding = {
   kind: "unused-property",
@@ -31,6 +39,7 @@ function audienceWith(findings: AudienceFinding[]): DiagnosticsAudience {
   return {
     review: vi.fn(() => Promise.resolve({ findings })),
     applyFix: vi.fn(),
+    addProperty: vi.fn(() => Promise.resolve()),
     refresh: vi.fn(() => Promise.resolve()),
   };
 }
@@ -69,6 +78,39 @@ describe("Audience findings in Diagnostics", () => {
     await waitFor(() =>
       expect(screen.queryByText("{tierr} is not declared")).toBeNull(),
     );
+  });
+
+  it("adds an undeclared variable as an Audience property and reviews again", async () => {
+    // Arrange
+    const audience = audienceWith([UNDECLARED]);
+    const plugin = await pluginWith(audience);
+    render(<FormDiagnosticsView model={plugin} />);
+    vi.mocked(audience.review).mockResolvedValue({ findings: [] });
+
+    // Act
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add as Audience property" }),
+    );
+
+    // Assert
+    expect(audience.addProperty).toHaveBeenCalledWith(UNDECLARED);
+    await waitFor(() =>
+      expect(screen.queryByText("{city} is not declared")).toBeNull(),
+    );
+  });
+
+  it("offers Add as Audience property only where a Property would declare the name", async () => {
+    // Act
+    render(
+      <FormDiagnosticsView
+        model={await pluginWith(audienceWith([MISSPELLED]))}
+      />,
+    );
+
+    // Assert
+    expect(
+      screen.queryByRole("button", { name: "Add as Audience property" }),
+    ).toBeNull();
   });
 
   it("reads the variables again when the tab opens, then reviews once", async () => {

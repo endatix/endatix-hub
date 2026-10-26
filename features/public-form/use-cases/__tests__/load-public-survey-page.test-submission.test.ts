@@ -46,7 +46,7 @@ function viewerMayTest(allowed: boolean, canEdit = true) {
 }
 
 const formId = "form-1";
-const tokenStore = {} as never;
+const tokenStore = { getAccessToken: () => undefined } as never;
 const createdAt = new Date("2026-10-19T00:00:00.000Z");
 
 const cookieSubmission: Submission = {

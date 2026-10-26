@@ -10,7 +10,7 @@ vi.mock("../create-submission-access-links.action", () => ({
 const writeText = vi.fn(async () => undefined);
 
 import { SubmissionShareLinksDialog } from "../submission-share-links-dialog";
-import { DEFAULT_EXPIRY_MINUTES } from "../share-link-expiry";
+import { DEFAULT_EXPIRY_MINUTES } from "@/lib/share-links/share-link-expiry";
 
 function renderDialog() {
   return render(

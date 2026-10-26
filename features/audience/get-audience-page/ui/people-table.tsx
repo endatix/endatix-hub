@@ -1,6 +1,6 @@
 "use client";
 
-import { FlaskConical, Pencil, Trash2 } from "lucide-react";
+import { FlaskConical, Link2, Pencil, Trash2 } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import {
@@ -33,6 +33,8 @@ export type RowHandlers = {
   onEdit?: (person: AudiencePerson) => void;
   onRemove?: (person: AudiencePerson) => void;
   onTest?: (person: AudiencePerson) => void;
+  /** Offered on test persons only: a link holder sees every value of the person. */
+  onCopyTestLink?: (person: AudiencePerson) => void;
 };
 
 type PeopleTableProps = {
@@ -61,8 +63,8 @@ const LINK_COLUMN: StaticDataTableColumn = {
   className: SHRINK,
 };
 
-const hasActions = ({ onEdit, onRemove, onTest }: RowHandlers) =>
-  Boolean(onEdit || onRemove || onTest);
+const hasActions = (handlers: RowHandlers) =>
+  Object.values(handlers).some(Boolean);
 
 /** Link shows only when someone on this page has one, read from the page's own rows. */
 const hasLinks = (people: AudiencePerson[]) =>
@@ -98,25 +100,48 @@ type ActionSpec = {
   icon: DataTableRowAction["icon"];
 };
 
-/** Test, edit, remove; Edit only when there is a value to edit (DESIGN.md §6 "Omit what cannot apply"). */
-function actionSpecs(handlers: RowHandlers, hasValues: boolean): ActionSpec[] {
-  return [
-    {
-      run: handlers.onTest,
-      label: (id) => `Test as this participant: ${id}`,
-      icon: FlaskConical,
-    },
-    {
-      run: hasValues ? handlers.onEdit : undefined,
-      label: (id) => `Edit values for ${id}`,
-      icon: Pencil,
-    },
-    {
-      run: handlers.onRemove,
-      label: (id) => `Remove ${id} from this form`,
-      icon: Trash2,
-    },
-  ];
+type RowFacts = { hasValues: boolean; isTest: boolean };
+
+type RowAction = Omit<ActionSpec, "run"> & {
+  handler: keyof RowHandlers;
+  appliesTo?: (row: RowFacts) => boolean;
+};
+
+/**
+ * Copy test link, test, edit, remove; Copy test link only on a test person, Edit only when there
+ * is a value to edit (DESIGN.md §6 "Omit what cannot apply"). Copy test link comes first, so the
+ * actions every row has line up from the right on test and real rows alike.
+ */
+const ROW_ACTIONS: RowAction[] = [
+  {
+    handler: "onCopyTestLink",
+    label: (id) => `Copy test link: ${id}`,
+    icon: Link2,
+    appliesTo: (row) => row.isTest,
+  },
+  {
+    handler: "onTest",
+    label: (id) => `Test as this participant: ${id}`,
+    icon: FlaskConical,
+  },
+  {
+    handler: "onEdit",
+    label: (id) => `Edit values for ${id}`,
+    icon: Pencil,
+    appliesTo: (row) => row.hasValues,
+  },
+  {
+    handler: "onRemove",
+    label: (id) => `Remove ${id} from this form`,
+    icon: Trash2,
+  },
+];
+
+function actionSpecs(handlers: RowHandlers, row: RowFacts): ActionSpec[] {
+  return ROW_ACTIONS.map(({ handler, appliesTo, ...spec }) => ({
+    ...spec,
+    run: (appliesTo?.(row) ?? true) ? handlers[handler] : undefined,
+  }));
 }
 
 /** The row's actions the reader may run; a missing handler leaves its action out. */
@@ -125,7 +150,8 @@ function personActions(
   hasValues: boolean,
   handlers: RowHandlers,
 ): DataTableRowAction[] {
-  return actionSpecs(handlers, hasValues).flatMap(({ run, label, icon }) =>
+  const facts = { hasValues, isTest: person.isTest };
+  return actionSpecs(handlers, facts).flatMap(({ run, label, icon }) =>
     run
       ? [{ label: label(person.identifier), icon, onClick: () => run(person) }]
       : [],

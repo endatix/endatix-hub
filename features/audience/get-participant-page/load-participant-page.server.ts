@@ -22,7 +22,11 @@ export type ParticipantPageData = {
   properties: AudienceProperty[];
   /** Whether this reader may open a test submission as them (`forms.test`). */
   canTest: boolean;
+  /** Whether this reader may copy a test link for a test participant (`canCopyTestLink`). */
+  canCopyTestLink: boolean;
 };
+
+type Grants = Pick<ParticipantPageData, "canTest" | "canCopyTestLink">;
 
 /** `gone`: the participant is no longer on this form (the API answers 404). */
 export type ParticipantPage =
@@ -33,8 +37,7 @@ export type ParticipantPageRequest = {
   api: EndatixApi;
   formId: string;
   memberId: string;
-  canTest: boolean;
-};
+} & Grants;
 
 function unwrapPart<T>(apiResult: ApiResult<T>, label: string): Result<T> {
   return toResult(apiResult, {
@@ -63,7 +66,7 @@ type Parts = Awaited<ReturnType<typeof fetchParticipantParts>>;
 
 function toPageData(
   [participantApi, propertiesApi, settingsApi]: Parts,
-  canTest: boolean,
+  grants: Grants,
 ): Result<ParticipantPageData> {
   const participant = unwrapPart(participantApi, "details");
   if (Result.isError(participant)) return participant;
@@ -76,7 +79,7 @@ function toPageData(
     participant: participant.value,
     identifierKind,
     properties: valueProperties(properties.value, identifierKind),
-    canTest,
+    ...grants,
   });
 }
 
@@ -94,7 +97,8 @@ export async function loadParticipantPage(
     return GONE;
   const parts = await fetchParticipantParts(request);
   if (isGone(parts[0])) return GONE;
-  const data = toPageData(parts, request.canTest);
+  const { canTest, canCopyTestLink } = request;
+  const data = toPageData(parts, { canTest, canCopyTestLink });
   if (Result.isError(data)) return data;
   return Result.success({ status: "found", data: data.value });
 }

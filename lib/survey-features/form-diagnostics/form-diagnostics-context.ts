@@ -82,6 +82,8 @@ export function applyFormDiagnosticsContext(
 export interface DiagnosticsAudience {
   review(): Promise<AudienceReview>;
   applyFix(finding: AudienceFinding): void;
+  /** Add as Audience property; the binding shows a failure itself. */
+  addProperty(finding: AudienceFinding): Promise<void>;
   refresh(): Promise<void>;
 }
 

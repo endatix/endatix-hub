@@ -24,7 +24,10 @@ import {
   type Submission,
 } from "@/lib/endatix-api";
 import type { PublicFormAccessResponse } from "@/lib/endatix-api/forms/types";
-import { ERROR_CODE } from "@/lib/endatix-api/shared/error-codes";
+import {
+  ERROR_CODE,
+  REFUSED_TOKEN_CODES,
+} from "@/lib/endatix-api/shared/error-codes";
 import { Result, type ResultType } from "@/lib/result";
 import type { ActiveDefinition } from "@/types";
 
@@ -78,17 +81,15 @@ export type LoadPublicSurveyPageResult =
       kind: "accessLoadError";
       errorCode: string;
     }
-  | {
-      kind: "tokenSubmissionError";
-      errorCode: string;
-    }
+  | TokenSubmissionErrorResult
   | {
       kind: "submissionLoadError";
       errorCode: string;
     };
 
 /**
- * Loads the public survey page.
+ * Loads the public survey page. A URL token, or an access token in the form cookie (a personalized
+ * link's), opens that one submission whatever the form's privacy.
  * @param formId - The form ID.
  * @param tokenStore - The token store.
  * @param urlToken - The URL token.
@@ -99,16 +100,43 @@ export async function loadPublicSurveyPageUseCase({
   tokenStore,
   urlToken,
 }: LoadPublicSurveyPageQuery): Promise<LoadPublicSurveyPageResult> {
-  if (urlToken) {
-    return loadAccessTokenSurveyPage({ formId, urlToken });
-  }
+  const cookieToken = urlToken ? undefined : tokenStore.getAccessToken(formId);
+  const accessToken = urlToken ?? cookieToken;
+  return accessToken
+    ? loadAccessTokenSurveyPage({
+        formId,
+        accessToken,
+        personalLink: Boolean(cookieToken),
+      })
+    : loadCookieSurveyPage({ formId, tokenStore });
+}
 
+/** The anonymous or signed-in page, with the cookie's submission token when it has one. */
+async function loadCookieSurveyPage({
+  formId,
+  tokenStore,
+}: LoadPartialSubmissionQuery): Promise<LoadPublicSurveyPageResult> {
   const publicFormAccessResult = await getPublicFormAccessUseCase({ formId });
 
   if (Result.isError(publicFormAccessResult)) {
     return mapAccessFailure(publicFormAccessResult);
   }
 
+  return loadCookieSubmissionPage({
+    formId,
+    tokenStore,
+    access: publicFormAccessResult.value,
+  });
+}
+
+type LoadCookieSubmissionPageQuery = LoadPartialSubmissionQuery & {
+  access: PublicFormAccessResponse;
+};
+
+async function loadCookieSubmissionPage(
+  query: LoadCookieSubmissionPageQuery,
+): Promise<LoadPublicSurveyPageResult> {
+  const { formId, tokenStore, access } = query;
   const [submissionResult, activeDefinitionResult] = await Promise.all([
     loadPartialSubmission({ formId, tokenStore }),
     getActiveDefinitionUseCase({ formId }),
@@ -124,30 +152,25 @@ export async function loadPublicSurveyPageUseCase({
 
   return loadedPage({
     formId,
-    access: publicFormAccessResult.value,
+    access,
     activeDefinition: activeDefinitionResult.value,
     submission: submissionResult.value,
   });
 }
 
-async function loadAccessTokenSurveyPage({
-  formId,
-  urlToken,
-}: LoadAccessTokenSurveyPageQuery): Promise<LoadPublicSurveyPageResult> {
+async function loadAccessTokenSurveyPage(
+  query: LoadAccessTokenSurveyPageQuery,
+): Promise<LoadPublicSurveyPageResult> {
+  const { formId, accessToken } = query;
   const publicFormAccessResult = await getPublicFormAccessUseCase({
     formId,
-    token: urlToken,
+    token: accessToken,
   });
-
   if (Result.isError(publicFormAccessResult)) {
-    return mapAccessFailure(publicFormAccessResult);
+    return mapAccessTokenFailure(publicFormAccessResult, query);
   }
 
-  const submissionResult = await loadAccessTokenSubmission({
-    formId,
-    urlToken,
-  });
-
+  const submissionResult = await loadAccessTokenSubmission(query);
   if (submissionResult.kind === "tokenSubmissionError") {
     return submissionResult;
   }
@@ -155,7 +178,6 @@ async function loadAccessTokenSurveyPage({
   const activeDefinitionResult = resolveSubmissionFormDefinition(
     submissionResult.value,
   );
-
   if (Result.isError(activeDefinitionResult)) {
     return { kind: "notFound" };
   }
@@ -165,7 +187,7 @@ async function loadAccessTokenSurveyPage({
     access: publicFormAccessResult.value,
     activeDefinition: activeDefinitionResult.value,
     submission: submissionResult.value,
-    urlToken,
+    accessToken,
   });
 }
 
@@ -174,19 +196,23 @@ type LoadedPageQuery = {
   access: PublicFormAccessResponse;
   activeDefinition: ActiveDefinition;
   submission: Submission | undefined;
-  urlToken?: string;
+  accessToken?: string;
 };
 
-/** The page that loaded. A URL-token page never offers the cookie's new response. */
+/** The page that loaded. A token page (URL, or a personalized link's cookie) never offers a new response. */
 async function loadedPage(
   query: LoadedPageQuery,
 ): Promise<LoadPublicSurveyPageResult> {
-  const { access, activeDefinition, submission, urlToken } = query;
+  const { access, activeDefinition, submission, accessToken } = query;
   return {
     kind: "success",
     activeDefinition,
-    submissionPhase: submissionPhaseFor(access, submission, Boolean(urlToken)),
-    canStartOver: urlToken ? false : access.canStartNewSubmission,
+    submissionPhase: submissionPhaseFor(
+      access,
+      submission,
+      Boolean(accessToken),
+    ),
+    canStartOver: accessToken ? false : access.canStartNewSubmission,
     isRespondentTestMode: access.isRespondentTestMode,
     testInspector: await testInspectorFor(query),
     submission,
@@ -216,7 +242,7 @@ async function testInspectorFor({
   formId,
   access,
   submission,
-  urlToken,
+  accessToken: urlToken,
 }: LoadedPageQuery): Promise<TestInspectorView | null> {
   const testPage = isTestPage({
     isRespondentTestMode: access.isRespondentTestMode,
@@ -282,6 +308,34 @@ function mapAccessFailure(result: ResultType<unknown>): Extract<
   };
 }
 
+/** A refused token needs a new link, not a retry: the token page says so. */
+function mapAccessTokenFailure(
+  result: ResultType<unknown>,
+  { personalLink }: LoadAccessTokenSurveyPageQuery,
+): LoadPublicSurveyPageResult {
+  const errorCode = Result.isError(result) ? result.errorCode : undefined;
+  return errorCode && REFUSED_TOKEN_CODES.has(errorCode)
+    ? tokenSubmissionError(errorCode, personalLink)
+    : mapAccessFailure(result);
+}
+
+type TokenSubmissionErrorResult = {
+  kind: "tokenSubmissionError";
+  errorCode: string;
+  /** The token came from a personalized link's cookie: the person can reopen their link. */
+  personalLink?: true;
+};
+
+function tokenSubmissionError(
+  code: string | undefined,
+  personalLink: boolean,
+): TokenSubmissionErrorResult {
+  const errorCode = code ?? ERROR_CODE.UNKNOWN_ERROR;
+  return personalLink
+    ? { kind: "tokenSubmissionError", errorCode, personalLink }
+    : { kind: "tokenSubmissionError", errorCode };
+}
+
 function plainRespondentCopy(value: string | undefined): string | undefined {
   if (!value) {
     return undefined;
@@ -304,12 +358,8 @@ function isMissingFormAccessError(errorCode: string | undefined): boolean {
 
 type LoadAccessTokenSurveyPageQuery = {
   formId: string;
-  urlToken: string;
-};
-
-type LoadAccessTokenSubmissionQuery = {
-  formId: string;
-  urlToken: string;
+  accessToken: string;
+  personalLink: boolean;
 };
 
 type LoadedAccessTokenSubmissionResult =
@@ -317,25 +367,20 @@ type LoadedAccessTokenSubmissionResult =
       kind: "success";
       value: Submission;
     }
-  | {
-      kind: "tokenSubmissionError";
-      errorCode: string;
-    };
+  | TokenSubmissionErrorResult;
 
 async function loadAccessTokenSubmission({
   formId,
-  urlToken,
-}: LoadAccessTokenSubmissionQuery): Promise<LoadedAccessTokenSubmissionResult> {
+  accessToken,
+  personalLink,
+}: LoadAccessTokenSurveyPageQuery): Promise<LoadedAccessTokenSubmissionResult> {
   const accessTokenResult = await getSubmissionByAccessTokenUseCase({
     formId,
-    token: urlToken,
+    token: accessToken,
   });
 
   if (Result.isError(accessTokenResult)) {
-    return {
-      kind: "tokenSubmissionError",
-      errorCode: accessTokenResult.errorCode ?? ERROR_CODE.UNKNOWN_ERROR,
-    };
+    return tokenSubmissionError(accessTokenResult.errorCode, personalLink);
   }
 
   return {
