@@ -18,9 +18,14 @@ const AUDIENCE_RULES = lintRules([LINT_RULE.unknown, LINT_RULE.collision]);
 // named after it.
 const KEPT_BY_SLUG = /^[a-z0-9]+(?:_[a-z0-9]+)*$/i;
 
+/** OSS `DataSchemaConstants.MAX_NAME_LENGTH`: the longest Property name the API takes. */
+const MAX_PROPERTY_NAME_LENGTH = 100;
+
 /** Whether a Property named after `variable` declares `{variable}`. */
 export function declaresAsProperty(variable: string): boolean {
-  return KEPT_BY_SLUG.test(variable);
+  return (
+    variable.length <= MAX_PROPERTY_NAME_LENGTH && KEPT_BY_SLUG.test(variable)
+  );
 }
 
 function unknownVariable(finding: ILintFinding): AudienceFinding {

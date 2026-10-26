@@ -140,7 +140,6 @@ type BindingState = {
   adding: Set<string>;
   /** The tenant's match key; without one the designer cannot save. */
   identifierKind: AudienceIdentifierKind | undefined;
-  canSave: boolean;
   canAddProperty: boolean;
   /** The latest read or save: only its answer applies. */
   latest: number;
@@ -234,7 +233,10 @@ function applyEditorPolicy(
 ): void {
   const manager = previewPlugin(creator)?.variablePresets;
   if (manager) {
-    Object.assign(manager, valuesEditorPolicy(state.variables, state.canSave));
+    Object.assign(
+      manager,
+      valuesEditorPolicy(state.variables, !!state.identifierKind),
+    );
   }
 }
 
@@ -374,7 +376,6 @@ function newState(audience: BoundAudience): BindingState {
     unsaved: [],
     adding: new Set(),
     identifierKind: audience.testParticipants?.identifierKind,
-    canSave: !!audience.testParticipants,
     canAddProperty: !!audience.addProperty,
     latest: 0,
     bound: true,
@@ -449,6 +450,7 @@ function applyRead(
 ): void {
   const previous = state.variables;
   state.variables = variables;
+  refreshPicked(state, variables);
   if (!Helpers.isTwoValueEquals(previous.editing, variables.editing)) {
     state.applied = undefined;
   }
@@ -457,6 +459,17 @@ function applyRead(
   } catch (error) {
     state.variables = previous;
     throw error;
+  }
+}
+
+/**
+ * A participant picked with Find participant takes the values a read lists for them (a save reads
+ * back what it saved), so a later read that leaves them out does not bring back the old values.
+ */
+function refreshPicked(state: BindingState, variables: AudienceVariables) {
+  for (const preset of variables.variablePresets?.presets ?? []) {
+    const picked = state.picked.get(preset.name);
+    if (picked) state.picked.set(preset.name, { ...picked, preset });
   }
 }
 

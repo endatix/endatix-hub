@@ -97,8 +97,9 @@ export function withUnsaved(
 
 /**
  * A real participant opens in display mode, name included, so renaming one can never save their
- * values as a new Test participant. Only a draft (added here, never saved) can be removed. The
- * Creator asks per preset each time the editor lists it.
+ * values as a new Test participant. Only a draft (added here, never saved) can be removed, a draft
+ * typed with a real participant's identifier included, so the author can drop the row the save
+ * refuses. The Creator asks per preset each time the editor lists it.
  */
 export function lockRealParticipants({
   creator,
@@ -108,9 +109,7 @@ export function lockRealParticipants({
   const onEditing = (_: unknown, options: VariablePresetEditingEvent) => {
     const { name } = options.preset;
     if (isReadOnly(name)) options.allowEdit = false;
-    if (isReadOnly(name) || saved().some((p) => p.name === name)) {
-      options.allowDelete = false;
-    }
+    if (saved().some((p) => p.name === name)) options.allowDelete = false;
   };
   creator.onVariablePresetEditing.add(onEditing);
   return () => creator.onVariablePresetEditing.remove(onEditing);
@@ -151,7 +150,10 @@ async function saveEdits(
     succeeded: (saved) => {
       // A newer edit stays unsaved until its own save answers.
       if (pending.unsaved === edits) pending.unsaved = [];
-      if (target.isBound() && isLatest()) target.apply(saved);
+      if (!target.isBound()) return;
+      // A read started meanwhile may predate this save: read again rather than keep a stale one.
+      if (isLatest()) target.apply(saved);
+      else void target.refresh();
     },
   });
 }
@@ -165,15 +167,15 @@ function testParticipantEdits(target: WriteTarget): AudienceVariablePreset[] {
   const rows = creator.variablePresets?.presets ?? [];
   const installed = saved();
   const savedNames = new Set(installed.map((preset) => preset.name));
-  const clashing = rows
-    .map(({ name }) => name)
-    .filter((name) => isReadOnly(name) && !savedNames.has(name));
-  const testRows = rows
-    .filter(({ name }) => !isReadOnly(name))
-    .map(({ name, variables }) => ({
-      name,
-      variables: structuredClone(variables ?? {}),
-    }));
+  const clashing: string[] = [];
+  const testRows: AudienceVariablePreset[] = [];
+  for (const { name, variables } of rows) {
+    if (!isReadOnly(name)) {
+      testRows.push({ name, variables: structuredClone(variables ?? {}) });
+    } else if (!savedNames.has(name)) {
+      clashing.push(name);
+    }
+  }
   if (clashing.length > 0) creator.notify(clashMessage(clashing), "error");
   return changedPresets(testRows, installed);
 }
