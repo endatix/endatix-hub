@@ -18,7 +18,7 @@ const OPEN_LOG = {
 
 /**
  * Test as this participant: opens a new test submission and keeps its token in the form cookie, the
- * same store the personalized-link route writes, so `/share/{formId}` opens it.
+ * same store a personalized link's page writes, so `/share/{formId}` opens it.
  */
 export async function openTestSubmissionAction(
   formId: string,
