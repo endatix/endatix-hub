@@ -196,18 +196,24 @@ function ColumnTally({
   );
 }
 
-function ColumnsSection(props: Readonly<LoadedStepProps>) {
-  const { file, wizard } = props;
+/** The columns mapped by hand and the choice columns read by name, against the known properties. */
+function fileColumns({ file, wizard }: LoadedStepProps) {
   const { headers } = file.preview;
-  const identifier = wizard.choices.identifierColumn;
-  const { properties } = wizard;
-  const columns = mappableColumns(headers, identifier, properties);
-  const groups = choiceColumnGroups(headers, properties);
+  const { properties, choices } = wizard;
+  return {
+    columns: mappableColumns(headers, choices.identifierColumn, properties),
+    groups: choiceColumnGroups(headers, properties),
+  };
+}
+
+function ColumnsSection(props: Readonly<LoadedStepProps>) {
+  const { wizard } = props;
+  const { columns, groups } = fileColumns(props);
   return (
     <PanelSection
       icon={Columns3}
       title="Columns"
-      description={columnsDescription(properties, groups)}
+      description={columnsDescription(wizard.properties, groups)}
       aside={<ColumnTally wizard={wizard} columns={columns} />}
     >
       {columns.map((column, index) => (

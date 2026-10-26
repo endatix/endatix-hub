@@ -1,6 +1,7 @@
 "use client";
 
 import { ListPlus } from "lucide-react";
+import type { ChangeEvent } from "react";
 import { FieldWithHelp, helpId } from "@/components/common/field-with-help";
 import { PanelSection } from "@/components/common/panel-section";
 import { SummaryRow } from "@/components/common/summary-row";
@@ -50,44 +51,52 @@ function fieldLabel(label: string, column: string) {
   );
 }
 
-function NameField({ wizard, draft, index }: Readonly<DraftProps>) {
-  const id = `import-new-name-${index}`;
-  const { check } = draft;
+/** The free name a collision suggests, one click away; the warning never blocks. */
+function UseSuggestedName({ wizard, draft }: Readonly<DraftProps>) {
+  const { suggestedName } = draft.check;
+  if (!suggestedName) return null;
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="sm"
+      className="justify-self-start"
+      disabled={wizard.pending}
+      onClick={() => wizard.newProperties.setName(draft.column, suggestedName)}
+    >
+      Use {suggestedName}
+    </Button>
+  );
+}
+
+function nameInputProps({ wizard, draft }: DraftProps, id: string) {
   const { newProperties } = wizard;
+  return {
+    id,
+    value: draft.name,
+    maxLength: 100,
+    autoComplete: "off",
+    disabled: wizard.pending,
+    "aria-invalid": draft.check.invalid,
+    "aria-describedby": helpId(id),
+    onChange: (event: ChangeEvent<HTMLInputElement>) =>
+      newProperties.setName(draft.column, event.target.value),
+    onBlur: () => newProperties.checkName(draft.name),
+  };
+}
+
+function NameField(props: Readonly<DraftProps>) {
+  const id = `import-new-name-${props.index}`;
+  const { check, column } = props.draft;
   return (
     <FieldWithHelp
       id={id}
-      label={fieldLabel("Name", draft.column)}
+      label={fieldLabel("Name", column)}
       invalid={check.invalid}
       help={nameHelp(check)}
     >
-      <Input
-        id={id}
-        value={draft.name}
-        maxLength={100}
-        autoComplete="off"
-        disabled={wizard.pending}
-        aria-invalid={check.invalid}
-        aria-describedby={helpId(id)}
-        onChange={(event) =>
-          newProperties.setName(draft.column, event.target.value)
-        }
-        onBlur={() => newProperties.checkName(draft.name)}
-      />
-      {check.suggestedName && (
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="justify-self-start"
-          disabled={wizard.pending}
-          onClick={() =>
-            newProperties.setName(draft.column, check.suggestedName ?? "")
-          }
-        >
-          Use {check.suggestedName}
-        </Button>
-      )}
+      <Input {...nameInputProps(props, id)} />
+      <UseSuggestedName {...props} />
     </FieldWithHelp>
   );
 }
@@ -120,27 +129,27 @@ function typeHelp({ suggestion, dataType }: CheckedDraft): string {
     : `${suggested} is suggested from ${evidence}`;
 }
 
-function TypeField({ wizard, draft, index }: Readonly<DraftProps>) {
-  const id = `import-new-type-${index}`;
+function typeSelectProps({ wizard, draft }: DraftProps, id: string) {
+  return {
+    id,
+    value: draft.dataType,
+    options: typeOptions(draft.suggestion),
+    describedBy: helpId(id),
+    disabled: wizard.pending,
+    onChange: (value: string) =>
+      wizard.newProperties.setDataType(draft.column, value as AudienceDataType),
+  };
+}
+
+function TypeField(props: Readonly<DraftProps>) {
+  const id = `import-new-type-${props.index}`;
   return (
     <FieldWithHelp
       id={id}
-      label={fieldLabel("Type", draft.column)}
-      help={typeHelp(draft)}
+      label={fieldLabel("Type", props.draft.column)}
+      help={typeHelp(props.draft)}
     >
-      <OptionsSelect
-        id={id}
-        value={draft.dataType}
-        options={typeOptions(draft.suggestion)}
-        describedBy={helpId(id)}
-        disabled={wizard.pending}
-        onChange={(value) =>
-          wizard.newProperties.setDataType(
-            draft.column,
-            value as AudienceDataType,
-          )
-        }
-      />
+      <OptionsSelect {...typeSelectProps(props, id)} />
     </FieldWithHelp>
   );
 }
@@ -173,23 +182,22 @@ function CreatedProperties({
   );
 }
 
+const DESCRIPTION =
+  "Types are suggested from the values in your file. Check each one: the properties are created on this form when you continue.";
+
 /** Step 3, only when a column is queued: a name and a confirmed type for each new property. */
 export function ImportPropertiesStep({
   wizard,
 }: Readonly<{ wizard: ImportWizard }>) {
+  const { drafts } = wizard.newProperties;
   return (
     <PanelSection
       icon={ListPlus}
       title="New properties"
-      description="Types are suggested from the values in your file. Check each one: the properties are created on this form when you continue."
+      description={DESCRIPTION}
     >
-      {wizard.newProperties.drafts.map((draft, index) => (
-        <DraftFields
-          key={draft.column}
-          wizard={wizard}
-          draft={draft}
-          index={index}
-        />
+      {drafts.map((draft, index) => (
+        <DraftFields key={draft.column} {...{ wizard, draft, index }} />
       ))}
       <CreatedProperties properties={wizard.createdProperties} />
     </PanelSection>

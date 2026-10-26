@@ -210,7 +210,8 @@ function useColumnChoices(setup: ImportCsvSetup) {
 export type ImportChoices = ReturnType<typeof useColumnChoices>;
 
 /** Where the wizard is before the import starts, and the steps either side of it along `order`. */
-function useImportSteps(order: readonly ImportStep[], onRestart: () => void) {
+function useImportSteps(steps: readonly StepDef[], onRestart: () => void) {
+  const order: readonly ImportStep[] = steps.map((s) => s.id);
   const [step, setStep] = useState<ImportStep>(order[0]);
   const previous = stepAt(order, step, -1);
   return {
@@ -399,31 +400,63 @@ function withCreated(
   return [...properties, ...created.filter((p) => !known.has(p.id))];
 }
 
+/** The properties this wizard created, which the page may not show yet, and a column mapper. */
+function useCreatedProperties(choices: ImportChoices) {
+  const [created, setCreated] = useState<AudienceProperty[]>([]);
+  const onCreated = (column: string, property: AudienceProperty) => {
+    setCreated((current) => [...current, property]);
+    choices.setColumn(column, property.variableName);
+  };
+  return {
+    createdProperties: created,
+    onCreated,
+    resetCreated: () => setCreated([]),
+  };
+}
+
 /** The New properties step's drafts for the columns queued on the Columns step. */
 function useQueuedProperties(
   setup: ImportCsvSetup,
   file: LoadedFile | null,
   choices: ImportChoices,
 ) {
-  const [created, setCreated] = useState<AudienceProperty[]>([]);
-  const properties = withCreated(setup.properties, created);
+  const { createdProperties, onCreated, resetCreated } =
+    useCreatedProperties(choices);
+  const properties = withCreated(setup.properties, createdProperties);
+  const queued = queuedColumns(file?.preview.headers ?? [], choices.columns);
+  const { formId } = setup;
   const newProperties = useNewProperties({
-    formId: setup.formId,
-    file,
-    queued: queuedColumns(file?.preview.headers ?? [], choices.columns),
-    properties,
-    onCreated: (column, property) => {
-      setCreated((current) => [...current, property]);
-      choices.setColumn(column, property.variableName);
-    },
+    ...{ formId, file, queued, properties, onCreated },
   });
-  const reset = () => {
-    setCreated([]);
-    newProperties.reset();
-  };
-  const withStep = newProperties.drafts.length > 0 || created.length > 0;
-  return { newProperties, properties, created, withStep, reset };
+  return { newProperties, properties, createdProperties, resetCreated };
 }
+
+/** The file, the choices made against it, and the new properties they queue. */
+function useImportInputs(setup: ImportCsvSetup) {
+  const choices = useColumnChoices(setup);
+  const { reset, ...source } = useImportFile(setup.importLimits, (file) =>
+    choices.suggest(file.preview.headers),
+  );
+  const { resetCreated, ...queued } = useQueuedProperties(
+    setup,
+    source.file,
+    choices,
+  );
+  const restart = () => {
+    reset();
+    resetCreated();
+    queued.newProperties.reset();
+  };
+  const withStep = hasNewProperties(queued);
+  return { choices, source, queued, withStep, restart };
+}
+
+/** New properties is a step while a column is queued for one, or one was created. */
+const hasNewProperties = (queued: {
+  newProperties: NewProperties;
+  createdProperties: readonly AudienceProperty[];
+}) =>
+  queued.newProperties.drafts.length > 0 || queued.createdProperties.length > 0;
 
 /**
  * The Import participants wizard: file → columns → new properties → review → outcome, in one panel.
@@ -432,34 +465,17 @@ function useQueuedProperties(
  * A running import outlives the panel: closing it keeps the import, and the panel opens on it.
  */
 export function useImportCsv(setup: ImportCsvSetup) {
-  const choices = useColumnChoices(setup);
-  const { reset, ...source } = useImportFile(setup.importLimits, (file) =>
-    choices.suggest(file.preview.headers),
-  );
-  const queued = useQueuedProperties(setup, source.file, choices);
-  const order = stepsFor(queued.withStep).map((step) => step.id);
-  const steps = useImportSteps(order, () => {
-    reset();
-    queued.reset();
-  });
+  const { choices, source, queued, withStep, restart } = useImportInputs(setup);
+  const steps = useImportSteps(stepsFor(withStep), restart);
   const { run, panel } = useRunPanel(setup, steps.restart);
-  const { newProperties } = queued;
-  const wizard = {
-    file: source.file,
-    choices,
-    newProperties,
-    steps,
-    run,
-    close: panel.close,
-  };
+  const { file } = source;
+  const wizard = { ...queued, file, choices, steps, run, close: panel.close };
   return {
     ...source,
     ...panel,
+    ...queued,
     ...stepState(wizard),
     choices,
-    newProperties,
-    properties: queued.properties,
-    createdProperties: queued.created,
     run,
     ...runControls(wizard, setup.importLimits),
   };

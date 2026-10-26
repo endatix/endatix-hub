@@ -46,6 +46,20 @@ function useBaseDrafts(file: LoadedFile | null) {
   };
 }
 
+const variablesToAsk = (names: readonly string[]) => [
+  ...new Set(names.flatMap((name) => candidateVariables(name))),
+];
+
+/** The lower-case variables the saved form writes, with what writes them. */
+async function formTaken(formId: string, variables: string[]) {
+  const result = await checkPropertyNamesAction(formId, variables);
+  // A failed check only loses the warning; it never holds the import.
+  if (Result.isError(result)) return [];
+  return result.value.map(
+    ({ variable, declaredBy }) => [variable.toLowerCase(), declaredBy] as const,
+  );
+}
+
 /**
  * What the saved form already writes, by lower-case variable name, from the server's lint. Each
  * name is asked about once, with the suffixed names a suggestion may take.
@@ -56,19 +70,11 @@ function useFormCollisions(formId: string) {
   );
   const asked = useRef(new Set<string>());
   /** Asks about the names not asked yet; resolves to the lower-case variables found taken. */
-  const check = async (names: string[]): Promise<string[]> => {
-    const fresh = [
-      ...new Set(names.flatMap((name) => candidateVariables(name))),
-    ].filter((variable) => !asked.current.has(variable));
+  const check = async (names: readonly string[]): Promise<string[]> => {
+    const fresh = variablesToAsk(names).filter((v) => !asked.current.has(v));
     if (fresh.length === 0) return [];
     for (const variable of fresh) asked.current.add(variable);
-    const result = await checkPropertyNamesAction(formId, fresh);
-    // A failed check only loses the warning; it never holds the import.
-    if (Result.isError(result)) return [];
-    const taken = result.value.map(
-      ({ variable, declaredBy }) =>
-        [variable.toLowerCase(), declaredBy] as const,
-    );
+    const taken = await formTaken(formId, fresh);
     setFound((current) => new Map([...current, ...taken]));
     return taken.map(([variable]) => variable);
   };
@@ -144,69 +150,129 @@ function useDraftEdits() {
   return { edits, edit, reset: () => setEdits({}) };
 }
 
+type OnCreated = NewPropertiesSetup["onCreated"];
+
+/** Creates each draft in turn, mapping its column as it goes; stops at the first refusal. */
+async function createAll(
+  formId: string,
+  drafts: readonly PropertyDraft[],
+  onCreated: OnCreated,
+): Promise<Result<ColumnMap>> {
+  const map: ColumnMap = {};
+  for (const draft of drafts) {
+    const result = await createAudiencePropertyAction(
+      createInput(formId, draft),
+    );
+    if (Result.isError(result)) return result;
+    map[draft.column] = result.value.variableName;
+    onCreated(draft.column, result.value);
+  }
+  return Result.success(map);
+}
+
+/** The creates' pending and refusal; `run` resolves to the columns mapped, or `null`. */
+function useDraftCreates(formId: string, onCreated: OnCreated) {
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const run = async (drafts: readonly PropertyDraft[]) => {
+    setError(null);
+    setCreating(true);
+    try {
+      const created = await createAll(formId, drafts, onCreated);
+      if (Result.isSuccess(created)) return created.value;
+      setError(created.message);
+      return null;
+    } finally {
+      setCreating(false);
+    }
+  };
+  return { creating, error, setError, run };
+}
+
+type Collisions = ReturnType<typeof useFormCollisions>;
+type Creates = ReturnType<typeof useDraftCreates>;
+
+/** Asks the form about the names first: a warning found only now shows, and the next Continue creates. */
+async function createChecked(
+  drafts: CheckedDraft[],
+  collisions: Collisions,
+  creates: Creates,
+): Promise<ColumnMap | null> {
+  creates.setError(null);
+  const taken = await collisions.check(drafts.map((draft) => draft.name));
+  if (drafts.some((draft) => taken.includes(draft.check.variableName)))
+    return null;
+  return creates.run(drafts);
+}
+
+/** Each queued column's draft with the scripter's edits, and what holds its name. */
+function useCheckedDrafts(
+  setup: NewPropertiesSetup,
+  edits: Record<string, DraftEdit>,
+  found: ReadonlyMap<string, VariableHolder>,
+): CheckedDraft[] {
+  const baseDraft = useBaseDrafts(setup.file);
+  const plain = setup.queued.map((column) => ({
+    ...baseDraft(column),
+    ...edits[column],
+  }));
+  return checkedDrafts(plain, found, setup.properties);
+}
+
 /**
  * The New properties step: a draft per queued column (tidied name, suggested type with its
  * evidence), warnings for names something already holds, and the creates. Nothing is created
  * until `create`, which the step's Continue runs; each property is created once.
  */
 export function useNewProperties(setup: NewPropertiesSetup) {
-  const { formId, queued, properties, onCreated } = setup;
-  const state = useDraftEdits();
-  const baseDraft = useBaseDrafts(setup.file);
-  const collisions = useFormCollisions(formId);
-  const [creating, setCreating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const plain = queued.map((column) => ({
-    ...baseDraft(column),
-    ...state.edits[column],
-  }));
-  const drafts = checkedDrafts(plain, collisions.found, properties);
-  const names = () => drafts.map((draft) => draft.name);
-
-  /** Creates each draft in turn and maps its column; `null` when one fails or a new warning shows. */
-  const create = async (): Promise<ColumnMap | null> => {
-    setError(null);
-    const taken = await collisions.check(names());
-    if (drafts.some((d) => taken.includes(d.check.variableName))) return null;
-    setCreating(true);
-    const map: ColumnMap = {};
-    try {
-      for (const draft of drafts) {
-        const result = await createAudiencePropertyAction(
-          createInput(formId, draft),
-        );
-        if (Result.isError(result)) {
-          setError(result.message);
-          return null;
-        }
-        map[draft.column] = result.value.variableName;
-        onCreated(draft.column, result.value);
-      }
-      return map;
-    } finally {
-      setCreating(false);
-    }
-  };
-
+  const edits = useDraftEdits();
+  const collisions = useFormCollisions(setup.formId);
+  const creates = useDraftCreates(setup.formId, setup.onCreated);
+  const drafts = useCheckedDrafts(setup, edits.edits, collisions.found);
   return {
     drafts,
-    creating,
-    error,
+    creating: creates.creating,
+    error: creates.error,
     canCreate: drafts.every((draft) => !draft.check.invalid),
-    create,
-    setName: (column: string, name: string) => state.edit(column, { name }),
+    create: () => createChecked(drafts, collisions, creates),
+    ...editControls(edits),
+    ...checkControls(collisions, drafts),
+    ...resetControls(edits, collisions, creates),
+  };
+}
+
+function resetControls(
+  edits: ReturnType<typeof useDraftEdits>,
+  collisions: Collisions,
+  creates: Creates,
+) {
+  return {
+    clearError: () => creates.setError(null),
+    reset: () => {
+      edits.reset();
+      collisions.reset();
+      creates.setError(null);
+    },
+  };
+}
+
+function editControls(edits: ReturnType<typeof useDraftEdits>) {
+  return {
+    setName: (column: string, name: string) => edits.edit(column, { name }),
     setDataType: (column: string, dataType: AudienceDataType) =>
-      state.edit(column, { dataType }),
+      edits.edit(column, { dataType }),
+  };
+}
+
+function checkControls(
+  collisions: Collisions,
+  drafts: readonly PropertyDraft[],
+) {
+  return {
     /** Asks the form about every draft's name: on arriving at the step. */
-    checkAll: () => void collisions.check(names()),
+    checkAll: () => void collisions.check(drafts.map((draft) => draft.name)),
     /** Asks the form about one draft's name: when its field loses focus. */
     checkName: (name: string) => void collisions.check([name]),
-    clearError: () => setError(null),
-    reset: () => {
-      state.reset();
-      collisions.reset();
-      setError(null);
-    },
   };
 }
 

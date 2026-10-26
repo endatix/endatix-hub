@@ -68,22 +68,25 @@ export function variableCollisions(
   json: object,
   names: readonly string[],
 ): VariableCollision[] {
-  const definition = {
-    elements: names.map((name) => ({ type: "text", name })),
-  };
-  const declared = new Map<string, VariableCollision["declaredBy"]>();
-  for (const finding of runLint(json, COLLISION_RULES, {
-    definition,
-    presets: [],
-  })) {
-    const { variable, kind } = finding.messageData;
-    declared.set(
-      String(variable).toLowerCase(),
-      kind === "question" ? "question" : "calculatedValue",
-    );
-  }
+  const declared = declaredVariables(json, names);
   return names.flatMap((variable) => {
     const declaredBy = declared.get(variable.toLowerCase());
     return declaredBy ? [{ variable, declaredBy }] : [];
   });
+}
+
+/** What writes each of the names, by lower-case name, linted with them as the variable definition. */
+function declaredVariables(json: object, names: readonly string[]) {
+  const definition = {
+    elements: names.map((name) => ({ type: "text", name })),
+  };
+  const findings = runLint(json, COLLISION_RULES, { definition, presets: [] });
+  return new Map(
+    findings.map(({ messageData: { variable, kind } }) => [
+      String(variable).toLowerCase(),
+      kind === "question"
+        ? ("question" as const)
+        : ("calculatedValue" as const),
+    ]),
+  );
 }
