@@ -118,12 +118,15 @@ function typeOptions(suggestion: TypeSuggestion): SelectOption[] {
   }));
 }
 
+const lowerFirst = (text: string) =>
+  text.charAt(0).toLowerCase() + text.slice(1);
+
 /** The evidence behind the suggestion, kept in view once the scripter picks another type. */
 function typeHelp({ suggestion, dataType }: CheckedDraft): string {
   const suggested = dataTypeLabel(suggestion.dataType);
   if (suggestion.values.length === 0)
     return `${suggestion.reason}, so ${suggested} is suggested.`;
-  const evidence = `values like ${suggestion.values.join(" · ")}: ${suggestion.reason.toLowerCase()}.`;
+  const evidence = `values like ${suggestion.values.join(" · ")}: ${lowerFirst(suggestion.reason)}.`;
   return dataType === suggestion.dataType
     ? `Suggested from ${evidence}`
     : `${suggested} is suggested from ${evidence}`;
