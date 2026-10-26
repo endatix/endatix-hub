@@ -6,6 +6,8 @@ import {
 } from "@/lib/endatix-api/audience/types";
 import {
   choiceColumnGroups,
+  columnTally,
+  CREATE_COLUMN,
   mappableColumns,
   propertyColumnMap,
   SKIP_COLUMN,
@@ -89,6 +91,27 @@ describe("column choices", () => {
     expect(propertyColumnMap(map)).toEqual({
       family_size: "Family size",
       age: "age",
+    });
+  });
+
+  it("queues a column no property is named like for a new property", () => {
+    const map = suggestColumnMap(["age", "segment", "brands"], PROPERTIES);
+
+    expect(map).toEqual({
+      age: "age",
+      segment: CREATE_COLUMN,
+      brands: SKIP_COLUMN,
+    });
+    expect(propertyColumnMap(map)).toEqual({ age: "age" });
+  });
+
+  it("counts the columns mapped, to create and ignored", () => {
+    const map = { age: "age", segment: CREATE_COLUMN, notes: SKIP_COLUMN };
+
+    expect(columnTally(["age", "segment", "notes", "region"], map)).toEqual({
+      mapped: 1,
+      toCreate: 1,
+      ignored: 2,
     });
   });
 

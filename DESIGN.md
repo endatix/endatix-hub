@@ -1067,7 +1067,9 @@ Single-submit create with draft + lock + in-panel failure (the common case):
   are an ordered list, so a later step slots in without renumbering the others. Reference:
   `features/audience/import-csv/use-import-csv.hook.ts`.
 - **Nothing is written before the last input step.** Earlier steps only read and choose, so
-  closing the panel on any of them costs nothing. The review step's primary names what it will
+  closing the panel on any of them costs nothing. The one exception is a step whose records the
+  write needs to exist first (an import's New properties): its `Continue` names the write with a
+  count ("Create 2 properties"), and closing before it still creates nothing. The review step's primary names what it will
   do with a count ("Import 20 rows"), not "Confirm".
 - **State is not in the chrome.** `PanelForm` does not own field values. A slice hook (or, for a
   multi-step outcome, the panel itself) owns the draft, open/reset, and the write; the feature's
@@ -1133,9 +1135,17 @@ which_, _what will happen_. Reference: `features/audience/import-csv/`.
   with a placeholder and `Continue` waits. A wrong silent guess would match every row to the
   wrong person.
 - **Map from the file's side.** One row per column, in file order: its name (monospace, a
-  literal), its sample, and a select of targets with `Don't import` first. A target fed by
-  one column leaves the other columns' selects, so two columns can never fill one target. The
-  section `aside` keeps a running tally ("4 of 11 imported"), so a column left unhandled shows.
+  literal), its sample, and a select of targets with `Don't import` first, then `Create new
+property…`. A target fed by one column leaves the other columns' selects, so two columns can
+  never fill one target. A column named like no target starts on `Create new property…`. The
+  section `aside` keeps a running tally ("4 mapped, 2 to create, 1 ignored"), so a column left
+  unhandled shows.
+- **A new target is suggested, then confirmed.** The New properties step appears only when a
+  column is queued. Each row has a name (the tidied heading) and a type suggested from every
+  value in the file, with its evidence in the help line ("Suggested from values like A · B: 2
+  distinct values."). A name something already holds (a form question, a property, another new
+  row) is a warning with a `Use <free name>` button, never a block; only a name with no letter or
+  digit holds `Continue`. A date whose day and month could swap never suggests date.
 - **What is read by convention is listed, not offered.** Columns the server maps by their names
   (`brands__nike` for a choice property) appear read-only under the selects, so the reader
   knows they will be imported. A target the file cannot fill yet is named in the section

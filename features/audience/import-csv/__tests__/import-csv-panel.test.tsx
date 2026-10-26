@@ -118,7 +118,7 @@ describe("ImportCsvPanel: file, columns and start", () => {
       headers: ["external_id", "age", "city"],
       rowCount: 2,
       identifierColumn: "external_id",
-      propertyColumns: { age: "age" },
+      propertyColumns: { age: "age", city: "city" },
       isTest: false,
     });
     expect(sendAudienceImportChunkAction).toHaveBeenCalledWith({

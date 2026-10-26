@@ -11,6 +11,8 @@ import { TestPersonCheckbox } from "../../ui/test-person-checkbox";
 import { identifierKindLabel } from "../../utils";
 import {
   choiceColumnGroups,
+  columnTally,
+  CREATE_COLUMN,
   importableProperties,
   isChoiceProperty,
   mappableColumns,
@@ -30,6 +32,10 @@ type LoadedStepProps = StepProps & { file: LoadedFile };
 
 const IDENTIFIER_ID = "import-identifier";
 const SKIP_OPTION: SelectOption = { value: SKIP_COLUMN, label: "Don't import" };
+const CREATE_OPTION: SelectOption = {
+  value: CREATE_COLUMN,
+  label: "Create new property…",
+};
 
 function identifierHelp({ wizard, file, setup }: LoadedStepProps): string {
   const { identifierColumn, suggestedIdentifier } = wizard.choices;
@@ -92,7 +98,7 @@ function takenByOthers(column: string, columns: ColumnMap): Set<string> {
   );
 }
 
-/** Don't import, then every property no other column feeds yet. */
+/** Don't import, create a new property, then every property no other column feeds yet. */
 function propertyOptions(
   column: string,
   wizard: ImportWizard,
@@ -104,6 +110,7 @@ function propertyOptions(
   );
   return [
     SKIP_OPTION,
+    CREATE_OPTION,
     ...free.map((property) => ({
       value: property.variableName,
       label: `${property.name} · ${dataTypeLabel(property.dataType)}`,
@@ -114,7 +121,7 @@ function propertyOptions(
 type ColumnFieldProps = LoadedStepProps & { column: string; index: number };
 
 function ColumnField({ column, index, ...props }: Readonly<ColumnFieldProps>) {
-  const { wizard, file, setup } = props;
+  const { wizard, file } = props;
   const id = `import-column-${index}`;
   return (
     <FieldWithHelp
@@ -125,7 +132,7 @@ function ColumnField({ column, index, ...props }: Readonly<ColumnFieldProps>) {
       <OptionsSelect
         id={id}
         value={wizard.choices.columns[column] ?? SKIP_COLUMN}
-        options={propertyOptions(column, wizard, setup.properties)}
+        options={propertyOptions(column, wizard, wizard.properties)}
         describedBy={helpId(id)}
         disabled={wizard.pending}
         onChange={(value) => wizard.choices.setColumn(column, value)}
@@ -160,14 +167,14 @@ function columnsDescription(
   groups: ChoiceColumnGroup[],
 ): string {
   if (properties.length === 0) {
-    return "This form has no properties yet, so only the identifier is imported. Add properties on the Properties view to import more columns.";
+    return "This form has no properties yet, so each column can become a new one.";
   }
   const read = new Set(groups.map((group) => group.property.id));
   const unread = properties.filter(
     (property) => isChoiceProperty(property) && !read.has(property.id),
   );
   const base =
-    "Each column fills one property. Columns named like a property are matched already.";
+    "Each column fills one property. Columns named like a property are matched already; the others become new properties.";
   if (unread.length === 0) return base;
   const names = unread.map((property) => property.name).join(", ");
   return `${base} ${names}: choice properties fill only from columns named like ${unread[0].variableName}__choice.`;
@@ -178,28 +185,29 @@ function ColumnTally({
   columns,
 }: Readonly<{ wizard: ImportWizard; columns: string[] }>) {
   if (columns.length === 0) return null;
-  const map = wizard.choices.columns;
-  const imported = columns.filter(
-    (column) => (map[column] ?? SKIP_COLUMN) !== SKIP_COLUMN,
+  const { mapped, toCreate, ignored } = columnTally(
+    columns,
+    wizard.choices.columns,
   );
   return (
     <span className="text-xs text-muted-foreground">
-      {imported.length} of {columns.length} imported
+      {mapped} mapped, {toCreate} to create, {ignored} ignored
     </span>
   );
 }
 
 function ColumnsSection(props: Readonly<LoadedStepProps>) {
-  const { file, setup, wizard } = props;
+  const { file, wizard } = props;
   const { headers } = file.preview;
   const identifier = wizard.choices.identifierColumn;
-  const columns = mappableColumns(headers, identifier, setup.properties);
-  const groups = choiceColumnGroups(headers, setup.properties);
+  const { properties } = wizard;
+  const columns = mappableColumns(headers, identifier, properties);
+  const groups = choiceColumnGroups(headers, properties);
   return (
     <PanelSection
       icon={Columns3}
       title="Columns"
-      description={columnsDescription(setup.properties, groups)}
+      description={columnsDescription(properties, groups)}
       aside={<ColumnTally wizard={wizard} columns={columns} />}
     >
       {columns.map((column, index) => (

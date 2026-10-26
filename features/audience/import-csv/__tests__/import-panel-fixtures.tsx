@@ -27,7 +27,7 @@ import { ImportCsvPanel } from "../ui/import-csv-panel";
  * and the media query itself (`vi.mock` is per file); these helpers drive the mocked actions.
  */
 
-const AGE: AudienceProperty = {
+export const AGE: AudienceProperty = {
   id: "7",
   formId: "1",
   variableName: "age",
@@ -37,6 +37,15 @@ const AGE: AudienceProperty = {
   dataListId: null,
   choicesJson: null,
   allowsOther: false,
+};
+
+const CITY: AudienceProperty = {
+  ...AGE,
+  id: "8",
+  variableName: "city",
+  name: "City",
+  dataType: AudienceDataType.Text,
+  sortOrder: 1,
 };
 
 export const BACKGROUND: AudienceImportLimits = {
@@ -104,12 +113,15 @@ export function serveReads(
   );
 }
 
-export function renderPanel(limits: AudienceImportLimits = BACKGROUND) {
+export function renderPanel(
+  limits: AudienceImportLimits = BACKGROUND,
+  properties: AudienceProperty[] = [AGE, CITY],
+) {
   render(
     <ImportCsvPanel
       formId="1"
       identifierKind={AudienceIdentifierKind.ExternalId}
-      properties={[AGE]}
+      properties={properties}
       importLimits={limits}
     />,
   );

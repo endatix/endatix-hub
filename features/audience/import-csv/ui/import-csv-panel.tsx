@@ -12,7 +12,6 @@ import { confirmCount, isTerminal } from "../import-run";
 import { participantCountLabel } from "../import-labels";
 import {
   canContinue,
-  IMPORT_STEPS,
   runView,
   useImportCsv,
   type ImportCsvSetup,
@@ -20,6 +19,7 @@ import {
 } from "../use-import-csv.hook";
 import { ImportColumnsStep } from "./import-columns-step";
 import { ImportFileStep } from "./import-file-step";
+import { ImportPropertiesStep } from "./import-properties-step";
 import { ImportResultSummary } from "./import-result-summary";
 import { ImportReviewStep } from "./import-review-step";
 
@@ -42,6 +42,8 @@ const STEP_DESCRIPTION = {
   file: "Add participants from a CSV file. Nothing is written until you confirm.",
   columns:
     "Choose the column that identifies participants and what the others fill. Continue sends the file and checks it.",
+  properties:
+    "Name each new property and confirm its type. Continue creates them, then sends the file and checks it.",
 } as const;
 
 const KEEPS_GOING =
@@ -82,17 +84,28 @@ function ImportDescription({ wizard }: Readonly<{ wizard: ImportWizard }>) {
   const view = runView(wizard.run);
   let text: string;
   if (view === null) {
-    const step = wizard.step === "columns" ? "columns" : "file";
-    text = STEP_DESCRIPTION[step];
+    const { step } = wizard;
+    text =
+      STEP_DESCRIPTION[
+        step === "columns" || step === "properties" ? step : "file"
+      ];
   } else {
     text = runningDescription(wizard, view);
   }
   return <span aria-live="polite">{text}</span>;
 }
 
+/** `Create 2 properties`: the step's Continue names what it writes. */
+function createLabel(wizard: ImportWizard): string {
+  const count = wizard.newProperties.drafts.length;
+  if (count === 0) return "Continue";
+  return count === 1 ? "Create 1 property" : `Create ${count} properties`;
+}
+
 function submitLabel(wizard: ImportWizard): string {
   const view = runView(wizard.run);
-  if (!view) return "Continue";
+  if (!view)
+    return wizard.step === "properties" ? createLabel(wizard) : "Continue";
   if (wizard.step === "done") return "Done";
   if (view.canResume) return "Resume import";
   if (wizard.run.canSendAgain) return "Send the rest of the file";
@@ -111,6 +124,7 @@ function ActiveStep({ wizard, setup }: Readonly<BodyProps>) {
     return (
       <ImportReviewStep wizard={wizard} identifierKind={setup.identifierKind} />
     );
+  if (step === "properties") return <ImportPropertiesStep wizard={wizard} />;
   if (step === "file" || !file)
     return <ImportFileStep wizard={wizard} limits={setup.importLimits} />;
   return <ImportColumnsStep wizard={wizard} setup={setup} file={file} />;
@@ -122,6 +136,11 @@ const PANEL = {
   errorTitle: "The import needs attention",
 } as const;
 
+const PENDING_LABEL: Partial<Record<ImportWizard["step"], string>> = {
+  columns: "Starting…",
+  properties: "Creating…",
+};
+
 /** What `PanelForm` shows for the wizard's current step. */
 function stepProps(wizard: ImportWizard) {
   const running = runView(wizard.run) !== null;
@@ -130,7 +149,7 @@ function stepProps(wizard: ImportWizard) {
     onOpenChange: wizard.openChange,
     trigger: trigger(runView(wizard.run)),
     pending: wizard.pending,
-    pendingLabel: wizard.step === "columns" ? "Starting…" : "Working…",
+    pendingLabel: PENDING_LABEL[wizard.step] ?? "Working…",
     error: wizard.error,
     description: <ImportDescription wizard={wizard} />,
     submitLabel: submitLabel(wizard),
@@ -152,7 +171,7 @@ export function ImportCsvPanel(setup: Readonly<ImportCsvSetup>) {
   return (
     <PanelForm {...PANEL} {...stepProps(wizard)}>
       {wizard.step === "done" ? null : (
-        <PanelSteps steps={IMPORT_STEPS} current={wizard.stepNumber} />
+        <PanelSteps steps={wizard.stepLabels} current={wizard.stepNumber} />
       )}
       <ActiveStep wizard={wizard} setup={setup} />
     </PanelForm>

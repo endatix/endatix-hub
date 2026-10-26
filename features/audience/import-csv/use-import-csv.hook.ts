@@ -26,10 +26,15 @@ import {
 } from "./use-audience-import.hook";
 import {
   propertyColumnMap,
+  queuedColumns,
   SKIP_COLUMN,
   suggestColumnChoices,
   type ColumnMap,
 } from "./column-map";
+import {
+  useNewProperties,
+  type NewProperties,
+} from "./use-new-properties.hook";
 
 /**
  * The wizard's steps in order, with the label its track shows; the outcome (`done`) is not one.
@@ -38,26 +43,34 @@ import {
 const STEPS = [
   { id: "file", label: "File" },
   { id: "columns", label: "Columns" },
+  { id: "properties", label: "New properties" },
   { id: "review", label: "Review" },
 ] as const;
 
 export type ImportStep = (typeof STEPS)[number]["id"] | "done";
 
-export const IMPORT_STEPS: readonly string[] = STEPS.map((step) => step.label);
+type StepDef = (typeof STEPS)[number];
 
 /** The step whose arrival starts the import; the run's progress and preview show there. */
 const START_STEP: ImportStep = "review";
 
-const ORDER: readonly ImportStep[] = STEPS.map((step) => step.id);
-
-/** The step `offset` away along the track, or `undefined` past either end or from the outcome. */
-function stepAt(step: ImportStep, offset: number): ImportStep | undefined {
-  const at = ORDER.indexOf(step);
-  return at < 0 ? undefined : ORDER[at + offset];
+/** The steps this import takes: New properties only while a column is queued for one or was created. */
+function stepsFor(withProperties: boolean): readonly StepDef[] {
+  return STEPS.filter((step) => withProperties || step.id !== "properties");
 }
 
-const stepNumber = (step: ImportStep) =>
-  step === "done" ? ORDER.length + 1 : ORDER.indexOf(step) + 1;
+/** The step `offset` away along `order`, or `undefined` past either end or from the outcome. */
+function stepAt(
+  order: readonly ImportStep[],
+  step: ImportStep,
+  offset: number,
+): ImportStep | undefined {
+  const at = order.indexOf(step);
+  return at < 0 ? undefined : order[at + offset];
+}
+
+const stepNumber = (order: readonly ImportStep[], step: ImportStep) =>
+  step === "done" ? order.length + 1 : order.indexOf(step) + 1;
 
 export type ImportCsvSetup = {
   formId: string;
@@ -196,33 +209,36 @@ function useColumnChoices(setup: ImportCsvSetup) {
 
 export type ImportChoices = ReturnType<typeof useColumnChoices>;
 
-/** Where the wizard is before the import starts, and the steps either side of it. */
-function useImportSteps(onRestart: () => void) {
-  const [step, setStep] = useState<ImportStep>(ORDER[0]);
-  const previous = stepAt(step, -1);
+/** Where the wizard is before the import starts, and the steps either side of it along `order`. */
+function useImportSteps(order: readonly ImportStep[], onRestart: () => void) {
+  const [step, setStep] = useState<ImportStep>(order[0]);
+  const previous = stepAt(order, step, -1);
   return {
     step,
-    next: stepAt(step, 1),
+    order,
+    next: stepAt(order, step, 1),
     setStep,
     back: previous ? () => setStep(previous) : undefined,
     /** Back to the first step with no file: a new import from the start. */
     restart: () => {
       onRestart();
-      setStep(ORDER[0]);
+      setStep(order[0]);
     },
   };
 }
 
+/** `columns` is the choices' map with the columns just mapped to new properties. */
 function startRequest(
   file: LoadedFile,
   choices: ImportChoices,
+  columns: ColumnMap,
 ): StartAudienceImportRequest {
   return {
     fileName: file.name,
     headers: file.preview.headers,
     rowCount: file.preview.rowCount,
     identifierColumn: choices.identifierColumn,
-    propertyColumns: propertyColumnMap(choices.columns),
+    propertyColumns: propertyColumnMap(columns),
     isTest: choices.asTest,
   };
 }
@@ -261,6 +277,7 @@ function runAction(run: AudienceImportRun, close: () => void) {
 export function canContinue(wizard: ImportWizard): boolean {
   if (wizard.step === "file") return wizard.file !== null;
   if (wizard.step === "columns") return wizard.choices.identifierColumn !== "";
+  if (wizard.step === "properties") return wizard.newProperties.canCreate;
   return wizard.runAction !== null;
 }
 
@@ -286,35 +303,60 @@ function useRunPanel(setup: ImportCsvSetup, startOver: () => void) {
 type Wizard = {
   file: LoadedFile | null;
   choices: ImportChoices;
+  newProperties: NewProperties;
   steps: ReturnType<typeof useImportSteps>;
   run: AudienceImportRun;
   close: () => void;
 };
 
-/** The footer's main button: the next step, the start after Columns, or the run's own action. */
-async function advanceWizard({ file, choices, steps, run, close }: Wizard) {
-  if (runStep(run)) return runAction(run, close)?.();
-  if (steps.next !== START_STEP) return steps.next && steps.setStep(steps.next);
-  if (!file) return;
-  if (await run.start(startRequest(file, choices), uploadFile(file)))
+/** Leaves a step before the start; arriving at New properties checks its names against the form. */
+function nextStep({ steps, newProperties }: Wizard) {
+  if (!steps.next) return;
+  if (steps.next === "properties") newProperties.checkAll();
+  steps.setStep(steps.next);
+}
+
+/** Creates the confirmed new properties, then starts the import with their columns mapped. */
+async function startImport(wizard: Wizard, file: LoadedFile) {
+  const { choices, steps, run, newProperties } = wizard;
+  let columns = choices.columns;
+  if (steps.step === "properties") {
+    const created = await newProperties.create();
+    if (!created) return;
+    columns = { ...columns, ...created };
+  }
+  if (await run.start(startRequest(file, choices, columns), uploadFile(file)))
     steps.setStep(START_STEP);
 }
 
+/** The footer's main button: the next step, the start before Review, or the run's own action. */
+async function advanceWizard(wizard: Wizard) {
+  const { file, steps, run, close } = wizard;
+  if (runStep(run)) return runAction(run, close)?.();
+  if (steps.next !== START_STEP) return nextStep(wizard);
+  if (file) await startImport(wizard, file);
+}
+
 /** Where the wizard is: the run's step once an import exists, else the local one with its Back. */
-function stepState(
-  steps: ReturnType<typeof useImportSteps>,
-  run: AudienceImportRun,
-) {
+function stepState({ steps, run, newProperties }: Wizard) {
   const ran = runStep(run);
   const step = ran ?? steps.step;
-  // A failed start's message belongs to the Columns step; going back to change a choice clears it.
+  // A failed start's or create's message belongs to the step; going back to change a choice clears it.
   const back =
     steps.back &&
     (() => {
       run.dismiss();
+      newProperties.clearError();
       steps.back?.();
     });
-  return { step, stepNumber: stepNumber(step), back: ran ? undefined : back };
+  return {
+    step,
+    stepNumber: stepNumber(steps.order, step),
+    stepLabels: stepsFor(steps.order.includes("properties")).map(
+      (s) => s.label,
+    ),
+    back: ran ? undefined : back,
+  };
 }
 
 /** Reads a re-chosen file and continues the cut-off upload from it, or says why it cannot. */
@@ -331,11 +373,11 @@ async function continueWithFile(
 
 /** The footer's action, the run's pending and error, and the re-chosen file, for the panel. */
 function runControls(wizard: Wizard, limits: AudienceImportLimits) {
-  const { run, close } = wizard;
+  const { run, close, newProperties } = wizard;
   return {
     runAction: runAction(run, close),
-    pending: run.pending,
-    error: run.error,
+    pending: run.pending || newProperties.creating,
+    error: newProperties.error ?? run.error,
     advance: () => advanceWizard(wizard),
     continueWith: (picked: File) => continueWithFile(run, picked, limits),
     // The stopped import is canceled first; a refused cancel keeps it on screen with the error.
@@ -348,9 +390,45 @@ function runControls(wizard: Wizard, limits: AudienceImportLimits) {
   };
 }
 
+/** The form's properties with the ones this wizard created, which the page may not show yet. */
+function withCreated(
+  properties: readonly AudienceProperty[],
+  created: readonly AudienceProperty[],
+): AudienceProperty[] {
+  const known = new Set(properties.map((property) => property.id));
+  return [...properties, ...created.filter((p) => !known.has(p.id))];
+}
+
+/** The New properties step's drafts for the columns queued on the Columns step. */
+function useQueuedProperties(
+  setup: ImportCsvSetup,
+  file: LoadedFile | null,
+  choices: ImportChoices,
+) {
+  const [created, setCreated] = useState<AudienceProperty[]>([]);
+  const properties = withCreated(setup.properties, created);
+  const newProperties = useNewProperties({
+    formId: setup.formId,
+    file,
+    queued: queuedColumns(file?.preview.headers ?? [], choices.columns),
+    properties,
+    onCreated: (column, property) => {
+      setCreated((current) => [...current, property]);
+      choices.setColumn(column, property.variableName);
+    },
+  });
+  const reset = () => {
+    setCreated([]);
+    newProperties.reset();
+  };
+  const withStep = newProperties.drafts.length > 0 || created.length > 0;
+  return { newProperties, properties, created, withStep, reset };
+}
+
 /**
- * The Import participants wizard: file → columns → review → outcome, in one panel. Leaving the
- * Columns step starts a staged import and uploads the file; nothing is written before Confirm.
+ * The Import participants wizard: file → columns → new properties → review → outcome, in one panel.
+ * Leaving New properties creates the confirmed properties, then starts a staged import and uploads
+ * the file (from Columns when no column is queued); no participant is written before Confirm.
  * A running import outlives the panel: closing it keeps the import, and the panel opens on it.
  */
 export function useImportCsv(setup: ImportCsvSetup) {
@@ -358,14 +436,30 @@ export function useImportCsv(setup: ImportCsvSetup) {
   const { reset, ...source } = useImportFile(setup.importLimits, (file) =>
     choices.suggest(file.preview.headers),
   );
-  const steps = useImportSteps(reset);
+  const queued = useQueuedProperties(setup, source.file, choices);
+  const order = stepsFor(queued.withStep).map((step) => step.id);
+  const steps = useImportSteps(order, () => {
+    reset();
+    queued.reset();
+  });
   const { run, panel } = useRunPanel(setup, steps.restart);
-  const wizard = { file: source.file, choices, steps, run, close: panel.close };
+  const { newProperties } = queued;
+  const wizard = {
+    file: source.file,
+    choices,
+    newProperties,
+    steps,
+    run,
+    close: panel.close,
+  };
   return {
     ...source,
     ...panel,
-    ...stepState(steps, run),
+    ...stepState(wizard),
     choices,
+    newProperties,
+    properties: queued.properties,
+    createdProperties: queued.created,
     run,
     ...runControls(wizard, setup.importLimits),
   };

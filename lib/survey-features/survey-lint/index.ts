@@ -4,4 +4,6 @@ export {
   lintRules,
   runLint,
   undeclaredReferences,
+  variableCollisions,
+  type VariableCollision,
 } from "./lint";
