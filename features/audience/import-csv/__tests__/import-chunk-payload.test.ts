@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   chunkIndexProblem,
-  chunkRowParts,
+  firstOversizedChunk,
   IMPORT_CHUNK_BODY_BYTES,
   importChunkJsonBytes,
 } from "../import-chunk-payload";
@@ -14,50 +14,35 @@ describe("chunkIndexProblem", () => {
   });
 });
 
-describe("chunkRowParts", () => {
-  it("returns one part when the chunk already fits", () => {
-    // Arrange
-    const chunk = {
-      index: 0,
-      firstRowNumber: 2,
-      rows: [{ cells: ["a@b.co"], malformed: false }],
-    };
+describe("firstOversizedChunk", () => {
+  const row = (cell: string) => ({ cells: ["a@b.co", cell], malformed: false });
 
-    // Act
-    const parts = chunkRowParts(chunk, IMPORT_CHUNK_BODY_BYTES);
-
-    // Assert
-    expect(parts).toEqual([chunk.rows]);
+  it("finds no chunk over the limit in an ordinary file", () => {
+    // Act & Assert
+    expect(
+      firstOversizedChunk(
+        [row("40"), row("41")],
+        { chunkSize: 1_000, columns: 2 },
+        IMPORT_CHUNK_BODY_BYTES,
+      ),
+    ).toBeNull();
   });
 
-  it("splits rows when one chunk would exceed the byte limit", () => {
+  it("names the first chunk whose rows are too long to send in one request", () => {
     // Arrange
-    const cell = "x".repeat(8_000);
-    const chunk = {
-      index: 1,
-      firstRowNumber: 4,
-      rows: [
-        { cells: [cell], malformed: false },
-        { cells: [cell], malformed: false },
-        { cells: [cell], malformed: false },
-      ],
-    };
-    const maxBytes = importChunkJsonBytes({
-      ...chunk,
-      rows: chunk.rows.slice(0, 1),
-    });
+    const rows = [row("40"), row("41"), row("x".repeat(500)), row("43")];
+    const place = { chunkSize: 2, columns: 2 };
+    const limit =
+      importChunkJsonBytes({
+        index: 0,
+        firstRowNumber: 2,
+        rows: rows.slice(0, 2),
+      }) + 10;
 
     // Act
-    const parts = chunkRowParts(chunk, maxBytes);
+    const oversized = firstOversizedChunk(rows, place, limit);
 
     // Assert
-    expect(parts).toHaveLength(3);
-    expect(parts.flat()).toHaveLength(3);
-    expect(
-      parts.every(
-        (rows) =>
-          importChunkJsonBytes({ ...chunk, rows }) <= maxBytes,
-      ),
-    ).toBe(true);
+    expect(oversized).toEqual({ firstRowNumber: 4, lastRowNumber: 5 });
   });
 });

@@ -161,9 +161,8 @@ function runActions(ctx: RunContext, state: RunState) {
   const continueWith = async (picked: Result<UploadFile>) => {
     if (state.kind === "server") await continueUpload(ctx, state.view, picked);
   };
-  const move = (to: Parameters<typeof moveImport>[2]) => async () => {
-    if (view) await moveImport(ctx, view, to);
-  };
+  const move = (to: Parameters<typeof moveImport>[2]) => async () =>
+    view ? moveImport(ctx, view, to) : false;
   return {
     start: (request: StartAudienceImportRequest, file: UploadFile) =>
       startImport(ctx, request, file),

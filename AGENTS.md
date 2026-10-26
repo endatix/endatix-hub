@@ -114,7 +114,7 @@ prefix, not `"use client"`, is what decides.
 
 ## Freshness: reading again instead of push
 
-The Hub has no push channel (no websockets or SignalR). Data is only as fresh as its last read, so freshness comes from reading again at moments of attention. Do not add polling to get it.
+The Hub has no push channel (no websockets or SignalR). Data is only as fresh as its last read, so freshness comes from reading again at moments of attention. Do not add polling to get it. The one exception is a server job the user is watching in an open panel: the Audience import reads its own import every 2 s while it checks or writes, paused while the tab is hidden, and never reads `GET jobs/{id}` (`features/audience/import-csv/use-audience-import.hook.ts`, project-structure.md "Audience").
 
 - **Navigation:** a server page reads on every request. That covers pages.
 - **After a write:** the action revalidates (`revalidatePath`) and the client calls `router.refresh()` (`useAudienceMutation`).

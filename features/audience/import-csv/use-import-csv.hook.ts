@@ -12,7 +12,12 @@ import {
 import { Result } from "@/lib/result";
 import type { CsvRow } from "@/lib/utils/csv";
 import { usePanelOpen } from "../use-panel-state.hook";
-import { readCsvFile, type CsvPreview } from "./csv-preview";
+import { readCsvFile, type CsvFile, type CsvPreview } from "./csv-preview";
+import {
+  firstOversizedChunk,
+  IMPORT_CHUNK_BODY_BYTES,
+  IMPORT_CHUNK_ROWS,
+} from "./import-chunk-payload";
 import { confirmCount, isTerminal } from "./import-run";
 import { sizeLabel } from "./import-labels";
 import {
@@ -72,6 +77,21 @@ const NO_CHOICES: ChoiceState = {
 };
 const UNREADABLE = "The file could not be read. Save it as CSV and try again.";
 
+/**
+ * Why the file cannot be sent: a chunk whose request would be over the server action body limit.
+ * Checked before the import starts, so no chunk is refused or retried halfway through.
+ */
+function chunkProblem({ preview, rows }: CsvFile): string | null {
+  const place = {
+    chunkSize: IMPORT_CHUNK_ROWS,
+    columns: preview.headers.length,
+  };
+  const oversized = firstOversizedChunk(rows, place, IMPORT_CHUNK_BODY_BYTES);
+  if (!oversized) return null;
+  const { firstRowNumber, lastRowNumber } = oversized;
+  return `Rows ${firstRowNumber.toLocaleString()} to ${lastRowNumber.toLocaleString()} are too long to send together: over ${sizeLabel(IMPORT_CHUNK_BODY_BYTES)} in one request. Shorten the longest cells, or split the file.`;
+}
+
 async function readFile(
   picked: File,
   limits: AudienceImportLimits,
@@ -84,6 +104,8 @@ async function readFile(
   try {
     const read = readCsvFile(await picked.text(), limits.maxRows);
     if (Result.isError(read)) return read;
+    const problem = chunkProblem(read.value);
+    if (problem) return Result.validationError(problem);
     const name = picked.name || "audience.csv";
     return Result.success({ name, ...read.value });
   } catch {
@@ -311,9 +333,10 @@ function runControls(wizard: Wizard, limits: AudienceImportLimits) {
     error: run.error,
     advance: () => advanceWizard(wizard),
     continueWith: (picked: File) => continueWithFile(run, picked, limits),
+    // The stopped import is canceled first; a refused cancel keeps it on screen with the error.
     startNew: async () => {
       const view = run.state.kind === "server" ? run.state.view : null;
-      if (view?.canResume) await run.cancel();
+      if (view?.canResume && !(await run.cancel())) return;
       run.dismiss();
       wizard.steps.restart();
     },

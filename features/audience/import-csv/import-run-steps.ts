@@ -14,10 +14,6 @@ import {
   startAudienceImportAction,
 } from "./audience-import.action";
 import {
-  chunkRowParts,
-  IMPORT_CHUNK_BODY_BYTES,
-} from "./import-chunk-payload";
-import {
   chunkRowCount,
   importChunk,
   isTerminal,
@@ -109,25 +105,14 @@ function chunkSender(
 ) {
   const { importId, upload } = view;
   const place = { chunkSize: upload.chunkSize, columns: file.headers.length };
-  return async (index: number) => {
-    const chunk = { index, ...importChunk(file.rows, { index, ...place }) };
-    const rowParts = chunkRowParts(chunk, IMPORT_CHUNK_BODY_BYTES);
-    const expectedRows = chunk.rows.length;
-    let latest: Result<AudienceImportView> = Result.error("No chunk was sent.");
-    for (const rows of rowParts) {
-      latest = await safely(
-        sendAudienceImportChunkAction({
-          formId,
-          importId,
-          chunk: { ...chunk, rows },
-          expectedRows:
-            rowParts.length > 1 ? expectedRows : undefined,
-        }),
-      );
-      if (Result.isError(latest)) return latest;
-    }
-    return latest;
-  };
+  return (index: number) =>
+    safely(
+      sendAudienceImportChunkAction({
+        formId,
+        importId,
+        chunk: { index, ...importChunk(file.rows, { index, ...place }) },
+      }),
+    );
 }
 
 /** The view that moved past uploading, or a fresh read when the upload stopped short. */
@@ -217,12 +202,12 @@ export async function continueUpload(
   void uploadRows(ctx, current, picked.value);
 }
 
-/** Confirms, resumes or cancels; a refusal shows its message and the import as it is now. */
+/** Confirms, resumes or cancels; a refusal shows its message and the import as it is now. True when it moved. */
 export async function moveImport(
   ctx: RunContext,
   view: AudienceImportView,
   to: AudienceImportMove,
-) {
+): Promise<boolean> {
   if (to === AudienceImportStatus.Canceled) ctx.uploadCancel.current = true;
   ctx.setError(null);
   ctx.setPending(true);
@@ -236,4 +221,5 @@ export async function moveImport(
   if (Result.isError(moved)) ctx.setError(moved.message);
   if (Result.isSuccess(shown)) showView(ctx, shown.value);
   ctx.setPending(false);
+  return Result.isSuccess(moved);
 }

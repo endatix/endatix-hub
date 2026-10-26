@@ -334,6 +334,28 @@ describe("ImportCsvPanel: a running import", () => {
     });
   });
 
+  it("keeps the stopped import on screen with the error when its cancel fails", async () => {
+    // Arrange
+    serveReads(Result.success(stoppedWrite()), stoppedWrite());
+    vi.mocked(moveAudienceImportAction).mockResolvedValue(
+      Result.error("The import cannot move to that status now."),
+    );
+    renderPanel();
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Start a new import" }),
+    );
+
+    // Act
+    fireEvent.click(button("Discard and start over"));
+
+    // Assert
+    expect(
+      await screen.findByText("The import cannot move to that status now."),
+    ).toBeTruthy();
+    expect(button("Resume import")).toBeTruthy();
+    expect(screen.queryByLabelText("CSV file")).toBeNull();
+  });
+
   it("keeps the stopped import when the scripter changes their mind", async () => {
     // Arrange
     serveReads(Result.success(stoppedWrite()));

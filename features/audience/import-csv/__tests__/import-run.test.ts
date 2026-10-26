@@ -163,6 +163,30 @@ describe("uploadChunks", () => {
     expect(Result.isSuccess(result)).toBe(true);
   });
 
+  it("stops without a retry when the Hub refuses the chunk before sending it", async () => {
+    // Arrange
+    const send = vi
+      .fn()
+      .mockResolvedValue(
+        Result.validationError<AudienceImportView>(
+          "The chunk index is not valid.",
+        ),
+      );
+
+    // Act
+    const result = await uploadChunks({
+      missing: [0, 1],
+      send,
+      onSent: vi.fn(),
+    });
+
+    // Assert
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(Result.isError(result) && result.message).toBe(
+      "The chunk index is not valid.",
+    );
+  });
+
   it.each([
     { what: "the import no longer takes rows (409)", statusCode: 409 },
     { what: "the chunk does not fit the import (400)", statusCode: 400 },

@@ -3,7 +3,7 @@ import {
   type AudienceImportChunk,
   type AudienceImportView,
 } from "@/lib/endatix-api/audience/types";
-import { Result } from "@/lib/result";
+import { ErrorType, Result, type Error as ResultError } from "@/lib/result";
 import type { CsvRow } from "@/lib/utils/csv";
 import { rowCountLabel } from "./import-labels";
 
@@ -62,9 +62,13 @@ export type UploadRequest = {
   shouldContinue?: () => boolean;
 };
 
-/** Worth one more try: a thrown call (no status) or a server that is busy or down (5xx). */
-const isTransient = (failed: { statusCode?: number }) =>
-  failed.statusCode === undefined || failed.statusCode >= 500;
+/**
+ * Worth one more try: a thrown call (no status) or a server that is busy or down (5xx). A validation
+ * error, from the Hub or the API, fails the same way every time.
+ */
+const isTransient = (failed: ResultError) =>
+  failed.errorType !== ErrorType.ValidationError &&
+  (failed.statusCode === undefined || failed.statusCode >= 500);
 
 async function sendWithRetry(
   send: UploadRequest["send"],
