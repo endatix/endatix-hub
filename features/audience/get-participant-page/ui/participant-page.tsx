@@ -5,6 +5,7 @@ import {
   FlaskConical,
   Link2,
   Pencil,
+  RotateCw,
   Trash2,
   type LucideIcon,
 } from "lucide-react";
@@ -18,6 +19,9 @@ import { useAudienceReturnHref } from "../../get-audience-page/ui/use-audience-r
 import { CopyTestLinkDialog } from "../../copy-test-link/ui/copy-test-link-dialog";
 import { useCopyTestLinkDialog } from "../../copy-test-link/ui/use-copy-test-link-dialog.hook";
 import { RemovePersonDialog } from "../../delete-person/ui/remove-person-dialog";
+import { hasLinkToReissue } from "../../reissue-link/has-link-to-reissue";
+import { ReissueLinkDialog } from "../../reissue-link/ui/reissue-link-dialog";
+import { useReissueLinkDialog } from "../../reissue-link/ui/use-reissue-link-dialog.hook";
 import { TEST_BADGE } from "../../ui/test-badge";
 import { useTestAsPerson } from "../../test-as-person/use-test-as-person.hook";
 import { EditPersonPanel } from "../../update-person/ui/edit-person-panel";
@@ -33,6 +37,7 @@ type Overlays = ReturnType<typeof useRowOverlay<AudienceParticipant>>;
 type ActionsProps = ParticipantPageProps & {
   overlay: Overlays;
   testLink: ReturnType<typeof useCopyTestLinkDialog>;
+  reissue: ReturnType<typeof useReissueLinkDialog>;
   audienceHref: Route;
 };
 
@@ -67,10 +72,19 @@ function useTestSpecs({ testLink, ...props }: ActionsProps): ActionSpec[] {
   ];
 }
 
-/** The test actions, Edit values (when there is a value to edit), Remove. */
+/**
+ * Reissue link (a real participant with a link), the test actions, Edit values (when there is a
+ * value to edit), Remove.
+ */
 function useActionSpecs(props: ActionsProps): ActionSpec[] {
   const { overlay } = props;
   return [
+    {
+      show: hasLinkToReissue(props.participant),
+      label: "Reissue link",
+      icon: RotateCw,
+      run: props.reissue.open,
+    },
     ...useTestSpecs(props),
     {
       show: props.properties.length > 0,
@@ -174,14 +188,20 @@ function ParticipantTestLink({ formId, testLink }: Readonly<ActionsProps>) {
 export function ParticipantPage(props: Readonly<ParticipantPageProps>) {
   const overlay = useRowOverlay<AudienceParticipant>();
   const testLink = useCopyTestLinkDialog();
+  const reissue = useReissueLinkDialog();
   const audienceHref = useAudienceReturnHref(props.formId);
-  const shared = { ...props, overlay, testLink, audienceHref };
+  const shared = { ...props, overlay, testLink, reissue, audienceHref };
   return (
     <div className="flex flex-col gap-6">
       <ParticipantMasthead {...shared} />
       <ParticipantBody {...props} />
       <ParticipantOverlays {...shared} />
       <ParticipantTestLink {...shared} />
+      <ReissueLinkDialog
+        key={reissue.session}
+        formId={props.formId}
+        {...reissue.dialog}
+      />
     </div>
   );
 }

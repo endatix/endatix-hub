@@ -416,6 +416,32 @@ export class Audience {
   }
 
   /** Test as this participant: a new test submission on the current definition and their current values. */
+  /**
+   * A new token for one participant's link; the old one stops opening it. The raw token is in
+   * this response only.
+   */
+  async reissueLink(
+    formId: string,
+    membershipId: string,
+  ): Promise<ApiResult<IssuedAudienceLink>> {
+    const idsCheck = requireFormAndEntityIds(
+      formId,
+      membershipId,
+      "membershipId",
+    );
+    if (!idsCheck.success) return idsCheck;
+
+    const response = await this.endatix.post<{
+      membershipId: number | string;
+      token: string;
+    }>(formAudiencePath(formId, `people/${membershipId}/link/reissue`), {});
+    if (!response.success) return response;
+    return ApiResult.success({
+      membershipId: String(response.data.membershipId),
+      token: response.data.token,
+    });
+  }
+
   async openTestSubmission(
     formId: string,
     membershipId: string,
