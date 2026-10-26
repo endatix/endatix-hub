@@ -169,10 +169,20 @@ async function drainSaves(
   const { pending } = target;
   pending.draining = true;
   try {
-    while (pending.queued && target.isBound()) await saveQueued(target, save);
+    await flushQueued(target, save);
   } finally {
     pending.draining = false;
   }
+}
+
+/** One save, then the next Apply if one arrived while it ran. */
+async function flushQueued(
+  target: WriteTarget,
+  save: TestParticipantSave["save"],
+): Promise<void> {
+  if (!target.pending.queued || !target.isBound()) return;
+  await saveQueued(target, save);
+  await flushQueued(target, save);
 }
 
 /** Saves the latest Apply's rows that differ from what is saved now; nothing to send clears it. */
