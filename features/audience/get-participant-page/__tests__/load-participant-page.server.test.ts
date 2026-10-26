@@ -59,6 +59,7 @@ const request = (api: EndatixApi) => ({
   formId: "1",
   memberId: "7",
   canTest: true,
+  canCopyTestLink: false,
 });
 
 describe("loadParticipantPage", () => {
@@ -75,6 +76,7 @@ describe("loadParticipantPage", () => {
         identifierKind: AudienceIdentifierKind.Email,
         properties: [property("11", "tier")],
         canTest: true,
+        canCopyTestLink: false,
       },
     });
   });
