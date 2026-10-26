@@ -87,6 +87,31 @@ describe("reviewAudience", () => {
     ]);
   });
 
+  // OSS caps a Property name at 100 characters, so a longer {name} can't be declared by adding one.
+  it("offers Add as Audience property only up to the API's 100-character name", () => {
+    // Arrange
+    const longest = "a".repeat(100);
+    const tooLong = "b".repeat(101);
+    const json = form(usesBoth, {
+      type: "html",
+      name: "hi",
+      html: `{${longest}} {${tooLong}}`,
+    });
+
+    // Act
+    const { findings } = reviewAudience(json, variables());
+
+    // Assert
+    expect(
+      findings.map((f) =>
+        f.kind === "unknown-variable" ? [f.variable, f.canAddProperty] : f,
+      ),
+    ).toEqual([
+      [longest, true],
+      [tooLong, false],
+    ]);
+  });
+
   it("does not warn about custom variables", () => {
     const json = {
       calculatedValues: [{ name: "campaign" }],

@@ -26,6 +26,19 @@ export type AddAudienceProperty = (
   variable: string,
 ) => Promise<Result<unknown>>;
 
+/** Writes the binding has not finished. One save runs at a time. */
+export type PendingWrites = {
+  /** Test participants added or changed that the API has not taken yet; every read keeps them. */
+  unsaved: AudienceVariablePreset[];
+  /** The latest Apply's Test rows, waiting for the save in flight. */
+  queued: AudienceVariablePreset[] | undefined;
+  /** The names the save in flight carries. */
+  sending: Set<string>;
+  draining: boolean;
+  /** Variables being added as Audience properties. */
+  adding: Set<string>;
+};
+
 /** What the designer's writes need from the Creator binding. */
 export type WriteTarget = {
   creator: SurveyCreatorModel;
@@ -34,14 +47,11 @@ export type WriteTarget = {
   isReadOnly(name: string): boolean;
   /** The participants as the read and Find participant installed them, before any unsaved edit. */
   saved(): AudienceVariablePreset[];
-  pending: {
-    /** Test participants added or changed that the API has not taken yet; every read keeps them. */
-    unsaved: AudienceVariablePreset[];
-    /** Variables being added as Audience properties. */
-    adding: Set<string>;
-  };
+  pending: PendingWrites;
   /** Starts a write: the check turns false once a newer read or write starts. */
   begin(): () => boolean;
+  /** Marks rows the API took as saved, a picked participant's included. */
+  confirm(saved: AudienceVariablePreset[]): void;
   /** Shows a read: the variables after a save. */
   apply(variables: AudienceVariables): void;
   /** Reads the variables again. */
@@ -123,46 +133,113 @@ export function saveOnEdit(
   if (!save) return () => undefined;
   const { creator } = target;
   const onChanged = (_: unknown, options: VariablePresetsChangedEvent) => {
-    if (options.reason === "edit") void saveEdits(target, save);
+    if (options.reason === "edit") queueSave(target, save);
   };
   creator.onVariablePresetsChanged.add(onChanged);
   return () => creator.onVariablePresetsChanged.remove(onChanged);
 }
 
 /**
- * Sends the Test participants added or changed in one PUT; real ones are left out (#1203), and an
- * unchanged one is not sent, so a change made on the Audience tab meanwhile is not overwritten. The
- * edit counts as unsaved until the API answers, so a read landing meanwhile keeps it; a failure keeps
- * it and says so, a success shows what the API read back.
+ * Takes the Apply's Test rows and starts saving unless a save is in flight; that one hands over to
+ * the latest Apply once it answers. Rows the author changed, and rows the save in flight carries,
+ * count as unsaved, so a read landing meanwhile (the save's own included) keeps what is on screen.
  */
-async function saveEdits(
-  target: WriteTarget,
-  { save }: TestParticipantSave,
-): Promise<void> {
+function queueSave(target: WriteTarget, save: TestParticipantSave): void {
   if (!target.isBound()) return;
   const { pending } = target;
-  const edits = testParticipantEdits(target);
-  pending.unsaved = edits;
-  if (edits.length === 0) return;
-  const isLatest = target.begin();
-  await runWrite(target, () => save(edits), {
-    failed: saveFailedMessage,
-    succeeded: (saved) => {
-      // A newer edit stays unsaved until its own save answers.
-      if (pending.unsaved === edits) pending.unsaved = [];
-      if (!target.isBound()) return;
-      // A read started meanwhile may predate this save: read again rather than keep a stale one.
-      if (isLatest()) target.apply(saved);
-      else void target.refresh();
-    },
-  });
+  const rows = testParticipantEdits(target);
+  pending.queued = rows;
+  const changed = new Set(
+    changedPresets(rows, target.saved()).map(({ name }) => name),
+  );
+  pending.unsaved = rows.filter(
+    ({ name }) => changed.has(name) || pending.sending.has(name),
+  );
+  if (!pending.draining) void drainSaves(target, save);
 }
 
 /**
- * The rows to save. A name typed into a Test row that is a real participant's by the match key (the
- * editor checks uniqueness exactly) is never saved, and the author is told.
+ * Saves one Apply at a time, each compared with what the save before it stored, so an undo applied
+ * while a save is in flight is sent rather than lost to the earlier value.
  */
-function testParticipantEdits(target: WriteTarget): AudienceVariablePreset[] {
+async function drainSaves(
+  target: WriteTarget,
+  { save }: TestParticipantSave,
+): Promise<void> {
+  const { pending } = target;
+  pending.draining = true;
+  try {
+    while (pending.queued && target.isBound()) await saveQueued(target, save);
+  } finally {
+    pending.draining = false;
+  }
+}
+
+/** Saves the latest Apply's rows that differ from what is saved now; nothing to send clears it. */
+async function saveQueued(
+  target: WriteTarget,
+  save: TestParticipantSave["save"],
+): Promise<void> {
+  const { pending } = target;
+  const rows = pending.queued ?? [];
+  pending.queued = undefined;
+  const edits = changedPresets(rows, target.saved());
+  if (edits.length > 0) await saveEdits(target, () => save(edits), edits);
+  else if (!pending.queued) pending.unsaved = [];
+}
+
+/**
+ * Sends the Test participants added or changed in one PUT; real ones are left out (#1203), and an
+ * unchanged one is not sent, so a change made on the Audience tab meanwhile is not overwritten. A
+ * failure keeps the edit and says so; a success shows what the API read back.
+ */
+async function saveEdits(
+  target: WriteTarget,
+  send: () => Promise<Result<AudienceVariables>>,
+  edits: AudienceVariablePreset[],
+): Promise<void> {
+  const { pending } = target;
+  pending.sending = new Set(edits.map(({ name }) => name));
+  const isLatest = target.begin();
+  try {
+    await runWrite(target, send, {
+      failed: saveFailedMessage,
+      succeeded: (saved) => showSaved(target, { saved, edits, isLatest }),
+    });
+  } finally {
+    pending.sending = new Set();
+  }
+}
+
+type SaveAnswer = {
+  saved: AudienceVariables;
+  edits: AudienceVariablePreset[];
+  isLatest: () => boolean;
+};
+
+/** The rows sent are saved; the API's read shows unless a newer read started meanwhile. */
+async function showSaved(
+  target: WriteTarget,
+  { saved, edits, isLatest }: SaveAnswer,
+): Promise<void> {
+  // A newer Apply stays unsaved until its own save answers.
+  if (!target.pending.queued) target.pending.unsaved = [];
+  if (!target.isBound()) return;
+  target.confirm(edits);
+  // A read started meanwhile may predate this save: read again rather than keep a stale one.
+  if (isLatest()) target.apply(saved);
+  else await target.refresh();
+}
+
+/**
+ * The Test participant rows in the editor, copied: every real participant is left out (#1203), by
+ * the tenant's match key, so one sent back after it changed on People cannot fail the save and one
+ * removed from the form is not added back. A name typed into a Test row that is a real participant's
+ * by the match key (the editor checks uniqueness exactly) is never saved, and the author is told.
+ */
+export function testParticipantEdits(
+  target: WriteTarget,
+): AudienceVariablePreset[] {
   const { creator, isReadOnly, saved } = target;
   const rows = creator.variablePresets?.presets ?? [];
   const installed = saved();
@@ -177,7 +254,7 @@ function testParticipantEdits(target: WriteTarget): AudienceVariablePreset[] {
     }
   }
   if (clashing.length > 0) creator.notify(clashMessage(clashing), "error");
-  return changedPresets(testRows, installed);
+  return testRows;
 }
 
 /** Adds the Property, then reads the variables again so the warning clears. */

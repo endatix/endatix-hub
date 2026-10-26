@@ -1,6 +1,6 @@
 import { Serializer } from "survey-core";
 import type { SurveyCreatorModel } from "survey-creator-core";
-import type { AudienceFix } from "../coverage";
+import type { AudienceFinding, AudienceFix } from "../coverage";
 
 const SEGMENT = /^([A-Za-z_$][\w$]*)(?:\[(\d+)\])?$/;
 const PROPERTY = /^[A-Za-z_$][\w$]*$/;
@@ -70,3 +70,38 @@ export function applyAudienceFix(
     creator.stopUndoRedoTransaction();
   }
 }
+
+/** The fix the same misspelling has now; none once it is gone. */
+export function currentFix(
+  findings: AudienceFinding[],
+  finding: AudienceFinding,
+) {
+  if (finding.kind !== "unknown-variable") return undefined;
+  const same = findings.find(
+    (f) =>
+      f.kind === "unknown-variable" &&
+      f.path === finding.path &&
+      f.variable === finding.variable &&
+      f.suggestion === finding.suggestion,
+  );
+  return same?.kind === "unknown-variable" ? same.fix : undefined;
+}
+
+/** A fix only when the canvas can take it; Add as Audience property only when the designer can. */
+/** Whether this designer can add an Audience property. */
+type DesignerActions = { canAddProperty: boolean };
+
+export const designerActions =
+  (creator: SurveyCreatorModel, { canAddProperty }: DesignerActions) =>
+  (finding: AudienceFinding): AudienceFinding => {
+    if (finding.kind !== "unknown-variable") return finding;
+    const fix =
+      finding.fix && canFixOnCanvas(creator, finding.fix)
+        ? finding.fix
+        : undefined;
+    return {
+      ...finding,
+      fix,
+      canAddProperty: canAddProperty && finding.canAddProperty,
+    };
+  };

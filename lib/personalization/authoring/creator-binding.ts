@@ -18,14 +18,15 @@ import type {
   reviewAudience,
 } from "../coverage";
 import { toSurveyPresets } from "../to-survey-presets";
-import { applyAudienceFix, canFixOnCanvas } from "./apply-fix";
+import { applyAudienceFix, currentFix, designerActions } from "./apply-fix";
 import type { ParticipantFinder } from "./find-participant";
 import {
   extendEveryPreview,
   type FindParticipantOption,
 } from "./preview-as-none";
-import { readOnlyMatcher } from "./test-participant-presets";
+import { readOnlyMatcher } from "./read-only-match";
 import {
+  type PendingWrites,
   type AddAudienceProperty,
   addAudienceProperty,
   lockRealParticipants,
@@ -128,16 +129,13 @@ function previewPlugin(creator: SurveyCreatorModel): TabTestPlugin | null {
 
 type PickedParticipant = { preset: AudienceVariablePreset; isTest: boolean };
 
-type BindingState = {
+type BindingState = PendingWrites & {
   variables: AudienceVariables;
   applied: AudienceVariables["variablePresets"] | undefined;
   /** Found with Find participant, by name: kept in the selector for the session. */
   picked: Map<string, PickedParticipant>;
   /** The participants installed from the read and the picks, before any unsaved edit. */
   installed: AudienceVariablePreset[];
-  /** Test participants added or changed and not saved yet; kept over every read until a save lands. */
-  unsaved: AudienceVariablePreset[];
-  adding: Set<string>;
   /** The tenant's match key; without one the designer cannot save. */
   identifierKind: AudienceIdentifierKind | undefined;
   canAddProperty: boolean;
@@ -256,9 +254,24 @@ function writeTarget(
       const write = ++state.latest;
       return () => write === state.latest;
     },
+    confirm: (saved) => confirmSaved(state, saved),
     apply: (variables) => applyRead(creator, variables, state),
     refresh,
   };
+}
+
+/**
+ * What the API took is the saved state: the installed rows and any picked participant take it, so a
+ * read that leaves a picked participant out does not bring back the values from before the save.
+ */
+function confirmSaved(state: BindingState, saved: AudienceVariablePreset[]) {
+  for (const preset of saved) {
+    const picked = state.picked.get(preset.name);
+    if (picked) state.picked.set(preset.name, { ...picked, preset });
+    const at = state.installed.findIndex((p) => p.name === preset.name);
+    if (at >= 0) state.installed[at] = preset;
+    else state.installed.push(preset);
+  }
 }
 
 /** Calls `onOpen` whenever the author switches to the Preview tab. */
@@ -374,6 +387,9 @@ function newState(audience: BoundAudience): BindingState {
     picked: new Map(),
     installed: [],
     unsaved: [],
+    queued: undefined,
+    sending: new Set(),
+    draining: false,
     adding: new Set(),
     identifierKind: audience.testParticipants?.identifierKind,
     canAddProperty: !!audience.addProperty,
@@ -391,7 +407,7 @@ function reviewing(creator: SurveyCreatorModel, state: BindingState) {
   const review = (): AudienceReview => {
     if (!reviewer) return { findings: [] };
     const { findings } = reviewer(creator.JSON, state.variables);
-    return { findings: findings.map(withDesignerActions(creator, state)) };
+    return { findings: findings.map(designerActions(creator, state)) };
   };
   return {
     review: async (): Promise<AudienceReview> => {
@@ -409,35 +425,6 @@ function reviewing(creator: SurveyCreatorModel, state: BindingState) {
     },
   };
 }
-
-/** The fix the same misspelling has now; none once it is gone. */
-function currentFix(findings: AudienceFinding[], finding: AudienceFinding) {
-  if (finding.kind !== "unknown-variable") return undefined;
-  const same = findings.find(
-    (f) =>
-      f.kind === "unknown-variable" &&
-      f.path === finding.path &&
-      f.variable === finding.variable &&
-      f.suggestion === finding.suggestion,
-  );
-  return same?.kind === "unknown-variable" ? same.fix : undefined;
-}
-
-/** A fix only when the canvas can take it; Add as Audience property only when the designer can. */
-const withDesignerActions =
-  (creator: SurveyCreatorModel, { canAddProperty }: BindingState) =>
-  (finding: AudienceFinding): AudienceFinding => {
-    if (finding.kind !== "unknown-variable") return finding;
-    const fix =
-      finding.fix && canFixOnCanvas(creator, finding.fix)
-        ? finding.fix
-        : undefined;
-    return {
-      ...finding,
-      fix,
-      canAddProperty: canAddProperty && finding.canAddProperty,
-    };
-  };
 
 /**
  * A read becomes the binding's: its read-only names, editing policy and participants. A changed
