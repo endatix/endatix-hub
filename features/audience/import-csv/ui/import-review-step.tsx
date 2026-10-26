@@ -17,6 +17,7 @@ import { canCancel, rowsSent } from "../import-run";
 import { checkCounts, outcomeCounts, rowCountLabel } from "../import-labels";
 import { runView, type ImportWizard } from "../use-import-csv.hook";
 import { RejectedRows } from "./import-result-summary";
+import { StoppedImport } from "./stopped-import";
 
 type ReviewProps = {
   wizard: ImportWizard;
@@ -254,7 +255,11 @@ export function ImportReviewStep({
   return (
     <>
       <Notice notice={wizard.run.notice} />
-      {view.canResume ? <StoppedAlert view={view} /> : null}
+      {view.canResume ? (
+        <StoppedImport wizard={wizard}>
+          <StoppedAlert view={view} />
+        </StoppedImport>
+      ) : null}
       <ProgressSection wizard={wizard} view={view} />
       <CheckedDetails view={view} identifierKind={identifierKind} />
     </>

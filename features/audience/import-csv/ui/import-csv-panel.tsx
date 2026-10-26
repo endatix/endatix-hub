@@ -23,13 +23,17 @@ import { ImportFileStep } from "./import-file-step";
 import { ImportResultSummary } from "./import-result-summary";
 import { ImportReviewStep } from "./import-review-step";
 
-/** While an import is unfinished the trigger says so; the panel opens on it. */
+function triggerLabel(view: AudienceImportView | null): string {
+  if (view?.canResume) return "Import stopped";
+  return view && !isTerminal(view.status) ? "Import in progress" : "Import CSV";
+}
+
+/** While an import is unfinished or stopped the trigger says so; the panel opens on it. */
 function trigger(view: AudienceImportView | null) {
-  const running = view !== null && !isTerminal(view.status);
   return (
     <Button variant="outline">
       <Upload />
-      {running ? "Import in progress" : "Import CSV"}
+      {triggerLabel(view)}
     </Button>
   );
 }

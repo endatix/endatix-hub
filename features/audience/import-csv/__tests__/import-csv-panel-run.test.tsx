@@ -308,4 +308,56 @@ describe("ImportCsvPanel: a running import", () => {
     expect(await screen.findByText(/rows checked/)).toBeTruthy();
     expect(sendAudienceImportChunkAction).toHaveBeenCalledTimes(3);
   });
+
+  it("offers a new import over a stopped one, saying the stopped one will be discarded", async () => {
+    // Arrange
+    serveReads(Result.success(stoppedWrite()));
+    renderPanel();
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Start a new import" }),
+    );
+
+    // Act
+    expect(
+      screen.getByText(
+        "The stopped import is discarded. Participants it already wrote stay on this form; its other rows are not written.",
+      ),
+    ).toBeTruthy();
+    fireEvent.click(button("Discard and start over"));
+
+    // Assert
+    expect(
+      await screen.findByText(
+        "Up to 100,000 rows and 50 MB. The first row names the columns.",
+      ),
+    ).toBeTruthy();
+    expect(moveAudienceImportAction).not.toHaveBeenCalled();
+  });
+
+  it("keeps the stopped import when the scripter changes their mind", async () => {
+    // Arrange
+    serveReads(Result.success(stoppedWrite()));
+    renderPanel();
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Start a new import" }),
+    );
+
+    // Act
+    fireEvent.click(button("Keep it"));
+
+    // Assert
+    expect(button("Resume import")).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Import stopped", hidden: true }),
+    ).toBeTruthy();
+  });
 });
+
+function stoppedWrite() {
+  return view({
+    ...CHECKED,
+    status: "failed",
+    canResume: true,
+    failure: "The write stopped.",
+  });
+}

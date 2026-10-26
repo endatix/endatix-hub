@@ -175,7 +175,7 @@ function useColumnChoices(setup: ImportCsvSetup) {
 export type ImportChoices = ReturnType<typeof useColumnChoices>;
 
 /** Where the wizard is before the import starts, and the steps either side of it. */
-function useImportSteps() {
+function useImportSteps(onRestart: () => void) {
   const [step, setStep] = useState<ImportStep>(ORDER[0]);
   const previous = stepAt(step, -1);
   return {
@@ -183,6 +183,11 @@ function useImportSteps() {
     next: stepAt(step, 1),
     setStep,
     back: previous ? () => setStep(previous) : undefined,
+    /** Back to the first step with no file: a new import from the start. */
+    restart: () => {
+      onRestart();
+      setStep(ORDER[0]);
+    },
   };
 }
 
@@ -306,6 +311,11 @@ function runControls(wizard: Wizard, limits: AudienceImportLimits) {
     error: run.error,
     advance: () => advanceWizard(wizard),
     continueWith: (picked: File) => continueWithFile(run, picked, limits),
+    // A stopped import is let go here; the API discards it when the new one starts.
+    startNew: () => {
+      run.dismiss();
+      wizard.steps.restart();
+    },
   };
 }
 
@@ -319,11 +329,8 @@ export function useImportCsv(setup: ImportCsvSetup) {
   const { reset, ...source } = useImportFile(setup.importLimits, (file) =>
     choices.suggest(file.preview.headers),
   );
-  const steps = useImportSteps();
-  const { run, panel } = useRunPanel(setup, () => {
-    reset();
-    steps.setStep(ORDER[0]);
-  });
+  const steps = useImportSteps(reset);
+  const { run, panel } = useRunPanel(setup, steps.restart);
   const wizard = { file: source.file, choices, steps, run, close: panel.close };
   return {
     ...source,
