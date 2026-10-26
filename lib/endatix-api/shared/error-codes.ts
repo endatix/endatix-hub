@@ -50,6 +50,14 @@ const ERROR_CODE = Object.freeze({
   UNKNOWN_ERROR: "unknown_error",
 } as const);
 
+/** The token itself is refused (expired, revoked, tampered): the reader needs a new link, not a retry. */
+const REFUSED_TOKEN_CODES: ReadonlySet<string> = new Set([
+  ERROR_CODE.INVALID_TOKEN,
+  ERROR_CODE.INVALID_ACCESS_TOKEN,
+  ERROR_CODE.TOKEN_EXPIRED,
+  ERROR_CODE.TOKEN_REVOKED,
+]);
+
 /**
  * Check if a given error code is known.
  * @param errorCode - The error code to check.
@@ -86,6 +94,7 @@ export {
   ERROR_CODES,
   ERROR_CODE,
   DEFAULT_ERROR_MESSAGE,
+  REFUSED_TOKEN_CODES,
   getErrorMessage,
   getErrorMessageWithFallback,
   isKnownErrorCode,

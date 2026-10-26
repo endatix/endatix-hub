@@ -45,6 +45,11 @@ vi.mock("@/lib/endatix-api", async () => {
   };
 });
 
+const { captureException } = vi.hoisted(() => ({ captureException: vi.fn() }));
+vi.mock("@/features/analytics/posthog/server/node-client", () => ({
+  getPostHog: () => ({ captureException }),
+}));
+
 vi.mock("@/features/auth", async () => ({
   getSession: vi.fn().mockResolvedValue(() => ANONYMOUS_SESSION),
 }));
@@ -310,6 +315,10 @@ describe("submitFormOperation", () => {
       (globalThis as unknown as GlobalTestMocks).mockEndatixApi.submissions
         .public.create,
     ).not.toHaveBeenCalled();
+    expect(mockTokenStore.deleteToken).toHaveBeenCalledWith("form-1");
+    expect(JSON.stringify(captureException.mock.calls)).not.toContain(
+      "stamp~sig",
+    );
   });
 
   it("should delete cookie when submission transitions from incomplete to complete", async () => {

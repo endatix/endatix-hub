@@ -24,7 +24,10 @@ import {
   type Submission,
 } from "@/lib/endatix-api";
 import type { PublicFormAccessResponse } from "@/lib/endatix-api/forms/types";
-import { ERROR_CODE } from "@/lib/endatix-api/shared/error-codes";
+import {
+  ERROR_CODE,
+  REFUSED_TOKEN_CODES,
+} from "@/lib/endatix-api/shared/error-codes";
 import { Result, type ResultType } from "@/lib/result";
 import { isAccessToken } from "@/lib/utils";
 import type { ActiveDefinition } from "@/types";
@@ -252,13 +255,6 @@ async function testInspectorFor({
 
 const RESPONDENT_COPY_MAX_LENGTH = 240;
 
-/** The token itself is refused (expired, revoked, tampered): the reader needs a new link, not a retry. */
-const REFUSED_TOKEN_CODES: ReadonlySet<string> = new Set([
-  ERROR_CODE.INVALID_TOKEN,
-  ERROR_CODE.INVALID_ACCESS_TOKEN,
-  ERROR_CODE.TOKEN_EXPIRED,
-  ERROR_CODE.TOKEN_REVOKED,
-]);
 
 function mapAccessFailure(result: ResultType<unknown>): Extract<
   LoadPublicSurveyPageResult,

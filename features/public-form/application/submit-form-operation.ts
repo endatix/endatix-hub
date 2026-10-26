@@ -4,6 +4,7 @@ import { FormTokenCookieStore } from "@/features/public-form/infrastructure/cook
 import { collectionDisposition } from "@/features/submissions/domain";
 import { SubmissionData } from "@/features/submissions/types";
 import { ApiResult, EndatixApi, ERROR_CODE } from "@/lib/endatix-api";
+import { REFUSED_TOKEN_CODES } from "@/lib/endatix-api/shared/error-codes";
 import type { Submission } from "@/lib/endatix-api";
 import { Result } from "@/lib/result";
 import { isAccessToken } from "@/lib/utils";
@@ -207,7 +208,13 @@ async function updateExistingSubmissionViaToken(
     return recoveryResult;
   }
 
-  return logApiError(updateResult, { formId, token });
+  // A refused link token cannot come back; drop it so the next visit starts clean.
+  const { errorCode } = updateResult.error;
+  if (syncCookies && errorCode && REFUSED_TOKEN_CODES.has(errorCode)) {
+    tokenStore.deleteToken(formId);
+  }
+
+  return logApiError(updateResult, { formId });
 }
 
 async function createSubmission(
