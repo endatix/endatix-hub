@@ -31,7 +31,10 @@ type ReissueLinkDialogProps = {
 };
 
 const WARNING =
-  "Their current link stops working at once, and a page they already have open stops within a minute. The new link opens the same response, so nothing they entered is lost.";
+  "Their current link stops working at once, and a page they already have open stops within a minute. If they started the form, the new link resumes their response.";
+
+const REISSUED =
+  "Their old link no longer opens. Send them this one: it is shown only now.";
 
 const ERROR_TITLE = "The link was not reissued";
 
@@ -40,7 +43,7 @@ function NewLink({ url }: Readonly<{ url: string }>) {
     <ShareLinkRow
       icon={Link2}
       title="New link"
-      description="Send it to them. It is shown only now."
+      description="Opens their survey without a login. Anyone with it can fill it in."
       value={url}
       copyLabel="Copy the new link"
       className="gap-2 p-3"
@@ -74,18 +77,35 @@ function DoneFooter() {
   );
 }
 
+/** The warning before the reissue; once it is done, what happened to the old link. */
+function ReissueLinkHeader({
+  identifier,
+  reissued,
+}: Readonly<{ identifier: string; reissued: boolean }>) {
+  return (
+    <AlertDialogHeader>
+      <AlertDialogTitle className="break-all">
+        {reissued
+          ? `New link for ${identifier}`
+          : `Reissue the link for ${identifier}?`}
+      </AlertDialogTitle>
+      <AlertDialogDescription>
+        {reissued ? REISSUED : WARNING}
+      </AlertDialogDescription>
+    </AlertDialogHeader>
+  );
+}
+
 function ReissueLinkContent({
   identifier,
   state,
 }: Readonly<{ identifier: string; state: ReissueState }>) {
   return (
     <AlertDialogContent>
-      <AlertDialogHeader>
-        <AlertDialogTitle className="break-all">
-          Reissue the link for {identifier}?
-        </AlertDialogTitle>
-        <AlertDialogDescription>{WARNING}</AlertDialogDescription>
-      </AlertDialogHeader>
+      <ReissueLinkHeader
+        identifier={identifier}
+        reissued={state.url !== null}
+      />
       <PanelFormError title={ERROR_TITLE} message={state.error} />
       {state.url ? <NewLink url={state.url} /> : null}
       {state.url ? <DoneFooter /> : <ConfirmFooter {...state} />}

@@ -71,6 +71,10 @@ describe("ReissueLinkDialog", () => {
     expect(
       screen.getByRole("button", { name: "Copy the new link" }),
     ).toBeTruthy();
+    expect(
+      screen.getByRole("alertdialog", { name: "New link for ana@example.com" })
+        .textContent,
+    ).toContain("old link no longer opens");
   });
 
   it.each([
