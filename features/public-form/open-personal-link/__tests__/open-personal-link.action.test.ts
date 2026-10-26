@@ -63,6 +63,23 @@ describe("openPersonalLinkAction", () => {
     );
   });
 
+  it("answers a retryable error when the cookie cannot be written", async () => {
+    redeemLink.mockResolvedValue(
+      ApiResult.success({
+        submissionId: "22",
+        created: true,
+        accessToken: "submission-token",
+      }),
+    );
+    cookieJar.get.mockReturnValue({ value: "not json" });
+
+    const opened = await openPersonalLinkAction(FORM_ID, LINK_TOKEN);
+
+    expect(Result.isError(opened) && opened.message).toBe(
+      "The link could not be opened.",
+    );
+  });
+
   it("answers a retryable error when the API fails", async () => {
     redeemLink.mockResolvedValue(ApiResult.serverError("Busy"));
 

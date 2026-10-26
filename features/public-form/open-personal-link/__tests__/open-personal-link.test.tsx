@@ -72,14 +72,17 @@ describe("OpenPersonalLink", () => {
     expect(openPersonalLinkAction).toHaveBeenCalledTimes(2);
   });
 
-  it("offers Try again when the request itself fails, such as a dropped connection", async () => {
+  it("offers Try again when the request itself fails, and reloads the page on the retry", async () => {
     openPersonalLinkAction.mockRejectedValue(new TypeError("Failed to fetch"));
+    const reload = vi.fn();
+    vi.stubGlobal("location", { ...window.location, reload });
 
     render(<OpenPersonalLink formId={FORM_ID} token={LINK_TOKEN} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Try again" }));
 
-    expect(
-      await screen.findByRole("button", { name: "Try again" }),
-    ).toBeTruthy();
+    expect(reload).toHaveBeenCalledTimes(1);
+    expect(openPersonalLinkAction).toHaveBeenCalledTimes(1);
     expect(replace).not.toHaveBeenCalled();
+    vi.unstubAllGlobals();
   });
 });

@@ -75,13 +75,16 @@ function useOpenPersonalLink(formId: string, token: string) {
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>("opening");
   const startedFor = useRef<string | null>(null);
+  const reloadOnRetry = useRef(false);
 
   const open = useCallback(async () => {
     setPhase("opening");
-    // A dropped connection or a redeployed Hub rejects the call; both may pass on a retry.
-    const opened = await openPersonalLinkAction(formId, token).catch(() =>
-      Result.error<void>("The link could not be opened."),
-    );
+    // A dropped connection or a redeployed Hub rejects the call. After a redeploy this page's
+    // action id is stale, so calling it again fails again: the retry reloads the page instead.
+    const opened = await openPersonalLinkAction(formId, token).catch(() => {
+      reloadOnRetry.current = true;
+      return Result.error<void>("The link could not be opened.");
+    });
     if (Result.isSuccess(opened)) {
       router.replace(`/share/${formId}` as Route);
       return;
@@ -98,5 +101,13 @@ function useOpenPersonalLink(formId: string, token: string) {
     void open();
   }, [formId, token, open]);
 
-  return { phase, retry: open };
+  const retry = useCallback(() => {
+    if (reloadOnRetry.current) {
+      window.location.reload();
+      return;
+    }
+    void open();
+  }, [open]);
+
+  return { phase, retry };
 }
