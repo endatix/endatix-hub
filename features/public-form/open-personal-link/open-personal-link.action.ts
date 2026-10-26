@@ -19,8 +19,8 @@ const OPEN_LOG = {
 } as const;
 
 /**
- * Redeems a personalized link without a Hub session and keeps the submission's token in the form
- * cookie, so `/share/{formId}` opens that one submission. A POST only: the link's page calls it
+ * Redeems a personalized link without a Hub session and keeps the submission's access token in the
+ * form cookie, never in a URL, so `/share/{formId}` opens that one submission, on a private form too. A POST only: the link's page calls it
  * after paint, so a mail scanner's GET never marks the link Opened (endatix-hub#1211).
  *
  * An unknown link is a validation error (nothing to retry); any other error may pass on a retry.
@@ -32,7 +32,7 @@ export async function openPersonalLinkAction(
   const redeemed = await new EndatixApi().audience.redeemLink(formId, token);
   const opened = toResult(redeemed, {
     ...OPEN_LOG,
-    mapData: (link) => link.accessToken,
+    mapData: (link) => link.submissionAccessToken,
   });
   if (Result.isError(opened)) {
     const missing = isNotFoundError(redeemed) || isValidationError(redeemed);

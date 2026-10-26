@@ -157,11 +157,13 @@ export type IssuedAudienceLink = {
   token: string;
 };
 
+/** Redeem's answer. The deprecated `accessToken` (an opaque SubmissionToken) is not read. */
 export type RedeemedAudienceLink = {
   submissionId: string;
-  snapshot: string;
   created: boolean;
-  accessToken: string;
+  /** Signed submission access token with `submit`, sent as `tokenType=AccessToken`. */
+  submissionAccessToken: string;
+  submissionAccessTokenExpiresAt: string | null;
 };
 
 export type UpdateAudienceSettingsRequest = {

@@ -261,8 +261,11 @@ export function mapRedeemedLinkResult(
 ): ApiResult<RedeemedAudienceLink> {
   return response.success
     ? ApiResult.success({
-        ...response.data,
         submissionId: String(response.data.submissionId),
+        created: response.data.created,
+        submissionAccessToken: response.data.submissionAccessToken,
+        submissionAccessTokenExpiresAt:
+          response.data.submissionAccessTokenExpiresAt ?? null,
       })
     : response;
 }

@@ -173,8 +173,10 @@ async function updateExistingSubmissionViaToken(
       );
 
   if (ApiResult.isSuccess(updateResult)) {
-    const resumeToken = updateResult.data.token
-      ?? (isAccessToken(token) ? undefined : token);
+    // An access token stays: the opaque token in the response follows the form's privacy.
+    const resumeToken = isAccessToken(token)
+      ? token
+      : (updateResult.data.token ?? token);
     syncSubmissionCookie(
       formId,
       submissionData,

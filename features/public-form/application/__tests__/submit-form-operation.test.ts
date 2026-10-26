@@ -257,6 +257,61 @@ describe("submitFormOperation", () => {
     expect(ApiResult.isSuccess(result)).toBe(true);
   });
 
+  it("should keep a cookie access token when the update response carries a submission token", async () => {
+    const linkToken = "submission-123.1893456000.s.stamp~sig";
+    mockTokenStore.getToken.mockReturnValue(Result.success(linkToken));
+
+    (
+      globalThis as unknown as GlobalTestMocks
+    ).mockEndatixApi.submissions.public.updateByAccessToken.mockResolvedValue(
+      ApiResult.success({
+        isComplete: false,
+        id: "submission-123",
+        token: "opaque-submission-token",
+      }),
+    );
+
+    const result = await submitFormOperation(
+      "form-1",
+      { jsonData: '{"test": true}', isComplete: false },
+      mockTokenStore as never,
+    );
+
+    expect(
+      (globalThis as unknown as GlobalTestMocks).mockEndatixApi.submissions
+        .public.updateByAccessToken,
+    ).toHaveBeenCalledWith("form-1", linkToken, expect.anything());
+    expect(mockTokenStore.setToken).toHaveBeenCalledWith({
+      formId: "form-1",
+      token: linkToken,
+    });
+    expect(ApiResult.isSuccess(result)).toBe(true);
+  });
+
+  it("should not start an anonymous submission when a cookie access token is revoked", async () => {
+    mockTokenStore.getToken.mockReturnValue(
+      Result.success("submission-123.1893456000.s.stamp~sig"),
+    );
+
+    (
+      globalThis as unknown as GlobalTestMocks
+    ).mockEndatixApi.submissions.public.updateByAccessToken.mockResolvedValue(
+      ApiResult.validationError("Token revoked", ERROR_CODE.TOKEN_REVOKED),
+    );
+
+    const result = await submitFormOperation(
+      "form-1",
+      { jsonData: '{"test": true}', isComplete: false },
+      mockTokenStore as never,
+    );
+
+    expect(ApiResult.isError(result)).toBe(true);
+    expect(
+      (globalThis as unknown as GlobalTestMocks).mockEndatixApi.submissions
+        .public.create,
+    ).not.toHaveBeenCalled();
+  });
+
   it("should delete cookie when submission transitions from incomplete to complete", async () => {
     mockTokenStore.getToken.mockReturnValue(Result.success("existing-token"));
 

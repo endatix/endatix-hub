@@ -26,6 +26,7 @@ import {
 import type { PublicFormAccessResponse } from "@/lib/endatix-api/forms/types";
 import { ERROR_CODE } from "@/lib/endatix-api/shared/error-codes";
 import { Result, type ResultType } from "@/lib/result";
+import { isAccessToken } from "@/lib/utils";
 import type { ActiveDefinition } from "@/types";
 
 /**
@@ -88,7 +89,8 @@ export type LoadPublicSurveyPageResult =
     };
 
 /**
- * Loads the public survey page.
+ * Loads the public survey page. A URL token, or an access token in the form cookie (a personalized
+ * link's), opens that one submission whatever the form's privacy.
  * @param formId - The form ID.
  * @param tokenStore - The token store.
  * @param urlToken - The URL token.
@@ -99,8 +101,9 @@ export async function loadPublicSurveyPageUseCase({
   tokenStore,
   urlToken,
 }: LoadPublicSurveyPageQuery): Promise<LoadPublicSurveyPageResult> {
-  if (urlToken) {
-    return loadAccessTokenSurveyPage({ formId, urlToken });
+  const accessToken = urlToken ?? cookieAccessToken(formId, tokenStore);
+  if (accessToken) {
+    return loadAccessTokenSurveyPage({ formId, urlToken: accessToken });
   }
 
   const publicFormAccessResult = await getPublicFormAccessUseCase({ formId });
@@ -137,6 +140,7 @@ async function loadAccessTokenSurveyPage({
   const publicFormAccessResult = await getPublicFormAccessUseCase({
     formId,
     token: urlToken,
+    tokenType: "AccessToken",
   });
 
   if (Result.isError(publicFormAccessResult)) {
@@ -169,6 +173,16 @@ async function loadAccessTokenSurveyPage({
   });
 }
 
+function cookieAccessToken(
+  formId: string,
+  tokenStore: FormTokenCookieStore,
+): string | undefined {
+  const stored = tokenStore.getToken(formId);
+  return Result.isSuccess(stored) && isAccessToken(stored.value)
+    ? stored.value
+    : undefined;
+}
+
 type LoadedPageQuery = {
   formId: string;
   access: PublicFormAccessResponse;
@@ -177,7 +191,7 @@ type LoadedPageQuery = {
   urlToken?: string;
 };
 
-/** The page that loaded. A URL-token page never offers the cookie's new response. */
+/** The page that loaded. A token page (URL, or a personalized link's cookie) never offers a new response. */
 async function loadedPage(
   query: LoadedPageQuery,
 ): Promise<LoadPublicSurveyPageResult> {
