@@ -4,7 +4,9 @@ import {
   PublicStatusPage,
   publicStatusClassNames,
 } from "@/components/public-status/public-status-page";
+import SubmissionAlreadyCompleted from "@/features/public-form/ui/submission-already-completed";
 import { TelemetryLogger } from "@/features/telemetry";
+import { ERROR_CODE } from "@/lib/endatix-api/shared/error-codes";
 import { ErrorType, Result } from "@/lib/result";
 import {
   Link2Off,
@@ -20,11 +22,12 @@ import styles from "./open-personal-link.module.css";
 
 type OpenPersonalLinkProps = { formId: string; token: string };
 
-type Phase = "opening" | "notFound" | "unavailable";
+type Phase = "opening" | "notFound" | "ended" | "unavailable";
 
 const TITLES: Record<Phase, string> = {
   opening: "Opening your survey…",
   notFound: "This link is not valid.",
+  ended: "Thank you. This form has already been completed.",
   unavailable: "The link could not be opened.",
 };
 
@@ -55,7 +58,11 @@ export function OpenPersonalLink({
 
   return (
     <>
-      <PhasePage phase={phase} retry={retry} />
+      {phase === "ended" ? (
+        <SubmissionAlreadyCompleted variant="share" />
+      ) : (
+        <PhasePage phase={phase} retry={retry} />
+      )}
       <p aria-live="polite" className={styles.visuallyHidden} role="status">
         {TITLES[phase]}
       </p>
@@ -112,6 +119,14 @@ function PhasePage({
   );
 }
 
+function failedPhase(failure: Result<void>): Phase {
+  if (Result.isSuccess(failure)) return "opening";
+  if (failure.errorCode === ERROR_CODE.SUBMISSION_ENDED) return "ended";
+  return failure.errorType === ErrorType.ValidationError
+    ? "notFound"
+    : "unavailable";
+}
+
 function useOpenPersonalLink(formId: string, token: string) {
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>("opening");
@@ -138,8 +153,7 @@ function useOpenPersonalLink(formId: string, token: string) {
       router.replace(`/share/${formId}` as Route);
       return;
     }
-    const notValid = opened.errorType === ErrorType.ValidationError;
-    setPhase(notValid ? "notFound" : "unavailable");
+    setPhase(failedPhase(opened));
   }, [formId, token, router]);
 
   useEffect(() => {

@@ -33,6 +33,15 @@ describe("resolveStorageGateInput", () => {
     expect(gate.tokenType).toBe("SubmissionToken");
   });
 
+  it("reads a personalized link's cookie access token as an AccessToken", async () => {
+    mockGetToken.mockReturnValue(Result.success("22.1893456000.s.stamp~sig"));
+
+    const gate = await resolveStorageGateInput({ formId: "100" });
+
+    expect(gate.token).toBe("22.1893456000.s.stamp~sig");
+    expect(gate.tokenType).toBe("AccessToken");
+  });
+
   it("skips cookie when allowCookieFallback is false", async () => {
     const gate = await resolveStorageGateInput(
       { formId: "100" },

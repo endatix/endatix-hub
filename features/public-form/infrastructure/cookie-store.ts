@@ -1,4 +1,5 @@
 import { Result } from "@/lib/result";
+import { isAccessToken } from "@/lib/utils";
 import { ResponseCookie } from "next/dist/compiled/@edge-runtime/cookies";
 import { ReadonlyRequestCookies } from "next/dist/server/web/spec-extension/adapters/request-cookies";
 
@@ -21,8 +22,6 @@ type BaseCookieOptions = Omit<
   Partial<ResponseCookie>,
   "expires" | "maxAge" | "name" | "value"
 >;
-
-
 
 class FormTokenCookieStore {
   private readonly COOKIE_CONFIG: CookieConfig;
@@ -102,6 +101,17 @@ class FormTokenCookieStore {
     }
   }
 
+  /**
+   * The form's access token (a personalized link's), expired or not: the API refuses an expired one
+   * with `token_expired`, so the person is told to reopen their link instead of becoming anonymous.
+   */
+  public getAccessToken(formId: string): string | undefined {
+    const stored = this.getToken(formId);
+    return Result.isSuccess(stored) && isAccessToken(stored.value)
+      ? stored.value
+      : undefined;
+  }
+
   public setToken({ formId, token }: FormToken): Result<void> {
     if (!formId || !token) {
       return Result.error("FormId and token are required");
@@ -166,8 +176,4 @@ class FormTokenCookieStore {
   }
 }
 
-export { 
-  DEFAULT_COOKIE_NAME,
-  DEFAULT_COOKIE_DURATION,
-  FormTokenCookieStore,
-};
+export { DEFAULT_COOKIE_NAME, DEFAULT_COOKIE_DURATION, FormTokenCookieStore };

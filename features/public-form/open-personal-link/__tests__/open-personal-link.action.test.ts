@@ -24,12 +24,13 @@ describe("openPersonalLinkAction", () => {
     cookieJar.get.mockReturnValue(undefined);
   });
 
-  it("redeems the link and keeps the submission token in the form cookie", async () => {
+  it("redeems the link and keeps the submission access token in the form cookie", async () => {
     redeemLink.mockResolvedValue(
       ApiResult.success({
         submissionId: "22",
         created: true,
-        accessToken: "submission-token",
+        submissionAccessToken: "22.1893456000.s.stamp~sig",
+        submissionAccessTokenExpiresAt: "2030-01-01T00:00:00Z",
       }),
     );
 
@@ -38,7 +39,7 @@ describe("openPersonalLinkAction", () => {
     expect(Result.isSuccess(opened)).toBe(true);
     expect(redeemLink).toHaveBeenCalledWith(FORM_ID, LINK_TOKEN);
     expect(JSON.parse(cookieJar.set.mock.calls[0][1])).toEqual({
-      [FORM_ID]: "submission-token",
+      [FORM_ID]: "22.1893456000.s.stamp~sig",
     });
   });
 
@@ -68,7 +69,8 @@ describe("openPersonalLinkAction", () => {
       ApiResult.success({
         submissionId: "22",
         created: true,
-        accessToken: "submission-token",
+        submissionAccessToken: "22.1893456000.s.stamp~sig",
+        submissionAccessTokenExpiresAt: "2030-01-01T00:00:00Z",
       }),
     );
     cookieJar.get.mockReturnValue({ value: "not json" });
@@ -78,6 +80,21 @@ describe("openPersonalLinkAction", () => {
     expect(Result.isError(opened) && opened.message).toBe(
       "The link could not be opened.",
     );
+  });
+
+  it("answers submission_ended for a link whose submission has ended, and sets no cookie", async () => {
+    redeemLink.mockResolvedValue(
+      ApiResult.conflictError(
+        "Submission ended",
+        undefined,
+        "submission_ended",
+      ),
+    );
+
+    const opened = await openPersonalLinkAction(FORM_ID, LINK_TOKEN);
+
+    expect(Result.isError(opened) && opened.errorCode).toBe("submission_ended");
+    expect(cookieJar.set).not.toHaveBeenCalled();
   });
 
   it("answers a retryable error when the API fails", async () => {

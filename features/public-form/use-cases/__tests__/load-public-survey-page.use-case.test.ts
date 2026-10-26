@@ -40,7 +40,7 @@ vi.mock(
 const formId = "form-1";
 const token = "access-token";
 const createdAt = new Date("2026-06-10T12:00:00.000Z");
-const tokenStore = {} as never;
+const tokenStore = { getAccessToken: () => undefined } as never;
 
 const publicAccess = {
   formId,
