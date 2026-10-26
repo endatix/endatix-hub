@@ -108,20 +108,21 @@ type RowAction = Omit<ActionSpec, "run"> & {
 };
 
 /**
- * Test, copy test link, edit, remove; Copy test link only on a test person, Edit only when there
- * is a value to edit (DESIGN.md §6 "Omit what cannot apply").
+ * Copy test link, test, edit, remove; Copy test link only on a test person, Edit only when there
+ * is a value to edit (DESIGN.md §6 "Omit what cannot apply"). Copy test link comes first, so the
+ * actions every row has line up from the right on test and real rows alike.
  */
 const ROW_ACTIONS: RowAction[] = [
-  {
-    handler: "onTest",
-    label: (id) => `Test as this participant: ${id}`,
-    icon: FlaskConical,
-  },
   {
     handler: "onCopyTestLink",
     label: (id) => `Copy test link: ${id}`,
     icon: Link2,
     appliesTo: (row) => row.isTest,
+  },
+  {
+    handler: "onTest",
+    label: (id) => `Test as this participant: ${id}`,
+    icon: FlaskConical,
   },
   {
     handler: "onEdit",

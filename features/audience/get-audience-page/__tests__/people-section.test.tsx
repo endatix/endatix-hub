@@ -220,6 +220,30 @@ describe("PeopleSection", () => {
     ).toBe("7 days");
   });
 
+  it("puts Copy test link first, so the actions both rows share line up", () => {
+    render(
+      <PeopleSection
+        {...LIST}
+        people={[PERSON, TEST_PERSON]}
+        canEdit
+        canTest
+        canCopyTestLink
+      />,
+    );
+
+    const [real, test] = screen.getAllByRole("row").slice(1);
+    const actions = (row: HTMLElement) =>
+      within(row)
+        .getAllByRole("button")
+        .map(
+          (b) =>
+            /^(Copy test link|Test as|Remove)/.exec(b.ariaLabel ?? "")?.[1],
+        )
+        .filter(Boolean);
+    expect(actions(test)).toEqual(["Copy test link", "Test as", "Remove"]);
+    expect(actions(real)).toEqual(["Test as", "Remove"]);
+  });
+
   it("leaves out Copy test link for a reader who cannot share submissions", () => {
     render(
       <PeopleSection

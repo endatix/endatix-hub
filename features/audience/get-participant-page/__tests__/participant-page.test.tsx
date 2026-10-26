@@ -216,6 +216,19 @@ describe("ParticipantPage", () => {
     expect(createTestLinkAction).toHaveBeenCalledWith("1", "7", 60 * 24 * 7);
   });
 
+  it("lists Copy test link before Test as this participant, as the People row does", () => {
+    renderPage();
+
+    const names = screen
+      .getAllByRole("button")
+      .map((button) => button.textContent)
+      .filter(
+        (name) =>
+          name === "Copy test link" || name === "Test as this participant",
+      );
+    expect(names).toEqual(["Copy test link", "Test as this participant"]);
+  });
+
   it.each([
     ["a real participant", { isTest: false }, true],
     ["a reader who cannot share submissions", {}, false],

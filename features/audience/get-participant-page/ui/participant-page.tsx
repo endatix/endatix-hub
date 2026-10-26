@@ -44,24 +44,25 @@ type ActionSpec = {
 };
 
 /**
- * Test as (with `forms.test`) and Copy test link (a test participant, with `canCopyTestLink`). A
- * test submission reads the page again, so their submissions show the new one.
+ * Copy test link (a test participant, with `canCopyTestLink`) and Test as (with `forms.test`), in
+ * the People row's order. A test submission reads the page again, so their submissions show the
+ * new one.
  */
 function useTestSpecs({ testLink, ...props }: ActionsProps): ActionSpec[] {
   const router = useRouter();
   const testAs = useTestAsPerson(props.formId, router.refresh);
   return [
     {
-      show: props.canTest,
-      label: "Test as this participant",
-      icon: FlaskConical,
-      run: testAs,
-    },
-    {
       show: props.canCopyTestLink && props.participant.isTest,
       label: "Copy test link",
       icon: Link2,
       run: testLink.open,
+    },
+    {
+      show: props.canTest,
+      label: "Test as this participant",
+      icon: FlaskConical,
+      run: testAs,
     },
   ];
 }
