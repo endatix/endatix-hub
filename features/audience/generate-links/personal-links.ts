@@ -17,9 +17,9 @@ export function personalLinkUrl(
   return `${origin}${path}`;
 }
 
-/** `personalised-links-<form>-2026-10-12.csv`: dated, so a second batch never overwrites the first. */
+/** `personalized-links-<form>-2026-10-12.csv`: dated, so a second batch never overwrites the first. */
 export function linksFileName(formId: string, at: Date = new Date()): string {
-  return `personalised-links-${formId}-${at.toISOString().slice(0, 10)}.csv`;
+  return `personalized-links-${formId}-${at.toISOString().slice(0, 10)}.csv`;
 }
 
 type LinksFile = {

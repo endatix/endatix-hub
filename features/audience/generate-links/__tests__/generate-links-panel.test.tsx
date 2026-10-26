@@ -25,7 +25,7 @@ function openPanel(totalPeople = 2) {
       totalPeople={totalPeople}
     />,
   );
-  fireEvent.click(screen.getByRole("button", { name: "Personalised links" }));
+  fireEvent.click(screen.getByRole("button", { name: "Personalized links" }));
 }
 
 describe("GenerateLinksPanel", () => {
@@ -75,7 +75,7 @@ describe("GenerateLinksPanel", () => {
     const [csv, fileName] = downloadText.mock.calls[0];
     expect(csv).toContain("email,link");
     expect(csv).toContain("ada@example.com,");
-    expect(fileName).toMatch(/^personalised-links-42-\d{4}-\d{2}-\d{2}\.csv$/);
+    expect(fileName).toMatch(/^personalized-links-42-\d{4}-\d{2}-\d{2}\.csv$/);
     fireEvent.click(screen.getByRole("button", { name: "Download CSV" }));
     expect(downloadText).toHaveBeenCalledTimes(2);
     expect(refresh).toHaveBeenCalledTimes(1);

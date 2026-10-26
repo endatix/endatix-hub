@@ -59,8 +59,8 @@ function AddAsTestField({ form }: Readonly<{ form: TestEditor }>) {
   return (
     <TestPersonCheckbox
       id="add-person-test"
-      label="Add as test person"
-      help="A test person is never sent a personalised link. Use them to try the form with Test as this person."
+      label="Add as test participant"
+      help="A test participant is never sent a personalized link. Use them to try the form with Test as this participant."
       checked={form.isTest}
       disabled={form.pending}
       onCheckedChange={form.setIsTest}

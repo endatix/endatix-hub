@@ -39,7 +39,7 @@ type PeopleSectionProps = {
   hasNextPage: boolean;
   /** Without `forms.edit` the list is read-only: no add, edit or remove controls. */
   canEdit: boolean;
-  /** With `forms.test` each row offers Test as this person. */
+  /** With `forms.test` each row offers Test as this participant. */
   canTest: boolean;
   /** All / Real / Test; `totalPeople` counts the filtered set. */
   testFilter: AudiencePeopleTestFilter;

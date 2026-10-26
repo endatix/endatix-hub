@@ -103,7 +103,7 @@ function actionSpecs(handlers: RowHandlers, hasValues: boolean): ActionSpec[] {
   return [
     {
       run: handlers.onTest,
-      label: (id) => `Test as this person: ${id}`,
+      label: (id) => `Test as this participant: ${id}`,
       icon: FlaskConical,
     },
     {

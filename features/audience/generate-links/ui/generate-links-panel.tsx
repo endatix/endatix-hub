@@ -16,14 +16,14 @@ import { LinksOutcome } from "./links-outcome";
 const TRIGGER = (
   <Button variant="outline">
     <Link2 />
-    Personalised links
+    Personalized links
   </Button>
 );
 
 const PANEL = {
   desktopType: "complex",
   trigger: TRIGGER,
-  title: "Personalised links",
+  title: "Personalized links",
   errorTitle: "Links not created",
   pendingLabel: "Generating…",
 } as const;
@@ -89,7 +89,7 @@ function stepProps(run: GenerateLinks, setup: GenerateLinksSetup) {
 }
 
 /**
- * Personalised links (DESIGN.md §6 Configure and run, Hand over a file): who gets one, the
+ * Personalized links (DESIGN.md §6 Configure and run, Hand over a file): who gets one, the
  * consequence, then the file saved at once and the outcome in place.
  */
 export function GenerateLinksPanel(setup: Readonly<GenerateLinksSetup>) {

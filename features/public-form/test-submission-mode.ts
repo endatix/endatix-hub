@@ -15,7 +15,7 @@ export type TestCornerInput = TestPageInput & {
   testInspector: TestInspectorView | null;
 };
 
-/** A test submission opened with Test as this person: the only kind Start over applies to. */
+/** A test submission opened with Test as this participant: the only kind Start over applies to. */
 export function isPersonTestSubmission(
   submission: Submission | undefined,
 ): boolean {
@@ -53,7 +53,7 @@ export function testCornerFor(survey: TestCornerInput): TestCorner {
 }
 
 /**
- * A person's test submission loaded from the cookie saves with its own token. Test as this person
+ * A person's test submission loaded from the cookie saves with its own token. Test as this participant
  * and Start over repoint the form cookie, so a tab already open on another test submission would
  * otherwise write its answers into the new one.
  */

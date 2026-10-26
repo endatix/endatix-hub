@@ -168,7 +168,7 @@ describe("PeopleSection", () => {
     );
   });
 
-  it("badges test people and offers Test as this person with forms.test alone", () => {
+  it("badges test people and offers Test as this participant with forms.test alone", () => {
     render(
       <PeopleSection
         {...LIST}
@@ -183,7 +183,7 @@ describe("PeopleSection", () => {
     expect(rows[1].textContent).toContain("Test");
     expect(
       screen.getByRole("button", {
-        name: "Test as this person: tester@example.com",
+        name: "Test as this participant: tester@example.com",
       }),
     ).toBeTruthy();
     expect(screen.queryByRole("button", { name: /^Remove / })).toBeNull();
@@ -208,13 +208,13 @@ describe("PeopleSection", () => {
     expect(screen.queryByRole("link", { name: "CG-000003-01" })).toBeNull();
   });
 
-  it("leaves out Test as this person without forms.test", () => {
+  it("leaves out Test as this participant without forms.test", () => {
     render(
       <PeopleSection {...LIST} people={[PERSON]} canEdit canTest={false} />,
     );
 
     expect(
-      screen.queryByRole("button", { name: /^Test as this person/ }),
+      screen.queryByRole("button", { name: /^Test as this participant/ }),
     ).toBeNull();
   });
 
