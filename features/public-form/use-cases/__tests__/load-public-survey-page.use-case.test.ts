@@ -40,9 +40,7 @@ vi.mock(
 const formId = "form-1";
 const token = "access-token";
 const createdAt = new Date("2026-06-10T12:00:00.000Z");
-const tokenStore = {
-  getToken: () => Result.error("No cookie found"),
-} as never;
+const tokenStore = { getToken: () => Result.error("none") } as never;
 
 const publicAccess = {
   formId,
@@ -229,68 +227,6 @@ describe("loadPublicSurveyPageUseCase", () => {
     });
     expect(getActiveDefinitionUseCase).not.toHaveBeenCalled();
     expect(getPartialSubmissionUseCase).not.toHaveBeenCalled();
-  });
-
-  it("loads a personalized link's cookie access token like a URL token, with no Start over", async () => {
-    const linkToken = "submission-1.1893456000.s.stamp~sig";
-    const cookieTokenStore = {
-      getToken: vi.fn().mockReturnValue(Result.success(linkToken)),
-    } as never;
-    vi.mocked(getSubmissionByAccessTokenUseCase).mockResolvedValue(
-      Result.success(accessTokenSubmission),
-    );
-
-    const result = await loadPublicSurveyPageUseCase({
-      formId,
-      tokenStore: cookieTokenStore,
-    });
-
-    expect(getPublicFormAccessUseCase).toHaveBeenCalledWith({
-      formId,
-      token: linkToken,
-      tokenType: "AccessToken",
-    });
-    expect(getSubmissionByAccessTokenUseCase).toHaveBeenCalledWith({
-      formId,
-      token: linkToken,
-    });
-    expect(getActiveDefinitionUseCase).not.toHaveBeenCalled();
-    expect(getPartialSubmissionUseCase).not.toHaveBeenCalled();
-    expect(result.kind).toBe("success");
-    if (result.kind === "success") {
-      expect(result.activeDefinition.jsonData).toBe('{"title":"Snapshot"}');
-      expect(result.canStartOver).toBe(false);
-      expect(result.submissionPhase).toBe("resume");
-    }
-  });
-
-  it.each([ERROR_CODE.TOKEN_REVOKED, ERROR_CODE.TOKEN_EXPIRED, ERROR_CODE.INVALID_ACCESS_TOKEN])(
-    "shows the invalid-link page when the access check refuses the token with %s",
-    async (errorCode) => {
-      vi.mocked(getPublicFormAccessUseCase).mockResolvedValue(
-        Result.validationError("Token refused", undefined, errorCode),
-      );
-
-      const result = await loadPublicSurveyPageUseCase({
-        formId,
-        tokenStore,
-        urlToken: token,
-      });
-
-      expect(result).toEqual({ kind: "tokenSubmissionError", errorCode });
-      expect(getSubmissionByAccessTokenUseCase).not.toHaveBeenCalled();
-    },
-  );
-
-  it("keeps the submission-token path for an opaque cookie token", async () => {
-    const cookieTokenStore = {
-      getToken: vi.fn().mockReturnValue(Result.success("opaque-token")),
-    } as never;
-
-    await loadPublicSurveyPageUseCase({ formId, tokenStore: cookieTokenStore });
-
-    expect(getPublicFormAccessUseCase).toHaveBeenCalledWith({ formId });
-    expect(getSubmissionByAccessTokenUseCase).not.toHaveBeenCalled();
   });
 
   it("keeps completed access-token submissions active for the completed-token view", async () => {

@@ -4,6 +4,7 @@ import { FormTokenCookieStore } from "@/features/public-form/infrastructure/cook
 import { collectionDisposition } from "@/features/submissions/domain";
 import { SubmissionData } from "@/features/submissions/types";
 import { ApiResult, EndatixApi, ERROR_CODE } from "@/lib/endatix-api";
+import type { ApiError } from "@/lib/endatix-api/shared/api-result";
 import { REFUSED_TOKEN_CODES } from "@/lib/endatix-api/shared/error-codes";
 import type { Submission } from "@/lib/endatix-api";
 import { Result } from "@/lib/result";
@@ -173,48 +174,75 @@ async function updateExistingSubmissionViaToken(
         submissionData,
       );
 
-  if (ApiResult.isSuccess(updateResult)) {
-    // An access token stays: the opaque token in the response follows the form's privacy.
-    const resumeToken = isAccessToken(token)
-      ? token
-      : (updateResult.data.token ?? token);
-    syncSubmissionCookie(
-      formId,
-      submissionData,
-      tokenStore,
-      updateResult.data,
-      syncCookies,
-      resumeToken,
-    );
-
-    return ApiResult.success(toSubmissionOperation(updateResult.data));
+  if (ApiResult.isError(updateResult)) {
+    return syncCookies
+      ? handleFailedCookieUpdate(
+          { formId, submissionData, tokenStore },
+          updateResult,
+        )
+      : logApiError<SubmissionOperation>(updateResult, { formId });
   }
 
-  if (
-    syncCookies &&
-    updateResult.error.errorCode === ERROR_CODE.SUBMISSION_TOKEN_INVALID
-  ) {
+  // An access token stays: the opaque token in the response follows the form's privacy.
+  const resumeToken = isAccessToken(token)
+    ? token
+    : (updateResult.data.token ?? token);
+  syncSubmissionCookie(
+    formId,
+    submissionData,
+    tokenStore,
+    updateResult.data,
+    syncCookies,
+    resumeToken,
+  );
+
+  return ApiResult.success(toSubmissionOperation(updateResult.data));
+}
+
+/**
+ * An expired cookie submission token starts a new submission. A refused link token cannot come
+ * back, so it is dropped and the next visit starts clean.
+ */
+async function handleFailedCookieUpdate(
+  update: CookieUpdate,
+  updateError: ApiError,
+): Promise<SubmissionOperationResult> {
+  const { formId, tokenStore } = update;
+  const { errorCode } = updateError.error;
+  if (errorCode === ERROR_CODE.SUBMISSION_TOKEN_INVALID) {
     tokenStore.deleteToken(formId);
-    const recoveryResult = await createSubmission(
-      formId,
-      submissionData,
-      tokenStore,
-    );
-
-    if (ApiResult.isError(recoveryResult)) {
-      logApiError(recoveryResult, { formId });
-    }
-
-    return recoveryResult;
+    return recoverWithNewSubmission(update);
   }
 
-  // A refused link token cannot come back; drop it so the next visit starts clean.
-  const { errorCode } = updateResult.error;
-  if (syncCookies && errorCode && REFUSED_TOKEN_CODES.has(errorCode)) {
+  if (errorCode && REFUSED_TOKEN_CODES.has(errorCode)) {
     tokenStore.deleteToken(formId);
   }
 
-  return logApiError(updateResult, { formId });
+  return logApiError<SubmissionOperation>(updateError, { formId });
+}
+
+type CookieUpdate = {
+  formId: string;
+  submissionData: SubmissionData;
+  tokenStore: FormTokenCookieStore;
+};
+
+async function recoverWithNewSubmission({
+  formId,
+  submissionData,
+  tokenStore,
+}: CookieUpdate): Promise<SubmissionOperationResult> {
+  const recoveryResult = await createSubmission(
+    formId,
+    submissionData,
+    tokenStore,
+  );
+
+  if (ApiResult.isError(recoveryResult)) {
+    logApiError(recoveryResult, { formId });
+  }
+
+  return recoveryResult;
 }
 
 async function createSubmission(

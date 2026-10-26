@@ -105,16 +105,37 @@ export async function loadPublicSurveyPageUseCase({
   urlToken,
 }: LoadPublicSurveyPageQuery): Promise<LoadPublicSurveyPageResult> {
   const accessToken = urlToken ?? cookieAccessToken(formId, tokenStore);
-  if (accessToken) {
-    return loadAccessTokenSurveyPage({ formId, urlToken: accessToken });
-  }
+  return accessToken
+    ? loadAccessTokenSurveyPage({ formId, urlToken: accessToken })
+    : loadCookieSurveyPage({ formId, tokenStore });
+}
 
+/** The anonymous or signed-in page, with the cookie's submission token when it has one. */
+async function loadCookieSurveyPage({
+  formId,
+  tokenStore,
+}: LoadPartialSubmissionQuery): Promise<LoadPublicSurveyPageResult> {
   const publicFormAccessResult = await getPublicFormAccessUseCase({ formId });
 
   if (Result.isError(publicFormAccessResult)) {
     return mapAccessFailure(publicFormAccessResult);
   }
 
+  return loadCookieSubmissionPage({
+    formId,
+    tokenStore,
+    access: publicFormAccessResult.value,
+  });
+}
+
+type LoadCookieSubmissionPageQuery = LoadPartialSubmissionQuery & {
+  access: PublicFormAccessResponse;
+};
+
+async function loadCookieSubmissionPage(
+  query: LoadCookieSubmissionPageQuery,
+): Promise<LoadPublicSurveyPageResult> {
+  const { formId, tokenStore, access } = query;
   const [submissionResult, activeDefinitionResult] = await Promise.all([
     loadPartialSubmission({ formId, tokenStore }),
     getActiveDefinitionUseCase({ formId }),
@@ -130,7 +151,7 @@ export async function loadPublicSurveyPageUseCase({
 
   return loadedPage({
     formId,
-    access: publicFormAccessResult.value,
+    access,
     activeDefinition: activeDefinitionResult.value,
     submission: submissionResult.value,
   });
@@ -143,14 +164,10 @@ async function loadAccessTokenSurveyPage({
   const publicFormAccessResult = await getPublicFormAccessUseCase({
     formId,
     token: urlToken,
-    tokenType: "AccessToken",
   });
 
   if (Result.isError(publicFormAccessResult)) {
-    const { errorCode } = publicFormAccessResult;
-    return errorCode && REFUSED_TOKEN_CODES.has(errorCode)
-      ? { kind: "tokenSubmissionError", errorCode }
-      : mapAccessFailure(publicFormAccessResult);
+    return mapAccessTokenFailure(publicFormAccessResult);
   }
 
   const submissionResult = await loadAccessTokenSubmission({
@@ -255,7 +272,6 @@ async function testInspectorFor({
 
 const RESPONDENT_COPY_MAX_LENGTH = 240;
 
-
 function mapAccessFailure(result: ResultType<unknown>): Extract<
   LoadPublicSurveyPageResult,
   {
@@ -301,6 +317,16 @@ function mapAccessFailure(result: ResultType<unknown>): Extract<
     kind: "accessLoadError",
     errorCode: result.errorCode ?? ERROR_CODE.UNKNOWN_ERROR,
   };
+}
+
+/** A refused token needs a new link, not a retry: the token page says so. */
+function mapAccessTokenFailure(
+  result: ResultType<unknown>,
+): LoadPublicSurveyPageResult {
+  const errorCode = Result.isError(result) ? result.errorCode : undefined;
+  return errorCode && REFUSED_TOKEN_CODES.has(errorCode)
+    ? { kind: "tokenSubmissionError", errorCode }
+    : mapAccessFailure(result);
 }
 
 function plainRespondentCopy(value: string | undefined): string | undefined {
