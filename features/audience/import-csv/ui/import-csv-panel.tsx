@@ -52,7 +52,9 @@ const STATUS_DESCRIPTION: Record<string, (background: boolean) => string> = {
   [AudienceImportStatus.Uploading]: () =>
     "The upload stopped before the whole file was sent.",
   [AudienceImportStatus.Checking]: (background) =>
-    `The rows are being checked. Nothing is written yet.${background ? ` ${KEEPS_GOING}` : ""}`,
+    background
+      ? `The rows are being checked. Nothing is written yet. ${KEEPS_GOING}`
+      : "The rows are being checked. Nothing is written yet.",
   [AudienceImportStatus.Checked]: () =>
     "This is what the import will do. Nothing is written until you import.",
   [AudienceImportStatus.Writing]: (background) =>
@@ -71,18 +73,20 @@ function runningDescription(
     return "Sending the file. Keep this tab open until it is sent.";
   const describe = STATUS_DESCRIPTION[view.status];
   if (describe) return describe(view.runsInBackground);
-  return view.canResume
-    ? "The import stopped before it finished."
-    : "The import has ended.";
+  if (view.canResume) return "The import stopped before it finished.";
+  return "The import has ended.";
 }
 
 /** One sentence for the step, or for the running import, announced as it changes. */
 function ImportDescription({ wizard }: Readonly<{ wizard: ImportWizard }>) {
   const view = runView(wizard.run);
-  const text =
-    view === null
-      ? STEP_DESCRIPTION[wizard.step === "columns" ? "columns" : "file"]
-      : runningDescription(wizard, view);
+  let text: string;
+  if (view === null) {
+    const step = wizard.step === "columns" ? "columns" : "file";
+    text = STEP_DESCRIPTION[step];
+  } else {
+    text = runningDescription(wizard, view);
+  }
   return <span aria-live="polite">{text}</span>;
 }
 

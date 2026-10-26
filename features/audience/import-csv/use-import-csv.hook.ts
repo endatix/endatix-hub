@@ -308,7 +308,12 @@ function stepState(
   const ran = runStep(run);
   const step = ran ?? steps.step;
   // A failed start's message belongs to the Columns step; going back to change a choice clears it.
-  const back = steps.back && (() => (run.dismiss(), steps.back?.()));
+  const back =
+    steps.back &&
+    (() => {
+      run.dismiss();
+      steps.back?.();
+    });
   return { step, stepNumber: stepNumber(step), back: ran ? undefined : back };
 }
 

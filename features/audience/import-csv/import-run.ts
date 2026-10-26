@@ -31,28 +31,28 @@ export function importChunk(
   };
 }
 
-const POLLED: readonly string[] = [
+const POLLED = new Set<string>([
   AudienceImportStatus.Checking,
   AudienceImportStatus.Writing,
-];
+]);
 const CANCELABLE: readonly string[] = [
   AudienceImportStatus.Uploading,
   AudienceImportStatus.Checking,
   AudienceImportStatus.Checked,
 ];
-const UNFINISHED: readonly string[] = [
+const UNFINISHED = new Set<string>([
   ...CANCELABLE,
   AudienceImportStatus.Writing,
-];
+]);
 
 /** The server is working on it: read it again until it moves on. */
-export const isPolling = (status: string) => POLLED.includes(status);
+export const isPolling = (status: string) => POLLED.has(status);
 
 /** Nothing is written yet, so the scripter may still stop it. */
 export const canCancel = (status: string) => CANCELABLE.includes(status);
 
 /** It will not move again; a status this Hub does not know counts as one. */
-export const isTerminal = (status: string) => !UNFINISHED.includes(status);
+export const isTerminal = (status: string) => !UNFINISHED.has(status);
 
 export type UploadRequest = {
   missing: readonly number[];
