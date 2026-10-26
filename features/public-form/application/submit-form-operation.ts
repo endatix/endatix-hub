@@ -5,7 +5,10 @@ import { collectionDisposition } from "@/features/submissions/domain";
 import { SubmissionData } from "@/features/submissions/types";
 import { ApiResult, EndatixApi, ERROR_CODE } from "@/lib/endatix-api";
 import type { ApiError } from "@/lib/endatix-api/shared/api-result";
-import { REFUSED_TOKEN_CODES } from "@/lib/endatix-api/shared/error-codes";
+import {
+  getErrorMessageWithFallback,
+  REFUSED_TOKEN_CODES,
+} from "@/lib/endatix-api/shared/error-codes";
 import type { Submission } from "@/lib/endatix-api";
 import { Result } from "@/lib/result";
 import { isAccessToken } from "@/lib/utils";
@@ -175,12 +178,14 @@ async function updateExistingSubmissionViaToken(
       );
 
   if (ApiResult.isError(updateResult)) {
-    return syncCookies
-      ? handleFailedCookieUpdate(
-          { formId, submissionData, tokenStore },
-          updateResult,
-        )
-      : logApiError<SubmissionOperation>(updateResult, { formId });
+    const recoverable =
+      syncCookies &&
+      updateResult.error.errorCode === ERROR_CODE.SUBMISSION_TOKEN_INVALID;
+    return recoverable
+      ? recoverWithNewSubmission({ formId, submissionData, tokenStore })
+      : logApiError<SubmissionOperation>(withRespondentCopy(updateResult), {
+          formId,
+        });
   }
 
   // An access token stays: the opaque token in the response follows the form's privacy.
@@ -200,25 +205,21 @@ async function updateExistingSubmissionViaToken(
 }
 
 /**
- * An expired cookie submission token starts a new submission. A refused link token cannot come
- * back, so it is dropped and the next visit starts clean.
+ * A refused link token (expired, revoked) says so in the respondent's words, not the API's. The
+ * token stays in the cookie: the page then tells the person to reopen their link, and no save
+ * falls through to a new, unattributed submission.
  */
-async function handleFailedCookieUpdate(
-  update: CookieUpdate,
-  updateError: ApiError,
-): Promise<SubmissionOperationResult> {
-  const { formId, tokenStore } = update;
+function withRespondentCopy(updateError: ApiError): ApiError {
   const { errorCode } = updateError.error;
-  if (errorCode === ERROR_CODE.SUBMISSION_TOKEN_INVALID) {
-    tokenStore.deleteToken(formId);
-    return recoverWithNewSubmission(update);
-  }
-
-  if (errorCode && REFUSED_TOKEN_CODES.has(errorCode)) {
-    tokenStore.deleteToken(formId);
-  }
-
-  return logApiError<SubmissionOperation>(updateError, { formId });
+  return errorCode && REFUSED_TOKEN_CODES.has(errorCode)
+    ? {
+        ...updateError,
+        error: {
+          ...updateError.error,
+          message: getErrorMessageWithFallback(errorCode),
+        },
+      }
+    : updateError;
 }
 
 type CookieUpdate = {
@@ -227,11 +228,13 @@ type CookieUpdate = {
   tokenStore: FormTokenCookieStore;
 };
 
+/** An expired cookie submission token starts a new submission. */
 async function recoverWithNewSubmission({
   formId,
   submissionData,
   tokenStore,
 }: CookieUpdate): Promise<SubmissionOperationResult> {
+  tokenStore.deleteToken(formId);
   const recoveryResult = await createSubmission(
     formId,
     submissionData,

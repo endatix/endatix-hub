@@ -161,7 +161,10 @@ export type IssuedAudienceLink = {
 export type RedeemedAudienceLink = {
   submissionId: string;
   created: boolean;
-  /** Signed submission access token with `submit`, sent as `tokenType=AccessToken`. */
+  /**
+   * Signed submission access token with `submit`, sent as `tokenType=AccessToken`. From an API
+   * before endatix#1411 it is the opaque submission token, which opens public forms only.
+   */
   submissionAccessToken: string;
   submissionAccessTokenExpiresAt: string | null;
 };

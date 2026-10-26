@@ -34,9 +34,7 @@ vi.mock(
 const formId = "form-1";
 const token = "submission-1.1893456000.s.stamp~sig";
 const createdAt = new Date("2026-06-10T12:00:00.000Z");
-const tokenStore = {
-  getToken: () => Result.error("No cookie found"),
-} as never;
+const tokenStore = { getAccessToken: () => undefined } as never;
 
 const publicAccess = {
   formId,
@@ -85,7 +83,7 @@ describe("loadPublicSurveyPageUseCase with a personalized link's access token", 
   it("loads a personalized link's cookie access token like a URL token, with no Start over", async () => {
     const linkToken = "submission-1.1893456000.s.stamp~sig";
     const cookieTokenStore = {
-      getToken: vi.fn().mockReturnValue(Result.success(linkToken)),
+      getAccessToken: vi.fn().mockReturnValue(linkToken),
     } as never;
     vi.mocked(getSubmissionByAccessTokenUseCase).mockResolvedValue(
       Result.success(accessTokenSubmission),
@@ -136,9 +134,33 @@ describe("loadPublicSurveyPageUseCase with a personalized link's access token", 
     },
   );
 
+  it.each([ERROR_CODE.TOKEN_EXPIRED, ERROR_CODE.TOKEN_REVOKED])(
+    "tells a personalized link's respondent to reopen their link when the cookie token is refused with %s",
+    async (errorCode) => {
+      vi.mocked(getPublicFormAccessUseCase).mockResolvedValue(
+        Result.validationError("Token refused", undefined, errorCode),
+      );
+      const cookieTokenStore = {
+        getAccessToken: vi.fn().mockReturnValue(token),
+      } as never;
+
+      const result = await loadPublicSurveyPageUseCase({
+        formId,
+        tokenStore: cookieTokenStore,
+      });
+
+      expect(result).toEqual({
+        kind: "tokenSubmissionError",
+        errorCode,
+        personalLink: true,
+      });
+      expect(getPartialSubmissionUseCase).not.toHaveBeenCalled();
+    },
+  );
+
   it("keeps the submission-token path for an opaque cookie token", async () => {
     const cookieTokenStore = {
-      getToken: vi.fn().mockReturnValue(Result.success("opaque-token")),
+      getAccessToken: vi.fn().mockReturnValue(undefined),
     } as never;
     vi.mocked(getPartialSubmissionUseCase).mockResolvedValue(
       ApiResult.notFoundError("No partial submission"),

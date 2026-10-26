@@ -68,23 +68,50 @@ describe("submitFormOperation with a personalized link's cookie access token", (
     expect(ApiResult.isSuccess(result)).toBe(true);
   });
 
-  it("drops a revoked token without starting an anonymous submission or logging the token", async () => {
+  it.each([
+    [ERROR_CODE.TOKEN_EXPIRED, "This link has expired."],
+    [ERROR_CODE.TOKEN_REVOKED, "This link is no longer valid."],
+  ])(
+    "refuses a save by a %s token with respondent copy, keeps the token, and starts no submission",
+    async (errorCode, message) => {
+      updateByAccessToken.mockResolvedValue(
+        ApiResult.validationError("Token refused", errorCode),
+      );
+
+      const result = await submitFormOperation(
+        "form-1",
+        draft,
+        tokenStore as never,
+      );
+
+      expect(ApiResult.isError(result) && result.error).toMatchObject({
+        message,
+        errorCode,
+      });
+      expect(create).not.toHaveBeenCalled();
+      expect(tokenStore.deleteToken).not.toHaveBeenCalled();
+      expect(captureException).toHaveBeenCalled();
+      expect(JSON.stringify(captureException.mock.calls)).not.toContain(
+        "stamp~sig",
+      );
+    },
+  );
+
+  it("gives a URL token's refused save the same respondent copy", async () => {
     updateByAccessToken.mockResolvedValue(
-      ApiResult.validationError("Token revoked", ERROR_CODE.TOKEN_REVOKED),
+      ApiResult.validationError("Token expired", ERROR_CODE.TOKEN_EXPIRED),
     );
 
     const result = await submitFormOperation(
       "form-1",
       draft,
       tokenStore as never,
+      LINK_TOKEN,
     );
 
-    expect(ApiResult.isError(result)).toBe(true);
-    expect(create).not.toHaveBeenCalled();
-    expect(tokenStore.deleteToken).toHaveBeenCalledWith("form-1");
-    expect(captureException).toHaveBeenCalled();
-    expect(JSON.stringify(captureException.mock.calls)).not.toContain(
-      "stamp~sig",
+    expect(ApiResult.isError(result) && result.error.message).toBe(
+      "This link has expired.",
     );
+    expect(create).not.toHaveBeenCalled();
   });
 });

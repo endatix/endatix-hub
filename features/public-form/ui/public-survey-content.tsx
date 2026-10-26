@@ -40,6 +40,18 @@ function toSurveyRuntime(
   };
 }
 
+type TokenErrorPage = Extract<
+  Awaited<ReturnType<typeof loadPublicSurveyPageUseCase>>,
+  { kind: "tokenSubmissionError" | "submissionLoadError" }
+>;
+
+function tokenErrorProps(page: TokenErrorPage) {
+  return {
+    errorCode: page.errorCode,
+    personalLink: page.kind === "tokenSubmissionError" && page.personalLink,
+  };
+}
+
 export async function PublicSurveyContent({
   formId,
   urlToken,
@@ -90,7 +102,7 @@ export async function PublicSurveyContent({
   ) {
     return (
       <TokenSubmissionError
-        errorCode={pageResult.errorCode}
+        {...tokenErrorProps(pageResult)}
         variant={variant}
       />
     );

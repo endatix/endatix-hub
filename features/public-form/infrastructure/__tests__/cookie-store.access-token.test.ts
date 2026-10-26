@@ -22,25 +22,25 @@ describe("FormTokenCookieStore with a personalized link's access token", () => {
     vi.setSystemTime(NOW_UNIX * 1000);
   });
 
-  it("returns an access token that has not expired", () => {
-    holding(accessToken(NOW_UNIX + 60));
+  it("keeps an access token past its expiry, so the API can refuse it as expired", () => {
+    holding(accessToken(NOW_UNIX - 1));
 
     const result = store().getToken(FORM_ID);
 
     expect(Result.isSuccess(result) && result.value).toBe(
-      accessToken(NOW_UNIX + 60),
+      accessToken(NOW_UNIX - 1),
     );
   });
 
-  it("treats an access token past its own expiry as gone", () => {
-    holding(accessToken(NOW_UNIX - 1));
+  it("returns the form's access token", () => {
+    holding(accessToken(NOW_UNIX + 60));
 
-    expect(Result.isError(store().getToken(FORM_ID))).toBe(true);
+    expect(store().getAccessToken(FORM_ID)).toBe(accessToken(NOW_UNIX + 60));
   });
 
-  it("keeps an opaque submission token, which carries no expiry", () => {
+  it("returns no access token for an opaque submission token", () => {
     holding("opaque-submission-token");
 
-    expect(Result.isSuccess(store().getToken(FORM_ID))).toBe(true);
+    expect(store().getAccessToken(FORM_ID)).toBeUndefined();
   });
 });

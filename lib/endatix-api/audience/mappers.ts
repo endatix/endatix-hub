@@ -252,8 +252,13 @@ export function mapPeoplePageResult(
   );
 }
 
-export type WireRedeemedLink = Omit<RedeemedAudienceLink, "submissionId"> & {
+/** An API before endatix#1411 sends only the opaque `accessToken`. */
+export type WireRedeemedLink = {
   submissionId: string | number;
+  created: boolean;
+  accessToken?: string;
+  submissionAccessToken?: string;
+  submissionAccessTokenExpiresAt?: string | null;
 };
 
 export function mapRedeemedLinkResult(
@@ -263,7 +268,10 @@ export function mapRedeemedLinkResult(
     ? ApiResult.success({
         submissionId: String(response.data.submissionId),
         created: response.data.created,
-        submissionAccessToken: response.data.submissionAccessToken,
+        submissionAccessToken:
+          response.data.submissionAccessToken ??
+          response.data.accessToken ??
+          "",
         submissionAccessTokenExpiresAt:
           response.data.submissionAccessTokenExpiresAt ?? null,
       })

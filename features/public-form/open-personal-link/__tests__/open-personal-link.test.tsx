@@ -75,6 +75,9 @@ describe("OpenPersonalLink", () => {
       await screen.findByText("This form has already been completed."),
     ).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Try again" })).toBeNull();
+    expect(screen.getByRole("status").textContent).toBe(
+      "Thank you. This form has already been completed.",
+    );
     expect(replace).not.toHaveBeenCalled();
   });
 

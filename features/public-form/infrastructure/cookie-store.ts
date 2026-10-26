@@ -1,5 +1,5 @@
 import { Result } from "@/lib/result";
-import { isAccessToken, parseTokenExpiry } from "@/lib/utils";
+import { isAccessToken } from "@/lib/utils";
 import { ResponseCookie } from "next/dist/compiled/@edge-runtime/cookies";
 import { ReadonlyRequestCookies } from "next/dist/server/web/spec-extension/adapters/request-cookies";
 
@@ -22,14 +22,6 @@ type BaseCookieOptions = Omit<
   Partial<ResponseCookie>,
   "expires" | "maxAge" | "name" | "value"
 >;
-
-
-
-/** A link's access token carries its own expiry; past it, the entry is as good as gone. */
-function isExpiredAccessToken(token: string): boolean {
-  const expiry = isAccessToken(token) ? parseTokenExpiry(token) : null;
-  return expiry !== null && expiry <= Date.now();
-}
 
 class FormTokenCookieStore {
   private readonly COOKIE_CONFIG: CookieConfig;
@@ -97,7 +89,7 @@ class FormTokenCookieStore {
     try {
       const tokens = JSON.parse(cookie.value);
       const token = tokens[formId];
-      return token && !isExpiredAccessToken(token)
+      return token
         ? Result.success(token)
         : Result.error("No token found for the current form");
     } catch (error) {
@@ -107,6 +99,17 @@ class FormTokenCookieStore {
         }`,
       );
     }
+  }
+
+  /**
+   * The form's access token (a personalized link's), expired or not: the API refuses an expired one
+   * with `token_expired`, so the person is told to reopen their link instead of becoming anonymous.
+   */
+  public getAccessToken(formId: string): string | undefined {
+    const stored = this.getToken(formId);
+    return Result.isSuccess(stored) && isAccessToken(stored.value)
+      ? stored.value
+      : undefined;
   }
 
   public setToken({ formId, token }: FormToken): Result<void> {
@@ -173,8 +176,4 @@ class FormTokenCookieStore {
   }
 }
 
-export { 
-  DEFAULT_COOKIE_NAME,
-  DEFAULT_COOKIE_DURATION,
-  FormTokenCookieStore,
-};
+export { DEFAULT_COOKIE_NAME, DEFAULT_COOKIE_DURATION, FormTokenCookieStore };

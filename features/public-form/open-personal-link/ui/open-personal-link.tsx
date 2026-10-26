@@ -58,7 +58,11 @@ export function OpenPersonalLink({
 
   return (
     <>
-      <PhasePage phase={phase} retry={retry} />
+      {phase === "ended" ? (
+        <SubmissionAlreadyCompleted variant="share" />
+      ) : (
+        <PhasePage phase={phase} retry={retry} />
+      )}
       <p aria-live="polite" className={styles.visuallyHidden} role="status">
         {TITLES[phase]}
       </p>
@@ -80,10 +84,6 @@ function PhasePage({
         tone="neutral"
       />
     );
-  }
-
-  if (phase === "ended") {
-    return <SubmissionAlreadyCompleted variant="share" />;
   }
 
   if (phase === "unavailable") {

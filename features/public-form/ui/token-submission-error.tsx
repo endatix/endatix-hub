@@ -47,14 +47,38 @@ const TOKEN_SUBMISSION_ERROR_COPY: Record<string, TokenErrorPresentation> = {
   [ERROR_CODE.RESOURCE_NOT_FOUND]: NOT_FOUND_COPY,
 };
 
-export function TokenSubmissionError({
-  errorCode,
-  variant,
-}: Readonly<{ errorCode: string; variant: PublicSurveyVariant }>) {
-  const { icon, title, message, note } = resolveErrorPresentation(
+const PERSONAL_LINK_MESSAGE =
+  "Open the personal link from your latest invitation again to continue.";
+
+type TokenSubmissionErrorProps = {
+  errorCode: string;
+  /** The token came from a personalized link: reopening that link is the way back. */
+  personalLink?: boolean;
+  variant: PublicSurveyVariant;
+};
+
+function presentationFor(
+  errorCode: string,
+  personalLink: boolean,
+): TokenErrorPresentation {
+  const presentation = resolveErrorPresentation(
     TOKEN_SUBMISSION_ERROR_COPY,
     errorCode,
     NOT_FOUND_COPY,
+  );
+  return personalLink && presentation === EXPIRED_COPY
+    ? { ...presentation, message: PERSONAL_LINK_MESSAGE }
+    : presentation;
+}
+
+export function TokenSubmissionError({
+  errorCode,
+  personalLink = false,
+  variant,
+}: Readonly<TokenSubmissionErrorProps>) {
+  const { icon, title, message, note } = presentationFor(
+    errorCode,
+    personalLink,
   );
 
   return (
