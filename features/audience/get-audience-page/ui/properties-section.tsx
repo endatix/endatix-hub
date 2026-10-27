@@ -33,7 +33,7 @@ type RowTargets = {
 };
 
 const DESCRIPTION =
-  "The facts kept for each person on this form, such as a department or a plan. Each one is a column in the people table.";
+  "The facts kept for each participant on this form, such as a department or a plan. Each one is a column in the participants table.";
 
 type SurfaceProps = Pick<
   PropertiesSectionProps,
@@ -45,7 +45,7 @@ function PropertiesSurface({ targets, ...table }: Readonly<SurfaceProps>) {
     <DataTableSurface data-slot="audience-properties-table">
       {table.properties.length === 0 ? (
         <DataTableEmpty icon={Columns3} title="No properties yet">
-          Add a property for each fact you want to keep per person.
+          Add a property for each fact you want to keep per participant.
         </DataTableEmpty>
       ) : (
         <PropertiesTable {...table} handlers={targets} />

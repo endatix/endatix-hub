@@ -34,10 +34,14 @@ export type AudiencePageData = {
   hasNextPage: boolean;
 };
 
-function unwrapPart<T>(apiResult: ApiResult<T>, label: string): Result<T> {
+function unwrapPart<T>(
+  apiResult: ApiResult<T>,
+  label: string,
+  message: string,
+): Result<T> {
   return toResult(apiResult, {
-    fallbackMessage: `Failed to load audience ${label}.`,
-    logMessage: `Failed to load audience ${label}.`,
+    fallbackMessage: message,
+    logMessage: message,
     loggerName: `audience.${label}`,
   } as MapApiResultToResultOptions<T>);
 }
@@ -87,9 +91,9 @@ async function loadAudienceParts(
     paging,
   );
   return combineParts(
-    unwrapPart(settingsApi, "settings"),
-    unwrapPart(propertiesApi, "properties"),
-    unwrapPart(peopleApi, "people"),
+    unwrapPart(settingsApi, "settings", "Failed to load the match key."),
+    unwrapPart(propertiesApi, "properties", "Failed to load the properties."),
+    unwrapPart(peopleApi, "people", "Failed to load the participants."),
   );
 }
 

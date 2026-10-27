@@ -517,7 +517,7 @@ to `value` are `completed`; the `value` step itself is `active`. Reference:
   is running (`Updating submissions…` → `Exporting…`), in a short verb phrase (`PendingButton`).
   **One primary per page:** when a page has several list sections, the create action of the main
   task is primary and the others are `outline`. A view (§6 Record workspace) counts as a page:
-  `Add person` is primary on a form's People view, `Add property` on its Properties view.
+  `Add participant` is primary on a form's Participants view, `Add property` on its Properties view.
 - **A record's main action sits in the header's action area and is always primary** (`Design`
   on every form page). The page's own create action stays in the page. A button that goes to
   another page is a `Link` styled as a button (`Button asChild`), so it can open in a new tab
@@ -538,7 +538,7 @@ to `value` are `completed`; the `value` step itself is `active`. Reference:
   and its dot marks a state. A role tag says what a row _is_, not its state (`Identifier` on the
   property that copies the match key). It is a `Badge variant="secondary"` with no dot, placed
   after the row's name, so the reader does not read it as a status. It may carry the icon of the
-  section that owns the concept elsewhere (`UserRound`, the Person section of Add and Edit person),
+  section that owns the concept elsewhere (`UserRound`, the Participant section of Add and Edit participant),
   and its help line reuses that section's wording ("It matches … across forms"), so one idea looks
   and reads the same on every surface.
 
@@ -600,7 +600,7 @@ text-muted-foreground` — no left-border rule.
   with its reason (above).
 - **A setup choice that later locks is a control while it can change and a fact once it is
   locked** — a card with the select before anyone depends on it, then one clause with a `Locked`
-  badge where the reader works (the audience match key in the People description).
+  badge where the reader works (the audience match key in the Participants description).
 - **Immutability belongs on the field it constrains** (a `Locked` badge + one line), not in the
   panel description.
 - **A value an edit can never change is a read-only row, not a disabled input.** Show it as a
@@ -621,8 +621,8 @@ text-muted-foreground` — no left-border rule.
   changes…"), or why none can be made, with the submit disabled. In the edit overlay the key is a
   read-only `SummaryRow` (copyable) with a `Locked` badge beside it.
 - **A delete names its blast radius:** the confirmation says what else goes, with a count when
-  there is one ("Its values are deleted for all 1,240 people on this form's audience"), and what
-  stays ("They stay on the audience of any other form"). The `AlertDialog` stays open while it
+  there is one ("Its values are deleted for all 1,240 participants on this form"), and what
+  stays ("They stay on any other form they are on"). The `AlertDialog` stays open while it
   runs (spinner + verb on the destructive button) and shows a failure inside it; it never closes
   on click and leaves the outcome to a toast.
 - **A setting wider than the page says its scope.** A tenant-wide control surfaced on a record
@@ -652,7 +652,7 @@ moving between:
 | Up to a parent                          | Header trail (breadcrumb)                              | `Forms › Flows › Cedar Grove Pulse` |
 | Siblings at one level of the trail      | A `dropdown` crumb (`NavSwitcher`)                     | `Flows ▾` lists the other folders   |
 | Aspects of one record                   | `NavSwitcher` after the trail, past a vertical divider | `Cedar Grove Pulse │ Submissions ▾` |
-| Views of one page                       | `LinkTabs` (segmented, `?view=`)                       | People / Properties                 |
+| Views of one page                       | `LinkTabs` (segmented, `?view=`)                       | Participants / Properties           |
 | Panes that are not worth a URL          | Radix `Tabs`, inside a panel                           | —                                   |
 | Into an immersive editor and back       | A button in, one Back out (`?from=`)                   | Design                              |
 | From a record back to the filtered list | `lib/list-page/table-return-to` + `BackToTableButton`  | a submission back to its list       |
@@ -682,7 +682,7 @@ moving between:
 - **`h1` names the page** the reader is on; the trail carries the context (the record, the
   folder). A record's own home (its Overview) titles itself with the record's name.
 - **A description only when it says something the title and trail cannot** ("mocked data").
-- **One row:** title left, the page's own actions right (Audience: Add person). Record-wide
+- **One row:** title left, the page's own actions right (Participants: Add participant). Record-wide
   actions are not repeated here.
 
 ### Reference information on demand
@@ -995,7 +995,7 @@ over a pill.
 
 ### Recipe: record workspace
 
-A record that has several pages — a form's Overview, Submissions, Audience, Analytics, Settings —
+A record that has several pages — a form's Overview, Submissions, Participants, Analytics, Settings —
 is one workspace. The reader moves between them many times in one session, so every page is one
 menu away from every other, without spending a row of the page on navigation. Editing the
 record's content (the form designer) is not one of those pages: it is an **immersive editor**.
@@ -1022,10 +1022,10 @@ records.
   whole screen with its own chrome (Creator's tabs and sidebars) and saves explicitly, so it shows
   no workspace navigation — more chrome would crowd it and every extra exit is a way to lose
   unsaved work. Its one exit goes back where the reader came from: the entry link carries
-  `?from=<page>`, Back says where it goes ("Back to Audience") and asks first when there are
+  `?from=<page>`, Back says where it goes ("Back to Participants") and asks first when there are
   unsaved changes.
 - **Views inside a page are `LinkTabs`** with a count per view and a `?view=` URL, the page's main
-  task first and as the bare URL (People, then Properties). Each view has its own primary action.
+  task first and as the bare URL (Participants, then Properties). Each view has its own primary action.
 - **A setup choice that later locks** is a card until it locks, then a clause in the list's
   description (§6 Controls & consequences).
 
@@ -1040,7 +1040,7 @@ Single-submit create with draft + lock + in-panel failure (the common case):
 `project-structure.md` (**PanelForm state**).
 
 1. **Header** — title + one sentence describing the _current step_. The title names the task
-   (`Add person`, `Edit person`, `Rename property`), not the record: the record's identity is the
+   (`Add participant`, `Edit participant`, `Rename property`), not the record: the record's identity is the
    first section, so it is said once, with its label and type.
 2. **`PanelSteps`** (multi-step only) — the progress track, first in the body.
 3. **`PanelSection` per concern** — icon, title, optional description, optional `aside` for
@@ -1049,8 +1049,8 @@ Single-submit create with draft + lock + in-panel failure (the common case):
 
 - **An edit overlay mirrors its create overlay.** It has the same sections in the same order
   under the same titles and icons. A field that became fixed on create is shown as a locked row
-  in that section (Controls & consequences). `Add person`'s Person section holds the identifier
-  input, and `Edit person`'s holds the identifier as a locked row. The reader recognises the
+  in that section (Controls & consequences). `Add participant`'s Participant section holds the identifier
+  input, and `Edit participant`'s holds the identifier as a locked row. The reader recognises the
   shape, and one concept keeps one section name.
 - **A section owns its own surface.** Shared field groups (`TenantAccessFields`) render their own
   `PanelSection`; call sites never wrap them in a tinted `div`.
@@ -1105,7 +1105,7 @@ overlay whose commit is an operation, not a saved record. Reference:
 - **Same noun as the list it came from** — the dialog exports _submissions_, so it never says
   "responses".
 
-**Import from a file** (audience people today; data lists and other bulk loads tomorrow) — the
+**Import from a file** (form participants today; data lists and other bulk loads tomorrow) — the
 reverse of export: a file the reader brings, read into records they already have. It is a
 multi-step create overlay (above) whose steps answer, in order: _which file_, _which column is
 which_, _what will happen_. Reference: `features/audience/import-csv/`.

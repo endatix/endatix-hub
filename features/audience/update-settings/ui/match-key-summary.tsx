@@ -13,8 +13,9 @@ export function MatchKeySummary({
   const kind = identifierKindLabel(identifierKind).toLowerCase();
   return (
     <span>
-      People are matched by <span className="text-foreground">{kind}</span> on
-      every form in your organization.{" "}
+      Participants are matched by{" "}
+      <span className="text-foreground">{kind}</span> on every form in your
+      organization.{" "}
       <StatusBadge tone="off" label="Locked" className="align-middle" />
     </span>
   );

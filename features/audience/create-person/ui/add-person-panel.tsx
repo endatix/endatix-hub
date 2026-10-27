@@ -22,7 +22,7 @@ type AddPersonPanelProps = {
 const TRIGGER = (
   <Button>
     <Plus />
-    Add person
+    Add participant
   </Button>
 );
 
@@ -30,10 +30,10 @@ const TRIGGER = (
 function panelProps({ identifierKind, properties }: AddPersonPanelProps) {
   const matchedBy = identifierKindLabel(identifierKind).toLowerCase();
   return {
-    title: "Add person",
-    description: `Adds someone to this form's audience. People are matched across forms by ${matchedBy}.`,
-    errorTitle: "Person not added",
-    submitLabel: "Add person",
+    title: "Add participant",
+    description: `Adds a participant to this form. Participants are matched across forms by ${matchedBy}.`,
+    errorTitle: "Participant not added",
+    submitLabel: "Add participant",
     pendingLabel: "Adding…",
     desktopType:
       properties.length >= 2 ? ("complex" as const) : ("simple" as const),

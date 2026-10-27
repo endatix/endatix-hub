@@ -19,8 +19,8 @@ export type CreateAudiencePersonResult = Result<AudiencePerson>;
 
 const CREATE_LOG = {
   permission: Permissions.Forms.Edit,
-  fallbackMessage: "Failed to add audience person.",
-  logMessage: "Failed to add audience person.",
+  fallbackMessage: "Failed to add the participant.",
+  logMessage: "Failed to add the participant.",
   loggerName: "audience.people.create",
 } as const;
 

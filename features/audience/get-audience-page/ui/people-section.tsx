@@ -72,7 +72,7 @@ function PeoplePager(props: Readonly<Paging>) {
   return (
     <PagedTableFooter
       variant="surface"
-      entityLabel="people"
+      entityLabel="participants"
       {...pagerState(props)}
       onPageChange={(next) => updateUrl({ page: String(next) })}
       onPageSizeChange={(size) =>
@@ -86,12 +86,12 @@ type PeopleSurfaceProps = PeopleSectionProps & { handlers: RowHandlers };
 
 const FILTERED_EMPTY: Record<string, { title: string; body: string }> = {
   [AudiencePeopleTestFilter.Real]: {
-    title: "No real people",
-    body: "No person on this form is a real person.",
+    title: "No real participants",
+    body: "No participant on this form is a real participant.",
   },
   [AudiencePeopleTestFilter.Test]: {
-    title: "No test people",
-    body: "No person on this form is a test person. Add a test person, or import people as test people, to try the form as them.",
+    title: "No test participants",
+    body: "No participant on this form is a test participant. Add a test participant, or import participants as test participants, to try the form as them.",
   },
 };
 
@@ -118,9 +118,9 @@ function PeopleEmpty({
   const filtered = FILTERED_EMPTY[testFilter];
   if (filtered) return <FilteredEmpty {...filtered} />;
   return (
-    <DataTableEmpty icon={Users} title="No people yet">
-      Add the people this form is for, one at a time or from a CSV file. Each
-      person can have their own value for every property.
+    <DataTableEmpty icon={Users} title="No participants yet">
+      Add the participants this form is for, one at a time or from a CSV file.
+      Each participant can have their own value for every property.
     </DataTableEmpty>
   );
 }
@@ -170,9 +170,9 @@ function PeopleOverlays({ row, ...props }: Readonly<OverlayProps>) {
 }
 
 const DESCRIPTION =
-  "Who this form is for. Removing someone takes them off this form only.";
+  "Who this form is for. Removing a participant takes them off this form only.";
 
-/** Import is `outline` beside the view's one primary action, Add person (DESIGN.md §5 Buttons). */
+/** Import is `outline` beside the view's one primary action, Add participant (DESIGN.md §5 Buttons). */
 function PeopleActions(props: Readonly<PeopleSectionProps>) {
   if (!props.canEdit) return null;
   return (
@@ -191,7 +191,7 @@ function PeopleHeader(props: Readonly<PeopleSectionProps>) {
   return (
     <SectionHeader
       id="audience-people"
-      title="People"
+      title="Participants"
       description={
         <>
           {DESCRIPTION} {props.matchKeyNote}

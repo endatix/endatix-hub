@@ -89,7 +89,7 @@ function AudienceMenuItem({ formId }: Readonly<{ formId: string }>) {
     <DropdownMenuItem asChild className="cursor-pointer">
       <Link href={`/forms/${formId}/audience`}>
         <Users className="mr-2 size-4" />
-        Audience
+        Participants
       </Link>
     </DropdownMenuItem>
   );

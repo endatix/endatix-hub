@@ -172,8 +172,10 @@ describe("EditPersonPanel", () => {
     );
 
     // Assert
-    expect(screen.getByRole("heading", { name: "Edit person" })).toBeTruthy();
-    const personSection = screen.getByRole("heading", { name: "Person" });
+    expect(
+      screen.getByRole("heading", { name: "Edit participant" }),
+    ).toBeTruthy();
+    const personSection = screen.getByRole("heading", { name: "Participant" });
     const values = screen.getByRole("heading", { name: "Properties" });
     expect(
       personSection.compareDocumentPosition(values) &

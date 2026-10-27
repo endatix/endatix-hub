@@ -62,7 +62,7 @@ const STATUS_DESCRIPTION: Record<string, (background: boolean) => string> = {
       ? `Writing participants. ${KEEPS_GOING}`
       : "Writing participants. Keep this tab open until it finishes.",
   [AudienceImportStatus.Completed]: () =>
-    "The import has finished. The People list behind this panel is up to date.",
+    "The import has finished. The Participants list behind this panel is up to date.",
 };
 
 function runningDescription(

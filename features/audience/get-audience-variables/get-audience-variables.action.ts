@@ -13,8 +13,8 @@ export async function getAudienceVariablesAction(
     permission: Permissions.Forms.Edit,
     // Runs unasked on every Preview open: a redirect would throw away the author's unsaved edits.
     background: true,
-    fallbackMessage: "Failed to load the form's Audience variables.",
-    logMessage: "Failed to refresh Audience variables for the designer.",
+    fallbackMessage: "Failed to load the form's participant properties.",
+    logMessage: "Failed to refresh participant properties for the designer.",
     loggerName: "audience.variables.refresh",
   });
 }

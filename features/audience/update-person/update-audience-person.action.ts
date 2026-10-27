@@ -26,8 +26,8 @@ export async function updateAudiencePersonAction(
       }),
     {
       permission: Permissions.Forms.Edit,
-      fallbackMessage: "Failed to update audience person.",
-      logMessage: "Failed to update audience person.",
+      fallbackMessage: "Failed to update the participant.",
+      logMessage: "Failed to update the participant.",
       loggerName: "audience.people.update",
       formId: input.formId,
     },

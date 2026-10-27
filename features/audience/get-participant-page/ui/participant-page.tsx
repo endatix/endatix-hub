@@ -119,14 +119,14 @@ function ParticipantOverlays(props: Readonly<ActionsProps>) {
   );
 }
 
-/** Back to Audience, then who they are (DESIGN.md §6 Page masthead) with their actions. */
+/** Back to Participants, then who they are (DESIGN.md §6 Page masthead) with their actions. */
 function ParticipantMasthead(props: Readonly<ActionsProps>) {
   const { participant, audienceHref } = props;
   return (
     <>
       <TextLink href={audienceHref} className="self-start">
         <ArrowLeft aria-hidden="true" className="size-4" />
-        Audience
+        Participants
       </TextLink>
       <FormWorkspaceHeader
         title={participant.identifier}

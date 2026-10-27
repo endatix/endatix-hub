@@ -54,7 +54,7 @@ function SavedLine({ savedAt }: Readonly<{ savedAt: string }>) {
 function emptyReason(props: PreviewAsViewProps): string | null {
   if (!props.form) return "Save the form in the designer to preview it.";
   if (!props.hasVariables)
-    return "This form has no Properties yet. Add one on the Audience tab to preview the form as a participant.";
+    return "This form has no Properties yet. Add one on the Participants tab to preview the form as a participant.";
   if (!props.selected)
     return "Nobody to preview as yet. Add a Test participant, or find any participant by search.";
   if (props.selected.status === "gone")
@@ -121,7 +121,7 @@ function BackToAudience({ formId }: Readonly<{ formId: string }>) {
   return (
     <TextLink href={useAudienceReturnHref(formId)} className="self-start">
       <ArrowLeft aria-hidden="true" className="size-4" />
-      Audience
+      Participants
     </TextLink>
   );
 }

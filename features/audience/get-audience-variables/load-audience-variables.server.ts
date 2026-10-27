@@ -30,8 +30,8 @@ async function readVariables({
   formId,
 }: AudienceVariablesRequest): Promise<AudienceVariables | null> {
   const result = toResult(await api.audience.getVariables(formId), {
-    fallbackMessage: "Failed to load the form's Audience variables.",
-    logMessage: "Failed to load Audience variables for the designer.",
+    fallbackMessage: "Failed to load the form's participant properties.",
+    logMessage: "Failed to load participant properties for the designer.",
     loggerName: "audience.variables.load",
   });
   return Result.isSuccess(result) ? result.value : null;
@@ -41,8 +41,8 @@ async function readIdentifierKind({
   api,
 }: AudienceVariablesRequest): Promise<AudienceIdentifierKind | null> {
   const settings = toResult(await api.audience.getSettings(), {
-    fallbackMessage: "Failed to load the Audience settings.",
-    logMessage: "Failed to load the Audience match key for the designer.",
+    fallbackMessage: "Failed to load the match key.",
+    logMessage: "Failed to load the match key for the designer.",
     loggerName: "audience.variables.load",
   });
   return Result.isSuccess(settings) ? settings.value.identifierKind : null;

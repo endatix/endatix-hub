@@ -29,7 +29,9 @@ export function useAddPerson(formId: string) {
   const { identifier, values, isTest } = draft;
   const action = () =>
     createAudiencePersonAction({ formId, identifier, values, isTest });
-  const successMessage = isTest ? "Test person added" : "Person added";
+  const successMessage = isTest
+    ? "Test participant added"
+    : "Participant added";
   const submit = () => run({ action, successMessage, onSuccess: panel.close });
   return { ...draft, ...panel, ...status, submit };
 }

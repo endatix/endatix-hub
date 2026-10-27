@@ -43,7 +43,7 @@ function CompletedAlert({ view }: Readonly<ViewProps>) {
       <AlertDescription>
         {outcomeCounts(written, { asTest: isTest })}.{" "}
         {clean
-          ? "The People list shows them."
+          ? "The Participants list shows them."
           : "Fix the rejected rows in the file and import it again: participants already imported are matched, not added twice."}
       </AlertDescription>
     </Alert>

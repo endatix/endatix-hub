@@ -28,8 +28,8 @@ async function loadSavedForm(
   const saved = toResult(
     await api.definitions.get(formId, activeDefinitionId),
     {
-      fallbackMessage: "Failed to load the saved form for Audience coverage.",
-      logMessage: "Failed to load the saved form for Audience coverage.",
+      fallbackMessage: "Failed to load the saved form for property coverage.",
+      logMessage: "Failed to load the saved form for property coverage.",
       loggerName: "audience.coverage",
     },
   );
@@ -51,7 +51,7 @@ export function savedFormUsage(
     return audienceUsage(surveyJson, variables);
   } catch (error) {
     TelemetryLogger.error(
-      "Failed to work out Audience coverage for the saved form.",
+      "Failed to work out property coverage for the saved form.",
       error,
       { formId },
       "audience.coverage",

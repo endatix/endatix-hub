@@ -16,8 +16,8 @@ export type UpdateAudiencePropertyResult = Result<AudienceProperty>;
 
 const UPDATE_LOG = {
   permission: Permissions.Forms.Edit,
-  fallbackMessage: "Failed to update audience property.",
-  logMessage: "Failed to update audience property.",
+  fallbackMessage: "Failed to update the property.",
+  logMessage: "Failed to update the property.",
   loggerName: "audience.properties.update",
 } as const;
 

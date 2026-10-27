@@ -37,7 +37,7 @@ function oneRowOverTheCap(): Buffer {
   return Buffer.from(`${csv}\n${extra}\n`, "utf8");
 }
 
-test.describe("Audience panel CSV", () => {
+test.describe("Participants panel CSV", () => {
   test.describe.configure({ mode: "serial" });
   test.setTimeout(180_000);
 
@@ -67,7 +67,7 @@ test.describe("Audience panel CSV", () => {
       await expect(page.getByText("11 of 11 imported")).toBeVisible();
 
       await page.getByRole("button", { name: "Continue" }).click();
-      await page.getByRole("button", { name: "Import 20 rows" }).click();
+      await page.getByRole("button", { name: "Import 20 participants" }).click();
 
       await expect(
         page.getByText("Import finished", { exact: true }),
@@ -110,7 +110,7 @@ test.describe("Audience panel CSV", () => {
     }
   });
 
-  test("Cedar Grove Pulse imports 20 rows and shows a person", async ({
+  test("Cedar Grove Pulse imports 20 rows and shows a participant", async ({
     page,
   }) => {
     const api = await signInForAudience();

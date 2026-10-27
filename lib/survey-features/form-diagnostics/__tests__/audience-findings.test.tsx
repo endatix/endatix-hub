@@ -80,7 +80,7 @@ describe("Audience findings in Diagnostics", () => {
     );
   });
 
-  it("adds an undeclared variable as an Audience property and reviews again", async () => {
+  it("adds an undeclared variable as a participant property and reviews again", async () => {
     // Arrange
     const audience = audienceWith([UNDECLARED]);
     const plugin = await pluginWith(audience);
@@ -89,7 +89,7 @@ describe("Audience findings in Diagnostics", () => {
 
     // Act
     fireEvent.click(
-      screen.getByRole("button", { name: "Add as Audience property" }),
+      screen.getByRole("button", { name: "Add as participant property" }),
     );
 
     // Assert
@@ -109,7 +109,7 @@ describe("Audience findings in Diagnostics", () => {
 
     // Assert
     expect(
-      screen.queryByRole("button", { name: "Add as Audience property" }),
+      screen.queryByRole("button", { name: "Add as participant property" }),
     ).toBeNull();
   });
 
@@ -141,7 +141,7 @@ describe("Audience findings in Diagnostics", () => {
 
     await waitFor(() => expect(audience.review).toHaveBeenCalledOnce());
     expect(logged).toHaveBeenCalledWith(
-      "Audience refresh failed.",
+      "Personalization refresh failed.",
       expect.any(Error),
       {},
       "form-diagnostics.audience",

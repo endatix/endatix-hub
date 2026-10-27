@@ -15,17 +15,17 @@ type RemovePersonDialogProps = {
 };
 
 const CONSEQUENCE =
-  "Their values on this form are deleted. They stay on the audience of any other form they are on.";
+  "Their values on this form are deleted. They stay on any other form they are on.";
 
 const COPY = Object.freeze({
   confirmLabel: "Remove",
   pendingLabel: "Removing…",
-  successMessage: "Person removed from this form",
+  successMessage: "Participant removed from this form",
 });
 
 export function RemovePersonDialog(props: Readonly<RemovePersonDialogProps>) {
   const { formId, person, open, onClose } = props;
-  const title = `Remove ${person?.identifier ?? "person"} from this form?`;
+  const title = `Remove ${person?.identifier ?? "this participant"} from this form?`;
   const action = () =>
     deleteAudiencePersonAction(formId, person?.membershipId ?? "");
   return (

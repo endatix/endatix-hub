@@ -235,7 +235,7 @@ function IdentifierCell(props: Readonly<IdentifierCellProps>) {
   );
 }
 
-const NO_TEST_LINK = <NotSet label="No link: a test person" />;
+const NO_TEST_LINK = <NotSet label="No link: a test participant" />;
 
 type CellProps = { formId: string; person: AudiencePerson };
 

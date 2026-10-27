@@ -61,7 +61,7 @@ export async function canAccessAudience(permission: string): Promise<boolean> {
 }
 
 export const AUDIENCE_ACCESS_DENIED_MESSAGE =
-  "You no longer have access to this form's Audience.";
+  "You no longer have access to this form's participants.";
 
 /**
  * `requireAudienceApi` for a background read: a missing grant (or an expired session) is a

@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import PageTitle from "@/components/headings/page-title";
 
 type FormWorkspaceHeaderProps = {
-  /** The page's name ("Audience"); the form's name is in the header trail above. */
+  /** The page's name ("Participants"); the form's name is in the header trail above. */
   title: string;
   /** A state that belongs to the title itself, such as a Test badge, beside it. */
   titleBadge?: ReactNode;

@@ -139,7 +139,7 @@ interface FormEditorProps {
   themeId?: string;
   isPublic?: boolean;
   formIsEnabled?: boolean;
-  /** The form's Audience variables for Preview as; absent with the flag off or no access. */
+  /** The form's participant properties for Preview as; absent with the flag off or no access. */
   audience?: DesignerAudience | null;
   initialPropertyGridVisible?: boolean;
   onThemeModificationChange?: (isModified: boolean) => void;

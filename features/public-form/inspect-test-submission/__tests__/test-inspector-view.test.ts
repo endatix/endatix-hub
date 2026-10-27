@@ -99,14 +99,14 @@ describe("toTestInspectorView", () => {
     expect(view.links).toEqual({
       submissionDetails: null,
       participant: {
-        label: "Audience",
+        label: "Test participants",
         href: "/forms/form-1/audience?test=test",
       },
     });
     expect(view.submitter.identifier).toBeNull();
   });
 
-  it("opens Audience filtered to test participants when the Snapshot names no member", () => {
+  it("opens Test participants when the Snapshot names no member", () => {
     const { memberId: _, ...withoutMember } = personTest.personalization!;
     const view = toTestInspectorView({
       formId: "form-1",
@@ -116,12 +116,12 @@ describe("toTestInspectorView", () => {
     });
 
     expect(view.links.participant).toEqual({
-      label: "Audience",
+      label: "Test participants",
       href: "/forms/form-1/audience?test=test",
     });
   });
 
-  it("opens Audience instead when the tester may not open the participant page", () => {
+  it("opens Test participants instead when the tester may not open the participant page", () => {
     const view = toTestInspectorView({
       formId: "form-1",
       submission: personTest,
@@ -130,7 +130,7 @@ describe("toTestInspectorView", () => {
     });
 
     expect(view.links.participant).toEqual({
-      label: "Audience",
+      label: "Test participants",
       href: "/forms/form-1/audience?test=test",
     });
   });

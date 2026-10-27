@@ -112,7 +112,7 @@ async function audienceView(
   return (
     <AudiencePageShell
       formId={request.formId}
-      header={<FormWorkspaceHeader title="Audience" />}
+      header={<FormWorkspaceHeader title="Participants" />}
       {...viewFrom(query)}
       data={audience.value}
       usage={usage}

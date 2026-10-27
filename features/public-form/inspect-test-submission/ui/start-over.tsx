@@ -9,7 +9,7 @@ import styles from "./start-over.module.css";
 export type TestStartOver = { formId: string; submissionId: string };
 
 const PERSON_REMOVED =
-  "This person is no longer on this form, so this test submission cannot start over.";
+  "This participant is no longer on this form, so this test submission cannot start over.";
 /** Detail from Restart when the membership is gone. Other 404s keep Start over. */
 const PERSON_NOT_ON_FORM = "Person not found on this form.";
 const REJECTED = "Start over failed. Try again.";

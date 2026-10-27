@@ -17,16 +17,22 @@ import { peopleTestFilterUrlValue } from "../parse-people-page";
 
 const OPTIONS = (
   <SelectContent>
-    <SelectItem value={AudiencePeopleTestFilter.All}>All people</SelectItem>
-    <SelectItem value={AudiencePeopleTestFilter.Real}>Real people</SelectItem>
-    <SelectItem value={AudiencePeopleTestFilter.Test}>Test people</SelectItem>
+    <SelectItem value={AudiencePeopleTestFilter.All}>
+      All participants
+    </SelectItem>
+    <SelectItem value={AudiencePeopleTestFilter.Real}>
+      Real participants
+    </SelectItem>
+    <SelectItem value={AudiencePeopleTestFilter.Test}>
+      Test participants
+    </SelectItem>
   </SelectContent>
 );
 
 const TRIGGER = (
   <SelectTrigger
     className="w-full sm:w-[160px]"
-    aria-label="Filter people by test or real"
+    aria-label="Filter participants by test or real"
   >
     <SelectValue />
   </SelectTrigger>

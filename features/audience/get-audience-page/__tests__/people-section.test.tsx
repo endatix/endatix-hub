@@ -89,6 +89,8 @@ const withLink = (
   link,
 });
 
+const EDIT = "Edit participant";
+
 const LIST = {
   formId: "1",
   identifierKind: AudienceIdentifierKind.Email,
@@ -147,7 +149,7 @@ describe("PeopleSection", () => {
     );
 
     // Assert — identity locked; identifier property absent from editable values
-    expect(await screen.findByRole("heading", { name: "Edit person" })).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: EDIT })).toBeTruthy();
     const lockedLabel = screen
       .getAllByText("External ID")
       .find((node) => node.tagName === "DT");
@@ -367,10 +369,12 @@ describe("PeopleSection", () => {
       />,
     );
 
-    expect(screen.getByText("No test people")).toBeTruthy();
+    expect(screen.getByText("No test participants")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Clear filters" })).toBeTruthy();
     expect(
-      screen.getByRole("combobox", { name: "Filter people by test or real" }),
+      screen.getByRole("combobox", {
+        name: "Filter participants by test or real",
+      }),
     ).toBeTruthy();
   });
   it("shows Link only when someone on the page has a link", () => {

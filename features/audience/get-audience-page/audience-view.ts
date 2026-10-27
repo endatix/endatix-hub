@@ -33,7 +33,7 @@ function listTabs(formId: string, counts: ViewCounts): LinkTab[] {
   return [
     {
       id: AudienceView.People,
-      label: "People",
+      label: "Participants",
       href: formRoutes.audience(formId),
       count: counts.people,
     },
