@@ -9,6 +9,7 @@ import { Result } from "@/lib/result";
 import { createAudiencePropertyAction } from "../create-property/create-audience-property.action";
 import { variableNameFromName } from "../property-types";
 import { checkPropertyNamesAction } from "./check-property-names.action";
+import { checkNamesInChunks, NAME_CHECK_FAILED } from "./check-names";
 import type { ColumnMap } from "./column-map";
 import {
   candidateVariables,
@@ -53,33 +54,77 @@ const variablesToAsk = (names: readonly string[]) => [
 
 /** The lower-case variables the saved form writes, with what writes them; `null` when the check failed. */
 async function formTaken(formId: string, variables: string[]) {
-  const result = await checkPropertyNamesAction(formId, variables);
+  const result = await checkNamesInChunks(variables, (chunk) =>
+    checkPropertyNamesAction(formId, chunk),
+  );
   if (Result.isError(result)) return null;
   return result.value.map(
     ({ variable, declaredBy }) => [variable.toLowerCase(), declaredBy] as const,
   );
 }
 
+type Taken = readonly (readonly [string, VariableHolder])[] | null;
+
+/** A failed check is not an answer. Drop it so Retry or the next blur asks again. */
+function storeTaken(
+  taken: Taken,
+  variables: string[],
+  bag: {
+    known: Map<string, VariableHolder>;
+    asked: Map<string, Promise<void>>;
+    failed: { current: boolean };
+    onAnswer: () => void;
+  },
+) {
+  if (!taken) {
+    bag.failed.current = true;
+    variables.forEach((variable) => bag.asked.delete(variable));
+    return;
+  }
+  taken.forEach(([variable, holder]) => bag.known.set(variable, holder));
+  bag.onAnswer();
+}
+
 /** One request per variable, kept while it runs and after it answers; a failed one is asked again. */
 function useFormAnswers(formId: string) {
   const known = useRef(new Map<string, VariableHolder>());
   const asked = useRef(new Map<string, Promise<void>>());
+  const failed = useRef(false);
   const ask = (variables: string[], onAnswer: () => void) => {
-    const request = formTaken(formId, variables).then((taken) => {
-      // A failed check only loses the warning until the next blur or Continue asks again.
-      if (!taken) return variables.forEach((v) => asked.current.delete(v));
-      taken.forEach(([variable, holder]) =>
-        known.current.set(variable, holder),
-      );
-      onAnswer();
-    });
+    const request = formTaken(formId, variables).then((taken) =>
+      storeTaken(taken, variables, {
+        known: known.current, asked: asked.current, failed, onAnswer,
+      }),
+    );
     variables.forEach((variable) => asked.current.set(variable, request));
   };
   const reset = () => {
     known.current = new Map();
     asked.current = new Map();
+    failed.current = false;
   };
-  return { known, asked, ask, reset };
+  return { known, asked, ask, failed, reset };
+}
+
+type Answers = ReturnType<typeof useFormAnswers>;
+
+/** Resolves, once every answer is in, to the lower-case variables of `names` the form writes. */
+async function answeredNames(
+  answers: Answers,
+  names: readonly string[],
+  onFound: (found: ReadonlyMap<string, VariableHolder>) => void,
+) {
+  answers.failed.current = false;
+  const variables = variablesToAsk(names);
+  const fresh = variables.filter((v) => !answers.asked.current.has(v));
+  if (fresh.length > 0)
+    answers.ask(fresh, () => onFound(new Map(answers.known.current)));
+  await Promise.all(variables.map((v) => answers.asked.current.get(v)));
+  if (answers.failed.current) return { ok: false as const };
+  return {
+    ok: true as const,
+    taken: variables.filter((v) => answers.known.current.has(v)),
+  };
 }
 
 /**
@@ -91,15 +136,8 @@ function useFormCollisions(formId: string) {
     new Map(),
   );
   const answers = useFormAnswers(formId);
-  /** Resolves, once every answer is in, to the lower-case variables of `names` the form writes. */
-  const check = async (names: readonly string[]): Promise<string[]> => {
-    const variables = variablesToAsk(names);
-    const fresh = variables.filter((v) => !answers.asked.current.has(v));
-    if (fresh.length > 0)
-      answers.ask(fresh, () => setFound(new Map(answers.known.current)));
-    await Promise.all(variables.map((v) => answers.asked.current.get(v)));
-    return variables.filter((v) => answers.known.current.has(v));
-  };
+  const check = (names: readonly string[]) =>
+    answeredNames(answers, names, setFound);
   const reset = () => {
     answers.reset();
     setFound(new Map());
@@ -221,9 +259,13 @@ async function createChecked(
   creates: Creates,
 ): Promise<ColumnMap | null> {
   creates.setError(null);
-  const taken = await collisions.check(drafts.map((draft) => draft.name));
+  const outcome = await collisions.check(drafts.map((draft) => draft.name));
+  if (!outcome.ok) {
+    creates.setError(NAME_CHECK_FAILED);
+    return null;
+  }
   const unseen = (draft: CheckedDraft) =>
-    !draft.check.holder && taken.includes(draft.check.variableName);
+    !draft.check.holder && outcome.taken.includes(draft.check.variableName);
   if (drafts.some((draft) => unseen(draft))) return null;
   return creates.run(drafts);
 }

@@ -21,7 +21,7 @@ import type { CheckedDraft } from "../use-new-properties.hook";
 type DraftProps = { wizard: ImportWizard; draft: CheckedDraft; index: number };
 
 const NO_VARIABLE =
-  "Use at least one letter or digit (a–z, 0–9): the variable name is built from them.";
+  "Use at least one letter or digit (a–z, 0–9): the Variable is built from them.";
 
 /** What already writes or holds the variable, and what creating the property anyway would do. */
 const HELD_BY: Record<VariableHolder, (variable: string) => string> = {
@@ -36,7 +36,7 @@ const HELD_BY: Record<VariableHolder, (variable: string) => string> = {
 function nameHelp(check: NameCheck): string {
   if (check.invalid) return NO_VARIABLE;
   if (!check.holder)
-    return `Variable name ${check.variableName}. It never changes.`;
+    return `Variable ${check.variableName}. It never changes.`;
   const held = HELD_BY[check.holder](check.variableName);
   return check.suggestedName ? held : `${held} Choose another name.`;
 }

@@ -284,6 +284,33 @@ describe("ImportCsvPanel: new properties from the file's columns", () => {
     expect(createAudiencePropertyAction).not.toHaveBeenCalled();
   });
 
+  it("does not create when the name check fails, and Retry asks again", async () => {
+    // Arrange
+    vi.mocked(checkPropertyNamesAction)
+      .mockResolvedValueOnce(Result.error("The form could not be read."))
+      .mockResolvedValueOnce(Result.error("The form could not be read."))
+      .mockResolvedValue(Result.success([]));
+    vi.mocked(createAudiencePropertyAction).mockResolvedValue(
+      Result.success(created("Segment", "segment")),
+    );
+    await openOnNewProperties();
+
+    // Act
+    fireEvent.click(button("Create 1 property"));
+
+    // Assert
+    expect(
+      await screen.findByText("Couldn't check the names. Try again."),
+    ).toBeTruthy();
+    expect(createAudiencePropertyAction).not.toHaveBeenCalled();
+
+    // Act
+    fireEvent.click(button("Retry"));
+
+    // Assert
+    await waitFor(() => expect(createAudiencePropertyAction).toHaveBeenCalled());
+  });
+
   it("asks the form again after a check that failed", async () => {
     // Arrange
     vi.mocked(checkPropertyNamesAction)

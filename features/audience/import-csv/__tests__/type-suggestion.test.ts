@@ -12,7 +12,7 @@ describe("suggestDataType", () => {
     expect(typeOf(["1,200", "15"])).toBe(AudienceDataType.SingleChoice);
   });
 
-  it("keeps codes with a leading zero as text, so the zero is not read away", () => {
+  it("suggests single choice for codes with a leading zero, so the zero is not read away", () => {
     expect(typeOf(["00123", "10001", "02134"])).toBe(
       AudienceDataType.SingleChoice,
     );

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   AudienceImportStatus,
   type AudienceIdentifierKind,
@@ -25,6 +26,7 @@ import {
   type AudienceImportRun,
 } from "./use-audience-import.hook";
 import {
+  columnsAfterIdentifierChange,
   propertyColumnMap,
   queuedColumns,
   SKIP_COLUMN,
@@ -171,14 +173,6 @@ function withColumn(
   return { ...state, columns: { ...state.columns, [column]: variableName } };
 }
 
-/** The identifier column feeds no property: it is the participant, not one of their values. */
-function withIdentifier(state: ChoiceState, column: string): ChoiceState {
-  return {
-    ...withColumn(state, column, SKIP_COLUMN),
-    identifierColumn: column,
-  };
-}
-
 function suggestedChoices(
   headers: string[],
   setup: ImportCsvSetup,
@@ -192,6 +186,17 @@ function suggestedChoices(
   };
 }
 
+function identifierChoice(
+  state: ChoiceState,
+  column: string,
+  properties: readonly AudienceProperty[],
+): ChoiceState {
+  const columns = columnsAfterIdentifierChange(state.columns, {
+    from: state.identifierColumn, to: column,
+  }, properties);
+  return { ...state, identifierColumn: column, columns };
+}
+
 /** Which column identifies participants, which one was suggested, and what each other column feeds. */
 function useColumnChoices(setup: ImportCsvSetup) {
   const [state, setState] = useState<ChoiceState>(NO_CHOICES);
@@ -201,7 +206,9 @@ function useColumnChoices(setup: ImportCsvSetup) {
     setColumn: (column: string, variableName: string) =>
       setState((current) => withColumn(current, column, variableName)),
     chooseIdentifier: (column: string) =>
-      setState((current) => withIdentifier(current, column)),
+      setState((current) =>
+        identifierChoice(current, column, setup.properties),
+      ),
     setAsTest: (asTest: boolean) =>
       setState((current) => ({ ...current, asTest })),
   };
@@ -401,10 +408,12 @@ function withCreated(
 
 /** The properties this wizard created, which the page may not show yet, and a column mapper. */
 function useCreatedProperties(choices: ImportChoices) {
+  const router = useRouter();
   const [created, setCreated] = useState<AudienceProperty[]>([]);
   const onCreated = (column: string, property: AudienceProperty) => {
     setCreated((current) => [...current, property]);
     choices.setColumn(column, property.variableName);
+    router.refresh();
   };
   return {
     createdProperties: created,

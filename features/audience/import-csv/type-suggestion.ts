@@ -125,8 +125,9 @@ function provenOrDistinct(filled: string[], distinct: string[]) {
 
 /**
  * The data type a column's values suggest, read from every row of the file: the first of number,
- * date, date and time, and boolean that every value fits; else single choice when a few values
- * else text. Deterministic, and a date whose day and month could swap (`11/04/25`) is text.
+ * date, date and time, and boolean that every value fits; else single choice when there are few
+ * distinct values; else text. Deterministic, and a date whose day and month could swap (`11/04/25`)
+ * is single choice when few, never a date.
  */
 export function suggestDataType(values: readonly string[]): TypeSuggestion {
   const filled = values.map((value) => value.trim()).filter(Boolean);

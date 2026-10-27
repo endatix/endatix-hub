@@ -11,6 +11,7 @@ import {
   mappableColumns,
   propertyColumnMap,
   SKIP_COLUMN,
+  columnsAfterIdentifierChange,
   suggestColumnMap,
   suggestIdentifierColumn,
 } from "../column-map";
@@ -117,5 +118,22 @@ describe("column choices", () => {
 
   it("keeps a property whose variable name is skip", () => {
     expect(propertyColumnMap({ notes: "skip" })).toEqual({ skip: "notes" });
+  });
+
+  it("suggests a decision for the column an identifier change releases", () => {
+    // Arrange
+    const columns = suggestColumnMap(["age", "notes"], PROPERTIES);
+
+    // Act
+    const next = columnsAfterIdentifierChange(
+      columns,
+      { from: "email", to: "age" },
+      PROPERTIES,
+    );
+
+    // Assert
+    expect(next.age).toBe(SKIP_COLUMN);
+    expect(next.email).toBe(CREATE_COLUMN);
+    expect(next.notes).toBe(CREATE_COLUMN);
   });
 });

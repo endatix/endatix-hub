@@ -146,6 +146,22 @@ export function propertyColumnMap(map: ColumnMap): Record<string, string> {
   );
 }
 
+/**
+ * The map after the identifier moves. The new column is the participant. The one it releases
+ * gets a suggestion when it had no decision of its own, so Continue does not treat a missing
+ * entry as ignored.
+ */
+export function columnsAfterIdentifierChange(
+  columns: ColumnMap,
+  move: { readonly from: string; readonly to: string },
+  properties: readonly AudienceProperty[],
+): ColumnMap {
+  const chosen = { ...columns, [move.to]: SKIP_COLUMN };
+  if (!move.from || move.from === move.to || chosen[move.from] !== undefined)
+    return chosen;
+  return { ...chosen, ...suggestColumnMap([move.from], properties) };
+}
+
 /** The suggested identifier column and the suggested property for every other column. */
 export function suggestColumnChoices(
   headers: string[],

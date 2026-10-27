@@ -8,6 +8,7 @@ import {
   AudienceImportStatus,
   type AudienceImportView,
 } from "@/lib/endatix-api/audience/types";
+import { NAME_CHECK_FAILED } from "../check-names";
 import { confirmCount, isTerminal } from "../import-run";
 import { participantCountLabel } from "../import-labels";
 import {
@@ -109,8 +110,11 @@ function createLabel(wizard: ImportWizard): string {
 
 function submitLabel(wizard: ImportWizard): string {
   const view = runView(wizard.run);
-  if (!view)
-    return wizard.step === "properties" ? createLabel(wizard) : "Continue";
+  if (!view) {
+    if (wizard.step !== "properties") return "Continue";
+    if (wizard.newProperties.error === NAME_CHECK_FAILED) return "Retry";
+    return createLabel(wizard);
+  }
   if (wizard.step === "done") return "Done";
   if (view.canResume) return "Resume import";
   if (wizard.run.canSendAgain) return "Send the rest of the file";
