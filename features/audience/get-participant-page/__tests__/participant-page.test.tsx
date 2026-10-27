@@ -39,6 +39,9 @@ vi.mock("../../test-as-person/open-test-submission.action", () => ({
 vi.mock("../../copy-test-link/create-test-link.action", () => ({
   createTestLinkAction: vi.fn(),
 }));
+vi.mock("../../reissue-link/reissue-audience-link.action", () => ({
+  reissueAudienceLinkAction: vi.fn(),
+}));
 
 const TIER: AudienceProperty = {
   id: "11",
@@ -236,6 +239,32 @@ describe("ParticipantPage", () => {
     renderPage(participant, true, canCopy);
 
     expect(screen.queryByRole("button", { name: "Copy test link" })).toBeNull();
+  });
+
+  it.each([
+    ["issued", { status: "issued" }],
+    ["opened", { status: "opened", openedAt: "2026-10-20T09:30:00Z" }],
+  ] as const)(
+    "offers Reissue link for a real participant whose link was %s, and warns first",
+    (_, link) => {
+      renderPage({ isTest: false, link });
+
+      fireEvent.click(screen.getByRole("button", { name: "Reissue link" }));
+
+      const dialog = screen.getByRole("alertdialog", {
+        name: "Reissue the link for tester@example.com?",
+      });
+      expect(dialog.textContent).toContain("current link stops working");
+    },
+  );
+
+  it.each([
+    ["a participant with no link", { isTest: false }],
+    ["a test participant", { isTest: true, link: { status: "issued" } }],
+  ] as const)("leaves out Reissue link for %s", (_, participant) => {
+    renderPage(participant);
+
+    expect(screen.queryByRole("button", { name: "Reissue link" })).toBeNull();
   });
 
   it("opens the edit panel on Edit values", async () => {

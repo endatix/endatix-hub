@@ -32,14 +32,10 @@ export function useValueMap(initial: AudiencePropertyValues = {}) {
   return { values, setValue, reset: () => setValues({}) };
 }
 
-type RowOverlayMode = "edit" | "delete";
+type RowOverlayMode = "edit" | "delete" | "reissue";
 
-/**
- * The row a list's edit overlay or delete confirmation is for; one at a time. Closing keeps the
- * row, so the overlay keeps its content while it animates out. `session` changes on every open,
- * so a panel keyed by it starts fresh even when the same row is opened again.
- */
-export function useRowOverlay<T>() {
+/** The row, the open overlay's mode, and a count of opens. */
+function useOverlayState<T>() {
   const [target, setTarget] = useState<T | null>(null);
   const [mode, setMode] = useState<RowOverlayMode | null>(null);
   const [session, setSession] = useState(0);
@@ -48,13 +44,24 @@ export function useRowOverlay<T>() {
     setMode(next);
     setSession((count) => count + 1);
   };
+  return { target, mode, session, open, close: () => setMode(null) };
+}
+
+/**
+ * The row a list's edit overlay, delete confirmation or Reissue link dialog is for; one at a
+ * time. Closing keeps the row, so the overlay keeps its content while it animates out. `session`
+ * changes on every open, so a panel keyed by it starts fresh even when the same row is opened
+ * again.
+ */
+export function useRowOverlay<T>() {
+  const { mode, open, ...state } = useOverlayState<T>();
   return {
-    target,
-    session,
+    ...state,
     isEditing: mode === "edit",
     isDeleting: mode === "delete",
+    isReissuing: mode === "reissue",
     edit: open("edit"),
     remove: open("delete"),
-    close: () => setMode(null),
+    reissue: open("reissue"),
   };
 }

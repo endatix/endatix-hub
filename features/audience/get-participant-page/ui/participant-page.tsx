@@ -5,6 +5,7 @@ import {
   FlaskConical,
   Link2,
   Pencil,
+  RotateCw,
   Trash2,
   type LucideIcon,
 } from "lucide-react";
@@ -18,6 +19,8 @@ import { useAudienceReturnHref } from "../../get-audience-page/ui/use-audience-r
 import { CopyTestLinkDialog } from "../../copy-test-link/ui/copy-test-link-dialog";
 import { useCopyTestLinkDialog } from "../../copy-test-link/ui/use-copy-test-link-dialog.hook";
 import { RemovePersonDialog } from "../../delete-person/ui/remove-person-dialog";
+import { hasLinkToReissue } from "../../reissue-link/has-link-to-reissue";
+import { ReissueLinkOverlay } from "../../reissue-link/ui/reissue-link-dialog";
 import { TEST_BADGE } from "../../ui/test-badge";
 import { useTestAsPerson } from "../../test-as-person/use-test-as-person.hook";
 import { EditPersonPanel } from "../../update-person/ui/edit-person-panel";
@@ -67,10 +70,19 @@ function useTestSpecs({ testLink, ...props }: ActionsProps): ActionSpec[] {
   ];
 }
 
-/** The test actions, Edit values (when there is a value to edit), Remove. */
+/**
+ * Reissue link (a real participant with a link), the test actions, Edit values (when there is a
+ * value to edit), Remove.
+ */
 function useActionSpecs(props: ActionsProps): ActionSpec[] {
   const { overlay } = props;
   return [
+    {
+      show: hasLinkToReissue(props.participant),
+      label: "Reissue link",
+      icon: RotateCw,
+      run: overlay.reissue,
+    },
     ...useTestSpecs(props),
     {
       show: props.properties.length > 0,
@@ -98,7 +110,10 @@ function ParticipantActions(props: Readonly<ActionsProps>) {
     ));
 }
 
-/** The edit panel refreshes this page; Remove goes back to Audience, where they no longer are. */
+/**
+ * The edit panel and Reissue link refresh this page; Remove goes back to Audience, where they no
+ * longer are.
+ */
 function ParticipantOverlays(props: Readonly<ActionsProps>) {
   const { formId, overlay, identifierKind, properties, audienceHref } = props;
   const target = { formId, person: overlay.target, onClose: overlay.close };
@@ -115,6 +130,7 @@ function ParticipantOverlays(props: Readonly<ActionsProps>) {
         open={overlay.isDeleting}
         afterRemove={afterRemove}
       />
+      <ReissueLinkOverlay formId={formId} overlay={overlay} />
     </>
   );
 }

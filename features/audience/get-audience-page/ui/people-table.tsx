@@ -1,6 +1,6 @@
 "use client";
 
-import { FlaskConical, Link2, Pencil, Trash2 } from "lucide-react";
+import { FlaskConical, Link2, Pencil, RotateCw, Trash2 } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import {
@@ -22,6 +22,7 @@ import {
 import type { UsageVerdicts } from "@/lib/personalization/coverage";
 import { formRoutes } from "@/lib/routes/form-routes";
 import { StatusBadge } from "@/components/common/status-badge";
+import { hasLinkToReissue } from "../../reissue-link/has-link-to-reissue";
 import { LinkStatusBadge } from "../../ui/link-status-badge";
 import { NotSet } from "../../ui/not-set";
 import { SubmissionLink } from "../../ui/submission-link";
@@ -35,6 +36,8 @@ export type RowHandlers = {
   onTest?: (person: AudiencePerson) => void;
   /** Offered on test persons only: a link holder sees every value of the person. */
   onCopyTestLink?: (person: AudiencePerson) => void;
+  /** Offered on real participants whose link was issued or opened. */
+  onReissueLink?: (person: AudiencePerson) => void;
 };
 
 type PeopleTableProps = {
@@ -100,7 +103,7 @@ type ActionSpec = {
   icon: DataTableRowAction["icon"];
 };
 
-type RowFacts = { hasValues: boolean; isTest: boolean };
+type RowFacts = { hasValues: boolean; isTest: boolean; hasLink: boolean };
 
 type RowAction = Omit<ActionSpec, "run"> & {
   handler: keyof RowHandlers;
@@ -108,9 +111,10 @@ type RowAction = Omit<ActionSpec, "run"> & {
 };
 
 /**
- * Copy test link, test, edit, remove; Copy test link only on a test person, Edit only when there
- * is a value to edit (DESIGN.md §6 "Omit what cannot apply"). Copy test link comes first, so the
- * actions every row has line up from the right on test and real rows alike.
+ * Copy test link or Reissue link, test, edit, remove; Copy test link only on a test person,
+ * Reissue link only on a real participant with a link, Edit only when there is a value to edit
+ * (DESIGN.md §6 "Omit what cannot apply"). The link actions come first, so the actions every row
+ * has line up from the right on test and real rows alike.
  */
 const ROW_ACTIONS: RowAction[] = [
   {
@@ -118,6 +122,12 @@ const ROW_ACTIONS: RowAction[] = [
     label: (id) => `Copy test link: ${id}`,
     icon: Link2,
     appliesTo: (row) => row.isTest,
+  },
+  {
+    handler: "onReissueLink",
+    label: (id) => `Reissue link: ${id}`,
+    icon: RotateCw,
+    appliesTo: (row) => row.hasLink,
   },
   {
     handler: "onTest",
@@ -150,7 +160,11 @@ function personActions(
   hasValues: boolean,
   handlers: RowHandlers,
 ): DataTableRowAction[] {
-  const facts = { hasValues, isTest: person.isTest };
+  const facts = {
+    hasValues,
+    isTest: person.isTest,
+    hasLink: hasLinkToReissue(person),
+  };
   return actionSpecs(handlers, facts).flatMap(({ run, label, icon }) =>
     run
       ? [{ label: label(person.identifier), icon, onClick: () => run(person) }]

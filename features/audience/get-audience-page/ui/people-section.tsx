@@ -21,6 +21,7 @@ import { AddPersonPanel } from "../../create-person/ui/add-person-panel";
 import { GenerateLinksPanel } from "../../generate-links/ui/generate-links-panel";
 import { ImportCsvPanel } from "../../import-csv/ui/import-csv-panel";
 import { RemovePersonDialog } from "../../delete-person/ui/remove-person-dialog";
+import { ReissueLinkOverlay } from "../../reissue-link/ui/reissue-link-dialog";
 import { useTestAsPerson } from "../../test-as-person/use-test-as-person.hook";
 import { EditPersonPanel } from "../../update-person/ui/edit-person-panel";
 import { useRowOverlay } from "../../use-panel-state.hook";
@@ -148,7 +149,7 @@ type OverlayProps = Pick<
   row: Overlays;
 };
 
-/** One overlay at a time: the row's edit panel or its remove confirmation. */
+/** One overlay at a time: the row's edit panel, its remove confirmation or Reissue link. */
 function PeopleOverlays({ row, ...props }: Readonly<OverlayProps>) {
   return (
     <>
@@ -165,6 +166,7 @@ function PeopleOverlays({ row, ...props }: Readonly<OverlayProps>) {
         open={row.isDeleting}
         onClose={row.close}
       />
+      <ReissueLinkOverlay formId={props.formId} overlay={row} />
     </>
   );
 }
@@ -204,8 +206,8 @@ function PeopleHeader(props: Readonly<PeopleSectionProps>) {
 }
 
 /**
- * Row actions this reader may run: edit and remove with `forms.edit`, test with `forms.test`,
- * Copy test link with `canCopyTestLink`.
+ * Row actions this reader may run: Reissue link, edit and remove with `forms.edit`, test with
+ * `forms.test`, Copy test link with `canCopyTestLink`.
  */
 function useRowHandlers(
   props: Readonly<PeopleSectionProps>,
@@ -213,8 +215,13 @@ function useRowHandlers(
   copyTestLink: (person: AudiencePerson) => void,
 ): RowHandlers {
   const testAs = useTestAsPerson(props.formId);
+  const edits = {
+    onReissueLink: row.reissue,
+    onEdit: row.edit,
+    onRemove: row.remove,
+  };
   return {
-    ...(props.canEdit ? { onEdit: row.edit, onRemove: row.remove } : {}),
+    ...(props.canEdit ? edits : {}),
     ...(props.canTest ? { onTest: testAs } : {}),
     ...(props.canCopyTestLink ? { onCopyTestLink: copyTestLink } : {}),
   };

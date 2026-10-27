@@ -46,6 +46,9 @@ vi.mock("../../test-as-person/open-test-submission.action", () => ({
 vi.mock("../../copy-test-link/create-test-link.action", () => ({
   createTestLinkAction: vi.fn(),
 }));
+vi.mock("../../reissue-link/reissue-audience-link.action", () => ({
+  reissueAudienceLinkAction: vi.fn(),
+}));
 
 const textProperty = (
   id: string,
@@ -261,6 +264,53 @@ describe("PeopleSection", () => {
     expect(
       screen.queryByRole("button", { name: /^Copy test link/ }),
     ).toBeNull();
+  });
+
+  it("offers Reissue link on real people whose link was issued or opened, and warns first", () => {
+    const opened = { status: "opened", openedAt: "2026-10-20T09:30:00Z" };
+    const people = [
+      withLink("1", { status: "none" }),
+      withLink("2", { status: "issued" }),
+      withLink("3", opened as AudiencePerson["link"]),
+      TEST_PERSON,
+    ];
+    render(
+      <PeopleSection
+        {...LIST}
+        people={people}
+        totalPeople={people.length}
+        canEdit
+        canTest={false}
+      />,
+    );
+
+    const offered = screen
+      .getAllByRole("button", { name: /^Reissue link/ })
+      .map((b) => b.ariaLabel);
+    expect(offered).toEqual([
+      "Reissue link: p2@example.com",
+      "Reissue link: p3@example.com",
+    ]);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Reissue link: p2@example.com" }),
+    );
+    const dialog = screen.getByRole("alertdialog", {
+      name: "Reissue the link for p2@example.com?",
+    });
+    expect(dialog.textContent).toContain("current link stops working");
+  });
+
+  it("leaves out Reissue link without forms.edit", () => {
+    render(
+      <PeopleSection
+        {...LIST}
+        people={[withLink("2", { status: "issued" })]}
+        canEdit={false}
+        canTest
+      />,
+    );
+
+    expect(screen.queryByRole("button", { name: /^Reissue link/ })).toBeNull();
   });
 
   it("links each identifier to the participant's page for a reader who may edit", () => {

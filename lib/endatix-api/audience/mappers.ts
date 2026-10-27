@@ -23,6 +23,7 @@ import {
   type AudienceSettings,
   type AudienceProperty,
   type AudienceVariables,
+  type IssuedAudienceLink,
   type OpenedTestSubmission,
 } from "./types";
 
@@ -50,6 +51,13 @@ export type WirePerson = {
   /** Missing from an API older than link status; read as `none`. */
   link?: WireLinkStatus | null;
 };
+
+/** One issued link as Generate and Reissue send it; the token is in this response only. */
+export type WireIssuedLink = { membershipId: number | string; token: string };
+
+export function mapIssuedLink(wire: WireIssuedLink): IssuedAudienceLink {
+  return { membershipId: String(wire.membershipId), token: wire.token };
+}
 
 export function mapProperty(wire: WireProperty): AudienceProperty {
   return {

@@ -1,12 +1,13 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { toast } from "@/components/ui/toast";
 import {
   DEFAULT_EXPIRY_MINUTES,
   formatExpiresIn,
 } from "@/lib/share-links/share-link-expiry";
 import { Result } from "@/lib/result";
+import { useOneAtATime } from "../use-one-at-a-time.hook";
 import { createTestLinkAction, type TestLink } from "./create-test-link.action";
 
 const REJECTED = "Something went wrong. Try again.";
@@ -54,24 +55,6 @@ async function createAndCopy(request: TestLinkRequest) {
   const link = { ...created.value, url };
   announce(link, await writeToClipboard(url));
   return link;
-}
-
-/** Runs one task at a time: a call while one runs is ignored. */
-function useOneAtATime() {
-  const [pending, setPending] = useState(false);
-  const running = useRef(false);
-  const run = async (task: () => Promise<void>) => {
-    if (running.current) return;
-    running.current = true;
-    setPending(true);
-    try {
-      await task();
-    } finally {
-      running.current = false;
-      setPending(false);
-    }
-  };
-  return { pending, run };
 }
 
 /**

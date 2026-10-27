@@ -18,6 +18,7 @@ import {
   type WireSettings,
   type WireRedeemedLink,
   type WireTestSubmission,
+  mapIssuedLink,
   mapPeoplePageResult,
   mapParticipantResult,
   mapPersonResult,
@@ -26,6 +27,7 @@ import {
   mapVariablesResult,
   requireEndatixId,
   requireFormAndEntityIds,
+  type WireIssuedLink,
   type WireParticipant,
   type WirePerson,
   type WireProperty,
@@ -387,16 +389,12 @@ export class Audience {
     const idCheck = requireEndatixId(formId, "formId");
     if (!idCheck.success) return idCheck;
 
-    const response = await this.endatix.post<
-      { membershipId: number | string; token: string }[]
-    >(formAudiencePath(formId, "links"), {});
-    if (!response.success) return response;
-    return ApiResult.success(
-      response.data.map((link) => ({
-        membershipId: String(link.membershipId),
-        token: link.token,
-      })),
+    const response = await this.endatix.post<WireIssuedLink[]>(
+      formAudiencePath(formId, "links"),
+      {},
     );
+    if (!response.success) return response;
+    return ApiResult.success(response.data.map((link) => mapIssuedLink(link)));
   }
 
   async redeemLink(
@@ -413,6 +411,29 @@ export class Audience {
         { requireAuth: false },
       ),
     );
+  }
+
+  /**
+   * A new token for one participant's link; the old one stops opening it. The raw token is in
+   * this response only.
+   */
+  async reissueLink(
+    formId: string,
+    membershipId: string,
+  ): Promise<ApiResult<IssuedAudienceLink>> {
+    const idsCheck = requireFormAndEntityIds(
+      formId,
+      membershipId,
+      "membershipId",
+    );
+    if (!idsCheck.success) return idsCheck;
+
+    const response = await this.endatix.post<WireIssuedLink>(
+      formAudiencePath(formId, `people/${membershipId}/link/reissue`),
+      {},
+    );
+    if (!response.success) return response;
+    return ApiResult.success(mapIssuedLink(response.data));
   }
 
   /** Test as this participant: a new test submission on the current definition and their current values. */
