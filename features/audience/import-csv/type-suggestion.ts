@@ -99,13 +99,12 @@ function choiceKeys(distinct: string[]): string[] | null {
   return valid ? distinct : null;
 }
 
-function choiceOrText(filled: string[], distinct: string[]) {
+function choiceOrText(_filled: string[], distinct: string[]) {
   const choices = choiceKeys(distinct);
-  const fewThatRepeat =
-    distinct.length <= MAX_SUGGESTED_CHOICES && distinct.length < filled.length;
+  const few = distinct.length <= MAX_SUGGESTED_CHOICES;
   return {
     dataType:
-      choices && fewThatRepeat
+      choices && few
         ? AudienceDataType.SingleChoice
         : AudienceDataType.Text,
     reason: `${distinct.length.toLocaleString()} distinct values`,
@@ -127,7 +126,7 @@ function provenOrDistinct(filled: string[], distinct: string[]) {
 /**
  * The data type a column's values suggest, read from every row of the file: the first of number,
  * date, date and time, and boolean that every value fits; else single choice when a few values
- * repeat; else text. Deterministic, and a date whose day and month could swap (`11/04/25`) is text.
+ * else text. Deterministic, and a date whose day and month could swap (`11/04/25`) is text.
  */
 export function suggestDataType(values: readonly string[]): TypeSuggestion {
   const filled = values.map((value) => value.trim()).filter(Boolean);

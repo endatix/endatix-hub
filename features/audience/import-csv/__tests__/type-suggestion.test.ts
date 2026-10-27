@@ -9,11 +9,13 @@ describe("suggestDataType", () => {
     expect(typeOf(["12", "-4.5", "1e3", "", "480"])).toBe(
       AudienceDataType.Number,
     );
-    expect(typeOf(["1,200", "15"])).toBe(AudienceDataType.Text);
+    expect(typeOf(["1,200", "15"])).toBe(AudienceDataType.SingleChoice);
   });
 
   it("keeps codes with a leading zero as text, so the zero is not read away", () => {
-    expect(typeOf(["00123", "10001", "02134"])).toBe(AudienceDataType.Text);
+    expect(typeOf(["00123", "10001", "02134"])).toBe(
+      AudienceDataType.SingleChoice,
+    );
     expect(typeOf(["0", "0.5", "10"])).toBe(AudienceDataType.Number);
   });
 
@@ -22,14 +24,14 @@ describe("suggestDataType", () => {
       AudienceDataType.Date,
     );
     expect(typeOf(["2025-02-30", "2025-01-02", "2025-03-04"])).toBe(
-      AudienceDataType.Text,
+      AudienceDataType.SingleChoice,
     );
   });
 
   it("never suggests date for a date whose order is ambiguous", () => {
     const values = ["11/04/25", "03/05/25", "12/06/25", "01/07/25"];
 
-    expect(typeOf(values)).toBe(AudienceDataType.Text);
+    expect(typeOf(values)).toBe(AudienceDataType.SingleChoice);
   });
 
   it("suggests date and time for ISO date-times", () => {
@@ -41,7 +43,7 @@ describe("suggestDataType", () => {
       ]),
     ).toBe(AudienceDataType.DateTime);
     expect(typeOf(["2025-01-02 09:30", "2025-01-03 10:00"])).toBe(
-      AudienceDataType.Text,
+      AudienceDataType.SingleChoice,
     );
   });
 
@@ -63,8 +65,16 @@ describe("suggestDataType", () => {
     });
   });
 
-  it("suggests text when values do not repeat or are too many to choose from", () => {
-    expect(typeOf(["Alex", "Rae", "Tom"])).toBe(AudienceDataType.Text);
+  it("suggests single choice for a few distinct values even when each appears once", () => {
+    expect(suggestDataType(["Alex", "Rae", "Tom"])).toEqual({
+      dataType: AudienceDataType.SingleChoice,
+      values: ["Alex", "Rae", "Tom"],
+      reason: "3 distinct values",
+      choices: ["Alex", "Rae", "Tom"],
+    });
+  });
+
+  it("suggests text when there are too many distinct values to choose from", () => {
     const many = Array.from({ length: 22 }, (_, i) => `v${i % 11}`);
     expect(typeOf(many)).toBe(AudienceDataType.Text);
   });
