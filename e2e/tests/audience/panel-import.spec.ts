@@ -90,6 +90,9 @@ test.describe("Participants panel CSV", () => {
     const form = await preparePanelForm(api, "Cedar Grove Pulse cap", SAMPLE);
     try {
       await openAudience(page, form.formId);
+      // The page reads the current import on load. That POST is not the wizard.
+      await page.getByRole("button", { name: "Import CSV" }).waitFor();
+      await page.waitForLoadState("networkidle");
       const actions = recordServerActions(page);
       await page.getByRole("button", { name: "Import CSV" }).click();
       await page.getByLabel("CSV file").setInputFiles({
@@ -136,8 +139,9 @@ test.describe("Participants panel CSV", () => {
       }
 
       await openAudience(page, panel.formId);
-      await expect(page.getByText("CG-000001-01")).toBeVisible();
-      await expect(page.getByText("3 to 4 people")).toBeVisible();
+      const imported = page.getByRole("row", { name: /CG-000001-01/ });
+      await expect(imported).toBeVisible();
+      await expect(imported).toContainText("3 to 4 people");
     } finally {
       await panel.cleanup();
     }
