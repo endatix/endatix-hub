@@ -66,20 +66,32 @@ export function prefillVariableOf(
  * The Property's type, in the words the definition already uses: a dropdown element is a single
  * choice, a date-time stays plain text and is recognized by the datetime-local target the API sends.
  */
-function propertyTypeLabel(source: PrefillSource): string {
-  if (source.type === "dropdown") return "single choice";
-  if (source.type === "checkbox" || source.type === "tagbox") return "multiple choice";
-  if (source.type === "text" && source.inputType === "number") return "number";
-  if (source.type === "text" && source.inputType === "date") return "date";
-  if (
-    source.type === "text" &&
+function namedChoice(type: string): string | undefined {
+  if (type === "dropdown") return "single choice";
+  if (type === "checkbox" || type === "tagbox") return "multiple choice";
+  return undefined;
+}
+
+function isDateTimeProperty(source: PrefillSource): boolean {
+  return (
     source.prefillTargets?.some(
       (target) => target.type === "text" && target.inputType === "datetime-local",
-    )
-  ) {
-    return "date-time";
-  }
-  if (source.type === "text" || source.type === "comment") return "text";
+    ) === true
+  );
+}
+
+function textLabel(source: PrefillSource): string {
+  if (source.inputType === "number") return "number";
+  if (source.inputType === "date") return "date";
+  if (isDateTimeProperty(source)) return "date-time";
+  return "text";
+}
+
+function propertyTypeLabel(source: PrefillSource): string {
+  const named = namedChoice(source.type);
+  if (named) return named;
+  if (source.type === "text") return textLabel(source);
+  if (source.type === "comment") return "text";
   return source.type;
 }
 
@@ -172,20 +184,28 @@ function revealEditable(question: Question): void {
     offersPrefill(question) && prefillVariableOf(question.defaultValueExpression) !== undefined;
 }
 
+function writePrefill(question: Question, variable: string | undefined, current: string | undefined): boolean {
+  if (!variable) {
+    if (prefillVariableOf(current) === undefined) return false;
+    question.defaultValueExpression = undefined;
+    question.readOnly = false;
+    return true;
+  }
+  question.defaultValueExpression = expressionFor(question, variable);
+  return true;
+}
+
+function commitPrefill(question: Question, value: unknown): void {
+  const variable = typeof value === "string" && VARIABLE_NAME.test(value) ? value : undefined;
+  const wrote = writePrefill(question, variable, question.defaultValueExpression);
+  if (wrote) revealEditable(question);
+}
+
 function applyPrefill(question: Question, value: unknown): void {
   if (applyingPrefill) return;
-  const variable = typeof value === "string" && VARIABLE_NAME.test(value) ? value : undefined;
-  const current = question.defaultValueExpression;
   applyingPrefill = true;
   try {
-    if (!variable) {
-      if (prefillVariableOf(current) === undefined) return;
-      question.defaultValueExpression = undefined;
-      question.readOnly = false;
-    } else {
-      question.defaultValueExpression = expressionFor(question, variable);
-    }
-    revealEditable(question);
+    commitPrefill(question, value);
   } finally {
     applyingPrefill = false;
   }
@@ -204,14 +224,10 @@ function greyIncompatible(question: Question | undefined, editor: { choices?: Ar
   }
 }
 
-function registerProperties(): void {
-  if (propertiesRegistered || Serializer.findProperty("question", PREFILL_FROM)) {
-    propertiesRegistered = true;
-    return;
-  }
-  Serializer.addProperty("question", {
+function prefillFromProperty() {
+  return {
     name: PREFILL_FROM,
-    type: "dropdown",
+    type: "dropdown" as const,
     displayName: "Prefill from",
     category: "data",
     isSerializable: false,
@@ -220,10 +236,13 @@ function registerProperties(): void {
     onGetValue: (obj: Question) => prefillVariableOf(obj.defaultValueExpression),
     onSetValue: (obj: Question, value: unknown) => applyPrefill(obj, value),
     onPropertyEditorUpdate: greyIncompatible,
-  });
-  Serializer.addProperty("question", {
+  };
+}
+
+function prefillEditableProperty() {
+  return {
     name: PREFILL_EDITABLE,
-    type: "boolean",
+    type: "boolean" as const,
     displayName: "Allow respondent to edit",
     category: "data",
     isSerializable: false,
@@ -235,7 +254,16 @@ function registerProperties(): void {
       if (prefillVariableOf(obj.defaultValueExpression) === undefined) return;
       obj.readOnly = value !== true;
     },
-  });
+  };
+}
+
+function registerProperties(): void {
+  if (propertiesRegistered || Serializer.findProperty("question", PREFILL_FROM)) {
+    propertiesRegistered = true;
+    return;
+  }
+  Serializer.addProperty("question", prefillFromProperty());
+  Serializer.addProperty("question", prefillEditableProperty());
   propertiesRegistered = true;
 }
 

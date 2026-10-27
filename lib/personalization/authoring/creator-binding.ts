@@ -312,6 +312,17 @@ function hasMoreParticipants(state: BindingState): boolean {
  * view model on every activation, so None (and Find participant, given `onFindParticipant`) goes
  * into it each time. The designer keeps the binding for the Creator's lifetime.
  */
+function prefillAndPreview(
+  creator: SurveyCreatorModel,
+  state: BindingState,
+  onFindParticipant: FindParticipant | undefined,
+): (() => void)[] {
+  return [
+    installPrefill(creator, () => prefillSources(state.variables)),
+    extendPreview(creator, state, onFindParticipant),
+  ];
+}
+
 export function bindToCreator(
   creator: SurveyCreatorModel,
   audience: BoundAudience,
@@ -323,8 +334,7 @@ export function bindToCreator(
   const refresh = () => refreshVariables(creator, audience, state);
   const target = writeTarget(creator, state, refresh);
   const unbind = unbinding(state, [
-    installPrefill(creator, () => prefillSources(state.variables)),
-    extendPreview(creator, state, onFindParticipant),
+    ...prefillAndPreview(creator, state, onFindParticipant),
     ...watching(target, audience),
   ]);
   return Object.assign(unbind, {
