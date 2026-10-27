@@ -32,6 +32,9 @@ const MAX_VISIBLE = 3;
 /** A crumb is a span, so the width cap applies only once it is a block. */
 const crumbLabel = "block min-w-0 max-w-40 truncate md:max-w-64";
 
+/** Content width. Growing here pushes a sibling page switcher to the far edge. */
+const trailClassName = "min-w-0 overflow-hidden";
+
 function splitTrail(items: FormsBreadcrumbItem[]) {
   if (items.length <= MAX_VISIBLE) {
     return { head: items, hidden: [] as LinkItem[], tail: [] };
@@ -85,7 +88,7 @@ export default function FormsBreadcrumbNav({
   const { head, hidden, tail } = splitTrail(items);
   if (items.length <= 1) {
     return (
-      <Breadcrumb className="min-w-0 flex-1 overflow-hidden">
+      <Breadcrumb className={trailClassName}>
         <BreadcrumbList className="min-w-0 flex-nowrap">
           {chunks(items, "only", true)}
         </BreadcrumbList>
@@ -93,7 +96,7 @@ export default function FormsBreadcrumbNav({
     );
   }
   return (
-    <Breadcrumb className="min-w-0 flex-1 overflow-hidden">
+    <Breadcrumb className={trailClassName}>
       <BreadcrumbList className="min-w-0 flex-nowrap md:hidden">
         <CompactTrail items={items} />
       </BreadcrumbList>
