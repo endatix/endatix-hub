@@ -22,7 +22,9 @@ rm -rf build/packages/helm
 # QEMU emulation on every PR and every canary. Revisit if arm64 nodes appear —
 # the publish step would then need a manifest list, as the API's does.
 echo "──── Building container image ${DOCKER_IMAGE}:${VERSION} ────"
-docker build --platform linux/amd64 \
+# --pull: the Dockerfile floats on node:<major>-alpine, so a builder with a cached
+# base would otherwise ship whatever Node patch it pulled last, security fixes or not.
+docker build --pull --platform linux/amd64 \
   --build-arg HUB_VERSION="${VERSION}" \
   -t "${DOCKER_IMAGE}:${VERSION}" .
 
