@@ -46,7 +46,6 @@ import {
   useCreatorJson,
   useCreatorTabUrl,
 } from "@/lib/survey-features/survey-design/ui";
-import { disposeReplacedSurveys } from "@/lib/survey-features/survey-design/use-cases/dispose-replaced-surveys";
 import { applyEndatixCreatorTheme } from "@/lib/themes/creator-theme";
 import { registerThemes } from "@/lib/themes/survey-theme";
 import { useEndatixCreatorTheme } from "@/lib/themes/use-endatix-themes";
@@ -519,7 +518,6 @@ function FormEditor({
         );
         const cleanupQuestionLoops = bindQuestionLoops(newCreator);
         const cleanupFormDiagnostics = bindFormDiagnostics(newCreator);
-        const unbindReplacedSurveys = disposeReplacedSurveys(newCreator);
         const unbindAudience = bindAudience(newCreator);
         applyFormDiagnosticsAudience(newCreator, unbindAudience);
 
@@ -563,7 +561,6 @@ function FormEditor({
           cleanupQuestionLoops?.();
           applyFormDiagnosticsAudience(newCreator, undefined);
           cleanupFormDiagnostics?.();
-          unbindReplacedSurveys();
           unbindAudience?.();
           unregisterJsonEditor();
           unregisterStorage();
