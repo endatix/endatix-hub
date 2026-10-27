@@ -237,6 +237,30 @@ describe("ImportCsvPanel: new properties from the file's columns", () => {
     expect(screen.queryByText(/already writes/)).toBeNull();
   });
 
+  it("disables Create while the name check for Continue is still running", async () => {
+    // Arrange
+    vi.mocked(createAudiencePropertyAction).mockResolvedValue(
+      Result.success(created("Segment", "segment")),
+    );
+    let answer: (
+      value: Result<{ variable: string; declaredBy: "question" }[]>,
+    ) => void = () => undefined;
+    vi.mocked(checkPropertyNamesAction).mockReturnValue(
+      new Promise((resolve) => {
+        answer = resolve;
+      }),
+    );
+    await openOnNewProperties();
+
+    // Act
+    fireEvent.click(button("Create 1 property"));
+
+    // Assert
+    expect((button("Creating…") as HTMLButtonElement).disabled).toBe(true);
+    answer(Result.success([]));
+    await waitFor(() => expect(createAudiencePropertyAction).toHaveBeenCalled());
+  });
+
   it("waits for the form check still running before it creates anything", async () => {
     // Arrange
     let answer: (

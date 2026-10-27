@@ -252,12 +252,21 @@ export function useNewProperties(setup: NewPropertiesSetup) {
   const collisions = useFormCollisions(setup.formId);
   const creates = useDraftCreates(setup.formId, setup.onCreated);
   const drafts = useCheckedDrafts(setup, edits.edits, collisions.found);
+  const [submitting, setSubmitting] = useState(false);
+  const create = async () => {
+    setSubmitting(true);
+    try {
+      return await createChecked(drafts, collisions, creates);
+    } finally {
+      setSubmitting(false);
+    }
+  };
   return {
     drafts,
-    creating: creates.creating,
+    creating: creates.creating || submitting,
     error: creates.error,
     canCreate: drafts.every((draft) => !draft.check.invalid),
-    create: () => createChecked(drafts, collisions, creates),
+    create,
     ...editControls(edits),
     ...checkControls(collisions, drafts),
     ...resetControls(edits, collisions, creates),
