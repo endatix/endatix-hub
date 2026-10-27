@@ -36,6 +36,7 @@ import {
   withUnsaved,
   type WriteTarget,
 } from "./designer-writes";
+import { installPrefill, prefillSources } from "./prefill";
 
 export interface CreatorHooks {
   /** Reads the form's variables again (a property or participant edited in the Audience tab). */
@@ -322,6 +323,7 @@ export function bindToCreator(
   const refresh = () => refreshVariables(creator, audience, state);
   const target = writeTarget(creator, state, refresh);
   const unbind = unbinding(state, [
+    installPrefill(creator, () => prefillSources(state.variables)),
     extendPreview(creator, state, onFindParticipant),
     ...watching(target, audience),
   ]);

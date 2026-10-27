@@ -9,6 +9,10 @@
  */
 import type { ExtensionDefinition } from "./types";
 import { expressionFormattingExtension } from "@/lib/survey-features/expression-formatting";
+import {
+  LOCAL_DATE_TIME_EXTENSION_ID,
+  localDateTimeExtension,
+} from "@/lib/survey-features/local-date-time";
 import { dataListsExtension } from "@/lib/survey-features/data-lists";
 import {
   BLIND_SEARCH_TAGBOX_EXTENSION_ID,
@@ -38,6 +42,7 @@ import { dragCategorizeExtension } from "@/lib/questions/drag-categorize/drag-ca
 
 export const DATA_LISTS_RUNTIME_EXTENSION_ID = "data-lists-runtime";
 export {
+  LOCAL_DATE_TIME_EXTENSION_ID,
   CARRY_FORWARD_EXTENSION_ID,
   BLIND_SEARCH_TAGBOX_EXTENSION_ID,
   REGEX_MATCH_EXTENSION_ID,
@@ -73,6 +78,17 @@ export const coreExtensions: ExtensionDefinition[] = [
         "Adds formatCurrency, formatNumber, formatDate, and smartFormat functions to SurveyJS expressions",
     },
     module: expressionFormattingExtension,
+  },
+  {
+    id: LOCAL_DATE_TIME_EXTENSION_ID,
+    type: "feature",
+    loading: "static",
+    metadata: {
+      name: "Local date-time",
+      description:
+        "edxLocalDateTime keeps a stored date-time's wall-clock time and drops its offset, for datetime-local prefills.",
+    },
+    module: localDateTimeExtension,
   },
   {
     id: DATA_LISTS_RUNTIME_EXTENSION_ID,
