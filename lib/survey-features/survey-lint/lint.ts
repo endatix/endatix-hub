@@ -50,3 +50,43 @@ export function undeclaredReferences(json: object): Set<string> {
       .map((finding) => String(finding.messageData.root).toLowerCase()),
   );
 }
+
+const COLLISION_RULES = lintRules([LINT_RULE.collision]);
+
+/** What already writes a variable's data key: a root question, or a calculated value. */
+export type VariableCollision = {
+  variable: string;
+  declaredBy: "question" | "calculatedValue";
+};
+
+/**
+ * The names a form already writes as data, so a variable of that name would overwrite them:
+ * survey-core's `variable/collision` rule, with the names as the variable definition. Matched
+ * without case, and returned as given, in their order.
+ */
+export function variableCollisions(
+  json: object,
+  names: readonly string[],
+): VariableCollision[] {
+  const declared = declaredVariables(json, names);
+  return names.flatMap((variable) => {
+    const declaredBy = declared.get(variable.toLowerCase());
+    return declaredBy ? [{ variable, declaredBy }] : [];
+  });
+}
+
+/** What writes each of the names, by lower-case name, linted with them as the variable definition. */
+function declaredVariables(json: object, names: readonly string[]) {
+  const definition = {
+    elements: names.map((name) => ({ type: "text", name })),
+  };
+  const findings = runLint(json, COLLISION_RULES, { definition, presets: [] });
+  return new Map(
+    findings.map(({ messageData: { variable, kind } }) => [
+      String(variable).toLowerCase(),
+      kind === "question"
+        ? ("question" as const)
+        : ("calculatedValue" as const),
+    ]),
+  );
+}

@@ -6,9 +6,12 @@ import {
 } from "@/lib/endatix-api/audience/types";
 import {
   choiceColumnGroups,
+  columnTally,
+  CREATE_COLUMN,
   mappableColumns,
   propertyColumnMap,
   SKIP_COLUMN,
+  columnsAfterIdentifierChange,
   suggestColumnMap,
   suggestIdentifierColumn,
 } from "../column-map";
@@ -92,7 +95,45 @@ describe("column choices", () => {
     });
   });
 
+  it("queues a column no property is named like for a new property", () => {
+    const map = suggestColumnMap(["age", "segment", "brands"], PROPERTIES);
+
+    expect(map).toEqual({
+      age: "age",
+      segment: CREATE_COLUMN,
+      brands: SKIP_COLUMN,
+    });
+    expect(propertyColumnMap(map)).toEqual({ age: "age" });
+  });
+
+  it("counts the columns mapped, to create and ignored", () => {
+    const map = { age: "age", segment: CREATE_COLUMN, notes: SKIP_COLUMN };
+
+    expect(columnTally(["age", "segment", "notes", "region"], map)).toEqual({
+      mapped: 1,
+      toCreate: 1,
+      ignored: 2,
+    });
+  });
+
   it("keeps a property whose variable name is skip", () => {
     expect(propertyColumnMap({ notes: "skip" })).toEqual({ skip: "notes" });
+  });
+
+  it("suggests a decision for the column an identifier change releases", () => {
+    // Arrange
+    const columns = suggestColumnMap(["age", "notes"], PROPERTIES);
+
+    // Act
+    const next = columnsAfterIdentifierChange(
+      columns,
+      { from: "email", to: "age" },
+      PROPERTIES,
+    );
+
+    // Assert
+    expect(next.age).toBe(SKIP_COLUMN);
+    expect(next.email).toBe(CREATE_COLUMN);
+    expect(next.notes).toBe(CREATE_COLUMN);
   });
 });

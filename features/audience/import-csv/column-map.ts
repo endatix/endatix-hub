@@ -8,8 +8,14 @@ import { variableNameFromName } from "../property-types";
 /** Not a variable name, so a property or header called `skip` stays selectable. */
 export const SKIP_COLUMN = ":skip";
 
-/** What each file column feeds: a property's variable name, or `SKIP_COLUMN`. */
+/** A column queued to become a new property, created on the New properties step. */
+export const CREATE_COLUMN = ":create";
+
+/** What each file column feeds: a property's variable name, `CREATE_COLUMN` or `SKIP_COLUMN`. */
 export type ColumnMap = Record<string, string>;
+
+/** How many columns are mapped to a property, queued to create one, or left out. */
+export type ColumnTally = { mapped: number; toCreate: number; ignored: number };
 
 /** A choice property and its `variable__choice` columns, which the API reads by name. */
 export type ChoiceColumnGroup = {
@@ -85,7 +91,9 @@ export function suggestIdentifierColumn(
 
 /**
  * Each column mapped to the property whose variable name its header would produce, so
- * `Family size` finds `family_size`; one column per property, the rest not imported.
+ * `Family size` finds `family_size`; one column per property. A column named like no property
+ * is queued to create one; a column named like a property another column already feeds (or a
+ * choice property) is not imported.
  */
 export function suggestColumnMap(
   columns: string[],
@@ -94,22 +102,64 @@ export function suggestColumnMap(
   const free = new Map(
     importableProperties(properties).map((p) => [p.variableName, p]),
   );
+  const named = new Set(properties.map((p) => p.variableName));
   const map: ColumnMap = {};
   for (const column of columns) {
-    const match = free.get(variableNameFromName(column));
-    map[column] = match?.variableName ?? SKIP_COLUMN;
+    const variableName = variableNameFromName(column);
+    const match = free.get(variableName);
+    map[column] =
+      match?.variableName ??
+      (named.has(variableName) ? SKIP_COLUMN : CREATE_COLUMN);
     if (match) free.delete(match.variableName);
   }
   return map;
+}
+
+/** What a column's decision does; a decision kind added later is counted by name, never as mapped. */
+type DecisionKind = keyof ColumnTally;
+
+/** The one place a decision is read: `SKIP_COLUMN`, `CREATE_COLUMN`, or a property's variable name. */
+function decisionKind(decision: string | undefined): DecisionKind {
+  if (decision === undefined || decision === SKIP_COLUMN) return "ignored";
+  if (decision === CREATE_COLUMN) return "toCreate";
+  return "mapped";
+}
+
+/** The columns queued to become new properties, in file order. */
+export function queuedColumns(columns: string[], map: ColumnMap): string[] {
+  return columns.filter((column) => decisionKind(map[column]) === "toCreate");
+}
+
+/** The running tally the Columns step shows, so a column left unhandled is seen at a glance. */
+export function columnTally(columns: string[], map: ColumnMap): ColumnTally {
+  const tally: ColumnTally = { mapped: 0, toCreate: 0, ignored: 0 };
+  for (const column of columns) tally[decisionKind(map[column])] += 1;
+  return tally;
 }
 
 /** The API's `propertyColumns`: property variable name → the column it is read from. */
 export function propertyColumnMap(map: ColumnMap): Record<string, string> {
   return Object.fromEntries(
     Object.entries(map)
-      .filter(([, variableName]) => variableName !== SKIP_COLUMN)
+      .filter(([, decision]) => decisionKind(decision) === "mapped")
       .map(([column, variableName]) => [variableName, column]),
   );
+}
+
+/**
+ * The map after the identifier moves. The new column is the participant. The one it releases
+ * gets a suggestion when it had no decision of its own, so Continue does not treat a missing
+ * entry as ignored.
+ */
+export function columnsAfterIdentifierChange(
+  columns: ColumnMap,
+  move: { readonly from: string; readonly to: string },
+  properties: readonly AudienceProperty[],
+): ColumnMap {
+  const chosen = { ...columns, [move.to]: SKIP_COLUMN };
+  if (!move.from || move.from === move.to || chosen[move.from] !== undefined)
+    return chosen;
+  return { ...chosen, ...suggestColumnMap([move.from], properties) };
 }
 
 /** The suggested identifier column and the suggested property for every other column. */

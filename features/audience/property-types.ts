@@ -15,7 +15,8 @@ export const AUDIENCE_DATA_TYPES: ReadonlyArray<{
 
 /**
  * Types a new property can use. Choice types need choices, which the API requires and this tab
- * has no editor for yet, so they are left out until the import wizard adds one.
+ * has no editor for, so they are left out; the import wizard offers single choice with a column's
+ * values as its choices.
  */
 export const CREATABLE_DATA_TYPES = Object.freeze(
   AUDIENCE_DATA_TYPES.filter(
