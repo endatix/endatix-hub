@@ -155,7 +155,7 @@ function choiceText(source: PrefillSource, compatible: boolean): string {
 function prefillChoices(question: Question | undefined): Array<{ value?: string; text: string }> {
   const sources = sourcesOf(question) ?? [];
   const shape = question ? questionShape(question) : undefined;
-  const choices: Array<{ value?: string; text: string }> = [{ value: "" }];
+  const choices: Array<{ value?: string; text: string }> = [{ value: "", text: "" }];
   if (!shape) return choices;
   for (const source of sources) {
     if (!Array.isArray(source.prefillTargets)) continue;
