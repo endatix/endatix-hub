@@ -108,6 +108,12 @@ function useFormAnswers(formId: string) {
 
 type Answers = ReturnType<typeof useFormAnswers>;
 
+function pendingAnswers(answers: Answers, variables: readonly string[]) {
+  return variables.map(
+    (variable) => answers.asked.current.get(variable) ?? Promise.resolve(),
+  );
+}
+
 /** Resolves, once every answer is in, to the lower-case variables of `names` the form writes. */
 async function answeredNames(
   answers: Answers,
@@ -119,7 +125,7 @@ async function answeredNames(
   const fresh = variables.filter((v) => !answers.asked.current.has(v));
   if (fresh.length > 0)
     answers.ask(fresh, () => onFound(new Map(answers.known.current)));
-  await Promise.all(variables.map((v) => answers.asked.current.get(v)));
+  await Promise.all(pendingAnswers(answers, variables));
   if (answers.failed.current) return { ok: false as const };
   return {
     ok: true as const,

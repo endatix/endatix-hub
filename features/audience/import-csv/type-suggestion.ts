@@ -25,10 +25,11 @@ const CHOICE_VALUE_SEPARATOR = "|";
 // OSS `PropertyValueRules`: a number is a sign, digits, a decimal point and an exponent, nothing
 // else; a date is `yyyy-MM-dd`; a date-time is `yyyy-MM-ddTHH:mm`, with seconds and a fraction of up
 // to seven digits, and an optional offset.
-const NUMBER = /^[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?$/;
+const NUMBER = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/;
 const DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
-const DATE_TIME =
-  /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.\d{1,7})?)?(?:Z|[+-](\d{2}):(\d{2}))?$/;
+const DATE_TIME_CLOCK = /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/;
+const FRACTION = /^\.\d{1,7}$/;
+const ZONE_SUFFIX = /[+-](\d{2}):(\d{2})$/;
 
 /** A zero before another digit (`00123`): a code such as a postcode or an ID, not a quantity. */
 const LEADING_ZERO = /^[+-]?0\d/;
@@ -46,24 +47,41 @@ function isDate(value: string): boolean {
   return date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
 }
 
+function zoneOf(value: string) {
+  if (value.endsWith("Z"))
+    return { body: value.slice(0, -1), offsetHours: "0", offsetMinutes: "0" };
+  const zone = ZONE_SUFFIX.exec(value);
+  if (!zone) return { body: value, offsetHours: "0", offsetMinutes: "0" };
+  return {
+    body: value.slice(0, -zone[0].length),
+    offsetHours: zone[1],
+    offsetMinutes: zone[2],
+  };
+}
+
+/** Clock, then an optional fraction, and only when the seconds are present. */
+function dateTimeMatch(body: string) {
+  const dot = body.indexOf(".");
+  const clock = dot < 0 ? body : body.slice(0, dot);
+  const fraction = dot < 0 ? "" : body.slice(dot);
+  if (fraction && !FRACTION.test(fraction)) return null;
+  const match = DATE_TIME_CLOCK.exec(clock);
+  if (!match || (fraction && match[4] === undefined)) return null;
+  return match;
+}
+
 function isDateTime(value: string): boolean {
-  const match = DATE_TIME.exec(value);
+  const zoned = zoneOf(value);
+  const match = dateTimeMatch(zoned.body);
   if (!match) return false;
-  const [
-    date,
-    hours,
-    minutes,
-    seconds = "0",
-    offsetHours = "0",
-    offsetMinutes = "0",
-  ] = match.slice(1);
+  const [, date, hours, minutes, seconds = "0"] = match;
   return (
     isDate(date) &&
     Number(hours) < 24 &&
     Number(minutes) < 60 &&
     Number(seconds) < 60 &&
-    Number(offsetHours) < 24 &&
-    Number(offsetMinutes) < 60
+    Number(zoned.offsetHours) < 24 &&
+    Number(zoned.offsetMinutes) < 60
   );
 }
 
