@@ -29,7 +29,6 @@ import {
   columnsAfterIdentifierChange,
   propertyColumnMap,
   queuedColumns,
-  SKIP_COLUMN,
   suggestColumnChoices,
   type ColumnMap,
 } from "./column-map";
