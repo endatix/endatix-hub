@@ -36,6 +36,24 @@ describe("previewAsModel", () => {
     expect(model.getQuestionByName("seats").isVisible).toBe(false);
   });
 
+  it("shows a date-time Prefill as wall-clock time", () => {
+    const model = previewAsModel(
+      {
+        elements: [
+          {
+            type: "text",
+            inputType: "datetime-local",
+            name: "when",
+            defaultValueExpression: "edxLocalDateTime({renews_at})",
+          },
+        ],
+      },
+      { renews_at: "2026-10-27T10:00+02:00" },
+    );
+
+    expect(model.getQuestionByName("when").value).toBe("2026-10-27T10:00");
+  });
+
   it("cannot be completed, so a preview never becomes a response", () => {
     const model = previewAsModel(FORM, { tier: "gold" });
 
