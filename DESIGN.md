@@ -600,7 +600,7 @@ text-muted-foreground` — no left-border rule.
   with its reason (above).
 - **A setup choice that later locks is a control while it can change and a fact once it is
   locked** — a card with the select before anyone depends on it, then one clause with a `Locked`
-  badge where the reader works (the audience match key in the People description).
+  badge where the reader works (the audience match key in the Participants description).
 - **Immutability belongs on the field it constrains** (a `Locked` badge + one line), not in the
   panel description.
 - **A value an edit can never change is a read-only row, not a disabled input.** Show it as a
@@ -652,7 +652,7 @@ moving between:
 | Up to a parent                          | Header trail (breadcrumb)                              | `Forms › Flows › Cedar Grove Pulse` |
 | Siblings at one level of the trail      | A `dropdown` crumb (`NavSwitcher`)                     | `Flows ▾` lists the other folders   |
 | Aspects of one record                   | `NavSwitcher` after the trail, past a vertical divider | `Cedar Grove Pulse │ Submissions ▾` |
-| Views of one page                       | `LinkTabs` (segmented, `?view=`)                       | People / Properties                 |
+| Views of one page                       | `LinkTabs` (segmented, `?view=`)                       | Participants / Properties           |
 | Panes that are not worth a URL          | Radix `Tabs`, inside a panel                           | —                                   |
 | Into an immersive editor and back       | A button in, one Back out (`?from=`)                   | Design                              |
 | From a record back to the filtered list | `lib/list-page/table-return-to` + `BackToTableButton`  | a submission back to its list       |
@@ -1025,7 +1025,7 @@ records.
   `?from=<page>`, Back says where it goes ("Back to Participants") and asks first when there are
   unsaved changes.
 - **Views inside a page are `LinkTabs`** with a count per view and a `?view=` URL, the page's main
-  task first and as the bare URL (People, then Properties). Each view has its own primary action.
+  task first and as the bare URL (Participants, then Properties). Each view has its own primary action.
 - **A setup choice that later locks** is a card until it locks, then a clause in the list's
   description (§6 Controls & consequences).
 
