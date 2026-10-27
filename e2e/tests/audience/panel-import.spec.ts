@@ -67,7 +67,7 @@ test.describe("Participants panel CSV", () => {
       await expect(page.getByText("11 of 11 imported")).toBeVisible();
 
       await page.getByRole("button", { name: "Continue" }).click();
-      await page.getByRole("button", { name: "Import 20 rows" }).click();
+      await page.getByRole("button", { name: "Import 20 participants" }).click();
 
       await expect(
         page.getByText("Import finished", { exact: true }),
