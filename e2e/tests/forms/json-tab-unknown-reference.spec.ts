@@ -41,7 +41,14 @@ test.describe("JSON tab unknown references", () => {
       await signIn.performSignInFlow(credentials.email, credentials.password);
       await page.goto(`/forms/${formId}/design`);
 
-      await page.getByText("JSON Editor", { exact: true }).click();
+      const jsonEditor = page.getByText("JSON Editor", { exact: true });
+      if (!(await jsonEditor.first().isVisible())) {
+        await page
+          .getByRole("tablist")
+          .getByRole("button", { name: "More", exact: true })
+          .click();
+      }
+      await jsonEditor.filter({ visible: true }).click();
       const editor = page.locator(".ace_editor");
       await editor.click();
       await page.keyboard.press("ControlOrMeta+A");
