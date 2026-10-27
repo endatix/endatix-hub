@@ -1,15 +1,8 @@
-import { StrictMode } from "react";
 import { render, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DesignSurveyProvider } from "@/lib/survey-features/designer/design-survey.context";
 
 const surveyCreator = vi.hoisted(() => vi.fn());
-const unbindReplacedSurveys = vi.hoisted(() => vi.fn());
-
-vi.mock(
-  "@/lib/survey-features/survey-design/use-cases/dispose-replaced-surveys",
-  () => ({ disposeReplacedSurveys: () => unbindReplacedSurveys }),
-);
 
 vi.mock("survey-creator-react", () => {
   const event = () => ({ add: vi.fn(), remove: vi.fn() });
@@ -229,34 +222,5 @@ describe("creator theme settings", () => {
     expect(surveyCreator.mock.calls.at(-1)?.[0]).toMatchObject({
       showCreatorThemeSettings: false,
     });
-  });
-});
-
-describe("designer teardown", () => {
-  beforeEach(() => {
-    surveyCreator.mockClear();
-    unbindReplacedSurveys.mockClear();
-  });
-
-  it("unbinds the designer's Creator bindings when the editor unmounts, not before", async () => {
-    // Arrange
-    const { unmount } = render(
-      <StrictMode>
-        <DesignSurveyProvider>
-          <FormEditor formJson={{}} formId="1" formName="Form" />
-        </DesignSurveyProvider>
-      </StrictMode>,
-    );
-    await waitFor(() => {
-      expect(surveyCreator).toHaveBeenCalled();
-    });
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(unbindReplacedSurveys).not.toHaveBeenCalled();
-
-    // Act
-    unmount();
-
-    // Assert
-    expect(unbindReplacedSurveys).toHaveBeenCalled();
   });
 });

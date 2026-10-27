@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { SurveyModel } from "survey-core";
 import { SurveyCreatorModel, type TabTestPlugin } from "survey-creator-core";
-import { disposeReplacedSurveys } from "../use-cases/dispose-replaced-surveys";
+
+// survey-creator-core 3.2.3 disposes the simulator survey it replaces (Test again,
+// a theme edit, leaving Preview or Theme). It detaches the shared Test again bar
+// first, because SurveyModel.dispose would dispose that bar's data too. A bump
+// that drops disposeSurvey brings back the scrollWidth crash on file, image
+// picker and boolean questions: their observers outlive the nodes React reuses.
 
 const FORM_JSON = {
   elements: [
@@ -28,116 +33,95 @@ function previewSurvey(creator: SurveyCreatorModel): SurveyModel {
   return preview(creator).model.survey;
 }
 
-/** What survey-react-ui does once a model is on screen. */
-function render(survey: SurveyModel): void {
-  survey.afterRenderSurvey(document.createElement("div"));
-}
-
-describe("disposeReplacedSurveys", () => {
-  it("disposes the Preview survey that Test again replaced, once the new one renders", () => {
+describe("replaced simulator surveys", () => {
+  it("disposes the Preview survey Test again replaced, before the new one renders", () => {
+    // Arrange
     const creator = designer();
-    disposeReplacedSurveys(creator);
     creator.activeTab = "preview";
     const first = previewSurvey(creator);
-    render(first);
 
+    // Act
     preview(creator).model.testAgain();
     const second = previewSurvey(creator);
 
+    // Assert
     expect(second).not.toBe(first);
-    expect(first.isDisposed).toBe(false);
-    render(second);
     expect(first.isDisposed).toBe(true);
     expect(second.isDisposed).toBe(false);
   });
 
   it("disposes the questions of the replaced survey, so their resize observers stop", () => {
+    // Arrange
     const creator = designer();
-    disposeReplacedSurveys(creator);
     creator.activeTab = "preview";
-    const first = previewSurvey(creator);
-    render(first);
-    const questions = first.getAllQuestions();
+    const questions = previewSurvey(creator).getAllQuestions();
 
+    // Act
     preview(creator).model.testAgain();
-    render(previewSurvey(creator));
 
+    // Assert
     expect(questions.map((q) => q.isDisposed)).toEqual([true, true, true]);
   });
 
-  it("disposes every survey replaced before the latest one rendered", () => {
+  it("disposes every survey a later Test again replaced", () => {
+    // Arrange
     const creator = designer();
-    disposeReplacedSurveys(creator);
     creator.activeTab = "preview";
     const first = previewSurvey(creator);
-    render(first);
 
+    // Act
     preview(creator).model.testAgain();
     const skipped = previewSurvey(creator);
     preview(creator).model.testAgain();
-    render(previewSurvey(creator));
 
+    // Assert
     expect([first.isDisposed, skipped.isDisposed]).toEqual([true, true]);
   });
 
   it("keeps the Test again bar the Creator shares between Preview surveys", () => {
+    // Arrange
     const creator = designer();
-    disposeReplacedSurveys(creator);
     creator.activeTab = "preview";
-    render(previewSurvey(creator));
 
+    // Act
     preview(creator).model.testAgain();
     const second = previewSurvey(creator);
-    render(second);
-
     const bar = second.findLayoutElement("complete-customization").data as {
       isDisposed: boolean;
     };
+
+    // Assert
     expect(bar.isDisposed).toBe(false);
   });
 
-  it("disposes the Themes survey once Preview renders after a tab switch", () => {
+  it("disposes the Themes survey when Preview replaces it", () => {
+    // Arrange
     const creator = designer();
-    disposeReplacedSurveys(creator);
     creator.activeTab = "theme";
     const themeSurvey = (
       creator.getPlugin("theme") as unknown as {
         model: { survey: SurveyModel };
       }
     ).model.survey;
-    render(themeSurvey);
 
+    // Act
     creator.activeTab = "preview";
-    expect(themeSurvey.isDisposed).toBe(false);
-    render(previewSurvey(creator));
 
+    // Assert
     expect(themeSurvey.isDisposed).toBe(true);
     expect(previewSurvey(creator).isDisposed).toBe(false);
   });
 
   it("keeps the designer survey", () => {
+    // Arrange
     const creator = designer();
-    disposeReplacedSurveys(creator);
     const designerSurvey = creator.survey;
-    creator.activeTab = "preview";
-    render(previewSurvey(creator));
-    preview(creator).model.testAgain();
-    render(previewSurvey(creator));
 
+    // Act
+    creator.activeTab = "preview";
+    preview(creator).model.testAgain();
+
+    // Assert
     expect(designerSurvey.isDisposed).toBe(false);
-  });
-
-  it("stops after unbind", () => {
-    const creator = designer();
-    const unbind = disposeReplacedSurveys(creator);
-    creator.activeTab = "preview";
-    const first = previewSurvey(creator);
-    render(first);
-    unbind();
-
-    preview(creator).model.testAgain();
-    render(previewSurvey(creator));
-
-    expect(first.isDisposed).toBe(false);
   });
 });
