@@ -96,6 +96,24 @@
   margin-block-start: var(--sjs2-spacing-x050);
 }
 
+/*
+ * Prefill from rows put the Property name on the first line and its type under it.
+ * The dropdown is an `sd-selectlist`. Its string viewer is line-clamped to one line;
+ * `flex!` on the row beats that. A selected incompatible Property is both selected and
+ * disabled, and the disabled colour (a faint primary) is unreadable on the blue row.
+ */
+.sd-selectlist__item:has(.edx-prefill-choice),
+.sd-selectlist__item-body:has(.edx-prefill-choice) {
+  height: auto;
+  align-items: stretch;
+  overflow: visible;
+  white-space: normal;
+}
+
+.sd-selectlist__item--selected.sd-selectlist__item--disabled:has(.edx-prefill-choice) {
+  color: var(--sjs2-color-fg-brand-on-primary);
+}
+
 /* Custom prefill expression: its own row under the dropdown, not beside it.
  * The vendor overriding-link class pins the link to the end of the dropdown row. */
 .svc-creator .edx-prefill-expression .svc-action-button {

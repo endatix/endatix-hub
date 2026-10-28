@@ -316,7 +316,7 @@ const NO_FIT = "No Property fits this question type.";
 /**
  * The popup renders `visibleChoices`, which SurveyJS rebuilds from `choices` whenever they are
  * reassigned. Creator copies only `value` and `text` into `choices`, so the type and the
- * disabled state are stamped on each rebuilt row.
+ * disabled state are stamped on each rebuilt row, including its component (not question.itemComponent, which the closed dropdown also renders).
  */
 function greyRows(question: Question, editor: Question): boolean {
   const shape = questionShape(question);
@@ -328,6 +328,7 @@ function greyRows(question: Question, editor: Question): boolean {
     const fits = isPrefillCompatible(shape, source.prefillTargets);
     choice.setPropertyValue(PREFILL_KIND, fits ? propertyTypeLabel(source) : disabledHint(source));
     choice.setIsEnabled(fits);
+    choice.component = PREFILL_CHOICE;
     if (fits) anyFit = true;
   }
   return anyFit;
@@ -337,7 +338,6 @@ const greyedEditors = new WeakMap<Question, Question>();
 
 function greyIncompatible(question: Question | undefined, editor: Question): void {
   if (!question) return;
-  editor.itemComponent = PREFILL_CHOICE;
   if (!greyedEditors.has(editor)) {
     editor.registerFunctionOnPropertyValueChanged("visibleChoices", () => {
       const current = greyedEditors.get(editor);
