@@ -5,9 +5,12 @@ import { Base, Model, type IPropertyValueChangedEvent } from "survey-core";
 import {
   TabJsonEditorAcePlugin,
   type ActiveTabChangedEvent,
+  type JsonEditorBaseModel,
+  type LintSurveyEvent,
   type SurveyCreatorModel,
   type TabJsonEditorBasePlugin,
 } from "survey-creator-core";
+import { LINT_RULE } from "@/lib/survey-features/survey-lint";
 import {
   type JsonEditorState,
   AceJsonPlugin,
@@ -24,6 +27,19 @@ const MALFORMED_JSON_ERROR_MESSAGE =
   "JSON schema is malformed and cannot be parsed.";
 const UNEXPECTED_ERROR_MESSAGE =
   "Unexpeted error. Please reload the page and try again.";
+
+/** One assignment. Does not replace `rules`, call lintRules(), or touch variablePresets. */
+function warnUnknownReference(
+  _sender: SurveyCreatorModel,
+  options: LintSurveyEvent,
+): void {
+  options.lintOptions.rules![LINT_RULE.unknown] = "warning";
+}
+
+/** undefined and false block; true (warnings at most) does not. */
+function jsonTabBlocks(model: JsonEditorBaseModel): boolean {
+  return model.allowingDeactivate() !== true;
+}
 
 export type { JsonEditorState } from "./json-editor-state";
 
@@ -78,7 +94,7 @@ export function useJsonEditor(options: UseJsonEditorOptions) {
           const { name } = options;
 
           if (name === JSON_EDITOR_PROPERTY_NAMES.hasErrors) {
-            notify({ hasErrors: !!options.newValue });
+            notify({ hasErrors: jsonTabBlocks(model) });
           }
 
           const aceInstance = (sender as AceJsonPlugin).aceEditor;
@@ -94,7 +110,7 @@ export function useJsonEditor(options: UseJsonEditorOptions) {
                   return;
 
                 isJsonModified = true;
-                notify({ hasErrors: !!model.hasErrors });
+                notify({ hasErrors: jsonTabBlocks(model) });
               }
             };
             aceInstance.getSession().on("change", aceChangedHandler);
@@ -102,16 +118,25 @@ export function useJsonEditor(options: UseJsonEditorOptions) {
         };
 
         model.onPropertyChanged.add(onPropertyChanged);
+        const onErrorListChanged = (
+          _sender: Base,
+          options: IPropertyValueChangedEvent,
+        ) => {
+          if (options.name !== "actions") return;
+          notify({ hasErrors: jsonTabBlocks(model) });
+        };
+        model.errorList.onPropertyChanged.add(onErrorListChanged);
 
         removeModelListener = () => {
           model?.onPropertyChanged.remove(onPropertyChanged);
+          model.errorList.onPropertyChanged.remove(onErrorListChanged);
           const aceInstance = model.aceEditor;
           if (aceInstance && aceChangedHandler) {
             aceInstance.getSession().off("change", aceChangedHandler);
           }
         };
 
-        notify({ hasErrors: !!model.hasErrors });
+        notify({ hasErrors: jsonTabBlocks(model) });
       }
 
       function onTabChanged(
@@ -125,9 +150,11 @@ export function useJsonEditor(options: UseJsonEditorOptions) {
         enterJsonTab();
       }
 
+      creator.onLintSurvey.add(warnUnknownReference);
       creator.onActiveTabChanged.add(onTabChanged);
 
       return () => {
+        creator.onLintSurvey.remove(warnUnknownReference);
         creator.onActiveTabChanged.remove(onTabChanged);
         removeModelListener?.();
       };
@@ -155,7 +182,7 @@ export function useJsonEditor(options: UseJsonEditorOptions) {
         return Result.error(UNEXPECTED_ERROR_MESSAGE);
       }
 
-      if (jsonPlugin.model.hasErrors) {
+      if (jsonTabBlocks(jsonPlugin.model)) {
         return Result.validationError(INVALID_JSON_ERROR_MESSAGE);
       }
 
