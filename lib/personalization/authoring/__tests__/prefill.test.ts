@@ -119,8 +119,48 @@ function open(creator: SurveyCreatorModel, name: string) {
   };
 }
 
+type DropdownEditor = Question & {
+  dropdownListModel: {
+    popupModel: { toggleVisibility: () => void };
+    listModel: { actions: ItemValue[]; onItemClick: (item: ItemValue) => void };
+  };
+};
+
+/** The row the open Prefill from popup renders, not `editor.choices`. */
 function choice(prefill: Question | null, value: string) {
-  return (prefill?.choices as ItemValue[] | undefined)?.find((item) => item.value === value);
+  const list = (prefill as DropdownEditor | null)?.dropdownListModel;
+  if (!list) return undefined;
+  list.popupModel.toggleVisibility();
+  const row = list.listModel.actions.find((item) => item.value === value);
+  list.popupModel.toggleVisibility();
+  return row;
+}
+
+type Row = { text: string; isEnabled: boolean; kind: unknown };
+
+/** The open popup's rows by value, read while this question is selected. */
+function rows(prefill: Question | null): Record<string, Row> {
+  const list = (prefill as DropdownEditor | null)?.dropdownListModel;
+  if (!list) return {};
+  list.popupModel.toggleVisibility();
+  const read = Object.fromEntries(
+    list.listModel.actions.map((item) => [
+      item.value,
+      { text: item.text, isEnabled: item.isEnabled, kind: item.getPropertyValue("edxPrefillKind") },
+    ]),
+  );
+  list.popupModel.toggleVisibility();
+  return read;
+}
+
+/** Clicks a row in the open popup, as the author does. */
+function pick(prefill: Question | null, value: string): void {
+  const list = (prefill as DropdownEditor | null)?.dropdownListModel;
+  if (!list) throw new Error("no Prefill from list");
+  list.popupModel.toggleVisibility();
+  const row = list.listModel.actions.find((item) => item.value === value);
+  if (!row) throw new Error(`missing row ${value}`);
+  list.listModel.onItemClick(row);
 }
 
 function expressionLink(prefill: Question | null) {
@@ -232,6 +272,7 @@ describe("Prefill from in the designer", () => {
     const cleared = years.question.toJSON();
     const doubled = open(creator, "doubled");
     const shown = doubled.prefill?.value;
+    const customRow = choice(doubled.prefill, "edx-custom-expression")?.text;
     doubled.prefill!.value = undefined;
     open(creator, "years");
     const stillCustom = open(creator, "doubled");
@@ -242,7 +283,7 @@ describe("Prefill from in the designer", () => {
     expect(doubled.question.defaultValueExpression).toBe("{seats} * 2");
     expect(doubled.question.readOnly).toBe(true);
     expect(shown).toBe("edx-custom-expression");
-    expect(choice(doubled.prefill, "edx-custom-expression")?.text).toBe("Custom expression");
+    expect(customRow).toBe("Custom expression");
     expect(doubled.prefill?.isReadOnly).toBe(false);
     expect(stillCustom.prefill?.value).toBe("edx-custom-expression");
     expect(stillCustom.prefill?.isReadOnly).toBe(false);
@@ -272,23 +313,28 @@ describe("Prefill from in the designer", () => {
 
     // Act
     const years = open(creator, "years");
+    const yearsRows = rows(years.prefill);
+    pick(years.prefill, "region");
+    const afterDisabledPick = years.question.defaultValueExpression;
     const when = open(creator, "when");
+    const whenRows = rows(when.prefill);
 
     // Assert
-    expect(choice(years.prefill, "age")?.isEnabled).toBe(true);
-    expect(choice(years.prefill, "age")?.text).toBe("Age");
-    expect(choice(years.prefill, "age")?.getPropertyValue("edxPrefillKind")).toBe("number");
-    expect(choice(years.prefill, "region")?.isEnabled).toBe(false);
-    expect(choice(years.prefill, "region")?.getPropertyValue("edxPrefillKind")).toBe(
-      "Single choice. Use a dropdown, radio group, or button group question.",
-    );
-    expect(choice(years.prefill, "renews_at")?.isEnabled).toBe(false);
-    expect(choice(years.prefill, "renews_at")?.getPropertyValue("edxPrefillKind")).toBe(
-      "Date-time. Use a text or date-and-time question.",
-    );
-    expect(choice(when.prefill, "renews_at")?.isEnabled).toBe(true);
-    expect(choice(when.prefill, "age")?.isEnabled).toBe(false);
-    expect(choice(when.prefill, "region")?.isEnabled).toBe(false);
+    expect(yearsRows.age).toEqual({ text: "Age", isEnabled: true, kind: "number" });
+    expect(yearsRows.region).toEqual({
+      text: "Region",
+      isEnabled: false,
+      kind: "Single choice. Use a dropdown, radio group, or button group question.",
+    });
+    expect(yearsRows.renews_at).toEqual({
+      text: "Renews at",
+      isEnabled: false,
+      kind: "Date-time. Use a text or date-and-time question.",
+    });
+    expect(afterDisabledPick).toBeUndefined();
+    expect(whenRows.renews_at?.isEnabled).toBe(true);
+    expect(whenRows.age?.isEnabled).toBe(false);
+    expect(whenRows.region?.isEnabled).toBe(false);
     expect(when.prefill?.placeholder).not.toBe("No Property fits this question type.");
     const page = creator.propertyGrid.getPageByName("personalization");
     expect(years.prefill?.page?.name).toBe("personalization");

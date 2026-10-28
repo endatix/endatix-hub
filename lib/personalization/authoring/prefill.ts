@@ -1,4 +1,4 @@
-import { Serializer, SvgRegistry, type PanelModel, type Question } from "survey-core";
+import { Serializer, SvgRegistry, type ItemValue, type PanelModel, type Question } from "survey-core";
 import { getLocaleStrings, type SurveyCreatorModel, type SurveyInstanceCreatedEvent } from "survey-creator-core";
 import type { AudienceVariables } from "@/lib/endatix-api/audience/types";
 import { withBasePath } from "@/lib/hosting";
@@ -312,26 +312,39 @@ function applyPrefill(question: Question, value: unknown): void {
 
 const NO_FIT = "No Property fits this question type.";
 
-function greyIncompatible(question: Question | undefined, editor: Question): void {
-  if (!question || !editor.choices) return;
-  editor.itemComponent = PREFILL_CHOICE;
+/**
+ * The popup renders `visibleChoices`, which SurveyJS rebuilds from `choices` whenever they are
+ * reassigned. Creator copies only `value` and `text` into `choices`, so the type and the
+ * disabled state are stamped on each rebuilt row.
+ */
+function greyRows(question: Question, editor: Question): boolean {
   const shape = questionShape(question);
   const sources = sourcesOf(question) ?? [];
   let anyFit = false;
-  for (const choice of editor.choices) {
-    if (choice.value === CUSTOM_EXPRESSION) {
-      choice.text = "Custom expression";
-      continue;
-    }
+  for (const choice of editor.visibleChoices as ItemValue[]) {
     const source = sources.find((item) => item.variable === choice.value);
     if (!source || !Array.isArray(source.prefillTargets)) continue;
     const fits = isPrefillCompatible(shape, source.prefillTargets);
-    choice.text = source.title;
-    choice.component = PREFILL_CHOICE;
     choice.setPropertyValue(PREFILL_KIND, fits ? propertyTypeLabel(source) : disabledHint(source));
     choice.setIsEnabled(fits);
     if (fits) anyFit = true;
   }
+  return anyFit;
+}
+
+const greyedEditors = new WeakMap<Question, Question>();
+
+function greyIncompatible(question: Question | undefined, editor: Question): void {
+  if (!question) return;
+  editor.itemComponent = PREFILL_CHOICE;
+  if (!greyedEditors.has(editor)) {
+    editor.registerFunctionOnPropertyValueChanged("visibleChoices", () => {
+      const current = greyedEditors.get(editor);
+      if (current) greyRows(current, editor);
+    });
+  }
+  greyedEditors.set(editor, question);
+  const anyFit = greyRows(question, editor);
   editor.placeholder = offersPrefill(question) && !anyFit ? NO_FIT : "Select...";
 }
 
