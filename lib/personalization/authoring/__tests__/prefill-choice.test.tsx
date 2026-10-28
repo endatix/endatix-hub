@@ -12,19 +12,19 @@ function row(text: string, kind?: string) {
 }
 
 describe("Prefill from row", () => {
-  it("shows the Property name and its type as a flex row", () => {
+  it("stacks the Property name above its type", () => {
     // Act
-    row("Region", "Single choice. Use a Dropdown question.");
+    row("Family size", "Single choice. Use a Dropdown, Radio or Button group question.");
 
     // Assert
-    expect(screen.getByText("Region")).toBeTruthy();
-    expect(screen.getByText("Single choice. Use a Dropdown question.")).toBeTruthy();
-    const rowEl = screen.getByText("Region").parentElement;
-    expect(rowEl?.className).toContain("flex!");
-    expect(screen.getByText("Region").className).toContain("truncate");
-    expect(screen.getByText("Single choice. Use a Dropdown question.").className).toContain(
-      "whitespace-normal!",
-    );
+    const name = screen.getByText("Family size");
+    const hint = screen.getByText("Single choice. Use a Dropdown, Radio or Button group question.");
+    expect(name.parentElement?.className).toContain("flex-col");
+    expect(name.className).toContain("whitespace-normal!");
+    expect(name.className).not.toContain("truncate");
+    expect(hint.className).toContain("whitespace-normal!");
+    expect(hint.className).toContain("text-xs");
+    expect(hint.className).not.toContain("truncate");
   });
 
   it("shows only the name when the row has no type", () => {
