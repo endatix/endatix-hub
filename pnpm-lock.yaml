@@ -19,7 +19,6 @@ overrides:
   picomatch@>=4 <5: ^4.0.4
   yaml: ^2.8.3
   vite: ^7.3.5
-  fast-uri: ^3.1.2
   ip-address: ^10.1.1
   protobufjs: ^8.7.1
   '@protobufjs/utf8': ^1.1.2
