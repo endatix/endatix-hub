@@ -543,6 +543,26 @@ describe("Prefill from in the designer", () => {
     expect(empty.prefill?.description).not.toContain("/forms/11/audience");
   });
 
+  it("keeps the rows greyed after the list is rebuilt", () => {
+    // Arrange
+    const creator = designer(form);
+    bindAudienceToCreator(creator, {
+      variables: variables([AGE, REGION]),
+      refresh: () => Promise.resolve(Result.success(variables([AGE, REGION]))),
+    });
+    const years = open(creator, "years");
+
+    // Act — a custom expression adds a row, so SurveyJS rebuilds every row
+    years.question.defaultValueExpression = "{age} * 2";
+    const rebuilt = rows(years.prefill);
+
+    // Assert
+    expect(rebuilt["edx-custom-expression"]?.text).toBe("Custom expression");
+    expect(rebuilt.age).toEqual({ text: "Age", isEnabled: true, kind: "number" });
+    expect(rebuilt.region?.isEnabled).toBe(false);
+    expect(rebuilt.region?.kind).toContain("Single choice.");
+  });
+
   it("says when no Property fits this question", () => {
     // Arrange
     const creator = designer(form);
