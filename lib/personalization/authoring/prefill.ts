@@ -136,7 +136,7 @@ function englishList(items: string[]): string {
   const unique = [...new Set(items)];
   if (unique.length <= 1) return unique[0] ?? "";
   if (unique.length === 2) return `${unique[0]} or ${unique[1]}`;
-  return `${unique.slice(0, -1).join(", ")} or ${unique[unique.length - 1]}`;
+  return `${unique.slice(0, -1).join(", ")} or ${unique.at(-1)}`;
 }
 
 /** A disabled row names the Property and the questions that can take it. */
