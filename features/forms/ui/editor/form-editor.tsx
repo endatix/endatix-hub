@@ -187,7 +187,7 @@ function FormEditor({
   const unbindCreatorRef = useRef<(() => void) | null>(null);
   const [creator, setCreator] = useState<SurveyCreator | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [bindAudience, findParticipantDialog] = useDesignerAudience(audience);
+  const [bindAudience, findParticipantDialog] = useDesignerAudience(formId, audience);
 
   const {
     hasUnsavedChanges,

@@ -36,6 +36,7 @@ import {
   withUnsaved,
   type WriteTarget,
 } from "./designer-writes";
+import { installPrefill, prefillSources } from "./prefill";
 
 export interface CreatorHooks {
   /** Reads the form's variables again (a property or participant edited in the Audience tab). */
@@ -311,10 +312,23 @@ function hasMoreParticipants(state: BindingState): boolean {
  * view model on every activation, so None (and Find participant, given `onFindParticipant`) goes
  * into it each time. The designer keeps the binding for the Creator's lifetime.
  */
+function prefillAndPreview(
+  creator: SurveyCreatorModel,
+  state: BindingState,
+  onFindParticipant: FindParticipant | undefined,
+  formId: string | undefined,
+): (() => void)[] {
+  return [
+    installPrefill(creator, () => prefillSources(state.variables), formId),
+    extendPreview(creator, state, onFindParticipant),
+  ];
+}
+
 export function bindToCreator(
   creator: SurveyCreatorModel,
   audience: BoundAudience,
   onFindParticipant?: FindParticipant,
+  formId?: string,
 ): CreatorBinding {
   initGlobals();
   const state = newState(audience);
@@ -322,7 +336,7 @@ export function bindToCreator(
   const refresh = () => refreshVariables(creator, audience, state);
   const target = writeTarget(creator, state, refresh);
   const unbind = unbinding(state, [
-    extendPreview(creator, state, onFindParticipant),
+    ...prefillAndPreview(creator, state, onFindParticipant, formId),
     ...watching(target, audience),
   ]);
   return Object.assign(unbind, {

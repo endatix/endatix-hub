@@ -15,3 +15,8 @@ export type {
   ParticipantFinder,
 } from "./find-participant";
 export type { AudienceFinding, AudienceFix, AudienceReview } from "../coverage";
+export {
+  isPrefillCompatible,
+  prefillVariableOf,
+  type PrefillShape,
+} from "./prefill";

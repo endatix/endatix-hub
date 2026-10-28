@@ -95,3 +95,12 @@
 .svc-creator .sd-selectlist__item + .sd-selectlist__item {
   margin-block-start: var(--sjs2-spacing-x050);
 }
+
+/* Custom prefill expression: its own row under the dropdown, not beside it.
+ * The vendor overriding-link class pins the link to the end of the dropdown row. */
+.svc-creator .edx-prefill-expression .svc-action-button {
+  text-decoration: underline;
+  padding: 0;
+  border: none;
+  margin: 0;
+}
