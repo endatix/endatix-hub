@@ -2,7 +2,14 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import type { EndatixApi } from "@/lib/endatix-api/endatix-api";
 
-const KEPT_FORMS_PATH = path.join(process.cwd(), "e2e/.screen-out-kept.json");
+/** Playwright default. Vitest sets E2E_KEPT_FORMS_PATH so parallel files do not share this ledger. */
+function keptFormsPath(): string {
+  const override = process.env.E2E_KEPT_FORMS_PATH;
+  if (override) {
+    return override;
+  }
+  return path.join(process.cwd(), "e2e/.screen-out-kept.json");
+}
 
 export async function deleteForm(
   api: EndatixApi,
@@ -28,7 +35,7 @@ export async function releaseE2eForms(
   const prior = readKeptForms();
   const recordedAt = new Date().toISOString();
   writeFileSync(
-    KEPT_FORMS_PATH,
+    keptFormsPath(),
     JSON.stringify(
       [...prior, ...formIds.map((formId) => ({ formId, recordedAt }))],
       null,
@@ -39,13 +46,14 @@ export async function releaseE2eForms(
 }
 
 function readKeptForms(): { formId: string; recordedAt: string }[] {
+  const ledgerPath = keptFormsPath();
   try {
-    return JSON.parse(readFileSync(KEPT_FORMS_PATH, "utf8")) as {
+    return JSON.parse(readFileSync(ledgerPath, "utf8")) as {
       formId: string;
       recordedAt: string;
     }[];
   } catch {
-    mkdirSync(path.dirname(KEPT_FORMS_PATH), { recursive: true });
+    mkdirSync(path.dirname(ledgerPath), { recursive: true });
     return [];
   }
 }

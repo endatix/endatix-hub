@@ -8,6 +8,9 @@ export type SurveySurface = Page | FrameLocator;
 
 export const ALREADY_COMPLETED = "This form has already been completed.";
 
+/** SurveyJS default when the form does not set completedHtml. */
+const COMPLETION_MESSAGE = "Thank you for completing the survey";
+
 export function hubBaseUrl(): string {
   return process.env.BASE_URL ?? "http://localhost:3000";
 }
@@ -89,10 +92,14 @@ export function questionInput(survey: SurveySurface, title: string) {
 
 export async function completeSurvey(survey: SurveySurface): Promise<void> {
   await surveyRoot(survey).getByRole("button", { name: "Complete" }).click();
-  await survey.getByText("Thank you").waitFor({ timeout: 15_000 });
+  await survey
+    .getByText(COMPLETION_MESSAGE, { exact: true })
+    .waitFor({ timeout: 15_000 });
 }
 
 export async function expectThankYou(surface: SurveySurface): Promise<void> {
-  await expect(surface.getByText("Thank you")).toBeVisible({ timeout: 15_000 });
+  await expect(
+    surface.getByText(COMPLETION_MESSAGE, { exact: true }),
+  ).toBeVisible({ timeout: 15_000 });
   await expect(surface.getByText(ALREADY_COMPLETED)).toBeVisible();
 }

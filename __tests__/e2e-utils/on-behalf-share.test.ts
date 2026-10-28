@@ -1,11 +1,21 @@
-import { readFileSync, unlinkSync, writeFileSync } from "node:fs";
+import {
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  unlinkSync,
+  writeFileSync,
+} from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import type { EndatixApi } from "@/lib/endatix-api/endatix-api";
 import { ApiResult } from "@/lib/endatix-api/shared/api-result";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 import { createOnBehalfShare } from "../../e2e/utils/on-behalf-share";
 
-const KEPT_PATH = path.join(process.cwd(), "e2e/.screen-out-kept.json");
+const KEPT_DIR = mkdtempSync(path.join(os.tmpdir(), "on-behalf-share-kept-"));
+const KEPT_PATH = path.join(KEPT_DIR, "kept.json");
+const PREVIOUS_LEDGER = process.env.E2E_KEPT_FORMS_PATH;
+process.env.E2E_KEPT_FORMS_PATH = KEPT_PATH;
 const FORM_ID = "tail-form-1";
 
 function keptIds(): string[] {
@@ -50,6 +60,15 @@ function apiDouble(onBehalf: ApiResult<{ id: string; token: string }>) {
 describe("createOnBehalfShare", () => {
   afterEach(() => {
     forgetKept(FORM_ID);
+  });
+
+  afterAll(() => {
+    if (PREVIOUS_LEDGER === undefined) {
+      delete process.env.E2E_KEPT_FORMS_PATH;
+    } else {
+      process.env.E2E_KEPT_FORMS_PATH = PREVIOUS_LEDGER;
+    }
+    rmSync(KEPT_DIR, { recursive: true, force: true });
   });
 
   it("returns the submission id and share token without keeping the form", async () => {

@@ -1,11 +1,21 @@
-import { readFileSync, unlinkSync, writeFileSync } from "node:fs";
+import {
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  unlinkSync,
+  writeFileSync,
+} from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import type { EndatixApi } from "@/lib/endatix-api/endatix-api";
 import { ApiResult } from "@/lib/endatix-api/shared/api-result";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 import { releaseE2eForms } from "../../e2e/utils/e2e-form-release";
 
-const KEPT_PATH = path.join(process.cwd(), "e2e/.screen-out-kept.json");
+const KEPT_DIR = mkdtempSync(path.join(os.tmpdir(), "e2e-form-release-kept-"));
+const KEPT_PATH = path.join(KEPT_DIR, "kept.json");
+const PREVIOUS_LEDGER = process.env.E2E_KEPT_FORMS_PATH;
+process.env.E2E_KEPT_FORMS_PATH = KEPT_PATH;
 const IDS = ["rel-delete-a", "rel-delete-b", "rel-keep"];
 
 function keptIds(): string[] {
@@ -37,6 +47,15 @@ function forgetKept(ids: readonly string[]): void {
 describe("releaseE2eForms", () => {
   afterEach(() => {
     forgetKept(IDS);
+  });
+
+  afterAll(() => {
+    if (PREVIOUS_LEDGER === undefined) {
+      delete process.env.E2E_KEPT_FORMS_PATH;
+    } else {
+      process.env.E2E_KEPT_FORMS_PATH = PREVIOUS_LEDGER;
+    }
+    rmSync(KEPT_DIR, { recursive: true, force: true });
   });
 
   it("deletes each form and does not record the ids", async () => {
