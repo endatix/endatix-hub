@@ -909,6 +909,30 @@ Reference: `features/platform-admin/review-signup-request/ui/signup-visitor-sect
 - **Print keeps the same promises:** never crop, keep a row of images together (`wrap={false}`),
   keep a title with its first row, embed downscaled copies, single-line captions.
 
+### Marking a question on the designer canvas
+
+A fact about a question that the author needs while designing (where its value comes from) is a
+**visible chip on the question, not a ring or a bare icon.** A ring or outline competes with
+SurveyJS's selection and focus outlines, and an icon alone says nothing until hovered. Reference:
+`lib/personalization/authoring/prefill-canvas.ts` + `features/forms/ui/editor/prefill-canvas.css`
+(`Prefilled from City`).
+
+- **The chip says the fact in words** (`Prefilled from {Property title}`), after the icon of the
+  section that owns the concept (the Personalization person). It is a role tag (§5 Chips): no
+  dot, neutral fill, muted text. Help is the visible text, not a hover card.
+- **It is a link to where the fact is managed**, opening in a new tab so the design is not left
+  (the form's Properties). Its accessible name repeats the visible text first, then says where it
+  goes. It stops `pointerdown` and `click` so the designer does not select the question instead,
+  and shows a `--sjs2-color-utility-a11y` ring on `:focus-visible`.
+- **Top-right inside the card, clear of the corner** where SurveyJS puts the collapse button of
+  a selected question. One chip per question; it truncates rather than wraps.
+- **A problem changes the same chip, it does not add a second mark.** When Diagnostics has a
+  finding for that question, the chip takes the warning tint and says so (`… · does not fit`); the
+  icon carries the warning colour and the text stays primary, because warning text on its own
+  10% tint is under 3:1. The fix lives in Diagnostics, so the chip's name points there.
+- **Creator DOM, so `--sjs2-*` tokens only** (§9), checked by a test that rejects literal
+  colours and `var()` fallbacks. Font is `inherit`: the token font is not loaded in the Hub.
+
 ### Recipe: list page
 
 Title + description + primary action above a `DataTableSurface`; toolbar (search, filters, Reset)
@@ -1314,4 +1338,5 @@ SurveyJS surface.
   `var(--token, <literal>)` via `hubToken()`, and a test pins the literals to `:root`. When the
   palette changes, change both.
 - Hub CSS injected into Creator DOM names `--sjs2-*` tokens only, with no literal fallback.
+  A mark on a canvas question follows §6 "Marking a question on the designer canvas".
 - Every Hub dialog is a shadcn `Dialog` / `AlertDialog`, never `settings.showDialog`.
