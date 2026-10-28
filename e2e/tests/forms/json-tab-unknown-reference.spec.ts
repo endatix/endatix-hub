@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { expect, test } from "@playwright/test";
+import { expect, type Locator, type Page, test } from "@playwright/test";
 import { SignInPage } from "../../pages/auth/sign-in.page";
 import {
   deleteForm,
@@ -16,8 +16,57 @@ const FIXTURE = readFileSync(
   "utf8",
 );
 
+const EVIDENCE_DIR = process.env.E2E_EVIDENCE_DIR;
+
+/** Ace ignores keyboard.insertText. Select all, then Ace's own paste command. */
+async function pasteIntoAce(page: Page, text: string): Promise<void> {
+  const editor = page.locator(".ace_editor");
+  await editor.click();
+  await page.evaluate((value) => {
+    const root = document.querySelector(".ace_editor");
+    const ace = (
+      window as Window & {
+        ace?: {
+          edit: (el: Element) => {
+            focus: () => void;
+            selectAll: () => void;
+            execCommand: (command: string, args: string) => void;
+          };
+        };
+      }
+    ).ace;
+    if (!root || !ace) {
+      throw new Error("Ace is not loaded");
+    }
+    const aceEditor = ace.edit(root);
+    aceEditor.focus();
+    aceEditor.selectAll();
+    aceEditor.execCommand("paste", value);
+  }, text);
+  await expect(editor).toContainText("Family size");
+}
+
+async function saveEvidence(
+  page: Page,
+  region: Locator,
+  name: string,
+): Promise<void> {
+  if (!EVIDENCE_DIR) {
+    return;
+  }
+  await page.addStyleTag({
+    content: "nextjs-portal { display: none !important; }",
+  });
+  await region.screenshot({ path: path.join(EVIDENCE_DIR, name) });
+}
+
+test.use({
+  deviceScaleFactor: 2,
+  viewport: { width: 1440, height: 900 },
+});
+
 test.describe("JSON tab unknown references", () => {
-  test.setTimeout(120_000);
+  test.setTimeout(180_000);
 
   test("pasting a survey that reads runtime variables reaches Designer", async ({
     page,
@@ -41,19 +90,32 @@ test.describe("JSON tab unknown references", () => {
       await signIn.performSignInFlow(credentials.email, credentials.password);
       await page.goto(`/forms/${formId}/design`);
 
-      const jsonEditor = page.getByText("JSON Editor", { exact: true });
-      if (!(await jsonEditor.first().isVisible())) {
+      await expect(
+        page.getByRole("tab", { name: "Designer", exact: true }),
+      ).toBeVisible();
+      const jsonTab = page.getByRole("tab", { name: "JSON Editor", exact: true });
+      if (!(await jsonTab.isVisible())) {
         await page
           .getByRole("tablist")
           .getByRole("button", { name: "More", exact: true })
           .click();
       }
-      await jsonEditor.filter({ visible: true }).click();
-      const editor = page.locator(".ace_editor");
-      await editor.click();
-      await page.keyboard.press("ControlOrMeta+A");
-      await page.keyboard.insertText(FIXTURE);
+      const jsonItem = page.getByRole("menuitem", {
+        name: "JSON Editor",
+        exact: true,
+      });
+      if (await jsonItem.isVisible()) {
+        await jsonItem.click();
+      } else {
+        await jsonTab.click();
+      }
+      await pasteIntoAce(page, FIXTURE);
       await expect(page.getByText("is not found").first()).toBeVisible();
+      await saveEvidence(
+        page,
+        page.locator("main"),
+        "json-tab-unknown-reference-warnings_light.png",
+      );
 
       await page.getByText("Designer", { exact: true }).click();
 
@@ -63,6 +125,11 @@ test.describe("JSON tab unknown references", () => {
       await expect(
         page.locator(".sd-question__title").getByText("Family size"),
       ).toBeVisible();
+      await saveEvidence(
+        page,
+        page.locator("main"),
+        "json-tab-designer_light.png",
+      );
     } catch (error) {
       failed = true;
       throw error;
