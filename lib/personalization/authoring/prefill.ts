@@ -221,8 +221,25 @@ function hasDefaultValueExpression(question: Question): boolean {
   return !Serializer.isDescendantOf(question.getType(), "nonvalue");
 }
 
+/**
+ * Some Property lists this question's type among its `prefillTargets` (any `inputType`), so a
+ * matrix or a file question, which no Property can fill, has no Personalization tab. With no
+ * Properties yet the tab stays, to point at Participants.
+ */
+function takesSomeProperty(question: Question): boolean {
+  const sources = sourcesOf(question) ?? [];
+  if (sources.length === 0) return true;
+  const type = question.getType();
+  return sources.some((source) => source.prefillTargets?.some((target) => target.type === type));
+}
+
 function showPrefill(question: Question): boolean {
-  return prefillBound(question) && hasDefaultValueExpression(question) && !legacyCatalog(question);
+  return (
+    prefillBound(question) &&
+    hasDefaultValueExpression(question) &&
+    !legacyCatalog(question) &&
+    takesSomeProperty(question)
+  );
 }
 
 function inputTypeOf(question: Question): string | undefined {

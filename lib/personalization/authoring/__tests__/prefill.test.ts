@@ -421,6 +421,28 @@ describe("Prefill from in the designer", () => {
     expect(open(creator, "calc").prefill?.isVisible).not.toBe(true);
   });
 
+  it("hides Prefill on a question type no Property can fill", () => {
+    // Arrange
+    const creator = designer({
+      elements: [
+        { type: "dropdown", name: "plan", choices: ["a"] },
+        { type: "matrixdynamic", name: "grid", columns: [{ name: "c" }] },
+        { type: "file", name: "upload" },
+        { type: "signaturepad", name: "sign" },
+      ],
+    });
+    bindAudienceToCreator(creator, {
+      variables: variables([AGE, REGION]),
+      refresh: () => Promise.resolve(Result.success(variables([AGE, REGION]))),
+    });
+
+    // Act & Assert
+    expect(open(creator, "plan").prefill?.isVisible).toBe(true);
+    expect(open(creator, "grid").prefill?.isVisible).not.toBe(true);
+    expect(open(creator, "upload").prefill?.isVisible).not.toBe(true);
+    expect(open(creator, "sign").prefill?.isVisible).not.toBe(true);
+  });
+
   it("keeps each form's Properties and Participants link", () => {
     // Arrange
     const first = designer(form);
