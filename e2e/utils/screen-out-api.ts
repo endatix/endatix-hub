@@ -3,6 +3,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { EndatixApi } from "@/lib/endatix-api/endatix-api";
 import { ApiResult } from "@/lib/endatix-api/shared/api-result";
+import { publishE2eForm } from "./form-api";
 
 const AGE_GATE_PATH = path.join(
   process.cwd(),
@@ -85,38 +86,12 @@ export async function createAgeGateForm(
     changeNavigationOnComplete?: boolean;
   },
 ): Promise<string> {
-  const created = await api.forms.create({
+  return publishE2eForm(api, {
     name: `e2e screen-out ${Date.now()}`,
-    isEnabled: true,
-    formDefinitionJsonData: "{}",
+    definitionJson: ageGateJson(options.changeNavigationOnComplete),
+    isPublic: options.isPublic,
+    limitOnePerUser: options.limitOnePerUser,
   });
-  if (!created.success) {
-    throw new Error(`Create form failed: ${created.error.message}`);
-  }
-
-  const formId = created.data.id;
-  try {
-    const published = await api.put(`/forms/${formId}/definition`, {
-      isDraft: false,
-      jsonData: ageGateJson(options.changeNavigationOnComplete),
-    });
-    if (!published.success) {
-      throw new Error(`Publish definition failed: ${published.error.message}`);
-    }
-
-    const updated = await api.forms.update(formId, {
-      isPublic: options.isPublic,
-      limitOnePerUser: options.limitOnePerUser,
-    });
-    if (!updated.success) {
-      throw new Error(`Update form failed: ${updated.error.message}`);
-    }
-
-    return formId;
-  } catch (error) {
-    await releaseScreenOutForms(api, [formId], true);
-    throw error;
-  }
 }
 
 export async function createOnBehalf(

@@ -1,4 +1,4 @@
-import { expect, type FrameLocator, type Page, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 import { EndatixApi } from "@/lib/endatix-api/endatix-api";
 import {
   createOnBehalf,
@@ -10,12 +10,13 @@ import {
   trySecondOnBehalf,
   type ScreenOutForm,
 } from "../../utils/screen-out-api";
-import { playgroundEmbedHostHref } from "../../utils/open-embed-host";
-
-type SurveySurface = Page | FrameLocator;
-type SurfaceKind = "share" | "iframe";
-
-const SURFACES: readonly SurfaceKind[] = ["share", "iframe"];
+import {
+  openSurvey as openSurveySurface,
+  SURFACES,
+  surveyRoot,
+  type SurfaceKind,
+  type SurveySurface,
+} from "../../utils/survey-surface";
 
 test.describe("Screen-out", () => {
   test.describe.configure({ mode: "serial" });
@@ -120,8 +121,7 @@ test.describe("Screen-out", () => {
         });
         await runSeeded(api, seeded, async () => {
           const survey = await openSurvey(page, surface, seeded);
-          const root = survey.locator(".sd-root-modern");
-          await root.waitFor({ timeout: 30_000 });
+          const root = surveyRoot(survey);
           await root.getByText("Under 18", { exact: true }).click();
 
           await expect(
@@ -212,37 +212,12 @@ async function runSeeded(
   }
 }
 
-function hubBaseUrl(): string {
-  return process.env.BASE_URL ?? "http://localhost:3000";
-}
-
-function embedHostOrigin(): string {
-  return process.env.E2E_EMBED_HOST_URL ?? "http://localhost:5000";
-}
-
-function shareUrl(seeded: ScreenOutForm): string {
-  return `${hubBaseUrl()}/share/${seeded.formId}?token=${encodeURIComponent(seeded.shareToken)}`;
-}
-
 async function openSurvey(
   page: Page,
   kind: SurfaceKind,
   seeded: ScreenOutForm,
 ): Promise<SurveySurface> {
-  if (kind === "share") {
-    await page.goto(shareUrl(seeded));
-    return page;
-  }
-
-  await page.goto(
-    playgroundEmbedHostHref(
-      embedHostOrigin(),
-      seeded.formId,
-      hubBaseUrl(),
-      seeded.shareToken,
-    ),
-  );
-  return page.frameLocator(`iframe[id^="edxf-${seeded.formId}"]`);
+  return openSurveySurface(page, kind, seeded.formId, seeded.shareToken);
 }
 
 async function answerAge(
@@ -253,8 +228,7 @@ async function answerAge(
 ): Promise<void> {
   const surface = await openSurvey(page, kind, seeded);
   // Scope to SurveyJS. A loose /next/i matches the Next.js dev toolbar.
-  const survey = surface.locator(".sd-root-modern");
-  await survey.waitFor({ timeout: 30_000 });
+  const survey = surveyRoot(surface);
   await survey.getByText(choice, { exact: true }).click();
 
   if (choice === "Under 18") {

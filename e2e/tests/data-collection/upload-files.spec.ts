@@ -3,10 +3,10 @@ import { expect, type FrameLocator, type Page, test } from "@playwright/test";
 import sharp from "sharp";
 import { EndatixApi } from "@/lib/endatix-api/endatix-api";
 import { playgroundEmbedHostHref } from "../../utils/open-embed-host";
+import { publishE2eForm } from "../../utils/form-api";
 import {
   createOnBehalf,
   createShareAccessToken,
-  deleteForm,
   e2eCredentials,
   releaseScreenOutForms,
   signInE2eApi,
@@ -80,30 +80,13 @@ type SeededForm = {
 };
 
 async function seedFileForm(api: EndatixApi): Promise<SeededForm> {
-  const created = await api.forms.create({
+  const formId = await publishE2eForm(api, {
     name: `e2e image resize ${Date.now()}`,
-    isEnabled: true,
-    formDefinitionJsonData: "{}",
+    definitionJson: FILE_FORM,
+    isPublic: true,
+    limitOnePerUser: false,
   });
-  if (!created.success) {
-    throw new Error(`Create form failed: ${created.error.message}`);
-  }
-
-  const formId = created.data.id;
   try {
-    const published = await api.put(`/forms/${formId}/definition`, {
-      isDraft: false,
-      jsonData: FILE_FORM,
-    });
-    if (!published.success) {
-      throw new Error(`Publish definition failed: ${published.error.message}`);
-    }
-
-    const updated = await api.forms.update(formId, { isPublic: true });
-    if (!updated.success) {
-      throw new Error(`Update form failed: ${updated.error.message}`);
-    }
-
     const submitterId = `e2e-${formId}`;
     const submission = await createOnBehalf(api, formId, submitterId);
     const shareToken = await createShareAccessToken(
@@ -113,7 +96,7 @@ async function seedFileForm(api: EndatixApi): Promise<SeededForm> {
     );
     return { formId, submissionId: submission.submissionId, shareToken };
   } catch (error) {
-    await deleteForm(api, formId);
+    await releaseScreenOutForms(api, [formId], true);
     throw error;
   }
 }
