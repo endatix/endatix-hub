@@ -1,5 +1,5 @@
 import type { EndatixApi } from "@/lib/endatix-api/endatix-api";
-import { releaseScreenOutForms } from "./e2e-form-release";
+import { releaseE2eForms } from "./e2e-form-release";
 
 /** Visibility and one-per-user for an e2e form. Public and one-per-user do not combine. */
 export type E2eFormSetup = {
@@ -35,7 +35,7 @@ export async function publishE2eForm(
     await configureE2eForm(api, formId, options);
     return formId;
   } catch (error) {
-    await releaseScreenOutForms(api, [formId], true);
+    await releaseE2eForms(api, [formId], true);
     throw error;
   }
 }

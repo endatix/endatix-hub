@@ -3,10 +3,11 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { EndatixApi } from "@/lib/endatix-api/endatix-api";
 import { ApiResult } from "@/lib/endatix-api/shared/api-result";
-import { releaseScreenOutForms } from "./e2e-form-release";
 import { publishE2eForm } from "./form-api";
+import { createOnBehalfShare } from "./on-behalf-share";
 
-export { deleteForm, releaseScreenOutForms } from "./e2e-form-release";
+export { deleteForm, releaseE2eForms } from "./e2e-form-release";
+export { createOnBehalf, createShareAccessToken } from "./on-behalf-share";
 
 const AGE_GATE_PATH = path.join(
   process.cwd(),
@@ -97,46 +98,6 @@ export async function createAgeGateForm(
   });
 }
 
-export async function createOnBehalf(
-  api: EndatixApi,
-  formId: string,
-  submitterId: string,
-): Promise<{ submissionId: string; token: string }> {
-  const created = await api.post<{ id: string; token: string }>(
-    `/forms/${formId}/submissions/onbehalf`,
-    {
-      isComplete: false,
-      jsonData: "{}",
-      submitter: {
-        externalSubjectId: submitterId,
-        displayId: submitterId,
-      },
-    },
-  );
-  if (!created.success) {
-    throw new Error(`On-behalf create failed: ${created.error.message}`);
-  }
-
-  return { submissionId: created.data.id, token: created.data.token };
-}
-
-export async function createShareAccessToken(
-  api: EndatixApi,
-  formId: string,
-  submissionId: string,
-): Promise<string> {
-  const created = await api.submissions.createAccessToken({
-    formId,
-    submissionId,
-    expiryMinutes: 60 * 24 * 7,
-    permissions: ["submit"],
-  });
-  if (!created.success) {
-    throw new Error(`Share access token failed: ${created.error.message}`);
-  }
-  return created.data.token;
-}
-
 function ageGateJson(changeNavigationOnComplete: boolean | undefined): string {
   const definition = JSON.parse(readFileSync(AGE_GATE_PATH, "utf8")) as Record<
     string,
@@ -157,19 +118,9 @@ export async function seedScreenOutForm(
   },
 ): Promise<ScreenOutForm> {
   const formId = await createAgeGateForm(api, options);
-  try {
-    const submitterId = `e2e-${formId}`;
-    const submission = await createOnBehalf(api, formId, submitterId);
-    const shareToken = await createShareAccessToken(
-      api,
-      formId,
-      submission.submissionId,
-    );
-    return { api, formId, submitterId, shareToken, ...submission };
-  } catch (error) {
-    await releaseScreenOutForms(api, [formId], true);
-    throw error;
-  }
+  const submitterId = `e2e-${formId}`;
+  const submission = await createOnBehalfShare(api, formId, submitterId);
+  return { api, formId, submitterId, ...submission };
 }
 
 export async function readSubmissionOutcome(
@@ -204,4 +155,3 @@ export async function trySecondOnBehalf(
     },
   });
 }
-
