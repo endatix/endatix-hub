@@ -2,10 +2,10 @@ import { Model, type Question } from "survey-core";
 import type { AudienceVariables } from "@/lib/endatix-api/audience/types";
 import {
   isPrefillCompatible,
+  prefillSourceNamed,
   prefillSources,
   prefillVariableOf,
   type PrefillShape,
-  type PrefillSource,
 } from "../prefill-match";
 import type { AudienceFinding } from "./types";
 
@@ -90,14 +90,6 @@ function locatedQuestions(surveyJson: object): Located[] {
   }
 }
 
-function sourceNamed(
-  sources: readonly PrefillSource[],
-  variable: string,
-): PrefillSource | undefined {
-  const key = variable.toLowerCase();
-  return sources.find((source) => source.variable.toLowerCase() === key);
-}
-
 /**
  * A `{var}` or `edxLocalDateTime({var})` prefill whose question is not one of the Property's
  * `prefillTargets`. A calculation is not a prefill. The fix clears the expression and leaves
@@ -112,7 +104,7 @@ export function prefillTypeMismatches(
   return locatedQuestions(surveyJson).flatMap((question) => {
     const variable = prefillVariableOf(question.expression.trim());
     if (!variable) return [];
-    const source = sourceNamed(sources, variable);
+    const source = prefillSourceNamed(sources, variable);
     if (!source || !Array.isArray(source.prefillTargets)) return [];
     if (isPrefillCompatible(question.shape, source.prefillTargets)) return [];
     const fix = {

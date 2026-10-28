@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { Model, type Question } from "survey-core";
 import type { PrefillSource } from "../../coverage/prefill-match";
 import {
+  clearPrefillMarks,
   mountPrefillMark,
   repaintPrefillMarks,
 } from "../prefill-canvas";
@@ -29,11 +30,9 @@ const RENEWS: PrefillSource = {
 
 const models: Model[] = [];
 
-function question(expression: string): Question {
+function question(expression: string, type = "text"): Question {
   const model = new Model({
-    elements: [
-      { type: "text", name: "q", defaultValueExpression: expression },
-    ],
+    elements: [{ type, name: "q", defaultValueExpression: expression }],
   });
   models.push(model);
   const found = model.getQuestionByName("q");
@@ -51,47 +50,80 @@ function canvas(): { host: HTMLElement; inner: HTMLElement } {
 }
 
 afterEach(() => {
+  clearPrefillMarks();
   document.body.replaceChildren();
   models.splice(0).forEach((model) => model.dispose());
 });
 
-describe("prefill canvas mark", () => {
-  it("rings a question whose expression names a known Property", () => {
+describe("prefill canvas chip", () => {
+  it("labels a prefilled question with its Property and links to Properties", () => {
     // Arrange
     const { host, inner } = canvas();
-    const asked = question("{city}");
 
     // Act
-    mountPrefillMark(inner, asked, () => [CITY, RENEWS], "42");
+    mountPrefillMark(inner, question("{city}"), () => [CITY, RENEWS], "42");
 
     // Assert
-    expect(host.classList.contains("edx-prefilled")).toBe(true);
-    const button = host.querySelector("button");
-    expect(button?.getAttribute("type")).toBe("button");
-    expect(button?.getAttribute("aria-label")).toBe("Prefilled from City");
-    expect(button?.innerHTML).toContain(ICON_HEAD);
-    const pop = host.querySelector(".edx-prefill-pop");
-    expect(pop?.querySelector("strong")?.textContent).toBe("Prefilled from City");
-    expect(pop?.querySelector("span")?.textContent).toBe("Property on this form");
-    const link = pop?.querySelector("a");
-    expect(link?.textContent).toBe("Properties");
-    expect(link?.getAttribute("href")).toBe(
+    const chip = host.querySelector<HTMLAnchorElement>(
+      ":scope > a.edx-prefill-chip",
+    );
+    expect(chip?.textContent).toBe("Prefilled from City");
+    expect(chip?.getAttribute("aria-label")).toBe(
+      "Prefilled from City. Opens the form's Properties in a new tab",
+    );
+    expect(chip?.title).toBe("Open the form's Properties in a new tab");
+    expect(chip?.getAttribute("href")).toBe(
       "/forms/42/audience?view=properties",
     );
-    expect(link?.getAttribute("target")).toBe("_blank");
-    expect(link?.getAttribute("rel")).toBe("noopener");
+    expect(chip?.target).toBe("_blank");
+    expect(chip?.rel).toBe("noopener");
+    expect(chip?.querySelector("svg")?.getAttribute("aria-hidden")).toBe(
+      "true",
+    );
+    expect(chip?.innerHTML).toContain(ICON_HEAD);
+    expect(chip?.classList.contains("edx-prefill-chip--mismatch")).toBe(false);
+    expect(host.classList.contains("edx-prefilled")).toBe(false);
+  });
+
+  it("keeps the designer from selecting the question when the chip is clicked", () => {
+    // Arrange
+    const { host, inner } = canvas();
+    mountPrefillMark(inner, question("{city}"), () => [CITY], "42");
     const selectQuestion = vi.fn();
+    host.addEventListener("pointerdown", selectQuestion);
     host.addEventListener("click", selectQuestion);
-    link?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    const chip = host.querySelector("a");
+
+    // Act
+    chip?.dispatchEvent(new Event("pointerdown", { bubbles: true }));
+    chip?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+
+    // Assert
     expect(selectQuestion).not.toHaveBeenCalled();
   });
 
-  it("rings a date-time prefill and drops the ring when the expression becomes a calculation", () => {
+  it("says the question no longer fits when its type is not a prefill target", () => {
+    // Arrange
+    const { host, inner } = canvas();
+
+    // Act
+    mountPrefillMark(inner, question("{city}", "comment"), () => [CITY], "42");
+
+    // Assert
+    const chip = host.querySelector("a.edx-prefill-chip");
+    expect(chip?.classList.contains("edx-prefill-chip--mismatch")).toBe(true);
+    expect(chip?.textContent).toBe("Prefilled from City · does not fit");
+    expect(chip?.getAttribute("aria-label")).toBe(
+      "Prefilled from City, which does not fit this question. See Diagnostics. Opens the form's Properties in a new tab",
+    );
+  });
+
+  it("labels a date-time prefill and drops the chip when the expression becomes a calculation", () => {
     // Arrange
     const { host, inner } = canvas();
     const asked = question("edxLocalDateTime({renews_at})");
     mountPrefillMark(inner, asked, () => [CITY, RENEWS], "42");
-    expect(host.querySelector("button")?.getAttribute("aria-label")).toBe(
+    expect(host.querySelector("a")?.textContent).toBe(
       "Prefilled from Renews at",
     );
 
@@ -99,8 +131,7 @@ describe("prefill canvas mark", () => {
     asked.defaultValueExpression = "{age} * 12";
 
     // Assert
-    expect(host.classList.contains("edx-prefilled")).toBe(false);
-    expect(host.querySelector("button")).toBeNull();
+    expect(host.querySelector("a")).toBeNull();
   });
 
   it("leaves a calculation and an unknown Property unmarked", () => {
@@ -118,8 +149,8 @@ describe("prefill canvas mark", () => {
     mountPrefillMark(unknown.inner, question("{missing}"), () => [CITY], "42");
 
     // Assert
-    expect(calculated.host.classList.contains("edx-prefilled")).toBe(false);
-    expect(unknown.host.classList.contains("edx-prefilled")).toBe(false);
+    expect(calculated.host.querySelector("a")).toBeNull();
+    expect(unknown.host.querySelector("a")).toBeNull();
   });
 
   it("uses the Property's current title when the variables are read again", () => {
@@ -133,33 +164,47 @@ describe("prefill canvas mark", () => {
     repaintPrefillMarks();
 
     // Assert
-    expect(host.querySelector("button")?.getAttribute("aria-label")).toBe(
+    expect(host.querySelector("a")?.textContent).toBe(
       "Prefilled from Home city",
     );
   });
+
+  it("stops following a question once the designer is gone", () => {
+    // Arrange
+    const { host, inner } = canvas();
+    const asked = question("{city}");
+    mountPrefillMark(inner, asked, () => [CITY], "42");
+
+    // Act
+    clearPrefillMarks();
+    host.querySelector("a")?.remove();
+    asked.defaultValueExpression = "{renews_at}";
+    repaintPrefillMarks();
+
+    // Assert
+    expect(host.querySelector("a")).toBeNull();
+  });
 });
 
-describe("prefill canvas mark styles", () => {
+describe("prefill canvas chip styles", () => {
   const css = readFileSync(path.join(process.cwd(), STYLESHEET), "utf8");
   const rules = css.replace(/\/\*[\s\S]*?\*\//g, "");
 
-  it("draws the clinic emerald ring outside the designer selection", () => {
+  it("names SurveyJS tokens only, with no literal colour or fallback", () => {
     // Act & Assert
-    expect(rules).toMatch(
-      /\.svc-creator \.svc-question__content\.edx-prefilled\s*\{[^}]*outline:\s*2px dashed oklch\(0\.55 0\.14 163\)/,
-    );
-    expect(rules).toMatch(/outline-offset:\s*3px/);
-    expect(rules).not.toMatch(/animation/);
-    expect(rules).not.toMatch(/--primary/);
+    expect(rules).not.toMatch(/#[0-9a-f]{3,8}\b|oklch|rgb|hsl/i);
+    expect(rules).not.toMatch(/var\(--[a-z0-9-]+,/);
+    expect(rules).not.toMatch(/var\(--(?!sjs2-)/);
+    expect(rules).not.toMatch(/outline:\s*2px dashed/);
   });
 
-  it("shows the title on hover and keyboard focus, from a 22px button", () => {
+  it("shows a keyboard focus ring and a warning tone for a mismatch", () => {
     // Act & Assert
-    expect(rules).toMatch(/width:\s*22px/);
-    expect(rules).toMatch(/height:\s*22px/);
-    expect(rules).toMatch(/background:\s*oklch\(0\.55 0\.14 163\)/);
     expect(rules).toMatch(
-      /\.edx-prefill-mark:hover \.edx-prefill-pop[\s\S]*\.edx-prefill-mark:focus-within \.edx-prefill-pop/,
+      /\.edx-prefill-chip:focus-visible\s*\{[^}]*var\(--sjs2-color-utility-a11y\)/,
+    );
+    expect(rules).toMatch(
+      /\.edx-prefill-chip--mismatch\s*\{[^}]*var\(--sjs2-color-bg-warning-secondary\)/,
     );
   });
 

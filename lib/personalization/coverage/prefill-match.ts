@@ -60,6 +60,15 @@ export function prefillVariableOf(
   );
 }
 
+/** The Property a prefill names. Variable names match without regard to case. */
+export function prefillSourceNamed(
+  sources: readonly PrefillSource[],
+  variable: string,
+): PrefillSource | undefined {
+  const key = variable.toLowerCase();
+  return sources.find((source) => source.variable.toLowerCase() === key);
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object";
 }
