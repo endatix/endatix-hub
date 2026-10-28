@@ -36,7 +36,7 @@ function importsOf(file: string): string[] {
 
 // An allowlist, not a denylist: an @/ alias can hide a client module.
 const COVERAGE_PACKAGES =
-  /^(survey-core(\/|$)|@\/lib\/survey-features\/survey-lint$|@\/lib\/survey-features\/local-date-time\/constants$|@\/lib\/endatix-api\/[\w-]+\/types$)/;
+  /^(survey-core(\/|$)|@\/lib\/survey-features\/survey-lint$|@\/lib\/endatix-api\/[\w-]+\/types$)/;
 const TO_SURVEY_PRESETS = path.resolve(COVERAGE_DIR, "../to-survey-presets");
 
 function coverageMayImport(file: string, spec: string): boolean {
@@ -81,7 +81,7 @@ describe("server-safe definition analysis", () => {
     expect(found).toEqual([]);
   });
 
-  it("keeps coverage server-safe: survey-core, survey-lint, the date-time function name, API types and its own files only", () => {
+  it("keeps coverage server-safe: survey-core, survey-lint, API types and its own files only", () => {
     // Act
     const found = [
       ...offenders(COVERAGE_DIR, (file) =>
