@@ -13,7 +13,7 @@ import {
 } from "./form-api";
 import {
   e2eCredentials,
-  releaseScreenOutForms,
+  releaseE2eForms,
   signInE2eApi,
 } from "./screen-out-api";
 
@@ -125,7 +125,7 @@ export async function preparePanelFormWithProperties(
   let restoreMatchKey: () => Promise<void> = async () => {};
   const release = async (keep: boolean): Promise<"deleted" | "kept"> => {
     try {
-      return await releaseScreenOutForms(api, [formId], keep);
+      return await releaseE2eForms(api, [formId], keep);
     } finally {
       await restoreMatchKey();
     }

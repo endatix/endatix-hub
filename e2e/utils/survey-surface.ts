@@ -1,4 +1,4 @@
-import type { FrameLocator, Page } from "@playwright/test";
+import { expect, type FrameLocator, type Page } from "@playwright/test";
 import { playgroundEmbedHostHref } from "./open-embed-host";
 
 export const SURFACES = ["share", "iframe"] as const;
@@ -56,12 +56,7 @@ export async function gotoSurface(
     await page.goto(shareAccessUrl(formId, token, query));
   } else {
     await page.goto(
-      playgroundEmbedHostHref(
-        embedHostOrigin(),
-        formId,
-        hubBaseUrl(),
-        token,
-      ),
+      playgroundEmbedHostHref(embedHostOrigin(), formId, hubBaseUrl(), token),
     );
   }
   return surfaceOf(page, kind, formId);
@@ -82,4 +77,22 @@ export async function openSurvey(
 
 export function surveyRoot(surface: SurveySurface) {
   return surface.locator(".sd-root-modern");
+}
+
+export function questionInput(survey: SurveySurface, title: string) {
+  return surveyRoot(survey)
+    .locator(".sd-question")
+    .filter({ hasText: title })
+    .locator("input")
+    .first();
+}
+
+export async function completeSurvey(survey: SurveySurface): Promise<void> {
+  await surveyRoot(survey).getByRole("button", { name: "Complete" }).click();
+  await survey.getByText("Thank you").waitFor({ timeout: 15_000 });
+}
+
+export async function expectThankYou(surface: SurveySurface): Promise<void> {
+  await expect(surface.getByText("Thank you")).toBeVisible({ timeout: 15_000 });
+  await expect(surface.getByText(ALREADY_COMPLETED)).toBeVisible();
 }

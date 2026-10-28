@@ -17,15 +17,18 @@ import {
   trySecondOnBehalf,
 } from "../../utils/screen-out-api";
 import {
-  ALREADY_COMPLETED,
+  completeSurvey,
+  expectThankYou,
   gotoSurface,
   openSurvey,
   personalLinkUrl,
+  questionInput,
   SURFACES,
   surveyRoot,
   type SurfaceKind,
   type SurveySurface,
 } from "../../utils/survey-surface";
+import { runE2eForms } from "../../utils/run-e2e-form";
 
 /** Sandbox setups. Add another entry to run the same flows under a different form setup. */
 const SETUPS = [
@@ -273,22 +276,7 @@ async function requireApi(): Promise<EndatixApi> {
 }
 
 async function runForm(form: PanelForm, body: () => Promise<void>): Promise<void> {
-  test.info().annotations.push({ type: "formId", description: form.formId });
-  let failed = false;
-  try {
-    await body();
-  } catch (error) {
-    failed = true;
-    throw error;
-  } finally {
-    const outcome = await form.release(
-      failed || process.env.E2E_KEEP_DATA === "1",
-    );
-    test.info().annotations.push({
-      type: "forms",
-      description: `${outcome}: ${form.formId}`,
-    });
-  }
+  return runE2eForms([form.formId], (keep) => form.release(keep), body);
 }
 
 /**
@@ -457,14 +445,6 @@ async function openPersonalLinkSurvey(
   return page;
 }
 
-function questionInput(survey: SurveySurface, title: string) {
-  return surveyRoot(survey)
-    .locator(".sd-question")
-    .filter({ hasText: title })
-    .locator("input")
-    .first();
-}
-
 async function expectAdultPersonalization(
   survey: SurveySurface,
   person: {
@@ -514,16 +494,6 @@ async function expectBoolean(
   } else {
     await expect(bool).not.toHaveClass(/sd-boolean--(checked|true)/);
   }
-}
-
-async function completeSurvey(survey: SurveySurface): Promise<void> {
-  await surveyRoot(survey).getByRole("button", { name: "Complete" }).click();
-  await survey.getByText("Thank you").waitFor({ timeout: 15_000 });
-}
-
-async function expectThankYou(surface: SurveySurface): Promise<void> {
-  await expect(surface.getByText("Thank you")).toBeVisible({ timeout: 15_000 });
-  await expect(surface.getByText(ALREADY_COMPLETED)).toBeVisible();
 }
 
 async function readSubmission(

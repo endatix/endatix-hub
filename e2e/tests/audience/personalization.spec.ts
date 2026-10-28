@@ -9,15 +9,18 @@ import {
   signInForAudience,
 } from "../../utils/audience-import-api";
 import { configureE2eForm } from "../../utils/form-api";
+import { runE2eForms } from "../../utils/run-e2e-form";
 import {
   createShareAccessToken,
   e2eCredentials,
   trySecondOnBehalf,
 } from "../../utils/screen-out-api";
 import {
-  ALREADY_COMPLETED,
+  completeSurvey,
+  expectThankYou,
   gotoSurface,
   openSurvey,
+  questionInput,
   SURFACES,
   type SurveySurface,
 } from "../../utils/survey-surface";
@@ -99,13 +102,6 @@ async function expectFrozen(survey: SurveySurface): Promise<void> {
   await expect(questionInput(survey, "Age in months")).toHaveValue("780");
 }
 
-function questionInput(survey: SurveySurface, title: string) {
-  return survey
-    .locator(".sd-question")
-    .filter({ hasText: title })
-    .locator("input");
-}
-
 async function editFamilySize(page: Page, survey: SurveySurface): Promise<void> {
   const family = questionInput(survey, "Family size");
   await family.click();
@@ -140,16 +136,6 @@ async function expectStoredAnswer(
   expect(read.data.personalization?.variables?.age).toBe(65);
 }
 
-async function expectThankYou(surface: SurveySurface): Promise<void> {
-  await expect(surface.getByText("Thank you")).toBeVisible({ timeout: 15_000 });
-  await expect(surface.getByText(ALREADY_COMPLETED)).toBeVisible();
-}
-
-async function completeSurvey(survey: SurveySurface): Promise<void> {
-  await survey.getByRole("button", { name: "Complete" }).click();
-  await survey.getByText("Thank you").waitFor({ timeout: 15_000 });
-}
-
 test.describe("On-behalf personalization", () => {
   test.setTimeout(120_000);
 
@@ -166,7 +152,7 @@ test.describe("On-behalf personalization", () => {
       throw new Error("E2E sign-in failed");
     }
     const form = await preparePanelForm(api, "Cedar Grove one response", FIXTURE);
-    try {
+    await runE2eForms([form.formId], (keep) => form.release(keep), async () => {
       await publishSurvey(api, form.formId);
       await importFirstRow(api, form.formId);
       const opened = await openOnBehalf(api, form.formId);
@@ -205,8 +191,6 @@ test.describe("On-behalf personalization", () => {
       expect(second.success, "limit one per user refuses a second submission").toBe(
         false,
       );
-    } finally {
-      await form.cleanup();
-    }
+    });
   });
 });

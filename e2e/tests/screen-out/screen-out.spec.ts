@@ -2,7 +2,7 @@ import { expect, type Page, test } from "@playwright/test";
 import { EndatixApi } from "@/lib/endatix-api/endatix-api";
 import {
   createOnBehalf,
-  releaseScreenOutForms,
+  releaseE2eForms,
   e2eCredentials,
   readSubmissionOutcome,
   seedScreenOutForm,
@@ -17,6 +17,7 @@ import {
   type SurfaceKind,
   type SurveySurface,
 } from "../../utils/survey-surface";
+import { runE2eForms } from "../../utils/run-e2e-form";
 
 test.describe("Screen-out", () => {
   test.describe.configure({ mode: "serial" });
@@ -42,14 +43,12 @@ test.describe("Screen-out", () => {
           isPublic: false,
           limitOnePerUser: true,
         }).catch(async (error: unknown) => {
-          await releaseScreenOutForms(api, [screened.formId], true);
+          await releaseE2eForms(api, [screened.formId], true);
           throw error;
         });
 
         const formIds = [screened.formId, completed.formId];
-        annotateForms(formIds);
-        let failed = false;
-        try {
+        await runE2eForms(formIds, (keep) => releaseE2eForms(api, formIds, keep), async () => {
           const draft = await api.submissions.public.updateByToken(
             screened.formId,
             screened.token,
@@ -80,12 +79,7 @@ test.describe("Screen-out", () => {
             surface,
             "This form has already been completed.",
           );
-        } catch (error) {
-          failed = true;
-          throw error;
-        } finally {
-          await releaseForms(api, formIds, failed);
-        }
+        });
       });
 
       test("public with-access-token screens out and closes the token", async ({
@@ -173,43 +167,16 @@ test.describe("Screen-out", () => {
   }
 });
 
-function annotateForms(formIds: string[]): void {
-  for (const formId of formIds) {
-    test.info().annotations.push({ type: "formId", description: formId });
-  }
-}
-
-async function releaseForms(
-  api: EndatixApi,
-  formIds: string[],
-  failed: boolean,
-): Promise<void> {
-  const outcome = await releaseScreenOutForms(
-    api,
-    formIds,
-    failed || process.env.E2E_KEEP_DATA === "1",
-  );
-  test.info().annotations.push({
-    type: "forms",
-    description: `${outcome}: ${formIds.join(", ")}`,
-  });
-}
-
-async function runSeeded(
+function runSeeded(
   api: EndatixApi,
   seeded: ScreenOutForm,
   body: () => Promise<void>,
 ): Promise<void> {
-  annotateForms([seeded.formId]);
-  let failed = false;
-  try {
-    await body();
-  } catch (error) {
-    failed = true;
-    throw error;
-  } finally {
-    await releaseForms(api, [seeded.formId], failed);
-  }
+  return runE2eForms(
+    [seeded.formId],
+    (keep) => releaseE2eForms(api, [seeded.formId], keep),
+    body,
+  );
 }
 
 async function openSurvey(

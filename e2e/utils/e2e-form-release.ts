@@ -15,7 +15,7 @@ export async function deleteForm(
 }
 
 /** Delete on success. On failure, or when E2E_KEEP_DATA=1, leave the forms and record their ids. */
-export async function releaseScreenOutForms(
+export async function releaseE2eForms(
   api: EndatixApi,
   formIds: string[],
   keep: boolean,
