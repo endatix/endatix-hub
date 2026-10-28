@@ -543,6 +543,29 @@ describe("Prefill from in the designer", () => {
     expect(empty.prefill?.description).not.toContain("/forms/11/audience");
   });
 
+  it("greys Prefill rows again when inputType changes", () => {
+    // Arrange
+    const creator = designer({
+      elements: [{ type: "text", name: "size", inputType: "number" }],
+    });
+    bindAudienceToCreator(creator, {
+      variables: variables([AGE, REGION]),
+      refresh: () => Promise.resolve(Result.success(variables([AGE, REGION]))),
+    });
+    const size = open(creator, "size");
+    const numberRows = rows(size.prefill);
+
+    // Act
+    size.question.inputType = "date";
+    const dateRows = rows(size.prefill);
+
+    // Assert
+    expect(numberRows.region?.isEnabled).toBe(false);
+    expect(numberRows.age?.isEnabled).toBe(true);
+    expect(dateRows.age?.isEnabled).toBe(false);
+    expect(dateRows.region?.isEnabled).toBe(false);
+  });
+
   it("keeps the rows greyed after the list is rebuilt", () => {
     // Arrange
     const creator = designer(form);

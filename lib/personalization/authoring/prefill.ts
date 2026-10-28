@@ -421,7 +421,7 @@ function prefillFromProperty() {
     isSerializable: false,
     visibleIf: (obj: Question) => showPrefill(obj),
     enableIf: (obj: Question) => offersPrefill(obj),
-    dependsOn: ["defaultValueExpression"],
+    dependsOn: ["defaultValueExpression", "inputType"],
     choices: (obj: Question) => prefillChoices(obj),
     onGetValue: (obj: Question) => prefillValue(obj),
     onSetValue: (obj: Question, value: unknown) => applyPrefill(obj, value),
@@ -524,7 +524,13 @@ function registerProperties(): void {
     propertiesRegistered = true;
     return;
   }
-  Serializer.addProperty("question", prefillFromProperty());
+  const prefillFrom = prefillFromProperty();
+  Serializer.addProperty("question", {
+    ...prefillFrom,
+    // `inputType` lives on the text question class; wire it after register (see below).
+    dependsOn: ["defaultValueExpression"],
+  });
+  Serializer.findProperty("text", "inputType")?.addDependedProperty(PREFILL_FROM);
   Serializer.addProperty("question", prefillEditableProperty());
   propertiesRegistered = true;
 }
