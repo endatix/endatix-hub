@@ -102,15 +102,15 @@
  * `flex!` on the row beats that. A selected incompatible Property is both selected and
  * disabled, and the disabled colour (a faint primary) is unreadable on the blue row.
  */
-.sd-selectlist__item:has(.edx-prefill-choice),
-.sd-selectlist__item-body:has(.edx-prefill-choice) {
+.svc-creator .sd-selectlist__item:has(.edx-prefill-choice),
+.svc-creator .sd-selectlist__item-body:has(.edx-prefill-choice) {
   height: auto;
   align-items: stretch;
   overflow: visible;
   white-space: normal;
 }
 
-.sd-selectlist__item--selected.sd-selectlist__item--disabled:has(.edx-prefill-choice) {
+.svc-creator .sd-selectlist__item--selected.sd-selectlist__item--disabled:has(.edx-prefill-choice) {
   color: var(--sjs2-color-fg-brand-on-primary);
 }
 
