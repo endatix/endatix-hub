@@ -1,4 +1,4 @@
-import { Serializer, SvgRegistry, type PanelModel, type Question } from "survey-core";
+import { Serializer, SvgRegistry, type ItemValue, type PanelModel, type Question } from "survey-core";
 import { getLocaleStrings, type SurveyCreatorModel, type SurveyInstanceCreatedEvent } from "survey-creator-core";
 import type { AudienceVariables } from "@/lib/endatix-api/audience/types";
 import { withBasePath } from "@/lib/hosting";
@@ -118,16 +118,17 @@ function propertyTypeLabel(source: PrefillSource): string {
 
 function targetQuestion(target: PrefillShape): string {
   if (target.type === "text") {
-    if (target.inputType === "number") return "number";
-    if (target.inputType === "date") return "date";
-    if (target.inputType === "datetime-local") return "date-and-time";
-    return "text";
+    if (target.inputType === "number") return "Number";
+    if (target.inputType === "date") return "Date";
+    if (target.inputType === "datetime-local") return "Date and Time";
+    return "Single-Line Input";
   }
-  if (target.type === "comment") return "long text";
-  if (target.type === "boolean") return "yes/no";
-  if (target.type === "radiogroup") return "radio group";
-  if (target.type === "buttongroup") return "button group";
-  if (target.type === "tagbox") return "tag box";
+  if (target.type === "comment") return "Long Text";
+  if (target.type === "boolean") return "Yes/No (Boolean)";
+  if (target.type === "dropdown") return "Dropdown";
+  if (target.type === "radiogroup") return "Radio";
+  if (target.type === "buttongroup") return "Button group";
+  if (target.type === "tagbox") return "Multi-Select Dropdown";
   return target.type;
 }
 
@@ -135,7 +136,7 @@ function englishList(items: string[]): string {
   const unique = [...new Set(items)];
   if (unique.length <= 1) return unique[0] ?? "";
   if (unique.length === 2) return `${unique[0]} or ${unique[1]}`;
-  return `${unique.slice(0, -1).join(", ")}, or ${unique[unique.length - 1]}`;
+  return `${unique.slice(0, -1).join(", ")} or ${unique.at(-1)}`;
 }
 
 /** A disabled row names the Property and the questions that can take it. */
@@ -312,26 +313,39 @@ function applyPrefill(question: Question, value: unknown): void {
 
 const NO_FIT = "No Property fits this question type.";
 
-function greyIncompatible(question: Question | undefined, editor: Question): void {
-  if (!question || !editor.choices) return;
-  editor.itemComponent = PREFILL_CHOICE;
+/**
+ * The popup renders `visibleChoices`, which SurveyJS rebuilds from `choices` whenever they are
+ * reassigned. Creator copies only `value` and `text` into `choices`, so the type and the
+ * disabled state are stamped on each rebuilt row.
+ */
+function greyRows(question: Question, editor: Question): boolean {
   const shape = questionShape(question);
   const sources = sourcesOf(question) ?? [];
   let anyFit = false;
-  for (const choice of editor.choices) {
-    if (choice.value === CUSTOM_EXPRESSION) {
-      choice.text = "Custom expression";
-      continue;
-    }
+  for (const choice of editor.visibleChoices as ItemValue[]) {
     const source = sources.find((item) => item.variable === choice.value);
     if (!source || !Array.isArray(source.prefillTargets)) continue;
     const fits = isPrefillCompatible(shape, source.prefillTargets);
-    choice.text = source.title;
-    choice.component = PREFILL_CHOICE;
     choice.setPropertyValue(PREFILL_KIND, fits ? propertyTypeLabel(source) : disabledHint(source));
     choice.setIsEnabled(fits);
     if (fits) anyFit = true;
   }
+  return anyFit;
+}
+
+const greyedEditors = new WeakMap<Question, Question>();
+
+function greyIncompatible(question: Question | undefined, editor: Question): void {
+  if (!question) return;
+  editor.itemComponent = PREFILL_CHOICE;
+  if (!greyedEditors.has(editor)) {
+    editor.registerFunctionOnPropertyValueChanged("visibleChoices", () => {
+      const current = greyedEditors.get(editor);
+      if (current) greyRows(current, editor);
+    });
+  }
+  greyedEditors.set(editor, question);
+  const anyFit = greyRows(question, editor);
   editor.placeholder = offersPrefill(question) && !anyFit ? NO_FIT : "Select...";
 }
 
@@ -407,7 +421,7 @@ function prefillFromProperty() {
     isSerializable: false,
     visibleIf: (obj: Question) => showPrefill(obj),
     enableIf: (obj: Question) => offersPrefill(obj),
-    dependsOn: ["defaultValueExpression"],
+    dependsOn: ["defaultValueExpression", "inputType"],
     choices: (obj: Question) => prefillChoices(obj),
     onGetValue: (obj: Question) => prefillValue(obj),
     onSetValue: (obj: Question, value: unknown) => applyPrefill(obj, value),
@@ -510,7 +524,13 @@ function registerProperties(): void {
     propertiesRegistered = true;
     return;
   }
-  Serializer.addProperty("question", prefillFromProperty());
+  const prefillFrom = prefillFromProperty();
+  Serializer.addProperty("question", {
+    ...prefillFrom,
+    // `inputType` lives on the text question class; wire it after register (see below).
+    dependsOn: ["defaultValueExpression"],
+  });
+  Serializer.findProperty("text", "inputType")?.addDependedProperty(PREFILL_FROM);
   Serializer.addProperty("question", prefillEditableProperty());
   propertiesRegistered = true;
 }
