@@ -8,7 +8,7 @@ import { formRoutes } from "@/lib/routes/form-routes";
 import {
   prefillVariableOf,
   type PrefillSource,
-} from "../prefill-match";
+} from "../coverage/prefill-match";
 import { PERSONALIZATION_ICON_SVG } from "./prefill";
 
 const MARK = "edx-prefill-mark";

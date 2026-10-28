@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Model, type Question } from "survey-core";
-import type { PrefillSource } from "../../prefill-match";
+import type { PrefillSource } from "../../coverage/prefill-match";
 import {
   mountPrefillMark,
   repaintPrefillMarks,

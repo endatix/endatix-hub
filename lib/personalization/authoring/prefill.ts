@@ -9,7 +9,7 @@ import {
   prefillVariableOf,
   type PrefillShape,
   type PrefillSource,
-} from "../prefill-match";
+} from "../coverage/prefill-match";
 import { PREFILL_CHOICE, registerPrefillChoice } from "./prefill-choice";
 
 export type { PrefillShape, PrefillSource };

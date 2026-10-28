@@ -1,5 +1,5 @@
 import type { AudienceVariables } from "@/lib/endatix-api/audience/types";
-import { LOCAL_DATE_TIME_FUNCTION } from "@/lib/survey-features/local-date-time";
+import { LOCAL_DATE_TIME_FUNCTION } from "@/lib/survey-features/local-date-time/constants";
 
 /** A question shape the API lists on `prefillTargets`, or the question being edited. */
 export type PrefillShape = {

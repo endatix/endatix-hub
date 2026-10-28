@@ -6,7 +6,7 @@ import {
   prefillVariableOf,
   type PrefillShape,
   type PrefillSource,
-} from "../../prefill-match";
+} from "../prefill-match";
 import type { AudienceFinding } from "./types";
 
 type Located = {
