@@ -71,6 +71,7 @@ test.describe("All-questions personalization", () => {
   test.setTimeout(180_000);
 
   test.beforeEach(() => {
+    // Local runs without E2E_EMAIL and E2E_PASSWORD skip; CI sets both.
     test.skip(!e2eCredentials(), "Set E2E_EMAIL and E2E_PASSWORD.");
   });
 
