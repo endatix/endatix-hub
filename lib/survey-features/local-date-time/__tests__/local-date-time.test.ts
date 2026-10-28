@@ -71,4 +71,17 @@ describe("edxLocalDateTime", () => {
     expect(registerSpy).toHaveBeenCalledTimes(1);
     expect(FunctionFactory.Instance.hasFunction("edxLocalDateTime")).toBe(true);
   });
+
+  it("registers on import, without onInit, for a Hub with extensions off", async () => {
+    // Arrange
+    vi.resetModules();
+    const { FunctionFactory } = await import("survey-core");
+    FunctionFactory.Instance.unregister("edxLocalDateTime");
+
+    // Act
+    await import("@/lib/survey-extensions/core-registry");
+
+    // Assert
+    expect(FunctionFactory.Instance.hasFunction("edxLocalDateTime")).toBe(true);
+  });
 });
