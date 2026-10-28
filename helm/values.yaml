@@ -107,5 +107,9 @@ nodeSelector: {}
 affinity: {}
 
 # Lets the pod schedule onto tainted nodes, e.g. a dedicated node pool. Pair with
-# nodeSelector to also keep it there — a toleration alone only permits, never attracts.
+# nodeSelector or affinity to also keep it there — a toleration alone only permits,
+# never attracts.
 tolerations: []
+#  - key: example.com/dedicated
+#    operator: Exists
+#    effect: NoSchedule
