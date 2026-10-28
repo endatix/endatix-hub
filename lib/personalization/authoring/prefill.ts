@@ -1,4 +1,4 @@
-import { Serializer, SvgRegistry, type Question } from "survey-core";
+import { Serializer, SvgRegistry, type PanelModel, type Question } from "survey-core";
 import { getLocaleStrings, type SurveyCreatorModel, type SurveyInstanceCreatedEvent } from "survey-creator-core";
 import type { AudienceVariables } from "@/lib/endatix-api/audience/types";
 import { withBasePath } from "@/lib/hosting";
@@ -141,7 +141,7 @@ function englishList(items: string[]): string {
 /** A disabled row names the Property and the questions that can take it. */
 function disabledHint(source: PrefillSource): string {
   const type = propertyTypeLabel(source);
-  const fitting = englishList((source.prefillTargets ?? []).map(targetQuestion));
+  const fitting = englishList((source.prefillTargets ?? []).map((target) => targetQuestion(target)));
   return `${type.charAt(0).toUpperCase()}${type.slice(1)}. Use a ${fitting} question.`;
 }
 
@@ -349,7 +349,7 @@ type ExpressionLink = Question & {
  * `defaultValueExpression`, as Visible does for `visibleIf`.
  */
 function linkToExpression(question: Question | undefined, editor: Question): void {
-  const parent = editor.parent;
+  const parent = editor.parent as PanelModel | undefined;
   if (!question || !parent) return;
   const custom = customExpression(question.defaultValueExpression);
   const existing = parent.getQuestionByName(PREFILL_EXPRESSION_LINK) as ExpressionLink | null;
@@ -365,12 +365,13 @@ function linkToExpression(question: Question | undefined, editor: Question): voi
   link.allowClear = false;
   link.linkValueText = CUSTOM_EXPRESSION_TEXT;
   link.linkClickCallback = () => {
-    editor.survey?.getQuestionByName("defaultValueExpression")?.focus(false, true);
+    const target = editor.survey?.getQuestionByName("defaultValueExpression") as Question | undefined;
+    target?.focus(false, true);
   };
 }
 
 function createExpressionLink(editor: Question): ExpressionLink | undefined {
-  const parent = editor.parent;
+  const parent = editor.parent as PanelModel | undefined;
   if (!parent) return undefined;
   const created = Serializer.createClass("linkvalue");
   if (!created) return undefined;
@@ -382,7 +383,8 @@ function createExpressionLink(editor: Question): ExpressionLink | undefined {
     css.questionWrapper = "edx-prefill-expression";
   };
   const index = parent.elements.indexOf(editor);
-  parent.addElement(link, index < 0 ? undefined : index + 1);
+  if (index < 0) parent.addElement(link);
+  else parent.addElement(link, index + 1);
   return link;
 }
 
@@ -413,6 +415,8 @@ function prefillFromProperty() {
       editor.description = prefillHelp(obj);
       greyIncompatible(obj, editor);
       linkToExpression(obj, editor);
+      // Clearing a custom expression would do nothing: only a Property replaces it.
+      editor.allowClear = customExpression(obj.defaultValueExpression) === undefined;
     },
   };
 }
@@ -477,8 +481,8 @@ function registerPersonalizationIcon(): void {
   SvgRegistry.registerIcon(PERSONALIZATION_ICON, PERSONALIZATION_ICON_SVG);
 }
 
-function namePersonalization(survey: { getPageByName: (name: string) => { iconName?: string } | null }): void {
-  const page = survey.getPageByName(PREFILL_CATEGORY);
+function namePersonalization(survey: { getPageByName: (name: string) => unknown }): void {
+  const page = survey.getPageByName(PREFILL_CATEGORY) as { iconName?: string } | null;
   if (page) page.iconName = PERSONALIZATION_ICON;
 }
 

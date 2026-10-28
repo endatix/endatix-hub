@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { Serializer, type ItemValue } from "survey-core";
+import { Serializer, type ItemValue, type PanelModel, type Question } from "survey-core";
 import { SurveyCreatorModel } from "survey-creator-core";
 import type { AudienceVariables } from "@/lib/endatix-api/audience/types";
 import { Result } from "@/lib/result";
@@ -119,12 +119,12 @@ function open(creator: SurveyCreatorModel, name: string) {
   };
 }
 
-function choice(prefill: { choices: ItemValue[] } | null, value: string) {
-  return prefill?.choices.find((item) => item.value === value);
+function choice(prefill: Question | null, value: string) {
+  return (prefill?.choices as ItemValue[] | undefined)?.find((item) => item.value === value);
 }
 
-function expressionLink(prefill: { parent?: { getQuestionByName: (name: string) => unknown } } | null) {
-  return prefill?.parent?.getQuestionByName("edxPrefillFrom_expression") as {
+function expressionLink(prefill: Question | null) {
+  return (prefill?.parent as PanelModel | undefined)?.getQuestionByName("edxPrefillFrom_expression") as unknown as {
     isVisible: boolean;
     startWithNewLine: boolean;
     linkValueText: string;
@@ -293,7 +293,7 @@ describe("Prefill from in the designer", () => {
     const page = creator.propertyGrid.getPageByName("personalization");
     expect(years.prefill?.page?.name).toBe("personalization");
     expect(page?.title).toBe("Personalization");
-    expect(page?.iconName).toBe("icon-personalization");
+    expect((page as { iconName?: string } | null)?.iconName).toBe("icon-personalization");
     expect(years.prefill?.isReadOnly).toBe(false);
     expect(years.prefill?.description).toContain("Start this answer with the participant's Property value.");
     expect(years.editable?.description).toContain("not a security control");
@@ -441,6 +441,23 @@ describe("Prefill from in the designer", () => {
     expect(open(creator, "grid").prefill?.isVisible).not.toBe(true);
     expect(open(creator, "upload").prefill?.isVisible).not.toBe(true);
     expect(open(creator, "sign").prefill?.isVisible).not.toBe(true);
+  });
+
+  it("offers no clear button while a custom expression is shown", () => {
+    // Arrange
+    const creator = designer(form);
+    bindAudienceToCreator(creator, {
+      variables: variables([AGE]),
+      refresh: () => Promise.resolve(Result.success(variables([AGE]))),
+    });
+
+    // Act
+    const doubled = open(creator, "doubled").prefill as (Question & { allowClear: boolean }) | null;
+    const years = open(creator, "years").prefill as (Question & { allowClear: boolean }) | null;
+
+    // Assert
+    expect(doubled?.allowClear).toBe(false);
+    expect(years?.allowClear).toBe(true);
   });
 
   it("keeps each form's Properties and Participants link", () => {
