@@ -20,13 +20,14 @@ type Bind = (creator: SurveyCreatorModel) => CreatorBinding | undefined;
  * and the Find participant dialog it opens from the Preview tab.
  */
 export function useDesignerAudience(
+  formId: string,
   audience: DesignerAudience | null | undefined,
 ): [bind: Bind, dialog: ReactNode] {
   const [request, setRequest] = useState<FindParticipantRequest | null>(null);
   const bind = useCallback<Bind>(
     (creator) =>
-      bindIfAny(creator, audience, (p) => setRequest({ previewAs: p })),
-    [audience],
+      bindIfAny(creator, audience, (p) => setRequest({ previewAs: p }), formId),
+    [audience, formId],
   );
   const close = () => setRequest(null);
   const dialog = audience && (
@@ -43,8 +44,9 @@ function bindIfAny(
   creator: SurveyCreatorModel,
   audience: DesignerAudience | null | undefined,
   onFindParticipant: FindParticipant,
+  formId: string,
 ): CreatorBinding | undefined {
   return audience
-    ? bindAudienceToCreator(creator, audience, onFindParticipant)
+    ? bindAudienceToCreator(creator, audience, onFindParticipant, formId)
     : undefined;
 }

@@ -1,5 +1,3 @@
-import { LOCAL_DATE_TIME_FUNCTION } from "./constants";
-
 /**
  * `datetime-local` accepts `YYYY-MM-DDTHH:mm` only. A stored value carries an offset;
  * the minutes before that offset are the wall-clock time, not the respondent's zone.
@@ -12,5 +10,3 @@ export function edxLocalDateTime(params: unknown[]): unknown {
   if (typeof value !== "string") return value;
   return OFFSET_DATE_TIME.exec(value)?.[1] ?? value;
 }
-
-export { LOCAL_DATE_TIME_FUNCTION };
