@@ -41,11 +41,14 @@ cd hub
 E2E_EMAIL="you@example.com" pnpm test:e2e --grep "On-behalf personalization" --workers=1
 E2E_EMAIL="you@example.com" pnpm test:e2e:ui --grep "On-behalf personalization"
 E2E_EMAIL="you@example.com" pnpm test:e2e:debug --grep "On-behalf personalization"
+E2E_EMAIL="you@example.com" pnpm test:e2e --grep "All-questions personalization" --workers=1
 ```
 
 The password is the macOS keychain item `endatix-hub-e2e`, account `e2e`, when `E2E_PASSWORD` is unset. Hub is `http://localhost:3000`. The API is WebHost on `https://localhost:5001` (`E2E_API_URL`, default `https://localhost:5001/api`).
 
-**Share and iframe.** A `share` test opens `/share/{formId}?token=…` on the page. An `iframe` test opens WebHost `/dev/embed-host?view=bare` (`E2E_EMBED_HOST_URL`, default `http://localhost:5000`) and works inside `iframe[id^="edxf-{formId}"]`. The token is a share access token with `submit`, not the hex on-behalf token. Do not build an iframe around `/share`. Clicks stay inside `.sd-root-modern`. A query such as `?city=` is a share-URL check. The playground host does not forward it into the iframe. After the browser saves, read `GET /forms/{formId}/submissions/{submissionId}` and assert `jsonData` and `personalization`. Reference: `tests/screen-out/screen-out.spec.ts`, `tests/audience/personalization.spec.ts`.
+**Share and iframe.** A `share` test opens `/share/{formId}?token=…` on the page. An `iframe` test opens WebHost `/dev/embed-host?view=bare` (`E2E_EMBED_HOST_URL`, default `http://localhost:5000`) and works inside `iframe[id^="edxf-{formId}"]`. The token is a share access token with `submit`, not the hex on-behalf token. Do not build an iframe around `/share`. Clicks stay inside `.sd-root-modern`. A query such as `?city=` is a share-URL check. The playground host does not forward it into the iframe. After the browser saves, read `GET /forms/{formId}/submissions/{submissionId}` and assert `jsonData` and `personalization`. Reference: `tests/screen-out/screen-out.spec.ts`, `tests/audience/personalization.spec.ts`, `tests/audience/all-questions-personalization.spec.ts`. Shared open helpers live in `utils/survey-surface.ts`.
+
+**All-questions personalization.** `tests/audience/all-questions-personalization.spec.ts` seeds the all-questions definition and a three-person CSV (`e2e/fixtures/audience/all-questions-personalized-*`), private and one-per-user. Like screen-out and upload-files, it nests under `share` and `iframe` describes so each channel runs the full flow. Share opens `/share/{formId}/a/{token}`; iframe redeems via the API then opens the embed host with a Hub-minted share token. Between steps it asserts API state: link `issued`/`opened` (with `submissionId` / `openedAt`), submission `personalization`, `collectionStatus`, `isComplete`, and hex-token accept/reject. **Used** in the test name means `opened` plus `isComplete`. Run with `--workers=1` so it does not race other audience specs on the tenant match key.
 
 ## Embed Tests
 

@@ -1,8 +1,12 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { EndatixApi } from "@/lib/endatix-api/endatix-api";
 import { ApiResult } from "@/lib/endatix-api/shared/api-result";
+import { releaseScreenOutForms } from "./e2e-form-release";
+import { publishE2eForm } from "./form-api";
+
+export { deleteForm, releaseScreenOutForms } from "./e2e-form-release";
 
 const AGE_GATE_PATH = path.join(
   process.cwd(),
@@ -85,38 +89,12 @@ export async function createAgeGateForm(
     changeNavigationOnComplete?: boolean;
   },
 ): Promise<string> {
-  const created = await api.forms.create({
+  return publishE2eForm(api, {
     name: `e2e screen-out ${Date.now()}`,
-    isEnabled: true,
-    formDefinitionJsonData: "{}",
+    definitionJson: ageGateJson(options.changeNavigationOnComplete),
+    isPublic: options.isPublic,
+    limitOnePerUser: options.limitOnePerUser,
   });
-  if (!created.success) {
-    throw new Error(`Create form failed: ${created.error.message}`);
-  }
-
-  const formId = created.data.id;
-  try {
-    const published = await api.put(`/forms/${formId}/definition`, {
-      isDraft: false,
-      jsonData: ageGateJson(options.changeNavigationOnComplete),
-    });
-    if (!published.success) {
-      throw new Error(`Publish definition failed: ${published.error.message}`);
-    }
-
-    const updated = await api.forms.update(formId, {
-      isPublic: options.isPublic,
-      limitOnePerUser: options.limitOnePerUser,
-    });
-    if (!updated.success) {
-      throw new Error(`Update form failed: ${updated.error.message}`);
-    }
-
-    return formId;
-  } catch (error) {
-    await releaseScreenOutForms(api, [formId], true);
-    throw error;
-  }
 }
 
 export async function createOnBehalf(
@@ -227,50 +205,3 @@ export async function trySecondOnBehalf(
   });
 }
 
-const KEPT_FORMS_PATH = path.join(process.cwd(), "e2e/.screen-out-kept.json");
-
-export async function deleteForm(
-  api: EndatixApi,
-  formId: string,
-): Promise<void> {
-  const deleted = await api.forms.delete(formId);
-  if (!deleted.success) {
-    throw new Error(`Delete form ${formId} failed: ${deleted.error.message}`);
-  }
-}
-
-/** Delete on success. On failure, or when E2E_KEEP_DATA=1, leave the forms and record their ids. */
-export async function releaseScreenOutForms(
-  api: EndatixApi,
-  formIds: string[],
-  keep: boolean,
-): Promise<"deleted" | "kept"> {
-  if (!keep) {
-    await Promise.all(formIds.map((formId) => deleteForm(api, formId)));
-    return "deleted";
-  }
-
-  const prior = readKeptForms();
-  const recordedAt = new Date().toISOString();
-  writeFileSync(
-    KEPT_FORMS_PATH,
-    JSON.stringify(
-      [...prior, ...formIds.map((formId) => ({ formId, recordedAt }))],
-      null,
-      2,
-    ),
-  );
-  return "kept";
-}
-
-function readKeptForms(): { formId: string; recordedAt: string }[] {
-  try {
-    return JSON.parse(readFileSync(KEPT_FORMS_PATH, "utf8")) as {
-      formId: string;
-      recordedAt: string;
-    }[];
-  } catch {
-    mkdirSync(path.dirname(KEPT_FORMS_PATH), { recursive: true });
-    return [];
-  }
-}
