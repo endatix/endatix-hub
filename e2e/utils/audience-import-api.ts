@@ -138,7 +138,7 @@ export async function preparePanelFormWithProperties(
     await createProperties(api, formId, properties);
     return { api, formId, cleanup, release };
   } catch (error) {
-    await cleanup();
+    await release(true);
     throw error;
   }
 }
@@ -157,7 +157,7 @@ export async function importPanelCsv(
     const result = await importCsvOntoForm(api, form.formId, fileName, specs);
     return { ...form, result };
   } catch (error) {
-    await form.cleanup();
+    await form.release(true);
     throw error;
   }
 }
@@ -189,7 +189,7 @@ export async function seedAllQuestionsForm(
     );
     return form;
   } catch (error) {
-    await form.cleanup();
+    await form.release(true);
     throw error;
   }
 }

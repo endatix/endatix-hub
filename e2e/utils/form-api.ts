@@ -1,4 +1,5 @@
 import type { EndatixApi } from "@/lib/endatix-api/endatix-api";
+import { releaseScreenOutForms } from "./e2e-form-release";
 
 /** Visibility and one-per-user for an e2e form. Public and one-per-user do not combine. */
 export type E2eFormSetup = {
@@ -13,8 +14,8 @@ export type PublishE2eFormOptions = E2eFormSetup & {
 };
 
 /**
- * Creates a form, publishes its definition, and applies visibility / one-per-user. Deletes the
- * form if any step fails.
+ * Creates a form, publishes its definition, and applies visibility / one-per-user. On failure,
+ * keeps the form and records its id for inspection (same as other e2e setup failures).
  */
 export async function publishE2eForm(
   api: EndatixApi,
@@ -34,7 +35,7 @@ export async function publishE2eForm(
     await configureE2eForm(api, formId, options);
     return formId;
   } catch (error) {
-    await api.forms.delete(formId);
+    await releaseScreenOutForms(api, [formId], true);
     throw error;
   }
 }
