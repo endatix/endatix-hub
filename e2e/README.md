@@ -66,6 +66,8 @@ cd hub
 pnpm test:e2e --grep "Screen-out|On-behalf personalization|Upload files|All-questions personalization" --workers=1
 ```
 
+Recorded on `07719b9c`: that command exited 1. Screen-out, on-behalf personalization, and all-questions personalization passed (13 tests). Upload files share timed out waiting for `POST /api/public/v0/storage/resize-image`. The unmodified upload spec times out the same way against this Hub.
+
 **All-questions personalization.** `tests/audience/all-questions-personalization.spec.ts` seeds the all-questions definition and a three-person CSV (`e2e/fixtures/audience/all-questions-personalized-*`), private and one-per-user. Like screen-out and upload-files, it nests under `share` and `iframe` describes so each channel runs the full flow. Share opens `/share/{formId}/a/{token}`; iframe redeems via the API then opens the embed host with a Hub-minted share token. Between steps it asserts API state: link `issued`/`opened` (with `submissionId` / `openedAt`), submission `personalization`, `collectionStatus`, `isComplete`, and hex-token accept/reject. **Used** in the test name means `opened` plus `isComplete`. Run with `--workers=1` so it does not race other audience specs on the tenant match key.
 
 ## Embed Tests
