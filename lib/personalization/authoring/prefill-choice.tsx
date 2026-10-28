@@ -16,9 +16,11 @@ export function registerPrefillChoice(): void {
     return (
       // SurveyJS sets `.sv-string-viewer` to block in the list, so the row needs `flex!`.
       <span className="sv-string-viewer flex! min-w-0 items-baseline justify-between gap-3">
-        <span className="shrink-0">{item.text}</span>
+        <span className="min-w-0 truncate">{item.text}</span>
         {typeof kind === "string" && kind ? (
-          <span className="min-w-0 text-right text-xs text-muted-foreground">{kind}</span>
+          <span className="min-w-0 whitespace-normal! text-right text-xs text-muted-foreground">
+            {kind}
+          </span>
         ) : null}
       </span>
     );
