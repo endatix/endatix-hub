@@ -31,6 +31,16 @@ export type AudienceFinding =
       /** Real participants with a value, of `real` on the form. */
       filledReal: number;
       real: number;
+    }
+  | {
+      kind: "prefill-type-mismatch";
+      /** The Property's variable, as the definition names it. */
+      variable: string;
+      propertyTitle: string;
+      path: string;
+      elementName?: string;
+      /** Clears `defaultValueExpression` and leaves `readOnly`. */
+      fix?: AudienceFix;
     };
 
 export type AudienceReview = { findings: AudienceFinding[] };

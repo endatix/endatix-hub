@@ -1,5 +1,6 @@
 import type { AudienceVariables } from "@/lib/endatix-api/audience/types";
 import { notFilledInFindings } from "./findings/coverage";
+import { prefillTypeMismatches } from "./findings/prefill-mismatch";
 import type { AudienceReview } from "./findings/types";
 import { unusedProperties } from "./findings/unused-properties";
 import { lintedUsage } from "./usage";
@@ -19,6 +20,7 @@ export function reviewAudience(
   return {
     findings: [
       ...findings,
+      ...prefillTypeMismatches(surveyJson, variables),
       ...unusedProperties(usage),
       ...notFilledInFindings(usage),
     ],

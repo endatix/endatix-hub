@@ -1,0 +1,82 @@
+/*
+ * Designer canvas mark for a question prefilled from a Property.
+ * Clinic emerald, not Hub --primary: the designer surface is light and the
+ * token is blue, so the ring would disappear into the selection chrome.
+ * Loaded only with the form designer.
+ */
+
+.svc-creator .svc-question__content.edx-prefilled {
+  outline: 2px dashed oklch(0.55 0.14 163);
+  outline-offset: 3px;
+}
+
+.svc-creator .edx-prefill-mark {
+  position: absolute;
+  top: -11px;
+  right: 8px;
+  z-index: 2;
+}
+
+.svc-creator .edx-prefill-mark > button {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: oklch(0.55 0.14 163);
+  color: oklch(0.99 0 0);
+  cursor: pointer;
+}
+
+.svc-creator .edx-prefill-mark > button svg {
+  display: block;
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+}
+
+.svc-creator .edx-prefill-pop {
+  display: none;
+  position: absolute;
+  top: 26px;
+  right: 0;
+  width: 220px;
+  padding: 10px 12px;
+  background: var(--sjs2-color-component-panel-default-bg, #fff);
+  border: 1px solid var(--sjs2-color-border-basic-secondary, #d5dde6);
+  border-radius: 8px;
+}
+
+.svc-creator .edx-prefill-mark:hover .edx-prefill-pop,
+.svc-creator .edx-prefill-mark:focus-within .edx-prefill-pop {
+  display: block;
+}
+
+.svc-creator .edx-prefill-pop strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.svc-creator .edx-prefill-pop span {
+  display: block;
+  margin-top: 2px;
+  color: var(--sjs2-color-fg-basic-secondary, #5c6b7a);
+  font-size: 12px;
+}
+
+.svc-creator .edx-prefill-pop a {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 8px;
+  color: oklch(0.55 0.14 163);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.svc-creator .edx-prefill-pop a:hover {
+  text-decoration: underline;
+}

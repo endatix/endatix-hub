@@ -219,6 +219,108 @@ describe("reviewAudience", () => {
 
     expect(reviewAudience(json, none).findings).toEqual([]);
   });
+
+  it("warns when a prefill no longer fits the question, and the fix clears only the expression", () => {
+    // Arrange — Age fits a number question; Renews at fits plain text and a date-time question.
+    const read = variables([
+      {
+        type: "text",
+        name: "age",
+        title: "Age",
+        inputType: "number",
+        prefillTargets: [
+          { type: "text", inputType: "number" },
+          { type: "rating" },
+        ],
+      },
+      {
+        type: "text",
+        name: "renews_at",
+        title: "Renews at",
+        prefillTargets: [
+          { type: "text" },
+          { type: "text", inputType: "datetime-local" },
+        ],
+      },
+    ]);
+    const json = form(
+      {
+        type: "text",
+        name: "years",
+        inputType: "number",
+        defaultValueExpression: "{age}",
+        readOnly: true,
+      },
+      {
+        type: "text",
+        name: "city",
+        defaultValueExpression: "{age}",
+        readOnly: true,
+      },
+      {
+        type: "text",
+        name: "when",
+        inputType: "datetime-local",
+        defaultValueExpression: "edxLocalDateTime({renews_at})",
+        readOnly: true,
+      },
+      {
+        type: "comment",
+        name: "note",
+        defaultValueExpression: "edxLocalDateTime({renews_at})",
+        readOnly: true,
+      },
+      {
+        type: "text",
+        name: "months",
+        defaultValueExpression: "{age} * 12",
+        readOnly: true,
+      },
+    );
+
+    // Act
+    const mismatches = reviewAudience(json, read).findings.filter(
+      (finding) => finding.kind === "prefill-type-mismatch",
+    );
+
+    // Assert — a fitting prefill and a calculation are not warnings.
+    expect(mismatches).toEqual([
+      {
+        kind: "prefill-type-mismatch",
+        variable: "age",
+        propertyTitle: "Age",
+        elementName: "city",
+        path: "pages[0].elements[1].defaultValueExpression",
+        fix: {
+          reason: "clearPrefill",
+          edits: [
+            {
+              op: "set",
+              path: "pages[0].elements[1].defaultValueExpression",
+              value: undefined,
+            },
+          ],
+        },
+      },
+      {
+        kind: "prefill-type-mismatch",
+        variable: "renews_at",
+        propertyTitle: "Renews at",
+        elementName: "note",
+        path: "pages[0].elements[3].defaultValueExpression",
+        fix: {
+          reason: "clearPrefill",
+          edits: [
+            {
+              op: "set",
+              path: "pages[0].elements[3].defaultValueExpression",
+              value: undefined,
+            },
+          ],
+        },
+      },
+    ]);
+  });
 });
 
 describe("Audience coverage", () => {

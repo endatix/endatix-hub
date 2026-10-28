@@ -69,6 +69,71 @@ describe("Audience fix in the designer", () => {
     );
   });
 
+  it("clears a prefill whose question type no longer fits, and leaves read-only", async () => {
+    // Arrange
+    const read = variables([
+      {
+        type: "text",
+        name: "age",
+        title: "Age",
+        inputType: "number",
+        prefillTargets: [{ type: "text", inputType: "number" }],
+      },
+      {
+        type: "text",
+        name: "renews_at",
+        title: "Renews at",
+        prefillTargets: [{ type: "text", inputType: "datetime-local" }],
+      },
+    ]);
+    const creator = new SurveyCreatorModel({});
+    creator.JSON = form(
+      {
+        type: "text",
+        name: "city",
+        defaultValueExpression: "{age}",
+        readOnly: true,
+      },
+      {
+        type: "comment",
+        name: "note",
+        defaultValueExpression: "edxLocalDateTime({renews_at})",
+        readOnly: false,
+      },
+    );
+    const binding = bindAudienceToCreator(creator, {
+      variables: read,
+      refresh: () => Promise.resolve(Result.success(read)),
+    });
+    const mismatches = (await binding.review()).findings.filter(
+      (finding) => finding.kind === "prefill-type-mismatch",
+    );
+
+    // Act
+    mismatches.forEach((finding) => binding.applyFix(finding));
+
+    // Assert
+    const city = creator.survey.getQuestionByName("city");
+    const note = creator.survey.getQuestionByName("note");
+    expect(city.defaultValueExpression).toBeUndefined();
+    expect(city.readOnly).toBe(true);
+    expect(note.defaultValueExpression).toBeUndefined();
+    expect(note.readOnly).toBe(false);
+    expect(
+      (await binding.review()).findings.filter(
+        (finding) => finding.kind === "prefill-type-mismatch",
+      ),
+    ).toEqual([]);
+    creator.undo();
+    creator.undo();
+    expect(creator.survey.getQuestionByName("city").defaultValueExpression).toBe(
+      "{age}",
+    );
+    expect(
+      creator.survey.getQuestionByName("note").defaultValueExpression,
+    ).toBe("edxLocalDateTime({renews_at})");
+  });
+
   it("respells the reference on the canvas, as one undoable edit", async () => {
     const creator = new SurveyCreatorModel({});
     creator.JSON = form(usesBoth, {
