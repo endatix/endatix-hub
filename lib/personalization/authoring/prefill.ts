@@ -19,7 +19,6 @@ export type PrefillSource = PrefillShape & {
   prefillTargets?: PrefillShape[];
 };
 
-const PREFILL_HEADER = "edxPrefillHeader";
 const PREFILL_FROM = "edxPrefillFrom";
 const PREFILL_EXPRESSION_LINK = "edxPrefillFrom_expression";
 const CUSTOM_EXPRESSION = "edx-custom-expression";
@@ -34,7 +33,13 @@ const LOCAL_PREFILL = new RegExp(
 );
 const VARIABLE_NAME = new RegExp(String.raw`^${VARIABLE}$`);
 
-const bindings = new WeakMap<object, () => PrefillSource[]>();
+type PrefillBinding = {
+  sources: () => PrefillSource[];
+  formId?: string;
+};
+
+const bindings = new WeakMap<object, PrefillBinding>();
+const sourceCache = new WeakMap<object, PrefillSource[]>();
 let propertiesRegistered = false;
 
 /** Omitted, blank, and SurveyJS's default `text` are the same plain text input. */
@@ -111,6 +116,35 @@ function propertyTypeLabel(source: PrefillSource): string {
   return source.type;
 }
 
+function targetQuestion(target: PrefillShape): string {
+  if (target.type === "text") {
+    if (target.inputType === "number") return "number";
+    if (target.inputType === "date") return "date";
+    if (target.inputType === "datetime-local") return "date-and-time";
+    return "text";
+  }
+  if (target.type === "comment") return "long text";
+  if (target.type === "boolean") return "yes/no";
+  if (target.type === "radiogroup") return "radio group";
+  if (target.type === "buttongroup") return "button group";
+  if (target.type === "tagbox") return "tag box";
+  return target.type;
+}
+
+function englishList(items: string[]): string {
+  const unique = [...new Set(items)];
+  if (unique.length <= 1) return unique[0] ?? "";
+  if (unique.length === 2) return `${unique[0]} or ${unique[1]}`;
+  return `${unique.slice(0, -1).join(", ")}, or ${unique[unique.length - 1]}`;
+}
+
+/** A disabled row names the Property and the questions that can take it. */
+function disabledHint(source: PrefillSource): string {
+  const type = propertyTypeLabel(source);
+  const fitting = englishList((source.prefillTargets ?? []).map(targetQuestion));
+  return `${type.charAt(0).toUpperCase()}${type.slice(1)}. Use a ${fitting} question.`;
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object";
 }
@@ -121,8 +155,7 @@ function shapeOf(value: unknown): PrefillShape | undefined {
   return { type: value.type, inputType };
 }
 
-/** Properties from the variables definition. An element without `prefillTargets` still counts. */
-export function prefillSources(variables: AudienceVariables): PrefillSource[] {
+function collectPrefillSources(variables: AudienceVariables): PrefillSource[] {
   const elements = variables.variablePresets?.definition?.["elements"];
   if (!Array.isArray(elements)) return [];
   const sources: PrefillSource[] = [];
@@ -143,10 +176,23 @@ export function prefillSources(variables: AudienceVariables): PrefillSource[] {
   return sources;
 }
 
-function sourcesOf(obj: object | undefined): PrefillSource[] | undefined {
+/** Properties from the variables definition. The same variables object is read once. */
+export function prefillSources(variables: AudienceVariables): PrefillSource[] {
+  const cached = sourceCache.get(variables);
+  if (cached) return cached;
+  const sources = collectPrefillSources(variables);
+  sourceCache.set(variables, sources);
+  return sources;
+}
+
+function bindingOf(obj: object | undefined): PrefillBinding | undefined {
   const survey = obj && "survey" in obj ? (obj.survey as object | undefined) : undefined;
   if (!survey) return undefined;
-  return bindings.get(survey)?.();
+  return bindings.get(survey);
+}
+
+function sourcesOf(obj: object | undefined): PrefillSource[] | undefined {
+  return bindingOf(obj)?.sources();
 }
 
 /** Bound only while personalization is on: the designer skips the bind when the flag is off. */
@@ -157,6 +203,26 @@ function prefillBound(obj: object | undefined): boolean {
 function offersPrefill(obj: object | undefined): boolean {
   const sources = sourcesOf(obj);
   return !!sources?.some((source) => Array.isArray(source.prefillTargets));
+}
+
+/** Properties from an API that does not send `prefillTargets`. The tab stays hidden. */
+function legacyCatalog(obj: object | undefined): boolean {
+  const sources = sourcesOf(obj);
+  return !!sources?.length && !offersPrefill(obj);
+}
+
+/**
+ * The question type exposes `defaultValueExpression`. A nonvalue question (html, image) inherits
+ * the property and still has no answer to prefill, so it does not count.
+ */
+function hasDefaultValueExpression(question: Question): boolean {
+  const property = Serializer.findProperty(question.getType(), "defaultValueExpression");
+  if (!property?.isVisible("")) return false;
+  return !Serializer.isDescendantOf(question.getType(), "nonvalue");
+}
+
+function showPrefill(question: Question): boolean {
+  return prefillBound(question) && hasDefaultValueExpression(question) && !legacyCatalog(question);
 }
 
 function inputTypeOf(question: Question): string | undefined {
@@ -178,7 +244,6 @@ function prefillChoices(question: Question | undefined): Array<{ value?: string;
   if (!shape) return choices;
   for (const source of sources) {
     if (!Array.isArray(source.prefillTargets)) continue;
-    if (!isPrefillCompatible(shape, source.prefillTargets)) continue;
     choices.push({ value: source.variable, text: source.title });
   }
   return choices;
@@ -199,14 +264,13 @@ function revealEditable(question: Question): void {
   const creator = question.survey ? creators.get(question.survey) : undefined;
   const editable = creator?.propertyGrid.getQuestionByName(PREFILL_EDITABLE);
   if (!editable) return;
-  editable.visible = prefillBound(question) && hasPrefillExpression(question);
+  editable.visible = showPrefill(question) && hasPrefillExpression(question);
 }
 
 function writePrefill(question: Question, variable: string | undefined, current: string | undefined): boolean {
   if (!variable) {
     if (prefillVariableOf(current) === undefined) return false;
     question.defaultValueExpression = undefined;
-    question.readOnly = false;
     return true;
   }
   question.defaultValueExpression = expressionFor(question, variable);
@@ -229,11 +293,14 @@ function applyPrefill(question: Question, value: unknown): void {
   }
 }
 
+const NO_FIT = "No Property fits this question type.";
+
 function greyIncompatible(question: Question | undefined, editor: Question): void {
   if (!question || !editor.choices) return;
   editor.itemComponent = PREFILL_CHOICE;
   const shape = questionShape(question);
   const sources = sourcesOf(question) ?? [];
+  let anyFit = false;
   for (const choice of editor.choices) {
     if (choice.value === CUSTOM_EXPRESSION) {
       choice.text = "Custom expression";
@@ -241,11 +308,14 @@ function greyIncompatible(question: Question | undefined, editor: Question): voi
     }
     const source = sources.find((item) => item.variable === choice.value);
     if (!source || !Array.isArray(source.prefillTargets)) continue;
+    const fits = isPrefillCompatible(shape, source.prefillTargets);
     choice.text = source.title;
     choice.component = PREFILL_CHOICE;
-    choice.setPropertyValue(PREFILL_KIND, propertyTypeLabel(source));
-    if (!isPrefillCompatible(shape, source.prefillTargets)) choice.setIsEnabled(false);
+    choice.setPropertyValue(PREFILL_KIND, fits ? propertyTypeLabel(source) : disabledHint(source));
+    choice.setIsEnabled(fits);
+    if (fits) anyFit = true;
   }
+  editor.placeholder = offersPrefill(question) && !anyFit ? NO_FIT : "Select...";
 }
 
 type ExpressionLink = Question & {
@@ -276,7 +346,7 @@ function linkToExpression(question: Question | undefined, editor: Question): voi
   link.startWithNewLine = true;
   link.showValueInLink = false;
   link.allowClear = false;
-  link.linkValueText = custom;
+  link.linkValueText = CUSTOM_EXPRESSION_TEXT;
   link.linkClickCallback = () => {
     editor.survey?.getQuestionByName("defaultValueExpression")?.focus(false, true);
   };
@@ -316,13 +386,14 @@ function prefillFromProperty() {
     displayName: "Prefill from",
     category: PREFILL_CATEGORY,
     isSerializable: false,
-    visibleIf: (obj: Question) => prefillBound(obj),
+    visibleIf: (obj: Question) => showPrefill(obj),
     enableIf: (obj: Question) => offersPrefill(obj),
     dependsOn: ["defaultValueExpression"],
     choices: (obj: Question) => prefillChoices(obj),
     onGetValue: (obj: Question) => prefillValue(obj),
     onSetValue: (obj: Question, value: unknown) => applyPrefill(obj, value),
     onPropertyEditorUpdate: (obj: Question, editor: Question) => {
+      editor.description = prefillHelp(obj);
       greyIncompatible(obj, editor);
       linkToExpression(obj, editor);
     },
@@ -337,24 +408,26 @@ function prefillEditableProperty() {
     category: PREFILL_CATEGORY,
     isSerializable: false,
     dependsOn: [PREFILL_FROM, "defaultValueExpression"],
-    visibleIf: (obj: Question) => prefillBound(obj) && hasPrefillExpression(obj),
+    visibleIf: (obj: Question) => showPrefill(obj) && hasPrefillExpression(obj),
     onGetValue: (obj: Question) => !obj.readOnly,
     onSetValue: (obj: Question, value: unknown) => {
       if (!hasPrefillExpression(obj)) return;
       obj.readOnly = value !== true;
     },
+    onPropertyEditorUpdate: (_obj: Question, editor: Question) => {
+      editor.description = EDITABLE_HELP;
+    },
   };
 }
 
 const FILLED_HELP =
-  "Start this question with a participant Property. The form saves that as its default value expression. " +
-  "Only a Property whose value fits this question is listed. " +
-  "A date and time question keeps the stored clock and drops the time-zone offset. " +
-  "An expression that is not a single Property, such as &#123;age&#125; * 12, is shown here and left as written until you pick a Property.";
+  "Start this answer with the participant's Property value. Only Properties that fit this question can be picked; the others show their type. A date-time Property fills a date-and-time question with the time as stored, without the time zone.";
+
+const CUSTOM_EXPRESSION_TEXT =
+  "This question's default is a calculation. It stays as written unless you pick a Property. Edit it in Default value expression.";
 
 const EDITABLE_HELP =
-  "On by default, so the participant can change the prefilled answer. " +
-  "Turn it off and the question stays read-only, with the prefilled value kept.";
+  "Off makes the answer read-only in the form. It is not a security control: the value can still be changed outside the form.";
 
 function participantsLink(formId: string | undefined): string {
   if (!formId) return "Participants";
@@ -369,10 +442,8 @@ function emptyHelp(formId: string | undefined): string {
   );
 }
 
-function registerPrefillHelp(formId: string | undefined, hasTargets: boolean): void {
-  const help = getLocaleStrings("en").pehelp;
-  help[PREFILL_FROM] = hasTargets ? FILLED_HELP : emptyHelp(formId);
-  help[PREFILL_EDITABLE] = EDITABLE_HELP;
+function prefillHelp(question: Question): string {
+  return offersPrefill(question) ? FILLED_HELP : emptyHelp(bindingOf(question)?.formId);
 }
 
 /**
@@ -389,39 +460,32 @@ function registerPersonalizationIcon(): void {
   SvgRegistry.registerIcon(PERSONALIZATION_ICON, PERSONALIZATION_ICON_SVG);
 }
 
-function namePersonalization(survey: { getPageByName: (name: string) => { title: string; iconName?: string } | null }): void {
+function namePersonalization(survey: { getPageByName: (name: string) => { iconName?: string } | null }): void {
   const page = survey.getPageByName(PREFILL_CATEGORY);
-  if (!page) return;
-  page.title = "Personalization";
-  page.iconName = PERSONALIZATION_ICON;
+  if (page) page.iconName = PERSONALIZATION_ICON;
 }
 
-function placeInCategory(
-  name: string,
-  visibleIf: (obj: Question) => boolean,
-  enableIf?: (obj: Question) => boolean,
-): void {
-  const property = Serializer.findProperty("question", name);
-  if (!property) return;
-  property.category = PREFILL_CATEGORY;
-  property.visibleIf = visibleIf;
-  if (enableIf) property.enableIf = enableIf;
-  if (name === PREFILL_FROM) property.dependsOn = ["defaultValueExpression"];
+function registerPersonalizationLocale(): void {
+  const tabs = getLocaleStrings("en").pe?.tabs as Record<string, string> | undefined;
+  if (tabs) tabs.personalization = "Personalization";
 }
 
 function registerProperties(): void {
   registerPrefillChoice();
-  registerPrefillHelp(undefined, true);
+  registerPersonalizationLocale();
   registerPersonalizationIcon();
-  if (!Serializer.findProperty("itemvalue", PREFILL_KIND)) {
-    Serializer.addProperty("itemvalue", { name: PREFILL_KIND, type: "string", visible: false });
+  const kind = Serializer.findProperty("itemvalue", PREFILL_KIND);
+  if (!kind) {
+    Serializer.addProperty("itemvalue", {
+      name: PREFILL_KIND,
+      type: "string",
+      visible: false,
+      isSerializable: false,
+    });
+  } else {
+    kind.isSerializable = false;
   }
-  const staleHeader = Serializer.findProperty("question", PREFILL_HEADER);
-  if (staleHeader) staleHeader.visibleIf = () => false;
-  const existing = Serializer.findProperty("question", PREFILL_FROM);
-  if (propertiesRegistered || existing) {
-    placeInCategory(PREFILL_FROM, prefillBound, offersPrefill);
-    placeInCategory(PREFILL_EDITABLE, (obj) => prefillBound(obj) && hasPrefillExpression(obj));
+  if (propertiesRegistered || Serializer.findProperty("question", PREFILL_FROM)) {
     propertiesRegistered = true;
     return;
   }
@@ -439,13 +503,14 @@ function attachSurvey(
   survey: object,
   creator: SurveyCreatorModel,
   sources: () => PrefillSource[],
+  formId?: string,
 ): void {
-  bindings.set(survey, sources);
+  bindings.set(survey, { sources, formId });
   creators.set(survey, creator);
 }
 
 function detachSurvey(survey: object, sources: () => PrefillSource[]): void {
-  if (bindings.get(survey) !== sources) return;
+  if (bindings.get(survey)?.sources !== sources) return;
   bindings.delete(survey);
   creators.delete(survey);
 }
@@ -455,7 +520,9 @@ function detachSurvey(survey: object, sources: () => PrefillSource[]): void {
  * tab. The saved JSON keeps `defaultValueExpression` and `readOnly`. Shown only after
  * this survey is bound, which the designer does when personalization is on. With no
  * Properties the list stays visible and disabled, and its help points at Participants.
- * A custom expression is shown in the list and is not rewritten until a Property is picked.
+ * Properties from an API without `prefillTargets` hide the tab. A custom expression is
+ * shown in the list and is not rewritten until a Property is picked. Clearing a Property
+ * leaves `readOnly` as the author set it.
  *
  * `creator.JSON =` builds a new designer survey after bind, so the sources follow every
  * `onSurveyInstanceCreated` with reason `designer` (fired before `setSurvey`).
@@ -466,18 +533,10 @@ export function installPrefill(
   formId?: string,
 ): () => void {
   registerProperties();
-  const read = () => {
-    const list = sources();
-    registerPrefillHelp(
-      formId,
-      list.some((source) => Array.isArray(source.prefillTargets)),
-    );
-    return list;
-  };
-  read();
+  const read = () => sources();
   namePersonalization(creator.propertyGrid);
   let attached: object | undefined = creator.survey;
-  if (attached) attachSurvey(attached, creator, read);
+  if (attached) attachSurvey(attached, creator, read, formId);
 
   const onDesignerSurvey = (
     _: unknown,
@@ -490,7 +549,7 @@ export function installPrefill(
     if (options.reason !== "designer") return;
     if (attached) detachSurvey(attached, read);
     attached = options.survey;
-    attachSurvey(attached, creator, read);
+    attachSurvey(attached, creator, read, formId);
   };
   creator.onSurveyInstanceCreated.add(onDesignerSurvey);
 
@@ -504,7 +563,7 @@ export function installPrefill(
 /** The open property grid keeps its last visibility until the selection changes. */
 function hideOpenEditors(creator: SurveyCreatorModel): void {
   const grid = creator.propertyGrid;
-  for (const name of [PREFILL_HEADER, PREFILL_FROM, PREFILL_EDITABLE]) {
+  for (const name of [PREFILL_FROM, PREFILL_EDITABLE]) {
     const editor = grid.getQuestionByName(name);
     if (editor) editor.visible = false;
   }

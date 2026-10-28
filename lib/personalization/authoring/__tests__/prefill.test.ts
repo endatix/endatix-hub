@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import type { ItemValue } from "survey-core";
-import { getLocaleStrings, SurveyCreatorModel } from "survey-creator-core";
+import { Serializer, type ItemValue } from "survey-core";
+import { SurveyCreatorModel } from "survey-creator-core";
 import type { AudienceVariables } from "@/lib/endatix-api/audience/types";
 import { Result } from "@/lib/result";
 import { localDateTimeExtension } from "@/lib/survey-features/local-date-time";
@@ -128,6 +128,7 @@ function expressionLink(prefill: { parent?: { getQuestionByName: (name: string) 
     isVisible: boolean;
     startWithNewLine: boolean;
     linkValueText: string;
+    allowClear: boolean;
     linkClickCallback: () => void;
   } | null;
 }
@@ -178,7 +179,7 @@ describe("Prefill from in the designer", () => {
     const years = open(creator, "years");
     expect(years.prefill?.isVisible).toBe(true);
     expect(choice(years.prefill, "age")?.isEnabled).toBe(true);
-    expect(choice(years.prefill, "region")).toBeUndefined();
+    expect(choice(years.prefill, "region")?.isEnabled).toBe(false);
     years.prefill!.value = "age";
 
     // Assert
@@ -237,7 +238,7 @@ describe("Prefill from in the designer", () => {
 
     // Assert
     expect(cleared.defaultValueExpression).toBeUndefined();
-    expect(cleared.readOnly).toBeUndefined();
+    expect(cleared.readOnly).toBe(true);
     expect(doubled.question.defaultValueExpression).toBe("{seats} * 2");
     expect(doubled.question.readOnly).toBe(true);
     expect(shown).toBe("edx-custom-expression");
@@ -253,14 +254,15 @@ describe("Prefill from in the designer", () => {
     const link = expressionLink(stillCustom.prefill);
     expect(link?.isVisible).toBe(true);
     expect(link?.startWithNewLine).toBe(true);
-    expect(link?.linkValueText).toBe("{seats} * 2");
+    expect(link?.allowClear).toBe(false);
+    expect(link?.linkValueText).toContain("Edit it in Default value expression.");
     link?.linkClickCallback();
     const expression = creator.propertyGrid.getQuestionByName("defaultValueExpression");
     expect(creator.propertyGrid.currentPage).toBe(expression?.page);
     expect(stillCustom.editable?.isVisible).toBe(true);
   });
 
-  it("lists only a Property the question's type can take", () => {
+  it("lists every Property and disables the ones this question cannot take", () => {
     // Arrange
     const creator = designer(form);
     bindAudienceToCreator(creator, {
@@ -276,19 +278,26 @@ describe("Prefill from in the designer", () => {
     expect(choice(years.prefill, "age")?.isEnabled).toBe(true);
     expect(choice(years.prefill, "age")?.text).toBe("Age");
     expect(choice(years.prefill, "age")?.getPropertyValue("edxPrefillKind")).toBe("number");
-    expect(choice(years.prefill, "region")).toBeUndefined();
-    expect(choice(years.prefill, "renews_at")).toBeUndefined();
-    expect(choice(when.prefill, "renews_at")?.text).toBe("Renews at");
-    expect(choice(when.prefill, "renews_at")?.getPropertyValue("edxPrefillKind")).toBe("date-time");
-    expect(choice(when.prefill, "age")).toBeUndefined();
-    expect(choice(when.prefill, "region")).toBeUndefined();
+    expect(choice(years.prefill, "region")?.isEnabled).toBe(false);
+    expect(choice(years.prefill, "region")?.getPropertyValue("edxPrefillKind")).toBe(
+      "Single choice. Use a dropdown, radio group, or button group question.",
+    );
+    expect(choice(years.prefill, "renews_at")?.isEnabled).toBe(false);
+    expect(choice(years.prefill, "renews_at")?.getPropertyValue("edxPrefillKind")).toBe(
+      "Date-time. Use a text or date-and-time question.",
+    );
+    expect(choice(when.prefill, "renews_at")?.isEnabled).toBe(true);
+    expect(choice(when.prefill, "age")?.isEnabled).toBe(false);
+    expect(choice(when.prefill, "region")?.isEnabled).toBe(false);
+    expect(when.prefill?.placeholder).not.toBe("No Property fits this question type.");
     const page = creator.propertyGrid.getPageByName("personalization");
     expect(years.prefill?.page?.name).toBe("personalization");
     expect(page?.title).toBe("Personalization");
     expect(page?.iconName).toBe("icon-personalization");
     expect(years.prefill?.isReadOnly).toBe(false);
-    expect(getLocaleStrings("en").pehelp.edxPrefillFrom).toContain("default value expression");
-    expect(getLocaleStrings("en").pehelp.edxPrefillEditable).toContain("read-only");
+    expect(years.prefill?.description).toContain("Start this answer with the participant's Property value.");
+    expect(years.editable?.description).toContain("not a security control");
+    expect(Serializer.findProperty("itemvalue", "edxPrefillKind")?.isSerializable).toBe(false);
   });
 
   it("disables Prefill from when nothing can prefill, and hides it when personalization is not bound", () => {
@@ -322,20 +331,147 @@ describe("Prefill from in the designer", () => {
 
     // Act
     const empty = open(noPresets, "years");
-    const emptyHelp = getLocaleStrings("en").pehelp.edxPrefillFrom;
     const visibleWhileBound = open(bound, "years").prefill?.isVisible;
     unbind();
+    const older = open(olderApi, "years");
 
     // Assert
     expect(open(unbound, "years").prefill?.isVisible).not.toBe(true);
     expect(empty.prefill?.isVisible).toBe(true);
     expect(empty.prefill?.isReadOnly).toBe(true);
     expect(empty.prefill?.page?.name).toBe("personalization");
-    expect(emptyHelp).toContain("/forms/12/audience");
-    expect(emptyHelp).toContain("Add Properties");
-    expect(open(olderApi, "years").prefill?.isVisible).toBe(true);
-    expect(open(olderApi, "years").prefill?.isReadOnly).toBe(true);
+    expect(empty.prefill?.description).toContain("/forms/12/audience");
+    expect(empty.prefill?.description).toContain("Add Properties");
+    expect(older.prefill?.isVisible).not.toBe(true);
+    expect(olderApi.propertyGrid.getPageByName("personalization")?.isVisible).not.toBe(true);
     expect(visibleWhileBound).toBe(true);
     expect(open(bound, "years").prefill?.isVisible).not.toBe(true);
+  });
+
+  it("keeps an author's readOnly when the Property is cleared", () => {
+    // Arrange
+    const creator = designer({
+      elements: [{ type: "text", name: "years", inputType: "number", readOnly: true }],
+    });
+    bindAudienceToCreator(creator, {
+      variables: variables([AGE]),
+      refresh: () => Promise.resolve(Result.success(variables([AGE]))),
+    });
+    const years = open(creator, "years");
+    years.prefill!.value = "age";
+
+    // Act
+    years.prefill!.value = undefined;
+
+    // Assert
+    expect(years.question.defaultValueExpression).toBeUndefined();
+    expect(years.question.readOnly).toBe(true);
+  });
+
+  it("reloads the Property and readOnly from the saved form", () => {
+    // Arrange
+    const creator = designer(form);
+    const audience = {
+      variables: variables([AGE, REGION, RENEWS]),
+      refresh: () => Promise.resolve(Result.success(variables([AGE, REGION, RENEWS]))),
+    };
+    bindAudienceToCreator(creator, audience);
+    const years = open(creator, "years");
+    years.prefill!.value = "age";
+    open(creator, "years").editable!.value = false;
+
+    // Act
+    const saved = creator.JSON;
+    const again = new SurveyCreatorModel({});
+    bindAudienceToCreator(again, audience);
+    again.JSON = saved;
+    const reloaded = open(again, "years");
+
+    // Assert
+    expect(JSON.stringify(saved)).not.toContain("edxPrefill");
+    expect(reloaded.question.toJSON()).toEqual({
+      name: "years",
+      inputType: "number",
+      defaultValueExpression: "{age}",
+      readOnly: true,
+    });
+    expect(reloaded.prefill?.value).toBe("age");
+    expect(reloaded.editable?.value).toBe(false);
+  });
+
+  it("hides Prefill on a question type without defaultValueExpression", () => {
+    // Arrange
+    const creator = designer({
+      elements: [
+        { type: "text", name: "years", inputType: "number" },
+        { type: "html", name: "note", html: "<p>n</p>" },
+        { type: "image", name: "pic", imageLink: "https://example.com/a.png" },
+        { type: "expression", name: "calc", expression: "1+1" },
+      ],
+    });
+    bindAudienceToCreator(creator, {
+      variables: variables([AGE]),
+      refresh: () => Promise.resolve(Result.success(variables([AGE]))),
+    });
+
+    // Act & Assert
+    expect(open(creator, "years").prefill?.isVisible).toBe(true);
+    expect(open(creator, "note").prefill?.isVisible).not.toBe(true);
+    expect(open(creator, "pic").prefill?.isVisible).not.toBe(true);
+    expect(open(creator, "calc").prefill?.isVisible).not.toBe(true);
+  });
+
+  it("keeps each form's Properties and Participants link", () => {
+    // Arrange
+    const first = designer(form);
+    const second = designer(form);
+    bindAudienceToCreator(
+      first,
+      {
+        variables: variables([AGE]),
+        refresh: () => Promise.resolve(Result.success(variables([AGE]))),
+      },
+      undefined,
+      "11",
+    );
+    bindAudienceToCreator(
+      second,
+      {
+        variables: variables(null),
+        refresh: () => Promise.resolve(Result.success(variables(null))),
+      },
+      undefined,
+      "22",
+    );
+
+    // Act
+    const withAge = open(first, "years");
+    const empty = open(second, "years");
+    const stillFirst = open(first, "years");
+
+    // Assert
+    expect(choice(withAge.prefill, "age")?.text).toBe("Age");
+    expect(choice(empty.prefill, "age")).toBeUndefined();
+    expect(stillFirst.prefill?.description).toContain("Start this answer");
+    expect(stillFirst.prefill?.description).not.toContain("/forms/22/audience");
+    expect(empty.prefill?.description).toContain("/forms/22/audience");
+    expect(empty.prefill?.description).not.toContain("/forms/11/audience");
+  });
+
+  it("says when no Property fits this question", () => {
+    // Arrange
+    const creator = designer(form);
+    bindAudienceToCreator(creator, {
+      variables: variables([AGE, REGION]),
+      refresh: () => Promise.resolve(Result.success(variables([AGE, REGION]))),
+    });
+
+    // Act
+    const when = open(creator, "when");
+
+    // Assert
+    expect(choice(when.prefill, "age")?.isEnabled).toBe(false);
+    expect(choice(when.prefill, "region")?.isEnabled).toBe(false);
+    expect(when.prefill?.placeholder).toBe("No Property fits this question type.");
   });
 });
