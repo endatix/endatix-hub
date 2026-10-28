@@ -118,16 +118,17 @@ function propertyTypeLabel(source: PrefillSource): string {
 
 function targetQuestion(target: PrefillShape): string {
   if (target.type === "text") {
-    if (target.inputType === "number") return "number";
-    if (target.inputType === "date") return "date";
-    if (target.inputType === "datetime-local") return "date-and-time";
-    return "text";
+    if (target.inputType === "number") return "Number";
+    if (target.inputType === "date") return "Date";
+    if (target.inputType === "datetime-local") return "Date and Time";
+    return "Single-Line Input";
   }
-  if (target.type === "comment") return "long text";
-  if (target.type === "boolean") return "yes/no";
-  if (target.type === "radiogroup") return "radio group";
-  if (target.type === "buttongroup") return "button group";
-  if (target.type === "tagbox") return "tag box";
+  if (target.type === "comment") return "Long Text";
+  if (target.type === "boolean") return "Yes/No (Boolean)";
+  if (target.type === "dropdown") return "Dropdown";
+  if (target.type === "radiogroup") return "Radio";
+  if (target.type === "buttongroup") return "Button group";
+  if (target.type === "tagbox") return "Multi-Select Dropdown";
   return target.type;
 }
 
@@ -135,7 +136,7 @@ function englishList(items: string[]): string {
   const unique = [...new Set(items)];
   if (unique.length <= 1) return unique[0] ?? "";
   if (unique.length === 2) return `${unique[0]} or ${unique[1]}`;
-  return `${unique.slice(0, -1).join(", ")}, or ${unique[unique.length - 1]}`;
+  return `${unique.slice(0, -1).join(", ")} or ${unique[unique.length - 1]}`;
 }
 
 /** A disabled row names the Property and the questions that can take it. */

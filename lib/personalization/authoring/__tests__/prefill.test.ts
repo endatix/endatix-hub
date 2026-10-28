@@ -324,12 +324,12 @@ describe("Prefill from in the designer", () => {
     expect(yearsRows.region).toEqual({
       text: "Region",
       isEnabled: false,
-      kind: "Single choice. Use a dropdown, radio group, or button group question.",
+      kind: "Single choice. Use a Dropdown, Radio or Button group question.",
     });
     expect(yearsRows.renews_at).toEqual({
       text: "Renews at",
       isEnabled: false,
-      kind: "Date-time. Use a text or date-and-time question.",
+      kind: "Date-time. Use a Single-Line Input or Date and Time question.",
     });
     expect(afterDisabledPick).toBeUndefined();
     expect(whenRows.renews_at?.isEnabled).toBe(true);
