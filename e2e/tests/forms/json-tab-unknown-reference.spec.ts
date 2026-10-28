@@ -71,7 +71,6 @@ test.describe("JSON tab unknown references", () => {
   test("pasting a survey that reads runtime variables reaches Designer", async ({
     page,
   }) => {
-    test.skip(!e2eCredentials(), "Set E2E_EMAIL and E2E_PASSWORD.");
     const credentials = e2eCredentials()!;
     const api = await signInE2eApi();
     const created = await api.forms.create({
