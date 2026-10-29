@@ -1,4 +1,4 @@
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -89,6 +89,27 @@ describe("vendorLinkedExternals", () => {
     } finally {
       rmSync(dereferenced, { recursive: true, force: true });
     }
+  });
+
+  it("copies a package whose folders are read-only, as pnpm's store can leave them", () => {
+    const nanoid = path.join(root, "node_modules/sanitize-html/node_modules/nanoid");
+    const nonSecure = path.join(nanoid, "non-secure");
+    writePackage(nonSecure, { type: "commonjs" });
+    writeFileSync(path.join(nonSecure, "index.cjs"), "module.exports = {};");
+    chmodSync(path.join(nonSecure, "index.cjs"), 0o444);
+    chmodSync(nonSecure, 0o555);
+
+    try {
+      vendorLinkedExternals(root);
+    } finally {
+      chmodSync(nonSecure, 0o755);
+    }
+
+    const vendored = path.join(
+      root,
+      "node_modules/sanitize-html/node_modules/postcss/node_modules/nanoid/non-secure/index.cjs",
+    );
+    expect(readFileSync(vendored, "utf-8")).toBe("module.exports = {};");
   });
 
   it("leaves packages that already resolve the same version alone", () => {

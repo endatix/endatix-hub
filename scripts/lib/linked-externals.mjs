@@ -1,10 +1,12 @@
 import {
-  cpSync,
+  copyFileSync,
   existsSync,
   lstatSync,
+  mkdirSync,
   readdirSync,
   readFileSync,
   realpathSync,
+  statSync,
 } from "node:fs";
 import path from "node:path";
 
@@ -80,6 +82,22 @@ export function findMisresolvedDependencies(standaloneDir) {
   return problems;
 }
 
+// Folders are created writable rather than with the source's mode: fs.cpSync copies a
+// read-only folder's mode first and then cannot write into it on a macOS folder
+// bind-mounted into Docker, as dev containers run the build.
+function copyPackage(from, to) {
+  mkdirSync(to, { recursive: true });
+  for (const entry of readdirSync(from)) {
+    const source = path.join(from, entry);
+    const target = path.join(to, entry);
+    if (statSync(source).isDirectory()) {
+      copyPackage(source, target);
+    } else {
+      copyFileSync(source, target);
+    }
+  }
+}
+
 /**
  * Copies every misresolved dependency into the linked package's own node_modules, so
  * the standalone runs the same with symlinks kept or dereferenced. Returns the copies.
@@ -87,7 +105,7 @@ export function findMisresolvedDependencies(standaloneDir) {
 export function vendorLinkedExternals(standaloneDir) {
   const copies = findMisresolvedDependencies(standaloneDir);
   for (const { expected, into } of copies) {
-    cpSync(expected, into, { recursive: true, dereference: true });
+    copyPackage(expected, into);
   }
 
   const remaining = findMisresolvedDependencies(standaloneDir);
