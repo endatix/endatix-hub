@@ -1,8 +1,7 @@
-import { spawn } from "node:child_process";
 import { readFile } from "node:fs/promises";
-import { createServer } from "node:net";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { withStandaloneServer } from "./lib/standalone-server.mjs";
 
 // Smoke check for the published image (endatix-hub#1134): the image is built with no
 // storage env and configured at runtime, so the standalone server must pick up
@@ -16,7 +15,6 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const hubRoot = join(__dirname, "..");
 const serverFile = join(hubRoot, ".next/standalone/server.js");
 
-const READY_TIMEOUT_MS = 60_000;
 const SETTLE_MS = 3_000;
 
 // Any of these in the build's env means storage was resolved at build time.
@@ -71,78 +69,31 @@ async function checkBuildEnv() {
   console.log(" \x1b[32m✓\x1b[0m build env holds no storage keys");
 }
 
-function findFreePort() {
-  return new Promise((resolve, reject) => {
-    const server = createServer();
-    server.unref();
-    server.on("error", reject);
-    server.listen(0, "127.0.0.1", () => {
-      const { port } = server.address();
-      server.close(() => resolve(port));
-    });
-  });
-}
-
-function runtimeEnv(port) {
+function runtimeEnv() {
   const inherited = Object.fromEntries(
     Object.entries(process.env).filter(
       ([key]) => !INHERITED_STORAGE_KEY.test(key),
     ),
   );
-  return { ...inherited, ...RUNTIME_ENV, PORT: String(port) };
-}
-
-function waitForReady(child, getOutput) {
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(
-      () => reject(new Error(`server not ready after ${READY_TIMEOUT_MS} ms`)),
-      READY_TIMEOUT_MS,
-    );
-    const onData = () => {
-      if (getOutput().includes("Ready")) {
-        clearTimeout(timer);
-        resolve();
-      }
-    };
-    child.stdout.on("data", onData);
-    child.stderr.on("data", onData);
-    child.on("exit", (code) => {
-      clearTimeout(timer);
-      reject(new Error(`server exited before ready (code ${code})`));
-    });
-  });
+  return { ...inherited, ...RUNTIME_ENV };
 }
 
 async function checkRuntimeStartup() {
-  const port = await findFreePort();
-  const child = spawn(process.execPath, [serverFile], {
-    cwd: dirname(serverFile),
-    env: runtimeEnv(port),
-    stdio: ["ignore", "pipe", "pipe"],
-  });
+  const { output, error } = await withStandaloneServer(
+    serverFile,
+    runtimeEnv(),
+    async (port) => {
+      // One request, so instrumentation and lazily loaded server code run.
+      await fetch(`http://127.0.0.1:${port}/`, { redirect: "manual" }).catch(
+        () => undefined,
+      );
+      await new Promise((resolve) => setTimeout(resolve, SETTLE_MS));
+    },
+  );
 
-  let output = "";
-  child.stdout.on("data", (chunk) => (output += chunk));
-  child.stderr.on("data", (chunk) => (output += chunk));
-
-  // `fail` exits the process, so the child is killed before any failure is reported.
-  let startupError;
-  try {
-    await waitForReady(child, () => output);
-    // One request, so instrumentation and lazily loaded server code run.
-    await fetch(`http://127.0.0.1:${port}/`, { redirect: "manual" }).catch(
-      () => undefined,
-    );
-    await new Promise((resolve) => setTimeout(resolve, SETTLE_MS));
-  } catch (error) {
-    startupError = error;
-  } finally {
-    child.kill("SIGKILL");
-  }
-
-  if (startupError !== undefined) {
+  if (error !== undefined) {
     console.error(output);
-    fail(startupError.message);
+    fail(error.message);
   }
 
   const failure = FAILURE_LINES.find((line) => output.includes(line));
