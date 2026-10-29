@@ -909,6 +909,35 @@ Reference: `features/platform-admin/review-signup-request/ui/signup-visitor-sect
 - **Print keeps the same promises:** never crop, keep a row of images together (`wrap={false}`),
   keep a title with its first row, embed downscaled copies, single-line captions.
 
+### Marking a question on the designer canvas
+
+A fact about a question that the author needs while designing (where its value comes from) is a
+**small chip on the question, not a ring or a bare icon.** A ring or outline competes with
+SurveyJS's selection and focus outlines, and an icon alone says nothing until hovered. Reference:
+`lib/personalization/authoring/prefill-canvas.ts` + `features/forms/ui/editor/prefill-canvas.css`.
+
+- **The chip names the source, the card explains it.** The chip is the icon of the section that
+  owns the concept (the Personalization person) and the source's name (`Age`), nothing else. It is
+  a role tag (§5 Chips): no dot, neutral fill, muted text. Hover or keyboard focus opens a card
+  (`role="tooltip"`, the chip's `aria-describedby`) with a heading in words (`Prefilled from Age`),
+  one sentence on what it does to the answer, and where a click goes. The chip's accessible name is
+  that heading, so a screen reader hears the fact without the card.
+- **Name what SurveyJS leaves implicit.** A default that reads Properties inside a calculation
+  (`{age} * 12`) is personalization too: the chip lists every Property it reads, adds a muted `ƒx`,
+  and the card shows the expression. Only a plain `{age}` is checked for fit.
+- **It is a link to where the fact is managed**, opening in a new tab so the design is not left
+  (the form's Properties). It stops `pointerdown` and `click` so the designer does not select the
+  question instead, and shows a `--sjs2-color-utility-a11y` ring on `:focus-visible`.
+- **Top-right inside the card, clear of the corner** where SurveyJS puts the collapse button of
+  a selected question. One chip per question; it truncates rather than wraps. The card opens below
+  it, right-aligned, on a floating surface.
+- **A problem changes the same chip, it does not add a second mark.** When Diagnostics has a
+  finding for that question, the chip takes the warning tint and the card says what fits and where
+  to fix it; the icon carries the warning colour and the text stays primary, because warning text
+  on its own 10% tint is under 3:1.
+- **Creator DOM, so `--sjs2-*` tokens only** (§9), checked by a test that rejects literal
+  colours and `var()` fallbacks. Font is `inherit`: the token font is not loaded in the Hub.
+
 ### Recipe: list page
 
 Title + description + primary action above a `DataTableSurface`; toolbar (search, filters, Reset)
@@ -1314,4 +1343,5 @@ SurveyJS surface.
   `var(--token, <literal>)` via `hubToken()`, and a test pins the literals to `:root`. When the
   palette changes, change both.
 - Hub CSS injected into Creator DOM names `--sjs2-*` tokens only, with no literal fallback.
+  A mark on a canvas question follows §6 "Marking a question on the designer canvas".
 - Every Hub dialog is a shadcn `Dialog` / `AlertDialog`, never `settings.showDialog`.

@@ -36,6 +36,7 @@ import {
   withUnsaved,
   type WriteTarget,
 } from "./designer-writes";
+import { installPrefillCanvas, repaintPrefillMarks } from "./prefill-canvas";
 import { installPrefill, prefillSources } from "./prefill";
 
 export interface CreatorHooks {
@@ -320,6 +321,11 @@ function prefillAndPreview(
 ): (() => void)[] {
   return [
     installPrefill(creator, () => prefillSources(state.variables), formId),
+    installPrefillCanvas(
+      creator,
+      () => prefillSources(state.variables),
+      formId,
+    ),
     extendPreview(creator, state, onFindParticipant),
   ];
 }
@@ -461,6 +467,7 @@ function applyRead(
     state.variables = previous;
     throw error;
   }
+  repaintPrefillMarks();
 }
 
 /**

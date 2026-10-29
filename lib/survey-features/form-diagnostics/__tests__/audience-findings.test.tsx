@@ -239,6 +239,26 @@ describe("Audience findings in Diagnostics", () => {
 });
 
 describe("describeAudienceFinding", () => {
+  it("offers to clear a prefill whose question type no longer fits", () => {
+    // Act
+    const described = describeAudienceFinding({
+      kind: "prefill-type-mismatch",
+      variable: "age",
+      propertyTitle: "Age",
+      path: "pages[0].elements[0].defaultValueExpression",
+      elementName: "city",
+      fix: { reason: "clearPrefill", edits: [] },
+    });
+
+    // Assert
+    expect(described).toEqual({
+      title: "{age} no longer fits this question",
+      description:
+        "Age does not fit this question's type. Clear the prefill. Allow respondent to edit stays as it is.",
+      fixLabel: "Clear prefill",
+    });
+  });
+
   it("counts the participants without a value the way the Audience tab does", () => {
     const { title } = describeAudienceFinding({
       kind: "not-filled-in",

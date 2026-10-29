@@ -1,23 +1,19 @@
 import { Serializer, SvgRegistry, type ItemValue, type PanelModel, type Question } from "survey-core";
 import { getLocaleStrings, type SurveyCreatorModel, type SurveyInstanceCreatedEvent } from "survey-creator-core";
-import type { AudienceVariables } from "@/lib/endatix-api/audience/types";
 import { withBasePath } from "@/lib/hosting";
 import { formRoutes } from "@/lib/routes/form-routes";
 import { LOCAL_DATE_TIME_FUNCTION } from "@/lib/survey-features/local-date-time";
+import {
+  isPrefillCompatible,
+  prefillVariableOf,
+  type PrefillShape,
+  type PrefillSource,
+} from "../coverage/prefill-match";
 import { PREFILL_CHOICE, registerPrefillChoice } from "./prefill-choice";
 
-/** A question shape the API lists on `prefillTargets`, or the question being edited. */
-export type PrefillShape = {
-  type: string;
-  inputType?: string;
-};
-
-/** One Property as the variables definition describes it, including its `prefillTargets`. */
-export type PrefillSource = PrefillShape & {
-  variable: string;
-  title: string;
-  prefillTargets?: PrefillShape[];
-};
+export type { PrefillShape, PrefillSource };
+export { isPrefillCompatible, prefillVariableOf };
+export { prefillSources } from "../coverage/prefill-match";
 
 const PREFILL_FROM = "edxPrefillFrom";
 const PREFILL_EXPRESSION_LINK = "edxPrefillFrom_expression";
@@ -26,12 +22,7 @@ const PREFILL_EDITABLE = "edxPrefillEditable";
 const PREFILL_CATEGORY = "personalization";
 const PREFILL_KIND = "edxPrefillKind";
 const PERSONALIZATION_ICON = "icon-personalization";
-const VARIABLE = "[A-Za-z0-9_]+";
-const PLAIN_PREFILL = new RegExp(String.raw`^\{(${VARIABLE})\}$`);
-const LOCAL_PREFILL = new RegExp(
-  String.raw`^${LOCAL_DATE_TIME_FUNCTION}\(\{(${VARIABLE})\}\)$`,
-);
-const VARIABLE_NAME = new RegExp(String.raw`^${VARIABLE}$`);
+const VARIABLE_NAME = /^\w+$/;
 
 type PrefillBinding = {
   sources: () => PrefillSource[];
@@ -39,42 +30,7 @@ type PrefillBinding = {
 };
 
 const bindings = new WeakMap<object, PrefillBinding>();
-const sourceCache = new WeakMap<object, PrefillSource[]>();
 let propertiesRegistered = false;
-
-/** Omitted, blank, and SurveyJS's default `text` are the same plain text input. */
-function plainInput(inputType: string | undefined): string {
-  if (inputType === undefined || inputType === "" || inputType === "text") {
-    return "text";
-  }
-  return inputType;
-}
-
-function sameShape(question: PrefillShape, target: PrefillShape): boolean {
-  return (
-    question.type === target.type &&
-    plainInput(question.inputType) === plainInput(target.inputType)
-  );
-}
-
-/** A question fits a Property when its type and input type equal one `prefillTargets` entry. */
-export function isPrefillCompatible(
-  question: PrefillShape,
-  targets: readonly PrefillShape[],
-): boolean {
-  return targets.some((target) => sameShape(question, target));
-}
-
-/**
- * `{age}` and `edxLocalDateTime({renews_at})` name a Property. A calculation, another function,
- * or any extra text does not.
- */
-export function prefillVariableOf(
-  expression: string | undefined,
-): string | undefined {
-  if (!expression) return undefined;
-  return PLAIN_PREFILL.exec(expression)?.[1] ?? LOCAL_PREFILL.exec(expression)?.[1];
-}
 
 /** An expression the dropdown did not write, such as `{age} * 12`. Shown, and left unchanged. */
 function customExpression(expression: string | undefined): string | undefined {
@@ -108,7 +64,7 @@ function textLabel(source: PrefillSource): string {
   return "text";
 }
 
-function propertyTypeLabel(source: PrefillSource): string {
+export function propertyTypeLabel(source: PrefillSource): string {
   const named = namedChoice(source.type);
   if (named) return named;
   if (source.type === "text") return textLabel(source);
@@ -116,7 +72,7 @@ function propertyTypeLabel(source: PrefillSource): string {
   return source.type;
 }
 
-function targetQuestion(target: PrefillShape): string {
+export function targetQuestion(target: PrefillShape): string {
   if (target.type === "text") {
     if (target.inputType === "number") return "Number";
     if (target.inputType === "date") return "Date";
@@ -132,7 +88,7 @@ function targetQuestion(target: PrefillShape): string {
   return target.type;
 }
 
-function englishList(items: string[]): string {
+export function englishList(items: string[]): string {
   const unique = [...new Set(items)];
   if (unique.length <= 1) return unique[0] ?? "";
   if (unique.length === 2) return `${unique[0]} or ${unique[1]}`;
@@ -144,46 +100,6 @@ function disabledHint(source: PrefillSource): string {
   const type = propertyTypeLabel(source);
   const fitting = englishList((source.prefillTargets ?? []).map((target) => targetQuestion(target)));
   return `${type.charAt(0).toUpperCase()}${type.slice(1)}. Use a ${fitting} question.`;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return !!value && typeof value === "object";
-}
-
-function shapeOf(value: unknown): PrefillShape | undefined {
-  if (!isRecord(value) || typeof value.type !== "string") return undefined;
-  const inputType = typeof value.inputType === "string" ? value.inputType : undefined;
-  return { type: value.type, inputType };
-}
-
-function collectPrefillSources(variables: AudienceVariables): PrefillSource[] {
-  const elements = variables.variablePresets?.definition?.["elements"];
-  if (!Array.isArray(elements)) return [];
-  const sources: PrefillSource[] = [];
-  for (const element of elements) {
-    const shape = shapeOf(element);
-    if (!isRecord(element) || !shape || typeof element.name !== "string") continue;
-    const title = typeof element.title === "string" && element.title.trim()
-      ? element.title
-      : element.name;
-    const targets = Array.isArray(element.prefillTargets)
-      ? element.prefillTargets.flatMap((target) => {
-          const parsed = shapeOf(target);
-          return parsed ? [parsed] : [];
-        })
-      : undefined;
-    sources.push({ ...shape, variable: element.name, title, prefillTargets: targets });
-  }
-  return sources;
-}
-
-/** Properties from the variables definition. The same variables object is read once. */
-export function prefillSources(variables: AudienceVariables): PrefillSource[] {
-  const cached = sourceCache.get(variables);
-  if (cached) return cached;
-  const sources = collectPrefillSources(variables);
-  sourceCache.set(variables, sources);
-  return sources;
 }
 
 function bindingOf(obj: object | undefined): PrefillBinding | undefined {
@@ -485,7 +401,7 @@ function prefillHelp(question: Question): string {
  * A person drawn as rings, so the rail paints it with `fill: currentColor` the way the
  * SurveyJS tab icons are painted. A filled silhouette reads heavier than those line icons.
  */
-const PERSONALIZATION_ICON_SVG =
+export const PERSONALIZATION_ICON_SVG =
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">' +
   '<path fill-rule="evenodd" d="M12 3.8a3.2 3.2 0 1 0 .02 0zM12 5.5a1.5 1.5 0 1 1-.02 0z"/>' +
   '<path d="M4.6 20.4V18c0-3.2 3.3-5.2 7.4-5.2s7.4 2 7.4 5.2v2.4h-1.7V18c0-2.2-2.5-3.5-5.7-3.5S6.3 15.8 6.3 18v2.4H4.6z"/>' +
@@ -587,7 +503,7 @@ export function installPrefill(
       namePersonalization(options.survey);
       return;
     }
-    if (options.reason !== "designer") return;
+    if (options.area !== "designer-tab") return;
     if (attached) detachSurvey(attached, read);
     attached = options.survey;
     attachSurvey(attached, creator, read, formId);

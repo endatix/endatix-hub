@@ -71,11 +71,29 @@ export function applyAudienceFix(
   }
 }
 
-/** The fix the same misspelling has now; none once it is gone. */
+function samePrefillMismatch(
+  candidate: AudienceFinding,
+  finding: AudienceFinding,
+): boolean {
+  return (
+    candidate.kind === "prefill-type-mismatch" &&
+    finding.kind === "prefill-type-mismatch" &&
+    candidate.path === finding.path &&
+    candidate.variable === finding.variable
+  );
+}
+
+/** The fix the same finding has now; none once it is gone. */
 export function currentFix(
   findings: AudienceFinding[],
   finding: AudienceFinding,
 ) {
+  if (finding.kind === "prefill-type-mismatch") {
+    const same = findings.find((candidate) =>
+      samePrefillMismatch(candidate, finding),
+    );
+    return same?.kind === "prefill-type-mismatch" ? same.fix : undefined;
+  }
   if (finding.kind !== "unknown-variable") return undefined;
   const same = findings.find(
     (f) =>
@@ -91,17 +109,22 @@ export function currentFix(
 /** Whether this designer can add an Audience property. */
 type DesignerActions = { canAddProperty: boolean };
 
+function canvasFix(creator: SurveyCreatorModel, finding: AudienceFinding) {
+  const fix = "fix" in finding ? finding.fix : undefined;
+  if (!fix || canFixOnCanvas(creator, fix)) return fix;
+  return undefined;
+}
+
 export const designerActions =
   (creator: SurveyCreatorModel, { canAddProperty }: DesignerActions) =>
   (finding: AudienceFinding): AudienceFinding => {
+    if (finding.kind === "prefill-type-mismatch") {
+      return { ...finding, fix: canvasFix(creator, finding) };
+    }
     if (finding.kind !== "unknown-variable") return finding;
-    const fix =
-      finding.fix && canFixOnCanvas(creator, finding.fix)
-        ? finding.fix
-        : undefined;
     return {
       ...finding,
-      fix,
+      fix: canvasFix(creator, finding),
       canAddProperty: canAddProperty && finding.canAddProperty,
     };
   };

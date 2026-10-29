@@ -66,6 +66,11 @@ const DESCRIBE: {
     title: `{${variableName}} is never used`,
     description: "The form does not read this Property.",
   }),
+  "prefill-type-mismatch": ({ variable, propertyTitle, fix }) => ({
+    title: `{${variable}} no longer fits this question`,
+    description: `${propertyTitle} does not fit this question's type. Clear the prefill. Allow respondent to edit stays as it is.`,
+    fixLabel: fix ? "Clear prefill" : undefined,
+  }),
 };
 
 /** Audience words for each finding; every one is a warning. */
