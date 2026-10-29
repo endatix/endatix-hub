@@ -19,7 +19,6 @@ overrides:
   picomatch@>=4 <5: ^4.0.4
   yaml: ^2.8.3
   vite: ^7.3.5
-  ip-address: ^10.1.1
   protobufjs: ^8.7.1
   '@protobufjs/utf8': ^1.1.2
   '@opentelemetry/sdk-node': ^0.221.0
@@ -292,7 +291,7 @@ importers:
         version: 29.1.1(@noble/hashes@1.8.0)
       postcss:
         specifier: ^8.5.23
-        version: 8.5.23
+        version: 8.5.31
       prettier-plugin-tailwindcss:
         specifier: ^0.7.2
         version: 0.7.2(prettier@3.8.1)
@@ -4635,8 +4634,8 @@ packages:
     resolution: {integrity: sha512-5Hh7Y1wQbvY5ooGgPbDaL5iYLAPzMTUrjMulskHLH6wnv/A+1q5rgEaiuqEjB+oxGXIVZs1FF+R/KPN3ZSQYYg==}
     engines: {node: '>=12'}
 
-  ip-address@10.7.2:
-    resolution: {integrity: sha512-7H/2gFSIitxc0hG3nOI1glS8QLo/EHBFFLk8vEUjXY/xu0AdL8jZ9U1IzO2PUm0d2D/ofQcAifb0g6OBkt8U7w==}
+  ip-address@10.7.5:
+    resolution: {integrity: sha512-t2v0rkILYv9WXmSL7TpAaU3HXgaFYOPUcH3QHgwQ++gpJuH3bqyMy4Fvt/DJCTKwzH3Cf+bAp5W/mFL39KPLzA==}
     engines: {node: '>= 12'}
 
   is-array-buffer@3.0.5:
@@ -9769,7 +9768,7 @@ snapshots:
       '@alloc/quick-lru': 5.2.0
       '@tailwindcss/node': 4.1.18
       '@tailwindcss/oxide': 4.1.18
-      postcss: 8.5.23
+      postcss: 8.5.31
       tailwindcss: 4.1.18
 
   '@tanstack/react-table@8.21.3(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
@@ -11570,7 +11569,7 @@ snapshots:
 
   internmap@2.0.3: {}
 
-  ip-address@10.7.2: {}
+  ip-address@10.7.5: {}
 
   is-array-buffer@3.0.5:
     dependencies:
@@ -13023,7 +13022,7 @@ snapshots:
 
   socks@2.8.10:
     dependencies:
-      ip-address: 10.7.2
+      ip-address: 10.7.5
       smart-buffer: 4.2.0
 
   sonner@1.7.4(react-dom@19.2.8(react@19.2.8))(react@19.2.8):
@@ -13482,7 +13481,7 @@ snapshots:
       esbuild: 0.28.1
       fdir: 6.5.0(picomatch@4.0.5)
       picomatch: 4.0.5
-      postcss: 8.5.23
+      postcss: 8.5.31
       rollup: 4.62.3
       tinyglobby: 0.2.17
     optionalDependencies:
