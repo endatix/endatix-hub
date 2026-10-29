@@ -79,6 +79,18 @@ Smoke check that the standalone build reads storage settings at runtime (endatix
 pnpm build && pnpm check:runtime-storage
 ```
 
+## Dereferenced Standalone Check Script
+
+### `check-dereferenced-standalone.mjs`
+
+Smoke check for Azure Static Web Apps, which dereferences symlinks when it uploads a hybrid Next.js app (endatix-hub#1269). It copies `.next/standalone` to a temp folder with every symlink replaced by its target, starts that copy, and fails unless `/signin` answers 200 with no `Failed to load external module` or `Cannot find module` in the log. A nested external that Turbopack links into `.next/node_modules` breaks it when its dependencies are missing from the top-level `node_modules`; add the package to `NESTED_EXTERNALS` in `lib/hosting/standalone-trace-includes.mjs`. CI runs it after `pnpm build`.
+
+**Usage:**
+
+```bash
+pnpm build && pnpm check:dereferenced-standalone
+```
+
 ## Dev Server Script
 
 ### `dev.mjs`
