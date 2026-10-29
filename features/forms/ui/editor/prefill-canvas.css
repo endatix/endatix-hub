@@ -12,7 +12,9 @@
   top: var(--sjs2-spacing-x150);
   /* Clear of the collapse button SurveyJS shows in the corner of a selected question. */
   right: calc(5 * var(--sjs2-spacing-x100));
-  z-index: 2;
+  /* Above the inline title and description editors (`.svc-string-editor`, z-index 12), so the
+   * card is not painted under the question's text. */
+  z-index: 20;
   max-width: calc(100% - 8 * var(--sjs2-spacing-x100));
   font-family: inherit;
 }

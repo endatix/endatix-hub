@@ -284,6 +284,14 @@ describe("prefill canvas chip styles", () => {
     );
   });
 
+  it("lifts the card above SurveyJS's inline title editors (z-index 12)", () => {
+    // Act
+    const layer = /\.edx-prefill\s*\{[^}]*z-index:\s*(\d+)/.exec(rules);
+
+    // Assert
+    expect(Number(layer?.[1])).toBeGreaterThan(12);
+  });
+
   it("shows a keyboard focus ring and a warning tone for a mismatch", () => {
     // Act & Assert
     expect(rules).toMatch(
