@@ -9,13 +9,22 @@ import {
   isPrefillCompatible,
   prefillSourceNamed,
   prefillVariableOf,
+  variablesIn,
   type PrefillSource,
 } from "../coverage/prefill-match";
-import { PERSONALIZATION_ICON_SVG } from "./prefill";
+import {
+  englishList,
+  PERSONALIZATION_ICON_SVG,
+  propertyTypeLabel,
+  targetQuestion,
+} from "./prefill";
 
+const MARK = "edx-prefill";
 const CHIP = "edx-prefill-chip";
+const CARD = "edx-prefill-card";
 const MISMATCH = "edx-prefill-chip--mismatch";
-const OPENS = "Opens the form's Properties in a new tab";
+const CALCULATED = "edx-prefill-chip--calculated";
+const OPENS = "Click to open Properties in a new tab";
 const CHANGED = "defaultValueExpression";
 const LISTENER = "edx-prefill-chip";
 
@@ -26,9 +35,19 @@ type Watch = {
   formId?: string;
 };
 
-type Chip = { title: string; href: string; fits: boolean };
+/** What the chip says: its words, its accessible name, and the card's heading and lines. */
+type Chip = {
+  label: string;
+  name: string;
+  heading: string;
+  lines: string[];
+  expression?: string;
+  tone: "prefill" | "mismatch" | "calculated";
+  href: string;
+};
 
 const watches = new Map<Question, Watch>();
+let cards = 0;
 
 function inputTypeOf(question: Question): string | undefined {
   const inputType = (question as Question & { inputType?: unknown }).inputType;
@@ -41,19 +60,90 @@ function fitsSource(question: Question, source: PrefillSource): boolean {
   return isPrefillCompatible(shape, source.prefillTargets);
 }
 
+function andList(items: string[]): string {
+  if (items.length <= 1) return items[0] ?? "";
+  return `${items.slice(0, -1).join(", ")} and ${items.at(-1)}`;
+}
+
+function article(word: string): string {
+  return /^[aeiou]/i.test(word) ? "an" : "a";
+}
+
+function mismatchChip(source: PrefillSource, href: string): Chip {
+  const type = propertyTypeLabel(source);
+  const fitting = englishList(
+    (source.prefillTargets ?? []).map((target) => targetQuestion(target)),
+  );
+  const { title } = source;
+  return {
+    label: title,
+    name: `Prefilled from ${title}, which does not fit this question`,
+    heading: `${title} does not fit this question`,
+    lines: [
+      `A ${type} Property prefills ${article(fitting)} ${fitting} question. Clear it from Diagnostics.`,
+    ],
+    tone: "mismatch",
+    href,
+  };
+}
+
+function prefillChip(
+  question: Question,
+  source: PrefillSource,
+  href: string,
+): Chip {
+  if (!fitsSource(question, source)) return mismatchChip(source, href);
+  const type = propertyTypeLabel(source);
+  const heading = `Prefilled from ${source.title}`;
+  const edits = question.readOnly ? "can't change it" : "can change it";
+  const line = `Starts this answer with the participant's ${source.title}, ${article(type)} ${type} Property. Respondents ${edits}.`;
+  return {
+    label: source.title,
+    name: heading,
+    heading,
+    lines: [line],
+    tone: "prefill",
+    href,
+  };
+}
+
+function calculatedChip(
+  sources: PrefillSource[],
+  expression: string,
+  href: string,
+): Chip {
+  const titles = andList(sources.map((source) => source.title));
+  return {
+    label: titles,
+    name: `Calculated from ${titles}`,
+    heading: `Calculated from ${titles}`,
+    lines: [
+      `Starts this answer with a value worked out from the participant's ${titles}.`,
+    ],
+    expression,
+    tone: "calculated",
+    href,
+  };
+}
+
 function chipFor(watch: Watch): Chip | undefined {
   const { question, formId } = watch;
-  const variable = prefillVariableOf(question.defaultValueExpression?.trim());
-  if (!variable || !formId) return undefined;
-  const source = prefillSourceNamed(watch.sources(), variable);
-  if (!source) return undefined;
-  return {
-    title: source.title,
-    href: withBasePath(
-      formRoutes.audience(formId, { search: "view=properties" }),
-    ),
-    fits: fitsSource(question, source),
-  };
+  const expression = question.defaultValueExpression?.trim();
+  if (!expression || !formId) return undefined;
+  const href = withBasePath(
+    formRoutes.audience(formId, { search: "view=properties" }),
+  );
+  const sources = watch.sources();
+  const variable = prefillVariableOf(expression);
+  if (variable) {
+    const source = prefillSourceNamed(sources, variable);
+    return source && prefillChip(question, source, href);
+  }
+  const read = variablesIn(expression).flatMap((name) => {
+    const source = prefillSourceNamed(sources, name);
+    return source ? [source] : [];
+  });
+  return read.length ? calculatedChip(read, expression, href) : undefined;
 }
 
 function hostOf(element: HTMLElement): HTMLElement | null {
@@ -61,44 +151,74 @@ function hostOf(element: HTMLElement): HTMLElement | null {
   return host instanceof HTMLElement ? host : null;
 }
 
-function createChip(): HTMLAnchorElement {
-  const chip = document.createElement("a");
-  chip.className = CHIP;
+function element<K extends keyof HTMLElementTagNameMap>(
+  tag: K,
+  className: string,
+  text?: string,
+): HTMLElementTagNameMap[K] {
+  const node = document.createElement(tag);
+  node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
+}
+
+function createMark(): HTMLElement {
+  const mark = element("span", MARK);
+  const chip = element("a", CHIP);
   chip.target = "_blank";
   chip.rel = "noopener";
-  chip.title = "Open the form's Properties in a new tab";
   // The designer selects a question on pointerdown. The link has to win that race.
   const keep = (event: Event) => event.stopPropagation();
   chip.addEventListener("pointerdown", keep);
   chip.addEventListener("click", keep);
-  return chip;
+  const card = element("span", CARD);
+  card.id = `${CARD}-${++cards}`;
+  card.setAttribute("role", "tooltip");
+  chip.setAttribute("aria-describedby", card.id);
+  mark.append(chip, card);
+  return mark;
 }
 
-function fill(chip: HTMLAnchorElement, { title, href, fits }: Chip): void {
-  const text = `Prefilled from ${title}`;
+function fillChip(chip: HTMLAnchorElement, model: Chip): void {
   chip.innerHTML = PERSONALIZATION_ICON_SVG;
   chip.querySelector("svg")?.setAttribute("aria-hidden", "true");
-  chip.append(fits ? text : `${text} · does not fit`);
-  chip.classList.toggle(MISMATCH, !fits);
-  chip.href = href;
-  chip.setAttribute(
-    "aria-label",
-    fits
-      ? `${text}. ${OPENS}`
-      : `${text}, which does not fit this question. See Diagnostics. ${OPENS}`,
-  );
+  chip.append(model.label);
+  if (model.tone === "calculated") {
+    const fx = element("span", `${CHIP}-fx`, "ƒx");
+    fx.setAttribute("aria-hidden", "true");
+    chip.append(fx);
+  }
+  chip.classList.toggle(MISMATCH, model.tone === "mismatch");
+  chip.classList.toggle(CALCULATED, model.tone === "calculated");
+  chip.href = model.href;
+  chip.setAttribute("aria-label", model.name);
+}
+
+function fillCard(card: HTMLElement, model: Chip): void {
+  const parts: HTMLElement[] = [
+    element("strong", `${CARD}-heading`, model.heading),
+  ];
+  if (model.expression)
+    parts.push(element("code", `${CARD}-code`, model.expression));
+  for (const line of model.lines)
+    parts.push(element("span", `${CARD}-line`, line));
+  parts.push(element("span", `${CARD}-hint`, OPENS));
+  card.replaceChildren(...parts);
 }
 
 function paint(watch: Watch): void {
-  const chip = chipFor(watch);
-  const current = watch.host.querySelector(`:scope > .${CHIP}`);
-  if (!chip) {
+  const model = chipFor(watch);
+  const current = watch.host.querySelector<HTMLElement>(`:scope > .${MARK}`);
+  if (!model) {
     current?.remove();
     return;
   }
-  const node = current instanceof HTMLAnchorElement ? current : createChip();
-  if (!current) watch.host.append(node);
-  fill(node, chip);
+  const mark = current ?? createMark();
+  if (!current) watch.host.append(mark);
+  const chip = mark.querySelector<HTMLAnchorElement>(`.${CHIP}`);
+  const card = mark.querySelector<HTMLElement>(`.${CARD}`);
+  if (chip) fillChip(chip, model);
+  if (card) fillCard(card, model);
 }
 
 function follow(question: Question): void {
@@ -112,7 +232,7 @@ function follow(question: Question): void {
   );
 }
 
-/** The "Prefilled from {Property}" chip for one rendered question. A calculation gets none. */
+/** The Property chip for one rendered question: a prefill, or a calculation that reads Properties. */
 export function mountPrefillMark(
   element: HTMLElement,
   question: Question,
@@ -148,7 +268,7 @@ export function clearPrefillMarks(): void {
 type RenderedQuestion = { htmlElement: HTMLElement; question: Question };
 
 /**
- * Labels each designer question whose default names a known Property. Preview and the
+ * Labels each designer question whose default reads a known Property. Preview and the
  * property grid are not the canvas, so they are left alone.
  */
 export function installPrefillCanvas(

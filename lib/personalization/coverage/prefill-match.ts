@@ -60,6 +60,17 @@ export function prefillVariableOf(
   );
 }
 
+const REFERENCE = new RegExp(String.raw`\{(${VARIABLE})\}`, "g");
+
+/** Every `{name}` an expression reads, in order, each once without regard to case. */
+export function variablesIn(expression: string | undefined): string[] {
+  const seen = new Map<string, string>();
+  for (const [, name] of expression?.matchAll(REFERENCE) ?? []) {
+    if (!seen.has(name.toLowerCase())) seen.set(name.toLowerCase(), name);
+  }
+  return [...seen.values()];
+}
+
 /** The Property a prefill names. Variable names match without regard to case. */
 export function prefillSourceNamed(
   sources: readonly PrefillSource[],

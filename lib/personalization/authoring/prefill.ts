@@ -64,7 +64,7 @@ function textLabel(source: PrefillSource): string {
   return "text";
 }
 
-function propertyTypeLabel(source: PrefillSource): string {
+export function propertyTypeLabel(source: PrefillSource): string {
   const named = namedChoice(source.type);
   if (named) return named;
   if (source.type === "text") return textLabel(source);
@@ -72,7 +72,7 @@ function propertyTypeLabel(source: PrefillSource): string {
   return source.type;
 }
 
-function targetQuestion(target: PrefillShape): string {
+export function targetQuestion(target: PrefillShape): string {
   if (target.type === "text") {
     if (target.inputType === "number") return "Number";
     if (target.inputType === "date") return "Date";
@@ -88,7 +88,7 @@ function targetQuestion(target: PrefillShape): string {
   return target.type;
 }
 
-function englishList(items: string[]): string {
+export function englishList(items: string[]): string {
   const unique = [...new Set(items)];
   if (unique.length <= 1) return unique[0] ?? "";
   if (unique.length === 2) return `${unique[0]} or ${unique[1]}`;

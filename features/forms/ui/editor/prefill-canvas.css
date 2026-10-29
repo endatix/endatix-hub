@@ -1,26 +1,31 @@
 /*
- * "Prefilled from {Property}" chip on a designer question (DESIGN.md §6 "Marking a
- * question on the designer canvas"). A quiet role tag, not a status: neutral fill, muted
- * text, brand on hover. Only a prefill that no longer fits takes the warning tone.
+ * The Property chip on a designer question (DESIGN.md §6 "Marking a question on the designer
+ * canvas"): the Personalization icon and the Property name, with the details on a card that
+ * opens on hover and keyboard focus. A quiet role tag, not a status: neutral fill, muted text,
+ * brand on hover. Only a prefill that no longer fits takes the warning tone.
  * Creator DOM, so `--sjs2-*` tokens only, with no literal fallback (lib/themes/README.md).
  * Loaded only with the form designer.
  */
 
-.svc-creator .svc-question__content > .edx-prefill-chip {
+.svc-creator .svc-question__content > .edx-prefill {
   position: absolute;
   top: var(--sjs2-spacing-x150);
   /* Clear of the collapse button SurveyJS shows in the corner of a selected question. */
   right: calc(5 * var(--sjs2-spacing-x100));
   z-index: 2;
+  max-width: calc(100% - 8 * var(--sjs2-spacing-x100));
+  font-family: inherit;
+}
+
+.svc-creator .edx-prefill-chip {
   display: inline-flex;
   align-items: center;
   gap: var(--sjs2-spacing-x050);
-  max-width: calc(100% - 8 * var(--sjs2-spacing-x100));
-  padding: var(--sjs2-spacing-x050) var(--sjs2-spacing-x100);
+  max-width: 100%;
+  padding: var(--sjs2-spacing-x025) var(--sjs2-spacing-x100);
   border-radius: var(--sjs2-radius-round);
   background: var(--sjs2-color-bg-basic-secondary);
   color: var(--sjs2-color-fg-basic-secondary);
-  font-family: inherit;
   font-size: var(--sjs2-typography-font-size-small);
   line-height: var(--sjs2-typography-line-height-small);
   font-weight: var(--sjs2-typography-font-weight-strong);
@@ -37,7 +42,12 @@
   fill: currentColor;
 }
 
-.svc-creator .svc-question__content > .edx-prefill-chip:hover {
+.svc-creator .edx-prefill-chip-fx {
+  font-style: italic;
+  font-weight: var(--sjs2-typography-font-weight-basic);
+}
+
+.svc-creator .edx-prefill-chip:hover {
   color: var(--sjs2-color-fg-brand-primary);
 }
 
@@ -48,7 +58,7 @@
 
 /* Warning text on its own 10% tint is under 3:1, so the text stays primary and the icon
  * carries the tone. */
-.svc-creator .svc-question__content > .edx-prefill-chip--mismatch {
+.svc-creator .edx-prefill-chip.edx-prefill-chip--mismatch {
   background: var(--sjs2-color-bg-warning-secondary);
   color: var(--sjs2-color-fg-basic-primary);
 }
@@ -57,7 +67,46 @@
   fill: var(--sjs2-color-fg-warning-primary);
 }
 
-.svc-creator .svc-question__content > .edx-prefill-chip--mismatch:hover {
+.svc-creator .edx-prefill-card {
+  display: none;
+  position: absolute;
+  top: calc(100% + var(--sjs2-spacing-x050));
+  right: 0;
+  width: max-content;
+  max-width: calc(36 * var(--sjs2-spacing-x100));
+  padding: var(--sjs2-spacing-x150);
+  border-radius: var(--sjs2-radius-x100);
+  border: 1px solid var(--sjs2-color-border-basic-secondary);
+  background: var(--sjs2-color-bg-basic-primary);
+  box-shadow: var(--sjs2-border-effect-floating-default);
   color: var(--sjs2-color-fg-basic-primary);
-  text-decoration: underline;
+  font-size: var(--sjs2-typography-font-size-small);
+  line-height: var(--sjs2-typography-line-height-small);
+  white-space: normal;
+  text-align: left;
+}
+
+.svc-creator .edx-prefill:hover > .edx-prefill-card,
+.svc-creator .edx-prefill:focus-within > .edx-prefill-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sjs2-spacing-x050);
+}
+
+.svc-creator .edx-prefill-card-heading {
+  font-weight: var(--sjs2-typography-font-weight-strong);
+}
+
+.svc-creator .edx-prefill-card-code {
+  padding: var(--sjs2-spacing-x025) var(--sjs2-spacing-x050);
+  border-radius: var(--sjs2-radius-x050);
+  background: var(--sjs2-color-bg-basic-secondary);
+  color: var(--sjs2-color-fg-basic-primary);
+  font-family: inherit;
+  word-break: break-all;
+}
+
+.svc-creator .edx-prefill-card-hint {
+  margin-top: var(--sjs2-spacing-x050);
+  color: var(--sjs2-color-fg-basic-secondary);
 }
