@@ -110,14 +110,26 @@ spec:
               value: {{ .Values.analytics.posthogHost | quote }}
             - name: POSTHOG_UI_HOST
               value: {{ .Values.analytics.posthogUiHost | quote }}
-            # Rendered only when set: an `env` entry outranks `envFrom` even when empty,
-            # so an always-present one would block extraEnvFrom from supplying it.
-            {{- with .Values.analytics.posthogProjectId }}
-            {{- /* A bare number in a values file is a float64; int64 stops `quote` turning
-                   1234567 into "1.234567e+06". int64 also maps any non-number to 0. */}}
-            {{- $projectId := . | int64 }}
+            {{- /* Rendered only when set: an `env` entry outranks `envFrom` even when empty,
+                   so an always-present one would block an envFrom source from supplying it. */}}
+            {{- $rawProjectId := .Values.analytics.posthogProjectId }}
+            {{- if or $rawProjectId (kindIs "float64" $rawProjectId) (kindIs "int64" $rawProjectId) }}
+            {{- /* A bare number in a values file is a float64, which `quote` prints as
+                   1.234567e+06, so the id is rendered through int64. int64 alone is too
+                   lenient: it reads "0123" as octal 83, true as 1 and 12.7 as 12. So only
+                   a string of digits or a whole number reaches it; anything else is 0. */}}
+            {{- $projectId := 0 }}
+            {{- if kindIs "string" $rawProjectId }}
+            {{- if regexMatch "^[1-9][0-9]*$" $rawProjectId }}
+            {{- $projectId = $rawProjectId | int64 }}
+            {{- end }}
+            {{- else if or (kindIs "float64" $rawProjectId) (kindIs "int64" $rawProjectId) }}
+            {{- if eq (float64 $rawProjectId) (floor $rawProjectId) }}
+            {{- $projectId = $rawProjectId | int64 }}
+            {{- end }}
+            {{- end }}
             {{- if le $projectId 0 }}
-            {{- fail (printf "analytics.posthogProjectId must be a positive number, got %q." (toString .)) }}
+            {{- fail (printf "analytics.posthogProjectId must be a positive whole number, got %q." (toString $rawProjectId)) }}
             {{- end }}
             - name: POSTHOG_PROJECT_ID
               value: {{ $projectId | quote }}

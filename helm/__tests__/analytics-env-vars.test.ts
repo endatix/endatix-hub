@@ -40,29 +40,36 @@ describe("helm signup review Visitor env vars", () => {
   // would stop extraEnvFrom from supplying the value.
   test("POSTHOG_PROJECT_ID is rendered only when posthogProjectId is set", () => {
     // Arrange
-    const guard = "{{- with .Values.analytics.posthogProjectId }}";
+    const guard =
+      '{{- if or $rawProjectId (kindIs "float64" $rawProjectId) (kindIs "int64" $rawProjectId) }}';
 
     // Act
     const guardIndex = deployment.indexOf(guard);
     const entryIndex = deployment.indexOf("- name: POSTHOG_PROJECT_ID");
-    const guardEnd = deployment.indexOf("{{- end }}", entryIndex);
+    const beforeEntry = deployment.slice(guardIndex, entryIndex);
+    const opened = beforeEntry.match(/\{\{-? (if|with|range) /g) ?? [];
+    const closed = beforeEntry.match(/\{\{-? end /g) ?? [];
 
-    // Assert
+    // Assert — the guard is still open where the entry is.
     expect(guardIndex).toBeGreaterThan(-1);
     expect(entryIndex).toBeGreaterThan(guardIndex);
-    expect(guardEnd).toBeGreaterThan(entryIndex);
+    expect(opened.length).toBeGreaterThan(closed.length);
   });
 
-  // A bare number in a values file is a float64, which `quote` prints as 1.234567e+06.
-  test("the project id is rendered as an integer", () => {
+  // A bare number in a values file is a float64, which `quote` prints as 1.234567e+06,
+  // and int64 alone reads "0123" as octal 83 and true as 1.
+  test("the project id is rendered as an integer from digits or a whole number only", () => {
     // Arrange
-    const integerCast = "{{- $projectId := . | int64 }}";
+    const digitsOnly = 'regexMatch "^[1-9][0-9]*$" $rawProjectId';
+    const wholeNumberOnly = "eq (float64 $rawProjectId) (floor $rawProjectId)";
 
     // Act
-    const castsToInteger = deployment.includes(integerCast);
+    const checksDigits = deployment.includes(digitsOnly);
+    const checksWholeNumber = deployment.includes(wholeNumberOnly);
 
     // Assert
-    expect(castsToInteger).toBe(true);
+    expect(checksDigits).toBe(true);
+    expect(checksWholeNumber).toBe(true);
     expect(deployment).toContain("value: {{ $projectId | quote }}");
   });
 

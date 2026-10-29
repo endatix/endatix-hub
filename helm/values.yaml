@@ -68,9 +68,10 @@ analytics:
   # The signup review Visitor section needs posthogUiHost, posthogProjectId and the
   # personal API key below. Leave any of them empty and the section stays hidden.
   #
-  # PostHog project id, e.g. 12345 (a bare number or a quoted string both work).
-  # Read by the Hub server only, never sent to the browser. Empty leaves
-  # POSTHOG_PROJECT_ID unset, so extraEnv / extraEnvFrom can still supply it.
+  # PostHog project id, e.g. 12345 (a bare number or a string of digits both work;
+  # anything else fails the render). Read by the Hub server only, never sent to the
+  # browser. Empty leaves POSTHOG_PROJECT_ID unset, so an envFrom source (such as
+  # extraEnvFrom, once the chart has it) can still supply it.
   posthogProjectId: ""
   # Name of an existing Secret with the key "posthog-personal-api-key": a PostHog
   # personal API key (person:read, query:read), not the phc_ project token.
