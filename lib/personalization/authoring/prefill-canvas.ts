@@ -7,6 +7,7 @@ import { withBasePath } from "@/lib/hosting";
 import { formRoutes } from "@/lib/routes/form-routes";
 import {
   isPrefillCompatible,
+  prefillShapeOf,
   prefillSourceNamed,
   prefillVariableOf,
   variablesIn,
@@ -49,15 +50,9 @@ type Chip = {
 const watches = new Map<Question, Watch>();
 let cards = 0;
 
-function inputTypeOf(question: Question): string | undefined {
-  const inputType = (question as Question & { inputType?: unknown }).inputType;
-  return typeof inputType === "string" ? inputType : undefined;
-}
-
 function fitsSource(question: Question, source: PrefillSource): boolean {
   if (!Array.isArray(source.prefillTargets)) return true;
-  const shape = { type: question.getType(), inputType: inputTypeOf(question) };
-  return isPrefillCompatible(shape, source.prefillTargets);
+  return isPrefillCompatible(prefillShapeOf(question), source.prefillTargets);
 }
 
 function andList(items: string[]): string {
@@ -260,6 +255,13 @@ function forget(question: Question): void {
   watches.delete(question);
 }
 
+/** Stops following the questions of a survey the designer replaced. */
+export function forgetPrefillMarksOf(survey: SurveyModel): void {
+  for (const question of [...watches.keys()]) {
+    if (question.survey === survey) forget(question);
+  }
+}
+
 /** Stops following every question, once the designer is gone. */
 export function clearPrefillMarks(): void {
   for (const question of [...watches.keys()]) forget(question);
@@ -279,11 +281,11 @@ export function installPrefillCanvas(
   const onRender = (_sender: SurveyModel, options: RenderedQuestion) => {
     mountPrefillMark(options.htmlElement, options.question, sources, formId);
   };
-  const bind = (survey: SurveyModel) => {
+  const bind = (survey: SurveyModel) =>
     survey.onAfterRenderQuestion.add(onRender);
-  };
   const unbind = (survey: SurveyModel) => {
     survey.onAfterRenderQuestion.remove(onRender);
+    forgetPrefillMarksOf(survey);
   };
   let attached: SurveyModel | undefined = creator.survey;
   if (attached) bind(attached);

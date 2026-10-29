@@ -3,6 +3,7 @@ import type { AudienceVariables } from "@/lib/endatix-api/audience/types";
 import {
   isPrefillCompatible,
   prefillSourceNamed,
+  prefillShapeOf,
   prefillSources,
   prefillVariableOf,
   type PrefillShape,
@@ -64,25 +65,43 @@ function expressionPath(question: Question): string | undefined {
   return `${segments.join(".")}.defaultValueExpression`;
 }
 
-function inputTypeOf(question: Question): string | undefined {
-  const inputType = (question as Question & { inputType?: unknown }).inputType;
-  return typeof inputType === "string" ? inputType : undefined;
+function located(question: Question, path: string | undefined): Located[] {
+  const expression = question.defaultValueExpression;
+  if (typeof expression !== "string" || !path) return [];
+  const shape = prefillShapeOf(question);
+  return [{ name: question.name, shape, expression, path }];
+}
+
+/**
+ * A dynamic panel's saved template, by its `templateElements` path. `getAllQuestions()` leaves
+ * template questions out, and the panels it builds from them are not what the JSON stores.
+ */
+function templateQuestions(question: Question, at: string): Located[] {
+  const template = (question as Question & { templateElements?: unknown[] })
+    .templateElements;
+  if (question.getType() !== "paneldynamic" || !Array.isArray(template))
+    return [];
+  return template.flatMap((element, index) => {
+    if (!(element instanceof Object) || !("defaultValueExpression" in element))
+      return [];
+    const inner = element as Question;
+    const path = `${at}.templateElements[${index}]`;
+    return [
+      ...located(inner, `${path}.defaultValueExpression`),
+      ...templateQuestions(inner, path),
+    ];
+  });
 }
 
 function locatedQuestions(surveyJson: object): Located[] {
   const model = new Model(surveyJson);
   try {
     return model.getAllQuestions().flatMap((question) => {
-      const expression = question.defaultValueExpression;
       const path = expressionPath(question);
-      if (typeof expression !== "string" || !path) return [];
+      const at = path?.replace(/\.defaultValueExpression$/, "");
       return [
-        {
-          name: question.name,
-          shape: { type: question.getType(), inputType: inputTypeOf(question) },
-          expression,
-          path,
-        },
+        ...located(question, path),
+        ...(at ? templateQuestions(question, at) : []),
       ];
     });
   } finally {

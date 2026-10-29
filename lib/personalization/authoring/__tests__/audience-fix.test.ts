@@ -134,6 +134,43 @@ describe("Audience fix in the designer", () => {
     ).toBe("edxLocalDateTime({renews_at})");
   });
 
+  it("clears a prefill inside a dynamic panel's template on the canvas", async () => {
+    // Arrange
+    const read = variables([
+      {
+        type: "text",
+        name: "age",
+        title: "Age",
+        inputType: "number",
+        prefillTargets: [{ type: "text", inputType: "number" }],
+      },
+    ]);
+    const creator = new SurveyCreatorModel({});
+    creator.JSON = form({
+      type: "paneldynamic",
+      name: "children",
+      templateElements: [
+        { type: "boolean", name: "adult", defaultValueExpression: "{age}" },
+      ],
+    });
+    const binding = bindAudienceToCreator(creator, {
+      variables: read,
+      refresh: () => Promise.resolve(Result.success(read)),
+    });
+    const [mismatch] = (await binding.review()).findings.filter(
+      (finding) => finding.kind === "prefill-type-mismatch",
+    );
+
+    // Act
+    binding.applyFix(mismatch);
+
+    // Assert
+    const panel = creator.survey.getQuestionByName("children") as unknown as {
+      templateElements: { defaultValueExpression?: string }[];
+    };
+    expect(panel.templateElements[0].defaultValueExpression).toBeUndefined();
+  });
+
   it("respells the reference on the canvas, as one undoable edit", async () => {
     const creator = new SurveyCreatorModel({});
     creator.JSON = form(usesBoth, {

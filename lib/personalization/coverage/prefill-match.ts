@@ -1,3 +1,4 @@
+import type { Question } from "survey-core";
 import type { AudienceVariables } from "@/lib/endatix-api/audience/types";
 
 /** Same spelling as `LOCAL_DATE_TIME_FUNCTION` in local-date-time/constants.ts. */
@@ -37,6 +38,15 @@ function sameShape(question: PrefillShape, target: PrefillShape): boolean {
     question.type === target.type &&
     plainInput(question.inputType) === plainInput(target.inputType)
   );
+}
+
+/** The type and input type of a SurveyJS question, as `prefillTargets` lists them. */
+export function prefillShapeOf(question: Question): PrefillShape {
+  const inputType = (question as Question & { inputType?: unknown }).inputType;
+  return {
+    type: question.getType(),
+    inputType: typeof inputType === "string" ? inputType : undefined,
+  };
 }
 
 /** A question fits a Property when its type and input type equal one `prefillTargets` entry. */

@@ -1,10 +1,11 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { Model, type Question } from "survey-core";
+import { Model, type Question, type SurveyModel } from "survey-core";
 import type { PrefillSource } from "../../coverage/prefill-match";
 import {
   clearPrefillMarks,
+  forgetPrefillMarksOf,
   mountPrefillMark,
   repaintPrefillMarks,
 } from "../prefill-canvas";
@@ -244,6 +245,22 @@ describe("prefill canvas chip", () => {
 
     // Assert
     expect(chipIn(host)?.textContent).toBe("Home city");
+  });
+
+  it("forgets the questions of a survey the designer replaced", () => {
+    // Arrange
+    const { host, inner } = canvas();
+    const asked = question("{city}");
+    mountPrefillMark(inner, asked, () => [CITY], "42");
+    const survey = asked.survey as unknown as SurveyModel;
+
+    // Act
+    forgetPrefillMarksOf(survey);
+    host.querySelector(".edx-prefill")?.remove();
+    asked.defaultValueExpression = "{renews_at}";
+
+    // Assert
+    expect(host.querySelector(".edx-prefill-chip")).toBeNull();
   });
 
   it("stops following a question once the designer is gone", () => {

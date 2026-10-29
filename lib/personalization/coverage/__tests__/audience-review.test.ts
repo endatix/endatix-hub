@@ -321,6 +321,42 @@ describe("reviewAudience", () => {
       },
     ]);
   });
+
+  it("warns about a prefill inside a dynamic panel's template, at its saved path", () => {
+    // Arrange
+    const read = variables([
+      {
+        type: "text",
+        name: "age",
+        title: "Age",
+        inputType: "number",
+        prefillTargets: [{ type: "text", inputType: "number" }],
+      },
+    ]);
+    const json = form({
+      type: "paneldynamic",
+      name: "children",
+      templateElements: [
+        {
+          type: "text",
+          name: "years",
+          inputType: "number",
+          defaultValueExpression: "{age}",
+        },
+        { type: "boolean", name: "adult", defaultValueExpression: "{age}" },
+      ],
+    });
+
+    // Act
+    const paths = reviewAudience(json, read)
+      .findings.filter((finding) => finding.kind === "prefill-type-mismatch")
+      .map((finding) => ("path" in finding ? finding.path : undefined));
+
+    // Assert
+    expect(paths).toEqual([
+      "pages[0].elements[0].templateElements[1].defaultValueExpression",
+    ]);
+  });
 });
 
 describe("Audience coverage", () => {
