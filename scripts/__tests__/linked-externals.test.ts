@@ -210,7 +210,28 @@ describe("dependency layouts that repeat or nest", () => {
     expect(JSON.parse(run.stdout)).toEqual([
       ".next/node_modules/postcss-16ee410f62bb922c > a",
       ".next/node_modules/postcss-16ee410f62bb922c > a > b",
+      ".next/node_modules/postcss-16ee410f62bb922c > a > b > a",
     ]);
+  });
+
+  it("checks where a cycle's closing dependency resolves", () => {
+    const a = { version: "2.0.0", dependencies: { b: "^2" }, files: { "index.js": "a" } };
+    const b = { version: "2.0.0", dependencies: { a: "^2" }, files: { "index.js": "b" } };
+    const linkPath = build(
+      {
+        "node_modules/a": a,
+        "node_modules/b": b,
+        "node_modules/b/node_modules/a": { version: "1.0.0" },
+        "node_modules/sanitize-html/node_modules/postcss": { version: "8.5.31", dependencies: { a: "^2" } },
+        "node_modules/sanitize-html/node_modules/a": a,
+        "node_modules/sanitize-html/node_modules/b": b,
+      },
+      "node_modules/sanitize-html/node_modules/postcss",
+    );
+
+    vendorLinkedExternals(layout);
+
+    expect(resolvedFromDereferencedCopy(linkPath, "a", "b", "a").version).toBe("2.0.0");
   });
 
   it("vendors a dependency that is an ancestor of the linked package", () => {

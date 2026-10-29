@@ -88,44 +88,48 @@ const versionOf = (packageDir) => readManifest(packageDir).version;
 /**
  * Dependencies of the package at `realDir` that would load other files from `viewDir`,
  * its place in a dereferenced copy. `ancestors` holds the real folders already on the
- * path, so a dependency cycle ends instead of recursing deeper forever.
+ * path: a dependency that closes a cycle is still compared, but not walked again, so
+ * the cycle ends instead of recursing deeper forever.
  */
 function collectMisresolved(standaloneDir, owner, viewDir, hostDir, realDir, ancestors) {
   const problems = [];
   for (const name of Object.keys(readManifest(realDir).dependencies ?? {})) {
     const expected = findPackageDir(realDir, name, standaloneDir);
-    if (expected === undefined || ancestors.has(realpathSync(expected))) {
+    if (expected === undefined) {
       continue;
     }
+    const closesCycle = ancestors.has(realpathSync(expected));
     const nested = new Set(ancestors).add(realpathSync(expected));
     const child = `${owner} > ${name}`;
     const seen = findPackageDir(viewDir, name, standaloneDir);
     const resolvesAlike =
       seen !== undefined &&
       samePackage(seen, expected) &&
-      collectMisresolved(standaloneDir, child, seen, seen, expected, nested).length === 0;
+      (closesCycle ||
+        collectMisresolved(standaloneDir, child, seen, seen, expected, nested).length === 0);
     if (resolvesAlike) {
       continue;
     }
     const into = path.join(hostDir, "node_modules", name);
-    problems.push({
+    const problem = {
       owner,
       name,
       expected,
       expectedVersion: versionOf(expected),
       seenVersion: seen && versionOf(seen),
       into,
-    });
-    problems.push(
-      ...collectMisresolved(
-        standaloneDir,
-        child,
-        path.join(viewDir, "node_modules", name),
-        into,
-        expected,
-        nested,
-      ),
-    );
+    };
+    const below = closesCycle
+      ? []
+      : collectMisresolved(
+          standaloneDir,
+          child,
+          path.join(viewDir, "node_modules", name),
+          into,
+          expected,
+          nested,
+        );
+    problems.push(problem, ...below);
   }
   return problems;
 }
