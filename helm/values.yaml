@@ -65,6 +65,22 @@ analytics:
   posthogProjectToken: ""
   posthogHost: "https://us.i.posthog.com"
   posthogUiHost: ""
+  # The signup review Visitor section needs posthogUiHost, posthogProjectId and the
+  # personal API key below. Leave any of them empty and the section stays hidden.
+  #
+  # PostHog project id, e.g. 12345 (a bare number or a string of digits both work;
+  # anything else fails the render). Read by the Hub server only, never sent to the
+  # browser. Empty leaves POSTHOG_PROJECT_ID unset, so an envFrom source (such as
+  # extraEnvFrom, once the chart has it) can still supply it.
+  posthogProjectId: ""
+  # Name of an existing Secret with the key "posthog-personal-api-key": a PostHog
+  # personal API key (person:read, query:read), not the phc_ project token.
+  # Server-only, unlike everything in secretName above, which reaches the browser:
+  # this key can read visitor emails, so keep it in a Secret of its own. There is
+  # no literal value for it. A missing Secret or key leaves the env var unset and
+  # hides the section; the Hub still starts. Pods read the key at start, so a
+  # Secret created later needs a restart (kubectl rollout restart).
+  personalApiKeySecretName: ""
   # `posthog` to evaluate Hub flags via PostHog. Empty / `environment` uses FLAG_*.
   flagProvider: ""
 
