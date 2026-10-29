@@ -110,17 +110,27 @@ spec:
               value: {{ .Values.analytics.posthogHost | quote }}
             - name: POSTHOG_UI_HOST
               value: {{ .Values.analytics.posthogUiHost | quote }}
+            # Rendered only when set: an `env` entry outranks `envFrom` even when empty,
+            # so an always-present one would block extraEnvFrom from supplying it.
+            {{- with .Values.analytics.posthogProjectId }}
+            {{- /* A bare number in a values file is a float64; int64 stops `quote` turning
+                   1234567 into "1.234567e+06". int64 also maps any non-number to 0. */}}
+            {{- $projectId := . | int64 }}
+            {{- if le $projectId 0 }}
+            {{- fail (printf "analytics.posthogProjectId must be a positive number, got %q." (toString .)) }}
+            {{- end }}
             - name: POSTHOG_PROJECT_ID
-              value: {{ .Values.analytics.posthogProjectId | quote }}
+              value: {{ $projectId | quote }}
+            {{- end }}
+            {{- if .Values.analytics.posthogPersonalApiKey }}
+            {{- fail "analytics.posthogPersonalApiKey is not supported: put the key in a Secret and set analytics.personalApiKeySecretName." }}
+            {{- end }}
+            {{- with .Values.analytics.personalApiKeySecretName }}
             - name: POSTHOG_PERSONAL_API_KEY
-            {{- if .Values.analytics.secretName }}
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.analytics.secretName }}
+                  name: {{ . }}
                   key: posthog-personal-api-key
-                  optional: true
-            {{- else }}
-              value: {{ .Values.analytics.posthogPersonalApiKey | quote }}
             {{- end }}
             - name: FLAG_PROVIDER
               value: {{ .Values.analytics.flagProvider | quote }}
