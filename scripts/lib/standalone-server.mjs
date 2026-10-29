@@ -55,15 +55,15 @@ export async function withStandaloneServer(serverFile, env, probe) {
   child.stdout.on("data", (chunk) => (output += chunk));
   child.stderr.on("data", (chunk) => (output += chunk));
 
-  let error;
+  let probeError;
   try {
     await waitForReady(child, () => output);
     await probe(port);
-  } catch (caught) {
-    error = caught;
+  } catch (error) {
+    probeError = error;
   } finally {
     child.kill("SIGKILL");
   }
 
-  return { output, error };
+  return { output, error: probeError };
 }
