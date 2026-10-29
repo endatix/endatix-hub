@@ -1,11 +1,29 @@
-import { chmodSync, cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { execFileSync, spawnSync } from "node:child_process";
+import {
+  chmodSync,
+  cpSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   findMisresolvedDependencies,
   vendorLinkedExternals,
 } from "../lib/linked-externals.mjs";
+
+const libraryPath = path.join(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../lib/linked-externals.mjs",
+);
 
 // A standalone folder shaped like the Hub's: sanitize-html's own postcss is linked into
 // .next/node_modules, its nanoid sits next to it, and an older nanoid is hoisted.
@@ -116,5 +134,152 @@ describe("vendorLinkedExternals", () => {
     const copies = vendorLinkedExternals(root);
 
     expect(copies.map((copy) => copy.name)).toEqual(["nanoid"]);
+  });
+});
+
+// Layouts from the review of endatix-hub#1270 (endatix-hub#1275). None occurs on today's
+// lockfile; each takes one `pnpm update`.
+describe("dependency layouts that repeat or nest", () => {
+  let layout: string;
+
+  type Package = { version: string; dependencies?: Record<string, string>; files?: Record<string, string> };
+
+  function build(packages: Record<string, Package>, link: string) {
+    layout = mkdtempSync(path.join(tmpdir(), "linked-externals-layout-"));
+    for (const [dir, { files = {}, ...manifest }] of Object.entries(packages)) {
+      writePackage(path.join(layout, dir), { name: path.basename(dir), ...manifest });
+      for (const [file, content] of Object.entries(files)) {
+        mkdirSync(path.dirname(path.join(layout, dir, file)), { recursive: true });
+        writeFileSync(path.join(layout, dir, file), content);
+      }
+    }
+    mkdirSync(path.join(layout, ".next/node_modules"), { recursive: true });
+    const linkPath = path.join(layout, ".next/node_modules", `${path.basename(link)}-16ee410f62bb922c`);
+    symlinkSync(path.relative(path.dirname(linkPath), path.join(layout, link)), linkPath);
+    return linkPath;
+  }
+
+  /** The folder a dereferenced copy of the link loads `names` from, one level per name. */
+  function resolvedFromDereferencedCopy(linkPath: string, ...names: string[]) {
+    const copy = mkdtempSync(path.join(tmpdir(), "linked-externals-copy-"));
+    try {
+      cpSync(layout, copy, { recursive: true, dereference: true });
+      let from = path.join(copy, path.relative(layout, linkPath));
+      for (const name of names) {
+        from = path.dirname(createRequire(path.join(from, "index.js")).resolve(`${name}/package.json`));
+      }
+      return { version: versionAt(from), files: readdirSync(from).sort() };
+    } finally {
+      rmSync(copy, { recursive: true, force: true });
+    }
+  }
+
+  afterEach(() => {
+    if (layout !== undefined) {
+      execFileSync("chmod", ["-R", "u+w", layout]);
+      rmSync(layout, { recursive: true, force: true });
+    }
+  });
+
+  it("returns on a dependency cycle", () => {
+    build(
+      {
+        "node_modules/a": { version: "1.0.0" },
+        "node_modules/b": { version: "1.0.0" },
+        "node_modules/sanitize-html/node_modules/postcss": { version: "8.5.31", dependencies: { a: "^2" } },
+        "node_modules/sanitize-html/node_modules/a": { version: "2.0.0", dependencies: { b: "^2" } },
+        "node_modules/sanitize-html/node_modules/b": { version: "2.0.0", dependencies: { a: "^2" } },
+      },
+      "node_modules/sanitize-html/node_modules/postcss",
+    );
+
+    // In a child process: an endless walk would otherwise hang the test runner.
+    const run = spawnSync(
+      process.execPath,
+      [
+        "--input-type=module",
+        "-e",
+        `import { findMisresolvedDependencies } from ${JSON.stringify(pathToFileURL(libraryPath).href)};
+         console.log(JSON.stringify(findMisresolvedDependencies(process.argv[1]).map((p) => p.owner + " > " + p.name)));`,
+        layout,
+      ],
+      { encoding: "utf-8", timeout: 10_000 },
+    );
+
+    expect(run.error).toBeUndefined();
+    expect(JSON.parse(run.stdout)).toEqual([
+      ".next/node_modules/postcss-16ee410f62bb922c > a",
+      ".next/node_modules/postcss-16ee410f62bb922c > a > b",
+    ]);
+  });
+
+  it("vendors a dependency that is an ancestor of the linked package", () => {
+    const linkPath = build(
+      {
+        "node_modules/a": { version: "1.0.0" },
+        "node_modules/c/node_modules/a": { version: "2.0.0" },
+        "node_modules/c/node_modules/a/node_modules/b": { version: "1.0.0", dependencies: { a: "^2" } },
+      },
+      "node_modules/c/node_modules/a/node_modules/b",
+    );
+
+    vendorLinkedExternals(layout);
+
+    expect(resolvedFromDereferencedCopy(linkPath, "a").version).toBe("2.0.0");
+  });
+
+  it("vendors overlapping dependencies whose files are read-only", () => {
+    const linkPath = build(
+      {
+        "node_modules/a": { version: "1.0.0" },
+        "node_modules/x": { version: "1.0.0" },
+        "node_modules/sanitize-html/node_modules/postcss": { version: "8.5.31", dependencies: { a: "^2" } },
+        "node_modules/sanitize-html/node_modules/a": { version: "2.0.0", dependencies: { x: "^2" } },
+        "node_modules/sanitize-html/node_modules/a/node_modules/x": { version: "2.0.0" },
+      },
+      "node_modules/sanitize-html/node_modules/postcss",
+    );
+    chmodSync(path.join(layout, "node_modules/sanitize-html/node_modules/a/node_modules/x/package.json"), 0o444);
+
+    vendorLinkedExternals(layout);
+
+    expect(resolvedFromDereferencedCopy(linkPath, "a", "x").version).toBe("2.0.0");
+  });
+
+  it("vendors a same-version copy that tracing cut down", () => {
+    const linkPath = build(
+      {
+        "node_modules/nanoid": { version: "3.3.20" },
+        "node_modules/sanitize-html/node_modules/postcss": { version: "8.5.31", dependencies: { nanoid: "^3.3.20" } },
+        "node_modules/sanitize-html/node_modules/nanoid": {
+          version: "3.3.20",
+          files: { "non-secure/index.cjs": "module.exports = {};" },
+        },
+      },
+      "node_modules/sanitize-html/node_modules/postcss",
+    );
+
+    expect(findMisresolvedDependencies(layout).map((problem) => problem.name)).toEqual(["nanoid"]);
+    vendorLinkedExternals(layout);
+
+    expect(resolvedFromDereferencedCopy(linkPath, "nanoid").files).toEqual(["non-secure", "package.json"]);
+  });
+
+  it("checks the dependencies of an identical copy that resolves from elsewhere", () => {
+    const nanoid = { version: "3.3.20", dependencies: { z: "^2" }, files: { "index.cjs": "module.exports = {};" } };
+    const linkPath = build(
+      {
+        "node_modules/nanoid": nanoid,
+        "node_modules/z": { version: "1.0.0" },
+        "node_modules/sanitize-html/node_modules/postcss": { version: "8.5.31", dependencies: { nanoid: "^3.3.20" } },
+        "node_modules/sanitize-html/node_modules/nanoid": nanoid,
+        "node_modules/sanitize-html/node_modules/z": { version: "2.0.0" },
+      },
+      "node_modules/sanitize-html/node_modules/postcss",
+    );
+
+    vendorLinkedExternals(layout);
+
+    expect(resolvedFromDereferencedCopy(linkPath, "nanoid", "z").version).toBe("2.0.0");
   });
 });

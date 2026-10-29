@@ -49,52 +49,115 @@ function linksIn(dir) {
   });
 }
 
-/**
- * Each dependency of a linked external that would resolve to another version (or not
- * at all) once the link is dereferenced, nested ones included, parents first.
- * `into` is where the expected version has to be copied so both layouts resolve it.
- */
-export function findMisresolvedDependencies(standaloneDir) {
-  const problems = [];
-
-  const visit = (owner, viewDir, hostDir, realDir) => {
-    for (const name of Object.keys(readManifest(realDir).dependencies ?? {})) {
-      const expected = findPackageDir(realDir, name, standaloneDir);
-      if (expected === undefined) {
-        continue;
+/** Files under `dir`, relative to it; `node_modules` at its top is left out when asked. */
+function listFiles(dir, { withNodeModules }, prefix = "") {
+  return readdirSync(path.join(dir, prefix)).flatMap((entry) => {
+    const relative = path.join(prefix, entry);
+    if (statSync(path.join(dir, relative)).isDirectory()) {
+      if (!withNodeModules && prefix === "" && entry === "node_modules") {
+        return [];
       }
-      const expectedVersion = readManifest(expected).version;
-      const seen = findPackageDir(viewDir, name, standaloneDir);
-      const seenVersion = seen && readManifest(seen).version;
-      if (seenVersion === expectedVersion) {
-        continue;
-      }
-      const into = path.join(hostDir, "node_modules", name);
-      problems.push({ owner, name, expected, expectedVersion, seenVersion, into });
-      visit(`${owner} > ${name}`, path.join(viewDir, "node_modules", name), into, expected);
+      return listFiles(dir, { withNodeModules }, relative);
     }
-  };
+    return [relative];
+  });
+}
 
-  for (const link of linksIn(path.join(standaloneDir, ".next/node_modules"))) {
-    const target = realpathSync(link);
-    visit(path.relative(standaloneDir, link), link, target, target);
+/**
+ * The same folder, or one with the same files: a copy tracing cut down shares the
+ * version but not the files (endatix-hub#1269). Dependencies are compared separately.
+ */
+function samePackage(a, b) {
+  if (realpathSync(a) === realpathSync(b)) {
+    return true;
+  }
+  const files = listFiles(a, { withNodeModules: false }).sort();
+  const others = listFiles(b, { withNodeModules: false }).sort();
+  return (
+    files.length === others.length &&
+    files.every(
+      (file, i) =>
+        file === others[i] &&
+        readFileSync(path.join(a, file)).equals(readFileSync(path.join(b, file))),
+    )
+  );
+}
+
+const versionOf = (packageDir) => readManifest(packageDir).version;
+
+/**
+ * Dependencies of the package at `realDir` that would load other files from `viewDir`,
+ * its place in a dereferenced copy. `ancestors` holds the real folders already on the
+ * path, so a dependency cycle ends instead of recursing deeper forever.
+ */
+function collectMisresolved(standaloneDir, owner, viewDir, hostDir, realDir, ancestors) {
+  const problems = [];
+  for (const name of Object.keys(readManifest(realDir).dependencies ?? {})) {
+    const expected = findPackageDir(realDir, name, standaloneDir);
+    if (expected === undefined || ancestors.has(realpathSync(expected))) {
+      continue;
+    }
+    const nested = new Set(ancestors).add(realpathSync(expected));
+    const child = `${owner} > ${name}`;
+    const seen = findPackageDir(viewDir, name, standaloneDir);
+    const resolvesAlike =
+      seen !== undefined &&
+      samePackage(seen, expected) &&
+      collectMisresolved(standaloneDir, child, seen, seen, expected, nested).length === 0;
+    if (resolvesAlike) {
+      continue;
+    }
+    const into = path.join(hostDir, "node_modules", name);
+    problems.push({
+      owner,
+      name,
+      expected,
+      expectedVersion: versionOf(expected),
+      seenVersion: seen && versionOf(seen),
+      into,
+    });
+    problems.push(
+      ...collectMisresolved(
+        standaloneDir,
+        child,
+        path.join(viewDir, "node_modules", name),
+        into,
+        expected,
+        nested,
+      ),
+    );
   }
   return problems;
 }
 
+/**
+ * Each dependency of a linked external that would load other files once the link is
+ * dereferenced, nested ones included, parents first. `into` is where the expected
+ * folder has to be copied so both layouts resolve it.
+ */
+export function findMisresolvedDependencies(standaloneDir) {
+  return linksIn(path.join(standaloneDir, ".next/node_modules")).flatMap((link) => {
+    const target = realpathSync(link);
+    return collectMisresolved(
+      standaloneDir,
+      path.relative(standaloneDir, link),
+      link,
+      target,
+      target,
+      new Set([target]),
+    );
+  });
+}
+
+// Lists every file before writing one, so a copy into the source's own subfolder (a
+// dependency that is an ancestor of the linked package) does not copy its own output.
 // Folders are created writable rather than with the source's mode: fs.cpSync copies a
 // read-only folder's mode first and then cannot write into it on a macOS folder
 // bind-mounted into Docker, as dev containers run the build.
 function copyPackage(from, to) {
-  mkdirSync(to, { recursive: true });
-  for (const entry of readdirSync(from)) {
-    const source = path.join(from, entry);
-    const target = path.join(to, entry);
-    if (statSync(source).isDirectory()) {
-      copyPackage(source, target);
-    } else {
-      copyFileSync(source, target);
-    }
+  for (const file of listFiles(from, { withNodeModules: true })) {
+    mkdirSync(path.dirname(path.join(to, file)), { recursive: true });
+    copyFileSync(path.join(from, file), path.join(to, file));
   }
 }
 
@@ -103,9 +166,15 @@ function copyPackage(from, to) {
  * the standalone runs the same with symlinks kept or dereferenced. Returns the copies.
  */
 export function vendorLinkedExternals(standaloneDir) {
-  const copies = findMisresolvedDependencies(standaloneDir);
-  for (const { expected, into } of copies) {
-    copyPackage(expected, into);
+  const copies = [];
+  for (const problem of findMisresolvedDependencies(standaloneDir)) {
+    // A parent copy already brought it: Node finds it at that same place from the
+    // real path first, and its read-only files cannot be overwritten.
+    if (existsSync(path.join(problem.into, "package.json"))) {
+      continue;
+    }
+    copyPackage(problem.expected, problem.into);
+    copies.push(problem);
   }
 
   const remaining = findMisresolvedDependencies(standaloneDir);
