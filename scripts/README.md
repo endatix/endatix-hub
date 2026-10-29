@@ -83,7 +83,11 @@ pnpm build && pnpm check:runtime-storage
 
 ### `check-dereferenced-standalone.mjs`
 
-Smoke check for Azure Static Web Apps, which dereferences symlinks when it uploads a hybrid Next.js app (endatix-hub#1269). It copies `.next/standalone` to a temp folder with every symlink replaced by its target, starts that copy, and fails unless `/signin` answers 200 with no `Failed to load external module` or `Cannot find module` in the log. A nested external that Turbopack links into `.next/node_modules` breaks it when its dependencies are missing from the top-level `node_modules`; add the package to `NESTED_EXTERNALS` in `lib/hosting/standalone-trace-includes.mjs`. CI runs it after `pnpm build`.
+Smoke check for Azure Static Web Apps, which dereferences symlinks when it uploads a hybrid Next.js app (endatix-hub#1269). It fails when an external that Turbopack links into `.next/node_modules` would resolve another version of a dependency with its link dereferenced. It then copies `.next/standalone` to a temp folder with every symlink replaced by its target, starts that copy, and fails unless `/signin` answers 200 with no `Failed to load external module` or `Cannot find module` in the log. CI runs it after `pnpm build`.
+
+### `vendor-linked-externals.mjs`
+
+Runs as part of `pnpm build`, after `next build`. For each external that Turbopack links into `.next/standalone/.next/node_modules` (for example `sanitize-html`'s own `postcss`), it copies the dependency versions the package resolves from its real path into the package's own `node_modules`. The standalone then loads the same code whether the host keeps symlinks (Docker, Kubernetes) or dereferences them (Azure Static Web Apps).
 
 **Usage:**
 

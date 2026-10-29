@@ -1,7 +1,12 @@
+import { existsSync } from "node:fs";
 import { cp, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  describeProblem,
+  findMisresolvedDependencies,
+} from "./lib/linked-externals.mjs";
 import { withStandaloneServer } from "./lib/standalone-server.mjs";
 
 // Smoke check for Azure Static Web Apps (endatix-hub#1269): SWA dereferences symlinks
@@ -10,8 +15,10 @@ import { withStandaloneServer } from "./lib/standalone-server.mjs";
 // folder, the package resolves its dependencies from the top-level node_modules, and
 // every server route answers 500 if tracing left them out there.
 //
-// Requires an existing `pnpm build` (output: "standalone"). Copies the standalone folder
-// the way SWA does, starts it, and renders the sign-in page.
+// Requires an existing `pnpm build` (output: "standalone"). Fails when a linked external
+// would load another version of a dependency once dereferenced (a load can succeed on
+// the wrong version), then copies the standalone folder the way SWA does, starts it,
+// and renders the sign-in page.
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const standaloneDir = join(__dirname, "..", ".next/standalone");
@@ -53,6 +60,23 @@ async function renderPage(port) {
   }
 }
 
+function checkLinkedExternals() {
+  if (!existsSync(standaloneDir)) {
+    fail(".next/standalone not found — run `pnpm build` first");
+  }
+  const problems = findMisresolvedDependencies(standaloneDir);
+  if (problems.length > 0) {
+    fail(
+      "linked externals resolve other versions with symlinks dereferenced:\n" +
+        problems.map((problem) => `   - ${describeProblem(problem)}`).join("\n"),
+    );
+  }
+  console.log(
+    " \x1b[32m✓\x1b[0m linked externals resolve their own dependency versions",
+  );
+}
+
+checkLinkedExternals();
 const copyDir = await copyDereferenced();
 const { output, error } = await withStandaloneServer(
   join(copyDir, "server.js"),

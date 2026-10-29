@@ -2,7 +2,6 @@ import type { NextConfig } from "next";
 import { normalizeBasePath } from "./lib/hosting/base-path";
 import { resolveHubBuild } from "./lib/hosting/hub-build.mjs";
 import { getHubDeploymentId } from "./lib/hosting/hub-version";
-import { dereferencedExternalTraceIncludes } from "./lib/hosting/standalone-trace-includes.mjs";
 import { getRewriteRuleFor } from "./lib/hosting/next-config-helper";
 import { Rewrite } from "next/dist/lib/load-custom-routes";
 import { withEndatix } from "@/features/config";
@@ -24,8 +23,6 @@ const nextConfig: NextConfig = {
   // Skew protection. Opaque hash of the build so ?dpl= is not the semver.
   deploymentId: getHubDeploymentId(hubBuild),
   output: "standalone", // Used to decrease the size of the application, check https://nextjs.org/docs/pages/api-reference/next-config-js/output
-  // Azure Static Web Apps dereferences symlinks on upload; see standalone-trace-includes.mjs.
-  outputFileTracingIncludes: { "/*": dereferencedExternalTraceIncludes() },
   basePath: normalizeBasePath(),
   // Keep OTel + Azure exporters out of the server bundle so instrumentation and
   // route handlers share one @opentelemetry/api-logs global (otherwise emit() is a no-op).
