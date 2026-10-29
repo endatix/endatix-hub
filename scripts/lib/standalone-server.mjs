@@ -54,6 +54,8 @@ export async function withStandaloneServer(serverFile, env, probe) {
   let output = "";
   child.stdout.on("data", (chunk) => (output += chunk));
   child.stderr.on("data", (chunk) => (output += chunk));
+  // Callers delete the server's folder next; Windows refuses while the process lives.
+  const closed = new Promise((resolve) => child.once("close", resolve));
 
   let probeError;
   try {
@@ -63,6 +65,7 @@ export async function withStandaloneServer(serverFile, env, probe) {
     probeError = error;
   } finally {
     child.kill("SIGKILL");
+    await closed;
   }
 
   return { output, error: probeError };
