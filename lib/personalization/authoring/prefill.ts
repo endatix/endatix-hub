@@ -5,7 +5,6 @@ import { formRoutes } from "@/lib/routes/form-routes";
 import { LOCAL_DATE_TIME_FUNCTION } from "@/lib/survey-features/local-date-time";
 import {
   isPrefillCompatible,
-  prefillSources,
   prefillVariableOf,
   type PrefillShape,
   type PrefillSource,
@@ -13,7 +12,8 @@ import {
 import { PREFILL_CHOICE, registerPrefillChoice } from "./prefill-choice";
 
 export type { PrefillShape, PrefillSource };
-export { isPrefillCompatible, prefillSources, prefillVariableOf };
+export { isPrefillCompatible, prefillVariableOf };
+export { prefillSources } from "../coverage/prefill-match";
 
 const PREFILL_FROM = "edxPrefillFrom";
 const PREFILL_EXPRESSION_LINK = "edxPrefillFrom_expression";
@@ -22,7 +22,7 @@ const PREFILL_EDITABLE = "edxPrefillEditable";
 const PREFILL_CATEGORY = "personalization";
 const PREFILL_KIND = "edxPrefillKind";
 const PERSONALIZATION_ICON = "icon-personalization";
-const VARIABLE_NAME = /^[A-Za-z0-9_]+$/;
+const VARIABLE_NAME = /^\w+$/;
 
 type PrefillBinding = {
   sources: () => PrefillSource[];
@@ -503,7 +503,7 @@ export function installPrefill(
       namePersonalization(options.survey);
       return;
     }
-    if (options.reason !== "designer") return;
+    if (options.area !== "designer-tab") return;
     if (attached) detachSurvey(attached, read);
     attached = options.survey;
     attachSurvey(attached, creator, read, formId);

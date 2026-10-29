@@ -257,14 +257,14 @@ function forget(question: Question): void {
 
 /** Stops following the questions of a survey the designer replaced. */
 export function forgetPrefillMarksOf(survey: SurveyModel): void {
-  for (const question of [...watches.keys()]) {
+  for (const question of watches.keys()) {
     if (question.survey === survey) forget(question);
   }
 }
 
 /** Stops following every question, once the designer is gone. */
 export function clearPrefillMarks(): void {
-  for (const question of [...watches.keys()]) forget(question);
+  for (const question of watches.keys()) forget(question);
 }
 
 type RenderedQuestion = { htmlElement: HTMLElement; question: Question };
@@ -294,7 +294,7 @@ export function installPrefillCanvas(
     _: unknown,
     options: SurveyInstanceCreatedEvent,
   ): void => {
-    if (options.reason !== "designer") return;
+    if (options.area !== "designer-tab") return;
     if (attached) unbind(attached);
     attached = options.survey;
     bind(attached);
