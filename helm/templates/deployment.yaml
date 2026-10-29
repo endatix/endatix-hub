@@ -131,6 +131,8 @@ spec:
                 secretKeyRef:
                   name: {{ . }}
                   key: posthog-personal-api-key
+                  # An admin-only panel must not keep the whole Hub from starting.
+                  optional: true
             {{- end }}
             - name: FLAG_PROVIDER
               value: {{ .Values.analytics.flagProvider | quote }}

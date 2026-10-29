@@ -86,6 +86,21 @@ describe("helm signup review Visitor env vars", () => {
     expect(entry).not.toMatch(/^\s*value:/m);
   });
 
+  // The Visitor section is admin-only; a missing key Secret must not stop the Hub starting.
+  test("a missing personal API key Secret does not block pods", () => {
+    // Arrange
+    const entryIndex = deployment.indexOf("- name: POSTHOG_PERSONAL_API_KEY");
+
+    // Act
+    const entry = deployment.slice(
+      entryIndex,
+      deployment.indexOf("{{- end }}", entryIndex),
+    );
+
+    // Assert
+    expect(entry).toMatch(/^\s*optional: true$/m);
+  });
+
   // The key can read visitor emails, so a literal in a git-tracked values file is refused.
   test("rendering fails when a plaintext personal API key is set", () => {
     // Arrange
