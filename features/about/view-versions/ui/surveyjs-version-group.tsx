@@ -59,7 +59,12 @@ function SharedRow({ version }: Readonly<{ version: string | undefined }>) {
         />
       </dl>
       <p className="text-xs text-muted-foreground">
-        {SURVEYJS_PACKAGES.join(", ")}
+        {SURVEYJS_PACKAGES.map((name, index) => (
+          <span key={name} className="whitespace-nowrap">
+            {name}
+            {index < SURVEYJS_PACKAGES.length - 1 && ", "}
+          </span>
+        ))}
       </p>
     </div>
   );
