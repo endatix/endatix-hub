@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import type { AudienceDataType } from "@/lib/endatix-api/audience/types";
 import { FieldWithHelp, helpId } from "@/components/common/field-with-help";
 import { OptionsSelect } from "../../ui/options-select";
-import { CREATABLE_DATA_TYPES } from "../../property-types";
+import { AUDIENCE_DATA_TYPES } from "../../property-types";
 
 const NAME_ID = "add-property-name";
 const TYPE_ID = "add-property-type";
@@ -80,7 +80,7 @@ function TypeField({ form }: Readonly<{ form: PropertyEditor }>) {
       <OptionsSelect
         id={TYPE_ID}
         value={form.dataType}
-        options={CREATABLE_DATA_TYPES}
+        options={AUDIENCE_DATA_TYPES}
         disabled={form.pending}
         describedBy={helpId(TYPE_ID)}
         onChange={change}
