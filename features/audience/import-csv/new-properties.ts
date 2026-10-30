@@ -1,5 +1,6 @@
-import type { AudienceDataType } from "@/lib/endatix-api/audience/types";
+import { AudienceDataType } from "@/lib/endatix-api/audience/types";
 import { variableNameFromName } from "../property-types";
+import type { NewChoiceGroup } from "./column-map";
 import { suggestDataType, type TypeSuggestion } from "./type-suggestion";
 
 /** A property the New properties step will create from a column, as the scripter edits it. */
@@ -8,6 +9,8 @@ export type PropertyDraft = {
   name: string;
   dataType: AudienceDataType;
   suggestion: TypeSuggestion;
+  /** The `variable__choice` columns a multiple-choice draft is made from; `null` for one column. */
+  group: NewChoiceGroup | null;
 };
 
 /** What already holds a variable name: the form's data, a property, or another queued column. */
@@ -25,13 +28,15 @@ export type NameCheck = {
   holder: VariableHolder | null;
   /** The first `Name 2`, `Name 3`… whose variable nothing holds, when one was checked. */
   suggestedName: string | null;
+  /** The variable a group's columns are read by, when the name gives another one. */
+  readBy: string | null;
 };
 
 /** The suffixes a suggested name may take, so the form check can be asked about them at once. */
 const SUGGESTED_SUFFIXES = 9;
 
 /** `region_code` → `Region code`: separators become spaces, and the first letter a capital. */
-function tidyHeading(heading: string): string {
+export function tidyHeading(heading: string): string {
   const words = heading.replace(/[_\-.\s]+/g, " ").trim();
   return words.charAt(0).toUpperCase() + words.slice(1);
 }
@@ -47,6 +52,28 @@ export function draftOf(
     name: tidyHeading(column),
     dataType: suggestion.dataType,
     suggestion,
+    group: null,
+  };
+}
+
+/** A group's choices as a reader sees them: `nike · puma, and Other`. */
+export function choicesLabel({ choices, allowsOther }: NewChoiceGroup): string {
+  return `${choices.join(" · ")}${allowsOther ? ", and Other" : ""}`;
+}
+
+/** A draft for a choice group: multiple choice, its suffixes as the choices, with no inference. */
+export function groupDraftOf(group: NewChoiceGroup): PropertyDraft {
+  return {
+    column: group.key,
+    name: tidyHeading(group.variable),
+    dataType: AudienceDataType.MultipleChoice,
+    suggestion: {
+      dataType: AudienceDataType.MultipleChoice,
+      values: [],
+      reason: `${group.columns.length} columns named ${group.variable}__`,
+      choices: group.choices,
+    },
+    group,
   };
 }
 
@@ -76,17 +103,24 @@ function freeName(
   return free === undefined ? null : suffixedName(name, free);
 }
 
-/** The variable a draft's name gets, and what already holds it with a free name instead. */
+/**
+ * The variable a draft's name gets, and what already holds it with a free name instead. A group's
+ * columns are read by `readBy`, so its name must give that variable and no other name is suggested.
+ */
 export function checkDraftName(
   name: string,
   holderOf: (variable: string) => VariableHolder | null,
+  readBy: string | null = null,
 ): NameCheck {
   const variableName = variableNameFromName(name);
   const holder = variableName ? holderOf(variableName) : null;
+  const misread =
+    readBy !== null && variableName !== "" && variableName !== readBy;
   return {
     variableName,
-    invalid: variableName === "",
+    invalid: variableName === "" || misread,
     holder,
-    suggestedName: holder ? freeName(name, holderOf) : null,
+    suggestedName: holder && readBy === null ? freeName(name, holderOf) : null,
+    readBy: misread ? readBy : null,
   };
 }

@@ -13,7 +13,11 @@ import {
 } from "@/lib/endatix-api/audience/types";
 import { CREATABLE_DATA_TYPES, dataTypeLabel } from "../../property-types";
 import { OptionsSelect, type SelectOption } from "../../ui/options-select";
-import type { NameCheck, VariableHolder } from "../new-properties";
+import {
+  choicesLabel,
+  type NameCheck,
+  type VariableHolder,
+} from "../new-properties";
 import type { TypeSuggestion } from "../type-suggestion";
 import type { ImportWizard } from "../use-import-csv.hook";
 import type { CheckedDraft } from "../use-new-properties.hook";
@@ -34,9 +38,10 @@ const HELD_BY: Record<VariableHolder, (variable: string) => string> = {
 };
 
 function nameHelp(check: NameCheck): string {
+  if (check.readBy)
+    return `The columns are read by Variable ${check.readBy}, so keep a name that gives ${check.readBy}.`;
   if (check.invalid) return NO_VARIABLE;
-  if (!check.holder)
-    return `Variable ${check.variableName}. It never changes.`;
+  if (!check.holder) return `Variable ${check.variableName}. It never changes.`;
   const held = HELD_BY[check.holder](check.variableName);
   return check.suggestedName ? held : `${held} Choose another name.`;
 }
@@ -85,13 +90,17 @@ function nameInputProps({ wizard, draft }: DraftProps, id: string) {
   };
 }
 
+/** What a draft's fields are for, to a screen reader: its column, or a group's columns. */
+const draftTarget = ({ column, group }: CheckedDraft) =>
+  group ? `Columns ${group.variable}__` : column;
+
 function NameField(props: Readonly<DraftProps>) {
   const id = `import-new-name-${props.index}`;
-  const { check, column } = props.draft;
+  const { check } = props.draft;
   return (
     <FieldWithHelp
       id={id}
-      label={fieldLabel("Name", column)}
+      label={fieldLabel("Name", draftTarget(props.draft))}
       invalid={check.invalid}
       help={nameHelp(check)}
     >
@@ -156,13 +165,28 @@ function TypeField(props: Readonly<DraftProps>) {
   );
 }
 
+/** A group's type is multiple choice and its choices are its suffixes, so there is nothing to pick. */
+function GroupType({ draft }: Readonly<DraftProps>) {
+  if (!draft.group) return null;
+  return (
+    <p className="text-sm text-muted-foreground">
+      {dataTypeLabel(draft.dataType)}: {choicesLabel(draft.group)}.
+    </p>
+  );
+}
+
+/** The column a draft is made from, or a group's columns, as its heading. */
+function draftHeading({ column, group }: CheckedDraft): string {
+  return group ? group.columns.join(", ") : column;
+}
+
 function DraftFields(props: Readonly<DraftProps>) {
   return (
     <div className="grid gap-3">
-      <p className="font-mono text-sm">{props.draft.column}</p>
+      <p className="font-mono text-sm">{draftHeading(props.draft)}</p>
       <NameField {...props} />
       <UseSuggestedName {...props} />
-      <TypeField {...props} />
+      {props.draft.group ? <GroupType {...props} /> : <TypeField {...props} />}
     </div>
   );
 }

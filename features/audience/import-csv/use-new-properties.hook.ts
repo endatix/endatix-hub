@@ -10,11 +10,12 @@ import { createAudiencePropertyAction } from "../create-property/create-audience
 import { variableNameFromName } from "../property-types";
 import { checkPropertyNamesAction } from "./check-property-names.action";
 import { checkNamesInChunks, NAME_CHECK_FAILED } from "./check-names";
-import type { ColumnMap } from "./column-map";
+import type { ColumnMap, NewChoiceGroup } from "./column-map";
 import {
   candidateVariables,
   checkDraftName,
   draftOf,
+  groupDraftOf,
   type NameCheck,
   type PropertyDraft,
   type VariableHolder,
@@ -32,13 +33,18 @@ function columnValues(file: LoadedFile, column: string): string[] {
   return file.rows.map((row) => row.cells[at] ?? "");
 }
 
-/** Each queued column's draft before any edit, worked out once per file. */
-function useBaseDrafts(file: LoadedFile | null) {
+/** Each queued column's draft before any edit, worked out once per file; a group's from its columns. */
+function useBaseDrafts(
+  file: LoadedFile | null,
+  groups: readonly NewChoiceGroup[],
+) {
   const { drafts } = useMemo(
     () => ({ file, drafts: new Map<string, PropertyDraft>() }),
     [file],
   );
   return (column: string): PropertyDraft => {
+    const group = groups.find((g) => g.key === column);
+    if (group) return groupDraftOf(group);
     let draft = drafts.get(column);
     if (!draft) {
       draft = draftOf(column, file ? columnValues(file, column) : []);
@@ -93,7 +99,10 @@ function useFormAnswers(formId: string) {
   const ask = (variables: string[], onAnswer: () => void) => {
     const request = formTaken(formId, variables).then((taken) =>
       storeTaken(taken, variables, {
-        known: known.current, asked: asked.current, failed, onAnswer,
+        known: known.current,
+        asked: asked.current,
+        failed,
+        onAnswer,
       }),
     );
     variables.forEach((variable) => asked.current.set(variable, request));
@@ -180,25 +189,43 @@ function checkedDrafts(
   };
   return drafts.map((draft) => ({
     ...draft,
-    check: checkDraftName(draft.name, holderFor(draft, drafts, taken)),
+    check: checkDraftName(
+      draft.name,
+      holderFor(draft, drafts, taken),
+      draft.group?.variable ?? null,
+    ),
   }));
 }
 
-const createInput = (formId: string, draft: PropertyDraft) => ({
-  formId,
-  name: draft.name,
-  dataType: draft.dataType,
-  choicesJson:
-    draft.dataType === AudienceDataType.SingleChoice
-      ? JSON.stringify(draft.suggestion.choices)
-      : null,
-});
+function createInput(formId: string, draft: PropertyDraft) {
+  const { group } = draft;
+  if (group) {
+    return {
+      formId,
+      name: draft.name,
+      dataType: AudienceDataType.MultipleChoice,
+      choicesJson: JSON.stringify(group.choices),
+      allowsOther: group.allowsOther,
+    };
+  }
+  return {
+    formId,
+    name: draft.name,
+    dataType: draft.dataType,
+    choicesJson:
+      draft.dataType === AudienceDataType.SingleChoice
+        ? JSON.stringify(draft.suggestion.choices)
+        : null,
+  };
+}
 
 type NewPropertiesSetup = {
   formId: string;
   file: LoadedFile | null;
-  /** The columns the Columns step queued to create a property, in file order. */
+  /** The columns (and choice group keys) the Columns step queued to create a property, in file order. */
   queued: string[];
+  /** The file's new choice groups, so a queued group key gets its multiple-choice draft. */
+  groups: readonly NewChoiceGroup[];
   /** The form's properties, with the ones created here. */
   properties: readonly AudienceProperty[];
   /** Maps a column to the property just created for it, so a retry never creates it twice. */
@@ -282,7 +309,7 @@ function useCheckedDrafts(
   edits: Record<string, DraftEdit>,
   found: ReadonlyMap<string, VariableHolder>,
 ): CheckedDraft[] {
-  const baseDraft = useBaseDrafts(setup.file);
+  const baseDraft = useBaseDrafts(setup.file, setup.groups);
   const plain = setup.queued.map((column) => ({
     ...baseDraft(column),
     ...edits[column],

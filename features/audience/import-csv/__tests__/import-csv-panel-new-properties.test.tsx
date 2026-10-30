@@ -258,7 +258,9 @@ describe("ImportCsvPanel: new properties from the file's columns", () => {
     // Assert
     expect((button("Creating…") as HTMLButtonElement).disabled).toBe(true);
     answer(Result.success([]));
-    await waitFor(() => expect(createAudiencePropertyAction).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(createAudiencePropertyAction).toHaveBeenCalled(),
+    );
   });
 
   it("waits for the form check still running before it creates anything", async () => {
@@ -308,7 +310,9 @@ describe("ImportCsvPanel: new properties from the file's columns", () => {
     fireEvent.click(button("Retry"));
 
     // Assert
-    await waitFor(() => expect(createAudiencePropertyAction).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(createAudiencePropertyAction).toHaveBeenCalled(),
+    );
   });
 
   it("asks the form again after a check that failed", async () => {
@@ -427,6 +431,159 @@ describe("ImportCsvPanel: new properties from the file's columns", () => {
       expect.objectContaining({
         propertyColumns: { age: "age", segment: "segment", region: "region" },
       }),
+    );
+  });
+});
+
+const BRANDS_CSV =
+  "external_id,brands__nike,brands__puma,brands__adidas,brands__other,brands__other_text\n" +
+  "CG-1,1,0,1,0,\nCG-2,0,1,0,1,Reebok\n";
+
+const BRANDS = "Columns brands__";
+
+async function openGroupOnColumns(csv = BRANDS_CSV) {
+  renderPanel(BACKGROUND, [AGE]);
+  await waitFor(() => expect(getAudienceImportAction).toHaveBeenCalled());
+  fireEvent.click(button("Import CSV"));
+  chooseFile(csv);
+  await screen.findByText(/panel\.csv: 2 rows/);
+  fireEvent.click(continueButton());
+}
+
+describe("ImportCsvPanel: a new multiple-choice property from a __ column group", () => {
+  beforeEach(() => {
+    resetPanelMocks();
+    vi.mocked(checkPropertyNamesAction).mockReset();
+    vi.mocked(checkPropertyNamesAction).mockResolvedValue(Result.success([]));
+    vi.mocked(createAudiencePropertyAction).mockReset();
+    vi.mocked(createAudiencePropertyAction).mockResolvedValue(
+      Result.success({
+        ...created("Brands", "brands"),
+        dataType: AudienceDataType.MultipleChoice,
+        choicesJson: '["nike","puma","adidas"]',
+        allowsOther: true,
+      }),
+    );
+    vi.mocked(startAudienceImportAction).mockResolvedValue(
+      Result.success(
+        view({ upload: { rowCount: 2, chunkSize: 1_000, missingChunks: [0] } }),
+      ),
+    );
+    vi.mocked(sendAudienceImportChunkAction).mockResolvedValue(
+      Result.success(view({ status: "checking" })),
+    );
+  });
+
+  it("shows the group as one row with its column count and choices, counted once", async () => {
+    // Act
+    await openGroupOnColumns();
+
+    // Assert
+    const select = screen.getByLabelText(BRANDS) as HTMLSelectElement;
+    expect(select.selectedOptions[0]?.text).toBe(
+      "Create 'Brands' (multiple choice)",
+    );
+    expect(
+      screen.getByText("5 columns: nike · puma · adidas, and Other."),
+    ).toBeTruthy();
+    expect(screen.getByText("0 mapped, 1 to create, 0 ignored")).toBeTruthy();
+    expect(screen.queryByLabelText("brands__nike")).toBeNull();
+  });
+
+  it("creates the property with the suffixes as choices and Other allowed, then imports the columns by name", async () => {
+    // Arrange
+    await openGroupOnColumns();
+    fireEvent.click(continueButton());
+    await screen.findByLabelText(`Name for ${BRANDS}`);
+
+    // Assert
+    expect(
+      (screen.getByLabelText(`Name for ${BRANDS}`) as HTMLInputElement).value,
+    ).toBe("Brands");
+    expect(
+      screen.getByText("Multiple choice: nike · puma · adidas, and Other."),
+    ).toBeTruthy();
+
+    // Act
+    fireEvent.click(button("Create 1 property"));
+
+    // Assert
+    await waitFor(() => expect(startAudienceImportAction).toHaveBeenCalled());
+    expect(createAudiencePropertyAction).toHaveBeenCalledWith({
+      formId: "1",
+      name: "Brands",
+      dataType: AudienceDataType.MultipleChoice,
+      choicesJson: '["nike","puma","adidas"]',
+      allowsOther: true,
+    });
+    expect(startAudienceImportAction).toHaveBeenCalledWith(
+      expect.objectContaining({ propertyColumns: {} }),
+    );
+  });
+
+  it("does not allow Other when the file has no __other columns", async () => {
+    // Arrange
+    await openGroupOnColumns(
+      "external_id,brands__nike,brands__puma,brands__adidas\nCG-1,1,0,1\nCG-2,0,1,0\n",
+    );
+    expect(screen.getByText("3 columns: nike · puma · adidas.")).toBeTruthy();
+    fireEvent.click(continueButton());
+    await screen.findByLabelText(`Name for ${BRANDS}`);
+
+    // Act
+    fireEvent.click(button("Create 1 property"));
+
+    // Assert
+    await waitFor(() =>
+      expect(createAudiencePropertyAction).toHaveBeenCalled(),
+    );
+    expect(createAudiencePropertyAction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        choicesJson: '["nike","puma","adidas"]',
+        allowsOther: false,
+      }),
+    );
+  });
+
+  it("imports none of the group's columns when it is not imported", async () => {
+    // Arrange
+    await openGroupOnColumns();
+
+    // Act
+    pick(BRANDS, "Don't import");
+
+    // Assert
+    expect(screen.getByText("0 mapped, 0 to create, 1 ignored")).toBeTruthy();
+    fireEvent.click(continueButton());
+    await waitFor(() => expect(startAudienceImportAction).toHaveBeenCalled());
+    expect(createAudiencePropertyAction).not.toHaveBeenCalled();
+  });
+
+  it("keeps the name to one whose variable reads the columns", async () => {
+    // Arrange
+    await openGroupOnColumns();
+    fireEvent.click(continueButton());
+    const name = await screen.findByLabelText(`Name for ${BRANDS}`);
+
+    // Act
+    fireEvent.change(name, { target: { value: "Brand list" } });
+
+    // Assert
+    expect(
+      screen.getByText(
+        "The columns are read by Variable brands, so keep a name that gives brands.",
+      ),
+    ).toBeTruthy();
+    expect((button("Create 1 property") as HTMLButtonElement).disabled).toBe(
+      true,
+    );
+
+    // Act
+    fireEvent.change(name, { target: { value: "BRANDS!" } });
+
+    // Assert
+    expect((button("Create 1 property") as HTMLButtonElement).disabled).toBe(
+      false,
     );
   });
 });

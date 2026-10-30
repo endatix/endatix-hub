@@ -23,7 +23,24 @@ export type ChoiceColumnGroup = {
   columns: string[];
 };
 
+/**
+ * `variable__choice` columns no property has the variable of, read as one multiple-choice
+ * property: its choices are the suffixes in file order, and `__other` / `__other_text` allow Other.
+ */
+export type NewChoiceGroup = {
+  /** The group's row in a `ColumnMap`: `variable__*`. */
+  key: string;
+  variable: string;
+  columns: string[];
+  choices: string[];
+  allowsOther: boolean;
+};
+
 const CHOICE_SEPARATOR = "__";
+const GROUP_KEY_SUFFIX = `${CHOICE_SEPARATOR}*`;
+const OTHER_SUFFIXES = new Set(["other", "other_text"]);
+/** The API's separator between a cell's choices, so a choice key cannot hold it. */
+const CHOICE_VALUE_SEPARATOR = "|";
 
 const IDENTIFIER_KEYS: Readonly<Record<AudienceIdentifierKind, string[]>> = {
   [AudienceIdentifierKind.Email]: ["email", "email_address", "e_mail"],
@@ -64,7 +81,89 @@ export function choiceColumnGroups(
     .filter((group) => group.columns.length > 0);
 }
 
-/** Columns the reader maps by hand: named, not the identifier, not read by a choice property. */
+export const isChoiceGroupKey = (key: string) => key.endsWith(GROUP_KEY_SUFFIX);
+
+/** The header's variable and choice when the API would read it as a choice column; else `null`. */
+function splitChoiceHeader(header: string) {
+  const at = header.indexOf(CHOICE_SEPARATOR);
+  if (at <= 0) return null;
+  const variable = header.slice(0, at);
+  if (variableNameFromName(variable) !== variable.toLowerCase()) return null;
+  return {
+    variable: variable.toLowerCase(),
+    choice: header.slice(at + CHOICE_SEPARATOR.length),
+  };
+}
+
+function headersByVariable(headers: string[]) {
+  const byVariable = new Map<string, { column: string; choice: string }[]>();
+  for (const column of headers) {
+    const split = splitChoiceHeader(column);
+    if (!split) continue;
+    const group = byVariable.get(split.variable) ?? [];
+    group.push({ column, choice: split.choice });
+    byVariable.set(split.variable, group);
+  }
+  return byVariable;
+}
+
+/** Keys the API takes: one or more, none blank, none with `|`, none repeated in any case. */
+function validChoices(choices: string[]): boolean {
+  const lower = new Set(choices.map((choice) => choice.toLowerCase()));
+  return (
+    choices.length > 0 &&
+    lower.size === choices.length &&
+    choices.every(
+      (choice) => choice.trim() && !choice.includes(CHOICE_VALUE_SEPARATOR),
+    )
+  );
+}
+
+function groupOf(
+  variable: string,
+  members: { column: string; choice: string }[],
+): NewChoiceGroup | null {
+  const isOther = (choice: string) => OTHER_SUFFIXES.has(choice.toLowerCase());
+  const choices = members.map((m) => m.choice).filter((c) => !isOther(c));
+  if (members.length < 2 || !validChoices(choices)) return null;
+  return {
+    key: `${variable}${GROUP_KEY_SUFFIX}`,
+    variable,
+    columns: members.map((member) => member.column),
+    choices,
+    allowsOther: members.some((member) => isOther(member.choice)),
+  };
+}
+
+/**
+ * Each set of two or more `variable__choice` columns whose variable no property has, as a new
+ * multiple-choice property. Columns that could not make one (a blank, repeated or `|` choice, or
+ * only Other) stay ordinary columns, as the API reads them.
+ */
+export function newChoiceGroups(
+  headers: string[],
+  identifierColumn: string,
+  properties: readonly AudienceProperty[],
+): NewChoiceGroup[] {
+  const known = new Set(properties.map((p) => p.variableName.toLowerCase()));
+  const candidates = headers.filter((header) => header !== identifierColumn);
+  return [...headersByVariable(candidates)]
+    .filter(([variable]) => !known.has(variable))
+    .map(([variable, members]) => groupOf(variable, members))
+    .filter((group): group is NewChoiceGroup => group !== null);
+}
+
+/** A group's key where its first column was, and its other columns left out. */
+function rowOf(header: string, groups: readonly NewChoiceGroup[]) {
+  const group = groups.find((g) => g.columns.includes(header));
+  if (!group) return header;
+  return group.columns[0] === header ? group.key : null;
+}
+
+/**
+ * The rows the reader maps by hand, in file order: each named column that is not the identifier
+ * and not read by a choice property, and each new choice group once, by its key.
+ */
 export function mappableColumns(
   headers: string[],
   identifierColumn: string,
@@ -73,9 +172,13 @@ export function mappableColumns(
   const read = new Set(
     choiceColumnGroups(headers, properties).flatMap((group) => group.columns),
   );
-  return headers.filter(
-    (header) => header && header !== identifierColumn && !read.has(header),
-  );
+  const groups = newChoiceGroups(headers, identifierColumn, properties);
+  return headers
+    .filter(
+      (header) => header && header !== identifierColumn && !read.has(header),
+    )
+    .map((header) => rowOf(header, groups))
+    .filter((row): row is string => row !== null);
 }
 
 /** The column whose name says it holds the match key; `""` when none does. */
@@ -105,6 +208,10 @@ export function suggestColumnMap(
   const named = new Set(properties.map((p) => p.variableName));
   const map: ColumnMap = {};
   for (const column of columns) {
+    if (isChoiceGroupKey(column)) {
+      map[column] = CREATE_COLUMN;
+      continue;
+    }
     const variableName = variableNameFromName(column);
     const match = free.get(variableName);
     map[column] =
@@ -137,11 +244,17 @@ export function columnTally(columns: string[], map: ColumnMap): ColumnTally {
   return tally;
 }
 
-/** The API's `propertyColumns`: property variable name → the column it is read from. */
+/**
+ * The API's `propertyColumns`: property variable name → the column it is read from. A choice
+ * group is left out: the API reads its `variable__choice` columns by name.
+ */
 export function propertyColumnMap(map: ColumnMap): Record<string, string> {
   return Object.fromEntries(
     Object.entries(map)
-      .filter(([, decision]) => decisionKind(decision) === "mapped")
+      .filter(
+        ([column, decision]) =>
+          !isChoiceGroupKey(column) && decisionKind(decision) === "mapped",
+      )
       .map(([column, variableName]) => [variableName, column]),
   );
 }

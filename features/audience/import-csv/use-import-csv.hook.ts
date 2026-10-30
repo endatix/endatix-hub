@@ -27,6 +27,8 @@ import {
 } from "./use-audience-import.hook";
 import {
   columnsAfterIdentifierChange,
+  mappableColumns,
+  newChoiceGroups,
   propertyColumnMap,
   queuedColumns,
   suggestColumnChoices,
@@ -190,9 +192,14 @@ function identifierChoice(
   column: string,
   properties: readonly AudienceProperty[],
 ): ChoiceState {
-  const columns = columnsAfterIdentifierChange(state.columns, {
-    from: state.identifierColumn, to: column,
-  }, properties);
+  const columns = columnsAfterIdentifierChange(
+    state.columns,
+    {
+      from: state.identifierColumn,
+      to: column,
+    },
+    properties,
+  );
   return { ...state, identifierColumn: column, columns };
 }
 
@@ -430,12 +437,17 @@ function useQueuedProperties(
   const { createdProperties, onCreated, resetCreated } =
     useCreatedProperties(choices);
   const properties = withCreated(setup.properties, createdProperties);
-  const queued = queuedColumns(file?.preview.headers ?? [], choices.columns);
+  const headers = file?.preview.headers ?? [];
+  const { identifierColumn } = choices;
+  const rows = mappableColumns(headers, identifierColumn, properties);
+  const queued = queuedColumns(rows, choices.columns);
+  const groups = newChoiceGroups(headers, identifierColumn, properties);
   const { formId } = setup;
   const newProperties = useNewProperties({
     formId,
     file,
     queued,
+    groups,
     properties,
     onCreated,
   });

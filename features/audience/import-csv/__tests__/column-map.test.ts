@@ -9,6 +9,7 @@ import {
   columnTally,
   CREATE_COLUMN,
   mappableColumns,
+  newChoiceGroups,
   propertyColumnMap,
   SKIP_COLUMN,
   columnsAfterIdentifierChange,
@@ -135,5 +136,85 @@ describe("column choices", () => {
     expect(next.age).toBe(SKIP_COLUMN);
     expect(next.email).toBe(CREATE_COLUMN);
     expect(next.notes).toBe(CREATE_COLUMN);
+  });
+});
+
+describe("new choice groups", () => {
+  const headers = [
+    "email",
+    "age",
+    "Shops__online",
+    "shops__mall",
+    "shops__other",
+    "shops__other_text",
+    "brands__nike",
+    "notes",
+  ];
+
+  it("groups the __ columns of a variable no property has, choices in file order and Other set aside", () => {
+    expect(newChoiceGroups(headers, "email", PROPERTIES)).toEqual([
+      {
+        key: "shops__*",
+        variable: "shops",
+        columns: [
+          "Shops__online",
+          "shops__mall",
+          "shops__other",
+          "shops__other_text",
+        ],
+        choices: ["online", "mall"],
+        allowsOther: true,
+      },
+    ]);
+  });
+
+  it("shows a group as one row where its first column was, and counts it once", () => {
+    // Act
+    const rows = mappableColumns(headers, "email", PROPERTIES);
+    const map = suggestColumnMap(rows, PROPERTIES);
+
+    // Assert
+    expect(rows).toEqual(["age", "shops__*", "notes"]);
+    expect(map["shops__*"]).toBe(CREATE_COLUMN);
+    expect(columnTally(rows, map)).toEqual({
+      mapped: 1,
+      toCreate: 2,
+      ignored: 0,
+    });
+    expect(propertyColumnMap({ ...map, "shops__*": "shops" })).toEqual({
+      age: "age",
+    });
+  });
+
+  it("leaves columns as they are when they cannot make a multiple-choice property", () => {
+    const loose = [
+      "email",
+      "solo__one",
+      "my brand__a",
+      "my brand__b",
+      "age__a",
+      "age__b",
+      "x__other",
+      "x__other_text",
+      "p__a|b",
+      "p__c",
+      "dup__a",
+      "dup__A",
+      "e__",
+      "e__b",
+    ];
+
+    expect(newChoiceGroups(loose, "email", PROPERTIES)).toEqual([]);
+    expect(mappableColumns(loose, "email", PROPERTIES)).toEqual(loose.slice(1));
+  });
+
+  it("leaves the identifier out of a group", () => {
+    const groups = newChoiceGroups(
+      ["shops__a", "shops__b", "shops__c"],
+      "shops__a",
+      [],
+    );
+
+    expect(groups[0]?.columns).toEqual(["shops__b", "shops__c"]);
   });
 });
