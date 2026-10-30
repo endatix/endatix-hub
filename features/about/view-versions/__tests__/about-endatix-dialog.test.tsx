@@ -174,7 +174,7 @@ describe("AboutEndatixDialog", () => {
 
     // Assert
     expect(screen.getAllByRole("link", { name: /^3\./ })).toHaveLength(4);
-    expect(screen.getByText("Not available")).toBeDefined();
+    expect(screen.getByText("unavailable")).toBeDefined();
   });
 
   it("copies the SurveyJS versions with the Hub and API", async () => {

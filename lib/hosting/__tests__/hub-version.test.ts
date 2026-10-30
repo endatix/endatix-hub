@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { resolveHubBuild, resolveSurveyJsVersions } from "../hub-build.mjs";
 import {
@@ -150,8 +151,22 @@ describe("resolveSurveyJsVersions", () => {
   });
 
   it("reads the versions installed in node_modules, not the package.json ranges", () => {
-    // Act & Assert
-    expect(resolveSurveyJsVersions()["survey-core"]).toMatch(/^\d+\.\d+\.\d+/);
+    // Arrange
+    const installed = (name: string) =>
+      JSON.parse(
+        readFileSync(
+          `${process.cwd()}/node_modules/${name}/package.json`,
+          "utf8",
+        ),
+      ).version;
+
+    // Act
+    const versions = resolveSurveyJsVersions();
+
+    // Assert
+    for (const [name, version] of Object.entries(versions)) {
+      expect(version).toBe(installed(name));
+    }
   });
 });
 

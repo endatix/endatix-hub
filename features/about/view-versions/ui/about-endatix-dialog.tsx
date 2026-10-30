@@ -153,9 +153,12 @@ function SurveyJsVersion({
     return <VersionSkeleton />;
   }
 
-  return (
-    <NotesLink product={name} version={versions.surveyJs?.[name] ?? null} />
-  );
+  const version = versions.surveyJs?.[name];
+  if (!version) {
+    return <span className="font-mono text-muted-foreground">unavailable</span>;
+  }
+
+  return <NotesLink product={name} version={version} />;
 }
 
 function NotesLink({
