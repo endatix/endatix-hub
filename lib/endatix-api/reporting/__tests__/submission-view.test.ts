@@ -7,7 +7,7 @@ import {
 } from "../submission-view";
 
 const VIEW = {
-  revision: "2",
+  version: "2",
   settings: { v: 1 as const, columns: [{ key: "q1", width: 200 }] },
 };
 
@@ -25,7 +25,7 @@ describe("SubmissionViews", () => {
     expect(result).toEqual(ApiResult.success(VIEW));
   });
 
-  it("saves with the revision it read", async () => {
+  it("saves with the version it read", async () => {
     // Arrange
     const put = vi.fn().mockResolvedValue(ApiResult.success(VIEW));
     const views = new SubmissionViews({ put } as unknown as EndatixApi);
@@ -35,7 +35,7 @@ describe("SubmissionViews", () => {
 
     // Assert
     expect(put).toHaveBeenCalledWith(buildSubmissionViewEndpoint("5"), {
-      revision: "2",
+      version: "2",
       settings: VIEW.settings,
     });
   });
