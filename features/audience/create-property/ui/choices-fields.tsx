@@ -36,25 +36,30 @@ function choicesHelp(form: ChoicesEditor) {
   return count === 1 ? "1 choice." : `${count} choices.`;
 }
 
+function choicesInputProps(form: ChoicesEditor) {
+  return {
+    id: CHOICES_ID,
+    value: form.choicesText,
+    rows: 5,
+    placeholder: "north\nsouth",
+    disabled: form.pending,
+    "aria-invalid": Boolean(shownError(form)),
+    "aria-describedby": helpId(CHOICES_ID),
+    spellCheck: false,
+    className: "font-mono",
+  };
+}
+
 function ChoicesField({ form }: Readonly<{ form: ChoicesEditor }>) {
-  const invalid = Boolean(shownError(form));
   return (
     <FieldWithHelp
       id={CHOICES_ID}
       label="Choices"
-      invalid={invalid}
+      invalid={Boolean(shownError(form))}
       help={choicesHelp(form)}
     >
       <Textarea
-        id={CHOICES_ID}
-        value={form.choicesText}
-        rows={5}
-        placeholder={"north\nsouth"}
-        disabled={form.pending}
-        aria-invalid={invalid}
-        aria-describedby={helpId(CHOICES_ID)}
-        spellCheck={false}
-        className="font-mono"
+        {...choicesInputProps(form)}
         onChange={(event) => form.setChoicesText(event.target.value)}
       />
     </FieldWithHelp>

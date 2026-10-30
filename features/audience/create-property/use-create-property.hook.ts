@@ -33,29 +33,35 @@ function useChoicesDraft() {
   };
 }
 
-/** The new property being typed, with the variable name it would get. */
-function usePropertyDraft() {
+/** Name and type of the new property, with the variable name it would get. */
+function useNameAndType() {
   const [name, setName] = useState("");
   const [dataType, setDataType] = useState<AudienceDataType>(
     AudienceDataType.Text,
   );
-  const choices = useChoicesDraft();
   const reset = () => {
     setName("");
     setDataType(AudienceDataType.Text);
-    choices.reset();
   };
   const variableName = variableNameFromName(name);
-  const isChoice = isChoiceType(dataType);
+  return { name, setName, dataType, setDataType, variableName, reset };
+}
+
+/** The new property being typed; `ready` once the API would accept it. */
+function usePropertyDraft() {
+  const fields = useNameAndType();
+  const choices = useChoicesDraft();
+  const isChoice = isChoiceType(fields.dataType);
+  const reset = () => {
+    fields.reset();
+    choices.reset();
+  };
+  const choicesOk = !isChoice || !choices.choicesError;
   return {
     ...choices,
-    name,
-    setName,
-    dataType,
-    setDataType,
+    ...fields,
     isChoice,
-    variableName,
-    ready: Boolean(variableName) && !(isChoice && choices.choicesError),
+    ready: Boolean(fields.variableName) && choicesOk,
     reset,
   };
 }
