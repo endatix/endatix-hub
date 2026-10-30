@@ -18,7 +18,9 @@ const MEMBER_ID = "1526934587983265790";
 const MEMBERSHIP_ID = "1526934587983265792";
 const SUBMISSION_ID = "1527000000000000001";
 const SEVEN_DAYS = 60 * 24 * 7;
+const PERSON = { audienceMemberId: MEMBER_ID, membershipId: MEMBERSHIP_ID };
 
+const mintTestLinks = vi.fn();
 const getParticipant = vi.fn();
 const openTestSubmission = vi.fn();
 const createAccessToken = vi.fn();
@@ -26,7 +28,7 @@ const deleteSubmission = vi.fn();
 const checkPermission = vi.fn();
 
 const api = {
-  audience: { getParticipant, openTestSubmission },
+  audience: { mintTestLinks, getParticipant, openTestSubmission },
   submissions: { createAccessToken, delete: deleteSubmission },
 };
 
@@ -45,9 +47,96 @@ function grant(...granted: string[]) {
   }));
 }
 
-describe("createTestLinkAction", () => {
+function minted(token: string) {
+  return ApiResult.success([
+    {
+      membershipId: MEMBERSHIP_ID,
+      identifier: "tester@acme.test",
+      run: 1,
+      submissionId: SUBMISSION_ID,
+      token,
+      expiresAt: "2026-11-02T10:00:00Z",
+    },
+  ]);
+}
+
+describe("createTestLinkAction on an API with the test links route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(requireAudienceAccess).mockResolvedValue(
+      Result.success({ api, checkPermission } as never),
+    );
+    grant(Permissions.Forms.Test, Permissions.Forms.Edit);
+    mintTestLinks.mockResolvedValue(minted("signed.token"));
+  });
+
+  it("asks the route for one run for this participant and returns its link", async () => {
+    const result = await createTestLinkAction(FORM_ID, PERSON, SEVEN_DAYS);
+
+    expect(result).toEqual(
+      Result.success({
+        url: `/share/${FORM_ID}?token=signed.token`,
+        expiresAt: "2026-11-02T10:00:00Z",
+      }),
+    );
+    expect(mintTestLinks).toHaveBeenCalledWith(FORM_ID, {
+      membershipIds: [MEMBERSHIP_ID],
+      runsEach: 1,
+      expiryMinutes: SEVEN_DAYS,
+    });
+  });
+
+  it("works for an editor who has no submissions grant, and deletes nothing", async () => {
+    await createTestLinkAction(FORM_ID, PERSON, SEVEN_DAYS);
+
+    expect(getParticipant).not.toHaveBeenCalled();
+    expect(openTestSubmission).not.toHaveBeenCalled();
+    expect(createAccessToken).not.toHaveBeenCalled();
+    expect(deleteSubmission).not.toHaveBeenCalled();
+  });
+
+  it("keeps the expiry within 1 hour to 60 days", async () => {
+    await createTestLinkAction(FORM_ID, PERSON, 1);
+
+    expect(mintTestLinks).toHaveBeenCalledWith(
+      FORM_ID,
+      expect.objectContaining({ expiryMinutes: 60 }),
+    );
+  });
+
+  it("returns the route's refusal of a real participant without trying again", async () => {
+    mintTestLinks.mockResolvedValue(
+      ApiResult.validationError("Test links are only for Test participants."),
+    );
+
+    const result = await createTestLinkAction(FORM_ID, PERSON, SEVEN_DAYS);
+
+    expect(Result.isError(result) && result.message).toBe(
+      "Test links are only for Test participants.",
+    );
+    expect(openTestSubmission).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["test forms", [Permissions.Forms.Edit]],
+    ["edit forms", [Permissions.Forms.Test]],
+  ])(
+    "refuses a reader who cannot %s, before asking for a link",
+    async (_, granted) => {
+      grant(...granted);
+
+      const result = await createTestLinkAction(FORM_ID, PERSON, SEVEN_DAYS);
+
+      expect(Result.isError(result)).toBe(true);
+      expect(mintTestLinks).not.toHaveBeenCalled();
+    },
+  );
+});
+
+describe("createTestLinkAction on an older API (the route answers 404)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mintTestLinks.mockResolvedValue(ApiResult.notFoundError("Not found."));
     vi.mocked(requireAudienceAccess).mockResolvedValue(
       Result.success({ api, checkPermission } as never),
     );
@@ -70,7 +159,7 @@ describe("createTestLinkAction", () => {
   });
 
   it("opens a test submission for a test person and returns a submit link to it", async () => {
-    const result = await createTestLinkAction(FORM_ID, MEMBER_ID, SEVEN_DAYS);
+    const result = await createTestLinkAction(FORM_ID, PERSON, SEVEN_DAYS);
 
     expect(result).toEqual(
       Result.success({
@@ -95,7 +184,7 @@ describe("createTestLinkAction", () => {
   ])(
     "keeps an expiry of %s minutes within 1 hour to 60 days (%s)",
     async (asked, sent) => {
-      await createTestLinkAction(FORM_ID, MEMBER_ID, asked);
+      await createTestLinkAction(FORM_ID, PERSON, asked);
 
       expect(createAccessToken).toHaveBeenCalledWith(
         expect.objectContaining({ expiryMinutes: sent }),
@@ -106,7 +195,7 @@ describe("createTestLinkAction", () => {
   it("refuses a real person and opens no test submission", async () => {
     getParticipant.mockResolvedValue(participant(false));
 
-    const result = await createTestLinkAction(FORM_ID, MEMBER_ID, SEVEN_DAYS);
+    const result = await createTestLinkAction(FORM_ID, PERSON, SEVEN_DAYS);
 
     expect(Result.isError(result) && result.message).toMatch(
       /only for test participants/,
@@ -125,7 +214,7 @@ describe("createTestLinkAction", () => {
     async (_, granted) => {
       grant(...granted);
 
-      const result = await createTestLinkAction(FORM_ID, MEMBER_ID, SEVEN_DAYS);
+      const result = await createTestLinkAction(FORM_ID, PERSON, SEVEN_DAYS);
 
       expect(Result.isError(result)).toBe(true);
       expect(getParticipant).not.toHaveBeenCalled();
@@ -138,7 +227,7 @@ describe("createTestLinkAction", () => {
       ApiResult.notFoundError("The person is not on this form."),
     );
 
-    const result = await createTestLinkAction(FORM_ID, MEMBER_ID, SEVEN_DAYS);
+    const result = await createTestLinkAction(FORM_ID, PERSON, SEVEN_DAYS);
 
     expect(Result.isError(result) && result.message).toBe(
       "The person is not on this form.",
@@ -152,7 +241,7 @@ describe("createTestLinkAction", () => {
     );
     deleteSubmission.mockResolvedValue(ApiResult.success("deleted"));
 
-    const result = await createTestLinkAction(FORM_ID, MEMBER_ID, SEVEN_DAYS);
+    const result = await createTestLinkAction(FORM_ID, PERSON, SEVEN_DAYS);
 
     expect(Result.isError(result) && result.message).toBe(
       "Could not create the token.",
@@ -169,7 +258,7 @@ describe("createTestLinkAction", () => {
       ApiResult.serverError("Delete failed.", undefined, "delete_failed"),
     );
 
-    const result = await createTestLinkAction(FORM_ID, MEMBER_ID, SEVEN_DAYS);
+    const result = await createTestLinkAction(FORM_ID, PERSON, SEVEN_DAYS);
 
     expect(Result.isError(result) && result.message).toBe(
       "Could not create the token.",
@@ -189,7 +278,7 @@ describe("createTestLinkAction", () => {
   });
 
   it("deletes nothing when the token is minted", async () => {
-    await createTestLinkAction(FORM_ID, MEMBER_ID, SEVEN_DAYS);
+    await createTestLinkAction(FORM_ID, PERSON, SEVEN_DAYS);
 
     expect(deleteSubmission).not.toHaveBeenCalled();
   });

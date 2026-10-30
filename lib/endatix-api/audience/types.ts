@@ -303,6 +303,25 @@ export type OpenedTestSubmission = {
   token: string;
 };
 
+/** Test links for Test participants: `membershipIds: null` is every Test participant on the form. */
+export type MintTestLinksRequest = {
+  membershipIds: string[] | null;
+  /** 1–10 links per participant. */
+  runsEach: number;
+  /** 60 minutes to 60 days. */
+  expiryMinutes: number;
+};
+
+/** One run's link: a new test submission and a `submit` token that opens it. */
+export type MintedTestLink = {
+  membershipId: string;
+  identifier: string;
+  run: number;
+  submissionId: string;
+  token: string;
+  expiresAt: string;
+};
+
 /** One participant's values, named by their identifier. */
 export type AudienceVariablePreset = {
   name: string;

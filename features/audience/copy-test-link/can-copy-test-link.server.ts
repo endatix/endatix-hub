@@ -3,27 +3,33 @@ import "server-only";
 import { Permissions } from "@/features/auth/authorization";
 import type { AudienceAccess } from "../shared/require-audience-api.server";
 
-/** The API's own gate for minting a submission access token: any one of these. */
+type CheckPermission = AudienceAccess["checkPermission"];
+
+/** The test links route's gate: both. */
+const TEST_LINK_PERMISSIONS = [Permissions.Forms.Test, Permissions.Forms.Edit];
+
+/** An older API's gate for minting a submission access token: any one of these. */
 const SHARE_SUBMISSION_PERMISSIONS = [
   Permissions.Submissions.View,
   Permissions.Submissions.Edit,
   Permissions.Submissions.Export,
 ];
 
-/** Open the test submission, and read the participant (the API's gate) to refuse a real one. */
-const REQUIRED_PERMISSIONS = [Permissions.Forms.Test, Permissions.Forms.Edit];
+const granted = async (check: CheckPermission, permissions: string[]) =>
+  (await Promise.all(permissions.map((p) => check(p)))).map((c) => c.success);
 
-/**
- * Copy test link needs `forms.test` to open the test submission, `forms.edit` to read the
- * participant, and any submissions grant to mint its link. Pages use it to hide the action the
- * server would refuse.
- */
-export async function canCopyTestLink(
-  checkPermission: AudienceAccess["checkPermission"],
+/** `forms.test` and `forms.edit`: what the test links route asks for. */
+export async function canMintTestLinks(
+  checkPermission: CheckPermission,
 ): Promise<boolean> {
-  const all = [...REQUIRED_PERMISSIONS, ...SHARE_SUBMISSION_PERMISSIONS];
-  const checks = await Promise.all(all.map((p) => checkPermission(p)));
-  const required = checks.slice(0, REQUIRED_PERMISSIONS.length);
-  const share = checks.slice(REQUIRED_PERMISSIONS.length);
-  return required.every((c) => c.success) && share.some((c) => c.success);
+  const checks = await granted(checkPermission, TEST_LINK_PERMISSIONS);
+  return checks.every(Boolean);
+}
+
+/** Any submissions grant: an older API's Copy test link mints the token on its own. */
+export async function canShareSubmissions(
+  checkPermission: CheckPermission,
+): Promise<boolean> {
+  const checks = await granted(checkPermission, SHARE_SUBMISSION_PERMISSIONS);
+  return checks.some(Boolean);
 }

@@ -1,5 +1,5 @@
 import { EndatixApi } from "../endatix-api";
-import { ApiResult } from "../shared/api-result";
+import { ApiErrorType, ApiResult } from "../shared/api-result";
 import type { NormalizedPagedResponse } from "../shared/paged-response";
 import {
   appendPagingQueryParams,
@@ -19,6 +19,7 @@ import {
   type WireRedeemedLink,
   type WireTestSubmission,
   mapIssuedLink,
+  mapMintedTestLink,
   mapPeoplePageResult,
   mapParticipantResult,
   mapPersonResult,
@@ -28,6 +29,7 @@ import {
   requireEndatixId,
   requireFormAndEntityIds,
   type WireIssuedLink,
+  type WireMintedTestLink,
   type WireParticipant,
   type WirePerson,
   type WireProperty,
@@ -53,6 +55,8 @@ import {
   type StartAudienceImportRequest,
   CURRENT_IMPORT,
   type IssuedAudienceLink,
+  type MintedTestLink,
+  type MintTestLinksRequest,
   type OpenedTestSubmission,
   type RedeemedAudienceLink,
   type UpdateAudienceSettingsRequest,
@@ -65,6 +69,13 @@ export type AudiencePeoplePage = NormalizedPagedResponse<AudiencePerson>;
 const SETTINGS_PATH = "/audience/settings";
 
 const DEFAULT_PAGE = 1;
+
+/** Refused by the route's validator before anything is read, so it opens nothing. */
+const TEST_LINKS_PROBE: MintTestLinksRequest = {
+  membershipIds: [],
+  runsEach: 1,
+  expiryMinutes: 60,
+};
 
 export function buildListAudiencePeopleEndpoint(
   formId: string,
@@ -478,5 +489,38 @@ export class Audience {
         { token },
       ),
     );
+  }
+
+  /**
+   * Test links for Test participants in one call: `runsEach` new test submissions each, with a
+   * `submit` token. All or nothing, and not idempotent: a retry opens a second set.
+   */
+  async mintTestLinks(
+    formId: string,
+    request: MintTestLinksRequest,
+  ): Promise<ApiResult<MintedTestLink[]>> {
+    const idCheck = requireEndatixId(formId, "formId");
+    if (!idCheck.success) return idCheck;
+
+    const response = await this.endatix.post<{ items: WireMintedTestLink[] }>(
+      formAudiencePath(formId, "test-links"),
+      request,
+    );
+    if (!response.success) return response;
+    return ApiResult.success(
+      response.data.items.map((link) => mapMintedTestLink(link)),
+    );
+  }
+
+  /**
+   * Whether this API has the test links route. An empty set is a 400 from its validator, and an
+   * API without the route answers 404; any other failure is no answer, so the route is not used.
+   */
+  async supportsTestLinks(formId: string): Promise<boolean> {
+    const probe = await this.endatix.post<unknown>(
+      formAudiencePath(formId, "test-links"),
+      TEST_LINKS_PROBE,
+    );
+    return !probe.success && probe.error.type === ApiErrorType.ValidationError;
   }
 }

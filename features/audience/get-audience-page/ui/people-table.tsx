@@ -27,7 +27,9 @@ import { LinkStatusBadge } from "../../ui/link-status-badge";
 import { NotSet } from "../../ui/not-set";
 import { SubmissionLink } from "../../ui/submission-link";
 import { WithTestBadge } from "../../ui/test-badge";
+import type { ParticipantSelection } from "../../participant-selection/use-participant-selection.hook";
 import { formatPropertyValue, identifierKindLabel } from "../../utils";
+import { selectCell, selectColumn } from "./people-selection";
 
 /** Each handler is present only when the reader may run it; none means no actions column. */
 export type RowHandlers = {
@@ -52,6 +54,8 @@ type PeopleTableProps = {
   verdicts?: UsageVerdicts | null;
   /** Every Property, the match key's included; defaults to `properties`. */
   allProperties?: AudienceProperty[];
+  /** Ticks on test participants, for test links; none means no select column. */
+  selection?: ParticipantSelection;
 };
 
 const ACTIONS_COLUMN: StaticDataTableColumn = {
@@ -327,13 +331,21 @@ export function PeopleTable(props: Readonly<PeopleTableProps>) {
     showLink: hasLinks(people),
   };
   const columns = peopleColumns(identifierKind, properties, options);
+  const { selection } = props;
+  const rowCells = (person: AudiencePerson) => {
+    const cells = personCells(person, properties, options);
+    return selection ? [selectCell(person, selection), ...cells] : cells;
+  };
+  const allColumns = selection
+    ? [selectColumn({ people, selection }), ...columns]
+    : columns;
   return (
-    <StaticDataTable columns={columns}>
+    <StaticDataTable columns={allColumns}>
       {people.map((person, index) => (
         <StaticDataTableRow
           key={person.membershipId}
           index={index}
-          cells={personCells(person, properties, options)}
+          cells={rowCells(person)}
         />
       ))}
     </StaticDataTable>

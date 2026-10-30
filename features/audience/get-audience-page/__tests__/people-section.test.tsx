@@ -46,6 +46,16 @@ vi.mock("../../test-as-person/open-test-submission.action", () => ({
 vi.mock("../../copy-test-link/create-test-link.action", () => ({
   createTestLinkAction: vi.fn(),
 }));
+vi.mock("../../download-test-links/ui/download-test-links-panel", () => ({
+  DownloadTestLinksPanel: (props: {
+    testParticipants: number;
+    selectedIds: string[];
+  }) => (
+    <output aria-label="Download test links">
+      {props.testParticipants}:{props.selectedIds.join(",")}
+    </output>
+  ),
+}));
 vi.mock("../../reissue-link/reissue-audience-link.action", () => ({
   reissueAudienceLinkAction: vi.fn(),
 }));
@@ -98,7 +108,11 @@ const LIST = {
   formId: "1",
   identifierKind: AudienceIdentifierKind.Email,
   properties: [] as AudienceProperty[],
-  importLimits: { maxRows: 5_000, maxBytes: 20_971_520, runsInBackground: false },
+  importLimits: {
+    maxRows: 5_000,
+    maxBytes: 20_971_520,
+    runsInBackground: false,
+  },
   totalPeople: 2,
   page: 1,
   pageSize: 50,
@@ -248,6 +262,76 @@ describe("PeopleSection", () => {
         .filter(Boolean);
     expect(actions(test)).toEqual(["Copy test link", "Test as", "Remove"]);
     expect(actions(real)).toEqual(["Test as", "Remove"]);
+  });
+
+  it("offers Download test links, and selects test participants for it", () => {
+    const other = {
+      ...TEST_PERSON,
+      membershipId: "11",
+      identifier: "t2@acme.test",
+    };
+    render(
+      <PeopleSection
+        {...LIST}
+        people={[PERSON, TEST_PERSON, other]}
+        canEdit
+        canTest
+        canMintTestLinks
+        testParticipants={2}
+      />,
+    );
+
+    const download = () =>
+      screen.getByRole("status", { name: "Download test links" }).textContent;
+    expect(download()).toBe("2:");
+    expect(
+      screen.queryByRole("checkbox", { name: "Select CG-000003-01" }),
+    ).toBeNull();
+
+    fireEvent.click(
+      screen.getByRole("checkbox", { name: "Select tester@example.com" }),
+    );
+    expect(download()).toBe("2:10");
+
+    fireEvent.click(
+      screen.getByRole("checkbox", {
+        name: "Select test participants on this page",
+      }),
+    );
+    expect(download()).toBe("2:10,11");
+
+    fireEvent.click(
+      screen.getByRole("checkbox", {
+        name: "Select test participants on this page",
+      }),
+    );
+    expect(download()).toBe("2:");
+  });
+
+  it.each([
+    [
+      "the API cannot make test links",
+      { canMintTestLinks: false, testParticipants: 2 },
+    ],
+    [
+      "the form has no test participants",
+      { canMintTestLinks: true, testParticipants: 0 },
+    ],
+  ])("offers no download or selection when %s", (_, access) => {
+    render(
+      <PeopleSection
+        {...LIST}
+        people={[TEST_PERSON]}
+        canEdit
+        canTest
+        {...access}
+      />,
+    );
+
+    expect(
+      screen.queryByRole("status", { name: "Download test links" }),
+    ).toBeNull();
+    expect(screen.queryByRole("checkbox")).toBeNull();
   });
 
   it("leaves out Copy test link for a reader who cannot share submissions", () => {
