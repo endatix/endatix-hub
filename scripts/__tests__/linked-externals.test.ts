@@ -2,7 +2,10 @@ import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { findNestedLinkedExternals } from "../lib/linked-externals.mjs";
+import {
+  describeNestedLinkedExternals,
+  findNestedLinkedExternals,
+} from "../lib/linked-externals.mjs";
 
 // A standalone folder shaped like the Hub's: Turbopack links each external into
 // .next/node_modules as a `<name>-<hash>` symlink.
@@ -54,7 +57,33 @@ describe("findNestedLinkedExternals", () => {
       {
         link: path.join(".next/node_modules", "postcss-16ee410f62bb922c"),
         target: path.join("sanitize-html", "node_modules", "postcss"),
+        parent: "sanitize-html",
       },
+    ]);
+  });
+
+  it("names a scoped parent as the package to load by name", () => {
+    // Arrange
+    writePackage(path.join(root, "node_modules/@acme/widgets/node_modules/postcss"));
+    link("@acme/widgets/node_modules/postcss", "postcss-16ee410f62bb922c");
+
+    // Act
+    const [nested] = findNestedLinkedExternals(root);
+
+    // Assert
+    expect(nested.parent).toBe("@acme/widgets");
+  });
+
+  it("reports a link whose target is missing instead of throwing", () => {
+    // Arrange
+    link("left-out", "left-out-0a1b2c3d4e5f6a7b");
+
+    // Act
+    const nested = findNestedLinkedExternals(root);
+
+    // Assert
+    expect(nested).toEqual([
+      { link: path.join(".next/node_modules", "left-out-0a1b2c3d4e5f6a7b"), target: undefined, parent: undefined },
     ]);
   });
 
@@ -64,5 +93,19 @@ describe("findNestedLinkedExternals", () => {
 
     // Assert
     expect(nested).toEqual([]);
+  });
+});
+
+describe("describeNestedLinkedExternals", () => {
+  it("names the package to add to serverExternalPackages, and the fallback", () => {
+    // Arrange
+    link("sanitize-html/node_modules/postcss", "postcss-16ee410f62bb922c");
+
+    // Act
+    const message = describeNestedLinkedExternals(findNestedLinkedExternals(root));
+
+    // Assert
+    expect(message).toContain('add "sanitize-html" to serverExternalPackages');
+    expect(message).toContain("outputFileTracingIncludes");
   });
 });

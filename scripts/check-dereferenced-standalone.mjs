@@ -3,7 +3,10 @@ import { cp, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { findNestedLinkedExternals } from "./lib/linked-externals.mjs";
+import {
+  describeNestedLinkedExternals,
+  findNestedLinkedExternals,
+} from "./lib/linked-externals.mjs";
 import { withStandaloneServer } from "./lib/standalone-server.mjs";
 
 // Smoke check for Azure Static Web Apps (endatix-hub#1269): SWA dereferences symlinks
@@ -42,9 +45,9 @@ async function copyDereferenced() {
   const copyDir = await mkdtemp(join(tmpdir(), "hub-standalone-"));
   try {
     await cp(standaloneDir, copyDir, { recursive: true, dereference: true });
-  } catch {
+  } catch (error) {
     await rm(copyDir, { recursive: true, force: true });
-    fail(".next/standalone not found — run `pnpm build` first");
+    fail(`copying .next/standalone with symlinks dereferenced failed: ${error.message}`);
   }
   return copyDir;
 }
@@ -64,13 +67,7 @@ function checkLinkedExternals() {
   }
   const nested = findNestedLinkedExternals(standaloneDir);
   if (nested.length > 0) {
-    fail(
-      "Turbopack links nested copies, which break with symlinks dereferenced. Add the " +
-        "package that depends on each to serverExternalPackages in next.config.ts:\n" +
-        nested
-          .map(({ link, target }) => `   - ${link} -> node_modules/${target}`)
-          .join("\n"),
-    );
+    fail(describeNestedLinkedExternals(nested));
   }
   console.log(" \x1b[32m✓\x1b[0m linked externals are top-level packages");
 }

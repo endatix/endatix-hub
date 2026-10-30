@@ -10,7 +10,7 @@
     "prebuild": "pnpm build:embed && pnpm discover-questions",
     "build:embed": "node scripts/build-embed.mjs",
     "dev:embed": "node scripts/build-embed.mjs --watch",
-    "build": "next build",
+    "build": "next build && node scripts/check-linked-externals.mjs",
     "build:standalone": "pnpm build && node scripts/copy-standalone.mjs",
     "check:runtime-storage": "node scripts/check-runtime-storage.mjs",
     "check:dereferenced-standalone": "node scripts/check-dereferenced-standalone.mjs",
