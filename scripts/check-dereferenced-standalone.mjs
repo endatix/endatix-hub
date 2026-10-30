@@ -3,22 +3,20 @@ import { cp, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import {
-  describeProblem,
-  findMisresolvedDependencies,
-} from "./lib/linked-externals.mjs";
+import { findNestedLinkedExternals } from "./lib/linked-externals.mjs";
 import { withStandaloneServer } from "./lib/standalone-server.mjs";
 
 // Smoke check for Azure Static Web Apps (endatix-hub#1269): SWA dereferences symlinks
-// when it uploads a hybrid Next.js app. Turbopack loads nested externals (sanitize-html's
-// own postcss) through `.next/node_modules/<name>-<hash>` symlinks; once a link is a plain
-// folder, the package resolves its dependencies from the top-level node_modules, and
-// every server route answers 500 if tracing left them out there.
+// when it uploads a hybrid Next.js app. Turbopack loads externals through
+// `.next/node_modules/<name>-<hash>` symlinks; once a link to a nested copy (such as
+// sanitize-html's own postcss) is a plain folder, that copy resolves its dependencies
+// from the top-level node_modules, and every server route answers 500 if tracing left
+// them out there.
 //
 // Requires an existing `pnpm build` (output: "standalone"). Fails when a linked external
-// would load another version of a dependency once dereferenced (a load can succeed on
-// the wrong version), then copies the standalone folder the way SWA does, starts it,
-// and renders the sign-in page.
+// is a nested copy (it can load the wrong version without failing, so starting the
+// server alone does not catch it), then copies the standalone folder the way SWA does,
+// starts it, and renders the sign-in page.
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const standaloneDir = join(__dirname, "..", ".next/standalone");
@@ -64,16 +62,17 @@ function checkLinkedExternals() {
   if (!existsSync(standaloneDir)) {
     fail(".next/standalone not found — run `pnpm build` first");
   }
-  const problems = findMisresolvedDependencies(standaloneDir);
-  if (problems.length > 0) {
+  const nested = findNestedLinkedExternals(standaloneDir);
+  if (nested.length > 0) {
     fail(
-      "linked externals resolve other versions with symlinks dereferenced:\n" +
-        problems.map((problem) => `   - ${describeProblem(problem)}`).join("\n"),
+      "Turbopack links nested copies, which break with symlinks dereferenced. Add the " +
+        "package that depends on each to serverExternalPackages in next.config.ts:\n" +
+        nested
+          .map(({ link, target }) => `   - ${link} -> node_modules/${target}`)
+          .join("\n"),
     );
   }
-  console.log(
-    " \x1b[32m✓\x1b[0m linked externals resolve their own dependency versions",
-  );
+  console.log(" \x1b[32m✓\x1b[0m linked externals are top-level packages");
 }
 
 checkLinkedExternals();
