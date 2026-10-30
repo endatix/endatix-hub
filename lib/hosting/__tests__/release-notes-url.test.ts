@@ -59,4 +59,43 @@ describe("releaseNotesUrl", () => {
       "/releases/tag/v0.8.1-hotfix.1",
     );
   });
+
+  it.each([
+    ["survey-core", "survey-library"],
+    ["survey-react-ui", "survey-library"],
+    ["survey-creator-core", "survey-creator"],
+    ["survey-creator-react", "survey-creator"],
+    ["survey-analytics", "survey-analytics"],
+  ] as const)("points %s at the %s release tag", (product, repo) => {
+    // Act
+    const url = new URL(releaseNotesUrl(product, "3.2.3", "about_dialog")!);
+
+    // Assert
+    expect(`${url.origin}${url.pathname}`).toBe(
+      `https://github.com/surveyjs/${repo}/releases/tag/v3.2.3`,
+    );
+  });
+
+  it("links a SurveyJS pre-release tag", () => {
+    // Act & Assert
+    expect(releaseNotesUrl("survey-core", "3.3.0-beta.1", "about_dialog")).toBe(
+      "https://github.com/surveyjs/survey-library/releases/tag/v3.3.0-beta.1",
+    );
+  });
+
+  it("sends no Endatix tracking parameters to a SurveyJS repo", () => {
+    // Act
+    const url = new URL(
+      releaseNotesUrl("survey-analytics", "3.2.3", "about_dialog")!,
+    );
+
+    // Assert
+    expect(url.search).toBe("");
+  });
+
+  it("does not link a SurveyJS value that is not a version", () => {
+    // Act & Assert
+    expect(releaseNotesUrl("survey-core", "^3.2.3", "about_dialog")).toBeNull();
+    expect(releaseNotesUrl("survey-core", "latest", "about_dialog")).toBeNull();
+  });
 });

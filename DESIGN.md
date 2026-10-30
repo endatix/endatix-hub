@@ -723,6 +723,13 @@ costs a request or needs the space of a row of its own does not belong in it. Re
   `CopyToClipboard` (`inline`) in its `aside` that copies every row as plain text. Not a footer
   button (the footer is for actions that change something) and not an icon floating beside the
   rows (it reads as belonging to neither).
+- **The product first, what it is built on after.** Hub and API are the section's own rows.
+  The SurveyJS libraries sit below them in one lifted group (`bg-surface-container-lowest`,
+  a muted `text-xs` heading "Built on SurveyJS"): important for a form bug, not the product.
+  When every library is on one version, the usual case, the group is one row ("All 5
+  libraries", linked to the `survey-library` release) with the package names in a muted line;
+  any difference or missing package shows one row per package. The copied text always lists
+  every package. Reference: `features/about/view-versions/ui/surveyjs-version-group.tsx`.
 
 ### Loading inside a panel
 
