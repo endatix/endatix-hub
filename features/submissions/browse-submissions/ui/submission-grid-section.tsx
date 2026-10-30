@@ -7,8 +7,9 @@ import type { Route } from "next";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import {
-  canIncludeInProgressSubmissions,
+  canEditSubmissionGrid,
   loadSubmissionGridColumns,
+  loadSubmissionGridView,
 } from "../browse-submissions.server";
 import { describeGridReadiness } from "../grid-readiness";
 import type { SubmissionGridColumnsLoad } from "../resolve-submission-grid-load";
@@ -23,6 +24,10 @@ import {
   type SubmissionGridRawSearchParams,
   type SubmissionGridUrlState,
 } from "../submission-grid-url";
+import {
+  withSavedView,
+  type SubmissionGridViewLoad,
+} from "../submission-grid-view";
 import { SubmissionGridRowsSection } from "./submission-grid-rows-section";
 import { SubmissionGridShell } from "./submission-grid-shell";
 import { SubmissionGridSkeleton } from "./submission-grid-skeleton";
@@ -38,7 +43,7 @@ export async function SubmissionGridSection(
   props: Readonly<SubmissionGridSectionProps>,
 ) {
   const { formId, searchParams } = props;
-  const { columns, ...access } = await loadGridInputs(formId);
+  const { columns, view, ...access } = await loadGridInputs(formId);
   if (columns.kind === "unavailable") {
     return props.unavailable;
   }
@@ -46,52 +51,74 @@ export async function SubmissionGridSection(
     return <HubPageLoadError result={columns.result} />;
   }
 
+  const urlState = gridUrlState(formId, searchParams, view);
+  return <SubmissionGrid {...{ formId, urlState, columns, view, ...access }} />;
+}
+
+function gridUrlState(
+  formId: string,
+  searchParams: SubmissionGridRawSearchParams,
+  view: SubmissionGridViewLoad,
+): SubmissionGridUrlState {
   const urlState = parseSubmissionGridUrl(searchParams);
   if (!isCanonicalSubmissionGridUrl(searchParams, urlState)) {
     redirect(buildSubmissionGridPath(formId, urlState) as Route);
   }
 
-  return <SubmissionGrid {...{ formId, urlState, columns, ...access }} />;
+  return withSavedView(urlState, searchParams, view.settings);
 }
 
 /** Only the rows wait for the columns; the other reads start together. */
 async function loadGridInputs(formId: string) {
-  const [columns, canIncludeInProgress, config] = await Promise.all([
-    getSession().then((session) => loadSubmissionGridColumns(formId, session)),
-    canIncludeInProgressSubmissions(),
+  const session = getSession();
+  const [columns, view, canEdit, config] = await Promise.all([
+    session.then((current) => loadSubmissionGridColumns(formId, current)),
+    session.then((current) => loadSubmissionGridView(formId, current)),
+    canEditSubmissionGrid(),
     getClientEndatixConfig(),
   ]);
-  return {
-    columns,
-    canIncludeInProgress,
-    submitterLabel: config.submitterPrimaryFilterLabel,
-  };
+  const submitterLabel = config.submitterPrimaryFilterLabel;
+  return { columns, view, canEdit, submitterLabel };
 }
 
 type SubmissionGridProps = {
   formId: string;
   urlState: SubmissionGridUrlState;
   columns: Extract<SubmissionGridColumnsLoad, { kind: "ready" }>;
-  canIncludeInProgress: boolean;
+  view: SubmissionGridViewLoad;
+  canEdit: boolean;
   submitterLabel: string;
 };
 
 function SubmissionGrid(props: Readonly<SubmissionGridProps>) {
-  const { formId, urlState, columns, submitterLabel } = props;
-  const { catalog, readiness } = columns;
-  const answerColumns = resolveVisibleAnswerColumns(catalog, urlState.columns);
+  const { formId, urlState, columns, view, submitterLabel } = props;
+  const answerColumns = resolveVisibleAnswerColumns(
+    columns.catalog,
+    urlState.columns,
+  );
   return (
     <SubmissionGridShell
+      {...gridChrome(columns, props.canEdit)}
       formId={formId}
-      catalog={catalog}
-      hasSubmissions={readiness.submissions > 0}
-      banner={describeGridReadiness({ ...columns, ...props })}
+      view={view}
     >
       <SubmissionGridRows
         {...{ formId, urlState, answerColumns, submitterLabel }}
       />
     </SubmissionGridShell>
   );
+}
+
+function gridChrome(columns: SubmissionGridProps["columns"], canEdit: boolean) {
+  return {
+    catalog: columns.catalog,
+    hasSubmissions: columns.readiness.submissions > 0,
+    banner: describeGridReadiness({
+      ...columns,
+      canIncludeInProgress: canEdit,
+    }),
+    canSaveView: canEdit,
+  };
 }
 
 type SubmissionGridRowsProps = {

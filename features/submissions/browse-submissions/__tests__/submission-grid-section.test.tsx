@@ -7,6 +7,7 @@ const loads = vi.hoisted(() => ({
   columns: vi.fn(),
   canIncludeInProgress: vi.fn(),
   config: vi.fn(),
+  view: vi.fn(),
 }));
 const redirect = vi.hoisted(() =>
   vi.fn((href: string) => {
@@ -21,7 +22,8 @@ vi.mock("@/features/config/server", () => ({
 }));
 vi.mock("../browse-submissions.server", () => ({
   loadSubmissionGridColumns: loads.columns,
-  canIncludeInProgressSubmissions: loads.canIncludeInProgress,
+  canEditSubmissionGrid: loads.canIncludeInProgress,
+  loadSubmissionGridView: loads.view,
 }));
 vi.mock("@/components/error-handling/error-page", () => ({
   HubPageLoadError: function HubPageLoadError() {
@@ -94,6 +96,10 @@ describe("SubmissionGridSection", () => {
     vi.clearAllMocks();
     loads.canIncludeInProgress.mockResolvedValue(true);
     loads.config.mockResolvedValue({ submitterPrimaryFilterLabel: "Visitor" });
+    loads.view.mockResolvedValue({
+      version: null,
+      settings: { v: 1, columns: [] },
+    });
   });
 
   it("renders the given fallback when the API has no grid for the form", async () => {
@@ -153,6 +159,27 @@ describe("SubmissionGridSection", () => {
       submitterLabel: "Visitor",
       urlState: { page: 2, columns: ["q2"] },
       answerColumns: [{ key: "q2", title: "Title of q2" }],
+    });
+  });
+
+  it("loads the rows for the saved view where the URL says nothing", async () => {
+    // Arrange
+    loads.columns.mockResolvedValue(READY);
+    const view = {
+      version: "4",
+      settings: { v: 1, columns: [{ key: "q2" }], pageSize: 30 },
+    };
+    loads.view.mockResolvedValue(view);
+
+    // Act
+    const shell = await renderSection({ page: "2" });
+
+    // Assert
+    expect(shell.props).toMatchObject({ view, canSaveView: true });
+    const rows = (shell.props.children as Leaf).props.children as Leaf;
+    expect(rows.props).toMatchObject({
+      urlState: { page: 2, pageSize: 30, columns: ["q2"] },
+      answerColumns: [{ key: "q2" }],
     });
   });
 
