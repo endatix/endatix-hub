@@ -67,17 +67,20 @@ function useLinksWrite(setup: GenerateLinksSetup) {
   return { pending, ...outcome, generate, reset: () => setOutcome(NOT_RUN) };
 }
 
-/** Opening resets the last run and counts again. */
+/** Opening resets the last run and starts a new count. */
 function usePanelWithPreview(
   setup: GenerateLinksSetup,
   write: ReturnType<typeof useLinksWrite>,
 ) {
+  const [session, setSession] = useState(0);
   const panel = usePanelOpen(() => {
     write.reset();
-    count.reset();
+    setSession((count) => count + 1);
   }, write.pending);
-  const count = useLinksPreview(setup.formId, setup.search, panel.open);
-  return { ...panel, preview: count.preview };
+  const { formId, search } = setup;
+  const { open } = panel;
+  const preview = useLinksPreview({ formId, search, session, open });
+  return { ...panel, preview };
 }
 
 /**

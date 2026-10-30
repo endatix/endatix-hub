@@ -13,8 +13,9 @@ import {
   type GenerateLinks,
   type GenerateLinksSetup,
 } from "../use-generate-links.hook";
+import { FILTERED_LINKS_NEED_NEWER_API } from "../personal-links";
 import {
-  blocksGenerate,
+  generateBlock,
   type LinksPreviewState,
 } from "../use-links-preview.hook";
 import { LinksOutcome } from "./links-outcome";
@@ -40,12 +41,15 @@ type RecipientsProps = GenerateLinksSetup & { preview: LinksPreviewState };
 const isSearching = ({ search, preview }: RecipientsProps) =>
   search.trim() !== "" && preview.kind !== "older";
 
+const LEFT_OUT =
+  "Test participants, and participants who already have a link, are left out.";
+
 function recipientsDescription(props: RecipientsProps): string {
   if (isSearching(props))
-    return `Participants whose identifier contains "${props.search.trim()}" and who have no link yet. Test participants, and participants who already have a link, are left out.`;
-  return props.totalPeople === 0
+    return `Real participants whose identifier contains "${props.search.trim()}" and who have no link yet. ${LEFT_OUT}`;
+  return props.totalPeople === 0 && !props.search.trim()
     ? "This form has no participants yet. Add or import participants first."
-    : "Every participant on this form who has no link yet. Participants who already have one keep it.";
+    : `Every real participant on this form who has no link yet. ${LEFT_OUT}`;
 }
 
 /** "{withoutLink} of {matching} matching participants get a new link", from the preview. */
@@ -72,9 +76,7 @@ function OlderApiNote() {
   return (
     <Alert variant="info">
       <Info />
-      <AlertTitle>
-        Sending links to a filtered set needs a newer Endatix API
-      </AlertTitle>
+      <AlertTitle>{FILTERED_LINKS_NEED_NEWER_API}</AlertTitle>
       <AlertDescription>
         Generate gives a link to every participant on this form who has none,
         whatever the search.
@@ -83,23 +85,28 @@ function OlderApiNote() {
   );
 }
 
-function RecipientsCount(props: Readonly<RecipientsProps>) {
-  const { preview } = props;
-  if (preview.kind === "loading")
-    return <Skeleton className="h-5 w-64" aria-label="Counting participants" />;
-  if (preview.kind === "ready")
-    return (
-      <p className="text-sm font-medium">
-        {linksCount(preview.preview, isSearching(props))}
-      </p>
-    );
+/** Without a preview: the list's count, which is the form's only when nothing is searched. */
+function FormTotal({ totalPeople, search }: Readonly<RecipientsProps>) {
+  if (search.trim()) return null;
   return (
     <dl className="grid gap-3">
       <SummaryRow
         label="Participants on this form"
-        value={props.totalPeople.toLocaleString()}
+        value={totalPeople.toLocaleString()}
       />
     </dl>
+  );
+}
+
+function RecipientsCount(props: Readonly<RecipientsProps>) {
+  const { preview } = props;
+  if (preview.kind === "loading")
+    return <Skeleton className="h-5 w-64" aria-label="Counting participants" />;
+  if (preview.kind !== "ready") return <FormTotal {...props} />;
+  return (
+    <p className="text-sm font-medium">
+      {linksCount(preview.preview, isSearching(props))}
+    </p>
   );
 }
 
@@ -113,8 +120,7 @@ function RecipientsSection(props: Readonly<RecipientsProps>) {
     >
       <div className="grid gap-3">
         <RecipientsCount {...props} />
-        {preview.kind === "ready" &&
-        preview.preview.withoutLink > preview.preview.cap ? (
+        {preview.kind === "ready" && generateBlock(preview) === "over-cap" ? (
           <OverCap {...preview.preview} />
         ) : null}
         {preview.kind === "older" && search.trim() ? <OlderApiNote /> : null}
@@ -139,18 +145,24 @@ function OnlyCopyNote() {
   );
 }
 
-function describeStep({ batch }: GenerateLinks): string {
-  if (!batch)
-    return "One link per participant, each opening that participant's own response.";
-  return batch.links.length > 0
-    ? "The links are ready to send from your own email or panel tool."
-    : "Nothing new to send: everyone it was for already has a link.";
+const NOTHING_NEW =
+  "Nothing new to send: everyone it is for already has a link.";
+
+function describeStep({ batch, preview }: GenerateLinks): string {
+  if (batch)
+    return batch.links.length > 0
+      ? "The links are ready to send from your own email or panel tool."
+      : NOTHING_NEW;
+  return generateBlock(preview) === "none-left"
+    ? NOTHING_NEW
+    : "One link per participant, each opening that participant's own response.";
 }
 
-/** Nothing to generate yet: no one on the form, the count still loading, none or too many to send. */
+/** Nothing to generate yet: the count still loading, none or too many to send, or an empty form. */
 function waitsToGenerate(run: GenerateLinks, setup: GenerateLinksSetup) {
-  if (blocksGenerate(run.preview)) return true;
-  return run.preview.kind !== "ready" && setup.totalPeople === 0;
+  if (generateBlock(run.preview)) return true;
+  const unfiltered = !setup.search.trim();
+  return run.preview.kind !== "ready" && unfiltered && setup.totalPeople === 0;
 }
 
 function stepProps(run: GenerateLinks, setup: GenerateLinksSetup) {

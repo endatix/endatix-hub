@@ -7,6 +7,10 @@ export type PersonalLink = { identifier: string; token: string };
 
 export const LINKS_FILE_MIME = "text/csv";
 
+/** What an API before link batches (endatix#1430) cannot do. */
+export const FILTERED_LINKS_NEED_NEWER_API =
+  "Sending links to a filtered set needs a newer Endatix API";
+
 /** The public URL that opens this person's response; the token is its only credential. */
 export function personalLinkUrl(
   origin: string,

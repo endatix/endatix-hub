@@ -10,10 +10,12 @@ import {
 } from "@/lib/endatix-api/audience/types";
 import { ApiResult } from "@/lib/endatix-api/shared/api-result";
 import { isMissingRoute } from "../shared/missing-route";
-import type { PersonalLink } from "./personal-links";
+import {
+  FILTERED_LINKS_NEED_NEWER_API,
+  type PersonalLink,
+} from "./personal-links";
 
-export const NEEDS_NEWER_API =
-  "Sending links to a filtered set needs a newer Endatix API.";
+const NEEDS_NEWER_API = `${FILTERED_LINKS_NEED_NEWER_API}.`;
 
 /** Each issued token with its person's identifier; `""` for someone added after the read. */
 function withIdentifiers(
@@ -83,19 +85,13 @@ export async function issueLinks(
   return issueToEveryoneOnOlderApi(api, formId);
 }
 
-const isCount = (value: unknown) => typeof value === "number";
-
-/** The preview, or `null` from an API without it (a bare 404, or no counts in the answer). */
+/** The preview, or `null` from an API without the route (a bare 404). */
 export async function previewLinks(
   api: EndatixApi,
   formId: string,
   search: string,
 ): Promise<ApiResult<AudienceLinksPreview | null>> {
   const preview = await api.audience.previewLinks(formId, search);
-  if (!preview.success) {
-    return isMissingRoute(preview) ? ApiResult.success(null) : preview;
-  }
-  const { matching, withoutLink, cap } = preview.data;
-  const complete = isCount(matching) && isCount(withoutLink) && isCount(cap);
-  return ApiResult.success(complete ? preview.data : null);
+  if (preview.success || !isMissingRoute(preview)) return preview;
+  return ApiResult.success(null);
 }

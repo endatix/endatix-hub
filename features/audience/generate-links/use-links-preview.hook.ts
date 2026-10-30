@@ -32,20 +32,38 @@ async function readPreview(
   }
 }
 
-/** Counted again on every open: links issued since change who is left without one. */
-export function useLinksPreview(formId: string, search: string, open: boolean) {
-  const [settled, setSettled] = useState<LinksPreviewState | null>(null);
+type Settled = { key: string; state: LinksPreviewState };
+
+type PreviewRequest = {
+  formId: string;
+  search: string;
+  session: number;
+  open: boolean;
+};
+
+/**
+ * Counted again for every open and every search: links issued since change who is left without
+ * one. `session` changes on each open; a count for another open or search reads as loading.
+ */
+export function useLinksPreview({
+  formId,
+  search,
+  session,
+  open,
+}: PreviewRequest): LinksPreviewState {
+  const key = `${session}:${search}`;
+  const [settled, setSettled] = useState<Settled | null>(null);
   useEffect(() => {
     if (!open) return;
     let current = true;
     void readPreview(formId, search).then((state) => {
-      if (current) setSettled(state);
+      if (current) setSettled({ key, state });
     });
     return () => {
       current = false;
     };
-  }, [formId, search, open]);
-  return { preview: settled ?? LOADING, reset: () => setSettled(null) };
+  }, [formId, search, key, open]);
+  return settled?.key === key ? settled.state : LOADING;
 }
 
 /** The search a batch runs with: an older API sends to everyone, so it gets none. */
@@ -53,10 +71,13 @@ export function batchSearch(preview: LinksPreviewState, search: string) {
   return preview.kind === "older" ? "" : search;
 }
 
-/** Whether Generate would send nothing, or more than one batch may. */
-export function blocksGenerate(preview: LinksPreviewState): boolean {
-  if (preview.kind === "loading") return true;
-  if (preview.kind !== "ready") return false;
+/** Why Generate waits, or `null` when it can run. */
+export function generateBlock(
+  preview: LinksPreviewState,
+): "loading" | "none-left" | "over-cap" | null {
+  if (preview.kind === "loading") return "loading";
+  if (preview.kind !== "ready") return null;
   const { withoutLink, cap } = preview.preview;
-  return withoutLink === 0 || withoutLink > cap;
+  if (withoutLink === 0) return "none-left";
+  return withoutLink > cap ? "over-cap" : null;
 }

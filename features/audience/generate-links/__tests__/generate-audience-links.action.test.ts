@@ -2,7 +2,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Permissions } from "@/features/auth/authorization";
 import { ApiResult } from "@/lib/endatix-api/shared/api-result";
 import { Result } from "@/lib/result";
-import { requireAudienceApi } from "../../shared/require-audience-api.server";
+import {
+  checkAudienceApi,
+  requireAudienceApi,
+} from "../../shared/require-audience-api.server";
 import {
   generateAudienceLinksAction,
   previewAudienceLinksAction,
@@ -127,12 +130,10 @@ describe("generateAudienceLinksAction", () => {
 describe("previewAudienceLinksAction", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(requireAudienceApi).mockResolvedValue(
-      Result.success(api as never),
-    );
+    vi.mocked(checkAudienceApi).mockResolvedValue(Result.success(api as never));
   });
 
-  it("returns the counts for the search", async () => {
+  it("returns the counts for the search, as a background read of forms.edit", async () => {
     // Arrange
     previewLinks.mockResolvedValue(
       ApiResult.success({ matching: 12, withoutLink: 7, cap: 5000 }),
@@ -142,6 +143,8 @@ describe("previewAudienceLinksAction", () => {
     const result = await previewAudienceLinksAction(FORM_ID, "acme");
 
     // Assert
+    expect(checkAudienceApi).toHaveBeenCalledWith(Permissions.Forms.Edit);
+    expect(requireAudienceApi).not.toHaveBeenCalled();
     expect(previewLinks).toHaveBeenCalledWith(FORM_ID, "acme");
     expect(result).toEqual(
       Result.success({ matching: 12, withoutLink: 7, cap: 5000 }),
@@ -159,14 +162,14 @@ describe("previewAudienceLinksAction", () => {
     expect(result).toEqual(Result.success(null));
   });
 
-  it("returns null when the answer leaves out the counts", async () => {
+  it("passes the API's own 404 through, so a search is never widened to everyone", async () => {
     // Arrange
-    previewLinks.mockResolvedValue(ApiResult.success({ matching: 3 }));
+    previewLinks.mockResolvedValue(formNotFound());
 
     // Act
-    const result = await previewAudienceLinksAction(FORM_ID, "");
+    const result = await previewAudienceLinksAction(FORM_ID, "acme");
 
     // Assert
-    expect(result).toEqual(Result.success(null));
+    expect(Result.isError(result) && result.message).toBe("Form not found.");
   });
 });

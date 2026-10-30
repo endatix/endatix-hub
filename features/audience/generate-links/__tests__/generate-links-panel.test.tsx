@@ -23,16 +23,19 @@ vi.mock("../generate-audience-links.action", () => ({
 
 const GENERATE = { name: "Generate and download" };
 
+const panel = (totalPeople: number, search: string) => (
+  <GenerateLinksPanel
+    formId="42"
+    identifierKind={AudienceIdentifierKind.Email}
+    totalPeople={totalPeople}
+    search={search}
+  />
+);
+
 function openPanel(totalPeople = 2, search = "") {
-  render(
-    <GenerateLinksPanel
-      formId="42"
-      identifierKind={AudienceIdentifierKind.Email}
-      totalPeople={totalPeople}
-      search={search}
-    />,
-  );
+  const view = render(panel(totalPeople, search));
   fireEvent.click(screen.getByRole("button", { name: "Personalized links" }));
+  return view;
 }
 
 function previewReturns(matching: number, withoutLink: number, cap = 5000) {
@@ -49,6 +52,7 @@ describe("GenerateLinksPanel", () => {
 
   beforeEach(() => {
     vi.mocked(generateAudienceLinksAction).mockReset();
+    vi.mocked(previewAudienceLinksAction).mockReset();
     previewReturns(2, 2);
     downloadText.mockReset();
     refresh.mockReset();
@@ -161,7 +165,26 @@ describe("GenerateLinksPanel", () => {
     expect(
       await screen.findByText("0 of 4 matching participants get a new link"),
     ).toBeTruthy();
+    expect(screen.getByText(/Nothing new to send/)).toBeTruthy();
     expect(generateButton().disabled).toBe(true);
+  });
+
+  it("counts again when the search changes while the panel is open", async () => {
+    // Arrange
+    previewReturns(12, 7);
+    const view = openPanel(12, "acme");
+    await screen.findByText("7 of 12 matching participants get a new link");
+    vi.mocked(previewAudienceLinksAction).mockReturnValue(
+      new Promise(() => {}),
+    );
+
+    // Act
+    view.rerender(panel(12, "ana"));
+
+    // Assert
+    expect(screen.queryByText(/7 of 12/)).toBeNull();
+    expect(generateButton().disabled).toBe(true);
+    expect(previewAudienceLinksAction).toHaveBeenLastCalledWith("42", "ana");
   });
 
   it("asks for a narrower search above the batch limit", async () => {
@@ -199,5 +222,6 @@ describe("GenerateLinksPanel", () => {
     // Assert
     expect(await screen.findByText("Everyone already has a link")).toBeTruthy();
     expect(generateAudienceLinksAction).toHaveBeenCalledWith("42", "");
+    expect(screen.queryByText("Participants on this form")).toBeNull();
   });
 });

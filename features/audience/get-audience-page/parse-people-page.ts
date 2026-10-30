@@ -37,7 +37,7 @@ export function parsePeopleTestFilter(
 
 /** `q` from the URL, trimmed and cut to the longest search the API takes; blank is no search. */
 export function parsePeopleSearch(value: string | undefined): string {
-  return (value ?? "").trim().slice(0, MAX_AUDIENCE_SEARCH_LENGTH);
+  return (value ?? "").slice(0, MAX_AUDIENCE_SEARCH_LENGTH).trim();
 }
 
 /** The URL value for a filter; the default `all` is left out of the URL. */

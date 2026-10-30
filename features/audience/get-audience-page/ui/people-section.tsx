@@ -1,12 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Users } from "lucide-react";
-import {
-  DataTableEmpty,
-  DataTableSurface,
-  PagedTableFooter,
-} from "@/components/table";
+import { DataTableSurface, PagedTableFooter } from "@/components/table";
 import {
   AudiencePeopleTestFilter,
   type AudienceIdentifierKind,
@@ -27,7 +22,8 @@ import { EditPersonPanel } from "../../update-person/ui/edit-person-panel";
 import { useRowOverlay } from "../../use-panel-state.hook";
 import { valueProperties } from "../../utils";
 import { PeopleTable, type RowHandlers } from "./people-table";
-import { PEOPLE_SEARCH_PARAM, PeopleToolbar } from "./people-toolbar";
+import { PeopleEmpty } from "./people-empty";
+import { PeopleToolbar } from "./people-toolbar";
 import { SectionHeader } from "./section-header";
 import type { UsageVerdicts } from "@/lib/personalization/coverage";
 
@@ -86,50 +82,6 @@ function PeoplePager(props: Readonly<Paging>) {
 }
 
 type PeopleSurfaceProps = PeopleSectionProps & { handlers: RowHandlers };
-
-type EmptyCopy = { title: string; body: string };
-
-const SEARCH_EMPTY: EmptyCopy = {
-  title: "No participants match",
-  body: "No participant on this form has an identifier that contains the search, with this filter.",
-};
-
-const FILTERED_EMPTY: Record<string, EmptyCopy> = {
-  [AudiencePeopleTestFilter.Real]: {
-    title: "No real participants",
-    body: "No participant on this form is a real participant.",
-  },
-  [AudiencePeopleTestFilter.Test]: {
-    title: "No test participants",
-    body: "No participant on this form is a test participant. Add a test participant, or import participants as test participants, to try the form as them.",
-  },
-};
-
-/** Nobody matches the search or the Real or Test filter; Clear filters goes back to everyone. */
-function FilteredEmpty({ title, body }: Readonly<EmptyCopy>) {
-  const { updateUrl } = useUrlSearchParamsUpdater();
-  const clear = () =>
-    updateUrl({ test: null, [PEOPLE_SEARCH_PARAM]: null, page: "1" });
-  return (
-    <DataTableEmpty icon={Users} title={title} onClearFilters={clear}>
-      {body}
-    </DataTableEmpty>
-  );
-}
-
-function PeopleEmpty({
-  testFilter,
-  search,
-}: Readonly<Pick<PeopleSectionProps, "testFilter" | "search">>) {
-  const filtered = search ? SEARCH_EMPTY : FILTERED_EMPTY[testFilter];
-  if (filtered) return <FilteredEmpty {...filtered} />;
-  return (
-    <DataTableEmpty icon={Users} title="No participants yet">
-      Add the participants this form is for, one at a time or from a CSV file.
-      Each participant can have their own value for every property.
-    </DataTableEmpty>
-  );
-}
 
 function PeopleSurface(props: Readonly<PeopleSurfaceProps>) {
   return (

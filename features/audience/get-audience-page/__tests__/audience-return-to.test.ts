@@ -40,6 +40,9 @@ describe("audienceListSearch search", () => {
     expect(audienceListSearch({ q: "x".repeat(300) })).toBe(
       `q=${"x".repeat(256)}`,
     );
+    expect(audienceListSearch({ q: `${"x".repeat(255)} tail` })).toBe(
+      `q=${"x".repeat(255)}`,
+    );
   });
 });
 

@@ -22,6 +22,7 @@ const PREVIEW_LOG = {
   fallbackMessage: "Failed to count who gets a link.",
   logMessage: "Failed to count who gets a link.",
   loggerName: "audience.links.preview",
+  background: true,
 } as const;
 
 const SEARCH_TOO_LONG = `Search for at most ${MAX_AUDIENCE_SEARCH_LENGTH} characters.`;

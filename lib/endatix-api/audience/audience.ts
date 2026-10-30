@@ -1,10 +1,6 @@
 import { EndatixApi } from "../endatix-api";
 import { ApiResult } from "../shared/api-result";
 import type { NormalizedPagedResponse } from "../shared/paged-response";
-import {
-  appendPagingQueryParams,
-  buildEndpointWithQuery,
-} from "../shared/query-params";
 import type { PagedResponse } from "../shared/types";
 import {
   formAudiencePath,
@@ -36,8 +32,6 @@ import {
   type WireVariables,
 } from "./mappers";
 import {
-  AudiencePaging,
-  AudiencePeopleTestFilter,
   type AudienceParticipant,
   type AudiencePerson,
   type AudienceProperty,
@@ -68,47 +62,13 @@ export type AudiencePeoplePage = NormalizedPagedResponse<AudiencePerson>;
 
 const SETTINGS_PATH = "/audience/settings";
 
-const DEFAULT_PAGE = 1;
+import {
+  buildLinksPreviewEndpoint,
+  buildListAudiencePeopleEndpoint,
+  linkBatchBody,
+} from "./endpoints";
 
-export function buildListAudiencePeopleEndpoint(
-  formId: string,
-  request: ListAudiencePeopleRequest = {},
-): string {
-  const searchParams = new URLSearchParams();
-  appendPagingQueryParams(searchParams, request, {
-    page: DEFAULT_PAGE,
-    pageSize: AudiencePaging.DefaultPageSize,
-  });
-  if (request.test && request.test !== AudiencePeopleTestFilter.All) {
-    searchParams.set("test", request.test);
-  }
-  const search = request.search?.trim();
-  if (search) searchParams.set("search", search);
-  return buildEndpointWithQuery(
-    formAudiencePath(formId, "people"),
-    searchParams,
-  );
-}
-
-/** `links/preview`, with `search` only when it is not blank. */
-export function buildLinksPreviewEndpoint(
-  formId: string,
-  search: string,
-): string {
-  const searchParams = new URLSearchParams();
-  const trimmed = search.trim();
-  if (trimmed) searchParams.set("search", trimmed);
-  return buildEndpointWithQuery(
-    formAudiencePath(formId, "links", "preview"),
-    searchParams,
-  );
-}
-
-/** A blank search is no filter: every real participant. */
-function linkBatchBody(search: string) {
-  const trimmed = search.trim();
-  return trimmed ? { filter: { search: trimmed } } : {};
-}
+export { buildListAudiencePeopleEndpoint };
 
 export class Audience {
   constructor(private readonly endatix: EndatixApi) {}
