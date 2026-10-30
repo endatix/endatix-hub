@@ -59,4 +59,20 @@ describe("releaseNotesUrl", () => {
       "/releases/tag/v0.8.1-hotfix.1",
     );
   });
+
+  it.each([
+    ["survey-core", "survey-library"],
+    ["survey-react-ui", "survey-library"],
+    ["survey-creator-core", "survey-creator"],
+    ["survey-creator-react", "survey-creator"],
+    ["survey-analytics", "survey-analytics"],
+  ] as const)("points %s at the %s release tag", (product, repo) => {
+    // Act
+    const url = new URL(releaseNotesUrl(product, "3.2.3", "about_dialog")!);
+
+    // Assert
+    expect(`${url.origin}${url.pathname}`).toBe(
+      `https://github.com/surveyjs/${repo}/releases/tag/v3.2.3`,
+    );
+  });
 });

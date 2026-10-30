@@ -1,4 +1,9 @@
-const RELEASE_NOTES_BASE = {
+import {
+  SURVEYJS_RELEASE_REPOS,
+  type SurveyJsPackage,
+} from "./surveyjs-packages.mjs";
+
+const ENDATIX_RELEASE_NOTES_BASE = {
   hub: "https://github.com/endatix/endatix-hub/releases/tag/",
   api: "https://github.com/endatix/endatix/releases/tag/",
 } as const;
@@ -6,7 +11,9 @@ const RELEASE_NOTES_BASE = {
 /** Stable, canary and hotfix tags: `0.8.0`, `0.8.1-canary.3`, `0.8.1-hotfix.1`. */
 const RELEASE_TAG_VERSION = /^\d+\.\d+\.\d+(-(canary|hotfix)\.\d+)?$/;
 
-export type ReleaseProduct = keyof typeof RELEASE_NOTES_BASE;
+export type ReleaseProduct =
+  | keyof typeof ENDATIX_RELEASE_NOTES_BASE
+  | SurveyJsPackage;
 
 /** Where in the Hub the reader followed the link from; sent as `utm_medium`. */
 export type ReleaseNotesSource = "about_dialog";
@@ -32,9 +39,16 @@ export function releaseNotesUrl(
     return null;
   }
 
-  const url = new URL(`${RELEASE_NOTES_BASE[product]}v${trimmed}`);
+  const url = new URL(`${releaseNotesBase(product)}v${trimmed}`);
   url.searchParams.set("utm_source", "endatix_hub");
   url.searchParams.set("utm_medium", source);
   url.searchParams.set("utm_campaign", "release_notes");
   return url.toString();
+}
+
+function releaseNotesBase(product: ReleaseProduct): string {
+  if (product === "hub" || product === "api") {
+    return ENDATIX_RELEASE_NOTES_BASE[product];
+  }
+  return `https://github.com/surveyjs/${SURVEYJS_RELEASE_REPOS[product]}/releases/tag/`;
 }
