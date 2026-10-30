@@ -6,7 +6,7 @@ import {
   VIEW_CONFLICT_MESSAGE,
 } from "../submission-grid-view-save-outcome";
 
-const VIEW = { revision: "3", settings: { v: 1 as const, columns: [] } };
+const VIEW = { version: "3", settings: { v: 1 as const, columns: [] } };
 
 describe("saveViewOutcome", () => {
   it("hands back the saved view", () => {

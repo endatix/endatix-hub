@@ -75,11 +75,11 @@ export async function loadSubmissionGridView(
     loggerName: LOGGER_NAME,
   });
   if (Result.isError(result)) {
-    return { revision: null, settings: DEFAULT_SUBMISSION_VIEW_SETTINGS };
+    return { version: null, settings: DEFAULT_SUBMISSION_VIEW_SETTINGS };
   }
 
   return {
-    revision: result.value.revision,
+    version: result.value.version,
     settings: readViewSettings(result.value.settings),
   };
 }

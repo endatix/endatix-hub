@@ -22,7 +22,7 @@ vi.mock("next/navigation", () => ({
 vi.mock("next-auth/react", () => ({ useSession: () => ({ data: null }) }));
 
 const UNREAD_VIEW: SubmissionGridViewLoad = {
-  revision: null,
+  version: null,
   settings: { v: 1, columns: [] },
 };
 

@@ -1,5 +1,5 @@
-/** The revision of a form that has no saved view yet; saving it creates one. */
-export const UNSAVED_SUBMISSION_VIEW_REVISION = "0";
+/** The saved view's version before anyone saves one; saving it creates the view. */
+export const UNSAVED_SUBMISSION_VIEW_VERSION = "0";
 
 /** Widths the API accepts, in pixels. */
 export const SUBMISSION_VIEW_COLUMN_WIDTH_RANGE = {
@@ -39,6 +39,6 @@ export interface SubmissionViewSettings {
 /** `GET`/`PUT forms/{formId}/reporting/submission-view`. */
 export interface SubmissionView {
   /** Concurrency token, a long as a string; send back the one you read. */
-  revision: string;
+  version: string;
   settings: SubmissionViewSettings;
 }

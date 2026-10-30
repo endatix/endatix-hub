@@ -1,7 +1,7 @@
 "use client";
 
 import { toast } from "@/components/ui/toast";
-import { UNSAVED_SUBMISSION_VIEW_REVISION } from "@/lib/endatix-api/reporting/submission-view-types";
+import { UNSAVED_SUBMISSION_VIEW_VERSION } from "@/lib/endatix-api/reporting/submission-view-types";
 import {
   functionalUpdate,
   type ColumnSizingState,
@@ -116,7 +116,7 @@ function useSubmissionGridViewState({
   const saving = useSaveView({ formId, catalog, view, layout, grid });
   return {
     ...layoutControls(layout, setLayout),
-    canSave: canSaveView && view.revision !== null,
+    canSave: canSaveView && view.version !== null,
     ...saving,
   };
 }
@@ -136,12 +136,12 @@ function layoutControls(layout: SubmissionGridLayout, setLayout: LayoutSetter) {
 
 function useViewLayout(view: SubmissionGridViewLoad) {
   const [state, setState] = useState(() => ({
-    revision: view.revision,
+    version: view.version,
     layout: layoutFromSettings(view.settings),
   }));
-  if (state.revision !== view.revision) {
+  if (state.version !== view.version) {
     setState({
-      revision: view.revision,
+      version: view.version,
       layout: layoutFromSettings(view.settings),
     });
   }
@@ -186,14 +186,14 @@ function useLegacyViewMigration(input: MigrationInput) {
   const { formId, catalog, view, setLayout, updateUrl } = input;
   const urlHasColumns = useSearchParams().has(keys.columns);
   useEffect(() => {
-    if (view.revision !== UNSAVED_SUBMISSION_VIEW_REVISION) return;
+    if (view.version !== UNSAVED_SUBMISSION_VIEW_VERSION) return;
     const migrated = takeLegacyColumnView(formId, catalog, browserStorage());
     if (!migrated) return;
     setLayout(() => migrated.layout);
     if (migrated.answerKeys && !urlHasColumns) {
       updateUrl(columnsUpdate(migrated.answerKeys));
     }
-  }, [formId, catalog, view.revision, setLayout, updateUrl, urlHasColumns]);
+  }, [formId, catalog, view.version, setLayout, updateUrl, urlHasColumns]);
 }
 
 type SaveInput = {
@@ -209,12 +209,12 @@ function useSaveView({ formId, catalog, view, layout, grid }: SaveInput) {
   const [isSaving, startSaving] = useTransition();
   const [saveError, setSaveError] = useState<string | null>(null);
   const save = () => {
-    const { revision } = view;
-    if (revision === null) return;
+    const { version } = view;
+    if (version === null) return;
     const settings = settingsToSave({ view, layout, grid, catalog });
     startSaving(async () => {
       const outcome = saveViewOutcome(
-        await saveSubmissionGridViewAction(formId, { revision, settings }),
+        await saveSubmissionGridViewAction(formId, { version, settings }),
       );
       setSaveError(outcome.kind === "saved" ? null : outcome.message);
       if (outcome.kind === "saved") toast.success(VIEW_SAVED_MESSAGE);

@@ -28,7 +28,7 @@ vi.mock("@/lib/endatix-api", () => ({
   },
 }));
 
-const VIEW = { revision: "3", settings: { v: 1 as const, columns: [] } };
+const VIEW = { version: "3", settings: { v: 1 as const, columns: [] } };
 
 describe("saveSubmissionGridViewAction", () => {
   beforeEach(() => {
@@ -38,7 +38,7 @@ describe("saveSubmissionGridViewAction", () => {
 
   it("saves for form editors and returns the new view", async () => {
     // Arrange
-    const saved = { ...VIEW, revision: "4" };
+    const saved = { ...VIEW, version: "4" };
     mocks.save.mockResolvedValue(ApiResult.success(saved));
 
     // Act
@@ -56,7 +56,7 @@ describe("saveSubmissionGridViewAction", () => {
   it("keeps the 409 status so the grid can reload", async () => {
     // Arrange
     mocks.save.mockResolvedValue(
-      ApiResult.conflictError("Stale revision", { statusCode: 409 }),
+      ApiResult.conflictError("Stale version", { statusCode: 409 }),
     );
 
     // Act

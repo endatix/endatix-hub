@@ -97,7 +97,7 @@ describe("SubmissionGridSection", () => {
     loads.canIncludeInProgress.mockResolvedValue(true);
     loads.config.mockResolvedValue({ submitterPrimaryFilterLabel: "Visitor" });
     loads.view.mockResolvedValue({
-      revision: null,
+      version: null,
       settings: { v: 1, columns: [] },
     });
   });
@@ -166,7 +166,7 @@ describe("SubmissionGridSection", () => {
     // Arrange
     loads.columns.mockResolvedValue(READY);
     const view = {
-      revision: "4",
+      version: "4",
       settings: { v: 1, columns: [{ key: "q2" }], pageSize: 30 },
     };
     loads.view.mockResolvedValue(view);

@@ -30,7 +30,7 @@ export const DEFAULT_SUBMISSION_VIEW_SETTINGS: SubmissionViewSettings = {
 };
 
 export type SubmissionGridViewLoad = {
-  revision: string | null;
+  version: string | null;
   settings: SubmissionViewSettings;
 };
 

@@ -60,7 +60,7 @@ vi.mock("@/components/ui/dropdown-menu", () => {
 });
 
 const SAVED: SubmissionGridViewLoad = {
-  revision: "3",
+  version: "3",
   settings: { v: 1, columns: [{ key: "completedAt", visible: false }] },
 };
 
@@ -106,7 +106,7 @@ describe("SubmissionGridViewMenu", () => {
 
   it("offers no Save view over a view that could not be read", () => {
     // Act
-    renderMenu({ ...SAVED, revision: null }, true);
+    renderMenu({ ...SAVED, version: null }, true);
 
     // Assert
     expect(saveItem()).toBeNull();

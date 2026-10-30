@@ -60,7 +60,7 @@ describe("loadSubmissionGridView", () => {
     // Arrange
     getView.mockResolvedValue(
       ApiResult.success({
-        revision: "7",
+        version: "7",
         settings: {
           v: 1,
           columns: [{ key: "q1", width: "wide" }],
@@ -75,12 +75,12 @@ describe("loadSubmissionGridView", () => {
     // Assert
     expect(getView).toHaveBeenCalledWith("42");
     expect(view).toEqual({
-      revision: "7",
+      version: "7",
       settings: { v: 1, columns: [{ key: "q1" }], pageSize: 20 },
     });
   });
 
-  it("shows the defaults and withholds the revision when the view cannot be read", async () => {
+  it("shows the defaults and withholds the version when the view cannot be read", async () => {
     // Arrange
     getView.mockResolvedValue(ApiResult.forbiddenError("No access."));
 
@@ -89,7 +89,7 @@ describe("loadSubmissionGridView", () => {
 
     // Assert
     expect(view).toEqual({
-      revision: null,
+      version: null,
       settings: DEFAULT_SUBMISSION_VIEW_SETTINGS,
     });
   });

@@ -13,7 +13,7 @@ export function buildSubmissionViewEndpoint(formId: string): string {
 export class SubmissionViews {
   constructor(private readonly endatix: EndatixApi) {}
 
-  /** The saved view, or revision `"0"` and default settings. */
+  /** The saved view, or version `"0"` and default settings. */
   async get(formId: string): Promise<ApiResult<SubmissionView>> {
     const validFormId = validateEndatixId(formId, "formId");
     if (Result.isError(validFormId)) {
@@ -25,7 +25,7 @@ export class SubmissionViews {
     );
   }
 
-  /** Saves `view.settings` over `view.revision`; a stale revision is 409. */
+  /** Saves `view.settings` over `view.version`; a stale version is 409. */
   async save(
     formId: string,
     view: SubmissionView,
@@ -37,7 +37,7 @@ export class SubmissionViews {
 
     return this.endatix.put<SubmissionView>(
       buildSubmissionViewEndpoint(validFormId.value),
-      { revision: view.revision, settings: view.settings },
+      { version: view.version, settings: view.settings },
     );
   }
 }

@@ -47,7 +47,7 @@ const answer: AnswerColumn = {
 };
 
 const SAVED: SubmissionGridViewLoad = {
-  revision: "3",
+  version: "3",
   settings: {
     v: 1,
     columns: [
@@ -140,7 +140,7 @@ describe("SubmissionGridTable with a saved view", () => {
   it("saves a column's new width after a resize", async () => {
     // Arrange
     vi.mocked(saveSubmissionGridViewAction).mockResolvedValue(
-      Result.success({ ...SAVED, revision: "4" }),
+      Result.success({ ...SAVED, version: "4" }),
     );
     renderTable();
     const created = header("created");

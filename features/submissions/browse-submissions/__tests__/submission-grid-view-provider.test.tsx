@@ -36,7 +36,7 @@ const catalog: AnswerColumn[] = ["q1", "q2", "q3"].map((key) => ({
 }));
 
 const SAVED: SubmissionGridViewLoad = {
-  revision: "3",
+  version: "3",
   settings: {
     v: 1,
     columns: [
@@ -86,7 +86,7 @@ describe("SubmissionGridViewProvider with the grid's URL", () => {
   it("saves what the grid shows: the view, the URL's own choices and the unsaved layout", async () => {
     // Arrange
     vi.mocked(saveSubmissionGridViewAction).mockResolvedValue(
-      Result.success({ ...SAVED, revision: "4" }),
+      Result.success({ ...SAVED, version: "4" }),
     );
     const { result } = renderView(SAVED, "sort=modifiedAt%3Adesc");
 
@@ -129,14 +129,14 @@ describe("SubmissionGridViewProvider with the grid's URL", () => {
     expect(navigation.router.refresh).not.toHaveBeenCalled();
   });
 
-  it("starts from the new view when its revision changes", () => {
+  it("starts from the new view when its version changes", () => {
     // Arrange
     const { result, rerenderWith } = renderView(SAVED);
     act(() => result.current.setMetadataVisible("status", false));
 
     // Act
     rerenderWith({
-      revision: "5",
+      version: "5",
       settings: { v: 1, columns: [{ key: "startedAt", visible: false }] },
     });
 
@@ -144,7 +144,7 @@ describe("SubmissionGridViewProvider with the grid's URL", () => {
     expect(result.current.hiddenMetadata).toEqual(["startedAt"]);
   });
 
-  it("keeps the unsaved layout while the revision stays the same", () => {
+  it("keeps the unsaved layout while the version stays the same", () => {
     // Arrange
     const { result, rerenderWith } = renderView(SAVED);
     act(() => result.current.setMetadataVisible("status", false));

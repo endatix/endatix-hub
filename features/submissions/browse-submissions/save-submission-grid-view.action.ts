@@ -18,7 +18,7 @@ const LOGGER_NAME = "submissions.browse.save-view";
 export type SaveSubmissionGridViewResult = Result<SubmissionView>;
 
 /**
- * Saves the grid view everyone on the form sees. `view.revision` is the one
+ * Saves the grid view everyone on the form sees. `view.version` is the one
  * the grid read; a newer save in between answers 409.
  */
 export async function saveSubmissionGridViewAction(
@@ -52,7 +52,7 @@ async function saveView(
   return result;
 }
 
-/** A stale revision is an expected race, not an operational failure. */
+/** A stale version is an expected race, not an operational failure. */
 function saveResultOptions(saved: ApiResult<SubmissionView>) {
   const fallbackMessage = "Unable to save the view. Please try again.";
   return isConflictError(saved)

@@ -75,10 +75,10 @@ function renderView(view: SubmissionGridViewLoad, query = "") {
 }
 
 const SAVED_VIEW: SubmissionGridViewLoad = {
-  revision: "3",
+  version: "3",
   settings: DEFAULT_SUBMISSION_VIEW_SETTINGS,
 };
-const UNSAVED_VIEW: SubmissionGridViewLoad = { ...SAVED_VIEW, revision: "0" };
+const UNSAVED_VIEW: SubmissionGridViewLoad = { ...SAVED_VIEW, version: "0" };
 
 describe("SubmissionGridViewProvider", () => {
   beforeEach(() => {
@@ -102,7 +102,7 @@ describe("SubmissionGridViewProvider", () => {
     );
     expect(saveSubmissionGridViewAction).toHaveBeenCalledWith(
       FORM_ID,
-      expect.objectContaining({ revision: "3" }),
+      expect.objectContaining({ version: "3" }),
     );
     expect(updateUrl).toHaveBeenCalledWith({
       columns: null,
@@ -116,7 +116,7 @@ describe("SubmissionGridViewProvider", () => {
     // Arrange
     vi.mocked(saveSubmissionGridViewAction).mockResolvedValue(
       Result.success({
-        revision: "4",
+        version: "4",
         settings: DEFAULT_SUBMISSION_VIEW_SETTINGS,
       }),
     );
