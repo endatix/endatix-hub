@@ -26,7 +26,11 @@ const nextConfig: NextConfig = {
   basePath: normalizeBasePath(),
   // Keep OTel + Azure exporters out of the server bundle so instrumentation and
   // route handlers share one @opentelemetry/api-logs global (otherwise emit() is a no-op).
-  serverExternalPackages: [...OTEL_SERVER_EXTERNAL_PACKAGES],
+  // sanitize-html can carry its own nested postcss (Next pins an older one). Bundled, that
+  // postcss becomes a `.next/node_modules` symlink to the nested copy, which loses its
+  // sibling dependencies on hosts that dereference symlinks (Azure Static Web Apps,
+  // endatix-hub#1269). Loaded by name, sanitize-html finds its postcss in its own folder.
+  serverExternalPackages: [...OTEL_SERVER_EXTERNAL_PACKAGES, "sanitize-html"],
   typedRoutes: true,
   reactStrictMode: true,
   reactCompiler: true,

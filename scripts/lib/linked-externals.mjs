@@ -1,40 +1,12 @@
-import {
-  copyFileSync,
-  existsSync,
-  lstatSync,
-  mkdirSync,
-  readdirSync,
-  readFileSync,
-  realpathSync,
-  statSync,
-} from "node:fs";
+import { existsSync, lstatSync, readdirSync, realpathSync } from "node:fs";
 import path from "node:path";
 
-// Turbopack links the externals it cannot load by name (a nested copy, such as
-// sanitize-html's own postcss) into `.next/node_modules` as `<name>-<hash>` symlinks.
-// Node resolves a linked package's dependencies from its real path. A host that
-// dereferences symlinks on upload (Azure Static Web Apps, endatix-hub#1269) turns the
-// link into a plain folder, and the same dependencies then resolve from the
-// standalone's top-level node_modules: another version, or files tracing left out.
-
-function readManifest(packageDir) {
-  return JSON.parse(readFileSync(path.join(packageDir, "package.json"), "utf-8"));
-}
-
-/** Node's lookup for a bare package name from `fromDir`, without leaving `rootDir`. */
-function findPackageDir(fromDir, name, rootDir) {
-  for (let dir = fromDir; ; dir = path.dirname(dir)) {
-    if (path.basename(dir) !== "node_modules") {
-      const candidate = path.join(dir, "node_modules", name);
-      if (existsSync(path.join(candidate, "package.json"))) {
-        return candidate;
-      }
-    }
-    if (dir === rootDir || path.dirname(dir) === dir) {
-      return undefined;
-    }
-  }
-}
+// Turbopack links each external into `.next/node_modules` as a `<name>-<hash>` symlink.
+// A host that dereferences symlinks on upload (Azure Static Web Apps, endatix-hub#1269)
+// turns the link into a plain folder, and Node then resolves the package's dependencies
+// from that folder instead of its real path. For a top-level package both lookups end in
+// the standalone's top-level node_modules, so it loads the same code. A nested copy (a
+// dependency's own postcss, say) loses the folders next to it.
 
 function linksIn(dir) {
   if (!existsSync(dir)) {
@@ -49,74 +21,61 @@ function linksIn(dir) {
   });
 }
 
-/**
- * Each dependency of a linked external that would resolve to another version (or not
- * at all) once the link is dereferenced, nested ones included, parents first.
- * `into` is where the expected version has to be copied so both layouts resolve it.
- */
-export function findMisresolvedDependencies(standaloneDir) {
-  const problems = [];
-
-  const visit = (owner, viewDir, hostDir, realDir) => {
-    for (const name of Object.keys(readManifest(realDir).dependencies ?? {})) {
-      const expected = findPackageDir(realDir, name, standaloneDir);
-      if (expected === undefined) {
-        continue;
-      }
-      const expectedVersion = readManifest(expected).version;
-      const seen = findPackageDir(viewDir, name, standaloneDir);
-      const seenVersion = seen && readManifest(seen).version;
-      if (seenVersion === expectedVersion) {
-        continue;
-      }
-      const into = path.join(hostDir, "node_modules", name);
-      problems.push({ owner, name, expected, expectedVersion, seenVersion, into });
-      visit(`${owner} > ${name}`, path.join(viewDir, "node_modules", name), into, expected);
+/** The link's target relative to the top-level node_modules, or undefined when it is missing. */
+function targetOf(link, topLevel) {
+  try {
+    return path.relative(topLevel, realpathSync(link));
+  } catch (error) {
+    if (error?.code === "ENOENT") {
+      return undefined;
     }
-  };
-
-  for (const link of linksIn(path.join(standaloneDir, ".next/node_modules"))) {
-    const target = realpathSync(link);
-    visit(path.relative(standaloneDir, link), link, target, target);
-  }
-  return problems;
-}
-
-// Folders are created writable rather than with the source's mode: fs.cpSync copies a
-// read-only folder's mode first and then cannot write into it on a macOS folder
-// bind-mounted into Docker, as dev containers run the build.
-function copyPackage(from, to) {
-  mkdirSync(to, { recursive: true });
-  for (const entry of readdirSync(from)) {
-    const source = path.join(from, entry);
-    const target = path.join(to, entry);
-    if (statSync(source).isDirectory()) {
-      copyPackage(source, target);
-    } else {
-      copyFileSync(source, target);
-    }
+    throw error;
   }
 }
 
-/**
- * Copies every misresolved dependency into the linked package's own node_modules, so
- * the standalone runs the same with symlinks kept or dereferenced. Returns the copies.
- */
-export function vendorLinkedExternals(standaloneDir) {
-  const copies = findMisresolvedDependencies(standaloneDir);
-  for (const { expected, into } of copies) {
-    copyPackage(expected, into);
-  }
+/** The package whose own node_modules holds `target`: what to load by name instead. */
+function parentOf(target) {
+  const segments = target.split(path.sep);
+  const last = segments.lastIndexOf("node_modules");
+  return last > 0 ? segments.slice(0, last).join("/") : undefined;
+}
 
-  const remaining = findMisresolvedDependencies(standaloneDir);
-  if (remaining.length > 0) {
-    throw new Error(
-      `linked externals still misresolve: ${remaining.map(describeProblem).join("; ")}`,
+/**
+ * Linked externals whose real folder is not a top-level package of the standalone, and
+ * links whose target is missing (`target` undefined).
+ */
+export function findNestedLinkedExternals(standaloneDir) {
+  const topLevel = path.join(realpathSync(standaloneDir), "node_modules");
+  return linksIn(path.join(standaloneDir, ".next/node_modules"))
+    .map((link) => {
+      const target = targetOf(link, topLevel);
+      return {
+        link: path.relative(standaloneDir, link),
+        target,
+        parent: target === undefined || target.startsWith("..") ? undefined : parentOf(target),
+      };
+    })
+    .filter(
+      ({ target }) =>
+        target === undefined ||
+        target.startsWith("..") ||
+        target.split(path.sep).includes("node_modules"),
     );
-  }
-  return copies;
 }
 
-export function describeProblem({ owner, name, expectedVersion, seenVersion }) {
-  return `${owner} needs ${name}@${expectedVersion}, resolves ${seenVersion ?? "nothing"}`;
+export function describeNestedLinkedExternals(nested) {
+  const lines = nested.map(({ link, target, parent }) => {
+    if (target === undefined) {
+      return `   - ${link} -> missing target`;
+    }
+    const fix = parent === undefined ? "" : `: add "${parent}" to serverExternalPackages`;
+    return `   - ${link} -> node_modules/${target.split(path.sep).join("/")}${fix}`;
+  });
+  return (
+    "Turbopack links nested copies, which break with symlinks dereferenced (Azure Static " +
+    "Web Apps). Load the package that holds each one by name in next.config.ts:\n" +
+    `${lines.join("\n")}\n` +
+    "   When that package has to stay bundled, dedupe the nested version in the lockfile, " +
+    "or as a last resort list its dependencies in outputFileTracingIncludes."
+  );
 }
