@@ -208,18 +208,22 @@ export function suggestColumnMap(
   const named = new Set(properties.map((p) => p.variableName));
   const map: ColumnMap = {};
   for (const column of columns) {
-    if (isChoiceGroupKey(column)) {
-      map[column] = CREATE_COLUMN;
-      continue;
-    }
-    const variableName = variableNameFromName(column);
-    const match = free.get(variableName);
-    map[column] =
-      match?.variableName ??
-      (named.has(variableName) ? SKIP_COLUMN : CREATE_COLUMN);
-    if (match) free.delete(match.variableName);
+    map[column] = suggestionFor(column, { free, named });
+    free.delete(map[column]);
   }
   return map;
+}
+
+/** A new choice group is created; a column takes a free property named like it, else is created or skipped. */
+function suggestionFor(
+  column: string,
+  { free, named }: { free: Map<string, AudienceProperty>; named: Set<string> },
+): string {
+  if (isChoiceGroupKey(column)) return CREATE_COLUMN;
+  const variableName = variableNameFromName(column);
+  const match = free.get(variableName);
+  if (match) return match.variableName;
+  return named.has(variableName) ? SKIP_COLUMN : CREATE_COLUMN;
 }
 
 /** What a column's decision does; a decision kind added later is counted by name, never as mapped. */
@@ -242,6 +246,20 @@ export function columnTally(columns: string[], map: ColumnMap): ColumnTally {
   const tally: ColumnTally = { mapped: 0, toCreate: 0, ignored: 0 };
   for (const column of columns) tally[decisionKind(map[column])] += 1;
   return tally;
+}
+
+/** The rows queued to create a property, and the file's new choice groups for their drafts. */
+export function queuedRows(
+  headers: string[],
+  choices: { identifierColumn: string; columns: ColumnMap },
+  properties: readonly AudienceProperty[],
+) {
+  const { identifierColumn, columns } = choices;
+  const rows = mappableColumns(headers, identifierColumn, properties);
+  return {
+    queued: queuedColumns(rows, columns),
+    groups: newChoiceGroups(headers, identifierColumn, properties),
+  };
 }
 
 /**

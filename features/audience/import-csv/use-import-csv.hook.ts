@@ -27,10 +27,8 @@ import {
 } from "./use-audience-import.hook";
 import {
   columnsAfterIdentifierChange,
-  mappableColumns,
-  newChoiceGroups,
   propertyColumnMap,
-  queuedColumns,
+  queuedRows,
   suggestColumnChoices,
   type ColumnMap,
 } from "./column-map";
@@ -192,14 +190,9 @@ function identifierChoice(
   column: string,
   properties: readonly AudienceProperty[],
 ): ChoiceState {
-  const columns = columnsAfterIdentifierChange(
-    state.columns,
-    {
-      from: state.identifierColumn,
-      to: column,
-    },
-    properties,
-  );
+  const columns = columnsAfterIdentifierChange(state.columns, {
+    from: state.identifierColumn, to: column,
+  }, properties);
   return { ...state, identifierColumn: column, columns };
 }
 
@@ -428,6 +421,8 @@ function useCreatedProperties(choices: ImportChoices) {
   };
 }
 
+const headersOf = (file: LoadedFile | null) => file?.preview.headers ?? [];
+
 /** The New properties step's drafts for the columns queued on the Columns step. */
 function useQueuedProperties(
   setup: ImportCsvSetup,
@@ -437,11 +432,7 @@ function useQueuedProperties(
   const { createdProperties, onCreated, resetCreated } =
     useCreatedProperties(choices);
   const properties = withCreated(setup.properties, createdProperties);
-  const headers = file?.preview.headers ?? [];
-  const { identifierColumn } = choices;
-  const rows = mappableColumns(headers, identifierColumn, properties);
-  const queued = queuedColumns(rows, choices.columns);
-  const groups = newChoiceGroups(headers, identifierColumn, properties);
+  const { queued, groups } = queuedRows(headersOf(file), choices, properties);
   const { formId } = setup;
   const newProperties = useNewProperties({
     formId,

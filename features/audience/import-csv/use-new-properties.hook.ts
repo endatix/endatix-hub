@@ -99,10 +99,7 @@ function useFormAnswers(formId: string) {
   const ask = (variables: string[], onAnswer: () => void) => {
     const request = formTaken(formId, variables).then((taken) =>
       storeTaken(taken, variables, {
-        known: known.current,
-        asked: asked.current,
-        failed,
-        onAnswer,
+        known: known.current, asked: asked.current, failed, onAnswer,
       }),
     );
     variables.forEach((variable) => asked.current.set(variable, request));
@@ -197,27 +194,27 @@ function checkedDrafts(
   }));
 }
 
-function createInput(formId: string, draft: PropertyDraft) {
-  const { group } = draft;
+/** A group is multiple choice with its suffixes and Other; a single choice takes the column's values. */
+function typeInput({ dataType, suggestion, group }: PropertyDraft) {
   if (group) {
     return {
-      formId,
-      name: draft.name,
       dataType: AudienceDataType.MultipleChoice,
       choicesJson: JSON.stringify(group.choices),
       allowsOther: group.allowsOther,
     };
   }
+  const single = dataType === AudienceDataType.SingleChoice;
   return {
-    formId,
-    name: draft.name,
-    dataType: draft.dataType,
-    choicesJson:
-      draft.dataType === AudienceDataType.SingleChoice
-        ? JSON.stringify(draft.suggestion.choices)
-        : null,
+    dataType,
+    choicesJson: single ? JSON.stringify(suggestion.choices) : null,
   };
 }
+
+const createInput = (formId: string, draft: PropertyDraft) => ({
+  formId,
+  name: draft.name,
+  ...typeInput(draft),
+});
 
 type NewPropertiesSetup = {
   formId: string;

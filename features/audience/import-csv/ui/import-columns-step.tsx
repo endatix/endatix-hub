@@ -171,18 +171,22 @@ function groupOptions(group: NewChoiceGroup): SelectOption[] {
   ];
 }
 
+function GroupLabel({ group }: Readonly<{ group: NewChoiceGroup }>) {
+  return (
+    <>
+      <span className="sr-only">Columns </span>
+      <span className="font-mono">{group.variable}__</span>
+    </>
+  );
+}
+
 /** One row for a group's `variable__choice` columns, counted once; its suffixes are its choices. */
 function GroupField({ group, index, wizard }: Readonly<GroupFieldProps>) {
   const id = `import-column-${index}`;
   return (
     <FieldWithHelp
       id={id}
-      label={
-        <>
-          <span className="sr-only">Columns </span>
-          <span className="font-mono">{group.variable}__</span>
-        </>
-      }
+      label={<GroupLabel group={group} />}
       help={`${group.columns.length} columns: ${choicesLabel(group)}.`}
     >
       <OptionsSelect
@@ -277,6 +281,19 @@ function fileColumns({ file, wizard }: LoadedStepProps) {
   };
 }
 
+/** A new choice group's row, or a column's. */
+function ColumnRow({
+  newGroups,
+  ...props
+}: Readonly<ColumnFieldProps & { newGroups: NewChoiceGroup[] }>) {
+  const group = newGroups.find((g) => g.key === props.column);
+  return group ? (
+    <GroupField {...props} group={group} />
+  ) : (
+    <ColumnField {...props} />
+  );
+}
+
 function ColumnsSection(props: Readonly<LoadedStepProps>) {
   const { wizard } = props;
   const { columns, groups, newGroups } = fileColumns(props);
@@ -287,14 +304,9 @@ function ColumnsSection(props: Readonly<LoadedStepProps>) {
       description={columnsDescription(wizard, groups)}
       aside={<ColumnTally wizard={wizard} columns={columns} />}
     >
-      {columns.map((column, index) => {
-        const group = newGroups.find((g) => g.key === column);
-        return group ? (
-          <GroupField key={column} {...props} group={group} index={index} />
-        ) : (
-          <ColumnField key={column} {...props} column={column} index={index} />
-        );
-      })}
+      {columns.map((column, index) => (
+        <ColumnRow key={column} {...{ ...props, column, index, newGroups }} />
+      ))}
       <ChoiceColumns groups={groups} />
     </PanelSection>
   );
