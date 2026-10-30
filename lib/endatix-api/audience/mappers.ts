@@ -23,6 +23,7 @@ import {
   type AudienceSettings,
   type AudienceProperty,
   type AudienceVariables,
+  type AudienceLinkBatch,
   type IssuedAudienceLink,
   type OpenedTestSubmission,
 } from "./types";
@@ -57,6 +58,21 @@ export type WireIssuedLink = { membershipId: number | string; token: string };
 
 export function mapIssuedLink(wire: WireIssuedLink): IssuedAudienceLink {
   return { membershipId: String(wire.membershipId), token: wire.token };
+}
+
+export type WireLinkBatch = {
+  matching: number;
+  issued: (WireIssuedLink & { identifier?: string | null })[];
+};
+
+export function mapLinkBatch(wire: WireLinkBatch): AudienceLinkBatch {
+  return {
+    matching: wire.matching,
+    issued: wire.issued.map((link) => ({
+      ...mapIssuedLink(link),
+      identifier: link.identifier ?? "",
+    })),
+  };
 }
 
 export function mapProperty(wire: WireProperty): AudienceProperty {

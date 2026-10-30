@@ -20,10 +20,11 @@ import { PeopleSection } from "../ui/people-section";
 vi.mock("@/lib/utils/hooks/use-media-query.hook", () => ({
   useMediaQuery: () => true,
 }));
+const url = vi.hoisted(() => ({ query: "" }));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn(), replace: vi.fn() }),
   usePathname: () => "/forms/1/audience",
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => new URLSearchParams(url.query),
 }));
 vi.mock("../../update-person/update-audience-person.action", () => ({
   updateAudiencePersonAction: vi.fn(),
@@ -98,13 +99,18 @@ const LIST = {
   formId: "1",
   identifierKind: AudienceIdentifierKind.Email,
   properties: [] as AudienceProperty[],
-  importLimits: { maxRows: 5_000, maxBytes: 20_971_520, runsInBackground: false },
+  importLimits: {
+    maxRows: 5_000,
+    maxBytes: 20_971_520,
+    runsInBackground: false,
+  },
   totalPeople: 2,
   page: 1,
   pageSize: 50,
   totalPages: 1,
   hasNextPage: false,
   testFilter: AudiencePeopleTestFilter.All,
+  search: "",
 };
 
 // Radix tooltips (the identifier's copy affordance) measure with ResizeObserver.
@@ -118,6 +124,7 @@ describe("PeopleSection", () => {
   beforeEach(() => {
     vi.stubGlobal("ResizeObserver", ResizeObserverStub);
     vi.mocked(updateAudiencePersonAction).mockReset();
+    url.query = "";
   });
 
   it("filters the match-key property out of edit values and the save payload", async () => {
@@ -427,6 +434,51 @@ describe("PeopleSection", () => {
       }),
     ).toBeTruthy();
   });
+  it("searches participants by identifier, starting from the URL's search", () => {
+    // Arrange
+    url.query = "q=acme";
+
+    // Act
+    render(
+      <PeopleSection
+        {...LIST}
+        people={[PERSON]}
+        search="acme"
+        canEdit
+        canTest={false}
+      />,
+    );
+
+    // Assert
+    const box = screen.getByRole("textbox", {
+      name: "Search participants by identifier",
+    }) as HTMLInputElement;
+    expect(box.value).toBe("acme");
+  });
+
+  it("says the search found nobody, with a way back to everyone", () => {
+    // Act
+    render(
+      <PeopleSection
+        {...LIST}
+        people={[]}
+        totalPeople={0}
+        search="nobody"
+        canEdit
+        canTest={false}
+      />,
+    );
+
+    // Assert
+    expect(screen.getByText("No participants match")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Clear filters" })).toBeTruthy();
+    expect(
+      screen.getByRole("textbox", {
+        name: "Search participants by identifier",
+      }),
+    ).toBeTruthy();
+  });
+
   it("shows Link only when someone on the page has a link", () => {
     render(
       <PeopleSection

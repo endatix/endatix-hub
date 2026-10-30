@@ -19,6 +19,7 @@ import {
   type WireRedeemedLink,
   type WireTestSubmission,
   mapIssuedLink,
+  mapLinkBatch,
   mapPeoplePageResult,
   mapParticipantResult,
   mapPersonResult,
@@ -28,6 +29,7 @@ import {
   requireEndatixId,
   requireFormAndEntityIds,
   type WireIssuedLink,
+  type WireLinkBatch,
   type WireParticipant,
   type WirePerson,
   type WireProperty,
@@ -53,6 +55,8 @@ import {
   type StartAudienceImportRequest,
   CURRENT_IMPORT,
   type IssuedAudienceLink,
+  type AudienceLinkBatch,
+  type AudienceLinksPreview,
   type OpenedTestSubmission,
   type RedeemedAudienceLink,
   type UpdateAudienceSettingsRequest,
@@ -84,6 +88,26 @@ export function buildListAudiencePeopleEndpoint(
     formAudiencePath(formId, "people"),
     searchParams,
   );
+}
+
+/** `links/preview`, with `search` only when it is not blank. */
+export function buildLinksPreviewEndpoint(
+  formId: string,
+  search: string,
+): string {
+  const searchParams = new URLSearchParams();
+  const trimmed = search.trim();
+  if (trimmed) searchParams.set("search", trimmed);
+  return buildEndpointWithQuery(
+    formAudiencePath(formId, "links", "preview"),
+    searchParams,
+  );
+}
+
+/** A blank search is no filter: every real participant. */
+function linkBatchBody(search: string) {
+  const trimmed = search.trim();
+  return trimmed ? { filter: { search: trimmed } } : {};
 }
 
 export class Audience {
@@ -395,6 +419,35 @@ export class Audience {
     );
     if (!response.success) return response;
     return ApiResult.success(response.data.map((link) => mapIssuedLink(link)));
+  }
+
+  /** How many real participants a search keeps, and how many of them a batch would send a link. */
+  async previewLinks(
+    formId: string,
+    search: string,
+  ): Promise<ApiResult<AudienceLinksPreview>> {
+    const idCheck = requireEndatixId(formId, "formId");
+    if (!idCheck.success) return idCheck;
+
+    return this.endatix.get<AudienceLinksPreview>(
+      buildLinksPreviewEndpoint(formId, search),
+    );
+  }
+
+  /** New links for the participants a search keeps who have none; each token is in this response only. */
+  async issueLinkBatch(
+    formId: string,
+    search: string,
+  ): Promise<ApiResult<AudienceLinkBatch>> {
+    const idCheck = requireEndatixId(formId, "formId");
+    if (!idCheck.success) return idCheck;
+
+    const response = await this.endatix.post<WireLinkBatch>(
+      formAudiencePath(formId, "links", "batches"),
+      linkBatchBody(search),
+    );
+    if (!response.success) return response;
+    return ApiResult.success(mapLinkBatch(response.data));
   }
 
   async redeemLink(

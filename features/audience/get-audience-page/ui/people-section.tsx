@@ -27,7 +27,7 @@ import { EditPersonPanel } from "../../update-person/ui/edit-person-panel";
 import { useRowOverlay } from "../../use-panel-state.hook";
 import { valueProperties } from "../../utils";
 import { PeopleTable, type RowHandlers } from "./people-table";
-import { PeopleTestFilter } from "./people-test-filter";
+import { PEOPLE_SEARCH_PARAM, PeopleToolbar } from "./people-toolbar";
 import { SectionHeader } from "./section-header";
 import type { UsageVerdicts } from "@/lib/personalization/coverage";
 
@@ -51,6 +51,8 @@ type PeopleSectionProps = {
   canCopyTestLink?: boolean;
   /** All / Real / Test; `totalPeople` counts the filtered set. */
   testFilter: AudiencePeopleTestFilter;
+  /** The identifier search (`?q=`); `totalPeople` counts what it keeps. */
+  search: string;
   viewSwitch?: ReactNode;
   /** The locked match key, said once where people are listed. */
   matchKeyNote?: ReactNode;
@@ -85,7 +87,14 @@ function PeoplePager(props: Readonly<Paging>) {
 
 type PeopleSurfaceProps = PeopleSectionProps & { handlers: RowHandlers };
 
-const FILTERED_EMPTY: Record<string, { title: string; body: string }> = {
+type EmptyCopy = { title: string; body: string };
+
+const SEARCH_EMPTY: EmptyCopy = {
+  title: "No participants match",
+  body: "No participant on this form has an identifier that contains the search, with this filter.",
+};
+
+const FILTERED_EMPTY: Record<string, EmptyCopy> = {
   [AudiencePeopleTestFilter.Real]: {
     title: "No real participants",
     body: "No participant on this form is a real participant.",
@@ -96,18 +105,13 @@ const FILTERED_EMPTY: Record<string, { title: string; body: string }> = {
   },
 };
 
-/** Nobody matches the Real or Test filter; Clear filters goes back to everyone. */
-function FilteredEmpty({
-  title,
-  body,
-}: Readonly<{ title: string; body: string }>) {
+/** Nobody matches the search or the Real or Test filter; Clear filters goes back to everyone. */
+function FilteredEmpty({ title, body }: Readonly<EmptyCopy>) {
   const { updateUrl } = useUrlSearchParamsUpdater();
+  const clear = () =>
+    updateUrl({ test: null, [PEOPLE_SEARCH_PARAM]: null, page: "1" });
   return (
-    <DataTableEmpty
-      icon={Users}
-      title={title}
-      onClearFilters={() => updateUrl({ test: null, page: "1" })}
-    >
+    <DataTableEmpty icon={Users} title={title} onClearFilters={clear}>
       {body}
     </DataTableEmpty>
   );
@@ -115,8 +119,9 @@ function FilteredEmpty({
 
 function PeopleEmpty({
   testFilter,
-}: Readonly<Pick<PeopleSectionProps, "testFilter">>) {
-  const filtered = FILTERED_EMPTY[testFilter];
+  search,
+}: Readonly<Pick<PeopleSectionProps, "testFilter" | "search">>) {
+  const filtered = search ? SEARCH_EMPTY : FILTERED_EMPTY[testFilter];
   if (filtered) return <FilteredEmpty {...filtered} />;
   return (
     <DataTableEmpty icon={Users} title="No participants yet">
@@ -130,7 +135,7 @@ function PeopleSurface(props: Readonly<PeopleSurfaceProps>) {
   return (
     <DataTableSurface data-slot="audience-people-table">
       {props.totalPeople === 0 ? (
-        <PeopleEmpty testFilter={props.testFilter} />
+        <PeopleEmpty testFilter={props.testFilter} search={props.search} />
       ) : (
         <>
           <PeopleTable {...props} />
@@ -227,9 +232,11 @@ function useRowHandlers(
   };
 }
 
-/** The filter shows once there is someone to filter, and stays while a filter is on. */
-function showsTestFilter({ totalPeople, testFilter }: PeopleSectionProps) {
-  return totalPeople > 0 || testFilter !== AudiencePeopleTestFilter.All;
+/** The toolbar shows once there is someone to find, and stays while a search or filter is on. */
+function showsToolbar({ totalPeople, testFilter, search }: PeopleSectionProps) {
+  return (
+    totalPeople > 0 || testFilter !== AudiencePeopleTestFilter.All || !!search
+  );
 }
 
 /** Import keeps every property as a target; the rest show and edit only value properties. */
@@ -247,8 +254,8 @@ export function PeopleSection(props: Readonly<PeopleSectionProps>) {
   return (
     <section aria-labelledby="audience-people" className="flex flex-col gap-4">
       <PeopleHeader {...props} />
-      {showsTestFilter(props) ? (
-        <PeopleTestFilter value={props.testFilter} />
+      {showsToolbar(props) ? (
+        <PeopleToolbar testFilter={props.testFilter} />
       ) : null}
       <PeopleSurface {...values} handlers={handlers} />
       {props.canEdit ? <PeopleOverlays {...values} row={row} /> : null}

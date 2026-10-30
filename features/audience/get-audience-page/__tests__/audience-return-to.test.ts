@@ -28,7 +28,26 @@ describe("audienceListSearch", () => {
   });
 });
 
+describe("audienceListSearch search", () => {
+  it("keeps the search, trimmed, so Back from a participant restores it", () => {
+    expect(audienceListSearch({ q: "  acme ", test: "real" })).toBe(
+      "test=real&q=acme",
+    );
+  });
+
+  it("drops a blank search and cuts one past the longest the API takes", () => {
+    expect(audienceListSearch({ q: "   " })).toBe("");
+    expect(audienceListSearch({ q: "x".repeat(300) })).toBe(
+      `q=${"x".repeat(256)}`,
+    );
+  });
+});
+
 describe("parseAudienceReturnQuery", () => {
+  it("restores the search with the filter", () => {
+    expect(parseAudienceReturnQuery("q=acme&page=2")).toBe("page=2&q=acme");
+  });
+
   it("drops keys the list does not own", () => {
     expect(parseAudienceReturnQuery("page=3&test=real&from=https://evil")).toBe(
       "page=3&test=real",

@@ -2,12 +2,9 @@
 
 import { Permissions } from "@/features/auth/authorization";
 import type { IssuedAudienceLink } from "@/lib/endatix-api/audience/types";
-import {
-  ApiErrorType,
-  ApiResult,
-  type ApiError,
-} from "@/lib/endatix-api/shared/api-result";
+import { ApiResult } from "@/lib/endatix-api/shared/api-result";
 import type { Result } from "@/lib/result";
+import { isMissingRoute } from "../shared/missing-route";
 import { withHubAudienceApi } from "../shared/with-hub-audience-api.server";
 
 const REISSUE_LOG = {
@@ -18,17 +15,6 @@ const REISSUE_LOG = {
 } as const;
 
 const NEEDS_NEWER_API = "Reissuing links needs a newer Endatix API.";
-
-/**
- * A heuristic: the API answers its own 404s (no link yet, participant removed) as
- * `application/problem+json`, while an API without this route answers a bare 404.
- */
-function isMissingRoute({ error }: ApiError) {
-  return (
-    error.type === ApiErrorType.NotFoundError &&
-    error.details?.problemMediaType !== "application/problem+json"
-  );
-}
 
 /** One participant's link with a new token; the old one stops opening it. */
 export async function reissueAudienceLinkAction(

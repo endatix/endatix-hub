@@ -1,16 +1,22 @@
 "use client";
 
-import { Info, Link2, Users } from "lucide-react";
+import { Info, Link2, TriangleAlert, Users } from "lucide-react";
 import { PanelForm } from "@/components/common/panel-form";
 import { PanelSection } from "@/components/common/panel-section";
 import { SummaryRow } from "@/components/common/summary-row";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import type { AudienceLinksPreview } from "@/lib/endatix-api/audience/types";
 import {
   useGenerateLinks,
   type GenerateLinks,
   type GenerateLinksSetup,
 } from "../use-generate-links.hook";
+import {
+  blocksGenerate,
+  type LinksPreviewState,
+} from "../use-links-preview.hook";
 import { LinksOutcome } from "./links-outcome";
 
 const TRIGGER = (
@@ -28,23 +34,91 @@ const PANEL = {
   pendingLabel: "Generating…",
 } as const;
 
-function RecipientsSection({ totalPeople }: Readonly<GenerateLinksSetup>) {
-  const description =
-    totalPeople === 0
-      ? "This form has no participants yet. Add or import participants first."
-      : "Every participant on this form who has no link yet. Participants who already have one keep it.";
+type RecipientsProps = GenerateLinksSetup & { preview: LinksPreviewState };
+
+/** Search, when there is one, and the preview answers: an older API ignores it. */
+const isSearching = ({ search, preview }: RecipientsProps) =>
+  search.trim() !== "" && preview.kind !== "older";
+
+function recipientsDescription(props: RecipientsProps): string {
+  if (isSearching(props))
+    return `Participants whose identifier contains "${props.search.trim()}" and who have no link yet. Test participants, and participants who already have a link, are left out.`;
+  return props.totalPeople === 0
+    ? "This form has no participants yet. Add or import participants first."
+    : "Every participant on this form who has no link yet. Participants who already have one keep it.";
+}
+
+/** "{withoutLink} of {matching} matching participants get a new link", from the preview. */
+function linksCount(preview: AudienceLinksPreview, searching: boolean) {
+  const who = searching ? "matching participants" : "participants";
+  return `${preview.withoutLink.toLocaleString()} of ${preview.matching.toLocaleString()} ${who} get a new link`;
+}
+
+function OverCap({ withoutLink, cap }: Readonly<AudienceLinksPreview>) {
+  return (
+    <Alert variant="warning">
+      <TriangleAlert />
+      <AlertTitle>Too many links for one batch</AlertTitle>
+      <AlertDescription>
+        {withoutLink.toLocaleString()} participants would get a link; the limit
+        is {cap.toLocaleString()} per batch. Search for fewer participants.
+      </AlertDescription>
+    </Alert>
+  );
+}
+
+/** An API before link batches sends a link to everyone; said only when a search is on. */
+function OlderApiNote() {
+  return (
+    <Alert variant="info">
+      <Info />
+      <AlertTitle>
+        Sending links to a filtered set needs a newer Endatix API
+      </AlertTitle>
+      <AlertDescription>
+        Generate gives a link to every participant on this form who has none,
+        whatever the search.
+      </AlertDescription>
+    </Alert>
+  );
+}
+
+function RecipientsCount(props: Readonly<RecipientsProps>) {
+  const { preview } = props;
+  if (preview.kind === "loading")
+    return <Skeleton className="h-5 w-64" aria-label="Counting participants" />;
+  if (preview.kind === "ready")
+    return (
+      <p className="text-sm font-medium">
+        {linksCount(preview.preview, isSearching(props))}
+      </p>
+    );
+  return (
+    <dl className="grid gap-3">
+      <SummaryRow
+        label="Participants on this form"
+        value={props.totalPeople.toLocaleString()}
+      />
+    </dl>
+  );
+}
+
+function RecipientsSection(props: Readonly<RecipientsProps>) {
+  const { preview, search } = props;
   return (
     <PanelSection
       icon={Users}
       title="Who gets a link"
-      description={description}
+      description={recipientsDescription(props)}
     >
-      <dl className="grid gap-3">
-        <SummaryRow
-          label="Participants on this form"
-          value={totalPeople.toLocaleString()}
-        />
-      </dl>
+      <div className="grid gap-3">
+        <RecipientsCount {...props} />
+        {preview.kind === "ready" &&
+        preview.preview.withoutLink > preview.preview.cap ? (
+          <OverCap {...preview.preview} />
+        ) : null}
+        {preview.kind === "older" && search.trim() ? <OlderApiNote /> : null}
+      </div>
     </PanelSection>
   );
 }
@@ -70,7 +144,13 @@ function describeStep({ batch }: GenerateLinks): string {
     return "One link per participant, each opening that participant's own response.";
   return batch.links.length > 0
     ? "The links are ready to send from your own email or panel tool."
-    : "Nothing new to send: no one on this form is without a link.";
+    : "Nothing new to send: everyone it was for already has a link.";
+}
+
+/** Nothing to generate yet: no one on the form, the count still loading, none or too many to send. */
+function waitsToGenerate(run: GenerateLinks, setup: GenerateLinksSetup) {
+  if (blocksGenerate(run.preview)) return true;
+  return run.preview.kind !== "ready" && setup.totalPeople === 0;
 }
 
 function stepProps(run: GenerateLinks, setup: GenerateLinksSetup) {
@@ -82,7 +162,7 @@ function stepProps(run: GenerateLinks, setup: GenerateLinksSetup) {
     error: run.error,
     description: describeStep(run),
     submitLabel: done ? "Done" : "Generate and download",
-    submitDisabled: !done && setup.totalPeople === 0,
+    submitDisabled: !done && waitsToGenerate(run, setup),
     cancelable: !done,
     onSubmit: done ? () => run.openChange(false) : run.generate,
   };
@@ -100,7 +180,7 @@ export function GenerateLinksPanel(setup: Readonly<GenerateLinksSetup>) {
         <LinksOutcome run={run} batch={run.batch} setup={setup} />
       ) : (
         <>
-          <RecipientsSection {...setup} />
+          <RecipientsSection {...setup} preview={run.preview} />
           <OnlyCopyNote />
         </>
       )}

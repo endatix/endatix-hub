@@ -2,6 +2,7 @@ import { AudiencePaging } from "@/lib/endatix-api/audience/types";
 import { AudienceView, parseAudienceView } from "./audience-view";
 import {
   parsePeoplePaging,
+  parsePeopleSearch,
   parsePeopleTestFilter,
   peopleTestFilterUrlValue,
 } from "./parse-people-page";
@@ -14,10 +15,11 @@ type AudienceListQuery = {
   pageSize?: string;
   view?: string;
   test?: string;
+  q?: string;
 };
 
 /**
- * The list's own query: paging clamped, `view` and `test` validated, defaults and
+ * The list's own query: paging clamped, `view` and `test` validated, `q` trimmed, defaults and
  * unknown keys left out. The same string `rememberTableReturnTo` stores and reads.
  */
 export function audienceListSearch(raw: AudienceListQuery): string {
@@ -31,6 +33,8 @@ export function audienceListSearch(raw: AudienceListQuery): string {
   if (view !== AudienceView.People) params.set("view", view);
   const test = peopleTestFilterUrlValue(parsePeopleTestFilter(raw.test));
   if (test) params.set("test", test);
+  const search = parsePeopleSearch(raw.q);
+  if (search) params.set("q", search);
   return params.toString();
 }
 
@@ -42,5 +46,6 @@ export function parseAudienceReturnQuery(query: string): string {
     pageSize: raw.get("pageSize") ?? undefined,
     view: raw.get("view") ?? undefined,
     test: raw.get("test") ?? undefined,
+    q: raw.get("q") ?? undefined,
   });
 }
