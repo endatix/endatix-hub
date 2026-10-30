@@ -1,5 +1,6 @@
 "use client";
 
+import { Fragment } from "react";
 import { SummaryRow } from "@/components/common/summary-row";
 import type { SurveyJsVersions } from "@/lib/hosting/hub-version";
 import {
@@ -60,10 +61,10 @@ function SharedRow({ version }: Readonly<{ version: string | undefined }>) {
       </dl>
       <p className="text-xs text-muted-foreground">
         {SURVEYJS_PACKAGES.map((name, index) => (
-          <span key={name} className="whitespace-nowrap">
-            {name}
-            {index < SURVEYJS_PACKAGES.length - 1 && ", "}
-          </span>
+          <Fragment key={name}>
+            {index > 0 && ", "}
+            <span className="whitespace-nowrap">{name}</span>
+          </Fragment>
         ))}
       </p>
     </div>
