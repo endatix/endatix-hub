@@ -1,5 +1,5 @@
 import { writeCsv } from "@/lib/utils/csv";
-import { testLinkPath } from "../copy-test-link/test-link-path";
+import { testLinkPath } from "../shared/test-link-path";
 
 /** One run's link: whose it is, which run, and the token that opens its test submission. */
 export type TestLinkRow = {

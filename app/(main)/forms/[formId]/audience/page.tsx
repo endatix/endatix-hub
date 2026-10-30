@@ -12,7 +12,7 @@ import {
   requireAudienceAccess,
   type AudienceAccess,
 } from "@/features/audience/shared/require-audience-api.server";
-import { testLinkAccess } from "@/features/audience/copy-test-link";
+import { testLinkAccess } from "@/features/audience/shared/test-link-access.server";
 import { loadAudienceVariables } from "@/features/audience/server";
 import { FormWorkspaceHeader } from "@/features/forms/form-workspace";
 import { loadWorkspaceForm } from "@/features/forms/form-workspace/load-workspace-form.server";
@@ -133,7 +133,7 @@ async function guardAudiencePage(formId: string) {
     checkPermission(Permissions.Tenant.ManageSettings),
     checkPermission(Permissions.Forms.Edit),
     checkPermission(Permissions.Forms.Test),
-    testLinkAccess(api, formId, checkPermission),
+    testLinkAccess(api, formId, access.value),
   ]);
   return {
     api,

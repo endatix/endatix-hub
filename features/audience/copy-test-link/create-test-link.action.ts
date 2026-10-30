@@ -2,23 +2,21 @@
 
 import { Permissions } from "@/features/auth/authorization";
 import { TelemetryLogger } from "@/features/telemetry";
-import {
-  clampExpiryMinutes,
-  DEFAULT_EXPIRY_MINUTES,
-} from "@/lib/share-links/share-link-expiry";
+import { DEFAULT_EXPIRY_MINUTES } from "@/lib/share-links/share-link-expiry";
 import type { EndatixApi } from "@/lib/endatix-api";
 import type { AudiencePerson } from "@/lib/endatix-api/audience/types";
-import { ApiErrorType, ApiResult } from "@/lib/endatix-api/shared/api-result";
+import { ApiResult } from "@/lib/endatix-api/shared/api-result";
 import { Result, toResult } from "@/lib/result";
 import {
   requireAudienceAccess,
   type AudienceAccess,
 } from "../shared/require-audience-api.server";
-import { testLinkPath } from "./test-link-path";
+import { testLinkExpiry } from "../shared/test-link-limits";
+import { testLinkPath } from "../shared/test-link-path";
 import {
-  canMintTestLinks,
-  canShareSubmissions,
-} from "./can-copy-test-link.server";
+  SHARE_SUBMISSION_PERMISSIONS,
+  TEST_LINK_PERMISSIONS,
+} from "../shared/test-link-access.server";
 
 export type TestLink = { url: string; expiresAt: string };
 
@@ -28,12 +26,11 @@ export type TestLinkPerson = Pick<
   "audienceMemberId" | "membershipId"
 >;
 
-const MIN_EXPIRY_MINUTES = 60;
-
 const NO_ACCESS =
   "You need permission to test and edit forms to copy a test link.";
 const NO_SHARE_ACCESS =
   "This Endatix API also needs permission to view submissions to copy a test link.";
+const NO_LINK = "No test link was created. Try again.";
 const REAL_PERSON = "Test links are only for test participants.";
 
 const LOG = {
@@ -42,34 +39,36 @@ const LOG = {
   loggerName: "audience.test-links.create",
 } as const;
 
-const testLinkExpiry = (minutes: number) =>
-  Math.max(MIN_EXPIRY_MINUTES, clampExpiryMinutes(minutes));
-
 type MintRequest = {
   formId: string;
   submissionId: string;
   expiryMinutes: number;
 };
 
+type LinkRequest = {
+  formId: string;
+  person: TestLinkPerson;
+  expiryMinutes: number;
+};
+
 /** The test links route: one run, all or nothing, and a real participant refused by the API. */
 async function mintOneRun(
   api: EndatixApi,
-  formId: string,
-  { membershipId }: TestLinkPerson,
-  expiryMinutes: number,
-): Promise<ApiResult<TestLink>> {
-  const minted = await api.audience.mintTestLinks(formId, {
-    membershipIds: [membershipId],
-    runsEach: 1,
-    expiryMinutes: testLinkExpiry(expiryMinutes),
-  });
-  if (!minted.success) return minted;
-  const [link] = minted.data;
-  if (!link) return ApiResult.notFoundError("No test link was created.");
-  return ApiResult.success({
-    url: testLinkPath(formId, link.token),
-    expiresAt: link.expiresAt,
-  });
+  { formId, person, expiryMinutes }: LinkRequest,
+): Promise<Result<TestLink>> {
+  const minted = toResult(
+    await api.audience.mintTestLinks(formId, {
+      membershipIds: [person.membershipId],
+      runsEach: 1,
+      expiryMinutes: testLinkExpiry(expiryMinutes),
+    }),
+    LOG,
+  );
+  if (Result.isError(minted)) return minted;
+  const [link] = minted.value;
+  if (!link) return Result.error(NO_LINK);
+  const url = testLinkPath(formId, link.token);
+  return Result.success({ url, expiresAt: link.expiresAt });
 }
 
 /**
@@ -131,21 +130,17 @@ async function rollBack(api: EndatixApi, formId: string, submissionId: string) {
   );
 }
 
-type LegacyRequest = {
-  formId: string;
-  memberId: string;
-  expiryMinutes: number;
-};
-
 /**
  * An API without the test links route: open, then mint. When the token fails, the test
  * submission is deleted again and the token's error is returned.
  */
 async function openAndMint(
-  { api, checkPermission }: AudienceAccess,
-  { formId, memberId, expiryMinutes }: LegacyRequest,
+  { api, checkAnyPermission }: AudienceAccess,
+  { formId, person, expiryMinutes }: LinkRequest,
 ): Promise<Result<TestLink>> {
-  if (!(await canShareSubmissions(checkPermission))) {
+  const memberId = person.audienceMemberId;
+  const share = await checkAnyPermission(SHARE_SUBMISSION_PERMISSIONS);
+  if (!share.success) {
     return Result.error(NO_SHARE_ACCESS);
   }
   const opened = await openForTestPerson(api, formId, memberId);
@@ -156,13 +151,10 @@ async function openAndMint(
   return link;
 }
 
-const routeMissing = (result: ApiResult<TestLink>) =>
-  !result.success && result.error.type === ApiErrorType.NotFoundError;
-
 /**
  * Copy test link: a new test submission for a test person, and a `submit` link to it that
- * opens without a login, also on a private form. A 404 from the test links route is an older
- * API, or a participant or form it cannot find; either way the older path answers it.
+ * opens without a login, also on a private form. An API without the test links route
+ * (`supportsTestLinks`) gets the older open-then-mint path.
  */
 export async function createTestLinkAction(
   formId: string,
@@ -171,17 +163,12 @@ export async function createTestLinkAction(
 ): Promise<Result<TestLink>> {
   const access = await requireAudienceAccess(Permissions.Forms.Test);
   if (Result.isError(access)) return access;
-  if (!(await canMintTestLinks(access.value.checkPermission))) {
-    return Result.error(NO_ACCESS);
+  const { api, checkAllPermissions } = access.value;
+  const mint = await checkAllPermissions(TEST_LINK_PERMISSIONS);
+  if (!mint.success) return Result.error(NO_ACCESS);
+  const request = { formId, person, expiryMinutes };
+  if (await api.audience.supportsTestLinks(formId)) {
+    return mintOneRun(api, request);
   }
-
-  const minted = await mintOneRun(
-    access.value.api,
-    formId,
-    person,
-    expiryMinutes,
-  );
-  if (!routeMissing(minted)) return toResult(minted, LOG);
-  const memberId = person.audienceMemberId;
-  return openAndMint(access.value, { formId, memberId, expiryMinutes });
+  return openAndMint(access.value, request);
 }

@@ -38,7 +38,7 @@ vi.mock("@/lib/endatix-api", async (importOriginal) => ({
   EndatixApi: class {},
 }));
 
-vi.mock("@/features/audience/copy-test-link", () => ({
+vi.mock("@/features/audience/shared/test-link-access.server", () => ({
   testLinkAccess: vi.fn(),
 }));
 
@@ -122,7 +122,7 @@ describe("Form Audience Page", () => {
     vi.mocked(loadAudienceVariables).mockResolvedValue(VARIABLES as never);
     vi.mocked(loadAudienceUsage).mockResolvedValue(USAGE as never);
     const { testLinkAccess } =
-      await import("@/features/audience/copy-test-link");
+      await import("@/features/audience/shared/test-link-access.server");
     vi.mocked(testLinkAccess).mockResolvedValue({
       canCopyTestLink: true,
       canMintTestLinks: false,
@@ -143,7 +143,7 @@ describe("Form Audience Page", () => {
     const { loadAudiencePage } =
       await import("@/features/audience/get-audience-page");
     const { testLinkAccess } =
-      await import("@/features/audience/copy-test-link");
+      await import("@/features/audience/shared/test-link-access.server");
 
     expect(testLinkAccess).toHaveBeenCalledWith(
       expect.anything(),

@@ -10,7 +10,7 @@ import {
   PARTICIPANT_PAGE_PERMISSION,
   requireAudienceAccess,
 } from "@/features/audience/shared/require-audience-api.server";
-import { testLinkAccess } from "@/features/audience/copy-test-link";
+import { testLinkAccess } from "@/features/audience/shared/test-link-access.server";
 import { loadWorkspaceForm } from "@/features/forms/form-workspace/load-workspace-form.server";
 import { FormLoadError } from "@/features/forms/form-workspace/ui/form-load-error";
 import { Result } from "@/lib/result";
@@ -30,7 +30,7 @@ async function guardParticipantPage(formId: string) {
   const { api, checkPermission } = access.value;
   const [testForms, testLinks] = await Promise.all([
     checkPermission(Permissions.Forms.Test),
-    testLinkAccess(api, formId, checkPermission),
+    testLinkAccess(api, formId, access.value),
   ]);
   return {
     api,

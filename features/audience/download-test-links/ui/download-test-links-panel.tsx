@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { ExpirySelect } from "../../copy-test-link/ui/expiry-select";
+import { ExpirySelect } from "../../ui/test-link-expiry-select";
 import { MAX_TEST_LINKS } from "../test-links-file";
 import {
   useDownloadTestLinks,

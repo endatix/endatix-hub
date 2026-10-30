@@ -13,7 +13,7 @@ vi.mock("@/features/audience/shared/require-audience-api.server", () => ({
   requireAudienceAccess: vi.fn(),
 }));
 
-vi.mock("@/features/audience/copy-test-link", () => ({
+vi.mock("@/features/audience/shared/test-link-access.server", () => ({
   testLinkAccess: vi
     .fn()
     .mockResolvedValue({ canCopyTestLink: true, canMintTestLinks: true }),

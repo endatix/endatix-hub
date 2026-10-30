@@ -27,7 +27,7 @@ import { LinkStatusBadge } from "../../ui/link-status-badge";
 import { NotSet } from "../../ui/not-set";
 import { SubmissionLink } from "../../ui/submission-link";
 import { WithTestBadge } from "../../ui/test-badge";
-import type { ParticipantSelection } from "../../participant-selection/use-participant-selection.hook";
+import type { ParticipantSelection } from "../../ui/use-participant-selection.hook";
 import { formatPropertyValue, identifierKindLabel } from "../../utils";
 import { selectCell, selectColumn } from "./people-selection";
 

@@ -55,9 +55,9 @@ function ToastProgress({
   const baseColor = variantColors[variant];
 
   return (
-    <div className="relative h-1.5 w-full overflow-hidden">
+    <div className="relative w-full h-1.5 overflow-hidden">
       <div
-        className={`absolute right-0 bottom-0 left-0 h-full w-full ${baseColor} opacity-10`}
+        className={`absolute bottom-0 left-0 right-0 h-full w-full ${baseColor} opacity-10`}
       />
       {duration === 0 ? (
         <>

@@ -8,7 +8,10 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-type DisabledButtonProps = Omit<ComponentProps<typeof Button>, "disabled"> & {
+type DisabledButtonProps = Omit<
+  ComponentProps<typeof Button>,
+  "disabled"
+> & {
   tooltip: string;
 };
 

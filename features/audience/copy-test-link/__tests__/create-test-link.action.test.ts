@@ -21,6 +21,7 @@ const SEVEN_DAYS = 60 * 24 * 7;
 const PERSON = { audienceMemberId: MEMBER_ID, membershipId: MEMBERSHIP_ID };
 
 const mintTestLinks = vi.fn();
+const supportsTestLinks = vi.fn();
 const getParticipant = vi.fn();
 const openTestSubmission = vi.fn();
 const createAccessToken = vi.fn();
@@ -28,7 +29,12 @@ const deleteSubmission = vi.fn();
 const checkPermission = vi.fn();
 
 const api = {
-  audience: { mintTestLinks, getParticipant, openTestSubmission },
+  audience: {
+    supportsTestLinks,
+    mintTestLinks,
+    getParticipant,
+    openTestSubmission,
+  },
   submissions: { createAccessToken, delete: deleteSubmission },
 };
 
@@ -67,6 +73,7 @@ describe("createTestLinkAction on an API with the test links route", () => {
       Result.success({ api, checkPermission } as never),
     );
     grant(Permissions.Forms.Test, Permissions.Forms.Edit);
+    supportsTestLinks.mockResolvedValue(true);
     mintTestLinks.mockResolvedValue(minted("signed.token"));
   });
 
@@ -117,6 +124,28 @@ describe("createTestLinkAction on an API with the test links route", () => {
     expect(openTestSubmission).not.toHaveBeenCalled();
   });
 
+  it("returns the route's 404 as it is, and opens nothing the older way", async () => {
+    mintTestLinks.mockResolvedValue(
+      ApiResult.notFoundError("The participant is not on this form."),
+    );
+
+    const result = await createTestLinkAction(FORM_ID, PERSON, SEVEN_DAYS);
+
+    expect(Result.isError(result) && result.message).toBe(
+      "The participant is not on this form.",
+    );
+    expect(openTestSubmission).not.toHaveBeenCalled();
+  });
+
+  it("fails without opening more when the route returns no link", async () => {
+    mintTestLinks.mockResolvedValue(ApiResult.success([]));
+
+    const result = await createTestLinkAction(FORM_ID, PERSON, SEVEN_DAYS);
+
+    expect(Result.isError(result)).toBe(true);
+    expect(openTestSubmission).not.toHaveBeenCalled();
+  });
+
   it.each([
     ["test forms", [Permissions.Forms.Edit]],
     ["edit forms", [Permissions.Forms.Test]],
@@ -133,10 +162,10 @@ describe("createTestLinkAction on an API with the test links route", () => {
   );
 });
 
-describe("createTestLinkAction on an older API (the route answers 404)", () => {
+describe("createTestLinkAction on an older API (no test links route)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mintTestLinks.mockResolvedValue(ApiResult.notFoundError("Not found."));
+    supportsTestLinks.mockResolvedValue(false);
     vi.mocked(requireAudienceAccess).mockResolvedValue(
       Result.success({ api, checkPermission } as never),
     );
@@ -168,6 +197,7 @@ describe("createTestLinkAction on an older API (the route answers 404)", () => {
       }),
     );
     expect(requireAudienceAccess).toHaveBeenCalledWith(Permissions.Forms.Test);
+    expect(mintTestLinks).not.toHaveBeenCalled();
     expect(openTestSubmission).toHaveBeenCalledWith(FORM_ID, MEMBERSHIP_ID);
     expect(createAccessToken).toHaveBeenCalledWith({
       formId: FORM_ID,

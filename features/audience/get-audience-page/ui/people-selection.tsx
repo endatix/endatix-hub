@@ -8,7 +8,7 @@ import {
   type StaticDataTableColumn,
 } from "@/components/table";
 import type { AudiencePerson } from "@/lib/endatix-api/audience/types";
-import type { ParticipantSelection } from "../../participant-selection/use-participant-selection.hook";
+import type { ParticipantSelection } from "../../ui/use-participant-selection.hook";
 
 /** Test participants only: test links are made for them alone. */
 const selectableIds = (people: readonly AudiencePerson[]) =>

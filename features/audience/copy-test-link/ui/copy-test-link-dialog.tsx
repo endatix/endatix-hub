@@ -15,7 +15,7 @@ import { formatExpiresIn } from "@/lib/share-links/share-link-expiry";
 import type { AudiencePerson } from "@/lib/endatix-api/audience/types";
 import type { TestLink } from "../create-test-link.action";
 import { useCopyTestLink } from "../use-copy-test-link.hook";
-import { ExpirySelect } from "./expiry-select";
+import { ExpirySelect } from "../../ui/test-link-expiry-select";
 
 export type TestPerson = Pick<
   AudiencePerson,

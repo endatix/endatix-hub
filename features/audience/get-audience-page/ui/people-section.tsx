@@ -24,7 +24,7 @@ import { ImportCsvPanel } from "../../import-csv/ui/import-csv-panel";
 import {
   useParticipantSelection,
   type ParticipantSelection,
-} from "../../participant-selection/use-participant-selection.hook";
+} from "../../ui/use-participant-selection.hook";
 import { RemovePersonDialog } from "../../delete-person/ui/remove-person-dialog";
 import { ReissueLinkOverlay } from "../../reissue-link/ui/reissue-link-dialog";
 import { useTestAsPerson } from "../../test-as-person/use-test-as-person.hook";

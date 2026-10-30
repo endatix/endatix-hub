@@ -38,10 +38,7 @@ function useChart() {
   return context;
 }
 
-interface ChartContainerProps extends Omit<
-  React.ComponentProps<"div">,
-  "children"
-> {
+interface ChartContainerProps extends Omit<React.ComponentProps<"div">, "children"> {
   config: ChartConfig;
   innerResponsiveContainerStyle?: React.ComponentProps<
     typeof RechartsPrimitive.ResponsiveContainer
@@ -49,9 +46,7 @@ interface ChartContainerProps extends Omit<
   initialDimension?: React.ComponentProps<
     typeof RechartsPrimitive.ResponsiveContainer
   >["initialDimension"];
-  aspect?: React.ComponentProps<
-    typeof RechartsPrimitive.ResponsiveContainer
-  >["aspect"];
+  aspect?: React.ComponentProps<typeof RechartsPrimitive.ResponsiveContainer>["aspect"];
   debounce?: React.ComponentProps<
     typeof RechartsPrimitive.ResponsiveContainer
   >["debounce"];
@@ -64,18 +59,12 @@ interface ChartContainerProps extends Omit<
   maxHeight?: React.ComponentProps<
     typeof RechartsPrimitive.ResponsiveContainer
   >["maxHeight"];
-  height?: React.ComponentProps<
-    typeof RechartsPrimitive.ResponsiveContainer
-  >["height"];
-  width?: React.ComponentProps<
-    typeof RechartsPrimitive.ResponsiveContainer
-  >["width"];
+  height?: React.ComponentProps<typeof RechartsPrimitive.ResponsiveContainer>["height"];
+  width?: React.ComponentProps<typeof RechartsPrimitive.ResponsiveContainer>["width"];
   onResize?: React.ComponentProps<
     typeof RechartsPrimitive.ResponsiveContainer
   >["onResize"];
-  children: React.ComponentProps<
-    typeof RechartsPrimitive.ResponsiveContainer
-  >["children"];
+  children: React.ComponentProps<typeof RechartsPrimitive.ResponsiveContainer>["children"];
 }
 
 function ChartContainer({
