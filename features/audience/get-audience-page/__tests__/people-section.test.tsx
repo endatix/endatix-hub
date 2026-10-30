@@ -292,6 +292,13 @@ describe("PeopleSection", () => {
       screen.getByRole("checkbox", { name: "Select tester@example.com" }),
     );
     expect(download()).toBe("2:10");
+    expect(
+      screen
+        .getByRole("checkbox", {
+          name: "Select test participants on this page",
+        })
+        .getAttribute("aria-checked"),
+    ).toBe("mixed");
 
     fireEvent.click(
       screen.getByRole("checkbox", {
