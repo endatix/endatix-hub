@@ -225,8 +225,11 @@ type NewPropertiesSetup = {
   groups: readonly NewChoiceGroup[];
   /** The form's properties, with the ones created here. */
   properties: readonly AudienceProperty[];
-  /** Maps a column to the property just created for it, so a retry never creates it twice. */
-  onCreated: (column: string, property: AudienceProperty) => void;
+  /**
+   * Maps a column to the property just created for it, so a retry never creates it twice. A
+   * group's column is `null`: its columns are read by name, and a created group is not queued.
+   */
+  onCreated: (column: string | null, property: AudienceProperty) => void;
 };
 
 /** The scripter's edits to each queued column's draft. */
@@ -242,6 +245,12 @@ function useDraftEdits() {
 
 type OnCreated = NewPropertiesSetup["onCreated"];
 
+/** Groups first: a plain column named like a group gets the refusal, and a free name for it. */
+const groupsFirst = (drafts: readonly PropertyDraft[]) => [
+  ...drafts.filter((draft) => draft.group),
+  ...drafts.filter((draft) => !draft.group),
+];
+
 /** Creates each draft in turn, mapping its column as it goes; stops at the first refusal. */
 async function createAll(
   formId: string,
@@ -249,13 +258,14 @@ async function createAll(
   onCreated: OnCreated,
 ): Promise<Result<ColumnMap>> {
   const map: ColumnMap = {};
-  for (const draft of drafts) {
+  for (const draft of groupsFirst(drafts)) {
     const result = await createAudiencePropertyAction(
       createInput(formId, draft),
     );
     if (Result.isError(result)) return result;
-    map[draft.column] = result.value.variableName;
-    onCreated(draft.column, result.value);
+    const column = draft.group ? null : draft.column;
+    if (column) map[column] = result.value.variableName;
+    onCreated(column, result.value);
   }
   return Result.success(map);
 }

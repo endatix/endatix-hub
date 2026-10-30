@@ -229,4 +229,46 @@ describe("ImportCsvPanel: a new multiple-choice property from a __ column group"
       false,
     );
   });
+
+  it("says a group's name stays when the form already writes its variable, and still creates it", async () => {
+    // Arrange
+    vi.mocked(checkPropertyNamesAction).mockResolvedValue(
+      Result.success([{ variable: "brands", declaredBy: "question" }]),
+    );
+    await openGroupOnColumns();
+    fireEvent.click(continueButton());
+
+    // Assert
+    expect(
+      await screen.findByText(
+        "A question in this form already writes brands: the property would replace its answers. These columns are read as brands, so the name stays; to leave them out, go Back and choose Don't import.",
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /^Use / })).toBeNull();
+    expect((button("Create 1 property") as HTMLButtonElement).disabled).toBe(
+      false,
+    );
+  });
+
+  it("creates the group before a plain column of the same name, so a refusal lands on the column", async () => {
+    // Arrange
+    await openGroupOnColumns(
+      "external_id,brands,brands__nike,brands__puma\nCG-1,x,1,0\nCG-2,y,0,1\n",
+    );
+    fireEvent.click(continueButton());
+    await screen.findByLabelText(`Name for ${BRANDS}`);
+
+    // Act
+    fireEvent.click(button("Create 2 properties"));
+
+    // Assert
+    await waitFor(() =>
+      expect(createAudiencePropertyAction).toHaveBeenCalledTimes(2),
+    );
+    expect(
+      vi
+        .mocked(createAudiencePropertyAction)
+        .mock.calls.map(([input]) => input.dataType),
+    ).toEqual([AudienceDataType.MultipleChoice, AudienceDataType.SingleChoice]);
+  });
 });

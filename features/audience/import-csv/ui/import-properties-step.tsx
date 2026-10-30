@@ -13,11 +13,7 @@ import {
 } from "@/lib/endatix-api/audience/types";
 import { CREATABLE_DATA_TYPES, dataTypeLabel } from "../../property-types";
 import { OptionsSelect, type SelectOption } from "../../ui/options-select";
-import {
-  choicesLabel,
-  type NameCheck,
-  type VariableHolder,
-} from "../new-properties";
+import { choicesLabel, type VariableHolder } from "../new-properties";
 import type { TypeSuggestion } from "../type-suggestion";
 import type { ImportWizard } from "../use-import-csv.hook";
 import type { CheckedDraft } from "../use-new-properties.hook";
@@ -37,12 +33,17 @@ const HELD_BY: Record<VariableHolder, (variable: string) => string> = {
   column: (v) => `Another new property here also gets ${v}.`,
 };
 
-function nameHelp(check: NameCheck): string {
+/** A group's columns are read by its variable, so its name cannot move off it. */
+const GROUP_HELD = (v: string) =>
+  `These columns are read as ${v}, so the name stays; to leave them out, go Back and choose Don't import.`;
+
+function nameHelp({ check, group }: CheckedDraft): string {
   if (check.readBy)
     return `The columns are read by Variable ${check.readBy}, so keep a name that gives ${check.readBy}.`;
   if (check.invalid) return NO_VARIABLE;
   if (!check.holder) return `Variable ${check.variableName}. It never changes.`;
   const held = HELD_BY[check.holder](check.variableName);
+  if (group) return `${held} ${GROUP_HELD(check.variableName)}`;
   return check.suggestedName ? held : `${held} Choose another name.`;
 }
 
@@ -102,7 +103,7 @@ function NameField(props: Readonly<DraftProps>) {
       id={id}
       label={fieldLabel("Name", draftTarget(props.draft))}
       invalid={check.invalid}
-      help={nameHelp(check)}
+      help={nameHelp(props.draft)}
     >
       <Input {...nameInputProps(props, id)} />
     </FieldWithHelp>

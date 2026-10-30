@@ -28,7 +28,10 @@ export type ChoiceColumnGroup = {
  * property: its choices are the suffixes in file order, and `__other` / `__other_text` allow Other.
  */
 export type NewChoiceGroup = {
-  /** The group's row in a `ColumnMap`: `variable__*`. */
+  /**
+   * The group's row in a `ColumnMap`: `variable__`. No column of the file can be named that while
+   * the group exists, since a blank choice breaks the group.
+   */
   key: string;
   variable: string;
   columns: string[];
@@ -37,7 +40,6 @@ export type NewChoiceGroup = {
 };
 
 const CHOICE_SEPARATOR = "__";
-const GROUP_KEY_SUFFIX = `${CHOICE_SEPARATOR}*`;
 const OTHER_SUFFIXES = new Set(["other", "other_text"]);
 /** The API's separator between a cell's choices, so a choice key cannot hold it. */
 const CHOICE_VALUE_SEPARATOR = "|";
@@ -80,8 +82,6 @@ export function choiceColumnGroups(
     }))
     .filter((group) => group.columns.length > 0);
 }
-
-export const isChoiceGroupKey = (key: string) => key.endsWith(GROUP_KEY_SUFFIX);
 
 /** The header's variable and choice when the API would read it as a choice column; else `null`. */
 function splitChoiceHeader(header: string) {
@@ -127,7 +127,7 @@ function groupOf(
   const choices = members.map((m) => m.choice).filter((c) => !isOther(c));
   if (members.length < 2 || !validChoices(choices)) return null;
   return {
-    key: `${variable}${GROUP_KEY_SUFFIX}`,
+    key: `${variable}${CHOICE_SEPARATOR}`,
     variable,
     columns: members.map((member) => member.column),
     choices,
@@ -162,23 +162,33 @@ function rowOf(header: string, groups: readonly NewChoiceGroup[]) {
 
 /**
  * The rows the reader maps by hand, in file order: each named column that is not the identifier
- * and not read by a choice property, and each new choice group once, by its key.
+ * and not read by a choice property, and each new choice group once, by its key; with the groups.
  */
-export function mappableColumns(
+export function columnRows(
   headers: string[],
   identifierColumn: string,
   properties: readonly AudienceProperty[],
-): string[] {
+) {
   const read = new Set(
     choiceColumnGroups(headers, properties).flatMap((group) => group.columns),
   );
   const groups = newChoiceGroups(headers, identifierColumn, properties);
-  return headers
+  const rows = headers
     .filter(
       (header) => header && header !== identifierColumn && !read.has(header),
     )
     .map((header) => rowOf(header, groups))
     .filter((row): row is string => row !== null);
+  return { rows, groups };
+}
+
+/** The rows of `columnRows`, without the groups. */
+export function mappableColumns(
+  headers: string[],
+  identifierColumn: string,
+  properties: readonly AudienceProperty[],
+): string[] {
+  return columnRows(headers, identifierColumn, properties).rows;
 }
 
 /** The column whose name says it holds the match key; `""` when none does. */
@@ -214,12 +224,14 @@ export function suggestColumnMap(
   return map;
 }
 
-/** A new choice group is created; a column takes a free property named like it, else is created or skipped. */
+/**
+ * A free property named like the column, else created or skipped. A group's key `variable__`
+ * gives its variable, which no property has, so a group is created.
+ */
 function suggestionFor(
   column: string,
   { free, named }: { free: Map<string, AudienceProperty>; named: Set<string> },
 ): string {
-  if (isChoiceGroupKey(column)) return CREATE_COLUMN;
   const variableName = variableNameFromName(column);
   const match = free.get(variableName);
   if (match) return match.variableName;
@@ -248,49 +260,50 @@ export function columnTally(columns: string[], map: ColumnMap): ColumnTally {
   return tally;
 }
 
-/** The rows queued to create a property, and the file's new choice groups for their drafts. */
+/** The rows queued to create a property, and the file's new choice groups for their drafts; none with no file. */
 export function queuedRows(
-  headers: string[],
+  file: { headers: string[] } | undefined,
   choices: { identifierColumn: string; columns: ColumnMap },
   properties: readonly AudienceProperty[],
 ) {
-  const { identifierColumn, columns } = choices;
-  const rows = mappableColumns(headers, identifierColumn, properties);
-  return {
-    queued: queuedColumns(rows, columns),
-    groups: newChoiceGroups(headers, identifierColumn, properties),
-  };
+  const headers = file?.headers ?? [];
+  const { rows, groups } = columnRows(
+    headers,
+    choices.identifierColumn,
+    properties,
+  );
+  return { queued: queuedColumns(rows, choices.columns), groups };
 }
 
 /**
  * The API's `propertyColumns`: property variable name → the column it is read from. A choice
- * group is left out: the API reads its `variable__choice` columns by name.
+ * group is never mapped: the API reads its `variable__choice` columns by name.
  */
 export function propertyColumnMap(map: ColumnMap): Record<string, string> {
   return Object.fromEntries(
     Object.entries(map)
-      .filter(
-        ([column, decision]) =>
-          !isChoiceGroupKey(column) && decisionKind(decision) === "mapped",
-      )
+      .filter(([, decision]) => decisionKind(decision) === "mapped")
       .map(([column, variableName]) => [variableName, column]),
   );
 }
 
 /**
- * The map after the identifier moves. The new column is the participant. The one it releases
- * gets a suggestion when it had no decision of its own, so Continue does not treat a missing
- * entry as ignored.
+ * The map after the identifier moves. The new column is the participant. Every row with no
+ * decision of its own gets a suggestion (the column released, a group the move forms, a column a
+ * group the move breaks leaves), so Continue does not treat a missing entry as ignored.
  */
 export function columnsAfterIdentifierChange(
   columns: ColumnMap,
   move: { readonly from: string; readonly to: string },
-  properties: readonly AudienceProperty[],
+  file: { headers: string[]; properties: readonly AudienceProperty[] },
 ): ColumnMap {
   const chosen = { ...columns, [move.to]: SKIP_COLUMN };
-  if (!move.from || move.from === move.to || chosen[move.from] !== undefined)
-    return chosen;
-  return { ...chosen, ...suggestColumnMap([move.from], properties) };
+  const missing = mappableColumns(
+    file.headers,
+    move.to,
+    file.properties,
+  ).filter((row) => chosen[row] === undefined);
+  return { ...chosen, ...suggestColumnMap(missing, file.properties) };
 }
 
 /** The suggested identifier column and the suggested property for every other column. */

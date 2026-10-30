@@ -14,8 +14,7 @@ import {
   columnTally,
   CREATE_COLUMN,
   isChoiceProperty,
-  mappableColumns,
-  newChoiceGroups,
+  columnRows,
   SKIP_COLUMN,
   type ChoiceColumnGroup,
   type ColumnMap,
@@ -274,10 +273,11 @@ function fileColumns({ file, wizard }: LoadedStepProps) {
   const { headers } = file.preview;
   const { properties, choices } = wizard;
   const { identifierColumn } = choices;
+  const { rows, groups } = columnRows(headers, identifierColumn, properties);
   return {
-    columns: mappableColumns(headers, identifierColumn, properties),
+    columns: rows,
     groups: choiceColumnGroups(headers, properties),
-    newGroups: newChoiceGroups(headers, identifierColumn, properties),
+    newGroups: groups,
   };
 }
 

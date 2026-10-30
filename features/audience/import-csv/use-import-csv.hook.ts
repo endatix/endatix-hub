@@ -84,6 +84,7 @@ export type LoadedFile = { name: string; preview: CsvPreview; rows: CsvRow[] };
 
 const NO_FILE: FileState = { file: null, problem: null };
 const NO_CHOICES: ChoiceState = {
+  headers: [],
   identifierColumn: "",
   suggestedIdentifier: "",
   columns: {},
@@ -156,6 +157,8 @@ function useImportFile(
 }
 
 type ChoiceState = {
+  /** The file's headers, so an identifier change can suggest for the rows it changes. */
+  headers: string[];
   identifierColumn: string;
   /** The column the file's names suggested, so the field can say where its value came from. */
   suggestedIdentifier: string;
@@ -178,6 +181,7 @@ function suggestedChoices(
 ): ChoiceState {
   const { identifier, columns } = suggestColumnChoices(headers, setup);
   return {
+    headers,
     identifierColumn: identifier,
     suggestedIdentifier: identifier,
     columns,
@@ -192,7 +196,7 @@ function identifierChoice(
 ): ChoiceState {
   const columns = columnsAfterIdentifierChange(state.columns, {
     from: state.identifierColumn, to: column,
-  }, properties);
+  }, { headers: state.headers, properties });
   return { ...state, identifierColumn: column, columns };
 }
 
@@ -409,9 +413,9 @@ function withCreated(
 function useCreatedProperties(choices: ImportChoices) {
   const router = useRouter();
   const [created, setCreated] = useState<AudienceProperty[]>([]);
-  const onCreated = (column: string, property: AudienceProperty) => {
+  const onCreated = (column: string | null, property: AudienceProperty) => {
     setCreated((current) => [...current, property]);
-    choices.setColumn(column, property.variableName);
+    if (column) choices.setColumn(column, property.variableName);
     router.refresh();
   };
   return {
@@ -420,8 +424,6 @@ function useCreatedProperties(choices: ImportChoices) {
     resetCreated: () => setCreated([]),
   };
 }
-
-const headersOf = (file: LoadedFile | null) => file?.preview.headers ?? [];
 
 /** The New properties step's drafts for the columns queued on the Columns step. */
 function useQueuedProperties(
@@ -432,7 +434,7 @@ function useQueuedProperties(
   const { createdProperties, onCreated, resetCreated } =
     useCreatedProperties(choices);
   const properties = withCreated(setup.properties, createdProperties);
-  const { queued, groups } = queuedRows(headersOf(file), choices, properties);
+  const { queued, groups } = queuedRows(file?.preview, choices, properties);
   const { formId } = setup;
   const newProperties = useNewProperties({
     formId,
