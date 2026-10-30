@@ -64,6 +64,11 @@ function AboutHeader() {
 
 type EndatixProduct = "hub" | "api";
 
+const ENDATIX_PRODUCTS = [
+  { product: "hub", label: "Hub" },
+  { product: "api", label: "API" },
+] as const;
+
 interface VersionsProps {
   /** Undefined while the first read is running. */
   versions: ProductVersions | undefined;
@@ -77,24 +82,27 @@ function VersionList({ versions }: Readonly<VersionsProps>) {
       aside={<CopyVersions versions={versions} />}
     >
       <dl className="grid gap-2" aria-busy={versions === undefined}>
-        <SummaryRow
-          label="Hub"
-          value={<VersionValue product="hub" versions={versions} />}
-        />
-        <SummaryRow
-          label="API"
-          value={<VersionValue product="api" versions={versions} />}
-        />
-        {SURVEYJS_PACKAGES.map((name) => (
+        {ENDATIX_PRODUCTS.map(({ product, label }) => (
           <SummaryRow
-            key={name}
-            label={name}
-            value={<SurveyJsVersion name={name} versions={versions} />}
+            key={product}
+            label={label}
+            value={<VersionValue product={product} versions={versions} />}
           />
         ))}
+        <SurveyJsRows versions={versions} />
       </dl>
     </PanelSection>
   );
+}
+
+function SurveyJsRows({ versions }: Readonly<VersionsProps>) {
+  return SURVEYJS_PACKAGES.map((name) => (
+    <SummaryRow
+      key={name}
+      label={name}
+      value={<SurveyJsVersion name={name} versions={versions} />}
+    />
+  ));
 }
 
 function CopyVersions({ versions }: Readonly<VersionsProps>) {
