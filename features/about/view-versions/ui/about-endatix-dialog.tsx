@@ -12,18 +12,15 @@ import {
   ResponsivePanelHeader,
   ResponsivePanelTitle,
 } from "@/components/ui/responsive-panel";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useTrackEvent } from "@/features/analytics/posthog/client";
 import { formatBuildIdentity } from "@/lib/hosting/build-identity";
-import type { ReleaseProduct } from "@/lib/hosting/release-notes-url";
-import {
-  SURVEYJS_PACKAGES,
-  type SurveyJsPackage,
-} from "@/lib/hosting/surveyjs-packages.mjs";
+import { SURVEYJS_PACKAGES } from "@/lib/hosting/surveyjs-packages.mjs";
 import type { ProductVersions } from "../../types";
 import { useProductVersions } from "../use-product-versions.hook";
 import { BuildRef } from "./build-ref";
 import { ReleaseVersionLink } from "./release-version-link";
+import { SurveyJsVersionGroup } from "./surveyjs-version-group";
+import { VersionSkeleton } from "./version-skeleton";
 
 interface AboutEndatixDialogProps {
   open: boolean;
@@ -89,20 +86,10 @@ function VersionList({ versions }: Readonly<VersionsProps>) {
             value={<VersionValue product={product} versions={versions} />}
           />
         ))}
-        <SurveyJsRows versions={versions} />
       </dl>
+      <SurveyJsVersionGroup versions={versions?.surveyJs} />
     </PanelSection>
   );
-}
-
-function SurveyJsRows({ versions }: Readonly<VersionsProps>) {
-  return SURVEYJS_PACKAGES.map((name) => (
-    <SummaryRow
-      key={name}
-      label={name}
-      value={<SurveyJsVersion name={name} versions={versions} />}
-    />
-  ));
 }
 
 function CopyVersions({ versions }: Readonly<VersionsProps>) {
@@ -145,41 +132,16 @@ function ResolvedVersion({ product, build }: Readonly<ResolvedVersionProps>) {
   return <NotesLink product={product} version={null} />;
 }
 
-function SurveyJsVersion({
-  name,
-  versions,
-}: Readonly<VersionsProps & { name: SurveyJsPackage }>) {
-  if (versions === undefined) {
-    return <VersionSkeleton />;
-  }
-
-  const version = versions.surveyJs?.[name];
-  if (!version) {
-    return <span className="font-mono text-muted-foreground">unavailable</span>;
-  }
-
-  return <NotesLink product={name} version={version} />;
-}
-
 function NotesLink({
   product,
   version,
-}: Readonly<{ product: ReleaseProduct; version: string | null }>) {
+}: Readonly<{ product: EndatixProduct; version: string | null }>) {
   return (
     <ReleaseVersionLink
       product={product}
       version={version}
       source="about_dialog"
     />
-  );
-}
-
-function VersionSkeleton() {
-  return (
-    <>
-      <Skeleton className="h-4 w-24 bg-foreground/10" />
-      <span className="sr-only">Loading version</span>
-    </>
   );
 }
 
