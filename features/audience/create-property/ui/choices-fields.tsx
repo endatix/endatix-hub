@@ -18,7 +18,7 @@ type ChoicesEditor = {
   choicesText: string;
   setChoicesText: (value: string) => void;
   choices: readonly string[];
-  choicesError: string | null;
+  choicesProblem: string | null;
   allowsOther: boolean;
   setAllowsOther: (value: boolean) => void;
   pending: boolean;
@@ -26,7 +26,7 @@ type ChoicesEditor = {
 
 /** An empty list is not an error yet: the scripter has not typed a choice. */
 const shownError = (form: ChoicesEditor) =>
-  form.choicesText.trim() ? form.choicesError : null;
+  form.choicesText.trim() ? form.choicesProblem : null;
 
 function choicesHelp(form: ChoicesEditor) {
   const error = shownError(form);

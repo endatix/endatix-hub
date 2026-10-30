@@ -28,7 +28,7 @@ function useChoicesDraft() {
     allowsOther,
     setAllowsOther,
     choices,
-    choicesError: choicesError(choices),
+    choicesProblem: choicesError(choices),
     reset,
   };
 }
@@ -49,19 +49,19 @@ function useNameAndType() {
 
 /** The new property being typed; `ready` once the API would accept it. */
 function usePropertyDraft() {
-  const fields = useNameAndType();
-  const choices = useChoicesDraft();
-  const isChoice = isChoiceType(fields.dataType);
+  const { reset: resetNameAndType, ...nameAndType } = useNameAndType();
+  const { reset: resetChoices, ...choices } = useChoicesDraft();
+  const isChoice = isChoiceType(nameAndType.dataType);
   const reset = () => {
-    fields.reset();
-    choices.reset();
+    resetNameAndType();
+    resetChoices();
   };
-  const choicesOk = !isChoice || !choices.choicesError;
+  const choicesOk = !isChoice || !choices.choicesProblem;
   return {
+    ...nameAndType,
     ...choices,
-    ...fields,
     isChoice,
-    ready: Boolean(fields.variableName) && choicesOk,
+    ready: Boolean(nameAndType.variableName) && choicesOk,
     reset,
   };
 }

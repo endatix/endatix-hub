@@ -115,7 +115,7 @@ describe("AddPropertyPanel", () => {
 
   it.each([
     ["north\nnorth", '"north" is listed twice.'],
-    ["north\nsouth|east", "A choice can't contain |."],
+    ["north\nsouth|east", 'A choice can\'t contain "|".'],
     ["north\n\nsouth", "Choices can't be blank."],
   ])("names the choice problem in %j and blocks adding", (text, message) => {
     const dialog = openPanel();
@@ -160,6 +160,51 @@ describe("AddPropertyPanel", () => {
         allowsOther: true,
       }),
     );
+  });
+  it("sends no choices once the type is switched away from a choice type", async () => {
+    vi.mocked(createAudiencePropertyAction).mockResolvedValue(
+      Result.success({} as never),
+    );
+    const dialog = openPanel();
+    typeName("Age");
+    chooseType("multiple_choice");
+    typeChoices("north\nnorth");
+    fireEvent.click(screen.getByLabelText("Accept other values"));
+
+    chooseType("number");
+
+    expect(screen.queryByLabelText("Choices")).toBeNull();
+    expect(submitButton(dialog).disabled).toBe(false);
+    fireEvent.click(submitButton(dialog));
+    await waitFor(() =>
+      expect(createAudiencePropertyAction).toHaveBeenLastCalledWith({
+        formId: "1",
+        name: "Age",
+        dataType: "number",
+        choicesJson: null,
+        allowsOther: false,
+      }),
+    );
+  });
+
+  it("keeps the panel open with the API's message when it refuses", async () => {
+    vi.mocked(createAudiencePropertyAction).mockResolvedValue(
+      Result.validationError("A property named Region already exists."),
+    );
+    const dialog = openPanel();
+    typeName("Region");
+    chooseType("single_choice");
+    typeChoices("north");
+
+    fireEvent.click(submitButton(dialog));
+
+    expect(
+      await screen.findByText("A property named Region already exists."),
+    ).toBeTruthy();
+    expect(screen.getByRole("dialog")).toBe(dialog);
+    expect(
+      (screen.getByLabelText("Choices") as HTMLTextAreaElement).value,
+    ).toBe("north");
   });
 });
 

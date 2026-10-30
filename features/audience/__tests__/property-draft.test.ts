@@ -11,7 +11,7 @@ describe("choicesError", () => {
   it.each([
     [[], "Add at least one choice."],
     [["north", " "], "Choices can't be blank."],
-    [["north", "south|east"], "A choice can't contain |."],
+    [["north", "south|east"], 'A choice can\'t contain "|".'],
     [["north", "south", "north"], '"north" is listed twice.'],
   ])("refuses %j as the API does", (choices, message) => {
     // Act & Assert
@@ -27,10 +27,10 @@ describe("choicesError", () => {
 describe("choicesFromText", () => {
   it("reads one trimmed key per line, ignoring blank lines before and after", () => {
     // Act
-    const choices = choicesFromText("\n  north \r\nsouth\n\n");
+    const choices = choicesFromText("\n  north \r\nsouth\reast\n\n");
 
     // Assert
-    expect(choices).toEqual(["north", "south"]);
+    expect(choices).toEqual(["north", "south", "east"]);
   });
 
   it("keeps a blank line between keys, so the check can name it", () => {
