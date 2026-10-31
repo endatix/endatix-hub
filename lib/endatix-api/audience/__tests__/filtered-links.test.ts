@@ -43,6 +43,26 @@ describe("Audience filtered links", () => {
     );
   });
 
+  it.each([
+    ["no counts", { matching: 3 }],
+    [
+      "a count that is not a number",
+      { matching: 3, withoutLink: "1", cap: 5000 },
+    ],
+  ])(
+    "refuses a preview with %s, rather than a count it cannot show",
+    async (_, body) => {
+      // Arrange
+      const get = vi.fn().mockResolvedValue(ApiResult.success(body));
+
+      // Act
+      const result = await audienceWith({ get }).previewLinks(FORM_ID, "acme");
+
+      // Assert
+      expect(result.success).toBe(false);
+    },
+  );
+
   it("issues a batch for the search and keeps each identifier and string id", async () => {
     const post = vi.fn().mockResolvedValue(
       ApiResult.success({

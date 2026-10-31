@@ -3,6 +3,11 @@ import { ApiResult } from "../shared/api-result";
 import type { NormalizedPagedResponse } from "../shared/paged-response";
 import type { PagedResponse } from "../shared/types";
 import {
+  buildLinksPreviewEndpoint,
+  buildListAudiencePeopleEndpoint,
+  linkBatchBody,
+} from "./endpoints";
+import {
   formAudiencePath,
   mapImportResult,
   mapImportViewResult,
@@ -16,6 +21,7 @@ import {
   type WireTestSubmission,
   mapIssuedLink,
   mapLinkBatch,
+  mapLinksPreviewResult,
   mapPeoplePageResult,
   mapParticipantResult,
   mapPersonResult,
@@ -26,6 +32,7 @@ import {
   requireFormAndEntityIds,
   type WireIssuedLink,
   type WireLinkBatch,
+  type WireLinksPreview,
   type WireParticipant,
   type WirePerson,
   type WireProperty,
@@ -61,12 +68,6 @@ import {
 export type AudiencePeoplePage = NormalizedPagedResponse<AudiencePerson>;
 
 const SETTINGS_PATH = "/audience/settings";
-
-import {
-  buildLinksPreviewEndpoint,
-  buildListAudiencePeopleEndpoint,
-  linkBatchBody,
-} from "./endpoints";
 
 export { buildListAudiencePeopleEndpoint };
 
@@ -389,8 +390,10 @@ export class Audience {
     const idCheck = requireEndatixId(formId, "formId");
     if (!idCheck.success) return idCheck;
 
-    return this.endatix.get<AudienceLinksPreview>(
-      buildLinksPreviewEndpoint(formId, search),
+    return mapLinksPreviewResult(
+      await this.endatix.get<WireLinksPreview>(
+        buildLinksPreviewEndpoint(formId, search),
+      ),
     );
   }
 

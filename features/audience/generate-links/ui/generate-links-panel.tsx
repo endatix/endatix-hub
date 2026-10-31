@@ -71,6 +71,19 @@ function OverCap({ withoutLink, cap }: Readonly<AudienceLinksPreview>) {
   );
 }
 
+/** The count failed: Generate waits, since the panel cannot say who would get a link. */
+function CountFailed() {
+  return (
+    <Alert variant="destructive">
+      <TriangleAlert />
+      <AlertTitle>Could not count who gets a link</AlertTitle>
+      <AlertDescription>
+        Close the panel and open it again to count again.
+      </AlertDescription>
+    </Alert>
+  );
+}
+
 /** An API before link batches sends a link to everyone; said only when a search is on. */
 function OlderApiNote() {
   return (
@@ -102,6 +115,7 @@ function RecipientsCount(props: Readonly<RecipientsProps>) {
   const { preview } = props;
   if (preview.kind === "loading")
     return <Skeleton className="h-5 w-64" aria-label="Counting participants" />;
+  if (preview.kind === "unknown") return <CountFailed />;
   if (preview.kind !== "ready") return <FormTotal {...props} />;
   return (
     <p className="text-sm font-medium">

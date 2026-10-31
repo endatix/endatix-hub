@@ -7,7 +7,7 @@ import { previewAudienceLinksAction } from "./generate-audience-links.action";
 
 /**
  * The panel's count of who gets a link. `older`: an API before link batches, which sends a link
- * to everyone. `unknown`: the count failed; Generate still runs, the API checks again.
+ * to everyone. `unknown`: the count failed, so Generate waits for a new open.
  */
 export type LinksPreviewState =
   | { kind: "loading" }
@@ -74,8 +74,9 @@ export function batchSearch(preview: LinksPreviewState, search: string) {
 /** Why Generate waits, or `null` when it can run. */
 export function generateBlock(
   preview: LinksPreviewState,
-): "loading" | "none-left" | "over-cap" | null {
+): "loading" | "count-failed" | "none-left" | "over-cap" | null {
   if (preview.kind === "loading") return "loading";
+  if (preview.kind === "unknown") return "count-failed";
   if (preview.kind !== "ready") return null;
   const { withoutLink, cap } = preview.preview;
   if (withoutLink === 0) return "none-left";

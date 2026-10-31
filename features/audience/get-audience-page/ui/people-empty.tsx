@@ -4,7 +4,7 @@ import { Users } from "lucide-react";
 import { DataTableEmpty } from "@/components/table";
 import { AudiencePeopleTestFilter } from "@/lib/endatix-api/audience/types";
 import { useUrlSearchParamsUpdater } from "@/lib/utils/hooks/use-url-search-params-updater.hook";
-import { PEOPLE_SEARCH_PARAM } from "./people-toolbar";
+import { PEOPLE_SEARCH_PARAM } from "../parse-people-page";
 
 type EmptyCopy = { title: string; body: string };
 

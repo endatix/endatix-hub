@@ -6,10 +6,8 @@ import {
   useListUrlState,
 } from "@/components/table";
 import type { AudiencePeopleTestFilter } from "@/lib/endatix-api/audience/types";
+import { PEOPLE_SEARCH_PARAM } from "../parse-people-page";
 import { PeopleTestFilter } from "./people-test-filter";
-
-/** The URL key of the identifier search; Back from a participant restores it. */
-export const PEOPLE_SEARCH_PARAM = "q";
 
 /** Search by identifier (`?q=`, debounced) and All / Real / Test, above the list. */
 export function PeopleToolbar({

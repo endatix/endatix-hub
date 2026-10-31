@@ -1,6 +1,7 @@
 import { AudiencePaging } from "@/lib/endatix-api/audience/types";
 import { AudienceView, parseAudienceView } from "./audience-view";
 import {
+  PEOPLE_SEARCH_PARAM,
   parsePeoplePaging,
   parsePeopleSearch,
   parsePeopleTestFilter,
@@ -34,7 +35,7 @@ export function audienceListSearch(raw: AudienceListQuery): string {
   const test = peopleTestFilterUrlValue(parsePeopleTestFilter(raw.test));
   if (test) params.set("test", test);
   const search = parsePeopleSearch(raw.q);
-  if (search) params.set("q", search);
+  if (search) params.set(PEOPLE_SEARCH_PARAM, search);
   return params.toString();
 }
 
@@ -46,6 +47,6 @@ export function parseAudienceReturnQuery(query: string): string {
     pageSize: raw.get("pageSize") ?? undefined,
     view: raw.get("view") ?? undefined,
     test: raw.get("test") ?? undefined,
-    q: raw.get("q") ?? undefined,
+    q: raw.get(PEOPLE_SEARCH_PARAM) ?? undefined,
   });
 }

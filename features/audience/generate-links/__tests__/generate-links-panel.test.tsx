@@ -7,6 +7,7 @@ import {
   generateAudienceLinksAction,
   previewAudienceLinksAction,
 } from "../generate-audience-links.action";
+import { FILTERED_LINKS_NEED_NEWER_API } from "../personal-links";
 import { GenerateLinksPanel } from "../ui/generate-links-panel";
 
 vi.mock("@/lib/utils/hooks/use-media-query.hook", () => ({
@@ -199,6 +200,23 @@ describe("GenerateLinksPanel", () => {
       await screen.findByText(/5,001 participants would get a link/),
     ).toBeTruthy();
     expect(generateButton().disabled).toBe(true);
+  });
+
+  it("says when the count failed, and waits rather than sending blind", async () => {
+    // Arrange
+    vi.mocked(previewAudienceLinksAction).mockResolvedValue(
+      Result.error("Failed to count who gets a link."),
+    );
+
+    // Act
+    openPanel(2, "acme");
+
+    // Assert
+    expect(
+      await screen.findByText("Could not count who gets a link"),
+    ).toBeTruthy();
+    expect(generateButton().disabled).toBe(true);
+    expect(screen.queryByText(FILTERED_LINKS_NEED_NEWER_API)).toBeNull();
   });
 
   it("keeps Generate for everyone on an older API, and says the search needs a newer one", async () => {
