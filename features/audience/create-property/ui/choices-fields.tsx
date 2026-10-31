@@ -31,7 +31,8 @@ function choicesHelp(form: ChoicesEditor) {
   const error = shownError(form);
   if (error) return error;
   const count = form.choices.length;
-  if (count === 0) return "One choice per line, for example north.";
+  if (count === 0)
+    return "At least one choice is required. Enter one choice per line, for example north.";
   return count === 1 ? "1 choice." : `${count} choices.`;
 }
 
@@ -42,6 +43,7 @@ function choicesInputProps(form: ChoicesEditor) {
     rows: 5,
     placeholder: "north\nsouth",
     disabled: form.pending,
+    "aria-required": true,
     "aria-invalid": Boolean(shownError(form)),
     "aria-describedby": helpId(CHOICES_ID),
     spellCheck: false,

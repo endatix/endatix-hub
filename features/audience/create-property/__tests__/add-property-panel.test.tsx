@@ -137,6 +137,10 @@ describe("AddPropertyPanel", () => {
     chooseType("single_choice");
 
     expect(submitButton(dialog).disabled).toBe(true);
+    expect(screen.getByText(/At least one choice is required/)).toBeTruthy();
+    expect(screen.getByLabelText("Choices").getAttribute("aria-required")).toBe(
+      "true",
+    );
   });
 
   it("creates a choice property with its keys in order and Other", async () => {
