@@ -42,13 +42,14 @@ export async function mint(
 
 /**
  * Whether this API has the test links route. An empty set is a 400 from its validator, and an
- * API without the route answers 404; any other failure is no answer, so the route is not used.
+ * API without the route answers 404; any other failure, or a form id that is not an Endatix id,
+ * is no answer, so the route is not used.
  */
 export async function isSupported(
   endatix: EndatixApi,
   formId: string,
 ): Promise<boolean> {
-  return isValidationError(
-    await endatix.post<unknown>(testLinksPath(formId), PROBE),
-  );
+  if (!requireEndatixId(formId, "formId").success) return false;
+  const probe = await endatix.post<unknown>(testLinksPath(formId), PROBE);
+  return isValidationError(probe);
 }

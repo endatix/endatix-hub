@@ -92,4 +92,13 @@ describe("Audience test links", () => {
       expect.objectContaining({ membershipIds: [] }),
     );
   });
+
+  it("asks nothing, and does not use the route, for a form id that is not an Endatix id", async () => {
+    const post = vi.fn();
+
+    const result = await audienceWith({ post }).supportsTestLinks("../users");
+
+    expect(result).toBe(false);
+    expect(post).not.toHaveBeenCalled();
+  });
 });
