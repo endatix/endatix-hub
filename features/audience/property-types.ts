@@ -14,9 +14,8 @@ export const AUDIENCE_DATA_TYPES: ReadonlyArray<{
 ]);
 
 /**
- * Types a new property can use. Choice types need choices, which the API requires and this tab
- * has no editor for, so they are left out; the import wizard offers single choice with a column's
- * values as its choices.
+ * Types that need no choices. The import wizard offers these for any column, and single choice
+ * only when a column's values can be its choices; Add property offers every type.
  */
 export const CREATABLE_DATA_TYPES = Object.freeze(
   AUDIENCE_DATA_TYPES.filter(
