@@ -23,6 +23,8 @@ import {
   type AudienceSettings,
   type AudienceProperty,
   type AudienceVariables,
+  type AudienceLinkBatch,
+  type AudienceLinksPreview,
   type IssuedAudienceLink,
   type OpenedTestSubmission,
 } from "./types";
@@ -57,6 +59,40 @@ export type WireIssuedLink = { membershipId: number | string; token: string };
 
 export function mapIssuedLink(wire: WireIssuedLink): IssuedAudienceLink {
   return { membershipId: String(wire.membershipId), token: wire.token };
+}
+
+export type WireLinksPreview = Partial<
+  Record<keyof AudienceLinksPreview, unknown>
+>;
+
+const isCount = (value: unknown): value is number =>
+  typeof value === "number" && Number.isFinite(value);
+
+/** The preview's three counts; an answer without them is refused, not shown as zero. */
+export function mapLinksPreviewResult(
+  response: ApiResult<WireLinksPreview>,
+): ApiResult<AudienceLinksPreview> {
+  if (!response.success) return response;
+  const { matching, withoutLink, cap } = response.data;
+  if (!isCount(matching) || !isCount(withoutLink) || !isCount(cap)) {
+    return ApiResult.jsonParseError("The links preview had no counts.");
+  }
+  return ApiResult.success({ matching, withoutLink, cap });
+}
+
+export type WireLinkBatch = {
+  matching: number;
+  issued: (WireIssuedLink & { identifier?: string | null })[];
+};
+
+export function mapLinkBatch(wire: WireLinkBatch): AudienceLinkBatch {
+  return {
+    matching: wire.matching,
+    issued: wire.issued.map((link) => ({
+      ...mapIssuedLink(link),
+      identifier: link.identifier ?? "",
+    })),
+  };
 }
 
 export function mapProperty(wire: WireProperty): AudienceProperty {

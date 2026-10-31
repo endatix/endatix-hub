@@ -31,6 +31,7 @@ vi.mock("@/features/audience/get-audience-page", () => ({
   parseAudienceView: vi.fn(() => "people"),
   parsePeoplePaging: vi.fn(() => ({ page: 1, pageSize: 50 })),
   parsePeopleTestFilter: vi.fn(() => undefined),
+  parsePeopleSearch: vi.fn(() => ""),
 }));
 
 vi.mock("@/lib/endatix-api", async (importOriginal) => ({

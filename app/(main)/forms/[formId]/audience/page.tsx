@@ -6,6 +6,7 @@ import {
   loadAudienceUsage,
   parseAudienceView,
   parsePeoplePaging,
+  parsePeopleSearch,
   parsePeopleTestFilter,
 } from "@/features/audience/get-audience-page";
 import {
@@ -32,6 +33,7 @@ type Params = {
     pageSize?: SearchParamValue;
     view?: SearchParamValue;
     test?: SearchParamValue;
+    search?: SearchParamValue;
   }>;
 };
 
@@ -43,6 +45,7 @@ function peopleQueryFrom(query: Awaited<Params["searchParams"]>) {
   return {
     ...paging,
     test: parsePeopleTestFilter(firstSearchParam(query.test)),
+    search: parsePeopleSearch(firstSearchParam(query.search)),
   };
 }
 
@@ -62,6 +65,7 @@ function listSearchFrom(query: Awaited<Params["searchParams"]>): string {
     pageSize: firstSearchParam(query.pageSize),
     view: firstSearchParam(query.view),
     test: firstSearchParam(query.test),
+    search: firstSearchParam(query.search),
   });
 }
 
