@@ -9,7 +9,7 @@ import type { AudiencePeopleTestFilter } from "@/lib/endatix-api/audience/types"
 import { PEOPLE_SEARCH_PARAM } from "../parse-people-page";
 import { PeopleTestFilter } from "./people-test-filter";
 
-/** Search by identifier (`?q=`, debounced) and All / Real / Test, above the list. */
+/** Search by identifier (`?search=`, debounced) and All / Real / Test, above the list. */
 export function PeopleToolbar({
   testFilter,
 }: Readonly<{ testFilter: AudiencePeopleTestFilter }>) {

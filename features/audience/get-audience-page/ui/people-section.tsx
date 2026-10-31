@@ -47,7 +47,7 @@ type PeopleSectionProps = {
   canCopyTestLink?: boolean;
   /** All / Real / Test; `totalPeople` counts the filtered set. */
   testFilter: AudiencePeopleTestFilter;
-  /** The identifier search (`?q=`); `totalPeople` counts what it keeps. */
+  /** The identifier search (`?search=`); `totalPeople` counts what it keeps. */
   search: string;
   viewSwitch?: ReactNode;
   /** The locked match key, said once where people are listed. */

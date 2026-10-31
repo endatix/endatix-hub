@@ -19,7 +19,7 @@ export type GenerateLinksSetup = {
   formId: string;
   identifierKind: AudienceIdentifierKind;
   totalPeople: number;
-  /** The list's search (`q`); blank sends a link to every real participant without one. */
+  /** The list's search (`?search=`); blank sends a link to every real participant without one. */
   search: string;
 };
 

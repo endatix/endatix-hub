@@ -36,9 +36,9 @@ export function parsePeopleTestFilter(
 }
 
 /** The URL key of the identifier search; Back from a participant restores it. */
-export const PEOPLE_SEARCH_PARAM = "q";
+export const PEOPLE_SEARCH_PARAM = "search";
 
-/** `q` from the URL, trimmed and cut to the longest search the API takes; blank is no search. */
+/** `search` from the URL, trimmed and cut to the longest search the API takes; blank is no search. */
 export function parsePeopleSearch(value: string | undefined): string {
   return (value ?? "").slice(0, MAX_AUDIENCE_SEARCH_LENGTH).trim();
 }

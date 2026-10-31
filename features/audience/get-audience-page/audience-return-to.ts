@@ -16,11 +16,11 @@ type AudienceListQuery = {
   pageSize?: string;
   view?: string;
   test?: string;
-  q?: string;
+  search?: string;
 };
 
 /**
- * The list's own query: paging clamped, `view` and `test` validated, `q` trimmed, defaults and
+ * The list's own query: paging clamped, `view` and `test` validated, `search` trimmed, defaults and
  * unknown keys left out. The same string `rememberTableReturnTo` stores and reads.
  */
 export function audienceListSearch(raw: AudienceListQuery): string {
@@ -34,7 +34,7 @@ export function audienceListSearch(raw: AudienceListQuery): string {
   if (view !== AudienceView.People) params.set("view", view);
   const test = peopleTestFilterUrlValue(parsePeopleTestFilter(raw.test));
   if (test) params.set("test", test);
-  const search = parsePeopleSearch(raw.q);
+  const search = parsePeopleSearch(raw.search);
   if (search) params.set(PEOPLE_SEARCH_PARAM, search);
   return params.toString();
 }
@@ -47,6 +47,6 @@ export function parseAudienceReturnQuery(query: string): string {
     pageSize: raw.get("pageSize") ?? undefined,
     view: raw.get("view") ?? undefined,
     test: raw.get("test") ?? undefined,
-    q: raw.get(PEOPLE_SEARCH_PARAM) ?? undefined,
+    search: raw.get(PEOPLE_SEARCH_PARAM) ?? undefined,
   });
 }

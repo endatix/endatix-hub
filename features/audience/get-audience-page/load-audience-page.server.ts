@@ -24,7 +24,7 @@ export type AudiencePageData = {
   canCopyTestLink: boolean;
   /** The All / Real / Test filter the list was read with; `totalPeople` counts that set. */
   testFilter: AudiencePeopleTestFilter;
-  /** The identifier search (`q`) the list was read with; `totalPeople` counts what it keeps. */
+  /** The identifier search (`?search=`) the list was read with; `totalPeople` counts what it keeps. */
   search: string;
   properties: AudienceProperty[];
   people: AudiencePerson[];

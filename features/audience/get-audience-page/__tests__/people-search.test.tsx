@@ -31,7 +31,7 @@ describe("Participants search", () => {
 
   it("starts from the URL's search, so Back restores it", () => {
     // Arrange
-    url.query = "q=acme";
+    url.query = "search=acme";
 
     // Act
     render(<PeopleToolbar testFilter={AudiencePeopleTestFilter.All} />);
@@ -40,7 +40,7 @@ describe("Participants search", () => {
     expect(searchBox().value).toBe("acme");
   });
 
-  it("puts the search in the URL as q, from the first page, keeping the filter", () => {
+  it("puts the search in the URL, from the first page, keeping the filter", () => {
     // Arrange
     vi.useFakeTimers();
     render(<PeopleToolbar testFilter={AudiencePeopleTestFilter.Real} />);
@@ -52,14 +52,14 @@ describe("Participants search", () => {
     // Assert
     expect(replace).toHaveBeenCalledTimes(1);
     const next = new URL(replace.mock.calls[0][0], "http://hub");
-    expect(next.searchParams.get("q")).toBe("acme");
+    expect(next.searchParams.get("search")).toBe("acme");
     expect(next.searchParams.get("page")).toBe("1");
     expect(next.searchParams.get("test")).toBe("real");
   });
 
   it("says the search found nobody, and Clear filters drops the search and the filter", () => {
     // Arrange
-    url.query = "q=nobody&test=real&page=2";
+    url.query = "search=nobody&test=real&page=2";
     render(
       <PeopleEmpty
         testFilter={AudiencePeopleTestFilter.Real}
@@ -73,7 +73,7 @@ describe("Participants search", () => {
     // Assert
     expect(screen.getByText("No participants match")).toBeTruthy();
     const next = new URL(replace.mock.calls[0][0], "http://hub");
-    expect(next.searchParams.has("q")).toBe(false);
+    expect(next.searchParams.has("search")).toBe(false);
     expect(next.searchParams.has("test")).toBe(false);
     expect(next.searchParams.get("page")).toBe("1");
   });

@@ -30,25 +30,27 @@ describe("audienceListSearch", () => {
 
 describe("audienceListSearch search", () => {
   it("keeps the search, trimmed, so Back from a participant restores it", () => {
-    expect(audienceListSearch({ q: "  acme ", test: "real" })).toBe(
-      "test=real&q=acme",
+    expect(audienceListSearch({ search: "  acme ", test: "real" })).toBe(
+      "test=real&search=acme",
     );
   });
 
   it("drops a blank search and cuts one past the longest the API takes", () => {
-    expect(audienceListSearch({ q: "   " })).toBe("");
-    expect(audienceListSearch({ q: "x".repeat(300) })).toBe(
-      `q=${"x".repeat(256)}`,
+    expect(audienceListSearch({ search: "   " })).toBe("");
+    expect(audienceListSearch({ search: "x".repeat(300) })).toBe(
+      `search=${"x".repeat(256)}`,
     );
-    expect(audienceListSearch({ q: `${"x".repeat(255)} tail` })).toBe(
-      `q=${"x".repeat(255)}`,
+    expect(audienceListSearch({ search: `${"x".repeat(255)} tail` })).toBe(
+      `search=${"x".repeat(255)}`,
     );
   });
 });
 
 describe("parseAudienceReturnQuery", () => {
   it("restores the search with the filter", () => {
-    expect(parseAudienceReturnQuery("q=acme&page=2")).toBe("page=2&q=acme");
+    expect(parseAudienceReturnQuery("search=acme&page=2")).toBe(
+      "page=2&search=acme",
+    );
   });
 
   it("drops keys the list does not own", () => {
