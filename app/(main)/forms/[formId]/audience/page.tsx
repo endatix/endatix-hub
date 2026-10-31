@@ -12,7 +12,7 @@ import {
   requireAudienceAccess,
   type AudienceAccess,
 } from "@/features/audience/shared/require-audience-api.server";
-import { canCopyTestLink } from "@/features/audience/copy-test-link";
+import { testLinkAccess } from "@/features/audience/shared/test-link-access.server";
 import { loadAudienceVariables } from "@/features/audience/server";
 import { FormWorkspaceHeader } from "@/features/forms/form-workspace";
 import { loadWorkspaceForm } from "@/features/forms/form-workspace/load-workspace-form.server";
@@ -54,6 +54,7 @@ type AudienceRequest = {
   canEdit: boolean;
   canTest: boolean;
   canCopyTestLink: boolean;
+  canMintTestLinks: boolean;
 };
 
 function listSearchFrom(query: Awaited<Params["searchParams"]>): string {
@@ -128,20 +129,19 @@ async function guardAudiencePage(formId: string) {
   const access = await requireAudienceAccess(Permissions.Forms.View);
   if (Result.isError(access)) return redirect(`/forms/${formId}`);
   const { api, checkPermission } = access.value;
-  const [manageSettings, editForms, testForms, copyTestLink] =
-    await Promise.all([
-      checkPermission(Permissions.Tenant.ManageSettings),
-      checkPermission(Permissions.Forms.Edit),
-      checkPermission(Permissions.Forms.Test),
-      canCopyTestLink(checkPermission),
-    ]);
+  const [manageSettings, editForms, testForms, testLinks] = await Promise.all([
+    checkPermission(Permissions.Tenant.ManageSettings),
+    checkPermission(Permissions.Forms.Edit),
+    checkPermission(Permissions.Forms.Test),
+    testLinkAccess(api, formId, access.value),
+  ]);
   return {
     api,
     checkPermission,
     canManageMatchKey: manageSettings.success,
     canEdit: editForms.success,
     canTest: testForms.success,
-    canCopyTestLink: copyTestLink,
+    ...testLinks,
   };
 }
 

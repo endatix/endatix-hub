@@ -2,7 +2,7 @@ import "server-only";
 
 import type { EndatixApi } from "@/lib/endatix-api";
 import {
-  type AudiencePeopleTestFilter,
+  AudiencePeopleTestFilter,
   type AudiencePerson,
   type AudienceProperty,
   type AudienceSettings,
@@ -22,6 +22,10 @@ export type AudiencePageData = {
   canTest: boolean;
   /** Whether this reader may copy a test link for a test person (`canCopyTestLink`). */
   canCopyTestLink: boolean;
+  /** Whether the test links route answers this reader (`testLinkAccess`). */
+  canMintTestLinks: boolean;
+  /** The form's Test participants, counted only with `canMintTestLinks`; else 0. */
+  testParticipants: number;
   /** The All / Real / Test filter the list was read with; `totalPeople` counts that set. */
   testFilter: AudiencePeopleTestFilter;
   properties: AudienceProperty[];
@@ -99,17 +103,40 @@ async function loadAudienceParts(
 
 type Capabilities = Pick<
   AudiencePageData,
-  "canManageMatchKey" | "canEdit" | "canTest" | "canCopyTestLink"
+  | "canManageMatchKey"
+  | "canEdit"
+  | "canTest"
+  | "canCopyTestLink"
+  | "canMintTestLinks"
 >;
+
+/** One row of the Test filter, for its total; a failed read offers no download (0). */
+async function countTestParticipants(
+  api: EndatixApi,
+  formId: string,
+): Promise<number> {
+  const tests = await api.audience.listPeople(formId, {
+    page: 1,
+    pageSize: 1,
+    test: AudiencePeopleTestFilter.Test,
+  });
+  return tests.success ? tests.data.totalRecords : 0;
+}
+
+type PageFacts = {
+  testFilter: AudiencePeopleTestFilter;
+  testParticipants: number;
+};
 
 function toPageData(
   parts: LoadedParts,
   capabilities: Capabilities,
-  testFilter: AudiencePeopleTestFilter,
+  { testFilter, testParticipants }: PageFacts,
 ): AudiencePageData {
   return {
     settings: parts.settings,
     ...capabilities,
+    testParticipants,
     testFilter,
     properties: parts.properties,
     people: [...parts.people.items],
@@ -135,7 +162,16 @@ export async function loadAudiencePage(
   request: AudiencePageRequest,
 ): Promise<Result<AudiencePageData>> {
   const { api, formId, paging, ...capabilities } = request;
-  const parts = await loadAudienceParts(api, formId, paging);
+  const { canMintTestLinks } = capabilities;
+  // A list already filtered to Test counts them itself.
+  const listCounts = paging.test === AudiencePeopleTestFilter.Test;
+  const [parts, counted] = await Promise.all([
+    loadAudienceParts(api, formId, paging),
+    canMintTestLinks && !listCounts ? countTestParticipants(api, formId) : 0,
+  ]);
   if (Result.isError(parts)) return parts;
-  return Result.success(toPageData(parts.value, capabilities, paging.test));
+  const ownTotal = canMintTestLinks && listCounts;
+  const testParticipants = ownTotal ? parts.value.people.totalRecords : counted;
+  const facts = { testFilter: paging.test, testParticipants };
+  return Result.success(toPageData(parts.value, capabilities, facts));
 }

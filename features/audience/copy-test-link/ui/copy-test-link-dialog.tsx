@@ -11,25 +11,15 @@ import {
   ResponsivePanelHeader,
   ResponsivePanelTitle,
 } from "@/components/ui/responsive-panel";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  EXPIRY_OPTIONS,
-  formatExpiresIn,
-} from "@/lib/share-links/share-link-expiry";
+import { formatExpiresIn } from "@/lib/share-links/share-link-expiry";
 import type { AudiencePerson } from "@/lib/endatix-api/audience/types";
 import type { TestLink } from "../create-test-link.action";
 import { useCopyTestLink } from "../use-copy-test-link.hook";
+import { TestLinkExpirySelect } from "../../ui/test-link-expiry-select";
 
 export type TestPerson = Pick<
   AudiencePerson,
-  "audienceMemberId" | "identifier"
+  "audienceMemberId" | "membershipId" | "identifier"
 >;
 
 type CopyTestLinkDialogProps = {
@@ -42,31 +32,6 @@ type CopyTestLinkDialogProps = {
 };
 
 const EXPIRY_ID = "test-link-expiry";
-
-const EXPIRY_ITEMS = EXPIRY_OPTIONS.map((option) => (
-  <SelectItem key={option.value} value={String(option.value)}>
-    {option.label}
-  </SelectItem>
-));
-
-type ExpiryProps = { value: number; onChange: (minutes: number) => void };
-
-/** The Share Submission presets, 1 hour to 60 days. */
-function ExpirySelect({ value, onChange }: Readonly<ExpiryProps>) {
-  return (
-    <div className="flex flex-col gap-2 rounded-lg bg-surface-container-low p-3 sm:flex-row sm:items-center sm:justify-between">
-      <Label htmlFor={EXPIRY_ID} className="text-sm font-medium">
-        Link lifetime
-      </Label>
-      <Select value={String(value)} onValueChange={(v) => onChange(Number(v))}>
-        <SelectTrigger id={EXPIRY_ID} className="h-9 w-full sm:w-40">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>{EXPIRY_ITEMS}</SelectContent>
-      </Select>
-    </div>
-  );
-}
 
 function CopiedLink({ link }: Readonly<{ link: TestLink }>) {
   return (
@@ -125,7 +90,8 @@ function CopyTestLinkContent({ testLink }: ContentProps) {
   return (
     <>
       <ResponsivePanelBody className="flex flex-col gap-3">
-        <ExpirySelect
+        <TestLinkExpirySelect
+          id={EXPIRY_ID}
           value={testLink.expiryMinutes}
           onChange={testLink.setExpiryMinutes}
         />
@@ -139,7 +105,7 @@ function CopyTestLinkContent({ testLink }: ContentProps) {
 /** Locked while a link is being created (DESIGN.md Overlays rule 8). */
 function CopyTestLinkPanel({ person, ...props }: Readonly<PanelProps>) {
   const { formId, open, onOpenChange, onCreated } = props;
-  const testLink = useCopyTestLink(formId, person.audienceMemberId, onCreated);
+  const testLink = useCopyTestLink(formId, person, onCreated);
   return (
     <ResponsivePanel
       {...{ open, onOpenChange }}

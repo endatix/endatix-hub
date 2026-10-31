@@ -38,6 +38,10 @@ vi.mock("@/lib/endatix-api", async (importOriginal) => ({
   EndatixApi: class {},
 }));
 
+vi.mock("@/features/audience/shared/test-link-access.server", () => ({
+  testLinkAccess: vi.fn(),
+}));
+
 vi.mock("@/features/audience/server", () => ({
   loadAudienceVariables: vi.fn(),
 }));
@@ -117,6 +121,12 @@ describe("Form Audience Page", () => {
     vi.mocked(loadAudiencePage).mockResolvedValue(Result.success({}) as never);
     vi.mocked(loadAudienceVariables).mockResolvedValue(VARIABLES as never);
     vi.mocked(loadAudienceUsage).mockResolvedValue(USAGE as never);
+    const { testLinkAccess } =
+      await import("@/features/audience/shared/test-link-access.server");
+    vi.mocked(testLinkAccess).mockResolvedValue({
+      canCopyTestLink: true,
+      canMintTestLinks: false,
+    });
 
     const FormAudiencePage = (
       await import("@/app/(main)/forms/[formId]/audience/page")
@@ -127,6 +137,26 @@ describe("Form Audience Page", () => {
     })) as { props: { usage: unknown } };
     return { page, loadAudienceUsage, loadAudienceVariables };
   }
+
+  it("passes which test link actions the API and the reader allow to the list", async () => {
+    await renderAudiencePage(["forms.edit", "forms.test"]);
+    const { loadAudiencePage } =
+      await import("@/features/audience/get-audience-page");
+    const { testLinkAccess } =
+      await import("@/features/audience/shared/test-link-access.server");
+
+    expect(testLinkAccess).toHaveBeenCalledWith(
+      expect.anything(),
+      "f1",
+      expect.objectContaining({ checkPermission }),
+    );
+    expect(loadAudiencePage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        canCopyTestLink: true,
+        canMintTestLinks: false,
+      }),
+    );
+  });
 
   it("shows Audience coverage to a form editor", async () => {
     const { page, loadAudienceUsage } = await renderAudiencePage([
