@@ -1,8 +1,8 @@
 import {
-  AudienceDataType,
   AudienceIdentifierKind,
   type AudienceProperty,
 } from "@/lib/endatix-api/audience/types";
+import { isChoiceType } from "../property-draft";
 import { variableNameFromName } from "../property-types";
 
 /** Not a variable name, so a property or header called `skip` stays selectable. */
@@ -32,10 +32,7 @@ const IDENTIFIER_KEYS: Readonly<Record<AudienceIdentifierKind, string[]>> = {
 
 /** A choice property: filled from `variable__choice` columns, never mapped by hand. */
 export function isChoiceProperty(property: AudienceProperty): boolean {
-  return (
-    property.dataType === AudienceDataType.SingleChoice ||
-    property.dataType === AudienceDataType.MultipleChoice
-  );
+  return isChoiceType(property.dataType);
 }
 
 /** Properties a column can be mapped to; a choice property takes `variable__choice` columns. */

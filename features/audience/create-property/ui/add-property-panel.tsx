@@ -4,6 +4,7 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PanelForm } from "@/components/common/panel-form";
 import { useCreateProperty } from "../use-create-property.hook";
+import { ChoicesFields } from "./choices-fields";
 import { PropertyFields } from "./property-fields";
 
 /** Primary: it is the one action on the Properties view (DESIGN.md §5 Buttons). */
@@ -30,10 +31,11 @@ export function AddPropertyPanel({ formId }: Readonly<{ formId: string }>) {
       {...form}
       {...PANEL}
       onOpenChange={form.openChange}
-      submitDisabled={!form.variableName}
+      submitDisabled={!form.ready}
       onSubmit={form.submit}
     >
       <PropertyFields form={form} />
+      {form.isChoice && <ChoicesFields form={form} />}
     </PanelForm>
   );
 }
