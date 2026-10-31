@@ -3,6 +3,7 @@ import { Permissions } from "@/features/auth/authorization";
 import { ApiResult } from "@/lib/endatix-api/shared/api-result";
 import { Result } from "@/lib/result";
 import { requireAudienceAccess } from "../../shared/require-audience-api.server";
+import { grantedChecks } from "../../shared/__tests__/support/granted-checks";
 import { downloadTestLinksAction } from "../download-test-links.action";
 
 vi.mock("@/features/telemetry", () => ({
@@ -17,20 +18,15 @@ const MEMBERSHIP_ID = "1526934587983265792";
 const SEVEN_DAYS = 60 * 24 * 7;
 
 const mintTestLinks = vi.fn();
-const checkPermission = vi.fn();
 const api = { audience: { mintTestLinks } };
 
-function grant(...granted: string[]) {
-  checkPermission.mockImplementation(async (permission: string) => ({
-    success: granted.includes(permission),
-  }));
-}
+const { checks, grant } = grantedChecks();
 
 describe("downloadTestLinksAction", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(requireAudienceAccess).mockResolvedValue(
-      Result.success({ api, checkPermission } as never),
+      Result.success({ api, ...checks } as never),
     );
     grant(Permissions.Forms.Test, Permissions.Forms.Edit);
     mintTestLinks.mockResolvedValue(

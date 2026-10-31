@@ -24,9 +24,15 @@ export type TestLinkAccess = {
   canMintTestLinks: boolean;
 };
 
-const NONE: TestLinkAccess = { canCopyTestLink: false, canMintTestLinks: false };
+const NONE: TestLinkAccess = {
+  canCopyTestLink: false,
+  canMintTestLinks: false,
+};
 
-type Checks = Pick<AudienceAccess, "checkAllPermissions" | "checkAnyPermission">;
+type Checks = Pick<
+  AudienceAccess,
+  "checkAllPermissions" | "checkAnyPermission"
+>;
 
 /**
  * Which test link actions this reader gets. Only a reader with `forms.test` and `forms.edit`

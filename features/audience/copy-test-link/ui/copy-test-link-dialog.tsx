@@ -15,7 +15,7 @@ import { formatExpiresIn } from "@/lib/share-links/share-link-expiry";
 import type { AudiencePerson } from "@/lib/endatix-api/audience/types";
 import type { TestLink } from "../create-test-link.action";
 import { useCopyTestLink } from "../use-copy-test-link.hook";
-import { ExpirySelect } from "../../ui/test-link-expiry-select";
+import { TestLinkExpirySelect } from "../../ui/test-link-expiry-select";
 
 export type TestPerson = Pick<
   AudiencePerson,
@@ -90,7 +90,7 @@ function CopyTestLinkContent({ testLink }: ContentProps) {
   return (
     <>
       <ResponsivePanelBody className="flex flex-col gap-3">
-        <ExpirySelect
+        <TestLinkExpirySelect
           id={EXPIRY_ID}
           value={testLink.expiryMinutes}
           onChange={testLink.setExpiryMinutes}

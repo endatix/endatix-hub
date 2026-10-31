@@ -148,7 +148,7 @@ describe("Form Audience Page", () => {
     expect(testLinkAccess).toHaveBeenCalledWith(
       expect.anything(),
       "f1",
-      checkPermission,
+      expect.objectContaining({ checkPermission }),
     );
     expect(loadAudiencePage).toHaveBeenCalledWith(
       expect.objectContaining({

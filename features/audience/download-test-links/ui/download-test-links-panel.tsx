@@ -1,23 +1,20 @@
 "use client";
 
-import { CircleCheckBig, Download, Info, Users } from "lucide-react";
-import { DownloadMenu } from "@/components/common/download-menu";
+import { Download, Link2, Users } from "lucide-react";
 import { PanelForm } from "@/components/common/panel-form";
 import { PanelSection } from "@/components/common/panel-section";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { ExpirySelect } from "../../ui/test-link-expiry-select";
-import { MAX_TEST_LINKS } from "../test-links-file";
+import { TestLinkExpirySelect } from "../../ui/test-link-expiry-select";
+import { TestLinkRunsSelect } from "../../ui/test-link-runs-select";
 import {
   useDownloadTestLinks,
   type DownloadTestLinks,
   type DownloadTestLinksSetup,
-  type TestLinksBatch,
   type TestLinksScope,
 } from "../use-download-test-links.hook";
+import { TestLinksDownloaded, TestLinksTotal } from "./test-links-notes";
 
 const TRIGGER = (
   <Button variant="outline">
@@ -27,7 +24,7 @@ const TRIGGER = (
 );
 
 const PANEL = {
-  desktopType: "simple",
+  desktopType: "complex",
   trigger: TRIGGER,
   title: "Download test links",
   errorTitle: "Test links not created",
@@ -36,143 +33,76 @@ const PANEL = {
 
 const RUNS_ID = "test-links-runs";
 const EXPIRY_ID = "test-links-expiry";
-const MAX_RUNS = 10;
-
-const linkCount = (count: number) =>
-  count === 1 ? "1 link" : `${count.toLocaleString()} links`;
 
 type StepProps = { run: DownloadTestLinks; setup: DownloadTestLinksSetup };
 
 type ScopeOption = { value: TestLinksScope; label: string; count: number };
 
-function scopeOptions(setup: DownloadTestLinksSetup): ScopeOption[] {
-  return [
-    {
-      value: "all",
-      label: "All test participants",
-      count: setup.testParticipants,
-    },
-    { value: "selected", label: "Selected", count: setup.selectedIds.length },
-  ];
+const scopeOptions = (setup: DownloadTestLinksSetup): ScopeOption[] => [
+  {
+    value: "all",
+    label: "All test participants",
+    count: setup.testParticipants,
+  },
+  { value: "selected", label: "Selected", count: setup.selectedIds.length },
+];
+
+function ScopeItem({ value, label, count }: Readonly<ScopeOption>) {
+  const id = `test-links-${value}`;
+  return (
+    <div className="flex items-center gap-2">
+      <RadioGroupItem id={id} value={value} disabled={count === 0} />
+      <Label htmlFor={id} className="font-normal">
+        {label} ({count.toLocaleString()})
+      </Label>
+    </div>
+  );
 }
 
+const scopeDescription = (setup: DownloadTestLinksSetup) =>
+  setup.selectedIds.length > 0
+    ? "Starts on the test participants ticked in the list."
+    : "Test participants only. Tick some in the list to download theirs.";
+
 function ScopeChoice({ run, setup }: Readonly<StepProps>) {
+  const choose = (scope: string) =>
+    run.choose({ scope: scope as TestLinksScope });
+  const { scope } = run.choices;
   return (
-    <RadioGroup
-      value={run.choices.scope}
-      onValueChange={(scope) => run.choose({ scope: scope as TestLinksScope })}
-      className="gap-2"
-    >
-      {scopeOptions(setup).map(({ value, label, count }) => (
-        <div key={value} className="flex items-center gap-2">
-          <RadioGroupItem
-            id={`test-links-${value}`}
-            value={value}
-            disabled={count === 0}
-          />
-          <Label htmlFor={`test-links-${value}`} className="font-normal">
-            {label} ({count.toLocaleString()})
-          </Label>
-        </div>
+    <RadioGroup value={scope} onValueChange={choose} className="gap-2">
+      {scopeOptions(setup).map((option) => (
+        <ScopeItem key={option.value} {...option} />
       ))}
     </RadioGroup>
   );
 }
 
-const toRuns = (value: string) =>
-  Math.min(MAX_RUNS, Math.max(1, Math.floor(Number(value)) || 1));
-
-function RunsInput({ run }: Readonly<Pick<StepProps, "run">>) {
+function ParticipantsSection(props: Readonly<StepProps>) {
+  const description = scopeDescription(props.setup);
   return (
-    <div className="flex flex-col gap-2 rounded-lg bg-surface-container-low p-3 sm:flex-row sm:items-center sm:justify-between">
-      <Label htmlFor={RUNS_ID} className="text-sm font-medium">
-        Runs per participant
-      </Label>
-      <Input
-        id={RUNS_ID}
-        type="number"
-        min={1}
-        max={MAX_RUNS}
-        value={run.choices.runsEach}
-        onChange={(e) => run.choose({ runsEach: toRuns(e.target.value) })}
-        className="h-9 w-full sm:w-40"
-      />
-    </div>
+    <PanelSection icon={Users} title="Participants" description={description}>
+      <ScopeChoice {...props} />
+    </PanelSection>
   );
 }
 
-/** How many links one download makes; above the API's limit, nothing can be asked for. */
-function TotalNote({ run }: Readonly<Pick<StepProps, "run">>) {
-  if (run.overLimit) {
-    return (
-      <Alert variant="warning">
-        <Info />
-        <AlertTitle>{linkCount(run.total)}: too many at once</AlertTitle>
-        <AlertDescription>
-          One download makes at most {MAX_TEST_LINKS} links. Choose fewer runs,
-          or select fewer participants.
-        </AlertDescription>
-      </Alert>
-    );
-  }
-  return (
-    <Alert variant="info">
-      <Info />
-      <AlertTitle>{linkCount(run.total)}</AlertTitle>
-      <AlertDescription>
-        Each link opens one new test submission without a login, also on a
-        private form. Anyone with the file can fill them in, so keep it safe.
-      </AlertDescription>
-    </Alert>
-  );
-}
+const LINKS_DESCRIPTION = "Each run is a new test submission.";
 
-function Choices(props: Readonly<StepProps>) {
+function LinksSection({ run }: Readonly<Pick<StepProps, "run">>) {
+  const { runsEach, expiryMinutes } = run.choices;
+  const setRuns = (n: number) => run.choose({ runsEach: n });
+  const setExpiry = (m: number) => run.choose({ expiryMinutes: m });
   return (
-    <>
-      <PanelSection
-        icon={Users}
-        title="Who gets test links"
-        description="Test participants only. Their test submissions stay out of exports."
-      >
-        <ScopeChoice {...props} />
-      </PanelSection>
+    <PanelSection icon={Link2} title="Links" description={LINKS_DESCRIPTION}>
       <div className="flex flex-col gap-3">
-        <RunsInput run={props.run} />
-        <ExpirySelect
+        <TestLinkRunsSelect id={RUNS_ID} value={runsEach} onChange={setRuns} />
+        <TestLinkExpirySelect
           id={EXPIRY_ID}
-          value={props.run.choices.expiryMinutes}
-          onChange={(expiryMinutes) => props.run.choose({ expiryMinutes })}
+          value={expiryMinutes}
+          onChange={setExpiry}
         />
       </div>
-      <TotalNote run={props.run} />
-    </>
-  );
-}
-
-type DownloadedProps = { run: DownloadTestLinks; batch: TestLinksBatch };
-
-/** What was produced, then a way to save the file again while the panel is open. */
-function Downloaded({ run, batch }: Readonly<DownloadedProps>) {
-  const formats = [{ kind: "csv" as const, onSelect: run.downloadAgain }];
-  const count = batch.links.length;
-  return (
-    <div className="grid gap-3">
-      <Alert variant="success">
-        <CircleCheckBig />
-        <AlertTitle>
-          {count === 1 ? "1 test link" : `${count.toLocaleString()} test links`}{" "}
-          downloaded
-        </AlertTitle>
-        <AlertDescription>
-          {batch.fileName} has one row per run: the identifier, the run and the
-          link. Downloading again from here saves the same links.
-        </AlertDescription>
-      </Alert>
-      <div>
-        <DownloadMenu pending={false} formats={formats} />
-      </div>
-    </div>
+    </PanelSection>
   );
 }
 
@@ -201,13 +131,18 @@ export function DownloadTestLinksPanel(
   setup: Readonly<DownloadTestLinksSetup>,
 ) {
   const run = useDownloadTestLinks(setup);
+  if (run.batch) {
+    return (
+      <PanelForm {...PANEL} {...stepProps(run)}>
+        <TestLinksDownloaded run={run} batch={run.batch} />
+      </PanelForm>
+    );
+  }
   return (
     <PanelForm {...PANEL} {...stepProps(run)}>
-      {run.batch ? (
-        <Downloaded run={run} batch={run.batch} />
-      ) : (
-        <Choices run={run} setup={setup} />
-      )}
+      <ParticipantsSection run={run} setup={setup} />
+      <LinksSection run={run} />
+      <TestLinksTotal run={run} />
     </PanelForm>
   );
 }

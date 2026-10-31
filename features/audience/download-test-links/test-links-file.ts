@@ -11,9 +11,6 @@ export type TestLinkRow = {
 
 export const TEST_LINKS_FILE_MIME = "text/csv";
 
-/** The API opens at most this many test submissions per call. */
-export const MAX_TEST_LINKS = 500;
-
 /** `test-links-<form>-2026-10-30.csv`: dated, like the personalized links file. */
 export function testLinksFileName(formId: string, at: Date = new Date()) {
   return `test-links-${formId}-${at.toISOString().slice(0, 10)}.csv`;

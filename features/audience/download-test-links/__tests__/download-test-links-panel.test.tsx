@@ -39,6 +39,18 @@ class ResizeObserverStub {
 }
 globalThis.ResizeObserver ??=
   ResizeObserverStub as unknown as typeof ResizeObserver;
+// Radix Select opens on a mouse pointerdown and scrolls the chosen item into view.
+Element.prototype.hasPointerCapture ??= () => false;
+Element.prototype.releasePointerCapture ??= () => undefined;
+Element.prototype.scrollIntoView ??= () => undefined;
+
+function chooseRuns(runs: number) {
+  fireEvent.pointerDown(
+    screen.getByRole("combobox", { name: "Runs per participant" }),
+    { button: 0, ctrlKey: false, pointerType: "mouse" },
+  );
+  fireEvent.click(screen.getByRole("option", { name: String(runs) }));
+}
 
 function openPanel(selectedIds: string[] = [], testParticipants = 3) {
   render(
@@ -83,10 +95,14 @@ describe("DownloadTestLinksPanel", () => {
     expect(screen.getByText("2 test links downloaded")).toBeTruthy();
   });
 
-  it("offers the selected participants once some are selected", async () => {
+  it("starts on the participants ticked in the list", async () => {
     openPanel(["7", "8"]);
 
-    fireEvent.click(screen.getByRole("radio", { name: /Selected \(2\)/ }));
+    expect(
+      screen
+        .getByRole("radio", { name: /Selected \(2\)/ })
+        .getAttribute("aria-checked"),
+    ).toBe("true");
     submit();
 
     await waitFor(() =>
@@ -112,9 +128,7 @@ describe("DownloadTestLinksPanel", () => {
   it("counts runs times participants", () => {
     openPanel();
 
-    fireEvent.change(screen.getByLabelText("Runs per participant"), {
-      target: { value: "10" },
-    });
+    chooseRuns(10);
 
     expect(screen.getByText(/30 links/)).toBeTruthy();
   });
@@ -122,9 +136,7 @@ describe("DownloadTestLinksPanel", () => {
   it("asks for nothing above 500 links", () => {
     openPanel([], 60);
 
-    fireEvent.change(screen.getByLabelText("Runs per participant"), {
-      target: { value: "10" },
-    });
+    chooseRuns(10);
 
     expect(screen.getByText(/600 links: too many at once/)).toBeTruthy();
     expect(

@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { Users } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   DataTableEmpty,
   DataTableSurface,
@@ -52,7 +53,7 @@ type PeopleSectionProps = {
   canEdit: boolean;
   /** With `forms.test` each row offers Test as this participant. */
   canTest: boolean;
-  /** Each test person's row offers Copy test link (`testLinkAccess`). */
+  /** Each test participant's row offers Copy test link (`testLinkAccess`). */
   canCopyTestLink?: boolean;
   /** The test links route answers this reader: Download test links (`testLinkAccess`). */
   canMintTestLinks?: boolean;
@@ -159,6 +160,8 @@ type OverlayProps = Pick<
   "formId" | "identifierKind" | "properties"
 > & {
   row: Overlays;
+  /** Drops a removed participant's tick. */
+  onRemoved: (person: AudiencePerson) => void;
 };
 
 /** One overlay at a time: the row's edit panel, its remove confirmation or Reissue link. */
@@ -274,6 +277,31 @@ const withValueProperties = (props: Readonly<PeopleSectionProps>) => ({
   allProperties: props.properties,
 });
 
+type ClearProps = { selection?: ParticipantSelection };
+
+/** Ticks outlive a page or filter change, so they can be cleared from any page. */
+function ClearSelection({ selection }: Readonly<ClearProps>) {
+  const count = selection?.ids.length ?? 0;
+  if (!selection || count === 0) return null;
+  return (
+    <Button variant="ghost" size="sm" onClick={selection.clear}>
+      Clear selection ({count.toLocaleString()})
+    </Button>
+  );
+}
+
+type ToolbarProps = PeopleSectionProps & ClearProps;
+
+function PeopleToolbar({ selection, ...props }: Readonly<ToolbarProps>) {
+  if (!showsTestFilter(props)) return null;
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-2">
+      <PeopleTestFilter value={props.testFilter} />
+      <ClearSelection selection={selection} />
+    </div>
+  );
+}
+
 export function PeopleSection(props: Readonly<PeopleSectionProps>) {
   const row = useRowOverlay<AudiencePerson>();
   const testLink = useCopyTestLinkDialog();
@@ -284,11 +312,11 @@ export function PeopleSection(props: Readonly<PeopleSectionProps>) {
   return (
     <section aria-labelledby="audience-people" className="flex flex-col gap-4">
       <PeopleHeader {...props} selection={selection} />
-      {showsTestFilter(props) ? (
-        <PeopleTestFilter value={props.testFilter} />
-      ) : null}
+      <PeopleToolbar {...props} selection={ticks} />
       <PeopleSurface {...values} handlers={handlers} selection={ticks} />
-      {props.canEdit ? <PeopleOverlays {...values} row={row} /> : null}
+      {props.canEdit ? (
+        <PeopleOverlays {...values} row={row} onRemoved={selection.untick} />
+      ) : null}
       <CopyTestLinkDialog formId={props.formId} {...testLink.dialog} />
     </section>
   );

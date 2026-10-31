@@ -4,6 +4,7 @@ import { TelemetryLogger } from "@/features/telemetry";
 import { ApiResult } from "@/lib/endatix-api/shared/api-result";
 import { Result } from "@/lib/result";
 import { requireAudienceAccess } from "../../shared/require-audience-api.server";
+import { grantedChecks } from "../../shared/__tests__/support/granted-checks";
 import { createTestLinkAction } from "../create-test-link.action";
 
 vi.mock("@/features/telemetry", () => ({
@@ -26,7 +27,6 @@ const getParticipant = vi.fn();
 const openTestSubmission = vi.fn();
 const createAccessToken = vi.fn();
 const deleteSubmission = vi.fn();
-const checkPermission = vi.fn();
 
 const api = {
   audience: {
@@ -47,11 +47,7 @@ function participant(isTest: boolean) {
   });
 }
 
-function grant(...granted: string[]) {
-  checkPermission.mockImplementation(async (permission: string) => ({
-    success: granted.includes(permission),
-  }));
-}
+const { checks, grant } = grantedChecks();
 
 function minted(token: string) {
   return ApiResult.success([
@@ -70,7 +66,7 @@ describe("createTestLinkAction on an API with the test links route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(requireAudienceAccess).mockResolvedValue(
-      Result.success({ api, checkPermission } as never),
+      Result.success({ api, ...checks } as never),
     );
     grant(Permissions.Forms.Test, Permissions.Forms.Edit);
     supportsTestLinks.mockResolvedValue(true);
@@ -167,7 +163,7 @@ describe("createTestLinkAction on an older API (no test links route)", () => {
     vi.clearAllMocks();
     supportsTestLinks.mockResolvedValue(false);
     vi.mocked(requireAudienceAccess).mockResolvedValue(
-      Result.success({ api, checkPermission } as never),
+      Result.success({ api, ...checks } as never),
     );
     grant(
       Permissions.Forms.Test,

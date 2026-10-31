@@ -8,6 +8,7 @@ import {
   type StaticDataTableColumn,
 } from "@/components/table";
 import type { AudiencePerson } from "@/lib/endatix-api/audience/types";
+import { NotSet } from "../../ui/not-set";
 import type { ParticipantSelection } from "../../ui/use-participant-selection.hook";
 
 /** Test participants only: test links are made for them alone. */
@@ -50,6 +51,10 @@ export function selectColumn(
   };
 }
 
+const NO_TICK = (
+  <NotSet label="No tick: only test participants get test links" />
+);
+
 export function selectCell(
   person: AudiencePerson,
   selection: ParticipantSelection,
@@ -63,6 +68,8 @@ export function selectCell(
         selection.setSelected([id], checked === true)
       }
     />
-  ) : null;
+  ) : (
+    NO_TICK
+  );
   return dataTableCell("select", box, SHRINK);
 }

@@ -6,6 +6,17 @@ import { Checkbox as CheckboxPrimitive } from "radix-ui";
 
 import { cn } from "@/lib/utils";
 
+type MarkProps = Pick<
+  React.ComponentProps<typeof CheckboxPrimitive.Root>,
+  "checked"
+>;
+
+/** A dash when only some are checked, so it never reads as all. */
+function CheckboxMark({ checked }: MarkProps) {
+  const Mark = checked === "indeterminate" ? MinusIcon : CheckIcon;
+  return <Mark className="size-3.5" />;
+}
+
 function Checkbox({
   className,
   ...props
@@ -23,11 +34,7 @@ function Checkbox({
         data-slot="checkbox-indicator"
         className="grid place-content-center text-current transition-none"
       >
-        {props.checked === "indeterminate" ? (
-          <MinusIcon className="size-3.5" />
-        ) : (
-          <CheckIcon className="size-3.5" />
-        )}
+        <CheckboxMark checked={props.checked} />
       </CheckboxPrimitive.Indicator>
     </CheckboxPrimitive.Root>
   );

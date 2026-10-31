@@ -23,7 +23,11 @@ type ExpiryProps = {
 };
 
 /** Link lifetime for test links: the Share Submission presets, 1 hour to 60 days. */
-export function ExpirySelect({ id, value, onChange }: Readonly<ExpiryProps>) {
+export function TestLinkExpirySelect({
+  id,
+  value,
+  onChange,
+}: Readonly<ExpiryProps>) {
   return (
     <div className="flex flex-col gap-2 rounded-lg bg-surface-container-low p-3 sm:flex-row sm:items-center sm:justify-between">
       <Label htmlFor={id} className="text-sm font-medium">

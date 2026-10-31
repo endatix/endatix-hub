@@ -72,7 +72,7 @@ async function mintOneRun(
 }
 
 /**
- * Older API: the test submission's id; a real person gets none, since a link holder would see their values.
+ * Older API: the test submission's id; a real participant gets none, since a link holder would see their values.
  * This rule holds for this action only: the API opens a test submission for anyone, and Share
  * Submission can still share one opened with Test as this participant.
  */
@@ -152,7 +152,7 @@ async function openAndMint(
 }
 
 /**
- * Copy test link: a new test submission for a test person, and a `submit` link to it that
+ * Copy test link: a new test submission for a test participant, and a `submit` link to it that
  * opens without a login, also on a private form. An API without the test links route
  * (`supportsTestLinks`) gets the older open-then-mint path.
  */

@@ -60,6 +60,19 @@ describe("loadAudiencePage", () => {
     });
   });
 
+  it("takes the count from the list itself when it is filtered to Test", async () => {
+    const result = await loadAudiencePage({
+      api,
+      formId: FORM_ID,
+      paging: { ...paging, test: AudiencePeopleTestFilter.Test },
+      ...capabilities,
+      canMintTestLinks: true,
+    });
+
+    expect(Result.isSuccess(result) && result.value.testParticipants).toBe(3);
+    expect(listPeople).toHaveBeenCalledTimes(1);
+  });
+
   it("reads no count for anyone else", async () => {
     const result = await loadAudiencePage({
       api,

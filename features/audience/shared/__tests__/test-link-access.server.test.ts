@@ -1,20 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Permissions } from "@/features/auth/authorization";
 import { testLinkAccess } from "../test-link-access.server";
+import { grantedChecks } from "./support/granted-checks";
 
 vi.mock("server-only", () => ({}));
 
 const FORM_ID = "1525035735390879744";
 
 const supportsTestLinks = vi.fn();
-const checkPermission = vi.fn();
 const api = { audience: { supportsTestLinks } } as never;
 
-function grant(...granted: string[]) {
-  checkPermission.mockImplementation(async (permission: string) => ({
-    success: granted.includes(permission),
-  }));
-}
+const { checks, grant } = grantedChecks();
 
 const EDITOR = [Permissions.Forms.Test, Permissions.Forms.Edit];
 
@@ -27,7 +23,7 @@ describe("testLinkAccess", () => {
   it("lets an editor who may test copy and download test links on an API with the route", async () => {
     grant(...EDITOR);
 
-    const access = await testLinkAccess(api, FORM_ID, checkPermission);
+    const access = await testLinkAccess(api, FORM_ID, checks);
 
     expect(access).toEqual({ canCopyTestLink: true, canMintTestLinks: true });
     expect(supportsTestLinks).toHaveBeenCalledWith(FORM_ID);
@@ -37,7 +33,7 @@ describe("testLinkAccess", () => {
     supportsTestLinks.mockResolvedValue(false);
     grant(...EDITOR, Permissions.Submissions.View);
 
-    const access = await testLinkAccess(api, FORM_ID, checkPermission);
+    const access = await testLinkAccess(api, FORM_ID, checks);
 
     expect(access).toEqual({ canCopyTestLink: true, canMintTestLinks: false });
   });
@@ -46,7 +42,7 @@ describe("testLinkAccess", () => {
     supportsTestLinks.mockResolvedValue(false);
     grant(...EDITOR);
 
-    const access = await testLinkAccess(api, FORM_ID, checkPermission);
+    const access = await testLinkAccess(api, FORM_ID, checks);
 
     expect(access).toEqual({ canCopyTestLink: false, canMintTestLinks: false });
   });
@@ -56,7 +52,7 @@ describe("testLinkAccess", () => {
     async (permission) => {
       grant(permission, Permissions.Submissions.View);
 
-      const access = await testLinkAccess(api, FORM_ID, checkPermission);
+      const access = await testLinkAccess(api, FORM_ID, checks);
 
       expect(access).toEqual({
         canCopyTestLink: false,

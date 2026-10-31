@@ -162,11 +162,16 @@ export async function loadAudiencePage(
   request: AudiencePageRequest,
 ): Promise<Result<AudiencePageData>> {
   const { api, formId, paging, ...capabilities } = request;
-  const [parts, testParticipants] = await Promise.all([
+  const { canMintTestLinks } = capabilities;
+  // A list already filtered to Test counts them itself.
+  const listCounts = paging.test === AudiencePeopleTestFilter.Test;
+  const [parts, counted] = await Promise.all([
     loadAudienceParts(api, formId, paging),
-    capabilities.canMintTestLinks ? countTestParticipants(api, formId) : 0,
+    canMintTestLinks && !listCounts ? countTestParticipants(api, formId) : 0,
   ]);
   if (Result.isError(parts)) return parts;
+  const ownTotal = canMintTestLinks && listCounts;
+  const testParticipants = ownTotal ? parts.value.people.totalRecords : counted;
   const facts = { testFilter: paging.test, testParticipants };
   return Result.success(toPageData(parts.value, capabilities, facts));
 }

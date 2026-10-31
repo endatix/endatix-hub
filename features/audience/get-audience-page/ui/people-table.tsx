@@ -319,33 +319,41 @@ function personCells(
   return [...cells, dataTableCell("actions", menu, ACTIONS_CELL)];
 }
 
+const tableOptions = (props: Readonly<PeopleTableProps>) => ({
+  ...props,
+  allProperties: props.allProperties ?? props.properties,
+  showLink: hasLinks(props.people),
+});
+
+/** A leading tick column when the list ticks participants; the table unchanged otherwise. */
+function withTicks(
+  people: AudiencePerson[],
+  selection: ParticipantSelection | undefined,
+) {
+  return {
+    columns: (columns: StaticDataTableColumn[]) =>
+      selection ? [selectColumn({ people, selection }), ...columns] : columns,
+    cells: (person: AudiencePerson, cells: StaticDataTableCell[]) =>
+      selection ? [selectCell(person, selection), ...cells] : cells,
+  };
+}
+
 /**
  * People on this form, one column per property. Cells are read-only: a row is edited in a panel,
  * so the table stays a reading surface (DESIGN.md §5 List tables).
  */
 export function PeopleTable(props: Readonly<PeopleTableProps>) {
   const { identifierKind, properties, people } = props;
-  const options = {
-    ...props,
-    allProperties: props.allProperties ?? properties,
-    showLink: hasLinks(people),
-  };
+  const options = tableOptions(props);
+  const ticks = withTicks(people, props.selection);
   const columns = peopleColumns(identifierKind, properties, options);
-  const { selection } = props;
-  const rowCells = (person: AudiencePerson) => {
-    const cells = personCells(person, properties, options);
-    return selection ? [selectCell(person, selection), ...cells] : cells;
-  };
-  const allColumns = selection
-    ? [selectColumn({ people, selection }), ...columns]
-    : columns;
   return (
-    <StaticDataTable columns={allColumns}>
+    <StaticDataTable columns={ticks.columns(columns)}>
       {people.map((person, index) => (
         <StaticDataTableRow
           key={person.membershipId}
           index={index}
-          cells={rowCells(person)}
+          cells={ticks.cells(person, personCells(person, properties, options))}
         />
       ))}
     </StaticDataTable>
