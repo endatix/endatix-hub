@@ -14,12 +14,14 @@ import {
   columnTally,
   CREATE_COLUMN,
   isChoiceProperty,
-  mappableColumns,
+  columnRows,
   SKIP_COLUMN,
   type ChoiceColumnGroup,
   type ColumnMap,
+  type NewChoiceGroup,
 } from "../column-map";
 import { sampleLabel } from "../import-labels";
+import { choicesLabel, tidyHeading } from "../new-properties";
 import type {
   ImportCsvSetup,
   ImportWizard,
@@ -152,6 +154,52 @@ function ColumnField({ column, index, ...props }: Readonly<ColumnFieldProps>) {
   );
 }
 
+type GroupFieldProps = LoadedStepProps & {
+  group: NewChoiceGroup;
+  index: number;
+};
+
+/** A new choice group's choices: not imported, or created as one multiple-choice property. */
+function groupOptions(group: NewChoiceGroup): SelectOption[] {
+  return [
+    SKIP_OPTION,
+    {
+      value: CREATE_COLUMN,
+      label: `Create '${tidyHeading(group.variable)}' (multiple choice)`,
+    },
+  ];
+}
+
+function GroupLabel({ group }: Readonly<{ group: NewChoiceGroup }>) {
+  return (
+    <>
+      <span className="sr-only">Columns </span>
+      <span className="font-mono">{group.variable}__</span>
+    </>
+  );
+}
+
+/** One row for a group's `variable__choice` columns, counted once; its suffixes are its choices. */
+function GroupField({ group, index, wizard }: Readonly<GroupFieldProps>) {
+  const id = `import-column-${index}`;
+  return (
+    <FieldWithHelp
+      id={id}
+      label={<GroupLabel group={group} />}
+      help={`${group.columns.length} columns: ${choicesLabel(group)}.`}
+    >
+      <OptionsSelect
+        id={id}
+        value={wizard.choices.columns[group.key] ?? SKIP_COLUMN}
+        options={groupOptions(group)}
+        describedBy={helpId(id)}
+        disabled={wizard.pending}
+        onChange={(value) => wizard.choices.setColumn(group.key, value)}
+      />
+    </FieldWithHelp>
+  );
+}
+
 /** Choice properties fill from `variable__choice` columns by name; listed so nothing is a surprise. */
 function ChoiceColumns({ groups }: Readonly<{ groups: ChoiceColumnGroup[] }>) {
   if (groups.length === 0) return null;
@@ -220,19 +268,35 @@ function ColumnTally({
   );
 }
 
-/** The columns mapped by hand and the choice columns read by name, against the known properties. */
+/** The rows mapped by hand (new choice groups among them) and the choice columns read by name. */
 function fileColumns({ file, wizard }: LoadedStepProps) {
   const { headers } = file.preview;
   const { properties, choices } = wizard;
+  const { identifierColumn } = choices;
+  const { rows, groups } = columnRows(headers, identifierColumn, properties);
   return {
-    columns: mappableColumns(headers, choices.identifierColumn, properties),
+    columns: rows,
     groups: choiceColumnGroups(headers, properties),
+    newGroups: groups,
   };
+}
+
+/** A new choice group's row, or a column's. */
+function ColumnRow({
+  newGroups,
+  ...props
+}: Readonly<ColumnFieldProps & { newGroups: NewChoiceGroup[] }>) {
+  const group = newGroups.find((g) => g.key === props.column);
+  return group ? (
+    <GroupField {...props} group={group} />
+  ) : (
+    <ColumnField {...props} />
+  );
 }
 
 function ColumnsSection(props: Readonly<LoadedStepProps>) {
   const { wizard } = props;
-  const { columns, groups } = fileColumns(props);
+  const { columns, groups, newGroups } = fileColumns(props);
   return (
     <PanelSection
       icon={Columns3}
@@ -241,7 +305,7 @@ function ColumnsSection(props: Readonly<LoadedStepProps>) {
       aside={<ColumnTally wizard={wizard} columns={columns} />}
     >
       {columns.map((column, index) => (
-        <ColumnField key={column} {...props} column={column} index={index} />
+        <ColumnRow key={column} {...{ ...props, column, index, newGroups }} />
       ))}
       <ChoiceColumns groups={groups} />
     </PanelSection>
