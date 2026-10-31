@@ -126,11 +126,10 @@ describe("column choices", () => {
     const columns = suggestColumnMap(["age", "notes"], PROPERTIES);
 
     // Act
-    const next = columnsAfterIdentifierChange(
-      columns,
-      { from: "email", to: "age" },
-      { headers: ["email", "age", "notes"], properties: PROPERTIES },
-    );
+    const next = columnsAfterIdentifierChange(columns, "age", {
+      headers: ["email", "age", "notes"],
+      properties: PROPERTIES,
+    });
 
     // Assert
     expect(next.age).toBe(SKIP_COLUMN);
@@ -185,6 +184,7 @@ describe("new choice groups", () => {
   });
 
   it("leaves columns as they are when they cannot make a multiple-choice property", () => {
+    // Arrange
     const loose = [
       "email",
       "solo__one",
@@ -202,38 +202,47 @@ describe("new choice groups", () => {
       "e__b",
     ];
 
-    expect(newChoiceGroups(loose, "email", PROPERTIES)).toEqual([]);
-    expect(mappableColumns(loose, "email", PROPERTIES)).toEqual(loose.slice(1));
+    // Act
+    const groups = newChoiceGroups(loose, "email", PROPERTIES);
+    const rows = mappableColumns(loose, "email", PROPERTIES);
+
+    // Assert
+    expect(groups).toEqual([]);
+    expect(rows).toEqual(loose.slice(1));
   });
 
   it("maps a real column whose name ends like a group's by hand", () => {
-    expect(suggestColumnMap(["Age__*"], PROPERTIES)).toEqual({
-      "Age__*": "age",
-    });
-    expect(propertyColumnMap({ "x__*": "age", x__: "notes" })).toEqual({
-      age: "x__*",
-      notes: "x__",
-    });
-  });
-
-  it("gives a group that an identifier change forms its suggestion", () => {
     // Arrange
-    const headers = ["email", "shops__a", "shops__b", "notes"];
-    const columns = suggestColumnMap(
-      mappableColumns(headers, "shops__a", []),
-      [],
-    );
+    const byHand = { "x__*": "age", x__: "notes" };
 
     // Act
-    const next = columnsAfterIdentifierChange(
-      columns,
-      { from: "shops__a", to: "email" },
-      { headers, properties: [] },
-    );
+    const suggested = suggestColumnMap(["Age__*"], PROPERTIES);
+    const sent = propertyColumnMap(byHand);
+
+    // Assert
+    expect(suggested).toEqual({ "Age__*": "age" });
+    expect(sent).toEqual({ age: "x__*", notes: "x__" });
+  });
+
+  it("gives a group that an identifier change forms its suggestion, and drops its columns' own decisions", () => {
+    // Arrange
+    const headers = ["email", "shops__a", "shops__b", "notes"];
+    const columns = {
+      ...suggestColumnMap(mappableColumns(headers, "shops__a", []), []),
+      shops__b: "age",
+    };
+
+    // Act
+    const next = columnsAfterIdentifierChange(columns, "email", {
+      headers,
+      properties: [],
+    });
 
     // Assert
     expect(mappableColumns(headers, "email", [])).toEqual(["shops__", "notes"]);
     expect(next["shops__"]).toBe(CREATE_COLUMN);
+    expect(Object.keys(next).sort()).toEqual(["email", "notes", "shops__"]);
+    expect(propertyColumnMap(next)).toEqual({});
   });
 
   it("gives the column a group leaves when an identifier change breaks it its suggestion", () => {
@@ -242,11 +251,10 @@ describe("new choice groups", () => {
     const columns = suggestColumnMap(mappableColumns(headers, "email", []), []);
 
     // Act
-    const next = columnsAfterIdentifierChange(
-      columns,
-      { from: "email", to: "shops__a" },
-      { headers, properties: [] },
-    );
+    const next = columnsAfterIdentifierChange(columns, "shops__a", {
+      headers,
+      properties: [],
+    });
 
     // Assert
     expect(mappableColumns(headers, "shops__a", [])).toEqual([
@@ -259,12 +267,13 @@ describe("new choice groups", () => {
   });
 
   it("leaves the identifier out of a group", () => {
-    const groups = newChoiceGroups(
-      ["shops__a", "shops__b", "shops__c"],
-      "shops__a",
-      [],
-    );
+    // Arrange
+    const headers = ["shops__a", "shops__b", "shops__c"];
 
+    // Act
+    const groups = newChoiceGroups(headers, "shops__a", []);
+
+    // Assert
     expect(groups[0]?.columns).toEqual(["shops__b", "shops__c"]);
   });
 });

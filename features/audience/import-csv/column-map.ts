@@ -1,3 +1,11 @@
+/**
+ * The `variable__choice` rules here mirror the API's import reader (OSS):
+ * `Endatix.Modules.Audience.Features.Import.CsvColumnMapper` (the first `__` splits a header,
+ * the variable and the `other` / `other_text` suffixes match in any case) and the choice keys of
+ * `Endatix.Modules.Audience.Domain.PropertyValueRules.ChoicesError` (none blank, none with `|`).
+ * Keep them aligned; `__tests__/column-map.test.ts` pins the cases.
+ */
+
 import {
   AudienceDataType,
   AudienceIdentifierKind,
@@ -288,22 +296,24 @@ export function propertyColumnMap(map: ColumnMap): Record<string, string> {
 }
 
 /**
- * The map after the identifier moves. The new column is the participant. Every row with no
- * decision of its own gets a suggestion (the column released, a group the move forms, a column a
- * group the move breaks leaves), so Continue does not treat a missing entry as ignored.
+ * The map after the identifier moves to `identifier`, which is the participant. Only the rows
+ * left keep their decisions, so a column a group the move forms takes in is never sent as its own;
+ * every row with none (the column released, a formed group, a column a broken group leaves) gets
+ * a suggestion, so Continue does not treat a missing entry as ignored.
  */
 export function columnsAfterIdentifierChange(
   columns: ColumnMap,
-  move: { readonly from: string; readonly to: string },
+  identifier: string,
   file: { headers: string[]; properties: readonly AudienceProperty[] },
 ): ColumnMap {
-  const chosen = { ...columns, [move.to]: SKIP_COLUMN };
-  const missing = mappableColumns(
-    file.headers,
-    move.to,
-    file.properties,
-  ).filter((row) => chosen[row] === undefined);
-  return { ...chosen, ...suggestColumnMap(missing, file.properties) };
+  const rows = mappableColumns(file.headers, identifier, file.properties);
+  const kept = rows.filter((row) => columns[row] !== undefined);
+  const missing = rows.filter((row) => columns[row] === undefined);
+  return {
+    ...Object.fromEntries(kept.map((row) => [row, columns[row]])),
+    [identifier]: SKIP_COLUMN,
+    ...suggestColumnMap(missing, file.properties),
+  };
 }
 
 /** The suggested identifier column and the suggested property for every other column. */

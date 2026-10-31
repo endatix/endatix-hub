@@ -194,9 +194,9 @@ function identifierChoice(
   column: string,
   properties: readonly AudienceProperty[],
 ): ChoiceState {
-  const columns = columnsAfterIdentifierChange(state.columns, {
-    from: state.identifierColumn, to: column,
-  }, { headers: state.headers, properties });
+  const columns = columnsAfterIdentifierChange(state.columns, column, {
+    headers: state.headers, properties,
+  });
   return { ...state, identifierColumn: column, columns };
 }
 

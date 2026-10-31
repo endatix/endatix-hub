@@ -169,11 +169,13 @@ describe("ImportCsvPanel: a new multiple-choice property from a __ column group"
     await openGroupOnColumns(
       "external_id,brands__nike,brands__puma,brands__adidas\nCG-1,1,0,1\nCG-2,0,1,0\n",
     );
+
+    // Assert
     expect(screen.getByText("3 columns: nike · puma · adidas.")).toBeTruthy();
-    fireEvent.click(continueButton());
-    await screen.findByLabelText(`Name for ${BRANDS}`);
 
     // Act
+    fireEvent.click(continueButton());
+    await screen.findByLabelText(`Name for ${BRANDS}`);
     fireEvent.click(button("Create 1 property"));
 
     // Assert
