@@ -1,5 +1,7 @@
-import { AudienceDataType } from "@/lib/endatix-api/audience/types";
-import type { CreateAudiencePropertyInput } from "./create-property/create-audience-property.action";
+import {
+  AudienceDataType,
+  type CreateAudiencePropertyRequest,
+} from "@/lib/endatix-api/audience/types";
 
 /** A property about to be created, from Add property or the import wizard. */
 export type NewPropertyDraft = {
@@ -12,7 +14,7 @@ export type NewPropertyDraft = {
 };
 
 /** SurveyJS reads a choice written as `value|text`, so a key containing it never matches. */
-const CHOICE_VALUE_SEPARATOR = "|";
+export const CHOICE_VALUE_SEPARATOR = "|";
 
 export function isChoiceType(dataType: AudienceDataType): boolean {
   return (
@@ -53,7 +55,7 @@ export function choicesFromText(text: string): string[] {
 export function toCreateInput(
   formId: string,
   draft: NewPropertyDraft,
-): CreateAudiencePropertyInput {
+): { formId: string } & CreateAudiencePropertyRequest {
   const choice = isChoiceType(draft.dataType);
   return {
     formId,

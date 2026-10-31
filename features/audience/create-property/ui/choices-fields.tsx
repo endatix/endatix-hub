@@ -3,9 +3,8 @@
 import { ListChecks } from "lucide-react";
 import { PanelSection } from "@/components/common/panel-section";
 import { FieldWithHelp, helpId } from "@/components/common/field-with-help";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { TestPersonCheckbox } from "../../ui/test-person-checkbox";
 
 const CHOICES_ID = "add-property-choices";
 const OTHER_ID = "add-property-other";
@@ -68,21 +67,14 @@ function ChoicesField({ form }: Readonly<{ form: ChoicesEditor }>) {
 
 function OtherField({ form }: Readonly<{ form: ChoicesEditor }>) {
   return (
-    <div className="flex items-start gap-3">
-      <Checkbox
-        id={OTHER_ID}
-        checked={form.allowsOther}
-        disabled={form.pending}
-        aria-describedby={helpId(OTHER_ID)}
-        onCheckedChange={(checked) => form.setAllowsOther(checked === true)}
-      />
-      <div className="grid gap-1">
-        <Label htmlFor={OTHER_ID}>Accept other values</Label>
-        <p id={helpId(OTHER_ID)} className="text-xs text-muted-foreground">
-          {OTHER_HELP}
-        </p>
-      </div>
-    </div>
+    <TestPersonCheckbox
+      id={OTHER_ID}
+      label="Accept other values"
+      help={OTHER_HELP}
+      checked={form.allowsOther}
+      disabled={form.pending}
+      onCheckedChange={form.setAllowsOther}
+    />
   );
 }
 
