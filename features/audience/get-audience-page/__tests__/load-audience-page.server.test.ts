@@ -27,7 +27,12 @@ const page = (totalRecords: number) =>
     hasNextPage: false,
   });
 
-const paging = { page: 1, pageSize: 50, test: AudiencePeopleTestFilter.All };
+const paging = {
+  page: 1,
+  pageSize: 50,
+  test: AudiencePeopleTestFilter.All,
+  search: "",
+};
 const capabilities = {
   canManageMatchKey: false,
   canEdit: true,
@@ -71,6 +76,23 @@ describe("loadAudiencePage", () => {
 
     expect(Result.isSuccess(result) && result.value.testParticipants).toBe(3);
     expect(listPeople).toHaveBeenCalledTimes(1);
+  });
+
+  it("counts every test participant when the Test list is also searched", async () => {
+    listPeople.mockImplementation(async (_, request) =>
+      request.search ? page(1) : page(3),
+    );
+
+    const result = await loadAudiencePage({
+      api,
+      formId: FORM_ID,
+      paging: { ...paging, test: AudiencePeopleTestFilter.Test, search: "t1" },
+      ...capabilities,
+      canMintTestLinks: true,
+    });
+
+    expect(Result.isSuccess(result) && result.value.testParticipants).toBe(3);
+    expect(listPeople).toHaveBeenCalledTimes(2);
   });
 
   it("reads no count for anyone else", async () => {

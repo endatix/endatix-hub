@@ -173,6 +173,7 @@ describe("ImportCsvPanel: new properties from the file's columns", () => {
       name: "Segment",
       dataType: AudienceDataType.Text,
       choicesJson: null,
+      allowsOther: false,
     });
     expect(startAudienceImportAction).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -205,6 +206,7 @@ describe("ImportCsvPanel: new properties from the file's columns", () => {
       name: "Segment",
       dataType: AudienceDataType.SingleChoice,
       choicesJson: '["A","B"]',
+      allowsOther: false,
     });
   });
 
@@ -258,7 +260,9 @@ describe("ImportCsvPanel: new properties from the file's columns", () => {
     // Assert
     expect((button("Creating…") as HTMLButtonElement).disabled).toBe(true);
     answer(Result.success([]));
-    await waitFor(() => expect(createAudiencePropertyAction).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(createAudiencePropertyAction).toHaveBeenCalled(),
+    );
   });
 
   it("waits for the form check still running before it creates anything", async () => {
@@ -308,7 +312,9 @@ describe("ImportCsvPanel: new properties from the file's columns", () => {
     fireEvent.click(button("Retry"));
 
     // Assert
-    await waitFor(() => expect(createAudiencePropertyAction).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(createAudiencePropertyAction).toHaveBeenCalled(),
+    );
   });
 
   it("asks the form again after a check that failed", async () => {

@@ -1,4 +1,5 @@
 import { AudienceDataType } from "@/lib/endatix-api/audience/types";
+import { CHOICE_VALUE_SEPARATOR } from "../property-draft";
 
 /** A data type for a new property, suggested from a column's values, with the evidence for it. */
 export type TypeSuggestion = {
@@ -18,9 +19,6 @@ const MAX_SUGGESTED_CHOICES = 10;
 
 /** The most distinct values the scripter may still turn into single-choice keys. */
 const MAX_CHOICES = 50;
-
-/** SurveyJS splits a choice written as `value|text`, so the API refuses a key holding it. */
-const CHOICE_VALUE_SEPARATOR = "|";
 
 // OSS `PropertyValueRules`: a number is a sign, digits, a decimal point and an exponent, nothing
 // else; a date is `yyyy-MM-dd`; a date-time is `yyyy-MM-ddTHH:mm`, with seconds and a fraction of up
@@ -122,9 +120,7 @@ function choiceOrText(_filled: string[], distinct: string[]) {
   const few = distinct.length <= MAX_SUGGESTED_CHOICES;
   return {
     dataType:
-      choices && few
-        ? AudienceDataType.SingleChoice
-        : AudienceDataType.Text,
+      choices && few ? AudienceDataType.SingleChoice : AudienceDataType.Text,
     reason: `${distinct.length.toLocaleString()} distinct values`,
     choices,
   };

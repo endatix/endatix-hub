@@ -92,6 +92,7 @@ const LIST = {
   totalPages: 1,
   hasNextPage: false,
   testFilter: AudiencePeopleTestFilter.All,
+  search: "",
   canEdit: true,
   canTest: true,
 };

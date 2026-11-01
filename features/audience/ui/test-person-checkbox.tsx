@@ -13,7 +13,10 @@ type TestPersonCheckboxProps = {
   onCheckedChange: (checked: boolean) => void;
 };
 
-/** The one test toggle on Add person and the import review: test is chosen when a person is added. */
+/**
+ * A checkbox with its label and one help line: the test toggle on Add person and the import
+ * review (test is chosen when a person is added), and Accept other values on Add property.
+ */
 export function TestPersonCheckbox(props: Readonly<TestPersonCheckboxProps>) {
   return (
     <div className="flex items-start gap-3">

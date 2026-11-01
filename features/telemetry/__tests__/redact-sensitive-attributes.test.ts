@@ -65,7 +65,15 @@ describe("redactSensitiveText", () => {
     ],
     ["token=abc&tab=1", "token=[REDACTED]&tab=1"],
     ["/callback?code=xyz&state=s1", "/callback?code=[REDACTED]&state=s1"],
-    ["/forms?search=token", "/forms?search=token"],
+    ["/forms?tab=token", "/forms?tab=token"],
+    [
+      "/forms/1/audience/people?page=1&search=ana%40acme.test",
+      "/forms/1/audience/people?page=1&search=[REDACTED]",
+    ],
+    [
+      "/forms/1/audience/links/preview?search=ana",
+      "/forms/1/audience/links/preview?search=[REDACTED]",
+    ],
   ])("redacts %j", (input, expected) => {
     // Act & Assert
     expect(redactSensitiveText(input)).toBe(expected);

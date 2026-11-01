@@ -256,6 +256,23 @@ export type IssuedAudienceLink = {
   token: string;
 };
 
+/** A batch's link, with the participant's identifier so the file can say whose it is. */
+export type BatchAudienceLink = IssuedAudienceLink & { identifier: string };
+
+/** What a batch for a search would do: the real participants it keeps, and those without a live link. */
+export type AudienceLinksPreview = {
+  matching: number;
+  withoutLink: number;
+  /** The most links one batch issues. */
+  cap: number;
+};
+
+/** One batch: how many real participants the search kept, and the new links only. */
+export type AudienceLinkBatch = {
+  matching: number;
+  issued: BatchAudienceLink[];
+};
+
 /** Redeem's answer. The deprecated `accessToken` (an opaque SubmissionToken) is not read. */
 export type RedeemedAudienceLink = {
   submissionId: string;

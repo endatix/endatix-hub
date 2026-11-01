@@ -1,11 +1,12 @@
 import { EndatixApi } from "../endatix-api";
 import { ApiResult } from "../shared/api-result";
 import type { NormalizedPagedResponse } from "../shared/paged-response";
-import {
-  appendPagingQueryParams,
-  buildEndpointWithQuery,
-} from "../shared/query-params";
 import type { PagedResponse } from "../shared/types";
+import {
+  buildLinksPreviewEndpoint,
+  buildListAudiencePeopleEndpoint,
+  linkBatchBody,
+} from "./endpoints";
 import {
   formAudiencePath,
   mapImportResult,
@@ -19,6 +20,8 @@ import {
   type WireRedeemedLink,
   type WireTestSubmission,
   mapIssuedLink,
+  mapLinkBatch,
+  mapLinksPreviewResult,
   mapPeoplePageResult,
   mapParticipantResult,
   mapPersonResult,
@@ -28,6 +31,8 @@ import {
   requireEndatixId,
   requireFormAndEntityIds,
   type WireIssuedLink,
+  type WireLinkBatch,
+  type WireLinksPreview,
   type WireParticipant,
   type WirePerson,
   type WireProperty,
@@ -35,8 +40,6 @@ import {
 } from "./mappers";
 import * as testLinks from "./test-links";
 import {
-  AudiencePaging,
-  AudiencePeopleTestFilter,
   type AudienceParticipant,
   type AudiencePerson,
   type AudienceProperty,
@@ -55,6 +58,8 @@ import {
   CURRENT_IMPORT,
   type IssuedAudienceLink,
   type MintTestLinksRequest,
+  type AudienceLinkBatch,
+  type AudienceLinksPreview,
   type OpenedTestSubmission,
   type RedeemedAudienceLink,
   type UpdateAudienceSettingsRequest,
@@ -66,27 +71,7 @@ export type AudiencePeoplePage = NormalizedPagedResponse<AudiencePerson>;
 
 const SETTINGS_PATH = "/audience/settings";
 
-const DEFAULT_PAGE = 1;
-
-export function buildListAudiencePeopleEndpoint(
-  formId: string,
-  request: ListAudiencePeopleRequest = {},
-): string {
-  const searchParams = new URLSearchParams();
-  appendPagingQueryParams(searchParams, request, {
-    page: DEFAULT_PAGE,
-    pageSize: AudiencePaging.DefaultPageSize,
-  });
-  if (request.test && request.test !== AudiencePeopleTestFilter.All) {
-    searchParams.set("test", request.test);
-  }
-  const search = request.search?.trim();
-  if (search) searchParams.set("search", search);
-  return buildEndpointWithQuery(
-    formAudiencePath(formId, "people"),
-    searchParams,
-  );
-}
+export { buildListAudiencePeopleEndpoint };
 
 export class Audience {
   constructor(private readonly endatix: EndatixApi) {}
@@ -397,6 +382,37 @@ export class Audience {
     );
     if (!response.success) return response;
     return ApiResult.success(response.data.map((link) => mapIssuedLink(link)));
+  }
+
+  /** How many real participants a search keeps, and how many of them a batch would send a link. */
+  async previewLinks(
+    formId: string,
+    search: string,
+  ): Promise<ApiResult<AudienceLinksPreview>> {
+    const idCheck = requireEndatixId(formId, "formId");
+    if (!idCheck.success) return idCheck;
+
+    return mapLinksPreviewResult(
+      await this.endatix.get<WireLinksPreview>(
+        buildLinksPreviewEndpoint(formId, search),
+      ),
+    );
+  }
+
+  /** New links for the participants a search keeps who have none; each token is in this response only. */
+  async issueLinkBatch(
+    formId: string,
+    search: string,
+  ): Promise<ApiResult<AudienceLinkBatch>> {
+    const idCheck = requireEndatixId(formId, "formId");
+    if (!idCheck.success) return idCheck;
+
+    const response = await this.endatix.post<WireLinkBatch>(
+      formAudiencePath(formId, "links", "batches"),
+      linkBatchBody(search),
+    );
+    if (!response.success) return response;
+    return ApiResult.success(mapLinkBatch(response.data));
   }
 
   async redeemLink(

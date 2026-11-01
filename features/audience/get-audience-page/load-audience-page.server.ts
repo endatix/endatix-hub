@@ -28,6 +28,8 @@ export type AudiencePageData = {
   testParticipants: number;
   /** The All / Real / Test filter the list was read with; `totalPeople` counts that set. */
   testFilter: AudiencePeopleTestFilter;
+  /** The identifier search (`?search=`) the list was read with; `totalPeople` counts what it keeps. */
+  search: string;
   properties: AudienceProperty[];
   people: AudiencePerson[];
   totalPeople: number;
@@ -123,21 +125,19 @@ async function countTestParticipants(
   return tests.success ? tests.data.totalRecords : 0;
 }
 
-type PageFacts = {
-  testFilter: AudiencePeopleTestFilter;
-  testParticipants: number;
-};
+type PageFacts = PeopleQuery & { testParticipants: number };
 
 function toPageData(
   parts: LoadedParts,
   capabilities: Capabilities,
-  { testFilter, testParticipants }: PageFacts,
+  { test, search, testParticipants }: PageFacts,
 ): AudiencePageData {
   return {
     settings: parts.settings,
     ...capabilities,
     testParticipants,
-    testFilter,
+    testFilter: test,
+    search,
     properties: parts.properties,
     people: [...parts.people.items],
     totalPeople: parts.people.totalRecords,
@@ -163,8 +163,9 @@ export async function loadAudiencePage(
 ): Promise<Result<AudiencePageData>> {
   const { api, formId, paging, ...capabilities } = request;
   const { canMintTestLinks } = capabilities;
-  // A list already filtered to Test counts them itself.
-  const listCounts = paging.test === AudiencePeopleTestFilter.Test;
+  // A list filtered to Test, and not searched, counts them itself.
+  const listCounts =
+    paging.test === AudiencePeopleTestFilter.Test && !paging.search;
   const [parts, counted] = await Promise.all([
     loadAudienceParts(api, formId, paging),
     canMintTestLinks && !listCounts ? countTestParticipants(api, formId) : 0,
@@ -172,6 +173,6 @@ export async function loadAudiencePage(
   if (Result.isError(parts)) return parts;
   const ownTotal = canMintTestLinks && listCounts;
   const testParticipants = ownTotal ? parts.value.people.totalRecords : counted;
-  const facts = { testFilter: paging.test, testParticipants };
+  const facts = { ...paging, testParticipants };
   return Result.success(toPageData(parts.value, capabilities, facts));
 }
