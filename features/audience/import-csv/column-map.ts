@@ -1,16 +1,16 @@
 /**
  * The `variable__choice` rules here mirror the API's import reader (OSS):
  * `Endatix.Modules.Audience.Features.Import.CsvColumnMapper` (the first `__` splits a header,
- * the variable and the `other` / `other_text` suffixes match in any case) and the choice keys of
- * `Endatix.Modules.Audience.Domain.PropertyValueRules.ChoicesError` (none blank, none with `|`).
- * Keep them aligned; `__tests__/column-map.test.ts` pins the cases.
+ * the variable, the choice keys and the `other` / `other_text` suffixes match in any case). The
+ * choice keys must also pass `choicesError` (`PropertyValueRules.ChoicesError`). Keep them
+ * aligned; `__tests__/column-map.test.ts` pins the cases.
  */
 
 import {
   AudienceIdentifierKind,
   type AudienceProperty,
 } from "@/lib/endatix-api/audience/types";
-import { isChoiceType } from "../property-draft";
+import { choicesError, isChoiceType } from "../property-draft";
 import { variableNameFromName } from "../property-types";
 
 /** Not a variable name, so a property or header called `skip` stays selectable. */
@@ -49,8 +49,6 @@ export type NewChoiceGroup = {
 
 const CHOICE_SEPARATOR = "__";
 const OTHER_SUFFIXES = new Set(["other", "other_text"]);
-/** The API's separator between a cell's choices, so a choice key cannot hold it. */
-const CHOICE_VALUE_SEPARATOR = "|";
 
 const IDENTIFIER_KEYS: Readonly<Record<AudienceIdentifierKind, string[]>> = {
   [AudienceIdentifierKind.Email]: ["email", "email_address", "e_mail"],
@@ -112,16 +110,13 @@ function headersByVariable(headers: string[]) {
   return byVariable;
 }
 
-/** Keys the API takes: one or more, none blank, none with `|`, none repeated in any case. */
+/**
+ * Keys the API takes as a Property's choices, none repeated in any case either: the import matches
+ * a suffix to a choice key in any case, so `Nike` and `nike` would read as one.
+ */
 function validChoices(choices: string[]): boolean {
   const lower = new Set(choices.map((choice) => choice.toLowerCase()));
-  return (
-    choices.length > 0 &&
-    lower.size === choices.length &&
-    choices.every(
-      (choice) => choice.trim() && !choice.includes(CHOICE_VALUE_SEPARATOR),
-    )
-  );
+  return choicesError(choices) === null && lower.size === choices.length;
 }
 
 function groupOf(

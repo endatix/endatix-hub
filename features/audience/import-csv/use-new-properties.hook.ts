@@ -7,6 +7,7 @@ import {
 } from "@/lib/endatix-api/audience/types";
 import { Result } from "@/lib/result";
 import { createAudiencePropertyAction } from "../create-property/create-audience-property.action";
+import { toCreateInput, type NewPropertyDraft } from "../property-draft";
 import { variableNameFromName } from "../property-types";
 import { checkPropertyNamesAction } from "./check-property-names.action";
 import { checkNamesInChunks, NAME_CHECK_FAILED } from "./check-names";
@@ -194,27 +195,26 @@ function checkedDrafts(
   }));
 }
 
-/** A group is multiple choice with its suffixes and Other; a single choice takes the column's values. */
-function typeInput({ dataType, suggestion, group }: PropertyDraft) {
-  if (group) {
+/** A group's suffixes and Other, or a single choice's column values; other types send none. */
+function newPropertyDraft(draft: PropertyDraft): NewPropertyDraft {
+  const { name, dataType, suggestion, group } = draft;
+  if (group)
     return {
-      dataType: AudienceDataType.MultipleChoice,
-      choicesJson: JSON.stringify(group.choices),
+      name,
+      dataType,
+      choices: group.choices,
       allowsOther: group.allowsOther,
     };
-  }
-  const single = dataType === AudienceDataType.SingleChoice;
   return {
+    name,
     dataType,
-    choicesJson: single ? JSON.stringify(suggestion.choices) : null,
+    choices: suggestion.choices ?? [],
+    allowsOther: false,
   };
 }
 
-const createInput = (formId: string, draft: PropertyDraft) => ({
-  formId,
-  name: draft.name,
-  ...typeInput(draft),
-});
+const createInput = (formId: string, draft: PropertyDraft) =>
+  toCreateInput(formId, newPropertyDraft(draft));
 
 type NewPropertiesSetup = {
   formId: string;

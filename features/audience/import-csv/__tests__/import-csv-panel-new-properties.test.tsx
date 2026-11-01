@@ -173,6 +173,7 @@ describe("ImportCsvPanel: new properties from the file's columns", () => {
       name: "Segment",
       dataType: AudienceDataType.Text,
       choicesJson: null,
+      allowsOther: false,
     });
     expect(startAudienceImportAction).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -205,6 +206,7 @@ describe("ImportCsvPanel: new properties from the file's columns", () => {
       name: "Segment",
       dataType: AudienceDataType.SingleChoice,
       choicesJson: '["A","B"]',
+      allowsOther: false,
     });
   });
 
