@@ -7,14 +7,16 @@ import {
 } from "@/lib/endatix-api/audience/types";
 import { Result } from "@/lib/result";
 import { createAudiencePropertyAction } from "../create-property/create-audience-property.action";
+import { toCreateInput, type NewPropertyDraft } from "../property-draft";
 import { variableNameFromName } from "../property-types";
 import { checkPropertyNamesAction } from "./check-property-names.action";
 import { checkNamesInChunks, NAME_CHECK_FAILED } from "./check-names";
-import type { ColumnMap } from "./column-map";
+import type { ColumnMap, NewChoiceGroup } from "./column-map";
 import {
   candidateVariables,
   checkDraftName,
   draftOf,
+  groupDraftOf,
   type NameCheck,
   type PropertyDraft,
   type VariableHolder,
@@ -32,13 +34,18 @@ function columnValues(file: LoadedFile, column: string): string[] {
   return file.rows.map((row) => row.cells[at] ?? "");
 }
 
-/** Each queued column's draft before any edit, worked out once per file. */
-function useBaseDrafts(file: LoadedFile | null) {
+/** Each queued column's draft before any edit, worked out once per file; a group's from its columns. */
+function useBaseDrafts(
+  file: LoadedFile | null,
+  groups: readonly NewChoiceGroup[],
+) {
   const { drafts } = useMemo(
     () => ({ file, drafts: new Map<string, PropertyDraft>() }),
     [file],
   );
   return (column: string): PropertyDraft => {
+    const group = groups.find((g) => g.key === column);
+    if (group) return groupDraftOf(group);
     let draft = drafts.get(column);
     if (!draft) {
       draft = draftOf(column, file ? columnValues(file, column) : []);
@@ -180,29 +187,49 @@ function checkedDrafts(
   };
   return drafts.map((draft) => ({
     ...draft,
-    check: checkDraftName(draft.name, holderFor(draft, drafts, taken)),
+    check: checkDraftName(
+      draft.name,
+      holderFor(draft, drafts, taken),
+      draft.group?.variable ?? null,
+    ),
   }));
 }
 
-const createInput = (formId: string, draft: PropertyDraft) => ({
-  formId,
-  name: draft.name,
-  dataType: draft.dataType,
-  choicesJson:
-    draft.dataType === AudienceDataType.SingleChoice
-      ? JSON.stringify(draft.suggestion.choices)
-      : null,
-});
+/** A group's suffixes and Other, or a single choice's column values; other types send none. */
+function newPropertyDraft(draft: PropertyDraft): NewPropertyDraft {
+  const { name, dataType, suggestion, group } = draft;
+  if (group)
+    return {
+      name,
+      dataType,
+      choices: group.choices,
+      allowsOther: group.allowsOther,
+    };
+  return {
+    name,
+    dataType,
+    choices: suggestion.choices ?? [],
+    allowsOther: false,
+  };
+}
+
+const createInput = (formId: string, draft: PropertyDraft) =>
+  toCreateInput(formId, newPropertyDraft(draft));
 
 type NewPropertiesSetup = {
   formId: string;
   file: LoadedFile | null;
-  /** The columns the Columns step queued to create a property, in file order. */
+  /** The columns (and choice group keys) the Columns step queued to create a property, in file order. */
   queued: string[];
+  /** The file's new choice groups, so a queued group key gets its multiple-choice draft. */
+  groups: readonly NewChoiceGroup[];
   /** The form's properties, with the ones created here. */
   properties: readonly AudienceProperty[];
-  /** Maps a column to the property just created for it, so a retry never creates it twice. */
-  onCreated: (column: string, property: AudienceProperty) => void;
+  /**
+   * Maps a column to the property just created for it, so a retry never creates it twice. A
+   * group's column is `null`: its columns are read by name, and a created group is not queued.
+   */
+  onCreated: (column: string | null, property: AudienceProperty) => void;
 };
 
 /** The scripter's edits to each queued column's draft. */
@@ -218,6 +245,12 @@ function useDraftEdits() {
 
 type OnCreated = NewPropertiesSetup["onCreated"];
 
+/** Groups first: a plain column named like a group gets the refusal, and a free name for it. */
+const groupsFirst = (drafts: readonly PropertyDraft[]) => [
+  ...drafts.filter((draft) => draft.group),
+  ...drafts.filter((draft) => !draft.group),
+];
+
 /** Creates each draft in turn, mapping its column as it goes; stops at the first refusal. */
 async function createAll(
   formId: string,
@@ -225,13 +258,14 @@ async function createAll(
   onCreated: OnCreated,
 ): Promise<Result<ColumnMap>> {
   const map: ColumnMap = {};
-  for (const draft of drafts) {
+  for (const draft of groupsFirst(drafts)) {
     const result = await createAudiencePropertyAction(
       createInput(formId, draft),
     );
     if (Result.isError(result)) return result;
-    map[draft.column] = result.value.variableName;
-    onCreated(draft.column, result.value);
+    const column = draft.group ? null : draft.column;
+    if (column) map[column] = result.value.variableName;
+    onCreated(column, result.value);
   }
   return Result.success(map);
 }
@@ -282,7 +316,7 @@ function useCheckedDrafts(
   edits: Record<string, DraftEdit>,
   found: ReadonlyMap<string, VariableHolder>,
 ): CheckedDraft[] {
-  const baseDraft = useBaseDrafts(setup.file);
+  const baseDraft = useBaseDrafts(setup.file, setup.groups);
   const plain = setup.queued.map((column) => ({
     ...baseDraft(column),
     ...edits[column],
