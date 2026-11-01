@@ -2,6 +2,7 @@ export { loadAudiencePage } from "./load-audience-page.server";
 export type { AudiencePageData } from "./load-audience-page.server";
 export {
   parsePeoplePaging,
+  parsePeopleSearch,
   parsePeopleTestFilter,
   peopleTestFilterUrlValue,
 } from "./parse-people-page";

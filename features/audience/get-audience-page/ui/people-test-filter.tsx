@@ -1,6 +1,5 @@
 "use client";
 
-import { DataTableToolbar } from "@/components/table";
 import {
   Select,
   SelectContent,
@@ -47,11 +46,10 @@ export function PeopleTestFilter({
     if (!isAudiencePeopleTestFilter(next)) return;
     updateUrl({ test: peopleTestFilterUrlValue(next), page: "1" });
   };
-  const select = (
+  return (
     <Select value={value} onValueChange={change}>
       {TRIGGER}
       {OPTIONS}
     </Select>
   );
-  return <DataTableToolbar filters={select} />;
 }

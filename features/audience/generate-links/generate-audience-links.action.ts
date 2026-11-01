@@ -1,16 +1,13 @@
 "use server";
 
 import { Permissions } from "@/features/auth/authorization";
-import type { EndatixApi } from "@/lib/endatix-api";
 import {
-  AudiencePaging,
-  type AudiencePerson,
-  type IssuedAudienceLink,
+  MAX_AUDIENCE_SEARCH_LENGTH,
+  type AudienceLinksPreview,
 } from "@/lib/endatix-api/audience/types";
-import type { AudiencePeoplePage } from "@/lib/endatix-api/audience/audience";
-import { ApiResult } from "@/lib/endatix-api/shared/api-result";
 import { Result } from "@/lib/result";
 import { withHubAudienceApi } from "../shared/with-hub-audience-api.server";
+import { issueLinks, previewLinks } from "./issue-links.server";
 import type { PersonalLink } from "./personal-links";
 
 const LINKS_LOG = {
@@ -20,60 +17,39 @@ const LINKS_LOG = {
   loggerName: "audience.links",
 } as const;
 
-/** Each issued token with its person's identifier; `""` for someone added after the read. */
-function withIdentifiers(
-  issued: IssuedAudienceLink[],
-  people: readonly AudiencePerson[],
-): PersonalLink[] {
-  const identifiers = new Map(
-    people.map((person) => [person.membershipId, person.identifier]),
-  );
-  return issued.map((link) => ({
-    identifier: identifiers.get(link.membershipId) ?? "",
-    token: link.token,
-  }));
-}
+const PREVIEW_LOG = {
+  permission: Permissions.Forms.Edit,
+  fallbackMessage: "Failed to count who gets a link.",
+  logMessage: "Failed to count who gets a link.",
+  loggerName: "audience.links.preview",
+  background: true,
+} as const;
 
-/**
- * People first, then the links: a token exists only in this response (the API keeps a hash), so
- * the identifiers must already be in hand when it arrives, or the file could not say whose it is.
- */
-async function listEveryPerson(
-  api: EndatixApi,
-  formId: string,
-): Promise<ApiResult<AudiencePerson[]>> {
-  const people: AudiencePerson[] = [];
-  let page = 1;
-  let batch: ApiResult<AudiencePeoplePage>;
-  do {
-    batch = await api.audience.listPeople(formId, {
-      page,
-      pageSize: AudiencePaging.MaxPageSize,
-    });
-    if (!batch.success) return batch;
-    people.push(...batch.data.items);
-    page += 1;
-  } while (batch.data.hasNextPage && batch.data.items.length > 0);
-  return ApiResult.success(people);
-}
+const SEARCH_TOO_LONG = `Search for at most ${MAX_AUDIENCE_SEARCH_LENGTH} characters.`;
 
-async function issueLinks(
-  api: EndatixApi,
-  formId: string,
-): Promise<ApiResult<PersonalLink[]>> {
-  const people = await listEveryPerson(api, formId);
-  if (!people.success) return people;
-  const issued = await api.audience.generateLinks(formId);
-  if (!issued.success) return issued;
-  return ApiResult.success(withIdentifiers(issued.data, people.data));
-}
+const tooLong = (search: string) =>
+  search.trim().length > MAX_AUDIENCE_SEARCH_LENGTH;
 
-/** A link for everyone on the form who has none yet, each with their identifier. */
+/** A link for everyone the search keeps who has none yet, each with their identifier. */
 export async function generateAudienceLinksAction(
   formId: string,
+  search: string,
 ): Promise<Result<PersonalLink[]>> {
-  return withHubAudienceApi((api) => issueLinks(api, formId), {
+  if (tooLong(search)) return Result.validationError(SEARCH_TOO_LONG);
+  return withHubAudienceApi((api) => issueLinks(api, formId, search), {
     ...LINKS_LOG,
     formId,
   });
+}
+
+/** Who the search keeps and who of them gets a link; `null` from an API before link batches. */
+export async function previewAudienceLinksAction(
+  formId: string,
+  search: string,
+): Promise<Result<AudienceLinksPreview | null>> {
+  if (tooLong(search)) return Result.validationError(SEARCH_TOO_LONG);
+  return withHubAudienceApi(
+    (api) => previewLinks(api, formId, search),
+    PREVIEW_LOG,
+  );
 }

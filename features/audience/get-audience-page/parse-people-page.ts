@@ -1,5 +1,6 @@
 import {
   AudiencePaging,
+  MAX_AUDIENCE_SEARCH_LENGTH,
   AudiencePeopleTestFilter,
   isAudiencePeopleTestFilter,
 } from "@/lib/endatix-api/audience/types";
@@ -7,8 +8,11 @@ import { parsePagedSearchParams } from "@/lib/list-page/parse-paged-search-param
 
 export type PeoplePaging = { page: number; pageSize: number };
 
-/** What the people list asks the API for: a page and the All / Real / Test filter. */
-export type PeopleQuery = PeoplePaging & { test: AudiencePeopleTestFilter };
+/** What the people list asks the API for: a page, the All / Real / Test filter and the search. */
+export type PeopleQuery = PeoplePaging & {
+  test: AudiencePeopleTestFilter;
+  search: string;
+};
 
 /** `page` and `pageSize` from the URL; the size is capped at what the API returns in one page. */
 export function parsePeoplePaging(params: {
@@ -29,6 +33,14 @@ export function parsePeopleTestFilter(
   return value && isAudiencePeopleTestFilter(value)
     ? value
     : AudiencePeopleTestFilter.All;
+}
+
+/** The URL key of the identifier search; Back from a participant restores it. */
+export const PEOPLE_SEARCH_PARAM = "search";
+
+/** `search` from the URL, trimmed and cut to the longest search the API takes; blank is no search. */
+export function parsePeopleSearch(value: string | undefined): string {
+  return (value ?? "").slice(0, MAX_AUDIENCE_SEARCH_LENGTH).trim();
 }
 
 /** The URL value for a filter; the default `all` is left out of the URL. */

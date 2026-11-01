@@ -24,6 +24,8 @@ export type AudiencePageData = {
   canCopyTestLink: boolean;
   /** The All / Real / Test filter the list was read with; `totalPeople` counts that set. */
   testFilter: AudiencePeopleTestFilter;
+  /** The identifier search (`?search=`) the list was read with; `totalPeople` counts what it keeps. */
+  search: string;
   properties: AudienceProperty[];
   people: AudiencePerson[];
   totalPeople: number;
@@ -105,12 +107,13 @@ type Capabilities = Pick<
 function toPageData(
   parts: LoadedParts,
   capabilities: Capabilities,
-  testFilter: AudiencePeopleTestFilter,
+  { test, search }: PeopleQuery,
 ): AudiencePageData {
   return {
     settings: parts.settings,
     ...capabilities,
-    testFilter,
+    testFilter: test,
+    search,
     properties: parts.properties,
     people: [...parts.people.items],
     totalPeople: parts.people.totalRecords,
@@ -137,5 +140,5 @@ export async function loadAudiencePage(
   const { api, formId, paging, ...capabilities } = request;
   const parts = await loadAudienceParts(api, formId, paging);
   if (Result.isError(parts)) return parts;
-  return Result.success(toPageData(parts.value, capabilities, paging.test));
+  return Result.success(toPageData(parts.value, capabilities, paging));
 }
