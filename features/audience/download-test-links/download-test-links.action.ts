@@ -1,6 +1,7 @@
 "use server";
 
 import { Permissions } from "@/features/auth/authorization";
+import { mintTestLinks } from "@/lib/endatix-api/audience/test-links";
 import type {
   MintedTestLink,
   MintTestLinksRequest,
@@ -50,7 +51,7 @@ export async function downloadTestLinksAction(
   if (!mint.success) return Result.error(NO_ACCESS);
 
   const minted = toResult(
-    await api.audience.mintTestLinks(formId, withinRange(request)),
+    await mintTestLinks(api, formId, withinRange(request)),
     LOG,
   );
   if (Result.isError(minted)) return minted;

@@ -22,7 +22,7 @@ const testLinksPath = (formId: string) =>
  * Test links for Test participants in one call: `runsEach` new test submissions each, with a
  * `submit` token. All or nothing, and not idempotent: a retry opens a second set.
  */
-export async function mint(
+export async function mintTestLinks(
   endatix: EndatixApi,
   formId: string,
   request: MintTestLinksRequest,
@@ -45,7 +45,7 @@ export async function mint(
  * API without the route answers 404; any other failure, or a form id that is not an Endatix id,
  * is no answer, so the route is not used.
  */
-export async function isSupported(
+export async function supportsTestLinks(
   endatix: EndatixApi,
   formId: string,
 ): Promise<boolean> {

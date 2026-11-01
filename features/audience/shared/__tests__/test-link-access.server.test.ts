@@ -1,14 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Permissions } from "@/features/auth/authorization";
+import { supportsTestLinks as supportsRoute } from "@/lib/endatix-api/audience/test-links";
 import { testLinkAccess } from "../test-link-access.server";
 import { grantedChecks } from "./support/granted-checks";
 
 vi.mock("server-only", () => ({}));
+vi.mock("@/lib/endatix-api/audience/test-links", () => ({
+  supportsTestLinks: vi.fn(),
+}));
 
 const FORM_ID = "1525035735390879744";
 
-const supportsTestLinks = vi.fn();
-const api = { audience: { supportsTestLinks } } as never;
+const supportsTestLinks = vi.mocked(supportsRoute);
+const api = {} as never;
 
 const { checks, grant } = grantedChecks();
 
@@ -26,7 +30,7 @@ describe("testLinkAccess", () => {
     const access = await testLinkAccess(api, FORM_ID, checks);
 
     expect(access).toEqual({ canCopyTestLink: true, canMintTestLinks: true });
-    expect(supportsTestLinks).toHaveBeenCalledWith(FORM_ID);
+    expect(supportsTestLinks).toHaveBeenCalledWith(api, FORM_ID);
   });
 
   it("hides Download on an older API, and keeps Copy test link for a reader who may view submissions", async () => {

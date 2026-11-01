@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Permissions } from "@/features/auth/authorization";
 import { ApiResult } from "@/lib/endatix-api/shared/api-result";
+import { mintTestLinks as mintRoute } from "@/lib/endatix-api/audience/test-links";
 import { Result } from "@/lib/result";
 import { requireAudienceAccess } from "../../shared/require-audience-api.server";
 import { grantedChecks } from "../../shared/__tests__/support/granted-checks";
@@ -8,6 +9,9 @@ import { downloadTestLinksAction } from "../download-test-links.action";
 
 vi.mock("@/features/telemetry", () => ({
   TelemetryLogger: { error: vi.fn() },
+}));
+vi.mock("@/lib/endatix-api/audience/test-links", () => ({
+  mintTestLinks: vi.fn(),
 }));
 vi.mock("../../shared/require-audience-api.server", () => ({
   requireAudienceAccess: vi.fn(),
@@ -17,8 +21,8 @@ const FORM_ID = "1525035735390879744";
 const MEMBERSHIP_ID = "1526934587983265792";
 const SEVEN_DAYS = 60 * 24 * 7;
 
-const mintTestLinks = vi.fn();
-const api = { audience: { mintTestLinks } };
+const mintTestLinks = vi.mocked(mintRoute);
+const api = {};
 
 const { checks, grant } = grantedChecks();
 
@@ -50,7 +54,7 @@ describe("downloadTestLinksAction", () => {
       expiryMinutes: SEVEN_DAYS,
     });
 
-    expect(mintTestLinks).toHaveBeenCalledWith(FORM_ID, {
+    expect(mintTestLinks).toHaveBeenCalledWith(api, FORM_ID, {
       membershipIds: null,
       runsEach: 3,
       expiryMinutes: SEVEN_DAYS,
@@ -75,6 +79,7 @@ describe("downloadTestLinksAction", () => {
     });
 
     expect(mintTestLinks).toHaveBeenCalledWith(
+      api,
       FORM_ID,
       expect.objectContaining({ membershipIds: [MEMBERSHIP_ID] }),
     );
@@ -91,7 +96,7 @@ describe("downloadTestLinksAction", () => {
       expiryMinutes: 1,
     });
 
-    expect(mintTestLinks).toHaveBeenCalledWith(FORM_ID, {
+    expect(mintTestLinks).toHaveBeenCalledWith(api, FORM_ID, {
       membershipIds: null,
       runsEach: sent,
       expiryMinutes: 60,

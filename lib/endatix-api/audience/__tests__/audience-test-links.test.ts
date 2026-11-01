@@ -1,14 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 import type { EndatixApi } from "../../endatix-api";
 import { ApiResult } from "../../shared/api-result";
-import { Audience } from "../audience";
+import { mintTestLinks, supportsTestLinks } from "../test-links";
 
 const FORM_ID = "1525035735390879744";
 const MEMBERSHIP_ID = "1526934587983265792";
 
-function audienceWith(methods: Partial<Record<string, unknown>>) {
-  return new Audience(methods as unknown as EndatixApi);
-}
+const client = (methods: Partial<Record<string, unknown>>) =>
+  methods as unknown as EndatixApi;
 
 describe("Audience test links", () => {
   const request = {
@@ -33,7 +32,7 @@ describe("Audience test links", () => {
       }),
     );
 
-    const result = await audienceWith({ post }).mintTestLinks(FORM_ID, request);
+    const result = await mintTestLinks(client({ post }), FORM_ID, request);
 
     expect(post).toHaveBeenCalledWith(
       `/forms/${FORM_ID}/audience/test-links`,
@@ -54,7 +53,7 @@ describe("Audience test links", () => {
   it("sends null for every test participant", async () => {
     const post = vi.fn().mockResolvedValue(ApiResult.success({ items: [] }));
 
-    await audienceWith({ post }).mintTestLinks(FORM_ID, {
+    await mintTestLinks(client({ post }), FORM_ID, {
       ...request,
       membershipIds: null,
     });
@@ -84,7 +83,7 @@ describe("Audience test links", () => {
   ])("%s", async (_, answer, supported) => {
     const post = vi.fn().mockResolvedValue(answer);
 
-    const result = await audienceWith({ post }).supportsTestLinks(FORM_ID);
+    const result = await supportsTestLinks(client({ post }), FORM_ID);
 
     expect(result).toBe(supported);
     expect(post).toHaveBeenCalledWith(
@@ -96,7 +95,7 @@ describe("Audience test links", () => {
   it("asks nothing, and does not use the route, for a form id that is not an Endatix id", async () => {
     const post = vi.fn();
 
-    const result = await audienceWith({ post }).supportsTestLinks("../users");
+    const result = await supportsTestLinks(client({ post }), "../users");
 
     expect(result).toBe(false);
     expect(post).not.toHaveBeenCalled();

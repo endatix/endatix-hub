@@ -2,6 +2,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Permissions } from "@/features/auth/authorization";
 import { TelemetryLogger } from "@/features/telemetry";
 import { ApiResult } from "@/lib/endatix-api/shared/api-result";
+import {
+  mintTestLinks as mintRoute,
+  supportsTestLinks as supportsRoute,
+} from "@/lib/endatix-api/audience/test-links";
 import { Result } from "@/lib/result";
 import { requireAudienceAccess } from "../../shared/require-audience-api.server";
 import { grantedChecks } from "../../shared/__tests__/support/granted-checks";
@@ -9,6 +13,10 @@ import { createTestLinkAction } from "../create-test-link.action";
 
 vi.mock("@/features/telemetry", () => ({
   TelemetryLogger: { error: vi.fn() },
+}));
+vi.mock("@/lib/endatix-api/audience/test-links", () => ({
+  mintTestLinks: vi.fn(),
+  supportsTestLinks: vi.fn(),
 }));
 vi.mock("../../shared/require-audience-api.server", () => ({
   requireAudienceAccess: vi.fn(),
@@ -21,8 +29,8 @@ const SUBMISSION_ID = "1527000000000000001";
 const SEVEN_DAYS = 60 * 24 * 7;
 const PERSON = { audienceMemberId: MEMBER_ID, membershipId: MEMBERSHIP_ID };
 
-const mintTestLinks = vi.fn();
-const supportsTestLinks = vi.fn();
+const mintTestLinks = vi.mocked(mintRoute);
+const supportsTestLinks = vi.mocked(supportsRoute);
 const getParticipant = vi.fn();
 const openTestSubmission = vi.fn();
 const createAccessToken = vi.fn();
@@ -30,8 +38,6 @@ const deleteSubmission = vi.fn();
 
 const api = {
   audience: {
-    supportsTestLinks,
-    mintTestLinks,
     getParticipant,
     openTestSubmission,
   },
@@ -82,7 +88,7 @@ describe("createTestLinkAction on an API with the test links route", () => {
         expiresAt: "2026-11-02T10:00:00Z",
       }),
     );
-    expect(mintTestLinks).toHaveBeenCalledWith(FORM_ID, {
+    expect(mintTestLinks).toHaveBeenCalledWith(api, FORM_ID, {
       membershipIds: [MEMBERSHIP_ID],
       runsEach: 1,
       expiryMinutes: SEVEN_DAYS,
@@ -102,6 +108,7 @@ describe("createTestLinkAction on an API with the test links route", () => {
     await createTestLinkAction(FORM_ID, PERSON, 1);
 
     expect(mintTestLinks).toHaveBeenCalledWith(
+      api,
       FORM_ID,
       expect.objectContaining({ expiryMinutes: 60 }),
     );

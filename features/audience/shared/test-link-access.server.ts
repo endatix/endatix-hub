@@ -2,6 +2,7 @@ import "server-only";
 
 import { Permissions } from "@/features/auth/authorization";
 import type { EndatixApi } from "@/lib/endatix-api";
+import { supportsTestLinks } from "@/lib/endatix-api/audience/test-links";
 import type { AudienceAccess } from "./require-audience-api.server";
 
 /** The test links route's gate: both. */
@@ -46,7 +47,7 @@ export async function testLinkAccess(
 ): Promise<TestLinkAccess> {
   const mint = await checkAllPermissions(TEST_LINK_PERMISSIONS);
   if (!mint.success) return NONE;
-  if (await api.audience.supportsTestLinks(formId)) {
+  if (await supportsTestLinks(api, formId)) {
     return { canCopyTestLink: true, canMintTestLinks: true };
   }
   const share = await checkAnyPermission(SHARE_SUBMISSION_PERMISSIONS);

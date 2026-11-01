@@ -4,6 +4,10 @@ import { Permissions } from "@/features/auth/authorization";
 import { TelemetryLogger } from "@/features/telemetry";
 import { DEFAULT_EXPIRY_MINUTES } from "@/lib/share-links/share-link-expiry";
 import type { EndatixApi } from "@/lib/endatix-api";
+import {
+  mintTestLinks,
+  supportsTestLinks,
+} from "@/lib/endatix-api/audience/test-links";
 import type { AudiencePerson } from "@/lib/endatix-api/audience/types";
 import { ApiResult } from "@/lib/endatix-api/shared/api-result";
 import { Result, toResult } from "@/lib/result";
@@ -57,7 +61,7 @@ async function mintOneRun(
   { formId, person, expiryMinutes }: LinkRequest,
 ): Promise<Result<TestLink>> {
   const minted = toResult(
-    await api.audience.mintTestLinks(formId, {
+    await mintTestLinks(api, formId, {
       membershipIds: [person.membershipId],
       runsEach: 1,
       expiryMinutes: testLinkExpiry(expiryMinutes),
@@ -167,7 +171,7 @@ export async function createTestLinkAction(
   const mint = await checkAllPermissions(TEST_LINK_PERMISSIONS);
   if (!mint.success) return Result.error(NO_ACCESS);
   const request = { formId, person, expiryMinutes };
-  if (await api.audience.supportsTestLinks(formId)) {
+  if (await supportsTestLinks(api, formId)) {
     return mintOneRun(api, request);
   }
   return openAndMint(access.value, request);

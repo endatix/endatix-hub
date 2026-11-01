@@ -250,6 +250,17 @@ function clearSelection(selection?: ParticipantSelection) {
   );
 }
 
+type ListToolbarProps = PeopleSectionProps & {
+  ticks?: ParticipantSelection;
+};
+
+/** Search and the Test filter, with Clear selection pinned while there are ticks. */
+function ListToolbar({ ticks, ...props }: Readonly<ListToolbarProps>) {
+  if (!showsToolbar(props)) return null;
+  const actions = clearSelection(ticks);
+  return <PeopleToolbar testFilter={props.testFilter} actions={actions} />;
+}
+
 export function PeopleSection(props: Readonly<PeopleSectionProps>) {
   const row = useRowOverlay<AudiencePerson>();
   const testLink = useCopyTestLinkDialog();
@@ -260,12 +271,7 @@ export function PeopleSection(props: Readonly<PeopleSectionProps>) {
   return (
     <section aria-labelledby="audience-people" className="flex flex-col gap-4">
       <PeopleHeader {...props} selection={selection} />
-      {showsToolbar(props) ? (
-        <PeopleToolbar
-          testFilter={props.testFilter}
-          actions={clearSelection(ticks)}
-        />
-      ) : null}
+      <ListToolbar {...props} ticks={ticks} />
       <PeopleSurface {...values} handlers={handlers} selection={ticks} />
       {props.canEdit ? (
         <PeopleOverlays {...values} row={row} onRemoved={selection.untick} />

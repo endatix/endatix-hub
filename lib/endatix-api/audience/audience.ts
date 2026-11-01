@@ -38,7 +38,6 @@ import {
   type WireProperty,
   type WireVariables,
 } from "./mappers";
-import * as testLinks from "./test-links";
 import {
   type AudienceParticipant,
   type AudiencePerson,
@@ -57,7 +56,6 @@ import {
   type StartAudienceImportRequest,
   CURRENT_IMPORT,
   type IssuedAudienceLink,
-  type MintTestLinksRequest,
   type AudienceLinkBatch,
   type AudienceLinksPreview,
   type OpenedTestSubmission,
@@ -496,15 +494,5 @@ export class Audience {
         { token },
       ),
     );
-  }
-
-  /** Test links for Test participants in one call (`test-links.ts`). */
-  mintTestLinks(formId: string, request: MintTestLinksRequest) {
-    return testLinks.mint(this.endatix, formId, request);
-  }
-
-  /** Whether this API has the test links route (`test-links.ts`). */
-  supportsTestLinks(formId: string) {
-    return testLinks.isSupported(this.endatix, formId);
   }
 }
