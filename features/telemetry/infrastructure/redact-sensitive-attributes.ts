@@ -32,7 +32,7 @@ const SENSITIVE_QUERY_NAMES = [
 ] as const;
 
 const SENSITIVE_QUERY_PARAM = new RegExp(
-  `((?:^|[?&])(?:${SENSITIVE_QUERY_NAMES.join("|")})=)[^&#\\s"'<>]*`,
+  String.raw`((?:^|[?&])(?:${SENSITIVE_QUERY_NAMES.join("|")})=)[^&#\s"'<>]*`,
   "gi",
 );
 
