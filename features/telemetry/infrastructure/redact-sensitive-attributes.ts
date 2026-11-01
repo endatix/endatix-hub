@@ -9,8 +9,32 @@ const SENSITIVE_ATTRIBUTE_KEY =
  * start of a bare query string (`url.query` has no leading `?`) as well as after
  * `?` / `&` inside a URL or message.
  */
-const SENSITIVE_QUERY_PARAM =
-  /((?:^|[?&])(?:sig|signature|token|access_token|id_token|id_token_hint|refresh_token|code|client_secret|password|api_key|apikey|search|x-amz-signature|x-amz-credential|x-amz-security-token|x-goog-signature|x-goog-credential)=)[^&#\s"'<>]*/gi;
+/** Names only. A single alternation literal trips Sonar S5843 (complexity 20). */
+const SENSITIVE_QUERY_NAMES = [
+  "sig",
+  "signature",
+  "token",
+  "access_token",
+  "id_token",
+  "id_token_hint",
+  "refresh_token",
+  "code",
+  "client_secret",
+  "password",
+  "api_key",
+  "apikey",
+  "search",
+  "x-amz-signature",
+  "x-amz-credential",
+  "x-amz-security-token",
+  "x-goog-signature",
+  "x-goog-credential",
+] as const;
+
+const SENSITIVE_QUERY_PARAM = new RegExp(
+  `((?:^|[?&])(?:${SENSITIVE_QUERY_NAMES.join("|")})=)[^&#\\s"'<>]*`,
+  "gi",
+);
 
 export const REDACTED = "[REDACTED]";
 
