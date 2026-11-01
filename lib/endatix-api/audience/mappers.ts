@@ -26,6 +26,7 @@ import {
   type AudienceLinkBatch,
   type AudienceLinksPreview,
   type IssuedAudienceLink,
+  type MintedTestLink,
   type OpenedTestSubmission,
 } from "./types";
 
@@ -361,6 +362,22 @@ export function mapRedeemedLinkResult(
 export type WireTestSubmission = Omit<OpenedTestSubmission, "submissionId"> & {
   submissionId: string | number;
 };
+
+export type WireMintedTestLink = Omit<
+  MintedTestLink,
+  "membershipId" | "submissionId"
+> & {
+  membershipId: string | number;
+  submissionId: string | number;
+};
+
+export function mapMintedTestLink(link: WireMintedTestLink): MintedTestLink {
+  return {
+    ...link,
+    membershipId: String(link.membershipId),
+    submissionId: String(link.submissionId),
+  };
+}
 
 export function mapTestSubmissionResult(
   response: ApiResult<WireTestSubmission>,
