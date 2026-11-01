@@ -30,6 +30,7 @@ describe("checkDraftName", () => {
       invalid: false,
       holder: null,
       suggestedName: null,
+      readBy: null,
     });
   });
 
@@ -41,6 +42,7 @@ describe("checkDraftName", () => {
       invalid: false,
       holder: "question",
       suggestedName: "Segment 3",
+      readBy: null,
     });
   });
 
@@ -57,6 +59,24 @@ describe("checkDraftName", () => {
   it("refuses a name with no letter or digit, which the API cannot turn into a variable", () => {
     expect(checkDraftName("  ", holders({})).invalid).toBe(true);
     expect(checkDraftName("Ålder", holders({})).invalid).toBe(false);
+  });
+
+  it("holds a group's name to the variable its columns are read by, and suggests no other", () => {
+    // Arrange
+    const held = holders({ brands: "question" });
+
+    // Act
+    const renamed = checkDraftName("Brand list", holders({}), "brands");
+    const kept = checkDraftName("Brands", held, "brands");
+
+    // Assert
+    expect(renamed).toMatchObject({ invalid: true, readBy: "brands" });
+    expect(kept).toMatchObject({
+      invalid: false,
+      holder: "question",
+      suggestedName: null,
+      readBy: null,
+    });
   });
 });
 

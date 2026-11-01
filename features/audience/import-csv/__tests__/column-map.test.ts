@@ -9,6 +9,7 @@ import {
   columnTally,
   CREATE_COLUMN,
   mappableColumns,
+  newChoiceGroups,
   propertyColumnMap,
   SKIP_COLUMN,
   columnsAfterIdentifierChange,
@@ -125,15 +126,154 @@ describe("column choices", () => {
     const columns = suggestColumnMap(["age", "notes"], PROPERTIES);
 
     // Act
-    const next = columnsAfterIdentifierChange(
-      columns,
-      { from: "email", to: "age" },
-      PROPERTIES,
-    );
+    const next = columnsAfterIdentifierChange(columns, "age", {
+      headers: ["email", "age", "notes"],
+      properties: PROPERTIES,
+    });
 
     // Assert
     expect(next.age).toBe(SKIP_COLUMN);
     expect(next.email).toBe(CREATE_COLUMN);
     expect(next.notes).toBe(CREATE_COLUMN);
+  });
+});
+
+describe("new choice groups", () => {
+  const headers = [
+    "email",
+    "age",
+    "Shops__online",
+    "shops__mall",
+    "shops__other",
+    "shops__other_text",
+    "brands__nike",
+    "notes",
+  ];
+
+  it("groups the __ columns of a variable no property has, choices in file order and Other set aside", () => {
+    expect(newChoiceGroups(headers, "email", PROPERTIES)).toEqual([
+      {
+        key: "shops__",
+        variable: "shops",
+        columns: [
+          "Shops__online",
+          "shops__mall",
+          "shops__other",
+          "shops__other_text",
+        ],
+        choices: ["online", "mall"],
+        allowsOther: true,
+      },
+    ]);
+  });
+
+  it("shows a group as one row where its first column was, and counts it once", () => {
+    // Act
+    const rows = mappableColumns(headers, "email", PROPERTIES);
+    const map = suggestColumnMap(rows, PROPERTIES);
+
+    // Assert
+    expect(rows).toEqual(["age", "shops__", "notes"]);
+    expect(map["shops__"]).toBe(CREATE_COLUMN);
+    expect(columnTally(rows, map)).toEqual({
+      mapped: 1,
+      toCreate: 2,
+      ignored: 0,
+    });
+    expect(propertyColumnMap(map)).toEqual({ age: "age" });
+  });
+
+  it("leaves columns as they are when they cannot make a multiple-choice property", () => {
+    // Arrange
+    const loose = [
+      "email",
+      "solo__one",
+      "my brand__a",
+      "my brand__b",
+      "age__a",
+      "age__b",
+      "x__other",
+      "x__other_text",
+      "p__a|b",
+      "p__c",
+      "dup__a",
+      "dup__A",
+      "e__",
+      "e__b",
+    ];
+
+    // Act
+    const groups = newChoiceGroups(loose, "email", PROPERTIES);
+    const rows = mappableColumns(loose, "email", PROPERTIES);
+
+    // Assert
+    expect(groups).toEqual([]);
+    expect(rows).toEqual(loose.slice(1));
+  });
+
+  it("maps a real column whose name ends like a group's by hand", () => {
+    // Arrange
+    const byHand = { "x__*": "age", x__: "notes" };
+
+    // Act
+    const suggested = suggestColumnMap(["Age__*"], PROPERTIES);
+    const sent = propertyColumnMap(byHand);
+
+    // Assert
+    expect(suggested).toEqual({ "Age__*": "age" });
+    expect(sent).toEqual({ age: "x__*", notes: "x__" });
+  });
+
+  it("gives a group that an identifier change forms its suggestion, and drops its columns' own decisions", () => {
+    // Arrange
+    const headers = ["email", "shops__a", "shops__b", "notes"];
+    const columns = {
+      ...suggestColumnMap(mappableColumns(headers, "shops__a", []), []),
+      shops__b: "age",
+    };
+
+    // Act
+    const next = columnsAfterIdentifierChange(columns, "email", {
+      headers,
+      properties: [],
+    });
+
+    // Assert
+    expect(mappableColumns(headers, "email", [])).toEqual(["shops__", "notes"]);
+    expect(next["shops__"]).toBe(CREATE_COLUMN);
+    expect(Object.keys(next).sort()).toEqual(["email", "notes", "shops__"]);
+    expect(propertyColumnMap(next)).toEqual({});
+  });
+
+  it("gives the column a group leaves when an identifier change breaks it its suggestion", () => {
+    // Arrange
+    const headers = ["email", "shops__a", "shops__b", "notes"];
+    const columns = suggestColumnMap(mappableColumns(headers, "email", []), []);
+
+    // Act
+    const next = columnsAfterIdentifierChange(columns, "shops__a", {
+      headers,
+      properties: [],
+    });
+
+    // Assert
+    expect(mappableColumns(headers, "shops__a", [])).toEqual([
+      "email",
+      "shops__b",
+      "notes",
+    ]);
+    expect(next.shops__b).toBe(CREATE_COLUMN);
+    expect(next.email).toBe(CREATE_COLUMN);
+  });
+
+  it("leaves the identifier out of a group", () => {
+    // Arrange
+    const headers = ["shops__a", "shops__b", "shops__c"];
+
+    // Act
+    const groups = newChoiceGroups(headers, "shops__a", []);
+
+    // Assert
+    expect(groups[0]?.columns).toEqual(["shops__b", "shops__c"]);
   });
 });
