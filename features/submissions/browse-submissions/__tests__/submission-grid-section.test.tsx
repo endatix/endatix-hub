@@ -70,6 +70,7 @@ const READY: SubmissionGridColumnsLoad = {
   readiness: {
     submissions: 3,
     completedSubmissions: 3,
+    inProgress: 0,
     prepared: 2,
     pending: 0,
     failed: 0,
@@ -160,7 +161,7 @@ describe("SubmissionGridSection", () => {
     // Arrange
     loads.columns.mockResolvedValue({
       ...READY,
-      readiness: { ...READY.readiness, submissions: 5 },
+      readiness: { ...READY.readiness, submissions: 5, inProgress: 2 },
     });
     loads.canIncludeInProgress.mockResolvedValue(false);
 

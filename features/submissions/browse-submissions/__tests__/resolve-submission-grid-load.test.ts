@@ -14,6 +14,7 @@ import { parseSubmissionGridUrl } from "../submission-grid-url";
 const READINESS = {
   submissions: 1,
   completedSubmissions: 1,
+  inProgress: 0,
   prepared: 1,
   pending: 0,
   failed: 0,

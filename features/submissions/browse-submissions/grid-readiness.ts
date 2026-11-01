@@ -27,15 +27,15 @@ export type DescribeGridReadinessInput = {
  * only on request. Rows being prepared are counted once, as `preparing`.
  */
 export function countUnprepared({
-  submissions,
   completedSubmissions: completed,
+  inProgress,
   prepared,
   pending,
 }: SubmissionGridReadiness): UnpreparedCounts {
   const preparedInProgress = atLeastZero(prepared - completed);
   return {
     completed: atLeastZero(completed - prepared - pending),
-    inProgress: atLeastZero(submissions - completed - preparedInProgress),
+    inProgress: atLeastZero(inProgress - preparedInProgress),
     preparing: pending,
   };
 }
