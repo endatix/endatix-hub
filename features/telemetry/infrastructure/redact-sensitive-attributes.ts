@@ -3,13 +3,14 @@ const SENSITIVE_ATTRIBUTE_KEY =
 
 /**
  * Query params whose value is a credential: Azure SAS and S3 / GCS presigned
- * signatures, invite and reset tokens, OAuth / OIDC codes and tokens. Non-secret
+ * signatures, invite and reset tokens, OAuth / OIDC codes and tokens, and list
+ * searches (`search`, which can be part of a participant's email). Non-secret
  * SAS fields (`sv`, `se`, `sp`, …) stay readable for diagnosis. Matches at the
  * start of a bare query string (`url.query` has no leading `?`) as well as after
  * `?` / `&` inside a URL or message.
  */
 const SENSITIVE_QUERY_PARAM =
-  /((?:^|[?&])(?:sig|signature|token|access_token|id_token|id_token_hint|refresh_token|code|client_secret|password|api_key|apikey|x-amz-signature|x-amz-credential|x-amz-security-token|x-goog-signature|x-goog-credential)=)[^&#\s"'<>]*/gi;
+  /((?:^|[?&])(?:sig|signature|token|access_token|id_token|id_token_hint|refresh_token|code|client_secret|password|api_key|apikey|search|x-amz-signature|x-amz-credential|x-amz-security-token|x-goog-signature|x-goog-credential)=)[^&#\s"'<>]*/gi;
 
 export const REDACTED = "[REDACTED]";
 
