@@ -346,19 +346,19 @@
 @utility container {
   margin-inline: auto;
   padding-inline: 2rem;
-  @media (width >= --theme(--breakpoint-sm)) {
+  @variant sm {
     max-width: 640px;
   }
-  @media (width >= --theme(--breakpoint-md)) {
+  @variant md {
     max-width: 768px;
   }
-  @media (width >= --theme(--breakpoint-lg)) {
+  @variant lg {
     max-width: 1024px;
   }
-  @media (width >= --theme(--breakpoint-xl)) {
+  @variant xl {
     max-width: 1280px;
   }
-  @media (width >= --theme(--breakpoint-2xl)) {
+  @variant 2xl {
     max-width: 1400px;
   }
 }

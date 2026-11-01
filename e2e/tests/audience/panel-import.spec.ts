@@ -37,7 +37,7 @@ function oneRowOverTheCap(): Buffer {
   return Buffer.from(`${csv}\n${extra}\n`, "utf8");
 }
 
-test.describe("Audience panel CSV", () => {
+test.describe("Participants panel CSV", () => {
   test.describe.configure({ mode: "serial" });
   test.setTimeout(180_000);
 
@@ -67,7 +67,7 @@ test.describe("Audience panel CSV", () => {
       await expect(page.getByText("11 of 11 imported")).toBeVisible();
 
       await page.getByRole("button", { name: "Continue" }).click();
-      await page.getByRole("button", { name: "Import 20 rows" }).click();
+      await page.getByRole("button", { name: "Import 20 participants" }).click();
 
       await expect(
         page.getByText("Import finished", { exact: true }),
@@ -90,6 +90,9 @@ test.describe("Audience panel CSV", () => {
     const form = await preparePanelForm(api, "Cedar Grove Pulse cap", SAMPLE);
     try {
       await openAudience(page, form.formId);
+      // The page reads the current import on load. That POST is not the wizard.
+      await page.getByRole("button", { name: "Import CSV" }).waitFor();
+      await page.waitForLoadState("networkidle");
       const actions = recordServerActions(page);
       await page.getByRole("button", { name: "Import CSV" }).click();
       await page.getByLabel("CSV file").setInputFiles({
@@ -110,7 +113,7 @@ test.describe("Audience panel CSV", () => {
     }
   });
 
-  test("Cedar Grove Pulse imports 20 rows and shows a person", async ({
+  test("Cedar Grove Pulse imports 20 rows and shows a participant", async ({
     page,
   }) => {
     const api = await signInForAudience();
@@ -136,8 +139,9 @@ test.describe("Audience panel CSV", () => {
       }
 
       await openAudience(page, panel.formId);
-      await expect(page.getByText("CG-000001-01")).toBeVisible();
-      await expect(page.getByText("3 to 4 people")).toBeVisible();
+      const imported = page.getByRole("row", { name: /CG-000001-01/ });
+      await expect(imported).toBeVisible();
+      await expect(imported).toContainText("3 to 4 people");
     } finally {
       await panel.cleanup();
     }

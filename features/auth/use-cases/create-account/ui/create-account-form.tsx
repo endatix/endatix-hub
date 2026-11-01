@@ -22,7 +22,7 @@ interface CreateAccountActionState {
 
 const CreateAccountForm = () => {
   const router = useRouter();
-  const [state, formAction, _] = useActionState<
+  const [state, formAction] = useActionState<
     CreateAccountActionState,
     FormData
   >(

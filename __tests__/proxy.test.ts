@@ -232,7 +232,7 @@ describe("proxy", () => {
   describe("maintenance mode", () => {
     beforeEach(async () => {
       vi.stubEnv("MAINTENANCE_MODE", "true");
-      const { auth } = await import("@/auth");
+      await import("@/auth");
       vi.clearAllMocks();
     });
 

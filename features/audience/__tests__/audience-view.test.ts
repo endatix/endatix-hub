@@ -18,7 +18,7 @@ describe("parseAudienceView", () => {
 });
 
 describe("audienceViewTabs", () => {
-  it("links People to the bare tab URL and carries both counts", () => {
+  it("links Participants to the bare tab URL and carries both counts", () => {
     // Act
     const tabs = audienceViewTabs("f1", { people: 1240, properties: 3 });
 
@@ -26,7 +26,7 @@ describe("audienceViewTabs", () => {
     expect(tabs).toEqual([
       {
         id: "people",
-        label: "People",
+        label: "Participants",
         href: "/forms/f1/audience",
         count: 1240,
       },
@@ -37,5 +37,33 @@ describe("audienceViewTabs", () => {
         count: 3,
       },
     ]);
+  });
+
+  it("adds Preview as for a reader who may edit the form", () => {
+    // Act
+    const tabs = audienceViewTabs(
+      "f1",
+      { people: 2, properties: 3 },
+      { previewAs: true },
+    );
+
+    // Assert
+    expect(tabs.at(-1)).toEqual({
+      id: "preview-as",
+      label: "Preview as",
+      href: "/forms/f1/audience/preview-as",
+    });
+  });
+
+  it("leaves Preview as out on a form with no Properties", () => {
+    // Act
+    const tabs = audienceViewTabs(
+      "f1",
+      { people: 2, properties: 0 },
+      { previewAs: true },
+    );
+
+    // Assert
+    expect(tabs.map((tab) => tab.id)).toEqual(["people", "properties"]);
   });
 });

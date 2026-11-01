@@ -9,7 +9,7 @@ import { toResult } from "@/lib/result/map-api-result-to-result";
 import {
   clampExpiryMinutes,
   DEFAULT_EXPIRY_MINUTES,
-} from "./share-link-expiry";
+} from "@/lib/share-links/share-link-expiry";
 
 export type SubmissionAccessLinkType = "view" | "edit" | "share" | "export-pdf";
 

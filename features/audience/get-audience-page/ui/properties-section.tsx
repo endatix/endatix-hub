@@ -13,6 +13,7 @@ import { RenamePropertyPanel } from "../../update-property/ui/rename-property-pa
 import { useRowOverlay } from "../../use-panel-state.hook";
 import { PropertiesTable } from "./properties-table";
 import { SectionHeader } from "./section-header";
+import type { UsageVerdicts } from "@/lib/personalization/coverage";
 
 type PropertiesSectionProps = {
   formId: string;
@@ -22,6 +23,8 @@ type PropertiesSectionProps = {
   /** Without `forms.edit` the list is read-only: no add, rename or delete controls. */
   canEdit: boolean;
   viewSwitch?: ReactNode;
+  /** The saved form's Audience verdicts, for the coverage columns. */
+  verdicts?: UsageVerdicts | null;
 };
 
 type RowTargets = {
@@ -30,11 +33,11 @@ type RowTargets = {
 };
 
 const DESCRIPTION =
-  "The facts kept for each person on this form, such as a department or a plan. Each one is a column in the people table.";
+  "The facts kept for each participant on this form, such as a department or a plan. Each one is a column in the participants table.";
 
 type SurfaceProps = Pick<
   PropertiesSectionProps,
-  "identifierKind" | "properties"
+  "identifierKind" | "properties" | "verdicts"
 > & { targets?: RowTargets };
 
 function PropertiesSurface({ targets, ...table }: Readonly<SurfaceProps>) {
@@ -42,7 +45,7 @@ function PropertiesSurface({ targets, ...table }: Readonly<SurfaceProps>) {
     <DataTableSurface data-slot="audience-properties-table">
       {table.properties.length === 0 ? (
         <DataTableEmpty icon={Columns3} title="No properties yet">
-          Add a property for each fact you want to keep per person.
+          Add a property for each fact you want to keep per participant.
         </DataTableEmpty>
       ) : (
         <PropertiesTable {...table} handlers={targets} />
@@ -108,11 +111,7 @@ export function PropertiesSection(props: Readonly<PropertiesSectionProps>) {
       className="flex flex-col gap-4"
     >
       <PropertiesHeader {...props} />
-      <PropertiesSurface
-        identifierKind={props.identifierKind}
-        properties={props.properties}
-        targets={targets}
-      />
+      <PropertiesSurface {...props} targets={targets} />
       {props.canEdit ? <PropertyOverlays {...props} row={row} /> : null}
     </section>
   );

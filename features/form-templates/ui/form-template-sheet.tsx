@@ -28,7 +28,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { toast } from "@/components/ui/toast";
-import { Result } from "@/lib/result";
+import { Result, toActionFailure } from "@/lib/result";
 import { getFormattedDate } from "@/lib/utils";
 import { FormTemplate } from "@/types";
 import {
@@ -112,9 +112,11 @@ const FormTemplateSheet = ({
     handleDelete();
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     startTransition(async () => {
-      const result = await deleteTemplateAction(selectedTemplate.id);
+      const result = await deleteTemplateAction(selectedTemplate.id).catch(
+        toActionFailure<string>("Failed to delete form template"),
+      );
       if (result === undefined) {
         toast.error("Could not proceed with deleting template");
         return;

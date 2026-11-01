@@ -41,11 +41,11 @@ export const loadReCaptchaScript = (): Promise<void> => {
 export const getReCaptchaToken = async (action: string): Promise<string> => {
   await loadReCaptchaScript();
 
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     window.grecaptcha.ready(() => {
       window.grecaptcha
         .execute(recaptchaConfig.SITE_KEY, { action })
-        .then(resolve);
+        .then(resolve, reject);
     });
   });
 };

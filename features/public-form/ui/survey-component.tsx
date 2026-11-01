@@ -27,6 +27,7 @@ import {
   useRef,
   useTransition,
   type CSSProperties,
+  type ReactNode,
 } from "react";
 import {
   CompleteEvent,
@@ -43,10 +44,18 @@ import { Survey } from "survey-react-ui";
 import { TriangleAlert } from "lucide-react";
 import { useSubmissionQueue } from "../application/submission-queue";
 import { LanguageSelector } from "./language-selector";
-import { TestSubmissionBadge } from "./test-submission-badge";
 import styles from "./survey-component.module.css";
 import { useSurveyModel } from "./use-survey-model.hook";
 import { useSurveyTheme } from "./use-survey-theme.hook";
+
+/** Draws the test corner beside the survey; the completed and closed pages pass no model. */
+export type RenderTestCorner = (model: SurveyModel | null) => ReactNode;
+
+/** The test corner to draw, and the token saves go with instead of the form cookie's. */
+export type TestSubmissionView = {
+  renderCorner: RenderTestCorner;
+  writeToken?: string;
+};
 
 interface SurveyComponentProps {
   definition: string;
@@ -56,7 +65,8 @@ interface SurveyComponentProps {
   customQuestions?: string[];
   requiresReCaptcha?: boolean;
   isEmbed?: boolean;
-  isRespondentTestMode?: boolean;
+  /** What the page decided for a test submission; nothing for a real respondent. */
+  testSubmission?: TestSubmissionView;
   embedForm?: EmbedFormInfo;
   onModelCreated?: (model: Model) => void;
   onSubmitSuccess?: (result: SubmissionOperation) => void;
@@ -76,14 +86,14 @@ export default function SurveyComponent({
   customQuestions,
   requiresReCaptcha,
   isEmbed = false,
-  isRespondentTestMode,
+  testSubmission,
   embedForm,
   onModelCreated,
   onSubmitSuccess,
 }: SurveyComponentProps) {
   const formRuntime = useFormRuntime();
   const { stateRef, updateState } = formRuntime;
-  const runtimeToken = stateRef.current.token;
+  const runtimeToken = stateRef.current.token ?? testSubmission?.writeToken;
 
   const { error: surveyModelError, surveyModel } = useSurveyModel({
     formId,
@@ -391,7 +401,7 @@ export default function SurveyComponent({
         } as CSSProperties
       }
     >
-      {isRespondentTestMode && <TestSubmissionBadge />}
+      {testSubmission?.renderCorner(surveyModel)}
       <LanguageSelector
         availableLocales={surveyLocales}
         surveyModel={surveyModel}

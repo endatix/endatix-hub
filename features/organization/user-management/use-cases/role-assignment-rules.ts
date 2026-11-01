@@ -10,11 +10,14 @@ export function getUnassignableRoleError(
   roleNames: readonly string[],
   options: { allowTenantAdmin?: boolean } = {},
 ) {
-  if (roleNames.some(isPlatformAdminRole)) {
+  if (roleNames.some((roleName) => isPlatformAdminRole(roleName))) {
     return PLATFORM_ADMIN_ROLE_ERROR;
   }
 
-  if (!options.allowTenantAdmin && roleNames.some(isTenantAdminRole)) {
+  if (
+    !options.allowTenantAdmin &&
+    roleNames.some((roleName) => isTenantAdminRole(roleName))
+  ) {
     return TENANT_ADMIN_ROLE_ERROR;
   }
 

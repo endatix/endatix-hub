@@ -160,7 +160,7 @@ export function WebhookSettings({
       }
     };
 
-    fetchTenantSettings();
+    void fetchTenantSettings();
   }, []);
 
   useEffect(() => {

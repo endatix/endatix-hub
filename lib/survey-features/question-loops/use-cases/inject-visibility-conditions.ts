@@ -100,7 +100,9 @@ export function injectVisibilityConditions(survey: SurveyModel) {
   // Declarations first, so panels created later inherit the conditions.
   // A nested loop's declaration lives inside another loop's template, which
   // `survey.getAllQuestions()` never returned.
-  collectLoopTemplates(survey).forEach(injectIntoLoop);
+  collectLoopTemplates(survey).forEach((loopPanel) =>
+    injectIntoLoop(loopPanel),
+  );
 
   // Live instances are separate objects from the declaration, each with their
   // own templateElements and panels. A loop bound to data that already existed

@@ -16,6 +16,11 @@ interface AudioPlayerProps {
   isDisplayMode?: boolean;
 }
 
+/** pause() interrupting a pending play() rejects it; that is not a playback failure. */
+function isPlayInterrupted(error: unknown): boolean {
+  return error instanceof DOMException && error.name === "AbortError";
+}
+
 export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   file,
   isDisplayMode = false,
@@ -79,16 +84,22 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     }
   }, []);
 
+  const handlePlayFailure = useCallback((error: unknown) => {
+    if (!isPlayInterrupted(error)) {
+      setIsPlaying(false);
+    }
+  }, []);
+
   const handlePlayPause = useCallback(() => {
     if (audioRef.current) {
       if (isPlaying) {
         audioRef.current.pause();
       } else {
-        audioRef.current.play();
+        void audioRef.current.play().catch(handlePlayFailure);
       }
       setIsPlaying((prev) => !prev);
     }
-  }, [isPlaying]);
+  }, [isPlaying, handlePlayFailure]);
 
   const handleSeek = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newTime = parseFloat(e.target.value);

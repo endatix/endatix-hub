@@ -58,7 +58,7 @@ Endatix Hub is a commercial product and it requires the purchase of a license fr
 
 ## System Requirements
 
-- **Node.js 22.13+** — we support the [non-EOL](https://nodejs.org/en/about/eol) LTS lines only, Node 22 and Node 24 (`engines.node` in [`package.json`](./package.json)); Node 20 is End-of-Life. Development, CI and the Docker image all run the exact version in [`.nvmrc`](./.nvmrc).
+- **Node.js 22.23.4+ or 24.22.1+** — we support the [non-EOL](https://nodejs.org/en/about/eol) LTS lines only, Node 22 and Node 24, from the patch that fixes the Brotli decoder (CVE-2026-111497) (`engines.node` in [`package.json`](./package.json)); Node 20 is End-of-Life. Development and CI run the exact version in [`.nvmrc`](./.nvmrc); the Docker image builds on the newest `node:22-alpine` patch at release time.
 
 ## Supported Environments
 
@@ -145,3 +145,4 @@ Keep log attributes safe and scalar. Do not log tokens, cookies, raw request bod
 To learn more about Endatix, take a look at the following resources:
 
 - [Endatix Documentation](https://docs.endatix.com/docs/category/getting-started) — product overview and API
+- [Contributing](CONTRIBUTING.md) — how to name branches and pull requests

@@ -1,4 +1,5 @@
 import type { IPagedRequest } from "../shared/types";
+import type { PersonalizationSource } from "../submissions/types";
 
 /** Wire codes matching OSS `AudienceDataTypeCodes`. */
 export const AudienceDataType = Object.freeze({
@@ -35,10 +36,19 @@ export const AudiencePaging = Object.freeze({
   MaxPageSize: 5_000,
 } as const);
 
+/** How large a CSV this host imports; larger where imports run as background jobs. */
+export type AudienceImportLimits = {
+  maxRows: number;
+  maxBytes: number;
+  /** Whether imports run in the background, so the scripter may close the page. */
+  runsInBackground: boolean;
+};
+
 export type AudienceSettings = {
   identifierKind: AudienceIdentifierKind;
   /** True while any person is on any form's audience in the tenant. */
   isLocked: boolean;
+  importLimits: AudienceImportLimits;
 };
 
 export type AudienceProperty = {
@@ -56,11 +66,54 @@ export type AudienceProperty = {
 /** Property values keyed by property id (JSON object keys are strings). */
 export type AudiencePropertyValues = Record<string, string>;
 
+/** Wire codes matching OSS `AudienceLinkStatusResponse.Status`. */
+export const AudienceLinkStatusKind = Object.freeze({
+  None: "none",
+  Issued: "issued",
+  Opened: "opened",
+} as const);
+
+export type AudienceLinkStatusKind =
+  (typeof AudienceLinkStatusKind)[keyof typeof AudienceLinkStatusKind];
+
+/**
+ * Whether the person's personalized link was issued and opened. A test person is always `none`.
+ * An opened link has no `submissionId` once its submission was deleted.
+ */
+export type AudienceLinkStatus =
+  | { status: typeof AudienceLinkStatusKind.None }
+  | { status: typeof AudienceLinkStatusKind.Issued }
+  | {
+      status: typeof AudienceLinkStatusKind.Opened;
+      openedAt: string;
+      submissionId?: string;
+    };
+
 export type AudiencePerson = {
   membershipId: string;
   audienceMemberId: string;
   identifier: string;
   values: AudiencePropertyValues;
+  /** A test person: set when added, never changed, never sent a personalized link. */
+  isTest: boolean;
+  link: AudienceLinkStatus;
+};
+
+/** One of a participant's submissions on the form, newest first on `AudienceParticipant`. */
+export type ParticipantSubmission = {
+  id: string;
+  createdAt: string;
+  completedAt: string | null;
+  isComplete: boolean;
+  isTest: boolean;
+  /** Who froze its values; null when the submission has no Snapshot. */
+  snapshotSource: PersonalizationSource | null;
+};
+
+/** One participant on a form, with the newest 50 of their submissions and how many they have. */
+export type AudienceParticipant = AudiencePerson & {
+  submissions: ParticipantSubmission[];
+  submissionTotal: number;
 };
 
 export type CreateAudiencePropertyRequest = {
@@ -78,6 +131,7 @@ export type UpdateAudiencePropertyRequest = {
 export type CreateAudiencePersonRequest = {
   identifier: string;
   values?: AudiencePropertyValues;
+  isTest?: boolean;
 };
 
 export type UpdateAudiencePersonRequest = {
@@ -89,6 +143,7 @@ export type AudienceImportRejection = {
   reason: string;
 };
 
+/** What the one-request import (`POST …/audience/import`) wrote; the e2e seeding uses it. */
 export type AudienceImportResult = {
   importId: string;
   createdCount: number;
@@ -103,22 +158,206 @@ export type ImportAudienceCsvRequest = {
   identifierColumn: string;
   fileName: string;
   propertyColumns?: Record<string, string>;
+  /** Participants new to the form become test participants; those already on it are skipped. */
+  isTest?: boolean;
 };
+
+/** Wire codes matching OSS `AudienceImportStatusCodes`. */
+export const AudienceImportStatus = Object.freeze({
+  Uploading: "uploading",
+  Checking: "checking",
+  Checked: "checked",
+  Writing: "writing",
+  Completed: "completed",
+  Canceled: "canceled",
+  Failed: "failed",
+  Expired: "expired",
+} as const);
+
+export type AudienceImportStatus =
+  (typeof AudienceImportStatus)[keyof typeof AudienceImportStatus];
+
+/** The Check's counts: a preview of what the write will do. */
+export type AudienceImportCheck = {
+  newCount: number;
+  existingCount: number;
+  rejectedCount: number;
+};
+
+/** What the write has written so far. */
+export type AudienceImportWritten = {
+  writtenRowCount: number;
+  createdCount: number;
+  updatedCount: number;
+  skippedCount: number;
+  rejectedCount: number;
+};
+
+/** One staged import as the API reports it; `status` may be one this Hub does not know. */
+export type AudienceImportView = {
+  importId: string;
+  status: string;
+  fileName: string;
+  /** The file's header row; staged cells follow it. Missing from an API before endatix#1412. */
+  headers?: string[];
+  isTest: boolean;
+  upload: {
+    rowCount: number;
+    chunkSize: number;
+    /** The chunks still to send, while uploading. */
+    missingChunks: number[];
+  };
+  runsInBackground: boolean;
+  checkedRowCount: number;
+  /** Null until the Check has read every row. */
+  check: AudienceImportCheck | null;
+  written: AudienceImportWritten;
+  /** The first 50 rejected rows, in row order. */
+  rejections: AudienceImportRejection[];
+  failure: string | null;
+  canResume: boolean;
+  createdAt: string;
+  finishedAt: string | null;
+};
+
+/** The import id that reads the form's unfinished import. */
+export const CURRENT_IMPORT = "current";
+
+export type StartAudienceImportRequest = {
+  fileName: string;
+  headers: string[];
+  rowCount: number;
+  identifierColumn: string;
+  /** Property variable name → the column it is read from. */
+  propertyColumns: Record<string, string>;
+  /** Participants new to the form become test participants; those already on it are skipped. */
+  isTest: boolean;
+};
+
+/** One data row: its cells in header order, and whether a stray quote made it unreliable. */
+export type AudienceImportRow = { cells: string[]; malformed: boolean };
+
+export type AudienceImportChunk = {
+  /** The spreadsheet row of the first row; row 1 is the header row. */
+  firstRowNumber: number;
+  rows: AudienceImportRow[];
+};
+
+/** A chunk and its place in the file, from 0; the place goes in the path, the rows in the body. */
+export type IndexedImportChunk = AudienceImportChunk & { index: number };
+
+/** `writing` confirms a checked import or resumes a stopped write; `canceled` stops it. */
+export type AudienceImportMove =
+  | typeof AudienceImportStatus.Writing
+  | typeof AudienceImportStatus.Canceled;
 
 export type IssuedAudienceLink = {
   membershipId: string;
   token: string;
 };
 
+/** A batch's link, with the participant's identifier so the file can say whose it is. */
+export type BatchAudienceLink = IssuedAudienceLink & { identifier: string };
+
+/** What a batch for a search would do: the real participants it keeps, and those without a live link. */
+export type AudienceLinksPreview = {
+  matching: number;
+  withoutLink: number;
+  /** The most links one batch issues. */
+  cap: number;
+};
+
+/** One batch: how many real participants the search kept, and the new links only. */
+export type AudienceLinkBatch = {
+  matching: number;
+  issued: BatchAudienceLink[];
+};
+
+/** Redeem's answer. The deprecated `accessToken` (an opaque SubmissionToken) is not read. */
 export type RedeemedAudienceLink = {
   submissionId: string;
-  snapshot: string;
   created: boolean;
-  accessToken: string;
+  /**
+   * Signed submission access token with `submit`, sent as `tokenType=AccessToken`. From an API
+   * before endatix#1411 it is the opaque submission token, which opens public forms only.
+   */
+  submissionAccessToken: string;
+  submissionAccessTokenExpiresAt: string | null;
 };
 
 export type UpdateAudienceSettingsRequest = {
   identifierKind: AudienceIdentifierKind;
 };
 
-export type ListAudiencePeopleRequest = IPagedRequest;
+/** Wire values of the people list's `test` query (exact lowercase); `all` is the default. */
+export const AudiencePeopleTestFilter = Object.freeze({
+  All: "all",
+  Real: "real",
+  Test: "test",
+} as const);
+
+export type AudiencePeopleTestFilter =
+  (typeof AudiencePeopleTestFilter)[keyof typeof AudiencePeopleTestFilter];
+
+export function isAudiencePeopleTestFilter(
+  value: string,
+): value is AudiencePeopleTestFilter {
+  return (Object.values(AudiencePeopleTestFilter) as string[]).includes(value);
+}
+
+/** The people list's longest `search`, matching OSS (as long as an identifier can be). */
+export const MAX_AUDIENCE_SEARCH_LENGTH = 256;
+
+export type ListAudiencePeopleRequest = IPagedRequest & {
+  test?: AudiencePeopleTestFilter;
+  /** Part of an identifier, matched ignoring case; blank is no search. */
+  search?: string;
+};
+
+/** A new test submission and the token the respondent page opens it with. */
+export type OpenedTestSubmission = {
+  submissionId: string;
+  token: string;
+};
+
+/** One participant's values, named by their identifier. */
+export type AudienceVariablePreset = {
+  name: string;
+  /** Variable name → value, typed as the respondent's `personalization`. */
+  variables: Record<string, unknown>;
+};
+
+/** The form's Variables in SurveyJS's variable presets shape, without importing survey-core. */
+export type AudienceVariablePresets = {
+  /** Survey JSON whose top-level questions are the variables, one per Property. */
+  definition: Record<string, unknown>;
+  /** Up to 20 participants: Test participants first, then real ones, each group by identifier. */
+  presets: AudienceVariablePreset[];
+  /** Every participant on the form, test and real; more than `presets` holds past 20. */
+  totalPresets: number;
+};
+
+export type AudienceVariableCoverage = {
+  participants: { test: number; real: number };
+  properties: {
+    variableName: string;
+    filledTest: number;
+    filledReal: number;
+  }[];
+};
+
+/** What the designer's Test participant values editor may change. */
+export type AudiencePresetEditing = {
+  allowAdd: boolean;
+  allowEdit: boolean;
+  allowDelete: boolean;
+};
+
+export type AudienceVariables = {
+  /** `null` when the form has no Properties. */
+  variablePresets: AudienceVariablePresets | null;
+  coverage: AudienceVariableCoverage;
+  editing: AudiencePresetEditing;
+  /** The real participants among `presets`, by name: preview-only, never saved. */
+  readOnlyPresets: string[];
+};

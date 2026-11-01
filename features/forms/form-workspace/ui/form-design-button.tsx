@@ -21,9 +21,9 @@ export function FormDesignButton({
 }: Readonly<FormDesignButtonProps>) {
   return (
     <Button variant={variant} asChild>
-      <Link href={getFormDesignHref(formId, from)}>
+      <Link href={getFormDesignHref(formId, from)} aria-label="Design">
         <FilePen />
-        Design
+        <span className="hidden sm:inline">Design</span>
       </Link>
     </Button>
   );

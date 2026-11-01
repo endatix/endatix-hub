@@ -35,6 +35,14 @@ spec:
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.Version }}"
@@ -102,6 +110,42 @@ spec:
               value: {{ .Values.analytics.posthogHost | quote }}
             - name: POSTHOG_UI_HOST
               value: {{ .Values.analytics.posthogUiHost | quote }}
+            {{- /* Rendered only when set: an `env` entry outranks `envFrom` even when empty,
+                   so an always-present one would block an envFrom source from supplying it. */}}
+            {{- $rawProjectId := .Values.analytics.posthogProjectId }}
+            {{- if or $rawProjectId (kindIs "float64" $rawProjectId) (kindIs "int64" $rawProjectId) }}
+            {{- /* A bare number in a values file is a float64, which `quote` prints as
+                   1.234567e+06, so the id is rendered through int64. int64 alone is too
+                   lenient: it reads "0123" as octal 83, true as 1 and 12.7 as 12. So only
+                   a string of digits or a whole number reaches it; anything else is 0. */}}
+            {{- $projectId := 0 }}
+            {{- if kindIs "string" $rawProjectId }}
+            {{- if regexMatch "^[1-9][0-9]*$" $rawProjectId }}
+            {{- $projectId = $rawProjectId | int64 }}
+            {{- end }}
+            {{- else if or (kindIs "float64" $rawProjectId) (kindIs "int64" $rawProjectId) }}
+            {{- if eq (float64 $rawProjectId) (floor $rawProjectId) }}
+            {{- $projectId = $rawProjectId | int64 }}
+            {{- end }}
+            {{- end }}
+            {{- if le $projectId 0 }}
+            {{- fail (printf "analytics.posthogProjectId must be a positive whole number, got %q." (toString $rawProjectId)) }}
+            {{- end }}
+            - name: POSTHOG_PROJECT_ID
+              value: {{ $projectId | quote }}
+            {{- end }}
+            {{- if .Values.analytics.posthogPersonalApiKey }}
+            {{- fail "analytics.posthogPersonalApiKey is not supported: put the key in a Secret and set analytics.personalApiKeySecretName." }}
+            {{- end }}
+            {{- with .Values.analytics.personalApiKeySecretName }}
+            - name: POSTHOG_PERSONAL_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ . }}
+                  key: posthog-personal-api-key
+                  # An admin-only panel must not keep the whole Hub from starting.
+                  optional: true
+            {{- end }}
             - name: FLAG_PROVIDER
               value: {{ .Values.analytics.flagProvider | quote }}
 

@@ -108,6 +108,7 @@ const successResult: LoadPublicSurveyPageResult = {
   submissionPhase: "resume",
   canStartOver: false,
   isRespondentTestMode: true,
+  testInspector: null,
   submission: {
     id: "submission-1",
     isComplete: false,

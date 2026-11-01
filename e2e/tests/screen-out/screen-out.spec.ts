@@ -1,8 +1,8 @@
-import { expect, type FrameLocator, type Page, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 import { EndatixApi } from "@/lib/endatix-api/endatix-api";
 import {
   createOnBehalf,
-  releaseScreenOutForms,
+  releaseE2eForms,
   e2eCredentials,
   readSubmissionOutcome,
   seedScreenOutForm,
@@ -10,12 +10,14 @@ import {
   trySecondOnBehalf,
   type ScreenOutForm,
 } from "../../utils/screen-out-api";
-import { playgroundEmbedHostHref } from "../../utils/open-embed-host";
-
-type SurveySurface = Page | FrameLocator;
-type SurfaceKind = "share" | "iframe";
-
-const SURFACES: readonly SurfaceKind[] = ["share", "iframe"];
+import {
+  openSurvey as openSurveySurface,
+  SURFACES,
+  surveyRoot,
+  type SurfaceKind,
+  type SurveySurface,
+} from "../../utils/survey-surface";
+import { runE2eForms } from "../../utils/run-e2e-form";
 
 test.describe("Screen-out", () => {
   test.describe.configure({ mode: "serial" });
@@ -41,14 +43,12 @@ test.describe("Screen-out", () => {
           isPublic: false,
           limitOnePerUser: true,
         }).catch(async (error: unknown) => {
-          await releaseScreenOutForms(api, [screened.formId], true);
+          await releaseE2eForms(api, [screened.formId], true);
           throw error;
         });
 
         const formIds = [screened.formId, completed.formId];
-        annotateForms(formIds);
-        let failed = false;
-        try {
+        await runE2eForms(formIds, (keep) => releaseE2eForms(api, formIds, keep), async () => {
           const draft = await api.submissions.public.updateByToken(
             screened.formId,
             screened.token,
@@ -79,12 +79,7 @@ test.describe("Screen-out", () => {
             surface,
             "This form has already been completed.",
           );
-        } catch (error) {
-          failed = true;
-          throw error;
-        } finally {
-          await releaseForms(api, formIds, failed);
-        }
+        });
       });
 
       test("public with-access-token screens out and closes the token", async ({
@@ -120,8 +115,7 @@ test.describe("Screen-out", () => {
         });
         await runSeeded(api, seeded, async () => {
           const survey = await openSurvey(page, surface, seeded);
-          const root = survey.locator(".sd-root-modern");
-          await root.waitFor({ timeout: 30_000 });
+          const root = surveyRoot(survey);
           await root.getByText("Under 18", { exact: true }).click();
 
           await expect(
@@ -173,55 +167,16 @@ test.describe("Screen-out", () => {
   }
 });
 
-function annotateForms(formIds: string[]): void {
-  for (const formId of formIds) {
-    test.info().annotations.push({ type: "formId", description: formId });
-  }
-}
-
-async function releaseForms(
-  api: EndatixApi,
-  formIds: string[],
-  failed: boolean,
-): Promise<void> {
-  const outcome = await releaseScreenOutForms(
-    api,
-    formIds,
-    failed || process.env.E2E_KEEP_DATA === "1",
-  );
-  test.info().annotations.push({
-    type: "forms",
-    description: `${outcome}: ${formIds.join(", ")}`,
-  });
-}
-
-async function runSeeded(
+function runSeeded(
   api: EndatixApi,
   seeded: ScreenOutForm,
   body: () => Promise<void>,
 ): Promise<void> {
-  annotateForms([seeded.formId]);
-  let failed = false;
-  try {
-    await body();
-  } catch (error) {
-    failed = true;
-    throw error;
-  } finally {
-    await releaseForms(api, [seeded.formId], failed);
-  }
-}
-
-function hubBaseUrl(): string {
-  return process.env.BASE_URL ?? "http://localhost:3000";
-}
-
-function embedHostOrigin(): string {
-  return process.env.E2E_EMBED_HOST_URL ?? "http://localhost:5000";
-}
-
-function shareUrl(seeded: ScreenOutForm): string {
-  return `${hubBaseUrl()}/share/${seeded.formId}?token=${encodeURIComponent(seeded.shareToken)}`;
+  return runE2eForms(
+    [seeded.formId],
+    (keep) => releaseE2eForms(api, [seeded.formId], keep),
+    body,
+  );
 }
 
 async function openSurvey(
@@ -229,20 +184,7 @@ async function openSurvey(
   kind: SurfaceKind,
   seeded: ScreenOutForm,
 ): Promise<SurveySurface> {
-  if (kind === "share") {
-    await page.goto(shareUrl(seeded));
-    return page;
-  }
-
-  await page.goto(
-    playgroundEmbedHostHref(
-      embedHostOrigin(),
-      seeded.formId,
-      hubBaseUrl(),
-      seeded.shareToken,
-    ),
-  );
-  return page.frameLocator(`iframe[id^="edxf-${seeded.formId}"]`);
+  return openSurveySurface(page, kind, seeded.formId, seeded.shareToken);
 }
 
 async function answerAge(
@@ -253,8 +195,7 @@ async function answerAge(
 ): Promise<void> {
   const surface = await openSurvey(page, kind, seeded);
   // Scope to SurveyJS. A loose /next/i matches the Next.js dev toolbar.
-  const survey = surface.locator(".sd-root-modern");
-  await survey.waitFor({ timeout: 30_000 });
+  const survey = surveyRoot(surface);
   await survey.getByText(choice, { exact: true }).click();
 
   if (choice === "Under 18") {

@@ -21,6 +21,8 @@ const ERROR_CODES = Object.freeze({
   invalid_token: "Token is invalid or has expired.",
   invalid_access_token: "Token is invalid or has expired.",
   token_expired: "This link has expired.",
+  token_revoked: "This link is no longer valid.",
+  submission_ended: "This form has already been completed.",
   unknown_error: "An unknown error occurred.",
 } as const);
 
@@ -45,8 +47,18 @@ const ERROR_CODE = Object.freeze({
   INVALID_TOKEN: "invalid_token",
   INVALID_ACCESS_TOKEN: "invalid_access_token",
   TOKEN_EXPIRED: "token_expired",
+  TOKEN_REVOKED: "token_revoked",
+  SUBMISSION_ENDED: "submission_ended",
   UNKNOWN_ERROR: "unknown_error",
 } as const);
+
+/** The token itself is refused (expired, revoked, tampered): the reader needs a new link, not a retry. */
+const REFUSED_TOKEN_CODES: ReadonlySet<string> = new Set([
+  ERROR_CODE.INVALID_TOKEN,
+  ERROR_CODE.INVALID_ACCESS_TOKEN,
+  ERROR_CODE.TOKEN_EXPIRED,
+  ERROR_CODE.TOKEN_REVOKED,
+]);
 
 /**
  * Check if a given error code is known.
@@ -84,6 +96,7 @@ export {
   ERROR_CODES,
   ERROR_CODE,
   DEFAULT_ERROR_MESSAGE,
+  REFUSED_TOKEN_CODES,
   getErrorMessage,
   getErrorMessageWithFallback,
   isKnownErrorCode,

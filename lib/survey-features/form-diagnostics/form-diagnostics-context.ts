@@ -1,4 +1,8 @@
 import type { SurveyCreatorModel } from "survey-creator-core";
+import type {
+  AudienceFinding,
+  AudienceReview,
+} from "@/lib/personalization/authoring";
 import { FORM_DIAGNOSTICS_PLUGIN_NAME } from "./constants";
 import { FormDiagnosticsPlugin } from "./form-diagnostics-plugin";
 
@@ -72,4 +76,28 @@ export function applyFormDiagnosticsContext(
   plugin.formIsEnabled = context.formIsEnabled;
   plugin.folderId = context.folderId;
   plugin.availableDataListNames = context.availableDataListNames ?? [];
+}
+
+/** The form's Audience variables as Diagnostics reads them: the designer's Audience binding. */
+export interface DiagnosticsAudience {
+  review(): Promise<AudienceReview>;
+  applyFix(finding: AudienceFinding): void;
+  /** Add as Audience property; the binding shows a failure itself. */
+  addProperty(finding: AudienceFinding): Promise<void>;
+  refresh(): Promise<void>;
+}
+
+/**
+ * Shows the form's Audience findings in Diagnostics; `undefined` removes them. A closed tab reviews
+ * on `activate`, so binding at Creator init neither lints the not-yet-loaded form nor loads the linter.
+ */
+export function applyFormDiagnosticsAudience(
+  creator: SurveyCreatorModel,
+  audience: DiagnosticsAudience | undefined,
+): void {
+  const plugin = getFormDiagnosticsPlugin(creator);
+  if (!plugin) return;
+  plugin.audience = audience;
+  if (audience && creator.activeTab !== FORM_DIAGNOSTICS_PLUGIN_NAME) return;
+  void plugin.updateAudienceFindings();
 }

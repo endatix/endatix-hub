@@ -112,7 +112,7 @@ export function EditSubmissionCore({
         }
       });
     },
-    [changes, onSave, surveyModel?.data],
+    [changes, onSave, surveyModel],
   );
 
   const handleDiscard = useCallback(() => {

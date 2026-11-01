@@ -24,6 +24,7 @@ import FormEditorContainer from "./form-editor-container";
 import { useSurveyDesigner } from "@/lib/survey-features/designer/design-survey.context";
 import { ICreatorOptions } from "survey-creator-core";
 import { useFormAssistant } from "../../use-cases/design-form/form-assistant.context";
+import type { DesignerAudience } from "./form-editor";
 
 const CRITICAL_WIDTH = 600;
 
@@ -35,6 +36,7 @@ export interface FormEditorWithChatProps {
   themeId?: string;
   isPublic?: boolean;
   formIsEnabled?: boolean;
+  audience?: DesignerAudience | null;
   onThemeModificationChange?: (isModified: boolean) => void;
   onSaveHandlerReady?: (saveHandler: () => Promise<void>) => void;
 }
@@ -47,6 +49,7 @@ export default function FormEditorWithChat({
   themeId,
   isPublic,
   formIsEnabled,
+  audience,
   onThemeModificationChange,
   onSaveHandlerReady,
 }: FormEditorWithChatProps) {
@@ -67,7 +70,7 @@ export default function FormEditorWithChat({
   const shouldRenderEditor = hasNonEmptyFormJson || conversationLoaded;
 
   useEffect(() => {
-    const initializeConversation = async () => {
+    const initializeConversation = () => {
       if (chatContext?.error) {
         setConversationLoaded(true);
         return;
@@ -139,6 +142,7 @@ export default function FormEditorWithChat({
               themeId={themeId}
               isPublic={isPublic}
               formIsEnabled={formIsEnabled}
+              audience={audience}
               initialPropertyGridVisible={isCollapsed}
               onThemeModificationChange={onThemeModificationChange}
               onSaveHandlerReady={onSaveHandlerReady}

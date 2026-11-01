@@ -78,6 +78,12 @@ jobs:
       - name: 🏗️  Build Next.js app
         run: pnpm build
 
+      - name: 🔌 Check storage env is read at runtime
+        run: pnpm check:runtime-storage
+
+      - name: 🔗 Check standalone runs with symlinks dereferenced
+        run: pnpm check:dereferenced-standalone
+
       - name: 📊 Upload Coverage Report to Coveralls
         uses: coverallsapp/github-action@8d6379e14d29928660c4ba802d8e85393440b329 # v2.3.8
         with:
@@ -86,7 +92,7 @@ jobs:
           coverage-reporter-version: v0.6.22 # pinned: the Coveralls number depends on its parser
 
       - name: 📊 Endatix Hub Coverage
-        uses: davelosert/vitest-coverage-report-action@c4bbc33a89b7ace0e63d35f1f7d4bcee31155a73 # v2.13.0
+        uses: davelosert/vitest-coverage-report-action@8f86cfb56ed6d5613ea8cdc5259f207fbfd51ece # v2.13.1
         with:
           name: "Endatix Hub"
           json-summary-path: ".coverage/endatix-hub/coverage-summary.json"
@@ -122,13 +128,35 @@ jobs:
           echo "::error::ENDATIX_HUB_REPO_SONAR_TOKEN is missing from the Infisical '$ENV_SLUG' environment (root folder)."
           exit 1
 
-      # CI-based analysis with the Vitest lcov (sonar-project.properties); fails the
-      # job on a red quality gate.
+      # New code on main runs from the last stable release ("Previous version" in
+      # SonarCloud). Without a version every analysis is "not provided" and the new-code
+      # period never resets. Canary tags (v*-*) are skipped; fetch-depth 0 brings the tags.
+      - name: 🏷️ SonarCloud project version (last stable tag)
+        if: env.ENDATIX_HUB_REPO_SONAR_TOKEN != ''
+        run: |
+          tag=$(git describe --tags --abbrev=0 --match 'v[0-9]*' --exclude '*-*' 2>/dev/null || echo v0.0.0)
+          echo "SONAR_PROJECT_VERSION=${tag#v}" >> "$GITHUB_ENV"
+
+      # CI-based analysis with the Vitest lcov (sonar-project.properties). The scan
+      # itself does not wait for the quality gate; the next step applies it.
       - name: 🔎 SonarCloud analysis
         if: env.ENDATIX_HUB_REPO_SONAR_TOKEN != ''
         uses: SonarSource/sonarqube-scan-action@d209202bc7d53ff1cc128f7f907dac145c9d6ae9 # v8.3.0
         env:
           SONAR_TOKEN: ${{ env.ENDATIX_HUB_REPO_SONAR_TOKEN }}
+        with:
+          args: -Dsonar.projectVersion=${{ env.SONAR_PROJECT_VERSION }}
+
+      # PRs: fails the job on red bugs, vulnerabilities, hotspots or coverage; duplication
+      # only warns (endatix/endatix#1319). Pushes (main, hotfix): report only (`*`), since
+      # the code is already merged and a red gate would only hold back the canary.
+      # Same script as endatix/endatix.
+      - name: 🚦 SonarCloud quality gate
+        if: env.ENDATIX_HUB_REPO_SONAR_TOKEN != ''
+        run: node scripts/sonar-gate.mjs
+        env:
+          SONAR_TOKEN: ${{ env.ENDATIX_HUB_REPO_SONAR_TOKEN }}
+          SONAR_ADVISORY_METRICS: ${{ github.event_name == 'pull_request' && 'new_duplicated_lines_density' || '*' }}
 
   # Build validation on PRs; canary release on main — publishes only after the
   # tests above pass. docker-image makes the shared workflow log into GHCR and

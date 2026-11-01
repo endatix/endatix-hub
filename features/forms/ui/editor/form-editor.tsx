@@ -1,6 +1,7 @@
 "use client";
 
 import { toast } from "@/components/ui/toast";
+import { TelemetryLogger } from "@/features/telemetry";
 import { customQuestions } from "@/customizations/questions/question-registry";
 import { useStorageWithCreator } from "@/features/asset-storage/client";
 import { useSurveyLicenseKey } from "@/features/config/survey-license-provider";
@@ -13,6 +14,7 @@ import {
 import { StoredTheme } from "@/features/themes/types";
 import { updateFormThemeAction } from "@/features/themes/update-form-theme";
 import { useDesignerRuntime } from "@/lib/designer-runtime";
+import type { DesignerAudience } from "@/lib/personalization/authoring";
 import { registerAudioQuestionUI } from "@/lib/questions/audio-recorder";
 import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";
 import {
@@ -28,7 +30,10 @@ import {
   useConvertInlineChoicesUi,
 } from "@/lib/survey-features/data-lists";
 import { useSurveyDesigner } from "@/lib/survey-features/designer/design-survey.context";
-import { useFormDiagnostics } from "@/lib/survey-features/form-diagnostics";
+import {
+  applyFormDiagnosticsAudience,
+  useFormDiagnostics,
+} from "@/lib/survey-features/form-diagnostics";
 import { JSON_CHANGED_TYPE } from "@/lib/survey-features/json-editor/json-editor-state";
 import {
   JsonEditorState,
@@ -49,6 +54,7 @@ import "ace-builds/src-noconflict/ace";
 import "ace-builds/src-noconflict/ext-searchbox";
 import "ace-builds/src-noconflict/theme-github_light_default";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useDesignerAudience } from "./use-designer-audience";
 import type { Question } from "survey-core";
 import { JsonObject, Serializer, slk, SvgRegistry } from "survey-core";
 import "survey-core/i18n";
@@ -132,6 +138,8 @@ interface FormEditorProps {
   themeId?: string;
   isPublic?: boolean;
   formIsEnabled?: boolean;
+  /** The form's participant properties for Preview as; absent with the flag off or no access. */
+  audience?: DesignerAudience | null;
   initialPropertyGridVisible?: boolean;
   onThemeModificationChange?: (isModified: boolean) => void;
   onSaveHandlerReady?: (saveHandler: () => Promise<void>) => void;
@@ -163,11 +171,9 @@ function nameToTitle(name: string): string {
 function FormEditor({
   formJson,
   formId,
-  formName,
   options,
   themeId,
-  isPublic,
-  formIsEnabled,
+  audience,
   initialPropertyGridVisible = true,
   onThemeModificationChange,
   onSaveHandlerReady,
@@ -176,8 +182,12 @@ function FormEditor({
   const slkVal = useSurveyLicenseKey();
   const designerRuntime = useDesignerRuntime();
   const isCreatorInitializedRef = useRef(false);
+  // The Creator is built asynchronously, so its bindings' cleanup lands here and runs on unmount.
+  const isMountedRef = useRef(false);
+  const unbindCreatorRef = useRef<(() => void) | null>(null);
   const [creator, setCreator] = useState<SurveyCreator | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [bindAudience, findParticipantDialog] = useDesignerAudience(formId, audience);
 
   const {
     hasUnsavedChanges,
@@ -454,6 +464,15 @@ function FormEditor({
   }, [creator, questionClasses]);
 
   useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      unbindCreatorRef.current?.();
+      unbindCreatorRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
     const initializeNewCreator = async () => {
       if (creator || isCreatorInitializedRef.current) {
         return;
@@ -499,6 +518,8 @@ function FormEditor({
         );
         const cleanupQuestionLoops = bindQuestionLoops(newCreator);
         const cleanupFormDiagnostics = bindFormDiagnostics(newCreator);
+        const unbindAudience = bindAudience(newCreator);
+        applyFormDiagnosticsAudience(newCreator, unbindAudience);
 
         setCreator(newCreator);
 
@@ -536,12 +557,19 @@ function FormEditor({
 
         isCreatorInitializedRef.current = true;
 
-        return () => {
+        const unbindCreator = () => {
           cleanupQuestionLoops?.();
+          applyFormDiagnosticsAudience(newCreator, undefined);
           cleanupFormDiagnostics?.();
+          unbindAudience?.();
           unregisterJsonEditor();
           unregisterStorage();
         };
+        if (isMountedRef.current) {
+          unbindCreatorRef.current = unbindCreator;
+        } else {
+          unbindCreator();
+        }
       } catch (error) {
         console.error("Error loading custom questions:", error);
       } finally {
@@ -549,7 +577,10 @@ function FormEditor({
       }
     };
 
-    initializeNewCreator();
+    void initializeNewCreator().catch((error: unknown) => {
+      TelemetryLogger.error("Error loading custom questions", error);
+      toast.error("Failed to load custom questions");
+    });
   }, [
     formId,
     options,
@@ -557,6 +588,7 @@ function FormEditor({
     creator,
     initialPropertyGridVisible,
     formJson,
+    bindAudience,
     registerStorageHandlers,
     registerJsonEditor,
     isExtensionsReady,
@@ -660,6 +692,7 @@ function FormEditor({
         request={customQuestionRequest}
         onClose={() => setCustomQuestionRequest(null)}
       />
+      {findParticipantDialog}
 
       {isCreatorLoading ? (
         <div className="flex h-[calc(100vh-80px)] items-center justify-center">
@@ -677,4 +710,4 @@ function FormEditor({
   );
 }
 export default FormEditor;
-export type { FormEditorProps };
+export type { DesignerAudience, FormEditorProps };

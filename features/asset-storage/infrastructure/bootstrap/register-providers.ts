@@ -6,7 +6,7 @@ import { assertStorageProfileValid } from "./validate-storage-profile";
 
 /**
  * Registers the active storage provider from `STORAGE_PROVIDER` and credentials.
- * Uses {@link getRuntimeStorageProfile} (prefers `ENDATIX_RESOLVED_*` from `withEndatix`).
+ * Uses {@link getRuntimeStorageProfile} (live runtime env, never a build-time snapshot).
  *
  * Throws {@link MissingConfigurationError} or {@link MisconfigurationError} when
  * `STORAGE_PROVIDER` is `azure` or `s3` but env fails validation.

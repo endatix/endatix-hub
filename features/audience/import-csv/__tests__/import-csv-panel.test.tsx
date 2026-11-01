@@ -1,133 +1,258 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  AudienceDataType,
-  AudienceIdentifierKind,
-  type AudienceProperty,
-} from "@/lib/endatix-api/audience/types";
+import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Result } from "@/lib/result";
-import { importAudienceCsvAction } from "../import-audience-csv.action";
-import { ImportCsvPanel } from "../ui/import-csv-panel";
+import {
+  moveAudienceImportAction,
+  sendAudienceImportChunkAction,
+  startAudienceImportAction,
+} from "../audience-import.action";
+import {
+  BACKGROUND,
+  button,
+  CHECKED,
+  chooseFile,
+  continueButton,
+  NO_CURRENT,
+  nextPoll,
+  openWithFile,
+  renderPanel,
+  resetPanelMocks,
+  serveReads,
+  startImport,
+  startToChecking,
+  view,
+} from "./import-panel-fixtures";
 
 vi.mock("@/lib/utils/hooks/use-media-query.hook", () => ({
   useMediaQuery: () => true,
 }));
+const refresh = vi.fn();
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ refresh: vi.fn() }),
+  useRouter: () => ({ refresh }),
 }));
-vi.mock("../import-audience-csv.action", () => ({
-  importAudienceCsvAction: vi.fn(),
+vi.mock("../audience-import.action", () => ({
+  startAudienceImportAction: vi.fn(),
+  sendAudienceImportChunkAction: vi.fn(),
+  getAudienceImportAction: vi.fn(),
+  moveAudienceImportAction: vi.fn(),
 }));
 
-const AGE: AudienceProperty = {
-  id: "7",
-  formId: "1",
-  variableName: "age",
-  name: "Age",
-  dataType: AudienceDataType.Number,
-  sortOrder: 0,
-  dataListId: null,
-  choicesJson: null,
-  allowsOther: false,
-};
+const COMPLETED = view({
+  ...CHECKED,
+  status: "completed",
+  written: {
+    writtenRowCount: 1,
+    createdCount: 1,
+    updatedCount: 0,
+    skippedCount: 0,
+    rejectedCount: 1,
+  },
+});
 
-const CSV = "external_id,age,city\nCG-1,65,Columbus\nCG-2,79,Dayton\n";
-
-function openWithFile() {
-  render(
-    <ImportCsvPanel
-      formId="1"
-      identifierKind={AudienceIdentifierKind.ExternalId}
-      properties={[AGE]}
-    />,
-  );
-  fireEvent.click(screen.getByRole("button", { name: "Import CSV" }));
-  const file = new File([CSV], "panel.csv", { type: "text/csv" });
-  fireEvent.change(screen.getByLabelText("CSV file"), {
-    target: { files: [file] },
+describe("ImportCsvPanel: file, columns and start", () => {
+  beforeEach(() => {
+    resetPanelMocks();
+    refresh.mockReset();
   });
-}
 
-const continueButton = () => screen.getByRole("button", { name: "Continue" });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
 
-describe("ImportCsvPanel", () => {
-  beforeEach(() => vi.mocked(importAudienceCsvAction).mockReset());
+  it("states this host's limits before a file, then what it read", async () => {
+    // Arrange
+    renderPanel();
+    fireEvent.click(button("Import CSV"));
 
-  it("states the limits before a file, then what it read", async () => {
-    openWithFile();
-
+    // Act & Assert
+    expect(
+      screen.getByText(
+        "Up to 100,000 rows and 50 MB. The first row names the columns.",
+      ),
+    ).toBeTruthy();
+    chooseFile();
     expect(
       await screen.findByText("panel.csv: 2 rows, 3 columns."),
     ).toBeTruthy();
-    expect((continueButton() as HTMLButtonElement).disabled).toBe(false);
   });
 
-  it("suggests the identifier and the columns, and writes nothing before Import", async () => {
-    openWithFile();
-    await screen.findByText(/panel\.csv/);
-    fireEvent.click(continueButton());
+  it("refuses a file larger than the host takes, naming the limit", async () => {
+    // Arrange
+    renderPanel({ ...BACKGROUND, maxBytes: 1024 * 1024 });
+    fireEvent.click(button("Import CSV"));
 
-    expect(screen.getByText(/Suggested from its name/)).toBeTruthy();
-    expect(screen.getByText("1 of 2 imported")).toBeTruthy();
-    fireEvent.click(continueButton());
+    // Act
+    chooseFile("x".repeat(2 * 1024 * 1024));
 
-    expect(screen.getByText("Identifier column")).toBeTruthy();
-    expect(importAudienceCsvAction).not.toHaveBeenCalled();
+    // Assert
+    expect(
+      await screen.findByText("The file is 2 MB. Import files up to 1 MB."),
+    ).toBeTruthy();
+    expect((continueButton() as HTMLButtonElement).disabled).toBe(true);
   });
 
-  it("imports the mapped columns and shows rejected rows in place", async () => {
-    vi.mocked(importAudienceCsvAction).mockResolvedValue(
-      Result.success({
-        importId: "9",
-        createdCount: 1,
-        updatedCount: 0,
-        skippedCount: 0,
-        rejectedCount: 1,
-        rejections: [{ rowNumber: 3, reason: "Age must be a number." }],
-      }),
+  it("refuses a file with more rows than the host takes, naming the limit", async () => {
+    // Arrange
+    renderPanel({ maxRows: 1, maxBytes: 1024, runsInBackground: false });
+    fireEvent.click(button("Import CSV"));
+
+    // Act
+    chooseFile();
+
+    // Assert
+    expect(
+      await screen.findByText(
+        "The file has 2 rows. Import up to 1 at a time, so split it into smaller files.",
+      ),
+    ).toBeTruthy();
+  });
+
+  it("starts the import after the Columns step and uploads the mapped rows, writing nothing", async () => {
+    // Act
+    await startToChecking();
+
+    // Assert
+    expect(startAudienceImportAction).toHaveBeenCalledWith({
+      formId: "1",
+      fileName: "panel.csv",
+      headers: ["external_id", "age", "city"],
+      rowCount: 2,
+      identifierColumn: "external_id",
+      propertyColumns: { age: "age", city: "city" },
+      isTest: false,
+    });
+    expect(sendAudienceImportChunkAction).toHaveBeenCalledWith({
+      formId: "1",
+      importId: "9",
+      chunk: {
+        index: 0,
+        firstRowNumber: 2,
+        rows: [
+          { cells: ["CG-1", "65", "Columbus"], malformed: false },
+          { cells: ["CG-2", "79", "Dayton"], malformed: false },
+        ],
+      },
+    });
+    expect(moveAudienceImportAction).not.toHaveBeenCalled();
+  });
+
+  it("shows the Check's counts and rejections, then writes only when confirmed", async () => {
+    // Arrange
+    vi.mocked(moveAudienceImportAction).mockResolvedValue(
+      Result.success({ ...CHECKED, status: "writing" }),
     );
-    openWithFile();
-    await screen.findByText(/panel\.csv/);
-    fireEvent.click(continueButton());
-    fireEvent.click(continueButton());
-    fireEvent.click(screen.getByRole("button", { name: "Import 2 rows" }));
+    await startToChecking();
 
+    // Act
+    serveReads(NO_CURRENT, CHECKED);
+    await nextPoll();
+
+    // Assert
+    expect(
+      await screen.findByText("1 new participant, 1 rejected"),
+    ).toBeTruthy();
+    expect(screen.getByText("Age must be a number.")).toBeTruthy();
+    expect(button("Cancel import")).toBeTruthy();
+    expect(moveAudienceImportAction).not.toHaveBeenCalled();
+
+    // Act
+    fireEvent.click(button("Import 1 participant"));
+
+    // Assert
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("button", { name: "Cancel import" }),
+      ).toBeNull(),
+    );
+    expect(moveAudienceImportAction).toHaveBeenCalledWith({
+      formId: "1",
+      importId: "9",
+      to: "writing",
+    });
+  });
+
+  it("follows the write to the outcome and refreshes the People list", async () => {
+    // Arrange
+    vi.mocked(startAudienceImportAction).mockResolvedValue(
+      Result.success(view()),
+    );
+    vi.mocked(sendAudienceImportChunkAction).mockResolvedValue(
+      Result.success(CHECKED),
+    );
+    vi.mocked(moveAudienceImportAction).mockResolvedValue(
+      Result.success({ ...CHECKED, status: "writing" }),
+    );
+    await openWithFile();
+    await startImport();
+    serveReads(NO_CURRENT, COMPLETED);
+
+    // Act
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Import 1 participant" }),
+    );
+    await screen.findByText(/rows written/);
+    await nextPoll();
+
+    // Assert
     expect(
       await screen.findByText("Import finished with rejected rows"),
     ).toBeTruthy();
-    expect(screen.getByText("Age must be a number.")).toBeTruthy();
-    expect(importAudienceCsvAction).toHaveBeenCalledWith(
-      expect.objectContaining({
-        identifierColumn: "external_id",
-        fileName: "panel.csv",
-        propertyColumns: { age: "age" },
-      }),
+    expect(screen.getByText(/1 added, 1 rejected/)).toBeTruthy();
+    expect(refresh).toHaveBeenCalled();
+  });
+
+  it("chooses test participants on the Columns step and says existing ones are skipped", async () => {
+    // Arrange
+    vi.mocked(startAudienceImportAction).mockResolvedValue(
+      Result.success(view({ isTest: true })),
     );
-    await waitFor(() =>
-      expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull(),
+    vi.mocked(sendAudienceImportChunkAction).mockResolvedValue(
+      Result.success({ ...CHECKED, isTest: true }),
+    );
+    await openWithFile();
+    await screen.findByText(/panel\.csv: 2 rows/);
+    fireEvent.click(continueButton());
+
+    // Act
+    fireEvent.click(
+      screen.getByRole("checkbox", { name: "Import as test participants" }),
+    );
+    fireEvent.click(continueButton());
+
+    // Assert
+    expect(
+      await screen.findByText("Existing participants are skipped"),
+    ).toBeTruthy();
+    expect(startAudienceImportAction).toHaveBeenCalledWith(
+      expect.objectContaining({ isTest: true }),
     );
   });
-  it("keeps a failed import on the review step and clears it on Back", async () => {
-    vi.mocked(importAudienceCsvAction).mockResolvedValue(
-      Result.validationError("The CSV has no 'age' column."),
+
+  it("shows the running import when the form already has one", async () => {
+    // Arrange
+    vi.mocked(startAudienceImportAction).mockResolvedValue(
+      Result.error(
+        "This form already has an import in progress.",
+        undefined,
+        undefined,
+        {
+          statusCode: 409,
+        },
+      ),
     );
-    openWithFile();
-    await screen.findByText(/panel\.csv/);
-    fireEvent.click(continueButton());
-    fireEvent.click(continueButton());
-    fireEvent.click(screen.getByRole("button", { name: "Import 2 rows" }));
+    await openWithFile();
+    const running = view({ fileName: "other.csv", status: "checking" });
+    serveReads(Result.success(running), running);
 
+    // Act
+    await startImport();
+
+    // Assert
     expect(
-      await screen.findByText("The CSV has no 'age' column."),
+      await screen.findByText(
+        "An import of this form is already running, so it is shown instead of your file.",
+      ),
     ).toBeTruthy();
-    // The message can land a tick before the import stops pending; Back is disabled until then.
-    const back = screen.getByRole("button", {
-      name: "Back",
-    }) as HTMLButtonElement;
-    await waitFor(() => expect(back.disabled).toBe(false));
-    fireEvent.click(back);
-
-    expect(screen.queryByText("The CSV has no 'age' column.")).toBeNull();
-    expect(screen.getByText("Identifier column")).toBeTruthy();
+    expect(screen.getByText(/other\.csv/)).toBeTruthy();
   });
 });

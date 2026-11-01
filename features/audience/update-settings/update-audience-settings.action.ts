@@ -18,8 +18,8 @@ export async function updateAudienceSettingsAction(
     (api) => api.audience.updateSettings({ identifierKind }),
     {
       permission: Permissions.Tenant.ManageSettings,
-      fallbackMessage: "Failed to update audience settings.",
-      logMessage: "Failed to update audience settings.",
+      fallbackMessage: "Failed to update the match key.",
+      logMessage: "Failed to update the match key.",
       loggerName: "audience.settings.update",
     },
   );

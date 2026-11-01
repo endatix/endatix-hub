@@ -13,7 +13,7 @@ export function DownloadFilesDropdownItem({ formId, submissionId }: DownloadFile
   return (
     <DropdownMenuItem
       onClick={() => {
-        downloadSubmissionFilesUseCase({ formId, submissionId });
+        void downloadSubmissionFilesUseCase({ formId, submissionId });
         trackFeatureUsage('submissions', 'download_files', {
           formId,
           submissionId

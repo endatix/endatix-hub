@@ -21,6 +21,9 @@ what they came for. The UX pattern — two audiences, anatomy, tones, copy — i
 | `/share`, `/embed`                             | Submission already completed                                                                         | `SubmissionAlreadyCompleted`                                          | `CircleCheck` · success                                             |
 | `/share`, `/embed`                             | Survey model failed to build client-side                                                             | `SurveyComponent`                                                     | `TriangleAlert` · warning                                           |
 | `/share`, `/embed`                             | Unexpected render error                                                                              | route `error.tsx` → `PublicFormUnexpectedError` (+ Try again, digest) | `TriangleAlert` · warning                                           |
+| `/share/[formId]/a/[token]`                    | Personalized link before it redeems (also what a scanner or no-JS browser sees)                      | `OpenPersonalLink`                                                    | `LoaderCircle` · neutral                                            |
+| `/share/[formId]/a/[token]`                    | Personalized link the API does not know                                                              | `OpenPersonalLink`                                                    | `Link2Off` · neutral                                                |
+| `/share/[formId]/a/[token]`                    | Personalized link could not be redeemed (network, 5xx)                                               | `OpenPersonalLink` (+ Try again)                                      | `TriangleAlert` · warning                                           |
 | `/share/[formId]`, `/embed/[formId]`, `/share` | Unknown form (404)                                                                                   | route `not-found.tsx`                                                 | `SearchX` · neutral                                                 |
 | `/view`, `/edit`                               | Bad id, missing / forbidden token, invalid or expired token (one page), not found, definition failed | `SubmissionLinkError` (verb = view / edit)                            | as token errors; incomplete link → `Link2Off`; definition → warning |
 | `/export-error`                                | Browser PDF export failed (redirect with `?code=&ref=`)                                              | `ExportErrorCard` (+ note, support reference)                         | per code; retryable → warning                                       |
@@ -29,13 +32,13 @@ what they came for. The UX pattern — two audiences, anatomy, tones, copy — i
 
 **Supporting components** on the same pages:
 
-| Component                                 | Owns                                                                                    |
-| :---------------------------------------- | :-------------------------------------------------------------------------------------- |
-| `PublicStatusReference`                   | Copyable support id (trace id, error digest) — the only diagnostic shown                |
-| `EmbedHeightReporter`                     | Posts iframe height for every embed status page                                         |
-| `EmbedAlreadyRespondedReporter`           | Tells the host page the respondent already responded                                    |
-| `PublicSurveySkeleton`                    | The loading state before any of the above resolves                                      |
-| `TestSubmissionBadge`, `LanguageSelector` | Chrome around a live survey — not status pages, listed so they are not mistaken for one |
+| Component                                                   | Owns                                                                                    |
+| :---------------------------------------------------------- | :-------------------------------------------------------------------------------------- |
+| `PublicStatusReference`                                     | Copyable support id (trace id, error digest) — the only diagnostic shown                |
+| `EmbedHeightReporter`                                       | Posts iframe height for every embed status page                                         |
+| `EmbedAlreadyRespondedReporter`                             | Tells the host page the respondent already responded                                    |
+| `PublicSurveySkeleton`                                      | The loading state before any of the above resolves                                      |
+| `TestSubmissionNotice`, `TestInspector`, `LanguageSelector` | Chrome around a live survey — not status pages, listed so they are not mistaken for one |
 
 **Out of this family, on purpose:**
 

@@ -19,7 +19,7 @@ function collectText(node: React.ReactNode): string[] {
     return [String(node)];
   }
   if (Array.isArray(node)) {
-    return node.flatMap(collectText);
+    return node.flatMap((child) => collectText(child));
   }
   if (React.isValidElement(node)) {
     const props = node.props as { children?: React.ReactNode };
@@ -29,7 +29,8 @@ function collectText(node: React.ReactNode): string[] {
 }
 
 function collectImageSources(node: React.ReactNode): string[] {
-  if (Array.isArray(node)) return node.flatMap(collectImageSources);
+  if (Array.isArray(node))
+    return node.flatMap((child) => collectImageSources(child));
   if (!React.isValidElement(node)) return [];
 
   const props = node.props as { src?: string; children?: React.ReactNode };

@@ -85,7 +85,7 @@ export function uniqueChoices(items: unknown[]): unknown[] {
 export function existingChoiceKeys(question: LazyChoiceQuestion): Set<string> {
   const items = question.dropdownListModel?.itemsSettings?.items ?? [];
   const choices = question.choices ?? [];
-  return new Set([...items, ...choices].map(choiceValue));
+  return new Set([...items, ...choices].map((item) => choiceValue(item)));
 }
 
 /** Collapses the lazy buffer and the live choices onto one deduped list. */

@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { Result } from "@/lib/result";
-import { readCsvPreview } from "../csv-preview";
+import { readCsvFile } from "../csv-preview";
+
+const readCsvPreview = (csv: string, maxRows = 5_000) => {
+  const read = readCsvFile(csv, maxRows);
+  return Result.isError(read) ? read : Result.success(read.value.preview);
+};
 
 function preview(csv: string) {
   const read = readCsvPreview(csv);
@@ -13,7 +18,7 @@ function problem(csv: string): string {
   return Result.isError(read) ? read.message : "";
 }
 
-describe("readCsvPreview", () => {
+describe("readCsvFile", () => {
   it("reads quoted headers, and samples each column's first values", () => {
     const csv =
       '﻿email,"display, name"\nada@example.com,Ada\n\ngrace@example.com,"Grace ""G"""\n';
@@ -56,9 +61,17 @@ describe("readCsvPreview", () => {
 
   it("explains a file it cannot import", () => {
     expect(problem("   ")).toMatch(/no header row/);
-    expect(problem("email\n")).toMatch(/no people/);
+    expect(problem("email\n")).toMatch(/no participants/);
     expect(problem(`email\n${"a@b.co\n".repeat(5_001)}`)).toMatch(
       /5,001 rows\. Import up to 5,000/,
+    );
+  });
+
+  it("refuses a cell longer than the API takes, naming its row", () => {
+    expect(
+      problem(`email,note\na@b.co,ok\nc@d.co,${"x".repeat(4_001)}\n`),
+    ).toBe(
+      "Row 3 has a cell longer than 4,000 characters. Shorten it, or check the row for a stray quote.",
     );
   });
 });

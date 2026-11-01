@@ -67,6 +67,34 @@ Avoids `cp -r` shell commands, which fail on Windows because pnpm runs scripts t
 node scripts/copy-standalone.mjs
 ```
 
+## Runtime Storage Check Script
+
+### `check-runtime-storage.mjs`
+
+Smoke check that the standalone build reads storage settings at runtime (endatix-hub#1134). It fails if `.next/required-server-files.json` has any storage key in `config.env`, since Next inlines those at build. It then starts `.next/standalone/server.js` with `STORAGE_PROVIDER=s3` set at runtime only, and fails if the server logs `Storage service is not enabled` or `Failed to prepare server`. CI runs it after `pnpm build`. Run it on a build made with no `STORAGE_*` env.
+
+**Usage:**
+
+```bash
+pnpm build && pnpm check:runtime-storage
+```
+
+## Dereferenced Standalone Check Script
+
+### `check-linked-externals.mjs`
+
+Runs as part of `pnpm build`, after `next build`. It runs the same nested-copy check as `check-dereferenced-standalone.mjs` without starting a server, so every build path has it, including the Dockerfile and the endatix-saas `build-hub` action that run only `pnpm build`.
+
+### `check-dereferenced-standalone.mjs`
+
+Smoke check for Azure Static Web Apps, which dereferences symlinks when it uploads a hybrid Next.js app (endatix-hub#1269). It fails when an external that Turbopack links into `.next/node_modules` is a nested copy rather than a top-level package: with its link dereferenced, a nested copy (for example `sanitize-html`'s own `postcss`) resolves its dependencies from the top-level `node_modules` instead of the folder next to it. The fix is to add the package that holds it, which the message names, to `serverExternalPackages` in `next.config.ts`, as `sanitize-html` is. When that package has to stay bundled, dedupe the nested version in the lockfile, or as a last resort list its dependencies in `outputFileTracingIncludes`. A link whose target is missing fails the same way. It then copies `.next/standalone` to a temp folder with every symlink replaced by its target, starts that copy, and fails unless `/signin` answers 200 with no `Failed to load external module` or `Cannot find module` in the log. CI runs it after `pnpm build`.
+
+**Usage:**
+
+```bash
+pnpm build && pnpm check:dereferenced-standalone
+```
+
 ## Dev Server Script
 
 ### `dev.mjs`

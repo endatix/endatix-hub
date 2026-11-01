@@ -29,6 +29,12 @@ type LinkItem = Extract<FormsBreadcrumbItem, { type: "link" }>;
 /** Longer trails keep their first crumb and last two; the middle folds into "…". */
 const MAX_VISIBLE = 3;
 
+/** A crumb is a span, so the width cap applies only once it is a block. */
+const crumbLabel = "block min-w-0 max-w-40 truncate md:max-w-64";
+
+/** Content width. Growing here pushes a sibling page switcher to the far edge. */
+const trailClassName = "min-w-0 overflow-hidden";
+
 function splitTrail(items: FormsBreadcrumbItem[]) {
   if (items.length <= MAX_VISIBLE) {
     return { head: items, hidden: [] as LinkItem[], tail: [] };
@@ -82,19 +88,19 @@ export default function FormsBreadcrumbNav({
   const { head, hidden, tail } = splitTrail(items);
   if (items.length <= 1) {
     return (
-      <Breadcrumb className="min-w-0">
-        <BreadcrumbList className="flex-nowrap">
+      <Breadcrumb className={trailClassName}>
+        <BreadcrumbList className="min-w-0 flex-nowrap">
           {chunks(items, "only", true)}
         </BreadcrumbList>
       </Breadcrumb>
     );
   }
   return (
-    <Breadcrumb className="min-w-0">
-      <BreadcrumbList className="flex-nowrap md:hidden">
+    <Breadcrumb className={trailClassName}>
+      <BreadcrumbList className="min-w-0 flex-nowrap md:hidden">
         <CompactTrail items={items} />
       </BreadcrumbList>
-      <BreadcrumbList className="hidden flex-nowrap md:flex">
+      <BreadcrumbList className="hidden min-w-0 flex-nowrap md:flex">
         {chunks(head, "head", true)}
         {hidden.length > 0 ? <CollapsedChunk items={hidden} /> : null}
         {chunks(tail, "tail")}
@@ -131,8 +137,8 @@ function CollapsedChunk({
 }: Readonly<{ items: LinkItem[]; first?: boolean }>) {
   return (
     <>
-      {first ? null : <BreadcrumbSeparator />}
-      <BreadcrumbItem>
+      {first ? null : <BreadcrumbSeparator className="shrink-0" />}
+      <BreadcrumbItem className="shrink-0">
         <CollapsedMenu items={items} />
       </BreadcrumbItem>
     </>
@@ -145,15 +151,15 @@ function BreadcrumbChunk({
 }: Readonly<{ item: FormsBreadcrumbItem; isFirst?: boolean }>) {
   return (
     <>
-      {isFirst ? null : <BreadcrumbSeparator />}
-      <BreadcrumbItem>
+      {isFirst ? null : <BreadcrumbSeparator className="shrink-0" />}
+      <BreadcrumbItem className="min-w-0">
         {item.type === "page" ? (
-          <BreadcrumbPage className="max-w-40 truncate md:max-w-64">
+          <BreadcrumbPage className={crumbLabel} title={item.label}>
             {item.label}
           </BreadcrumbPage>
         ) : item.type === "link" ? (
           <BreadcrumbLink asChild>
-            <Link href={item.href} className="max-w-40 truncate md:max-w-64">
+            <Link href={item.href} className={crumbLabel} title={item.label}>
               {item.label}
             </Link>
           </BreadcrumbLink>

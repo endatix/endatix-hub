@@ -220,7 +220,7 @@ export function useExtensionLoader({
     }
 
     const init = async () => {
-      await Promise.all(dynamicExtensions.map(loadSingleExtension));
+      await Promise.all(dynamicExtensions.map((e) => loadSingleExtension(e)));
 
       if (mountedRef.current) {
         initializedLoadSets.add(extensionIdsKey);
@@ -228,7 +228,7 @@ export function useExtensionLoader({
       }
     };
 
-    init();
+    void init();
     return () => {
       mountedRef.current = false;
     };

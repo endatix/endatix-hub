@@ -4,6 +4,7 @@ import {
   extractStorageUrls,
   isCanonicalStorageObjectUrl,
 } from "@/features/asset-storage/utils";
+import { TelemetryLogger } from "@/features/telemetry";
 import type { StorageReadRuntime } from "@/features/asset-storage/infrastructure/storage-read-runtime";
 import { generateAssetsManifest } from "./generate-assets-manifest";
 import { useCallback, useMemo } from "react";
@@ -92,7 +93,8 @@ export function useStorageView({ getReadRuntime }: UseStorageViewOptions) {
       }
 
       if (existing?.inflight) {
-        await existing.inflight;
+        // The call that started the request logs its failure.
+        await existing.inflight.catch(() => undefined);
         return;
       }
 
@@ -110,7 +112,7 @@ export function useStorageView({ getReadRuntime }: UseStorageViewOptions) {
         });
       } catch (error) {
         prefetchStateByModel.delete(model);
-        throw error;
+        TelemetryLogger.error("Failed to prefetch private file URLs", error);
       }
     },
     [storageConfig, enqueuePrivateReadUrls, getReadRuntime],

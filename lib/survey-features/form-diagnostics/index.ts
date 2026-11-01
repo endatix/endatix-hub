@@ -1,8 +1,10 @@
 export {
+  applyFormDiagnosticsAudience,
   applyFormDiagnosticsContext,
   createFormDiagnosticsContext,
   createFormDiagnosticsContextFromRuntime,
   getFormDiagnosticsPlugin,
+  type DiagnosticsAudience,
   type FormDiagnosticsContext,
   type FormDiagnosticsContextInput,
   type FormDiagnosticsRuntimeSlice,

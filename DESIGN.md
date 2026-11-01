@@ -517,7 +517,7 @@ to `value` are `completed`; the `value` step itself is `active`. Reference:
   is running (`Updating submissions…` → `Exporting…`), in a short verb phrase (`PendingButton`).
   **One primary per page:** when a page has several list sections, the create action of the main
   task is primary and the others are `outline`. A view (§6 Record workspace) counts as a page:
-  `Add person` is primary on a form's People view, `Add property` on its Properties view.
+  `Add participant` is primary on a form's Participants view, `Add property` on its Properties view.
 - **A record's main action sits in the header's action area and is always primary** (`Design`
   on every form page). The page's own create action stays in the page. A button that goes to
   another page is a `Link` styled as a button (`Button asChild`), so it can open in a new tab
@@ -538,7 +538,7 @@ to `value` are `completed`; the `value` step itself is `active`. Reference:
   and its dot marks a state. A role tag says what a row _is_, not its state (`Identifier` on the
   property that copies the match key). It is a `Badge variant="secondary"` with no dot, placed
   after the row's name, so the reader does not read it as a status. It may carry the icon of the
-  section that owns the concept elsewhere (`UserRound`, the Person section of Add and Edit person),
+  section that owns the concept elsewhere (`UserRound`, the Participant section of Add and Edit participant),
   and its help line reuses that section's wording ("It matches … across forms"), so one idea looks
   and reads the same on every surface.
 
@@ -600,7 +600,7 @@ text-muted-foreground` — no left-border rule.
   with its reason (above).
 - **A setup choice that later locks is a control while it can change and a fact once it is
   locked** — a card with the select before anyone depends on it, then one clause with a `Locked`
-  badge where the reader works (the audience match key in the People description).
+  badge where the reader works (the audience match key in the Participants description).
 - **Immutability belongs on the field it constrains** (a `Locked` badge + one line), not in the
   panel description.
 - **A value an edit can never change is a read-only row, not a disabled input.** Show it as a
@@ -621,8 +621,8 @@ text-muted-foreground` — no left-border rule.
   changes…"), or why none can be made, with the submit disabled. In the edit overlay the key is a
   read-only `SummaryRow` (copyable) with a `Locked` badge beside it.
 - **A delete names its blast radius:** the confirmation says what else goes, with a count when
-  there is one ("Its values are deleted for all 1,240 people on this form's audience"), and what
-  stays ("They stay on the audience of any other form"). The `AlertDialog` stays open while it
+  there is one ("Its values are deleted for all 1,240 participants on this form"), and what
+  stays ("They stay on any other form they are on"). The `AlertDialog` stays open while it
   runs (spinner + verb on the destructive button) and shows a failure inside it; it never closes
   on click and leaves the outcome to a toast.
 - **A setting wider than the page says its scope.** A tenant-wide control surfaced on a record
@@ -652,7 +652,7 @@ moving between:
 | Up to a parent                          | Header trail (breadcrumb)                              | `Forms › Flows › Cedar Grove Pulse` |
 | Siblings at one level of the trail      | A `dropdown` crumb (`NavSwitcher`)                     | `Flows ▾` lists the other folders   |
 | Aspects of one record                   | `NavSwitcher` after the trail, past a vertical divider | `Cedar Grove Pulse │ Submissions ▾` |
-| Views of one page                       | `LinkTabs` (segmented, `?view=`)                       | People / Properties                 |
+| Views of one page                       | `LinkTabs` (segmented, `?view=`)                       | Participants / Properties           |
 | Panes that are not worth a URL          | Radix `Tabs`, inside a panel                           | —                                   |
 | Into an immersive editor and back       | A button in, one Back out (`?from=`)                   | Design                              |
 | From a record back to the filtered list | `lib/list-page/table-return-to` + `BackToTableButton`  | a submission back to its list       |
@@ -682,7 +682,7 @@ moving between:
 - **`h1` names the page** the reader is on; the trail carries the context (the record, the
   folder). A record's own home (its Overview) titles itself with the record's name.
 - **A description only when it says something the title and trail cannot** ("mocked data").
-- **One row:** title left, the page's own actions right (Audience: Add person). Record-wide
+- **One row:** title left, the page's own actions right (Participants: Add participant). Record-wide
   actions are not repeated here.
 
 ### Reference information on demand
@@ -723,6 +723,13 @@ costs a request or needs the space of a row of its own does not belong in it. Re
   `CopyToClipboard` (`inline`) in its `aside` that copies every row as plain text. Not a footer
   button (the footer is for actions that change something) and not an icon floating beside the
   rows (it reads as belonging to neither).
+- **The product first, what it is built on after.** Hub and API are the section's own rows.
+  The SurveyJS libraries sit below them in one lifted group (`bg-surface-container-lowest`,
+  a muted `text-xs` heading "Built on SurveyJS"): important for a form bug, not the product.
+  When every library is on one version, the usual case, the group is one row ("All 5
+  libraries", linked to the `survey-library` release) with the package names in a muted line;
+  any difference or missing package shows one row per package. The copied text always lists
+  every package. Reference: `features/about/view-versions/ui/surveyjs-version-group.tsx`.
 
 ### Loading inside a panel
 
@@ -842,7 +849,7 @@ mistaken for an edit. Reference: `features/submissions/ui/details/label-language
 
 ### Hand over a file
 
-A file the reader takes away (a data list's items, personalised links, an export) comes through
+A file the reader takes away (a data list's items, personalized links, an export) comes through
 one control and one set of helpers, whether the server builds it or the browser does. References:
 `DownloadMenu` on a data list's page, `features/audience/generate-links/`.
 
@@ -859,9 +866,9 @@ one control and one set of helpers, whether the server builds it or the browser 
   correctly. Name columns with the same keys the Hub reads, so a file the Hub writes can be
   imported back (the links file's first column is `email` or `external_id`, the match key's wire
   name, which the import suggests from).
-- **Date the file name** (`personalised-links-<form>-2026-10-12.csv`), so a second file never
+- **Date the file name** (`personalized-links-<form>-2026-10-12.csv`), so a second file never
   overwrites the first in the reader's downloads.
-- **A file that is the only copy is saved the moment it exists.** Personalised links are stored
+- **A file that is the only copy is saved the moment it exists.** Personalized links are stored
   only as hashes, so the API returns each token once. The panel saves the file as soon as the
   answer arrives, without a second click, and says so in a `success` Alert ("20 links
   downloaded … It is the only copy"). Then it offers `Download CSV` again while it stays open.
@@ -908,6 +915,35 @@ Reference: `features/platform-admin/review-signup-request/ui/signup-visitor-sect
   details happen in the dialog.
 - **Print keeps the same promises:** never crop, keep a row of images together (`wrap={false}`),
   keep a title with its first row, embed downscaled copies, single-line captions.
+
+### Marking a question on the designer canvas
+
+A fact about a question that the author needs while designing (where its value comes from) is a
+**small chip on the question, not a ring or a bare icon.** A ring or outline competes with
+SurveyJS's selection and focus outlines, and an icon alone says nothing until hovered. Reference:
+`lib/personalization/authoring/prefill-canvas.ts` + `features/forms/ui/editor/prefill-canvas.css`.
+
+- **The chip names the source, the card explains it.** The chip is the icon of the section that
+  owns the concept (the Personalization person) and the source's name (`Age`), nothing else. It is
+  a role tag (§5 Chips): no dot, neutral fill, muted text. Hover or keyboard focus opens a card
+  (`role="tooltip"`, the chip's `aria-describedby`) with a heading in words (`Prefilled from Age`),
+  one sentence on what it does to the answer, and where a click goes. The chip's accessible name is
+  that heading, so a screen reader hears the fact without the card.
+- **Name what SurveyJS leaves implicit.** A default that reads Properties inside a calculation
+  (`{age} * 12`) is personalization too: the chip lists every Property it reads, adds a muted `ƒx`,
+  and the card shows the expression. Only a plain `{age}` is checked for fit.
+- **It is a link to where the fact is managed**, opening in a new tab so the design is not left
+  (the form's Properties). It stops `pointerdown` and `click` so the designer does not select the
+  question instead, and shows a `--sjs2-color-utility-a11y` ring on `:focus-visible`.
+- **Top-right inside the card, clear of the corner** where SurveyJS puts the collapse button of
+  a selected question. One chip per question; it truncates rather than wraps. The card opens below
+  it, right-aligned, on a floating surface.
+- **A problem changes the same chip, it does not add a second mark.** When Diagnostics has a
+  finding for that question, the chip takes the warning tint and the card says what fits and where
+  to fix it; the icon carries the warning colour and the text stays primary, because warning text
+  on its own 10% tint is under 3:1.
+- **Creator DOM, so `--sjs2-*` tokens only** (§9), checked by a test that rejects literal
+  colours and `var()` fallbacks. Font is `inherit`: the token font is not loaded in the Hub.
 
 ### Recipe: list page
 
@@ -995,7 +1031,7 @@ over a pill.
 
 ### Recipe: record workspace
 
-A record that has several pages — a form's Overview, Submissions, Audience, Analytics, Settings —
+A record that has several pages — a form's Overview, Submissions, Participants, Analytics, Settings —
 is one workspace. The reader moves between them many times in one session, so every page is one
 menu away from every other, without spending a row of the page on navigation. Editing the
 record's content (the form designer) is not one of those pages: it is an **immersive editor**.
@@ -1022,10 +1058,10 @@ records.
   whole screen with its own chrome (Creator's tabs and sidebars) and saves explicitly, so it shows
   no workspace navigation — more chrome would crowd it and every extra exit is a way to lose
   unsaved work. Its one exit goes back where the reader came from: the entry link carries
-  `?from=<page>`, Back says where it goes ("Back to Audience") and asks first when there are
+  `?from=<page>`, Back says where it goes ("Back to Participants") and asks first when there are
   unsaved changes.
 - **Views inside a page are `LinkTabs`** with a count per view and a `?view=` URL, the page's main
-  task first and as the bare URL (People, then Properties). Each view has its own primary action.
+  task first and as the bare URL (Participants, then Properties). Each view has its own primary action.
 - **A setup choice that later locks** is a card until it locks, then a clause in the list's
   description (§6 Controls & consequences).
 
@@ -1040,7 +1076,7 @@ Single-submit create with draft + lock + in-panel failure (the common case):
 `project-structure.md` (**PanelForm state**).
 
 1. **Header** — title + one sentence describing the _current step_. The title names the task
-   (`Add person`, `Edit person`, `Rename property`), not the record: the record's identity is the
+   (`Add participant`, `Edit participant`, `Rename property`), not the record: the record's identity is the
    first section, so it is said once, with its label and type.
 2. **`PanelSteps`** (multi-step only) — the progress track, first in the body.
 3. **`PanelSection` per concern** — icon, title, optional description, optional `aside` for
@@ -1049,8 +1085,8 @@ Single-submit create with draft + lock + in-panel failure (the common case):
 
 - **An edit overlay mirrors its create overlay.** It has the same sections in the same order
   under the same titles and icons. A field that became fixed on create is shown as a locked row
-  in that section (Controls & consequences). `Add person`'s Person section holds the identifier
-  input, and `Edit person`'s holds the identifier as a locked row. The reader recognises the
+  in that section (Controls & consequences). `Add participant`'s Participant section holds the identifier
+  input, and `Edit participant`'s holds the identifier as a locked row. The reader recognises the
   shape, and one concept keeps one section name.
 - **A section owns its own surface.** Shared field groups (`TenantAccessFields`) render their own
   `PanelSection`; call sites never wrap them in a tinted `div`.
@@ -1067,8 +1103,10 @@ Single-submit create with draft + lock + in-panel failure (the common case):
   are an ordered list, so a later step slots in without renumbering the others. Reference:
   `features/audience/import-csv/use-import-csv.hook.ts`.
 - **Nothing is written before the last input step.** Earlier steps only read and choose, so
-  closing the panel on any of them costs nothing. The review step's primary names what it will
-  do with a count ("Import 20 rows"), not "Confirm".
+  closing the panel on any of them costs nothing. The one exception is a step whose records the
+  write needs to exist first (an import's New properties): its `Continue` names the write with a
+  count ("Create 2 properties"), and closing before it still creates nothing. The review step's
+  primary names what it will do with a count ("Import 20 rows"), not "Confirm".
 - **State is not in the chrome.** `PanelForm` does not own field values. A slice hook (or, for a
   multi-step outcome, the panel itself) owns the draft, open/reset, and the write; the feature's
   mutation helper owns `pending` / in-panel `error` / toast + refresh. See **PanelForm state** in
@@ -1105,7 +1143,7 @@ overlay whose commit is an operation, not a saved record. Reference:
 - **Same noun as the list it came from** — the dialog exports _submissions_, so it never says
   "responses".
 
-**Import from a file** (audience people today; data lists and other bulk loads tomorrow) — the
+**Import from a file** (form participants today; data lists and other bulk loads tomorrow) — the
 reverse of export: a file the reader brings, read into records they already have. It is a
 multi-step create overlay (above) whose steps answer, in order: _which file_, _which column is
 which_, _what will happen_. Reference: `features/audience/import-csv/`.
@@ -1133,9 +1171,17 @@ which_, _what will happen_. Reference: `features/audience/import-csv/`.
   with a placeholder and `Continue` waits. A wrong silent guess would match every row to the
   wrong person.
 - **Map from the file's side.** One row per column, in file order: its name (monospace, a
-  literal), its sample, and a select of targets with `Don't import` first. A target fed by
-  one column leaves the other columns' selects, so two columns can never fill one target. The
-  section `aside` keeps a running tally ("4 of 11 imported"), so a column left unhandled shows.
+  literal), its sample, and a select of targets with `Don't import` first, then
+  `Create new property…`. A target fed by one column leaves the other columns' selects, so two
+  columns can never fill one target. A column named like no target starts on `Create new property…`. The
+  section `aside` keeps a running tally ("4 mapped, 2 to create, 1 ignored"), so a column left
+  unhandled shows.
+- **A new target is suggested, then confirmed.** The New properties step appears only when a
+  column is queued. Each row has a name (the tidied heading) and a type suggested from every
+  value in the file, with its evidence in the help line ("Suggested from values like A · B: 2
+  distinct values."). A name something already holds (a form question, a property, another new
+  row) is a warning with a `Use <free name>` button, never a block; only a name with no letter or
+  digit holds `Continue`. A date whose day and month could swap never suggests date.
 - **What is read by convention is listed, not offered.** Columns the server maps by their names
   (`brands__nike` for a choice property) appear read-only under the selects, so the reader
   knows they will be imported. A target the file cannot fill yet is named in the section
@@ -1304,4 +1350,5 @@ SurveyJS surface.
   `var(--token, <literal>)` via `hubToken()`, and a test pins the literals to `:root`. When the
   palette changes, change both.
 - Hub CSS injected into Creator DOM names `--sjs2-*` tokens only, with no literal fallback.
+  A mark on a canvas question follows §6 "Marking a question on the designer canvas".
 - Every Hub dialog is a shadcn `Dialog` / `AlertDialog`, never `settings.showDialog`.

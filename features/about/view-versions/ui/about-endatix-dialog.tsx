@@ -12,13 +12,15 @@ import {
   ResponsivePanelHeader,
   ResponsivePanelTitle,
 } from "@/components/ui/responsive-panel";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useTrackEvent } from "@/features/analytics/posthog/client";
 import { formatBuildIdentity } from "@/lib/hosting/build-identity";
+import { SURVEYJS_PACKAGES } from "@/lib/hosting/surveyjs-packages.mjs";
 import type { ProductVersions } from "../../types";
 import { useProductVersions } from "../use-product-versions.hook";
 import { BuildRef } from "./build-ref";
 import { ReleaseVersionLink } from "./release-version-link";
+import { SurveyJsVersionGroup } from "./surveyjs-version-group";
+import { VersionSkeleton } from "./version-skeleton";
 
 interface AboutEndatixDialogProps {
   open: boolean;
@@ -57,6 +59,13 @@ function AboutHeader() {
   );
 }
 
+type EndatixProduct = "hub" | "api";
+
+const ENDATIX_PRODUCTS = [
+  { product: "hub", label: "Hub" },
+  { product: "api", label: "API" },
+] as const;
+
 interface VersionsProps {
   /** Undefined while the first read is running. */
   versions: ProductVersions | undefined;
@@ -70,15 +79,15 @@ function VersionList({ versions }: Readonly<VersionsProps>) {
       aside={<CopyVersions versions={versions} />}
     >
       <dl className="grid gap-2" aria-busy={versions === undefined}>
-        <SummaryRow
-          label="Hub"
-          value={<VersionValue product="hub" versions={versions} />}
-        />
-        <SummaryRow
-          label="API"
-          value={<VersionValue product="api" versions={versions} />}
-        />
+        {ENDATIX_PRODUCTS.map(({ product, label }) => (
+          <SummaryRow
+            key={product}
+            label={label}
+            value={<VersionValue product={product} versions={versions} />}
+          />
+        ))}
       </dl>
+      <SurveyJsVersionGroup versions={versions?.surveyJs} />
     </PanelSection>
   );
 }
@@ -98,7 +107,7 @@ function CopyVersions({ versions }: Readonly<VersionsProps>) {
 function VersionValue({
   product,
   versions,
-}: Readonly<VersionsProps & { product: keyof ProductVersions }>) {
+}: Readonly<VersionsProps & { product: EndatixProduct }>) {
   if (versions === undefined) {
     return <VersionSkeleton />;
   }
@@ -107,8 +116,8 @@ function VersionValue({
 }
 
 interface ResolvedVersionProps {
-  product: keyof ProductVersions;
-  build: ProductVersions[keyof ProductVersions];
+  product: EndatixProduct;
+  build: ProductVersions[EndatixProduct];
 }
 
 function ResolvedVersion({ product, build }: Readonly<ResolvedVersionProps>) {
@@ -126,7 +135,7 @@ function ResolvedVersion({ product, build }: Readonly<ResolvedVersionProps>) {
 function NotesLink({
   product,
   version,
-}: Readonly<{ product: keyof ProductVersions; version: string | null }>) {
+}: Readonly<{ product: EndatixProduct; version: string | null }>) {
   return (
     <ReleaseVersionLink
       product={product}
@@ -136,19 +145,13 @@ function NotesLink({
   );
 }
 
-function VersionSkeleton() {
-  return (
-    <>
-      <Skeleton className="h-4 w-24 bg-foreground/10" />
-      <span className="sr-only">Loading version</span>
-    </>
-  );
-}
-
 function formatVersions(versions: ProductVersions | undefined): string {
   return [
     `Endatix Hub ${formatBuildIdentity(versions?.hub ?? null)}`,
     `Endatix API ${formatBuildIdentity(versions?.api ?? null)}`,
+    ...SURVEYJS_PACKAGES.map(
+      (name) => `${name} ${versions?.surveyJs?.[name] ?? "unavailable"}`,
+    ),
   ].join("\n");
 }
 

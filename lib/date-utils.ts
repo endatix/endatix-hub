@@ -1,7 +1,7 @@
 /**
- * Shared Hub date helpers: calendar-day validation, list datetime formatters,
- * and duration (`formatDuration`). Absolute detail/PDF timestamps stay on
- * `getFormattedDate` in `lib/utils.ts`.
+ * Shared Hub date helpers: calendar-day validation, list and details datetime
+ * formatters, and duration (`formatDuration`). Other absolute detail/PDF
+ * timestamps stay on `getFormattedDate` in `lib/utils.ts`.
  */
 
 export const RELATIVE_DATE_CUTOFF_DAYS = 14;
@@ -25,6 +25,15 @@ const compactDateTimeFormatter = new Intl.DateTimeFormat("en-US", {
   minute: "2-digit",
   hour12: true,
   timeZone: HUB_LIST_DATE_TIMEZONE,
+});
+
+const detailsDateTimeFormatter = new Intl.DateTimeFormat("en-US", {
+  month: "short",
+  day: "2-digit",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: true,
 });
 
 const preciseDateTimeFormatter = new Intl.DateTimeFormat("en-US", {
@@ -84,6 +93,22 @@ export function formatCompactDateTime(
   }
 
   return compactDateTimeFormatter.format(dateValue);
+}
+
+/**
+ * A details-page date and time, e.g. `Oct 19, 2026, 12:00 PM`, in the viewer's timezone.
+ * Submission Details and the Test inspector show a Snapshot's capture time this way.
+ */
+export function formatDetailsDateTime(
+  date?: DateInput,
+  fallbackMessage = "-",
+): string {
+  const dateValue = toValidDate(date);
+  if (dateValue === null) {
+    return fallbackMessage;
+  }
+
+  return detailsDateTimeFormatter.format(dateValue);
 }
 
 /**

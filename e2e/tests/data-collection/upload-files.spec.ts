@@ -1,21 +1,22 @@
 import path from "node:path";
-import { expect, type FrameLocator, type Page, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 import sharp from "sharp";
 import { EndatixApi } from "@/lib/endatix-api/endatix-api";
-import { playgroundEmbedHostHref } from "../../utils/open-embed-host";
+import { publishE2eForm } from "../../utils/form-api";
+import { createOnBehalfShare } from "../../utils/on-behalf-share";
+import { runE2eForms } from "../../utils/run-e2e-form";
 import {
-  createOnBehalf,
-  createShareAccessToken,
-  deleteForm,
   e2eCredentials,
-  releaseScreenOutForms,
+  releaseE2eForms,
   signInE2eApi,
 } from "../../utils/screen-out-api";
+import {
+  openSurvey,
+  surveyRoot,
+  SURFACES,
+  type SurfaceKind,
+} from "../../utils/survey-surface";
 
-type SurveySurface = Page | FrameLocator;
-type SurfaceKind = "share" | "iframe";
-
-const SURFACES: readonly SurfaceKind[] = ["share", "iframe"];
 const FIXTURE_PATH = path.join(
   process.cwd(),
   "e2e/fixtures/wide-landscape.jpg",
@@ -55,19 +56,11 @@ test.describe("Upload files", () => {
     test.describe(surface, () => {
       test("file upload is resized before it is stored", async ({ page }) => {
         const seeded = await seedFileForm(api);
-        let failed = false;
-        try {
-          await uploadAndExpectResize(page, surface, seeded, api);
-        } catch (error) {
-          failed = true;
-          throw error;
-        } finally {
-          await releaseScreenOutForms(
-            api,
-            [seeded.formId],
-            failed || process.env.E2E_KEEP_DATA === "1",
-          );
-        }
+        await runE2eForms(
+          [seeded.formId],
+          (keep) => releaseE2eForms(api, [seeded.formId], keep),
+          () => uploadAndExpectResize(page, surface, seeded, api),
+        );
       });
     });
   }
@@ -80,70 +73,18 @@ type SeededForm = {
 };
 
 async function seedFileForm(api: EndatixApi): Promise<SeededForm> {
-  const created = await api.forms.create({
+  const formId = await publishE2eForm(api, {
     name: `e2e image resize ${Date.now()}`,
-    isEnabled: true,
-    formDefinitionJsonData: "{}",
+    definitionJson: FILE_FORM,
+    isPublic: true,
+    limitOnePerUser: false,
   });
-  if (!created.success) {
-    throw new Error(`Create form failed: ${created.error.message}`);
-  }
-
-  const formId = created.data.id;
-  try {
-    const published = await api.put(`/forms/${formId}/definition`, {
-      isDraft: false,
-      jsonData: FILE_FORM,
-    });
-    if (!published.success) {
-      throw new Error(`Publish definition failed: ${published.error.message}`);
-    }
-
-    const updated = await api.forms.update(formId, { isPublic: true });
-    if (!updated.success) {
-      throw new Error(`Update form failed: ${updated.error.message}`);
-    }
-
-    const submitterId = `e2e-${formId}`;
-    const submission = await createOnBehalf(api, formId, submitterId);
-    const shareToken = await createShareAccessToken(
-      api,
-      formId,
-      submission.submissionId,
-    );
-    return { formId, submissionId: submission.submissionId, shareToken };
-  } catch (error) {
-    await deleteForm(api, formId);
-    throw error;
-  }
-}
-
-function hubBaseUrl(): string {
-  return process.env.BASE_URL ?? "http://localhost:3000";
-}
-
-async function openSurvey(
-  page: Page,
-  kind: SurfaceKind,
-  seeded: SeededForm,
-): Promise<SurveySurface> {
-  if (kind === "share") {
-    await page.goto(
-      `${hubBaseUrl()}/share/${seeded.formId}?token=${encodeURIComponent(seeded.shareToken)}`,
-    );
-    return page;
-  }
-
-  const embedHost = process.env.E2E_EMBED_HOST_URL ?? "http://localhost:5000";
-  await page.goto(
-    playgroundEmbedHostHref(
-      embedHost,
-      seeded.formId,
-      hubBaseUrl(),
-      seeded.shareToken,
-    ),
-  );
-  return page.frameLocator(`iframe[id^="edxf-${seeded.formId}"]`);
+  const submission = await createOnBehalfShare(api, formId, `e2e-${formId}`);
+  return {
+    formId,
+    submissionId: submission.submissionId,
+    shareToken: submission.shareToken,
+  };
 }
 
 async function uploadAndExpectResize(
@@ -152,9 +93,8 @@ async function uploadAndExpectResize(
   seeded: SeededForm,
   api: EndatixApi,
 ): Promise<void> {
-  const surface = await openSurvey(page, kind, seeded);
-  const survey = surface.locator(".sd-root-modern");
-  await survey.waitFor({ timeout: 30_000 });
+  const surface = await openSurvey(page, kind, seeded.formId, seeded.shareToken);
+  const survey = surveyRoot(surface);
 
   const original = await sharp(FIXTURE_PATH).metadata();
   expect(original.width, "fixture is wider than the resize target").toBeGreaterThan(

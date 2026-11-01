@@ -31,6 +31,8 @@ export type PanelFormProps = {
   onBack?: () => void;
   /** `false` on an outcome step, whose submit (`Done`) is the only way out. */
   cancelable?: boolean;
+  /** The label of the button that closes the panel; `Close` when closing does not undo the work. */
+  cancelLabel?: string;
   onSubmit: () => void;
   children: ReactNode;
 };
@@ -52,7 +54,7 @@ export function PanelFormError({
 
 /** `Back` on a later step, `Cancel` otherwise, nothing on an outcome step (DESIGN.md §6). */
 function SecondaryButton(props: Readonly<PanelFormProps>) {
-  const { onBack, cancelable = true, pending } = props;
+  const { onBack, cancelable = true, cancelLabel = "Cancel", pending } = props;
   if (!onBack && !cancelable) return null;
   return (
     <Button
@@ -61,7 +63,7 @@ function SecondaryButton(props: Readonly<PanelFormProps>) {
       disabled={pending}
       onClick={onBack ?? (() => props.onOpenChange(false))}
     >
-      {onBack ? "Back" : "Cancel"}
+      {onBack ? "Back" : cancelLabel}
     </Button>
   );
 }

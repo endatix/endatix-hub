@@ -64,7 +64,7 @@ export class ContactFormPage {
     await this.page.waitForLoadState("networkidle");
   }
 
-  async expectFormSubmitted(name: string) {
+  async expectFormSubmitted(_name: string) {
     await expect(this.nameInput).toBeHidden();
     await expect(this.emailInput).toBeHidden();
     await expect(this.messageInput).toBeHidden();

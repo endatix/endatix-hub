@@ -7,6 +7,7 @@
 - Chrome shared by two or more slices of the same feature lives in `features/{feature}/ui/` (e.g. `platform-admin/ui/platform-admin-shell.tsx`, `tenant-access-fields.tsx` used by `create-tenant` and `update-tenant`). Do not park it in one slice and import across siblings, and do not invent a vague umbrella slice to hold it — a slice is one verb-noun action.
 - Physical file kinds (`csv`, `xlsx`, `png`, …) live in [`lib/file-kinds/`](lib/file-kinds/) (server-safe catalog: extension, MIME, label, group). Render with `FileKindIcon` / `FileKindLabel` from [`components/common/file-kind-icon.tsx`](components/common/file-kind-icon.tsx). Feature code maps its vocabulary to `FileKindKey` and never returns a Lucide icon. Visual rules: DESIGN.md §5 File Type Marks. Placement: [`project-structure.md`](project-structure.md) “Where UI for a shared concept lives”.
 - Reporting export wire keys (`csv`, `xlsx`, `codebook`, …) live in [`lib/endatix-api/reporting/reporting-export-wire.ts`](lib/endatix-api/reporting/reporting-export-wire.ts). Lookups are **exact** (no case-fold). Legacy downloads use the closed `BUILT_IN_EXPORT_FILE_KINDS` list (`csv` | `xlsx` | `json`), not `Extract<wire, FileKindKey>`.
+- A form's Hub URLs that features link to across slices (Audience, a participant, Submission Details) come from `formRoutes` in [`lib/routes/form-routes.ts`](lib/routes/form-routes.ts), never a hand-built template string. It lives in `lib/` so a feature can link to another's page without importing it.
 - Keep `app/` routing-focused. Data mutations should flow through server actions.
 - Submission PDF: `features/pdf-export/`. Public token + Hub API routes both call `renderSubmissionPdf`. Bound by server env `PDF_RENDER_TIMEOUT_SECONDS` (default 40, never `NEXT_PUBLIC_`). Public failures: `/export-error?code=&ref=`.
 - PDF matrix: `PdfMatrixTable` + `computeMatrixDataColumnWidth` (even A4 split, stacked fallback). Cells: `row.isEmpty` / `getCellByColumn`, never `question.value[row.value]`.
@@ -35,7 +36,7 @@ Prefer vendor types from `survey-core` / `survey-creator-core`. Closed Hub union
 - Canvas JSON: [`useCreatorJson`](lib/survey-features/survey-design/ui/use-creator-json.ts) only — never `creator.JSON =` in a slice. Compare with `SAME_DEFINITION` in that file (`Helpers.checkIfValuesEqual`, not `isTwoValueEquals`). Flags are pinned in `use-creator-json.test.ts`.
 - Theme hydration: `hydrateThemeTab` in [`use-theme-management.hook.ts`](features/themes/manage-theme-editor/use-theme-management.hook.ts). Hub dirty is `isThemeDirty`; Creator's save signal is `hasPendingThemeChanges` — do not clear the latter while the former is true. `creator.theme =` (`applyTheme`) skips the Theme tab plugin while that tab is active, so a theme that resolves after the tab opened must go in via `themeEditor.themeModel.setTheme`, inside `hydrateThemeTab`.
 - Theme Editor `themeName` is lazy-paged: [`bind-theme-catalog-lazy-choices.ts`](features/themes/manage-theme-editor/bind-theme-catalog-lazy-choices.ts). Never drain the catalog at Creator init — the assigned theme is `GET /themes/{id}`. A loaded page only _registers_ themes (`addTheme`); re-applying the assigned one would discard the edits in progress. The last page must report the item count accumulated so far, or the chooser keeps a "Loading…" row. Chooser search stays off until `GET /themes` accepts a name filter. `activate()` rebuilds `propertyGrid.survey` every time, so a binding must supersede the previous one instead of stacking wrappers on the long-lived plugin.
-- SurveyJS lazy-dropdown quirks are shared, not per-feature: skip/take math in [`choices-lazy-load-page.ts`](lib/survey-features/infrastructure/choices-lazy-load-page.ts), `DropdownListModel` internals (dedupe, buffer reset, loading-row observer) in [`choices-lazy-load-dropdown.ts`](lib/survey-features/infrastructure/choices-lazy-load-dropdown.ts). `setItems` **appends**, so dedupe before handing it a page. Poke vendor privates only from those two files — they are the upgrade checklist for `scripts/upgrade-surveyjs.mjs`.
+- SurveyJS lazy-dropdown quirks are shared, not per-feature: skip/take math in [`choices-lazy-load-page.ts`](lib/survey-features/infrastructure/choices-lazy-load-page.ts), `DropdownListModel` internals (dedupe, buffer reset, loading-row observer) in [`choices-lazy-load-dropdown.ts`](lib/survey-features/infrastructure/choices-lazy-load-dropdown.ts). `setItems` **appends**, so dedupe before handing it a page. Poke vendor privates only from those two files and [`preview-as-none.ts`](lib/personalization/authoring/preview-as-none.ts) (overrides the Preview view model's private `updateVariablePresetActions` to add None, inserts Find participant into its `pages` toolbar, and wraps the Preview plugin's `activate`, because `updateLocalizedStrings` rebuilds the open tab without a tab change) — they are the upgrade checklist for `scripts/upgrade-surveyjs.mjs`.
 - Tab presence: `creator.tabs`. Never `creator.getPlugin(id)` (answers for hidden tabs and instantiates the plugin).
 - Product allowlists stay in the owning feature.
 
@@ -104,14 +105,16 @@ prefix, not `"use client"`, is what decides.
 - **Permissions use the auth service, not a feature wrapper.** `requireAllPermissions([Access.Hub, …])` when every grant is required and a miss redirects (pages and actions). `requirePermission` for a single grant. `checkPermission` / `checkAllPermissions` when a miss must not redirect: hide a control, or return `apiResponses.forbidden` from a route handler (`app/api/hub/v0/storage/read-urls/route.ts`). Do not add `checkAppPermissions` or a per-slice auth facade that only forwards those calls. Hub still checks even when the API does — forwarding the session token is not a gate.
 - **A feature helper is for the flag and the API client, and it calls `requireAllPermissions`.** Use one when several server entries share a flag (`requireAudienceApi(permission)` in `features/audience/shared/`, `requireTenantManagement`). Pass the extra permission in; do not also fold in a non-redirecting capability. A page that also needs capabilities takes `checkPermission` from the same authorization pass (`requireAudienceAccess` returns `{ api, checkPermission }`) and asks for them itself, rather than calling `auth()` + `authorization()` a second time.
 - **Hide every control whose action would redirect.** A page gated on a read grant (`forms.view`) must `checkPermission` each write grant its controls need (`forms.edit`) and leave those controls out — the button, the row actions column and the overlay. An action that redirects inside a client transition replaces the panel with the unauthorized page. Reference: `canEdit` on `app/(main)/forms/[formId]/audience/page.tsx`. One action may inline the same three lines (`prepare-reporting-export.action.ts`). The flag off returns `Result.error("<Feature> is not enabled for this environment.")`. A hidden button is not a gate.
+- **A section whose read needs more than the page's own permission loads only with that grant.** Check the grant with the page's `checkPermission`, and without it skip the loader: the section's data stays `null` and the section is left out, with no error. Do not call the read and let it fail. Reference: Audience coverage on `app/(main)/forms/[formId]/audience/page.tsx`, read with `forms.edit` on a `forms.view` page (`canEdit`).
 - For Endatix API calls returning `ApiResult<T>`, **always** map with `toResult(...)` from `lib/result/map-api-result-to-result`. Do **not** hand-write `if (!apiResult.success) return Result.error(apiResult.error.message)`. Existing `mapToResult(...)` is equivalent; prefer `toResult(...)` for new/touched code.
 - Pass `fallbackMessage`, `logMessage`, and `loggerName` so unexpected failures log via `TelemetryLogger` while expected 403/404/validation stay user-facing without noisy logs.
 - When the action result type differs from the API payload (e.g. `Result<void>` after PATCH that returns settings), use `mapData` (e.g. `mapData: () => undefined`). Alternatively keep success local and map only the failure branch with `toResult`.
 - Call `revalidatePath` / `revalidateTag` only after `Result.isSuccess(result)`.
 - Some OSS payloads carry a `{ success, message }` envelope (`RegisterResponse`, `ActivateInviteResponse`, `UserOperationResponse`): a 200 does not mean the operation succeeded. `toResult` handles this for you — a body with `success: false` **and** a string `message` becomes a validation error carrying that message. Do not re-check the flag at the call site, and do not name an unrelated payload field `success` unless the envelope semantics apply.
+
 ## Freshness: reading again instead of push
 
-The Hub has no push channel (no websockets or SignalR). Data is only as fresh as its last read, so freshness comes from reading again at moments of attention. Do not add polling to get it.
+The Hub has no push channel (no websockets or SignalR). Data is only as fresh as its last read, so freshness comes from reading again at moments of attention. Do not add polling to get it. The one exception is a server job the user is watching in an open panel: the Audience import reads its own import every 2 s while it checks or writes, paused while the tab is hidden, and never reads `GET jobs/{id}` (`features/audience/import-csv/use-audience-import.hook.ts`, project-structure.md "Audience").
 
 - **Navigation:** a server page reads on every request. That covers pages.
 - **After a write:** the action revalidates (`revalidatePath`) and the client calls `router.refresh()` (`useAudienceMutation`).
@@ -263,6 +266,10 @@ it("renders the xlsx glyph", () => {
 - Render+assert or a table of `expect(fn())` with no setup → `// Act & Assert`.
 - Skip labels only when the whole `it` is a one-liner (`expect(fn()).toBe(x)`). Folders: [`project-structure.md`](project-structure.md) Testing Convention.
 
+## SonarCloud quality gate
+
+SonarCloud Free can't edit the "Sonar way" gate, so `build-ci.yml` applies it with [`scripts/sonar-gate.mjs`](scripts/sonar-gate.mjs) after the scan (same policy as endatix/endatix#1319). On PRs, red bugs, vulnerabilities, hotspots or coverage on new code fail the job, and duplication (`SONAR_ADVISORY_METRICS`) only warns. On pushes to `main` the gate only reports (`*`): the code is already merged, and the PR was the place to stop it. New code on `main` starts at the last stable release (`sonar.projectVersion` from the latest `vX.Y.Z` tag). When a block reaches its third copy, open a `tech-debt` issue for it. Add `sonar.cpd.exclusions` only for boilerplate the SonarCloud duplication data shows.
+
 ## Mirrored OSS rules
 
 Some Hub modules re-implement an OSS Core rule so the UI can validate before a round trip. Both copies must agree: a Hub-only rule rejects input the API accepts and strands rows already holding that value.
@@ -385,9 +392,43 @@ When the Endatix API exposes a catalog for options, labels, or descriptions (cap
 - In server actions or server-only code, import tracking helpers from `features/analytics/posthog/server`.
 - Do not include tokens, emails, raw form values, or other PII in analytics properties. Prefer safe booleans, ids that are already public in the UI, feature names, and action names.
 
+## Agent skills
+
+Paths and commands below are relative to this repo's root, whether it is a standalone clone or a submodule of another repo. A parent repo's `## Agent skills` section describes that repo, not this one.
+
+### Issue tracker
+
+Endatix GitHub issues on the Overlord project, filed and tracked through the `track-work` skill. See `docs/agents/issue-tracker.md`.
+
+### Domain docs
+
+Single-context. `GLOSSARY.md` and `docs/adr/` at the root are created lazily by `domain-modeling`. Until then, Hub route and feature names live in endatix-saas at `.agents/skills/docs-contribution/resources/agent-glossary.md` (the superproject, when this repo is its `hub/` submodule). See `docs/agents/domain.md`.
+
+### Commands
+
+- Prerequisites: Node from `.nvmrc` and pnpm within `engines.pnpm` (see [Toolchain](#toolchain-node--pnpm)); `pnpm install` first. `pnpm dev` needs an Endatix API (`ENDATIX_BASE_URL`, see `.env.example`). e2e starts no server: it needs the Hub already running on `pnpm dev` (`BASE_URL`, default http://localhost:3000), the API (`E2E_API_URL`, default `https://localhost:5001/api`) and `E2E_EMAIL` plus `E2E_PASSWORD` (macOS can use the keychain instead of the password; see [Tests](#tests) and `e2e/README.md`)
+- Build: `pnpm build`
+- Test: `pnpm test:coverage` (Vitest, one run); e2e: `pnpm test:e2e`
+- Lint: `pnpm lint`
+- Run: `pnpm dev` (http://localhost:3000)
+- PR title scope: `h[0-9]+|deps|deps-dev` (the full title and branch rules are in [CONTRIBUTING.md](CONTRIBUTING.md))
+- Branch name: `<type>/h<issue>-<slug>`
+
+### Verification
+
+No verify skill in this repo. Run the Hub with `pnpm dev` against an API and check the change in the browser; `next-dev-loop` covers runtime checks, Playwright (`pnpm test:e2e`) the scripted ones. When this repo is the `hub/` submodule of endatix-saas, that workspace's `verify-endatix` and `clean-code` skills also cover the Hub; use them from there.
+
+### Shared folders
+
+- Always in the main checkout, also from a worktree: `common=$(git rev-parse --path-format=absolute --git-common-dir)`, then `dirname "$common"` when its name is `.git`, else `git --git-dir="$common" rev-parse --show-toplevel` (a submodule). Removing a worktree deletes its gitignored files.
+- Work files (plans, review reports, handoffs): `.agents/work/<YYYY-MM-DD>-<slug>/`
+- Evidence (screenshots, videos, logs): `.agents/evidence/<YYYY-MM-DD>-<slug>/`
+- A skill ends its report with the absolute path of every file it wrote there.
+- Model roles: `.agents/endatix-models.local.yaml`, one section per harness. Gitignored and per checkout: each worktree has its own copy, lost when the worktree is removed.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
-# This is NOT the Next.js you know
+## This is NOT the Next.js you know
 
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
 

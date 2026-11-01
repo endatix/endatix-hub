@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { Result } from "@/lib/result";
 
 vi.mock("next/server", () => ({}));
 
@@ -26,7 +27,20 @@ vi.mock("next/navigation", () => ({
 
 vi.mock("@/features/audience/get-audience-page", () => ({
   loadAudiencePage: vi.fn(),
+  loadAudienceUsage: vi.fn(),
+  parseAudienceView: vi.fn(() => "people"),
   parsePeoplePaging: vi.fn(() => ({ page: 1, pageSize: 50 })),
+  parsePeopleTestFilter: vi.fn(() => undefined),
+  parsePeopleSearch: vi.fn(() => ""),
+}));
+
+vi.mock("@/lib/endatix-api", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/endatix-api")>()),
+  EndatixApi: class {},
+}));
+
+vi.mock("@/features/audience/server", () => ({
+  loadAudienceVariables: vi.fn(),
 }));
 
 vi.mock("@/features/audience/get-audience-page/ui/audience-page-shell", () => ({
@@ -36,6 +50,9 @@ vi.mock("@/features/audience/get-audience-page/ui/audience-page-shell", () => ({
 vi.mock("@/features/forms/form-workspace/load-workspace-form.server", () => ({
   loadWorkspaceForm: vi.fn(),
 }));
+
+const VARIABLES = { variablePresets: { definition: {} } };
+const USAGE = { variableNames: ["tier"], read: ["tier"] };
 
 describe("Form Audience Page", () => {
   const requireAllPermissions = vi.fn().mockResolvedValue(undefined);
@@ -81,5 +98,54 @@ describe("Form Audience Page", () => {
     ]);
     expect(loadWorkspaceForm).not.toHaveBeenCalled();
     expect(loadAudiencePage).not.toHaveBeenCalled();
+  });
+
+  async function renderAudiencePage(grants: string[]) {
+    const { personalizationFlag } = await import("@/lib/feature-flags");
+    const { loadAudiencePage, loadAudienceUsage } =
+      await import("@/features/audience/get-audience-page");
+    const { loadAudienceVariables } =
+      await import("@/features/audience/server");
+    const { loadWorkspaceForm } =
+      await import("@/features/forms/form-workspace/load-workspace-form.server");
+    vi.mocked(personalizationFlag).mockResolvedValue(true);
+    checkPermission.mockImplementation(async (permission: string) => ({
+      success: grants.includes(permission),
+    }));
+    vi.mocked(loadWorkspaceForm).mockResolvedValue(
+      Result.success({ id: "f1", activeDefinitionId: "d1" }) as never,
+    );
+    vi.mocked(loadAudiencePage).mockResolvedValue(Result.success({}) as never);
+    vi.mocked(loadAudienceVariables).mockResolvedValue(VARIABLES as never);
+    vi.mocked(loadAudienceUsage).mockResolvedValue(USAGE as never);
+
+    const FormAudiencePage = (
+      await import("@/app/(main)/forms/[formId]/audience/page")
+    ).default;
+    const page = (await FormAudiencePage({
+      params: Promise.resolve({ formId: "f1" }),
+      searchParams: Promise.resolve({}),
+    })) as { props: { usage: unknown } };
+    return { page, loadAudienceUsage, loadAudienceVariables };
+  }
+
+  it("shows Audience coverage to a form editor", async () => {
+    const { page, loadAudienceUsage } = await renderAudiencePage([
+      "forms.edit",
+    ]);
+
+    expect(loadAudienceUsage).toHaveBeenCalledWith(
+      expect.objectContaining({ formId: "f1", activeDefinitionId: "d1" }),
+    );
+    expect(page.props.usage).toBe(USAGE);
+  });
+
+  it("leaves Audience coverage out for a reader who may only view the form", async () => {
+    const { page, loadAudienceUsage, loadAudienceVariables } =
+      await renderAudiencePage([]);
+
+    expect(loadAudienceVariables).not.toHaveBeenCalled();
+    expect(loadAudienceUsage).not.toHaveBeenCalled();
+    expect(page.props.usage).toBeNull();
   });
 });

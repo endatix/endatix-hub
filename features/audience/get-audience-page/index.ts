@@ -1,9 +1,15 @@
 export { loadAudiencePage } from "./load-audience-page.server";
 export type { AudiencePageData } from "./load-audience-page.server";
-export { parsePeoplePaging } from "./parse-people-page";
+export {
+  parsePeoplePaging,
+  parsePeopleSearch,
+  parsePeopleTestFilter,
+  peopleTestFilterUrlValue,
+} from "./parse-people-page";
 export {
   AudienceView,
   audienceViewTabs,
   parseAudienceView,
 } from "./audience-view";
-export type { PeoplePaging } from "./parse-people-page";
+export type { PeoplePaging, PeopleQuery } from "./parse-people-page";
+export { loadAudienceUsage } from "./load-audience-usage.server";

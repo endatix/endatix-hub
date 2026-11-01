@@ -12,14 +12,15 @@ export type CreateAudiencePersonInput = {
   formId: string;
   identifier: string;
   values?: AudiencePropertyValues;
+  isTest?: boolean;
 };
 
 export type CreateAudiencePersonResult = Result<AudiencePerson>;
 
 const CREATE_LOG = {
   permission: Permissions.Forms.Edit,
-  fallbackMessage: "Failed to add audience person.",
-  logMessage: "Failed to add audience person.",
+  fallbackMessage: "Failed to add the participant.",
+  logMessage: "Failed to add the participant.",
   loggerName: "audience.people.create",
 } as const;
 
@@ -45,6 +46,7 @@ export async function createAudiencePersonAction(
       api.audience.createPerson(input.formId, {
         identifier,
         values: withoutBlankValues(input.values),
+        isTest: input.isTest === true,
       }),
     { ...CREATE_LOG, formId: input.formId },
   );
