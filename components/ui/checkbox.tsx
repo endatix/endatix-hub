@@ -12,7 +12,7 @@ type MarkProps = Pick<
 >;
 
 /** A dash when only some are checked, so it never reads as all. */
-function CheckboxMark({ checked }: MarkProps) {
+function CheckboxMark({ checked }: Readonly<MarkProps>) {
   const Mark = checked === "indeterminate" ? MinusIcon : CheckIcon;
   return <Mark className="size-3.5" />;
 }

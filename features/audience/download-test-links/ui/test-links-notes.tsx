@@ -48,8 +48,10 @@ type DownloadedProps = Readonly<{
   batch: TestLinksBatch;
 }>;
 
-const downloadedTitle = (count: number) =>
-  `${count === 1 ? "1 test link" : `${count.toLocaleString()} test links`} downloaded`;
+const testLinkCount = (count: number) =>
+  count === 1 ? "1 test link" : `${count.toLocaleString()} test links`;
+
+const downloadedTitle = (count: number) => `${testLinkCount(count)} downloaded`;
 
 /** What was produced, then a way to save the same file again while the panel is open. */
 export function TestLinksDownloaded({ run, batch }: DownloadedProps) {
