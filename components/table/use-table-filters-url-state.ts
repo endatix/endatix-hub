@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   useUrlSearchParamsUpdater,
   type UrlSearchParamsUpdater,
@@ -15,6 +15,8 @@ export interface UseTableFiltersUrlStateResult {
   setValue: (key: string, value: string) => void;
   searchParams: URLSearchParams;
   updateUrl: UrlSearchParamsUpdater;
+  /** A committed change is navigating; lists show skeleton rows meanwhile. */
+  isPending: boolean;
 }
 
 function readUrlValues(
@@ -51,7 +53,7 @@ export function useTableFiltersUrlState(
   keys: readonly string[],
   debounceMs: number = DEFAULT_DEBOUNCE_MS,
 ): UseTableFiltersUrlStateResult {
-  const { searchParams, updateUrl } = useUrlSearchParamsUpdater();
+  const { searchParams, updateUrl, isPending } = useUrlSearchParamsUpdater();
   const [values, setValues] = useState<Record<string, string>>(() =>
     readUrlValues(keys, searchParams),
   );
@@ -82,9 +84,9 @@ export function useTableFiltersUrlState(
     return () => globalThis.window.clearTimeout(timeout);
   }, [keys, values, searchParams, updateUrl, debounceMs]);
 
-  const setValue = (key: string, value: string): void => {
+  const setValue = useCallback((key: string, value: string): void => {
     setValues((prev) => ({ ...prev, [key]: value }));
-  };
+  }, []);
 
-  return { values, setValue, searchParams, updateUrl };
+  return { values, setValue, searchParams, updateUrl, isPending };
 }

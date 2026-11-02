@@ -6,6 +6,7 @@ import { ExportFormats } from "./export-formats";
 import { ExportMappings } from "./export-mappings";
 import { ExportCapabilities } from "./export-capabilities";
 import { ExportNamingConventions } from "./export-naming-conventions";
+import { SubmissionGrid } from "./submission-grid";
 import type {
   BackfillSubmissionsRequest,
   BackfillSubmissionsResponse,
@@ -18,6 +19,7 @@ export class Reporting {
   private _exportMappings?: ExportMappings;
   private _exportCapabilities?: ExportCapabilities;
   private _exportNamingConventions?: ExportNamingConventions;
+  private _submissionGrid?: SubmissionGrid;
 
   constructor(private readonly endatix: EndatixApi) {}
 
@@ -39,6 +41,11 @@ export class Reporting {
   get exportNamingConventions(): ExportNamingConventions {
     this._exportNamingConventions ??= new ExportNamingConventions(this.endatix);
     return this._exportNamingConventions;
+  }
+
+  get submissionGrid(): SubmissionGrid {
+    this._submissionGrid ??= new SubmissionGrid(this.endatix);
+    return this._submissionGrid;
   }
 
   async compileSchema(
