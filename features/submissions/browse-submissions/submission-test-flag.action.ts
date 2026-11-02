@@ -37,7 +37,7 @@ export async function setSubmissionTestAction(
       mapData: () => undefined,
     },
   );
-  if (Result.isSuccess(result)) revalidateGrid(formId);
+  if (Result.isSuccess(result)) revalidateFormSubmissions(formId);
   return result;
 }
 
@@ -50,7 +50,7 @@ export async function deleteTestSubmissionsAction(
     await api.submissions.deleteTests(formId),
     failureOptions("Unable to delete the test submissions."),
   );
-  if (Result.isSuccess(result)) revalidateGrid(formId);
+  if (Result.isSuccess(result)) revalidateFormSubmissions(formId);
   return result;
 }
 
@@ -88,6 +88,8 @@ function failureOptions(failure: string) {
   };
 }
 
-function revalidateGrid(formId: string) {
+/** The grid and the form page, whose submission count changes too. */
+function revalidateFormSubmissions(formId: string) {
   revalidatePath(`/forms/${formId}/submissions`);
+  revalidatePath(`/forms/${formId}`);
 }

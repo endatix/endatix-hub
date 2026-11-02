@@ -70,7 +70,7 @@ describe("setSubmissionTestAction", () => {
     expect(mockSetTest).not.toHaveBeenCalled();
   });
 
-  it("marks the submission and revalidates the grid", async () => {
+  it("marks the submission and revalidates the grid and the form page", async () => {
     // Act
     const result = await setSubmissionTestAction("5", "9", true);
 
@@ -78,6 +78,7 @@ describe("setSubmissionTestAction", () => {
     expect(result).toEqual(Result.success(undefined));
     expect(mockSetTest).toHaveBeenCalledWith("5", "9", true);
     expect(mockRevalidatePath).toHaveBeenCalledWith("/forms/5/submissions");
+    expect(mockRevalidatePath).toHaveBeenCalledWith("/forms/5");
   });
 
   it("keeps the submission_exists code and the existing id, and revalidates nothing", async () => {
@@ -127,13 +128,14 @@ describe("deleteTestSubmissionsAction", () => {
     expect(mockDeleteTests).not.toHaveBeenCalled();
   });
 
-  it("returns the deleted count and revalidates the grid", async () => {
+  it("returns the deleted count and revalidates the grid and the form page", async () => {
     // Act
     const result = await deleteTestSubmissionsAction("5");
 
     // Assert
     expect(result).toEqual(Result.success({ deletedCount: 3 }));
     expect(mockRevalidatePath).toHaveBeenCalledWith("/forms/5/submissions");
+    expect(mockRevalidatePath).toHaveBeenCalledWith("/forms/5");
   });
 
   it("passes the API's refusal through", async () => {
