@@ -23,7 +23,7 @@ import {
   type AudienceImportRejection,
   type AudienceImportView,
 } from "@/lib/endatix-api/audience/types";
-import { outcomeCounts } from "../import-labels";
+import { outcomeCounts, rowCountLabel } from "../import-labels";
 import {
   useRejectedRowsDownload,
   type DownloadMessage,
@@ -102,7 +102,7 @@ type RejectionsProps = {
 
 function rejectionsDescription({ rejections, rejectedCount }: RejectionsProps) {
   if (rejections.length === 0)
-    return `${rejectedCount.toLocaleString()} rows. Download them to see each one.`;
+    return `${rowCountLabel(rejectedCount)} rejected. Download the file to see each one.`;
   return rejections.length < rejectedCount
     ? `The first ${rejections.length} of ${rejectedCount.toLocaleString()}, by their row in the file.`
     : "By their row in the file.";

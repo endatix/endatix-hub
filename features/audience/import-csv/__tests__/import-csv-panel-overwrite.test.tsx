@@ -285,10 +285,16 @@ describe("ImportCsvPanel: overwrite rules", () => {
   });
 
   it("offers the download when the write rejected rows the Check's preview did not list", async () => {
-    await importToCompleted({ rejections: [] });
+    await importToCompleted({
+      rejections: [],
+      written: { ...COMPLETED_WITH_REJECTIONS.written, rejectedCount: 1 },
+    });
 
     expect(
       await screen.findByRole("button", { name: "Download CSV" }),
+    ).toBeTruthy();
+    expect(
+      screen.getByText("1 row rejected. Download the file to see each one."),
     ).toBeTruthy();
   });
 
