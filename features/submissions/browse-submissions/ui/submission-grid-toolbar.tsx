@@ -21,7 +21,9 @@ import {
   hasActiveFilters,
   type SubmissionGridFacetKey,
 } from "../submission-grid-url-updates";
+import { DeleteTestSubmissionsButton } from "./delete-test-submissions-button";
 import { SubmissionGridColumnPicker } from "./submission-grid-column-picker";
+import { useSubmissionTestAccess } from "./submission-test-access-context";
 import { useSubmissionGridUrl } from "./submission-grid-url-context";
 import { SubmissionGridViewMenu } from "./submission-grid-view-menu";
 
@@ -76,12 +78,16 @@ function ToolbarActions({
   columnSearch,
   disabled,
 }: Readonly<ToolbarProps>) {
+  const { canDeleteTests } = useSubmissionTestAccess();
   return (
     <>
       <SubmissionGridColumnPicker
         {...{ formId, catalog, columnSearch, disabled }}
       />
       <SubmissionGridViewMenu disabled={disabled} />
+      {canDeleteTests && (
+        <DeleteTestSubmissionsButton formId={formId} disabled={disabled} />
+      )}
       <ExportButton formId={formId} disabled={disabled} />
     </>
   );

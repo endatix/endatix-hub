@@ -10,6 +10,7 @@ import {
   canEditSubmissionGrid,
   loadSubmissionGridColumns,
   loadSubmissionGridView,
+  loadSubmissionTestAccess,
 } from "../browse-submissions.server";
 import { describeGridReadiness } from "../grid-readiness";
 import type { SubmissionGridColumnsLoad } from "../resolve-submission-grid-load";
@@ -32,6 +33,7 @@ import {
   withSavedView,
   type SubmissionGridViewLoad,
 } from "../submission-grid-view";
+import type { SubmissionTestAccess } from "../submission-test-flag";
 import { SubmissionGridRowsSection } from "./submission-grid-rows-section";
 import { SubmissionGridShell } from "./submission-grid-shell";
 import { SubmissionGridSkeleton } from "./submission-grid-skeleton";
@@ -96,14 +98,15 @@ type ReadyColumns = Extract<SubmissionGridColumnsLoad, { kind: "ready" }>;
 /** Only the rows wait for the columns; the other reads start together. */
 async function loadGridInputs(formId: string) {
   const session = getSession();
-  const [columns, view, canEdit, config] = await Promise.all([
+  const [columns, view, canEdit, testAccess, config] = await Promise.all([
     session.then((current) => loadSubmissionGridColumns(formId, current)),
     session.then((current) => loadSubmissionGridView(formId, current)),
     canEditSubmissionGrid(),
+    loadSubmissionTestAccess(),
     getClientEndatixConfig(),
   ]);
   const submitterLabel = config.submitterPrimaryFilterLabel;
-  return { columns, view, canEdit, submitterLabel };
+  return { columns, view, canEdit, testAccess, submitterLabel };
 }
 
 type SubmissionGridProps = {
@@ -113,6 +116,8 @@ type SubmissionGridProps = {
   view: SubmissionGridViewLoad;
   /** Form editors include in-progress submissions and save the view. */
   canEdit: boolean;
+  /** Mark as test / Mark as real in each row, Delete test submissions in the toolbar. */
+  testAccess: SubmissionTestAccess;
   submitterLabel: string;
 };
 
@@ -148,6 +153,7 @@ function gridChrome(props: Readonly<SubmissionGridProps>, sentFilters: number) {
       answerFiltersWaiting: columns.schemaReady && inUrl > sentFilters,
     }),
     canSaveView: canEdit,
+    testAccess: props.testAccess,
   };
 }
 

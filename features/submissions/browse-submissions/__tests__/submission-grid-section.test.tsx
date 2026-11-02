@@ -8,7 +8,9 @@ const loads = vi.hoisted(() => ({
   canIncludeInProgress: vi.fn(),
   config: vi.fn(),
   view: vi.fn(),
+  testAccess: vi.fn(),
 }));
+const NO_TEST_ACCESS = { canMark: false, canDeleteTests: false };
 const redirect = vi.hoisted(() =>
   vi.fn((href: string) => {
     throw new Error(`REDIRECT ${href}`);
@@ -24,6 +26,7 @@ vi.mock("../browse-submissions.server", () => ({
   loadSubmissionGridColumns: loads.columns,
   canEditSubmissionGrid: loads.canIncludeInProgress,
   loadSubmissionGridView: loads.view,
+  loadSubmissionTestAccess: loads.testAccess,
 }));
 vi.mock("@/components/error-handling/error-page", () => ({
   HubPageLoadError: function HubPageLoadError() {
@@ -102,6 +105,7 @@ describe("SubmissionGridSection", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     loads.canIncludeInProgress.mockResolvedValue(true);
+    loads.testAccess.mockResolvedValue(NO_TEST_ACCESS);
     loads.config.mockResolvedValue({ submitterPrimaryFilterLabel: "Visitor" });
     loads.view.mockResolvedValue({
       version: null,
@@ -363,8 +367,22 @@ describe("SubmissionGridSection", () => {
 
     // Assert
     expect(loads.canIncludeInProgress).toHaveBeenCalled();
+    expect(loads.testAccess).toHaveBeenCalled();
     expect(loads.config).toHaveBeenCalled();
     answerColumns({ kind: "unavailable" });
     await rendering;
+  });
+
+  it("hands the shell the user's test access", async () => {
+    // Arrange
+    const testAccess = { canMark: true, canDeleteTests: false };
+    loads.columns.mockResolvedValue(READY);
+    loads.testAccess.mockResolvedValue(testAccess);
+
+    // Act
+    const shell = await renderSection();
+
+    // Assert
+    expect(shell.props.testAccess).toEqual(testAccess);
   });
 });

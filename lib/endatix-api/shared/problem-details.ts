@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isDecimalDigitString } from "@/lib/utils/type-validators";
 
 /**
  * The schema for a ProblemDetails object. More information about the ProblemDetails object can be found here: https://datatracker.ietf.org/doc/html/rfc7807
@@ -29,7 +30,23 @@ export const ProblemDetailsSchema = z.object({
  */
 export type ProblemDetails = z.infer<typeof ProblemDetailsSchema> & {
   detail: string;
+  /** The resource a 409 ran into (the API's `ExistingResource`), when its error code names one. */
+  existingId?: string;
 };
+
+/** The extension field each `ExistingResource` error code puts its id under. */
+const EXISTING_ID_FIELDS: Readonly<Record<string, string>> = {
+  submission_exists: "submissionId",
+};
+
+function readExistingId(record: Record<string, unknown>): string | undefined {
+  const { errorCode } = record;
+  const field =
+    typeof errorCode === "string" ? EXISTING_ID_FIELDS[errorCode] : undefined;
+  const id = field ? record[field] : undefined;
+  // An Endatix id only: the Hub builds routes from it.
+  return typeof id === "string" && isDecimalDigitString(id) ? id : undefined;
+}
 
 /**
  * Normalize common ProblemDetails shapes (camelCase RFC7807 and PascalCase .NET defaults).
@@ -71,23 +88,22 @@ export function parseProblemDetails(data: unknown): ProblemDetails | null {
   const normalized = normalizeProblemDetailsCandidate(data);
   const result = ProblemDetailsSchema.safeParse(normalized);
 
-  if (result.success) {
-    const title = result.data.title ?? "Error";
-    return {
-      type: result.data.type ?? "about:blank",
-      title,
-      status: result.data.status,
-      // Keep `detail` a guaranteed string for consumers; fall back to the title when the
-      // producer omitted it.
-      detail: result.data.detail ?? title,
-      instance: result.data.instance,
-      errorCode: result.data.errorCode,
-      traceId: result.data.traceId,
-      fields: result.data.fields,
-    };
-  }
+  if (!result.success) return null;
 
-  return null;
+  const title = result.data.title ?? "Error";
+  return {
+    type: result.data.type ?? "about:blank",
+    title,
+    status: result.data.status,
+    // Keep `detail` a guaranteed string for consumers; fall back to the title when the
+    // producer omitted it.
+    detail: result.data.detail ?? title,
+    instance: result.data.instance,
+    errorCode: result.data.errorCode,
+    traceId: result.data.traceId,
+    fields: result.data.fields,
+    existingId: readExistingId(normalized as Record<string, unknown>),
+  };
 }
 
 /**

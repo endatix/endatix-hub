@@ -64,3 +64,24 @@ describe('mapApiErrorToResult', () => {
     });
   });
 });
+
+describe('mapApiErrorToResult existingId', () => {
+  it('copies the id a 409 names onto Result', () => {
+    // Arrange
+    const apiError: ApiError = {
+      success: false,
+      error: {
+        type: ApiErrorType.ConflictError,
+        message: 'A submission already exists for this user and form.',
+        errorCode: 'submission_exists',
+        details: { statusCode: 409, existingId: '42' },
+      },
+    };
+
+    // Act
+    const result = mapApiErrorToResult(apiError);
+
+    // Assert
+    expect(result).toMatchObject({ statusCode: 409, existingId: '42' });
+  });
+});

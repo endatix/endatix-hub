@@ -5,6 +5,7 @@ import { NoSubmissionsEmptyState } from "@/features/submissions/ui/submissions-e
 import { useSearchParams } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
 import type { GridReadinessBanner } from "../grid-readiness";
+import type { SubmissionTestAccess } from "../submission-test-flag";
 import type {
   AnswerColumn,
   ColumnSearchAccess,
@@ -15,11 +16,14 @@ import { SubmissionGridToolbar } from "./submission-grid-toolbar";
 import { SubmissionGridUrlProvider } from "./submission-grid-url-context";
 import { SubmissionGridViewProvider } from "./submission-grid-view-context";
 import { SubmissionGridViewError } from "./submission-grid-view-menu";
+import { SubmissionTestAccessProvider } from "./submission-test-access-context";
 
 type SubmissionGridShellProps = {
   formId: string;
   catalog: readonly AnswerColumn[];
   columnSearch: ColumnSearchAccess;
+  /** Mark as test / Mark as real in each row, Delete test submissions in the toolbar. */
+  testAccess: SubmissionTestAccess;
   hasSubmissions: boolean;
   banner: GridReadinessBanner | null;
   view: SubmissionGridViewLoad;
@@ -55,11 +59,13 @@ export function SubmissionGridShell({
 
 type ProvidersProps = Pick<
   SubmissionGridShellProps,
-  "formId" | "catalog" | "view" | "canSaveView" | "children"
+  "formId" | "catalog" | "testAccess" | "view" | "canSaveView" | "children"
 >;
 
+/** URL state, the saved view and test permissions, shared by the toolbar and every row. */
 function SubmissionGridProviders({
   view,
+  testAccess,
   children,
   ...props
 }: Readonly<ProvidersProps>) {
@@ -69,7 +75,9 @@ function SubmissionGridProviders({
       viewSettings={view.settings}
     >
       <SubmissionGridViewProvider view={view} {...props}>
-        {children}
+        <SubmissionTestAccessProvider access={testAccess}>
+          {children}
+        </SubmissionTestAccessProvider>
       </SubmissionGridViewProvider>
     </SubmissionGridUrlProvider>
   );
