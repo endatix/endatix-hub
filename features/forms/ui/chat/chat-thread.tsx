@@ -1,10 +1,8 @@
 "use client";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import UserAvatar from "@/components/user/user-avatar";
-import { Pencil } from "lucide-react";
 import React, { useEffect, useMemo, useRef } from "react";
 import { useFormAssistant } from "../../use-cases/design-form";
 
@@ -91,18 +89,6 @@ const ChatThread: React.FC = () => {
                   />
                 ) : (
                   <p className="line-height-sm">{message.content}</p>
-                )}
-                {!message.isAi && false && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="ml-2"
-                    title="Edit prompt - coming soon"
-                    // onClick={() => handleEditPrompt(message.id)}
-                  >
-                    <Pencil className="h-4 w-4 ml-auto flex-end" />
-                    <span className="sr-only">Edit prompt</span>
-                  </Button>
                 )}
               </div>
             </div>

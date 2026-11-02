@@ -69,7 +69,7 @@ export default function SurveyPreviewComponent({
       survey.applyTheme(ContrastLightPanelless);
 
       setModelMetadata(survey);
-      prefetchPrivateReadUrlsForModel(survey);
+      void prefetchPrivateReadUrlsForModel(survey);
 
       setModel(survey);
       setError(null);

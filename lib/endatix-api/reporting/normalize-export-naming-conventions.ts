@@ -31,7 +31,7 @@ export function normalizeExportNamingConventions(
   conventions: ColumnAliasNamingConventionDto[],
 ): ColumnAliasNamingConventionDto[] {
   return conventions
-    .map(normalizeExportNamingConvention)
+    .map((convention) => normalizeExportNamingConvention(convention))
     .filter(
       (convention): convention is ColumnAliasNamingConventionDto =>
         convention !== null,

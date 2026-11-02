@@ -4,6 +4,7 @@ import { useSubmissionStatus } from "../use-submission-status.hook";
 import { changeStatusAction } from "../change-status.action";
 import { SubmissionStatusKind } from "@/types";
 import { toast } from "@/components/ui/toast";
+import { redirect } from "next/navigation";
 
 // Mock dependencies
 vi.mock("../change-status.action", () => ({
@@ -68,6 +69,39 @@ describe("useSubmissionStatus", () => {
     });
 
     expect(toast.error).toHaveBeenCalledWith(error);
+  });
+
+  it("shows an error when the status change throws", async () => {
+    vi.mocked(changeStatusAction).mockRejectedValueOnce(
+      new Error("Network error"),
+    );
+
+    const { result } = renderHook(() => useSubmissionStatus(mockProps));
+
+    await act(async () => {
+      result.current.handleStatusChange();
+    });
+
+    expect(toast.error).toHaveBeenCalledWith("Failed to update status");
+  });
+
+  it("lets a sign-in redirect through instead of showing an error", async () => {
+    let redirectError: unknown;
+    try {
+      redirect("/login");
+    } catch (error) {
+      redirectError = error;
+    }
+    vi.mocked(changeStatusAction).mockRejectedValueOnce(redirectError);
+
+    const { result } = renderHook(() => useSubmissionStatus(mockProps));
+
+    await expect(
+      act(async () => {
+        result.current.handleStatusChange();
+      }),
+    ).rejects.toBe(redirectError);
+    expect(toast.error).not.toHaveBeenCalled();
   });
 
   it("should toggle between new and read status", () => {

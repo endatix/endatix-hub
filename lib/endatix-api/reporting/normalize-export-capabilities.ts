@@ -73,7 +73,7 @@ export function normalizeExportCapabilities(
   capabilities: ExportCapabilityDto[],
 ): ExportCapabilityDto[] {
   return capabilities
-    .map(normalizeExportCapability)
+    .map((capability) => normalizeExportCapability(capability))
     .filter(
       (capability): capability is ExportCapabilityDto => capability !== null,
     );

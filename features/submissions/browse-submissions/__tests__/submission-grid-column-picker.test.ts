@@ -145,7 +145,9 @@ describe("filterColumnGroups", () => {
     const matches = filterColumnGroups(groups, "EMAIL");
 
     // Assert
-    expect(matches.map(groupLabel)).toEqual(["Page one › Contact"]);
+    expect(matches.map((group) => groupLabel(group))).toEqual([
+      "Page one › Contact",
+    ]);
     expect(columnKeysOf(matches)).toEqual(["email"]);
   });
 

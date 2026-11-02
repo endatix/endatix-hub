@@ -9,7 +9,7 @@ import {
 function readiness(
   overrides: Partial<SubmissionGridReadiness> = {},
 ): SubmissionGridReadiness {
-  return {
+  const counts = {
     submissions: 10,
     completedSubmissions: 8,
     prepared: 8,
@@ -17,6 +17,11 @@ function readiness(
     failed: 0,
     skippedInProgress: 2,
     ...overrides,
+  };
+  // The API sends inProgress as submissions minus completed ones.
+  return {
+    inProgress: counts.submissions - counts.completedSubmissions,
+    ...counts,
   };
 }
 

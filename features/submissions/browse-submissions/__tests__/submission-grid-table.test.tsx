@@ -79,6 +79,49 @@ describe("SubmissionGridTable", () => {
     );
   });
 
+  it("opens the submission with Enter on a focused row", () => {
+    // Arrange
+    renderTable([row()]);
+    const tableRow = screen.getByText("Complete").closest("tr")!;
+
+    // Act
+    tableRow.focus();
+    fireEvent.keyDown(tableRow, { key: "Enter" });
+
+    // Assert
+    expect(router.push).toHaveBeenCalledWith(
+      "/forms/7/submissions/9007199254740993",
+      { scroll: false },
+    );
+  });
+
+  it("offers the review status as a button", () => {
+    // Arrange & Act
+    renderTable([row()]);
+
+    // Assert
+    expect(screen.getByRole("button", { name: /New/ }).tagName).toBe("BUTTON");
+  });
+
+  it("keeps a header text filter focused while typing", () => {
+    // Arrange
+    renderTable([row()]);
+    fireEvent.keyDown(
+      screen.getByRole("button", { name: "Submitter column menu" }),
+      { key: "Enter" },
+    );
+    const input = screen.getByPlaceholderText("Submitter");
+    input.focus();
+
+    // Act
+    fireEvent.change(input, { target: { value: "vi" } });
+    fireEvent.change(input, { target: { value: "visitor" } });
+
+    // Assert
+    expect(document.activeElement).toBe(input);
+    expect(screen.getByPlaceholderText("Submitter")).toBe(input);
+  });
+
   it("does not open the submission from the row menu", () => {
     // Arrange
     renderTable([row()]);

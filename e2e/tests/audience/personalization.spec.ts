@@ -1,28 +1,33 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
-import { expect, test, type FrameLocator, type Page } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { variableNameFromName } from "@/features/audience/property-types";
 import type { EndatixApi } from "@/lib/endatix-api/endatix-api";
 import {
   panelCsv,
+  panelDefinition,
   preparePanelForm,
+  PRIVATE_ONE_PER_USER,
   signInForAudience,
 } from "../../utils/audience-import-api";
-import { playgroundEmbedHostHref } from "../../utils/open-embed-host";
+import { configureE2eForm } from "../../utils/form-api";
+import { runE2eForms } from "../../utils/run-e2e-form";
 import {
   createShareAccessToken,
   e2eCredentials,
   trySecondOnBehalf,
 } from "../../utils/screen-out-api";
+import {
+  completeSurvey,
+  expectThankYou,
+  gotoSurface,
+  openSurvey,
+  questionInput,
+  SURFACES,
+  type SurveySurface,
+} from "../../utils/survey-surface";
 
 const FIXTURE = "cedar-grove-pulse.csv";
 const SUBJECT = "CG-000001-01";
 const CITY = "03. MIDWEST - COLUMBUS";
-const FIXTURES = path.join(process.cwd(), "e2e/fixtures/audience");
-const SURFACES = ["share", "iframe"] as const;
-
-type SurfaceKind = (typeof SURFACES)[number];
-type SurveySurface = Page | FrameLocator;
 
 type OnBehalfBody = {
   id: string;
@@ -40,33 +45,11 @@ function oneRowCsv(): string {
   return `${header}\n${first}\n`;
 }
 
-function hubBaseUrl(): string {
-  return process.env.BASE_URL ?? "http://localhost:3000";
-}
-
-function embedHostOrigin(): string {
-  return process.env.E2E_EMBED_HOST_URL ?? "http://localhost:5000";
-}
-
 async function publishSurvey(api: EndatixApi, formId: string): Promise<void> {
-  const published = await api.put(`/forms/${formId}/definition`, {
-    isDraft: false,
-    jsonData: readFileSync(
-      path.join(FIXTURES, "cedar-grove-pulse.survey.json"),
-      "utf8",
-    ),
+  await configureE2eForm(api, formId, {
+    definitionJson: panelDefinition("cedar-grove-pulse.survey.json"),
+    ...PRIVATE_ONE_PER_USER,
   });
-  if (!published.success) {
-    throw new Error(`Publish definition failed: ${published.error.message}`);
-  }
-  const updated = await api.forms.update(formId, {
-    isPublic: false,
-    limitOnePerUser: true,
-    submissionTokenExpiryHours: 24,
-  });
-  if (!updated.success) {
-    throw new Error(`Update form failed: ${updated.error.message}`);
-  }
 }
 
 async function importFirstRow(api: EndatixApi, formId: string): Promise<void> {
@@ -113,59 +96,10 @@ async function openOnBehalf(
   };
 }
 
-function shareUrl(formId: string, token: string, city?: string): string {
-  const url = new URL(`/share/${formId}`, hubBaseUrl());
-  url.searchParams.set("token", token);
-  if (city) url.searchParams.set("city", city);
-  return url.toString();
-}
-
-function surfaceOf(page: Page, kind: SurfaceKind, formId: string): SurveySurface {
-  return kind === "share"
-    ? page
-    : page.frameLocator(`iframe[id^="edxf-${formId}"]`);
-}
-
-async function gotoSurface(
-  page: Page,
-  kind: SurfaceKind,
-  formId: string,
-  token: string,
-  city?: string,
-): Promise<SurveySurface> {
-  if (kind === "share") {
-    await page.goto(shareUrl(formId, token, city));
-  } else {
-    await page.goto(
-      playgroundEmbedHostHref(embedHostOrigin(), formId, hubBaseUrl(), token),
-    );
-  }
-  return surfaceOf(page, kind, formId);
-}
-
-async function openSurvey(
-  page: Page,
-  kind: SurfaceKind,
-  formId: string,
-  token: string,
-  city?: string,
-): Promise<SurveySurface> {
-  const surface = await gotoSurface(page, kind, formId, token, city);
-  await surface.locator(".sd-root-modern").waitFor({ timeout: 30_000 });
-  return surface;
-}
-
 async function expectFrozen(survey: SurveySurface): Promise<void> {
   await expect(survey.getByText(CITY)).toBeVisible();
   await expect(survey.getByText("Shown when age is at least 50")).toBeVisible();
   await expect(questionInput(survey, "Age in months")).toHaveValue("780");
-}
-
-function questionInput(survey: SurveySurface, title: string) {
-  return survey
-    .locator(".sd-question")
-    .filter({ hasText: title })
-    .locator("input");
 }
 
 async function editFamilySize(page: Page, survey: SurveySurface): Promise<void> {
@@ -202,18 +136,6 @@ async function expectStoredAnswer(
   expect(read.data.personalization?.variables?.age).toBe(65);
 }
 
-const ALREADY_SUBMITTED = "This form has already been completed.";
-
-async function expectThankYou(surface: SurveySurface): Promise<void> {
-  await expect(surface.getByText("Thank you")).toBeVisible({ timeout: 15_000 });
-  await expect(surface.getByText(ALREADY_SUBMITTED)).toBeVisible();
-}
-
-async function completeSurvey(survey: SurveySurface): Promise<void> {
-  await survey.getByRole("button", { name: "Complete" }).click();
-  await survey.getByText("Thank you").waitFor({ timeout: 15_000 });
-}
-
 test.describe("On-behalf personalization", () => {
   test.setTimeout(120_000);
 
@@ -230,7 +152,7 @@ test.describe("On-behalf personalization", () => {
       throw new Error("E2E sign-in failed");
     }
     const form = await preparePanelForm(api, "Cedar Grove one response", FIXTURE);
-    try {
+    await runE2eForms([form.formId], (keep) => form.release(keep), async () => {
       await publishSurvey(api, form.formId);
       await importFirstRow(api, form.formId);
       const opened = await openOnBehalf(api, form.formId);
@@ -242,7 +164,7 @@ test.describe("On-behalf personalization", () => {
         "share",
         form.formId,
         opened.shareToken,
-        "Other",
+        { city: "Other" },
       );
       await expect(withCity.getByText(CITY)).toBeVisible();
       await expect(withCity.getByText("Other")).toHaveCount(0);
@@ -269,8 +191,6 @@ test.describe("On-behalf personalization", () => {
       expect(second.success, "limit one per user refuses a second submission").toBe(
         false,
       );
-    } finally {
-      await form.cleanup();
-    }
+    });
   });
 });

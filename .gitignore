@@ -54,3 +54,11 @@ customizations/questions/question-registry.ts
 
 # embed bundle is produced by `pnpm build:embed` (also runs in predev/prebuild)
 /public/embed/v1/
+
+# local agent checkouts
+.claude/worktrees/
+# agent skills: per-developer config, evidence and work files
+.agents/endatix-models.local.yaml
+.agents/endatix-workspace.local.yaml
+.agents/evidence/
+.agents/work/

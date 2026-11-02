@@ -1,4 +1,4 @@
-import type { SurveyModel } from "survey-core";
+import type { JsonObjectProperty, SurveyModel } from "survey-core";
 import { Serializer } from "survey-core";
 import { getAllSelectBasedQuestions } from "@/lib/survey-features/question-loops/loop-utils";
 import { getCarryForwardSourceQuestions } from "@/lib/survey-features/carry-forward/utils/carry-forward-target-query";
@@ -34,6 +34,36 @@ import {
 } from "../constants";
 
 let isMatrixCarouselRegistryInitialized = false;
+
+const vendorGridOnlyVisibleIf = new Map<string, JsonObjectProperty["visibleIf"]>();
+
+// matrix declares these properties itself (as of SurveyJS 3.2). A second
+// Serializer.addProperty with the same name is appended but shadowed by the
+// first-registered one, so the gate goes on matrix's own property. Only own
+// properties: one inherited from a shared parent would gate every subclass.
+function ownGridOnlyProperties(): JsonObjectProperty[] {
+  return (
+    Serializer.findClass(MATRIX_TYPE)?.properties.filter((property) =>
+      GRID_ONLY_PROPERTIES.includes(property.name),
+    ) ?? []
+  );
+}
+
+function gateGridOnlyProperties(): void {
+  ownGridOnlyProperties().forEach((property) => {
+    vendorGridOnlyVisibleIf.set(property.name, property.visibleIf);
+    property.visibleIf = (obj: { edxDisplayMode?: string }) => !isCarouselMode(obj);
+  });
+}
+
+function restoreGridOnlyProperties(): void {
+  ownGridOnlyProperties().forEach((property) => {
+    if (vendorGridOnlyVisibleIf.has(property.name)) {
+      property.visibleIf = vendorGridOnlyVisibleIf.get(property.name)!;
+    }
+  });
+  vendorGridOnlyVisibleIf.clear();
+}
 
 function isCarouselMode(obj: { edxDisplayMode?: string }): boolean {
   return obj.edxDisplayMode === DISPLAY_MODE_CAROUSEL;
@@ -242,12 +272,7 @@ export function registerMatrixCarouselSchema(): void {
     // matrix questions: visibleIf only hides the property in the grid, it
     // does not deserialize/remove it, so existing grid-mode JSON using these
     // properties keeps working unchanged.
-    GRID_ONLY_PROPERTIES.forEach((name) => {
-      Serializer.addProperty(MATRIX_TYPE, {
-        name,
-        visibleIf: (obj: { edxDisplayMode?: string }) => !isCarouselMode(obj),
-      });
-    });
+    gateGridOnlyProperties();
   }
 
   if (!Serializer.findProperty(ITEM_VALUE_CLASS, IMAGE_URL_PROPERTY)) {
@@ -286,9 +311,7 @@ export function resetMatrixCarouselRegistryForTests(): void {
     }
   });
 
-  GRID_ONLY_PROPERTIES.forEach((name) => {
-    Serializer.addProperty(MATRIX_TYPE, { name, visibleIf: undefined });
-  });
+  restoreGridOnlyProperties();
 
   if (Serializer.findProperty(ITEM_VALUE_CLASS, IMAGE_URL_PROPERTY)) {
     Serializer.removeProperty(ITEM_VALUE_CLASS, IMAGE_URL_PROPERTY);

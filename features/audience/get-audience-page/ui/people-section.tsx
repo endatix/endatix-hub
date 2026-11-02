@@ -1,32 +1,44 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Users } from "lucide-react";
+import { DataTableSurface, PagedTableFooter } from "@/components/table";
+import { Button } from "@/components/ui/button";
 import {
-  DataTableEmpty,
-  DataTableSurface,
-  PagedTableFooter,
-} from "@/components/table";
-import type {
-  AudienceIdentifierKind,
-  AudiencePerson,
-  AudienceProperty,
+  AudiencePeopleTestFilter,
+  type AudienceIdentifierKind,
+  type AudienceImportLimits,
+  type AudiencePerson,
+  type AudienceProperty,
 } from "@/lib/endatix-api/audience/types";
 import { useUrlSearchParamsUpdater } from "@/lib/utils/hooks/use-url-search-params-updater.hook";
+import { CopyTestLinkDialog } from "../../copy-test-link/ui/copy-test-link-dialog";
+import { useCopyTestLinkDialog } from "../../copy-test-link/ui/use-copy-test-link-dialog.hook";
 import { AddPersonPanel } from "../../create-person/ui/add-person-panel";
+import { DownloadTestLinksPanel } from "../../download-test-links/ui/download-test-links-panel";
 import { GenerateLinksPanel } from "../../generate-links/ui/generate-links-panel";
 import { ImportCsvPanel } from "../../import-csv/ui/import-csv-panel";
+import {
+  useParticipantSelection,
+  type ParticipantSelection,
+} from "../../ui/use-participant-selection.hook";
 import { RemovePersonDialog } from "../../delete-person/ui/remove-person-dialog";
+import { ReissueLinkOverlay } from "../../reissue-link/ui/reissue-link-dialog";
+import { useTestAsPerson } from "../../test-as-person/use-test-as-person.hook";
 import { EditPersonPanel } from "../../update-person/ui/edit-person-panel";
 import { useRowOverlay } from "../../use-panel-state.hook";
 import { valueProperties } from "../../utils";
-import { PeopleTable } from "./people-table";
+import { PeopleTable, type RowHandlers } from "./people-table";
+import { PeopleEmpty } from "./people-empty";
+import { PeopleToolbar } from "./people-toolbar";
 import { SectionHeader } from "./section-header";
+import type { UsageVerdicts } from "@/lib/personalization/coverage";
 
 type PeopleSectionProps = {
   formId: string;
   identifierKind: AudienceIdentifierKind;
   properties: AudienceProperty[];
+  /** How large a CSV this host imports, stated before a file is chosen. */
+  importLimits: AudienceImportLimits;
   people: AudiencePerson[];
   totalPeople: number;
   page: number;
@@ -35,15 +47,25 @@ type PeopleSectionProps = {
   hasNextPage: boolean;
   /** Without `forms.edit` the list is read-only: no add, edit or remove controls. */
   canEdit: boolean;
+  /** With `forms.test` each row offers Test as this participant. */
+  canTest: boolean;
+  /** Each test participant's row offers Copy test link (`testLinkAccess`). */
+  canCopyTestLink?: boolean;
+  /** The test links route answers this reader: Download test links (`testLinkAccess`). */
+  canMintTestLinks?: boolean;
+  /** Test participants on the form; Download test links needs at least one. */
+  testParticipants?: number;
+  /** All / Real / Test; `totalPeople` counts the filtered set. */
+  testFilter: AudiencePeopleTestFilter;
+  /** The identifier search (`?search=`); `totalPeople` counts what it keeps. */
+  search: string;
   viewSwitch?: ReactNode;
   /** The locked match key, said once where people are listed. */
   matchKeyNote?: ReactNode;
+  /** The saved form's Audience verdicts: marks participants missing values it reads. */
+  verdicts?: UsageVerdicts | null;
 };
 
-type RowTargets = {
-  onEdit: (person: AudiencePerson) => void;
-  onRemove: (person: AudiencePerson) => void;
-};
 type Paging = Pick<
   PeopleSectionProps,
   "page" | "pageSize" | "totalPeople" | "totalPages" | "hasNextPage"
@@ -59,7 +81,7 @@ function PeoplePager(props: Readonly<Paging>) {
   return (
     <PagedTableFooter
       variant="surface"
-      entityLabel="people"
+      entityLabel="participants"
       {...pagerState(props)}
       onPageChange={(next) => updateUrl({ page: String(next) })}
       onPageSizeChange={(size) =>
@@ -69,16 +91,16 @@ function PeoplePager(props: Readonly<Paging>) {
   );
 }
 
-type PeopleSurfaceProps = PeopleSectionProps & { handlers?: RowTargets };
+type PeopleSurfaceProps = PeopleSectionProps & {
+  handlers: RowHandlers;
+  selection?: ParticipantSelection;
+};
 
 function PeopleSurface(props: Readonly<PeopleSurfaceProps>) {
   return (
     <DataTableSurface data-slot="audience-people-table">
       {props.totalPeople === 0 ? (
-        <DataTableEmpty icon={Users} title="No people yet">
-          Add the people this form is for, one at a time or from a CSV file.
-          Each person can have their own value for every property.
-        </DataTableEmpty>
+        <PeopleEmpty testFilter={props.testFilter} search={props.search} />
       ) : (
         <>
           <PeopleTable {...props} />
@@ -95,9 +117,11 @@ type OverlayProps = Pick<
   "formId" | "identifierKind" | "properties"
 > & {
   row: Overlays;
+  /** Drops a removed participant's tick. */
+  onRemoved: (person: AudiencePerson) => void;
 };
 
-/** One overlay at a time: the row's edit panel or its remove confirmation. */
+/** One overlay at a time: the row's edit panel, its remove confirmation or Reissue link. */
 function PeopleOverlays({ row, ...props }: Readonly<OverlayProps>) {
   return (
     <>
@@ -114,20 +138,44 @@ function PeopleOverlays({ row, ...props }: Readonly<OverlayProps>) {
         open={row.isDeleting}
         onClose={row.close}
       />
+      <ReissueLinkOverlay formId={props.formId} overlay={row} />
     </>
   );
 }
 
 const DESCRIPTION =
-  "Who this form is for. Removing someone takes them off this form only.";
+  "Who this form is for. Removing a participant takes them off this form only.";
 
-/** Import is `outline` beside the view's one primary action, Add person (DESIGN.md §5 Buttons). */
-function PeopleActions(props: Readonly<PeopleSectionProps>) {
+/** Download test links and the ticks that pick for it, with test participants to pick from. */
+const offersTestLinks = (props: Readonly<PeopleSectionProps>) =>
+  Boolean(props.canMintTestLinks) && (props.testParticipants ?? 0) > 0;
+
+type PeopleActionsProps = PeopleSectionProps & {
+  selection: ParticipantSelection;
+};
+
+function TestLinksAction({
+  selection,
+  ...props
+}: Readonly<PeopleActionsProps>) {
+  if (!offersTestLinks(props)) return null;
+  return (
+    <DownloadTestLinksPanel
+      formId={props.formId}
+      testParticipants={props.testParticipants ?? 0}
+      selectedIds={selection.ids}
+    />
+  );
+}
+
+/** Import is `outline` beside the view's one primary action, Add participant (DESIGN.md §5 Buttons). */
+function PeopleActions(props: Readonly<PeopleActionsProps>) {
   if (!props.canEdit) return null;
   return (
     <div className="flex flex-wrap gap-2">
       <ImportCsvPanel {...props} />
       <GenerateLinksPanel {...props} />
+      <TestLinksAction {...props} />
       <AddPersonPanel
         {...props}
         properties={valueProperties(props.properties, props.identifierKind)}
@@ -136,11 +184,11 @@ function PeopleActions(props: Readonly<PeopleSectionProps>) {
   );
 }
 
-function PeopleHeader(props: Readonly<PeopleSectionProps>) {
+function PeopleHeader(props: Readonly<PeopleActionsProps>) {
   return (
     <SectionHeader
       id="audience-people"
-      title="People"
+      title="Participants"
       description={
         <>
           {DESCRIPTION} {props.matchKeyNote}
@@ -152,21 +200,83 @@ function PeopleHeader(props: Readonly<PeopleSectionProps>) {
   );
 }
 
+/**
+ * Row actions this reader may run: Reissue link, edit and remove with `forms.edit`, test with
+ * `forms.test`, Copy test link with `canCopyTestLink`.
+ */
+function useRowHandlers(
+  props: Readonly<PeopleSectionProps>,
+  row: Overlays,
+  copyTestLink: (person: AudiencePerson) => void,
+): RowHandlers {
+  const testAs = useTestAsPerson(props.formId);
+  const edits = {
+    onReissueLink: row.reissue,
+    onEdit: row.edit,
+    onRemove: row.remove,
+  };
+  return {
+    ...(props.canEdit ? edits : {}),
+    ...(props.canTest ? { onTest: testAs } : {}),
+    ...(props.canCopyTestLink ? { onCopyTestLink: copyTestLink } : {}),
+  };
+}
+
+/** The toolbar shows once there is someone to find, and stays while a search or filter is on. */
+function showsToolbar({ totalPeople, testFilter, search }: PeopleSectionProps) {
+  return (
+    totalPeople > 0 || testFilter !== AudiencePeopleTestFilter.All || !!search
+  );
+}
+
 /** Import keeps every property as a target; the rest show and edit only value properties. */
+const withValueProperties = (props: Readonly<PeopleSectionProps>) => ({
+  ...props,
+  properties: valueProperties(props.properties, props.identifierKind),
+  allProperties: props.properties,
+});
+
+/**
+ * Ticks outlive a page or filter change, so they can be cleared from any page. Nothing when
+ * there are none, so the toolbar keeps no empty actions slot.
+ */
+function clearSelection(selection?: ParticipantSelection) {
+  const count = selection?.ids.length ?? 0;
+  if (!selection || count === 0) return undefined;
+  return (
+    <Button variant="ghost" size="sm" onClick={selection.clear}>
+      Clear selection ({count.toLocaleString()})
+    </Button>
+  );
+}
+
+type ListToolbarProps = PeopleSectionProps & {
+  ticks?: ParticipantSelection;
+};
+
+/** Search and the Test filter, with Clear selection pinned while there are ticks. */
+function ListToolbar({ ticks, ...props }: Readonly<ListToolbarProps>) {
+  if (!showsToolbar(props)) return null;
+  const actions = clearSelection(ticks);
+  return <PeopleToolbar testFilter={props.testFilter} actions={actions} />;
+}
+
 export function PeopleSection(props: Readonly<PeopleSectionProps>) {
   const row = useRowOverlay<AudiencePerson>();
-  const values = {
-    ...props,
-    properties: valueProperties(props.properties, props.identifierKind),
-  };
-  const handlers = props.canEdit
-    ? { onEdit: row.edit, onRemove: row.remove }
-    : undefined;
+  const testLink = useCopyTestLinkDialog();
+  const selection = useParticipantSelection();
+  const handlers = useRowHandlers(props, row, testLink.open);
+  const values = withValueProperties(props);
+  const ticks = offersTestLinks(props) ? selection : undefined;
   return (
     <section aria-labelledby="audience-people" className="flex flex-col gap-4">
-      <PeopleHeader {...props} />
-      <PeopleSurface {...values} handlers={handlers} />
-      {props.canEdit ? <PeopleOverlays {...values} row={row} /> : null}
+      <PeopleHeader {...props} selection={selection} />
+      <ListToolbar {...props} ticks={ticks} />
+      <PeopleSurface {...values} handlers={handlers} selection={ticks} />
+      {props.canEdit ? (
+        <PeopleOverlays {...values} row={row} onRemoved={selection.untick} />
+      ) : null}
+      <CopyTestLinkDialog formId={props.formId} {...testLink.dialog} />
     </section>
   );
 }

@@ -83,7 +83,7 @@ vi.mock("@/components/ui/responsive-panel", () => ({
   ),
 }));
 
-vi.mock("@/components/ui/select", async (importOriginal) => {
+vi.mock("@/components/ui/select", async () => {
   const React = await import("react");
 
   type SelectWalkProps = {
@@ -100,7 +100,7 @@ vi.mock("@/components/ui/select", async (importOriginal) => {
     }
 
     if (Array.isArray(node)) {
-      return node.map(textOf).join("");
+      return node.map((child) => textOf(child)).join("");
     }
 
     if (

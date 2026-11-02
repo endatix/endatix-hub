@@ -74,7 +74,7 @@ export function getHubAuthAdminSummary(): HubAuthAdminSummary {
 
   const activeProviders = authRegistry
     .getActiveProviders()
-    .map(mapProviderSummary);
+    .map((provider) => mapProviderSummary(provider));
   const providers: HubAuthProviderSummary[] = [...activeProviders];
 
   const keycloakEnabled = process.env.AUTH_KEYCLOAK_ENABLED === "true";

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { readCsvRecords, writeCsv } from "../csv";
+import { readCsvRecords, readCsvRows, writeCsv } from "../csv";
 
 describe("csv", () => {
   it("reads quoted commas, line breaks and doubled quotes, skipping empty lines", () => {
@@ -51,5 +51,39 @@ describe("csv", () => {
     expect(writeCsv([["=cmd", "+1", "-2", "@x"]])).toContain(
       "'=cmd,'+1,'-2,'@x",
     );
+  });
+});
+
+describe("readCsvRows", () => {
+  it("marks a row with a stray quote as malformed, as the API's CSV parser does", () => {
+    // Arrange
+    const text =
+      'id,note\n1,ab"c\n2,"ok" ,x\n3,"closed"tail\n4, "spaced"\n5,"open';
+
+    // Act
+    const rows = readCsvRows(text);
+
+    // Assert
+    expect(rows.map((row) => row.malformed)).toEqual([
+      false,
+      true,
+      false,
+      true,
+      false,
+      true,
+    ]);
+    expect(rows[1].cells).toEqual(["1", 'ab"c']);
+  });
+
+  it("reads the same cells as readCsvRecords", () => {
+    // Arrange
+    const text = 'id,note\r\n1,"a, ""b""\r\nc"\r\n2,ab"c,d"\r\n';
+
+    // Act
+    const rows = readCsvRows(text);
+
+    // Assert
+    expect(rows.map((row) => row.cells)).toEqual(readCsvRecords(text));
+    expect(rows[1].malformed).toBe(false);
   });
 });

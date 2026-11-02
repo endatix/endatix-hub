@@ -8,7 +8,7 @@ import {
 } from "../property-types";
 
 describe("audience data types", () => {
-  it("leaves choice types out of the create list until choices can be edited", () => {
+  it("leaves choice types out of the types that need no choices", () => {
     // Act
     const creatable = CREATABLE_DATA_TYPES.map((entry) => entry.value);
 

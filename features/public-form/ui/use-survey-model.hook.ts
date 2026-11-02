@@ -71,7 +71,7 @@ export function useSurveyModel({
       }
     };
 
-    loadCustomQuestions();
+    void loadCustomQuestions();
   }, [customQuestions]);
 
   useEffect(() => {

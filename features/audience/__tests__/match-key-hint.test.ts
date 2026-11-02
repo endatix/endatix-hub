@@ -10,7 +10,7 @@ describe("matchKeyHint", () => {
       /manage organization settings/,
     );
     expect(matchKeyHint({ isLocked: false, canManage: true })).toMatch(
-      /^Choose it before adding people/,
+      /^Choose it before adding participants/,
     );
   });
 });

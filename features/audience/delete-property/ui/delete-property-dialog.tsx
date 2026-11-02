@@ -18,13 +18,13 @@ const COPY = Object.freeze({
   successMessage: "Property deleted",
 });
 
-/** Says how many people lose a value, so the reader knows the size of the delete. */
+/** Says how many participants lose a value, so the reader knows the size of the delete. */
 export function valuesConsequence(totalPeople: number): string {
   if (totalPeople === 0)
-    return "No one is on this audience yet, so no values are lost.";
-  const people =
-    totalPeople === 1 ? "1 person" : `${totalPeople.toLocaleString()} people`;
-  return `Its values are deleted for all ${people} on this form's audience.`;
+    return "This form has no participants yet, so no values are lost.";
+  if (totalPeople === 1)
+    return "Its values are deleted for the 1 participant on this form.";
+  return `Its values are deleted for all ${totalPeople.toLocaleString()} participants on this form.`;
 }
 
 export function DeletePropertyDialog(

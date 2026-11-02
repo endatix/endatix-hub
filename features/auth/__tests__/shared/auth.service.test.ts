@@ -3,7 +3,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { AuthService } from "../../shared/auth.service";
 import { cookies } from "next/headers";
-import { Result } from "@/lib/result";
 import { JwtService } from "../../infrastructure/jwt.service";
 import type { ReadonlyRequestCookies } from "next/dist/server/web/spec-extension/adapters/request-cookies";
 

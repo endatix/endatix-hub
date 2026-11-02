@@ -40,6 +40,6 @@ export async function listSignupRequests(
   const page = normalizePagedResponse(result.value);
   return Result.success({
     ...page,
-    items: page.items.map(toSignupRequestView),
+    items: page.items.map((item) => toSignupRequestView(item)),
   });
 }

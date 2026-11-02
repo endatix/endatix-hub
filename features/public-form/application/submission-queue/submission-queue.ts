@@ -56,7 +56,7 @@ export class SubmissionQueue {
     } finally {
       this.isProcessing = false;
       if (this.queue.length > 0) {
-        this.processQueue();
+        void this.processQueue();
       } else {
         this.notifyIfNotProcessing();
       }
@@ -74,7 +74,7 @@ export class SubmissionQueue {
     }
 
     this.queue.push(item);
-    this.processQueue();
+    void this.processQueue();
   }
 
   public clear(): void {
