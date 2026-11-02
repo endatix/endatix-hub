@@ -169,6 +169,39 @@ describe("SubmissionGridTable answer filters", () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    searchParams.delete("answer.contains.company");
+  });
+
+  it("keeps an answer filter's draft and focus while typing, unwritten", () => {
+    // Arrange
+    renderTable([row()], toAnswerColumns([wireColumn({ key: "company" })]));
+    openColumnMenu("company");
+    const input = screen.getByPlaceholderText("Contains");
+    input.focus();
+
+    // Act
+    fireEvent.change(input, { target: { value: "ac" } });
+    fireEvent.change(input, { target: { value: "acme" } });
+    act(() => vi.advanceTimersByTime(1_000));
+
+    // Assert
+    expect(document.activeElement).toBe(input);
+    expect(screen.getByPlaceholderText("Contains")).toBe(input);
+    expect(router.replace).not.toHaveBeenCalled();
+  });
+
+  it("removes an answer filter from the URL on Clear", () => {
+    // Arrange
+    searchParams.set("answer.contains.company", "acme");
+    renderTable([row()], toAnswerColumns([wireColumn({ key: "company" })]));
+    openColumnMenu("company");
+
+    // Act
+    fireEvent.click(screen.getByRole("button", { name: "Clear" }));
+    act(() => vi.advanceTimersByTime(350));
+
+    // Assert
+    expect(replacedQuery().has("answer.contains.company")).toBe(false);
   });
 
   it("writes a text column's contains filter to the URL", () => {
