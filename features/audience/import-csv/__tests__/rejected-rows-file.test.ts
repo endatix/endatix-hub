@@ -27,8 +27,13 @@ describe("rejectedRowsCsv", () => {
     ]);
   });
 
-  it("names the file after the imported one", () => {
-    expect(rejectedRowsFileName("panel.csv")).toBe("panel-rejected-rows.csv");
-    expect(rejectedRowsFileName("export")).toBe("export-rejected-rows.csv");
+  it("names the file after the imported one, dated", () => {
+    const at = new Date("2026-11-02T10:00:00Z");
+    expect(rejectedRowsFileName("panel.csv", at)).toBe(
+      "panel-rejected-rows-2026-11-02.csv",
+    );
+    expect(rejectedRowsFileName("export", at)).toBe(
+      "export-rejected-rows-2026-11-02.csv",
+    );
   });
 });

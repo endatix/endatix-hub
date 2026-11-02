@@ -4,11 +4,12 @@ import {
   Ban,
   CircleCheckBig,
   CircleX,
-  Download,
   FileWarning,
+  Info,
   TriangleAlert,
 } from "lucide-react";
 import type { ReactNode } from "react";
+import { DownloadMenu } from "@/components/common/download-menu";
 import { PanelSection } from "@/components/common/panel-section";
 import {
   DATA_TABLE_SHRINK_WRAP_CLASS_NAME,
@@ -17,14 +18,16 @@ import {
   dataTableCell,
 } from "@/components/table";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 import {
   AudienceImportStatus,
   type AudienceImportRejection,
   type AudienceImportView,
 } from "@/lib/endatix-api/audience/types";
 import { outcomeCounts } from "../import-labels";
-import { useRejectedRowsDownload } from "../use-rejected-rows-download.hook";
+import {
+  useRejectedRowsDownload,
+  type DownloadMessage,
+} from "../use-rejected-rows-download.hook";
 
 type ViewProps = { view: AudienceImportView };
 
@@ -98,6 +101,8 @@ type RejectionsProps = {
 };
 
 function rejectionsDescription({ rejections, rejectedCount }: RejectionsProps) {
+  if (rejections.length === 0)
+    return `${rejectedCount.toLocaleString()} rows. Download them to see each one.`;
   return rejections.length < rejectedCount
     ? `The first ${rejections.length} of ${rejectedCount.toLocaleString()}, by their row in the file.`
     : "By their row in the file.";
@@ -128,7 +133,7 @@ function RejectionsTable({
 
 /** The first rejected rows, by their row in the file. */
 export function RejectedRows({ aside, ...props }: Readonly<RejectionsProps>) {
-  if (props.rejections.length === 0) return null;
+  if (props.rejections.length === 0 && !aside) return null;
   const description = rejectionsDescription(props);
   return (
     <PanelSection
@@ -136,48 +141,51 @@ export function RejectedRows({ aside, ...props }: Readonly<RejectionsProps>) {
       title="Rejected rows"
       {...{ description, aside }}
     >
-      <RejectionsTable rejections={props.rejections} />
+      {props.rejections.length > 0 ? (
+        <RejectionsTable rejections={props.rejections} />
+      ) : null}
     </PanelSection>
   );
 }
 
 type SummaryProps = ViewProps & { formId: string };
 
-function DownloadRejected({
-  pending,
-  onClick,
-}: Readonly<{ pending: boolean; onClick: () => Promise<void> }>) {
+function DownloadMessageAlert({
+  message,
+}: Readonly<{ message: DownloadMessage | null }>) {
+  if (!message) return null;
+  const error = message.kind === "error";
+  const Icon = error ? CircleX : Info;
   return (
-    <Button
-      type="button"
-      variant="outline"
-      size="sm"
-      disabled={pending}
-      onClick={() => void onClick()}
-    >
-      <Download />
-      Download rejected rows
-    </Button>
+    <Alert variant={error ? "destructive" : "info"}>
+      <Icon />
+      <AlertDescription>{message.text}</AlertDescription>
+    </Alert>
   );
 }
 
+/**
+ * Every rejected row can be listed from an API that started the import with its options
+ * (endatix#1419); an older one has no rejections read.
+ */
+const canListRejections = (view: AudienceImportView) =>
+  view.written.rejectedCount > 0 && view.emptyCells !== undefined;
+
 /** The rows to fix, every one of them downloadable with its line, reason and cells (E4). */
 function CompletedRejections({ view, formId }: Readonly<SummaryProps>) {
-  const { pending, error, download } = useRejectedRowsDownload(formId, view);
-  const button = <DownloadRejected pending={pending} onClick={download} />;
+  const { pending, message, download } = useRejectedRowsDownload(formId, view);
+  const csv = { kind: "csv" as const, onSelect: () => void download() };
+  const aside = canListRejections(view) ? (
+    <DownloadMenu formats={[csv]} pending={pending} />
+  ) : undefined;
   return (
     <>
       <RejectedRows
         rejections={view.rejections}
         rejectedCount={view.written.rejectedCount}
-        aside={button}
+        aside={aside}
       />
-      {error ? (
-        <Alert variant="destructive">
-          <CircleX />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      ) : null}
+      <DownloadMessageAlert message={message} />
     </>
   );
 }

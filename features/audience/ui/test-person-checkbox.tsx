@@ -15,7 +15,8 @@ type TestPersonCheckboxProps = {
 
 /**
  * A checkbox with its label and one help line: the test toggle on Add person and the import
- * review (test is chosen when a person is added), and Accept other values on Add property.
+ * review (test is chosen when a person is added), Accept other values on Add property, and the
+ * import's acknowledgement of the participants it updates.
  */
 export function TestPersonCheckbox(props: Readonly<TestPersonCheckboxProps>) {
   return (

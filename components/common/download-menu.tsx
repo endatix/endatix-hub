@@ -30,7 +30,12 @@ function SingleDownload({
 }: Readonly<{ format: DownloadFormat; pending: boolean }>) {
   const { label } = FILE_KINDS[format.kind];
   return (
-    <Button variant="outline" disabled={pending} onClick={format.onSelect}>
+    <Button
+      type="button"
+      variant="outline"
+      disabled={pending}
+      onClick={format.onSelect}
+    >
       <DownloadMark pending={pending} />
       {pending ? "Downloading…" : `Download ${label}`}
     </Button>
@@ -40,7 +45,7 @@ function SingleDownload({
 function MenuTrigger({ pending }: Readonly<{ pending: boolean }>) {
   return (
     <DropdownMenuTrigger asChild>
-      <Button variant="outline" disabled={pending}>
+      <Button type="button" variant="outline" disabled={pending}>
         <DownloadMark pending={pending} />
         {pending ? "Downloading…" : "Download"}
         <ChevronDown />

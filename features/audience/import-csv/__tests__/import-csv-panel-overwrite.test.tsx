@@ -1,5 +1,6 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { AudienceImportView } from "@/lib/endatix-api/audience/types";
 import { normalizePagedResponse } from "@/lib/endatix-api/shared/paged-response";
 import { Result } from "@/lib/result";
 import { readCsvRecords } from "@/lib/utils/csv";
@@ -68,6 +69,8 @@ async function startTo(checked = UPDATES) {
 
 const COMPLETED_WITH_REJECTIONS = view({
   status: "completed",
+  emptyCells: "keep",
+  missingProperties: "keep",
   headers: ["external_id", "age"],
   upload: { rowCount: 5_002, chunkSize: 1_000, missingChunks: [] },
   written: {
@@ -95,17 +98,21 @@ const rejectionsPage = (page: number, rowNumber: number) =>
   );
 
 /** Start → Check → Import, landing on the outcome with two rejected rows. */
-async function importToCompleted() {
+async function importToCompleted(outcome: Partial<AudienceImportView> = {}) {
   await toColumns();
   await startTo({
     ...UPDATES,
     check: { newCount: 5_000, existingCount: 0, rejectedCount: 2 },
   });
   vi.mocked(moveAudienceImportAction).mockResolvedValue(
-    Result.success(COMPLETED_WITH_REJECTIONS),
+    Result.success({ ...COMPLETED_WITH_REJECTIONS, ...outcome }),
   );
   fireEvent.click(button("Import 5,000 rows"));
 }
+
+const isChecked = (element: HTMLElement) =>
+  element.getAttribute("aria-checked") === "true" ||
+  element.getAttribute("data-state") === "checked";
 
 const startRequest = (call = 0) =>
   vi.mocked(startAudienceImportAction).mock.calls[call][0];
@@ -197,8 +204,9 @@ describe("ImportCsvPanel: overwrite rules", () => {
     expect(button("Import 3 rows")).toHaveProperty("disabled", false);
   });
 
-  it("goes back to change the choices, canceling the checked import, and starts a new one with them", async () => {
+  it("goes back to Columns with the file and choices, canceling the checked import, and starts a new one", async () => {
     await toColumns();
+    fireEvent.click(screen.getByRole("radio", { name: "Clear the value" }));
     await startTo();
     vi.mocked(moveAudienceImportAction).mockResolvedValue(
       Result.success({ ...UPDATES, status: "canceled" }),
@@ -213,18 +221,42 @@ describe("ImportCsvPanel: overwrite rules", () => {
         to: "canceled",
       }),
     );
-    const keep = await screen.findByRole("radio", {
-      name: "Keep the current value (recommended)",
-    });
-    fireEvent.click(keep);
+    expect(
+      isChecked(await screen.findByRole("radio", { name: "Clear the value" })),
+    ).toBe(true);
     fireEvent.click(screen.getByRole("radio", { name: "Clear them" }));
-    await startTo();
+    vi.mocked(startAudienceImportAction).mockResolvedValue(
+      Result.success(view({ importId: "10" })),
+    );
+    await startTo({ ...UPDATES, importId: "10" });
 
-    expect(startAudienceImportAction).toHaveBeenCalledTimes(2);
     expect(startRequest(1)).toMatchObject({
-      emptyCells: "keep",
+      fileName: "panel.csv",
+      emptyCells: "clear",
       missingProperties: "clear",
     });
+    expect(isChecked(screen.getByRole("checkbox", { name: ACKNOWLEDGE }))).toBe(
+      false,
+    );
+    expect(button("Import 3 rows")).toHaveProperty("disabled", true);
+  });
+
+  it("stays on Review with the error when the cancel behind Back to change fails", async () => {
+    await toColumns();
+    await startTo();
+    vi.mocked(moveAudienceImportAction).mockResolvedValue(
+      Result.error("The import could not be changed."),
+    );
+
+    fireEvent.click(button("Back to change"));
+
+    expect(
+      await screen.findByText("The import could not be changed."),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("heading", { name: "Before you import" }),
+    ).toBeTruthy();
+    expect(screen.queryByRole("radio")).toBeNull();
   });
 
   it("downloads every rejected row with its line, reason and the file's cells", async () => {
@@ -234,7 +266,7 @@ describe("ImportCsvPanel: overwrite rules", () => {
     await importToCompleted();
 
     fireEvent.click(
-      await screen.findByRole("button", { name: "Download rejected rows" }),
+      await screen.findByRole("button", { name: "Download CSV" }),
     );
 
     await waitFor(() => expect(downloadText).toHaveBeenCalled());
@@ -244,11 +276,51 @@ describe("ImportCsvPanel: overwrite rules", () => {
       page: 2,
     });
     const [csv, fileName] = vi.mocked(downloadText).mock.calls[0];
-    expect(fileName).toBe("panel-rejected-rows.csv");
+    expect(fileName).toMatch(/^panel-rejected-rows-\d{4}-\d{2}-\d{2}\.csv$/);
     expect(readCsvRecords(csv)).toEqual([
       ["Line", "Reason", "external_id", "age"],
       ["3", "Age must be a number.", "CG", "x"],
       ["5003", "Age must be a number.", "CG", "x"],
     ]);
+  });
+
+  it("offers the download when the write rejected rows the Check's preview did not list", async () => {
+    await importToCompleted({ rejections: [] });
+
+    expect(
+      await screen.findByRole("button", { name: "Download CSV" }),
+    ).toBeTruthy();
+  });
+
+  it("saves no empty file when the import keeps no rejected rows any more", async () => {
+    vi.mocked(listAudienceImportRejectionsAction).mockResolvedValue(
+      Result.success(
+        normalizePagedResponse({
+          page: 1,
+          pageSize: 5_000,
+          totalRecords: 0,
+          totalPages: 0,
+          items: [],
+        }),
+      ),
+    );
+    await importToCompleted();
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Download CSV" }),
+    );
+
+    expect(await screen.findByText(/No rejected rows are kept/)).toBeTruthy();
+    expect(downloadText).not.toHaveBeenCalled();
+  });
+
+  it("offers no download from an API that cannot list rejected rows", async () => {
+    await importToCompleted({
+      emptyCells: undefined,
+      missingProperties: undefined,
+    });
+
+    await screen.findByText("Import finished with rejected rows");
+    expect(screen.queryByRole("button", { name: "Download CSV" })).toBeNull();
   });
 });

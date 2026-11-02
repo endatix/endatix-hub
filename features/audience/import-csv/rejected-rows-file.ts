@@ -14,7 +14,11 @@ export function rejectedRowsCsv(
   ]);
 }
 
-/** `panel.csv` → `panel-rejected-rows.csv`. */
-export function rejectedRowsFileName(fileName: string): string {
-  return `${fileName.replace(/\.csv$/i, "")}-rejected-rows.csv`;
+/** `panel.csv` → `panel-rejected-rows-2026-11-02.csv`, dated so a second file never overwrites the first. */
+export function rejectedRowsFileName(
+  fileName: string,
+  at: Date = new Date(),
+): string {
+  const date = at.toISOString().slice(0, 10);
+  return `${fileName.replace(/\.csv$/i, "")}-rejected-rows-${date}.csv`;
 }

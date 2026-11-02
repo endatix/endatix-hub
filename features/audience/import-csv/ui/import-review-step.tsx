@@ -3,6 +3,7 @@
 import { ClipboardCheck, Info, ListChecks, TriangleAlert } from "lucide-react";
 import { FieldWithHelp, helpId } from "@/components/common/field-with-help";
 import { PanelSection } from "@/components/common/panel-section";
+import { PendingButton } from "@/components/common/pending-button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -235,15 +236,15 @@ function Acknowledgement({
 
 function BackToChange({ wizard }: Readonly<{ wizard: ImportWizard }>) {
   return (
-    <Button
+    <PendingButton
       type="button"
       variant="outline"
       size="sm"
-      disabled={wizard.pending}
+      pending={wizard.pending}
+      label="Back to change"
+      pendingLabel="Canceling…"
       onClick={() => void wizard.backToChange()}
-    >
-      Back to change
-    </Button>
+    />
   );
 }
 

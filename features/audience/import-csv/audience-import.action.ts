@@ -1,7 +1,7 @@
 "use server";
 
 import { Permissions } from "@/features/auth/authorization";
-import type { AudienceImportRejectionsPage } from "@/lib/endatix-api/audience/audience";
+import type { AudienceImportRejectionsPage } from "@/lib/endatix-api/audience/staged-imports";
 import type {
   AudienceImportMove,
   AudienceImportView,
