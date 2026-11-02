@@ -21,11 +21,10 @@ const READINESS = {
   skippedInProgress: 0,
 };
 
-/** The API echoes the requested page, past the end or not. */
-function rowsPage(totalRecords: number, page = 1) {
+function rowsPage(totalRecords: number) {
   return normalizePagedResponse<SubmissionGridRow>({
     items: [],
-    page,
+    page: 1,
     pageSize: 10,
     totalRecords,
     totalPages: Math.ceil(totalRecords / 10),
@@ -87,7 +86,7 @@ describe("resolveSubmissionGridColumnsLoad", () => {
 });
 
 describe("resolveSubmissionGridRowsLoad", () => {
-  it("redirects a page past the end to the first page in one step", () => {
+  it("redirects a page past the end to the last page", () => {
     // Arrange
     const state = parseSubmissionGridUrl({ page: "9", status: "new" });
 
@@ -95,13 +94,38 @@ describe("resolveSubmissionGridRowsLoad", () => {
     const load = resolveSubmissionGridRowsLoad(
       "5",
       state,
-      Result.success(rowsPage(25, 9)),
+      Result.success(rowsPage(25)),
     );
 
     // Assert
     expect(load).toEqual({
       kind: "redirect",
-      href: "/forms/5/submissions?status=new",
+      href: "/forms/5/submissions?page=3&status=new",
+    });
+  });
+
+  it("redirects to the page the API clamped a page past the end to", () => {
+    // Arrange: the API answers page=99 with its last page and that page's rows.
+    const state = parseSubmissionGridUrl({ page: "99" });
+    const clamped = normalizePagedResponse<SubmissionGridRow>({
+      items: [{ id: "1" } as SubmissionGridRow],
+      page: 2,
+      pageSize: 10,
+      totalRecords: 15,
+      totalPages: 2,
+    });
+
+    // Act
+    const load = resolveSubmissionGridRowsLoad(
+      "5",
+      state,
+      Result.success(clamped),
+    );
+
+    // Assert
+    expect(load).toEqual({
+      kind: "redirect",
+      href: "/forms/5/submissions?page=2",
     });
   });
 
