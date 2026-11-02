@@ -1,4 +1,3 @@
-import { MAX_SUBMISSION_GRID_COLUMNS_PARAM_BYTES } from "./submission-grid-row-columns";
 import {
   MAX_SUBMISSION_GRID_ANSWER_FILTERS,
   type SubmissionGridAnswerFilter,
@@ -7,7 +6,7 @@ import {
 /**
  * Bytes the encoded `answer=` params may take. They share the request line
  * with `columns=`, which gives up what they use, so the two together stay
- * within {@link MAX_SUBMISSION_GRID_COLUMNS_PARAM_BYTES}.
+ * within the columns cap (`MAX_SUBMISSION_GRID_COLUMNS_PARAM_BYTES`).
  */
 export const MAX_SUBMISSION_GRID_ANSWER_PARAMS_BYTES = 2_048;
 
