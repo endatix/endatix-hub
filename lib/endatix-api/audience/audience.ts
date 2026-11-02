@@ -10,12 +10,10 @@ import {
 import {
   formAudiencePath,
   mapImportResult,
-  mapImportViewResult,
   mapRedeemedLinkResult,
   mapSettingsResult,
   mapTestSubmissionResult,
   type WireImport,
-  type WireImportView,
   type WireSettings,
   type WireRedeemedLink,
   type WireTestSubmission,
@@ -46,7 +44,6 @@ import {
   type AudienceImportResult,
   type ImportAudienceCsvRequest,
   type AudienceImportMove,
-  type AudienceImportView,
   type AudienceSettings,
   type CreateAudiencePersonRequest,
   type CreateAudiencePropertyRequest,
@@ -54,7 +51,6 @@ import {
   type UpdateAudiencePersonRequest,
   type UpdateAudiencePropertyRequest,
   type StartAudienceImportRequest,
-  CURRENT_IMPORT,
   type IssuedAudienceLink,
   type AudienceLinkBatch,
   type AudienceLinksPreview,
@@ -64,6 +60,9 @@ import {
   type AudienceVariables,
   type AudienceVariablePreset,
 } from "./types";
+import { StagedImports } from "./staged-imports";
+
+export type { AudienceImportRejectionsPage } from "./staged-imports";
 
 export type AudiencePeoplePage = NormalizedPagedResponse<AudiencePerson>;
 
@@ -72,7 +71,11 @@ const SETTINGS_PATH = "/audience/settings";
 export { buildListAudiencePeopleEndpoint };
 
 export class Audience {
-  constructor(private readonly endatix: EndatixApi) {}
+  private readonly imports: StagedImports;
+
+  constructor(private readonly endatix: EndatixApi) {
+    this.imports = new StagedImports(endatix);
+  }
 
   async getSettings(): Promise<ApiResult<AudienceSettings>> {
     return mapSettingsResult(
@@ -301,71 +304,25 @@ export class Audience {
     );
   }
 
-  /** Starts a staged import; the rows follow in chunks. 409 while the form has an unfinished one. */
-  async startImport(
-    formId: string,
-    body: StartAudienceImportRequest,
-  ): Promise<ApiResult<AudienceImportView>> {
-    const idCheck = requireEndatixId(formId, "formId");
-    if (!idCheck.success) return idCheck;
-
-    return mapImportViewResult(
-      await this.endatix.post<WireImportView>(
-        formAudiencePath(formId, "imports"),
-        body,
-      ),
-    );
+  /** The staged import (`./staged-imports`): start, chunks, reads, rejected rows and moves. */
+  startImport(formId: string, body: StartAudienceImportRequest) {
+    return this.imports.startImport(formId, body);
   }
 
-  /** Stores one chunk; sending it again replaces it. The chunk that completes the file starts the Check. */
-  async sendImportChunk(
-    formId: string,
-    importId: string,
-    { index, ...chunk }: IndexedImportChunk,
-  ): Promise<ApiResult<AudienceImportView>> {
-    const idsCheck = requireFormAndEntityIds(formId, importId, "importId");
-    if (!idsCheck.success) return idsCheck;
-
-    return mapImportViewResult(
-      await this.endatix.put<WireImportView>(
-        formAudiencePath(formId, "imports", importId, "chunks", String(index)),
-        chunk,
-      ),
-    );
+  sendImportChunk(formId: string, importId: string, chunk: IndexedImportChunk) {
+    return this.imports.sendImportChunk(formId, importId, chunk);
   }
 
-  /** One import, or with `current` the form's unfinished one (404 when there is none). */
-  async getImport(
-    formId: string,
-    importId: string,
-  ): Promise<ApiResult<AudienceImportView>> {
-    const idsCheck =
-      importId === CURRENT_IMPORT
-        ? requireEndatixId(formId, "formId")
-        : requireFormAndEntityIds(formId, importId, "importId");
-    if (!idsCheck.success) return idsCheck;
-
-    return mapImportViewResult(
-      await this.endatix.get<WireImportView>(
-        formAudiencePath(formId, "imports", importId),
-      ),
-    );
+  getImport(formId: string, importId: string) {
+    return this.imports.getImport(formId, importId);
   }
 
-  async moveImport(
-    formId: string,
-    importId: string,
-    status: AudienceImportMove,
-  ): Promise<ApiResult<AudienceImportView>> {
-    const idsCheck = requireFormAndEntityIds(formId, importId, "importId");
-    if (!idsCheck.success) return idsCheck;
+  listImportRejections(formId: string, importId: string, page: number) {
+    return this.imports.listImportRejections(formId, importId, page);
+  }
 
-    return mapImportViewResult(
-      await this.endatix.patch<WireImportView>(
-        formAudiencePath(formId, "imports", importId),
-        { status },
-      ),
-    );
+  moveImport(formId: string, importId: string, status: AudienceImportMove) {
+    return this.imports.moveImport(formId, importId, status);
   }
 
   async generateLinks(

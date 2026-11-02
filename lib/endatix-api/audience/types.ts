@@ -193,6 +193,26 @@ export type AudienceImportWritten = {
   rejectedCount: number;
 };
 
+/** What the write does to an existing participant's value: `keep` it, or `clear` it. */
+export const AudienceImportOption = Object.freeze({
+  Keep: "keep",
+  Clear: "clear",
+} as const);
+
+export type AudienceImportOption =
+  (typeof AudienceImportOption)[keyof typeof AudienceImportOption];
+
+/** How the write treats an existing participant: an empty cell, and a Property the file has no column for. */
+export type AudienceImportOptions = {
+  emptyCells: AudienceImportOption;
+  missingProperties: AudienceImportOption;
+};
+
+/** One rejected row with its cells as uploaded, in the order of the import's headers. */
+export type AudienceImportRejectedRow = AudienceImportRejection & {
+  cells: string[];
+};
+
 /** One staged import as the API reports it; `status` may be one this Hub does not know. */
 export type AudienceImportView = {
   importId: string;
@@ -201,6 +221,9 @@ export type AudienceImportView = {
   /** The file's header row; staged cells follow it. Missing from an API before endatix#1412. */
   headers?: string[];
   isTest: boolean;
+  /** Missing from an API before endatix#1419, which only kept values. */
+  emptyCells?: AudienceImportOption;
+  missingProperties?: AudienceImportOption;
   upload: {
     rowCount: number;
     chunkSize: number;
@@ -232,7 +255,7 @@ export type StartAudienceImportRequest = {
   propertyColumns: Record<string, string>;
   /** Participants new to the form become test participants; those already on it are skipped. */
   isTest: boolean;
-};
+} & AudienceImportOptions;
 
 /** One data row: its cells in header order, and whether a stray quote made it unreliable. */
 export type AudienceImportRow = { cells: string[]; malformed: boolean };

@@ -2,7 +2,10 @@ import { describe, expect, it, vi } from "vitest";
 import type { EndatixApi } from "../../endatix-api";
 import { ApiResult } from "../../shared/api-result";
 import { Audience } from "../audience";
-import { AudienceIdentifierKind } from "../types";
+import {
+  AudienceIdentifierKind,
+  type StartAudienceImportRequest,
+} from "../types";
 
 const FORM_ID = "1525035735390879744";
 const IMPORT_ID = "1526934587983265792";
@@ -74,15 +77,17 @@ describe("Audience settings import limits", () => {
 });
 
 describe("Audience staged imports", () => {
-  it("starts an import with the file's headers and mapping", async () => {
+  it("starts an import with the file's headers, mapping and overwrite options", async () => {
     const post = success({ ...WIRE_VIEW, importId: 42 });
-    const body = {
+    const body: StartAudienceImportRequest = {
       fileName: "panel.csv",
       headers: ["email", "age"],
       rowCount: 2_500,
       identifierColumn: "email",
       propertyColumns: { age: "age" },
       isTest: false,
+      emptyCells: "clear",
+      missingProperties: "keep",
     };
 
     const result = await audienceWith({ post }).startImport(FORM_ID, body);
@@ -133,6 +138,42 @@ describe("Audience staged imports", () => {
       status: "canceled",
     });
     expect(result.success && result.data.status).toBe("canceled");
+  });
+
+  it("reads a page of rejected rows, with their cells, at the largest page size", async () => {
+    const get = success({
+      page: 2,
+      pageSize: 5_000,
+      totalRecords: 5_001,
+      totalPages: 2,
+      items: [
+        {
+          rowNumber: 5_003,
+          reason: "Age must be a number.",
+          cells: ["a@b.co", "old"],
+        },
+      ],
+    });
+
+    const result = await audienceWith({ get }).listImportRejections(
+      FORM_ID,
+      IMPORT_ID,
+      2,
+    );
+
+    expect(get).toHaveBeenCalledWith(
+      `${IMPORTS}/${IMPORT_ID}/rejections?page=2&pageSize=5000`,
+    );
+    expect(result.success && result.data).toMatchObject({
+      hasNextPage: false,
+      items: [
+        {
+          rowNumber: 5_003,
+          reason: "Age must be a number.",
+          cells: ["a@b.co", "old"],
+        },
+      ],
+    });
   });
 
   it("refuses an import id that is not an Endatix id without calling the API", async () => {

@@ -17,6 +17,7 @@ import {
   type AudienceLinkStatus,
   type RedeemedAudienceLink,
   type AudienceImportLimits,
+  type AudienceImportRejectedRow,
   type AudienceImportResult,
   type AudienceImportView,
   type AudiencePerson,
@@ -331,6 +332,13 @@ export function mapPeoplePageResult(
       items: response.data.items.map((person) => mapPerson(person)),
     }),
   );
+}
+
+export function mapRejectionsPageResult(
+  response: ApiResult<PagedResponse<AudienceImportRejectedRow>>,
+): ApiResult<NormalizedPagedResponse<AudienceImportRejectedRow>> {
+  if (!response.success) return response;
+  return ApiResult.success(normalizePagedResponse(response.data));
 }
 
 /** An API before endatix#1411 sends only the opaque `accessToken`. */

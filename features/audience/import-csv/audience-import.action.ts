@@ -1,6 +1,7 @@
 "use server";
 
 import { Permissions } from "@/features/auth/authorization";
+import type { AudienceImportRejectionsPage } from "@/lib/endatix-api/audience/audience";
 import type {
   AudienceImportMove,
   AudienceImportView,
@@ -90,5 +91,19 @@ export async function moveAudienceImportAction({
       fallbackMessage: "The import could not be changed.",
       formId,
     },
+  );
+}
+
+/** One page of the rows an import did not write, for the rejected-rows file. */
+export async function listAudienceImportRejectionsAction({
+  formId,
+  importId,
+  page,
+}: ImportRef & { page: number }): Promise<
+  Result<AudienceImportRejectionsPage>
+> {
+  return withHubAudienceApi(
+    (api) => api.audience.listImportRejections(formId, importId, page),
+    { ...IMPORT_LOG, fallbackMessage: "The rejected rows could not be read." },
   );
 }

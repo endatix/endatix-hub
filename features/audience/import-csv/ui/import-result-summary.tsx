@@ -4,9 +4,11 @@ import {
   Ban,
   CircleCheckBig,
   CircleX,
+  Download,
   FileWarning,
   TriangleAlert,
 } from "lucide-react";
+import type { ReactNode } from "react";
 import { PanelSection } from "@/components/common/panel-section";
 import {
   DATA_TABLE_SHRINK_WRAP_CLASS_NAME,
@@ -15,12 +17,14 @@ import {
   dataTableCell,
 } from "@/components/table";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import {
   AudienceImportStatus,
   type AudienceImportRejection,
   type AudienceImportView,
 } from "@/lib/endatix-api/audience/types";
 import { outcomeCounts } from "../import-labels";
+import { useRejectedRowsDownload } from "../use-rejected-rows-download.hook";
 
 type ViewProps = { view: AudienceImportView };
 
@@ -89,6 +93,8 @@ function EndedAlert({ view }: Readonly<ViewProps>) {
 type RejectionsProps = {
   rejections: AudienceImportRejection[];
   rejectedCount: number;
+  /** An action beside the title, such as the download of every rejected row. */
+  aside?: ReactNode;
 };
 
 function rejectionsDescription({ rejections, rejectedCount }: RejectionsProps) {
@@ -104,39 +110,87 @@ function rejectionCells(rejection: AudienceImportRejection) {
   ];
 }
 
+function RejectionsTable({
+  rejections,
+}: Readonly<{ rejections: AudienceImportRejection[] }>) {
+  return (
+    <StaticDataTable columns={REJECTION_COLUMNS}>
+      {rejections.map((rejection, index) => (
+        <StaticDataTableRow
+          key={rejection.rowNumber}
+          index={index}
+          cells={rejectionCells(rejection)}
+        />
+      ))}
+    </StaticDataTable>
+  );
+}
+
 /** The first rejected rows, by their row in the file. */
-export function RejectedRows(props: Readonly<RejectionsProps>) {
+export function RejectedRows({ aside, ...props }: Readonly<RejectionsProps>) {
   if (props.rejections.length === 0) return null;
+  const description = rejectionsDescription(props);
   return (
     <PanelSection
       icon={FileWarning}
       title="Rejected rows"
-      description={rejectionsDescription(props)}
+      {...{ description, aside }}
     >
-      <StaticDataTable columns={REJECTION_COLUMNS}>
-        {props.rejections.map((rejection, index) => (
-          <StaticDataTableRow
-            key={rejection.rowNumber}
-            index={index}
-            cells={rejectionCells(rejection)}
-          />
-        ))}
-      </StaticDataTable>
+      <RejectionsTable rejections={props.rejections} />
     </PanelSection>
   );
 }
 
+type SummaryProps = ViewProps & { formId: string };
+
+function DownloadRejected({
+  pending,
+  onClick,
+}: Readonly<{ pending: boolean; onClick: () => Promise<void> }>) {
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      disabled={pending}
+      onClick={() => void onClick()}
+    >
+      <Download />
+      Download rejected rows
+    </Button>
+  );
+}
+
+/** The rows to fix, every one of them downloadable with its line, reason and cells (E4). */
+function CompletedRejections({ view, formId }: Readonly<SummaryProps>) {
+  const { pending, error, download } = useRejectedRowsDownload(formId, view);
+  const button = <DownloadRejected pending={pending} onClick={download} />;
+  return (
+    <>
+      <RejectedRows
+        rejections={view.rejections}
+        rejectedCount={view.written.rejectedCount}
+        aside={button}
+      />
+      {error ? (
+        <Alert variant="destructive">
+          <CircleX />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      ) : null}
+    </>
+  );
+}
+
 /** The outcome step: what happened, then the rows to fix. Shown in place, not as a toast. */
-export function ImportResultSummary({ view }: Readonly<ViewProps>) {
+export function ImportResultSummary(props: Readonly<SummaryProps>) {
+  const { view } = props;
   if (view.status !== AudienceImportStatus.Completed)
     return <EndedAlert view={view} />;
   return (
     <>
       <CompletedAlert view={view} />
-      <RejectedRows
-        rejections={view.rejections}
-        rejectedCount={view.written.rejectedCount}
-      />
+      <CompletedRejections {...props} />
     </>
   );
 }

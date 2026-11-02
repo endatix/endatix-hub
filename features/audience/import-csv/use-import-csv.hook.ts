@@ -5,22 +5,21 @@ import { useRouter } from "next/navigation";
 import {
   AudienceImportStatus,
   type AudienceIdentifierKind,
+  type AudienceImportOptions,
   type AudienceImportLimits,
   type AudienceImportView,
   type AudienceProperty,
   type StartAudienceImportRequest,
 } from "@/lib/endatix-api/audience/types";
 import { Result } from "@/lib/result";
-import type { CsvRow } from "@/lib/utils/csv";
 import { usePanelOpen } from "../use-panel-state.hook";
-import { readCsvFile, type CsvFile, type CsvPreview } from "./csv-preview";
+import { confirmCount, isTerminal, updateCount } from "./import-run";
+import { KEEP_VALUES } from "./overwrite-rules";
 import {
-  firstOversizedChunk,
-  IMPORT_CHUNK_BODY_BYTES,
-  IMPORT_CHUNK_ROWS,
-} from "./import-chunk-payload";
-import { confirmCount, isTerminal } from "./import-run";
-import { sizeLabel } from "./import-labels";
+  readFile,
+  useImportFile,
+  type LoadedFile,
+} from "./use-import-file.hook";
 import {
   useAudienceImport,
   type AudienceImportRun,
@@ -73,6 +72,8 @@ function stepAt(
 const stepNumber = (order: readonly ImportStep[], step: ImportStep) =>
   step === "done" ? order.length + 1 : order.indexOf(step) + 1;
 
+export type { LoadedFile } from "./use-import-file.hook";
+
 export type ImportCsvSetup = {
   formId: string;
   identifierKind: AudienceIdentifierKind;
@@ -80,81 +81,14 @@ export type ImportCsvSetup = {
   importLimits: AudienceImportLimits;
 };
 
-export type LoadedFile = { name: string; preview: CsvPreview; rows: CsvRow[] };
-
-const NO_FILE: FileState = { file: null, problem: null };
 const NO_CHOICES: ChoiceState = {
   headers: [],
   identifierColumn: "",
   suggestedIdentifier: "",
   columns: {},
   asTest: false,
+  ...KEEP_VALUES,
 };
-const UNREADABLE = "The file could not be read. Save it as CSV and try again.";
-
-/**
- * Why the file cannot be sent: a chunk whose request would be over the server action body limit.
- * Checked before the import starts, so no chunk is refused or retried halfway through.
- */
-function chunkProblem({ preview, rows }: CsvFile): string | null {
-  const place = {
-    chunkSize: IMPORT_CHUNK_ROWS,
-    columns: preview.headers.length,
-  };
-  const oversized = firstOversizedChunk(rows, place, IMPORT_CHUNK_BODY_BYTES);
-  if (!oversized) return null;
-  const { firstRowNumber, lastRowNumber } = oversized;
-  return `Rows ${firstRowNumber.toLocaleString()} to ${lastRowNumber.toLocaleString()} are too long to send together: over ${sizeLabel(IMPORT_CHUNK_BODY_BYTES)} in one request. Shorten the longest cells, or split the file.`;
-}
-
-async function readFile(
-  picked: File,
-  limits: AudienceImportLimits,
-): Promise<Result<LoadedFile>> {
-  if (picked.size > limits.maxBytes) {
-    return Result.validationError(
-      `The file is ${sizeLabel(picked.size)}. Import files up to ${sizeLabel(limits.maxBytes)}.`,
-    );
-  }
-  try {
-    const read = readCsvFile(await picked.text(), limits.maxRows);
-    if (Result.isError(read)) return read;
-    const problem = chunkProblem(read.value);
-    if (problem) return Result.validationError(problem);
-    const name = picked.name || "audience.csv";
-    return Result.success({ name, ...read.value });
-  } catch {
-    return Result.validationError(UNREADABLE);
-  }
-}
-
-type FileState = { file: LoadedFile | null; problem: string | null };
-
-const fileStateOf = (read: Result<LoadedFile>): FileState =>
-  Result.isError(read)
-    ? { file: null, problem: read.message }
-    : { file: read.value, problem: null };
-
-/** The chosen file and its preview, or why it cannot be imported; `onRead` gets the file. */
-function useImportFile(
-  limits: AudienceImportLimits,
-  onRead: (file: LoadedFile) => void,
-) {
-  const [state, setState] = useState<FileState>(NO_FILE);
-  const generation = useRef(0);
-  const pick = async (picked: File) => {
-    const current = ++generation.current;
-    const read = await readFile(picked, limits);
-    if (current !== generation.current) return;
-    setState(fileStateOf(read));
-    if (Result.isSuccess(read)) onRead(read.value);
-  };
-  const reset = () => {
-    generation.current += 1;
-    setState(NO_FILE);
-  };
-  return { ...state, pick, reset };
-}
 
 type ChoiceState = {
   /** The file's headers, so an identifier change can suggest for the rows it changes. */
@@ -165,7 +99,7 @@ type ChoiceState = {
   columns: ColumnMap;
   /** Import as test participants: only those new to the form are added, as test participants. */
   asTest: boolean;
-};
+} & AudienceImportOptions;
 
 function withColumn(
   state: ChoiceState,
@@ -186,6 +120,7 @@ function suggestedChoices(
     suggestedIdentifier: identifier,
     columns,
     asTest: false,
+    ...KEEP_VALUES,
   };
 }
 
@@ -195,7 +130,8 @@ function identifierChoice(
   properties: readonly AudienceProperty[],
 ): ChoiceState {
   const columns = columnsAfterIdentifierChange(state.columns, column, {
-    headers: state.headers, properties,
+    headers: state.headers,
+    properties,
   });
   return { ...state, identifierColumn: column, columns };
 }
@@ -214,6 +150,8 @@ function useColumnChoices(setup: ImportCsvSetup) {
       ),
     setAsTest: (asTest: boolean) =>
       setState((current) => ({ ...current, asTest })),
+    setOption: (option: Partial<AudienceImportOptions>) =>
+      setState((current) => ({ ...current, ...option })),
   };
 }
 
@@ -252,7 +190,15 @@ function startRequest(
     identifierColumn: choices.identifierColumn,
     propertyColumns: propertyColumnMap(columns),
     isTest: choices.asTest,
+    ...importOptions(choices),
   };
+}
+
+/** A test import skips the participants already here, so it never overwrites a value. */
+function importOptions(choices: ImportChoices): AudienceImportOptions {
+  if (choices.asTest) return KEEP_VALUES;
+  const { emptyCells, missingProperties } = choices;
+  return { emptyCells, missingProperties };
 }
 
 const uploadFile = (file: LoadedFile) => ({
@@ -272,12 +218,24 @@ function runStep(run: AudienceImportRun): ImportStep | null {
   return isTerminal(view.status) && !view.canResume ? "done" : START_STEP;
 }
 
+/** Whether Import may run: rows to write, and any overwrite acknowledged (D7). */
+function canConfirm(view: AudienceImportView, acknowledged: string | null) {
+  const overwrites = updateCount(view) > 0;
+  return (
+    confirmCount(view) > 0 && (!overwrites || acknowledged === view.importId)
+  );
+}
+
 /** What the footer's main button does on Review and the outcome, or `null` while it waits. */
-function runAction(run: AudienceImportRun, close: () => void) {
+function runAction(
+  run: AudienceImportRun,
+  close: () => void,
+  acknowledged: string | null,
+) {
   const view = runView(run);
   if (!view || run.state.kind === "uploading") return null;
   if (view.status === AudienceImportStatus.Checked)
-    return confirmCount(view) > 0 ? run.confirm : null;
+    return canConfirm(view, acknowledged) ? run.confirm : null;
   if (view.canResume) return run.resume;
   if (run.canSendAgain) return run.sendAgain;
   // Done only closes: the outcome stays on screen while the panel animates out, and the next
@@ -319,6 +277,8 @@ type Wizard = {
   steps: ReturnType<typeof useImportSteps>;
   run: AudienceImportRun;
   close: () => void;
+  /** The checked import whose overwrite count the scripter acknowledged. */
+  acknowledged: string | null;
 };
 
 /** Leaves a step before the start; arriving at New properties checks its names against the form. */
@@ -343,8 +303,8 @@ async function startImport(wizard: Wizard, file: LoadedFile) {
 
 /** The footer's main button: the next step, the start before Review, or the run's own action. */
 async function advanceWizard(wizard: Wizard) {
-  const { file, steps, run, close } = wizard;
-  if (runStep(run)) return runAction(run, close)?.();
+  const { file, steps, run, close, acknowledged } = wizard;
+  if (runStep(run)) return runAction(run, close, acknowledged)?.();
   if (steps.next !== START_STEP) return nextStep(wizard);
   if (file) await startImport(wizard, file);
 }
@@ -383,9 +343,9 @@ async function continueWithFile(
 
 /** The footer's action, the run's pending and error, and the re-chosen file, for the panel. */
 function runControls(wizard: Wizard, limits: AudienceImportLimits) {
-  const { run, close, newProperties } = wizard;
+  const { run, close, newProperties, acknowledged } = wizard;
   return {
-    runAction: runAction(run, close),
+    runAction: runAction(run, close, acknowledged),
     pending: run.pending || newProperties.creating,
     error: newProperties.error ?? run.error,
     advance: () => advanceWizard(wizard),
@@ -397,6 +357,29 @@ function runControls(wizard: Wizard, limits: AudienceImportLimits) {
       run.dismiss();
       wizard.steps.restart();
     },
+    backToChange: () => backToChange(wizard),
+  };
+}
+
+/**
+ * The checked import is canceled and the scripter is back on Columns with the same file and
+ * choices; Continue starts a new import with what they change. A tab that no longer holds the
+ * file starts over from it.
+ */
+async function backToChange({ run, steps, file }: Wizard) {
+  if (!(await run.cancel())) return;
+  run.dismiss();
+  if (file) steps.setStep("columns");
+  else steps.restart();
+}
+
+/** Which checked import the scripter acknowledged; another import needs its own tick. */
+function useAcknowledgement() {
+  const [acknowledged, setAcknowledged] = useState<string | null>(null);
+  return {
+    acknowledged,
+    acknowledge: (importId: string, ticked: boolean) =>
+      setAcknowledged(ticked ? importId : null),
   };
 }
 
@@ -485,7 +468,9 @@ export function useImportCsv(setup: ImportCsvSetup) {
   const steps = useImportSteps(stepsFor(withStep), restart);
   const { run, panel } = useRunPanel(setup, steps.restart);
   const { file } = source;
-  const wizard = { ...queued, file, choices, steps, run, close: panel.close };
+  const { acknowledged, acknowledge } = useAcknowledgement();
+  const close = panel.close;
+  const wizard = { ...queued, file, choices, steps, run, close, acknowledged };
   return {
     ...source,
     ...panel,
@@ -493,6 +478,8 @@ export function useImportCsv(setup: ImportCsvSetup) {
     ...stepState(wizard),
     choices,
     run,
+    acknowledged,
+    acknowledge,
     ...runControls(wizard, setup.importLimits),
   };
 }

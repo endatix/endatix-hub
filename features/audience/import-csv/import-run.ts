@@ -151,3 +151,11 @@ export function confirmCount({ check, isTest }: AudienceImportView): number {
   if (!check) return 0;
   return isTest ? check.newCount : check.newCount + check.existingCount;
 }
+
+/**
+ * Participants a confirm would overwrite, which the scripter acknowledges before Import (D7): those
+ * already on the form, which a test import skips.
+ */
+export function updateCount({ check, isTest }: AudienceImportView): number {
+  return check && !isTest ? check.existingCount : 0;
+}

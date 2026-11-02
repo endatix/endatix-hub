@@ -8,6 +8,7 @@ import type { AudienceProperty } from "@/lib/endatix-api/audience/types";
 import { dataTypeLabel } from "../../property-types";
 import { OptionsSelect, type SelectOption } from "../../ui/options-select";
 import { TestPersonCheckbox } from "../../ui/test-person-checkbox";
+import { OverwriteRulesFields } from "./overwrite-rules-fields";
 import { identifierKindLabel } from "../../utils";
 import {
   choiceColumnGroups,
@@ -326,12 +327,29 @@ function ImportAsTest({ wizard }: Readonly<{ wizard: ImportWizard }>) {
   );
 }
 
-/** Step 2: the identifier, a property (or nothing) for every other column, and test or real. */
+/** A test import skips the participants already here, so it has nothing to overwrite. */
+function ExistingParticipants({ wizard }: Readonly<{ wizard: ImportWizard }>) {
+  const { choices } = wizard;
+  if (choices.asTest) return null;
+  return (
+    <OverwriteRulesFields
+      options={choices}
+      disabled={wizard.pending}
+      onChange={choices.setOption}
+    />
+  );
+}
+
+/**
+ * Step 2: the identifier, a property (or nothing) for every other column, what happens to the
+ * participants already here, and test or real.
+ */
 export function ImportColumnsStep(props: Readonly<LoadedStepProps>) {
   return (
     <>
       <IdentifierSection {...props} />
       <ColumnsSection {...props} />
+      <ExistingParticipants wizard={props.wizard} />
       <ImportAsTest wizard={props.wizard} />
     </>
   );

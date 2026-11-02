@@ -1,6 +1,6 @@
 "use client";
 
-import { ClipboardCheck, Info, TriangleAlert } from "lucide-react";
+import { ClipboardCheck, Info, ListChecks, TriangleAlert } from "lucide-react";
 import { FieldWithHelp, helpId } from "@/components/common/field-with-help";
 import { PanelSection } from "@/components/common/panel-section";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -13,11 +13,14 @@ import {
   type AudienceImportView,
 } from "@/lib/endatix-api/audience/types";
 import { identifierKindLabel } from "../../utils";
-import { canCancel, rowsSent } from "../import-run";
+import { canCancel, rowsSent, updateCount } from "../import-run";
+import { importOptionsOf } from "../overwrite-rules";
 import { checkCounts, outcomeCounts, rowCountLabel } from "../import-labels";
 import { runView, type ImportWizard } from "../use-import-csv.hook";
 import { RejectedRows } from "./import-result-summary";
+import { OverwriteRulesSummary } from "./overwrite-rules-fields";
 import { StoppedImport } from "./stopped-import";
+import { TestPersonCheckbox } from "../../ui/test-person-checkbox";
 
 type ReviewProps = {
   wizard: ImportWizard;
@@ -117,7 +120,7 @@ function ChooseAgain({
 
 const UPDATE_NOTE = {
   title: "Existing participants are updated",
-  body: "A participant already here gets the file's values, and an empty cell keeps the value they have.",
+  body: "A participant already here gets the file's values, as chosen below.",
 };
 const TEST_NOTE = {
   title: "Existing participants are skipped",
@@ -207,14 +210,72 @@ function Notice({ notice }: Readonly<{ notice: string | null }>) {
   );
 }
 
-/** The Check's preview: the rows it rejected, and how a row meets the participants already here. */
+const ACKNOWLEDGE_ID = "import-acknowledge";
+
+/** D7: the scripter says they know how many participants Import overwrites. */
+function Acknowledgement({
+  wizard,
+  view,
+}: Readonly<{ wizard: ImportWizard; view: AudienceImportView }>) {
+  const count = updateCount(view);
+  if (count === 0) return null;
+  const records =
+    count === 1 ? "1 record" : `${count.toLocaleString()} records`;
+  return (
+    <TestPersonCheckbox
+      id={ACKNOWLEDGE_ID}
+      label={`I understand ${records} will be updated and this cannot be undone`}
+      help="Import stays off until this is ticked."
+      checked={wizard.acknowledged === view.importId}
+      disabled={wizard.pending}
+      onCheckedChange={(ticked) => wizard.acknowledge(view.importId, ticked)}
+    />
+  );
+}
+
+function BackToChange({ wizard }: Readonly<{ wizard: ImportWizard }>) {
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      disabled={wizard.pending}
+      onClick={() => void wizard.backToChange()}
+    >
+      Back to change
+    </Button>
+  );
+}
+
+/**
+ * What the write does to participants already here, as chosen on Columns and now fixed; Back to
+ * change cancels this import so a new one starts with other choices. A test import overwrites
+ * nothing, so it has none of this.
+ */
+function BeforeImport({
+  wizard,
+  view,
+}: Readonly<{ wizard: ImportWizard; view: AudienceImportView }>) {
+  if (view.isTest) return null;
+  return (
+    <PanelSection
+      icon={ListChecks}
+      title="Before you import"
+      description="Chosen on the Columns step for participants already on this form."
+      aside={<BackToChange wizard={wizard} />}
+    >
+      <OverwriteRulesSummary options={importOptionsOf(view)} />
+      <Acknowledgement wizard={wizard} view={view} />
+    </PanelSection>
+  );
+}
+
+/** The Check's preview: the rows it rejected, how a row meets the participants already here, and the choices. */
 function CheckedDetails({
+  wizard,
   view,
   identifierKind,
-}: Readonly<{
-  view: AudienceImportView;
-  identifierKind: AudienceIdentifierKind;
-}>) {
+}: Readonly<ReviewProps & { view: AudienceImportView }>) {
   if (view.status !== AudienceImportStatus.Checked) return null;
   return (
     <>
@@ -223,6 +284,7 @@ function CheckedDetails({
         rejectedCount={view.check?.rejectedCount ?? 0}
       />
       <MatchingNote view={view} identifierKind={identifierKind} />
+      <BeforeImport wizard={wizard} view={view} />
     </>
   );
 }
@@ -261,7 +323,7 @@ export function ImportReviewStep({
         </StoppedImport>
       ) : null}
       <ProgressSection wizard={wizard} view={view} />
-      <CheckedDetails view={view} identifierKind={identifierKind} />
+      <CheckedDetails {...{ wizard, view, identifierKind }} />
     </>
   );
 }
