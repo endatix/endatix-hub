@@ -53,7 +53,7 @@ const ANSWER_FILTERS_NOT_APPLIED_LINE =
   "The answer filters in this link are not applied until the form is prepared.";
 
 const ANSWER_FILTERS_WAITING_LINE =
-  "Answer filters on columns still being prepared are not applied yet.";
+  "Answer filters on columns that are not filterable or still being prepared are not applied.";
 
 const NO_SCHEMA_BANNER: GridReadinessBanner = {
   title: "This form's reporting data is not prepared",

@@ -15,7 +15,7 @@ import { describeGridReadiness } from "../grid-readiness";
 import type { SubmissionGridColumnsLoad } from "../resolve-submission-grid-load";
 import {
   applicableAnswerFilters,
-  applicableOrPreparingAnswerFilters,
+  keptAnswerFilters,
 } from "../submission-grid-answer-filters";
 import {
   resolveVisibleAnswerColumns,
@@ -87,10 +87,7 @@ function parseGridUrl(
 
   return {
     ...urlState,
-    answerFilters: applicableOrPreparingAnswerFilters(
-      urlState.answerFilters,
-      catalog,
-    ),
+    answerFilters: keptAnswerFilters(urlState.answerFilters, catalog),
   };
 }
 
@@ -166,7 +163,7 @@ function rowsRequest(urlState: SubmissionGridUrlState, columns: ReadyColumns) {
   return { urlState: rowsState, answerColumns };
 }
 
-/** None without a schema; none on a column still being prepared. */
+/** None without a schema; none on a column that cannot filter now. */
 function sentAnswerFilters(
   urlState: SubmissionGridUrlState,
   { schemaReady, catalog }: ReadyColumns,

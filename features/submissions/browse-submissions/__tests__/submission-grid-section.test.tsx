@@ -82,6 +82,9 @@ const READY: SubmissionGridColumnsLoad = {
   catalog: [answerColumn("q1"), answerColumn("q2")],
 };
 
+const ANSWER_FILTERS_WAITING_LINE =
+  "Answer filters on columns that are not filterable or still being prepared are not applied.";
+
 const SLOTS = { used: 52, max: 64, userUsed: 2, userMax: 14 };
 
 type Leaf = { type: string; props: Record<string, any> };
@@ -281,9 +284,28 @@ describe("SubmissionGridSection", () => {
     const shell = await renderSection({ "answer.contains.q2": "acme" });
 
     // Assert
-    expect(shell.props.banner.lines).toContain(
-      "Answer filters on columns still being prepared are not applied yet.",
-    );
+    expect(shell.props.banner.lines).toContain(ANSWER_FILTERS_WAITING_LINE);
+    const rows = (shell.props.children as Leaf).props.children as Leaf;
+    expect(rows.props.urlState.answerFilters).toEqual([]);
+  });
+
+  it("keeps a filter on a column an editor made not filterable, sends none, and says so", async () => {
+    // Arrange
+    const removed = {
+      ...answerColumn("q2"),
+      filterType: null,
+      search: { state: "eligible" as const, source: null },
+    };
+    loads.columns.mockResolvedValue({
+      ...READY,
+      catalog: [answerColumn("q1"), removed],
+    });
+
+    // Act
+    const shell = await renderSection({ "answer.contains.q2": "acme" });
+
+    // Assert
+    expect(shell.props.banner.lines).toContain(ANSWER_FILTERS_WAITING_LINE);
     const rows = (shell.props.children as Leaf).props.children as Leaf;
     expect(rows.props.urlState.answerFilters).toEqual([]);
   });
