@@ -1,4 +1,7 @@
+import { toTestInspectorView } from "@/features/public-form/inspect-test-submission/test-inspector-view";
 import type { SurveyJsWrapperProps } from "@/features/public-form/ui/survey-js-wrapper";
+import type { Submission } from "@/lib/endatix-api";
+import { PersonalizationSource } from "@/lib/endatix-api/submissions/types";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import SurveyJsWrapper from "../survey-js-wrapper";
@@ -25,19 +28,41 @@ vi.mock(
   () => ({ startNewResponseAction: vi.fn() }),
 );
 
+vi.mock(
+  "@/features/public-form/application/actions/restart-test-submission.action",
+  () => ({ restartTestSubmissionAction: vi.fn() }),
+);
+
+vi.mock(
+  "@/features/public-form/inspect-test-submission/ui/lazy-test-inspector",
+  () => ({
+    TestInspector: ({ model }: { model: unknown }) => (
+      <div
+        data-has-model={String(model !== null)}
+        data-testid="test-inspector"
+      />
+    ),
+  }),
+);
+
 vi.mock("next/dynamic", () => ({
   default: () =>
     function MockSurveyComponent({
-      isRespondentTestMode,
+      testSubmission,
     }: {
-      isRespondentTestMode?: boolean;
+      testSubmission?: {
+        renderCorner: (model: unknown) => React.ReactNode;
+        writeToken?: string;
+      };
     }) {
       return (
         <>
-          {isRespondentTestMode ? (
-            <div data-testid="respondent-test-mode-badge">Test response - not counted</div>
-          ) : null}
-          <button data-testid="survey-component" type="button">
+          {testSubmission?.renderCorner({})}
+          <button
+            data-testid="survey-component"
+            data-write-token={testSubmission?.writeToken}
+            type="button"
+          >
             Complete
           </button>
         </>
@@ -60,9 +85,38 @@ const defaultProps: SurveyJsWrapperProps = {
     submissionPhase: "resume",
     isRespondentTestMode: false,
     storageConfig: null,
+    testInspector: null,
     variant: "share",
   },
 };
+
+/** What the server sends a viewer with forms.test. */
+function testerView(submission: Submission, canStartOver = true) {
+  return toTestInspectorView({ formId: "form-1", submission, canStartOver });
+}
+
+function testSubmission(isComplete: boolean): Submission {
+  return {
+    id: "submission-21",
+    formId: "form-1",
+    formDefinitionId: "definition-1",
+    isComplete,
+    isTestSubmission: true,
+    jsonData: "{}",
+    currentPage: 0,
+    metadata: "{}",
+    token: "submission-token",
+    createdAt: new Date(),
+    modifiedAt: new Date(),
+    status: isComplete ? "completed" : "draft",
+    personalization: {
+      identifier: "tester@example.com",
+      capturedAt: "2026-10-19T00:00:00Z",
+      variables: {},
+      source: PersonalizationSource.Test,
+    },
+  };
+}
 
 describe("SurveyJsWrapper", () => {
   it("renders already responded when initial phase is blocked", () => {
@@ -81,7 +135,10 @@ describe("SurveyJsWrapper", () => {
 
   it("renders the closed status for a closed submission", () => {
     // Arrange
-    const survey = { ...defaultProps.survey, submissionPhase: "closed" as const };
+    const survey = {
+      ...defaultProps.survey,
+      submissionPhase: "closed" as const,
+    };
 
     // Act
     render(<SurveyJsWrapper {...defaultProps} survey={survey} />);
@@ -138,7 +195,9 @@ describe("SurveyJsWrapper", () => {
     );
 
     expect(screen.getByText("Thank you")).toBeDefined();
-    expect(screen.getByText("This form has already been completed.")).toBeDefined();
+    expect(
+      screen.getByText("This form has already been completed."),
+    ).toBeDefined();
     expect(screen.queryByTestId("survey-component")).toBeNull();
   });
 
@@ -151,7 +210,117 @@ describe("SurveyJsWrapper", () => {
     );
 
     expect(screen.getByTestId("respondent-test-mode-badge")).toBeDefined();
-    expect(screen.getByText("Test response - not counted")).toBeDefined();
+    expect(screen.queryByRole("button", { name: "Start over" })).toBeNull();
+  });
+
+  it("gives a tester the Test inspector beside the survey, in place of the notice", () => {
+    render(
+      <SurveyJsWrapper
+        {...defaultProps}
+        survey={{
+          ...defaultProps.survey,
+          submission: testSubmission(false),
+          testInspector: testerView(testSubmission(false)),
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByTestId("test-inspector").getAttribute("data-has-model"),
+    ).toBe("true");
+    expect(screen.queryByTestId("respondent-test-mode-badge")).toBeNull();
+  });
+
+  it("keeps the notice plus Start over for a tester in an embed", () => {
+    render(
+      <SurveyJsWrapper
+        {...defaultProps}
+        survey={{
+          ...defaultProps.survey,
+          variant: "embed",
+          submission: testSubmission(false),
+          testInspector: testerView(testSubmission(false)),
+        }}
+      />,
+    );
+
+    expect(screen.queryByTestId("test-inspector")).toBeNull();
+    expect(screen.getByTestId("respondent-test-mode-badge")).toBeDefined();
+    expect(screen.getByRole("button", { name: "Start over" })).toBeDefined();
+  });
+
+  it("shows nothing test-related to a real respondent", () => {
+    render(<SurveyJsWrapper {...defaultProps} />);
+
+    expect(screen.queryByTestId("test-inspector")).toBeNull();
+    expect(screen.queryByTestId("respondent-test-mode-badge")).toBeNull();
+  });
+
+  it("saves a person's test submission with its own token, so another tab's cookie swap cannot redirect it", () => {
+    render(
+      <SurveyJsWrapper
+        {...defaultProps}
+        survey={{ ...defaultProps.survey, submission: testSubmission(false) }}
+      />,
+    );
+
+    expect(
+      screen.getByTestId("survey-component").getAttribute("data-write-token"),
+    ).toBe("submission-token");
+  });
+
+  it("replaces the cookie Start a new response with the Test inspector on a finished test submission", () => {
+    render(
+      <SurveyJsWrapper
+        {...defaultProps}
+        survey={{
+          ...defaultProps.survey,
+          submissionPhase: "completed",
+          canStartOver: true,
+          isRespondentTestMode: true,
+          submission: testSubmission(true),
+          testInspector: testerView(testSubmission(true)),
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByTestId("test-inspector").getAttribute("data-has-model"),
+    ).toBe("false");
+    expect(screen.queryByText("Start a new response")).toBeNull();
+  });
+
+  it("hides the cookie Start a new response on a person's test submission even without forms.test", () => {
+    render(
+      <SurveyJsWrapper
+        {...defaultProps}
+        survey={{
+          ...defaultProps.survey,
+          submissionPhase: "completed",
+          canStartOver: true,
+          submission: testSubmission(true),
+        }}
+      />,
+    );
+
+    expect(screen.queryByText("Start a new response")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Start over" })).toBeNull();
+  });
+
+  it("shows only the notice to any other viewer of a test submission", () => {
+    render(
+      <SurveyJsWrapper
+        {...defaultProps}
+        survey={{
+          ...defaultProps.survey,
+          submissionPhase: "completed",
+          submission: testSubmission(true),
+        }}
+      />,
+    );
+
+    expect(screen.getByTestId("respondent-test-mode-badge")).toBeDefined();
+    expect(screen.queryByRole("button", { name: "Start over" })).toBeNull();
   });
 
   it("keeps the survey visible after client-side submit so SurveyJS can show its thank-you page", () => {
@@ -160,7 +329,9 @@ describe("SurveyJsWrapper", () => {
     fireEvent.click(screen.getByTestId("survey-component"));
 
     expect(screen.getByTestId("survey-component")).toBeDefined();
-    expect(screen.queryByText("This form has already been completed.")).toBeNull();
+    expect(
+      screen.queryByText("This form has already been completed."),
+    ).toBeNull();
     expect(screen.queryByText("Already Responded")).toBeNull();
   });
 

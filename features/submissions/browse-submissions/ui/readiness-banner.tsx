@@ -15,7 +15,6 @@ type ReadinessBannerProps = {
   banner: GridReadinessBanner;
 };
 
-/** Says which submissions are not prepared and offers to prepare them. */
 export function ReadinessBanner({
   formId,
   banner,

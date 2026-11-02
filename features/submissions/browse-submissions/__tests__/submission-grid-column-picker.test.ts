@@ -1,8 +1,13 @@
 import { describe, expect, it } from "vitest";
+import {
+  fitsRowColumns,
+  MAX_SUBMISSION_GRID_COLUMNS_PARAM_BYTES,
+  rowColumnsUsage,
+} from "@/lib/endatix-api/reporting/submission-grid-row-columns";
 import { MAX_SUBMISSION_GRID_ROW_COLUMNS } from "@/lib/endatix-api/reporting/submission-grid-types";
 import {
-  canShowMoreColumns,
   columnKeysOf,
+  columnOrder,
   filterColumnGroups,
   groupColumnsByPlacement,
   groupLabel,
@@ -10,6 +15,7 @@ import {
   hideColumns,
   limitRenderedColumns,
   showColumns,
+  showsAny,
   toggleColumn,
 } from "../submission-grid-column-picker";
 import {
@@ -142,7 +148,9 @@ describe("filterColumnGroups", () => {
     const matches = filterColumnGroups(groups, "EMAIL");
 
     // Assert
-    expect(matches.map(groupLabel)).toEqual(["Page one › Contact"]);
+    expect(matches.map((group) => groupLabel(group))).toEqual([
+      "Page one › Contact",
+    ]);
     expect(columnKeysOf(matches)).toEqual(["email"]);
   });
 
@@ -204,12 +212,49 @@ describe("limitRenderedColumns", () => {
 });
 
 describe("column selection", () => {
-  it("adds shown columns after the visible ones and keeps their order", () => {
+  const formOrder = columnOrder(
+    ["q1", "q2", "q3", "q4", "q5"].map((key) => column(key)),
+  );
+
+  it("puts shown columns at their place in the form", () => {
     // Act
-    const next = showColumns(["q3", "q1"], ["q1", "q2", "q4"]);
+    const next = showColumns(["q1", "q3", "q5"], ["q4", "q2"], formOrder);
 
     // Assert
-    expect(next).toEqual(["q3", "q1", "q2", "q4"]);
+    expect(next).toEqual(["q1", "q2", "q3", "q4", "q5"]);
+  });
+
+  it("puts a hidden and shown again column back where it was", () => {
+    // Act
+    const next = toggleColumn(
+      toggleColumn(["q1", "q2", "q3"], "q2", formOrder),
+      "q2",
+      formOrder,
+    );
+
+    // Assert
+    expect(next).toEqual(["q1", "q2", "q3"]);
+  });
+
+  it("keeps a visible order that differs from the form", () => {
+    // Act
+    const next = showColumns(["q3", "q1"], ["q2"], formOrder);
+
+    // Assert
+    expect(next).toEqual(["q2", "q3", "q1"]);
+  });
+
+  it("never drops a visible column to fit a new one", () => {
+    // Arrange
+    const keys = Array.from({ length: 600 }, (_, index) => `q${index}`);
+    const order = columnOrder(keys.map((key) => column(key)));
+    const visible = keys.slice(100, 600);
+
+    // Act
+    const next = showColumns(visible, ["q0"], order);
+
+    // Assert
+    expect(next).toEqual(visible);
   });
 
   it("stops at the number of columns the rows endpoint accepts", () => {
@@ -217,17 +262,25 @@ describe("column selection", () => {
     const keys = Array.from({ length: 1000 }, (_, index) => `q${index}`);
 
     // Act
-    const next = showColumns([], keys);
+    const next = showColumns(
+      [],
+      keys,
+      columnOrder(keys.map((key) => column(key))),
+    );
 
     // Assert
     expect(next).toHaveLength(MAX_SUBMISSION_GRID_ROW_COLUMNS);
-    expect(canShowMoreColumns(next)).toBe(false);
+    expect(fitsRowColumns(rowColumnsUsage(next), "q")).toBe(false);
   });
 
   it("hides columns and toggles one", () => {
     // Act
     const hidden = hideColumns(["q1", "q2", "q3"], ["q2", "missing"]);
-    const toggled = toggleColumn(toggleColumn(hidden, "q1"), "q4");
+    const toggled = toggleColumn(
+      toggleColumn(hidden, "q1", formOrder),
+      "q4",
+      formOrder,
+    );
 
     // Assert
     expect(hidden).toEqual(["q1", "q3"]);
@@ -248,13 +301,77 @@ describe("column selection", () => {
   });
 });
 
+describe("showsAny", () => {
+  // Keys whose encoded length differs from their length: space (+), comma
+  // (%2C), non-ASCII (two %XX per byte), and plain keys.
+  const keys = ["plain_0", "a b", "x,y", "ü_frage", "plain_1", "日本", "z"];
+  const order = columnOrder(keys.map((key) => column(key)));
+
+  function nearlyFull(spare: number): string[] {
+    const filler = "f".repeat(MAX_SUBMISSION_GRID_COLUMNS_PARAM_BYTES - spare);
+    return [filler];
+  }
+
+  it("answers as showColumns does, without summing the visible keys again", () => {
+    // Arrange
+    const views = [
+      [],
+      ["plain_0", "x,y"],
+      ...[3, 6, 9, 12, 20].map((spare) => nearlyFull(spare)),
+    ];
+    const asks = [
+      [],
+      ["plain_0"],
+      ["a b"],
+      ["x,y"],
+      ["ü_frage"],
+      ["日本"],
+      ["z", "a b"],
+      keys,
+    ];
+
+    // Act
+    const pairs = views.flatMap((visible) =>
+      asks.map((ask) => [
+        showsAny(
+          { visible: new Set(visible), usage: rowColumnsUsage(visible) },
+          ask,
+          order,
+        ),
+        showColumns(visible, ask, order).length > visible.length,
+      ]),
+    );
+
+    // Assert
+    expect(pairs.length).toBe(56);
+    expect(pairs.filter(([fast, full]) => fast !== full)).toEqual([]);
+    expect(pairs.some(([, full]) => full)).toBe(true);
+    expect(pairs.some(([, full]) => !full)).toBe(true);
+  });
+
+  it("follows the form order, not the order asked", () => {
+    // Arrange
+    const filler = nearlyFull(6);
+    const usage = rowColumnsUsage(filler);
+    const view = { visible: new Set(filler), usage };
+
+    // Act
+    const shortLast = showsAny(view, ["ü_frage", "z"], order);
+    const longFirst = showsAny(view, ["z", "ü_frage"], order);
+
+    // Assert
+    expect([shortLast, longFirst]).toEqual([false, false]);
+    expect(fitsRowColumns(usage, "z")).toBe(true);
+  });
+});
+
 describe("picked columns reach the rows request", () => {
   it("requests only the columns the picker shows", () => {
     // Arrange
     const catalog = Array.from({ length: 1000 }, (_, index) =>
       column(`q${index}`),
     );
-    const picked = showColumns([], ["q7", "q2", "q999"]);
+    const picked = showColumns([], ["q7", "q2", "q999"], columnOrder(catalog));
 
     // Act
     const { columns } = columnsUpdate(picked);
@@ -266,7 +383,7 @@ describe("picked columns reach the rows request", () => {
     );
 
     // Assert
-    expect(request.columns).toEqual(["q7", "q2", "q999"]);
+    expect(request.columns).toEqual(["q2", "q7", "q999"]);
   });
 
   it("goes back to the default view when nothing is picked", () => {

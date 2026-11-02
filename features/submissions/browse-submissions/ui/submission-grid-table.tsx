@@ -1,4 +1,8 @@
 "use client";
+"use no memo";
+
+// TanStack Table keeps one table instance, so the React Compiler would cache
+// what reads it and miss in-place state changes (column visibility, sizing).
 
 import {
   createPagedTableFooterProps,
@@ -9,17 +13,22 @@ import {
 } from "@/components/table";
 import { NoMatchingSubmissionsEmptyState } from "@/features/submissions/ui/submissions-empty-state";
 import type { SubmissionGridRowsPage } from "@/lib/endatix-api/reporting/submission-grid";
+import type { SubmissionGridRow } from "@/lib/endatix-api/reporting/submission-grid-types";
 import {
+  functionalUpdate,
   getCoreRowModel,
   useReactTable,
+  type Row,
   type SortingState,
   type Updater,
 } from "@tanstack/react-table";
+import type { UrlSearchParamsUpdater } from "@/lib/utils/hooks/use-url-search-params-updater.hook";
+import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 import {
   answerDateFilter,
   answerFilterUrlKey,
-  matchesStoredChoiceValue,
+  filtersByStoredChoiceValue,
 } from "../submission-grid-answer-filters";
 import type { AnswerColumn } from "../submission-grid-columns";
 import {
@@ -43,6 +52,10 @@ import {
   useSubmissionGridUrl,
   type SubmissionGridUrl,
 } from "./submission-grid-url-context";
+import {
+  useSubmissionGridView,
+  type SubmissionGridView,
+} from "./submission-grid-view-context";
 
 export type SubmissionGridTableProps = {
   page: SubmissionGridRowsPage;
@@ -52,23 +65,36 @@ export type SubmissionGridTableProps = {
 };
 
 export function SubmissionGridTable(props: Readonly<SubmissionGridTableProps>) {
-  const { page } = props;
   const grid = useSubmissionGridUrl();
   const table = useSubmissionGridTable(props, grid);
+  const openSubmission = useOpenSubmission();
   return (
     <DataTableSurface data-slot="submission-grid">
       <DataTableGrid
         table={table}
         isPending={grid.isPending}
-        hasRows={page.items.length > 0}
+        hasRows={props.page.items.length > 0}
         empty={<GridEmpty grid={grid} />}
+        onRowClick={openSubmission}
       />
-      <PagedTableFooter
-        {...createPagedTableFooterProps(page, "submissions", grid.updateUrl)}
-        pageSizeOptions={SUBMISSION_GRID_PAGE_SIZE_OPTIONS}
-        variant="surface"
-      />
+      <GridFooter page={props.page} updateUrl={grid.updateUrl} />
     </DataTableSurface>
+  );
+}
+
+function GridFooter({
+  page,
+  updateUrl,
+}: Readonly<{
+  page: SubmissionGridRowsPage;
+  updateUrl: UrlSearchParamsUpdater;
+}>) {
+  return (
+    <PagedTableFooter
+      {...createPagedTableFooterProps(page, "submissions", updateUrl)}
+      pageSizeOptions={SUBMISSION_GRID_PAGE_SIZE_OPTIONS}
+      variant="surface"
+    />
   );
 }
 
@@ -85,12 +111,18 @@ function useSubmissionGridTable(
     getCoreRowModel: getCoreRowModel(),
     getRowId: (row) => row.id,
     manualSorting: true,
-    state: { sorting },
-    onSortingChange: (updater: Updater<SortingState>) => {
-      const next = typeof updater === "function" ? updater(sorting) : updater;
-      grid.updateUrl(sortUpdate(next));
-    },
+    ...resizableView(useSubmissionGridView(), sorting),
+    onSortingChange: (updater: Updater<SortingState>) =>
+      grid.updateUrl(sortUpdate(functionalUpdate(updater, sorting))),
   });
+}
+
+function resizableView(view: SubmissionGridView, sorting: SortingState) {
+  return {
+    enableColumnResizing: true,
+    state: { sorting, ...view.tableLayout },
+    onColumnSizingChange: view.onColumnSizingChange,
+  };
 }
 
 function useRowData({ items }: SubmissionGridRowsPage) {
@@ -153,9 +185,17 @@ function answerColumnFilters(
 }
 
 function answerTextPlaceholder(column: AnswerColumn): string {
-  return matchesStoredChoiceValue(column)
+  return filtersByStoredChoiceValue(column)
     ? "Contains (stored choice value)"
     : "Contains";
+}
+
+function useOpenSubmission() {
+  const router = useRouter();
+  return ({ original }: Row<SubmissionGridRow>) =>
+    router.push(`/forms/${original.formId}/submissions/${original.id}`, {
+      scroll: false,
+    });
 }
 
 function GridEmpty({ grid }: Readonly<{ grid: SubmissionGridUrl }>) {

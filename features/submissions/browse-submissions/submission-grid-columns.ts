@@ -1,13 +1,16 @@
 import {
   columnSearchOf,
+  SUBMITTER_PROFILE_KIND,
   type ColumnSearch,
-} from "@/features/submissions/choose-filterable-questions/filterable-questions";
-import {
-  MAX_SUBMISSION_GRID_ROW_COLUMNS,
-  type SubmissionGridColumn,
-  type SubmissionGridSearchSlots,
-  type SubmissionGridFilterType,
-  type SubmissionGridRow,
+} from "@/features/submissions/column-search";
+import { answerParamsBytes } from "@/lib/endatix-api/reporting/submission-grid-answer-params";
+import { fitRowColumns } from "@/lib/endatix-api/reporting/submission-grid-row-columns";
+import type {
+  SubmissionGridAnswerFilter,
+  SubmissionGridColumn,
+  SubmissionGridSearchSlots,
+  SubmissionGridFilterType,
+  SubmissionGridRow,
 } from "@/lib/endatix-api/reporting/submission-grid-types";
 
 /**
@@ -29,11 +32,9 @@ export const SUBMISSION_GRID_METADATA_COLUMN_IDS = [
 export type SubmissionGridMetadataColumnId =
   (typeof SUBMISSION_GRID_METADATA_COLUMN_IDS)[number];
 
-/** How many answer columns show before a view picks them. */
 export const DEFAULT_VISIBLE_ANSWER_COLUMNS = 10;
 
 const DEFAULT_VIEW_KINDS: ReadonlySet<string> = new Set(["Simple"]);
-const SUBMITTER_PROFILE_KIND = "SubmitterProfile";
 const SUBMITTER_PROFILE_KEY_PREFIX = "submitter_";
 
 /** Where a question sits in the form; the column picker groups by it. */
@@ -43,22 +44,17 @@ export type AnswerColumnPlacement = {
   panelTitle: string | null;
 };
 
-/** A schema column the grid can show answers for. */
 export type AnswerColumn = {
   key: string;
   kind: string;
   title: string;
   questionType: string | null;
-  /** The answer filter the column offers now; `null` when it offers none. */
   filterType: SubmissionGridFilterType | null;
-  /** Whether answer filters can use the column, or could once an editor adds it. */
   search: ColumnSearch;
   placement: AnswerColumnPlacement;
 };
 
-/** What the grid may do about filterable columns for this user. */
 export type ColumnSearchAccess = {
-  /** `forms.edit`: make columns filterable and remove the ones people chose. */
   canEdit: boolean;
   /** Left out by an API that cannot choose search keys. */
   slots?: SubmissionGridSearchSlots;
@@ -93,12 +89,14 @@ function toAnswerColumn(
 
 /**
  * The answer columns to show, in order. Requested keys the schema no longer
- * has are dropped, and the rest stop at what the rows endpoint accepts.
- * Without a request, the first question columns show.
+ * has are dropped, and the rest stop at what the rows endpoint accepts
+ * beside the answer filters' params. Without a request, the first question
+ * columns show.
  */
 export function resolveVisibleAnswerColumns(
   catalog: readonly AnswerColumn[],
   requestedKeys: readonly string[] | undefined,
+  answerFilters: readonly SubmissionGridAnswerFilter[] = [],
 ): AnswerColumn[] {
   if (requestedKeys === undefined) {
     return catalog
@@ -107,9 +105,13 @@ export function resolveVisibleAnswerColumns(
   }
 
   const byKey = new Map(catalog.map((column) => [column.key, column]));
-  return requestedKeys
-    .flatMap((key) => byKey.get(key) ?? [])
-    .slice(0, MAX_SUBMISSION_GRID_ROW_COLUMNS);
+  const known = requestedKeys.flatMap((key) => byKey.get(key) ?? []);
+  const fitted = fitRowColumns(
+    known.map((column) => column.key),
+    [],
+    answerParamsBytes(answerFilters),
+  );
+  return known.slice(0, fitted.length);
 }
 
 /**
@@ -136,27 +138,44 @@ export function readAnswer(
   return row.submitterProfile?.[submitterProfileField(column.key)];
 }
 
-/** The profile field a submitter column shows (`submitter_email` → `email`). */
 export function submitterProfileField(key: string): string {
   return key.startsWith(SUBMITTER_PROFILE_KEY_PREFIX)
     ? key.slice(SUBMITTER_PROFILE_KEY_PREFIX.length)
     : key;
 }
 
-export function isSubmitterProfileColumn(column: AnswerColumn): boolean {
+export function isSubmitterProfileColumn(
+  column: Pick<AnswerColumn, "kind">,
+): boolean {
   return column.kind === SUBMITTER_PROFILE_KIND;
 }
 
-/** One line of text for a cell; `null` when there is no answer. */
 export function formatAnswerValue(value: unknown): string | null {
   if (value === undefined || value === null || value === "") {
     return null;
   }
 
   if (Array.isArray(value)) {
-    const items = value.map(formatAnswerValue).filter((item) => item !== null);
+    const items = value
+      .map((item) => formatAnswerValue(item))
+      .filter((item) => item !== null);
     return items.length > 0 ? items.join(", ") : null;
   }
 
-  return typeof value === "object" ? JSON.stringify(value) : String(value);
+  return formatScalar(value);
+}
+
+function formatScalar(value: unknown): string | null {
+  switch (typeof value) {
+    case "string":
+      return value;
+    case "number":
+    case "boolean":
+    case "bigint":
+      return value.toString();
+    case "object":
+      return JSON.stringify(value);
+    default:
+      return null;
+  }
 }

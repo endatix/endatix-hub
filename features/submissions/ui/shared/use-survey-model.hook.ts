@@ -1,6 +1,7 @@
 "use client";
 
 import { toast } from "@/components/ui/toast";
+import { TelemetryLogger } from "@/features/telemetry";
 import { getCustomQuestionsAction } from "@/features/forms/application/actions/get-custom-questions.action";
 import { Submission } from "@/lib/endatix-api";
 import { initializeCustomQuestions } from "@/lib/questions/infrastructure/specialized-survey-question";
@@ -119,7 +120,10 @@ export function useSurveyModel(
       }
     };
 
-    initializeModel();
+    void initializeModel().catch((error: unknown) => {
+      TelemetryLogger.error("Error initializing survey model", error);
+      setIsLoading(false);
+    });
 
     return () => {
       cleanUpFuncRef.current?.();

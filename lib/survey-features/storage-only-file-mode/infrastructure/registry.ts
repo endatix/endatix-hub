@@ -20,9 +20,11 @@ function isPropertyHidden(type: string, propertyName: string): boolean {
   return prop?.visible === false;
 }
 
-function areAllPropertiesHidden(type: string): boolean {
-  return HIDDEN_PROPERTIES.every((propertyName) =>
-    isPropertyHidden(type, propertyName),
+function areAllPropertiesHidden(): boolean {
+  return STORAGE_ONLY_FILE_MODE_QUESTION_TYPES.every((type) =>
+    HIDDEN_PROPERTIES.every((propertyName) =>
+      isPropertyHidden(type, propertyName),
+    ),
   );
 }
 
@@ -42,10 +44,7 @@ function areAllPropertiesHidden(type: string): boolean {
  * it always differs from the default and always serializes.
  */
 export function registerStorageOnlyFileModeGlobals(): void {
-  if (
-    isStorageOnlyFileModeRegistryInitialized &&
-    STORAGE_ONLY_FILE_MODE_QUESTION_TYPES.every(areAllPropertiesHidden)
-  ) {
+  if (isStorageOnlyFileModeRegistryInitialized && areAllPropertiesHidden()) {
     return;
   }
 

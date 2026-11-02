@@ -36,7 +36,6 @@ export async function resolveStorageGateInput(
   return normalizeGateTokenType({
     ...gate,
     token: cookieTokenResult.value,
-    tokenType: "SubmissionToken",
   });
 }
 

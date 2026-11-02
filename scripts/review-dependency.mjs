@@ -1499,13 +1499,14 @@ function cmdPr(input) {
     `- pnpm ${pnpmVersion}${ciPin ? ` (CI/Docker pin ${ciPin}${ciPin === pnpmVersion ? "" : " - MISMATCH, results may differ from CI"})` : ""}`,
   );
 
+  const byKey = ([a], [b]) => a.localeCompare(b);
   const lockOverrides = JSON.stringify(
-    Object.entries(headLock.overrides).sort(),
+    Object.entries(headLock.overrides).sort(byKey),
   );
   const wsOverrides = JSON.stringify(
     workspaceOverrides(headFiles["pnpm-workspace.yaml"])
       .map((e) => [e.key, e.value])
-      .sort(),
+      .sort(byKey),
   );
   const overridesOk = lockOverrides === wsOverrides;
   check(

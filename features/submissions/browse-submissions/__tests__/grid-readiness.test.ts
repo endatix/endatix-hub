@@ -9,7 +9,7 @@ import {
 function readiness(
   overrides: Partial<SubmissionGridReadiness> = {},
 ): SubmissionGridReadiness {
-  return {
+  const counts = {
     submissions: 10,
     completedSubmissions: 8,
     prepared: 8,
@@ -17,6 +17,11 @@ function readiness(
     failed: 0,
     skippedInProgress: 2,
     ...overrides,
+  };
+  // The API sends inProgress as submissions minus completed ones.
+  return {
+    inProgress: counts.submissions - counts.completedSubmissions,
+    ...counts,
   };
 }
 
@@ -64,6 +69,23 @@ describe("describeGridReadiness", () => {
         prepared: 0,
       }),
       canIncludeInProgress: true,
+    });
+
+    // Assert
+    expect(banner).toBeNull();
+  });
+
+  it("hides the waiting filters banner when the form has no submissions", () => {
+    // Act
+    const banner = describeGridReadiness({
+      schemaReady: true,
+      readiness: readiness({
+        submissions: 0,
+        completedSubmissions: 0,
+        prepared: 0,
+      }),
+      canIncludeInProgress: true,
+      answerFiltersWaiting: true,
     });
 
     // Assert
@@ -144,7 +166,7 @@ describe("describeGridReadiness", () => {
     expect(banner?.showIncludeInProgress).toBe(false);
   });
 
-  it("says how many submissions are being prepared", () => {
+  it("does not count submissions being prepared as not prepared", () => {
     // Act
     const banner = describeGridReadiness({
       schemaReady: true,
@@ -153,7 +175,28 @@ describe("describeGridReadiness", () => {
     });
 
     // Assert
-    expect(banner?.lines).toContain("3 submissions are being prepared.");
+    expect(banner).toMatchObject({
+      lines: ["3 submissions are being prepared."],
+      showPrepare: false,
+    });
+  });
+
+  it("offers Prepare for the completed submissions neither prepared nor pending", () => {
+    // Act
+    const banner = describeGridReadiness({
+      schemaReady: true,
+      readiness: readiness({ submissions: 8, prepared: 4, pending: 3 }),
+      canIncludeInProgress: true,
+    });
+
+    // Assert
+    expect(banner).toMatchObject({
+      lines: [
+        "1 submission completed is not prepared.",
+        "3 submissions are being prepared.",
+      ],
+      showPrepare: true,
+    });
   });
 });
 
@@ -188,7 +231,7 @@ describe("describeRowsBanner", () => {
     });
     expect(banner?.lines).toEqual([
       "3 submissions completed are not prepared, so the answer filters did not check them.",
-      "1 submission in progress is not included, so the answer filters did not check them.",
+      "1 submission in progress is not included, so the answer filters did not check it.",
     ]);
   });
 

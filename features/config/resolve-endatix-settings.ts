@@ -78,24 +78,12 @@ export interface EndatixResolvedSettings {
   /** Browser-safe projection. Never includes licence keys, auth secrets, or storage credentials. */
   readonly client: ClientEndatixConfig;
   /**
-   * Keys merged into `nextConfig.env` (build). Compiler-needed only: `ENDATIX_RESOLVED_*`
-   * and non-secret auth flags. Never public client keys, licence keys, or storage secrets.
+   * Keys merged into `nextConfig.env` (build). Next inlines each one as a literal, so
+   * nothing that must change per deployment belongs here: no storage settings, public
+   * client keys, licence keys, or secrets.
    */
   readonly envPatch: Readonly<Record<string, string>>;
 }
-
-/**
- * Build mirror (`ENDATIX_RESOLVED_*`): written by {@link withEndatix} into `nextConfig.env`
- * and merged into `process.env` by Next. At runtime, {@link getRuntimeStorageProfile} prefers
- * this so storage + image host inference stays aligned with build-time `images.remotePatterns`.
- */
-const RESOLVED_STORAGE_VERSION_KEY = "ENDATIX_RESOLVED_STORAGE_VERSION";
-const RESOLVED_STORAGE_PROVIDER_KEY = "ENDATIX_RESOLVED_STORAGE_PROVIDER";
-const RESOLVED_AZURE_CREDS_KEY = "ENDATIX_RESOLVED_AZURE_CREDENTIALS";
-const RESOLVED_S3_CREDS_KEY = "ENDATIX_RESOLVED_S3_CREDENTIALS";
-const RESOLVED_IMAGE_HOSTS_KEY = "ENDATIX_RESOLVED_IMAGE_REMOTE_HOSTNAMES";
-
-const STORAGE_MIRROR_VERSION = "2";
 
 type ParsedStorageProvider = {
   readonly provider: StorageProvider;
@@ -144,69 +132,15 @@ function buildStorageSliceFromEnv(): StorageProfileSlice {
   return cachedStorageFromEnv;
 }
 
-function decodeProviderFromMirror(value: string | undefined): StorageProvider {
-  const v = value?.trim() ?? "none";
-  if (v === "none" || v === "s3" || v === "azure") {
-    return v;
-  }
-  return "none";
-}
-
-function readStorageProfileFromBuildMirror(): StorageProfileSlice | null {
-  if (process.env[RESOLVED_STORAGE_VERSION_KEY] !== STORAGE_MIRROR_VERSION) {
-    return null;
-  }
-
-  const provider = decodeProviderFromMirror(
-    process.env[RESOLVED_STORAGE_PROVIDER_KEY],
-  );
-  const azureCredentialsPresent = process.env[RESOLVED_AZURE_CREDS_KEY] === "1";
-  const s3CredentialsPresent = Object.hasOwn(process.env, RESOLVED_S3_CREDS_KEY)
-    ? process.env[RESOLVED_S3_CREDS_KEY] === "1"
-    : isS3StorageCredentialsPresentInEnv();
-
-  const hasResolvedImageHosts = Object.hasOwn(
-    process.env,
-    RESOLVED_IMAGE_HOSTS_KEY,
-  );
-  const rawHosts = process.env[RESOLVED_IMAGE_HOSTS_KEY]?.trim() ?? "";
-  const imageRemoteHostnames: readonly string[] = hasResolvedImageHosts
-    ? Object.freeze(
-        rawHosts
-          .split(",")
-          .map((h) => h.trim())
-          .filter(Boolean),
-      )
-    : collectImageRemoteHostnames(provider);
-
-  return Object.freeze({
-    provider,
-    invalidProviderRaw: null,
-    azureCredentialsPresent,
-    s3CredentialsPresent,
-    imageRemoteHostnames,
-  });
-}
-
-function readStorageProfile(
-  source: ResolveEndatixSettingsSource,
-): StorageProfileSlice {
-  if (source === "runtime") {
-    const mirrored = readStorageProfileFromBuildMirror();
-    if (mirrored !== null) {
-      return mirrored;
-    }
-  }
-  return buildStorageSliceFromEnv();
-}
-
 /**
- * Env / build-time storage profile (not the active registry provider).
- * Used by `withEndatix` mirror, {@link registerStorageProviders}, startup validation, and admin env diagnostics.
- * For active provider state use {@link getStorageRuntimeSettings} from `storage-runtime`.
+ * Storage profile from the live `process.env` (not the active registry provider).
+ * Used by {@link registerStorageProviders}, startup validation, and admin env diagnostics.
+ * Never mirrored into `nextConfig.env`: Next would inline it, freezing the published image
+ * to the build machine's storage env. For active provider state use
+ * {@link getStorageRuntimeSettings} from `storage-runtime`.
  */
 export function getRuntimeStorageProfile(): StorageProfileSlice {
-  return readStorageProfile("runtime");
+  return buildStorageSliceFromEnv();
 }
 
 function buildClientConfig(
@@ -285,34 +219,19 @@ function resolveMergedApiConfig(
   }
 }
 
-function buildEnvPatch(
-  mergedAuth: EndatixAuthConfig,
-  storage: StorageProfileSlice,
-  source: ResolveEndatixSettingsSource,
-): Record<string, string> {
-  const env: Record<string, string> = {
+function buildEnvPatch(mergedAuth: EndatixAuthConfig): Record<string, string> {
+  return {
     AUTH_KEYCLOAK_ENABLED: mergedAuth.providers.keycloak.enabled.toString(),
     AUTH_KEYCLOAK_CLIENT_ID: mergedAuth.providers.keycloak.clientId ?? "",
     AUTH_KEYCLOAK_ISSUER: mergedAuth.providers.keycloak.issuer ?? "",
     SESSION_MAX_AGE_IN_MINUTES: mergedAuth.session.maxAge.toString(),
   };
-
-  if (source === "withEndatix") {
-    env[RESOLVED_STORAGE_VERSION_KEY] = STORAGE_MIRROR_VERSION;
-    env[RESOLVED_STORAGE_PROVIDER_KEY] = storage.provider;
-    env[RESOLVED_AZURE_CREDS_KEY] = storage.azureCredentialsPresent ? "1" : "0";
-    env[RESOLVED_S3_CREDS_KEY] = storage.s3CredentialsPresent ? "1" : "0";
-    env[RESOLVED_IMAGE_HOSTS_KEY] = storage.imageRemoteHostnames.join(",");
-  }
-
-  return env;
 }
 
 /**
  * Single materialization pipeline: env defaults, overridden by `options` where provided.
- * Storage: for `source: 'withEndatix'`, always derived from current env (+ future options.storage).
- * For `source: 'runtime'`, prefers `ENDATIX_RESOLVED_*` mirror from `nextConfig.env` when present
- * (see {@link getRuntimeStorageProfile}).
+ * Storage always comes from the current `process.env`: at build (`withEndatix`) it feeds
+ * `images.remotePatterns` only, at runtime the operator's env (see {@link getRuntimeStorageProfile}).
  */
 export function resolveEndatixSettings(input: {
   options?: WithEndatixOptions;
@@ -322,11 +241,9 @@ export function resolveEndatixSettings(input: {
   const mergedAuthConfig = mergeAuthConfig(options);
   const mergedExperimentalConfig = mergeExperimentalConfig(options);
   const mergedApiConfig = resolveMergedApiConfig(options);
-  const storage = readStorageProfile(input.source);
+  const storage = buildStorageSliceFromEnv();
 
-  const envPatch = Object.freeze(
-    buildEnvPatch(mergedAuthConfig, storage, input.source),
-  );
+  const envPatch = Object.freeze(buildEnvPatch(mergedAuthConfig));
   const client = buildClientConfig(mergedApiConfig, mergedExperimentalConfig);
 
   return Object.freeze({
@@ -339,7 +256,7 @@ export function resolveEndatixSettings(input: {
   });
 }
 
-/** Clears env-only storage and API caches (Vitest when flipping env without mirror). */
+/** Clears env-only storage and API caches (Vitest when flipping env). */
 export function resetResolveEndatixSettingsCacheForTests(): void {
   cachedStorageFromEnv = undefined;
   resetApiConfigCacheForTests();

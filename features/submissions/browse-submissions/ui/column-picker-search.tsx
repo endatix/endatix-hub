@@ -3,26 +3,24 @@
 import {
   describeUserSlots,
   searchKeyChangeFor,
-} from "@/features/submissions/choose-filterable-questions/filterable-questions";
+} from "@/features/submissions/column-search";
 import {
   AddSearchKeyButton,
   RefreshSearchKeysButton,
   RemoveSearchKeyButton,
-} from "@/features/submissions/choose-filterable-questions/ui/search-key-buttons";
-import type { SearchKeyChanges } from "@/features/submissions/choose-filterable-questions/use-search-key-changes.hook";
+} from "@/features/submissions/ui/search-key-buttons";
+import type { SearchKeyChanges } from "@/features/submissions/ui/use-search-key-changes.hook";
 import { Filter, Hourglass } from "lucide-react";
 import type {
   AnswerColumn,
   ColumnSearchAccess,
 } from "../submission-grid-columns";
 
-/** The picker's filterable-column controls. */
 export type PickerSearch = {
   access: ColumnSearchAccess;
   changes: SearchKeyChanges;
 };
 
-/** Says whether a column can be filtered; nothing when it cannot. */
 export function ColumnSearchMark({
   column,
 }: Readonly<{ column: AnswerColumn }>) {
@@ -47,13 +45,12 @@ function MarkIcon({
   );
 }
 
-/** Editors add an eligible column and remove the ones people chose. */
 export function ColumnSearchAction({
   column,
   access,
   changes,
 }: Readonly<PickerSearch & { column: AnswerColumn }>) {
-  const change = searchKeyChangeFor(column.search, access.canEdit);
+  const change = searchKeyChangeFor(column.search, canChangeSearchKeys(access));
   const target = { key: column.key, title: column.title };
   if (change === "add") {
     return <AddSearchKeyButton target={target} changes={changes} />;
@@ -63,7 +60,6 @@ export function ColumnSearchAction({
   ) : null;
 }
 
-/** Editors see the slots people have used, and read the columns again. */
 export function ColumnSearchSummary({
   access,
   changes,
@@ -78,4 +74,9 @@ export function ColumnSearchSummary({
       <RefreshSearchKeysButton changes={changes} className="h-7 px-2 text-xs" />
     </div>
   );
+}
+
+/** An API older than the search keys reports no slots and has no endpoints. */
+function canChangeSearchKeys(access: ColumnSearchAccess): boolean {
+  return access.canEdit && access.slots !== undefined;
 }

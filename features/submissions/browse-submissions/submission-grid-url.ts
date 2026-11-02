@@ -17,7 +17,7 @@ import type {
 import { firstSearchParam, type SearchParam } from "@/lib/utils/next-utils";
 import {
   answerFilterUrlEntries,
-  isAnswerFilterUrlKey,
+  hasAnswerFilterPrefix,
   parseAnswerFilters,
 } from "./submission-grid-answer-filters";
 import {
@@ -39,7 +39,6 @@ export type SubmissionGridSort = {
   direction: SortDir;
 };
 
-/** Parsed `/forms/:formId/submissions` searchParams for the submissions grid. */
 export type SubmissionGridUrlState = {
   page: number;
   pageSize: number;
@@ -124,7 +123,6 @@ export function buildSubmissionGridPath(
     : `/forms/${formId}/submissions`;
 }
 
-/** The API request for one page of rows with the answers of `columns`. */
 export function toSubmissionGridRowsRequest(
   state: SubmissionGridUrlState,
   columns: readonly string[],
@@ -230,7 +228,9 @@ function parsePageSize(value: string | undefined): number {
 
   const options = SUBMISSION_GRID_PAGE_SIZE_OPTIONS;
   return (
-    options.find((option) => parsed <= option) ?? options[options.length - 1]
+    options.find((option) => parsed <= option) ??
+    options.at(-1) ??
+    SUBMISSION_GRID_DEFAULT_PAGE_SIZE
   );
 }
 
@@ -281,7 +281,7 @@ function parseColumnKeys(value: string | undefined): string[] | undefined {
 function writtenKeys(raw: SubmissionGridRawSearchParams): string[] {
   return [
     ...Object.values(keys),
-    ...Object.keys(raw).filter(isAnswerFilterUrlKey),
+    ...Object.keys(raw).filter(hasAnswerFilterPrefix),
   ];
 }
 

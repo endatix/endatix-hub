@@ -2,24 +2,21 @@
 
 import { Badge } from "@/components/ui/badge";
 import type { SubmissionGridSearchSlots } from "@/lib/endatix-api/reporting/submission-grid-types";
-import {
-  describeUserSlots,
-  type FilterableQuestion,
-} from "../filterable-questions";
-import {
-  useSearchKeyChanges,
-  type SearchKeyChanges,
-} from "../use-search-key-changes.hook";
+import { describeUserSlots } from "@/features/submissions/column-search";
 import {
   RefreshSearchKeysButton,
   RemoveSearchKeyButton,
-} from "./search-key-buttons";
+} from "@/features/submissions/ui/search-key-buttons";
+import {
+  useSearchKeyChanges,
+  type SearchKeyChanges,
+} from "@/features/submissions/ui/use-search-key-changes.hook";
+import type { FilterableQuestion } from "../filterable-questions";
 
 type FilterableQuestionsListProps = {
   formId: string;
   questions: readonly FilterableQuestion[];
   slots: SubmissionGridSearchSlots;
-  /** `forms.edit`: remove the questions people chose. */
   canEdit: boolean;
 };
 
@@ -33,7 +30,7 @@ export function FilterableQuestionsList({
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <SlotsUsed slots={slots} />
+        <SlotsUsed slots={slots} canEdit={canEdit} />
         <RefreshSearchKeysButton changes={changes} />
       </div>
       <QuestionRows {...{ questions, canEdit, changes }} />
@@ -41,12 +38,14 @@ export function FilterableQuestionsList({
   );
 }
 
-function SlotsUsed({ slots }: Readonly<{ slots: SubmissionGridSearchSlots }>) {
+type SlotsUsedProps = { slots: SubmissionGridSearchSlots; canEdit: boolean };
+
+function SlotsUsed({ slots, canEdit }: Readonly<SlotsUsedProps>) {
   return (
     <p className="flex-1">
-      {slots.used} of {slots.max} filterable. Chosen by editors:{" "}
-      {describeUserSlots(slots)}. Add more from the column picker of the
-      submissions grid.
+      {slots.used} of {slots.max} questions are filterable. Editors&apos; picks:{" "}
+      {describeUserSlots(slots)}.
+      {canEdit && " Add more from the column picker of the submissions grid."}
     </p>
   );
 }

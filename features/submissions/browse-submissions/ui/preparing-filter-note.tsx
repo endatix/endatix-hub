@@ -1,30 +1,19 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Hourglass, RefreshCw } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useTransition } from "react";
+import { RefreshSearchKeysButton } from "@/features/submissions/ui/search-key-buttons";
+import { useRefreshColumns } from "@/features/submissions/ui/use-search-key-changes.hook";
+import { Hourglass } from "lucide-react";
 
-/**
- * A header filter whose search copy is being rebuilt: no inputs until the
- * columns say it is ready, and a way to read them again.
- */
 export function PreparingFilterNote() {
-  const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  const changes = useRefreshColumns();
   return (
     <div className="w-56 space-y-2 text-xs">
       <PreparingHint />
-      <Button
+      <RefreshSearchKeysButton
+        changes={changes}
         variant="outline"
-        size="sm"
         className="w-full"
-        disabled={isPending}
-        onClick={() => startTransition(() => router.refresh())}
-      >
-        <RefreshCw className="size-3.5" />
-        Check again
-      </Button>
+      />
     </div>
   );
 }

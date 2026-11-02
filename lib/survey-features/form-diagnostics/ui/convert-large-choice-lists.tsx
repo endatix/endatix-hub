@@ -763,7 +763,11 @@ export function ConvertLargeChoiceLists({
               <AlertDialogAction
                 type="button"
                 onClick={() => {
-                  runBulk();
+                  void runBulk().catch((error: unknown) => {
+                    finishWithError(
+                      toErrorMessage(error, "Failed to convert choice lists."),
+                    );
+                  });
                 }}
               >
                 Start conversion

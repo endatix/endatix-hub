@@ -25,6 +25,7 @@ import { DeleteTestSubmissionsButton } from "./delete-test-submissions-button";
 import { SubmissionGridColumnPicker } from "./submission-grid-column-picker";
 import { useSubmissionTestAccess } from "./submission-test-access-context";
 import { useSubmissionGridUrl } from "./submission-grid-url-context";
+import { SubmissionGridViewMenu } from "./submission-grid-view-menu";
 
 const OPTION_FACETS = [
   {
@@ -83,6 +84,7 @@ function ToolbarActions({
       <SubmissionGridColumnPicker
         {...{ formId, catalog, columnSearch, disabled }}
       />
+      <SubmissionGridViewMenu disabled={disabled} />
       {canDeleteTests && (
         <DeleteTestSubmissionsButton formId={formId} disabled={disabled} />
       )}
@@ -127,7 +129,7 @@ function OptionFacets({ disabled }: Readonly<{ disabled: boolean }>) {
 }
 
 function ResetButton({ disabled }: Readonly<{ disabled: boolean }>) {
-  const { urlState, updateUrl } = useSubmissionGridUrl();
+  const { urlState, urlSets, updateUrl } = useSubmissionGridUrl();
   const clearFilters = clearFiltersUpdate(urlState);
   return (
     <ResetFiltersButton
@@ -135,7 +137,7 @@ function ResetButton({ disabled }: Readonly<{ disabled: boolean }>) {
       onResetSorting={() => updateUrl(CLEAR_SORT_UPDATE)}
       onResetAll={() => updateUrl({ ...clearFilters, ...CLEAR_SORT_UPDATE })}
       hasFilters={hasActiveFilters(urlState)}
-      hasSorting={urlState.sort !== undefined}
+      hasSorting={urlSets.sort}
       disabled={disabled}
     />
   );

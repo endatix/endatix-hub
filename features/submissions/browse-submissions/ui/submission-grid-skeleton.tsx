@@ -17,7 +17,6 @@ const METADATA_COLUMNS: readonly DataTableSkeletonColumn[] = [
 
 type SubmissionGridSkeletonProps = {
   pageSize: number;
-  /** Headers of the answer columns that will show, when known. */
   answerTitles?: readonly string[];
 };
 

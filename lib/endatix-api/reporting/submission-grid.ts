@@ -13,11 +13,11 @@ import {
 } from "../shared/query-params";
 import type { PagedResponse } from "../shared/types";
 import { appendSubmissionListFilters } from "../submissions/submission-list-query-params";
+import { toAnswerParam } from "./submission-grid-answer-params";
 import { toSubmissionGridRow } from "./submission-grid-rows-from-submissions";
 import type {
   ListSubmissionGridColumnsRequest,
   ListSubmissionGridRowsRequest,
-  SubmissionGridAnswerFilter,
   SubmissionGridAnswerFilterCoverage,
   SubmissionGridColumnsResponse,
   SubmissionGridRow,
@@ -90,15 +90,6 @@ export function buildListSubmissionGridRowsEndpoint(
   );
 }
 
-/**
- * `{operator}:{key}:{value}`. A schema key can hold `:`, so the key is
- * percent-encoded; the value is everything after the second `:`.
- */
-function toAnswerParam({ operator, key, value }: SubmissionGridAnswerFilter) {
-  return `${operator}:${encodeURIComponent(key)}:${value}`;
-}
-
-/** The submissions grid read from a form's prepared reporting data. */
 export class SubmissionGrid {
   constructor(private readonly endatix: EndatixApi) {}
 

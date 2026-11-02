@@ -10,20 +10,24 @@ import type {
   AnswerColumn,
   ColumnSearchAccess,
 } from "../submission-grid-columns";
+import type { SubmissionGridViewLoad } from "../submission-grid-view";
 import { ReadinessBanner } from "./readiness-banner";
 import { SubmissionGridToolbar } from "./submission-grid-toolbar";
 import { SubmissionGridUrlProvider } from "./submission-grid-url-context";
+import { SubmissionGridViewProvider } from "./submission-grid-view-context";
+import { SubmissionGridViewError } from "./submission-grid-view-menu";
 import { SubmissionTestAccessProvider } from "./submission-test-access-context";
 
 type SubmissionGridShellProps = {
   formId: string;
-  /** Every answer column the form has; the column picker chooses from it. */
   catalog: readonly AnswerColumn[];
   columnSearch: ColumnSearchAccess;
   /** Mark as test / Mark as real in each row, Delete test submissions in the toolbar. */
   testAccess: SubmissionTestAccess;
   hasSubmissions: boolean;
   banner: GridReadinessBanner | null;
+  view: SubmissionGridViewLoad;
+  canSaveView: boolean;
   /** The keyed rows frame; it remounts per list query, the shell does not. */
   children: ReactNode;
 };
@@ -32,35 +36,49 @@ type SubmissionGridShellProps = {
  * Owns the grid's URL state and the chrome around the rows: toolbar and
  * readiness banner stay mounted while the rows reload.
  */
-export function SubmissionGridShell(props: Readonly<SubmissionGridShellProps>) {
-  const { hasSubmissions, banner, children, ...chrome } = props;
-  const { formId } = chrome;
+export function SubmissionGridShell({
+  formId,
+  catalog,
+  columnSearch,
+  hasSubmissions,
+  banner,
+  children,
+  ...viewProps
+}: Readonly<SubmissionGridShellProps>) {
   useRememberListQuery(formId);
+  const disabled = !hasSubmissions;
   return (
-    <GridProviders {...chrome}>
-      <SubmissionGridToolbar {...chrome} disabled={!hasSubmissions} />
+    <SubmissionGridProviders {...{ formId, catalog, ...viewProps }}>
+      <SubmissionGridToolbar {...{ formId, catalog, columnSearch, disabled }} />
+      <SubmissionGridViewError />
       {banner && <ReadinessBanner formId={formId} banner={banner} />}
       {hasSubmissions ? children : <NoSubmissionsEmptyState />}
-    </GridProviders>
+    </SubmissionGridProviders>
   );
 }
 
-type GridProvidersProps = Pick<
+type ProvidersProps = Pick<
   SubmissionGridShellProps,
-  "catalog" | "testAccess" | "children"
+  "formId" | "catalog" | "testAccess" | "view" | "canSaveView" | "children"
 >;
 
-/** URL state and test permissions, shared by the toolbar and every row. */
-function GridProviders({
-  catalog,
+/** URL state, the saved view and test permissions, shared by the toolbar and every row. */
+function SubmissionGridProviders({
+  view,
   testAccess,
   children,
-}: Readonly<GridProvidersProps>) {
+  ...props
+}: Readonly<ProvidersProps>) {
   return (
-    <SubmissionGridUrlProvider catalog={catalog}>
-      <SubmissionTestAccessProvider access={testAccess}>
-        {children}
-      </SubmissionTestAccessProvider>
+    <SubmissionGridUrlProvider
+      catalog={props.catalog}
+      viewSettings={view.settings}
+    >
+      <SubmissionGridViewProvider view={view} {...props}>
+        <SubmissionTestAccessProvider access={testAccess}>
+          {children}
+        </SubmissionTestAccessProvider>
+      </SubmissionGridViewProvider>
     </SubmissionGridUrlProvider>
   );
 }

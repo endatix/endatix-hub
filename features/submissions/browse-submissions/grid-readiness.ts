@@ -4,14 +4,12 @@ import type {
 } from "@/lib/endatix-api/reporting/submission-grid-types";
 import { formatInteger } from "@/lib/utils/formatters";
 
-/** Submissions whose answers the grid reads raw because they are not prepared. */
 export type UnpreparedCounts = {
   completed: number;
   inProgress: number;
   preparing: number;
 };
 
-/** What the readiness banner says and offers; `null` hides it. */
 export type GridReadinessBanner = {
   title: string;
   lines: string[];
@@ -22,34 +20,40 @@ export type GridReadinessBanner = {
 export type DescribeGridReadinessInput = {
   schemaReady: boolean;
   readiness: SubmissionGridReadiness;
-  /** Including in-progress submissions needs `forms.edit`. */
   canIncludeInProgress: boolean;
+  hasAnswerFilters?: boolean;
+  answerFiltersWaiting?: boolean;
 };
 
 /**
  * Splits the submissions that are not prepared into completed and in
  * progress. The counts do not say which prepared rows are complete, so
  * prepared rows are taken as completed first: in-progress rows are prepared
- * only on request. The two counts always add up to the unprepared total.
+ * only on request. Rows being prepared are counted once, as `preparing`.
  */
-export function countUnprepared(
-  readiness: SubmissionGridReadiness,
-): UnpreparedCounts {
-  const inProgress = Math.max(
-    0,
-    readiness.submissions - readiness.completedSubmissions,
-  );
-  const preparedInProgress = Math.max(
-    0,
-    readiness.prepared - readiness.completedSubmissions,
-  );
-
+export function countUnprepared({
+  completedSubmissions: completed,
+  inProgress,
+  prepared,
+  pending,
+}: SubmissionGridReadiness): UnpreparedCounts {
+  const preparedInProgress = atLeastZero(prepared - completed);
   return {
-    completed: Math.max(0, readiness.completedSubmissions - readiness.prepared),
-    inProgress: Math.max(0, inProgress - preparedInProgress),
-    preparing: readiness.pending,
+    completed: atLeastZero(completed - prepared - pending),
+    inProgress: atLeastZero(inProgress - preparedInProgress),
+    preparing: pending,
   };
 }
+
+function atLeastZero(count: number): number {
+  return Math.max(0, count);
+}
+
+const ANSWER_FILTERS_NOT_APPLIED_LINE =
+  "The answer filters in this link are not applied until the form is prepared.";
+
+const ANSWER_FILTERS_WAITING_LINE =
+  "Answer filters on columns that are not filterable or still being prepared are not applied.";
 
 const NO_SCHEMA_BANNER: GridReadinessBanner = {
   title: "This form's reporting data is not prepared",
@@ -60,20 +64,50 @@ const NO_SCHEMA_BANNER: GridReadinessBanner = {
   showIncludeInProgress: false,
 };
 
-export function describeGridReadiness({
-  schemaReady,
-  readiness,
-  canIncludeInProgress,
-}: DescribeGridReadinessInput): GridReadinessBanner | null {
-  if (readiness.submissions === 0) {
+export function describeGridReadiness(
+  input: DescribeGridReadinessInput,
+): GridReadinessBanner | null {
+  if (input.readiness.submissions === 0) {
     return null;
   }
 
+  const banner = describeReadiness(input);
+  return input.answerFiltersWaiting ? withFiltersWaiting(banner) : banner;
+}
+
+function describeReadiness({
+  schemaReady,
+  readiness,
+  canIncludeInProgress,
+  hasAnswerFilters,
+}: DescribeGridReadinessInput): GridReadinessBanner | null {
   if (!schemaReady) {
-    return NO_SCHEMA_BANNER;
+    return hasAnswerFilters ? withFiltersNotApplied() : NO_SCHEMA_BANNER;
   }
 
-  return describeUnprepared(countUnprepared(readiness), canIncludeInProgress);
+  return hasAnswerFilters
+    ? null
+    : describeUnprepared(countUnprepared(readiness), canIncludeInProgress);
+}
+
+function withFiltersWaiting(
+  banner: GridReadinessBanner | null,
+): GridReadinessBanner {
+  return banner
+    ? { ...banner, lines: [...banner.lines, ANSWER_FILTERS_WAITING_LINE] }
+    : {
+        title: "Some answer filters are not applied yet",
+        lines: [ANSWER_FILTERS_WAITING_LINE],
+        showPrepare: false,
+        showIncludeInProgress: false,
+      };
+}
+
+function withFiltersNotApplied(): GridReadinessBanner {
+  return {
+    ...NO_SCHEMA_BANNER,
+    lines: [...NO_SCHEMA_BANNER.lines, ANSWER_FILTERS_NOT_APPLIED_LINE],
+  };
 }
 
 function describeUnprepared(
@@ -94,9 +128,7 @@ function describeUnprepared(
 }
 
 export type DescribeRowsBannerInput = {
-  /** Set when the rows were read with answer filters. */
   coverage?: SubmissionGridAnswerFilterCoverage;
-  /** The form lost its schema, so the rows were read without answer filters. */
   answerFiltersNotPrepared?: boolean;
   canIncludeInProgress: boolean;
 };
@@ -110,10 +142,6 @@ const ANSWER_FILTERS_NOT_PREPARED_BANNER: GridReadinessBanner = {
   showIncludeInProgress: false,
 };
 
-/**
- * What one page of rows says about its answer filters: which submissions the
- * filters could not check, or that they were not applied at all.
- */
 export function describeRowsBanner({
   coverage,
   answerFiltersNotPrepared,
@@ -148,13 +176,16 @@ function uncheckedLines({
   uncheckedCompleted: completed,
   uncheckedInProgress: inProgress,
 }: SubmissionGridAnswerFilterCoverage): string[] {
-  const notChecked = "so the answer filters did not check them.";
   return [
     completed > 0 &&
-      `${submissions(completed)} completed ${verb(completed)} not prepared, ${notChecked}`,
+      `${submissions(completed)} completed ${verb(completed)} not prepared, ${notChecked(completed)}`,
     inProgress > 0 &&
-      `${submissions(inProgress)} in progress ${verb(inProgress)} not included, ${notChecked}`,
+      `${submissions(inProgress)} in progress ${verb(inProgress)} not included, ${notChecked(inProgress)}`,
   ].filter((line): line is string => typeof line === "string");
+}
+
+function notChecked(count: number): string {
+  return `so the answer filters did not check ${count === 1 ? "it" : "them"}.`;
 }
 
 function unpreparedLines({

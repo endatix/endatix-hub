@@ -2,8 +2,8 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { toast } from "@/components/ui/toast";
 import { Result } from "@/lib/result";
-import { removeSearchKeyAction } from "../choose-filterable-questions.action";
-import { SEARCH_KEYS_BUSY_MESSAGE } from "../search-key-outcome";
+import { removeSearchKeyAction } from "@/features/submissions/search-keys.action";
+import { SEARCH_KEYS_BUSY_MESSAGE } from "@/features/submissions/ui/search-key-outcome";
 import { FilterableQuestionsList } from "../ui/filterable-questions-list";
 
 const refresh = vi.fn();
@@ -13,7 +13,7 @@ vi.mock("@/components/ui/toast", () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }));
 
-vi.mock("../choose-filterable-questions.action", () => ({
+vi.mock("@/features/submissions/search-keys.action", () => ({
   addSearchKeyAction: vi.fn(),
   removeSearchKeyAction: vi.fn(),
 }));
@@ -48,7 +48,7 @@ describe("FilterableQuestionsList", () => {
     expect(screen.getByText("Automatic")).toBeTruthy();
     expect(screen.getByText("Chosen")).toBeTruthy();
     expect(screen.getByText("Preparing")).toBeTruthy();
-    expect(screen.getByText(/52 of 64 filterable/)).toBeTruthy();
+    expect(screen.getByText(/52 of 64 questions are filterable/)).toBeTruthy();
     expect(screen.getByText(/2 of 14 chosen/)).toBeTruthy();
   });
 
@@ -59,9 +59,9 @@ describe("FilterableQuestionsList", () => {
     // Assert
     expect(
       screen
-        .getAllByRole("button", { name: /stop filtering/i })
+        .getAllByRole("button", { name: /from filterable columns/i })
         .map((button) => button.getAttribute("aria-label")),
-    ).toEqual(["Stop filtering City"]);
+    ).toEqual(["Remove City from filterable columns"]);
   });
 
   it("offers no remove without forms.edit", () => {
@@ -69,8 +69,9 @@ describe("FilterableQuestionsList", () => {
     renderList(false);
 
     // Assert
+    expect(screen.queryByText(/add more/i)).toBeNull();
     expect(
-      screen.queryByRole("button", { name: /stop filtering/i }),
+      screen.queryByRole("button", { name: /from filterable columns/i }),
     ).toBeNull();
   });
 
@@ -85,7 +86,9 @@ describe("FilterableQuestionsList", () => {
 
     // Act
     fireEvent.click(
-      screen.getByRole("button", { name: "Stop filtering City" }),
+      screen.getByRole("button", {
+        name: "Remove City from filterable columns",
+      }),
     );
 
     // Assert

@@ -20,8 +20,8 @@ export type CreateAudiencePropertyResult = Result<AudienceProperty>;
 
 const CREATE_LOG = {
   permission: Permissions.Forms.Edit,
-  fallbackMessage: "Failed to create audience property.",
-  logMessage: "Failed to create audience property.",
+  fallbackMessage: "Failed to create the property.",
+  logMessage: "Failed to create the property.",
   loggerName: "audience.properties.create",
 } as const;
 

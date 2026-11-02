@@ -235,7 +235,7 @@ function LegacyExportSubmissionsButton({
       }
     };
 
-    fetchTenantSettings();
+    void fetchTenantSettings();
   }, []);
 
   // Custom exports are served by the same endpoint as the built-in CSV download,

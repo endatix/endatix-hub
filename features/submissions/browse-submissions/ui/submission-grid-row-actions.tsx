@@ -42,7 +42,6 @@ type RowMenuProps = RowOpenProps & {
   testMark: SubmissionTestMarkItem | null;
 };
 
-/** The row's menu and the dialogs it opens. */
 export function SubmissionGridRowActions({ row }: Readonly<RowProps>) {
   const [dialog, setDialog] = useState<RowDialog | null>(null);
   const testMark = useSubmissionTestMark(row);
@@ -140,13 +139,7 @@ function RowActionsContent({ row, onOpen, testMark }: Readonly<RowMenuProps>) {
 function RowOpenItems({ row, onOpen }: Readonly<RowOpenProps>) {
   return (
     <>
-      {isSubmissionEditable(row.collectionStatus) && (
-        <MenuLink
-          href={`/forms/${row.formId}/submissions/${row.id}/edit`}
-          icon={FilePenLine}
-          label="Edit"
-        />
-      )}
+      <EditItem row={row} />
       <MenuAction
         icon={LinkIcon}
         label="Share Links"
@@ -159,6 +152,20 @@ function RowOpenItems({ row, onOpen }: Readonly<RowOpenProps>) {
       />
       <DownloadFilesDropdownItem formId={row.formId} submissionId={row.id} />
     </>
+  );
+}
+
+function EditItem({ row }: Readonly<RowProps>) {
+  if (!isSubmissionEditable(row.collectionStatus)) {
+    return null;
+  }
+
+  return (
+    <MenuLink
+      href={`/forms/${row.formId}/submissions/${row.id}/edit`}
+      icon={FilePenLine}
+      label="Edit"
+    />
   );
 }
 

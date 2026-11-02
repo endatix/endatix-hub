@@ -8,7 +8,7 @@ import { revalidatePath } from "next/cache";
 export async function createAgentAction(
   formData: FormData,
 ): Promise<ApiResult<Agent>> {
-  ensureAuthenticated();
+  await ensureAuthenticated();
 
   const data = Object.fromEntries(formData.entries());
   const parsed = AgentRequestSchema.parse(data);

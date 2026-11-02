@@ -1,4 +1,4 @@
-import { ERROR_CODE } from "@/lib/endatix-api/shared/error-codes";
+import { REFUSED_TOKEN_CODES } from "@/lib/endatix-api/shared/error-codes";
 import {
   PublicStatusPage,
   type PublicStatusTone,
@@ -106,11 +106,6 @@ export function SubmissionLinkError({
   return <PublicStatusPage {...getPresentation(kind, action)} layout="page" />;
 }
 
-const TOKEN_FAILURE_CODES: ReadonlySet<string> = new Set([
-  ERROR_CODE.INVALID_TOKEN,
-  ERROR_CODE.INVALID_ACCESS_TOKEN,
-  ERROR_CODE.TOKEN_EXPIRED,
-]);
 
 /**
  * Maps a failed access-token submission load onto a page. A tampered or truncated
@@ -125,7 +120,7 @@ export function getSubmissionLinkFailureKind(failure: {
   const message = failure.message.toLowerCase();
 
   if (
-    (failure.errorCode && TOKEN_FAILURE_CODES.has(failure.errorCode)) ||
+    (failure.errorCode && REFUSED_TOKEN_CODES.has(failure.errorCode)) ||
     message.includes("expired") ||
     message.includes("invalid access token")
   ) {

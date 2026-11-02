@@ -30,7 +30,6 @@ export function CompletionTimeCell({ row }: Readonly<RowCellProps>) {
   );
 }
 
-/** One answer as a line of text; the full text shows on hover. */
 export function AnswerCell({
   row,
   column,

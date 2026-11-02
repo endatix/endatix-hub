@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 import { normalizeBasePath } from "./lib/hosting/base-path";
-import { resolveHubBuild } from "./lib/hosting/hub-build.mjs";
+import {
+  resolveHubBuild,
+  resolveSurveyJsVersions,
+} from "./lib/hosting/hub-build.mjs";
 import { getHubDeploymentId } from "./lib/hosting/hub-version";
 import { getRewriteRuleFor } from "./lib/hosting/next-config-helper";
 import { Rewrite } from "next/dist/lib/load-custom-routes";
@@ -8,7 +11,8 @@ import { withEndatix } from "@/features/config";
 import { OTEL_SERVER_EXTERNAL_PACKAGES } from "./features/telemetry/infrastructure/otel-server-externals";
 
 // Resolved once at build. `env` replaces each `process.env.HUB_*` read with its value
-// at build, so a standalone server (which never runs this file) still has them. Only
+// at build, so a standalone server (which never runs this file) still has them; the
+// installed SurveyJS versions travel as one JSON object. Only
 // server code reads them (lib/hosting/hub-version.ts, from the About dialog's server
 // action) and does not import hub-build.mjs, so they land in server chunks only;
 // the release check greps .next/static.
@@ -19,6 +23,7 @@ const nextConfig: NextConfig = {
     HUB_VERSION: hubBuild.version ?? "",
     HUB_BRANCH: hubBuild.branch ?? "",
     HUB_COMMIT: hubBuild.commit ?? "",
+    HUB_SURVEYJS_VERSIONS: JSON.stringify(resolveSurveyJsVersions()),
   },
   // Skew protection. Opaque hash of the build so ?dpl= is not the semver.
   deploymentId: getHubDeploymentId(hubBuild),
@@ -26,7 +31,11 @@ const nextConfig: NextConfig = {
   basePath: normalizeBasePath(),
   // Keep OTel + Azure exporters out of the server bundle so instrumentation and
   // route handlers share one @opentelemetry/api-logs global (otherwise emit() is a no-op).
-  serverExternalPackages: [...OTEL_SERVER_EXTERNAL_PACKAGES],
+  // sanitize-html can carry its own nested postcss (Next pins an older one). Bundled, that
+  // postcss becomes a `.next/node_modules` symlink to the nested copy, which loses its
+  // sibling dependencies on hosts that dereference symlinks (Azure Static Web Apps,
+  // endatix-hub#1269). Loaded by name, sanitize-html finds its postcss in its own folder.
+  serverExternalPackages: [...OTEL_SERVER_EXTERNAL_PACKAGES, "sanitize-html"],
   typedRoutes: true,
   reactStrictMode: true,
   reactCompiler: true,

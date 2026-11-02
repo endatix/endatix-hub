@@ -121,6 +121,24 @@ describe("resolveVisibleAnswerColumns", () => {
     // Assert
     expect(visible).toHaveLength(500);
   });
+
+  it("trims a typed or saved view to what fits the rows request line", () => {
+    // Arrange
+    const keys = Array.from(
+      { length: 500 },
+      (_, index) => `respondent_answer_${String(index).padStart(4, "0")}`,
+    );
+    const catalog = toAnswerColumns(keys.map((key) => wireColumn(key)));
+
+    // Act
+    const visible = resolveVisibleAnswerColumns(catalog, [...keys].reverse());
+
+    // Assert
+    // 22-byte keys plus a 3-byte `%2C` each: 245 keys take 6,122 of 6,144 bytes.
+    expect(visible).toHaveLength(245);
+    expect(visible[0].key).toBe("respondent_answer_0499");
+    expect(visible[244].key).toBe("respondent_answer_0255");
+  });
 });
 
 describe("readAnswer", () => {

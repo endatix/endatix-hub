@@ -1,10 +1,13 @@
-import { MAX_SUBMISSION_GRID_ROW_COLUMNS } from "@/lib/endatix-api/reporting/submission-grid-types";
+import {
+  fitRowColumns,
+  fitsRowColumns,
+  type RowColumnsUsage,
+} from "@/lib/endatix-api/reporting/submission-grid-row-columns";
 import {
   isSubmitterProfileColumn,
   type AnswerColumn,
 } from "./submission-grid-columns";
 
-/** A run of columns from one page and panel of the form, in schema order. */
 export type ColumnPickerGroup = {
   id: string;
   /** Page title, or the page name when it has none; `null` outside a page. */
@@ -89,7 +92,9 @@ export function groupLabel(group: ColumnPickerGroup): string {
   return parts.length > 0 ? parts.join(" › ") : "Other";
 }
 
-export function countColumns(groups: readonly ColumnPickerGroup[]): number {
+export function countColumns(
+  groups: readonly { columns: readonly unknown[] }[],
+): number {
   return groups.reduce((total, group) => total + group.columns.length, 0);
 }
 
@@ -118,17 +123,75 @@ export function limitRenderedColumns(
   return rendered;
 }
 
+export function columnOrder(
+  catalog: readonly AnswerColumn[],
+): ReadonlyMap<string, number> {
+  return new Map(catalog.map((column, index) => [column.key, index]));
+}
+
 /**
- * Shows `keys` after the visible ones, in the order given, until the rows
- * endpoint's column limit. Visible keys keep their order.
+ * Shows `keys` at their place in the form, as many as fit the rows request
+ * (key count and `columns=` length); earlier ones in the form first.
+ * Visible keys stay, in their order.
  */
 export function showColumns(
   visibleKeys: readonly string[],
   keys: readonly string[],
+  order: ReadonlyMap<string, number>,
 ): string[] {
   const visible = new Set(visibleKeys);
-  const added = keys.filter((key) => !visible.has(key));
-  return [...visibleKeys, ...added].slice(0, MAX_SUBMISSION_GRID_ROW_COLUMNS);
+  const added = [...new Set(keys)]
+    .filter((key) => !visible.has(key))
+    .sort((a, b) => position(order, a) - position(order, b));
+  return mergeByOrder(visibleKeys, fitRowColumns(added, visibleKeys), order);
+}
+
+function mergeByOrder(
+  visibleKeys: readonly string[],
+  added: readonly string[],
+  order: ReadonlyMap<string, number>,
+): string[] {
+  const merged: string[] = [];
+  let next = 0;
+  for (const key of visibleKeys) {
+    while (
+      next < added.length &&
+      position(order, added[next]) < position(order, key)
+    ) {
+      merged.push(added[next++]);
+    }
+    merged.push(key);
+  }
+  return [...merged, ...added.slice(next)];
+}
+
+/** The visible keys, and their usage worked out once per draft. */
+export type VisibleColumns = {
+  visible: ReadonlySet<string>;
+  usage: RowColumnsUsage;
+};
+
+/**
+ * Whether showColumns would add any of `keys`: it adds the hidden ones in
+ * form order while they fit, so the first hidden one decides.
+ */
+export function showsAny(
+  { visible, usage }: VisibleColumns,
+  keys: readonly string[],
+  order: ReadonlyMap<string, number>,
+): boolean {
+  let first: string | undefined;
+  for (const key of keys) {
+    if (visible.has(key)) continue;
+    if (first === undefined || position(order, key) < position(order, first)) {
+      first = key;
+    }
+  }
+  return first !== undefined && fitsRowColumns(usage, first);
+}
+
+function position(order: ReadonlyMap<string, number>, key: string): number {
+  return order.get(key) ?? Number.POSITIVE_INFINITY;
 }
 
 export function hideColumns(
@@ -142,10 +205,11 @@ export function hideColumns(
 export function toggleColumn(
   visibleKeys: readonly string[],
   key: string,
+  order: ReadonlyMap<string, number>,
 ): string[] {
   return visibleKeys.includes(key)
     ? hideColumns(visibleKeys, [key])
-    : showColumns(visibleKeys, [key]);
+    : showColumns(visibleKeys, [key], order);
 }
 
 export type GroupSelection = "all" | "some" | "none";
@@ -161,9 +225,4 @@ export function groupSelection(
 
 export function columnKeysOf(groups: readonly ColumnPickerGroup[]): string[] {
   return groups.flatMap((group) => group.columns.map((column) => column.key));
-}
-
-/** Whether another column can be shown under the rows endpoint's limit. */
-export function canShowMoreColumns(visibleKeys: readonly string[]): boolean {
-  return visibleKeys.length < MAX_SUBMISSION_GRID_ROW_COLUMNS;
 }

@@ -7,6 +7,10 @@ export type PersonalLink = { identifier: string; token: string };
 
 export const LINKS_FILE_MIME = "text/csv";
 
+/** What an API before link batches (endatix#1430) cannot do. */
+export const FILTERED_LINKS_NEED_NEWER_API =
+  "Sending links to a filtered set needs a newer Endatix API";
+
 /** The public URL that opens this person's response; the token is its only credential. */
 export function personalLinkUrl(
   origin: string,
@@ -17,9 +21,9 @@ export function personalLinkUrl(
   return `${origin}${path}`;
 }
 
-/** `personalised-links-<form>-2026-10-12.csv`: dated, so a second batch never overwrites the first. */
+/** `personalized-links-<form>-2026-10-12.csv`: dated, so a second batch never overwrites the first. */
 export function linksFileName(formId: string, at: Date = new Date()): string {
-  return `personalised-links-${formId}-${at.toISOString().slice(0, 10)}.csv`;
+  return `personalized-links-${formId}-${at.toISOString().slice(0, 10)}.csv`;
 }
 
 type LinksFile = {

@@ -42,6 +42,8 @@ export interface SubmissionGridColumn {
 export interface SubmissionGridReadiness {
   submissions: number;
   completedSubmissions: number;
+  /** Submissions not completed, whether or not they have a prepared row. */
+  inProgress: number;
   prepared: number;
   pending: number;
   failed: number;
@@ -80,7 +82,6 @@ export interface ListSubmissionGridColumnsRequest {
   locale?: string;
 }
 
-/** Where a row's prepared data stands. */
 export type SubmissionGridRowState =
   | "prepared"
   | "stale"

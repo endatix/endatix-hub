@@ -31,7 +31,6 @@ type RowProps = { row: SubmissionGridRow };
 const stopPropagation = (event: React.SyntheticEvent) =>
   event.stopPropagation();
 
-/** The review control, or a dash while the submission is still being collected. */
 export function ReviewStatusCell({ row }: Readonly<RowProps>) {
   const collection = describeCollectionStatus(
     row.collectionStatus,
@@ -79,12 +78,15 @@ function ReviewStatusBadge(props: Readonly<ReviewStatusBadgeProps>) {
   return (
     <Badge
       {...triggerProps}
+      asChild
       variant={current.isNew() ? "default" : "secondary"}
       className="inline-flex w-auto max-w-[150px] cursor-pointer items-center gap-1"
     >
-      <Icon className="mr-1 h-3 w-3" />
-      {current.label}
-      <ChevronDown className="ml-1 h-3 w-3" />
+      <button type="button">
+        <Icon className="mr-1 h-3 w-3" />
+        {current.label}
+        <ChevronDown className="ml-1 h-3 w-3" />
+      </button>
     </Badge>
   );
 }

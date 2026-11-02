@@ -41,15 +41,12 @@ type DateFilter = {
   onChange: (value: DateFilterValue) => void;
 };
 
-/** Header filters, wired to the grid's URL by the caller. */
 export type SubmissionGridColumnFilters = {
   dates: Record<SubmissionGridDateStem, DateFilterValue>;
   onDateChange: (stem: SubmissionGridDateStem, value: DateFilterValue) => void;
   submitterDisplayId: TextFilter;
   submitterEmail: TextFilter;
-  /** "Contains" on a column whose filter type is `text`. */
   answerText: (column: AnswerColumn) => TextFilter;
-  /** From/To on a `date` or `datetime` column. */
   answerDate: (column: AnswerColumn) => DateFilter;
 };
 
@@ -86,7 +83,7 @@ export function buildSubmissionGridColumns(
 }
 
 function header(title: string, extra: Partial<HeaderProps> = {}) {
-  function GridColumnHeader({ column }: GridHeader) {
+  function GridColumnHeader({ column }: Readonly<GridHeader>) {
     return (
       <DataTableColumnHeader
         column={column}
@@ -113,6 +110,7 @@ function actionsColumn(): GridColumn {
   return {
     id: "actions",
     enableSorting: false,
+    enableResizing: false,
     meta: sized(COMPACT_COLUMN),
     header: () => <span className="sr-only">Actions</span>,
     cell: ({ row }) => <SubmissionGridRowActions row={row.original} />,
