@@ -11,14 +11,27 @@ import { getSurveyLicenseKey } from "@/features/config/server";
 import { SurveyLicenseProvider } from "@/features/config/survey-license-provider";
 import { DesignerRuntimeProvider } from "@/lib/designer-runtime";
 import FormEditorLoader from "@/features/forms/ui/editor/form-editor-loader";
+import { getAudienceVariablesAction } from "@/features/audience/get-audience-variables";
+import {
+  findParticipantsAction,
+  getParticipantPresetAction,
+} from "@/features/audience/find-participant";
+import { declareAudienceVariableAction } from "@/features/audience/create-property";
+import { saveTestParticipantsAction } from "@/features/audience/save-test-participants";
+import {
+  type DesignerAudienceRead,
+  loadDesignerAudience,
+} from "@/features/audience/server";
 import { FormAssistantProvider } from "@/features/forms/use-cases/design-form/form-assistant.context";
 import { getCurrentConversationUseCase } from "@/features/forms/use-cases/design-form/get-current-conversation.use-case";
 import { aiFeaturesFlag } from "@/lib/feature-flags/flags";
 import { getFormDesignReturn } from "@/features/forms/form-workspace";
+import { parseSurveyJson } from "@/lib/survey-js";
 import { firstSearchParam, type SearchParamValue } from "@/lib/utils/next-utils";
 import { EndatixApi } from "@/lib/endatix-api";
 import { Result, toResult } from "@/lib/result";
 import { Form } from "@/types";
+import type { DesignerAudience } from "@/lib/personalization/authoring";
 import Link from "next/link";
 import { Suspense } from "react";
 
@@ -41,25 +54,12 @@ function formNotFound() {
   );
 }
 
-function parseFormDefinitionJson(jsonData: string | undefined): object | null {
-  if (!jsonData) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(jsonData) as object;
-  } catch (error) {
-    console.error("Failed to parse form definition JSON:", error);
-    return null;
-  }
-}
-
 export default async function FormDesignerPage({
   params,
   searchParams,
 }: Readonly<Params>) {
   const session = await auth();
-  const { requireHubAccess } = await authorization(session);
+  const { requireHubAccess, checkPermission } = await authorization(session);
   await requireHubAccess();
 
   const { formId } = await params;
@@ -67,17 +67,19 @@ export default async function FormDesignerPage({
   const chatContextPromise = getCurrentConversationUseCase(formId, session);
 
   const api = new EndatixApi(session?.accessToken);
-  const [settingsRes, foldersRes, formResult] = await Promise.all([
-    api.tenant.getSettings(),
-    api.folders.list(),
-    api.forms.get(formId).then((apiResult) =>
-      toResult(apiResult, {
-        fallbackMessage: "Failed to load form.",
-        logMessage: "Failed to load form for design.",
-        loggerName: "forms.design",
-      }),
-    ),
-  ]);
+  const [settingsRes, foldersRes, formResult, audienceForDesign] =
+    await Promise.all([
+      api.tenant.getSettings(),
+      api.folders.list(),
+      api.forms.get(formId).then((apiResult) =>
+        toResult(apiResult, {
+          fallbackMessage: "Failed to load form.",
+          logMessage: "Failed to load form for design.",
+          loggerName: "forms.design",
+        }),
+      ),
+      loadDesignerAudience({ api, formId, checkPermission }),
+    ]);
 
   if (Result.isError(formResult)) {
     if (formResult.statusCode === 404) {
@@ -117,7 +119,7 @@ export default async function FormDesignerPage({
     formDefinitionJson = definitionResult.value.jsonData;
     // A stored definition that is not valid JSON must not take the whole route
     // segment into error.tsx - open the designer empty, as it did before.
-    formJson = parseFormDefinitionJson(formDefinitionJson);
+    formJson = parseSurveyJson(formDefinitionJson);
   }
 
   const props: FormDesignerWrapperProps = {
@@ -127,6 +129,7 @@ export default async function FormDesignerPage({
     themeId: form.themeId ?? undefined,
     isPublic: form.isPublic,
     formIsEnabled: form.isEnabled,
+    audience: audienceForDesign && designerAudience(formId, audienceForDesign),
     designReturn: getFormDesignReturn(
       formId,
       firstSearchParam((await searchParams).from),
@@ -161,4 +164,26 @@ export default async function FormDesignerPage({
       </Suspense>
     </div>
   );
+}
+
+/** The variables read with the page, and the form's reads and writes behind Preview as. */
+function designerAudience(
+  formId: string,
+  { variables, identifierKind }: DesignerAudienceRead,
+): DesignerAudience {
+  return {
+    variables,
+    refresh: getAudienceVariablesAction.bind(null, formId),
+    testParticipants: identifierKind
+      ? {
+          identifierKind,
+          save: saveTestParticipantsAction.bind(null, formId),
+        }
+      : undefined,
+    addProperty: declareAudienceVariableAction.bind(null, formId),
+    participants: {
+      find: findParticipantsAction.bind(null, formId),
+      preset: getParticipantPresetAction.bind(null, formId),
+    },
+  };
 }

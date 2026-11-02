@@ -33,6 +33,7 @@ import {
   hideColumns,
   limitRenderedColumns,
   showColumns,
+  showsAny,
   toggleColumn,
   type ColumnPickerGroup,
   type RenderedColumnGroup,
@@ -93,7 +94,7 @@ function ColumnPickerTrigger({ disabled }: Readonly<{ disabled: boolean }>) {
 function useColumnPicker({ formId, catalog, columnSearch }: ColumnPickerProps) {
   const [open, setOpen] = useState(false);
   const changes = useSearchKeyChanges(formId);
-  const { urlState, updateUrl, isPending } = useSubmissionGridUrl();
+  const { urlState, urlSets, updateUrl, isPending } = useSubmissionGridUrl();
   const visibleKeys = useMemo(
     () =>
       resolveVisibleAnswerColumns(catalog, urlState.columns).map(
@@ -105,7 +106,7 @@ function useColumnPicker({ formId, catalog, columnSearch }: ColumnPickerProps) {
     updateUrl(columnsUpdate(keys));
     setOpen(false);
   };
-  const isDefault = urlState.columns === undefined;
+  const isDefault = !urlSets.columns;
   const filterable = { access: columnSearch, changes };
   const panel = { catalog, visibleKeys, isDefault, filterable };
   return { open, setOpen, panel, apply, isPending };
@@ -189,17 +190,17 @@ function columnDraft(
   order: ReadonlyMap<string, number>,
 ) {
   const usage = rowColumnsUsage(keys);
+  const visible = new Set(keys);
   return {
     keys,
-    visible: new Set(keys),
+    visible,
     show: (add: readonly string[]) =>
       setKeys((current) => showColumns(current, add, order)),
     hide: (remove: readonly string[]) =>
       setKeys((current) => hideColumns(current, remove)),
     toggle: (key: string) =>
       setKeys((current) => toggleColumn(current, key, order)),
-    adds: (add: readonly string[]) =>
-      showColumns(keys, add, order).length > keys.length,
+    adds: (add: readonly string[]) => showsAny({ visible, usage }, add, order),
     fits: (key: string) => fitsRowColumns(usage, key),
   };
 }

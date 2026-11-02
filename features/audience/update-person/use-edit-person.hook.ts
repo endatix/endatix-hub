@@ -27,7 +27,7 @@ export function useEditPerson({ formId, person, onDone }: EditTarget) {
     run({
       action: () =>
         updateAudiencePersonAction({ formId, membershipId, values }),
-      successMessage: "Person updated",
+      successMessage: "Participant updated",
       onSuccess: onDone,
     });
   };

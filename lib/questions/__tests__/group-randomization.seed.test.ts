@@ -148,7 +148,7 @@ describe("Group randomization seeding", () => {
       // Arrange - one seed shared by every bucket made group B repeat group A's
       // order for every seed, because survey-core seeds a fresh generator per
       // call
-      const patterns = SEEDS.map(orderOf).map((order) => [
+      const patterns = SEEDS.map((seed) => orderOf(seed)).map((order) => [
         patternOf(order, "a"),
         patternOf(order, "b"),
       ]);

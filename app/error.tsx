@@ -2,7 +2,7 @@
 
 import { UnexpectedErrorView } from '@/components/error-handling/error-page';
 
-export default function Error({
+export default function ErrorPage({
   error,
   retry,
 }: {

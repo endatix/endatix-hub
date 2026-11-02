@@ -77,6 +77,7 @@ type RenderOptions = {
   catalog?: AnswerColumn[];
   isPending?: boolean;
   columnSearch?: ColumnSearchAccess;
+  urlSetsColumns?: boolean;
 };
 
 function renderClosed(
@@ -85,10 +86,12 @@ function renderClosed(
     catalog: columnsCatalog = catalog,
     isPending = false,
     columnSearch = { canEdit: false },
+    urlSetsColumns = columns !== undefined,
   }: RenderOptions = {},
 ) {
   vi.mocked(useSubmissionGridUrl).mockReturnValue({
     urlState: parseSubmissionGridUrl({ columns }),
+    urlSets: { sort: false, columns: urlSetsColumns },
     updateUrl,
     isPending,
     textFilters: {},
@@ -308,6 +311,17 @@ describe("SubmissionGridColumnPicker", () => {
 
     // Assert
     expect(isDisabled(trigger)).toBe(true);
+  });
+
+  it("offers no Default while the columns come from the saved view", () => {
+    // Arrange
+    fireEvent.click(renderClosed("q2,q1", { urlSetsColumns: false }));
+
+    // Act
+    const defaultButton = screen.getByRole("button", { name: "Default" });
+
+    // Assert
+    expect(isDisabled(defaultButton)).toBe(true);
   });
 
   it("offers Default only when the view is not the default", () => {

@@ -18,6 +18,40 @@ export type PublicSurveyContentProps = {
   variant: PublicSurveyRuntimeProps["variant"];
 };
 
+type LoadedPage = Extract<
+  Awaited<ReturnType<typeof loadPublicSurveyPageUseCase>>,
+  { kind: "success" }
+>;
+
+/** The props sent to the client, field by field: nothing new crosses to the browser by default. */
+function toSurveyRuntime(
+  page: LoadedPage,
+  request: PublicSurveyContentProps,
+): PublicSurveyRuntimeProps {
+  return {
+    activeDefinition: page.activeDefinition,
+    submissionPhase: page.submissionPhase,
+    canStartOver: page.canStartOver,
+    isRespondentTestMode: page.isRespondentTestMode,
+    testInspector: page.testInspector,
+    submission: page.submission,
+    storageConfig: getClientStorageConfig(),
+    ...request,
+  };
+}
+
+type TokenErrorPage = Extract<
+  Awaited<ReturnType<typeof loadPublicSurveyPageUseCase>>,
+  { kind: "tokenSubmissionError" | "submissionLoadError" }
+>;
+
+function tokenErrorProps(page: TokenErrorPage) {
+  return {
+    errorCode: page.errorCode,
+    personalLink: page.kind === "tokenSubmissionError" && page.personalLink,
+  };
+}
+
 export async function PublicSurveyContent({
   formId,
   urlToken,
@@ -68,32 +102,20 @@ export async function PublicSurveyContent({
   ) {
     return (
       <TokenSubmissionError
-        errorCode={pageResult.errorCode}
+        {...tokenErrorProps(pageResult)}
         variant={variant}
       />
     );
   }
 
-  const {
-    activeDefinition,
-    isRespondentTestMode,
-    submission,
-    submissionPhase,
-    canStartOver,
-  } = pageResult;
   const shouldLoadReCaptcha =
-    activeDefinition.requiresReCaptcha && recaptchaConfig.isReCaptchaEnabled();
-  const surveyRuntime: PublicSurveyRuntimeProps = {
-    activeDefinition,
+    pageResult.activeDefinition.requiresReCaptcha &&
+    recaptchaConfig.isReCaptchaEnabled();
+  const surveyRuntime = toSurveyRuntime(pageResult, {
     formId,
-    submissionPhase,
-    canStartOver,
-    isRespondentTestMode,
-    submission,
-    storageConfig: getClientStorageConfig(),
     urlToken,
     variant,
-  };
+  });
 
   return (
     <>

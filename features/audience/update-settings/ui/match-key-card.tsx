@@ -16,7 +16,7 @@ import { useMatchKey, type MatchKeyState } from "../use-match-key.hook";
 
 const SELECT_ID = "audience-match-key";
 const DESCRIPTION =
-  "How a person is recognised on every form in your organization, so the same person is one member everywhere.";
+  "How participants are matched across every form in your organization.";
 
 function MatchKeyHeader({ isLocked }: Readonly<{ isLocked: boolean }>) {
   return (
@@ -35,7 +35,7 @@ function MatchKeyHeader({ isLocked }: Readonly<{ isLocked: boolean }>) {
 type MatchKey = ReturnType<typeof useMatchKey>;
 type MatchKeyFieldProps = { matchKey: MatchKey; value: string };
 
-const LABEL = "Identify people by";
+const LABEL = "Identify participants by";
 
 function MatchKeyField({ matchKey, value }: Readonly<MatchKeyFieldProps>) {
   const { error, hint, disabled, change } = matchKey;

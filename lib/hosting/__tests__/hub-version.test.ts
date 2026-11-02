@@ -1,6 +1,11 @@
+import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { resolveHubBuild } from "../hub-build.mjs";
-import { getHubBuild, getHubDeploymentId } from "../hub-version";
+import { resolveHubBuild, resolveSurveyJsVersions } from "../hub-build.mjs";
+import {
+  getHubBuild,
+  getHubDeploymentId,
+  getSurveyJsVersions,
+} from "../hub-version";
 
 const SHA = "8ef28cee396f8dfb959d40c34868314585659f28";
 
@@ -112,6 +117,96 @@ describe("resolveHubBuild", () => {
     // Assert
     expect(build).toEqual({ version: null, branch: null, commit: null });
   });
+});
+
+describe("resolveSurveyJsVersions", () => {
+  it("reads each installed package's exact version", () => {
+    // Act
+    const versions = resolveSurveyJsVersions((name) => ({
+      version: name.startsWith("survey-creator") ? "3.2.4" : "3.2.3",
+    }));
+
+    // Assert
+    expect(versions).toEqual({
+      "survey-core": "3.2.3",
+      "survey-react-ui": "3.2.3",
+      "survey-creator-core": "3.2.4",
+      "survey-creator-react": "3.2.4",
+      "survey-analytics": "3.2.3",
+    });
+  });
+
+  it("leaves a package that is not installed as null", () => {
+    // Act
+    const versions = resolveSurveyJsVersions((name) => {
+      if (name === "survey-analytics") {
+        throw new Error("ENOENT");
+      }
+      return { version: "3.2.3" };
+    });
+
+    // Assert
+    expect(versions["survey-analytics"]).toBeNull();
+    expect(versions["survey-core"]).toBe("3.2.3");
+  });
+
+  it("reads the versions installed in node_modules, not the package.json ranges", () => {
+    // Arrange
+    const installed = (name: string) =>
+      JSON.parse(
+        readFileSync(
+          `${process.cwd()}/node_modules/${name}/package.json`,
+          "utf8",
+        ),
+      ).version;
+
+    // Act
+    const versions = resolveSurveyJsVersions();
+
+    // Assert
+    for (const [name, version] of Object.entries(versions)) {
+      expect(version).toBe(installed(name));
+    }
+  });
+});
+
+describe("getSurveyJsVersions", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("reads the versions next.config.ts inlined at build", () => {
+    // Arrange
+    vi.stubEnv(
+      "HUB_SURVEYJS_VERSIONS",
+      JSON.stringify({ "survey-core": "3.2.3", "survey-analytics": null }),
+    );
+
+    // Act
+    const versions = getSurveyJsVersions();
+
+    // Assert
+    expect(versions["survey-core"]).toBe("3.2.3");
+    expect(versions["survey-analytics"]).toBeNull();
+    expect(versions["survey-creator-react"]).toBeNull();
+  });
+
+  it.each(["", "not json", "[]"])(
+    "knows no SurveyJS version when the inlined value is %j",
+    (inlined) => {
+      // Arrange
+      vi.stubEnv("HUB_SURVEYJS_VERSIONS", inlined);
+
+      // Act & Assert
+      expect(Object.values(getSurveyJsVersions())).toEqual([
+        null,
+        null,
+        null,
+        null,
+        null,
+      ]);
+    },
+  );
 });
 
 describe("getHubBuild", () => {

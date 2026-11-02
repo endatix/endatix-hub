@@ -41,6 +41,27 @@ describe("TokenSubmissionError", () => {
     expect(screen.getByText("You can close this tab.")).toBeDefined();
   });
 
+  it("tells a personalized link's respondent to open their link again", () => {
+    render(
+      <TokenSubmissionError
+        errorCode={ERROR_CODE.TOKEN_EXPIRED}
+        personalLink
+        variant="share"
+      />,
+    );
+
+    expect(
+      screen.getByRole("heading", {
+        name: "This link is invalid or has expired.",
+      }),
+    ).toBeDefined();
+    expect(
+      screen.getByText(
+        "Open the personal link from your latest invitation again to continue.",
+      ),
+    ).toBeDefined();
+  });
+
   it("omits the close-tab note inside an embed", () => {
     render(
       <TokenSubmissionError

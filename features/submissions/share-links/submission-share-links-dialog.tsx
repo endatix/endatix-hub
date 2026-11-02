@@ -45,7 +45,7 @@ import {
   DEFAULT_EXPIRY_MINUTES,
   EXPIRY_OPTIONS,
   formatExpiresIn,
-} from "./share-link-expiry";
+} from "@/lib/share-links/share-link-expiry";
 
 interface SubmissionShareLinksDialogProps {
   formId: string;

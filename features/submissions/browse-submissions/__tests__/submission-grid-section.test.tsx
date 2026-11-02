@@ -7,6 +7,7 @@ const loads = vi.hoisted(() => ({
   columns: vi.fn(),
   canIncludeInProgress: vi.fn(),
   config: vi.fn(),
+  view: vi.fn(),
 }));
 const redirect = vi.hoisted(() =>
   vi.fn((href: string) => {
@@ -21,7 +22,8 @@ vi.mock("@/features/config/server", () => ({
 }));
 vi.mock("../browse-submissions.server", () => ({
   loadSubmissionGridColumns: loads.columns,
-  canEditForm: loads.canIncludeInProgress,
+  canEditSubmissionGrid: loads.canIncludeInProgress,
+  loadSubmissionGridView: loads.view,
 }));
 vi.mock("@/components/error-handling/error-page", () => ({
   HubPageLoadError: function HubPageLoadError() {
@@ -71,6 +73,7 @@ const READY: SubmissionGridColumnsLoad = {
   readiness: {
     submissions: 3,
     completedSubmissions: 3,
+    inProgress: 0,
     prepared: 2,
     pending: 0,
     failed: 0,
@@ -97,6 +100,10 @@ describe("SubmissionGridSection", () => {
     vi.clearAllMocks();
     loads.canIncludeInProgress.mockResolvedValue(true);
     loads.config.mockResolvedValue({ submitterPrimaryFilterLabel: "Visitor" });
+    loads.view.mockResolvedValue({
+      version: null,
+      settings: { v: 1, columns: [] },
+    });
   });
 
   it("renders the given fallback when the API has no grid for the form", async () => {
@@ -159,6 +166,27 @@ describe("SubmissionGridSection", () => {
     });
   });
 
+  it("loads the rows for the saved view where the URL says nothing", async () => {
+    // Arrange
+    loads.columns.mockResolvedValue(READY);
+    const view = {
+      version: "4",
+      settings: { v: 1, columns: [{ key: "q2" }], pageSize: 30 },
+    };
+    loads.view.mockResolvedValue(view);
+
+    // Act
+    const shell = await renderSection({ page: "2" });
+
+    // Assert
+    expect(shell.props).toMatchObject({ view, canSaveView: true });
+    const rows = (shell.props.children as Leaf).props.children as Leaf;
+    expect(rows.props).toMatchObject({
+      urlState: { page: 2, pageSize: 30, columns: ["q2"] },
+      answerColumns: [{ key: "q2" }],
+    });
+  });
+
   it("hands the shell every answer column for the picker", async () => {
     // Arrange
     loads.columns.mockResolvedValue(READY);
@@ -177,7 +205,7 @@ describe("SubmissionGridSection", () => {
     // Arrange
     loads.columns.mockResolvedValue({
       ...READY,
-      readiness: { ...READY.readiness, submissions: 5 },
+      readiness: { ...READY.readiness, submissions: 5, inProgress: 2 },
     });
     loads.canIncludeInProgress.mockResolvedValue(false);
 

@@ -14,15 +14,17 @@ type Props = { formId: string; active?: FormWorkspaceSectionId };
 async function FormPageNav({ formId, active }: Readonly<Props>) {
   const { trail, switcher } = await loadFormPageNav(formId, active);
   return (
-    <div className="flex min-w-0 items-center gap-3">
+    <div className="flex min-w-0 flex-1 items-center gap-3">
       <FormsBreadcrumbNav items={trail} />
       {switcher ? (
         <>
           <Separator
             orientation="vertical"
-            className="data-[orientation=vertical]:h-4"
+            className="shrink-0 data-[orientation=vertical]:h-4"
           />
-          <NavSwitcher {...switcher} />
+          <span className="shrink-0">
+            <NavSwitcher {...switcher} />
+          </span>
         </>
       ) : null}
     </div>

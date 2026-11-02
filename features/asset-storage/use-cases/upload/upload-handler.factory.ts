@@ -128,15 +128,12 @@ export function createUserUpload(config: UserUploadConfig) {
       ),
     );
 
-    const successes = uploadResults.filter(Result.isSuccess).map((result) => {
-      return {
-        file: result.value.file,
-        content: result.value.url,
-      };
-    });
+    const successes = uploadResults
+      .filter((result) => Result.isSuccess(result))
+      .map(({ value }) => ({ file: value.file, content: value.url }));
 
     const errors = uploadResults
-      .filter(Result.isError)
+      .filter((result) => Result.isError(result))
       .map((result) => result.message);
 
     options.callback(successes, errors);
@@ -217,14 +214,14 @@ export function createContentUpload(config: ContentUploadConfig) {
       ),
     );
 
-    const firstError = uploadResults.find(Result.isError);
+    const firstError = uploadResults.find((result) => Result.isError(result));
     if (firstError && Result.isError(firstError)) {
       options.callback("error", firstError.message);
       return;
     }
 
     const successes = uploadResults
-      .filter(Result.isSuccess)
+      .filter((result) => Result.isSuccess(result))
       .map((r) => r.value);
     options.callback("success", successes[0]?.url ?? "");
   };

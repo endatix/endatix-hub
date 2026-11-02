@@ -6,8 +6,10 @@ import type {
 } from "@/lib/endatix-api/reporting/submission-grid-types";
 import { normalizePagedResponse } from "@/lib/endatix-api/shared/paged-response";
 import { toAnswerColumns, type AnswerColumn } from "../submission-grid-columns";
+import type { SubmissionGridViewLoad } from "../submission-grid-view";
 import { SubmissionGridTable } from "../ui/submission-grid-table";
 import { SubmissionGridUrlProvider } from "../ui/submission-grid-url-context";
+import { SubmissionGridViewProvider } from "../ui/submission-grid-view-context";
 
 const searchParams = vi.hoisted(() => new URLSearchParams());
 const router = vi.hoisted(() => ({
@@ -22,6 +24,11 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => searchParams,
 }));
 vi.mock("next-auth/react", () => ({ useSession: () => ({ data: null }) }));
+
+const UNREAD_VIEW: SubmissionGridViewLoad = {
+  version: null,
+  settings: { v: 1, columns: [] },
+};
 
 function row(overrides: Partial<SubmissionGridRow> = {}): SubmissionGridRow {
   return {
@@ -52,12 +59,22 @@ function renderTable(
     totalPages: 1,
   });
   return render(
-    <SubmissionGridUrlProvider catalog={answerColumns}>
-      <SubmissionGridTable
-        page={page}
-        answerColumns={answerColumns}
-        submitterLabel="Submitter"
-      />
+    <SubmissionGridUrlProvider
+      catalog={answerColumns}
+      viewSettings={UNREAD_VIEW.settings}
+    >
+      <SubmissionGridViewProvider
+        formId="7"
+        catalog={answerColumns}
+        view={UNREAD_VIEW}
+        canSaveView={false}
+      >
+        <SubmissionGridTable
+          page={page}
+          answerColumns={answerColumns}
+          submitterLabel="Submitter"
+        />
+      </SubmissionGridViewProvider>
     </SubmissionGridUrlProvider>,
   );
 }
@@ -77,6 +94,49 @@ describe("SubmissionGridTable", () => {
       "/forms/7/submissions/9007199254740993",
       { scroll: false },
     );
+  });
+
+  it("opens the submission with Enter on a focused row", () => {
+    // Arrange
+    renderTable([row()]);
+    const tableRow = screen.getByText("Complete").closest("tr")!;
+
+    // Act
+    tableRow.focus();
+    fireEvent.keyDown(tableRow, { key: "Enter" });
+
+    // Assert
+    expect(router.push).toHaveBeenCalledWith(
+      "/forms/7/submissions/9007199254740993",
+      { scroll: false },
+    );
+  });
+
+  it("offers the review status as a button", () => {
+    // Arrange & Act
+    renderTable([row()]);
+
+    // Assert
+    expect(screen.getByRole("button", { name: /New/ }).tagName).toBe("BUTTON");
+  });
+
+  it("keeps a header text filter focused while typing", () => {
+    // Arrange
+    renderTable([row()]);
+    fireEvent.keyDown(
+      screen.getByRole("button", { name: "Submitter column menu" }),
+      { key: "Enter" },
+    );
+    const input = screen.getByPlaceholderText("Submitter");
+    input.focus();
+
+    // Act
+    fireEvent.change(input, { target: { value: "vi" } });
+    fireEvent.change(input, { target: { value: "visitor" } });
+
+    // Assert
+    expect(document.activeElement).toBe(input);
+    expect(screen.getByPlaceholderText("Submitter")).toBe(input);
   });
 
   it("does not open the submission from the row menu", () => {
@@ -126,6 +186,39 @@ describe("SubmissionGridTable answer filters", () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    searchParams.delete("answer.contains.company");
+  });
+
+  it("keeps an answer filter's draft and focus while typing, unwritten", () => {
+    // Arrange
+    renderTable([row()], toAnswerColumns([wireColumn({ key: "company" })]));
+    openColumnMenu("company");
+    const input = screen.getByPlaceholderText("Contains");
+    input.focus();
+
+    // Act
+    fireEvent.change(input, { target: { value: "ac" } });
+    fireEvent.change(input, { target: { value: "acme" } });
+    act(() => vi.advanceTimersByTime(1_000));
+
+    // Assert
+    expect(document.activeElement).toBe(input);
+    expect(screen.getByPlaceholderText("Contains")).toBe(input);
+    expect(router.replace).not.toHaveBeenCalled();
+  });
+
+  it("removes an answer filter from the URL on Clear", () => {
+    // Arrange
+    searchParams.set("answer.contains.company", "acme");
+    renderTable([row()], toAnswerColumns([wireColumn({ key: "company" })]));
+    openColumnMenu("company");
+
+    // Act
+    fireEvent.click(screen.getByRole("button", { name: "Clear" }));
+    act(() => vi.advanceTimersByTime(350));
+
+    // Assert
+    expect(replacedQuery().has("answer.contains.company")).toBe(false);
   });
 
   it("writes a text column's contains filter to the URL", () => {

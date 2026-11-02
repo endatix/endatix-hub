@@ -16,6 +16,7 @@ import { parseSubmissionGridUrl } from "../submission-grid-url";
 const READINESS = {
   submissions: 1,
   completedSubmissions: 1,
+  inProgress: 0,
   prepared: 1,
   pending: 0,
   failed: 0,
@@ -121,6 +122,31 @@ describe("resolveSubmissionGridRowsLoad", () => {
     expect(load).toEqual({
       kind: "redirect",
       href: "/forms/5/submissions?page=3&status=new",
+    });
+  });
+
+  it("redirects to the page the API clamped a page past the end to", () => {
+    // Arrange: the API answers page=99 with its last page and that page's rows.
+    const state = parseSubmissionGridUrl({ page: "99" });
+    const clamped = normalizePagedResponse<SubmissionGridRow>({
+      items: [{ id: "1" } as SubmissionGridRow],
+      page: 2,
+      pageSize: 10,
+      totalRecords: 15,
+      totalPages: 2,
+    });
+
+    // Act
+    const load = resolveSubmissionGridRowsLoad(
+      "5",
+      state,
+      Result.success(clamped),
+    );
+
+    // Assert
+    expect(load).toEqual({
+      kind: "redirect",
+      href: "/forms/5/submissions?page=2",
     });
   });
 

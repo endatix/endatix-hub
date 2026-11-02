@@ -33,7 +33,7 @@ function SlackTokenTransfer() {
       }
     };
 
-    fetchData();
+    void fetchData();
   }, [code]);
 
   return (

@@ -61,9 +61,9 @@ export function extractQuestionTypes(formJson: any): string[] {
     }
 
     if (Array.isArray(obj)) {
-      obj.forEach(traverse);
+      obj.forEach((child) => traverse(child));
     } else {
-      Object.values(obj).forEach(traverse);
+      Object.values(obj).forEach((child) => traverse(child));
     }
   };
 

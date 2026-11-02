@@ -4,13 +4,14 @@
 // TanStack Table keeps one table instance, so the React Compiler would cache
 // what reads it and miss in-place state changes (column visibility, sizing).
 
-import type { ReactNode } from "react";
+import type { KeyboardEvent, MouseEvent, ReactNode } from "react";
 import {
   DATA_TABLE_ELEMENT_CLASS_NAME,
   dataTableBodyCellClassName,
   dataTableBodyRowClassName,
   dataTableHeaderCellClassName,
 } from "./data-table-chrome";
+import { ColumnResizeHandle, resizedColumnStyle } from "./column-resize-handle";
 import "./data-table-column-meta";
 import { DataTablePendingRows } from "./data-table-skeleton-rows";
 import { useHeldHeight } from "./use-held-height";
@@ -39,14 +40,17 @@ type DataTableGridProps<TData> = {
    */
   isPending?: boolean;
   /**
-   * Makes every row a click target. Controls inside a cell that must not
-   * trigger it stop the click's propagation.
+   * Makes every row a click target, focusable and opened with Enter or Space.
+   * Controls inside a cell that must not trigger it stop the click's
+   * propagation; clicks from content portaled out of the row are ignored.
    */
   onRowClick?: (row: Row<TData>) => void;
 };
 
 /**
- * Shared TanStack header/body chrome used by Hub list surfaces.
+ * Shared TanStack header/body chrome used by Hub list surfaces. A table with
+ * `enableColumnResizing: true` gets resize handles; a resized column keeps
+ * its `columnSizing` width, the others stay automatic.
  */
 export function DataTableGrid<TData>({
   table,
@@ -103,6 +107,7 @@ function GridHeader<TData>({
 function GridHeaderCell<TData>({
   header,
 }: Readonly<{ header: Header<TData, unknown> }>) {
+  const isResizable = header.getContext().table.options.enableColumnResizing;
   return (
     <TableHead
       colSpan={header.colSpan}
@@ -110,10 +115,12 @@ function GridHeaderCell<TData>({
         isPinnedLeft: header.column.getIsPinned() === "left",
         className: header.column.columnDef.meta?.headerClassName,
       })}
+      style={resizedColumnStyle(header.getContext().table, header.column)}
     >
       {header.isPlaceholder
         ? null
         : flexRender(header.column.columnDef.header, header.getContext())}
+      {isResizable === true && <ColumnResizeHandle header={header} />}
     </TableHead>
   );
 }
@@ -136,12 +143,40 @@ function GridBodyRows<TData>({
           isEvenRow,
           className: onRowClick ? "cursor-pointer" : undefined,
         })}
-        onClick={onRowClick ? () => onRowClick(row) : undefined}
+        {...(onRowClick && rowActivationProps(row, onRowClick))}
       >
         <GridBodyCells row={row} isEvenRow={isEvenRow} />
       </TableRow>
     );
   });
+}
+
+function rowActivationProps<TData>(
+  row: Row<TData>,
+  onRowClick: (row: Row<TData>) => void,
+) {
+  return {
+    tabIndex: 0,
+    onClick: (event: MouseEvent<HTMLTableRowElement>) => {
+      if (event.currentTarget.contains(event.target as Node)) {
+        onRowClick(row);
+      }
+    },
+    onKeyDown: (event: KeyboardEvent<HTMLTableRowElement>) => {
+      if (isRowActivationKey(event)) {
+        event.preventDefault();
+        onRowClick(row);
+      }
+    },
+  };
+}
+
+/** Enter or Space on the row itself, not on a control or dialog inside it. */
+function isRowActivationKey(event: KeyboardEvent<HTMLTableRowElement>) {
+  return (
+    event.target === event.currentTarget &&
+    (event.key === "Enter" || event.key === " ")
+  );
 }
 
 function GridBodyCells<TData>({
@@ -156,6 +191,7 @@ function GridBodyCells<TData>({
         isEvenRow,
         className: cell.column.columnDef.meta?.cellClassName,
       })}
+      style={resizedColumnStyle(cell.getContext().table, cell.column)}
     >
       {flexRender(cell.column.columnDef.cell, cell.getContext())}
     </TableCell>

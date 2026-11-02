@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   fitsRowColumns,
+  MAX_SUBMISSION_GRID_COLUMNS_PARAM_BYTES,
   rowColumnsUsage,
 } from "@/lib/endatix-api/reporting/submission-grid-row-columns";
 import { MAX_SUBMISSION_GRID_ROW_COLUMNS } from "@/lib/endatix-api/reporting/submission-grid-types";
@@ -14,6 +15,7 @@ import {
   hideColumns,
   limitRenderedColumns,
   showColumns,
+  showsAny,
   toggleColumn,
 } from "../submission-grid-column-picker";
 import {
@@ -146,7 +148,9 @@ describe("filterColumnGroups", () => {
     const matches = filterColumnGroups(groups, "EMAIL");
 
     // Assert
-    expect(matches.map(groupLabel)).toEqual(["Page one › Contact"]);
+    expect(matches.map((group) => groupLabel(group))).toEqual([
+      "Page one › Contact",
+    ]);
     expect(columnKeysOf(matches)).toEqual(["email"]);
   });
 
@@ -294,6 +298,70 @@ describe("column selection", () => {
 
     // Assert
     expect(states).toEqual(["none", "some", "all"]);
+  });
+});
+
+describe("showsAny", () => {
+  // Keys whose encoded length differs from their length: space (+), comma
+  // (%2C), non-ASCII (two %XX per byte), and plain keys.
+  const keys = ["plain_0", "a b", "x,y", "ü_frage", "plain_1", "日本", "z"];
+  const order = columnOrder(keys.map((key) => column(key)));
+
+  function nearlyFull(spare: number): string[] {
+    const filler = "f".repeat(MAX_SUBMISSION_GRID_COLUMNS_PARAM_BYTES - spare);
+    return [filler];
+  }
+
+  it("answers as showColumns does, without summing the visible keys again", () => {
+    // Arrange
+    const views = [
+      [],
+      ["plain_0", "x,y"],
+      ...[3, 6, 9, 12, 20].map((spare) => nearlyFull(spare)),
+    ];
+    const asks = [
+      [],
+      ["plain_0"],
+      ["a b"],
+      ["x,y"],
+      ["ü_frage"],
+      ["日本"],
+      ["z", "a b"],
+      keys,
+    ];
+
+    // Act
+    const pairs = views.flatMap((visible) =>
+      asks.map((ask) => [
+        showsAny(
+          { visible: new Set(visible), usage: rowColumnsUsage(visible) },
+          ask,
+          order,
+        ),
+        showColumns(visible, ask, order).length > visible.length,
+      ]),
+    );
+
+    // Assert
+    expect(pairs.length).toBe(56);
+    expect(pairs.filter(([fast, full]) => fast !== full)).toEqual([]);
+    expect(pairs.some(([, full]) => full)).toBe(true);
+    expect(pairs.some(([, full]) => !full)).toBe(true);
+  });
+
+  it("follows the form order, not the order asked", () => {
+    // Arrange
+    const filler = nearlyFull(6);
+    const usage = rowColumnsUsage(filler);
+    const view = { visible: new Set(filler), usage };
+
+    // Act
+    const shortLast = showsAny(view, ["ü_frage", "z"], order);
+    const longFirst = showsAny(view, ["z", "ü_frage"], order);
+
+    // Assert
+    expect([shortLast, longFirst]).toEqual([false, false]);
+    expect(fitsRowColumns(usage, "z")).toBe(true);
   });
 });
 

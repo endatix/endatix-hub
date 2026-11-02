@@ -7,8 +7,9 @@ import type { Route } from "next";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import {
-  canEditForm,
+  canEditSubmissionGrid,
   loadSubmissionGridColumns,
+  loadSubmissionGridView,
 } from "../browse-submissions.server";
 import { describeGridReadiness } from "../grid-readiness";
 import type { SubmissionGridColumnsLoad } from "../resolve-submission-grid-load";
@@ -27,6 +28,10 @@ import {
   type SubmissionGridRawSearchParams,
   type SubmissionGridUrlState,
 } from "../submission-grid-url";
+import {
+  withSavedView,
+  type SubmissionGridViewLoad,
+} from "../submission-grid-view";
 import { SubmissionGridRowsSection } from "./submission-grid-rows-section";
 import { SubmissionGridShell } from "./submission-grid-shell";
 import { SubmissionGridSkeleton } from "./submission-grid-skeleton";
@@ -42,7 +47,7 @@ export async function SubmissionGridSection(
   props: Readonly<SubmissionGridSectionProps>,
 ) {
   const { formId, searchParams } = props;
-  const { columns, ...access } = await loadGridInputs(formId);
+  const { columns, view, ...access } = await loadGridInputs(formId);
   if (columns.kind === "unavailable") {
     return props.unavailable;
   }
@@ -50,12 +55,25 @@ export async function SubmissionGridSection(
     return <HubPageLoadError result={columns.result} />;
   }
 
+  const urlState = gridUrlState(formId, searchParams, { columns, view });
+  return <SubmissionGrid {...{ formId, urlState, columns, view, ...access }} />;
+}
+
+/**
+ * The state the grid shows: a non-canonical URL redirects first, then the
+ * saved view fills in what the URL leaves out.
+ */
+function gridUrlState(
+  formId: string,
+  searchParams: SubmissionGridRawSearchParams,
+  { columns, view }: { columns: ReadyColumns; view: SubmissionGridViewLoad },
+): SubmissionGridUrlState {
   const urlState = parseGridUrl(searchParams, columns);
   if (!isCanonicalSubmissionGridUrl(searchParams, urlState)) {
     redirect(buildSubmissionGridPath(formId, urlState) as Route);
   }
 
-  return <SubmissionGrid {...{ formId, urlState, columns, ...access }} />;
+  return withSavedView(urlState, searchParams, view.settings);
 }
 
 function parseGridUrl(
@@ -80,36 +98,35 @@ type ReadyColumns = Extract<SubmissionGridColumnsLoad, { kind: "ready" }>;
 
 /** Only the rows wait for the columns; the other reads start together. */
 async function loadGridInputs(formId: string) {
-  const [columns, canEdit, config] = await Promise.all([
-    getSession().then((session) => loadSubmissionGridColumns(formId, session)),
-    canEditForm(),
+  const session = getSession();
+  const [columns, view, canEdit, config] = await Promise.all([
+    session.then((current) => loadSubmissionGridColumns(formId, current)),
+    session.then((current) => loadSubmissionGridView(formId, current)),
+    canEditSubmissionGrid(),
     getClientEndatixConfig(),
   ]);
-  return {
-    columns,
-    canEdit,
-    submitterLabel: config.submitterPrimaryFilterLabel,
-  };
+  const submitterLabel = config.submitterPrimaryFilterLabel;
+  return { columns, view, canEdit, submitterLabel };
 }
 
 type SubmissionGridProps = {
   formId: string;
   urlState: SubmissionGridUrlState;
   columns: ReadyColumns;
+  view: SubmissionGridViewLoad;
+  /** Form editors include in-progress submissions and save the view. */
   canEdit: boolean;
   submitterLabel: string;
 };
 
 function SubmissionGrid(props: Readonly<SubmissionGridProps>) {
-  const { formId, columns, submitterLabel, canEdit } = props;
+  const { formId, columns, view, submitterLabel, canEdit } = props;
   const rows = rowsRequest(props.urlState, columns);
   return (
     <SubmissionGridShell
+      {...gridChrome(props, rows.urlState.answerFilters.length)}
       formId={formId}
-      catalog={columns.catalog}
-      columnSearch={{ canEdit, slots: columns.searchSlots }}
-      hasSubmissions={columns.readiness.submissions > 0}
-      banner={gridBanner(props, rows.urlState.answerFilters.length)}
+      view={view}
     >
       <SubmissionGridRows
         {...{ formId, submitterLabel }}
@@ -120,18 +137,24 @@ function SubmissionGrid(props: Readonly<SubmissionGridProps>) {
   );
 }
 
-function gridBanner(props: Readonly<SubmissionGridProps>, sentFilters: number) {
-  const { columns, urlState } = props;
+function gridChrome(props: Readonly<SubmissionGridProps>, sentFilters: number) {
+  const { columns, canEdit, urlState } = props;
   const inUrl = urlState.answerFilters.length;
-  return describeGridReadiness({
-    ...columns,
-    ...props,
-    canIncludeInProgress: props.canEdit,
-    hasAnswerFilters: columns.schemaReady ? sentFilters > 0 : inUrl > 0,
-    answerFiltersWaiting: columns.schemaReady && inUrl > sentFilters,
-  });
+  return {
+    catalog: columns.catalog,
+    columnSearch: { canEdit, slots: columns.searchSlots },
+    hasSubmissions: columns.readiness.submissions > 0,
+    banner: describeGridReadiness({
+      ...columns,
+      canIncludeInProgress: canEdit,
+      hasAnswerFilters: columns.schemaReady ? sentFilters > 0 : inUrl > 0,
+      answerFiltersWaiting: columns.schemaReady && inUrl > sentFilters,
+    }),
+    canSaveView: canEdit,
+  };
 }
 
+/** The rows' URL state and visible columns: without a schema, no answer filter is sent. */
 function rowsRequest(urlState: SubmissionGridUrlState, columns: ReadyColumns) {
   const answerFilters = sentAnswerFilters(urlState, columns);
   const rowsState = { ...urlState, answerFilters };

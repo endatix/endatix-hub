@@ -51,6 +51,7 @@ function columnsResponse(
       pending: 0,
       failed: 0,
       skippedInProgress: 0,
+      inProgress: 0,
     },
     columns: [
       {
