@@ -27,7 +27,9 @@ import { LinkStatusBadge } from "../../ui/link-status-badge";
 import { NotSet } from "../../ui/not-set";
 import { SubmissionLink } from "../../ui/submission-link";
 import { WithTestBadge } from "../../ui/test-badge";
+import type { ParticipantSelection } from "../../ui/use-participant-selection.hook";
 import { formatPropertyValue, identifierKindLabel } from "../../utils";
+import { selectCell, selectColumn } from "./people-selection";
 
 /** Each handler is present only when the reader may run it; none means no actions column. */
 export type RowHandlers = {
@@ -52,6 +54,8 @@ type PeopleTableProps = {
   verdicts?: UsageVerdicts | null;
   /** Every Property, the match key's included; defaults to `properties`. */
   allProperties?: AudienceProperty[];
+  /** Ticks on test participants, for test links; none means no select column. */
+  selection?: ParticipantSelection;
 };
 
 const ACTIONS_COLUMN: StaticDataTableColumn = {
@@ -315,25 +319,41 @@ function personCells(
   return [...cells, dataTableCell("actions", menu, ACTIONS_CELL)];
 }
 
+const tableOptions = (props: Readonly<PeopleTableProps>) => ({
+  ...props,
+  allProperties: props.allProperties ?? props.properties,
+  showLink: hasLinks(props.people),
+});
+
+/** A leading tick column when the list ticks participants; the table unchanged otherwise. */
+function withTicks(
+  people: AudiencePerson[],
+  selection: ParticipantSelection | undefined,
+) {
+  return {
+    columns: (columns: StaticDataTableColumn[]) =>
+      selection ? [selectColumn({ people, selection }), ...columns] : columns,
+    cells: (person: AudiencePerson, cells: StaticDataTableCell[]) =>
+      selection ? [selectCell(person, selection), ...cells] : cells,
+  };
+}
+
 /**
  * People on this form, one column per property. Cells are read-only: a row is edited in a panel,
  * so the table stays a reading surface (DESIGN.md §5 List tables).
  */
 export function PeopleTable(props: Readonly<PeopleTableProps>) {
   const { identifierKind, properties, people } = props;
-  const options = {
-    ...props,
-    allProperties: props.allProperties ?? properties,
-    showLink: hasLinks(people),
-  };
+  const options = tableOptions(props);
+  const ticks = withTicks(people, props.selection);
   const columns = peopleColumns(identifierKind, properties, options);
   return (
-    <StaticDataTable columns={columns}>
+    <StaticDataTable columns={ticks.columns(columns)}>
       {people.map((person, index) => (
         <StaticDataTableRow
           key={person.membershipId}
           index={index}
-          cells={personCells(person, properties, options)}
+          cells={ticks.cells(person, personCells(person, properties, options))}
         />
       ))}
     </StaticDataTable>

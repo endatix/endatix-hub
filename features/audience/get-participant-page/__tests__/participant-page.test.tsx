@@ -216,7 +216,11 @@ describe("ParticipantPage", () => {
     );
 
     await waitFor(() => expect(router.refresh).toHaveBeenCalled());
-    expect(createTestLinkAction).toHaveBeenCalledWith("1", "7", 60 * 24 * 7);
+    expect(createTestLinkAction).toHaveBeenCalledWith(
+      "1",
+      expect.objectContaining({ audienceMemberId: "7", membershipId: "981" }),
+      60 * 24 * 7,
+    );
   });
 
   it("lists Copy test link before Test as this participant, as the People row does", () => {

@@ -8,20 +8,24 @@ import {
 } from "@/lib/share-links/share-link-expiry";
 import { Result } from "@/lib/result";
 import { useOneAtATime } from "../use-one-at-a-time.hook";
-import { createTestLinkAction, type TestLink } from "./create-test-link.action";
+import {
+  createTestLinkAction,
+  type TestLink,
+  type TestLinkPerson,
+} from "./create-test-link.action";
 
 const REJECTED = "Something went wrong. Try again.";
 
 type TestLinkRequest = {
   formId: string;
-  memberId: string;
+  person: TestLinkPerson;
   expiryMinutes: number;
 };
 
 async function createOrFailure(request: TestLinkRequest) {
-  const { formId, memberId, expiryMinutes } = request;
+  const { formId, person, expiryMinutes } = request;
   try {
-    return await createTestLinkAction(formId, memberId, expiryMinutes);
+    return await createTestLinkAction(formId, person, expiryMinutes);
   } catch {
     return Result.error<TestLink>(REJECTED);
   }
@@ -64,7 +68,7 @@ async function createAndCopy(request: TestLinkRequest) {
  */
 export function useCopyTestLink(
   formId: string,
-  memberId: string,
+  person: TestLinkPerson,
   onCreated?: () => void,
 ) {
   const [expiryMinutes, setExpiryMinutes] = useState(DEFAULT_EXPIRY_MINUTES);
@@ -72,7 +76,7 @@ export function useCopyTestLink(
   const { pending, run } = useOneAtATime();
   const copy = () =>
     run(async () => {
-      const created = await createAndCopy({ formId, memberId, expiryMinutes });
+      const created = await createAndCopy({ formId, person, expiryMinutes });
       if (!created) return;
       setLink(created);
       onCreated?.();

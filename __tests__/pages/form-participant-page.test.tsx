@@ -13,6 +13,12 @@ vi.mock("@/features/audience/shared/require-audience-api.server", () => ({
   requireAudienceAccess: vi.fn(),
 }));
 
+vi.mock("@/features/audience/shared/test-link-access.server", () => ({
+  testLinkAccess: vi
+    .fn()
+    .mockResolvedValue({ canCopyTestLink: true, canMintTestLinks: true }),
+}));
+
 vi.mock("@/features/audience/get-participant-page", () => ({
   loadParticipantPage: vi.fn(),
   ParticipantGone: ({ formId }: { formId: string }) => <p>gone {formId}</p>,
