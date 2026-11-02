@@ -390,7 +390,7 @@ describe("SubmissionGridColumnPicker filterable columns", () => {
     expect(screen.getAllByText("Filterable")).toHaveLength(2);
     expect(screen.getByText("Filter preparing")).toBeTruthy();
     expect(
-      screen.queryByRole("button", { name: "Make filterable" }),
+      screen.queryByRole("button", { name: /^Make filterable/ }),
     ).toBeNull();
     expect(
       screen.queryByRole("button", { name: /from filterable columns/i }),
@@ -404,7 +404,7 @@ describe("SubmissionGridColumnPicker filterable columns", () => {
 
     // Assert
     expect(
-      screen.queryByRole("button", { name: "Make filterable" }),
+      screen.queryByRole("button", { name: /^Make filterable/ }),
     ).toBeNull();
     expect(screen.queryAllByRole("button", { name: /born|notes/i })).toEqual(
       [],
@@ -418,8 +418,10 @@ describe("SubmissionGridColumnPicker filterable columns", () => {
 
     // Assert
     expect(
-      screen.getAllByRole("button", { name: "Make filterable" }),
-    ).toHaveLength(1);
+      screen
+        .getAllByRole("button", { name: /^Make filterable/ })
+        .map((button) => button.getAttribute("aria-label")),
+    ).toEqual(["Make filterable: City"]);
     expect(
       screen
         .getAllByRole("button", { name: /from filterable columns/i })
@@ -439,7 +441,9 @@ describe("SubmissionGridColumnPicker filterable columns", () => {
     renderPicker("name", searchCatalog, { canEdit: true, slots: SLOTS });
 
     // Act
-    fireEvent.click(screen.getByRole("button", { name: "Make filterable" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Make filterable: City" }),
+    );
 
     // Assert
     await waitFor(() =>
@@ -459,7 +463,9 @@ describe("SubmissionGridColumnPicker filterable columns", () => {
     renderPicker("name", searchCatalog, { canEdit: true, slots: SLOTS });
 
     // Act
-    fireEvent.click(screen.getByRole("button", { name: "Make filterable" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Make filterable: City" }),
+    );
 
     // Assert
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith(cap));

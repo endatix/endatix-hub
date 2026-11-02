@@ -23,6 +23,7 @@ export function AddSearchKeyButton({
       variant="ghost"
       size="sm"
       className="h-6 shrink-0 px-1.5 text-xs"
+      aria-label={`Make filterable: ${target.title}`}
       disabled={changes.isPending}
       onClick={() => changes.change("add", target)}
     >
