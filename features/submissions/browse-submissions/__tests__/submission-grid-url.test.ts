@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { buildListSubmissionGridRowsEndpoint } from "@/lib/endatix-api/reporting/submission-grid";
 import {
   buildSubmissionGridPath,
   isCanonicalSubmissionGridUrl,
@@ -6,6 +7,10 @@ import {
   serializeSubmissionGridUrl,
   toSubmissionGridRowsRequest,
 } from "../submission-grid-url";
+
+/** The rows endpoint the base branch builds for the same URL, before answer filters existed. */
+const BASE_ROWS_ENDPOINT =
+  "/forms/5/reporting/submissions?page=2&pageSize=10&filter=status%3Anew&columns=q1%2Cq2";
 
 describe("parseSubmissionGridUrl", () => {
   it("reads defaults from an empty query", () => {
@@ -82,6 +87,64 @@ describe("serializeSubmissionGridUrl", () => {
     // Assert
     expect(Object.fromEntries(query)).toEqual(raw);
   });
+
+  it("round-trips answer filters whose keys hold separators", () => {
+    // Arrange
+    const raw = {
+      "answer.contains.panel:name.first": "Ann",
+      "answer.from.born~date": "2026-01-01",
+      "answer.to.born~date": "2026-01-31",
+    };
+
+    // Act
+    const state = parseSubmissionGridUrl(raw);
+    const query = serializeSubmissionGridUrl(state);
+
+    // Assert
+    expect(state.answerFilters).toEqual([
+      { operator: "contains", key: "panel:name.first", value: "Ann" },
+      { operator: "from", key: "born~date", value: "2026-01-01" },
+      { operator: "to", key: "born~date", value: "2026-01-31" },
+    ]);
+    expect(Object.fromEntries(query)).toEqual(raw);
+  });
+
+  it.each([
+    ["answer.contains.from.date", "contains", "from.date"],
+    ["answer.to.to", "to", "to"],
+    ["answer.contains.100%_sure", "contains", "100%_sure"],
+  ])("reads %s as operator %s on key %s", (name, operator, key) => {
+    // Arrange
+    const value = operator === "contains" ? "x" : "2026-01-31";
+
+    // Act
+    const state = parseSubmissionGridUrl({ [name]: value });
+    const reloaded = parseSubmissionGridUrl(
+      Object.fromEntries(
+        new URLSearchParams(serializeSubmissionGridUrl(state).toString()),
+      ),
+    );
+
+    // Assert
+    expect(reloaded.answerFilters).toEqual([{ operator, key, value }]);
+  });
+
+  it("survives a reload through the encoded query string", () => {
+    // Arrange
+    const state = parseSubmissionGridUrl({
+      "answer.contains.a&b=c": "x & y",
+    });
+
+    // Act
+    const reloaded = parseSubmissionGridUrl(
+      Object.fromEntries(
+        new URLSearchParams(serializeSubmissionGridUrl(state).toString()),
+      ),
+    );
+
+    // Assert
+    expect(reloaded.answerFilters).toEqual(state.answerFilters);
+  });
 });
 
 describe("isCanonicalSubmissionGridUrl", () => {
@@ -111,6 +174,26 @@ describe("isCanonicalSubmissionGridUrl", () => {
     [{ status: "read,bogus" }],
     [{ sort: "createdAt:sideways" }],
   ])("rewrites %j", (raw) => {
+    expect(isCanonicalSubmissionGridUrl(raw, parseSubmissionGridUrl(raw))).toBe(
+      false,
+    );
+  });
+
+  it("accepts answer filters its own state serializes to", () => {
+    // Arrange
+    const raw = { "answer.contains.q1": "acme", "answer.to.d1": "2026-01-31" };
+
+    // Act & Assert
+    expect(isCanonicalSubmissionGridUrl(raw, parseSubmissionGridUrl(raw))).toBe(
+      true,
+    );
+  });
+
+  it.each([
+    [{ "answer.from.d1": "31/01/2026" }],
+    [{ "answer.between.q1": "x" }],
+    [{ "answer.contains.q1": " acme " }],
+  ])("rewrites the answer filter in %j", (raw) => {
     expect(isCanonicalSubmissionGridUrl(raw, parseSubmissionGridUrl(raw))).toBe(
       false,
     );
@@ -158,5 +241,36 @@ describe("toSubmissionGridRowsRequest", () => {
       submitterProfileFilter: { field: "email", value: "a@b.c" },
       columns: ["q1"],
     });
+  });
+
+  it("sends the base rows request when the URL has no answer filters", () => {
+    // Arrange
+    const state = parseSubmissionGridUrl({
+      page: "2",
+      status: "new",
+      columns: "q1,q2",
+    });
+
+    // Act
+    const endpoint = buildListSubmissionGridRowsEndpoint(
+      "5",
+      toSubmissionGridRowsRequest(state, ["q1", "q2"]),
+    );
+
+    // Assert
+    expect(endpoint).toBe(BASE_ROWS_ENDPOINT);
+  });
+
+  it("passes the answer filters on", () => {
+    // Arrange
+    const state = parseSubmissionGridUrl({ "answer.contains.q1": "acme" });
+
+    // Act
+    const request = toSubmissionGridRowsRequest(state, []);
+
+    // Assert
+    expect(request.answerFilters).toEqual([
+      { operator: "contains", key: "q1", value: "acme" },
+    ]);
   });
 });

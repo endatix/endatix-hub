@@ -1,6 +1,9 @@
 import { BUILT_IN_COLLECTION_STATUSES } from "@/features/submissions/domain";
 import { collectionStatusFromLegacyIsComplete } from "@/features/submissions/ui/describe-collection-status";
-import type { ListSubmissionGridRowsRequest } from "@/lib/endatix-api/reporting/submission-grid-types";
+import type {
+  ListSubmissionGridRowsRequest,
+  SubmissionGridAnswerFilter,
+} from "@/lib/endatix-api/reporting/submission-grid-types";
 import { pickDateRangeFilters } from "@/lib/endatix-api/shared/list-query";
 import type {
   AuditDateFilters,
@@ -12,6 +15,11 @@ import type {
   SubmissionReviewStatus,
 } from "@/lib/endatix-api/submissions/types";
 import { firstSearchParam, type SearchParam } from "@/lib/utils/next-utils";
+import {
+  answerFilterUrlEntries,
+  hasAnswerFilterPrefix,
+  parseAnswerFilters,
+} from "./submission-grid-answer-filters";
 import {
   SUBMISSION_GRID_BOOLEAN_VALUES,
   SUBMISSION_GRID_DATE_STEMS,
@@ -42,6 +50,7 @@ export type SubmissionGridUrlState = {
   sort?: SubmissionGridSort;
   /** Visible answer column keys in order; `undefined` means the default view. */
   columns?: string[];
+  answerFilters: SubmissionGridAnswerFilter[];
 } & AuditDateFilters &
   DateRangeFilter<"started" | "completed">;
 
@@ -61,6 +70,7 @@ export function parseSubmissionGridUrl(
     ...parseFilters(read),
     sort: parseSort(read(keys.sort)),
     columns: parseColumnKeys(read(keys.columns)),
+    answerFilters: parseAnswerFilters(raw),
   };
 }
 
@@ -91,7 +101,7 @@ export function isCanonicalSubmissionGridUrl(
   state: SubmissionGridUrlState,
 ): boolean {
   const written = new URLSearchParams();
-  for (const key of Object.values(keys)) {
+  for (const key of writtenKeys(raw)) {
     const value = firstSearchParam(raw[key]);
     if (value !== undefined && !isWrittenDefault(key, value)) {
       written.set(key, value);
@@ -128,6 +138,7 @@ export function toSubmissionGridRowsRequest(
     ...dateFilters(state),
     ...submitterFilters(state),
     columns,
+    answerFilters: state.answerFilters,
   };
 }
 
@@ -171,6 +182,7 @@ function serializedEntries(
     [keys.submitterEmail, state.submitterEmail],
     [keys.sort, serializeSubmissionGridSort(state.sort)],
     [keys.columns, state.columns?.join(",")],
+    ...answerFilterUrlEntries(state.answerFilters),
   ];
 }
 
@@ -264,6 +276,13 @@ function parseColumnKeys(value: string | undefined): string[] | undefined {
     ),
   ];
   return columns.length > 0 ? columns : undefined;
+}
+
+function writtenKeys(raw: SubmissionGridRawSearchParams): string[] {
+  return [
+    ...Object.values(keys),
+    ...Object.keys(raw).filter(hasAnswerFilterPrefix),
+  ];
 }
 
 function isWrittenDefault(key: string, value: string): boolean {

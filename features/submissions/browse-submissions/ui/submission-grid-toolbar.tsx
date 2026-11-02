@@ -12,7 +12,7 @@ import type { AnswerColumn } from "../submission-grid-columns";
 import { exportFiltersFromGrid } from "../submission-grid-export-filters";
 import { SUBMISSION_GRID_URL_KEYS as keys } from "../submission-grid-url.constants";
 import {
-  CLEAR_FILTERS_UPDATE,
+  clearFiltersUpdate,
   CLEAR_SORT_UPDATE,
   facetUpdate,
   hasActiveFilters,
@@ -114,13 +114,12 @@ function OptionFacets({ disabled }: Readonly<{ disabled: boolean }>) {
 
 function ResetButton({ disabled }: Readonly<{ disabled: boolean }>) {
   const { urlState, updateUrl } = useSubmissionGridUrl();
+  const clearFilters = clearFiltersUpdate(urlState);
   return (
     <ResetFiltersButton
-      onClick={() => updateUrl(CLEAR_FILTERS_UPDATE)}
+      onClick={() => updateUrl(clearFilters)}
       onResetSorting={() => updateUrl(CLEAR_SORT_UPDATE)}
-      onResetAll={() =>
-        updateUrl({ ...CLEAR_FILTERS_UPDATE, ...CLEAR_SORT_UPDATE })
-      }
+      onResetAll={() => updateUrl({ ...clearFilters, ...CLEAR_SORT_UPDATE })}
       hasFilters={hasActiveFilters(urlState)}
       hasSorting={urlState.sort !== undefined}
       disabled={disabled}
