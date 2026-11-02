@@ -21,10 +21,11 @@ const READINESS = {
   skippedInProgress: 0,
 };
 
-function rowsPage(totalRecords: number) {
+/** The API echoes the requested page, past the end or not. */
+function rowsPage(totalRecords: number, page = 1) {
   return normalizePagedResponse<SubmissionGridRow>({
     items: [],
-    page: 1,
+    page,
     pageSize: 10,
     totalRecords,
     totalPages: Math.ceil(totalRecords / 10),
@@ -86,7 +87,7 @@ describe("resolveSubmissionGridColumnsLoad", () => {
 });
 
 describe("resolveSubmissionGridRowsLoad", () => {
-  it("redirects a page past the end to the last page", () => {
+  it("redirects a page past the end to the first page in one step", () => {
     // Arrange
     const state = parseSubmissionGridUrl({ page: "9", status: "new" });
 
@@ -94,13 +95,13 @@ describe("resolveSubmissionGridRowsLoad", () => {
     const load = resolveSubmissionGridRowsLoad(
       "5",
       state,
-      Result.success(rowsPage(25)),
+      Result.success(rowsPage(25, 9)),
     );
 
     // Assert
     expect(load).toEqual({
       kind: "redirect",
-      href: "/forms/5/submissions?page=3&status=new",
+      href: "/forms/5/submissions?status=new",
     });
   });
 

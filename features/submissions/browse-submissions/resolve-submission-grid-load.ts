@@ -48,7 +48,11 @@ export function resolveSubmissionGridColumnsLoad(
   };
 }
 
-/** A page past the end redirects to the last page, so the URL names what shows. */
+/**
+ * A page past the end redirects to the first page, so the URL names what
+ * shows. The API echoes the requested page, which inflates the normalized
+ * total, so the last page is not known from an empty page.
+ */
 export function resolveSubmissionGridRowsLoad(
   formId: string,
   urlState: SubmissionGridUrlState,
@@ -58,21 +62,23 @@ export function resolveSubmissionGridRowsLoad(
     return { kind: "error", result };
   }
 
-  const page = canonicalPage(urlState.page, result.value.totalPages);
-  if (page !== urlState.page) {
-    return {
-      kind: "redirect",
-      href: buildSubmissionGridPath(formId, { ...urlState, page }),
-    };
+  if (isPastTheEnd(urlState, result.value)) {
+    return { kind: "redirect", href: firstPagePath(formId, urlState) };
   }
 
   return { kind: "ready", page: result.value };
 }
 
-function canonicalPage(requested: number, totalPages: number): number {
-  if (totalPages <= 0) {
-    return SUBMISSION_GRID_DEFAULT_PAGE;
-  }
+function firstPagePath(formId: string, urlState: SubmissionGridUrlState) {
+  return buildSubmissionGridPath(formId, {
+    ...urlState,
+    page: SUBMISSION_GRID_DEFAULT_PAGE,
+  });
+}
 
-  return Math.min(requested, totalPages);
+function isPastTheEnd(
+  { page }: SubmissionGridUrlState,
+  { items }: SubmissionGridRowsPage,
+): boolean {
+  return items.length === 0 && page !== SUBMISSION_GRID_DEFAULT_PAGE;
 }
