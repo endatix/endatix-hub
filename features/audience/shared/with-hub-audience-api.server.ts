@@ -5,7 +5,10 @@ import type { EndatixApi } from "@/lib/endatix-api";
 import type { ApiResult } from "@/lib/endatix-api/shared/api-result";
 import { Result, toResult } from "@/lib/result";
 import type { MapApiResultToResultOptions } from "@/lib/result/map-api-result-to-result";
-import { requireAudienceApi } from "./require-audience-api.server";
+import {
+  checkAudienceApi,
+  requireAudienceApi,
+} from "./require-audience-api.server";
 
 type ToResultOptions = {
   /** Hub permission for this write (`forms.edit`, `tenant.settings.manage`, …). */
@@ -15,6 +18,8 @@ type ToResultOptions = {
   loggerName: string;
   /** The form whose audience page shows the change; omit for a tenant-wide setting. */
   formId?: string;
+  /** A background read: a missing grant is a `Result` error instead of a redirect. */
+  background?: boolean;
 };
 
 /**
@@ -25,8 +30,10 @@ export async function withHubAudienceApi<T>(
   run: (api: EndatixApi) => Promise<ApiResult<T>>,
   options: ToResultOptions,
 ): Promise<Result<T>> {
-  const { formId, permission, ...log } = options;
-  const api = await requireAudienceApi(permission);
+  const { formId, permission, background, ...log } = options;
+  const api = background
+    ? await checkAudienceApi(permission)
+    : await requireAudienceApi(permission);
   if (Result.isError(api)) return api;
   const result = toResult(
     await run(api.value),

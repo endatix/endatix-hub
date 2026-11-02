@@ -138,11 +138,11 @@ describe("FormCard audience link", () => {
     fireEvent.keyDown(screen.getByRole("button", { name: "More options" }), {
       key: "Enter",
     });
-    const item = screen.getByRole("menuitem", { name: "Audience" });
+    const item = screen.getByRole("menuitem", { name: "Participants" });
 
     // Assert
     expect(item.getAttribute("href")).toBe("/forms/1/audience");
-    expect(screen.queryByRole("link", { name: "Audience" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Participants" })).toBeNull();
   });
 
   it("is absent when the tenant has no audiences", () => {
@@ -158,7 +158,7 @@ describe("FormCard audience link", () => {
     expect(
       screen.getByRole("menuitem", { name: /save as template/i }),
     ).toBeTruthy();
-    expect(screen.queryByRole("menuitem", { name: "Audience" })).toBeNull();
+    expect(screen.queryByRole("menuitem", { name: "Participants" })).toBeNull();
   });
 });
 

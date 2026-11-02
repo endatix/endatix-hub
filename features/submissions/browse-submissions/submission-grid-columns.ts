@@ -124,7 +124,9 @@ export function formatAnswerValue(value: unknown): string | null {
   }
 
   if (Array.isArray(value)) {
-    const items = value.map(formatAnswerValue).filter((item) => item !== null);
+    const items = value
+      .map((item) => formatAnswerValue(item))
+      .filter((item) => item !== null);
     return items.length > 0 ? items.join(", ") : null;
   }
 

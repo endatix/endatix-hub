@@ -67,6 +67,3 @@ export function hasDynamicChoiceSources(q: Question): boolean {
     choicesByUrl: readQuestionProp(q, "choicesByUrl"),
   });
 }
-function isScalarString(dataListId: unknown) {
-  throw new Error("Function not implemented.");
-}

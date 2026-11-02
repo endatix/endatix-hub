@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { CustomQuestion } from "@/services/api";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 import CalculatedValuesList from "./calculated-values-list";
 import DynamicVariablesList from "./dynamic-variables-list";
 import { QuestionFinder } from "./question-finder";
@@ -17,6 +17,8 @@ import { SubmissionViewOptions } from "./submission-view-options";
 
 interface SubmissionDetailsContentProps {
   customQuestions: CustomQuestion[];
+  /** Forms.Edit and the personalization flag, checked on the server: shows Open participant on the Submitter tab. */
+  canOpenParticipant: boolean;
 }
 
 type TabId = "answers" | "submitter" | "variables" | "calculated";
@@ -30,8 +32,9 @@ const TABS: { id: TabId; label: string }[] = [
 
 export function SubmissionDetailsContent({
   customQuestions,
+  canOpenParticipant,
 }: Readonly<SubmissionDetailsContentProps>) {
-  const { submission, surveyModel } = useSubmissionDetails();
+  const { submission } = useSubmissionDetails();
   const [activeTab, setActiveTab] = useState<TabId>("answers");
 
   useEffect(() => {
@@ -65,25 +68,6 @@ export function SubmissionDetailsContent({
     return <div>Form definition not found</div>;
   }
 
-  let tabPanel: ReactNode = null;
-  if (activeTab === "answers") {
-    tabPanel = (
-      <>
-        <div className="sticky top-[73px] z-30 flex flex-wrap items-center justify-between gap-3 bg-surface-container-lowest/95 py-4 backdrop-blur">
-          <QuestionFinder />
-          <SubmissionViewOptions />
-        </div>
-        <SubmissionAnswers customQuestions={customQuestions} />
-      </>
-    );
-  } else if (activeTab === "submitter") {
-    tabPanel = <SubmitterDetailsPanel />;
-  } else if (activeTab === "variables") {
-    tabPanel = <DynamicVariablesList surveyModel={surveyModel} />;
-  } else if (activeTab === "calculated") {
-    tabPanel = <CalculatedValuesList surveyModel={surveyModel} />;
-  }
-
   return (
     <section className="rounded-md border border-border/25 bg-surface-container-lowest shadow-sm">
       <div className="flex flex-col gap-10 p-4 sm:p-6 lg:flex-row lg:items-start">
@@ -105,11 +89,51 @@ export function SubmissionDetailsContent({
                 </button>
               ))}
             </nav>
-            <div className="mt-6">{tabPanel}</div>
+            <div className="mt-6">
+              <TabPanel
+                canOpenParticipant={canOpenParticipant}
+                customQuestions={customQuestions}
+                tab={activeTab}
+              />
+            </div>
           </div>
         </div>
         <SubmissionToC />
       </div>
     </section>
+  );
+}
+
+type TabPanelProps = SubmissionDetailsContentProps & { tab: TabId };
+
+function TabPanel({
+  tab,
+  customQuestions,
+  canOpenParticipant,
+}: Readonly<TabPanelProps>) {
+  const { surveyModel } = useSubmissionDetails();
+  switch (tab) {
+    case "answers":
+      return <AnswersTab customQuestions={customQuestions} />;
+    case "submitter":
+      return <SubmitterDetailsPanel canOpenParticipant={canOpenParticipant} />;
+    case "variables":
+      return <DynamicVariablesList surveyModel={surveyModel} />;
+    case "calculated":
+      return <CalculatedValuesList surveyModel={surveyModel} />;
+  }
+}
+
+function AnswersTab({
+  customQuestions,
+}: Readonly<{ customQuestions: CustomQuestion[] }>) {
+  return (
+    <>
+      <div className="sticky top-[73px] z-30 flex flex-wrap items-center justify-between gap-3 bg-surface-container-lowest/95 py-4 backdrop-blur">
+        <QuestionFinder />
+        <SubmissionViewOptions />
+      </div>
+      <SubmissionAnswers customQuestions={customQuestions} />
+    </>
   );
 }

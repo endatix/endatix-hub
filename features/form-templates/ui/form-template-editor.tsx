@@ -3,13 +3,14 @@
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 import { useStorageWithCreator } from "@/features/asset-storage/client";
+import { TelemetryLogger } from "@/features/telemetry";
 import { useSurveyLicenseKey } from "@/features/config/survey-license-provider";
 import { useDesignerRuntime } from "@/lib/designer-runtime";
 import {
   customizeQuestionClassesOnCreator,
   loadBuiltInCustomQuestionClasses,
 } from "@/features/forms/ui/editor/survey-creator-custom-questions";
-import { Result } from "@/lib/result";
+import { Result, toActionFailure } from "@/lib/result";
 import {
   ALL_EXTENSIONS,
   DATA_LISTS_RUNTIME_EXTENSION_ID,
@@ -162,7 +163,7 @@ function FormTemplateEditorContent({
       const updateTemplateNameResult = await updateTemplateNameAction(
         templateId,
         name,
-      );
+      ).catch(toActionFailure<string>("Failed to update template name"));
 
       if (!updateTemplateNameResult) {
         toast.error("Could not proceed with updating template name");
@@ -178,7 +179,6 @@ function FormTemplateEditorContent({
       }
 
       setOriginalName(name);
-      setName(name);
       toast.success("Template name updated");
       setIsEditingName(false);
     } finally {
@@ -243,7 +243,10 @@ function FormTemplateEditorContent({
       }
     };
 
-    initializeNewCreator();
+    void initializeNewCreator().catch((error: unknown) => {
+      TelemetryLogger.error("Error loading custom questions", error);
+      toast.error("Failed to load custom questions");
+    });
   }, [
     options,
     slkVal,
@@ -288,7 +291,7 @@ function FormTemplateEditorContent({
       ) {
         console.log("Clicked outside, waiting to save name...");
         setTimeout(() => {
-          handleNameSave();
+          void handleNameSave();
         }, 0);
       }
     };
@@ -369,7 +372,7 @@ function FormTemplateEditorContent({
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
-      handleNameSave();
+      void handleNameSave();
     } else if (e.key === "Escape") {
       setName(originalName);
       setIsEditingName(false);
@@ -411,13 +414,13 @@ function FormTemplateEditorContent({
               autoFocus
             />
           ) : (
-            <span
-              className="px-1 text-lg font-bold hover:rounded hover:border hover:border-border"
+            <button
+              type="button"
+              className="cursor-text px-1 text-lg font-bold hover:rounded hover:border hover:border-border"
               onClick={() => setIsEditingName(true)}
-              style={{ cursor: "text" }}
             >
               {name}
-            </span>
+            </button>
           )}
         </div>
         <div className="flex items-center gap-2">

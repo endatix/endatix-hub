@@ -1,5 +1,6 @@
 "use client";
 
+import type { Route } from "next";
 import type { MouseEvent, ReactNode } from "react";
 import {
   AlertDialog,
@@ -30,15 +31,22 @@ type ConfirmDeleteDialogProps = ConfirmDeleteCopy & {
   /** Runs the delete; only called while `open`. */
   action: () => Promise<Result<unknown>>;
   onClose: () => void;
+  /** Where to go once deleted, when the current page shows what was deleted; else it refreshes. */
+  afterDelete?: Route;
 };
 
 /** Confirm runs the delete; closing is refused while it runs and clears a shown failure. */
 function useConfirmDelete(props: Readonly<ConfirmDeleteDialogProps>) {
   const { run, clearError, status } = useAudienceMutation();
-  const { action, successMessage, onClose } = props;
+  const { action, successMessage, onClose, afterDelete } = props;
   const confirm = (event: MouseEvent) => {
     event.preventDefault();
-    run({ action, successMessage, onSuccess: onClose });
+    run({
+      action,
+      successMessage,
+      onSuccess: onClose,
+      navigateTo: afterDelete,
+    });
   };
   const openChange = (open: boolean) => {
     if (open || status.pending) return;

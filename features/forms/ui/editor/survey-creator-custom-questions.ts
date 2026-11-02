@@ -31,9 +31,9 @@ export function customizeQuestionClassesOnCreator(
  *
  * @returns `null` when the request could not be started (toast already shown). Throws if the API returns an error result.
  */
-export async function loadBuiltInCustomQuestionClasses(): Promise<
-  ReturnType<typeof initializeCustomQuestions> | null
-> {
+export async function loadBuiltInCustomQuestionClasses(): Promise<ReturnType<
+  typeof initializeCustomQuestions
+> | null> {
   const result = await getCustomQuestionsAction();
 
   if (result === undefined) {
@@ -45,7 +45,5 @@ export async function loadBuiltInCustomQuestionClasses(): Promise<
     throw new Error(result.message);
   }
 
-  return initializeCustomQuestions(
-    result.value.map((q) => q.jsonData),
-  );
+  return initializeCustomQuestions(result.value.map((q) => q.jsonData));
 }

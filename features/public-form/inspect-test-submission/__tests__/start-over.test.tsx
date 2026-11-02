@@ -1,0 +1,75 @@
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { restartTestSubmissionAction } from "@/features/public-form/application/actions/restart-test-submission.action";
+import { Result } from "@/lib/result";
+import { StartOver } from "../ui/start-over";
+
+const refresh = vi.fn();
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
+vi.mock(
+  "@/features/public-form/application/actions/restart-test-submission.action",
+  () => ({ restartTestSubmissionAction: vi.fn() }),
+);
+
+const START_OVER = { formId: "1", submissionId: "21" };
+
+describe("StartOver", () => {
+  beforeEach(() => {
+    refresh.mockReset();
+    vi.mocked(restartTestSubmissionAction).mockReset();
+  });
+
+  it("starts over and reloads the page on the new test submission", async () => {
+    vi.mocked(restartTestSubmissionAction).mockResolvedValue(
+      Result.success(undefined),
+    );
+    render(<StartOver startOver={START_OVER} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Start over" }));
+
+    await waitFor(() => expect(refresh).toHaveBeenCalled());
+    expect(restartTestSubmissionAction).toHaveBeenCalledWith("1", "21");
+  });
+
+  it("hides Start over and says why when the person was removed", async () => {
+    vi.mocked(restartTestSubmissionAction).mockResolvedValue(
+      Result.error("Person not found on this form.", undefined, undefined, {
+        statusCode: 404,
+      }),
+    );
+    render(<StartOver startOver={START_OVER} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Start over" }));
+
+    expect(await screen.findByText(/no longer on this form/)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Start over" })).toBeNull();
+    expect(refresh).not.toHaveBeenCalled();
+  });
+
+  it("keeps Start over when a 404 is not the person", async () => {
+    vi.mocked(restartTestSubmissionAction).mockResolvedValue(
+      Result.error("Submission not found.", undefined, undefined, {
+        statusCode: 404,
+      }),
+    );
+    render(<StartOver startOver={START_OVER} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Start over" }));
+
+    expect(await screen.findByText("Submission not found.")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Start over" })).toBeTruthy();
+    expect(refresh).not.toHaveBeenCalled();
+  });
+
+  it("keeps Start over after another failure so it can be tried again", async () => {
+    vi.mocked(restartTestSubmissionAction).mockResolvedValue(
+      Result.error("Failed to start over."),
+    );
+    render(<StartOver startOver={START_OVER} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Start over" }));
+
+    expect(await screen.findByText("Failed to start over.")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Start over" })).toBeTruthy();
+  });
+});

@@ -107,7 +107,10 @@ export function FormTemplatePreview({
         setLoading(false);
       };
 
-      fetchTemplate();
+      void fetchTemplate().catch(() => {
+        setError(FAILED_PREVIEW_ERROR_MESSAGE);
+        setLoading(false);
+      });
     }
   }, [open, templateId]);
 

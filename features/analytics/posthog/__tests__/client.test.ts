@@ -11,6 +11,8 @@ import type { PostHogConfig, PostHogClientOptions } from "../shared/types";
 vi.mock("posthog-js", () => ({
   default: {
     init: vi.fn(),
+    get_property: vi.fn(),
+    register: vi.fn(),
     __loaded: false,
   },
 }));
@@ -108,6 +110,40 @@ describe("PostHog Client", () => {
           disable_session_recording: mockOptions.disableSessionRecording,
         }),
       );
+    });
+
+    it("redacts personalized link tokens before any event is sent", () => {
+      initPostHog(mockConfig, mockOptions);
+
+      const { before_send: beforeSend } = vi.mocked(posthog.init).mock
+        .calls[0][1] as { before_send: (event: unknown) => unknown };
+      const sent = beforeSend({
+        event: "$pageview",
+        properties: {
+          $current_url: "https://hub.example.com/share/42/a/secret",
+        },
+      });
+
+      expect(JSON.stringify(sent)).not.toContain("secret");
+    });
+
+    it("cleans the stored first-page URL that feature flag calls send", () => {
+      initPostHog(mockConfig, mockOptions);
+      vi.mocked(posthog.get_property).mockImplementation((key: string) =>
+        key === "$initial_person_info"
+          ? { u: "https://hub.example.com/share/42/a/secret" }
+          : undefined,
+      );
+
+      const { before_send: beforeSend } = vi.mocked(posthog.init).mock
+        .calls[0][1] as { before_send: (event: unknown) => unknown };
+      beforeSend({ event: "$pageview", properties: {} });
+
+      expect(posthog.register).toHaveBeenCalledWith({
+        $initial_person_info: {
+          u: "https://hub.example.com/share/42/a/[redacted]",
+        },
+      });
     });
 
     it("should not initialize when PostHog is disabled", () => {

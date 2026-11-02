@@ -16,8 +16,8 @@ const FORM_TRAIL: FormsBreadcrumbItem[] = [
   link("Cedar Grove Pulse", "/forms/f1"),
   {
     type: "dropdown",
-    label: "Audience",
-    options: [{ label: "Audience", href: "/forms/f1/audience" as Route }],
+    label: "Participants",
+    options: [{ label: "Participants", href: "/forms/f1/audience" as Route }],
   },
 ];
 
@@ -47,7 +47,26 @@ describe("FormsBreadcrumbNav", () => {
     expect(
       screen.getByRole("button", { name: "Show the rest of the trail" }),
     ).toBeDefined();
-    expect(screen.getAllByText("Cedar Grove Pulse")).toHaveLength(2);
+    const current = screen.getAllByText("Cedar Grove Pulse");
+    expect(current).toHaveLength(2);
+    expect(current[0].className).toContain("block");
+    expect(current[0].className).toContain("truncate");
+  });
+
+  it("stays content-sized so a sibling page switcher can sit beside the trail", () => {
+    // Arrange
+    const trails = [FORM_TRAIL, [link("Forms", "/forms")]];
+
+    for (const items of trails) {
+      // Act
+      const { unmount } = render(<FormsBreadcrumbNav items={items} />);
+
+      // Assert
+      expect(
+        screen.getByRole("navigation", { name: "breadcrumb" }).className,
+      ).toBe("min-w-0 overflow-hidden");
+      unmount();
+    }
   });
 
   it("folds the middle of a long trail and keeps the first crumb and last two", () => {
@@ -60,9 +79,11 @@ describe("FormsBreadcrumbNav", () => {
     expect(
       screen.getAllByRole("button", { name: "Show the rest of the trail" }),
     ).toHaveLength(2);
-    expect(screen.getAllByRole("link", { name: "Cedar Grove Pulse" })).toHaveLength(1);
     expect(
-      screen.getAllByRole("button", { name: "Audience navigation" }),
+      screen.getAllByRole("link", { name: "Cedar Grove Pulse" }),
+    ).toHaveLength(1);
+    expect(
+      screen.getAllByRole("button", { name: "Participants navigation" }),
     ).toHaveLength(2);
   });
 });

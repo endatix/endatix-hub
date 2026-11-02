@@ -13,7 +13,7 @@ interface UserAvatarProps extends React.ComponentProps<typeof Avatar> {
 }
 
 const UserAvatar = ({
-  isLoggedIn = false,
+  isLoggedIn: _isLoggedIn = false,
   displayName,
   className,
   onClick,

@@ -36,7 +36,7 @@ function NothingNew() {
       <AlertTitle>Everyone already has a link</AlertTitle>
       <AlertDescription>
         Links are shown once, when they are made, so there is nothing new to
-        download. People added later get theirs the next time you generate
+        download. Participants added later get theirs the next time you generate
         links.
       </AlertDescription>
     </Alert>
@@ -50,8 +50,8 @@ function DownloadedAlert({ batch, setup }: Readonly<OutcomeProps>) {
       <CircleCheckBig />
       <AlertTitle>{linkCount(batch.links.length)} downloaded</AlertTitle>
       <AlertDescription>
-        {batch.fileName} has one row per person: their {kind} and their link. It
-        is the only copy, so keep it until the links are sent.
+        {batch.fileName} has one row per participant: their {kind} and their
+        link. It is the only copy, so keep it until the links are sent.
       </AlertDescription>
     </Alert>
   );

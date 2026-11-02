@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import type { ProductVersions } from "../types";
 import { getProductVersionsAction } from "./get-product-versions.action";
 
-const UNAVAILABLE: ProductVersions = { hub: null, api: null };
+const UNAVAILABLE: ProductVersions = { hub: null, api: null, surveyJs: null };
 
 /** A complete read is kept for the page; a partial one is asked again on the next open. */
 let cachedVersions: ProductVersions | undefined;

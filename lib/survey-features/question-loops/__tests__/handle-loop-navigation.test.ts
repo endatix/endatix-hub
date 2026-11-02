@@ -32,7 +32,7 @@ function createLoopingSurvey(): { survey: SurveyModel; loopPanel: DynamicLoopMod
 }
 
 /** Ensures 3 panels exist; call after bind so initial sync does not clear panels. */
-function ensureThreePanels(survey: SurveyModel, loopPanel: DynamicLoopModel): void {
+function ensureThreePanels(survey: SurveyModel): void {
   survey.setValue("loopPanel", [{}, {}, {}]);
 }
 
@@ -70,7 +70,7 @@ describe("handleLoopExits - gating (early return)", () => {
   it("returns early when loopSource is missing or empty", () => {
     const { survey, loopPanel } = createLoopingSurvey();
     dispose = bindFeatureToSurvey(survey);
-    ensureThreePanels(survey, loopPanel);
+    ensureThreePanels(survey);
     const runConditionSpy = vi.spyOn(survey, "runCondition");
     const navSpy = vi.spyOn(survey, "updateNavigationElements");
 
@@ -91,7 +91,7 @@ describe("handleLoopExits - gating (early return)", () => {
   it("returns early when loopSource is set but neither exit condition is set", () => {
     const { survey, loopPanel } = createLoopingSurvey();
     dispose = bindFeatureToSurvey(survey);
-    ensureThreePanels(survey, loopPanel);
+    ensureThreePanels(survey);
     const runConditionSpy = vi.spyOn(survey, "runCondition");
     const navSpy = vi.spyOn(survey, "updateNavigationElements");
 
@@ -114,7 +114,7 @@ describe("handleLoopExits - exitAllLoopsCondition", () => {
   it("calls runCondition with resolved panel expression and hides subsequent panels when the condition evaluates to true", () => {
     const { survey, loopPanel } = createLoopingSurvey();
     dispose = bindFeatureToSurvey(survey);
-    ensureThreePanels(survey, loopPanel);
+    ensureThreePanels(survey);
     const runConditionSpy = vi
       .spyOn(survey, "runCondition")
       .mockReturnValue(true);
@@ -138,7 +138,7 @@ describe("handleLoopExits - exitAllLoopsCondition", () => {
   it("shows subsequent panels again when the exit-all condition becomes false", () => {
     const { survey, loopPanel } = createLoopingSurvey();
     dispose = bindFeatureToSurvey(survey);
-    ensureThreePanels(survey, loopPanel);
+    ensureThreePanels(survey);
     const runConditionSpy = vi
       .spyOn(survey, "runCondition")
       .mockReturnValueOnce(true)
@@ -170,7 +170,7 @@ describe("handleLoopExits - exitLoopCondition", () => {
   it("hides subsequent questions in the current panel when the exit-loop condition evaluates to true", () => {
     const { survey, loopPanel } = createLoopingSurvey();
     dispose = bindFeatureToSurvey(survey);
-    ensureThreePanels(survey, loopPanel);
+    ensureThreePanels(survey);
     const runConditionSpy = vi
       .spyOn(survey, "runCondition")
       .mockReturnValue(true);
@@ -192,7 +192,7 @@ describe("handleLoopExits - exitLoopCondition", () => {
   it("shows subsequent questions again when the exit-loop condition becomes false", () => {
     const { survey, loopPanel } = createLoopingSurvey();
     dispose = bindFeatureToSurvey(survey);
-    ensureThreePanels(survey, loopPanel);
+    ensureThreePanels(survey);
     const runConditionSpy = vi
       .spyOn(survey, "runCondition")
       .mockReturnValueOnce(true)

@@ -19,6 +19,8 @@ export type StaticDataTableColumn = {
   key: string;
   label: string;
   className?: string;
+  /** Shown in place of `label`, such as a select-all checkbox. */
+  header?: ReactNode;
 };
 export type StaticDataTableCell = {
   key: string;
@@ -34,7 +36,9 @@ function HeadCell({ column }: Readonly<{ column: StaticDataTableColumn }>) {
         className: column.className,
       })}
     >
-      <span className={dataTableColumnLabelClassName()}>{column.label}</span>
+      {column.header ?? (
+        <span className={dataTableColumnLabelClassName()}>{column.label}</span>
+      )}
     </TableHead>
   );
 }
