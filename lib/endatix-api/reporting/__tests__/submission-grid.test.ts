@@ -5,6 +5,7 @@ import type { Submission } from "../../submissions/types";
 import {
   buildListSubmissionGridColumnsEndpoint,
   buildListSubmissionGridRowsEndpoint,
+  buildSearchKeysEndpoint,
   SubmissionGrid,
 } from "../submission-grid";
 import { toSubmissionGridRow } from "../submission-grid-rows-from-submissions";
@@ -35,6 +36,18 @@ describe("buildListSubmissionGridColumnsEndpoint", () => {
   it("omits the locale by default", () => {
     expect(buildListSubmissionGridColumnsEndpoint("5")).toBe(
       "/forms/5/reporting/columns",
+    );
+  });
+});
+
+describe("buildSearchKeysEndpoint", () => {
+  it("adds without a query", () => {
+    expect(buildSearchKeysEndpoint("5")).toBe("/forms/5/reporting/search-keys");
+  });
+
+  it("removes with the key in the query, so a `/` survives", () => {
+    expect(buildSearchKeysEndpoint("5", "panel/city name")).toBe(
+      "/forms/5/reporting/search-keys?key=panel%2Fcity+name",
     );
   });
 });
@@ -242,4 +255,60 @@ describe("SubmissionGrid", () => {
     expect(ApiResult.isSuccess(result)).toBe(false);
     expect(list).not.toHaveBeenCalled();
   });
+});
+
+describe("SubmissionGrid search keys", () => {
+  const response = {
+    formId: "5",
+    keys: [{ key: "city", source: "user", filterType: "text", pending: true }],
+    slots: { used: 51, max: 64, userUsed: 1, userMax: 14 },
+  };
+
+  it("posts the key to add", async () => {
+    // Arrange
+    const post = vi.fn().mockResolvedValue(ApiResult.success(response));
+    const grid = new SubmissionGrid({ post } as unknown as EndatixApi);
+
+    // Act
+    const result = await grid.addSearchKey("5", "city");
+
+    // Assert
+    expect(result).toEqual(ApiResult.success(response));
+    expect(post).toHaveBeenCalledWith("/forms/5/reporting/search-keys", {
+      key: "city",
+    });
+  });
+
+  it("deletes the key to remove by query", async () => {
+    // Arrange
+    const del = vi.fn().mockResolvedValue(ApiResult.success(response));
+    const grid = new SubmissionGrid({ delete: del } as unknown as EndatixApi);
+
+    // Act
+    await grid.removeSearchKey("5", "a/b");
+
+    // Assert
+    expect(del).toHaveBeenCalledWith(
+      "/forms/5/reporting/search-keys?key=a%2Fb",
+    );
+  });
+
+  it.each([
+    ["abc", "city"],
+    ["5", "  "],
+  ])(
+    "rejects form %s with key '%s' before calling the API",
+    async (formId, key) => {
+      // Arrange
+      const post = vi.fn();
+      const grid = new SubmissionGrid({ post } as unknown as EndatixApi);
+
+      // Act
+      const result = await grid.addSearchKey(formId, key);
+
+      // Assert
+      expect(ApiResult.isSuccess(result)).toBe(false);
+      expect(post).not.toHaveBeenCalled();
+    },
+  );
 });

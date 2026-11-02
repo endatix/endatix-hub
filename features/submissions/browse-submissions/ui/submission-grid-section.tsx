@@ -13,7 +13,10 @@ import {
 } from "../browse-submissions.server";
 import { describeGridReadiness } from "../grid-readiness";
 import type { SubmissionGridColumnsLoad } from "../resolve-submission-grid-load";
-import { applicableAnswerFilters } from "../submission-grid-answer-filters";
+import {
+  applicableAnswerFilters,
+  keptAnswerFilters,
+} from "../submission-grid-answer-filters";
 import {
   resolveVisibleAnswerColumns,
   type AnswerColumn,
@@ -84,7 +87,7 @@ function parseGridUrl(
 
   return {
     ...urlState,
-    answerFilters: applicableAnswerFilters(urlState.answerFilters, catalog),
+    answerFilters: keptAnswerFilters(urlState.answerFilters, catalog),
   };
 }
 
@@ -115,25 +118,34 @@ type SubmissionGridProps = {
 
 function SubmissionGrid(props: Readonly<SubmissionGridProps>) {
   const { formId, columns, view, submitterLabel, canEdit } = props;
+  const rows = rowsRequest(props.urlState, columns);
   return (
-    <SubmissionGridShell {...gridChrome(props)} formId={formId} view={view}>
+    <SubmissionGridShell
+      {...gridChrome(props, rows.urlState.answerFilters.length)}
+      formId={formId}
+      view={view}
+    >
       <SubmissionGridRows
         {...{ formId, submitterLabel }}
         canIncludeInProgress={canEdit}
-        {...rowsRequest(props.urlState, columns)}
+        {...rows}
       />
     </SubmissionGridShell>
   );
 }
 
-function gridChrome({ columns, canEdit, urlState }: SubmissionGridProps) {
+function gridChrome(props: Readonly<SubmissionGridProps>, sentFilters: number) {
+  const { columns, canEdit, urlState } = props;
+  const inUrl = urlState.answerFilters.length;
   return {
     catalog: columns.catalog,
+    columnSearch: { canEdit, slots: columns.searchSlots },
     hasSubmissions: columns.readiness.submissions > 0,
     banner: describeGridReadiness({
       ...columns,
       canIncludeInProgress: canEdit,
-      hasAnswerFilters: urlState.answerFilters.length > 0,
+      hasAnswerFilters: columns.schemaReady ? sentFilters > 0 : inUrl > 0,
+      answerFiltersWaiting: columns.schemaReady && inUrl > sentFilters,
     }),
     canSaveView: canEdit,
   };
@@ -141,15 +153,24 @@ function gridChrome({ columns, canEdit, urlState }: SubmissionGridProps) {
 
 /** The rows' URL state and visible columns: without a schema, no answer filter is sent. */
 function rowsRequest(urlState: SubmissionGridUrlState, columns: ReadyColumns) {
-  const rowsState = columns.schemaReady
-    ? urlState
-    : { ...urlState, answerFilters: [] };
+  const answerFilters = sentAnswerFilters(urlState, columns);
+  const rowsState = { ...urlState, answerFilters };
   const answerColumns = resolveVisibleAnswerColumns(
     columns.catalog,
     rowsState.columns,
     rowsState.answerFilters,
   );
   return { urlState: rowsState, answerColumns };
+}
+
+/** None without a schema; none on a column that cannot filter now. */
+function sentAnswerFilters(
+  urlState: SubmissionGridUrlState,
+  { schemaReady, catalog }: ReadyColumns,
+) {
+  return schemaReady
+    ? applicableAnswerFilters(urlState.answerFilters, catalog)
+    : [];
 }
 
 type SubmissionGridRowsProps = {

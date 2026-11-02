@@ -5,7 +5,10 @@ import { NoSubmissionsEmptyState } from "@/features/submissions/ui/submissions-e
 import { useSearchParams } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
 import type { GridReadinessBanner } from "../grid-readiness";
-import type { AnswerColumn } from "../submission-grid-columns";
+import type {
+  AnswerColumn,
+  ColumnSearchAccess,
+} from "../submission-grid-columns";
 import type { SubmissionGridViewLoad } from "../submission-grid-view";
 import { ReadinessBanner } from "./readiness-banner";
 import { SubmissionGridToolbar } from "./submission-grid-toolbar";
@@ -16,6 +19,7 @@ import { SubmissionGridViewError } from "./submission-grid-view-menu";
 type SubmissionGridShellProps = {
   formId: string;
   catalog: readonly AnswerColumn[];
+  columnSearch: ColumnSearchAccess;
   hasSubmissions: boolean;
   banner: GridReadinessBanner | null;
   view: SubmissionGridViewLoad;
@@ -31,6 +35,7 @@ type SubmissionGridShellProps = {
 export function SubmissionGridShell({
   formId,
   catalog,
+  columnSearch,
   hasSubmissions,
   banner,
   children,
@@ -40,7 +45,7 @@ export function SubmissionGridShell({
   const disabled = !hasSubmissions;
   return (
     <SubmissionGridProviders {...{ formId, catalog, ...viewProps }}>
-      <SubmissionGridToolbar {...{ formId, catalog, disabled }} />
+      <SubmissionGridToolbar {...{ formId, catalog, columnSearch, disabled }} />
       <SubmissionGridViewError />
       {banner && <ReadinessBanner formId={formId} banner={banner} />}
       {hasSubmissions ? children : <NoSubmissionsEmptyState />}

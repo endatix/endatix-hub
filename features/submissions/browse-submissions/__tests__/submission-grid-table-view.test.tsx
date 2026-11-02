@@ -43,6 +43,7 @@ const answer: AnswerColumn = {
   title: "Favourite colour",
   questionType: "text",
   filterType: null,
+  search: { state: "unavailable", source: null },
   placement: { pageName: null, pageTitle: null, panelTitle: null },
 };
 

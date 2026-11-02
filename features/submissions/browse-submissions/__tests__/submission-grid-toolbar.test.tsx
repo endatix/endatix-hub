@@ -11,6 +11,7 @@ vi.mock("../ui/submission-grid-view-menu", () => ({
   SubmissionGridViewMenu: () => null,
 }));
 vi.mock("@/features/export", () => ({ ExportSubmissionsButton: () => null }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 
 const updateUrl = vi.fn();
 
@@ -23,7 +24,14 @@ function renderToolbar(query: Record<string, string>, urlSetsSort: boolean) {
     textFilters: {},
     setTextFilter: vi.fn(),
   });
-  render(<SubmissionGridToolbar formId="7" catalog={[]} disabled={false} />);
+  render(
+    <SubmissionGridToolbar
+      formId="7"
+      catalog={[]}
+      columnSearch={{ canEdit: false }}
+      disabled={false}
+    />,
+  );
 }
 
 describe("SubmissionGridToolbar reset", () => {

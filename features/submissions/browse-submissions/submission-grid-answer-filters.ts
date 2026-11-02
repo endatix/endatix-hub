@@ -1,4 +1,5 @@
 import type { DateFilterValue } from "@/components/table/date-filter-types";
+import type { ColumnSearchState } from "@/features/submissions/column-search";
 import { fitAnswerFilters } from "@/lib/endatix-api/reporting/submission-grid-answer-params";
 import {
   MAX_SUBMISSION_GRID_CONTAINS_LENGTH,
@@ -19,6 +20,11 @@ const OPERATORS: ReadonlySet<string> = new Set<SubmissionGridAnswerOperator>([
 const CHOICE_QUESTION_TYPES: ReadonlySet<string> = new Set([
   "dropdown",
   "radiogroup",
+]);
+
+const WAITING_STATES: ReadonlySet<ColumnSearchState | undefined> = new Set([
+  "preparing",
+  "eligible",
 ]);
 
 type AnswerFilterTarget = Omit<SubmissionGridAnswerFilter, "value">;
@@ -77,6 +83,27 @@ export function applicableAnswerFilters(
     filters.filter(({ operator, key }) =>
       operatorFits(operator, filterTypes.get(key)),
     ),
+  );
+}
+
+/**
+ * The filters the URL keeps: the applicable ones and those on a column that
+ * cannot filter now (still being prepared, or not filterable), fitted
+ * together so they still fit once that column filters.
+ */
+export function keptAnswerFilters(
+  filters: readonly SubmissionGridAnswerFilter[],
+  catalog: readonly AnswerColumn[],
+): SubmissionGridAnswerFilter[] {
+  const columns = new Map(catalog.map((column) => [column.key, column]));
+  return fitAnswerFilters(
+    filters.filter(({ operator, key }) => {
+      const column = columns.get(key);
+      return (
+        operatorFits(operator, column?.filterType) ||
+        WAITING_STATES.has(column?.search.state)
+      );
+    }),
   );
 }
 

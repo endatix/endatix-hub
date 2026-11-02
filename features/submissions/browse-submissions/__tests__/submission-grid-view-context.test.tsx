@@ -45,6 +45,7 @@ const catalog: AnswerColumn[] = ["q1", "q2"].map((key) => ({
   title: key,
   questionType: "text",
   filterType: null,
+  search: { state: "unavailable", source: null },
   placement: { pageName: null, pageTitle: null, panelTitle: null },
 }));
 
