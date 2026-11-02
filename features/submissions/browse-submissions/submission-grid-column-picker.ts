@@ -1,4 +1,8 @@
-import { fitRowColumns } from "@/lib/endatix-api/reporting/submission-grid-row-columns";
+import {
+  fitRowColumns,
+  fitsRowColumns,
+  type RowColumnsUsage,
+} from "@/lib/endatix-api/reporting/submission-grid-row-columns";
 import {
   isSubmitterProfileColumn,
   type AnswerColumn,
@@ -159,6 +163,31 @@ function mergeByOrder(
     merged.push(key);
   }
   return [...merged, ...added.slice(next)];
+}
+
+/** The visible keys, and their usage worked out once per draft. */
+export type VisibleColumns = {
+  visible: ReadonlySet<string>;
+  usage: RowColumnsUsage;
+};
+
+/**
+ * Whether showColumns would add any of `keys`: it adds the hidden ones in
+ * form order while they fit, so the first hidden one decides.
+ */
+export function showsAny(
+  { visible, usage }: VisibleColumns,
+  keys: readonly string[],
+  order: ReadonlyMap<string, number>,
+): boolean {
+  let first: string | undefined;
+  for (const key of keys) {
+    if (visible.has(key)) continue;
+    if (first === undefined || position(order, key) < position(order, first)) {
+      first = key;
+    }
+  }
+  return first !== undefined && fitsRowColumns(usage, first);
 }
 
 function position(order: ReadonlyMap<string, number>, key: string): number {
