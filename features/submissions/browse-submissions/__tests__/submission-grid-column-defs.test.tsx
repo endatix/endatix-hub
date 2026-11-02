@@ -119,7 +119,7 @@ describe("answer column header filters", () => {
     // Assert
     expect(screen.getByText(/this filter is being prepared/i)).toBeTruthy();
     expect(screen.getByRole("button", { name: /refresh/i })).toBeTruthy();
-    expect(screen.queryByLabelText("Filter")).toBeNull();
+    expect(screen.queryByPlaceholderText("text:city")).toBeNull();
   });
 
   it("shows the text filter once the column is ready", () => {
