@@ -1,4 +1,8 @@
 "use client";
+"use no memo";
+
+// TanStack Table keeps one table instance, so the React Compiler would cache
+// what reads it and miss in-place state changes (column visibility, sizing).
 
 import type { KeyboardEvent, MouseEvent, ReactNode } from "react";
 import {
@@ -7,6 +11,7 @@ import {
   dataTableBodyRowClassName,
   dataTableHeaderCellClassName,
 } from "./data-table-chrome";
+import { ColumnResizeHandle, resizedColumnStyle } from "./column-resize-handle";
 import "./data-table-column-meta";
 import { DataTablePendingRows } from "./data-table-skeleton-rows";
 import { useHeldHeight } from "./use-held-height";
@@ -43,7 +48,9 @@ type DataTableGridProps<TData> = {
 };
 
 /**
- * Shared TanStack header/body chrome used by Hub list surfaces.
+ * Shared TanStack header/body chrome used by Hub list surfaces. A table with
+ * `enableColumnResizing: true` gets resize handles; a resized column keeps
+ * its `columnSizing` width, the others stay automatic.
  */
 export function DataTableGrid<TData>({
   table,
@@ -100,6 +107,7 @@ function GridHeader<TData>({
 function GridHeaderCell<TData>({
   header,
 }: Readonly<{ header: Header<TData, unknown> }>) {
+  const isResizable = header.getContext().table.options.enableColumnResizing;
   return (
     <TableHead
       colSpan={header.colSpan}
@@ -107,10 +115,12 @@ function GridHeaderCell<TData>({
         isPinnedLeft: header.column.getIsPinned() === "left",
         className: header.column.columnDef.meta?.headerClassName,
       })}
+      style={resizedColumnStyle(header.getContext().table, header.column)}
     >
       {header.isPlaceholder
         ? null
         : flexRender(header.column.columnDef.header, header.getContext())}
+      {isResizable === true && <ColumnResizeHandle header={header} />}
     </TableHead>
   );
 }
@@ -181,6 +191,7 @@ function GridBodyCells<TData>({
         isEvenRow,
         className: cell.column.columnDef.meta?.cellClassName,
       })}
+      style={resizedColumnStyle(cell.getContext().table, cell.column)}
     >
       {flexRender(cell.column.columnDef.cell, cell.getContext())}
     </TableCell>

@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SubmissionGridColumn } from "@/lib/endatix-api/reporting/submission-grid-types";
 import { toAnswerColumns } from "../submission-grid-columns";
+import { DEFAULT_SUBMISSION_VIEW_SETTINGS as NO_VIEW } from "../submission-grid-view";
 import {
   SubmissionGridUrlProvider,
   useSubmissionGridUrl,
@@ -32,7 +33,10 @@ function textColumn(key: string): SubmissionGridColumn {
 
 function renderGridUrl(columns: SubmissionGridColumn[]) {
   const wrapper = ({ children }: { children: ReactNode }) => (
-    <SubmissionGridUrlProvider catalog={toAnswerColumns(columns)}>
+    <SubmissionGridUrlProvider
+      catalog={toAnswerColumns(columns)}
+      viewSettings={NO_VIEW}
+    >
       {children}
     </SubmissionGridUrlProvider>
   );
@@ -89,7 +93,10 @@ describe("SubmissionGridUrlProvider", () => {
     // Arrange
     let catalog = [textColumn("q1")];
     const wrapper = ({ children }: { children: ReactNode }) => (
-      <SubmissionGridUrlProvider catalog={toAnswerColumns(catalog)}>
+      <SubmissionGridUrlProvider
+        catalog={toAnswerColumns(catalog)}
+        viewSettings={NO_VIEW}
+      >
         {children}
       </SubmissionGridUrlProvider>
     );

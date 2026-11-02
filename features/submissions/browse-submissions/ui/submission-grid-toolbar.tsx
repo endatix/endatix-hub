@@ -20,6 +20,7 @@ import {
 } from "../submission-grid-url-updates";
 import { SubmissionGridColumnPicker } from "./submission-grid-column-picker";
 import { useSubmissionGridUrl } from "./submission-grid-url-context";
+import { SubmissionGridViewMenu } from "./submission-grid-view-menu";
 
 const OPTION_FACETS = [
   {
@@ -72,6 +73,7 @@ function ToolbarActions({ formId, catalog, disabled }: Readonly<ToolbarProps>) {
   return (
     <>
       <SubmissionGridColumnPicker catalog={catalog} disabled={disabled} />
+      <SubmissionGridViewMenu disabled={disabled} />
       <ExportButton formId={formId} disabled={disabled} />
     </>
   );
@@ -113,7 +115,7 @@ function OptionFacets({ disabled }: Readonly<{ disabled: boolean }>) {
 }
 
 function ResetButton({ disabled }: Readonly<{ disabled: boolean }>) {
-  const { urlState, updateUrl } = useSubmissionGridUrl();
+  const { urlState, urlSets, updateUrl } = useSubmissionGridUrl();
   const clearFilters = clearFiltersUpdate(urlState);
   return (
     <ResetFiltersButton
@@ -121,7 +123,7 @@ function ResetButton({ disabled }: Readonly<{ disabled: boolean }>) {
       onResetSorting={() => updateUrl(CLEAR_SORT_UPDATE)}
       onResetAll={() => updateUrl({ ...clearFilters, ...CLEAR_SORT_UPDATE })}
       hasFilters={hasActiveFilters(urlState)}
-      hasSorting={urlState.sort !== undefined}
+      hasSorting={urlSets.sort}
       disabled={disabled}
     />
   );

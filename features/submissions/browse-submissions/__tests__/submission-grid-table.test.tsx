@@ -6,8 +6,10 @@ import type {
 } from "@/lib/endatix-api/reporting/submission-grid-types";
 import { normalizePagedResponse } from "@/lib/endatix-api/shared/paged-response";
 import { toAnswerColumns, type AnswerColumn } from "../submission-grid-columns";
+import type { SubmissionGridViewLoad } from "../submission-grid-view";
 import { SubmissionGridTable } from "../ui/submission-grid-table";
 import { SubmissionGridUrlProvider } from "../ui/submission-grid-url-context";
+import { SubmissionGridViewProvider } from "../ui/submission-grid-view-context";
 
 const searchParams = vi.hoisted(() => new URLSearchParams());
 const router = vi.hoisted(() => ({
@@ -22,6 +24,11 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => searchParams,
 }));
 vi.mock("next-auth/react", () => ({ useSession: () => ({ data: null }) }));
+
+const UNREAD_VIEW: SubmissionGridViewLoad = {
+  version: null,
+  settings: { v: 1, columns: [] },
+};
 
 function row(overrides: Partial<SubmissionGridRow> = {}): SubmissionGridRow {
   return {
@@ -52,12 +59,22 @@ function renderTable(
     totalPages: 1,
   });
   return render(
-    <SubmissionGridUrlProvider catalog={answerColumns}>
-      <SubmissionGridTable
-        page={page}
-        answerColumns={answerColumns}
-        submitterLabel="Submitter"
-      />
+    <SubmissionGridUrlProvider
+      catalog={answerColumns}
+      viewSettings={UNREAD_VIEW.settings}
+    >
+      <SubmissionGridViewProvider
+        formId="7"
+        catalog={answerColumns}
+        view={UNREAD_VIEW}
+        canSaveView={false}
+      >
+        <SubmissionGridTable
+          page={page}
+          answerColumns={answerColumns}
+          submitterLabel="Submitter"
+        />
+      </SubmissionGridViewProvider>
     </SubmissionGridUrlProvider>,
   );
 }
