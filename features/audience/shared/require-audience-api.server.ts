@@ -15,6 +15,8 @@ export type AudienceAccess = {
   api: EndatixApi;
   /** For capability checks that must not redirect, such as hiding a control. */
   checkPermission: AuthorizationService["checkPermission"];
+  checkAllPermissions: AuthorizationService["checkAllPermissions"];
+  checkAnyPermission: AuthorizationService["checkAnyPermission"];
 };
 
 /**
@@ -28,15 +30,16 @@ export async function requireAudienceAccess(
   permission: string,
 ): Promise<ResultType<AudienceAccess>> {
   const session = await auth();
-  const { requireAllPermissions, checkPermission } =
-    await authorization(session);
+  const { requireAllPermissions, ...checks } = await authorization(session);
   await requireAllPermissions(audienceGrants(permission));
   if (!(await personalizationFlag())) {
     return Result.error(PERSONALIZATION_DISABLED_MESSAGE);
   }
   return Result.success({
     api: new EndatixApi(session?.accessToken),
-    checkPermission,
+    checkPermission: checks.checkPermission,
+    checkAllPermissions: checks.checkAllPermissions,
+    checkAnyPermission: checks.checkAnyPermission,
   });
 }
 

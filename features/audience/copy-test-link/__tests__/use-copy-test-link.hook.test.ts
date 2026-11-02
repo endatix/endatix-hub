@@ -19,6 +19,8 @@ const LINK = {
   expiresAt: "2026-11-02T10:00:00Z",
 };
 
+const PERSON = { audienceMemberId: "9", membershipId: "12" };
+
 const writeText = vi.fn();
 
 describe("useCopyTestLink", () => {
@@ -35,19 +37,29 @@ describe("useCopyTestLink", () => {
   });
 
   it("asks for a 7-day link unless another lifetime is chosen", async () => {
-    const { result } = renderHook(() => useCopyTestLink("1", "9"));
+    const { result } = renderHook(() => useCopyTestLink("1", PERSON));
 
     expect(result.current.expiryMinutes).toBe(SEVEN_DAYS);
     await act(() => result.current.copy());
-    expect(createTestLinkAction).toHaveBeenLastCalledWith("1", "9", SEVEN_DAYS);
+    expect(createTestLinkAction).toHaveBeenLastCalledWith(
+      "1",
+      PERSON,
+      SEVEN_DAYS,
+    );
 
     act(() => result.current.setExpiryMinutes(ONE_HOUR));
     await act(() => result.current.copy());
-    expect(createTestLinkAction).toHaveBeenLastCalledWith("1", "9", ONE_HOUR);
+    expect(createTestLinkAction).toHaveBeenLastCalledWith(
+      "1",
+      PERSON,
+      ONE_HOUR,
+    );
   });
 
   it("copies the absolute link, keeps it to show, and says it opens one test submission", async () => {
-    const { result } = renderHook(() => useCopyTestLink("1", "9", onCreated));
+    const { result } = renderHook(() =>
+      useCopyTestLink("1", PERSON, onCreated),
+    );
 
     await act(() => result.current.copy());
 
@@ -65,7 +77,7 @@ describe("useCopyTestLink", () => {
 
   it("still shows the link when the browser refuses the clipboard", async () => {
     writeText.mockRejectedValue(new Error("Document is not focused."));
-    const { result } = renderHook(() => useCopyTestLink("1", "9"));
+    const { result } = renderHook(() => useCopyTestLink("1", PERSON));
 
     await act(() => result.current.copy());
 
@@ -81,7 +93,9 @@ describe("useCopyTestLink", () => {
     vi.mocked(createTestLinkAction).mockResolvedValue(
       Result.error("Test links are only for test participants."),
     );
-    const { result } = renderHook(() => useCopyTestLink("1", "9", onCreated));
+    const { result } = renderHook(() =>
+      useCopyTestLink("1", PERSON, onCreated),
+    );
 
     await act(() => result.current.copy());
 
@@ -94,7 +108,7 @@ describe("useCopyTestLink", () => {
   });
 
   it("creates one link for a double click", async () => {
-    const { result } = renderHook(() => useCopyTestLink("1", "9"));
+    const { result } = renderHook(() => useCopyTestLink("1", PERSON));
 
     await act(() =>
       Promise.all([result.current.copy(), result.current.copy()]),
