@@ -67,6 +67,10 @@ const NO_SCHEMA_BANNER: GridReadinessBanner = {
 export function describeGridReadiness(
   input: DescribeGridReadinessInput,
 ): GridReadinessBanner | null {
+  if (input.readiness.submissions === 0) {
+    return null;
+  }
+
   const banner = describeReadiness(input);
   return input.answerFiltersWaiting ? withFiltersWaiting(banner) : banner;
 }
@@ -77,10 +81,6 @@ function describeReadiness({
   canIncludeInProgress,
   hasAnswerFilters,
 }: DescribeGridReadinessInput): GridReadinessBanner | null {
-  if (readiness.submissions === 0) {
-    return null;
-  }
-
   if (!schemaReady) {
     return hasAnswerFilters ? withFiltersNotApplied() : NO_SCHEMA_BANNER;
   }

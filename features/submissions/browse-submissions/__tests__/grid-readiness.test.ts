@@ -75,6 +75,23 @@ describe("describeGridReadiness", () => {
     expect(banner).toBeNull();
   });
 
+  it("hides the waiting filters banner when the form has no submissions", () => {
+    // Act
+    const banner = describeGridReadiness({
+      schemaReady: true,
+      readiness: readiness({
+        submissions: 0,
+        completedSubmissions: 0,
+        prepared: 0,
+      }),
+      canIncludeInProgress: true,
+      answerFiltersWaiting: true,
+    });
+
+    // Assert
+    expect(banner).toBeNull();
+  });
+
   it("offers Prepare and not in-progress when the form has no schema", () => {
     // Act
     const banner = describeGridReadiness({
