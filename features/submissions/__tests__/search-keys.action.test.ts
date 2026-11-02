@@ -4,7 +4,7 @@ import { Result } from "@/lib/result";
 import {
   addSearchKeyAction,
   removeSearchKeyAction,
-} from "../choose-filterable-questions.action";
+} from "../search-keys.action";
 
 const mockRequireAllPermissions = vi.fn();
 const mockReportingExportFlag = vi.fn();

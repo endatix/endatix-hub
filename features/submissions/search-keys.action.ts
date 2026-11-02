@@ -10,7 +10,7 @@ import { Result, toResult } from "@/lib/result";
 import { revalidatePath } from "next/cache";
 import type { Session } from "next-auth";
 
-const LOGGER_NAME = "submissions.choose-filterable-questions";
+const LOGGER_NAME = "submissions.search-keys";
 
 export type SearchKeysResult = Result<SubmissionGridSearchKeysResponse>;
 

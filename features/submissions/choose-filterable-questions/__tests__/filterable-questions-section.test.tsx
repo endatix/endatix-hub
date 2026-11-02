@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { toast } from "@/components/ui/toast";
 import { Result, type Error as ResultError } from "@/lib/result";
-import { removeSearchKeyAction } from "../choose-filterable-questions.action";
+import { removeSearchKeyAction } from "@/features/submissions/search-keys.action";
 import {
   loadFilterableQuestions,
   type FilterableQuestionsLoad,
@@ -12,7 +12,7 @@ import { FilterableQuestionsSection } from "../ui/filterable-questions-section";
 vi.mock("../load-filterable-questions.server", () => ({
   loadFilterableQuestions: vi.fn(),
 }));
-vi.mock("../choose-filterable-questions.action", () => ({
+vi.mock("@/features/submissions/search-keys.action", () => ({
   addSearchKeyAction: vi.fn(),
   removeSearchKeyAction: vi.fn(),
 }));

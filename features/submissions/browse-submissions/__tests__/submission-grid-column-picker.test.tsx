@@ -2,7 +2,7 @@ import { toast } from "@/components/ui/toast";
 import {
   addSearchKeyAction,
   removeSearchKeyAction,
-} from "@/features/submissions/choose-filterable-questions/choose-filterable-questions.action";
+} from "@/features/submissions/search-keys.action";
 import { Result } from "@/lib/result";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -33,10 +33,10 @@ vi.mock("@/components/ui/toast", () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }));
 
-vi.mock(
-  "@/features/submissions/choose-filterable-questions/choose-filterable-questions.action",
-  () => ({ addSearchKeyAction: vi.fn(), removeSearchKeyAction: vi.fn() }),
-);
+vi.mock("@/features/submissions/search-keys.action", () => ({
+  addSearchKeyAction: vi.fn(),
+  removeSearchKeyAction: vi.fn(),
+}));
 
 const updateUrl = vi.fn();
 const SLOTS = { used: 53, max: 64, userUsed: 3, userMax: 14 };

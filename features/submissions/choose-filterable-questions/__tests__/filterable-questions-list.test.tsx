@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { toast } from "@/components/ui/toast";
 import { Result } from "@/lib/result";
-import { removeSearchKeyAction } from "../choose-filterable-questions.action";
+import { removeSearchKeyAction } from "@/features/submissions/search-keys.action";
 import { SEARCH_KEYS_BUSY_MESSAGE } from "@/features/submissions/ui/search-key-outcome";
 import { FilterableQuestionsList } from "../ui/filterable-questions-list";
 
@@ -13,7 +13,7 @@ vi.mock("@/components/ui/toast", () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }));
 
-vi.mock("../choose-filterable-questions.action", () => ({
+vi.mock("@/features/submissions/search-keys.action", () => ({
   addSearchKeyAction: vi.fn(),
   removeSearchKeyAction: vi.fn(),
 }));
