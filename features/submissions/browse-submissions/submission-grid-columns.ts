@@ -1,8 +1,8 @@
-import {
-  MAX_SUBMISSION_GRID_ROW_COLUMNS,
-  type SubmissionGridColumn,
-  type SubmissionGridFilterType,
-  type SubmissionGridRow,
+import { fitRowColumns } from "@/lib/endatix-api/reporting/submission-grid-row-columns";
+import type {
+  SubmissionGridColumn,
+  SubmissionGridFilterType,
+  SubmissionGridRow,
 } from "@/lib/endatix-api/reporting/submission-grid-types";
 
 /**
@@ -79,9 +79,9 @@ export function resolveVisibleAnswerColumns(
   }
 
   const byKey = new Map(catalog.map((column) => [column.key, column]));
-  return requestedKeys
-    .flatMap((key) => byKey.get(key) ?? [])
-    .slice(0, MAX_SUBMISSION_GRID_ROW_COLUMNS);
+  const known = requestedKeys.flatMap((key) => byKey.get(key) ?? []);
+  const fitted = fitRowColumns(known.map((column) => column.key));
+  return known.slice(0, fitted.length);
 }
 
 /**

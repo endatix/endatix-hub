@@ -83,6 +83,7 @@ function SubmissionGrid(props: Readonly<SubmissionGridProps>) {
   return (
     <SubmissionGridShell
       formId={formId}
+      catalog={catalog}
       hasSubmissions={readiness.submissions > 0}
       banner={describeGridReadiness({ ...columns, ...props })}
     >

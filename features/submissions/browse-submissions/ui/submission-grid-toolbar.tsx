@@ -8,6 +8,7 @@ import {
 import { ExportSubmissionsButton } from "@/features/export";
 import { collectionStatusFacetGroups } from "@/features/submissions/ui/describe-collection-status";
 import { CheckSquare, Eye, Sparkles } from "lucide-react";
+import type { AnswerColumn } from "../submission-grid-columns";
 import { exportFiltersFromGrid } from "../submission-grid-export-filters";
 import { SUBMISSION_GRID_URL_KEYS as keys } from "../submission-grid-url.constants";
 import {
@@ -17,6 +18,7 @@ import {
   hasActiveFilters,
   type SubmissionGridFacetKey,
 } from "../submission-grid-url-updates";
+import { SubmissionGridColumnPicker } from "./submission-grid-column-picker";
 import { useSubmissionGridUrl } from "./submission-grid-url-context";
 
 const OPTION_FACETS = [
@@ -41,12 +43,14 @@ const OPTION_FACETS = [
 
 type ToolbarProps = {
   formId: string;
+  catalog: readonly AnswerColumn[];
   /** No submissions yet: the filters have nothing to narrow. */
   disabled: boolean;
 };
 
 export function SubmissionGridToolbar({
   formId,
+  catalog,
   disabled,
 }: Readonly<ToolbarProps>) {
   return (
@@ -59,8 +63,17 @@ export function SubmissionGridToolbar({
           <ResetButton disabled={disabled} />
         </>
       }
-      actions={<ExportButton formId={formId} disabled={disabled} />}
+      actions={<ToolbarActions {...{ formId, catalog, disabled }} />}
     />
+  );
+}
+
+function ToolbarActions({ formId, catalog, disabled }: Readonly<ToolbarProps>) {
+  return (
+    <>
+      <SubmissionGridColumnPicker catalog={catalog} disabled={disabled} />
+      <ExportButton formId={formId} disabled={disabled} />
+    </>
   );
 }
 
@@ -115,7 +128,10 @@ function ResetButton({ disabled }: Readonly<{ disabled: boolean }>) {
   );
 }
 
-function ExportButton({ formId, disabled }: Readonly<ToolbarProps>) {
+function ExportButton({
+  formId,
+  disabled,
+}: Readonly<Omit<ToolbarProps, "catalog">>) {
   const { urlState } = useSubmissionGridUrl();
   return (
     <ExportSubmissionsButton
