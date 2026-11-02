@@ -32,7 +32,7 @@ import {
 type ViewProps = { view: AudienceImportView };
 
 const REJECTION_COLUMNS = [
-  { key: "row", label: "Row", className: DATA_TABLE_SHRINK_WRAP_CLASS_NAME },
+  { key: "row", label: "Line", className: DATA_TABLE_SHRINK_WRAP_CLASS_NAME },
   { key: "reason", label: "Reason" },
 ] as const;
 
