@@ -471,6 +471,27 @@ describe("SubmissionGridColumnPicker filterable columns", () => {
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith(cap));
     expect(refresh).not.toHaveBeenCalled();
   });
+  it("says the change failed when the action cannot be reached", async () => {
+    // Arrange
+    vi.mocked(addSearchKeyAction).mockRejectedValue(
+      new TypeError("fetch failed"),
+    );
+    renderPicker("name", searchCatalog, { canEdit: true, slots: SLOTS });
+
+    // Act
+    fireEvent.click(
+      screen.getByRole("button", { name: "Make filterable: City" }),
+    );
+
+    // Assert
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(
+        'Could not change "City". Try again.',
+      ),
+    );
+    expect(screen.getByText("Filterable: 3 of 14 chosen")).toBeTruthy();
+  });
+
   it("removes a person's pick from the filterable columns", async () => {
     // Arrange
     vi.mocked(removeSearchKeyAction).mockResolvedValue(

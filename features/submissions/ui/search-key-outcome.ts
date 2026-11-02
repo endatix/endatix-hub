@@ -13,6 +13,11 @@ const SERVICE_UNAVAILABLE = 503;
 export const SEARCH_KEYS_BUSY_MESSAGE =
   "The form is being updated. Try again in a moment.";
 
+/** The action never answered: a network failure or an unexpected throw. */
+export function searchKeyFailedMessage(title: string): string {
+  return `Could not change "${title}". Try again.`;
+}
+
 /** A refusal keeps the API's words: its cap message names both limits. */
 export function searchKeyOutcome(
   change: SearchKeyChange,

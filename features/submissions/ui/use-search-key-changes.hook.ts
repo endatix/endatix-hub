@@ -8,7 +8,7 @@ import {
   removeSearchKeyAction,
 } from "@/features/submissions/choose-filterable-questions/choose-filterable-questions.action";
 import type { SearchKeyChange } from "@/features/submissions/column-search";
-import { searchKeyOutcome } from "./search-key-outcome";
+import { searchKeyFailedMessage, searchKeyOutcome } from "./search-key-outcome";
 
 const ACTIONS = {
   add: addSearchKeyAction,
@@ -23,9 +23,13 @@ export function useSearchKeyChanges(formId: string) {
   const { isPending, startTransition, refresh } = useRefreshColumns();
   const change = (kind: SearchKeyChange, target: SearchKeyTarget) => {
     startTransition(async () => {
-      const result = await ACTIONS[kind](formId, target.key);
-      const outcome = searchKeyOutcome(kind, target.title, result);
-      toast[outcome.variant](outcome.message);
+      try {
+        const result = await ACTIONS[kind](formId, target.key);
+        const outcome = searchKeyOutcome(kind, target.title, result);
+        toast[outcome.variant](outcome.message);
+      } catch {
+        toast.error(searchKeyFailedMessage(target.title));
+      }
     });
   };
 
