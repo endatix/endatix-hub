@@ -85,7 +85,11 @@ export function readViewSettings(value: unknown): SubmissionViewSettings {
   }
 
   const columns = Array.isArray(value.columns) ? value.columns : [];
-  return { ...value, v: 1, columns: columns.flatMap(readColumnSetting) };
+  return {
+    ...value,
+    v: 1,
+    columns: columns.flatMap((column) => readColumnSetting(column)),
+  };
 }
 
 function readColumnSetting(column: unknown): SubmissionViewColumnSetting[] {

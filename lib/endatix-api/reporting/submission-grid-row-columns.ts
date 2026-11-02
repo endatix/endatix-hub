@@ -26,13 +26,16 @@ export function fitsRowColumns(usage: RowColumnsUsage, key: string): boolean {
 
 /**
  * The longest prefix of `keys` the rows endpoint accepts after the keys
- * already requested (`after`).
+ * already requested (`after`), leaving `reservedBytes` to other params that
+ * share the budget.
  */
 export function fitRowColumns(
   keys: readonly string[],
   after: readonly string[] = [],
+  reservedBytes = 0,
 ): string[] {
-  let usage = rowColumnsUsage(after);
+  const used = rowColumnsUsage(after);
+  let usage = { ...used, bytes: used.bytes + reservedBytes };
   const fitted: string[] = [];
   for (const key of keys) {
     if (!fitsRowColumns(usage, key)) break;
@@ -51,6 +54,10 @@ function addRowColumn(usage: RowColumnsUsage, key: string): RowColumnsUsage {
   };
 }
 
+/** Characters form encoding leaves as they are. */
+const FORM_URLENCODED_SAFE = /^[A-Za-z0-9*._-]*$/;
+
 function encodedLength(value: string): number {
+  if (FORM_URLENCODED_SAFE.test(value)) return value.length;
   return new URLSearchParams({ v: value }).toString().length - "v=".length;
 }

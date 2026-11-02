@@ -43,15 +43,6 @@ vi.mock("@/features/asset-storage/infrastructure/storage-utils", () => ({
 const mockContainerName = "user-files";
 const mockBlobName = "s/f1/s1/doc.pdf";
 const mockBaseUrl = "https://account.blob.core.windows.net/user-files";
-const mockPublicConfig = {
-  isEnabled: true,
-  isPrivate: false,
-  containerNames: { USER_FILES: mockContainerName, CONTENT: "content" },
-};
-const mockPrivateConfig = {
-  ...mockPublicConfig,
-  isPrivate: true,
-};
 
 const publicClientConfig: ClientStorageConfig = {
   isEnabled: true,

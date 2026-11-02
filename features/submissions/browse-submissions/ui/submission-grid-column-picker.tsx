@@ -33,6 +33,7 @@ import {
   hideColumns,
   limitRenderedColumns,
   showColumns,
+  showsAny,
   toggleColumn,
   type ColumnPickerGroup,
   type RenderedColumnGroup,
@@ -177,17 +178,17 @@ function columnDraft(
   order: ReadonlyMap<string, number>,
 ) {
   const usage = rowColumnsUsage(keys);
+  const visible = new Set(keys);
   return {
     keys,
-    visible: new Set(keys),
+    visible,
     show: (add: readonly string[]) =>
       setKeys((current) => showColumns(current, add, order)),
     hide: (remove: readonly string[]) =>
       setKeys((current) => hideColumns(current, remove)),
     toggle: (key: string) =>
       setKeys((current) => toggleColumn(current, key, order)),
-    adds: (add: readonly string[]) =>
-      showColumns(keys, add, order).length > keys.length,
+    adds: (add: readonly string[]) => showsAny({ visible, usage }, add, order),
     fits: (key: string) => fitsRowColumns(usage, key),
   };
 }

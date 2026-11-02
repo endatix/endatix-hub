@@ -56,7 +56,10 @@ describe("getFormDesignReturn", () => {
     const target = getFormDesignReturn("f1", "audience");
 
     // Assert
-    expect(target).toEqual({ href: "/forms/f1/audience", label: "Audience" });
+    expect(target).toEqual({
+      href: "/forms/f1/audience",
+      label: "Participants",
+    });
   });
 
   it.each([undefined, "design", "//evil.example", "../settings"])(
@@ -70,4 +73,3 @@ describe("getFormDesignReturn", () => {
     },
   );
 });
-

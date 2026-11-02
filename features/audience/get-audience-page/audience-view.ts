@@ -1,5 +1,5 @@
-import type { Route } from "next";
 import type { LinkTab } from "@/components/common/link-tabs";
+import { formRoutes } from "@/lib/routes/form-routes";
 
 export const AudienceView = Object.freeze({
   People: "people",
@@ -16,24 +16,43 @@ export function parseAudienceView(value: string | undefined): AudienceView {
 
 type ViewCounts = { people: number; properties: number };
 
+const PREVIEW_AS_TAB_ID = "preview-as";
+
+type ViewOptions = {
+  previewAs?: boolean;
+};
+
+function previewAsTabs(formId: string, show: boolean): LinkTab[] {
+  if (!show) return [];
+  const href = formRoutes.previewAs(formId);
+  return [{ id: PREVIEW_AS_TAB_ID, label: "Preview as", href }];
+}
+
 /** People is the bare tab URL; Properties is a view of it, so the tab link stays canonical. */
-export function audienceViewTabs(
-  formId: string,
-  counts: ViewCounts,
-): LinkTab[] {
-  const base = `/forms/${formId}/audience`;
+function listTabs(formId: string, counts: ViewCounts): LinkTab[] {
   return [
     {
       id: AudienceView.People,
-      label: "People",
-      href: base as Route,
+      label: "Participants",
+      href: formRoutes.audience(formId),
       count: counts.people,
     },
     {
       id: AudienceView.Properties,
       label: "Properties",
-      href: `${base}?view=${AudienceView.Properties}` as Route,
+      href: formRoutes.audience(formId, {
+        search: `view=${AudienceView.Properties}`,
+      }),
       count: counts.properties,
     },
   ];
+}
+
+export function audienceViewTabs(
+  formId: string,
+  counts: ViewCounts,
+  { previewAs = false }: ViewOptions = {},
+): LinkTab[] {
+  const preview = previewAsTabs(formId, previewAs && counts.properties > 0);
+  return [...listTabs(formId, counts), ...preview];
 }

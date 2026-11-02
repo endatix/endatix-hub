@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { parseSubmissionGridUrl } from "../submission-grid-url";
 import {
-  CLEAR_FILTERS_UPDATE,
+  answerDateRangeUpdate,
+  clearFiltersUpdate,
   dateFiltersByStem,
   dateRangeUpdate,
   facetUpdate,
@@ -62,15 +63,43 @@ describe("submission grid URL updates", () => {
   });
 
   it("clears every filter but keeps sort and columns", () => {
-    // Act & Assert
-    expect(CLEAR_FILTERS_UPDATE).toMatchObject({
+    // Act
+    const update = clearFiltersUpdate(parseSubmissionGridUrl({}));
+
+    // Assert
+    expect(update).toMatchObject({
       collectionStatus: null,
       submitterEmail: null,
       completedTo: null,
       page: null,
     });
-    expect(CLEAR_FILTERS_UPDATE).not.toHaveProperty("sort");
-    expect(CLEAR_FILTERS_UPDATE).not.toHaveProperty("columns");
+    expect(update).not.toHaveProperty("sort");
+    expect(update).not.toHaveProperty("columns");
+  });
+
+  it("clears the answer filters too, hidden columns' included", () => {
+    // Arrange
+    const state = parseSubmissionGridUrl({
+      "answer.contains.q1": "acme",
+      "answer.to.born": "2026-01-31",
+    });
+
+    // Act
+    const update = clearFiltersUpdate(state);
+
+    // Assert
+    expect(update).toMatchObject({
+      "answer.contains.q1": null,
+      "answer.to.born": null,
+    });
+  });
+
+  it("writes both bounds of a date answer filter", () => {
+    expect(answerDateRangeUpdate("born", { to: "2026-01-31" })).toEqual({
+      "answer.from.born": null,
+      "answer.to.born": "2026-01-31",
+      page: null,
+    });
   });
 
   it.each([
@@ -78,6 +107,7 @@ describe("submission grid URL updates", () => {
     [{ sort: "createdAt:asc" }, false],
     [{ modifiedFrom: "2026-01-01" }, true],
     [{ submitterDisplayId: "abc" }, true],
+    [{ "answer.contains.q1": "acme" }, true],
   ])("reports active filters for %j as %s", (raw, expected) => {
     expect(hasActiveFilters(parseSubmissionGridUrl(raw))).toBe(expected);
   });

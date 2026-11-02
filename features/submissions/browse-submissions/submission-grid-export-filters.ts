@@ -31,7 +31,10 @@ function isProductionOnly(values: readonly string[]): boolean {
   return values.includes("false") && !values.includes("true");
 }
 
-/** Exports have no review or submitter filter, and cannot export tests alone. */
+/**
+ * Exports have no review, submitter or answer filter, and cannot export
+ * tests alone.
+ */
 function tableOnlyFilterNames(state: SubmissionGridUrlState): string[] {
   const testOnly =
     state.isTestSubmission.length === 1 && state.isTestSubmission[0] === "true";
@@ -39,5 +42,6 @@ function tableOnlyFilterNames(state: SubmissionGridUrlState): string[] {
     state.status.length > 0 && "Review",
     Boolean(state.submitterDisplayId || state.submitterEmail) && "Submitter",
     testOnly && "Submission Type",
+    state.answerFilters.length > 0 && "Answers",
   ].filter((name): name is string => typeof name === "string");
 }

@@ -1,6 +1,6 @@
 "use server";
 
-import { register, RegistrationResponse } from "@/services/api";
+import { register } from "@/services/api";
 import { RegistrationRequestSchema } from "../../shared/auth.schemas";
 import { parseZodError } from "@/lib/utils/zod-error-utils";
 

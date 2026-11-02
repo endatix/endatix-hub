@@ -3,6 +3,8 @@
 import { useTableFiltersUrlState } from "@/components/table";
 import type { UrlSearchParamsUpdater } from "@/lib/utils/hooks/use-url-search-params-updater.hook";
 import { createContext, use, useMemo, type ReactNode } from "react";
+import { answerTextFilterUrlKeys } from "../submission-grid-answer-filters";
+import type { AnswerColumn } from "../submission-grid-columns";
 import { SUBMISSION_GRID_TEXT_FILTER_KEYS } from "../submission-grid-url.constants";
 import {
   parseSubmissionGridUrl,
@@ -39,16 +41,18 @@ export type SubmissionGridUrlSets = { sort: boolean; columns: boolean };
 const SubmissionGridUrlContext = createContext<SubmissionGridUrl | null>(null);
 
 type SubmissionGridUrlProviderProps = {
+  catalog: readonly AnswerColumn[];
   viewSettings: SubmissionViewSettings;
   children: ReactNode;
 };
 
 export function SubmissionGridUrlProvider({
+  catalog,
   viewSettings,
   children,
 }: Readonly<SubmissionGridUrlProviderProps>) {
   const defaults = useMemo(() => viewDefaults(viewSettings), [viewSettings]);
-  const value = useSubmissionGridUrlState(defaults);
+  const value = useSubmissionGridUrlState(catalog, defaults);
   return (
     <SubmissionGridUrlContext value={value}>
       {children}
@@ -57,10 +61,11 @@ export function SubmissionGridUrlProvider({
 }
 
 function useSubmissionGridUrlState(
+  catalog: readonly AnswerColumn[],
   viewDefaults: SubmissionGridViewDefaults,
 ): SubmissionGridUrl {
   const { values, setValue, searchParams, updateUrl, isPending } =
-    useTableFiltersUrlState(SUBMISSION_GRID_TEXT_FILTER_KEYS);
+    useTableFiltersUrlState(useTextFilterKeys(catalog));
   const url = useMemo(
     () => readGridUrl(searchParams, viewDefaults),
     [searchParams, viewDefaults],
@@ -74,6 +79,23 @@ function useSubmissionGridUrlState(
       setTextFilter: setValue,
     }),
     [url, updateUrl, isPending, values, setValue],
+  );
+}
+
+/**
+ * Metadata and answer text filter keys in one list, so one writer commits
+ * them all. The list keeps its identity while its keys do: each navigation
+ * hands the shell a new catalog array, and a new list would drop a filter
+ * not yet committed.
+ */
+function useTextFilterKeys(catalog: readonly AnswerColumn[]): string[] {
+  const signature = JSON.stringify(answerTextFilterUrlKeys(catalog));
+  return useMemo(
+    () => [
+      ...SUBMISSION_GRID_TEXT_FILTER_KEYS,
+      ...(JSON.parse(signature) as string[]),
+    ],
+    [signature],
   );
 }
 

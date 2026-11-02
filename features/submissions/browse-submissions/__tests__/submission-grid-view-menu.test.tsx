@@ -66,7 +66,7 @@ const SAVED: SubmissionGridViewLoad = {
 
 function renderMenu(view: SubmissionGridViewLoad, canSaveView: boolean) {
   render(
-    <SubmissionGridUrlProvider viewSettings={view.settings}>
+    <SubmissionGridUrlProvider catalog={[]} viewSettings={view.settings}>
       <SubmissionGridViewProvider
         formId="42"
         catalog={[]}

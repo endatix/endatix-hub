@@ -165,7 +165,7 @@ function migratedAnswerKeys(
   catalogKeys: ReadonlySet<string>,
 ): string[] | undefined {
   const shown = legacyIds.filter((id) => visibility[id] === true);
-  if (!shown.some(isLegacyQuestionId)) {
+  if (!shown.some((id) => isLegacyQuestionId(id))) {
     return undefined;
   }
 

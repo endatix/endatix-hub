@@ -64,7 +64,7 @@ function attachCarryForwardPropertyChangeHandlers(model: Model): () => void {
     registerCarryForwardDependencies(model, target);
   };
 
-  getAllCarryForwardTargets(model).forEach(attachToTarget);
+  getAllCarryForwardTargets(model).forEach((target) => attachToTarget(target));
 
   const handleQuestionAdded = (_: unknown, options: QuestionAddedEvent) => {
     attachToTarget(options.question);

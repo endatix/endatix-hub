@@ -2,6 +2,7 @@ import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
 import prettierConfig from "eslint-config-prettier/flat";
+import unicorn from "eslint-plugin-unicorn";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -11,7 +12,6 @@ const e2eProject = resolve(__dirname, "tsconfig.e2e.json");
 
 const tempRuleOverrides = {
   "no-console": "off",
-  "@typescript-eslint/no-unused-vars": "off",
   "@typescript-eslint/no-explicit-any": "off",
   "react-hooks/set-state-in-effect": "off",
   "react-hooks/incompatible-library": "off",
@@ -20,6 +20,20 @@ const tempRuleOverrides = {
   "react-hooks/purity": "off",
   "react-hooks/globals": "off",
   "react-hooks/refs": "off",
+};
+
+// A later no-restricted-imports block replaces the rule's options for its files, so every block
+// spreads this pattern in too.
+const authoringIndexOnly = {
+  group: [
+    "@/lib/personalization/authoring/*",
+    "**/personalization/authoring/*",
+    "@/lib/personalization/coverage/*",
+    "**/personalization/coverage/*",
+    "!@/lib/personalization/coverage/audience-usage",
+  ],
+  message:
+    "Import Audience authoring from @/lib/personalization/authoring (client), or the Creator-free @/lib/personalization/coverage (server-safe), through their index.ts only. Browser code that needs only the verdicts imports @/lib/personalization/coverage/audience-usage, which leaves the linter out of the bundle.",
 };
 
 const eslintConfig = defineConfig([
@@ -42,6 +56,7 @@ const eslintConfig = defineConfig([
     "**/package.json",
     "**/tsconfig.json",
     "**/playwright-report/",
+    "**/.*/worktrees/**",
   ]),
   {
     settings: {
@@ -50,15 +65,29 @@ const eslintConfig = defineConfig([
   },
   {
     files: ["**/*.ts", "**/*.tsx"],
+    plugins: { unicorn },
     rules: {
       quotes: ["error", "double", { avoidEscape: true }],
       "jsx-quotes": ["error", "prefer-double"],
+      // SonarCloud S1128 (unused import, `import type` included) and its unused-variable siblings.
       "@typescript-eslint/no-unused-vars": [
-        "warn",
-        { argsIgnorePattern: "^_" },
+        "error",
+        { argsIgnorePattern: "^_", ignoreRestSiblings: true },
       ],
       "no-console": ["warn", { allow: ["warn", "error", "debug"] }],
+      // SonarCloud S7727: pass a callback, not a function reference, to array methods.
+      "unicorn/no-array-callback-reference": "error",
       ...tempRuleOverrides,
+    },
+  },
+  {
+    files: ["**/*.ts", "**/*.tsx"],
+    ignores: [
+      "lib/personalization/authoring/**",
+      "lib/personalization/coverage/**",
+    ],
+    rules: {
+      "no-restricted-imports": ["error", { patterns: [authoringIndexOnly] }],
     },
   },
   {
@@ -68,6 +97,7 @@ const eslintConfig = defineConfig([
         "error",
         {
           patterns: [
+            authoringIndexOnly,
             {
               group: [
                 "../providers/*",
@@ -96,6 +126,7 @@ const eslintConfig = defineConfig([
         "error",
         {
           patterns: [
+            authoringIndexOnly,
             {
               group: ["next", "next/*", "react", "react/*", "@/*"],
               message:
@@ -116,6 +147,7 @@ const eslintConfig = defineConfig([
         "error",
         {
           patterns: [
+            authoringIndexOnly,
             {
               group: [
                 "../azure/*",

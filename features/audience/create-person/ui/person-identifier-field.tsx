@@ -35,7 +35,7 @@ function inputProps({ kind, form }: Props) {
 export function PersonIdentifierField(props: Readonly<Props>) {
   const { kind, form } = props;
   return (
-    <PanelSection icon={UserRound} title="Person">
+    <PanelSection icon={UserRound} title="Participant">
       <FieldWithHelp
         id={ID}
         label={identifierKindLabel(kind)}

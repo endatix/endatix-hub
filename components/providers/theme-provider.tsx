@@ -18,8 +18,6 @@ const THEME_OPTIONS = {
   SYSTEM: "system",
 } as const;
 
-type ThemeOption = (typeof THEME_OPTIONS)[keyof typeof THEME_OPTIONS];
-
 // next-themes renders an inline <script> to prevent theme flicker.
 // React 19 warns about script tags inside components (https://github.com/shadcn-ui/ui/issues/10104)
 // The warning is a false positive — the script runs correctly during SSR.

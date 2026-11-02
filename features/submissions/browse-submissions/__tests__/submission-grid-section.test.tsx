@@ -72,6 +72,7 @@ const READY: SubmissionGridColumnsLoad = {
   readiness: {
     submissions: 3,
     completedSubmissions: 3,
+    inProgress: 0,
     prepared: 2,
     pending: 0,
     failed: 0,
@@ -201,7 +202,7 @@ describe("SubmissionGridSection", () => {
     // Arrange
     loads.columns.mockResolvedValue({
       ...READY,
-      readiness: { ...READY.readiness, submissions: 5 },
+      readiness: { ...READY.readiness, submissions: 5, inProgress: 2 },
     });
     loads.canIncludeInProgress.mockResolvedValue(false);
 
@@ -210,6 +211,74 @@ describe("SubmissionGridSection", () => {
 
     // Assert
     expect(shell.props.banner).toMatchObject({ showIncludeInProgress: false });
+  });
+
+  it("lets the coverage banner speak while answer filters are applied", async () => {
+    // Arrange
+    loads.columns.mockResolvedValue(READY);
+
+    // Act
+    const shell = await renderSection({ "answer.contains.q1": "acme" });
+
+    // Assert
+    expect(shell.props.banner).toBeNull();
+  });
+
+  it("keeps a link's answer filters without a schema, sends none, and says so", async () => {
+    // Arrange
+    loads.columns.mockResolvedValue({
+      ...READY,
+      schemaReady: false,
+      catalog: [],
+    });
+
+    // Act
+    const shell = await renderSection({ "answer.contains.q1": "acme" });
+
+    // Assert
+    expect(shell.props.banner.lines).toContain(
+      "The answer filters in this link are not applied until the form is prepared.",
+    );
+    const rows = (shell.props.children as Leaf).props.children as Leaf;
+    expect(rows.props.urlState.answerFilters).toEqual([]);
+  });
+
+  it("drops a filter the form cannot apply through the canonical redirect", async () => {
+    // Arrange
+    loads.columns.mockResolvedValue(READY);
+
+    // Act & Assert
+    await expect(
+      renderSection({
+        "answer.from.q1": "2026-01-01",
+        "answer.contains.q2": "acme",
+        "answer.contains.gone": "x",
+      }),
+    ).rejects.toThrow("REDIRECT /forms/7/submissions?answer.contains.q2=acme");
+  });
+
+  it("gives up visible columns for the bytes the answer filters take", async () => {
+    // Arrange
+    const catalog = Array.from({ length: 500 }, (_, i) =>
+      answerColumn(`question_${i}`),
+    );
+    loads.columns.mockResolvedValue({ ...READY, catalog });
+    const columns = catalog.map((column) => column.key).join(",");
+    const visibleCount = async (raw: Record<string, string>) => {
+      const shell = await renderSection({ columns, ...raw });
+      const rows = (shell.props.children as Leaf).props.children as Leaf;
+      return (rows.props.answerColumns as unknown[]).length;
+    };
+
+    // Act
+    const unfiltered = await visibleCount({});
+    const filtered = await visibleCount({
+      "answer.contains.question_0": "я".repeat(200),
+    });
+
+    // Assert
+    expect(filtered).toBeGreaterThan(0);
+    expect(filtered).toBeLessThan(unfiltered);
   });
 
   it("starts the permission and config reads without waiting for the columns", async () => {

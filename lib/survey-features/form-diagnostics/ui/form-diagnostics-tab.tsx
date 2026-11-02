@@ -28,6 +28,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ReactElementFactory } from "survey-react-ui";
 import { FormDiagnosticsPlugin } from "../form-diagnostics-plugin";
+import { AudienceFindings, useAudienceFindings } from "./audience-findings";
 import { ConvertLargeChoiceLists } from "./convert-large-choice-lists";
 
 interface FormDiagnosticsViewProps {
@@ -71,6 +72,7 @@ export const FormDiagnosticsView = ({
   model,
 }: Readonly<FormDiagnosticsViewProps>) => {
   const stats = model?.stats;
+  const audienceFindings = useAudienceFindings(model);
 
   const issues = useMemo(() => {
     if (!stats) return [];
@@ -329,6 +331,8 @@ export const FormDiagnosticsView = ({
             attentionClassName={infoAlertClassName}
           />
 
+          <AudienceFindings findings={audienceFindings} actions={model} />
+
           {issues.length > 0 ? (
             <div className="space-y-3 pt-2">
               <h4 className="flex items-center gap-2 text-sm font-medium">
@@ -363,13 +367,15 @@ export const FormDiagnosticsView = ({
               ))}
             </div>
           ) : (
-            <Alert className="border-green-200 bg-green-50 text-green-600 dark:border-green-800 dark:bg-green-950/20 dark:text-green-400">
-              <CheckCircle2 className="h-4 w-4" />
-              <AlertTitle>All Good!</AlertTitle>
-              <AlertDescription>
-                No issues detected in the form structure.
-              </AlertDescription>
-            </Alert>
+            audienceFindings.length === 0 && (
+              <Alert className="border-green-200 bg-green-50 text-green-600 dark:border-green-800 dark:bg-green-950/20 dark:text-green-400">
+                <CheckCircle2 className="h-4 w-4" />
+                <AlertTitle>All Good!</AlertTitle>
+                <AlertDescription>
+                  No issues detected in the form structure.
+                </AlertDescription>
+              </Alert>
+            )
           )}
         </CardContent>
       </Card>

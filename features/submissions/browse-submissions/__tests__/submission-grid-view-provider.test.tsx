@@ -54,7 +54,10 @@ function renderView(view: SubmissionGridViewLoad, query = "") {
   globalThis.history.replaceState(null, "", `/forms/42/submissions?${query}`);
   let current = view;
   const wrapper = ({ children }: { children: ReactNode }) => (
-    <SubmissionGridUrlProvider viewSettings={current.settings}>
+    <SubmissionGridUrlProvider
+      catalog={catalog}
+      viewSettings={current.settings}
+    >
       <SubmissionGridViewProvider
         formId="42"
         catalog={catalog}

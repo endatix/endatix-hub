@@ -59,7 +59,10 @@ function SubmissionGridProviders({
   ...props
 }: Readonly<ProvidersProps>) {
   return (
-    <SubmissionGridUrlProvider viewSettings={view.settings}>
+    <SubmissionGridUrlProvider
+      catalog={props.catalog}
+      viewSettings={view.settings}
+    >
       <SubmissionGridViewProvider view={view} {...props}>
         {children}
       </SubmissionGridViewProvider>

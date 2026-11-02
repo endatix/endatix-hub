@@ -4,7 +4,7 @@
 // TanStack Table keeps one table instance, so the React Compiler would cache
 // what reads it and miss in-place state changes (column visibility, sizing).
 
-import type { ReactNode } from "react";
+import type { KeyboardEvent, MouseEvent, ReactNode } from "react";
 import {
   DATA_TABLE_ELEMENT_CLASS_NAME,
   dataTableBodyCellClassName,
@@ -40,8 +40,9 @@ type DataTableGridProps<TData> = {
    */
   isPending?: boolean;
   /**
-   * Makes every row a click target. Controls inside a cell that must not
-   * trigger it stop the click's propagation.
+   * Makes every row a click target, focusable and opened with Enter or Space.
+   * Controls inside a cell that must not trigger it stop the click's
+   * propagation; clicks from content portaled out of the row are ignored.
    */
   onRowClick?: (row: Row<TData>) => void;
 };
@@ -142,12 +143,40 @@ function GridBodyRows<TData>({
           isEvenRow,
           className: onRowClick ? "cursor-pointer" : undefined,
         })}
-        onClick={onRowClick ? () => onRowClick(row) : undefined}
+        {...(onRowClick && rowActivationProps(row, onRowClick))}
       >
         <GridBodyCells row={row} isEvenRow={isEvenRow} />
       </TableRow>
     );
   });
+}
+
+function rowActivationProps<TData>(
+  row: Row<TData>,
+  onRowClick: (row: Row<TData>) => void,
+) {
+  return {
+    tabIndex: 0,
+    onClick: (event: MouseEvent<HTMLTableRowElement>) => {
+      if (event.currentTarget.contains(event.target as Node)) {
+        onRowClick(row);
+      }
+    },
+    onKeyDown: (event: KeyboardEvent<HTMLTableRowElement>) => {
+      if (isRowActivationKey(event)) {
+        event.preventDefault();
+        onRowClick(row);
+      }
+    },
+  };
+}
+
+/** Enter or Space on the row itself, not on a control or dialog inside it. */
+function isRowActivationKey(event: KeyboardEvent<HTMLTableRowElement>) {
+  return (
+    event.target === event.currentTarget &&
+    (event.key === "Enter" || event.key === " ")
+  );
 }
 
 function GridBodyCells<TData>({

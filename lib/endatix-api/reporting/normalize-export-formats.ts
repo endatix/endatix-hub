@@ -113,5 +113,5 @@ export function normalizeExportFormat(
 export function normalizeExportFormats(
   formats: ExportFormatListItem[],
 ): ExportFormatListItem[] {
-  return formats.map(normalizeExportFormat);
+  return formats.map((format) => normalizeExportFormat(format));
 }

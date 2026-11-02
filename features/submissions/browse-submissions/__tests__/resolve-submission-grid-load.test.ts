@@ -6,14 +6,17 @@ import type {
 } from "@/lib/endatix-api/reporting/submission-grid-types";
 import { Result } from "@/lib/result";
 import {
+  isReportingNotPrepared,
   resolveSubmissionGridColumnsLoad,
   resolveSubmissionGridRowsLoad,
+  withAnswerFiltersNotPrepared,
 } from "../resolve-submission-grid-load";
 import { parseSubmissionGridUrl } from "../submission-grid-url";
 
 const READINESS = {
   submissions: 1,
   completedSubmissions: 1,
+  inProgress: 0,
   prepared: 1,
   pending: 0,
   failed: 0,
@@ -103,6 +106,31 @@ describe("resolveSubmissionGridRowsLoad", () => {
     });
   });
 
+  it("redirects to the page the API clamped a page past the end to", () => {
+    // Arrange: the API answers page=99 with its last page and that page's rows.
+    const state = parseSubmissionGridUrl({ page: "99" });
+    const clamped = normalizePagedResponse<SubmissionGridRow>({
+      items: [{ id: "1" } as SubmissionGridRow],
+      page: 2,
+      pageSize: 10,
+      totalRecords: 15,
+      totalPages: 2,
+    });
+
+    // Act
+    const load = resolveSubmissionGridRowsLoad(
+      "5",
+      state,
+      Result.success(clamped),
+    );
+
+    // Assert
+    expect(load).toEqual({
+      kind: "redirect",
+      href: "/forms/5/submissions?page=2",
+    });
+  });
+
   it("redirects to the first page when nothing matches", () => {
     // Arrange
     const state = parseSubmissionGridUrl({ page: "2" });
@@ -131,5 +159,36 @@ describe("resolveSubmissionGridRowsLoad", () => {
 
     // Assert
     expect(load.kind).toBe("ready");
+  });
+});
+
+describe("isReportingNotPrepared", () => {
+  it.each([
+    [Result.error("No schema", undefined, "reporting_not_prepared"), true],
+    [Result.error("Conflict", undefined, "conflict"), false],
+    [Result.success(1), false],
+  ])("reads %j as %s", (result, expected) => {
+    expect(isReportingNotPrepared(result)).toBe(expected);
+  });
+});
+
+describe("withAnswerFiltersNotPrepared", () => {
+  it("marks ready rows as read without answer filters", () => {
+    // Arrange
+    const load = { kind: "ready" as const, page: rowsPage(0) };
+
+    // Act & Assert
+    expect(withAnswerFiltersNotPrepared(load)).toEqual({
+      ...load,
+      answerFiltersNotPrepared: true,
+    });
+  });
+
+  it("leaves a redirect as it is", () => {
+    // Arrange
+    const load = { kind: "redirect" as const, href: "/forms/1/submissions" };
+
+    // Act & Assert
+    expect(withAnswerFiltersNotPrepared(load)).toBe(load);
   });
 });

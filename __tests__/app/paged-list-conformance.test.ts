@@ -23,7 +23,7 @@ function sourceFiles(dir: string): string[] {
 }
 
 const files = ["app", "features", "components"]
-  .flatMap(sourceFiles)
+  .flatMap((dir) => sourceFiles(dir))
   .map((file) => ({
     file,
     source: readFileSync(path.join(root, file), "utf8"),

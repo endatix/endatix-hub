@@ -89,7 +89,7 @@ function renderTable() {
     totalPages: 1,
   });
   render(
-    <SubmissionGridUrlProvider viewSettings={SAVED.settings}>
+    <SubmissionGridUrlProvider catalog={[answer]} viewSettings={SAVED.settings}>
       <SubmissionGridViewProvider
         formId="7"
         catalog={[answer]}
