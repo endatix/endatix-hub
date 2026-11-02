@@ -54,6 +54,10 @@ function addRowColumn(usage: RowColumnsUsage, key: string): RowColumnsUsage {
   };
 }
 
+/** Characters form encoding leaves as they are. */
+const FORM_URLENCODED_SAFE = /^[A-Za-z0-9*._-]*$/;
+
 function encodedLength(value: string): number {
+  if (FORM_URLENCODED_SAFE.test(value)) return value.length;
   return new URLSearchParams({ v: value }).toString().length - "v=".length;
 }
