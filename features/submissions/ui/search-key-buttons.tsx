@@ -52,13 +52,20 @@ export function RemoveSearchKeyButton({
   );
 }
 
+type RefreshSearchKeysButtonProps = {
+  changes: Pick<SearchKeyChanges, "isPending" | "refresh">;
+  variant?: "ghost" | "outline";
+  className?: string;
+};
+
 export function RefreshSearchKeysButton({
   changes,
+  variant = "ghost",
   className,
-}: Readonly<Omit<SearchKeyButtonProps, "target">>) {
+}: Readonly<RefreshSearchKeysButtonProps>) {
   return (
     <Button
-      variant="ghost"
+      variant={variant}
       size="sm"
       className={className}
       disabled={changes.isPending}

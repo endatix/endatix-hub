@@ -1,24 +1,19 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Hourglass, RefreshCw } from "lucide-react";
+import { RefreshSearchKeysButton } from "@/features/submissions/ui/search-key-buttons";
 import { useRefreshColumns } from "@/features/submissions/ui/use-search-key-changes.hook";
+import { Hourglass } from "lucide-react";
 
 export function PreparingFilterNote() {
-  const { isPending, refresh } = useRefreshColumns();
+  const changes = useRefreshColumns();
   return (
     <div className="w-56 space-y-2 text-xs">
       <PreparingHint />
-      <Button
+      <RefreshSearchKeysButton
+        changes={changes}
         variant="outline"
-        size="sm"
         className="w-full"
-        disabled={isPending}
-        onClick={refresh}
-      >
-        <RefreshCw className="size-3.5" />
-        Refresh
-      </Button>
+      />
     </div>
   );
 }
