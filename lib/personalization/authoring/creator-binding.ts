@@ -38,6 +38,7 @@ import {
 } from "./designer-writes";
 import { installPrefillCanvas, repaintPrefillMarks } from "./prefill-canvas";
 import { installPrefill, prefillSources } from "./prefill";
+import { refreshChoiceWarning } from "./prefill-choice-values";
 
 export interface CreatorHooks {
   /** Reads the form's variables again (a property or participant edited in the Audience tab). */
@@ -319,13 +320,11 @@ function prefillAndPreview(
   onFindParticipant: FindParticipant | undefined,
   formId: string | undefined,
 ): (() => void)[] {
+  const sources = () => prefillSources(state.variables);
+  const participants = () => withUnsaved(state.installed, state.unsaved);
   return [
-    installPrefill(creator, {
-      sources: () => prefillSources(state.variables),
-      participants: () => withUnsaved(state.installed, state.unsaved),
-      formId,
-    }),
-    installPrefillCanvas(creator, () => prefillSources(state.variables), formId),
+    installPrefill(creator, { sources, participants, formId }),
+    installPrefillCanvas(creator, sources, formId),
     extendPreview(creator, state, onFindParticipant),
   ];
 }
@@ -468,6 +467,7 @@ function applyRead(
     throw error;
   }
   repaintPrefillMarks();
+  refreshChoiceWarning();
 }
 
 /**

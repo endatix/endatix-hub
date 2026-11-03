@@ -11,7 +11,7 @@ import {
 } from "../coverage/prefill-match";
 import { PERSONALIZATION_ICON_SVG } from "./personalization-icon";
 import { PREFILL_CHOICE, registerPrefillChoice } from "./prefill-choice";
-import { type ChoiceAudience, showChoiceWarning, unmatchedChoiceWarning } from "./prefill-choice-values";
+import { type ChoiceAudience, WARNING_QUESTION, warnOnUnmatchedChoices } from "./prefill-choice-values";
 
 export type { PrefillShape, PrefillSource };
 export { isPrefillCompatible, prefillVariableOf };
@@ -26,9 +26,8 @@ const PREFILL_KIND = "edxPrefillKind";
 const PERSONALIZATION_ICON = "icon-personalization";
 const VARIABLE_NAME = /^\w+$/;
 
-/** What Prefill from reads: the Properties, the participants the designer knows, and the form. */
+/** What Prefill from reads: the Properties, the participants the designer has loaded, and the form id. */
 export type PrefillAudience = ChoiceAudience & { formId?: string };
-
 
 const bindings = new WeakMap<object, PrefillAudience>();
 let propertiesRegistered = false;
@@ -333,7 +332,7 @@ function updatePrefillEditor(question: Question, editor: Question): void {
   editor.description = prefillHelp(question);
   greyIncompatible(question, editor);
   linkToExpression(question, editor);
-  showChoiceWarning(editor, unmatchedChoiceWarning(question, bindingOf(question)));
+  warnOnUnmatchedChoices(question, editor, bindingOf(question));
   // Clearing a custom expression would do nothing: only a Property replaces it.
   editor.allowClear = customExpression(question.defaultValueExpression) === undefined;
 }
@@ -482,6 +481,7 @@ function detachSurvey(survey: object, audience: PrefillAudience): void {
  */
 export function installPrefill(creator: SurveyCreatorModel, prefill: PrefillAudience): () => void {
   registerProperties();
+  // A copy, so detach removes this install's binding and never a later one's.
   const read = { ...prefill };
   namePersonalization(creator.propertyGrid);
   let attached: object | undefined = creator.survey;
@@ -512,7 +512,7 @@ export function installPrefill(creator: SurveyCreatorModel, prefill: PrefillAudi
 /** The open property grid keeps its last visibility until the selection changes. */
 function hideOpenEditors(creator: SurveyCreatorModel): void {
   const grid = creator.propertyGrid;
-  for (const name of [PREFILL_FROM, PREFILL_EDITABLE]) {
+  for (const name of [PREFILL_FROM, PREFILL_EDITABLE, WARNING_QUESTION]) {
     const editor = grid.getQuestionByName(name);
     if (editor) editor.visible = false;
   }
