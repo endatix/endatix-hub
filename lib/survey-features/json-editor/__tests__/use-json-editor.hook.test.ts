@@ -9,6 +9,7 @@ import {
 import { useJsonEditor } from "../use-json-editor.hook";
 
 vi.mock("survey-core", () => ({
+  SvgRegistry: { registerIcon: vi.fn() },
   Model: vi.fn().mockImplementation(function (this: any) {
     this.fromJSON = vi.fn();
     this.toJSON = vi.fn().mockReturnValue({ pages: [] });

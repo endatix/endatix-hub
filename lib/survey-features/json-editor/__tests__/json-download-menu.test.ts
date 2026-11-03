@@ -1,6 +1,6 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { Action, type ListModel } from "survey-core";
+import { Action, SvgRegistry, type ListModel } from "survey-core";
 import {
   SurveyCreatorModel,
   type TabJsonEditorBasePlugin,
@@ -53,6 +53,22 @@ describe("addObfuscatedJsonDownload", () => {
       "Download JSON",
       "Download obfuscated JSON",
     ]);
+  });
+
+  it("shows the download icon on Download JSON and a shield on Download obfuscated JSON", () => {
+    // Act
+    const { exportAction, items } = setup();
+
+    // Assert
+    expect(items.map((item) => item.iconName)).toEqual([
+      exportAction.iconName,
+      "icon-download-obfuscated",
+    ]);
+    expect(items.map((item) => item.iconSize)).toEqual([
+      exportAction.iconSize,
+      exportAction.iconSize,
+    ]);
+    expect(SvgRegistry.icons["download-obfuscated"]).toContain("<path");
   });
 
   it("downloads the unchanged schema from Download JSON", async () => {
