@@ -9,7 +9,9 @@ import {
   type PrefillShape,
   type PrefillSource,
 } from "../coverage/prefill-match";
+import { PERSONALIZATION_ICON_SVG } from "./personalization-icon";
 import { PREFILL_CHOICE, registerPrefillChoice } from "./prefill-choice";
+import { CHOICE_SETTINGS, type ChoiceAudience, forgetChoiceWarning, WARNING_QUESTION, warnOnUnmatchedChoices } from "./prefill-choice-values";
 
 export type { PrefillShape, PrefillSource };
 export { isPrefillCompatible, prefillVariableOf };
@@ -24,12 +26,10 @@ const PREFILL_KIND = "edxPrefillKind";
 const PERSONALIZATION_ICON = "icon-personalization";
 const VARIABLE_NAME = /^\w+$/;
 
-type PrefillBinding = {
-  sources: () => PrefillSource[];
-  formId?: string;
-};
+/** What Prefill from reads: the Properties, the participants the designer has loaded, and the form id. */
+export type PrefillAudience = ChoiceAudience & { formId?: string };
 
-const bindings = new WeakMap<object, PrefillBinding>();
+const bindings = new WeakMap<object, PrefillAudience>();
 let propertiesRegistered = false;
 
 /** An expression the dropdown did not write, such as `{age} * 12`. Shown, and left unchanged. */
@@ -102,7 +102,7 @@ function disabledHint(source: PrefillSource): string {
   return `${type.charAt(0).toUpperCase()}${type.slice(1)}. Use a ${fitting} question.`;
 }
 
-function bindingOf(obj: object | undefined): PrefillBinding | undefined {
+function bindingOf(obj: object | undefined): PrefillAudience | undefined {
   const survey = obj && "survey" in obj ? (obj.survey as object | undefined) : undefined;
   if (!survey) return undefined;
   return bindings.get(survey);
@@ -328,6 +328,15 @@ function hasPrefillExpression(question: Question): boolean {
   return prefillVariableOf(expression) !== undefined || customExpression(expression) !== undefined;
 }
 
+function updatePrefillEditor(question: Question, editor: Question): void {
+  editor.description = prefillHelp(question);
+  greyIncompatible(question, editor);
+  linkToExpression(question, editor);
+  warnOnUnmatchedChoices(question, editor, bindingOf(question));
+  // Clearing a custom expression would do nothing: only a Property replaces it.
+  editor.allowClear = customExpression(question.defaultValueExpression) === undefined;
+}
+
 function prefillFromProperty() {
   return {
     name: PREFILL_FROM,
@@ -341,13 +350,7 @@ function prefillFromProperty() {
     choices: (obj: Question) => prefillChoices(obj),
     onGetValue: (obj: Question) => prefillValue(obj),
     onSetValue: (obj: Question, value: unknown) => applyPrefill(obj, value),
-    onPropertyEditorUpdate: (obj: Question, editor: Question) => {
-      editor.description = prefillHelp(obj);
-      greyIncompatible(obj, editor);
-      linkToExpression(obj, editor);
-      // Clearing a custom expression would do nothing: only a Property replaces it.
-      editor.allowClear = customExpression(obj.defaultValueExpression) === undefined;
-    },
+    onPropertyEditorUpdate: (obj: Question, editor: Question) => updatePrefillEditor(obj, editor),
   };
 }
 
@@ -397,16 +400,6 @@ function prefillHelp(question: Question): string {
   return offersPrefill(question) ? FILLED_HELP : emptyHelp(bindingOf(question)?.formId);
 }
 
-/**
- * A person drawn as rings, so the rail paints it with `fill: currentColor` the way the
- * SurveyJS tab icons are painted. A filled silhouette reads heavier than those line icons.
- */
-export const PERSONALIZATION_ICON_SVG =
-  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">' +
-  '<path fill-rule="evenodd" d="M12 3.8a3.2 3.2 0 1 0 .02 0zM12 5.5a1.5 1.5 0 1 1-.02 0z"/>' +
-  '<path d="M4.6 20.4V18c0-3.2 3.3-5.2 7.4-5.2s7.4 2 7.4 5.2v2.4h-1.7V18c0-2.2-2.5-3.5-5.7-3.5S6.3 15.8 6.3 18v2.4H4.6z"/>' +
-  "</svg>";
-
 function registerPersonalizationIcon(): void {
   SvgRegistry.registerIcon(PERSONALIZATION_ICON, PERSONALIZATION_ICON_SVG);
 }
@@ -419,6 +412,13 @@ function namePersonalization(survey: { getPageByName: (name: string) => unknown 
 function registerPersonalizationLocale(): void {
   const tabs = getLocaleStrings("en").pe?.tabs as Record<string, string> | undefined;
   if (tabs) tabs.personalization = "Personalization";
+}
+
+/** Properties on a subclass, which the `question` property's own `dependsOn` cannot name. */
+function refreshPrefillOn(properties: Array<[className: string, name: string]>): void {
+  for (const [className, name] of properties) {
+    Serializer.findProperty(className, name)?.addDependedProperty(PREFILL_FROM);
+  }
 }
 
 function registerProperties(): void {
@@ -443,10 +443,10 @@ function registerProperties(): void {
   const prefillFrom = prefillFromProperty();
   Serializer.addProperty("question", {
     ...prefillFrom,
-    // `inputType` lives on the text question class; wire it after register (see below).
+    // `inputType` and the choice settings live on subclasses; wire them after register (see below).
     dependsOn: ["defaultValueExpression"],
   });
-  Serializer.findProperty("text", "inputType")?.addDependedProperty(PREFILL_FROM);
+  refreshPrefillOn([["text", "inputType"], ...CHOICE_SETTINGS]);
   Serializer.addProperty("question", prefillEditableProperty());
   propertiesRegistered = true;
 }
@@ -456,20 +456,16 @@ function registerProperties(): void {
 // `defaultValueExpression`. `CustomPropertiesCollection` is not a public export.
 registerProperties();
 
-function attachSurvey(
-  survey: object,
-  creator: SurveyCreatorModel,
-  sources: () => PrefillSource[],
-  formId?: string,
-): void {
-  bindings.set(survey, { sources, formId });
+function attachSurvey(survey: object, creator: SurveyCreatorModel, audience: PrefillAudience): void {
+  bindings.set(survey, audience);
   creators.set(survey, creator);
 }
 
-function detachSurvey(survey: object, sources: () => PrefillSource[]): void {
-  if (bindings.get(survey)?.sources !== sources) return;
+function detachSurvey(survey: object, audience: PrefillAudience): void {
+  if (bindings.get(survey) !== audience) return;
   bindings.delete(survey);
   creators.delete(survey);
+  forgetChoiceWarning(survey);
 }
 
 /**
@@ -484,16 +480,13 @@ function detachSurvey(survey: object, sources: () => PrefillSource[]): void {
  * `creator.JSON =` builds a new designer survey after bind, so the sources follow every
  * `onSurveyInstanceCreated` with reason `designer` (fired before `setSurvey`).
  */
-export function installPrefill(
-  creator: SurveyCreatorModel,
-  sources: () => PrefillSource[],
-  formId?: string,
-): () => void {
+export function installPrefill(creator: SurveyCreatorModel, prefill: PrefillAudience): () => void {
   registerProperties();
-  const read = () => sources();
+  // A copy, so detach removes this install's binding and never a later one's.
+  const read = { ...prefill };
   namePersonalization(creator.propertyGrid);
   let attached: object | undefined = creator.survey;
-  if (attached) attachSurvey(attached, creator, read, formId);
+  if (attached) attachSurvey(attached, creator, read);
 
   const onDesignerSurvey = (
     _: unknown,
@@ -506,7 +499,7 @@ export function installPrefill(
     if (options.area !== "designer-tab") return;
     if (attached) detachSurvey(attached, read);
     attached = options.survey;
-    attachSurvey(attached, creator, read, formId);
+    attachSurvey(attached, creator, read);
   };
   creator.onSurveyInstanceCreated.add(onDesignerSurvey);
 
@@ -520,7 +513,7 @@ export function installPrefill(
 /** The open property grid keeps its last visibility until the selection changes. */
 function hideOpenEditors(creator: SurveyCreatorModel): void {
   const grid = creator.propertyGrid;
-  for (const name of [PREFILL_FROM, PREFILL_EDITABLE]) {
+  for (const name of [PREFILL_FROM, PREFILL_EDITABLE, WARNING_QUESTION]) {
     const editor = grid.getQuestionByName(name);
     if (editor) editor.visible = false;
   }

@@ -122,3 +122,16 @@
   border: none;
   margin: 0;
 }
+
+/* Prefill from values no choice has. Warning text on its 10% tint is under 3:1, so the text stays
+ * primary and the edge carries the tone, as on the canvas mismatch chip. */
+.svc-creator .edx-prefill-values p {
+  margin: 0;
+  padding: var(--sjs2-spacing-x100) var(--sjs2-spacing-x150);
+  border-inline-start: 3px solid var(--sjs2-color-fg-warning-primary);
+  border-radius: var(--sjs2-radius-x050);
+  background: var(--sjs2-color-bg-warning-secondary);
+  color: var(--sjs2-color-fg-basic-primary);
+  font-size: var(--sjs2-typography-font-size-small);
+  line-height: var(--sjs2-typography-line-height-small);
+}
