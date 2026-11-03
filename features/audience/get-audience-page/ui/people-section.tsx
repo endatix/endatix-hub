@@ -27,10 +27,10 @@ import { useTestAsPerson } from "../../test-as-person/use-test-as-person.hook";
 import { EditPersonPanel } from "../../update-person/ui/edit-person-panel";
 import { useRowOverlay } from "../../use-panel-state.hook";
 import { valueProperties } from "../../utils";
-import { PeopleColumnsMenu } from "./people-columns-menu";
 import { PeopleTable, type RowHandlers } from "./people-table";
 import { PeopleEmpty } from "./people-empty";
 import { PeopleToolbar } from "./people-toolbar";
+import { PropertyColumnsMenu } from "./property-columns-menu";
 import { SectionHeader } from "./section-header";
 import {
   usePropertyColumns,
@@ -99,7 +99,7 @@ function PeoplePager(props: Readonly<Paging>) {
 type PeopleSurfaceProps = PeopleSectionProps & {
   handlers: RowHandlers;
   selection?: ParticipantSelection;
-  shownProperties: AudienceProperty[];
+  columns: PropertyColumns;
 };
 
 function PeopleSurface(props: Readonly<PeopleSurfaceProps>) {
@@ -109,7 +109,7 @@ function PeopleSurface(props: Readonly<PeopleSurfaceProps>) {
         <PeopleEmpty testFilter={props.testFilter} search={props.search} />
       ) : (
         <>
-          <PeopleTable {...props} />
+          <PeopleTable {...props} shownProperties={props.columns.shown} />
           <PeoplePager {...props} />
         </>
       )}
@@ -235,12 +235,15 @@ function showsToolbar({ totalPeople, testFilter, search }: PeopleSectionProps) {
   );
 }
 
-/** Import keeps every property as a target; the rest show and edit only value properties. */
-const withValueProperties = (props: Readonly<PeopleSectionProps>) => ({
-  ...props,
-  properties: valueProperties(props.properties, props.identifierKind),
-  allProperties: props.properties,
-});
+/**
+ * Import keeps every property as a target; the rest show and edit only value properties, and
+ * the list shows the value properties the reader left on in Columns.
+ */
+function useValueProperties(props: Readonly<PeopleSectionProps>) {
+  const properties = valueProperties(props.properties, props.identifierKind);
+  const columns = usePropertyColumns(props.formId, properties);
+  return { ...props, properties, allProperties: props.properties, columns };
+}
 
 /**
  * Ticks outlive a page or filter change, so they can be cleared from any page. Nothing when
@@ -267,7 +270,7 @@ function ListToolbar({ ticks, columns, ...props }: Readonly<ListToolbarProps>) {
   const actions = (
     <>
       {clearSelection(ticks)}
-      <PeopleColumnsMenu columns={columns} />
+      <PropertyColumnsMenu columns={columns} />
     </>
   );
   return <PeopleToolbar testFilter={props.testFilter} actions={actions} />;
@@ -278,20 +281,13 @@ export function PeopleSection(props: Readonly<PeopleSectionProps>) {
   const testLink = useCopyTestLinkDialog();
   const selection = useParticipantSelection();
   const handlers = useRowHandlers(props, row, testLink.open);
-  const values = withValueProperties(props);
+  const values = useValueProperties(props);
   const ticks = offersTestLinks(props) ? selection : undefined;
-  const columns = usePropertyColumns(props.formId, values.properties);
-  const shownProperties = values.properties.filter((p) => columns.isShown(p));
   return (
     <section aria-labelledby="audience-people" className="flex flex-col gap-4">
       <PeopleHeader {...props} selection={selection} />
-      <ListToolbar {...props} ticks={ticks} columns={columns} />
-      <PeopleSurface
-        {...values}
-        handlers={handlers}
-        selection={ticks}
-        shownProperties={shownProperties}
-      />
+      <ListToolbar {...props} ticks={ticks} columns={values.columns} />
+      <PeopleSurface {...values} handlers={handlers} selection={ticks} />
       {props.canEdit ? (
         <PeopleOverlays {...values} row={row} onRemoved={selection.untick} />
       ) : null}

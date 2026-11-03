@@ -56,8 +56,8 @@ type PeopleTableProps = {
   allProperties?: AudienceProperty[];
   /** Ticks on test participants, for test links; none means no select column. */
   selection?: ParticipantSelection;
-  /** The Property columns the reader chose to show; defaults to `properties`. */
-  shownProperties?: AudienceProperty[];
+  /** The Property columns the reader chose to show (Columns menu). */
+  shownProperties: AudienceProperty[];
 };
 
 const ACTIONS_COLUMN: StaticDataTableColumn = {
@@ -354,7 +354,7 @@ export function PeopleTable(props: Readonly<PeopleTableProps>) {
   const { identifierKind, properties, people } = props;
   const options = tableOptions(props);
   const ticks = withTicks(people, props.selection);
-  const sets = { properties, shown: props.shownProperties ?? properties };
+  const sets = { properties, shown: props.shownProperties };
   const columns = peopleColumns(identifierKind, sets.shown, options);
   return (
     <StaticDataTable columns={ticks.columns(columns)}>

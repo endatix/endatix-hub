@@ -1,27 +1,22 @@
-"use client";
-
 import { z } from "zod";
 
 /**
  * The Property columns a reader hid on a form's Participants list, by Property id, in this
  * browser. Hidden ids are stored rather than shown ones, so a new Property shows by default.
- * Storage that throws (blocked, private mode) reads as nothing hidden; a hide then lasts for the
- * visit only.
+ * Storage that throws (blocked, private mode) reads as nothing hidden.
  */
 const HiddenIdsSchema = z.array(z.string());
 
 const EMPTY: readonly string[] = [];
 
-const storageKey = (formId: string) =>
-  `ehx_participants_hidden_columns_${formId}`;
+const KEY_PREFIX = "ehx_participants_hidden_columns_";
+const storageKey = (formId: string) => `${KEY_PREFIX}${formId}`;
 
 /** Snapshots by key, so `useSyncExternalStore` sees the same array until it changes. */
 const snapshots = new Map<
   string,
   { raw: string | null; ids: readonly string[] }
 >();
-/** Hides made while storage refused writes, kept for the visit. */
-const unsaved = new Map<string, readonly string[]>();
 const listeners = new Set<() => void>();
 
 function readStored(key: string): string | null {
@@ -42,17 +37,27 @@ function parseIds(raw: string | null): readonly string[] {
   }
 }
 
+function notify() {
+  for (const listener of listeners) listener();
+}
+
+/** A choice made in another tab of this browser applies here too. */
+function onStorage(event: StorageEvent) {
+  if (event.key === null || event.key.startsWith(KEY_PREFIX)) notify();
+}
+
 export function subscribeHiddenPropertyColumns(listener: () => void) {
+  if (listeners.size === 0) globalThis.addEventListener("storage", onStorage);
   listeners.add(listener);
   return () => {
     listeners.delete(listener);
+    if (listeners.size === 0)
+      globalThis.removeEventListener("storage", onStorage);
   };
 }
 
 export function getHiddenPropertyColumns(formId: string): readonly string[] {
   const key = storageKey(formId);
-  const kept = unsaved.get(key);
-  if (kept) return kept;
   const raw = readStored(key);
   const cached = snapshots.get(key);
   if (cached?.raw === raw) return cached.ids;
@@ -65,16 +70,16 @@ export function getServerHiddenPropertyColumns(): readonly string[] {
   return EMPTY;
 }
 
+/** False when storage refused the write; the caller keeps the choice for the visit. */
 export function saveHiddenPropertyColumns(
   formId: string,
   ids: readonly string[],
-) {
-  const key = storageKey(formId);
+): boolean {
   try {
-    localStorage.setItem(key, JSON.stringify(ids));
-    unsaved.delete(key);
+    localStorage.setItem(storageKey(formId), JSON.stringify(ids));
   } catch {
-    unsaved.set(key, ids);
+    return false;
   }
-  for (const listener of listeners) listener();
+  notify();
+  return true;
 }

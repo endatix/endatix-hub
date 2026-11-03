@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   AudienceDataType,
@@ -107,7 +107,7 @@ function toggleColumn(name: string) {
   closeColumnsMenu();
 }
 
-describe("PeopleSection columns", () => {
+describe("Participants list Property columns", () => {
   beforeEach(() => {
     vi.stubGlobal("ResizeObserver", ResizeObserverStub);
     localStorage.clear();
@@ -115,6 +115,7 @@ describe("PeopleSection columns", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it("offers each Property in the Columns menu, and hides a column the reader unticks", () => {
@@ -134,8 +135,10 @@ describe("PeopleSection columns", () => {
 
     // Assert — the menu stays open for the next tick
     expect(
-      screen.getByRole("menuitemcheckbox", { name: "City" }),
-    ).toHaveProperty("ariaChecked", "false");
+      screen
+        .getByRole("menuitemcheckbox", { name: "City" })
+        .getAttribute("aria-checked"),
+    ).toBe("false");
 
     // Act
     closeColumnsMenu();
@@ -176,6 +179,21 @@ describe("PeopleSection columns", () => {
 
     // Assert
     expect(headers()).toEqual(["Email", "Link", "Plan", "Region", "Actions"]);
+  });
+
+  it("applies a choice made in another tab of this browser", () => {
+    // Arrange
+    render(<PeopleSection {...LIST} />);
+    const key = "ehx_participants_hidden_columns_1";
+    localStorage.setItem(key, '["12"]');
+
+    // Act
+    act(() => {
+      globalThis.dispatchEvent(new StorageEvent("storage", { key }));
+    });
+
+    // Assert
+    expect(headers()).toEqual(["Email", "Link", "City", "Actions"]);
   });
 
   it("shows every column when storage is blocked, and still hides one for the visit", () => {
