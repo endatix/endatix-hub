@@ -23,8 +23,8 @@ function heldValues(value: unknown): unknown[] {
 }
 
 /**
- * The participants' values for `variable` that no choice of `question` has, each once, in the
- * order the participants hold them. A choice is selected only when its value equals the prefill,
+ * The participants' values for `variable` that no choice of `question` has, each once, sorted so
+ * `2` comes before `10`. A choice is selected only when its value equals the prefill,
  * compared as SurveyJS compares them (`1` matches `"1"`).
  */
 export function unmatchedChoiceValues(
@@ -40,7 +40,7 @@ export function unmatchedChoiceValues(
       if (!ItemValue.getItemByValue(choices, value)) unmatched.add(String(value));
     }
   }
-  return [...unmatched];
+  return [...unmatched].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 }
 
 function escapeHtml(text: string): string {

@@ -68,11 +68,11 @@ function shown(warning: Warning | null): string | undefined {
 const DEFAULT_CHOICES = ["Item 1", "Item 2", "Item 3"];
 
 describe("Prefill from on a choice question", () => {
-  it("names the participants' values that no choice has", () => {
+  it("names, in order, the participants' values that no choice has", () => {
     // Arrange
     const creator = designer(
       { elements: [{ type: "radiogroup", name: "rating", choices: DEFAULT_CHOICES }] },
-      ["1", "2", "2", "8", "Item 1"],
+      ["8", "1", "2", "2", "Item 1"],
     );
 
     // Act
