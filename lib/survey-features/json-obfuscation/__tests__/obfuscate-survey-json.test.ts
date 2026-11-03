@@ -397,6 +397,54 @@ describe("obfuscateSurveyJson scopes and nested text", () => {
     expect(note.visibleIf).toBe("{q1} > 18 and {q2[0].q3} > 1");
   });
 
+  it("keeps the spacing and case of a reference it renames", () => {
+    // Arrange
+    const json = {
+      pages: [
+        {
+          elements: [
+            { type: "text", name: "age" },
+            {
+              type: "paneldynamic",
+              name: "kids",
+              templateElements: [
+                { type: "text", name: "age" },
+                {
+                  type: "paneldynamic",
+                  name: "toys",
+                  templateElements: [
+                    {
+                      type: "text",
+                      name: "toy",
+                      visibleIf: "{ ParentPanel.age } > 5 and {Panel.Toy}",
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              type: "text",
+              name: "note",
+              visibleIf:
+                "{ Age } > 18 and { kids[ 0 ].age } > 1 and {kids [0].age}",
+            },
+          ],
+        },
+      ],
+    };
+
+    // Act
+    const [, kids, note] = pageElements(json);
+
+    // Assert
+    expect(kids.templateElements[1].templateElements[0].visibleIf).toBe(
+      "{ ParentPanel.q3 } > 5 and {Panel.q5}",
+    );
+    expect(note.visibleIf).toBe(
+      "{ q1 } > 18 and { q2[ 0 ].q3 } > 1 and {q2 [0].q3}",
+    );
+  });
+
   it("keeps matrix column and multiple text item names, and references into them", () => {
     // Arrange
     const json = {

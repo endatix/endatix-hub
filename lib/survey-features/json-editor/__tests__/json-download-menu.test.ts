@@ -174,7 +174,7 @@ describe("addObfuscatedJsonDownload", () => {
     const restored = creator.toolbar.getActionById("svc-json-export");
     expect(restored).not.toBe(exportAction);
     expect(restored.component).toBe("sv-action-bar-item");
-    expect(creator.toolbar.actions.length).toBe(count);
+    expect(creator.toolbar.actions).toHaveLength(count);
   });
 });
 

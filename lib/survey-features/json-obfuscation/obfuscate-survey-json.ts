@@ -38,12 +38,10 @@ const TEMPLATE_NAME_PROPERTIES = new Set(["keyName"]);
 const PLACEHOLDER = /(\{[^{}]*\})/;
 const LETTER = /\p{L}/gu;
 const ALPHABET_LENGTH = 26;
-/**
- * {name}, {panel.name}, {parentpanel.name} or {dynamicPanel[0].name}; a name ends where a path, an
- * index or the brace starts.
- */
-const REFERENCE =
-  /\{(\s*)(?:(panel|parentpanel)\.)?([^{}.[\]]+?)(?:(\[\s*\d+\s*\]\.)([^{}.[\]]+?))?(?=\s*[}.[])/gi;
+/** The text between a pair of braces: {name}, {panel.name}, {dynamicPanel[0].name}, {question.path}. */
+const BRACED = /\{([^{}]*)\}/g;
+const PREFIXES = ["panel.", "parentpanel."];
+const INDEX = /^\[\s*\d+\s*\]\./;
 const QUOTED_NAME = /\b(displayValue|propertyValue)\(\s*(['"])([^'"]+)\2/gi;
 
 /** Replaces every letter with a random Latin one of the same case; keeps {placeholders} and the rest. */
@@ -82,8 +80,8 @@ export function obfuscateSurveyJson(
 
 function randomLetter(letter: string, random: Random): string {
   const isUpper = letter !== letter.toLowerCase();
-  const first = (isUpper ? "A" : "a").charCodeAt(0);
-  return String.fromCharCode(first + Math.floor(random() * ALPHABET_LENGTH));
+  const first = (isUpper ? "A" : "a").codePointAt(0)!;
+  return String.fromCodePoint(first + Math.floor(random() * ALPHABET_LENGTH));
 }
 
 function removeHtmlQuestions(survey: Model): void {
@@ -236,31 +234,10 @@ function rewriteExpression(
   parentPanel: NewNameByOldName | undefined,
 ): string {
   return text
-    .replace(
-      REFERENCE,
-      (
-        match,
-        space: string,
-        prefix: string | undefined,
-        name: string,
-        index: string | undefined,
-        itemName: string | undefined,
-      ) => {
-        const names = !prefix
-          ? scopes.survey
-          : prefix.toLowerCase() === "panel"
-            ? panel
-            : parentPanel;
-        const renamed = names?.get(name.trim().toLowerCase());
-        if (!renamed) return match;
-        const head = `{${space}${prefix ? `${prefix}.` : ""}${renamed}`;
-        if (!index || !itemName) return head;
-        const renamedItem = scopes.templatesByNewPanelName
-          .get(renamed)
-          ?.get(itemName.trim().toLowerCase());
-        return `${head}${index}${renamedItem ?? itemName}`;
-      },
-    )
+    .replace(BRACED, (match, body: string) => {
+      const rewritten = rewriteReference(body, scopes, panel, parentPanel);
+      return rewritten === undefined ? match : `{${rewritten}}`;
+    })
     .replace(
       QUOTED_NAME,
       (match, functionName: string, quote: string, name: string) => {
@@ -268,4 +245,48 @@ function rewriteExpression(
         return renamed ? `${functionName}(${quote}${renamed}${quote}` : match;
       },
     );
+}
+
+/** Renames the first name in a reference, and the item name after a dynamic panel's [index]. */
+function rewriteReference(
+  body: string,
+  scopes: Scopes,
+  panel: NewNameByOldName | undefined,
+  parentPanel: NewNameByOldName | undefined,
+): string | undefined {
+  const start = body.length - body.trimStart().length;
+  const prefix = PREFIXES.find((candidate) =>
+    body.slice(start).toLowerCase().startsWith(candidate),
+  );
+  let names = scopes.survey;
+  if (prefix === "panel.") names = panel ?? new Map();
+  if (prefix === "parentpanel.") names = parentPanel ?? new Map();
+
+  const nameStart = start + (prefix?.length ?? 0);
+  const [name, nameEnd] = readName(body, nameStart);
+  const renamed = names.get(name.trim().toLowerCase());
+  if (!renamed) return undefined;
+  const head = body.slice(0, nameStart) + name.replace(name.trim(), renamed);
+
+  const rest = body.slice(nameEnd);
+  const index = INDEX.exec(rest.trimStart())?.[0];
+  const template = scopes.templatesByNewPanelName.get(renamed);
+  if (!index || !template) return head + rest;
+  const indexEnd = rest.length - rest.trimStart().length + index.length;
+  const [item, itemEnd] = readName(rest, indexEnd);
+  const renamedItem = template.get(item.trim().toLowerCase());
+  if (!renamedItem) return head + rest;
+  return (
+    head +
+    rest.slice(0, indexEnd) +
+    item.replace(item.trim(), renamedItem) +
+    rest.slice(itemEnd)
+  );
+}
+
+/** Reads a name up to the next "." or "[", and returns it with the index where it ends. */
+function readName(text: string, start: number): [string, number] {
+  let end = start;
+  while (end < text.length && text[end] !== "." && text[end] !== "[") end++;
+  return [text.slice(start, end), end];
 }
