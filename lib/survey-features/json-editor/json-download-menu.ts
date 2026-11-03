@@ -11,9 +11,8 @@ import type {
 import { obfuscateSurveyJson } from "@/lib/survey-features/json-obfuscation/obfuscate-survey-json";
 import { JSON_EDITOR_PLUGIN_NAME } from "./json-editor-state";
 
-// Creator's JSON tab has one download button (svc-json-export, built in TabJsonEditorBasePlugin's
-// createActions). The obfuscated download is SurveyJS's website addition, not Creator's, so this
-// swaps the button for a menu. Re-check the action id on every SurveyJS upgrade (the tests fail).
+// Creator builds the JSON tab's download button, svc-json-export, in
+// TabJsonEditorBasePlugin's createActions.
 
 const EXPORT_ACTION_ID = "svc-json-export";
 const DEFAULT_FILE_NAME = "survey";
