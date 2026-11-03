@@ -75,4 +75,42 @@ describe("UnexpectedErrorView", () => {
     expect(screen.getByText("Digest")).toBeDefined();
     expect(screen.getAllByLabelText("Not available").length).toBeGreaterThan(0);
   });
+
+  it("gives a client error a trace id: shown, copied, and reported", async () => {
+    // Arrange
+    const clientId = "0b0e3d64-0c3f-4b9a-9f39-5c1c8e8c2b11";
+    const randomUUID = vi
+      .spyOn(crypto, "randomUUID")
+      .mockReturnValue(clientId);
+    const error = new Error("Cannot read properties of undefined");
+
+    // Act
+    render(<UnexpectedErrorView error={error} retry={() => undefined} />);
+    fireEvent.click(screen.getByRole("button", { name: "Copy Diagnostics" }));
+
+    // Assert
+    expect(screen.getByLabelText("Copy Trace ID")).toBeDefined();
+    await vi.waitFor(() =>
+      expect(String(mockWriteText.mock.calls.at(-1)?.[0])).toContain(
+        `Trace ID: ${clientId}`,
+      ),
+    );
+    expect(trackException).toHaveBeenCalledWith(
+      error,
+      expect.objectContaining({ traceId: clientId }),
+    );
+    randomUUID.mockRestore();
+  });
+
+  it("does not mint a trace id for a server error with a digest", () => {
+    // Arrange
+    const error = Object.assign(new Error("server"), { digest: "3804550175" });
+
+    // Act
+    render(<UnexpectedErrorView error={error} retry={() => undefined} />);
+
+    // Assert
+    expect(screen.queryByLabelText("Copy Trace ID")).toBeNull();
+    expect(trackException.mock.calls.at(-1)?.[1]).not.toHaveProperty("traceId");
+  });
 });

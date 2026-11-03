@@ -1,4 +1,4 @@
-import { trace } from "@opentelemetry/api";
+import { activeTraceId } from "@/lib/errors/active-trace-id";
 
 /**
  * The id shown on the export error page for someone to quote in a support
@@ -29,20 +29,9 @@ export function parseSupportReference(
   return REFERENCE_PATTERN.test(trimmed) ? trimmed : null;
 }
 
-/** Trace id of the request in flight, when telemetry is running. */
-function currentTraceId(): string | null {
-  const spanContext = trace.getActiveSpan()?.spanContext();
-  if (!spanContext?.traceId) {
-    return null;
-  }
-
-  // An all-zero id is OpenTelemetry's "no valid trace" sentinel.
-  return /^0+$/.test(spanContext.traceId) ? null : spanContext.traceId;
-}
-
 /** Prefers the failing API's own id, falling back to this request's trace. */
 export function resolveSupportReference(
   apiTraceId: string | undefined,
 ): string | null {
-  return parseSupportReference(apiTraceId) ?? parseSupportReference(currentTraceId());
+  return parseSupportReference(apiTraceId) ?? parseSupportReference(activeTraceId());
 }

@@ -6,6 +6,7 @@ import {
   buildUnexpectedErrorDiagnostics,
   getUnexpectedErrorUi,
   type UnexpectedErrorDiagnostics,
+  withClientTraceId,
 } from "@/lib/errors/unexpected-error-ui";
 import { useEffect, useMemo } from "react";
 
@@ -29,7 +30,7 @@ export function UnexpectedErrorView({
   // render is a new dependency every render, and the effect below would report the
   // same exception again on each re-render of the boundary.
   const resolvedDiagnostics = useMemo(
-    () => diagnostics ?? buildUnexpectedErrorDiagnostics(error),
+    () => diagnostics ?? withClientTraceId(buildUnexpectedErrorDiagnostics(error)),
     [diagnostics, error],
   );
 

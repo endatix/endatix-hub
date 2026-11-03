@@ -1,5 +1,6 @@
 import { ERROR_CODE } from "@/lib/endatix-api/shared/error-codes";
 import { ErrorType, type Error as ResultError } from "@/lib/result";
+import { activeTraceId } from "./active-trace-id";
 import type { ErrorPresentation } from "./error-presentation";
 
 export type UnexpectedErrorKind =
@@ -224,6 +225,23 @@ export function buildUnexpectedErrorDiagnostics(
       readOptionalNumber(withMeta.statusCode) ??
       readOptionalNumber(cause?.statusCode),
   };
+}
+
+/**
+ * A client error reaches the boundary with neither a Next `digest` nor an API `traceId`, so
+ * support had nothing to quote. It gets the active trace, else a fresh id, which also goes
+ * to telemetry so the reported exception can be found by it. Server and API ids are kept.
+ */
+export function withClientTraceId(
+  diagnostics: UnexpectedErrorDiagnostics,
+): UnexpectedErrorDiagnostics {
+  if (diagnostics.digest || diagnostics.traceId) {
+    return diagnostics;
+  }
+
+  // `randomUUID` exists only in secure contexts; a Hub served over http keeps the row blank.
+  const traceId = activeTraceId() ?? globalThis.crypto?.randomUUID?.();
+  return traceId ? { ...diagnostics, traceId } : diagnostics;
 }
 
 export function formatUnexpectedErrorClipboard(
