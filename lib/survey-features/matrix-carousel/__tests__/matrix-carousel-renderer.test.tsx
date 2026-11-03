@@ -116,9 +116,7 @@ function carouselSurveyJson(
   };
 }
 
-// Every test mounts a full <Survey>: ~2 s each under full-suite load, and the
-// remount test (two mounts) measured 4.7 s, flaking on the 5 s default.
-describe("MatrixCarouselRenderer", { timeout: 15_000 }, () => {
+describe("MatrixCarouselRenderer", () => {
   let previousIntersectionObserver: typeof IntersectionObserver | undefined;
   let previousResizeObserver: typeof ResizeObserver | undefined;
 
@@ -661,29 +659,35 @@ describe("MatrixCarouselRenderer", { timeout: 15_000 }, () => {
     expect(question.visibleRowsChangedCallback).toBeNull();
   });
 
-  it("a remount on the same question installs a fresh callback rather than nesting on top of a stale one", () => {
-    // Arrange — unmount then remount on the same underlying question/model,
-    // the scenario a stale-callback bug would surface in: if the base
-    // callback the first instance captured were still reachable and got
-    // wrapped again, resyncMatrixCarouselDecomposition would run twice per
-    // rows change and/or reference a detached component's setState.
-    const model = new Model(carouselSurveyJson());
-    const first = render(<Survey model={model} />);
-    first.unmount();
-    const { container } = render(<Survey model={model} />);
+  // Two full <Survey> mounts: measured 4.7 s under full-suite load, which
+  // flaked on the 5 s default.
+  it(
+    "a remount on the same question installs a fresh callback rather than nesting on top of a stale one",
+    { timeout: 15_000 },
+    () => {
+      // Arrange — unmount then remount on the same underlying question/model,
+      // the scenario a stale-callback bug would surface in: if the base
+      // callback the first instance captured were still reachable and got
+      // wrapped again, resyncMatrixCarouselDecomposition would run twice per
+      // rows change and/or reference a detached component's setState.
+      const model = new Model(carouselSurveyJson());
+      const first = render(<Survey model={model} />);
+      first.unmount();
+      const { container } = render(<Survey model={model} />);
 
-    // Act
-    const question = model.getQuestionByName("q1");
-    act(() => {
-      question.rows = [
-        { value: "r1", text: "I like coffee" },
-        { value: "r2", text: "I like tea" },
-      ];
-    });
+      // Act
+      const question = model.getQuestionByName("q1");
+      act(() => {
+        question.rows = [
+          { value: "r1", text: "I like coffee" },
+          { value: "r2", text: "I like tea" },
+        ];
+      });
 
-    // Assert — exactly one clean set of slides from the current instance
-    expect(
-      container.querySelectorAll(".sv-matrixcarousel__slide"),
-    ).toHaveLength(2);
-  });
+      // Assert — exactly one clean set of slides from the current instance
+      expect(
+        container.querySelectorAll(".sv-matrixcarousel__slide"),
+      ).toHaveLength(2);
+    },
+  );
 });
