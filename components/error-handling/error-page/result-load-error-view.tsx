@@ -80,38 +80,75 @@ export function LoadErrorView({
           )}
         </Button>
       </div>
-      <div className="w-full max-w-md rounded-lg bg-surface-container-lowest p-4 text-left text-sm text-muted-foreground shadow-[0_8px_30px_rgb(0,52,94,0.06)] outline outline-primary/15">
-        <p className="text-xs font-semibold tracking-[0.18em] text-primary uppercase">
-          Support reference
-        </p>
-        <dl className="mt-3 space-y-2">
-          <DiagnosticRow label="Digest">
-            {diagnostics.digest ? (
-              <TruncatedId id={diagnostics.digest} copyLabel="Copy Digest" />
-            ) : null}
-          </DiagnosticRow>
-          <DiagnosticRow label="Trace ID">
-            {diagnostics.traceId ? (
-              <TruncatedId
-                id={diagnostics.traceId}
-                visibleChars={8}
-                copyLabel="Copy Trace ID"
-              />
-            ) : null}
-          </DiagnosticRow>
-          <DiagnosticRow label="Error code">
-            {diagnostics.errorCode ? (
-              <span className="font-mono">{diagnostics.errorCode}</span>
-            ) : null}
-          </DiagnosticRow>
-          {showDevDetails ? (
-            <DiagnosticRow label="Details">
-              <span className="font-mono break-all">{details}</span>
-            </DiagnosticRow>
-          ) : null}
-        </dl>
-      </div>
+      <SupportReference
+        diagnostics={diagnostics}
+        details={showDevDetails ? details : undefined}
+      />
     </ErrorPage>
+  );
+}
+
+/** The ids support asks for, and the message in development. */
+function SupportReference({
+  diagnostics,
+  details,
+}: Readonly<{ diagnostics: UnexpectedErrorDiagnostics; details?: string }>) {
+  return (
+    <div className="w-full max-w-md rounded-lg bg-surface-container-lowest p-4 text-left text-sm text-muted-foreground shadow-[0_8px_30px_rgb(0,52,94,0.06)] outline outline-primary/15">
+      <p className="text-xs font-semibold tracking-[0.18em] text-primary uppercase">
+        Support reference
+      </p>
+      <dl className="mt-3 space-y-2">
+        <SupportIds diagnostics={diagnostics} />
+        {details ? (
+          <DiagnosticRow label="Details">
+            <span className="font-mono break-all">{details}</span>
+          </DiagnosticRow>
+        ) : null}
+      </dl>
+    </div>
+  );
+}
+
+/** Digest and Trace ID come from the server or the API; a client error gets an Error ID. */
+function SupportIds({
+  diagnostics,
+}: Readonly<{ diagnostics: UnexpectedErrorDiagnostics }>) {
+  return (
+    <>
+      <IdRow label="Digest" id={diagnostics.digest} />
+      <IdRow label="Trace ID" id={diagnostics.traceId} visibleChars={8} />
+      <ErrorIdRow id={diagnostics.clientErrorId} />
+      <DiagnosticRow label="Error code">
+        {diagnostics.errorCode ? (
+          <span className="font-mono">{diagnostics.errorCode}</span>
+        ) : null}
+      </DiagnosticRow>
+    </>
+  );
+}
+
+/** Only a client error has one, so the row is left out, not blanked, otherwise. */
+function ErrorIdRow({ id }: Readonly<{ id?: string }>) {
+  return id ? <IdRow label="Error ID" id={id} visibleChars={8} /> : null;
+}
+
+/** A copyable id row, blank when the id is missing. */
+function IdRow({
+  label,
+  id,
+  visibleChars,
+}: Readonly<{ label: string; id?: string; visibleChars?: number }>) {
+  return (
+    <DiagnosticRow label={label}>
+      {id ? (
+        <TruncatedId
+          id={id}
+          visibleChars={visibleChars}
+          copyLabel={`Copy ${label}`}
+        />
+      ) : null}
+    </DiagnosticRow>
   );
 }
 

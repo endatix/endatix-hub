@@ -6,7 +6,7 @@ import {
   buildUnexpectedErrorDiagnostics,
   getUnexpectedErrorUi,
   type UnexpectedErrorDiagnostics,
-  withClientTraceId,
+  withClientErrorId,
 } from "@/lib/errors/unexpected-error-ui";
 import { useEffect, useMemo } from "react";
 
@@ -21,10 +21,31 @@ function resolveDiagnostics(
   error: Error & { digest?: string },
   diagnostics: UnexpectedErrorDiagnostics | undefined,
 ): UnexpectedErrorDiagnostics {
-  return withClientTraceId(
+  return withClientErrorId(
     diagnostics ?? buildUnexpectedErrorDiagnostics(error),
     error,
   );
+}
+
+/** What the exception is reported with: every support id the page shows, and when. */
+function exceptionProperties(
+  error: Error & { digest?: string },
+  diagnostics: UnexpectedErrorDiagnostics,
+): Record<string, string | number | boolean | null> {
+  const ids = {
+    digest: error.digest,
+    errorCode: diagnostics.errorCode,
+    statusCode: diagnostics.statusCode,
+    traceId: diagnostics.traceId,
+    clientErrorId: diagnostics.clientErrorId,
+  };
+  const present = Object.entries(ids).filter(
+    ([, value]) => value !== undefined && value !== "",
+  );
+  return {
+    timestamp: new Date().toISOString(),
+    ...Object.fromEntries(present),
+  };
 }
 
 /**
@@ -46,22 +67,7 @@ export function UnexpectedErrorView({
   );
 
   useEffect(() => {
-    const properties: Record<string, string | number | boolean | null> = {
-      timestamp: new Date().toISOString(),
-    };
-    if (error.digest) {
-      properties.digest = error.digest;
-    }
-    if (resolvedDiagnostics.errorCode) {
-      properties.errorCode = resolvedDiagnostics.errorCode;
-    }
-    if (resolvedDiagnostics.statusCode !== undefined) {
-      properties.statusCode = resolvedDiagnostics.statusCode;
-    }
-    if (resolvedDiagnostics.traceId) {
-      properties.traceId = resolvedDiagnostics.traceId;
-    }
-    trackException(error, properties);
+    trackException(error, exceptionProperties(error, resolvedDiagnostics));
   }, [error, resolvedDiagnostics, trackException]);
 
   return (

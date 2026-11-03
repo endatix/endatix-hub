@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { withClientTraceId } from "@/lib/errors/unexpected-error-ui";
+import { withClientErrorId } from "@/lib/errors/unexpected-error-ui";
 
 const MINTED = "0b0e3d64-0c3f-4b9a-9f39-5c1c8e8c2b11";
 
-describe("withClientTraceId", () => {
+describe("withClientErrorId", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
@@ -14,13 +14,13 @@ describe("withClientTraceId", () => {
     vi.spyOn(crypto, "randomUUID").mockReturnValue(MINTED);
 
     // Act
-    const diagnostics = withClientTraceId(
+    const diagnostics = withClientErrorId(
       { statusCode: 500 },
       new Error("boom"),
     );
 
     // Assert
-    expect(diagnostics).toEqual({ statusCode: 500, traceId: MINTED });
+    expect(diagnostics).toEqual({ statusCode: 500, clientErrorId: MINTED });
   });
 
   it("gives one error the same id every time, and another error its own", () => {
@@ -28,9 +28,9 @@ describe("withClientTraceId", () => {
     const error = new Error("boom");
 
     // Act
-    const first = withClientTraceId({}, error).traceId;
-    const again = withClientTraceId({}, error).traceId;
-    const other = withClientTraceId({}, new Error("boom")).traceId;
+    const first = withClientErrorId({}, error).clientErrorId;
+    const again = withClientErrorId({}, error).clientErrorId;
+    const other = withClientErrorId({}, new Error("boom")).clientErrorId;
 
     // Assert
     expect(again).toBe(first);
@@ -45,10 +45,10 @@ describe("withClientTraceId", () => {
     });
 
     // Act
-    const diagnostics = withClientTraceId({}, new Error("boom"));
+    const diagnostics = withClientErrorId({}, new Error("boom"));
 
     // Assert
-    expect(diagnostics.traceId).toBe("abcdef01".repeat(4));
+    expect(diagnostics.clientErrorId).toBe("abcdef01".repeat(4));
   });
 
   it.each([
@@ -59,7 +59,7 @@ describe("withClientTraceId", () => {
     const randomUUID = vi.spyOn(crypto, "randomUUID");
 
     // Act
-    const diagnostics = withClientTraceId(given, new Error("boom"));
+    const diagnostics = withClientErrorId(given, new Error("boom"));
 
     // Assert
     expect(diagnostics).toEqual(given);

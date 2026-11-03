@@ -19,6 +19,8 @@ export interface UnexpectedErrorUi extends ErrorPresentation {
 export interface UnexpectedErrorDiagnostics {
   digest?: string;
   traceId?: string;
+  /** Minted in the browser for a client error, which has no digest and no trace id. */
+  clientErrorId?: string;
   errorCode?: string;
   statusCode?: number;
 }
@@ -226,10 +228,10 @@ export function buildUnexpectedErrorDiagnostics(
   };
 }
 
-const clientTraceIds = new WeakMap<Error, string>();
+const clientErrorIds = new WeakMap<Error, string>();
 
 /** `randomUUID` exists only in secure contexts; a Hub served over http mints hex instead. */
-function mintClientTraceId(): string {
+function mintClientErrorId(): string {
   const uuid = globalThis.crypto.randomUUID?.();
   if (uuid) {
     return uuid;
@@ -243,11 +245,11 @@ function mintClientTraceId(): string {
 
 /**
  * A client error reaches the boundary with neither a Next `digest` nor an API `traceId`, so
- * support had nothing to quote. It gets an id minted in the browser (the Hub runs no browser
- * tracer), the same one for every render of that error, which also goes to product analytics
- * with the exception. Server and API ids are kept.
+ * support had nothing to quote. It gets an Error ID minted in the browser, the same one for
+ * every render of that error, which also goes to product analytics with the exception. It is
+ * not a trace id: the Hub runs no browser tracer. Errors with their own ids get none.
  */
-export function withClientTraceId(
+export function withClientErrorId(
   diagnostics: UnexpectedErrorDiagnostics,
   error: Error,
 ): UnexpectedErrorDiagnostics {
@@ -255,12 +257,17 @@ export function withClientTraceId(
     return diagnostics;
   }
 
-  let traceId = clientTraceIds.get(error);
-  if (!traceId) {
-    traceId = mintClientTraceId();
-    clientTraceIds.set(error, traceId);
+  let clientErrorId = clientErrorIds.get(error);
+  if (!clientErrorId) {
+    clientErrorId = mintClientErrorId();
+    clientErrorIds.set(error, clientErrorId);
   }
-  return { ...diagnostics, traceId };
+  return { ...diagnostics, clientErrorId };
+}
+
+/** `Label: value`, or nothing when the value is missing. */
+function clipboardLine(label: string, value: string | undefined) {
+  return value ? `${label}: ${value}` : undefined;
 }
 
 export function formatUnexpectedErrorClipboard(
@@ -271,13 +278,14 @@ export function formatUnexpectedErrorClipboard(
 
   return [
     "Endatix Hub error",
-    extras.path ? `Path: ${extras.path}` : undefined,
+    clipboardLine("Path", extras.path),
     `Timestamp: ${new Date().toISOString()}`,
-    diagnostics.digest ? `Digest: ${diagnostics.digest}` : "Digest: n/a",
-    diagnostics.traceId ? `Trace ID: ${diagnostics.traceId}` : undefined,
-    diagnostics.errorCode ? `Error code: ${diagnostics.errorCode}` : undefined,
+    clipboardLine("Digest", diagnostics.digest ?? "n/a"),
+    clipboardLine("Trace ID", diagnostics.traceId),
+    clipboardLine("Error ID", diagnostics.clientErrorId),
+    clipboardLine("Error code", diagnostics.errorCode),
     httpStatus !== undefined ? `HTTP status: ${httpStatus}` : undefined,
-    extras.details ? `Details: ${extras.details}` : undefined,
+    clipboardLine("Details", extras.details),
   ]
     .filter((line): line is string => line !== undefined)
     .join("\n");
