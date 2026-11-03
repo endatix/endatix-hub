@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { Base, Model, type IPropertyValueChangedEvent } from "survey-core";
 import {
   TabJsonEditorAcePlugin,
@@ -19,6 +19,7 @@ import {
   NOT_ON_JSON_TAB_STATE,
   createOnJsonTabState,
 } from "./json-editor-state";
+import { addObfuscatedJsonDownload } from "./json-download-menu";
 import { Result } from "@/lib/result";
 
 const INVALID_JSON_ERROR_MESSAGE =
@@ -45,6 +46,8 @@ export type { JsonEditorState } from "./json-editor-state";
 
 export interface UseJsonEditorOptions {
   onJsonStateChange?: (state: JsonEditorState) => void;
+  /** The form's name, for the obfuscated download's file name. */
+  downloadName?: string;
 }
 
 /**
@@ -53,10 +56,15 @@ export interface UseJsonEditorOptions {
  * Does not subscribe to creator.onModified; the consumer should do that for unsaved state.
  *
  * @param options.onJsonStateChange - Called when JSON tab, validation, or modified state changes.
+ * @param options.downloadName - Names the obfuscated download, `<downloadName>.obf.json`.
  * @returns { registerJsonEditor } - Call with creator; returns cleanup.
  */
 export function useJsonEditor(options: UseJsonEditorOptions) {
-  const { onJsonStateChange } = options;
+  const { onJsonStateChange, downloadName = "" } = options;
+  const downloadNameRef = useRef(downloadName);
+  useEffect(() => {
+    downloadNameRef.current = downloadName;
+  }, [downloadName]);
 
   const registerJsonEditor = useCallback(
     (creator: SurveyCreatorModel): (() => void) => {
@@ -152,8 +160,13 @@ export function useJsonEditor(options: UseJsonEditorOptions) {
 
       creator.onLintSurvey.add(warnUnknownReference);
       creator.onActiveTabChanged.add(onTabChanged);
+      const removeDownloadMenu = addObfuscatedJsonDownload(
+        creator,
+        () => downloadNameRef.current,
+      );
 
       return () => {
+        removeDownloadMenu();
         creator.onLintSurvey.remove(warnUnknownReference);
         creator.onActiveTabChanged.remove(onTabChanged);
         removeModelListener?.();

@@ -171,6 +171,7 @@ function nameToTitle(name: string): string {
 function FormEditor({
   formJson,
   formId,
+  formName,
   options,
   themeId,
   audience,
@@ -215,6 +216,7 @@ function FormEditor({
   );
   const { registerJsonEditor, getJsonModel } = useJsonEditor({
     onJsonStateChange,
+    downloadName: formName,
   });
   const { isReady: isExtensionsReady, onCreatorCreated } = useSurveyExtensions({
     runtimeDeps: {
