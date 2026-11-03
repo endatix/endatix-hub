@@ -5,6 +5,9 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Sofia"
     open-pull-requests-limit: 10
     # Must stay >= minimumReleaseAge in pnpm-workspace.yaml (1440 minutes), or
     # Dependabot proposes a version its own frozen install then refuses to resolve.
@@ -14,7 +17,12 @@ updates:
       prefix: "chore"
       include: "scope"
     groups:
+      # One PR for all open npm security fixes (version groups must not swallow these).
+      npm-security:
+        applies-to: security-updates
+        patterns: ["*"]
       minor-and-patch:
+        applies-to: version-updates
         update-types: ["minor", "patch"]
 
   - package-ecosystem: "github-actions"
@@ -25,15 +33,28 @@ updates:
       - "/.github/actions/*"
     schedule:
       interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Sofia"
     commit-message:
       prefix: "chore"
       include: "scope"
+    groups:
+      actions-security:
+        applies-to: security-updates
+        patterns: ["*"]
+      github-actions:
+        applies-to: version-updates
+        patterns: ["*"]
 
   - package-ecosystem: "docker"
     labels: ["dependencies"]
     directory: "/"
     schedule:
       interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Sofia"
     commit-message:
       prefix: "chore"
       include: "scope"
