@@ -116,7 +116,9 @@ function carouselSurveyJson(
   };
 }
 
-describe("MatrixCarouselRenderer", () => {
+// Every test mounts a full <Survey>: ~2 s each under full-suite load, and the
+// remount test (two mounts) measured 4.7 s, flaking on the 5 s default.
+describe("MatrixCarouselRenderer", { timeout: 15_000 }, () => {
   let previousIntersectionObserver: typeof IntersectionObserver | undefined;
   let previousResizeObserver: typeof ResizeObserver | undefined;
 

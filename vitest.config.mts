@@ -16,6 +16,8 @@ export default defineConfig({
   },
   test: {
     globals: true,
+    // Vitest 5 defaults to true; flipping it is endatix-hub#1319.
+    clearMocks: false,
     environment: "jsdom",
     server: {
       deps: {

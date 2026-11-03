@@ -82,11 +82,11 @@ describe("AudioQuestionModel", () => {
     vi.clearAllMocks();
 
     // Mock global APIs
-    global.navigator = {
+    vi.stubGlobal("navigator", {
       mediaDevices: {
         getUserMedia: vi.fn().mockResolvedValue(mockMediaStream),
       },
-    } as unknown as Navigator;
+    });
 
     global.AudioContext = vi.fn(function () {
       return mockAudioContext;
