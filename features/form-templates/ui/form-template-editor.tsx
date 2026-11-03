@@ -112,6 +112,11 @@ function FormTemplateEditorContent({
     itemId: templateId,
     itemType: "template",
   });
+  const router = useRouter();
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [name, setName] = useState(templateName);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const [originalName, setOriginalName] = useState(templateName);
   const { registerJsonEditor, getJsonModel } = useJsonEditor({
     onJsonStateChange: (state) => {
       setHasJsonErrors(state.hasErrors);
@@ -121,12 +126,8 @@ function FormTemplateEditorContent({
         setHasUnsavedChanges(true);
       }
     },
+    downloadName: originalName,
   });
-  const router = useRouter();
-  const [isEditingName, setIsEditingName] = useState(false);
-  const [name, setName] = useState(templateName);
-  const inputRef = useRef<HTMLInputElement | null>(null);
-  const [originalName, setOriginalName] = useState(templateName);
   const [isSaving, setIsSaving] = useState(false);
   const [showSavedSuccess, setShowSavedSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(true);

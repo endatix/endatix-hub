@@ -1,12 +1,13 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { expect, type Locator, type Page, test } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import { SignInPage } from "../../pages/auth/sign-in.page";
 import {
   deleteForm,
   e2eCredentials,
   signInE2eApi,
 } from "../../utils/screen-out-api";
+import { openJsonTab, pasteIntoAce, saveEvidence } from "../../utils/json-tab";
 
 const FIXTURE = readFileSync(
   path.join(
@@ -15,50 +16,6 @@ const FIXTURE = readFileSync(
   ),
   "utf8",
 );
-
-const EVIDENCE_DIR = process.env.E2E_EVIDENCE_DIR;
-
-/** Ace ignores keyboard.insertText. Select all, then Ace's own paste command. */
-async function pasteIntoAce(page: Page, text: string): Promise<void> {
-  const editor = page.locator(".ace_editor");
-  await editor.click();
-  await page.evaluate((value) => {
-    const root = document.querySelector(".ace_editor");
-    const ace = (
-      window as Window & {
-        ace?: {
-          edit: (el: Element) => {
-            focus: () => void;
-            selectAll: () => void;
-            execCommand: (command: string, args: string) => void;
-          };
-        };
-      }
-    ).ace;
-    if (!root || !ace) {
-      throw new Error("Ace is not loaded");
-    }
-    const aceEditor = ace.edit(root);
-    aceEditor.focus();
-    aceEditor.selectAll();
-    aceEditor.execCommand("paste", value);
-  }, text);
-  await expect(editor).toContainText("Family size");
-}
-
-async function saveEvidence(
-  page: Page,
-  region: Locator,
-  name: string,
-): Promise<void> {
-  if (!EVIDENCE_DIR) {
-    return;
-  }
-  await page.addStyleTag({
-    content: "nextjs-portal { display: none !important; }",
-  });
-  await region.screenshot({ path: path.join(EVIDENCE_DIR, name) });
-}
 
 test.use({
   deviceScaleFactor: 2,
@@ -89,26 +46,8 @@ test.describe("JSON tab unknown references", () => {
       await signIn.performSignInFlow(credentials.email, credentials.password);
       await page.goto(`/forms/${formId}/design`);
 
-      await expect(
-        page.getByRole("tab", { name: "Designer", exact: true }),
-      ).toBeVisible();
-      const jsonTab = page.getByRole("tab", { name: "JSON Editor", exact: true });
-      if (!(await jsonTab.isVisible())) {
-        await page
-          .getByRole("tablist")
-          .getByRole("button", { name: "More", exact: true })
-          .click();
-      }
-      const jsonItem = page.getByRole("menuitem", {
-        name: "JSON Editor",
-        exact: true,
-      });
-      if (await jsonItem.isVisible()) {
-        await jsonItem.click();
-      } else {
-        await jsonTab.click();
-      }
-      await pasteIntoAce(page, FIXTURE);
+      await openJsonTab(page);
+      await pasteIntoAce(page, FIXTURE, "Family size");
       await expect(page.getByText("is not found").first()).toBeVisible();
       await saveEvidence(
         page,

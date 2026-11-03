@@ -9,6 +9,7 @@ import {
 import { useJsonEditor } from "../use-json-editor.hook";
 
 vi.mock("survey-core", () => ({
+  SvgRegistry: { registerIcon: vi.fn() },
   Model: vi.fn().mockImplementation(function (this: any) {
     this.fromJSON = vi.fn();
     this.toJSON = vi.fn().mockReturnValue({ pages: [] });
@@ -22,6 +23,8 @@ vi.mock("survey-creator-core", () => ({
     hasAceEditor: vi.fn().mockReturnValue(false),
   },
 }));
+
+const NO_TOOLBAR_ACTIONS = { actions: [], getActionById: () => undefined };
 
 describe("useJsonEditor", () => {
   beforeEach(() => {
@@ -209,6 +212,7 @@ describe("useJsonEditor", () => {
         activeTab: "design",
         onActiveTabChanged: { add: vi.fn(), remove },
         onLintSurvey: { add: vi.fn(), remove: vi.fn() },
+        toolbar: NO_TOOLBAR_ACTIONS,
       };
       const { result } = renderHook(() => useJsonEditor({}));
 
@@ -235,6 +239,7 @@ describe("useJsonEditor", () => {
           remove: vi.fn(),
         },
         onLintSurvey: { add: vi.fn(), remove: vi.fn() },
+        toolbar: NO_TOOLBAR_ACTIONS,
         getPlugin: vi.fn().mockReturnValue(null),
       };
       const { result } = renderHook(() => useJsonEditor({ onJsonStateChange }));
@@ -264,6 +269,7 @@ describe("useJsonEditor", () => {
           remove: vi.fn(),
         },
         onLintSurvey: { add: vi.fn(), remove: vi.fn() },
+        toolbar: NO_TOOLBAR_ACTIONS,
         getPlugin: vi.fn().mockReturnValue({
           model: {
             hasErrors: true,
