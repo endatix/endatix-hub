@@ -467,7 +467,7 @@ function applyRead(
     throw error;
   }
   repaintPrefillMarks();
-  refreshChoiceWarning();
+  refreshChoiceWarning(creator.survey);
 }
 
 /**

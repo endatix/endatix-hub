@@ -311,6 +311,42 @@ describe("Prefill from on a choice question", () => {
     expect(shown(rating.warning())).toContain("No choice has the value 4.");
   });
 
+  it("refreshes only the designer whose participants were read again", async () => {
+    // Arrange
+    const first = designer(radio(["1"]), ["1"], { reads: [["1", "4"]] });
+    const second = designer(radio(["1"]), ["1"], { reads: [["1", "9"]] });
+    const firstRating = open(first.creator, "rating");
+    const secondRating = open(second.creator, "rating");
+
+    // Act
+    await first.binding.refresh();
+
+    // Assert
+    expect(shown(firstRating.warning())).toContain(
+      "No choice has the value 4.",
+    );
+    expect(shown(secondRating.warning())).toBeUndefined();
+  });
+
+  it("follows None and Other turned on or off", () => {
+    // Arrange
+    const { creator } = designer(radio(["1"]), ["1", "none", "7"]);
+    const rating = open(creator, "rating");
+
+    // Act
+    rating.question.showNoneItem = true;
+    const withNone = shown(rating.warning());
+    rating.question.showOtherItem = true;
+    const withOther = shown(rating.warning());
+    rating.question.showOtherItem = false;
+    const otherOff = shown(rating.warning());
+
+    // Assert
+    expect(withNone).toContain("No choice has the value 7.");
+    expect(withOther).toBeUndefined();
+    expect(otherOff).toContain("No choice has the value 7.");
+  });
+
   it("hides the warning when the prefill is cleared", () => {
     // Arrange
     const { creator } = designer(radio(["1"]), ["1", "2"]);

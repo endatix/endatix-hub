@@ -30,6 +30,18 @@ type ChoiceQuestion = Question & {
   dontKnowItem?: ItemValue;
 };
 
+/** Every property `ownChoices` reads, so Prefill from refreshes when one changes. */
+export const CHOICE_SETTINGS: Array<[className: string, name: string]> = [
+  ["selectbase", "choices"],
+  ["selectbase", "choicesFromQuestion"],
+  ["selectbase", "showOtherItem"],
+  ["selectbase", "showNoneItem"],
+  ["selectbase", "showRefuseItem"],
+  ["selectbase", "showDontKnowItem"],
+  ["dropdown", "allowCustomChoices"],
+  ["tagbox", "allowCustomChoices"],
+];
+
 const SPECIAL_ITEMS = [
   ["showNoneItem", "noneItem"],
   ["showRefuseItem", "refuseItem"],
@@ -184,11 +196,17 @@ function showWarning(editor: Question, text: string | undefined): void {
 }
 
 const refreshers = new WeakMap<Question, () => void>();
-let refreshShown: (() => void) | undefined;
+/** The warning shown last in each designer survey, so a read refreshes only its own designer. */
+const shownIn = new WeakMap<object, () => void>();
 
-/** Checks the warning shown last against participants read again since. */
-export function refreshChoiceWarning(): void {
-  refreshShown?.();
+/** Checks the warning shown last in `survey` against participants read again since. */
+export function refreshChoiceWarning(survey: object | undefined): void {
+  if (survey) shownIn.get(survey)?.();
+}
+
+/** Drops the survey's warning on unbind, so nothing keeps its editor alive. */
+export function forgetChoiceWarning(survey: object): void {
+  shownIn.delete(survey);
 }
 
 /**
@@ -209,6 +227,6 @@ export function warnOnUnmatchedChoices(
     });
   }
   refreshers.set(question, refresh);
-  refreshShown = refresh;
+  if (question.survey) shownIn.set(question.survey, refresh);
   refresh();
 }

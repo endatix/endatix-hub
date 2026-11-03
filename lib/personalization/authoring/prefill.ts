@@ -11,7 +11,7 @@ import {
 } from "../coverage/prefill-match";
 import { PERSONALIZATION_ICON_SVG } from "./personalization-icon";
 import { PREFILL_CHOICE, registerPrefillChoice } from "./prefill-choice";
-import { type ChoiceAudience, WARNING_QUESTION, warnOnUnmatchedChoices } from "./prefill-choice-values";
+import { CHOICE_SETTINGS, type ChoiceAudience, forgetChoiceWarning, WARNING_QUESTION, warnOnUnmatchedChoices } from "./prefill-choice-values";
 
 export type { PrefillShape, PrefillSource };
 export { isPrefillCompatible, prefillVariableOf };
@@ -443,10 +443,10 @@ function registerProperties(): void {
   const prefillFrom = prefillFromProperty();
   Serializer.addProperty("question", {
     ...prefillFrom,
-    // `inputType` and `choices` live on subclasses; wire them after register (see below).
+    // `inputType` and the choice settings live on subclasses; wire them after register (see below).
     dependsOn: ["defaultValueExpression"],
   });
-  refreshPrefillOn([["text", "inputType"], ["selectbase", "choices"]]);
+  refreshPrefillOn([["text", "inputType"], ...CHOICE_SETTINGS]);
   Serializer.addProperty("question", prefillEditableProperty());
   propertiesRegistered = true;
 }
@@ -465,6 +465,7 @@ function detachSurvey(survey: object, audience: PrefillAudience): void {
   if (bindings.get(survey) !== audience) return;
   bindings.delete(survey);
   creators.delete(survey);
+  forgetChoiceWarning(survey);
 }
 
 /**
