@@ -216,4 +216,25 @@ describe("Participants list Property columns", () => {
     // Assert
     expect(headers()).toEqual(["Email", "Link", "City", "Actions"]);
   });
+
+  it("takes another tab's choice after a write this tab could not store", () => {
+    // Arrange
+    render(<PeopleSection {...LIST} />);
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new DOMException("blocked", "SecurityError");
+    });
+    toggleColumn("Plan");
+    expect(headers()).toEqual(["Email", "Link", "City", "Actions"]);
+    vi.restoreAllMocks();
+    const key = "ehx_participants_hidden_columns_1";
+    localStorage.setItem(key, '["11"]');
+
+    // Act
+    act(() => {
+      globalThis.dispatchEvent(new StorageEvent("storage", { key }));
+    });
+
+    // Assert — City (the other tab) is hidden; the failed local hide of Plan is dropped
+    expect(headers()).toEqual(["Email", "Link", "Plan", "Actions"]);
+  });
 });

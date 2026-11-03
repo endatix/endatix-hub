@@ -43,12 +43,19 @@ export function usePropertyColumns(
     () => getHiddenPropertyColumns(formId),
     getServerHiddenPropertyColumns,
   );
-  const [unsaved, setUnsaved] = useState<readonly string[] | null>(null);
-  const hidden = unsaved ?? stored;
+  // A failed write keeps the choice only while `stored` is the snapshot it was made against.
+  // Another tab's save replaces that snapshot, so its choice shows without reopening the list.
+  const [unsaved, setUnsaved] = useState<{
+    when: readonly string[];
+    ids: readonly string[];
+  } | null>(null);
+  const hidden = unsaved?.when === stored ? unsaved.ids : stored;
   const isShown = (property: AudienceProperty) => !hidden.includes(property.id);
   const toggle = (property: AudienceProperty) => {
     const next = toggled(properties, isShown, property);
-    setUnsaved(saveHiddenPropertyColumns(formId, next) ? null : next);
+    setUnsaved(
+      saveHiddenPropertyColumns(formId, next) ? null : { when: stored, ids: next },
+    );
   };
   const shown = properties.filter((p) => isShown(p));
   return { properties, shown, isShown, toggle };
