@@ -179,4 +179,18 @@ describe("unexpected-error-ui", () => {
     expect(payload).toContain("Digest: n/a");
     expect(payload).toContain("Trace ID: 00-abc");
   });
+
+  it("copies a client Error ID on its own line, apart from the Trace ID", () => {
+    // Act
+    const withId = formatUnexpectedErrorClipboard(
+      { clientErrorId: "0b0e3d64-0c3f-4b9a-9f39-5c1c8e8c2b11" },
+      {},
+    );
+    const withoutId = formatUnexpectedErrorClipboard({ traceId: "abc" }, {});
+
+    // Assert
+    expect(withId).toContain("Error ID: 0b0e3d64-0c3f-4b9a-9f39-5c1c8e8c2b11");
+    expect(withId).not.toContain("Trace ID:");
+    expect(withoutId).not.toContain("Error ID:");
+  });
 });
