@@ -1,5 +1,6 @@
 import {
   Base,
+  ItemValue,
   Model,
   Serializer,
   type IElement,
@@ -94,6 +95,14 @@ function removeHtmlQuestions(survey: Model): void {
 function scrambleTexts(owner: Base, random: Random, seen: Set<Base>): void {
   if (seen.has(owner)) return;
   seen.add(owner);
+  // An item with no text shows its value, which logic compares against, so it gets a scrambled text.
+  if (
+    owner instanceof ItemValue &&
+    typeof owner.value === "string" &&
+    !owner.locText.getJson()
+  ) {
+    owner.text = obfuscateText(owner.value, random);
+  }
   const values = owner as unknown as Record<string, unknown>;
   Serializer.getPropertiesByObj(owner).forEach((property) => {
     if (REMOVED_HTML_PROPERTIES.has(property.name)) return;

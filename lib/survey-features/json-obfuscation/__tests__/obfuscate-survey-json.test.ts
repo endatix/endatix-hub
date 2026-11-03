@@ -549,6 +549,63 @@ describe("obfuscateSurveyJson scopes and nested text", () => {
     expect(text).not.toMatch(/Secret|secret|Kid/);
   });
 
+  it("gives a choice, row or column that has only a value a scrambled text, and keeps the value", () => {
+    // Arrange
+    const json = {
+      pages: [
+        {
+          elements: [
+            { type: "radiogroup", name: "habit", choices: ["Smoker", 2] },
+            {
+              type: "matrix",
+              name: "week",
+              rows: ["Monday"],
+              columns: ["Often"],
+            },
+            { type: "text", name: "why", visibleIf: "{habit} = 'Smoker'" },
+          ],
+        },
+      ],
+    };
+
+    // Act
+    const [habit, week, why] = pageElements(json);
+
+    // Assert
+    expect(habit.choices).toEqual([{ value: "Smoker", text: "Nnnnnn" }, 2]);
+    expect(week.rows).toEqual([{ value: "Monday", text: "Nnnnnn" }]);
+    expect(week.columns).toEqual([{ value: "Often", text: "Nnnnn" }]);
+    expect(why.visibleIf).toBe("{q1} = 'Smoker'");
+  });
+
+  it("scrambles text in a matrix's detail panel", () => {
+    // Arrange
+    const json = {
+      pages: [
+        {
+          elements: [
+            {
+              type: "matrixdynamic",
+              name: "meds",
+              detailPanelMode: "underRow",
+              columns: [{ name: "dose", cellType: "text" }],
+              detailElements: [
+                { type: "text", name: "note", title: "Secret detail" },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    // Act
+    const [meds] = pageElements(json);
+
+    // Assert
+    expect(meds.detailElements).toHaveLength(1);
+    expect(JSON.stringify(meds)).not.toMatch(/Secret/);
+  });
+
   it("renames a dynamic panel's keyName and names quoted in displayValue and propertyValue", () => {
     // Arrange
     const json = {
