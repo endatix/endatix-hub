@@ -69,7 +69,7 @@
     "fflate": "^0.8.3",
     "flags": "^4.2.0",
     "jose": "^6.1.0",
-    "lucide-react": "^0.574.0",
+    "lucide-react": "^1.66.0",
     "markdown-it": "^15.0.3",
     "next": "16.4.5",
     "next-auth": "5.0.0-beta.32",
