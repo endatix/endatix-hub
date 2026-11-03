@@ -27,10 +27,15 @@ import { useTestAsPerson } from "../../test-as-person/use-test-as-person.hook";
 import { EditPersonPanel } from "../../update-person/ui/edit-person-panel";
 import { useRowOverlay } from "../../use-panel-state.hook";
 import { valueProperties } from "../../utils";
+import { PeopleColumnsMenu } from "./people-columns-menu";
 import { PeopleTable, type RowHandlers } from "./people-table";
 import { PeopleEmpty } from "./people-empty";
 import { PeopleToolbar } from "./people-toolbar";
 import { SectionHeader } from "./section-header";
+import {
+  usePropertyColumns,
+  type PropertyColumns,
+} from "./use-property-columns.hook";
 import type { UsageVerdicts } from "@/lib/personalization/coverage";
 
 type PeopleSectionProps = {
@@ -94,6 +99,7 @@ function PeoplePager(props: Readonly<Paging>) {
 type PeopleSurfaceProps = PeopleSectionProps & {
   handlers: RowHandlers;
   selection?: ParticipantSelection;
+  shownProperties: AudienceProperty[];
 };
 
 function PeopleSurface(props: Readonly<PeopleSurfaceProps>) {
@@ -252,12 +258,18 @@ function clearSelection(selection?: ParticipantSelection) {
 
 type ListToolbarProps = PeopleSectionProps & {
   ticks?: ParticipantSelection;
+  columns: PropertyColumns;
 };
 
-/** Search and the Test filter, with Clear selection pinned while there are ticks. */
-function ListToolbar({ ticks, ...props }: Readonly<ListToolbarProps>) {
+/** Search and the Test filter; Clear selection while there are ticks, then Columns. */
+function ListToolbar({ ticks, columns, ...props }: Readonly<ListToolbarProps>) {
   if (!showsToolbar(props)) return null;
-  const actions = clearSelection(ticks);
+  const actions = (
+    <>
+      {clearSelection(ticks)}
+      <PeopleColumnsMenu columns={columns} />
+    </>
+  );
   return <PeopleToolbar testFilter={props.testFilter} actions={actions} />;
 }
 
@@ -268,11 +280,18 @@ export function PeopleSection(props: Readonly<PeopleSectionProps>) {
   const handlers = useRowHandlers(props, row, testLink.open);
   const values = withValueProperties(props);
   const ticks = offersTestLinks(props) ? selection : undefined;
+  const columns = usePropertyColumns(props.formId, values.properties);
+  const shownProperties = values.properties.filter((p) => columns.isShown(p));
   return (
     <section aria-labelledby="audience-people" className="flex flex-col gap-4">
       <PeopleHeader {...props} selection={selection} />
-      <ListToolbar {...props} ticks={ticks} />
-      <PeopleSurface {...values} handlers={handlers} selection={ticks} />
+      <ListToolbar {...props} ticks={ticks} columns={columns} />
+      <PeopleSurface
+        {...values}
+        handlers={handlers}
+        selection={ticks}
+        shownProperties={shownProperties}
+      />
       {props.canEdit ? (
         <PeopleOverlays {...values} row={row} onRemoved={selection.untick} />
       ) : null}
