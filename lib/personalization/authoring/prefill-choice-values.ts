@@ -1,5 +1,6 @@
 import { ItemValue, Serializer, type PanelModel, type Question } from "survey-core";
 import type { AudienceVariablePreset } from "@/lib/endatix-api/audience/types";
+import { prefillSourceNamed, prefillVariableOf, type PrefillSource } from "../coverage/prefill-match";
 
 const WARNING = "edxPrefillFrom_values";
 
@@ -27,20 +28,51 @@ function heldValues(value: unknown): unknown[] {
  * `2` comes before `10`. A choice is selected only when its value equals the prefill,
  * compared as SurveyJS compares them (`1` matches `"1"`).
  */
-export function unmatchedChoiceValues(
-  question: Question,
+function unmatchedChoiceValues(
+  choices: ItemValue[],
   variable: string,
   participants: readonly AudienceVariablePreset[],
 ): string[] {
-  const choices = ownChoices(question);
-  if (!choices) return [];
-  const unmatched = new Set<string>();
-  for (const participant of participants) {
-    for (const value of heldValues(participant.variables[variable])) {
-      if (!ItemValue.getItemByValue(choices, value)) unmatched.add(String(value));
-    }
+  const held = participants.flatMap((participant) => heldValues(participant.variables[variable]));
+  const unmatched = held.filter((value) => !ItemValue.getItemByValue(choices, value)).map(String);
+  return [...new Set(unmatched)].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+}
+
+const LISTED_VALUES = 5;
+
+function listedValues(values: string[]): string {
+  if (values.length === 1) return values[0];
+  if (values.length > LISTED_VALUES) {
+    return `${values.slice(0, LISTED_VALUES).join(", ")} or ${values.length - LISTED_VALUES} other values`;
   }
-  return [...unmatched].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  return `${values.slice(0, -1).join(", ")} or ${values.at(-1)}`;
+}
+
+/** The Properties, and the participants the designer knows with their values. */
+export type ChoiceAudience = {
+  sources: () => PrefillSource[];
+  participants: () => AudienceVariablePreset[];
+};
+
+/**
+ * What the panel says when a participant's value for the question's Prefill from Property has no
+ * choice, so that participant starts with nothing selected; undefined when every value has one.
+ */
+export function unmatchedChoiceWarning(
+  question: Question,
+  audience: ChoiceAudience | undefined,
+): string | undefined {
+  const variable = prefillVariableOf(question.defaultValueExpression);
+  const choices = ownChoices(question);
+  if (!audience || !variable || !choices) return undefined;
+  const unmatched = unmatchedChoiceValues(choices, variable, audience.participants());
+  if (unmatched.length === 0) return undefined;
+  const title = prefillSourceNamed(audience.sources(), variable)?.title ?? variable;
+  return (
+    `No choice has the value ${listedValues(unmatched)}. ` +
+    `Participants with these ${title} values start with nothing selected. ` +
+    "Add a choice for each value, or change the choice values to match."
+  );
 }
 
 function escapeHtml(text: string): string {

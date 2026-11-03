@@ -325,11 +325,7 @@ function prefillAndPreview(
       participants: () => withUnsaved(state.installed, state.unsaved),
       formId,
     }),
-    installPrefillCanvas(
-      creator,
-      () => prefillSources(state.variables),
-      formId,
-    ),
+    installPrefillCanvas(creator, () => prefillSources(state.variables), formId),
     extendPreview(creator, state, onFindParticipant),
   ];
 }

@@ -1,18 +1,17 @@
 import { Serializer, SvgRegistry, type ItemValue, type PanelModel, type Question } from "survey-core";
 import { getLocaleStrings, type SurveyCreatorModel, type SurveyInstanceCreatedEvent } from "survey-creator-core";
-import type { AudienceVariablePreset } from "@/lib/endatix-api/audience/types";
 import { withBasePath } from "@/lib/hosting";
 import { formRoutes } from "@/lib/routes/form-routes";
 import { LOCAL_DATE_TIME_FUNCTION } from "@/lib/survey-features/local-date-time";
 import {
   isPrefillCompatible,
-  prefillSourceNamed,
   prefillVariableOf,
   type PrefillShape,
   type PrefillSource,
 } from "../coverage/prefill-match";
+import { PERSONALIZATION_ICON_SVG } from "./personalization-icon";
 import { PREFILL_CHOICE, registerPrefillChoice } from "./prefill-choice";
-import { showChoiceWarning, unmatchedChoiceValues } from "./prefill-choice-values";
+import { type ChoiceAudience, showChoiceWarning, unmatchedChoiceWarning } from "./prefill-choice-values";
 
 export type { PrefillShape, PrefillSource };
 export { isPrefillCompatible, prefillVariableOf };
@@ -28,15 +27,10 @@ const PERSONALIZATION_ICON = "icon-personalization";
 const VARIABLE_NAME = /^\w+$/;
 
 /** What Prefill from reads: the Properties, the participants the designer knows, and the form. */
-export type PrefillAudience = {
-  sources: () => PrefillSource[];
-  participants: () => AudienceVariablePreset[];
-  formId?: string;
-};
+export type PrefillAudience = ChoiceAudience & { formId?: string };
 
-type PrefillBinding = PrefillAudience;
 
-const bindings = new WeakMap<object, PrefillBinding>();
+const bindings = new WeakMap<object, PrefillAudience>();
 let propertiesRegistered = false;
 
 /** An expression the dropdown did not write, such as `{age} * 12`. Shown, and left unchanged. */
@@ -109,7 +103,7 @@ function disabledHint(source: PrefillSource): string {
   return `${type.charAt(0).toUpperCase()}${type.slice(1)}. Use a ${fitting} question.`;
 }
 
-function bindingOf(obj: object | undefined): PrefillBinding | undefined {
+function bindingOf(obj: object | undefined): PrefillAudience | undefined {
   const survey = obj && "survey" in obj ? (obj.survey as object | undefined) : undefined;
   if (!survey) return undefined;
   return bindings.get(survey);
@@ -325,29 +319,6 @@ function createExpressionLink(editor: Question): ExpressionLink | undefined {
   return link;
 }
 
-const LISTED_VALUES = 5;
-
-function listedValues(values: string[]): string {
-  if (values.length <= LISTED_VALUES) return englishList(values);
-  const rest = values.length - LISTED_VALUES;
-  return `${values.slice(0, LISTED_VALUES).join(", ")} or ${rest} other values`;
-}
-
-/** Participants whose value no choice has start with nothing selected, so the panel names those values. */
-function choiceWarning(question: Question): string | undefined {
-  const variable = prefillVariableOf(question.defaultValueExpression);
-  const binding = bindingOf(question);
-  if (!variable || !binding) return undefined;
-  const unmatched = unmatchedChoiceValues(question, variable, binding.participants());
-  if (unmatched.length === 0) return undefined;
-  const title = prefillSourceNamed(binding.sources(), variable)?.title ?? variable;
-  return (
-    `No choice has the value ${listedValues(unmatched)}. ` +
-    `Participants with these ${title} values start with nothing selected. ` +
-    "Add a choice for each value, or change the choice values to match."
-  );
-}
-
 function prefillValue(question: Question): string | undefined {
   if (customExpression(question.defaultValueExpression)) return CUSTOM_EXPRESSION;
   return prefillVariableOf(question.defaultValueExpression);
@@ -356,6 +327,15 @@ function prefillValue(question: Question): string | undefined {
 function hasPrefillExpression(question: Question): boolean {
   const expression = question.defaultValueExpression;
   return prefillVariableOf(expression) !== undefined || customExpression(expression) !== undefined;
+}
+
+function updatePrefillEditor(question: Question, editor: Question): void {
+  editor.description = prefillHelp(question);
+  greyIncompatible(question, editor);
+  linkToExpression(question, editor);
+  showChoiceWarning(editor, unmatchedChoiceWarning(question, bindingOf(question)));
+  // Clearing a custom expression would do nothing: only a Property replaces it.
+  editor.allowClear = customExpression(question.defaultValueExpression) === undefined;
 }
 
 function prefillFromProperty() {
@@ -371,14 +351,7 @@ function prefillFromProperty() {
     choices: (obj: Question) => prefillChoices(obj),
     onGetValue: (obj: Question) => prefillValue(obj),
     onSetValue: (obj: Question, value: unknown) => applyPrefill(obj, value),
-    onPropertyEditorUpdate: (obj: Question, editor: Question) => {
-      editor.description = prefillHelp(obj);
-      greyIncompatible(obj, editor);
-      linkToExpression(obj, editor);
-      showChoiceWarning(editor, choiceWarning(obj));
-      // Clearing a custom expression would do nothing: only a Property replaces it.
-      editor.allowClear = customExpression(obj.defaultValueExpression) === undefined;
-    },
+    onPropertyEditorUpdate: (obj: Question, editor: Question) => updatePrefillEditor(obj, editor),
   };
 }
 
@@ -428,16 +401,6 @@ function prefillHelp(question: Question): string {
   return offersPrefill(question) ? FILLED_HELP : emptyHelp(bindingOf(question)?.formId);
 }
 
-/**
- * A person drawn as rings, so the rail paints it with `fill: currentColor` the way the
- * SurveyJS tab icons are painted. A filled silhouette reads heavier than those line icons.
- */
-export const PERSONALIZATION_ICON_SVG =
-  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">' +
-  '<path fill-rule="evenodd" d="M12 3.8a3.2 3.2 0 1 0 .02 0zM12 5.5a1.5 1.5 0 1 1-.02 0z"/>' +
-  '<path d="M4.6 20.4V18c0-3.2 3.3-5.2 7.4-5.2s7.4 2 7.4 5.2v2.4h-1.7V18c0-2.2-2.5-3.5-5.7-3.5S6.3 15.8 6.3 18v2.4H4.6z"/>' +
-  "</svg>";
-
 function registerPersonalizationIcon(): void {
   SvgRegistry.registerIcon(PERSONALIZATION_ICON, PERSONALIZATION_ICON_SVG);
 }
@@ -450,6 +413,13 @@ function namePersonalization(survey: { getPageByName: (name: string) => unknown 
 function registerPersonalizationLocale(): void {
   const tabs = getLocaleStrings("en").pe?.tabs as Record<string, string> | undefined;
   if (tabs) tabs.personalization = "Personalization";
+}
+
+/** Properties on a subclass, which the `question` property's own `dependsOn` cannot name. */
+function refreshPrefillOn(properties: Array<[className: string, name: string]>): void {
+  for (const [className, name] of properties) {
+    Serializer.findProperty(className, name)?.addDependedProperty(PREFILL_FROM);
+  }
 }
 
 function registerProperties(): void {
@@ -474,11 +444,10 @@ function registerProperties(): void {
   const prefillFrom = prefillFromProperty();
   Serializer.addProperty("question", {
     ...prefillFrom,
-    // `inputType` lives on the text question class; wire it after register (see below).
+    // `inputType` and `choices` live on subclasses; wire them after register (see below).
     dependsOn: ["defaultValueExpression"],
   });
-  Serializer.findProperty("text", "inputType")?.addDependedProperty(PREFILL_FROM);
-  Serializer.findProperty("selectbase", "choices")?.addDependedProperty(PREFILL_FROM);
+  refreshPrefillOn([["text", "inputType"], ["selectbase", "choices"]]);
   Serializer.addProperty("question", prefillEditableProperty());
   propertiesRegistered = true;
 }
