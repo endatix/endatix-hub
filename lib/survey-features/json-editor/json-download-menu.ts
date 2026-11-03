@@ -1,5 +1,10 @@
-import { ComputedUpdater, createDropdownActionModel } from "survey-core";
+import {
+  ComputedUpdater,
+  createDropdownActionModel,
+  type Action,
+} from "survey-core";
 import type {
+  ActiveTabChangedEvent,
   SurveyCreatorModel,
   TabJsonEditorBasePlugin,
 } from "survey-creator-core";
@@ -15,19 +20,52 @@ const DEFAULT_FILE_NAME = "survey";
 const PARSE_ERROR_MESSAGE =
   "Fix the JSON errors to download an obfuscated copy.";
 
+type Swap = { stock: Action; menu: Action };
+
 /**
  * Replaces the JSON tab's download button with a menu: Download JSON (Creator's own) and Download
- * obfuscated JSON, saved as `<file name>.obf.json`. Returns how to put the stock button back.
+ * obfuscated JSON, saved as `<file name>.obf.json`. In the app the button lands on the toolbar after
+ * the Creator is built, so it also swaps each time the JSON tab opens. Returns how to put the stock
+ * button back.
  */
 export function addObfuscatedJsonDownload(
   creator: SurveyCreatorModel,
   getFileName: () => string,
 ): () => void {
   const actions = creator.toolbar.actions;
-  const stock = creator.toolbar.getActionById(EXPORT_ACTION_ID);
-  if (!stock) return () => undefined;
+  let swap: Swap | undefined;
 
-  const menu = createDropdownActionModel(
+  const swapIn = () => {
+    const current = creator.toolbar.getActionById(EXPORT_ACTION_ID);
+    if (!current || current === swap?.menu) return;
+    const menu = createMenu(creator, current, getFileName);
+    actions.splice(actions.indexOf(current), 1, menu);
+    swap = { stock: current, menu };
+  };
+  const onTabChanged = (
+    _sender: SurveyCreatorModel,
+    options: ActiveTabChangedEvent,
+  ) => {
+    if (options.tabName === JSON_EDITOR_PLUGIN_NAME) swapIn();
+  };
+
+  swapIn();
+  creator.onActiveTabChanged.add(onTabChanged);
+
+  return () => {
+    creator.onActiveTabChanged.remove(onTabChanged);
+    if (!swap) return;
+    const index = actions.indexOf(swap.menu);
+    if (index >= 0) actions.splice(index, 1, swap.stock);
+  };
+}
+
+function createMenu(
+  creator: SurveyCreatorModel,
+  stock: Action,
+  getFileName: () => string,
+): Action {
+  return createDropdownActionModel(
     {
       id: EXPORT_ACTION_ID,
       iconName: stock.iconName,
@@ -55,12 +93,6 @@ export function addObfuscatedJsonDownload(
       allowSelection: false,
     },
   );
-  actions.splice(actions.indexOf(stock), 1, menu);
-
-  return () => {
-    const index = actions.indexOf(menu);
-    if (index >= 0) actions.splice(index, 1, stock);
-  };
 }
 
 function downloadObfuscated(creator: SurveyCreatorModel, fileName: string) {

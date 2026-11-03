@@ -1,6 +1,6 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { Action, ListModel } from "survey-core";
+import { Action, type ListModel } from "survey-core";
 import {
   SurveyCreatorModel,
   type TabJsonEditorBasePlugin,
@@ -126,6 +126,24 @@ describe("addObfuscatedJsonDownload", () => {
 
     // Assert
     expect(save.mock.calls[0][0]).toBe("survey.obf.json");
+  });
+
+  it("swaps in the menu when the JSON tab's button arrives after it was added", () => {
+    // Arrange
+    const creator = new SurveyCreatorModel();
+    const actions = creator.toolbar.actions;
+    const builtIn = creator.toolbar.getActionById("svc-json-export");
+    actions.splice(actions.indexOf(builtIn), 1);
+    addObfuscatedJsonDownload(creator, () => "Late");
+    actions.push(new Action({ id: "svc-json-export", mode: "small" }));
+
+    // Act
+    creator.activeTab = "json";
+
+    // Assert
+    expect(creator.toolbar.getActionById("svc-json-export").component).toBe(
+      "sv-action-bar-item-dropdown",
+    );
   });
 
   it("puts the stock download button back when removed", () => {

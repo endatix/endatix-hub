@@ -158,12 +158,12 @@ export function useJsonEditor(options: UseJsonEditorOptions) {
         enterJsonTab();
       }
 
-      creator.onLintSurvey.add(warnUnknownReference);
-      creator.onActiveTabChanged.add(onTabChanged);
       const removeDownloadMenu = addObfuscatedJsonDownload(
         creator,
         () => downloadNameRef.current,
       );
+      creator.onLintSurvey.add(warnUnknownReference);
+      creator.onActiveTabChanged.add(onTabChanged);
 
       return () => {
         removeDownloadMenu();
