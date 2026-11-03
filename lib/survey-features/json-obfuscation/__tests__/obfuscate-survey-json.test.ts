@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { Model } from "survey-core";
 import { obfuscateSurveyJson, obfuscateText } from "../obfuscate-survey-json";
 
@@ -175,6 +175,18 @@ describe("obfuscateText", () => {
     expect(scrambled).toBe("Az 12, aZ!");
   });
 
+  it("scrambles letters of any script into Latin letters of the same case", () => {
+    // Act
+    const cyrillic = obfuscateText("Здравей, Свят", () => 0);
+    const greek = obfuscateText("Γειά σου", () => 0);
+    const cjk = obfuscateText("你好", () => 0);
+
+    // Assert
+    expect(cyrillic).toBe("Aaaaaaa, Aaaa");
+    expect(greek).toBe("Aaaa aaa");
+    expect(cjk).toBe("aa");
+  });
+
   it("keeps the {placeholders} it pipes", () => {
     // Act
     const scrambled = obfuscateText("Hi {firstName}, see {panel.x}", () => 0);
@@ -338,5 +350,212 @@ describe("obfuscateSurveyJson", () => {
     expect(elements.map((e: any) => e.name)).toEqual(["q1", "q2", "q3"]);
     expect(elements[1].visibleIf).toBe("{q1} = 1");
     expect(elements[2].visibleIf).toBe("{q2} = 2");
+  });
+});
+
+describe("obfuscateSurveyJson scopes and nested text", () => {
+  function pageElements(json: object) {
+    return obfuscate(json).pages[0].elements;
+  }
+
+  it("resolves a name used at the top level and in a dynamic panel by scope", () => {
+    // Arrange
+    const json = {
+      pages: [
+        {
+          elements: [
+            { type: "text", name: "age" },
+            {
+              type: "paneldynamic",
+              name: "kids",
+              templateElements: [
+                { type: "text", name: "age" },
+                {
+                  type: "text",
+                  name: "school",
+                  visibleIf: "{panel.age} > 5",
+                },
+              ],
+            },
+            {
+              type: "text",
+              name: "note",
+              visibleIf: "{age} > 18 and {kids[0].age} > 1",
+            },
+          ],
+        },
+      ],
+    };
+
+    // Act
+    const [age, kids, note] = pageElements(json);
+
+    // Assert
+    expect([age.name, kids.name, note.name]).toEqual(["q1", "q2", "q5"]);
+    expect(kids.templateElements.map((e: any) => e.name)).toEqual(["q3", "q4"]);
+    expect(kids.templateElements[1].visibleIf).toBe("{panel.q3} > 5");
+    expect(note.visibleIf).toBe("{q1} > 18 and {q2[0].q3} > 1");
+  });
+
+  it("keeps matrix column and multiple text item names, and references into them", () => {
+    // Arrange
+    const json = {
+      pages: [
+        {
+          elements: [
+            { type: "text", name: "a" },
+            {
+              type: "matrixdropdown",
+              name: "grid",
+              rows: ["r1"],
+              columns: [
+                { name: "a", cellType: "text" },
+                { name: "b", cellType: "text", visibleIf: "{row.a} = 1" },
+              ],
+            },
+            {
+              type: "multipletext",
+              name: "contact",
+              items: [{ name: "first" }],
+            },
+            {
+              type: "text",
+              name: "check",
+              visibleIf: "{contact.first} notempty and {grid.r1.a} = 1",
+            },
+          ],
+        },
+      ],
+    };
+
+    // Act
+    const [, grid, contact, check] = pageElements(json);
+
+    // Assert
+    expect(grid.columns.map((c: any) => c.name)).toEqual(["a", "b"]);
+    expect(grid.columns[1].visibleIf).toBe("{row.a} = 1");
+    expect(contact.items[0].name).toBe("first");
+    expect(check.name).toBe("q4");
+    expect(check.visibleIf).toBe("{q3.first} notempty and {q2.r1.a} = 1");
+  });
+
+  it("adds no state from running the form", () => {
+    // Act
+    const [first, second] = pageElements({
+      pages: [
+        {
+          elements: [
+            { type: "text", name: "a" },
+            { type: "text", name: "b", visibleIf: "{a} = 1" },
+          ],
+        },
+      ],
+    });
+
+    // Assert
+    expect(first).toEqual({ type: "text", name: "q1" });
+    expect(second).toEqual({ type: "text", name: "q2", visibleIf: "{q1} = 1" });
+  });
+
+  it("scrambles text in matrix columns, multiple text items and survey buttons", () => {
+    // Arrange
+    const json = {
+      completeText: "Send secret",
+      pages: [
+        {
+          elements: [
+            {
+              type: "matrixdropdown",
+              name: "grid",
+              rows: [{ value: "r1", text: "Secret row" }],
+              columns: [
+                {
+                  name: "c",
+                  title: "Secret column",
+                  cellType: "dropdown",
+                  placeholder: "Secret placeholder",
+                  choices: [{ value: 1, text: "Secret choice" }],
+                },
+              ],
+            },
+            {
+              type: "multipletext",
+              name: "contact",
+              items: [{ name: "first", title: "Secret item" }],
+            },
+            {
+              type: "paneldynamic",
+              name: "kids",
+              panelAddText: "Add secret",
+              templateElements: [{ type: "text", name: "k", title: "Kid" }],
+            },
+          ],
+        },
+      ],
+    };
+
+    // Act
+    const text = JSON.stringify(obfuscate(json));
+
+    // Assert
+    expect(text).not.toMatch(/Secret|secret|Kid/);
+  });
+
+  it("renames a dynamic panel's keyName and names quoted in displayValue and propertyValue", () => {
+    // Arrange
+    const json = {
+      pages: [
+        {
+          elements: [
+            { type: "text", name: "ssn" },
+            {
+              type: "paneldynamic",
+              name: "kids",
+              keyName: "kidName",
+              templateElements: [{ type: "text", name: "kidName" }],
+            },
+            {
+              type: "expression",
+              name: "shown",
+              expression:
+                "displayValue('ssn') + propertyValue(\"kids\", 'title')",
+            },
+          ],
+        },
+      ],
+    };
+
+    // Act
+    const [, kids, shown] = pageElements(json);
+
+    // Assert
+    expect(kids.keyName).toBe("q3");
+    expect(shown.expression).toBe(
+      "displayValue('q1') + propertyValue(\"q2\", 'title')",
+    );
+  });
+
+  it("does not request choices from a choicesByUrl endpoint", () => {
+    // Arrange
+    const open = vi.spyOn(XMLHttpRequest.prototype, "open");
+
+    // Act
+    pageElements({
+      pages: [
+        {
+          elements: [
+            {
+              type: "dropdown",
+              name: "country",
+              choicesByUrl: { url: "https://example.test/countries" },
+            },
+          ],
+        },
+      ],
+    });
+
+    // Assert
+    expect(open).not.toHaveBeenCalled();
+    open.mockRestore();
   });
 });

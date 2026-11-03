@@ -17,7 +17,7 @@ import { JSON_EDITOR_PLUGIN_NAME } from "./json-editor-state";
 
 const EXPORT_ACTION_ID = "svc-json-export";
 const DEFAULT_FILE_NAME = "survey";
-const PARSE_ERROR_MESSAGE =
+const OBFUSCATE_ERROR_MESSAGE =
   "Fix the JSON errors to download an obfuscated copy.";
 
 type Swap = { stock: Action; menu: Action };
@@ -57,6 +57,7 @@ export function addObfuscatedJsonDownload(
     if (!swap) return;
     const index = actions.indexOf(swap.menu);
     if (index >= 0) actions.splice(index, 1, swap.stock);
+    swap.menu.dispose();
   };
 }
 
@@ -99,14 +100,14 @@ function downloadObfuscated(creator: SurveyCreatorModel, fileName: string) {
   const plugin: TabJsonEditorBasePlugin = creator.getPlugin(
     JSON_EDITOR_PLUGIN_NAME,
   );
-  let json: object;
+  let text: string;
   try {
-    json = JSON.parse(plugin.model?.text ?? creator.text);
+    const json = JSON.parse(plugin.model?.text ?? creator.text);
+    text = JSON.stringify(obfuscateSurveyJson(json), null, 2);
   } catch {
-    creator.notify(PARSE_ERROR_MESSAGE, "error");
+    creator.notify(OBFUSCATE_ERROR_MESSAGE, "error");
     return;
   }
-  const text = JSON.stringify(obfuscateSurveyJson(json), null, 2);
   plugin.saveToFileHandler(
     `${fileName || DEFAULT_FILE_NAME}.obf.json`,
     new Blob([text], { type: "application/json" }),
