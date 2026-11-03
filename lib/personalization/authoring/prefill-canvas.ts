@@ -13,12 +13,8 @@ import {
   variablesIn,
   type PrefillSource,
 } from "../coverage/prefill-match";
-import {
-  englishList,
-  PERSONALIZATION_ICON_SVG,
-  propertyTypeLabel,
-  targetQuestion,
-} from "./prefill";
+import { englishList, propertyTypeLabel, targetQuestion } from "./prefill";
+import { PERSONALIZATION_ICON_SVG } from "./personalization-icon";
 
 const MARK = "edx-prefill";
 const CHIP = "edx-prefill-chip";
