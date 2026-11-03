@@ -56,6 +56,8 @@ type PeopleTableProps = {
   allProperties?: AudienceProperty[];
   /** Ticks on test participants, for test links; none means no select column. */
   selection?: ParticipantSelection;
+  /** The Property columns the reader chose to show (Columns menu). */
+  shownProperties: AudienceProperty[];
 };
 
 const ACTIONS_COLUMN: StaticDataTableColumn = {
@@ -79,7 +81,7 @@ const hasLinks = (people: AudiencePerson[]) =>
 
 type ColumnOptions = { showLink: boolean; handlers: RowHandlers };
 
-/** The identifier column is named for the match key; Link; one column per property; then actions. */
+/** The identifier column is named for the match key; Link; one column per shown property; then actions. */
 function peopleColumns(
   kind: AudienceIdentifierKind,
   properties: AudienceProperty[],
@@ -275,6 +277,12 @@ function LinkCell({ formId, person }: Readonly<CellProps>) {
   );
 }
 
+/** Edit reads every value Property; the cells only the shown ones. */
+type PropertySets = {
+  properties: AudienceProperty[];
+  shown: AudienceProperty[];
+};
+
 type CellOptions = ColumnOptions & {
   formId: string;
   canEdit: boolean;
@@ -301,7 +309,7 @@ function identifierCell(
 
 function personCells(
   person: AudiencePerson,
-  properties: AudienceProperty[],
+  { properties, shown }: PropertySets,
   { formId, showLink, handlers, canEdit, ...mark }: CellOptions,
 ): StaticDataTableCell[] {
   const value = (p: AudienceProperty) =>
@@ -311,7 +319,7 @@ function personCells(
   const cells = [
     identifierCell(person, { formId, canEdit, ...mark }),
     ...(showLink ? [dataTableCell("link", link, SHRINK)] : []),
-    ...properties.map((p) => dataTableCell(p.id, value(p), VALUE_CELL)),
+    ...shown.map((p) => dataTableCell(p.id, value(p), VALUE_CELL)),
   ];
   if (!hasActions(handlers)) return cells;
   const actions = personActions(person, properties.length > 0, handlers);
@@ -346,14 +354,15 @@ export function PeopleTable(props: Readonly<PeopleTableProps>) {
   const { identifierKind, properties, people } = props;
   const options = tableOptions(props);
   const ticks = withTicks(people, props.selection);
-  const columns = peopleColumns(identifierKind, properties, options);
+  const sets = { properties, shown: props.shownProperties };
+  const columns = peopleColumns(identifierKind, sets.shown, options);
   return (
     <StaticDataTable columns={ticks.columns(columns)}>
       {people.map((person, index) => (
         <StaticDataTableRow
           key={person.membershipId}
           index={index}
-          cells={ticks.cells(person, personCells(person, properties, options))}
+          cells={ticks.cells(person, personCells(person, sets, options))}
         />
       ))}
     </StaticDataTable>
