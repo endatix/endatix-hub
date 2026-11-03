@@ -1186,18 +1186,27 @@ which_, _what will happen_. Reference: `features/audience/import-csv/`.
   (`brands__nike` for a choice property) appear read-only under the selects, so the reader
   knows they will be imported. A target the file cannot fill yet is named in the section
   description, with the column name it would need.
+- **What happens to existing records is chosen with the columns.** Each overwrite choice is a
+  `RadioGroup` with the safe option first, marked "(recommended)" and preselected, and the
+  destructive one never preselected ("Empty cells in your file": keep or clear; "Properties not
+  in your file": leave or clear). A choice that cannot apply (a test import skips existing
+  records) is not shown. The choices go with the start and cannot change after it.
 - **Review is built from the choices**, as `SummaryRow`s: the file, its rows, the identifier
   column, each target with the column that fills it, and the columns left out ("Not
   imported"), so a forgotten column shows before anything is written. Then one consequence `Alert`
   (`info`) on how rows meet existing records: what they are matched by, that an existing record
-  is updated rather than added twice, what an empty cell does, and that a rejected row does not
-  stop the others.
+  is updated rather than added twice, and that a rejected row does not stop the others. The
+  overwrite choices follow, read-only, with `Back to change` (it cancels the checked import and
+  returns to the choices; the next start is a new import). When the check finds existing
+  records, a checkbox says how many will be updated and that this cannot be undone, and the
+  primary button (`Import N rows`) stays off until it is ticked.
 - **The outcome is shown in the panel.** No toast, and the list behind it is refreshed. The
   batch `Alert` is `success` only when nothing was rejected, otherwise `warning`. Its sentence
   gives the counts that are not zero ("18 added, 2 updated, 3 rejected") and what to do next.
-  Rejected rows follow in a `StaticDataTable` (`Row`, `Reason`), numbered as in the file. When
-  the server reports only the first rows, the section says "The first 50 of 1,290". The footer
-  is `Done`.
+  Rejected rows follow in a `StaticDataTable` (`Line`, `Reason`), numbered as in the file. When
+  the server reports only the first rows, the section says "The first 50 of 1,290". Its
+  `DownloadMenu` (`Download CSV`) saves every rejected row with its line, reason and the file's
+  own cells (Hand over a file). The footer is `Done`.
 - **When a file outgrows the request, the import becomes a page.** A load the server must run as
   a background job (more rows than one request takes, or a check of the whole file before
   mapping) needs progress that survives the tab closing. It moves to its own route

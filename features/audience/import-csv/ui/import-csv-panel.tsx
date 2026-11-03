@@ -10,7 +10,7 @@ import {
 } from "@/lib/endatix-api/audience/types";
 import { NAME_CHECK_FAILED } from "../check-names";
 import { confirmCount, isTerminal } from "../import-run";
-import { participantCountLabel } from "../import-labels";
+import { rowCountLabel } from "../import-labels";
 import {
   canContinue,
   runView,
@@ -120,7 +120,7 @@ function submitLabel(wizard: ImportWizard): string {
   if (wizard.run.canSendAgain) return "Send the rest of the file";
   if (view.status !== AudienceImportStatus.Checked)
     return "Import participants";
-  return `Import ${participantCountLabel(confirmCount(view))}`;
+  return `Import ${rowCountLabel(confirmCount(view))}`;
 }
 
 type BodyProps = { wizard: ImportWizard; setup: ImportCsvSetup };
@@ -128,7 +128,8 @@ type BodyProps = { wizard: ImportWizard; setup: ImportCsvSetup };
 function ActiveStep({ wizard, setup }: Readonly<BodyProps>) {
   const { step, file } = wizard;
   const view = runView(wizard.run);
-  if (step === "done") return view && <ImportResultSummary view={view} />;
+  if (step === "done")
+    return view && <ImportResultSummary view={view} formId={setup.formId} />;
   if (step === "review")
     return (
       <ImportReviewStep wizard={wizard} identifierKind={setup.identifierKind} />

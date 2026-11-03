@@ -50,3 +50,21 @@ export function linkBatchBody(search: string) {
   const trimmed = search.trim();
   return trimmed ? { filter: { search: trimmed } } : {};
 }
+
+/** A page of an import's rejected rows, at the largest page size so a download takes few reads. */
+export function buildImportRejectionsEndpoint(
+  formId: string,
+  importId: string,
+  page: number,
+): string {
+  const searchParams = new URLSearchParams();
+  appendPagingQueryParams(
+    searchParams,
+    { page },
+    { page: DEFAULT_PAGE, pageSize: AudiencePaging.MaxPageSize },
+  );
+  return buildEndpointWithQuery(
+    formAudiencePath(formId, "imports", importId, "rejections"),
+    searchParams,
+  );
+}

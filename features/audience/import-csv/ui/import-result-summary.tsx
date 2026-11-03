@@ -5,8 +5,11 @@ import {
   CircleCheckBig,
   CircleX,
   FileWarning,
+  Info,
   TriangleAlert,
 } from "lucide-react";
+import type { ReactNode } from "react";
+import { DownloadMenu } from "@/components/common/download-menu";
 import { PanelSection } from "@/components/common/panel-section";
 import {
   DATA_TABLE_SHRINK_WRAP_CLASS_NAME,
@@ -20,12 +23,16 @@ import {
   type AudienceImportRejection,
   type AudienceImportView,
 } from "@/lib/endatix-api/audience/types";
-import { outcomeCounts } from "../import-labels";
+import { outcomeCounts, rowCountLabel } from "../import-labels";
+import {
+  useRejectedRowsDownload,
+  type DownloadMessage,
+} from "../use-rejected-rows-download.hook";
 
 type ViewProps = { view: AudienceImportView };
 
 const REJECTION_COLUMNS = [
-  { key: "row", label: "Row", className: DATA_TABLE_SHRINK_WRAP_CLASS_NAME },
+  { key: "row", label: "Line", className: DATA_TABLE_SHRINK_WRAP_CLASS_NAME },
   { key: "reason", label: "Reason" },
 ] as const;
 
@@ -89,9 +96,13 @@ function EndedAlert({ view }: Readonly<ViewProps>) {
 type RejectionsProps = {
   rejections: AudienceImportRejection[];
   rejectedCount: number;
+  /** An action beside the title, such as the download of every rejected row. */
+  aside?: ReactNode;
 };
 
 function rejectionsDescription({ rejections, rejectedCount }: RejectionsProps) {
+  if (rejections.length === 0)
+    return `${rowCountLabel(rejectedCount)} rejected. Download the file to see each one.`;
   return rejections.length < rejectedCount
     ? `The first ${rejections.length} of ${rejectedCount.toLocaleString()}, by their row in the file.`
     : "By their row in the file.";
@@ -104,39 +115,90 @@ function rejectionCells(rejection: AudienceImportRejection) {
   ];
 }
 
+function RejectionsTable({
+  rejections,
+}: Readonly<{ rejections: AudienceImportRejection[] }>) {
+  return (
+    <StaticDataTable columns={REJECTION_COLUMNS}>
+      {rejections.map((rejection, index) => (
+        <StaticDataTableRow
+          key={rejection.rowNumber}
+          index={index}
+          cells={rejectionCells(rejection)}
+        />
+      ))}
+    </StaticDataTable>
+  );
+}
+
 /** The first rejected rows, by their row in the file. */
-export function RejectedRows(props: Readonly<RejectionsProps>) {
-  if (props.rejections.length === 0) return null;
+export function RejectedRows({ aside, ...props }: Readonly<RejectionsProps>) {
+  if (props.rejections.length === 0 && !aside) return null;
+  const description = rejectionsDescription(props);
   return (
     <PanelSection
       icon={FileWarning}
       title="Rejected rows"
-      description={rejectionsDescription(props)}
+      {...{ description, aside }}
     >
-      <StaticDataTable columns={REJECTION_COLUMNS}>
-        {props.rejections.map((rejection, index) => (
-          <StaticDataTableRow
-            key={rejection.rowNumber}
-            index={index}
-            cells={rejectionCells(rejection)}
-          />
-        ))}
-      </StaticDataTable>
+      {props.rejections.length > 0 ? (
+        <RejectionsTable rejections={props.rejections} />
+      ) : null}
     </PanelSection>
   );
 }
 
+type SummaryProps = ViewProps & { formId: string };
+
+function DownloadMessageAlert({
+  message,
+}: Readonly<{ message: DownloadMessage | null }>) {
+  if (!message) return null;
+  const error = message.kind === "error";
+  const Icon = error ? CircleX : Info;
+  return (
+    <Alert variant={error ? "destructive" : "info"}>
+      <Icon />
+      <AlertDescription>{message.text}</AlertDescription>
+    </Alert>
+  );
+}
+
+/**
+ * Every rejected row can be listed from an API that started the import with its options
+ * (endatix#1419); an older one has no rejections read.
+ */
+const canListRejections = (view: AudienceImportView) =>
+  view.written.rejectedCount > 0 && view.emptyCells !== undefined;
+
+/** The rows to fix, every one of them downloadable with its line, reason and cells (E4). */
+function CompletedRejections({ view, formId }: Readonly<SummaryProps>) {
+  const { pending, message, download } = useRejectedRowsDownload(formId, view);
+  const csv = { kind: "csv" as const, onSelect: () => void download() };
+  const aside = canListRejections(view) ? (
+    <DownloadMenu formats={[csv]} pending={pending} />
+  ) : undefined;
+  return (
+    <>
+      <RejectedRows
+        rejections={view.rejections}
+        rejectedCount={view.written.rejectedCount}
+        aside={aside}
+      />
+      <DownloadMessageAlert message={message} />
+    </>
+  );
+}
+
 /** The outcome step: what happened, then the rows to fix. Shown in place, not as a toast. */
-export function ImportResultSummary({ view }: Readonly<ViewProps>) {
+export function ImportResultSummary(props: Readonly<SummaryProps>) {
+  const { view } = props;
   if (view.status !== AudienceImportStatus.Completed)
     return <EndedAlert view={view} />;
   return (
     <>
       <CompletedAlert view={view} />
-      <RejectedRows
-        rejections={view.rejections}
-        rejectedCount={view.written.rejectedCount}
-      />
+      <CompletedRejections {...props} />
     </>
   );
 }

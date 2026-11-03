@@ -15,13 +15,6 @@ export function sampleLabel(values: readonly string[] | undefined): string {
   return `Values like ${values.join(" · ")}`;
 }
 
-/** `1 participant`, `1,200 participants`. */
-export function participantCountLabel(count: number): string {
-  return count === 1
-    ? "1 participant"
-    : `${count.toLocaleString()} participants`;
-}
-
 const MEGABYTE = 1024 * 1024;
 
 /** `50 MB`, `1.5 MB`, `300 KB`: a file size as a person reads it. */

@@ -120,6 +120,8 @@ describe("ImportCsvPanel: file, columns and start", () => {
       identifierColumn: "external_id",
       propertyColumns: { age: "age", city: "city" },
       isTest: false,
+      emptyCells: "keep",
+      missingProperties: "keep",
     });
     expect(sendAudienceImportChunkAction).toHaveBeenCalledWith({
       formId: "1",
@@ -156,7 +158,7 @@ describe("ImportCsvPanel: file, columns and start", () => {
     expect(moveAudienceImportAction).not.toHaveBeenCalled();
 
     // Act
-    fireEvent.click(button("Import 1 participant"));
+    fireEvent.click(button("Import 1 row"));
 
     // Assert
     await waitFor(() =>
@@ -188,7 +190,7 @@ describe("ImportCsvPanel: file, columns and start", () => {
 
     // Act
     fireEvent.click(
-      await screen.findByRole("button", { name: "Import 1 participant" }),
+      await screen.findByRole("button", { name: "Import 1 row" }),
     );
     await screen.findByText(/rows written/);
     await nextPoll();

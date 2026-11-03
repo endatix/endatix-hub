@@ -266,7 +266,7 @@ describe("ImportCsvPanel: a running import", () => {
 
     // Assert
     const confirm = (await screen.findByRole("button", {
-      name: "Import 0 participants",
+      name: "Import 0 rows",
     })) as HTMLButtonElement;
     expect(confirm.disabled).toBe(true);
     expect(button("Cancel import")).toBeTruthy();

@@ -9,7 +9,10 @@ import {
 describe("checkNamesInChunks", () => {
   it("asks for every name, 500 at a time, and keeps each answer", async () => {
     // Arrange
-    const names = Array.from({ length: NAME_CHECK_LIMIT + 1 }, (_, i) => `n${i}`);
+    const names = Array.from(
+      { length: NAME_CHECK_LIMIT + 1 },
+      (_, i) => `n${i}`,
+    );
     const check = vi.fn(async (chunk: string[]) =>
       Result.success(chunk.map((variable) => ({ variable }))),
     );
@@ -27,7 +30,10 @@ describe("checkNamesInChunks", () => {
 
   it("fails the whole check when a chunk fails, so nothing is treated as clear", async () => {
     // Arrange
-    const names = Array.from({ length: NAME_CHECK_LIMIT + 1 }, (_, i) => `n${i}`);
+    const names = Array.from(
+      { length: NAME_CHECK_LIMIT + 1 },
+      (_, i) => `n${i}`,
+    );
     const check = vi
       .fn<(chunk: string[]) => Promise<Result<{ variable: string }[]>>>()
       .mockResolvedValueOnce(Result.success([{ variable: "n0" }]))

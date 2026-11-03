@@ -31,4 +31,25 @@ describe("DownloadMenu", () => {
     const trigger = screen.getByRole("button", { name: /Downloading/ });
     expect((trigger as HTMLButtonElement).disabled).toBe(true);
   });
+
+  it("does not submit the form it sits in, such as a panel's", () => {
+    // Arrange
+    const onSubmit = vi.fn((event: { preventDefault: () => void }) =>
+      event.preventDefault(),
+    );
+    render(
+      <form onSubmit={onSubmit}>
+        <DownloadMenu
+          pending={false}
+          formats={[{ kind: "csv", onSelect: vi.fn() }]}
+        />
+      </form>,
+    );
+
+    // Act
+    fireEvent.click(screen.getByRole("button", { name: "Download CSV" }));
+
+    // Assert
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
 });
