@@ -9,7 +9,7 @@ import type {
   SurveyCreatorModel,
   TabJsonEditorBasePlugin,
 } from "survey-creator-core";
-import { obfuscateSurveyJson } from "@/lib/survey-features/json-obfuscation/obfuscate-survey-json";
+import { obfuscateSurveyJson } from "./use-cases/obfuscate-survey-json";
 import { JSON_EDITOR_PLUGIN_NAME } from "./json-editor-state";
 
 // Creator builds the JSON tab's download button, svc-json-export, in
