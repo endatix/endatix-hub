@@ -172,7 +172,7 @@ function rewriteReferences(
   if (names.size === 0) return json;
   const alternatives = [...names.keys()]
     .sort((a, b) => b.length - a.length)
-    .map(escapeRegExp)
+    .map((name) => escapeRegExp(name))
     .join("|");
   const reference = new RegExp(
     `\\{(\\s*(?:panel\\.|row\\.)?)(${alternatives})(?=\\s*[}.\\[])`,
