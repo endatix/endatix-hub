@@ -320,7 +320,11 @@ function prefillAndPreview(
   formId: string | undefined,
 ): (() => void)[] {
   return [
-    installPrefill(creator, () => prefillSources(state.variables), formId),
+    installPrefill(creator, {
+      sources: () => prefillSources(state.variables),
+      participants: () => withUnsaved(state.installed, state.unsaved),
+      formId,
+    }),
     installPrefillCanvas(
       creator,
       () => prefillSources(state.variables),

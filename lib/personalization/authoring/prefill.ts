@@ -1,15 +1,18 @@
 import { Serializer, SvgRegistry, type ItemValue, type PanelModel, type Question } from "survey-core";
 import { getLocaleStrings, type SurveyCreatorModel, type SurveyInstanceCreatedEvent } from "survey-creator-core";
+import type { AudienceVariablePreset } from "@/lib/endatix-api/audience/types";
 import { withBasePath } from "@/lib/hosting";
 import { formRoutes } from "@/lib/routes/form-routes";
 import { LOCAL_DATE_TIME_FUNCTION } from "@/lib/survey-features/local-date-time";
 import {
   isPrefillCompatible,
+  prefillSourceNamed,
   prefillVariableOf,
   type PrefillShape,
   type PrefillSource,
 } from "../coverage/prefill-match";
 import { PREFILL_CHOICE, registerPrefillChoice } from "./prefill-choice";
+import { showChoiceWarning, unmatchedChoiceValues } from "./prefill-choice-values";
 
 export type { PrefillShape, PrefillSource };
 export { isPrefillCompatible, prefillVariableOf };
@@ -24,10 +27,14 @@ const PREFILL_KIND = "edxPrefillKind";
 const PERSONALIZATION_ICON = "icon-personalization";
 const VARIABLE_NAME = /^\w+$/;
 
-type PrefillBinding = {
+/** What Prefill from reads: the Properties, the participants the designer knows, and the form. */
+export type PrefillAudience = {
   sources: () => PrefillSource[];
+  participants: () => AudienceVariablePreset[];
   formId?: string;
 };
+
+type PrefillBinding = PrefillAudience;
 
 const bindings = new WeakMap<object, PrefillBinding>();
 let propertiesRegistered = false;
@@ -318,6 +325,29 @@ function createExpressionLink(editor: Question): ExpressionLink | undefined {
   return link;
 }
 
+const LISTED_VALUES = 5;
+
+function listedValues(values: string[]): string {
+  if (values.length <= LISTED_VALUES) return englishList(values);
+  const rest = values.length - LISTED_VALUES;
+  return `${values.slice(0, LISTED_VALUES).join(", ")} or ${rest} other values`;
+}
+
+/** Participants whose value no choice has start with nothing selected, so the panel names those values. */
+function choiceWarning(question: Question): string | undefined {
+  const variable = prefillVariableOf(question.defaultValueExpression);
+  const binding = bindingOf(question);
+  if (!variable || !binding) return undefined;
+  const unmatched = unmatchedChoiceValues(question, variable, binding.participants());
+  if (unmatched.length === 0) return undefined;
+  const title = prefillSourceNamed(binding.sources(), variable)?.title ?? variable;
+  return (
+    `No choice has the value ${listedValues(unmatched)}. ` +
+    `Participants with these ${title} values start with nothing selected. ` +
+    "Add a choice for each value, or change the choice values to match."
+  );
+}
+
 function prefillValue(question: Question): string | undefined {
   if (customExpression(question.defaultValueExpression)) return CUSTOM_EXPRESSION;
   return prefillVariableOf(question.defaultValueExpression);
@@ -345,6 +375,7 @@ function prefillFromProperty() {
       editor.description = prefillHelp(obj);
       greyIncompatible(obj, editor);
       linkToExpression(obj, editor);
+      showChoiceWarning(editor, choiceWarning(obj));
       // Clearing a custom expression would do nothing: only a Property replaces it.
       editor.allowClear = customExpression(obj.defaultValueExpression) === undefined;
     },
@@ -447,6 +478,7 @@ function registerProperties(): void {
     dependsOn: ["defaultValueExpression"],
   });
   Serializer.findProperty("text", "inputType")?.addDependedProperty(PREFILL_FROM);
+  Serializer.findProperty("selectbase", "choices")?.addDependedProperty(PREFILL_FROM);
   Serializer.addProperty("question", prefillEditableProperty());
   propertiesRegistered = true;
 }
@@ -456,18 +488,13 @@ function registerProperties(): void {
 // `defaultValueExpression`. `CustomPropertiesCollection` is not a public export.
 registerProperties();
 
-function attachSurvey(
-  survey: object,
-  creator: SurveyCreatorModel,
-  sources: () => PrefillSource[],
-  formId?: string,
-): void {
-  bindings.set(survey, { sources, formId });
+function attachSurvey(survey: object, creator: SurveyCreatorModel, audience: PrefillAudience): void {
+  bindings.set(survey, audience);
   creators.set(survey, creator);
 }
 
-function detachSurvey(survey: object, sources: () => PrefillSource[]): void {
-  if (bindings.get(survey)?.sources !== sources) return;
+function detachSurvey(survey: object, audience: PrefillAudience): void {
+  if (bindings.get(survey) !== audience) return;
   bindings.delete(survey);
   creators.delete(survey);
 }
@@ -484,16 +511,12 @@ function detachSurvey(survey: object, sources: () => PrefillSource[]): void {
  * `creator.JSON =` builds a new designer survey after bind, so the sources follow every
  * `onSurveyInstanceCreated` with reason `designer` (fired before `setSurvey`).
  */
-export function installPrefill(
-  creator: SurveyCreatorModel,
-  sources: () => PrefillSource[],
-  formId?: string,
-): () => void {
+export function installPrefill(creator: SurveyCreatorModel, prefill: PrefillAudience): () => void {
   registerProperties();
-  const read = () => sources();
+  const read = { ...prefill };
   namePersonalization(creator.propertyGrid);
   let attached: object | undefined = creator.survey;
-  if (attached) attachSurvey(attached, creator, read, formId);
+  if (attached) attachSurvey(attached, creator, read);
 
   const onDesignerSurvey = (
     _: unknown,
@@ -506,7 +529,7 @@ export function installPrefill(
     if (options.area !== "designer-tab") return;
     if (attached) detachSurvey(attached, read);
     attached = options.survey;
-    attachSurvey(attached, creator, read, formId);
+    attachSurvey(attached, creator, read);
   };
   creator.onSurveyInstanceCreated.add(onDesignerSurvey);
 
