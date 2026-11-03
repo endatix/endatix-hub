@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { UnexpectedErrorView } from "../unexpected-error-view";
 
 const trackException = vi.fn();
@@ -26,6 +26,10 @@ describe("UnexpectedErrorView", () => {
     vi.clearAllMocks();
   });
 
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it("shows Next.js digest and reports it to telemetry", () => {
     // Arrange
     const error = Object.assign(
@@ -48,7 +52,7 @@ describe("UnexpectedErrorView", () => {
     );
   });
 
-  it("copies digest in diagnostics and blanks the row when digest is missing", async () => {
+  it("copies digest in diagnostics and blanks the Digest row when digest is missing", async () => {
     // Arrange
     const withDigest = Object.assign(new Error("boom"), {
       digest: "3804550175",
@@ -72,16 +76,16 @@ describe("UnexpectedErrorView", () => {
         retry={() => undefined}
       />,
     );
-    expect(screen.getByText("Digest")).toBeDefined();
-    expect(screen.getAllByLabelText("Not available").length).toBeGreaterThan(0);
+    const digestRow = screen.getByText("Digest").closest("div");
+    expect(
+      digestRow?.querySelector('[aria-label="Not available"]'),
+    ).not.toBeNull();
   });
 
   it("gives a client error a trace id: shown, copied, and reported", async () => {
     // Arrange
     const clientId = "0b0e3d64-0c3f-4b9a-9f39-5c1c8e8c2b11";
-    const randomUUID = vi
-      .spyOn(crypto, "randomUUID")
-      .mockReturnValue(clientId);
+    vi.spyOn(crypto, "randomUUID").mockReturnValue(clientId);
     const error = new Error("Cannot read properties of undefined");
 
     // Act
@@ -99,7 +103,6 @@ describe("UnexpectedErrorView", () => {
       error,
       expect.objectContaining({ traceId: clientId }),
     );
-    randomUUID.mockRestore();
   });
 
   it("does not mint a trace id for a server error with a digest", () => {
@@ -112,5 +115,24 @@ describe("UnexpectedErrorView", () => {
     // Assert
     expect(screen.queryByLabelText("Copy Trace ID")).toBeNull();
     expect(trackException.mock.calls.at(-1)?.[1]).not.toHaveProperty("traceId");
+  });
+
+  it("gives caller diagnostics without ids a trace id too", () => {
+    // Arrange
+    vi.spyOn(crypto, "randomUUID").mockReturnValue(
+      "7d1c9a52-1b2e-4c3f-8a9b-0c1d2e3f4a5b",
+    );
+
+    // Act
+    render(
+      <UnexpectedErrorView
+        error={new Error("client")}
+        retry={() => undefined}
+        diagnostics={{ statusCode: 500 }}
+      />,
+    );
+
+    // Assert
+    expect(screen.getByLabelText("Copy Trace ID")).toBeDefined();
   });
 });

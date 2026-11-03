@@ -16,6 +16,17 @@ export interface UnexpectedErrorViewProps {
   diagnostics?: UnexpectedErrorDiagnostics;
 }
 
+/** Every boundary error gets an id to quote: its own, or one minted for a client error. */
+function resolveDiagnostics(
+  error: Error & { digest?: string },
+  diagnostics: UnexpectedErrorDiagnostics | undefined,
+): UnexpectedErrorDiagnostics {
+  return withClientTraceId(
+    diagnostics ?? buildUnexpectedErrorDiagnostics(error),
+    error,
+  );
+}
+
 /**
  * Client UI for Next.js `error.tsx` / `global-error.tsx` boundaries.
  */
@@ -30,7 +41,7 @@ export function UnexpectedErrorView({
   // render is a new dependency every render, and the effect below would report the
   // same exception again on each re-render of the boundary.
   const resolvedDiagnostics = useMemo(
-    () => diagnostics ?? withClientTraceId(buildUnexpectedErrorDiagnostics(error)),
+    () => resolveDiagnostics(error, diagnostics),
     [diagnostics, error],
   );
 

@@ -1,6 +1,5 @@
 import { ERROR_CODE } from "@/lib/endatix-api/shared/error-codes";
 import { ErrorType, type Error as ResultError } from "@/lib/result";
-import { activeTraceId } from "./active-trace-id";
 import type { ErrorPresentation } from "./error-presentation";
 
 export type UnexpectedErrorKind =
@@ -227,21 +226,41 @@ export function buildUnexpectedErrorDiagnostics(
   };
 }
 
+const clientTraceIds = new WeakMap<Error, string>();
+
+/** `randomUUID` exists only in secure contexts; a Hub served over http mints hex instead. */
+function mintClientTraceId(): string {
+  const uuid = globalThis.crypto.randomUUID?.();
+  if (uuid) {
+    return uuid;
+  }
+
+  const values = globalThis.crypto.getRandomValues(new Uint32Array(4));
+  return Array.from(values, (value) =>
+    value.toString(16).padStart(8, "0"),
+  ).join("");
+}
+
 /**
  * A client error reaches the boundary with neither a Next `digest` nor an API `traceId`, so
- * support had nothing to quote. It gets the active trace, else a fresh id, which also goes
- * to telemetry so the reported exception can be found by it. Server and API ids are kept.
+ * support had nothing to quote. It gets an id minted in the browser (the Hub runs no browser
+ * tracer), the same one for every render of that error, which also goes to product analytics
+ * with the exception. Server and API ids are kept.
  */
 export function withClientTraceId(
   diagnostics: UnexpectedErrorDiagnostics,
+  error: Error,
 ): UnexpectedErrorDiagnostics {
   if (diagnostics.digest || diagnostics.traceId) {
     return diagnostics;
   }
 
-  // `randomUUID` exists only in secure contexts; a Hub served over http keeps the row blank.
-  const traceId = activeTraceId() ?? globalThis.crypto?.randomUUID?.();
-  return traceId ? { ...diagnostics, traceId } : diagnostics;
+  let traceId = clientTraceIds.get(error);
+  if (!traceId) {
+    traceId = mintClientTraceId();
+    clientTraceIds.set(error, traceId);
+  }
+  return { ...diagnostics, traceId };
 }
 
 export function formatUnexpectedErrorClipboard(
