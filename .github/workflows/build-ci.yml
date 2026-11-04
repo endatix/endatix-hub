@@ -39,9 +39,9 @@ permissions:
 jobs:
   # Sharding as in https://vitest.dev/guide/improving-performance#sharding: each shard
   # writes a blob report with its coverage to .vitest/blob, and the coverage job merges
-  # them (vitest --merge-reports). Four shards on the 4-vCPU runner measured even
-  # (53-59 s each); three came out 57-89 s. Each runner holds one shard, so the default
-  # workers (CPUs - 1) already match the guide's (1 + workers) x shards = CPUs.
+  # them (vitest --merge-reports). Shard count and workers per 4-vCPU runner were
+  # measured in endatix-hub#1318: four shards split evenly, three did not, and four
+  # workers beat the default three (the main thread is not the bottleneck).
   test:
     name: "Test (shard ${{ matrix.shard }}/${{ strategy.job-total }})"
     runs-on: ubuntu-latest
@@ -61,6 +61,8 @@ jobs:
       # dot keeps failures readable in this log; blob carries results and coverage to
       # the coverage job, whose github-actions reporter annotates failures on the PR.
       - name: 🧪 Run tests
+        env:
+          VITEST_MAX_WORKERS: "4"
         run: >-
           pnpm vitest run --coverage
           --shard=${{ matrix.shard }}/${{ strategy.job-total }}
