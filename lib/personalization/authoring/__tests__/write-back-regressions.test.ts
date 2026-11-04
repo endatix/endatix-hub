@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
 import type { Action } from "survey-core";
 import type { SurveyCreatorModel, TabTestPlugin } from "survey-creator-core";

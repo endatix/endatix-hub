@@ -1,4 +1,3 @@
-// @vitest-environment node
 
 import type { JWT } from "next-auth/jwt";
 import { getToken } from "next-auth/jwt";

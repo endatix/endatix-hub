@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { renderHook } from "@testing-library/react";
 import * as nextThemesModule from "next-themes";
 import { beforeEach, describe, expect, it, vi } from "vitest";
