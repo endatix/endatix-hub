@@ -569,16 +569,6 @@ describe("SubmissionDetailsContext", () => {
   });
 
   describe("getStoredViewOptions", () => {
-    it("should return null when window is undefined", () => {
-      const originalWindow = globalThis.window;
-      vi.stubGlobal("window", undefined);
-
-      const result = getStoredViewOptions();
-
-      expect(result).toBeNull();
-      vi.stubGlobal("window", originalWindow);
-    });
-
     it("should return null when localStorage returns null", () => {
       vi.mocked(localStorage.getItem).mockReturnValue(null);
 

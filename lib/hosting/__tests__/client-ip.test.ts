@@ -1,4 +1,3 @@
-// @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ClientIpHeaders, readVisitorIp, withVisitorIp } from "../client-ip";
 import { ClientIpEnv } from "../trusted-proxies";

@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { renderHook, act } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { useUrlSearchParamsUpdater } from "../../hooks/use-url-search-params-updater.hook";

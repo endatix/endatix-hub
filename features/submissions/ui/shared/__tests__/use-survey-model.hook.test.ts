@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { renderHook, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { getCustomQuestionsAction } from "@/features/forms/application/actions/get-custom-questions.action";

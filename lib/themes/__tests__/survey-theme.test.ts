@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
 import { DefaultDark, DefaultLight } from "survey-core/themes";
 import {

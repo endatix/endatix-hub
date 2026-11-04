@@ -1,4 +1,3 @@
-// @vitest-environment node
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { JwtService } from "../../infrastructure/jwt.service";

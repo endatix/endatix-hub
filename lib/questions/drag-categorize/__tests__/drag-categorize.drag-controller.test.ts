@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { ItemValue, Model } from "survey-core";
 import { beforeAll, describe, expect, it } from "vitest";
 import { POOL_ZONE_ID } from "../constants";

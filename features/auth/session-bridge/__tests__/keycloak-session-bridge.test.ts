@@ -1,4 +1,3 @@
-// @vitest-environment node
 
 import { NextRequest } from "next/server";
 import { encode } from "next-auth/jwt";
