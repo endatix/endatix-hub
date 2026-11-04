@@ -9,6 +9,7 @@ import type { SurveyModel } from "survey-core";
 import { SurveyCreatorModel } from "survey-creator-core";
 import { describe, expect, it, vi } from "vitest";
 import { clientStorageConfig } from "../../../test-storage-config";
+import { createAssetStorageContextValue } from "../../../asset-storage-context-value";
 
 // Mock LogoImage - must be before imports that use it
 const mockRender = vi.fn(() => {
@@ -111,10 +112,11 @@ const renderLogoImageWithContext = (
   return render(
     <AssetStorageContext.Provider
       value={
-        contextValue || {
+        contextValue ||
+        createAssetStorageContextValue({
           config: null,
           getCachedPrivateReadUrl: vi.fn(() => null),
-        }
+        })
       }
     >
       {view}
@@ -139,13 +141,14 @@ const renderLogoImageComponentWithContext = (
   return render(
     <AssetStorageContext.Provider
       value={
-        contextValue || {
+        contextValue ||
+        createAssetStorageContextValue({
           config: null,
           getCachedPrivateReadUrl: vi.fn(() => null),
           enqueuePrivateReadUrls: vi.fn(),
           mergePrivateReadUrlCache: vi.fn(),
           readUrlCacheVersion: 0,
-        }
+        })
       }
     >
       {view}
@@ -176,13 +179,16 @@ describe("ProtectedLogoImage", () => {
         isPrivate: false,
       });
 
-      renderLogoImageWithContext(mockSurveyModel, {
-        config: disabledConfig,
-        getCachedPrivateReadUrl: vi.fn(() => null),
-        enqueuePrivateReadUrls: vi.fn(),
-        mergePrivateReadUrlCache: vi.fn(),
-        readUrlCacheVersion: 0,
-      });
+      renderLogoImageWithContext(
+        mockSurveyModel,
+        createAssetStorageContextValue({
+          config: disabledConfig,
+          getCachedPrivateReadUrl: vi.fn(() => null),
+          enqueuePrivateReadUrls: vi.fn(),
+          mergePrivateReadUrlCache: vi.fn(),
+          readUrlCacheVersion: 0,
+        }),
+      );
 
       expect(mockRender).toHaveBeenCalledTimes(1);
     });
@@ -195,13 +201,16 @@ describe("ProtectedLogoImage", () => {
         isPrivate: false,
       });
 
-      renderLogoImageWithContext(mockSurveyModel, {
-        config: publicConfig,
-        getCachedPrivateReadUrl: vi.fn(() => null),
-        enqueuePrivateReadUrls: vi.fn(),
-        mergePrivateReadUrlCache: vi.fn(),
-        readUrlCacheVersion: 0,
-      });
+      renderLogoImageWithContext(
+        mockSurveyModel,
+        createAssetStorageContextValue({
+          config: publicConfig,
+          getCachedPrivateReadUrl: vi.fn(() => null),
+          enqueuePrivateReadUrls: vi.fn(),
+          mergePrivateReadUrlCache: vi.fn(),
+          readUrlCacheVersion: 0,
+        }),
+      );
 
       expect(mockRender).toHaveBeenCalledTimes(1);
     });
@@ -213,13 +222,16 @@ describe("ProtectedLogoImage", () => {
         isPrivate: true,
       });
 
-      renderLogoImageWithContext(mockSurveyModel, {
-        config: privateConfig,
-        getCachedPrivateReadUrl: vi.fn(() => null),
-        enqueuePrivateReadUrls: vi.fn(),
-        mergePrivateReadUrlCache: vi.fn(),
-        readUrlCacheVersion: 0,
-      });
+      renderLogoImageWithContext(
+        mockSurveyModel,
+        createAssetStorageContextValue({
+          config: privateConfig,
+          getCachedPrivateReadUrl: vi.fn(() => null),
+          enqueuePrivateReadUrls: vi.fn(),
+          mergePrivateReadUrlCache: vi.fn(),
+          readUrlCacheVersion: 0,
+        }),
+      );
 
       expect(screen.getByTestId("storage-presigned-image")).toBeDefined();
       expect(mockRender).not.toHaveBeenCalled();
@@ -238,13 +250,16 @@ describe("ProtectedLogoImage", () => {
 
       const mockResolveStorageUrl = vi.fn();
 
-      renderLogoImageWithContext(surveyWithoutLogo, {
-        config: privateConfig,
-        getCachedPrivateReadUrl: mockResolveStorageUrl,
-        enqueuePrivateReadUrls: vi.fn(),
-        mergePrivateReadUrlCache: vi.fn(),
-        readUrlCacheVersion: 0,
-      });
+      renderLogoImageWithContext(
+        surveyWithoutLogo,
+        createAssetStorageContextValue({
+          config: privateConfig,
+          getCachedPrivateReadUrl: mockResolveStorageUrl,
+          enqueuePrivateReadUrls: vi.fn(),
+          mergePrivateReadUrlCache: vi.fn(),
+          readUrlCacheVersion: 0,
+        }),
+      );
 
       expect(mockRender).toHaveBeenCalledTimes(1);
       expect(mockResolveStorageUrl).not.toHaveBeenCalled();
@@ -275,13 +290,16 @@ describe("ProtectedLogoImageComponent", () => {
       isPrivate: true,
     });
 
-    const view = renderLogoImageComponentWithContext(mockCreatorModel, {
-      config: privateConfig,
-      getCachedPrivateReadUrl: vi.fn(() => null),
-      enqueuePrivateReadUrls: vi.fn(),
-      mergePrivateReadUrlCache: vi.fn(),
-      readUrlCacheVersion: 0,
-    });
+    const view = renderLogoImageComponentWithContext(
+      mockCreatorModel,
+      createAssetStorageContextValue({
+        config: privateConfig,
+        getCachedPrivateReadUrl: vi.fn(() => null),
+        enqueuePrivateReadUrls: vi.fn(),
+        mergePrivateReadUrlCache: vi.fn(),
+        readUrlCacheVersion: 0,
+      }),
+    );
 
     // Component should render without errors
     expect(view.container).toBeDefined();

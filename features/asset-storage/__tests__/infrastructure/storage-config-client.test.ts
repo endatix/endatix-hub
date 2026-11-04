@@ -66,6 +66,7 @@ describe("storage-config-client", () => {
         hostName: "testaccount.blob.core.windows.net",
         protocol: "https",
         sasReadExpiryMinutes: 15,
+        sasWriteExpirySeconds: 300,
         containerNames: {
           USER_FILES: "user-files",
           CONTENT: "content",

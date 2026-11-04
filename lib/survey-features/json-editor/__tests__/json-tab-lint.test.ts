@@ -40,7 +40,7 @@ function openJsonTab() {
   });
   return {
     creator,
-    model: creator.getPlugin("json").model,
+    model: creator.getPlugin<TabJsonEditorAcePlugin>("json").model,
     onJsonStateChange,
     result,
   };

@@ -93,6 +93,23 @@ jobs:
       - name: 🕵️‍♂️ Lint
         run: pnpm lint
 
+  # Vitest strips types and next build skips test files, so this is the one check that
+  # type-checks the tests (tsconfig.vitest.json covers every .ts/.tsx file).
+  typecheck:
+    name: "Typecheck"
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🔍 Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: 🧰 Setup Node & pnpm and install dependencies
+        uses: ./.github/actions/setup-node-pnpm
+
+      - name: 🔤 Typecheck
+        run: pnpm typecheck
+
   build:
     name: "Build"
     runs-on: ubuntu-latest
@@ -236,7 +253,7 @@ jobs:
   # "Endatix Hub: Build & Test" still sees one result. Fails unless every job passed.
   node-build:
     name: "Endatix Hub: Build & Test"
-    needs: [test, lint, build, coverage]
+    needs: [test, lint, typecheck, build, coverage]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     steps:

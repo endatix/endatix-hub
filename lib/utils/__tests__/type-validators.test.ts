@@ -625,12 +625,14 @@ describe("hasProperty", () => {
     });
 
     it("should return false for null object", () => {
+      // @ts-expect-error -- null is passed on purpose to cover a missing object
       const result = hasProperty(null, "name");
 
       expect(result).toBe(false);
     });
 
     it("should return false for undefined object", () => {
+      // @ts-expect-error -- undefined is passed on purpose to cover a missing object
       const result = hasProperty(undefined, "name");
 
       expect(result).toBe(false);

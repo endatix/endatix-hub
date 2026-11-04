@@ -58,6 +58,7 @@ describe("useIdentify", () => {
     });
 
     it("should do nothing when posthog is null", () => {
+      // @ts-expect-error -- usePostHog is typed non-null, but returns null outside a PostHogProvider.
       vi.mocked(usePostHog).mockReturnValue(null);
       const { result } = renderHook(() => useIdentify());
 
@@ -195,6 +196,7 @@ describe("useIdentify", () => {
     });
 
     it("should return false when posthog is null", () => {
+      // @ts-expect-error -- usePostHog is typed non-null, but returns null outside a PostHogProvider.
       vi.mocked(usePostHog).mockReturnValue(null);
       const { result } = renderHook(() => useIdentify());
 
@@ -255,6 +257,7 @@ describe("useSessionIdentity", () => {
   });
 
   it("should not call identify when posthog is null", () => {
+    // @ts-expect-error -- usePostHog is typed non-null, but returns null outside a PostHogProvider.
     vi.mocked(usePostHog).mockReturnValue(null);
 
     renderHook(() =>

@@ -1,6 +1,7 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 import { ApiResult } from "@/lib/endatix-api/shared/api-result";
 import {
+  EMPTY_CLIENT_ENDATIX_CONFIG,
   hydrateBrowserEndatixConfig,
   resetBrowserEndatixConfigForTests,
 } from "@/features/config/client-endatix-config";
@@ -33,6 +34,7 @@ const runtimeDeps = {
 describe("resolveDataListDisplayValues", () => {
   beforeEach(() => {
     hydrateBrowserEndatixConfig({
+      ...EMPTY_CLIENT_ENDATIX_CONFIG,
       apiBaseUrl: "https://api.example.com/api",
       extensionsEnabled: true,
     });

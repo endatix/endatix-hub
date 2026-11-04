@@ -1,7 +1,11 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "types": ["vitest/globals", "node"]
+    // The base typeRoots stop "vitest/globals" resolving from node_modules. The types list
+    // below is explicit, so the default roots are enough. next-env.d.ts (gitignored, written
+    // by next dev/build) is absent in CI, so its image types are listed here too.
+    "typeRoots": null,
+    "types": ["vitest/globals", "node", "next/image-types/global"]
   },
   "include": [
     "next-env.d.ts",
