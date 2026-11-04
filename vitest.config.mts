@@ -45,7 +45,8 @@ export default defineConfig({
         "**/__tests__/**",
         "components/ui/**/*.tsx",
       ],
-      enabled: true,
+      // Off by default so `pnpm test` and watch mode skip v8 instrumentation.
+      // `pnpm test:coverage` and the CI shards turn it on with `--coverage`.
       provider: "v8",
       reporter: process.env.GITHUB_ACTIONS
         ? ["cobertura", "json", "json-summary", "lcovonly"]
