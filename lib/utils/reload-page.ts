@@ -1,7 +1,4 @@
-/**
- * Reloads the current document. Tests mock this module: jsdom's `location.reload`
- * cannot be stubbed in a vm pool.
- */
+/** Reloads the current document (client only). Its own module so callers' tests can mock it. */
 export function reloadPage(): void {
   window.location.reload();
 }

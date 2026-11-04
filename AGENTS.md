@@ -252,10 +252,11 @@ Evidence of a green run is the Playwright result and `pnpm exec playwright show-
 
 Vitest environment comes from the file name (`vitest.config.mts` projects):
 
-- `*.test.ts` → `unit` project, `node` environment, no DOM. Test server code, pure logic and server actions here.
-- `*.test.tsx` → `dom` project, jsdom, in the `vmForks` pool. Test components here.
-- A `.ts` test that needs the DOM (`renderHook`, `window`, `document`, `localStorage`) starts with `// @vitest-environment jsdom`. To test a "no `window`" branch, put that case in a `.ts` file instead of stubbing `window` away.
-- In `dom`, `window` is the global object, so `vi.stubGlobal("location" | "window", …)` throws. Mock the module that touches it instead (for example `@/lib/utils/reload-page`).
+- Only these two names run; a `.spec.ts` or `.test.mts` file is silently skipped.
+- `*.test.ts` → `unit` project, `node` environment, `threads` pool, no DOM. Test server code, pure logic and server actions here.
+- `*.test.tsx` → `dom` project, jsdom, `vmForks` pool. Test components here.
+- A `.ts` test that needs the DOM (`renderHook`, `window`, `document`, `localStorage`) starts with `// @vitest-environment jsdom`. It stays in `unit` and gets its own jsdom. To test a "no `window`" branch, put that case in a `.ts` file without the line instead of stubbing `window` away.
+- In `dom` (`.tsx`), `window` is the global object, so `vi.stubGlobal("location" | "window", …)` throws. Mock the module that touches it instead (for example `@/lib/utils/reload-page`).
 
 AAA regions in every `it` that has distinct phases:
 
