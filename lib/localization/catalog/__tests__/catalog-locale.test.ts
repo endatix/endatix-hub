@@ -43,13 +43,6 @@ describe("catalog-locale", () => {
     expect(toSurveyModelLocale("fr", "de")).toBe("fr");
   });
 
-  it("maps the survey's own default language back to catalog default", () => {
-    expect(fromSurveyModelLocale("de", "de")).toBe(DEFAULT_CATALOG_LOCALE);
-    expect(fromSurveyModelLocale("", "de")).toBe(DEFAULT_CATALOG_LOCALE);
-    expect(fromSurveyModelLocale("fr", "de")).toBe("fr");
-    expect(fromSurveyModelLocale("de")).toBe("de");
-  });
-
   it("normalizes getUsedLocales-style lists to catalog codes", () => {
     expect(toCatalogLocales(["en", "bg", "en"])).toEqual(["default", "bg"]);
     expect(toCatalogLocales(["bg", "default"])).toEqual(["bg", "default"]);

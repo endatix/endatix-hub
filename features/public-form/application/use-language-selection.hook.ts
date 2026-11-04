@@ -20,9 +20,9 @@ interface UseLanguageSelectionProps {
 /**
  * React hook for managing language selection in a survey context.
  *
- * Locales use the owned catalog vocabulary (`default`, `bg`, …). The default
- * language is the survey's own JSON `locale` (captured when the model first
- * arrives), so SurveyJS `model.locale` is that code, or `""` when it has none.
+ * Locales use the owned catalog vocabulary (`default`, `bg`, …). SurveyJS
+ * `model.locale` stays `""` for the default language, except in a
+ * single-language survey, which keeps its own JSON `locale`.
  *
  * Initial selection priority:
  *  1. Server-provided initial locale
@@ -47,15 +47,10 @@ export function useLanguageSelection({
     DEFAULT_CATALOG_LOCALE,
   );
   const initializedForModelRef = useRef<SurveyModel | null>(null);
-  const surveyDefaultLocaleRef = useRef("");
 
   const applyCatalogLocale = useCallback(
     (newLocale: string, persist: boolean) => {
-      const surveyDefaultLocale = surveyDefaultLocaleRef.current;
-      const catalogLocale = fromSurveyModelLocale(
-        newLocale,
-        surveyDefaultLocale,
-      );
+      const catalogLocale = fromSurveyModelLocale(newLocale);
       if (!surveyModel || !catalogLocales.includes(catalogLocale)) {
         return;
       }
@@ -63,7 +58,7 @@ export function useLanguageSelection({
       setCurrentLocale(catalogLocale);
       surveyModel.locale = toSurveyModelLocale(
         catalogLocale,
-        surveyDefaultLocale,
+        surveyDefaultLocaleOf(surveyModel, catalogLocales),
       );
       if (persist) {
         localStorage.setItem(STORAGE_KEY, catalogLocale);
@@ -88,27 +83,18 @@ export function useLanguageSelection({
       return;
     }
     initializedForModelRef.current = surveyModel;
-    surveyDefaultLocaleRef.current = surveyDefaultLocaleOf(
-      surveyModel.locale,
-      catalogLocales,
-    );
 
     const localeToSelect = resolveInitialCatalogLocale(catalogLocales, {
       preselectedLocale,
       savedLocale: localStorage.getItem(STORAGE_KEY),
       surveyLocale: surveyModel.locale,
-      surveyDefaultLocale: surveyDefaultLocaleRef.current,
     });
 
     applyCatalogLocale(localeToSelect, false);
   }, [surveyModel, catalogLocales, preselectedLocale, applyCatalogLocale]);
 
   const languageOptions = useMemo(
-    () =>
-      catalogLocales.map((localeCode) => ({
-        value: localeCode,
-        label: catalogLocaleDisplayName(localeCode),
-      })),
+    () => catalogLocales.map((locale) => toLanguageOption(locale)),
     [catalogLocales],
   );
 
@@ -127,29 +113,34 @@ export function useLanguageSelection({
 }
 
 /**
- * The language the survey's default strings are written in: its JSON `locale`,
- * unless that locale has its own translations in the catalog.
+ * The language SurveyJS strings use for the catalog default. A single-language
+ * survey keeps its JSON `locale` (the hook never moves it off that locale, so
+ * reading it again is stable); a multi-language one keeps `""`.
  */
 function surveyDefaultLocaleOf(
-  surveyLocale: string,
+  surveyModel: SurveyModel,
   catalogLocales: readonly string[],
 ): string {
-  return catalogLocales.includes(fromSurveyModelLocale(surveyLocale))
-    ? ""
-    : surveyLocale;
+  return catalogLocales.length === 1 ? surveyModel.locale : "";
+}
+
+function toLanguageOption(catalogLocale: string) {
+  return {
+    value: catalogLocale,
+    label: catalogLocaleDisplayName(catalogLocale),
+  };
 }
 
 /** Returns the catalog form of `candidate` when it is available; otherwise undefined. */
 function pickAvailableCatalogLocale(
   candidate: string | null | undefined,
   catalogLocales: readonly string[],
-  surveyDefaultLocale: string,
 ): string | undefined {
   if (candidate == null) {
     return undefined;
   }
 
-  const catalogLocale = fromSurveyModelLocale(candidate, surveyDefaultLocale);
+  const catalogLocale = fromSurveyModelLocale(candidate);
   return catalogLocales.includes(catalogLocale) ? catalogLocale : undefined;
 }
 
@@ -163,38 +154,37 @@ function resolveInitialCatalogLocale(
     preselectedLocale?: string;
     savedLocale: string | null;
     surveyLocale: string;
-    surveyDefaultLocale: string;
   },
 ): string {
-  const { surveyDefaultLocale } = sources;
-  const pick = (candidate: string | null | undefined) =>
-    pickAvailableCatalogLocale(candidate, catalogLocales, surveyDefaultLocale);
-  const browserPreferred = () =>
-    getBrowserPreferredLocale(catalogLocales, surveyDefaultLocale);
-
-  const fromPreselected = pick(sources.preselectedLocale);
+  const fromPreselected = pickAvailableCatalogLocale(
+    sources.preselectedLocale,
+    catalogLocales,
+  );
   if (fromPreselected) {
     return fromPreselected;
   }
 
   if (sources.savedLocale) {
-    return pick(sources.savedLocale) ?? browserPreferred();
+    return (
+      pickAvailableCatalogLocale(sources.savedLocale, catalogLocales) ??
+      getBrowserPreferredLocale(catalogLocales)
+    );
   }
 
   if (sources.surveyLocale) {
     return (
-      pickAvailableCatalogLocale(sources.surveyLocale, catalogLocales, "") ??
-      browserPreferred()
+      pickAvailableCatalogLocale(sources.surveyLocale, catalogLocales) ??
+      getBrowserPreferredLocale(catalogLocales)
     );
   }
 
-  return pick(DEFAULT_CATALOG_LOCALE) ?? browserPreferred();
+  return (
+    pickAvailableCatalogLocale(DEFAULT_CATALOG_LOCALE, catalogLocales) ??
+    getBrowserPreferredLocale(catalogLocales)
+  );
 }
 
-function getBrowserPreferredLocale(
-  catalogLocales: string[],
-  surveyDefaultLocale: string,
-): string {
+function getBrowserPreferredLocale(catalogLocales: string[]): string {
   if (typeof window === "undefined" || catalogLocales.length === 0) {
     return DEFAULT_CATALOG_LOCALE;
   }
@@ -204,17 +194,14 @@ function getBrowserPreferredLocale(
   );
 
   for (const browserLang of browserLanguages) {
-    const catalog = fromSurveyModelLocale(browserLang, surveyDefaultLocale);
+    const catalog = fromSurveyModelLocale(browserLang);
     if (catalogLocales.includes(catalog)) {
       return catalog;
     }
 
     const languageCode = browserLang.split("-")[0];
     if (languageCode) {
-      const catalogLang = fromSurveyModelLocale(
-        languageCode,
-        surveyDefaultLocale,
-      );
+      const catalogLang = fromSurveyModelLocale(languageCode);
       if (catalogLocales.includes(catalogLang)) {
         return catalogLang;
       }

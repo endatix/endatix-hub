@@ -179,7 +179,7 @@ describe("useLanguageSelection", () => {
       expect(mockSurveyModel.locale).toBe("de");
     });
 
-    it("switches a multi-language survey back to its own language", () => {
+    it("keeps today's English default for a multi-language survey", () => {
       mockSurveyModel.locale = "de";
 
       const { result } = renderHook(() =>
@@ -188,9 +188,6 @@ describe("useLanguageSelection", () => {
           surveyModel: mockSurveyModel,
         }),
       );
-
-      expect(result.current.currentLocale).toBe("default");
-      expect(mockSurveyModel.locale).toBe("de");
 
       act(() => {
         result.current.changeLocale("fr");
@@ -201,24 +198,7 @@ describe("useLanguageSelection", () => {
         result.current.changeLocale("default");
       });
       expect(result.current.currentLocale).toBe("default");
-      expect(mockSurveyModel.locale).toBe("de");
-    });
-
-    it("matches a browser in the survey's own language to the default", () => {
-      mockSurveyModel.locale = "de";
-      mockLocalStorage.getItem.mockReturnValue("es");
-      languagesSpy.mockReturnValue(["de-DE", "fr-FR"]);
-      languageSpy.mockReturnValue("de-DE");
-
-      const { result } = renderHook(() =>
-        useLanguageSelection({
-          availableLocales: ["en", "fr"],
-          surveyModel: mockSurveyModel,
-        }),
-      );
-
-      expect(result.current.currentLocale).toBe("default");
-      expect(mockSurveyModel.locale).toBe("de");
+      expect(mockSurveyModel.locale).toBe("");
     });
   });
 
