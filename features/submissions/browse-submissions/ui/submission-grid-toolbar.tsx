@@ -88,11 +88,7 @@ function ToolbarActions({
       {canDeleteTests && (
         <DeleteTestSubmissionsButton formId={formId} disabled={disabled} />
       )}
-      <ExportButton
-        formId={formId}
-        disabled={disabled}
-        canRebuild={columnSearch.canEdit}
-      />
+      <ExportButton {...{ formId, disabled, columnSearch }} />
     </>
   );
 }
@@ -150,17 +146,15 @@ function ResetButton({ disabled }: Readonly<{ disabled: boolean }>) {
 function ExportButton({
   formId,
   disabled,
-  canRebuild,
-}: Readonly<
-  Pick<ToolbarProps, "formId" | "disabled"> & { canRebuild: boolean }
->) {
+  columnSearch,
+}: Readonly<Pick<ToolbarProps, "formId" | "disabled" | "columnSearch">>) {
   const { urlState } = useSubmissionGridUrl();
   return (
     <ExportSubmissionsButton
       formId={formId}
       disabled={disabled}
       useReportingExport
-      canRebuild={canRebuild}
+      canRebuild={columnSearch.canEdit}
       listFilters={exportFiltersFromGrid(urlState)}
       statusGroups={collectionStatusFacetGroups(urlState.collectionStatus)}
     />

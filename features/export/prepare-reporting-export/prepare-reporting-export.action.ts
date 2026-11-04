@@ -22,6 +22,26 @@ export type PrepareReportingExportOptions = {
 export type PrepareReportingExportResult =
   Result<PrepareReportingExportSummary>;
 
+type CheckPermission = Awaited<
+  ReturnType<typeof authorization>
+>["checkPermission"];
+
+/** A full recompile clears flattened data, so the API keeps it behind `forms.edit`. */
+async function refuseFullRecompile(
+  checkPermission: CheckPermission,
+): Promise<PrepareReportingExportResult | null> {
+  const canEdit = await checkPermission(Permissions.Forms.Edit);
+  if (canEdit.success) {
+    return null;
+  }
+
+  return Result.error(
+    isPermissionDenied(canEdit)
+      ? "A full recompile needs permission to edit forms."
+      : "Could not check permission to recompile reporting data.",
+  );
+}
+
 export async function prepareReportingExportAction(
   formId: string,
   options: PrepareReportingExportOptions = {},
@@ -38,15 +58,9 @@ export async function prepareReportingExportAction(
   }
 
   const fullRecompile = options.fullRecompile === true;
-  if (fullRecompile) {
-    const canEdit = await checkPermission(Permissions.Forms.Edit);
-    if (!canEdit.success) {
-      return Result.error(
-        isPermissionDenied(canEdit)
-          ? "A full recompile needs permission to edit forms."
-          : "Could not check permission to recompile reporting data.",
-      );
-    }
+  const refused = fullRecompile && (await refuseFullRecompile(checkPermission));
+  if (refused) {
+    return refused;
   }
 
   const api = new EndatixApi(session?.accessToken);
