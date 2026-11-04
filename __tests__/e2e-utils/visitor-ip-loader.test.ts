@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { spawnSync } from "node:child_process";
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import { createRequire } from "node:module";
 import os from "node:os";
 import path from "node:path";
@@ -42,6 +42,7 @@ describe("visitor IP lookup in the e2e context", () => {
           env: { ...process.env, CI: "" },
         },
       );
+      rmSync(output, { recursive: true, force: true });
 
       // Assert
       expect(run.status, run.stdout + run.stderr).toBe(0);
