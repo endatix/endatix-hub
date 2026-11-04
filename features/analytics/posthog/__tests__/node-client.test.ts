@@ -3,6 +3,22 @@ import { PostHog } from "posthog-node";
 import { getPostHog, resetPostHogServer } from "../server/node-client";
 import { createPostHogConfig, isPostHogEnabled } from "../shared/config";
 
+// Mock dependencies
+vi.mock("../shared/config", () => ({
+  createPostHogConfig: vi.fn(),
+  isPostHogEnabled: vi.fn(),
+}));
+
+vi.mock("posthog-node", () => ({
+  PostHog: vi.fn().mockImplementation(function () {
+    return {
+      capture: vi.fn(),
+      isFeatureEnabled: vi.fn(),
+      shutdown: vi.fn(),
+    };
+  }),
+}));
+
 describe("PostHog Server", () => {
   // Default test configuration
   const defaultConfig = {
@@ -21,22 +37,6 @@ describe("PostHog Server", () => {
     vi.mocked(createPostHogConfig).mockReturnValue(defaultConfig);
     vi.mocked(isPostHogEnabled).mockReturnValue(true);
   });
-
-  // Mock dependencies
-  vi.mock("../shared/config", () => ({
-    createPostHogConfig: vi.fn(),
-    isPostHogEnabled: vi.fn(),
-  }));
-
-  vi.mock("posthog-node", () => ({
-    PostHog: vi.fn().mockImplementation(function () {
-      return {
-        capture: vi.fn(),
-        isFeatureEnabled: vi.fn(),
-        shutdown: vi.fn(),
-      };
-    }),
-  }));
 
   describe("getPostHogServer", () => {
     it("creates a PostHog instance with proper configuration", () => {

@@ -107,8 +107,8 @@
     "@types/sanitize-html": "^2.16.2",
     "@types/semver": "^7.5.8",
     "@vitejs/plugin-react": "^5.1.4",
-    "@vitest/coverage-v8": "^4.1.10",
-    "@vitest/ui": "^4.1.10",
+    "@vitest/coverage-v8": "^5.1.0",
+    "@vitest/ui": "^5.1.0",
     "babel-plugin-react-compiler": "1.0.0",
     "esbuild": "^0.28.1",
     "eslint": "10.9.1",
@@ -126,7 +126,7 @@
     "typescript": "^5.7.3",
     "vite": "^7.3.7",
     "vite-tsconfig-paths": "^6.1.1",
-    "vitest": "^4.1.10"
+    "vitest": "^5.1.0"
   },
   "engines": {
     "pnpm": ">=10.34.5 <11.0.0 || >=11.11.0 <13.0.0",
