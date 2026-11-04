@@ -1,9 +1,9 @@
 import type { BlockList } from "node:net";
 
 /**
- * `node:net`, looked up when first used. An import would put it in the browser
- * bundle, which `client-ip.ts` reaches and which cannot hold it; an `import()`
- * does not load under Playwright, where API-driven e2e specs sign in.
+ * `node:net`, looked up on use. An import would put it in the browser bundle,
+ * which `client-ip.ts` reaches and which cannot hold it; an `import()` does
+ * not load under Playwright, where API-driven e2e specs sign in.
  */
 function net(): typeof import("node:net") {
   return process.getBuiltinModule("node:net");
