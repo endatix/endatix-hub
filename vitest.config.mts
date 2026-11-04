@@ -18,6 +18,8 @@ export default defineConfig({
     globals: true,
     // Vitest 5 defaults to true; flipping it is endatix-hub#1319.
     clearMocks: false,
+    // SurveyJS Creator and renderer tests can pass 5 s on a cold cache with coverage on.
+    testTimeout: 15_000,
     server: {
       deps: {
         inline: ["next-auth"],
@@ -68,8 +70,6 @@ export default defineConfig({
           environment: "jsdom",
           // One jsdom per worker instead of per file; each file still gets its own context.
           pool: "vmForks",
-          // SurveyJS-heavy renders pass 5 s on a cold transform cache with coverage on.
-          testTimeout: 15_000,
           include: ["**/*.test.tsx"],
           deps: {
             // CJS that require()s ESM-only htmlparser2, which a vm context cannot load.
