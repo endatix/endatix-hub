@@ -47,7 +47,6 @@ describe("JsonEditor", () => {
 
   afterEach(() => {
     vi.useRealTimers();
-    vi.resetAllMocks();
   });
 
   it("renders container div", () => {

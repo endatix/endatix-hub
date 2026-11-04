@@ -1,8 +1,6 @@
-// @vitest-environment node
-
 import { NextRequest } from "next/server";
 import { encode } from "next-auth/jwt";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createSessionFromToken } from "../keycloak-session-bridge";
 import type { KeycloakTokenResponse } from "../types";
 
@@ -43,11 +41,6 @@ function bridgeRequest(forwardedProto: string): NextRequest {
 describe("createSessionFromToken", () => {
   beforeEach(() => {
     vi.mocked(encode).mockResolvedValue("jwe");
-  });
-
-  afterEach(() => {
-    vi.unstubAllEnvs();
-    vi.clearAllMocks();
   });
 
   it("writes the secure cookie when AUTH_URL is https behind an http proxy", async () => {

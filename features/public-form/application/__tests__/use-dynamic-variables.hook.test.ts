@@ -1,4 +1,5 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+// @vitest-environment jsdom
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { SurveyModel } from "survey-core";
 import {
@@ -12,7 +13,6 @@ describe("applyVariablesToModel", () => {
 
   beforeEach(() => {
     model = new SurveyModel();
-    vi.clearAllMocks();
   });
 
   describe("Valid Metadata", () => {
@@ -195,17 +195,10 @@ describe("applyVariablesToModel", () => {
 
 describe("useDynamicVariables", () => {
   let model: SurveyModel;
-  const consoleErrorSpy = vi
-    .spyOn(console, "error")
-    .mockImplementation(() => {});
 
   beforeEach(() => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
     model = new SurveyModel();
-    vi.clearAllMocks();
-  });
-
-  afterEach(() => {
-    consoleErrorSpy.mockClear();
   });
 
   describe("Initial State", () => {

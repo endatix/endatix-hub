@@ -26,7 +26,7 @@ export const TELEMETRY_ENV_KEYS = [
 
 /**
  * Stubs every telemetry env var to empty, so a developer's shell (or CI) exporting
- * OTEL_* cannot change test outcomes. Pair with `vi.unstubAllEnvs()`.
+ * OTEL_* cannot change test outcomes. `unstubEnvs: true` restores them before each test.
  */
 export function stubEmptyTelemetryEnv(): void {
   TelemetryRuntime.reset();

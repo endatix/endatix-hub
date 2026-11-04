@@ -1,5 +1,3 @@
-// @vitest-environment node
-
 import type { JWT } from "next-auth/jwt";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { IAuthProvider } from "../types";
@@ -45,7 +43,6 @@ describe("resolveFederatedLogoutUrl", () => {
   });
 
   afterEach(() => {
-    vi.clearAllMocks();
     delete process.env.AUTH_URL;
     delete process.env.NEXT_PUBLIC_BASE_PATH;
   });

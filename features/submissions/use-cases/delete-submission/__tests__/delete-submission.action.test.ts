@@ -33,7 +33,6 @@ vi.mock("next/cache", () => ({
 
 describe("deleteSubmissionAction", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     mockRequireHubAccess.mockResolvedValue(undefined);
   });
 

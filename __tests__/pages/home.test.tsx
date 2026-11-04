@@ -24,7 +24,6 @@ global.fetch = vi.fn();
 
 describe.skip("Home Page", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     process.env.NODE_ENV = "development";
     process.env.ENDATIX_API_URL = "http://localhost:3000";
   });

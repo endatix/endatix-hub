@@ -32,7 +32,6 @@ const SUBMISSION_ID = "1526934587983265799";
 
 describe("restartTestSubmissionAction", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     process.env.NEXT_FORMS_COOKIE_NAME = "FPSK";
     checkAllPermissions.mockResolvedValue({ success: true });
     personalizationFlag.mockResolvedValue(true);

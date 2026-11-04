@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { DataListChoiceItem } from "@/lib/endatix-api/data-lists/types";
 import { Result } from "@/lib/result";
 import { DATA_LIST_MAX_LOCALES } from "@/features/data-lists/import-limits";
@@ -66,10 +66,6 @@ const validItems: DataListChoiceItem[] = [
 const validCsv = "value,default\r\napple,Apple\r\n";
 
 describe("createDataListWithImportAction", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it("rejects invalid csv payloads before creating a list", async () => {
     const result = await createDataListWithImportAction({
       name: "Fruits",

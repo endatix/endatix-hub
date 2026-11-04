@@ -51,7 +51,6 @@ function page(overrides: Record<string, unknown> = {}) {
 
 describe("refreshIncompleteSubmissionsAction", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     mockRequireHubAccess.mockResolvedValue(undefined);
     mockCheckPermission.mockResolvedValue(AuthorizationResult.success());
     mockBackfillSubmissions.mockResolvedValue(page());

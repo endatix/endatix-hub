@@ -378,10 +378,6 @@ describe("SubmissionGridColumnPicker filterable columns", () => {
     column("notes", "Notes", { search: { state: "ready", source: "user" } }),
   ];
 
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it("marks filterable and preparing columns but offers no changes without edit", () => {
     // Act
     renderPicker("name", searchCatalog, { canEdit: false, slots: SLOTS });

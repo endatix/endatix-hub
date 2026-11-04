@@ -27,7 +27,6 @@ vi.mock(
 describe("data-list-catalog-lazy-choice-provider", () => {
   beforeEach(() => {
     clearPropertyGridLazyChoiceProvidersForTests();
-    vi.clearAllMocks();
     registerDataListCatalogLazyChoiceProvider();
   });
 

@@ -1,4 +1,4 @@
-import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { Result } from "@/lib/result";
 import {
@@ -21,10 +21,6 @@ const updateTenantActionMock = vi.mocked(updateTenantAction);
 
 beforeAll(() => {
   Element.prototype.scrollIntoView = vi.fn();
-});
-
-beforeEach(() => {
-  vi.clearAllMocks();
 });
 
 describe("EditTenantSheet", () => {

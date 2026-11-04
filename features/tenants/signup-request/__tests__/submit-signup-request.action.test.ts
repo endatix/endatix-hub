@@ -36,7 +36,6 @@ describe("submitSignupRequestAction", () => {
   const emptyState = ServerActionState.emptyState();
 
   beforeEach(() => {
-    vi.clearAllMocks();
     delete process.env.POSTHOG_PROJECT_TOKEN;
     vi.mocked(saasManagementFlag).mockResolvedValue(true);
     vi.mocked(EndatixApi).mockImplementation(function () {

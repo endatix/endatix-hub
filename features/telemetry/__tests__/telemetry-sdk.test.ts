@@ -142,8 +142,6 @@ describe("TelemetrySdk", () => {
     created = [];
     logs.disable();
     trace.disable();
-    vi.unstubAllEnvs();
-    vi.restoreAllMocks();
   });
 
   function initialize(): { telemetry: TelemetrySdk; sdk: NodeSdkInternals } {

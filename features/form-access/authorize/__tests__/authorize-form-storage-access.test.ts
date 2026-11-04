@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { PublicFormPermissions } from "../../domain/public-form-permissions";
 import { ApiResult } from "@/lib/endatix-api";
 import { Result } from "@/lib/result";
@@ -38,10 +38,6 @@ vi.mock("@/lib/endatix-api", async (importOriginal) => {
 import { authorizeFormStorageAccess } from "../authorize-form-storage-access";
 
 describe("authorizeFormStorageAccess", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it("allows public forms via anonymous definition", async () => {
     mockGet.mockResolvedValue(ApiResult.success({}));
 

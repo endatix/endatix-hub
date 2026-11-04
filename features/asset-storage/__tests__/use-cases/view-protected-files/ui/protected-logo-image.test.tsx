@@ -7,7 +7,7 @@ import type { ReactNode } from "react";
 import { render, screen } from "@testing-library/react";
 import type { SurveyModel } from "survey-core";
 import { SurveyCreatorModel } from "survey-creator-core";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { clientStorageConfig } from "../../../test-storage-config";
 
 // Mock LogoImage - must be before imports that use it
@@ -169,10 +169,6 @@ describe("ProtectedLogoImage", () => {
     renderedStyleLogoHeight: "40px",
   } as unknown as SurveyModel;
 
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   describe("when storage is disabled", () => {
     it("should render default element without enrichment", () => {
       const disabledConfig: ClientStorageConfig = clientStorageConfig({
@@ -273,10 +269,6 @@ describe("ProtectedLogoImageComponent", () => {
       },
     },
   } as unknown as SurveyCreatorModel;
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
 
   it("should render image component", () => {
     const privateConfig: ClientStorageConfig = clientStorageConfig({

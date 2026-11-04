@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { toast } from "@/components/ui/toast";
@@ -15,7 +16,6 @@ vi.mock("next/navigation", () => ({
 
 describe("useAddPerson", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     vi.mocked(createAudiencePersonAction).mockResolvedValue(
       Result.success(undefined),
     );

@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { renderHook } from "@testing-library/react";
 import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
 import { useDebouncedResize } from "../../hooks/use-debounced-resize.hook";
@@ -7,7 +8,6 @@ const mockRemoveEventListener = vi.fn();
 
 describe("useDebouncedResize", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     vi.useFakeTimers();
 
     Object.defineProperty(window, "addEventListener", {

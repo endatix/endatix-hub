@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { convertChoicesToDataListAction } from "../convert-choices-to-data-list.action";
 import { Result } from "@/lib/result";
 
@@ -22,10 +22,6 @@ vi.mock("@/features/data-lists/delete-list/delete-data-list.action", () => ({
 }));
 
 describe("convertChoicesToDataListAction", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it("returns error when create fails", async () => {
     mockCreate.mockResolvedValue(Result.error("create failed"));
 

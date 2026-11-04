@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { useSurveyEmbedBehavior } from "../use-survey-embed-behavior";
@@ -7,8 +8,6 @@ const mockPostMessage = vi.fn();
 const originalWindow = globalThis.window;
 
 beforeEach(() => {
-  vi.clearAllMocks();
-
   Object.defineProperty(globalThis, "window", {
     value: {
       ...originalWindow,

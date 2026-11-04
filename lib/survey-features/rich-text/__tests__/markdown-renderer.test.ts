@@ -22,7 +22,6 @@ describe("registerMarkdownRenderer", () => {
   let mockSurveyModel: any;
 
   beforeEach(() => {
-    vi.clearAllMocks();
     mockSurveyModel = {
       onTextMarkdown: {
         add: vi.fn(

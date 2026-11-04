@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 import { getToken } from "next-auth/jwt";
 import { TelemetryLogger } from "@/features/telemetry";
 import {
@@ -26,10 +26,6 @@ const SECURE = "__Secure-authjs.session-token";
 const PLAIN = "authjs.session-token";
 
 describe("shouldUseSecureSessionCookie", () => {
-  afterEach(() => {
-    vi.unstubAllEnvs();
-  });
-
   it.each([
     ["HTTP direct", undefined, "http", false, PLAIN],
     ["HTTPS direct", undefined, "https", true, SECURE],
@@ -114,10 +110,6 @@ describe("getAuthJwtFromRequest", () => {
     vi.mocked(getToken).mockReset();
     vi.mocked(TelemetryLogger.warn).mockReset();
     vi.mocked(getToken).mockResolvedValue({ sub: "user" });
-  });
-
-  afterEach(() => {
-    vi.unstubAllEnvs();
   });
 
   it("reads the secure cookie when the internal proto is http and AUTH_URL is https", async () => {

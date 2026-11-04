@@ -43,7 +43,6 @@ const publicAccess = {
 
 describe("getPublicFormAccessUseCase", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     auth.mockResolvedValue(null);
   });
 

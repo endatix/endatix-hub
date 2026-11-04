@@ -127,7 +127,6 @@ class ResizeObserverStub {
 
 describe("PreviewAsView", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     vi.stubGlobal("ResizeObserver", ResizeObserverStub);
   });
 

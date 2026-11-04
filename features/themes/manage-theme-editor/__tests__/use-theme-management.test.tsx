@@ -127,7 +127,6 @@ function renderThemeManagement(
 }
 
 beforeEach(() => {
-  vi.clearAllMocks();
   getThemeAction.mockResolvedValue(Result.error("not found"));
   listThemesPageAction.mockResolvedValue(
     Result.success({

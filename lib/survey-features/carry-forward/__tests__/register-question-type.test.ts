@@ -43,7 +43,6 @@ describe("registerCarryForwardForQuestionType", () => {
 
   afterEach(() => {
     resetAdvancedCarryForwardRegistryForTests();
-    vi.restoreAllMocks();
   });
 
   it("registers all carry forward properties on an opted-in type", () => {

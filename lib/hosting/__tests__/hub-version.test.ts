@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { resolveHubBuild, resolveSurveyJsVersions } from "../hub-build.mjs";
 import {
   getHubBuild,
@@ -171,10 +171,6 @@ describe("resolveSurveyJsVersions", () => {
 });
 
 describe("getSurveyJsVersions", () => {
-  afterEach(() => {
-    vi.unstubAllEnvs();
-  });
-
   it("reads the versions next.config.ts inlined at build", () => {
     // Arrange
     vi.stubEnv(
@@ -210,10 +206,6 @@ describe("getSurveyJsVersions", () => {
 });
 
 describe("getHubBuild", () => {
-  afterEach(() => {
-    vi.unstubAllEnvs();
-  });
-
   it("reads what next.config.ts inlined at build", () => {
     // Arrange
     vi.stubEnv("HUB_VERSION", "");

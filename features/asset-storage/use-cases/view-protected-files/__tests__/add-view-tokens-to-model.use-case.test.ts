@@ -41,7 +41,6 @@ describe("addViewTokensToModelUseCase", () => {
   let mockModel: Model;
 
   beforeEach(() => {
-    vi.clearAllMocks();
     vi.mocked(getClientStorageConfig).mockReturnValue(mockClientStorageConfig);
     vi.mocked(generateGranularReadTokensUseCase).mockResolvedValue(
       Result.success({}),

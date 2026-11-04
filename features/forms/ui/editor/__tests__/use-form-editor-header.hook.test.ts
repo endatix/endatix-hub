@@ -1,5 +1,6 @@
+// @vitest-environment jsdom
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { toast } from "@/components/ui/toast";
 import { Result } from "@/lib/result";
 import {
@@ -36,10 +37,6 @@ function renderHeader() {
 }
 
 describe("useFormEditorHeader", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it("keeps a name typed while the previous rename is saving", async () => {
     let resolveRename!: (result: UpdateFormNameResult) => void;
     vi.mocked(updateFormNameAction).mockReturnValue(

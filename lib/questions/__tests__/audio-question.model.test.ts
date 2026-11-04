@@ -1,4 +1,5 @@
-import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
+// @vitest-environment jsdom
+import { describe, expect, it, beforeEach, vi } from "vitest";
 import { SurveyError, SurveyModel } from "survey-core";
 import {
   AudioQuestionModel,
@@ -78,9 +79,6 @@ describe("AudioQuestionModel", () => {
   let survey: SurveyModel;
 
   beforeEach(() => {
-    // Reset all mocks
-    vi.clearAllMocks();
-
     // Mock global APIs
     vi.stubGlobal("navigator", {
       mediaDevices: {
@@ -117,10 +115,6 @@ describe("AudioQuestionModel", () => {
     audioQuestion = survey.getQuestionByName(
       "audioQuestion",
     ) as TestAudioQuestionModel;
-  });
-
-  afterEach(() => {
-    vi.clearAllMocks();
   });
 
   describe("Constructor and Properties", () => {
@@ -237,7 +231,7 @@ describe("AudioQuestionModel", () => {
         mockHTMLElement as unknown as HTMLElement,
       );
       await audioQuestion.startRecording();
-      mockProcessor.disconnect = vi.fn(() => {
+      mockProcessor.disconnect.mockImplementationOnce(() => {
         throw disconnectError;
       });
 
@@ -270,8 +264,6 @@ describe("AudioQuestionModel", () => {
     });
 
     it("should not stop recording if not currently recording", async () => {
-      mockProcessor.disconnect = vi.fn();
-
       await audioQuestion.stopRecording();
 
       expect(mockProcessor.disconnect).not.toHaveBeenCalled();

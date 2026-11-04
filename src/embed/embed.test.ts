@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { HeightMode } from "./embed";
 
@@ -58,8 +59,6 @@ describe("Endatix embed host script", () => {
 
   afterEach(() => {
     document.body.innerHTML = "";
-    vi.restoreAllMocks();
-    vi.unstubAllGlobals();
     delete (globalThis as { EndatixEmbed?: unknown }).EndatixEmbed;
   });
 

@@ -1,6 +1,7 @@
+// @vitest-environment jsdom
 import { renderHook } from "@testing-library/react";
 import * as nextThemesModule from "next-themes";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   useEndatixCreatorTheme,
   useEndatixSurveyTheme,
@@ -11,10 +12,6 @@ vi.mock("next-themes", () => ({
 }));
 
 describe("useEndatixCreatorTheme", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it("returns light theme when resolvedTheme is 'light'", () => {
     vi.mocked(nextThemesModule.useTheme).mockReturnValue({
       resolvedTheme: "light",
@@ -49,10 +46,6 @@ describe("useEndatixCreatorTheme", () => {
 });
 
 describe("useEndatixSurveyTheme", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it("returns light theme when resolvedTheme is 'light'", () => {
     vi.mocked(nextThemesModule.useTheme).mockReturnValue({
       resolvedTheme: "light",

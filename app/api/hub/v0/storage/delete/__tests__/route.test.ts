@@ -53,7 +53,6 @@ const fileUrl =
 
 describe("DELETE /api/hub/v0/storage/delete", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     mockAuth.mockResolvedValue({ user: { id: "user-1" } });
     mockCheckAllPermissions.mockResolvedValue(AuthorizationResult.success());
     mockGetClientStorageConfig.mockReturnValue({

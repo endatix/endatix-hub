@@ -48,7 +48,6 @@ vi.mock("@/components/error-handling/error-page", () => ({
 
 describe("Data list details route page", () => {
   beforeEach(async () => {
-    vi.clearAllMocks();
     const { auth } = await import("@/auth");
     const { authorization } = await import("@/features/auth/authorization");
     vi.mocked(auth).mockResolvedValue({

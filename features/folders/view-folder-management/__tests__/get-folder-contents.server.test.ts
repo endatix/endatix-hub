@@ -39,7 +39,6 @@ describe("getFolderContents", () => {
   const listTemplates = vi.fn();
 
   beforeEach(() => {
-    vi.clearAllMocks();
     vi.mocked(EndatixApi).mockImplementation(function () {
       return {
         forms: { list: listForms },

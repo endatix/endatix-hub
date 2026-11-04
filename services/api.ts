@@ -10,7 +10,12 @@ import {
 } from "@/lib/utils/type-validators";
 import { redirect } from "next/navigation";
 import { HeaderBuilder } from "../lib/endatix-api/shared/header-builder";
+import { withOutboundHeaders } from "../lib/endatix-api/shared/outbound-headers";
 import { ActiveDefinition, Form, FormTemplate } from "../types";
+
+async function apiFetch(url: string, init?: RequestInit): Promise<Response> {
+  return fetch(url, await withOutboundHeaders(init));
+}
 
 export const createForm = async (
   formRequest: CreateFormRequest,
@@ -22,7 +27,7 @@ export const createForm = async (
     .provideJson()
     .build();
 
-  const response = await fetch(`${requireApiUrl()}/forms`, {
+  const response = await apiFetch(`${requireApiUrl()}/forms`, {
     method: "POST",
     headers: headers,
     body: JSON.stringify(formRequest),
@@ -53,7 +58,7 @@ export const getForm = async (formId: string): Promise<Form> => {
     throw new TypeError(validateIdResult.message);
   }
 
-  const response = await fetch(
+  const response = await apiFetch(
     `${requireApiUrl()}/forms/${validateIdResult.value}`,
     requestOptions,
   );
@@ -89,7 +94,7 @@ export const updateForm = async (
     throw new TypeError(validateIdResult.message);
   }
 
-  const response = await fetch(
+  const response = await apiFetch(
     `${requireApiUrl()}/forms/${validateIdResult.value}`,
     {
       method: "PATCH",
@@ -117,7 +122,7 @@ export const deleteForm = async (formId: string): Promise<string> => {
 
   const headers = new HeaderBuilder().withAuth(session).build();
 
-  const response = await fetch(
+  const response = await apiFetch(
     `${requireApiUrl()}/forms/${validatedIdResult.value}`,
     {
       method: "DELETE",
@@ -155,7 +160,7 @@ export const getActiveFormDefinition = async (
   }
 
   requestOptions.headers = headerBuilder.build();
-  const response = await fetch(
+  const response = await apiFetch(
     `${requireApiUrl()}/forms/${validateIdResult.value}/definition`,
     requestOptions,
   );
@@ -189,7 +194,7 @@ export const updateFormDefinition = async (
     throw new TypeError(validateFormIdResult.message);
   }
 
-  const response = await fetch(
+  const response = await apiFetch(
     `${requireApiUrl()}/forms/${validateFormIdResult.value}/definition`,
     {
       method: "PATCH",
@@ -214,7 +219,7 @@ export const getFormTemplate = async (
     throw new TypeError(validateTemplateIdResult.message);
   }
 
-  const response = await fetch(
+  const response = await apiFetch(
     `${requireApiUrl()}/form-templates/${validateTemplateIdResult.value}`,
     {
       headers: headers,
@@ -248,7 +253,7 @@ export const updateFormTemplate = async (
     throw new TypeError(validateTemplateIdResult.message);
   }
 
-  const response = await fetch(
+  const response = await apiFetch(
     `${requireApiUrl()}/form-templates/${validateTemplateIdResult.value}`,
     {
       method: "PATCH",
@@ -278,7 +283,7 @@ export const deleteFormTemplate = async (
     throw new TypeError(validateTemplateIdResult.message);
   }
 
-  const response = await fetch(
+  const response = await apiFetch(
     `${requireApiUrl()}/form-templates/${validateTemplateIdResult.value}`,
     {
       method: "DELETE",
@@ -323,7 +328,7 @@ export const updateSubmission = async (
     .provideJson()
     .build();
 
-  const response = await fetch(
+  const response = await apiFetch(
     `${requireApiUrl()}/forms/${validateFormIdResult.value}/submissions/${validateSubmissionIdResult.value}`,
     {
       method: "PATCH",
@@ -375,7 +380,7 @@ export const updateSubmissionStatus = async (
     .provideJson()
     .build();
 
-  const response = await fetch(
+  const response = await apiFetch(
     `${requireApiUrl()}/forms/${validateFormIdResult.value}/submissions/${validateSubmissionIdResult.value}/status`,
     {
       method: "POST",
@@ -407,7 +412,7 @@ export const getPartialSubmissionPublic = async (
 
   const headers = new HeaderBuilder().acceptJson().build();
 
-  const response = await fetch(
+  const response = await apiFetch(
     `${requireApiUrl()}/forms/${validateFormIdResult.value}/submissions/by-token/${validateTokenResult.value}`,
     {
       headers: headers,
@@ -445,7 +450,7 @@ export const getSubmission = async (
 
   const headers = new HeaderBuilder().withAuth(session).acceptJson().build();
 
-  const response = await fetch(
+  const response = await apiFetch(
     `${requireApiUrl()}/forms/${validateFormIdResult.value}/submissions/${validateSubmissionIdResult.value}`,
     {
       headers: headers,
@@ -470,36 +475,40 @@ export interface CustomQuestion {
   modifiedAt: string | null;
 }
 
+interface CustomQuestionsPage {
+  items?: CustomQuestion[];
+  totalPages?: number;
+}
+
+/**
+ * Page 1 reports the page count; the remaining pages are independent, so they
+ * are fetched together and joined in page order.
+ */
 export const getCustomQuestions = async (): Promise<CustomQuestion[]> => {
   const session = await getSession();
   const headers = new HeaderBuilder().withAuth(session).build();
-  const questions: CustomQuestion[] = [];
-  let page = 1;
-  let totalPages = 1;
-
-  while (page <= totalPages) {
-    const response = await fetch(
-      `${requireApiUrl()}/questions?page=${page}&pageSize=100`,
-      {
-        headers: headers,
-      },
-    );
-
-    if (!response.ok) {
-      throw new Error("Failed to fetch custom questions");
-    }
-
-    const payload: {
-      items?: CustomQuestion[];
-      totalPages?: number;
-    } = await response.json();
-    questions.push(...(payload.items ?? []));
-    totalPages = payload.totalPages ?? 1;
-    page += 1;
-  }
-
-  return questions;
+  const first = await fetchCustomQuestionsPage(headers, 1);
+  const remaining = Array.from(
+    { length: Math.max((first.totalPages ?? 1) - 1, 0) },
+    (_, index) => fetchCustomQuestionsPage(headers, index + 2),
+  );
+  const pages = [first, ...(await Promise.all(remaining))];
+  return pages.flatMap((page) => page.items ?? []);
 };
+
+async function fetchCustomQuestionsPage(
+  headers: HeadersInit,
+  page: number,
+): Promise<CustomQuestionsPage> {
+  const response = await apiFetch(
+    `${requireApiUrl()}/questions?page=${page}&pageSize=100`,
+    { headers },
+  );
+  if (!response.ok) {
+    throw new Error("Failed to fetch custom questions");
+  }
+  return response.json();
+}
 
 export interface CreateCustomQuestionRequest {
   name: string;
@@ -517,7 +526,7 @@ export const createCustomQuestion = async (
     .provideJson()
     .build();
 
-  const response = await fetch(`${requireApiUrl()}/questions`, {
+  const response = await apiFetch(`${requireApiUrl()}/questions`, {
     method: "POST",
     headers: headers,
     body: JSON.stringify(request),
@@ -565,7 +574,7 @@ export const sendVerification = async (
 ): Promise<SendVerificationApiResponse> => {
   const headers = new HeaderBuilder().acceptJson().provideJson().build();
 
-  const response = await fetch(
+  const response = await apiFetch(
     `${requireApiUrl()}/auth/send-verification-email`,
     {
       method: "POST",
@@ -587,7 +596,7 @@ export const verifyEmail = async (
 ): Promise<VerifyEmailApiResponse> => {
   const headers = new HeaderBuilder().acceptJson().provideJson().build();
 
-  const response = await fetch(`${requireApiUrl()}/auth/verify-email`, {
+  const response = await apiFetch(`${requireApiUrl()}/auth/verify-email`, {
     method: "POST",
     headers: headers,
     body: JSON.stringify(request),
@@ -621,7 +630,7 @@ export const register = async (
 ): Promise<RegistrationResponse> => {
   const headers = new HeaderBuilder().acceptJson().provideJson().build();
 
-  const response = await fetch(`${requireApiUrl()}/auth/register`, {
+  const response = await apiFetch(`${requireApiUrl()}/auth/register`, {
     method: "POST",
     headers: headers,
     body: JSON.stringify(request),

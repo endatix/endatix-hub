@@ -23,7 +23,6 @@ vi.mock(
 
 describe("loadSignupVisitor", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     process.env.POSTHOG_UI_HOST = "https://us.posthog.com";
     process.env.POSTHOG_PROJECT_ID = "42";
     process.env.POSTHOG_PERSONAL_API_KEY = "phx_test";

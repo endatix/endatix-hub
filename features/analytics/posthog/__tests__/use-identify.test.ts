@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { PostHog, usePostHog } from "posthog-js/react";
@@ -18,7 +19,6 @@ vi.mock("posthog-js", () => ({
 
 describe("useIdentify", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     vi.mocked(usePostHog).mockReturnValue({
       identify: mockIdentify,
       reset: mockReset,
@@ -213,7 +213,6 @@ describe("useIdentify", () => {
 
 describe("useSessionIdentity", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     vi.mocked(usePostHog).mockReturnValue({
       identify: mockIdentify,
       reset: mockReset,

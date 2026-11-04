@@ -2,7 +2,7 @@ import { act, fireEvent, render } from "@testing-library/react";
 import React from "react";
 import { Model } from "survey-core";
 import { Survey } from "survey-react-ui";
-import { beforeAll, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { DRAG_CATEGORIZE_TYPE, POOL_ZONE_ID } from "../constants";
 import { registerDragCategorizeQuestion } from "../drag-categorize.component";
 import type { DragCategorizeQuestion } from "../drag-categorize.model";
@@ -418,6 +418,10 @@ describe("DragCategorizeComponent", () => {
   });
 
   describe("display mode", () => {
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
     function renderInMode(mode: "display" | "edit") {
       const model = new Model(surveyJson);
       model.data = { q1: { zone_b: ["item_2"] } };
@@ -455,6 +459,8 @@ describe("DragCategorizeComponent", () => {
     it("wires one in edit mode, so the check above can tell the difference", () => {
       // Arrange
       const { chip, onPointerDown } = renderInMode("edit");
+      // The drag this starts schedules a timer that could fire after jsdom closes.
+      vi.useFakeTimers();
 
       // Act
       fireEvent.pointerDown(chip!);

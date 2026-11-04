@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import * as React from "react";
 
@@ -23,7 +24,6 @@ describe("enrich-image-urls", () => {
   const mockResolveStorageUrl = vi.fn((url: string) => `${url}?token=abc123`);
 
   beforeEach(() => {
-    vi.clearAllMocks();
     mockStoragePresignedImage.mockImplementation(({ src, ...props }) =>
       React.createElement("img", { ...props, src, "data-presigned": "true" }),
     );

@@ -2,7 +2,7 @@ import { Result } from "@/lib/result";
 import type { SubmissionGridRow } from "@/lib/endatix-api/reporting/submission-grid-types";
 import { normalizePagedResponse } from "@/lib/endatix-api/shared/paged-response";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 import { saveSubmissionGridViewAction } from "../save-submission-grid-view.action";
 import type { AnswerColumn } from "../submission-grid-columns";
 import type { SubmissionGridViewLoad } from "../submission-grid-view";
@@ -112,10 +112,6 @@ const header = (name: string) =>
   screen.getByRole("columnheader", { name: new RegExp(name, "i") });
 
 describe("SubmissionGridTable with a saved view", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it("leaves out the details the view hides", () => {
     // Act
     renderTable();

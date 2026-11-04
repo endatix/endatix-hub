@@ -29,7 +29,6 @@ function wrapperFor(isPrivate: boolean) {
 describe("usePrivateStorageDisplayUrl refresh", () => {
   beforeEach(() => {
     vi.useFakeTimers();
-    vi.clearAllMocks();
   });
 
   afterEach(() => {

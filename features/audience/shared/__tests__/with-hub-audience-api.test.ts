@@ -31,7 +31,6 @@ describe("withHubAudienceApi", () => {
   const requireAllPermissions = vi.fn().mockResolvedValue(undefined);
 
   beforeEach(async () => {
-    vi.clearAllMocks();
     const { auth } = await import("@/auth");
     const { authorization } = await import("@/features/auth/authorization");
     vi.mocked(auth).mockResolvedValue({ accessToken: "token" } as never);

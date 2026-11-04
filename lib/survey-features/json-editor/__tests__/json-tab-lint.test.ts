@@ -1,7 +1,8 @@
+// @vitest-environment jsdom
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { act, renderHook } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { SurveyCreatorModel, TabJsonEditorAcePlugin } from "survey-creator-core";
 import type { LintSeverity } from "survey-core/linter";
 import { Result } from "@/lib/result";
@@ -200,8 +201,4 @@ describe("getJsonModel", () => {
     // Assert
     expect(Result.isError(syntax)).toBe(true);
   });
-});
-
-afterEach(() => {
-  vi.restoreAllMocks();
 });

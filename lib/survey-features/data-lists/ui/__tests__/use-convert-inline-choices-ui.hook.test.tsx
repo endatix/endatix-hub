@@ -17,7 +17,6 @@ vi.mock("@/features/data-lists/search-data-lists-for-picker", () => ({
 describe("useConvertInlineChoicesUi", () => {
   afterEach(() => {
     registerConvertChoicesUiDeps(null);
-    vi.clearAllMocks();
   });
 
   it("registers convert choices UI dependencies", async () => {

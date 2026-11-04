@@ -29,7 +29,6 @@ describe("readAuthorizedSubmissionFile", () => {
   const checkAllPermissions = vi.fn();
 
   beforeEach(() => {
-    vi.clearAllMocks();
     vi.mocked(authModule.auth).mockResolvedValue({
       user: { id: "u1" },
     } as unknown as Awaited<ReturnType<typeof authModule.auth>>);

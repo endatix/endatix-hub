@@ -26,7 +26,6 @@ function agentForm(): FormData {
 
 describe("agent actions", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     vi.mocked(ensureAuthenticated).mockRejectedValue(signedOut);
   });
 

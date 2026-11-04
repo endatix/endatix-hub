@@ -143,7 +143,6 @@ describe("resolveFilterableQuestionsLoad", () => {
 
 describe("loadFilterableQuestions", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     mockReportingExportFlag.mockResolvedValue(true);
     mockListColumns.mockResolvedValue(ApiResult.success(columnsResponse()));
     mockCheckPermission.mockResolvedValue({ success: true });

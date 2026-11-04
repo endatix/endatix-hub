@@ -1,5 +1,6 @@
+// @vitest-environment jsdom
 import { act, renderHook } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SurveyCreatorModel } from "survey-creator-core";
 import { SURVEY_CREATOR_BUILT_IN_TAB } from "@/lib/survey-js";
 import { useCreatorTabUrl } from "../ui/use-creator-tab-url";
@@ -18,10 +19,6 @@ describe("useCreatorTabUrl", () => {
     searchParams = new URLSearchParams();
     window.history.replaceState(null, "", "/forms/1/design");
     vi.spyOn(window.history, "replaceState");
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
   });
 
   it("writes preview to the URL with history.replaceState", () => {

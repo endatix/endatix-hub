@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NO_FOLDER_VALUE } from "../move-to-folder";
@@ -47,7 +48,6 @@ async function moveTo(
 
 describe("useMoveToFolder", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     mockLoadFolderChoices.mockResolvedValue(choices);
   });
 

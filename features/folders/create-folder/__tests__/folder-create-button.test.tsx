@@ -25,7 +25,6 @@ vi.mock("@/components/ui/toast", () => ({
 
 describe("CreateFolderDialog", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     createFolderAction.mockResolvedValue(Result.success({ id: "1" }));
   });
 

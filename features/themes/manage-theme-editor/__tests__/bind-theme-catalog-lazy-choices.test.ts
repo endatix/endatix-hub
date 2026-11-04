@@ -95,7 +95,6 @@ function createPlugin(availableThemes: string[]) {
 }
 
 beforeEach(() => {
-  vi.clearAllMocks();
   mockLoadPage.mockResolvedValue({ items: [], hasNextPage: false });
 });
 

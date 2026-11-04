@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { SIGNIN_PATH } from "../../../infrastructure/auth-constants";
 import { logoutAction } from "../signout.action";
 
@@ -29,15 +29,10 @@ vi.mock("../../../infrastructure/auth-logout.utils", () => ({
 
 describe("logoutAction", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     vi.stubEnv("NEXT_PUBLIC_BASE_PATH", "/app");
     mockSignOut.mockResolvedValue(undefined);
     mockGetAuthJwtFromRequest.mockResolvedValue(null);
     mockResolveFederatedLogoutUrl.mockReturnValue(null);
-  });
-
-  afterEach(() => {
-    vi.unstubAllEnvs();
   });
 
   it("should redirect to signin without manually prefixing basePath", async () => {

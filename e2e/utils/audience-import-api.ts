@@ -36,7 +36,7 @@ const NUMBER_HEADERS = new Set([
   "panel_id",
 ]);
 
-const IDENTIFIER_COLUMN = "external_id";
+export const IDENTIFIER_COLUMN = "external_id";
 
 const CHOICE_SEPARATOR = "__";
 
@@ -232,7 +232,7 @@ function isChoiceType(dataType: AudienceDataType): boolean {
 }
 
 /** Simple columns only. `variable__choice` headers are read by the API from the file. */
-function simplePropertyColumns(
+export function simplePropertyColumns(
   headers: string[],
   properties: readonly PanelPropertySpec[],
 ): Record<string, string> {

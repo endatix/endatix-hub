@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
 import { applyEndatixCreatorTheme } from "../creator-theme";
 import type { HubTheme } from "../endatix-themes";

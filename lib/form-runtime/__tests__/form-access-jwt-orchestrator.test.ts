@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { FormRuntimeState } from "@/lib/form-runtime/form-runtime.context";
 import {
   ensureRuntimeFormAccessJwt,
@@ -21,10 +21,6 @@ function createRuntimeState(
 }
 
 describe("form-access-jwt-orchestrator", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it("returns cached token when it is still valid", async () => {
     const state = createRuntimeState({
       formAccessJwt: "cached-token",

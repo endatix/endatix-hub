@@ -20,7 +20,6 @@ import { resolveStorageGateInput } from "../resolve-gate-from-request";
 
 describe("resolveStorageGateInput", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     mockCookies.mockResolvedValue({});
     mockGetToken.mockReturnValue(Result.success("cookie-sub-token"));
   });

@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   AudienceDataType,
   AudienceIdentifierKind,
@@ -111,11 +111,6 @@ describe("Participants list Property columns", () => {
   beforeEach(() => {
     vi.stubGlobal("ResizeObserver", ResizeObserverStub);
     localStorage.clear();
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-    vi.unstubAllGlobals();
   });
 
   it("offers each Property in the Columns menu, and hides a column the reader unticks", () => {

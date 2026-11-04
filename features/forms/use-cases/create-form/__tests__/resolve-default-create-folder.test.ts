@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   getSelectableCreateFolders,
   parseFormsFolderSlugFromPathname,
@@ -22,10 +22,6 @@ const folders = [
     immutable: false,
   },
 ];
-
-afterEach(() => {
-  vi.unstubAllEnvs();
-});
 
 describe("parseFormsFolderSlugFromPathname", () => {
   it("extracts slug from folder routes", () => {

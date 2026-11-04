@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { TelemetryConfig } from "../infrastructure/telemetry-config";
 import { stubEmptyTelemetryEnv } from "./support/telemetry-env";
 
@@ -7,11 +7,6 @@ const AZURE = "InstrumentationKey=abc";
 describe("TelemetryConfig", () => {
   beforeEach(() => {
     stubEmptyTelemetryEnv();
-  });
-
-  afterEach(() => {
-    vi.unstubAllEnvs();
-    vi.restoreAllMocks();
   });
 
   it("exposes SERVICE_NAME constant", () => {

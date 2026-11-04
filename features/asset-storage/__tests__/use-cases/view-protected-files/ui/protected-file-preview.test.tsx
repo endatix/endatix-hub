@@ -106,7 +106,6 @@ describe("ProtectedFilePreview", () => {
   } as unknown as QuestionFileModel;
 
   beforeEach(() => {
-    vi.clearAllMocks();
     // Reset items to original state before each test
     mockQuestion.renderedPages[0].items = [
       {

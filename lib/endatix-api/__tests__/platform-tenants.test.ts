@@ -1,10 +1,12 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { EndatixApi } from "../endatix-api";
 import { ApiResult } from "../shared/api-result";
 import { buildListPlatformTenantsEndpoint } from "../platform-tenants/platform-tenants";
 
 const mockFetch = vi.fn();
-vi.stubGlobal("fetch", mockFetch);
+beforeEach(() => {
+  vi.stubGlobal("fetch", mockFetch);
+});
 
 const TENANT = {
   id: "1",
@@ -54,10 +56,6 @@ describe("PlatformTenants", () => {
   beforeEach(() => {
     process.env.ENDATIX_API_URL = "https://ci.api.endatix.com/api";
     mockFetch.mockReset();
-  });
-
-  afterEach(() => {
-    vi.clearAllMocks();
   });
 
   it.each([

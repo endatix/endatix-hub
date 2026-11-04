@@ -28,7 +28,6 @@ describe("GET /api/hub/v0/storage/submission-files/[formId]/[submissionId]/[file
   };
 
   beforeEach(() => {
-    vi.clearAllMocks();
     vi.mocked(authModule.auth).mockResolvedValue({
       user: { id: "u1", name: "Test", email: "test@example.com" },
     } as unknown as Awaited<ReturnType<typeof authModule.auth>>);

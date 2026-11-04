@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { listPlatformAdminUsers } from "../../list-platform-admins/list-platform-admins.server";
 import type { PlatformAdminSession } from "../../types";
 import { listSignupReviewers } from "../list-signup-reviewers.server";
@@ -11,10 +11,6 @@ vi.mock("../../list-platform-admins/list-platform-admins.server", () => ({
 const session = { accessToken: "token" } as PlatformAdminSession;
 
 describe("listSignupReviewers", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it("labels each admin by display name, then email, then user name", async () => {
     // Arrange
     vi.mocked(listPlatformAdminUsers).mockResolvedValue({

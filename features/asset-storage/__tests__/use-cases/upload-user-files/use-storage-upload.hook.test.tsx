@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, renderHook } from "@testing-library/react";
 import React, { Suspense } from "react";
 import { AssetStorageClientProvider } from "@/features/asset-storage/client";
@@ -90,12 +90,7 @@ describe("useStorageUpload", () => {
   });
 
   beforeEach(() => {
-    vi.clearAllMocks();
     global.fetch = vi.fn();
-  });
-
-  afterEach(() => {
-    vi.clearAllMocks();
   });
 
   describe("hook initialization", () => {
@@ -169,10 +164,6 @@ describe("useStorageUpload", () => {
       files: [mockFile],
       callback: vi.fn(),
     } as unknown as UploadFilesEvent;
-
-    beforeEach(() => {
-      vi.clearAllMocks();
-    });
 
     it("should upload small image via resize then SAS (browser-to-storage)", async () => {
       (global.fetch as ReturnType<typeof vi.fn>)
@@ -1542,10 +1533,6 @@ describe("useStorageUpload", () => {
   });
 
   describe("upload (SAS + resize) edge cases", () => {
-    beforeEach(() => {
-      vi.clearAllMocks();
-    });
-
     it("should handle empty files array", async () => {
       const uploadOptions: UploadFilesEvent = {
         files: [],

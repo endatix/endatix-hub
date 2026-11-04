@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { Result } from "@/lib/result";
 import type { GridReadinessBanner } from "../grid-readiness";
 import { ReadinessBanner } from "../ui/readiness-banner";
@@ -51,10 +51,6 @@ async function click(name: string) {
 }
 
 describe("ReadinessBanner", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it("shows the counts and only the actions the banner offers", () => {
     // Act
     renderBanner({ showIncludeInProgress: false });

@@ -39,7 +39,6 @@ function renderDialog(afterRemove?: Route) {
 
 describe("RemovePersonDialog", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     vi.mocked(deleteAudiencePersonAction).mockResolvedValue(
       Result.success(undefined),
     );

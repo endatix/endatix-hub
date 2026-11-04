@@ -66,7 +66,6 @@ const TOKENS = { accessToken: "access", refreshToken: "refresh" };
 
 describe("assume-tenant actions", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     tenantManagementFlagMock.mockResolvedValue(true);
     replaceMock.mockResolvedValue(Result.success(true));
   });

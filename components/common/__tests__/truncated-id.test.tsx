@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { TruncatedId, truncateId } from "@/components/common/truncated-id";
 
@@ -47,10 +47,6 @@ describe("truncateId", () => {
 });
 
 describe("TruncatedId", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it("renders empty label when id is blank", () => {
     // Arrange & Act
     render(<TruncatedId id="   " />);

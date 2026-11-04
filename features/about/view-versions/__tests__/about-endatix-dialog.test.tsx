@@ -262,6 +262,5 @@ describe("AboutEndatixDialog", () => {
         ].join("\n"),
       ),
     );
-    vi.unstubAllGlobals();
   });
 });

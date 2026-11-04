@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { truncateId } from "@/components/common/truncated-id";
 import { Result } from "@/lib/result";
 import { ResultLoadErrorView } from "../result-load-error-view";
@@ -20,10 +20,6 @@ vi.mock("@/components/ui/toast", () => ({
 const TRACE_ID = "00-15ceb2d6a7b35125152d10c131b11672-28c1e891c501df6c-00";
 
 describe("ResultLoadErrorView", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it("truncates Trace ID in the support box and copies the full id on hover copy", () => {
     // Arrange
     const result = Result.validationError(

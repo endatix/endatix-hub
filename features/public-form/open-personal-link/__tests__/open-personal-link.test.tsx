@@ -1,18 +1,22 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { StrictMode } from "react";
 import { renderToString } from "react-dom/server";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { Result } from "@/lib/result";
 import { OpenPersonalLink } from "../ui/open-personal-link";
 
-const { openPersonalLinkAction, replace, logError } = vi.hoisted(() => ({
-  openPersonalLinkAction: vi.fn(),
-  replace: vi.fn(),
-  logError: vi.fn(),
-}));
+const { openPersonalLinkAction, replace, logError, reloadPage } = vi.hoisted(
+  () => ({
+    openPersonalLinkAction: vi.fn(),
+    replace: vi.fn(),
+    logError: vi.fn(),
+    reloadPage: vi.fn(),
+  }),
+);
 
 vi.mock("../open-personal-link.action", () => ({ openPersonalLinkAction }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ replace }) }));
+vi.mock("@/lib/utils/reload-page", () => ({ reloadPage }));
 vi.mock("@/features/telemetry", () => ({
   TelemetryLogger: { error: logError },
 }));
@@ -21,10 +25,6 @@ const FORM_ID = "1525035735390879744";
 const LINK_TOKEN = "link-token";
 
 describe("OpenPersonalLink", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it("redeems nothing while the page is rendered on the server", () => {
     const html = renderToString(
       <OpenPersonalLink formId={FORM_ID} token={LINK_TOKEN} />,
@@ -97,16 +97,13 @@ describe("OpenPersonalLink", () => {
 
   it("offers Try again when the request itself fails, and reloads the page on the retry", async () => {
     openPersonalLinkAction.mockRejectedValue(new TypeError("Failed to fetch"));
-    const reload = vi.fn();
-    vi.stubGlobal("location", { ...window.location, reload });
 
     render(<OpenPersonalLink formId={FORM_ID} token={LINK_TOKEN} />);
     fireEvent.click(await screen.findByRole("button", { name: "Try again" }));
 
-    expect(reload).toHaveBeenCalledTimes(1);
+    expect(reloadPage).toHaveBeenCalledTimes(1);
     expect(openPersonalLinkAction).toHaveBeenCalledTimes(1);
     expect(replace).not.toHaveBeenCalled();
-    vi.unstubAllGlobals();
   });
 
   it("logs a rejected call without the link's token", async () => {

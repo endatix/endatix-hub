@@ -74,7 +74,6 @@ const accessTokenSubmission: Submission = {
 
 describe("loadPublicSurveyPageUseCase with a personalized link's access token", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     vi.mocked(getPublicFormAccessUseCase).mockResolvedValue(
       Result.success(publicAccess),
     );

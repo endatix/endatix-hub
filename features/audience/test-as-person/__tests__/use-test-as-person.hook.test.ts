@@ -1,5 +1,6 @@
+// @vitest-environment jsdom
 import { renderHook } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { toast } from "@/components/ui/toast";
 import type { AudiencePerson } from "@/lib/endatix-api/audience/types";
 import { Result } from "@/lib/result";
@@ -22,7 +23,6 @@ function fakeTab() {
 
 describe("useTestAsPerson", () => {
   const onOpened = vi.fn();
-  beforeEach(() => vi.clearAllMocks());
 
   it("opens the tab on the click and points it at the respondent page", async () => {
     const tab = fakeTab();

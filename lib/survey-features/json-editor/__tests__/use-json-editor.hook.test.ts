@@ -1,5 +1,6 @@
+// @vitest-environment jsdom
 import { renderHook, act } from "@testing-library/react";
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { Result } from "@/lib/result";
 import { TabJsonEditorAcePlugin } from "survey-creator-core";
 import {
@@ -27,10 +28,6 @@ vi.mock("survey-creator-core", () => ({
 const NO_TOOLBAR_ACTIONS = { actions: [], getActionById: () => undefined };
 
 describe("useJsonEditor", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   describe("getJsonModel", () => {
     it("should return error when creator is null", () => {
       // Arrange

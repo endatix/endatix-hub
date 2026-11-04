@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { Model } from 'survey-core';
 import type {
   SurveyCreatorModel,
@@ -30,10 +30,6 @@ function createMockCreator(initialSurvey?: Model) {
 }
 
 describe('bindSurveyToCreatorAreas', () => {
-  beforeEach(() => {
-    vi.restoreAllMocks();
-  });
-
   it('binds only designer-tab and preview-tab survey instances', () => {
     const bindSurvey = vi.fn(() => vi.fn());
     const { creator, emit } = createMockCreator(new Model({ elements: [] }));

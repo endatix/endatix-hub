@@ -28,7 +28,6 @@ const { checks, grant } = grantedChecks();
 
 describe("downloadTestLinksAction", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     vi.mocked(requireAudienceAccess).mockResolvedValue(
       Result.success({ api, ...checks } as never),
     );

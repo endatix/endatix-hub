@@ -83,7 +83,6 @@ const formDefinition = {
 
 describe("loadPublicSurveyPageUseCase on a person's test submission", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     // A public form: the API never reports test mode for it.
     vi.mocked(getPublicFormAccessUseCase).mockResolvedValue(
       Result.success({

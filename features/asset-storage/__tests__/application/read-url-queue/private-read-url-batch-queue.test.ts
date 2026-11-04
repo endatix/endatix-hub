@@ -28,7 +28,6 @@ describe("PrivateReadUrlBatchQueue", () => {
 
   afterEach(() => {
     vi.useRealTimers();
-    vi.clearAllMocks();
   });
 
   async function flushDebounce(): Promise<void> {

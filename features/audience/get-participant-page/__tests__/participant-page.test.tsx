@@ -112,7 +112,6 @@ class ResizeObserverStub {
 
 describe("ParticipantPage", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     vi.stubGlobal("ResizeObserver", ResizeObserverStub);
     sessionStorage.clear();
   });

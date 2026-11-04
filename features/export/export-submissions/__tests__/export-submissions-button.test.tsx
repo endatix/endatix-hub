@@ -69,7 +69,6 @@ vi.mock("@/components/ui/dropdown-menu", () => ({
 
 describe("ExportSubmissionsButton (legacy)", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     mockRunExport.mockResolvedValue({ succeeded: true });
   });
 

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthProviderRegistry } from "../auth-provider-registry";
 import { logAuthProviders } from "../log-auth-providers";
 import type { IAuthProvider } from "../types";
@@ -65,10 +65,6 @@ describe("logAuthProviders", () => {
   beforeEach(() => {
     vi.spyOn(console, "info").mockImplementation(() => {});
     vi.spyOn(console, "warn").mockImplementation(() => {});
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
   });
 
   it("lists each active provider on its own row under the title", () => {

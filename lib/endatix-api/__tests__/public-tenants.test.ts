@@ -1,9 +1,11 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 import { EndatixApi } from "../endatix-api";
 import { ApiResult } from "../shared/api-result";
 
 const mockFetch = vi.fn();
-vi.stubGlobal("fetch", mockFetch);
+beforeEach(() => {
+  vi.stubGlobal("fetch", mockFetch);
+});
 
 describe("PublicTenants", () => {
   let api: EndatixApi;
@@ -12,10 +14,6 @@ describe("PublicTenants", () => {
     process.env.ENDATIX_API_URL = "https://ci.api.endatix.com/api";
     api = new EndatixApi();
     mockFetch.mockClear();
-  });
-
-  afterEach(() => {
-    vi.clearAllMocks();
   });
 
   it("gets a public tenant without auth and maps slug to shortUrl", async () => {

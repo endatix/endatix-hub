@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { toast } from "@/components/ui/toast";
@@ -27,7 +28,6 @@ describe("useCopyTestLink", () => {
   const onCreated = vi.fn();
 
   beforeEach(() => {
-    vi.clearAllMocks();
     writeText.mockResolvedValue(undefined);
     Object.defineProperty(navigator, "clipboard", {
       value: { writeText },

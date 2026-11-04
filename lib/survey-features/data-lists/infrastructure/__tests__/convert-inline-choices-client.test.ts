@@ -15,7 +15,6 @@ vi.mock(
 describe("runConvertInlineChoicesToDataList", () => {
   afterEach(() => {
     registerConvertChoicesUiDeps(null);
-    vi.clearAllMocks();
   });
 
   it("uses question name for the default data list name", async () => {

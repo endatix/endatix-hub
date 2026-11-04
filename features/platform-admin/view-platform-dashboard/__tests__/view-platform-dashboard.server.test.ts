@@ -29,7 +29,6 @@ function page(totalRecords: number) {
 
 describe("getPlatformDashboard", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     vi.mocked(listPlatformTenants).mockResolvedValue(Result.success(page(4)));
     vi.mocked(listPlatformAdminUsers).mockResolvedValue(page(2));
     vi.mocked(saasManagementFlag).mockResolvedValue(true);

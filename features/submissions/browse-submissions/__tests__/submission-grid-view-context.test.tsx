@@ -83,7 +83,6 @@ const UNSAVED_VIEW: SubmissionGridViewLoad = { ...SAVED_VIEW, version: "0" };
 
 describe("SubmissionGridViewProvider", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     localStorage.clear();
   });
 
