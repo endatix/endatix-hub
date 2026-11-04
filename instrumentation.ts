@@ -20,6 +20,9 @@ export async function register() {
     await import("@/lib/survey-features/safe-html");
     await import("@/lib/hosting/check-node-version");
     await import("@/lib/hosting/check-environment");
+    const { registerVisitorIpForwarding } =
+      await import("@/lib/hosting/visitor-ip.server");
+    registerVisitorIpForwarding();
     await import("@/instrumentation.node");
 
     // Once per process: the registry module itself is evaluated again per

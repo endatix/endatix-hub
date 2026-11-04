@@ -1,8 +1,8 @@
-import { withVisitorIp } from "@/lib/hosting/client-ip";
 import { Result } from "@/lib/result";
 import { validateEndatixId } from "@/lib/utils/type-validators";
 import { ApiResult } from "../../shared/api-result";
 import { mapResponseToApiError } from "../../shared/http-error-mapper";
+import { withOutboundHeaders } from "../../shared/outbound-headers";
 import {
   DataListChoiceItem,
   DataListPublicSearchResult,
@@ -143,7 +143,7 @@ export class PublicDataListsClient {
       Accept: "application/json",
       Authorization: `Bearer ${bearerToken}`,
     };
-    const init = await withVisitorIp({ method: "GET", headers });
+    const init = await withOutboundHeaders({ method: "GET", headers });
 
     try {
       const response = await fetch(url, init);
