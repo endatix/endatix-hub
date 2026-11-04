@@ -44,9 +44,15 @@ function unwrap<T>(result: ApiResult<T>, what: string): T {
   return result.data;
 }
 
+/** The form a demo file is imported onto, and the Properties its columns map to. */
+export type DemoImportTarget = {
+  api: EndatixApi;
+  formId: string;
+  properties: readonly PanelPropertySpec[];
+};
+
 async function waitWhile(
-  api: EndatixApi,
-  formId: string,
+  { api, formId }: DemoImportTarget,
   view: AudienceImportView,
   statuses: readonly string[],
 ): Promise<AudienceImportView> {
@@ -65,17 +71,12 @@ async function waitWhile(
   return latest;
 }
 
-/**
- * Imports a demo file the way the wizard does: start with the overwrite rules, send the chunks,
- * wait for the Check, confirm, wait for the write. Then reads the first page of rejected rows.
- */
-export async function stagedDemoImport(
-  api: EndatixApi,
-  formId: string,
+/** Starts the import with the overwrite rules and sends every chunk of the file. */
+async function upload(
+  { api, formId, properties }: DemoImportTarget,
   fileName: string,
-  properties: readonly PanelPropertySpec[],
   options: AudienceImportOptions,
-): Promise<StagedImport> {
+): Promise<AudienceImportView> {
   const [header, ...rows] = readCsvRows(demoFile(fileName));
   const headers = header.cells;
   const started = unwrap(
@@ -90,22 +91,37 @@ export async function stagedDemoImport(
     }),
     "Start import",
   );
+  const { chunkSize, missingChunks } = started.upload;
   let view = started;
-  for (const index of started.upload.missingChunks) {
-    const place = {
+  for (const index of missingChunks) {
+    const chunk = importChunk(rows, {
       index,
-      chunkSize: started.upload.chunkSize,
+      chunkSize,
       columns: headers.length,
-    };
+    });
     view = unwrap(
       await api.audience.sendImportChunk(formId, started.importId, {
         index,
-        ...importChunk(rows, place),
+        ...chunk,
       }),
       `Send chunk ${index}`,
     );
   }
-  view = await waitWhile(api, formId, view, [
+  return view;
+}
+
+/**
+ * Imports a demo file the way the wizard does: start with the overwrite rules, send the chunks,
+ * wait for the Check, confirm, wait for the write. Then reads the first page (50) of rejected rows.
+ */
+export async function stagedDemoImport(
+  target: DemoImportTarget,
+  fileName: string,
+  options: AudienceImportOptions,
+): Promise<StagedImport> {
+  const { api, formId } = target;
+  let view = await upload(target, fileName, options);
+  view = await waitWhile(target, view, [
     AudienceImportStatus.Uploading,
     AudienceImportStatus.Checking,
   ]);
@@ -122,7 +138,7 @@ export async function stagedDemoImport(
     ),
     "Confirm import",
   );
-  view = await waitWhile(api, formId, view, [AudienceImportStatus.Writing]);
+  view = await waitWhile(target, view, [AudienceImportStatus.Writing]);
   const rejected = unwrap(
     await api.audience.listImportRejections(formId, view.importId, 1),
     "Read rejected rows",
