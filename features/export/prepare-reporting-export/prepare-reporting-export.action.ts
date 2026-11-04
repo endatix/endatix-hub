@@ -1,7 +1,11 @@
 "use server";
 
 import { auth } from "@/auth";
-import { authorization, Permissions } from "@/features/auth/authorization";
+import {
+  authorization,
+  isPermissionDenied,
+  Permissions,
+} from "@/features/auth/authorization";
 import { reportingExportFlag } from "@/lib/feature-flags/flags";
 import { EndatixApi } from "@/lib/endatix-api";
 import type { PrepareReportingExportSummary } from "@/lib/endatix-api/reporting/types";
@@ -37,7 +41,11 @@ export async function prepareReportingExportAction(
   if (fullRecompile) {
     const canEdit = await checkPermission(Permissions.Forms.Edit);
     if (!canEdit.success) {
-      return Result.error("A full recompile needs permission to edit forms.");
+      return Result.error(
+        isPermissionDenied(canEdit)
+          ? "A full recompile needs permission to edit forms."
+          : "Could not check permission to recompile reporting data.",
+      );
     }
   }
 

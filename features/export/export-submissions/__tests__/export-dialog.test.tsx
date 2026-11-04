@@ -12,7 +12,6 @@ const mockOnOpenChange = vi.fn();
 const mockTrackFeatureUsage = vi.fn();
 const mockListFormReportingLocalesAction = vi.fn();
 const mockPrepareReportingExportAction = vi.fn();
-const mockCanRebuildReportingDataAction = vi.fn();
 const mockRefreshIncompleteSubmissionsAction = vi.fn();
 
 type ExportTarget = "Submissions" | "Codebook";
@@ -40,8 +39,6 @@ vi.mock("../refresh-incomplete-submissions.action", () => ({
 vi.mock("@/features/export/prepare-reporting-export", () => ({
   prepareReportingExportAction: (...args: unknown[]) =>
     mockPrepareReportingExportAction(...args),
-  canRebuildReportingDataAction: (...args: unknown[]) =>
-    mockCanRebuildReportingDataAction(...args),
 }));
 
 // A class, not vi.fn: cmdk constructs it with `new` when the Status menu opens.
@@ -306,6 +303,7 @@ function createProps(
     open: true,
     onOpenChange: mockOnOpenChange,
     formId: "100",
+    canRebuild: true,
     groups: [
       {
         target: "Submissions" as ExportTarget,
@@ -400,7 +398,6 @@ describe("ExportSubmissionsDialog", () => {
       }),
     );
     mockOnExport.mockResolvedValue({ succeeded: true });
-    mockCanRebuildReportingDataAction.mockResolvedValue(true);
     mockRefreshIncompleteSubmissionsAction.mockResolvedValue(
       Result.success({ kind: "refreshed", failed: 0, finished: true }),
     );
@@ -805,7 +802,9 @@ describe("ExportSubmissionsDialog", () => {
       expect(mockOnExport).toHaveBeenCalled();
     });
     expect(
-      await screen.findByText(/needs permission to edit this form/i),
+      await screen.findByText(
+        /needs permission to export submissions or edit this form/i,
+      ),
     ).toBeDefined();
   });
 
@@ -942,9 +941,7 @@ describe("ExportSubmissionsDialog", () => {
   });
 
   it("hides Rebuild reporting data from a user who cannot edit forms", async () => {
-    mockCanRebuildReportingDataAction.mockResolvedValue(false);
-
-    render(<ExportSubmissionsDialog {...createProps()} />);
+    render(<ExportSubmissionsDialog {...createProps({ canRebuild: false })} />);
     await waitForReady();
 
     expect(

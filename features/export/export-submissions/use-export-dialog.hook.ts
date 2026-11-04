@@ -9,10 +9,7 @@ import {
   type SubmitEvent,
 } from "react";
 import { useTrackEvent } from "@/features/analytics/posthog/client";
-import {
-  canRebuildReportingDataAction,
-  prepareReportingExportAction,
-} from "@/features/export/prepare-reporting-export";
+import { prepareReportingExportAction } from "@/features/export/prepare-reporting-export";
 import {
   catalogLocaleCodeLabel,
   catalogLocaleEnglishName,
@@ -80,6 +77,8 @@ export type UseExportDialogArgs = {
   formId: string;
   groups: TenantExportOptionGroup[];
   listFilters?: SubmissionExportListFilters;
+  /** The user may edit forms, so may rebuild reporting data from scratch. */
+  canRebuild: boolean;
   isExporting: boolean;
   onExport: (
     args: ExportDialogSubmitArgs,
@@ -138,6 +137,7 @@ export function useExportDialog({
   formId,
   groups,
   listFilters,
+  canRebuild,
   isExporting,
   onExport,
 }: UseExportDialogArgs): UseExportDialogResult {
@@ -156,7 +156,6 @@ export function useExportDialog({
   );
   const [rebuildMode, setRebuildMode] = useState(false);
   const [fullRecompile, setFullRecompile] = useState(false);
-  const [canRebuild, setCanRebuild] = useState(false);
   const [exportFormatId, setExportFormatId] = useState("");
   const [filterDraft, setFilterDraft] = useState<ExportFilterDraft>(
     createFilterDraftFromListFilters,
@@ -304,12 +303,6 @@ export function useExportDialog({
     setFullRecompile(false);
 
     let cancelled = false;
-    setCanRebuild(false);
-    void canRebuildReportingDataAction().then((allowed) => {
-      if (!cancelled) {
-        setCanRebuild(allowed);
-      }
-    });
     void (async () => {
       setPhase("checking");
       setReadinessPassed(false);

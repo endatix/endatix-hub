@@ -36,6 +36,8 @@ interface ExportSubmissionsButtonProps {
   useReportingExport?: boolean;
   listFilters?: SubmissionExportListFilters;
   statusGroups?: readonly FacetedFilterGroup[];
+  /** The user may edit forms, so the export dialog offers a rebuild. */
+  canRebuild?: boolean;
 }
 
 function ExportButtonContents({
@@ -58,6 +60,7 @@ export function ExportSubmissionsButton({
   useReportingExport = false,
   listFilters,
   statusGroups = [],
+  canRebuild = false,
 }: Readonly<ExportSubmissionsButtonProps>) {
   if (useReportingExport) {
     return (
@@ -67,6 +70,7 @@ export function ExportSubmissionsButton({
         disabled={disabled}
         listFilters={listFilters}
         statusGroups={statusGroups}
+        canRebuild={canRebuild}
       />
     );
   }
@@ -86,6 +90,7 @@ function ReportingExportSubmissionsButton({
   disabled,
   listFilters,
   statusGroups = [],
+  canRebuild = false,
 }: Readonly<Omit<ExportSubmissionsButtonProps, "useReportingExport">>) {
   const { isExporting, runExport } = useSubmissionsExport();
   const { options, groups, isLoading, isEmpty, loadError } =
@@ -162,6 +167,7 @@ function ReportingExportSubmissionsButton({
         groups={groups}
         statusGroups={statusGroups}
         listFilters={listFilters}
+        canRebuild={canRebuild}
         isExporting={isExporting}
         onExport={async ({
           formatKey,

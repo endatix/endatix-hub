@@ -14,13 +14,18 @@ vi.mock("@/auth", () => ({
   auth: vi.fn().mockResolvedValue({ accessToken: "token" }),
 }));
 
-vi.mock("@/features/auth/authorization", () => ({
-  Permissions: { Forms: { Edit: "forms.edit" } },
-  authorization: vi.fn().mockResolvedValue({
-    requireHubAccess: (...args: unknown[]) => mockRequireHubAccess(...args),
-    checkPermission: (...args: unknown[]) => mockCheckPermission(...args),
-  }),
-}));
+vi.mock("@/features/auth/authorization", async () => {
+  const domain =
+    await import("@/features/auth/authorization/domain/authorization-result");
+  return {
+    Permissions: { Forms: { Edit: "forms.edit" } },
+    isPermissionDenied: domain.isPermissionDenied,
+    authorization: vi.fn().mockResolvedValue({
+      requireHubAccess: (...args: unknown[]) => mockRequireHubAccess(...args),
+      checkPermission: (...args: unknown[]) => mockCheckPermission(...args),
+    }),
+  };
+});
 
 vi.mock("@/lib/feature-flags/flags", () => ({
   reportingExportFlag: (...args: unknown[]) => mockReportingExportFlag(...args),
@@ -141,6 +146,19 @@ describe("prepareReportingExportAction", () => {
     expect(Result.isError(result)).toBe(true);
     expect(mockCompileSchema).not.toHaveBeenCalled();
     expect(mockBackfillSubmissions).not.toHaveBeenCalled();
+  });
+
+  it("says the check failed, not that permission is missing, when the check errors", async () => {
+    mockCheckPermission.mockResolvedValue(AuthorizationResult.error());
+
+    const result = await prepareReportingExportAction("form-1", {
+      fullRecompile: true,
+    });
+
+    expect(Result.isError(result) && result.message).toBe(
+      "Could not check permission to recompile reporting data.",
+    );
+    expect(mockCompileSchema).not.toHaveBeenCalled();
   });
 
   it("prepares without checking form edit when not recompiling", async () => {

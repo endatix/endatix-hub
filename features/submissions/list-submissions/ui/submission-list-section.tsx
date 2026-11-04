@@ -2,6 +2,7 @@ import { HubPageLoadError } from "@/components/error-handling/error-page";
 import { NotFoundComponent } from "@/components/error-handling/not-found";
 import { Button } from "@/components/ui/button";
 import { getSession } from "@/features/auth";
+import { authorization, Permissions } from "@/features/auth/authorization";
 import type { SubmissionListUrlState } from "@/features/submissions/list-submission-query";
 import { SubmissionsWithFilters } from "@/features/submissions/ui/submissions-with-filters";
 import { reportingExportFlag } from "@/lib/feature-flags/flags";
@@ -27,6 +28,10 @@ export async function SubmissionListSection({
     getSession(),
     reportingExportFlag(),
   ]);
+  const { checkPermission } = await authorization();
+  const canEditForms = useReportingExport
+    ? (await checkPermission(Permissions.Forms.Edit)).success
+    : false;
   const outcome = await loadSubmissionListPage({
     formId,
     listState,
@@ -42,7 +47,12 @@ export async function SubmissionListSection({
     case "error":
       return <HubPageLoadError result={outcome.result} />;
     case "ready":
-      return <SubmissionsWithFilters {...outcome.model} />;
+      return (
+        <SubmissionsWithFilters
+          {...outcome.model}
+          canRebuildReportingData={canEditForms}
+        />
+      );
   }
 }
 

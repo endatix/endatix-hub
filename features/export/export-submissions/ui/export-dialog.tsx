@@ -28,6 +28,8 @@ interface ExportSubmissionsDialogProps {
   groups: TenantExportOptionGroup[];
   statusGroups: readonly FacetedFilterGroup[];
   listFilters?: SubmissionExportListFilters;
+  /** Shows **Rebuild reporting data…**: only for users who may edit forms. */
+  canRebuild?: boolean;
   isExporting: boolean;
   onExport: (
     args: ExportDialogSubmitArgs,
@@ -41,6 +43,7 @@ export function ExportSubmissionsDialog({
   groups,
   statusGroups,
   listFilters,
+  canRebuild = false,
   isExporting,
   onExport,
 }: Readonly<ExportSubmissionsDialogProps>) {
@@ -50,6 +53,7 @@ export function ExportSubmissionsDialog({
     formId,
     groups,
     listFilters,
+    canRebuild,
     isExporting,
     onExport,
   });
