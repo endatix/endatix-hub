@@ -9,12 +9,12 @@ import {
   validateHexToken,
 } from "@/lib/utils/type-validators";
 import { redirect } from "next/navigation";
-import { withVisitorIp } from "@/lib/hosting/client-ip";
 import { HeaderBuilder } from "../lib/endatix-api/shared/header-builder";
+import { withOutboundHeaders } from "../lib/endatix-api/shared/outbound-headers";
 import { ActiveDefinition, Form, FormTemplate } from "../types";
 
 async function apiFetch(url: string, init?: RequestInit): Promise<Response> {
-  return fetch(url, await withVisitorIp(init));
+  return fetch(url, await withOutboundHeaders(init));
 }
 
 export const createForm = async (

@@ -1,9 +1,11 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ClientIpEnv } from "@/lib/hosting/trusted-proxies";
+import { registerVisitorIpForwarding } from "@/lib/hosting/visitor-ip.server";
 import { EndatixApi } from "../endatix-api";
 import { createPublicDataListsClient } from "../public/data-lists/public-data-lists.client";
 import { ApiResult } from "../shared/api-result";
+import { registerOutboundHeaders } from "../shared/outbound-headers";
 
 const requestHeaders = vi.hoisted(() => ({ value: new Headers() }));
 
@@ -23,9 +25,11 @@ describe("EndatixApi visitor IP", () => {
     });
     mockFetch.mockReset();
     mockFetch.mockResolvedValue(Response.json({ ok: true }));
+    registerVisitorIpForwarding();
   });
 
   afterEach(() => {
+    registerOutboundHeaders(undefined);
     vi.unstubAllEnvs();
     vi.unstubAllGlobals();
   });
@@ -86,5 +90,17 @@ describe("EndatixApi visitor IP", () => {
     expect(new Headers(init.headers).get("X-Forwarded-For")).toBe(
       "203.0.113.9",
     );
+  });
+
+  it("sends no visitor address where the Hub registered no forwarding", async () => {
+    // Arrange
+    registerOutboundHeaders(undefined);
+
+    // Act
+    await new EndatixApi().request("/forms", { requireAuth: false });
+
+    // Assert
+    const init: RequestInit = mockFetch.mock.calls[0][1];
+    expect(new Headers(init.headers).has("X-Forwarded-For")).toBe(false);
   });
 });

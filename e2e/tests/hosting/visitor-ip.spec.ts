@@ -1,35 +1,46 @@
 import { expect, test } from "@playwright/test";
-import { readVisitorIp } from "@/lib/hosting/client-ip";
+import { EndatixApi } from "@/lib/endatix-api";
 import { ClientIpEnv } from "@/lib/hosting/trusted-proxies";
 
-// Every API-driven spec signs in through EndatixApi, which reads the visitor
-// IP. This needs no app or browser: it fails when that lookup can't load under
-// Playwright's module loader (endatix-hub#1323).
+// Every API-driven spec signs in through EndatixApi. This needs no app or
+// browser: it fails when EndatixApi can't load under Playwright's module
+// loader (endatix-hub#1323), or when it reaches for the Hub's request headers
+// outside the Hub server, which registers the visitor-IP lookup at startup.
 const TRUSTED_PROXIES = ClientIpEnv.TRUSTED_PROXIES;
 
-test.describe("Visitor IP under the e2e loader", () => {
-  let previous: string | undefined;
+test.describe("EndatixApi under the e2e loader", () => {
+  let previousTrusted: string | undefined;
+  let previousFetch: typeof fetch;
 
   test.beforeEach(() => {
-    previous = process.env[TRUSTED_PROXIES];
+    previousTrusted = process.env[TRUSTED_PROXIES];
+    previousFetch = globalThis.fetch;
   });
 
   test.afterEach(() => {
-    if (previous === undefined) {
+    globalThis.fetch = previousFetch;
+    if (previousTrusted === undefined) {
       delete process.env[TRUSTED_PROXIES];
     } else {
-      process.env[TRUSTED_PROXIES] = previous;
+      process.env[TRUSTED_PROXIES] = previousTrusted;
     }
   });
 
-  test("reads no visitor IP outside a request with a trusted list set", async () => {
+  test("sends no visitor IP outside the Hub server with a trusted list set", async () => {
     // Arrange
     process.env[TRUSTED_PROXIES] = "10.0.0.0/8";
+    const sent: Headers[] = [];
+    globalThis.fetch = async (_input, init) => {
+      sent.push(new Headers(init?.headers));
+      return Response.json({});
+    };
+    const api = new EndatixApi(undefined, { baseUrl: "http://api.test" });
 
     // Act
-    const visitorIp = await readVisitorIp();
+    await api.request("/forms", { requireAuth: false });
 
     // Assert
-    expect(visitorIp).toBeNull();
+    expect(sent).toHaveLength(1);
+    expect(sent[0].has("X-Forwarded-For")).toBe(false);
   });
 });

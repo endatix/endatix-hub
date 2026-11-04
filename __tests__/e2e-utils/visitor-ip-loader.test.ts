@@ -15,7 +15,7 @@ const TIMEOUT_MS = 50_000;
 
 // Build & Test runs no Playwright specs, so this runs the one spec that needs
 // no app, under Playwright's own loader (endatix-hub#1323).
-describe("visitor IP lookup in the e2e context", () => {
+describe("EndatixApi in the e2e context", () => {
   it(
     "loads under Playwright",
     () => {
