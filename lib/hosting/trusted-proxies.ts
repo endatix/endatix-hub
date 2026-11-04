@@ -42,13 +42,18 @@ export function parseTrustedProxies(value: string | undefined): TrustedProxies {
     .split(Limits.LIST_SEPARATOR)
     .map((entry) => entry.trim())
     .filter((entry) => entry.length > 0);
-  const list = new BlockList();
+  // One list per family: BlockList also checks an IPv4 address against IPv6
+  // rules (as ::ffff:a.b.c.d), so ::/80 would otherwise trust every IPv4 hop.
+  const lists = { ipv4: new BlockList(), ipv6: new BlockList() };
   for (const entry of entries) {
-    addEntry(list, entry);
+    addEntry(lists, entry);
   }
   return {
     size: entries.length,
-    has: (ip) => list.check(ip, familyOf(ip)),
+    has: (ip) => {
+      const family = familyOf(ip);
+      return lists[family].check(ip, family);
+    },
   };
 }
 
@@ -99,13 +104,14 @@ export function resolveClientIp(
   return null;
 }
 
-function addEntry(list: BlockList, entry: string): void {
+function addEntry(lists: Record<Family, BlockList>, entry: string): void {
   const { base, prefixText } = splitEntry(entry);
   const address = canonicalIp(base);
   if (!address) {
     throw new TrustedProxiesConfigError(`"${entry}" is not an IP or CIDR`);
   }
   const family = familyOf(address);
+  const list = lists[family];
   if (prefixText === undefined) {
     list.addAddress(address, family);
     return;

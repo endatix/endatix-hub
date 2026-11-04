@@ -60,6 +60,12 @@ describe("resolveClientIp", () => {
     expect(resolve(chain, list)).toBe("2001:db8::7");
   });
 
+  it("does not trust an IPv4 hop through a wide IPv6 network", () => {
+    expect(resolve("2001:db8::bad, 198.51.100.7", "::/80")).toBe(
+      "198.51.100.7",
+    );
+  });
+
   it("sends an IPv6 visitor in compressed form", () => {
     expect(resolve("2001:0DB8:0:0:0:0:0:0007, 10.0.0.5", "10.0.0.5")).toBe(
       "2001:db8::7",
