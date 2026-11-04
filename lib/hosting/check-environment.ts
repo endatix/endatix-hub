@@ -24,7 +24,7 @@ import {
   ClientIpEnv,
   parseTrustedProxies,
   TrustedProxiesConfigError,
-} from "./client-ip";
+} from "./trusted-proxies";
 
 type EnvConfig = {
   name: string;
@@ -108,7 +108,7 @@ function typeMismatchMessage(
   if (env.type === "boolean" && !BOOLEAN_ENV_VALUES.has(value.toLowerCase())) {
     return `${env.name} must be a boolean (true/false/0/1), got "${value}"`;
   }
-  
+
   return undefined;
 }
 
@@ -135,15 +135,21 @@ function collectEnvVarErrors(configs: EnvConfig[]): string[] {
   return errors;
 }
 
-function collectTrustedProxyErrors(): string[] {
+function logWarning(message: string): void {
+  console.log(styles.warning(message));
+}
+
+/** Optional setting: an invalid list disables forwarding, so it only warns. */
+function warnOnInvalidTrustedProxies(): void {
   try {
     parseTrustedProxies(process.env[ClientIpEnv.TRUSTED_PROXIES]);
-    return [];
   } catch (error) {
-    if (error instanceof TrustedProxiesConfigError) {
-      return [`${error.message}. Visitor IPs are not forwarded to the API.`];
+    if (!(error instanceof TrustedProxiesConfigError)) {
+      throw error;
     }
-    throw error;
+    logWarning(
+      `${error.message}. Visitor IPs are not forwarded to the API until it is fixed.`,
+    );
   }
 }
 
@@ -155,10 +161,8 @@ function collectStorageErrors(): string[] {
     storageProfile.provider === "azure" || storageProfile.provider === "s3";
 
   if (storageErrors.length === 0 && !isBlobStorageEnabled) {
-    console.log(
-      `${styles.warning(
-        "Storage service is not enabled. Set STORAGE_PROVIDER to azure or s3 and configure the provider env vars.",
-      )}`,
+    logWarning(
+      "Storage service is not enabled. Set STORAGE_PROVIDER to azure or s3 and configure the provider env vars.",
     );
   }
 
@@ -170,10 +174,10 @@ function collectStorageErrors(): string[] {
  * Returns validation status and error messages
  */
 export function validateEnv(): { valid: boolean; errors: string[] } {
+  warnOnInvalidTrustedProxies();
   const errors = [
     ...collectApiOriginErrors(),
     ...collectEnvVarErrors(envVars),
-    ...collectTrustedProxyErrors(),
     ...collectStorageErrors(),
   ];
 

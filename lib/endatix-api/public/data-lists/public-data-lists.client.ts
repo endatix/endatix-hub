@@ -1,3 +1,4 @@
+import { withVisitorIp } from "@/lib/hosting/client-ip";
 import { Result } from "@/lib/result";
 import { validateEndatixId } from "@/lib/utils/type-validators";
 import { ApiResult } from "../../shared/api-result";
@@ -142,9 +143,10 @@ export class PublicDataListsClient {
       Accept: "application/json",
       Authorization: `Bearer ${bearerToken}`,
     };
+    const init = await withVisitorIp({ method: "GET", headers });
 
     try {
-      const response = await fetch(url, { method: "GET", headers });
+      const response = await fetch(url, init);
 
       if (!response.ok) {
         return mapResponseToApiError<T>(response, {
