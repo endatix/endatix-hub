@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
 import { SurveyCreatorModel } from "survey-creator-core";
 import { SURVEY_CREATOR_BUILT_IN_TAB } from "@/lib/survey-js";

@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { renderHook, act } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { useDebouncedUrlSearch } from "../../hooks/use-debounced-url-search.hook";

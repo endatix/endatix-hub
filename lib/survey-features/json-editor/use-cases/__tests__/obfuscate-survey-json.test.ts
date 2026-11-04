@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
 import { Model } from "survey-core";
 import { obfuscateSurveyJson, obfuscateText } from "../obfuscate-survey-json";

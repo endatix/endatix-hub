@@ -8,6 +8,7 @@ import SubmissionAlreadyCompleted from "@/features/public-form/ui/submission-alr
 import { TelemetryLogger } from "@/features/telemetry";
 import { ERROR_CODE } from "@/lib/endatix-api/shared/error-codes";
 import { ErrorType, Result } from "@/lib/result";
+import { reloadPage } from "@/lib/utils/reload-page";
 import {
   Link2Off,
   LoaderCircle,
@@ -166,7 +167,7 @@ function useOpenPersonalLink(formId: string, token: string) {
 
   const retry = useCallback(() => {
     if (reloadOnRetry.current) {
-      window.location.reload();
+      reloadPage();
       return;
     }
     void open();

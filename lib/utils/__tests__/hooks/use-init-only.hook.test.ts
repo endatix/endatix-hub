@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { renderHook } from "@testing-library/react";
 import { describe, it, expect } from "vitest";
 import { useInitOnly } from "../../hooks/use-init-only.hook";

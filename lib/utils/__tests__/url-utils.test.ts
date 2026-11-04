@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import {
   extractHostname,
   toSafeRelativeUrl,
@@ -7,20 +7,14 @@ import {
 } from "../url-utils";
 import { Result } from "../../result";
 
-const originalWindow = globalThis.window;
+const browserWindow = { location: { origin: "https://example.com" } };
 
 beforeAll(() => {
-  Object.defineProperty(globalThis, "window", {
-    value: { location: { origin: "https://example.com" } },
-    writable: true,
-  });
+  vi.stubGlobal("window", browserWindow);
 });
 
 afterAll(() => {
-  Object.defineProperty(globalThis, "window", {
-    value: originalWindow,
-    writable: true,
-  });
+  vi.unstubAllGlobals();
 });
 
 const BASE_ORIGIN = "https://example.com";
@@ -405,11 +399,9 @@ describe("isSafeRedirectUrl", () => {
 
   describe("requires window context", () => {
     it("returns false when window is not available (SSR)", () => {
-      const originalWindow = globalThis.window;
-      // @ts-expect-error - intentionally removing window for test
-      delete globalThis.window;
+      vi.stubGlobal("window", undefined);
       expect(isSafeRedirectUrl("https://example.com")).toBe(false);
-      globalThis.window = originalWindow;
+      vi.stubGlobal("window", browserWindow);
     });
   });
 
