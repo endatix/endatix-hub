@@ -1,4 +1,3 @@
-import { execFileSync } from "node:child_process";
 import { expect, test } from "@playwright/test";
 import type { EndatixApi } from "@/lib/endatix-api/endatix-api";
 import {
@@ -20,6 +19,7 @@ import {
   stagedDemoImport,
 } from "../../utils/audience-staged-import";
 import { configureE2eForm } from "../../utils/form-api";
+import { runE2eForms } from "../../utils/run-e2e-form";
 import { e2eCredentials } from "../../utils/screen-out-api";
 
 const KEEP: AudienceImportOptions = {
@@ -55,6 +55,20 @@ async function demoForm(api: EndatixApi, name: string): Promise<PanelForm> {
   }
 }
 
+/** Runs the body on a new demo form; a failure, or `E2E_KEEP_DATA=1`, keeps the form. */
+async function withDemoForm(
+  name: string,
+  body: (api: EndatixApi, formId: string) => Promise<void>,
+): Promise<void> {
+  const api = (await signInForAudience())!;
+  const form = await demoForm(api, name);
+  await runE2eForms(
+    [form.formId],
+    (keep) => form.release(keep),
+    () => body(api, form.formId),
+  );
+}
+
 /** A participant's values keyed by Property variable name. */
 async function valuesOf(
   api: EndatixApi,
@@ -75,12 +89,15 @@ async function valuesOf(
   const person = people.data.items.find(
     (item) => item.identifier === identifier,
   );
+  if (!person) throw new Error(`${identifier} is not on the form`);
   const variable = new Map(properties.data.map((p) => [p.id, p.variableName]));
   return Object.fromEntries(
-    Object.entries(person?.values ?? {}).map(([id, value]) => [
-      variable.get(id),
-      value,
-    ]),
+    Object.entries(person.values).map(([id, value]) => {
+      const name = variable.get(id);
+      if (!name)
+        throw new Error(`${identifier} has a value for unknown Property ${id}`);
+      return [name, value];
+    }),
   );
 }
 
@@ -94,31 +111,7 @@ function demoCell(
   return row?.[headers.indexOf(column)] ?? "";
 }
 
-test.describe("Audience demo fixtures", () => {
-  test("the generator's output is the committed files", () => {
-    const run = () =>
-      execFileSync("node", ["e2e/fixtures/audience/generate.mjs", "--check"], {
-        encoding: "utf8",
-      });
-    expect(run()).toContain("up to date");
-  });
-
-  test("one participant's region is not among the radiogroup's choices", () => {
-    const survey = JSON.parse(demoFile("acme-demo.survey.json"));
-    const radiogroup = survey.pages[0].elements.find(
-      (element: { type: string }) => element.type === "radiogroup",
-    );
-    const choices = radiogroup.choices.map(
-      (choice: { value: string }) => choice.value,
-    );
-    const [headers, ...rows] = readCsvRecords(demoFile(DEMO_CSV));
-    const region = headers.indexOf("region");
-    const offChoice = rows.filter((cells) => !choices.includes(cells[region]));
-    expect(offChoice.map((cells) => cells[0])).toEqual([OFF_CHOICE]);
-  });
-});
-
-test.describe("Audience demo import", () => {
+test.describe("ACME demo Participant import", () => {
   test.describe.configure({ mode: "serial" });
   test.setTimeout(180_000);
 
@@ -128,12 +121,10 @@ test.describe("Audience demo import", () => {
   });
 
   test("the demo file creates every Property type and rejects two rows", async () => {
-    const api = (await signInForAudience())!;
-    const form = await demoForm(api, "ACME demo");
-    try {
+    await withDemoForm("ACME demo", async (api, formId) => {
       const { view, rejectedRows } = await stagedDemoImport(
         api,
-        form.formId,
+        formId,
         DEMO_CSV,
         demoProperties(),
         KEEP,
@@ -152,46 +143,36 @@ test.describe("Audience demo import", () => {
       ]);
 
       // The helper creates the Properties in parallel, so their order is not fixed.
-      const properties = await api.audience.listProperties(form.formId);
+      const properties = await api.audience.listProperties(formId);
       const types = (list: readonly { name: string; dataType: string }[]) =>
         Object.fromEntries(list.map((p) => [p.name, p.dataType]));
       expect(properties.success && types(properties.data)).toEqual(
         types(demoProperties()),
       );
 
-      const vip = await api.audience.listPeople(form.formId, {
+      const vip = await api.audience.listPeople(formId, {
         search: "VIP",
         page: 1,
         pageSize: 50,
       });
       expect(vip.success && vip.data.totalRecords).toBe(8);
 
-      const offChoice = await valuesOf(api, form.formId, OFF_CHOICE);
+      const offChoice = await valuesOf(api, formId, OFF_CHOICE);
       expect(offChoice.region).toBe("online");
       expect(JSON.parse(offChoice.tags)).toEqual([
         "tea",
         "pastries",
         "sandwiches",
       ]);
-    } finally {
-      await form.cleanup();
-    }
+    });
   });
 
   test("the update file under keep updates 18 and keeps empty and missing values", async () => {
-    const api = (await signInForAudience())!;
-    const form = await demoForm(api, "ACME demo keep");
-    try {
-      await stagedDemoImport(
-        api,
-        form.formId,
-        DEMO_CSV,
-        demoProperties(),
-        KEEP,
-      );
+    await withDemoForm("ACME demo keep", async (api, formId) => {
+      await stagedDemoImport(api, formId, DEMO_CSV, demoProperties(), KEEP);
       const { view } = await stagedDemoImport(
         api,
-        form.formId,
+        formId,
         DEMO_UPDATE_CSV,
         demoProperties(),
         KEEP,
@@ -202,30 +183,20 @@ test.describe("Audience demo import", () => {
         skippedCount: 10,
       });
 
-      const emptied = await valuesOf(api, form.formId, EMPTIED);
+      const emptied = await valuesOf(api, formId, EMPTIED);
       expect(emptied.region).toBe(demoCell(DEMO_CSV, EMPTIED, "region"));
-      const changed = await valuesOf(api, form.formId, CHANGED);
+      const changed = await valuesOf(api, formId, CHANGED);
       expect(changed.joined).toBe(demoCell(DEMO_CSV, CHANGED, "joined"));
       expect(changed.age).toBe(demoCell(DEMO_UPDATE_CSV, CHANGED, "age"));
-    } finally {
-      await form.cleanup();
-    }
+    });
   });
 
   test("the update file under clear updates 24 and clears empty and missing values", async () => {
-    const api = (await signInForAudience())!;
-    const form = await demoForm(api, "ACME demo clear");
-    try {
-      await stagedDemoImport(
-        api,
-        form.formId,
-        DEMO_CSV,
-        demoProperties(),
-        KEEP,
-      );
+    await withDemoForm("ACME demo clear", async (api, formId) => {
+      await stagedDemoImport(api, formId, DEMO_CSV, demoProperties(), KEEP);
       const { view } = await stagedDemoImport(
         api,
-        form.formId,
+        formId,
         DEMO_UPDATE_CSV,
         demoProperties(),
         CLEAR,
@@ -236,14 +207,12 @@ test.describe("Audience demo import", () => {
         skippedCount: 4,
       });
 
-      const emptied = await valuesOf(api, form.formId, EMPTIED);
+      const emptied = await valuesOf(api, formId, EMPTIED);
       expect(emptied.region).toBeUndefined();
       expect(emptied.last_visit).toBeUndefined();
-      const changed = await valuesOf(api, form.formId, CHANGED);
+      const changed = await valuesOf(api, formId, CHANGED);
       expect(changed.joined).toBeUndefined();
       expect(changed.age).toBe(demoCell(DEMO_UPDATE_CSV, CHANGED, "age"));
-    } finally {
-      await form.cleanup();
-    }
+    });
   });
 });

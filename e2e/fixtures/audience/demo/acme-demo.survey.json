@@ -13,6 +13,13 @@
         },
         {
           "type": "text",
+          "name": "currentAge",
+          "title": "Your age",
+          "inputType": "number",
+          "defaultValueExpression": "{age}"
+        },
+        {
+          "type": "text",
           "name": "ageNextYear",
           "title": "Your age next year",
           "inputType": "number",

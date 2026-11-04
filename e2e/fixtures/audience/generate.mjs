@@ -157,7 +157,7 @@ const UPDATE_PLAN = [
   ["unchanged", 4],
 ];
 
-const DEMO_PEOPLE = [
+const DEMO_PARTICIPANTS = [
   ...Array.from({ length: 8 }, (_, at) => `ACME-VIP-${pad(at + 1, 4)}`),
   ...Array.from({ length: 20 }, (_, at) => `ACME-STD-${pad(at + 1, 4)}`),
 ];
@@ -175,7 +175,7 @@ function isoDateTime(random, year, [firstMonth, lastMonth]) {
   return `${date}T${pad(random.int(8, 19), 2)}:${pad(random.pick([0, 15, 30, 45]), 2)}:00Z`;
 }
 
-function demoPerson(random, identifier, kind) {
+function demoParticipant(random, identifier, kind) {
   const tags = TAGS.map(() => (random.next() < 0.45 ? "1" : ""));
   return {
     external_id: identifier,
@@ -194,32 +194,34 @@ function demoPerson(random, identifier, kind) {
   };
 }
 
-function demoRow(person) {
+function demoRow(participant) {
   return [
-    person.external_id,
-    person.full_name,
-    person.age,
-    person.loyalty_member,
-    person.joined,
-    person.last_visit,
-    person.region,
-    ...person.tags,
+    participant.external_id,
+    participant.full_name,
+    participant.age,
+    participant.loyalty_member,
+    participant.joined,
+    participant.last_visit,
+    participant.region,
+    ...participant.tags,
   ];
 }
 
-function updated(random, person, kind) {
-  if (kind === "unchanged") return person;
-  if (kind === "emptied") return { ...person, last_visit: "", region: "" };
+function updated(random, participant, kind) {
+  if (kind === "unchanged") return participant;
+  if (kind === "emptied") return { ...participant, last_visit: "", region: "" };
   const region =
-    person.external_id === OFF_CHOICE_PARTICIPANT
-      ? person.region
+    participant.external_id === OFF_CHOICE_PARTICIPANT
+      ? participant.region
       : random.pick(SURVEY_REGIONS);
   return {
-    ...person,
-    age: String(Number(person.age) + 1),
+    ...participant,
+    age: String(Number(participant.age) + 1),
     last_visit: isoDateTime(random, 2026, LATER_VISITS),
     region,
-    tags: person.tags.map((tick, at) => (at === 0 ? (tick ? "" : "1") : tick)),
+    tags: participant.tags.map((tick, at) =>
+      at === 0 ? (tick ? "" : "1") : tick,
+    ),
   };
 }
 
@@ -235,17 +237,17 @@ const DUPLICATED_PARTICIPANT = "ACME-STD-0004";
 function demoFiles() {
   const random = seededRandom(DEMO_SEED);
   const kinds = demoKinds();
-  const people = DEMO_PEOPLE.map((identifier, at) =>
-    demoPerson(random, identifier, kinds[at]),
+  const participants = DEMO_PARTICIPANTS.map((identifier, at) =>
+    demoParticipant(random, identifier, kinds[at]),
   );
 
-  const rows = people.map(demoRow);
+  const rows = participants.map(demoRow);
   const blank = demoRow({
-    ...demoPerson(random, "", "changed"),
+    ...demoParticipant(random, "", "changed"),
     external_id: "",
   });
   const duplicate = demoRow(
-    demoPerson(random, DUPLICATED_PARTICIPANT, "changed"),
+    demoParticipant(random, DUPLICATED_PARTICIPANT, "changed"),
   );
   rows.splice(BLANK_IDENTIFIER_AT, 0, blank);
   rows.splice(DUPLICATE_AT, 0, duplicate);
@@ -253,10 +255,12 @@ function demoFiles() {
   const updateHeaders = DEMO_HEADERS.filter(
     (header) => header !== LEFT_OUT_COLUMN,
   );
-  const updateRows = people
-    .map((person, at) => updated(random, person, kinds[at]))
-    .map((person) =>
-      demoRow(person).filter((_, at) => DEMO_HEADERS[at] !== LEFT_OUT_COLUMN),
+  const updateRows = participants
+    .map((participant, at) => updated(random, participant, kinds[at]))
+    .map((participant) =>
+      demoRow(participant).filter(
+        (_, at) => DEMO_HEADERS[at] !== LEFT_OUT_COLUMN,
+      ),
     );
 
   return {
@@ -281,6 +285,13 @@ function demoSurvey() {
             name: "fullName",
             title: "Your name",
             defaultValueExpression: "{full_name}",
+          },
+          {
+            type: "text",
+            name: "currentAge",
+            title: "Your age",
+            inputType: "number",
+            defaultValueExpression: "{age}",
           },
           {
             type: "text",

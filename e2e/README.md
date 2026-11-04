@@ -88,7 +88,7 @@ node e2e/fixtures/audience/generate.mjs           # writes the files
 node e2e/fixtures/audience/generate.mjs --check   # writes nothing; exits 1 when a file is out of date
 ```
 
-Change a generated fixture in the spec inside `generate.mjs`, never by hand, then run it and commit the files it wrote. `tests/audience/demo-fixtures.spec.ts` fails when the committed files differ from the spec. The other audience fixtures are written by hand.
+Change a generated fixture in the spec inside `generate.mjs`, never by hand, then run it and commit the files it wrote. The unit test `__tests__/e2e-utils/audience-demo-fixtures.test.ts` runs `--check` and checks the demo layout on every PR, so a hand edit or a drifted spec fails CI. The other audience fixtures are written by hand.
 
 **Demo the ACME set.** Create the Properties from `acme-demo.properties.json` on a form (match key: external id), paste `acme-demo.survey.json` into its JSON tab, then import the files on the Participants tab:
 
@@ -96,14 +96,14 @@ Change a generated fixture in the spec inside `generate.mjs`, never by hand, the
 - **Prefill from choice warning.** `ACME-VIP-0003` has the region `online`, which the radiogroup does not list. Load the participants in the designer, and the radiogroup's Prefill from warns.
 - **Rejected rows.** `acme-demo.csv` imports 28 participants and rejects 2. Download the rejected rows from the result.
 - **Search.** `VIP` narrows the participants to 8, `STD` to 20.
-- **Overwrite rules.** Import `acme-demo-update.csv` next. With "Keep the current value" and "Leave them" it updates 18 participants and leaves 10 unchanged. With "Clear the value" and "Clear them" it updates 24: the 6 with empty `last_visit` and `region` cells lose those values, and every participant loses `joined`. The last 4 have the same values and no `joined`, so neither rule changes them.
+- **Overwrite rules.** Import `acme-demo-update.csv` next. With "Keep the current value" and "Leave them" it updates 18 participants and leaves 10 unchanged. With "Clear the value" and "Clear them" it updates 24: the 6 with empty `last_visit` and `region` cells lose those values, and the 24 with a `joined` value lose it. The last 4 have the same values and no `joined`, so neither rule changes them.
 
 ```bash
 cd hub
-E2E_EMAIL="you@example.com" pnpm test:e2e --grep "Audience demo" --workers=1
+E2E_EMAIL="you@example.com" pnpm test:e2e --grep "ACME demo Participant import" --workers=1
 ```
 
-The import tests run the wizard's staged import through the API (start, chunks, Check, confirm) on a form of their own, and delete it afterwards.
+`tests/audience/demo-fixtures.spec.ts` runs the wizard's staged import through the API (start, chunks, Check, confirm), each test on a form of its own. A failure, or `E2E_KEEP_DATA=1`, keeps the form.
 
 ## Embed Tests
 

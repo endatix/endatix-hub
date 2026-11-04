@@ -11,12 +11,12 @@ import {
 import { importChunk } from "@/features/audience/import-csv/import-run";
 import { readCsvRows } from "@/lib/utils/csv";
 import {
+  IDENTIFIER_COLUMN,
   simplePropertyColumns,
   type PanelPropertySpec,
 } from "./audience-import-api";
 
 const DEMO = path.join(process.cwd(), "e2e/fixtures/audience/demo");
-const IDENTIFIER_COLUMN = "external_id";
 const POLL_MS = 250;
 const POLL_LIMIT_MS = 60_000;
 

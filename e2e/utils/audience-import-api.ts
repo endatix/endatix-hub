@@ -36,7 +36,7 @@ const NUMBER_HEADERS = new Set([
   "panel_id",
 ]);
 
-const IDENTIFIER_COLUMN = "external_id";
+export const IDENTIFIER_COLUMN = "external_id";
 
 const CHOICE_SEPARATOR = "__";
 
