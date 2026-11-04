@@ -1,0 +1,32 @@
+[
+  {
+    "name": "full_name",
+    "dataType": "text"
+  },
+  {
+    "name": "age",
+    "dataType": "number"
+  },
+  {
+    "name": "loyalty_member",
+    "dataType": "boolean"
+  },
+  {
+    "name": "joined",
+    "dataType": "date"
+  },
+  {
+    "name": "last_visit",
+    "dataType": "date_time"
+  },
+  {
+    "name": "region",
+    "dataType": "single_choice",
+    "choicesJson": "[\"north\",\"south\",\"east\",\"west\",\"online\"]"
+  },
+  {
+    "name": "tags",
+    "dataType": "multiple_choice",
+    "choicesJson": "[\"coffee\",\"tea\",\"pastries\",\"sandwiches\"]"
+  }
+]
