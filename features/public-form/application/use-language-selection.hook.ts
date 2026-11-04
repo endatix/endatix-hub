@@ -20,8 +20,9 @@ interface UseLanguageSelectionProps {
 /**
  * React hook for managing language selection in a survey context.
  *
- * Locales use the owned catalog vocabulary (`default`, `bg`, …). SurveyJS
- * `model.locale` stays `""` for the default language.
+ * Locales use the owned catalog vocabulary (`default`, `bg`, …). The default
+ * language is the survey's own JSON `locale` (captured when the model first
+ * arrives), so SurveyJS `model.locale` is that code, or `""` when it has none.
  *
  * Initial selection priority:
  *  1. Server-provided initial locale
@@ -46,16 +47,24 @@ export function useLanguageSelection({
     DEFAULT_CATALOG_LOCALE,
   );
   const initializedForModelRef = useRef<SurveyModel | null>(null);
+  const surveyDefaultLocaleRef = useRef("");
 
   const applyCatalogLocale = useCallback(
     (newLocale: string, persist: boolean) => {
-      const catalogLocale = fromSurveyModelLocale(newLocale);
+      const surveyDefaultLocale = surveyDefaultLocaleRef.current;
+      const catalogLocale = fromSurveyModelLocale(
+        newLocale,
+        surveyDefaultLocale,
+      );
       if (!surveyModel || !catalogLocales.includes(catalogLocale)) {
         return;
       }
 
       setCurrentLocale(catalogLocale);
-      surveyModel.locale = toSurveyModelLocale(catalogLocale);
+      surveyModel.locale = toSurveyModelLocale(
+        catalogLocale,
+        surveyDefaultLocale,
+      );
       if (persist) {
         localStorage.setItem(STORAGE_KEY, catalogLocale);
       }
@@ -79,11 +88,16 @@ export function useLanguageSelection({
       return;
     }
     initializedForModelRef.current = surveyModel;
+    surveyDefaultLocaleRef.current = surveyDefaultLocaleOf(
+      surveyModel.locale,
+      catalogLocales,
+    );
 
     const localeToSelect = resolveInitialCatalogLocale(catalogLocales, {
       preselectedLocale,
       savedLocale: localStorage.getItem(STORAGE_KEY),
       surveyLocale: surveyModel.locale,
+      surveyDefaultLocale: surveyDefaultLocaleRef.current,
     });
 
     applyCatalogLocale(localeToSelect, false);
@@ -112,16 +126,30 @@ export function useLanguageSelection({
   };
 }
 
+/**
+ * The language the survey's default strings are written in: its JSON `locale`,
+ * unless that locale has its own translations in the catalog.
+ */
+function surveyDefaultLocaleOf(
+  surveyLocale: string,
+  catalogLocales: readonly string[],
+): string {
+  return catalogLocales.includes(fromSurveyModelLocale(surveyLocale))
+    ? ""
+    : surveyLocale;
+}
+
 /** Returns the catalog form of `candidate` when it is available; otherwise undefined. */
 function pickAvailableCatalogLocale(
   candidate: string | null | undefined,
   catalogLocales: readonly string[],
+  surveyDefaultLocale: string,
 ): string | undefined {
   if (candidate == null) {
     return undefined;
   }
 
-  const catalogLocale = fromSurveyModelLocale(candidate);
+  const catalogLocale = fromSurveyModelLocale(candidate, surveyDefaultLocale);
   return catalogLocales.includes(catalogLocale) ? catalogLocale : undefined;
 }
 
@@ -135,37 +163,38 @@ function resolveInitialCatalogLocale(
     preselectedLocale?: string;
     savedLocale: string | null;
     surveyLocale: string;
+    surveyDefaultLocale: string;
   },
 ): string {
-  const fromPreselected = pickAvailableCatalogLocale(
-    sources.preselectedLocale,
-    catalogLocales,
-  );
+  const { surveyDefaultLocale } = sources;
+  const pick = (candidate: string | null | undefined) =>
+    pickAvailableCatalogLocale(candidate, catalogLocales, surveyDefaultLocale);
+  const browserPreferred = () =>
+    getBrowserPreferredLocale(catalogLocales, surveyDefaultLocale);
+
+  const fromPreselected = pick(sources.preselectedLocale);
   if (fromPreselected) {
     return fromPreselected;
   }
 
   if (sources.savedLocale) {
-    return (
-      pickAvailableCatalogLocale(sources.savedLocale, catalogLocales) ??
-      getBrowserPreferredLocale(catalogLocales)
-    );
+    return pick(sources.savedLocale) ?? browserPreferred();
   }
 
   if (sources.surveyLocale) {
     return (
-      pickAvailableCatalogLocale(sources.surveyLocale, catalogLocales) ??
-      getBrowserPreferredLocale(catalogLocales)
+      pickAvailableCatalogLocale(sources.surveyLocale, catalogLocales, "") ??
+      browserPreferred()
     );
   }
 
-  return (
-    pickAvailableCatalogLocale(DEFAULT_CATALOG_LOCALE, catalogLocales) ??
-    getBrowserPreferredLocale(catalogLocales)
-  );
+  return pick(DEFAULT_CATALOG_LOCALE) ?? browserPreferred();
 }
 
-function getBrowserPreferredLocale(catalogLocales: string[]): string {
+function getBrowserPreferredLocale(
+  catalogLocales: string[],
+  surveyDefaultLocale: string,
+): string {
   if (typeof window === "undefined" || catalogLocales.length === 0) {
     return DEFAULT_CATALOG_LOCALE;
   }
@@ -175,14 +204,17 @@ function getBrowserPreferredLocale(catalogLocales: string[]): string {
   );
 
   for (const browserLang of browserLanguages) {
-    const catalog = fromSurveyModelLocale(browserLang);
+    const catalog = fromSurveyModelLocale(browserLang, surveyDefaultLocale);
     if (catalogLocales.includes(catalog)) {
       return catalog;
     }
 
     const languageCode = browserLang.split("-")[0];
     if (languageCode) {
-      const catalogLang = fromSurveyModelLocale(languageCode);
+      const catalogLang = fromSurveyModelLocale(
+        languageCode,
+        surveyDefaultLocale,
+      );
       if (catalogLocales.includes(catalogLang)) {
         return catalogLang;
       }

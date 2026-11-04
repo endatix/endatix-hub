@@ -29,26 +29,34 @@ export function isDefaultCatalogLocale(
 
 /**
  * Maps an owned catalog locale to SurveyJS <c>model.locale</c>.
- * Default language is the empty string.
+ * Default language is the survey's own <c>locale</c> from its JSON
+ * (<paramref name="surveyDefaultLocale"/>), or the empty string when it has none.
  */
-export function toSurveyModelLocale(catalogLocale: string): string {
-  return isDefaultCatalogLocale(catalogLocale)
-    ? ""
-    : catalogLocale.trim().toLowerCase();
+export function toSurveyModelLocale(
+  catalogLocale: string,
+  surveyDefaultLocale = "",
+): string {
+  const locale = isDefaultCatalogLocale(catalogLocale)
+    ? surveyDefaultLocale
+    : catalogLocale;
+  return isDefaultCatalogLocale(locale) ? "" : locale.trim().toLowerCase();
 }
 
 /**
  * Maps SurveyJS <c>model.locale</c> (or a getUsedLocales entry) to an owned
- * catalog locale code.
+ * catalog locale code. The survey's own <c>locale</c> from its JSON
+ * (<paramref name="surveyDefaultLocale"/>) maps to the default.
  */
 export function fromSurveyModelLocale(
   modelLocale: string | undefined | null,
+  surveyDefaultLocale = "",
 ): string {
-  if (isDefaultCatalogLocale(modelLocale)) {
+  const locale = toSurveyModelLocale(modelLocale ?? "");
+  if (locale === "" || locale === toSurveyModelLocale(surveyDefaultLocale)) {
     return DEFAULT_CATALOG_LOCALE;
   }
 
-  return String(modelLocale).trim().toLowerCase();
+  return locale;
 }
 
 /**
