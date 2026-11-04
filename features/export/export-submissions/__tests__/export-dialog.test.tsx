@@ -12,6 +12,7 @@ const mockOnOpenChange = vi.fn();
 const mockTrackFeatureUsage = vi.fn();
 const mockListFormReportingLocalesAction = vi.fn();
 const mockPrepareReportingExportAction = vi.fn();
+const mockCanRebuildReportingDataAction = vi.fn();
 const mockRefreshIncompleteSubmissionsAction = vi.fn();
 
 type ExportTarget = "Submissions" | "Codebook";
@@ -39,6 +40,8 @@ vi.mock("../refresh-incomplete-submissions.action", () => ({
 vi.mock("@/features/export/prepare-reporting-export", () => ({
   prepareReportingExportAction: (...args: unknown[]) =>
     mockPrepareReportingExportAction(...args),
+  canRebuildReportingDataAction: (...args: unknown[]) =>
+    mockCanRebuildReportingDataAction(...args),
 }));
 
 // A class, not vi.fn: cmdk constructs it with `new` when the Status menu opens.
@@ -397,6 +400,7 @@ describe("ExportSubmissionsDialog", () => {
       }),
     );
     mockOnExport.mockResolvedValue({ succeeded: true });
+    mockCanRebuildReportingDataAction.mockResolvedValue(true);
     mockRefreshIncompleteSubmissionsAction.mockResolvedValue(
       Result.success({ kind: "refreshed", failed: 0, finished: true }),
     );
@@ -935,6 +939,17 @@ describe("ExportSubmissionsDialog", () => {
     expect(
       screen.getByRole("button", { name: /rebuild reporting data/i }),
     ).toBeDefined();
+  });
+
+  it("hides Rebuild reporting data from a user who cannot edit forms", async () => {
+    mockCanRebuildReportingDataAction.mockResolvedValue(false);
+
+    render(<ExportSubmissionsDialog {...createProps()} />);
+    await waitForReady();
+
+    expect(
+      screen.queryByRole("button", { name: /rebuild reporting data/i }),
+    ).toBeNull();
   });
 
   it("enters rebuild mode from ready and returns without preparing", async () => {

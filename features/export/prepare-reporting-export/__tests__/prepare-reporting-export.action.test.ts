@@ -1,9 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { AuthorizationResult } from "@/features/auth/authorization/domain/authorization-result";
 import { ApiResult } from "@/lib/endatix-api/shared/api-result";
 import { Result } from "@/lib/result";
 import { prepareReportingExportAction } from "../prepare-reporting-export.action";
 
 const mockRequireHubAccess = vi.fn();
+const mockCheckPermission = vi.fn();
 const mockCompileSchema = vi.fn();
 const mockBackfillSubmissions = vi.fn();
 const mockReportingExportFlag = vi.fn();
@@ -13,8 +15,10 @@ vi.mock("@/auth", () => ({
 }));
 
 vi.mock("@/features/auth/authorization", () => ({
+  Permissions: { Forms: { Edit: "forms.edit" } },
   authorization: vi.fn().mockResolvedValue({
     requireHubAccess: (...args: unknown[]) => mockRequireHubAccess(...args),
+    checkPermission: (...args: unknown[]) => mockCheckPermission(...args),
   }),
 }));
 
@@ -37,6 +41,7 @@ vi.mock("@/lib/endatix-api", () => ({
 describe("prepareReportingExportAction", () => {
   beforeEach(() => {
     mockRequireHubAccess.mockResolvedValue(undefined);
+    mockCheckPermission.mockResolvedValue(AuthorizationResult.success());
     mockReportingExportFlag.mockResolvedValue(true);
     mockCompileSchema.mockResolvedValue(
       ApiResult.success({ formDefinitionId: "def-1" }),
@@ -122,6 +127,28 @@ describe("prepareReportingExportAction", () => {
       afterSubmissionId: undefined,
       force: true,
     });
+    expect(Result.isSuccess(result)).toBe(true);
+  });
+
+  it("refuses a full recompile, calling nothing, when the user cannot edit forms", async () => {
+    mockCheckPermission.mockResolvedValue(AuthorizationResult.forbidden());
+
+    const result = await prepareReportingExportAction("form-1", {
+      fullRecompile: true,
+    });
+
+    expect(mockCheckPermission).toHaveBeenCalledWith("forms.edit");
+    expect(Result.isError(result)).toBe(true);
+    expect(mockCompileSchema).not.toHaveBeenCalled();
+    expect(mockBackfillSubmissions).not.toHaveBeenCalled();
+  });
+
+  it("prepares without checking form edit when not recompiling", async () => {
+    mockCheckPermission.mockResolvedValue(AuthorizationResult.forbidden());
+
+    const result = await prepareReportingExportAction("form-1");
+
+    expect(mockCheckPermission).not.toHaveBeenCalled();
     expect(Result.isSuccess(result)).toBe(true);
   });
 

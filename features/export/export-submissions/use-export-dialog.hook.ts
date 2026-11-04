@@ -9,7 +9,10 @@ import {
   type SubmitEvent,
 } from "react";
 import { useTrackEvent } from "@/features/analytics/posthog/client";
-import { prepareReportingExportAction } from "@/features/export/prepare-reporting-export";
+import {
+  canRebuildReportingDataAction,
+  prepareReportingExportAction,
+} from "@/features/export/prepare-reporting-export";
 import {
   catalogLocaleCodeLabel,
   catalogLocaleEnglishName,
@@ -153,6 +156,7 @@ export function useExportDialog({
   );
   const [rebuildMode, setRebuildMode] = useState(false);
   const [fullRecompile, setFullRecompile] = useState(false);
+  const [canRebuild, setCanRebuild] = useState(false);
   const [exportFormatId, setExportFormatId] = useState("");
   const [filterDraft, setFilterDraft] = useState<ExportFilterDraft>(
     createFilterDraftFromListFilters,
@@ -300,6 +304,12 @@ export function useExportDialog({
     setFullRecompile(false);
 
     let cancelled = false;
+    setCanRebuild(false);
+    void canRebuildReportingDataAction().then((allowed) => {
+      if (!cancelled) {
+        setCanRebuild(allowed);
+      }
+    });
     void (async () => {
       setPhase("checking");
       setReadinessPassed(false);
@@ -487,7 +497,7 @@ export function useExportDialog({
     showFiltersForm: showsFiltersForm(phase) && readinessPassed && !rebuildMode,
     showPrepareCta: prepareCtaVisible,
     showPrepareOptions: showsPrepareOptions(phase, rebuildMode),
-    showRebuildEntry: showsRebuildEntry(phase),
+    showRebuildEntry: canRebuild && showsRebuildEntry(phase),
     showBackToExport:
       rebuildMode && (phase === "needsPrepare" || phase === "error"),
     showExportSubmit: readinessPassed && !prepareCtaVisible && !rebuildMode,

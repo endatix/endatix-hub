@@ -1,7 +1,7 @@
 "use server";
 
 import { auth } from "@/auth";
-import { authorization } from "@/features/auth/authorization";
+import { authorization, Permissions } from "@/features/auth/authorization";
 import { reportingExportFlag } from "@/lib/feature-flags/flags";
 import { EndatixApi } from "@/lib/endatix-api";
 import type { PrepareReportingExportSummary } from "@/lib/endatix-api/reporting/types";
@@ -23,7 +23,7 @@ export async function prepareReportingExportAction(
   options: PrepareReportingExportOptions = {},
 ): Promise<PrepareReportingExportResult | never> {
   const session = await auth();
-  const { requireHubAccess } = await authorization(session);
+  const { requireHubAccess, checkPermission } = await authorization(session);
   await requireHubAccess();
 
   const reportingExportEnabled = await reportingExportFlag();
@@ -34,6 +34,13 @@ export async function prepareReportingExportAction(
   }
 
   const fullRecompile = options.fullRecompile === true;
+  if (fullRecompile) {
+    const canEdit = await checkPermission(Permissions.Forms.Edit);
+    if (!canEdit.success) {
+      return Result.error("A full recompile needs permission to edit forms.");
+    }
+  }
+
   const api = new EndatixApi(session?.accessToken);
 
   const compileResult = await api.reporting.compileSchema(formId, {
