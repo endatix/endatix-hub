@@ -1,3 +1,9 @@
+import "server-only";
+import { headers } from "next/headers";
+import { unstable_rethrow } from "next/navigation";
+import { registerOutboundHeaders } from "@/lib/endatix-api/shared/outbound-headers";
+import { resolveClientIp, trustedProxiesFromEnv } from "./trusted-proxies";
+
 /** Request header that carries the visitor address to the Endatix API. */
 export const ClientIpHeaders = Object.freeze({
   FORWARDED_FOR: "X-Forwarded-For",
@@ -16,12 +22,6 @@ export const ClientIpHeaders = Object.freeze({
  * control-flow errors, such as a prerender bailout, which must propagate.
  */
 export async function readVisitorIp(): Promise<string | null> {
-  if (typeof window !== "undefined") {
-    return null;
-  }
-
-  const { resolveClientIp, trustedProxiesFromEnv } =
-    await import("./trusted-proxies");
   const trusted = trustedProxiesFromEnv();
   if (!trusted || trusted.size === 0) {
     return null;
@@ -32,34 +32,23 @@ export async function readVisitorIp(): Promise<string | null> {
 
 async function readForwardedFor(): Promise<string | null> {
   try {
-    const { headers } = await import("next/headers");
     return (await headers()).get(ClientIpHeaders.FORWARDED_FOR);
   } catch (error) {
-    const { unstable_rethrow } = await import("next/navigation");
     unstable_rethrow(error);
     return null;
   }
 }
 
-/**
- * Sets the visitor address on outbound request headers, replacing any
- * forwarded chain already there. Leaves the headers alone when there is none.
- */
-export function setVisitorIp(
-  init: RequestInit,
-  visitorIp: string | null,
-): RequestInit {
-  if (!visitorIp) {
-    return init;
-  }
-  const headers = new Headers(init.headers);
-  headers.set(ClientIpHeaders.FORWARDED_FOR, visitorIp);
-  return { ...init, headers };
+/** The visitor address as outbound headers, for {@link registerOutboundHeaders}. */
+export async function visitorIpHeaders(): Promise<HeadersInit | undefined> {
+  const visitorIp = await readVisitorIp();
+  return visitorIp ? { [ClientIpHeaders.FORWARDED_FOR]: visitorIp } : undefined;
 }
 
-/** {@link setVisitorIp} with the address from {@link readVisitorIp}. */
-export async function withVisitorIp(
-  init: RequestInit = {},
-): Promise<RequestInit> {
-  return setVisitorIp(init, await readVisitorIp());
+/**
+ * Forwards the visitor address on every outbound API call in this process.
+ * Called once from `instrumentation.ts`.
+ */
+export function registerVisitorIpForwarding(): void {
+  registerOutboundHeaders(visitorIpHeaders);
 }

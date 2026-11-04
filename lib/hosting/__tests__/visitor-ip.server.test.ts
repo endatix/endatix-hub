@@ -1,5 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ClientIpHeaders, readVisitorIp, withVisitorIp } from "../client-ip";
+import {
+  ClientIpHeaders,
+  readVisitorIp,
+  visitorIpHeaders,
+} from "../visitor-ip.server";
 import { ClientIpEnv } from "../trusted-proxies";
 
 const requestHeaders = vi.hoisted(() => ({
@@ -19,7 +23,7 @@ function headersThrow(error: Error): void {
   requestHeaders.read = () => Promise.reject(error);
 }
 
-describe("withVisitorIp", () => {
+describe("visitorIpHeaders", () => {
   beforeEach(() => {
     vi.stubEnv(ClientIpEnv.TRUSTED_PROXIES, "");
   });
@@ -28,45 +32,41 @@ describe("withVisitorIp", () => {
     vi.unstubAllEnvs();
   });
 
-  it("replaces the forwarded chain with the one visitor address", async () => {
+  it("is the one visitor address as X-Forwarded-For", async () => {
     // Arrange
     vi.stubEnv(ClientIpEnv.TRUSTED_PROXIES, "10.0.0.0/8");
     forwardedFor("1.2.3.4, 203.0.113.9, 10.0.0.5");
 
     // Act
-    const init = await withVisitorIp({
-      headers: { Accept: "application/json" },
-    });
+    const outbound = await visitorIpHeaders();
 
     // Assert
-    const headers = new Headers(init.headers);
-    expect(headers.get(ClientIpHeaders.FORWARDED_FOR)).toBe("203.0.113.9");
-    expect(headers.get("Accept")).toBe("application/json");
+    expect(outbound).toEqual({
+      [ClientIpHeaders.FORWARDED_FOR]: "203.0.113.9",
+    });
   });
 
-  it("leaves the request alone when no proxy is trusted", async () => {
+  it("is nothing when no proxy is trusted", async () => {
     // Arrange
     forwardedFor("1.2.3.4");
-    const original: RequestInit = { method: "POST" };
 
     // Act
-    const init = await withVisitorIp(original);
+    const outbound = await visitorIpHeaders();
 
     // Assert
-    expect(init).toBe(original);
+    expect(outbound).toBeUndefined();
   });
 
-  it("leaves the request alone when the trusted list is invalid", async () => {
+  it("is nothing when the trusted list is invalid", async () => {
     // Arrange
     vi.stubEnv(ClientIpEnv.TRUSTED_PROXIES, "0.0.0.0/0");
     forwardedFor("1.2.3.4");
-    const original: RequestInit = {};
 
     // Act
-    const init = await withVisitorIp(original);
+    const outbound = await visitorIpHeaders();
 
     // Assert
-    expect(init).toBe(original);
+    expect(outbound).toBeUndefined();
   });
 });
 
