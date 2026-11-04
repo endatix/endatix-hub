@@ -39,6 +39,10 @@ calm, spacious, precise. Boundaries come from tonal surfaces and white space, no
    sections and kinds of things, not individual fields.
 5. **Prefer removing over adding.** Most inconsistency is accumulated decoration — an icon on one
    badge, a tooltip on one label. Cutting it is almost always more on-brand than harmonising it.
+6. **Chrome is borrowed space.** Navigation, titles and descriptions take the reader's working
+   area on every visit. Put moving around in the header and menus, not in rows of the page; say
+   each thing once (a title the trail already says, a description the title already says, two
+   links to one page are all noise).
 
 **Deciding a question this file does not answer** — in this order, then write it back:
 
@@ -48,6 +52,12 @@ calm, spacious, precise. Boundaries come from tonal surfaces and white space, no
    utility, register it (§2) rather than hardcoding a palette step.
 3. **What is the page for?** Principle 1.
 4. **Can you remove something instead?** Principle 5.
+5. **Working from a mockup or a reference app?** Adopt the idea, not the layout. Keep every rule
+   here unless the case shows the rule no longer fits — then change the rule (top of this file).
+   Example: the audience mockup's "Properties" button opened a panel whose rows opened panels;
+   that stacks overlays, so properties became a view of the page instead (§6 Navigation).
+6. **Look at it in the running app** before calling it done (§7, last items). Screenshots catch
+   what types and tests do not: a stray scrollbar, a row that wastes height, two buttons fighting.
 
 ---
 
@@ -128,25 +138,36 @@ with regular body and generous vertical padding (`8`–`10`).
 
 Before building a control, check whether the vocabulary already exists here.
 
-| Component                                                                | Owns                                                                                  |
-| :----------------------------------------------------------------------- | :------------------------------------------------------------------------------------ |
-| `components/common/status-badge.tsx` — `StatusBadge`, `StatusDot`        | The four-tone on / off / attention / idle pill, and its dot alone for a group label   |
-| `components/table/faceted-filter.tsx` — `FacetedFilter`                  | A facet: toolbar pill or form `field`; flat or grouped options (Filters, below)       |
-| `components/common/file-kind-icon.tsx` — `FileKindIcon`, `FileKindLabel` | The file-type mark and its icon+label row (File Type Marks, below)                    |
-| `components/common/panel-section.tsx` — `PanelSection`                   | A titled concern inside an overlay, on a nested surface (§6 Create / edit overlay)    |
-| `components/common/summary-row.tsx` — `SummaryRow`                       | Label-left / value-right rows (§6 Displaying values)                                  |
-| `components/common/truncated-id.tsx` — `TruncatedId`                     | A long id shortened to head…tail with a copy affordance                               |
-| `components/common/text-link.tsx` — `TextLink`                           | An inline link; `external` for one that leaves the Hub (Links, below)                 |
-| `components/timeline` — `Timeline` and its parts                         | Any sequence of steps: history, activity, progress (Timeline, below)                  |
-| `components/common/locale-label.tsx` — `LocaleLabel`                     | A survey language as name + short code (`Spanish es`), anywhere                       |
-| `components/copy-to-clipboard.tsx` — `CopyToClipboard`                   | The copy affordance, `overlay` and `inline` layouts (below)                           |
-| `components/table` — `DataTableSurface` and friends                      | All list-table chrome (List tables, below)                                            |
-| `components/ui/responsive-panel.tsx` — `ResponsivePanel`                 | Desktop Sheet / Dialog ↔ mobile Drawer swap; `dismissible` lock (Overlays, below)     |
-| `.grid-card-list` (`app/globals.css`)                                    | Peer-card grids without breakpoints (below)                                           |
-| `asset-storage/…/get-user-file/ui` — `SubmissionFileDialog`              | A submission file's preview + details dialog (§6 File answers)                        |
-| `components/public-status` — `PublicStatusPage`, `PublicStatusReference` | Every status page a non-Hub reader sees: respondents, link and export recipients (§6) |
-| `components/error-handling/error-page` — `ErrorPage`                     | Every full-page error a Hub user sees (rules: `AGENTS.md` "Error page chrome")        |
-| `features/about` — `ReleaseVersionLink`                                  | A Hub or API version, linked to its tracked GitHub release notes (Links, below)       |
+| Component                                                                                         | Owns                                                                                                       |
+| :------------------------------------------------------------------------------------------------ | :--------------------------------------------------------------------------------------------------------- |
+| `components/common/status-badge.tsx` — `StatusBadge`, `StatusDot`                                 | The four-tone on / off / attention / idle pill, and its dot alone for a group label                        |
+| `components/table/faceted-filter.tsx` — `FacetedFilter`                                           | A facet: toolbar pill or form `field`; flat or grouped options (Filters, below)                            |
+| `components/common/file-kind-icon.tsx` — `FileKindIcon`, `FileKindLabel`                          | The file-type mark and its icon+label row (File Type Marks, below)                                         |
+| `components/common/panel-section.tsx` — `PanelSection`                                            | A titled concern inside an overlay, on a nested surface (§6 Create / edit overlay)                         |
+| `components/common/panel-form.tsx` — `PanelForm`, `PanelFormError`                                | A create/edit overlay as one form: header, failure strip, sections, Cancel or Back + submit                |
+| `components/common/panel-steps.tsx` — `PanelSteps`                                                | The progress track of a multi-step overlay, first in its body (§6 Create / edit overlay)                   |
+| `components/common/field-with-help.tsx` — `FieldWithHelp`                                         | A label, its control and the one visible help line under it (§6 Displaying values)                         |
+| `components/common/download-menu.tsx` — `DownloadMenu`                                            | The one Download control: a button for one format, a menu of formats with file marks (§6 Hand over a file) |
+| `components/common/pending-button.tsx` — `PendingButton`                                          | An action button that swaps to a spinner and its running verb (Buttons, below)                             |
+| `components/common/summary-row.tsx` — `SummaryRow`                                                | Label-left / value-right rows (§6 Displaying values)                                                       |
+| `components/common/locked-value.tsx` — `LockedValue`                                              | A value an overlay can never change, with its `Locked` badge, as a `SummaryRow` value (§6 Controls)        |
+| `components/common/truncated-id.tsx` — `TruncatedId`                                              | A long id shortened to head…tail with a copy affordance                                                    |
+| `components/common/text-link.tsx` — `TextLink`                                                    | An inline link; `external` for one that leaves the Hub (Links, below)                                      |
+| `components/layout-ui/navigation/nav-switcher.tsx` — `NavSwitcher`                                | The current choice among siblings as a menu, with icons and a check (§6 Record workspace)                  |
+| `components/layout-ui/navigation/nav-icons.ts` — `NAV_ICONS`, `NavIconName`                       | One icon per destination, named by server-built menus and resolved on the client (§6 Navigation)           |
+| `components/common/link-tabs.tsx` — `LinkTabs`                                                    | A segmented switch between a page's views, each a URL, with counts (§6 Record workspace)                   |
+| `components/common/stat-card.tsx` — `StatCard`                                                    | One fact at a glance: icon tile, label, value, one sentence; a link card with `href` (§6 Record workspace) |
+| `features/forms/form-workspace` — `FormPageHeaderSlot`, `FormWorkspaceHeader`, `FormSummaryCards` | A form's trail, page switcher and Design in the header, its page masthead, its fact cards (§6)             |
+| `components/timeline` — `Timeline` and its parts                                                  | Any sequence of steps: history, activity, progress (Timeline, below)                                       |
+| `components/common/locale-label.tsx` — `LocaleLabel`                                              | A survey language as name + short code (`Spanish es`), anywhere                                            |
+| `components/copy-to-clipboard.tsx` — `CopyToClipboard`                                            | The copy affordance, `overlay` and `inline` layouts (below)                                                |
+| `components/table` — `DataTableSurface` and friends                                               | All list-table chrome (List tables, below)                                                                 |
+| `components/ui/responsive-panel.tsx` — `ResponsivePanel`                                          | Desktop Sheet / Dialog ↔ mobile Drawer swap; `dismissible` lock (Overlays, below)                          |
+| `.grid-card-list` (`app/globals.css`)                                                             | Peer-card grids without breakpoints (below)                                                                |
+| `asset-storage/…/get-user-file/ui` — `SubmissionFileDialog`                                       | A submission file's preview + details dialog (§6 File answers)                                             |
+| `components/public-status` — `PublicStatusPage`, `PublicStatusReference`                          | Every status page a non-Hub reader sees: respondents, link and export recipients (§6)                      |
+| `components/error-handling/error-page` — `ErrorPage`                                              | Every full-page error a Hub user sees (rules: `AGENTS.md` "Error page chrome")                             |
+| `features/about` — `ReleaseVersionLink`                                                           | A Hub or API version, linked to its tracked GitHub release notes (Links, below)                            |
 
 Add a row here in the same change that adds a shared component. Where it lives
 (`components/common/`, a graduated `components/<domain>/`, or `lib/<domain>/<slice>/ui/`) is
@@ -273,12 +294,14 @@ paged sortable grid look identical:
 | `dataTableColumnLabelClassName`                                                             | The uppercase muted column title                                        |
 | `DATA_TABLE_SHRINK_WRAP_CLASS_NAME`                                                         | Shrink a column to its content                                          |
 | `PagedTableFooter`, `DataTableToolbar`, `DataTableSkeleton`                                 | Pagination, filter bar, loading state                                   |
+| `StaticDataTable`, `StaticDataTableRow`, `dataTableCell`                                    | A few known rows on the helpers above: static header, zebra rows        |
+| `DataTableRowActions`                                                                       | The trailing ghost icon actions of a row, each named for its row        |
 
 - **A table is not card content.** Title, description and primary action sit **above**
   `DataTableSurface` as plain `h2` + `p` + `Button`. A `Card` is for controls and prose.
 - **Class-name helpers before TanStack.** A handful of static rows needs `DataTableSurface` +
-  `Table` + the helpers, not a table instance. Pass `isStatic: true` to the header helper when the
-  header never scrolls under sticky positioning.
+  `StaticDataTable` (the helpers, assembled), not a table instance. Pass `isStatic: true` to the
+  header helper when you hand-roll the header and it never scrolls under sticky positioning.
 - **Zebra parity is `index % 2 === 1`**, matching `DataTableGrid`.
 - **Column labels name what the column holds for the reader** ("Requester", "Submitted"), not the
   entity field (`Email`, `Created`).
@@ -289,6 +312,16 @@ paged sortable grid look identical:
   reviewable until complete"), not a control that acts on nothing. A value already recorded still
   shows, so nothing a user did disappears. The rule lives in the state mapping, so grid and detail
   agree (`isReviewApplicable`, `features/submissions/ui/table/cell-review-status.tsx`).
+- **Rows are read, not edited in place.** A record list never puts inputs in its cells or saves on
+  blur: a row is edited in its own overlay and deleted through an `AlertDialog` (§6 Controls &
+  consequences). The table stays a surface for scanning.
+- **Row actions** are ghost icon buttons in a trailing `Actions` column (`DataTableRowActions`).
+  Each `aria-label` names the action _and_ the row ("Remove ada@example.com from this form"). An
+  action that cannot apply to a row is omitted, not disabled ("Edit" on a person when the list has
+  no properties to edit).
+- **User-defined columns** (one per property, field or answer): every column gets a minimum width,
+  values wrap, an unset cell is `—` with `sr-only` "Not set", and the table scrolls in
+  `overflow-x-auto` instead of squeezing columns.
 - Wiring (URL state, paging, loading skeletons): `project-structure.md` "List pages and tables".
 
 **Filters — `FacetedFilter`.** A facet speaks the vocabulary of the column it filters.
@@ -364,7 +397,7 @@ Any set of peer cards uses `.grid-card-list` (`app/globals.css`), never viewport
 
 ```
 grid-template-columns: repeat(auto-fill, minmax(min(var(--grid-card-min), 100%), 1fr));
---grid-card-min: 420px;  /* per page: className="grid-card-list [--grid-card-min:360px]" */
+--grid-card-min: 380px;  /* per page: className="grid-card-list [--grid-card-min:360px]" */
 ```
 
 - **Why:** the collapsible sidebar changes the content width without changing the viewport, so
@@ -372,9 +405,32 @@ grid-template-columns: repeat(auto-fill, minmax(min(var(--grid-card-min), 100%),
   with one knob instead of a breakpoint ladder.
 - `auto-fill`, **not** `auto-fit` — card width must not depend on card count.
 - Keep the `min(…, 100%)` guard, or narrow containers overflow.
-- Set `--grid-card-min` from the card's narrowest _legible_ content (default 420px; below ~320px
-  only for tiny tiles).
+- Set `--grid-card-min` from the card's narrowest _legible_ content (default 380px; below ~320px
+  only for tiny tiles). Three columns need `3 × min + 48px`: 1188px at the default. A card that
+  needs more than its track holds (a footer of four links) loses an action to overflow, so move the
+  action into the card's menu instead of raising the minimum.
+- The grid owns the card's width. A card inside it does not set its own `min-w-*`.
 - Give cards `h-full` so a row shares a bottom edge.
+
+### Fact cards — `StatCard`
+
+`components/common/stat-card.tsx`. One fact about a record at a glance: an icon tile, a label, the
+value and one sentence. Reference: `features/forms/form-workspace/ui/form-summary-cards.tsx`.
+
+- **A card holds a fact, never an action.** Counts, states, last change. `Share`, `Export` and
+  other actions are buttons in the masthead or header, not cards.
+- **The value keeps its type** (§6 Displaying values): a state is a `StatusBadge`, a count a
+  number, a time a formatted date. The sentence says what it means for the reader
+  ("Accepting submissions", "Anyone with the link can respond"), not the field name again.
+- **The icon names the kind of fact** in a `bg-primary/10` tile — the one place a card carries
+  an accent; the card itself stays `bg-card` with its ghost border.
+- **A card that leads somewhere is the link, as a whole**, marked by `ArrowUpRight` in its corner
+  (`href`). No text link inside a card, and a card with nowhere to go has no arrow.
+- **Peer cards share a row**: `.grid-card-list` with a `--grid-card-min` chosen so the cards fill
+  the row at the common width (no empty column after the last card); a narrow panel lowers it.
+- **A count that failed to load shows no number** (§6 Counts).
+- **A value being read again is `pending`:** the icon and label stay, and the value and sentence
+  are skeleton bars (§6 Fresh facts in a preview).
 
 ### Timeline — `components/timeline`
 
@@ -421,6 +477,7 @@ to `value` are `completed`; the `value` step itself is `active`. Reference:
 | Complex create/edit, 3+ fields    | Right `Sheet`                         | `Drawer`                 |
 | Destructive/critical confirmation | `AlertDialog`                         | `AlertDialog`            |
 | Record detail / preview           | Right `Sheet` (or `Dialog` for media) | Full route, or `Drawer`  |
+| Record preview from a list (read) | Right `Sheet`, standard width         | `Drawer`                 |
 | Short reference (About, versions) | `Dialog`                              | `Drawer`, content height |
 
 1. Use `ResponsivePanel` — `desktopType="simple"` (Dialog) or `"complex"` (Sheet). If a Dialog
@@ -445,6 +502,11 @@ to `value` are `completed`; the `value` step itself is `active`. Reference:
 11. **A prefilled form opens on its primary action** (`onOpenAutoFocus` → focus the submit button)
     so Enter runs it with the suggested choices. Fall back to Radix's default when the button is
     absent or disabled.
+12. **When a follow-up would stack, link out or make it a view.** From a preview panel, an action
+    whose own UI is an overlay (the Share dialog) becomes a link to where it lives (`Share link`
+    opens the public page in a new tab), or the panel's job moves to a page. A list whose rows
+    open overlays is a view of the page (`LinkTabs`), not a panel. Reference:
+    `features/forms/ui/form-sheet.tsx`.
 
 ### Buttons, inputs, chips
 
@@ -452,11 +514,33 @@ to `value` are `completed`; the `value` step itself is `active`. Reference:
   secondary (`secondary_container`); ghost (`primary` text) for low emphasis; `destructive` only
   to commit something final. A trailing ellipsis (`Reject…`) means "asks for more before it acts".
   Spinners belong on action buttons, never list rows. A multi-stage action names the stage that
-  is running (`Updating submissions…` → `Exporting…`), in a short verb phrase.
+  is running (`Updating submissions…` → `Exporting…`), in a short verb phrase (`PendingButton`).
+  **One primary per page:** when a page has several list sections, the create action of the main
+  task is primary and the others are `outline`. A view (§6 Record workspace) counts as a page:
+  `Add participant` is primary on a form's Participants view, `Add property` on its Properties view.
+- **A record's main action sits in the header's action area and is always primary** (`Design`
+  on every form page). The page's own create action stays in the page. A button that goes to
+  another page is a `Link` styled as a button (`Button asChild`), so it can open in a new tab
+  and shows its URL.
 - **Inputs:** `surface_container_low` fill; on focus the ghost border goes from 15% to 100%
   `primary`. Labels `label-md` in `on_surface_variant`.
-- **Chips / tags:** `rounded-full` to distinguish from buttons; `tertiary_container` for neutral
-  data tags. Status tags are `StatusBadge`.
+- **Typed values use the control that produces their wire format**, so the API never refuses a
+  value the form let through: a date is `type="date"` (`YYYY-MM-DD`), a date-time
+  `datetime-local`, a number `type="number"`, a yes/no a `Select` (`Yes` / `No`), a choice from a
+  list a `Select` or checkboxes. Free text is for text only. An optional value can always be
+  emptied: a select carries an explicit `Not set` first option, and emptying clears the stored
+  value rather than saving `""`. A date-time is shown in the reader's time zone and sent with
+  their offset (`2026-03-01T09:00+02:00`): `datetime-local` has no zone, and an API that reads a
+  bare wall time as UTC would store a different instant. A choice control always offers the
+  stored value, even one outside its list, so nothing stored is hidden or silently cleared.
+  Reference: `features/audience/ui/property-value-field.tsx`.
+- **Chips / tags:** `rounded-full` to distinguish from buttons. Status tags are `StatusBadge`,
+  and its dot marks a state. A role tag says what a row _is_, not its state (`Identifier` on the
+  property that copies the match key). It is a `Badge variant="secondary"` with no dot, placed
+  after the row's name, so the reader does not read it as a status. It may carry the icon of the
+  section that owns the concept elsewhere (`UserRound`, the Participant section of Add and Edit participant),
+  and its help line reuses that section's wording ("It matches … across forms"), so one idea looks
+  and reads the same on every surface.
 
 ---
 
@@ -510,8 +594,40 @@ text-muted-foreground` — no left-border rule.
 - **A section that cannot apply to the current choice keeps its masthead** and says why in its
   description, with no body ("A codebook describes the form's questions, so submission filters
   don't apply"). Disable single controls; drop a whole section's fields.
+- **Hide what the tenant cannot reach; disable what cannot take effect now.** A page, tab or link
+  behind a feature flag the tenant does not have is not rendered at all — a disabled way to
+  nowhere is noise. A control on a reachable page that cannot apply yet stays visible, disabled,
+  with its reason (above).
+- **A setup choice that later locks is a control while it can change and a fact once it is
+  locked** — a card with the select before anyone depends on it, then one clause with a `Locked`
+  badge where the reader works (the audience match key in the Participants description).
 - **Immutability belongs on the field it constrains** (a `Locked` badge + one line), not in the
   panel description.
+- **A value an edit can never change is a read-only row, not a disabled input.** Show it as a
+  `SummaryRow` whose value is wrapped in `LockedValue`, copyable when it is a key or an id, with
+  one `text-xs` line saying why it never changes. A disabled input means "not now" (the first rule
+  here), fades the value the reader came to check, and cannot be copied. Reference:
+  `features/audience/update-person/ui/edit-person-panel.tsx`.
+- **A record's key appears once, as the key.** A field that copies it (a property named like the
+  audience match key, `email` or `external_id`) is left out of the table and the add and edit
+  overlays. Editing it could not change who the record is, so it would only be an empty second
+  copy. Filter it once, where the list is handed to them (`valueProperties`). Where the fields
+  themselves are what the page lists (the Properties view), that field is pinned first with an
+  `Identifier` tag and one line saying where the key shows instead. That way, its absence from the
+  other places is explained where the reader would look for it. Reference:
+  `features/audience/get-audience-page/ui/properties-table.tsx`.
+- **A key derived from a name is previewed before it is fixed.** While the reader types, the
+  field's help line shows the key it will produce ("Variable name `cost_center`. It never
+  changes…"), or why none can be made, with the submit disabled. In the edit overlay the key is a
+  read-only `SummaryRow` (copyable) with a `Locked` badge beside it.
+- **A delete names its blast radius:** the confirmation says what else goes, with a count when
+  there is one ("Its values are deleted for all 1,240 participants on this form"), and what
+  stays ("They stay on any other form they are on"). The `AlertDialog` stays open while it
+  runs (spinner + verb on the destructive button) and shows a failure inside it; it never closes
+  on click and leaves the outcome to a toast.
+- **A setting wider than the page says its scope.** A tenant-wide control surfaced on a record
+  page (the match key on a form's audience) says so in its description, and its disabled line
+  says who can change it or when it can change again.
 - **State lives in the section header.** An on/off section shows a `StatusBadge` in its `aside`;
   the switch sets it, the badge reports it.
 - **Prefill what can be suggested, and say where it came from** ("Suggested from the company name").
@@ -519,10 +635,55 @@ text-muted-foreground` — no left-border rule.
   a description saying who will read it.
 - **Errors land where they belong.** Field validation under the field (`aria-invalid`,
   `aria-describedby`); anything else a `destructive` Alert at the top, with the form keeping its
-  values.
+  values — `PanelForm` puts that strip (`PanelFormError`) at the top of the body and stays open.
+  A single control outside an overlay (a select in a card) shows its failure in its help line.
 - **`Back`, not `Cancel`,** on a step whose record is still open behind it.
 - **Show the outcome in place; don't toast and close** when the result is a record the user needs
   to see (a toast disappears; the updated record is the proof).
+
+### Navigation & wayfinding
+
+Every move has one control, and each control does one kind of move. Pick by what the reader is
+moving between:
+
+| The reader moves between…               | Control                                                | Example                             |
+| :-------------------------------------- | :----------------------------------------------------- | :---------------------------------- |
+| Areas of the Hub                        | Sidebar                                                | Forms, Data lists, Settings         |
+| Up to a parent                          | Header trail (breadcrumb)                              | `Forms › Flows › Cedar Grove Pulse` |
+| Siblings at one level of the trail      | A `dropdown` crumb (`NavSwitcher`)                     | `Flows ▾` lists the other folders   |
+| Aspects of one record                   | `NavSwitcher` after the trail, past a vertical divider | `Cedar Grove Pulse │ Submissions ▾` |
+| Views of one page                       | `LinkTabs` (segmented, `?view=`)                       | Participants / Properties           |
+| Panes that are not worth a URL          | Radix `Tabs`, inside a panel                           | —                                   |
+| Into an immersive editor and back       | A button in, one Back out (`?from=`)                   | Design                              |
+| From a record back to the filtered list | `lib/list-page/table-return-to` + `BackToTableButton`  | a submission back to its list       |
+
+- **Everything a reader would share or reload is a URL** — a page, a view (`?view=`), a filter.
+  Only panes inside an overlay may be unaddressable.
+- **The trail is location only.** It starts at the area (the sidebar already leads home, so no
+  `Home` crumb), its last crumb is where the reader is (plain text, never a link to the page
+  they are on), and it folds its middle into `…` past three crumbs. An aspect or a view of a
+  page is never a crumb.
+- **One place per destination.** Two links to the same page in one header (a record's name and
+  its Overview) are one too many; keep the one the reader expects to use.
+- **No "Back to …" buttons between siblings.** Siblings are reached through their switcher;
+  Back is for leaving a mode (an editor, a detail opened from a list).
+- **One icon per destination, the same everywhere it is offered** — sidebar, switcher, sheet
+  links, card quick links. A server-built menu carries the icon's name (`NavIconName`) and the
+  client resolves it from `nav-icons.ts`: a component cannot cross from a server component into
+  a client one.
+- **A return target from the URL is never a path.** `?from=` (and any "return to" value) is
+  checked against the known destinations; anything else falls back to a safe default. Building a
+  redirect from query text is an open redirect.
+- **Navigation costs no row of the page** (principle 6). A tab row on every page of a record is a
+  row the reader pays for on every visit; a header switcher is not.
+
+### Page masthead
+
+- **`h1` names the page** the reader is on; the trail carries the context (the record, the
+  folder). A record's own home (its Overview) titles itself with the record's name.
+- **A description only when it says something the title and trail cannot** ("mocked data").
+- **One row:** title left, the page's own actions right (Participants: Add participant). Record-wide
+  actions are not repeated here.
 
 ### Reference information on demand
 
@@ -562,6 +723,13 @@ costs a request or needs the space of a row of its own does not belong in it. Re
   `CopyToClipboard` (`inline`) in its `aside` that copies every row as plain text. Not a footer
   button (the footer is for actions that change something) and not an icon floating beside the
   rows (it reads as belonging to neither).
+- **The product first, what it is built on after.** Hub and API are the section's own rows.
+  The SurveyJS libraries sit below them in one lifted group (`bg-surface-container-lowest`,
+  a muted `text-xs` heading "Built on SurveyJS"): important for a form bug, not the product.
+  When every library is on one version, the usual case, the group is one row ("All 5
+  libraries", linked to the `survey-library` release) with the package names in a muted line;
+  any difference or missing package shows one row per package. The copied text always lists
+  every package. Reference: `features/about/view-versions/ui/surveyjs-version-group.tsx`.
 
 ### Loading inside a panel
 
@@ -577,14 +745,48 @@ never starts per row. Reference: `review-signup-request/ui/signup-visitor-sectio
   naming the wait ("Loading visitor details"). On a tinted section (`bg-surface-container-low`),
   tint the bars (`bg-foreground/10`): the default `bg-accent` matches that surface, so the pulse
   does not show.
-- **One request per opened record.** Cache the result on the client for a few minutes; changing
-  step or reopening the same record must not ask again.
+- **One request per opened record.** Cache a slow or third-party read (evidence, versions) on the
+  client for a few minutes; changing step or reopening the same record must not ask again. The
+  record's own facts that change by themselves are the exception: they are read again on every
+  open and never cached (Fresh facts in a preview, below).
 - **A check before a form** (is this form ready to export?) skeletons the sections the form will
   fill, mastheads kept, so the panel does not jump from a spinner line to a full form.
 - **Quiet states, never an error tone** — the record is fine, and `destructive` belongs to an
   action the reader just took. Source answered with nothing: one muted line. Source did not
   answer: one muted line, plus a link out when a URL is known. Not configured: omit the section.
   A missing fact inside a successful read is `—`.
+
+### Fresh facts in a preview
+
+**Problem.** An overlay opened from a list (a record's sheet, a details panel) starts with the
+row the list loaded, which may be minutes old. The Hub has no push channel (no websockets or
+SignalR), so nothing tells the page that a respondent submitted, a colleague disabled the record
+or a job finished. A reader who opens a record to check it is shown old facts and may act on them.
+
+**Pattern: open on the snapshot, re-read on open, skeleton what moves.** The overlay is where
+the reader pays attention, so read again there. Reference: `useFreshRecord`
+(`lib/utils/hooks/`) in `features/forms/ui/form-sheet.tsx`.
+
+- **Sort the fields first.** _Stable_ fields change only when someone edits them on purpose: the
+  name, the id, the links built from the id. _Volatile_ fields change without the reader: counts,
+  lifecycle state, visibility, last changed, anything a respondent, a colleague or a job can
+  move. Treat a field as volatile when in doubt.
+- **Open at once on the snapshot.** The title, description, links and footer render from the
+  row immediately, so the overlay is never blank and its actions work during the read.
+- **Read the record again on every open.** Re-read when the panel opens, after paint, and never
+  for every row or on hover. Do not cache the answer, because the next opening should read
+  again. Mount the read inside the overlay content, which unmounts on close, so this needs no
+  extra code.
+- **Skeleton only the volatile values.** Keep each fact's chrome (icon, label, card) and replace
+  the value and its sentence (`StatCard pending`), with an `sr-only` "Loading …". Showing the
+  old value and swapping it makes numbers jump and lets the reader act on stale data in between.
+- **A failed re-read keeps the snapshot quietly.** It is what the list shows, so it is not
+  wrong, only old. Do not show an error tone or a toast for a read the reader did not ask for.
+- **Drop a late answer.** If the overlay switched record or closed, the answer is discarded.
+- **The list behind is not refreshed** by the preview. It refreshes on navigation or after a
+  write (`router.refresh()`).
+- **A page does not need this:** a server page reads on navigation. Use it only where a client
+  surface shows data loaded earlier. Revisit it if the Hub gains a push channel.
 
 ### Progress inside a panel
 
@@ -645,6 +847,40 @@ mistaken for an edit. Reference: `features/submissions/ui/details/label-language
   share-link export (reader may have no account) keeps the signed URL and says once, muted, that
   links expire shortly.
 
+### Hand over a file
+
+A file the reader takes away (a data list's items, personalized links, an export) comes through
+one control and one set of helpers, whether the server builds it or the browser does. References:
+`DownloadMenu` on a data list's page, `features/audience/generate-links/`.
+
+- **One control: `DownloadMenu`.** One format is an `outline` button that names it with its
+  file mark ("Download CSV"). Several formats are a `Download ▾` menu whose items are
+  `FileKindLabel`s. While a file is fetched, the control spins, says "Downloading…" and takes no
+  second click.
+- **One code path per source.** A file the server builds comes through `downloadFromUrl`
+  (`lib/utils/files-download.ts`): the server's file name, and its reason when it refuses
+  (`DownloadError`), shown as the toast. A file the browser builds is written with `writeCsv`
+  (`lib/utils/csv.ts`) and saved with `downloadText`. Never hand-roll the fetch-blob-anchor dance
+  in a page.
+- **CSV is UTF-8 with a byte-order mark and CRLF**, so Excel shows accents and non-Latin names
+  correctly. Name columns with the same keys the Hub reads, so a file the Hub writes can be
+  imported back (the links file's first column is `email` or `external_id`, the match key's wire
+  name, which the import suggests from).
+- **Date the file name** (`personalized-links-<form>-2026-10-12.csv`), so a second file never
+  overwrites the first in the reader's downloads.
+- **A file that is the only copy is saved the moment it exists.** Personalized links are stored
+  only as hashes, so the API returns each token once. The panel saves the file as soon as the
+  answer arrives, without a second click, and says so in a `success` Alert ("20 links
+  downloaded … It is the only copy"). Then it offers `Download CSV` again while it stays open.
+  Before the run, one `info` Alert says the file will be the only copy and who can use it.
+  Nothing new to hand over is `info` ("Everyone already has a link"), and no empty file is
+  saved.
+- **Read what labels the file before writing what it labels.** When the write returns ids and
+  the file needs names (a person's identifier for each token), read the names first. If the
+  read fails after the write, the one-time answer can no longer be labelled.
+- **Show a few rows to try, not the file.** The outcome may preview the first rows (each value a
+  reader might paste gets a copy affordance) and says the file has them all.
+
 ### Evidence from third-party tools
 
 What another tool recorded about a record's subject (an analytics profile behind a signup, a
@@ -679,6 +915,35 @@ Reference: `features/platform-admin/review-signup-request/ui/signup-visitor-sect
   details happen in the dialog.
 - **Print keeps the same promises:** never crop, keep a row of images together (`wrap={false}`),
   keep a title with its first row, embed downscaled copies, single-line captions.
+
+### Marking a question on the designer canvas
+
+A fact about a question that the author needs while designing (where its value comes from) is a
+**small chip on the question, not a ring or a bare icon.** A ring or outline competes with
+SurveyJS's selection and focus outlines, and an icon alone says nothing until hovered. Reference:
+`lib/personalization/authoring/prefill-canvas.ts` + `features/forms/ui/editor/prefill-canvas.css`.
+
+- **The chip names the source, the card explains it.** The chip is the icon of the section that
+  owns the concept (the Personalization person) and the source's name (`Age`), nothing else. It is
+  a role tag (§5 Chips): no dot, neutral fill, muted text. Hover or keyboard focus opens a card
+  (`role="tooltip"`, the chip's `aria-describedby`) with a heading in words (`Prefilled from Age`),
+  one sentence on what it does to the answer, and where a click goes. The chip's accessible name is
+  that heading, so a screen reader hears the fact without the card.
+- **Name what SurveyJS leaves implicit.** A default that reads Properties inside a calculation
+  (`{age} * 12`) is personalization too: the chip lists every Property it reads, adds a muted `ƒx`,
+  and the card shows the expression. Only a plain `{age}` is checked for fit.
+- **It is a link to where the fact is managed**, opening in a new tab so the design is not left
+  (the form's Properties). It stops `pointerdown` and `click` so the designer does not select the
+  question instead, and shows a `--sjs2-color-utility-a11y` ring on `:focus-visible`.
+- **Top-right inside the card, clear of the corner** where SurveyJS puts the collapse button of
+  a selected question. One chip per question; it truncates rather than wraps. The card opens below
+  it, right-aligned, on a floating surface.
+- **A problem changes the same chip, it does not add a second mark.** When Diagnostics has a
+  finding for that question, the chip takes the warning tint and the card says what fits and where
+  to fix it; the icon carries the warning colour and the text stays primary, because warning text
+  on its own 10% tint is under 3:1.
+- **Creator DOM, so `--sjs2-*` tokens only** (§9), checked by a test that rejects literal
+  colours and `var()` fallbacks. Font is `inherit`: the token font is not loaded in the Hub.
 
 ### Recipe: list page
 
@@ -750,16 +1015,55 @@ Reference: `features/platform-admin/view-environment-settings/ui/`.
 ### Recipe: tenant settings page (review and change)
 
 Pages under `app/(main)/settings/…`. Reference:
-`features/export/manage-export-formats/ui/export-formats-settings.tsx`.
+`features/export/manage-export-formats/ui/export-formats-settings.tsx`. A record-scoped
+collection (a form's audience) is a page of a record workspace instead, with its lists as views.
 
 1. **Masthead** — `h1.text-3xl.font-semibold.tracking-tight` + muted one-sentence purpose in
    `page.tsx` (a `SettingsPageHeader` waiting to be extracted — do that as its own change).
 2. **A `Card` per standalone control**, the control constrained (`max-w-md`).
 3. **A list section per collection** (list-page recipe, no `Card` around it).
-4. **Create/edit via `ResponsivePanel`, delete via `AlertDialog`.**
+4. **Create/edit via `ResponsivePanel` (`PanelForm`), delete via `AlertDialog`.**
+5. **Sections in the order the reader sets things up** — a choice that later locks (the match key)
+   before the lists that depend on it.
 
 A row's identity column carries the name plus inline state badges (`Default`), not a name stacked
 over a pill.
+
+### Recipe: record workspace
+
+A record that has several pages — a form's Overview, Submissions, Participants, Analytics, Settings —
+is one workspace. The reader moves between them many times in one session, so every page is one
+menu away from every other, without spending a row of the page on navigation. Editing the
+record's content (the form designer) is not one of those pages: it is an **immersive editor**.
+References: `features/forms/form-workspace/`, `app/(main)/@header/forms/[formId]/`. It applies
+Navigation & wayfinding and Page masthead (above) to a record; this list adds what is specific to
+records.
+
+- **Location, then aspect.** The header reads `Forms › folder › record │ page ▾`: the trail ends
+  at the record as the current crumb, and the record's pages are a `NavSwitcher` past a vertical
+  divider, each with its icon (`NAV_ICONS`), the current one checked and on a hover surface so it
+  reads as a control. Pages appear by flag, never disabled.
+- **Record actions live in the header, the same on every page.** `Design` is the one primary.
+  `Share` is `outline` beside it from `md` up; below that it is the first item of the `…` menu,
+  with Save as template and Delete. The form card's `…` menu matches that pair and adds Move to
+  folder (a list action). Reference: `form-record-actions.tsx`, `form-card.tsx`.
+- **The Overview is facts, not settings:** `StatCard`s for what a reader checks first (§5 Fact
+  cards). Edits live on a **Settings** page.
+- **A record's sheet on a list is a read-only preview** (§5 Overlays): its name, the same fact
+  cards, the list of its pages, and a footer of `Share link` (the public page in a new tab, as on
+  the record's card) + the editor entry. A sheet holding the settings form becomes a second,
+  cramped settings page. The sheet re-reads the record when it opens and skeletons the fact
+  cards until that read lands (§6 Fresh facts in a preview).
+- **An immersive editor is entered by a button, never a page in the switcher.** It takes the
+  whole screen with its own chrome (Creator's tabs and sidebars) and saves explicitly, so it shows
+  no workspace navigation — more chrome would crowd it and every extra exit is a way to lose
+  unsaved work. Its one exit goes back where the reader came from: the entry link carries
+  `?from=<page>`, Back says where it goes ("Back to Participants") and asks first when there are
+  unsaved changes.
+- **Views inside a page are `LinkTabs`** with a count per view and a `?view=` URL, the page's main
+  task first and as the bare URL (Participants, then Properties). Each view has its own primary action.
+- **A setup choice that later locks** is a card until it locks, then a clause in the list's
+  description (§6 Controls & consequences).
 
 ### Recipe: create / edit overlay
 
@@ -767,22 +1071,49 @@ A settings page asks "what is true?"; an overlay asks "what do you want to be tr
 masthead and vocabulary, rows become controls. References:
 `features/platform-admin/create-tenant/ui/create-tenant-panel.tsx`,
 `features/platform-admin/update-tenant/ui/edit-tenant-sheet.tsx`.
+Single-submit create with draft + lock + in-panel failure (the common case):
+`features/audience/create-person/` (`PanelForm` + `use-add-person.hook.ts`). Wiring layers are in
+`project-structure.md` (**PanelForm state**).
 
-1. **Header** — title + one sentence describing the _current step_.
+1. **Header** — title + one sentence describing the _current step_. The title names the task
+   (`Add participant`, `Edit participant`, `Rename property`), not the record: the record's identity is the
+   first section, so it is said once, with its label and type.
 2. **`PanelSteps`** (multi-step only) — the progress track, first in the body.
 3. **`PanelSection` per concern** — icon, title, optional description, optional `aside` for
    status, on `bg-surface-container-low`. One icon per section, none on fields.
 4. **Closing `Alert`** when the step has a consequence worth stating.
 
+- **An edit overlay mirrors its create overlay.** It has the same sections in the same order
+  under the same titles and icons. A field that became fixed on create is shown as a locked row
+  in that section (Controls & consequences). `Add participant`'s Participant section holds the identifier
+  input, and `Edit participant`'s holds the identifier as a locked row. The reader recognises the
+  shape, and one concept keeps one section name.
 - **A section owns its own surface.** Shared field groups (`TenantAccessFields`) render their own
   `PanelSection`; call sites never wrap them in a tinted `div`.
 - **Multi-step:** show the track, don't narrate "Step 2 of 3". Step labels are nouns matching the
   section titles. The last input step is a **review built from `SummaryRow`**. The terminal step
   is an outcome, not a form: drop the track, lead with a `success` Alert naming what was created,
   and hand over the one artefact the user came for (e.g. the sign-in URL).
+- **A multi-step form is still one `PanelForm`.** The slice hook owns the step and hands the panel
+  that step's header sentence, submit label and handlers. From step 2 the secondary button is
+  `Back` (`onBack`), never `Cancel`: the earlier choices are still there. The outcome step has
+  one button, `Done` (`cancelable={false}`), because Cancel would offer to undo what already
+  happened. `Continue` is disabled until the step can be left. A new step opens at the top of the
+  body (`PanelSteps` scrolls itself into view), not at the previous step's scroll position. Steps
+  are an ordered list, so a later step slots in without renumbering the others. Reference:
+  `features/audience/import-csv/use-import-csv.hook.ts`.
+- **Nothing is written before the last input step.** Earlier steps only read and choose, so
+  closing the panel on any of them costs nothing. The one exception is a step whose records the
+  write needs to exist first (an import's New properties): its `Continue` names the write with a
+  count ("Create 2 properties"), and closing before it still creates nothing. The review step's
+  primary names what it will do with a count ("Import 20 rows"), not "Confirm".
+- **State is not in the chrome.** `PanelForm` does not own field values. A slice hook (or, for a
+  multi-step outcome, the panel itself) owns the draft, open/reset, and the write; the feature's
+  mutation helper owns `pending` / in-panel `error` / toast + refresh. See **PanelForm state** in
+  `project-structure.md`.
 
-**Configure and run** (export today; import, bulk actions tomorrow) — an overlay whose commit is
-an operation, not a saved record. Reference:
+**Configure and run** (export today; bulk actions tomorrow; a file import is below) — an
+overlay whose commit is an operation, not a saved record. Reference:
 `features/export/export-submissions/ui/export-dialog.tsx`.
 
 - `ResponsivePanel desktopType="complex"`: format + filters are 3+ fields.
@@ -811,6 +1142,76 @@ an operation, not a saved record. Reference:
   button after the sections.
 - **Same noun as the list it came from** — the dialog exports _submissions_, so it never says
   "responses".
+
+**Import from a file** (form participants today; data lists and other bulk loads tomorrow) — the
+reverse of export: a file the reader brings, read into records they already have. It is a
+multi-step create overlay (above) whose steps answer, in order: _which file_, _which column is
+which_, _what will happen_. Reference: `features/audience/import-csv/`.
+
+- **Steps: File → Columns → Review → outcome.** A question the file raises later (new
+  properties, what to overwrite, rows nobody matched) is its own step before Review, named for
+  the question. The panel opens from an `outline` button beside the list's primary create
+  action, since importing is the second way to add.
+- **State the limits before the file is chosen.** The file field's help line says the row limit
+  and that the first row names the columns. Once a file is read, the same line says what was
+  read (`panel.csv: 20 rows, 12 columns.`). A file that cannot be imported (no header, no rows,
+  over the limit) is that field's error, in the line, with what to do. It is not an alert,
+  because the reader fixes it by choosing another file.
+- **The browser reads to preview; the server decides.** Parse the file in the browser for the
+  header, a sample and the row count, with a real CSV reader (quoted commas and line breaks).
+  Refuse what the server certainly refuses (over the limit) before sending it. Every other check
+  belongs to the server, and its answers come back as rejected rows.
+- **Every choice is made against real values.** Under each column, its help line shows its
+  first values from the file, `·` apart because a value may hold a comma ("Values like London,
+  UK · Leeds"). A column name alone
+  does not tell the reader what the column holds.
+- **Suggest, say so, never guess.** The identifier column is suggested from its name ("Suggested
+  from its name."). Each other column is matched to the target whose key its name produces
+  (`Family size` → `family_size`). When nothing matches, the identifier select stays empty
+  with a placeholder and `Continue` waits. A wrong silent guess would match every row to the
+  wrong person.
+- **Map from the file's side.** One row per column, in file order: its name (monospace, a
+  literal), its sample, and a select of targets with `Don't import` first, then
+  `Create new property…`. A target fed by one column leaves the other columns' selects, so two
+  columns can never fill one target. A column named like no target starts on `Create new property…`. The
+  section `aside` keeps a running tally ("4 mapped, 2 to create, 1 ignored"), so a column left
+  unhandled shows.
+- **A new target is suggested, then confirmed.** The New properties step appears only when a
+  column is queued. Each row has a name (the tidied heading) and a type suggested from every
+  value in the file, with its evidence in the help line ("Suggested from values like A · B: 2
+  distinct values."). A name something already holds (a form question, a property, another new
+  row) is a warning with a `Use <free name>` button, never a block; only a name with no letter or
+  digit holds `Continue`. A date whose day and month could swap never suggests date.
+- **What is read by convention is listed, not offered.** Columns the server maps by their names
+  (`brands__nike` for a choice property) appear read-only under the selects, so the reader
+  knows they will be imported. A target the file cannot fill yet is named in the section
+  description, with the column name it would need.
+- **What happens to existing records is chosen with the columns.** Each overwrite choice is a
+  `RadioGroup` with the safe option first, marked "(recommended)" and preselected, and the
+  destructive one never preselected ("Empty cells in your file": keep or clear; "Properties not
+  in your file": leave or clear). A choice that cannot apply (a test import skips existing
+  records) is not shown. The choices go with the start and cannot change after it.
+- **Review is built from the choices**, as `SummaryRow`s: the file, its rows, the identifier
+  column, each target with the column that fills it, and the columns left out ("Not
+  imported"), so a forgotten column shows before anything is written. Then one consequence `Alert`
+  (`info`) on how rows meet existing records: what they are matched by, that an existing record
+  is updated rather than added twice, and that a rejected row does not stop the others. The
+  overwrite choices follow, read-only, with `Back to change` (it cancels the checked import and
+  returns to the choices; the next start is a new import). When the check finds existing
+  records, a checkbox says how many will be updated and that this cannot be undone, and the
+  primary button (`Import N rows`) stays off until it is ticked.
+- **The outcome is shown in the panel.** No toast, and the list behind it is refreshed. The
+  batch `Alert` is `success` only when nothing was rejected, otherwise `warning`. Its sentence
+  gives the counts that are not zero ("18 added, 2 updated, 3 rejected") and what to do next.
+  Rejected rows follow in a `StaticDataTable` (`Line`, `Reason`), numbered as in the file. When
+  the server reports only the first rows, the section says "The first 50 of 1,290". Its
+  `DownloadMenu` (`Download CSV`) saves every rejected row with its line, reason and the file's
+  own cells (Hand over a file). The footer is `Done`.
+- **When a file outgrows the request, the import becomes a page.** A load the server must run as
+  a background job (more rows than one request takes, or a check of the whole file before
+  mapping) needs progress that survives the tab closing. It moves to its own route
+  (`…/audience/import`) with the same steps and rules. The panel is right only while the
+  import finishes within one request.
 
 ### Recipe: file answers
 
@@ -875,7 +1276,25 @@ Before finishing UI work, check:
       facet as a labelled `field` (§5 Filters).
 - [ ] A flow prefilled from a list takes its values exactly, names list filters it cannot apply,
       and offers "Use table filters" once changed (§6 Configure and run).
+- [ ] Record lists are read-only rows with named row actions; edits open an overlay, deletes an
+      `AlertDialog` that names what goes with it (§5, §6).
+- [ ] Typed values use typed controls, and an optional value can be emptied (§5 Inputs).
 - [ ] Overlays follow the table in §5, never stack, and have a title and description.
+- [ ] A record with several pages switches pages from the header trail's dropdown; the masthead
+      is the page's name; its Overview is fact cards and its sheet a read-only preview; an
+      immersive editor is entered by a button, shows no workspace navigation and returns where
+      it was opened from (§6 Record workspace).
+- [ ] Each move uses its one control (trail, switcher, view tabs, editor button); every view a
+      reader would share is a URL; no tab rows, no `Home` crumb, no "Back to …" between siblings;
+      a URL return target is checked against known values (§6 Navigation).
+- [ ] The masthead is one row: the page's name, a description only if it adds something, the
+      page's own actions; record-wide actions sit in the header (§6 Page masthead).
+- [ ] Destinations the tenant lacks (flags) are hidden; controls that cannot apply yet are
+      disabled with a reason (§6 Controls).
+- [ ] A preview panel is read-only; a follow-up that would open a second overlay is a link or a
+      view instead (§5 Overlays rule 12).
+- [ ] Fact cards hold facts, not actions; a card that leads somewhere is a whole-card link with
+      the corner arrow; peer cards fill their row (§5 Fact cards).
 - [ ] Inline links are `TextLink`; external ones use `external`; nothing links to an unconfigured
       or unconfirmed target; links to our own sites carry UTM tags and a click event (§5).
 - [ ] Occasional reference facts sit behind one menu item and load on open, not in the sidebar (§6).
@@ -883,6 +1302,8 @@ Before finishing UI work, check:
       event names) — never for a bag of facts, a status, or a form's own steps (§5).
 - [ ] A further read inside a panel skeletons only its section, starts after paint, and is asked
       once per opened record (§6).
+- [ ] An overlay opened on a list row re-reads the record on every open, skeletons only the
+      volatile facts, and keeps the snapshot quietly if the read fails (§6 Fresh facts).
 - [ ] Values the reader came for wrap, never truncate; unset vs empty are distinct (§6).
 - [ ] Third-party evidence loads on open, never blocks the record, shows no personal data beyond
       the decision's need, and disappears when unconfigured (§6).
@@ -893,8 +1314,23 @@ Before finishing UI work, check:
 - [ ] Running work: spinner + stage verb on the button, sentence in the header, nothing repeated
       in the body; the panel is not dismissible until it ends (§5 Overlays, §6).
 - [ ] A batch with failures reports `warning` with counts, not `success` (§5).
+- [ ] A file import states its limits before the file, shows sample values under every column,
+      says where each suggestion came from, writes nothing before Review, names the count on its
+      button, and shows the outcome and rejected rows in the panel (§6 Import from a file).
+- [ ] Files go out through `DownloadMenu` and the shared download helpers; CSV carries a BOM and
+      re-importable headers; a file that is the only copy is saved the moment it exists and said
+      so (§6 Hand over a file).
+- [ ] A multi-step overlay shows `Back` from step 2 and only `Done` on its outcome (§6 Create /
+      edit overlay).
+- [ ] An edit overlay is titled by its task and mirrors its create overlay's sections. Values it
+      cannot change are `LockedValue` rows, never disabled inputs, and a copy of the record's key
+      is not a field; where fields are listed, it is pinned first with a role tag and says why
+      (§5 Chips, §6 Controls, Create / edit overlay).
 - [ ] No presigned URL outlives the view that signed it (§6).
 - [ ] Public pages use `PublicStatusPage` and have their own `error.tsx` (§6).
+- [ ] Seen in the running app: screenshots at desktop width and below 768px for overlays, in light
+      and dark. The Hub's theme is the user's setting, not the OS scheme — switch it in the app;
+      a browser `prefers-color-scheme` emulation leaves the Hub light.
 - [ ] A new shared component has a row in the §5 index; a new decision is written back here as a
       general rule.
 
@@ -923,4 +1359,5 @@ SurveyJS surface.
   `var(--token, <literal>)` via `hubToken()`, and a test pins the literals to `:root`. When the
   palette changes, change both.
 - Hub CSS injected into Creator DOM names `--sjs2-*` tokens only, with no literal fallback.
+  A mark on a canvas question follows §6 "Marking a question on the designer canvas".
 - Every Hub dialog is a shadcn `Dialog` / `AlertDialog`, never `settings.showDialog`.

@@ -2,24 +2,24 @@
 
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
-import { Result } from "@/lib/result";
+import { toResult, type Result } from "@/lib/result";
 import { EndatixApi } from "@/lib/endatix-api";
 import type { Form } from "@/types";
 
 export type GetFormResult = Result<Form>;
 
-export async function getFormAction(formId: string): Promise<GetFormResult | never> {
+/** A fresh read of one form for a client overlay that opened on a list row. */
+export async function getFormAction(formId: string): Promise<GetFormResult> {
   const session = await auth();
   const { requireHubAccess } = await authorization(session);
   await requireHubAccess();
 
-  const api = new EndatixApi(session?.accessToken);
-  const result = await api.forms.get(formId);
-
-  if (!result.success) {
-    console.error("Failed to fetch form", result.error);
-    return Result.error(result.error.message);
-  }
-
-  return Result.success(result.data);
+  return toResult(
+    await new EndatixApi(session?.accessToken).forms.get(formId),
+    {
+      fallbackMessage: "Failed to load form.",
+      logMessage: "Failed to load form for the preview.",
+      loggerName: "forms.preview",
+    },
+  );
 }

@@ -1,0 +1,338 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { SubmissionGridColumn } from "@/lib/endatix-api/reporting/submission-grid-types";
+import {
+  answerDateFilter,
+  answerTextFilterUrlKeys,
+  applicableAnswerFilters,
+  keptAnswerFilters,
+  filtersByStoredChoiceValue,
+  parseAnswerFilters,
+} from "../submission-grid-answer-filters";
+import { buildListSubmissionGridRowsEndpoint } from "@/lib/endatix-api/reporting/submission-grid";
+import {
+  resolveVisibleAnswerColumns,
+  toAnswerColumns,
+} from "../submission-grid-columns";
+
+const fit = vi.hoisted(() => ({ copies: false }));
+
+vi.mock(
+  "@/lib/endatix-api/reporting/submission-grid-answer-params",
+  async (importOriginal) => {
+    type Params =
+      typeof import("@/lib/endatix-api/reporting/submission-grid-answer-params");
+    const actual = await importOriginal<Params>();
+    return {
+      ...actual,
+      fitAnswerFilters: (filters: Parameters<Params["fitAnswerFilters"]>[0]) =>
+        actual
+          .fitAnswerFilters(filters)
+          .map((filter) => (fit.copies ? { ...filter } : filter)),
+    };
+  },
+);
+
+/** Kestrel's default `MaxRequestLineSize`; the headroom covers metadata filters. */
+const KESTREL_MAX_REQUEST_LINE_BYTES = 8_192;
+
+function wireColumn(
+  overrides: Partial<SubmissionGridColumn> & { key: string },
+): SubmissionGridColumn {
+  return {
+    kind: "Simple",
+    title: overrides.key,
+    questionType: "text",
+    filterType: "text",
+    pageName: null,
+    pageTitle: null,
+    panelTitle: null,
+    ...overrides,
+  };
+}
+
+const CATALOG = toAnswerColumns([
+  wireColumn({ key: "name" }),
+  wireColumn({ key: "born", questionType: "text", filterType: "date" }),
+  wireColumn({ key: "seen", filterType: "datetime" }),
+  wireColumn({ key: "likes", questionType: "checkbox", filterType: null }),
+]);
+
+describe("parseAnswerFilters", () => {
+  it("reads operator, key and value from each answer key", () => {
+    // Act
+    const filters = parseAnswerFilters({
+      "answer.contains.name": "Ann",
+      "answer.from.born": "2026-01-01",
+      page: "2",
+    });
+
+    // Assert
+    expect(filters).toEqual([
+      { operator: "contains", key: "name", value: "Ann" },
+      { operator: "from", key: "born", value: "2026-01-01" },
+    ]);
+  });
+
+  it("cuts a contains value to what the API accepts", () => {
+    // Act
+    const [filter] = parseAnswerFilters({
+      "answer.contains.name": "x".repeat(250),
+    });
+
+    // Assert
+    expect(filter.value).toHaveLength(200);
+  });
+
+  it.each([
+    ["answer.from.born", "2026-02-31"],
+    ["answer.to.born", "2026-13-01"],
+    ["answer.from.born", "2026-1-1"],
+    ["answer.contains.name", "   "],
+    ["answer.contains.", "Ann"],
+    ["answer.equals.name", "Ann"],
+    ["answer.name", "Ann"],
+  ])("drops %s=%j", (name, value) => {
+    expect(parseAnswerFilters({ [name]: value })).toEqual([]);
+  });
+
+  it("reads the first of repeated values", () => {
+    expect(
+      parseAnswerFilters({ "answer.contains.name": ["Ann", "Bob"] }),
+    ).toEqual([{ operator: "contains", key: "name", value: "Ann" }]);
+  });
+});
+
+describe("applicableAnswerFilters", () => {
+  it("keeps filters whose operator fits the column's filter type", () => {
+    // Arrange
+    const filters = parseAnswerFilters({
+      "answer.contains.name": "Ann",
+      "answer.from.born": "2026-01-01",
+      "answer.to.seen": "2026-01-31",
+      "answer.contains.born": "2026",
+      "answer.from.name": "2026-01-01",
+      "answer.contains.likes": "red",
+      "answer.contains.gone": "x",
+    });
+
+    // Act
+    const applicable = applicableAnswerFilters(filters, CATALOG);
+
+    // Assert
+    expect(applicable.map(({ operator, key }) => `${operator}:${key}`)).toEqual(
+      ["contains:name", "from:born", "to:seen"],
+    );
+  });
+
+  it("keeps at most ten filters", () => {
+    // Arrange
+    const catalog = toAnswerColumns(
+      Array.from({ length: 12 }, (_, i) => wireColumn({ key: `q${i}` })),
+    );
+    const filters = catalog.map((column) => ({
+      operator: "contains" as const,
+      key: column.key,
+      value: "x",
+    }));
+
+    // Act & Assert
+    expect(applicableAnswerFilters(filters, catalog)).toHaveLength(10);
+  });
+
+  it("drops every filter when the form has no schema columns", () => {
+    // Arrange
+    const filters = parseAnswerFilters({ "answer.contains.name": "Ann" });
+
+    // Act & Assert
+    expect(applicableAnswerFilters(filters, [])).toEqual([]);
+  });
+});
+
+describe("answer filters on the rows request line", () => {
+  it("stays under the API's request line limit with the widest columns", () => {
+    // Arrange
+    const questions = Array.from({ length: 500 }, (_, i) =>
+      wireColumn({ key: `question_${i}` }),
+    );
+    const texts = Array.from({ length: 10 }, (_, i) =>
+      wireColumn({ key: `вопрос_${i}` }),
+    );
+    const catalog = toAnswerColumns([...questions, ...texts]);
+    const filters = texts.map((column) => ({
+      operator: "contains" as const,
+      key: column.key,
+      value: "я".repeat(200),
+    }));
+
+    // Act
+    const answerFilters = applicableAnswerFilters(filters, catalog);
+    const columns = resolveVisibleAnswerColumns(
+      catalog,
+      catalog.map((column) => column.key),
+      answerFilters,
+    ).map((column) => column.key);
+    const endpoint = buildListSubmissionGridRowsEndpoint("9007199254740993", {
+      columns,
+      answerFilters,
+    });
+
+    // Assert
+    expect(answerFilters.length).toBeGreaterThan(0);
+    expect(`GET ${endpoint} HTTP/1.1`.length).toBeLessThanOrEqual(
+      KESTREL_MAX_REQUEST_LINE_BYTES - 512,
+    );
+  });
+});
+
+describe("toAnswerColumns filter types", () => {
+  it("offers no answer filter on a column the API marks not searchable", () => {
+    // Act
+    const [column] = toAnswerColumns([
+      wireColumn({ key: "name", searchable: false }),
+    ]);
+
+    // Assert
+    expect(column.filterType).toBeNull();
+  });
+
+  it("offers no answer filter while the column's search copy is preparing", () => {
+    // Act
+    const [column] = toAnswerColumns([
+      wireColumn({ key: "city", searchable: true, searchPending: true }),
+    ]);
+
+    // Assert
+    expect(column.filterType).toBeNull();
+    expect(column.search).toEqual({ state: "preparing", source: null });
+  });
+
+  it("drops a URL filter on a column that is still preparing", () => {
+    // Arrange
+    const catalog = toAnswerColumns([
+      wireColumn({ key: "city", searchPending: true, searchSource: "user" }),
+    ]);
+    const filters = parseAnswerFilters({ "answer.contains.city": "Sofia" });
+
+    // Act & Assert
+    expect(applicableAnswerFilters(filters, catalog)).toEqual([]);
+  });
+
+  it("leaves submitter columns to the list's profile filters", () => {
+    // Act
+    const [column] = toAnswerColumns([
+      wireColumn({ key: "submitter_email", kind: "SubmitterProfile" }),
+    ]);
+
+    // Assert
+    expect(column.filterType).toBeNull();
+  });
+});
+
+describe("keptAnswerFilters", () => {
+  beforeEach(() => {
+    fit.copies = false;
+  });
+
+  const readyKeys = Array.from({ length: 10 }, (_, i) => `q${i}`);
+  const catalogWith = (city: Partial<SubmissionGridColumn>) =>
+    toAnswerColumns([
+      ...readyKeys.map((key) => wireColumn({ key })),
+      wireColumn({ key: "city", ...city }),
+    ]);
+  const PREPARING = { searchPending: true, searchSource: "user" } as const;
+
+  it("counts filters on preparing columns toward the API's limit", () => {
+    // Arrange
+    const filters = parseAnswerFilters({
+      ...Object.fromEntries(
+        readyKeys.map((key) => [`answer.contains.${key}`, "x"]),
+      ),
+      "answer.contains.city": "Sofia",
+    });
+
+    // Act
+    const kept = keptAnswerFilters(filters, catalogWith(PREPARING));
+
+    // Assert
+    expect(kept.map((filter) => filter.key)).toEqual(readyKeys);
+  });
+
+  it("keeps every applied filter once the preparing column is ready", () => {
+    // Arrange
+    const filters = parseAnswerFilters({
+      "answer.contains.city": "Sofia",
+      ...Object.fromEntries(
+        readyKeys.map((key) => [`answer.contains.${key}`, "x"]),
+      ),
+    });
+    const kept = keptAnswerFilters(filters, catalogWith(PREPARING));
+
+    // Act
+    const applied = applicableAnswerFilters(kept, catalogWith({}));
+
+    // Assert
+    expect(applied).toEqual(kept);
+  });
+
+  it("keeps a filter on a column an editor made not filterable", () => {
+    // Arrange
+    const filters = parseAnswerFilters({
+      "answer.contains.q0": "x",
+      "answer.contains.city": "Sofia",
+    });
+
+    // Act
+    const kept = keptAnswerFilters(filters, catalogWith({ searchable: false }));
+
+    // Assert
+    expect(kept).toEqual(filters);
+  });
+
+  it("matches the applied filters by value, not by object", () => {
+    // Arrange
+    fit.copies = true;
+    const filters = parseAnswerFilters({ "answer.contains.q0": "x" });
+
+    // Act
+    const kept = keptAnswerFilters(filters, catalogWith({}));
+
+    // Assert
+    expect(kept).toEqual(filters);
+  });
+});
+
+describe("answerTextFilterUrlKeys", () => {
+  it("lists a contains key per text column", () => {
+    expect(answerTextFilterUrlKeys(CATALOG)).toEqual(["answer.contains.name"]);
+  });
+});
+
+describe("answerDateFilter", () => {
+  it("reads both bounds of one column", () => {
+    // Arrange
+    const filters = parseAnswerFilters({
+      "answer.from.born": "2026-01-01",
+      "answer.to.seen": "2026-02-01",
+    });
+
+    // Act & Assert
+    expect(answerDateFilter(filters, "born")).toEqual({
+      from: "2026-01-01",
+      to: undefined,
+    });
+  });
+});
+
+describe("filtersByStoredChoiceValue", () => {
+  it.each([
+    ["dropdown", true],
+    ["radiogroup", true],
+    ["text", false],
+  ])("is %s → %s", (questionType, expected) => {
+    // Arrange
+    const [column] = toAnswerColumns([wireColumn({ key: "q", questionType })]);
+
+    // Act & Assert
+    expect(filtersByStoredChoiceValue(column)).toBe(expected);
+  });
+});

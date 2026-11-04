@@ -1,13 +1,16 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { Base, Model, type IPropertyValueChangedEvent } from "survey-core";
 import {
   TabJsonEditorAcePlugin,
   type ActiveTabChangedEvent,
+  type JsonEditorBaseModel,
+  type LintSurveyEvent,
   type SurveyCreatorModel,
   type TabJsonEditorBasePlugin,
 } from "survey-creator-core";
+import { LINT_RULE } from "@/lib/survey-features/survey-lint";
 import {
   type JsonEditorState,
   AceJsonPlugin,
@@ -16,6 +19,7 @@ import {
   NOT_ON_JSON_TAB_STATE,
   createOnJsonTabState,
 } from "./json-editor-state";
+import { addObfuscatedJsonDownload } from "./json-download-menu";
 import { Result } from "@/lib/result";
 
 const INVALID_JSON_ERROR_MESSAGE =
@@ -25,10 +29,25 @@ const MALFORMED_JSON_ERROR_MESSAGE =
 const UNEXPECTED_ERROR_MESSAGE =
   "Unexpeted error. Please reload the page and try again.";
 
+/** One assignment. Does not replace `rules`, call lintRules(), or touch variablePresets. */
+function warnUnknownReference(
+  _sender: SurveyCreatorModel,
+  options: LintSurveyEvent,
+): void {
+  options.lintOptions.rules![LINT_RULE.unknown] = "warning";
+}
+
+/** undefined and false block; true (warnings at most) does not. */
+function jsonTabBlocks(model: JsonEditorBaseModel): boolean {
+  return model.allowingDeactivate() !== true;
+}
+
 export type { JsonEditorState } from "./json-editor-state";
 
 export interface UseJsonEditorOptions {
   onJsonStateChange?: (state: JsonEditorState) => void;
+  /** The form's name, for the obfuscated download's file name. */
+  downloadName?: string;
 }
 
 /**
@@ -37,10 +56,15 @@ export interface UseJsonEditorOptions {
  * Does not subscribe to creator.onModified; the consumer should do that for unsaved state.
  *
  * @param options.onJsonStateChange - Called when JSON tab, validation, or modified state changes.
+ * @param options.downloadName - Names the obfuscated download, `<downloadName>.obf.json`.
  * @returns { registerJsonEditor } - Call with creator; returns cleanup.
  */
 export function useJsonEditor(options: UseJsonEditorOptions) {
-  const { onJsonStateChange } = options;
+  const { onJsonStateChange, downloadName = "" } = options;
+  const downloadNameRef = useRef(downloadName);
+  useEffect(() => {
+    downloadNameRef.current = downloadName;
+  }, [downloadName]);
 
   const registerJsonEditor = useCallback(
     (creator: SurveyCreatorModel): (() => void) => {
@@ -78,7 +102,7 @@ export function useJsonEditor(options: UseJsonEditorOptions) {
           const { name } = options;
 
           if (name === JSON_EDITOR_PROPERTY_NAMES.hasErrors) {
-            notify({ hasErrors: !!options.newValue });
+            notify({ hasErrors: jsonTabBlocks(model) });
           }
 
           const aceInstance = (sender as AceJsonPlugin).aceEditor;
@@ -94,7 +118,7 @@ export function useJsonEditor(options: UseJsonEditorOptions) {
                   return;
 
                 isJsonModified = true;
-                notify({ hasErrors: !!model.hasErrors });
+                notify({ hasErrors: jsonTabBlocks(model) });
               }
             };
             aceInstance.getSession().on("change", aceChangedHandler);
@@ -102,16 +126,25 @@ export function useJsonEditor(options: UseJsonEditorOptions) {
         };
 
         model.onPropertyChanged.add(onPropertyChanged);
+        const onErrorListChanged = (
+          _sender: Base,
+          options: IPropertyValueChangedEvent,
+        ) => {
+          if (options.name !== "actions") return;
+          notify({ hasErrors: jsonTabBlocks(model) });
+        };
+        model.errorList.onPropertyChanged.add(onErrorListChanged);
 
         removeModelListener = () => {
           model?.onPropertyChanged.remove(onPropertyChanged);
+          model.errorList.onPropertyChanged.remove(onErrorListChanged);
           const aceInstance = model.aceEditor;
           if (aceInstance && aceChangedHandler) {
             aceInstance.getSession().off("change", aceChangedHandler);
           }
         };
 
-        notify({ hasErrors: !!model.hasErrors });
+        notify({ hasErrors: jsonTabBlocks(model) });
       }
 
       function onTabChanged(
@@ -125,9 +158,16 @@ export function useJsonEditor(options: UseJsonEditorOptions) {
         enterJsonTab();
       }
 
+      const removeDownloadMenu = addObfuscatedJsonDownload(
+        creator,
+        () => downloadNameRef.current,
+      );
+      creator.onLintSurvey.add(warnUnknownReference);
       creator.onActiveTabChanged.add(onTabChanged);
 
       return () => {
+        removeDownloadMenu();
+        creator.onLintSurvey.remove(warnUnknownReference);
         creator.onActiveTabChanged.remove(onTabChanged);
         removeModelListener?.();
       };
@@ -155,7 +195,7 @@ export function useJsonEditor(options: UseJsonEditorOptions) {
         return Result.error(UNEXPECTED_ERROR_MESSAGE);
       }
 
-      if (jsonPlugin.model.hasErrors) {
+      if (jsonTabBlocks(jsonPlugin.model)) {
         return Result.validationError(INVALID_JSON_ERROR_MESSAGE);
       }
 

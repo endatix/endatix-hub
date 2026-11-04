@@ -1,5 +1,6 @@
 import { render } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { Result } from "@/lib/result";
 import type { Form } from "@/types";
 
 vi.mock("next/server", () => ({}));
@@ -14,14 +15,16 @@ vi.mock("@/features/auth/authorization", () => ({
 
 vi.mock("@/lib/feature-flags", () => ({
   formAnalyticsFlag: vi.fn(),
+  personalizationFlag: vi.fn().mockResolvedValue(false),
 }));
 
-vi.mock("@/services/api", () => ({
-  getForm: vi.fn(),
+vi.mock("@/features/forms/form-workspace/load-workspace-form.server", () => ({
+  loadWorkspaceForm: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({
   redirect: vi.fn(),
+  usePathname: () => "/forms/f1/analytics",
 }));
 
 vi.mock("@/features/form-analytics/ui/survey-dashboard-wrapper", () => ({
@@ -48,12 +51,12 @@ describe("Form Analytics Page", () => {
 
   it("calls requireHubAccess for access control", async () => {
     const { formAnalyticsFlag } = await import("@/lib/feature-flags");
-    const { getForm } = await import("@/services/api");
+    const { loadWorkspaceForm } =
+      await import("@/features/forms/form-workspace/load-workspace-form.server");
     vi.mocked(formAnalyticsFlag).mockResolvedValue(true);
-    vi.mocked(getForm).mockResolvedValue({
-      id: "f1",
-      name: "My Form",
-    } as Form);
+    vi.mocked(loadWorkspaceForm).mockResolvedValue(
+      Result.success({ id: "f1", name: "My Form" } as Form),
+    );
 
     const FormAnalyticsPage = (
       await import("@/app/(main)/forms/[formId]/analytics/page")
@@ -79,9 +82,14 @@ describe("Form Analytics Page", () => {
 
   it("renders not found when form does not exist", async () => {
     const { formAnalyticsFlag } = await import("@/lib/feature-flags");
-    const { getForm } = await import("@/services/api");
+    const { loadWorkspaceForm } =
+      await import("@/features/forms/form-workspace/load-workspace-form.server");
     vi.mocked(formAnalyticsFlag).mockResolvedValue(true);
-    vi.mocked(getForm).mockRejectedValue(new Error("Not found"));
+    vi.mocked(loadWorkspaceForm).mockResolvedValue(
+      Result.error("Form not found", undefined, undefined, {
+        statusCode: 404,
+      }),
+    );
 
     const FormAnalyticsPage = (
       await import("@/app/(main)/forms/[formId]/analytics/page")
@@ -97,12 +105,12 @@ describe("Form Analytics Page", () => {
 
   it("renders analytics page when form exists and flag is enabled", async () => {
     const { formAnalyticsFlag } = await import("@/lib/feature-flags");
-    const { getForm } = await import("@/services/api");
+    const { loadWorkspaceForm } =
+      await import("@/features/forms/form-workspace/load-workspace-form.server");
     vi.mocked(formAnalyticsFlag).mockResolvedValue(true);
-    vi.mocked(getForm).mockResolvedValue({
-      id: "f1",
-      name: "Reporting Form",
-    } as Form);
+    vi.mocked(loadWorkspaceForm).mockResolvedValue(
+      Result.success({ id: "f1", name: "Reporting Form" } as Form),
+    );
 
     const FormAnalyticsPage = (
       await import("@/app/(main)/forms/[formId]/analytics/page")
@@ -111,8 +119,8 @@ describe("Form Analytics Page", () => {
       params: Promise.resolve({ formId: "f1" }),
     });
 
-    const { getByText, getByTestId, container } = render(result);
-    expect(getByText(/Reporting: Reporting Form/i)).toBeDefined();
+    const { getByText, getByRole, getByTestId, container } = render(result);
+    expect(getByRole("heading", { name: "Analytics" })).toBeDefined();
     expect(getByText(/Survey analytics and charts/i)).toBeDefined();
     expect(getByTestId("survey-dashboard-wrapper")).toBeDefined();
     expect(container).toMatchSnapshot();

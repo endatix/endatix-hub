@@ -5,7 +5,6 @@ import {
   FileContentView,
   FileViewer,
 } from "@/features/submissions/ui/answers/file-viewer";
-import { FileType } from "@/lib/questions/file/file-type";
 
 vi.mock("@/features/asset-storage/client", () => ({
   useNearViewport: vi.fn(() => ({

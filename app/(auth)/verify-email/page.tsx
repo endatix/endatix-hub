@@ -72,7 +72,7 @@ export default function VerifyEmailPage() {
       }
     };
 
-    verifyEmailToken();
+    void verifyEmailToken();
     return () => {
       cancelled = true;
     };

@@ -32,14 +32,43 @@ cd hub
 pnpm test:e2e --grep "Embed Form"
 ```
 
-### Debug Mode
+### Agents
+
+`pnpm test:e2e`, `test:e2e:ui`, `test:e2e:debug` and `test:e2e:smoke` run through `scripts/with-dev-cert.mjs`. That sets `NODE_EXTRA_CA_CERTS` to the .NET dev certificate for the child process, so Node trusts `https://localhost:5001` without `NODE_TLS_REJECT_UNAUTHORIZED`. `pnpm exec playwright` does not. pnpm appends flags such as `--grep` to the script. Do not add a second `--`: Playwright then treats `--grep` as a file name and reports no tests. `pnpm` keeps `--debug` for itself, so use `test:e2e:debug` instead of adding `--debug`. Playwright will not take `--ui` and `--debug` together.
 
 ```bash
-# Run with UI
-pnpm test:e2e --ui
-# or
-pnpm test:e2e --debug
+cd hub
+E2E_EMAIL="you@example.com" pnpm test:e2e --grep "On-behalf personalization" --workers=1
+E2E_EMAIL="you@example.com" pnpm test:e2e:ui --grep "On-behalf personalization"
+E2E_EMAIL="you@example.com" pnpm test:e2e:debug --grep "On-behalf personalization"
+E2E_EMAIL="you@example.com" pnpm test:e2e --grep "All-questions personalization" --workers=1
 ```
+
+The password is the macOS keychain item `endatix-hub-e2e`, account `e2e`, when `E2E_PASSWORD` is unset. Hub is `http://localhost:3000`. The API is WebHost on `https://localhost:5001` (`E2E_API_URL`, default `https://localhost:5001/api`).
+
+**Share and iframe.** A `share` test opens `/share/{formId}?token=…` on the page. An `iframe` test opens WebHost `/dev/embed-host?view=bare` (`E2E_EMBED_HOST_URL`, default `http://localhost:5000`) and works inside `iframe[id^="edxf-{formId}"]`. The token is a share access token with `submit`, not the hex on-behalf token. Do not build an iframe around `/share`. Clicks stay inside `.sd-root-modern`. A query such as `?city=` is a share-URL check. The playground host does not forward it into the iframe. After the browser saves, read `GET /forms/{formId}/submissions/{submissionId}` and assert `jsonData` and `personalization`. Reference: `tests/screen-out/screen-out.spec.ts`, `tests/audience/personalization.spec.ts`, `tests/audience/all-questions-personalization.spec.ts`. Shared open helpers live in `utils/survey-surface.ts`.
+
+**Form path.** A new Playwright form test calls these helpers. The suite still supplies its own definition and visibility.
+
+| Helper                | Where                       | When to call it                                                                                                                                                                  |
+| --------------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `publishE2eForm`      | `utils/form-api.ts`         | Create and publish the form. On a failed publish it keeps the form.                                                                                                              |
+| `createOnBehalfShare` | `utils/on-behalf-share.ts`  | After publish, when the test opens an on-behalf submission with a share token. A failure keeps the form and rethrows. Screen-out (`seedScreenOutForm`) and upload-files call it. |
+| `openSurvey`          | `utils/survey-surface.ts`   | Open share or iframe and wait for `.sd-root-modern`.                                                                                                                             |
+| `questionInput`       | `utils/survey-surface.ts`   | Find one input in `.sd-root-modern` by question title.                                                                                                                           |
+| `completeSurvey`      | `utils/survey-surface.ts`   | Click Complete inside `.sd-root-modern` and wait for thank-you.                                                                                                                  |
+| `expectThankYou`      | `utils/survey-surface.ts`   | Assert thank-you and the already-completed copy.                                                                                                                                 |
+| `runE2eForms`         | `utils/run-e2e-form.ts`     | Around the browser steps. Annotates each `formId`, deletes on success, and on failure or `E2E_KEEP_DATA=1` asks the release callback to keep the forms.                          |
+| `releaseE2eForms`     | `utils/e2e-form-release.ts` | The release callback. Deletes, or leaves the forms and appends `{ formId, recordedAt }` to `e2e/.screen-out-kept.json`.                                                          |
+
+```bash
+cd hub
+pnpm test:e2e --grep "Screen-out|On-behalf personalization|Upload files|All-questions personalization" --workers=1
+```
+
+Recorded on `07719b9c`: that command exited 1. Screen-out, on-behalf personalization, and all-questions personalization passed (13 tests). Upload files share timed out waiting for `POST /api/public/v0/storage/resize-image`. The unmodified upload spec times out the same way against this Hub.
+
+**All-questions personalization.** `tests/audience/all-questions-personalization.spec.ts` seeds the all-questions definition and a three-person CSV (`e2e/fixtures/audience/all-questions-personalized-*`), private and one-per-user. Like screen-out and upload-files, it nests under `share` and `iframe` describes so each channel runs the full flow. Share opens `/share/{formId}/a/{token}`; iframe redeems via the API then opens the embed host with a Hub-minted share token. Between steps it asserts API state: link `issued`/`opened` (with `submissionId` / `openedAt`), submission `personalization`, `collectionStatus`, `isComplete`, and hex-token accept/reject. **Used** in the test name means `opened` plus `isComplete`. Run with `--workers=1` so it does not race other audience specs on the tenant match key.
 
 ## Embed Tests
 
@@ -137,10 +166,7 @@ The export creates the folder and runs `dotnet dev-certs https -ep <path> --form
 - `pnpm dev-https`: Next replaces `NODE_EXTRA_CA_CERTS` for its server with its mkcert root CA. The wrapper asks Next's own mkcert helper for the certificate (created on first use, as `next dev` would) and passes it with a bundle of that CA and the dev certificate.
 - Do not set `NODE_TLS_REJECT_UNAUTHORIZED`. A container that calls the host API mounts the PEM read-only and sets `NODE_EXTRA_CA_CERTS`; do not copy it into an image.
 
-The iframe case opens WebHost `/dev/embed-host?view=bare` with `formId`, `hubBaseUrl`, and `token`
-(see `AGENTS.md` → Embed SDK). The URL token is a share access token with `submit`, not the hex
-on-behalf token. Do not load `/share` inside a hand-built iframe. Survey clicks stay inside
-`.sd-root-modern` so they do not hit the Next.js dev toolbar.
+Share and iframe opens, the dev certificate, and the commands agents should run are under **Agents** above. Survey clicks stay inside `.sd-root-modern`.
 
 ### Names
 

@@ -10,6 +10,8 @@ import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useState, useCallback, useRef } from "react";
 import { useFormAssistant } from "@/features/forms/use-cases/design-form/form-assistant.context";
+import type { FormDesignReturn } from "../../form-workspace";
+import type { DesignerAudience } from "../editor/form-editor";
 
 export interface FormDesignerWrapperProps {
   formId: string;
@@ -19,6 +21,9 @@ export interface FormDesignerWrapperProps {
   themeId?: string;
   isPublic?: boolean;
   formIsEnabled?: boolean;
+  /** The workspace page the designer was opened from; Back returns there. */
+  designReturn?: FormDesignReturn;
+  audience?: DesignerAudience | null;
 }
 
 interface FormDesignerContentProps extends FormDesignerWrapperProps {
@@ -35,6 +40,8 @@ function FormDesignerContent({
   themeId,
   isPublic,
   formIsEnabled,
+  designReturn,
+  audience,
   isCurrentThemeModified,
   setIsCurrentThemeModified,
   formSaveHandlerRef,
@@ -55,9 +62,10 @@ function FormDesignerContent({
     [formSaveHandlerRef],
   );
 
+  const backHref = designReturn?.href ?? (`/forms/${formId}` as Route);
   const handleNavigateBack = useCallback(() => {
-    router.push(`/forms/${formId}` as Route);
-  }, [router, formId]);
+    router.push(backHref);
+  }, [router, backHref]);
 
   const headerState = useFormEditorHeader({
     formId,
@@ -73,6 +81,7 @@ function FormDesignerContent({
         {...headerState}
         isCurrentThemeModified={isCurrentThemeModified}
         isPublic={isPublic}
+        backLabel={`Back to ${designReturn?.label ?? "Overview"}`}
       />
       {isAssistantEnabled ? (
         <FormEditorWithChat
@@ -83,6 +92,7 @@ function FormDesignerContent({
           themeId={themeId}
           isPublic={isPublic}
           formIsEnabled={formIsEnabled}
+          audience={audience}
           onThemeModificationChange={setIsCurrentThemeModified}
           onSaveHandlerReady={setSaveHandler}
         />
@@ -95,6 +105,7 @@ function FormDesignerContent({
           themeId={themeId}
           isPublic={isPublic}
           formIsEnabled={formIsEnabled}
+          audience={audience}
           onThemeModificationChange={setIsCurrentThemeModified}
           onSaveHandlerReady={setSaveHandler}
         />
@@ -111,6 +122,8 @@ export default function FormDesignerWrapper({
   themeId,
   isPublic,
   formIsEnabled,
+  designReturn,
+  audience,
 }: FormDesignerWrapperProps) {
   const [isCurrentThemeModified, setIsCurrentThemeModified] = useState(false);
   const formSaveHandlerRef = useRef<(() => Promise<void>) | null>(null);
@@ -125,6 +138,8 @@ export default function FormDesignerWrapper({
         themeId={themeId}
         isPublic={isPublic}
         formIsEnabled={formIsEnabled}
+        designReturn={designReturn}
+        audience={audience}
         isCurrentThemeModified={isCurrentThemeModified}
         setIsCurrentThemeModified={setIsCurrentThemeModified}
         formSaveHandlerRef={formSaveHandlerRef}

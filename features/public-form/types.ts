@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { TestInspectorView } from "@/features/public-form/inspect-test-submission/test-inspector-view";
 import type { SubmissionGatePhase } from "@/features/submissions/domain";
 import type { Submission } from "@/lib/endatix-api";
 import type { ClientStorageConfig } from "@endatix/storage-core";
@@ -16,6 +17,8 @@ export type PublicSurveyRuntimeProps = {
    */
   canStartOver?: boolean;
   isRespondentTestMode: boolean;
+  /** The Test inspector's view, built by the server only for a viewer with `forms.test`. */
+  testInspector: TestInspectorView | null;
   storageConfig: ClientStorageConfig | null;
   submission?: Submission;
   urlToken?: string;

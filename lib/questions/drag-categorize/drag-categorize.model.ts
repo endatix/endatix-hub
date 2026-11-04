@@ -17,7 +17,6 @@ import {
 import type { DragCategorizePlacement } from "./types";
 import { validateZoneConstraints } from "./drag-categorize.validation";
 import {
-  createPlacement,
   isItemPlaced,
   isPlacementEmpty,
   parsePlacement,

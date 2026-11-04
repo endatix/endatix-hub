@@ -9,6 +9,7 @@ import {
 import { useJsonEditor } from "../use-json-editor.hook";
 
 vi.mock("survey-core", () => ({
+  SvgRegistry: { registerIcon: vi.fn() },
   Model: vi.fn().mockImplementation(function (this: any) {
     this.fromJSON = vi.fn();
     this.toJSON = vi.fn().mockReturnValue({ pages: [] });
@@ -22,6 +23,8 @@ vi.mock("survey-creator-core", () => ({
     hasAceEditor: vi.fn().mockReturnValue(false),
   },
 }));
+
+const NO_TOOLBAR_ACTIONS = { actions: [], getActionById: () => undefined };
 
 describe("useJsonEditor", () => {
   beforeEach(() => {
@@ -93,7 +96,11 @@ describe("useJsonEditor", () => {
         activeTab: "json",
         JSON: {},
         getPlugin: vi.fn().mockReturnValue({
-          model: { hasErrors: true, text: "{}" },
+          model: {
+            hasErrors: true,
+            allowingDeactivate: () => false,
+            text: "{}",
+          },
         }),
       };
       const { result } = renderHook(() => useJsonEditor({}));
@@ -116,7 +123,11 @@ describe("useJsonEditor", () => {
         activeTab: "json",
         JSON: {},
         getPlugin: vi.fn().mockReturnValue({
-          model: { hasErrors: false, text: "not valid json {" },
+          model: {
+            hasErrors: false,
+            allowingDeactivate: () => true,
+            text: "not valid json {",
+          },
         }),
       };
       const { result } = renderHook(() => useJsonEditor({}));
@@ -146,7 +157,11 @@ describe("useJsonEditor", () => {
         activeTab: "json",
         JSON: {},
         getPlugin: vi.fn().mockReturnValue({
-          model: { hasErrors: false, text: "{}" },
+          model: {
+            hasErrors: false,
+            allowingDeactivate: () => true,
+            text: "{}",
+          },
         }),
       };
       const { result } = renderHook(() => useJsonEditor({}));
@@ -169,7 +184,11 @@ describe("useJsonEditor", () => {
         activeTab: "json",
         JSON: {},
         getPlugin: vi.fn().mockReturnValue({
-          model: { hasErrors: false, text: '{"pages":[]}' },
+          model: {
+            hasErrors: false,
+            allowingDeactivate: () => true,
+            text: '{"pages":[]}',
+          },
         }),
       };
       const { result } = renderHook(() => useJsonEditor({}));
@@ -192,6 +211,8 @@ describe("useJsonEditor", () => {
       const creator = {
         activeTab: "design",
         onActiveTabChanged: { add: vi.fn(), remove },
+        onLintSurvey: { add: vi.fn(), remove: vi.fn() },
+        toolbar: NO_TOOLBAR_ACTIONS,
       };
       const { result } = renderHook(() => useJsonEditor({}));
 
@@ -217,6 +238,8 @@ describe("useJsonEditor", () => {
           }),
           remove: vi.fn(),
         },
+        onLintSurvey: { add: vi.fn(), remove: vi.fn() },
+        toolbar: NO_TOOLBAR_ACTIONS,
         getPlugin: vi.fn().mockReturnValue(null),
       };
       const { result } = renderHook(() => useJsonEditor({ onJsonStateChange }));
@@ -245,10 +268,14 @@ describe("useJsonEditor", () => {
           }),
           remove: vi.fn(),
         },
+        onLintSurvey: { add: vi.fn(), remove: vi.fn() },
+        toolbar: NO_TOOLBAR_ACTIONS,
         getPlugin: vi.fn().mockReturnValue({
           model: {
             hasErrors: true,
+            allowingDeactivate: () => false,
             onPropertyChanged: { add: vi.fn(), remove: vi.fn() },
+            errorList: { onPropertyChanged: { add: vi.fn(), remove: vi.fn() } },
             aceEditor: null,
           },
         }),

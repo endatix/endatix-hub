@@ -8,6 +8,8 @@ type ErrorSupport = {
   statusCode?: number;
   problemTitle?: string;
   problemMediaType?: string;
+  /** The resource a 409 ran into, e.g. the existing submission of `submission_exists`. */
+  existingId?: string;
 };
 
 type Error = {
@@ -20,6 +22,7 @@ type Error = {
   statusCode?: number;
   problemTitle?: string;
   problemMediaType?: string;
+  existingId?: string;
 };
 
 type Result<T> = Success<T> | Error;
@@ -55,6 +58,7 @@ const Result = {
     statusCode: support?.statusCode,
     problemTitle: support?.problemTitle,
     problemMediaType: support?.problemMediaType,
+    existingId: support?.existingId,
   }),
 
   validationError: <T>(
@@ -72,6 +76,7 @@ const Result = {
     statusCode: support?.statusCode,
     problemTitle: support?.problemTitle,
     problemMediaType: support?.problemMediaType,
+    existingId: support?.existingId,
   }),
 
   isSuccess: <T>(result: Result<T>): result is Success<T> =>

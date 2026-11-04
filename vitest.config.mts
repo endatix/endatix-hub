@@ -16,13 +16,15 @@ export default defineConfig({
   },
   test: {
     globals: true,
+    // Vitest 5 defaults to true; flipping it is endatix-hub#1319.
+    clearMocks: false,
     environment: "jsdom",
     server: {
       deps: {
         inline: ["next-auth"],
       },
     },
-    exclude: [...configDefaults.exclude, "e2e/**"],
+    exclude: [...configDefaults.exclude, "e2e/**", "**/.*/worktrees/**"],
     coverage: {
       include: [
         "app/**/*.{ts,tsx}",
@@ -45,7 +47,7 @@ export default defineConfig({
       enabled: true,
       provider: "v8",
       reporter: process.env.GITHUB_ACTIONS
-        ? ["cobertura", "json", "json-summary"]
+        ? ["cobertura", "json", "json-summary", "lcovonly"]
         : ["cobertura", "html"],
       reportsDirectory: ".coverage/endatix-hub",
     },

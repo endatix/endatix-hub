@@ -32,6 +32,13 @@ const PNPM_VERSION_PINS: Array<[file: string, pattern: RegExp]> = [
  */
 const PNPM_VULNERABLE_VERSIONS = ["10.34.4", "11.0.0", "11.10.9"];
 
+/**
+ * Node below these patches decodes Brotli with libbrotli 1.0.3-1.2.0, whose out-of-bounds
+ * write (CVE-2026-111497) is reachable through any server-side `fetch()` of a hostile URL.
+ * Each LTS line has its own floor, so lowering either one reopens the window.
+ */
+const NODE_VULNERABLE_VERSIONS = ["22.23.3", "24.22.0"];
+
 /** Node versions engines.node must never admit (EOL, odd-year 23, or Node 25). */
 const UNSUPPORTED_NODE_VERSIONS = [
   "20.19.0",
@@ -157,8 +164,18 @@ describe("Node toolchain pins agree", () => {
     );
   });
 
-  it("pins engines.node to 22.13+ and 24 LTS only", () => {
-    expect(nodeEngine).toBe(">=22.13.0 <23.0.0 || >=24.0.0 <25.0.0");
+  it("pins engines.node to 22.23.4+ and 24.22.1+ LTS only", () => {
+    expect(nodeEngine).toBe(">=22.23.4 <23.0.0 || >=24.22.1 <25.0.0");
+  });
+
+  it("keeps engines.node clear of the CVE-2026-111497 versions", () => {
+    // Act & Assert
+    for (const vulnerable of NODE_VULNERABLE_VERSIONS) {
+      expect(
+        semver.satisfies(vulnerable, nodeEngine),
+        `engines.node (${nodeEngine}) admits vulnerable Node ${vulnerable}`,
+      ).toBe(false);
+    }
   });
 
   it("admits no End-of-Life or out-of-policy Node major", () => {

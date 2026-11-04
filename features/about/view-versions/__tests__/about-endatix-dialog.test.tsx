@@ -1,6 +1,13 @@
-import { render, screen } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { BuildIdentity } from "@/lib/hosting/build-identity";
+import type { SurveyJsVersions } from "@/lib/hosting/hub-version";
 import type { ProductVersions } from "../../types";
 
 vi.mock("@/lib/utils/hooks/use-media-query.hook", () => ({
@@ -21,6 +28,22 @@ const SHA = "8ef28cee396f8dfb959d40c34868314585659f28";
 function release(version: string): BuildIdentity {
   return { version, branch: null, commit: SHA };
 }
+
+const SURVEYJS: SurveyJsVersions = {
+  "survey-core": "3.2.3",
+  "survey-react-ui": "3.2.3",
+  "survey-creator-core": "3.2.4",
+  "survey-creator-react": "3.2.4",
+  "survey-analytics": "3.2.1",
+};
+
+const MATCHING_SURVEYJS: SurveyJsVersions = {
+  "survey-core": "3.2.3",
+  "survey-react-ui": "3.2.3",
+  "survey-creator-core": "3.2.3",
+  "survey-creator-react": "3.2.3",
+  "survey-analytics": "3.2.3",
+};
 
 /** Fresh module per test: the dialog keeps a complete read for the page. */
 async function renderDialog(open = true) {
@@ -47,6 +70,7 @@ describe("AboutEndatixDialog", () => {
     getProductVersionsAction.mockResolvedValue({
       hub: release("0.8.0"),
       api: release("0.7.7"),
+      surveyJs: null,
     });
 
     // Act
@@ -65,6 +89,7 @@ describe("AboutEndatixDialog", () => {
     getProductVersionsAction.mockResolvedValue({
       hub: release("0.8.0"),
       api: null,
+      surveyJs: SURVEYJS,
     });
 
     // Act
@@ -87,6 +112,7 @@ describe("AboutEndatixDialog", () => {
         commit: SHA,
       },
       api: release("0.7.7"),
+      surveyJs: null,
     });
 
     // Act
@@ -111,6 +137,7 @@ describe("AboutEndatixDialog", () => {
         commit: SHA,
       },
       api: null,
+      surveyJs: null,
     });
 
     // Act
@@ -120,5 +147,121 @@ describe("AboutEndatixDialog", () => {
     expect(
       await screen.findByText("feat/h134-show-p…the-about-dialog"),
     ).toBeDefined();
+  });
+
+  it("shows one SurveyJS version when every library is on it", async () => {
+    // Arrange
+    getProductVersionsAction.mockResolvedValue({
+      hub: release("0.8.0"),
+      api: release("0.7.7"),
+      surveyJs: MATCHING_SURVEYJS,
+    });
+
+    // Act
+    await renderDialog();
+    await screen.findByRole("link", { name: /0\.8\.0/ });
+    const group = screen.getByRole("region", { name: "Built on SurveyJS" });
+    const link = within(group).getByRole("link", { name: /3\.2\.3/ });
+
+    // Assert
+    expect(within(group).getAllByRole("link")).toHaveLength(1);
+    expect(within(group).getByText("All 5 libraries")).toBeDefined();
+    expect(new URL(link.getAttribute("href")!).pathname).toBe(
+      "/surveyjs/survey-library/releases/tag/v3.2.3",
+    );
+    expect(within(group).getByText(/survey-creator-react/)).toBeDefined();
+  });
+
+  it("groups the SurveyJS versions apart from the Hub and API", async () => {
+    // Arrange
+    getProductVersionsAction.mockResolvedValue({
+      hub: release("0.8.0"),
+      api: release("0.7.7"),
+      surveyJs: SURVEYJS,
+    });
+
+    // Act
+    await renderDialog();
+    await screen.findByRole("link", { name: /0\.8\.0/ });
+    const group = screen.getByRole("region", { name: "Built on SurveyJS" });
+
+    // Assert
+    expect(within(group).getAllByRole("link")).toHaveLength(5);
+    expect(within(group).queryByText("Hub")).toBeNull();
+    expect(within(group).queryByText("API")).toBeNull();
+  });
+
+  it("links each SurveyJS version to its library's release notes", async () => {
+    // Arrange
+    getProductVersionsAction.mockResolvedValue({
+      hub: release("0.8.0"),
+      api: release("0.7.7"),
+      surveyJs: SURVEYJS,
+    });
+
+    // Act
+    await renderDialog();
+    await screen.findByRole("link", { name: /0\.8\.0/ });
+    const paths = screen
+      .getAllByRole("link", { name: /^3\./ })
+      .map((link) => new URL(link.getAttribute("href")!).pathname);
+
+    // Assert
+    expect(paths).toEqual([
+      "/surveyjs/survey-library/releases/tag/v3.2.3",
+      "/surveyjs/survey-library/releases/tag/v3.2.3",
+      "/surveyjs/survey-creator/releases/tag/v3.2.4",
+      "/surveyjs/survey-creator/releases/tag/v3.2.4",
+      "/surveyjs/survey-analytics/releases/tag/v3.2.1",
+    ]);
+  });
+
+  it("shows a SurveyJS package the build could not read as not available, unlinked", async () => {
+    // Arrange
+    getProductVersionsAction.mockResolvedValue({
+      hub: release("0.8.0"),
+      api: release("0.7.7"),
+      surveyJs: { ...SURVEYJS, "survey-analytics": null },
+    });
+
+    // Act
+    await renderDialog();
+    await screen.findByRole("link", { name: /0\.8\.0/ });
+
+    // Assert
+    expect(screen.getAllByRole("link", { name: /^3\./ })).toHaveLength(4);
+    expect(screen.getByText("Not available")).toBeDefined();
+  });
+
+  it("copies the SurveyJS versions with the Hub and API", async () => {
+    // Arrange
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal("navigator", { clipboard: { writeText } });
+    getProductVersionsAction.mockResolvedValue({
+      hub: release("0.8.0"),
+      api: release("0.7.7"),
+      surveyJs: { ...SURVEYJS, "survey-analytics": null },
+    });
+
+    // Act
+    await renderDialog();
+    await screen.findByRole("link", { name: /0\.8\.0/ });
+    fireEvent.click(screen.getByRole("button", { name: "Copy versions" }));
+
+    // Assert
+    await waitFor(() =>
+      expect(writeText).toHaveBeenCalledWith(
+        [
+          "Endatix Hub 0.8.0",
+          "Endatix API 0.7.7",
+          "survey-core 3.2.3",
+          "survey-react-ui 3.2.3",
+          "survey-creator-core 3.2.4",
+          "survey-creator-react 3.2.4",
+          "survey-analytics unavailable",
+        ].join("\n"),
+      ),
+    );
+    vi.unstubAllGlobals();
   });
 });

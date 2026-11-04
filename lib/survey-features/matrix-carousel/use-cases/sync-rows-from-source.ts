@@ -60,7 +60,9 @@ export function syncMatrixCarouselRowsFromSource(
   }
 
   const { priority, rest } = computeCarryForwardAggregatedItems(survey, carouselTarget);
-  const newRows = [...priority, ...rest].map(buildRowFromChoice);
+  const newRows = [...priority, ...rest].map((choice) =>
+    buildRowFromChoice(choice),
+  );
 
   const rowsChanged = !Helpers.isArraysEqual(target.rows, newRows, false);
   if (rowsChanged) {

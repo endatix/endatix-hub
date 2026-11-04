@@ -322,7 +322,7 @@ function UsersTableContent({
     const displayName = getUserListDisplayName(user);
     const isYou = currentUserId != null && user.id === currentUserId;
     const isActive = user.isVerified && !user.isLockedOut;
-    const isPlatformAdminUser = user.roles.some(isPlatformScopedRole);
+    const isPlatformAdminUser = user.roles.some((r) => isPlatformScopedRole(r));
     const actionPolicy = getUserActionPolicy({
       isActive,
       isYou,

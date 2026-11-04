@@ -7,10 +7,8 @@ import { toast } from "@/components/ui/toast";
 import { Result } from "@/lib/result";
 import { listFoldersAction } from "@/features/folders/server";
 import { moveTemplateToFolderAction } from "../move-template-to-folder.action";
-import {
-  MoveToFolderDialog,
-  NO_FOLDER_VALUE,
-} from "@/features/folders/ui/move-to-folder-dialog";
+import { MoveToFolderDialog } from "@/features/folders/move-to-folder/ui/move-to-folder-dialog";
+import { NO_FOLDER_VALUE } from "@/features/folders/move-to-folder/move-to-folder";
 
 interface MoveTemplateToFolderMenuItemProps {
   templateId: string;
@@ -26,9 +24,8 @@ export function MoveTemplateToFolderMenuItem({
   const [availableFolders, setAvailableFolders] = useState<
     { id: string; name: string }[]
   >([]);
-  const [selectedFolderId, setSelectedFolderId] = useState<string>(
-    currentFolderValue,
-  );
+  const [selectedFolderId, setSelectedFolderId] =
+    useState<string>(currentFolderValue);
   const [isMovePending, setIsMovePending] = useState(false);
 
   const handleOpenMoveDialog = async () => {

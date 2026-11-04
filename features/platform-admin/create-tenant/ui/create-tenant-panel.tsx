@@ -114,7 +114,7 @@ export function CreateTenantPanel() {
         </ResponsivePanelDescription>
       </ResponsivePanelHeader>
 
-      <ResponsivePanelBody className="grid content-start gap-5">
+      <ResponsivePanelBody>
         {step !== "done" && <PanelSteps steps={STEP_LABELS} current={step} />}
 
         {step === 1 && (

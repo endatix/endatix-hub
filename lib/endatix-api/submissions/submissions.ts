@@ -14,6 +14,7 @@ import { appendSubmissionListFilters } from "./submission-list-query-params";
 import {
   CreateSubmissionAccessTokenRequest,
   CreateSubmissionAccessTokenResponse,
+  DeleteTestSubmissionsResponse,
   ExportSubmissionsRequest,
   ListSubmissionsRequest,
   ListSubmissionsResponse,
@@ -306,4 +307,47 @@ export class Submissions {
       `/forms/${validateFormIdResult.value}/submissions/${validateSubmissionIdResult.value}`,
     );
   }
+
+  /**
+   * Marks a submission as test or as real. Marking as real is a 409
+   * `submission_exists` (`existingId`) when the submitter already has a real one.
+   */
+  async setTest(
+    formId: string,
+    submissionId: string,
+    isTest: boolean,
+  ): Promise<ApiResult<Submission>> {
+    const path = submissionPath(formId, submissionId);
+    if (Result.isError(path)) return ApiResult.validationError(path.message);
+
+    return this.endatix.patch<Submission>(`${path.value}/test`, { isTest });
+  }
+
+  /**
+   * Deletes every test submission of a form. Needs `forms.test` and `submissions.delete`.
+   */
+  async deleteTests(
+    formId: string,
+  ): Promise<ApiResult<DeleteTestSubmissionsResponse>> {
+    const validateFormIdResult = validateEndatixId(formId, "formId");
+    if (Result.isError(validateFormIdResult)) {
+      return ApiResult.validationError(validateFormIdResult.message);
+    }
+
+    return this.endatix.post<DeleteTestSubmissionsResponse>(
+      `/forms/${validateFormIdResult.value}/submissions/test/delete`,
+      {},
+    );
+  }
+}
+
+/** `/forms/{formId}/submissions/{submissionId}`, once both ids are valid. */
+function submissionPath(formId: string, submissionId: string): Result<string> {
+  const validFormId = validateEndatixId(formId, "formId");
+  if (Result.isError(validFormId)) return validFormId;
+  const validSubmissionId = validateEndatixId(submissionId, "submissionId");
+  if (Result.isError(validSubmissionId)) return validSubmissionId;
+  return Result.success(
+    `/forms/${validFormId.value}/submissions/${validSubmissionId.value}`,
+  );
 }

@@ -192,3 +192,29 @@ describe("mapResponseToApiError", () => {
     expect(result.error.details?.retryAfter).toBeUndefined();
   });
 });
+
+describe("mapResponseToApiError existingId", () => {
+  it("keeps the id a submission_exists 409 names", async () => {
+    // Arrange
+    const response = new Response(
+      JSON.stringify({
+        status: 409,
+        detail: "A submission already exists for this user and form.",
+        errorCode: "submission_exists",
+        submissionId: "42",
+      }),
+      { status: 409, headers: { "content-type": "application/problem+json" } },
+    );
+
+    // Act
+    const result = await mapResponseToApiError(response, { statusCode: 409 });
+
+    // Assert
+    expect(ApiResult.isError(result) && result.error.details?.existingId).toBe(
+      "42",
+    );
+    expect(ApiResult.isError(result) && result.error.errorCode).toBe(
+      "submission_exists",
+    );
+  });
+});

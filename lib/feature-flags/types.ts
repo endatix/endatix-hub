@@ -8,6 +8,7 @@ export interface FeatureFlagConfig {
   reportingExport: boolean;
   tenantManagement: boolean;
   saasManagement: boolean;
+  personalization: boolean;
 }
 
 export interface AIFeatures {

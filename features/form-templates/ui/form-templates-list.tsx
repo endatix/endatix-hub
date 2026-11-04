@@ -103,7 +103,7 @@ function FormTemplatesListContent({
             template={template}
             isSelected={template.id === selectedTemplateId}
             requireFolderAssignment={requireFolderAssignment}
-            onClick={() => handleTemplateSelected(template.id)}
+            onOpen={() => handleTemplateSelected(template.id)}
             onPreviewClick={handlePreviewOpen}
           />
         ))}

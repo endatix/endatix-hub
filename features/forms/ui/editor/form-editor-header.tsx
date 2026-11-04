@@ -12,6 +12,8 @@ import FormPublicStatus from "./form-public-status";
 interface FormEditorHeaderProps extends FormEditorHeaderState {
   isCurrentThemeModified: boolean;
   isPublic?: boolean;
+  /** Names where Back goes ("Back to Participants"); it does not save. */
+  backLabel: string;
 }
 
 export default function FormEditorHeader({
@@ -27,6 +29,7 @@ export default function FormEditorHeader({
   showSavedSuccess,
   isCurrentThemeModified,
   isPublic,
+  backLabel,
   handleSaveAndGoBack,
   handleKeyDown,
   saveFormHandler,
@@ -44,7 +47,8 @@ export default function FormEditorHeader({
         <Button
           variant="ghost"
           size="icon-lg"
-          aria-label="Save and Go Back"
+          aria-label={backLabel}
+          title={backLabel}
           onClick={handleSaveAndGoBack}
           disabled={isSaving}
         >
@@ -61,13 +65,13 @@ export default function FormEditorHeader({
             autoFocus
           />
         ) : (
-          <span
-            className="px-1 text-lg font-bold hover:rounded hover:border hover:border-border"
+          <button
+            type="button"
+            className="cursor-text px-1 text-lg font-bold hover:rounded hover:border hover:border-border"
             onClick={() => setIsEditingName(true)}
-            style={{ cursor: "text" }}
           >
             {name}
-          </span>
+          </button>
         )}
         <FormPublicStatus isPublic={isPublic} />
       </div>

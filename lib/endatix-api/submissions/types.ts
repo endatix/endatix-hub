@@ -34,6 +34,16 @@ export const SUBMISSION_STATUS = {
 // Domain Entities (what we work with in the app)
 // ============================================================================
 
+/** Who froze a submission's personalization: matches OSS `PersonalizationSources`. */
+export const PersonalizationSource = Object.freeze({
+  Link: "link",
+  OnBehalf: "on_behalf",
+  Test: "test",
+} as const);
+
+export type PersonalizationSource =
+  (typeof PersonalizationSource)[keyof typeof PersonalizationSource];
+
 export interface Submission extends ApiEntity {
   formId: EntityId;
   formDefinitionId: EntityId;
@@ -50,6 +60,15 @@ export interface Submission extends ApiEntity {
   submitterId?: EntityId;
   submitterDisplayId?: string;
   submitterProfile?: Record<string, string>;
+  personalization?: {
+    identifier: string;
+    capturedAt: string;
+    variables: Record<string, unknown>;
+    /** Absent on snapshots written before sources were recorded. */
+    source?: PersonalizationSource;
+    /** The audience member the Snapshot was taken for; absent on link Snapshots written before members were recorded. */
+    memberId?: EntityId;
+  } | null;
 
   // Optional navigation properties
   formDefinition?: FormDefinition;
@@ -211,3 +230,8 @@ export interface SubmissionQuery extends PaginationQuery {
 
 // Keep existing SubmissionData type available for features
 export type SubmissionData = CreateSubmissionDto;
+
+/** `POST forms/{formId}/submissions/test/delete`. */
+export interface DeleteTestSubmissionsResponse {
+  deletedCount: number;
+}

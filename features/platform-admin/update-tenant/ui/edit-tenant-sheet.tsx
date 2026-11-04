@@ -151,7 +151,7 @@ export function EditTenantSheet({
           )}
         </ResponsivePanelBody>
       ) : (
-        <ResponsivePanelBody className="grid content-start gap-5">
+        <ResponsivePanelBody>
           <TenantIdentityFields
             idPrefix="edit-tenant"
             name={name}

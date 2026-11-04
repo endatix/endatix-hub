@@ -1,6 +1,4 @@
 import { auth } from "@/auth";
-import PageTitle from "@/components/headings/page-title";
-import { getSession } from "@/features/auth";
 import { authorization } from "@/features/auth/authorization";
 import {
   buildSubmissionListPath,
@@ -8,13 +6,19 @@ import {
   parseSubmissionListSearchParams,
 } from "@/features/submissions/list-submission-query";
 import { SubmissionListSection } from "@/features/submissions/list-submissions";
+import {
+  SubmissionGridSection,
+  SubmissionGridSkeleton,
+} from "@/features/submissions/browse-submissions";
+import { FormWorkspaceHeader } from "@/features/forms/form-workspace";
+import { getWorkspaceForm } from "@/features/forms/form-workspace/load-workspace-form.server";
 import { SubmissionsTableSkeleton } from "@/features/submissions/ui/table/submissions-table-skeleton";
 import { PagedListFrame } from "@/components/table";
-import { EndatixApi } from "@/lib/endatix-api";
 import { listQueryKey } from "@/lib/list-page/list-query-key";
+import { reportingExportFlag } from "@/lib/feature-flags/flags";
 import type { Metadata, ResolvingMetadata, Route } from "next";
 import { redirect } from "next/navigation";
-import { Suspense } from "react";
+import { Suspense, type ReactNode } from "react";
 
 type Params = {
   readonly params: Promise<{ formId: string }>;
@@ -30,8 +34,7 @@ export async function generateMetadata(
   await requireHubAccess();
 
   const { formId } = await params;
-  const api = new EndatixApi(session?.accessToken);
-  const formResult = await api.forms.get(formId);
+  const formResult = await getWorkspaceForm(formId);
 
   const formName = formResult.success ? formResult.data.name : "Form";
 
@@ -48,35 +51,67 @@ export async function generateMetadata(
 export default async function ResponsesPage({ params, searchParams }: Params) {
   const { formId } = await params;
   const sp = await searchParams;
-  const listState = parseSubmissionListSearchParams(sp);
-
-  if (!isCanonicalSubmissionListUrl(sp, listState)) {
-    redirect(buildSubmissionListPath(formId, listState) as Route);
-  }
+  const legacyGrid = (
+    <LegacySubmissionsGrid formId={formId} searchParams={sp} />
+  );
+  const grid = (await reportingExportFlag()) ? (
+    <ReportingGrid formId={formId} searchParams={sp} legacyGrid={legacyGrid} />
+  ) : (
+    legacyGrid
+  );
 
   return (
     <>
-      <Suspense fallback={<PageTitle title="Submissions..." />}>
-        <PageTitleData formId={formId} />
-      </Suspense>
-      <PagedListFrame
-        listKey={listQueryKey(listState)}
-        fallback={<SubmissionsListSkeleton pageSize={listState.pageSize} />}
-      >
-        <SubmissionListSection formId={formId} listState={listState} />
-      </PagedListFrame>
+      <FormWorkspaceHeader title="Submissions" />
+      {grid}
     </>
   );
 }
 
-async function PageTitleData({ formId }: Readonly<{ formId: string }>) {
-  const session = await getSession();
-  const api = new EndatixApi(session ?? undefined);
-  const formResult = await api.forms.get(formId);
+type GridProps = Readonly<{
+  formId: string;
+  searchParams: Awaited<Params["searchParams"]>;
+}>;
 
-  const formName = formResult.success ? formResult.data.name : "Form";
+function ReportingGrid({
+  formId,
+  searchParams,
+  legacyGrid,
+}: GridProps & Readonly<{ legacyGrid: ReactNode }>) {
+  return (
+    <Suspense fallback={<ReportingGridSkeleton />}>
+      <SubmissionGridSection
+        formId={formId}
+        searchParams={searchParams}
+        unavailable={legacyGrid}
+      />
+    </Suspense>
+  );
+}
 
-  return <PageTitle title={`Submissions for ${formName}`} />;
+function LegacySubmissionsGrid({ formId, searchParams }: GridProps) {
+  const listState = parseSubmissionListSearchParams(searchParams);
+
+  if (!isCanonicalSubmissionListUrl(searchParams, listState)) {
+    redirect(buildSubmissionListPath(formId, listState) as Route);
+  }
+
+  return (
+    <PagedListFrame
+      listKey={listQueryKey(listState)}
+      fallback={<SubmissionsListSkeleton pageSize={listState.pageSize} />}
+    >
+      <SubmissionListSection formId={formId} listState={listState} />
+    </PagedListFrame>
+  );
+}
+
+function ReportingGridSkeleton() {
+  return (
+    <div className="mt-8">
+      <SubmissionGridSkeleton pageSize={10} />
+    </div>
+  );
 }
 
 function SubmissionsListSkeleton({ pageSize }: Readonly<{ pageSize: number }>) {

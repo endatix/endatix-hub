@@ -8,7 +8,7 @@ export async function updateAgentAction(
   agentId: string,
   formData: FormData,
 ): Promise<ApiResult<Agent>> {
-  ensureAuthenticated();
+  await ensureAuthenticated();
 
   const session = await getSession();
   const endatixApi = new EndatixApi(session);

@@ -6,6 +6,7 @@ import { FolderNavigationCards } from "@/features/folders/list-folders";
 import { getFormsHeaderDataCached } from "@/features/folders/view-forms-header";
 import { getFormsListPromise } from "@/features/forms/list-forms/list-forms.server";
 import { FormsListSection } from "@/features/forms/list-forms/ui/forms-list-section";
+import { getFormWorkspaceFlags } from "@/features/forms/form-workspace/form-workspace-flags.server";
 import { FormsListSkeleton } from "@/features/forms/list-forms/ui/forms-list-skeleton";
 import { listQueryKey } from "@/lib/list-page/list-query-key";
 import { PagedListFrame, PagedListUrlProvider } from "@/components/table";
@@ -92,13 +93,17 @@ async function FormsListSectionWithFolders({
   folderContextByIdPromise: Promise<ReadonlyMap<string, FormFolderContext>>;
   viewMode: ReturnType<typeof resolveRootFormsViewMode>;
 }>) {
-  const folderContextById = await folderContextByIdPromise;
+  const [folderContextById, workspaceFlags] = await Promise.all([
+    folderContextByIdPromise,
+    getFormWorkspaceFlags(),
+  ]);
 
   return (
     <FormsListSection
       formsPromise={formsPromise}
       scope="root"
       folderContextById={folderContextById}
+      workspaceFlags={workspaceFlags}
       emptyState={
         viewMode === "all" ? (
           <NoAllFormsEmptyState />

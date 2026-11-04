@@ -34,3 +34,93 @@ describe("helm analytics env vars", () => {
     expect(deployment).toContain("key: posthog-key");
   });
 });
+
+describe("helm signup review Visitor env vars", () => {
+  // An `env` entry outranks `envFrom` even when empty, so an always-rendered one
+  // would stop extraEnvFrom from supplying the value.
+  test("POSTHOG_PROJECT_ID is rendered only when posthogProjectId is set", () => {
+    // Arrange
+    const guard =
+      '{{- if or $rawProjectId (kindIs "float64" $rawProjectId) (kindIs "int64" $rawProjectId) }}';
+
+    // Act
+    const guardIndex = deployment.indexOf(guard);
+    const entryIndex = deployment.indexOf("- name: POSTHOG_PROJECT_ID");
+    const beforeEntry = deployment.slice(guardIndex, entryIndex);
+    const opened = beforeEntry.match(/\{\{-? (if|with|range) /g) ?? [];
+    const closed = beforeEntry.match(/\{\{-? end /g) ?? [];
+
+    // Assert — the guard is still open where the entry is.
+    expect(guardIndex).toBeGreaterThan(-1);
+    expect(entryIndex).toBeGreaterThan(guardIndex);
+    expect(opened.length).toBeGreaterThan(closed.length);
+  });
+
+  // A bare number in a values file is a float64, which `quote` prints as 1.234567e+06,
+  // and int64 alone reads "0123" as octal 83 and true as 1.
+  test("the project id is rendered as an integer from digits or a whole number only", () => {
+    // Arrange
+    const digitsOnly = 'regexMatch "^[1-9][0-9]*$" $rawProjectId';
+    const wholeNumberOnly = "eq (float64 $rawProjectId) (floor $rawProjectId)";
+
+    // Act
+    const checksDigits = deployment.includes(digitsOnly);
+    const checksWholeNumber = deployment.includes(wholeNumberOnly);
+
+    // Assert
+    expect(checksDigits).toBe(true);
+    expect(checksWholeNumber).toBe(true);
+    expect(deployment).toContain("value: {{ $projectId | quote }}");
+  });
+
+  test("POSTHOG_PERSONAL_API_KEY comes only from its own Secret", () => {
+    // Arrange
+    const guard = "{{- with .Values.analytics.personalApiKeySecretName }}";
+
+    // Act
+    const guardIndex = deployment.indexOf(guard);
+    const entryIndex = deployment.indexOf("- name: POSTHOG_PERSONAL_API_KEY");
+    const entry = deployment.slice(
+      entryIndex,
+      deployment.indexOf("{{- end }}", entryIndex),
+    );
+
+    // Assert
+    expect(guardIndex).toBeGreaterThan(-1);
+    expect(entryIndex).toBeGreaterThan(guardIndex);
+    expect(entry).toContain("secretKeyRef:");
+    expect(entry).toContain("key: posthog-personal-api-key");
+    expect(entry).not.toMatch(/^\s*value:/m);
+  });
+
+  // The Visitor section is admin-only; a missing key Secret must not stop the Hub starting.
+  test("a missing personal API key Secret does not block pods", () => {
+    // Arrange
+    const entryIndex = deployment.indexOf("- name: POSTHOG_PERSONAL_API_KEY");
+
+    // Act
+    const entry = deployment.slice(
+      entryIndex,
+      deployment.indexOf("{{- end }}", entryIndex),
+    );
+
+    // Assert
+    expect(entry).toMatch(/^\s*optional: true$/m);
+  });
+
+  // The key can read visitor emails, so a literal in a git-tracked values file is refused.
+  test("rendering fails when a plaintext personal API key is set", () => {
+    // Arrange
+    const literalValue = /^\s*posthogPersonalApiKey:/m;
+
+    // Act
+    const valuesOfferLiteral = literalValue.test(values);
+
+    // Assert
+    expect(valuesOfferLiteral).toBe(false);
+    expect(values).toContain('personalApiKeySecretName: ""');
+    expect(deployment).toContain(
+      "{{- if .Values.analytics.posthogPersonalApiKey }}",
+    );
+  });
+});

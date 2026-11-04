@@ -1,0 +1,61 @@
+{
+  "title": { "default": "Patient intake", "de": "Patientenaufnahme" },
+  "description": "Tell us about your health",
+  "pages": [
+    {
+      "name": "aboutYou",
+      "title": { "default": "About you", "de": "Über Sie" },
+      "elements": [
+        {
+          "type": "text",
+          "name": "firstName",
+          "title": { "default": "First name", "de": "Vorname" },
+          "isRequired": true,
+          "requiredErrorText": "Your name please"
+        },
+        {
+          "type": "html",
+          "name": "privacyNote",
+          "html": "<p>Your answers stay with your doctor</p>"
+        },
+        {
+          "type": "radiogroup",
+          "name": "smoker",
+          "title": { "default": "Do you smoke?", "de": "Rauchen Sie?" },
+          "choices": [
+            { "value": "yes", "text": { "default": "Yes, daily", "de": "Ja, täglich" } },
+            { "value": "no", "text": { "default": "Never smoked", "de": "Nie geraucht" } }
+          ]
+        },
+        {
+          "type": "text",
+          "name": "cigarettesPerDay",
+          "title": "Cigarettes per day, {firstName}",
+          "inputType": "number",
+          "visibleIf": "{smoker} = 'yes'"
+        },
+        {
+          "type": "matrix",
+          "name": "habits",
+          "title": "How often do you drink",
+          "columns": [
+            { "value": 1, "text": "Rarely" },
+            { "value": 2, "text": "Weekly" }
+          ],
+          "rows": [
+            { "value": "coffee", "text": "Coffee cups" },
+            { "value": "alcohol", "text": "Alcoholic drinks" }
+          ]
+        },
+        {
+          "type": "panel",
+          "name": "contactDetails",
+          "title": "Contact details",
+          "elements": [
+            { "type": "comment", "name": "homeAddress", "title": "Home address" }
+          ]
+        }
+      ]
+    }
+  ]
+}

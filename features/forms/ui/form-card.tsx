@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { CardOpenSurface } from "@/components/card-open-surface";
 import { Card, CardContent, CardFooter, CardTitle } from "@/components/ui/card";
 import { Form } from "@/types";
 import { Badge } from "@/components/ui/badge";
@@ -9,15 +10,16 @@ import Link from "next/link";
 import {
   FilePen,
   FolderInput,
-  FolderOpen,
   Globe,
   Link2,
   List,
   Lock,
   MoreVertical,
   Save,
+  Trash2,
+  Users,
 } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,19 +30,18 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   MoveToFolderDialog,
-  NO_FOLDER_VALUE,
-} from "@/features/folders/ui/move-to-folder-dialog";
-import { listFoldersAction } from "@/features/folders/server";
-import { moveFormToFolderAction } from "@/features/folders/move-form-to-folder";
-import { toast } from "@/components/ui/toast";
-import { Result } from "@/lib/result";
-import { useRouter } from "next/navigation";
-import type { Route } from "next";
+  useMoveToFolder,
+} from "@/features/folders/move-to-folder";
+import { DeleteFormConfirm } from "@/features/forms/ui/delete-form-confirm";
 
-type FormCardProps = React.ComponentProps<typeof Card> & {
+type FormCardProps = Omit<React.ComponentProps<typeof Card>, "onClick"> & {
+  /** Opens the form: a click on the card body, or its button from the keyboard. */
+  onOpen?: () => void;
   form: Form;
   folderContext?: FormFolderChipProps;
   isSelected: boolean;
+  /** The Audience item in the card's menu; only when the tenant has audiences. */
+  showAudienceLink?: boolean;
   onSaveAsTemplate: () => void;
 };
 
@@ -82,128 +83,61 @@ const SubmissionsLabel: React.FC<SubmissionsLabelProps> = ({
   );
 };
 
+/** In the card's menu, not its footer: a fourth footer link does not fit a card at the grid minimum. */
+function AudienceMenuItem({ formId }: Readonly<{ formId: string }>) {
+  return (
+    <DropdownMenuItem asChild className="cursor-pointer">
+      <Link href={`/forms/${formId}/audience`}>
+        <Users className="mr-2 size-4" />
+        Participants
+      </Link>
+    </DropdownMenuItem>
+  );
+}
+
 const FormCard = ({
   form,
   folderContext,
   isSelected,
+  showAudienceLink = false,
   onSaveAsTemplate,
   className,
+  onOpen,
   ...props
 }: FormCardProps) => {
   const getFormLabel = () => (form.isEnabled ? "Enabled" : "Disabled");
   const getVisibilityLabel = () => (form.isPublic ? "Public" : "Private");
-  const router = useRouter();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [moveDialogOpen, setMoveDialogOpen] = useState(false);
-  const [availableFolders, setAvailableFolders] = useState<
-    { id: string; name: string; slug?: string }[]
-  >([]);
-  const [currentFolderId, setCurrentFolderId] = useState<string>(
-    form.folderId ?? NO_FOLDER_VALUE,
-  );
-  const [selectedFolderId, setSelectedFolderId] = useState<string>(
-    form.folderId ?? NO_FOLDER_VALUE,
-  );
-  const [isMovePending, setIsMovePending] = useState(false);
-
-  useEffect(() => {
-    setCurrentFolderId(form.folderId ?? NO_FOLDER_VALUE);
-  }, [form.folderId]);
+  const { openMoveDialog, dialogProps } = useMoveToFolder({
+    ...form,
+    kind: "form",
+  });
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   const handleOpenSaveAsTemplate = () => {
     setIsDropdownOpen(false);
     onSaveAsTemplate();
   };
 
-  const handleOpenMoveDialog = async () => {
+  const handleOpenMoveDialog = () => {
     setIsDropdownOpen(false);
-    const listResult = await listFoldersAction();
-    if (Result.isError(listResult)) {
-      toast.error(listResult.message);
-      return;
-    }
-
-    const activeFolders = listResult.value
-      .filter((folder) => folder.isActive)
-      .map((folder) => ({
-        id: folder.id,
-        name: folder.name,
-        slug: folder.slug,
-      }));
-
-    setAvailableFolders(activeFolders);
-    setSelectedFolderId(currentFolderId);
-    setMoveDialogOpen(true);
-  };
-
-  const handleMoveToFolder = async () => {
-    if (selectedFolderId === currentFolderId) {
-      return;
-    }
-
-    setIsMovePending(true);
-    const moveResult = await moveFormToFolderAction(
-      form.id,
-      selectedFolderId === NO_FOLDER_VALUE ? null : selectedFolderId,
-    );
-    setIsMovePending(false);
-
-    if (Result.isError(moveResult)) {
-      toast.error({
-        title: "Cannot move form to folder",
-        description: moveResult.message,
-      });
-      return;
-    }
-
-    const targetFolder =
-      selectedFolderId === NO_FOLDER_VALUE
-        ? null
-        : availableFolders.find((folder) => folder.id === selectedFolderId);
-    const targetFolderSlug = targetFolder?.slug;
-
-    toast.success({
-      title: "Form moved successfully",
-      description: (
-        <>
-          <strong>{form.name}</strong>
-          {targetFolder ? (
-            <>
-              {" "}
-              was moved to <strong>{targetFolder.name}</strong>.
-            </>
-          ) : (
-            <> was removed from its folder.</>
-          )}
-        </>
-      ),
-      SvgIcon: FolderOpen,
-      action:
-        targetFolderSlug && selectedFolderId !== NO_FOLDER_VALUE
-          ? {
-              label: "Open folder",
-              onClick: () => {
-                router.push(
-                  `/forms/folders/${encodeURIComponent(targetFolderSlug)}` as Route,
-                );
-              },
-            }
-          : undefined,
-    });
-    setCurrentFolderId(selectedFolderId);
-    setMoveDialogOpen(false);
+    return openMoveDialog();
   };
 
   return (
     <Card
       className={cn(
-        "group flex h-[230px] w-full max-w-full min-w-[420px] flex-col gap-0 py-0",
+        "group flex h-[230px] w-full max-w-full flex-col gap-0 py-0",
         isSelected ? "border-primary bg-accent" : "",
         className,
       )}
       {...props}
     >
-      <div className="flex min-h-0 min-w-0 flex-1 cursor-pointer flex-col rounded-t-md transition-colors group-hover:bg-muted/45">
+      <CardOpenSurface
+        label={form.name}
+        onOpen={onOpen}
+        className="flex min-h-0 min-w-0 flex-1 cursor-pointer flex-col rounded-t-md transition-colors group-hover:bg-muted/45"
+      >
         <div className="flex shrink-0 flex-col gap-2 p-4 pt-4 pb-2">
           {folderContext ? (
             <FormFolderChip {...folderContext} className="mb-0" />
@@ -244,11 +178,8 @@ const FormCard = ({
             </div>
           </div>
         </CardContent>
-      </div>
-      <CardFooter
-        className="mt-auto flex h-16 min-w-0 cursor-default items-center overflow-hidden rounded-b-[6px] border-t bg-muted px-4 py-0 [.border-t]:pt-0"
-        onClick={(e) => e.stopPropagation()}
-      >
+      </CardOpenSurface>
+      <CardFooter className="mt-auto flex h-16 min-w-0 cursor-default items-center overflow-hidden rounded-b-[6px] border-t bg-muted px-4 py-0 [.border-t]:pt-0">
         <div className="flex h-full w-full min-w-0 items-center justify-between gap-2">
           <div className="flex min-h-0 min-w-0 flex-1 flex-nowrap items-center gap-x-3 overflow-x-auto overflow-y-hidden opacity-0 transition-opacity group-hover:opacity-100">
             <Link
@@ -302,6 +233,7 @@ const FormCard = ({
               <DropdownMenuContent align="end" side="top" forceMount>
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                {showAudienceLink && <AudienceMenuItem formId={form.id} />}
                 <DropdownMenuItem
                   className="cursor-pointer"
                   onClick={handleOpenSaveAsTemplate}
@@ -320,23 +252,26 @@ const FormCard = ({
                   <FolderInput className="mr-2 size-4" />
                   Move to folder
                 </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  variant="destructive"
+                  className="cursor-pointer"
+                  onSelect={() => setDeleteOpen(true)}
+                >
+                  <Trash2 className="mr-2 size-4" />
+                  Delete
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
         </div>
       </CardFooter>
-      <MoveToFolderDialog
-        open={moveDialogOpen}
-        onOpenChange={setMoveDialogOpen}
-        title="Move form to folder"
-        fieldId={`move-form-folder-${form.id}`}
-        selectedFolderId={selectedFolderId}
-        onFolderChange={setSelectedFolderId}
-        folderOptions={availableFolders}
-        isMovePending={isMovePending}
-        canMove={selectedFolderId !== currentFolderId}
-        onMove={() => void handleMoveToFolder()}
+      <DeleteFormConfirm
+        form={form}
+        open={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
       />
+      <MoveToFolderDialog {...dialogProps} />
     </Card>
   );
 };

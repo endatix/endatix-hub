@@ -71,12 +71,6 @@ export default function ConversationDetails({
       },
     );
   }, [conversation]);
-  const chatMessages = useMemo(() => {
-    return conversation.messages.map((message) => ({
-      ...message,
-      isAi: message.role === "assistant",
-    }));
-  }, [conversation]);
 
   useEffect(() => {
     const checkWidth = () => {

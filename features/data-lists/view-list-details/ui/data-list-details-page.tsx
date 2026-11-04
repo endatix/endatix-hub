@@ -26,10 +26,8 @@ import type { UrlSearchParamsUpdater } from "@/lib/utils/hooks/use-url-search-pa
 import { TelemetryLogger } from "@/features/telemetry";
 import { withBasePath } from "@/lib/hosting";
 import { formatInteger } from "@/lib/utils/formatters";
-import {
-  getFilenameFromContentDisposition,
-  initiateFileDownload,
-} from "@/lib/utils/files-download";
+import { DownloadError, downloadFromUrl } from "@/lib/utils/files-download";
+import { DownloadMenu } from "@/components/common/download-menu";
 import { formatLocaleLabel } from "@/features/data-lists/translations/locale-discovery";
 import { DataListLocalesCell } from "@/features/data-lists/view-lists/ui/data-list-locales-cell";
 import {
@@ -45,7 +43,7 @@ import {
   parseCalendarDateYmd,
   parseSortDir,
 } from "@/lib/endatix-api/shared/list-query";
-import { ChevronDown, Download, PencilLine, Upload } from "lucide-react";
+import { ChevronDown, PencilLine, Upload } from "lucide-react";
 import type { Route } from "next";
 import {
   Suspense,
@@ -67,6 +65,68 @@ import { parseDataListItemSortBy, resolveVisibleLabelColumns } from "../utils";
 import type { SortingState, Updater } from "@tanstack/react-table";
 
 const CSV_EXPORT_LOGGER = "data-lists.exportCsv";
+
+type DataListExportFormat = "csv" | "json";
+type ExportCopy = {
+  format: DataListExportFormat;
+  fileName: (dataListId: string) => string;
+  success: string;
+  failure: string;
+};
+
+const EXPORT_COPY: Record<DataListExportFormat, ExportCopy> = {
+  csv: {
+    format: "csv",
+    fileName: (id) => `data-list-${id}-translations.csv`,
+    success: "CSV downloaded",
+    failure: "Failed to download translations CSV",
+  },
+  json: {
+    format: "json",
+    fileName: (id) => `data-list-${id}.json`,
+    success: "JSON downloaded",
+    failure: "Failed to download JSON",
+  },
+};
+
+/** The server's `error`, or `fallback` when the body is not the JSON it promised. */
+async function readExportError(
+  response: Response,
+  fallback: string,
+): Promise<string> {
+  try {
+    const payload = (await response.json()) as { error?: string };
+    return payload.error || fallback;
+  } catch (error) {
+    TelemetryLogger.error(
+      "Failed to parse data list export error response",
+      error,
+      {
+        "http.status_code": response.status,
+        "error.type": error instanceof Error ? error.name : typeof error,
+      },
+      CSV_EXPORT_LOGGER,
+    );
+    return fallback;
+  }
+}
+
+/** Downloads one export and toasts the outcome, the server's reason on a refusal. */
+async function downloadDataListExport(
+  dataListId: string,
+  copy: ExportCopy,
+): Promise<void> {
+  const url = `/api/data-lists/${dataListId}/export?format=${copy.format}`;
+  try {
+    await downloadFromUrl(withBasePath(url), {
+      fallbackFilename: copy.fileName(dataListId),
+      readError: (response) => readExportError(response, copy.failure),
+    });
+    toast.success(copy.success);
+  } catch (error) {
+    toast.error(error instanceof DownloadError ? error.message : copy.failure);
+  }
+}
 
 interface DataListDetailsPageProps {
   initialDetails: DataListDetails;
@@ -182,72 +242,15 @@ export function DataListDetailsPage({
     setIsReplaceDialogOpen(true);
   };
 
-  const handleDownloadJson = (): void => {
-    downloadExport("json");
-  };
-
-  const downloadExport = (format: "csv" | "json"): void => {
+  const downloadExport = (format: DataListExportFormat): void => {
     if (Result.isError(dataListIdResult)) {
       toast.error(dataListIdResult.message);
       return;
     }
-
     const dataListId = dataListIdResult.value;
-    const fallbackName =
-      format === "json"
-        ? `data-list-${dataListId}.json`
-        : `data-list-${dataListId}-translations.csv`;
-    const successMessage =
-      format === "json" ? "JSON downloaded" : "CSV downloaded";
-    const errorMessage =
-      format === "json"
-        ? "Failed to download JSON"
-        : "Failed to download translations CSV";
-
-    startDownloadTransition(async () => {
-      try {
-        const response = await fetch(
-          withBasePath(`/api/data-lists/${dataListId}/export?format=${format}`),
-        );
-
-        if (!response.ok) {
-          let message = errorMessage;
-          try {
-            const payload = (await response.json()) as { error?: string };
-            if (payload.error) {
-              message = payload.error;
-            }
-          } catch (error) {
-            TelemetryLogger.error(
-              "Failed to parse data list export error response",
-              error,
-              {
-                "http.status_code": response.status,
-                "error.type":
-                  error instanceof Error ? error.name : typeof error,
-              },
-              CSV_EXPORT_LOGGER,
-            );
-          }
-          toast.error(message);
-          return;
-        }
-
-        const blob = await response.blob();
-        const fileName = getFilenameFromContentDisposition(
-          response.headers,
-          fallbackName,
-        );
-        initiateFileDownload(blob, fileName);
-        toast.success(successMessage);
-      } catch {
-        toast.error(errorMessage);
-      }
-    });
-  };
-
-  const handleDownloadCsv = (): void => {
-    downloadExport("csv");
+    startDownloadTransition(() =>
+      downloadDataListExport(dataListId, EXPORT_COPY[format]),
+    );
   };
 
   const availableLocales = details.availableLocales ?? [];
@@ -306,23 +309,13 @@ export function DataListDetailsPage({
               Edit
             </Button>
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" disabled={isDownloadPending}>
-                  <Download className="h-4 w-4" />
-                  Download
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={handleDownloadCsv}>
-                  Download CSV
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleDownloadJson}>
-                  Download JSON
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <DownloadMenu
+              pending={isDownloadPending}
+              formats={[
+                { kind: "csv", onSelect: () => downloadExport("csv") },
+                { kind: "json", onSelect: () => downloadExport("json") },
+              ]}
+            />
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

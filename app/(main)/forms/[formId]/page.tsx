@@ -1,69 +1,33 @@
-import { Form } from "@/types";
-import FormDetails from "@/features/forms/ui/form-details";
-import { NotFoundComponent } from "@/components/error-handling/not-found";
-import { HubPageLoadError } from "@/components/error-handling/error-page";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
-import { formAnalyticsFlag } from "@/lib/feature-flags";
-import { getFormsHeaderDataCached } from "@/features/folders/view-forms-header";
-import { resolveFormFolderLink } from "@/features/forms/ui/resolve-form-folder-link";
-import { EndatixApi } from "@/lib/endatix-api";
-import { Result, toResult } from "@/lib/result";
+import { FormWorkspaceHeader } from "@/features/forms/form-workspace";
+import { loadWorkspaceForm } from "@/features/forms/form-workspace/load-workspace-form.server";
+import { FormLoadError } from "@/features/forms/form-workspace/ui/form-load-error";
+import { FormSummaryCards } from "@/features/forms/form-workspace/ui/form-summary-cards";
+import { Result } from "@/lib/result";
+import type { Form } from "@/types";
 
-type Params = {
-  params: Promise<{ formId: string }>;
-};
+type Params = { params: Promise<{ formId: string }> };
 
-function formNotFound() {
-  return (
-    <NotFoundComponent
-      notFoundTitle="Form not found"
-      notFoundSubtitle="We couldn't find that form."
-      notFoundMessage="It may have been deleted, or the ID in the URL is wrong."
-    >
-      <Button asChild>
-        <Link href="/forms">Back to forms</Link>
-      </Button>
-    </NotFoundComponent>
-  );
-}
-
-export default async function FormOverviewPage({ params }: Params) {
-  const session = await auth();
-  const { requireHubAccess } = await authorization(session);
+/** A form's home: its facts at a glance. Its settings are edited on the Settings page. */
+export default async function FormOverviewPage({ params }: Readonly<Params>) {
+  const { requireHubAccess } = await authorization();
   await requireHubAccess();
 
   const { formId } = await params;
-  const enableAnalytics = await formAnalyticsFlag();
-  const headerData = await getFormsHeaderDataCached(session?.accessToken);
+  const form = await loadWorkspaceForm(formId, "overview");
+  if (Result.isError(form)) return <FormLoadError result={form} />;
 
-  const api = new EndatixApi(session?.accessToken);
-  const formResult = toResult(await api.forms.get(formId), {
-    fallbackMessage: "Failed to load form.",
-    logMessage: "Failed to load form overview.",
-    loggerName: "forms.overview",
-  });
+  return <FormOverview form={form.value} />;
+}
 
-  if (Result.isError(formResult)) {
-    if (formResult.statusCode === 404) {
-      return formNotFound();
-    }
-
-    return <HubPageLoadError result={formResult} />;
-  }
-
-  const form: Form = formResult.value;
-
+function FormOverview({ form }: Readonly<{ form: Form }>) {
   return (
-    <FormDetails
-      form={form}
-      mode="page"
-      showHeader={true}
-      enableEditing={true}
-      enableAnalytics={enableAnalytics}
-      folderLink={resolveFormFolderLink(form, headerData.folders ?? [])}
-    />
+    <div className="container py-6">
+      <FormWorkspaceHeader
+        title={form.name}
+        description={form.description}
+      />
+      <FormSummaryCards form={form} className="[--grid-card-min:260px]" />
+    </div>
   );
 }
