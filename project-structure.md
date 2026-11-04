@@ -211,7 +211,9 @@ Use `__tests__/` folders for test organization:
 
 - **Slice level (default)**: `features/{name}/{verb-noun}/__tests__/` - Test slice behavior close to implementation
 - **Feature level (optional)**: `features/{name}/__tests__/` - Cross-slice integration and shared feature helpers
-- **Component level**: Place `.test.tsx` files alongside components when testing specific UI behavior
+- **Component level**: `.test.tsx` files go in a `__tests__/` folder next to the component
+- **Routes and repo-wide checks**: the root `__tests__/` (`__tests__/app/`, `__tests__/pages/`, …)
+- **Mocks and assertions**: `hub/AGENTS.md` Tests (mocks reset automatically; mock at the boundary)
 - **Focus on slices**: Test actions, loaders, hooks, and UI inside the slice where they live
 - **Environment**: `.test.ts` runs in node, `.test.tsx` in jsdom; a `.ts` test opts into the DOM with `// @vitest-environment jsdom`. Full rule: `hub/AGENTS.md` Tests.
 - **AAA regions**: `// Arrange` / `// Act` / `// Assert` (or `// Act & Assert` when there is no setup). Skip only when the `it` is a one-liner with no distinct phases. Full rule: `hub/AGENTS.md` Tests and `.cursor/rules/endatix-hub-rules.mdc`.
