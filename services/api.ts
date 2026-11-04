@@ -475,36 +475,40 @@ export interface CustomQuestion {
   modifiedAt: string | null;
 }
 
+interface CustomQuestionsPage {
+  items?: CustomQuestion[];
+  totalPages?: number;
+}
+
+/**
+ * Page 1 reports the page count; the remaining pages are independent, so they
+ * are fetched together and joined in page order.
+ */
 export const getCustomQuestions = async (): Promise<CustomQuestion[]> => {
   const session = await getSession();
   const headers = new HeaderBuilder().withAuth(session).build();
-  const questions: CustomQuestion[] = [];
-  let page = 1;
-  let totalPages = 1;
-
-  while (page <= totalPages) {
-    const response = await apiFetch(
-      `${requireApiUrl()}/questions?page=${page}&pageSize=100`,
-      {
-        headers: headers,
-      },
-    );
-
-    if (!response.ok) {
-      throw new Error("Failed to fetch custom questions");
-    }
-
-    const payload: {
-      items?: CustomQuestion[];
-      totalPages?: number;
-    } = await response.json();
-    questions.push(...(payload.items ?? []));
-    totalPages = payload.totalPages ?? 1;
-    page += 1;
-  }
-
-  return questions;
+  const first = await fetchCustomQuestionsPage(headers, 1);
+  const remaining = Array.from(
+    { length: Math.max((first.totalPages ?? 1) - 1, 0) },
+    (_, index) => fetchCustomQuestionsPage(headers, index + 2),
+  );
+  const pages = [first, ...(await Promise.all(remaining))];
+  return pages.flatMap((page) => page.items ?? []);
 };
+
+async function fetchCustomQuestionsPage(
+  headers: HeadersInit,
+  page: number,
+): Promise<CustomQuestionsPage> {
+  const response = await apiFetch(
+    `${requireApiUrl()}/questions?page=${page}&pageSize=100`,
+    { headers },
+  );
+  if (!response.ok) {
+    throw new Error("Failed to fetch custom questions");
+  }
+  return response.json();
+}
 
 export interface CreateCustomQuestionRequest {
   name: string;
