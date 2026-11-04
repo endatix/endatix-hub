@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { useSurveyEmbedBehavior } from "../use-survey-embed-behavior";
 import { SurveyModel } from "survey-core";
@@ -8,24 +8,13 @@ const mockPostMessage = vi.fn();
 const originalWindow = globalThis.window;
 
 beforeEach(() => {
-  Object.defineProperty(globalThis, "window", {
-    value: {
+  vi.stubGlobal("window", {
+    ...originalWindow,
+    parent: {
       ...originalWindow,
-      parent: {
-        ...originalWindow,
-        location: { origin: "https://example.com" },
-      },
+      location: { origin: "https://example.com" },
+      postMessage: mockPostMessage,
     },
-    writable: true,
-  });
-
-  globalThis.window.parent.postMessage = mockPostMessage;
-});
-
-afterEach(() => {
-  Object.defineProperty(globalThis, "window", {
-    value: originalWindow,
-    writable: true,
   });
 });
 
@@ -63,23 +52,16 @@ describe("useSurveyEmbedBehavior", () => {
 
   describe("when embedded", () => {
     beforeEach(() => {
-      Object.defineProperty(globalThis, "window", {
-        value: {
-          ...originalWindow,
-          parent: {
-            postMessage: mockPostMessage,
-          },
-          location: { origin: "https://endatix.com" },
+      vi.stubGlobal("window", {
+        ...originalWindow,
+        parent: {
+          postMessage: mockPostMessage,
         },
-        writable: true,
-      });
-      Object.defineProperty(globalThis.window, "location", {
-        value: {
+        location: {
           origin: "https://endatix.com",
           search:
             "?parentOrigin=https%3A%2F%2Fembedder.example&embedId=embed-123",
         },
-        writable: true,
       });
     });
 
@@ -135,10 +117,7 @@ describe("useSurveyEmbedBehavior", () => {
       };
       mockWin.parent = mockWin;
 
-      Object.defineProperty(globalThis, "window", {
-        value: mockWin,
-        writable: true,
-      });
+      vi.stubGlobal("window", mockWin);
 
       const { result } = renderHook(() =>
         useSurveyEmbedBehavior({ isEmbed: true, formId: "123" }),

@@ -26,7 +26,7 @@ describe("DownloadSubmissionFileButton", () => {
 
   beforeEach(() => {
     fetchMock = vi.fn();
-    global.fetch = fetchMock as typeof fetch;
+    vi.stubGlobal("fetch", fetchMock);
     initiateFileDownloadMock = vi.mocked(filesDownload.initiateFileDownload);
   });
 

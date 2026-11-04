@@ -14,7 +14,6 @@ import {
 
 const personalizationFlag = vi.fn();
 
-vi.mock("server-only", () => ({}));
 vi.mock("@/lib/feature-flags", () => ({
   personalizationFlag: () => personalizationFlag(),
 }));

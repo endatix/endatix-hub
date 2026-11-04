@@ -21,6 +21,7 @@ import {
   startAudienceImportAction,
 } from "../audience-import.action";
 import { ImportCsvPanel } from "../ui/import-csv-panel";
+import { stubResizeObserver } from "@/test/stubs/resize-observer";
 
 /**
  * Shared by the Import CSV panel tests. Each test file mocks `../audience-import.action`, `next/navigation`
@@ -165,17 +166,10 @@ export function setHidden(hidden: boolean) {
   document.dispatchEvent(new Event("visibilitychange"));
 }
 
-// Radix Checkbox measures with ResizeObserver.
-class ResizeObserverStub {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-}
-
 /** Fake timers (polling), no unfinished import, every action reset. */
 export function resetPanelMocks() {
   vi.useFakeTimers({ shouldAdvanceTime: true });
-  vi.stubGlobal("ResizeObserver", ResizeObserverStub);
+  stubResizeObserver();
   vi.mocked(startAudienceImportAction).mockReset();
   vi.mocked(sendAudienceImportChunkAction).mockReset();
   vi.mocked(moveAudienceImportAction).mockReset();

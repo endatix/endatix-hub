@@ -19,8 +19,9 @@ vi.mock("next/navigation", () => ({
   redirect: vi.fn(),
 }));
 
-// Mock fetch for the API call
-global.fetch = vi.fn();
+beforeEach(() => {
+  vi.stubGlobal("fetch", vi.fn());
+});
 
 describe.skip("Home Page", () => {
   beforeEach(() => {
@@ -37,7 +38,7 @@ describe.skip("Home Page", () => {
         name: "Test User",
       },
     };
-    
+
     vi.mocked(fetch).mockResolvedValue({
       ok: true,
       status: 200,
@@ -57,11 +58,11 @@ describe.skip("Home Page", () => {
   it("should redirect to /forms in production", async () => {
     // Set NODE_ENV to production
     process.env.NODE_ENV = "production";
-    
+
     const { redirect } = await import("next/navigation");
     const { default: HomePage } = await import("@/app/(main)/page");
     await HomePage();
-    
+
     expect(redirect).toHaveBeenCalledWith("/forms");
   });
 
@@ -73,11 +74,13 @@ describe.skip("Home Page", () => {
     const result = await HomePage();
     expect(result).toBeDefined();
     expect(result).toMatchSnapshot();
-    
+
     // Verify that the user info section is not rendered when there's an error
     // Since userInfo will be null, the user info debug section should not appear
     const userInfoSection = result.props.children.find(
-      (child: any) => child?.props?.children?.[0]?.props?.children === "User Info Claims (Debug)"
+      (child: any) =>
+        child?.props?.children?.[0]?.props?.children ===
+        "User Info Claims (Debug)",
     );
     expect(userInfoSection).toBeUndefined();
   });

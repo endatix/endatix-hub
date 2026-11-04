@@ -1,18 +1,12 @@
 import { render, screen, within } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import {
   AudienceDataType,
   AudienceIdentifierKind,
   type AudienceProperty,
 } from "@/lib/endatix-api/audience/types";
 import { PropertiesTable } from "../ui/properties-table";
-
-// Radix tooltips (the variable name's copy affordance) measure with ResizeObserver.
-class ResizeObserverStub {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-}
+import { stubResizeObserver } from "@/test/stubs/resize-observer";
 
 const named = (variableName: string): AudienceProperty => ({
   id: variableName,
@@ -26,7 +20,7 @@ const named = (variableName: string): AudienceProperty => ({
 
 describe("PropertiesTable", () => {
   beforeEach(() => {
-    vi.stubGlobal("ResizeObserver", ResizeObserverStub);
+    stubResizeObserver();
   });
 
   it("pins the property named like the match key first and says why People hides it", () => {
@@ -65,7 +59,7 @@ describe("PropertiesTable", () => {
 
 describe("PropertiesTable coverage", () => {
   beforeEach(() => {
-    vi.stubGlobal("ResizeObserver", ResizeObserverStub);
+    stubResizeObserver();
   });
 
   const verdicts = {

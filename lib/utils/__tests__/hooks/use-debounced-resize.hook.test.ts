@@ -10,14 +10,8 @@ describe("useDebouncedResize", () => {
   beforeEach(() => {
     vi.useFakeTimers();
 
-    Object.defineProperty(window, "addEventListener", {
-      value: mockAddEventListener,
-      writable: true,
-    });
-    Object.defineProperty(window, "removeEventListener", {
-      value: mockRemoveEventListener,
-      writable: true,
-    });
+    vi.stubGlobal("addEventListener", mockAddEventListener);
+    vi.stubGlobal("removeEventListener", mockRemoveEventListener);
   });
 
   afterEach(() => {

@@ -34,11 +34,7 @@ describe("PostHog Client", () => {
   beforeEach(() => {
     vi.resetModules();
     vi.mocked(posthog).__loaded = false;
-
-    if (typeof window === "undefined") {
-      // @ts-expect-error: simulating window
-      global.window = {};
-    }
+    vi.stubGlobal("window", {});
   });
 
   afterEach(() => {
@@ -159,9 +155,7 @@ describe("PostHog Client", () => {
 
     it("should not initialize when in a non-browser environment", () => {
       // Arrange
-      const originalWindow = global.window;
-      // @ts-expect-error: simulating non-browser
-      delete global.window;
+      vi.stubGlobal("window", undefined);
 
       // Act
       const result = initPostHog(mockConfig, mockOptions);
@@ -169,9 +163,6 @@ describe("PostHog Client", () => {
       // Assert
       expect(result).toBe(false);
       expect(posthog.init).not.toHaveBeenCalled();
-
-      // Cleanup
-      global.window = originalWindow;
     });
 
     it("should not reinitialize when already initialized", () => {
@@ -240,9 +231,7 @@ describe("PostHog Client", () => {
 
     it("should return false in non-browser environment", () => {
       // Arrange
-      const originalWindow = global.window;
-      // @ts-expect-error: simulating non-browser
-      delete global.window;
+      vi.stubGlobal("window", undefined);
 
       // Act
       const result = ensureReady(mockConfig);
@@ -250,9 +239,6 @@ describe("PostHog Client", () => {
       // Assert
       expect(result).toBe(false);
       expect(posthog.init).not.toHaveBeenCalled();
-
-      // Cleanup
-      global.window = originalWindow;
     });
 
     it("should include operation context in warning message", () => {
@@ -264,7 +250,7 @@ describe("PostHog Client", () => {
 
       // Assert
       expect(consoleWarnSpy).toHaveBeenCalledWith(
-        "[PostHog] Can't check feature \"test-feature\": No configuration provided",
+        '[PostHog] Can\'t check feature "test-feature": No configuration provided',
       );
     });
   });

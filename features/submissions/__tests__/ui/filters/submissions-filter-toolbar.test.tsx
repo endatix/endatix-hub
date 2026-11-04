@@ -1,16 +1,10 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { SubmissionsFilterToolbar } from "../../../ui/filters/submissions-filter-toolbar";
+import { stubResizeObserver } from "@/test/stubs/resize-observer";
 
 beforeEach(() => {
-  vi.stubGlobal(
-    "ResizeObserver",
-    class {
-      observe() {}
-      unobserve() {}
-      disconnect() {}
-    },
-  );
+  stubResizeObserver();
 });
 Element.prototype.scrollIntoView = vi.fn();
 
