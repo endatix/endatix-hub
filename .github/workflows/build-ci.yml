@@ -32,30 +32,68 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
-# Elevated permissions live on the pipeline job only — the test job is read-only.
+# Elevated permissions live on the coverage and pipeline jobs only; the rest are read-only.
 permissions:
   contents: read
 
 jobs:
-  node-build:
-    name: "Endatix Hub: Build & Test"
+  # The suite runs in parallel shards. Each writes a blob report with its coverage;
+  # the coverage job merges them (vitest --merge-reports) into one report.
+  test:
+    name: "Test (shard ${{ matrix.shard }}/${{ strategy.job-total }})"
     runs-on: ubuntu-latest
-    # Production + id-token: the SonarCloud token comes from Infisical over OIDC,
-    # as in endatix-relay and the shared canary workflow (same identity).
-    environment:
-      name: Production
-    permissions:
-      contents: read
-      id-token: write # OIDC for Infisical, not repo write
-    defaults:
-      run:
-        working-directory: "."
-
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     steps:
       - name: 🔍 Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          fetch-depth: 0 # Sonar needs history for new-code and blame
+          persist-credentials: false
+
+      - name: 🧰 Setup Node & pnpm and install dependencies
+        uses: ./.github/actions/setup-node-pnpm
+
+      # dot + github-actions keep failures readable in this log and annotated on the PR;
+      # blob carries the results and coverage to the coverage job.
+      - name: 🧪 Run tests
+        run: >-
+          pnpm vitest run --coverage
+          --shard=${{ matrix.shard }}/${{ strategy.job-total }}
+          --reporter=dot --reporter=github-actions --reporter=blob
+
+      - name: 📤 Upload blob report
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: vitest-blob-${{ matrix.shard }}
+          path: .vitest/blob/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 1
+
+  lint:
+    name: "Lint"
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🔍 Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: 🧰 Setup Node & pnpm and install dependencies
+        uses: ./.github/actions/setup-node-pnpm
+
+      - name: 🕵️‍♂️ Lint
+        run: pnpm lint
+
+  build:
+    name: "Build"
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🔍 Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
           persist-credentials: false
 
       - name: 🧰 Setup Node & pnpm and install dependencies
@@ -69,12 +107,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-nextjs-${{ hashFiles('pnpm-lock.yaml') }}-
 
-      - name: 🧪 Run tests
-        run: pnpm test:coverage
-
-      - name: 🕵️‍♂️ Lint
-        run: pnpm lint
-
       - name: 🏗️  Build Next.js app
         run: pnpm build
 
@@ -83,6 +115,39 @@ jobs:
 
       - name: 🔗 Check standalone runs with symlinks dereferenced
         run: pnpm check:dereferenced-standalone
+
+  coverage:
+    name: "Coverage & SonarCloud"
+    needs: [test]
+    runs-on: ubuntu-latest
+    # Production + id-token: the SonarCloud token comes from Infisical over OIDC,
+    # as in endatix-relay and the shared canary workflow (same identity).
+    environment:
+      name: Production
+    permissions:
+      contents: read
+      id-token: write # OIDC for Infisical, not repo write
+    steps:
+      - name: 🔍 Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # Sonar needs history for new-code and blame
+          persist-credentials: false
+
+      - name: 🧰 Setup Node & pnpm and install dependencies
+        uses: ./.github/actions/setup-node-pnpm
+
+      - name: 📥 Download blob reports
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: vitest-blob-*
+          path: .vitest/blob
+          merge-multiple: true
+
+      # Writes .coverage/endatix-hub (cobertura, json, json-summary, lcov), the paths below
+      # and sonar-project.properties read.
+      - name: 🧮 Merge test reports and coverage
+        run: pnpm vitest run --merge-reports --coverage
 
       - name: 📊 Upload Coverage Report to Coveralls
         uses: coverallsapp/github-action@8d6379e14d29928660c4ba802d8e85393440b329 # v2.3.8
@@ -98,8 +163,8 @@ jobs:
           json-summary-path: ".coverage/endatix-hub/coverage-summary.json"
           json-final-path: ".coverage/endatix-hub/coverage-final.json"
 
-      # Fetched only now, after install, tests and build, so no dependency script or
-      # build step sees the Infisical secrets. As in endatix-relay: `prod` on main,
+      # Fetched only now, after install and the coverage merge, so no dependency script
+      # or test sees the Infisical secrets. As in endatix-relay: `prod` on main,
       # `dev` everywhere else, so PR code never reaches release secrets.
       # Fork and Dependabot PRs get no OIDC secrets: they skip the scan, with a notice.
       - name: 🔐 Fetch secrets (Infisical, OIDC)
@@ -157,6 +222,22 @@ jobs:
         env:
           SONAR_TOKEN: ${{ env.ENDATIX_HUB_REPO_SONAR_TOKEN }}
           SONAR_ADVISORY_METRICS: ${{ github.event_name == 'pull_request' && 'new_duplicated_lines_density' || '*' }}
+
+
+  # One check under the job name the single serial job had, so anything that keys on
+  # "Endatix Hub: Build & Test" still sees one result. Fails unless every job passed.
+  node-build:
+    name: "Endatix Hub: Build & Test"
+    needs: [test, lint, build, coverage]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: ✅ All jobs passed
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "Results: $RESULTS"
+          for r in $RESULTS; do [ "$r" = success ] || exit 1; done
 
   # Build validation on PRs; canary release on main — publishes only after the
   # tests above pass. docker-image makes the shared workflow log into GHCR and
