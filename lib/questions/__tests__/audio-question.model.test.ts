@@ -264,8 +264,6 @@ describe("AudioQuestionModel", () => {
     });
 
     it("should not stop recording if not currently recording", async () => {
-      mockProcessor.disconnect = vi.fn();
-
       await audioQuestion.stopRecording();
 
       expect(mockProcessor.disconnect).not.toHaveBeenCalled();

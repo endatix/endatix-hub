@@ -211,7 +211,7 @@ Use `__tests__/` folders for test organization:
 
 - **Slice level (default)**: `features/{name}/{verb-noun}/__tests__/` - Test slice behavior close to implementation
 - **Feature level (optional)**: `features/{name}/__tests__/` - Cross-slice integration and shared feature helpers
-- **Component level**: `.test.tsx` files go in a `__tests__/` folder next to the component
+- **Component level**: `.test.tsx` files go in a `__tests__/` folder next to the component (a few older tests still sit beside their code)
 - **Routes and repo-wide checks**: the root `__tests__/` (`__tests__/app/`, `__tests__/pages/`, …)
 - **Mocks and assertions**: `hub/AGENTS.md` Tests (mocks reset automatically; mock at the boundary)
 - **Focus on slices**: Test actions, loaders, hooks, and UI inside the slice where they live

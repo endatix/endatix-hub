@@ -125,7 +125,9 @@ describe("registerCompleteTriggerNavigationProperty", () => {
 
     // Assert
     expect(offJson[EDX_CHANGE_NAVIGATION_ON_COMPLETE_PROPERTY]).toBe(false);
-    expect(onJson[EDX_CHANGE_NAVIGATION_ON_COMPLETE_PROPERTY]).toBeUndefined();
+    expect(
+      onJson[EDX_CHANGE_NAVIGATION_ON_COMPLETE_PROPERTY],
+    ).toBeUndefined();
     expect(
       explicitTrueJson[EDX_CHANGE_NAVIGATION_ON_COMPLETE_PROPERTY],
     ).toBeUndefined();

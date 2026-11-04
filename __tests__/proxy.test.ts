@@ -224,9 +224,8 @@ describe("proxy", () => {
   });
 
   describe("maintenance mode", () => {
-    beforeEach(async () => {
+    beforeEach(() => {
       vi.stubEnv("MAINTENANCE_MODE", "true");
-      await import("@/auth");
     });
 
     it("should rewrite with 503 and not call auth", async () => {
