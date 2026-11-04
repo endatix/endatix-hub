@@ -1,13 +1,9 @@
 import { Model } from 'survey-core';
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { REGEX_MATCH_FUNCTION_NAME } from '../types';
 import { registerRegexMatchGlobals } from '../infrastructure/registry';
 
 describe('registerRegexMatchGlobals', () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
   it('registers once when invoked repeatedly', async () => {
     // Arrange
     vi.resetModules();

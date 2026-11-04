@@ -27,7 +27,6 @@ describe("getCustomQuestions", () => {
   });
 
   afterEach(() => {
-    vi.unstubAllEnvs();
     vi.unstubAllGlobals();
   });
 

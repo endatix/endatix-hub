@@ -1,4 +1,11 @@
-import { describe, it, expect, vi, beforeEach, afterAll } from "vitest";
+import {
+  describe,
+  it,
+  expect,
+  vi,
+  beforeEach,
+  type MockInstance,
+} from "vitest";
 import { getRequiredExtensionIds } from "../analyzer";
 import type { ExtensionDefinition } from "../../types";
 import type { FormAnalyzer } from "../../extension-utils";
@@ -16,14 +23,10 @@ function createExtension(
 }
 
 describe("getRequiredExtensionIds", () => {
-  const consoleErrorSpy = vi.spyOn(console, "error");
+  let consoleErrorSpy: MockInstance<typeof console.error>;
 
   beforeEach(() => {
-    consoleErrorSpy.mockImplementation(() => {});
-  });
-
-  afterAll(() => {
-    consoleErrorSpy.mockRestore();
+    consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
   });
 
   it("returns empty array when formDefinition is null", () => {

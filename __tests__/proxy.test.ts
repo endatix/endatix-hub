@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextProxy, NextRequest, NextResponse } from "next/server";
 import {
   SIGNIN_PATH,
@@ -24,10 +24,6 @@ async function getProxy(): Promise<ProxyHandler> {
 }
 
 describe("proxy", () => {
-  beforeEach(async () => {
-    vi.unstubAllEnvs();
-  });
-
   describe("auth routes", () => {
     it("should allow /signin without session", async () => {
       const { auth } = await import("@/auth");
@@ -231,10 +227,6 @@ describe("proxy", () => {
     beforeEach(async () => {
       vi.stubEnv("MAINTENANCE_MODE", "true");
       await import("@/auth");
-    });
-
-    afterEach(() => {
-      vi.unstubAllEnvs();
     });
 
     it("should rewrite with 503 and not call auth", async () => {

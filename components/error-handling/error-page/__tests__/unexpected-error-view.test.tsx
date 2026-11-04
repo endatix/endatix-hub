@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { UnexpectedErrorView } from "../unexpected-error-view";
 
 const trackException = vi.fn();
@@ -22,10 +22,6 @@ Object.assign(navigator, {
 });
 
 describe("UnexpectedErrorView", () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
   it("shows Next.js digest and reports it to telemetry", () => {
     // Arrange
     const error = Object.assign(

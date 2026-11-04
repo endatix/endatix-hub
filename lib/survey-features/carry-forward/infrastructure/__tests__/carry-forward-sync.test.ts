@@ -14,7 +14,6 @@ import type { AdvancedCarryForwardQuestion } from "../../types";
 
 describe("loadCarryForwardTargets", () => {
   beforeEach(() => {
-    vi.restoreAllMocks();
     registerAdvancedCarryForwardGlobals();
     resetCarryForwardUpdateGuardForTests();
   });
@@ -103,7 +102,6 @@ describe("loadCarryForwardTargets", () => {
 
 describe("bindAdvancedCarryForwardToSurvey property changes", () => {
   beforeEach(() => {
-    vi.restoreAllMocks();
     registerAdvancedCarryForwardGlobals();
     clearAdvancedCarryForwardBindingsForTests();
     resetCarryForwardUpdateGuardForTests();

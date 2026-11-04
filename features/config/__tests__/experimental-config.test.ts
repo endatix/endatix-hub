@@ -15,7 +15,6 @@ describe("experimental-config", () => {
 
   afterEach(() => {
     process.env = originalEnv;
-    vi.unstubAllEnvs();
   });
 
   describe("getExperimentalConfig", () => {

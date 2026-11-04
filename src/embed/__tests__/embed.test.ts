@@ -1,9 +1,5 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { parseUrl, parseNumericId, parseHeightMode } from "../embed";
-
-afterEach(() => {
-  vi.restoreAllMocks();
-});
 
 describe("parseUrl", () => {
   it("returns null for empty string", () => {

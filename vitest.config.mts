@@ -16,6 +16,8 @@ export default defineConfig({
   },
   test: {
     globals: true,
+    restoreMocks: true,
+    unstubEnvs: true,
     // SurveyJS Creator and renderer tests can pass 5 s on a cold cache with coverage on.
     testTimeout: 15_000,
     server: {

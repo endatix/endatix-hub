@@ -14,7 +14,6 @@ describe("KeycloakAuthProvider", () => {
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
     delete process.env.AUTH_KEYCLOAK_ISSUER;
     delete process.env.AUTH_KEYCLOAK_CLIENT_ID;
   });

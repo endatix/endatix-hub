@@ -17,7 +17,6 @@ vi.mock("@/features/telemetry", () => ({
 
 describe("server action state helpers", () => {
   afterEach(() => {
-    vi.restoreAllMocks();
     telemetryLoggerMock.error.mockClear();
   });
 

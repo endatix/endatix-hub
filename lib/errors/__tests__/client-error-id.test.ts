@@ -5,7 +5,6 @@ const MINTED = "0b0e3d64-0c3f-4b9a-9f39-5c1c8e8c2b11";
 
 describe("withClientErrorId", () => {
   afterEach(() => {
-    vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
 

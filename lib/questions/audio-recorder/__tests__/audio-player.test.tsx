@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { AudioPlayer } from "../audio-player";
 
 vi.mock("@/features/asset-storage/client", () => ({
@@ -24,10 +24,6 @@ async function clickPlay() {
 }
 
 describe("AudioPlayer", () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
   it("goes back to Play when the browser refuses to play", async () => {
     vi.spyOn(HTMLMediaElement.prototype, "play").mockRejectedValue(
       new DOMException("Autoplay blocked", "NotAllowedError"),

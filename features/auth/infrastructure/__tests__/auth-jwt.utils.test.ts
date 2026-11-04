@@ -34,7 +34,6 @@ describe("getAuthJwtFromRequest", () => {
   });
 
   afterEach(() => {
-    vi.unstubAllEnvs();
     delete process.env.AUTH_SECRET;
   });
 

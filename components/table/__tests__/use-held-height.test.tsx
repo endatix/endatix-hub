@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useHeldHeight } from "../use-held-height";
 
 let height = 0;
@@ -8,10 +8,6 @@ beforeEach(() => {
   vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(
     () => ({ height }) as DOMRect,
   );
-});
-
-afterEach(() => {
-  vi.restoreAllMocks();
 });
 
 function Region({ isPending }: Readonly<{ isPending: boolean }>) {

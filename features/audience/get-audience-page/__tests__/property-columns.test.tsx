@@ -114,7 +114,6 @@ describe("Participants list Property columns", () => {
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
 
