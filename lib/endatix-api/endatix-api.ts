@@ -1,5 +1,6 @@
 import { requireApiUrl } from "@/features/config/api-config";
 import { HeaderBuilder } from "@/lib/endatix-api/shared/header-builder";
+import { readVisitorIp, setVisitorIp } from "@/lib/hosting/client-ip";
 import { ApiResult, ApiErrorDetails } from "./shared/api-result";
 import { describeFetchFailure } from "./shared/describe-fetch-failure";
 import { ERROR_CODE } from "./shared/error-codes";
@@ -309,6 +310,7 @@ export class EndatixApi {
     options: RequestOptions = {},
   ): Promise<ApiResult<T>> {
     const method = options.method || "GET";
+    const visitorIp = await readVisitorIp();
 
     try {
       const requestInitResult = this.initializeRequest(
@@ -323,7 +325,7 @@ export class EndatixApi {
         return requestInitResult;
       }
 
-      const requestInit = requestInitResult.data;
+      const requestInit = setVisitorIp(requestInitResult.data, visitorIp);
       const url = `${this.baseUrl}${endpoint}`;
 
       const response = await fetch(url, requestInit);
@@ -344,6 +346,7 @@ export class EndatixApi {
     options: RequestOptions = {},
   ): Promise<ApiResult<Response>> {
     const method = options.method || "GET";
+    const visitorIp = await readVisitorIp();
 
     try {
       const requestInitResult = this.initializeRequest(endpoint, options);
@@ -352,7 +355,7 @@ export class EndatixApi {
         return requestInitResult;
       }
 
-      const requestInit = requestInitResult.data;
+      const requestInit = setVisitorIp(requestInitResult.data, visitorIp);
       const url = `${this.baseUrl}${endpoint}`;
       const response = await fetch(url, requestInit);
 

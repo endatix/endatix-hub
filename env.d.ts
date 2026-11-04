@@ -15,6 +15,8 @@ declare namespace NodeJS {
     ENDATIX_BASE_URL?: string;
     ENDATIX_API_URL?: string;
     ENDATIX_API_PREFIX?: string;
+    /** Comma-separated proxy IPs/CIDRs whose X-Forwarded-For Hub trusts. */
+    ENDATIX_TRUSTED_PROXIES?: string;
     AI_API_BASE_URL?: string;
 
     // Experimental features
