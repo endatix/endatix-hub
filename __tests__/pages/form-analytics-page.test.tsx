@@ -39,7 +39,6 @@ describe("Form Analytics Page", () => {
   const requireHubAccess = vi.fn().mockResolvedValue(undefined);
 
   beforeEach(async () => {
-    vi.clearAllMocks();
     const { auth } = await import("@/auth");
     const { authorization } = await import("@/features/auth/authorization");
     vi.mocked(auth).mockResolvedValue({

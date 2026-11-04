@@ -20,7 +20,6 @@ const serverErrorResult = AuthorizationResult.error();
 
 describe("authorization-checkers", () => {
   beforeEach(() => {
-    vi.restoreAllMocks();
     vi.spyOn(TelemetryLogger, "error").mockImplementation(() => undefined);
   });
 

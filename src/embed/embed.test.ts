@@ -59,8 +59,6 @@ describe("Endatix embed host script", () => {
 
   afterEach(() => {
     document.body.innerHTML = "";
-    vi.restoreAllMocks();
-    vi.unstubAllGlobals();
     delete (globalThis as { EndatixEmbed?: unknown }).EndatixEmbed;
   });
 

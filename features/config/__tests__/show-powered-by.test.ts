@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   EMPTY_CLIENT_ENDATIX_CONFIG,
   readPublicEndatixEnv,
@@ -6,10 +6,6 @@ import {
 } from "../client-endatix-config";
 
 describe("showPoweredBy", () => {
-  afterEach(() => {
-    vi.unstubAllEnvs();
-  });
-
   it.each([
     [undefined, true],
     ["", true],

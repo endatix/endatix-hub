@@ -23,7 +23,6 @@ describe("check-environment", () => {
     resetApiConfigCacheForTests();
     resetResolveEndatixSettingsCacheForTests();
     process.env = { ...originalEnv };
-    vi.unstubAllEnvs();
   });
 
   describe("validateEnv", () => {

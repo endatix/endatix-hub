@@ -56,7 +56,6 @@ const createMockCreatorModel = (): SurveyCreatorModel => {
 
 describe("useStorageWithCreator", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     mockRegisterUploadHandlers.mockReturnValue(() => {});
     mockPrefetchPrivateReadUrlsForModel.mockResolvedValue(undefined);
     mockBindStorageOnlyFileModeToCreator.mockReturnValue(vi.fn());

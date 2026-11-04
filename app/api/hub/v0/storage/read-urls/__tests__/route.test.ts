@@ -60,7 +60,6 @@ import { POST } from "../route";
 
 describe("POST /api/hub/v0/storage/read-urls", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     mockAuth.mockResolvedValue({ user: { id: "user-1" } });
     mockCheckAllPermissions.mockResolvedValue(AuthorizationResult.success());
     mockGetClientStorageConfig.mockReturnValue({

@@ -32,7 +32,6 @@ beforeEach(() => {
     },
     writable: true,
   });
-  vi.clearAllMocks();
   // URLSearchParams.forEach + delete can skip keys; drain via keys() snapshot.
   [...mockSearchParams.keys()].forEach((key) => mockSearchParams.delete(key));
 });
@@ -47,7 +46,6 @@ describe("useSearchParamsVariables", () => {
     model.getVariableNames().forEach((name) => {
       model.setVariable(name, undefined);
     });
-    vi.clearAllMocks();
   });
 
   describe("processSearchParams", () => {

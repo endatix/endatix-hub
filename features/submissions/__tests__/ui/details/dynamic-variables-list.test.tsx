@@ -18,7 +18,6 @@ describe("DynamicVariablesListComponent", () => {
 
   beforeEach(() => {
     model = new SurveyModel();
-    vi.clearAllMocks();
   });
 
   describe("Empty state", () => {

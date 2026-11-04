@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   ClientIpHeaders,
   readVisitorIp,
@@ -26,10 +26,6 @@ function headersThrow(error: Error): void {
 describe("visitorIpHeaders", () => {
   beforeEach(() => {
     vi.stubEnv(ClientIpEnv.TRUSTED_PROXIES, "");
-  });
-
-  afterEach(() => {
-    vi.unstubAllEnvs();
   });
 
   it("is the one visitor address as X-Forwarded-For", async () => {
@@ -73,10 +69,6 @@ describe("visitorIpHeaders", () => {
 describe("readVisitorIp when headers() throws", () => {
   beforeEach(() => {
     vi.stubEnv(ClientIpEnv.TRUSTED_PROXIES, "10.0.0.0/8");
-  });
-
-  afterEach(() => {
-    vi.unstubAllEnvs();
   });
 
   it.each([

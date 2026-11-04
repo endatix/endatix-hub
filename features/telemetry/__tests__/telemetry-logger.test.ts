@@ -44,8 +44,6 @@ describe("TelemetryLogger", () => {
 
   afterEach(() => {
     TelemetryRuntime.reset();
-    vi.unstubAllEnvs();
-    vi.restoreAllMocks();
   });
 
   describe("emit", () => {

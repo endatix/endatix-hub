@@ -59,7 +59,6 @@ const validItems: DataListChoiceItem[] = [
 
 describe("replaceDataListItemsAction", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     mockAuth.mockResolvedValue({ accessToken: "token", isLoggedIn: true });
     mockRequireHubAccess.mockResolvedValue(undefined);
     mockGetById.mockResolvedValue(ApiResult.success(details));

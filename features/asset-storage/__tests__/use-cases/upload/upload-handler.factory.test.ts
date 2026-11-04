@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { Result } from "@/lib/result";
 import {
   createUserUpload,
@@ -38,10 +38,6 @@ describe("createUserUpload", () => {
     onSubmissionIdChange: vi.fn(),
     isResizeEnabled: false,
   };
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
 
   it("calls callback with empty data and errors when no files", async () => {
     const callback = vi.fn();
@@ -213,10 +209,6 @@ describe("createContentUpload", () => {
     questionName: "q1",
     isResizeEnabled: false,
   };
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
 
   it("does nothing when files array is empty", async () => {
     const callback = vi.fn();

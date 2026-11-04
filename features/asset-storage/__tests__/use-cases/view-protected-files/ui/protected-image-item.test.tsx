@@ -100,10 +100,6 @@ const pickerCssClasses = {
 };
 
 describe("ProtectedSurveyQuestionImagePicker", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it("uses default Survey item when storage is not private", () => {
     const question = buildImagePickerQuestion();
     const instance = new ProtectedSurveyQuestionImagePicker({ question });
@@ -138,10 +134,6 @@ describe("ProtectedSurveyQuestionImagePicker", () => {
 });
 
 describe("ProtectedImagePickerItem", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it("renders StoragePresignedImage for image choices", () => {
     const question = buildImagePickerQuestion();
     const item = buildPickerItem(question);
@@ -194,7 +186,6 @@ describe("ProtectedImagePickerItem", () => {
 
 describe("ProtectedImageItemValueAdorner", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     document.body.innerHTML = "";
   });
 

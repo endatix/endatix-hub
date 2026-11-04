@@ -19,7 +19,6 @@ vi.mock("posthog-js", () => ({
 
 describe("useIdentify", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     vi.mocked(usePostHog).mockReturnValue({
       identify: mockIdentify,
       reset: mockReset,
@@ -214,7 +213,6 @@ describe("useIdentify", () => {
 
 describe("useSessionIdentity", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     vi.mocked(usePostHog).mockReturnValue({
       identify: mockIdentify,
       reset: mockReset,

@@ -8,12 +8,7 @@ describe("Image Service", () => {
   const mockBuffer = Buffer.from("test");
 
   beforeEach(() => {
-    vi.clearAllMocks();
     vi.resetModules();
-  });
-
-  afterEach(() => {
-    vi.clearAllMocks();
   });
 
   describe("IMAGE_SERVICE_CONFIG", () => {

@@ -70,7 +70,6 @@ const validCsv = "value,default\r\napple,Apple\r\n";
 
 describe("uploadTranslationsCsvAction", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     mockAuth.mockResolvedValue({ accessToken: "token", isLoggedIn: true });
     mockRequireHubAccess.mockResolvedValue(undefined);
     mockGetById.mockResolvedValue(ApiResult.success(details));
@@ -208,7 +207,6 @@ describe("uploadTranslationsCsvAction", () => {
 
 describe("addDataListLocaleAction", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     mockAuth.mockResolvedValue({ accessToken: "token", isLoggedIn: true });
     mockRequireHubAccess.mockResolvedValue(undefined);
   });
@@ -253,7 +251,6 @@ describe("addDataListLocaleAction", () => {
 
 describe("setDataListDefaultLocaleAction", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     mockAuth.mockResolvedValue({ accessToken: "token", isLoggedIn: true });
     mockRequireHubAccess.mockResolvedValue(undefined);
   });

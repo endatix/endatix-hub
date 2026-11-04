@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { toast } from "@/components/ui/toast";
 import { Result, type Error as ResultError } from "@/lib/result";
 import { removeSearchKeyAction } from "@/features/submissions/search-keys.action";
@@ -41,10 +41,6 @@ async function renderSection(load: FilterableQuestionsLoad) {
 }
 
 describe("FilterableQuestionsSection", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it("lists the form's filterable questions once it is ready", async () => {
     // Act
     await renderSection(ready(false));

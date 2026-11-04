@@ -1,4 +1,12 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+  type MockInstance,
+} from "vitest";
 import { storageRegistry } from "../../core";
 import { MissingConfigurationError } from "@/lib/hosting/storage-configuration-errors";
 
@@ -11,18 +19,17 @@ import { registerStorageProviders } from "../register-providers";
 
 describe("registerStorageProviders", () => {
   const originalEnv = { ...process.env };
-  const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+  let warnSpy: MockInstance<typeof console.warn>;
 
   beforeEach(() => {
+    warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     storageRegistry.reset();
-    vi.clearAllMocks();
     process.env = { ...originalEnv };
   });
 
   afterEach(() => {
     process.env = { ...originalEnv };
     storageRegistry.reset();
-    warnSpy.mockClear();
   });
 
   it("throws when STORAGE_PROVIDER=azure but credentials are missing", () => {

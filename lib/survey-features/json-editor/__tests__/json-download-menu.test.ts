@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { act, renderHook } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { Action, SvgRegistry, type ListModel } from "survey-core";
 import {
   SurveyCreatorModel,
@@ -39,10 +39,6 @@ async function savedText(save: ReturnType<typeof vi.fn>): Promise<string> {
 }
 
 describe("addObfuscatedJsonDownload", () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
   it("turns the JSON tab's download button into a menu of two downloads", () => {
     // Act
     const { exportAction, items } = setup();

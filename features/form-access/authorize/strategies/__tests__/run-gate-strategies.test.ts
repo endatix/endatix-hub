@@ -36,7 +36,6 @@ import { runFormStorageGateStrategies } from "../run-gate-strategies";
 
 describe("runFormStorageGateStrategies", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     mockGet.mockResolvedValue(
       ApiResult.authError("Forbidden", "FORBIDDEN", { statusCode: 403 }),
     );

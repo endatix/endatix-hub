@@ -22,7 +22,6 @@ vi.mock("@opentelemetry/api", () => ({
 
 describe("TelemetryTracer", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     mockStartActiveSpan.mockImplementation(
       (_name: string, fn: (span: typeof mockSpan) => unknown) => {
         const result = fn(mockSpan);

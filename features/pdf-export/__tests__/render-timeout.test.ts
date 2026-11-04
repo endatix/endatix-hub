@@ -11,7 +11,6 @@ const TIMEOUT_ENV_VAR = "PDF_RENDER_TIMEOUT_SECONDS";
 const DEFAULT_MS = DEFAULT_RENDER_TIMEOUT_SECONDS * 1000;
 
 afterEach(() => {
-  vi.unstubAllEnvs();
   vi.useRealTimers();
 });
 

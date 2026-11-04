@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, act } from "@testing-library/react";
-import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
+import { vi, describe, it, expect, beforeEach } from "vitest";
 import { ThemeProvider } from "../theme-provider";
 
 const mockSetTheme = vi.fn();
@@ -50,12 +50,7 @@ describe("ThemeProvider", () => {
 
 describe("ThemeHotkey", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     mockResolvedTheme.mockReturnValue("light");
-  });
-
-  afterEach(() => {
-    vi.clearAllMocks();
   });
 
   it("should not toggle theme when meta key is pressed", async () => {

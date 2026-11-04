@@ -47,7 +47,6 @@ const TENANT: PlatformTenant = {
 
 describe("update-tenant actions", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     tenantManagementFlagMock.mockResolvedValue(true);
   });
 

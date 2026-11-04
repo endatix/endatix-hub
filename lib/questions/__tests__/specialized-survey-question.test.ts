@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
+import { describe, expect, it, beforeEach, vi } from "vitest";
 import {
   ComponentCollection,
   ICustomQuestionTypeConfiguration,
@@ -40,16 +40,11 @@ vi.mock("survey-creator-react", () => ({
 
 describe("SpecializedSurveyQuestion", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     (
       ComponentCollection.Instance.getCustomQuestionByName as ReturnType<
         typeof vi.fn
       >
     ).mockReturnValue(null);
-  });
-
-  afterEach(() => {
-    vi.clearAllMocks();
   });
 
   describe("parseJsonSafely", () => {

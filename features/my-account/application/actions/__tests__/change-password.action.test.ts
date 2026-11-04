@@ -75,7 +75,6 @@ describe("changePasswordAction", () => {
   } as unknown as IAuthorizationService;
 
   beforeEach(() => {
-    vi.clearAllMocks();
     mockFormData.delete("currentPassword");
     mockFormData.delete("newPassword");
     mockFormData.delete("confirmPassword");

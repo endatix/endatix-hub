@@ -1,6 +1,6 @@
 import { getEmbedMessagingContext } from "@/features/embed-form/ui/embed-messaging-context";
 import { render } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { EmbedAlreadyRespondedReporter } from "../embed-already-responded-reporter";
 
 vi.mock("@/features/embed-form/ui/embed-messaging-context", () => ({
@@ -8,10 +8,6 @@ vi.mock("@/features/embed-form/ui/embed-messaging-context", () => ({
 }));
 
 describe("EmbedAlreadyRespondedReporter", () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
   it("posts a form-error message for the already responded state", () => {
     // Arrange
     const postMessage = vi.fn();

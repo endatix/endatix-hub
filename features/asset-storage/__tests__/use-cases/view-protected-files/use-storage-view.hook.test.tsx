@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import React, { Suspense } from "react";
 import { useStorageView } from "@/features/asset-storage/client";
@@ -46,10 +46,6 @@ describe("useStorageView", () => {
     }
     return TestWrapper;
   };
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
 
   afterEach(() => {
     vi.useRealTimers();

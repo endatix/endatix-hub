@@ -3,15 +3,7 @@ import {
   getFilenameFromContentDisposition,
   initiateFileDownload,
 } from "@/lib/utils/files-download";
-import {
-  describe,
-  expect,
-  it,
-  beforeEach,
-  afterEach,
-  vi,
-  MockInstance,
-} from "vitest";
+import { describe, expect, it, beforeEach, vi, MockInstance } from "vitest";
 
 describe("getFilenameFromContentDisposition", () => {
   function makeHeaders(headerValue?: string): Headers {
@@ -107,10 +99,6 @@ describe("initiateFileDownload", () => {
           click: clickSpy,
         }) as unknown as HTMLAnchorElement,
     );
-  });
-
-  afterEach(() => {
-    vi.clearAllMocks();
   });
 
   it("does nothing if blob or filename is missing", () => {

@@ -10,7 +10,6 @@ describe("getClientEndatixConfig (server barrel)", () => {
 
   beforeEach(() => {
     process.env = { ...originalEnv };
-    vi.clearAllMocks();
   });
 
   afterEach(() => {

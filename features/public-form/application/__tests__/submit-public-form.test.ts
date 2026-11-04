@@ -1,6 +1,6 @@
 import type { SubmissionData } from "@/features/submissions/types";
 import { ApiResult, ERROR_CODE } from "@/lib/endatix-api";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { submitPublicForm } from "../submit-public-form";
 
 const submissionData: SubmissionData = {
@@ -10,10 +10,6 @@ const submissionData: SubmissionData = {
 };
 
 describe("submitPublicForm", () => {
-  beforeEach(() => {
-    vi.restoreAllMocks();
-  });
-
   it("returns success when the submission response is valid JSON", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(

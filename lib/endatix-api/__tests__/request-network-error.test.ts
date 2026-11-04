@@ -1,18 +1,14 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { EndatixApi } from "../endatix-api";
 import { ApiErrorType, ApiResult, ERROR_CODE } from "../shared/api-result";
 
 const mockFetch = vi.fn();
-vi.stubGlobal("fetch", mockFetch);
 
 describe("EndatixApi network failures", () => {
   beforeEach(() => {
+    vi.stubGlobal("fetch", mockFetch);
     process.env.ENDATIX_API_URL = "https://ci.api.endatix.com/api";
     mockFetch.mockReset();
-  });
-
-  afterEach(() => {
-    vi.clearAllMocks();
   });
 
   it("maps TypeError fetch failed to network_error with cause scalars", async () => {

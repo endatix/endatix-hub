@@ -3,7 +3,9 @@ import { EndatixApi } from "../endatix-api";
 import { ApiResult } from "../shared/api-result";
 
 const mockFetch = vi.fn();
-vi.stubGlobal("fetch", mockFetch);
+beforeEach(() => {
+  vi.stubGlobal("fetch", mockFetch);
+});
 
 describe("Users API", () => {
   beforeEach(() => {

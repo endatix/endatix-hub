@@ -85,7 +85,6 @@ describe("getAuthDataForCurrentUser", () => {
   };
 
   beforeEach(() => {
-    vi.clearAllMocks();
     unstableCacheStore.clear();
   });
 
@@ -367,10 +366,6 @@ describe("getAuthDataForCurrentUser", () => {
 });
 
 describe("invalidateUserAuthorizationCache", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it("should invalidate cache for single userId", async () => {
     const { revalidateTag } = await import("next/cache");
 

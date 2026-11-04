@@ -1,4 +1,4 @@
-import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { Helpers, SurveyModel } from "survey-core";
 import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";
 import { registerDataListGlobals } from "@/lib/survey-features/data-lists/infrastructure/registry";
@@ -32,10 +32,6 @@ beforeAll(() => {
 });
 
 describe("syncSingleCarryForwardTarget", () => {
-  beforeEach(() => {
-    vi.restoreAllMocks();
-  });
-
   it("aggregates and deduplicates choices from multiple sources in All mode", () => {
     // Arrange
     const survey = new SurveyModel({

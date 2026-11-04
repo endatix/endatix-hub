@@ -6,7 +6,7 @@ import {
 import { render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { QuestionSignaturePadModel } from "survey-core";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { clientStorageConfig } from "../../../test-storage-config";
 
 // Mock SurveyQuestionSignaturePad - must be before imports that use it
@@ -103,10 +103,6 @@ describe("ProtectedSignaturePad", () => {
     cssClasses: { backgroundImage: "sd-signaturepad__background" },
     renderedCanvasWidth: 300,
   } as unknown as QuestionSignaturePadModel;
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
 
   describe("when storage is disabled", () => {
     it("should render default background image without enrichment", () => {

@@ -41,7 +41,6 @@ const createMockSurveyModel = (): SurveyModel => {
 
 describe("useSurveyStorage", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     mockRegisterUploadHandlers.mockReturnValue(() => {});
     mockPrefetchPrivateReadUrlsForModel.mockResolvedValue(undefined);
   });

@@ -64,7 +64,6 @@ describe("Settings organization users page", () => {
   const mockEvaluatePermissions = vi.fn();
 
   beforeEach(() => {
-    vi.clearAllMocks();
     vi.mocked(authModule.auth).mockResolvedValue({
       user: { id: "user-1", name: "Test", email: "test@example.com" },
       accessToken: "token",

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { ApiResult } from "@/lib/endatix-api/shared/api-result";
 import { Result } from "@/lib/result";
 import {
@@ -19,10 +19,6 @@ vi.mock("@/lib/endatix-api", () => ({
 }));
 
 describe("public-tenant actions", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it("maps a public tenant load through toResult", async () => {
     getBySlugMock.mockResolvedValueOnce(
       ApiResult.success({

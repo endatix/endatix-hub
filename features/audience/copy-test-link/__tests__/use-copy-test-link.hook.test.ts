@@ -28,7 +28,6 @@ describe("useCopyTestLink", () => {
   const onCreated = vi.fn();
 
   beforeEach(() => {
-    vi.clearAllMocks();
     writeText.mockResolvedValue(undefined);
     Object.defineProperty(navigator, "clipboard", {
       value: { writeText },

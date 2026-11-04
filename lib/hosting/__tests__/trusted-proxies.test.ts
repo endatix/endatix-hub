@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   ClientIpEnv,
   parseTrustedProxies,
@@ -125,10 +125,6 @@ describe("parseTrustedProxies", () => {
 });
 
 describe("trustedProxiesFromEnv", () => {
-  afterEach(() => {
-    vi.unstubAllEnvs();
-  });
-
   it("returns null for an invalid list", () => {
     // Arrange
     vi.stubEnv(ClientIpEnv.TRUSTED_PROXIES, "0.0.0.0/0");

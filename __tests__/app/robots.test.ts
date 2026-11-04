@@ -43,15 +43,13 @@ describe('Robots.ts rule sets', () => {
 
 describe('Robots.ts metadata route', () => {
   beforeEach(() => {
-    // Reset modules and mocks
+    // Reset modules
     vi.resetModules();
-    vi.clearAllMocks();
     process.env = { ...originalEnv };
   });
 
   afterEach(() => {
     process.env = originalEnv;
-    vi.clearAllMocks();
   });
 
   it('should allow /login for app.endatix.com host when explicitly listed', async () => {

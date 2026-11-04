@@ -250,6 +250,10 @@ Needs Hub `http://localhost:3000`, API `https://localhost:5001` (`dotnet run` in
 
 Evidence of a green run is the Playwright result and `pnpm exec playwright show-report`. Each test annotates its `formId`. Passing tests delete the form. Failures, and `E2E_KEEP_DATA=1`, leave the form and append it to gitignored `e2e/.screen-out-kept.json`. Do not keep rows on success.
 
+### Unit tests (Vitest)
+
+`pnpm test` watches without coverage (`pnpm test run` runs once); `pnpm test:coverage` runs once with v8 coverage, as the CI shards do. Put a test in a `__tests__/` folder next to the code it tests; `app/` routes and repo-wide checks go in the root `__tests__/`. A few older tests still sit beside their code.
+
 Vitest environment comes from the file name (`vitest.config.mts` projects):
 
 - Only these two names run; a `.spec.ts` or `.test.mts` file is silently skipped.
@@ -257,6 +261,24 @@ Vitest environment comes from the file name (`vitest.config.mts` projects):
 - `*.test.tsx` → `dom` project, jsdom, `vmForks` pool. Test components here.
 - A `.ts` test that needs the DOM (`renderHook`, `window`, `document`, `localStorage`) starts with `// @vitest-environment jsdom`. It stays in `unit` and gets its own jsdom. To test a "no `window`" branch, put that case in a `.ts` file without the line instead of stubbing `window` away.
 - In `dom` (`.tsx`), `window` is the global object, so `vi.stubGlobal("location" | "window", …)` throws. Mock the module that touches it instead (for example `@/lib/utils/reload-page`).
+
+### Mocks and isolation
+
+Every test starts clean: Vitest 5 clears mock calls by default (`clearMocks`), and the config adds `restoreMocks`, `unstubEnvs` and `unstubGlobals`.
+
+- Don't add `vi.clearAllMocks()`, `vi.restoreAllMocks()`, `vi.unstubAllEnvs()` or `vi.unstubAllGlobals()` to a hook. Call one inside a test only to reset between two steps of that test.
+- Clearing keeps implementations. A `mockReturnValue` set in one test is still there in the next, so set the defaults every test needs in `beforeEach`, and use `mockReturnValueOnce` / `mockImplementationOnce` for one test's variation. A `…Once` value stays queued until something calls the mock, even into the next test, so queue it only for a call the test makes. Never replace a method on a shared mock object (`mockThing.run = vi.fn(...)`): it stays for every later test.
+- `vi.mock` only at module scope; Vitest hoists it. Change its behaviour per test with `vi.mocked(fn).mockReturnValue(...)`.
+- Create `vi.spyOn`, `vi.stubGlobal` and `vi.stubEnv` in `beforeEach` or the test, never at module or `describe` scope. The config undoes them before every test, so one made outside a hook is already undone when some or all of the tests run, and a `not.toHaveBeenCalled()` on a restored spy passes without checking anything. Use `vi.stubGlobal`, not `global.x = …`, which nothing undoes (some older tests still assign globals; convert one when you touch it).
+- State outside mocks is not reset for you: SurveyJS `Serializer` properties, registries, module caches. Reset it in `beforeEach`, with the module's `…ForTests()` helper when it has one.
+- Mock at the boundary: the API client (`@/lib/endatix-api`, or `fetch`), `@/auth`, `next/navigation`, `next/headers`, `next/cache`, toasts. A component test may mock its slice's server action (`../x.action`), the client-to-server edge. Prefer running the slice's own modules to mocking them. `server-only` is aliased to `test/mocks/server-only.ts` in the config, so it needs no `vi.mock` (older tests still carry one).
+- Run `pnpm test run --sequence.shuffle` to check that no test depends on the order.
+
+### What makes a good assertion
+
+- Assert on what the code returns or renders: the `Result`, the text on screen, the redirect, the stored value. A mock-call assertion alone proves only the wiring; use it when the call is the behaviour (the request sent to the API, the toast shown), and check the arguments, not just that it was called.
+
+### Arrange / Act / Assert
 
 AAA regions in every `it` that has distinct phases:
 
@@ -416,7 +438,7 @@ Single-context. `GLOSSARY.md` and `docs/adr/` at the root are created lazily by 
 
 - Prerequisites: Node from `.nvmrc` and pnpm within `engines.pnpm` (see [Toolchain](#toolchain-node--pnpm)); `pnpm install` first. `pnpm dev` needs an Endatix API (`ENDATIX_BASE_URL`, see `.env.example`). e2e starts no server: it needs the Hub already running on `pnpm dev` (`BASE_URL`, default http://localhost:3000), the API (`E2E_API_URL`, default `https://localhost:5001/api`) and `E2E_EMAIL` plus `E2E_PASSWORD` (macOS can use the keychain instead of the password; see [Tests](#tests) and `e2e/README.md`)
 - Build: `pnpm build`
-- Test: `pnpm test:coverage` (Vitest, one run); e2e: `pnpm test:e2e`
+- Test: `pnpm test run` (Vitest, one run, no coverage); with coverage as in CI: `pnpm test:coverage`; e2e: `pnpm test:e2e`
 - Lint: `pnpm lint`
 - Run: `pnpm dev` (http://localhost:3000)
 - PR title scope: `h[0-9]+|deps|deps-dev` (the full title and branch rules are in [CONTRIBUTING.md](CONTRIBUTING.md))

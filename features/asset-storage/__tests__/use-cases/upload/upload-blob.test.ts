@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   uploadBlob,
   resizeImageOrFallback,
@@ -8,10 +8,6 @@ import { UploadError } from "@/features/asset-storage/use-cases/upload/upload-er
 global.fetch = vi.fn();
 
 describe("uploadBlob", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it("uploads data via fetch PUT and returns base URL without query", async () => {
     const sasUrl =
       "https://account.blob.core.windows.net/container/file.pdf?sv=2020&sig=abc";
@@ -121,10 +117,6 @@ describe("uploadBlob", () => {
 });
 
 describe("resizeImageOrFallback", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it("returns original buffer and fileState original when not image", async () => {
     const file = new File(["data"], "doc.pdf", {
       type: "application/pdf",

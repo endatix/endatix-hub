@@ -29,7 +29,6 @@ import { flag } from "@/lib/feature-flags/utils";
 
 describe("flag", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     mockCreateFlag.mockReset();
   });
 

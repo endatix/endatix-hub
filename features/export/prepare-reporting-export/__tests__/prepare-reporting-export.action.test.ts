@@ -36,7 +36,6 @@ vi.mock("@/lib/endatix-api", () => ({
 
 describe("prepareReportingExportAction", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     mockRequireHubAccess.mockResolvedValue(undefined);
     mockReportingExportFlag.mockResolvedValue(true);
     mockCompileSchema.mockResolvedValue(

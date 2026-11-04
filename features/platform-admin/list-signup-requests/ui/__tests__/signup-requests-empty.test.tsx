@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { normalizePagedResponse } from "@/lib/endatix-api/shared/paged-response";
 import type { SignupRequestsUrlState } from "../../signup-requests-url-state";
 import { SignupRequestsTable } from "../signup-requests-table";
@@ -36,10 +36,6 @@ function renderEmpty(urlState: Partial<SignupRequestsUrlState>) {
 }
 
 describe("SignupRequestsTable empty states", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it("says the queue is clear on the default view and offers every request", () => {
     // Act
     renderEmpty({});

@@ -70,7 +70,6 @@ function minted(token: string) {
 
 describe("createTestLinkAction on an API with the test links route", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     vi.mocked(requireAudienceAccess).mockResolvedValue(
       Result.success({ api, ...checks } as never),
     );
@@ -167,7 +166,6 @@ describe("createTestLinkAction on an API with the test links route", () => {
 
 describe("createTestLinkAction on an older API (no test links route)", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     supportsTestLinks.mockResolvedValue(false);
     vi.mocked(requireAudienceAccess).mockResolvedValue(
       Result.success({ api, ...checks } as never),

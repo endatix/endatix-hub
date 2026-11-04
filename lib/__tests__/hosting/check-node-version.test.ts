@@ -80,7 +80,6 @@ describe("checkNodeVersion", () => {
     consoleSpy.mockRestore();
     setRuntimeNodeVersion(originalVersion);
     mockPackageJson.engines = { node: DEFAULT_REQUIRED_NODE_VERSION };
-    vi.clearAllMocks();
   });
 
   it("should log success message when node version matches requirements", () => {

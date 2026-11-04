@@ -32,7 +32,6 @@ const VIEW = { version: "3", settings: { v: 1 as const, columns: [] } };
 
 describe("saveSubmissionGridViewAction", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     mocks.flag.mockResolvedValue(true);
   });
 

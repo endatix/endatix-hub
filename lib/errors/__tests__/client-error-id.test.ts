@@ -1,14 +1,9 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { withClientErrorId } from "@/lib/errors/unexpected-error-ui";
 
 const MINTED = "0b0e3d64-0c3f-4b9a-9f39-5c1c8e8c2b11";
 
 describe("withClientErrorId", () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
-    vi.unstubAllGlobals();
-  });
-
   it("mints an id for a client error that has no digest and no trace id", () => {
     // Arrange
     vi.spyOn(crypto, "randomUUID").mockReturnValue(MINTED);

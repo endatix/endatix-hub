@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   getMaintenanceData,
   getMaintenanceRetryAfterSeconds,
@@ -6,10 +6,6 @@ import {
 } from "../maintenance-config";
 
 describe("isMaintenanceMode", () => {
-  afterEach(() => {
-    vi.unstubAllEnvs();
-  });
-
   it("returns true only when MAINTENANCE_MODE is the string true", () => {
     vi.stubEnv("MAINTENANCE_MODE", "true");
     expect(isMaintenanceMode()).toBe(true);
@@ -31,10 +27,6 @@ describe("isMaintenanceMode", () => {
 });
 
 describe("getMaintenanceRetryAfterSeconds", () => {
-  afterEach(() => {
-    vi.unstubAllEnvs();
-  });
-
   it("returns undefined when unset or empty", () => {
     vi.unstubAllEnvs();
     expect(getMaintenanceRetryAfterSeconds()).toBeUndefined();
@@ -61,10 +53,6 @@ describe("getMaintenanceRetryAfterSeconds", () => {
 });
 
 describe("getMaintenanceData", () => {
-  afterEach(() => {
-    vi.unstubAllEnvs();
-  });
-
   it("returns default copy when maintenance env vars are unset", () => {
     vi.unstubAllEnvs();
     const data = getMaintenanceData();

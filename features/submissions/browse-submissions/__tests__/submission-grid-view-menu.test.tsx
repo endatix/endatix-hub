@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { SubmissionGridViewLoad } from "../submission-grid-view";
 import { SubmissionGridUrlProvider } from "../ui/submission-grid-url-context";
 import { SubmissionGridViewProvider } from "../ui/submission-grid-view-context";
@@ -84,10 +84,6 @@ const saveItem = () =>
 const detail = (name: string) => screen.getByRole("menuitemcheckbox", { name });
 
 describe("SubmissionGridViewMenu", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it("offers Save view to a form editor", () => {
     // Act
     renderMenu(SAVED, true);

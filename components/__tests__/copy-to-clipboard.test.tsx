@@ -19,7 +19,6 @@ vi.mock("../ui/toast", () => ({
 
 describe("CopyToClipboard", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     vi.useFakeTimers();
   });
 

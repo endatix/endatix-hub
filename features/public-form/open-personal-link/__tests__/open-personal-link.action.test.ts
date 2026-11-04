@@ -19,7 +19,6 @@ const LINK_TOKEN = "link-token";
 
 describe("openPersonalLinkAction", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     process.env.NEXT_FORMS_COOKIE_NAME = "FPSK";
     cookieJar.get.mockReturnValue(undefined);
   });

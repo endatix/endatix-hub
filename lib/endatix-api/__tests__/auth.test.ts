@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 import { EndatixApi } from "../endatix-api";
 import Auth from "../auth/auth";
 import { ApiResult, ApiErrorType, ERROR_CODE } from "../shared/api-result";
@@ -6,7 +6,9 @@ import type { SignInRequest, SignInResponse } from "../auth/types";
 
 // Mock fetch globally
 const mockFetch = vi.fn();
-vi.stubGlobal("fetch", mockFetch);
+beforeEach(() => {
+  vi.stubGlobal("fetch", mockFetch);
+});
 
 describe("Auth", () => {
   let endatixApi: EndatixApi;
@@ -17,10 +19,6 @@ describe("Auth", () => {
     endatixApi = new EndatixApi();
     auth = endatixApi.auth;
     mockFetch.mockClear();
-  });
-
-  afterEach(() => {
-    vi.clearAllMocks();
   });
 
   describe("signIn", () => {

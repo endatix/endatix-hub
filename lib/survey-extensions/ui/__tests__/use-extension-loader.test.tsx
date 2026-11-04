@@ -39,7 +39,6 @@ describe("useExtensionLoader", () => {
   };
 
   beforeEach(() => {
-    vi.clearAllMocks();
     vi.spyOn(console, "error").mockImplementation(() => {});
   });
 

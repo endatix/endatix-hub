@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getCustomQuestions } from "../api";
 
 vi.mock("@/features/auth", () => ({
@@ -24,11 +24,6 @@ describe("getCustomQuestions", () => {
     vi.stubEnv("ENDATIX_API_URL", "https://ci.api.endatix.com/api");
     vi.stubEnv("ENDATIX_TRUSTED_PROXIES", "");
     mockFetch.mockReset();
-  });
-
-  afterEach(() => {
-    vi.unstubAllEnvs();
-    vi.unstubAllGlobals();
   });
 
   it("joins every page in page order", async () => {

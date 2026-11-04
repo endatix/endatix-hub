@@ -91,8 +91,6 @@ describe("TelemetryInitializer", () => {
 
   afterEach(() => {
     exitFlush?.disarm();
-    vi.unstubAllEnvs();
-    vi.restoreAllMocks();
     vi.useRealTimers();
   });
 
@@ -394,7 +392,6 @@ describe("ExitFlush", () => {
   afterEach(() => {
     exitFlush.disarm();
     vi.useRealTimers();
-    vi.restoreAllMocks();
   });
 
   it("exits after the flush timeout when the flush hangs", async () => {
@@ -448,7 +445,6 @@ describe("ExitFlush", () => {
 describe("settleWithin", () => {
   afterEach(() => {
     vi.useRealTimers();
-    vi.restoreAllMocks();
   });
 
   it("resolves when the promise resolves first", async () => {

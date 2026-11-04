@@ -5,7 +5,6 @@ describe("EnvironmentFlagFactory", () => {
   let factory: EnvironmentFlagFactory;
 
   beforeEach(() => {
-    vi.clearAllMocks();
     factory = new EnvironmentFlagFactory();
 
     // Clear environment variables

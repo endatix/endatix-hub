@@ -115,7 +115,6 @@ describe("supportsColor", () => {
 
     // Assert
     expect(painted).toBe("✓");
-    vi.unstubAllEnvs();
   });
 });
 

@@ -27,10 +27,6 @@ const sampleDescriptor = {
 };
 
 describe("fetchUploadUrls", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it("returns success with data when response is ok", async () => {
     const data: UploadUrlsData = {
       uploads: {
@@ -99,7 +95,6 @@ describe("fetchUploadUrls", () => {
 
 describe("prepareUploadBytes", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     mockResizeImageOrFallback.mockResolvedValue({
       buffer: new ArrayBuffer(0),
       contentType: "image/png",
@@ -148,7 +143,6 @@ describe("prepareUploadBytes", () => {
 
 describe("processAndUploadFile", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     mockUploadBlob.mockResolvedValue("https://example.com/container/doc.pdf");
   });
 

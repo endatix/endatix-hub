@@ -29,7 +29,6 @@ const deleteButton = () =>
 
 describe("DeleteTestSubmissionsButton", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     actions.count.mockResolvedValue(Result.success(3));
   });
 

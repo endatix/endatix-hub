@@ -117,7 +117,6 @@ const successResult: LoadPublicSurveyPageResult = {
 
 describe("PublicSurveyContent", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     vi.mocked(cookies).mockResolvedValue({} as never);
     vi.mocked(getClientStorageConfig).mockReturnValue(null as never);
     vi.mocked(loadPublicSurveyPageUseCase).mockResolvedValue(successResult);

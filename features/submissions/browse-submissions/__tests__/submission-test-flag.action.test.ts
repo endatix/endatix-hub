@@ -47,7 +47,6 @@ vi.mock("@/lib/endatix-api", () => ({
 
 describe("setSubmissionTestAction", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     mockRequireAllPermissions.mockResolvedValue(undefined);
     mockSetTest.mockResolvedValue(
       ApiResult.success({ id: "9", isTestSubmission: true }),
@@ -106,7 +105,6 @@ describe("setSubmissionTestAction", () => {
 
 describe("deleteTestSubmissionsAction", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     mockRequireAllPermissions.mockResolvedValue(undefined);
     mockDeleteTests.mockResolvedValue(ApiResult.success({ deletedCount: 3 }));
   });
@@ -157,7 +155,6 @@ describe("deleteTestSubmissionsAction", () => {
 
 describe("countTestSubmissionsAction", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     mockRequireAllPermissions.mockResolvedValue(undefined);
     mockList.mockResolvedValue(
       ApiResult.success({

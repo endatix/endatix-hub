@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import React from "react";
 import { SurveyCreatorModel, UploadFileEvent } from "survey-creator-core";
@@ -77,10 +77,6 @@ const mockFetchError = (detail = "Unauthorized") => {
 };
 
 describe("useContentUpload", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   const wrapper = ({ children }: { children: React.ReactNode }) => (
     <AssetStorageClientProvider
       config={mockStorageConfig as unknown as ClientStorageConfig}

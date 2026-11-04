@@ -1,18 +1,16 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 import { EndatixApi } from "../endatix-api";
 import { ApiResult } from "../shared/api-result";
 
 const mockFetch = vi.fn();
-vi.stubGlobal("fetch", mockFetch);
+beforeEach(() => {
+  vi.stubGlobal("fetch", mockFetch);
+});
 
 describe("EndatixApi rawBody headers", () => {
   beforeEach(() => {
     process.env.ENDATIX_API_URL = "https://ci.api.endatix.com/api";
     mockFetch.mockClear();
-  });
-
-  afterEach(() => {
-    vi.clearAllMocks();
   });
 
   it("strips application/json Content-Type from defaultHeaders when rawBody is true", async () => {

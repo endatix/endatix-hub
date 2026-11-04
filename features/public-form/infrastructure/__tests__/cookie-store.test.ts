@@ -23,7 +23,6 @@ describe("FormTokenCookieStore", () => {
   }
 
   beforeEach(() => {
-    vi.clearAllMocks();
     process.env.NEXT_FORMS_COOKIE_NAME = COOKIE_NAME;
     process.env.NEXT_FORMS_COOKIE_DURATION_DAYS = "7";
   });

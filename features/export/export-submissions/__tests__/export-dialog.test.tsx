@@ -42,14 +42,16 @@ vi.mock("@/features/export/prepare-reporting-export", () => ({
 }));
 
 // A class, not vi.fn: cmdk constructs it with `new` when the Status menu opens.
-vi.stubGlobal(
-  "ResizeObserver",
-  class {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-  },
-);
+beforeEach(() => {
+  vi.stubGlobal(
+    "ResizeObserver",
+    class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    },
+  );
+});
 
 vi.mock("@/features/analytics/posthog/client", () => ({
   useTrackEvent: () => ({
@@ -381,7 +383,6 @@ Element.prototype.scrollIntoView = vi.fn();
 
 describe("ExportSubmissionsDialog", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     latestPanelProps = null;
     mockListFormReportingLocalesAction.mockResolvedValue(
       Result.success(["default", "es", "fr"]),

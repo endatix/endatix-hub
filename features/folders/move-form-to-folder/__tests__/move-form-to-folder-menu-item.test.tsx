@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { MoveFormToFolderMenuItem } from "../ui/move-form-to-folder-menu-item";
 import { NO_FOLDER_VALUE } from "@/features/folders/move-to-folder/move-to-folder";
 
@@ -84,10 +84,6 @@ vi.mock("@/features/folders/move-to-folder/ui/move-to-folder-dialog", () => ({
 }));
 
 describe("MoveFormToFolderMenuItem", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it("shows error when listing folders fails", async () => {
     // Arrange
     mockListFoldersAction.mockResolvedValue({

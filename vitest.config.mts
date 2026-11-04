@@ -16,8 +16,11 @@ export default defineConfig({
   },
   test: {
     globals: true,
-    // Vitest 5 defaults to true; flipping it is endatix-hub#1319.
-    clearMocks: false,
+    // With Vitest 5's default clearMocks, every test starts with fresh mocks, spies, env and
+    // globals. Stub inside a hook or the test, never at module scope. See AGENTS.md Tests.
+    restoreMocks: true,
+    unstubEnvs: true,
+    unstubGlobals: true,
     // SurveyJS Creator and renderer tests can pass 5 s on a cold cache with coverage on.
     testTimeout: 15_000,
     server: {

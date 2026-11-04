@@ -144,7 +144,6 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
-  vi.clearAllMocks();
   getTenantSettingsActionMock.mockResolvedValue(
     Result.success({
       tenantId: "1",

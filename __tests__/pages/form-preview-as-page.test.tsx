@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { Result } from "@/lib/result";
 
 vi.mock("next/navigation", () => ({
@@ -78,10 +78,6 @@ async function openAsEditor(canTest = true) {
 }
 
 describe("Form Preview as page", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it("sends a reader who cannot edit the form back to it", async () => {
     const { requireAudienceAccess } = await mocks();
     const { redirect } = await import("next/navigation");

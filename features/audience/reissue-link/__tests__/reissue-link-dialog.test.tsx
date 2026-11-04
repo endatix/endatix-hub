@@ -38,7 +38,6 @@ const reissueButton = () =>
 
 describe("ReissueLinkDialog", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     vi.mocked(reissueAudienceLinkAction).mockResolvedValue(
       Result.success({ membershipId: "981", token: "new-token" }),
     );
@@ -104,8 +103,6 @@ describe("ReissueLinkDialog", () => {
 });
 
 describe("useReissueLink", () => {
-  beforeEach(() => vi.clearAllMocks());
-
   it("sends one request for a double click, so the new link is not revoked at once", async () => {
     vi.mocked(reissueAudienceLinkAction).mockResolvedValue(
       Result.success({ membershipId: "981", token: "new-token" }),

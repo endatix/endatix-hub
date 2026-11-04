@@ -50,7 +50,6 @@ describe("removeLocaleAction", () => {
   };
 
   beforeEach(() => {
-    vi.clearAllMocks();
     mockAuth.mockResolvedValue({ accessToken: "token", isLoggedIn: true });
     mockRequireHubAccess.mockResolvedValue(undefined);
   });

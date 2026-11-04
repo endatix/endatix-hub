@@ -36,7 +36,6 @@ describe("Settings organization overview page", () => {
   const mockGetStorageStats = vi.fn();
 
   beforeEach(() => {
-    vi.clearAllMocks();
     vi.mocked(storageStatsFlag).mockResolvedValue(true);
     vi.mocked(authModule.auth).mockResolvedValue({
       user: { id: "user-1", name: "Test", email: "test@example.com" },

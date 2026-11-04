@@ -27,7 +27,6 @@ const emptyPage = {
 
 describe("getDataListsPageResult", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     mockRequireApi.mockResolvedValue({
       dataLists: { list: mockList, listLocales: vi.fn() },
     });

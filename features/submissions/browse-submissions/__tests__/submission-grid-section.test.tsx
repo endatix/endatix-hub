@@ -103,7 +103,6 @@ async function renderSection(searchParams: Record<string, string> = {}) {
 
 describe("SubmissionGridSection", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     loads.canIncludeInProgress.mockResolvedValue(true);
     loads.testAccess.mockResolvedValue(NO_TEST_ACCESS);
     loads.config.mockResolvedValue({ submitterPrimaryFilterLabel: "Visitor" });

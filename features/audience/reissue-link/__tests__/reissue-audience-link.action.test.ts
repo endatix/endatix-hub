@@ -30,7 +30,6 @@ function notFound(message: string, problemMediaType?: string) {
 
 describe("reissueAudienceLinkAction", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     vi.mocked(requireAudienceApi).mockResolvedValue(
       Result.success(api as never),
     );

@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { truncateId } from "@/components/common/truncated-id";
 import { Result } from "@/lib/result";
 import { FormsListSection } from "../forms-list-section";
@@ -44,10 +44,6 @@ vi.mock("@/components/ui/toast", () => ({
 }));
 
 describe("FormsListSection", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   function renderSection(formsPromise: Promise<FormsListResult>) {
     return render(
       <Suspense fallback={<div>loading</div>}>

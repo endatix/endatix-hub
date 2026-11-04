@@ -93,7 +93,6 @@ const accessTokenSubmission: Submission = {
 
 describe("loadPublicSurveyPageUseCase", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     vi.mocked(getPublicFormAccessUseCase).mockResolvedValue(
       Result.success(publicAccess),
     );

@@ -18,7 +18,9 @@ const createLocalStorageMock = () => ({
   length: 0,
 });
 
-vi.stubGlobal("localStorage", createLocalStorageMock());
+beforeEach(() => {
+  vi.stubGlobal("localStorage", createLocalStorageMock());
+});
 
 import {
   SubmissionDetailsProvider,

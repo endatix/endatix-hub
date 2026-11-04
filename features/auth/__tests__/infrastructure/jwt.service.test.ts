@@ -1,5 +1,4 @@
-
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { JwtService } from "../../infrastructure/jwt.service";
 import { HubJwtPayload } from "../../infrastructure/jwt.types";
 import { ErrorType, Result } from "@/lib/result";
@@ -14,7 +13,6 @@ describe("JwtService", () => {
   };
 
   beforeEach(() => {
-    vi.clearAllMocks();
     jwtService = new JwtService(secretKey);
   });
 

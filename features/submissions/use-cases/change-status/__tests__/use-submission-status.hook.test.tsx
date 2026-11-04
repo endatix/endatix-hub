@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { useSubmissionStatus } from "../use-submission-status.hook";
 import { changeStatusAction } from "../change-status.action";
@@ -24,10 +24,6 @@ describe("useSubmissionStatus", () => {
     formId: "2",
     status: SubmissionStatusKind.New,
   };
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
 
   it("should initialize with not pending", () => {
     const { result } = renderHook(() => useSubmissionStatus(mockProps));

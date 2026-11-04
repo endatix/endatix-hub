@@ -2,10 +2,6 @@ import { describe, expect, it, beforeEach, vi } from "vitest";
 import { createPublicDataListsClient } from "../public-data-lists.client";
 
 describe("PublicDataListsClient", () => {
-  beforeEach(() => {
-    vi.restoreAllMocks();
-  });
-
   it("sends search with Bearer form access JWT only (no legacy query tokens)", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(

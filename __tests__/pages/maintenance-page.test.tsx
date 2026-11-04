@@ -12,7 +12,6 @@ vi.mock("next/navigation", () => ({
 
 describe("MaintenancePage", () => {
   afterEach(() => {
-    vi.unstubAllEnvs();
     notFound.mockClear();
   });
 

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { createInitialSubmissionUseCase } from "@/features/public-form/use-cases/create-initial-submission.use-case";
 import { submitFormOperation } from "@/features/public-form/application/submit-form-operation";
 import { ApiResult } from "@/lib/endatix-api";
@@ -32,10 +32,6 @@ describe("createInitialSubmissionUseCase", () => {
   const mockFormId = "form-123";
   const mockFormLang = "en";
   const mockReasonCreated = "Generate submissionId for sas token generation";
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
 
   it("should successfully create initial submission with all parameters", async () => {
     // Arrange

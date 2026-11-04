@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import type { Session } from "next-auth";
 
 vi.mock("@/auth", () => ({
@@ -46,10 +46,6 @@ describe("createAuthorizationService", () => {
       email: "test@example.com",
     },
   };
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
 
   function setupAuthorizationServiceFns() {
     const getAuthData = vi.fn();

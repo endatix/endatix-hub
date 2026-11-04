@@ -8,8 +8,6 @@ const mockPostMessage = vi.fn();
 const originalWindow = globalThis.window;
 
 beforeEach(() => {
-  vi.clearAllMocks();
-
   Object.defineProperty(globalThis, "window", {
     value: {
       ...originalWindow,

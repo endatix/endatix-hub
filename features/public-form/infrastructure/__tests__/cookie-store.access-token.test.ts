@@ -17,7 +17,6 @@ describe("FormTokenCookieStore with a personalized link's access token", () => {
     });
 
   beforeEach(() => {
-    vi.clearAllMocks();
     vi.useFakeTimers();
     vi.setSystemTime(NOW_UNIX * 1000);
   });
