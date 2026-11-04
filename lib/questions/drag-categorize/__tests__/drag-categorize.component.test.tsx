@@ -425,7 +425,10 @@ describe("DragCategorizeComponent", () => {
       const question = model.getQuestionByName(
         "q1",
       ) as unknown as DragCategorizeQuestion;
-      const onPointerDown = vi.spyOn(question, "handlePointerDown");
+      // Stubbed: a real drag starts a timer that can outlive the test.
+      const onPointerDown = vi
+        .spyOn(question, "handlePointerDown")
+        .mockImplementation(() => {});
       const { container } = render(<Survey model={model} />);
       const chip = container.querySelector<HTMLElement>(
         '[data-categorize="zone_b"] [data-categorize-item="item_2"]',

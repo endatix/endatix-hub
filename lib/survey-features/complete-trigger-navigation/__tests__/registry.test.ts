@@ -1,6 +1,6 @@
 import { Model, Serializer } from "survey-core";
 import { PropertyGridModel } from "survey-creator-core";
-import { beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   EDX_CHANGE_NAVIGATION_ON_COMPLETE_DISPLAY_NAME,
   EDX_CHANGE_NAVIGATION_ON_COMPLETE_PROPERTY,
@@ -26,6 +26,14 @@ function panelQuestionNames(model: Model, panel: string): string[] {
 describe("registerCompleteTriggerNavigationProperty", () => {
   beforeAll(() => {
     registerCompleteTriggerNavigationProperty();
+  });
+
+  beforeEach(() => {
+    // Revealing is global Serializer state, so every test starts hidden again.
+    Serializer.findProperty(
+      "survey",
+      EDX_CHANGE_NAVIGATION_ON_COMPLETE_PROPERTY,
+    ).visible = false;
   });
 
   it("registers a boolean that defaults to true on the navigation category", () => {
@@ -117,9 +125,7 @@ describe("registerCompleteTriggerNavigationProperty", () => {
 
     // Assert
     expect(offJson[EDX_CHANGE_NAVIGATION_ON_COMPLETE_PROPERTY]).toBe(false);
-    expect(
-      onJson[EDX_CHANGE_NAVIGATION_ON_COMPLETE_PROPERTY],
-    ).toBeUndefined();
+    expect(onJson[EDX_CHANGE_NAVIGATION_ON_COMPLETE_PROPERTY]).toBeUndefined();
     expect(
       explicitTrueJson[EDX_CHANGE_NAVIGATION_ON_COMPLETE_PROPERTY],
     ).toBeUndefined();

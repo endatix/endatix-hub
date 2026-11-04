@@ -231,7 +231,7 @@ describe("AudioQuestionModel", () => {
         mockHTMLElement as unknown as HTMLElement,
       );
       await audioQuestion.startRecording();
-      mockProcessor.disconnect = vi.fn(() => {
+      mockProcessor.disconnect.mockImplementationOnce(() => {
         throw disconnectError;
       });
 
