@@ -1,9 +1,5 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { exchangeKeycloakToken } from "../keycloak-token-exchange";
-
-afterEach(() => {
-  vi.unstubAllGlobals();
-});
 
 describe("exchangeKeycloakToken", () => {
   it("reports an unknown error when fetch rejects without a reason", async () => {

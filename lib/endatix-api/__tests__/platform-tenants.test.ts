@@ -4,7 +4,9 @@ import { ApiResult } from "../shared/api-result";
 import { buildListPlatformTenantsEndpoint } from "../platform-tenants/platform-tenants";
 
 const mockFetch = vi.fn();
-vi.stubGlobal("fetch", mockFetch);
+beforeEach(() => {
+  vi.stubGlobal("fetch", mockFetch);
+});
 
 const TENANT = {
   id: "1",

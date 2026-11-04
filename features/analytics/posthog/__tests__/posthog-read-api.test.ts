@@ -38,10 +38,6 @@ describe("PostHog read API", () => {
     vi.stubGlobal("fetch", vi.fn());
   });
 
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
-
   it("returns the person on a 200", async () => {
     // Arrange
     vi.mocked(fetch).mockResolvedValue(

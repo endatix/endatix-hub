@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { SurveyModel } from "survey-core";
 import { useLanguageSelection } from "../use-language-selection.hook";
@@ -42,10 +42,6 @@ describe("useLanguageSelection", () => {
     languagesSpy = vi.spyOn(navigator, "languages", "get");
     languageSpy = vi.spyOn(navigator, "language", "get");
     mockLocalStorage.getItem.mockReturnValue(null);
-  });
-
-  afterEach(() => {
-    vi.unstubAllGlobals();
   });
 
   describe("initialization", () => {

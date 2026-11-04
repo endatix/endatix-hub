@@ -29,7 +29,6 @@ describe("EndatixApi visitor IP", () => {
 
   afterEach(() => {
     registerOutboundHeaders(undefined);
-    vi.unstubAllGlobals();
   });
 
   it("sends the one visitor address on request()", async () => {

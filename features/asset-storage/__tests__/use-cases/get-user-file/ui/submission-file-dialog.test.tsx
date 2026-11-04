@@ -1,5 +1,5 @@
 import { render, screen, waitFor } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SubmissionFileDialog } from "@/features/asset-storage/use-cases/get-user-file/ui/submission-file-dialog";
 import { clientStorageConfig } from "../../../test-storage-config";
 
@@ -55,10 +55,6 @@ describe("SubmissionFileDialog", () => {
     media.isDesktop = true;
     fetchMock.mockReset();
     vi.stubGlobal("fetch", fetchMock);
-  });
-
-  afterEach(() => {
-    vi.unstubAllGlobals();
   });
 
   it("fetches fresh view data and shows the stored metadata", async () => {

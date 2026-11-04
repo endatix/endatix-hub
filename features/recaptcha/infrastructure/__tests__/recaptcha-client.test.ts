@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { getReCaptchaToken } from "../recaptcha-client";
 
 vi.mock("../../recaptcha-config", () => ({
@@ -17,10 +17,6 @@ function stubGrecaptcha(execute: () => Promise<string>) {
 }
 
 describe("getReCaptchaToken", () => {
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
-
   it("resolves with the token reCAPTCHA returns", async () => {
     stubGrecaptcha(() => Promise.resolve("token-123"));
 

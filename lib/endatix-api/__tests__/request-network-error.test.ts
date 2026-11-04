@@ -3,10 +3,10 @@ import { EndatixApi } from "../endatix-api";
 import { ApiErrorType, ApiResult, ERROR_CODE } from "../shared/api-result";
 
 const mockFetch = vi.fn();
-vi.stubGlobal("fetch", mockFetch);
 
 describe("EndatixApi network failures", () => {
   beforeEach(() => {
+    vi.stubGlobal("fetch", mockFetch);
     process.env.ENDATIX_API_URL = "https://ci.api.endatix.com/api";
     mockFetch.mockReset();
   });

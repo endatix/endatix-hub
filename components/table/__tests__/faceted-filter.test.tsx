@@ -1,16 +1,18 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 import { FacetedFilter, type FacetedFilterGroup } from "../faceted-filter";
 
 // cmdk measures its list and scrolls the active item into view; jsdom has neither.
-vi.stubGlobal(
-  "ResizeObserver",
-  class {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-  },
-);
+beforeEach(() => {
+  vi.stubGlobal(
+    "ResizeObserver",
+    class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    },
+  );
+});
 Element.prototype.scrollIntoView = vi.fn();
 
 const groups: FacetedFilterGroup[] = [

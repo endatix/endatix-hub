@@ -6,7 +6,9 @@ import type { SignInRequest, SignInResponse } from "../auth/types";
 
 // Mock fetch globally
 const mockFetch = vi.fn();
-vi.stubGlobal("fetch", mockFetch);
+beforeEach(() => {
+  vi.stubGlobal("fetch", mockFetch);
+});
 
 describe("Auth", () => {
   let endatixApi: EndatixApi;

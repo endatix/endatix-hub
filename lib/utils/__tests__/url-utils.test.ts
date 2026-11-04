@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import {
   extractHostname,
   toSafeRelativeUrl,
@@ -9,12 +9,8 @@ import { Result } from "../../result";
 
 const browserWindow = { location: { origin: "https://example.com" } };
 
-beforeAll(() => {
+beforeEach(() => {
   vi.stubGlobal("window", browserWindow);
-});
-
-afterAll(() => {
-  vi.unstubAllGlobals();
 });
 
 const BASE_ORIGIN = "https://example.com";
@@ -401,7 +397,6 @@ describe("isSafeRedirectUrl", () => {
     it("returns false when window is not available (SSR)", () => {
       vi.stubGlobal("window", undefined);
       expect(isSafeRedirectUrl("https://example.com")).toBe(false);
-      vi.stubGlobal("window", browserWindow);
     });
   });
 
