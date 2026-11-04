@@ -70,6 +70,41 @@ Recorded on `07719b9c`: that command exited 1. Screen-out, on-behalf personaliza
 
 **All-questions personalization.** `tests/audience/all-questions-personalization.spec.ts` seeds the all-questions definition and a three-person CSV (`e2e/fixtures/audience/all-questions-personalized-*`), private and one-per-user. Like screen-out and upload-files, it nests under `share` and `iframe` describes so each channel runs the full flow. Share opens `/share/{formId}/a/{token}`; iframe redeems via the API then opens the embed host with a Hub-minted share token. Between steps it asserts API state: link `issued`/`opened` (with `submissionId` / `openedAt`), submission `personalization`, `collectionStatus`, `isComplete`, and hex-token accept/reject. **Used** in the test name means `opened` plus `isComplete`. Run with `--workers=1` so it does not race other audience specs on the tenant match key.
 
+## Audience fixtures
+
+`fixtures/audience/generate.mjs` writes the generated audience fixtures from one spec with a seeded random source, so every run writes the same bytes:
+
+| File                             | What it is                                                                                         |
+| -------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `demo/acme-demo.properties.json` | The seven demo Properties: text, number, boolean, date, date-time, single choice, multiple choice. |
+| `demo/acme-demo.survey.json`     | A form with a Prefill for each Property, and a calculation (`{age} + 1`).                          |
+| `demo/acme-demo.csv`             | 30 rows: 28 participants, a blank identifier (row 13) and a repeated identifier (row 21).          |
+| `demo/acme-demo-update.csv`      | The 28 participants again, with changed values, empty cells and no `joined` column.                |
+| `cedar-grove-pulse-5000.csv`     | The 5,000-row import sample. Its first 20 rows are `cedar-grove-pulse.csv`, which it only reads.   |
+
+```bash
+cd hub
+node e2e/fixtures/audience/generate.mjs           # writes the files
+node e2e/fixtures/audience/generate.mjs --check   # writes nothing; exits 1 when a file is out of date
+```
+
+Change a generated fixture in the spec inside `generate.mjs`, never by hand, then run it and commit the files it wrote. `tests/audience/demo-fixtures.spec.ts` fails when the committed files differ from the spec. The other audience fixtures are written by hand.
+
+**Demo the ACME set.** Create the Properties from `acme-demo.properties.json` on a form (match key: external id), paste `acme-demo.survey.json` into its JSON tab, then import the files on the Participants tab:
+
+- **Every Property type and Prefill.** Each question is prefilled from one Property. `tags` is a `tags__` multiple-choice group and fills the tagbox.
+- **Prefill from choice warning.** `ACME-VIP-0003` has the region `online`, which the radiogroup does not list. Load the participants in the designer, and the radiogroup's Prefill from warns.
+- **Rejected rows.** `acme-demo.csv` imports 28 participants and rejects 2. Download the rejected rows from the result.
+- **Search.** `VIP` narrows the participants to 8, `STD` to 20.
+- **Overwrite rules.** Import `acme-demo-update.csv` next. With "Keep the current value" and "Leave them" it updates 18 participants and leaves 10 unchanged. With "Clear the value" and "Clear them" it updates 24: the 6 with empty `last_visit` and `region` cells lose those values, and every participant loses `joined`. The last 4 have the same values and no `joined`, so neither rule changes them.
+
+```bash
+cd hub
+E2E_EMAIL="you@example.com" pnpm test:e2e --grep "Audience demo" --workers=1
+```
+
+The import tests run the wizard's staged import through the API (start, chunks, Check, confirm) on a form of their own, and delete it afterwards.
+
 ## Embed Tests
 
 ### Prerequisites

@@ -1,0 +1,92 @@
+{
+  "title": "ACME customer check-in",
+  "description": "Hello {full_name}, please check the details we hold for you.",
+  "pages": [
+    {
+      "name": "page1",
+      "elements": [
+        {
+          "type": "text",
+          "name": "fullName",
+          "title": "Your name",
+          "defaultValueExpression": "{full_name}"
+        },
+        {
+          "type": "text",
+          "name": "ageNextYear",
+          "title": "Your age next year",
+          "inputType": "number",
+          "defaultValueExpression": "{age} + 1"
+        },
+        {
+          "type": "boolean",
+          "name": "loyaltyMember",
+          "title": "ACME Rewards member",
+          "defaultValueExpression": "{loyalty_member}"
+        },
+        {
+          "type": "text",
+          "name": "joined",
+          "title": "Customer since",
+          "inputType": "date",
+          "defaultValueExpression": "{joined}"
+        },
+        {
+          "type": "radiogroup",
+          "name": "homeRegion",
+          "title": "Which region do you shop in most?",
+          "choices": [
+            {
+              "value": "north",
+              "text": "North"
+            },
+            {
+              "value": "south",
+              "text": "South"
+            },
+            {
+              "value": "east",
+              "text": "East"
+            },
+            {
+              "value": "west",
+              "text": "West"
+            }
+          ],
+          "defaultValueExpression": "{region}"
+        },
+        {
+          "type": "tagbox",
+          "name": "favourites",
+          "title": "What do you usually buy?",
+          "choices": [
+            {
+              "value": "coffee",
+              "text": "Coffee"
+            },
+            {
+              "value": "tea",
+              "text": "Tea"
+            },
+            {
+              "value": "pastries",
+              "text": "Pastries"
+            },
+            {
+              "value": "sandwiches",
+              "text": "Sandwiches"
+            }
+          ],
+          "defaultValueExpression": "{tags}"
+        },
+        {
+          "type": "text",
+          "name": "lastVisit",
+          "title": "When did you last visit?",
+          "inputType": "datetime-local",
+          "defaultValueExpression": "edxLocalDateTime({last_visit})"
+        }
+      ]
+    }
+  ]
+}

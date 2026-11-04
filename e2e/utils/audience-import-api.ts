@@ -232,7 +232,7 @@ function isChoiceType(dataType: AudienceDataType): boolean {
 }
 
 /** Simple columns only. `variable__choice` headers are read by the API from the file. */
-function simplePropertyColumns(
+export function simplePropertyColumns(
   headers: string[],
   properties: readonly PanelPropertySpec[],
 ): Record<string, string> {
