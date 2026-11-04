@@ -37,7 +37,6 @@ describe("manage user roles action", () => {
   const requirePermission = vi.fn();
 
   beforeEach(() => {
-    vi.clearAllMocks();
     vi.mocked(auth).mockResolvedValue({ accessToken: "token" } as never);
     vi.mocked(authorization).mockResolvedValue({
       requirePermission,

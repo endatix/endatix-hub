@@ -15,7 +15,6 @@ describe("registerStorageProviders", () => {
 
   beforeEach(() => {
     storageRegistry.reset();
-    vi.clearAllMocks();
     process.env = { ...originalEnv };
   });
 

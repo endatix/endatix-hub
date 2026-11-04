@@ -76,7 +76,6 @@ const VALID_LOCALES_AT_CAP = [
 
 describe("prepareDataListImport", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     mockAuth.mockResolvedValue({ accessToken: "token", isLoggedIn: true });
     mockRequireHubAccess.mockResolvedValue(undefined);
     mockGetById.mockResolvedValue(ApiResult.success(details));

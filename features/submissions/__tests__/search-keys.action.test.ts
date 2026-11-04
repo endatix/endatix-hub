@@ -56,7 +56,6 @@ const RESPONSE = {
 
 describe("addSearchKeyAction", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     mockRequireAllPermissions.mockResolvedValue(undefined);
     mockReportingExportFlag.mockResolvedValue(true);
     mockAddSearchKey.mockResolvedValue(ApiResult.success(RESPONSE));
@@ -131,7 +130,6 @@ describe("addSearchKeyAction", () => {
 
 describe("removeSearchKeyAction", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     mockRequireAllPermissions.mockResolvedValue(undefined);
     mockReportingExportFlag.mockResolvedValue(true);
     mockRemoveSearchKey.mockResolvedValue(ApiResult.success(RESPONSE));

@@ -29,7 +29,6 @@ vi.mock("../../../infrastructure/auth-logout.utils", () => ({
 
 describe("logoutAction", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     vi.stubEnv("NEXT_PUBLIC_BASE_PATH", "/app");
     mockSignOut.mockResolvedValue(undefined);
     mockGetAuthJwtFromRequest.mockResolvedValue(null);

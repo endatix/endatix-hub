@@ -45,7 +45,6 @@ describe("generateGranularReadTokensUseCase", () => {
   };
 
   beforeEach(() => {
-    vi.clearAllMocks();
     vi.mocked(getClientStorageConfig).mockReturnValue(mockClientStorageConfig);
     mockStorageProvider.isEnabled.mockReturnValue(true);
     vi.mocked(getActiveStorageProvider).mockReturnValue(

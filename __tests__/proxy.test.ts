@@ -25,7 +25,6 @@ async function getProxy(): Promise<ProxyHandler> {
 
 describe("proxy", () => {
   beforeEach(async () => {
-    vi.clearAllMocks();
     vi.unstubAllEnvs();
   });
 
@@ -189,7 +188,6 @@ describe("proxy", () => {
         )}`,
       );
     });
-
   });
 
   describe("non-auth, non-hub paths", () => {
@@ -233,7 +231,6 @@ describe("proxy", () => {
     beforeEach(async () => {
       vi.stubEnv("MAINTENANCE_MODE", "true");
       await import("@/auth");
-      vi.clearAllMocks();
     });
 
     afterEach(() => {

@@ -32,7 +32,6 @@ describe("PostHog Client", () => {
   };
 
   beforeEach(() => {
-    vi.clearAllMocks();
     vi.resetModules();
     vi.mocked(posthog).__loaded = false;
 

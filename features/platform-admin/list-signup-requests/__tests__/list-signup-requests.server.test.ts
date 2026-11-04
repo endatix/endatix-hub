@@ -18,7 +18,6 @@ describe("listSignupRequests", () => {
   const list = vi.fn();
 
   beforeEach(() => {
-    vi.clearAllMocks();
     vi.mocked(EndatixApi).mockImplementation(function () {
       return { signupRequests: { list } } as never;
     });

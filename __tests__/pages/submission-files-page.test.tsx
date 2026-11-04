@@ -52,7 +52,6 @@ describe("Submission files page", () => {
   const mockParams = Promise.resolve({ formId, submissionId });
 
   beforeEach(() => {
-    vi.clearAllMocks();
     vi.mocked(authModule.auth).mockResolvedValue({
       user: { id: "u1", name: "Test", email: "test@example.com" },
     } as unknown as Awaited<ReturnType<typeof authModule.auth>>);

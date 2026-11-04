@@ -37,7 +37,6 @@ describe("useLanguageSelection", () => {
   let languageSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
-    vi.clearAllMocks();
     mockSurveyModel.locale = "";
     vi.stubGlobal("localStorage", mockLocalStorage);
     languagesSpy = vi.spyOn(navigator, "languages", "get");
@@ -47,7 +46,6 @@ describe("useLanguageSelection", () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
-    vi.clearAllMocks();
   });
 
   describe("initialization", () => {

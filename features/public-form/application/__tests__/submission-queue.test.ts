@@ -20,7 +20,6 @@ describe("SubmissionQueue", () => {
 
   beforeEach(() => {
     queue = new SubmissionQueue();
-    vi.clearAllMocks();
     vi.useFakeTimers();
   });
 

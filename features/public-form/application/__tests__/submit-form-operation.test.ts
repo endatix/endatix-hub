@@ -57,7 +57,6 @@ const mockTokenStore = {
 
 describe("submitFormOperation", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     (
       globalThis as unknown as GlobalTestMocks
     ).endatixApiConstructorArgs.length = 0;

@@ -48,7 +48,6 @@ async function moveTo(
 
 describe("useMoveToFolder", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     mockLoadFolderChoices.mockResolvedValue(choices);
   });
 

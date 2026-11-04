@@ -78,7 +78,6 @@ describe("getUserFile", () => {
   const fileName = "doc.pdf";
 
   beforeEach(() => {
-    vi.clearAllMocks();
     vi.mocked(storageRuntime.getClientStorageConfig).mockReturnValue(
       publicClientConfig,
     );

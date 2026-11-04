@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 import { EndatixApi } from "../endatix-api";
 import { ApiResult } from "../shared/api-result";
 
@@ -12,10 +12,6 @@ describe("SignupRequests", () => {
     process.env.ENDATIX_API_URL = "https://ci.api.endatix.com/api";
     api = new EndatixApi("token");
     mockFetch.mockClear();
-  });
-
-  afterEach(() => {
-    vi.clearAllMocks();
   });
 
   it("creates a signup request without auth", async () => {

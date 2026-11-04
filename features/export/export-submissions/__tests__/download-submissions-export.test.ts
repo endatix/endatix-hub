@@ -7,7 +7,6 @@ describe("downloadSubmissionsExport", () => {
   const getFilenameFromContentDispositionMock = vi.fn();
 
   beforeEach(() => {
-    vi.clearAllMocks();
     vi.spyOn(filesDownload, "initiateFileDownload").mockImplementation(
       initiateFileDownloadMock,
     );

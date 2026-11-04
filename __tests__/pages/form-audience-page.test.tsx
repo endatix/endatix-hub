@@ -63,7 +63,6 @@ describe("Form Audience Page", () => {
   const checkPermission = vi.fn().mockResolvedValue({ success: false });
 
   beforeEach(async () => {
-    vi.clearAllMocks();
     const { auth } = await import("@/auth");
     const { authorization } = await import("@/features/auth/authorization");
     vi.mocked(auth).mockResolvedValue({ accessToken: "token" } as never);

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { submissionQueue } from "../submission-queue/submission-queue";
 import { useSubmissionQueue } from "../submission-queue/use-submission-queue.hook";
@@ -16,10 +16,6 @@ vi.mock("../submission-queue/submission-queue", () => ({
 
 describe("useSubmissionQueue", () => {
   const mockFormId = "test-form-id";
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
 
   it("should provide queue management functions", () => {
     // Arrange & Act

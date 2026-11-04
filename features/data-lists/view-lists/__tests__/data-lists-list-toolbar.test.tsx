@@ -62,7 +62,6 @@ function renderToolbar() {
 
 describe("DataListsListToolbar", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     mockSearchParams = new URLSearchParams();
     mockSearch = "";
   });
@@ -134,7 +133,6 @@ describe("DataListsListToolbar", () => {
 
 describe("DataListsLocaleFacet", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     mockSearchParams = new URLSearchParams();
   });
 

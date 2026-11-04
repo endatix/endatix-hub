@@ -13,7 +13,6 @@ describe("applyVariablesToModel", () => {
 
   beforeEach(() => {
     model = new SurveyModel();
-    vi.clearAllMocks();
   });
 
   describe("Valid Metadata", () => {
@@ -202,7 +201,6 @@ describe("useDynamicVariables", () => {
 
   beforeEach(() => {
     model = new SurveyModel();
-    vi.clearAllMocks();
   });
 
   afterEach(() => {

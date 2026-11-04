@@ -31,7 +31,6 @@ import { POST } from "../route";
 
 describe("POST /api/public/v0/forms/[formId]/submissions", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     mockCookies.mockResolvedValue({});
   });
 

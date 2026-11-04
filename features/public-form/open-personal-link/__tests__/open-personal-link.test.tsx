@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { StrictMode } from "react";
 import { renderToString } from "react-dom/server";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { Result } from "@/lib/result";
 import { OpenPersonalLink } from "../ui/open-personal-link";
 
@@ -25,10 +25,6 @@ const FORM_ID = "1525035735390879744";
 const LINK_TOKEN = "link-token";
 
 describe("OpenPersonalLink", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it("redeems nothing while the page is rendered on the server", () => {
     const html = renderToString(
       <OpenPersonalLink formId={FORM_ID} token={LINK_TOKEN} />,

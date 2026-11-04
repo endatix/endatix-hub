@@ -8,7 +8,6 @@ const mockRemoveEventListener = vi.fn();
 
 describe("useDebouncedResize", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     vi.useFakeTimers();
 
     Object.defineProperty(window, "addEventListener", {

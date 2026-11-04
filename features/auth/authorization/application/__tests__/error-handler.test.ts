@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { handlePermissionError } from "../error-handler";
 import {
   AuthorizationErrorType,
@@ -21,10 +21,6 @@ vi.mock("next/navigation", () => ({
 }));
 
 describe("handlePermissionError", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it("should throw error when permissionError is null", () => {
     expect(() =>
       handlePermissionError(null as unknown as AuthorizationError),

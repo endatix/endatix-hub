@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { AuthErrorType } from "@/features/auth/shared/auth.types";
 
 vi.mock("next/server", () => ({}));
@@ -26,10 +26,6 @@ async function renderAuthError(
 }
 
 describe("Auth error page", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   /**
    * A stopped API never answered, so nothing rejected the caller's credentials.
    * Labelling that 401 tells the reader their sign-in was refused when the real

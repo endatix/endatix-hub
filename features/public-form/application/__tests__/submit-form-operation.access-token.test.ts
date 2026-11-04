@@ -37,7 +37,6 @@ const tokenStore = {
 
 describe("submitFormOperation with a personalized link's cookie access token", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     tokenStore.getToken.mockReturnValue(Result.success(LINK_TOKEN));
   });
 

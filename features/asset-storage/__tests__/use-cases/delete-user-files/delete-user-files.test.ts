@@ -32,7 +32,6 @@ const storageConfig: ClientStorageConfig = {
 
 describe("deleteUserFiles", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     mockDeleteBlob.mockResolvedValue(undefined);
   });
 

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { useSessionIdentity } from "../client/hooks/use-identify";
 import { PostHogUserIdentity } from "../client/user-identity";
@@ -9,10 +9,6 @@ vi.mock("../client/hooks/use-identify", () => ({
 }));
 
 describe("PostHogUserIdentity", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it("should render nothing (null)", () => {
     const { container } = render(<PostHogUserIdentity session={null} />);
 

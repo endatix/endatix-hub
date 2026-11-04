@@ -66,7 +66,6 @@ class ResizeObserverStub {
 
 describe("SignupRequestReviewPanel", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     clearSignupVisitorCache();
     vi.stubGlobal("ResizeObserver", ResizeObserverStub);
   });

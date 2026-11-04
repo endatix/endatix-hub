@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { Result } from "@/lib/result";
 import { toast } from "@/components/ui/toast";
@@ -24,10 +24,6 @@ describe("RemoveLocaleConfirmDialog", () => {
   const onOpenChange = vi.fn();
   const onRemoved = vi.fn();
   const onPendingChange = vi.fn();
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
 
   it("highlights the locale and keeps Remove disabled when locale is null", () => {
     render(

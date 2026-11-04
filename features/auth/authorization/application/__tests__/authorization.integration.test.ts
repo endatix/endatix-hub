@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import type { Session } from "next-auth";
 import { createMockSession, createAuthSuccess, mockRedirect } from "./helpers";
 
@@ -33,10 +33,6 @@ import { NextMiddleware } from "next/server";
 
 describe("authorization integration", () => {
   const mockSession: Session = createMockSession();
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
 
   it("allows admin user to access hub and admin features", async () => {
     const mockAuthData = createAuthSuccess({

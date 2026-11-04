@@ -83,7 +83,6 @@ function savedSettings() {
 
 describe("SubmissionGridViewProvider with the grid's URL", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     localStorage.clear();
   });
 

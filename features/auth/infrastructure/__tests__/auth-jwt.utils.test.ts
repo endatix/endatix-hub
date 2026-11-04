@@ -1,4 +1,3 @@
-
 import type { JWT } from "next-auth/jwt";
 import { getToken } from "next-auth/jwt";
 import { headers } from "next/headers";
@@ -35,7 +34,6 @@ describe("getAuthJwtFromRequest", () => {
   });
 
   afterEach(() => {
-    vi.clearAllMocks();
     vi.unstubAllEnvs();
     delete process.env.AUTH_SECRET;
   });

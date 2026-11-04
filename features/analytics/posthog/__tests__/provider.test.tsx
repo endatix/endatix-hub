@@ -56,7 +56,6 @@ describe("PostHogProvider", () => {
   };
 
   beforeEach(() => {
-    vi.clearAllMocks();
     vi.mocked(createPostHogConfig).mockReturnValue(mockConfig);
     vi.mocked(isPostHogEnabled).mockReturnValue(true);
     vi.mocked(initPostHog).mockReturnValue(true);

@@ -52,7 +52,6 @@ describe("role management actions", () => {
   const requirePermission = vi.fn();
 
   beforeEach(() => {
-    vi.clearAllMocks();
     telemetryLoggerMock.error.mockClear();
     vi.mocked(auth).mockResolvedValue({ accessToken: "token" } as never);
     vi.mocked(authorization).mockResolvedValue({

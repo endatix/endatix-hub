@@ -20,7 +20,6 @@ describe("handleResizeImageRequest", () => {
   const originalEnv = { ...process.env };
 
   beforeEach(() => {
-    vi.clearAllMocks();
     vi.mocked(imageService.optimizeImageSize).mockResolvedValue(
       mockOptimizedBuffer,
     );

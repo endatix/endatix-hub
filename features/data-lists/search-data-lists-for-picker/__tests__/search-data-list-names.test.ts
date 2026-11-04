@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { Result } from "@/lib/result";
 import { searchDataListNamesForPicker } from "../search-data-list-names";
 
@@ -11,10 +11,6 @@ vi.mock("../search-data-lists-for-picker.action", () => ({
 }));
 
 describe("searchDataListNamesForPicker", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it("maps picker items to names", async () => {
     mockSearch.mockResolvedValue(
       Result.success({

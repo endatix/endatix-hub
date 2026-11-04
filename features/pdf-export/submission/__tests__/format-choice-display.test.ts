@@ -80,7 +80,6 @@ describe("resolveItemValueLabel", () => {
 describe("resolveChoiceLabelForQuestion", () => {
   beforeEach(() => {
     registerDataListGlobals();
-    vi.clearAllMocks();
     mockAuth.mockResolvedValue({ accessToken: "hub-token" });
     mockCreateFormAccessToken.mockResolvedValue({
       success: true,

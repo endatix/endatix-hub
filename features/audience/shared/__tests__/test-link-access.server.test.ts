@@ -20,7 +20,6 @@ const EDITOR = [Permissions.Forms.Test, Permissions.Forms.Edit];
 
 describe("testLinkAccess", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     supportsTestLinks.mockResolvedValue(true);
   });
 

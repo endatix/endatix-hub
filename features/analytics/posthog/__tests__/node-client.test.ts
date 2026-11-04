@@ -30,7 +30,6 @@ describe("PostHog Server", () => {
 
   beforeEach(() => {
     // Reset everything before each test
-    vi.clearAllMocks();
     resetPostHogServer();
 
     // Set up default mock behaviors

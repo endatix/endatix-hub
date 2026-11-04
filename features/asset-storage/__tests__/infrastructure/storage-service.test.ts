@@ -109,7 +109,6 @@ describe("Active storage provider", () => {
   const mockFileName = "test.jpg";
 
   beforeEach(async () => {
-    vi.clearAllMocks();
     vi.resetModules();
     process.env.STORAGE_PROVIDER = "azure";
     process.env.STORAGE_AZURE_ACCOUNT_NAME = mockAccountName;

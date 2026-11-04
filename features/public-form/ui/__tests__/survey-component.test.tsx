@@ -238,8 +238,6 @@ describe("SurveyComponent - submissionUpdateGuard Behavior", () => {
   let realSurveyModel: SurveyModel;
 
   beforeEach(() => {
-    vi.clearAllMocks();
-
     // Create a REAL SurveyModel instance using the actual SurveyJS library
     realSurveyModel = new SurveyModel(defaultProps.definition);
     realSurveyModel.data = { question1: "test" };
@@ -489,7 +487,6 @@ describe("SurveyComponent - Embed Fill Mode", () => {
   let getComputedStyleSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
-    vi.clearAllMocks();
     mockGetEmbedMessagingContext.mockReturnValue({});
     mockUseSurveyTheme.mockReturnValue({ theme: undefined, error: null });
     mockUseStorageWithSurvey.mockReturnValue({

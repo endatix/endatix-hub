@@ -37,7 +37,6 @@ describe("deleteFormAction", () => {
   const requireHubAccess = vi.fn().mockResolvedValue(undefined);
 
   beforeEach(() => {
-    vi.clearAllMocks();
     vi.mocked(auth).mockResolvedValue({
       accessToken: "token",
     } as never);

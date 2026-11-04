@@ -47,7 +47,6 @@ describe("primeDataListDisplayValues", () => {
   beforeEach(() => {
     registerDataListGlobals();
     clearDataListDisplayValuesCacheForTests();
-    vi.clearAllMocks();
     mockAuth.mockResolvedValue({ accessToken: "hub-token" });
     mockCreateFormAccessToken.mockResolvedValue({
       success: true,

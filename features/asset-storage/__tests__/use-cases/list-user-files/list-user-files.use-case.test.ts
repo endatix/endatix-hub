@@ -74,7 +74,6 @@ describe("listUserFiles", () => {
   const submissionId = "s1";
 
   beforeEach(() => {
-    vi.clearAllMocks();
     vi.mocked(storageRuntime.getClientStorageConfig).mockReturnValue(
       enabledClientStorageConfig,
     );

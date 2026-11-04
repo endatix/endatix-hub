@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { Result } from "@/lib/result";
 import { DeleteSubmissionDialog } from "../ui/delete-submission-dialog";
 
@@ -86,10 +86,6 @@ vi.mock("@/components/ui/alert-dialog", () => ({
 }));
 
 describe("DeleteSubmissionDialog", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it("renders low-risk copy for test submissions", () => {
     render(
       <DeleteSubmissionDialog

@@ -61,7 +61,6 @@ vi.mock("../save-as-template-dialog", () => ({
 
 describe("FormDetails", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     mockUpdateFormSettingsAction.mockResolvedValue({
       kind: 0,
       value: "form-1",

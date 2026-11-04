@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { Result } from "@/lib/result";
 
 vi.mock("next/navigation", () => ({
@@ -36,10 +36,6 @@ vi.mock("@/features/forms/form-workspace/ui/form-load-error", () => ({
 const params = Promise.resolve({ formId: "f1", memberId: "m1" });
 
 describe("Form participant page", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it("sends a reader who cannot edit the form back to it", async () => {
     const { requireAudienceAccess } =
       await import("@/features/audience/shared/require-audience-api.server");

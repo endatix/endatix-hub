@@ -16,7 +16,6 @@ vi.mock("next/navigation", () => ({
 
 describe("useAddPerson", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     vi.mocked(createAudiencePersonAction).mockResolvedValue(
       Result.success(undefined),
     );

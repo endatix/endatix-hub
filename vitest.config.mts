@@ -16,8 +16,6 @@ export default defineConfig({
   },
   test: {
     globals: true,
-    // Vitest 5 defaults to true; flipping it is endatix-hub#1319.
-    clearMocks: false,
     // SurveyJS Creator and renderer tests can pass 5 s on a cold cache with coverage on.
     testTimeout: 15_000,
     server: {

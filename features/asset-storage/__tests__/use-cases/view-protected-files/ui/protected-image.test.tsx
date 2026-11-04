@@ -5,7 +5,7 @@ import {
 import type { ReactNode } from "react";
 import { render, screen } from "@testing-library/react";
 import { QuestionImageModel } from "survey-core";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { clientStorageConfig } from "../../../test-storage-config";
 
 const mockRenderElement = vi.fn(() => {
@@ -117,10 +117,6 @@ describe("ProtectedQuestionImage", () => {
     onLoadHandler: vi.fn(),
     onErrorHandler: vi.fn(),
   } as unknown as QuestionImageModel;
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
 
   it("uses StoragePresignedImage when private storage is enabled", () => {
     renderProtectedImage(mockQuestion, buildContext());

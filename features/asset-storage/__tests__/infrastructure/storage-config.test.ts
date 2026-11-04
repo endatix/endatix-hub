@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import {
   type AzureStorageConfig,
   createStorageConfigClient,
@@ -27,7 +27,6 @@ describe("AzureStorageConfig", () => {
   const originalEnv = { ...process.env };
 
   beforeEach(() => {
-    vi.clearAllMocks();
     process.env = { ...originalEnv };
     delete process.env.STORAGE_PROVIDER;
     delete process.env.STORAGE_AZURE_ACCOUNT_NAME;

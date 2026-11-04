@@ -381,7 +381,6 @@ Element.prototype.scrollIntoView = vi.fn();
 
 describe("ExportSubmissionsDialog", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     latestPanelProps = null;
     mockListFormReportingLocalesAction.mockResolvedValue(
       Result.success(["default", "es", "fr"]),

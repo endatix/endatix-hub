@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { toast } from "@/components/ui/toast";
 import { Result } from "@/lib/result";
 import { removeSearchKeyAction } from "@/features/submissions/search-keys.action";
@@ -36,10 +36,6 @@ function renderList(canEdit: boolean) {
 }
 
 describe("FilterableQuestionsList", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it("lists automatic and chosen questions with the slots used", () => {
     // Act
     renderList(true);

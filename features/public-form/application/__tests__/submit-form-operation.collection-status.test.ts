@@ -38,7 +38,6 @@ function answerUpdateWith(collectionStatus: string) {
 
 describe("submitFormOperation cookie and collection status", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     tokenStore.getToken.mockReturnValue(Result.success("existing-token"));
   });
 

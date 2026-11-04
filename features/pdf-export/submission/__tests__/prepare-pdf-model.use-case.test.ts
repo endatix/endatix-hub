@@ -69,7 +69,6 @@ describe("preparePdfModel", () => {
   } as Submission;
 
   beforeEach(() => {
-    vi.clearAllMocks();
     vi.mocked(addViewTokensToModelUseCase).mockResolvedValue(undefined);
     vi.mocked(primeDataListDisplayValues).mockResolvedValue(undefined);
     vi.mocked(getSubmissionLocale).mockReturnValue("en");

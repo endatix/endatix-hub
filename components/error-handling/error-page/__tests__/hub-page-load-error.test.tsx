@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { ERROR_CODE } from "@/lib/endatix-api/shared/error-codes";
 import { Result } from "@/lib/result";
 import { HubPageLoadError } from "../hub-page-load-error";
@@ -17,10 +17,6 @@ vi.mock("@/components/ui/toast", () => ({
 }));
 
 describe("HubPageLoadError", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it("renders ResultLoadErrorView chrome for a network Result", () => {
     // Arrange
     const result = Result.error(

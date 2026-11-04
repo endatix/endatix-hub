@@ -41,7 +41,6 @@ describe("deleteUserAction", () => {
   const targetEmail = "target@endatix.com";
 
   beforeEach(() => {
-    vi.clearAllMocks();
     vi.mocked(auth).mockResolvedValue({
       accessToken: "token",
       user: { id: actorUserId },

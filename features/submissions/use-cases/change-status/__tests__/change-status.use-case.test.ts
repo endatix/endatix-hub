@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { changeStatusUseCase } from "../change-status.use-case";
 import { updateSubmissionStatus } from "@/services/api";
 import { SubmissionStatusKind } from "@/types";
@@ -14,10 +14,6 @@ describe("changeStatusUseCase", () => {
     submissionId: "2",
     status: SubmissionStatusKind.Approved,
   };
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
 
   it("should successfully change status", async () => {
     vi.mocked(updateSubmissionStatus).mockResolvedValueOnce({

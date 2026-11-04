@@ -1,6 +1,6 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { SubmissionGridRow } from "@/lib/endatix-api/reporting/submission-grid-types";
 import { Result } from "@/lib/result";
 import type { SubmissionTestAccess } from "../submission-test-flag";
@@ -33,10 +33,6 @@ function renderMark(
 }
 
 describe("useSubmissionTestMark", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it("offers nothing without forms.test", () => {
     // Act
     const { result } = renderMark(

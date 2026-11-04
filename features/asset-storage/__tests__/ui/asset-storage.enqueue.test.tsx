@@ -30,7 +30,6 @@ const mockStorageConfig: ClientStorageConfig = {
 describe("AssetStorageClientProvider enqueuePrivateReadUrls", () => {
   beforeEach(() => {
     vi.useFakeTimers();
-    vi.clearAllMocks();
   });
 
   afterEach(() => {

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
+import { describe, expect, it, beforeEach, vi } from "vitest";
 import { SurveyError, SurveyModel } from "survey-core";
 import {
   AudioQuestionModel,
@@ -79,9 +79,6 @@ describe("AudioQuestionModel", () => {
   let survey: SurveyModel;
 
   beforeEach(() => {
-    // Reset all mocks
-    vi.clearAllMocks();
-
     // Mock global APIs
     vi.stubGlobal("navigator", {
       mediaDevices: {
@@ -118,10 +115,6 @@ describe("AudioQuestionModel", () => {
     audioQuestion = survey.getQuestionByName(
       "audioQuestion",
     ) as TestAudioQuestionModel;
-  });
-
-  afterEach(() => {
-    vi.clearAllMocks();
   });
 
   describe("Constructor and Properties", () => {

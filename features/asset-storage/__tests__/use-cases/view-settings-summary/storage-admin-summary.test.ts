@@ -47,7 +47,6 @@ vi.mock(
 
 describe("getStorageAdminSummary", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     vi.mocked(
       validateStorageProfileModule.validateStorageProfile,
     ).mockReturnValue([]);

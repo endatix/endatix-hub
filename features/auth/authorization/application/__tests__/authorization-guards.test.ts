@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   requirePermissionFactory,
   requireAnyPermissionFactory,
@@ -22,10 +22,6 @@ vi.mock("../error-handler", () => ({
 
 describe("authorization-guards", () => {
   const mockedHandlePermissionError = vi.mocked(handlePermissionError);
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
 
   it("requirePermission calls checker with provided permission", async () => {
     const checkPermission = vi.fn().mockResolvedValue(successResult);

@@ -41,7 +41,6 @@ const NEEDS_NEWER_API =
 
 describe("generateAudienceLinksAction", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     vi.mocked(requireAudienceApi).mockResolvedValue(
       Result.success(api as never),
     );
@@ -129,7 +128,6 @@ describe("generateAudienceLinksAction", () => {
 
 describe("previewAudienceLinksAction", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     vi.mocked(checkAudienceApi).mockResolvedValue(Result.success(api as never));
   });
 

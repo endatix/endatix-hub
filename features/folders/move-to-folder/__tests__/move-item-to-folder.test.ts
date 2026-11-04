@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { loadFolderChoices, moveItemToFolder } from "../move-item-to-folder";
 
 const mockMoveForm = vi.fn();
@@ -18,10 +18,6 @@ vi.mock("../../list-folders/list-folders.action", () => ({
 }));
 
 describe("moveItemToFolder", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it("moves a form with the form action", async () => {
     // Arrange
     mockMoveForm.mockResolvedValue({ kind: 0, value: undefined });

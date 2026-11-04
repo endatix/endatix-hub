@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { FormsListToolbar } from "../ui/forms-list-toolbar";
 
 const updateUrl = vi.fn();
@@ -22,10 +22,6 @@ vi.mock("@/components/table", async (importOriginal) => {
 });
 
 describe("FormsListToolbar", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it("clears search, status, visibility, browse, and resets page when Clear filters is clicked", () => {
     // Arrange
     render(<FormsListToolbar variant="root" />);

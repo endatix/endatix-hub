@@ -50,7 +50,6 @@ function row(id: string): SignupRequestView {
 
 describe("refreshSignupRequestAction", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     vi.mocked(saasManagementFlag).mockResolvedValue(true);
     vi.mocked(requirePlatformAdmin).mockResolvedValue({
       accessToken: "token",

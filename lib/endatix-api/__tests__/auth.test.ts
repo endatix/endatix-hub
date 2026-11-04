@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 import { EndatixApi } from "../endatix-api";
 import Auth from "../auth/auth";
 import { ApiResult, ApiErrorType, ERROR_CODE } from "../shared/api-result";
@@ -17,10 +17,6 @@ describe("Auth", () => {
     endatixApi = new EndatixApi();
     auth = endatixApi.auth;
     mockFetch.mockClear();
-  });
-
-  afterEach(() => {
-    vi.clearAllMocks();
   });
 
   describe("signIn", () => {

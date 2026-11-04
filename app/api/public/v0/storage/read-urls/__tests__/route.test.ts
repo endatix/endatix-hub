@@ -54,7 +54,6 @@ import { POST } from "../route";
 
 describe("POST /api/public/v0/storage/read-urls", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     mockAuth.mockResolvedValue({ accessToken: "hub-session-token" });
     mockGetClientStorageConfig.mockReturnValue({
       isEnabled: true,

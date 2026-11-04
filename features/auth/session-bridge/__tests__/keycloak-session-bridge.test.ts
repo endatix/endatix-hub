@@ -1,4 +1,3 @@
-
 import { NextRequest } from "next/server";
 import { encode } from "next-auth/jwt";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -46,7 +45,6 @@ describe("createSessionFromToken", () => {
 
   afterEach(() => {
     vi.unstubAllEnvs();
-    vi.clearAllMocks();
   });
 
   it("writes the secure cookie when AUTH_URL is https behind an http proxy", async () => {

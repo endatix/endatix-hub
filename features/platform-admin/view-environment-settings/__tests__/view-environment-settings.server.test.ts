@@ -34,7 +34,6 @@ describe("getEnvironmentSettings", () => {
   beforeEach(() => {
     process.env = { ...originalEnv };
     resetApiConfigCacheForTests();
-    vi.clearAllMocks();
   });
 
   afterEach(() => {

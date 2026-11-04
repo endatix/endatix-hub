@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { downloadSubmissionFilesUseCase } from "../download-submission-files.use-case";
 import * as filesDownloadUtils from "@/lib/utils/files-download";
 import { toast } from "@/components/ui/toast";
@@ -37,10 +37,6 @@ describe("downloadSubmissionFilesUseCase", () => {
       filesDownloadUtils,
       "getFilenameFromContentDisposition",
     ).mockImplementation(() => "file.zip");
-  });
-
-  afterEach(() => {
-    vi.clearAllMocks();
   });
 
   it("handles successful download", async () => {

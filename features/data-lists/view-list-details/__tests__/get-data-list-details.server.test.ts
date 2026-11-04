@@ -13,7 +13,6 @@ vi.mock("../../data-lists-api.server", () => ({
 
 describe("getDataListDetails", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     mockRequireApi.mockResolvedValue({
       dataLists: { getById: mockGetById },
     });
