@@ -1,4 +1,13 @@
-import { BlockList, isIP } from "node:net";
+import type { BlockList } from "node:net";
+
+/**
+ * `node:net`, looked up when first used. An import would put it in the browser
+ * bundle, which `client-ip.ts` reaches and which cannot hold it; an `import()`
+ * does not load under Playwright, where API-driven e2e specs sign in.
+ */
+function net(): typeof import("node:net") {
+  return process.getBuiltinModule("node:net");
+}
 
 /** Environment variables that configure visitor-address forwarding. */
 export const ClientIpEnv = Object.freeze({
@@ -44,7 +53,8 @@ export function parseTrustedProxies(value: string | undefined): TrustedProxies {
     .filter((entry) => entry.length > 0);
   // One list per family: BlockList also checks an IPv4 address against IPv6
   // rules (as ::ffff:a.b.c.d), so ::/80 would otherwise trust every IPv4 hop.
-  const lists = { ipv4: new BlockList(), ipv6: new BlockList() };
+  const { BlockList: List } = net();
+  const lists = { ipv4: new List(), ipv6: new List() };
   for (const entry of entries) {
     addEntry(lists, entry);
   }
@@ -116,7 +126,7 @@ function addEntry(lists: Record<Family, BlockList>, entry: string): void {
     list.addAddress(address, family);
     return;
   }
-  if (family === "ipv4" && isIP(base) === 6) {
+  if (family === "ipv4" && net().isIP(base) === 6) {
     throw new TrustedProxiesConfigError(
       `"${entry}" is an IPv4-mapped network; write it as an IPv4 CIDR`,
     );
@@ -161,7 +171,7 @@ function canonicalIp(value: string): string | null {
   if (value.includes("%")) {
     return null;
   }
-  const family = isIP(value);
+  const family = net().isIP(value);
   if (family === 4) {
     return value;
   }
@@ -184,5 +194,5 @@ function unmapIpv4(ipv6: string): string | null {
 }
 
 function familyOf(ip: string): Family {
-  return isIP(ip) === 6 ? "ipv6" : "ipv4";
+  return net().isIP(ip) === 6 ? "ipv6" : "ipv4";
 }

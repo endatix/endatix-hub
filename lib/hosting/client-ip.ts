@@ -1,3 +1,5 @@
+import { resolveClientIp, trustedProxiesFromEnv } from "./trusted-proxies";
+
 /** Request header that carries the visitor address to the Endatix API. */
 export const ClientIpHeaders = Object.freeze({
   FORWARDED_FOR: "X-Forwarded-For",
@@ -20,8 +22,6 @@ export async function readVisitorIp(): Promise<string | null> {
     return null;
   }
 
-  const { resolveClientIp, trustedProxiesFromEnv } =
-    await import("./trusted-proxies");
   const trusted = trustedProxiesFromEnv();
   if (!trusted || trusted.size === 0) {
     return null;
@@ -30,12 +30,14 @@ export async function readVisitorIp(): Promise<string | null> {
   return resolveClientIp(await readForwardedFor(), trusted);
 }
 
+// import(), because client components reach this module. `.js`, because next
+// has no exports map and Node's own import() (Playwright's) needs the file.
 async function readForwardedFor(): Promise<string | null> {
   try {
-    const { headers } = await import("next/headers");
+    const { headers } = await import("next/headers.js");
     return (await headers()).get(ClientIpHeaders.FORWARDED_FOR);
   } catch (error) {
-    const { unstable_rethrow } = await import("next/navigation");
+    const { unstable_rethrow } = await import("next/navigation.js");
     unstable_rethrow(error);
     return null;
   }
