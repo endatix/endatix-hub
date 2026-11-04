@@ -151,10 +151,13 @@ test.describe("Audience demo import", () => {
         [21, "Identifier appears more than once in the file.", "ACME-STD-0004"],
       ]);
 
+      // The helper creates the Properties in parallel, so their order is not fixed.
       const properties = await api.audience.listProperties(form.formId);
-      expect(
-        properties.success && properties.data.map((p) => [p.name, p.dataType]),
-      ).toEqual(demoProperties().map((p) => [p.name, p.dataType]));
+      const types = (list: readonly { name: string; dataType: string }[]) =>
+        Object.fromEntries(list.map((p) => [p.name, p.dataType]));
+      expect(properties.success && types(properties.data)).toEqual(
+        types(demoProperties()),
+      );
 
       const vip = await api.audience.listPeople(form.formId, {
         search: "VIP",
