@@ -7,7 +7,6 @@ import { saasManagementFlag } from "@/lib/feature-flags/flags";
 import { refreshSignupRequestAction } from "../review-signup-request.actions";
 import type { SignupRequestView } from "../types";
 
-vi.mock("server-only", () => ({}));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/feature-flags/flags", () => ({
   saasManagementFlag: vi.fn(),

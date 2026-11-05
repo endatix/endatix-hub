@@ -4,7 +4,6 @@ import { supportsTestLinks as supportsRoute } from "@/lib/endatix-api/audience/t
 import { testLinkAccess } from "../test-link-access.server";
 import { grantedChecks } from "./support/granted-checks";
 
-vi.mock("server-only", () => ({}));
 vi.mock("@/lib/endatix-api/audience/test-links", () => ({
   supportsTestLinks: vi.fn(),
 }));

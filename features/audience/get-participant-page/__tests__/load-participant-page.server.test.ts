@@ -10,7 +10,6 @@ import { ApiResult } from "@/lib/endatix-api/shared/api-result";
 import { Result } from "@/lib/result";
 import { loadParticipantPage } from "../load-participant-page.server";
 
-vi.mock("server-only", () => ({}));
 vi.mock("@/features/telemetry", () => ({
   TelemetryLogger: { error: vi.fn(), warn: vi.fn() },
 }));

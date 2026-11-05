@@ -9,8 +9,6 @@ vi.mock("@/features/embed-form/ui/embed-messaging-context", () => ({
   })),
 }));
 
-const originalParent = window.parent;
-
 function setBodyHeight(height: number): void {
   Object.defineProperty(document.body, "scrollHeight", {
     configurable: true,
@@ -23,19 +21,12 @@ describe("EmbedHeightReporter", () => {
 
   beforeEach(() => {
     postMessage = vi.fn();
-    Object.defineProperty(window, "parent", {
-      configurable: true,
-      value: { postMessage },
-    });
+    vi.stubGlobal("parent", { postMessage });
     setBodyHeight(640);
   });
 
   afterEach(() => {
     cleanup();
-    Object.defineProperty(window, "parent", {
-      configurable: true,
-      value: originalParent,
-    });
   });
 
   it("reports the smaller height when the complete page replaces the form (h947)", async () => {

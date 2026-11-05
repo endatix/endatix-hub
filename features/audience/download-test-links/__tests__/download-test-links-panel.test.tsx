@@ -4,6 +4,7 @@ import { Result } from "@/lib/result";
 import * as filesDownload from "@/lib/utils/files-download";
 import { downloadTestLinksAction } from "../download-test-links.action";
 import { DownloadTestLinksPanel } from "../ui/download-test-links-panel";
+import { stubResizeObserver } from "@/test/stubs/resize-observer";
 
 vi.mock("@/lib/utils/hooks/use-media-query.hook", () => ({
   useMediaQuery: () => true,
@@ -32,13 +33,6 @@ const LINKS = [
   },
 ];
 
-class ResizeObserverStub {
-  observe(): void {}
-  unobserve(): void {}
-  disconnect(): void {}
-}
-globalThis.ResizeObserver ??=
-  ResizeObserverStub as unknown as typeof ResizeObserver;
 // Radix Select opens on a mouse pointerdown and scrolls the chosen item into view.
 Element.prototype.hasPointerCapture ??= () => false;
 Element.prototype.releasePointerCapture ??= () => undefined;
@@ -70,6 +64,7 @@ describe("DownloadTestLinksPanel", () => {
   const downloadText = vi.fn();
 
   beforeEach(() => {
+    stubResizeObserver();
     vi.mocked(downloadTestLinksAction).mockReset();
     vi.mocked(downloadTestLinksAction).mockResolvedValue(Result.success(LINKS));
     downloadText.mockReset();

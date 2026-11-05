@@ -16,6 +16,7 @@ import {
 import { Result } from "@/lib/result";
 import { updateAudiencePersonAction } from "../../update-person/update-audience-person.action";
 import { PeopleSection } from "../ui/people-section";
+import { stubResizeObserver } from "@/test/stubs/resize-observer";
 
 vi.mock("@/lib/utils/hooks/use-media-query.hook", () => ({
   useMediaQuery: () => true,
@@ -112,16 +113,9 @@ const LIST = {
   search: "",
 };
 
-// Radix tooltips (the identifier's copy affordance) measure with ResizeObserver.
-class ResizeObserverStub {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-}
-
 describe("PeopleSection", () => {
   beforeEach(() => {
-    vi.stubGlobal("ResizeObserver", ResizeObserverStub);
+    stubResizeObserver();
     vi.mocked(updateAudiencePersonAction).mockReset();
   });
 

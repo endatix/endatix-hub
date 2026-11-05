@@ -10,7 +10,6 @@ import {
   PARTICIPANT_PAGE_PERMISSION,
 } from "../require-audience-api.server";
 
-vi.mock("server-only", () => ({}));
 vi.mock("@/auth", () => ({ auth: vi.fn() }));
 vi.mock("@/lib/feature-flags", () => ({ personalizationFlag: vi.fn() }));
 vi.mock("@/features/auth/authorization", async (importOriginal) => ({

@@ -5,7 +5,6 @@ import type { AudienceVariables } from "@/lib/endatix-api/audience/types";
 import { ApiResult } from "@/lib/endatix-api/shared/api-result";
 import { loadAudienceUsage } from "../load-audience-usage.server";
 
-vi.mock("server-only", () => ({}));
 vi.mock("@/features/telemetry", () => ({
   TelemetryLogger: { error: vi.fn(), warn: vi.fn() },
 }));

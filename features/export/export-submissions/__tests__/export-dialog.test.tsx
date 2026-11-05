@@ -6,6 +6,7 @@ import {
   ExportSubmissionsDialog,
   type ExportSubmissionsDialogProps,
 } from "../ui/export-dialog";
+import { stubResizeObserver } from "@/test/stubs/resize-observer";
 
 const mockOnExport = vi.fn();
 const mockOnOpenChange = vi.fn();
@@ -41,16 +42,8 @@ vi.mock("@/features/export/prepare-reporting-export", () => ({
     mockPrepareReportingExportAction(...args),
 }));
 
-// A class, not vi.fn: cmdk constructs it with `new` when the Status menu opens.
 beforeEach(() => {
-  vi.stubGlobal(
-    "ResizeObserver",
-    class {
-      observe() {}
-      unobserve() {}
-      disconnect() {}
-    },
-  );
+  stubResizeObserver();
 });
 
 vi.mock("@/features/analytics/posthog/client", () => ({

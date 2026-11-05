@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { HeightMode } from "./embed";
+import type { HeightMode } from "../embed";
 
 type TestEmbedInstance = {
   iframe: HTMLIFrameElement;
@@ -24,12 +24,12 @@ type TestEmbedApi = {
   ): void;
 };
 
-type TestEmbedModule = typeof import("./embed");
+type TestEmbedModule = typeof import("../embed");
 
 async function loadEmbedModule(): Promise<TestEmbedModule> {
   vi.resetModules();
   delete (globalThis as { EndatixEmbed?: unknown }).EndatixEmbed;
-  return import("./embed");
+  return import("../embed");
 }
 
 async function loadEmbedApi(): Promise<TestEmbedApi> {
@@ -123,7 +123,7 @@ describe("Endatix embed host script", () => {
 
   it("adds only reserved handshake keys besides token (not prefill)", async () => {
     const { EMBED_RESERVED_QUERY_PARAMS } =
-      await import("../../features/embed-form/embed-query-params");
+      await import("../../../features/embed-form/embed-query-params");
     const reserved = new Set<string>(EMBED_RESERVED_QUERY_PARAMS);
     const api = await loadEmbedApi();
 

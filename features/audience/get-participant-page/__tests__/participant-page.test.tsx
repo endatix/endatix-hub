@@ -18,6 +18,7 @@ import { createTestLinkAction } from "../../copy-test-link/create-test-link.acti
 import { deleteAudiencePersonAction } from "../../delete-person/delete-audience-person.action";
 import { openTestSubmissionAction } from "../../test-as-person/open-test-submission.action";
 import { ParticipantPage } from "../ui/participant-page";
+import { stubResizeObserver } from "@/test/stubs/resize-observer";
 
 const router = { refresh: vi.fn(), push: vi.fn() };
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
@@ -103,16 +104,9 @@ const submissionsTable = () =>
     "table",
   );
 
-// Radix measures with ResizeObserver.
-class ResizeObserverStub {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-}
-
 describe("ParticipantPage", () => {
   beforeEach(() => {
-    vi.stubGlobal("ResizeObserver", ResizeObserverStub);
+    stubResizeObserver();
     sessionStorage.clear();
   });
 

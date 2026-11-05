@@ -9,8 +9,6 @@ import {
   parseFindRequest,
 } from "../find-participants.server";
 
-vi.mock("server-only", () => ({}));
-
 const FORM_ID = "1525035735390879744";
 
 function person(n: number, isTest: boolean): AudiencePerson {

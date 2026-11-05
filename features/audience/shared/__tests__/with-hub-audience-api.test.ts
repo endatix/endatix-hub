@@ -1,8 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Result } from "@/lib/result";
 
-vi.mock("server-only", () => ({}));
-
 vi.mock("@/auth", () => ({
   auth: vi.fn(),
 }));

@@ -8,6 +8,7 @@ import {
   type AudienceProperty,
 } from "@/lib/endatix-api/audience/types";
 import { PeopleSection } from "../ui/people-section";
+import { stubResizeObserver } from "@/test/stubs/resize-observer";
 
 vi.mock("@/lib/utils/hooks/use-media-query.hook", () => ({
   useMediaQuery: () => true,
@@ -81,12 +82,6 @@ const LIST = {
   canTest: false,
 };
 
-class ResizeObserverStub {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-}
-
 const headers = () =>
   screen.getAllByRole("columnheader").map((header) => header.textContent);
 
@@ -109,7 +104,7 @@ function toggleColumn(name: string) {
 
 describe("Participants list Property columns", () => {
   beforeEach(() => {
-    vi.stubGlobal("ResizeObserver", ResizeObserverStub);
+    stubResizeObserver();
     localStorage.clear();
   });
 

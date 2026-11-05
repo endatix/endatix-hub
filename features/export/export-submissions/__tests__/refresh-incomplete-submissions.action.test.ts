@@ -8,8 +8,6 @@ const mockRequireHubAccess = vi.fn();
 const mockCheckPermission = vi.fn();
 const mockBackfillSubmissions = vi.fn();
 
-vi.mock("server-only", () => ({}));
-
 vi.mock("@/auth", () => ({
   auth: vi.fn().mockResolvedValue({ accessToken: "token" }),
 }));
