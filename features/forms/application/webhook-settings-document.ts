@@ -13,6 +13,8 @@ export type WebhookEventValues = Record<WebhookEventKey, WebhookEventValue>;
 /**
  * Keys the API retired, by the key that replaced them. A document saved before the
  * rename can still carry one; it reads as the new key and is never written back.
+ * Remove an entry once the oldest API this Hub supports migrates it
+ * (SubmissionCollectionStatusChanged: endatix/endatix#1521).
  */
 const RETIRED_EVENT_KEYS: Partial<Record<WebhookEventKey, string>> = {
   SubmissionClosed: "SubmissionCollectionStatusChanged",

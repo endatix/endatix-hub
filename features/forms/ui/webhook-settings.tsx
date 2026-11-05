@@ -15,6 +15,7 @@ import { getTenantSettingsAction } from "../application/actions/get-tenant-setti
 import type { TenantSettings } from "@/lib/endatix-api/tenant";
 import { Result } from "@/lib/result";
 import { ErrorMessage } from "@/components/forms/error-message";
+import { helpId } from "@/components/common/field-with-help";
 import { ServerActionState } from "@/lib/utils/zod-error-utils";
 import type {
   WebhookEventKey,
@@ -69,7 +70,12 @@ function EventLabel({ event }: Readonly<{ event: WebhookEvent }>) {
     <div className="text-right">
       <span>{event.label}</span>
       {event.description && (
-        <p className="text-xs text-muted-foreground">{event.description}</p>
+        <p
+          id={helpId(`webhook-${event.key}`)}
+          className="text-xs text-muted-foreground"
+        >
+          {event.description}
+        </p>
       )}
     </div>
   );
@@ -277,6 +283,11 @@ export function WebhookSettings({
                     <div className="flex min-w-0 items-center space-x-2">
                       <Switch
                         id={`webhook-${event.key}`}
+                        aria-describedby={
+                          event.description
+                            ? helpId(`webhook-${event.key}`)
+                            : undefined
+                        }
                         checked={event.enabled}
                         onCheckedChange={(enabled) =>
                           handleEventToggle(event.key, enabled)
