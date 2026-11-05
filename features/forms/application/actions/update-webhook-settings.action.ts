@@ -3,13 +3,13 @@
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
 import { EndatixApi } from "@/lib/endatix-api";
-import type { WebHookConfiguration } from "@/types";
 import {
   EVENT_KEYS,
   WebhookSettingsSchema,
 } from "./types/webhook-settings.types";
 import type { WebhookSettingsState } from "./types/webhook-settings.types";
 import { ServerActionState } from "@/lib/utils/zod-error-utils";
+import { buildWebhookConfiguration } from "../webhook-settings-document";
 
 export async function updateWebhookSettingsAction(
   _prevState: WebhookSettingsState,
@@ -42,26 +42,9 @@ export async function updateWebhookSettingsAction(
   let webHookSettingsJson: string = "";
 
   if (useCustomSettings) {
-    const config: WebHookConfiguration = { Events: {} };
-
-    EVENT_KEYS.forEach((eventKey) => {
-      const enabled =
-        validatedData.data[
-          `event-${eventKey}-enabled` as keyof typeof validatedData.data
-        ];
-      const url = validatedData.data[
-        `event-${eventKey}-url` as keyof typeof validatedData.data
-      ] as string;
-
-      if (enabled && url) {
-        config.Events[eventKey] = {
-          IsEnabled: true,
-          WebHookEndpoints: [{ Url: url }],
-        };
-      }
-    });
-
-    webHookSettingsJson = JSON.stringify(config);
+    webHookSettingsJson = JSON.stringify(
+      buildWebhookConfiguration(validatedData.data),
+    );
   }
 
   const api = new EndatixApi(session?.accessToken);
