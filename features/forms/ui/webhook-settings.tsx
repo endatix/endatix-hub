@@ -46,7 +46,7 @@ const WEBHOOK_EVENTS: readonly WebhookEventInfo[] = [
   { key: "SubmissionCompleted", label: "Submission Completed" },
   {
     key: "SubmissionClosed",
-    label: "Submission closed",
+    label: "Submission Closed",
     description:
       "Fires once when a submission ends in a closed outcome: screened out, quota full, cancelled, or a closed status the host registered.",
   },

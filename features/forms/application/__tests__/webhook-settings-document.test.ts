@@ -8,7 +8,7 @@ import {
 const RETIRED_KEY = "SubmissionCollectionStatusChanged";
 
 describe("buildWebhookConfiguration", () => {
-  it("saves Submission closed under its new key with the enabled flag and URL", () => {
+  it("saves Submission Closed under its new key with the enabled flag and URL", () => {
     const config = buildWebhookConfiguration({
       formId: "1",
       useCustomSettings: true,
@@ -30,7 +30,7 @@ describe("buildWebhookConfiguration", () => {
 });
 
 describe("readFormWebhookEvents", () => {
-  it("shows a document saved under the retired key as Submission closed", () => {
+  it("shows a document saved under the retired key as Submission Closed", () => {
     const events = readFormWebhookEvents(
       JSON.stringify({
         Events: {
@@ -106,7 +106,7 @@ describe("readFormWebhookEvents", () => {
 });
 
 describe("readTenantWebhookEvents", () => {
-  it("shows tenant defaults saved under the retired key as Submission closed", () => {
+  it("shows tenant defaults saved under the retired key as Submission Closed", () => {
     const events = readTenantWebhookEvents({
       events: {
         [RETIRED_KEY]: {
