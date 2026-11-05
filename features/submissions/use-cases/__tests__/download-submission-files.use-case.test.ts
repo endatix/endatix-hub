@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
 import { downloadSubmissionFilesUseCase } from "../download-submission-files.use-case";
 import * as filesDownloadUtils from "@/lib/utils/files-download";
 import { toast } from "@/components/ui/toast";
@@ -23,8 +23,10 @@ describe("downloadSubmissionFilesUseCase", () => {
   const formId = "form-1";
   const submissionId = "sub-1";
 
-  let fetchMock: ReturnType<typeof vi.fn>;
-  let initiateFileDownloadMock: ReturnType<typeof vi.fn>;
+  let fetchMock: Mock<typeof fetch>;
+  let initiateFileDownloadMock: Mock<
+    typeof filesDownloadUtils.initiateFileDownload
+  >;
 
   beforeEach(() => {
     fetchMock = vi.fn();
@@ -42,13 +44,10 @@ describe("downloadSubmissionFilesUseCase", () => {
   it("handles successful download", async () => {
     const headers = new Headers();
     const blob = new Blob(["test"]);
-    fetchMock.mockResolvedValueOnce({
-      ok: true,
-      headers,
-      blob: () => Promise.resolve(blob),
-      // no x-endatix-empty-file header
-      // ...other fetch Response props
-    });
+    // no x-endatix-empty-file header
+    const response = new Response(blob, { headers });
+    vi.spyOn(response, "blob").mockResolvedValue(blob);
+    fetchMock.mockResolvedValueOnce(response);
     await downloadSubmissionFilesUseCase({ formId, submissionId });
     expect(toast.info).toHaveBeenCalled();
     expect(initiateFileDownloadMock).toHaveBeenCalledWith(blob, "file.zip");
@@ -58,11 +57,7 @@ describe("downloadSubmissionFilesUseCase", () => {
   it("handles empty file header", async () => {
     const headers = new Headers();
     headers.set(EMPTY_FILE_HEADER, "true");
-    fetchMock.mockResolvedValueOnce({
-      ok: true,
-      headers,
-      blob: vi.fn(), // should not be called
-    });
+    fetchMock.mockResolvedValueOnce(new Response(null, { headers }));
     await downloadSubmissionFilesUseCase({ formId, submissionId });
     expect(toast.warning).toHaveBeenCalled();
     expect(initiateFileDownloadMock).not.toHaveBeenCalled();
@@ -76,7 +71,7 @@ describe("downloadSubmissionFilesUseCase", () => {
   });
 
   it("handles non-ok response", async () => {
-    fetchMock.mockResolvedValueOnce({ ok: false });
+    fetchMock.mockResolvedValueOnce(new Response(null, { status: 500 }));
     await downloadSubmissionFilesUseCase({ formId, submissionId });
     expect(toast.error).toHaveBeenCalled();
     expect(initiateFileDownloadMock).not.toHaveBeenCalled();

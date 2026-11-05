@@ -64,13 +64,15 @@ describe("prepareReportingExportAction", () => {
       force: false,
     });
     expect(Result.isSuccess(result)).toBe(true);
-    expect(result.value).toEqual({
-      formDefinitionId: "def-1",
-      batches: 1,
-      processed: 2,
-      skipped: 0,
-      failed: 0,
-    });
+    if (Result.isSuccess(result)) {
+      expect(result.value).toEqual({
+        formDefinitionId: "def-1",
+        batches: 1,
+        processed: 2,
+        skipped: 0,
+        failed: 0,
+      });
+    }
   });
 
   it("finishes when the last page is exactly the batch cap", async () => {

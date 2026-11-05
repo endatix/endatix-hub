@@ -9,6 +9,7 @@ import type {
   BulkReadUrlsOptions,
   FileOptions,
   FolderOptions,
+  IStorageProvider,
 } from "../../infrastructure/core";
 
 // 1. Hoist shared mock instances so they are available to vi.mock() and test blocks.
@@ -81,7 +82,9 @@ const loadStorageProvider = async () => {
   return {
     generateUploadUrl: async (fileOptions: FileOptions) =>
       runtime.requireActiveStorageProvider().generateUploadUrl(fileOptions),
-    bulkGenerateReadTokens: (options: BulkReadUrlsOptions) => {
+    bulkGenerateReadTokens: (
+      options: BulkReadUrlsOptions,
+    ): ReturnType<IStorageProvider["bulkGenerateReadTokens"]> => {
       const provider = runtime.getActiveStorageProvider();
       if (provider === null || !provider.isEnabled()) {
         return Promise.resolve(Result.error("Storage is not enabled"));

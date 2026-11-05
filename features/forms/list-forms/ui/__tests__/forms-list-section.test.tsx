@@ -59,7 +59,7 @@ describe("FormsListSection", () => {
 
   it("renders ResultLoadErrorView in the list slot without throwing", async () => {
     // Arrange
-    const listResult = Result.validationError(
+    const listResult: FormsListResult = Result.validationError(
       "We have a problem",
       "We have a problem",
       "ValidationError",

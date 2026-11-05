@@ -7,7 +7,7 @@ import {
   type MockInstance,
 } from "vitest";
 import { getRequiredExtensionIds } from "../analyzer";
-import type { ExtensionDefinition } from "../../types";
+import type { ExtensionDefinition, ExtensionModule } from "../../types";
 import type { FormAnalyzer } from "../../extension-utils";
 
 function createExtension(
@@ -17,8 +17,9 @@ function createExtension(
   return {
     id,
     type: "question",
+    loading: "dynamic",
     shouldLoad,
-    load: vi.fn().mockResolvedValue({}),
+    load: vi.fn<() => Promise<ExtensionModule>>().mockResolvedValue({}),
   };
 }
 

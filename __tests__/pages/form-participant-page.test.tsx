@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { Result } from "@/lib/result";
+import type { Form } from "@/types";
 
 vi.mock("next/navigation", () => ({
   redirect: vi.fn(() => {
@@ -34,6 +35,15 @@ vi.mock("@/features/forms/form-workspace/ui/form-load-error", () => ({
 }));
 
 const params = Promise.resolve({ formId: "f1", memberId: "m1" });
+
+const form: Form = {
+  id: "f1",
+  name: "Form",
+  isEnabled: true,
+  isPublic: false,
+  createdAt: new Date("2026-01-01T00:00:00Z"),
+  folderId: null,
+};
 
 describe("Form participant page", () => {
   it("sends a reader who cannot edit the form back to it", async () => {
@@ -73,7 +83,7 @@ describe("Form participant page", () => {
     render(await Page({ params }));
     screen.getByText("load error");
 
-    vi.mocked(loadWorkspaceForm).mockResolvedValue(Result.success({}));
+    vi.mocked(loadWorkspaceForm).mockResolvedValue(Result.success(form));
     vi.mocked(loadParticipantPage).mockResolvedValue(Result.error("page"));
     render(await Page({ params }));
     expect(screen.getAllByText("load error")).toHaveLength(2);
@@ -130,7 +140,7 @@ async function openAsEditor() {
       checkPermission: vi.fn().mockResolvedValue({ success: false }),
     } as never),
   );
-  vi.mocked(loadWorkspaceForm).mockResolvedValue(Result.success({}));
+  vi.mocked(loadWorkspaceForm).mockResolvedValue(Result.success(form));
   return (
     await import("@/app/(main)/forms/[formId]/audience/participants/[memberId]/page")
   ).default;

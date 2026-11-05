@@ -633,6 +633,7 @@ describe("AzureStorageConfig", () => {
           hostName: "testaccount.blob.core.windows.net",
           protocol: "https",
           sasReadExpiryMinutes: 15,
+          sasWriteExpirySeconds: 300,
           imageConfig: IMAGE_SERVICE_CONFIG,
           containerNames: {
             USER_FILES: "user-files",
@@ -657,6 +658,7 @@ describe("AzureStorageConfig", () => {
           hostName: "testaccount.blob.core.windows.net",
           protocol: "http",
           sasReadExpiryMinutes: 15,
+          sasWriteExpirySeconds: 300,
           imageConfig: IMAGE_SERVICE_CONFIG,
           containerNames: {
             USER_FILES: "user-files",
@@ -681,6 +683,7 @@ describe("AzureStorageConfig", () => {
           hostName: "testaccount.blob.core.windows.net",
           protocol: "https",
           sasReadExpiryMinutes: 15,
+          sasWriteExpirySeconds: 300,
           imageConfig: IMAGE_SERVICE_CONFIG,
           containerNames: {
             USER_FILES: "user-files",
@@ -707,6 +710,7 @@ describe("AzureStorageConfig", () => {
           hostName: "testaccount.blob.core.windows.net",
           protocol: "https",
           sasReadExpiryMinutes: 15,
+          sasWriteExpirySeconds: 300,
           imageConfig: IMAGE_SERVICE_CONFIG,
           containerNames: {
             USER_FILES: "user-files",
@@ -731,6 +735,7 @@ describe("AzureStorageConfig", () => {
           hostName: "",
           protocol: "https",
           sasReadExpiryMinutes: 15,
+          sasWriteExpirySeconds: 300,
           imageConfig: IMAGE_SERVICE_CONFIG,
           containerNames: {
             USER_FILES: "user-files",
@@ -810,6 +815,7 @@ describe("AzureStorageConfig", () => {
           hostName: "testaccount.blob.core.windows.net",
           protocol: "https",
           sasReadExpiryMinutes: 15,
+          sasWriteExpirySeconds: 300,
           imageConfig: IMAGE_SERVICE_CONFIG,
           containerNames: {
             USER_FILES: "user-files",
@@ -836,6 +842,7 @@ describe("AzureStorageConfig", () => {
           hostName: "testaccount.blob.core.windows.net",
           protocol: "https",
           sasReadExpiryMinutes: 15,
+          sasWriteExpirySeconds: 300,
           imageConfig: IMAGE_SERVICE_CONFIG,
           containerNames: {
             USER_FILES: "user-files",
@@ -862,6 +869,7 @@ describe("AzureStorageConfig", () => {
           hostName: "testaccount.blob.core.windows.net",
           protocol: "https",
           sasReadExpiryMinutes: 15,
+          sasWriteExpirySeconds: 300,
           imageConfig: IMAGE_SERVICE_CONFIG,
           containerNames: {
             USER_FILES: "user-files",

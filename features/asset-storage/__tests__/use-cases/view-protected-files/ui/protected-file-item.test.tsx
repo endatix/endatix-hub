@@ -41,6 +41,7 @@ function privateStorageContext(): AssetStorageContextValue {
     enqueuePrivateReadUrls: vi.fn(async () => new Map()),
     mergePrivateReadUrlCache: vi.fn(),
     getCachedPrivateReadUrl: vi.fn(() => null),
+    evictPrivateReadUrl: vi.fn(),
     readUrlCacheVersion: 0,
   };
 }

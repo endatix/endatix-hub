@@ -11,6 +11,7 @@ import { render, screen } from "@testing-library/react";
 import { QuestionFileModel } from "survey-core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { clientStorageConfig } from "../../../test-storage-config";
+import { createAssetStorageContextValue } from "../../../asset-storage-context-value";
 
 // Mock SurveyFilePreview - must be before imports that use it
 const mockRenderElement = vi.fn(() => {
@@ -128,10 +129,13 @@ describe("ProtectedFilePreview", () => {
         isPrivate: false,
       });
 
-      renderWithContext(mockQuestion, {
-        config: disabledConfig,
-        getCachedPrivateReadUrl: vi.fn(() => null),
-      });
+      renderWithContext(
+        mockQuestion,
+        createAssetStorageContextValue({
+          config: disabledConfig,
+          getCachedPrivateReadUrl: vi.fn(() => null),
+        }),
+      );
 
       expect(mockRenderElement).toHaveBeenCalledTimes(1);
       expect(screen.getByTestId("default-preview")).toBeDefined();
@@ -153,10 +157,13 @@ describe("ProtectedFilePreview", () => {
         isPrivate: false,
       });
 
-      renderWithContext(mockQuestion, {
-        config: publicConfig,
-        getCachedPrivateReadUrl: vi.fn(() => null),
-      });
+      renderWithContext(
+        mockQuestion,
+        createAssetStorageContextValue({
+          config: publicConfig,
+          getCachedPrivateReadUrl: vi.fn(() => null),
+        }),
+      );
 
       expect(mockRenderElement).toHaveBeenCalledTimes(1);
       expect(screen.getByTestId("default-preview")).toBeDefined();
@@ -179,13 +186,16 @@ describe("ProtectedFilePreview", () => {
 
       const mockResolveStorageUrl = vi.fn((url: string) => url);
 
-      renderWithContext(mockQuestion, {
-        config: privateConfig,
-        getCachedPrivateReadUrl: mockResolveStorageUrl,
-        enqueuePrivateReadUrls: vi.fn(),
-        mergePrivateReadUrlCache: vi.fn(),
-        readUrlCacheVersion: 0,
-      });
+      renderWithContext(
+        mockQuestion,
+        createAssetStorageContextValue({
+          config: privateConfig,
+          getCachedPrivateReadUrl: mockResolveStorageUrl,
+          enqueuePrivateReadUrls: vi.fn(),
+          mergePrivateReadUrlCache: vi.fn(),
+          readUrlCacheVersion: 0,
+        }),
+      );
 
       expect(mockRenderElement).toHaveBeenCalledTimes(1);
       expect(screen.getByTestId("default-preview")).toBeDefined();
@@ -228,10 +238,13 @@ describe("ProtectedFilePreview", () => {
 
       const mockResolveStorageUrl = vi.fn(() => null);
 
-      renderWithContext(questionWithoutTokens, {
-        config: privateConfig,
-        getCachedPrivateReadUrl: mockResolveStorageUrl,
-      });
+      renderWithContext(
+        questionWithoutTokens,
+        createAssetStorageContextValue({
+          config: privateConfig,
+          getCachedPrivateReadUrl: mockResolveStorageUrl,
+        }),
+      );
 
       expect(mockRenderElement).toHaveBeenCalledTimes(1);
 
@@ -252,13 +265,16 @@ describe("ProtectedFilePreview", () => {
 
       const mockResolveStorageUrl = vi.fn((url: string) => url);
 
-      renderWithContext(questionWithPartialTokens, {
-        config: privateConfig,
-        getCachedPrivateReadUrl: mockResolveStorageUrl,
-        enqueuePrivateReadUrls: vi.fn(),
-        mergePrivateReadUrlCache: vi.fn(),
-        readUrlCacheVersion: 0,
-      });
+      renderWithContext(
+        questionWithPartialTokens,
+        createAssetStorageContextValue({
+          config: privateConfig,
+          getCachedPrivateReadUrl: mockResolveStorageUrl,
+          enqueuePrivateReadUrls: vi.fn(),
+          mergePrivateReadUrlCache: vi.fn(),
+          readUrlCacheVersion: 0,
+        }),
+      );
 
       expect(mockRenderElement).toHaveBeenCalledTimes(1);
       expect(mockResolveStorageUrl).not.toHaveBeenCalled();
@@ -275,10 +291,13 @@ describe("ProtectedFilePreview", () => {
         indexToShow: 0,
       } as unknown as QuestionFileModel;
 
-      renderWithContext(questionWithEmptyPages, {
-        config: privateConfig,
-        getCachedPrivateReadUrl: vi.fn(() => null),
-      });
+      renderWithContext(
+        questionWithEmptyPages,
+        createAssetStorageContextValue({
+          config: privateConfig,
+          getCachedPrivateReadUrl: vi.fn(() => null),
+        }),
+      );
 
       expect(mockRenderElement).toHaveBeenCalledTimes(1);
       expect(screen.getByTestId("default-preview")).toBeDefined();
@@ -294,10 +313,13 @@ describe("ProtectedFilePreview", () => {
         indexToShow: 999, // Invalid index
       } as unknown as QuestionFileModel;
 
-      renderWithContext(questionWithInvalidIndex, {
-        config: privateConfig,
-        getCachedPrivateReadUrl: vi.fn(() => null),
-      });
+      renderWithContext(
+        questionWithInvalidIndex,
+        createAssetStorageContextValue({
+          config: privateConfig,
+          getCachedPrivateReadUrl: vi.fn(() => null),
+        }),
+      );
 
       expect(mockRenderElement).toHaveBeenCalledTimes(1);
       expect(screen.getByTestId("default-preview")).toBeDefined();
@@ -321,10 +343,13 @@ describe("ProtectedFilePreview", () => {
   describe("when context config is null", () => {
     it("should render default preview without token injection", () => {
       const mockResolveStorageUrl = vi.fn((url: string) => url);
-      renderWithContext(mockQuestion, {
-        config: null,
-        getCachedPrivateReadUrl: mockResolveStorageUrl,
-      });
+      renderWithContext(
+        mockQuestion,
+        createAssetStorageContextValue({
+          config: null,
+          getCachedPrivateReadUrl: mockResolveStorageUrl,
+        }),
+      );
 
       expect(mockRenderElement).toHaveBeenCalledTimes(1);
       expect(screen.getByTestId("default-preview")).toBeDefined();

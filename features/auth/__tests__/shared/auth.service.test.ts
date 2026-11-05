@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { AuthService } from "../../shared/auth.service";
 import { cookies } from "next/headers";
 import { JwtService } from "../../infrastructure/jwt.service";
+import type { Session } from "next-auth";
 import type { ReadonlyRequestCookies } from "next/dist/server/web/spec-extension/adapters/request-cookies";
 
 // Mock dependencies
@@ -169,7 +170,12 @@ describe("AuthService", () => {
     it("should return anonymous session when user is null", async () => {
       // Arrange
       const { auth } = await import("@/auth");
-      vi.mocked(auth).mockResolvedValue({ user: null });
+      // `auth` is overloaded; type the no-argument call the service makes.
+      vi.mocked<() => Promise<Session | null>>(auth).mockResolvedValue({
+        expires: "",
+        // @ts-expect-error -- deliberately a null user, which Session does not allow
+        user: null,
+      });
 
       // Act
       const session = await authService.getSession();
