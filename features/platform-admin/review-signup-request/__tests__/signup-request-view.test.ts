@@ -1,10 +1,8 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import {
   readSignupVisitorRef,
   toSignupRequestView,
 } from "../signup-request-view.server";
-
-vi.mock("server-only", () => ({}));
 
 const METADATA = JSON.stringify({
   postHogDistinctId: "anon-1",

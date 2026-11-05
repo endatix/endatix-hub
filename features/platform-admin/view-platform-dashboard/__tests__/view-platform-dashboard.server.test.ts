@@ -7,7 +7,6 @@ import { listSignupRequests } from "../../list-signup-requests/list-signup-reque
 import type { PlatformAdminSession } from "../../types";
 import { getPlatformDashboard } from "../view-platform-dashboard.server";
 
-vi.mock("server-only", () => ({}));
 vi.mock("@/lib/feature-flags/flags", () => ({
   saasManagementFlag: vi.fn(),
 }));

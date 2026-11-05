@@ -2,10 +2,19 @@ import { act, fireEvent, render } from "@testing-library/react";
 import React from "react";
 import { Model } from "survey-core";
 import { Survey } from "survey-react-ui";
-import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import { DRAG_CATEGORIZE_TYPE, POOL_ZONE_ID } from "../constants";
 import { registerDragCategorizeQuestion } from "../drag-categorize.component";
 import type { DragCategorizeQuestion } from "../drag-categorize.model";
+import { stubResizeObserver } from "@/test/stubs/resize-observer";
 
 const surveyJson = {
   pages: [
@@ -28,17 +37,13 @@ const surveyJson = {
   ],
 };
 
-class ResizeObserverStub {
-  observe(): void {}
-  unobserve(): void {}
-  disconnect(): void {}
-}
-
 describe("DragCategorizeComponent", () => {
   beforeAll(() => {
-    globalThis.ResizeObserver ??=
-      ResizeObserverStub as unknown as typeof ResizeObserver;
     registerDragCategorizeQuestion();
+  });
+
+  beforeEach(() => {
+    stubResizeObserver();
   });
 
   it("renders the pool and every zone as drop targets", () => {
@@ -49,13 +54,15 @@ describe("DragCategorizeComponent", () => {
     const { container } = render(<Survey model={model} />);
 
     // Assert
-    const pool = container.querySelector(
-      `[data-categorize="${POOL_ZONE_ID}"]`,
-    );
+    const pool = container.querySelector(`[data-categorize="${POOL_ZONE_ID}"]`);
     expect(pool).not.toBeNull();
     expect(pool?.querySelectorAll("[data-categorize-item]")).toHaveLength(2);
-    expect(container.querySelector('[data-categorize="zone_a"]')).not.toBeNull();
-    expect(container.querySelector('[data-categorize="zone_b"]')).not.toBeNull();
+    expect(
+      container.querySelector('[data-categorize="zone_a"]'),
+    ).not.toBeNull();
+    expect(
+      container.querySelector('[data-categorize="zone_b"]'),
+    ).not.toBeNull();
     expect(container.textContent).toContain("Zone A");
     expect(container.textContent).toContain("Min 1 · Max 2");
   });
@@ -90,9 +97,7 @@ describe("DragCategorizeComponent", () => {
     expect(
       zoneA?.querySelector('[data-categorize-item="item_1"]'),
     ).not.toBeNull();
-    const pool = container.querySelector(
-      `[data-categorize="${POOL_ZONE_ID}"]`,
-    );
+    const pool = container.querySelector(`[data-categorize="${POOL_ZONE_ID}"]`);
     expect(pool?.querySelector('[data-categorize-item="item_1"]')).toBeNull();
   });
 
@@ -197,9 +202,7 @@ describe("DragCategorizeComponent", () => {
 
     // Act
     const { container } = render(<Survey model={model} />);
-    const zones = container.querySelector<HTMLElement>(
-      ".sv-categorize__zones",
-    );
+    const zones = container.querySelector<HTMLElement>(".sv-categorize__zones");
 
     // Assert
     expect(
@@ -213,9 +216,7 @@ describe("DragCategorizeComponent", () => {
 
     // Act
     const { container } = render(<Survey model={model} />);
-    const zones = container.querySelector<HTMLElement>(
-      ".sv-categorize__zones",
-    );
+    const zones = container.querySelector<HTMLElement>(".sv-categorize__zones");
 
     // Assert
     expect(
@@ -249,7 +250,11 @@ describe("DragCategorizeComponent", () => {
     it("shows the authored label under an image", () => {
       // Act
       const { container } = renderWithItems([
-        { value: "item_1", text: "Golden retriever", imageUrl: "https://x/1.png" },
+        {
+          value: "item_1",
+          text: "Golden retriever",
+          imageUrl: "https://x/1.png",
+        },
       ]);
 
       // Assert
@@ -262,7 +267,11 @@ describe("DragCategorizeComponent", () => {
     it("uses the label as alt text", () => {
       // Act
       const { container } = renderWithItems([
-        { value: "item_1", text: "Golden retriever", imageUrl: "https://x/1.png" },
+        {
+          value: "item_1",
+          text: "Golden retriever",
+          imageUrl: "https://x/1.png",
+        },
       ]);
 
       // Assert

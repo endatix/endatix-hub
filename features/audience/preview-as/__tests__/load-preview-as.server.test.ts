@@ -15,7 +15,6 @@ import {
   type PreviewAsRequest,
 } from "../load-preview-as.server";
 
-vi.mock("server-only", () => ({}));
 vi.mock("@/features/telemetry", () => ({
   TelemetryLogger: { error: vi.fn(), warn: vi.fn() },
 }));

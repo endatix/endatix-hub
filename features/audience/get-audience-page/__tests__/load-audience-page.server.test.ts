@@ -4,8 +4,6 @@ import { ApiResult } from "@/lib/endatix-api/shared/api-result";
 import { Result } from "@/lib/result";
 import { loadAudiencePage } from "../load-audience-page.server";
 
-vi.mock("server-only", () => ({}));
-
 const FORM_ID = "1525035735390879744";
 
 const listPeople = vi.fn();

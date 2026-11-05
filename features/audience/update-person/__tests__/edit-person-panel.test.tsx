@@ -9,6 +9,7 @@ import {
 import { Result } from "@/lib/result";
 import { updateAudiencePersonAction } from "../update-audience-person.action";
 import { EditPersonPanel } from "../ui/edit-person-panel";
+import { stubResizeObserver } from "@/test/stubs/resize-observer";
 
 vi.mock("@/lib/utils/hooks/use-media-query.hook", () => ({
   useMediaQuery: () => true,
@@ -60,16 +61,9 @@ const renderPanel = (person: AudiencePerson) =>
     />,
   );
 
-// Radix tooltips (the identifier's copy affordance) measure with ResizeObserver.
-class ResizeObserverStub {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-}
-
 describe("EditPersonPanel", () => {
   beforeEach(() => {
-    vi.stubGlobal("ResizeObserver", ResizeObserverStub);
+    stubResizeObserver();
   });
 
   it("saves only the value that changed", async () => {

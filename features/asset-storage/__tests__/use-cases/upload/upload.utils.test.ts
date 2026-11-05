@@ -18,7 +18,9 @@ vi.mock("@/features/asset-storage/use-cases/upload/upload-blob", () => ({
     mockResizeImageOrFallback(...args),
 }));
 
-global.fetch = vi.fn();
+beforeEach(() => {
+  vi.stubGlobal("fetch", vi.fn());
+});
 
 const sampleDescriptor = {
   url: "https://example.com/a?sas",

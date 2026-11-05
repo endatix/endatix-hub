@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { downloadSubmissionFilesUseCase } from "../download-submission-files.use-case";
 import * as filesDownloadUtils from "@/lib/utils/files-download";
 import { toast } from "@/components/ui/toast";
-import { EMPTY_FILE_HEADER } from '@/lib/utils/files-download';
+import { EMPTY_FILE_HEADER } from "@/lib/utils/files-download";
 
 // Mock toast and icons
 vi.mock("@/components/ui/toast", () => ({
@@ -28,7 +28,7 @@ describe("downloadSubmissionFilesUseCase", () => {
 
   beforeEach(() => {
     fetchMock = vi.fn();
-    global.fetch = fetchMock;
+    vi.stubGlobal("fetch", fetchMock);
     initiateFileDownloadMock = vi.fn();
     vi.spyOn(filesDownloadUtils, "initiateFileDownload").mockImplementation(
       initiateFileDownloadMock,
