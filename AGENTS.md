@@ -440,7 +440,7 @@ Single-context. `GLOSSARY.md` and `docs/adr/` at the root are created lazily by 
 - Build: `pnpm build`
 - Test: `pnpm test run` (Vitest, one run, no coverage); with coverage as in CI: `pnpm test:coverage`; e2e: `pnpm test:e2e`
 - Lint: `pnpm lint`
-- Typecheck: `pnpm typecheck` (`tsc` over app and test files with `tsconfig.vitest.json`; Vitest and `next build` never type-check tests)
+- Check (types): `pnpm typecheck` (`tsc` over app and test files with `tsconfig.vitest.json`; Vitest and `next build` never type-check tests)
 - Run: `pnpm dev` (http://localhost:3000)
 - PR title scope: `h[0-9]+|deps|deps-dev` (the full title and branch rules are in [CONTRIBUTING.md](CONTRIBUTING.md))
 - Branch name: `<type>/h<issue>-<slug>`
