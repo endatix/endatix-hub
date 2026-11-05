@@ -65,15 +65,15 @@ const parseSettings = (settingsJson: string | undefined) =>
 const parseTenantWebhookSettings = (tenantSettings: TenantSettings | null) =>
   toWebhookEvents(readTenantWebhookEvents(tenantSettings?.webHookSettings));
 
+const eventHelpId = (event: WebhookEventInfo) =>
+  event.description ? helpId(`webhook-${event.key}`) : undefined;
+
 function EventLabel({ event }: Readonly<{ event: WebhookEvent }>) {
   return (
     <div className="text-right">
       <span>{event.label}</span>
       {event.description && (
-        <p
-          id={helpId(`webhook-${event.key}`)}
-          className="text-xs text-muted-foreground"
-        >
+        <p id={eventHelpId(event)} className="text-xs text-muted-foreground">
           {event.description}
         </p>
       )}
@@ -283,11 +283,7 @@ export function WebhookSettings({
                     <div className="flex min-w-0 items-center space-x-2">
                       <Switch
                         id={`webhook-${event.key}`}
-                        aria-describedby={
-                          event.description
-                            ? helpId(`webhook-${event.key}`)
-                            : undefined
-                        }
+                        aria-describedby={eventHelpId(event)}
                         checked={event.enabled}
                         onCheckedChange={(enabled) =>
                           handleEventToggle(event.key, enabled)

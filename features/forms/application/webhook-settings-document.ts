@@ -56,10 +56,12 @@ export function readFormWebhookEvents(
   const events = parseConfiguration(settingsJson)?.Events;
   return readEvents((key) => {
     const config = lookupEvent(events, key);
-    return config && {
-      enabled: config.IsEnabled ?? false,
-      url: config.WebHookEndpoints?.[0]?.Url ?? "",
-    };
+    return (
+      config && {
+        enabled: config.IsEnabled ?? false,
+        url: config.WebHookEndpoints?.[0]?.Url ?? "",
+      }
+    );
   });
 }
 
@@ -69,10 +71,12 @@ export function readTenantWebhookEvents(
 ): WebhookEventValues {
   return readEvents((key) => {
     const config = lookupEvent(settings?.events, key);
-    return config && {
-      enabled: config.isEnabled ?? false,
-      url: config.webHookEndpoints?.[0]?.url ?? "",
-    };
+    return (
+      config && {
+        enabled: config.isEnabled ?? false,
+        url: config.webHookEndpoints?.[0]?.url ?? "",
+      }
+    );
   });
 }
 
@@ -86,7 +90,10 @@ export function buildWebhookConfiguration(
     const enabled = data[`event-${key}-enabled`];
     const url = data[`event-${key}-url`];
     if (enabled && url) {
-      config.Events[key] = { IsEnabled: true, WebHookEndpoints: [{ Url: url }] };
+      config.Events[key] = {
+        IsEnabled: true,
+        WebHookEndpoints: [{ Url: url }],
+      };
     }
   }
 

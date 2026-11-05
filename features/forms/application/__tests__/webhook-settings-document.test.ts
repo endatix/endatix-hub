@@ -90,9 +90,9 @@ describe("readFormWebhookEvents", () => {
     );
 
     expect(saved).not.toContain(RETIRED_KEY);
-    expect(JSON.parse(saved).Events.SubmissionClosed.WebHookEndpoints).toEqual(
-      [{ Url: "https://example.com/old" }],
-    );
+    expect(JSON.parse(saved).Events.SubmissionClosed.WebHookEndpoints).toEqual([
+      { Url: "https://example.com/old" },
+    ]);
   });
 
   it("reads every event as disabled when there is no document or it is not JSON", () => {
