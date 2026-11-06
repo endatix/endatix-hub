@@ -1,6 +1,6 @@
 "use server";
 
-import { authorization } from "@/features/auth/authorization";
+import { authorization, Permissions } from "@/features/auth/authorization";
 import { ApiResult, EndatixApi } from "@/lib/endatix-api";
 import { getSession } from "@/features/auth";
 import { createForm } from "@/services/api";
@@ -23,8 +23,9 @@ type GenerateFormForConversationRequest = z.infer<
 export async function generateFormForConversationAction(
   request: GenerateFormForConversationRequest,
 ): Promise<GenerateFormResult | never> {
-  const { requireHubAccess } = await authorization();
+  const { requireHubAccess, requirePermission } = await authorization();
   await requireHubAccess();
+  await requirePermission(Permissions.Forms.Create);
 
   const session = await getSession();
   const endatix = new EndatixApi(session);

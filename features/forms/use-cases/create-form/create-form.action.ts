@@ -1,7 +1,7 @@
 "use server";
 
 import { auth } from "@/auth";
-import { authorization } from "@/features/auth/authorization";
+import { authorization, Permissions } from "@/features/auth/authorization";
 import { ApiResult, EndatixApi } from "@/lib/endatix-api";
 import { CreateFormRequestSchema } from "@/lib/form-types";
 import { revalidatePath } from "next/cache";
@@ -21,11 +21,13 @@ export async function createFormAction(
   _prevState: CreateFormActionState,
   formData: FormData,
 ): Promise<CreateFormActionState> {
-  try {
-    const session = await auth();
-    const { requireHubAccess } = await authorization(session);
-    await requireHubAccess();
+  // Outside the try: a refused check redirects, and the catch below would swallow the redirect.
+  const session = await auth();
+  const { requireHubAccess, requirePermission } = await authorization(session);
+  await requireHubAccess();
+  await requirePermission(Permissions.Forms.Create);
 
+  try {
     const rawData = extractFormData(formData);
 
     const endatix = new EndatixApi(session?.accessToken);

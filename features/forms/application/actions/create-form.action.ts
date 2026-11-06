@@ -1,7 +1,7 @@
 "use server";
 
 import { auth } from "@/auth";
-import { authorization } from "@/features/auth/authorization";
+import { authorization, Permissions } from "@/features/auth/authorization";
 import { CreateFormRequest } from "@/lib/form-types";
 import { Result } from "@/lib/result";
 import { EndatixApi } from "@/lib/endatix-api";
@@ -12,8 +12,9 @@ export async function createFormAction(
   request: CreateFormRequest,
 ): Promise<CreateFormResult | never> {
   const session = await auth();
-  const { requireHubAccess } = await authorization(session);
+  const { requireHubAccess, requirePermission } = await authorization(session);
   await requireHubAccess();
+  await requirePermission(Permissions.Forms.Create);
 
   const api = new EndatixApi(session?.accessToken);
   const result = await api.forms.create(request);
