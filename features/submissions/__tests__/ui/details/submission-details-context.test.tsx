@@ -298,6 +298,7 @@ describe("SubmissionDetailsContext", () => {
 
       expect(details().submittedCatalogLocale).toBe("es");
       expect(details().displayCatalogLocale).toBe("es");
+      expect(details().surveyCatalogLocale).toBe(DEFAULT_CATALOG_LOCALE);
       expect(model.locale).toBe("es");
       expect(getSubmissionDisplayLocale("sub-es")).toEqual({
         catalogLocales: ["default", "es"],
@@ -321,6 +322,55 @@ describe("SubmissionDetailsContext", () => {
       expect(getSubmissionDisplayLocale("sub-es").displayCatalogLocale).toBe(
         DEFAULT_CATALOG_LOCALE,
       );
+    });
+
+    it("keeps a single-language survey in its own locale", async () => {
+      // Arrange
+      const germanJson = {
+        locale: "de",
+        pages: [{ elements: [{ type: "boolean", name: "agree" }] }],
+      };
+      const germanSubmission: Submission = {
+        ...mockSubmission,
+        id: "sub-de",
+        metadata: JSON.stringify({ language: "" }),
+        formDefinition: {
+          id: "def-de",
+          jsonData: JSON.stringify(germanJson),
+        } as Submission["formDefinition"],
+      };
+      let details: ReturnType<typeof useSubmissionDetails> | undefined;
+      const Probe = () => {
+        details = useSubmissionDetails();
+        return null;
+      };
+      await act(async () =>
+        render(
+          <Suspense fallback={null}>
+            <SubmissionDetailsProvider
+              submissionPromise={Promise.resolve(
+                Result.success(germanSubmission),
+              )}
+            >
+              <Probe />
+            </SubmissionDetailsProvider>
+          </Suspense>,
+        ),
+      );
+      const model = new Model(germanJson);
+      model.locale = "";
+
+      // Act
+      await act(async () => details!.setSurveyModel(model));
+      const afterLoad = model.locale;
+      await act(async () =>
+        details!.setDisplayCatalogLocale(DEFAULT_CATALOG_LOCALE),
+      );
+
+      // Assert
+      expect(afterLoad).toBe("de");
+      expect(model.locale).toBe("de");
+      expect(details!.surveyCatalogLocale).toBe("de");
     });
 
     it("clears the published locale when the page unmounts", async () => {

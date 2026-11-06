@@ -43,6 +43,24 @@ export function toSurveyModelLocale(
 }
 
 /**
+ * The locale behind a survey's default language, for {@link toSurveyModelLocale}.
+ * A single-language survey keeps its JSON <c>locale</c>, so SurveyJS buttons and
+ * messages follow it; a multi-language one keeps <c>""</c>, today's default.
+ */
+export function surveyDefaultLocale(
+  surveyLocale: string,
+  catalogLocales: readonly string[],
+): string {
+  return catalogLocales.length <= 1 ? surveyLocale : "";
+}
+
+/** The <c>locale</c> a survey definition declares, or <c>""</c>. */
+export function surveyJsonLocale(surveyJson: unknown): string {
+  const locale = (surveyJson as { locale?: unknown } | null)?.locale;
+  return typeof locale === "string" ? locale : "";
+}
+
+/**
  * Maps SurveyJS <c>model.locale</c> (or a getUsedLocales entry) to an owned
  * catalog locale code.
  */

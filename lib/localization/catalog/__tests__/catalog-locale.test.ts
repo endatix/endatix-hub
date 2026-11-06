@@ -5,6 +5,8 @@ import {
   DEFAULT_CATALOG_LOCALE,
   fromSurveyModelLocale,
   isDefaultCatalogLocale,
+  surveyDefaultLocale,
+  surveyJsonLocale,
   toCatalogLocales,
   toSurveyModelLocale,
 } from "../catalog-locale";
@@ -41,6 +43,26 @@ describe("catalog-locale", () => {
     expect(toSurveyModelLocale(DEFAULT_CATALOG_LOCALE, "en")).toBe("");
     expect(toSurveyModelLocale(DEFAULT_CATALOG_LOCALE, "")).toBe("");
     expect(toSurveyModelLocale("fr", "de")).toBe("fr");
+  });
+
+  it("keeps a single-language survey's own locale as its default", () => {
+    // Act & Assert
+    expect(surveyDefaultLocale("de", [DEFAULT_CATALOG_LOCALE])).toBe("de");
+    expect(surveyDefaultLocale("de", [])).toBe("de");
+    expect(surveyDefaultLocale("", [DEFAULT_CATALOG_LOCALE])).toBe("");
+  });
+
+  it("keeps today's empty default for a multi-language survey", () => {
+    // Act & Assert
+    expect(surveyDefaultLocale("de", [DEFAULT_CATALOG_LOCALE, "fr"])).toBe("");
+  });
+
+  it("reads the locale from survey JSON", () => {
+    // Act & Assert
+    expect(surveyJsonLocale({ locale: "de" })).toBe("de");
+    expect(surveyJsonLocale({})).toBe("");
+    expect(surveyJsonLocale({ locale: 7 })).toBe("");
+    expect(surveyJsonLocale(null)).toBe("");
   });
 
   it("normalizes getUsedLocales-style lists to catalog codes", () => {

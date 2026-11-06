@@ -1,13 +1,20 @@
 import { addViewTokensToModelUseCase } from "@/features/asset-storage/server";
 import { primeDataListDisplayValues } from "@/lib/survey-features/data-lists/infrastructure/prime-data-list-display-values";
 import { registerDataListGlobals } from "@/lib/survey-features/data-lists/infrastructure/registry";
-import { getSubmissionLocale, toSurveyModelLocale } from "@/lib/localization";
+import {
+  getSubmissionLocale,
+  surveyDefaultLocale,
+  surveyJsonLocale,
+  toCatalogLocales,
+  toSurveyModelLocale,
+} from "@/lib/localization";
 import { Submission } from "@/lib/endatix-api";
 import { initializeCustomQuestions } from "@/lib/questions";
 import { registerAudioQuestionModel } from "@/lib/questions/audio-recorder/audio-question-pdf";
 // Model-only: barrel would pull survey-react-ui + stylesheet into this server path.
 import { registerDragCategorizeModel } from "@/lib/questions/drag-categorize/drag-categorize.registry";
 import { Model } from "survey-core";
+import "survey-core/survey.i18n";
 import {
   resolvePdfLocale,
   type PdfLocaleDecision,
@@ -45,12 +52,19 @@ export async function preparePdfModel({
   const surveyJson = JSON.parse(submission.formDefinition?.jsonData ?? "{}");
   const surveyModel = new Model(surveyJson);
 
+  const usedLocales = surveyModel.getUsedLocales() ?? [];
   const locale = resolvePdfLocale(
-    surveyModel.getUsedLocales() ?? [],
+    usedLocales,
     getSubmissionLocale(submission),
     localeQuery,
   );
-  surveyModel.locale = toSurveyModelLocale(locale.catalogLocale);
+  surveyModel.locale = toSurveyModelLocale(
+    locale.catalogLocale,
+    surveyDefaultLocale(
+      surveyJsonLocale(surveyJson),
+      toCatalogLocales(usedLocales),
+    ),
+  );
   surveyModel.data = JSON.parse(submission.jsonData ?? "{}");
 
   await primeDataListDisplayValues(surveyModel, submission.formId);

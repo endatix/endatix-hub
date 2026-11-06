@@ -7,10 +7,13 @@ import {
   fromSurveyModelLocale,
   getSubmissionLocale,
   isLocaleValid,
+  surveyDefaultLocale,
+  surveyJsonLocale,
   toCatalogLocales,
   toSurveyModelLocale,
 } from "@/lib/localization";
 import { Result } from "@/lib/result";
+import { tryParseJson } from "@/lib/utils/type-parsers";
 import {
   createContext,
   ReactNode,
@@ -21,6 +24,7 @@ import {
   useReducer,
 } from "react";
 import { Model, Question } from "survey-core";
+import "survey-core/survey.i18n";
 import z from "zod";
 import {
   buildSubmissionNavPages,
@@ -70,6 +74,8 @@ interface SubmissionDetailsContextType {
   /** Stored submission language, or `default` when the survey lacks it. */
   submittedCatalogLocale: string;
   catalogLocales: string[];
+  /** The language a single-language survey is written in (`de`), as a catalog code. */
+  surveyCatalogLocale: string;
   allQuestions: Question[];
   submissionNavPages: SubmissionNavPage[];
   viewOptions: SubmissionDetailsViewOptions;
@@ -107,6 +113,14 @@ function submittedCatalogLocaleOf(
   return isLocaleValid(locale, model)
     ? fromSurveyModelLocale(locale)
     : DEFAULT_CATALOG_LOCALE;
+}
+
+/** The JSON `locale` of the submission's form definition, or `""`. */
+function definitionLocaleOf(submission: Submission | undefined): string {
+  const definition = tryParseJson<unknown>(
+    submission?.formDefinition?.jsonData,
+  );
+  return Result.isSuccess(definition) ? surveyJsonLocale(definition.value) : "";
 }
 
 export function getStoredViewOptions(): SubmissionDetailsViewOptions | null {
@@ -198,6 +212,12 @@ export function SubmissionDetailsProvider({
     [state.surveyModel],
   );
 
+  // Read from the definition, not `model.locale`, which this provider overwrites.
+  const defaultLocale = useMemo(
+    () => surveyDefaultLocale(definitionLocaleOf(submission), catalogLocales),
+    [submission, catalogLocales],
+  );
+
   const submittedCatalogLocale = useMemo(() => {
     if (!submission || !state.surveyModel) {
       return DEFAULT_CATALOG_LOCALE;
@@ -231,7 +251,13 @@ export function SubmissionDetailsProvider({
 
       if (model) {
         const catalogLocale = submittedCatalogLocaleOf(submission, model);
-        model.locale = toSurveyModelLocale(catalogLocale);
+        model.locale = toSurveyModelLocale(
+          catalogLocale,
+          surveyDefaultLocale(
+            definitionLocaleOf(submission),
+            toCatalogLocales(model.getUsedLocales() ?? []),
+          ),
+        );
         dispatch({
           type: SubmissionDetailsActionType.SET_DISPLAY_CATALOG_LOCALE,
           payload: catalogLocale,
@@ -248,7 +274,10 @@ export function SubmissionDetailsProvider({
         return;
       }
 
-      state.surveyModel.locale = toSurveyModelLocale(catalogLocale);
+      state.surveyModel.locale = toSurveyModelLocale(
+        catalogLocale,
+        defaultLocale,
+      );
       dispatch({
         type: SubmissionDetailsActionType.SET_DISPLAY_CATALOG_LOCALE,
         payload: catalogLocale,
@@ -294,6 +323,9 @@ export function SubmissionDetailsProvider({
       setDisplayCatalogLocale,
       submittedCatalogLocale,
       catalogLocales,
+      surveyCatalogLocale: defaultLocale
+        ? fromSurveyModelLocale(defaultLocale)
+        : (catalogLocales[0] ?? DEFAULT_CATALOG_LOCALE),
       allQuestions,
       submissionNavPages,
       highlightedQuestionName: state.highlightedQuestionName,
@@ -307,6 +339,7 @@ export function SubmissionDetailsProvider({
     state.highlightedQuestionName,
     submittedCatalogLocale,
     catalogLocales,
+    defaultLocale,
     allQuestions,
     submissionNavPages,
   ]);
@@ -359,6 +392,7 @@ export function useSubmissionDetails() {
     setDisplayCatalogLocale,
     submittedCatalogLocale,
     catalogLocales,
+    surveyCatalogLocale,
     highlightedQuestionName,
     setHighlightedQuestionName,
   } = useSubmissionDetailsContext();
@@ -372,6 +406,7 @@ export function useSubmissionDetails() {
     setDisplayCatalogLocale,
     submittedCatalogLocale,
     catalogLocales,
+    surveyCatalogLocale,
     highlightedQuestionName,
     setHighlightedQuestionName,
   };

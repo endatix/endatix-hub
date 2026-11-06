@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { getCustomQuestionsAction } from "@/features/forms/application/actions/get-custom-questions.action";
 import { TelemetryLogger } from "@/features/telemetry";
 import type { Submission } from "@/lib/endatix-api";
+import { Model } from "survey-core";
 import { useSurveyModel } from "../use-survey-model.hook";
 
 vi.mock(
@@ -42,5 +43,76 @@ describe("useSurveyModel", () => {
       "Error initializing survey model",
       failure,
     );
+  });
+});
+
+describe("useSurveyModel locale", () => {
+  const withDefinition = (definition: object, language: string): Submission =>
+    ({
+      id: "2",
+      jsonData: "{}",
+      metadata: JSON.stringify({ language }),
+      formDefinition: { jsonData: JSON.stringify(definition) },
+    }) as unknown as Submission;
+  const yesLabel = (model: unknown) =>
+    (
+      (model as Model).getQuestionByName("agree") as unknown as {
+        locLabelTrue: { text: string };
+      }
+    ).locLabelTrue.text;
+
+  it.each(["", "de", "default"])(
+    "shows a single-language survey in its own locale (stored language %j)",
+    async (language) => {
+      // Arrange & Act
+      const { result } = renderHook(() =>
+        useSurveyModel(
+          withDefinition(
+            {
+              locale: "de",
+              pages: [{ elements: [{ type: "boolean", name: "agree" }] }],
+            },
+            language,
+          ),
+          [],
+        ),
+      );
+
+      // Assert
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+      expect(result.current.model?.locale).toBe("de");
+      expect(yesLabel(result.current.model)).toBe("Ja");
+    },
+  );
+
+  it("keeps a multi-language survey on today's default", async () => {
+    // Arrange & Act
+    const { result } = renderHook(() =>
+      useSurveyModel(
+        withDefinition(
+          {
+            locale: "de",
+            pages: [
+              {
+                elements: [
+                  {
+                    type: "boolean",
+                    name: "agree",
+                    title: { default: "Zustimmen", fr: "D'accord" },
+                  },
+                ],
+              },
+            ],
+          },
+          "default",
+        ),
+        [],
+      ),
+    );
+
+    // Assert
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.model?.locale).toBe("");
+    expect(yesLabel(result.current.model)).toBe("Yes");
   });
 });
