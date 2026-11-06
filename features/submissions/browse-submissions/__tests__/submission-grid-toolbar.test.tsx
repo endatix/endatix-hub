@@ -29,6 +29,7 @@ function renderToolbar(query: Record<string, string>, urlSetsSort: boolean) {
       formId="7"
       catalog={[]}
       columnSearch={{ canEdit: false }}
+      exportAccess={{ canExport: true, canPrepare: true, canRebuild: false }}
       disabled={false}
     />,
   );

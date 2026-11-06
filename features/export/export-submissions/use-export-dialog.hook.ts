@@ -77,6 +77,8 @@ export type UseExportDialogArgs = {
   formId: string;
   groups: TenantExportOptionGroup[];
   listFilters?: SubmissionExportListFilters;
+  /** The user may edit forms, so may rebuild reporting data from scratch. */
+  canRebuild: boolean;
   isExporting: boolean;
   onExport: (
     args: ExportDialogSubmitArgs,
@@ -129,12 +131,14 @@ export type UseExportDialogResult = {
   setLocale: (locale: string) => void;
 };
 
+/** The export panel's state on each open: readiness check, prepare and rebuild, filters, and the download; Rebuild shows only with `canRebuild`. */
 export function useExportDialog({
   open,
   onOpenChange,
   formId,
   groups,
   listFilters,
+  canRebuild,
   isExporting,
   onExport,
 }: UseExportDialogArgs): UseExportDialogResult {
@@ -487,7 +491,7 @@ export function useExportDialog({
     showFiltersForm: showsFiltersForm(phase) && readinessPassed && !rebuildMode,
     showPrepareCta: prepareCtaVisible,
     showPrepareOptions: showsPrepareOptions(phase, rebuildMode),
-    showRebuildEntry: showsRebuildEntry(phase),
+    showRebuildEntry: canRebuild && showsRebuildEntry(phase),
     showBackToExport:
       rebuildMode && (phase === "needsPrepare" || phase === "error"),
     showExportSubmit: readinessPassed && !prepareCtaVisible && !rebuildMode,

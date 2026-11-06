@@ -2,6 +2,7 @@
 
 import { rememberSubmissionListReturnTo } from "@/features/submissions/list-submission-query";
 import { NoSubmissionsEmptyState } from "@/features/submissions/ui/submissions-empty-state";
+import type { SubmissionExportAccess } from "@/features/export";
 import { useSearchParams } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
 import type { GridReadinessBanner } from "../grid-readiness";
@@ -21,7 +22,11 @@ import { SubmissionTestAccessProvider } from "./submission-test-access-context";
 type SubmissionGridShellProps = {
   formId: string;
   catalog: readonly AnswerColumn[];
-  columnSearch: ColumnSearchAccess;
+  /** The toolbar's permissions: filterable columns, Export and its Rebuild. */
+  toolbar: {
+    columnSearch: ColumnSearchAccess;
+    exportAccess: SubmissionExportAccess;
+  };
   /** Mark as test / Mark as real in each row, Delete test submissions in the toolbar. */
   testAccess: SubmissionTestAccess;
   hasSubmissions: boolean;
@@ -39,7 +44,7 @@ type SubmissionGridShellProps = {
 export function SubmissionGridShell({
   formId,
   catalog,
-  columnSearch,
+  toolbar,
   hasSubmissions,
   banner,
   children,
@@ -49,7 +54,7 @@ export function SubmissionGridShell({
   const disabled = !hasSubmissions;
   return (
     <SubmissionGridProviders {...{ formId, catalog, ...viewProps }}>
-      <SubmissionGridToolbar {...{ formId, catalog, columnSearch, disabled }} />
+      <SubmissionGridToolbar {...{ formId, catalog, disabled, ...toolbar }} />
       <SubmissionGridViewError />
       {banner && <ReadinessBanner formId={formId} banner={banner} />}
       {hasSubmissions ? children : <NoSubmissionsEmptyState />}

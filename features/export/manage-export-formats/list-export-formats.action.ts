@@ -11,6 +11,7 @@ import { toResult } from "@/lib/result/map-api-result-to-result";
 const REPORTING_EXPORT_DISABLED_MESSAGE =
   "Reporting export is not enabled for this environment.";
 
+/** The tenant's export formats, for users who may export submissions or manage tenant settings; a denied check and a failed check get different messages. */
 export async function listTenantExportFormatsAction(): Promise<
   Result<ExportFormatListItem[]>
 > {
@@ -28,7 +29,7 @@ export async function listTenantExportFormatsAction(): Promise<
   ]);
 
   if (!permissionsResult.success) {
-    return Result.error("Unauthorized.");
+    return Result.error("Could not check permission to export submissions.");
   }
 
   const permissions = permissionsResult.data;
@@ -37,7 +38,7 @@ export async function listTenantExportFormatsAction(): Promise<
     permissions[Permissions.Submissions.Export];
 
   if (!canList) {
-    return Result.error("Unauthorized.");
+    return Result.error("You need permission to export submissions.");
   }
 
   const api = new EndatixApi(session?.accessToken);
