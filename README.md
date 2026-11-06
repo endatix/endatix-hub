@@ -8,7 +8,6 @@
 [![Coverage Status](https://coveralls.io/repos/github/endatix/endatix-hub/badge.svg?branch=main)](https://coveralls.io/github/endatix/endatix-hub?branch=main)
 [![Latest release](https://img.shields.io/github/v/release/endatix/endatix-hub)](https://github.com/endatix/endatix-hub/releases)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=endatix_endatix-hub&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=endatix_endatix-hub)
-[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=endatix_endatix-hub&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=endatix_endatix-hub)
 [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=endatix_endatix-hub&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=endatix_endatix-hub)
 [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=endatix_endatix-hub&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=endatix_endatix-hub)
 
