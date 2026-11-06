@@ -57,7 +57,10 @@ describe("FormTemplatesList", () => {
     // Act
     render(
       <Suspense fallback={<div>loading</div>}>
-        <FormTemplatesList templatesPromise={fulfilledPromise(listResult)} />
+        <FormTemplatesList
+          templatesPromise={fulfilledPromise(listResult)}
+          canCreateForms
+        />
       </Suspense>,
     );
 

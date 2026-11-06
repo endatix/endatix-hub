@@ -56,14 +56,14 @@ interface FormTemplateSheetProps extends Omit<
   onPreviewClick?: (templateId: string) => void;
   requireFolderAssignment?: boolean;
   /** Shows Use Template only to users who hold forms.create. */
-  canCreateForms?: boolean;
+  canCreateForms: boolean;
 }
 
 const FormTemplateSheet = ({
   selectedTemplate,
   onPreviewClick,
   requireFolderAssignment = false,
-  canCreateForms = true,
+  canCreateForms,
   ...props
 }: FormTemplateSheetProps) => {
   const [pendingCreateForm, startCreateFormTransition] = useTransition();

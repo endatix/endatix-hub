@@ -62,7 +62,7 @@ interface FormTemplatePreviewProps {
   templateId: string;
   requireFolderAssignment?: boolean;
   /** Shows Use Template only to users who hold forms.create. */
-  canCreateForms?: boolean;
+  canCreateForms: boolean;
 }
 
 export function FormTemplatePreview({
@@ -70,7 +70,7 @@ export function FormTemplatePreview({
   onOpenChange,
   templateId,
   requireFolderAssignment = false,
-  canCreateForms = true,
+  canCreateForms,
 }: FormTemplatePreviewProps) {
   const [template, setTemplate] = useState<FormTemplate | null>(null);
   const [loading, setLoading] = useState(true);

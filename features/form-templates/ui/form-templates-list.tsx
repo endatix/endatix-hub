@@ -23,13 +23,13 @@ type FormTemplatesListProps = {
   templatesPromise: Promise<ResultType<FormTemplate[]>>;
   requireFolderAssignment?: boolean;
   /** Whether the user holds forms.create; without it, Use Template is hidden. */
-  canCreateForms?: boolean;
+  canCreateForms: boolean;
 };
 
 const FormTemplatesList = ({
   templatesPromise,
   requireFolderAssignment = false,
-  canCreateForms = true,
+  canCreateForms,
 }: FormTemplatesListProps) => {
   const templatesResult = use(templatesPromise);
 

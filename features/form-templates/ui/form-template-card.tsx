@@ -46,7 +46,7 @@ type FormTemplateCardProps = Omit<
   onPreviewClick?: (templateId: string) => void;
   requireFolderAssignment?: boolean;
   /** Shows Use Template only to users who hold forms.create. */
-  canCreateForms?: boolean;
+  canCreateForms: boolean;
 };
 
 const FormTemplateCard = ({
@@ -54,7 +54,7 @@ const FormTemplateCard = ({
   isSelected,
   onPreviewClick,
   requireFolderAssignment = false,
-  canCreateForms = true,
+  canCreateForms,
   className,
   onOpen,
   ...props
