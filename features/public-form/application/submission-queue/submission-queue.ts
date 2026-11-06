@@ -1,7 +1,12 @@
 import { captureException } from "@/features/analytics/posthog/client";
 import { SubmissionData } from "@/features/submissions/types";
 import { ApiResult } from "@/lib/endatix-api";
+import { openPublicForm } from "../open-public-form";
 import { submitPublicForm } from "../submit-public-form";
+import type {
+  SubmissionOperation,
+  SubmissionOperationResult,
+} from "../submit-form-operation";
 
 interface QueueItem {
   formId: string;
@@ -9,8 +14,22 @@ interface QueueItem {
   urlToken?: string;
 }
 
+/** The respondent's open: it runs before any save queued after it, so they don't both create. */
+interface OpenItem {
+  formId: string;
+  urlToken?: string;
+  onOpened: (opened: SubmissionOperation) => void;
+}
+
+interface QueueJob {
+  formId: string;
+  failure: string;
+  run: () => Promise<SubmissionOperationResult>;
+  onSuccess?: (result: SubmissionOperation) => void;
+}
+
 export class SubmissionQueue {
-  private queue: QueueItem[] = [];
+  private queue: QueueJob[] = [];
   private isProcessing = false;
   private processingResolvers: Array<() => void> = [];
 
@@ -30,23 +49,20 @@ export class SubmissionQueue {
 
     this.isProcessing = true;
     try {
-      const itemToProcess = this.queue.shift();
-      if (!itemToProcess) {
+      const job = this.queue.shift();
+      if (!job) {
         return;
       }
 
-      const submitResult = await submitPublicForm(
-        itemToProcess.formId,
-        itemToProcess.data,
-        itemToProcess.urlToken,
-      );
-
-      if (ApiResult.isError(submitResult)) {
-        captureException("Partial submission failed", {
-          form_id: itemToProcess.formId,
-          error_type: submitResult.error.type,
-          error_code: submitResult.error.errorCode ?? "unknown",
+      const result = await job.run();
+      if (ApiResult.isError(result)) {
+        captureException(job.failure, {
+          form_id: job.formId,
+          error_type: result.error.type,
+          error_code: result.error.errorCode ?? "unknown",
         });
+      } else {
+        job.onSuccess?.(result.data);
       }
     } catch {
       captureException("Error processing partial submission", {
@@ -73,7 +89,21 @@ export class SubmissionQueue {
       return;
     }
 
-    this.queue.push(item);
+    this.queue.push({
+      formId: item.formId,
+      failure: "Partial submission failed",
+      run: () => submitPublicForm(item.formId, item.data, item.urlToken),
+    });
+    void this.processQueue();
+  }
+
+  public enqueueOpen(item: OpenItem): void {
+    this.queue.push({
+      formId: item.formId,
+      failure: "Open submission failed",
+      run: () => openPublicForm(item.formId, item.urlToken),
+      onSuccess: item.onOpened,
+    });
     void this.processQueue();
   }
 

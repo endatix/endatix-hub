@@ -36,7 +36,9 @@ function logApiError<T>(
   return result;
 }
 
-function toSubmissionOperation(submission: Submission): SubmissionOperation {
+export function toSubmissionOperation(
+  submission: Submission,
+): SubmissionOperation {
   const completedAt = submission.completedAt
     ? new Date(submission.completedAt)
     : undefined;

@@ -103,7 +103,7 @@ export default function SurveyComponent({
     onModelCreated,
     formRuntime,
   });
-  const { enqueueSubmission, clearQueue, waitForInFlightPartial } =
+  const { enqueueSubmission, enqueueOpen, clearQueue, waitForInFlightPartial } =
     useSubmissionQueue(formId, runtimeToken);
   const [isSubmitting, startSubmitting] = useTransition();
   const { theme: appliedTheme } = useSurveyTheme(theme, surveyModel);
@@ -222,6 +222,19 @@ export default function SurveyComponent({
       updateState({ submissionId: submission.id });
     }
   }, [submission?.id, updateState]);
+
+  // The respondent's time starts when the form shows, once per page view. A test submission and
+  // a finished one record nothing.
+  const openRecordedRef = useRef(false);
+  const isFinished = submission?.isComplete === true;
+  useEffect(() => {
+    if (openRecordedRef.current || testSubmission || isFinished) {
+      return;
+    }
+
+    openRecordedRef.current = true;
+    enqueueOpen((opened) => updateState({ submissionId: opened.submissionId }));
+  }, [enqueueOpen, isFinished, testSubmission, updateState]);
 
   const surveyLocales = useMemo(() => {
     return surveyModel?.getUsedLocales() ?? [];

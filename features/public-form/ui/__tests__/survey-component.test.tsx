@@ -1,5 +1,5 @@
 import React from "react";
-import { act, render } from "@testing-library/react";
+import { act, render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import SurveyComponent from "../survey-component";
 import { SurveyModel, CompleteEvent } from "survey-core";
@@ -18,6 +18,7 @@ function cssColor(value: string): string {
 const {
   mockSubmitPublicForm,
   mockEnqueueSubmission,
+  mockEnqueueOpen,
   mockClearQueue,
   mockWaitForInFlightPartial,
   mockUseSurveyModel,
@@ -28,6 +29,7 @@ const {
 } = vi.hoisted(() => ({
   mockSubmitPublicForm: vi.fn(),
   mockEnqueueSubmission: vi.fn(),
+  mockEnqueueOpen: vi.fn(),
   mockClearQueue: vi.fn().mockImplementation(() => {
     // This will be called synchronously, so we can add logging if needed
   }),
@@ -57,6 +59,7 @@ vi.mock("../../application/submission-queue", () => {
   return {
     useSubmissionQueue: vi.fn(() => ({
       enqueueSubmission: mockEnqueueSubmission,
+      enqueueOpen: mockEnqueueOpen,
       clearQueue: mockClearQueue,
       waitForInFlightPartial: mockWaitForInFlightPartial,
     })),
@@ -233,6 +236,37 @@ function renderSurveyComponent(
     </FormRuntimeProvider>,
   );
 }
+
+describe("SurveyComponent - open", () => {
+  beforeEach(() => {
+    mockEnqueueOpen.mockClear();
+    mockUseSurveyModel.mockImplementation(() => ({
+      surveyModel: new SurveyModel(defaultProps.definition),
+      isLoading: false,
+      error: null,
+    }));
+  });
+
+  it("records the respondent's open once when the survey shows", async () => {
+    const { rerender } = renderSurveyComponent();
+    rerender(
+      <FormRuntimeProvider initialState={{ formId: defaultProps.formId }}>
+        <SurveyComponent {...defaultProps} />
+      </FormRuntimeProvider>,
+    );
+
+    await waitFor(() => expect(mockEnqueueOpen).toHaveBeenCalledTimes(1));
+  });
+
+  it("does not record an open for a completed submission", async () => {
+    renderSurveyComponent({
+      submission: { id: "42", isComplete: true } as never,
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(mockEnqueueOpen).not.toHaveBeenCalled();
+  });
+});
 
 describe("SurveyComponent - submissionUpdateGuard Behavior", () => {
   let realSurveyModel: SurveyModel;

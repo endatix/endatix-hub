@@ -2,11 +2,19 @@ import { useCallback } from "react";
 
 import { submissionQueue } from "./submission-queue";
 import { SubmissionData } from "@/features/submissions/types";
+import type { SubmissionOperation } from "../submit-form-operation";
 
 export function useSubmissionQueue(formId: string, urlToken?: string) {
   const enqueueSubmission = useCallback(
     (data: SubmissionData) => {
       submissionQueue.enqueue({ formId, data, urlToken });
+    },
+    [formId, urlToken],
+  );
+
+  const enqueueOpen = useCallback(
+    (onOpened: (opened: SubmissionOperation) => void) => {
+      submissionQueue.enqueueOpen({ formId, urlToken, onOpened });
     },
     [formId, urlToken],
   );
@@ -23,6 +31,7 @@ export function useSubmissionQueue(formId: string, urlToken?: string) {
 
   return {
     enqueueSubmission,
+    enqueueOpen,
     clearQueue,
     waitForInFlightPartial,
   };
