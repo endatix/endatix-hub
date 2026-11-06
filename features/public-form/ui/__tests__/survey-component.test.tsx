@@ -255,18 +255,22 @@ describe("SurveyComponent - open", () => {
     expect(mockUseRecordOpen).toHaveBeenCalledWith(
       expect.objectContaining({
         formId: defaultProps.formId,
-        isFinished: false,
+        isReady: true,
       }),
     );
   });
 
-  it("tells the open that a completed submission is finished", () => {
-    renderSurveyComponent({
-      submission: { id: "42", isComplete: true } as never,
-    });
+  it("holds the open while the survey model failed to load", () => {
+    mockUseSurveyModel.mockImplementation(() => ({
+      surveyModel: null,
+      isLoading: false,
+      error: "Failed to load",
+    }));
+
+    renderSurveyComponent();
 
     expect(mockUseRecordOpen).toHaveBeenLastCalledWith(
-      expect.objectContaining({ isFinished: true }),
+      expect.objectContaining({ isReady: false }),
     );
   });
 });

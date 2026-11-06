@@ -6,28 +6,29 @@ import { submissionQueue } from "./submission-queue";
 export type RecordOpen = {
   formId: string;
   urlToken: string | undefined;
-  isFinished: boolean;
+  /** The survey shows: its model loaded without error. */
+  isReady: boolean;
   onOpened: (opened: SubmissionOperation) => void;
 };
 
 /**
- * Records the respondent's open once per page view, ahead of any save, so the submission's time
- * starts when the form shows. The API decides a test submission as it does for a save. A finished
- * submission records nothing.
+ * Records the respondent's open once per page view, when the survey shows and before any save, so
+ * the submission's time starts there. The API marks a test submission on create, as it does for a
+ * first save. A completed or closed submission never mounts the survey, so it records nothing.
  */
 export function useRecordOpen({
   formId,
   urlToken,
-  isFinished,
+  isReady,
   onOpened,
 }: RecordOpen): void {
   const recordedRef = useRef(false);
   useEffect(() => {
-    if (recordedRef.current || isFinished) {
+    if (recordedRef.current || !isReady) {
       return;
     }
 
     recordedRef.current = true;
     submissionQueue.enqueueOpen({ formId, urlToken, onOpened });
-  }, [formId, urlToken, isFinished, onOpened]);
+  }, [formId, urlToken, isReady, onOpened]);
 }

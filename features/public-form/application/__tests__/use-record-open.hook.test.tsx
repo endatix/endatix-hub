@@ -19,7 +19,7 @@ describe("useRecordOpen", () => {
         useRecordOpen({
           formId: "1",
           urlToken: token,
-          isFinished: false,
+          isReady: true,
           onOpened,
         }),
       { initialProps: { token: "t" as string | undefined } },
@@ -35,16 +35,20 @@ describe("useRecordOpen", () => {
     });
   });
 
-  it("records nothing for a finished submission", () => {
-    renderHook(() =>
-      useRecordOpen({
-        formId: "1",
-        urlToken: undefined,
-        isFinished: true,
-        onOpened: vi.fn(),
-      }),
+  it("waits until the survey shows", () => {
+    const { rerender } = renderHook(
+      ({ isReady }) =>
+        useRecordOpen({
+          formId: "1",
+          urlToken: undefined,
+          isReady,
+          onOpened: vi.fn(),
+        }),
+      { initialProps: { isReady: false } },
     );
-
     expect(enqueueOpen).not.toHaveBeenCalled();
+
+    rerender({ isReady: true });
+    expect(enqueueOpen).toHaveBeenCalledTimes(1);
   });
 });

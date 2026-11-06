@@ -229,7 +229,7 @@ export default function SurveyComponent({
   useRecordOpen({
     formId,
     urlToken: runtimeToken,
-    isFinished: submission?.isComplete === true,
+    isReady: Boolean(isModelReady),
     onOpened: (opened) => handleSubmissionIdChange(opened.submissionId),
   });
 
