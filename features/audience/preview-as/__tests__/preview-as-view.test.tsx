@@ -17,6 +17,7 @@ import { Result } from "@/lib/result";
 import { openTestSubmissionAction } from "../../test-as-person/open-test-submission.action";
 import type { PreviewAsData } from "../load-preview-as.server";
 import { PreviewAsView } from "../ui/preview-as-view";
+import { stubResizeObserver } from "@/test/stubs/resize-observer";
 
 const router = { refresh: vi.fn(), push: vi.fn(), replace: vi.fn() };
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
@@ -118,16 +119,9 @@ function settle() {
   act(() => vi.advanceTimersByTime(250));
 }
 
-// Radix measures with ResizeObserver.
-class ResizeObserverStub {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-}
-
 describe("PreviewAsView", () => {
   beforeEach(() => {
-    vi.stubGlobal("ResizeObserver", ResizeObserverStub);
+    stubResizeObserver();
   });
 
   afterEach(() => {

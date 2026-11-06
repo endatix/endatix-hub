@@ -3,7 +3,6 @@ import { listPlatformAdminUsers } from "../../list-platform-admins/list-platform
 import type { PlatformAdminSession } from "../../types";
 import { listSignupReviewers } from "../list-signup-reviewers.server";
 
-vi.mock("server-only", () => ({}));
 vi.mock("../../list-platform-admins/list-platform-admins.server", () => ({
   listPlatformAdminUsers: vi.fn(),
 }));

@@ -103,15 +103,19 @@ const CAPABILITIES: ExportCapabilityDto[] = [
 
 describe("normalizeExportCapabilities", () => {
   it("maps numeric enum values from the API", () => {
+    const wireCapability: Omit<
+      ExportCapabilityDto,
+      "description" | "allowedFilters"
+    > = {
+      target: 1 as unknown as "Codebook",
+      deliveryFormat: 1 as unknown as "Json",
+      profile: 1 as unknown as "Shoji",
+      wireKey: "codebook-shoji",
+      label: "Codebook (Shoji)",
+      itemTypeName: "Endatix.Core.Entities.DynamicExportRow",
+    };
     const normalized = normalizeExportCapabilities([
-      {
-        target: 1 as unknown as "Codebook",
-        deliveryFormat: 1 as unknown as "Json",
-        profile: 1 as unknown as "Shoji",
-        wireKey: "codebook-shoji",
-        label: "Codebook (Shoji)",
-        itemTypeName: "Endatix.Core.Entities.DynamicExportRow",
-      },
+      wireCapability as ExportCapabilityDto,
     ]);
 
     expect(normalized).toEqual([
@@ -196,6 +200,7 @@ describe("capability-derived export options", () => {
             includeTestSubmissions: false,
           },
           createdAt: "2026-01-01T00:00:00Z",
+          allowedFilters: [],
         },
         CAPABILITIES,
       ),

@@ -1,11 +1,13 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   uploadBlob,
   resizeImageOrFallback,
 } from "@/features/asset-storage/use-cases/upload/upload-blob";
 import { UploadError } from "@/features/asset-storage/use-cases/upload/upload-errors";
 
-global.fetch = vi.fn();
+beforeEach(() => {
+  vi.stubGlobal("fetch", vi.fn());
+});
 
 describe("uploadBlob", () => {
   it("uploads data via fetch PUT and returns base URL without query", async () => {

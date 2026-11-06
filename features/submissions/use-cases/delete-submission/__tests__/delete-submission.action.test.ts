@@ -51,7 +51,9 @@ describe("deleteSubmissionAction", () => {
     );
     expect(mockRevalidatePath).toHaveBeenCalledWith("/(main)/forms/form-1");
     expect(Result.isSuccess(result)).toBe(true);
-    expect(result.value).toBe("sub-1");
+    if (Result.isSuccess(result)) {
+      expect(result.value).toBe("sub-1");
+    }
   });
 
   it("maps API failures without revalidating", async () => {

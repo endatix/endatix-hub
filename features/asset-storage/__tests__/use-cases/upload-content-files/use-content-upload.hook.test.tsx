@@ -42,38 +42,44 @@ const mockFetchSuccess = (
   itemType: "form" | "template" = "form",
 ) => {
   const contentPrefix = itemType === "form" ? "f" : "t";
-  global.fetch = vi
-    .fn()
-    .mockResolvedValueOnce({
-      ok: true,
-      json: () =>
-        Promise.resolve({
-          uploads: {
-            "test.jpg": {
-              url: `https://account.blob.core.windows.net/content/${contentPrefix}/test-item/unique.jpg?sas=token`,
-              headers: { "x-ms-blob-type": "BlockBlob" },
-              key: `${contentPrefix}/test-item/unique.jpg`,
+  vi.stubGlobal(
+    "fetch",
+    vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            uploads: {
+              "test.jpg": {
+                url: `https://account.blob.core.windows.net/content/${contentPrefix}/test-item/unique.jpg?sas=token`,
+                headers: { "x-ms-blob-type": "BlockBlob" },
+                key: `${contentPrefix}/test-item/unique.jpg`,
+              },
             },
-          },
-          uploadMetadata: {
-            userId: "user-1",
-            itemId: "test-item",
-            contentItemType: itemType,
-            questionName,
-          },
-        }),
-    })
-    .mockResolvedValueOnce({
-      ok: true,
-      text: () => Promise.resolve(""),
-    });
+            uploadMetadata: {
+              userId: "user-1",
+              itemId: "test-item",
+              contentItemType: itemType,
+              questionName,
+            },
+          }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        text: () => Promise.resolve(""),
+      }),
+  );
 };
 
 const mockFetchError = (detail = "Unauthorized") => {
-  global.fetch = vi.fn().mockResolvedValueOnce({
-    ok: false,
-    json: () => Promise.resolve({ detail }),
-  });
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValueOnce({
+      ok: false,
+      json: () => Promise.resolve({ detail }),
+    }),
+  );
 };
 
 describe("useContentUpload", () => {

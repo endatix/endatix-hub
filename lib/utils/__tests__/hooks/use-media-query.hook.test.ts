@@ -1,28 +1,21 @@
 // @vitest-environment jsdom
 import { renderHook } from "@testing-library/react";
-import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
+import { vi, describe, it, expect } from "vitest";
 import { useMediaQuery } from "../../hooks/use-media-query.hook";
 
 describe("useMediaQuery", () => {
-  let originalMatchMedia: typeof window.matchMedia;
-
-  beforeEach(() => {
-    originalMatchMedia = window.matchMedia;
-  });
-
-  afterEach(() => {
-    window.matchMedia = originalMatchMedia;
-  });
-
   it("returns false when media does not match", () => {
     // Arrange
-    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
-      matches: false,
-      media: query,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      dispatchEvent: vi.fn(),
-    }));
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn().mockImplementation((query: string) => ({
+        matches: false,
+        media: query,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      })),
+    );
 
     // Act
     const { result } = renderHook(() => useMediaQuery("(min-width: 768px)"));
@@ -33,13 +26,16 @@ describe("useMediaQuery", () => {
 
   it("returns true when media matches", () => {
     // Arrange
-    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
-      matches: true,
-      media: query,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      dispatchEvent: vi.fn(),
-    }));
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn().mockImplementation((query: string) => ({
+        matches: true,
+        media: query,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      })),
+    );
 
     // Act
     const { result } = renderHook(() => useMediaQuery("(min-width: 768px)"));
@@ -57,7 +53,7 @@ describe("useMediaQuery", () => {
       removeEventListener: vi.fn(),
       dispatchEvent: vi.fn(),
     }));
-    window.matchMedia = matchMediaMock;
+    vi.stubGlobal("matchMedia", matchMediaMock);
 
     // Act
     renderHook(() => useMediaQuery("(prefers-color-scheme: dark)"));
@@ -70,13 +66,16 @@ describe("useMediaQuery", () => {
     // Arrange
     const addEventListenerMock = vi.fn();
     const removeEventListenerMock = vi.fn();
-    window.matchMedia = vi.fn().mockImplementation((_query: string) => ({
-      matches: false,
-      media: _query,
-      addEventListener: addEventListenerMock,
-      removeEventListener: removeEventListenerMock,
-      dispatchEvent: vi.fn(),
-    }));
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn().mockImplementation((_query: string) => ({
+        matches: false,
+        media: _query,
+        addEventListener: addEventListenerMock,
+        removeEventListener: removeEventListenerMock,
+        dispatchEvent: vi.fn(),
+      })),
+    );
 
     // Act
     const { unmount } = renderHook(() => useMediaQuery("(min-width: 768px)"));

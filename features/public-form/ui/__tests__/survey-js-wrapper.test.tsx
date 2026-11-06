@@ -92,7 +92,12 @@ const defaultProps: SurveyJsWrapperProps = {
 
 /** What the server sends a viewer with forms.test. */
 function testerView(submission: Submission, canStartOver = true) {
-  return toTestInspectorView({ formId: "form-1", submission, canStartOver });
+  return toTestInspectorView({
+    formId: "form-1",
+    submission,
+    canStartOver,
+    canOpenParticipant: false,
+  });
 }
 
 function testSubmission(isComplete: boolean): Submission {

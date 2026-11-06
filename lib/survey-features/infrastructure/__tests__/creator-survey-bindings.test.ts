@@ -31,7 +31,7 @@ function createMockCreator(initialSurvey?: Model) {
 
 describe('bindSurveyToCreatorAreas', () => {
   it('binds only designer-tab and preview-tab survey instances', () => {
-    const bindSurvey = vi.fn(() => vi.fn());
+    const bindSurvey = vi.fn<(survey: Model) => () => void>(() => vi.fn());
     const { creator, emit } = createMockCreator(new Model({ elements: [] }));
 
     bindSurveyToCreatorAreas(creator, BOUND_KEY, bindSurvey);

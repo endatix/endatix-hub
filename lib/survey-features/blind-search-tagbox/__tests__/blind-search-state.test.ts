@@ -1,4 +1,4 @@
-import type { Question } from "survey-core";
+import { ItemValue, type Question } from "survey-core";
 import { describe, expect, it } from "vitest";
 import type { BlindSearchTagboxQuestion } from "../types";
 import {
@@ -108,10 +108,7 @@ describe("blind-search-state", () => {
     it("filters choices case-insensitively using contains mode", () => {
       // Arrange
       const question = createTagboxQuestion();
-      const choices = [
-        { value: "1", text: "Alpha" },
-        { value: "2", text: "Beta" },
-      ];
+      const choices = [new ItemValue("1", "Alpha"), new ItemValue("2", "Beta")];
 
       // Act
       const filtered = filterChoicesBySearch(question, choices, "AL");
@@ -124,10 +121,7 @@ describe("blind-search-state", () => {
     it("supports startsWith search mode", () => {
       // Arrange
       const question = createTagboxQuestion({ searchMode: "startsWith" });
-      const choices = [
-        { value: "1", text: "Alpha" },
-        { value: "2", text: "Beta" },
-      ];
+      const choices = [new ItemValue("1", "Alpha"), new ItemValue("2", "Beta")];
 
       // Act
       const filtered = filterChoicesBySearch(question, choices, "ta");

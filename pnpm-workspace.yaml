@@ -59,10 +59,6 @@ overrides:
   # picomatch 2.3.2 & 4.0.4 bump is to address CVE-2026-33671 & CVE-2026-33671. Multiple peer dependenices hold outdated versions.
   "picomatch@>=2 <3": ^2.3.2
   "picomatch@>=4 <5": ^4.0.4
-  # yaml 2.8.3 bump is to address CVE-2026-33532 . Fix with vite bump
-  yaml: ^2.8.3
-  # vite 7.3.2 bump is to address GHSA-4w7w-66w2-5vf9, GHSA-v2wj-q39q-566r & CVE-2026-39363. Redundant since vite is a direct ^7.3.7 devDependency; remove in a dependency cleanup
-  vite: ^7.3.5
   # protobufjs bump to 8.7.1 to address multiple otel related vulnerabilities. Remove on next otel bump
   protobufjs: ^8.7.1
   # @protobufjs/utf8 bump to 1.1.2 is to address multiple otel vulnerabilities. Remove on next otel bump

@@ -26,12 +26,7 @@ vi.mock("../submission-queue/use-submission-queue.hook", () => ({
 }));
 
 beforeEach(() => {
-  Object.defineProperty(window, "location", {
-    value: {
-      pathname: "/test/path",
-    },
-    writable: true,
-  });
+  vi.stubGlobal("location", { pathname: "/test/path" });
   // URLSearchParams.forEach + delete can skip keys; drain via keys() snapshot.
   [...mockSearchParams.keys()].forEach((key) => mockSearchParams.delete(key));
 });

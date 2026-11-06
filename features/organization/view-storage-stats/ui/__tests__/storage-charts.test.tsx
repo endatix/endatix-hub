@@ -3,6 +3,11 @@ import { describe, expect, it, vi } from "vitest";
 import { SubmissionDataPieChart } from "../submission-data-pie-chart";
 import { FormsStorageBarChart } from "../form-storage-bar-chart";
 import { StorageDashboard } from "../storage-dashboard";
+import {
+  ApiErrorType,
+  type ApiResult,
+} from "@/lib/endatix-api/shared/api-result";
+import type { StorageDashboardData } from "@/lib/endatix-api/stats";
 
 vi.mock("recharts", () => ({
   PieChart: ({ children }: { children: React.ReactNode }) => (
@@ -119,10 +124,11 @@ describe("FormsStorageBarChart", () => {
 });
 
 describe("StorageDashboard", () => {
-  const mockSuccessData = {
+  const mockSuccessData: ApiResult<StorageDashboardData> = {
     success: true,
     data: {
       tenantStats: {
+        tenantId: 1,
         estimatedStorageBytes: 1048576,
         submissionCount: 1000,
         versionCount: 500,
@@ -147,9 +153,9 @@ describe("StorageDashboard", () => {
     },
   };
 
-  const mockErrorData = {
+  const mockErrorData: ApiResult<StorageDashboardData> = {
     success: false,
-    error: { message: "Failed to load" },
+    error: { type: ApiErrorType.ServerError, message: "Failed to load" },
   };
 
   it("renders error state when data fetch fails", async () => {

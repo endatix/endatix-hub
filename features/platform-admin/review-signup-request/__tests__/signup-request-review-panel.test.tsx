@@ -11,6 +11,7 @@ import {
 } from "../review-signup-request.actions";
 import { SignupRequestReviewPanel } from "../ui/signup-request-review-panel";
 import { clearSignupVisitorCache } from "../ui/signup-visitor-section";
+import { stubResizeObserver } from "@/test/stubs/resize-observer";
 
 vi.mock("@/lib/utils/hooks/use-media-query.hook", () => ({
   useMediaQuery: () => true,
@@ -57,17 +58,10 @@ function renderPanel(item: SignupRequestView) {
   );
 }
 
-// Radix tooltips (copy / truncated-id affordances) measure with ResizeObserver.
-class ResizeObserverStub {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-}
-
 describe("SignupRequestReviewPanel", () => {
   beforeEach(() => {
     clearSignupVisitorCache();
-    vi.stubGlobal("ResizeObserver", ResizeObserverStub);
+    stubResizeObserver();
   });
 
   it("shows the record before any decision control", () => {

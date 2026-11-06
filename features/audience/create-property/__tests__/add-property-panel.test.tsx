@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Result } from "@/lib/result";
 import { createAudiencePropertyAction } from "../create-audience-property.action";
 import { AddPropertyPanel } from "../ui/add-property-panel";
+import { stubResizeObserver } from "@/test/stubs/resize-observer";
 
 vi.mock("@/lib/utils/hooks/use-media-query.hook", () => ({
   useMediaQuery: () => true,
@@ -38,15 +39,8 @@ vi.mock("../../ui/options-select", () => ({
   ),
 }));
 
-// The Radix checkbox (Accept other values) measures with ResizeObserver.
-class ResizeObserverStub {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-}
-
 beforeEach(() => {
-  vi.stubGlobal("ResizeObserver", ResizeObserverStub);
+  stubResizeObserver();
 });
 
 function openPanel() {

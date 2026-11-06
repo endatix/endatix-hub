@@ -6,13 +6,16 @@ import {
   AUDIO_RECORDER_TYPE,
 } from "@/lib/questions/audio-recorder/audio-question.model";
 
-
 interface IQuestionElement {
   questionElement: HTMLElement | undefined;
 }
 
 class TestAudioQuestionModel extends AudioQuestionModel {
-  public onCheckForErrors(errors: SurveyError[], isOnValueChanged: boolean, fireCallback: boolean): void {
+  public onCheckForErrors(
+    errors: SurveyError[],
+    isOnValueChanged: boolean,
+    fireCallback: boolean,
+  ): void {
     super.onCheckForErrors(errors, isOnValueChanged, fireCallback);
   }
 }
@@ -86,15 +89,13 @@ describe("AudioQuestionModel", () => {
       },
     });
 
-    global.AudioContext = vi.fn(function () {
+    const audioContext = vi.fn(function () {
       return mockAudioContext;
-    }) as unknown as typeof AudioContext;
-    global.window = {
-      AudioContext: global.AudioContext,
-    } as unknown as Window & typeof globalThis;
-
-    global.requestAnimationFrame = mockRequestAnimationFrame;
-    global.cancelAnimationFrame = mockCancelAnimationFrame;
+    });
+    vi.stubGlobal("AudioContext", audioContext);
+    vi.stubGlobal("window", { AudioContext: audioContext });
+    vi.stubGlobal("requestAnimationFrame", mockRequestAnimationFrame);
+    vi.stubGlobal("cancelAnimationFrame", mockCancelAnimationFrame);
 
     // Setup mock return values
     mockAudioContext.createMediaStreamSource.mockReturnValue(mockSource);
@@ -241,7 +242,10 @@ describe("AudioQuestionModel", () => {
 
       await audioQuestion.stopRecording();
 
-      expect(consoleSpy).toHaveBeenCalledWith("Recording error", disconnectError);
+      expect(consoleSpy).toHaveBeenCalledWith(
+        "Recording error",
+        disconnectError,
+      );
       expect(errorsSpy).toHaveBeenCalledOnce();
       consoleSpy.mockRestore();
     });
@@ -359,7 +363,7 @@ describe("AudioQuestionModel", () => {
   describe("Validation - onCheckForErrors", () => {
     it("should not add errors when not recording and not uploading", () => {
       const errors: SurveyError[] = [];
-      
+
       audioQuestion.onCheckForErrors(errors, false, false);
 
       expect(errors).toHaveLength(0);
@@ -373,7 +377,7 @@ describe("AudioQuestionModel", () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0].text).toBe(
-        AudioQuestionModel.ERROR_RECORDING_IN_PROGRESS
+        AudioQuestionModel.ERROR_RECORDING_IN_PROGRESS,
       );
     });
 
@@ -384,9 +388,7 @@ describe("AudioQuestionModel", () => {
       audioQuestion.onCheckForErrors(errors, false, false);
 
       expect(errors).toHaveLength(1);
-      expect(errors[0].text).toBe(
-        "Saving your recording. Please wait.",
-      );
+      expect(errors[0].text).toBe("Saving your recording. Please wait.");
     });
 
     it("should call parent onCheckForErrors when not recording and not uploading", () => {
@@ -418,7 +420,7 @@ describe("AudioQuestionModel", () => {
       expect(result).toBe(false);
       expect(audioQuestion.errors).toHaveLength(1);
       expect(audioQuestion.errors[0].text).toBe(
-        AudioQuestionModel.ERROR_RECORDING_IN_PROGRESS
+        AudioQuestionModel.ERROR_RECORDING_IN_PROGRESS,
       );
     });
 
@@ -453,7 +455,7 @@ describe("AudioQuestionModel", () => {
       expect(result).toBe(false);
       expect(audioQuestion.errors).toHaveLength(1);
       expect(audioQuestion.errors[0].text).toBe(
-        AudioQuestionModel.ERROR_RECORDING_IN_PROGRESS
+        AudioQuestionModel.ERROR_RECORDING_IN_PROGRESS,
       );
     });
 
@@ -509,8 +511,12 @@ describe("AudioQuestionModel", () => {
         questionsOnPageMode: "questionPerPage",
       });
 
-      question1 = questionPerPageSurvey.getQuestionByName("question1") as AudioQuestionModel;
-      question2 = questionPerPageSurvey.getQuestionByName("question2") as AudioQuestionModel;
+      question1 = questionPerPageSurvey.getQuestionByName(
+        "question1",
+      ) as AudioQuestionModel;
+      question2 = questionPerPageSurvey.getQuestionByName(
+        "question2",
+      ) as AudioQuestionModel;
     });
 
     it("should prevent next page when first question is recording", () => {
@@ -521,7 +527,7 @@ describe("AudioQuestionModel", () => {
       expect(result).toBe(false);
       expect(question1.errors).toHaveLength(1);
       expect(question1.errors[0].text).toBe(
-        AudioQuestionModel.ERROR_RECORDING_IN_PROGRESS
+        AudioQuestionModel.ERROR_RECORDING_IN_PROGRESS,
       );
     });
 
@@ -557,7 +563,7 @@ describe("AudioQuestionModel", () => {
       expect(result).toBe(false);
       expect(question2.errors).toHaveLength(1);
       expect(question2.errors[0].text).toBe(
-        AudioQuestionModel.ERROR_RECORDING_IN_PROGRESS
+        AudioQuestionModel.ERROR_RECORDING_IN_PROGRESS,
       );
     });
 
@@ -595,7 +601,7 @@ describe("AudioQuestionModel", () => {
       expect(result).toBe(false);
       expect(question1.errors).toHaveLength(1);
       expect(question1.errors[0].text).toBe(
-        AudioQuestionModel.ERROR_RECORDING_IN_PROGRESS
+        AudioQuestionModel.ERROR_RECORDING_IN_PROGRESS,
       );
     });
 
@@ -604,7 +610,7 @@ describe("AudioQuestionModel", () => {
 
       // Navigate to the second question first
       questionPerPageSurvey.nextPage();
-      
+
       const result = questionPerPageSurvey.validate();
 
       expect(result).toBe(false);
@@ -634,9 +640,9 @@ describe("AudioQuestionModel", () => {
 
       audioQuestion.afterRenderQuestionElement(mockElement);
 
-      expect((audioQuestion as unknown as IQuestionElement).questionElement).toBe(
-        mockElement,
-      );
+      expect(
+        (audioQuestion as unknown as IQuestionElement).questionElement,
+      ).toBe(mockElement);
     });
 
     it("should handle beforeDestroyQuestionElement", () => {

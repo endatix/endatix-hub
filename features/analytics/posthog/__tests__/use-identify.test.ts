@@ -24,22 +24,13 @@ describe("useIdentify", () => {
       reset: mockReset,
       alias: mockAlias,
     } as unknown as PostHog);
-    Object.defineProperty(global, "window", {
-      value: {},
-      writable: true,
+    vi.stubGlobal("window", {});
+    vi.stubGlobal("localStorage", {
+      getItem: vi.fn(),
+      setItem: vi.fn(),
+      removeItem: vi.fn(),
     });
-    Object.defineProperty(global, "localStorage", {
-      value: {
-        getItem: vi.fn(),
-        setItem: vi.fn(),
-        removeItem: vi.fn(),
-      },
-      writable: true,
-    });
-    Object.defineProperty(global, "crypto", {
-      value: { randomUUID: () => "uuid-123" },
-      writable: true,
-    });
+    vi.stubGlobal("crypto", { randomUUID: () => "uuid-123" });
   });
 
   afterEach(() => {
@@ -58,6 +49,7 @@ describe("useIdentify", () => {
     });
 
     it("should do nothing when posthog is null", () => {
+      // @ts-expect-error -- usePostHog is typed non-null, but returns null outside a PostHogProvider.
       vi.mocked(usePostHog).mockReturnValue(null);
       const { result } = renderHook(() => useIdentify());
 
@@ -72,9 +64,10 @@ describe("useIdentify", () => {
   describe("identifyLoggedInUser", () => {
     it("should identify with email and call alias when anonymous id exists", () => {
       const getItem = vi.fn().mockReturnValue("anon_abc");
-      Object.defineProperty(global, "localStorage", {
-        value: { getItem, setItem: vi.fn(), removeItem: vi.fn() },
-        writable: true,
+      vi.stubGlobal("localStorage", {
+        getItem,
+        setItem: vi.fn(),
+        removeItem: vi.fn(),
       });
 
       const { result } = renderHook(() => useIdentify());
@@ -95,9 +88,10 @@ describe("useIdentify", () => {
 
     it("should not call alias when no anonymous id stored", () => {
       const getItem = vi.fn().mockReturnValue(null);
-      Object.defineProperty(global, "localStorage", {
-        value: { getItem, setItem: vi.fn(), removeItem: vi.fn() },
-        writable: true,
+      vi.stubGlobal("localStorage", {
+        getItem,
+        setItem: vi.fn(),
+        removeItem: vi.fn(),
       });
 
       const { result } = renderHook(() => useIdentify());
@@ -125,10 +119,7 @@ describe("useIdentify", () => {
     it("should remove stored id, call posthog.reset, and return new anonymous id", () => {
       const removeItem = vi.fn();
       const setItem = vi.fn();
-      Object.defineProperty(global, "localStorage", {
-        value: { getItem: vi.fn(), setItem, removeItem },
-        writable: true,
-      });
+      vi.stubGlobal("localStorage", { getItem: vi.fn(), setItem, removeItem });
 
       const { result } = renderHook(() => useIdentify());
 
@@ -147,9 +138,10 @@ describe("useIdentify", () => {
   describe("handleSession", () => {
     it("should identify logged-in user by email when session has user.email", () => {
       const getItem = vi.fn().mockReturnValue(null);
-      Object.defineProperty(global, "localStorage", {
-        value: { getItem, setItem: vi.fn(), removeItem: vi.fn() },
-        writable: true,
+      vi.stubGlobal("localStorage", {
+        getItem,
+        setItem: vi.fn(),
+        removeItem: vi.fn(),
       });
 
       const session: Session = {
@@ -177,10 +169,7 @@ describe("useIdentify", () => {
     it("should identify anonymous when session is null", () => {
       const getItem = vi.fn().mockReturnValue(null);
       const setItem = vi.fn();
-      Object.defineProperty(global, "localStorage", {
-        value: { getItem, setItem, removeItem: vi.fn() },
-        writable: true,
-      });
+      vi.stubGlobal("localStorage", { getItem, setItem, removeItem: vi.fn() });
 
       const { result } = renderHook(() => useIdentify());
 
@@ -195,6 +184,7 @@ describe("useIdentify", () => {
     });
 
     it("should return false when posthog is null", () => {
+      // @ts-expect-error -- usePostHog is typed non-null, but returns null outside a PostHogProvider.
       vi.mocked(usePostHog).mockReturnValue(null);
       const { result } = renderHook(() => useIdentify());
 
@@ -218,19 +208,13 @@ describe("useSessionIdentity", () => {
       reset: mockReset,
       alias: mockAlias,
     } as unknown as PostHog);
-    Object.defineProperty(global, "window", { value: {}, writable: true });
-    Object.defineProperty(global, "localStorage", {
-      value: {
-        getItem: vi.fn().mockReturnValue(null),
-        setItem: vi.fn(),
-        removeItem: vi.fn(),
-      },
-      writable: true,
+    vi.stubGlobal("window", {});
+    vi.stubGlobal("localStorage", {
+      getItem: vi.fn().mockReturnValue(null),
+      setItem: vi.fn(),
+      removeItem: vi.fn(),
     });
-    Object.defineProperty(global, "crypto", {
-      value: { randomUUID: () => "uuid-session" },
-      writable: true,
-    });
+    vi.stubGlobal("crypto", { randomUUID: () => "uuid-session" });
   });
 
   afterEach(() => {
@@ -255,6 +239,7 @@ describe("useSessionIdentity", () => {
   });
 
   it("should not call identify when posthog is null", () => {
+    // @ts-expect-error -- usePostHog is typed non-null, but returns null outside a PostHogProvider.
     vi.mocked(usePostHog).mockReturnValue(null);
 
     renderHook(() =>

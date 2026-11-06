@@ -7,6 +7,7 @@ import {
   type AudienceProperty,
 } from "@/lib/endatix-api/audience/types";
 import { PeopleSection } from "../ui/people-section";
+import { stubResizeObserver } from "@/test/stubs/resize-observer";
 
 vi.mock("@/lib/utils/hooks/use-media-query.hook", () => ({
   useMediaQuery: () => true,
@@ -97,12 +98,6 @@ const LIST = {
   canTest: true,
 };
 
-class ResizeObserverStub {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-}
-
 const SELECT_PAGE = "Select test participants on this page";
 const download = () =>
   screen.getByRole("status", { name: "Download test links" }).textContent;
@@ -115,7 +110,7 @@ function renderWithTestLinks() {
 
 describe("PeopleSection test links", () => {
   beforeEach(() => {
-    vi.stubGlobal("ResizeObserver", ResizeObserverStub);
+    stubResizeObserver();
   });
 
   it("offers Download test links, with ticks on test participants only", () => {

@@ -269,9 +269,9 @@ Every test starts clean: Vitest 5 clears mock calls by default (`clearMocks`), a
 - Don't add `vi.clearAllMocks()`, `vi.restoreAllMocks()`, `vi.unstubAllEnvs()` or `vi.unstubAllGlobals()` to a hook. Call one inside a test only to reset between two steps of that test.
 - Clearing keeps implementations. A `mockReturnValue` set in one test is still there in the next, so set the defaults every test needs in `beforeEach`, and use `mockReturnValueOnce` / `mockImplementationOnce` for one test's variation. A `…Once` value stays queued until something calls the mock, even into the next test, so queue it only for a call the test makes. Never replace a method on a shared mock object (`mockThing.run = vi.fn(...)`): it stays for every later test.
 - `vi.mock` only at module scope; Vitest hoists it. Change its behaviour per test with `vi.mocked(fn).mockReturnValue(...)`.
-- Create `vi.spyOn`, `vi.stubGlobal` and `vi.stubEnv` in `beforeEach` or the test, never at module or `describe` scope. The config undoes them before every test, so one made outside a hook is already undone when some or all of the tests run, and a `not.toHaveBeenCalled()` on a restored spy passes without checking anything. Use `vi.stubGlobal`, not `global.x = …`, which nothing undoes (some older tests still assign globals; convert one when you touch it).
+- Create `vi.spyOn`, `vi.stubGlobal` and `vi.stubEnv` in `beforeEach` or the test, never at module or `describe` scope. The config undoes them before every test, so one made outside a hook is already undone when some or all of the tests run, and a `not.toHaveBeenCalled()` on a restored spy passes without checking anything. Use `vi.stubGlobal`, not `global.x = …` or `Object.defineProperty(globalThis, …)`, which nothing undoes. For jsdom's missing `ResizeObserver`, call `stubResizeObserver()` from `@/test/stubs/resize-observer` in `beforeEach`.
 - State outside mocks is not reset for you: SurveyJS `Serializer` properties, registries, module caches. Reset it in `beforeEach`, with the module's `…ForTests()` helper when it has one.
-- Mock at the boundary: the API client (`@/lib/endatix-api`, or `fetch`), `@/auth`, `next/navigation`, `next/headers`, `next/cache`, toasts. A component test may mock its slice's server action (`../x.action`), the client-to-server edge. Prefer running the slice's own modules to mocking them. `server-only` is aliased to `test/mocks/server-only.ts` in the config, so it needs no `vi.mock` (older tests still carry one).
+- Mock at the boundary: the API client (`@/lib/endatix-api`, or `fetch`), `@/auth`, `next/navigation`, `next/headers`, `next/cache`, toasts. A component test may mock its slice's server action (`../x.action`), the client-to-server edge. Prefer running the slice's own modules to mocking them. `server-only` is aliased to `test/mocks/server-only.ts` in the config, so never `vi.mock` it.
 - Run `pnpm test run --sequence.shuffle` to check that no test depends on the order.
 
 ### What makes a good assertion
@@ -440,6 +440,7 @@ Single-context. `GLOSSARY.md` and `docs/adr/` at the root are created lazily by 
 - Build: `pnpm build`
 - Test: `pnpm test run` (Vitest, one run, no coverage); with coverage as in CI: `pnpm test:coverage`; e2e: `pnpm test:e2e`
 - Lint: `pnpm lint`
+- Check (types): `pnpm typecheck` (`tsc` over app and test files with `tsconfig.vitest.json`; Vitest and `next build` never type-check tests)
 - Run: `pnpm dev` (http://localhost:3000)
 - PR title scope: `h[0-9]+|deps|deps-dev` (the full title and branch rules are in [CONTRIBUTING.md](CONTRIBUTING.md))
 - Branch name: `<type>/h<issue>-<slug>`

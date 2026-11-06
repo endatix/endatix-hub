@@ -217,6 +217,9 @@ describe("zod-error-utils", () => {
       it("maps a Result error message without field errors", () => {
         // Arrange
         const result = Result.error("Failed to create export format.");
+        if (!Result.isError(result)) {
+          throw new Error("Result.error must build an error result");
+        }
         const rawData = { name: "Excel" };
 
         // Act

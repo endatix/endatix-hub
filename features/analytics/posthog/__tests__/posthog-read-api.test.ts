@@ -5,8 +5,6 @@ import {
   readPostHogReadApiConfig,
 } from "../server/posthog-read-api.server";
 
-vi.mock("server-only", () => ({}));
-
 const config = {
   host: "https://us.posthog.com",
   projectId: "42",

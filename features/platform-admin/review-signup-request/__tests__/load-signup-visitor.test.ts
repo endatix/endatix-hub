@@ -7,7 +7,6 @@ import {
 } from "@/features/analytics/posthog/server/posthog-read-api.server";
 import { loadSignupVisitor, toTimeline } from "../load-signup-visitor.server";
 
-vi.mock("server-only", () => ({}));
 vi.mock(
   "@/features/analytics/posthog/server/posthog-read-api.server",
   async (importOriginal) => ({
