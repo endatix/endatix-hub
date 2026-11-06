@@ -268,7 +268,10 @@ describe("SubmissionDetailsContext", () => {
       metadata: JSON.stringify({ language: "es" }),
     };
 
-    async function renderWithModel(model: Model) {
+    async function renderWithModel(
+      model: Model,
+      submission: Submission = spanishSubmission,
+    ) {
       let details: ReturnType<typeof useSubmissionDetails> | undefined;
       const Probe = () => {
         details = useSubmissionDetails();
@@ -279,9 +282,7 @@ describe("SubmissionDetailsContext", () => {
         render(
           <Suspense fallback={null}>
             <SubmissionDetailsProvider
-              submissionPromise={Promise.resolve(
-                Result.success(spanishSubmission),
-              )}
+              submissionPromise={Promise.resolve(Result.success(submission))}
             >
               <Probe />
             </SubmissionDetailsProvider>
@@ -330,47 +331,25 @@ describe("SubmissionDetailsContext", () => {
         locale: "de",
         pages: [{ elements: [{ type: "boolean", name: "agree" }] }],
       };
-      const germanSubmission: Submission = {
-        ...mockSubmission,
-        id: "sub-de",
-        metadata: JSON.stringify({ language: "" }),
-        formDefinition: {
-          id: "def-de",
-          jsonData: JSON.stringify(germanJson),
-        } as Submission["formDefinition"],
-      };
-      let details: ReturnType<typeof useSubmissionDetails> | undefined;
-      const Probe = () => {
-        details = useSubmissionDetails();
-        return null;
-      };
-      await act(async () =>
-        render(
-          <Suspense fallback={null}>
-            <SubmissionDetailsProvider
-              submissionPromise={Promise.resolve(
-                Result.success(germanSubmission),
-              )}
-            >
-              <Probe />
-            </SubmissionDetailsProvider>
-          </Suspense>,
-        ),
-      );
       const model = new Model(germanJson);
       model.locale = "";
 
       // Act
-      await act(async () => details!.setSurveyModel(model));
+      const { details } = await renderWithModel(model, {
+        ...mockSubmission,
+        id: "sub-de",
+        metadata: JSON.stringify({ language: "" }),
+        formDefinition: { jsonData: JSON.stringify(germanJson) },
+      } as Submission);
       const afterLoad = model.locale;
       await act(async () =>
-        details!.setDisplayCatalogLocale(DEFAULT_CATALOG_LOCALE),
+        details().setDisplayCatalogLocale(DEFAULT_CATALOG_LOCALE),
       );
 
       // Assert
       expect(afterLoad).toBe("de");
       expect(model.locale).toBe("de");
-      expect(details!.surveyCatalogLocale).toBe("de");
+      expect(details().surveyCatalogLocale).toBe("de");
     });
 
     it("clears the published locale when the page unmounts", async () => {

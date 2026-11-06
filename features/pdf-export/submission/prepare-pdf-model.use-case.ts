@@ -3,10 +3,8 @@ import { primeDataListDisplayValues } from "@/lib/survey-features/data-lists/inf
 import { registerDataListGlobals } from "@/lib/survey-features/data-lists/infrastructure/registry";
 import {
   getSubmissionLocale,
-  surveyDefaultLocale,
   surveyJsonLocale,
-  toCatalogLocales,
-  toSurveyModelLocale,
+  surveyModelLocale,
 } from "@/lib/localization";
 import { Submission } from "@/lib/endatix-api";
 import { initializeCustomQuestions } from "@/lib/questions";
@@ -52,18 +50,15 @@ export async function preparePdfModel({
   const surveyJson = JSON.parse(submission.formDefinition?.jsonData ?? "{}");
   const surveyModel = new Model(surveyJson);
 
-  const usedLocales = surveyModel.getUsedLocales() ?? [];
   const locale = resolvePdfLocale(
-    usedLocales,
+    surveyModel.getUsedLocales() ?? [],
     getSubmissionLocale(submission),
     localeQuery,
   );
-  surveyModel.locale = toSurveyModelLocale(
+  surveyModel.locale = surveyModelLocale(
+    surveyModel,
     locale.catalogLocale,
-    surveyDefaultLocale(
-      surveyJsonLocale(surveyJson),
-      toCatalogLocales(usedLocales),
-    ),
+    surveyJsonLocale(surveyJson),
   );
   surveyModel.data = JSON.parse(submission.jsonData ?? "{}");
 

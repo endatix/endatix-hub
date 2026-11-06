@@ -15,10 +15,8 @@ import "survey-core/survey.i18n";
 import {
   getSubmissionLocale,
   isLocaleValid,
-  surveyDefaultLocale,
   surveyJsonLocale,
-  toCatalogLocales,
-  toSurveyModelLocale,
+  surveyModelLocale,
 } from "@/lib/localization";
 
 export function useSurveyModel(
@@ -91,12 +89,10 @@ export function useSurveyModel(
 
         const submissionLocale = getSubmissionLocale(submission);
         if (submissionLocale && isLocaleValid(submissionLocale, model)) {
-          model.locale = toSurveyModelLocale(
+          model.locale = surveyModelLocale(
+            model,
             submissionLocale,
-            surveyDefaultLocale(
-              surveyJsonLocale(definitionJson),
-              toCatalogLocales(model.getUsedLocales() ?? []),
-            ),
+            surveyJsonLocale(definitionJson),
           );
         }
 

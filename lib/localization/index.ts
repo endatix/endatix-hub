@@ -14,6 +14,7 @@ export {
   surveyDefaultLocale,
   surveyJsDefaultLocaleCode,
   surveyJsonLocale,
+  surveyModelLocale,
   toCatalogLocaleKey,
   toCatalogLocales,
   toSurveyModelLocale,

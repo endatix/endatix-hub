@@ -8,6 +8,7 @@ export {
   surveyDefaultLocale,
   surveyJsDefaultLocaleCode,
   surveyJsonLocale,
+  surveyModelLocale,
   toCatalogLocales,
   toSurveyModelLocale,
 } from "./catalog-locale";
