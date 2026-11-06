@@ -120,6 +120,7 @@ interface UpdateSubmissionListUrlArgs {
   navigation?: NavigationMode;
 }
 
+/** The legacy list's toolbar (filters, reset, Export with `exportAccess`) and its table. */
 function SubmissionsContent({
   data,
   formId,
@@ -321,6 +322,7 @@ function hasDateFilters(dateFilters: SubmissionDateFilters) {
   );
 }
 
+/** The legacy submissions list: filters, sorting and paging live in the URL; Export follows `exportAccess`. */
 export function SubmissionsWithFilters({
   formId,
   hasAnySubmissions,

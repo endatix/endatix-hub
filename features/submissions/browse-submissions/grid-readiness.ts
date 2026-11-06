@@ -65,6 +65,7 @@ const NO_SCHEMA_BANNER: GridReadinessBanner = {
   showIncludeInProgress: false,
 };
 
+/** The grid's readiness banner, or null when there is nothing to say; its buttons show only with `canPrepare`. */
 export function describeGridReadiness(
   input: DescribeGridReadinessInput,
 ): GridReadinessBanner | null {
@@ -91,6 +92,7 @@ function withPrepareAccess(
   return { ...banner, showPrepare: false, showIncludeInProgress: false };
 }
 
+/** Without a schema, the not-prepared banner; with answer filters on a prepared form, none; otherwise the unprepared counts. */
 function describeReadiness({
   schemaReady,
   readiness,
@@ -125,6 +127,7 @@ function withFiltersNotApplied(): GridReadinessBanner {
   };
 }
 
+/** Counts completed and in-progress submissions that are not prepared; null when every submission is. */
 function describeUnprepared(
   counts: UnpreparedCounts,
 ): GridReadinessBanner | null {
@@ -156,6 +159,7 @@ const ANSWER_FILTERS_NOT_PREPARED_BANNER: GridReadinessBanner = {
   showIncludeInProgress: false,
 };
 
+/** The banner above filtered rows: answer filters off without a schema, or the submissions the filters could not check; buttons only with `canPrepare`. */
 export function describeRowsBanner({
   coverage,
   answerFiltersNotPrepared,
@@ -170,6 +174,7 @@ export function describeRowsBanner({
     : null;
 }
 
+/** Counts the submissions the answer filters did not check; null when they checked every one. */
 function describeUnchecked(
   coverage: SubmissionGridAnswerFilterCoverage,
 ): GridReadinessBanner | null {

@@ -54,6 +54,7 @@ function ExportButtonContents({
   );
 }
 
+/** Nothing without `canExport`; otherwise the reporting export panel, or the legacy export menu when the reporting flag is off. */
 export function ExportSubmissionsButton({
   formId,
   className,

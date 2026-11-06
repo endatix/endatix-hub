@@ -145,6 +145,7 @@ function SubmissionGrid(props: Readonly<SubmissionGridProps>) {
   );
 }
 
+/** The shell's props: toolbar permissions, the readiness banner (buttons with `canPrepare`), and who may save the view. */
 function gridChrome(props: Readonly<SubmissionGridProps>, sentFilters: number) {
   const { columns, canEdit, urlState } = props;
   const inUrl = urlState.answerFilters.length;

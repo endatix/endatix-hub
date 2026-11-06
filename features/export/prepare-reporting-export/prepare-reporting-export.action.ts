@@ -42,6 +42,7 @@ async function refuseFullRecompile(
   );
 }
 
+/** Compiles the form's export schema and backfills its submissions; a full recompile (replace and force) needs `forms.edit`. */
 export async function prepareReportingExportAction(
   formId: string,
   options: PrepareReportingExportOptions = {},

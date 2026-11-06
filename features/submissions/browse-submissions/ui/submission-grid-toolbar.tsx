@@ -76,6 +76,7 @@ export function SubmissionGridToolbar(props: Readonly<ToolbarProps>) {
   );
 }
 
+/** Columns, View, Delete test submissions (with test access) and Export (with export access). */
 function ToolbarActions(props: Readonly<ToolbarProps>) {
   const { formId, disabled } = props;
   const { canDeleteTests } = useSubmissionTestAccess();

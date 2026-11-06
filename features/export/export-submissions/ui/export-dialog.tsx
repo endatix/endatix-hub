@@ -36,6 +36,7 @@ interface ExportSubmissionsDialogProps {
   ) => Promise<{ succeeded: boolean; message?: string }>;
 }
 
+/** The export panel: checks the form is prepared, offers Prepare or Rebuild (with `canRebuild`), then downloads with the chosen format and filters. */
 export function ExportSubmissionsDialog({
   open,
   onOpenChange,

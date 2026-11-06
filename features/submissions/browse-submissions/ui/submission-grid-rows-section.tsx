@@ -54,6 +54,7 @@ type ReadyRowsProps = SubmissionGridRowsSectionProps & {
   outcome: Extract<SubmissionGridRowsLoad, { kind: "ready" }>;
 };
 
+/** One page of rows, under the rows banner when the answer filters left submissions unchecked. */
 function ReadyRows({ outcome, ...props }: Readonly<ReadyRowsProps>) {
   const banner = describeRowsBanner({
     coverage: outcome.page.answerFilterCoverage,

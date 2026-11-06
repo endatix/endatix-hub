@@ -131,6 +131,7 @@ export type UseExportDialogResult = {
   setLocale: (locale: string) => void;
 };
 
+/** The export panel's state on each open: readiness check, prepare and rebuild, filters, and the download; Rebuild shows only with `canRebuild`. */
 export function useExportDialog({
   open,
   onOpenChange,

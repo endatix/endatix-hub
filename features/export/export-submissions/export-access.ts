@@ -19,6 +19,7 @@ export const NO_SUBMISSION_EXPORT_ACCESS: SubmissionExportAccess = {
   canRebuild: false,
 };
 
+/** Maps the two grants to what the page shows: export needs export, prepare needs either, rebuild needs edit. */
 export function submissionExportAccess(granted: {
   submissionsExport: boolean;
   formsEdit: boolean;
