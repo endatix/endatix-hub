@@ -1,6 +1,11 @@
 import { getSession } from "@/features/auth";
 import type { FormTokenCookieStore } from "@/features/public-form/infrastructure/cookie-store";
-import { ApiResult, EndatixApi, ERROR_CODE } from "@/lib/endatix-api";
+import {
+  ApiResult,
+  EndatixApi,
+  ERROR_CODE,
+  type Submission,
+} from "@/lib/endatix-api";
 import type { OpenSubmissionTokens } from "@/lib/endatix-api/submissions/types";
 import { Result } from "@/lib/result";
 import { isAccessToken } from "@/lib/utils";
@@ -27,27 +32,36 @@ export async function openSubmissionOperation(
   const endatix = new EndatixApi(await getSession());
   const cookieToken = urlToken ? undefined : storedToken(tokenStore, formId);
   const token = urlToken ?? cookieToken;
-  if (!token) {
-    return createOnOpen(endatix, formId, tokenStore);
+  const resumed = token
+    ? await endatix.submissions.public.open(formId, tokensFor(token))
+    : undefined;
+  if (cookieToken && resumed && isStaleSubmissionToken(cookieToken, resumed)) {
+    tokenStore.deleteToken(formId);
+  } else if (resumed) {
+    return toOperationResult(resumed);
   }
 
-  const resumed = await endatix.submissions.public.open(
-    formId,
-    tokensFor(token),
-  );
-  if (
-    cookieToken &&
+  return createOnOpen(endatix, formId, tokenStore);
+}
+
+function toOperationResult(
+  opened: ApiResult<Submission>,
+): SubmissionOperationResult {
+  return ApiResult.isSuccess(opened)
+    ? ApiResult.success(toSubmissionOperation(opened.data))
+    : opened;
+}
+
+/** The cookie's own submission token, refused because its submission ended or expired. */
+function isStaleSubmissionToken(
+  cookieToken: string,
+  resumed: ApiResult<Submission>,
+): boolean {
+  return (
     ApiResult.isError(resumed) &&
     !isAccessToken(cookieToken) &&
     resumed.error.errorCode === ERROR_CODE.SUBMISSION_TOKEN_INVALID
-  ) {
-    tokenStore.deleteToken(formId);
-    return createOnOpen(endatix, formId, tokenStore);
-  }
-
-  return ApiResult.isSuccess(resumed)
-    ? ApiResult.success(toSubmissionOperation(resumed.data))
-    : resumed;
+  );
 }
 
 async function createOnOpen(
@@ -56,15 +70,11 @@ async function createOnOpen(
   tokenStore: FormTokenCookieStore,
 ): Promise<SubmissionOperationResult> {
   const created = await endatix.submissions.public.open(formId, {});
-  if (ApiResult.isError(created)) {
-    return created;
-  }
-
-  if (created.data.token) {
+  if (ApiResult.isSuccess(created) && created.data.token) {
     tokenStore.setToken({ formId, token: created.data.token });
   }
 
-  return ApiResult.success(toSubmissionOperation(created.data));
+  return toOperationResult(created);
 }
 
 function storedToken(

@@ -25,32 +25,36 @@ async function openPublicFormPostHandler(
   context: OpenPublicFormRouteContext,
 ): Promise<Response> {
   const { formId } = await context.params;
-  if (!formId) {
-    return apiResponses.badRequest({ detail: "Form ID is required" });
+  const body = formId
+    ? await readBody(request)
+    : apiResponses.badRequest({ detail: "Form ID is required" });
+  if (body instanceof Response) {
+    return body;
   }
 
+  const tokenStore = new FormTokenCookieStore(await cookies());
+  return toApiResponse(
+    await openSubmissionOperation(formId, tokenStore, body.urlToken),
+  );
+}
+
+/** The validated body, or the 400 that says why it isn't. */
+async function readBody(
+  request: Request,
+): Promise<OpenPublicFormRequest | Response> {
   const parsedBody = await parseJsonBody<OpenPublicFormRequest>(request);
   if (!parsedBody.ok) {
     return parsedBody.error;
   }
 
   const validatedBody = OpenPublicFormRequestSchema.safeParse(parsedBody.value);
-  if (!validatedBody.success) {
-    return apiResponses.badRequest({
-      detail:
-        validatedBody.error.issues[0]?.message ??
-        "Invalid open public form request body",
-    });
-  }
-
-  const tokenStore = new FormTokenCookieStore(await cookies());
-  const result = await openSubmissionOperation(
-    formId,
-    tokenStore,
-    validatedBody.data.urlToken,
-  );
-
-  return toApiResponse(result);
+  return validatedBody.success
+    ? validatedBody.data
+    : apiResponses.badRequest({
+        detail:
+          validatedBody.error.issues[0]?.message ??
+          "Invalid open public form request body",
+      });
 }
 
 /** The handlers for the open public form route: the respondent's form calls it once it shows. */

@@ -42,7 +42,10 @@ import "survey-core/survey-core.css";
 import "survey-core/survey.i18n";
 import { Survey } from "survey-react-ui";
 import { TriangleAlert } from "lucide-react";
-import { useSubmissionQueue } from "../application/submission-queue";
+import {
+  useRecordOpen,
+  useSubmissionQueue,
+} from "../application/submission-queue";
 import { LanguageSelector } from "./language-selector";
 import styles from "./survey-component.module.css";
 import { useSurveyModel } from "./use-survey-model.hook";
@@ -103,7 +106,7 @@ export default function SurveyComponent({
     onModelCreated,
     formRuntime,
   });
-  const { enqueueSubmission, enqueueOpen, clearQueue, waitForInFlightPartial } =
+  const { enqueueSubmission, clearQueue, waitForInFlightPartial } =
     useSubmissionQueue(formId, runtimeToken);
   const [isSubmitting, startSubmitting] = useTransition();
   const { theme: appliedTheme } = useSurveyTheme(theme, surveyModel);
@@ -223,18 +226,12 @@ export default function SurveyComponent({
     }
   }, [submission?.id, updateState]);
 
-  // The respondent's time starts when the form shows, once per page view. The API decides a test
-  // submission as it does for a save, and a finished one records nothing.
-  const openRecordedRef = useRef(false);
-  const isFinished = submission?.isComplete === true;
-  useEffect(() => {
-    if (openRecordedRef.current || isFinished) {
-      return;
-    }
-
-    openRecordedRef.current = true;
-    enqueueOpen((opened) => updateState({ submissionId: opened.submissionId }));
-  }, [enqueueOpen, isFinished, updateState]);
+  useRecordOpen({
+    formId,
+    urlToken: runtimeToken,
+    isFinished: submission?.isComplete === true,
+    onOpened: (opened) => handleSubmissionIdChange(opened.submissionId),
+  });
 
   const surveyLocales = useMemo(() => {
     return surveyModel?.getUsedLocales() ?? [];
