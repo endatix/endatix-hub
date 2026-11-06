@@ -1,6 +1,6 @@
 import PageTitle from "@/components/headings/page-title";
 import { auth } from "@/auth";
-import { authorization } from "@/features/auth/authorization";
+import { authorization, Permissions } from "@/features/auth/authorization";
 import { ApiErrorType, ApiResult, EndatixApi } from "@/lib/endatix-api";
 import { SIGNIN_PATH, UNAUTHORIZED_PATH } from "@/features/auth";
 import { AssetStorageProvider } from "@/features/asset-storage/server";
@@ -17,8 +17,10 @@ type PageProps = {
 export default async function TemplateFolderSlugPage({ params }: PageProps) {
   const { folderSlug } = await params;
   const session = await auth();
-  const { requireHubAccess } = await authorization(session);
+  const { requireHubAccess, checkPermission } = await authorization(session);
   await requireHubAccess();
+  const canCreateForms = (await checkPermission(Permissions.Forms.Create))
+    .success;
 
   const api = new EndatixApi(session?.accessToken);
   const folderResult = await api.folders.getBySlug(folderSlug);
@@ -68,6 +70,7 @@ export default async function TemplateFolderSlugPage({ params }: PageProps) {
       <FormTemplatesList
         templatesPromise={Promise.resolve(templatesResult)}
         requireFolderAssignment={requireFolderAssignment}
+        canCreateForms={canCreateForms}
       />
     </AssetStorageProvider>
   );

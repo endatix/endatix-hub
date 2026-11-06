@@ -22,11 +22,14 @@ import { Result, type ResultType } from "@/lib/result";
 type FormTemplatesListProps = {
   templatesPromise: Promise<ResultType<FormTemplate[]>>;
   requireFolderAssignment?: boolean;
+  /** Whether the user holds forms.create; without it, Use Template is hidden. */
+  canCreateForms?: boolean;
 };
 
 const FormTemplatesList = ({
   templatesPromise,
   requireFolderAssignment = false,
+  canCreateForms = true,
 }: FormTemplatesListProps) => {
   const templatesResult = use(templatesPromise);
 
@@ -38,6 +41,7 @@ const FormTemplatesList = ({
     <FormTemplatesListContent
       templates={templatesResult.value}
       requireFolderAssignment={requireFolderAssignment}
+      canCreateForms={canCreateForms}
     />
   );
 };
@@ -45,11 +49,13 @@ const FormTemplatesList = ({
 type FormTemplatesListContentProps = {
   templates: FormTemplate[];
   requireFolderAssignment: boolean;
+  canCreateForms: boolean;
 };
 
 function FormTemplatesListContent({
   templates,
   requireFolderAssignment,
+  canCreateForms,
 }: Readonly<FormTemplatesListContentProps>) {
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(
     null,
@@ -103,6 +109,7 @@ function FormTemplatesListContent({
             template={template}
             isSelected={template.id === selectedTemplateId}
             requireFolderAssignment={requireFolderAssignment}
+            canCreateForms={canCreateForms}
             onOpen={() => handleTemplateSelected(template.id)}
             onPreviewClick={handlePreviewOpen}
           />
@@ -114,6 +121,7 @@ function FormTemplatesListContent({
         open={isSheetOpen}
         onOpenChange={handleSheetOpenChange}
         requireFolderAssignment={requireFolderAssignment}
+        canCreateForms={canCreateForms}
         onPreviewClick={selectedTemplate ? handlePreviewOpen : undefined}
       />
 
@@ -123,6 +131,7 @@ function FormTemplatesListContent({
           onOpenChange={handlePreviewOpenChange}
           templateId={previewTemplateId}
           requireFolderAssignment={requireFolderAssignment}
+          canCreateForms={canCreateForms}
         />
       )}
     </>

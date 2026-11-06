@@ -7,6 +7,7 @@ import { createFormAction } from "../create-form.action";
 import { createFormFromTemplateAction } from "../create-form-from-template.action";
 import { createFormAction as createFormFromWizardAction } from "@/features/forms/use-cases/create-form/create-form.action";
 import { generateFormForConversationAction } from "@/features/forms/use-cases/design-form/generate-form-for-conversation.action";
+import { useTemplateAction } from "@/features/form-templates/application/use-template.action";
 
 vi.mock("@/auth", () => ({
   auth: vi.fn(),
@@ -80,6 +81,15 @@ describe("create form actions without forms.create", () => {
   it("refuses a create from a template", async () => {
     // Act
     const action = createFormFromTemplateAction({ templateId: "template-1" });
+
+    // Assert
+    await expect(action).rejects.toBe(REDIRECT);
+    expectRefusedBeforeCreate();
+  });
+
+  it("refuses a form created from the templates page", async () => {
+    // Act
+    const action = useTemplateAction({ templateId: "template-1" });
 
     // Assert
     await expect(action).rejects.toBe(REDIRECT);

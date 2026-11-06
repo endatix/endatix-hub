@@ -55,12 +55,15 @@ interface FormTemplateSheetProps extends Omit<
   enableEditing?: boolean;
   onPreviewClick?: (templateId: string) => void;
   requireFolderAssignment?: boolean;
+  /** Shows Use Template only to users who hold forms.create. */
+  canCreateForms?: boolean;
 }
 
 const FormTemplateSheet = ({
   selectedTemplate,
   onPreviewClick,
   requireFolderAssignment = false,
+  canCreateForms = true,
   ...props
 }: FormTemplateSheetProps) => {
   const [pendingCreateForm, startCreateFormTransition] = useTransition();
@@ -165,23 +168,25 @@ const FormTemplateSheet = ({
               <Eye className="mr-2 h-4 w-4" />
               Preview
             </Button>
-            <Button
-              disabled={pendingCreateForm || requireFolderAssignment}
-              variant={"outline"}
-              onClick={handleUseTemplate}
-              title={
-                requireFolderAssignment
-                  ? "Folder selection is required. Use Create a Form."
-                  : undefined
-              }
-            >
-              {pendingCreateForm ? (
-                <Spinner className="mr-1 h-4 w-4" />
-              ) : (
-                <FilePlus2 className="mr-1 h-4 w-4" />
-              )}
-              {pendingCreateForm ? "Creating..." : "Use Template"}
-            </Button>
+            {canCreateForms ? (
+              <Button
+                disabled={pendingCreateForm || requireFolderAssignment}
+                variant={"outline"}
+                onClick={handleUseTemplate}
+                title={
+                  requireFolderAssignment
+                    ? "Folder selection is required. Use Create a Form."
+                    : undefined
+                }
+              >
+                {pendingCreateForm ? (
+                  <Spinner className="mr-1 h-4 w-4" />
+                ) : (
+                  <FilePlus2 className="mr-1 h-4 w-4" />
+                )}
+                {pendingCreateForm ? "Creating..." : "Use Template"}
+              </Button>
+            ) : null}
             <DropdownMenu
               open={isDropdownOpen}
               onOpenChange={setIsDropdownOpen}

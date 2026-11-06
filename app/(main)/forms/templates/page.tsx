@@ -4,7 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import FormTemplatesList from "@/features/form-templates/ui/form-templates-list";
 import { FolderNavigationCards } from "@/features/folders/list-folders";
 import { auth } from "@/auth";
-import { authorization } from "@/features/auth/authorization";
+import { authorization, Permissions } from "@/features/auth/authorization";
 import { AssetStorageProvider } from "@/features/asset-storage/server";
 import { getFormsHeaderDataCached } from "@/features/folders/view-forms-header";
 import { EndatixApi } from "@/lib/endatix-api";
@@ -12,8 +12,10 @@ import { toResult } from "@/lib/result";
 
 export default async function FormTemplatesPage() {
   const session = await auth();
-  const { requireHubAccess } = await authorization(session);
+  const { requireHubAccess, checkPermission } = await authorization(session);
   await requireHubAccess();
+  const canCreateForms = (await checkPermission(Permissions.Forms.Create))
+    .success;
 
   const headerDataPromise = getFormsHeaderDataCached(session?.accessToken);
 
@@ -25,7 +27,10 @@ export default async function FormTemplatesPage() {
       </Suspense>
       <div className="flex flex-1 flex-col">
         <Suspense fallback={<FormTemplatesSkeleton />}>
-          <FormTemplatesContent accessToken={session?.accessToken} />
+          <FormTemplatesContent
+            accessToken={session?.accessToken}
+            canCreateForms={canCreateForms}
+          />
         </Suspense>
       </div>
     </>
@@ -54,7 +59,8 @@ async function TemplatesFoldersSection({
 
 async function FormTemplatesContent({
   accessToken,
-}: Readonly<{ accessToken: string | undefined }>) {
+  canCreateForms,
+}: Readonly<{ accessToken: string | undefined; canCreateForms: boolean }>) {
   const api = new EndatixApi(accessToken);
   const [templatesApiResult, settingsResult] = await Promise.all([
     api.formTemplates.list({ unassignedOnly: true }),
@@ -75,6 +81,7 @@ async function FormTemplatesContent({
       <FormTemplatesList
         templatesPromise={Promise.resolve(templatesResult)}
         requireFolderAssignment={requireFolderAssignment}
+        canCreateForms={canCreateForms}
       />
     </AssetStorageProvider>
   );

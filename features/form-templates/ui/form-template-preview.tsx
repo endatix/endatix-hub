@@ -61,6 +61,8 @@ interface FormTemplatePreviewProps {
   onOpenChange: (open: boolean) => void;
   templateId: string;
   requireFolderAssignment?: boolean;
+  /** Shows Use Template only to users who hold forms.create. */
+  canCreateForms?: boolean;
 }
 
 export function FormTemplatePreview({
@@ -68,6 +70,7 @@ export function FormTemplatePreview({
   onOpenChange,
   templateId,
   requireFolderAssignment = false,
+  canCreateForms = true,
 }: FormTemplatePreviewProps) {
   const [template, setTemplate] = useState<FormTemplate | null>(null);
   const [loading, setLoading] = useState(true);
@@ -144,12 +147,14 @@ export function FormTemplatePreview({
                 : `Showing template ${template?.name} in read-only mode`}
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
-            <UseTemplateButton
-              template={template}
-              requireFolderAssignment={requireFolderAssignment}
-            />
-          </DialogFooter>
+          {canCreateForms ? (
+            <DialogFooter>
+              <UseTemplateButton
+                template={template}
+                requireFolderAssignment={requireFolderAssignment}
+              />
+            </DialogFooter>
+          ) : null}
           {PreviewContent}
         </DialogContent>
       </Dialog>
@@ -170,12 +175,14 @@ export function FormTemplatePreview({
           </DrawerDescription>
         </DrawerHeader>
         <div className="overflow-y-auto">{PreviewContent}</div>
-        <DrawerFooter>
-          <UseTemplateButton
-            template={template}
-            requireFolderAssignment={requireFolderAssignment}
-          />
-        </DrawerFooter>
+        {canCreateForms ? (
+          <DrawerFooter>
+            <UseTemplateButton
+              template={template}
+              requireFolderAssignment={requireFolderAssignment}
+            />
+          </DrawerFooter>
+        ) : null}
       </DrawerContent>
     </Drawer>
   );
