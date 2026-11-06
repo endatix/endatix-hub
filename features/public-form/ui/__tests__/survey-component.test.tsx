@@ -248,10 +248,12 @@ describe("SurveyComponent - open", () => {
   });
 
   it("records the respondent's open once when the survey shows", async () => {
-    const { rerender } = renderSurveyComponent();
+    // The wrapper always passes a test view, also to a real respondent.
+    const realRespondent = { testSubmission: { renderCorner: () => null } };
+    const { rerender } = renderSurveyComponent(realRespondent as never);
     rerender(
       <FormRuntimeProvider initialState={{ formId: defaultProps.formId }}>
-        <SurveyComponent {...defaultProps} />
+        <SurveyComponent {...defaultProps} {...realRespondent} />
       </FormRuntimeProvider>,
     );
 

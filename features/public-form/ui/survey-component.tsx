@@ -223,18 +223,18 @@ export default function SurveyComponent({
     }
   }, [submission?.id, updateState]);
 
-  // The respondent's time starts when the form shows, once per page view. A test submission and
-  // a finished one record nothing.
+  // The respondent's time starts when the form shows, once per page view. The API decides a test
+  // submission as it does for a save, and a finished one records nothing.
   const openRecordedRef = useRef(false);
   const isFinished = submission?.isComplete === true;
   useEffect(() => {
-    if (openRecordedRef.current || testSubmission || isFinished) {
+    if (openRecordedRef.current || isFinished) {
       return;
     }
 
     openRecordedRef.current = true;
     enqueueOpen((opened) => updateState({ submissionId: opened.submissionId }));
-  }, [enqueueOpen, isFinished, testSubmission, updateState]);
+  }, [enqueueOpen, isFinished, updateState]);
 
   const surveyLocales = useMemo(() => {
     return surveyModel?.getUsedLocales() ?? [];
