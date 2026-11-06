@@ -233,7 +233,11 @@ describe("preparePdfModel", () => {
       });
       const germanOnly = {
         locale: "de",
-        pages: [{ elements: [{ type: "boolean", name: "agree" }] }],
+        pages: [
+          {
+            elements: [{ type: "boolean", name: "agree", title: "Zustimmen" }],
+          },
+        ],
       };
       const yesLabel = (model: Model) =>
         (
@@ -242,7 +246,7 @@ describe("preparePdfModel", () => {
           }
         ).locLabelTrue.text;
 
-      it.each(["", "de", undefined])(
+      it.each(["", "de", "fr", undefined])(
         "renders SurveyJS strings in the survey's own locale (stored language %j)",
         async (storedLanguage) => {
           // Arrange

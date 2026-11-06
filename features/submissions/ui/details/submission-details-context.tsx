@@ -74,7 +74,7 @@ interface SubmissionDetailsContextType {
   /** Stored submission language, or `default` when the survey lacks it. */
   submittedCatalogLocale: string;
   catalogLocales: string[];
-  /** The language a single-language survey is written in (`de`), as a catalog code. */
+  /** Catalog code for the Language cell when the survey has one language (`de`). */
   surveyCatalogLocale: string;
   allQuestions: Question[];
   submissionNavPages: SubmissionNavPage[];
@@ -124,25 +124,25 @@ function definitionLocaleOf(submission: Submission | undefined): string {
 }
 
 /** Labels `model` in the submitted language and returns that catalog locale. */
-function showInSubmittedLocale(submission: Submission, model: Model): string {
+function showInSubmittedLocale(
+  submission: Submission,
+  model: Model,
+  definitionLocale: string,
+): string {
   const catalogLocale = submittedCatalogLocaleOf(submission, model);
-  model.locale = surveyModelLocale(
-    model,
-    catalogLocale,
-    definitionLocaleOf(submission),
-  );
+  model.locale = surveyModelLocale(model, catalogLocale, definitionLocale);
   return catalogLocale;
 }
 
-/** The language a single-language survey is written in, as a catalog code. */
+/**
+ * The survey's own language for the single-language Language cell
+ * (`de`), else the first catalog locale, as before.
+ */
 function surveyCatalogLocaleOf(
-  submission: Submission | undefined,
+  definitionLocale: string,
   catalogLocales: readonly string[],
 ): string {
-  const locale = surveyDefaultLocale(
-    definitionLocaleOf(submission),
-    catalogLocales,
-  );
+  const locale = surveyDefaultLocale(definitionLocale, catalogLocales);
   return locale
     ? fromSurveyModelLocale(locale)
     : (catalogLocales[0] ?? DEFAULT_CATALOG_LOCALE);
@@ -237,6 +237,16 @@ export function SubmissionDetailsProvider({
     [state.surveyModel],
   );
 
+  // Parsed once: `model.locale` is reassigned, the definition is not.
+  const definitionLocale = useMemo(
+    () => definitionLocaleOf(submission),
+    [submission],
+  );
+  const surveyCatalogLocale = useMemo(
+    () => surveyCatalogLocaleOf(definitionLocale, catalogLocales),
+    [definitionLocale, catalogLocales],
+  );
+
   const submittedCatalogLocale = useMemo(() => {
     if (!submission || !state.surveyModel) {
       return DEFAULT_CATALOG_LOCALE;
@@ -271,7 +281,7 @@ export function SubmissionDetailsProvider({
       if (model) {
         dispatch({
           type: SubmissionDetailsActionType.SET_DISPLAY_CATALOG_LOCALE,
-          payload: showInSubmittedLocale(submission, model),
+          payload: showInSubmittedLocale(submission, model, definitionLocale),
         });
       }
       dispatch({
@@ -288,7 +298,7 @@ export function SubmissionDetailsProvider({
       state.surveyModel.locale = surveyModelLocale(
         state.surveyModel,
         catalogLocale,
-        definitionLocaleOf(submission),
+        definitionLocale,
       );
       dispatch({
         type: SubmissionDetailsActionType.SET_DISPLAY_CATALOG_LOCALE,
@@ -335,7 +345,7 @@ export function SubmissionDetailsProvider({
       setDisplayCatalogLocale,
       submittedCatalogLocale,
       catalogLocales,
-      surveyCatalogLocale: surveyCatalogLocaleOf(submission, catalogLocales),
+      surveyCatalogLocale,
       allQuestions,
       submissionNavPages,
       highlightedQuestionName: state.highlightedQuestionName,
@@ -349,6 +359,8 @@ export function SubmissionDetailsProvider({
     state.highlightedQuestionName,
     submittedCatalogLocale,
     catalogLocales,
+    definitionLocale,
+    surveyCatalogLocale,
     allQuestions,
     submissionNavPages,
   ]);

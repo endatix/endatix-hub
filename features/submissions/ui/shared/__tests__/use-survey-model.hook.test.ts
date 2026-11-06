@@ -70,7 +70,13 @@ describe("useSurveyModel locale", () => {
           withDefinition(
             {
               locale: "de",
-              pages: [{ elements: [{ type: "boolean", name: "agree" }] }],
+              pages: [
+                {
+                  elements: [
+                    { type: "boolean", name: "agree", title: "Zustimmen" },
+                  ],
+                },
+              ],
             },
             language,
           ),

@@ -1,3 +1,4 @@
+import { Model } from "survey-core";
 import { describe, expect, it } from "vitest";
 import {
   catalogLocaleCodeLabel,
@@ -7,6 +8,7 @@ import {
   isDefaultCatalogLocale,
   surveyDefaultLocale,
   surveyJsonLocale,
+  surveyModelLocale,
   toCatalogLocales,
   toSurveyModelLocale,
 } from "../catalog-locale";
@@ -55,6 +57,21 @@ describe("catalog-locale", () => {
   it("keeps today's empty default for a multi-language survey", () => {
     // Act & Assert
     expect(surveyDefaultLocale("de", [DEFAULT_CATALOG_LOCALE, "fr"])).toBe("");
+  });
+
+  it("maps a survey model's default to its JSON locale only with one language", () => {
+    // Arrange
+    const title = (text: unknown) => ({
+      locale: "de",
+      pages: [{ elements: [{ type: "text", name: "q", title: text }] }],
+    });
+    const single = new Model(title("Frage"));
+    const multi = new Model(title({ default: "Frage", fr: "Question" }));
+
+    // Act & Assert
+    expect(surveyModelLocale(single, DEFAULT_CATALOG_LOCALE, "de")).toBe("de");
+    expect(surveyModelLocale(multi, DEFAULT_CATALOG_LOCALE, "de")).toBe("");
+    expect(surveyModelLocale(multi, "fr", "de")).toBe("fr");
   });
 
   it("reads the locale from survey JSON", () => {

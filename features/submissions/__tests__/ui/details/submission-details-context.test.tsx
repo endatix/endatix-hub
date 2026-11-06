@@ -329,7 +329,11 @@ describe("SubmissionDetailsContext", () => {
       // Arrange
       const germanJson = {
         locale: "de",
-        pages: [{ elements: [{ type: "boolean", name: "agree" }] }],
+        pages: [
+          {
+            elements: [{ type: "boolean", name: "agree", title: "Zustimmen" }],
+          },
+        ],
       };
       const model = new Model(germanJson);
       model.locale = "";
