@@ -1,5 +1,10 @@
 import { authorization, Permissions } from "@/features/auth/authorization";
 import type { SessionData } from "@/features/auth";
+import {
+  NO_SUBMISSION_EXPORT_ACCESS,
+  submissionExportAccess,
+  type SubmissionExportAccess,
+} from "@/features/export";
 import { EndatixApi } from "@/lib/endatix-api";
 import { Result, toResult } from "@/lib/result";
 import type { ListSubmissionGridRowsRequest } from "@/lib/endatix-api/reporting/submission-grid-types";
@@ -121,5 +126,17 @@ export async function loadSubmissionTestAccess(): Promise<SubmissionTestAccess> 
   return submissionTestAccess({
     formsTest: result.data[Forms.Test],
     submissionsDelete: result.data[Submissions.Delete],
+  });
+}
+
+/** Export, Prepare and Rebuild on the submissions page, in one check; a failed check allows nothing. */
+export async function loadSubmissionExportAccess(): Promise<SubmissionExportAccess> {
+  const { evaluatePermissions } = await authorization();
+  const { Forms, Submissions } = Permissions;
+  const result = await evaluatePermissions([Submissions.Export, Forms.Edit]);
+  if (!result.success) return NO_SUBMISSION_EXPORT_ACCESS;
+  return submissionExportAccess({
+    submissionsExport: result.data[Submissions.Export],
+    formsEdit: result.data[Forms.Edit],
   });
 }

@@ -3,7 +3,6 @@ import { PagedListFrame } from "@/components/table";
 import { getSession } from "@/features/auth";
 import { getClientEndatixConfig } from "@/features/config/server";
 import type { SubmissionExportAccess } from "@/features/export";
-import { loadSubmissionExportAccess } from "@/features/export/server";
 import { listQueryKey } from "@/lib/list-page/list-query-key";
 import type { Route } from "next";
 import { redirect } from "next/navigation";
@@ -11,6 +10,7 @@ import type { ReactNode } from "react";
 import {
   canEditSubmissionGrid,
   loadSubmissionGridColumns,
+  loadSubmissionExportAccess,
   loadSubmissionGridView,
   loadSubmissionTestAccess,
 } from "../browse-submissions.server";

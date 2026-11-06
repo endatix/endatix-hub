@@ -3,7 +3,7 @@ import { NotFoundComponent } from "@/components/error-handling/not-found";
 import { Button } from "@/components/ui/button";
 import { getSession } from "@/features/auth";
 import type { SubmissionListUrlState } from "@/features/submissions/list-submission-query";
-import { loadSubmissionExportAccess } from "@/features/export/server";
+import { loadSubmissionExportAccess } from "@/features/submissions/browse-submissions/browse-submissions.server";
 import { SubmissionsWithFilters } from "@/features/submissions/ui/submissions-with-filters";
 import { reportingExportFlag } from "@/lib/feature-flags/flags";
 import type { Route } from "next";

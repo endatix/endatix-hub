@@ -29,8 +29,6 @@ vi.mock("../browse-submissions.server", () => ({
   canEditSubmissionGrid: loads.canIncludeInProgress,
   loadSubmissionGridView: loads.view,
   loadSubmissionTestAccess: loads.testAccess,
-}));
-vi.mock("@/features/export/server", () => ({
   loadSubmissionExportAccess: loads.exportAccess,
 }));
 vi.mock("@/components/error-handling/error-page", () => ({

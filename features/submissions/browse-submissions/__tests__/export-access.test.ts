@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthorizationResult } from "@/features/auth/authorization/domain/authorization-result";
-import { loadSubmissionExportAccess } from "../export-access.server";
+import { loadSubmissionExportAccess } from "../browse-submissions.server";
 
 const mockEvaluatePermissions = vi.fn();
 
