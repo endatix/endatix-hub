@@ -15,7 +15,8 @@ type SubmissionGridRowsSectionProps = {
   urlState: SubmissionGridUrlState;
   answerColumns: AnswerColumn[];
   submitterLabel: string;
-  canIncludeInProgress: boolean;
+  /** May export or edit, so the banner offers Prepare and Include in-progress. */
+  canPrepare: boolean;
 };
 
 /**
@@ -57,7 +58,7 @@ function ReadyRows({ outcome, ...props }: Readonly<ReadyRowsProps>) {
   const banner = describeRowsBanner({
     coverage: outcome.page.answerFilterCoverage,
     answerFiltersNotPrepared: outcome.answerFiltersNotPrepared,
-    canIncludeInProgress: props.canIncludeInProgress,
+    canPrepare: props.canPrepare,
   });
   return (
     <>

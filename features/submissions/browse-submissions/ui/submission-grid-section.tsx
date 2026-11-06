@@ -2,6 +2,8 @@ import { HubPageLoadError } from "@/components/error-handling/error-page";
 import { PagedListFrame } from "@/components/table";
 import { getSession } from "@/features/auth";
 import { getClientEndatixConfig } from "@/features/config/server";
+import type { SubmissionExportAccess } from "@/features/export";
+import { loadSubmissionExportAccess } from "@/features/export/server";
 import { listQueryKey } from "@/lib/list-page/list-query-key";
 import type { Route } from "next";
 import { redirect } from "next/navigation";
@@ -98,15 +100,17 @@ type ReadyColumns = Extract<SubmissionGridColumnsLoad, { kind: "ready" }>;
 /** Only the rows wait for the columns; the other reads start together. */
 async function loadGridInputs(formId: string) {
   const session = getSession();
-  const [columns, view, canEdit, testAccess, config] = await Promise.all([
-    session.then((current) => loadSubmissionGridColumns(formId, current)),
-    session.then((current) => loadSubmissionGridView(formId, current)),
-    canEditSubmissionGrid(),
-    loadSubmissionTestAccess(),
-    getClientEndatixConfig(),
-  ]);
+  const [columns, view, canEdit, testAccess, exportAccess, config] =
+    await Promise.all([
+      session.then((current) => loadSubmissionGridColumns(formId, current)),
+      session.then((current) => loadSubmissionGridView(formId, current)),
+      canEditSubmissionGrid(),
+      loadSubmissionTestAccess(),
+      loadSubmissionExportAccess(),
+      getClientEndatixConfig(),
+    ]);
   const submitterLabel = config.submitterPrimaryFilterLabel;
-  return { columns, view, canEdit, testAccess, submitterLabel };
+  return { columns, view, canEdit, testAccess, exportAccess, submitterLabel };
 }
 
 type SubmissionGridProps = {
@@ -114,15 +118,17 @@ type SubmissionGridProps = {
   urlState: SubmissionGridUrlState;
   columns: ReadyColumns;
   view: SubmissionGridViewLoad;
-  /** Form editors include in-progress submissions and save the view. */
+  /** Form editors choose search keys and save the view. */
   canEdit: boolean;
   /** Mark as test / Mark as real in each row, Delete test submissions in the toolbar. */
   testAccess: SubmissionTestAccess;
+  /** Export in the toolbar, Prepare and Include in-progress in the banners, Rebuild in the dialog. */
+  exportAccess: SubmissionExportAccess;
   submitterLabel: string;
 };
 
 function SubmissionGrid(props: Readonly<SubmissionGridProps>) {
-  const { formId, columns, view, submitterLabel, canEdit } = props;
+  const { formId, columns, view, submitterLabel, exportAccess } = props;
   const rows = rowsRequest(props.urlState, columns);
   return (
     <SubmissionGridShell
@@ -132,7 +138,7 @@ function SubmissionGrid(props: Readonly<SubmissionGridProps>) {
     >
       <SubmissionGridRows
         {...{ formId, submitterLabel }}
-        canIncludeInProgress={canEdit}
+        canPrepare={exportAccess.canPrepare}
         {...rows}
       />
     </SubmissionGridShell>
@@ -144,11 +150,14 @@ function gridChrome(props: Readonly<SubmissionGridProps>, sentFilters: number) {
   const inUrl = urlState.answerFilters.length;
   return {
     catalog: columns.catalog,
-    columnSearch: { canEdit, slots: columns.searchSlots },
+    toolbar: {
+      columnSearch: { canEdit, slots: columns.searchSlots },
+      exportAccess: props.exportAccess,
+    },
     hasSubmissions: columns.readiness.submissions > 0,
     banner: describeGridReadiness({
       ...columns,
-      canIncludeInProgress: canEdit,
+      canPrepare: props.exportAccess.canPrepare,
       hasAnswerFilters: columns.schemaReady ? sentFilters > 0 : inUrl > 0,
       answerFiltersWaiting: columns.schemaReady && inUrl > sentFilters,
     }),
@@ -184,7 +193,7 @@ type SubmissionGridRowsProps = {
   urlState: SubmissionGridUrlState;
   answerColumns: AnswerColumn[];
   submitterLabel: string;
-  canIncludeInProgress: boolean;
+  canPrepare: boolean;
 };
 
 /** The rows frame: keyed by the list query, so each query mounts fresh rows. */

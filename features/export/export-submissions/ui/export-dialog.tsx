@@ -29,7 +29,7 @@ interface ExportSubmissionsDialogProps {
   statusGroups: readonly FacetedFilterGroup[];
   listFilters?: SubmissionExportListFilters;
   /** Shows **Rebuild reporting data…**: only for users who may edit forms. */
-  canRebuild?: boolean;
+  canRebuild: boolean;
   isExporting: boolean;
   onExport: (
     args: ExportDialogSubmitArgs,
@@ -43,7 +43,7 @@ export function ExportSubmissionsDialog({
   groups,
   statusGroups,
   listFilters,
-  canRebuild = false,
+  canRebuild,
   isExporting,
   onExport,
 }: Readonly<ExportSubmissionsDialogProps>) {

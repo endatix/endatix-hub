@@ -28,7 +28,7 @@ export async function listTenantExportFormatsAction(): Promise<
   ]);
 
   if (!permissionsResult.success) {
-    return Result.error("Unauthorized.");
+    return Result.error("Could not check permission to export submissions.");
   }
 
   const permissions = permissionsResult.data;
@@ -37,7 +37,7 @@ export async function listTenantExportFormatsAction(): Promise<
     permissions[Permissions.Submissions.Export];
 
   if (!canList) {
-    return Result.error("Unauthorized.");
+    return Result.error("You need permission to export submissions.");
   }
 
   const api = new EndatixApi(session?.accessToken);

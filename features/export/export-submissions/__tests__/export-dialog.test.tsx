@@ -803,7 +803,7 @@ describe("ExportSubmissionsDialog", () => {
     });
     expect(
       await screen.findByText(
-        /needs permission to export submissions or edit this form/i,
+        /Incomplete submissions are as of their last update\./i,
       ),
     ).toBeDefined();
   });

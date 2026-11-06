@@ -8,3 +8,4 @@ export type {
   IncompleteRefreshOutcome,
   RefreshIncompleteSubmissionsResult,
 } from "./export-submissions/refresh-incomplete-submissions.action";
+export { loadSubmissionExportAccess } from "./export-submissions/export-access.server";

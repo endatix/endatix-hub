@@ -27,6 +27,7 @@ import {
 import type { FacetedFilterGroup } from "@/components/table";
 import { useSubmissionsExport } from "../use-submissions-export.hook";
 import { useTenantExportFormats } from "../use-tenant-export-formats.hook";
+import type { SubmissionExportAccess } from "../export-access";
 import { ExportSubmissionsDialog } from "./export-dialog";
 
 interface ExportSubmissionsButtonProps {
@@ -36,8 +37,8 @@ interface ExportSubmissionsButtonProps {
   useReportingExport?: boolean;
   listFilters?: SubmissionExportListFilters;
   statusGroups?: readonly FacetedFilterGroup[];
-  /** The user may edit forms, so the export dialog offers a rebuild. */
-  canRebuild?: boolean;
+  /** Without `canExport` there is no button; `canRebuild` offers a rebuild in the dialog. */
+  access: SubmissionExportAccess;
 }
 
 function ExportButtonContents({
@@ -60,8 +61,12 @@ export function ExportSubmissionsButton({
   useReportingExport = false,
   listFilters,
   statusGroups = [],
-  canRebuild = false,
+  access,
 }: Readonly<ExportSubmissionsButtonProps>) {
+  if (!access.canExport) {
+    return null;
+  }
+
   if (useReportingExport) {
     return (
       <ReportingExportSubmissionsButton
@@ -70,7 +75,7 @@ export function ExportSubmissionsButton({
         disabled={disabled}
         listFilters={listFilters}
         statusGroups={statusGroups}
-        canRebuild={canRebuild}
+        canRebuild={access.canRebuild}
       />
     );
   }
@@ -90,8 +95,12 @@ function ReportingExportSubmissionsButton({
   disabled,
   listFilters,
   statusGroups = [],
-  canRebuild = false,
-}: Readonly<Omit<ExportSubmissionsButtonProps, "useReportingExport">>) {
+  canRebuild,
+}: Readonly<
+  Omit<ExportSubmissionsButtonProps, "useReportingExport" | "access"> & {
+    canRebuild: boolean;
+  }
+>) {
   const { isExporting, runExport } = useSubmissionsExport();
   const { options, groups, isLoading, isEmpty, loadError } =
     useTenantExportFormats();
@@ -216,7 +225,9 @@ function LegacyExportSubmissionsButton({
   formId,
   className,
   disabled,
-}: Readonly<Omit<ExportSubmissionsButtonProps, "useReportingExport">>) {
+}: Readonly<
+  Pick<ExportSubmissionsButtonProps, "formId" | "className" | "disabled">
+>) {
   const { isExporting, runExport } = useSubmissionsExport();
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
   const [runningExportKey, setRunningExportKey] = useState<string | null>(null);

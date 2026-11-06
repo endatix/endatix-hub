@@ -8,7 +8,10 @@ import {
   submissionListUrlStateFromClientFilters,
   type SubmissionListUrlState,
 } from "@/features/submissions/list-submission-query";
-import { ExportSubmissionsButton } from "@/features/export";
+import {
+  ExportSubmissionsButton,
+  type SubmissionExportAccess,
+} from "@/features/export";
 import { collectionStatusFacetGroups } from "@/features/submissions/ui/describe-collection-status";
 import { SubmissionsFilterToolbar } from "@/features/submissions/ui/filters/submissions-filter-toolbar";
 import { useSubmissionExportListFilters } from "@/features/submissions/ui/submission-export-list-filters";
@@ -56,8 +59,8 @@ type SubmissionsWithFiltersProps = {
   formId: string;
   hasAnySubmissions: boolean;
   useReportingExport?: boolean;
-  /** The user may edit forms, so the export dialog offers a rebuild. */
-  canRebuildReportingData?: boolean;
+  /** Export, and Rebuild inside its dialog. */
+  exportAccess: SubmissionExportAccess;
   definitionFields?: DefinitionField[];
   page: PagedResponse<Submission>;
   listState: SubmissionListUrlState;
@@ -122,7 +125,7 @@ function SubmissionsContent({
   formId,
   hasAnySubmissions,
   useReportingExport = false,
-  canRebuildReportingData = false,
+  exportAccess,
   collectionStatusFilter,
   statusFilter,
   testSubmissionFilter,
@@ -148,7 +151,7 @@ function SubmissionsContent({
   formId: string;
   hasAnySubmissions: boolean;
   useReportingExport?: boolean;
-  canRebuildReportingData?: boolean;
+  exportAccess: SubmissionExportAccess;
   collectionStatusFilter: Set<string>;
   statusFilter: Set<string>;
   testSubmissionFilter: Set<string>;
@@ -293,7 +296,7 @@ function SubmissionsContent({
               formId={formId}
               disabled={disableTableControls}
               useReportingExport={useReportingExport}
-              canRebuild={canRebuildReportingData}
+              access={exportAccess}
               listFilters={exportListFilters}
               statusGroups={collectionStatusFacetGroups(collectionStatusFilter)}
             />
@@ -322,7 +325,7 @@ export function SubmissionsWithFilters({
   formId,
   hasAnySubmissions,
   useReportingExport = false,
-  canRebuildReportingData = false,
+  exportAccess,
   definitionFields = [],
   page,
   listState,
@@ -671,7 +674,7 @@ export function SubmissionsWithFilters({
           formId={formId}
           hasAnySubmissions={hasAnySubmissions}
           useReportingExport={useReportingExport}
-          canRebuildReportingData={canRebuildReportingData}
+          exportAccess={exportAccess}
           collectionStatusFilter={collectionStatusFilter}
           statusFilter={statusFilter}
           testSubmissionFilter={testSubmissionFilter}

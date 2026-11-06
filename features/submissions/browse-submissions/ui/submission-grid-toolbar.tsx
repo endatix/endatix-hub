@@ -5,7 +5,10 @@ import {
   FacetedFilter,
   ResetFiltersButton,
 } from "@/components/table";
-import { ExportSubmissionsButton } from "@/features/export";
+import {
+  ExportSubmissionsButton,
+  type SubmissionExportAccess,
+} from "@/features/export";
 import { collectionStatusFacetGroups } from "@/features/submissions/ui/describe-collection-status";
 import { CheckSquare, Eye, Sparkles } from "lucide-react";
 import type {
@@ -51,6 +54,7 @@ type ToolbarProps = {
   formId: string;
   catalog: readonly AnswerColumn[];
   columnSearch: ColumnSearchAccess;
+  exportAccess: SubmissionExportAccess;
   /** No submissions yet: the filters have nothing to narrow. */
   disabled: boolean;
 };
@@ -72,23 +76,17 @@ export function SubmissionGridToolbar(props: Readonly<ToolbarProps>) {
   );
 }
 
-function ToolbarActions({
-  formId,
-  catalog,
-  columnSearch,
-  disabled,
-}: Readonly<ToolbarProps>) {
+function ToolbarActions(props: Readonly<ToolbarProps>) {
+  const { formId, disabled } = props;
   const { canDeleteTests } = useSubmissionTestAccess();
   return (
     <>
-      <SubmissionGridColumnPicker
-        {...{ formId, catalog, columnSearch, disabled }}
-      />
+      <SubmissionGridColumnPicker {...props} />
       <SubmissionGridViewMenu disabled={disabled} />
       {canDeleteTests && (
         <DeleteTestSubmissionsButton formId={formId} disabled={disabled} />
       )}
-      <ExportButton {...{ formId, disabled, columnSearch }} />
+      <ExportButton {...props} />
     </>
   );
 }
@@ -146,15 +144,15 @@ function ResetButton({ disabled }: Readonly<{ disabled: boolean }>) {
 function ExportButton({
   formId,
   disabled,
-  columnSearch,
-}: Readonly<Pick<ToolbarProps, "formId" | "disabled" | "columnSearch">>) {
+  exportAccess,
+}: Readonly<Pick<ToolbarProps, "formId" | "disabled" | "exportAccess">>) {
   const { urlState } = useSubmissionGridUrl();
   return (
     <ExportSubmissionsButton
       formId={formId}
       disabled={disabled}
       useReportingExport
-      canRebuild={columnSearch.canEdit}
+      access={exportAccess}
       listFilters={exportFiltersFromGrid(urlState)}
       statusGroups={collectionStatusFacetGroups(urlState.collectionStatus)}
     />

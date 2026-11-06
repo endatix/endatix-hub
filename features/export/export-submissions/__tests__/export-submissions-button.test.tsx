@@ -67,6 +67,29 @@ vi.mock("@/components/ui/dropdown-menu", () => ({
   DropdownMenuSeparator: () => <hr />,
 }));
 
+const EXPORTER = { canExport: true, canPrepare: true, canRebuild: false };
+const VIEWER = { canExport: false, canPrepare: false, canRebuild: false };
+
+describe("ExportSubmissionsButton without export permission", () => {
+  it.each([
+    ["legacy", false],
+    ["reporting", true],
+  ])("renders nothing on the %s list", (_, useReportingExport) => {
+    // Act
+    const { container } = render(
+      <ExportSubmissionsButton
+        formId="100"
+        access={VIEWER}
+        useReportingExport={useReportingExport}
+      />,
+    );
+
+    // Assert
+    expect(container.innerHTML).toBe("");
+    expect(mockGetTenantSettingsAction).not.toHaveBeenCalled();
+  });
+});
+
 describe("ExportSubmissionsButton (legacy)", () => {
   beforeEach(() => {
     mockRunExport.mockResolvedValue({ succeeded: true });
@@ -79,7 +102,7 @@ describe("ExportSubmissionsButton (legacy)", () => {
     );
 
     // Act
-    render(<ExportSubmissionsButton formId="100" />);
+    render(<ExportSubmissionsButton formId="100" access={EXPORTER} />);
     const menu = await screen.findByTestId("legacy-export-menu");
 
     // Assert
@@ -95,7 +118,7 @@ describe("ExportSubmissionsButton (legacy)", () => {
     mockGetTenantSettingsAction.mockResolvedValue(
       Result.success({ customExports: [] }),
     );
-    render(<ExportSubmissionsButton formId="100" />);
+    render(<ExportSubmissionsButton formId="100" access={EXPORTER} />);
     const excel = await screen.findByRole("button", {
       name: /Excel \(XLSX\)/i,
     });
@@ -123,7 +146,7 @@ describe("ExportSubmissionsButton (legacy)", () => {
         ],
       }),
     );
-    render(<ExportSubmissionsButton formId="100" />);
+    render(<ExportSubmissionsButton formId="100" access={EXPORTER} />);
     const custom = await screen.findByRole("button", { name: /Ops CSV/i });
 
     // Act

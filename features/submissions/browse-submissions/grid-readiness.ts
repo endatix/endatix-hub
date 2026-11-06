@@ -20,7 +20,8 @@ export type GridReadinessBanner = {
 export type DescribeGridReadinessInput = {
   schemaReady: boolean;
   readiness: SubmissionGridReadiness;
-  canIncludeInProgress: boolean;
+  /** May export or edit: the API's rule for preparing, so **Prepare** and **Include in-progress** show. */
+  canPrepare: boolean;
   hasAnswerFilters?: boolean;
   answerFiltersWaiting?: boolean;
 };
@@ -72,13 +73,27 @@ export function describeGridReadiness(
   }
 
   const banner = describeReadiness(input);
-  return input.answerFiltersWaiting ? withFiltersWaiting(banner) : banner;
+  return withPrepareAccess(
+    input.answerFiltersWaiting ? withFiltersWaiting(banner) : banner,
+    input.canPrepare,
+  );
+}
+
+/** The counts show to everyone; the buttons only to users the API lets prepare. */
+function withPrepareAccess(
+  banner: GridReadinessBanner | null,
+  canPrepare: boolean,
+): GridReadinessBanner | null {
+  if (!banner || canPrepare) {
+    return banner;
+  }
+
+  return { ...banner, showPrepare: false, showIncludeInProgress: false };
 }
 
 function describeReadiness({
   schemaReady,
   readiness,
-  canIncludeInProgress,
   hasAnswerFilters,
 }: DescribeGridReadinessInput): GridReadinessBanner | null {
   if (!schemaReady) {
@@ -87,7 +102,7 @@ function describeReadiness({
 
   return hasAnswerFilters
     ? null
-    : describeUnprepared(countUnprepared(readiness), canIncludeInProgress);
+    : describeUnprepared(countUnprepared(readiness));
 }
 
 function withFiltersWaiting(
@@ -112,7 +127,6 @@ function withFiltersNotApplied(): GridReadinessBanner {
 
 function describeUnprepared(
   counts: UnpreparedCounts,
-  canIncludeInProgress: boolean,
 ): GridReadinessBanner | null {
   const lines = unpreparedLines(counts);
   if (lines.length === 0) {
@@ -123,14 +137,14 @@ function describeUnprepared(
     title: "Some submissions are not prepared",
     lines,
     showPrepare: counts.completed > 0,
-    showIncludeInProgress: counts.inProgress > 0 && canIncludeInProgress,
+    showIncludeInProgress: counts.inProgress > 0,
   };
 }
 
 export type DescribeRowsBannerInput = {
   coverage?: SubmissionGridAnswerFilterCoverage;
   answerFiltersNotPrepared?: boolean;
-  canIncludeInProgress: boolean;
+  canPrepare: boolean;
 };
 
 const ANSWER_FILTERS_NOT_PREPARED_BANNER: GridReadinessBanner = {
@@ -145,18 +159,19 @@ const ANSWER_FILTERS_NOT_PREPARED_BANNER: GridReadinessBanner = {
 export function describeRowsBanner({
   coverage,
   answerFiltersNotPrepared,
-  canIncludeInProgress,
+  canPrepare,
 }: DescribeRowsBannerInput): GridReadinessBanner | null {
   if (answerFiltersNotPrepared) {
-    return ANSWER_FILTERS_NOT_PREPARED_BANNER;
+    return withPrepareAccess(ANSWER_FILTERS_NOT_PREPARED_BANNER, canPrepare);
   }
 
-  return coverage ? describeUnchecked(coverage, canIncludeInProgress) : null;
+  return coverage
+    ? withPrepareAccess(describeUnchecked(coverage), canPrepare)
+    : null;
 }
 
 function describeUnchecked(
   coverage: SubmissionGridAnswerFilterCoverage,
-  canIncludeInProgress: boolean,
 ): GridReadinessBanner | null {
   const lines = uncheckedLines(coverage);
   if (lines.length === 0) {
@@ -167,8 +182,7 @@ function describeUnchecked(
     title: "Some submissions were not checked",
     lines,
     showPrepare: coverage.uncheckedCompleted > 0,
-    showIncludeInProgress:
-      coverage.uncheckedInProgress > 0 && canIncludeInProgress,
+    showIncludeInProgress: coverage.uncheckedInProgress > 0,
   };
 }
 
