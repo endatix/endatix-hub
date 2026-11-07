@@ -10,7 +10,14 @@ const GERMAN_ONLY_SURVEY = {
   locale: "de",
   pages: [
     {
-      elements: [{ type: "text", name: "name", title: "Wie heißen Sie?" }],
+      elements: [
+        {
+          type: "text",
+          name: "name",
+          title: "Wie heißen Sie?",
+          isRequired: true,
+        },
+      ],
     },
   ],
 };
@@ -19,11 +26,12 @@ test.describe("Share link survey language", () => {
   let api: EndatixApi;
 
   test.beforeAll(async () => {
+    // Local runs without Hub credentials skip; CI sets E2E_EMAIL and E2E_PASSWORD.
     test.skip(!e2eCredentials(), "Set E2E_EMAIL and E2E_PASSWORD.");
     api = await signInE2eApi();
   });
 
-  test("a single-language survey shows its buttons in its own language", async ({
+  test("a single-language survey shows its buttons and messages in its own language", async ({
     page,
   }) => {
     const formId = await publishE2eForm(api, {
@@ -42,12 +50,17 @@ test.describe("Share link survey language", () => {
         await root.waitFor({ timeout: 30_000 });
 
         await expect(root.getByText("Wie heißen Sie?")).toBeVisible();
-        await expect(
-          root.getByRole("button", { name: "Abschließen" }),
-        ).toBeVisible();
+        const complete = root.getByRole("button", { name: "Abschließen" });
+        await expect(complete).toBeVisible();
         await expect(
           root.getByRole("button", { name: "Complete" }),
         ).toHaveCount(0);
+
+        await complete.click();
+        await expect(
+          root.getByText("Bitte beantworten Sie diese Frage."),
+        ).toBeVisible();
+        await expect(root.getByText("Response required.")).toHaveCount(0);
       },
     );
   });
