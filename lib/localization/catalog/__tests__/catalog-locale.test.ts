@@ -35,6 +35,14 @@ describe("catalog-locale", () => {
     expect(isDefaultCatalogLocale("bg")).toBe(false);
   });
 
+  it("maps catalog default to the survey's own default language", () => {
+    expect(toSurveyModelLocale(DEFAULT_CATALOG_LOCALE, "de")).toBe("de");
+    expect(toSurveyModelLocale(DEFAULT_CATALOG_LOCALE, " DE ")).toBe("de");
+    expect(toSurveyModelLocale(DEFAULT_CATALOG_LOCALE, "en")).toBe("");
+    expect(toSurveyModelLocale(DEFAULT_CATALOG_LOCALE, "")).toBe("");
+    expect(toSurveyModelLocale("fr", "de")).toBe("fr");
+  });
+
   it("normalizes getUsedLocales-style lists to catalog codes", () => {
     expect(toCatalogLocales(["en", "bg", "en"])).toEqual(["default", "bg"]);
     expect(toCatalogLocales(["bg", "default"])).toEqual(["bg", "default"]);
