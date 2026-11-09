@@ -19,7 +19,7 @@ jobs:
       contents: read
       packages: write # GHCR image push + Helm chart push
       id-token: write # OIDC for Infisical (fetch-secrets)
-    uses: endatix/release-workflows/.github/workflows/release-artifacts.yml@12aed2d26cf9f506f6c0d55071aab721b28a6676 # v1
+    uses: endatix/release-workflows/.github/workflows/release-artifacts.yml@d0f1bfc9325d6ad5588e91f49885b02eadaae6d7 # v1
     with:
       docker-image: ghcr.io/endatix/endatix-hub
       promotion: rebuild # the chart bakes in its version — the image is rebuilt at the tag too
