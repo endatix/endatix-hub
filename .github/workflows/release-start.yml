@@ -23,7 +23,7 @@ jobs:
   draft:
     permissions:
       contents: write # create the draft release (no tag exists until a human publishes it)
-    uses: endatix/release-workflows/.github/workflows/release-start.yml@12aed2d26cf9f506f6c0d55071aab721b28a6676 # v1
+    uses: endatix/release-workflows/.github/workflows/release-start.yml@d0f1bfc9325d6ad5588e91f49885b02eadaae6d7 # v1
     with:
       canary-tag: ${{ inputs.canary_tag }}
       bump: ${{ inputs.bump }}

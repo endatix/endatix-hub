@@ -148,6 +148,60 @@ describe("useLanguageSelection", () => {
     });
   });
 
+  describe("survey whose JSON sets its own locale", () => {
+    it("keeps a single-language survey in its own language", () => {
+      mockSurveyModel.locale = "de";
+      languagesSpy.mockReturnValue(["en-US"]);
+      languageSpy.mockReturnValue("en-US");
+
+      const { result } = renderHook(() =>
+        useLanguageSelection({
+          availableLocales: ["en"],
+          surveyModel: mockSurveyModel,
+        }),
+      );
+
+      expect(result.current.currentLocale).toBe("default");
+      expect(mockSurveyModel.locale).toBe("de");
+    });
+
+    it("keeps its own language when the saved preference is the default", () => {
+      mockSurveyModel.locale = "de";
+      mockLocalStorage.getItem.mockReturnValue("default");
+
+      renderHook(() =>
+        useLanguageSelection({
+          availableLocales: ["en"],
+          surveyModel: mockSurveyModel,
+        }),
+      );
+
+      expect(mockSurveyModel.locale).toBe("de");
+    });
+
+    it("keeps today's English default for a multi-language survey", () => {
+      mockSurveyModel.locale = "de";
+
+      const { result } = renderHook(() =>
+        useLanguageSelection({
+          availableLocales: ["en", "fr"],
+          surveyModel: mockSurveyModel,
+        }),
+      );
+
+      act(() => {
+        result.current.changeLocale("fr");
+      });
+      expect(mockSurveyModel.locale).toBe("fr");
+
+      act(() => {
+        result.current.changeLocale("default");
+      });
+      expect(result.current.currentLocale).toBe("default");
+      expect(mockSurveyModel.locale).toBe("");
+    });
+  });
+
   describe("browser preferred locale detection", () => {
     it("matches browser language codes to catalog locales", () => {
       mockSurveyModel.locale = "fr";

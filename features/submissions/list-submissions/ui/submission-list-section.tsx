@@ -3,6 +3,7 @@ import { NotFoundComponent } from "@/components/error-handling/not-found";
 import { Button } from "@/components/ui/button";
 import { getSession } from "@/features/auth";
 import type { SubmissionListUrlState } from "@/features/submissions/list-submission-query";
+import { loadSubmissionExportAccess } from "@/features/submissions/browse-submissions/browse-submissions.server";
 import { SubmissionsWithFilters } from "@/features/submissions/ui/submissions-with-filters";
 import { reportingExportFlag } from "@/lib/feature-flags/flags";
 import type { Route } from "next";
@@ -23,9 +24,10 @@ export async function SubmissionListSection({
   formId,
   listState,
 }: Readonly<SubmissionListSectionProps>) {
-  const [session, useReportingExport] = await Promise.all([
+  const [session, useReportingExport, exportAccess] = await Promise.all([
     getSession(),
     reportingExportFlag(),
+    loadSubmissionExportAccess(),
   ]);
   const outcome = await loadSubmissionListPage({
     formId,
@@ -42,7 +44,12 @@ export async function SubmissionListSection({
     case "error":
       return <HubPageLoadError result={outcome.result} />;
     case "ready":
-      return <SubmissionsWithFilters {...outcome.model} />;
+      return (
+        <SubmissionsWithFilters
+          {...outcome.model}
+          exportAccess={exportAccess}
+        />
+      );
   }
 }
 

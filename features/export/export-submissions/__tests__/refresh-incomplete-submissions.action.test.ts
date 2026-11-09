@@ -5,7 +5,7 @@ import { Result } from "@/lib/result";
 import { refreshIncompleteSubmissionsAction } from "../refresh-incomplete-submissions.action";
 
 const mockRequireHubAccess = vi.fn();
-const mockCheckPermission = vi.fn();
+const mockCheckAnyPermission = vi.fn();
 const mockBackfillSubmissions = vi.fn();
 
 vi.mock("@/auth", () => ({
@@ -16,11 +16,15 @@ vi.mock("@/features/auth/authorization", async () => {
   const domain =
     await import("@/features/auth/authorization/domain/authorization-result");
   return {
-    Permissions: { Forms: { Edit: "forms.edit" } },
+    Permissions: {
+      Forms: { Edit: "forms.edit" },
+      Submissions: { Export: "submissions.export" },
+    },
     isPermissionDenied: domain.isPermissionDenied,
     authorization: vi.fn().mockResolvedValue({
       requireHubAccess: (...args: unknown[]) => mockRequireHubAccess(...args),
-      checkPermission: (...args: unknown[]) => mockCheckPermission(...args),
+      checkAnyPermission: (...args: unknown[]) =>
+        mockCheckAnyPermission(...args),
     }),
   };
 });
@@ -50,7 +54,7 @@ function page(overrides: Record<string, unknown> = {}) {
 describe("refreshIncompleteSubmissionsAction", () => {
   beforeEach(() => {
     mockRequireHubAccess.mockResolvedValue(undefined);
-    mockCheckPermission.mockResolvedValue(AuthorizationResult.success());
+    mockCheckAnyPermission.mockResolvedValue(AuthorizationResult.success());
     mockBackfillSubmissions.mockResolvedValue(page());
   });
 
@@ -59,7 +63,10 @@ describe("refreshIncompleteSubmissionsAction", () => {
     const result = await refreshIncompleteSubmissionsAction("form-1");
 
     // Assert
-    expect(mockCheckPermission).toHaveBeenCalledWith("forms.edit");
+    expect(mockCheckAnyPermission).toHaveBeenCalledWith([
+      "submissions.export",
+      "forms.edit",
+    ]);
     expect(mockBackfillSubmissions).toHaveBeenCalledWith("form-1", {
       batchSize: 100,
       afterSubmissionId: undefined,
@@ -71,9 +78,9 @@ describe("refreshIncompleteSubmissionsAction", () => {
     );
   });
 
-  it("skips the refresh, without failing, when the user cannot edit forms", async () => {
+  it("skips the refresh, without failing, when the user can neither export nor edit forms", async () => {
     // Arrange
-    mockCheckPermission.mockResolvedValue(AuthorizationResult.forbidden());
+    mockCheckAnyPermission.mockResolvedValue(AuthorizationResult.forbidden());
 
     // Act
     const result = await refreshIncompleteSubmissionsAction("form-1");
@@ -85,7 +92,7 @@ describe("refreshIncompleteSubmissionsAction", () => {
 
   it("fails when the permission check itself errors", async () => {
     // Arrange
-    mockCheckPermission.mockResolvedValue(AuthorizationResult.error());
+    mockCheckAnyPermission.mockResolvedValue(AuthorizationResult.error());
 
     // Act
     const result = await refreshIncompleteSubmissionsAction("form-1");

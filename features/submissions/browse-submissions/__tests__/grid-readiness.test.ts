@@ -68,7 +68,7 @@ describe("describeGridReadiness", () => {
         completedSubmissions: 0,
         prepared: 0,
       }),
-      canIncludeInProgress: true,
+      canPrepare: true,
     });
 
     // Assert
@@ -84,7 +84,7 @@ describe("describeGridReadiness", () => {
         completedSubmissions: 0,
         prepared: 0,
       }),
-      canIncludeInProgress: true,
+      canPrepare: true,
       answerFiltersWaiting: true,
     });
 
@@ -97,7 +97,7 @@ describe("describeGridReadiness", () => {
     const banner = describeGridReadiness({
       schemaReady: false,
       readiness: readiness({ prepared: 0 }),
-      canIncludeInProgress: true,
+      canPrepare: true,
     });
 
     // Assert
@@ -112,7 +112,7 @@ describe("describeGridReadiness", () => {
     const banner = describeGridReadiness({
       schemaReady: true,
       readiness: readiness({ prepared: 10 }),
-      canIncludeInProgress: true,
+      canPrepare: true,
     });
 
     // Assert
@@ -124,7 +124,7 @@ describe("describeGridReadiness", () => {
     const banner = describeGridReadiness({
       schemaReady: true,
       readiness: readiness({ submissions: 8, prepared: 7 }),
-      canIncludeInProgress: false,
+      canPrepare: true,
     });
 
     // Assert
@@ -135,12 +135,12 @@ describe("describeGridReadiness", () => {
     });
   });
 
-  it("offers Include in-progress to form editors", () => {
+  it("offers Include in-progress to users who may export or edit", () => {
     // Act
     const banner = describeGridReadiness({
       schemaReady: true,
       readiness: readiness(),
-      canIncludeInProgress: true,
+      canPrepare: true,
     });
 
     // Assert
@@ -151,12 +151,12 @@ describe("describeGridReadiness", () => {
     });
   });
 
-  it("shows the in-progress count without the button to other users", () => {
+  it("shows the in-progress count without the button to users who may not prepare", () => {
     // Act
     const banner = describeGridReadiness({
       schemaReady: true,
       readiness: readiness(),
-      canIncludeInProgress: false,
+      canPrepare: false,
     });
 
     // Assert
@@ -171,7 +171,7 @@ describe("describeGridReadiness", () => {
     const banner = describeGridReadiness({
       schemaReady: true,
       readiness: readiness({ submissions: 8, prepared: 5, pending: 3 }),
-      canIncludeInProgress: true,
+      canPrepare: true,
     });
 
     // Assert
@@ -186,7 +186,7 @@ describe("describeGridReadiness", () => {
     const banner = describeGridReadiness({
       schemaReady: true,
       readiness: readiness({ submissions: 8, prepared: 4, pending: 3 }),
-      canIncludeInProgress: true,
+      canPrepare: true,
     });
 
     // Assert
@@ -200,27 +200,57 @@ describe("describeGridReadiness", () => {
   });
 });
 
+describe("describeGridReadiness without export or edit permission", () => {
+  it("shows the counts without Prepare or Include in-progress", () => {
+    // Act
+    const banner = describeGridReadiness({
+      schemaReady: true,
+      readiness: readiness({ submissions: 8, prepared: 4 }),
+      canPrepare: false,
+    });
+
+    // Assert
+    expect(banner).toMatchObject({
+      showPrepare: false,
+      showIncludeInProgress: false,
+    });
+    expect(banner?.lines.length).toBeGreaterThan(0);
+  });
+
+  it("does not offer Prepare on a form whose reporting data is not prepared", () => {
+    // Act
+    const banner = describeGridReadiness({
+      schemaReady: false,
+      readiness: readiness({ prepared: 0 }),
+      canPrepare: false,
+    });
+
+    // Assert
+    expect(banner).toMatchObject({ showPrepare: false });
+  });
+});
+
 describe("describeRowsBanner", () => {
   it("hides the banner without answer filters", () => {
-    expect(describeRowsBanner({ canIncludeInProgress: true })).toBeNull();
+    expect(describeRowsBanner({ canPrepare: true })).toBeNull();
   });
 
   it("hides the banner when the filters checked every submission", () => {
     // Act
     const banner = describeRowsBanner({
       coverage: { uncheckedCompleted: 0, uncheckedInProgress: 0 },
-      canIncludeInProgress: true,
+      canPrepare: true,
     });
 
     // Assert
     expect(banner).toBeNull();
   });
 
-  it("counts unchecked submissions and offers both actions to an editor", () => {
+  it("counts unchecked submissions and offers both actions to a user who may prepare", () => {
     // Act
     const banner = describeRowsBanner({
       coverage: { uncheckedCompleted: 3, uncheckedInProgress: 1 },
-      canIncludeInProgress: true,
+      canPrepare: true,
     });
 
     // Assert
@@ -239,7 +269,7 @@ describe("describeRowsBanner", () => {
     // Act
     const banner = describeRowsBanner({
       coverage: { uncheckedCompleted: 0, uncheckedInProgress: 2 },
-      canIncludeInProgress: false,
+      canPrepare: false,
     });
 
     // Assert
@@ -250,11 +280,22 @@ describe("describeRowsBanner", () => {
     expect(banner?.lines).toHaveLength(1);
   });
 
+  it("says the answer filters are off without offering Prepare to a viewer", () => {
+    // Act
+    const banner = describeRowsBanner({
+      answerFiltersNotPrepared: true,
+      canPrepare: false,
+    });
+
+    // Assert
+    expect(banner).toMatchObject({ showPrepare: false });
+  });
+
   it("says the answer filters are off and offers Prepare without a schema", () => {
     // Act
     const banner = describeRowsBanner({
       answerFiltersNotPrepared: true,
-      canIncludeInProgress: true,
+      canPrepare: true,
     });
 
     // Assert

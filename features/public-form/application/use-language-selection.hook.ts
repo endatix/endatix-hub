@@ -21,7 +21,8 @@ interface UseLanguageSelectionProps {
  * React hook for managing language selection in a survey context.
  *
  * Locales use the owned catalog vocabulary (`default`, `bg`, …). SurveyJS
- * `model.locale` stays `""` for the default language.
+ * `model.locale` stays `""` for the default language, except in a
+ * single-language survey, which keeps its own JSON `locale`.
  *
  * Initial selection priority:
  *  1. Server-provided initial locale
@@ -55,7 +56,10 @@ export function useLanguageSelection({
       }
 
       setCurrentLocale(catalogLocale);
-      surveyModel.locale = toSurveyModelLocale(catalogLocale);
+      surveyModel.locale = toSurveyModelLocale(
+        catalogLocale,
+        surveyDefaultLocaleOf(surveyModel, catalogLocales),
+      );
       if (persist) {
         localStorage.setItem(STORAGE_KEY, catalogLocale);
       }
@@ -90,11 +94,7 @@ export function useLanguageSelection({
   }, [surveyModel, catalogLocales, preselectedLocale, applyCatalogLocale]);
 
   const languageOptions = useMemo(
-    () =>
-      catalogLocales.map((localeCode) => ({
-        value: localeCode,
-        label: catalogLocaleDisplayName(localeCode),
-      })),
+    () => catalogLocales.map((locale) => toLanguageOption(locale)),
     [catalogLocales],
   );
 
@@ -109,6 +109,25 @@ export function useLanguageSelection({
     changeLocale,
     hasMultipleLocales: languageOptions.length > 1,
     isDefaultLocale: isDefaultCatalogLocale(currentLocale),
+  };
+}
+
+/**
+ * The language SurveyJS strings use for the catalog default. A single-language
+ * survey keeps its JSON `locale` (the hook never moves it off that locale, so
+ * reading it again is stable); a multi-language one keeps `""`.
+ */
+function surveyDefaultLocaleOf(
+  surveyModel: SurveyModel,
+  catalogLocales: readonly string[],
+): string {
+  return catalogLocales.length === 1 ? surveyModel.locale : "";
+}
+
+function toLanguageOption(catalogLocale: string) {
+  return {
+    value: catalogLocale,
+    label: catalogLocaleDisplayName(catalogLocale),
   };
 }
 
