@@ -23,6 +23,7 @@ test.describe("Auth Smoke Test", () => {
     const password = process.env.SMOKE_TEST_PASSWORD;
 
     if (!email || !password) {
+      // Signs in to a live Hub; runs only where the smoke credentials are set.
       test.skip();
     }
 

@@ -67,6 +67,12 @@ export class DragCategorizeQuestion extends QuestionSelectBase {
   private draggedChoiceValue: string | undefined;
   private draggedFromZoneIdValue: string | undefined;
   private draggedTargetNode: HTMLElement | undefined;
+  /**
+   * Placements dropped because their item stopped being visible, keyed by
+   * item value. Survives only until the respondent changes the answer
+   * themselves — the same lifecycle survey-core gives checkbox's
+   * invisibleOldValues.
+   */
   private invisibleOldPlacementValue: PlacementByItem | undefined;
   private isChangingValueOnClearIncorrect = false;
 
@@ -351,14 +357,9 @@ export class DragCategorizeQuestion extends QuestionSelectBase {
     }).forEach((error) => errors.push(error));
   }
 
-  /**
-   * Placements dropped because their item stopped being visible, keyed by
-   * item value. Survives only until the respondent changes the answer
-   * themselves — the same lifecycle survey-core gives checkbox's
-   * invisibleOldValues.
-   */
-  private get invisibleOldPlacement(): PlacementByItem {
-    return (this.invisibleOldPlacementValue ??= {});
+  private stashInvisiblePlacement(removed: PlacementByItem): void {
+    this.invisibleOldPlacementValue ??= {};
+    Object.assign(this.invisibleOldPlacementValue, removed);
   }
 
   /**
@@ -403,9 +404,7 @@ export class DragCategorizeQuestion extends QuestionSelectBase {
       restore: this.takeRestorablePlacement(),
     });
 
-    for (const [itemValue, zones] of Object.entries(removed)) {
-      this.invisibleOldPlacement[itemValue] = zones;
-    }
+    this.stashInvisiblePlacement(removed);
     if (!changed) return;
 
     const next = compactPlacement(placement);

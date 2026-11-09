@@ -109,8 +109,8 @@ describe("AssetStorageContext", () => {
         await Promise.resolve();
       });
 
-      // After rejection without an ErrorBoundary, it might still show fallback or stay suspended
-      expect(screen.queryByText("Loading...")).toBeDefined();
+      // Without an ErrorBoundary the rejected config leaves the fallback showing.
+      expect(screen.getByText("Loading...")).toBeDefined();
 
       consoleSpy.mockRestore();
     });
