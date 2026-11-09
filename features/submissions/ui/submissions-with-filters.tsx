@@ -8,7 +8,10 @@ import {
   submissionListUrlStateFromClientFilters,
   type SubmissionListUrlState,
 } from "@/features/submissions/list-submission-query";
-import { ExportSubmissionsButton } from "@/features/export";
+import {
+  ExportSubmissionsButton,
+  type SubmissionExportAccess,
+} from "@/features/export";
 import { collectionStatusFacetGroups } from "@/features/submissions/ui/describe-collection-status";
 import { SubmissionsFilterToolbar } from "@/features/submissions/ui/filters/submissions-filter-toolbar";
 import { useSubmissionExportListFilters } from "@/features/submissions/ui/submission-export-list-filters";
@@ -56,6 +59,8 @@ type SubmissionsWithFiltersProps = {
   formId: string;
   hasAnySubmissions: boolean;
   useReportingExport?: boolean;
+  /** Export, and Rebuild inside its dialog. */
+  exportAccess: SubmissionExportAccess;
   definitionFields?: DefinitionField[];
   page: PagedResponse<Submission>;
   listState: SubmissionListUrlState;
@@ -115,11 +120,13 @@ interface UpdateSubmissionListUrlArgs {
   navigation?: NavigationMode;
 }
 
+/** The legacy list's toolbar (filters, reset, Export with `exportAccess`) and its table. */
 function SubmissionsContent({
   data,
   formId,
   hasAnySubmissions,
   useReportingExport = false,
+  exportAccess,
   collectionStatusFilter,
   statusFilter,
   testSubmissionFilter,
@@ -145,6 +152,7 @@ function SubmissionsContent({
   formId: string;
   hasAnySubmissions: boolean;
   useReportingExport?: boolean;
+  exportAccess: SubmissionExportAccess;
   collectionStatusFilter: Set<string>;
   statusFilter: Set<string>;
   testSubmissionFilter: Set<string>;
@@ -289,6 +297,7 @@ function SubmissionsContent({
               formId={formId}
               disabled={disableTableControls}
               useReportingExport={useReportingExport}
+              access={exportAccess}
               listFilters={exportListFilters}
               statusGroups={collectionStatusFacetGroups(collectionStatusFilter)}
             />
@@ -313,10 +322,12 @@ function hasDateFilters(dateFilters: SubmissionDateFilters) {
   );
 }
 
+/** The legacy submissions list: filters, sorting and paging live in the URL; Export follows `exportAccess`. */
 export function SubmissionsWithFilters({
   formId,
   hasAnySubmissions,
   useReportingExport = false,
+  exportAccess,
   definitionFields = [],
   page,
   listState,
@@ -665,6 +676,7 @@ export function SubmissionsWithFilters({
           formId={formId}
           hasAnySubmissions={hasAnySubmissions}
           useReportingExport={useReportingExport}
+          exportAccess={exportAccess}
           collectionStatusFilter={collectionStatusFilter}
           statusFilter={statusFilter}
           testSubmissionFilter={testSubmissionFilter}

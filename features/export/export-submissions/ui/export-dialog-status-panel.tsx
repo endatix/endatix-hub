@@ -35,7 +35,7 @@ function describeIncompleteRefresh(
 
   if (refresh.kind === "skipped") {
     return {
-      text: "Incomplete submissions are as of their last update: bringing them up to date needs permission to edit this form.",
+      text: "Incomplete submissions are as of their last update.",
       partial: false,
     };
   }
