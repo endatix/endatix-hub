@@ -88,7 +88,7 @@ test.describe("Embed Form Behavior (Real Environment)", () => {
         await nextButton.click();
       }
       await expect(completeButton).toBeVisible({ timeout: 1_000 });
-    }).toPass();
+    }).toPass({ timeout: 15_000 });
     await completeButton.click();
 
     await page.waitForURL(/endatix\.com/);

@@ -71,6 +71,8 @@ export async function signInWithEndatixAction(
       case error instanceof Error:
         errorMessage = error.message;
         break;
+      default:
+        break;
     }
 
     return {
