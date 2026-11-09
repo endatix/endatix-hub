@@ -32,8 +32,8 @@ importers:
         specifier: ^3.1045.0
         version: 3.1045.0
       '@azure/monitor-opentelemetry-exporter':
-        specifier: 1.0.0-beta.45
-        version: 1.0.0-beta.45(supports-color@7.2.0)
+        specifier: 1.0.0-beta.47
+        version: 1.0.0-beta.47(supports-color@7.2.0)
       '@azure/storage-blob':
         specifier: ^12.31.0
         version: 12.31.0(supports-color@7.2.0)
@@ -593,8 +593,8 @@ packages:
     resolution: {integrity: sha512-rbAE25KUfjU/s3XHUdJgceoCP5dEOpMx85J04kF+QMdta73XkuG9JGHHinch+XIoKpBdqljin+KqURpJriSzLA==}
     engines: {node: '>=22.0.0'}
 
-  '@azure/monitor-opentelemetry-exporter@1.0.0-beta.45':
-    resolution: {integrity: sha512-e23akpV6sm5YGlZEAD2TDidPZ5LdeNH99bGnx/OkrvWCOEYO8Js+HaNqjO6ctq252v1BtnTwJ53bXsc3/SGFBQ==}
+  '@azure/monitor-opentelemetry-exporter@1.0.0-beta.47':
+    resolution: {integrity: sha512-GglsCyWZaU1RGfTJBGWEzv8ETtAGOMPOd+4xivvetjFpY3fJtd6GDGKW9W8LFQNTo8nGs2AtbEwjk9W6Ywk4+g==}
     engines: {node: '>=22.0.0'}
 
   '@azure/storage-blob@12.31.0':
@@ -7160,7 +7160,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@azure/monitor-opentelemetry-exporter@1.0.0-beta.45(supports-color@7.2.0)':
+  '@azure/monitor-opentelemetry-exporter@1.0.0-beta.47(supports-color@7.2.0)':
     dependencies:
       '@azure-rest/core-client': 2.8.0(supports-color@7.2.0)
       '@azure/core-auth': 1.11.0(supports-color@7.2.0)
