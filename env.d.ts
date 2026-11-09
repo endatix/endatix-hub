@@ -1,7 +1,9 @@
 declare namespace NodeJS {
   interface ProcessEnv {
-    // Environment
-    NODE_ENV: "development" | "production" | "test";
+    // Environment. Read-only, as next/types/global.d.ts declares it: whichever declaration
+    // the compiler meets first wins, and that changes once `pnpm dev` writes next-env.d.ts.
+    // Tests set it with vi.stubEnv("NODE_ENV", ...).
+    readonly NODE_ENV: "development" | "production" | "test";
     /** Inlined at build through next.config.ts `env`. Read only from server code, so never in the client bundle. */
     HUB_VERSION?: string;
     HUB_BRANCH?: string;

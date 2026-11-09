@@ -2,6 +2,7 @@ import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
 import prettierConfig from "eslint-config-prettier/flat";
+import sonarjs from "eslint-plugin-sonarjs";
 import unicorn from "eslint-plugin-unicorn";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -78,6 +79,26 @@ const eslintConfig = defineConfig([
       // SonarCloud S7727: pass a callback, not a function reference, to array methods.
       "unicorn/no-array-callback-reference": "error",
       ...tempRuleOverrides,
+    },
+  },
+  {
+    // Rules SonarCloud's profile flags in Hub code, so `pnpm lint` fails before the quality
+    // gate does. Only the untyped ones: Hub lint runs without type information outside e2e/.
+    // Add a rule here once its current hits are fixed.
+    files: ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.mjs"],
+    plugins: { sonarjs },
+    rules: {
+      "sonarjs/no-skipped-tests": "error", // S1607
+      "sonarjs/no-incomplete-assertions": "error", // S2970
+      "sonarjs/no-fixed-wait-in-tests": "error", // S2925
+      "sonarjs/hooks-before-test-cases": "error", // S8782
+      "sonarjs/testing-library-query-assertion": "error", // S9027
+      "sonarjs/no-identical-functions": "error", // S4144
+      "sonarjs/no-redundant-assignments": "error", // S4165
+      "sonarjs/no-nested-assignment": "error", // S1121
+      "sonarjs/updated-loop-counter": "error", // S2310
+      "sonarjs/public-static-readonly": "error", // S1444
+      "sonarjs/use-type-alias": "error", // S4323
     },
   },
   {

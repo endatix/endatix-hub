@@ -115,6 +115,7 @@
     "eslint": "10.9.1",
     "eslint-config-next": "16.4.5",
     "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-sonarjs": "^4.2.2",
     "eslint-plugin-testing-library": "^7.16.2",
     "eslint-plugin-unicorn": "^78.0.0",
     "jsdom": "^30.1.3",

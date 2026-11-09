@@ -71,10 +71,6 @@ export async function signInWithEndatixAction(
       case error instanceof Error:
         errorMessage = error.message;
         break;
-      default:
-        errorMessage =
-          "There was an error signing you in. Please try again and submit a support request if the problem persists.";
-        break;
     }
 
     return {

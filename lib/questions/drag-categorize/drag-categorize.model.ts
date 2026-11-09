@@ -358,7 +358,8 @@ export class DragCategorizeQuestion extends QuestionSelectBase {
    * invisibleOldValues.
    */
   private get invisibleOldPlacement(): PlacementByItem {
-    return (this.invisibleOldPlacementValue ??= {});
+    this.invisibleOldPlacementValue ??= {};
+    return this.invisibleOldPlacementValue;
   }
 
   /**

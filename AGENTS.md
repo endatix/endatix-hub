@@ -269,6 +269,7 @@ Every test starts clean: Vitest 5 clears mock calls by default (`clearMocks`), a
 - Don't add `vi.clearAllMocks()`, `vi.restoreAllMocks()`, `vi.unstubAllEnvs()` or `vi.unstubAllGlobals()` to a hook. Call one inside a test only to reset between two steps of that test.
 - Clearing keeps implementations. A `mockReturnValue` set in one test is still there in the next, so set the defaults every test needs in `beforeEach`, and use `mockReturnValueOnce` / `mockImplementationOnce` for one test's variation. A `…Once` value stays queued until something calls the mock, even into the next test, so queue it only for a call the test makes. Never replace a method on a shared mock object (`mockThing.run = vi.fn(...)`): it stays for every later test.
 - `vi.mock` only at module scope; Vitest hoists it. Change its behaviour per test with `vi.mocked(fn).mockReturnValue(...)`.
+- Set `NODE_ENV` with `vi.stubEnv("NODE_ENV", …)`. `env.d.ts` declares it read-only, as Next does, so `process.env.NODE_ENV = …` fails `pnpm typecheck`.
 - Create `vi.spyOn`, `vi.stubGlobal` and `vi.stubEnv` in `beforeEach` or the test, never at module or `describe` scope. The config undoes them before every test, so one made outside a hook is already undone when some or all of the tests run, and a `not.toHaveBeenCalled()` on a restored spy passes without checking anything. Use `vi.stubGlobal`, not `global.x = …` or `Object.defineProperty(globalThis, …)`, which nothing undoes. For jsdom's missing `ResizeObserver`, call `stubResizeObserver()` from `@/test/stubs/resize-observer` in `beforeEach`.
 - State outside mocks is not reset for you: SurveyJS `Serializer` properties, registries, module caches. Reset it in `beforeEach`, with the module's `…ForTests()` helper when it has one.
 - Mock at the boundary: the API client (`@/lib/endatix-api`, or `fetch`), `@/auth`, `next/navigation`, `next/headers`, `next/cache`, toasts. A component test may mock its slice's server action (`../x.action`), the client-to-server edge. Prefer running the slice's own modules to mocking them. `server-only` is aliased to `test/mocks/server-only.ts` in the config, so never `vi.mock` it.
@@ -299,6 +300,8 @@ it("renders the xlsx glyph", () => {
 ## SonarCloud quality gate
 
 SonarCloud Free can't edit the "Sonar way" gate, so `build-ci.yml` applies it with [`scripts/sonar-gate.mjs`](scripts/sonar-gate.mjs) after the scan (same policy as endatix/endatix#1319). On PRs, red bugs, vulnerabilities, hotspots or coverage on new code fail the job, and duplication (`SONAR_ADVISORY_METRICS`) only warns. On pushes to `main` the gate only reports (`*`): the code is already merged, and the PR was the place to stop it. New code on `main` starts at the last stable release (`sonar.projectVersion` from the latest `vX.Y.Z` tag). When a block reaches its third copy, open a `tech-debt` issue for it. Add `sonar.cpd.exclusions` only for boilerplate the SonarCloud duplication data shows.
+
+`pnpm lint` runs the untyped `eslint-plugin-sonarjs` rules SonarCloud's profile flags here, listed in `eslint.config.mjs` with their Sonar keys, so a hit fails lint before it fails the gate. Add a rule there once its current hits are fixed. A skipped test (`test.skip`, `it.skip`) needs a comment on the line above it saying why: both ESLint and SonarCloud (S1607) accept that.
 
 ## Mirrored OSS rules
 

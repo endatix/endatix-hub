@@ -155,7 +155,7 @@ export const ensureReady = (
  * @param options - Optional client options for initialization
  */
 export const captureException = (
-  error: Error | string | unknown,
+  error: unknown,
   properties: Record<string, string | number | boolean | null> = {},
   config?: PostHogConfig,
   options?: Partial<PostHogClientOptions>,
@@ -192,7 +192,7 @@ export const captureException = (
 /**
  * Helper function to get a string message from different error types
  */
-function getErrorMessage(error: Error | string | unknown): string {
+function getErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     return error.message;
   } else if (typeof error === 'string') {
@@ -213,7 +213,7 @@ function getErrorMessage(error: Error | string | unknown): string {
 /**
  * Helper function to get the error type for analytics
  */
-function getErrorType(error: Error | string | unknown): string {
+function getErrorType(error: unknown): string {
   if (error instanceof Error) {
     return error.name || 'Error';
   } else if (typeof error === 'string') {

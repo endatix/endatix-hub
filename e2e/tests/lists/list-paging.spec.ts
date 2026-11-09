@@ -49,6 +49,7 @@ const lists = [
 ];
 
 test.describe("Paged lists", () => {
+  // Signs in to a live Hub; runs only where the E2E credentials are set.
   test.skip(!email || !password, "Set E2E_EMAIL / E2E_PASSWORD");
 
   test.beforeEach(async ({ page }) => {
@@ -59,11 +60,13 @@ test.describe("Paged lists", () => {
     test(`${list.name}: next page shows that page's rows without a reload`, async ({
       page,
     }) => {
+      // The submissions list needs a seeded form; runs only where its id is set.
       test.skip(!list.url, "Set E2E_PAGING_FORM_ID");
       const pagedList = new PagedListPage(page, list.rows);
 
       // Arrange
       await pagedList.open(list.url);
+      // Paging needs a second page; a smaller seed has nothing to page to.
       test.skip(
         await pagedList.nextPage.isDisabled(),
         `${list.name}: seed at least 2 pages of rows`,

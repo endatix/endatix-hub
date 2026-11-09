@@ -67,9 +67,7 @@ vi.mock("survey-creator-react", async (importOriginal) => {
         };
       }
       protected getViewModel() {
-        return {
-          containerCss: "svc-logo-image-container",
-        };
+        return this.getStateElement();
       }
     },
   };

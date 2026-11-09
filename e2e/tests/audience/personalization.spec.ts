@@ -139,8 +139,8 @@ async function expectStoredAnswer(
 test.describe("On-behalf personalization", () => {
   test.setTimeout(120_000);
 
-  // Live Hub/API session; CI without E2E_EMAIL / E2E_PASSWORD has nothing to call.
   test.beforeEach(() => {
+    // Live Hub/API session; CI without E2E_EMAIL / E2E_PASSWORD has nothing to call.
     test.skip(!e2eCredentials(), "Set E2E_EMAIL and E2E_PASSWORD.");
   });
 

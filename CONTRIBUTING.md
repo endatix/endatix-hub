@@ -29,3 +29,10 @@ Pull requests are squash-merged, so the title becomes the commit on `main` and f
 ## Pull request body
 
 Fill in the [pull request template](.github/PULL_REQUEST_TEMPLATE.md): what changed and why, the issue it closes, and how you tested it.
+
+## Review rules
+
+A reviewer checks every pull request against these, besides the rules in [AGENTS.md](AGENTS.md).
+
+- **A control that calls a guarded API action has the API's permission.** The page or component shows the control only with the permission the API endpoint requires, under the same name, and the server action the control calls checks that permission too (`requirePermission` or `requireAllPermissions`, see AGENTS.md → Server Actions). The review cites the API rule it compared against: the endpoint and its permission.
+- **A pending async action disables its trigger, and Cancel or Discard is proven.** While the action runs, the button, menu item or form that started it is disabled (or shows a pending state that ignores a second click), so the action never fires twice. Cancel and Discard each have a test that checks the effect, such as the draft is gone, the dialog is closed or the API was not called, not just that the handler ran.

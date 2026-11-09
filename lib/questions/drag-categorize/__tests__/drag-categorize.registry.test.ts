@@ -10,6 +10,10 @@ import { registerDragCategorizeModel } from "../drag-categorize.registry";
 import { isSupportedCarryForwardQuestionType } from "@/lib/survey-features/carry-forward/supported-question-types";
 
 describe("registerDragCategorizeModel", () => {
+  beforeAll(() => {
+    registerDragCategorizeModel();
+  });
+
   it("does not opt the type into carry forward", () => {
     // Assert — carry forward is an extension-gated feature. Adding its
     // properties from the model registry would reach the respondent runner,
@@ -23,10 +27,6 @@ describe("registerDragCategorizeModel", () => {
     expect(isSupportedCarryForwardQuestionType(DRAG_CATEGORIZE_TYPE)).toBe(
       false,
     );
-  });
-
-  beforeAll(() => {
-    registerDragCategorizeModel();
   });
 
   it("registers the item sub-type with image and clone properties", () => {
