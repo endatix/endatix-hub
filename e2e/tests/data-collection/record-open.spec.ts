@@ -56,6 +56,7 @@ test.describe("Record the respondent's open", () => {
   let api: EndatixApi;
 
   test.beforeAll(async () => {
+    // Every case seeds forms and reads submissions through the API: without Hub credentials there is nothing to call.
     test.skip(!e2eCredentials(), "Set E2E_EMAIL and E2E_PASSWORD.");
     api = await signInE2eApi();
   });
