@@ -61,6 +61,7 @@ function renderTemplateCard(onClick: () => void, onPreviewClick = vi.fn()) {
     <FormTemplateCard
       template={template}
       isSelected={false}
+      canCreateForms
       onOpen={onClick}
       onPreviewClick={onPreviewClick}
     />,

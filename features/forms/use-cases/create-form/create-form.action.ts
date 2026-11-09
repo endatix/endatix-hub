@@ -31,7 +31,7 @@ export async function createFormAction(
     const rawData = extractFormData(formData);
 
     const endatix = new EndatixApi(session?.accessToken);
-    const folderIdRaw = formData.get('folderId')?.toString().trim() ?? '';
+    const folderIdRaw = formData.get("folderId")?.toString().trim() ?? "";
 
     const initialFormRequest = {
       name: rawData.name,
@@ -45,7 +45,10 @@ export async function createFormAction(
       CreateFormRequestSchema.safeParse(initialFormRequest);
 
     if (!validatedRequestData.success) {
-      return ServerActionState.fromZodError(validatedRequestData.error, rawData) as CreateFormActionState;
+      return ServerActionState.fromZodError(
+        validatedRequestData.error,
+        rawData,
+      ) as CreateFormActionState;
     }
 
     const createFormResult = await endatix.forms.create(

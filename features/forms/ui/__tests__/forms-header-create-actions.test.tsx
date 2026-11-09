@@ -22,9 +22,12 @@ vi.mock("@/features/asset-storage/server", () => ({
   AssetStorageProvider: () => null,
 }));
 
-vi.mock("@/features/forms/use-cases/design-form/form-assistant.context", () => ({
-  FormAssistantProvider: () => null,
-}));
+vi.mock(
+  "@/features/forms/use-cases/design-form/form-assistant.context",
+  () => ({
+    FormAssistantProvider: () => null,
+  }),
+);
 
 describe("FormsHeaderCreateActions", () => {
   const checkPermission = vi.fn();

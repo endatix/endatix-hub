@@ -123,3 +123,35 @@ describe("create form actions without forms.create", () => {
     expectRefusedBeforeCreate();
   });
 });
+
+describe("create form wizard with forms.create", () => {
+  it("creates the form through the API", async () => {
+    // Arrange
+    const apiCreate = vi.fn().mockResolvedValue({
+      success: true,
+      data: { id: "form-1" },
+    });
+    const requirePermission = vi.fn().mockResolvedValue(undefined);
+    vi.mocked(auth).mockResolvedValue({ accessToken: "token" } as never);
+    vi.mocked(authorization).mockResolvedValue({
+      requireHubAccess: vi.fn().mockResolvedValue(undefined),
+      requirePermission,
+    } as never);
+    vi.mocked(EndatixApi).mockImplementation(function () {
+      return { forms: { create: apiCreate } } as never;
+    });
+    const formData = new FormData();
+    formData.set("name", "Form");
+
+    // Act
+    const result = await createFormFromWizardAction(
+      { isSuccess: false },
+      formData,
+    );
+
+    // Assert
+    expect(requirePermission).toHaveBeenCalledWith(Permissions.Forms.Create);
+    expect(apiCreate).toHaveBeenCalledOnce();
+    expect(result).toEqual({ isSuccess: true, formId: "form-1" });
+  });
+});
