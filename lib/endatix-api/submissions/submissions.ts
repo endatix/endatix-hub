@@ -18,6 +18,7 @@ import {
   ExportSubmissionsRequest,
   ListSubmissionsRequest,
   ListSubmissionsResponse,
+  OpenSubmissionTokens,
   Submission,
 } from "./types";
 import {
@@ -42,6 +43,27 @@ class PublicSubmissions {
     return this.endatix.post<Submission>(
       `/forms/${formId}/submissions`,
       submissionData,
+      { requireAuth: false },
+    );
+  }
+
+  /**
+   * Record that the respondent opened the form (public API - no authentication required).
+   * With no token it creates a submission; with a submission token or a share link's access
+   * token it resumes that one. The first open sets `startedAt`.
+   */
+  async open(
+    formId: string,
+    tokens: OpenSubmissionTokens,
+  ): Promise<ApiResult<Submission>> {
+    const validateFormIdResult = validateEndatixId(formId, "formId");
+    if (Result.isError(validateFormIdResult)) {
+      return ApiResult.validationError(validateFormIdResult.message);
+    }
+
+    return this.endatix.post<Submission>(
+      `/forms/${validateFormIdResult.value}/submissions/open`,
+      tokens,
       { requireAuth: false },
     );
   }

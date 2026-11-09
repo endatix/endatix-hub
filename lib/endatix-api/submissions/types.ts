@@ -89,6 +89,12 @@ export interface SubmissionFile {
 // Request/Response DTOs (what goes over the wire)
 // ============================================================================
 
+/** At most one token: none creates a submission, either one resumes it. */
+export type OpenSubmissionTokens =
+  | { submissionToken?: never; accessToken?: never }
+  | { submissionToken: string; accessToken?: never }
+  | { accessToken: string; submissionToken?: never };
+
 export type CreateSubmissionDto = {
   isComplete?: boolean;
   jsonData?: JsonData;

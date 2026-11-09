@@ -152,7 +152,10 @@ describe("SubmissionsFilterToolbar", () => {
     ).toBe("off");
     expect(screen.queryByRole("option", { name: /^cancelled/i })).toBeNull();
     expect(screen.queryByRole("option", { name: /^expired/i })).toBeNull();
-    expect(screen.queryByRole("option", { name: /^viewed/i })).toBeNull();
+    const viewed = screen.getByRole("option", { name: /^viewed/i });
+    expect(viewed.querySelector("[data-tone]")?.getAttribute("data-tone")).toBe(
+      "idle",
+    );
   });
 
   it("selects Screened out from its own row", () => {
