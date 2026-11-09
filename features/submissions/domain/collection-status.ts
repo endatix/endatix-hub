@@ -14,7 +14,7 @@ export type CollectionStatusGroup = "unengaged" | "open" | "complete" | "ended";
  */
 export const COLLECTION_STATUS_CATALOG = [
   { code: "not_started", group: "unengaged", resumable: true, shipped: true },
-  { code: "viewed", group: "unengaged", resumable: true, shipped: false },
+  { code: "viewed", group: "unengaged", resumable: true, shipped: true },
   { code: "in_progress", group: "open", resumable: true, shipped: true },
   { code: "expired", group: "open", resumable: true, shipped: false },
   { code: "complete", group: "complete", resumable: false, shipped: true },

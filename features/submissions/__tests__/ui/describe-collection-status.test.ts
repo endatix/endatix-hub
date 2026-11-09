@@ -110,6 +110,7 @@ describe("COLLECTION_STATUS_GROUPS", () => {
     expect(codes).toEqual([
       "complete",
       "not_started",
+      "viewed",
       "in_progress",
       "screen_out",
     ]);
