@@ -3,7 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { auth } from "@/auth";
-import { authorization, Permissions } from "@/features/auth/authorization";
+import {
+  authorization,
+  invalidateUserAuthorizationCache,
+  Permissions,
+} from "@/features/auth/authorization";
 import { ApiResult, EndatixApi, type ApiError } from "@/lib/endatix-api";
 import { Result } from "@/lib/result";
 import { toResult } from "@/lib/result/map-api-result-to-result";
@@ -95,7 +99,7 @@ export async function deleteRoleAction(
   const result = await api.roles.delete(validatedData.data.roleName);
 
   if (ApiResult.isSuccess(result)) {
-    revalidatePath("/settings/organization/roles");
+    refreshAfterRoleAccessChange();
     return { isSuccess: true, message: "Role deleted." };
   }
 
@@ -130,7 +134,7 @@ export async function updateRoleAction(
   });
 
   if (ApiResult.isSuccess(result)) {
-    revalidatePath("/settings/organization/roles");
+    refreshAfterRoleAccessChange();
     return { isSuccess: true, message: "Role updated." };
   }
 
@@ -164,3 +168,8 @@ function stateFromRoleApiError(
   };
 }
 
+/** A role's permissions changed or it is gone: every holder's cached permissions are stale. */
+function refreshAfterRoleAccessChange() {
+  invalidateUserAuthorizationCache({ allUsers: true });
+  revalidatePath("/settings/organization/roles");
+}

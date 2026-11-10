@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { auth } from "@/auth";
-import { authorization, Permissions } from "@/features/auth/authorization";
+import {
+  authorization,
+  invalidateUserAuthorizationCache,
+  Permissions,
+} from "@/features/auth/authorization";
 import { SystemRoles } from "@/features/auth/authorization/domain/system-roles";
 import { ApiResult, EndatixApi } from "@/lib/endatix-api";
 import { setUserRoleAction } from "../manage-user-roles/manage-user-roles.action";
@@ -20,6 +24,7 @@ vi.mock("@/features/auth/authorization", async (importOriginal) => {
   return {
     ...actual,
     authorization: vi.fn(),
+    invalidateUserAuthorizationCache: vi.fn(),
   };
 });
 
@@ -74,7 +79,9 @@ describe("manage user roles action", () => {
 
   it("returns API errors from replace roles", async () => {
     const userId = "1507347517849731072";
-    replaceRoles.mockResolvedValue(ApiResult.serverError("Could not update roles"));
+    replaceRoles.mockResolvedValue(
+      ApiResult.serverError("Could not update roles"),
+    );
 
     const result = await setUserRoleAction(
       { isSuccess: undefined },
@@ -122,5 +129,32 @@ describe("manage user roles action", () => {
       "Platform administrator roles are managed at the platform level.",
     ]);
     expect(replaceRoles).not.toHaveBeenCalled();
+  });
+
+  it("clears cached permissions after their roles change", async () => {
+    const userId = "1507347517849731072";
+    replaceRoles.mockResolvedValue(ApiResult.success({ message: "ok" }));
+
+    await setUserRoleAction(
+      { isSuccess: undefined },
+      { userId, roles: ["Creator"] },
+    );
+
+    expect(invalidateUserAuthorizationCache).toHaveBeenCalledWith({
+      allUsers: true,
+    });
+  });
+
+  it("keeps cached permissions when the roles change fails", async () => {
+    replaceRoles.mockResolvedValue(
+      ApiResult.serverError("Could not update roles"),
+    );
+
+    await setUserRoleAction(
+      { isSuccess: undefined },
+      { userId: "1507347517849731072", roles: ["Creator"] },
+    );
+
+    expect(invalidateUserAuthorizationCache).not.toHaveBeenCalled();
   });
 });

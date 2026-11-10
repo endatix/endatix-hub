@@ -1,9 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { Session } from "next-auth";
-import {
-  getAuthDataForCurrentUser,
-  invalidateUserAuthorizationCache,
-} from "../authorization-data.provider";
+import { getAuthDataForCurrentUser } from "../authorization-data.provider";
 import type { AuthorizationData } from "@/lib/endatix-api/auth/types";
 import { ApiErrorType, EndatixApi, ERROR_CODE } from "@/lib/endatix-api";
 import { SessionError } from "@/auth";
@@ -342,6 +339,53 @@ describe("getAuthDataForCurrentUser", () => {
     expect(unstableCacheStore.size).toBe(1);
   });
 
+  it("keeps cached permissions for at most 60 seconds", async () => {
+    const { unstable_cache } = await import("next/cache");
+    const { EndatixApi } = await import("@/lib/endatix-api");
+    vi.mocked(EndatixApi).mockImplementation(function () {
+      return {
+        auth: {
+          getAuthorizationData: vi.fn().mockResolvedValue({
+            success: true,
+            data: mockAuthorizationData,
+          }),
+        },
+      } as unknown as EndatixApi;
+    });
+
+    await getAuthDataForCurrentUser(mockSession)();
+
+    expect(vi.mocked(unstable_cache).mock.calls.at(-1)?.[2]).toMatchObject({
+      revalidate: 60,
+    });
+  });
+
+  it("refetches permissions once the 60-second window rolls over, without serving the old answer", async () => {
+    vi.useFakeTimers();
+    try {
+      const { EndatixApi } = await import("@/lib/endatix-api");
+      const getAuthorizationData = vi.fn().mockResolvedValue({
+        success: true,
+        data: mockAuthorizationData,
+      });
+      vi.mocked(EndatixApi).mockImplementation(function () {
+        return { auth: { getAuthorizationData } } as unknown as EndatixApi;
+      });
+
+      vi.setSystemTime(new Date("2026-11-10T10:00:05Z"));
+      await getAuthDataForCurrentUser(mockSession)();
+      vi.setSystemTime(new Date("2026-11-10T10:00:55Z"));
+      await getAuthDataForCurrentUser(mockSession)();
+      expect(getAuthorizationData).toHaveBeenCalledTimes(1);
+
+      vi.setSystemTime(new Date("2026-11-10T10:01:05Z"));
+      await getAuthDataForCurrentUser(mockSession)();
+      expect(getAuthorizationData).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("should use correct userId and accessToken for API call", async () => {
     const { EndatixApi } = await import("@/lib/endatix-api");
     const mockApiInstance = {
@@ -362,59 +406,5 @@ describe("getAuthDataForCurrentUser", () => {
 
     expect(EndatixApi).toHaveBeenCalledWith("test-access-token");
     expect(mockApiInstance.auth.getAuthorizationData).toHaveBeenCalled();
-  });
-});
-
-describe("invalidateUserAuthorizationCache", () => {
-  it("should invalidate cache for single userId", async () => {
-    const { revalidateTag } = await import("next/cache");
-
-    invalidateUserAuthorizationCache({ userId: "user-123" });
-
-    expect(revalidateTag).toHaveBeenCalledWith("usr_prms:user-123", "max");
-  });
-
-  it("should invalidate cache for multiple userIds", async () => {
-    const { revalidateTag } = await import("next/cache");
-
-    invalidateUserAuthorizationCache({
-      userIds: ["user-1", "user-2", "user-3"],
-    });
-
-    expect(revalidateTag).toHaveBeenCalledTimes(3);
-    expect(revalidateTag).toHaveBeenCalledWith("usr_prms:user-1", "max");
-    expect(revalidateTag).toHaveBeenCalledWith("usr_prms:user-2", "max");
-    expect(revalidateTag).toHaveBeenCalledWith("usr_prms:user-3", "max");
-  });
-
-  it("should invalidate all user caches when allUsers is true", async () => {
-    const { revalidateTag } = await import("next/cache");
-
-    invalidateUserAuthorizationCache({ allUsers: true });
-
-    expect(revalidateTag).toHaveBeenCalledWith("usr_prms_all", "max");
-  });
-
-  it("should handle multiple invalidation options", async () => {
-    const { revalidateTag } = await import("next/cache");
-
-    invalidateUserAuthorizationCache({
-      userId: "user-123",
-      userIds: ["user-456", "user-789"],
-      allUsers: true,
-    });
-
-    expect(revalidateTag).toHaveBeenCalledWith("usr_prms:user-123", "max");
-    expect(revalidateTag).toHaveBeenCalledWith("usr_prms:user-456", "max");
-    expect(revalidateTag).toHaveBeenCalledWith("usr_prms:user-789", "max");
-    expect(revalidateTag).toHaveBeenCalledWith("usr_prms_all", "max");
-  });
-
-  it("should handle empty options", async () => {
-    const { revalidateTag } = await import("next/cache");
-
-    invalidateUserAuthorizationCache({});
-
-    expect(revalidateTag).not.toHaveBeenCalled();
   });
 });

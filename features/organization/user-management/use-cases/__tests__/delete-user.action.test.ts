@@ -1,7 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
-import { authorization, Permissions } from "@/features/auth/authorization";
+import {
+  authorization,
+  invalidateUserAuthorizationCache,
+  Permissions,
+} from "@/features/auth/authorization";
 import { ApiResult, EndatixApi } from "@/lib/endatix-api";
 import { deleteUserAction } from "../delete-user/delete-user.action";
 
@@ -20,6 +24,7 @@ vi.mock("@/features/auth/authorization", async (importOriginal) => {
   return {
     ...actual,
     authorization: vi.fn(),
+    invalidateUserAuthorizationCache: vi.fn(),
   };
 });
 
@@ -144,6 +149,20 @@ describe("deleteUserAction", () => {
     expect(getById).toHaveBeenCalledWith(targetUserId);
     expect(removeAccess).toHaveBeenCalledWith(targetUserId);
     expect(revalidatePath).toHaveBeenCalledWith("/settings/organization/users");
+    expect(invalidateUserAuthorizationCache).toHaveBeenCalledWith({
+      allUsers: true,
+    });
     expect(result.isSuccess).toBe(true);
+  });
+
+  it("keeps cached permissions when removing access fails", async () => {
+    removeAccess.mockResolvedValue(ApiResult.serverError("Could not remove"));
+
+    await deleteUserAction(
+      { isSuccess: undefined },
+      { userId: targetUserId, confirmationEmail: targetEmail },
+    );
+
+    expect(invalidateUserAuthorizationCache).not.toHaveBeenCalled();
   });
 });
