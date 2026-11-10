@@ -11,10 +11,12 @@ import { useAnyAnswered } from "@/lib/survey-features/any-answered";
 import { useEndatixSurveyTheme } from "@/lib/themes/use-endatix-themes";
 import { useEffect, useRef, useState } from "react";
 import { Model } from "survey-core";
+import "survey-core/survey.i18n";
 import {
   getSubmissionLocale,
   isLocaleValid,
-  toSurveyModelLocale,
+  surveyJsonLocale,
+  surveyModelLocale,
 } from "@/lib/localization";
 
 export function useSurveyModel(
@@ -87,7 +89,11 @@ export function useSurveyModel(
 
         const submissionLocale = getSubmissionLocale(submission);
         if (submissionLocale && isLocaleValid(submissionLocale, model)) {
-          model.locale = toSurveyModelLocale(submissionLocale);
+          model.locale = surveyModelLocale(
+            model,
+            submissionLocale,
+            surveyJsonLocale(definitionJson),
+          );
         }
 
         model.showCompletedPage = false;

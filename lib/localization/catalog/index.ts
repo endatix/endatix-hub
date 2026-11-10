@@ -5,7 +5,10 @@ export {
   catalogLocaleEnglishName,
   fromSurveyModelLocale,
   isDefaultCatalogLocale,
+  surveyDefaultLocale,
   surveyJsDefaultLocaleCode,
+  surveyJsonLocale,
+  surveyModelLocale,
   toCatalogLocales,
   toSurveyModelLocale,
 } from "./catalog-locale";

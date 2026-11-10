@@ -222,6 +222,76 @@ describe("preparePdfModel", () => {
       });
       expect(result.surveyModel.locale).toBeFalsy();
     });
+
+    describe("in a single-language survey", () => {
+      const germanSubmission = (definition: object): Submission => ({
+        ...mockSubmission,
+        formDefinition: {
+          ...mockSubmission.formDefinition!,
+          jsonData: JSON.stringify(definition),
+        },
+      });
+      const germanOnly = {
+        locale: "de",
+        pages: [
+          {
+            elements: [{ type: "boolean", name: "agree", title: "Zustimmen" }],
+          },
+        ],
+      };
+      const yesLabel = (model: Model) =>
+        (
+          model.getQuestionByName("agree") as unknown as {
+            locLabelTrue: { text: string };
+          }
+        ).locLabelTrue.text;
+
+      it.each(["", "de", "fr", undefined])(
+        "renders SurveyJS strings in the survey's own locale (stored language %j)",
+        async (storedLanguage) => {
+          // Arrange
+          vi.mocked(getSubmissionLocale).mockReturnValue(storedLanguage);
+
+          // Act
+          const result = await preparePdfModel({
+            submission: germanSubmission(germanOnly),
+            customQuestionsJsonData: [],
+          });
+
+          // Assert
+          expect(result.surveyModel.locale).toBe("de");
+          expect(yesLabel(result.surveyModel)).toBe("Ja");
+        },
+      );
+
+      it("keeps a multi-language survey on today's default", async () => {
+        // Arrange
+        vi.mocked(getSubmissionLocale).mockReturnValue("");
+
+        // Act
+        const result = await preparePdfModel({
+          submission: germanSubmission({
+            locale: "de",
+            pages: [
+              {
+                elements: [
+                  {
+                    type: "boolean",
+                    name: "agree",
+                    title: { default: "Zustimmen", fr: "D'accord" },
+                  },
+                ],
+              },
+            ],
+          }),
+          customQuestionsJsonData: [],
+        });
+
+        // Assert
+        expect(result.surveyModel.locale).toBe("");
+        expect(yesLabel(result.surveyModel)).toBe("Yes");
+      });
+    });
   });
 
   describe("edge cases", () => {

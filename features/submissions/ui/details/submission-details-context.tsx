@@ -7,10 +7,13 @@ import {
   fromSurveyModelLocale,
   getSubmissionLocale,
   isLocaleValid,
+  surveyDefaultLocale,
+  surveyJsonLocale,
+  surveyModelLocale,
   toCatalogLocales,
-  toSurveyModelLocale,
 } from "@/lib/localization";
 import { Result } from "@/lib/result";
+import { tryParseJson } from "@/lib/utils/type-parsers";
 import {
   createContext,
   ReactNode,
@@ -21,6 +24,7 @@ import {
   useReducer,
 } from "react";
 import { Model, Question } from "survey-core";
+import "survey-core/survey.i18n";
 import z from "zod";
 import {
   buildSubmissionNavPages,
@@ -70,6 +74,8 @@ interface SubmissionDetailsContextType {
   /** Stored submission language, or `default` when the survey lacks it. */
   submittedCatalogLocale: string;
   catalogLocales: string[];
+  /** Catalog code for the Language cell when the survey has one language (`de`). */
+  surveyCatalogLocale: string;
   allQuestions: Question[];
   submissionNavPages: SubmissionNavPage[];
   viewOptions: SubmissionDetailsViewOptions;
@@ -107,6 +113,39 @@ function submittedCatalogLocaleOf(
   return isLocaleValid(locale, model)
     ? fromSurveyModelLocale(locale)
     : DEFAULT_CATALOG_LOCALE;
+}
+
+/** The JSON `locale` of the submission's form definition, or `""`. */
+function definitionLocaleOf(submission: Submission | undefined): string {
+  const definition = tryParseJson<unknown>(
+    submission?.formDefinition?.jsonData,
+  );
+  return Result.isSuccess(definition) ? surveyJsonLocale(definition.value) : "";
+}
+
+/** Labels `model` in the submitted language and returns that catalog locale. */
+function showInSubmittedLocale(
+  submission: Submission,
+  model: Model,
+  definitionLocale: string,
+): string {
+  const catalogLocale = submittedCatalogLocaleOf(submission, model);
+  model.locale = surveyModelLocale(model, catalogLocale, definitionLocale);
+  return catalogLocale;
+}
+
+/**
+ * The survey's own language for the single-language Language cell
+ * (`de`), else the first catalog locale, as before.
+ */
+function surveyCatalogLocaleOf(
+  definitionLocale: string,
+  catalogLocales: readonly string[],
+): string {
+  const locale = surveyDefaultLocale(definitionLocale, catalogLocales);
+  return locale
+    ? fromSurveyModelLocale(locale)
+    : (catalogLocales[0] ?? DEFAULT_CATALOG_LOCALE);
 }
 
 export function getStoredViewOptions(): SubmissionDetailsViewOptions | null {
@@ -198,6 +237,16 @@ export function SubmissionDetailsProvider({
     [state.surveyModel],
   );
 
+  // Parsed once: `model.locale` is reassigned, the definition is not.
+  const definitionLocale = useMemo(
+    () => definitionLocaleOf(submission),
+    [submission],
+  );
+  const surveyCatalogLocale = useMemo(
+    () => surveyCatalogLocaleOf(definitionLocale, catalogLocales),
+    [definitionLocale, catalogLocales],
+  );
+
   const submittedCatalogLocale = useMemo(() => {
     if (!submission || !state.surveyModel) {
       return DEFAULT_CATALOG_LOCALE;
@@ -230,11 +279,9 @@ export function SubmissionDetailsProvider({
       }
 
       if (model) {
-        const catalogLocale = submittedCatalogLocaleOf(submission, model);
-        model.locale = toSurveyModelLocale(catalogLocale);
         dispatch({
           type: SubmissionDetailsActionType.SET_DISPLAY_CATALOG_LOCALE,
-          payload: catalogLocale,
+          payload: showInSubmittedLocale(submission, model, definitionLocale),
         });
       }
       dispatch({
@@ -248,7 +295,11 @@ export function SubmissionDetailsProvider({
         return;
       }
 
-      state.surveyModel.locale = toSurveyModelLocale(catalogLocale);
+      state.surveyModel.locale = surveyModelLocale(
+        state.surveyModel,
+        catalogLocale,
+        definitionLocale,
+      );
       dispatch({
         type: SubmissionDetailsActionType.SET_DISPLAY_CATALOG_LOCALE,
         payload: catalogLocale,
@@ -294,6 +345,7 @@ export function SubmissionDetailsProvider({
       setDisplayCatalogLocale,
       submittedCatalogLocale,
       catalogLocales,
+      surveyCatalogLocale,
       allQuestions,
       submissionNavPages,
       highlightedQuestionName: state.highlightedQuestionName,
@@ -307,6 +359,8 @@ export function SubmissionDetailsProvider({
     state.highlightedQuestionName,
     submittedCatalogLocale,
     catalogLocales,
+    definitionLocale,
+    surveyCatalogLocale,
     allQuestions,
     submissionNavPages,
   ]);
@@ -359,6 +413,7 @@ export function useSubmissionDetails() {
     setDisplayCatalogLocale,
     submittedCatalogLocale,
     catalogLocales,
+    surveyCatalogLocale,
     highlightedQuestionName,
     setHighlightedQuestionName,
   } = useSubmissionDetailsContext();
@@ -372,6 +427,7 @@ export function useSubmissionDetails() {
     setDisplayCatalogLocale,
     submittedCatalogLocale,
     catalogLocales,
+    surveyCatalogLocale,
     highlightedQuestionName,
     setHighlightedQuestionName,
   };
