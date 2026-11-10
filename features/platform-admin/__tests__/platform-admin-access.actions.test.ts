@@ -62,6 +62,14 @@ describe("platform admin access actions", () => {
     });
   });
 
+  it("keeps cached permissions when the grant fails", async () => {
+    grant.mockResolvedValue(ApiResult.serverError("Could not grant"));
+
+    await grantPlatformAdminAction(userId);
+
+    expect(invalidateUserAuthorizationCache).not.toHaveBeenCalled();
+  });
+
   it("keeps cached permissions when the revoke fails", async () => {
     revoke.mockResolvedValue(ApiResult.serverError("Could not revoke"));
 
