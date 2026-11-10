@@ -72,7 +72,7 @@ describe("preparePdfModel", () => {
     vi.mocked(addViewTokensToModelUseCase).mockResolvedValue(undefined);
     vi.mocked(primeDataListDisplayValues).mockResolvedValue(undefined);
     vi.mocked(getSubmissionLocale).mockReturnValue("en");
-    vi.mocked(initializeCustomQuestions).mockReturnValue(undefined);
+    vi.mocked(initializeCustomQuestions).mockReturnValue([]);
     vi.mocked(registerAudioQuestionModel).mockReturnValue(undefined);
     vi.mocked(registerDragCategorizeModel).mockReturnValue(undefined);
   });
@@ -315,6 +315,7 @@ describe("preparePdfModel", () => {
         ...mockSubmission,
         formDefinition: {
           ...mockSubmission.formDefinition!,
+          // @ts-expect-error -- deliberately missing jsonData, which the use case tolerates
           jsonData: undefined,
         },
       };
@@ -331,6 +332,7 @@ describe("preparePdfModel", () => {
     it("should handle missing submission jsonData", async () => {
       const submissionWithoutData: Submission = {
         ...mockSubmission,
+        // @ts-expect-error -- deliberately missing jsonData, which the use case tolerates
         jsonData: undefined,
       };
 

@@ -2,6 +2,7 @@ import { renderHook } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { EndatixConfigProvider } from "@/components/providers/endatix-config-provider";
+import { EMPTY_CLIENT_ENDATIX_CONFIG } from "@/features/config/client-endatix-config";
 import { useSurveyExtensions } from "../use-survey-extensions";
 
 const mockUseExtensionLoader = vi.fn();
@@ -32,6 +33,7 @@ describe("useSurveyExtensions", () => {
       return (
         <EndatixConfigProvider
           value={{
+            ...EMPTY_CLIENT_ENDATIX_CONFIG,
             apiBaseUrl: "https://api.example.com/api",
             extensionsEnabled,
           }}

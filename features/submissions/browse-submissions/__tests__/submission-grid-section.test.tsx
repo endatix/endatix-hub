@@ -9,8 +9,10 @@ const loads = vi.hoisted(() => ({
   config: vi.fn(),
   view: vi.fn(),
   testAccess: vi.fn(),
+  exportAccess: vi.fn(),
 }));
 const NO_TEST_ACCESS = { canMark: false, canDeleteTests: false };
+const EXPORTER = { canExport: true, canPrepare: true, canRebuild: false };
 const redirect = vi.hoisted(() =>
   vi.fn((href: string) => {
     throw new Error(`REDIRECT ${href}`);
@@ -27,6 +29,7 @@ vi.mock("../browse-submissions.server", () => ({
   canEditSubmissionGrid: loads.canIncludeInProgress,
   loadSubmissionGridView: loads.view,
   loadSubmissionTestAccess: loads.testAccess,
+  loadSubmissionExportAccess: loads.exportAccess,
 }));
 vi.mock("@/components/error-handling/error-page", () => ({
   HubPageLoadError: function HubPageLoadError() {
@@ -105,6 +108,7 @@ describe("SubmissionGridSection", () => {
   beforeEach(() => {
     loads.canIncludeInProgress.mockResolvedValue(true);
     loads.testAccess.mockResolvedValue(NO_TEST_ACCESS);
+    loads.exportAccess.mockResolvedValue(EXPORTER);
     loads.config.mockResolvedValue({ submitterPrimaryFilterLabel: "Visitor" });
     loads.view.mockResolvedValue({
       version: null,
@@ -207,7 +211,7 @@ describe("SubmissionGridSection", () => {
     expect(catalogKeys).toEqual(["q1", "q2"]);
   });
 
-  it("offers Include in-progress only to users who may edit the form", async () => {
+  it("offers Prepare and Include in-progress to a user who may export but not edit", async () => {
     // Arrange
     loads.columns.mockResolvedValue({
       ...READY,
@@ -219,7 +223,43 @@ describe("SubmissionGridSection", () => {
     const shell = await renderSection();
 
     // Assert
-    expect(shell.props.banner).toMatchObject({ showIncludeInProgress: false });
+    expect(shell.props.banner).toMatchObject({
+      showPrepare: true,
+      showIncludeInProgress: true,
+    });
+  });
+
+  it("offers neither to a user who may neither export nor edit", async () => {
+    // Arrange
+    loads.columns.mockResolvedValue({
+      ...READY,
+      readiness: { ...READY.readiness, submissions: 5, inProgress: 2 },
+    });
+    loads.exportAccess.mockResolvedValue({
+      canExport: false,
+      canPrepare: false,
+      canRebuild: false,
+    });
+
+    // Act
+    const shell = await renderSection();
+
+    // Assert
+    expect(shell.props.banner).toMatchObject({
+      showPrepare: false,
+      showIncludeInProgress: false,
+    });
+  });
+
+  it("hands the shell the user's export access", async () => {
+    // Arrange
+    loads.columns.mockResolvedValue(READY);
+
+    // Act
+    const shell = await renderSection();
+
+    // Assert
+    expect(shell.props.toolbar.exportAccess).toEqual(EXPORTER);
   });
 
   it.each([
@@ -237,7 +277,7 @@ describe("SubmissionGridSection", () => {
       const shell = await renderSection();
 
       // Assert
-      expect(shell.props.columnSearch).toEqual(expected);
+      expect(shell.props.toolbar.columnSearch).toEqual(expected);
     },
   );
 
@@ -367,6 +407,7 @@ describe("SubmissionGridSection", () => {
     // Assert
     expect(loads.canIncludeInProgress).toHaveBeenCalled();
     expect(loads.testAccess).toHaveBeenCalled();
+    expect(loads.exportAccess).toHaveBeenCalled();
     expect(loads.config).toHaveBeenCalled();
     answerColumns({ kind: "unavailable" });
     await rendering;

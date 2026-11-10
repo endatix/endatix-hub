@@ -1,21 +1,34 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+  type Mock,
+} from "vitest";
 import {
   PrivateReadUrlBatchQueue,
   READ_URL_FLUSH_DEBOUNCE_MS,
+  type FetchReadUrlBatch,
 } from "@/features/asset-storage/application/read-url-queue";
+import type { StorageReadRuntime } from "@/features/asset-storage/infrastructure/fetch-storage-read-urls";
 
 describe("PrivateReadUrlBatchQueue", () => {
   let cache: Record<string, string>;
-  let fetchBatch: ReturnType<typeof vi.fn>;
-  let onBatchResolved: ReturnType<typeof vi.fn>;
+  let fetchBatch: Mock<FetchReadUrlBatch>;
+  let onBatchResolved: Mock<(entries: Record<string, string>) => void>;
   let queue: PrivateReadUrlBatchQueue;
 
-  const runtime = { formId: "1503838931194478592" };
+  const runtime: StorageReadRuntime = {
+    policyName: "public",
+    formId: "1503838931194478592",
+  };
 
   beforeEach(() => {
     vi.useFakeTimers();
     cache = {};
-    fetchBatch = vi.fn();
+    fetchBatch = vi.fn<FetchReadUrlBatch>();
     onBatchResolved = vi.fn((entries: Record<string, string>) => {
       Object.assign(cache, entries);
     });

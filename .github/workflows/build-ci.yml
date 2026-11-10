@@ -93,6 +93,23 @@ jobs:
       - name: 🕵️‍♂️ Lint
         run: pnpm lint
 
+  # Vitest strips types and next build skips test files, so this is the one check that
+  # type-checks the tests (tsconfig.vitest.json covers every .ts/.tsx file).
+  typecheck:
+    name: "Typecheck"
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🔍 Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: 🧰 Setup Node & pnpm and install dependencies
+        uses: ./.github/actions/setup-node-pnpm
+
+      - name: 🔤 Typecheck
+        run: pnpm typecheck
+
   build:
     name: "Build"
     runs-on: ubuntu-latest
@@ -165,7 +182,7 @@ jobs:
           coverage-reporter-version: v0.6.22 # pinned: the Coveralls number depends on its parser
 
       - name: 📊 Endatix Hub Coverage
-        uses: davelosert/vitest-coverage-report-action@8f86cfb56ed6d5613ea8cdc5259f207fbfd51ece # v2.13.1
+        uses: davelosert/vitest-coverage-report-action@74c2d9210b4fc44c84d8213f61d7ec99837b7aa0 # v2.13.2
         with:
           name: "Endatix Hub"
           json-summary-path: ".coverage/endatix-hub/coverage-summary.json"
@@ -214,7 +231,7 @@ jobs:
       # itself does not wait for the quality gate; the next step applies it.
       - name: 🔎 SonarCloud analysis
         if: env.ENDATIX_HUB_REPO_SONAR_TOKEN != ''
-        uses: SonarSource/sonarqube-scan-action@4d1dc0c91ee400dcf8a6dddf2f705ac36542e304 # v8.4.0
+        uses: SonarSource/sonarqube-scan-action@e805d875275f728fac1885b413934be6d7c63f65 # v8.4.1
         env:
           SONAR_TOKEN: ${{ env.ENDATIX_HUB_REPO_SONAR_TOKEN }}
         with:
@@ -236,7 +253,7 @@ jobs:
   # "Endatix Hub: Build & Test" still sees one result. Fails unless every job passed.
   node-build:
     name: "Endatix Hub: Build & Test"
-    needs: [test, lint, build, coverage]
+    needs: [test, lint, typecheck, build, coverage]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     steps:
@@ -262,7 +279,7 @@ jobs:
       contents: read # release writes use the App token inside the shared workflow
       packages: write # GHCR image push + Helm chart push
       id-token: write # OIDC for Infisical inside the shared workflow
-    uses: endatix/release-workflows/.github/workflows/canary.yml@12aed2d26cf9f506f6c0d55071aab721b28a6676 # v1
+    uses: endatix/release-workflows/.github/workflows/canary.yml@d0f1bfc9325d6ad5588e91f49885b02eadaae6d7 # v1
     with:
       docker-image: ghcr.io/endatix/endatix-hub
       # No dotnet-version/java-version: the image builds inside Docker and the

@@ -21,7 +21,7 @@ describe("TenantPublicUnavailable", () => {
     );
 
     expect(screen.getByText("Tenant not found")).toBeTruthy();
-    expect(screen.queryByText(/Ask the organization/i)).toBeTruthy();
+    expect(screen.getByText(/Ask the organization/i)).toBeTruthy();
   });
 
   it("surfaces the API message for other failures", () => {

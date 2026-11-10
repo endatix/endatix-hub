@@ -79,14 +79,16 @@ test.describe("Embed Form Behavior (Real Environment)", () => {
     const nextButton = frame
       .locator(".sd-navigation__next-btn, input[value='Next']")
       .first();
-    while (await nextButton.isVisible().catch(() => false)) {
-      await nextButton.click();
-      await page.waitForTimeout(500);
-    }
-
     const completeButton = frame
       .locator(".sd-navigation__complete-btn, input[value='Complete']")
       .first();
+    // Page through until the last page shows Complete.
+    await expect(async () => {
+      if (await nextButton.isVisible()) {
+        await nextButton.click();
+      }
+      await expect(completeButton).toBeVisible({ timeout: 1_000 });
+    }).toPass({ timeout: 15_000 });
     await completeButton.click();
 
     await page.waitForURL(/endatix\.com/);

@@ -26,9 +26,9 @@ test.describe("Contact Form Submission", () => {
     // Assert that the FPSK cookie exists
     const fpskCookie = await getFpskCookie(page);
     expect(
-      fpskCookie !== undefined,
+      fpskCookie,
       "FPSK for partial submission should exist",
-    );
+    ).toBeDefined();
 
     await contactFormPage.submitForm();
 

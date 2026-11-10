@@ -2,6 +2,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { toast } from "@/components/ui/toast";
+import type { AudiencePerson } from "@/lib/endatix-api/audience/types";
 import { Result } from "@/lib/result";
 import { createAudiencePersonAction } from "../create-audience-person.action";
 import { useAddPerson } from "../use-add-person.hook";
@@ -14,10 +15,19 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn(), push: vi.fn() }),
 }));
 
+const PERSON: AudiencePerson = {
+  membershipId: "9",
+  audienceMemberId: "7",
+  identifier: "ana@example.com",
+  values: {},
+  isTest: false,
+  link: { status: "none" },
+};
+
 describe("useAddPerson", () => {
   beforeEach(() => {
     vi.mocked(createAudiencePersonAction).mockResolvedValue(
-      Result.success(undefined),
+      Result.success(PERSON),
     );
   });
 

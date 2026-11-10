@@ -8,7 +8,8 @@ import { ProtectedSurveyFileItem } from "@/features/asset-storage/use-cases/view
 import { render, screen } from "@testing-library/react";
 import { Model, QuestionFileModel } from "survey-core";
 import { Survey } from "survey-react-ui";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { stubResizeObserver } from "@/test/stubs/resize-observer";
 import type { ReactNode } from "react";
 
 vi.mock("@/features/asset-storage/ui/storage-presigned-image", () => ({
@@ -40,6 +41,7 @@ function privateStorageContext(): AssetStorageContextValue {
     enqueuePrivateReadUrls: vi.fn(async () => new Map()),
     mergePrivateReadUrlCache: vi.fn(),
     getCachedPrivateReadUrl: vi.fn(() => null),
+    evictPrivateReadUrl: vi.fn(),
     readUrlCacheVersion: 0,
   };
 }
@@ -73,17 +75,12 @@ function renderProtectedItem(
   );
 }
 
-class ResizeObserverStub {
-  observe(): void {}
-  unobserve(): void {}
-  disconnect(): void {}
-}
-
 describe("ProtectedSurveyFileItem (SurveyJS file question)", () => {
-  it("renders an empty file question without a preview item", () => {
-    globalThis.ResizeObserver ??=
-      ResizeObserverStub as unknown as typeof ResizeObserver;
+  beforeEach(() => {
+    stubResizeObserver();
+  });
 
+  it("renders an empty file question without a preview item", () => {
     const question = createFileQuestion();
     const model = question.survey as Model;
 

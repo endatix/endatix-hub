@@ -46,7 +46,7 @@ vi.mock("survey-creator-react", async (importOriginal) => {
     ImageItemValueAdornerComponent: class MockImageItemValueAdornerComponent
       extends React.Component
     {
-      private _model = {
+      private _model: { itemsRoot: HTMLElement } = {
         itemsRoot: document.createElement("div"),
       };
       get model() {
@@ -75,6 +75,7 @@ import {
 } from "@/features/asset-storage/client";
 import type { ReactElement } from "react";
 import { clientStorageConfig } from "../../../test-storage-config";
+import { createAssetStorageContextValue } from "../../../asset-storage-context-value";
 
 const BLOB_URL = "https://testaccount.blob.core.windows.net/content/image.jpg";
 
@@ -99,14 +100,25 @@ const pickerCssClasses = {
   itemNoImage: "sd-imagepicker__no-image",
 };
 
+// Exposes the protected renderItem hook so tests can call it directly.
+class TestableImagePicker extends ProtectedSurveyQuestionImagePicker {
+  public override renderItem(
+    item: ImageItemValue,
+    cssClasses: Record<string, string>,
+  ) {
+    return super.renderItem(item, cssClasses);
+  }
+}
+
 describe("ProtectedSurveyQuestionImagePicker", () => {
   it("uses default Survey item when storage is not private", () => {
     const question = buildImagePickerQuestion();
-    const instance = new ProtectedSurveyQuestionImagePicker({ question });
-    (instance as { context: AssetStorageContextValue }).context = {
-      config: clientStorageConfig({ isPrivate: false }),
-      getCachedPrivateReadUrl: vi.fn(() => null),
-    };
+    const instance = new TestableImagePicker({ question });
+    (instance as { context: AssetStorageContextValue }).context =
+      createAssetStorageContextValue({
+        config: clientStorageConfig({ isPrivate: false }),
+        getCachedPrivateReadUrl: vi.fn(() => null),
+      });
 
     const node = instance.renderItem(
       buildPickerItem(question),
@@ -118,11 +130,12 @@ describe("ProtectedSurveyQuestionImagePicker", () => {
 
   it("renders ProtectedImagePickerItem when storage is private", () => {
     const question = buildImagePickerQuestion();
-    const instance = new ProtectedSurveyQuestionImagePicker({ question });
-    (instance as { context: AssetStorageContextValue }).context = {
-      config: clientStorageConfig({ isPrivate: true }),
-      getCachedPrivateReadUrl: vi.fn(() => null),
-    };
+    const instance = new TestableImagePicker({ question });
+    (instance as { context: AssetStorageContextValue }).context =
+      createAssetStorageContextValue({
+        config: clientStorageConfig({ isPrivate: true }),
+        getCachedPrivateReadUrl: vi.fn(() => null),
+      });
 
     const node = instance.renderItem(
       buildPickerItem(question),
@@ -140,10 +153,10 @@ describe("ProtectedImagePickerItem", () => {
 
     render(
       <AssetStorageContext.Provider
-        value={{
+        value={createAssetStorageContextValue({
           config: clientStorageConfig({ isPrivate: true }),
           getCachedPrivateReadUrl: vi.fn(() => null),
-        }}
+        })}
       >
         <ProtectedImagePickerItem
           question={question}
@@ -167,10 +180,10 @@ describe("ProtectedImagePickerItem", () => {
 
     render(
       <AssetStorageContext.Provider
-        value={{
+        value={createAssetStorageContextValue({
           config: clientStorageConfig({ isPrivate: true }),
           getCachedPrivateReadUrl: vi.fn(() => null),
-        }}
+        })}
       >
         <ProtectedImagePickerItem
           question={question}
@@ -198,15 +211,18 @@ describe("ProtectedImageItemValueAdorner", () => {
     const mockResolveStorageUrl = vi.fn();
 
     const instance = new ProtectedImageItemValueAdorner({
+      element: <div />,
+      componentData: {},
       question: {
         isItemInList: () => true,
       } as never,
       item: {} as never,
     });
-    (instance as { context: AssetStorageContextValue }).context = {
-      config: disabledConfig,
-      getCachedPrivateReadUrl: mockResolveStorageUrl,
-    };
+    (instance as { context: AssetStorageContextValue }).context =
+      createAssetStorageContextValue({
+        config: disabledConfig,
+        getCachedPrivateReadUrl: mockResolveStorageUrl,
+      });
     (instance as { model: { itemsRoot: HTMLElement } }).model = {
       itemsRoot: document.createElement("div"),
     };
@@ -231,16 +247,19 @@ describe("ProtectedImageItemValueAdorner", () => {
     itemsRoot.appendChild(img);
 
     const instance = new ProtectedImageItemValueAdorner({
+      element: <div />,
+      componentData: {},
       question: {
         isItemInList: () => true,
       } as never,
       item: {} as never,
     });
-    (instance as { context: AssetStorageContextValue }).context = {
-      config: privateConfig,
-      getCachedPrivateReadUrl: mockResolveStorageUrl,
-      readUrlCacheVersion: 1,
-    };
+    (instance as { context: AssetStorageContextValue }).context =
+      createAssetStorageContextValue({
+        config: privateConfig,
+        getCachedPrivateReadUrl: mockResolveStorageUrl,
+        readUrlCacheVersion: 1,
+      });
     (instance as { model: { itemsRoot: HTMLElement } }).model = { itemsRoot };
 
     instance.componentDidUpdate({}, {});

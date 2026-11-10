@@ -1,29 +1,26 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { Helpers, SurveyModel } from "survey-core";
+import {
+  Helpers,
+  type ItemValue,
+  type QuestionTagboxModel,
+  SurveyModel,
+} from "survey-core";
 import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";
 import { registerDataListGlobals } from "@/lib/survey-features/data-lists/infrastructure/registry";
 import { registerAdvancedCarryForwardGlobals } from "../infrastructure/registry";
 import { syncSingleCarryForwardTarget } from "../use-cases/sync-carry-forward-target";
 import type { AdvancedCarryForwardQuestion } from "../types";
 
-type LazyTagbox = {
-  createItemValue: (
-    value: string,
-    text?: string,
-  ) => {
-    value: string;
-    text: string;
-    locText?: { setJson: (json: unknown) => void };
-  };
-  selectedItemValues:
-    | Array<{
-        value: string;
-        text: string;
-        locText?: { setJson: (json: unknown) => void };
-      }>
-    | null
-    | undefined;
-};
+/**
+ * Sets the labels a lazy-load tagbox resolved for its value. `selectedItemValues` is
+ * protected on `QuestionSelectBase`; element access writes it in this one place.
+ */
+function setSelectedItemValues(
+  question: QuestionTagboxModel,
+  items: ItemValue[] | undefined,
+): void {
+  question["selectedItemValues"] = items;
+}
 
 beforeAll(() => {
   registerAdvancedCarryForwardGlobals();
@@ -695,12 +692,12 @@ describe("syncSingleCarryForwardTarget", () => {
         },
       ],
     });
-    const cities = survey.getQuestionByName("cities") as LazyTagbox;
+    const cities = survey.getQuestionByName("cities") as QuestionTagboxModel;
     survey.setValue("cities", ["3247449", "1279186"]);
-    cities.selectedItemValues = [
+    setSelectedItemValues(cities, [
       cities.createItemValue("3247449", "Aquisgrán"),
       cities.createItemValue("1279186", "Aizawl"),
-    ];
+    ]);
 
     const target = survey.getQuestionByName(
       "target",
@@ -735,9 +732,9 @@ describe("syncSingleCarryForwardTarget", () => {
         },
       ],
     });
-    const cities = survey.getQuestionByName("cities") as LazyTagbox;
+    const cities = survey.getQuestionByName("cities") as QuestionTagboxModel;
     survey.setValue("cities", ["2510911"]);
-    cities.selectedItemValues = [cities.createItemValue("2510911", "Sevilla")];
+    setSelectedItemValues(cities, [cities.createItemValue("2510911", "Sevilla")]);
 
     const target = survey.getQuestionByName(
       "target",
@@ -769,7 +766,7 @@ describe("syncSingleCarryForwardTarget", () => {
         },
       ],
     });
-    const cities = survey.getQuestionByName("cities") as LazyTagbox;
+    const cities = survey.getQuestionByName("cities") as QuestionTagboxModel;
     const target = survey.getQuestionByName(
       "target",
     ) as AdvancedCarryForwardQuestion;
@@ -779,8 +776,9 @@ describe("syncSingleCarryForwardTarget", () => {
     syncSingleCarryForwardTarget(survey, target);
     expect(target.choices[0]?.text).toBe("2510911");
 
-    cities.selectedItemValues = [cities.createItemValue("2510911", "Sevilla")];
-    cities.selectedItemValues[0]!.locText?.setJson({
+    const sevilla = cities.createItemValue("2510911", "Sevilla");
+    setSelectedItemValues(cities, [sevilla]);
+    sevilla.locText.setJson({
       default: "Seville",
       es: "Sevilla",
     });
@@ -814,18 +812,18 @@ describe("syncSingleCarryForwardTarget", () => {
         },
       ],
     });
-    const cities = survey.getQuestionByName("cities") as LazyTagbox;
+    const cities = survey.getQuestionByName("cities") as QuestionTagboxModel;
     const target = survey.getQuestionByName(
       "target",
     ) as AdvancedCarryForwardQuestion;
 
     survey.setValue("cities", ["2510911"]);
-    cities.selectedItemValues = [cities.createItemValue("2510911", "Sevilla")];
+    setSelectedItemValues(cities, [cities.createItemValue("2510911", "Sevilla")]);
     syncSingleCarryForwardTarget(survey, target);
     expect(target.choices[0]?.text).toBe("Sevilla");
 
     // Later sync sees raw value only (selectedItemValues cleared / incomplete)
-    cities.selectedItemValues = undefined;
+    setSelectedItemValues(cities, undefined);
     syncSingleCarryForwardTarget(survey, target);
 
     expect(target.choices[0]?.value).toBe("2510911");

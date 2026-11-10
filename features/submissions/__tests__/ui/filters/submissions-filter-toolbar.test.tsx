@@ -1,16 +1,10 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { SubmissionsFilterToolbar } from "../../../ui/filters/submissions-filter-toolbar";
+import { stubResizeObserver } from "@/test/stubs/resize-observer";
 
 beforeEach(() => {
-  vi.stubGlobal(
-    "ResizeObserver",
-    class {
-      observe() {}
-      unobserve() {}
-      disconnect() {}
-    },
-  );
+  stubResizeObserver();
 });
 Element.prototype.scrollIntoView = vi.fn();
 
@@ -158,7 +152,10 @@ describe("SubmissionsFilterToolbar", () => {
     ).toBe("off");
     expect(screen.queryByRole("option", { name: /^cancelled/i })).toBeNull();
     expect(screen.queryByRole("option", { name: /^expired/i })).toBeNull();
-    expect(screen.queryByRole("option", { name: /^viewed/i })).toBeNull();
+    const viewed = screen.getByRole("option", { name: /^viewed/i });
+    expect(viewed.querySelector("[data-tone]")?.getAttribute("data-tone")).toBe(
+      "idle",
+    );
   });
 
   it("selects Screened out from its own row", () => {

@@ -135,15 +135,18 @@ async function openSheet() {
 
 beforeAll(() => {
   Element.prototype.scrollIntoView = vi.fn();
-  window.matchMedia = vi.fn().mockImplementation((query: string) => ({
-    matches: query.includes("min-width"),
-    media: query,
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-  }));
 });
 
 beforeEach(() => {
+  vi.stubGlobal(
+    "matchMedia",
+    vi.fn((query: string) => ({
+      matches: query.includes("min-width"),
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    })),
+  );
   getTenantSettingsActionMock.mockResolvedValue(
     Result.success({
       tenantId: "1",

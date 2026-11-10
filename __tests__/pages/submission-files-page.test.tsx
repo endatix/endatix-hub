@@ -2,6 +2,7 @@ import FilesPage from "@/app/(main)/forms/[formId]/submissions/[submissionId]/fi
 import * as authModule from "@/auth";
 import * as authFeature from "@/features/auth";
 import { listUserFiles } from "@/features/asset-storage/server";
+import type { UserFileMetadata } from "@/features/asset-storage";
 import { Result } from "@/lib/result";
 import { act, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -59,8 +60,10 @@ describe("Submission files page", () => {
       requireHubAccess: vi.fn().mockResolvedValue(undefined),
     } as unknown as Awaited<ReturnType<typeof authFeature.authorization>>);
     vi.mocked(listUserFiles).mockResolvedValue(
-      Result.success([
+      Result.success<UserFileMetadata[]>([
         {
+          kind: "user",
+          uploadedBy: "u1",
           displayName: "doc.pdf",
           contentType: "application/pdf",
           sizeInBytes: 1024,

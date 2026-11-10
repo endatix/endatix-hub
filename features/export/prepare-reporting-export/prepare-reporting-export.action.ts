@@ -1,7 +1,11 @@
 "use server";
 
 import { auth } from "@/auth";
-import { authorization } from "@/features/auth/authorization";
+import {
+  authorization,
+  isPermissionDenied,
+  Permissions,
+} from "@/features/auth/authorization";
 import { reportingExportFlag } from "@/lib/feature-flags/flags";
 import { EndatixApi } from "@/lib/endatix-api";
 import type { PrepareReportingExportSummary } from "@/lib/endatix-api/reporting/types";
@@ -18,12 +22,33 @@ export type PrepareReportingExportOptions = {
 export type PrepareReportingExportResult =
   Result<PrepareReportingExportSummary>;
 
+type CheckPermission = Awaited<
+  ReturnType<typeof authorization>
+>["checkPermission"];
+
+/** A full recompile clears flattened data, so the API keeps it behind `forms.edit`. */
+async function refuseFullRecompile(
+  checkPermission: CheckPermission,
+): Promise<PrepareReportingExportResult | null> {
+  const canEdit = await checkPermission(Permissions.Forms.Edit);
+  if (canEdit.success) {
+    return null;
+  }
+
+  return Result.error(
+    isPermissionDenied(canEdit)
+      ? "A full recompile needs permission to edit forms."
+      : "Could not check permission to recompile reporting data.",
+  );
+}
+
+/** Compiles the form's export schema and backfills its submissions; a full recompile (replace and force) needs `forms.edit`. */
 export async function prepareReportingExportAction(
   formId: string,
   options: PrepareReportingExportOptions = {},
 ): Promise<PrepareReportingExportResult | never> {
   const session = await auth();
-  const { requireHubAccess } = await authorization(session);
+  const { requireHubAccess, checkPermission } = await authorization(session);
   await requireHubAccess();
 
   const reportingExportEnabled = await reportingExportFlag();
@@ -34,6 +59,11 @@ export async function prepareReportingExportAction(
   }
 
   const fullRecompile = options.fullRecompile === true;
+  const refused = fullRecompile && (await refuseFullRecompile(checkPermission));
+  if (refused) {
+    return refused;
+  }
+
   const api = new EndatixApi(session?.accessToken);
 
   const compileResult = await api.reporting.compileSchema(formId, {

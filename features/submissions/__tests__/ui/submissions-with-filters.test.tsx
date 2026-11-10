@@ -192,6 +192,8 @@ const emptyListState: SubmissionListUrlState = {
   sorting: [],
 };
 
+const EXPORTER = { canExport: true, canPrepare: true, canRebuild: false };
+
 function renderSubmissionsWithFilters({
   data = [],
   formId,
@@ -238,6 +240,7 @@ function renderSubmissionsWithFilters({
       hasAnySubmissions={hasAnySubmissions}
       page={page}
       listState={listState}
+      exportAccess={EXPORTER}
     />,
   );
 }

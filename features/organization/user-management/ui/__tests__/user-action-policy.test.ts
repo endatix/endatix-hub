@@ -8,6 +8,8 @@ const baseInput: UserActionPolicyInput = {
   isActive: true,
   isYou: false,
   isPlatformAdminUser: false,
+  isExternal: false,
+  isLockedOut: false,
   canManageRoles: true,
   canManageUsers: true,
   canManageInvitations: true,

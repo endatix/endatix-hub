@@ -29,6 +29,7 @@ describe("collectStorageImageRemoteHostnamesFromEnv", () => {
   });
 
   it("returns [] for explicit null choice", () => {
+    // @ts-expect-error -- null is passed on purpose to cover an unset provider at runtime
     expect([...collectStorageImageRemoteHostnamesFromEnv(null)]).toEqual([]);
   });
 

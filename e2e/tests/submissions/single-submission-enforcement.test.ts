@@ -13,6 +13,7 @@ test.describe("Single submission enforcement", () => {
     const formId = process.env.E2E_PRIVATE_FORM_ID;
     const nonTestToken = process.env.E2E_NON_TEST_USER_TOKEN;
 
+    // Calls a live API; runs only where the form and the user token are set.
     test.skip(!apiBaseUrl || !formId || !nonTestToken);
 
     const endpoint = `${apiBaseUrl}/forms/${formId}/submissions`;
@@ -37,6 +38,7 @@ test.describe("Single submission enforcement", () => {
     const formId = process.env.E2E_PRIVATE_FORM_ID;
     const testUserToken = process.env.E2E_TEST_USER_TOKEN;
 
+    // Calls a live API; runs only where the form and the test-user token are set.
     test.skip(!apiBaseUrl || !formId || !testUserToken);
 
     const endpoint = `${apiBaseUrl}/forms/${formId}/submissions`;

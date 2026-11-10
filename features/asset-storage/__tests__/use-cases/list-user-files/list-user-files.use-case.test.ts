@@ -3,7 +3,7 @@ import { Result } from "@/lib/result";
 import { listUserFiles } from "@/features/asset-storage/use-cases/list-user-files/list-user-files.use-case";
 import * as storageRuntime from "@/features/asset-storage/storage-runtime";
 import * as blobMetadataParserModule from "@/features/asset-storage/infrastructure/providers/shared/blob-metadata-parser";
-import type { StorageListBlobItem } from "@/features/asset-storage/infrastructure/providers/shared/blob-route-types";
+import type { StorageListBlobItem } from "@/features/asset-storage/infrastructure/core";
 import type { ClientStorageConfig } from "@endatix/storage-azure";
 
 const { mockStorageProvider } = vi.hoisted(() => ({

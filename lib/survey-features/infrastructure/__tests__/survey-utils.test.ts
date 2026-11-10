@@ -1,15 +1,15 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 import { SurveyModel } from "survey-core";
 import { Result } from "@/lib/result";
 import { setSubmissionData } from "../survey-utils";
 
 describe("setSubmissionData", () => {
   let model: SurveyModel;
-  let onError: ReturnType<typeof vi.fn>;
+  let onError: Mock<(error: string) => void>;
 
   beforeEach(() => {
     model = new SurveyModel();
-    onError = vi.fn();
+    onError = vi.fn<(error: string) => void>();
   });
 
   describe("Success Cases", () => {

@@ -4,8 +4,6 @@ import { Result } from "@/lib/result";
 import type { PlatformAdminSession } from "../../types";
 import { listSignupRequests } from "../list-signup-requests.server";
 
-vi.mock("server-only", () => ({}));
-
 vi.mock("@/lib/endatix-api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/endatix-api")>();
   return { ...actual, EndatixApi: vi.fn() };

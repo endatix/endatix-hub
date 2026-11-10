@@ -1,7 +1,10 @@
 import {
+  type ChoicesSearchEvent,
+  type DropdownListModel,
+  type ItemValue,
   Model,
   type QuestionMatrixDropdownModel,
-  type QuestionTagboxModel,
+  QuestionTagboxModel,
 } from "survey-core";
 import { beforeEach, describe, expect, it } from "vitest";
 import { registerBlindSearchTagboxGlobals } from "../infrastructure/registry";
@@ -32,6 +35,14 @@ const blindTagboxSurveyJson = {
   ],
 };
 
+/**
+ * Rendered rows of a dropdown's list. `listModel` is protected on `DropdownListModel`;
+ * element access reads it with its declared type, in this one place.
+ */
+function visibleListItems(dropdown: DropdownListModel) {
+  return dropdown["listModel"].visibleItems;
+}
+
 function fireChoicesSearch(
   model: Model,
   filter: string,
@@ -42,10 +53,12 @@ function fireChoicesSearch(
     question,
     filter,
     choices: question!.visibleChoices,
-    filteredChoices: undefined as typeof question.visibleChoices | undefined,
+    filteredChoices: undefined as ItemValue[] | undefined,
   };
 
-  model.onChoicesSearch.fire(model, options);
+  // SurveyJS fires this event with `filteredChoices: undefined` (dropdownListModel),
+  // though `ChoicesSearchEvent` declares it required.
+  model.onChoicesSearch.fire(model, options as ChoicesSearchEvent);
   return options;
 }
 
@@ -111,8 +124,8 @@ describe("bindBlindSearchToSurvey", () => {
 
     // Assert
     expect(question.showOtherItem).toBe(false);
-    expect(dropdown.listModel.visibleItems).toHaveLength(1);
-    expect(dropdown.listModel.visibleItems[0]?.id).toBe("other");
+    expect(visibleListItems(dropdown)).toHaveLength(1);
+    expect(visibleListItems(dropdown)[0]?.id).toBe("other");
   });
 
   it("enables the Other comment area only after Other is selected", () => {
@@ -199,8 +212,8 @@ describe("bindBlindSearchToSurvey", () => {
 
     // Assert
     expect(question.showOtherItem).toBe(false);
-    expect(question.dropdownListModel.listModel.visibleItems).toHaveLength(1);
-    expect(question.dropdownListModel.listModel.visibleItems[0]?.id).toBe(
+    expect(visibleListItems(question.dropdownListModel)).toHaveLength(1);
+    expect(visibleListItems(question.dropdownListModel)[0]?.id).toBe(
       "other",
     );
   });
@@ -227,7 +240,7 @@ describe("bindBlindSearchToSurvey", () => {
     ) as QuestionTagboxModel;
     question.showOtherItem = false;
     applyBlindSearchOtherFallbackAfterLazyLoad(question, "zzz", 0, true);
-    expect(question.dropdownListModel.listModel.visibleItems).toHaveLength(1);
+    expect(visibleListItems(question.dropdownListModel)).toHaveLength(1);
 
     // Act
     applyBlindSearchOtherFallbackAfterLazyLoad(question, "zzz", 0, false);
@@ -278,7 +291,7 @@ describe("bindBlindSearchToSurvey", () => {
     });
 
     // Assert
-    expect(dropdown.listModel.visibleItems).toHaveLength(0);
+    expect(visibleListItems(dropdown)).toHaveLength(0);
   });
 
   it("restores showOtherItem when the Other tag is removed", () => {
@@ -340,10 +353,8 @@ describe("bindBlindSearchToSurvey", () => {
 
   it("ignores lazy-load fallback for questions detached from a survey", () => {
     // Arrange
-    const detachedQuestion = {
-      showOtherItem: false,
-      survey: undefined,
-    } as QuestionTagboxModel;
+    const detachedQuestion = new QuestionTagboxModel("detached");
+    detachedQuestion.showOtherItem = false;
 
     // Act & Assert
     expect(() =>
@@ -366,7 +377,7 @@ describe("bindBlindSearchToSurvey", () => {
     await Promise.resolve();
 
     // Assert
-    expect(dropdown.listModel.visibleItems).toHaveLength(0);
+    expect(visibleListItems(dropdown)).toHaveLength(0);
   });
 
   it("keeps choices hidden when the filter is cleared while the popup stays open", async () => {
@@ -385,7 +396,7 @@ describe("bindBlindSearchToSurvey", () => {
     fireChoicesSearch(model, "");
 
     // Assert
-    expect(dropdown.listModel.visibleItems).toHaveLength(0);
+    expect(visibleListItems(dropdown)).toHaveLength(0);
   });
 
   it("filters carry-forward style inline pools the same as static choices", () => {

@@ -50,7 +50,7 @@ describe("getEnvironmentSettings", () => {
     process.env.ENDATIX_SURVEY_LICENSE_KEY = SECRET_SURVEY_LICENSE;
     process.env.ENDATIX_ENABLE_EXTENSIONS = "true";
     process.env.ENDATIX_IS_DEBUG_MODE = "true";
-    process.env.NODE_ENV = "test";
+    vi.stubEnv("NODE_ENV", "test");
 
     const { getEnvironmentSettings } =
       await import("../view-environment-settings.server");

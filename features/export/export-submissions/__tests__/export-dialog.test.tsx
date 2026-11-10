@@ -6,6 +6,7 @@ import {
   ExportSubmissionsDialog,
   type ExportSubmissionsDialogProps,
 } from "../ui/export-dialog";
+import { stubResizeObserver } from "@/test/stubs/resize-observer";
 
 const mockOnExport = vi.fn();
 const mockOnOpenChange = vi.fn();
@@ -41,16 +42,8 @@ vi.mock("@/features/export/prepare-reporting-export", () => ({
     mockPrepareReportingExportAction(...args),
 }));
 
-// A class, not vi.fn: cmdk constructs it with `new` when the Status menu opens.
 beforeEach(() => {
-  vi.stubGlobal(
-    "ResizeObserver",
-    class {
-      observe() {}
-      unobserve() {}
-      disconnect() {}
-    },
-  );
+  stubResizeObserver();
 });
 
 vi.mock("@/features/analytics/posthog/client", () => ({
@@ -303,6 +296,7 @@ function createProps(
     open: true,
     onOpenChange: mockOnOpenChange,
     formId: "100",
+    canRebuild: true,
     groups: [
       {
         target: "Submissions" as ExportTarget,
@@ -801,7 +795,9 @@ describe("ExportSubmissionsDialog", () => {
       expect(mockOnExport).toHaveBeenCalled();
     });
     expect(
-      await screen.findByText(/needs permission to edit this form/i),
+      await screen.findByText(
+        /Incomplete submissions are as of their last update\./i,
+      ),
     ).toBeDefined();
   });
 
@@ -935,6 +931,15 @@ describe("ExportSubmissionsDialog", () => {
     expect(
       screen.getByRole("button", { name: /rebuild reporting data/i }),
     ).toBeDefined();
+  });
+
+  it("hides Rebuild reporting data from a user who cannot edit forms", async () => {
+    render(<ExportSubmissionsDialog {...createProps({ canRebuild: false })} />);
+    await waitForReady();
+
+    expect(
+      screen.queryByRole("button", { name: /rebuild reporting data/i }),
+    ).toBeNull();
   });
 
   it("enters rebuild mode from ready and returns without preparing", async () => {

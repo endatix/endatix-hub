@@ -42,7 +42,10 @@ import "survey-core/survey-core.css";
 import "survey-core/survey.i18n";
 import { Survey } from "survey-react-ui";
 import { TriangleAlert } from "lucide-react";
-import { useSubmissionQueue } from "../application/submission-queue";
+import {
+  useRecordOpen,
+  useSubmissionQueue,
+} from "../application/submission-queue";
 import { LanguageSelector } from "./language-selector";
 import styles from "./survey-component.module.css";
 import { useSurveyModel } from "./use-survey-model.hook";
@@ -222,6 +225,13 @@ export default function SurveyComponent({
       updateState({ submissionId: submission.id });
     }
   }, [submission?.id, updateState]);
+
+  useRecordOpen({
+    formId,
+    urlToken: runtimeToken,
+    isReady: Boolean(isModelReady),
+    onOpened: (opened) => handleSubmissionIdChange(opened.submissionId),
+  });
 
   const surveyLocales = useMemo(() => {
     return surveyModel?.getUsedLocales() ?? [];

@@ -69,6 +69,7 @@ describe("COLLECTION_STATUS_CATALOG", () => {
     // Act & Assert
     expect(SHIPPED_COLLECTION_STATUSES).toEqual([
       "not_started",
+      "viewed",
       "in_progress",
       "complete",
       "screen_out",

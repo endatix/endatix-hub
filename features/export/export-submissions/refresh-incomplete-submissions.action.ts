@@ -17,7 +17,7 @@ const LOGGER_NAME = "export.refresh-incomplete-submissions";
  * API failure: a partial or skipped refresh only makes incomplete rows stale.
  */
 export type IncompleteRefreshOutcome =
-  /** Updating needs `forms.edit`, which exporting does not; rows are as of their last update. */
+  /** Updating needs `submissions.export` or `forms.edit`; rows are as of their last update. */
   | { kind: "skipped" }
   | { kind: "refreshed"; failed: number; finished: boolean };
 
@@ -33,10 +33,14 @@ export async function refreshIncompleteSubmissionsAction(
   formId: string,
 ): Promise<RefreshIncompleteSubmissionsResult> {
   const session = await auth();
-  const { requireHubAccess, checkPermission } = await authorization(session);
+  const { requireHubAccess, checkAnyPermission } = await authorization(session);
   await requireHubAccess();
 
-  const canRefresh = await checkPermission(Permissions.Forms.Edit);
+  // The same grants the API asks of a backfill that does not force.
+  const canRefresh = await checkAnyPermission([
+    Permissions.Submissions.Export,
+    Permissions.Forms.Edit,
+  ]);
   if (!canRefresh.success) {
     if (isPermissionDenied(canRefresh)) {
       return Result.success({ kind: "skipped" });

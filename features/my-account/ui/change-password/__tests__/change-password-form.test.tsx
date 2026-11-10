@@ -53,8 +53,6 @@ describe("ChangePasswordForm", () => {
   it("displays success message on successful password change", async () => {
     vi.mocked(changePasswordAction).mockResolvedValueOnce({
       isSuccess: true,
-      errors: {},
-      formErrors: [],
     });
 
     render(<ChangePasswordForm />);

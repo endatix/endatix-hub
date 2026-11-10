@@ -11,9 +11,6 @@ import {
 } from "survey-core";
 import { processUploadError } from "@/features/asset-storage/use-cases/upload";
 
-// Mock fetch globally
-global.fetch = vi.fn();
-
 const mockStorageConfig = {
   isEnabled: true,
   isPrivate: true,
@@ -90,7 +87,7 @@ describe("useStorageUpload", () => {
   });
 
   beforeEach(() => {
-    global.fetch = vi.fn();
+    vi.stubGlobal("fetch", vi.fn());
   });
 
   describe("hook initialization", () => {
@@ -1110,7 +1107,6 @@ describe("useStorageUpload", () => {
     } as unknown as DownloadFileEvent;
 
     beforeEach(() => {
-      // Mock FileReader
       class MockFileReader {
         result: string | ArrayBuffer | null = null;
         onload: ((event: ProgressEvent<FileReader>) => void) | null = null;
@@ -1130,7 +1126,7 @@ describe("useStorageUpload", () => {
         }
       }
 
-      global.FileReader = MockFileReader as unknown as typeof FileReader;
+      vi.stubGlobal("FileReader", MockFileReader);
     });
 
     it("should call read-token API and use token when storage is private", async () => {

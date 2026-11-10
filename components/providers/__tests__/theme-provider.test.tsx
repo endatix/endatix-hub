@@ -204,7 +204,7 @@ describe("ThemeHotkey", () => {
     expect(mockSetTheme).not.toHaveBeenCalled();
   });
 
-  it.skip("should not toggle when typing in contenteditable", async () => {
+  it("should not toggle when typing in contenteditable", async () => {
     render(
       <ThemeProvider>
         <div>
@@ -214,6 +214,8 @@ describe("ThemeHotkey", () => {
     );
 
     const editor = screen.getByTestId("editor");
+    // jsdom does not implement isContentEditable, which the provider reads.
+    Object.defineProperty(editor, "isContentEditable", { value: true });
 
     await act(async () => {
       fireEvent.keyDown(editor, { key: "d" });

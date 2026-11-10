@@ -12,33 +12,74 @@ import { Spinner } from "@/components/loaders/spinner";
 import { toast } from "@/components/ui/toast";
 import { updateWebhookSettingsAction } from "../application/actions/update-webhook-settings.action";
 import { getTenantSettingsAction } from "../application/actions/get-tenant-settings.action";
-import type { WebHookConfiguration } from "@/types";
 import type { TenantSettings } from "@/lib/endatix-api/tenant";
 import { Result } from "@/lib/result";
 import { ErrorMessage } from "@/components/forms/error-message";
+import { helpId } from "@/components/common/field-with-help";
 import { ServerActionState } from "@/lib/utils/zod-error-utils";
-import { WebhookSettingsState } from "../application/actions/types/webhook-settings.types";
+import type {
+  WebhookEventKey,
+  WebhookSettingsState,
+} from "../application/actions/types/webhook-settings.types";
+import {
+  readFormWebhookEvents,
+  readTenantWebhookEvents,
+  type WebhookEventValue,
+  type WebhookEventValues,
+} from "../application/webhook-settings-document";
 
 interface WebhookSettingsProps {
   formId: string;
   initialSettings?: string;
 }
 
-type WebhookEvent = {
-  key: string;
+type WebhookEventInfo = {
+  key: WebhookEventKey;
   label: string;
-  enabled: boolean;
-  url: string;
+  description?: string;
 };
 
+type WebhookEvent = WebhookEventInfo & WebhookEventValue;
+
 /** Form-level webhook UI: Form Created is tenant-only (fires before per-form config exists). */
-const WEBHOOK_EVENTS = [
+const WEBHOOK_EVENTS: readonly WebhookEventInfo[] = [
   { key: "SubmissionCompleted", label: "Submission Completed" },
-  { key: "SubmissionCollectionStatusChanged", label: "Collection Status Changed" },
+  {
+    key: "SubmissionClosed",
+    label: "Submission Closed",
+    description:
+      "Fires once when a submission ends in a closed outcome: screened out, quota full, cancelled, or a closed status the host registered.",
+  },
   { key: "FormUpdated", label: "Form Updated" },
   { key: "FormEnabledStateChanged", label: "Form Enabled State Changed" },
   { key: "FormDeleted", label: "Form Deleted" },
 ];
+
+function toWebhookEvents(values: WebhookEventValues): WebhookEvent[] {
+  return WEBHOOK_EVENTS.map((event) => ({ ...event, ...values[event.key] }));
+}
+
+const parseSettings = (settingsJson: string | undefined) =>
+  toWebhookEvents(readFormWebhookEvents(settingsJson));
+
+const parseTenantWebhookSettings = (tenantSettings: TenantSettings | null) =>
+  toWebhookEvents(readTenantWebhookEvents(tenantSettings?.webHookSettings));
+
+const eventHelpId = (event: WebhookEventInfo) =>
+  event.description ? helpId(`webhook-${event.key}`) : undefined;
+
+function EventLabel({ event }: Readonly<{ event: WebhookEvent }>) {
+  return (
+    <div className="text-right">
+      <span>{event.label}</span>
+      {event.description && (
+        <p id={eventHelpId(event)} className="text-xs text-muted-foreground">
+          {event.description}
+        </p>
+      )}
+    </div>
+  );
+}
 
 const initialState: WebhookSettingsState = ServerActionState.emptyState();
 
@@ -59,73 +100,13 @@ export function WebhookSettings({
     null,
   );
 
-  const parseSettings = (
-    settingsJson: string | undefined | null,
-  ): WebhookEvent[] => {
-    if (!settingsJson) {
-      return WEBHOOK_EVENTS.map((event) => ({
-        key: event.key,
-        label: event.label,
-        enabled: false,
-        url: "",
-      }));
-    }
-
-    try {
-      const config: WebHookConfiguration = JSON.parse(settingsJson);
-      return WEBHOOK_EVENTS.map((event) => {
-        const eventConfig = config.Events?.[event.key];
-        const endpoint = eventConfig?.WebHookEndpoints?.[0];
-        return {
-          key: event.key,
-          label: event.label,
-          enabled: eventConfig?.IsEnabled ?? false,
-          url: endpoint?.Url ?? "",
-        };
-      });
-    } catch (error) {
-      console.error("Failed to parse webhook settings", error);
-      return WEBHOOK_EVENTS.map((event) => ({
-        key: event.key,
-        label: event.label,
-        enabled: false,
-        url: "",
-      }));
-    }
-  };
-
-  const parseTenantWebhookSettings = (
-    tenantSettings: TenantSettings | null,
-  ): WebhookEvent[] => {
-    if (!tenantSettings?.webHookSettings?.events) {
-      return WEBHOOK_EVENTS.map((event) => ({
-        key: event.key,
-        label: event.label,
-        enabled: false,
-        url: "",
-      }));
-    }
-
-    return WEBHOOK_EVENTS.map((event) => {
-      const eventConfig = tenantSettings.webHookSettings?.events[event.key];
-      const endpoint = eventConfig?.webHookEndpoints?.[0];
-      return {
-        key: event.key,
-        label: event.label,
-        enabled: eventConfig?.isEnabled ?? false,
-        url: endpoint?.url ?? "",
-      };
-    });
-  };
-
   const [useCustomSettings, setUseCustomSettings] = useState(
     state?.data?.useCustomSettings ?? !!initialSettings,
   );
   const [events, setEvents] = useState<WebhookEvent[]>(() => {
     if (state?.data) {
       return WEBHOOK_EVENTS.map((event) => ({
-        key: event.key,
-        label: event.label,
+        ...event,
         enabled:
           (state.data?.[`event-${event.key}-enabled`] as boolean) || false,
         url: (state.data?.[`event-${event.key}-url`] as string) || "",
@@ -285,7 +266,7 @@ export function WebhookSettings({
               <div key={event.key} className="space-y-2">
                 {!useCustomSettings && (
                   <div className="grid grid-cols-[minmax(15rem,42%)_1fr] items-center gap-4">
-                    <span className="text-right">{event.label}</span>
+                    <EventLabel event={event} />
                     <div className="min-w-0">
                       {event.enabled ? (
                         <Badge variant="default">Enabled</Badge>
@@ -298,10 +279,11 @@ export function WebhookSettings({
 
                 {useCustomSettings && (
                   <div className="grid grid-cols-[minmax(15rem,42%)_1fr] items-center gap-4">
-                    <span className="text-right">{event.label}</span>
+                    <EventLabel event={event} />
                     <div className="flex min-w-0 items-center space-x-2">
                       <Switch
                         id={`webhook-${event.key}`}
+                        aria-describedby={eventHelpId(event)}
                         checked={event.enabled}
                         onCheckedChange={(enabled) =>
                           handleEventToggle(event.key, enabled)

@@ -23,7 +23,7 @@ import { EndatixJwtPayload } from "../jwt.types";
 import { JWTInvalid } from "jose/errors";
 
 export class InvalidCredentialsError extends CredentialsSignin {
-  static type = "InvalidCredentials";
+  static readonly type = "InvalidCredentials";
   code = "Invalid identifier or password";
   cause = {
     message: "The supplied credentials are invalid",
@@ -31,12 +31,12 @@ export class InvalidCredentialsError extends CredentialsSignin {
 }
 
 export class InvalidInputError extends ZodError {
-  static type = "InvalidInput";
+  static readonly type = "InvalidInput";
   code = "Invalid input data";
 }
 
 export class TokenExpiredError extends AuthError {
-  static type = "TokenExpired";
+  static readonly type = "TokenExpired";
   code = "Token expired";
   cause = {
     message: "The token has expired",
@@ -44,7 +44,7 @@ export class TokenExpiredError extends AuthError {
 }
 
 export class NetworkError extends AuthError {
-  static type = "Network";
+  static readonly type = "Network";
   code = "Network error";
   cause = {
     message: "Network error. Failed to connect to the Endatix API.",
@@ -52,7 +52,7 @@ export class NetworkError extends AuthError {
 }
 
 export class ServerError extends AuthError {
-  static type = "Server";
+  static readonly type = "Server";
   code = "Server error";
   cause = {
     message: "An error occurred while processing the request",
@@ -60,7 +60,7 @@ export class ServerError extends AuthError {
 }
 
 export class UnknownError extends AuthError {
-  static type = "Unknown";
+  static readonly type = "Unknown";
   code = "Unknown error";
   cause = {
     message: "An unknown error occurred",

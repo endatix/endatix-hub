@@ -2,6 +2,7 @@ import FileModalPage from "@/app/(main)/forms/[formId]/submissions/[submissionId
 import * as authModule from "@/auth";
 import * as authFeature from "@/features/auth";
 import { getUserFile } from "@/features/asset-storage/server";
+import type { UserFileMetadata } from "@/features/asset-storage";
 import { Result } from "@/lib/result";
 import { act, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -64,7 +65,9 @@ describe("Submission file modal page (@modal/(.)[fileName])", () => {
   const submissionId = "s1";
   const fileName = "doc.pdf";
   const mockParams = Promise.resolve({ formId, submissionId, fileName });
-  const mockFile = {
+  const mockFile: UserFileMetadata & { url: string } = {
+    kind: "user",
+    uploadedBy: "u1",
     displayName: "doc.pdf",
     contentType: "application/pdf",
     sizeInBytes: 1024,

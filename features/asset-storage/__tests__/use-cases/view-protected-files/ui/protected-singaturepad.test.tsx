@@ -8,6 +8,7 @@ import type { ReactNode } from "react";
 import { QuestionSignaturePadModel } from "survey-core";
 import { describe, expect, it, vi } from "vitest";
 import { clientStorageConfig } from "../../../test-storage-config";
+import { createAssetStorageContextValue } from "../../../asset-storage-context-value";
 
 // Mock SurveyQuestionSignaturePad - must be before imports that use it
 const mockRenderBackgroundImage = vi.fn(() => {
@@ -83,13 +84,14 @@ const renderWithContext = (
   return render(
     <AssetStorageContext.Provider
       value={
-        contextValue || {
+        contextValue ||
+        createAssetStorageContextValue({
           config: null,
           getCachedPrivateReadUrl: vi.fn(() => null),
           enqueuePrivateReadUrls: vi.fn(),
           mergePrivateReadUrlCache: vi.fn(),
           readUrlCacheVersion: 0,
-        }
+        })
       }
     >
       {view}
@@ -111,13 +113,16 @@ describe("ProtectedSignaturePad", () => {
         isPrivate: false,
       });
 
-      renderWithContext(mockQuestion, {
-        config: disabledConfig,
-        getCachedPrivateReadUrl: vi.fn(() => null),
-        enqueuePrivateReadUrls: vi.fn(),
-        mergePrivateReadUrlCache: vi.fn(),
-        readUrlCacheVersion: 0,
-      });
+      renderWithContext(
+        mockQuestion,
+        createAssetStorageContextValue({
+          config: disabledConfig,
+          getCachedPrivateReadUrl: vi.fn(() => null),
+          enqueuePrivateReadUrls: vi.fn(),
+          mergePrivateReadUrlCache: vi.fn(),
+          readUrlCacheVersion: 0,
+        }),
+      );
 
       expect(mockRenderBackgroundImage).toHaveBeenCalledTimes(1);
     });
@@ -130,13 +135,16 @@ describe("ProtectedSignaturePad", () => {
         isPrivate: false,
       });
 
-      renderWithContext(mockQuestion, {
-        config: publicConfig,
-        getCachedPrivateReadUrl: vi.fn(() => null),
-        enqueuePrivateReadUrls: vi.fn(),
-        mergePrivateReadUrlCache: vi.fn(),
-        readUrlCacheVersion: 0,
-      });
+      renderWithContext(
+        mockQuestion,
+        createAssetStorageContextValue({
+          config: publicConfig,
+          getCachedPrivateReadUrl: vi.fn(() => null),
+          enqueuePrivateReadUrls: vi.fn(),
+          mergePrivateReadUrlCache: vi.fn(),
+          readUrlCacheVersion: 0,
+        }),
+      );
 
       expect(mockRenderBackgroundImage).toHaveBeenCalledTimes(1);
     });
@@ -148,13 +156,16 @@ describe("ProtectedSignaturePad", () => {
         isPrivate: true,
       });
 
-      renderWithContext(mockQuestion, {
-        config: privateConfig,
-        getCachedPrivateReadUrl: vi.fn(() => null),
-        enqueuePrivateReadUrls: vi.fn(),
-        mergePrivateReadUrlCache: vi.fn(),
-        readUrlCacheVersion: 0,
-      });
+      renderWithContext(
+        mockQuestion,
+        createAssetStorageContextValue({
+          config: privateConfig,
+          getCachedPrivateReadUrl: vi.fn(() => null),
+          enqueuePrivateReadUrls: vi.fn(),
+          mergePrivateReadUrlCache: vi.fn(),
+          readUrlCacheVersion: 0,
+        }),
+      );
 
       expect(screen.getByTestId("storage-presigned-image")).toBeDefined();
       expect(mockRenderBackgroundImage).not.toHaveBeenCalled();
@@ -171,13 +182,16 @@ describe("ProtectedSignaturePad", () => {
 
       const mockResolveStorageUrl = vi.fn();
 
-      const { container } = renderWithContext(questionWithoutBackground, {
-        config: privateConfig,
-        getCachedPrivateReadUrl: mockResolveStorageUrl,
-        enqueuePrivateReadUrls: vi.fn(),
-        mergePrivateReadUrlCache: vi.fn(),
-        readUrlCacheVersion: 0,
-      });
+      const { container } = renderWithContext(
+        questionWithoutBackground,
+        createAssetStorageContextValue({
+          config: privateConfig,
+          getCachedPrivateReadUrl: mockResolveStorageUrl,
+          enqueuePrivateReadUrls: vi.fn(),
+          mergePrivateReadUrlCache: vi.fn(),
+          readUrlCacheVersion: 0,
+        }),
+      );
 
       expect(mockRenderBackgroundImage).not.toHaveBeenCalled();
       expect(container.firstChild).toBeNull();

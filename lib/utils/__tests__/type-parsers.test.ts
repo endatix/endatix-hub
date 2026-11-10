@@ -95,7 +95,7 @@ describe("parseScalarString", () => {
     expect(parseScalarString("choice")).toBe("choice");
     expect(parseScalarString(42)).toBe("42");
     expect(parseScalarString(false)).toBe("false");
-    expect(parseScalarString(0n)).toBe("0");
+    expect(parseScalarString(BigInt(0))).toBe("0");
   });
 
   it("returns null for objects and arrays", () => {

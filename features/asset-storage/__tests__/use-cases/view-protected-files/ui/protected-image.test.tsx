@@ -69,6 +69,7 @@ function buildContext(
     enqueuePrivateReadUrls: vi.fn().mockResolvedValue(new Map()),
     mergePrivateReadUrlCache: vi.fn(),
     getCachedPrivateReadUrl: vi.fn(() => null),
+    evictPrivateReadUrl: vi.fn(),
     readUrlCacheVersion: 0,
     ...overrides,
   };

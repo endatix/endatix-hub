@@ -5,11 +5,13 @@ import { isValidAbsoluteUrl } from "@/lib/utils/url-utils";
 /** Events that can be overridden per form (excludes FormCreated — fires before per-form config exists). */
 export const EVENT_KEYS = [
   "SubmissionCompleted",
-  "SubmissionCollectionStatusChanged",
+  "SubmissionClosed",
   "FormUpdated",
   "FormEnabledStateChanged",
   "FormDeleted",
 ] as const;
+
+export type WebhookEventKey = (typeof EVENT_KEYS)[number];
 
 export const WebhookSettingsSchema = z
   .object({
@@ -17,8 +19,8 @@ export const WebhookSettingsSchema = z
     useCustomSettings: z.boolean(),
     "event-SubmissionCompleted-enabled": z.boolean().optional(),
     "event-SubmissionCompleted-url": z.string().optional(),
-    "event-SubmissionCollectionStatusChanged-enabled": z.boolean().optional(),
-    "event-SubmissionCollectionStatusChanged-url": z.string().optional(),
+    "event-SubmissionClosed-enabled": z.boolean().optional(),
+    "event-SubmissionClosed-url": z.string().optional(),
     "event-FormUpdated-enabled": z.boolean().optional(),
     "event-FormUpdated-url": z.string().optional(),
     "event-FormEnabledStateChanged-enabled": z.boolean().optional(),
@@ -52,6 +54,8 @@ export const WebhookSettingsSchema = z
       }
     });
   });
+
+export type WebhookSettingsData = z.infer<typeof WebhookSettingsSchema>;
 
 export type WebhookSettingsState = ServerActionState<{
   formId?: string;
