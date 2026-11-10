@@ -1,13 +1,8 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { auth } from "@/auth";
-import {
-  authorization,
-  invalidateUserAuthorizationCache,
-  Permissions,
-} from "@/features/auth/authorization";
+import { authorization, Permissions } from "@/features/auth/authorization";
 import { ApiResult, EndatixApi } from "@/lib/endatix-api";
 import { getStringFormValue } from "@/lib/utils/form-data-utils";
 import { createEndatixIdSchema } from "@/lib/utils/type-validators";
@@ -16,6 +11,7 @@ import {
   stateFromApiError,
   stateFromUnexpectedError,
 } from "../server-action-state";
+import { refreshAfterUserAccessChange } from "../refresh-after-access-change";
 
 const deleteUserSchema = z.object({
   userId: createEndatixIdSchema("userId"),
@@ -75,8 +71,7 @@ export async function deleteUserAction(
     const result = await api.users.removeAccess(validatedData.data.userId);
 
     if (ApiResult.isSuccess(result)) {
-      invalidateUserAuthorizationCache({ userId: validatedData.data.userId });
-      revalidatePath("/settings/organization/users");
+      refreshAfterUserAccessChange(validatedData.data.userId);
       return { isSuccess: true, message: "User access removed." };
     }
 

@@ -99,8 +99,7 @@ export async function deleteRoleAction(
   const result = await api.roles.delete(validatedData.data.roleName);
 
   if (ApiResult.isSuccess(result)) {
-    invalidateUserAuthorizationCache({ allUsers: true });
-    revalidatePath("/settings/organization/roles");
+    refreshAfterRoleAccessChange();
     return { isSuccess: true, message: "Role deleted." };
   }
 
@@ -135,8 +134,7 @@ export async function updateRoleAction(
   });
 
   if (ApiResult.isSuccess(result)) {
-    invalidateUserAuthorizationCache({ allUsers: true });
-    revalidatePath("/settings/organization/roles");
+    refreshAfterRoleAccessChange();
     return { isSuccess: true, message: "Role updated." };
   }
 
@@ -168,4 +166,10 @@ function stateFromRoleApiError(
     errors: result.error.fields as DeepFieldErrors<RoleActionData> | undefined,
     data,
   };
+}
+
+/** A role's permissions changed or it is gone: every holder's cached permissions are stale. */
+function refreshAfterRoleAccessChange() {
+  invalidateUserAuthorizationCache({ allUsers: true });
+  revalidatePath("/settings/organization/roles");
 }

@@ -1,13 +1,8 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { auth } from "@/auth";
-import {
-  authorization,
-  invalidateUserAuthorizationCache,
-  Permissions,
-} from "@/features/auth/authorization";
+import { authorization, Permissions } from "@/features/auth/authorization";
 import { ApiResult, EndatixApi } from "@/lib/endatix-api";
 import { createEndatixIdSchema } from "@/lib/utils/type-validators";
 import { ServerActionState } from "@/lib/utils/zod-error-utils";
@@ -15,6 +10,7 @@ import {
   stateFromApiError,
   stateFromUnexpectedError,
 } from "../server-action-state";
+import { refreshAfterUserAccessChange } from "../refresh-after-access-change";
 
 const userLockoutSchema = z.object({
   userId: createEndatixIdSchema("userId"),
@@ -71,8 +67,7 @@ async function setUserLockout(
       return stateFromApiError(result, rawData);
     }
 
-    invalidateUserAuthorizationCache({ userId: validatedData.data.userId });
-    revalidatePath("/settings/organization/users");
+    refreshAfterUserAccessChange(validatedData.data.userId);
     return { isSuccess: true, message: result.data.message };
   } catch (error) {
     return stateFromUnexpectedError(error, rawData, actionName);
