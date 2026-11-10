@@ -10,7 +10,7 @@ vi.mock("next/link", () => ({
     prefetch,
     children,
     ...rest
-  }: ComponentProps<"a"> & {
+  }: Omit<ComponentProps<"a">, "href"> & {
     href: string | { pathname: string };
     prefetch?: boolean | null;
   }) => (

@@ -95,6 +95,28 @@ function AudienceMenuItem({ formId }: Readonly<{ formId: string }>) {
   );
 }
 
+/** Not prefetched: the route's metadata checks Hub access, one `/auth/me` call per card. */
+function SubmissionsLink({
+  formId,
+  submissionsCount,
+}: Readonly<{ formId: string; submissionsCount?: number }>) {
+  return (
+    <Link
+      href={submissionsCount ? `/forms/${formId}/submissions` : "/"}
+      prefetch={false}
+      className={cn(
+        "inline-flex shrink-0 items-center gap-1.5 text-sm leading-none whitespace-nowrap text-muted-foreground",
+        submissionsCount
+          ? "cursor-pointer hover:text-foreground"
+          : "pointer-events-none cursor-default opacity-50",
+      )}
+    >
+      <List className="size-4 shrink-0" />
+      Submissions
+    </Link>
+  );
+}
+
 const FormCard = ({
   form,
   folderContext,
@@ -197,23 +219,10 @@ const FormCard = ({
               <Link2 className="size-4 shrink-0" />
               Share Link
             </Link>
-            <Link
-              href={{
-                pathname: form?.submissionsCount
-                  ? `/forms/${form.id}/submissions`
-                  : "/",
-              }}
-              prefetch={false}
-              className={cn(
-                "inline-flex shrink-0 items-center gap-1.5 text-sm leading-none whitespace-nowrap text-muted-foreground",
-                form?.submissionsCount
-                  ? "cursor-pointer hover:text-foreground"
-                  : "pointer-events-none cursor-default opacity-50",
-              )}
-            >
-              <List className="size-4 shrink-0" />
-              Submissions
-            </Link>
+            <SubmissionsLink
+              formId={form.id}
+              submissionsCount={form.submissionsCount}
+            />
           </div>
           <div className="relative flex h-full shrink-0 items-center opacity-0 transition-opacity group-hover:opacity-100">
             <DropdownMenu

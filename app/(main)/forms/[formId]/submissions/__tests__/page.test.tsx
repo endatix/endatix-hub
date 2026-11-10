@@ -62,6 +62,7 @@ describe("Submissions page guard", () => {
 
     // Assert
     expect(requireHubAccess).toHaveBeenCalledOnce();
+    expect(getWorkspaceForm).toHaveBeenCalledWith("1001");
     expect(metadata.title).toBe("Submissions for Customer feedback");
   });
 });
