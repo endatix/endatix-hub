@@ -118,7 +118,9 @@ tolerations: []
 # `valueFrom` work. For Hub env vars the chart does not expose itself
 # (storage, Slack, ...). Appended AFTER every variable the chart renders, so
 # $(VAR) in these resolves names declared earlier in `env` (AUTH_URL and
-# friends) plus anything extraEnvFrom supplies.
+# friends). It does NOT resolve names supplied by extraEnvFrom: Kubernetes
+# only expands references to earlier `env` entries, so such a reference stays
+# a literal `$(NAME)` string.
 #
 # Do not repeat a name the chart already sets; use its named value instead.
 # Kubernetes keeps the last declaration, but duplicate names in `env` confuse

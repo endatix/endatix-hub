@@ -44,7 +44,7 @@ describe("helm extra env passthrough", () => {
   test("extraEnvFrom renders as the container's envFrom", () => {
     // Arrange
     const blockStart = deployment.indexOf("{{- with .Values.extraEnvFrom }}");
-    const blockEnd = deployment.indexOf("{{- end }}", blockStart);
+    const blockEnd = deployment.indexOf("resources:", blockStart);
 
     // Act
     const block = deployment.slice(blockStart, blockEnd);
@@ -52,5 +52,19 @@ describe("helm extra env passthrough", () => {
     // Assert
     expect(blockStart).toBeGreaterThan(-1);
     expect(block).toMatch(/^\s*envFrom:$/m);
+  });
+
+  test("non-list extraEnv and extraEnvFrom fail the render", () => {
+    // Arrange
+    const envGuard = /kindIs "slice" \.[\s\S]*?fail "extraEnv must be a list/;
+    const envFromGuard = /kindIs "slice" \.[\s\S]*?fail "extraEnvFrom must be a list/;
+
+    // Act
+    const hasEnvGuard = envGuard.test(deployment);
+    const hasEnvFromGuard = envFromGuard.test(deployment);
+
+    // Assert
+    expect(hasEnvGuard).toBe(true);
+    expect(hasEnvFromGuard).toBe(true);
   });
 });
