@@ -90,42 +90,50 @@ export function getAuthDataForCurrentUser(session: Session | null) {
 async function resolveAuthorizationData(
   session: Session | null,
 ): Promise<GetAuthDataResult> {
+  const accessToken = readUsableAccessToken(session);
+  if (!accessToken) {
+    return AuthorizationResult.unauthenticated();
+  }
+
   try {
-    const isLoggedIn = !!session;
-    if (!isLoggedIn) {
-      return AuthorizationResult.unauthenticated();
-    }
-
-    const { user, accessToken } = session;
-    if (!user?.id || !accessToken || session.error) {
-      return AuthorizationResult.unauthenticated();
-    }
-
-    const authorizationDataResult = await fetchAuthorizationData(accessToken);
-
-    if (
-      !authorizationDataResult.success &&
-      authorizationDataResult.error.type ===
-        AuthorizationErrorType.InvalidTokenError
-    ) {
-      TelemetryLogger.warn(
-        "Authorization data rejected invalid token",
-        {
-          provider: session.provider,
-        },
-        LOGGER_NAME,
-      );
-    }
-
-    return authorizationDataResult;
+    const result = await fetchAuthorizationData(accessToken);
+    warnOnRejectedToken(result, session?.provider);
+    return result;
   } catch (error) {
-    TelemetryLogger.error(
-      "Authorization data resolution failed",
-      error,
-      {},
+    return resolutionFailed(error);
+  }
+}
+
+function resolutionFailed(error: unknown): GetAuthDataResult {
+  TelemetryLogger.error(
+    "Authorization data resolution failed",
+    error,
+    {},
+    LOGGER_NAME,
+  );
+  return AuthorizationResult.error();
+}
+
+function readUsableAccessToken(session: Session | null): string | undefined {
+  if (!session?.user?.id || session.error) {
+    return undefined;
+  }
+  return session.accessToken || undefined;
+}
+
+function warnOnRejectedToken(
+  result: GetAuthDataResult,
+  provider: Session["provider"],
+) {
+  if (
+    !result.success &&
+    result.error.type === AuthorizationErrorType.InvalidTokenError
+  ) {
+    TelemetryLogger.warn(
+      "Authorization data rejected invalid token",
+      { provider },
       LOGGER_NAME,
     );
-    return AuthorizationResult.error();
   }
 }
 
