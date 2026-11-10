@@ -131,7 +131,7 @@ describe("manage user roles action", () => {
     expect(replaceRoles).not.toHaveBeenCalled();
   });
 
-  it("clears the user's cached permissions after their roles change", async () => {
+  it("clears cached permissions after their roles change", async () => {
     const userId = "1507347517849731072";
     replaceRoles.mockResolvedValue(ApiResult.success({ message: "ok" }));
 
@@ -140,7 +140,9 @@ describe("manage user roles action", () => {
       { userId, roles: ["Creator"] },
     );
 
-    expect(invalidateUserAuthorizationCache).toHaveBeenCalledWith({ userId });
+    expect(invalidateUserAuthorizationCache).toHaveBeenCalledWith({
+      allUsers: true,
+    });
   });
 
   it("keeps cached permissions when the roles change fails", async () => {

@@ -71,7 +71,7 @@ export async function deleteUserAction(
     const result = await api.users.removeAccess(validatedData.data.userId);
 
     if (ApiResult.isSuccess(result)) {
-      refreshAfterUserAccessChange(validatedData.data.userId);
+      refreshAfterUserAccessChange();
       return { isSuccess: true, message: "User access removed." };
     }
 

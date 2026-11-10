@@ -67,7 +67,7 @@ async function setUserLockout(
       return stateFromApiError(result, rawData);
     }
 
-    refreshAfterUserAccessChange(validatedData.data.userId);
+    refreshAfterUserAccessChange();
     return { isSuccess: true, message: result.data.message };
   } catch (error) {
     return stateFromUnexpectedError(error, rawData, actionName);

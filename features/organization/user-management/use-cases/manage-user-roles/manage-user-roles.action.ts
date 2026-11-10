@@ -87,7 +87,7 @@ async function handleSetMutation(
     return stateFromApiError(result, rawData);
   }
 
-  refreshAfterUserAccessChange(data.userId);
+  refreshAfterUserAccessChange();
   return { isSuccess: true };
 }
 

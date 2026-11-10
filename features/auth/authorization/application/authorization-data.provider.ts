@@ -18,10 +18,14 @@ import { mapApiErrorToTelemetryAttributes } from "@/lib/result/map-api-error-to-
 const USER_PERMISSIONS_CACHE_TAG = "usr_prms";
 const ALL_USER_PERMISSIONS_CACHE_TAG = "usr_prms_all";
 // Backstop for role changes made outside this Hub's actions (the API, another Hub
-// instance). Changes made through the Hub clear the cache at once.
+// instance): entries live in fixed 60-second windows. The window is part of the cache
+// key, so an old window is never served; `revalidate` alone is stale-while-revalidate.
 const USER_PERMISSIONS_CACHE_TTL = 60;
-// Expire at once: a stale-while-revalidate profile would serve old permissions
-// to the next page load.
+const currentCacheWindow = () =>
+  Math.floor(Date.now() / (USER_PERMISSIONS_CACHE_TTL * 1000));
+// Expire at once: a stale-while-revalidate profile would serve old permissions to the
+// next page load. revalidateTag, not updateTag, because sign-in and route handlers
+// call this too, and updateTag works only in server actions.
 const EXPIRE_NOW = { expire: 0 };
 const DEFAULT_PERMISSION_ERROR_MESSAGE =
   "An unexpected error occurred while checking permissions";
@@ -173,7 +177,7 @@ const getCachedAuthorizationData = async (
 
         return result;
       },
-      [userId, accessToken],
+      [userId, accessToken, String(currentCacheWindow())],
       {
         tags: [cacheKey, ALL_USER_PERMISSIONS_CACHE_TAG],
         revalidate: USER_PERMISSIONS_CACHE_TTL,
@@ -200,19 +204,30 @@ export function invalidateUserAuthorizationCache(options: {
   userIds?: string[];
   allUsers?: boolean;
 }) {
-  const { userId, userIds, allUsers } = options;
-
-  if (userId) {
-    revalidateTag(getUserPermissionsCacheKey(userId), EXPIRE_NOW);
-  }
-
-  if (userIds) {
-    for (const userId of userIds) {
-      revalidateTag(getUserPermissionsCacheKey(userId), EXPIRE_NOW);
+  // Best effort: callers have already completed the change, so a cache error must not
+  // turn it into a reported failure. The 60-second window bounds what is left.
+  try {
+    for (const tag of tagsToInvalidate(options)) {
+      revalidateTag(tag, EXPIRE_NOW);
     }
+  } catch (error) {
+    TelemetryLogger.warn(
+      "Failed to clear cached permissions",
+      { error: String(error) },
+      LOGGER_NAME,
+    );
   }
+}
 
-  if (allUsers) {
-    revalidateTag(ALL_USER_PERMISSIONS_CACHE_TAG, EXPIRE_NOW);
-  }
+function tagsToInvalidate(options: {
+  userId?: string;
+  userIds?: string[];
+  allUsers?: boolean;
+}): string[] {
+  const userIds = [
+    ...(options.userId ? [options.userId] : []),
+    ...(options.userIds ?? []),
+  ];
+  const tags = userIds.map((id) => getUserPermissionsCacheKey(id));
+  return options.allUsers ? [...tags, ALL_USER_PERMISSIONS_CACHE_TAG] : tags;
 }

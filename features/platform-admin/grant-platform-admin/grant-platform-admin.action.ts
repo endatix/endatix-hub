@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { invalidateUserAuthorizationCache } from "@/features/auth/authorization";
 import { EndatixApi } from "@/lib/endatix-api";
 import { Result } from "@/lib/result";
 import { toResult } from "@/lib/result/map-api-result-to-result";
@@ -24,6 +25,7 @@ export async function grantPlatformAdminAction(
   });
 
   if (Result.isSuccess(result)) {
+    invalidateUserAuthorizationCache({ allUsers: true });
     revalidatePath("/admin/platform-admins");
   }
 

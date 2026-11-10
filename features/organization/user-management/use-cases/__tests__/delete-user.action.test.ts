@@ -150,8 +150,19 @@ describe("deleteUserAction", () => {
     expect(removeAccess).toHaveBeenCalledWith(targetUserId);
     expect(revalidatePath).toHaveBeenCalledWith("/settings/organization/users");
     expect(invalidateUserAuthorizationCache).toHaveBeenCalledWith({
-      userId: targetUserId,
+      allUsers: true,
     });
     expect(result.isSuccess).toBe(true);
+  });
+
+  it("keeps cached permissions when removing access fails", async () => {
+    removeAccess.mockResolvedValue(ApiResult.serverError("Could not remove"));
+
+    await deleteUserAction(
+      { isSuccess: undefined },
+      { userId: targetUserId, confirmationEmail: targetEmail },
+    );
+
+    expect(invalidateUserAuthorizationCache).not.toHaveBeenCalled();
   });
 });

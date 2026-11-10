@@ -55,20 +55,24 @@ describe("user lockout actions", () => {
     unlock.mockResolvedValue(ApiResult.success({ message: "Unlocked" }));
   });
 
-  it("clears the user's cached permissions after a lockout", async () => {
+  it("clears cached permissions after a lockout", async () => {
     const result = await lockoutUserAction(
       { isSuccess: undefined },
       { userId },
     );
 
     expect(result.isSuccess).toBe(true);
-    expect(invalidateUserAuthorizationCache).toHaveBeenCalledWith({ userId });
+    expect(invalidateUserAuthorizationCache).toHaveBeenCalledWith({
+      allUsers: true,
+    });
   });
 
-  it("clears the user's cached permissions after an unlock", async () => {
+  it("clears cached permissions after an unlock", async () => {
     await unlockUserAction({ isSuccess: undefined }, { userId });
 
-    expect(invalidateUserAuthorizationCache).toHaveBeenCalledWith({ userId });
+    expect(invalidateUserAuthorizationCache).toHaveBeenCalledWith({
+      allUsers: true,
+    });
   });
 
   it("keeps cached permissions when the lockout fails", async () => {
