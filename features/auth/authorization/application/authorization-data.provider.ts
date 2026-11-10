@@ -4,7 +4,7 @@ import {
   AuthorizationResult,
   GetAuthDataResult,
 } from "../domain/authorization-result";
-import { revalidateTag, unstable_cache } from "next/cache";
+import { cache } from "react";
 import { TelemetryLogger } from "@/features/telemetry";
 import {
   ApiErrorType,
@@ -15,9 +15,6 @@ import {
 } from "@/lib/endatix-api";
 import { mapApiErrorToTelemetryAttributes } from "@/lib/result/map-api-error-to-telemetry-attributes";
 
-const USER_PERMISSIONS_CACHE_TAG = "usr_prms";
-const ALL_USER_PERMISSIONS_CACHE_TAG = "usr_prms_all";
-const USER_PERMISSIONS_CACHE_TTL = 720; // 12 minutes
 const DEFAULT_PERMISSION_ERROR_MESSAGE =
   "An unexpected error occurred while checking permissions";
 const LOGGER_NAME = "authorization";
@@ -26,25 +23,12 @@ const ExpectedAuthorizationApiErrorTypes = new Set<ApiErrorType>([
   ApiErrorType.ForbiddenError,
 ]);
 
-const getUserPermissionsCacheKey = (userId: string) =>
-  `${USER_PERMISSIONS_CACHE_TAG}:${userId}`;
-
 /**
- * Thrown inside unstable_cache when authorization fetch fails so Next.js does not
- * persist transient API/network errors in the data cache.
+ * Reads the user's authorization data from the API once per server request.
+ * Nothing is kept across requests, so a role change shows on the next page load;
+ * the API caches `/auth/me` per access version, which a role change moves.
  */
-class AuthorizationCacheBypassError extends Error {
-  readonly result: GetAuthDataResult;
-
-  constructor(result: GetAuthDataResult) {
-    super("Authorization data must not be cached");
-    this.name = "AuthorizationCacheBypassError";
-    this.result = result;
-  }
-}
-
-async function fetchAuthorizationData(
-  userId: string,
+const fetchAuthorizationData = cache(async function fetchAuthorizationData(
   accessToken: string,
 ): Promise<GetAuthDataResult> {
   try {
@@ -88,7 +72,7 @@ async function fetchAuthorizationData(
     );
     return AuthorizationResult.error({ message: errorMessage });
   }
-}
+});
 
 /**
  * Function that gets authorization data for the current user from the API. To be used from the various checks and guards from the AuthorizationService.
@@ -108,11 +92,7 @@ export function getAuthDataForCurrentUser(session: Session | null) {
         return AuthorizationResult.unauthenticated();
       }
 
-      // Use the shared cache instance with userId as parameter
-      const authorizationDataResult = await getCachedAuthorizationData(
-        user.id,
-        accessToken,
-      );
+      const authorizationDataResult = await fetchAuthorizationData(accessToken);
 
       if (
         !authorizationDataResult.success &&
@@ -143,71 +123,4 @@ export function getAuthDataForCurrentUser(session: Session | null) {
 
 function shouldLogAuthorizationApiError(apiError: ApiError): boolean {
   return !ExpectedAuthorizationApiErrorTypes.has(apiError.error.type);
-}
-
-/**
- * Gets authorization data for the current user from the API and caches it.
- * @param userId - The user ID
- * @param accessToken - The access token
- * @returns The authorization data
- */
-const getCachedAuthorizationData = async (
-  userId: string,
-  accessToken: string,
-): Promise<GetAuthDataResult> => {
-  const cacheKey = getUserPermissionsCacheKey(userId);
-
-  try {
-    return await unstable_cache(
-      async () => {
-        const result = await fetchAuthorizationData(userId, accessToken);
-
-        if (!result.success) {
-          throw new AuthorizationCacheBypassError(result);
-        }
-
-        return result;
-      },
-      [userId, accessToken],
-      {
-        tags: [cacheKey, ALL_USER_PERMISSIONS_CACHE_TAG],
-        revalidate: USER_PERMISSIONS_CACHE_TTL,
-      },
-    )();
-  } catch (error) {
-    if (error instanceof AuthorizationCacheBypassError) {
-      return error.result;
-    }
-
-    throw error;
-  }
-};
-
-/**
- * Invalidates the user permissions cache for the given user ID, user IDs, or all users
- * @param options - The options to invalidate the cache for
- * @param options.userId - The user ID to invalidate the cache for
- * @param options.userIds - The user IDs to invalidate the cache for
- * @param options.allUsers - Whether to invalidate the cache for all users
- */
-export function invalidateUserAuthorizationCache(options: {
-  userId?: string;
-  userIds?: string[];
-  allUsers?: boolean;
-}) {
-  const { userId, userIds, allUsers } = options;
-
-  if (userId) {
-    revalidateTag(getUserPermissionsCacheKey(userId), "max");
-  }
-
-  if (userIds) {
-    for (const userId of userIds) {
-      revalidateTag(getUserPermissionsCacheKey(userId), "max");
-    }
-  }
-
-  if (allUsers) {
-    revalidateTag(ALL_USER_PERMISSIONS_CACHE_TAG, "max");
-  }
 }

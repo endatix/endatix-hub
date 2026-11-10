@@ -1,9 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { Session } from "next-auth";
-import {
-  getAuthDataForCurrentUser,
-  invalidateUserAuthorizationCache,
-} from "../authorization-data.provider";
+import { getAuthDataForCurrentUser } from "../authorization-data.provider";
 import type { AuthorizationData } from "@/lib/endatix-api/auth/types";
 import { ApiErrorType, EndatixApi, ERROR_CODE } from "@/lib/endatix-api";
 import { SessionError } from "@/auth";
@@ -14,27 +11,27 @@ const telemetryLoggerMock = vi.hoisted(() => ({
   warn: vi.fn(),
 }));
 
-const unstableCacheStore = vi.hoisted(() => new Map<string, unknown>());
+// React's cache() memoizes only under the react-server condition. Mimic it with a
+// store that a test clears to start a new server request.
+const requestCacheStore = vi.hoisted(() => new Map<string, unknown>());
+const startNewRequest = () => requestCacheStore.clear();
 
-// Mock next/cache with a store that mimics persisting successful return values only.
-vi.mock("next/cache", () => ({
-  unstable_cache: vi.fn(
-    (fn: () => Promise<unknown>, keyParts?: readonly unknown[]) => {
-      const cacheKey = JSON.stringify(keyParts ?? []);
-
-      return async () => {
-        if (unstableCacheStore.has(cacheKey)) {
-          return unstableCacheStore.get(cacheKey);
+vi.mock("react", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("react")>();
+  return {
+    ...actual,
+    cache: <A extends unknown[], R>(fn: (...args: A) => R) => {
+      const scope = Symbol("cached-function");
+      return (...args: A): R => {
+        const key = `${String(scope)}:${JSON.stringify(args)}`;
+        if (!requestCacheStore.has(key)) {
+          requestCacheStore.set(key, fn(...args));
         }
-
-        const result = await fn();
-        unstableCacheStore.set(cacheKey, result);
-        return result;
+        return requestCacheStore.get(key) as R;
       };
     },
-  ),
-  revalidateTag: vi.fn(),
-}));
+  };
+});
 
 vi.mock("@/features/telemetry", () => ({
   TelemetryLogger: {
@@ -85,7 +82,7 @@ describe("getAuthDataForCurrentUser", () => {
   };
 
   beforeEach(() => {
-    unstableCacheStore.clear();
+    startNewRequest();
   });
 
   it("should return unauthenticated when session is null", async () => {
@@ -287,7 +284,7 @@ describe("getAuthDataForCurrentUser", () => {
     );
   });
 
-  it("should not cache network errors and should retry on subsequent calls", async () => {
+  it("retries on the next request after a failed fetch", async () => {
     const { EndatixApi } = await import("@/lib/endatix-api");
     const getAuthorizationData = vi
       .fn()
@@ -296,50 +293,63 @@ describe("getAuthDataForCurrentUser", () => {
         success: true,
         data: mockAuthorizationData,
       });
-    const mockApiInstance = {
-      auth: {
-        getAuthorizationData,
-      },
-    };
-
     vi.mocked(EndatixApi).mockImplementation(function () {
-      return mockApiInstance as unknown as EndatixApi;
+      return { auth: { getAuthorizationData } } as unknown as EndatixApi;
     });
 
-    const getAuthData = getAuthDataForCurrentUser(mockSession);
-    const firstResult = await getAuthData();
-    const secondResult = await getAuthData();
+    const firstResult = await getAuthDataForCurrentUser(mockSession)();
+    startNewRequest();
+    const secondResult = await getAuthDataForCurrentUser(mockSession)();
 
     expect(firstResult.success).toBe(false);
     expect(secondResult.success).toBe(true);
     expect(getAuthorizationData).toHaveBeenCalledTimes(2);
-    expect(unstableCacheStore.size).toBe(1);
   });
 
-  it("should cache successful authorization data", async () => {
+  it("fetches authorization data once per request however many checks read it", async () => {
     const { EndatixApi } = await import("@/lib/endatix-api");
     const getAuthorizationData = vi.fn().mockResolvedValue({
       success: true,
       data: mockAuthorizationData,
     });
-    const mockApiInstance = {
-      auth: {
-        getAuthorizationData,
-      },
-    };
-
     vi.mocked(EndatixApi).mockImplementation(function () {
-      return mockApiInstance as unknown as EndatixApi;
+      return { auth: { getAuthorizationData } } as unknown as EndatixApi;
     });
 
-    const getAuthData = getAuthDataForCurrentUser(mockSession);
-    const firstResult = await getAuthData();
-    const secondResult = await getAuthData();
+    const results = await Promise.all([
+      getAuthDataForCurrentUser(mockSession)(),
+      getAuthDataForCurrentUser(mockSession)(),
+      getAuthDataForCurrentUser(mockSession)(),
+    ]);
 
-    expect(firstResult.success).toBe(true);
-    expect(secondResult.success).toBe(true);
+    expect(results.every((result) => result.success)).toBe(true);
     expect(getAuthorizationData).toHaveBeenCalledTimes(1);
-    expect(unstableCacheStore.size).toBe(1);
+  });
+
+  it("shows a role change on the next request", async () => {
+    const { EndatixApi } = await import("@/lib/endatix-api");
+    const withoutCreate: AuthorizationData = {
+      ...mockAuthorizationData,
+      roles: ["Viewer"],
+      permissions: ["forms.read"],
+      isAdmin: false,
+    };
+    const getAuthorizationData = vi
+      .fn()
+      .mockResolvedValueOnce({ success: true, data: mockAuthorizationData })
+      .mockResolvedValueOnce({ success: true, data: withoutCreate });
+    vi.mocked(EndatixApi).mockImplementation(function () {
+      return { auth: { getAuthorizationData } } as unknown as EndatixApi;
+    });
+
+    const before = await getAuthDataForCurrentUser(mockSession)();
+    startNewRequest();
+    const after = await getAuthDataForCurrentUser(mockSession)();
+
+    expect(before.success && before.data.permissions).toContain("forms.create");
+    expect(after.success && after.data.permissions).not.toContain(
+      "forms.create",
+    );
   });
 
   it("should use correct userId and accessToken for API call", async () => {
@@ -362,59 +372,5 @@ describe("getAuthDataForCurrentUser", () => {
 
     expect(EndatixApi).toHaveBeenCalledWith("test-access-token");
     expect(mockApiInstance.auth.getAuthorizationData).toHaveBeenCalled();
-  });
-});
-
-describe("invalidateUserAuthorizationCache", () => {
-  it("should invalidate cache for single userId", async () => {
-    const { revalidateTag } = await import("next/cache");
-
-    invalidateUserAuthorizationCache({ userId: "user-123" });
-
-    expect(revalidateTag).toHaveBeenCalledWith("usr_prms:user-123", "max");
-  });
-
-  it("should invalidate cache for multiple userIds", async () => {
-    const { revalidateTag } = await import("next/cache");
-
-    invalidateUserAuthorizationCache({
-      userIds: ["user-1", "user-2", "user-3"],
-    });
-
-    expect(revalidateTag).toHaveBeenCalledTimes(3);
-    expect(revalidateTag).toHaveBeenCalledWith("usr_prms:user-1", "max");
-    expect(revalidateTag).toHaveBeenCalledWith("usr_prms:user-2", "max");
-    expect(revalidateTag).toHaveBeenCalledWith("usr_prms:user-3", "max");
-  });
-
-  it("should invalidate all user caches when allUsers is true", async () => {
-    const { revalidateTag } = await import("next/cache");
-
-    invalidateUserAuthorizationCache({ allUsers: true });
-
-    expect(revalidateTag).toHaveBeenCalledWith("usr_prms_all", "max");
-  });
-
-  it("should handle multiple invalidation options", async () => {
-    const { revalidateTag } = await import("next/cache");
-
-    invalidateUserAuthorizationCache({
-      userId: "user-123",
-      userIds: ["user-456", "user-789"],
-      allUsers: true,
-    });
-
-    expect(revalidateTag).toHaveBeenCalledWith("usr_prms:user-123", "max");
-    expect(revalidateTag).toHaveBeenCalledWith("usr_prms:user-456", "max");
-    expect(revalidateTag).toHaveBeenCalledWith("usr_prms:user-789", "max");
-    expect(revalidateTag).toHaveBeenCalledWith("usr_prms_all", "max");
-  });
-
-  it("should handle empty options", async () => {
-    const { revalidateTag } = await import("next/cache");
-
-    invalidateUserAuthorizationCache({});
-
-    expect(revalidateTag).not.toHaveBeenCalled();
   });
 });
