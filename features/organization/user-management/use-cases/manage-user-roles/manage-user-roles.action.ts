@@ -3,7 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { auth } from "@/auth";
-import { authorization, Permissions } from "@/features/auth/authorization";
+import {
+  authorization,
+  invalidateUserAuthorizationCache,
+  Permissions,
+} from "@/features/auth/authorization";
 import { ApiResult, EndatixApi } from "@/lib/endatix-api";
 import { createEndatixIdSchema } from "@/lib/utils/type-validators";
 import { ServerActionState } from "@/lib/utils/zod-error-utils";
@@ -87,6 +91,7 @@ async function handleSetMutation(
     return stateFromApiError(result, rawData);
   }
 
+  invalidateUserAuthorizationCache({ userId: data.userId });
   revalidatePath("/settings/organization/users");
   return { isSuccess: true };
 }

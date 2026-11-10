@@ -17,7 +17,12 @@ import { mapApiErrorToTelemetryAttributes } from "@/lib/result/map-api-error-to-
 
 const USER_PERMISSIONS_CACHE_TAG = "usr_prms";
 const ALL_USER_PERMISSIONS_CACHE_TAG = "usr_prms_all";
-const USER_PERMISSIONS_CACHE_TTL = 720; // 12 minutes
+// Backstop for role changes made outside this Hub's actions (the API, another Hub
+// instance). Changes made through the Hub clear the cache at once.
+const USER_PERMISSIONS_CACHE_TTL = 60;
+// Expire at once: a stale-while-revalidate profile would serve old permissions
+// to the next page load.
+const EXPIRE_NOW = { expire: 0 };
 const DEFAULT_PERMISSION_ERROR_MESSAGE =
   "An unexpected error occurred while checking permissions";
 const LOGGER_NAME = "authorization";
@@ -198,16 +203,16 @@ export function invalidateUserAuthorizationCache(options: {
   const { userId, userIds, allUsers } = options;
 
   if (userId) {
-    revalidateTag(getUserPermissionsCacheKey(userId), "max");
+    revalidateTag(getUserPermissionsCacheKey(userId), EXPIRE_NOW);
   }
 
   if (userIds) {
     for (const userId of userIds) {
-      revalidateTag(getUserPermissionsCacheKey(userId), "max");
+      revalidateTag(getUserPermissionsCacheKey(userId), EXPIRE_NOW);
     }
   }
 
   if (allUsers) {
-    revalidateTag(ALL_USER_PERMISSIONS_CACHE_TAG, "max");
+    revalidateTag(ALL_USER_PERMISSIONS_CACHE_TAG, EXPIRE_NOW);
   }
 }

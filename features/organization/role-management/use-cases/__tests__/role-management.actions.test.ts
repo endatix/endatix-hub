@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { auth } from "@/auth";
-import { authorization, Permissions } from "@/features/auth/authorization";
+import {
+  authorization,
+  invalidateUserAuthorizationCache,
+  Permissions,
+} from "@/features/auth/authorization";
 import { ApiResult, EndatixApi } from "@/lib/endatix-api";
 import {
   createRoleAction,
@@ -27,6 +31,7 @@ vi.mock("@/features/auth/authorization", async (importOriginal) => {
   return {
     ...actual,
     authorization: vi.fn(),
+    invalidateUserAuthorizationCache: vi.fn(),
   };
 });
 
@@ -146,7 +151,9 @@ describe("role management actions", () => {
   it("logs unexpected API failures through the shared mapper", async () => {
     const formData = new FormData();
     formData.set("roleName", "Reviewer");
-    deleteRole.mockResolvedValue(ApiResult.serverError("Could not delete role"));
+    deleteRole.mockResolvedValue(
+      ApiResult.serverError("Could not delete role"),
+    );
 
     const result = await deleteRoleAction({ isSuccess: undefined }, formData);
 
@@ -160,5 +167,47 @@ describe("role management actions", () => {
       }),
       "organization.role-management",
     );
+  });
+
+  it("clears every user's cached permissions after a role update", async () => {
+    const formData = new FormData();
+    formData.set("roleName", "Reviewer");
+    formData.append("permissions", "forms.view");
+
+    await updateRoleAction({ isSuccess: undefined }, formData);
+
+    expect(invalidateUserAuthorizationCache).toHaveBeenCalledWith({
+      allUsers: true,
+    });
+  });
+
+  it("clears every user's cached permissions after a role delete", async () => {
+    const formData = new FormData();
+    formData.set("roleName", "Reviewer");
+
+    await deleteRoleAction({ isSuccess: undefined }, formData);
+
+    expect(invalidateUserAuthorizationCache).toHaveBeenCalledWith({
+      allUsers: true,
+    });
+  });
+
+  it("keeps cached permissions when the role update fails", async () => {
+    updateRole.mockResolvedValue(ApiResult.serverError("boom"));
+    const formData = new FormData();
+    formData.set("roleName", "Reviewer");
+
+    await updateRoleAction({ isSuccess: undefined }, formData);
+
+    expect(invalidateUserAuthorizationCache).not.toHaveBeenCalled();
+  });
+
+  it("keeps cached permissions when a role is created, since nobody holds it yet", async () => {
+    const formData = new FormData();
+    formData.set("roleName", "Reviewer");
+
+    await createRoleAction({ isSuccess: undefined }, formData);
+
+    expect(invalidateUserAuthorizationCache).not.toHaveBeenCalled();
   });
 });

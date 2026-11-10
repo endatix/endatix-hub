@@ -3,7 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { auth } from "@/auth";
-import { authorization, Permissions } from "@/features/auth/authorization";
+import {
+  authorization,
+  invalidateUserAuthorizationCache,
+  Permissions,
+} from "@/features/auth/authorization";
 import { ApiResult, EndatixApi } from "@/lib/endatix-api";
 import { createEndatixIdSchema } from "@/lib/utils/type-validators";
 import { ServerActionState } from "@/lib/utils/zod-error-utils";
@@ -67,6 +71,7 @@ async function setUserLockout(
       return stateFromApiError(result, rawData);
     }
 
+    invalidateUserAuthorizationCache({ userId: validatedData.data.userId });
     revalidatePath("/settings/organization/users");
     return { isSuccess: true, message: result.data.message };
   } catch (error) {
