@@ -1,4 +1,4 @@
-import { surveyLocalization } from "survey-core";
+import { surveyLocalization, type SurveyModel } from "survey-core";
 
 /** Catalog / LocalizableString key for the survey default language. */
 export const DEFAULT_CATALOG_LOCALE = "default";
@@ -40,6 +40,41 @@ export function toSurveyModelLocale(
     ? surveyDefaultLocale
     : catalogLocale;
   return isDefaultCatalogLocale(locale) ? "" : locale.trim().toLowerCase();
+}
+
+/**
+ * The locale behind a survey's default language, for {@link toSurveyModelLocale}.
+ * A single-language survey keeps its JSON <c>locale</c>, so SurveyJS buttons and
+ * messages follow it; a multi-language one keeps <c>""</c>, today's default.
+ */
+export function surveyDefaultLocale(
+  surveyLocale: string,
+  catalogLocales: readonly string[],
+): string {
+  return catalogLocales.length <= 1 ? surveyLocale : "";
+}
+
+/**
+ * <c>model.locale</c> for <paramref name="catalogLocale"/> in a survey whose
+ * definition declares <paramref name="jsonLocale"/>. Pass the definition's
+ * locale, not <c>model.locale</c>, which an earlier assignment may have moved.
+ */
+export function surveyModelLocale(
+  model: Pick<SurveyModel, "getUsedLocales">,
+  catalogLocale: string,
+  jsonLocale: string,
+): string {
+  const catalogLocales = toCatalogLocales(model.getUsedLocales() ?? []);
+  return toSurveyModelLocale(
+    catalogLocale,
+    surveyDefaultLocale(jsonLocale, catalogLocales),
+  );
+}
+
+/** The <c>locale</c> a survey definition declares, or <c>""</c>. */
+export function surveyJsonLocale(surveyJson: unknown): string {
+  const locale = (surveyJson as { locale?: unknown } | null)?.locale;
+  return typeof locale === "string" ? locale : "";
 }
 
 /**

@@ -5,6 +5,7 @@ import {
   catalogLocaleDisplayName,
   fromSurveyModelLocale,
   isDefaultCatalogLocale,
+  surveyDefaultLocale,
   toCatalogLocales,
   toSurveyModelLocale,
 } from "@/lib/localization";
@@ -58,7 +59,9 @@ export function useLanguageSelection({
       setCurrentLocale(catalogLocale);
       surveyModel.locale = toSurveyModelLocale(
         catalogLocale,
-        surveyDefaultLocaleOf(surveyModel, catalogLocales),
+        // The hook never moves a single-language survey off its JSON locale,
+        // so reading `surveyModel.locale` again is stable.
+        surveyDefaultLocale(surveyModel.locale, catalogLocales),
       );
       if (persist) {
         localStorage.setItem(STORAGE_KEY, catalogLocale);
@@ -110,18 +113,6 @@ export function useLanguageSelection({
     hasMultipleLocales: languageOptions.length > 1,
     isDefaultLocale: isDefaultCatalogLocale(currentLocale),
   };
-}
-
-/**
- * The language SurveyJS strings use for the catalog default. A single-language
- * survey keeps its JSON `locale` (the hook never moves it off that locale, so
- * reading it again is stable); a multi-language one keeps `""`.
- */
-function surveyDefaultLocaleOf(
-  surveyModel: SurveyModel,
-  catalogLocales: readonly string[],
-): string {
-  return catalogLocales.length === 1 ? surveyModel.locale : "";
 }
 
 function toLanguageOption(catalogLocale: string) {

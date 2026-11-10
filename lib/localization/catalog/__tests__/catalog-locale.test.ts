@@ -1,3 +1,4 @@
+import { Model } from "survey-core";
 import { describe, expect, it } from "vitest";
 import {
   catalogLocaleCodeLabel,
@@ -5,6 +6,9 @@ import {
   DEFAULT_CATALOG_LOCALE,
   fromSurveyModelLocale,
   isDefaultCatalogLocale,
+  surveyDefaultLocale,
+  surveyJsonLocale,
+  surveyModelLocale,
   toCatalogLocales,
   toSurveyModelLocale,
 } from "../catalog-locale";
@@ -41,6 +45,41 @@ describe("catalog-locale", () => {
     expect(toSurveyModelLocale(DEFAULT_CATALOG_LOCALE, "en")).toBe("");
     expect(toSurveyModelLocale(DEFAULT_CATALOG_LOCALE, "")).toBe("");
     expect(toSurveyModelLocale("fr", "de")).toBe("fr");
+  });
+
+  it("keeps a single-language survey's own locale as its default", () => {
+    // Act & Assert
+    expect(surveyDefaultLocale("de", [DEFAULT_CATALOG_LOCALE])).toBe("de");
+    expect(surveyDefaultLocale("de", [])).toBe("de");
+    expect(surveyDefaultLocale("", [DEFAULT_CATALOG_LOCALE])).toBe("");
+  });
+
+  it("keeps today's empty default for a multi-language survey", () => {
+    // Act & Assert
+    expect(surveyDefaultLocale("de", [DEFAULT_CATALOG_LOCALE, "fr"])).toBe("");
+  });
+
+  it("maps a survey model's default to its JSON locale only with one language", () => {
+    // Arrange
+    const title = (text: unknown) => ({
+      locale: "de",
+      pages: [{ elements: [{ type: "text", name: "q", title: text }] }],
+    });
+    const single = new Model(title("Frage"));
+    const multi = new Model(title({ default: "Frage", fr: "Question" }));
+
+    // Act & Assert
+    expect(surveyModelLocale(single, DEFAULT_CATALOG_LOCALE, "de")).toBe("de");
+    expect(surveyModelLocale(multi, DEFAULT_CATALOG_LOCALE, "de")).toBe("");
+    expect(surveyModelLocale(multi, "fr", "de")).toBe("fr");
+  });
+
+  it("reads the locale from survey JSON", () => {
+    // Act & Assert
+    expect(surveyJsonLocale({ locale: "de" })).toBe("de");
+    expect(surveyJsonLocale({})).toBe("");
+    expect(surveyJsonLocale({ locale: 7 })).toBe("");
+    expect(surveyJsonLocale(null)).toBe("");
   });
 
   it("normalizes getUsedLocales-style lists to catalog codes", () => {

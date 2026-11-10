@@ -7,7 +7,6 @@ import {
   getSubmissionStartedAt,
   parseDate,
 } from "@/lib/utils";
-import { DEFAULT_CATALOG_LOCALE } from "@/lib/localization";
 import { TriangleAlert } from "lucide-react";
 import type { ReactNode } from "react";
 import { CellReviewStatus } from "../table/cell-review-status";
@@ -63,7 +62,8 @@ function StatusCells() {
 }
 
 export function MetadataCard() {
-  const { submission, catalogLocales } = useSubmissionDetails();
+  const { submission, catalogLocales, surveyCatalogLocale } =
+    useSubmissionDetails();
 
   const completionTime =
     submission.isComplete &&
@@ -111,9 +111,7 @@ export function MetadataCard() {
             <LabelLanguagePicker />
           ) : (
             <ValueText>
-              <LocaleLabel
-                catalogLocale={catalogLocales[0] ?? DEFAULT_CATALOG_LOCALE}
-              />
+              <LocaleLabel catalogLocale={surveyCatalogLocale} />
             </ValueText>
           )}
         </MetaCell>
