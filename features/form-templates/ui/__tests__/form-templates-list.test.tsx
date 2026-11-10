@@ -21,7 +21,9 @@ vi.mock("@/components/error-handling/error-page", () => ({
 }));
 
 vi.mock("../form-template-card", () => ({
-  default: () => <div>template-card</div>,
+  default: ({ canCreateForms }: { canCreateForms?: boolean }) => (
+    <div>{canCreateForms ? "template-card-with-use" : "template-card"}</div>
+  ),
 }));
 
 vi.mock("../form-template-sheet", () => ({
@@ -55,12 +57,36 @@ describe("FormTemplatesList", () => {
     // Act
     render(
       <Suspense fallback={<div>loading</div>}>
-        <FormTemplatesList templatesPromise={fulfilledPromise(listResult)} />
+        <FormTemplatesList
+          templatesPromise={fulfilledPromise(listResult)}
+          canCreateForms
+        />
       </Suspense>,
     );
 
     // Assert
     expect(await screen.findByTestId("hub-page-load-error")).toBeDefined();
     expect(screen.queryByText("template-card")).toBeNull();
+  });
+
+  it("hides Use Template on every card without forms.create", async () => {
+    // Arrange
+    const listResult = Result.success<FormTemplate[]>([
+      { id: "1", name: "Template" } as FormTemplate,
+    ]);
+
+    // Act
+    render(
+      <Suspense fallback={<div>loading</div>}>
+        <FormTemplatesList
+          templatesPromise={fulfilledPromise(listResult)}
+          canCreateForms={false}
+        />
+      </Suspense>,
+    );
+
+    // Assert
+    expect(await screen.findByText("template-card")).toBeDefined();
+    expect(screen.queryByText("template-card-with-use")).toBeNull();
   });
 });

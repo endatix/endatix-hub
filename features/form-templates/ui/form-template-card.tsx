@@ -45,6 +45,8 @@ type FormTemplateCardProps = Omit<
   isSelected: boolean;
   onPreviewClick?: (templateId: string) => void;
   requireFolderAssignment?: boolean;
+  /** Shows Use Template only to users who hold forms.create. */
+  canCreateForms: boolean;
 };
 
 const FormTemplateCard = ({
@@ -52,6 +54,7 @@ const FormTemplateCard = ({
   isSelected,
   onPreviewClick,
   requireFolderAssignment = false,
+  canCreateForms,
   className,
   onOpen,
   ...props
@@ -137,30 +140,32 @@ const FormTemplateCard = ({
               <Eye className="size-4 shrink-0" />
               Preview
             </button>
-            <button
-              type="button"
-              onClick={handleUseTemplate}
-              disabled={isPending || requireFolderAssignment}
-              title={
-                requireFolderAssignment
-                  ? "Folder selection is required. Use Create a Form."
-                  : undefined
-              }
-              className={cn(
-                "inline-flex shrink-0 cursor-pointer items-center gap-1.5 border-none bg-transparent p-0 text-sm leading-none whitespace-nowrap text-muted-foreground hover:text-foreground",
-                (isPending || requireFolderAssignment) &&
-                  "cursor-not-allowed opacity-50",
-              )}
-            >
-              {isPending ? (
-                <Loader2 className="size-4 shrink-0 animate-spin" />
-              ) : (
-                <FilePlus2 className="size-4 shrink-0" />
-              )}
-              <span className="whitespace-nowrap">
-                {isPending ? "Creating..." : "Use Template"}
-              </span>
-            </button>
+            {canCreateForms ? (
+              <button
+                type="button"
+                onClick={handleUseTemplate}
+                disabled={isPending || requireFolderAssignment}
+                title={
+                  requireFolderAssignment
+                    ? "Folder selection is required. Use Create a Form."
+                    : undefined
+                }
+                className={cn(
+                  "inline-flex shrink-0 cursor-pointer items-center gap-1.5 border-none bg-transparent p-0 text-sm leading-none whitespace-nowrap text-muted-foreground hover:text-foreground",
+                  (isPending || requireFolderAssignment) &&
+                    "cursor-not-allowed opacity-50",
+                )}
+              >
+                {isPending ? (
+                  <Loader2 className="size-4 shrink-0 animate-spin" />
+                ) : (
+                  <FilePlus2 className="size-4 shrink-0" />
+                )}
+                <span className="whitespace-nowrap">
+                  {isPending ? "Creating..." : "Use Template"}
+                </span>
+              </button>
+            ) : null}
           </div>
           <div className="relative flex h-full shrink-0 items-center opacity-0 transition-opacity group-hover:opacity-100">
             <DropdownMenu

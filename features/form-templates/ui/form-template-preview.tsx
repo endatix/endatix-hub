@@ -21,7 +21,7 @@ import { useMediaQuery } from "@/lib/utils/hooks/use-media-query.hook";
 import { cn } from "@/lib/utils";
 import { FormTemplate } from "@/types";
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import { type ComponentType, type ReactNode, useEffect, useState } from "react";
 import { getTemplateAction } from "../application/get-template.action";
 import { UseTemplateButton } from "./use-template-button";
 import { getCustomQuestionsAction } from "@/features/forms/application/actions/get-custom-questions.action";
@@ -61,6 +61,8 @@ interface FormTemplatePreviewProps {
   onOpenChange: (open: boolean) => void;
   templateId: string;
   requireFolderAssignment?: boolean;
+  /** Shows Use Template only to users who hold forms.create. */
+  canCreateForms: boolean;
 }
 
 export function FormTemplatePreview({
@@ -68,6 +70,7 @@ export function FormTemplatePreview({
   onOpenChange,
   templateId,
   requireFolderAssignment = false,
+  canCreateForms,
 }: FormTemplatePreviewProps) {
   const [template, setTemplate] = useState<FormTemplate | null>(null);
   const [loading, setLoading] = useState(true);
@@ -144,12 +147,12 @@ export function FormTemplatePreview({
                 : `Showing template ${template?.name} in read-only mode`}
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
-            <UseTemplateButton
-              template={template}
-              requireFolderAssignment={requireFolderAssignment}
-            />
-          </DialogFooter>
+          <UseTemplateFooter
+            footer={DialogFooter}
+            canCreateForms={canCreateForms}
+            template={template}
+            requireFolderAssignment={requireFolderAssignment}
+          />
           {PreviewContent}
         </DialogContent>
       </Dialog>
@@ -170,13 +173,41 @@ export function FormTemplatePreview({
           </DrawerDescription>
         </DrawerHeader>
         <div className="overflow-y-auto">{PreviewContent}</div>
-        <DrawerFooter>
-          <UseTemplateButton
-            template={template}
-            requireFolderAssignment={requireFolderAssignment}
-          />
-        </DrawerFooter>
+        <UseTemplateFooter
+          footer={DrawerFooter}
+          canCreateForms={canCreateForms}
+          template={template}
+          requireFolderAssignment={requireFolderAssignment}
+        />
       </DrawerContent>
     </Drawer>
+  );
+}
+
+interface UseTemplateFooterProps {
+  footer: ComponentType<{ children: ReactNode }>;
+  canCreateForms: boolean;
+  template: FormTemplate | null;
+  requireFolderAssignment: boolean;
+}
+
+/** The preview's Use Template footer, rendered only for users who hold forms.create. */
+function UseTemplateFooter({
+  footer: Footer,
+  canCreateForms,
+  template,
+  requireFolderAssignment,
+}: Readonly<UseTemplateFooterProps>) {
+  if (!canCreateForms) {
+    return null;
+  }
+
+  return (
+    <Footer>
+      <UseTemplateButton
+        template={template}
+        requireFolderAssignment={requireFolderAssignment}
+      />
+    </Footer>
   );
 }

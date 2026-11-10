@@ -252,6 +252,8 @@ export function CreateFormSheet({
           open={isPreviewOpen}
           onOpenChange={setIsPreviewOpen}
           templateId={previewTemplateId}
+          // The sheet renders only for users who hold forms.create (FormsHeaderCreateActions).
+          canCreateForms
         />
       ) : null}
     </ResponsivePanel>
