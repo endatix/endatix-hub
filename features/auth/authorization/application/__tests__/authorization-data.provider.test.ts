@@ -11,23 +11,34 @@ const telemetryLoggerMock = vi.hoisted(() => ({
   warn: vi.fn(),
 }));
 
-// React's cache() memoizes only under the react-server condition. Mimic it with a
-// store that a test clears to start a new server request.
-const requestCacheStore = vi.hoisted(() => new Map<string, unknown>());
-const startNewRequest = () => requestCacheStore.clear();
+// React's cache() memoizes only inside a server-component render. Mimic that: inside a
+// render each cached function keeps one entry per argument list until the next request;
+// outside one (route handlers, server actions) it calls straight through.
+const reactCache = vi.hoisted(() => ({
+  inRender: true,
+  stores: new Map<unknown, Map<string, unknown>>(),
+}));
+const startNewRequest = () => reactCache.stores.clear();
+const runOutsideRender = () => {
+  reactCache.inRender = false;
+};
 
 vi.mock("react", async (importOriginal) => {
   const actual = await importOriginal<typeof import("react")>();
   return {
     ...actual,
     cache: <A extends unknown[], R>(fn: (...args: A) => R) => {
-      const scope = Symbol("cached-function");
       return (...args: A): R => {
-        const key = `${String(scope)}:${JSON.stringify(args)}`;
-        if (!requestCacheStore.has(key)) {
-          requestCacheStore.set(key, fn(...args));
+        if (!reactCache.inRender) {
+          return fn(...args);
         }
-        return requestCacheStore.get(key) as R;
+        const store = reactCache.stores.get(fn) ?? new Map<string, unknown>();
+        reactCache.stores.set(fn, store);
+        const key = JSON.stringify(args);
+        if (!store.has(key)) {
+          store.set(key, fn(...args));
+        }
+        return store.get(key) as R;
       };
     },
   };
@@ -82,6 +93,7 @@ describe("getAuthDataForCurrentUser", () => {
   };
 
   beforeEach(() => {
+    reactCache.inRender = true;
     startNewRequest();
   });
 
@@ -323,6 +335,23 @@ describe("getAuthDataForCurrentUser", () => {
     ]);
 
     expect(results.every((result) => result.success)).toBe(true);
+    expect(getAuthorizationData).toHaveBeenCalledTimes(1);
+  });
+
+  it("fetches once per authorization service outside a render, as in a route handler or server action", async () => {
+    runOutsideRender();
+    const { EndatixApi } = await import("@/lib/endatix-api");
+    const getAuthorizationData = vi.fn().mockResolvedValue({
+      success: true,
+      data: mockAuthorizationData,
+    });
+    vi.mocked(EndatixApi).mockImplementation(function () {
+      return { auth: { getAuthorizationData } } as unknown as EndatixApi;
+    });
+
+    const getAuthData = getAuthDataForCurrentUser(mockSession);
+    await Promise.all([getAuthData(), getAuthData(), getAuthData()]);
+
     expect(getAuthorizationData).toHaveBeenCalledTimes(1);
   });
 

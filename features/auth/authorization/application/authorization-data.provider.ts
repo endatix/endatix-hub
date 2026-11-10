@@ -24,9 +24,11 @@ const ExpectedAuthorizationApiErrorTypes = new Set<ApiErrorType>([
 ]);
 
 /**
- * Reads the user's authorization data from the API once per server request.
+ * Reads the user's authorization data from the API once per server-component render.
  * Nothing is kept across requests, so a role change shows on the next page load;
  * the API caches `/auth/me` per access version, which a role change moves.
+ * cache() does not memoize in route handlers and server actions; the read shared by
+ * one authorization service (getAuthDataForCurrentUser) covers those.
  */
 const fetchAuthorizationData = cache(async function fetchAuthorizationData(
   accessToken: string,
@@ -80,45 +82,51 @@ const fetchAuthorizationData = cache(async function fetchAuthorizationData(
  * @returns A function that gets authorization data for the current user
  */
 export function getAuthDataForCurrentUser(session: Session | null) {
-  return async (): Promise<GetAuthDataResult> => {
-    try {
-      const isLoggedIn = !!session;
-      if (!isLoggedIn) {
-        return AuthorizationResult.unauthenticated();
-      }
+  let authData: Promise<GetAuthDataResult> | undefined;
+  return (): Promise<GetAuthDataResult> =>
+    (authData ??= resolveAuthorizationData(session));
+}
 
-      const { user, accessToken } = session;
-      if (!user?.id || !accessToken || session.error) {
-        return AuthorizationResult.unauthenticated();
-      }
+async function resolveAuthorizationData(
+  session: Session | null,
+): Promise<GetAuthDataResult> {
+  try {
+    const isLoggedIn = !!session;
+    if (!isLoggedIn) {
+      return AuthorizationResult.unauthenticated();
+    }
 
-      const authorizationDataResult = await fetchAuthorizationData(accessToken);
+    const { user, accessToken } = session;
+    if (!user?.id || !accessToken || session.error) {
+      return AuthorizationResult.unauthenticated();
+    }
 
-      if (
-        !authorizationDataResult.success &&
-        authorizationDataResult.error.type ===
-          AuthorizationErrorType.InvalidTokenError
-      ) {
-        TelemetryLogger.warn(
-          "Authorization data rejected invalid token",
-          {
-            provider: session.provider,
-          },
-          LOGGER_NAME,
-        );
-      }
+    const authorizationDataResult = await fetchAuthorizationData(accessToken);
 
-      return authorizationDataResult;
-    } catch (error) {
-      TelemetryLogger.error(
-        "Authorization data resolution failed",
-        error,
-        {},
+    if (
+      !authorizationDataResult.success &&
+      authorizationDataResult.error.type ===
+        AuthorizationErrorType.InvalidTokenError
+    ) {
+      TelemetryLogger.warn(
+        "Authorization data rejected invalid token",
+        {
+          provider: session.provider,
+        },
         LOGGER_NAME,
       );
-      return AuthorizationResult.error();
     }
-  };
+
+    return authorizationDataResult;
+  } catch (error) {
+    TelemetryLogger.error(
+      "Authorization data resolution failed",
+      error,
+      {},
+      LOGGER_NAME,
+    );
+    return AuthorizationResult.error();
+  }
 }
 
 function shouldLogAuthorizationApiError(apiError: ApiError): boolean {
