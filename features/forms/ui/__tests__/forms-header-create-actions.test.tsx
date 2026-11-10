@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { auth } from "@/auth";
 import { authorization, Permissions } from "@/features/auth/authorization";
@@ -15,17 +17,17 @@ vi.mock("@/features/auth/authorization", async (importOriginal) => {
 });
 
 vi.mock("@/features/forms/use-cases/create-form", () => ({
-  CreateFormSheet: () => null,
+  CreateFormSheet: () => <button type="button">Create a form</button>,
 }));
 
 vi.mock("@/features/asset-storage/server", () => ({
-  AssetStorageProvider: () => null,
+  AssetStorageProvider: ({ children }: { children: ReactNode }) => children,
 }));
 
 vi.mock(
   "@/features/forms/use-cases/design-form/form-assistant.context",
   () => ({
-    FormAssistantProvider: () => null,
+    FormAssistantProvider: ({ children }: { children: ReactNode }) => children,
   }),
 );
 
@@ -61,9 +63,9 @@ describe("FormsHeaderCreateActions", () => {
     checkPermission.mockResolvedValue(AuthorizationResult.success());
 
     // Act
-    const element = await FormsHeaderCreateActions(props);
+    render(await FormsHeaderCreateActions(props));
 
     // Assert
-    expect(element).not.toBeNull();
+    expect(screen.getByRole("button", { name: "Create a form" })).toBeDefined();
   });
 });

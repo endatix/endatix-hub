@@ -31,7 +31,9 @@ export async function createFormAction(
     const rawData = extractFormData(formData);
 
     const endatix = new EndatixApi(session?.accessToken);
-    const folderIdRaw = formData.get("folderId")?.toString().trim() ?? "";
+    const folderIdValue = formData.get("folderId");
+    const folderIdRaw =
+      typeof folderIdValue === "string" ? folderIdValue.trim() : "";
 
     const initialFormRequest = {
       name: rawData.name,

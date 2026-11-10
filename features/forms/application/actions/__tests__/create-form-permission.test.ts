@@ -125,13 +125,13 @@ describe("create form actions without forms.create", () => {
 });
 
 describe("create form wizard with forms.create", () => {
-  it("creates the form through the API", async () => {
-    // Arrange
-    const apiCreate = vi.fn().mockResolvedValue({
-      success: true,
-      data: { id: "form-1" },
-    });
-    const requirePermission = vi.fn().mockResolvedValue(undefined);
+  const apiCreate = vi.fn();
+  const requirePermission = vi.fn();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    apiCreate.mockResolvedValue({ success: true, data: { id: "form-1" } });
+    requirePermission.mockResolvedValue(undefined);
     vi.mocked(auth).mockResolvedValue({ accessToken: "token" } as never);
     vi.mocked(authorization).mockResolvedValue({
       requireHubAccess: vi.fn().mockResolvedValue(undefined),
@@ -140,6 +140,10 @@ describe("create form wizard with forms.create", () => {
     vi.mocked(EndatixApi).mockImplementation(function () {
       return { forms: { create: apiCreate } } as never;
     });
+  });
+
+  it("creates the form through the API", async () => {
+    // Arrange
     const formData = new FormData();
     formData.set("name", "Form");
 
@@ -153,5 +157,24 @@ describe("create form wizard with forms.create", () => {
     expect(requirePermission).toHaveBeenCalledWith(Permissions.Forms.Create);
     expect(apiCreate).toHaveBeenCalledOnce();
     expect(result).toEqual({ isSuccess: true, formId: "form-1" });
+  });
+
+  it("ignores a folderId that is not text", async () => {
+    // Arrange
+    const formData = new FormData();
+    formData.set("name", "Form");
+    formData.set("folderId", new File(["x"], "folder.txt"));
+
+    // Act
+    const result = await createFormFromWizardAction(
+      { isSuccess: false },
+      formData,
+    );
+
+    // Assert
+    expect(result).toEqual({ isSuccess: true, formId: "form-1" });
+    expect(apiCreate).toHaveBeenCalledWith(
+      expect.not.objectContaining({ folderId: expect.anything() }),
+    );
   });
 });

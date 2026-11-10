@@ -14,10 +14,9 @@ export default async function FormTemplatesPage() {
   const session = await auth();
   const { requireHubAccess, checkPermission } = await authorization(session);
   await requireHubAccess();
+  const headerDataPromise = getFormsHeaderDataCached(session?.accessToken);
   const canCreateForms = (await checkPermission(Permissions.Forms.Create))
     .success;
-
-  const headerDataPromise = getFormsHeaderDataCached(session?.accessToken);
 
   return (
     <>
