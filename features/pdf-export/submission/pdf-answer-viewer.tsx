@@ -88,15 +88,6 @@ const PdfAnswerViewer = ({
     </View>
   );
 
-  const renderRatingAnswer = () => (
-    <View style={VIEWER_STYLES.answerContainer} break={pageBreak}>
-      {renderTitle()}
-      <Text style={VIEWER_STYLES.answerText}>
-        {pdfPlainText(forQuestion.value) || "No Answer"}
-      </Text>
-    </View>
-  );
-
   const renderSliderAnswer = () => (
     <View style={VIEWER_STYLES.answerContainer} break={pageBreak}>
       {renderTitle()}
@@ -127,15 +118,6 @@ const PdfAnswerViewer = ({
 
   const renderDropdownAnswer = () =>
     renderSingleChoiceAnswer(forQuestion as QuestionDropdownModel);
-
-  const renderCommentAnswer = () => (
-    <View style={VIEWER_STYLES.answerContainer} break={pageBreak}>
-      {renderTitle()}
-      <Text style={VIEWER_STYLES.answerText}>
-        {pdfPlainText(forQuestion.value) || "No Answer"}
-      </Text>
-    </View>
-  );
 
   const renderTagBoxAnswer = () => (
     <View style={VIEWER_STYLES.answerContainer} wrap={false}>
@@ -254,11 +236,11 @@ const PdfAnswerViewer = ({
 
   switch (questionType) {
     case QuestionType.Text:
+    case QuestionType.Rating:
+    case QuestionType.Comment:
       return renderTextAnswer();
     case QuestionType.Boolean:
       return renderBooleanAnswer();
-    case QuestionType.Rating:
-      return renderRatingAnswer();
     case QuestionType.Slider:
       return renderSliderAnswer();
     case QuestionType.Radiogroup:
@@ -267,8 +249,6 @@ const PdfAnswerViewer = ({
       return renderDropdownAnswer();
     case QuestionType.Matrix:
       return renderMatrixAnswer();
-    case QuestionType.Comment:
-      return renderCommentAnswer();
     case QuestionType.File:
     case QuestionType.AudioRecorder:
       return renderFileAnswer();

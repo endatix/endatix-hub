@@ -18,6 +18,7 @@ function cssColor(value: string): string {
 const {
   mockSubmitPublicForm,
   mockEnqueueSubmission,
+  mockUseRecordOpen,
   mockClearQueue,
   mockWaitForInFlightPartial,
   mockUseSurveyModel,
@@ -28,6 +29,7 @@ const {
 } = vi.hoisted(() => ({
   mockSubmitPublicForm: vi.fn(),
   mockEnqueueSubmission: vi.fn(),
+  mockUseRecordOpen: vi.fn(),
   mockClearQueue: vi.fn().mockImplementation(() => {
     // This will be called synchronously, so we can add logging if needed
   }),
@@ -55,6 +57,7 @@ vi.mock("@/features/public-form/application/submit-public-form", () => ({
 
 vi.mock("../../application/submission-queue", () => {
   return {
+    useRecordOpen: mockUseRecordOpen,
     useSubmissionQueue: vi.fn(() => ({
       enqueueSubmission: mockEnqueueSubmission,
       clearQueue: mockClearQueue,
@@ -233,6 +236,44 @@ function renderSurveyComponent(
     </FormRuntimeProvider>,
   );
 }
+
+describe("SurveyComponent - open", () => {
+  beforeEach(() => {
+    mockUseRecordOpen.mockClear();
+    mockUseSurveyModel.mockImplementation(() => ({
+      surveyModel: new SurveyModel(defaultProps.definition),
+      isLoading: false,
+      error: null,
+    }));
+  });
+
+  it("records a real respondent's open, though the wrapper passes a test view", () => {
+    renderSurveyComponent({
+      testSubmission: { renderCorner: () => null },
+    } as never);
+
+    expect(mockUseRecordOpen).toHaveBeenCalledWith(
+      expect.objectContaining({
+        formId: defaultProps.formId,
+        isReady: true,
+      }),
+    );
+  });
+
+  it("holds the open while the survey model failed to load", () => {
+    mockUseSurveyModel.mockImplementation(() => ({
+      surveyModel: null,
+      isLoading: false,
+      error: "Failed to load",
+    }));
+
+    renderSurveyComponent();
+
+    expect(mockUseRecordOpen).toHaveBeenLastCalledWith(
+      expect.objectContaining({ isReady: false }),
+    );
+  });
+});
 
 describe("SurveyComponent - submissionUpdateGuard Behavior", () => {
   let realSurveyModel: SurveyModel;

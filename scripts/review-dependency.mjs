@@ -89,11 +89,12 @@ const idsSince = (from) =>
 
 function fmtIds(ids) {
   const parts = [];
-  for (let i = 0; i < ids.length; i++) {
+  let i = 0;
+  while (i < ids.length) {
     let j = i;
     while (j + 1 < ids.length && ids[j + 1] === ids[j] + 1) j++;
     parts.push(j > i ? `#${ids[i]}-#${ids[j]}` : `#${ids[i]}`);
-    i = j;
+    i = j + 1;
   }
   return parts.join(", ");
 }

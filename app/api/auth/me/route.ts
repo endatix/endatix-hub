@@ -56,7 +56,6 @@ function toHttpError(result: GetAuthDataResult): NextResponse {
       errorMessage = result.error.message;
       break;
     case AuthorizationErrorType.ServerError:
-      statusCode = 500;
       errorMessage = result.error.message;
       break;
     default:
