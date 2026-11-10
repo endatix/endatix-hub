@@ -95,7 +95,7 @@ function AudienceMenuItem({ formId }: Readonly<{ formId: string }>) {
   );
 }
 
-/** Not prefetched: the route's metadata checks Hub access, one `/auth/me` call per card. */
+/** Not prefetched: each prefetch would run the route's metadata, which loads the form and checks Hub access. */
 function SubmissionsLink({
   formId,
   submissionsCount,
