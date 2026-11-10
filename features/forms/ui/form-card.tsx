@@ -203,6 +203,7 @@ const FormCard = ({
                   ? `/forms/${form.id}/submissions`
                   : "/",
               }}
+              prefetch={false}
               className={cn(
                 "inline-flex shrink-0 items-center gap-1.5 text-sm leading-none whitespace-nowrap text-muted-foreground",
                 form?.submissionsCount
