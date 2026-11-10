@@ -1,6 +1,7 @@
 import { NextAuthConfig } from "next-auth";
 import { AuthProviderRegistry } from "./auth-provider-registry";
 import { AuthPresentation } from "./types";
+import { invalidateUserAuthorizationCache } from "../authorization/application/authorization-data.provider";
 import { configuredSecureCookies, readAuthPublicUrl } from "./session-utils";
 
 // Safe margin in seconds to expire session before actual expiration
@@ -34,6 +35,11 @@ export function createAuthConfig(
         if (!provider) {
           console.warn(`No auth provider found for: ${providerId}`);
           return token;
+        }
+
+        const userId = user?.id as string;
+        if (userId) {
+          invalidateUserAuthorizationCache({ userId });
         }
 
         const jwtToken = await provider.handleJWT({

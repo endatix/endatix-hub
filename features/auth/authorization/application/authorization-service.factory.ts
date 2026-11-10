@@ -22,6 +22,7 @@ import { IAuthorizationService } from "../domain/authorization-service";
 
 /**
  * Factory function to create the Permission Service
+ * Note that it is not Edge Runtime compatible due to unstable_cache usage, so don't use with Middleware
  * @param session The session return from `await auth()`
  * @returns
  */

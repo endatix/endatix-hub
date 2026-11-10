@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { Session } from "next-auth";
-import { getAuthDataForCurrentUser } from "../authorization-data.provider";
+import {
+  getAuthDataForCurrentUser,
+  invalidateUserAuthorizationCache,
+} from "../authorization-data.provider";
 import type { AuthorizationData } from "@/lib/endatix-api/auth/types";
 import { ApiErrorType, EndatixApi, ERROR_CODE } from "@/lib/endatix-api";
 import { SessionError } from "@/auth";
@@ -11,38 +14,27 @@ const telemetryLoggerMock = vi.hoisted(() => ({
   warn: vi.fn(),
 }));
 
-// React's cache() memoizes only inside a server-component render. Mimic that: inside a
-// render each cached function keeps one entry per argument list until the next request;
-// outside one (route handlers, server actions) it calls straight through.
-const reactCache = vi.hoisted(() => ({
-  inRender: true,
-  stores: new Map<unknown, Map<string, unknown>>(),
-}));
-const startNewRequest = () => reactCache.stores.clear();
-const runOutsideRender = () => {
-  reactCache.inRender = false;
-};
+const unstableCacheStore = vi.hoisted(() => new Map<string, unknown>());
 
-vi.mock("react", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("react")>();
-  return {
-    ...actual,
-    cache: <A extends unknown[], R>(fn: (...args: A) => R) => {
-      return (...args: A): R => {
-        if (!reactCache.inRender) {
-          return fn(...args);
+// Mock next/cache with a store that mimics persisting successful return values only.
+vi.mock("next/cache", () => ({
+  unstable_cache: vi.fn(
+    (fn: () => Promise<unknown>, keyParts?: readonly unknown[]) => {
+      const cacheKey = JSON.stringify(keyParts ?? []);
+
+      return async () => {
+        if (unstableCacheStore.has(cacheKey)) {
+          return unstableCacheStore.get(cacheKey);
         }
-        const store = reactCache.stores.get(fn) ?? new Map<string, unknown>();
-        reactCache.stores.set(fn, store);
-        const key = JSON.stringify(args);
-        if (!store.has(key)) {
-          store.set(key, fn(...args));
-        }
-        return store.get(key) as R;
+
+        const result = await fn();
+        unstableCacheStore.set(cacheKey, result);
+        return result;
       };
     },
-  };
-});
+  ),
+  revalidateTag: vi.fn(),
+}));
 
 vi.mock("@/features/telemetry", () => ({
   TelemetryLogger: {
@@ -93,8 +85,7 @@ describe("getAuthDataForCurrentUser", () => {
   };
 
   beforeEach(() => {
-    reactCache.inRender = true;
-    startNewRequest();
+    unstableCacheStore.clear();
   });
 
   it("should return unauthenticated when session is null", async () => {
@@ -296,7 +287,7 @@ describe("getAuthDataForCurrentUser", () => {
     );
   });
 
-  it("retries on the next request after a failed fetch", async () => {
+  it("should not cache network errors and should retry on subsequent calls", async () => {
     const { EndatixApi } = await import("@/lib/endatix-api");
     const getAuthorizationData = vi
       .fn()
@@ -305,80 +296,50 @@ describe("getAuthDataForCurrentUser", () => {
         success: true,
         data: mockAuthorizationData,
       });
+    const mockApiInstance = {
+      auth: {
+        getAuthorizationData,
+      },
+    };
+
     vi.mocked(EndatixApi).mockImplementation(function () {
-      return { auth: { getAuthorizationData } } as unknown as EndatixApi;
+      return mockApiInstance as unknown as EndatixApi;
     });
 
-    const firstResult = await getAuthDataForCurrentUser(mockSession)();
-    startNewRequest();
-    const secondResult = await getAuthDataForCurrentUser(mockSession)();
+    const getAuthData = getAuthDataForCurrentUser(mockSession);
+    const firstResult = await getAuthData();
+    const secondResult = await getAuthData();
 
     expect(firstResult.success).toBe(false);
     expect(secondResult.success).toBe(true);
     expect(getAuthorizationData).toHaveBeenCalledTimes(2);
+    expect(unstableCacheStore.size).toBe(1);
   });
 
-  it("fetches authorization data once per request however many checks read it", async () => {
+  it("should cache successful authorization data", async () => {
     const { EndatixApi } = await import("@/lib/endatix-api");
     const getAuthorizationData = vi.fn().mockResolvedValue({
       success: true,
       data: mockAuthorizationData,
     });
+    const mockApiInstance = {
+      auth: {
+        getAuthorizationData,
+      },
+    };
+
     vi.mocked(EndatixApi).mockImplementation(function () {
-      return { auth: { getAuthorizationData } } as unknown as EndatixApi;
-    });
-
-    const results = await Promise.all([
-      getAuthDataForCurrentUser(mockSession)(),
-      getAuthDataForCurrentUser(mockSession)(),
-      getAuthDataForCurrentUser(mockSession)(),
-    ]);
-
-    expect(results.every((result) => result.success)).toBe(true);
-    expect(getAuthorizationData).toHaveBeenCalledTimes(1);
-  });
-
-  it("fetches once per authorization service outside a render, as in a route handler or server action", async () => {
-    runOutsideRender();
-    const { EndatixApi } = await import("@/lib/endatix-api");
-    const getAuthorizationData = vi.fn().mockResolvedValue({
-      success: true,
-      data: mockAuthorizationData,
-    });
-    vi.mocked(EndatixApi).mockImplementation(function () {
-      return { auth: { getAuthorizationData } } as unknown as EndatixApi;
+      return mockApiInstance as unknown as EndatixApi;
     });
 
     const getAuthData = getAuthDataForCurrentUser(mockSession);
-    await Promise.all([getAuthData(), getAuthData(), getAuthData()]);
+    const firstResult = await getAuthData();
+    const secondResult = await getAuthData();
 
+    expect(firstResult.success).toBe(true);
+    expect(secondResult.success).toBe(true);
     expect(getAuthorizationData).toHaveBeenCalledTimes(1);
-  });
-
-  it("shows a role change on the next request", async () => {
-    const { EndatixApi } = await import("@/lib/endatix-api");
-    const withoutCreate: AuthorizationData = {
-      ...mockAuthorizationData,
-      roles: ["Viewer"],
-      permissions: ["forms.read"],
-      isAdmin: false,
-    };
-    const getAuthorizationData = vi
-      .fn()
-      .mockResolvedValueOnce({ success: true, data: mockAuthorizationData })
-      .mockResolvedValueOnce({ success: true, data: withoutCreate });
-    vi.mocked(EndatixApi).mockImplementation(function () {
-      return { auth: { getAuthorizationData } } as unknown as EndatixApi;
-    });
-
-    const before = await getAuthDataForCurrentUser(mockSession)();
-    startNewRequest();
-    const after = await getAuthDataForCurrentUser(mockSession)();
-
-    expect(before.success && before.data.permissions).toContain("forms.create");
-    expect(after.success && after.data.permissions).not.toContain(
-      "forms.create",
-    );
+    expect(unstableCacheStore.size).toBe(1);
   });
 
   it("should use correct userId and accessToken for API call", async () => {
@@ -401,5 +362,59 @@ describe("getAuthDataForCurrentUser", () => {
 
     expect(EndatixApi).toHaveBeenCalledWith("test-access-token");
     expect(mockApiInstance.auth.getAuthorizationData).toHaveBeenCalled();
+  });
+});
+
+describe("invalidateUserAuthorizationCache", () => {
+  it("should invalidate cache for single userId", async () => {
+    const { revalidateTag } = await import("next/cache");
+
+    invalidateUserAuthorizationCache({ userId: "user-123" });
+
+    expect(revalidateTag).toHaveBeenCalledWith("usr_prms:user-123", "max");
+  });
+
+  it("should invalidate cache for multiple userIds", async () => {
+    const { revalidateTag } = await import("next/cache");
+
+    invalidateUserAuthorizationCache({
+      userIds: ["user-1", "user-2", "user-3"],
+    });
+
+    expect(revalidateTag).toHaveBeenCalledTimes(3);
+    expect(revalidateTag).toHaveBeenCalledWith("usr_prms:user-1", "max");
+    expect(revalidateTag).toHaveBeenCalledWith("usr_prms:user-2", "max");
+    expect(revalidateTag).toHaveBeenCalledWith("usr_prms:user-3", "max");
+  });
+
+  it("should invalidate all user caches when allUsers is true", async () => {
+    const { revalidateTag } = await import("next/cache");
+
+    invalidateUserAuthorizationCache({ allUsers: true });
+
+    expect(revalidateTag).toHaveBeenCalledWith("usr_prms_all", "max");
+  });
+
+  it("should handle multiple invalidation options", async () => {
+    const { revalidateTag } = await import("next/cache");
+
+    invalidateUserAuthorizationCache({
+      userId: "user-123",
+      userIds: ["user-456", "user-789"],
+      allUsers: true,
+    });
+
+    expect(revalidateTag).toHaveBeenCalledWith("usr_prms:user-123", "max");
+    expect(revalidateTag).toHaveBeenCalledWith("usr_prms:user-456", "max");
+    expect(revalidateTag).toHaveBeenCalledWith("usr_prms:user-789", "max");
+    expect(revalidateTag).toHaveBeenCalledWith("usr_prms_all", "max");
+  });
+
+  it("should handle empty options", async () => {
+    const { revalidateTag } = await import("next/cache");
+
+    invalidateUserAuthorizationCache({});
+
+    expect(revalidateTag).not.toHaveBeenCalled();
   });
 });

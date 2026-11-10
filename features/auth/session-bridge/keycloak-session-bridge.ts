@@ -10,6 +10,7 @@ import { encode } from "next-auth/jwt";
 import { flattenFieldErrors, parseZodError } from "@/lib/utils/zod-error-utils";
 import { authConfig } from "@/auth";
 import { KEYCLOAK_ID } from "../infrastructure/providers";
+import { invalidateUserAuthorizationCache } from "../authorization/application/authorization-data.provider";
 
 const SERVER_ERROR_TITLE = "Session bridge server error";
 
@@ -66,6 +67,8 @@ export async function createSessionFromToken(
       secret: authConfig.secret!,
       salt: sessionCookieName,
     });
+
+    invalidateUserAuthorizationCache({ userId: token.id });
 
     // 5. Create session cookies
     const response = NextResponse.json({

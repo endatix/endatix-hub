@@ -6,6 +6,9 @@ import type { KeycloakTokenResponse } from "../types";
 
 vi.mock("next-auth/jwt", () => ({ encode: vi.fn() }));
 vi.mock("@/auth", () => ({ authConfig: { secret: "auth-secret" } }));
+vi.mock("../../authorization/application/authorization-data.provider", () => ({
+  invalidateUserAuthorizationCache: vi.fn(),
+}));
 
 const SECURE = "__Secure-authjs.session-token";
 const PLAIN = "authjs.session-token";
