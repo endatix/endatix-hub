@@ -75,8 +75,8 @@ It can be deployed to on-premise servers, cloud environments such as **Azure**, 
 ## Prerequisites
 
 - **pnpm 12** (minimum 10.34.5) - the package manager for this project. pnpm 12 is a native binary and needs no Node.js of its own; `pnpm --version` should print `12.x`.
-  - POSIX: `curl -fsSL https://get.pnpm.io/install.sh | env PNPM_VERSION=12.4.1 sh -`
-  - Windows PowerShell: `$env:PNPM_VERSION="12.4.1"; iwr https://get.pnpm.io/install.ps1 -UseBasicParsing | iex`
+  - POSIX: `curl -fsSL https://get.pnpm.io/install.sh | env PNPM_VERSION=12.18.0 sh -`
+  - Windows PowerShell: `$env:PNPM_VERSION="12.18.0"; iwr https://get.pnpm.io/install.ps1 -UseBasicParsing | iex`
   - Then `pnpm setup` once, so global binaries are on your PATH.
 - **nvm** - we recommend using nvm to manage node versions as this will help you install the correct version of node without having to manually change the node version in your system. Download nvm [here](https://github.com/nvm-sh/nvm)
 
