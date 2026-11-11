@@ -5,7 +5,7 @@ import { resolveDataListDisplayValues } from "./resolve-data-list-display-values
 import { searchDataListChoices } from "./search-data-lists/search-data-list-choices";
 
 /** The source the runtime deps carry, or the public form routes by default. */
-export function resolveDataListChoiceSource(
+export function dataListChoiceSource(
   deps: ExtensionRuntimeDeps,
 ): DataListChoiceSource {
   return (
@@ -18,10 +18,19 @@ export function resolveDataListChoiceSource(
   );
 }
 
-/** The public routes need a form runtime; a source from the deps does not. */
-export function canLoadDataListChoices(deps: ExtensionRuntimeDeps): boolean {
-  return (
-    deps.dataListChoices !== undefined ||
-    resolveFormRuntimeState(deps.getRuntimeState()) !== null
-  );
+/**
+ * {@link dataListChoiceSource}, or null when it cannot load yet: the public
+ * routes need a form runtime, a source from the deps does not.
+ */
+export function loadableDataListChoiceSource(
+  deps: ExtensionRuntimeDeps,
+): DataListChoiceSource | null {
+  if (
+    !deps.dataListChoices &&
+    !resolveFormRuntimeState(deps.getRuntimeState())
+  ) {
+    return null;
+  }
+
+  return dataListChoiceSource(deps);
 }

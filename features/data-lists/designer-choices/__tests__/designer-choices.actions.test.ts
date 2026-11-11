@@ -18,13 +18,11 @@ function item(value: string, label = value) {
 }
 
 function page(
-  pageNumber: number,
   items: ReturnType<typeof item>[],
-  totalRecords: number,
-  hasNextPage: boolean,
+  { totalRecords, hasNextPage }: { totalRecords: number; hasNextPage: boolean },
 ) {
   return ApiResult.success({
-    page: pageNumber,
+    page: 1,
     pageSize: 25,
     totalRecords,
     totalPages: Math.ceil(totalRecords / 25),
@@ -46,7 +44,9 @@ describe("searchDataListItemsAction", () => {
   });
 
   it("reads one staff items page when skip is a multiple of take", async () => {
-    mockListItems.mockResolvedValue(page(2, range(25, 25), 60, true));
+    mockListItems.mockResolvedValue(
+      page(range(25, 25), { totalRecords: 60, hasNextPage: true }),
+    );
 
     const result = await searchDataListItemsAction("42", {
       query: "york",
@@ -83,8 +83,8 @@ describe("searchDataListItemsAction", () => {
     mockListItems.mockImplementation(
       async (_id: string, request: { page: number }) =>
         request.page === 1
-          ? page(1, range(0, 25), 60, true)
-          : page(2, range(25, 25), 60, true),
+          ? page(range(0, 25), { totalRecords: 60, hasNextPage: true })
+          : page(range(25, 25), { totalRecords: 60, hasNextPage: true }),
     );
 
     const result = await searchDataListItemsAction("42", {
@@ -123,13 +123,14 @@ describe("resolveDataListItemLabelsAction", () => {
     mockListItems.mockImplementation(
       async (_id: string, request: { query: string }) =>
         request.query === "sofia"
-          ? page(
-              1,
-              [item("plovdiv", "sofia"), item("sofia", "Sofia")],
-              2,
-              false,
-            )
-          : page(1, [item("varna", "Varna")], 1, false),
+          ? page([item("plovdiv", "sofia"), item("sofia", "Sofia")], {
+              totalRecords: 2,
+              hasNextPage: false,
+            })
+          : page([item("varna", "Varna")], {
+              totalRecords: 1,
+              hasNextPage: false,
+            }),
     );
 
     const result = await resolveDataListItemLabelsAction(
@@ -160,7 +161,9 @@ describe("resolveDataListItemLabelsAction", () => {
   });
 
   it("skips a value the list does not hold", async () => {
-    mockListItems.mockResolvedValue(page(1, [], 0, false));
+    mockListItems.mockResolvedValue(
+      page([], { totalRecords: 0, hasNextPage: false }),
+    );
 
     const result = await resolveDataListItemLabelsAction("42", ["missing"]);
 

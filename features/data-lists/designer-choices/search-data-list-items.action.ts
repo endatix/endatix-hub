@@ -1,8 +1,10 @@
 "use server";
 
+import type { EndatixApi } from "@/lib/endatix-api";
+import type { DataListItemsPage } from "@/lib/endatix-api/data-lists/data-lists";
 import type {
-  DataListChoiceItem,
   DataListItem,
+  ListDataListItemsRequest,
 } from "@/lib/endatix-api/data-lists/types";
 import { Result } from "@/lib/result";
 import { toResult } from "@/lib/result/map-api-result-to-result";
@@ -16,9 +18,7 @@ const LIST_ITEMS_MAP_OPTIONS = {
   loggerName: "data-lists.designer-choices",
 } as const;
 
-function toChoiceItem(item: DataListItem): DataListChoiceItem {
-  return { value: item.value, labels: item.labels };
-}
+type PageResult = Result<DataListItemsPage>;
 
 /**
  * Reads a `skip`/`take` window of a data list through the staff items route
@@ -34,35 +34,47 @@ export async function searchDataListItemsAction(
   const { page, pageSize } = mapSkipTakeToPage(skip, take);
   const offset = Math.max(skip, 0) % pageSize;
   const api = await requireDataListsApi();
-
-  const readPage = async (pageNumber: number) =>
-    toResult(
-      await api.dataLists.listItems(dataListId, {
-        ...filters,
-        page: pageNumber,
-        pageSize,
-      }),
-      LIST_ITEMS_MAP_OPTIONS,
-    );
+  const readPage = (pageNumber: number) =>
+    readItemsPage(api, dataListId, { ...filters, page: pageNumber, pageSize });
 
   const first = await readPage(page);
-  if (Result.isError(first)) {
-    return first;
+  const readsNext =
+    Result.isSuccess(first) && offset > 0 && first.value.hasNextPage;
+  const next = readsNext ? await readPage(page + 1) : null;
+  return sliceWindow([first, next], offset, pageSize);
+}
+
+async function readItemsPage(
+  api: EndatixApi,
+  dataListId: string,
+  request: ListDataListItemsRequest,
+): Promise<PageResult> {
+  return toResult(
+    await api.dataLists.listItems(dataListId, request),
+    LIST_ITEMS_MAP_OPTIONS,
+  );
+}
+
+function sliceWindow(
+  pages: Array<PageResult | null>,
+  offset: number,
+  size: number,
+): Result<DataListItemsRange> {
+  const read = pages.filter((page): page is PageResult => page !== null);
+  const failure = read.find((page) => Result.isError(page));
+  if (failure || !Result.isSuccess(read[0])) {
+    return failure ?? read[0];
   }
 
-  const items = [...first.value.items];
-  if (offset > 0 && first.value.hasNextPage) {
-    const next = await readPage(page + 1);
-    if (Result.isError(next)) {
-      return next;
-    }
-    items.push(...next.value.items);
-  }
-
+  const items = read.flatMap((page) =>
+    Result.isSuccess(page) ? [...page.value.items] : [],
+  );
   return Result.success({
-    items: items
-      .slice(offset, offset + pageSize)
-      .map((item) => toChoiceItem(item)),
-    totalRecords: first.value.totalRecords,
+    items: items.slice(offset, offset + size).map((item) => toChoice(item)),
+    totalRecords: read[0].value.totalRecords,
   });
+}
+
+function toChoice({ value, labels }: DataListItem) {
+  return { value, labels };
 }
