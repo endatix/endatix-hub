@@ -6,7 +6,7 @@ FROM node:22-alpine AS base
 # npm `pnpm` package resolves linux-{x64,arm64}-musl here without running its own
 # install scripts. --ignore-scripts covers this npm install only; Hub's own
 # prebuild still runs under `pnpm run build` below.
-RUN npm install -g pnpm@12.4.1 --ignore-scripts
+RUN npm install -g pnpm@12.18.0 --ignore-scripts
 WORKDIR /app
 
 FROM base AS build
