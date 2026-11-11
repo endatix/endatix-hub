@@ -5,6 +5,7 @@ import { TelemetryLogger } from "@/features/telemetry";
 import { customQuestions } from "@/customizations/questions/question-registry";
 import { useStorageWithCreator } from "@/features/asset-storage/client";
 import { useSurveyLicenseKey } from "@/features/config/survey-license-provider";
+import { designerDataListChoiceSource } from "@/features/data-lists/designer-choices";
 import {
   DEFAULT_THEME_ID,
   ThemeDeleteDialog,
@@ -188,7 +189,10 @@ function FormEditor({
   const unbindCreatorRef = useRef<(() => void) | null>(null);
   const [creator, setCreator] = useState<SurveyCreator | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [bindAudience, findParticipantDialog] = useDesignerAudience(formId, audience);
+  const [bindAudience, findParticipantDialog] = useDesignerAudience(
+    formId,
+    audience,
+  );
 
   const {
     hasUnsavedChanges,
@@ -221,6 +225,7 @@ function FormEditor({
   const { isReady: isExtensionsReady, onCreatorCreated } = useSurveyExtensions({
     runtimeDeps: {
       getRuntimeState: () => designerRuntime.stateRef.current,
+      dataListChoices: designerDataListChoiceSource,
     },
   });
 

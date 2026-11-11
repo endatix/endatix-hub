@@ -107,4 +107,29 @@ describe("resolveMultiSourceDisplayValues", () => {
 
     consoleError.mockRestore();
   });
+
+  it("resolves data-list labels from the deps' choice source when one is set", async () => {
+    const survey = new SurveyModel({
+      elements: [{ type: "tagbox", name: "brands", edxDataListId: "42" }],
+    });
+    const resolveDisplayValues = vi
+      .fn()
+      .mockResolvedValue(
+        ApiResult.success(new Map([["b1", { default: "Brand 1" }]])),
+      );
+    const designerDeps: ExtensionRuntimeDeps = {
+      getRuntimeState: () => ({}),
+      dataListChoices: { searchChoices: vi.fn(), resolveDisplayValues },
+    };
+
+    const labels = await resolveMultiSourceDisplayValues(
+      designerDeps,
+      [survey.getQuestionByName("brands")!],
+      ["b1"],
+    );
+
+    expect(labels).toEqual(["brands: (Brand 1)"]);
+    expect(resolveDisplayValues).toHaveBeenCalledWith("42", ["b1"]);
+    expect(resolveDataListDisplayValues).not.toHaveBeenCalled();
+  });
 });

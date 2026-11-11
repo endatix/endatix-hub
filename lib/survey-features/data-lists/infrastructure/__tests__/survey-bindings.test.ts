@@ -3,6 +3,7 @@ import { Model, QuestionDropdownModel } from "survey-core";
 import { ApiResult } from "@/lib/endatix-api/shared/api-result";
 import { clearChoicesLazyLoadGuardsForTests } from "@/lib/survey-features/infrastructure/choices-lazy-load-guards";
 import { DATA_LIST_PROPERTY_NAME } from "../../constants";
+import type { DataListChoiceSource } from "../../types";
 import { clearDataListDisplayValuesCacheForTests } from "../../use-cases/resolve-data-list-display-values";
 import { registerDataListGlobals } from "../registry";
 import { bindDataListsToSurvey } from "../survey-bindings";
@@ -342,5 +343,86 @@ describe("bindDataListsToSurvey", () => {
       2,
       expect.objectContaining({ values: ["3117735", "2520493"] }),
     );
+  });
+
+  describe("with a designer choice source in the deps", () => {
+    function designerSource(): DataListChoiceSource {
+      return {
+        searchChoices: vi.fn().mockResolvedValue(
+          ApiResult.success({
+            items: [{ value: "sofia", text: { default: "Sofia" } }],
+            total: 1,
+          }),
+        ),
+        resolveDisplayValues: vi
+          .fn()
+          .mockResolvedValue(
+            ApiResult.success(new Map([["sofia", { default: "Sofia" }]])),
+          ),
+      };
+    }
+
+    function boundCityQuestion(dataListChoices: DataListChoiceSource) {
+      const model = new Model({
+        pages: [
+          {
+            elements: [
+              { type: "dropdown", name: "city", choicesLazyLoadEnabled: true },
+            ],
+          },
+        ],
+      });
+      const question = model.getQuestionByName("city") as QuestionDropdownModel;
+      question.setPropertyValue(DATA_LIST_PROPERTY_NAME, "42");
+      // No form runtime: an unsaved designer binding still previews.
+      bindDataListsToSurvey(model, {
+        deps: { getRuntimeState: () => ({}), dataListChoices },
+      });
+      return { model, question };
+    }
+
+    it("lazy-loads choices from the source and never the public routes", async () => {
+      const source = designerSource();
+      const { model, question } = boundCityQuestion(source);
+
+      const items = await new Promise<unknown[]>((resolve) => {
+        model.onChoicesLazyLoad.fire(model, {
+          question,
+          filter: "So",
+          skip: 0,
+          take: 25,
+          setItems: (loaded: unknown[]) => resolve(loaded),
+        });
+      });
+
+      expect(source.searchChoices).toHaveBeenCalledWith(
+        "42",
+        expect.objectContaining({ filter: "So", skip: 0, take: 25 }),
+      );
+      expect(items).toEqual([{ value: "sofia", text: { default: "Sofia" } }]);
+      expect(searchMock).not.toHaveBeenCalled();
+      expect(getDisplayValuesMock).not.toHaveBeenCalled();
+    });
+
+    it("resolves display values from the source and never the public routes", async () => {
+      const source = designerSource();
+      const { model, question } = boundCityQuestion(source);
+
+      await new Promise<void>((resolve) => {
+        void model.onGetChoiceDisplayValue.fire(model, {
+          question,
+          values: ["sofia"],
+          setItems: () => resolve(),
+        });
+      });
+
+      expect(source.resolveDisplayValues).toHaveBeenCalledWith(
+        "42",
+        ["sofia"],
+        expect.any(Object),
+      );
+      expect(searchMock).not.toHaveBeenCalled();
+      expect(getDisplayValuesMock).not.toHaveBeenCalled();
+    });
   });
 });

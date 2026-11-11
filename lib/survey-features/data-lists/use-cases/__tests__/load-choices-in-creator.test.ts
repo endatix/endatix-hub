@@ -517,4 +517,34 @@ describe("loadChoicesInCreator", () => {
       expect.objectContaining({ skip: 0, take: 24 }),
     );
   });
+
+  it("reads data-list sources from the deps' choice source when one is set", async () => {
+    const searchChoices = vi
+      .fn()
+      .mockResolvedValue(
+        ApiResult.success({ items: [{ value: "x", text: "X" }], total: 1 }),
+      );
+    const designerDeps: ExtensionRuntimeDeps = {
+      getRuntimeState: () => ({}),
+      dataListChoices: {
+        searchChoices,
+        resolveDisplayValues: vi.fn(),
+      },
+    };
+
+    const result = await loadChoicesInCreator(
+      designerDeps,
+      [{ sourceName: "cities", dataListId: "42" }],
+      [],
+      { skip: 0, take: 25 },
+      formatLabel,
+    );
+
+    expect(searchChoices).toHaveBeenCalledWith(
+      "42",
+      expect.objectContaining({ skip: 0, take: 25 }),
+    );
+    expect(searchDataListChoices).not.toHaveBeenCalled();
+    expect(result.items).toEqual([{ value: "x", text: "cities: (X)" }]);
+  });
 });

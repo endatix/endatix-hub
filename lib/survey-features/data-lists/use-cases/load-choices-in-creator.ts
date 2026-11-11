@@ -2,12 +2,15 @@ import { normalizeChoiceKey } from "@/lib/utils/survey";
 import type { ExtensionRuntimeDeps } from "@/lib/survey-extensions/types";
 import type {
   DataListChoiceItem,
+  DataListChoiceSource,
   DataListSourceRef,
   PropertyGridChoice,
 } from "../types";
-import { searchDataListChoices } from "./search-data-lists/search-data-list-choices";
+import { resolveDataListChoiceSource } from "./data-list-choice-source";
 
-type DataListSearchResult = Awaited<ReturnType<typeof searchDataListChoices>>;
+type DataListSearchResult = Awaited<
+  ReturnType<DataListChoiceSource["searchChoices"]>
+>;
 
 /**
  * Loads a paged choice list for Creator property-grid tagboxes that aggregate
@@ -97,11 +100,14 @@ async function fetchMergedDataListChoices(
       break;
     }
 
-    const response = await searchDataListChoices(deps, dataListId, {
-      filter: params.filter,
-      skip: remainingSkip,
-      take: remainingTake,
-    });
+    const response = await resolveDataListChoiceSource(deps).searchChoices(
+      dataListId,
+      {
+        filter: params.filter,
+        skip: remainingSkip,
+        take: remainingTake,
+      },
+    );
 
     const sourceTotal = resolveSourceTotal(response);
     if (sourceTotal !== null) {
@@ -170,7 +176,7 @@ async function probeDataListSourceTotal(
   dataListId: string,
   filter: string,
 ): Promise<DataListSearchResult> {
-  return searchDataListChoices(deps, dataListId, {
+  return resolveDataListChoiceSource(deps).searchChoices(dataListId, {
     filter,
     skip: 0,
     take: 1,

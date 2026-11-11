@@ -6,7 +6,7 @@ import {
   getDataListSourceRefs,
   getStaticChoicesFromSources,
 } from "../utils/property-grid-source-choices";
-import { resolveDataListDisplayValues } from "./resolve-data-list-display-values";
+import { resolveDataListChoiceSource } from "./data-list-choice-source";
 import { resolvePublicChoiceLabel } from "./search-data-lists/map-public-choice";
 
 /**
@@ -44,11 +44,9 @@ export async function resolveMultiSourceDisplayValues(
       break;
     }
 
-    const response = await resolveDataListDisplayValues(
+    const response = await resolveDataListChoiceSource(
       deps,
-      dataListId,
-      unresolved,
-    );
+    ).resolveDisplayValues(dataListId, unresolved);
 
     if (!response.success) {
       console.error(

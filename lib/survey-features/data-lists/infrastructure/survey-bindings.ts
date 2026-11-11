@@ -1,4 +1,3 @@
-import { resolveFormRuntimeState } from "@/lib/form-runtime/resolve-form-runtime-state";
 import type { ExtensionRuntimeDeps } from "@/lib/survey-extensions/types";
 import { TelemetryLogger } from "@/features/telemetry";
 import {
@@ -11,11 +10,11 @@ import {
   notifyChoicesLazyLoadCompleted,
   shouldSuppressChoicesLazyLoad,
 } from "@/lib/survey-features/infrastructure/choices-lazy-load-guards";
+import { getQuestionSearchMode } from "../use-cases/search-data-lists";
 import {
-  getQuestionSearchMode,
-  searchDataListChoices,
-} from "../use-cases/search-data-lists";
-import { resolveDataListDisplayValues } from "../use-cases/resolve-data-list-display-values";
+  canLoadDataListChoices,
+  resolveDataListChoiceSource,
+} from "../use-cases/data-list-choice-source";
 import { getDataListIdFromQuestion } from "./data-list-survey-integration";
 import { completeLazyLoadChoiceDisplayValues } from "./apply-multilingual-choice-display-values";
 import {
@@ -60,7 +59,11 @@ async function fetchDataListLabels(
 ): Promise<Map<string, Record<string, string>>> {
   try {
     const result = toResult(
-      await resolveDataListDisplayValues(deps, dataListId, values, locales),
+      await resolveDataListChoiceSource(deps).resolveDisplayValues(
+        dataListId,
+        values,
+        locales,
+      ),
       {
         fallbackMessage: failureMessage,
         logMessage: failureMessage,
@@ -151,9 +154,8 @@ export function bindDataListsToSurvey(
       }
     }
 
-    const runtime = resolveFormRuntimeState(deps.getRuntimeState());
     const dataListId = getDataListIdFromQuestion(options.question);
-    if (!runtime || !dataListId) {
+    if (!dataListId || !canLoadDataListChoices(deps)) {
       options.setItems([], 0);
       return;
     }
@@ -163,14 +165,17 @@ export function bindDataListsToSurvey(
       options.question,
     );
 
-    const response = await searchDataListChoices(deps, dataListId, {
-      filter: options.filter,
-      searchMode: getQuestionSearchMode(options.question),
-      locale,
-      includeLocales,
-      skip: options.skip,
-      take: options.take,
-    });
+    const response = await resolveDataListChoiceSource(deps).searchChoices(
+      dataListId,
+      {
+        filter: options.filter,
+        searchMode: getQuestionSearchMode(options.question),
+        locale,
+        includeLocales,
+        skip: options.skip,
+        take: options.take,
+      },
+    );
 
     if (!response.success) {
       console.error("Failed to lazy-load data list choices.", response.error);
@@ -211,9 +216,12 @@ export function bindDataListsToSurvey(
       }
     }
 
-    const runtime = resolveFormRuntimeState(deps.getRuntimeState());
     const dataListId = getDataListIdFromQuestion(options.question);
-    if (!runtime || !dataListId || options.values.length === 0) {
+    if (
+      !dataListId ||
+      options.values.length === 0 ||
+      !canLoadDataListChoices(deps)
+    ) {
       return;
     }
 
@@ -221,7 +229,11 @@ export function bindDataListsToSurvey(
     const locales = resolveSurveyLocalesForDataList(model, options.question);
 
     const result = toResult(
-      await resolveDataListDisplayValues(deps, dataListId, values, locales),
+      await resolveDataListChoiceSource(deps).resolveDisplayValues(
+        dataListId,
+        values,
+        locales,
+      ),
       {
         fallbackMessage: "Failed to resolve data list display values.",
         logMessage: "Failed to resolve data list display values.",

@@ -7,6 +7,8 @@ export * from "./utils";
 export type {
   DataListChoiceItem,
   DataListChoicePageParams,
+  DataListChoiceSource,
+  DataListLabelOptions,
   DataListSourceRef,
   PropertyGridChoice,
   PropertyGridLazyChoiceContext,
