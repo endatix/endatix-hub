@@ -183,7 +183,7 @@ importers:
         version: 4.6.4(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       recharts:
         specifier: ^3.8.0
-        version: 3.8.0(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react-is@16.13.1)(react@19.2.8)(redux@5.0.1)
+        version: 3.8.0(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react-is@17.0.2)(react@19.2.8)(redux@5.0.1)
       sanitize-html:
         specifier: ^2.18.1
         version: 2.18.1
@@ -197,20 +197,20 @@ importers:
         specifier: ^1.7.1
         version: 1.7.4(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       survey-analytics:
-        specifier: ^3.2.3
-        version: 3.2.3(@types/plotly.js-dist-min@2.3.4)(@types/tabulator-tables@6.3.1)(mongodb@6.21.0(socks@2.8.10))(survey-core@3.2.3)
+        specifier: ^3.2.4
+        version: 3.2.4(@types/plotly.js-dist-min@2.3.4)(@types/tabulator-tables@6.3.1)(mongodb@6.21.0(socks@2.8.10))(survey-core@3.2.4)
       survey-core:
-        specifier: ^3.2.3
-        version: 3.2.3
+        specifier: ^3.2.4
+        version: 3.2.4
       survey-creator-core:
-        specifier: ^3.2.3
-        version: 3.2.3(ace-builds@1.43.6)(survey-core@3.2.3)
+        specifier: ^3.2.4
+        version: 3.2.4(ace-builds@1.43.6)(survey-core@3.2.4)
       survey-creator-react:
-        specifier: ^3.2.3
-        version: 3.2.3(ace-builds@1.43.6)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(survey-core@3.2.3)(survey-creator-core@3.2.3(ace-builds@1.43.6)(survey-core@3.2.3))(survey-react-ui@3.2.3(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(survey-core@3.2.3))
+        specifier: ^3.2.4
+        version: 3.2.4(ace-builds@1.43.6)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(survey-core@3.2.4)(survey-creator-core@3.2.4(ace-builds@1.43.6)(survey-core@3.2.4))(survey-react-ui@3.2.4(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(survey-core@3.2.4))
       survey-react-ui:
-        specifier: ^3.2.3
-        version: 3.2.3(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(survey-core@3.2.3)
+        specifier: ^3.2.4
+        version: 3.2.4(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(survey-core@3.2.4)
       tailwind-merge:
         specifier: ^3.4.1
         version: 3.4.1
@@ -6049,50 +6049,50 @@ packages:
     resolution: {integrity: sha512-ot0WnXS9fgdkgIcePe6RHNk1WA8+muPa6cSjeR3V8K27q9BB1rTE3R1p7Hv0z1ZyAc8s6Vvv8DIyWf681MAt0w==}
     engines: {node: '>= 0.4'}
 
-  survey-analytics@3.2.3:
-    resolution: {integrity: sha512-NFOKfCLm5xbMOf7XUuMzRQn9RGqkrkFixtR2p4oaaZ6bEtZgSi+V89iJLD7qR6KR+JMtV2gC9aAa6DT+g7gl6w==}
+  survey-analytics@3.2.4:
+    resolution: {integrity: sha512-MjtXIxnK/1PrShdDM0OQsiLKDDIVMW7T8aPwjTd6DIBtOIYwZAxVfJSSMaHbqx1bJ83PiDQMf9wWnsNYE7iNfg==}
     peerDependencies:
       '@types/plotly.js-dist-min': ^2.3.0
       '@types/tabulator-tables': ^6.2.3
       mongodb: ^6.20.0
-      survey-core: 3.2.3
+      survey-core: 3.2.4
     peerDependenciesMeta:
       mongodb:
         optional: true
 
-  survey-core@3.2.3:
-    resolution: {integrity: sha512-9ST5G/Pidoud15ATNsvgl9OauuLN5ukTcw0lgrgmzBd99ntZs+s80KpMm9WSb62A3ZjxFJ7TDRNoNyDkK284PQ==}
+  survey-core@3.2.4:
+    resolution: {integrity: sha512-xm3VfT7bzgQFzXrabcjyvscH6Y+Tsh3z9Axa8G4emVwPzs9UfhXxKuTAer/5R7CoT/RM5mg9/GtNRYmMeZe0Dg==}
 
-  survey-creator-core@3.2.3:
-    resolution: {integrity: sha512-/eZjM6WYD1Nvuyv5fY4AacoBxu7DJldI25Pgy5VIrFYUtFDrXhhOLPW1wWAhKvAmgVk7Bd26rNbI4J/xNiukCg==}
+  survey-creator-core@3.2.4:
+    resolution: {integrity: sha512-pavQ7eGCBvMLLm9rEO+JgrDqM1FyJgK6gtbwljyiNvRXbMAy3MJC/71IxEy1T70xDPu0U6V8G0HN+ubHQgBrUA==}
     engines: {node: '>=0.10.0'}
     peerDependencies:
       ace-builds: ^1.4.12
-      survey-core: 3.2.3
+      survey-core: 3.2.4
     peerDependenciesMeta:
       ace-builds:
         optional: true
 
-  survey-creator-react@3.2.3:
-    resolution: {integrity: sha512-Lt6BD+h/S7F/wp0o6CD3tgCv4Hd5GA9S5cWipBmpT145ScyK+j4WPVcYwP6PdIx82oURSIWvz0mdTayjhFrziw==}
+  survey-creator-react@3.2.4:
+    resolution: {integrity: sha512-8L5VP8ADVlWo4LCJVlFVU2mga8SDirMkUynRmi2tHr7PwMO3LcyExcNUyP342qXjYZPmDuTKSVVUFVJzBZ3kbw==}
     engines: {node: '>=0.10.0'}
     peerDependencies:
       ace-builds: ^1.4.12
       react: ^16.5.0 || ^17.0.1 || ^18.1.0 || ^19.0.0
       react-dom: ^16.5.0 || ^17.0.1 || ^18.1.0 || ^19.0.0
-      survey-core: 3.2.3
-      survey-creator-core: 3.2.3
-      survey-react-ui: 3.2.3
+      survey-core: 3.2.4
+      survey-creator-core: 3.2.4
+      survey-react-ui: 3.2.4
     peerDependenciesMeta:
       ace-builds:
         optional: true
 
-  survey-react-ui@3.2.3:
-    resolution: {integrity: sha512-q/JJxDllGd/fWFlMxWoeLf9XmGvYbTmklnt/FxLhq9HqZd1CR1yfSInbWKb2CeDWLUmACK/Rv5urSLPVQ/AE6g==}
+  survey-react-ui@3.2.4:
+    resolution: {integrity: sha512-QguvBUDlEvpz8ip5ej95eDyTU8/MH2j31Z6EaXJL91n4/XhjHbQndNWtGAYf9k99PI+VF64Yx0GKw/n9Bn0anA==}
     peerDependencies:
       react: ^16.5.0 || ^17.0.1 || ^18.1.0 || ^19.0.0
       react-dom: ^16.5.0 || ^17.0.1 || ^18.1.0 || ^19.0.0
-      survey-core: 3.2.3
+      survey-core: 3.2.4
 
   svg-arc-to-cubic-bezier@3.2.0:
     resolution: {integrity: sha512-djbJ/vZKZO+gPoSDThGNpKDO+o+bAeA4XQKovvkNCqnIS2t+S4qnLAGQhyyrulhCFRl1WWzAp0wUDV8PpTVU3g==}
@@ -10034,8 +10034,8 @@ snapshots:
 
   agent-base@7.1.4: {}
 
-  ajv-formats@2.1.1:
-    dependencies:
+  ajv-formats@2.1.1(ajv@8.20.0):
+    optionalDependencies:
       ajv: 8.20.0
 
   ajv@6.15.0:
@@ -10336,7 +10336,7 @@ snapshots:
   conf@10.2.0:
     dependencies:
       ajv: 8.20.0
-      ajv-formats: 2.1.1
+      ajv-formats: 2.1.1(ajv@8.20.0)
       atomically: 1.7.0
       debounce-fn: 4.0.0
       dot-prop: 6.0.1
@@ -12517,7 +12517,7 @@ snapshots:
       tiny-invariant: 1.3.3
       tslib: 2.8.1
 
-  recharts@3.8.0(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react-is@16.13.1)(react@19.2.8)(redux@5.0.1):
+  recharts@3.8.0(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react-is@17.0.2)(react@19.2.8)(redux@5.0.1):
     dependencies:
       '@reduxjs/toolkit': 2.11.2(react-redux@9.2.0(@types/react@19.2.18)(react@19.2.8)(redux@5.0.1))(react@19.2.8)
       clsx: 2.1.1
@@ -12527,7 +12527,7 @@ snapshots:
       immer: 10.2.0
       react: 19.2.8
       react-dom: 19.2.8(react@19.2.8)
-      react-is: 16.13.1
+      react-is: 17.0.2
       react-redux: 9.2.0(@types/react@19.2.18)(react@19.2.8)(redux@5.0.1)
       reselect: 5.1.1
       tiny-invariant: 1.3.3
@@ -12978,7 +12978,7 @@ snapshots:
 
   supports-preserve-symlinks-flag@1.0.0: {}
 
-  survey-analytics@3.2.3(@types/plotly.js-dist-min@2.3.4)(@types/tabulator-tables@6.3.1)(mongodb@6.21.0(socks@2.8.10))(survey-core@3.2.3):
+  survey-analytics@3.2.4(@types/plotly.js-dist-min@2.3.4)(@types/tabulator-tables@6.3.1)(mongodb@6.21.0(socks@2.8.10))(survey-core@3.2.4):
     dependencies:
       '@types/plotly.js-dist-min': 2.3.4
       '@types/tabulator-tables': 6.3.1
@@ -12987,34 +12987,34 @@ snapshots:
       chartjs-plugin-datalabels: 2.2.0(chart.js@4.5.1)
       muuri: 0.8.0
       plotly.js-dist-min: 2.35.3
-      survey-core: 3.2.3
+      survey-core: 3.2.4
       tabulator-tables: 6.3.1
     optionalDependencies:
       mongodb: 6.21.0(socks@2.8.10)
 
-  survey-core@3.2.3: {}
+  survey-core@3.2.4: {}
 
-  survey-creator-core@3.2.3(ace-builds@1.43.6)(survey-core@3.2.3):
+  survey-creator-core@3.2.4(ace-builds@1.43.6)(survey-core@3.2.4):
     dependencies:
-      survey-core: 3.2.3
+      survey-core: 3.2.4
     optionalDependencies:
       ace-builds: 1.43.6
 
-  survey-creator-react@3.2.3(ace-builds@1.43.6)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(survey-core@3.2.3)(survey-creator-core@3.2.3(ace-builds@1.43.6)(survey-core@3.2.3))(survey-react-ui@3.2.3(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(survey-core@3.2.3)):
+  survey-creator-react@3.2.4(ace-builds@1.43.6)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(survey-core@3.2.4)(survey-creator-core@3.2.4(ace-builds@1.43.6)(survey-core@3.2.4))(survey-react-ui@3.2.4(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(survey-core@3.2.4)):
     dependencies:
       react: 19.2.8
       react-dom: 19.2.8(react@19.2.8)
-      survey-core: 3.2.3
-      survey-creator-core: 3.2.3(ace-builds@1.43.6)(survey-core@3.2.3)
-      survey-react-ui: 3.2.3(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(survey-core@3.2.3)
+      survey-core: 3.2.4
+      survey-creator-core: 3.2.4(ace-builds@1.43.6)(survey-core@3.2.4)
+      survey-react-ui: 3.2.4(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(survey-core@3.2.4)
     optionalDependencies:
       ace-builds: 1.43.6
 
-  survey-react-ui@3.2.3(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(survey-core@3.2.3):
+  survey-react-ui@3.2.4(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(survey-core@3.2.4):
     dependencies:
       react: 19.2.8
       react-dom: 19.2.8(react@19.2.8)
-      survey-core: 3.2.3
+      survey-core: 3.2.4
 
   svg-arc-to-cubic-bezier@3.2.0: {}
 
