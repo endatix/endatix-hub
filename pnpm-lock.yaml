@@ -115,9 +115,6 @@ importers:
       '@tanstack/react-table':
         specifier: ^8.20.6
         version: 8.21.3(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
-      '@vercel/functions':
-        specifier: ^1.5.2
-        version: 1.6.0(@aws-sdk/credential-provider-web-identity@3.972.38)
       ace-builds:
         specifier: ^1.5.0
         version: 1.43.6
@@ -3286,15 +3283,6 @@ packages:
     resolution: {integrity: sha512-lrW200hZdbfRtztbygyaq/6jP6AKE8qQN2KvPcJ+x7wiD038YtnYtZ82IMNJ69GJibV7bwL3y9FgK+5w/pYt6g==}
     cpu: [x64]
     os: [win32]
-
-  '@vercel/functions@1.6.0':
-    resolution: {integrity: sha512-R6FKQrYT5MZs5IE1SqeCJWxMuBdHawFcCZboKKw8p7s+6/mcd55Gx6tWmyKnQTyrSEA04NH73Tc9CbqpEle8RA==}
-    engines: {node: '>= 16'}
-    peerDependencies:
-      '@aws-sdk/credential-provider-web-identity': '*'
-    peerDependenciesMeta:
-      '@aws-sdk/credential-provider-web-identity':
-        optional: true
 
   '@vitejs/plugin-react@6.2.1':
     resolution: {integrity: sha512-9KyWCij3r0+qLG3Q62vBmv0VyevmYibAtxaCIVK9o0k6CXgaajZRIe8tpfchQcdZArJ5b/7OrIz4W3b2uxVRDA==}
@@ -9973,10 +9961,6 @@ snapshots:
 
   '@unrs/resolver-binding-win32-x64-msvc@1.11.1':
     optional: true
-
-  '@vercel/functions@1.6.0(@aws-sdk/credential-provider-web-identity@3.972.38)':
-    optionalDependencies:
-      '@aws-sdk/credential-provider-web-identity': 3.972.38
 
   '@vitejs/plugin-react@6.2.1(babel-plugin-react-compiler@1.0.0)(vite@8.3.5(@types/node@22.20.2)(esbuild@0.28.1)(jiti@2.6.1)(sass@1.91.0)(yaml@2.9.0))':
     dependencies:
