@@ -105,4 +105,28 @@ describe("designerDataListChoiceSource", () => {
       ]);
     }
   });
+
+  it("returns an error result instead of rejecting when the staff search throws", async () => {
+    vi.mocked(searchDataListItemsAction).mockRejectedValue(new Error("boom"));
+
+    const response = await designerDataListChoiceSource.searchChoices("42", {
+      skip: 0,
+      take: 25,
+    });
+
+    expect(response.success).toBe(false);
+  });
+
+  it("returns an error result instead of rejecting when the label lookup throws", async () => {
+    vi.mocked(resolveDataListItemLabelsAction).mockRejectedValue(
+      new Error("boom"),
+    );
+
+    const response = await designerDataListChoiceSource.resolveDisplayValues(
+      "42",
+      ["sofia"],
+    );
+
+    expect(response.success).toBe(false);
+  });
 });

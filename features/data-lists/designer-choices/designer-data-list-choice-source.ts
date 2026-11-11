@@ -1,14 +1,12 @@
 import { ApiResult } from "@/lib/endatix-api/shared/api-result";
 import type { DataListChoiceItem as ApiChoiceItem } from "@/lib/endatix-api/data-lists/types";
 import { Result } from "@/lib/result";
-import type {
-  DataListChoicePageParams,
-  DataListChoiceSource,
-} from "@/lib/survey-features/data-lists";
 import {
+  type DataListChoicePageParams,
+  type DataListChoiceSource,
   mapPublicChoiceToSurveyItem,
   mapSurveySearchModeToMatchMode,
-} from "@/lib/survey-features/data-lists/use-cases/search-data-lists";
+} from "@/lib/survey-features/data-lists";
 import { resolveDataListItemLabelsAction } from "./resolve-data-list-item-labels.action";
 import { searchDataListItemsAction } from "./search-data-list-items.action";
 import type { DataListItemsRangeRequest } from "./types";
@@ -17,6 +15,17 @@ type ResultError = Extract<Result<unknown>, { message: string }>;
 
 function toApiError<T>(error: ResultError): ApiResult<T> {
   return ApiResult.unknownError(error.message, undefined, error.errorCode);
+}
+
+/** A server action can throw (a lost session); the dropdown still needs an answer. */
+async function settle<T>(action: () => Promise<Result<T>>): Promise<Result<T>> {
+  try {
+    return await action();
+  } catch (error) {
+    return Result.error(
+      error instanceof Error ? error.message : "Failed to load data list.",
+    );
+  }
 }
 
 function toRangeRequest(
@@ -50,9 +59,8 @@ function labelsPerValue(values: string[], items: ApiChoiceItem[]) {
  */
 export const designerDataListChoiceSource: DataListChoiceSource = {
   searchChoices: async (dataListId, params) => {
-    const result = await searchDataListItemsAction(
-      dataListId,
-      toRangeRequest(params),
+    const result = await settle(() =>
+      searchDataListItemsAction(dataListId, toRangeRequest(params)),
     );
     if (Result.isError(result)) {
       return toApiError(result);
@@ -68,10 +76,8 @@ export const designerDataListChoiceSource: DataListChoiceSource = {
 
   resolveDisplayValues: async (dataListId, values, options) => {
     const distinctValues = [...new Set(values.map(String))].filter(Boolean);
-    const result = await resolveDataListItemLabelsAction(
-      dataListId,
-      distinctValues,
-      options,
+    const result = await settle(() =>
+      resolveDataListItemLabelsAction(dataListId, distinctValues, options),
     );
     if (Result.isError(result)) {
       return toApiError(result);

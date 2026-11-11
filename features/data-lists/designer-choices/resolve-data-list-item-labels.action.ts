@@ -8,7 +8,7 @@ import type {
 import { Result } from "@/lib/result";
 import { toResult } from "@/lib/result/map-api-result-to-result";
 import { requireDataListsApi } from "../data-lists-api.server";
-import type { DataListItemsLocaleOptions } from "./types";
+import type { DataListLabelOptions } from "@/lib/survey-features/data-lists";
 
 const LABEL_LOOKUP_PAGE_SIZE = 25;
 
@@ -18,7 +18,7 @@ const LABELS_MAP_OPTIONS = {
   loggerName: "data-lists.designer-choices",
 } as const;
 
-type ValueLookup = DataListItemsLocaleOptions & { value: string };
+type ValueLookup = DataListLabelOptions & { value: string };
 type LookupResult = Result<DataListChoiceItem | null>;
 
 /**
@@ -28,7 +28,7 @@ type LookupResult = Result<DataListChoiceItem | null>;
 export async function resolveDataListItemLabelsAction(
   dataListId: string,
   values: string[],
-  options: DataListItemsLocaleOptions = {},
+  options: DataListLabelOptions = {},
 ): Promise<Result<DataListChoiceItem[]>> {
   const api = await requireDataListsApi();
   const lookups = await Promise.all(
@@ -60,7 +60,7 @@ async function findItem(
 
 function exactQuery(
   value: string,
-  options: DataListItemsLocaleOptions,
+  options: DataListLabelOptions,
 ): ListDataListItemsRequest {
   return {
     ...options,
@@ -71,9 +71,10 @@ function exactQuery(
   };
 }
 
+/** One failed value falls back to its raw value; only a total failure is an error. */
 function foundItems(lookups: LookupResult[]): Result<DataListChoiceItem[]> {
   const failure = lookups.find((lookup) => Result.isError(lookup));
-  if (failure) {
+  if (failure && lookups.every((lookup) => Result.isError(lookup))) {
     return failure;
   }
 

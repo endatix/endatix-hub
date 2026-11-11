@@ -172,4 +172,36 @@ describe("resolveDataListItemLabelsAction", () => {
       expect(result.value).toEqual([]);
     }
   });
+
+  it("keeps the labels it found when another value's lookup fails", async () => {
+    mockListItems.mockImplementation(
+      async (_id: string, request: { query: string }) =>
+        request.query === "sofia"
+          ? page([item("sofia", "Sofia")], {
+              totalRecords: 1,
+              hasNextPage: false,
+            })
+          : ApiResult.validationError("Query too long"),
+    );
+
+    const result = await resolveDataListItemLabelsAction("42", [
+      "sofia",
+      "x".repeat(300),
+    ]);
+
+    expect(Result.isSuccess(result)).toBe(true);
+    if (Result.isSuccess(result)) {
+      expect(result.value).toEqual([
+        { value: "sofia", labels: { default: "Sofia" } },
+      ]);
+    }
+  });
+
+  it("returns an error when every lookup fails", async () => {
+    mockListItems.mockResolvedValue(ApiResult.forbiddenError("Forbidden"));
+
+    const result = await resolveDataListItemLabelsAction("42", ["sofia"]);
+
+    expect(Result.isError(result)).toBe(true);
+  });
 });

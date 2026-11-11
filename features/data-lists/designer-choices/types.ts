@@ -1,14 +1,10 @@
+import type { DataListLabelOptions } from "@/lib/survey-features/data-lists";
 import type {
   DataListChoiceItem,
   DataListSearchMatchMode,
 } from "@/lib/endatix-api/data-lists/types";
 
-export type DataListItemsLocaleOptions = {
-  locale?: string;
-  includeLocales?: string[];
-};
-
-export type DataListItemsRangeRequest = DataListItemsLocaleOptions & {
+export type DataListItemsRangeRequest = DataListLabelOptions & {
   query?: string;
   matchMode?: DataListSearchMatchMode;
   skip: number;

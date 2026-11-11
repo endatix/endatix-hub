@@ -41,7 +41,7 @@ export async function searchDataListItemsAction(
   const readsNext =
     Result.isSuccess(first) && offset > 0 && first.value.hasNextPage;
   const next = readsNext ? await readPage(page + 1) : null;
-  return sliceWindow([first, next], offset, pageSize);
+  return sliceWindow(first, next, { offset, size: pageSize });
 }
 
 async function readItemsPage(
@@ -56,22 +56,21 @@ async function readItemsPage(
 }
 
 function sliceWindow(
-  pages: Array<PageResult | null>,
-  offset: number,
-  size: number,
+  first: PageResult,
+  next: PageResult | null,
+  { offset, size }: { offset: number; size: number },
 ): Result<DataListItemsRange> {
-  const read = pages.filter((page): page is PageResult => page !== null);
-  const failure = read.find((page) => Result.isError(page));
-  if (failure || !Result.isSuccess(read[0])) {
-    return failure ?? read[0];
+  if (Result.isError(first)) {
+    return first;
+  }
+  if (next && Result.isError(next)) {
+    return next;
   }
 
-  const items = read.flatMap((page) =>
-    Result.isSuccess(page) ? [...page.value.items] : [],
-  );
+  const items = [...first.value.items, ...(next?.value.items ?? [])];
   return Result.success({
     items: items.slice(offset, offset + size).map((item) => toChoice(item)),
-    totalRecords: read[0].value.totalRecords,
+    totalRecords: first.value.totalRecords,
   });
 }
 
