@@ -106,6 +106,59 @@ describe("buildMatrixDropdownTableData", () => {
     expect(result).toBeNull();
   });
 
+  // survey-core 3.2.4 (survey-library#12151) keeps empty dynamic-matrix rows
+  // in the value as `{}` records.
+  it("leaves out the empty records a dynamic matrix keeps in its value", () => {
+    // Arrange
+    const model = new Model({
+      elements: [
+        {
+          type: "matrixdynamic",
+          name: "qMatrixDynamic",
+          columns: [
+            { name: "company", title: "Company Name", cellType: "text" },
+          ],
+          rowCount: 3,
+        },
+      ],
+    });
+    model.data = { qMatrixDynamic: [{ company: "Acme" }, {}, {}] };
+
+    // Act
+    const result = buildMatrixDropdownTableData(
+      getMatrixQuestion(model, "qMatrixDynamic"),
+    );
+
+    // Assert
+    expect(result?.rows).toHaveLength(1);
+    expect(result?.rows[0].cells.company).toBe("Acme");
+  });
+
+  it("returns null when every record of a dynamic matrix is empty", () => {
+    // Arrange
+    const model = new Model({
+      elements: [
+        {
+          type: "matrixdynamic",
+          name: "qMatrixDynamic",
+          columns: [
+            { name: "company", title: "Company Name", cellType: "text" },
+          ],
+          rowCount: 3,
+        },
+      ],
+    });
+    model.data = { qMatrixDynamic: [{}, {}, {}] };
+
+    // Act
+    const result = buildMatrixDropdownTableData(
+      getMatrixQuestion(model, "qMatrixDynamic"),
+    );
+
+    // Assert
+    expect(result).toBeNull();
+  });
+
   it("strips HTML from column titles and cell display text", () => {
     // Arrange
     const model = new Model({
