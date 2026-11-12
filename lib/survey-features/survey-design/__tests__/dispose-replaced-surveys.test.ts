@@ -95,23 +95,31 @@ describe("replaced simulator surveys", () => {
     expect(bar.isDisposed).toBe(false);
   });
 
-  it("disposes the Themes survey when Preview replaces it", () => {
-    // Arrange
-    const creator = designer();
-    creator.activeTab = "theme";
-    const themeSurvey = (
-      creator.getPlugin("theme") as unknown as {
-        model: { survey: SurveyModel };
-      }
-    ).model.survey;
+  // Opening the Theme tab runs survey-creator's calculateThemeVariables, which sets and
+  // reads hundreds of CSS variables on one element. jsdom 31 serializes the whole style
+  // declaration on each call, so this takes ~3 s (~12 s under v8 coverage) vs 0.7 s on
+  // jsdom 30. The default 15 s testTimeout is too tight for the CI shards.
+  it(
+    "disposes the Themes survey when Preview replaces it",
+    { timeout: 60_000 },
+    () => {
+      // Arrange
+      const creator = designer();
+      creator.activeTab = "theme";
+      const themeSurvey = (
+        creator.getPlugin("theme") as unknown as {
+          model: { survey: SurveyModel };
+        }
+      ).model.survey;
 
-    // Act
-    creator.activeTab = "preview";
+      // Act
+      creator.activeTab = "preview";
 
-    // Assert
-    expect(themeSurvey.isDisposed).toBe(true);
-    expect(previewSurvey(creator).isDisposed).toBe(false);
-  });
+      // Assert
+      expect(themeSurvey.isDisposed).toBe(true);
+      expect(previewSurvey(creator).isDisposed).toBe(false);
+    },
+  );
 
   it("keeps the designer survey", () => {
     // Arrange
