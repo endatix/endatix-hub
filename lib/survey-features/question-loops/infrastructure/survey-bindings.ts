@@ -11,6 +11,7 @@ import {
   collectLoopInstances,
   collectRootLoopInstances,
 } from "../utils/collect-loop-questions";
+import { SourceSelectionModes } from "../types";
 import { runLoopSyncExclusively } from "./loop-sync-state";
 
 /**
@@ -37,6 +38,18 @@ function hydrateLoopsFromData(survey: SurveyModel): void {
 }
 
 /**
+ * Whether a loop has panels before any answer: "All" and "Unselected Only"
+ * loop over choices that need no selection.
+ */
+function hasLoopFilledWithoutAnswers(survey: SurveyModel): boolean {
+  return collectLoopInstances(survey).some(
+    (loop) =>
+      loop.choicePattern === SourceSelectionModes.All ||
+      loop.choicePattern === SourceSelectionModes.UnselectedOnly,
+  );
+}
+
+/**
  * Binds the feature to the survey.
  *
  * **Bind after assigning `survey.data`.** A bulk assignment fires no events —
@@ -51,7 +64,8 @@ function hydrateLoopsFromData(survey: SurveyModel): void {
 export function bindFeatureToSurvey(survey: SurveyModel): () => void {
   injectVisibilityConditions(survey);
 
-  if (survey.data && Object.keys(survey.data).length > 0) {
+  const hasData = !!survey.data && Object.keys(survey.data).length > 0;
+  if (hasData || hasLoopFilledWithoutAnswers(survey)) {
     hydrateLoopsFromData(survey);
   }
 

@@ -200,8 +200,29 @@ function getUniqueSelectedChoices(
   );
 }
 
+/**
+ * Gets the unique choices a loop iterates over, per its "Loop over" mode.
+ * Selected Only, and any unknown value, keep the selected-choices path.
+ */
+function getUniqueLoopChoices(
+  questions: QuestionSelectBase[],
+  selectionMode: SourceSelectionMode | undefined,
+): ItemValue[] {
+  if (
+    selectionMode !== SourceSelectionModes.UnselectedOnly &&
+    selectionMode !== SourceSelectionModes.All
+  ) {
+    return getUniqueSelectedChoices(questions);
+  }
+
+  return extractUniqueChoicesBy(questions, (question) =>
+    getLoopChoicesFromQuestion(question, selectionMode),
+  );
+}
+
 export {
   isLoopQuestion,
+  getUniqueLoopChoices,
   getAllLoopQuestions,
   resolveDynamicLoopCondition,
   shuffleArray,

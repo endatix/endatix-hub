@@ -1,7 +1,7 @@
 import { Helpers, ItemValue, SurveyModel } from "survey-core";
 import { ChoiceValue, DynamicLoopModel, PanelItem } from "../types";
 import {
-  getUniqueSelectedChoices,
+  getUniqueLoopChoices,
   isLoopQuestion,
   shuffleArray,
 } from "../loop-utils";
@@ -37,7 +37,10 @@ export function syncSingleLoopSource(
   // disambiguate between instances.
   const loopSourceQuestions = resolveLoopSourceQuestions(panelQuestion);
 
-  const choicesMap = getUniqueSelectedChoices(loopSourceQuestions);
+  const choicesMap = getUniqueLoopChoices(
+    loopSourceQuestions,
+    panelQuestion.choicePattern,
+  );
 
   const categorized = categorizeChoices(
     choicesMap,
