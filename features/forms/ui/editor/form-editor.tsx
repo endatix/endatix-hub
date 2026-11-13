@@ -5,6 +5,7 @@ import { TelemetryLogger } from "@/features/telemetry";
 import { customQuestions } from "@/customizations/questions/question-registry";
 import { useStorageWithCreator } from "@/features/asset-storage/client";
 import { useSurveyLicenseKey } from "@/features/config/survey-license-provider";
+import { designerRuntimeDeps } from "./designer-runtime-deps";
 import {
   DEFAULT_THEME_ID,
   ThemeDeleteDialog,
@@ -219,9 +220,7 @@ function FormEditor({
     downloadName: formName,
   });
   const { isReady: isExtensionsReady, onCreatorCreated } = useSurveyExtensions({
-    runtimeDeps: {
-      getRuntimeState: () => designerRuntime.stateRef.current,
-    },
+    runtimeDeps: designerRuntimeDeps(designerRuntime.stateRef),
   });
 
   const [questionClasses, setQuestionClasses] = useState<

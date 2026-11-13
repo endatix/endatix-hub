@@ -1,5 +1,6 @@
 import type { Model } from "survey-core";
 import type { SurveyCreatorModel } from "survey-creator-core";
+import type { DataListChoiceSource } from "@/lib/survey-features/data-lists/types";
 
 /**
  * Extension type. Defines the type of the extension.
@@ -111,6 +112,8 @@ export interface ExtensionRuntimeState {
 
 export interface ExtensionRuntimeDeps {
   getRuntimeState: () => ExtensionRuntimeState;
+  /** Set by the form designer; without it data lists use the public form routes. */
+  dataListChoices?: DataListChoiceSource;
 }
 
 export type { ExtensionDefinition as Extension };

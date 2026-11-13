@@ -2,12 +2,15 @@ import { normalizeChoiceKey } from "@/lib/utils/survey";
 import type { ExtensionRuntimeDeps } from "@/lib/survey-extensions/types";
 import type {
   DataListChoiceItem,
+  DataListChoiceSource,
   DataListSourceRef,
   PropertyGridChoice,
 } from "../types";
-import { searchDataListChoices } from "./search-data-lists/search-data-list-choices";
+import { dataListChoiceSource } from "./data-list-choice-source";
 
-type DataListSearchResult = Awaited<ReturnType<typeof searchDataListChoices>>;
+type DataListSearchResult = Awaited<
+  ReturnType<DataListChoiceSource["searchChoices"]>
+>;
 
 /**
  * Loads a paged choice list for Creator property-grid tagboxes that aggregate
@@ -42,7 +45,7 @@ export async function loadChoicesInCreator(
 
     if (apiTake === 0) {
       const dataListTotal = await getMergedDataListChoicesTotal(
-        deps,
+        dataListChoiceSource(deps),
         dataListSources,
         filter,
       );
@@ -54,7 +57,7 @@ export async function loadChoicesInCreator(
     }
 
     const apiItems = await fetchMergedDataListChoices(
-      deps,
+      dataListChoiceSource(deps),
       dataListSources,
       { filter, skip: 0, take: apiTake },
       formatLabel,
@@ -68,7 +71,7 @@ export async function loadChoicesInCreator(
 
   const apiSkip = params.skip - staticItems.length;
   const apiItems = await fetchMergedDataListChoices(
-    deps,
+    dataListChoiceSource(deps),
     dataListSources,
     { filter, skip: apiSkip, take: params.take },
     formatLabel,
@@ -81,7 +84,7 @@ export async function loadChoicesInCreator(
 }
 
 async function fetchMergedDataListChoices(
-  deps: ExtensionRuntimeDeps,
+  choices: DataListChoiceSource,
   dataListSources: DataListSourceRef[],
   params: { filter?: string; skip: number; take: number },
   formatLabel: (sourceName: string, value: string, text: string) => string,
@@ -92,12 +95,13 @@ async function fetchMergedDataListChoices(
   let remainingSkip = params.skip;
   let remainingTake = params.take;
 
+  // Sequential by design: each source's skip/take depends on the previous source's total.
   for (const { sourceName, dataListId } of dataListSources) {
     if (remainingTake <= 0) {
       break;
     }
 
-    const response = await searchDataListChoices(deps, dataListId, {
+    const response = await choices.searchChoices(dataListId, {
       filter: params.filter,
       skip: remainingSkip,
       take: remainingTake,
@@ -112,7 +116,7 @@ async function fetchMergedDataListChoices(
       logDataListSourceError(sourceName, dataListId, response);
       if (remainingSkip > 0) {
         const probeResponse = await probeDataListSourceTotal(
-          deps,
+          choices,
           dataListId,
           params.filter ?? "",
         );
@@ -146,13 +150,13 @@ async function fetchMergedDataListChoices(
 }
 
 async function getMergedDataListChoicesTotal(
-  deps: ExtensionRuntimeDeps,
+  src: DataListChoiceSource,
   dataListSources: DataListSourceRef[],
   filter: string,
 ): Promise<number> {
   const totals = await Promise.all(
     dataListSources.map(async ({ sourceName, dataListId }) => {
-      const response = await probeDataListSourceTotal(deps, dataListId, filter);
+      const response = await probeDataListSourceTotal(src, dataListId, filter);
       if (!response.success) {
         logDataListSourceError(sourceName, dataListId, response);
         return 0;
@@ -166,11 +170,11 @@ async function getMergedDataListChoicesTotal(
 }
 
 async function probeDataListSourceTotal(
-  deps: ExtensionRuntimeDeps,
+  choices: DataListChoiceSource,
   dataListId: string,
   filter: string,
 ): Promise<DataListSearchResult> {
-  return searchDataListChoices(deps, dataListId, {
+  return choices.searchChoices(dataListId, {
     filter,
     skip: 0,
     take: 1,

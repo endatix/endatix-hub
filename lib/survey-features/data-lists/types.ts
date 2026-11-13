@@ -1,3 +1,4 @@
+import type { ApiResult } from "@/lib/endatix-api/shared/api-result";
 import type { ExtensionRuntimeDeps } from "@/lib/survey-extensions/types";
 import type { Model, SurveyModel } from "survey-core";
 
@@ -20,6 +21,29 @@ export type DataListChoicePageParams = {
   includeLocales?: string[];
   skip: number;
   take: number;
+};
+
+export type DataListLabelOptions = {
+  locale?: string;
+  includeLocales?: string[];
+};
+
+/**
+ * Where data-list choices and their labels come from. The respondent runtime
+ * reads the public form routes; the form designer passes a source that reads
+ * the staff API, so a list bound and not yet saved still previews.
+ */
+export type DataListChoiceSource = {
+  searchChoices: (
+    dataListId: string,
+    params: DataListChoicePageParams,
+  ) => Promise<ApiResult<{ items: DataListChoiceItem[]; total: number }>>;
+  /** Label maps per requested value; a value with no match maps to `{ default: value }`. */
+  resolveDisplayValues: (
+    dataListId: string,
+    values: string[],
+    options?: DataListLabelOptions,
+  ) => Promise<ApiResult<Map<string, Record<string, string>>>>;
 };
 
 export type PropertyGridChoice = { value: string; text: string };

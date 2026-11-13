@@ -4,12 +4,10 @@ import type { DataListChoiceItem } from "@/lib/endatix-api/public/data-lists/typ
 import { ApiResult } from "@/lib/endatix-api/shared/api-result";
 import { resolveFormRuntimeState } from "@/lib/form-runtime/resolve-form-runtime-state";
 import type { ExtensionRuntimeDeps } from "@/lib/survey-extensions/types";
+import type { DataListLabelOptions } from "../types";
 import { withFormAccessJwtRetry } from "../utils/with-form-access-jwt-retry";
 
-export type ResolveDisplayValuesOptions = {
-  locale?: string;
-  includeLocales?: string[];
-};
+export type ResolveDisplayValuesOptions = DataListLabelOptions;
 
 const labelsByValueCache = new Map<string, Record<string, string>>();
 

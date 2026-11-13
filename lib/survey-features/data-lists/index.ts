@@ -7,6 +7,8 @@ export * from "./utils";
 export type {
   DataListChoiceItem,
   DataListChoicePageParams,
+  DataListChoiceSource,
+  DataListLabelOptions,
   DataListSourceRef,
   PropertyGridChoice,
   PropertyGridLazyChoiceContext,
@@ -14,7 +16,11 @@ export type {
   PropertyGridLazyChoiceProvider,
   SurveySearchMode,
 } from "./types";
-export { searchDataListChoices } from "./use-cases/search-data-lists";
+export {
+  mapPublicChoiceToSurveyItem,
+  mapSurveySearchModeToMatchMode,
+  searchDataListChoices,
+} from "./use-cases/search-data-lists";
 export { resolveDataListDisplayValues } from "./use-cases/resolve-data-list-display-values";
 export {
   encodeDataListTranslationKey,
