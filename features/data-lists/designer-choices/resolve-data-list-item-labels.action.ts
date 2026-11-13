@@ -11,6 +11,10 @@ import { checkDataListsApi } from "../data-lists-api.server";
 import type { DataListLabelOptions } from "@/lib/survey-features/data-lists";
 
 const LABEL_LOOKUP_PAGE_SIZE = 25;
+/** One staff page of values per call, so a call cannot fan out without bound. */
+const MAX_VALUES_PER_CALL = 25;
+/** An `Exact` query also matches labels, so the value's item can sit past page 1. */
+const MAX_PAGES_PER_VALUE = 4;
 
 const LABELS_MAP_OPTIONS = {
   fallbackMessage: "Failed to resolve data list labels.",
@@ -23,7 +27,8 @@ type LookupResult = Result<DataListChoiceItem | null>;
 
 /**
  * Resolves the label maps of stored choice values through the staff items
- * route, for the form designer. Values the list does not hold are left out.
+ * route, for the form designer. Values the list does not hold are left out,
+ * and so are values past the first {@link MAX_VALUES_PER_CALL} distinct ones.
  */
 export async function resolveDataListItemLabelsAction(
   dataListId: string,
@@ -35,7 +40,7 @@ export async function resolveDataListItemLabelsAction(
     return access;
   }
   const lookups = await Promise.all(
-    values.map((value) =>
+    lookupValues(values).map((value) =>
       findItem(access.value, dataListId, { ...options, value }),
     ),
   );
@@ -44,34 +49,55 @@ export async function resolveDataListItemLabelsAction(
 
 /**
  * The route has no value filter, so a value is an `Exact` query (which also
- * matches label keys) narrowed to the item whose value is equal.
+ * matches label keys) narrowed to the item whose value is equal. Pages are
+ * followed until that item shows up, the list ends, or
+ * {@link MAX_PAGES_PER_VALUE} pages were read.
  */
 async function findItem(
   api: EndatixApi,
   dataListId: string,
   { value, ...options }: ValueLookup,
 ): Promise<LookupResult> {
-  const result = toResult(
-    await api.dataLists.listItems(dataListId, exactQuery(value, options)),
-    LABELS_MAP_OPTIONS,
-  );
-  if (Result.isError(result)) {
-    return result;
+  for (let page = 1; page <= MAX_PAGES_PER_VALUE; page++) {
+    const result = toResult(
+      await api.dataLists.listItems(
+        dataListId,
+        exactQuery(value, options, page),
+      ),
+      LABELS_MAP_OPTIONS,
+    );
+    if (Result.isError(result)) {
+      return result;
+    }
+
+    const match = result.value.items.find((item) => item.value === value);
+    if (match) {
+      return Result.success({ value, labels: match.labels });
+    }
+    if (!result.value.hasNextPage) {
+      break;
+    }
   }
 
-  const match = result.value.items.find((item) => item.value === value);
-  return Result.success(match ? { value, labels: match.labels } : null);
+  return Result.success(null);
+}
+
+function lookupValues(values: string[]): string[] {
+  return [...new Set(values.map(String))]
+    .filter(Boolean)
+    .slice(0, MAX_VALUES_PER_CALL);
 }
 
 function exactQuery(
   value: string,
   options: DataListLabelOptions,
+  page: number,
 ): ListDataListItemsRequest {
   return {
     ...options,
     query: value,
     matchMode: "Exact",
-    page: 1,
+    page,
     pageSize: LABEL_LOOKUP_PAGE_SIZE,
   };
 }

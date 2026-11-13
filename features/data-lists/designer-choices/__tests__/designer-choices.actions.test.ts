@@ -197,6 +197,67 @@ describe("resolveDataListItemLabelsAction", () => {
     }
   });
 
+  it("follows the exact query's pages until an item's value equals the request", async () => {
+    mockListItems.mockImplementation(
+      async (_id: string, request: { page: number }) =>
+        request.page === 1
+          ? page(range(0, 25), { totalRecords: 30, hasNextPage: true })
+          : page([item("v99", "Wanted"), item("sofia", "Sofia")], {
+              totalRecords: 30,
+              hasNextPage: false,
+            }),
+    );
+
+    const result = await resolveDataListItemLabelsAction("42", ["sofia"]);
+
+    expect(mockListItems).toHaveBeenCalledTimes(2);
+    expect(mockListItems).toHaveBeenLastCalledWith(
+      "42",
+      expect.objectContaining({ query: "sofia", page: 2 }),
+    );
+    expect(Result.isSuccess(result)).toBe(true);
+    if (Result.isSuccess(result)) {
+      expect(result.value).toEqual([
+        { value: "sofia", labels: { default: "Sofia" } },
+      ]);
+    }
+  });
+
+  it("stops after four pages without a value match and leaves the value out", async () => {
+    mockListItems.mockResolvedValue(
+      page(range(0, 25), { totalRecords: 500, hasNextPage: true }),
+    );
+
+    const result = await resolveDataListItemLabelsAction("42", ["sofia"]);
+
+    expect(mockListItems).toHaveBeenCalledTimes(4);
+    expect(Result.isSuccess(result)).toBe(true);
+    if (Result.isSuccess(result)) {
+      expect(result.value).toEqual([]);
+    }
+  });
+
+  it("looks up at most 25 distinct non-empty values per call", async () => {
+    mockListItems.mockResolvedValue(
+      page([], { totalRecords: 0, hasNextPage: false }),
+    );
+    const values = [
+      "",
+      "dup",
+      "dup",
+      ...Array.from({ length: 40 }, (_, index) => `value-${index}`),
+    ];
+
+    await resolveDataListItemLabelsAction("42", values);
+
+    const queries = mockListItems.mock.calls.map(
+      ([, request]: [string, { query: string }]) => request.query,
+    );
+    expect(queries).toHaveLength(25);
+    expect(new Set(queries).size).toBe(25);
+    expect(queries).not.toContain("");
+  });
+
   it("returns an error when every lookup fails", async () => {
     mockListItems.mockResolvedValue(ApiResult.forbiddenError("Forbidden"));
 
