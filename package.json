@@ -59,7 +59,7 @@
     "@opentelemetry/semantic-conventions": "^1.43.0",
     "@react-pdf/renderer": "4.9.0",
     "@swc/helpers": "^0.5.15",
-    "@tanstack/react-table": "^8.20.6",
+    "@tanstack/react-table": "^9.3.1",
     "ace-builds": "^1.5.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
