@@ -33,7 +33,7 @@ function toRangeRequest(
 ): DataListItemsRangeRequest {
   const filter = params.filter?.trim();
   return {
-    query: filter ? filter : undefined,
+    query: filter || undefined,
     matchMode: mapSurveySearchModeToMatchMode(params.searchMode),
     locale: params.locale,
     includeLocales: params.includeLocales,
