@@ -95,6 +95,7 @@ async function fetchMergedDataListChoices(
   let remainingSkip = params.skip;
   let remainingTake = params.take;
 
+  // Sequential by design: each source's skip/take depends on the previous source's total.
   for (const { sourceName, dataListId } of dataListSources) {
     if (remainingTake <= 0) {
       break;
