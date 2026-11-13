@@ -39,7 +39,7 @@ describe("resolveMultiSourceDisplayValues", () => {
     expect(resolveDataListDisplayValues).not.toHaveBeenCalled();
   });
 
-  it("queries data-list sources in order until values are resolved", async () => {
+  it("passes a value an earlier list does not hold on to a later list", async () => {
     const survey = new SurveyModel({
       elements: [
         { type: "tagbox", name: "games", edxDataListId: "games-list" },
@@ -50,7 +50,12 @@ describe("resolveMultiSourceDisplayValues", () => {
     vi.mocked(resolveDataListDisplayValues).mockImplementation(
       async (_deps, dataListId, values) => {
         if (dataListId === "games-list") {
-          return ApiResult.success(new Map());
+          // The source contract: a value with no match maps to `{ default: value }`.
+          return ApiResult.success(
+            new Map(
+              values.map((value) => [value, { default: value }] as const),
+            ),
+          );
         }
 
         return ApiResult.success(
@@ -71,6 +76,61 @@ describe("resolveMultiSourceDisplayValues", () => {
 
     expect(labels).toEqual(["brands: (Label brand-1)"]);
     expect(resolveDataListDisplayValues).toHaveBeenCalledTimes(2);
+  });
+
+  it("falls back to the raw value once when no source holds it", async () => {
+    const survey = new SurveyModel({
+      elements: [
+        { type: "tagbox", name: "games", edxDataListId: "games-list" },
+        { type: "tagbox", name: "brands", edxDataListId: "brands-list" },
+      ],
+    });
+    vi.mocked(resolveDataListDisplayValues).mockImplementation(
+      async (_deps, _dataListId, values) =>
+        ApiResult.success(
+          new Map(values.map((value) => [value, { default: value }] as const)),
+        ),
+    );
+
+    const labels = await resolveMultiSourceDisplayValues(
+      deps,
+      [survey.getQuestionByName("games")!, survey.getQuestionByName("brands")!],
+      ["unknown"],
+    );
+
+    expect(labels).toEqual(["unknown"]);
+  });
+
+  it("takes the label from the first list in source order when several hold the value", async () => {
+    const survey = new SurveyModel({
+      elements: [
+        { type: "tagbox", name: "games", edxDataListId: "games-list" },
+        { type: "tagbox", name: "brands", edxDataListId: "brands-list" },
+      ],
+    });
+    vi.mocked(resolveDataListDisplayValues).mockImplementation(
+      async (_deps, dataListId, values) => {
+        if (dataListId === "games-list") {
+          await new Promise((resolve) => setTimeout(resolve, 5));
+        }
+        return ApiResult.success(
+          new Map(
+            values.map(
+              (value) =>
+                [value, { default: `${dataListId} ${value}` }] as const,
+            ),
+          ),
+        );
+      },
+    );
+
+    const labels = await resolveMultiSourceDisplayValues(
+      deps,
+      [survey.getQuestionByName("games")!, survey.getQuestionByName("brands")!],
+      ["x"],
+    );
+
+    expect(labels).toEqual(["games: (games-list x)"]);
   });
 
   it("continues resolving from later sources when an earlier source fails", async () => {
