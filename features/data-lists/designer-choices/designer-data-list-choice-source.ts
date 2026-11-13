@@ -17,7 +17,7 @@ function toApiError<T>(error: ResultError): ApiResult<T> {
   return ApiResult.unknownError(error.message, undefined, error.errorCode);
 }
 
-/** A server action can throw (a lost session); the dropdown still needs an answer. */
+/** A server action call can still throw (a network or server failure); the dropdown still needs an answer. */
 async function settle<T>(action: () => Promise<Result<T>>): Promise<Result<T>> {
   try {
     return await action();

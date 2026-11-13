@@ -10,7 +10,7 @@ const { mockListItems, mockRequireApi } = vi.hoisted(() => ({
 }));
 
 vi.mock("../../data-lists-api.server", () => ({
-  requireDataListsApi: mockRequireApi,
+  checkDataListsApi: mockRequireApi,
 }));
 
 function item(value: string, label = value) {
@@ -38,9 +38,9 @@ function range(from: number, count: number) {
 describe("searchDataListItemsAction", () => {
   beforeEach(() => {
     mockListItems.mockReset();
-    mockRequireApi.mockResolvedValue({
-      dataLists: { listItems: mockListItems },
-    });
+    mockRequireApi.mockResolvedValue(
+      Result.success({ dataLists: { listItems: mockListItems } }),
+    );
   });
 
   it("reads one staff items page when skip is a multiple of take", async () => {
@@ -114,9 +114,9 @@ describe("searchDataListItemsAction", () => {
 describe("resolveDataListItemLabelsAction", () => {
   beforeEach(() => {
     mockListItems.mockReset();
-    mockRequireApi.mockResolvedValue({
-      dataLists: { listItems: mockListItems },
-    });
+    mockRequireApi.mockResolvedValue(
+      Result.success({ dataLists: { listItems: mockListItems } }),
+    );
   });
 
   it("looks each value up with an exact staff query and keeps only the value match", async () => {

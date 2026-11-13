@@ -7,7 +7,7 @@ import type {
 } from "@/lib/endatix-api/data-lists/types";
 import { Result } from "@/lib/result";
 import { toResult } from "@/lib/result/map-api-result-to-result";
-import { requireDataListsApi } from "../data-lists-api.server";
+import { checkDataListsApi } from "../data-lists-api.server";
 import type { DataListLabelOptions } from "@/lib/survey-features/data-lists";
 
 const LABEL_LOOKUP_PAGE_SIZE = 25;
@@ -30,9 +30,14 @@ export async function resolveDataListItemLabelsAction(
   values: string[],
   options: DataListLabelOptions = {},
 ): Promise<Result<DataListChoiceItem[]>> {
-  const api = await requireDataListsApi();
+  const access = await checkDataListsApi();
+  if (Result.isError(access)) {
+    return access;
+  }
   const lookups = await Promise.all(
-    values.map((value) => findItem(api, dataListId, { ...options, value })),
+    values.map((value) =>
+      findItem(access.value, dataListId, { ...options, value }),
+    ),
   );
   return foundItems(lookups);
 }

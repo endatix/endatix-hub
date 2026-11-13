@@ -9,7 +9,7 @@ import type {
 import { Result } from "@/lib/result";
 import { toResult } from "@/lib/result/map-api-result-to-result";
 import { mapSkipTakeToPage } from "@/lib/survey-features/infrastructure/choices-lazy-load-page";
-import { requireDataListsApi } from "../data-lists-api.server";
+import { checkDataListsApi } from "../data-lists-api.server";
 import type { DataListItemsRange, DataListItemsRangeRequest } from "./types";
 
 const LIST_ITEMS_MAP_OPTIONS = {
@@ -33,7 +33,11 @@ export async function searchDataListItemsAction(
   const { skip, take, ...filters } = request;
   const { page, pageSize } = mapSkipTakeToPage(skip, take);
   const offset = Math.max(skip, 0) % pageSize;
-  const api = await requireDataListsApi();
+  const access = await checkDataListsApi();
+  if (Result.isError(access)) {
+    return access;
+  }
+  const api = access.value;
   const readPage = (pageNumber: number) =>
     readItemsPage(api, dataListId, { ...filters, page: pageNumber, pageSize });
 
