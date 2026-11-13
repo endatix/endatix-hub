@@ -60,7 +60,8 @@ export function bindFeatureToSurvey(survey: SurveyModel): () => void {
   injectVisibilityConditions(survey);
 
   const hasData = !!survey.data && Object.keys(survey.data).length > 0;
-  if (hasData || hasAnswerIndependentLoop(survey)) {
+  const fillsOnLoad = !survey.isDesignMode && hasAnswerIndependentLoop(survey);
+  if (hasData || fillsOnLoad) {
     hydrateLoopsFromData(survey);
   }
 
