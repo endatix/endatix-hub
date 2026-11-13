@@ -11,7 +11,7 @@ import {
   collectLoopInstances,
   collectRootLoopInstances,
 } from "../utils/collect-loop-questions";
-import { SourceSelectionModes } from "../types";
+import { isAnswerIndependentMode } from "../loop-utils";
 import { runLoopSyncExclusively } from "./loop-sync-state";
 
 /**
@@ -37,15 +37,10 @@ function hydrateLoopsFromData(survey: SurveyModel): void {
   }
 }
 
-/**
- * Whether a loop has panels before any answer: "All" and "Unselected Only"
- * loop over choices that need no selection.
- */
-function hasLoopFilledWithoutAnswers(survey: SurveyModel): boolean {
-  return collectLoopInstances(survey).some(
-    (loop) =>
-      loop.choicePattern === SourceSelectionModes.All ||
-      loop.choicePattern === SourceSelectionModes.UnselectedOnly,
+/** Whether a loop has panels before any answer (see isAnswerIndependentMode). */
+function hasAnswerIndependentLoop(survey: SurveyModel): boolean {
+  return collectLoopInstances(survey).some((loop) =>
+    isAnswerIndependentMode(loop.choicePattern),
   );
 }
 
@@ -65,7 +60,7 @@ export function bindFeatureToSurvey(survey: SurveyModel): () => void {
   injectVisibilityConditions(survey);
 
   const hasData = !!survey.data && Object.keys(survey.data).length > 0;
-  if (hasData || hasLoopFilledWithoutAnswers(survey)) {
+  if (hasData || hasAnswerIndependentLoop(survey)) {
     hydrateLoopsFromData(survey);
   }
 

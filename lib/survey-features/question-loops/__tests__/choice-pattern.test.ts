@@ -55,12 +55,28 @@ describe("Loop over (choicePattern)", () => {
     expect(loop.choicePattern).toBe(value);
   });
 
-  it("falls back to Selected Only when cleared", () => {
-    const loop = getLoop(new SurveyModel(loopSurveyJson("All")));
+  it.each([undefined, null])(
+    "falls back to Selected Only when cleared to %j",
+    (cleared) => {
+      const loop = getLoop(new SurveyModel(loopSurveyJson("All")));
 
-    loop.choicePattern = undefined as never;
+      loop.choicePattern = cleared as unknown as string;
 
-    expect(loop.choicePattern).toBe(SourceSelectionModes.SelectedOnly);
+      expect(loop.choicePattern).toBe(SourceSelectionModes.SelectedOnly);
+      expect(loop.toJSON().choicePattern).toBeUndefined();
+    },
+  );
+
+  it("loops over the selected items for an empty or unknown value", () => {
+    for (const value of ["", "Something else"]) {
+      const survey = new SurveyModel(loopSurveyJson(value));
+      survey.setValue("brands", ["a"]);
+
+      syncSingleLoopSource(survey, getLoop(survey));
+
+      const panels = getLoop(survey).value as Array<{ itemValue: string }>;
+      expect(panels.map((p) => p.itemValue)).toEqual(["a"]);
+    }
   });
 
   it.each([
@@ -97,15 +113,20 @@ describe("Loop over (choicePattern)", () => {
     const survey = new SurveyModel(
       loopSurveyJson(SourceSelectionModes.UnselectedOnly),
     );
-    const dispose = bindFeatureToSurvey(survey);
     const itemValues = () =>
       ((getLoop(survey).value ?? []) as Array<{ itemValue: string }>).map(
         (p) => p.itemValue,
       );
+    const dispose = bindFeatureToSurvey(survey);
 
-    survey.setValue("brands", ["b"]);
-    expect(itemValues()).toEqual(["a", "c"]);
+    try {
+      expect(itemValues()).toEqual(["a", "b", "c"]);
 
-    dispose();
+      survey.setValue("brands", ["b"]);
+
+      expect(itemValues()).toEqual(["a", "c"]);
+    } finally {
+      dispose();
+    }
   });
 });
