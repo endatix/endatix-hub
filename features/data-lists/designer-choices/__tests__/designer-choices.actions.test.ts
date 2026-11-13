@@ -251,7 +251,7 @@ describe("resolveDataListItemLabelsAction", () => {
     await resolveDataListItemLabelsAction("42", values);
 
     const queries = mockListItems.mock.calls.map(
-      ([, request]: [string, { query: string }]) => request.query,
+      ([, request]) => (request as { query: string }).query,
     );
     expect(queries).toHaveLength(25);
     expect(new Set(queries).size).toBe(25);
