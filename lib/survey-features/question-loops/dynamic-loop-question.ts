@@ -107,9 +107,6 @@ const CHOICE_PATTERN_PROPERTY: IJsonPropertyInfo = {
   displayName: "Loop over",
   category: "questionLoops",
   default: SourceSelectionModes.SelectedOnly,
-  onSetValue: (obj, value) => {
-    obj.choicePattern = value ?? SourceSelectionModes.SelectedOnly;
-  },
   type: "dropdown",
   choices: Object.values(SourceSelectionModes),
   visibleIf: isLoopQuestion,

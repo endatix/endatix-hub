@@ -1,7 +1,7 @@
 import { Helpers, ItemValue, SurveyModel } from "survey-core";
 import { ChoiceValue, DynamicLoopModel, PanelItem } from "../types";
 import {
-  getUniqueSelectedChoices,
+  getUniqueLoopChoices,
   isLoopQuestion,
   shuffleArray,
 } from "../loop-utils";
@@ -32,12 +32,7 @@ export function syncSingleLoopSource(
   const existingFilledInItemValues =
     getExistingFilledInItemValues(panelQuestion);
 
-  // Scope-aware: a loop inside a panel reads its sibling in *that* panel
-  // instance, which a survey-root lookup by name can neither find nor
-  // disambiguate between instances.
-  const loopSourceQuestions = resolveLoopSourceQuestions(panelQuestion);
-
-  const choicesMap = getUniqueSelectedChoices(loopSourceQuestions);
+  const choicesMap = getLoopSourceChoices(panelQuestion);
 
   const categorized = categorizeChoices(
     choicesMap,
@@ -67,6 +62,19 @@ export function syncSingleLoopSource(
   if (panelsHaveChanged) {
     panelQuestion.value = panelsToDisplay;
   }
+}
+
+/**
+ * Gets the choices the loop iterates over, per its "Loop over" setting.
+ * Scope-aware: a loop inside a panel reads its sibling in *that* panel
+ * instance, which a survey-root lookup by name can neither find nor
+ * disambiguate between instances.
+ */
+function getLoopSourceChoices(panelQuestion: DynamicLoopModel): ItemValue[] {
+  return getUniqueLoopChoices(
+    resolveLoopSourceQuestions(panelQuestion),
+    panelQuestion.choicePattern,
+  );
 }
 
 /**

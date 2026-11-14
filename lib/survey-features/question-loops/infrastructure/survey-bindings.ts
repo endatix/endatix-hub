@@ -11,6 +11,7 @@ import {
   collectLoopInstances,
   collectRootLoopInstances,
 } from "../utils/collect-loop-questions";
+import { isAnswerIndependentMode } from "../loop-utils";
 import { runLoopSyncExclusively } from "./loop-sync-state";
 
 /**
@@ -36,6 +37,13 @@ function hydrateLoopsFromData(survey: SurveyModel): void {
   }
 }
 
+/** Whether a loop has panels before any answer (see isAnswerIndependentMode). */
+function hasAnswerIndependentLoop(survey: SurveyModel): boolean {
+  return collectLoopInstances(survey).some((loop) =>
+    isAnswerIndependentMode(loop.choicePattern),
+  );
+}
+
 /**
  * Binds the feature to the survey.
  *
@@ -51,7 +59,9 @@ function hydrateLoopsFromData(survey: SurveyModel): void {
 export function bindFeatureToSurvey(survey: SurveyModel): () => void {
   injectVisibilityConditions(survey);
 
-  if (survey.data && Object.keys(survey.data).length > 0) {
+  const hasData = !!survey.data && Object.keys(survey.data).length > 0;
+  const fillsOnLoad = !survey.isDesignMode && hasAnswerIndependentLoop(survey);
+  if (hasData || fillsOnLoad) {
     hydrateLoopsFromData(survey);
   }
 

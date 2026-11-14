@@ -200,8 +200,39 @@ function getUniqueSelectedChoices(
   );
 }
 
+/**
+ * Whether a "Loop over" mode has items before any answer: All and Unselected
+ * Only. Selected Only, and any unknown value, loop over the answer.
+ */
+function isAnswerIndependentMode(
+  selectionMode: string | undefined,
+): selectionMode is SourceSelectionMode {
+  return (
+    selectionMode === SourceSelectionModes.All ||
+    selectionMode === SourceSelectionModes.UnselectedOnly
+  );
+}
+
+/**
+ * Gets the unique choices a loop iterates over, per its "Loop over" mode.
+ */
+function getUniqueLoopChoices(
+  questions: QuestionSelectBase[],
+  selectionMode: SourceSelectionMode | undefined,
+): ItemValue[] {
+  if (!isAnswerIndependentMode(selectionMode)) {
+    return getUniqueSelectedChoices(questions);
+  }
+
+  return extractUniqueChoicesBy(questions, (question) =>
+    getLoopChoicesFromQuestion(question, selectionMode),
+  );
+}
+
 export {
   isLoopQuestion,
+  getUniqueLoopChoices,
+  isAnswerIndependentMode,
   getAllLoopQuestions,
   resolveDynamicLoopCondition,
   shuffleArray,
