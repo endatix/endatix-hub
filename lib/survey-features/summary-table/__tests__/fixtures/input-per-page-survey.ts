@@ -9,6 +9,7 @@ export const LOOP_SOURCE_NAME = "attributes";
 export const LOOP_NAME = "loop";
 export const OUTER_PANEL_NAME = "groups";
 export const NESTED_LOOP_NAME = "nestedLoop";
+export const LOOP_MATRIX_NAME = "loopItems";
 
 const LOOP_CHOICES = ["1", "2"].map((value) => ({
   value,
@@ -87,6 +88,35 @@ export const nestedLoopSurvey = {
               name: NESTED_LOOP_NAME,
               loopSource: [LOOP_SOURCE_NAME],
               templateElements: [{ type: "text", name: "rating" }],
+            },
+          ],
+        },
+      ],
+    },
+  ],
+};
+
+/** A dynamic matrix inside a question loop: the matrix is not a loop. */
+export const matrixInLoopSurvey = {
+  questionsOnPageMode: "inputPerPage",
+  pages: [
+    {
+      elements: [
+        { type: "checkbox", name: LOOP_SOURCE_NAME, choices: LOOP_CHOICES },
+      ],
+    },
+    {
+      elements: [
+        {
+          type: "paneldynamic",
+          name: LOOP_NAME,
+          loopSource: [LOOP_SOURCE_NAME],
+          templateElements: [
+            {
+              type: "matrixdynamic",
+              name: LOOP_MATRIX_NAME,
+              rowCount: 1,
+              columns: [{ name: "label", cellType: "text" }],
             },
           ],
         },

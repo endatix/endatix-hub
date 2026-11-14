@@ -3,6 +3,7 @@ import { isLoopQuestion } from "@/lib/survey-features/question-loops/utils/colle
 
 /**
  * Drops the summary step of question loops in one-input-per-page layout.
+ * SurveyJS lists that step as the question itself in `nestedQuestions`.
  * Other dynamic questions keep it: their "Add" button lives on that step.
  */
 export function registerLoopAwareSummaryTable(surveyModel: SurveyModel): () => void {

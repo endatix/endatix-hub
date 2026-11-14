@@ -10,6 +10,7 @@ import { bindFeatureToSurvey } from "@/lib/survey-features/question-loops/infras
 import { isLoopQuestion } from "@/lib/survey-features/question-loops/utils/collect-loop-questions";
 import { registerLoopAwareSummaryTable } from "../register-loop-aware-summary-table";
 import {
+  LOOP_MATRIX_NAME,
   LOOP_NAME,
   LOOP_SOURCE_NAME,
   MATRIX_NAME,
@@ -17,6 +18,7 @@ import {
   OUTER_PANEL_NAME,
   PLAIN_PANEL_NAME,
   loopSurvey,
+  matrixInLoopSurvey,
   matrixSurvey,
   nestedLoopSurvey,
   plainPanelSurvey,
@@ -138,5 +140,25 @@ describe("registerLoopAwareSummaryTable in one-input-per-page layout (hub#1385 r
       OUTER_PANEL_NAME,
     ]);
     expect(inputs).not.toContain(nestedLoop);
+  });
+
+  it("keeps the summary step for a dynamic matrix inside a question loop", () => {
+    const survey = load(matrixInLoopSurvey);
+    survey.setValue(LOOP_SOURCE_NAME, ["1"]);
+    survey.performNext();
+    const loop = survey.getQuestionByName(LOOP_NAME) as QuestionPanelDynamicModel;
+    const matrix = loop.panels[0].getQuestionByName(
+      LOOP_MATRIX_NAME,
+    ) as QuestionMatrixDynamicModel;
+
+    expect(isLoopQuestion(loop)).toBe(true);
+    expect(leafInput(loop)?.name).toBe("label");
+
+    leafInput(loop)!.value = "First";
+    survey.performNext();
+
+    expect(currentInput(matrix)).toBe(matrix);
+    matrix.singleInputAddItem();
+    expect(matrix.rowCount).toBe(2);
   });
 });
