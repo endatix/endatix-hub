@@ -2,6 +2,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { Model, type Question } from "survey-core";
 import { registerQuestionLoopsGlobals } from "@/lib/survey-features/question-loops/infrastructure/registry";
 import { bindFeatureToSurvey as bindQuestionLoops } from "@/lib/survey-features/question-loops/infrastructure/survey-bindings";
+import type { PanelItem } from "@/lib/survey-features/question-loops/types";
 import { registerAdvancedCarryForwardGlobals } from "../infrastructure/registry";
 import {
   bindAdvancedCarryForwardToSurvey,
@@ -49,6 +50,13 @@ function choiceValues(question: Question): unknown[] {
 function loopTargets(model: Model): Question[] {
   const loop = model.getQuestionByName(LOOP_NAME) as PanelDynamic;
   return loop.panels.map((panel) => panel.getQuestionByName(LOOP_TARGET_NAME));
+}
+
+function dependentsOf(model: Model, name: string): Question[] {
+  const source = model.getQuestionByName(name) as unknown as {
+    dependedQuestions: Question[];
+  };
+  return source.dependedQuestions;
 }
 
 function outsideTarget(model: Model): Question {
@@ -118,6 +126,50 @@ describe("Carry-forward inside a question loop (hub#1384 regression)", () => {
     for (const target of targets) {
       expect(choiceValues(target)).toEqual(EXPECTED);
     }
+  });
+
+  it("stops syncing the questions of a panel the loop drops", () => {
+    const model = loadSurvey("loops-first");
+    const dropped = loopTargets(model).at(-1)!;
+    const kept = (model.getQuestionByName(LOOP_NAME).value as PanelItem[])[0]!;
+
+    model.setValue(LOOP_SOURCE_NAME, [kept.itemValue]);
+
+    expect(dependentsOf(model, SOURCE_NAME)).not.toContain(dropped);
+    expect(dependentsOf(model, SOURCE_NAME)).toHaveLength(2);
+  });
+
+  it("keeps a saved loop answer when resuming a submission", () => {
+    const model = new Model(carryForwardLoopSurvey());
+    model.data = {
+      [SOURCE_NAME]: ["1", "4"],
+      [LOOP_SOURCE_NAME]: ["A"],
+      [LOOP_NAME]: [
+        { itemValue: "A", itemText: "Topic A", [LOOP_TARGET_NAME]: ["4"] },
+      ],
+    };
+    disposers.push(
+      bindQuestionLoops(model),
+      bindAdvancedCarryForwardToSurvey(model),
+    );
+
+    const [target] = loopTargets(model);
+    expect(choiceValues(target!)).toEqual(EXPECTED);
+    expect([...target!.value]).toEqual(["4"]);
+  });
+
+  it("leaves the loop template's choices as authored in design mode", () => {
+    const model = new Model(carryForwardLoopSurvey());
+    model.setDesignMode(true);
+    const loop = model.getQuestionByName(LOOP_NAME) as PanelDynamic & {
+      template: { getQuestionByName: (name: string) => Question };
+    };
+    const template = loop.template.getQuestionByName(LOOP_TARGET_NAME);
+    template.setPropertyValue("choices", ["authored"]);
+
+    disposers.push(bindAdvancedCarryForwardToSurvey(model));
+
+    expect(choiceValues(template)).toEqual(["authored"]);
   });
 
   it("keeps the panels it still has in sync after the loop drops one", () => {

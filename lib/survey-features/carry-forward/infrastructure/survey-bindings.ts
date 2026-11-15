@@ -61,42 +61,79 @@ function syncWhenSourcesChange(
 }
 
 /**
+ * Runs `beforeDispose` ahead of the question's own dispose. A loop disposes the
+ * questions of the panels it drops, and SurveyJS likewise unhooks a
+ * `choicesFromQuestion` dependent in `dispose()`.
+ */
+function runBeforeDispose(question: Question, beforeDispose: () => void): void {
+  const dispose = question.dispose.bind(question);
+  question.dispose = () => {
+    beforeDispose();
+    dispose();
+  };
+}
+
+/** The targets attached to one model, with their property-change handlers. */
+class CarryForwardTargetRegistry {
+  private readonly handlers = new Map<
+    AdvancedCarryForwardQuestion,
+    PropertyChangeHandler
+  >();
+
+  constructor(private readonly model: Model) {}
+
+  /** Attaches a target once; returns whether it was attached now. */
+  attach(question: Question): boolean {
+    if (
+      !isAdvancedCarryForwardEnabled(question) ||
+      this.handlers.has(question)
+    ) {
+      return false;
+    }
+
+    const handler = createPropertyChangeHandler(this.model, question);
+    question.onPropertyChanged.add(handler);
+    this.handlers.set(question, handler);
+    syncWhenSourcesChange(this.model, question);
+    runBeforeDispose(question, () => this.detach(question));
+    return true;
+  }
+
+  detachAll(): void {
+    for (const target of [...this.handlers.keys()]) {
+      this.detach(target);
+    }
+  }
+
+  private detach(target: AdvancedCarryForwardQuestion): void {
+    const handler = this.handlers.get(target);
+    if (handler) {
+      target.onPropertyChanged.remove(handler);
+    }
+    this.handlers.delete(target);
+    unregisterCarryForwardDependencies(this.model, target);
+  }
+}
+
+/**
  * Wires carry-forward config changes on targets (sources, mode, enabled, etc.).
  * Source *value* sync uses SurveyJS `addDependedQuestion` + `updateDependedQuestion`
  * (see carry-forward-dependencies.ts), not per-question value listeners.
  */
 function attachCarryForwardPropertyChangeHandlers(model: Model): () => void {
-  const questionHandlers = new Map<
-    AdvancedCarryForwardQuestion,
-    PropertyChangeHandler
-  >();
+  const targets = new CarryForwardTargetRegistry(model);
 
-  /** Attaches a target once; returns whether it was attached now. */
-  const attachToTarget = (question: Question): boolean => {
-    if (
-      !isAdvancedCarryForwardEnabled(question) ||
-      questionHandlers.has(question)
-    ) {
-      return false;
-    }
-
-    const handler = createPropertyChangeHandler(model, question);
-    question.onPropertyChanged.add(handler);
-    questionHandlers.set(question, handler);
-    syncWhenSourcesChange(model, question);
-    return true;
-  };
-
-  getAllCarryForwardTargets(model).forEach((target) => attachToTarget(target));
+  getAllCarryForwardTargets(model).forEach((target) => targets.attach(target));
 
   const handleQuestionAdded = (_: unknown, options: QuestionAddedEvent) => {
-    attachToTarget(options.question);
+    targets.attach(options.question);
   };
 
   // A dynamic panel (a question loop's panels among them) builds its questions
   // from the template after load, and onQuestionAdded does not fire for them.
+  // In design mode the created question is a template one: leave it as authored.
   const handleQuestionCreated = (_: unknown, options: QuestionCreatedEvent) => {
-    if (attachToTarget(options.question)) {
+    if (!model.isDesignMode && targets.attach(options.question)) {
       syncCarryForwardTargets(model, [
         options.question as AdvancedCarryForwardQuestion,
       ]);
@@ -107,11 +144,7 @@ function attachCarryForwardPropertyChangeHandlers(model: Model): () => void {
   model.onQuestionCreated.add(handleQuestionCreated);
 
   return () => {
-    questionHandlers.forEach((handler, question) => {
-      question.onPropertyChanged.remove(handler);
-      unregisterCarryForwardDependencies(model, question);
-    });
-    questionHandlers.clear();
+    targets.detachAll();
     model.onQuestionAdded.remove(handleQuestionAdded);
     model.onQuestionCreated.remove(handleQuestionCreated);
   };
