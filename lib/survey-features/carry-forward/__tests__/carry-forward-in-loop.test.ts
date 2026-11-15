@@ -259,6 +259,25 @@ describe("Carry-forward inside a question loop (hub#1384 regression)", () => {
     expect(choiceValues(added)).toEqual(["authored"]);
   });
 
+  // A design-mode source carries no choices, so the attach shows as the new
+  // question following the source it is given.
+  it("follows the source given to a top-level carry-forward question added in design mode", () => {
+    const model = new Model(carryForwardLoopSurvey());
+    model.setDesignMode(true);
+    disposers.push(bindAdvancedCarryForwardToSurvey(model));
+    const added = Serializer.createClass("checkbox") as Question;
+    added.fromJSON({
+      name: "addedPicks",
+      edxCarryForwardEnabled: true,
+      edxCarryForwardMode: "selected",
+    });
+    model.pages[0].addElement(added);
+
+    added.setPropertyValue("edxCarryForwardSources", [SOURCE_NAME]);
+
+    expect(dependentsOf(model, SOURCE_NAME)).toContain(added);
+  });
+
   it("keeps the panels it still has in sync after the loop drops one", () => {
     const model = loadSurvey("loops-first");
     model.setValue(LOOP_SOURCE_NAME, ["A", "B"]);
