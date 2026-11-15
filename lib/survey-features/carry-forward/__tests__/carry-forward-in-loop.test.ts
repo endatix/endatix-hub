@@ -182,7 +182,10 @@ describe("Carry-forward inside a question loop (hub#1384 regression)", () => {
     ],
   };
 
-  function bindBoth(model: Model, order: "loops-first" | "carry-forward-first") {
+  function bindBoth(
+    model: Model,
+    order: "loops-first" | "carry-forward-first",
+  ) {
     const binds = [
       () => bindQuestionLoops(model),
       () => bindAdvancedCarryForwardToSurvey(model),
