@@ -1,0 +1,135 @@
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { Model, type Question } from "survey-core";
+import { registerQuestionLoopsGlobals } from "@/lib/survey-features/question-loops/infrastructure/registry";
+import { bindFeatureToSurvey as bindQuestionLoops } from "@/lib/survey-features/question-loops/infrastructure/survey-bindings";
+import { registerAdvancedCarryForwardGlobals } from "../infrastructure/registry";
+import {
+  bindAdvancedCarryForwardToSurvey,
+  clearAdvancedCarryForwardBindingsForTests,
+} from "../infrastructure/survey-bindings";
+import { resetCarryForwardUpdateGuardForTests } from "../infrastructure/carry-forward-sync";
+import {
+  LOOP_ITEMS,
+  LOOP_NAME,
+  LOOP_SOURCE_NAME,
+  LOOP_TARGET_NAME,
+  OUTSIDE_TARGET_NAME,
+  SOURCE_NAME,
+  carryForwardLoopSurvey,
+} from "./fixtures/carry-forward-loop-survey";
+
+type PanelDynamic = Question & {
+  panels: Array<{ getQuestionByName: (name: string) => Question }>;
+};
+
+const disposers: Array<() => void> = [];
+
+/** Builds the model with Q4 answered, binding the two features in `order`. */
+function loadSurvey(
+  order: "loops-first" | "carry-forward-first",
+  answer: string[] = ["1", "2", "4", "5"],
+): Model {
+  const model = new Model(carryForwardLoopSurvey());
+  model.setValue(SOURCE_NAME, answer);
+  const binds = [
+    () => bindQuestionLoops(model),
+    () => bindAdvancedCarryForwardToSurvey(model),
+  ];
+  if (order === "carry-forward-first") binds.reverse();
+  for (const bind of binds) disposers.push(bind());
+  return model;
+}
+
+function choiceValues(question: Question): unknown[] {
+  return (
+    question as unknown as { choices: Array<{ value: unknown }> }
+  ).choices.map((choice) => choice.value);
+}
+
+function loopTargets(model: Model): Question[] {
+  const loop = model.getQuestionByName(LOOP_NAME) as PanelDynamic;
+  return loop.panels.map((panel) => panel.getQuestionByName(LOOP_TARGET_NAME));
+}
+
+function outsideTarget(model: Model): Question {
+  return model.getQuestionByName(OUTSIDE_TARGET_NAME)!;
+}
+
+/** Selected Q4 choices, priority item first, cut to the max choices. */
+const EXPECTED = ["4", "1"];
+
+describe("Carry-forward inside a question loop (hub#1384 regression)", () => {
+  beforeAll(() => {
+    registerQuestionLoopsGlobals();
+    registerAdvancedCarryForwardGlobals();
+  });
+
+  beforeEach(() => {
+    clearAdvancedCarryForwardBindingsForTests();
+    resetCarryForwardUpdateGuardForTests();
+  });
+
+  afterEach(() => {
+    disposers.splice(0).forEach((dispose) => dispose());
+  });
+
+  it("keeps carrying choices into the question outside the loop", () => {
+    const model = loadSurvey("loops-first");
+
+    expect(choiceValues(outsideTarget(model))).toEqual(EXPECTED);
+  });
+
+  it.each(["loops-first", "carry-forward-first"] as const)(
+    "carries choices into every loop panel (%s)",
+    (order) => {
+      const model = loadSurvey(order);
+      const targets = loopTargets(model);
+
+      expect(targets).toHaveLength(LOOP_ITEMS.length);
+      for (const target of targets) {
+        expect(choiceValues(target)).toEqual(EXPECTED);
+      }
+    },
+  );
+
+  it.each(["loops-first", "carry-forward-first"] as const)(
+    "updates every loop panel when the source answer changes (%s)",
+    (order) => {
+      const model = loadSurvey(order);
+
+      model.setValue(SOURCE_NAME, ["3", "5"]);
+
+      for (const target of loopTargets(model)) {
+        expect(choiceValues(target)).toEqual(["3", "5"]);
+      }
+      expect(choiceValues(outsideTarget(model))).toEqual(["3", "5"]);
+    },
+  );
+
+  it("carries choices into a loop panel created after load", () => {
+    const model = loadSurvey("loops-first");
+    model.setValue(LOOP_SOURCE_NAME, ["A"]);
+    expect(loopTargets(model)).toHaveLength(1);
+
+    model.setValue(LOOP_SOURCE_NAME, [...LOOP_ITEMS]);
+
+    const targets = loopTargets(model);
+    expect(targets).toHaveLength(LOOP_ITEMS.length);
+    for (const target of targets) {
+      expect(choiceValues(target)).toEqual(EXPECTED);
+    }
+  });
+
+  it("keeps the panels it still has in sync after the loop drops one", () => {
+    const model = loadSurvey("loops-first");
+    model.setValue(LOOP_SOURCE_NAME, ["A", "B"]);
+
+    model.setValue(SOURCE_NAME, ["2"]);
+
+    const targets = loopTargets(model);
+    expect(targets).toHaveLength(2);
+    for (const target of targets) {
+      expect(choiceValues(target)).toEqual(["2"]);
+    }
+  });
+});

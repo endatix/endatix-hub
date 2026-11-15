@@ -1,4 +1,9 @@
-import type { Model, Question, QuestionAddedEvent } from "survey-core";
+import type {
+  Model,
+  Question,
+  QuestionAddedEvent,
+  QuestionCreatedEvent,
+} from "survey-core";
 import {
   CARRY_FORWARD_ENABLED_PROPERTY,
   CARRY_FORWARD_HANDLERS_ATTACHED_KEY,
@@ -24,6 +29,37 @@ import { syncSingleCarryForwardTarget } from "../use-cases/sync-carry-forward-ta
 
 const boundModelsForTests = new Map<Model, () => void>();
 
+type PropertyChangeHandler = (_: unknown, options: { name: string }) => void;
+
+function createPropertyChangeHandler(
+  model: Model,
+  target: AdvancedCarryForwardQuestion,
+): PropertyChangeHandler {
+  return (_, options) => {
+    if (
+      options.name === CARRY_FORWARD_SOURCES_PROPERTY ||
+      options.name === CARRY_FORWARD_ENABLED_PROPERTY
+    ) {
+      unregisterCarryForwardDependencies(model, target);
+      if (isAdvancedCarryForwardEnabled(target)) {
+        registerCarryForwardDependencies(model, target);
+      }
+    }
+
+    loadCarryForwardTargetsFromPropertyChange(model, target, options.name);
+  };
+}
+
+function syncWhenSourcesChange(
+  model: Model,
+  target: AdvancedCarryForwardQuestion,
+): void {
+  installCarryForwardTargetSyncWrapper(model, target, (syncTarget) => {
+    syncCarryForwardTargets(model, [syncTarget]);
+  });
+  registerCarryForwardDependencies(model, target);
+}
+
 /**
  * Wires carry-forward config changes on targets (sources, mode, enabled, etc.).
  * Source *value* sync uses SurveyJS `addDependedQuestion` + `updateDependedQuestion`
@@ -32,36 +68,23 @@ const boundModelsForTests = new Map<Model, () => void>();
 function attachCarryForwardPropertyChangeHandlers(model: Model): () => void {
   const questionHandlers = new Map<
     AdvancedCarryForwardQuestion,
-    (_: unknown, options: { name: string }) => void
+    PropertyChangeHandler
   >();
 
-  const attachToTarget = (question: Question): void => {
-    if (!isAdvancedCarryForwardEnabled(question)) {
-      return;
+  /** Attaches a target once; returns whether it was attached now. */
+  const attachToTarget = (question: Question): boolean => {
+    if (
+      !isAdvancedCarryForwardEnabled(question) ||
+      questionHandlers.has(question)
+    ) {
+      return false;
     }
 
-    const target = question as AdvancedCarryForwardQuestion;
-    if (questionHandlers.has(target)) {
-      return;
-    }
-
-    const handler = (_: unknown, options: { name: string }) => {
-      if (
-        options.name === CARRY_FORWARD_SOURCES_PROPERTY ||
-        options.name === CARRY_FORWARD_ENABLED_PROPERTY
-      ) {
-        unregisterCarryForwardDependencies(model, target);
-        if (isAdvancedCarryForwardEnabled(target)) {
-          registerCarryForwardDependencies(model, target);
-        }
-      }
-
-      loadCarryForwardTargetsFromPropertyChange(model, target, options.name);
-    };
-
-    target.onPropertyChanged.add(handler);
-    questionHandlers.set(target, handler);
-    registerCarryForwardDependencies(model, target);
+    const handler = createPropertyChangeHandler(model, question);
+    question.onPropertyChanged.add(handler);
+    questionHandlers.set(question, handler);
+    syncWhenSourcesChange(model, question);
+    return true;
   };
 
   getAllCarryForwardTargets(model).forEach((target) => attachToTarget(target));
@@ -70,7 +93,18 @@ function attachCarryForwardPropertyChangeHandlers(model: Model): () => void {
     attachToTarget(options.question);
   };
 
+  // A dynamic panel (a question loop's panels among them) builds its questions
+  // from the template after load, and onQuestionAdded does not fire for them.
+  const handleQuestionCreated = (_: unknown, options: QuestionCreatedEvent) => {
+    if (attachToTarget(options.question)) {
+      syncCarryForwardTargets(model, [
+        options.question as AdvancedCarryForwardQuestion,
+      ]);
+    }
+  };
+
   model.onQuestionAdded.add(handleQuestionAdded);
+  model.onQuestionCreated.add(handleQuestionCreated);
 
   return () => {
     questionHandlers.forEach((handler, question) => {
@@ -79,15 +113,8 @@ function attachCarryForwardPropertyChangeHandlers(model: Model): () => void {
     });
     questionHandlers.clear();
     model.onQuestionAdded.remove(handleQuestionAdded);
+    model.onQuestionCreated.remove(handleQuestionCreated);
   };
-}
-
-function installTargetSyncWrappers(model: Model): void {
-  for (const target of getAllCarryForwardTargets(model)) {
-    installCarryForwardTargetSyncWrapper(model, target, (syncTarget) => {
-      syncCarryForwardTargets(model, [syncTarget]);
-    });
-  }
 }
 
 export function bindAdvancedCarryForwardToSurvey(model: Model): () => void {
@@ -104,14 +131,12 @@ export function bindAdvancedCarryForwardToSurvey(model: Model): () => void {
 
   modelWithFlags[CARRY_FORWARD_HANDLERS_ATTACHED_KEY] = true;
 
-  installTargetSyncWrappers(model);
+  const detachPropertyHandlers =
+    attachCarryForwardPropertyChangeHandlers(model);
 
   getCarryForwardTargetsInDependencyOrder(model).forEach((target) => {
     syncSingleCarryForwardTarget(model, target);
   });
-
-  const detachPropertyHandlers =
-    attachCarryForwardPropertyChangeHandlers(model);
 
   const dispose = () => {
     detachPropertyHandlers();
