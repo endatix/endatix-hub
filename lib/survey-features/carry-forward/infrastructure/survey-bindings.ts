@@ -86,8 +86,11 @@ type SurveyElementLink = {
   parentQuestion?: unknown;
 };
 
-/** Whether the question sits in a dynamic panel (in design mode, its template). */
-function isInsideDynamicPanel(question: Question): boolean {
+/**
+ * Whether the question or any of its ancestors has a `parentQuestion`, as one
+ * in a dynamic panel (a question loop among them) or its template does.
+ */
+function hasParentQuestion(question: Question): boolean {
   let element: SurveyElementLink | null | undefined = question;
   while (element) {
     if (element.parentQuestion) {
@@ -160,7 +163,7 @@ function attachCarryForwardPropertyChangeHandlers(model: Model): () => void {
   // In design mode a question added inside a dynamic panel lands in its
   // template: leave its authored choices alone.
   const handleQuestionAdded = (_: unknown, options: QuestionAddedEvent) => {
-    if (model.isDesignMode && isInsideDynamicPanel(options.question)) {
+    if (model.isDesignMode && hasParentQuestion(options.question)) {
       return;
     }
     targets.attach(options.question);
