@@ -59,6 +59,14 @@ function dependentsOf(model: Model, name: string): Question[] {
   return source.dependedQuestions;
 }
 
+/** The question's methods are its class's again: nothing still wraps them. */
+function expectNoCarryForwardPatches(question: Question): void {
+  const patched = question as unknown as Record<string, unknown>;
+  const prototype = Object.getPrototypeOf(question);
+  expect(patched.dispose).toBe(prototype.dispose);
+  expect(patched.updateDependedQuestion).toBe(prototype.updateDependedQuestion);
+}
+
 function outsideTarget(model: Model): Question {
   return model.getQuestionByName(OUTSIDE_TARGET_NAME)!;
 }
@@ -135,8 +143,21 @@ describe("Carry-forward inside a question loop (hub#1384 regression)", () => {
 
     model.setValue(LOOP_SOURCE_NAME, [kept.itemValue]);
 
+    expect(dependentsOf(model, SOURCE_NAME)).toEqual(
+      expect.arrayContaining([outsideTarget(model), ...loopTargets(model)]),
+    );
     expect(dependentsOf(model, SOURCE_NAME)).not.toContain(dropped);
     expect(dependentsOf(model, SOURCE_NAME)).toHaveLength(2);
+    expectNoCarryForwardPatches(dropped);
+  });
+
+  it("leaves no carry-forward patches on its targets once unbound", () => {
+    const model = loadSurvey("loops-first");
+    const targets = [...loopTargets(model), outsideTarget(model)];
+
+    disposers.splice(0).forEach((dispose) => dispose());
+
+    for (const target of targets) expectNoCarryForwardPatches(target);
   });
 
   it("keeps a saved loop answer when resuming a submission", () => {

@@ -132,12 +132,11 @@ export function installCarryForwardTargetSyncWrapper(
   const targetWithSync = target as AdvancedCarryForwardQuestion & {
     updateDependedQuestion: () => void;
   };
-  const originalUpdateDependedQuestion =
-    targetWithSync.updateDependedQuestion.bind(targetWithSync);
+  const originalUpdateDependedQuestion = targetWithSync.updateDependedQuestion;
 
   targetWithSync.updateDependedQuestion = () => {
     onSync(target);
-    originalUpdateDependedQuestion();
+    originalUpdateDependedQuestion.call(targetWithSync);
   };
 
   let wrappers = syncWrappersByModel.get(model);
@@ -150,6 +149,35 @@ export function installCarryForwardTargetSyncWrapper(
     target,
     originalUpdateDependedQuestion,
   });
+}
+
+/**
+ * Removes the sync wrapper of one target and puts its own
+ * updateDependedQuestion back, for a target that leaves the survey (a loop
+ * panel the loop drops).
+ * @param model - The model the wrapper was installed on.
+ * @param target - The target to unwrap.
+ */
+export function uninstallCarryForwardTargetSyncWrapper(
+  model: Model,
+  target: AdvancedCarryForwardQuestion,
+): void {
+  const wrappers = syncWrappersByModel.get(model);
+  const index = wrappers?.findIndex((wrapper) => wrapper.target === target);
+  if (!wrappers || index === undefined || index < 0) {
+    return;
+  }
+
+  const [wrapper] = wrappers.splice(index, 1);
+  restoreUpdateDependedQuestion(wrapper!);
+}
+
+function restoreUpdateDependedQuestion(wrapper: TargetSyncWrapper): void {
+  const targetWithSync = wrapper.target as AdvancedCarryForwardQuestion & {
+    updateDependedQuestion: () => void;
+  };
+  targetWithSync.updateDependedQuestion =
+    wrapper.originalUpdateDependedQuestion;
 }
 
 /**
@@ -172,11 +200,7 @@ export function clearCarryForwardDependencyStateForModel(model: Model): void {
   const wrappers = syncWrappersByModel.get(model);
   if (wrappers) {
     for (const wrapper of wrappers) {
-      const targetWithSync = wrapper.target as AdvancedCarryForwardQuestion & {
-        updateDependedQuestion: () => void;
-      };
-      targetWithSync.updateDependedQuestion =
-        wrapper.originalUpdateDependedQuestion;
+      restoreUpdateDependedQuestion(wrapper);
     }
 
     wrappers.length = 0;

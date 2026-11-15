@@ -19,6 +19,7 @@ import {
   clearCarryForwardDependencyStateForModel,
   installCarryForwardTargetSyncWrapper,
   registerCarryForwardDependencies,
+  uninstallCarryForwardTargetSyncWrapper,
   unregisterCarryForwardDependencies,
 } from "./carry-forward-dependencies";
 import {
@@ -65,19 +66,26 @@ function syncWhenSourcesChange(
  * questions of the panels it drops, and SurveyJS likewise unhooks a
  * `choicesFromQuestion` dependent in `dispose()`.
  */
-function runBeforeDispose(question: Question, beforeDispose: () => void): void {
-  const dispose = question.dispose.bind(question);
+function runBeforeDispose(
+  question: Question,
+  beforeDispose: () => void,
+): () => void {
+  const dispose = question.dispose;
   question.dispose = () => {
     beforeDispose();
-    dispose();
+    dispose.call(question);
+  };
+
+  return () => {
+    question.dispose = dispose;
   };
 }
 
 /** The targets attached to one model, with their property-change handlers. */
 class CarryForwardTargetRegistry {
-  private readonly handlers = new Map<
+  private readonly attachments = new Map<
     AdvancedCarryForwardQuestion,
-    PropertyChangeHandler
+    { handler: PropertyChangeHandler; restoreDispose: () => void }
   >();
 
   constructor(private readonly model: Model) {}
@@ -86,32 +94,39 @@ class CarryForwardTargetRegistry {
   attach(question: Question): boolean {
     if (
       !isAdvancedCarryForwardEnabled(question) ||
-      this.handlers.has(question)
+      this.attachments.has(question)
     ) {
       return false;
     }
 
     const handler = createPropertyChangeHandler(this.model, question);
     question.onPropertyChanged.add(handler);
-    this.handlers.set(question, handler);
     syncWhenSourcesChange(this.model, question);
-    runBeforeDispose(question, () => this.detach(question));
+    const restoreDispose = runBeforeDispose(question, () =>
+      this.detach(question),
+    );
+    this.attachments.set(question, { handler, restoreDispose });
     return true;
   }
 
   detachAll(): void {
-    for (const target of [...this.handlers.keys()]) {
+    for (const target of [...this.attachments.keys()]) {
       this.detach(target);
     }
   }
 
+  /** Undoes everything attach did, so the target carries no patches. */
   private detach(target: AdvancedCarryForwardQuestion): void {
-    const handler = this.handlers.get(target);
-    if (handler) {
-      target.onPropertyChanged.remove(handler);
+    const attachment = this.attachments.get(target);
+    if (!attachment) {
+      return;
     }
-    this.handlers.delete(target);
+
+    this.attachments.delete(target);
+    target.onPropertyChanged.remove(attachment.handler);
     unregisterCarryForwardDependencies(this.model, target);
+    uninstallCarryForwardTargetSyncWrapper(this.model, target);
+    attachment.restoreDispose();
   }
 }
 
@@ -134,9 +149,10 @@ function attachCarryForwardPropertyChangeHandlers(model: Model): () => void {
   // In design mode the created question is a template one: leave it as authored.
   const handleQuestionCreated = (_: unknown, options: QuestionCreatedEvent) => {
     if (!model.isDesignMode && targets.attach(options.question)) {
-      syncCarryForwardTargets(model, [
+      syncSingleCarryForwardTarget(
+        model,
         options.question as AdvancedCarryForwardQuestion,
-      ]);
+      );
     }
   };
 
