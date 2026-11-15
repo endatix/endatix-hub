@@ -9,6 +9,7 @@ export const LOOP_SOURCE_NAME = "loopItems";
 export const LOOP_NAME = "loop";
 export const LOOP_TARGET_NAME = "picks";
 export const OUTSIDE_TARGET_NAME = "picksOutside";
+export const PLAIN_PANEL_NAME = "plainPanel";
 
 export const SOURCE_ITEMS = ["1", "2", "3", "4", "5"] as const;
 export const LOOP_ITEMS = ["A", "B", "C"] as const;
@@ -71,6 +72,26 @@ export function carryForwardLoopSurvey() {
       { name: "page1", elements: [SOURCE, LOOP_SOURCE] },
       { name: "page2", elements: [LOOP] },
       { name: "page3", elements: [carryForwardTarget(OUTSIDE_TARGET_NAME)] },
+    ],
+  };
+}
+
+/** A plain dynamic panel (no loop) whose template holds a carry-forward target. */
+export function carryForwardPlainPanelSurvey() {
+  return {
+    pages: [
+      { name: "page1", elements: [SOURCE] },
+      {
+        name: "page2",
+        elements: [
+          {
+            type: "paneldynamic",
+            name: PLAIN_PANEL_NAME,
+            panelCount: 1,
+            templateElements: [carryForwardTarget(LOOP_TARGET_NAME)],
+          },
+        ],
+      },
     ],
   };
 }

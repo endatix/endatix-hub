@@ -15,12 +15,16 @@ import {
   LOOP_SOURCE_NAME,
   LOOP_TARGET_NAME,
   OUTSIDE_TARGET_NAME,
+  PLAIN_PANEL_NAME,
   SOURCE_NAME,
   carryForwardLoopSurvey,
+  carryForwardPlainPanelSurvey,
 } from "./fixtures/carry-forward-loop-survey";
 
 type PanelDynamic = Question & {
   panels: Array<{ getQuestionByName: (name: string) => Question }>;
+  addPanel: () => unknown;
+  removePanel: (index: number) => void;
 };
 
 const disposers: Array<() => void> = [];
@@ -241,5 +245,56 @@ describe("Carry-forward inside a question loop (hub#1384 regression)", () => {
     for (const target of targets) {
       expect(choiceValues(target)).toEqual(["2"]);
     }
+  });
+});
+
+describe("Carry-forward inside a plain dynamic panel", () => {
+  beforeAll(() => {
+    registerAdvancedCarryForwardGlobals();
+  });
+
+  beforeEach(() => {
+    clearAdvancedCarryForwardBindingsForTests();
+    resetCarryForwardUpdateGuardForTests();
+  });
+
+  afterEach(() => {
+    disposers.splice(0).forEach((dispose) => dispose());
+  });
+
+  function loadPlainPanelSurvey(): { model: Model; panel: PanelDynamic } {
+    const model = new Model(carryForwardPlainPanelSurvey());
+    model.setValue(SOURCE_NAME, ["1", "2", "4", "5"]);
+    disposers.push(bindAdvancedCarryForwardToSurvey(model));
+    const panel = model.getQuestionByName(PLAIN_PANEL_NAME) as PanelDynamic;
+    return { model, panel };
+  }
+
+  function panelTargets(panel: PanelDynamic): Question[] {
+    return panel.panels.map((item) => item.getQuestionByName(LOOP_TARGET_NAME));
+  }
+
+  it("carries choices into a panel the respondent adds", () => {
+    const { panel } = loadPlainPanelSurvey();
+
+    panel.addPanel();
+
+    const targets = panelTargets(panel);
+    expect(targets).toHaveLength(2);
+    for (const target of targets) {
+      expect(choiceValues(target)).toEqual(EXPECTED);
+    }
+  });
+
+  it("releases the target of a panel the respondent removes", () => {
+    const { model, panel } = loadPlainPanelSurvey();
+    panel.addPanel();
+    const removed = panelTargets(panel).at(-1)!;
+
+    panel.removePanel(1);
+
+    expect(dependentsOf(model, SOURCE_NAME)).not.toContain(removed);
+    expect(dependentsOf(model, SOURCE_NAME)).toEqual(panelTargets(panel));
+    expectNoCarryForwardPatches(removed);
   });
 });
