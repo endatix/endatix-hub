@@ -160,24 +160,51 @@ describe("Carry-forward inside a question loop (hub#1384 regression)", () => {
     for (const target of targets) expectNoCarryForwardPatches(target);
   });
 
-  it("keeps a saved loop answer when resuming a submission", () => {
-    const model = new Model(carryForwardLoopSurvey());
-    model.data = {
-      [SOURCE_NAME]: ["1", "4"],
-      [LOOP_SOURCE_NAME]: ["A"],
-      [LOOP_NAME]: [
-        { itemValue: "A", itemText: "Topic A", [LOOP_TARGET_NAME]: ["4"] },
-      ],
-    };
-    disposers.push(
-      bindQuestionLoops(model),
-      bindAdvancedCarryForwardToSurvey(model),
-    );
+  const SAVED_DATA = {
+    [SOURCE_NAME]: ["1", "4"],
+    [LOOP_SOURCE_NAME]: ["A"],
+    [LOOP_NAME]: [
+      { itemValue: "A", itemText: "Topic A", [LOOP_TARGET_NAME]: ["4"] },
+    ],
+  };
 
+  function bindBoth(model: Model, order: "loops-first" | "carry-forward-first") {
+    const binds = [
+      () => bindQuestionLoops(model),
+      () => bindAdvancedCarryForwardToSurvey(model),
+    ];
+    if (order === "carry-forward-first") binds.reverse();
+    for (const bind of binds) disposers.push(bind());
+  }
+
+  function expectSavedLoopAnswerKept(model: Model): void {
     const [target] = loopTargets(model);
     expect(choiceValues(target!)).toEqual(EXPECTED);
     expect([...target!.value]).toEqual(["4"]);
-  });
+  }
+
+  it.each(["loops-first", "carry-forward-first"] as const)(
+    "keeps a saved loop answer when resuming a submission (%s)",
+    (order) => {
+      const model = new Model(carryForwardLoopSurvey());
+      model.data = SAVED_DATA;
+      bindBoth(model, order);
+
+      expectSavedLoopAnswerKept(model);
+    },
+  );
+
+  it.each(["loops-first", "carry-forward-first"] as const)(
+    "keeps a saved loop answer assigned after both binds (%s)",
+    (order) => {
+      const model = new Model(carryForwardLoopSurvey());
+      bindBoth(model, order);
+
+      model.data = SAVED_DATA;
+
+      expectSavedLoopAnswerKept(model);
+    },
+  );
 
   it("leaves the loop template's choices as authored in design mode", () => {
     const model = new Model(carryForwardLoopSurvey());
