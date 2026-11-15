@@ -1,5 +1,5 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { Model, type Question } from "survey-core";
+import { Model, Serializer, type Question } from "survey-core";
 import { registerQuestionLoopsGlobals } from "@/lib/survey-features/question-loops/infrastructure/registry";
 import { bindFeatureToSurvey as bindQuestionLoops } from "@/lib/survey-features/question-loops/infrastructure/survey-bindings";
 import type { PanelItem } from "@/lib/survey-features/question-loops/types";
@@ -232,6 +232,28 @@ describe("Carry-forward inside a question loop (hub#1384 regression)", () => {
     disposers.push(bindAdvancedCarryForwardToSurvey(model));
 
     expect(choiceValues(template)).toEqual(["authored"]);
+  });
+
+  it("leaves a carry-forward question added to the loop template in design mode as authored", () => {
+    const model = new Model(carryForwardLoopSurvey());
+    model.setDesignMode(true);
+    disposers.push(bindAdvancedCarryForwardToSurvey(model));
+    const loop = model.getQuestionByName(LOOP_NAME) as PanelDynamic & {
+      template: { addElement: (element: Question) => void };
+    };
+    const added = Serializer.createClass("checkbox") as Question;
+    added.fromJSON({
+      name: "addedPicks",
+      choices: ["authored"],
+      edxCarryForwardEnabled: true,
+      edxCarryForwardSources: [SOURCE_NAME],
+      edxCarryForwardMode: "selected",
+    });
+    loop.template.addElement(added);
+
+    model.setValue(SOURCE_NAME, ["2", "3"]);
+
+    expect(choiceValues(added)).toEqual(["authored"]);
   });
 
   it("keeps the panels it still has in sync after the loop drops one", () => {

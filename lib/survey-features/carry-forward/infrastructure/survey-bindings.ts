@@ -81,6 +81,23 @@ function runBeforeDispose(
   };
 }
 
+type SurveyElementLink = {
+  parent?: SurveyElementLink | null;
+  parentQuestion?: unknown;
+};
+
+/** Whether the question sits in a dynamic panel (in design mode, its template). */
+function isInsideDynamicPanel(question: Question): boolean {
+  let element: SurveyElementLink | null | undefined = question;
+  while (element) {
+    if (element.parentQuestion) {
+      return true;
+    }
+    element = element.parent;
+  }
+  return false;
+}
+
 /** The targets attached to one model, with their property-change handlers. */
 class CarryForwardTargetRegistry {
   private readonly attachments = new Map<
@@ -140,7 +157,12 @@ function attachCarryForwardPropertyChangeHandlers(model: Model): () => void {
 
   getAllCarryForwardTargets(model).forEach((target) => targets.attach(target));
 
+  // In design mode a question added inside a dynamic panel lands in its
+  // template: leave its authored choices alone.
   const handleQuestionAdded = (_: unknown, options: QuestionAddedEvent) => {
+    if (model.isDesignMode && isInsideDynamicPanel(options.question)) {
+      return;
+    }
     targets.attach(options.question);
   };
 
