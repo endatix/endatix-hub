@@ -122,6 +122,16 @@ describe("Carry-forward inside a question loop (hub#1384 regression)", () => {
     },
   );
 
+  it("keeps the none item last in a loop panel's visible choices", () => {
+    const model = loadSurvey("loops-first");
+    const [target] = loopTargets(model);
+    const visible = (
+      target as unknown as { visibleChoices: Array<{ value: unknown }> }
+    ).visibleChoices.map((choice) => choice.value);
+
+    expect(visible).toEqual([...EXPECTED, "none"]);
+  });
+
   it("carries choices into a loop panel created after load", () => {
     const model = loadSurvey("loops-first");
     model.setValue(LOOP_SOURCE_NAME, ["A"]);
