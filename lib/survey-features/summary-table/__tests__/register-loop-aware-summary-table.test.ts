@@ -17,11 +17,14 @@ import {
   NESTED_LOOP_NAME,
   OUTER_PANEL_NAME,
   PLAIN_PANEL_NAME,
+  REPORTED_ADD_TEXT,
+  REPORTED_MATRIX_NAME,
   loopSurvey,
   matrixInLoopSurvey,
   matrixSurvey,
   nestedLoopSurvey,
   plainPanelSurvey,
+  reportedMatrixSurvey,
 } from "./fixtures/input-per-page-survey";
 
 const disposers: Array<() => void> = [];
@@ -160,5 +163,36 @@ describe("registerLoopAwareSummaryTable in one-input-per-page layout (hub#1385 r
     expect(currentInput(matrix)).toBe(matrix);
     matrix.singleInputAddItem();
     expect(matrix.rowCount).toBe(2);
+  });
+
+  it("keeps Add on the summary step for the reported intro-page matrix shape", () => {
+    const survey = load(reportedMatrixSurvey);
+    survey.performNext();
+    const matrix = survey.getQuestionByName(REPORTED_MATRIX_NAME) as QuestionMatrixDynamicModel;
+
+    expect(survey.currentSingleQuestion).toBe(matrix);
+    expect(currentInput(matrix)?.name).toBe("1");
+    expect(matrix.getSingleInputAddText()).toBeUndefined();
+
+    currentInput(matrix)!.value = "First";
+    survey.performNext();
+
+    expect(currentInput(matrix)).toBe(matrix);
+    expect(matrix.getSingleInputAddText()).toBe(REPORTED_ADD_TEXT);
+    matrix.singleInputAddItem();
+    expect(matrix.rowCount).toBe(2);
+  });
+
+  it("still blocks completing the reported matrix while its required item is empty", () => {
+    const survey = load(reportedMatrixSurvey);
+    survey.performNext();
+    const matrix = survey.getQuestionByName(REPORTED_MATRIX_NAME) as QuestionMatrixDynamicModel;
+
+    survey.performNext();
+    expect(currentInput(matrix)).toBe(matrix);
+
+    expect(survey.performNext()).toBe(false);
+    expect(survey.state).toBe("running");
+    expect(matrix.errors.length).toBeGreaterThan(0);
   });
 });

@@ -10,6 +10,8 @@ export const LOOP_NAME = "loop";
 export const OUTER_PANEL_NAME = "groups";
 export const NESTED_LOOP_NAME = "nestedLoop";
 export const LOOP_MATRIX_NAME = "loopItems";
+export const REPORTED_MATRIX_NAME = "reportedItems";
+export const REPORTED_ADD_TEXT = "Add item";
 
 const LOOP_CHOICES = ["1", "2"].map((value) => ({
   value,
@@ -119,6 +121,36 @@ export const matrixInLoopSurvey = {
               columns: [{ name: "label", cellType: "text" }],
             },
           ],
+        },
+      ],
+    },
+  ],
+};
+
+/**
+ * The reported form's structure (hub#1385): an intro page, then a required
+ * dynamic matrix with one text column. Here SurveyJS shows a dead "Add" on the
+ * cell step when the summary step is missing.
+ */
+export const reportedMatrixSurvey = {
+  questionsOnPageMode: "inputPerPage",
+  showPageTitles: false,
+  pages: [
+    { elements: [{ type: "html", name: "intro", html: "Intro" }] },
+    {
+      elements: [
+        {
+          type: "matrixdynamic",
+          name: REPORTED_MATRIX_NAME,
+          isRequired: true,
+          showHeader: false,
+          cellType: "text",
+          columns: [{ name: "1", title: "Item" }],
+          rowCount: 1,
+          minRowCount: 1,
+          maxRowCount: 20,
+          singleInputTitleTemplate: "Item {rowIndex}",
+          addRowText: REPORTED_ADD_TEXT,
         },
       ],
     },
