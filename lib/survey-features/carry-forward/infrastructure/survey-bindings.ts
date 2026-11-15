@@ -130,7 +130,7 @@ class CarryForwardTargetRegistry {
   }
 
   detachAll(): void {
-    for (const target of [...this.attachments.keys()]) {
+    for (const target of this.attachments.keys()) {
       this.detach(target);
     }
   }
