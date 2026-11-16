@@ -9,7 +9,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { stubResizeObserver } from "@/test/stubs/resize-observer";
 import { stubScrollIntoView } from "@/test/stubs/scroll-into-view";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
-import { DataTableFilter } from "../data-table-filter";
+import { DataTableFilter, FiltersDrawerScope } from "../data-table-filter";
 import { DataTableToolbar } from "../data-table-toolbar";
 import { FacetedFilter } from "../faceted-filter";
 
@@ -244,6 +244,33 @@ describe("DataTableToolbar Filters drawer", () => {
     expect(list.tabIndex).toBe(0);
     expect(document.activeElement).toBe(list);
     expect([...onReviewChange.mock.calls[0][0]]).toEqual([]);
+  });
+
+  it("ignores Enter on a disabled inline facet", () => {
+    // Arrange
+    const onReviewChange = vi.fn();
+    render(
+      <FiltersDrawerScope>
+        <FacetedFilter
+          title="Review"
+          options={STATUS_OPTIONS}
+          selectedValues={new Set(["new"])}
+          onValueChange={onReviewChange}
+          disabled
+        />
+      </FiltersDrawerScope>,
+    );
+    const list = screen
+      .getByRole("group", { name: "Review" })
+      .querySelector<HTMLElement>("[cmdk-root]")!;
+
+    // Act
+    list.focus();
+    fireEvent.keyDown(list, { key: "Enter" });
+
+    // Assert
+    expect(onReviewChange).not.toHaveBeenCalled();
+    expect(list.tabIndex).toBe(-1);
   });
 
   it("filters from an inline option and keeps the drawer open", () => {

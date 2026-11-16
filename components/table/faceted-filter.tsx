@@ -89,6 +89,9 @@ export function FacetedFilter(props: Readonly<FacetedFilterProps>) {
   );
 }
 
+/** A disabled fieldset does not disable cmdk's items: a disabled facet ignores Enter. */
+const ignoreChange = () => {};
+
 function FacetedFilterInline({
   labelledBy,
   ...props
@@ -106,6 +109,7 @@ function FacetedFilterInline({
     >
       <FacetedFilterMenu
         {...props}
+        onValueChange={props.disabled ? ignoreChange : props.onValueChange}
         variant="field"
         sections={sections}
         grouped={props.groups !== undefined}
@@ -220,13 +224,13 @@ interface FacetedFilterMenuProps extends FacetedFilterBaseProps {
 }
 
 /**
- * Inline (in the Filters drawer) without search, the list itself takes focus: arrows move,
- * Enter toggles. Its first row is highlighted only while the list has focus.
+ * Inline (in the Filters drawer), enabled and without search, the list itself takes focus:
+ * arrows move, Enter toggles. Its first row is highlighted only while the list has focus.
  */
-function commandProps(inline: boolean, searchable: boolean) {
+function commandProps(inline: boolean, focusable: boolean) {
   if (!inline) return {};
   return {
-    tabIndex: searchable ? -1 : 0,
+    tabIndex: focusable ? 0 : -1,
     className:
       "rounded-md outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 [&:not(:focus-within)_[cmdk-item][data-selected=true]]:bg-transparent",
   };
@@ -244,7 +248,7 @@ function FacetedFilterMenu(props: Readonly<FacetedFilterMenuProps>) {
   const searchable =
     !inline || countOptions(props.sections) > INLINE_SEARCH_FROM;
   return (
-    <Command {...commandProps(inline, searchable)}>
+    <Command {...commandProps(inline, !searchable && !props.disabled)}>
       {searchable ? <CommandInput placeholder={title} /> : null}
       <CommandList className={cn(inline && "max-h-none")}>
         <CommandEmpty>No results found.</CommandEmpty>
