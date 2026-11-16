@@ -179,12 +179,16 @@ describe("pack errors at request time", () => {
 });
 
 describe("assertBrandPackAtStartup", () => {
-  it("throws with the field path when the mounted pack is invalid", async () => {
-    // Arrange
-    writePack({ version: 2 });
+  async function startup() {
     vi.resetModules();
-    const { assertBrandPackAtStartup } =
-      await import("../deployment-pack.server");
+    return (await import("../deployment-pack.server")).assertBrandPackAtStartup;
+  }
+
+  it("throws with the field path when the flag is on and the pack is invalid", async () => {
+    // Arrange
+    vi.stubEnv("FLAG_WHITE_LABELING", "true");
+    writePack({ version: 2 });
+    const assertBrandPackAtStartup = await startup();
 
     // Act
     const run = () => assertBrandPackAtStartup();
@@ -193,12 +197,40 @@ describe("assertBrandPackAtStartup", () => {
     expect(run).toThrow(/version/);
   });
 
+  it("throws when PostHog decides the flag, which is unknown at start", async () => {
+    // Arrange
+    vi.stubEnv("FLAG_PROVIDER", "posthog");
+    vi.stubEnv("POSTHOG_PROJECT_TOKEN", "phc_test");
+    writePack({ version: 2 });
+    const assertBrandPackAtStartup = await startup();
+
+    // Act
+    const run = () => assertBrandPackAtStartup();
+
+    // Assert
+    expect(run).toThrow(/version/);
+  });
+
+  it("starts and reports once when the flag is off, so the pack is ignored", async () => {
+    // Arrange
+    vi.stubEnv("FLAG_WHITE_LABELING", "false");
+    writePack({ version: 2 });
+    const assertBrandPackAtStartup = await startup();
+
+    // Act
+    const run = () => assertBrandPackAtStartup();
+
+    // Assert
+    expect(run).not.toThrow();
+    expect(telemetry.error).toHaveBeenCalledTimes(1);
+    expect(telemetry.error.mock.calls[0][1].message).toContain("version");
+  });
+
   it("passes when no pack is mounted", async () => {
     // Arrange
+    vi.stubEnv("FLAG_WHITE_LABELING", "true");
     vi.stubEnv("ENDATIX_BRAND_DIR", "");
-    vi.resetModules();
-    const { assertBrandPackAtStartup } =
-      await import("../deployment-pack.server");
+    const assertBrandPackAtStartup = await startup();
 
     // Act
     const run = () => assertBrandPackAtStartup();

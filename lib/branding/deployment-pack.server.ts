@@ -2,6 +2,8 @@ import "server-only";
 
 import { statSync } from "node:fs";
 import { TelemetryLogger } from "@/features/telemetry";
+import { envFlagName } from "@/lib/feature-flags/factories/environment-flag-factory";
+import { shouldUsePostHogFlags } from "@/lib/feature-flags/factories/posthog-flag-settings";
 import path from "node:path";
 import { BRAND_FILE, readBrandPack, type LoadedBrandPack } from "./read-pack";
 
@@ -68,13 +70,22 @@ export function currentDeploymentPack(): LoadedBrandPack | null {
 }
 
 /**
- * Called once from `instrumentation.ts`: an invalid mounted pack stops the Hub
- * at start, with the field paths in the error, and old pods keep serving. It
- * checks the pack even while the white-labeling flag is off, so turning the flag
- * on later cannot meet a pack nobody validated.
+ * Called once from `instrumentation.ts`. While the white-labeling flag may be
+ * on, an invalid mounted pack stops the Hub at start with the field paths, and
+ * old pods keep serving. PostHog decides the flag per request, so it counts as
+ * on. With the env flag off the pack is ignored: a problem is reported, and the
+ * Hub starts on the built-in brand.
  */
 export function assertBrandPackAtStartup(): void {
-  loadDeploymentPack();
+  if (whiteLabelingMayBeOn()) loadDeploymentPack();
+  else currentDeploymentPack();
+}
+
+function whiteLabelingMayBeOn(): boolean {
+  return (
+    shouldUsePostHogFlags() ||
+    process.env[envFlagName("white-labeling")] === "true"
+  );
 }
 
 function stampOf(dir: string, files: readonly string[]): string {

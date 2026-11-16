@@ -41,8 +41,9 @@ either brand, with no rebuild.
 
 What the Hub does with it:
 
-- **At start**, an invalid mounted pack stops the Hub with the field paths in the error. It
-  is checked even while the flag is off.
+- **At start**, while the flag may be on (`FLAG_WHITE_LABELING=true`, or PostHog flags, which
+  are decided per request), an invalid mounted pack stops the Hub with the field paths in the
+  error. With the env flag off the pack is ignored: a problem is logged and the Hub starts.
 - **While running**, the pack is read again when `brand.json` or a file it names changes. A
   change that does not validate is logged and the last valid pack keeps serving.
 - **Flag off, or no pack**: the built-in brand, and the page CSS is exactly what ships (no
