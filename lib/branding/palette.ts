@@ -86,17 +86,15 @@ const reference = (
   token: keyof (typeof REFERENCE)["light"],
 ): Oklch => toOklch(parseCssColor(REFERENCE[mode][token])!);
 
-const BUILT_IN_PRIMARY = reference("light", "--primary");
-
 export function derivePalette(
   color: BrandColor,
 ): Record<ColorMode, BrandTokenValues> {
-  const hue = brandHue(color.primary);
+  const light = brandHue("light", color.primary);
   const darkPrimary =
-    color.onDark ?? fromOklch(follow(reference("dark", "--primary"), hue));
+    color.onDark ?? fromOklch(follow(reference("dark", "--primary"), light));
   return {
-    light: tokensFor("light", color.primary, hue),
-    dark: tokensFor("dark", darkPrimary, hue),
+    light: tokensFor("light", color.primary, light),
+    dark: tokensFor("dark", darkPrimary, brandHue("dark", darkPrimary)),
   };
 }
 
@@ -145,8 +143,6 @@ function tokensFor(
   primary: Rgb,
   hue: BrandHue,
 ): BrandTokenValues {
-  const derived = (token: keyof (typeof REFERENCE)["light"]) =>
-    toHex(fromOklch(follow(reference(mode, token), hue)));
   const primaryHex = toHex(primary);
   return {
     "--primary": primaryHex,
@@ -157,14 +153,28 @@ function tokensFor(
     "--ring": primaryHex,
     "--endatix": primaryHex,
     "--primary-dim": dimFor(mode, primary),
-    "--sidebar-ring": derived("--sidebar-ring"),
-    "--chart-1": derived("--chart-1"),
-    "--chart-2": derived("--chart-2"),
-    "--chart-3": derived("--chart-3"),
-    "--chart-4": derived("--chart-4"),
-    "--chart-5": derived("--chart-5"),
-  };
+    ...followingTokens(mode, hue),
+  } as BrandTokenValues;
 }
+
+function followingTokens(mode: ColorMode, hue: BrandHue) {
+  return Object.fromEntries(
+    FOLLOWING_TOKENS.map((token) => [
+      token,
+      toHex(fromOklch(follow(reference(mode, token), hue))),
+    ]),
+  );
+}
+
+/** Tokens that keep their built-in lightness and move with the brand's hue. */
+const FOLLOWING_TOKENS = [
+  "--sidebar-ring",
+  "--chart-1",
+  "--chart-2",
+  "--chart-3",
+  "--chart-4",
+  "--chart-5",
+] as const;
 
 /** The built-in step from primary to dim, applied to this mode's primary. */
 function dimFor(mode: ColorMode, primary: Rgb): string {
@@ -181,11 +191,18 @@ function dimFor(mode: ColorMode, primary: Rgb): string {
   );
 }
 
-/** The tinted built-in foreground when it reads, else white or black, whichever reads better. */
+/**
+ * The tinted built-in foreground when it reads, else white or black, whichever
+ * reads better. Checked on the hex values the stylesheet will carry.
+ */
 function foregroundFor(primary: Rgb, tinted: Oklch): string {
-  const candidate = fromOklch(tinted);
-  if (contrastRatio(primary, candidate) >= TEXT_CONTRAST)
-    return toHex(candidate);
+  const candidate = toHex(fromOklch(tinted));
+  const asWritten = (hex: string) => parseCssColor(hex)!;
+  if (
+    contrastRatio(asWritten(toHex(primary)), asWritten(candidate)) >=
+    TEXT_CONTRAST
+  )
+    return candidate;
   const white: Rgb = { r: 1, g: 1, b: 1 };
   const black: Rgb = { r: 0, g: 0, b: 0 };
   return contrastRatio(primary, white) >= contrastRatio(primary, black)
@@ -193,23 +210,29 @@ function foregroundFor(primary: Rgb, tinted: Oklch): string {
     : "#000000";
 }
 
-/** The brand's hue, and its chroma relative to the built-in primary's. */
+/** How far a mode's brand primary sits from that mode's built-in primary. */
 interface BrandHue {
-  readonly h: number;
+  /** Hue shift in degrees. */
+  readonly shift: number;
+  /** Chroma ratio, capped. */
   readonly scale: number;
 }
 
-function brandHue(primary: Rgb): BrandHue {
+function brandHue(mode: ColorMode, primary: Rgb): BrandHue {
   const { h, c } = toOklch(primary);
-  return { h, scale: Math.min(MAX_CHROMA_SCALE, c / BUILT_IN_PRIMARY.c) };
+  const builtIn = reference(mode, "--primary");
+  return {
+    shift: h - builtIn.h,
+    scale: Math.min(MAX_CHROMA_SCALE, c / builtIn.c),
+  };
 }
 
-/** A reference token moved from the built-in hue to the brand's, chroma scaled alike. */
+/** A reference token moved by the brand's hue shift, chroma scaled alike. */
 function follow(token: Oklch, hue: BrandHue): Oklch {
   return {
     l: token.l,
     c: token.c * hue.scale,
-    h: wrapHue(hue.h + (token.h - BUILT_IN_PRIMARY.h)),
+    h: wrapHue(token.h + hue.shift),
   };
 }
 

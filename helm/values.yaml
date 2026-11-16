@@ -97,6 +97,8 @@ whiteLabeling:
 # Set one of:
 brandPack:
   # Name of an existing ConfigMap holding brand.json and the files (binaryData for images).
+  # A ConfigMap holds at most 1 MiB and its keys cannot contain "/", so keep the files flat
+  # and small, or use `volume` for subfolders and larger images.
   configMap: ""
   # Or a raw volume source, e.g. { persistentVolumeClaim: { claimName: brand-pack } }.
   volume: {}

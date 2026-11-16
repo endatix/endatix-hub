@@ -16,6 +16,11 @@ describe("parseCssColor", () => {
     ["hsl(216 100% 41%)", "#0054d1"],
     ["hsl(216, 100%, 41%)", "#0054d1"],
     ["oklch(0.6 0 0)", "#808080"],
+    ["oklch(60% 0 0)", "#808080"],
+    ["oklch(60% 0 0deg)", "#808080"],
+    ["oklch(0.6 0% 0)", "#808080"],
+    ["hsl(216deg 100% 41%)", "#0054d1"],
+    ["rgb(100% 0% 0%)", "#ff0000"],
   ])("reads %s", (input, hex) => {
     // Act
     const color = parseCssColor(input);
@@ -24,16 +29,33 @@ describe("parseCssColor", () => {
     expect(color && toHex(color)).toBe(hex);
   });
 
-  it.each(["blue-ish", "#12", "rgb(1 2)", "hsl(1 2 3 4 5)", "url(x)", ""])(
-    "rejects %j",
-    (input) => {
-      // Act
-      const color = parseCssColor(input);
+  it.each([
+    "blue-ish",
+    "#12",
+    "rgb(1 2)",
+    "hsl(1 2 3 4 5)",
+    "url(x)",
+    "",
+    "hsl(216% 100% 41%)",
+    "oklch(60% 0.15 250%)",
+    "oklch(0.6deg 0.1 250)",
+    "rgb(255 0% 0)",
+  ])("rejects %j", (input) => {
+    // Act
+    const color = parseCssColor(input);
 
-      // Assert
-      expect(color).toBeNull();
-    },
-  );
+    // Assert
+    expect(color).toBeNull();
+  });
+});
+
+it("reads oklch chroma percent as a share of 0.4", () => {
+  // Act
+  const fromPercent = parseCssColor("oklch(60% 40% 250)")!;
+  const fromNumber = parseCssColor("oklch(0.6 0.16 250)")!;
+
+  // Assert
+  expect(toHex(fromPercent)).toBe(toHex(fromNumber));
 });
 
 describe("OKLCH conversion", () => {

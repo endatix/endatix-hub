@@ -99,15 +99,17 @@ export function mergeBrand(layers: readonly BrandLayer[]): Brand {
     logo: pick("logo") ?? builtIn.logo,
     icon: pick("icon") ?? builtIn.icon,
     ogImage: pick("ogImage") ?? builtIn.ogImage,
-    links: Object.assign(
-      {},
-      ...[...layers].reverse().map((layer) => layer.values.links),
-    ),
+    links: mergeKeys(layers, "links"),
     poweredBy: pick("poweredBy") ?? builtIn.poweredBy,
-    personas: Object.assign(
-      {},
-      ...[...layers].reverse().map((layer) => layer.values.personas),
-    ),
+    personas: mergeKeys(layers, "personas") as Brand["personas"],
     stylesheet: toStylesheet(color) as BrandStylesheet,
   };
+}
+
+/** Key by key, the most specific layer winning each key. */
+function mergeKeys(layers: readonly BrandLayer[], group: "links" | "personas") {
+  return Object.assign(
+    {},
+    ...layers.map((layer) => layer.values[group]).reverse(),
+  );
 }

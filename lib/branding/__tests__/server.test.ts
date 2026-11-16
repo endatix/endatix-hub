@@ -1,4 +1,12 @@
-import { mkdtempSync, rmSync, utimesSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  renameSync,
+  rmSync,
+  symlinkSync,
+  utimesSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -96,6 +104,25 @@ describe("getBrand", () => {
 
     // Assert
     expect(brand.stylesheet).toContain("--primary:#7a1f8f;");
+  });
+
+  it("gives a file new URLs when only that file changes", async () => {
+    // Arrange
+    writePack({ assets: { icon: "icon.svg" } });
+    const icon = path.join(dir, "icon.svg");
+    writeFileSync(icon, "<svg/>");
+    utimesSync(icon, new Date(2026, 0, 1), new Date(2026, 0, 1));
+    const { getBrand } = await load();
+    const before = (await getBrand()).icon;
+    writeFileSync(icon, "<svg>new</svg>");
+    utimesSync(icon, new Date(2026, 0, 2), new Date(2026, 0, 2));
+
+    // Act
+    const after = (await getBrand()).icon;
+
+    // Assert
+    expect(after).toMatch(/^\/brand\/icon\.svg\?v=/);
+    expect(after).not.toBe(before);
   });
 
   it("keeps the last good pack when a changed pack is invalid", async () => {
@@ -257,6 +284,92 @@ describe("brandRouteResponse", () => {
     writeFileSync(path.join(dir, "icon.svg"), "<svg/>");
     flagState.on = false;
     const { brandRouteResponse } = await load();
+
+    // Act
+    const response = await brandRouteResponse(["icon.svg"], request());
+
+    // Assert
+    expect(response.status).toBe(404);
+  });
+
+  it.each([['W/"{tag}"'], ['"stale", "{tag}"'], ["*"]])(
+    "answers 304 to If-None-Match %s",
+    async (header) => {
+      // Arrange
+      writePack(accent("#0b6b5d"));
+      const { brandRouteResponse } = await load();
+      const tag = (await brandRouteResponse(["brand.css"], request())).headers
+        .get("etag")!
+        .replaceAll('"', "");
+
+      // Act
+      const response = await brandRouteResponse(
+        ["brand.css"],
+        request({ "if-none-match": header.replace("{tag}", tag) }),
+      );
+
+      // Assert
+      expect(response.status).toBe(304);
+    },
+  );
+
+  it("gives brand.css a new tag when its content changes", async () => {
+    // Arrange
+    writePack(accent("#0b6b5d"), new Date(2026, 0, 1));
+    const { brandRouteResponse } = await load();
+    const first = await brandRouteResponse(["brand.css"], request());
+    writePack(accent("#7a1f8f"), new Date(2026, 0, 2));
+
+    // Act
+    const second = await brandRouteResponse(["brand.css"], request());
+
+    // Assert
+    expect(second.headers.get("etag")).not.toBe(first.headers.get("etag"));
+  });
+
+  it("serves the current file after a ConfigMap update, even one it rejects", async () => {
+    // Arrange: kubelet's layout, files linked through ..data to a timestamped folder.
+    const publish = (version: string, brandJson: string, svg: string) => {
+      const folder = path.join(dir, `..${version}`);
+      mkdirSync(folder);
+      writeFileSync(path.join(folder, "brand.json"), brandJson);
+      writeFileSync(path.join(folder, "icon.svg"), svg);
+      symlinkSync(`..${version}`, path.join(dir, "..data_tmp"));
+      renameSync(path.join(dir, "..data_tmp"), path.join(dir, "..data"));
+      return folder;
+    };
+    const valid = JSON.stringify({
+      version: 1,
+      name: "Example Forms",
+      assets: { icon: "icon.svg" },
+    });
+    const first = publish("2026_01", valid, "<svg>first</svg>");
+    symlinkSync("..data/brand.json", path.join(dir, "brand.json"));
+    symlinkSync("..data/icon.svg", path.join(dir, "icon.svg"));
+    const { brandRouteResponse } = await load();
+    await brandRouteResponse(["icon.svg"], request());
+    publish(
+      "2026_02",
+      JSON.stringify({ version: 2, name: "x" }),
+      "<svg>second</svg>",
+    );
+    rmSync(first, { recursive: true, force: true });
+
+    // Act
+    const response = await brandRouteResponse(["icon.svg"], request());
+
+    // Assert
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe("<svg>second</svg>");
+  });
+
+  it("answers 404, not an error, when a named file has gone", async () => {
+    // Arrange
+    writePack({ assets: { icon: "icon.svg" } });
+    writeFileSync(path.join(dir, "icon.svg"), "<svg/>");
+    const { brandRouteResponse, getBrand } = await load();
+    await getBrand();
+    rmSync(path.join(dir, "icon.svg"));
 
     // Act
     const response = await brandRouteResponse(["icon.svg"], request());

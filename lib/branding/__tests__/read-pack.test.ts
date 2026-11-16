@@ -1,5 +1,6 @@
 import {
   copyFileSync,
+  mkdirSync,
   mkdtempSync,
   rmSync,
   symlinkSync,
@@ -111,6 +112,52 @@ describe("readBrandPack", () => {
       "assets.icon: icon.svg is outside the pack folder",
     );
     rmSync(outside, { recursive: true, force: true });
+  });
+
+  it.each([
+    ["logo.gif", "is not a .svg, .png, .jpg, .jpeg, .webp or .ico file"],
+    ["icon", "is not a .svg, .png, .jpg, .jpeg, .webp or .ico file"],
+    ["./icon.svg", "has an empty or '.' segment"],
+    ["img//icon.svg", "has an empty or '.' segment"],
+  ])("refuses %s, which the Hub could not serve", (file, problem) => {
+    // Arrange
+    writeFileSync(
+      path.join(dir, "brand.json"),
+      JSON.stringify({
+        version: 1,
+        name: "Example Forms",
+        assets: { icon: file },
+      }),
+    );
+    mkdirSync(path.join(dir, "img"), { recursive: true });
+    touch("logo.gif", "icon", "icon.svg", "img/icon.svg");
+
+    // Act
+    const error = errorOf(() => readBrandPack(dir));
+
+    // Assert
+    expect(error.message).toContain(`assets.icon: ${file} ${problem}`);
+  });
+
+  it("changes the fingerprint when only a named file changes", () => {
+    // Arrange
+    writeFileSync(
+      path.join(dir, "brand.json"),
+      JSON.stringify({
+        version: 1,
+        name: "Example Forms",
+        assets: { icon: "icon.svg" },
+      }),
+    );
+    touch("icon.svg");
+    const before = readBrandPack(dir).fingerprint;
+    writeFileSync(path.join(dir, "icon.svg"), "<svg>changed</svg>");
+
+    // Act
+    const after = readBrandPack(dir).fingerprint;
+
+    // Assert
+    expect(after).not.toBe(before);
   });
 
   it("reports a missing brand.json", () => {

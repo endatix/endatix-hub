@@ -14,6 +14,8 @@ import {
 
 export const BRAND_FILE = "brand.json";
 
+const SERVED_TYPES = ".svg, .png, .jpg, .jpeg, .webp or .ico";
+
 export class BrandPackError extends Error {
   constructor(dir: string, detail: string) {
     super(`Invalid brand pack in ${dir}:\n${detail}`);
@@ -21,13 +23,23 @@ export class BrandPackError extends Error {
   }
 }
 
+/** The file types the Hub serves from a pack, by extension. */
+export const PACK_FILE_TYPES: Readonly<Record<string, string>> = {
+  ".svg": "image/svg+xml",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".webp": "image/webp",
+  ".ico": "image/x-icon",
+};
+
 export interface LoadedBrandPack {
   /** The pack folder, resolved. */
   readonly dir: string;
   readonly pack: BrandPack;
-  /** Short hash of brand.json and its files; changes whenever the pack does. */
+  /** Short hash of brand.json and the files it names; changes when any of them does. */
   readonly fingerprint: string;
-  /** Pack file name -> absolute path, for every file the pack names. */
+  /** Pack-relative name -> MIME type, for every file the pack names. */
   readonly files: ReadonlyMap<string, string>;
 }
 
@@ -48,7 +60,31 @@ export function readBrandPack(dir: string): LoadedBrandPack {
   };
 }
 
-/** Every named file's real path; each file's mtime feeds the fingerprint. */
+/**
+ * A pack file's real path, checked again each time: a ConfigMap update swaps
+ * the folder a file resolves to, so a path resolved earlier may be gone.
+ */
+export function locatePackFile(
+  dir: string,
+  file: string,
+): string | { problem: string } {
+  if (file.split("/").some((segment) => segment === "" || segment === "."))
+    return { problem: "has an empty or '.' segment" };
+  if (!PACK_FILE_TYPES[path.extname(file).toLowerCase()])
+    return { problem: `is not a ${SERVED_TYPES} file` };
+  let real: string;
+  try {
+    real = realpathSync(path.join(dir, file));
+  } catch {
+    return { problem: "not found" };
+  }
+  if (!real.startsWith(dir + path.sep))
+    return { problem: "is outside the pack folder" };
+  if (!statSync(real).isFile()) return { problem: "is not a file" };
+  return real;
+}
+
+/** Each named file's type; each file's size and mtime feed the fingerprint. */
 function locateFiles(
   root: string,
   pack: BrandPack,
@@ -57,10 +93,11 @@ function locateFiles(
   const files = new Map<string, string>();
   const problems: string[] = [];
   for (const { field, file } of packFiles(pack)) {
-    const located = locate(root, file);
+    const located = locatePackFile(root, file);
     if (typeof located === "string") {
-      files.set(file, located);
-      hash.update(file).update(String(statSync(located).mtimeMs));
+      files.set(file, PACK_FILE_TYPES[path.extname(file).toLowerCase()]);
+      const stat = statSync(located);
+      hash.update(`${file}:${stat.size}:${stat.mtimeMs}`);
     } else {
       problems.push(`${field}: ${file} ${located.problem}`);
     }
@@ -107,18 +144,4 @@ function parseJson(root: string, raw: string): unknown {
       `(root): ${BRAND_FILE} is not valid JSON (${reason})`,
     );
   }
-}
-
-/** The file's real path, or why it cannot be served. Symlinks must stay inside the pack. */
-function locate(root: string, file: string): string | { problem: string } {
-  let real: string;
-  try {
-    real = realpathSync(path.join(root, file));
-  } catch {
-    return { problem: "not found" };
-  }
-  if (!real.startsWith(root + path.sep))
-    return { problem: "is outside the pack folder" };
-  if (!statSync(real).isFile()) return { problem: "is not a file" };
-  return real;
 }

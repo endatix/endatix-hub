@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
-/* eslint-disable @next/next/no-head-element -- a whole document, rendered to check where React hoists the brand style */
 import { renderHook } from "@testing-library/react";
-import type { ReactNode } from "react";
+import { createElement, type ReactNode } from "react";
 import { renderToString } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { BrandProvider } from "../brand-provider";
@@ -22,10 +21,11 @@ const branded = mergeBrand([
   BUILT_IN_LAYER,
 ]);
 
+/** A whole document, so the test sees where React hoists the brand style. */
 function page(brand = builtIn) {
   return renderToString(
     <html>
-      <head />
+      {createElement("head")}
       <body>
         <BrandProvider brand={brand}>
           <p>content</p>

@@ -117,6 +117,23 @@ describe("derivePalette", () => {
     },
   );
 
+  it("derives the dark tokens from primary-on-dark's hue when the pack sets it", () => {
+    // Arrange
+    const onDark = "#ffb347";
+    const shift =
+      toOklch(parseCssColor(BUILT_IN.dark["--chart-4"])!).h -
+      toOklch(parseCssColor(BUILT_IN.dark["--primary"])!).h;
+
+    // Act
+    const chart = toOklch(
+      parseCssColor(derivePalette(color("#0b6b5d", onDark)).dark["--chart-4"])!,
+    );
+
+    // Assert
+    const expected = toOklch(parseCssColor(onDark)!).h + shift;
+    expect(Math.abs(chart.h - expected)).toBeLessThan(3);
+  });
+
   it.each([
     "#0b6b5d",
     "#ffd400",

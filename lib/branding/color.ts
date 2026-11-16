@@ -19,16 +19,27 @@ export interface Oklch {
 }
 
 const NUMBER = String.raw`[+-]?(?:\d+\.?\d*|\.\d+)`;
+const ARG = String.raw`(${NUMBER})(%|deg)?`;
 const SEPARATOR = String.raw`(?:\s*,\s*|\s+)`;
 const FUNCTION_ARGS = new RegExp(
-  String.raw`^(rgb|hsl|oklch)a?\(\s*(${NUMBER})(%|deg)?${SEPARATOR}(${NUMBER})(%)?${SEPARATOR}(${NUMBER})(%)?\s*\)$`,
+  String.raw`^(rgb|hsl|oklch)a?\(\s*${ARG}${SEPARATOR}${ARG}${SEPARATOR}${ARG}\s*\)$`,
   "i",
 );
 const HEX = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
 
+/** One argument: its number and unit ("" for a bare number). */
+interface Arg {
+  readonly value: number;
+  readonly unit: "" | "%" | "deg";
+}
+
+/** CSS Color 4: 100% oklch chroma is 0.4. */
+const OKLCH_CHROMA_PERCENT = 0.4 / 100;
+
 /**
  * Reads `#rgb`, `#rrggbb`, `rgb()`, `hsl()` and `oklch()` (comma or space
- * separated, no alpha). Returns null for anything else, including named colours.
+ * separated, no alpha), with the units CSS allows per argument. Returns null
+ * for anything else, including named colours.
  */
 export function parseCssColor(input: string): Rgb | null {
   const value = input.trim();
@@ -37,13 +48,37 @@ export function parseCssColor(input: string): Rgb | null {
 
   const match = FUNCTION_ARGS.exec(value);
   if (!match) return null;
-  const [, fn, a, aUnit, b, bUnit, c, cUnit] = match;
-  const kind = fn.toLowerCase();
-  if (kind === "rgb") return rgbFromArgs([a, b, c], [aUnit, bUnit, cUnit]);
-  if (kind === "hsl")
-    return hslToRgb(Number(a), Number(b) / 100, Number(c) / 100);
-  const l = cUnit === undefined && aUnit === "%" ? Number(a) / 100 : Number(a);
-  return fromOklch({ l, c: Number(b), h: Number(c) });
+  const args: Arg[] = [2, 4, 6].map((i) => ({
+    value: Number(match[i]),
+    unit: (match[i + 1]?.toLowerCase() ?? "") as Arg["unit"],
+  }));
+  const kind = match[1].toLowerCase();
+  if (kind === "rgb") return rgbFromArgs(args);
+  if (kind === "hsl") return hslFromArgs(args);
+  return oklchFromArgs(args);
+}
+
+function rgbFromArgs(args: readonly Arg[]): Rgb | null {
+  const unit = args[0].unit;
+  if (unit === "deg" || args.some((arg) => arg.unit !== unit)) return null;
+  const [r, g, b] = args.map((arg) =>
+    clamp01(unit === "%" ? arg.value / 100 : arg.value / 255),
+  );
+  return { r, g, b };
+}
+
+function hslFromArgs([h, s, l]: readonly Arg[]): Rgb | null {
+  if (h.unit === "%" || s.unit === "deg" || l.unit === "deg") return null;
+  return hslToRgb(h.value, s.value / 100, l.value / 100);
+}
+
+function oklchFromArgs([l, c, h]: readonly Arg[]): Rgb | null {
+  if (l.unit === "deg" || c.unit === "deg" || h.unit === "%") return null;
+  return fromOklch({
+    l: l.unit === "%" ? l.value / 100 : l.value,
+    c: c.unit === "%" ? c.value * OKLCH_CHROMA_PERCENT : c.value,
+    h: h.value,
+  });
 }
 
 function parseHex(digits: string): Rgb {
@@ -58,16 +93,18 @@ function parseHex(digits: string): Rgb {
   return { r: channel(0), g: channel(2), b: channel(4) };
 }
 
-function rgbFromArgs(
-  values: readonly string[],
-  units: readonly (string | undefined)[],
-): Rgb | null {
-  if (units.some((unit) => unit === "deg")) return null;
-  const [r, g, b] = values.map((value, i) =>
-    clamp01(units[i] === "%" ? Number(value) / 100 : Number(value) / 255),
-  );
-  return { r, g, b };
-}
+/** The RGB order of chroma (c) and the second-largest component (x) per 60° of hue. */
+const HUE_SECTORS: readonly ((
+  c: number,
+  x: number,
+) => [number, number, number])[] = [
+  (c, x) => [c, x, 0],
+  (c, x) => [x, c, 0],
+  (c, x) => [0, c, x],
+  (c, x) => [0, x, c],
+  (c, x) => [x, 0, c],
+  (c, x) => [c, 0, x],
+];
 
 function hslToRgb(hue: number, saturation: number, lightness: number): Rgb {
   const s = clamp01(saturation);
@@ -75,18 +112,7 @@ function hslToRgb(hue: number, saturation: number, lightness: number): Rgb {
   const chroma = (1 - Math.abs(2 * l - 1)) * s;
   const h = (((hue % 360) + 360) % 360) / 60;
   const x = chroma * (1 - Math.abs((h % 2) - 1));
-  const [r, g, b] =
-    h < 1
-      ? [chroma, x, 0]
-      : h < 2
-        ? [x, chroma, 0]
-        : h < 3
-          ? [0, chroma, x]
-          : h < 4
-            ? [0, x, chroma]
-            : h < 5
-              ? [x, 0, chroma]
-              : [chroma, 0, x];
+  const [r, g, b] = HUE_SECTORS[Math.min(5, Math.floor(h))](chroma, x);
   const m = l - chroma / 2;
   return { r: r + m, g: g + m, b: b + m };
 }
