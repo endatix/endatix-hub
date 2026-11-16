@@ -3,7 +3,8 @@
 import { createContext, useContext, useId, type ReactNode } from "react";
 import { Label } from "@/components/ui/label";
 
-type FilterField = { id: string };
+/** `id` for a control a `Label` can point at; `labelId` for a group named by the label. */
+type FilterField = { id: string; labelId: string };
 
 const FiltersDrawerContext = createContext(false);
 
@@ -36,13 +37,16 @@ export function DataTableFilter({
 }: Readonly<DataTableFilterProps>) {
   const inDrawer = useInFiltersDrawer();
   const id = useId();
+  const labelId = `${id}-label`;
   if (!inDrawer) {
     return typeof children === "function" ? children({}) : children;
   }
   return (
     <div data-slot="data-table-filter-field" className="grid gap-2">
-      <Label htmlFor={id}>{label}</Label>
-      {typeof children === "function" ? children({ id }) : children}
+      <Label id={labelId} htmlFor={id}>
+        {label}
+      </Label>
+      {typeof children === "function" ? children({ id, labelId }) : children}
     </div>
   );
 }

@@ -72,7 +72,7 @@ export function DataTableToolbar({
     <div
       data-slot="data-table-toolbar"
       className={cn(
-        "flex flex-wrap items-center gap-2 md:flex-nowrap",
+        "group/toolbar flex flex-wrap items-center gap-2 md:flex-nowrap",
         className,
       )}
     >
@@ -91,7 +91,14 @@ export function DataTableToolbar({
             {search}
           </div>
         ) : null}
-        {filters ? <div className="hidden md:contents">{filters}</div> : null}
+        {filters ? (
+          <div
+            data-slot="data-table-toolbar-inline-filters"
+            className="hidden md:contents"
+          >
+            {filters}
+          </div>
+        ) : null}
         {reset ? (
           <ToolbarReset reset={reset} className="max-md:order-2" />
         ) : null}
@@ -154,7 +161,11 @@ function FiltersDrawer({
       variant="outline"
       size="sm"
       disabled={disabled}
-      className="max-md:order-1 md:hidden"
+      className={cn(
+        "max-md:order-1 md:hidden",
+        // A filter that renders nothing (a facet with no options yet) leaves no Filters button.
+        "group-has-[[data-slot=data-table-toolbar-inline-filters]:empty]/toolbar:hidden",
+      )}
     >
       <ListFilter />
       {label}

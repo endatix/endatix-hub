@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { stubResizeObserver } from "@/test/stubs/resize-observer";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { DataTableFilter } from "../data-table-filter";
 import { DataTableToolbar } from "../data-table-toolbar";
@@ -108,7 +109,16 @@ describe("DataTableToolbar", () => {
 });
 
 describe("DataTableToolbar Filters drawer", () => {
-  function renderWithFacets(onReset = vi.fn(), hasFilters = true) {
+  beforeEach(() => {
+    stubResizeObserver(); // cmdk measures its list
+    Element.prototype.scrollIntoView = vi.fn();
+  });
+
+  function renderWithFacets(
+    onReset = vi.fn(),
+    hasFilters = true,
+    onReviewChange = vi.fn(),
+  ) {
     stubWidth(true);
     render(
       <DataTableToolbar
@@ -118,7 +128,7 @@ describe("DataTableToolbar Filters drawer", () => {
               title="Review"
               options={STATUS_OPTIONS}
               selectedValues={new Set(["new"])}
-              onValueChange={vi.fn()}
+              onValueChange={onReviewChange}
             />
             <DataTableFilter label="Type">
               {({ id }) => (
@@ -147,14 +157,35 @@ describe("DataTableToolbar Filters drawer", () => {
     expect(drawer.getAttribute("aria-describedby")).toBeTruthy();
   });
 
-  it("labels every facet as a field that names its selection", () => {
+  it("lists each facet's options inline under its own label, with no popover", () => {
     // Arrange & Act
     const drawer = renderWithFacets();
 
     // Assert
-    const review = within(drawer).getByLabelText("Review");
-    expect(review.textContent).toContain("New");
+    const review = within(drawer).getByRole("group", { name: "Review" });
+    const option = within(review).getByRole("option", { name: "New" });
+    expect(option.getAttribute("data-selection")).toBe("all");
+    expect(within(review).getByRole("option", { name: "Read" })).toBeTruthy();
+    expect(
+      within(drawer).queryByRole("combobox", { name: "Review" }),
+    ).toBeNull();
     expect(within(drawer).getByLabelText("Type").tagName).toBe("SELECT");
+  });
+
+  it("filters from an inline option and keeps the drawer open", () => {
+    // Arrange
+    const onReviewChange = vi.fn();
+    const drawer = renderWithFacets(vi.fn(), true, onReviewChange);
+
+    // Act
+    fireEvent.click(within(drawer).getByRole("option", { name: "Read" }));
+
+    // Assert
+    expect([...onReviewChange.mock.calls[0][0]].sort()).toEqual([
+      "new",
+      "read",
+    ]);
+    expect(drawer.getAttribute("data-state")).toBe("open");
   });
 
   it("resets the same filters as the toolbar's Reset", () => {

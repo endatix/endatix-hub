@@ -74,8 +74,8 @@ export type FacetedFilterProps = FacetedFilterBaseProps &
   );
 
 /**
- * In the toolbar's Filters drawer a toolbar facet becomes a `field` under a label
- * named by its `title` (DESIGN.md §5 Filters).
+ * In the toolbar's Filters drawer a toolbar facet lists its options inline under a label named by
+ * its `title`: a popover portaled out of a modal Drawer takes no taps (DESIGN.md §5 Toolbar).
  */
 export function FacetedFilter(props: Readonly<FacetedFilterProps>) {
   const inDrawer = useInFiltersDrawer();
@@ -84,15 +84,31 @@ export function FacetedFilter(props: Readonly<FacetedFilterProps>) {
   }
   return (
     <DataTableFilter label={props.title}>
-      {({ id }) => (
-        <FacetedFilterControl
-          {...props}
-          variant="field"
-          id={id}
-          emptyLabel={props.emptyLabel ?? "All"}
-        />
-      )}
+      {({ labelId }) => <FacetedFilterInline {...props} labelledBy={labelId} />}
     </DataTableFilter>
+  );
+}
+
+function FacetedFilterInline({
+  labelledBy,
+  ...props
+}: Readonly<FacetedFilterProps & { labelledBy?: string }>) {
+  const sections = props.groups ?? toFacetedFilterGroups(props.options ?? []);
+  return (
+    <div
+      role="group"
+      aria-labelledby={labelledBy}
+      data-slot="faceted-filter-inline"
+      className="rounded-md border"
+    >
+      <FacetedFilterMenu
+        {...props}
+        variant="field"
+        sections={sections}
+        grouped={props.groups !== undefined}
+        inline
+      />
+    </div>
   );
 }
 
@@ -196,14 +212,16 @@ function FieldTriggerContent(props: TriggerContentProps) {
 interface FacetedFilterMenuProps extends FacetedFilterBaseProps {
   sections: readonly FacetedFilterGroup[];
   grouped: boolean;
+  /** In the Filters drawer: every option shown, no search, no inner scroll. */
+  inline?: boolean;
 }
 
 function FacetedFilterMenu(props: Readonly<FacetedFilterMenuProps>) {
-  const { title, selectedValues, onValueChange } = props;
+  const { title, selectedValues, onValueChange, inline = false } = props;
   return (
     <Command>
-      <CommandInput placeholder={title} />
-      <CommandList>
+      {inline ? null : <CommandInput placeholder={title} />}
+      <CommandList className={cn(inline && "max-h-none")}>
         <CommandEmpty>No results found.</CommandEmpty>
         <FilterSections {...props} />
         {selectedValues.size > 0 && (
