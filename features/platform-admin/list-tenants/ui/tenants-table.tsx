@@ -1,6 +1,5 @@
 "use client";
 
-import { Building2 } from "lucide-react";
 import { use, useMemo, useState } from "react";
 import {
   auditDateColumns,
@@ -37,7 +36,7 @@ import type {
 import type { NormalizedPagedResponse } from "@/lib/endatix-api/shared/paged-response";
 import { Result, type ResultType } from "@/lib/result";
 import type { UrlSearchParamsUpdater } from "@/lib/utils/hooks/use-url-search-params-updater.hook";
-import { LogIn, MoreHorizontal, Pencil } from "lucide-react";
+import { Building2, LogIn, MoreHorizontal, Pencil } from "lucide-react";
 import {
   hubTableFeatures,
   serverPagedRows,

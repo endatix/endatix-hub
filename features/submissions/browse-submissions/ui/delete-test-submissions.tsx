@@ -103,7 +103,10 @@ function useConfirmDelete(formId: string, close: () => void) {
       const result = await deleteTestSubmissionsAction(formId).catch(
         () => null,
       );
-      if (!result) return void toast.error({ title: DELETE_TESTS_FAILED });
+      if (!result) {
+        toast.error({ title: DELETE_TESTS_FAILED });
+        return;
+      }
       const outcome = deleteTestsOutcome(result);
       if (outcome.variant === "error") return setError(outcome.message);
       toast.success(outcome.message);

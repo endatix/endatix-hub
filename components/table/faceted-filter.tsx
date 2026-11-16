@@ -95,13 +95,12 @@ function FacetedFilterInline({
 }: Readonly<FacetedFilterProps & { labelledBy?: string }>) {
   const sections = props.groups ?? toFacetedFilterGroups(props.options ?? []);
   return (
-    <div
-      role="group"
+    <fieldset
       aria-labelledby={labelledBy}
       data-slot="faceted-filter-inline"
-      aria-disabled={props.disabled || undefined}
+      disabled={props.disabled}
       className={cn(
-        "rounded-md border",
+        "m-0 min-w-0 rounded-md border p-0",
         props.disabled && "pointer-events-none opacity-50",
       )}
     >
@@ -112,7 +111,7 @@ function FacetedFilterInline({
         grouped={props.groups !== undefined}
         inline
       />
-    </div>
+    </fieldset>
   );
 }
 
