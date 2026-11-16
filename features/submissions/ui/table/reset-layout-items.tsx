@@ -43,7 +43,7 @@ export function ResetLayoutItems({
         <>
           <DropdownMenuSeparator />
           <DropdownMenuItem onSelect={onResetAll} disabled={disabled}>
-            Reset All
+            Reset layout, filters and sorting
           </DropdownMenuItem>
         </>
       ) : null}

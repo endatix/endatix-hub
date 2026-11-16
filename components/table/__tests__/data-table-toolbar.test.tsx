@@ -212,6 +212,24 @@ describe("DataTableToolbar Filters drawer", () => {
     expect(within(review).queryByRole("combobox")).toBeNull();
   });
 
+  it("lets a keyboard reach an inline facet and toggle its option", () => {
+    // Arrange
+    const onReviewChange = vi.fn();
+    const drawer = renderWithFacets(vi.fn(), true, onReviewChange);
+    const list = within(drawer)
+      .getByRole("group", { name: "Review" })
+      .querySelector<HTMLElement>("[cmdk-root]")!;
+
+    // Act
+    list.focus();
+    fireEvent.keyDown(list, { key: "Enter" });
+
+    // Assert
+    expect(list.tabIndex).toBe(0);
+    expect(document.activeElement).toBe(list);
+    expect([...onReviewChange.mock.calls[0][0]]).toEqual([]);
+  });
+
   it("filters from an inline option and keeps the drawer open", () => {
     // Arrange
     const onReviewChange = vi.fn();

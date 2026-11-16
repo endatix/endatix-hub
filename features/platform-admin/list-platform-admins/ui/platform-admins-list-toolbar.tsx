@@ -1,7 +1,11 @@
 "use client";
 
 import { use } from "react";
-import { TableSearchInput } from "@/components/table";
+import {
+  DataTableFilter,
+  DataTableToolbar,
+  TableSearchInput,
+} from "@/components/table";
 import {
   Select,
   SelectContent,
@@ -40,36 +44,81 @@ export function PlatformAdminsListToolbar({
   const tenants = Result.isSuccess(tenantsResult)
     ? tenantsResult.value.items
     : [];
+  const filters = adminsFilterState(searchParams);
+  return (
+    <DataTableToolbar
+      search={
+        <TableSearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="Search by name or email"
+          ariaLabel="Search platform administrators by name or email"
+        />
+      }
+      filters={
+        <>
+          <ScopeFilter
+            value={filters.scope}
+            onChange={createUrlFilterUpdater(
+              updateUrl,
+              "scope",
+              allScopesValue,
+            )}
+          />
+          <TenantFilter
+            value={filters.tenant}
+            tenants={tenants}
+            currentTenantId={currentTenantId}
+            onChange={createUrlFilterUpdater(
+              updateUrl,
+              "tenantId",
+              allTenantsValue,
+            )}
+          />
+        </>
+      }
+      activeFilterCount={filters.activeCount}
+      reset={{
+        onClick: () => {
+          setSearch("");
+          updateUrl({ search: null, scope: null, tenantId: null, page: "1" });
+        },
+        hasFilters: Boolean(search.trim()) || filters.activeCount > 0,
+      }}
+    />
+  );
+}
+
+function adminsFilterState(searchParams: URLSearchParams) {
   const urlScope = searchParams.get("scope");
-  const scopeFilter =
+  const scope =
     urlScope === "approved" || urlScope === "candidates"
       ? urlScope
       : allScopesValue;
-  const tenantFilter = searchParams.get("tenantId") ?? allTenantsValue;
-  const onScopeFilterChange = createUrlFilterUpdater(
-    updateUrl,
-    "scope",
-    allScopesValue,
-  );
-  const onTenantFilterChange = createUrlFilterUpdater(
-    updateUrl,
-    "tenantId",
-    allTenantsValue,
-  );
+  const tenant = searchParams.get("tenantId") ?? allTenantsValue;
+  const activeCount =
+    Number(scope !== allScopesValue) + Number(tenant !== allTenantsValue);
+  return { scope, tenant, activeCount };
+}
 
+type FilterSelectProps = {
+  value: string;
+  onChange: (value: string) => void;
+};
+
+function ScopeFilter({ value, onChange }: Readonly<FilterSelectProps>) {
   return (
-    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-      <TableSearchInput
-        value={search}
-        onChange={setSearch}
-        placeholder="Search by name or email"
-        ariaLabel="Search platform administrators by name or email"
-      />
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-        <Select value={scopeFilter} onValueChange={onScopeFilterChange}>
+    <DataTableFilter label="Approval">
+      {({ id }) => (
+        <Select value={value} onValueChange={onChange}>
           <SelectTrigger
-            className="w-full lg:w-[180px]"
-            aria-label="Filter platform administrators by approval status"
+            id={id}
+            className="w-full md:w-[180px]"
+            aria-label={
+              id
+                ? undefined
+                : "Filter platform administrators by approval status"
+            }
           >
             <SelectValue placeholder="Approval" />
           </SelectTrigger>
@@ -79,10 +128,32 @@ export function PlatformAdminsListToolbar({
             <SelectItem value="candidates">Candidates</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={tenantFilter} onValueChange={onTenantFilterChange}>
+      )}
+    </DataTableFilter>
+  );
+}
+
+type TenantFilterProps = FilterSelectProps & {
+  tenants: PlatformTenantsPage["items"];
+  currentTenantId?: string;
+};
+
+function TenantFilter({
+  value,
+  tenants,
+  currentTenantId,
+  onChange,
+}: Readonly<TenantFilterProps>) {
+  return (
+    <DataTableFilter label="Tenant">
+      {({ id }) => (
+        <Select value={value} onValueChange={onChange}>
           <SelectTrigger
-            className="w-full lg:w-[200px]"
-            aria-label="Filter platform administrators by tenant"
+            id={id}
+            className="w-full md:w-[200px]"
+            aria-label={
+              id ? undefined : "Filter platform administrators by tenant"
+            }
           >
             <SelectValue placeholder="Tenant" />
           </SelectTrigger>
@@ -98,7 +169,7 @@ export function PlatformAdminsListToolbar({
             ))}
           </SelectContent>
         </Select>
-      </div>
-    </div>
+      )}
+    </DataTableFilter>
   );
 }

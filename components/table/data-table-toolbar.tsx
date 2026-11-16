@@ -104,12 +104,15 @@ function ToolbarFilters({
   );
 }
 
-/** Sticks to the end of the scrolling row, so a long filter row never hides it. */
+/**
+ * Sticks to the end of the scrolling row, so a long filter row never hides it. Its fill is the
+ * page's; a toolbar on another surface sets `--toolbar-surface` (`PagedCardList` does).
+ */
 function ToolbarReset({ reset }: Readonly<{ reset: ResetFiltersButtonProps }>) {
   return (
     <div
       data-slot="data-table-toolbar-reset"
-      className="flex shrink-0 empty:hidden max-md:order-2 md:sticky md:right-0 md:bg-background"
+      className="flex shrink-0 empty:hidden max-md:order-2 md:sticky md:right-0 md:bg-(--toolbar-surface,var(--background))"
     >
       <ResetFiltersButton {...reset} />
     </div>
