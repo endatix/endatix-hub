@@ -1,5 +1,4 @@
 import { createRequire } from "node:module";
-import path from "node:path";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { FacetedFilter } from "@/components/table";
@@ -18,14 +17,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { stubPhoneWidth } from "@/test/stubs/phone-width";
+import { stubPointerCapture } from "@/test/stubs/pointer-capture";
 import { stubResizeObserver } from "@/test/stubs/resize-observer";
+import { stubScrollIntoView } from "@/test/stubs/scroll-into-view";
 
 beforeEach(() => {
   stubPhoneWidth();
   stubResizeObserver();
-  Element.prototype.scrollIntoView = vi.fn();
-  Element.prototype.hasPointerCapture = vi.fn(() => false);
-  Element.prototype.releasePointerCapture = vi.fn();
+  stubScrollIntoView();
+  stubPointerCapture();
 });
 
 function PhoneDrawer({
@@ -91,10 +91,29 @@ describe("ResponsivePanel as a phone drawer", () => {
     // Act
     fireEvent.click(option);
 
-    // Assert
+    // Assert: fireEvent ignores pointer-events, so the click alone proves nothing. The drawer
+    // turns taps off on <body>; the popover's layer must turn them back on.
     expect(document.body.style.pointerEvents).toBe("none");
     expect(takesTaps(option)).toBe(true);
     expect(onStatusChange).toHaveBeenCalledWith(new Set(["complete"]));
+  });
+
+  it("closes only the popover on Escape and keeps the drawer open", () => {
+    // Arrange
+    const onOpenChange = vi.fn();
+    render(<PhoneDrawer onOpenChange={onOpenChange} />);
+    fireEvent.click(screen.getByRole("button", { name: /All statuses/ }));
+    const option = screen.getByRole("option", { name: "Complete" });
+
+    // Act
+    fireEvent.keyDown(option, { key: "Escape" });
+
+    // Assert
+    expect(screen.queryByRole("option", { name: "Complete" })).toBeNull();
+    expect(onOpenChange).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole("dialog", { name: "Export submissions" }),
+    ).toBeTruthy();
   });
 
   it("closes only the Select on Escape and keeps the drawer open", () => {
@@ -117,18 +136,22 @@ describe("ResponsivePanel as a phone drawer", () => {
     ).toBeTruthy();
   });
 
-  it("shares one Radix layer stack with Popover and Select", () => {
-    // Two copies of the layer package keep two stacks: the drawer would not see a popover as on
-    // top of it (endatix-hub#1423). See the @radix-ui/react-dialog override in pnpm-workspace.yaml.
-    const layerFrom = (...chain: string[]) =>
-      chain.reduce(
-        (from, name) => createRequire(from).resolve(name),
-        path.join(process.cwd(), "package.json"),
-      );
-    const layer = "@radix-ui/react-dismissable-layer";
+  it.each(["vaul", "cmdk"])(
+    "shares one Radix layer stack between %s and Popover",
+    (dependent) => {
+      // Two copies of the layer package keep two stacks: the drawer does not see a popover as on
+      // top of it (endatix-hub#1423).
+      const layerFrom = (...chain: string[]) =>
+        chain.reduce(
+          (from, name) => createRequire(from).resolve(name),
+          import.meta.url,
+        );
+      const layer = "@radix-ui/react-dismissable-layer";
 
-    expect(layerFrom("vaul", "@radix-ui/react-dialog", layer)).toBe(
-      layerFrom("radix-ui", "@radix-ui/react-popover", layer),
-    );
-  });
+      expect(
+        layerFrom(dependent, "@radix-ui/react-dialog", layer),
+        `Set "${dependent}>@radix-ui/react-dialog" in pnpm-workspace.yaml to radix-ui's react-dialog version`,
+      ).toBe(layerFrom("radix-ui", "@radix-ui/react-popover", layer));
+    },
+  );
 });
