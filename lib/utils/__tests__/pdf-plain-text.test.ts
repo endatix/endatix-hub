@@ -47,6 +47,11 @@ describe("pdfPlainText", () => {
     expect(pdfPlainText("&#39;quoted&#39;")).toBe("'quoted'");
   });
 
+  it("decodes &#128;-&#159; with the HTML Windows-1252 mapping, not as C1 controls", () => {
+    expect(pdfPlainText("&#147;quoted&#148;")).toBe("“quoted”");
+    expect(pdfPlainText("&#128;")).toBe("€");
+  });
+
   it("replaces out-of-range numeric entities rather than dropping them", () => {
     expect(pdfPlainText("A&#1114112;B")).toBe("A\uFFFDB");
     expect(pdfPlainText("A&#x110000;B")).toBe("A\uFFFDB");
