@@ -1,10 +1,14 @@
 "use client";
+import {
+  type Column,
+  type Header,
+} from "@/components/table/hub-table-features";
 
 import { Submission } from "@/lib/endatix-api";
 import { cn } from "@/lib/utils";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Column, Header, flexRender } from "@tanstack/react-table";
+import { flexRender } from "@tanstack/react-table";
 
 interface DraggableColumnHeaderProps<TData extends Submission> {
   column: Column<TData>;

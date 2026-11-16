@@ -6,7 +6,7 @@ import {
 import type {
   ColumnOrderState,
   ColumnSizingState,
-  VisibilityState,
+  ColumnVisibilityState,
 } from "@tanstack/react-table";
 import {
   answerColumnId,
@@ -59,7 +59,7 @@ export type SubmissionGridViewSnapshot = {
 
 export type SubmissionGridTableLayout = {
   columnOrder: ColumnOrderState;
-  columnVisibility: VisibilityState;
+  columnVisibility: ColumnVisibilityState;
   columnSizing: ColumnSizingState;
 };
 

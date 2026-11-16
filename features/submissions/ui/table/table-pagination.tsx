@@ -1,3 +1,5 @@
+import { type Table } from "@/components/table/hub-table-features";
+import type { RowData } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { formatInteger } from "@/lib/utils/formatters";
 import {
@@ -7,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Table } from "@tanstack/react-table";
+
 import {
   ChevronLeft,
   ChevronRight,
@@ -15,16 +17,16 @@ import {
   ChevronsRight,
 } from "lucide-react";
 
-interface TablePagination<TData> {
+interface TablePagination<TData extends RowData> {
   readonly table: Table<TData>;
   readonly totalRows?: number;
 }
 
-export function TablePagination<TData>({
+export function TablePagination<TData extends RowData>({
   table,
   totalRows,
 }: TablePagination<TData>) {
-  const { pageIndex, pageSize } = table.getState().pagination;
+  const { pageIndex, pageSize } = table.store.state.pagination;
   const total = totalRows ?? table.getCoreRowModel().rows.length;
   const showingFrom = total === 0 ? 0 : pageIndex * pageSize + 1;
   const showingTo = Math.min((pageIndex + 1) * pageSize, total);
@@ -46,13 +48,13 @@ export function TablePagination<TData>({
           <p className="hidden text-sm font-medium sm:block">Rows per page</p>
           <p className="text-sm font-medium sm:hidden">Rows</p>
           <Select
-            value={`${table.getState().pagination.pageSize}`}
+            value={`${pageSize}`}
             onValueChange={(value) => {
               table.setPageSize(Number(value));
             }}
           >
             <SelectTrigger className="h-8 w-[70px]">
-              <SelectValue placeholder={table.getState().pagination.pageSize} />
+              <SelectValue placeholder={pageSize} />
             </SelectTrigger>
             <SelectContent side="top">
               {[10, 20, 30, 40, 50].map((pageSize) => (
@@ -65,11 +67,10 @@ export function TablePagination<TData>({
         </div>
         <div className="flex w-auto items-center justify-center text-sm font-medium sm:w-[100px]">
           <span className="sm:hidden">
-            {table.getState().pagination.pageIndex + 1}/{table.getPageCount()}
+            {pageIndex + 1}/{table.getPageCount()}
           </span>
           <span className="hidden sm:inline">
-            Page {table.getState().pagination.pageIndex + 1} of{" "}
-            {table.getPageCount()}
+            Page {pageIndex + 1} of {table.getPageCount()}
           </span>
         </div>
         <div className="flex items-center space-x-2">

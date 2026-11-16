@@ -1,9 +1,6 @@
 import { render, screen } from "@testing-library/react";
-import {
-  getCoreRowModel,
-  useReactTable,
-  type ColumnDef,
-} from "@tanstack/react-table";
+import { hubTableFeatures, type ColumnDef } from "../hub-table-features";
+import { useTable } from "@tanstack/react-table";
 import { describe, expect, it, vi } from "vitest";
 import { DataTableGrid } from "../data-table-grid";
 import { PagedListFrame } from "../paged-list-frame";
@@ -41,11 +38,11 @@ function Grid({
   isPending,
   data = twoRows,
 }: Readonly<{ isPending: boolean; data?: Row[] }>) {
-  const table = useReactTable({
+  const table = useTable({
+    features: hubTableFeatures,
     data,
     columns,
     getRowId: (row) => row.id,
-    getCoreRowModel: getCoreRowModel(),
   });
   return (
     <DataTableGrid

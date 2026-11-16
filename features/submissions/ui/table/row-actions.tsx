@@ -1,4 +1,6 @@
 "use client";
+import { type Row } from "@/components/table/hub-table-features";
+import type { RowData } from "@tanstack/react-table";
 
 import { isSubmissionEditable } from "@/features/submissions/domain";
 import { Button } from "@/components/ui/button";
@@ -11,7 +13,7 @@ import {
 import { DropdownMenu } from "@/components/ui/dropdown-menu";
 import { DeleteSubmissionDialog } from "@/features/submissions/use-cases/delete-submission";
 import { Submission } from "@/lib/endatix-api";
-import { Row } from "@tanstack/react-table";
+
 import {
   FileDown,
   FilePenLine,
@@ -26,11 +28,13 @@ import { useState } from "react";
 import { DownloadFilesDropdownItem } from "../download-files-dropdown-item";
 import { SubmissionShareLinksDialog } from "../../share-links/submission-share-links-dialog";
 
-interface RowActionsProps<TData> {
-  row: Row<TData>;
+interface RowActionsProps<T extends RowData> {
+  row: Row<T>;
 }
 
-export function RowActions<TData>({ row }: RowActionsProps<TData>) {
+export function RowActions<T extends RowData>({
+  row,
+}: Readonly<RowActionsProps<T>>) {
   const [open, setOpen] = useState(false);
   const [isShareLinksOpen, setIsShareLinksOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);

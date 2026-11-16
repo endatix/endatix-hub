@@ -1,3 +1,4 @@
+import { type ColumnDef } from "@/components/table/hub-table-features";
 import { TruncatedId } from "@/components/common/truncated-id";
 import { getIsomorphicEndatixConfig } from "@/features/config/client-endatix-config";
 import { DefinitionField, Submission } from "@/lib/endatix-api";
@@ -6,7 +7,7 @@ import {
   QuestionType,
 } from "@/lib/questions/questions-registry";
 import { getSubmissionStartedAt } from "@/lib/utils";
-import { ColumnDef } from "@tanstack/react-table";
+
 import { CellCompleteStatus } from "./cell-complete-status";
 import { CellCompletionTime } from "./cell-completion-time";
 import {

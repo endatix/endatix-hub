@@ -40,7 +40,7 @@ const UNKEYED_PAGED_PAGES: Record<string, string> = {
 describe("paged list conformance", () => {
   it("every TanStack grid keys rows by entity id (getRowId)", () => {
     const offenders = files
-      .filter(({ source }) => source.includes("useReactTable("))
+      .filter(({ source }) => source.includes("useTable("))
       .filter(({ source }) => !source.includes("getRowId"))
       .map(({ file }) => file);
 

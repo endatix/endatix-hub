@@ -1,10 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
-import {
-  getCoreRowModel,
-  useReactTable,
-  type ColumnDef,
-} from "@tanstack/react-table";
+import { hubTableFeatures, type ColumnDef } from "../hub-table-features";
+import { useTable } from "@tanstack/react-table";
 import type { UrlSearchParamsUpdater } from "@/lib/utils/hooks/use-url-search-params-updater.hook";
 import { auditDateColumns, type AuditDates } from "../audit-date-columns";
 import { DataTableGrid } from "../data-table-grid";
@@ -27,10 +24,10 @@ function Grid({ updateUrl }: Readonly<{ updateUrl: UrlSearchParamsUpdater }>) {
     modified: {},
     updateUrl,
   }) as ColumnDef<Row>[];
-  const table = useReactTable({
+  const table = useTable({
+    features: hubTableFeatures,
     data: ROWS,
     columns,
-    getCoreRowModel: getCoreRowModel(),
     getRowId: (row) => row.id,
     manualSorting: true,
   });

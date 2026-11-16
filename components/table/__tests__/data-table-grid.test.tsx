@@ -1,9 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import {
-  getCoreRowModel,
-  useReactTable,
-  type ColumnDef,
-} from "@tanstack/react-table";
+import { hubTableFeatures, type ColumnDef } from "../hub-table-features";
+import { useTable } from "@tanstack/react-table";
 import { createPortal } from "react-dom";
 import { describe, expect, it, vi } from "vitest";
 import { DataTableGrid } from "../data-table-grid";
@@ -25,10 +22,10 @@ const COLUMNS: ColumnDef<Item>[] = [
 ];
 
 function Grid({ onRowClick }: Readonly<{ onRowClick: (id: string) => void }>) {
-  const table = useReactTable({
+  const table = useTable({
+    features: hubTableFeatures,
     data: [{ id: "1", name: "Ada" }],
     columns: COLUMNS,
-    getCoreRowModel: getCoreRowModel(),
   });
   return (
     <DataTableGrid

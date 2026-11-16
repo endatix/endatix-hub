@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { dataTableColumnLabelClassName } from "./data-table-chrome";
-import { Column, SortDirection } from "@tanstack/react-table";
+import type { Column, RowData, SortDirection } from "./hub-table-features";
 import {
   ArrowDown,
   ArrowUp,
@@ -60,7 +60,7 @@ interface TextFilterControlsProps {
 }
 
 export interface DataTableColumnHeaderProps<
-  TData,
+  TData extends RowData,
   TValue,
 > extends React.HTMLAttributes<HTMLDivElement> {
   readonly column: Column<TData, TValue>;
@@ -133,7 +133,7 @@ function getSortIcon(isSorted: ColumnSortState) {
   return null;
 }
 
-function cycleColumnSort<TData, TValue>(
+function cycleColumnSort<TData extends RowData, TValue>(
   column: Column<TData, TValue>,
   isSorted: ColumnSortState,
 ): void {
@@ -176,7 +176,7 @@ function SortIndicator({
   );
 }
 
-function ColumnHeaderMenu<TData, TValue>({
+function ColumnHeaderMenu<TData extends RowData, TValue>({
   column,
   title,
   canSort,
@@ -248,7 +248,7 @@ function ColumnHeaderMenu<TData, TValue>({
   );
 }
 
-function ColumnHeaderMenuBody<TData, TValue>({
+function ColumnHeaderMenuBody<TData extends RowData, TValue>({
   column,
   canSort,
   isSorted,
@@ -340,7 +340,7 @@ function ColumnHeaderMenuBody<TData, TValue>({
   );
 }
 
-function CenterAlignedColumnHeader<TData, TValue>({
+function CenterAlignedColumnHeader<TData extends RowData, TValue>({
   column,
   title,
   titleLabel,
@@ -433,7 +433,7 @@ function CenterAlignedColumnHeader<TData, TValue>({
   );
 }
 
-function StartAlignedColumnHeader<TData, TValue>({
+function StartAlignedColumnHeader<TData extends RowData, TValue>({
   column,
   title,
   titleLabel,
@@ -518,7 +518,7 @@ function StartAlignedColumnHeader<TData, TValue>({
   );
 }
 
-export function DataTableColumnHeader<TData, TValue>({
+export function DataTableColumnHeader<TData extends RowData, TValue>({
   column,
   title,
   visible = true,

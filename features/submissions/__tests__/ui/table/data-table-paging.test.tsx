@@ -1,5 +1,6 @@
+import { type ColumnDef } from "@/components/table/hub-table-features";
 import { useState } from "react";
-import type { ColumnDef } from "@tanstack/react-table";
+
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { mockMatchMedia } from "@/__tests__/utils/mock-match-media";

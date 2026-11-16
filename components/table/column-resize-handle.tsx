@@ -1,6 +1,7 @@
 "use client";
+import type { RowData } from "@tanstack/react-table";
+import type { Column, Header, Table } from "./hub-table-features";
 
-import type { Column, Header, Table } from "@tanstack/react-table";
 import type { CSSProperties, KeyboardEvent, PointerEvent } from "react";
 
 const DEFAULT_MIN_COLUMN_WIDTH = 48;
@@ -14,13 +15,13 @@ const HANDLE_CLASS_NAME =
  * Cells need it too: their `min-w-*` classes would otherwise hold the column
  * wider than the width that is saved.
  */
-export function resizedColumnStyle<TData>(
+export function resizedColumnStyle<TData extends RowData>(
   table: Table<TData>,
   column: Column<TData, unknown>,
 ): CSSProperties | undefined {
   const isResized =
     table.options.enableColumnResizing === true &&
-    column.id in table.getState().columnSizing;
+    column.id in table.store.state.columnSizing;
   if (!isResized) {
     return undefined;
   }
@@ -34,7 +35,7 @@ export function resizedColumnStyle<TData>(
  * automatic width. Starts from the width the header has on screen, so a
  * column never jumps when the drag begins.
  */
-export function ColumnResizeHandle<TData>({
+export function ColumnResizeHandle<TData extends RowData>({
   header,
 }: Readonly<{ header: Header<TData, unknown> }>) {
   if (!header.column.getCanResize()) {
@@ -53,7 +54,7 @@ export function ColumnResizeHandle<TData>({
   );
 }
 
-function startDrag<TData>(
+function startDrag<TData extends RowData>(
   event: PointerEvent<HTMLButtonElement>,
   header: Header<TData, unknown>,
 ) {
@@ -85,7 +86,7 @@ function followPointer(
   handle.addEventListener("pointercancel", onEnd);
 }
 
-function resizeByKey<TData>(
+function resizeByKey<TData extends RowData>(
   event: KeyboardEvent<HTMLButtonElement>,
   header: Header<TData, unknown>,
 ) {
@@ -101,7 +102,10 @@ function resizeByKey<TData>(
   setColumnWidth(header, cell.getBoundingClientRect().width + step);
 }
 
-function setColumnWidth<TData>(header: Header<TData, unknown>, width: number) {
+function setColumnWidth<TData extends RowData>(
+  header: Header<TData, unknown>,
+  width: number,
+) {
   const { minSize, maxSize } = header.column.columnDef;
   const clamped = Math.round(
     Math.min(
@@ -115,7 +119,9 @@ function setColumnWidth<TData>(header: Header<TData, unknown>, width: number) {
   }));
 }
 
-function clearColumnWidth<TData>(header: Header<TData, unknown>) {
+function clearColumnWidth<TData extends RowData>(
+  header: Header<TData, unknown>,
+) {
   header.getContext().table.setColumnSizing((sizing) => {
     const { [header.column.id]: _cleared, ...rest } = sizing;
     return rest;

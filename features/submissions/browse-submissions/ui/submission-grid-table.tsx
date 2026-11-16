@@ -15,10 +15,12 @@ import { NoMatchingSubmissionsEmptyState } from "@/features/submissions/ui/submi
 import type { SubmissionGridRowsPage } from "@/lib/endatix-api/reporting/submission-grid";
 import type { SubmissionGridRow } from "@/lib/endatix-api/reporting/submission-grid-types";
 import {
-  functionalUpdate,
-  getCoreRowModel,
-  useReactTable,
+  hubTableFeatures,
   type Row,
+} from "@/components/table/hub-table-features";
+import {
+  functionalUpdate,
+  useTable,
   type SortingState,
   type Updater,
 } from "@tanstack/react-table";
@@ -105,10 +107,10 @@ function useSubmissionGridTable(
   const columns = useGridColumns(props, grid);
   const sorting = sortingFromUrlState(grid.urlState);
   const data = useRowData(props.page);
-  return useReactTable({
+  return useTable({
+    features: hubTableFeatures,
     data,
     columns,
-    getCoreRowModel: getCoreRowModel(),
     getRowId: (row) => row.id,
     manualSorting: true,
     ...resizableView(useSubmissionGridView(), sorting),
