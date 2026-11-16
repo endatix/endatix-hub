@@ -50,3 +50,8 @@ overrides:
   "picomatch@>=4 <5": ^4.0.4
   # protobufjs 8.7.1 stays: @grpc/proto-loader 0.8.1 still declares ^7.5.5, so dropping this forces 7.6.6 (cross-major). Audit does not flag 7.6.6. Remove when `node scripts/review-dependency.mjs overrides protobufjs` reports REMOVABLE
   protobufjs: ^8.7.1
+  # One Radix layer stack (endatix-hub#1423). vaul and cmdk declare ^1.1 and resolved 1.1.15, which
+  # brings its own react-dismissable-layer; a Popover or Select inside a Drawer then took no taps
+  # and Escape closed the Drawer too. Keep at the version radix-ui pins. Remove when
+  # `pnpm why @radix-ui/react-dismissable-layer` shows one version without it.
+  "@radix-ui/react-dialog": 1.3.1

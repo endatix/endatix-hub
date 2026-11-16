@@ -75,7 +75,7 @@ export type FacetedFilterProps = FacetedFilterBaseProps &
 
 /**
  * In the toolbar's Filters drawer a toolbar facet lists its options inline under a label named by
- * its `title`: a popover portaled out of a modal Drawer takes no taps (DESIGN.md §5 Toolbar).
+ * its `title`, so the drawer shows every choice without a popover over it (DESIGN.md §5 Toolbar).
  */
 export function FacetedFilter(props: Readonly<FacetedFilterProps>) {
   const inDrawer = useInFiltersDrawer();
