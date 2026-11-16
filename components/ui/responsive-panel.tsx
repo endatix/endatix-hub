@@ -142,7 +142,14 @@ export function ResponsivePanel({
   }
 
   return (
-    <Drawer open={open} onOpenChange={onOpenChange} dismissible={dismissible}>
+    // Vaul leaves focus on the trigger unless `autoFocus` is set; the panel must take focus and
+    // trap Tab like the Dialog and Sheet modes (DESIGN.md §5 Overlays).
+    <Drawer
+      open={open}
+      onOpenChange={onOpenChange}
+      dismissible={dismissible}
+      autoFocus
+    >
       {trigger && <DrawerTrigger asChild>{trigger}</DrawerTrigger>}
       <DrawerContent
         onOpenAutoFocus={onOpenAutoFocus}

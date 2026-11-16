@@ -117,8 +117,11 @@ export function SubmissionGridColumnPickerOverlay({
       onOpenChange={onOpenChange}
       desktopType="simple"
       drawerContentClassName="h-auto"
-      // Focusing the search box on open raises a phone's keyboard over the list.
-      onOpenAutoFocus={(event) => event.preventDefault()}
+      // Focus the panel, not its search box: that would raise a phone's keyboard over the list.
+      onOpenAutoFocus={(event) => {
+        event.preventDefault();
+        (event.currentTarget as HTMLElement | null)?.focus();
+      }}
     >
       <ResponsivePanelHeader>
         <ResponsivePanelTitle>Columns</ResponsivePanelTitle>

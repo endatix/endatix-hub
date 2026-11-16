@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { stubResizeObserver } from "@/test/stubs/resize-observer";
 import { stubScrollIntoView } from "@/test/stubs/scroll-into-view";
@@ -147,6 +153,16 @@ describe("DataTableToolbar Filters drawer", () => {
     fireEvent.click(screen.getByRole("button", { name: "Filters · 1" }));
     return screen.getByRole("dialog");
   }
+
+  it("moves focus into the drawer when it opens", async () => {
+    // Arrange & Act
+    const drawer = renderWithFacets();
+
+    // Assert
+    await waitFor(() =>
+      expect(drawer.contains(document.activeElement)).toBe(true),
+    );
+  });
 
   it("has a title and a description", () => {
     // Arrange & Act
