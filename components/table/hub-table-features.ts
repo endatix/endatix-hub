@@ -18,11 +18,10 @@ import {
   type HeaderContext as TanstackHeaderContext,
   type Row as TanstackRow,
   type RowData,
-  type SortDirection,
   type Table as TanstackTable,
 } from "@tanstack/react-table";
 
-export type { RowData, SortDirection };
+export type { RowData, SortDirection } from "@tanstack/react-table";
 
 /**
  * The Table 8 bundle, named. Table 9 only includes a feature when it is

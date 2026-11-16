@@ -32,7 +32,9 @@ interface RowActionsProps<T extends RowData> {
   row: Row<T>;
 }
 
-export function RowActions<T extends RowData>({ row }: RowActionsProps<T>) {
+export function RowActions<T extends RowData>({
+  row,
+}: Readonly<RowActionsProps<T>>) {
   const [open, setOpen] = useState(false);
   const [isShareLinksOpen, setIsShareLinksOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
