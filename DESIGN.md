@@ -138,37 +138,37 @@ with regular body and generous vertical padding (`8`–`10`).
 
 Before building a control, check whether the vocabulary already exists here.
 
-| Component                                                                                         | Owns                                                                                                         |
-| :------------------------------------------------------------------------------------------------ | :----------------------------------------------------------------------------------------------------------- |
-| `components/common/status-badge.tsx` — `StatusBadge`, `StatusDot`                                 | The four-tone on / off / attention / idle pill, and its dot alone for a group label                          |
-| `components/table/faceted-filter.tsx` — `FacetedFilter`                                           | A facet: toolbar pill or form `field`; flat or grouped options (Filters, below)                              |
-| `components/table/data-table-filter.tsx` — `DataTableFilter`                                      | A non-facet filter (`Select`) that sits under its own label in the toolbar's Filters drawer (Toolbar, below) |
-| `components/common/file-kind-icon.tsx` — `FileKindIcon`, `FileKindLabel`                          | The file-type mark and its icon+label row (File Type Marks, below)                                           |
-| `components/common/panel-section.tsx` — `PanelSection`                                            | A titled concern inside an overlay, on a nested surface (§6 Create / edit overlay)                           |
-| `components/common/panel-form.tsx` — `PanelForm`, `PanelFormError`                                | A create/edit overlay as one form: header, failure strip, sections, Cancel or Back + submit                  |
-| `components/common/panel-steps.tsx` — `PanelSteps`                                                | The progress track of a multi-step overlay, first in its body (§6 Create / edit overlay)                     |
-| `components/common/field-with-help.tsx` — `FieldWithHelp`                                         | A label, its control and the one visible help line under it (§6 Displaying values)                           |
-| `components/common/download-menu.tsx` — `DownloadMenu`                                            | The one Download control: a button for one format, a menu of formats with file marks (§6 Hand over a file)   |
-| `components/common/pending-button.tsx` — `PendingButton`                                          | An action button that swaps to a spinner and its running verb (Buttons, below)                               |
-| `components/common/summary-row.tsx` — `SummaryRow`                                                | Label-left / value-right rows (§6 Displaying values)                                                         |
-| `components/common/locked-value.tsx` — `LockedValue`                                              | A value an overlay can never change, with its `Locked` badge, as a `SummaryRow` value (§6 Controls)          |
-| `components/common/truncated-id.tsx` — `TruncatedId`                                              | A long id shortened to head…tail with a copy affordance                                                      |
-| `components/common/text-link.tsx` — `TextLink`                                                    | An inline link; `external` for one that leaves the Hub (Links, below)                                        |
-| `components/layout-ui/navigation/nav-switcher.tsx` — `NavSwitcher`                                | The current choice among siblings as a menu, with icons and a check (§6 Record workspace)                    |
-| `components/layout-ui/navigation/nav-icons.ts` — `NAV_ICONS`, `NavIconName`                       | One icon per destination, named by server-built menus and resolved on the client (§6 Navigation)             |
-| `components/common/link-tabs.tsx` — `LinkTabs`                                                    | A segmented switch between a page's views, each a URL, with counts (§6 Record workspace)                     |
-| `components/common/stat-card.tsx` — `StatCard`                                                    | One fact at a glance: icon tile, label, value, one sentence; a link card with `href` (§6 Record workspace)   |
-| `features/forms/form-workspace` — `FormPageHeaderSlot`, `FormWorkspaceHeader`, `FormSummaryCards` | A form's trail, page switcher and Design in the header, its page masthead, its fact cards (§6)               |
-| `components/timeline` — `Timeline` and its parts                                                  | Any sequence of steps: history, activity, progress (Timeline, below)                                         |
-| `components/common/locale-label.tsx` — `LocaleLabel`                                              | A survey language as name + short code (`Spanish es`), anywhere                                              |
-| `components/copy-to-clipboard.tsx` — `CopyToClipboard`                                            | The copy affordance, `overlay` and `inline` layouts (below)                                                  |
-| `components/table` — `DataTableSurface` and friends                                               | All list-table chrome (List tables, below)                                                                   |
-| `components/ui/responsive-panel.tsx` — `ResponsivePanel`                                          | Desktop Sheet / Dialog ↔ mobile Drawer swap; `dismissible` lock (Overlays, below)                            |
-| `.grid-card-list` (`app/globals.css`)                                                             | Peer-card grids without breakpoints (below)                                                                  |
-| `asset-storage/…/get-user-file/ui` — `SubmissionFileDialog`                                       | A submission file's preview + details dialog (§6 File answers)                                               |
-| `components/public-status` — `PublicStatusPage`, `PublicStatusReference`                          | Every status page a non-Hub reader sees: respondents, link and export recipients (§6)                        |
-| `components/error-handling/error-page` — `ErrorPage`                                              | Every full-page error a Hub user sees (rules: `AGENTS.md` "Error page chrome")                               |
-| `features/about` — `ReleaseVersionLink`                                                           | A Hub or API version, linked to its tracked GitHub release notes (Links, below)                              |
+| Component                                                                                         | Owns                                                                                                       |
+| :------------------------------------------------------------------------------------------------ | :--------------------------------------------------------------------------------------------------------- |
+| `components/common/status-badge.tsx` — `StatusBadge`, `StatusDot`                                 | The four-tone on / off / attention / idle pill, and its dot alone for a group label                        |
+| `components/table/faceted-filter.tsx` — `FacetedFilter`                                           | A facet: toolbar pill or form `field`; flat or grouped options (Filters, below)                            |
+| `components/table/data-table-filter.tsx` — `DataTableFilter`                                      | A `Select` under its own label in the toolbar's Filters drawer (Toolbar, below)                            |
+| `components/common/file-kind-icon.tsx` — `FileKindIcon`, `FileKindLabel`                          | The file-type mark and its icon+label row (File Type Marks, below)                                         |
+| `components/common/panel-section.tsx` — `PanelSection`                                            | A titled concern inside an overlay, on a nested surface (§6 Create / edit overlay)                         |
+| `components/common/panel-form.tsx` — `PanelForm`, `PanelFormError`                                | A create/edit overlay as one form: header, failure strip, sections, Cancel or Back + submit                |
+| `components/common/panel-steps.tsx` — `PanelSteps`                                                | The progress track of a multi-step overlay, first in its body (§6 Create / edit overlay)                   |
+| `components/common/field-with-help.tsx` — `FieldWithHelp`                                         | A label, its control and the one visible help line under it (§6 Displaying values)                         |
+| `components/common/download-menu.tsx` — `DownloadMenu`                                            | The one Download control: a button for one format, a menu of formats with file marks (§6 Hand over a file) |
+| `components/common/pending-button.tsx` — `PendingButton`                                          | An action button that swaps to a spinner and its running verb (Buttons, below)                             |
+| `components/common/summary-row.tsx` — `SummaryRow`                                                | Label-left / value-right rows (§6 Displaying values)                                                       |
+| `components/common/locked-value.tsx` — `LockedValue`                                              | A value an overlay can never change, with its `Locked` badge, as a `SummaryRow` value (§6 Controls)        |
+| `components/common/truncated-id.tsx` — `TruncatedId`                                              | A long id shortened to head…tail with a copy affordance                                                    |
+| `components/common/text-link.tsx` — `TextLink`                                                    | An inline link; `external` for one that leaves the Hub (Links, below)                                      |
+| `components/layout-ui/navigation/nav-switcher.tsx` — `NavSwitcher`                                | The current choice among siblings as a menu, with icons and a check (§6 Record workspace)                  |
+| `components/layout-ui/navigation/nav-icons.ts` — `NAV_ICONS`, `NavIconName`                       | One icon per destination, named by server-built menus and resolved on the client (§6 Navigation)           |
+| `components/common/link-tabs.tsx` — `LinkTabs`                                                    | A segmented switch between a page's views, each a URL, with counts (§6 Record workspace)                   |
+| `components/common/stat-card.tsx` — `StatCard`                                                    | One fact at a glance: icon tile, label, value, one sentence; a link card with `href` (§6 Record workspace) |
+| `features/forms/form-workspace` — `FormPageHeaderSlot`, `FormWorkspaceHeader`, `FormSummaryCards` | A form's trail, page switcher and Design in the header, its page masthead, its fact cards (§6)             |
+| `components/timeline` — `Timeline` and its parts                                                  | Any sequence of steps: history, activity, progress (Timeline, below)                                       |
+| `components/common/locale-label.tsx` — `LocaleLabel`                                              | A survey language as name + short code (`Spanish es`), anywhere                                            |
+| `components/copy-to-clipboard.tsx` — `CopyToClipboard`                                            | The copy affordance, `overlay` and `inline` layouts (below)                                                |
+| `components/table` — `DataTableSurface` and friends                                               | All list-table chrome (List tables, below)                                                                 |
+| `components/ui/responsive-panel.tsx` — `ResponsivePanel`                                          | Desktop Sheet / Dialog ↔ mobile Drawer swap; `dismissible` lock (Overlays, below)                          |
+| `.grid-card-list` (`app/globals.css`)                                                             | Peer-card grids without breakpoints (below)                                                                |
+| `asset-storage/…/get-user-file/ui` — `SubmissionFileDialog`                                       | A submission file's preview + details dialog (§6 File answers)                                             |
+| `components/public-status` — `PublicStatusPage`, `PublicStatusReference`                          | Every status page a non-Hub reader sees: respondents, link and export recipients (§6)                      |
+| `components/error-handling/error-page` — `ErrorPage`                                              | Every full-page error a Hub user sees (rules: `AGENTS.md` "Error page chrome")                             |
+| `features/about` — `ReleaseVersionLink`                                                           | A Hub or API version, linked to its tracked GitHub release notes (Links, below)                            |
 
 Add a row here in the same change that adds a shared component. Where it lives
 (`components/common/`, a graduated `components/<domain>/`, or `lib/<domain>/<slice>/ui/`) is

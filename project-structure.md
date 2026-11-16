@@ -310,11 +310,11 @@ A create or edit overlay has three layers. Do not invent a fourth (no React Hook
 
 **Multi-step overlays keep the same three layers.** The slice hook also owns the step, and the panel hands `PanelForm` the current step's labels, `onBack` and `cancelable` (DESIGN.md §6 Create / edit overlay). Split that hook by concern (the input read, the choices, the write, the step) and compose them in one exported hook. When the write's result is the outcome step (an import's counts and rejected rows), the slice hook keeps the result instead of toasting through the feature's mutation hook. Reference: `features/audience/import-csv/use-import-csv.hook.ts`, with pure parsing and suggestions in `csv-preview.ts` and `column-map.ts` beside it. A write that runs on the server after the panel's request (a staged import) keeps its state in a hook of its own, `use-audience-import.hook.ts`, and the step follows that state. `create-tenant-panel.tsx` predates this and keeps its state in the panel.
 
-| Layer                       | Owns                                                                                                      | Lives                                                                                                            |
-| --------------------------- | --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| **Chrome**                  | Header, body scroll, footer, failure strip, Cancel (or Back) + pending submit                             | `components/common/panel-form.tsx` (`PanelForm`)                                                                 |
-| **Feature write lifecycle** | `pending` / `error`, toast + `router.refresh` on success, failure stays in the overlay so values are kept | One shared hook per feature that writes this way — audience: `useAudienceMutation`                               |
-| **Slice wiring**            | Draft fields, open/reset/lock-while-pending, `submit` → action + `onSuccess: close`                       | Optional `use-{noun}.hook.ts` in the slice — reference: `features/audience/create-person/use-add-person.hook.ts` |
+| Layer | Owns | Lives |
+| --- | --- | --- |
+| **Chrome** | Header, body scroll, footer, failure strip, Cancel (or Back) + pending submit | `components/common/panel-form.tsx` (`PanelForm`) |
+| **Feature write lifecycle** | `pending` / `error`, toast + `router.refresh` on success, failure stays in the overlay so values are kept | One shared hook per feature that writes this way — audience: `useAudienceMutation` |
+| **Slice wiring** | Draft fields, open/reset/lock-while-pending, `submit` → action + `onSuccess: close` | Optional `use-{noun}.hook.ts` in the slice — reference: `features/audience/create-person/use-add-person.hook.ts` |
 
 Shared panel primitives (same feature, several slices) stay next to the mutation hook, not inside one slice: audience uses `usePanelOpen`, `useValueMap`, `useRowOverlay` in `use-panel-state.hook.ts`.
 
@@ -385,8 +385,8 @@ For optimal performance and UX, prefer **streaming promises** from Server Compon
 
 ```tsx
 // features/my-feature/ui/my-feature.context.tsx (Client Component)
-"use client";
-import { createContext, use, useMemo } from "react";
+'use client';
+import { createContext, use, useMemo } from 'react';
 
 export function MyFeatureClientProvider({ children, dataPromise }) {
   const data = use(dataPromise); // Resolves via React Suspense
@@ -395,7 +395,7 @@ export function MyFeatureClientProvider({ children, dataPromise }) {
 }
 
 // features/my-feature/ui/my-feature.provider.tsx (Server Component)
-import { MyFeatureClientProvider } from "./my-feature.context";
+import { MyFeatureClientProvider } from './my-feature.context';
 
 export function MyFeatureProvider({ children }) {
   const dataPromise = getMyData(); // Start fetching locally on server
@@ -423,25 +423,17 @@ Combine `use()` with `useReducer` and `useOptimistic` for features with complex 
 ```tsx
 // Example in FormAssistantProvider
 export function FeatureProvider({ children, initialDataPromise }) {
-  const initialData = initialDataPromise
-    ? use(initialDataPromise)
-    : defaultState;
+  const initialData = initialDataPromise ? use(initialDataPromise) : defaultState;
   const [state, dispatch] = useReducer(reducer, initialData);
-  const [optimisticState, setOptimisticState] = useOptimistic(
-    state,
-    (s, u) => ({ ...s, ...u }),
-  );
+  const [optimisticState, setOptimisticState] = useOptimistic(state, (s, u) => ({ ...s, ...u }));
 
   const handleAction = async (payload) => {
     setOptimisticState({ isPending: true }); // Immediate UI feedback
     const result = await myServerAction(payload); // Next.js Server Action
-    dispatch({ type: "UPDATE", payload: result });
+    dispatch({ type: 'UPDATE', payload: result });
   };
 
-  const value = useMemo(
-    () => ({ state: optimisticState, handleAction }),
-    [optimisticState],
-  );
+  const value = useMemo(() => ({ state: optimisticState, handleAction }), [optimisticState]);
   return <MyContext value={value}>{children}</MyContext>;
 }
 ```
