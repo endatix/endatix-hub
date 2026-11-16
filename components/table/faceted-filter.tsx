@@ -83,7 +83,7 @@ export function FacetedFilter(props: Readonly<FacetedFilterProps>) {
     return <FacetedFilterControl {...props} />;
   }
   return (
-    <DataTableFilter label={props.title}>
+    <DataTableFilter label={props.title} labels="group">
       {({ labelId }) => <FacetedFilterInline {...props} labelledBy={labelId} />}
     </DataTableFilter>
   );
@@ -216,11 +216,20 @@ interface FacetedFilterMenuProps extends FacetedFilterBaseProps {
   inline?: boolean;
 }
 
+/** An inline list longer than this keeps its search box (many locales). */
+const INLINE_SEARCH_FROM = 8;
+
+function countOptions(sections: readonly FacetedFilterGroup[]): number {
+  return sections.reduce((sum, section) => sum + section.options.length, 0);
+}
+
 function FacetedFilterMenu(props: Readonly<FacetedFilterMenuProps>) {
   const { title, selectedValues, onValueChange, inline = false } = props;
+  const searchable =
+    !inline || countOptions(props.sections) > INLINE_SEARCH_FROM;
   return (
     <Command>
-      {inline ? null : <CommandInput placeholder={title} />}
+      {searchable ? <CommandInput placeholder={title} /> : null}
       <CommandList className={cn(inline && "max-h-none")}>
         <CommandEmpty>No results found.</CommandEmpty>
         <FilterSections {...props} />

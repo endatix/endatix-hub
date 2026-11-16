@@ -1,7 +1,7 @@
 "use client";
 
 import { MoreHorizontal } from "lucide-react";
-import type { ReactNode } from "react";
+import { useSyncExternalStore, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { useIsMobile } from "@/lib/utils/hooks/use-media-query.hook";
+import { MOBILE_BREAKPOINT_PX } from "@/lib/utils/hooks/use-media-query.hook";
 
 type MoreActionsMenuProps = {
   /** Items shown below 768 px only: the menu form of the row's collapsible actions. */
@@ -50,12 +50,27 @@ export function MoreActionsMenu({
   );
 }
 
-/** Mounted only while the menu is open, so the width is known by then. */
+const BELOW_TOOLBAR_BREAKPOINT = `(max-width: ${MOBILE_BREAKPOINT_PX - 1}px)`;
+
+/** Read on the first render, so a phone's menu never opens without its collapsed items. */
+function useBelowBreakpoint(): boolean {
+  return useSyncExternalStore(
+    (onChange) => {
+      const media = globalThis.matchMedia?.(BELOW_TOOLBAR_BREAKPOINT);
+      media?.addEventListener("change", onChange);
+      return () => media?.removeEventListener("change", onChange);
+    },
+    () => globalThis.matchMedia?.(BELOW_TOOLBAR_BREAKPOINT).matches ?? false,
+    () => false,
+  );
+}
+
+/** Mounted only while the menu is open. */
 function MoreActionsItems({
   collapsedItems,
   moreActions,
 }: Readonly<MoreActionsMenuProps>) {
-  const isMobile = useIsMobile();
+  const isMobile = useBelowBreakpoint();
   const showCollapsed = Boolean(collapsedItems) && isMobile;
   return (
     <>

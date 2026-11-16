@@ -23,6 +23,8 @@ export function useInFiltersDrawer(): boolean {
 type DataTableFilterProps = {
   /** The field's label in the Filters drawer. */
   label: string;
+  /** `control` (default): the label points at the control's `id`. `group`: it names a group by `labelId`. */
+  labels?: "control" | "group";
   /** A render function receives the id the drawer's label points at. */
   children: ReactNode | ((field: Partial<FilterField>) => ReactNode);
 };
@@ -33,6 +35,7 @@ type DataTableFilterProps = {
  */
 export function DataTableFilter({
   label,
+  labels = "control",
   children,
 }: Readonly<DataTableFilterProps>) {
   const inDrawer = useInFiltersDrawer();
@@ -43,7 +46,7 @@ export function DataTableFilter({
   }
   return (
     <div data-slot="data-table-filter-field" className="grid gap-2">
-      <Label id={labelId} htmlFor={id}>
+      <Label id={labelId} htmlFor={labels === "control" ? id : undefined}>
         {label}
       </Label>
       {typeof children === "function" ? children({ id, labelId }) : children}

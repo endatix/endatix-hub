@@ -172,6 +172,45 @@ describe("DataTableToolbar Filters drawer", () => {
     expect(within(drawer).getByLabelText("Type").tagName).toBe("SELECT");
   });
 
+  it("keeps a search box on a long inline facet only", () => {
+    // Arrange
+    stubWidth(true);
+    const locales = Array.from({ length: 9 }, (_, i) => ({
+      label: `Locale ${i}`,
+      value: `l${i}`,
+    }));
+    render(
+      <DataTableToolbar
+        filters={
+          <>
+            <FacetedFilter
+              title="Locale"
+              options={locales}
+              selectedValues={new Set()}
+              onValueChange={vi.fn()}
+            />
+            <FacetedFilter
+              title="Review"
+              options={STATUS_OPTIONS}
+              selectedValues={new Set()}
+              onValueChange={vi.fn()}
+            />
+          </>
+        }
+      />,
+    );
+
+    // Act
+    fireEvent.click(screen.getByRole("button", { name: "Filters" }));
+
+    // Assert
+    const drawer = screen.getByRole("dialog");
+    const locale = within(drawer).getByRole("group", { name: "Locale" });
+    const review = within(drawer).getByRole("group", { name: "Review" });
+    expect(within(locale).queryByRole("combobox")).toBeTruthy();
+    expect(within(review).queryByRole("combobox")).toBeNull();
+  });
+
   it("filters from an inline option and keeps the drawer open", () => {
     // Arrange
     const onReviewChange = vi.fn();
