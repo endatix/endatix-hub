@@ -41,7 +41,7 @@ class ProtectedLogoImageComponent extends LogoImageComponent {
 class ProtectedLogoImage extends LogoImage {
   declare context: React.ContextType<typeof AssetStorageContext>;
 
-  render(): React.JSX.Element {
+  render(): React.JSX.Element | null {
     if (!this.props?.data) {
       return super.render();
     }
