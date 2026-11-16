@@ -10,8 +10,9 @@ export async function getAssumedTenantName(
   accessToken: string,
   tenantId: string,
 ): Promise<string | undefined> {
-  const tenant =
-    await new EndatixApi(accessToken).platformTenants.getById(tenantId);
+  const tenant = await new EndatixApi(accessToken).platformTenants.getById(
+    tenantId,
+  );
 
   return ApiResult.isSuccess(tenant) ? tenant.data.name : undefined;
 }

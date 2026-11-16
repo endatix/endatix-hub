@@ -1,8 +1,11 @@
 "use client";
 
-import { CheckSquare, Eye, Sparkles } from "lucide-react";
 import { FacetedFilter } from "@/components/table";
 import { collectionStatusFacetGroups } from "@/features/submissions/ui/describe-collection-status";
+import {
+  REVIEW_STATUS_OPTIONS,
+  SUBMISSION_TYPE_OPTIONS,
+} from "./submission-facet-options";
 
 interface SubmissionsFacetsProps {
   collectionStatusFilter: Set<string>;
@@ -13,17 +16,6 @@ interface SubmissionsFacetsProps {
   onTestSubmissionChange: (values: Set<string>) => void;
   disabled?: boolean;
 }
-
-const statusOptions = [
-  { label: "New", value: "new", icon: Sparkles },
-  { label: "Read", value: "read", icon: Eye },
-  { label: "Approved", value: "approved", icon: CheckSquare },
-];
-
-const testSubmissionOptions = [
-  { label: "Production", value: "false" },
-  { label: "Test", value: "true" },
-];
 
 /** How many of the facets have a selection, for the toolbar's "Filters · n". */
 export function countActiveSubmissionFacets(
@@ -60,14 +52,14 @@ export function SubmissionsFacets({
       />
       <FacetedFilter
         title="Review"
-        options={statusOptions}
+        options={REVIEW_STATUS_OPTIONS}
         selectedValues={statusFilter}
         onValueChange={onStatusChange}
         disabled={disabled}
       />
       <FacetedFilter
         title="Submission Type"
-        options={testSubmissionOptions}
+        options={SUBMISSION_TYPE_OPTIONS}
         selectedValues={testSubmissionFilter}
         onValueChange={onTestSubmissionChange}
         disabled={disabled}

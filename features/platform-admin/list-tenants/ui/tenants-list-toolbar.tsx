@@ -1,21 +1,25 @@
 "use client";
 
-import { DataTableToolbar, TableSearchInput } from "@/components/table";
-import type { UrlSearchParamsUpdater } from "@/lib/utils/hooks/use-url-search-params-updater.hook";
+import {
+  DataTableToolbar,
+  TableSearchInput,
+  type ListFilterReset,
+} from "@/components/table";
 import type { TenantsListUrlState } from "../utils";
 
 interface TenantsListToolbarProps {
   search: string;
   setSearch: (value: string) => void;
-  updateUrl: UrlSearchParamsUpdater;
   urlState: TenantsListUrlState;
+  /** Built once in the list shell and shared with the empty state's Clear filters. */
+  reset: ListFilterReset;
 }
 
 export function TenantsListToolbar({
   search,
   setSearch,
-  updateUrl,
   urlState,
+  reset,
 }: Readonly<TenantsListToolbarProps>) {
   const hasActiveFilters = Boolean(
     (search ?? "").trim() ||
@@ -25,40 +29,6 @@ export function TenantsListToolbar({
     urlState.modifiedTo,
   );
   const hasSorting = Boolean(urlState.sortBy);
-
-  const resetFilters = (): void => {
-    setSearch("");
-    updateUrl({
-      search: null,
-      createdFrom: null,
-      createdTo: null,
-      modifiedFrom: null,
-      modifiedTo: null,
-      page: "1",
-    });
-  };
-
-  const resetSorting = (): void => {
-    updateUrl({
-      sortBy: null,
-      sortDir: null,
-      page: "1",
-    });
-  };
-
-  const resetAll = (): void => {
-    setSearch("");
-    updateUrl({
-      search: null,
-      createdFrom: null,
-      createdTo: null,
-      modifiedFrom: null,
-      modifiedTo: null,
-      sortBy: null,
-      sortDir: null,
-      page: "1",
-    });
-  };
 
   return (
     <DataTableToolbar
@@ -73,9 +43,9 @@ export function TenantsListToolbar({
         />
       }
       reset={{
-        onClick: resetFilters,
-        onResetSorting: resetSorting,
-        onResetAll: resetAll,
+        onClick: reset.clearFilters,
+        onResetSorting: reset.clearSorting,
+        onResetAll: reset.clearAll,
         hasFilters: hasActiveFilters,
         hasSorting,
       }}

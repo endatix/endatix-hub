@@ -30,7 +30,8 @@ type DataListItemsTableProps = {
   /** Label column keys: `default` and/or culture codes. */
   labelColumns: readonly string[];
   defaultLocale?: string;
-  emptyMessage?: string;
+  /** The empty state; by default the one-liner for a list with no items. */
+  empty?: ReactNode;
   footer?: ReactNode;
   sorting?: SortingState;
   onSortingChange?: OnChangeFn<SortingState>;
@@ -98,7 +99,7 @@ export function DataListItemsTable({
   items,
   labelColumns,
   defaultLocale,
-  emptyMessage = "No items in this list.",
+  empty = <DataTableEmpty>No items in this list.</DataTableEmpty>,
   footer,
   sorting = [],
   onSortingChange,
@@ -143,7 +144,7 @@ export function DataListItemsTable({
         table={table}
         hasRows={table.getRowModel().rows.length > 0}
         isPending={isPending}
-        empty={<DataTableEmpty>{emptyMessage}</DataTableEmpty>}
+        empty={empty}
       />
       {footer}
     </DataTableSurface>

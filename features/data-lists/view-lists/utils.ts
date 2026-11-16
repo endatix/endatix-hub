@@ -17,6 +17,15 @@ export const ALL_LOCALES_FILTER_VALUE = "__all_locales__";
 /** `tableKey` for `BackToTableButton` / `rememberTableReturnTo` (see `lib/list-page/table-return-to`). */
 export const DATA_LISTS_TABLE_KEY = "data-lists";
 
+/** The URL keys the data lists' and their items' filters write, besides `search`. */
+export const DATA_LIST_FILTER_KEYS = [
+  "hasLocale",
+  "createdFrom",
+  "createdTo",
+  "modifiedFrom",
+  "modifiedTo",
+] as const;
+
 const ALLOWED_SORT_BY = new Set<DataListListSortBy>([
   "name",
   "createdAt",

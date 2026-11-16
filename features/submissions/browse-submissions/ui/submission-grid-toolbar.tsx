@@ -14,7 +14,11 @@ import {
   type SubmissionExportAccess,
 } from "@/features/export";
 import { collectionStatusFacetGroups } from "@/features/submissions/ui/describe-collection-status";
-import { CheckSquare, Eye, Settings2, Sparkles } from "lucide-react";
+import {
+  REVIEW_STATUS_OPTIONS,
+  SUBMISSION_TYPE_OPTIONS,
+} from "@/features/submissions/ui/filters/submission-facet-options";
+import { Settings2 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import type {
   AnswerColumn,
@@ -48,19 +52,12 @@ const OPTION_FACETS = [
   {
     key: keys.status,
     title: "Review",
-    options: [
-      { label: "New", value: "new", icon: Sparkles },
-      { label: "Read", value: "read", icon: Eye },
-      { label: "Approved", value: "approved", icon: CheckSquare },
-    ],
+    options: REVIEW_STATUS_OPTIONS,
   },
   {
     key: keys.isTestSubmission,
     title: "Submission Type",
-    options: [
-      { label: "Production", value: "false" },
-      { label: "Test", value: "true" },
-    ],
+    options: SUBMISSION_TYPE_OPTIONS,
   },
 ] as const;
 
@@ -146,7 +143,6 @@ function countActiveFacets(urlState: SubmissionGridUrlState): number {
   return facets.filter((values) => values.length > 0).length;
 }
 
-/** Below 768 px, `⋯ > Columns…` opens the picker in a drawer beside the menu. */
 /**
  * Below 768 px, `⋯ > Columns…` opens the picker in a drawer beside the menu. Each open mounts a
  * fresh picker (its draft starts from the URL), and nothing mounts before the first open.

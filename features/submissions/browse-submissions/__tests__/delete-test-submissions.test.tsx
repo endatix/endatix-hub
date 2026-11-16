@@ -97,6 +97,40 @@ describe("Delete test submissions from the ⋯ menu", () => {
     expect(router.refresh).not.toHaveBeenCalled();
   });
 
+  it("shows an error toast and keeps the confirm open when the delete throws", async () => {
+    // Arrange
+    actions.deleteTests.mockRejectedValue(new Error("network down"));
+    openDialog();
+    await screen.findByText("Delete 3 test submissions?");
+
+    // Act
+    fireEvent.click(deleteButton());
+
+    // Assert
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith({
+        title: "Test submissions could not be deleted. Try again.",
+      }),
+    );
+    expect(screen.getByText("Delete 3 test submissions?")).toBeTruthy();
+    expect(deleteButton().disabled).toBe(false);
+    expect(router.refresh).not.toHaveBeenCalled();
+  });
+
+  it("still allows Delete when counting throws", async () => {
+    // Arrange
+    actions.count.mockRejectedValue(new Error("network down"));
+
+    // Act
+    openDialog();
+
+    // Assert
+    expect(
+      await screen.findByText("Delete all test submissions?"),
+    ).toBeTruthy();
+    expect(deleteButton().disabled).toBe(false);
+  });
+
   it("disables Delete when there is nothing to delete", async () => {
     // Arrange
     actions.count.mockResolvedValue(Result.success(0));

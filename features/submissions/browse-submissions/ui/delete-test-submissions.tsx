@@ -65,9 +65,9 @@ function useTestSubmissionCount(formId: string) {
     const request = ++latest.current; // a reopen supersedes an earlier count
     setCount(null);
     startCounting(async () => {
-      const result = await countTestSubmissionsAction(formId);
+      const result = await countTestSubmissionsAction(formId).catch(() => null);
       if (request !== latest.current) return;
-      setCount(Result.isSuccess(result) ? result.value : null);
+      setCount(result && Result.isSuccess(result) ? result.value : null);
     });
   };
   return { count, isCounting, recount };
@@ -88,14 +88,22 @@ function useDeleteTestSubmissions(formId: string) {
   return { open, onOpenChange, count, isCounting, ...deletion };
 }
 
-/** A refusal stays in the dialog; a success closes it and reads the rows again. */
+const DELETE_TESTS_FAILED = "Test submissions could not be deleted. Try again.";
+
+/**
+ * A refusal stays in the dialog; a success closes it and reads the rows again. A thrown action
+ * (network, server error) shows an error toast and leaves the dialog usable.
+ */
 function useConfirmDelete(formId: string, close: () => void) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [isDeleting, startDeleting] = useTransition();
   const confirm = () =>
     startDeleting(async () => {
-      const result = await deleteTestSubmissionsAction(formId);
+      const result = await deleteTestSubmissionsAction(formId).catch(
+        () => null,
+      );
+      if (!result) return void toast.error({ title: DELETE_TESTS_FAILED });
       const outcome = deleteTestsOutcome(result);
       if (outcome.variant === "error") return setError(outcome.message);
       toast.success(outcome.message);

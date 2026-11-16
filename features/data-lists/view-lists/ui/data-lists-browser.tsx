@@ -1,7 +1,12 @@
 "use client";
 
 import { type ReactNode } from "react";
-import { PagedListFrame, useListUrlState } from "@/components/table";
+import {
+  listFilterReset,
+  PagedListFrame,
+  useListUrlState,
+} from "@/components/table";
+import { DATA_LIST_FILTER_KEYS } from "../utils";
 import type { DataListsPage as DataListsPageData } from "@/lib/endatix-api/data-lists/data-lists";
 import { DataListsListToolbar } from "./data-lists-list-toolbar";
 import { DataListsPage } from "./data-lists-page";
@@ -45,6 +50,10 @@ export function DataListsBrowser({
           updateUrl={updateUrl}
           searchParams={searchParams}
           isPending={isPending}
+          onClearFilters={
+            listFilterReset(setSearch, updateUrl, DATA_LIST_FILTER_KEYS)
+              .clearFilters
+          }
         />
       </PagedListFrame>
     </>

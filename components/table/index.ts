@@ -49,6 +49,7 @@ export {
   type DataTableToolbarCollapsibleActions,
 } from "./data-table-toolbar";
 export { DataTableFilter } from "./data-table-filter";
+export { listFilterReset, type ListFilterReset } from "./list-filter-reset";
 export { PagedCardList } from "./paged-card-list";
 export { PagedListFrame } from "./paged-list-frame";
 export {

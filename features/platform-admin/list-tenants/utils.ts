@@ -88,3 +88,11 @@ export function listUrlStateFromSearchParams(
     modifiedTo: parsed.modifiedTo,
   };
 }
+
+/** The URL keys the tenants list's filters write, besides `search`. */
+export const TENANT_FILTER_KEYS = [
+  "createdFrom",
+  "createdTo",
+  "modifiedFrom",
+  "modifiedTo",
+] as const;

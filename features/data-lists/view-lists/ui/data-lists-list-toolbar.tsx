@@ -3,6 +3,7 @@
 import {
   DataTableToolbar,
   FacetedFilter,
+  listFilterReset,
   TableSearchInput,
   useListUrlState,
 } from "@/components/table";
@@ -10,6 +11,7 @@ import { formatLocaleLabel } from "@/features/data-lists/translations/locale-dis
 import type { UrlSearchParamsUpdater } from "@/lib/utils/hooks/use-url-search-params-updater.hook";
 import { type ReactNode, useMemo } from "react";
 import {
+  DATA_LIST_FILTER_KEYS,
   listUrlStateFromSearchParams,
   parseHasLocaleFilterSet,
   serializeHasLocaleFilter,
@@ -42,41 +44,7 @@ export function DataListsListToolbar({
   );
   const hasSorting = Boolean(urlState.sortBy);
 
-  const resetFilters = (): void => {
-    setSearch("");
-    updateUrl({
-      search: null,
-      hasLocale: null,
-      createdFrom: null,
-      createdTo: null,
-      modifiedFrom: null,
-      modifiedTo: null,
-      page: "1",
-    });
-  };
-
-  const resetSorting = (): void => {
-    updateUrl({
-      sortBy: null,
-      sortDir: null,
-      page: "1",
-    });
-  };
-
-  const resetAll = (): void => {
-    setSearch("");
-    updateUrl({
-      search: null,
-      hasLocale: null,
-      createdFrom: null,
-      createdTo: null,
-      modifiedFrom: null,
-      modifiedTo: null,
-      sortBy: null,
-      sortDir: null,
-      page: "1",
-    });
-  };
+  const reset = listFilterReset(setSearch, updateUrl, DATA_LIST_FILTER_KEYS);
 
   return (
     <DataTableToolbar
@@ -93,9 +61,9 @@ export function DataListsListToolbar({
       filters={localeFilter}
       activeFilterCount={urlState.hasLocale ? 1 : 0}
       reset={{
-        onClick: resetFilters,
-        onResetSorting: resetSorting,
-        onResetAll: resetAll,
+        onClick: reset.clearFilters,
+        onResetSorting: reset.clearSorting,
+        onResetAll: reset.clearAll,
         hasFilters: hasActiveFilters,
         hasSorting,
       }}

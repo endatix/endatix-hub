@@ -5,6 +5,7 @@ import {
   DataTableFilter,
   DataTableToolbar,
   TableSearchInput,
+  type ListFilterReset,
 } from "@/components/table";
 import {
   Select,
@@ -26,6 +27,8 @@ interface PlatformAdminsListToolbarProps {
   setSearch: (value: string) => void;
   updateUrl: UrlSearchParamsUpdater;
   searchParams: URLSearchParams;
+  /** Built once in the list shell and shared with the empty state's Clear filters. */
+  reset: ListFilterReset;
   tenantsPromise: Promise<ResultType<PlatformTenantsPage>>;
   currentTenantId?: string;
 }
@@ -35,6 +38,7 @@ export function PlatformAdminsListToolbar({
   setSearch,
   updateUrl,
   searchParams,
+  reset,
   tenantsPromise,
   currentTenantId,
 }: Readonly<PlatformAdminsListToolbarProps>) {
@@ -79,10 +83,7 @@ export function PlatformAdminsListToolbar({
       }
       activeFilterCount={filters.activeCount}
       reset={{
-        onClick: () => {
-          setSearch("");
-          updateUrl({ search: null, scope: null, tenantId: null, page: "1" });
-        },
+        onClick: reset.clearFilters,
         hasFilters: Boolean(search.trim()) || filters.activeCount > 0,
       }}
     />
