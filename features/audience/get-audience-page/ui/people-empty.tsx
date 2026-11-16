@@ -4,7 +4,7 @@ import { Users } from "lucide-react";
 import { DataTableEmpty } from "@/components/table";
 import { AudiencePeopleTestFilter } from "@/lib/endatix-api/audience/types";
 import { useUrlSearchParamsUpdater } from "@/lib/utils/hooks/use-url-search-params-updater.hook";
-import { PEOPLE_SEARCH_PARAM } from "../parse-people-page";
+import { CLEAR_PEOPLE_FILTERS } from "../parse-people-page";
 
 type EmptyCopy = { title: string; body: string };
 
@@ -27,8 +27,7 @@ const FILTERED_EMPTY: Record<string, EmptyCopy> = {
 /** Nobody matches the search or the Real or Test filter; Clear filters goes back to everyone. */
 function FilteredEmpty({ title, body }: Readonly<EmptyCopy>) {
   const { updateUrl } = useUrlSearchParamsUpdater();
-  const clear = () =>
-    updateUrl({ test: null, [PEOPLE_SEARCH_PARAM]: null, page: "1" });
+  const clear = () => updateUrl(CLEAR_PEOPLE_FILTERS);
   return (
     <DataTableEmpty icon={Users} title={title} onClearFilters={clear}>
       {body}

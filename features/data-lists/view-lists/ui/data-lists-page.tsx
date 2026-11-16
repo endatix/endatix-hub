@@ -8,6 +8,7 @@ import {
   useState,
   useTransition,
 } from "react";
+import { DatabaseZap } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -73,6 +74,8 @@ interface DataListsPageProps {
   updateUrl: UrlSearchParamsUpdater;
   searchParams: URLSearchParams;
   isPending?: boolean;
+  /** The toolbar's filter reset (same keys), for the empty state's Clear filters. */
+  onClearFilters?: () => void;
 }
 
 export function DataListsPageHeader() {
@@ -94,6 +97,7 @@ export function DataListsPage({
   updateUrl,
   searchParams,
   isPending = false,
+  onClearFilters,
 }: Readonly<DataListsPageProps>) {
   const paged = use(dataListsPromise);
   const router = useRouter();
@@ -239,11 +243,10 @@ export function DataListsPage({
           isPending={isPending}
           hasRows={paged.items.length > 0}
           empty={
-            <DataTableEmpty>
-              {hasFilters
-                ? "No data lists match the current filters."
-                : "No data lists yet."}
-            </DataTableEmpty>
+            <DataListsEmpty
+              filtered={hasFilters}
+              onClearFilters={onClearFilters}
+            />
           }
         />
         <PagedTableFooter {...footerProps} variant="surface" />
@@ -460,5 +463,22 @@ function StatusPill({ isActive }: Readonly<{ isActive: boolean }>) {
     <span className="inline-flex items-center rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
       Inactive
     </span>
+  );
+}
+
+function DataListsEmpty({
+  filtered,
+  onClearFilters,
+}: Readonly<{ filtered: boolean; onClearFilters?: () => void }>) {
+  if (!filtered) return <DataTableEmpty>No data lists yet.</DataTableEmpty>;
+  return (
+    <DataTableEmpty
+      icon={DatabaseZap}
+      title="No matching data lists"
+      onClearFilters={onClearFilters}
+    >
+      No data list matches the search, locale or dates. Search looks at the name
+      and description.
+    </DataTableEmpty>
   );
 }

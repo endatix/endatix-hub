@@ -142,6 +142,7 @@ Before building a control, check whether the vocabulary already exists here.
 | :------------------------------------------------------------------------------------------------ | :--------------------------------------------------------------------------------------------------------- |
 | `components/common/status-badge.tsx` — `StatusBadge`, `StatusDot`                                 | The four-tone on / off / attention / idle pill, and its dot alone for a group label                        |
 | `components/table/faceted-filter.tsx` — `FacetedFilter`                                           | A facet: toolbar pill or form `field`; flat or grouped options (Filters, below)                            |
+| `components/table/data-table-filter.tsx` — `DataTableFilter`                                      | A `Select` under its own label in the toolbar's Filters drawer (Toolbar, below)                            |
 | `components/common/file-kind-icon.tsx` — `FileKindIcon`, `FileKindLabel`                          | The file-type mark and its icon+label row (File Type Marks, below)                                         |
 | `components/common/panel-section.tsx` — `PanelSection`                                            | A titled concern inside an overlay, on a nested surface (§6 Create / edit overlay)                         |
 | `components/common/panel-form.tsx` — `PanelForm`, `PanelFormError`                                | A create/edit overlay as one form: header, failure strip, sections, Cancel or Back + submit                |
@@ -293,7 +294,7 @@ paged sortable grid look identical:
 | `dataTableHeaderCellClassName` / `dataTableBodyRowClassName` / `dataTableBodyCellClassName` | Sticky header, zebra fill, cell padding for a hand-rolled `<table>`     |
 | `dataTableColumnLabelClassName`                                                             | The uppercase muted column title                                        |
 | `DATA_TABLE_SHRINK_WRAP_CLASS_NAME`                                                         | Shrink a column to its content                                          |
-| `PagedTableFooter`, `DataTableToolbar`, `DataTableSkeleton`                                 | Pagination, filter bar, loading state                                   |
+| `PagedTableFooter`, `DataTableToolbar`, `DataTableSkeleton`                                 | Pagination, toolbar (Toolbar, below), loading state                     |
 | `StaticDataTable`, `StaticDataTableRow`, `dataTableCell`                                    | A few known rows on the helpers above: static header, zebra rows        |
 | `DataTableRowActions`                                                                       | The trailing ghost icon actions of a row, each named for its row        |
 
@@ -324,9 +325,38 @@ paged sortable grid look identical:
   `overflow-x-auto` instead of squeezing columns.
 - Wiring (URL state, paging, loading skeletons): `project-structure.md` "List pages and tables".
 
+**Toolbar — `DataTableToolbar`.** Every list's toolbar goes through it, so a list fills its
+slots and never builds the row itself. Reference:
+`features/submissions/browse-submissions/ui/submission-grid-toolbar.tsx`.
+
+| Slot                                         | From 768 px                                   | Below 768 px                                    |
+| :------------------------------------------- | :-------------------------------------------- | :---------------------------------------------- |
+| `search`                                     | First in the row                              | Its own line, full width                        |
+| `filters` (+ `activeFilterCount`)            | Facets in the row, which scrolls when long    | One **Filters · n** button opening a Drawer     |
+| `reset`                                      | At the end of the filters, never scrolled off | Next to Filters                                 |
+| `actions`                                    | Pinned right                                  | Pinned right (Export, the list's create action) |
+| `collapsibleActions` (`inline`, `menuItems`) | In the row                                    | Their menu form joins `⋯`                       |
+| `moreActions`                                | `⋯` menu                                      | `⋯` menu                                        |
+
+- **Nothing in the toolbar sits off screen.** Below 768 px a control that does not fit moves into
+  the Filters drawer (a filter) or `⋯` (an action); the row never scrolls sideways.
+- **The Filters drawer lists each filter under its own label, with no popover over it.** A
+  `FacetedFilter` there shows its options inline (the same groups, badges and order as its
+  menu), named by its label: a popover portaled out of the modal Drawer takes no taps. A
+  `Select` opens its own modal layer, so it works there; it is wrapped in `DataTableFilter`,
+  whose render function hands it the label's `id`. The footer holds **Reset** and **Done**.
+- **One Reset.** The drawer's Reset, the toolbar's and the empty state's Clear filters are the
+  same callback, so all three also clear what sits outside the drawer (the search, a column
+  filter). `activeFilterCount` counts only the drawer's filters that differ from the default
+  view, so the number matches what the drawer shows. A filter that renders nothing leaves no
+  Filters button.
+- **An occasional action is a `⋯` item at every width** (Delete test submissions, Reset table
+  layout), not a toolbar button. Its confirmation renders beside the toolbar (Overlays rule 10)
+  and names its count. A list with nothing occasional has no `⋯` from 768 px.
+
 **Filters — `FacetedFilter`.** A facet speaks the vocabulary of the column it filters.
 Reference: the submissions Status facet,
-`features/submissions/ui/filters/submissions-filter-toolbar.tsx`.
+`features/submissions/ui/filters/submissions-facets.tsx`.
 
 - **A facet over states shows each option as its `StatusBadge`** (`tone` on the option): the
   same pill, tone and label as the column, so the reader matches a row to a choice by sight.
@@ -947,8 +977,8 @@ SurveyJS's selection and focus outlines, and an icon alone says nothing until ho
 
 ### Recipe: list page
 
-Title + description + primary action above a `DataTableSurface`; toolbar (search, filters, Reset)
-in `DataTableToolbar`; titled empty state; `PagedTableFooter`. Reference:
+Title + description + primary action above a `DataTableSurface`; toolbar (search, filters, Reset,
+actions, `⋯`) in the slots of `DataTableToolbar`; titled empty state; `PagedTableFooter`. Reference:
 `features/platform-admin/list-tenants/`.
 
 **Review queue** — a list whose items each wait for a decision. Reference:

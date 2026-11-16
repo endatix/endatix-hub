@@ -16,7 +16,7 @@ export function useMediaQuery(query: string): boolean {
   const [matches, setMatches] = useState(false);
 
   useEffect(() => {
-    if (globalThis.window === undefined) {
+    if (typeof globalThis.window?.matchMedia !== "function") {
       return;
     }
 

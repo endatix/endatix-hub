@@ -36,6 +36,7 @@ import {
   toggleGroup,
   toggleValue,
 } from "./faceted-filter-selection";
+import { DataTableFilter, useInFiltersDrawer } from "./data-table-filter";
 
 export type {
   FacetedFilterGroup,
@@ -72,7 +73,55 @@ export type FacetedFilterProps = FacetedFilterBaseProps &
     | { groups: readonly FacetedFilterGroup[]; options?: never }
   );
 
+/**
+ * In the toolbar's Filters drawer a toolbar facet lists its options inline under a label named by
+ * its `title`: a popover portaled out of a modal Drawer takes no taps (DESIGN.md §5 Toolbar).
+ */
 export function FacetedFilter(props: Readonly<FacetedFilterProps>) {
+  const inDrawer = useInFiltersDrawer();
+  if (!inDrawer || props.variant === "field") {
+    return <FacetedFilterControl {...props} />;
+  }
+  return (
+    <DataTableFilter label={props.title} labels="group">
+      {({ labelId }) => <FacetedFilterInline {...props} labelledBy={labelId} />}
+    </DataTableFilter>
+  );
+}
+
+/** A disabled fieldset does not disable cmdk's items: a disabled facet ignores Enter. */
+const ignoreChange = () => {
+  // Disabled: the selection stays as it is.
+};
+
+function FacetedFilterInline({
+  labelledBy,
+  ...props
+}: Readonly<FacetedFilterProps & { labelledBy?: string }>) {
+  const sections = props.groups ?? toFacetedFilterGroups(props.options ?? []);
+  return (
+    <fieldset
+      aria-labelledby={labelledBy}
+      data-slot="faceted-filter-inline"
+      disabled={props.disabled}
+      className={cn(
+        "m-0 min-w-0 rounded-md border p-0",
+        props.disabled && "pointer-events-none opacity-50",
+      )}
+    >
+      <FacetedFilterMenu
+        {...props}
+        onValueChange={props.disabled ? ignoreChange : props.onValueChange}
+        variant="field"
+        sections={sections}
+        grouped={props.groups !== undefined}
+        inline
+      />
+    </fieldset>
+  );
+}
+
+function FacetedFilterControl(props: Readonly<FacetedFilterProps>) {
   const { groups, options, disabled = false } = props;
   const [open, setOpen] = useState(false);
 
@@ -172,14 +221,38 @@ function FieldTriggerContent(props: TriggerContentProps) {
 interface FacetedFilterMenuProps extends FacetedFilterBaseProps {
   sections: readonly FacetedFilterGroup[];
   grouped: boolean;
+  /** In the Filters drawer: every option shown, no search, no inner scroll. */
+  inline?: boolean;
+}
+
+/**
+ * Inline (in the Filters drawer), enabled and without search, the list itself takes focus:
+ * arrows move, Enter toggles. Its first row is highlighted only while the list has focus.
+ */
+function commandProps(inline: boolean, focusable: boolean) {
+  if (!inline) return {};
+  return {
+    tabIndex: focusable ? 0 : -1,
+    className:
+      "rounded-md outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 [&:not(:focus-within)_[cmdk-item][data-selected=true]]:bg-transparent",
+  };
+}
+
+/** An inline list longer than this keeps its search box (many locales). */
+const INLINE_SEARCH_FROM = 8;
+
+function countOptions(sections: readonly FacetedFilterGroup[]): number {
+  return sections.reduce((sum, section) => sum + section.options.length, 0);
 }
 
 function FacetedFilterMenu(props: Readonly<FacetedFilterMenuProps>) {
-  const { title, selectedValues, onValueChange } = props;
+  const { title, selectedValues, onValueChange, inline = false } = props;
+  const searchable =
+    !inline || countOptions(props.sections) > INLINE_SEARCH_FROM;
   return (
-    <Command>
-      <CommandInput placeholder={title} />
-      <CommandList>
+    <Command {...commandProps(inline, !searchable && !props.disabled)}>
+      {searchable ? <CommandInput placeholder={title} /> : null}
+      <CommandList className={cn(inline && "max-h-none")}>
         <CommandEmpty>No results found.</CommandEmpty>
         <FilterSections {...props} />
         {selectedValues.size > 0 && (

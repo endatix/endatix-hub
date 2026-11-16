@@ -4,6 +4,17 @@ import { vi, describe, it, expect } from "vitest";
 import { useMediaQuery } from "../../hooks/use-media-query.hook";
 
 describe("useMediaQuery", () => {
+  it("returns false where the browser has no matchMedia", () => {
+    // Arrange
+    vi.stubGlobal("matchMedia", undefined);
+
+    // Act
+    const { result } = renderHook(() => useMediaQuery("(min-width: 768px)"));
+
+    // Assert
+    expect(result.current).toBe(false);
+  });
+
   it("returns false when media does not match", () => {
     // Arrange
     vi.stubGlobal(

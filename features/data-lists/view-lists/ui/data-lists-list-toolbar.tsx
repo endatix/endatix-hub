@@ -3,7 +3,7 @@
 import {
   DataTableToolbar,
   FacetedFilter,
-  ResetFiltersButton,
+  listFilterReset,
   TableSearchInput,
   useListUrlState,
 } from "@/components/table";
@@ -11,6 +11,7 @@ import { formatLocaleLabel } from "@/features/data-lists/translations/locale-dis
 import type { UrlSearchParamsUpdater } from "@/lib/utils/hooks/use-url-search-params-updater.hook";
 import { type ReactNode, useMemo } from "react";
 import {
+  DATA_LIST_FILTER_KEYS,
   listUrlStateFromSearchParams,
   parseHasLocaleFilterSet,
   serializeHasLocaleFilter,
@@ -43,64 +44,29 @@ export function DataListsListToolbar({
   );
   const hasSorting = Boolean(urlState.sortBy);
 
-  const resetFilters = (): void => {
-    setSearch("");
-    updateUrl({
-      search: null,
-      hasLocale: null,
-      createdFrom: null,
-      createdTo: null,
-      modifiedFrom: null,
-      modifiedTo: null,
-      page: "1",
-    });
-  };
-
-  const resetSorting = (): void => {
-    updateUrl({
-      sortBy: null,
-      sortDir: null,
-      page: "1",
-    });
-  };
-
-  const resetAll = (): void => {
-    setSearch("");
-    updateUrl({
-      search: null,
-      hasLocale: null,
-      createdFrom: null,
-      createdTo: null,
-      modifiedFrom: null,
-      modifiedTo: null,
-      sortBy: null,
-      sortDir: null,
-      page: "1",
-    });
-  };
+  const reset = listFilterReset(setSearch, updateUrl, DATA_LIST_FILTER_KEYS);
 
   return (
     <DataTableToolbar
       className="mt-6"
-      filters={
-        <>
-          <TableSearchInput
-            value={search}
-            onChange={setSearch}
-            placeholder="Search by name or description"
-            ariaLabel="Search data lists"
-            className="min-w-[12rem] flex-none lg:flex-1"
-          />
-          {localeFilter}
-          <ResetFiltersButton
-            onClick={resetFilters}
-            onResetSorting={resetSorting}
-            onResetAll={resetAll}
-            hasFilters={hasActiveFilters}
-            hasSorting={hasSorting}
-          />
-        </>
+      search={
+        <TableSearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="Search by name or description"
+          ariaLabel="Search data lists"
+          className="min-w-[12rem] md:flex-none lg:flex-1"
+        />
       }
+      filters={localeFilter}
+      activeFilterCount={urlState.hasLocale ? 1 : 0}
+      reset={{
+        onClick: reset.clearFilters,
+        onResetSorting: reset.clearSorting,
+        onResetAll: reset.clearAll,
+        hasFilters: hasActiveFilters,
+        hasSorting,
+      }}
     />
   );
 }

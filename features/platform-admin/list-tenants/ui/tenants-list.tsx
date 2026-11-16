@@ -2,9 +2,13 @@
 
 import type { PlatformTenantListItem } from "@/lib/endatix-api";
 import type { NormalizedPagedResponse } from "@/lib/endatix-api/shared/paged-response";
-import { PagedListFrame, useListUrlState } from "@/components/table";
+import {
+  listFilterReset,
+  PagedListFrame,
+  useListUrlState,
+} from "@/components/table";
 import type { ResultType } from "@/lib/result";
-import { listUrlStateFromSearchParams } from "../utils";
+import { listUrlStateFromSearchParams, TENANT_FILTER_KEYS } from "../utils";
 import { TenantsListToolbar } from "./tenants-list-toolbar";
 import { TenantsTableFromPromise } from "./tenants-table";
 import { TenantsTableSkeleton } from "./tenants-table-skeleton";
@@ -25,14 +29,15 @@ export function TenantsList({
   const { search, setSearch, updateUrl, searchParams, isPending } =
     useListUrlState();
   const urlState = listUrlStateFromSearchParams(searchParams);
+  const reset = listFilterReset(setSearch, updateUrl, TENANT_FILTER_KEYS);
 
   return (
     <>
       <TenantsListToolbar
         search={search}
         setSearch={setSearch}
-        updateUrl={updateUrl}
         urlState={urlState}
+        reset={reset}
       />
       <PagedListFrame listKey={listKey} fallback={<TenantsTableSkeleton />}>
         <TenantsTableFromPromise
@@ -41,6 +46,7 @@ export function TenantsList({
           updateUrl={updateUrl}
           urlState={urlState}
           isPending={isPending}
+          onClearFilters={reset.clearFilters}
         />
       </PagedListFrame>
     </>

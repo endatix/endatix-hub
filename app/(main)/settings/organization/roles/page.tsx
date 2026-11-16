@@ -6,9 +6,9 @@ import type {
   PagedResponse,
   PermissionListItem,
   RoleListItem,
-  RoleTypeFilter,
 } from "@/lib/endatix-api";
 import { RolesList } from "@/features/organization/role-management/ui/roles-list";
+import { parseRoleType } from "@/features/organization/role-management/role-type-filter";
 import { listQueryKey } from "@/lib/list-page/list-query-key";
 import { UnauthorizedComponent } from "@/components/error-handling/unauthorized";
 import { Result } from "@/lib/result";
@@ -122,17 +122,4 @@ function parseRolesSearchParams(searchParams?: {
     roleType: parseRoleType(searchParams?.roleType),
     search: searchParams?.search?.trim() || undefined,
   };
-}
-
-function parseRoleType(value: string | undefined): RoleTypeFilter | undefined {
-  const normalizedValue = value?.trim().toLowerCase();
-  if (
-    normalizedValue === "all" ||
-    normalizedValue === "system" ||
-    normalizedValue === "custom"
-  ) {
-    return normalizedValue;
-  }
-
-  return undefined;
 }

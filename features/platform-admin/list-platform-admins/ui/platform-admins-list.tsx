@@ -1,7 +1,11 @@
 "use client";
 
 import { Info } from "lucide-react";
-import { PagedCardList, useListUrlState } from "@/components/table";
+import {
+  listFilterReset,
+  PagedCardList,
+  useListUrlState,
+} from "@/components/table";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import type {
   PagedResponse,
@@ -21,6 +25,9 @@ interface PlatformAdminsListProps {
   currentTenantId?: string;
 }
 
+/** The URL keys the toolbar's filters write, besides `search`. */
+const ADMIN_FILTER_KEYS = ["scope", "tenantId"] as const;
+
 /** List shell: owns the URL state once for the toolbar and the grid. */
 export function PlatformAdminsList({
   usersPromise,
@@ -32,6 +39,10 @@ export function PlatformAdminsList({
 }: Readonly<PlatformAdminsListProps>) {
   const { search, setSearch, updateUrl, searchParams, isPending } =
     useListUrlState();
+  const reset = listFilterReset(setSearch, updateUrl, ADMIN_FILTER_KEYS);
+  const isFiltered = ["search", ...ADMIN_FILTER_KEYS].some((key) =>
+    searchParams.get(key),
+  );
 
   return (
     <div className="space-y-4">
@@ -54,6 +65,7 @@ export function PlatformAdminsList({
             setSearch={setSearch}
             updateUrl={updateUrl}
             searchParams={searchParams}
+            reset={reset}
             tenantsPromise={tenantsPromise}
             currentTenantId={currentTenantId}
           />
@@ -64,6 +76,7 @@ export function PlatformAdminsList({
           approvedAdminTotalPromise={approvedAdminTotalPromise}
           updateUrl={updateUrl}
           currentUserId={currentUserId}
+          onClearFilters={isFiltered ? reset.clearFilters : undefined}
         />
       </PagedCardList>
     </div>

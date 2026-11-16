@@ -18,9 +18,7 @@ interface ColumnViewOptionsDropdownProps {
 export function ColumnViewOptionsDropdown({
   columns,
   disabled = false,
-}: ColumnViewOptionsDropdownProps) {
-  const { columnVisibility, toggleColumnVisibility } = useColumnVisibility();
-
+}: Readonly<ColumnViewOptionsDropdownProps>) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -35,19 +33,32 @@ export function ColumnViewOptionsDropdown({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-[180px]">
-        <DropdownMenuLabel>Toggle Columns</DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        {columns.map((column) => (
-          <DropdownMenuCheckboxItem
-            key={column.id}
-            checked={columnVisibility[column.id] ?? true}
-            onCheckedChange={() => toggleColumnVisibility(column.id)}
-            disabled={disabled}
-          >
-            {column.header}
-          </DropdownMenuCheckboxItem>
-        ))}
+        <ColumnViewOptionsItems columns={columns} disabled={disabled} />
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+/** The View menu's items. Below 768 px they sit in the toolbar's `⋯` menu instead. */
+export function ColumnViewOptionsItems({
+  columns,
+  disabled = false,
+}: Readonly<ColumnViewOptionsDropdownProps>) {
+  const { columnVisibility, toggleColumnVisibility } = useColumnVisibility();
+  return (
+    <>
+      <DropdownMenuLabel>Toggle Columns</DropdownMenuLabel>
+      <DropdownMenuSeparator />
+      {columns.map((column) => (
+        <DropdownMenuCheckboxItem
+          key={column.id}
+          checked={columnVisibility[column.id] ?? true}
+          onCheckedChange={() => toggleColumnVisibility(column.id)}
+          disabled={disabled}
+        >
+          {column.header}
+        </DropdownMenuCheckboxItem>
+      ))}
+    </>
   );
 }

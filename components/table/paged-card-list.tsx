@@ -2,6 +2,7 @@
 
 import { Suspense, type ReactNode } from "react";
 import { Card, CardHeader } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PagedListFrame } from "./paged-list-frame";
 
@@ -34,7 +35,9 @@ export function PagedCardList({
 }: Readonly<PagedCardListProps>) {
   return (
     <Card className={className}>
-      <CardHeader className={headerClassName}>
+      <CardHeader
+        className={cn("[--toolbar-surface:var(--card)]", headerClassName)}
+      >
         <Suspense fallback={<Skeleton className="h-9 w-full" />}>
           {toolbar}
         </Suspense>

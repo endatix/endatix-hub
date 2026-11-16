@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { CardContent } from "@/components/ui/card";
 import {
   createPagedTableFooterProps,
+  DataTableEmpty,
   PagedTableFooter,
   TableEmptyRow,
 } from "@/components/table";
@@ -44,6 +45,8 @@ interface PlatformAdminsTableProps {
   /** From the list shell's `useListUrlState`. The table never owns a URL writer. */
   updateUrl: UrlSearchParamsUpdater;
   currentUserId?: string;
+  /** Set while a search or filter is active: the empty state offers Clear filters. */
+  onClearFilters?: () => void;
 }
 
 export function PlatformAdminsTable({
@@ -51,6 +54,7 @@ export function PlatformAdminsTable({
   approvedAdminTotalPromise,
   updateUrl,
   currentUserId,
+  onClearFilters,
 }: Readonly<PlatformAdminsTableProps>) {
   const pagedUsers = normalizePagedResponse(use(usersPromise));
   const approvedAdminTotal = use(approvedAdminTotalPromise);
@@ -96,11 +100,14 @@ export function PlatformAdminsTable({
                   />
                 );
               })}
-              {pagedUsers.items.length === 0 && (
+              {pagedUsers.items.length === 0 && !onClearFilters && (
                 <TableEmptyRow colSpan={6} message="No users found." />
               )}
             </TableBody>
           </Table>
+          {pagedUsers.items.length === 0 && onClearFilters ? (
+            <AdminsFilteredEmpty onClearFilters={onClearFilters} />
+          ) : null}
         </TooltipProvider>
       </CardContent>
 
@@ -273,4 +280,19 @@ function getDisabledActionTitle(
   }
 
   return "";
+}
+
+function AdminsFilteredEmpty({
+  onClearFilters,
+}: Readonly<{ onClearFilters: () => void }>) {
+  return (
+    <DataTableEmpty
+      icon={UserCog}
+      title="No matching users"
+      onClearFilters={onClearFilters}
+    >
+      No user matches the search, approval or tenant. Search looks at the name
+      and email.
+    </DataTableEmpty>
+  );
 }
