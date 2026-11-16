@@ -27,6 +27,8 @@
     "test:e2e:smoke": "node scripts/with-dev-cert.mjs playwright test --project=smoke-tests",
     "test:e2e:debug": "node scripts/with-dev-cert.mjs playwright test --debug",
     "discover-questions": "node scripts/discover-questions.mjs",
+    "brand:validate": "node scripts/brand-pack.mjs validate",
+    "brand:schema": "node scripts/brand-pack.mjs schema",
     "tools:upgrade-surveyjs": "node scripts/upgrade-surveyjs.mjs"
   },
   "dependencies": {

@@ -43,6 +43,10 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- $brandPackMounted := or .Values.brandPack.configMap .Values.brandPack.volume }}
+      {{- if and .Values.brandPack.configMap .Values.brandPack.volume }}
+      {{- fail "Set brandPack.configMap or brandPack.volume, not both." }}
+      {{- end }}
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.Version }}"
@@ -149,6 +153,14 @@ spec:
             - name: FLAG_PROVIDER
               value: {{ .Values.analytics.flagProvider | quote }}
 
+            # White-labeling: the rollout flag and the mounted brand pack.
+            - name: FLAG_WHITE_LABELING
+              value: {{ .Values.whiteLabeling.enabled | quote }}
+            {{- if $brandPackMounted }}
+            - name: ENDATIX_BRAND_DIR
+              value: {{ .Values.brandPack.mountPath | quote }}
+            {{- end }}
+
             # Auth
             - name: SESSION_SECRET
               valueFrom:
@@ -210,6 +222,19 @@ spec:
           volumeMounts:
             - name: tmp
               mountPath: /tmp
+            {{- if $brandPackMounted }}
+            - name: brand-pack
+              mountPath: {{ .Values.brandPack.mountPath }}
+              readOnly: true
+            {{- end }}
       volumes:
         - name: tmp
           emptyDir: {}
+        {{- if .Values.brandPack.configMap }}
+        - name: brand-pack
+          configMap:
+            name: {{ .Values.brandPack.configMap }}
+        {{- else if .Values.brandPack.volume }}
+        - name: brand-pack
+          {{- toYaml .Values.brandPack.volume | nindent 10 }}
+        {{- end }}

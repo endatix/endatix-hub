@@ -3,6 +3,7 @@ import "@/app/globals.css";
 import { AppOptions } from "@/components/providers/app-options";
 import { auth } from "@/auth";
 import { getClientEndatixConfig } from "@/features/config/server";
+import { getBrand } from "@/lib/branding/server";
 
 export const metadata = {
   title: "Next.js",
@@ -14,9 +15,10 @@ interface SlackLayoutProps {
 }
 
 export default async function SlackLayout({ children }: SlackLayoutProps) {
-  const [session, endatixConfig] = await Promise.all([
+  const [session, endatixConfig, brand] = await Promise.all([
     auth(),
     getClientEndatixConfig(),
+    getBrand(),
   ]);
 
   return (
@@ -26,6 +28,7 @@ export default async function SlackLayout({ children }: SlackLayoutProps) {
           options={AppOptions.PublicPages}
           session={session}
           endatixConfig={endatixConfig}
+          brand={brand}
         >
           <div className="flex min-h-screen flex-col">{children}</div>
         </AppProvider>

@@ -8,6 +8,7 @@ import { Metadata } from "next";
 import { cookies, headers } from "next/headers";
 import { getMetadataBase } from "@/lib/seo";
 import { getClientEndatixConfig } from "@/features/config/server";
+import { getBrand } from "@/lib/branding/server";
 import { SupportAccessBannerSlot } from "@/features/platform-admin/assume-tenant/ui/support-access-banner-slot";
 
 export const metadata: Metadata = {
@@ -37,8 +38,14 @@ export default async function RootLayout({
   header,
   nav,
 }: Readonly<RootLayoutProps>) {
-  const [requestHeaders, session, cookieStore, endatixConfig] =
-    await Promise.all([headers(), auth(), cookies(), getClientEndatixConfig()]);
+  const [requestHeaders, session, cookieStore, endatixConfig, brand] =
+    await Promise.all([
+      headers(),
+      auth(),
+      cookies(),
+      getClientEndatixConfig(),
+      getBrand(),
+    ]);
   const osClass = getOsClass(requestHeaders);
   const sidebarValue = cookieStore.get("sidebar_state");
   const defaultSidebarOpen = sidebarValue?.value === "true";
@@ -57,6 +64,7 @@ export default async function RootLayout({
           session={session}
           sidebarDefaultOpen={defaultSidebarOpen}
           endatixConfig={endatixConfig}
+          brand={brand}
         >
           {nav}
           <main data-slot="sidebar-inset">

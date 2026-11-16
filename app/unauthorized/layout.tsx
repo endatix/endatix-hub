@@ -2,6 +2,7 @@ import "@/app/globals.css";
 import { auth } from "@/auth";
 import { AppProvider } from "@/components/providers";
 import { getClientEndatixConfig } from "@/features/config/server";
+import { getBrand } from "@/lib/branding/server";
 import { geistMono, geistSans } from "@/lib/fonts/geist-local";
 import { getPublicAssetPath } from "@/lib/hosting";
 import type { Metadata } from "next";
@@ -30,9 +31,10 @@ interface UnauthorizedLayoutProps {
 export default async function UnauthorizedLayout({
   children,
 }: UnauthorizedLayoutProps) {
-  const [session, endatixConfig] = await Promise.all([
+  const [session, endatixConfig, brand] = await Promise.all([
     auth(),
     getClientEndatixConfig(),
+    getBrand(),
   ]);
 
   return (
@@ -45,7 +47,11 @@ export default async function UnauthorizedLayout({
         />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        <AppProvider session={session} endatixConfig={endatixConfig}>
+        <AppProvider
+          session={session}
+          endatixConfig={endatixConfig}
+          brand={brand}
+        >
           <div className="flex min-h-screen w-full flex-row bg-muted/40">
             <main className="flex flex-1 flex-col p-6">{children}</main>
           </div>

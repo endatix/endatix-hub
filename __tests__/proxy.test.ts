@@ -221,6 +221,25 @@ describe("proxy", () => {
       expect(config.matcher[0]).toHaveProperty("source");
       expect(config.matcher[0]).toHaveProperty("missing");
     });
+
+    it.each([
+      ["/brand/brand.css", false],
+      ["/brand/icon", false],
+      ["/brand", false],
+      ["/branding", true],
+      ["/brands/settings", true],
+      ["/forms", true],
+    ])("matches %s: %s", async (pathname, matched) => {
+      // Arrange
+      const { config } = await import("@/proxy");
+      const source = new RegExp(`^${config.matcher[0].source}$`);
+
+      // Act
+      const result = source.test(pathname);
+
+      // Assert
+      expect(result).toBe(matched);
+    });
   });
 
   describe("maintenance mode", () => {

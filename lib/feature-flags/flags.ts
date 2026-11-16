@@ -47,6 +47,12 @@ export const personalizationFlag = flag<boolean>({
   defaultValue: false,
 });
 
+/** Deployment brand pack (`ENDATIX_BRAND_DIR`). Off: a mounted pack is ignored. */
+export const whiteLabelingFlag = flag<boolean>({
+  key: "white-labeling",
+  defaultValue: false,
+});
+
 export const getAllFlags = async (): Promise<FeatureFlagConfig> => ({
   experimentalFeatures: await experimentalFeaturesFlag(),
   advancedAnalytics: await advancedAnalyticsFlag(),
@@ -57,4 +63,5 @@ export const getAllFlags = async (): Promise<FeatureFlagConfig> => ({
   tenantManagement: await tenantManagementFlag(),
   saasManagement: await saasManagementFlag(),
   personalization: await personalizationFlag(),
+  whiteLabeling: await whiteLabelingFlag(),
 });

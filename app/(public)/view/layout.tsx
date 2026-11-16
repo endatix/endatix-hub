@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { AppProvider } from "@/components/providers";
 import { AppOptions } from "@/components/providers/app-options";
 import { getClientEndatixConfig } from "@/features/config/server";
+import { getBrand } from "@/lib/branding/server";
 import { getPublicAssetPath } from "@/lib/hosting";
 import type { Metadata } from "next";
 import { ROBOTS, getMetadataBase } from "@/lib/seo";
@@ -23,9 +24,10 @@ export default async function ViewLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [session, endatixConfig] = await Promise.all([
+  const [session, endatixConfig, brand] = await Promise.all([
     auth(),
     getClientEndatixConfig(),
+    getBrand(),
   ]);
 
   return (
@@ -42,6 +44,7 @@ export default async function ViewLayout({
           options={AppOptions.PublicPages}
           session={session}
           endatixConfig={endatixConfig}
+          brand={brand}
         >
           {children}
         </AppProvider>
