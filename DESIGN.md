@@ -540,9 +540,9 @@ to `value` are `completed`; the `value` step itself is `active`. Reference:
 13. **Escape closes only the topmost overlay.** A Popover or Select opened inside a panel is the
     top layer: Escape and an outside tap close it and leave the panel open, and taps inside it
     land. Radix keeps that order in one stack per copy of `@radix-ui/react-dismissable-layer`, so
-    Vaul and cmdk must resolve the same `@radix-ui/react-dialog` as `radix-ui` (the overrides in
-    `pnpm-workspace.yaml`); `components/ui/__tests__/responsive-panel.test.tsx` fails when a
-    second copy comes back.
+    Vaul and cmdk must resolve the same `@radix-ui/react-dialog` as `radix-ui`.
+    `components/ui/__tests__/responsive-panel.test.tsx` fails when a second copy comes back;
+    `pnpm dedupe` removes it.
 
 ### Buttons, inputs, chips
 

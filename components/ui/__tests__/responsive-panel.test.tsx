@@ -150,7 +150,7 @@ describe("ResponsivePanel as a phone drawer", () => {
 
       expect(
         layerFrom(dependent, "@radix-ui/react-dialog", layer),
-        `Set "${dependent}>@radix-ui/react-dialog" in pnpm-workspace.yaml to radix-ui's react-dialog version`,
+        `${dependent} has its own @radix-ui/react-dialog: run \`pnpm dedupe\` so it shares radix-ui's`,
       ).toBe(layerFrom("radix-ui", "@radix-ui/react-popover", layer));
     },
   );
