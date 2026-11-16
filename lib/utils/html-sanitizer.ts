@@ -1,5 +1,5 @@
 import sanitize, { AllowedAttribute, IOptions } from "sanitize-html";
-import { decode as decodeHtmlEntities } from "entities";
+import { decodeHTML } from "entities";
 
 /**
  * Allowed HTML tags for rich text content in surveys.
@@ -308,8 +308,8 @@ export const htmlSanitizer = {
    * Strips tags for Hub UI text (matrix cells, ToC). PDF `<Text>` uses `pdfPlainText`.
    */
   toPlainText(dirtyHtml: string): string {
-    // sanitize-html re-escapes; decode so the UI shows `<` not `&lt;`.
-    return decodeHtmlEntities(sanitizeHtml(dirtyHtml, pdfSanitizationOptions));
+    // sanitize-html re-escapes; decode (HTML level) so the UI shows `<` not `&lt;`.
+    return decodeHTML(sanitizeHtml(dirtyHtml, pdfSanitizationOptions));
   },
 
   /**
