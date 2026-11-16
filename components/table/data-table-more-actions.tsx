@@ -1,7 +1,7 @@
 "use client";
 
 import { MoreHorizontal } from "lucide-react";
-import type { ReactNode } from "react";
+import { useRef, type ReactNode, type Ref } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -16,7 +16,25 @@ type MoreActionsMenuProps = {
   collapsedItems?: ReactNode;
   /** Items shown at every width. */
   moreActions?: ReactNode;
+  /** The `⋯` button, for an overlay opened from an item to return focus to. */
+  triggerRef?: Ref<HTMLButtonElement>;
 };
+
+/**
+ * An overlay opened from a `⋯` item has no trigger of its own, so on close Radix would leave
+ * focus on the body. Pass `ref` as the toolbar's `moreActionsRef` and `onCloseAutoFocus` to the
+ * overlay: focus goes back to `⋯`.
+ */
+export function useMoreActionsFocusReturn() {
+  const ref = useRef<HTMLButtonElement>(null);
+  const onCloseAutoFocus = (event: Event) => {
+    const trigger = ref.current;
+    if (!trigger) return;
+    event.preventDefault();
+    trigger.focus();
+  };
+  return { ref, onCloseAutoFocus };
+}
 
 /**
  * The toolbar's `⋯`. Non-modal, so an `AlertDialog` opened from an item (rendered beside the
@@ -25,10 +43,11 @@ type MoreActionsMenuProps = {
 export function MoreActionsMenu({
   collapsedItems,
   moreActions,
+  triggerRef,
 }: Readonly<MoreActionsMenuProps>) {
   return (
     <DropdownMenu modal={false}>
-      <DropdownMenuTrigger asChild>
+      <DropdownMenuTrigger asChild ref={triggerRef}>
         <Button
           type="button"
           variant="outline"

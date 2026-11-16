@@ -4,6 +4,7 @@ import {
   DataTableToolbar,
   FacetedFilter,
   type ResetFiltersButtonProps,
+  useMoreActionsFocusReturn,
 } from "@/components/table";
 import {
   DropdownMenuItem,
@@ -74,8 +75,13 @@ export function SubmissionGridToolbar(props: Readonly<ToolbarProps>) {
   const { formId, disabled } = props;
   const { urlState } = useSubmissionGridUrl();
   const { canDeleteTests } = useSubmissionTestAccess();
-  const deleteTests = useDeleteTestSubmissionsAction(formId, disabled);
-  const columns = useColumnsAction(props);
+  const moreActions = useMoreActionsFocusReturn();
+  const deleteTests = useDeleteTestSubmissionsAction(
+    formId,
+    disabled,
+    moreActions.onCloseAutoFocus,
+  );
+  const columns = useColumnsAction(props, moreActions.onCloseAutoFocus);
   const reset = useResetProps(disabled);
   return (
     <>
@@ -93,6 +99,7 @@ export function SubmissionGridToolbar(props: Readonly<ToolbarProps>) {
         }}
         actions={<ExportButton {...props} />}
         moreActions={canDeleteTests ? deleteTests.menuItem : undefined}
+        moreActionsRef={moreActions.ref}
       />
       {columns.overlay}
       {canDeleteTests && deleteTests.confirm}
@@ -147,7 +154,10 @@ function countActiveFacets(urlState: SubmissionGridUrlState): number {
  * Below 768 px, `⋯ > Columns…` opens the picker in a drawer beside the menu. Each open mounts a
  * fresh picker (its draft starts from the URL), and nothing mounts before the first open.
  */
-function useColumnsAction(props: Readonly<ToolbarProps>) {
+function useColumnsAction(
+  props: Readonly<ToolbarProps>,
+  onCloseAutoFocus: (event: Event) => void,
+) {
   const [open, setOpen] = useState(false);
   const [opens, setOpens] = useState(0);
   const available = useColumnPickerAvailable(props);
@@ -169,6 +179,7 @@ function useColumnsAction(props: Readonly<ToolbarProps>) {
       {...props}
       open={open}
       onOpenChange={setOpen}
+      onCloseAutoFocus={onCloseAutoFocus}
     />
   );
   return { menuItem, overlay };

@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { ReactNode, Ref } from "react";
 import { cn } from "@/lib/utils";
 import { FiltersDrawer } from "./data-table-filters-drawer";
 import { MoreActionsMenu } from "./data-table-more-actions";
@@ -30,6 +30,8 @@ type DataTableToolbarProps = {
   collapsibleActions?: DataTableToolbarCollapsibleActions;
   /** Occasional actions: `DropdownMenuItem`s in `⋯` at every width. */
   moreActions?: ReactNode;
+  /** The `⋯` button (`useMoreActionsFocusReturn`). */
+  moreActionsRef?: Ref<HTMLButtonElement>;
   className?: string;
 };
 
@@ -123,6 +125,7 @@ function ToolbarActions({
   actions,
   collapsibleActions,
   moreActions,
+  moreActionsRef,
 }: Readonly<DataTableToolbarProps>) {
   if (!actions && !collapsibleActions && !moreActions) {
     return null;
@@ -140,6 +143,7 @@ function ToolbarActions({
         <MoreActionsMenu
           collapsedItems={collapsibleActions?.menuItems}
           moreActions={moreActions}
+          triggerRef={moreActionsRef}
         />
       ) : null}
     </div>

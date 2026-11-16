@@ -30,11 +30,13 @@ import {
 /**
  * Delete test submissions, an occasional action: an item for the toolbar's `⋯` menu, and its
  * confirm (which counts on open and names the count), rendered beside the menu so closing the
- * menu does not unmount it (DESIGN.md §5 Overlays rule 10).
+ * menu does not unmount it (DESIGN.md §5 Overlays rule 10). `onCloseAutoFocus` returns focus
+ * to `⋯` (`useMoreActionsFocusReturn`).
  */
 export function useDeleteTestSubmissionsAction(
   formId: string,
   disabled: boolean,
+  onCloseAutoFocus?: (event: Event) => void,
 ) {
   const dialog = useDeleteTestSubmissions(formId);
   const menuItem = (
@@ -48,7 +50,10 @@ export function useDeleteTestSubmissionsAction(
   );
   const confirm = (
     <AlertDialog open={dialog.open} onOpenChange={dialog.onOpenChange}>
-      <DeleteTestSubmissionsContent {...dialog} />
+      <DeleteTestSubmissionsContent
+        {...dialog}
+        onCloseAutoFocus={onCloseAutoFocus}
+      />
     </AlertDialog>
   );
   return { menuItem, confirm };
@@ -119,11 +124,15 @@ function useConfirmDelete(formId: string, close: () => void) {
 const DELETE_TESTS_DESCRIPTION =
   "Test submissions in every status are removed from the grid, form counts, and exports. This cannot be undone from Hub.";
 
-function DeleteTestSubmissionsContent(props: Readonly<DeleteTestSubmissions>) {
+type ConfirmProps = DeleteTestSubmissions & {
+  onCloseAutoFocus?: (event: Event) => void;
+};
+
+function DeleteTestSubmissionsContent(props: Readonly<ConfirmProps>) {
   const copy = deleteTestsConfirmCopy(props.count);
   const title = props.isCounting ? "Counting test submissions…" : copy.title;
   return (
-    <AlertDialogContent>
+    <AlertDialogContent onCloseAutoFocus={props.onCloseAutoFocus}>
       <AlertDialogHeader>
         <AlertDialogTitle>{title}</AlertDialogTitle>
         <AlertDialogDescription>

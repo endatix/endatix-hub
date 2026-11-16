@@ -90,7 +90,9 @@ export function FacetedFilter(props: Readonly<FacetedFilterProps>) {
 }
 
 /** A disabled fieldset does not disable cmdk's items: a disabled facet ignores Enter. */
-const ignoreChange = () => {};
+const ignoreChange = () => {
+  // Disabled: the selection stays as it is.
+};
 
 function FacetedFilterInline({
   labelledBy,

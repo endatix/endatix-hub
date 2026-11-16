@@ -48,6 +48,7 @@ export {
   DataTableToolbar,
   type DataTableToolbarCollapsibleActions,
 } from "./data-table-toolbar";
+export { useMoreActionsFocusReturn } from "./data-table-more-actions";
 export { DataTableFilter } from "./data-table-filter";
 export { listFilterReset, type ListFilterReset } from "./list-filter-reset";
 export { PagedCardList } from "./paged-card-list";

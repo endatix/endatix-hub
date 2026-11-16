@@ -99,6 +99,8 @@ export function useColumnPickerAvailable(
 type ColumnPickerOverlayProps = ColumnPickerProps & {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Focus back to `⋯`, which opened it (`useMoreActionsFocusReturn`). */
+  onCloseAutoFocus?: (event: Event) => void;
 };
 
 /**
@@ -108,6 +110,7 @@ type ColumnPickerOverlayProps = ColumnPickerProps & {
 export function SubmissionGridColumnPickerOverlay({
   open,
   onOpenChange,
+  onCloseAutoFocus,
   ...props
 }: Readonly<ColumnPickerOverlayProps>) {
   const { panel, apply } = useColumnPicker(props, () => onOpenChange(false));
@@ -122,6 +125,7 @@ export function SubmissionGridColumnPickerOverlay({
         event.preventDefault();
         (event.currentTarget as HTMLElement | null)?.focus();
       }}
+      onCloseAutoFocus={onCloseAutoFocus}
     >
       <ResponsivePanelHeader>
         <ResponsivePanelTitle>Columns</ResponsivePanelTitle>

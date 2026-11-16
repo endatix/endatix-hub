@@ -62,6 +62,8 @@ interface ResponsivePanelProps {
   dialogContentClassName?: string;
   drawerContentClassName?: string;
   onOpenAutoFocus?: (event: ContentFocusEvent) => void;
+  /** Where focus goes on close when the panel has no `trigger`. */
+  onCloseAutoFocus?: (event: ContentFocusEvent) => void;
   onOpenChange: (open: boolean) => void;
   open: boolean;
   sheetContentClassName?: string;
@@ -77,6 +79,7 @@ export function ResponsivePanel({
   dismissible = true,
   drawerContentClassName,
   onOpenAutoFocus,
+  onCloseAutoFocus,
   onOpenChange,
   open,
   sheetContentClassName,
@@ -96,6 +99,7 @@ export function ResponsivePanel({
   };
   const contentProps = {
     onOpenAutoFocus,
+    onCloseAutoFocus,
     onEscapeKeyDown: preventWhileLocked,
     onInteractOutside: preventWhileLocked,
   };
@@ -153,6 +157,7 @@ export function ResponsivePanel({
       {trigger && <DrawerTrigger asChild>{trigger}</DrawerTrigger>}
       <DrawerContent
         onOpenAutoFocus={onOpenAutoFocus}
+        onCloseAutoFocus={onCloseAutoFocus}
         className={cn(
           "h-[90vh] max-h-[90vh] gap-0 overflow-hidden px-0",
           className,

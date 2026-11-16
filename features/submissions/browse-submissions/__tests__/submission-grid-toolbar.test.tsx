@@ -1,5 +1,10 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { Result } from "@/lib/result";
+import { stubPhoneWidth } from "@/test/stubs/phone-width";
+import { stubResizeObserver } from "@/test/stubs/resize-observer";
+import type { AnswerColumn } from "../submission-grid-columns";
+import { countTestSubmissionsAction } from "../submission-test-flag.action";
 import { parseSubmissionGridUrl } from "../submission-grid-url";
 import { SubmissionGridToolbar } from "../ui/submission-grid-toolbar";
 import { useSubmissionGridUrl } from "../ui/submission-grid-url-context";
@@ -27,7 +32,10 @@ const updateUrl = vi.fn();
 function renderToolbar(
   query: Record<string, string>,
   urlSetsSort: boolean,
-  canDeleteTests = false,
+  {
+    canDeleteTests = false,
+    catalog = [],
+  }: { canDeleteTests?: boolean; catalog?: AnswerColumn[] } = {},
 ) {
   vi.mocked(useSubmissionGridUrl).mockReturnValue({
     urlState: parseSubmissionGridUrl(query),
@@ -41,7 +49,7 @@ function renderToolbar(
     <SubmissionTestAccessProvider access={{ canMark: false, canDeleteTests }}>
       <SubmissionGridToolbar
         formId="7"
-        catalog={[]}
+        catalog={catalog}
         columnSearch={{ canEdit: false }}
         exportAccess={{ canExport: true, canPrepare: true, canRebuild: false }}
         disabled={false}
@@ -92,7 +100,7 @@ describe("SubmissionGridToolbar layout", () => {
 
   it("offers Delete test submissions from ⋯, not as a toolbar button", () => {
     // Arrange
-    renderToolbar({}, false, true);
+    renderToolbar({}, false, { canDeleteTests: true });
 
     // Act
     fireEvent.pointerDown(
@@ -111,7 +119,7 @@ describe("SubmissionGridToolbar layout", () => {
 
   it("puts nothing about test submissions in ⋯ without delete access", () => {
     // Arrange
-    renderToolbar({}, false, false);
+    renderToolbar({}, false);
 
     // Act
     fireEvent.pointerDown(
@@ -123,5 +131,70 @@ describe("SubmissionGridToolbar layout", () => {
     expect(
       screen.queryByRole("menuitem", { name: /delete test submissions/i }),
     ).toBeNull();
+  });
+});
+
+const NAME_COLUMN: AnswerColumn = {
+  key: "q1",
+  kind: "Simple",
+  title: "First name",
+  questionType: "text",
+  filterType: "text",
+  search: { state: "ready", source: "auto" },
+  placement: { pageName: "page1", pageTitle: "Page one", panelTitle: null },
+};
+
+/** Vaul's stylesheet gives the drawer a close animation; jsdom never ends it. */
+function endCloseAnimation(element: HTMLElement) {
+  const end = Object.assign(new Event("animationend"), {
+    animationName: getComputedStyle(element).animationName,
+  });
+  fireEvent(element, end);
+}
+
+function openMoreActionsItem(name: string) {
+  const more = screen.getByRole("button", { name: "More actions" });
+  more.focus();
+  fireEvent.pointerDown(more, { button: 0, ctrlKey: false });
+  fireEvent.click(screen.getByRole("menuitem", { name }));
+  return more;
+}
+
+describe("SubmissionGridToolbar focus after a ⋯ overlay closes", () => {
+  beforeEach(() => {
+    stubPhoneWidth();
+    stubResizeObserver();
+    vi.mocked(countTestSubmissionsAction).mockResolvedValue(Result.success(2));
+  });
+
+  it("returns focus to More actions when the delete confirm is dismissed", async () => {
+    // Arrange
+    renderToolbar({}, false, { canDeleteTests: true });
+    const more = openMoreActionsItem("Delete test submissions…");
+    const confirm = await screen.findByRole("alertdialog");
+
+    // Act
+    fireEvent.keyDown(confirm, { key: "Escape" });
+
+    // Assert
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
+    expect(document.activeElement).toBe(more);
+  });
+
+  it("returns focus to More actions when the Columns drawer is dismissed", async () => {
+    // Arrange
+    renderToolbar({}, false, { catalog: [NAME_COLUMN] });
+    const more = openMoreActionsItem("Columns…");
+    const drawer = await screen.findByRole("dialog", { name: "Columns" });
+
+    // Act
+    fireEvent.keyDown(drawer, { key: "Escape" });
+    endCloseAnimation(drawer);
+
+    // Assert
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "Columns" })).toBeNull(),
+    );
+    expect(document.activeElement).toBe(more);
   });
 });
