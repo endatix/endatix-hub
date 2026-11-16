@@ -16,6 +16,8 @@ const flagState = vi.hoisted(() => ({ on: true }));
 vi.mock("@/lib/feature-flags/flags", () => ({
   whiteLabelingFlag: async () => flagState.on,
 }));
+const telemetry = vi.hoisted(() => ({ error: vi.fn() }));
+vi.mock("@/features/telemetry", () => ({ TelemetryLogger: telemetry }));
 vi.mock("react", async (importOriginal) => ({
   ...(await importOriginal<typeof import("react")>()),
   cache: <T>(fn: T) => fn,
@@ -137,6 +139,42 @@ describe("getBrand", () => {
 
     // Assert
     expect(brand.stylesheet).toContain("--primary:#0b6b5d;");
+  });
+});
+
+describe("pack errors at request time", () => {
+  it("serves the built-in brand and reports a pack that never validated once", async () => {
+    // Arrange
+    writePack({ version: 2 });
+    const { getBrand } = await load();
+
+    // Act
+    const brands = [await getBrand(), await getBrand()];
+
+    // Assert
+    expect(brands.map((brand) => brand.name)).toEqual([
+      "Endatix Hub",
+      "Endatix Hub",
+    ]);
+    expect(telemetry.error).toHaveBeenCalledTimes(1);
+    expect(telemetry.error.mock.calls[0][1].message).toContain("version");
+  });
+
+  it("reports a rejected change with its field path", async () => {
+    // Arrange
+    writePack(accent("#0b6b5d"), new Date(2026, 0, 1));
+    const { getBrand } = await load();
+    await getBrand();
+    writePack({ fonts: {} }, new Date(2026, 0, 2));
+
+    // Act
+    await getBrand();
+    await getBrand();
+
+    // Assert
+    expect(telemetry.error).toHaveBeenCalledTimes(1);
+    expect(telemetry.error.mock.calls[0][0]).toContain("last valid pack");
+    expect(telemetry.error.mock.calls[0][1].message).toContain("fonts");
   });
 });
 

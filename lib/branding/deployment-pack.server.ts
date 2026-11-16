@@ -1,7 +1,7 @@
 import "server-only";
 
-import { logs, SeverityNumber } from "@opentelemetry/api-logs";
 import { statSync } from "node:fs";
+import { TelemetryLogger } from "@/features/telemetry";
 import path from "node:path";
 import { BRAND_FILE, readBrandPack, type LoadedBrandPack } from "./read-pack";
 
@@ -15,11 +15,13 @@ interface Snapshot {
 }
 
 let snapshot: Snapshot | null = null;
+/** The stamp of a pack that never validated, so it is reported once. */
+let failedStamp: string | null = null;
 
 /**
  * The mounted pack, or null when `ENDATIX_BRAND_DIR` is unset. It is read again
- * when brand.json or a file it names changes. A change that does not validate keeps the last good
- * pack and logs the field paths; with no good pack yet, it throws.
+ * when brand.json or a file it names changes. A change that does not validate
+ * keeps the last good pack and logs the field paths; with no good pack yet, it throws.
  */
 export function loadDeploymentPack(): LoadedBrandPack | null {
   const dir = process.env[BRAND_DIR_ENV]?.trim();
@@ -28,17 +30,40 @@ export function loadDeploymentPack(): LoadedBrandPack | null {
   const known = snapshot?.dir === dir ? snapshot.loaded.files.keys() : [];
   const stamp = stampOf(dir, [...known]);
   if (snapshot?.dir === dir && snapshot.stamp === stamp) return snapshot.loaded;
+  return reload(dir, stamp);
+}
 
+function reload(dir: string, stamp: string): LoadedBrandPack {
   try {
     const loaded = readBrandPack(dir);
     snapshot = { dir, stamp: stampOf(dir, [...loaded.files.keys()]), loaded };
     return loaded;
   } catch (error) {
     if (snapshot?.dir !== dir) throw error;
-    reportReloadFailure(error);
+    report(
+      "Brand pack change ignored; still serving the last valid pack",
+      error,
+    );
     // Remember the bad stamp, so it is reported once and not re-read per request.
     snapshot = { ...snapshot, stamp };
     return snapshot.loaded;
+  }
+}
+
+/**
+ * As `loadDeploymentPack`, for request time: never throws. A pack that has
+ * never validated gives null (the built-in brand) and is reported once.
+ */
+export function currentDeploymentPack(): LoadedBrandPack | null {
+  try {
+    return loadDeploymentPack();
+  } catch (error) {
+    const stamp = stampOf(process.env[BRAND_DIR_ENV]?.trim() ?? "", []);
+    if (stamp !== failedStamp) {
+      failedStamp = stamp;
+      report("Brand pack not applied; serving the built-in brand", error);
+    }
+    return null;
   }
 }
 
@@ -65,11 +90,7 @@ function stampOf(dir: string, files: readonly string[]): string {
     .join("|");
 }
 
-function reportReloadFailure(error: unknown): void {
-  const message = error instanceof Error ? error.message : String(error);
-  logs.getLogger("endatix-hub.branding").emit({
-    severityNumber: SeverityNumber.ERROR,
-    severityText: "ERROR",
-    body: `Brand pack change ignored; still serving the last valid pack. ${message}`,
-  });
+/** Through TelemetryLogger, which also prints when no log exporter runs. */
+function report(what: string, error: unknown): void {
+  TelemetryLogger.error(what, error, {}, "endatix-hub.branding");
 }
