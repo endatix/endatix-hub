@@ -54,9 +54,5 @@ overrides:
   # picomatch 2.3.2 & 4.0.4 bump is to address CVE-2026-33671 & CVE-2026-33671. Multiple peer dependenices hold outdated versions.
   "picomatch@>=2 <3": ^2.3.2
   "picomatch@>=4 <5": ^4.0.4
-  # protobufjs bump to 8.7.1 to address multiple otel related vulnerabilities. Remove on next otel bump
+  # protobufjs 8.7.1 stays: @grpc/proto-loader 0.8.1 still declares ^7.5.5, so dropping this forces 7.6.6 (cross-major). Audit does not flag 7.6.6. Remove when `node scripts/review-dependency.mjs overrides protobufjs` reports REMOVABLE
   protobufjs: ^8.7.1
-  # @protobufjs/utf8 bump to 1.1.2 is to address multiple otel vulnerabilities. Remove on next otel bump
-  "@protobufjs/utf8": ^1.1.2
-  # @opentelemetry/sdk-node bump to 0.221.0 to address CVE-2026-59892. Remove with next @azure/monitor-opentelemetry bump
-  "@opentelemetry/sdk-node": ^0.221.0
