@@ -43,30 +43,7 @@ export function UsersListToolbar({
   canInviteUsers,
 }: Readonly<UsersListToolbarProps>) {
   const availableRoles = use(availableRolesPromise);
-  const assignableRoles = availableRoles.filter(
-    (role) => !isPlatformScopedRole(role.name),
-  );
-  const roleFilter = searchParams.get("role") ?? allRolesValue;
-  const urlStatus = searchParams.get("status");
-  const statusFilter =
-    urlStatus === "active" || urlStatus === "pending" || urlStatus === "locked"
-      ? urlStatus
-      : allStatusesValue;
-  const onRoleFilterChange = createUrlFilterUpdater(
-    updateUrl,
-    "role",
-    allRolesValue,
-  );
-  const onStatusFilterChange = createUrlFilterUpdater(
-    updateUrl,
-    "status",
-    allStatusesValue,
-  );
-
-  const isRoleFiltered = roleFilter !== allRolesValue;
-  const isStatusFiltered = statusFilter !== allStatusesValue;
-  const activeFilterCount = Number(isRoleFiltered) + Number(isStatusFiltered);
-
+  const filters = usersFilterState(searchParams);
   return (
     <DataTableToolbar
       search={
@@ -79,68 +56,138 @@ export function UsersListToolbar({
       }
       filters={
         <>
-          <DataTableFilter label="Role">
-            {({ id }) => (
-              <Select value={roleFilter} onValueChange={onRoleFilterChange}>
-                <SelectTrigger
-                  id={id}
-                  className="w-full md:w-[180px]"
-                  aria-label={id ? undefined : "Filter users by role"}
-                >
-                  <SelectValue placeholder="Role" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={allRolesValue}>All roles</SelectItem>
-                  {availableRoles.map((role) => (
-                    <SelectItem key={role.id} value={role.name}>
-                      {role.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <RoleFilter
+            value={filters.role}
+            roles={availableRoles}
+            onChange={createUrlFilterUpdater(updateUrl, "role", allRolesValue)}
+          />
+          <StatusFilter
+            value={filters.status}
+            onChange={createUrlFilterUpdater(
+              updateUrl,
+              "status",
+              allStatusesValue,
             )}
-          </DataTableFilter>
-          <DataTableFilter label="Status">
-            {({ id }) => (
-              <Select value={statusFilter} onValueChange={onStatusFilterChange}>
-                <SelectTrigger
-                  id={id}
-                  className="w-full md:w-[180px]"
-                  aria-label={id ? undefined : "Filter users by status"}
-                >
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={allStatusesValue}>All statuses</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="pending">Pending invite</SelectItem>
-                  <SelectItem value="locked">Locked out</SelectItem>
-                </SelectContent>
-              </Select>
-            )}
-          </DataTableFilter>
+          />
         </>
       }
-      activeFilterCount={activeFilterCount}
+      activeFilterCount={filters.activeCount}
       reset={{
         onClick: () => {
           setSearch("");
           updateUrl({ search: null, role: null, status: null, page: "1" });
         },
-        hasFilters: Boolean(search.trim()) || activeFilterCount > 0,
+        hasFilters: Boolean(search.trim()) || filters.activeCount > 0,
       }}
       actions={
-        canInviteUsers ? (
-          <CreateTenantUserDialog roles={assignableRoles} />
-        ) : (
-          <TooltipProvider>
-            <DisabledButton tooltip="You don't have permission to invite users">
-              <Plus data-icon="inline-start" />
-              Invite User
-            </DisabledButton>
-          </TooltipProvider>
-        )
+        <InviteUserAction
+          canInviteUsers={canInviteUsers}
+          roles={availableRoles}
+        />
       }
     />
+  );
+}
+
+/** The Role and Status filters as the URL holds them, and how many differ from "all". */
+function usersFilterState(searchParams: URLSearchParams) {
+  const role = searchParams.get("role") ?? allRolesValue;
+  const urlStatus = searchParams.get("status");
+  const status =
+    urlStatus === "active" || urlStatus === "pending" || urlStatus === "locked"
+      ? urlStatus
+      : allStatusesValue;
+  const activeCount =
+    Number(role !== allRolesValue) + Number(status !== allStatusesValue);
+  return { role, status, activeCount };
+}
+
+type FilterSelectProps = {
+  value: string;
+  onChange: (value: string) => void;
+};
+
+function RoleFilter({
+  value,
+  roles,
+  onChange,
+}: Readonly<FilterSelectProps & { roles: RoleListItem[] }>) {
+  return (
+    <DataTableFilter label="Role">
+      {({ id }) => (
+        <Select value={value} onValueChange={onChange}>
+          <FilterTrigger
+            id={id}
+            label="Filter users by role"
+            placeholder="Role"
+          />
+          <SelectContent>
+            <SelectItem value={allRolesValue}>All roles</SelectItem>
+            {roles.map((role) => (
+              <SelectItem key={role.id} value={role.name}>
+                {role.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
+    </DataTableFilter>
+  );
+}
+
+function StatusFilter({ value, onChange }: Readonly<FilterSelectProps>) {
+  return (
+    <DataTableFilter label="Status">
+      {({ id }) => (
+        <Select value={value} onValueChange={onChange}>
+          <FilterTrigger
+            id={id}
+            label="Filter users by status"
+            placeholder="Status"
+          />
+          <SelectContent>
+            <SelectItem value={allStatusesValue}>All statuses</SelectItem>
+            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="pending">Pending invite</SelectItem>
+            <SelectItem value="locked">Locked out</SelectItem>
+          </SelectContent>
+        </Select>
+      )}
+    </DataTableFilter>
+  );
+}
+
+/** In the Filters drawer the label names the trigger (`id`); in the row, `aria-label` does. */
+function FilterTrigger({
+  id,
+  label,
+  placeholder,
+}: Readonly<{ id?: string; label: string; placeholder: string }>) {
+  return (
+    <SelectTrigger
+      id={id}
+      className="w-full md:w-[180px]"
+      aria-label={id ? undefined : label}
+    >
+      <SelectValue placeholder={placeholder} />
+    </SelectTrigger>
+  );
+}
+
+function InviteUserAction({
+  canInviteUsers,
+  roles,
+}: Readonly<{ canInviteUsers: boolean; roles: RoleListItem[] }>) {
+  if (canInviteUsers) {
+    const assignable = roles.filter((role) => !isPlatformScopedRole(role.name));
+    return <CreateTenantUserDialog roles={assignable} />;
+  }
+  return (
+    <TooltipProvider>
+      <DisabledButton tooltip="You don't have permission to invite users">
+        <Plus data-icon="inline-start" />
+        Invite User
+      </DisabledButton>
+    </TooltipProvider>
   );
 }

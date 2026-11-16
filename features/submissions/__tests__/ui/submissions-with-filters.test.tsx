@@ -127,7 +127,6 @@ vi.mock("@/features/submissions/ui/table", () => ({
     <button disabled={disabled}>View</button>
   ),
   ColumnViewOptionsItems: () => null,
-  ResetLayoutItems: () => null,
   SubmissionsTableSkeleton: ({ pageSize }: { pageSize?: number }) => (
     <div data-testid="submissions-table-skeleton">
       Skeleton rows: {pageSize}

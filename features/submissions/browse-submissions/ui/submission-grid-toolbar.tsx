@@ -15,7 +15,7 @@ import {
 } from "@/features/export";
 import { collectionStatusFacetGroups } from "@/features/submissions/ui/describe-collection-status";
 import { CheckSquare, Eye, Settings2, Sparkles } from "lucide-react";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import type {
   AnswerColumn,
   ColumnSearchAccess,
@@ -83,27 +83,14 @@ export function SubmissionGridToolbar(props: Readonly<ToolbarProps>) {
     <>
       <DataTableToolbar
         className="mt-8 mb-4"
-        filters={
-          <>
-            <StatusFacet disabled={disabled} />
-            <OptionFacets disabled={disabled} />
-          </>
-        }
+        filters={<GridFacets disabled={disabled} />}
         activeFilterCount={countActiveFacets(urlState)}
         filtersDisabled={disabled}
         reset={useResetProps(disabled)}
         collapsibleActions={{
-          inline: (
-            <>
-              <SubmissionGridColumnPicker {...props} />
-              <SubmissionGridViewMenu disabled={disabled} />
-            </>
-          ),
+          inline: <LayoutActions {...props} />,
           menuItems: (
-            <>
-              {columns.menuItem}
-              <ViewItems disabled={disabled} />
-            </>
+            <LayoutMenuItems {...props} columnsItem={columns.menuItem} />
           ),
         }}
         actions={<ExportButton {...props} />}
@@ -111,6 +98,40 @@ export function SubmissionGridToolbar(props: Readonly<ToolbarProps>) {
       />
       {columns.overlay}
       {canDeleteTests && deleteTests.confirm}
+    </>
+  );
+}
+
+function GridFacets({ disabled }: Readonly<{ disabled: boolean }>) {
+  return (
+    <>
+      <StatusFacet disabled={disabled} />
+      <OptionFacets disabled={disabled} />
+    </>
+  );
+}
+
+/** Columns and View in the row from 768 px. */
+function LayoutActions(props: Readonly<ToolbarProps>) {
+  return (
+    <>
+      <SubmissionGridColumnPicker {...props} />
+      <SubmissionGridViewMenu disabled={props.disabled} />
+    </>
+  );
+}
+
+/** Columns and View as `⋯` items below 768 px. */
+function LayoutMenuItems({
+  disabled,
+  columnsItem,
+}: Readonly<ToolbarProps & { columnsItem: ReactNode }>) {
+  const view = useSubmissionGridView();
+  return (
+    <>
+      {columnsItem}
+      <DropdownMenuSeparator />
+      <SubmissionGridViewItems view={view} disabled={disabled} />
     </>
   );
 }
@@ -142,16 +163,6 @@ function useColumnsAction(props: Readonly<ToolbarProps>) {
     />
   );
   return { menuItem, overlay };
-}
-
-function ViewItems({ disabled }: Readonly<{ disabled: boolean }>) {
-  const view = useSubmissionGridView();
-  return (
-    <>
-      <DropdownMenuSeparator />
-      <SubmissionGridViewItems view={view} disabled={disabled} />
-    </>
-  );
 }
 
 function useFacetChange() {

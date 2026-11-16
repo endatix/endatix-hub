@@ -64,36 +64,16 @@ export function SignupRequestsToolbar({
         />
       }
       filters={
-        <DataTableFilter label="Status">
-          {({ id }) => (
-            <Select
-              value={urlState.status}
-              onValueChange={(status) =>
-                updateUrl({
-                  status:
-                    status === DEFAULT_SIGNUP_REQUEST_STATUS_FILTER
-                      ? null
-                      : status,
-                  page: "1",
-                })
-              }
-            >
-              <SelectTrigger
-                id={id}
-                className="w-full md:w-[160px]"
-                aria-label={id ? undefined : "Filter signup requests by status"}
-              >
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="approved">Approved</SelectItem>
-                <SelectItem value="rejected">Rejected</SelectItem>
-                <SelectItem value="all">All statuses</SelectItem>
-              </SelectContent>
-            </Select>
-          )}
-        </DataTableFilter>
+        <StatusFilter
+          value={urlState.status}
+          onChange={(status) =>
+            updateUrl({
+              status:
+                status === DEFAULT_SIGNUP_REQUEST_STATUS_FILTER ? null : status,
+              page: "1",
+            })
+          }
+        />
       }
       activeFilterCount={hasStatusFilter ? 1 : 0}
       reset={{
@@ -104,5 +84,32 @@ export function SignupRequestsToolbar({
         hasSorting,
       }}
     />
+  );
+}
+
+function StatusFilter({
+  value,
+  onChange,
+}: Readonly<{ value: string; onChange: (status: string) => void }>) {
+  return (
+    <DataTableFilter label="Status">
+      {({ id }) => (
+        <Select value={value} onValueChange={onChange}>
+          <SelectTrigger
+            id={id}
+            className="w-full md:w-[160px]"
+            aria-label={id ? undefined : "Filter signup requests by status"}
+          >
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="approved">Approved</SelectItem>
+            <SelectItem value="rejected">Rejected</SelectItem>
+            <SelectItem value="all">All statuses</SelectItem>
+          </SelectContent>
+        </Select>
+      )}
+    </DataTableFilter>
   );
 }

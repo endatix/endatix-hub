@@ -1,7 +1,6 @@
 "use client";
 import { type ColumnDef } from "@/components/table/hub-table-features";
 
-import { DataTableToolbar } from "@/components/table";
 import { ShareDialog } from "@/features/forms/ui/share-dialog";
 import {
   rememberSubmissionListReturnTo,
@@ -14,21 +13,16 @@ import {
   type SubmissionExportAccess,
 } from "@/features/export";
 import { collectionStatusFacetGroups } from "@/features/submissions/ui/describe-collection-status";
-import {
-  countActiveSubmissionFacets,
-  SubmissionsFacets,
-} from "@/features/submissions/ui/filters/submissions-facets";
+import { countActiveSubmissionFacets } from "@/features/submissions/ui/filters/submissions-facets";
+import { SubmissionsListToolbar } from "@/features/submissions/ui/submissions-list-toolbar";
 import { useSubmissionExportListFilters } from "@/features/submissions/ui/submission-export-list-filters";
 import { NoSubmissionsEmptyState } from "@/features/submissions/ui/submissions-empty-state";
 import {
   buildSubmissionDataColumns,
   buildSubmissionSystemColumns,
   ColumnOrderProvider,
-  ColumnViewOptionsDropdown,
-  ColumnViewOptionsItems,
   ColumnVisibilityProvider,
   EMPTY_SUBMISSION_DATE_FILTERS,
-  ResetLayoutItems,
   useColumnOrder,
   useColumnVisibility,
 } from "@/features/submissions/ui/table";
@@ -264,48 +258,30 @@ function SubmissionsContent({
 
   return (
     <>
-      <DataTableToolbar
-        className="mt-8 mb-4"
-        filters={
-          <SubmissionsFacets
-            collectionStatusFilter={collectionStatusFilter}
-            statusFilter={statusFilter}
-            testSubmissionFilter={testSubmissionFilter}
-            onCollectionStatusChange={onCollectionStatusChange}
-            onStatusChange={onStatusChange}
-            onTestSubmissionChange={onTestSubmissionChange}
-            disabled={disableTableControls}
-          />
-        }
-        activeFilterCount={activeFacetCount}
-        filtersDisabled={disableTableControls}
+      <SubmissionsListToolbar
+        disabled={disableTableControls}
+        facets={{
+          collectionStatusFilter,
+          statusFilter,
+          testSubmissionFilter,
+          onCollectionStatusChange,
+          onStatusChange,
+          onTestSubmissionChange,
+        }}
         reset={{
           onClick: onResetFilters,
           onResetSorting,
           onResetAll: onResetAllFiltersAndSorting,
-          hasFilters:
-            activeFacetCount > 0 ||
-            hasDateFilters(dateFilters) ||
-            submitterDisplayIdFilter.length > 0 ||
-            submitterEmailFilter.length > 0,
+          hasFilters: hasListFilters({
+            activeFacetCount,
+            dateFilters,
+            submitterDisplayIdFilter,
+            submitterEmailFilter,
+          }),
           hasSorting,
-          disabled: disableTableControls,
         }}
-        collapsibleActions={{
-          inline: (
-            <ColumnViewOptionsDropdown
-              columns={columnHeaders}
-              disabled={disableTableControls}
-            />
-          ),
-          menuItems: (
-            <ColumnViewOptionsItems
-              columns={columnHeaders}
-              disabled={disableTableControls}
-            />
-          ),
-        }}
-        actions={
+        columns={columnHeaders}
+        exportAction={
           <ExportSubmissionsButton
             formId={formId}
             disabled={disableTableControls}
@@ -315,18 +291,29 @@ function SubmissionsContent({
             statusGroups={collectionStatusFacetGroups(collectionStatusFilter)}
           />
         }
-        moreActions={
-          isClient && resetOptions.length > 0 ? (
-            <ResetLayoutItems
-              options={resetOptions}
-              onResetAll={handleResetTableLayout}
-              disabled={disableTableControls}
-            />
-          ) : undefined
+        layoutReset={
+          isClient
+            ? { options: resetOptions, onResetAll: handleResetTableLayout }
+            : undefined
         }
       />
       {tableRegion}
     </>
+  );
+}
+
+/** Any filter Reset clears: a facet, a date range or a submitter search. */
+function hasListFilters(filters: {
+  activeFacetCount: number;
+  dateFilters: SubmissionDateFilters;
+  submitterDisplayIdFilter: string;
+  submitterEmailFilter: string;
+}) {
+  return (
+    filters.activeFacetCount > 0 ||
+    hasDateFilters(filters.dateFilters) ||
+    filters.submitterDisplayIdFilter.length > 0 ||
+    filters.submitterEmailFilter.length > 0
   );
 }
 

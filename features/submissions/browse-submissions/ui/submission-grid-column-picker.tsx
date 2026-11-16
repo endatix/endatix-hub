@@ -157,9 +157,13 @@ function useColumnPicker(props: ColumnPickerProps, close: () => void) {
     updateUrl(columnsUpdate(keys));
     close();
   };
-  const isDefault = !urlSets.columns;
   const filterable = { access: columnSearch, changes };
-  const panel = { catalog, visibleKeys, isDefault, filterable };
+  const panel = {
+    catalog,
+    visibleKeys,
+    isDefault: !urlSets.columns,
+    filterable,
+  };
   return { panel, apply, unavailable: !available };
 }
 

@@ -25,8 +25,8 @@ export function PeopleToolbar({
   testFilter,
   actions,
 }: Readonly<PeopleToolbarProps>) {
-  const { search, setSearch, updateUrl } = useListUrlState(PEOPLE_SEARCH_PARAM);
-  const isTestFiltered = testFilter !== AudiencePeopleTestFilter.All;
+  const { search, setSearch, reset, isTestFiltered } =
+    usePeopleFilters(testFilter);
   return (
     <DataTableToolbar
       search={
@@ -44,14 +44,22 @@ export function PeopleToolbar({
         </DataTableFilter>
       }
       activeFilterCount={isTestFiltered ? 1 : 0}
-      reset={{
-        onClick: () => {
-          setSearch("");
-          updateUrl(CLEAR_PEOPLE_FILTERS);
-        },
-        hasFilters: Boolean(search.trim()) || isTestFiltered,
-      }}
+      reset={reset}
       actions={actions}
     />
   );
+}
+
+/** The search box's state and Reset, which clears what the empty state's Clear filters clears. */
+function usePeopleFilters(testFilter: AudiencePeopleTestFilter) {
+  const { search, setSearch, updateUrl } = useListUrlState(PEOPLE_SEARCH_PARAM);
+  const isTestFiltered = testFilter !== AudiencePeopleTestFilter.All;
+  const reset = {
+    onClick: () => {
+      setSearch("");
+      updateUrl(CLEAR_PEOPLE_FILTERS);
+    },
+    hasFilters: Boolean(search.trim()) || isTestFiltered,
+  };
+  return { search, setSearch, reset, isTestFiltered };
 }
