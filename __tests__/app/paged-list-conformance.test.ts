@@ -47,6 +47,18 @@ describe("paged list conformance", () => {
     expect(offenders).toEqual([]);
   });
 
+  it("every DataTableGrid table lets the server page its rows (serverPagedRows)", () => {
+    // Hub tables register the paginated row model, which would cut each
+    // server page to Table 9's default 10 rows (endatix-hub#1419).
+    const offenders = files
+      .filter(({ source }) => source.includes("useTable("))
+      .filter(({ source }) => source.includes("<DataTableGrid"))
+      .filter(({ source }) => !source.includes("...serverPagedRows"))
+      .map(({ file }) => file);
+
+    expect(offenders).toEqual([]);
+  });
+
   it("every paged page keys its frame with listQueryKey, or says why not", () => {
     const offenders = files
       .filter(

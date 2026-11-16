@@ -3,11 +3,20 @@ import { fileURLToPath } from "node:url";
 import { defineConfig, configDefaults } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import tsconfigPaths from "vite-tsconfig-paths";
+import { reactCompilerInTests } from "./test/react-compiler-plugin";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+/** Shared grids whose tests must see the React Compiler's memoization (#1418). */
+const COMPILED_IN_TESTS =
+  /\/(components\/table|features\/submissions\/browse-submissions\/ui)\/[^/]+\.tsx$/;
+
 export default defineConfig({
-  plugins: [tsconfigPaths({ projects: ["./tsconfig.vitest.json"] }), react()],
+  plugins: [
+    tsconfigPaths({ projects: ["./tsconfig.vitest.json"] }),
+    reactCompilerInTests(COMPILED_IN_TESTS),
+    react(),
+  ],
   resolve: {
     alias: {
       "server-only": path.resolve(__dirname, "test/mocks/server-only.ts"),
