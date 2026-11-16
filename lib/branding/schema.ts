@@ -15,7 +15,10 @@ const URL_PATTERN = "^(https?:|mailto:)";
 /** Same shape check as the API side; a full RFC 5322 parse is not the goal. */
 const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-const PackFile = z.string().regex(new RegExp(PACK_FILE_PATTERN));
+const PackFile = z.string().regex(new RegExp(PACK_FILE_PATTERN), {
+  message:
+    "Use a file inside the pack folder: a relative path with no '..' and no scheme",
+});
 
 const ThemedFile = z.strictObject({
   light: PackFile,
@@ -32,18 +35,13 @@ const ColorToken = z.strictObject({
     }),
 });
 
-const Url = z
-  .string()
-  .regex(new RegExp(URL_PATTERN))
-  .refine(isAbsoluteUrl, {
-    message: "Use an absolute https:, http: or mailto: URL",
-  });
+const Url = z.string().regex(new RegExp(URL_PATTERN)).refine(isAbsoluteUrl, {
+  message: "Use an absolute https:, http: or mailto: URL",
+});
 
-const Email = z
-  .string()
-  .refine((value) => EMAIL_SHAPE.test(value), {
-    message: "Use an email address",
-  });
+const Email = z.string().refine((value) => EMAIL_SHAPE.test(value), {
+  message: "Use an email address",
+});
 
 export const BrandPackSchema = z.strictObject({
   $schema: z.string().optional(),

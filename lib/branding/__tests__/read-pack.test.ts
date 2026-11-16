@@ -70,7 +70,9 @@ describe("readBrandPack", () => {
     const error = errorOf(() => readBrandPack(dir));
 
     // Assert
-    expect(error.message).toContain("assets.icon");
+    expect(error.message).toContain(
+      "assets.icon: Use a file inside the pack folder",
+    );
   });
 
   it("names the field whose file is missing", () => {
