@@ -40,7 +40,7 @@
     "@flags-sdk/posthog": "^1.0.1",
     "@opentelemetry/api": "^1.9.1",
     "@opentelemetry/api-logs": "^0.221.0",
-    "@opentelemetry/context-async-hooks": "^2.10.0",
+    "@opentelemetry/context-async-hooks": "^3.1.1",
     "@opentelemetry/core": "^2.10.0",
     "@opentelemetry/exporter-logs-otlp-grpc": "^0.221.0",
     "@opentelemetry/exporter-logs-otlp-http": "^0.221.0",
