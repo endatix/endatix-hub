@@ -24,7 +24,7 @@ export async function deleteDataListAction(
     logMessage: "Failed to delete data list",
     loggerName: LOGGER_NAME,
   });
-
+  
   if (Result.isSuccess(result)) {
     revalidatePath("/(main)/data-lists");
   }
