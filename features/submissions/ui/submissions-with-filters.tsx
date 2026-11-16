@@ -1,4 +1,5 @@
 "use client";
+import { type ColumnDef } from "@/components/table/hub-table-features";
 
 import { DataTableToolbar } from "@/components/table";
 import { ShareDialog } from "@/features/forms/ui/share-dialog";
@@ -36,11 +37,7 @@ import type {
 import type { DefinitionField } from "@/lib/endatix-api";
 import type { PagedResponse } from "@/lib/endatix-api/shared/types";
 import type { Submission } from "@/lib/endatix-api/submissions/types";
-import type {
-  ColumnDef,
-  PaginationState,
-  SortingState,
-} from "@tanstack/react-table";
+import type { PaginationState, SortingState } from "@tanstack/react-table";
 import type { Route } from "next";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {

@@ -13,9 +13,11 @@ import { formatLocaleLabel } from "@/features/data-lists/translations/locale-dis
 import type { DataListItem } from "@/lib/endatix-api/data-lists/types";
 import { resolveCatalogDefaultLabelText } from "@/lib/localization";
 import {
-  getCoreRowModel,
-  useReactTable,
+  hubTableFeatures,
   type ColumnDef,
+} from "@/components/table/hub-table-features";
+import {
+  useTable,
   type OnChangeFn,
   type SortingState,
 } from "@tanstack/react-table";
@@ -121,18 +123,16 @@ export function DataListItemsTable({
     ? { state: { sorting }, onSortingChange }
     : {};
 
-  const table = useReactTable({
+  const table = useTable({
+    features: hubTableFeatures,
     data,
     columns,
-    getCoreRowModel: getCoreRowModel(),
     getRowId: (row) => row.rowId,
     enableColumnPinning: true,
     manualSorting: sortingEnabled,
     ...controlledSorting,
     initialState: {
-      columnPinning: {
-        left: ["value"],
-      },
+      columnPinning: { start: ["value"], end: [] },
     },
   });
 

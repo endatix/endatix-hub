@@ -47,10 +47,10 @@ import type { UrlSearchParamsUpdater } from "@/lib/utils/hooks/use-url-search-pa
 import { Result } from "@/lib/result";
 import { formatInteger } from "@/lib/utils/formatters";
 import {
-  getCoreRowModel,
-  useReactTable,
+  hubTableFeatures,
   type ColumnDef,
-} from "@tanstack/react-table";
+} from "@/components/table/hub-table-features";
+import { useTable } from "@tanstack/react-table";
 import type { Route } from "next";
 import { CreateDataListDialog } from "../../create-list/ui/create-data-list-dialog";
 import { DataListRowActions } from "./data-list-row-actions";
@@ -160,7 +160,7 @@ export function DataListsPage({
         setIsDeleteBlocked(dependenciesResult.value.length > 0);
       });
     },
-    [replaceListHref, startDependenciesTransition],
+    [replaceListHref, setIsDeleteDialogOpen, startDependenciesTransition],
   );
 
   const handleDelete = () => {
@@ -206,10 +206,10 @@ export function DataListsPage({
   // defeats its internal row-model memoization and cascades into a setState
   // loop from inside its row-pagination/row-model machinery.
   const tableData = useMemo(() => [...paged.items], [paged.items]);
-  const table = useReactTable({
+  const table = useTable({
+    features: hubTableFeatures,
     data: tableData,
     columns,
-    getCoreRowModel: getCoreRowModel(),
     getRowId: (row) => String(row.id),
     manualSorting: true,
     state: { sorting },

@@ -1,6 +1,6 @@
 "use client";
+import { type ColumnDef } from "./hub-table-features";
 
-import type { ColumnDef } from "@tanstack/react-table";
 import type { DateInput } from "@/lib/date-utils";
 import type { UrlSearchParamsUpdater } from "@/lib/utils/hooks/use-url-search-params-updater.hook";
 import { CellDate } from "./cell-date";

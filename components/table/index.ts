@@ -70,6 +70,7 @@ export {
   useListTableState,
   type ListTableUrlState,
 } from "./use-list-table-state";
+export { hubTableFeatures } from "./hub-table-features";
 export { useHeldHeight } from "./use-held-height";
 export { useListUrlState, type ListUrlState } from "./use-list-url-state";
 export {

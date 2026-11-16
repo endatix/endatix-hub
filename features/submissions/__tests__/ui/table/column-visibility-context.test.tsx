@@ -1,9 +1,10 @@
+import { type ColumnDef } from "@/components/table/hub-table-features";
 import { mockMatchMedia } from "@/__tests__/utils/mock-match-media";
 import {
   ColumnVisibilityProvider,
   useColumnVisibility,
 } from "@/features/submissions/ui/table/column-visibility-context";
-import { ColumnDef } from "@tanstack/react-table";
+
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 

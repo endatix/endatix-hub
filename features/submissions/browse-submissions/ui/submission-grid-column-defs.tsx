@@ -1,4 +1,8 @@
 "use client";
+import {
+  type ColumnDef,
+  type HeaderContext,
+} from "@/components/table/hub-table-features";
 
 import { TruncatedId } from "@/components/common/truncated-id";
 import {
@@ -10,7 +14,7 @@ import {
 import type { DateFilterValue } from "@/components/table/date-filter-types";
 import "@/components/table/data-table-column-meta";
 import type { SubmissionGridRow } from "@/lib/endatix-api/reporting/submission-grid-types";
-import type { ColumnDef, HeaderContext } from "@tanstack/react-table";
+
 import {
   answerColumnId,
   isSubmitterProfileColumn,

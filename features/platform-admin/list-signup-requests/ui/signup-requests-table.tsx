@@ -20,10 +20,10 @@ import type { NormalizedPagedResponse } from "@/lib/endatix-api/shared/paged-res
 import { Result, type ResultType } from "@/lib/result";
 import type { UrlSearchParamsUpdater } from "@/lib/utils/hooks/use-url-search-params-updater.hook";
 import {
-  getCoreRowModel,
-  useReactTable,
+  hubTableFeatures,
   type ColumnDef,
-} from "@tanstack/react-table";
+} from "@/components/table/hub-table-features";
+import { useTable } from "@tanstack/react-table";
 import type { SignupRequestsUrlState } from "../signup-requests-url-state";
 import { DEFAULT_SIGNUP_REQUEST_STATUS_FILTER } from "../types";
 import { Button } from "@/components/ui/button";
@@ -128,10 +128,10 @@ export function SignupRequestsTable({
     (reviewing && paged.items.find((item) => item.id === reviewing.id)) ??
     reviewing;
   const tableData = useMemo(() => [...paged.items], [paged.items]);
-  const table = useReactTable({
+  const table = useTable({
+    features: hubTableFeatures,
     data: tableData,
     columns,
-    getCoreRowModel: getCoreRowModel(),
     getRowId: (row) => row.id,
     manualSorting: true,
     state: {

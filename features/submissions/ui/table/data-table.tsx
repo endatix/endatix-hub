@@ -43,16 +43,16 @@ import {
   SortableContext,
 } from "@dnd-kit/sortable";
 import {
-  ColumnDef,
+  hubTableFeatures,
+  type ColumnDef,
+  type Row,
+} from "@/components/table/hub-table-features";
+import {
   flexRender,
-  getCoreRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
   PaginationState,
-  Row,
   RowSelectionState,
   SortingState,
-  useReactTable,
+  useTable,
 } from "@tanstack/react-table";
 import { useRouter } from "next/navigation";
 import { Dispatch, SetStateAction, useId, useState } from "react";
@@ -205,15 +205,13 @@ export function DataTable<TData extends Submission>({
   };
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
-  const table = useReactTable({
+  const table = useTable({
+    features: hubTableFeatures,
     data,
     columns,
     // Key rows by submission, not index: stateful cells (status dropdown,
     // answers) must not carry page 1 values into page 2 (issue #1011).
     getRowId: (row) => row.id,
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getSortedRowModel: getSortedRowModel(),
     manualFiltering: true,
     manualPagination,
     rowCount: manualRowCount,
@@ -233,7 +231,8 @@ export function DataTable<TData extends Submission>({
       columnOrder,
       columnVisibility,
       columnPinning: {
-        left: ["actions"],
+        start: ["actions"],
+        end: [],
       },
     },
   });
@@ -287,7 +286,7 @@ export function DataTable<TData extends Submission>({
                     >
                       {headerGroup.headers.map((header) => {
                         const isPinnedLeft =
-                          header.column.getIsPinned() === "left";
+                          header.column.getIsPinned() === "start";
                         return (
                           <TableHead
                             key={header.id}
@@ -330,7 +329,7 @@ export function DataTable<TData extends Submission>({
                       >
                         {row.getVisibleCells().map((cell) => {
                           const isPinnedLeft =
-                            cell.column.getIsPinned() === "left";
+                            cell.column.getIsPinned() === "start";
                           return (
                             <TableCell
                               key={cell.id}

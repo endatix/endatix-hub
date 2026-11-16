@@ -1,13 +1,10 @@
 "use client";
+import { type ColumnDef } from "@/components/table/hub-table-features";
 
 import { DataTable } from "@/features/submissions/ui/table";
 import type { ParsedSubmission } from "@/features/submissions/ui/table";
 import { Submission } from "@/lib/endatix-api";
-import type {
-  ColumnDef,
-  PaginationState,
-  SortingState,
-} from "@tanstack/react-table";
+import type { PaginationState, SortingState } from "@tanstack/react-table";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 
 type SubmissionsTableProps = {

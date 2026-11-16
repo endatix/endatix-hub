@@ -1,8 +1,9 @@
 "use client";
+import { type ColumnDef } from "@/components/table/hub-table-features";
 
 import { Submission } from "@/lib/endatix-api";
 import { useIsMobile } from "@/lib/utils/hooks/use-media-query.hook";
-import { ColumnDef } from "@tanstack/react-table";
+
 import {
   createContext,
   ReactNode,

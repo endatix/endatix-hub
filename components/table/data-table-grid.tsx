@@ -1,5 +1,11 @@
 "use client";
 "use no memo";
+import type { RowData } from "@tanstack/react-table";
+import {
+  type Header,
+  type Row,
+  type Table as TanstackTable,
+} from "./hub-table-features";
 
 // TanStack Table keeps one table instance, so the React Compiler would cache
 // what reads it and miss in-place state changes (column visibility, sizing).
@@ -23,14 +29,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  flexRender,
-  type Header,
-  type Row,
-  type Table as TanstackTable,
-} from "@tanstack/react-table";
+import { flexRender } from "@tanstack/react-table";
 
-type DataTableGridProps<TData> = {
+type DataTableGridProps<TData extends RowData> = {
   table: TanstackTable<TData>;
   empty: ReactNode;
   hasRows: boolean;
@@ -52,7 +53,7 @@ type DataTableGridProps<TData> = {
  * `enableColumnResizing: true` gets resize handles; a resized column keeps
  * its `columnSizing` width, the others stay automatic.
  */
-export function DataTableGrid<TData>({
+export function DataTableGrid<TData extends RowData>({
   table,
   empty,
   hasRows,
@@ -85,7 +86,7 @@ export function DataTableGrid<TData>({
   );
 }
 
-function GridHeader<TData>({
+function GridHeader<TData extends RowData>({
   table,
 }: Readonly<{ table: TanstackTable<TData> }>) {
   return (
@@ -104,7 +105,7 @@ function GridHeader<TData>({
   );
 }
 
-function GridHeaderCell<TData>({
+function GridHeaderCell<TData extends RowData>({
   header,
 }: Readonly<{ header: Header<TData, unknown> }>) {
   const isResizable = header.getContext().table.options.enableColumnResizing;
@@ -112,7 +113,7 @@ function GridHeaderCell<TData>({
     <TableHead
       colSpan={header.colSpan}
       className={dataTableHeaderCellClassName({
-        isPinnedLeft: header.column.getIsPinned() === "left",
+        isPinnedLeft: header.column.getIsPinned() === "start",
         className: header.column.columnDef.meta?.headerClassName,
       })}
       style={resizedColumnStyle(header.getContext().table, header.column)}
@@ -125,12 +126,12 @@ function GridHeaderCell<TData>({
   );
 }
 
-type GridBodyRowsProps<TData> = Pick<
+type GridBodyRowsProps<TData extends RowData> = Pick<
   DataTableGridProps<TData>,
   "table" | "onRowClick"
 >;
 
-function GridBodyRows<TData>({
+function GridBodyRows<TData extends RowData>({
   table,
   onRowClick,
 }: Readonly<GridBodyRowsProps<TData>>) {
@@ -151,7 +152,7 @@ function GridBodyRows<TData>({
   });
 }
 
-function rowActivationProps<TData>(
+function rowActivationProps<TData extends RowData>(
   row: Row<TData>,
   onRowClick: (row: Row<TData>) => void,
 ) {
@@ -179,7 +180,7 @@ function isRowActivationKey(event: KeyboardEvent<HTMLTableRowElement>) {
   );
 }
 
-function GridBodyCells<TData>({
+function GridBodyCells<TData extends RowData>({
   row,
   isEvenRow,
 }: Readonly<{ row: Row<TData>; isEvenRow: boolean }>) {
@@ -187,7 +188,7 @@ function GridBodyCells<TData>({
     <TableCell
       key={cell.id}
       className={dataTableBodyCellClassName({
-        isPinnedLeft: cell.column.getIsPinned() === "left",
+        isPinnedLeft: cell.column.getIsPinned() === "start",
         isEvenRow,
         className: cell.column.columnDef.meta?.cellClassName,
       })}
