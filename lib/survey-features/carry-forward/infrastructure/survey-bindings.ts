@@ -1,4 +1,9 @@
-import type { Model, Question, QuestionAddedEvent } from "survey-core";
+import type {
+  Model,
+  Question,
+  QuestionAddedEvent,
+  QuestionCreatedEvent,
+} from "survey-core";
 import {
   CARRY_FORWARD_ENABLED_PROPERTY,
   CARRY_FORWARD_HANDLERS_ATTACHED_KEY,
@@ -14,6 +19,7 @@ import {
   clearCarryForwardDependencyStateForModel,
   installCarryForwardTargetSyncWrapper,
   registerCarryForwardDependencies,
+  uninstallCarryForwardTargetSyncWrapper,
   unregisterCarryForwardDependencies,
 } from "./carry-forward-dependencies";
 import {
@@ -24,70 +30,165 @@ import { syncSingleCarryForwardTarget } from "../use-cases/sync-carry-forward-ta
 
 const boundModelsForTests = new Map<Model, () => void>();
 
+type PropertyChangeHandler = (_: unknown, options: { name: string }) => void;
+
+function createPropertyChangeHandler(
+  model: Model,
+  target: AdvancedCarryForwardQuestion,
+): PropertyChangeHandler {
+  return (_, options) => {
+    if (
+      options.name === CARRY_FORWARD_SOURCES_PROPERTY ||
+      options.name === CARRY_FORWARD_ENABLED_PROPERTY
+    ) {
+      unregisterCarryForwardDependencies(model, target);
+      if (isAdvancedCarryForwardEnabled(target)) {
+        registerCarryForwardDependencies(model, target);
+      }
+    }
+
+    loadCarryForwardTargetsFromPropertyChange(model, target, options.name);
+  };
+}
+
+function syncWhenSourcesChange(
+  model: Model,
+  target: AdvancedCarryForwardQuestion,
+): void {
+  installCarryForwardTargetSyncWrapper(model, target, (syncTarget) => {
+    syncCarryForwardTargets(model, [syncTarget]);
+  });
+  registerCarryForwardDependencies(model, target);
+}
+
+/**
+ * Runs `beforeDispose` ahead of the question's own dispose. A loop disposes the
+ * questions of the panels it drops, and SurveyJS likewise unhooks a
+ * `choicesFromQuestion` dependent in `dispose()`.
+ */
+function runBeforeDispose(
+  question: Question,
+  beforeDispose: () => void,
+): () => void {
+  const dispose = question.dispose;
+  question.dispose = () => {
+    beforeDispose();
+    dispose.call(question);
+  };
+
+  return () => {
+    question.dispose = dispose;
+  };
+}
+
+type SurveyElementLink = {
+  parent?: SurveyElementLink | null;
+  parentQuestion?: unknown;
+};
+
+/**
+ * Whether the question or any of its ancestors has a `parentQuestion`, as one
+ * in a dynamic panel (a question loop among them) or its template does.
+ */
+function hasParentQuestion(question: Question): boolean {
+  let element: SurveyElementLink | null | undefined = question;
+  while (element) {
+    if (element.parentQuestion) {
+      return true;
+    }
+    element = element.parent;
+  }
+  return false;
+}
+
+/** The targets attached to one model, with their property-change handlers. */
+class CarryForwardTargetRegistry {
+  private readonly attachments = new Map<
+    AdvancedCarryForwardQuestion,
+    { handler: PropertyChangeHandler; restoreDispose: () => void }
+  >();
+
+  constructor(private readonly model: Model) {}
+
+  /** Attaches a target once; returns whether it was attached now. */
+  attach(question: Question): boolean {
+    if (
+      !isAdvancedCarryForwardEnabled(question) ||
+      this.attachments.has(question)
+    ) {
+      return false;
+    }
+
+    const handler = createPropertyChangeHandler(this.model, question);
+    question.onPropertyChanged.add(handler);
+    syncWhenSourcesChange(this.model, question);
+    const restoreDispose = runBeforeDispose(question, () =>
+      this.detach(question),
+    );
+    this.attachments.set(question, { handler, restoreDispose });
+    return true;
+  }
+
+  detachAll(): void {
+    for (const target of this.attachments.keys()) {
+      this.detach(target);
+    }
+  }
+
+  /** Undoes everything attach did, so the target carries no patches. */
+  private detach(target: AdvancedCarryForwardQuestion): void {
+    const attachment = this.attachments.get(target);
+    if (!attachment) {
+      return;
+    }
+
+    this.attachments.delete(target);
+    target.onPropertyChanged.remove(attachment.handler);
+    unregisterCarryForwardDependencies(this.model, target);
+    uninstallCarryForwardTargetSyncWrapper(this.model, target);
+    attachment.restoreDispose();
+  }
+}
+
 /**
  * Wires carry-forward config changes on targets (sources, mode, enabled, etc.).
  * Source *value* sync uses SurveyJS `addDependedQuestion` + `updateDependedQuestion`
  * (see carry-forward-dependencies.ts), not per-question value listeners.
  */
 function attachCarryForwardPropertyChangeHandlers(model: Model): () => void {
-  const questionHandlers = new Map<
-    AdvancedCarryForwardQuestion,
-    (_: unknown, options: { name: string }) => void
-  >();
+  const targets = new CarryForwardTargetRegistry(model);
 
-  const attachToTarget = (question: Question): void => {
-    if (!isAdvancedCarryForwardEnabled(question)) {
+  getAllCarryForwardTargets(model).forEach((target) => targets.attach(target));
+
+  // In design mode a question added inside a dynamic panel lands in its
+  // template: leave its authored choices alone.
+  const handleQuestionAdded = (_: unknown, options: QuestionAddedEvent) => {
+    if (model.isDesignMode && hasParentQuestion(options.question)) {
       return;
     }
-
-    const target = question as AdvancedCarryForwardQuestion;
-    if (questionHandlers.has(target)) {
-      return;
-    }
-
-    const handler = (_: unknown, options: { name: string }) => {
-      if (
-        options.name === CARRY_FORWARD_SOURCES_PROPERTY ||
-        options.name === CARRY_FORWARD_ENABLED_PROPERTY
-      ) {
-        unregisterCarryForwardDependencies(model, target);
-        if (isAdvancedCarryForwardEnabled(target)) {
-          registerCarryForwardDependencies(model, target);
-        }
-      }
-
-      loadCarryForwardTargetsFromPropertyChange(model, target, options.name);
-    };
-
-    target.onPropertyChanged.add(handler);
-    questionHandlers.set(target, handler);
-    registerCarryForwardDependencies(model, target);
+    targets.attach(options.question);
   };
 
-  getAllCarryForwardTargets(model).forEach((target) => attachToTarget(target));
-
-  const handleQuestionAdded = (_: unknown, options: QuestionAddedEvent) => {
-    attachToTarget(options.question);
+  // A dynamic panel (a question loop's panels among them) builds its questions
+  // from the template after load, and onQuestionAdded does not fire for them.
+  // In design mode the created question is a template one: leave it as authored.
+  const handleQuestionCreated = (_: unknown, options: QuestionCreatedEvent) => {
+    if (!model.isDesignMode && targets.attach(options.question)) {
+      syncSingleCarryForwardTarget(
+        model,
+        options.question as AdvancedCarryForwardQuestion,
+      );
+    }
   };
 
   model.onQuestionAdded.add(handleQuestionAdded);
+  model.onQuestionCreated.add(handleQuestionCreated);
 
   return () => {
-    questionHandlers.forEach((handler, question) => {
-      question.onPropertyChanged.remove(handler);
-      unregisterCarryForwardDependencies(model, question);
-    });
-    questionHandlers.clear();
+    targets.detachAll();
     model.onQuestionAdded.remove(handleQuestionAdded);
+    model.onQuestionCreated.remove(handleQuestionCreated);
   };
-}
-
-function installTargetSyncWrappers(model: Model): void {
-  for (const target of getAllCarryForwardTargets(model)) {
-    installCarryForwardTargetSyncWrapper(model, target, (syncTarget) => {
-      syncCarryForwardTargets(model, [syncTarget]);
-    });
-  }
 }
 
 export function bindAdvancedCarryForwardToSurvey(model: Model): () => void {
@@ -104,14 +205,12 @@ export function bindAdvancedCarryForwardToSurvey(model: Model): () => void {
 
   modelWithFlags[CARRY_FORWARD_HANDLERS_ATTACHED_KEY] = true;
 
-  installTargetSyncWrappers(model);
+  const detachPropertyHandlers =
+    attachCarryForwardPropertyChangeHandlers(model);
 
   getCarryForwardTargetsInDependencyOrder(model).forEach((target) => {
     syncSingleCarryForwardTarget(model, target);
   });
-
-  const detachPropertyHandlers =
-    attachCarryForwardPropertyChangeHandlers(model);
 
   const dispose = () => {
     detachPropertyHandlers();
