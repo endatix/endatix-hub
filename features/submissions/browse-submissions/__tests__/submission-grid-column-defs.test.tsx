@@ -54,13 +54,15 @@ function openAnswerHeaderMenu(column: SubmissionGridColumn) {
     toAnswerColumns([column]),
     FILTERS,
   ).slice(-1);
-  const Header = definition.header as (props: unknown) => React.ReactNode;
+  const Header = definition.header as (props: {
+    column: unknown;
+  }) => React.ReactNode;
   const tableColumn = {
     id: definition.id,
     getCanSort: () => false,
     getIsSorted: () => false,
   };
-  render(<>{Header({ column: tableColumn })}</>);
+  render(<Header column={tableColumn} />);
   fireEvent.pointerDown(screen.getByRole("button", { name: /column menu/i }), {
     button: 0,
     ctrlKey: false,

@@ -12,12 +12,14 @@ import {
   rowSelectionFeature,
   rowSortingFeature,
   tableFeatures,
+  type Cell as TanstackCell,
   type Column as TanstackColumn,
   type ColumnDef as TanstackColumnDef,
   type Header as TanstackHeader,
   type HeaderContext as TanstackHeaderContext,
   type Row as TanstackRow,
   type RowData,
+  type ReactTable as TanstackReactTable,
   type Table as TanstackTable,
 } from "@tanstack/react-table";
 
@@ -63,7 +65,20 @@ export type Table<TData extends RowData> = TanstackTable<
   HubTableFeatures,
   TData
 >;
+/**
+ * What `useTable` returns: a new object whenever the table's state changes,
+ * with that state on `table.state`. Read state for rendering from here.
+ */
+export type ReactTable<TData extends RowData> = TanstackReactTable<
+  HubTableFeatures,
+  TData
+>;
 export type Row<TData extends RowData> = TanstackRow<HubTableFeatures, TData>;
+export type Cell<TData extends RowData, TValue = unknown> = TanstackCell<
+  HubTableFeatures,
+  TData,
+  TValue
+>;
 export type Column<TData extends RowData, TValue = unknown> = TanstackColumn<
   HubTableFeatures,
   TData,
