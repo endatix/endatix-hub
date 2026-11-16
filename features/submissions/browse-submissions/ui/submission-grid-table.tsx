@@ -16,6 +16,7 @@ import type { SubmissionGridRowsPage } from "@/lib/endatix-api/reporting/submiss
 import type { SubmissionGridRow } from "@/lib/endatix-api/reporting/submission-grid-types";
 import {
   hubTableFeatures,
+  serverPagedRows,
   type Row,
 } from "@/components/table/hub-table-features";
 import {
@@ -112,7 +113,7 @@ function useSubmissionGridTable(
     data,
     columns,
     getRowId: (row) => row.id,
-    manualSorting: true,
+    ...serverPagedRows,
     ...resizableView(useSubmissionGridView(), sorting),
     onSortingChange: (updater: Updater<SortingState>) =>
       grid.updateUrl(sortUpdate(functionalUpdate(updater, sorting))),

@@ -21,6 +21,7 @@ import { Result, type ResultType } from "@/lib/result";
 import type { UrlSearchParamsUpdater } from "@/lib/utils/hooks/use-url-search-params-updater.hook";
 import {
   hubTableFeatures,
+  serverPagedRows,
   type ColumnDef,
 } from "@/components/table/hub-table-features";
 import { useTable } from "@tanstack/react-table";
@@ -133,7 +134,7 @@ export function SignupRequestsTable({
     data: tableData,
     columns,
     getRowId: (row) => row.id,
-    manualSorting: true,
+    ...serverPagedRows,
     state: {
       sorting,
       // Nobody has decided a pending request; the column only earns its width elsewhere.

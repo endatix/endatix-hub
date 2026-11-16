@@ -48,6 +48,7 @@ import { Result } from "@/lib/result";
 import { formatInteger } from "@/lib/utils/formatters";
 import {
   hubTableFeatures,
+  serverPagedRows,
   type ColumnDef,
 } from "@/components/table/hub-table-features";
 import { useTable } from "@tanstack/react-table";
@@ -211,7 +212,7 @@ export function DataListsPage({
     data: tableData,
     columns,
     getRowId: (row) => String(row.id),
-    manualSorting: true,
+    ...serverPagedRows,
     state: { sorting },
     onSortingChange,
   });

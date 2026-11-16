@@ -44,6 +44,16 @@ export const hubTableFeatures = tableFeatures({
 
 export type HubTableFeatures = typeof hubTableFeatures;
 
+/**
+ * Options for a list whose rows the server sorts and pages. Without
+ * `manualPagination`, Table 9 cuts each server page to its own default of 10
+ * rows, because every Hub table registers the paginated row model.
+ */
+export const serverPagedRows = {
+  manualPagination: true,
+  manualSorting: true,
+} as const;
+
 /** Table 9 types bound to the features Hub tables register. */
 export type ColumnDef<
   TData extends RowData,

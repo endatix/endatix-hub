@@ -14,6 +14,7 @@ import type { DataListItem } from "@/lib/endatix-api/data-lists/types";
 import { resolveCatalogDefaultLabelText } from "@/lib/localization";
 import {
   hubTableFeatures,
+  serverPagedRows,
   type ColumnDef,
 } from "@/components/table/hub-table-features";
 import {
@@ -129,7 +130,7 @@ export function DataListItemsTable({
     columns,
     getRowId: (row) => row.rowId,
     enableColumnPinning: true,
-    manualSorting: sortingEnabled,
+    ...serverPagedRows,
     ...controlledSorting,
     initialState: {
       columnPinning: { start: ["value"], end: [] },
