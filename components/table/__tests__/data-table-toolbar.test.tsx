@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { stubResizeObserver } from "@/test/stubs/resize-observer";
+import { stubScrollIntoView } from "@/test/stubs/scroll-into-view";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { DataTableFilter } from "../data-table-filter";
 import { DataTableToolbar } from "../data-table-toolbar";
@@ -111,7 +112,7 @@ describe("DataTableToolbar", () => {
 describe("DataTableToolbar Filters drawer", () => {
   beforeEach(() => {
     stubResizeObserver(); // cmdk measures its list
-    Element.prototype.scrollIntoView = vi.fn();
+    stubScrollIntoView();
   });
 
   function renderWithFacets(
@@ -294,9 +295,8 @@ describe("DataTableToolbar More actions", () => {
     ).toBeTruthy();
   });
 
-  it("keeps a collapsible action in the row from 768 px", () => {
+  it("puts a collapsible action's menu form in ⋯ behind the md breakpoint its row form uses", () => {
     // Arrange
-    stubWidth(false);
     render(
       <DataTableToolbar
         collapsibleActions={{
@@ -313,32 +313,18 @@ describe("DataTableToolbar More actions", () => {
     const menu = openMenu("More actions");
 
     // Assert
+    const inline = within(region("actions"))
+      .getByRole("button", { name: "Columns" })
+      .closest(".md\\:contents");
+    const collapsed = within(menu)
+      .getByRole("menuitem", { name: "Columns…" })
+      .closest('[data-slot="more-actions-collapsed"]');
+    expect(inline?.classList.contains("hidden")).toBe(true);
+    expect(collapsed?.classList.contains("md:hidden")).toBe(true);
     expect(
-      within(region("actions")).getByRole("button", { name: "Columns" }),
-    ).toBeTruthy();
-    expect(
-      within(menu).queryByRole("menuitem", { name: "Columns…" }),
+      within(menu)
+        .getByRole("menuitem", { name: "Delete test submissions" })
+        .closest('[data-slot="more-actions-collapsed"]'),
     ).toBeNull();
-  });
-
-  it("moves a collapsible action into ⋯ below 768 px", () => {
-    // Arrange
-    stubWidth(true);
-    render(
-      <DataTableToolbar
-        collapsibleActions={{
-          inline: <button type="button">Columns</button>,
-          menuItems: <DropdownMenuItem>Columns…</DropdownMenuItem>,
-        }}
-      />,
-    );
-
-    // Act
-    const menu = openMenu("More actions");
-
-    // Assert
-    expect(
-      within(menu).getByRole("menuitem", { name: "Columns…" }),
-    ).toBeTruthy();
   });
 });

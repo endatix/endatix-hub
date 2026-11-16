@@ -99,7 +99,11 @@ function FacetedFilterInline({
       role="group"
       aria-labelledby={labelledBy}
       data-slot="faceted-filter-inline"
-      className="rounded-md border"
+      aria-disabled={props.disabled || undefined}
+      className={cn(
+        "rounded-md border",
+        props.disabled && "pointer-events-none opacity-50",
+      )}
     >
       <FacetedFilterMenu
         {...props}

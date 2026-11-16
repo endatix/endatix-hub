@@ -39,7 +39,7 @@ export function PeopleToolbar({
         />
       }
       filters={
-        <DataTableFilter label="Participants">
+        <DataTableFilter label="Real or test">
           {({ id }) => <PeopleTestFilter value={testFilter} id={id} />}
         </DataTableFilter>
       }

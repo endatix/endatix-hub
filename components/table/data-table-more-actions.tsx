@@ -1,7 +1,7 @@
 "use client";
 
 import { MoreHorizontal } from "lucide-react";
-import { useSyncExternalStore, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -10,7 +10,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { MOBILE_BREAKPOINT_PX } from "@/lib/utils/hooks/use-media-query.hook";
 
 type MoreActionsMenuProps = {
   /** Items shown below 768 px only: the menu form of the row's collapsible actions. */
@@ -50,32 +49,21 @@ export function MoreActionsMenu({
   );
 }
 
-const BELOW_TOOLBAR_BREAKPOINT = `(max-width: ${MOBILE_BREAKPOINT_PX - 1}px)`;
-
-/** Read on the first render, so a phone's menu never opens without its collapsed items. */
-function useBelowBreakpoint(): boolean {
-  return useSyncExternalStore(
-    (onChange) => {
-      const media = globalThis.matchMedia?.(BELOW_TOOLBAR_BREAKPOINT);
-      media?.addEventListener("change", onChange);
-      return () => media?.removeEventListener("change", onChange);
-    },
-    () => globalThis.matchMedia?.(BELOW_TOOLBAR_BREAKPOINT).matches ?? false,
-    () => false,
-  );
-}
-
-/** Mounted only while the menu is open. */
+/**
+ * The collapsed items are hidden from 768 px by the same `md` breakpoint that shows their row
+ * form, so the row and the menu never disagree. Radix skips a hidden item when it moves focus.
+ */
 function MoreActionsItems({
   collapsedItems,
   moreActions,
 }: Readonly<MoreActionsMenuProps>) {
-  const isMobile = useBelowBreakpoint();
-  const showCollapsed = Boolean(collapsedItems) && isMobile;
+  if (!collapsedItems) return moreActions;
   return (
     <>
-      {showCollapsed ? collapsedItems : null}
-      {showCollapsed && moreActions ? <DropdownMenuSeparator /> : null}
+      <div data-slot="more-actions-collapsed" className="md:hidden">
+        {collapsedItems}
+        {moreActions ? <DropdownMenuSeparator /> : null}
+      </div>
       {moreActions}
     </>
   );

@@ -342,19 +342,21 @@ slots and never builds the row itself. Reference:
   the Filters drawer (a filter) or `⋯` (an action); the row never scrolls sideways.
 - **The Filters drawer lists each filter under its own label, with no popover over it.** A
   `FacetedFilter` there shows its options inline (the same groups, badges and order as its
-  menu), named by its label: a popover portaled out of the modal Drawer takes no taps. Any
-  other control (a `Select`) is wrapped in `DataTableFilter`, whose render function hands it
-  the label's `id`. The footer holds **Reset** (the same callback as the toolbar's Reset and
-  the empty state's Clear filters) and **Done**. `activeFilterCount` counts the drawer's
-  filters that differ from the default view, so the number matches what the drawer shows. A
-  filter that renders nothing leaves no Filters button.
+  menu), named by its label: a popover portaled out of the modal Drawer takes no taps. A
+  `Select` opens its own modal layer, so it works there; it is wrapped in `DataTableFilter`,
+  whose render function hands it the label's `id`. The footer holds **Reset** and **Done**.
+- **One Reset.** The drawer's Reset, the toolbar's and the empty state's Clear filters are the
+  same callback, so all three also clear what sits outside the drawer (the search, a column
+  filter). `activeFilterCount` counts only the drawer's filters that differ from the default
+  view, so the number matches what the drawer shows. A filter that renders nothing leaves no
+  Filters button.
 - **An occasional action is a `⋯` item at every width** (Delete test submissions, Reset table
   layout), not a toolbar button. Its confirmation renders beside the toolbar (Overlays rule 10)
   and names its count. A list with nothing occasional has no `⋯` from 768 px.
 
 **Filters — `FacetedFilter`.** A facet speaks the vocabulary of the column it filters.
 Reference: the submissions Status facet,
-`features/submissions/ui/filters/submissions-filter-toolbar.tsx`.
+`features/submissions/ui/filters/submissions-facets.tsx`.
 
 - **A facet over states shows each option as its `StatusBadge`** (`tone` on the option): the
   same pill, tone and label as the column, so the reader matches a row to a choice by sight.

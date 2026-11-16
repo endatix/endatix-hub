@@ -79,6 +79,7 @@ export function SubmissionGridToolbar(props: Readonly<ToolbarProps>) {
   const { canDeleteTests } = useSubmissionTestAccess();
   const deleteTests = useDeleteTestSubmissionsAction(formId, disabled);
   const columns = useColumnsAction(props);
+  const reset = useResetProps(disabled);
   return (
     <>
       <DataTableToolbar
@@ -86,7 +87,7 @@ export function SubmissionGridToolbar(props: Readonly<ToolbarProps>) {
         filters={<GridFacets disabled={disabled} />}
         activeFilterCount={countActiveFacets(urlState)}
         filtersDisabled={disabled}
-        reset={useResetProps(disabled)}
+        reset={reset}
         collapsibleActions={{
           inline: <LayoutActions {...props} />,
           menuItems: (
@@ -146,17 +147,29 @@ function countActiveFacets(urlState: SubmissionGridUrlState): number {
 }
 
 /** Below 768 px, `⋯ > Columns…` opens the picker in a drawer beside the menu. */
+/**
+ * Below 768 px, `⋯ > Columns…` opens the picker in a drawer beside the menu. Each open mounts a
+ * fresh picker (its draft starts from the URL), and nothing mounts before the first open.
+ */
 function useColumnsAction(props: Readonly<ToolbarProps>) {
   const [open, setOpen] = useState(false);
+  const [opens, setOpens] = useState(0);
   const available = useColumnPickerAvailable(props);
   const menuItem = (
-    <DropdownMenuItem disabled={!available} onSelect={() => setOpen(true)}>
+    <DropdownMenuItem
+      disabled={!available}
+      onSelect={() => {
+        setOpens((count) => count + 1);
+        setOpen(true);
+      }}
+    >
       <Settings2 />
       Columns…
     </DropdownMenuItem>
   );
-  const overlay = (
+  const overlay = opens > 0 && (
     <SubmissionGridColumnPickerOverlay
+      key={opens}
       {...props}
       open={open}
       onOpenChange={setOpen}
