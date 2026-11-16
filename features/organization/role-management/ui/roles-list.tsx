@@ -27,6 +27,7 @@ import type {
 } from "@/lib/endatix-api";
 import type { UrlSearchParamsUpdater } from "@/lib/utils/hooks/use-url-search-params-updater.hook";
 import { createUrlFilterUpdater } from "@/lib/utils/list-table-url-utils";
+import { parseRoleType } from "../role-type-filter";
 import { RolesTable } from "./roles-table";
 
 const allRoleTypesValue = "__all_role_types__";
@@ -101,11 +102,9 @@ function RolesToolbar({
   searchParams,
   createAction,
 }: Readonly<RolesToolbarProps>) {
-  const urlRoleType = searchParams.get("roleType");
+  const urlRoleType = parseRoleType(searchParams.get("roleType"));
   const roleType =
-    urlRoleType === "system" || urlRoleType === "custom"
-      ? urlRoleType
-      : allRoleTypesValue;
+    urlRoleType && urlRoleType !== "all" ? urlRoleType : allRoleTypesValue;
   const isTypeFiltered = roleType !== allRoleTypesValue;
   return (
     <DataTableToolbar
