@@ -342,9 +342,9 @@ slots and never builds the row itself. Reference:
   the Filters drawer (a filter) or `⋯` (an action); the row never scrolls sideways.
 - **The Filters drawer lists each filter under its own label, with no popover over it.** A
   `FacetedFilter` there shows its options inline (the same groups, badges and order as its
-  menu), named by its label: a popover portaled out of the modal Drawer takes no taps. A
-  `Select` opens its own modal layer, so it works there; it is wrapped in `DataTableFilter`,
-  whose render function hands it the label's `id`. The footer holds **Reset** and **Done**.
+  menu), named by its label, so the drawer shows every choice without a popover over it. A
+  `Select` keeps its own layer; it is wrapped in `DataTableFilter`, whose render function hands
+  it the label's `id`. The footer holds **Reset** and **Done**.
 - **One Reset.** The drawer's Reset, the toolbar's and the empty state's Clear filters are the
   same callback, so all three also clear what sits outside the drawer (the search, a column
   filter). `activeFilterCount` counts only the drawer's filters that differ from the default
@@ -537,6 +537,12 @@ to `value` are `completed`; the `value` step itself is `active`. Reference:
     opens the public page in a new tab), or the panel's job moves to a page. A list whose rows
     open overlays is a view of the page (`LinkTabs`), not a panel. Reference:
     `features/forms/ui/form-sheet.tsx`.
+13. **Escape closes only the topmost overlay.** A Popover or Select opened inside a panel is the
+    top layer: Escape and an outside tap close it and leave the panel open, and taps inside it
+    land. Radix keeps that order in one stack per copy of `@radix-ui/react-dismissable-layer`, so
+    Vaul and cmdk must resolve the same `@radix-ui/react-dialog` as `radix-ui`.
+    `components/ui/__tests__/responsive-panel.test.tsx` fails when a second copy comes back;
+    `pnpm dedupe` removes it.
 
 ### Buttons, inputs, chips
 
