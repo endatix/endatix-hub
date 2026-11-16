@@ -25,7 +25,15 @@ export default defineConfig({
     testTimeout: 15_000,
     server: {
       deps: {
-        inline: ["next-auth"],
+        inline: [
+          "next-auth",
+          // SurveyJS 3.2.5 records property reads on a static of survey-core.
+          // Prebundling survey-react-ui keeps a second copy, so those reads never subscribe.
+          "survey-core",
+          "survey-react-ui",
+          "survey-creator-core",
+          "survey-creator-react",
+        ],
       },
     },
     exclude: [...configDefaults.exclude, "e2e/**", "**/.*/worktrees/**"],
