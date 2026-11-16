@@ -220,6 +220,19 @@ interface FacetedFilterMenuProps extends FacetedFilterBaseProps {
   inline?: boolean;
 }
 
+/**
+ * Inline (in the Filters drawer) without search, the list itself takes focus: arrows move,
+ * Enter toggles. Its first row is highlighted only while the list has focus.
+ */
+function commandProps(inline: boolean, searchable: boolean) {
+  if (!inline) return {};
+  return {
+    tabIndex: searchable ? -1 : 0,
+    className:
+      "rounded-md outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 [&:not(:focus-within)_[cmdk-item][data-selected=true]]:bg-transparent",
+  };
+}
+
 /** An inline list longer than this keeps its search box (many locales). */
 const INLINE_SEARCH_FROM = 8;
 
@@ -232,15 +245,7 @@ function FacetedFilterMenu(props: Readonly<FacetedFilterMenuProps>) {
   const searchable =
     !inline || countOptions(props.sections) > INLINE_SEARCH_FROM;
   return (
-    <Command
-      // Inline (in the Filters drawer) the list itself takes focus: arrows move, Enter toggles.
-      // Its first row is only highlighted while the list has focus.
-      tabIndex={inline && !searchable ? 0 : -1}
-      className={cn(
-        inline &&
-          "rounded-md outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 [&:not(:focus-within)_[cmdk-item][data-selected=true]]:bg-transparent",
-      )}
-    >
+    <Command {...commandProps(inline, searchable)}>
       {searchable ? <CommandInput placeholder={title} /> : null}
       <CommandList className={cn(inline && "max-h-none")}>
         <CommandEmpty>No results found.</CommandEmpty>
