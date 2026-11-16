@@ -12,6 +12,12 @@ import {
   fitsRowColumns,
   rowColumnsUsage,
 } from "@/lib/endatix-api/reporting/submission-grid-row-columns";
+import {
+  ResponsivePanel,
+  ResponsivePanelDescription,
+  ResponsivePanelHeader,
+  ResponsivePanelTitle,
+} from "@/components/ui/responsive-panel";
 import { Settings2 } from "lucide-react";
 import {
   useDeferredValue,
@@ -68,8 +74,10 @@ type ColumnPickerProps = {
  * and panel. Changes stay a draft until Apply writes them to the URL.
  */
 export function SubmissionGridColumnPicker(props: Readonly<ColumnPickerProps>) {
-  const { open, setOpen, panel, apply, isPending } = useColumnPicker(props);
-  const unavailable = props.disabled || props.catalog.length === 0 || isPending;
+  const [open, setOpen] = useState(false);
+  const { panel, apply, unavailable } = useColumnPicker(props, () =>
+    setOpen(false),
+  );
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <ColumnPickerTrigger disabled={unavailable} />
@@ -77,6 +85,48 @@ export function SubmissionGridColumnPicker(props: Readonly<ColumnPickerProps>) {
         <ColumnPickerPanel {...panel} onApply={apply} />
       </PopoverContent>
     </Popover>
+  );
+}
+
+/** Whether the picker can open now: the grid is live and the form has answer columns. */
+export function useColumnPickerAvailable(
+  props: Readonly<Pick<ColumnPickerProps, "disabled" | "catalog">>,
+): boolean {
+  const { isPending } = useSubmissionGridUrl();
+  return !(props.disabled || props.catalog.length === 0 || isPending);
+}
+
+type ColumnPickerOverlayProps = ColumnPickerProps & {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+};
+
+/**
+ * Below 768 px Columns sits in the toolbar's `⋯` menu, which opens the same picker here
+ * (a drawer). Rendered beside the menu, not inside it (DESIGN.md §5 Overlays rule 10).
+ */
+export function SubmissionGridColumnPickerOverlay({
+  open,
+  onOpenChange,
+  ...props
+}: Readonly<ColumnPickerOverlayProps>) {
+  const { panel, apply } = useColumnPicker(props, () => onOpenChange(false));
+  return (
+    <ResponsivePanel
+      open={open}
+      onOpenChange={onOpenChange}
+      desktopType="simple"
+      drawerContentClassName="h-auto"
+    >
+      <ResponsivePanelHeader>
+        <ResponsivePanelTitle>Columns</ResponsivePanelTitle>
+        <ResponsivePanelDescription>
+          Choose the answer columns the grid shows. Apply saves them in the
+          link.
+        </ResponsivePanelDescription>
+      </ResponsivePanelHeader>
+      <ColumnPickerPanel {...panel} onApply={apply} />
+    </ResponsivePanel>
   );
 }
 
@@ -91,10 +141,11 @@ function ColumnPickerTrigger({ disabled }: Readonly<{ disabled: boolean }>) {
   );
 }
 
-function useColumnPicker({ formId, catalog, columnSearch }: ColumnPickerProps) {
-  const [open, setOpen] = useState(false);
+function useColumnPicker(props: ColumnPickerProps, close: () => void) {
+  const { formId, catalog, columnSearch } = props;
   const changes = useSearchKeyChanges(formId);
-  const { urlState, urlSets, updateUrl, isPending } = useSubmissionGridUrl();
+  const { urlState, urlSets, updateUrl } = useSubmissionGridUrl();
+  const available = useColumnPickerAvailable(props);
   const visibleKeys = useMemo(
     () =>
       resolveVisibleAnswerColumns(catalog, urlState.columns).map(
@@ -104,12 +155,12 @@ function useColumnPicker({ formId, catalog, columnSearch }: ColumnPickerProps) {
   );
   const apply = (keys: readonly string[]) => {
     updateUrl(columnsUpdate(keys));
-    setOpen(false);
+    close();
   };
   const isDefault = !urlSets.columns;
   const filterable = { access: columnSearch, changes };
   const panel = { catalog, visibleKeys, isDefault, filterable };
-  return { open, setOpen, panel, apply, isPending };
+  return { panel, apply, unavailable: !available };
 }
 
 type PanelProps = {

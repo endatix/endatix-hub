@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { Plus } from "lucide-react";
 import {
+  DataTableFilter,
+  DataTableToolbar,
   PagedCardList,
   TableSearchInput,
   useListUrlState,
@@ -50,6 +52,7 @@ export function RolesList({
     urlRoleType === "system" || urlRoleType === "custom"
       ? urlRoleType
       : allRoleTypesValue;
+  const isTypeFiltered = roleTypeFilter !== allRoleTypesValue;
   const onRoleTypeFilterChange = createUrlFilterUpdater(
     updateUrl,
     "roleType",
@@ -63,43 +66,68 @@ export function RolesList({
       className=""
       headerClassName=""
       toolbar={
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <CardTitle className="text-lg">All Roles</CardTitle>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <TableSearchInput
-              value={search}
-              onChange={setSearch}
-              placeholder="Search roles"
-              ariaLabel="Search organization roles by name"
-              className="sm:max-w-xs"
-            />
-            <Select
-              value={roleTypeFilter}
-              onValueChange={onRoleTypeFilterChange}
-            >
-              <SelectTrigger className="w-full sm:w-[160px]">
-                <SelectValue placeholder="Role type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={allRoleTypesValue}>All types</SelectItem>
-                <SelectItem value="system">System</SelectItem>
-                <SelectItem value="custom">Custom</SelectItem>
-              </SelectContent>
-            </Select>
-            {canManageRoles ? (
-              <Button onClick={() => setCreateOpen(true)}>
-                <Plus data-icon="inline-start" />
-                Create Role
-              </Button>
-            ) : (
-              <TooltipProvider>
-                <DisabledButton tooltip="You don't have permission to manage roles">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center">
+          <CardTitle className="shrink-0 text-lg">All Roles</CardTitle>
+          <DataTableToolbar
+            className="md:flex-1"
+            search={
+              <TableSearchInput
+                value={search}
+                onChange={setSearch}
+                placeholder="Search roles"
+                ariaLabel="Search organization roles by name"
+                className="md:max-w-xs"
+              />
+            }
+            filters={
+              <DataTableFilter label="Role type">
+                {({ id }) => (
+                  <Select
+                    value={roleTypeFilter}
+                    onValueChange={onRoleTypeFilterChange}
+                  >
+                    <SelectTrigger
+                      id={id}
+                      className="w-full md:w-[160px]"
+                      aria-label={id ? undefined : "Filter roles by type"}
+                    >
+                      <SelectValue placeholder="Role type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={allRoleTypesValue}>
+                        All types
+                      </SelectItem>
+                      <SelectItem value="system">System</SelectItem>
+                      <SelectItem value="custom">Custom</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              </DataTableFilter>
+            }
+            activeFilterCount={isTypeFiltered ? 1 : 0}
+            reset={{
+              onClick: () => {
+                setSearch("");
+                updateUrl({ search: null, roleType: null, page: "1" });
+              },
+              hasFilters: Boolean(search.trim()) || isTypeFiltered,
+            }}
+            actions={
+              canManageRoles ? (
+                <Button onClick={() => setCreateOpen(true)}>
                   <Plus data-icon="inline-start" />
                   Create Role
-                </DisabledButton>
-              </TooltipProvider>
-            )}
-          </div>
+                </Button>
+              ) : (
+                <TooltipProvider>
+                  <DisabledButton tooltip="You don't have permission to manage roles">
+                    <Plus data-icon="inline-start" />
+                    Create Role
+                  </DisabledButton>
+                </TooltipProvider>
+              )
+            }
+          />
         </div>
       }
     >

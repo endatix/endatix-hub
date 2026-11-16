@@ -36,6 +36,7 @@ import {
   toggleGroup,
   toggleValue,
 } from "./faceted-filter-selection";
+import { DataTableFilter, useInFiltersDrawer } from "./data-table-filter";
 
 export type {
   FacetedFilterGroup,
@@ -72,7 +73,30 @@ export type FacetedFilterProps = FacetedFilterBaseProps &
     | { groups: readonly FacetedFilterGroup[]; options?: never }
   );
 
+/**
+ * In the toolbar's Filters drawer a toolbar facet becomes a `field` under a label
+ * named by its `title` (DESIGN.md §5 Filters).
+ */
 export function FacetedFilter(props: Readonly<FacetedFilterProps>) {
+  const inDrawer = useInFiltersDrawer();
+  if (!inDrawer || props.variant === "field") {
+    return <FacetedFilterControl {...props} />;
+  }
+  return (
+    <DataTableFilter label={props.title}>
+      {({ id }) => (
+        <FacetedFilterControl
+          {...props}
+          variant="field"
+          id={id}
+          emptyLabel={props.emptyLabel ?? "All"}
+        />
+      )}
+    </DataTableFilter>
+  );
+}
+
+function FacetedFilterControl(props: Readonly<FacetedFilterProps>) {
   const { groups, options, disabled = false } = props;
   const [open, setOpen] = useState(false);
 

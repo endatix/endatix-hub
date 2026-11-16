@@ -1,10 +1,6 @@
 "use client";
 
-import {
-  DataTableToolbar,
-  ResetFiltersButton,
-  TableSearchInput,
-} from "@/components/table";
+import { DataTableToolbar, TableSearchInput } from "@/components/table";
 import type { UrlSearchParamsUpdater } from "@/lib/utils/hooks/use-url-search-params-updater.hook";
 import type { TenantsListUrlState } from "../utils";
 
@@ -67,24 +63,22 @@ export function TenantsListToolbar({
   return (
     <DataTableToolbar
       className="mb-4"
-      filters={
-        <>
-          <TableSearchInput
-            value={search}
-            onChange={setSearch}
-            placeholder="Search by name, public id, or description"
-            ariaLabel="Search tenants"
-            className="min-w-[12rem] flex-none lg:flex-1"
-          />
-          <ResetFiltersButton
-            onClick={resetFilters}
-            onResetSorting={resetSorting}
-            onResetAll={resetAll}
-            hasFilters={hasActiveFilters}
-            hasSorting={hasSorting}
-          />
-        </>
+      search={
+        <TableSearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="Search by name, public id, or description"
+          ariaLabel="Search tenants"
+          className="min-w-[12rem] md:flex-none lg:flex-1"
+        />
       }
+      reset={{
+        onClick: resetFilters,
+        onResetSorting: resetSorting,
+        onResetAll: resetAll,
+        hasFilters: hasActiveFilters,
+        hasSorting,
+      }}
     />
   );
 }

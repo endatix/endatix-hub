@@ -11,9 +11,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { toast } from "@/components/ui/toast";
 import { Result } from "@/lib/result";
 import { FlaskConical } from "lucide-react";
@@ -28,30 +27,31 @@ import {
   deleteTestsOutcome,
 } from "../submission-test-flag";
 
-type DeleteTestSubmissionsButtonProps = {
-  formId: string;
-  disabled: boolean;
-};
-
-/** Deletes every test submission of the form after a confirm that names the count. */
-export function DeleteTestSubmissionsButton({
-  formId,
-  disabled,
-}: Readonly<DeleteTestSubmissionsButtonProps>) {
+/**
+ * Delete test submissions, an occasional action: an item for the toolbar's `⋯` menu, and its
+ * confirm (which counts on open and names the count), rendered beside the menu so closing the
+ * menu does not unmount it (DESIGN.md §5 Overlays rule 10).
+ */
+export function useDeleteTestSubmissionsAction(
+  formId: string,
+  disabled: boolean,
+) {
   const dialog = useDeleteTestSubmissions(formId);
-  return (
+  const menuItem = (
+    <DropdownMenuItem
+      disabled={disabled}
+      onSelect={() => dialog.onOpenChange(true)}
+    >
+      <FlaskConical />
+      Delete test submissions…
+    </DropdownMenuItem>
+  );
+  const confirm = (
     <AlertDialog open={dialog.open} onOpenChange={dialog.onOpenChange}>
-      <AlertDialogTrigger asChild>
-        <Button variant="outline" size="sm" disabled={disabled}>
-          <FlaskConical />
-          <span className="sr-only sm:not-sr-only">
-            Delete test submissions
-          </span>
-        </Button>
-      </AlertDialogTrigger>
       <DeleteTestSubmissionsContent {...dialog} />
     </AlertDialog>
   );
+  return { menuItem, confirm };
 }
 
 type DeleteTestSubmissions = ReturnType<typeof useDeleteTestSubmissions>;

@@ -1,7 +1,8 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Result } from "@/lib/result";
-import { DeleteTestSubmissionsButton } from "../ui/delete-test-submissions-button";
+import { DataTableToolbar } from "@/components/table";
+import { useDeleteTestSubmissionsAction } from "../ui/delete-test-submissions";
 
 const router = vi.hoisted(() => ({ refresh: vi.fn() }));
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
@@ -17,17 +18,32 @@ vi.mock("../submission-test-flag.action", () => ({
   deleteTestSubmissionsAction: actions.deleteTests,
 }));
 
+/** The grid toolbar's wiring: the item in `⋯`, the confirm beside the toolbar. */
+function ToolbarWithDeleteTests() {
+  const deleteTests = useDeleteTestSubmissionsAction("5", false);
+  return (
+    <>
+      <DataTableToolbar moreActions={deleteTests.menuItem} />
+      {deleteTests.confirm}
+    </>
+  );
+}
+
 function openDialog() {
-  render(<DeleteTestSubmissionsButton formId="5" disabled={false} />);
+  render(<ToolbarWithDeleteTests />);
+  fireEvent.pointerDown(screen.getByRole("button", { name: "More actions" }), {
+    button: 0,
+    ctrlKey: false,
+  });
   fireEvent.click(
-    screen.getByRole("button", { name: "Delete test submissions" }),
+    screen.getByRole("menuitem", { name: "Delete test submissions…" }),
   );
 }
 
 const deleteButton = () =>
   screen.getByRole<HTMLButtonElement>("button", { name: "Delete" });
 
-describe("DeleteTestSubmissionsButton", () => {
+describe("Delete test submissions from the ⋯ menu", () => {
   beforeEach(() => {
     actions.count.mockResolvedValue(Result.success(3));
   });

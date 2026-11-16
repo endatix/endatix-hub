@@ -1,8 +1,8 @@
 "use client";
 
 import {
+  DataTableFilter,
   DataTableToolbar,
-  ResetFiltersButton,
   TableSearchInput,
 } from "@/components/table";
 import {
@@ -31,9 +31,9 @@ export function SignupRequestsToolbar({
   urlState,
   onClearFilters,
 }: Readonly<SignupRequestsToolbarProps>) {
-  const hasActiveFilters = Boolean(
-    search.trim() || urlState.status !== DEFAULT_SIGNUP_REQUEST_STATUS_FILTER,
-  );
+  const hasStatusFilter =
+    urlState.status !== DEFAULT_SIGNUP_REQUEST_STATUS_FILTER;
+  const hasActiveFilters = Boolean(search.trim() || hasStatusFilter);
   const hasSorting = Boolean(urlState.sortBy);
 
   const resetSorting = (): void => {
@@ -54,49 +54,55 @@ export function SignupRequestsToolbar({
   return (
     <DataTableToolbar
       className="mb-4"
-      filters={
-        <>
-          <TableSearchInput
-            value={search}
-            onChange={setSearch}
-            placeholder="Search by email or company"
-            ariaLabel="Search signup requests"
-            className="min-w-[12rem] flex-none lg:flex-1"
-          />
-          <Select
-            value={urlState.status}
-            onValueChange={(status) =>
-              updateUrl({
-                status:
-                  status === DEFAULT_SIGNUP_REQUEST_STATUS_FILTER
-                    ? null
-                    : status,
-                page: "1",
-              })
-            }
-          >
-            <SelectTrigger
-              className="w-full sm:w-[160px]"
-              aria-label="Filter signup requests by status"
-            >
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="approved">Approved</SelectItem>
-              <SelectItem value="rejected">Rejected</SelectItem>
-              <SelectItem value="all">All statuses</SelectItem>
-            </SelectContent>
-          </Select>
-          <ResetFiltersButton
-            onClick={onClearFilters}
-            onResetSorting={resetSorting}
-            onResetAll={resetAll}
-            hasFilters={hasActiveFilters}
-            hasSorting={hasSorting}
-          />
-        </>
+      search={
+        <TableSearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="Search by email or company"
+          ariaLabel="Search signup requests"
+          className="min-w-[12rem] md:flex-none lg:flex-1"
+        />
       }
+      filters={
+        <DataTableFilter label="Status">
+          {({ id }) => (
+            <Select
+              value={urlState.status}
+              onValueChange={(status) =>
+                updateUrl({
+                  status:
+                    status === DEFAULT_SIGNUP_REQUEST_STATUS_FILTER
+                      ? null
+                      : status,
+                  page: "1",
+                })
+              }
+            >
+              <SelectTrigger
+                id={id}
+                className="w-full md:w-[160px]"
+                aria-label={id ? undefined : "Filter signup requests by status"}
+              >
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="approved">Approved</SelectItem>
+                <SelectItem value="rejected">Rejected</SelectItem>
+                <SelectItem value="all">All statuses</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
+        </DataTableFilter>
+      }
+      activeFilterCount={hasStatusFilter ? 1 : 0}
+      reset={{
+        onClick: onClearFilters,
+        onResetSorting: resetSorting,
+        onResetAll: resetAll,
+        hasFilters: hasActiveFilters,
+        hasSorting,
+      }}
     />
   );
 }

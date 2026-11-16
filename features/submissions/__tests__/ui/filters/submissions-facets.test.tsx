@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { SubmissionsFilterToolbar } from "../../../ui/filters/submissions-filter-toolbar";
+import { SubmissionsFacets } from "../../../ui/filters/submissions-facets";
 import { stubResizeObserver } from "@/test/stubs/resize-observer";
 
 beforeEach(() => {
@@ -14,38 +14,32 @@ function renderToolbar(
 ) {
   const noop = vi.fn();
   render(
-    <SubmissionsFilterToolbar
+    <SubmissionsFacets
       collectionStatusFilter={new Set(collectionStatus)}
       statusFilter={new Set()}
       testSubmissionFilter={new Set()}
       onCollectionStatusChange={onCollectionStatusChange}
       onStatusChange={noop}
       onTestSubmissionChange={noop}
-      onResetFilters={noop}
-      onResetSorting={noop}
-      onResetAll={noop}
     />,
   );
   return onCollectionStatusChange;
 }
 
-describe("SubmissionsFilterToolbar", () => {
+describe("SubmissionsFacets", () => {
   it("renders submission type filter", () => {
     // Arrange
     const onChange = vi.fn();
 
     // Act
     render(
-      <SubmissionsFilterToolbar
+      <SubmissionsFacets
         collectionStatusFilter={new Set()}
         statusFilter={new Set()}
         testSubmissionFilter={new Set()}
         onCollectionStatusChange={onChange}
         onStatusChange={onChange}
         onTestSubmissionChange={onChange}
-        onResetFilters={onChange}
-        onResetSorting={onChange}
-        onResetAll={onChange}
       />,
     );
 
@@ -53,47 +47,19 @@ describe("SubmissionsFilterToolbar", () => {
     expect(screen.getByText("Submission Type")).toBeDefined();
   });
 
-  it("shows reset button when test filter is active", () => {
+  it("disables the filter controls when disabled", () => {
     // Arrange
     const onChange = vi.fn();
 
     // Act
     render(
-      <SubmissionsFilterToolbar
-        collectionStatusFilter={new Set()}
-        statusFilter={new Set()}
-        testSubmissionFilter={new Set(["true"])}
-        onCollectionStatusChange={onChange}
-        onStatusChange={onChange}
-        onTestSubmissionChange={onChange}
-        onResetFilters={onChange}
-        onResetSorting={onChange}
-        onResetAll={onChange}
-      />,
-    );
-
-    // Assert
-    expect(
-      screen.getByRole("button", { name: /reset filters/i }),
-    ).toBeDefined();
-  });
-
-  it("disables filter controls and reset when disabled", () => {
-    // Arrange
-    const onChange = vi.fn();
-
-    // Act
-    render(
-      <SubmissionsFilterToolbar
+      <SubmissionsFacets
         collectionStatusFilter={new Set(["not_started"])}
         statusFilter={new Set()}
         testSubmissionFilter={new Set()}
         onCollectionStatusChange={onChange}
         onStatusChange={onChange}
         onTestSubmissionChange={onChange}
-        onResetFilters={onChange}
-        onResetSorting={onChange}
-        onResetAll={onChange}
         disabled
       />,
     );
@@ -111,13 +77,6 @@ describe("SubmissionsFilterToolbar", () => {
       (
         screen.getByRole("button", {
           name: /submission type/i,
-        }) as HTMLButtonElement
-      ).disabled,
-    ).toBe(true);
-    expect(
-      (
-        screen.getByRole("button", {
-          name: /reset filters/i,
         }) as HTMLButtonElement
       ).disabled,
     ).toBe(true);

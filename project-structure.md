@@ -289,7 +289,7 @@ Action rules:
   - **Tests, in three layers.** (1) `__tests__/app/paged-list-conformance.test.ts` fails the build when a TanStack grid lacks `getRowId`, a paged page skips `listQueryKey` without an allow-listed reason, or a key is hand-rolled. (2) `__tests__/pages/paged-list-shells.test.tsx` renders each shell, changes `listKey`, and checks new rows appear while the search input keeps its value and focus — add a new shell to its table. (3) `e2e/tests/lists/list-paging.spec.ts` pages every list in a real browser and compares the rows with a fresh render of the same URL — add a new list to its `lists` array.
 - **Files in and out.** CSV text is read and written by `lib/utils/csv.ts` (`readCsvRecords`, `readCsvRows` with a stray-quote mark per row, `writeCsv`), server-safe and with no React. Saving a file is `lib/utils/files-download.ts`: `downloadFromUrl` for a file a route builds, `downloadText` for one the browser builds. The rendered control is `components/common/download-menu.tsx`. A slice keeps only its own columns and copy (reference: `features/audience/generate-links/personal-links.ts`, `features/audience/import-csv/csv-preview.ts`). Rules: `DESIGN.md` §6 "Hand over a file".
 - Shared helpers live in `lib/list-page/` (`parse-paged-search-params`, `list-query-key`, `table-return-to`). URL writers and the frame (`useListUrlState`, `useTableFiltersUrlState`, `PagedListUrlProvider`, `PagedListFrame`, `PagedCardList`) live in `components/table/`.
-- List-table **chrome** (surface, empty state, header/row/cell class helpers, search input, **toolbar**, paged footer, **`BackToTableButton`**, **`useListUrlState`**, **`useTableFiltersUrlState`**) lives in `components/table/`. `DataTableToolbar` is one row: filters scroll, actions stay pinned. Keep the ShadCN primitive (`Table`, `TableRow`, …) in `components/ui/table.tsx`.
+- List-table **chrome** (surface, empty state, header/row/cell class helpers, search input, **toolbar**, paged footer, **`BackToTableButton`**, **`useListUrlState`**, **`useTableFiltersUrlState`**) lives in `components/table/`. `DataTableToolbar` takes slots (`search`, `filters`, `reset`, `actions`, `collapsibleActions`, `moreActions`) and lays them out for every width: below 768 px the filters move into a Filters drawer and overflow actions into `⋯` (DESIGN.md §5 List tables, Toolbar). Keep the ShadCN primitive (`Table`, `TableRow`, …) in `components/ui/table.tsx`.
 - Do not hand-roll the parts every list table shares — reach for `components/table` first:
   - **`DataTableGrid`** renders the TanStack header/body; **`DataTableSkeleton`** is its loading twin (pass `columns`, override a column's `cell` only where the placeholder shape differs).
   - **`useListTableState(urlState, updateUrl)`** derives `sorting`, `created`, `modified`, and `onSortingChange` from the URL.
@@ -310,11 +310,11 @@ A create or edit overlay has three layers. Do not invent a fourth (no React Hook
 
 **Multi-step overlays keep the same three layers.** The slice hook also owns the step, and the panel hands `PanelForm` the current step's labels, `onBack` and `cancelable` (DESIGN.md §6 Create / edit overlay). Split that hook by concern (the input read, the choices, the write, the step) and compose them in one exported hook. When the write's result is the outcome step (an import's counts and rejected rows), the slice hook keeps the result instead of toasting through the feature's mutation hook. Reference: `features/audience/import-csv/use-import-csv.hook.ts`, with pure parsing and suggestions in `csv-preview.ts` and `column-map.ts` beside it. A write that runs on the server after the panel's request (a staged import) keeps its state in a hook of its own, `use-audience-import.hook.ts`, and the step follows that state. `create-tenant-panel.tsx` predates this and keeps its state in the panel.
 
-| Layer | Owns | Lives |
-| --- | --- | --- |
-| **Chrome** | Header, body scroll, footer, failure strip, Cancel (or Back) + pending submit | `components/common/panel-form.tsx` (`PanelForm`) |
-| **Feature write lifecycle** | `pending` / `error`, toast + `router.refresh` on success, failure stays in the overlay so values are kept | One shared hook per feature that writes this way — audience: `useAudienceMutation` |
-| **Slice wiring** | Draft fields, open/reset/lock-while-pending, `submit` → action + `onSuccess: close` | Optional `use-{noun}.hook.ts` in the slice — reference: `features/audience/create-person/use-add-person.hook.ts` |
+| Layer                       | Owns                                                                                                      | Lives                                                                                                            |
+| --------------------------- | --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| **Chrome**                  | Header, body scroll, footer, failure strip, Cancel (or Back) + pending submit                             | `components/common/panel-form.tsx` (`PanelForm`)                                                                 |
+| **Feature write lifecycle** | `pending` / `error`, toast + `router.refresh` on success, failure stays in the overlay so values are kept | One shared hook per feature that writes this way — audience: `useAudienceMutation`                               |
+| **Slice wiring**            | Draft fields, open/reset/lock-while-pending, `submit` → action + `onSuccess: close`                       | Optional `use-{noun}.hook.ts` in the slice — reference: `features/audience/create-person/use-add-person.hook.ts` |
 
 Shared panel primitives (same feature, several slices) stay next to the mutation hook, not inside one slice: audience uses `usePanelOpen`, `useValueMap`, `useRowOverlay` in `use-panel-state.hook.ts`.
 
@@ -385,8 +385,8 @@ For optimal performance and UX, prefer **streaming promises** from Server Compon
 
 ```tsx
 // features/my-feature/ui/my-feature.context.tsx (Client Component)
-'use client';
-import { createContext, use, useMemo } from 'react';
+"use client";
+import { createContext, use, useMemo } from "react";
 
 export function MyFeatureClientProvider({ children, dataPromise }) {
   const data = use(dataPromise); // Resolves via React Suspense
@@ -395,7 +395,7 @@ export function MyFeatureClientProvider({ children, dataPromise }) {
 }
 
 // features/my-feature/ui/my-feature.provider.tsx (Server Component)
-import { MyFeatureClientProvider } from './my-feature.context';
+import { MyFeatureClientProvider } from "./my-feature.context";
 
 export function MyFeatureProvider({ children }) {
   const dataPromise = getMyData(); // Start fetching locally on server
@@ -423,17 +423,25 @@ Combine `use()` with `useReducer` and `useOptimistic` for features with complex 
 ```tsx
 // Example in FormAssistantProvider
 export function FeatureProvider({ children, initialDataPromise }) {
-  const initialData = initialDataPromise ? use(initialDataPromise) : defaultState;
+  const initialData = initialDataPromise
+    ? use(initialDataPromise)
+    : defaultState;
   const [state, dispatch] = useReducer(reducer, initialData);
-  const [optimisticState, setOptimisticState] = useOptimistic(state, (s, u) => ({ ...s, ...u }));
+  const [optimisticState, setOptimisticState] = useOptimistic(
+    state,
+    (s, u) => ({ ...s, ...u }),
+  );
 
   const handleAction = async (payload) => {
     setOptimisticState({ isPending: true }); // Immediate UI feedback
     const result = await myServerAction(payload); // Next.js Server Action
-    dispatch({ type: 'UPDATE', payload: result });
+    dispatch({ type: "UPDATE", payload: result });
   };
 
-  const value = useMemo(() => ({ state: optimisticState, handleAction }), [optimisticState]);
+  const value = useMemo(
+    () => ({ state: optimisticState, handleAction }),
+    [optimisticState],
+  );
   return <MyContext value={value}>{children}</MyContext>;
 }
 ```

@@ -8,7 +8,6 @@ import {
   FacetedFilter,
   DataTableToolbar,
   PagedTableFooter,
-  ResetFiltersButton,
   TableSearchInput,
   useListUrlState,
   type FacetedFilterOption,
@@ -376,6 +375,17 @@ export function DataListDetailsPage({
   );
 }
 
+const CLEAR_ITEM_FILTERS = {
+  search: null,
+  hasLocale: null,
+  createdFrom: null,
+  createdTo: null,
+  modifiedFrom: null,
+  modifiedTo: null,
+};
+
+const CLEAR_ITEM_SORT = { sortBy: null, sortDir: null };
+
 function DataListItemsSection({
   itemsPromise,
   availableLocales,
@@ -423,67 +433,46 @@ function DataListItemsSection({
   return (
     <div className="flex flex-col gap-3">
       <DataTableToolbar
-        filters={
-          <>
-            <TableSearchInput
-              value={search}
-              onChange={setSearch}
-              placeholder="Search items by value or label"
-              ariaLabel="Search data list items"
-              className="min-w-[12rem] flex-none lg:flex-1"
-            />
-            {localeOptions.length > 0 ? (
-              <FacetedFilter
-                title="Locale"
-                options={localeOptions}
-                selectedValues={selectedLocales}
-                onValueChange={(values) => {
-                  updateUrl({
-                    hasLocale: serializeHasLocaleFilter(values) ?? null,
-                    page: "1",
-                  });
-                }}
-              />
-            ) : null}
-            <ResetFiltersButton
-              hasFilters={hasActiveFilters}
-              hasSorting={hasSorting}
-              onClick={() => {
-                setSearch("");
-                updateUrl({
-                  search: null,
-                  hasLocale: null,
-                  createdFrom: null,
-                  createdTo: null,
-                  modifiedFrom: null,
-                  modifiedTo: null,
-                  page: "1",
-                });
-              }}
-              onResetSorting={() => {
-                updateUrl({
-                  sortBy: null,
-                  sortDir: null,
-                  page: "1",
-                });
-              }}
-              onResetAll={() => {
-                setSearch("");
-                updateUrl({
-                  search: null,
-                  hasLocale: null,
-                  createdFrom: null,
-                  createdTo: null,
-                  modifiedFrom: null,
-                  modifiedTo: null,
-                  sortBy: null,
-                  sortDir: null,
-                  page: "1",
-                });
-              }}
-            />
-          </>
+        search={
+          <TableSearchInput
+            value={search}
+            onChange={setSearch}
+            placeholder="Search items by value or label"
+            ariaLabel="Search data list items"
+            className="min-w-[12rem] md:flex-none lg:flex-1"
+          />
         }
+        filters={
+          localeOptions.length > 0 ? (
+            <FacetedFilter
+              title="Locale"
+              options={localeOptions}
+              selectedValues={selectedLocales}
+              onValueChange={(values) => {
+                updateUrl({
+                  hasLocale: serializeHasLocaleFilter(values) ?? null,
+                  page: "1",
+                });
+              }}
+            />
+          ) : undefined
+        }
+        activeFilterCount={selectedLocales.size > 0 ? 1 : 0}
+        reset={{
+          hasFilters: hasActiveFilters,
+          hasSorting,
+          onClick: () => {
+            setSearch("");
+            updateUrl({ ...CLEAR_ITEM_FILTERS, page: "1" });
+          },
+          onResetSorting: () => {
+            updateUrl({ ...CLEAR_ITEM_SORT, page: "1" });
+          },
+          onResetAll: () => {
+            setSearch("");
+            updateUrl({ ...CLEAR_ITEM_FILTERS, ...CLEAR_ITEM_SORT, page: "1" });
+          },
+        }}
       />
       <Suspense
         fallback={

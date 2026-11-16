@@ -7,7 +7,10 @@ export {
   getColumnHeaderTitleSwapClassName,
 } from "./column-header";
 export { ColumnOrderProvider, useColumnOrder } from "./column-order-context";
-export { ColumnViewOptionsDropdown } from "./column-view-options-dropdown";
+export {
+  ColumnViewOptionsDropdown,
+  ColumnViewOptionsItems,
+} from "./column-view-options-dropdown";
 export {
   ColumnVisibilityProvider,
   useColumnVisibility,
@@ -32,6 +35,6 @@ export {
   type SubmissionDateFilters,
 } from "./date-filter-types";
 export { DraggableColumnHeader } from "./draggable-column-header";
-export { ResetOptionsDropdown } from "./reset-options-dropdown";
+export { ResetLayoutItems } from "./reset-layout-items";
 export { RowActions } from "./row-actions";
 export { TablePagination } from "./table-pagination";

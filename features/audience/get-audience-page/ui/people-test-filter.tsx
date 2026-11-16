@@ -28,19 +28,24 @@ const OPTIONS = (
   </SelectContent>
 );
 
-const TRIGGER = (
-  <SelectTrigger
-    className="w-full sm:w-[160px]"
-    aria-label="Filter participants by test or real"
-  >
-    <SelectValue />
-  </SelectTrigger>
-);
+/** In the toolbar's Filters drawer the trigger is named by its label (`id`). */
+function trigger(id: string | undefined) {
+  return (
+    <SelectTrigger
+      id={id}
+      className="w-full md:w-[160px]"
+      aria-label={id ? undefined : "Filter participants by test or real"}
+    >
+      <SelectValue />
+    </SelectTrigger>
+  );
+}
 
 /** All / Real / Test, kept in the URL (`?test=`) and reset to the first page on change. */
 export function PeopleTestFilter({
   value,
-}: Readonly<{ value: AudiencePeopleTestFilter }>) {
+  id,
+}: Readonly<{ value: AudiencePeopleTestFilter; id?: string }>) {
   const { updateUrl } = useUrlSearchParamsUpdater();
   const change = (next: string) => {
     if (!isAudiencePeopleTestFilter(next)) return;
@@ -48,7 +53,7 @@ export function PeopleTestFilter({
   };
   return (
     <Select value={value} onValueChange={change}>
-      {TRIGGER}
+      {trigger(id)}
       {OPTIONS}
     </Select>
   );

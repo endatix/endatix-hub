@@ -3,7 +3,6 @@
 import {
   DataTableToolbar,
   FacetedFilter,
-  ResetFiltersButton,
   TableSearchInput,
   useListUrlState,
 } from "@/components/table";
@@ -82,25 +81,24 @@ export function DataListsListToolbar({
   return (
     <DataTableToolbar
       className="mt-6"
-      filters={
-        <>
-          <TableSearchInput
-            value={search}
-            onChange={setSearch}
-            placeholder="Search by name or description"
-            ariaLabel="Search data lists"
-            className="min-w-[12rem] flex-none lg:flex-1"
-          />
-          {localeFilter}
-          <ResetFiltersButton
-            onClick={resetFilters}
-            onResetSorting={resetSorting}
-            onResetAll={resetAll}
-            hasFilters={hasActiveFilters}
-            hasSorting={hasSorting}
-          />
-        </>
+      search={
+        <TableSearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="Search by name or description"
+          ariaLabel="Search data lists"
+          className="min-w-[12rem] md:flex-none lg:flex-1"
+        />
       }
+      filters={localeFilter}
+      activeFilterCount={urlState.hasLocale ? 1 : 0}
+      reset={{
+        onClick: resetFilters,
+        onResetSorting: resetSorting,
+        onResetAll: resetAll,
+        hasFilters: hasActiveFilters,
+        hasSorting,
+      }}
     />
   );
 }

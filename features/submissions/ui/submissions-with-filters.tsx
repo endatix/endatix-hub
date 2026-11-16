@@ -14,7 +14,10 @@ import {
   type SubmissionExportAccess,
 } from "@/features/export";
 import { collectionStatusFacetGroups } from "@/features/submissions/ui/describe-collection-status";
-import { SubmissionsFilterToolbar } from "@/features/submissions/ui/filters/submissions-filter-toolbar";
+import {
+  countActiveSubmissionFacets,
+  SubmissionsFacets,
+} from "@/features/submissions/ui/filters/submissions-facets";
 import { useSubmissionExportListFilters } from "@/features/submissions/ui/submission-export-list-filters";
 import { NoSubmissionsEmptyState } from "@/features/submissions/ui/submissions-empty-state";
 import {
@@ -22,9 +25,10 @@ import {
   buildSubmissionSystemColumns,
   ColumnOrderProvider,
   ColumnViewOptionsDropdown,
+  ColumnViewOptionsItems,
   ColumnVisibilityProvider,
   EMPTY_SUBMISSION_DATE_FILTERS,
-  ResetOptionsDropdown,
+  ResetLayoutItems,
   useColumnOrder,
   useColumnVisibility,
 } from "@/features/submissions/ui/table";
@@ -178,6 +182,11 @@ function SubmissionsContent({
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
 
   const hasSorting = sorting.length > 0;
+  const activeFacetCount = countActiveSubmissionFacets({
+    collectionStatusFilter,
+    statusFilter,
+    testSubmissionFilter,
+  });
   const isTrueEmptyState = !hasAnySubmissions;
   const disableTableControls = isTrueEmptyState;
 
@@ -258,47 +267,62 @@ function SubmissionsContent({
       <DataTableToolbar
         className="mt-8 mb-4"
         filters={
-          <SubmissionsFilterToolbar
+          <SubmissionsFacets
             collectionStatusFilter={collectionStatusFilter}
             statusFilter={statusFilter}
             testSubmissionFilter={testSubmissionFilter}
             onCollectionStatusChange={onCollectionStatusChange}
             onStatusChange={onStatusChange}
             onTestSubmissionChange={onTestSubmissionChange}
-            onResetFilters={onResetFilters}
-            onResetSorting={onResetSorting}
-            onResetAll={onResetAllFiltersAndSorting}
-            hasSorting={hasSorting}
             disabled={disableTableControls}
-            hasAdditionalFilters={
-              hasDateFilters(dateFilters) ||
-              submitterDisplayIdFilter.length > 0 ||
-              submitterEmailFilter.length > 0
-            }
           />
         }
-        actions={
-          <>
+        activeFilterCount={activeFacetCount}
+        filtersDisabled={disableTableControls}
+        reset={{
+          onClick: onResetFilters,
+          onResetSorting,
+          onResetAll: onResetAllFiltersAndSorting,
+          hasFilters:
+            activeFacetCount > 0 ||
+            hasDateFilters(dateFilters) ||
+            submitterDisplayIdFilter.length > 0 ||
+            submitterEmailFilter.length > 0,
+          hasSorting,
+          disabled: disableTableControls,
+        }}
+        collapsibleActions={{
+          inline: (
             <ColumnViewOptionsDropdown
               columns={columnHeaders}
               disabled={disableTableControls}
             />
-            {isClient && (
-              <ResetOptionsDropdown
-                options={resetOptions}
-                onResetAll={handleResetTableLayout}
-                disabled={disableTableControls}
-              />
-            )}
-            <ExportSubmissionsButton
-              formId={formId}
+          ),
+          menuItems: (
+            <ColumnViewOptionsItems
+              columns={columnHeaders}
               disabled={disableTableControls}
-              useReportingExport={useReportingExport}
-              access={exportAccess}
-              listFilters={exportListFilters}
-              statusGroups={collectionStatusFacetGroups(collectionStatusFilter)}
             />
-          </>
+          ),
+        }}
+        actions={
+          <ExportSubmissionsButton
+            formId={formId}
+            disabled={disableTableControls}
+            useReportingExport={useReportingExport}
+            access={exportAccess}
+            listFilters={exportListFilters}
+            statusGroups={collectionStatusFacetGroups(collectionStatusFilter)}
+          />
+        }
+        moreActions={
+          isClient && resetOptions.length > 0 ? (
+            <ResetLayoutItems
+              options={resetOptions}
+              onResetAll={handleResetTableLayout}
+              disabled={disableTableControls}
+            />
+          ) : undefined
         }
       />
       {tableRegion}

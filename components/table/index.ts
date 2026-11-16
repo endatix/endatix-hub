@@ -44,7 +44,11 @@ export {
   DataTableRowActions,
   type DataTableRowAction,
 } from "./data-table-row-actions";
-export { DataTableToolbar } from "./data-table-toolbar";
+export {
+  DataTableToolbar,
+  type DataTableToolbarCollapsibleActions,
+} from "./data-table-toolbar";
+export { DataTableFilter } from "./data-table-filter";
 export { PagedCardList } from "./paged-card-list";
 export { PagedListFrame } from "./paged-list-frame";
 export {
@@ -56,7 +60,10 @@ export {
   PagedTableFooter,
   type PagedTableFooterProps,
 } from "./paged-table-footer";
-export { ResetFiltersButton } from "./reset-filters-button";
+export {
+  ResetFiltersButton,
+  type ResetFiltersButtonProps,
+} from "./reset-filters-button";
 export {
   dataTableCell,
   StaticDataTable,
