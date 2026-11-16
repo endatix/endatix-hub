@@ -119,6 +119,8 @@ function GridHeader<TData extends RowData>({
 /**
  * Runs whenever the header does, so the content (sort state, header filters),
  * the pinning and the width are current.
+ * `headerCell` and `bodyCell` stay plain function calls, never components or
+ * `memo`, or the header and cells go stale under the React Compiler.
  */
 function headerCell<TData extends RowData>(
   header: Header<TData, unknown>,
