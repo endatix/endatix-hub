@@ -10,6 +10,7 @@ const mockRefresh = vi.fn();
 vi.mock("survey-core", async (importOriginal) => {
   const actual = await importOriginal<typeof import("survey-core")>();
   return {
+    // survey-creator-core (via lib/themes/survey-theme.ts) reads surveyLocalization at import.
     ...actual,
     Model: vi.fn().mockImplementation(function () {
       return {
