@@ -41,6 +41,8 @@ export default defineConfig({
       include: [
         "app/**/*.{ts,tsx}",
         "components/**/*.tsx",
+        // Sonar counts this module. The components glob above is tsx only.
+        "components/table/hub-table-features.ts",
         "extensions/**/*.ts",
         "features/**/*.ts",
         "lib/**/*.{ts,tsx}",
