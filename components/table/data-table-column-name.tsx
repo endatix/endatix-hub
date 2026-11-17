@@ -1,7 +1,8 @@
-import { splitIdTail } from "@/components/common/truncated-id";
 import { cn } from "@/lib/utils";
 
 const CHOICE_SEPARATOR = "__";
+/** Characters a name with no suffix keeps at its end, as `TruncatedId` does. */
+const TAIL_CHARS = 4;
 /** `whitespace-pre` keeps a space at the split (`First ` + `Name`); `truncate` would drop it. */
 const CUT_CLASS_NAME = "overflow-hidden text-ellipsis whitespace-pre";
 /** The start gives way first; the suffix cuts at its end only when it alone is too wide. */
@@ -40,5 +41,10 @@ function splitName(name: string): { head: string; tail: string } {
     suffixStart > 0 && suffixStart + CHOICE_SEPARATOR.length < name.length;
   return hasSuffix
     ? { head: name.slice(0, suffixStart), tail: name.slice(suffixStart) }
-    : splitIdTail(name);
+    : splitEnd(name);
+}
+
+function splitEnd(name: string): { head: string; tail: string } {
+  const cut = Math.max(name.length - TAIL_CHARS, 0);
+  return { head: name.slice(0, cut), tail: name.slice(cut) };
 }

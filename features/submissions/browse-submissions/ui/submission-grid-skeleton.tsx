@@ -32,11 +32,9 @@ export function SubmissionGridSkeleton({
   pageSize,
   answers = [],
 }: Readonly<SubmissionGridSkeletonProps>) {
+  const seen = new Set<string>();
   const columns = answers
-    .filter(
-      (answer, index) =>
-        answers.findIndex((a) => a.label === answer.label) === index,
-    )
+    .filter((answer) => !seen.has(answer.label) && seen.add(answer.label))
     .map((answer) => toSkeletonColumn(answer));
   return (
     <DataTableSkeleton
