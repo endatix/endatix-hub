@@ -53,9 +53,14 @@ describe("check-environment", () => {
     });
 
     it("reports a missing AUTH_SECRET as fatal", () => {
+      // Arrange
       process.env.ENDATIX_API_URL = "https://helm.example.com/api";
       delete process.env.AUTH_SECRET;
+
+      // Act
       const { valid, fatalErrors } = validateEnv();
+
+      // Assert
       expect(valid).toBe(false);
       expect(fatalErrors).toHaveLength(1);
       expect(fatalErrors[0]).toContain("AUTH_SECRET");
@@ -73,11 +78,6 @@ describe("check-environment", () => {
     const exitSpy = () =>
       vi.spyOn(process, "exit").mockImplementation(() => undefined as never);
 
-    afterEach(() => {
-      vi.restoreAllMocks();
-      vi.unstubAllEnvs();
-    });
-
     it.each([
       ["missing", undefined],
       ["short", "too-short-secret"],
@@ -85,6 +85,7 @@ describe("check-environment", () => {
     ])(
       "stops startup in production when AUTH_SECRET is %s",
       (_label, value) => {
+        // Arrange
         vi.stubEnv("NODE_ENV", "production");
         process.env.ENDATIX_API_URL = "https://helm.example.com/api";
         if (value === undefined) delete process.env.AUTH_SECRET;
@@ -93,8 +94,10 @@ describe("check-environment", () => {
         const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
         vi.spyOn(console, "log").mockImplementation(() => {});
 
+        // Act
         checkEnvironment();
 
+        // Assert
         expect(exit).toHaveBeenCalledWith(1);
         const logged = errorSpy.mock.calls.flat().join("\n");
         expect(logged).toContain("AUTH_SECRET");
@@ -103,24 +106,30 @@ describe("check-environment", () => {
     );
 
     it("starts in production with a strong AUTH_SECRET", () => {
+      // Arrange
       vi.stubEnv("NODE_ENV", "production");
       process.env.ENDATIX_API_URL = "https://helm.example.com/api";
       const exit = exitSpy();
       vi.spyOn(console, "log").mockImplementation(() => {});
 
+      // Act
       checkEnvironment();
 
+      // Assert
       expect(exit).not.toHaveBeenCalled();
     });
 
     it("keeps starting in production on a non-fatal error", () => {
+      // Arrange
       vi.stubEnv("NODE_ENV", "production");
       const exit = exitSpy();
       vi.spyOn(console, "error").mockImplementation(() => {});
       vi.spyOn(console, "log").mockImplementation(() => {});
 
+      // Act
       checkEnvironment();
 
+      // Assert
       expect(exit).not.toHaveBeenCalled();
     });
 

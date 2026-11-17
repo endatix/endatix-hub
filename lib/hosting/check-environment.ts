@@ -165,7 +165,10 @@ function collectStorageErrors(): string[] {
 }
 
 function collectFatalErrors(): string[] {
-  const error = authSecretError(process.env.AUTH_SECRET);
+  const error = authSecretError(
+    process.env.AUTH_SECRET,
+    process.env.NEXTAUTH_SECRET,
+  );
   return error ? [error] : [];
 }
 
