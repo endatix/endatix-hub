@@ -93,6 +93,22 @@ describe("DataTableColumnName", () => {
     expect(visibleParts(container)).toEqual({ head: "First ", tail: "Name" });
   });
 
+  it("never splits a character made of two code units", () => {
+    // Arrange
+    const name = "question\u{1F600}abc";
+    const loneSurrogate =
+      /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/u;
+
+    // Act
+    const { container } = render(<DataTableColumnName name={name} />);
+
+    // Assert
+    const { head, tail } = visibleParts(container);
+    expect(`${head}${tail}`).toBe(name);
+    expect(head).not.toMatch(loneSurrogate);
+    expect(tail).not.toMatch(loneSurrogate);
+  });
+
   it("shows a short name whole", () => {
     // Arrange & Act
     const { container } = render(<DataTableColumnName name="Q1" />);
