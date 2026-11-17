@@ -44,14 +44,11 @@ function splitName(name: string): { head: string; tail: string } {
     : splitEnd(name);
 }
 
-/** The `__` split needs no check: it cuts before `_`, never inside a pair. */
+/**
+ * Counts the tail in characters, not UTF-16 units, so an emoji stays whole.
+ * The `__` split needs no such care: it cuts before `_`.
+ */
 function splitEnd(name: string): { head: string; tail: string } {
-  let cut = Math.max(name.length - TAIL_CHARS, 0);
-  if (cut > 0 && isLowSurrogate(name.charCodeAt(cut))) cut -= 1;
-  return { head: name.slice(0, cut), tail: name.slice(cut) };
-}
-
-/** The second half of a character made of two UTF-16 code units (an emoji). */
-function isLowSurrogate(code: number): boolean {
-  return code >= 0xdc00 && code <= 0xdfff;
+  const tail = [...name].slice(-TAIL_CHARS).join("");
+  return { head: name.slice(0, name.length - tail.length), tail };
 }
