@@ -27,7 +27,6 @@ const standaloneDir = join(__dirname, "..", ".next/standalone");
 const RUNTIME_ENV = {
   NODE_ENV: "production",
   HOSTNAME: "127.0.0.1",
-  SESSION_SECRET: "check-dereferenced-standalone-session-secret-00000",
   AUTH_SECRET: "check-dereferenced-standalone-auth-secret-0000000",
   // Nothing listens here; the sign-in page renders without calling the API.
   ENDATIX_BASE_URL: "http://127.0.0.1:9",

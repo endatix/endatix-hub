@@ -49,6 +49,7 @@ export interface EndatixConfig {
       };
     };
     session?: {
+      /** @deprecated Ignored. Auth.js reads `AUTH_SECRET` from the environment. */
       secret?: string;
       maxAge?: number;
     };

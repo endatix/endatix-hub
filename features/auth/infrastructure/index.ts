@@ -9,7 +9,6 @@ export * from "./config-factory";
 export * from "./providers";
 
 // JWT utilities
-export * from "./jwt.service";
 export * from "./jwt.types";
 
 // Constants

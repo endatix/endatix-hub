@@ -25,6 +25,7 @@ import {
   parseTrustedProxies,
   TrustedProxiesConfigError,
 } from "./trusted-proxies";
+import { authSecretError } from "./auth-secret";
 
 type EnvConfig = {
   name: string;
@@ -39,12 +40,6 @@ type EnvConfig = {
  * Add all env vars here to validate them at startup
  */
 const envVars: EnvConfig[] = [
-  {
-    name: "SESSION_SECRET",
-    required: true,
-    type: "string",
-    tip: "Secret key is required to encrypt session data. Check env.example for more information on how to generate a valid value.",
-  },
   {
     name: "NEXT_FORMS_COOKIE_NAME",
     required: false,
@@ -169,57 +164,72 @@ function collectStorageErrors(): string[] {
   return storageErrors;
 }
 
+function collectFatalErrors(): string[] {
+  const error = authSecretError(process.env.AUTH_SECRET);
+  return error ? [error] : [];
+}
+
 /**
- * Validates all environment variables defined in the envVars array
- * Returns validation status and error messages
+ * Validates the environment. `fatalErrors` stop startup in every environment;
+ * `errors` stop it in development only.
  */
-export function validateEnv(): { valid: boolean; errors: string[] } {
+export function validateEnv(): {
+  valid: boolean;
+  errors: string[];
+  fatalErrors: string[];
+} {
   warnOnInvalidTrustedProxies();
+  const fatalErrors = collectFatalErrors();
   const errors = [
     ...collectApiOriginErrors(),
     ...collectEnvVarErrors(envVars),
     ...collectStorageErrors(),
   ];
 
-  return { valid: errors.length === 0, errors };
+  return {
+    valid: errors.length === 0 && fatalErrors.length === 0,
+    errors,
+    fatalErrors,
+  };
+}
+
+function abortStartup(): void {
+  console.error(
+    `\n${styles.red(
+      "🛑 Application startup aborted due to invalid environment variables.",
+    )} Check logs above for details.`,
+  );
+  process.exit(1);
 }
 
 /**
- * Validates environment variables and handles validation failures
+ * Validates environment variables and handles validation failures.
  *
- * In development mode, this will terminate the application if validation fails,
- * forcing developers to fix environment issues before proceeding.
- *
- * In production mode, it logs warnings but allows the application to continue
- * running to prevent unexpected downtime, though some features may not work
- * correctly without proper environment configuration.
+ * A fatal error (an unusable AUTH_SECRET) stops startup in every environment.
+ * Other errors stop it in development; in production they are logged and the
+ * application keeps running, so a partial misconfiguration does not cause downtime.
  */
 export function checkEnvironment(): void {
-  const { valid, errors } = validateEnv();
-  if (!valid) {
+  const { valid, errors, fatalErrors } = validateEnv();
+  if (valid) {
+    console.log(styles.success("Environment validation passed"));
+  } else {
     console.error(
       `\n${styles.error("Environment validation failed. Details:")}`,
     );
-    errors.forEach((err) => console.error(` ${styles.red("-")} ${err}`));
+    [...fatalErrors, ...errors].forEach((err) =>
+      console.error(` ${styles.red("-")} ${err}`),
+    );
 
-    if (process.env.NODE_ENV === "development") {
-      // In development, we can crash the app to force fixing the issue
-      console.error(
-        `\n${styles.red(
-          "🛑 Application startup aborted due to missing required environment variables.",
-        )} Check logs above for details.`,
-      );
-      process.exit(1);
+    if (fatalErrors.length > 0 || process.env.NODE_ENV === "development") {
+      abortStartup();
     } else {
-      // In production, log but allow to continue
       console.error(
         `${styles.error(
           "Application starting with invalid environment configuration",
         )}`,
       );
     }
-  } else {
-    console.log(styles.success("Environment validation passed"));
   }
   logExperimentalStatus(getExperimentalConfig());
 }
