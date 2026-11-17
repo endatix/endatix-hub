@@ -2,6 +2,9 @@ import { splitIdTail } from "@/components/common/truncated-id";
 import { cn } from "@/lib/utils";
 
 const CHOICE_SEPARATOR = "__";
+/** The start gives way first; the suffix cuts at its end only when it alone is too wide. */
+const HEAD_CLASS_NAME = "min-w-0 truncate";
+const TAIL_CLASS_NAME = "max-w-full shrink-0 truncate";
 
 /**
  * A question name that shortens in the middle when its column is too narrow,
@@ -18,13 +21,10 @@ export function DataTableColumnName({
     <span className={cn("block max-w-full min-w-0", className)}>
       <span className="sr-only">{name}</span>
       <span aria-hidden className="flex max-w-full min-w-0">
-        <span data-slot="column-name-head" className="min-w-0 truncate">
+        <span data-slot="column-name-head" className={HEAD_CLASS_NAME}>
           {head}
         </span>
-        <span
-          data-slot="column-name-tail"
-          className="max-w-full shrink-0 truncate"
-        >
+        <span data-slot="column-name-tail" className={TAIL_CLASS_NAME}>
           {tail}
         </span>
       </span>

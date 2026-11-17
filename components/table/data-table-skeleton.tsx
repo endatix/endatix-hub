@@ -57,11 +57,7 @@ export function DataTableSkeleton({
                     className: column.className,
                   })}
                 >
-                  {column.titleContent ?? (
-                    <span className={dataTableColumnLabelClassName()}>
-                      {column.title}
-                    </span>
-                  )}
+                  <SkeletonColumnLabel column={column} />
                 </TableHead>
               ))}
             </TableRow>
@@ -83,5 +79,15 @@ export function DataTableSkeleton({
         <Skeleton className="h-8 w-48" />
       </div>
     </DataTableSurface>
+  );
+}
+
+function SkeletonColumnLabel({
+  column,
+}: Readonly<{ column: DataTableSkeletonColumn }>) {
+  return (
+    column.titleContent ?? (
+      <span className={dataTableColumnLabelClassName()}>{column.title}</span>
+    )
   );
 }

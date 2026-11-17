@@ -55,10 +55,25 @@ describe("DataTableColumnName", () => {
   });
 
   it.each([
-    ["no suffix", "QUESTION_VERY_LONG_NAME", "QUESTION_VERY_LONG_", "NAME"],
-    ["a leading separator", "__QUESTION_NAME", "__QUESTION_", "NAME"],
-    ["a trailing separator", "QUESTION_NAME__", "QUESTION_NA", "ME__"],
-  ])("keeps the start and end of a name with %s", (_case, name, head, tail) => {
+    {
+      case: "no suffix",
+      name: "QUESTION_VERY_LONG_NAME",
+      head: "QUESTION_VERY_LONG_",
+      tail: "NAME",
+    },
+    {
+      case: "a leading separator",
+      name: "__QUESTION_NAME",
+      head: "__QUESTION_",
+      tail: "NAME",
+    },
+    {
+      case: "a trailing separator",
+      name: "QUESTION_NAME__",
+      head: "QUESTION_NA",
+      tail: "ME__",
+    },
+  ])("keeps the start and end of a name with $case", ({ name, head, tail }) => {
     // Arrange & Act
     const { container } = render(<DataTableColumnName name={name} />);
 
