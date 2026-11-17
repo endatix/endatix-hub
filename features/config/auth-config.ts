@@ -11,7 +11,6 @@ export interface EndatixAuthConfig {
     keycloak: AuthProviderConfig;
   };
   session: {
-    secret: string;
     maxAge: number; // in seconds
   };
 }
@@ -30,7 +29,6 @@ export function getAuthConfig(): EndatixAuthConfig {
       },
     },
     session: {
-      secret: process.env.SESSION_SECRET || "your-secret-key",
       maxAge: parseInt(process.env.SESSION_MAX_AGE || "86400"), // 24 hours default
     },
   };

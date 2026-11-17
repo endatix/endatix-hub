@@ -54,7 +54,6 @@ declare namespace NodeJS {
     ENDATIX_SURVEY_LICENSE_KEY?: string;
 
     // Session
-    SESSION_SECRET?: string;
     SESSION_MAX_AGE_IN_MINUTES?: string;
 
     // Auth Providers

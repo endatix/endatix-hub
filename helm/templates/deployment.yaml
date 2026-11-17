@@ -150,11 +150,13 @@ spec:
               value: {{ .Values.analytics.flagProvider | quote }}
 
             # Auth
+            # Unused by the Hub; optional so existing secrets keep working. Removed next release.
             - name: SESSION_SECRET
               valueFrom:
                 secretKeyRef:
                   name: {{ .Values.auth.secretName }}
                   key: session-secret
+                  optional: true
             - name: AUTH_SECRET
               valueFrom:
                 secretKeyRef:

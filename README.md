@@ -97,8 +97,7 @@ It can be deployed to on-premise servers, cloud environments such as **Azure**, 
 2. Install the dependencies. Run `pnpm install`
 3. Copy `.env.example` to `.env` and set at least:
    - `ENDATIX_BASE_URL` — API origin, e.g. `https://localhost:5001`
-   - `SESSION_SECRET` — `openssl rand -hex 32`
-   - `AUTH_SECRET` — `npx auth secret`
+   - `AUTH_SECRET` — `npx auth secret` (at least 32 bytes; the Hub refuses to start without a strong one)
      Optional behind a proxy: `AUTH_URL`, `AUTH_TRUST_HOST`. See `.env.example` for the full key list.
 4. Run the development server with `pnpm dev`. With a .NET SDK installed, the first run exports the API's dev certificate so the Hub trusts `https://localhost:5001`; a remote or `http` API needs nothing.
 5. Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.

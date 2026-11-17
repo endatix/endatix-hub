@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -25,8 +26,7 @@ const INHERITED_STORAGE_KEY = /STORAGE|^S3_|AZURE/;
 const RUNTIME_ENV = {
   NODE_ENV: "production",
   HOSTNAME: "127.0.0.1",
-  SESSION_SECRET: "check-runtime-storage-session-secret-0000000000",
-  AUTH_SECRET: "check-runtime-storage-auth-secret-000000000000",
+  AUTH_SECRET: randomBytes(32).toString("base64"),
   ENDATIX_BASE_URL: "http://127.0.0.1:5001",
   STORAGE_PROVIDER: "s3",
   // Nothing listens here; startup only validates the settings, it does not connect.

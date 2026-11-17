@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { existsSync } from "node:fs";
 import { cp, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -27,8 +28,7 @@ const standaloneDir = join(__dirname, "..", ".next/standalone");
 const RUNTIME_ENV = {
   NODE_ENV: "production",
   HOSTNAME: "127.0.0.1",
-  SESSION_SECRET: "check-dereferenced-standalone-session-secret-00000",
-  AUTH_SECRET: "check-dereferenced-standalone-auth-secret-0000000",
+  AUTH_SECRET: randomBytes(32).toString("base64"),
   // Nothing listens here; the sign-in page renders without calling the API.
   ENDATIX_BASE_URL: "http://127.0.0.1:9",
 };
