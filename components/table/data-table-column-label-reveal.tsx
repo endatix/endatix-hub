@@ -6,7 +6,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useId, useState, type MouseEvent, type PointerEvent } from "react";
+import {
+  useId,
+  useRef,
+  useState,
+  type MouseEvent,
+  type PointerEvent,
+} from "react";
 import { dataTableColumnLabelClassName } from "./data-table-chrome";
 
 const LABEL_BUTTON_CLASS_NAME = dataTableColumnLabelClassName(
@@ -20,7 +26,8 @@ interface DataTableColumnLabelRevealProps {
 }
 
 /**
- * A column label that reveals its description on hover, keyboard focus and tap.
+ * A column label that reveals itself in full, then its description, on hover,
+ * keyboard focus and tap (a second tap closes it).
  * Closed, the label is described by a hidden copy; open, Radix links the tooltip.
  */
 export function DataTableColumnLabelReveal({
@@ -43,38 +50,42 @@ type LabelTooltipProps = DataTableColumnLabelRevealProps & {
 };
 
 function LabelTooltip(props: LabelTooltipProps) {
-  const { open, setOpen, openOnTap } = useTapToOpen();
+  const { open, setOpen, onPointerDown, onClick } = useTapToggle();
   return (
     <Tooltip open={open} onOpenChange={setOpen}>
       <TooltipTrigger
         type="button"
         aria-describedby={open ? undefined : props.descriptionId}
         className={LABEL_BUTTON_CLASS_NAME}
-        onPointerDown={keepTouchOpen}
-        onClick={openOnTap}
+        onPointerDown={onPointerDown}
+        onClick={onClick}
       >
         {props.label}
       </TooltipTrigger>
-      <TooltipContent className="max-w-xs">{props.description}</TooltipContent>
+      <TooltipContent className="max-w-xs">
+        <span className="font-semibold">{props.label}</span> —{" "}
+        {props.description}
+      </TooltipContent>
     </Tooltip>
   );
 }
 
 /**
- * Radix closes a tooltip on a trigger click and never opens one on touch, so a
- * tap opens it here; `preventDefault` skips Radix's close.
+ * Radix closes a tooltip on a trigger press and never opens one on touch, so a
+ * click toggles it here from the state it had when pressed (focus may open it
+ * in between); `preventDefault` skips Radix's own close.
  */
-function useTapToOpen() {
+function useTapToggle() {
   const [open, setOpen] = useState(false);
-  const openOnTap = (event: MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault();
-    setOpen(true);
+  const openWhenPressed = useRef<boolean | null>(null);
+  const onPointerDown = (event: PointerEvent<HTMLButtonElement>) => {
+    openWhenPressed.current = open;
+    if (event.pointerType === "touch") event.preventDefault();
   };
-  return { open, setOpen, openOnTap };
-}
-
-function keepTouchOpen(event: PointerEvent<HTMLButtonElement>): void {
-  if (event.pointerType === "touch") {
+  const onClick = (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
-  }
+    setOpen(!(openWhenPressed.current ?? open));
+    openWhenPressed.current = null;
+  };
+  return { open, setOpen, onPointerDown, onClick };
 }

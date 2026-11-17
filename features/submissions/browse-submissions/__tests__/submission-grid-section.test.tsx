@@ -176,6 +176,21 @@ describe("SubmissionGridSection", () => {
     });
   });
 
+  it("heads the loading skeleton with the question names", async () => {
+    // Arrange
+    loads.columns.mockResolvedValue(READY);
+
+    // Act
+    const shell = await renderSection({ columns: "q2" });
+
+    // Assert
+    const frame = shell.props.children as Leaf;
+    expect(frame.props.fallback).toEqual({
+      type: "SubmissionGridSkeleton",
+      props: { pageSize: 10, answerTitles: ["q2"] },
+    });
+  });
+
   it("loads the rows for the saved view where the URL says nothing", async () => {
     // Arrange
     loads.columns.mockResolvedValue(READY);

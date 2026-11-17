@@ -191,7 +191,7 @@ describe("answer column header label", () => {
     fireEvent.focus(label);
 
     const tooltip = await screen.findByRole("tooltip");
-    expect(tooltip.textContent).toBe(PLAIN_TITLE);
+    expect(tooltip.textContent).toBe(`QAIDED — ${PLAIN_TITLE}`);
     expect(label.getAttribute("aria-describedby")).toBe(tooltip.id);
   });
 
@@ -204,7 +204,9 @@ describe("answer column header label", () => {
     fireEvent.pointerDown(label, { pointerType: "touch" });
     fireEvent.click(label);
 
-    expect((await screen.findByRole("tooltip")).textContent).toBe(PLAIN_TITLE);
+    expect((await screen.findByRole("tooltip")).textContent).toBe(
+      `QAIDED — ${PLAIN_TITLE}`,
+    );
   });
 
   it("shows only the name when the question has no title", () => {
