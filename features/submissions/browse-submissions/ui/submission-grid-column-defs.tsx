@@ -8,6 +8,7 @@ import { TruncatedId } from "@/components/common/truncated-id";
 import {
   CellDate,
   DATA_TABLE_SHRINK_WRAP_CLASS_NAME,
+  DataTableColumnLabelReveal,
   DataTableColumnHeader,
   type DataTableColumnHeaderProps,
 } from "@/components/table";
@@ -17,6 +18,7 @@ import type { SubmissionGridRow } from "@/lib/endatix-api/reporting/submission-g
 
 import {
   answerColumnId,
+  answerColumnLabel,
   isSubmitterProfileColumn,
   submitterProfileField,
   type AnswerColumn,
@@ -190,9 +192,20 @@ function answerColumn(
     id: answerColumnId(column.key),
     enableSorting: false,
     meta: sized(ANSWER_COLUMN),
-    header: header(column.title, answerHeaderFilter(column, filters)),
+    header: header(answerColumnLabel(column), {
+      ...answerHeaderFilter(column, filters),
+      titleContent: answerTitleReveal(column),
+    }),
     cell: ({ row }) => <AnswerCell row={row.original} column={column} />,
   };
+}
+
+/** The full title behind the name, for hover, focus and tap; none when the question has no title. */
+function answerTitleReveal(column: AnswerColumn) {
+  const label = answerColumnLabel(column);
+  return column.title === label ? undefined : (
+    <DataTableColumnLabelReveal label={label} description={column.title} />
+  );
 }
 
 /** Submitter email keeps the list's metadata filter on its column. */

@@ -323,6 +323,25 @@ paged sortable grid look identical:
 - **User-defined columns** (one per property, field or answer): every column gets a minimum width,
   values wrap, an unset cell is `—` with `sr-only` "Not set", and the table scrolls in
   `overflow-x-auto` instead of squeezing columns.
+- **Columns built from a form** (one per question or choice) are headed by the **question name**
+  (`brands__Alpha`, `QAIDED`), the identifier export and Crunch use too. The title is a sentence
+  and would fill the header row, so it is secondary text here ("Truncate only secondary text, with
+  the full value in `title`"): `DataTableColumnLabelReveal` shows the full plain-text title on
+  hover, on keyboard focus and on a tap, so a phone reader gets it without hover. The label is the
+  trigger, so the column menu keeps its own button. The trigger's `aria-describedby` points at the
+  title even while the tooltip is closed. The name itself is what the reader scans, so it is
+  never cut short to fit a title beside it ("Never truncate a value the reader came to read").
+  - A question with no title shows its name only, with nothing to reveal.
+  - The Columns picker shows both as visible text: the title first, the name under it. That is
+    where a reader matches the two, so the header can stay short.
+  - Never put a raw title in a header, a menu or a tooltip: SurveyJS titles hold HTML. Run it
+    through `htmlSanitizer.toPlainText` first.
+  - Names take the shared uppercase label style. Columns that are not questions (a submitter
+    profile field) keep their human label.
+  - This is the one exception to "Help is visible text, not a tooltip": the header has no room for
+    the title, and the picker shows it as text. It follows the designer-canvas chip
+    (`role="tooltip"`, `aria-describedby`). Reference:
+    `features/submissions/browse-submissions/ui/submission-grid-column-defs.tsx`.
 - Wiring (URL state, paging, loading skeletons): `project-structure.md` "List pages and tables".
 
 **Toolbar — `DataTableToolbar`.** Every list's toolbar goes through it, so a list fills its

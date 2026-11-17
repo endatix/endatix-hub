@@ -150,6 +150,15 @@ export function submitterProfileField(key: string): string {
     : key;
 }
 
+/**
+ * The header label: a question's name, which export and Crunch use too. Its
+ * title is long prose, so the header reveals it instead. A submitter profile
+ * column is not a question and keeps its title.
+ */
+export function answerColumnLabel(column: AnswerColumn): string {
+  return isSubmitterProfileColumn(column) ? column.title : column.key;
+}
+
 export function isSubmitterProfileColumn(
   column: Pick<AnswerColumn, "kind">,
 ): boolean {

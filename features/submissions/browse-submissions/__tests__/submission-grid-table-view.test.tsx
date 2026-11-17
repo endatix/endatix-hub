@@ -128,7 +128,7 @@ describe("SubmissionGridTable with a saved view", () => {
     renderTable();
 
     // Assert
-    expect(header("favourite colour").style.width).toBe("240px");
+    expect(header("q1").style.width).toBe("240px");
     expect(screen.getByRole("cell", { name: "Teal" }).style.width).toBe(
       "240px",
     );
