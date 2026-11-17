@@ -187,9 +187,12 @@ describe("answer column header label", () => {
       wireColumn("QAIDED", "Simple", { title: FORMATTED_TITLE }),
     );
 
-    fireEvent.focus(screen.getByRole("button", { name: "QAIDED" }));
+    const label = screen.getByRole("button", { name: "QAIDED" });
+    fireEvent.focus(label);
 
-    expect((await screen.findByRole("tooltip")).textContent).toBe(PLAIN_TITLE);
+    const tooltip = await screen.findByRole("tooltip");
+    expect(tooltip.textContent).toBe(PLAIN_TITLE);
+    expect(label.getAttribute("aria-describedby")).toBe(tooltip.id);
   });
 
   it("reveals the plain title on a tap", async () => {

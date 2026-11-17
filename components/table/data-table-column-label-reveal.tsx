@@ -21,7 +21,7 @@ interface DataTableColumnLabelRevealProps {
 
 /**
  * A column label that reveals its description on hover, keyboard focus and tap.
- * The description stays linked (`aria-describedby`) while the tooltip is closed.
+ * Closed, the label is described by a hidden copy; open, Radix links the tooltip.
  */
 export function DataTableColumnLabelReveal({
   label,
@@ -48,7 +48,7 @@ function LabelTooltip(props: LabelTooltipProps) {
     <Tooltip open={open} onOpenChange={setOpen}>
       <TooltipTrigger
         type="button"
-        aria-describedby={props.descriptionId}
+        aria-describedby={open ? undefined : props.descriptionId}
         className={LABEL_BUTTON_CLASS_NAME}
         onPointerDown={keepTouchOpen}
         onClick={openOnTap}
