@@ -23,14 +23,14 @@ describe("RadioGroupAnswer", () => {
     expect(screen.getByText("50% off")).not.toBeNull();
   });
 
-  it("still decodes a label written as URI-encoded text", () => {
+  it("shows a label with percent-escapes exactly as written", () => {
     // Arrange
-    const question = radiogroupPicking(["50%25%20off"], "50%25%20off");
+    const question = radiogroupPicking(["100%25 cotton"], "100%25 cotton");
 
     // Act
     render(<RadioGroupAnswer question={question} />);
 
     // Assert
-    expect(screen.getByText("50% off")).not.toBeNull();
+    expect(screen.getByText("100%25 cotton")).not.toBeNull();
   });
 });

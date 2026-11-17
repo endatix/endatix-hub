@@ -1,6 +1,5 @@
 import { Text, View, StyleSheet } from "@react-pdf/renderer";
 import { ItemValue, QuestionCheckboxModel } from "survey-core";
-import { safeDecodeURIComponent } from "@/lib/utils/url-utils";
 import {
   formatChoiceDisplay,
   resolveChoiceLabel,
@@ -53,12 +52,10 @@ const PdfCheckboxAnswer = ({ question }: CheckboxAnswerProps) => {
         <View key={item.value} style={styles.item}>
           <Text style={styles.checkedIndicator}>[X]</Text>
           <Text style={styles.label}>
-            {safeDecodeURIComponent(
-              formatChoiceDisplay(
-                item.value,
-                resolveChoiceLabel(question, item.value) ??
-                  resolveItemValueLabel(item),
-              ),
+            {formatChoiceDisplay(
+              item.value,
+              resolveChoiceLabel(question, item.value) ??
+                resolveItemValueLabel(item),
             )}
           </Text>
         </View>

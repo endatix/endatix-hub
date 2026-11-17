@@ -44,14 +44,14 @@ describe("PdfCheckboxAnswer", () => {
     expect(collectText(tree)).toContain("50% off");
   });
 
-  it("still decodes a label written as URI-encoded text", () => {
+  it("shows a label with percent-escapes exactly as written", () => {
     // Arrange
-    const question = checkboxPicking(["50%25%20off"], ["50%25%20off"]);
+    const question = checkboxPicking(["100%25 cotton"], ["100%25 cotton"]);
 
     // Act
     const tree = PdfCheckboxAnswer({ question });
 
     // Assert
-    expect(collectText(tree)).toContain("50% off");
+    expect(collectText(tree)).toContain("100%25 cotton");
   });
 });
