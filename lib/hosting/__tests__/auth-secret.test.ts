@@ -10,6 +10,12 @@ const EXAMPLE_VALUES = [
   "Tr9YJeqVsIicqvNgpcn+iJVGq6l4qU95b+GuP/xziMs=",
   "a28110cc8b94c5f3b3c923aa2c9fae4ed50c86ec61debfe6edb3c29947dbb00c",
   "aMfPaLkxa7asa2MFdn6E4sLKOIas1FUzh8&geGm",
+  "2Sg0gWRAdGvJRC45dlcQd8wHv+DKQWrsHlJwqFMvSAg=",
+  "xtzqXxJOQwzw5fEhxEYE3k0dVFMQhst4YL1/fLoTRSk=",
+  "check-runtime-storage-auth-secret-000000000000",
+  "check-runtime-storage-session-secret-0000000000",
+  "check-dereferenced-standalone-auth-secret-0000000",
+  "check-dereferenced-standalone-session-secret-00000",
 ];
 
 const STRONG = "nW2v7yQ0bJ+Hk3s9xUe1LmZpRt8cAa4dFg6oIhKqVwE=";
@@ -48,6 +54,10 @@ describe("authSecretError", () => {
 
   it("refuses an example value with surrounding whitespace", () => {
     expect(authSecretError(` ${EXAMPLE_VALUES[0]}\n`)).toContain("example");
+  });
+
+  it("lists every denied hash in EXAMPLE_VALUES", () => {
+    expect(EXAMPLE_VALUES).toHaveLength(12);
   });
 
   it("accepts a strong value", () => {
