@@ -43,6 +43,39 @@ describe("DataTableColumnLabelReveal", () => {
     );
   });
 
+  it("keeps the suffix of two names that differ only there", async () => {
+    // Arrange
+    const prefix = "brand_awareness_aided_recall_category_grid";
+    render(
+      <>
+        <DataTableColumnLabelReveal
+          label={`${prefix}__Alpha`}
+          description={TITLE}
+        />
+        <DataTableColumnLabelReveal
+          label={`${prefix}__Beta`}
+          description={TITLE}
+        />
+      </>,
+    );
+    const beta = screen.getByRole("button", { name: `${prefix}__Beta` });
+
+    // Act
+    tap(beta);
+
+    // Assert
+    const tails = screen
+      .getAllByRole("button")
+      .map(
+        (button) =>
+          button.querySelector('[data-slot="column-name-tail"]')?.textContent,
+      );
+    expect(tails).toEqual(["__Alpha", "__Beta"]);
+    expect((await screen.findByRole("tooltip")).textContent).toBe(
+      `${prefix}__Beta — ${TITLE}`,
+    );
+  });
+
   it("closes on a second tap", async () => {
     const { first } = renderTwoLabels();
     tap(first);

@@ -1,0 +1,42 @@
+import { splitIdTail } from "@/components/common/truncated-id";
+import { cn } from "@/lib/utils";
+
+const CHOICE_SEPARATOR = "__";
+
+/**
+ * A question name that shortens in the middle when its column is too narrow,
+ * as `TruncatedId` does: the start and the choice suffix (from the last `__`)
+ * stay, e.g. `QUESTION_VERY_LO…__Alpha`. A name with no suffix keeps its last
+ * few characters. Screen readers get the full name.
+ */
+export function DataTableColumnName({
+  name,
+  className,
+}: Readonly<{ name: string; className?: string }>) {
+  const { head, tail } = splitName(name);
+  return (
+    <span className={cn("block max-w-full min-w-0", className)}>
+      <span className="sr-only">{name}</span>
+      <span aria-hidden className="flex max-w-full min-w-0">
+        <span data-slot="column-name-head" className="min-w-0 truncate">
+          {head}
+        </span>
+        <span
+          data-slot="column-name-tail"
+          className="max-w-full shrink-0 truncate"
+        >
+          {tail}
+        </span>
+      </span>
+    </span>
+  );
+}
+
+function splitName(name: string): { head: string; tail: string } {
+  const suffixStart = name.lastIndexOf(CHOICE_SEPARATOR);
+  const hasSuffix =
+    suffixStart > 0 && suffixStart + CHOICE_SEPARATOR.length < name.length;
+  return hasSuffix
+    ? { head: name.slice(0, suffixStart), tail: name.slice(suffixStart) }
+    : splitIdTail(name);
+}

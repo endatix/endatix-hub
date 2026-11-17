@@ -187,8 +187,34 @@ describe("SubmissionGridSection", () => {
     const frame = shell.props.children as Leaf;
     expect(frame.props.fallback).toEqual({
       type: "SubmissionGridSkeleton",
-      props: { pageSize: 10, answerTitles: ["q2"] },
+      props: {
+        pageSize: 10,
+        answers: [{ label: "q2", isQuestionName: true }],
+      },
     });
+  });
+
+  it("heads the loading skeleton with a submitter field's label", async () => {
+    // Arrange
+    const email = {
+      ...answerColumn("email"),
+      kind: "SubmitterProfile",
+      title: "Email",
+    };
+    loads.columns.mockResolvedValue({
+      ...READY,
+      catalog: [...READY.catalog, email],
+    });
+
+    // Act
+    const shell = await renderSection({ columns: "q2,email" });
+
+    // Assert
+    const frame = shell.props.children as Leaf;
+    expect(frame.props.fallback.props.answers).toEqual([
+      { label: "q2", isQuestionName: true },
+      { label: "Email", isQuestionName: false },
+    ]);
   });
 
   it("loads the rows for the saved view where the URL says nothing", async () => {

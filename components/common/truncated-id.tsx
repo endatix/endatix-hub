@@ -12,6 +12,18 @@ import { cn } from "@/lib/utils";
 const DEFAULT_VISIBLE_CHARS = 4;
 const ELLIPSIS = "\u2026";
 
+/**
+ * Splits an id where a middle cut goes: the head shortens and the tail of
+ * `visibleChars` stays. CSS can shorten the head to fit a width instead.
+ */
+export function splitIdTail(
+  id: string,
+  visibleChars: number = DEFAULT_VISIBLE_CHARS,
+): { head: string; tail: string } {
+  const cut = Math.max(id.length - visibleChars, 0);
+  return { head: id.slice(0, cut), tail: id.slice(cut) };
+}
+
 export function truncateId(
   id: string,
   visibleChars: number = DEFAULT_VISIBLE_CHARS,
@@ -21,7 +33,8 @@ export function truncateId(
     return trimmed;
   }
 
-  return `${trimmed.slice(0, visibleChars)}${ELLIPSIS}${trimmed.slice(-visibleChars)}`;
+  const { head, tail } = splitIdTail(trimmed, visibleChars);
+  return `${head.slice(0, visibleChars)}${ELLIPSIS}${tail}`;
 }
 
 interface TruncatedIdProps {

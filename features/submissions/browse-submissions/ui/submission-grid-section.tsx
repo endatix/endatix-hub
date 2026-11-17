@@ -22,6 +22,7 @@ import {
 } from "../submission-grid-answer-filters";
 import {
   answerColumnLabel,
+  isSubmitterProfileColumn,
   resolveVisibleAnswerColumns,
   type AnswerColumn,
 } from "../submission-grid-columns";
@@ -214,11 +215,11 @@ function GridRowsSkeleton({
   urlState,
   answerColumns,
 }: Readonly<SubmissionGridRowsProps>) {
-  const answerTitles = answerColumns.map((column) => answerColumnLabel(column));
+  const answers = answerColumns.map((column) => ({
+    label: answerColumnLabel(column),
+    isQuestionName: !isSubmitterProfileColumn(column),
+  }));
   return (
-    <SubmissionGridSkeleton
-      pageSize={urlState.pageSize}
-      answerTitles={answerTitles}
-    />
+    <SubmissionGridSkeleton pageSize={urlState.pageSize} answers={answers} />
   );
 }
