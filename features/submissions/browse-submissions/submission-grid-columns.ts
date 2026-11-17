@@ -82,8 +82,8 @@ function toAnswerColumn(
     search,
     placement: {
       pageName: column.pageName,
-      pageTitle: column.pageTitle && plainTitle(column.pageTitle),
-      panelTitle: column.panelTitle && plainTitle(column.panelTitle),
+      pageTitle: plainTitle(column.pageTitle ?? "") || null,
+      panelTitle: plainTitle(column.panelTitle ?? "") || null,
     },
   };
 }

@@ -101,6 +101,21 @@ describe("toAnswerColumns", () => {
     });
   });
 
+  it("treats a page or panel title with no text as missing", () => {
+    const [column] = toAnswerColumns([
+      wireColumn("q1", {
+        pageTitle: "<b></b>",
+        panelTitle: '<img src="logo.png" alt="">',
+      }),
+    ]);
+
+    expect(column.placement).toEqual({
+      pageName: "page1",
+      pageTitle: null,
+      panelTitle: null,
+    });
+  });
+
   it("falls back to the key when the title has no text", () => {
     const [column] = toAnswerColumns([
       wireColumn("q1", { title: '<img src="logo.png" alt="">' }),
