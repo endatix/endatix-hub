@@ -86,4 +86,47 @@ describe("DataTableColumnLabelReveal", () => {
       ]),
     );
   });
+
+  it("toggles on a mouse click", async () => {
+    const { first } = renderTwoLabels();
+    fireEvent.pointerDown(first, { pointerType: "mouse" });
+    fireEvent.click(first);
+    await screen.findByRole("tooltip");
+
+    fireEvent.pointerDown(first, { pointerType: "mouse" });
+    fireEvent.click(first);
+
+    await waitFor(() => expect(tooltipText()).toBeNull());
+  });
+
+  it("toggles on a keyboard click, which has no press before it", async () => {
+    const { first } = renderTwoLabels();
+
+    fireEvent.click(first);
+
+    expect((await screen.findByRole("tooltip")).textContent).toBe(
+      `QAIDED — ${TITLE}`,
+    );
+  });
+
+  it("keeps its text across a re-render and shows new text when it changes", async () => {
+    const { rerender } = render(
+      <DataTableColumnLabelReveal label="QAIDED" description={TITLE} />,
+    );
+    tap(screen.getByRole("button", { name: "QAIDED" }));
+    rerender(<DataTableColumnLabelReveal label="QAIDED" description={TITLE} />);
+    expect((await screen.findByRole("tooltip")).textContent).toBe(
+      `QAIDED — ${TITLE}`,
+    );
+    tap(screen.getByRole("button", { name: "QAIDED" }));
+    await waitFor(() => expect(tooltipText()).toBeNull());
+
+    rerender(<DataTableColumnLabelReveal label="QB" description="Changed" />);
+
+    tap(screen.getByRole("button", { name: "QB" }));
+
+    expect((await screen.findByRole("tooltip")).textContent).toBe(
+      "QB — Changed",
+    );
+  });
 });
