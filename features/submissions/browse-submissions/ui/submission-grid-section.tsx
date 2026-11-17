@@ -214,7 +214,7 @@ function GridRowsSkeleton({
   urlState,
   answerColumns,
 }: Readonly<SubmissionGridRowsProps>) {
-  const answerTitles = answerColumns.map(answerColumnLabel);
+  const answerTitles = answerColumns.map((column) => answerColumnLabel(column));
   return (
     <SubmissionGridSkeleton
       pageSize={urlState.pageSize}
