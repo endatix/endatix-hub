@@ -16,7 +16,7 @@ import {
 import { dataTableColumnLabelClassName } from "./data-table-chrome";
 
 const LABEL_BUTTON_CLASS_NAME = dataTableColumnLabelClassName(
-  "block max-w-full cursor-help rounded-sm text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+  "block max-w-full cursor-help normal-case rounded-sm text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
 );
 
 interface DataTableColumnLabelRevealProps {
@@ -26,9 +26,9 @@ interface DataTableColumnLabelRevealProps {
 }
 
 /**
- * A column label that reveals itself in full, then its description, on hover,
- * keyboard focus and tap (a second tap closes it).
- * Closed, the label is described by a hidden copy; open, Radix links the tooltip.
+ * A column label (an identifier, so it keeps its case) that reveals itself in
+ * full, then its description, on hover, keyboard focus and tap; a second tap
+ * closes it. Closed, the label is described by a hidden copy; open, by Radix.
  */
 export function DataTableColumnLabelReveal({
   label,

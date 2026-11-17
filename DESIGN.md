@@ -340,8 +340,9 @@ paged sortable grid look identical:
   - A question with no title shows its name only, with nothing to reveal.
   - Never put a raw title in a header, a menu or a tooltip: SurveyJS titles hold HTML. Run it
     through `htmlSanitizer.toPlainText` first.
-  - Names take the shared uppercase label style. Columns that are not questions (a submitter
-    profile field) keep their human label. Reference:
+  - Names keep their own case, because they are identifiers (`brands__Alpha`, not
+    `BRANDS__ALPHA`); the other labels keep the shared uppercase style. Columns that are not
+    questions (a submitter profile field) keep their human label. Reference:
     `features/submissions/browse-submissions/ui/submission-grid-column-defs.tsx`.
 - Wiring (URL state, paging, loading skeletons): `project-structure.md` "List pages and tables".
 

@@ -9,6 +9,7 @@ import {
   CellDate,
   DATA_TABLE_SHRINK_WRAP_CLASS_NAME,
   DataTableColumnLabelReveal,
+  dataTableColumnLabelClassName,
   DataTableColumnHeader,
   type DataTableColumnHeaderProps,
 } from "@/components/table";
@@ -194,17 +195,24 @@ function answerColumn(
     meta: sized(ANSWER_COLUMN),
     header: header(answerColumnLabel(column), {
       ...answerHeaderFilter(column, filters),
-      titleContent: answerTitleReveal(column),
+      titleContent: questionNameLabel(column),
     }),
     cell: ({ row }) => <AnswerCell row={row.original} column={column} />,
   };
 }
 
-/** The full title behind the name, for hover, focus and tap; none when the question has no title. */
-function answerTitleReveal(column: AnswerColumn) {
-  const label = answerColumnLabel(column);
-  return column.title === label ? undefined : (
-    <DataTableColumnLabelReveal label={label} description={column.title} />
+/**
+ * A question's name keeps its case (it is an identifier) and reveals the title
+ * on hover, focus and tap; a question with no title shows its name only.
+ */
+function questionNameLabel(column: AnswerColumn) {
+  if (isSubmitterProfileColumn(column)) return undefined;
+  return column.title === column.key ? (
+    <span className={dataTableColumnLabelClassName("normal-case")}>
+      {column.key}
+    </span>
+  ) : (
+    <DataTableColumnLabelReveal label={column.key} description={column.title} />
   );
 }
 

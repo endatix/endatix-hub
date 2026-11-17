@@ -209,10 +209,22 @@ describe("answer column header label", () => {
     );
   });
 
+  it("keeps the question name in its own case", () => {
+    renderAnswerHeader(
+      wireColumn("brands__Alpha", "ChoiceIndicator", {
+        title: FORMATTED_TITLE,
+      }),
+    );
+
+    const label = screen.getByRole("button", { name: "brands__Alpha" });
+    expect(label.className).toContain("normal-case");
+    expect(label.className).not.toContain("uppercase");
+  });
+
   it("shows only the name when the question has no title", () => {
     renderAnswerHeader(wireColumn("q1", "Simple", { title: "" }));
 
-    expect(screen.getByText("q1")).toBeTruthy();
+    expect(screen.getByText("q1").className).toContain("normal-case");
     expect(screen.queryByRole("button", { name: "q1" })).toBeNull();
   });
 
@@ -223,7 +235,7 @@ describe("answer column header label", () => {
       }),
     );
 
-    expect(screen.getByText("City")).toBeTruthy();
+    expect(screen.getByText("City").className).toContain("uppercase");
     expect(screen.queryByText("submitter_city")).toBeNull();
   });
 });
