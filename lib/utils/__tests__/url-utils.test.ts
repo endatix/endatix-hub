@@ -4,6 +4,7 @@ import {
   toSafeRelativeUrl,
   isSafeRedirectUrl,
   trimTrailingSlashes,
+  safeDecodeURIComponent,
 } from "../url-utils";
 import { Result } from "../../result";
 
@@ -443,5 +444,18 @@ describe("isSafeRedirectUrl", () => {
     it("returns false for protocol-relative URLs", () => {
       expect(isSafeRedirectUrl("//evil.com")).toBe(false);
     });
+  });
+});
+
+describe("safeDecodeURIComponent", () => {
+  it("decodes valid URI-encoded text", () => {
+    expect(safeDecodeURIComponent("50%25%20off")).toBe("50% off");
+  });
+
+  it("returns text with a bare percent sign unchanged", () => {
+    expect(safeDecodeURIComponent("50% off")).toBe("50% off");
+    expect(safeDecodeURIComponent('<div style="width:100%">A</div>')).toBe(
+      '<div style="width:100%">A</div>',
+    );
   });
 });
