@@ -121,11 +121,9 @@ function trimTrailingSlashes(value: string): string {
 function safeDecodeURIComponent(text: string): string {
   try {
     return decodeURIComponent(text);
-  } catch (error) {
-    if (error instanceof URIError) {
-      return text;
-    }
-    throw error;
+  } catch {
+    // On a string, decodeURIComponent throws only URIError.
+    return text;
   }
 }
 
