@@ -74,6 +74,25 @@ describe("toAnswerColumns", () => {
 
     expect(column.title).toBe("q1");
   });
+
+  it("shows a formatted title as plain text and keeps its placeholders", () => {
+    const title =
+      'Which brands of <span style="color:#09f"> {category}</span> do you know?\n <em>Select all &amp; rank.</em>';
+
+    const [column] = toAnswerColumns([wireColumn("q1", { title })]);
+
+    expect(column.title).toBe(
+      "Which brands of {category} do you know? Select all & rank.",
+    );
+  });
+
+  it("falls back to the key when the title has no text", () => {
+    const [column] = toAnswerColumns([
+      wireColumn("q1", { title: '<img src="logo.png" alt="">' }),
+    ]);
+
+    expect(column.title).toBe("q1");
+  });
 });
 
 describe("resolveVisibleAnswerColumns", () => {

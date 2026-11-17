@@ -5,6 +5,7 @@ import {
 } from "@/features/submissions/column-search";
 import { answerParamsBytes } from "@/lib/endatix-api/reporting/submission-grid-answer-params";
 import { fitRowColumns } from "@/lib/endatix-api/reporting/submission-grid-row-columns";
+import { htmlSanitizer } from "@/lib/utils/html-sanitizer";
 import type {
   SubmissionGridAnswerFilter,
   SubmissionGridColumn,
@@ -75,7 +76,7 @@ function toAnswerColumn(
   return {
     key: column.key,
     kind: column.kind,
-    title: column.title || column.key,
+    title: plainTitle(column.title) || column.key,
     questionType: column.questionType,
     filterType: search.state === "ready" ? column.filterType : null,
     search,
@@ -85,6 +86,11 @@ function toAnswerColumn(
       panelTitle: column.panelTitle,
     },
   };
+}
+
+/** SurveyJS titles may hold HTML; headers and the picker show text only. */
+function plainTitle(title: string): string {
+  return htmlSanitizer.toPlainText(title).replaceAll(/\s+/g, " ").trim();
 }
 
 /**
