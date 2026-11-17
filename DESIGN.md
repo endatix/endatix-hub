@@ -323,6 +323,27 @@ paged sortable grid look identical:
 - **User-defined columns** (one per property, field or answer): every column gets a minimum width,
   values wrap, an unset cell is `—` with `sr-only` "Not set", and the table scrolls in
   `overflow-x-auto` instead of squeezing columns.
+- **Columns built from a form** (one per question or choice) are headed by the **question name**
+  (`brands__Alpha`, `QAIDED`), the identifier export and Crunch use too, on one line.
+  `DataTableColumnLabelReveal` shows `name — title` (the name in its own case, then the plain-text
+  title) on hover, on keyboard focus and on a tap; a second tap, Escape or a tap elsewhere closes
+  it. The label is the trigger, so the column menu keeps its own button. Closed, the label's
+  `aria-describedby` is the title; open, it is the tooltip.
+  - **Why a reveal, here only.** The title is a sentence and the header has no room for it, so it
+    is secondary text ("Truncate only secondary text, with the full value in `title`"), and the
+    Columns picker shows it as visible text (title first, name under it), where a reader matches
+    the two. That makes this the one exception to "Help is visible text, not a tooltip". Hover and
+    focus follow the designer-canvas chip (`role="tooltip"`, `aria-describedby`); the tap is new
+    here, because the chip has no phone use and a grid does.
+  - The name is what the reader scans ("Never truncate a value the reader came to read"): it
+    truncates only past the column's minimum width, and the reveal shows it in full.
+  - A question with no title shows its name only, with nothing to reveal.
+  - Never put a raw title in a header, a menu or a tooltip: SurveyJS titles hold HTML. Run it
+    through `htmlSanitizer.toPlainText` first.
+  - Names keep their own case, because they are identifiers (`brands__Alpha`, not
+    `BRANDS__ALPHA`); the other labels keep the shared uppercase style. Columns that are not
+    questions (a submitter profile field) keep their human label. Reference:
+    `features/submissions/browse-submissions/ui/submission-grid-column-defs.tsx`.
 - Wiring (URL state, paging, loading skeletons): `project-structure.md` "List pages and tables".
 
 **Toolbar — `DataTableToolbar`.** Every list's toolbar goes through it, so a list fills its

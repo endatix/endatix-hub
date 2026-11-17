@@ -5,6 +5,7 @@ import {
 } from "@/features/submissions/column-search";
 import { answerParamsBytes } from "@/lib/endatix-api/reporting/submission-grid-answer-params";
 import { fitRowColumns } from "@/lib/endatix-api/reporting/submission-grid-row-columns";
+import { htmlSanitizer } from "@/lib/utils/html-sanitizer";
 import type {
   SubmissionGridAnswerFilter,
   SubmissionGridColumn,
@@ -75,16 +76,21 @@ function toAnswerColumn(
   return {
     key: column.key,
     kind: column.kind,
-    title: column.title || column.key,
+    title: plainTitle(column.title) || column.key,
     questionType: column.questionType,
     filterType: search.state === "ready" ? column.filterType : null,
     search,
     placement: {
       pageName: column.pageName,
-      pageTitle: column.pageTitle,
-      panelTitle: column.panelTitle,
+      pageTitle: plainTitle(column.pageTitle ?? "") || null,
+      panelTitle: plainTitle(column.panelTitle ?? "") || null,
     },
   };
+}
+
+/** SurveyJS titles may hold HTML; the grid headers and the picker show text only. */
+function plainTitle(title: string): string {
+  return htmlSanitizer.toPlainText(title).replaceAll(/\s+/g, " ").trim();
 }
 
 /**
@@ -142,6 +148,15 @@ export function submitterProfileField(key: string): string {
   return key.startsWith(SUBMITTER_PROFILE_KEY_PREFIX)
     ? key.slice(SUBMITTER_PROFILE_KEY_PREFIX.length)
     : key;
+}
+
+/**
+ * The header label: a question's name, which export and Crunch use too. Its
+ * title is long prose, so the header reveals it instead. A submitter profile
+ * column is not a question and keeps its title.
+ */
+export function answerColumnLabel(column: AnswerColumn): string {
+  return isSubmitterProfileColumn(column) ? column.title : column.key;
 }
 
 export function isSubmitterProfileColumn(

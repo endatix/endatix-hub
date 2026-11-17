@@ -74,6 +74,55 @@ describe("toAnswerColumns", () => {
 
     expect(column.title).toBe("q1");
   });
+
+  it("shows a formatted title as plain text and keeps its placeholders", () => {
+    const title =
+      'Which brands of <span style="color:#09f"> {category}</span> do you know?\n <em>Select all &amp; rank.</em>';
+
+    const [column] = toAnswerColumns([wireColumn("q1", { title })]);
+
+    expect(column.title).toBe(
+      "Which brands of {category} do you know? Select all & rank.",
+    );
+  });
+
+  it("shows formatted page and panel titles as plain text", () => {
+    const [column] = toAnswerColumns([
+      wireColumn("q1", {
+        pageTitle: "<em>Part 2</em> &ndash; Brands",
+        panelTitle: '<span style="color:#09f">Awareness</span>',
+      }),
+    ]);
+
+    expect(column.placement).toEqual({
+      pageName: "page1",
+      pageTitle: "Part 2 – Brands",
+      panelTitle: "Awareness",
+    });
+  });
+
+  it("treats a page or panel title with no text as missing", () => {
+    const [column] = toAnswerColumns([
+      wireColumn("q1", {
+        pageTitle: "<b></b>",
+        panelTitle: '<img src="logo.png" alt="">',
+      }),
+    ]);
+
+    expect(column.placement).toEqual({
+      pageName: "page1",
+      pageTitle: null,
+      panelTitle: null,
+    });
+  });
+
+  it("falls back to the key when the title has no text", () => {
+    const [column] = toAnswerColumns([
+      wireColumn("q1", { title: '<img src="logo.png" alt="">' }),
+    ]);
+
+    expect(column.title).toBe("q1");
+  });
 });
 
 describe("resolveVisibleAnswerColumns", () => {

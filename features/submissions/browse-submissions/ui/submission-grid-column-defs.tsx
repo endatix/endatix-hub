@@ -8,6 +8,8 @@ import { TruncatedId } from "@/components/common/truncated-id";
 import {
   CellDate,
   DATA_TABLE_SHRINK_WRAP_CLASS_NAME,
+  DataTableColumnLabelReveal,
+  dataTableColumnLabelClassName,
   DataTableColumnHeader,
   type DataTableColumnHeaderProps,
 } from "@/components/table";
@@ -17,6 +19,7 @@ import type { SubmissionGridRow } from "@/lib/endatix-api/reporting/submission-g
 
 import {
   answerColumnId,
+  answerColumnLabel,
   isSubmitterProfileColumn,
   submitterProfileField,
   type AnswerColumn,
@@ -190,9 +193,27 @@ function answerColumn(
     id: answerColumnId(column.key),
     enableSorting: false,
     meta: sized(ANSWER_COLUMN),
-    header: header(column.title, answerHeaderFilter(column, filters)),
+    header: header(answerColumnLabel(column), {
+      ...answerHeaderFilter(column, filters),
+      titleContent: questionNameLabel(column),
+    }),
     cell: ({ row }) => <AnswerCell row={row.original} column={column} />,
   };
+}
+
+/**
+ * A question's name keeps its case (it is an identifier) and reveals the title
+ * on hover, focus and tap; a question with no title shows its name only.
+ */
+function questionNameLabel(column: AnswerColumn) {
+  if (isSubmitterProfileColumn(column)) return undefined;
+  return column.title === column.key ? (
+    <span className={dataTableColumnLabelClassName("normal-case")}>
+      {column.key}
+    </span>
+  ) : (
+    <DataTableColumnLabelReveal label={column.key} description={column.title} />
+  );
 }
 
 /** Submitter email keeps the list's metadata filter on its column. */

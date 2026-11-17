@@ -21,6 +21,7 @@ import {
   keptAnswerFilters,
 } from "../submission-grid-answer-filters";
 import {
+  answerColumnLabel,
   resolveVisibleAnswerColumns,
   type AnswerColumn,
 } from "../submission-grid-columns";
@@ -213,7 +214,7 @@ function GridRowsSkeleton({
   urlState,
   answerColumns,
 }: Readonly<SubmissionGridRowsProps>) {
-  const answerTitles = answerColumns.map((column) => column.title);
+  const answerTitles = answerColumns.map((column) => answerColumnLabel(column));
   return (
     <SubmissionGridSkeleton
       pageSize={urlState.pageSize}

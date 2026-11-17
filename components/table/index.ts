@@ -9,6 +9,7 @@ export {
   TextFilterControls,
   type DataTableColumnHeaderProps,
 } from "./data-table-column-header";
+export { DataTableColumnLabelReveal } from "./data-table-column-label-reveal";
 export type { DateFilterValue } from "./date-filter-types";
 export {
   FacetedFilter,
