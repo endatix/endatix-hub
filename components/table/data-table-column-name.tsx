@@ -2,9 +2,11 @@ import { splitIdTail } from "@/components/common/truncated-id";
 import { cn } from "@/lib/utils";
 
 const CHOICE_SEPARATOR = "__";
+/** `whitespace-pre` keeps a space at the split (`First ` + `Name`); `truncate` would drop it. */
+const CUT_CLASS_NAME = "overflow-hidden text-ellipsis whitespace-pre";
 /** The start gives way first; the suffix cuts at its end only when it alone is too wide. */
-const HEAD_CLASS_NAME = "min-w-0 truncate";
-const TAIL_CLASS_NAME = "max-w-full shrink-0 truncate";
+const HEAD_CLASS_NAME = `min-w-0 ${CUT_CLASS_NAME}`;
+const TAIL_CLASS_NAME = `max-w-full shrink-0 ${CUT_CLASS_NAME}`;
 
 /**
  * A question name that shortens in the middle when its column is too narrow,

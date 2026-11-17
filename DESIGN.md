@@ -339,7 +339,7 @@ paged sortable grid look identical:
     shortens only past the column's width, and the reveal shows it in full. It shortens in the
     middle, as `TruncatedId` does, so columns that share a long prefix stay apart: the start and
     the choice suffix (from the last `__`) stay, `QUESTION_VERY_LO…__Alpha`; a name with no
-    suffix keeps its start and its last characters. `DataTableColumnName` draws it, in the
+    suffix keeps its start and its last characters. A suffix wider than the column cuts at its end. `DataTableColumnName` draws it, in the
     header and in the loading skeleton, and its accessible name is the full name.
   - A question with no title shows its name only, with nothing to reveal.
   - Never put a raw title in a header, a menu or a tooltip: SurveyJS titles hold HTML. Run it

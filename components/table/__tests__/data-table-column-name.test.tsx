@@ -81,6 +81,18 @@ describe("DataTableColumnName", () => {
     expect(visibleParts(container)).toEqual({ head, tail });
   });
 
+  it("keeps a space where the name splits", () => {
+    // Arrange & Act
+    const { container } = render(<DataTableColumnName name="First Name" />);
+
+    // Assert
+    const parts = container.querySelectorAll('[aria-hidden="true"] > span');
+    for (const part of parts) {
+      expect(part.className).toContain("whitespace-pre");
+    }
+    expect(visibleParts(container)).toEqual({ head: "First ", tail: "Name" });
+  });
+
   it("shows a short name whole", () => {
     // Arrange & Act
     const { container } = render(<DataTableColumnName name="Q1" />);

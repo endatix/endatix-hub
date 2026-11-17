@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { TruncatedId, truncateId } from "@/components/common/truncated-id";
+import {
+  splitIdTail,
+  TruncatedId,
+  truncateId,
+} from "@/components/common/truncated-id";
 
 const mockWriteText = vi.fn();
 Object.assign(navigator, {
@@ -43,6 +47,21 @@ describe("truncateId", () => {
     // Assert
     expect(result).toBe("00-15ceb\u20261df6c-00");
     expect(result.length).toBeLessThan(id.length);
+  });
+});
+
+describe("splitIdTail", () => {
+  it("keeps the last visible characters as the tail", () => {
+    // Arrange & Act & Assert
+    expect(splitIdTail("1329400665130139648")).toEqual({
+      head: "132940066513013",
+      tail: "9648",
+    });
+  });
+
+  it("keeps a short id whole in the tail", () => {
+    // Arrange & Act & Assert
+    expect(splitIdTail("Q1")).toEqual({ head: "", tail: "Q1" });
   });
 });
 

@@ -28,8 +28,9 @@ interface DataTableColumnLabelRevealProps {
 
 /**
  * A column label (an identifier, so it keeps its case and shortens in the
- * middle) that reveals itself in full, then its description, on hover, keyboard focus and tap; a second tap
- * closes it. Closed, the label is described by a hidden copy; open, by Radix.
+ * middle) that reveals itself in full, then its description, on hover,
+ * keyboard focus and tap; a second tap closes it. Closed, the label is
+ * described by a hidden copy; open, by Radix.
  */
 export function DataTableColumnLabelReveal({
   label,

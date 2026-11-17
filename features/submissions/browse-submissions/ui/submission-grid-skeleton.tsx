@@ -30,15 +30,17 @@ type SubmissionGridSkeletonProps = {
 
 export function SubmissionGridSkeleton({
   pageSize,
-  answers: answerLabels = [],
+  answers = [],
 }: Readonly<SubmissionGridSkeletonProps>) {
-  const unique = new Map(answerLabels.map((answer) => [answer.label, answer]));
-  const answers = [...unique.values()].map((answer) =>
-    toSkeletonColumn(answer),
-  );
+  const columns = answers
+    .filter(
+      (answer, index) =>
+        answers.findIndex((a) => a.label === answer.label) === index,
+    )
+    .map((answer) => toSkeletonColumn(answer));
   return (
     <DataTableSkeleton
-      columns={[...METADATA_COLUMNS, ...answers]}
+      columns={[...METADATA_COLUMNS, ...columns]}
       rows={pageSize}
       data-slot="submission-grid-skeleton"
     />

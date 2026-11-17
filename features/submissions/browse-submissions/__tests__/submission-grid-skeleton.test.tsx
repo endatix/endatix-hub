@@ -4,10 +4,6 @@ import { SubmissionGridSkeleton } from "../ui/submission-grid-skeleton";
 
 const PREFIX = "brand_awareness_aided_recall_category_grid";
 
-function headerTexts() {
-  return screen.getAllByRole("columnheader").map((cell) => cell.textContent);
-}
-
 describe("SubmissionGridSkeleton", () => {
   it("heads question columns with their names, cut in the middle", () => {
     // Arrange & Act
@@ -41,19 +37,23 @@ describe("SubmissionGridSkeleton", () => {
     expect(screen.getByText("Email").className).toContain("uppercase");
   });
 
-  it("shows a repeated label once", () => {
+  it("shows a repeated label once, as its first column", () => {
     // Arrange & Act
     render(
       <SubmissionGridSkeleton
         pageSize={1}
         answers={[
-          { label: "Email", isQuestionName: false },
+          { label: "Email", isQuestionName: true },
           { label: "Email", isQuestionName: false },
         ]}
       />,
     );
 
     // Assert
-    expect(headerTexts().filter((text) => text === "Email")).toHaveLength(1);
+    const emailHeaders = screen
+      .getAllByRole("columnheader")
+      .filter((cell) => cell.textContent?.includes("Email"));
+    expect(emailHeaders).toHaveLength(1);
+    expect(emailHeaders[0].querySelector(".normal-case")).not.toBeNull();
   });
 });
