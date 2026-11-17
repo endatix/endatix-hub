@@ -10,6 +10,9 @@ interface CheckboxAnswerProps {
   className?: string;
 }
 
+const choiceLabel = (item: ItemValue) =>
+  htmlSanitizer.toPlainText(safeDecodeURIComponent(item.text));
+
 const CheckboxAnswer = ({ question, className }: CheckboxAnswerProps) => {
   const checkedItems: ItemValue[] = question.selectedChoices;
 
@@ -44,9 +47,7 @@ const CheckboxAnswer = ({ question, className }: CheckboxAnswerProps) => {
               htmlFor={checkedItem.value}
               className="text-sm leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
             >
-              {htmlSanitizer.toPlainText(
-                safeDecodeURIComponent(checkedItem.text),
-              )}
+              {choiceLabel(checkedItem)}
             </Label>
             <ValueTooltip value={question} />
           </div>

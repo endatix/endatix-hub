@@ -458,4 +458,10 @@ describe("safeDecodeURIComponent", () => {
       '<div style="width:100%">A</div>',
     );
   });
+
+  it("returns mixed text unchanged when any percent sign is bare", () => {
+    expect(safeDecodeURIComponent("50% off, 100%25 pure")).toBe(
+      "50% off, 100%25 pure",
+    );
+  });
 });
