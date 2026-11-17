@@ -14,6 +14,7 @@ import {
   type PointerEvent,
 } from "react";
 import { dataTableColumnLabelClassName } from "./data-table-chrome";
+import { DataTableColumnName } from "./data-table-column-name";
 
 const LABEL_BUTTON_CLASS_NAME = dataTableColumnLabelClassName(
   "block max-w-full cursor-help normal-case rounded-sm text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
@@ -26,9 +27,10 @@ interface DataTableColumnLabelRevealProps {
 }
 
 /**
- * A column label (an identifier, so it keeps its case) that reveals itself in
- * full, then its description, on hover, keyboard focus and tap; a second tap
- * closes it. Closed, the label is described by a hidden copy; open, by Radix.
+ * A column label (an identifier, so it keeps its case and shortens in the
+ * middle) that reveals itself in full, then its description, on hover,
+ * keyboard focus and tap; a second tap closes it. Closed, the label is
+ * described by a hidden copy; open, by Radix.
  */
 export function DataTableColumnLabelReveal({
   label,
@@ -60,7 +62,7 @@ function LabelTooltip(props: LabelTooltipProps) {
         onPointerDown={onPointerDown}
         onClick={onClick}
       >
-        {props.label}
+        <DataTableColumnName name={props.label} />
       </TooltipTrigger>
       <TooltipContent className="max-w-xs">
         <span className="font-semibold">{props.label}</span> —{" "}

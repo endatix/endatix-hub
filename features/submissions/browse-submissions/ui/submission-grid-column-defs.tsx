@@ -9,6 +9,7 @@ import {
   CellDate,
   DATA_TABLE_SHRINK_WRAP_CLASS_NAME,
   DataTableColumnLabelReveal,
+  DataTableColumnName,
   dataTableColumnLabelClassName,
   DataTableColumnHeader,
   type DataTableColumnHeaderProps,
@@ -208,9 +209,10 @@ function answerColumn(
 function questionNameLabel(column: AnswerColumn) {
   if (isSubmitterProfileColumn(column)) return undefined;
   return column.title === column.key ? (
-    <span className={dataTableColumnLabelClassName("normal-case")}>
-      {column.key}
-    </span>
+    <DataTableColumnName
+      name={column.key}
+      className={dataTableColumnLabelClassName("normal-case")}
+    />
   ) : (
     <DataTableColumnLabelReveal label={column.key} description={column.title} />
   );

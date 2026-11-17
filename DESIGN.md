@@ -153,6 +153,7 @@ Before building a control, check whether the vocabulary already exists here.
 | `components/common/summary-row.tsx` — `SummaryRow`                                                | Label-left / value-right rows (§6 Displaying values)                                                       |
 | `components/common/locked-value.tsx` — `LockedValue`                                              | A value an overlay can never change, with its `Locked` badge, as a `SummaryRow` value (§6 Controls)        |
 | `components/common/truncated-id.tsx` — `TruncatedId`                                              | A long id shortened to head…tail with a copy affordance                                                    |
+| `components/table/data-table-column-name.tsx` — `DataTableColumnName`                             | A question name in a column header, shortened in the middle to keep its choice suffix (List tables)        |
 | `components/common/text-link.tsx` — `TextLink`                                                    | An inline link; `external` for one that leaves the Hub (Links, below)                                      |
 | `components/layout-ui/navigation/nav-switcher.tsx` — `NavSwitcher`                                | The current choice among siblings as a menu, with icons and a check (§6 Record workspace)                  |
 | `components/layout-ui/navigation/nav-icons.ts` — `NAV_ICONS`, `NavIconName`                       | One icon per destination, named by server-built menus and resolved on the client (§6 Navigation)           |
@@ -336,7 +337,12 @@ paged sortable grid look identical:
     focus follow the designer-canvas chip (`role="tooltip"`, `aria-describedby`); the tap is new
     here, because the chip has no phone use and a grid does.
   - The name is what the reader scans ("Never truncate a value the reader came to read"): it
-    truncates only past the column's minimum width, and the reveal shows it in full.
+    shortens only past the column's width, and the reveal shows it in full. It shortens in the
+    middle, as `TruncatedId` does, so columns that share a long prefix stay apart: the start and
+    the choice suffix (from the last `__`) stay, `QUESTION_VERY_LO…__Alpha`; a name with no
+    suffix keeps its start and its last characters. A suffix wider than the column cuts at its
+    end. `DataTableColumnName` draws it, in the header and in the loading skeleton, and its
+    accessible name is the full name.
   - A question with no title shows its name only, with nothing to reveal.
   - Never put a raw title in a header, a menu or a tooltip: SurveyJS titles hold HTML. Run it
     through `htmlSanitizer.toPlainText` first.

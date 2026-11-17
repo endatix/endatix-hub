@@ -174,7 +174,7 @@ describe("answer column header label", () => {
     );
 
     const label = screen.getByRole("button", { name: "brands__Alpha" });
-    expect(label.textContent).toBe("brands__Alpha");
+    expect(label.textContent).not.toContain(PLAIN_TITLE);
     const descriptionId = label.getAttribute("aria-describedby") ?? "";
     expect(document.getElementById(descriptionId)?.textContent).toBe(
       PLAIN_TITLE,
@@ -222,10 +222,12 @@ describe("answer column header label", () => {
   });
 
   it("shows only the name when the question has no title", () => {
-    renderAnswerHeader(wireColumn("q1", "Simple", { title: "" }));
+    const name = "brand_awareness_aided_recall_category_grid__Alpha";
+    renderAnswerHeader(wireColumn(name, "ChoiceIndicator", { title: "" }));
 
-    expect(screen.getByText("q1").className).toContain("normal-case");
-    expect(screen.queryByRole("button", { name: "q1" })).toBeNull();
+    const tail = screen.getByText("__Alpha");
+    expect(tail.closest(".normal-case")?.textContent).toContain(name);
+    expect(screen.queryByRole("button", { name })).toBeNull();
   });
 
   it("keeps the title of a submitter profile column", () => {
