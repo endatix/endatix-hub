@@ -82,13 +82,13 @@ function toAnswerColumn(
     search,
     placement: {
       pageName: column.pageName,
-      pageTitle: column.pageTitle,
-      panelTitle: column.panelTitle,
+      pageTitle: column.pageTitle && plainTitle(column.pageTitle),
+      panelTitle: column.panelTitle && plainTitle(column.panelTitle),
     },
   };
 }
 
-/** SurveyJS titles may hold HTML; headers and the picker show text only. */
+/** SurveyJS titles may hold HTML; the grid headers and the picker show text only. */
 function plainTitle(title: string): string {
   return htmlSanitizer.toPlainText(title).replaceAll(/\s+/g, " ").trim();
 }

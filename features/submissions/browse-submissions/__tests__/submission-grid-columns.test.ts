@@ -86,6 +86,21 @@ describe("toAnswerColumns", () => {
     );
   });
 
+  it("shows formatted page and panel titles as plain text", () => {
+    const [column] = toAnswerColumns([
+      wireColumn("q1", {
+        pageTitle: "<em>Part 2</em> &ndash; Brands",
+        panelTitle: '<span style="color:#09f">Awareness</span>',
+      }),
+    ]);
+
+    expect(column.placement).toEqual({
+      pageName: "page1",
+      pageTitle: "Part 2 – Brands",
+      panelTitle: "Awareness",
+    });
+  });
+
   it("falls back to the key when the title has no text", () => {
     const [column] = toAnswerColumns([
       wireColumn("q1", { title: '<img src="logo.png" alt="">' }),
