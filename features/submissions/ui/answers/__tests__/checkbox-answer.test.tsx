@@ -3,7 +3,13 @@ import { Model, QuestionCheckboxModel } from "survey-core";
 import { describe, expect, it } from "vitest";
 import CheckboxAnswer from "../checkbox-answer";
 
-function checkboxPicking(choices: string[], picked: string[]) {
+const HTML_LABEL =
+  '<div style="width:100%"><img src="https://cdn.example.com/brand%20b.png"> Brand B</div>';
+
+function checkboxPicking(
+  choices: Array<string | { value: string; text: string }>,
+  picked: string[],
+) {
   const model = new Model({
     elements: [{ type: "checkbox", name: "q", choices }],
   });
@@ -32,5 +38,17 @@ describe("CheckboxAnswer", () => {
 
     // Assert
     expect(screen.getByText("100%25 cotton")).not.toBeNull();
+  });
+
+  it("shows only the visible text of an HTML label with % in its markup", () => {
+    // Arrange
+    const question = checkboxPicking([{ value: "b", text: HTML_LABEL }], ["b"]);
+
+    // Act
+    const { container } = render(<CheckboxAnswer question={question} />);
+
+    // Assert
+    expect(screen.getByText("Brand B")).not.toBeNull();
+    expect(container.textContent).not.toMatch(/[%<]/);
   });
 });

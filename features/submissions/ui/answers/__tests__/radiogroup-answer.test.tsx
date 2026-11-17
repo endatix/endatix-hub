@@ -3,7 +3,13 @@ import { Model } from "survey-core";
 import { describe, expect, it } from "vitest";
 import RadioGroupAnswer from "../radiogroup-answer";
 
-function radiogroupPicking(choices: string[], picked: string) {
+const HTML_LABEL =
+  '<div style="width:100%"><img src="https://cdn.example.com/brand%20b.png"> Brand B</div>';
+
+function radiogroupPicking(
+  choices: Array<string | { value: string; text: string }>,
+  picked: string,
+) {
   const model = new Model({
     elements: [{ type: "radiogroup", name: "q", choices }],
   });
@@ -32,5 +38,17 @@ describe("RadioGroupAnswer", () => {
 
     // Assert
     expect(screen.getByText("100%25 cotton")).not.toBeNull();
+  });
+
+  it("shows only the visible text of an HTML label with % in its markup", () => {
+    // Arrange
+    const question = radiogroupPicking([{ value: "b", text: HTML_LABEL }], "b");
+
+    // Act
+    const { container } = render(<RadioGroupAnswer question={question} />);
+
+    // Assert
+    expect(screen.getByText("Brand B")).not.toBeNull();
+    expect(container.textContent).not.toMatch(/[%<]/);
   });
 });
