@@ -18,9 +18,7 @@ const RadioGroupAnswer = ({ question, className }: RadioGroupAnswerProps) => {
       <div className="flex items-center space-x-2">
         <RadioGroupItem value={question.value} id={question.id} />
         <Label htmlFor={question.id}>
-          {htmlSanitizer.toPlainText(
-            decodeURIComponent(question.selectedItem?.text ?? ""),
-          )}
+          {htmlSanitizer.toPlainText(question.selectedItem?.text ?? "")}
         </Label>
         <ValueTooltip value={question} />
       </div>

@@ -52,12 +52,10 @@ const PdfCheckboxAnswer = ({ question }: CheckboxAnswerProps) => {
         <View key={item.value} style={styles.item}>
           <Text style={styles.checkedIndicator}>[X]</Text>
           <Text style={styles.label}>
-            {decodeURIComponent(
-              formatChoiceDisplay(
-                item.value,
-                resolveChoiceLabel(question, item.value) ??
-                  resolveItemValueLabel(item),
-              ),
+            {formatChoiceDisplay(
+              item.value,
+              resolveChoiceLabel(question, item.value) ??
+                resolveItemValueLabel(item),
             )}
           </Text>
         </View>

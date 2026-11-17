@@ -43,7 +43,7 @@ const CheckboxAnswer = ({ question, className }: CheckboxAnswerProps) => {
               htmlFor={checkedItem.value}
               className="text-sm leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
             >
-              {htmlSanitizer.toPlainText(decodeURIComponent(checkedItem.text))}
+              {htmlSanitizer.toPlainText(checkedItem.text)}
             </Label>
             <ValueTooltip value={question} />
           </div>
