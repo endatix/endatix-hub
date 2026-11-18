@@ -19,7 +19,7 @@ export interface Oklch {
 }
 
 const NUMBER = String.raw`[+-]?(?:\d+\.?\d*|\.\d+)`;
-const ARG = String.raw`(${NUMBER})(%|deg)?`;
+const ARG = `(${NUMBER})(%|deg)?`;
 const SEPARATOR = String.raw`(?:\s*,\s*|\s+)`;
 const FUNCTION_ARGS = new RegExp(
   String.raw`^(rgb|hsl|oklch)a?\(\s*${ARG}${SEPARATOR}${ARG}${SEPARATOR}${ARG}\s*\)$`,
@@ -89,7 +89,8 @@ function parseHex(digits: string): Rgb {
           .map((d) => d + d)
           .join("")
       : digits;
-  const channel = (i: number) => parseInt(full.slice(i, i + 2), 16) / 255;
+  const channel = (i: number) =>
+    Number.parseInt(full.slice(i, i + 2), 16) / 255;
   return { r: channel(0), g: channel(2), b: channel(4) };
 }
 

@@ -43,5 +43,6 @@ export function packFileUrl(file: string, fingerprint: string): string {
     .split("/")
     .map((segment) => encodeURIComponent(segment))
     .join("/");
-  return `${withBasePath(`/brand/${encoded}`)}?v=${fingerprint}`;
+  const route = withBasePath(`/brand/${encoded}`);
+  return `${route}?v=${fingerprint}`;
 }

@@ -131,3 +131,50 @@ describe("brand pack schema", () => {
     );
   });
 });
+
+describe("email address shape", () => {
+  const accepts = (address: string) =>
+    BrandPackSchema.safeParse({
+      version: 1,
+      name: "Example Forms",
+      email: { fromAddress: address },
+    }).success;
+
+  // The verdicts of the previous check, /^[^\s@]+@[^\s@]+\.[^\s@]+$/.
+  it.each([
+    ["help@example.com", true],
+    ["a@b.c", true],
+    ["a@b..c", true],
+    ["a@.b.c", true],
+    ["first.last@sub.example.com", true],
+    ["a@b", false],
+    ["a@.c", false],
+    ["a@b.", false],
+    ["a@.", false],
+    ["@b.c", false],
+    ["a@", false],
+    ["a b@c.d", false],
+    ["a@b c.d", false],
+    ["a@b@c.d", false],
+    ["", false],
+  ])("treats %j as %s", (address, valid) => {
+    // Act
+    const result = accepts(address);
+
+    // Assert
+    expect(result).toBe(valid);
+  });
+
+  it("rejects a long address with many dots in linear time", () => {
+    // Arrange: a backtracking pattern retries every dot before failing on the "@".
+    const address = `a@${"a.".repeat(20_000)}@`;
+    const started = performance.now();
+
+    // Act
+    const result = accepts(address);
+
+    // Assert
+    expect(result).toBe(false);
+    expect(performance.now() - started).toBeLessThan(500);
+  });
+});

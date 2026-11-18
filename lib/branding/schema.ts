@@ -10,10 +10,27 @@ import { parseCssColor } from "./color";
 export const BRAND_PACK_VERSION = 1;
 
 /** A file inside the pack folder: relative, no `..`, no scheme. */
-const PACK_FILE_PATTERN = "^(?!/)(?!.*\\.\\.)(?!.*:)[A-Za-z0-9._/-]+$";
+const PACK_FILE_PATTERN = String.raw`^(?!/)(?!.*\.\.)(?!.*:)[A-Za-z0-9._/-]+$`;
 const URL_PATTERN = "^(https?:|mailto:)";
-/** Same shape check as the API side; a full RFC 5322 parse is not the goal. */
-const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+/** No whitespace and no "@" (one regex test, no backtracking). */
+const PLAIN_PART = /^[^\s@]+$/;
+
+/**
+ * `local@domain`, the domain with a dot that is neither its first nor its last
+ * character: the same shape as `/^[^\s@]+@[^\s@]+\.[^\s@]+$/`, without its
+ * backtracking. A full RFC 5322 parse is not the goal.
+ */
+function isEmailShape(value: string): boolean {
+  const at = value.indexOf("@");
+  const local = value.slice(0, at);
+  const domain = value.slice(at + 1);
+  return (
+    at > 0 &&
+    PLAIN_PART.test(local) &&
+    PLAIN_PART.test(domain) &&
+    domain.slice(1, -1).includes(".")
+  );
+}
 
 const PackFile = z.string().regex(new RegExp(PACK_FILE_PATTERN), {
   message:
@@ -39,7 +56,7 @@ const Url = z.string().regex(new RegExp(URL_PATTERN)).refine(isAbsoluteUrl, {
   message: "Use an absolute https:, http: or mailto: URL",
 });
 
-const Email = z.string().refine((value) => EMAIL_SHAPE.test(value), {
+const Email = z.string().refine(isEmailShape, {
   message: "Use an email address",
 });
 

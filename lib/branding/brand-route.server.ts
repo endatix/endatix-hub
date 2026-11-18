@@ -43,10 +43,12 @@ export async function brandRouteResponse(
 /** Tagged by content, so a Hub upgrade that derives other values gets a new tag. */
 function stylesheetRoute(brand: Brand, request: Request): Promise<Response> {
   const hash = createHash("sha256").update(brand.stylesheet).digest("hex");
-  const respond = async () =>
-    new Response(brand.stylesheet, {
-      headers: { "Content-Type": "text/css; charset=utf-8" },
-    });
+  const respond = () =>
+    Promise.resolve(
+      new Response(brand.stylesheet, {
+        headers: { "Content-Type": "text/css; charset=utf-8" },
+      }),
+    );
   return cached(request, `"${hash.slice(0, 12)}"`, respond);
 }
 

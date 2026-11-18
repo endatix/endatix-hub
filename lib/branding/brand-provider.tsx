@@ -40,6 +40,7 @@ export function useBrand(): Brand {
 /** React dedupes hoisted styles by href, so a changed stylesheet needs a new one. */
 function hashOf(text: string): string {
   let hash = 5381;
-  for (let i = 0; i < text.length; i++) hash = (hash * 33) ^ text.charCodeAt(i);
+  for (let i = 0; i < text.length; i++)
+    hash = (hash * 33) ^ (text.codePointAt(i) ?? 0);
   return (hash >>> 0).toString(36);
 }
