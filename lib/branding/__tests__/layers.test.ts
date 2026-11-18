@@ -54,7 +54,6 @@ describe("mergeBrand", () => {
     // Assert
     expect(brand.links).toEqual({ docs: "https://docs.example.com" });
     expect(brand.shortName).toBe("Example Forms");
-    expect(brand.tagline).toBe("Example Forms");
     expect(brand.legalName).toBe("Example Forms");
     expect(brand.personas).toEqual({
       assistant: "Example Forms AI Assistant",
@@ -90,7 +89,6 @@ describe("mergeBrand", () => {
 
     // Assert
     expect(brand.shortName).toBe("Endatix");
-    expect(brand.tagline).toBe("Form Management Platform");
     expect(brand.legalName).toBe("Endatix Ltd.");
     expect(brand.personas).toEqual({
       assistant: "Endatix AI Assistant",

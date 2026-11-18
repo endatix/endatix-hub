@@ -80,7 +80,8 @@ to the current one. Responses are `private`: under PostHog the flag can differ p
 | Import                                                                     | For                                                                                                                                                                                              |
 | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `getBrand()` from `@/lib/branding/server`                                  | Server Components. Pass the result to `AppProvider` as `brand`.                                                                                                                                  |
-| `RESPONDENT_BRAND_DEFERRED` from `@/lib/branding/server`                   | `/share` and `/embed` layouts: respondent pages stay on the built-in brand for now.                                                                                                              |
+| `getRespondentBrand()` from `@/lib/branding/server`                        | `/share` and `/embed` layouts: the built-in look (`RESPONDENT_BRAND_DEFERRED`) with the deployment's `poweredBy`.                                                                                |
+| `RESPONDENT_BRAND_DEFERRED` from `@/lib/branding/server`                   | the built-in brand that respondent pages keep for now; use `getRespondentBrand()` in a layout.                                                                                                   |
 | `brandMetadata(page?)` from `@/lib/branding/server`                        | every root layout's and page's `generateMetadata`: title `"<page> \| <name>"`, application name, publisher, icon, and with a page the social image. Spread it first, then the page's own fields. |
 | `brandRouteResponse()` from `@/lib/branding/server`                        | the `/brand/*` route only                                                                                                                                                                        |
 | `useBrand()` from `@/lib/branding/client`                                  | Client Components under `AppProvider`                                                                                                                                                            |
@@ -113,7 +114,7 @@ file and of `fixtures/`.
 
 UI text names the product through the brand: `brand.name` ("Endatix Hub") in titles and
 descriptions, `brand.shortName` ("Endatix") in running text ("About …", "the … API", "… Team"),
-`brand.personas` for the assistant and the bot, and `brand.tagline` for the sign-in hero. With
+`brand.personas` for the assistant and the bot. With
 no pack each gives the literal it replaced, so the Hub reads exactly as before.
 
 ESLint's `no-restricted-syntax` rejects "Endatix" or an endatix.com link in a string, template,

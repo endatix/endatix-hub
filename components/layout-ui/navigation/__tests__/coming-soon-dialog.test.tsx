@@ -14,8 +14,10 @@ describe("ComingSoonDialog", () => {
     renderWithBrand(dialog);
 
     expect(
-      screen.getByText(/Endatix Hub is the new exciting way/),
-    ).toBeDefined();
+      screen.getByText(/is coming soon!/).textContent?.replaceAll(/\s+/g, " "),
+    ).toBe(
+      "Workflows is coming soon! Endatix Hub is the new exciting way to manage your data collection and processing workflows. We're constantly adding new features and enhancing existing ones to make your data management experience even better.",
+    );
     expect(
       screen
         .getByRole("link", { name: "Learn about Endatix" })

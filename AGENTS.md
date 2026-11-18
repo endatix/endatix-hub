@@ -132,6 +132,10 @@ Client reads go through a `"use server"` read action. It gates like any action (
 - A tenant's public id is `shortUrl` (opaque, API-generated, immutable). Never name it `slug` in Hub DTOs or state, and never send it on create — only Next route folders keep `[tenantSlug]`.
 - Public GET JSON still uses `slug` (`PublicTenantModel.Slug` on the API). Map to `shortUrl` in `lib/endatix-api/public-tenants`. Register body keeps `tenantSlug` (OSS `RegisterCommand`). Worked example: `features/tenants/public-tenant/`.
 
+## Product name and links
+
+- Never hard-code "Endatix", an endatix.com link, or a github.com/endatix link in UI text: take it from the brand. The lint ratchet and its shrink-only baseline are described in [`lib/branding/README.md`](lib/branding/README.md) (Copy).
+
 ## Auth pages (`app/(auth)`)
 
 - Compose every `(auth)` screen from `AuthLogo` + `AuthStatus` (`features/auth/ui/`). Never re-inline the light/dark `<Image>` wordmark pair, and never hand-roll a status heading with its own icon and colours.

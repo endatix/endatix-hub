@@ -12,7 +12,7 @@ const metadata: Metadata = {
   robots: ROBOTS.hiddenPage,
 };
 
-/** Respondent pages keep the built-in brand (`RESPONDENT_BRAND_DEFERRED`); only the title names the deployment. */
+/** Respondent pages keep the built-in look (`getRespondentBrand()`); the title and "Powered by" follow the deployment. */
 export async function generateMetadata(): Promise<Metadata> {
   const { title } = await brandMetadata({
     title: "Form",

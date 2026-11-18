@@ -10,8 +10,6 @@ export interface Brand {
   /** The name in running text ("About …", "the … API", "… Team"): "Endatix" for the built-in brand, the pack's name otherwise. */
   readonly shortName: string;
   readonly legalName: string;
-  /** The sign-in hero headline: "Form Management Platform" for the built-in brand, the pack's name otherwise. */
-  readonly tagline: string;
   /** Wordmark URLs. A pack with only a light logo uses it for dark too. */
   readonly logo: { readonly light: string; readonly dark: string };
   readonly icon: string;

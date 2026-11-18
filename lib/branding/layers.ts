@@ -24,7 +24,6 @@ export const BUILT_IN_LAYER: BrandLayer & { readonly values: BrandFields } = {
   values: {
     name: BUILT_IN_NAME,
     shortName: "Endatix",
-    tagline: "Form Management Platform",
     legalName: "Endatix Ltd.",
     logo: BUILT_IN_ASSETS.logo,
     icon: BUILT_IN_ASSETS.icon,
@@ -49,7 +48,6 @@ export function packLayer(
     values: {
       name: pack.name,
       shortName: pack.name,
-      tagline: pack.name,
       legalName: pack.legalName ?? pack.name,
       ...packAssets(pack.assets, assetUrl),
       links: pack.links ?? {},
@@ -100,7 +98,6 @@ export function mergeBrand(layers: readonly BrandLayer[]): Brand {
   return {
     name: pick("name") ?? builtIn.name,
     shortName: pick("shortName") ?? builtIn.shortName,
-    tagline: pick("tagline") ?? builtIn.tagline,
     legalName: pick("legalName") ?? builtIn.legalName,
     logo: pick("logo") ?? builtIn.logo,
     icon: pick("icon") ?? builtIn.icon,

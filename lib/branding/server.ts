@@ -12,8 +12,12 @@ import {
 export type { Brand, BrandLinkKey } from "./index";
 export type { BrandPage } from "./brand-metadata";
 export { brandAuthors, brandKeywords } from "./brand-metadata";
-export { brandUrl, isPoweredByShown, withIndefiniteArticle } from "./copy";
-import { withPoweredBy } from "./copy";
+export {
+  brandUrl,
+  isBuiltInLink,
+  isPoweredByShown,
+  withIndefiniteArticle,
+} from "./copy";
 export { brandRouteResponse } from "./brand-route.server";
 
 /**
@@ -37,7 +41,8 @@ export const RESPONDENT_BRAND_DEFERRED: Brand = BUILT_IN_BRAND;
  * deployment's `poweredBy`, which is a deployment setting rather than a look.
  */
 export async function getRespondentBrand(): Promise<Brand> {
-  return withPoweredBy(RESPONDENT_BRAND_DEFERRED, await getBrand());
+  const { poweredBy } = await getBrand();
+  return { ...RESPONDENT_BRAND_DEFERRED, poweredBy };
 }
 
 /**

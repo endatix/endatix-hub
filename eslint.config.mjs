@@ -6,6 +6,10 @@ import sonarjs from "eslint-plugin-sonarjs";
 import unicorn from "eslint-plugin-unicorn";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  PRODUCT_NAME_PATTERN,
+  productNameBaseline,
+} from "./eslint/product-name-baseline.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -37,35 +41,10 @@ const authoringIndexOnly = {
     "Import Audience authoring from @/lib/personalization/authoring (client), or the Creator-free @/lib/personalization/coverage (server-safe), through their index.ts only. Browser code that needs only the verdicts imports @/lib/personalization/coverage/audience-usage, which leaves the linter out of the bundle.",
 };
 
-// "Endatix" or an endatix.com link in a string or JSX text: the product name comes from the
+// "Endatix" or an Endatix link in a string, template, or JSX text: the product name comes from the
 // brand (`useBrand()` / `getBrand()` in lib/branding), so a brand pack can replace it.
-const PRODUCT_NAME_PATTERN = String.raw`/\bEndatix\b|endatix\.com/`;
 const productNameMessage =
   "Name the product through the brand (useBrand() / getBrand() from @/lib/branding), not a literal: a brand pack must be able to replace it.";
-
-// Files that still name Endatix on purpose or have not moved to the brand yet. Shrink this list;
-// never add to it. Respondent pages (/share, /embed) keep the built-in brand for now.
-const productNameBaseline = [
-  "app/(public)/share/**",
-  "app/(public)/embed/**",
-  "components/public-status/**",
-  "features/config/api-config.ts",
-  "features/config/experimental-config.ts",
-  "features/auth/use-cases/view-settings-summary/auth-settings-drift.ts",
-  "features/auth/use-cases/verify-email/verify-email.action.ts",
-  "features/auth/use-cases/create-account/create-account.action.ts",
-  "features/auth/use-cases/send-verification/send-verification.action.ts",
-  "features/auth/infrastructure/providers/endatix-auth-provider.ts",
-  "features/embed-form/ui/use-survey-embed-behavior.ts",
-  "features/audience/generate-links/personal-links.ts",
-  "features/audience/reissue-link/reissue-audience-link.action.ts",
-  "features/audience/copy-test-link/create-test-link.action.ts",
-  "features/platform-admin/view-auth-settings/ui/auth-provider-summary-card.tsx",
-  "lib/survey-extensions/core-registry.ts",
-  "lib/survey-extensions/server/analyzer.ts",
-  "lib/endatix-api/endatix-api.ts",
-  "lib/errors/unexpected-error-ui.ts",
-];
 
 const eslintConfig = defineConfig([
   ...nextVitals,

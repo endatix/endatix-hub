@@ -95,7 +95,7 @@ export default async function AuthLayout({ children }: AuthLayoutProps) {
 
                 <div className="relative z-10 flex flex-col items-center gap-8 px-6 text-center">
                   <h2 className="font-[family-name:var(--font-instrument-sans)] text-4xl leading-tight font-semibold tracking-tight text-primary xl:text-5xl">
-                    {brand.tagline}
+                    Form Management Platform
                   </h2>
                   <p className="inline-block rounded-full border border-primary/35 bg-background/60 px-5 py-1.5 text-sm leading-relaxed text-muted-foreground backdrop-blur-sm dark:border-primary/30">
                     Build, collect, and analyze your form and survey data.

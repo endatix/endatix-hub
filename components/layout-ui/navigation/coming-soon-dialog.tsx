@@ -40,7 +40,7 @@ export function ComingSoonDialog({ isOpen, onClose, featureName }: ComingSoonDia
           </DialogTitle>
           <div className="mt-20" />
           <DialogDescription className="text-left px-4 leading-relaxed">
-            <span className="font-semibold text-foreground">{featureName}</span> is coming soon!
+            <span className="font-semibold text-foreground">{featureName}</span> is coming soon!{" "}
             {brand.name} is the new exciting way to manage your data collection and processing workflows.
             We&apos;re constantly adding new features and enhancing existing ones to make your data management experience even better.
           </DialogDescription>

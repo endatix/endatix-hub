@@ -238,6 +238,7 @@ const sitemapArray: INavItem[] = [
   {
     key: "support",
     title: "Support",
+    // eslint-disable-next-line no-restricted-syntax -- the built-in support link; helpMenuItems(brand) swaps it for a pack's own
     url: "https://github.com/endatix/endatix/issues",
     icon: LifeBuoy,
     external: true,

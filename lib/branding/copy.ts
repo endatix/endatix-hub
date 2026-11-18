@@ -18,8 +18,7 @@ export function brandUrl(
   key: BrandLinkKey,
   builtInUrl: string,
 ): string | undefined {
-  const link = brand.links[key];
-  return link !== undefined && link === BUILT_IN_LINKS[key] ? builtInUrl : link;
+  return isBuiltInLink(brand, key) ? builtInUrl : brand.links[key];
 }
 
 /**
@@ -33,10 +32,11 @@ export function isPoweredByShown(
   return brand?.poweredBy ?? envShown;
 }
 
-/** `brand` with `deployment`'s "Powered by" setting. */
-export function withPoweredBy(
-  brand: Brand,
-  deployment: Pick<Brand, "poweredBy">,
-): Brand {
-  return { ...brand, poweredBy: deployment.poweredBy };
+/** True while the brand's `key` link is the built-in one: no pack, or a pack that keeps it. */
+export function isBuiltInLink(
+  brand: Pick<Brand, "links">,
+  key: BrandLinkKey,
+): boolean {
+  const link = brand.links[key];
+  return link !== undefined && link === BUILT_IN_LINKS[key];
 }
