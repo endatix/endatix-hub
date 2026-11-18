@@ -2,10 +2,7 @@ import { auth } from "@/auth";
 import { AppProvider } from "@/components/providers";
 import { AppOptions } from "@/components/providers/app-options";
 import { getClientEndatixConfig } from "@/features/config/server";
-import {
-  brandMetadata,
-  RESPONDENT_BRAND_DEFERRED,
-} from "@/lib/branding/server";
+import { brandMetadata, getRespondentBrand } from "@/lib/branding/server";
 import { getPublicAssetPath } from "@/lib/hosting";
 import type { Metadata } from "next";
 import { ROBOTS, getMetadataBase } from "@/lib/seo";
@@ -49,7 +46,7 @@ export default async function EmbedLayout({
           options={AppOptions.PublicPages}
           session={session}
           endatixConfig={endatixConfig}
-          brand={RESPONDENT_BRAND_DEFERRED}
+          brand={await getRespondentBrand()}
         >
           {children}
         </AppProvider>

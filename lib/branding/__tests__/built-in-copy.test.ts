@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { helpMenuItems, sitemap, withBrandHelpLinks } from "@/lib/constants";
 import { brandAuthors, brandKeywords } from "../brand-metadata";
-import { brandUrl, isPoweredByShown, withIndefiniteArticle } from "../copy";
+import {
+  brandUrl,
+  isPoweredByShown,
+  withIndefiniteArticle,
+  withPoweredBy,
+} from "../copy";
 import { BUILT_IN_LAYER, mergeBrand, packLayer } from "../layers";
 import { BrandPackSchema } from "../schema";
 
@@ -111,5 +116,12 @@ describe("a brand pack's copy", () => {
     expect(isPoweredByShown(pack({ poweredBy: false }), true)).toBe(false);
     expect(isPoweredByShown(pack({ poweredBy: true }), false)).toBe(true);
     expect(isPoweredByShown(pack(), false)).toBe(false);
+  });
+
+  it("gives respondent pages the deployment's poweredBy over the built-in look", () => {
+    const respondent = withPoweredBy(builtIn, pack({ poweredBy: false }));
+
+    expect(respondent.name).toBe("Endatix Hub");
+    expect(isPoweredByShown(respondent, true)).toBe(false);
   });
 });

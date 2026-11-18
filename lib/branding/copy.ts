@@ -3,7 +3,7 @@ import { BUILT_IN_LAYER } from "./layers";
 
 const BUILT_IN_LINKS = BUILT_IN_LAYER.values.links;
 
-/** "an Endatix", "a Example Forms": the article by the name's first letter, for running text. */
+/** "an Endatix", "a Contoso": the article by the name's first letter, for running text. */
 export function withIndefiniteArticle(name: string): string {
   return `${/^[aeiou]/i.test(name) ? "an" : "a"} ${name}`;
 }
@@ -31,4 +31,12 @@ export function isPoweredByShown(
   envShown: boolean,
 ): boolean {
   return brand?.poweredBy ?? envShown;
+}
+
+/** `brand` with `deployment`'s "Powered by" setting. */
+export function withPoweredBy(
+  brand: Brand,
+  deployment: Pick<Brand, "poweredBy">,
+): Brand {
+  return { ...brand, poweredBy: deployment.poweredBy };
 }

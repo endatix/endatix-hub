@@ -62,7 +62,7 @@ export default async function AuthLayout({ children }: AuthLayoutProps) {
           brand={brand}
         >
           <div className="h-screen w-full overflow-hidden bg-muted/40">
-            {brand.links.website ? (
+            {brand.links.website?.startsWith("http") ? (
               <a
                 href={brand.links.website}
                 target="_blank"

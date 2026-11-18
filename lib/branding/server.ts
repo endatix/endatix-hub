@@ -13,6 +13,7 @@ export type { Brand, BrandLinkKey } from "./index";
 export type { BrandPage } from "./brand-metadata";
 export { brandAuthors, brandKeywords } from "./brand-metadata";
 export { brandUrl, isPoweredByShown, withIndefiniteArticle } from "./copy";
+import { withPoweredBy } from "./copy";
 export { brandRouteResponse } from "./brand-route.server";
 
 /**
@@ -30,6 +31,14 @@ export const getBrand = cache(async (): Promise<Brand> => {
  * from dropping the brand without anyone noticing.
  */
 export const RESPONDENT_BRAND_DEFERRED: Brand = BUILT_IN_BRAND;
+
+/**
+ * The brand for `/share` and `/embed`: `RESPONDENT_BRAND_DEFERRED`, with the
+ * deployment's `poweredBy`, which is a deployment setting rather than a look.
+ */
+export async function getRespondentBrand(): Promise<Brand> {
+  return withPoweredBy(RESPONDENT_BRAND_DEFERRED, await getBrand());
+}
 
 /**
  * The brand's metadata for a root layout (no page) or a page: title
