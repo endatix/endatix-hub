@@ -28,6 +28,26 @@ function markPriorityChoices(
   });
 }
 
+function buildCarryForwardChoices(
+  survey: SurveyModel,
+  target: AdvancedCarryForwardQuestion,
+): ItemValue[] {
+  const { priority, rest } = computeCarryForwardAggregatedItems(survey, target);
+  const shouldRandomize = target.choicesOrder === "random";
+  const existingByValue = indexChoicesByValue(target.choices);
+
+  const newChoices: ItemValue[] = [
+    ...markPriorityChoices(target, priority, shouldRandomize),
+    ...rest.map((choice) => copyChoiceItemWithMedia(target, choice)),
+  ];
+
+  for (let i = 0; i < newChoices.length; i++) {
+    newChoices[i] = preferResolvedChoiceLabel(newChoices[i]!, existingByValue);
+  }
+
+  return newChoices;
+}
+
 /**
  * Syncs one advanced carry-forward target from its configured sources.
  *
@@ -46,19 +66,7 @@ export function syncSingleCarryForwardTarget(
     return false;
   }
 
-  const { priority, rest } = computeCarryForwardAggregatedItems(survey, target);
-  const shouldRandomize = target.choicesOrder === "random";
-  const existingByValue = indexChoicesByValue(target.choices);
-
-  const newChoices: ItemValue[] = [
-    ...markPriorityChoices(target, priority, shouldRandomize),
-    ...rest.map((choice) => copyChoiceItemWithMedia(target, choice)),
-  ];
-
-  for (let i = 0; i < newChoices.length; i++) {
-    newChoices[i] = preferResolvedChoiceLabel(newChoices[i]!, existingByValue);
-  }
-
+  const newChoices = buildCarryForwardChoices(survey, target);
   if (!haveCarryForwardChoicesChanged(target.choices, newChoices)) {
     return false;
   }

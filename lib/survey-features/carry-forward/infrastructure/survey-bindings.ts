@@ -12,7 +12,6 @@ import {
 import type { AdvancedCarryForwardQuestion } from "../types";
 import {
   getAllCarryForwardTargets,
-  getCarryForwardTargetsInDependencyOrder,
   isAdvancedCarryForwardEnabled,
 } from "../utils";
 import {
@@ -25,8 +24,9 @@ import {
 import {
   loadCarryForwardTargetsFromPropertyChange,
   syncCarryForwardTargets,
-  syncNewCarryForwardTargets,
+  syncCarryForwardTargetsOnBind,
 } from "./carry-forward-sync";
+import { syncSingleCarryForwardTarget } from "../use-cases/sync-carry-forward-target";
 
 const boundModelsForTests = new Map<Model, () => void>();
 
@@ -174,9 +174,10 @@ function attachCarryForwardPropertyChangeHandlers(model: Model): () => void {
   // In design mode the created question is a template one: leave it as authored.
   const handleQuestionCreated = (_: unknown, options: QuestionCreatedEvent) => {
     if (!model.isDesignMode && targets.attach(options.question)) {
-      syncNewCarryForwardTargets(model, [
+      syncSingleCarryForwardTarget(
+        model,
         options.question as AdvancedCarryForwardQuestion,
-      ]);
+      );
     }
   };
 
@@ -207,10 +208,7 @@ export function bindAdvancedCarryForwardToSurvey(model: Model): () => void {
   const detachPropertyHandlers =
     attachCarryForwardPropertyChangeHandlers(model);
 
-  syncNewCarryForwardTargets(
-    model,
-    getCarryForwardTargetsInDependencyOrder(model),
-  );
+  syncCarryForwardTargetsOnBind(model);
 
   const dispose = () => {
     detachPropertyHandlers();
