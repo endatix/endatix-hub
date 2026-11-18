@@ -24,29 +24,57 @@ export const CARRY_FORWARD_CONTROL_PROPS = new Set([
 
 const updatingCarryForwardSurveys = new Set<SurveyModel>();
 
+/**
+ * Syncs targets in dependency order.
+ *
+ * @returns whether any target's choices changed.
+ */
 export function syncCarryForwardTargets(
   survey: SurveyModel,
   targets: AdvancedCarryForwardQuestion[],
-): void {
+): boolean {
   if (updatingCarryForwardSurveys.has(survey) || targets.length === 0) {
-    return;
+    return false;
   }
 
   updatingCarryForwardSurveys.add(survey);
 
+  let changed = false;
   try {
-    orderCarryForwardTargetsByDependencies(survey, targets).forEach(
-      (target) => {
-        syncSingleCarryForwardTarget(survey, target);
-      },
-    );
+    for (const target of orderCarryForwardTargetsByDependencies(
+      survey,
+      targets,
+    )) {
+      changed = syncSingleCarryForwardTarget(survey, target) || changed;
+    }
   } finally {
     updatingCarryForwardSurveys.delete(survey);
+  }
+
+  return changed;
+}
+
+/**
+ * Syncs targets, then re-runs the survey's expressions when their choices
+ * changed. SurveyJS computes calculated values and expressions when the model
+ * finishes loading and on each value change, so choices carried forward with no
+ * value change (initial bind, a new loop panel, a settings change) would leave
+ * `displayValue()` and similar functions on the old choices.
+ *
+ * Source answer changes do not need this: SurveyJS runs conditions right after
+ * it updates the depended targets.
+ */
+export function syncCarryForwardTargetsAndRunExpressions(
+  survey: SurveyModel,
+  targets: AdvancedCarryForwardQuestion[],
+): void {
+  if (syncCarryForwardTargets(survey, targets)) {
+    survey.runExpressions();
   }
 }
 
 export function syncAllCarryForwardTargets(survey: SurveyModel): void {
-  syncCarryForwardTargets(
+  syncCarryForwardTargetsAndRunExpressions(
     survey,
     getCarryForwardTargetsInDependencyOrder(survey),
   );
@@ -86,7 +114,7 @@ export function loadCarryForwardTargetsFromPropertyChange(
     ...getDownstreamCarryForwardTargets(survey, changedTarget.name),
   ]);
 
-  syncCarryForwardTargets(survey, targetsToUpdate);
+  syncCarryForwardTargetsAndRunExpressions(survey, targetsToUpdate);
 }
 
 export function resetCarryForwardUpdateGuardForTests(): void {

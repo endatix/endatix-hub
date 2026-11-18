@@ -35,13 +35,15 @@ function markPriorityChoices(
  * {@link computeCarryForwardAggregatedItems}. This layer copies items onto the
  * select-base target and preserves already-resolved display labels across
  * lazy-load page resets (#829).
+ *
+ * @returns whether the target's choices changed.
  */
 export function syncSingleCarryForwardTarget(
   survey: SurveyModel,
   target: AdvancedCarryForwardQuestion,
-): void {
+): boolean {
   if (!isAdvancedCarryForwardEnabled(target)) {
-    return;
+    return false;
   }
 
   const { priority, rest } = computeCarryForwardAggregatedItems(survey, target);
@@ -57,8 +59,11 @@ export function syncSingleCarryForwardTarget(
     newChoices[i] = preferResolvedChoiceLabel(newChoices[i]!, existingByValue);
   }
 
-  if (haveCarryForwardChoicesChanged(target.choices, newChoices)) {
-    target.choices = newChoices;
-    target.clearIncorrectValues();
+  if (!haveCarryForwardChoicesChanged(target.choices, newChoices)) {
+    return false;
   }
+
+  target.choices = newChoices;
+  target.clearIncorrectValues();
+  return true;
 }
