@@ -2,6 +2,8 @@
 
 import { useSession } from "next-auth/react";
 import { ChevronsUpDown } from "lucide-react";
+import { useBrand } from "@/lib/branding/client";
+import { withBrandHelpLinks } from "@/lib/constants";
 import { SitemapService } from "@/services/sitemap-service";
 import UserAvatar from "@/components/user/user-avatar";
 import NavUser from "./nav-user";
@@ -46,7 +48,11 @@ const SidebarNav = ({
     initialNavItemKeys,
     status === "authenticated" && !!session,
   );
-  const secondaryNavItems = SitemapService.getSecondarySitemap();
+  const brand = useBrand();
+  const secondaryNavItems = withBrandHelpLinks(
+    SitemapService.getSecondarySitemap(),
+    brand,
+  );
   const isLoggedIn = session?.user !== null;
   const currentUserInfo = getCurrentUserInfo(session);
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { useBrand } from "@/lib/branding/client";
 import { useSearchParams } from "next/navigation";
 import {
   getSlackBearerToken,
@@ -9,6 +10,7 @@ import { Suspense, useEffect, useState } from "react";
 
 function SlackTokenTransfer() {
   const searchParams = useSearchParams();
+  const brand = useBrand();
   const code = searchParams.get("code");
   const [message, setMessage] = useState("");
 
@@ -38,7 +40,7 @@ function SlackTokenTransfer() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-muted">
-      <h3>Slack authorization for Endatix Bot</h3>
+      <h3>Slack authorization for {brand.personas.bot}</h3>
       {message}
       <br />
     </div>

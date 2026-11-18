@@ -12,7 +12,7 @@ import {
 export type { Brand, BrandLinkKey } from "./index";
 export type { BrandPage } from "./brand-metadata";
 export { brandAuthors, brandKeywords } from "./brand-metadata";
-export { withIndefiniteArticle } from "./copy";
+export { brandUrl, withIndefiniteArticle } from "./copy";
 export { brandRouteResponse } from "./brand-route.server";
 
 /**

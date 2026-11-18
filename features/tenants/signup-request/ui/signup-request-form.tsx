@@ -1,5 +1,6 @@
 "use client";
 
+import { useBrand, withIndefiniteArticle } from "@/lib/branding/client";
 import { ErrorMessage } from "@/components/forms/error-message";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,6 +29,7 @@ import { BrandLogo } from "@/lib/branding/client";
 const initialState: SignupRequestActionState = ServerActionState.emptyState();
 
 export function SignupRequestForm() {
+  const brand = useBrand();
   const [state, formAction, isPending] = useActionState(
     submitSignupRequestAction,
     initialState,
@@ -100,7 +102,8 @@ export function SignupRequestForm() {
           <BrandLogo className="h-10 w-auto" priority />
         </div>
         <p className="mb-6 text-balance text-muted-foreground">
-          Request access to an Endatix workspace. We will review your request
+          Request access to {withIndefiniteArticle(brand.shortName)} workspace.
+          We will review your request
           and email you if approved.
         </p>
       </div>

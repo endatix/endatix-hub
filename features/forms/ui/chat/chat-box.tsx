@@ -1,5 +1,6 @@
 "use client";
 
+import { useBrand } from "@/lib/branding/client";
 import {
   AlertCircle,
   ArrowUp,
@@ -98,6 +99,7 @@ const ChatBox = ({
   onFormGenerated,
   ...props
 }: ChatBoxProps) => {
+  const brand = useBrand();
   const [input, setInput] = useState("");
   const [retryMode, setRetryMode] = useState(false);
   const { chatContext, sendPrompt } = useFormAssistant();
@@ -314,7 +316,8 @@ const ChatBox = ({
         </div>
       </form>
       <p className="text-center text-xs text-muted-foreground">
-        Endatix AI Assistant may make mistakes. Please use with discretion.
+        {brand.personas.assistant} may make mistakes. Please use with
+        discretion.
       </p>
     </div>
   );

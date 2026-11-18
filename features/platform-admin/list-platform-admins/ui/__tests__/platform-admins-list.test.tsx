@@ -1,4 +1,5 @@
-import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, screen, within } from "@testing-library/react";
+import { renderWithBrand as render } from "@/test/render-with-brand";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Result } from "@/lib/result";
 import type { PlatformTenantsPage } from "@/lib/endatix-api/platform-tenants/platform-tenants";

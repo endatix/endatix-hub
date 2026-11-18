@@ -1,5 +1,6 @@
 "use client";
 
+import { useBrand } from "@/lib/branding/client";
 import {
   BarChart3,
   Bug,
@@ -36,6 +37,8 @@ interface EnvironmentSettingsPanelProps {
 export function EnvironmentSettingsPanel({
   summary,
 }: Readonly<EnvironmentSettingsPanelProps>) {
+  const brand = useBrand();
+  const apiUrlLabel = `${brand.shortName} API URL`;
   const {
     api,
     experimental,
@@ -50,7 +53,7 @@ export function EnvironmentSettingsPanel({
     api.apiConfigured && (api.baseUrl !== null || api.prefix !== null);
 
   const checks: readonly EnvironmentCheck[] = [
-    { label: "Endatix API URL", configured: api.apiConfigured, required: true },
+    { label: apiUrlLabel, configured: api.apiConfigured, required: true },
     {
       label: "PostHog project token",
       configured: Boolean(analytics.posthogProjectToken),
@@ -70,7 +73,7 @@ export function EnvironmentSettingsPanel({
         <ConfigSection
           icon={Server}
           title="API"
-          description="Endatix API origin resolved from process environment at request time. Change via deployment env (Helm, Docker, host), not in this UI."
+          description={`${brand.shortName} API origin resolved from process environment at request time. Change via deployment env (Helm, Docker, host), not in this UI.`}
         >
           <ConfigRow
             label="Status"
@@ -82,12 +85,12 @@ export function EnvironmentSettingsPanel({
             }
           />
           <ConfigRow
-            label="Endatix API URL"
+            label={apiUrlLabel}
             envVar="ENDATIX_BASE_URL / ENDATIX_API_URL"
             value={
               <ConfigValue
                 value={api.apiConfigured ? api.apiUrl : null}
-                copyLabel="Copy Endatix API URL"
+                copyLabel={`Copy ${apiUrlLabel}`}
               />
             }
           />

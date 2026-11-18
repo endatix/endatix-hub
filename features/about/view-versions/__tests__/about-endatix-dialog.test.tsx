@@ -49,7 +49,10 @@ const MATCHING_SURVEYJS: SurveyJsVersions = {
 async function renderDialog(open = true) {
   vi.resetModules();
   const { AboutEndatixDialog } = await import("../ui/about-endatix-dialog");
-  return render(<AboutEndatixDialog open={open} onOpenChange={vi.fn()} />);
+  const { BuiltInBrand } = await import("@/test/render-with-brand");
+  return render(<AboutEndatixDialog open={open} onOpenChange={vi.fn()} />, {
+    wrapper: BuiltInBrand,
+  });
 }
 
 describe("AboutEndatixDialog", () => {

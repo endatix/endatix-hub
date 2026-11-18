@@ -1,4 +1,6 @@
 import type { INavItem } from "@/types/navigation-models";
+import type { Brand, BrandLinkKey } from "@/lib/branding";
+import { brandUrl } from "@/lib/branding/copy";
 import {
   Building2,
   BookOpen,
@@ -248,3 +250,44 @@ export const sitemap: Sitemap = sitemapArray.reduce((acc, item) => {
   acc[item.key] = item;
   return acc;
 }, {} as Sitemap);
+
+type HelpMenuKey = "documentation" | "support";
+
+/**
+ * The help links for a brand: the built-in documentation tree and support
+ * link while the brand's links are the built-in ones; otherwise the brand's
+ * own docs and support links, with no children. A link the brand lacks is
+ * undefined, so the menu hides it.
+ */
+export function helpMenuItems(
+  brand: Pick<Brand, "links">,
+): Record<HelpMenuKey, INavItem | undefined> {
+  return {
+    documentation: brandedItem(sitemap.documentation, brand, "docs"),
+    support: brandedItem(sitemap.support, brand, "support"),
+  };
+}
+
+function brandedItem(
+  item: INavItem,
+  brand: Pick<Brand, "links">,
+  key: BrandLinkKey,
+): INavItem | undefined {
+  const url = brandUrl(brand, key, item.url);
+  if (url === undefined) return undefined;
+  if (url === item.url) return item;
+  return { ...item, url, children: undefined };
+}
+
+/** `items` with the help links replaced by the brand's, and dropped where it has none. */
+export function withBrandHelpLinks(
+  items: readonly INavItem[],
+  brand: Pick<Brand, "links">,
+): INavItem[] {
+  const help = helpMenuItems(brand);
+  return items.flatMap((item) => {
+    if (!(item.key in help)) return [item];
+    const branded = help[item.key as HelpMenuKey];
+    return branded ? [branded] : [];
+  });
+}

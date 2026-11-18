@@ -1,4 +1,5 @@
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
+import { renderWithBrand as render } from "@/test/render-with-brand";
 import { describe, expect, it } from "vitest";
 import type { EnvironmentAdminSummary } from "../types";
 import { EnvironmentSettingsPanel } from "../ui/environment-settings-panel";

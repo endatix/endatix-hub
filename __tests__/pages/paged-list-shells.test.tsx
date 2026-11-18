@@ -7,6 +7,7 @@ import { PlatformAdminsList } from "@/features/platform-admin/list-platform-admi
 import { SignupRequestsList } from "@/features/platform-admin/list-signup-requests/ui/signup-requests-list";
 import { TenantsList } from "@/features/platform-admin/list-tenants/ui/tenants-list";
 import { Result } from "@/lib/result";
+import { BuiltInBrand } from "@/test/render-with-brand";
 
 type PlatformAdminsListProps = Parameters<typeof PlatformAdminsList>[0];
 
@@ -114,7 +115,7 @@ describe.each(shells)("$name", ({ searchLabel, render: renderShell }) => {
   });
 
   it("shows the next page when listKey changes and keeps the search input mounted", async () => {
-    const view = await act(async () => render(renderShell("page-1")));
+    const view = await act(async () => render(renderShell("page-1"), { wrapper: BuiltInBrand }));
     const input = screen.getByLabelText(searchLabel);
     input.focus();
     fireEvent.change(input, { target: { value: "ada" } });

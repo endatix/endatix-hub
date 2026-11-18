@@ -1,5 +1,6 @@
 "use client";
 
+import { useBrand } from "@/lib/branding/client";
 import * as React from "react";
 import { ChevronsUpDown, Plus } from "lucide-react";
 
@@ -35,8 +36,9 @@ interface TenantSwitcherProps {
   tenants?: Tenant[];
 }
 
+/** The deployment itself, named by the brand, while no tenant list is passed. */
 const DEFAULT_TENANT = {
-  name: "Endatix",
+  name: "",
   description: "beta",
   logo: DeploymentIcon,
   href: "/forms",
@@ -44,8 +46,10 @@ const DEFAULT_TENANT = {
 
 export function TenantSwitcher({ tenants }: Readonly<TenantSwitcherProps>) {
   const { isMobile } = useSidebar();
+  const brand = useBrand();
+  const defaultTenant = { ...DEFAULT_TENANT, name: brand.shortName };
   const [activeTenant, setActiveTenant] = React.useState(
-    tenants?.at(0) ?? DEFAULT_TENANT,
+    tenants?.at(0) ?? defaultTenant,
   );
 
   if (!activeTenant) {
@@ -56,7 +60,7 @@ export function TenantSwitcher({ tenants }: Readonly<TenantSwitcherProps>) {
     return <SingleTenantDisplay tenant={activeTenant} />;
   }
 
-  const tenantsToDisplay = tenants ?? [DEFAULT_TENANT];
+  const tenantsToDisplay = tenants ?? [defaultTenant];
 
   return (
     <SidebarMenu>

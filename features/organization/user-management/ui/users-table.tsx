@@ -1,5 +1,6 @@
 "use client";
 
+import { useBrand } from "@/lib/branding/client";
 import { use, useState, useTransition, type ReactNode } from "react";
 import { Info, MoreVertical } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -174,6 +175,7 @@ function UsersTableContent({
   availableRolesPromise,
 }: Readonly<UsersTableContentProps>) {
   const router = useRouter();
+  const brand = useBrand();
   const availableRoles = use(availableRolesPromise ?? emptyRolesPromise);
   const users = pagedUsers.items;
   const { trackEvent } = useTrackEvent();
@@ -436,7 +438,7 @@ function UsersTableContent({
             <AlertDialogTitle>Remove user access?</AlertDialogTitle>
             <AlertDialogDescription>
               This removes the user from the current organization but keeps
-              their global Endatix identity. Type{" "}
+              their global {brand.shortName} identity. Type{" "}
               <span className="font-medium text-foreground">
                 {removeConfirmEmail}
               </span>{" "}
