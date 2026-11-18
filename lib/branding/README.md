@@ -59,9 +59,11 @@ What the Hub does with it:
   `--ring`, `--endatix`, `--primary-dim`, `--sidebar-ring` and `--chart-1..5` for light and
   dark. Survey Creator follows, since it reads the computed CSS.
 - **Hover and focus**: the pack also sets `--primary-hover` (the default button's hover, label
-  at 4.5:1 or more) and `--focus-ring` (3:1 or more against the page). Each starts from the
-  built-in look, primary at 90% and ring at 50% over the page, and darkens or lightens only as
-  far as it must. Without a pack both fall back to exactly `bg-primary/90` and `ring-ring/50`.
+  at 4.5:1 or more) and `--focus-ring` (3:1 or more against the page, content canvas, cards
+  and sidebar). Each starts from the built-in look, primary at 90% and ring at 50% over the
+  page. A hover whose label would not read takes the same step the other way; a ring that
+  would not read darkens or lightens until it does. Without a pack both fall back to exactly
+  `bg-primary/90` and `ring-ring/50`.
 
 ## `/brand/*`
 

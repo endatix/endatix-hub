@@ -85,6 +85,19 @@ const PAGE_BACKGROUND: Record<ColorMode, string> = {
   dark: "#000f21",
 };
 
+/**
+ * Where a focused control can sit in each mode, page first: `--background`,
+ * `--content-canvas`, `--card` / `--popover` and `--sidebar` in app/globals.css.
+ * A focus ring has to read on all of them.
+ */
+export const FOCUS_SURFACES: Record<ColorMode, readonly string[]> = {
+  light: ["hsl(0 0% 100%)", "hsl(214 88% 97%)", "hsl(0 0% 98%)"],
+  dark: ["#000f21", "#001225", "#001a34"],
+};
+
+const WHITE: Rgb = { r: 1, g: 1, b: 1 };
+const BLACK: Rgb = { r: 0, g: 0, b: 0 };
+
 const TEXT_CONTRAST = 4.5;
 /** WCAG 2.x 1.4.11: a control or focus ring against what is next to it. */
 const UI_CONTRAST = 3;
@@ -215,9 +228,7 @@ function foregroundFor(mode: ColorMode, primary: Rgb, hue: BrandHue): string {
     TEXT_CONTRAST
   )
     return candidate;
-  const white: Rgb = { r: 1, g: 1, b: 1 };
-  const black: Rgb = { r: 0, g: 0, b: 0 };
-  return contrastRatio(primary, white) >= contrastRatio(primary, black)
+  return contrastRatio(primary, WHITE) >= contrastRatio(primary, BLACK)
     ? "#ffffff"
     : "#000000";
 }
@@ -239,21 +250,20 @@ function hoverFor(mode: ColorMode, primary: Rgb, foreground: string): string {
   const step = Math.abs(toOklch(blend).l - rest.l);
   const away = relativeLuminance(primary) >= relativeLuminance(label) ? 1 : -1;
   const mirrored = fromOklch({ ...rest, l: rest.l + away * step });
-  return reachContrast(mirrored, label, TEXT_CONTRAST) ?? toHex(primary);
+  return reachContrast(mirrored, [label], TEXT_CONTRAST) ?? toHex(primary);
 }
 
 /**
  * The built-in focus ring (`--ring` at 50% over the page), moved away from the
- * page until it reaches 3:1 against it.
+ * page until it reaches 3:1 against every surface in `FOCUS_SURFACES`.
  */
 function focusRingFor(mode: ColorMode, primary: Rgb): string {
-  const page = parseCssColor(PAGE_BACKGROUND[mode])!;
-  const white: Rgb = { r: 1, g: 1, b: 1 };
-  const black: Rgb = { r: 0, g: 0, b: 0 };
+  const surfaces = FOCUS_SURFACES[mode].map((color) => parseCssColor(color)!);
+  const [page] = surfaces;
   const fallback =
-    contrastRatio(page, white) >= contrastRatio(page, black) ? white : black;
+    contrastRatio(page, WHITE) >= contrastRatio(page, BLACK) ? WHITE : BLACK;
   return (
-    reachContrast(over(primary, page, RING_OPACITY), page, UI_CONTRAST) ??
+    reachContrast(over(primary, page, RING_OPACITY), surfaces, UI_CONTRAST) ??
     toHex(fallback)
   );
 }
@@ -269,24 +279,27 @@ function over(color: Rgb, backdrop: Rgb, opacity: number): Rgb {
 }
 
 /**
- * The first shade of `start`, stepping OKLCH lightness away from `against`, whose
- * hex reaches `minimum` against it; null when even the end of the range does not.
+ * The first shade of `start`, stepping OKLCH lightness away from `against[0]`,
+ * whose hex reaches `minimum` against every colour in `against`; null when even
+ * the end of the range does not.
  */
 function reachContrast(
   start: Rgb,
-  against: Rgb,
+  against: readonly Rgb[],
   minimum: number,
 ): string | null {
   const base = toOklch(start);
   const direction =
-    relativeLuminance(start) >= relativeLuminance(against) ? 1 : -1;
+    relativeLuminance(start) >= relativeLuminance(against[0]) ? 1 : -1;
   for (let step = 0; ; step++) {
     const l = Math.min(
       1,
       Math.max(0, base.l + direction * step * LIGHTNESS_STEP),
     );
     const hex = toHex(fromOklch({ ...base, l }));
-    if (contrastRatio(parseCssColor(hex)!, against) >= minimum) return hex;
+    const shade = parseCssColor(hex)!;
+    if (against.every((color) => contrastRatio(shade, color) >= minimum))
+      return hex;
     if (l === 0 || l === 1) return null;
   }
 }

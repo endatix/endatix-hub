@@ -3,6 +3,7 @@ import { contrastRatio, parseCssColor, toOklch } from "../color";
 import {
   BRAND_TOKENS,
   checkBrandContrast,
+  FOCUS_SURFACES,
   derivePalette,
   toStylesheet,
   type BrandColor,
@@ -158,8 +159,7 @@ describe("derivePalette", () => {
   });
 });
 
-/** `--background` in app/globals.css, the page a focus ring sits on. */
-const PAGE = { light: "#ffffff", dark: "#000f21" } as const;
+const PAGE = { light: FOCUS_SURFACES.light[0], dark: FOCUS_SURFACES.dark[0] };
 const MODES = ["light", "dark"] as const;
 
 const ratio = (a: string, b: string) =>
@@ -172,10 +172,11 @@ function expectReadableStates(palette: ReturnType<typeof derivePalette>) {
       ratio(tokens["--primary-hover"], tokens["--primary-foreground"]),
       `${mode} hover label`,
     ).toBeGreaterThanOrEqual(4.5);
-    expect(
-      ratio(tokens["--focus-ring"], PAGE[mode]),
-      `${mode} focus ring`,
-    ).toBeGreaterThanOrEqual(3);
+    for (const surface of FOCUS_SURFACES[mode])
+      expect(
+        ratio(tokens["--focus-ring"], surface),
+        `${mode} focus ring on ${surface}`,
+      ).toBeGreaterThanOrEqual(3);
   }
 }
 
