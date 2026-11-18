@@ -15,11 +15,7 @@ export async function generateMetadata(): Promise<Metadata> {
     title: "404 - Page Not Found",
     description: "The page you are looking for does not exist.",
     generator: brand.shortName,
-    keywords: [
-      ...brandKeywords(brand),
-      "forms-management",
-      "ai-form-builder",
-    ],
+    keywords: [...brandKeywords(brand), "forms-management", "ai-form-builder"],
   };
 }
 

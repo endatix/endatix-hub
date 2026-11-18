@@ -54,6 +54,7 @@ const sitemapArray: INavItem[] = [
     url: "/data-lists",
     icon: DatabaseZap,
   },
+  /* eslint-disable no-restricted-syntax -- the built-in docs tree; helpMenuItems(brand) swaps it for a pack's own link */
   {
     key: "documentation",
     title: "Documentation",
@@ -87,6 +88,7 @@ const sitemapArray: INavItem[] = [
       },
     ],
   },
+  /* eslint-enable no-restricted-syntax */
   {
     key: "analytics",
     title: "Analytics",

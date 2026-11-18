@@ -53,8 +53,8 @@ export function PlatformAdminsList({
         <AlertTitle>Local PlatformAdmin approval</AlertTitle>
         <AlertDescription>
           External identity provider roles nominate users for platform
-          administration. Local approval in {brand.shortName} grants or revokes platform
-          access.
+          administration. Local approval in {brand.shortName} grants or revokes
+          platform access.
         </AlertDescription>
       </Alert>
 

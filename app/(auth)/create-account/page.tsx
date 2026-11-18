@@ -22,8 +22,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     ...(await brandMetadata({
       title: "Create account",
-      description:
-        `Create a new account in the ${brand.name} form management portal.`,
+      description: `Create a new account in the ${brand.name} form management portal.`,
     })),
     authors: brandAuthors(brand),
   };

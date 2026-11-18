@@ -143,6 +143,7 @@ const NoFormTemplates = () => {
   const learnMoreUrl = brandUrl(
     useBrand(),
     "docs",
+    // eslint-disable-next-line no-restricted-syntax -- built-in value, shown only while no brand pack applies
     "https://docs.endatix.com/docs/form-builder?utm_source=endatix-hub&utm_medium=product",
   );
   return (

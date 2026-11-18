@@ -1,7 +1,11 @@
 import { SignupRequestForm } from "@/features/tenants/signup-request/ui/signup-request-form";
 import { saasManagementFlag } from "@/lib/feature-flags/flags";
 import type { Metadata } from "next";
-import { brandMetadata, getBrand, withIndefiniteArticle } from "@/lib/branding/server";
+import {
+  brandMetadata,
+  getBrand,
+  withIndefiniteArticle,
+} from "@/lib/branding/server";
 import { notFound } from "next/navigation";
 
 export async function generateMetadata(): Promise<Metadata> {

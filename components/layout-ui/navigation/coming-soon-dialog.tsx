@@ -22,11 +22,13 @@ export function ComingSoonDialog({ isOpen, onClose, featureName }: ComingSoonDia
   const websiteUrl = brandUrl(
     brand,
     "website",
+    // eslint-disable-next-line no-restricted-syntax -- built-in value, shown only while no brand pack applies
     "https://endatix.com?utm_source=endatix-hub&utm_medium=product",
   );
   const docsUrl = brandUrl(
     brand,
     "docs",
+    // eslint-disable-next-line no-restricted-syntax -- built-in value, shown only while no brand pack applies
     "https://docs.endatix.com/docs/category/getting-started?utm_source=endatix-hub&utm_medium=product",
   );
   return (

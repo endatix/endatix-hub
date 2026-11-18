@@ -73,6 +73,7 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
   return { rules: RESTRICTED_RULES };
 }
 
+// eslint-disable-next-line no-restricted-syntax -- built-in value, shown only while no brand pack applies
 const BUILT_IN_APP_URL = 'https://app.endatix.com';
 
 /** The hosted app's domain for the built-in brand; a pack has none, so only ROBOTS_ALLOWED_DOMAINS allows /login. */

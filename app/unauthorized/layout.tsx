@@ -15,11 +15,7 @@ export async function generateMetadata(): Promise<Metadata> {
     title: `${brand.name} - Error`,
     description: "An error occurred while loading the page.",
     generator: brand.shortName,
-    keywords: [
-      ...brandKeywords(brand),
-      "forms-management",
-      "ai-form-builder",
-    ],
+    keywords: [...brandKeywords(brand), "forms-management", "ai-form-builder"],
   };
 }
 

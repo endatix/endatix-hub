@@ -103,8 +103,7 @@ export function SignupRequestForm() {
         </div>
         <p className="mb-6 text-balance text-muted-foreground">
           Request access to {withIndefiniteArticle(brand.shortName)} workspace.
-          We will review your request
-          and email you if approved.
+          We will review your request and email you if approved.
         </p>
       </div>
       <div className="grid gap-4">

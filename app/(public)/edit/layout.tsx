@@ -11,6 +11,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     ...(await brandMetadata({
       title: "Edit Submission",
+      // eslint-disable-next-line no-restricted-syntax -- built-in value, shown only while no brand pack applies
       builtInTitle: "Edit Submission - Endatix",
     })),
     metadataBase: getMetadataBase(),

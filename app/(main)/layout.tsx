@@ -17,11 +17,7 @@ export async function generateMetadata(): Promise<Metadata> {
     metadataBase: getMetadataBase(),
     description: "Customizable form management platform",
     generator: brand.shortName,
-    keywords: [
-      ...brandKeywords(brand),
-      "forms-management",
-      "ai-form-builder",
-    ],
+    keywords: [...brandKeywords(brand), "forms-management", "ai-form-builder"],
   };
 }
 

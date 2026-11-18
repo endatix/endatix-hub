@@ -25,8 +25,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     ...(await brandMetadata({
       title: "Authentication failed",
-      description:
-        `Authentication failed the ${brand.name} form management portal.`,
+      description: `Authentication failed the ${brand.name} form management portal.`,
     })),
     authors: brandAuthors(brand),
     robots: ROBOTS.hiddenPage,

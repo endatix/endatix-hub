@@ -19,8 +19,8 @@ export function CreateFormAssistantPanel() {
       </div>
       <p className="flex items-center gap-2 text-sm font-medium text-foreground">
         <Sparkles className="h-4 w-4" />
-        Let <span className="font-bold">{brand.personas.assistant}</span> build the
-        form
+        Let <span className="font-bold">{brand.personas.assistant}</span> build
+        the form
       </p>
       <AssistantFolderSelect />
       <ChatBox />

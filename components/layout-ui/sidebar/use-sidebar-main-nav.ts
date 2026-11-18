@@ -50,7 +50,9 @@ export function useSidebarMainNav(
 
   useEffect(() => {
     if (initialFolders) {
-      setMainNavItems(navWithFolders(brand, initialNavItemKeys, initialFolders));
+      setMainNavItems(
+        navWithFolders(brand, initialNavItemKeys, initialFolders),
+      );
       return;
     }
 

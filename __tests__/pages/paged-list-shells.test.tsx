@@ -115,7 +115,9 @@ describe.each(shells)("$name", ({ searchLabel, render: renderShell }) => {
   });
 
   it("shows the next page when listKey changes and keeps the search input mounted", async () => {
-    const view = await act(async () => render(renderShell("page-1"), { wrapper: BuiltInBrand }));
+    const view = await act(async () =>
+      render(renderShell("page-1"), { wrapper: BuiltInBrand }),
+    );
     const input = screen.getByLabelText(searchLabel);
     input.focus();
     fireEvent.change(input, { target: { value: "ada" } });
