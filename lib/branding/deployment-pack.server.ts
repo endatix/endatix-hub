@@ -1,17 +1,19 @@
 import "server-only";
 
-import { statSync } from "node:fs";
+import { readdirSync, statSync } from "node:fs";
 import { TelemetryLogger } from "@/features/telemetry";
 import { envFlagName } from "@/lib/feature-flags/factories/environment-flag-factory";
 import { shouldUsePostHogFlags } from "@/lib/feature-flags/factories/posthog-flag-settings";
 import path from "node:path";
+import { packColor } from "./layers";
+import { checkBrandContrast } from "./palette";
 import { BRAND_FILE, readBrandPack, type LoadedBrandPack } from "./read-pack";
 
 export const BRAND_DIR_ENV = "ENDATIX_BRAND_DIR";
 
 interface Snapshot {
   readonly dir: string;
-  /** brand.json's and each named file's identity; a ConfigMap update swaps them. */
+  /** The folder listing and brand.json's and each named file's identity. */
   readonly stamp: string;
   readonly loaded: LoadedBrandPack;
 }
@@ -19,6 +21,8 @@ interface Snapshot {
 let snapshot: Snapshot | null = null;
 /** The stamp of a pack that never validated, so it is reported once. */
 let failedStamp: string | null = null;
+/** The pack whose contrast was last checked, so a weak accent is reported once. */
+let checkedFingerprint: string | null = null;
 
 /**
  * The mounted pack, or null when `ENDATIX_BRAND_DIR` is unset. It is read again
@@ -58,7 +62,9 @@ function reload(dir: string, stamp: string): LoadedBrandPack {
  */
 export function currentDeploymentPack(): LoadedBrandPack | null {
   try {
-    return loadDeploymentPack();
+    const loaded = loadDeploymentPack();
+    if (loaded) warnAboutContrast(loaded);
+    return loaded;
   } catch (error) {
     const stamp = stampOf(process.env[BRAND_DIR_ENV]?.trim() ?? "", []);
     if (stamp !== failedStamp) {
@@ -88,8 +94,29 @@ function whiteLabelingMayBeOn(): boolean {
   );
 }
 
+/**
+ * WCAG 2.x 3:1 for the accent against each page; the foreground's 4.5:1 is
+ * guaranteed by derivation. A warning only: the pack still applies.
+ */
+function warnAboutContrast(loaded: LoadedBrandPack): void {
+  if (checkedFingerprint === loaded.fingerprint) return;
+  checkedFingerprint = loaded.fingerprint;
+  const color = packColor(loaded.pack.tokens?.color);
+  for (const finding of color ? checkBrandContrast(color) : []) {
+    TelemetryLogger.warn(
+      `Brand accent ${finding.token} is ${finding.ratio}:1 against the ${finding.mode} page; WCAG 2.x asks ${finding.minimum}:1 for controls and focus rings`,
+      {},
+      "endatix-hub.branding",
+    );
+  }
+}
+
+/**
+ * The folder listing (so adding a file a rejected brand.json named counts as a
+ * change) and the identity of brand.json and each file the last good pack names.
+ */
 function stampOf(dir: string, files: readonly string[]): string {
-  return [BRAND_FILE, ...files]
+  return [listing(dir), BRAND_FILE, ...files]
     .map((file) => {
       try {
         const stat = statSync(path.join(dir, file));
@@ -99,6 +126,14 @@ function stampOf(dir: string, files: readonly string[]): string {
       }
     })
     .join("|");
+}
+
+function listing(dir: string): string {
+  try {
+    return readdirSync(dir).sort().join(",");
+  } catch {
+    return "";
+  }
 }
 
 /** Through TelemetryLogger, which also prints when no log exporter runs. */

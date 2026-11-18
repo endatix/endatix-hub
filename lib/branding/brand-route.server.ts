@@ -55,7 +55,8 @@ function stylesheetRoute(brand: Brand, request: Request): Promise<Response> {
 function redirectTo(location: string): Response {
   return new Response(null, {
     status: 307,
-    headers: { Location: location, "Cache-Control": CACHE_CONTROL },
+    // The target carries ?v=<fingerprint>; the alias itself must follow a new pack.
+    headers: { Location: location, "Cache-Control": "no-cache" },
   });
 }
 

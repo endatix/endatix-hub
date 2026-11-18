@@ -75,7 +75,7 @@ function packAssets(
 }
 
 /** The schema has already checked both colours parse. */
-function packColor(
+export function packColor(
   color: NonNullable<BrandPack["tokens"]>["color"],
 ): BrandColor | null {
   if (!color) return null;
