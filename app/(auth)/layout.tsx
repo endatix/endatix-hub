@@ -62,14 +62,16 @@ export default async function AuthLayout({ children }: AuthLayoutProps) {
           brand={brand}
         >
           <div className="h-screen w-full overflow-hidden bg-muted/40">
-            <a
-              href="https://endatix.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="fixed right-8 bottom-8 z-50 text-sm text-primary/70 transition-colors duration-200 hover:text-primary"
-            >
-              endatix.com
-            </a>
+            {brand.links.website ? (
+              <a
+                href={brand.links.website}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="fixed right-8 bottom-8 z-50 text-sm text-primary/70 transition-colors duration-200 hover:text-primary"
+              >
+                {new URL(brand.links.website).host}
+              </a>
+            ) : null}
             <main className="grid h-full gap-8 p-6 lg:grid-cols-2">
               {/* Left — sign-in form */}
               <div className="flex items-center justify-center">
@@ -93,7 +95,7 @@ export default async function AuthLayout({ children }: AuthLayoutProps) {
 
                 <div className="relative z-10 flex flex-col items-center gap-8 px-6 text-center">
                   <h2 className="font-[family-name:var(--font-instrument-sans)] text-4xl leading-tight font-semibold tracking-tight text-primary xl:text-5xl">
-                    Form Management Platform
+                    {brand.tagline}
                   </h2>
                   <p className="inline-block rounded-full border border-primary/35 bg-background/60 px-5 py-1.5 text-sm leading-relaxed text-muted-foreground backdrop-blur-sm dark:border-primary/30">
                     Build, collect, and analyze your form and survey data.

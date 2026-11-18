@@ -21,3 +21,14 @@ export function brandUrl(
   const link = brand.links[key];
   return link !== undefined && link === BUILT_IN_LINKS[key] ? builtInUrl : link;
 }
+
+/**
+ * Whether the "Powered by" line shows: the pack's `poweredBy` when it sets one,
+ * else `ENDATIX_SHOW_POWERED_BY` (deprecated fallback), passed in as `envShown`.
+ */
+export function isPoweredByShown(
+  brand: Pick<Brand, "poweredBy"> | null,
+  envShown: boolean,
+): boolean {
+  return brand?.poweredBy ?? envShown;
+}
