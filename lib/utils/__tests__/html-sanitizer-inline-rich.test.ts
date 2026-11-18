@@ -93,16 +93,14 @@ describe("htmlSanitizer inlineRich preset", () => {
       ).not.toContain("srcset");
     });
 
-    it("keeps only size styles on an image", () => {
+    it("keeps only width and height styles on an image", () => {
       const result = inlineRich(
         '<img src="https://example.com/a.png" style="width:100%; max-width:100px; height:auto; position:fixed; color:red">',
       );
 
       expect(result).toContain("width:100%");
-      expect(result).toContain("max-width:100px");
       expect(result).toContain("height:auto");
-      expect(result).not.toContain("position");
-      expect(result).not.toContain("color");
+      expect(result).not.toMatch(/max-width|position|color/);
     });
   });
 
@@ -110,6 +108,9 @@ describe("htmlSanitizer inlineRich preset", () => {
     ["width:99999px", "99999px"],
     ["width:100px !important", "important"],
     ["max-width:100px;height:10vh", "vh"],
+    ["width:9999px;max-width:9999px;height:9999px;max-height:9999px", "max-"],
+    ["max-width:9999px !/**/important", "9999"],
+    ["width:100px !/**/important", "100px"],
   ])("drops an unbounded or forced size style %s", (style, forbidden) => {
     expect(
       inlineRich(`<img src="https://example.com/a.png" style="${style}">`),

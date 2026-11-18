@@ -175,8 +175,8 @@ const inlineSanitizationOptions: IOptions = {
  * relative, scheme-less, `data:` and `http:` sources drop the whole image.
  * `loading="lazy"`, `decoding="async"` and `referrerpolicy="no-referrer"` are
  * forced; no `width`/`height`/`srcset` attributes. `style` is allowed on `img`
- * only, for width/height and their max, as `auto` or a bounded number with a
- * unit (no `!important`, `url()` or `expression()`).
+ * only, for `width` and `height`, as `auto` or a bounded number with a unit;
+ * no `max-*` (Hub's own caps must win), `!`, comments, `url()` or `expression()`.
  *
  * Links: every `a` opens in a new tab with `rel="noopener noreferrer"`.
  * Block tags such as `<p>` are unwrapped and their text kept.
@@ -189,7 +189,8 @@ function enforceImageLoading(
   attribs: Record<string, string>,
 ): { tagName: string; attribs: Record<string, string> } {
   // sanitize-html matches a style value without its `!important` flag and
-  // then writes the flag back, so a forced size would survive the allow-list.
+  // then writes the flag back, and a comment can split the flag
+  // (`! /**/ important`), so any `!` or `/*` drops the whole style.
   const { style, ...kept } = attribs;
   const safe: Record<string, string> = {
     ...kept,
@@ -197,7 +198,7 @@ function enforceImageLoading(
     decoding: "async",
     referrerpolicy: "no-referrer",
   };
-  if (style && !/!\s*important/i.test(style)) {
+  if (style && !/!|\/\*/.test(style)) {
     safe.style = style;
   }
   return { tagName, attribs: safe };
@@ -235,9 +236,7 @@ const inlineRichSanitizationOptions: IOptions = {
   allowedStyles: {
     img: {
       width: [IMAGE_SIZE_VALUE],
-      "max-width": [IMAGE_SIZE_VALUE],
       height: [IMAGE_SIZE_VALUE],
-      "max-height": [IMAGE_SIZE_VALUE],
     },
   },
   transformTags: {
