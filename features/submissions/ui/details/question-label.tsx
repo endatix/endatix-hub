@@ -1,3 +1,4 @@
+import { RichText } from "@/components/common/rich-text";
 import { Label } from "@/components/ui/label";
 import {
   Tooltip,
@@ -58,16 +59,29 @@ export function QuestionLabel({
   );
 }
 
-function TextLabel({ question }: { question: Question }) {
-  const title = question.title ?? "";
-  const sanitized = useMemo(() => htmlSanitizer.sanitizeInline(title), [title]);
+// A block label: the shared Label is flex, which would lay every inline piece
+// of a rich title out as its own column.
+const labelClass = "block leading-normal";
 
+function TextLabel({ question, html }: { question: Question; html?: string }) {
   return (
-    <Label
-      htmlFor={question.name}
-      dangerouslySetInnerHTML={{ __html: sanitized }}
-    />
+    <Label htmlFor={question.name} className={labelClass}>
+      <RichText html={html ?? question.title ?? ""} />
+    </Label>
   );
+}
+
+/**
+ * True when a piece ends inside a tag (`<img src="{url}">`, or a piped value
+ * the tokenizer split at a space), so the pieces cannot be sanitized one by one.
+ */
+function cutsThroughTag(tokens: Token[]): boolean {
+  return tokens.some((token) => {
+    const text = token.isVariable
+      ? (token.replacedValue ?? token.value)
+      : token.value;
+    return text.lastIndexOf("<") > text.lastIndexOf(">");
+  });
 }
 
 function PersonalizedTextLabel({ question }: { question: Question }) {
@@ -76,27 +90,29 @@ function PersonalizedTextLabel({ question }: { question: Question }) {
     [question.title, question.processedTitle],
   );
 
-  if (Result.isError(extractionTokensResult)) {
-    return <TextLabel question={question} />;
+  if (
+    Result.isError(extractionTokensResult) ||
+    cutsThroughTag(extractionTokensResult.value)
+  ) {
+    return <TextLabel question={question} html={question.processedTitle} />;
   }
 
   const personalizedTokens = extractionTokensResult.value;
 
   return (
     <TooltipProvider>
-      <Label htmlFor={question.name}>
+      <Label htmlFor={question.name} className={labelClass}>
         {personalizedTokens.map((token: Token) =>
           token.isVariable ? (
             <Tooltip key={token.id}>
               <TooltipTrigger asChild>
-                <span
-                  className="rounded-md bg-primary/10 p-1.5 font-bold"
+                <RichText
+                  html={token.replacedValue ?? token.value}
+                  className="rounded-md bg-primary/10 box-decoration-clone px-1.5 py-0.5 font-bold"
                   tabIndex={0}
                   role="button"
                   aria-describedby={`${question.name}-tooltip`}
-                >
-                  {token.replacedValue ?? token.value}
-                </span>
+                />
               </TooltipTrigger>
               <TooltipContent
                 side="top"
@@ -109,12 +125,7 @@ function PersonalizedTextLabel({ question }: { question: Question }) {
               </TooltipContent>
             </Tooltip>
           ) : (
-            <span
-              key={token.id}
-              dangerouslySetInnerHTML={{
-                __html: htmlSanitizer.sanitizeInline(token.value),
-              }}
-            />
+            <RichText key={token.id} html={token.value} />
           ),
         )}
       </Label>

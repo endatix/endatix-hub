@@ -4,6 +4,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { RichText } from "@/components/common/rich-text";
 import { cn } from "@/lib/utils";
 import { Captions, CaptionsOff } from "lucide-react";
 import { PanelModel, QuestionPanelDynamicModel } from "survey-core";
@@ -71,9 +72,11 @@ const PanelDynamicAnswer = ({
             <span className="flex min-w-0 flex-1 items-center gap-2 text-left">
               <Captions className="h-4 w-4 shrink-0 text-muted-foreground" />
               <span className="min-w-0 text-sm font-semibold tracking-tight text-foreground">
-                {panel.processedTitle
-                  ? panel.processedTitle
-                  : `Dynamic panel ${index + 1}`}
+                {panel.processedTitle ? (
+                  <RichText html={panel.processedTitle} />
+                ) : (
+                  `Dynamic panel ${index + 1}`
+                )}
               </span>
             </span>
           </AccordionTrigger>

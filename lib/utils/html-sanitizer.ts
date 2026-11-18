@@ -167,6 +167,71 @@ const inlineSanitizationOptions: IOptions = {
 };
 
 /**
+ * Inline rich preset - the inline preset plus a guarded image, for question
+ * titles and choice labels shown in Hub (Submission Details).
+ *
+ * Images: `https` only (hosted tenant storage is https; a read-token query
+ * string is kept), no `data:`, `http:`, protocol-relative or `srcset`.
+ * `loading="lazy"`, `decoding="async"` and `referrerpolicy="no-referrer"` are
+ * forced. `style` is allowed on `img` only and limited to size properties, so
+ * `url()`, `expression()` and positioning never survive. Block tags such as
+ * `<p>` are unwrapped and their text kept.
+ */
+const IMAGE_SIZE_VALUE = /^(?:auto|\d+(?:\.\d+)?(?:px|%|em|rem)?)$/;
+
+function enforceImageLoading(
+  tagName: string,
+  attribs: Record<string, string>,
+): { tagName: string; attribs: Record<string, string> } {
+  return {
+    tagName,
+    attribs: {
+      ...attribs,
+      loading: "lazy",
+      decoding: "async",
+      referrerpolicy: "no-referrer",
+    },
+  };
+}
+
+const inlineRichSanitizationOptions: IOptions = {
+  ...inlineSanitizationOptions,
+  allowedTags: [...INLINE_ALLOWED_TAGS, "img"],
+  allowedAttributes: {
+    ...(inlineSanitizationOptions.allowedAttributes as Record<
+      string,
+      AllowedAttribute[]
+    >),
+    img: [
+      "src",
+      "alt",
+      "title",
+      "width",
+      "height",
+      "style",
+      "loading",
+      "decoding",
+      "referrerpolicy",
+    ],
+  },
+  allowedSchemesByTag: { img: ["https"] },
+  allowedStyles: {
+    img: {
+      width: [IMAGE_SIZE_VALUE],
+      "max-width": [IMAGE_SIZE_VALUE],
+      height: [IMAGE_SIZE_VALUE],
+      "max-height": [IMAGE_SIZE_VALUE],
+    },
+  },
+  transformTags: {
+    a: enforceLinkSecurity,
+    img: enforceImageLoading,
+  },
+  // An image whose source was rejected would render as a broken-image box.
+  exclusiveFilter: (frame) => frame.tag === "img" && !frame.attribs.src,
+};
+
+/**
  * Moderate (block) sanitization preset - balanced security and functionality.
  * Use for question descriptions and rich text where block elements (headings, lists, tables) are allowed.
  *
@@ -253,6 +318,7 @@ function sanitizeHtmlInline(dirtyHtml: string): string {
  *
  * - `strict`: Minimal tags, maximum security (for untrusted input)
  * - `inline`: Phrasing content only, safe inside &lt;label&gt; (for titles, labels)
+ * - `inlineRich`: Inline plus https images with size-only styles (for Submission Details titles and choices)
  * - `moderate`: Block + inline content (for descriptions, rich text)
  * - `surveyHtml`: Moderate + structural tags, for HTML-bearing survey properties
  * - `pdf`: No tags, plain text only (for PDF export and non-DOM contexts)
@@ -260,6 +326,7 @@ function sanitizeHtmlInline(dirtyHtml: string): string {
 export const sanitizationPresets = {
   strict: strictSanitizationOptions,
   inline: inlineSanitizationOptions,
+  inlineRich: inlineRichSanitizationOptions,
   moderate: moderateSanitizationOptions,
   surveyHtml: surveyHtmlSanitizationOptions,
   pdf: pdfSanitizationOptions,

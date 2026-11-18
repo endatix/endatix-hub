@@ -9,10 +9,10 @@ import { useDesignerRuntime } from "@/lib/designer-runtime";
 import { registerAudioQuestion } from "@/lib/questions/audio-recorder";
 import { cn } from "@/lib/utils";
 import { useSurveyExtensions } from "@/lib/survey-extensions/ui/use-survey-extensions";
-import { htmlSanitizer } from "@/lib/utils/html-sanitizer";
+import { RichText } from "@/components/common/rich-text";
 import { CustomQuestion } from "@/services/api";
 import { EyeOff } from "lucide-react";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect } from "react";
 import { Question } from "survey-core";
 import { getQuestionNumber } from "../../submission-utils";
 import AnswerViewer from "../answers/answer-viewer";
@@ -148,13 +148,6 @@ const SubmissionItemCard = ({
     getQuestionNumber(question) > 0
       ? `Question #${getQuestionNumber(question)}`
       : "Question";
-  // Question titles can carry rich text (e.g. a bold/colored <span> from a
-  // rich-text editor) — sanitize and render it as HTML rather than escaping
-  // it to literal tag text, matching QuestionLabel's TextLabel behavior.
-  const sanitizedTitle = useMemo(
-    () => htmlSanitizer.sanitizeInline(question.title ?? ""),
-    [question.title],
-  );
 
   if (isInvisible && !viewOptions.showInvisibleItems) {
     return null;
@@ -175,10 +168,9 @@ const SubmissionItemCard = ({
             <span className="text-[10px] font-bold tracking-wider text-primary uppercase">
               {questionLabel} • {question.getType()}
             </span>
-            <h3
-              className="text-lg font-bold tracking-tight text-foreground"
-              dangerouslySetInnerHTML={{ __html: sanitizedTitle }}
-            />
+            <h3 className="text-lg font-bold tracking-tight text-foreground">
+              <RichText html={question.title ?? ""} />
+            </h3>
           </div>
         </div>
         <div className="mt-4 rounded-md border border-slate-100 bg-surface-container-low p-3 sm:p-5 dark:border-slate-800 dark:bg-surface-container">
@@ -207,10 +199,9 @@ const SubmissionItemCard = ({
           <span className="text-[10px] font-bold tracking-wider text-primary uppercase">
             {questionLabel} • {question.getType()}
           </span>
-          <h3
-            className="text-lg leading-snug font-bold tracking-tight text-foreground"
-            dangerouslySetInnerHTML={{ __html: sanitizedTitle }}
-          />
+          <h3 className="text-lg leading-snug font-bold tracking-tight text-foreground">
+            <RichText html={question.title ?? ""} />
+          </h3>
         </div>
       </div>
       <div className="rounded-md border border-slate-100 bg-surface-container-low p-3 sm:p-5 dark:border-slate-800 dark:bg-surface-container">

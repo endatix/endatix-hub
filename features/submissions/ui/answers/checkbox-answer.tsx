@@ -1,6 +1,6 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { htmlSanitizer } from "@/lib/utils/html-sanitizer";
+import { RichText } from "@/components/common/rich-text";
 import { ItemValue, QuestionCheckboxModel } from "survey-core";
 import { ValueTooltip } from "./value-tooltip";
 
@@ -43,7 +43,7 @@ const CheckboxAnswer = ({ question, className }: CheckboxAnswerProps) => {
               htmlFor={checkedItem.value}
               className="text-sm leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
             >
-              {htmlSanitizer.toPlainText(checkedItem.text)}
+              <RichText html={checkedItem.text} />
             </Label>
             <ValueTooltip value={question} />
           </div>
