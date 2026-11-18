@@ -6,20 +6,16 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import {
-  extractReplacedTokens,
-  Token,
-} from "@/lib/questions/personalization/reverse-text-processor";
+import { Token } from "@/lib/questions/personalization/reverse-text-processor";
 import { getPanelTitle } from "@/lib/questions/question-utils";
-import { Result } from "@/lib/result";
 import { cn } from "@/lib/utils";
 import { htmlSanitizer } from "@/lib/utils/html-sanitizer";
-import { useMemo } from "react";
 import { Question } from "survey-core";
 import {
   useSubmissionDetailsViewOptions,
   ViewOption,
 } from "./submission-details-context";
+import { AuthorText, resolvePipedTokens } from "./piped-text";
 
 interface QuestionLabelProps extends React.HtmlHTMLAttributes<HTMLDivElement> {
   forQuestion: Question;
@@ -63,63 +59,24 @@ export function QuestionLabel({
 // of a rich title out as its own column.
 const labelClass = "block leading-normal";
 
-function TextLabel({ question, html }: { question: Question; html?: string }) {
+function TextLabel({ question }: { question: Question }) {
   return (
     <Label htmlFor={question.name} className={labelClass}>
-      <RichText html={html ?? question.title ?? ""} />
+      <RichText html={question.title ?? ""} />
     </Label>
   );
 }
 
-/**
- * True when a piece ends inside a tag (`<img src="{url}">`, or a piped value
- * the tokenizer split at a space), so the pieces cannot be sanitized one by one.
- */
-function cutsThroughTag(tokens: Token[]): boolean {
-  return tokens.some((token) => {
-    const text = token.isVariable
-      ? (token.replacedValue ?? token.value)
-      : token.value;
-    return text.lastIndexOf("<") > text.lastIndexOf(">");
-  });
-}
-
-/**
- * Resolves each variable on its own, so a piped value with spaces in it is not
- * cut at the next static piece. Keeps the positional match when the resolved
- * pieces do not rebuild the processed title.
- */
-function resolveVariables(tokens: Token[], question: Question): Token[] {
-  const resolved = tokens.map((token) =>
-    token.isVariable
-      ? {
-          ...token,
-          replacedValue: question.getProcessedText(`{${token.value}}`),
-        }
-      : token,
-  );
-  const rebuilt = resolved
-    .map((token) => (token.isVariable ? token.replacedValue : token.value))
-    .join("");
-  return rebuilt === question.processedTitle ? resolved : tokens;
-}
-
 function PersonalizedTextLabel({ question }: { question: Question }) {
-  const extractionTokensResult = useMemo(
-    () => extractReplacedTokens(question.title, question.processedTitle),
-    [question.title, question.processedTitle],
-  );
+  // Not memoized: processedTitle follows piped values on the same question.
+  const personalizedTokens = resolvePipedTokens(question);
 
-  if (Result.isError(extractionTokensResult)) {
-    return <TextLabel question={question} html={question.processedTitle} />;
-  }
-
-  const personalizedTokens = resolveVariables(
-    extractionTokensResult.value,
-    question,
-  );
-  if (cutsThroughTag(personalizedTokens)) {
-    return <TextLabel question={question} html={question.processedTitle} />;
+  if (!personalizedTokens) {
+    return (
+      <Label htmlFor={question.name} className={labelClass}>
+        {htmlSanitizer.toPlainText(question.processedTitle)}
+      </Label>
+    );
   }
 
   return (
@@ -129,8 +86,9 @@ function PersonalizedTextLabel({ question }: { question: Question }) {
           token.isVariable ? (
             <Tooltip key={token.id}>
               <TooltipTrigger asChild>
-                <RichText
-                  html={token.replacedValue ?? token.value}
+                <AuthorText
+                  value={token.replacedValue ?? ""}
+                  survey={question.survey}
                   className="rounded-md bg-primary/10 box-decoration-clone px-1.5 py-0.5 font-bold"
                   tabIndex={0}
                   role="button"

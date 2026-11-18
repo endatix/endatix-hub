@@ -27,7 +27,7 @@ export function RichText({ html, className, ...props }: RichTextProps) {
   return (
     <span
       className={cn(
-        "[&_img]:inline-block [&_img]:max-h-24 [&_img]:align-middle",
+        "[&_img]:inline-block [&_img]:max-h-24 [&_img]:max-w-full [&_img]:align-middle",
         className,
       )}
       dangerouslySetInnerHTML={{ __html: sanitized }}

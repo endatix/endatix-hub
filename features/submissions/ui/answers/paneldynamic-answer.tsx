@@ -4,10 +4,10 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { RichText } from "@/components/common/rich-text";
 import { cn } from "@/lib/utils";
 import { Captions, CaptionsOff } from "lucide-react";
 import { PanelModel, QuestionPanelDynamicModel } from "survey-core";
+import { PipedText } from "../details/piped-text";
 import { QuestionLabel } from "../details/question-label";
 import AnswerViewer from "./answer-viewer";
 
@@ -89,7 +89,7 @@ const PanelDynamicAnswer = ({
 
 const PanelTitle = ({ panel, index }: { panel: PanelModel; index: number }) =>
   panel.processedTitle ? (
-    <RichText html={panel.processedTitle} />
+    <PipedText source={panel} />
   ) : (
     `Dynamic panel ${index + 1}`
   );

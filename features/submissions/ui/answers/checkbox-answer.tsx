@@ -1,6 +1,6 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { RichText } from "@/components/common/rich-text";
+import { AuthorText } from "../details/piped-text";
 import { ItemValue, QuestionCheckboxModel } from "survey-core";
 import { ValueTooltip } from "./value-tooltip";
 
@@ -43,7 +43,7 @@ const CheckboxAnswer = ({ question, className }: CheckboxAnswerProps) => {
               htmlFor={checkedItem.value}
               className="text-sm leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
             >
-              <RichText html={checkedItem.text} />
+              <AuthorText value={checkedItem.text} survey={question.survey} />
             </Label>
             <ValueTooltip value={question} />
           </div>

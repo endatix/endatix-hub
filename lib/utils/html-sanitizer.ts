@@ -167,30 +167,49 @@ const inlineSanitizationOptions: IOptions = {
 };
 
 /**
- * Inline rich preset - the inline preset plus a guarded image, for question
- * titles and choice labels shown in Hub (Submission Details).
+ * Inline rich preset - the inline preset plus a guarded image, for author
+ * text (question titles, the definition's choice texts) shown in Hub.
+ * Never use it for respondent answers: render those as plain text.
  *
- * Images: `https` only (hosted tenant storage is https; a read-token query
- * string is kept), no `data:`, `http:`, protocol-relative or `srcset`.
+ * Images: kept only when the trimmed `src` starts with `https://` (any case);
+ * relative, scheme-less, `data:` and `http:` sources drop the whole image.
  * `loading="lazy"`, `decoding="async"` and `referrerpolicy="no-referrer"` are
- * forced. `style` is allowed on `img` only and limited to size properties, so
- * `url()`, `expression()` and positioning never survive. Block tags such as
- * `<p>` are unwrapped and their text kept.
+ * forced; no `width`/`height`/`srcset` attributes. `style` is allowed on `img`
+ * only, for width/height and their max, as `auto` or a bounded number with a
+ * unit (no `!important`, `url()` or `expression()`).
+ *
+ * Links: every `a` opens in a new tab with `rel="noopener noreferrer"`.
+ * Block tags such as `<p>` are unwrapped and their text kept.
  */
-const IMAGE_SIZE_VALUE = /^(?:auto|\d+(?:\.\d+)?(?:px|%|em|rem)?)$/;
+const IMAGE_SIZE_VALUE = /^(?:auto|\d{1,4}(?:\.\d{1,2})?(?:px|%|em|rem))$/;
+const HTTPS_SOURCE = /^https:\/\//i;
 
 function enforceImageLoading(
   tagName: string,
   attribs: Record<string, string>,
 ): { tagName: string; attribs: Record<string, string> } {
+  // sanitize-html matches a style value without its `!important` flag and
+  // then writes the flag back, so a forced size would survive the allow-list.
+  const { style, ...kept } = attribs;
+  const safe: Record<string, string> = {
+    ...kept,
+    loading: "lazy",
+    decoding: "async",
+    referrerpolicy: "no-referrer",
+  };
+  if (style && !/!\s*important/i.test(style)) {
+    safe.style = style;
+  }
+  return { tagName, attribs: safe };
+}
+
+function enforceNewTabLink(
+  tagName: string,
+  attribs: Record<string, string>,
+): { tagName: string; attribs: Record<string, string> } {
   return {
     tagName,
-    attribs: {
-      ...attribs,
-      loading: "lazy",
-      decoding: "async",
-      referrerpolicy: "no-referrer",
-    },
+    attribs: { ...attribs, target: "_blank", rel: "noopener noreferrer" },
   };
 }
 
@@ -206,8 +225,6 @@ const inlineRichSanitizationOptions: IOptions = {
       "src",
       "alt",
       "title",
-      "width",
-      "height",
       "style",
       "loading",
       "decoding",
@@ -224,11 +241,13 @@ const inlineRichSanitizationOptions: IOptions = {
     },
   },
   transformTags: {
-    a: enforceLinkSecurity,
+    a: enforceNewTabLink,
     img: enforceImageLoading,
   },
-  // An image whose source was rejected would render as a broken-image box.
-  exclusiveFilter: (frame) => frame.tag === "img" && !frame.attribs.src,
+  // sanitize-html checks a scheme only when one is present, so a relative or
+  // scheme-less source would pass `allowedSchemesByTag`. Keep https only.
+  exclusiveFilter: (frame) =>
+    frame.tag === "img" && !HTTPS_SOURCE.test((frame.attribs.src ?? "").trim()),
 };
 
 /**

@@ -17,6 +17,9 @@ globalThis.ResizeObserver ??= class {
   disconnect() {}
 } as unknown as typeof ResizeObserver;
 
+const RESPONDENT_HTML =
+  '<a href="https://phish.example" target="_top">click here</a><img src="https://track.example/p.gif">';
+
 const BRAND_HTML =
   '<img src="https://cdn.example.com/acme.png" style="width:100%; max-width:100px; height:auto;"><p>ACME</p>';
 
@@ -96,5 +99,22 @@ describe("QuestionLabel", () => {
     expect(container.querySelector("script")).toBeNull();
     expect(container.querySelector("[onerror]")).toBeNull();
     expect(container.textContent).not.toContain("<img");
+  });
+
+  it("renders a respondent answer piped into a title as plain text", () => {
+    const model = new Model({
+      elements: [
+        { type: "text", name: "nick" },
+        { type: "text", name: "next", title: "Thanks, {nick}!" },
+      ],
+    });
+    model.data = { nick: RESPONDENT_HTML };
+    const question = model.getQuestionByName("next");
+
+    const { container } = render(<QuestionLabel forQuestion={question} />);
+
+    expect(container.querySelector("a")).toBeNull();
+    expect(container.querySelector("img")).toBeNull();
+    expect(container.textContent).toContain("click here");
   });
 });

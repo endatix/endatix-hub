@@ -68,8 +68,21 @@ describe("htmlSanitizer inlineRich preset", () => {
       ["http", '<img src="http://example.com/a.png">'],
       ["data URI", '<img src="data:image/png;base64,iVBORw0KGgo=">'],
       ["protocol-relative", '<img src="//example.com/a.png">'],
-    ])("drops an image from a %s source", (_name, input) => {
-      expect(inlineRich(input)).not.toContain("src=");
+      ["relative path", '<img src="/api/auth/logout">'],
+      ["scheme-less", '<img src="api/auth/logout">'],
+      ["empty", '<img src="">'],
+      ["missing", "<img>"],
+      ["javascript", '<img src="javascript:alert(1)">'],
+      ["entity-encoded javascript", '<img src="&#106;avascript:alert(1)">'],
+      ["whitespace-led relative", '<img src="  /api/auth/logout">'],
+    ])("drops the whole image for a %s source", (_name, input) => {
+      expect(inlineRich(input)).not.toContain("<img");
+    });
+
+    it("keeps a mixed-case https source", () => {
+      expect(inlineRich('<img src="HTTPS://example.com/a.png">')).toContain(
+        "<img",
+      );
     });
 
     it("drops srcset", () => {
@@ -90,6 +103,45 @@ describe("htmlSanitizer inlineRich preset", () => {
       expect(result).toContain("height:auto");
       expect(result).not.toContain("position");
       expect(result).not.toContain("color");
+    });
+  });
+
+  it.each([
+    ["width:99999px", "99999px"],
+    ["width:100px !important", "important"],
+    ["max-width:100px;height:10vh", "vh"],
+  ])("drops an unbounded or forced size style %s", (style, forbidden) => {
+    expect(
+      inlineRich(`<img src="https://example.com/a.png" style="${style}">`),
+    ).not.toContain(forbidden);
+  });
+
+  it("drops width and height attributes on an image", () => {
+    const result = inlineRich(
+      '<img src="https://example.com/a.png" width="99999" height="99999">',
+    );
+
+    expect(result).not.toMatch(/width=|height=/);
+  });
+
+  describe("links", () => {
+    it.each([
+      ["_top target", '<a href="https://example.com" target="_top">x</a>'],
+      ["_self target", '<a href="https://example.com" target="_self">x</a>'],
+      ["upper-case scheme", '<a href="HTTPS://example.com">x</a>'],
+      ["mailto", '<a href="mailto:a@example.com" rel="opener">x</a>'],
+    ])("forces a new tab and noopener for a %s", (_name, input) => {
+      const result = inlineRich(input);
+
+      expect(result).toContain('target="_blank"');
+      expect(result).toContain('rel="noopener noreferrer"');
+      expect(result).not.toMatch(/_top|_self|"opener"/);
+    });
+
+    it("drops a javascript href", () => {
+      expect(inlineRich('<a href="JaVaScRiPt:alert(1)">x</a>')).not.toMatch(
+        /javascript/i,
+      );
     });
   });
 
