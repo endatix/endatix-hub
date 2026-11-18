@@ -1,9 +1,13 @@
 import type { FlagFactory, FlagDefinition } from "./flag-factory.interface";
 
+/** The env var that sets a flag: `white-labeling` -> `FLAG_WHITE_LABELING`. */
+export function envFlagName(key: string): string {
+  return `FLAG_${key.toUpperCase().replace(/-/g, "_")}`;
+}
+
 // Get environment variable flag value
 function getEnvFlag<T>(key: string, defaultValue: T): T {
-  const baseKey = `FLAG_${key.toUpperCase().replace(/-/g, "_")}`;
-  const envValue = process.env[baseKey];
+  const envValue = process.env[envFlagName(key)];
 
   if (envValue === undefined) {
     return defaultValue;

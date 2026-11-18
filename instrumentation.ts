@@ -14,6 +14,11 @@ export async function register() {
       await import("@/features/config/legacy-public-env.server");
     applyLegacyPublicEnv();
 
+    // An invalid mounted brand pack stops the Hub here, with the field paths.
+    const { assertBrandPackAtStartup } =
+      await import("@/lib/branding/deployment-pack.server");
+    assertBrandPackAtStartup();
+
     // Server-side counterpart to instrumentation-client.ts: survey components
     // are client components, but Next still renders them on the server, so the
     // sanitizer has to be installed in both runtimes.

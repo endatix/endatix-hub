@@ -59,6 +59,7 @@ export default async function proxy(request: NextRequest) {
  * - share — the public share page
  * - slack — the Slack integration page
  * - assets — all files and folders served from the public folder
+ * - brand/ — the deployment brand's files and aliases (public, also during maintenance)
  * - _next/static (static files)
  * - _next/image (image optimization files)
  * - favicon.ico, sitemap.xml, robots.txt (metadata files)
@@ -69,7 +70,7 @@ export const config = {
   matcher: [
     {
       source:
-        "/((?!api|.swa|ingest|maintenance|share|slack|assets|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|.well-known).*)",
+        "/((?!api|.swa|ingest|maintenance|share|slack|assets|brand(?:/|$)|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|.well-known).*)",
       missing: [{ type: "header", key: "next-action" }],
     },
   ],

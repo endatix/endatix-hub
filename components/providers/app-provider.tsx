@@ -12,6 +12,8 @@ import { SidebarProvider } from "../ui/sidebar";
 import type { AppProviderOptions } from "./app-options";
 import { Session } from "next-auth";
 import { withBasePath } from "@/lib/hosting/base-path";
+import type { Brand } from "@/lib/branding/client";
+import { BrandProvider } from "@/lib/branding/brand-provider";
 
 const authBasePath = withBasePath("/api/auth");
 
@@ -27,6 +29,8 @@ interface AppProviderProps {
   sidebarDefaultOpen?: boolean;
   /** Safe request-time browser read-only projection of endatix config properties */
   endatixConfig: ClientEndatixConfig;
+  /** The effective brand: `getBrand()`, or `RESPONDENT_BRAND_DEFERRED` on respondent pages. */
+  brand: Brand;
 }
 
 /** Default for sidebar open state when layout does not pass it (avoids server cookie read). */
@@ -49,6 +53,7 @@ export function AppProvider({
   themeOptions = {},
   sidebarDefaultOpen = DEFAULT_SIDEBAR_OPEN,
   endatixConfig,
+  brand,
 }: Readonly<AppProviderProps>) {
   const {
     enableTheme,
@@ -103,7 +108,7 @@ export function AppProvider({
   // provider so those context updates do not change this value.
   return (
     <EndatixConfigProvider value={endatixConfig}>
-      {content}
+      <BrandProvider brand={brand}>{content}</BrandProvider>
     </EndatixConfigProvider>
   );
 }

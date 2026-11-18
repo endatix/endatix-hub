@@ -2,6 +2,7 @@ import "@/app/globals.css";
 import { auth } from "@/auth";
 import { AppProvider } from "@/components/providers";
 import { getClientEndatixConfig } from "@/features/config/server";
+import { getBrand } from "@/lib/branding/server";
 import { geistMono, geistSans } from "@/lib/fonts/geist-local";
 import { getPublicAssetPath } from "@/lib/hosting";
 import {
@@ -44,9 +45,10 @@ const formFeatures = [
 ];
 
 export default async function AuthLayout({ children }: AuthLayoutProps) {
-  const [session, endatixConfig] = await Promise.all([
+  const [session, endatixConfig, brand] = await Promise.all([
     auth(),
     getClientEndatixConfig(),
+    getBrand(),
   ]);
   return (
     <html lang="en" suppressHydrationWarning>
@@ -60,7 +62,11 @@ export default async function AuthLayout({ children }: AuthLayoutProps) {
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${instrumentSans.variable}`}
       >
-        <AppProvider session={session} endatixConfig={endatixConfig}>
+        <AppProvider
+          session={session}
+          endatixConfig={endatixConfig}
+          brand={brand}
+        >
           <div className="h-screen w-full overflow-hidden bg-muted/40">
             <a
               href="https://endatix.com"

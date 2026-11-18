@@ -124,6 +124,7 @@ export default function ClientComponent({ aiFeatures }: { aiFeatures: AIFeatures
 ```bash
 # Boolean flags
 FLAG_EXPERIMENTAL_FEATURES=true
+FLAG_WHITE_LABELING=true   # apply the brand pack in ENDATIX_BRAND_DIR (lib/branding)
 
 # String flags
 FLAG_THEME=dark

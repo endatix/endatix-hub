@@ -1,6 +1,7 @@
 import { AppProvider } from "@/components/providers";
 import { AppOptions } from "@/components/providers/app-options";
 import { getClientEndatixConfig } from "@/features/config/server";
+import { getBrand } from "@/lib/branding/server";
 import { getPublicAssetPath } from "@/lib/hosting";
 import { getMetadataBase } from "@/lib/seo";
 import { Metadata } from "next";
@@ -23,7 +24,10 @@ interface MaintenanceLayoutProps {
 export default async function MaintenanceLayout({
   children,
 }: Readonly<MaintenanceLayoutProps>) {
-  const endatixConfig = await getClientEndatixConfig();
+  const [endatixConfig, brand] = await Promise.all([
+    getClientEndatixConfig(),
+    getBrand(),
+  ]);
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -38,6 +42,7 @@ export default async function MaintenanceLayout({
         <AppProvider
           options={AppOptions.StatusPages}
           endatixConfig={endatixConfig}
+          brand={brand}
         >
           {children}
         </AppProvider>

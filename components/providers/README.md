@@ -14,18 +14,26 @@ To use these providers in your application, update your root layout:
 
 ```tsx
 // app/layout.tsx
-import { AppProvider } from '@/hub/components/providers';
-import { getSession } from '@/features/auth/server';
+import { auth } from '@/auth';
+import { AppProvider } from '@/components/providers';
+import { getClientEndatixConfig } from '@/features/config/server';
+import { getBrand } from '@/lib/branding/server';
 
 export default async function RootLayout({ children }) {
-  // Optionally get the session for analytics user identification
-  const session = await getSession();
+  // The session also identifies the user for analytics
+  const [session, endatixConfig, brand] = await Promise.all([
+    auth(),
+    getClientEndatixConfig(),
+    getBrand(),
+  ]);
 
   return (
     <html lang="en">
       <body>
         <AppProvider
           session={session}
+          endatixConfig={endatixConfig}
+          brand={brand}
           themeOptions={{
             attribute: "class",
             defaultTheme: "light",
@@ -52,6 +60,8 @@ interface AppProviderProps {
   session?: SessionData;               // User session data for analytics
   options?: AppProviderOptions;        // Feature toggles
   themeOptions?: ThemeOptions;         // Theme configuration
+  endatixConfig: ClientEndatixConfig;  // Request-time public config
+  brand: Brand;                        // getBrand(); RESPONDENT_BRAND_DEFERRED on /share and /embed
 }
 
 interface AppProviderOptions {

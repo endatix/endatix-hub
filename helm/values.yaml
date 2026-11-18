@@ -84,6 +84,29 @@ analytics:
   # `posthog` to evaluate Hub flags via PostHog. Empty / `environment` uses FLAG_*.
   flagProvider: ""
 
+# White-labeling rollout flag. Sets FLAG_WHITE_LABELING for the Hub; the API chart reads the
+# same value for its mirror (Endatix:FeatureFlags:WhiteLabeling). Off: a mounted brand pack is
+# ignored and the built-in Endatix brand applies. When the Hub actually uses PostHog flags
+# (analytics.flagProvider=posthog and a project token), it reads `white-labeling` from PostHog
+# and ignores this value; without a token it falls back to this value.
+whiteLabeling:
+  enabled: false
+
+# Brand pack: a folder with brand.json and the files it names, mounted read-only at mountPath
+# (which becomes ENDATIX_BRAND_DIR). Mount the same pack into the API. Check a pack before
+# rolling it out: pnpm brand:validate <folder>. An invalid pack stops new pods at start while
+# whiteLabeling.enabled is true, and always under PostHog flags (turning the flag off there does
+# not help: fix the pack or remove the mount). With environment flags off it is only logged.
+# Set one of:
+brandPack:
+  # Name of an existing ConfigMap holding brand.json and the files (binaryData for images).
+  # A ConfigMap holds at most 1 MiB and its keys cannot contain "/", so keep the files flat
+  # and small, or use `volume` for subfolders and larger images.
+  configMap: ""
+  # Or a raw volume source, e.g. { persistentVolumeClaim: { claimName: brand-pack } }.
+  volume: {}
+  mountPath: /etc/endatix/brand
+
 experimental:
   # SurveyJS extensions (data-list questions, custom widgets). Defaults on so a
   # stock chart deploy registers and fetches data lists without a hidden switch.
