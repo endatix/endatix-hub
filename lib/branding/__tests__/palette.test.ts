@@ -158,6 +158,75 @@ describe("derivePalette", () => {
   });
 });
 
+/** `--background` in app/globals.css, the page a focus ring sits on. */
+const PAGE = { light: "#ffffff", dark: "#000f21" } as const;
+const MODES = ["light", "dark"] as const;
+
+const ratio = (a: string, b: string) =>
+  contrastRatio(parseCssColor(a)!, parseCssColor(b)!);
+
+function expectReadableStates(palette: ReturnType<typeof derivePalette>) {
+  for (const mode of MODES) {
+    const tokens = palette[mode];
+    expect(
+      ratio(tokens["--primary-hover"], tokens["--primary-foreground"]),
+      `${mode} hover label`,
+    ).toBeGreaterThanOrEqual(4.5);
+    expect(
+      ratio(tokens["--focus-ring"], PAGE[mode]),
+      `${mode} focus ring`,
+    ).toBeGreaterThanOrEqual(3);
+  }
+}
+
+describe("derivePalette: interactive states", () => {
+  it("keeps the hover label and focus ring readable for a pale accent", () => {
+    // Act: #747474 passes at rest, but primary/90 on white is 3.85:1 and ring/50 is 1.95:1.
+    const palette = derivePalette(color("#747474"));
+
+    // Assert
+    expectReadableStates(palette);
+  });
+
+  it("keeps the hover label and focus ring readable for a dark accent on the dark page", () => {
+    // Act
+    const palette = derivePalette(color("#0b6b5d", "#0a1a2a"));
+
+    // Assert
+    expectReadableStates(palette);
+  });
+
+  it("keeps the built-in hover look when the accent already reads", () => {
+    // Act
+    const { light } = derivePalette(color("#0b6b5d"));
+
+    // Assert: primary at 90% over the white page, as bg-primary/90 draws it.
+    expect(distance(light["--primary-hover"], "#237a6d")).toBeLessThan(0.02);
+  });
+
+  it("keeps the soft ring when the accent's half-tone already reaches 3:1", () => {
+    // Act
+    const { dark } = derivePalette(color("#0b6b5d", "#b4c5ff"));
+
+    // Assert: #b4c5ff at 50% over the dark page, as ring-ring/50 draws it.
+    expect(distance(dark["--focus-ring"], "#5a6a90")).toBeLessThan(0.02);
+  });
+
+  it("holds both minimums for every accent the validator accepts", () => {
+    // Arrange: any parseable colour is accepted, so sweep hue, lightness and chroma.
+    const accents: BrandColor[] = [];
+    for (let h = 0; h < 360; h += 30)
+      for (let l = 0; l <= 100; l += 10)
+        for (const s of [0, 50, 100]) {
+          accents.push(color(`hsl(${h} ${s}% ${l}%)`));
+          accents.push(color("#0b6b5d", `hsl(${h} ${s}% ${l}%)`));
+        }
+
+    // Act / Assert
+    for (const accent of accents) expectReadableStates(derivePalette(accent));
+  });
+});
+
 describe("toStylesheet", () => {
   it("is empty when the brand sets no colour", () => {
     // Act

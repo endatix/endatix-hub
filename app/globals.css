@@ -38,6 +38,16 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  /* A brand pack sets these so hover and focus keep their contrast; the built-in
+     brand falls back to exactly what bg-primary/90 and ring-ring/50 draw. */
+  --color-primary-hover: var(
+    --primary-hover,
+    color-mix(in oklab, var(--primary) 90%, transparent)
+  );
+  --color-focus-ring: var(
+    --focus-ring,
+    color-mix(in oklab, var(--ring) 50%, transparent)
+  );
   --color-endatix: var(--endatix);
   --color-on-surface-variant: var(--on-surface-variant);
 

@@ -11,6 +11,7 @@ import {
   contrastRatio,
   fromOklch,
   parseCssColor,
+  relativeLuminance,
   toHex,
   toOklch,
   type Oklch,
@@ -27,6 +28,8 @@ export const BRAND_TOKENS = [
   "--primary",
   "--primary-foreground",
   "--ring",
+  "--focus-ring",
+  "--primary-hover",
   "--endatix",
   "--primary-dim",
   "--sidebar-ring",
@@ -44,7 +47,13 @@ export type ColorMode = "light" | "dark";
 /** Built-in values, copied from `app/globals.css`. The derivation is relative to these. */
 const REFERENCE: Record<
   ColorMode,
-  Record<Exclude<BrandToken, "--ring" | "--endatix">, string>
+  Record<
+    Exclude<
+      BrandToken,
+      "--ring" | "--focus-ring" | "--primary-hover" | "--endatix"
+    >,
+    string
+  >
 > = {
   light: {
     "--primary": "hsl(216 100% 41%)",
@@ -80,6 +89,11 @@ const TEXT_CONTRAST = 4.5;
 /** WCAG 2.x 1.4.11: a control or focus ring against what is next to it. */
 const UI_CONTRAST = 3;
 const MAX_CHROMA_SCALE = 1.5;
+/** The built-in states: `hover:bg-primary/90` and `focus-visible:ring-ring/50`. */
+const HOVER_OPACITY = 0.9;
+const RING_OPACITY = 0.5;
+/** OKLCH lightness per step when a state has to move to reach its minimum. */
+const LIGHTNESS_STEP = 0.01;
 
 const reference = (
   mode: ColorMode,
@@ -141,13 +155,16 @@ function tokensFor(
   hue: BrandHue,
 ): BrandTokenValues {
   const primaryHex = toHex(primary);
+  const foreground = foregroundFor(
+    primary,
+    follow(reference(mode, "--primary-foreground"), hue),
+  );
   return {
     "--primary": primaryHex,
-    "--primary-foreground": foregroundFor(
-      primary,
-      follow(reference(mode, "--primary-foreground"), hue),
-    ),
+    "--primary-foreground": foreground,
     "--ring": primaryHex,
+    "--focus-ring": focusRingFor(mode, primary),
+    "--primary-hover": hoverFor(mode, primary, foreground),
     "--endatix": primaryHex,
     "--primary-dim": dimFor(mode, primary),
     ...followingTokens(mode, hue),
@@ -205,6 +222,69 @@ function foregroundFor(primary: Rgb, tinted: Oklch): string {
   return contrastRatio(primary, white) >= contrastRatio(primary, black)
     ? "#ffffff"
     : "#000000";
+}
+
+/**
+ * The built-in hover (primary at 90% over the page), moved away from the label
+ * until the label reads at 4.5:1. The primary itself always reads, so the
+ * search ends at the primary at worst.
+ */
+function hoverFor(mode: ColorMode, primary: Rgb, foreground: string): string {
+  const page = parseCssColor(PAGE_BACKGROUND[mode])!;
+  const label = parseCssColor(foreground)!;
+  return (
+    reachContrast(over(primary, page, HOVER_OPACITY), label, TEXT_CONTRAST) ??
+    toHex(primary)
+  );
+}
+
+/**
+ * The built-in focus ring (`--ring` at 50% over the page), moved away from the
+ * page until it reaches 3:1 against it.
+ */
+function focusRingFor(mode: ColorMode, primary: Rgb): string {
+  const page = parseCssColor(PAGE_BACKGROUND[mode])!;
+  const white: Rgb = { r: 1, g: 1, b: 1 };
+  const black: Rgb = { r: 0, g: 0, b: 0 };
+  const fallback =
+    contrastRatio(page, white) >= contrastRatio(page, black) ? white : black;
+  return (
+    reachContrast(over(primary, page, RING_OPACITY), page, UI_CONTRAST) ??
+    toHex(fallback)
+  );
+}
+
+/** `color` at `opacity` composited over an opaque `backdrop`, as the browser paints it. */
+function over(color: Rgb, backdrop: Rgb, opacity: number): Rgb {
+  const mix = (a: number, b: number) => a * opacity + b * (1 - opacity);
+  return {
+    r: mix(color.r, backdrop.r),
+    g: mix(color.g, backdrop.g),
+    b: mix(color.b, backdrop.b),
+  };
+}
+
+/**
+ * The first shade of `start`, stepping OKLCH lightness away from `against`, whose
+ * hex reaches `minimum` against it; null when even the end of the range does not.
+ */
+function reachContrast(
+  start: Rgb,
+  against: Rgb,
+  minimum: number,
+): string | null {
+  const base = toOklch(start);
+  const direction =
+    relativeLuminance(start) >= relativeLuminance(against) ? 1 : -1;
+  for (let step = 0; ; step++) {
+    const l = Math.min(
+      1,
+      Math.max(0, base.l + direction * step * LIGHTNESS_STEP),
+    );
+    const hex = toHex(fromOklch({ ...base, l }));
+    if (contrastRatio(parseCssColor(hex)!, against) >= minimum) return hex;
+    if (l === 0 || l === 1) return null;
+  }
 }
 
 /** How far a mode's brand primary sits from that mode's built-in primary. */
