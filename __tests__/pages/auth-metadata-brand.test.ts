@@ -23,6 +23,7 @@ vi.mock("@/lib/branding/server", async (importOriginal) => {
   return {
     ...original,
     getBrand: async () => current.brand,
+    isBuiltInBrand: (brand: Brand) => brand === builtIn,
     brandMetadata: async (page?: Parameters<typeof metadataFor>[1]) =>
       metadataFor(current.brand, page, {
         builtIn: current.brand === builtIn,
@@ -59,6 +60,11 @@ const pages: [string, () => Promise<MetadataPage>, string][] = [
     "Accept your Endatix Hub invitation and set your password.",
   ],
   [
+    "signup",
+    () => import("@/app/(auth)/signup/page"),
+    "Request access to an Endatix workspace.",
+  ],
+  [
     "auth layout",
     () => import("@/app/(auth)/layout"),
     "Login to your Endatix Hub account",
@@ -87,7 +93,9 @@ describe("auth page metadata", () => {
       const metadata = await (await load()).generateMetadata();
 
       expect(metadata.description).toBe(
-        expected.replace("Endatix Hub", "Example Forms"),
+        expected === "Request access to an Endatix workspace."
+          ? "Request access to a workspace on Example Forms."
+          : expected.replace("Endatix Hub", "Example Forms"),
       );
       const { title, description, applicationName, publisher, authors } =
         metadata;

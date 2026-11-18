@@ -1,6 +1,5 @@
 "use client";
 
-import { useBrand } from "@/lib/branding/client";
 import { ErrorMessage } from "@/components/forms/error-message";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,8 +27,8 @@ import { BrandLogo } from "@/lib/branding/client";
 
 const initialState: SignupRequestActionState = ServerActionState.emptyState();
 
-export function SignupRequestForm() {
-  const brand = useBrand();
+/** `intro`: the page's one-line intro (`signupIntro`), worked out on the server. */
+export function SignupRequestForm({ intro }: Readonly<{ intro: string }>) {
   const [state, formAction, isPending] = useActionState(
     submitSignupRequestAction,
     initialState,
@@ -102,8 +101,7 @@ export function SignupRequestForm() {
           <BrandLogo className="h-10 w-auto" priority />
         </div>
         <p className="mb-6 text-balance text-muted-foreground">
-          Request access to a workspace on {brand.shortName}. We will review
-          your request and email you if approved.
+          {intro} We will review your request and email you if approved.
         </p>
       </div>
       <div className="grid gap-4">

@@ -21,7 +21,9 @@ vi.mock("../submit-signup-request.action", () => ({
 describe("SignupRequestForm", () => {
   it("leaves PostHog id fields empty when the client is absent", () => {
     // Act
-    renderWithBrand(<SignupRequestForm />);
+    renderWithBrand(
+      <SignupRequestForm intro="Request access to an Endatix workspace." />,
+    );
 
     // Assert
     const distinctId = document.querySelector<HTMLInputElement>(

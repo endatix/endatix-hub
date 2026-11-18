@@ -1,15 +1,20 @@
+import { signupIntro } from "@/features/tenants/signup-request/signup-intro";
 import { SignupRequestForm } from "@/features/tenants/signup-request/ui/signup-request-form";
 import { saasManagementFlag } from "@/lib/feature-flags/flags";
 import type { Metadata } from "next";
-import { brandMetadata, getBrand } from "@/lib/branding/server";
+import { brandMetadata, getBrand, isBuiltInBrand } from "@/lib/branding/server";
 import { notFound } from "next/navigation";
 
-export async function generateMetadata(): Promise<Metadata> {
+async function intro(): Promise<string> {
   const brand = await getBrand();
+  return signupIntro(brand, isBuiltInBrand(brand));
+}
+
+export async function generateMetadata(): Promise<Metadata> {
   return {
     ...(await brandMetadata({
       title: "Sign up",
-      description: `Request access to a workspace on ${brand.shortName}.`,
+      description: await intro(),
     })),
   };
 }
@@ -20,5 +25,5 @@ export default async function SignupPage() {
     notFound();
   }
 
-  return <SignupRequestForm />;
+  return <SignupRequestForm intro={await intro()} />;
 }

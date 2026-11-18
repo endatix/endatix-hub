@@ -32,6 +32,15 @@ export const getBrand = cache(async (): Promise<Brand> => {
 export const RESPONDENT_BRAND_DEFERRED: Brand = BUILT_IN_BRAND;
 
 /**
+ * True when `brand` is the built-in brand (no pack, or the flag off). Server only:
+ * a brand that crossed to the client is a copy. Pass the answer down as a prop,
+ * like `builtInTitle`, for copy whose built-in wording a pack can't reuse.
+ */
+export function isBuiltInBrand(brand: Brand): boolean {
+  return brand === BUILT_IN_BRAND;
+}
+
+/**
  * The brand for `/share` and `/embed`: `RESPONDENT_BRAND_DEFERRED`, with the
  * deployment's `poweredBy`, which is a deployment setting rather than a look.
  */

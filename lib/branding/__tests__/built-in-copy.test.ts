@@ -28,11 +28,6 @@ describe("built-in brand copy is unchanged", () => {
       `Sign out of ${builtIn.name}?`,
       "Sign out of Endatix Hub?",
     ],
-    [
-      "signup description",
-      `Request access to a workspace on ${builtIn.shortName}.`,
-      "Request access to a workspace on Endatix.",
-    ],
     ["about title", `About ${builtIn.shortName}`, "About Endatix"],
     ["API label", `${builtIn.shortName} API URL`, "Endatix API URL"],
     [
