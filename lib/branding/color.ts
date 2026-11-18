@@ -18,11 +18,15 @@ export interface Oklch {
   readonly h: number;
 }
 
-const NUMBER = String.raw`[+-]?(?:\d+\.?\d*|\.\d+)`;
+const NUMBER = String.raw`[+-]?(?:\d+(?:\.\d*)?|\.\d+)`;
 const ARG = `(${NUMBER})(%|deg)?`;
-const SEPARATOR = String.raw`(?:\s*,\s*|\s+)`;
-const FUNCTION_ARGS = new RegExp(
-  String.raw`^(rgb|hsl|oklch)a?\(\s*${ARG}${SEPARATOR}${ARG}${SEPARATOR}${ARG}\s*\)$`,
+/** One separator style per value: all commas (`rgb()`/`hsl()` only) or all spaces. */
+const COMMA_ARGS = new RegExp(
+  String.raw`^(rgb|hsl)a?\(\s*${ARG}\s*,\s*${ARG}\s*,\s*${ARG}\s*\)$`,
+  "i",
+);
+const SPACE_ARGS = new RegExp(
+  String.raw`^(rgb|hsl|oklch)a?\(\s*${ARG}\s+${ARG}\s+${ARG}\s*\)$`,
   "i",
 );
 const HEX = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
@@ -38,7 +42,8 @@ const OKLCH_CHROMA_PERCENT = 0.4 / 100;
 
 /**
  * Reads `#rgb`, `#rrggbb`, `rgb()`, `hsl()` and `oklch()` (comma or space
- * separated, no alpha), with the units CSS allows per argument. Returns null
+ * separated, not mixed; oklch space only; no alpha), with the units CSS allows
+ * per argument. Returns null
  * for anything else, including named colours.
  */
 export function parseCssColor(input: string): Rgb | null {
@@ -46,23 +51,26 @@ export function parseCssColor(input: string): Rgb | null {
   const hex = HEX.exec(value);
   if (hex) return parseHex(hex[1]);
 
-  const match = FUNCTION_ARGS.exec(value);
+  const commas = COMMA_ARGS.exec(value);
+  const match = commas ?? SPACE_ARGS.exec(value);
   if (!match) return null;
   const args: Arg[] = [2, 4, 6].map((i) => ({
     value: Number(match[i]),
     unit: (match[i + 1]?.toLowerCase() ?? "") as Arg["unit"],
   }));
+  if (args.some((arg) => !Number.isFinite(arg.value))) return null;
   const kind = match[1].toLowerCase();
-  if (kind === "rgb") return rgbFromArgs(args);
+  if (kind === "rgb") return rgbFromArgs(args, commas !== null);
   if (kind === "hsl") return hslFromArgs(args);
   return oklchFromArgs(args);
 }
 
-function rgbFromArgs(args: readonly Arg[]): Rgb | null {
-  const unit = args[0].unit;
-  if (unit === "deg" || args.some((arg) => arg.unit !== unit)) return null;
+/** The legacy comma form needs one unit throughout; the space form mixes them. */
+function rgbFromArgs(args: readonly Arg[], commas: boolean): Rgb | null {
+  if (args.some((arg) => arg.unit === "deg")) return null;
+  if (commas && args.some((arg) => arg.unit !== args[0].unit)) return null;
   const [r, g, b] = args.map((arg) =>
-    clamp01(unit === "%" ? arg.value / 100 : arg.value / 255),
+    clamp01(arg.unit === "%" ? arg.value / 100 : arg.value / 255),
   );
   return { r, g, b };
 }
@@ -76,7 +84,8 @@ function oklchFromArgs([l, c, h]: readonly Arg[]): Rgb | null {
   if (l.unit === "deg" || c.unit === "deg" || h.unit === "%") return null;
   return fromOklch({
     l: l.unit === "%" ? l.value / 100 : l.value,
-    c: c.unit === "%" ? c.value * OKLCH_CHROMA_PERCENT : c.value,
+    // CSS clamps a negative chroma to 0 (neutral grey).
+    c: Math.max(0, c.unit === "%" ? c.value * OKLCH_CHROMA_PERCENT : c.value),
     h: h.value,
   });
 }

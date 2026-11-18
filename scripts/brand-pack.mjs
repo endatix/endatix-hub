@@ -91,13 +91,17 @@ const isMain =
   path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (isMain) {
   const [command, arg] = process.argv.slice(2);
-  const run = { validate: () => validate(arg), schema: writeSchema }[command];
-  if (!run) {
-    console.error(
-      "Usage: node scripts/brand-pack.mjs validate <pack folder> | schema",
-    );
-    process.exitCode = 2;
-  } else {
-    process.exitCode = await run();
+  switch (command) {
+    case "validate":
+      process.exitCode = await validate(arg);
+      break;
+    case "schema":
+      process.exitCode = await writeSchema();
+      break;
+    default:
+      console.error(
+        "Usage: node scripts/brand-pack.mjs validate <pack folder> | schema",
+      );
+      process.exitCode = 2;
   }
 }

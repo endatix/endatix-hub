@@ -135,7 +135,7 @@
     },
     "packFile": {
       "type": "string",
-      "pattern": "^(?!/)(?!.*\\.\\.)(?!.*:)[A-Za-z0-9._/-]+$"
+      "pattern": "^(?!.*\\.\\.)[A-Za-z0-9_-][A-Za-z0-9._-]*(?:/[A-Za-z0-9_-][A-Za-z0-9._-]*)*$"
     },
     "colorToken": {
       "type": "object",

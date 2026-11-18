@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
-import { renderHook } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
+import { createRoot } from "react-dom/client";
 import { createElement, type ReactNode } from "react";
 import { renderToString } from "react-dom/server";
 import { describe, expect, it } from "vitest";
@@ -9,19 +10,32 @@ import { BUILT_IN_LAYER, mergeBrand, packLayer } from "../layers";
 import { BrandPackSchema } from "../schema";
 
 const builtIn = mergeBrand([BUILT_IN_LAYER]);
-const branded = mergeBrand([
-  packLayer(
-    BrandPackSchema.parse({
-      version: 1,
-      name: "Example Forms",
-      tokens: { color: { primary: { $type: "color", $value: "#0b6b5d" } } },
-    }),
-    (file) => `/brand/${file}`,
-  ),
-  BUILT_IN_LAYER,
-]);
+function brandWith(primary: string) {
+  return mergeBrand([
+    packLayer(
+      BrandPackSchema.parse({
+        version: 1,
+        name: "Example Forms",
+        tokens: { color: { primary: { $type: "color", $value: primary } } },
+      }),
+      (file) => `/brand/${file}`,
+    ),
+    BUILT_IN_LAYER,
+  ]);
+}
+const branded = brandWith("#0b6b5d");
 
-/** A whole document, so the test sees where React hoists the brand style. */
+/** The `--primary` the document's brand styles leave in force, last rule winning. */
+function activePrimary(): string | null {
+  const rules = [...document.querySelectorAll("style")]
+    .map((style) =>
+      /html:root\{--primary:(#[0-9a-f]{6})/.exec(style.textContent ?? ""),
+    )
+    .filter((match) => match !== null);
+  return rules.at(-1)?.[1] ?? null;
+}
+
+/** A whole document, so the test sees where the brand style lands. */
 function page(brand = builtIn) {
   return renderToString(
     <html>
@@ -45,14 +59,16 @@ describe("BrandProvider", () => {
     expect(html).toContain("<p>content</p>");
   });
 
-  it("server-renders the brand stylesheet into the head", () => {
+  it("server-renders the brand stylesheet ahead of the content", () => {
     // Act
     const html = page(branded);
 
     // Assert
-    const head = html.slice(html.indexOf("<head>"), html.indexOf("</head>"));
-    expect(head).toContain(`<style data-precedence="default"`);
-    expect(head).toContain(branded.stylesheet);
+    const style = html.indexOf(
+      `<style data-endatix-brand="">${branded.stylesheet}</style>`,
+    );
+    expect(style).toBeGreaterThan(-1);
+    expect(style).toBeLessThan(html.indexOf("<p>content</p>"));
   });
 });
 
@@ -76,5 +92,38 @@ describe("useBrand", () => {
 
     // Assert
     expect(run).toThrow(/AppProvider/);
+  });
+});
+
+describe("BrandProvider after a refresh", () => {
+  it.each([
+    ["branded, then the built-in brand", ["#0b6b5d", null], null],
+    [
+      "accent A, then B, then A again",
+      ["#0b6b5d", "#7a1f8f", "#0b6b5d"],
+      "#0b6b5d",
+    ],
+  ])("leaves the current brand in force: %s", async (_, steps, expected) => {
+    // Arrange
+    const container = document.body.appendChild(document.createElement("div"));
+    const root = createRoot(container);
+
+    // Act
+    for (const primary of steps) {
+      const brand = primary ? brandWith(primary) : builtIn;
+      await act(async () =>
+        root.render(
+          <BrandProvider brand={brand}>
+            <p>content</p>
+          </BrandProvider>,
+        ),
+      );
+    }
+
+    // Assert
+    expect(activePrimary()).toBe(expected);
+    await act(async () => root.unmount());
+    document.head.querySelectorAll("style").forEach((style) => style.remove());
+    container.remove();
   });
 });

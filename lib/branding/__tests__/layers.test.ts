@@ -19,10 +19,8 @@ describe("mergeBrand", () => {
 
     // Assert
     expect(brand.name).toBe("Endatix Hub");
-    expect(brand.logo.light).toBe(
-      "/assets/icons/endatix-logo-wordmark-blue.svg",
-    );
-    expect(brand.icon).toBe("/assets/icons/icon.svg");
+    expect(brand.logo).toEqual(BUILT_IN_LAYER.values.logo);
+    expect(brand.icon).toBe(BUILT_IN_LAYER.values.icon);
     expect(brand.poweredBy).toBeNull();
     expect(brand.stylesheet).toBe("");
   });
@@ -42,7 +40,7 @@ describe("mergeBrand", () => {
     expect(brand.links.docs).toBe("https://docs.example.com");
     expect(brand.links.website).toBe("https://endatix.com");
     expect(brand.personas).toEqual(mergeBrand([BUILT_IN_LAYER]).personas);
-    expect(brand.icon).toBe("/assets/icons/icon.svg");
+    expect(brand.icon).toBe(BUILT_IN_LAYER.values.icon);
   });
 
   it("resolves pack files to URLs", () => {

@@ -226,7 +226,7 @@ spec:
               mountPath: /tmp
             {{- if $brandPackMounted }}
             - name: brand-pack
-              mountPath: {{ .Values.brandPack.mountPath }}
+              mountPath: {{ .Values.brandPack.mountPath | quote }}
               readOnly: true
             {{- end }}
       volumes:
@@ -235,7 +235,7 @@ spec:
         {{- if .Values.brandPack.configMap }}
         - name: brand-pack
           configMap:
-            name: {{ .Values.brandPack.configMap }}
+            name: {{ .Values.brandPack.configMap | quote }}
         {{- else if .Values.brandPack.volume }}
         - name: brand-pack
           {{- toYaml .Values.brandPack.volume | nindent 10 }}

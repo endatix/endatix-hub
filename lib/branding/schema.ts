@@ -9,8 +9,11 @@ import { parseCssColor } from "./color";
 
 export const BRAND_PACK_VERSION = 1;
 
-/** A file inside the pack folder: relative, no `..`, no scheme. */
-const PACK_FILE_PATTERN = String.raw`^(?!/)(?!.*\.\.)(?!.*:)[A-Za-z0-9._/-]+$`;
+/**
+ * A file inside the pack folder: `/`-separated names, none empty or starting
+ * with `.` (so no `.`, `..` or hidden files), no `..` anywhere, no scheme.
+ */
+const PACK_FILE_PATTERN = String.raw`^(?!.*\.\.)[A-Za-z0-9_-][A-Za-z0-9._-]*(?:/[A-Za-z0-9_-][A-Za-z0-9._-]*)*$`;
 const URL_PATTERN = "^(https?:|mailto:)";
 /** No whitespace and no "@" (one regex test, no backtracking). */
 const PLAIN_PART = /^[^\s@]+$/;
@@ -34,7 +37,7 @@ function isEmailShape(value: string): boolean {
 
 const PackFile = z.string().regex(new RegExp(PACK_FILE_PATTERN), {
   message:
-    "Use a file inside the pack folder: a relative path with no '..' and no scheme",
+    "Use a file inside the pack folder: a relative path of plain names, with no '.', '..' or empty segments and no scheme",
 });
 
 const ThemedFile = z.strictObject({

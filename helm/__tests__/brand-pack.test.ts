@@ -26,6 +26,9 @@ describe("helm white-labeling", () => {
     expect(values).toMatch(
       /^brandPack:\n(?:\s+#.*\n|\s+\w+: .*\n)*\s+configMap: ""$/m,
     );
+    expect(values).toMatch(
+      /^brandPack:\n(?:\s+#.*\n|\s+\w+: .*\n)*\s+volume: \{\}$/m,
+    );
     expect(values).toMatch(/^\s+mountPath: \/etc\/endatix\/brand$/m);
   });
 
@@ -51,10 +54,10 @@ describe("helm white-labeling", () => {
   test("the pack is mounted read-only from a ConfigMap or a volume source", () => {
     // Assert
     expect(deployment).toMatch(
-      /- name: brand-pack\s+mountPath: \{\{ \.Values\.brandPack\.mountPath \}\}\s+readOnly: true/,
+      /- name: brand-pack\s+mountPath: \{\{ \.Values\.brandPack\.mountPath \| quote \}\}\s+readOnly: true/,
     );
     expect(deployment).toMatch(
-      /- name: brand-pack\s+configMap:\s+name: \{\{ \.Values\.brandPack\.configMap \}\}/,
+      /- name: brand-pack\s+configMap:\s+name: \{\{ \.Values\.brandPack\.configMap \| quote \}\}/,
     );
     expect(deployment).toContain(
       "{{- toYaml .Values.brandPack.volume | nindent 10 }}",

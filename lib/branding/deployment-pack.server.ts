@@ -39,10 +39,14 @@ export function loadDeploymentPack(): LoadedBrandPack | null {
   return reload(dir, stamp);
 }
 
+/**
+ * `stamp` was taken before the read, so a change during the read leaves the
+ * stored stamp behind the mount, and the next request reads again.
+ */
 function reload(dir: string, stamp: string): LoadedBrandPack {
   try {
     const loaded = readBrandPack(dir);
-    snapshot = { dir, stamp: stampOf(dir, [...loaded.files.keys()]), loaded };
+    snapshot = { dir, stamp, loaded };
     return loaded;
   } catch (error) {
     if (snapshot?.dir !== dir) throw error;
@@ -120,7 +124,7 @@ function stampOf(dir: string, files: readonly string[]): string {
     .map((file) => {
       try {
         const stat = statSync(path.join(dir, file));
-        return `${file}:${stat.ino}:${stat.size}:${stat.mtimeMs}`;
+        return `${file}:${stat.ino}:${stat.size}:${stat.mtimeMs}:${stat.ctimeMs}`;
       } catch {
         return `${file}:missing`;
       }

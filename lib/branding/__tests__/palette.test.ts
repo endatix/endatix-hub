@@ -179,6 +179,15 @@ describe("toStylesheet", () => {
 });
 
 describe("checkBrandContrast", () => {
+  it("reports a ratio just under the minimum as under it", () => {
+    // Act: #959595 on white is 2.995:1.
+    const [finding] = checkBrandContrast(color("#959595"));
+
+    // Assert
+    expect(finding.ratio).toBe(2.99);
+    expect(finding.ratio).toBeLessThan(finding.minimum);
+  });
+
   it("passes the built-in colour", () => {
     // Act
     const findings = checkBrandContrast(color("hsl(216 100% 41%)"));

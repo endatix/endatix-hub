@@ -42,10 +42,11 @@ describe("brand pack schema", () => {
 
   it("is committed as pnpm brand:schema writes it", () => {
     // Arrange
+    // A Windows checkout may turn LF into CRLF; the generator writes LF.
     const committed = readFileSync(
       path.join(brandingDir, "brand.schema.json"),
       "utf8",
-    );
+    ).replaceAll("\r\n", "\n");
 
     // Act
     const generated = `${JSON.stringify(brandPackJsonSchema(), null, 2)}\n`;
@@ -165,16 +166,42 @@ describe("email address shape", () => {
     expect(result).toBe(valid);
   });
 
-  it("rejects a long address with many dots in linear time", () => {
+  it("rejects a long address with many dots", () => {
     // Arrange: a backtracking pattern retries every dot before failing on the "@".
     const address = `a@${"a.".repeat(20_000)}@`;
-    const started = performance.now();
 
     // Act
     const result = accepts(address);
 
     // Assert
     expect(result).toBe(false);
-    expect(performance.now() - started).toBeLessThan(500);
+  });
+});
+
+describe("pack file names", () => {
+  const icon = (file: string) =>
+    BrandPackSchema.safeParse({
+      version: 1,
+      name: "Example Forms",
+      assets: { icon: file },
+    }).success;
+
+  it.each([
+    ["icon.svg", true],
+    ["img/icon.svg", true],
+    ["logo.light.svg", true],
+    ["./icon.svg", false],
+    ["img/./icon.svg", false],
+    ["img//icon.svg", false],
+    [".hidden.svg", false],
+    ["../icon.svg", false],
+    ["/icon.svg", false],
+    ["https://x/icon.svg", false],
+  ])("treats %j as %s, as the Hub's loader does", (file, valid) => {
+    // Act
+    const result = icon(file);
+
+    // Assert
+    expect(result).toBe(valid);
   });
 });

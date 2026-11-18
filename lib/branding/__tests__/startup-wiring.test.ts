@@ -1,21 +1,36 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-/**
- * An invalid pack must stop the Hub at start. The loader tests call the check
- * themselves, so dropping it from instrumentation would leave them green.
- */
+const calls = vi.hoisted(() => [] as string[]);
+
+vi.mock("@/features/config/legacy-public-env.server", () => ({
+  applyLegacyPublicEnv: () => calls.push("applyLegacyPublicEnv"),
+}));
+vi.mock("@/lib/branding/deployment-pack.server", () => ({
+  assertBrandPackAtStartup: () => calls.push("assertBrandPackAtStartup"),
+}));
+vi.mock("@/lib/survey-features/safe-html", () => ({}));
+vi.mock("@/lib/hosting/check-node-version", () => ({}));
+vi.mock("@/lib/hosting/check-environment", () => ({}));
+vi.mock("@/lib/hosting/visitor-ip.server", () => ({
+  registerVisitorIpForwarding: () => {},
+}));
+vi.mock("@/instrumentation.node", () => ({}));
+vi.mock("@/auth", () => ({}));
+vi.mock("@/features/auth/infrastructure/log-auth-providers", () => ({
+  logAuthProviders: () => {},
+}));
+
+/** An invalid pack must stop the Hub at start, after env normalisation. */
 describe("brand pack startup wiring", () => {
-  it("checks the mounted pack from the server instrumentation entry point", () => {
+  it("checks the mounted pack when the Node server registers", async () => {
+    // Arrange
+    vi.stubEnv("NEXT_RUNTIME", "nodejs");
+    const { register } = await import("@/instrumentation");
+
     // Act
-    const source = readFileSync(
-      path.join(process.cwd(), "instrumentation.ts"),
-      "utf8",
-    );
+    await register();
 
     // Assert
-    expect(source).toContain("@/lib/branding/deployment-pack.server");
-    expect(source).toContain("assertBrandPackAtStartup()");
+    expect(calls).toEqual(["applyLegacyPublicEnv", "assertBrandPackAtStartup"]);
   });
 });

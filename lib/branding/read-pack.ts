@@ -68,23 +68,30 @@ export function locatePackFile(
   dir: string,
   file: string,
 ): string | { problem: string } {
-  if (file.split("/").some((segment) => segment === "" || segment === "."))
-    return { problem: "has an empty or '.' segment" };
-  if (!PACK_FILE_TYPES[path.extname(file).toLowerCase()])
-    return { problem: `is not a ${SERVED_TYPES} file` };
+  const problem = nameProblem(file);
+  if (problem) return { problem };
   let real: string;
   try {
     real = realpathSync(path.join(dir, file));
+    if (!real.startsWith(dir + path.sep))
+      return { problem: "is outside the pack folder" };
+    if (!statSync(real).isFile()) return { problem: "is not a file" };
   } catch {
+    // Missing, or gone between realpath and stat (a ConfigMap update in flight).
     return { problem: "not found" };
   }
-  if (!real.startsWith(dir + path.sep))
-    return { problem: "is outside the pack folder" };
-  if (!statSync(real).isFile()) return { problem: "is not a file" };
   return real;
 }
 
-/** Each named file's type; each file's size and mtime feed the fingerprint. */
+function nameProblem(file: string): string | null {
+  if (file.split("/").some((segment) => segment === "" || segment === "."))
+    return "has an empty or '.' segment";
+  if (!PACK_FILE_TYPES[path.extname(file).toLowerCase()])
+    return `is not a ${SERVED_TYPES} file`;
+  return null;
+}
+
+/** Each named file's type; each file's bytes feed the fingerprint. */
 function locateFiles(
   root: string,
   pack: BrandPack,
@@ -93,13 +100,12 @@ function locateFiles(
   const files = new Map<string, string>();
   const problems: string[] = [];
   for (const { field, file } of packFiles(pack)) {
-    const located = locatePackFile(root, file);
-    if (typeof located === "string") {
-      files.set(file, PACK_FILE_TYPES[path.extname(file).toLowerCase()]);
-      const stat = statSync(located);
-      hash.update(`${file}:${stat.size}:${stat.mtimeMs}`);
+    const bytes = readPackFile(root, file);
+    if (typeof bytes === "string") {
+      problems.push(`${field}: ${file} ${bytes}`);
     } else {
-      problems.push(`${field}: ${file} ${located.problem}`);
+      files.set(file, PACK_FILE_TYPES[path.extname(file).toLowerCase()]);
+      hash.update(`${file}:${bytes.length}:`).update(bytes);
     }
   }
   if (problems.length > 0) throw new BrandPackError(root, problems.join("\n"));
@@ -143,5 +149,16 @@ function parseJson(root: string, raw: string): unknown {
       root,
       `(root): ${BRAND_FILE} is not valid JSON (${reason})`,
     );
+  }
+}
+
+/** The file's bytes, or why it cannot be served. */
+function readPackFile(root: string, file: string): Buffer | string {
+  const located = locatePackFile(root, file);
+  if (typeof located !== "string") return located.problem;
+  try {
+    return readFileSync(located);
+  } catch {
+    return "not found";
   }
 }

@@ -3,17 +3,18 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import type { Brand } from "./index";
-import { resolveDeploymentBrand } from "./effective-brand.server";
+import { packFileUrl, resolveDeploymentBrand } from "./effective-brand.server";
 import { locatePackFile, type LoadedBrandPack } from "./read-pack";
 
-const CACHE_CONTROL = "public, max-age=300";
+/** Private: under PostHog targeting the flag, and so the brand, can differ per user. */
+const CACHE_CONTROL = "private, max-age=300";
 
 /** Fixed names for code that cannot await the brand (`global-error.tsx` is a client root). */
-const ALIASES: Readonly<Record<string, (brand: Brand) => string>> = {
-  icon: (brand) => brand.icon,
-  "logo-light": (brand) => brand.logo.light,
-  "logo-dark": (brand) => brand.logo.dark,
-};
+const ALIASES: ReadonlyMap<string, (brand: Brand) => string> = new Map([
+  ["icon", (brand: Brand) => brand.icon],
+  ["logo-light", (brand: Brand) => brand.logo.light],
+  ["logo-dark", (brand: Brand) => brand.logo.dark],
+]);
 
 const NOT_FOUND = () => new Response("Not found", { status: 404 });
 
@@ -30,11 +31,24 @@ export async function brandRouteResponse(
   const name = segments.join("/");
 
   if (name === "brand.css") return stylesheetRoute(brand, request);
-  const alias = ALIASES[name];
+  const alias = ALIASES.get(name);
   if (alias) return redirectTo(alias(brand));
 
-  const mime = pack?.files.get(name);
-  if (!pack || !mime) return NOT_FOUND();
+  return pack ? packFileRoute(pack, name, request) : NOT_FOUND();
+}
+
+function packFileRoute(
+  pack: LoadedBrandPack,
+  name: string,
+  request: Request,
+): Promise<Response> | Response {
+  const mime = pack.files.get(name);
+  if (!mime) return NOT_FOUND();
+  // A page rendered before a pack change asks for the old version: never serve
+  // new bytes under the old URL.
+  const version = new URL(request.url).searchParams.get("v");
+  if (version !== null && version !== pack.fingerprint)
+    return redirectTo(packFileUrl(name, pack.fingerprint));
   return cached(request, `"${pack.fingerprint}"`, () =>
     packFileResponse(pack, name, mime),
   );
@@ -55,8 +69,8 @@ function stylesheetRoute(brand: Brand, request: Request): Promise<Response> {
 function redirectTo(location: string): Response {
   return new Response(null, {
     status: 307,
-    // The target carries ?v=<fingerprint>; the alias itself must follow a new pack.
-    headers: { Location: location, "Cache-Control": "no-cache" },
+    // The target carries ?v=<fingerprint>; the redirect itself must follow a new pack.
+    headers: { Location: location, "Cache-Control": "private, no-cache" },
   });
 }
 

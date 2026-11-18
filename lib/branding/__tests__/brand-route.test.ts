@@ -83,7 +83,7 @@ describe("brandRouteResponse", () => {
       /^\/brand\/logo\.svg\?v=[0-9a-f]{12}$/,
     );
     expect(dark.headers.get("location")).toBe(light.headers.get("location"));
-    expect(light.headers.get("cache-control")).toBe("no-cache");
+    expect(light.headers.get("cache-control")).toBe("private, no-cache");
   });
 
   it("serves a file the pack names, sandboxed", async () => {
@@ -242,5 +242,72 @@ describe("brandRouteResponse", () => {
 
     // Assert
     expect(response.status).toBe(404);
+  });
+
+  it.each([["toString"], ["constructor"], ["__proto__"]])(
+    "answers 404 for %s, which is not an alias",
+    async (name) => {
+      // Arrange
+      pack.write({});
+      const { brandRouteResponse } = await load();
+
+      // Act
+      const response = await brandRouteResponse([name], request());
+
+      // Assert
+      expect(response.status).toBe(404);
+    },
+  );
+
+  it("sends a stale ?v= to the current version, uncached", async () => {
+    // Arrange
+    pack.write({ assets: { icon: "icon.svg" } });
+    writeFileSync(path.join(pack.path, "icon.svg"), "<svg/>");
+    const { brandRouteResponse, getBrand } = await load();
+    const current = (await getBrand()).icon;
+    const stale = new Request("https://hub.test/brand/icon.svg?v=000000000000");
+
+    // Act
+    const response = await brandRouteResponse(["icon.svg"], stale);
+
+    // Assert
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe(current);
+    expect(response.headers.get("cache-control")).toBe("private, no-cache");
+  });
+
+  it("serves the current ?v= as the file", async () => {
+    // Arrange
+    pack.write({ assets: { icon: "icon.svg" } });
+    writeFileSync(path.join(pack.path, "icon.svg"), "<svg/>");
+    const { brandRouteResponse, getBrand } = await load();
+    const current = new Request(`https://hub.test${(await getBrand()).icon}`);
+
+    // Act
+    const response = await brandRouteResponse(["icon.svg"], current);
+
+    // Assert
+    expect(response.status).toBe(200);
+  });
+
+  it("marks brand responses private, since the flag can differ per user", async () => {
+    // Arrange
+    pack.write({ ...accent("#0b6b5d"), assets: { icon: "icon.svg" } });
+    writeFileSync(path.join(pack.path, "icon.svg"), "<svg/>");
+    const { brandRouteResponse } = await load();
+
+    // Act
+    const responses = await Promise.all(
+      [["brand.css"], ["icon.svg"], ["icon"]].map((segments) =>
+        brandRouteResponse(segments, request()),
+      ),
+    );
+
+    // Assert
+    expect(responses.map((r) => r.headers.get("cache-control"))).toEqual([
+      "private, max-age=300",
+      "private, max-age=300",
+      "private, no-cache",
+    ]);
   });
 });

@@ -10,6 +10,21 @@ vi.mock("@/lib/feature-flags/flags", () => ({
 }));
 const telemetry = vi.hoisted(() => ({ error: vi.fn(), warn: vi.fn() }));
 vi.mock("@/features/telemetry", () => ({ TelemetryLogger: telemetry }));
+/** Runs once after the next pack read, as if the mount changed during it. */
+const readHook = vi.hoisted(() => ({ after: null as null | (() => void) }));
+vi.mock("../read-pack", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../read-pack")>();
+  return {
+    ...actual,
+    readBrandPack: (dir: string) => {
+      const loaded = actual.readBrandPack(dir);
+      const after = readHook.after;
+      readHook.after = null;
+      after?.();
+      return loaded;
+    },
+  };
+});
 vi.mock("react", async (importOriginal) => ({
   ...(await importOriginal<typeof import("react")>()),
   cache: <T>(fn: T) => fn,
@@ -24,6 +39,7 @@ async function load() {
 
 beforeEach(() => {
   flagState.on = true;
+  readHook.after = null;
 });
 
 describe("getBrand", () => {
@@ -98,6 +114,36 @@ describe("getBrand", () => {
     // Assert
     expect(after).toMatch(/^\/brand\/icon\.svg\?v=/);
     expect(after).not.toBe(before);
+  });
+
+  it("loads a change made while the previous version was being read", async () => {
+    // Arrange
+    pack.write(accent("#0b6b5d"), new Date(2026, 0, 1));
+    readHook.after = () => pack.write(accent("#7a1f8f"), new Date(2026, 0, 2));
+    const { getBrand } = await load();
+    await getBrand();
+
+    // Act
+    const brand = await getBrand();
+
+    // Assert
+    expect(brand.stylesheet).toContain("--primary:#7a1f8f;");
+  });
+
+  it("re-reads brand.json rewritten in place with the same size and time", async () => {
+    // Arrange: only the inode's change time differs.
+    const when = new Date(2026, 0, 1);
+    pack.write(accent("#0b6b5d"), when);
+    const { getBrand } = await load();
+    await getBrand();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    pack.write(accent("#7a1f8f"), when);
+
+    // Act
+    const brand = await getBrand();
+
+    // Assert
+    expect(brand.stylesheet).toContain("--primary:#7a1f8f;");
   });
 
   it("keeps the last good pack when a changed pack is invalid", async () => {
@@ -215,6 +261,7 @@ describe("assertBrandPackAtStartup", () => {
 
   it("throws with the field path when the flag is on and the pack is invalid", async () => {
     // Arrange
+    vi.stubEnv("FLAG_PROVIDER", "environment");
     vi.stubEnv("FLAG_WHITE_LABELING", "true");
     pack.write({ version: 2 });
     const assertBrandPackAtStartup = await startup();
@@ -229,6 +276,7 @@ describe("assertBrandPackAtStartup", () => {
   it("throws when PostHog decides the flag, which is unknown at start", async () => {
     // Arrange
     vi.stubEnv("FLAG_PROVIDER", "posthog");
+    vi.stubEnv("FLAG_WHITE_LABELING", "false");
     vi.stubEnv("POSTHOG_PROJECT_TOKEN", "phc_test");
     pack.write({ version: 2 });
     const assertBrandPackAtStartup = await startup();
@@ -242,6 +290,7 @@ describe("assertBrandPackAtStartup", () => {
 
   it("starts and reports once when the flag is off, so the pack is ignored", async () => {
     // Arrange
+    vi.stubEnv("FLAG_PROVIDER", "environment");
     vi.stubEnv("FLAG_WHITE_LABELING", "false");
     pack.write({ version: 2 });
     const assertBrandPackAtStartup = await startup();
@@ -257,6 +306,7 @@ describe("assertBrandPackAtStartup", () => {
 
   it("passes when no pack is mounted", async () => {
     // Arrange
+    vi.stubEnv("FLAG_PROVIDER", "environment");
     vi.stubEnv("FLAG_WHITE_LABELING", "true");
     vi.stubEnv("ENDATIX_BRAND_DIR", "");
     const assertBrandPackAtStartup = await startup();

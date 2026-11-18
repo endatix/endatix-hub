@@ -14,15 +14,15 @@ To use these providers in your application, update your root layout:
 
 ```tsx
 // app/layout.tsx
-import { AppProvider } from '@/hub/components/providers';
-import { getSession } from '@/features/auth/server';
+import { auth } from '@/auth';
+import { AppProvider } from '@/components/providers';
 import { getClientEndatixConfig } from '@/features/config/server';
 import { getBrand } from '@/lib/branding/server';
 
 export default async function RootLayout({ children }) {
-  // Optionally get the session for analytics user identification
+  // The session also identifies the user for analytics
   const [session, endatixConfig, brand] = await Promise.all([
-    getSession(),
+    auth(),
     getClientEndatixConfig(),
     getBrand(),
   ]);

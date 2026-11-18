@@ -4,6 +4,7 @@ import {
   mkdtempSync,
   rmSync,
   symlinkSync,
+  utimesSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -117,8 +118,9 @@ describe("readBrandPack", () => {
   it.each([
     ["logo.gif", "is not a .svg, .png, .jpg, .jpeg, .webp or .ico file"],
     ["icon", "is not a .svg, .png, .jpg, .jpeg, .webp or .ico file"],
-    ["./icon.svg", "has an empty or '.' segment"],
-    ["img//icon.svg", "has an empty or '.' segment"],
+    ["./icon.svg", "Use a file inside the pack folder"],
+    ["img//icon.svg", "Use a file inside the pack folder"],
+    [".hidden.svg", "Use a file inside the pack folder"],
   ])("refuses %s, which the Hub could not serve", (file, problem) => {
     // Arrange
     writeFileSync(
@@ -136,7 +138,9 @@ describe("readBrandPack", () => {
     const error = errorOf(() => readBrandPack(dir));
 
     // Assert
-    expect(error.message).toContain(`assets.icon: ${file} ${problem}`);
+    expect(error.message).toMatch(
+      new RegExp(`assets\\.icon: (${file.replaceAll(".", "\\.")} )?${problem}`),
+    );
   });
 
   it("changes the fingerprint when only a named file changes", () => {
@@ -152,6 +156,31 @@ describe("readBrandPack", () => {
     touch("icon.svg");
     const before = readBrandPack(dir).fingerprint;
     writeFileSync(path.join(dir, "icon.svg"), "<svg>changed</svg>");
+
+    // Act
+    const after = readBrandPack(dir).fingerprint;
+
+    // Assert
+    expect(after).not.toBe(before);
+  });
+
+  it("changes the fingerprint when a file's bytes change but its size and time do not", () => {
+    // Arrange
+    writeFileSync(
+      path.join(dir, "brand.json"),
+      JSON.stringify({
+        version: 1,
+        name: "Example Forms",
+        assets: { icon: "icon.svg" },
+      }),
+    );
+    const icon = path.join(dir, "icon.svg");
+    const when = new Date(2026, 0, 1);
+    writeFileSync(icon, "<svg>A</svg>");
+    utimesSync(icon, when, when);
+    const before = readBrandPack(dir).fingerprint;
+    writeFileSync(icon, "<svg>B</svg>");
+    utimesSync(icon, when, when);
 
     // Act
     const after = readBrandPack(dir).fingerprint;

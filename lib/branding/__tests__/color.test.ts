@@ -39,7 +39,6 @@ describe("parseCssColor", () => {
     "hsl(216% 100% 41%)",
     "oklch(60% 0.15 250%)",
     "oklch(0.6deg 0.1 250)",
-    "rgb(255 0% 0)",
   ])("rejects %j", (input) => {
     // Act
     const color = parseCssColor(input);
@@ -97,5 +96,45 @@ describe("contrastRatio", () => {
 
     // Assert
     expect(result).toBeCloseTo(ratio, 1);
+  });
+});
+
+describe("parseCssColor, CSS syntax details", () => {
+  it.each([
+    ["rgb(100% 0 0)", "#ff0000"],
+    ["rgb(255 0% 0)", "#ff0000"],
+    ["oklch(0.5 -0.05 0)", "#636363"],
+  ])("reads %s as CSS does", (input, hex) => {
+    // Act
+    const color = parseCssColor(input);
+
+    // Assert
+    expect(color && toHex(color)).toBe(hex);
+  });
+
+  it.each([
+    "rgb(255, 0 0)",
+    "rgb(255 0, 0)",
+    "hsl(216, 100% 41%)",
+    "oklch(0.6, 0.1, 250)",
+    "rgb(100%, 0, 0)",
+    `hsl(1${"0".repeat(400)}.5 100% 50%)`,
+  ])("rejects %s", (input) => {
+    // Act
+    const color = parseCssColor(input);
+
+    // Assert
+    expect(color).toBeNull();
+  });
+
+  it("rejects a long integer followed by junk without retrying its digits", () => {
+    // Arrange: an ambiguous number pattern splits the digits every way first.
+    const input = `rgb(${"1".repeat(30_000)}x 0 0)`;
+
+    // Act
+    const color = parseCssColor(input);
+
+    // Assert
+    expect(color).toBeNull();
   });
 });

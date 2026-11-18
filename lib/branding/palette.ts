@@ -121,21 +121,18 @@ export interface ContrastFinding {
  */
 export function checkBrandContrast(color: BrandColor): ContrastFinding[] {
   const palette = derivePalette(color);
-  const findings: ContrastFinding[] = [];
-  for (const mode of ["light", "dark"] as const) {
+  return (["light", "dark"] as const).flatMap((mode) => {
     const ratio = contrastRatio(
       parseCssColor(palette[mode]["--primary"])!,
       parseCssColor(PAGE_BACKGROUND[mode])!,
     );
-    if (ratio < UI_CONTRAST) {
-      const token =
-        mode === "dark" && color.onDark
-          ? "tokens.color.primary-on-dark"
-          : "tokens.color.primary";
-      findings.push({ mode, token, ratio: round(ratio), minimum: UI_CONTRAST });
-    }
-  }
-  return findings;
+    if (ratio >= UI_CONTRAST) return [];
+    const token: ContrastFinding["token"] =
+      mode === "dark" && color.onDark
+        ? "tokens.color.primary-on-dark"
+        : "tokens.color.primary";
+    return [{ mode, token, ratio: floorTo2(ratio), minimum: UI_CONTRAST }];
+  });
 }
 
 function tokensFor(
@@ -240,6 +237,7 @@ function wrapHue(hue: number): number {
   return ((hue % 360) + 360) % 360;
 }
 
-function round(value: number): number {
-  return Math.round(value * 100) / 100;
+/** Rounded down, so a ratio under the minimum never prints as the minimum. */
+function floorTo2(value: number): number {
+  return Math.floor(value * 100) / 100;
 }
