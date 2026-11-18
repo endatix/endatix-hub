@@ -110,7 +110,7 @@ describe("BrandLogo", () => {
     ]);
   });
 
-  it("shows the pack's logo as the lockup when the pack sets only an icon", () => {
+  it("keeps the built-in logo, and its name, when the pack sets only an icon", () => {
     // Arrange
     const iconOnly = packBrand({ icon: "icon.png" });
 
@@ -119,8 +119,8 @@ describe("BrandLogo", () => {
 
     // Assert
     expect(lockup).toEqual([
-      "/assets/icons/endatix-logo-wordmark-blue.svg Example Forms light",
-      "/assets/icons/endatix-logo-wordmark-white.svg Example Forms dark",
+      "/assets/icons/endatix-logo-wordmark-blue.svg Endatix Hub light",
+      "/assets/icons/endatix-logo-wordmark-white.svg Endatix Hub dark",
     ]);
   });
 });

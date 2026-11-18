@@ -9,14 +9,12 @@ import { Result, type ResultType } from "@/lib/result";
 import { toResult } from "@/lib/result/map-api-result-to-result";
 import { ROBOTS } from "@/lib/seo";
 
-const metadata: Metadata = {
-  description: "Accept your Endatix Hub invitation and set your password.",
-  robots: ROBOTS.hiddenPage,
-};
-
 export async function generateMetadata(): Promise<Metadata> {
-  const { title } = await brandMetadata({ title: "Accept Invitation" });
-  return { ...metadata, title };
+  return {
+    ...(await brandMetadata({ title: "Accept Invitation" })),
+    description: "Accept your Endatix Hub invitation and set your password.",
+    robots: ROBOTS.hiddenPage,
+  };
 }
 
 interface ActivateInvitePageProps {

@@ -2,6 +2,8 @@ import { getPublicAssetPath } from "@/lib/hosting";
 
 const asset = (file: string) => getPublicAssetPath(`/assets/${file}`);
 
+export const BUILT_IN_NAME = "Endatix Hub";
+
 /** The built-in Endatix files. `mark` and `wordmark` are the sidebar's two halves of `logo`. */
 export const BUILT_IN_ASSETS = {
   logo: {

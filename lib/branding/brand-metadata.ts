@@ -19,7 +19,8 @@ const ICON_TYPES: Readonly<Record<string, string>> = {
 
 /**
  * The brand's part of a page's metadata. With a page, the title carries the
- * brand name and the social preview the brand's image.
+ * brand name; a page with a description also gets a social preview with the
+ * brand's image.
  */
 export function metadataFor(brand: Brand, page?: BrandPage): Metadata {
   return {
@@ -27,16 +28,15 @@ export function metadataFor(brand: Brand, page?: BrandPage): Metadata {
     applicationName: brand.name,
     publisher: brand.legalName,
     icons: { icon: [iconLink(brand.icon)] },
-    ...(page && pageMetadata(brand, page)),
+    ...(page?.description && socialPreview(brand, page.description)),
   };
 }
 
-function pageMetadata(brand: Brand, page: BrandPage): Metadata {
-  const description = page.description;
+function socialPreview(brand: Brand, description: string): Metadata {
   return {
-    ...(description && { description }),
+    description,
     openGraph: {
-      ...(description && { description }),
+      description,
       ...(brand.ogImage && { images: [{ url: brand.ogImage }] }),
     },
   };

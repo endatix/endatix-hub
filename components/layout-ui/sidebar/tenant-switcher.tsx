@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/sidebar";
 import { BrandLogo } from "@/lib/branding/client";
 
-function BrandIcon({ className }: Readonly<{ className?: string }>) {
+function DeploymentIcon({ className }: Readonly<{ className?: string }>) {
   return <BrandLogo variant="icon" className={className} />;
 }
 
@@ -38,7 +38,7 @@ interface TenantSwitcherProps {
 const DEFAULT_TENANT = {
   name: "Endatix",
   description: "beta",
-  logo: BrandIcon,
+  logo: DeploymentIcon,
   href: "/forms",
 };
 

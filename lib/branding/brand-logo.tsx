@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { useBrand } from "./brand-provider";
-import { BUILT_IN_ASSETS } from "./built-in-assets";
+import { BUILT_IN_ASSETS, BUILT_IN_NAME } from "./built-in-assets";
 import type { Brand } from "./index";
 
 export interface BrandLogoProps {
@@ -57,10 +57,11 @@ export function BrandLogo({
   return <Part brand={useBrand()} {...props} />;
 }
 
+/** Named after whoever supplied the image: a pack without a logo still shows Endatix. */
 function BrandWordmark({ brand, ...props }: PartProps) {
-  return (
-    <ThemedImage pair={brand.logo} alt={brand.name} {...LOGO_SIZE} {...props} />
-  );
+  const builtIn = brand.logo.light === BUILT_IN_ASSETS.logo.light;
+  const alt = builtIn ? BUILT_IN_NAME : brand.name;
+  return <ThemedImage pair={brand.logo} alt={alt} {...LOGO_SIZE} {...props} />;
 }
 
 function BrandIcon({ brand, ...props }: PartProps) {

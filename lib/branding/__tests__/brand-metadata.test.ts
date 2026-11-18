@@ -57,7 +57,10 @@ describe("metadataFor", () => {
     const brand = packBrand({ icon: "icon.png", ogImage: "og.jpg" });
 
     // Act
-    const metadata = metadataFor(brand, { title: "Sign in" });
+    const metadata = metadataFor(brand, {
+      title: "Sign in",
+      description: "Sign in the portal.",
+    });
 
     // Assert
     expect(metadata.title).toBe("Sign in | Example Forms");
@@ -67,6 +70,7 @@ describe("metadataFor", () => {
       icon: [{ url: "/brand/icon.png?v=abc", type: "image/png" }],
     });
     expect(metadata.openGraph).toEqual({
+      description: "Sign in the portal.",
       images: [{ url: "/brand/og.jpg?v=abc" }],
     });
   });
@@ -82,14 +86,26 @@ describe("metadataFor", () => {
     expect(metadata.icons).toEqual({ icon: [{ url: "/brand/icon?v=abc" }] });
   });
 
+  it("adds no social preview to a page without a description", () => {
+    // Act
+    const metadata = metadataFor(builtIn, { title: "Edit Submission" });
+
+    // Assert
+    expect(metadata.title).toBe("Edit Submission | Endatix Hub");
+    expect(metadata.openGraph).toBeUndefined();
+  });
+
   it("names no social image when the brand has none", () => {
     // Arrange
     const brand = { ...builtIn, ogImage: null };
 
     // Act
-    const metadata = metadataFor(brand, { title: "Sign in" });
+    const metadata = metadataFor(brand, {
+      title: "Sign in",
+      description: "Sign in the portal.",
+    });
 
     // Assert
-    expect(metadata.openGraph).toEqual({});
+    expect(metadata.openGraph).toEqual({ description: "Sign in the portal." });
   });
 });

@@ -17,8 +17,7 @@ import { tenantPublicRegisterPath } from "@/features/platform-admin/tenant-regis
 import { Result } from "@/lib/result";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const { title } = await brandMetadata({ title: "Sign in" });
-  return { title };
+  return brandMetadata({ title: "Sign in" });
 }
 
 interface TenantSignInPageProps {
