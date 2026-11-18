@@ -134,7 +134,9 @@ function stampOf(dir: string, files: readonly string[]): string {
 
 function listing(dir: string): string {
   try {
-    return readdirSync(dir).sort().join(",");
+    return readdirSync(dir)
+      .sort((a, b) => a.localeCompare(b))
+      .join(",");
   } catch {
     return "";
   }
