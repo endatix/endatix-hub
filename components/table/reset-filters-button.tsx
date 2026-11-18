@@ -11,7 +11,7 @@ import {
 import { cn } from "@/lib/utils";
 import { ChevronDown, X } from "lucide-react";
 
-type ResetFiltersButtonProps = {
+export type ResetFiltersButtonProps = {
   /**
    * Clears filters only. Kept as the primary callback so existing toolbars
    * (`onClick={onResetFilters}`) keep working.

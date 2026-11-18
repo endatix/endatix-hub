@@ -1,10 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import {
-  getCoreRowModel,
-  useReactTable,
-  type ColumnDef,
-  type ColumnSizingState,
-} from "@tanstack/react-table";
+import { hubTableFeatures, type ColumnDef } from "../hub-table-features";
+import { useTable, type ColumnSizingState } from "@tanstack/react-table";
 import { useState } from "react";
 import { beforeAll, describe, expect, it } from "vitest";
 import { DataTableGrid } from "../data-table-grid";
@@ -35,11 +31,11 @@ function Grid({
   initial = {},
 }: Readonly<{ resizable?: boolean; initial?: ColumnSizingState }>) {
   const [columnSizing, setColumnSizing] = useState(initial);
-  const table = useReactTable({
+  const table = useTable({
+    features: hubTableFeatures,
     data: [{ id: "1", name: "Acme" }],
     columns,
     getRowId: (row) => row.id,
-    getCoreRowModel: getCoreRowModel(),
     enableColumnResizing: resizable,
     state: { columnSizing },
     onColumnSizingChange: setColumnSizing,

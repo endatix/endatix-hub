@@ -142,6 +142,7 @@ Before building a control, check whether the vocabulary already exists here.
 | :------------------------------------------------------------------------------------------------ | :--------------------------------------------------------------------------------------------------------- |
 | `components/common/status-badge.tsx` — `StatusBadge`, `StatusDot`                                 | The four-tone on / off / attention / idle pill, and its dot alone for a group label                        |
 | `components/table/faceted-filter.tsx` — `FacetedFilter`                                           | A facet: toolbar pill or form `field`; flat or grouped options (Filters, below)                            |
+| `components/table/data-table-filter.tsx` — `DataTableFilter`                                      | A `Select` under its own label in the toolbar's Filters drawer (Toolbar, below)                            |
 | `components/common/file-kind-icon.tsx` — `FileKindIcon`, `FileKindLabel`                          | The file-type mark and its icon+label row (File Type Marks, below)                                         |
 | `components/common/panel-section.tsx` — `PanelSection`                                            | A titled concern inside an overlay, on a nested surface (§6 Create / edit overlay)                         |
 | `components/common/panel-form.tsx` — `PanelForm`, `PanelFormError`                                | A create/edit overlay as one form: header, failure strip, sections, Cancel or Back + submit                |
@@ -152,6 +153,7 @@ Before building a control, check whether the vocabulary already exists here.
 | `components/common/summary-row.tsx` — `SummaryRow`                                                | Label-left / value-right rows (§6 Displaying values)                                                       |
 | `components/common/locked-value.tsx` — `LockedValue`                                              | A value an overlay can never change, with its `Locked` badge, as a `SummaryRow` value (§6 Controls)        |
 | `components/common/truncated-id.tsx` — `TruncatedId`                                              | A long id shortened to head…tail with a copy affordance                                                    |
+| `components/table/data-table-column-name.tsx` — `DataTableColumnName`                             | A question name in a column header, shortened in the middle to keep its choice suffix (List tables)        |
 | `components/common/text-link.tsx` — `TextLink`                                                    | An inline link; `external` for one that leaves the Hub (Links, below)                                      |
 | `components/layout-ui/navigation/nav-switcher.tsx` — `NavSwitcher`                                | The current choice among siblings as a menu, with icons and a check (§6 Record workspace)                  |
 | `components/layout-ui/navigation/nav-icons.ts` — `NAV_ICONS`, `NavIconName`                       | One icon per destination, named by server-built menus and resolved on the client (§6 Navigation)           |
@@ -293,7 +295,7 @@ paged sortable grid look identical:
 | `dataTableHeaderCellClassName` / `dataTableBodyRowClassName` / `dataTableBodyCellClassName` | Sticky header, zebra fill, cell padding for a hand-rolled `<table>`     |
 | `dataTableColumnLabelClassName`                                                             | The uppercase muted column title                                        |
 | `DATA_TABLE_SHRINK_WRAP_CLASS_NAME`                                                         | Shrink a column to its content                                          |
-| `PagedTableFooter`, `DataTableToolbar`, `DataTableSkeleton`                                 | Pagination, filter bar, loading state                                   |
+| `PagedTableFooter`, `DataTableToolbar`, `DataTableSkeleton`                                 | Pagination, toolbar (Toolbar, below), loading state                     |
 | `StaticDataTable`, `StaticDataTableRow`, `dataTableCell`                                    | A few known rows on the helpers above: static header, zebra rows        |
 | `DataTableRowActions`                                                                       | The trailing ghost icon actions of a row, each named for its row        |
 
@@ -322,11 +324,66 @@ paged sortable grid look identical:
 - **User-defined columns** (one per property, field or answer): every column gets a minimum width,
   values wrap, an unset cell is `—` with `sr-only` "Not set", and the table scrolls in
   `overflow-x-auto` instead of squeezing columns.
+- **Columns built from a form** (one per question or choice) are headed by the **question name**
+  (`brands__Alpha`, `QAIDED`), the identifier export and Crunch use too, on one line.
+  `DataTableColumnLabelReveal` shows `name — title` (the name in its own case, then the plain-text
+  title) on hover, on keyboard focus and on a tap; a second tap, Escape or a tap elsewhere closes
+  it. The label is the trigger, so the column menu keeps its own button. Closed, the label's
+  `aria-describedby` is the title; open, it is the tooltip.
+  - **Why a reveal, here only.** The title is a sentence and the header has no room for it, so it
+    is secondary text ("Truncate only secondary text, with the full value in `title`"), and the
+    Columns picker shows it as visible text (title first, name under it), where a reader matches
+    the two. That makes this the one exception to "Help is visible text, not a tooltip". Hover and
+    focus follow the designer-canvas chip (`role="tooltip"`, `aria-describedby`); the tap is new
+    here, because the chip has no phone use and a grid does.
+  - The name is what the reader scans ("Never truncate a value the reader came to read"): it
+    shortens only past the column's width, and the reveal shows it in full. It shortens in the
+    middle, as `TruncatedId` does, so columns that share a long prefix stay apart: the start and
+    the choice suffix (from the last `__`) stay, `QUESTION_VERY_LO…__Alpha`; a name with no
+    suffix keeps its start and its last characters. A suffix wider than the column cuts at its
+    end. `DataTableColumnName` draws it, in the header and in the loading skeleton, and its
+    accessible name is the full name.
+  - A question with no title shows its name only, with nothing to reveal.
+  - Never put a raw title in a header, a menu or a tooltip: SurveyJS titles hold HTML. Run it
+    through `htmlSanitizer.toPlainText` first.
+  - Names keep their own case, because they are identifiers (`brands__Alpha`, not
+    `BRANDS__ALPHA`); the other labels keep the shared uppercase style. Columns that are not
+    questions (a submitter profile field) keep their human label. Reference:
+    `features/submissions/browse-submissions/ui/submission-grid-column-defs.tsx`.
 - Wiring (URL state, paging, loading skeletons): `project-structure.md` "List pages and tables".
+
+**Toolbar — `DataTableToolbar`.** Every list's toolbar goes through it, so a list fills its
+slots and never builds the row itself. Reference:
+`features/submissions/browse-submissions/ui/submission-grid-toolbar.tsx`.
+
+| Slot                                         | From 768 px                                   | Below 768 px                                    |
+| :------------------------------------------- | :-------------------------------------------- | :---------------------------------------------- |
+| `search`                                     | First in the row                              | Its own line, full width                        |
+| `filters` (+ `activeFilterCount`)            | Facets in the row, which scrolls when long    | One **Filters · n** button opening a Drawer     |
+| `reset`                                      | At the end of the filters, never scrolled off | Next to Filters                                 |
+| `actions`                                    | Pinned right                                  | Pinned right (Export, the list's create action) |
+| `collapsibleActions` (`inline`, `menuItems`) | In the row                                    | Their menu form joins `⋯`                       |
+| `moreActions`                                | `⋯` menu                                      | `⋯` menu                                        |
+
+- **Nothing in the toolbar sits off screen.** Below 768 px a control that does not fit moves into
+  the Filters drawer (a filter) or `⋯` (an action); the row never scrolls sideways.
+- **The Filters drawer lists each filter under its own label, with no popover over it.** A
+  `FacetedFilter` there shows its options inline (the same groups, badges and order as its
+  menu), named by its label, so the drawer shows every choice without a popover over it. A
+  `Select` keeps its own layer; it is wrapped in `DataTableFilter`, whose render function hands
+  it the label's `id`. The footer holds **Reset** and **Done**.
+- **One Reset.** The drawer's Reset, the toolbar's and the empty state's Clear filters are the
+  same callback, so all three also clear what sits outside the drawer (the search, a column
+  filter). `activeFilterCount` counts only the drawer's filters that differ from the default
+  view, so the number matches what the drawer shows. A filter that renders nothing leaves no
+  Filters button.
+- **An occasional action is a `⋯` item at every width** (Delete test submissions, Reset table
+  layout), not a toolbar button. Its confirmation renders beside the toolbar (Overlays rule 10)
+  and names its count. A list with nothing occasional has no `⋯` from 768 px.
 
 **Filters — `FacetedFilter`.** A facet speaks the vocabulary of the column it filters.
 Reference: the submissions Status facet,
-`features/submissions/ui/filters/submissions-filter-toolbar.tsx`.
+`features/submissions/ui/filters/submissions-facets.tsx`.
 
 - **A facet over states shows each option as its `StatusBadge`** (`tone` on the option): the
   same pill, tone and label as the column, so the reader matches a row to a choice by sight.
@@ -507,6 +564,12 @@ to `value` are `completed`; the `value` step itself is `active`. Reference:
     opens the public page in a new tab), or the panel's job moves to a page. A list whose rows
     open overlays is a view of the page (`LinkTabs`), not a panel. Reference:
     `features/forms/ui/form-sheet.tsx`.
+13. **Escape closes only the topmost overlay.** A Popover or Select opened inside a panel is the
+    top layer: Escape and an outside tap close it and leave the panel open, and taps inside it
+    land. Radix keeps that order in one stack per copy of `@radix-ui/react-dismissable-layer`, so
+    Vaul and cmdk must resolve the same `@radix-ui/react-dialog` as `radix-ui`.
+    `components/ui/__tests__/responsive-panel.test.tsx` fails when a second copy comes back;
+    `pnpm dedupe` removes it.
 
 ### Buttons, inputs, chips
 
@@ -947,8 +1010,8 @@ SurveyJS's selection and focus outlines, and an icon alone says nothing until ho
 
 ### Recipe: list page
 
-Title + description + primary action above a `DataTableSurface`; toolbar (search, filters, Reset)
-in `DataTableToolbar`; titled empty state; `PagedTableFooter`. Reference:
+Title + description + primary action above a `DataTableSurface`; toolbar (search, filters, Reset,
+actions, `⋯`) in the slots of `DataTableToolbar`; titled empty state; `PagedTableFooter`. Reference:
 `features/platform-admin/list-tenants/`.
 
 **Review queue** — a list whose items each wait for a decision. Reference:

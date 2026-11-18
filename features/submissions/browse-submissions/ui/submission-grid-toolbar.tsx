@@ -3,19 +3,30 @@
 import {
   DataTableToolbar,
   FacetedFilter,
-  ResetFiltersButton,
+  type ResetFiltersButtonProps,
+  useMoreActionsFocusReturn,
 } from "@/components/table";
+import {
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import {
   ExportSubmissionsButton,
   type SubmissionExportAccess,
 } from "@/features/export";
 import { collectionStatusFacetGroups } from "@/features/submissions/ui/describe-collection-status";
-import { CheckSquare, Eye, Sparkles } from "lucide-react";
+import {
+  REVIEW_STATUS_OPTIONS,
+  SUBMISSION_TYPE_OPTIONS,
+} from "@/features/submissions/ui/filters/submission-facet-options";
+import { Settings2 } from "lucide-react";
+import { useState, type ReactNode } from "react";
 import type {
   AnswerColumn,
   ColumnSearchAccess,
 } from "../submission-grid-columns";
 import { exportFiltersFromGrid } from "../submission-grid-export-filters";
+import type { SubmissionGridUrlState } from "../submission-grid-url";
 import { SUBMISSION_GRID_URL_KEYS as keys } from "../submission-grid-url.constants";
 import {
   clearFiltersUpdate,
@@ -24,29 +35,30 @@ import {
   hasActiveFilters,
   type SubmissionGridFacetKey,
 } from "../submission-grid-url-updates";
-import { DeleteTestSubmissionsButton } from "./delete-test-submissions-button";
-import { SubmissionGridColumnPicker } from "./submission-grid-column-picker";
+import { useDeleteTestSubmissionsAction } from "./delete-test-submissions";
+import {
+  SubmissionGridColumnPicker,
+  SubmissionGridColumnPickerOverlay,
+  useColumnPickerAvailable,
+} from "./submission-grid-column-picker";
 import { useSubmissionTestAccess } from "./submission-test-access-context";
 import { useSubmissionGridUrl } from "./submission-grid-url-context";
-import { SubmissionGridViewMenu } from "./submission-grid-view-menu";
+import { useSubmissionGridView } from "./submission-grid-view-context";
+import {
+  SubmissionGridViewItems,
+  SubmissionGridViewMenu,
+} from "./submission-grid-view-menu";
 
 const OPTION_FACETS = [
   {
     key: keys.status,
     title: "Review",
-    options: [
-      { label: "New", value: "new", icon: Sparkles },
-      { label: "Read", value: "read", icon: Eye },
-      { label: "Approved", value: "approved", icon: CheckSquare },
-    ],
+    options: REVIEW_STATUS_OPTIONS,
   },
   {
     key: keys.isTestSubmission,
     title: "Submission Type",
-    options: [
-      { label: "Production", value: "false" },
-      { label: "Test", value: "true" },
-    ],
+    options: SUBMISSION_TYPE_OPTIONS,
   },
 ] as const;
 
@@ -60,36 +72,117 @@ type ToolbarProps = {
 };
 
 export function SubmissionGridToolbar(props: Readonly<ToolbarProps>) {
-  const { disabled } = props;
+  const { formId, disabled } = props;
+  const { urlState } = useSubmissionGridUrl();
+  const { canDeleteTests } = useSubmissionTestAccess();
+  const moreActions = useMoreActionsFocusReturn();
+  const deleteTests = useDeleteTestSubmissionsAction(
+    formId,
+    disabled,
+    moreActions.onCloseAutoFocus,
+  );
+  const columns = useColumnsAction(props, moreActions.onCloseAutoFocus);
+  const reset = useResetProps(disabled);
   return (
-    <DataTableToolbar
-      className="mt-8 mb-4"
-      filters={
-        <>
-          <StatusFacet disabled={disabled} />
-          <OptionFacets disabled={disabled} />
-          <ResetButton disabled={disabled} />
-        </>
-      }
-      actions={<ToolbarActions {...props} />}
-    />
+    <>
+      <DataTableToolbar
+        className="mt-8 mb-4"
+        filters={<GridFacets disabled={disabled} />}
+        activeFilterCount={countActiveFacets(urlState)}
+        filtersDisabled={disabled}
+        reset={reset}
+        collapsibleActions={{
+          inline: <LayoutActions {...props} />,
+          menuItems: (
+            <LayoutMenuItems {...props} columnsItem={columns.menuItem} />
+          ),
+        }}
+        actions={<ExportButton {...props} />}
+        moreActions={canDeleteTests ? deleteTests.menuItem : undefined}
+        moreActionsRef={moreActions.ref}
+      />
+      {columns.overlay}
+      {canDeleteTests && deleteTests.confirm}
+    </>
   );
 }
 
-/** Columns, View, Delete test submissions (with test access) and Export (with export access). */
-function ToolbarActions(props: Readonly<ToolbarProps>) {
-  const { formId, disabled } = props;
-  const { canDeleteTests } = useSubmissionTestAccess();
+function GridFacets({ disabled }: Readonly<{ disabled: boolean }>) {
+  return (
+    <>
+      <StatusFacet disabled={disabled} />
+      <OptionFacets disabled={disabled} />
+    </>
+  );
+}
+
+/** Columns and View in the row from 768 px. */
+function LayoutActions(props: Readonly<ToolbarProps>) {
   return (
     <>
       <SubmissionGridColumnPicker {...props} />
-      <SubmissionGridViewMenu disabled={disabled} />
-      {canDeleteTests && (
-        <DeleteTestSubmissionsButton formId={formId} disabled={disabled} />
-      )}
-      <ExportButton {...props} />
+      <SubmissionGridViewMenu disabled={props.disabled} />
     </>
   );
+}
+
+/** Columns and View as `⋯` items below 768 px. */
+function LayoutMenuItems({
+  disabled,
+  columnsItem,
+}: Readonly<ToolbarProps & { columnsItem: ReactNode }>) {
+  const view = useSubmissionGridView();
+  return (
+    <>
+      {columnsItem}
+      <DropdownMenuSeparator />
+      <SubmissionGridViewItems view={view} disabled={disabled} />
+    </>
+  );
+}
+
+/** The facets in the Filters drawer that have a selection. */
+function countActiveFacets(urlState: SubmissionGridUrlState): number {
+  const facets = [
+    urlState.collectionStatus,
+    ...OPTION_FACETS.map(({ key }) => urlState[key]),
+  ];
+  return facets.filter((values) => values.length > 0).length;
+}
+
+/**
+ * Below 768 px, `⋯ > Columns…` opens the picker in a drawer beside the menu. Each open mounts a
+ * fresh picker (its draft starts from the URL), and nothing mounts before the first open.
+ */
+function useColumnsAction(
+  props: Readonly<ToolbarProps>,
+  onCloseAutoFocus: (event: Event) => void,
+) {
+  const [open, setOpen] = useState(false);
+  const [opens, setOpens] = useState(0);
+  const available = useColumnPickerAvailable(props);
+  const menuItem = (
+    <DropdownMenuItem
+      disabled={!available}
+      onSelect={() => {
+        setOpens((count) => count + 1);
+        setOpen(true);
+      }}
+    >
+      <Settings2 />
+      Columns…
+    </DropdownMenuItem>
+  );
+  const overlay = opens > 0 && (
+    <SubmissionGridColumnPickerOverlay
+      key={opens}
+      {...props}
+      open={open}
+      onOpenChange={setOpen}
+      onCloseAutoFocus={onCloseAutoFocus}
+    />
+  );
+  return { menuItem, overlay };
 }
 
 function useFacetChange() {
@@ -127,19 +220,17 @@ function OptionFacets({ disabled }: Readonly<{ disabled: boolean }>) {
   ));
 }
 
-function ResetButton({ disabled }: Readonly<{ disabled: boolean }>) {
+function useResetProps(disabled: boolean): ResetFiltersButtonProps {
   const { urlState, urlSets, updateUrl } = useSubmissionGridUrl();
   const clearFilters = clearFiltersUpdate(urlState);
-  return (
-    <ResetFiltersButton
-      onClick={() => updateUrl(clearFilters)}
-      onResetSorting={() => updateUrl(CLEAR_SORT_UPDATE)}
-      onResetAll={() => updateUrl({ ...clearFilters, ...CLEAR_SORT_UPDATE })}
-      hasFilters={hasActiveFilters(urlState)}
-      hasSorting={urlSets.sort}
-      disabled={disabled}
-    />
-  );
+  return {
+    onClick: () => updateUrl(clearFilters),
+    onResetSorting: () => updateUrl(CLEAR_SORT_UPDATE),
+    onResetAll: () => updateUrl({ ...clearFilters, ...CLEAR_SORT_UPDATE }),
+    hasFilters: hasActiveFilters(urlState),
+    hasSorting: urlSets.sort,
+    disabled,
+  };
 }
 
 function ExportButton({

@@ -948,6 +948,16 @@ describe("htmlSanitizer", () => {
         expect(result).toBe("OPP con <=100 miembros & OPP con >100 miembros");
       });
 
+      it("should decode &#128;-&#159; with the HTML Windows-1252 mapping, not as C1 controls", () => {
+        // sanitize-html decodes these while parsing and re-escapes only
+        // & < > ", so this pins the end-to-end result; the final decode must
+        // also be HTML level (entities >= 8.1 maps them to C1 at XML level).
+        expect(htmlSanitizer.toPlainText("&#147;quoted&#148;")).toBe(
+          "“quoted”",
+        );
+        expect(htmlSanitizer.toPlainText("&#128;")).toBe("€");
+      });
+
       it("should remove script tags and leave text", () => {
         // Arrange
         const input = "<script>alert('XSS')</script>Hello";

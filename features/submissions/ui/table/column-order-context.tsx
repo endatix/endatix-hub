@@ -1,8 +1,9 @@
 "use client";
+import { type ColumnDef } from "@/components/table/hub-table-features";
 
 import { Submission } from "@/lib/endatix-api";
 import { arrayMove } from "@dnd-kit/sortable";
-import { ColumnDef } from "@tanstack/react-table";
+
 import {
   createContext,
   ReactNode,

@@ -112,9 +112,9 @@ experimental:
   extensions: true
 
 auth:
-  # Name of an existing secret with keys: session-secret, auth-secret
-  # session-secret: openssl rand -hex 32
-  # auth-secret:    npx auth secret
+  # Name of an existing secret with key: auth-secret
+  # auth-secret: npx auth secret (at least 32 bytes; the Hub refuses to start without a strong one)
+  # session-secret is no longer used and may be dropped from the secret.
   secretName: endatix-hub-auth-secret
   trustHost: "true"
   # Public URL of this hub, required for auth callbacks (e.g. https://hub.example.com)

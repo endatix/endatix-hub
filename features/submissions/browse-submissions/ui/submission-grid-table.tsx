@@ -1,8 +1,4 @@
 "use client";
-"use no memo";
-
-// TanStack Table keeps one table instance, so the React Compiler would cache
-// what reads it and miss in-place state changes (column visibility, sizing).
 
 import {
   createPagedTableFooterProps,
@@ -15,10 +11,13 @@ import { NoMatchingSubmissionsEmptyState } from "@/features/submissions/ui/submi
 import type { SubmissionGridRowsPage } from "@/lib/endatix-api/reporting/submission-grid";
 import type { SubmissionGridRow } from "@/lib/endatix-api/reporting/submission-grid-types";
 import {
-  functionalUpdate,
-  getCoreRowModel,
-  useReactTable,
+  hubTableFeatures,
+  serverPagedRows,
   type Row,
+} from "@/components/table/hub-table-features";
+import {
+  functionalUpdate,
+  useTable,
   type SortingState,
   type Updater,
 } from "@tanstack/react-table";
@@ -105,12 +104,12 @@ function useSubmissionGridTable(
   const columns = useGridColumns(props, grid);
   const sorting = sortingFromUrlState(grid.urlState);
   const data = useRowData(props.page);
-  return useReactTable({
+  return useTable({
+    features: hubTableFeatures,
     data,
     columns,
-    getCoreRowModel: getCoreRowModel(),
     getRowId: (row) => row.id,
-    manualSorting: true,
+    ...serverPagedRows,
     ...resizableView(useSubmissionGridView(), sorting),
     onSortingChange: (updater: Updater<SortingState>) =>
       grid.updateUrl(sortUpdate(functionalUpdate(updater, sorting))),

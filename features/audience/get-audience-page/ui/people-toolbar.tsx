@@ -2,12 +2,16 @@
 
 import type { ReactNode } from "react";
 import {
+  DataTableFilter,
   DataTableToolbar,
   TableSearchInput,
   useListUrlState,
 } from "@/components/table";
-import type { AudiencePeopleTestFilter } from "@/lib/endatix-api/audience/types";
-import { PEOPLE_SEARCH_PARAM } from "../parse-people-page";
+import { AudiencePeopleTestFilter } from "@/lib/endatix-api/audience/types";
+import {
+  CLEAR_PEOPLE_FILTERS,
+  PEOPLE_SEARCH_PARAM,
+} from "../parse-people-page";
 import { PeopleTestFilter } from "./people-test-filter";
 
 type PeopleToolbarProps = {
@@ -21,18 +25,41 @@ export function PeopleToolbar({
   testFilter,
   actions,
 }: Readonly<PeopleToolbarProps>) {
-  const { search, setSearch } = useListUrlState(PEOPLE_SEARCH_PARAM);
-  const filters = (
-    <>
-      <TableSearchInput
-        value={search}
-        onChange={setSearch}
-        placeholder="Search by identifier"
-        ariaLabel="Search participants by identifier"
-        className="min-w-[12rem] flex-none lg:flex-1"
-      />
-      <PeopleTestFilter value={testFilter} />
-    </>
+  const { search, setSearch, reset, isTestFiltered } =
+    usePeopleFilters(testFilter);
+  return (
+    <DataTableToolbar
+      search={
+        <TableSearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="Search by identifier"
+          ariaLabel="Search participants by identifier"
+          className="min-w-[12rem] md:flex-none lg:flex-1"
+        />
+      }
+      filters={
+        <DataTableFilter label="Real or test">
+          {({ id }) => <PeopleTestFilter value={testFilter} id={id} />}
+        </DataTableFilter>
+      }
+      activeFilterCount={isTestFiltered ? 1 : 0}
+      reset={reset}
+      actions={actions}
+    />
   );
-  return <DataTableToolbar filters={filters} actions={actions} />;
+}
+
+/** The search box's state and Reset, which clears what the empty state's Clear filters clears. */
+function usePeopleFilters(testFilter: AudiencePeopleTestFilter) {
+  const { search, setSearch, updateUrl } = useListUrlState(PEOPLE_SEARCH_PARAM);
+  const isTestFiltered = testFilter !== AudiencePeopleTestFilter.All;
+  const reset = {
+    onClick: () => {
+      setSearch("");
+      updateUrl(CLEAR_PEOPLE_FILTERS);
+    },
+    hasFilters: Boolean(search.trim()) || isTestFiltered,
+  };
+  return { search, setSearch, reset, isTestFiltered };
 }

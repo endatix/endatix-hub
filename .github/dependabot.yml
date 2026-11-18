@@ -24,6 +24,18 @@ updates:
       minor-and-patch:
         applies-to: version-updates
         update-types: ["minor", "patch"]
+    # OpenTelemetry stays on the SDK 2.x / 0.2xx line with @opentelemetry/api 1.9
+    # (package.json pins api ">=1.9.1 <1.10.0"). The 3.x / 0.3xx line, and
+    # instrumentation-undici 0.34+, which needs core 3, require api 1.10, so a
+    # weekly bump would undo the pin. Moving to 3.x is a deliberate change to the
+    # api pin, every @opentelemetry/* range and these entries.
+    ignore:
+      - dependency-name: "@opentelemetry/api"
+        versions: [">=1.10.0"]
+      - dependency-name: "@opentelemetry/instrumentation-undici"
+        versions: [">=0.34.0"]
+      - dependency-name: "@opentelemetry/*"
+        versions: [">=3.0.0", ">=0.300.0 <1.0.0"]
 
   - package-ecosystem: "github-actions"
     labels: ["dependencies"]

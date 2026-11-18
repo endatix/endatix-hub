@@ -1,7 +1,8 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Result } from "@/lib/result";
-import { DeleteTestSubmissionsButton } from "../ui/delete-test-submissions-button";
+import { DataTableToolbar } from "@/components/table";
+import { useDeleteTestSubmissionsAction } from "../ui/delete-test-submissions";
 
 const router = vi.hoisted(() => ({ refresh: vi.fn() }));
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
@@ -17,17 +18,32 @@ vi.mock("../submission-test-flag.action", () => ({
   deleteTestSubmissionsAction: actions.deleteTests,
 }));
 
+/** The grid toolbar's wiring: the item in `⋯`, the confirm beside the toolbar. */
+function ToolbarWithDeleteTests() {
+  const deleteTests = useDeleteTestSubmissionsAction("5", false);
+  return (
+    <>
+      <DataTableToolbar moreActions={deleteTests.menuItem} />
+      {deleteTests.confirm}
+    </>
+  );
+}
+
 function openDialog() {
-  render(<DeleteTestSubmissionsButton formId="5" disabled={false} />);
+  render(<ToolbarWithDeleteTests />);
+  fireEvent.pointerDown(screen.getByRole("button", { name: "More actions" }), {
+    button: 0,
+    ctrlKey: false,
+  });
   fireEvent.click(
-    screen.getByRole("button", { name: "Delete test submissions" }),
+    screen.getByRole("menuitem", { name: "Delete test submissions…" }),
   );
 }
 
 const deleteButton = () =>
   screen.getByRole<HTMLButtonElement>("button", { name: "Delete" });
 
-describe("DeleteTestSubmissionsButton", () => {
+describe("Delete test submissions from the ⋯ menu", () => {
   beforeEach(() => {
     actions.count.mockResolvedValue(Result.success(3));
   });
@@ -79,6 +95,40 @@ describe("DeleteTestSubmissionsButton", () => {
     expect(screen.getByText("Delete 3 test submissions?")).toBeTruthy();
     expect(toast.success).not.toHaveBeenCalled();
     expect(router.refresh).not.toHaveBeenCalled();
+  });
+
+  it("shows an error toast and keeps the confirm open when the delete throws", async () => {
+    // Arrange
+    actions.deleteTests.mockRejectedValue(new Error("network down"));
+    openDialog();
+    await screen.findByText("Delete 3 test submissions?");
+
+    // Act
+    fireEvent.click(deleteButton());
+
+    // Assert
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith({
+        title: "Test submissions could not be deleted. Try again.",
+      }),
+    );
+    expect(screen.getByText("Delete 3 test submissions?")).toBeTruthy();
+    expect(deleteButton().disabled).toBe(false);
+    expect(router.refresh).not.toHaveBeenCalled();
+  });
+
+  it("still allows Delete when counting throws", async () => {
+    // Arrange
+    actions.count.mockRejectedValue(new Error("network down"));
+
+    // Act
+    openDialog();
+
+    // Assert
+    expect(
+      await screen.findByText("Delete all test submissions?"),
+    ).toBeTruthy();
+    expect(deleteButton().disabled).toBe(false);
   });
 
   it("disables Delete when there is nothing to delete", async () => {

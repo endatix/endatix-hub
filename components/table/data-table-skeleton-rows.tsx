@@ -1,5 +1,7 @@
+import { type Table as TanstackTable } from "./hub-table-features";
+import type { RowData } from "@tanstack/react-table";
 import type { ReactNode } from "react";
-import type { Table as TanstackTable } from "@tanstack/react-table";
+
 import { Skeleton } from "@/components/ui/skeleton";
 import { TableCell, TableRow } from "@/components/ui/table";
 import "./data-table-column-meta";
@@ -60,7 +62,7 @@ export function DataTableSkeletonRows({
  * flight: as many skeleton rows as are on screen (a few if the list was
  * empty), shaped like the visible columns.
  */
-export function DataTablePendingRows<TData>({
+export function DataTablePendingRows<TData extends RowData>({
   table,
 }: Readonly<{ table: TanstackTable<TData> }>) {
   const rows = table.getRowModel().rows.length;
@@ -69,7 +71,7 @@ export function DataTablePendingRows<TData>({
       rows={rows > 0 ? rows : 5}
       columns={table.getVisibleLeafColumns().map((column) => ({
         id: column.id,
-        isPinnedLeft: column.getIsPinned() === "left",
+        isPinnedLeft: column.getIsPinned() === "start",
         className: column.columnDef.meta?.cellClassName,
       }))}
     />

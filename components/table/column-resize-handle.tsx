@@ -1,6 +1,7 @@
 "use client";
+import type { ColumnSizingState, RowData } from "@tanstack/react-table";
+import type { Column, Header } from "./hub-table-features";
 
-import type { Column, Header, Table } from "@tanstack/react-table";
 import type { CSSProperties, KeyboardEvent, PointerEvent } from "react";
 
 const DEFAULT_MIN_COLUMN_WIDTH = 48;
@@ -9,24 +10,29 @@ const HANDLE_CLASS_NAME =
   "absolute top-0 right-0 h-full w-1.5 cursor-col-resize border-0 bg-transparent p-0 touch-none select-none hover:bg-primary/40 focus-visible:bg-primary/60 focus-visible:outline-none";
 
 /**
- * Inline width for the header and cells of a column the user resized, on a
- * table that opts in; `undefined` leaves the column to the automatic layout.
- * Cells need it too: their `min-w-*` classes would otherwise hold the column
- * wider than the width that is saved.
+ * The width of a column the user resized, within the column's limits, or
+ * `undefined` for a column that keeps the automatic layout. Takes the sizing
+ * state as an argument so a compiled caller recomputes it when that changes.
  */
-export function resizedColumnStyle<TData>(
-  table: Table<TData>,
+export function resizedColumnWidth<TData extends RowData>(
+  columnSizing: ColumnSizingState,
   column: Column<TData, unknown>,
-): CSSProperties | undefined {
-  const isResized =
-    table.options.enableColumnResizing === true &&
-    column.id in table.getState().columnSizing;
-  if (!isResized) {
-    return undefined;
-  }
+): number | undefined {
+  return Object.hasOwn(columnSizing, column.id) ? column.getSize() : undefined;
+}
 
-  const width = column.getSize();
-  return { width, minWidth: width, maxWidth: width };
+/**
+ * Inline width for the header and cells of a resized column; `undefined`
+ * leaves the column to the automatic layout. Cells need it too: their
+ * `min-w-*` classes would otherwise hold the column wider than the width that
+ * is saved.
+ */
+export function resizedColumnStyle(
+  width: number | undefined,
+): CSSProperties | undefined {
+  return width === undefined
+    ? undefined
+    : { width, minWidth: width, maxWidth: width };
 }
 
 /**
@@ -34,7 +40,7 @@ export function resizedColumnStyle<TData>(
  * automatic width. Starts from the width the header has on screen, so a
  * column never jumps when the drag begins.
  */
-export function ColumnResizeHandle<TData>({
+export function ColumnResizeHandle<TData extends RowData>({
   header,
 }: Readonly<{ header: Header<TData, unknown> }>) {
   if (!header.column.getCanResize()) {
@@ -53,7 +59,7 @@ export function ColumnResizeHandle<TData>({
   );
 }
 
-function startDrag<TData>(
+function startDrag<TData extends RowData>(
   event: PointerEvent<HTMLButtonElement>,
   header: Header<TData, unknown>,
 ) {
@@ -85,7 +91,7 @@ function followPointer(
   handle.addEventListener("pointercancel", onEnd);
 }
 
-function resizeByKey<TData>(
+function resizeByKey<TData extends RowData>(
   event: KeyboardEvent<HTMLButtonElement>,
   header: Header<TData, unknown>,
 ) {
@@ -101,7 +107,10 @@ function resizeByKey<TData>(
   setColumnWidth(header, cell.getBoundingClientRect().width + step);
 }
 
-function setColumnWidth<TData>(header: Header<TData, unknown>, width: number) {
+function setColumnWidth<TData extends RowData>(
+  header: Header<TData, unknown>,
+  width: number,
+) {
   const { minSize, maxSize } = header.column.columnDef;
   const clamped = Math.round(
     Math.min(
@@ -115,7 +124,9 @@ function setColumnWidth<TData>(header: Header<TData, unknown>, width: number) {
   }));
 }
 
-function clearColumnWidth<TData>(header: Header<TData, unknown>) {
+function clearColumnWidth<TData extends RowData>(
+  header: Header<TData, unknown>,
+) {
   header.getContext().table.setColumnSizing((sizing) => {
     const { [header.column.id]: _cleared, ...rest } = sizing;
     return rest;

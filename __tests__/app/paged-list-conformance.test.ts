@@ -40,8 +40,20 @@ const UNKEYED_PAGED_PAGES: Record<string, string> = {
 describe("paged list conformance", () => {
   it("every TanStack grid keys rows by entity id (getRowId)", () => {
     const offenders = files
-      .filter(({ source }) => source.includes("useReactTable("))
+      .filter(({ source }) => source.includes("useTable("))
       .filter(({ source }) => !source.includes("getRowId"))
+      .map(({ file }) => file);
+
+    expect(offenders).toEqual([]);
+  });
+
+  it("every DataTableGrid table lets the server page its rows (serverPagedRows)", () => {
+    // Hub tables register the paginated row model, which would cut each
+    // server page to Table 9's default 10 rows (endatix-hub#1419).
+    const offenders = files
+      .filter(({ source }) => source.includes("useTable("))
+      .filter(({ source }) => source.includes("<DataTableGrid"))
+      .filter(({ source }) => !source.includes("...serverPagedRows"))
       .map(({ file }) => file);
 
     expect(offenders).toEqual([]);

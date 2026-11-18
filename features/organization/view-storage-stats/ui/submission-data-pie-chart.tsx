@@ -24,6 +24,8 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
+const pieLegend = "-translate-y-2 flex-wrap gap-2 *:basis-1/4 *:justify-center";
+
 type SubmissionDataPieChartProps = {
   submissionCount: number;
   versionCount: number;
@@ -88,8 +90,7 @@ export function SubmissionDataPieChart({
           label={(props) => renderPieSegmentLabel(props)}
         />
         <ChartLegend
-          content={<ChartLegendContent nameKey="type" />}
-          className="-translate-y-2 flex-wrap gap-2 *:basis-1/4 *:justify-center"
+          content={<ChartLegendContent nameKey="type" className={pieLegend} />}
         />
       </PieChart>
     </ChartContainer>

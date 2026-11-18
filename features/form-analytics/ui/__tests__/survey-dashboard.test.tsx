@@ -7,13 +7,18 @@ const mockClear = vi.fn();
 const mockApplyTheme = vi.fn();
 const mockRefresh = vi.fn();
 
-vi.mock("survey-core", () => ({
-  Model: vi.fn().mockImplementation(function () {
-    return {
-      getAllQuestions: vi.fn().mockReturnValue([]),
-    };
-  }),
-}));
+vi.mock("survey-core", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("survey-core")>();
+  return {
+    // survey-creator-core (via lib/themes/survey-theme.ts) reads surveyLocalization at import.
+    ...actual,
+    Model: vi.fn().mockImplementation(function () {
+      return {
+        getAllQuestions: vi.fn().mockReturnValue([]),
+      };
+    }),
+  };
+});
 
 vi.mock("survey-analytics", () => ({
   Dashboard: vi.fn().mockImplementation(function () {

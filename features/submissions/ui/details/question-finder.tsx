@@ -11,6 +11,7 @@ import {
   CommandList,
   CommandShortcut,
 } from "@/components/ui/command";
+import { safeDecodeURIComponent } from "@/lib/utils/url-utils";
 import { EyeOff, Search } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { QuestionNonValue } from "survey-core";
@@ -40,7 +41,7 @@ function syncHighlightFromHash(
 ) {
   const hash = globalThis.window?.location.hash;
   if (hash?.startsWith("#")) {
-    setHighlightedQuestionName(decodeURIComponent(hash.slice(3)));
+    setHighlightedQuestionName(safeDecodeURIComponent(hash.slice(3)));
   } else {
     setHighlightedQuestionName(null);
   }
@@ -132,7 +133,7 @@ export function QuestionFinder() {
       syncHighlightFromHash(setHighlightedQuestionName);
       const hash = globalThis.window?.location.hash;
       if (hash.startsWith("#")) {
-        const questionName = decodeURIComponent(hash.slice(3));
+        const questionName = safeDecodeURIComponent(hash.slice(3));
         const element = document.getElementById(`${questionName}`);
         if (element) {
           element.scrollIntoView({ behavior: "smooth", block: "center" });

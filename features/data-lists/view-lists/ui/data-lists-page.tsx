@@ -8,6 +8,7 @@ import {
   useState,
   useTransition,
 } from "react";
+import { DatabaseZap } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -47,10 +48,11 @@ import type { UrlSearchParamsUpdater } from "@/lib/utils/hooks/use-url-search-pa
 import { Result } from "@/lib/result";
 import { formatInteger } from "@/lib/utils/formatters";
 import {
-  getCoreRowModel,
-  useReactTable,
+  hubTableFeatures,
+  serverPagedRows,
   type ColumnDef,
-} from "@tanstack/react-table";
+} from "@/components/table/hub-table-features";
+import { useTable } from "@tanstack/react-table";
 import type { Route } from "next";
 import { CreateDataListDialog } from "../../create-list/ui/create-data-list-dialog";
 import { DataListRowActions } from "./data-list-row-actions";
@@ -72,6 +74,8 @@ interface DataListsPageProps {
   updateUrl: UrlSearchParamsUpdater;
   searchParams: URLSearchParams;
   isPending?: boolean;
+  /** The toolbar's filter reset (same keys), for the empty state's Clear filters. */
+  onClearFilters?: () => void;
 }
 
 export function DataListsPageHeader() {
@@ -93,6 +97,7 @@ export function DataListsPage({
   updateUrl,
   searchParams,
   isPending = false,
+  onClearFilters,
 }: Readonly<DataListsPageProps>) {
   const paged = use(dataListsPromise);
   const router = useRouter();
@@ -160,7 +165,7 @@ export function DataListsPage({
         setIsDeleteBlocked(dependenciesResult.value.length > 0);
       });
     },
-    [replaceListHref, startDependenciesTransition],
+    [replaceListHref, setIsDeleteDialogOpen, startDependenciesTransition],
   );
 
   const handleDelete = () => {
@@ -206,12 +211,12 @@ export function DataListsPage({
   // defeats its internal row-model memoization and cascades into a setState
   // loop from inside its row-pagination/row-model machinery.
   const tableData = useMemo(() => [...paged.items], [paged.items]);
-  const table = useReactTable({
+  const table = useTable({
+    features: hubTableFeatures,
     data: tableData,
     columns,
-    getCoreRowModel: getCoreRowModel(),
     getRowId: (row) => String(row.id),
-    manualSorting: true,
+    ...serverPagedRows,
     state: { sorting },
     onSortingChange,
   });
@@ -238,11 +243,10 @@ export function DataListsPage({
           isPending={isPending}
           hasRows={paged.items.length > 0}
           empty={
-            <DataTableEmpty>
-              {hasFilters
-                ? "No data lists match the current filters."
-                : "No data lists yet."}
-            </DataTableEmpty>
+            <DataListsEmpty
+              filtered={hasFilters}
+              onClearFilters={onClearFilters}
+            />
           }
         />
         <PagedTableFooter {...footerProps} variant="surface" />
@@ -459,5 +463,22 @@ function StatusPill({ isActive }: Readonly<{ isActive: boolean }>) {
     <span className="inline-flex items-center rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
       Inactive
     </span>
+  );
+}
+
+function DataListsEmpty({
+  filtered,
+  onClearFilters,
+}: Readonly<{ filtered: boolean; onClearFilters?: () => void }>) {
+  if (!filtered) return <DataTableEmpty>No data lists yet.</DataTableEmpty>;
+  return (
+    <DataTableEmpty
+      icon={DatabaseZap}
+      title="No matching data lists"
+      onClearFilters={onClearFilters}
+    >
+      No data list matches the search, locale or dates. Search looks at the name
+      and description.
+    </DataTableEmpty>
   );
 }

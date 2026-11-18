@@ -114,10 +114,24 @@ function trimTrailingSlashes(value: string): string {
   return value.slice(0, end + 1);
 }
 
+/**
+ * Decodes URI-encoded text, or returns the text unchanged when it is not valid
+ * URI-encoded text (a bare `%`, as in "50% off", makes `decodeURIComponent` throw).
+ */
+function safeDecodeURIComponent(text: string): string {
+  try {
+    return decodeURIComponent(text);
+  } catch {
+    // On a string, decodeURIComponent throws only URIError.
+    return text;
+  }
+}
+
 export {
   extractHostname,
   toSafeRelativeUrl,
   isSafeRedirectUrl,
   isValidAbsoluteUrl,
   trimTrailingSlashes,
+  safeDecodeURIComponent,
 };

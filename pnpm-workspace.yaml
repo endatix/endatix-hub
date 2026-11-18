@@ -37,10 +37,6 @@ overrides:
   "@types/react-dom": 19.2.5
   # preact 10.29.1 bump is to address CVE-2026-22028. Remove with better auth and next posthog-js bump
   preact: ^10.29.1
-  # fast-xml-parser 5.7.0 bump is to address CVE-2026-25128, CVE-2026-27942, CVE-2026-33036, CVE-2026-33349 & CVE-2026-41650. Remove once we upgrade @azure/storage-blob
-  fast-xml-parser: ^5.7.0
-  # fast-xml-builder 1.1.7 to fix CVE-2026-44665. Remove with next @azure/storage-blob bump
-  fast-xml-builder: ^1.1.7
   # lodash 4.18.0 bump is to address CVE-2025-13465, CVE-2026-2950 & CVE-2026-4800. Multiple peer dependenices hold outdated versions
   lodash: ^4.18.0
   # lodash-es 4.18.00 bump is to address CVE-2025-13465, CVE-2026-2950 & CVE-2026-4800. Fix with quill & react-quill-new bump
@@ -49,14 +45,8 @@ overrides:
   minimatch: ^10.2.5
   # immutable 5.1.8 bump is to address CVE-2026-29063, CVE-2026-59879, CVE-2026-59880. Multiple peer dependenices hold outdated versions.
   immutable: ^5.1.8
-  # flatted 3.4.2 bump is to address CVE-2026-33228. @vitest/ui 5 needs ^3.4.4; remove when flat-cache (eslint) does too
-  flatted: ^3.4.2
   # picomatch 2.3.2 & 4.0.4 bump is to address CVE-2026-33671 & CVE-2026-33671. Multiple peer dependenices hold outdated versions.
   "picomatch@>=2 <3": ^2.3.2
   "picomatch@>=4 <5": ^4.0.4
-  # protobufjs bump to 8.7.1 to address multiple otel related vulnerabilities. Remove on next otel bump
+  # protobufjs 8.7.1 stays: @grpc/proto-loader 0.8.1 still declares ^7.5.5, so dropping this forces 7.6.6 (cross-major). Audit does not flag 7.6.6. Remove when `node scripts/review-dependency.mjs overrides protobufjs` reports REMOVABLE
   protobufjs: ^8.7.1
-  # @protobufjs/utf8 bump to 1.1.2 is to address multiple otel vulnerabilities. Remove on next otel bump
-  "@protobufjs/utf8": ^1.1.2
-  # @opentelemetry/sdk-node bump to 0.221.0 to address CVE-2026-59892. Remove with next @azure/monitor-opentelemetry bump
-  "@opentelemetry/sdk-node": ^0.221.0

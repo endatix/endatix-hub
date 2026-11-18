@@ -36,12 +36,13 @@ import type {
 import type { NormalizedPagedResponse } from "@/lib/endatix-api/shared/paged-response";
 import { Result, type ResultType } from "@/lib/result";
 import type { UrlSearchParamsUpdater } from "@/lib/utils/hooks/use-url-search-params-updater.hook";
-import { LogIn, MoreHorizontal, Pencil } from "lucide-react";
+import { Building2, LogIn, MoreHorizontal, Pencil } from "lucide-react";
 import {
-  getCoreRowModel,
-  useReactTable,
+  hubTableFeatures,
+  serverPagedRows,
   type ColumnDef,
-} from "@tanstack/react-table";
+} from "@/components/table/hub-table-features";
+import { useTable } from "@tanstack/react-table";
 import type { TenantsListUrlState } from "../utils";
 
 interface TenantsTableProps {
@@ -50,6 +51,8 @@ interface TenantsTableProps {
   urlState: TenantsListUrlState;
   isPending: boolean;
   canManage?: boolean;
+  /** The toolbar's filter reset, so Clear filters clears the same thing. */
+  onClearFilters?: () => void;
 }
 
 export function TenantsTableFromPromise({
@@ -76,6 +79,7 @@ export function TenantsTable({
   urlState,
   isPending,
   canManage = false,
+  onClearFilters,
 }: Readonly<TenantsTableProps>) {
   const [editingTenantId, setEditingTenantId] = useState<string | null>(null);
   const [assumeTarget, setAssumeTarget] = useState<AssumeTenantTarget | null>(
@@ -101,12 +105,12 @@ export function TenantsTable({
   );
 
   const tableData = useMemo(() => [...paged.items], [paged.items]);
-  const table = useReactTable({
+  const table = useTable({
+    features: hubTableFeatures,
     data: tableData,
     columns,
-    getCoreRowModel: getCoreRowModel(),
     getRowId: (row) => row.id,
-    manualSorting: true,
+    ...serverPagedRows,
     state: { sorting },
     onSortingChange,
   });
@@ -127,11 +131,10 @@ export function TenantsTable({
           isPending={isPending}
           hasRows={paged.items.length > 0}
           empty={
-            <DataTableEmpty>
-              {hasFilters
-                ? "No tenants match the current filters."
-                : "No tenants found."}
-            </DataTableEmpty>
+            <TenantsEmpty
+              filtered={hasFilters}
+              onClearFilters={onClearFilters}
+            />
           }
         />
         <PagedTableFooter
@@ -303,4 +306,21 @@ function buildTenantColumns({
   }
 
   return columns;
+}
+
+function TenantsEmpty({
+  filtered,
+  onClearFilters,
+}: Readonly<{ filtered: boolean; onClearFilters?: () => void }>) {
+  if (!filtered) return <DataTableEmpty>No tenants found.</DataTableEmpty>;
+  return (
+    <DataTableEmpty
+      icon={Building2}
+      title="No matching tenants"
+      onClearFilters={onClearFilters}
+    >
+      No tenant matches the search or dates. Search looks at the name, public id
+      and description.
+    </DataTableEmpty>
+  );
 }

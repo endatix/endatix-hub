@@ -13,9 +13,12 @@ import { formatLocaleLabel } from "@/features/data-lists/translations/locale-dis
 import type { DataListItem } from "@/lib/endatix-api/data-lists/types";
 import { resolveCatalogDefaultLabelText } from "@/lib/localization";
 import {
-  getCoreRowModel,
-  useReactTable,
+  hubTableFeatures,
+  serverPagedRows,
   type ColumnDef,
+} from "@/components/table/hub-table-features";
+import {
+  useTable,
   type OnChangeFn,
   type SortingState,
 } from "@tanstack/react-table";
@@ -27,7 +30,8 @@ type DataListItemsTableProps = {
   /** Label column keys: `default` and/or culture codes. */
   labelColumns: readonly string[];
   defaultLocale?: string;
-  emptyMessage?: string;
+  /** The empty state; by default the one-liner for a list with no items. */
+  empty?: ReactNode;
   footer?: ReactNode;
   sorting?: SortingState;
   onSortingChange?: OnChangeFn<SortingState>;
@@ -95,7 +99,7 @@ export function DataListItemsTable({
   items,
   labelColumns,
   defaultLocale,
-  emptyMessage = "No items in this list.",
+  empty = <DataTableEmpty>No items in this list.</DataTableEmpty>,
   footer,
   sorting = [],
   onSortingChange,
@@ -121,18 +125,16 @@ export function DataListItemsTable({
     ? { state: { sorting }, onSortingChange }
     : {};
 
-  const table = useReactTable({
+  const table = useTable({
+    features: hubTableFeatures,
     data,
     columns,
-    getCoreRowModel: getCoreRowModel(),
     getRowId: (row) => row.rowId,
     enableColumnPinning: true,
-    manualSorting: sortingEnabled,
+    ...serverPagedRows,
     ...controlledSorting,
     initialState: {
-      columnPinning: {
-        left: ["value"],
-      },
+      columnPinning: { start: ["value"], end: [] },
     },
   });
 
@@ -142,7 +144,7 @@ export function DataListItemsTable({
         table={table}
         hasRows={table.getRowModel().rows.length > 0}
         isPending={isPending}
-        empty={<DataTableEmpty>{emptyMessage}</DataTableEmpty>}
+        empty={empty}
       />
       {footer}
     </DataTableSurface>

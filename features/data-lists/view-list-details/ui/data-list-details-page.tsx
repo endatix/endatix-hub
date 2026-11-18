@@ -5,10 +5,11 @@ import {
   BackToTableButton,
   CellDate,
   createPagedTableFooterProps,
+  DataTableEmpty,
   FacetedFilter,
   DataTableToolbar,
+  listFilterReset,
   PagedTableFooter,
-  ResetFiltersButton,
   TableSearchInput,
   useListUrlState,
   type FacetedFilterOption,
@@ -31,6 +32,7 @@ import { DownloadMenu } from "@/components/common/download-menu";
 import { formatLocaleLabel } from "@/features/data-lists/translations/locale-discovery";
 import { DataListLocalesCell } from "@/features/data-lists/view-lists/ui/data-list-locales-cell";
 import {
+  DATA_LIST_FILTER_KEYS,
   DATA_LISTS_LIST_PATH,
   DATA_LISTS_TABLE_KEY,
   dataListsListHrefFromQuery,
@@ -43,7 +45,7 @@ import {
   parseCalendarDateYmd,
   parseSortDir,
 } from "@/lib/endatix-api/shared/list-query";
-import { ChevronDown, PencilLine, Upload } from "lucide-react";
+import { ChevronDown, DatabaseZap, PencilLine, Upload } from "lucide-react";
 import type { Route } from "next";
 import {
   Suspense,
@@ -376,7 +378,8 @@ export function DataListDetailsPage({
   );
 }
 
-function DataListItemsSection({
+/** The items list: toolbar, grid and paging, with one Reset for the toolbar and the empty state. */
+export function DataListItemsSection({
   itemsPromise,
   availableLocales,
   defaultLocale,
@@ -419,71 +422,43 @@ function DataListItemsSection({
     modifiedTo,
   );
   const hasSorting = Boolean(sortBy);
+  const reset = listFilterReset(setSearch, updateUrl, DATA_LIST_FILTER_KEYS);
 
   return (
     <div className="flex flex-col gap-3">
       <DataTableToolbar
-        filters={
-          <>
-            <TableSearchInput
-              value={search}
-              onChange={setSearch}
-              placeholder="Search items by value or label"
-              ariaLabel="Search data list items"
-              className="min-w-[12rem] flex-none lg:flex-1"
-            />
-            {localeOptions.length > 0 ? (
-              <FacetedFilter
-                title="Locale"
-                options={localeOptions}
-                selectedValues={selectedLocales}
-                onValueChange={(values) => {
-                  updateUrl({
-                    hasLocale: serializeHasLocaleFilter(values) ?? null,
-                    page: "1",
-                  });
-                }}
-              />
-            ) : null}
-            <ResetFiltersButton
-              hasFilters={hasActiveFilters}
-              hasSorting={hasSorting}
-              onClick={() => {
-                setSearch("");
-                updateUrl({
-                  search: null,
-                  hasLocale: null,
-                  createdFrom: null,
-                  createdTo: null,
-                  modifiedFrom: null,
-                  modifiedTo: null,
-                  page: "1",
-                });
-              }}
-              onResetSorting={() => {
-                updateUrl({
-                  sortBy: null,
-                  sortDir: null,
-                  page: "1",
-                });
-              }}
-              onResetAll={() => {
-                setSearch("");
-                updateUrl({
-                  search: null,
-                  hasLocale: null,
-                  createdFrom: null,
-                  createdTo: null,
-                  modifiedFrom: null,
-                  modifiedTo: null,
-                  sortBy: null,
-                  sortDir: null,
-                  page: "1",
-                });
-              }}
-            />
-          </>
+        search={
+          <TableSearchInput
+            value={search}
+            onChange={setSearch}
+            placeholder="Search items by value or label"
+            ariaLabel="Search data list items"
+            className="min-w-[12rem] md:flex-none lg:flex-1"
+          />
         }
+        filters={
+          localeOptions.length > 0 ? (
+            <FacetedFilter
+              title="Locale"
+              options={localeOptions}
+              selectedValues={selectedLocales}
+              onValueChange={(values) => {
+                updateUrl({
+                  hasLocale: serializeHasLocaleFilter(values) ?? null,
+                  page: "1",
+                });
+              }}
+            />
+          ) : undefined
+        }
+        activeFilterCount={selectedLocales.size > 0 ? 1 : 0}
+        reset={{
+          hasFilters: hasActiveFilters,
+          hasSorting,
+          onClick: reset.clearFilters,
+          onResetSorting: reset.clearSorting,
+          onResetAll: reset.clearAll,
+        }}
       />
       <Suspense
         fallback={
@@ -499,6 +474,7 @@ function DataListItemsSection({
           updateUrl={updateUrl}
           searchParams={searchParams}
           isPending={isPending}
+          onClearFilters={reset.clearFilters}
         />
       </Suspense>
     </div>
@@ -512,6 +488,7 @@ function DataListItemsPanel({
   updateUrl,
   searchParams,
   isPending,
+  onClearFilters,
 }: Readonly<{
   itemsPromise: Promise<DataListItemsPage>;
   availableLocales: string[];
@@ -519,6 +496,7 @@ function DataListItemsPanel({
   updateUrl: UrlSearchParamsUpdater;
   searchParams: URLSearchParams;
   isPending: boolean;
+  onClearFilters: () => void;
 }>) {
   const paged = use(itemsPromise);
   const footerProps = createPagedTableFooterProps(paged, "items", updateUrl);
@@ -578,13 +556,28 @@ function DataListItemsPanel({
       defaultLocale={defaultLocale}
       sorting={sorting}
       onSortingChange={handleSortingChange}
-      emptyMessage={
-        hasFilters
-          ? "No items match the current filters."
-          : "No items in this list."
+      empty={
+        hasFilters ? (
+          <ItemsFilteredEmpty onClearFilters={onClearFilters} />
+        ) : undefined
       }
       footer={<PagedTableFooter {...footerProps} variant="surface" />}
       isPending={isPending}
     />
+  );
+}
+
+function ItemsFilteredEmpty({
+  onClearFilters,
+}: Readonly<{ onClearFilters: () => void }>) {
+  return (
+    <DataTableEmpty
+      icon={DatabaseZap}
+      title="No matching items"
+      onClearFilters={onClearFilters}
+    >
+      No item matches the search, locale or dates. Search looks at the value and
+      the labels.
+    </DataTableEmpty>
   );
 }

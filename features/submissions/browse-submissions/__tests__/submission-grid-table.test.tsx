@@ -96,6 +96,19 @@ describe("SubmissionGridTable", () => {
     );
   });
 
+  it("shows every row of a 50-row server page", () => {
+    // Arrange
+    const rows = Array.from({ length: 50 }, (_, index) =>
+      row({ id: `${index + 1}` }),
+    );
+
+    // Act
+    renderTable(rows);
+
+    // Assert
+    expect(screen.getAllByText("Complete")).toHaveLength(50);
+  });
+
   it("opens the submission with Enter on a focused row", () => {
     // Arrange
     renderTable([row()]);

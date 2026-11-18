@@ -7,7 +7,7 @@ import "@tanstack/react-table";
  */
 declare module "@tanstack/react-table" {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars -- an augmentation must repeat the declaration's type parameters.
-  interface ColumnMeta<TData, TValue> {
+  interface ColumnMeta<TFeatures, TData, TValue> {
     /** Applied to `<th>` — min-width classes; leftover table width is shared. */
     headerClassName?: string;
     /** Applied to `<td>` — min-width classes; leftover table width is shared. */

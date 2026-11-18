@@ -17,6 +17,8 @@ import { DataTableSurface } from "./data-table-surface";
 
 export interface DataTableSkeletonColumn {
   title: string;
+  /** Shown in place of `title`, as the header's `titleContent` is. */
+  titleContent?: ReactNode;
   /** Applied to both the header cell and the body cells, as `ColumnMeta` does. */
   className?: string;
   /** Placeholder shape for this column; defaults to a short bar. */
@@ -55,9 +57,7 @@ export function DataTableSkeleton({
                     className: column.className,
                   })}
                 >
-                  <span className={dataTableColumnLabelClassName()}>
-                    {column.title}
-                  </span>
+                  <SkeletonColumnLabel column={column} />
                 </TableHead>
               ))}
             </TableRow>
@@ -79,5 +79,15 @@ export function DataTableSkeleton({
         <Skeleton className="h-8 w-48" />
       </div>
     </DataTableSurface>
+  );
+}
+
+function SkeletonColumnLabel({
+  column,
+}: Readonly<{ column: DataTableSkeletonColumn }>) {
+  return (
+    column.titleContent ?? (
+      <span className={dataTableColumnLabelClassName()}>{column.title}</span>
+    )
   );
 }

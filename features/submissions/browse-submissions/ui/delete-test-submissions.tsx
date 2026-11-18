@@ -11,9 +11,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { toast } from "@/components/ui/toast";
 import { Result } from "@/lib/result";
 import { FlaskConical } from "lucide-react";
@@ -28,30 +27,36 @@ import {
   deleteTestsOutcome,
 } from "../submission-test-flag";
 
-type DeleteTestSubmissionsButtonProps = {
-  formId: string;
-  disabled: boolean;
-};
-
-/** Deletes every test submission of the form after a confirm that names the count. */
-export function DeleteTestSubmissionsButton({
-  formId,
-  disabled,
-}: Readonly<DeleteTestSubmissionsButtonProps>) {
+/**
+ * Delete test submissions, an occasional action: an item for the toolbar's `⋯` menu, and its
+ * confirm (which counts on open and names the count), rendered beside the menu so closing the
+ * menu does not unmount it (DESIGN.md §5 Overlays rule 10). `onCloseAutoFocus` returns focus
+ * to `⋯` (`useMoreActionsFocusReturn`).
+ */
+export function useDeleteTestSubmissionsAction(
+  formId: string,
+  disabled: boolean,
+  onCloseAutoFocus?: (event: Event) => void,
+) {
   const dialog = useDeleteTestSubmissions(formId);
-  return (
+  const menuItem = (
+    <DropdownMenuItem
+      disabled={disabled}
+      onSelect={() => dialog.onOpenChange(true)}
+    >
+      <FlaskConical />
+      Delete test submissions…
+    </DropdownMenuItem>
+  );
+  const confirm = (
     <AlertDialog open={dialog.open} onOpenChange={dialog.onOpenChange}>
-      <AlertDialogTrigger asChild>
-        <Button variant="outline" size="sm" disabled={disabled}>
-          <FlaskConical />
-          <span className="sr-only sm:not-sr-only">
-            Delete test submissions
-          </span>
-        </Button>
-      </AlertDialogTrigger>
-      <DeleteTestSubmissionsContent {...dialog} />
+      <DeleteTestSubmissionsContent
+        {...dialog}
+        onCloseAutoFocus={onCloseAutoFocus}
+      />
     </AlertDialog>
   );
+  return { menuItem, confirm };
 }
 
 type DeleteTestSubmissions = ReturnType<typeof useDeleteTestSubmissions>;
@@ -65,9 +70,9 @@ function useTestSubmissionCount(formId: string) {
     const request = ++latest.current; // a reopen supersedes an earlier count
     setCount(null);
     startCounting(async () => {
-      const result = await countTestSubmissionsAction(formId);
+      const result = await countTestSubmissionsAction(formId).catch(() => null);
       if (request !== latest.current) return;
-      setCount(Result.isSuccess(result) ? result.value : null);
+      setCount(result && Result.isSuccess(result) ? result.value : null);
     });
   };
   return { count, isCounting, recount };
@@ -88,14 +93,25 @@ function useDeleteTestSubmissions(formId: string) {
   return { open, onOpenChange, count, isCounting, ...deletion };
 }
 
-/** A refusal stays in the dialog; a success closes it and reads the rows again. */
+const DELETE_TESTS_FAILED = "Test submissions could not be deleted. Try again.";
+
+/**
+ * A refusal stays in the dialog; a success closes it and reads the rows again. A thrown action
+ * (network, server error) shows an error toast and leaves the dialog usable.
+ */
 function useConfirmDelete(formId: string, close: () => void) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [isDeleting, startDeleting] = useTransition();
   const confirm = () =>
     startDeleting(async () => {
-      const result = await deleteTestSubmissionsAction(formId);
+      const result = await deleteTestSubmissionsAction(formId).catch(
+        () => null,
+      );
+      if (!result) {
+        toast.error({ title: DELETE_TESTS_FAILED });
+        return;
+      }
       const outcome = deleteTestsOutcome(result);
       if (outcome.variant === "error") return setError(outcome.message);
       toast.success(outcome.message);
@@ -108,11 +124,15 @@ function useConfirmDelete(formId: string, close: () => void) {
 const DELETE_TESTS_DESCRIPTION =
   "Test submissions in every status are removed from the grid, form counts, and exports. This cannot be undone from Hub.";
 
-function DeleteTestSubmissionsContent(props: Readonly<DeleteTestSubmissions>) {
+type ConfirmProps = DeleteTestSubmissions & {
+  onCloseAutoFocus?: (event: Event) => void;
+};
+
+function DeleteTestSubmissionsContent(props: Readonly<ConfirmProps>) {
   const copy = deleteTestsConfirmCopy(props.count);
   const title = props.isCounting ? "Counting test submissions…" : copy.title;
   return (
-    <AlertDialogContent>
+    <AlertDialogContent onCloseAutoFocus={props.onCloseAutoFocus}>
       <AlertDialogHeader>
         <AlertDialogTitle>{title}</AlertDialogTitle>
         <AlertDialogDescription>

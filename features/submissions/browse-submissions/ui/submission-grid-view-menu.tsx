@@ -46,20 +46,32 @@ export function SubmissionGridViewMenu({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
-        <MetadataColumnItems view={view} />
-        {view.canSave && <SaveViewItem view={view} />}
+        <SubmissionGridViewItems view={view} />
       </DropdownMenuContent>
     </DropdownMenu>
   );
 }
 
-type ViewProps = Readonly<{ view: SubmissionGridView }>;
+type ViewProps = Readonly<{ view: SubmissionGridView; disabled?: boolean }>;
 
-function SaveViewItem({ view }: ViewProps) {
+/** The View menu's items. Below 768 px they sit in the toolbar's `⋯` menu instead. */
+export function SubmissionGridViewItems({ view, disabled = false }: ViewProps) {
+  return (
+    <>
+      <MetadataColumnItems view={view} disabled={disabled} />
+      {view.canSave && <SaveViewItem view={view} disabled={disabled} />}
+    </>
+  );
+}
+
+function SaveViewItem({ view, disabled }: ViewProps) {
   return (
     <>
       <DropdownMenuSeparator />
-      <DropdownMenuItem disabled={view.isSaving} onSelect={view.save}>
+      <DropdownMenuItem
+        disabled={disabled || view.isSaving}
+        onSelect={view.save}
+      >
         Save view for everyone
       </DropdownMenuItem>
     </>
@@ -67,7 +79,7 @@ function SaveViewItem({ view }: ViewProps) {
 }
 
 /** Toggles stay open, so several columns can be shown or hidden at once. */
-function MetadataColumnItems({ view }: ViewProps) {
+function MetadataColumnItems({ view, disabled }: ViewProps) {
   const hidden = new Set(view.hiddenMetadata);
   return (
     <>
@@ -76,6 +88,7 @@ function MetadataColumnItems({ view }: ViewProps) {
         <DropdownMenuCheckboxItem
           key={id}
           checked={!hidden.has(id)}
+          disabled={disabled}
           onCheckedChange={(checked) => view.setMetadataVisible(id, checked)}
           onSelect={(event) => event.preventDefault()}
         >

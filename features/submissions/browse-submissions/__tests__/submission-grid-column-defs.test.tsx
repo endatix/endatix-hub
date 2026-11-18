@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { stubResizeObserver } from "@/test/stubs/resize-observer";
 import type { SubmissionGridColumn } from "@/lib/endatix-api/reporting/submission-grid-types";
 import {
   SUBMISSION_GRID_METADATA_COLUMN_IDS,
@@ -54,13 +55,15 @@ function openAnswerHeaderMenu(column: SubmissionGridColumn) {
     toAnswerColumns([column]),
     FILTERS,
   ).slice(-1);
-  const Header = definition.header as (props: unknown) => React.ReactNode;
+  const Header = definition.header as (props: {
+    column: unknown;
+  }) => React.ReactNode;
   const tableColumn = {
     id: definition.id,
     getCanSort: () => false,
     getIsSorted: () => false,
   };
-  render(<>{Header({ column: tableColumn })}</>);
+  render(<Header column={tableColumn} />);
   fireEvent.pointerDown(screen.getByRole("button", { name: /column menu/i }), {
     button: 0,
     ctrlKey: false,
@@ -131,5 +134,110 @@ describe("answer column header filters", () => {
     // Assert
     expect(screen.getByPlaceholderText("text:city")).toBeTruthy();
     expect(screen.queryByText(/this filter is being prepared/i)).toBeNull();
+  });
+});
+
+/** Renders the header of the one answer column. */
+function renderAnswerHeader(column: SubmissionGridColumn) {
+  const [definition] = buildSubmissionGridColumns(
+    toAnswerColumns([column]),
+    FILTERS,
+  ).slice(-1);
+  const Header = definition.header as (props: {
+    column: unknown;
+  }) => React.ReactNode;
+  render(
+    <Header
+      column={{
+        id: definition.id,
+        getCanSort: () => false,
+        getIsSorted: () => false,
+      }}
+    />,
+  );
+}
+
+const FORMATTED_TITLE =
+  'Which brands of <span style="color:#09f">{category}</span> do you know? <em>Select all.</em>';
+const PLAIN_TITLE = "Which brands of {category} do you know? Select all.";
+
+describe("answer column header label", () => {
+  beforeEach(() => {
+    stubResizeObserver();
+  });
+
+  it("shows the question name and describes it with the plain title", () => {
+    renderAnswerHeader(
+      wireColumn("brands__Alpha", "ChoiceIndicator", {
+        title: FORMATTED_TITLE,
+      }),
+    );
+
+    const label = screen.getByRole("button", { name: "brands__Alpha" });
+    expect(label.textContent).not.toContain(PLAIN_TITLE);
+    const descriptionId = label.getAttribute("aria-describedby") ?? "";
+    expect(document.getElementById(descriptionId)?.textContent).toBe(
+      PLAIN_TITLE,
+    );
+    expect(screen.queryByRole("tooltip")).toBeNull();
+  });
+
+  it("reveals the plain title on keyboard focus", async () => {
+    renderAnswerHeader(
+      wireColumn("QAIDED", "Simple", { title: FORMATTED_TITLE }),
+    );
+
+    const label = screen.getByRole("button", { name: "QAIDED" });
+    fireEvent.focus(label);
+
+    const tooltip = await screen.findByRole("tooltip");
+    expect(tooltip.textContent).toBe(`QAIDED — ${PLAIN_TITLE}`);
+    expect(label.getAttribute("aria-describedby")).toBe(tooltip.id);
+  });
+
+  it("reveals the plain title on a tap", async () => {
+    renderAnswerHeader(
+      wireColumn("QAIDED", "Simple", { title: FORMATTED_TITLE }),
+    );
+    const label = screen.getByRole("button", { name: "QAIDED" });
+
+    fireEvent.pointerDown(label, { pointerType: "touch" });
+    fireEvent.click(label);
+
+    expect((await screen.findByRole("tooltip")).textContent).toBe(
+      `QAIDED — ${PLAIN_TITLE}`,
+    );
+  });
+
+  it("keeps the question name in its own case", () => {
+    renderAnswerHeader(
+      wireColumn("brands__Alpha", "ChoiceIndicator", {
+        title: FORMATTED_TITLE,
+      }),
+    );
+
+    const label = screen.getByRole("button", { name: "brands__Alpha" });
+    expect(label.className).toContain("normal-case");
+    expect(label.className).not.toContain("uppercase");
+  });
+
+  it("shows only the name when the question has no title", () => {
+    const name = "brand_awareness_aided_recall_category_grid__Alpha";
+    renderAnswerHeader(wireColumn(name, "ChoiceIndicator", { title: "" }));
+
+    const tail = screen.getByText("__Alpha");
+    expect(tail.closest(".normal-case")?.textContent).toContain(name);
+    expect(screen.queryByRole("button", { name })).toBeNull();
+  });
+
+  it("keeps the title of a submitter profile column", () => {
+    renderAnswerHeader(
+      wireColumn("submitter_city", "SubmitterProfile", {
+        title: "City",
+      }),
+    );
+
+    expect(screen.getByText("City").className).toContain("uppercase");
+    expect(screen.queryByText("submitter_city")).toBeNull();
   });
 });

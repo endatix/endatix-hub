@@ -9,6 +9,8 @@ export {
   TextFilterControls,
   type DataTableColumnHeaderProps,
 } from "./data-table-column-header";
+export { DataTableColumnLabelReveal } from "./data-table-column-label-reveal";
+export { DataTableColumnName } from "./data-table-column-name";
 export type { DateFilterValue } from "./date-filter-types";
 export {
   FacetedFilter,
@@ -44,7 +46,13 @@ export {
   DataTableRowActions,
   type DataTableRowAction,
 } from "./data-table-row-actions";
-export { DataTableToolbar } from "./data-table-toolbar";
+export {
+  DataTableToolbar,
+  type DataTableToolbarCollapsibleActions,
+} from "./data-table-toolbar";
+export { useMoreActionsFocusReturn } from "./data-table-more-actions";
+export { DataTableFilter } from "./data-table-filter";
+export { listFilterReset, type ListFilterReset } from "./list-filter-reset";
 export { PagedCardList } from "./paged-card-list";
 export { PagedListFrame } from "./paged-list-frame";
 export {
@@ -56,7 +64,10 @@ export {
   PagedTableFooter,
   type PagedTableFooterProps,
 } from "./paged-table-footer";
-export { ResetFiltersButton } from "./reset-filters-button";
+export {
+  ResetFiltersButton,
+  type ResetFiltersButtonProps,
+} from "./reset-filters-button";
 export {
   dataTableCell,
   StaticDataTable,
@@ -70,6 +81,7 @@ export {
   useListTableState,
   type ListTableUrlState,
 } from "./use-list-table-state";
+export { hubTableFeatures } from "./hub-table-features";
 export { useHeldHeight } from "./use-held-height";
 export { useListUrlState, type ListUrlState } from "./use-list-url-state";
 export {

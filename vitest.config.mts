@@ -3,11 +3,20 @@ import { fileURLToPath } from "node:url";
 import { defineConfig, configDefaults } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import tsconfigPaths from "vite-tsconfig-paths";
+import { reactCompilerInTests } from "./test/react-compiler-plugin";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+/** Shared grids whose tests must see the React Compiler's memoization (#1418). */
+const COMPILED_IN_TESTS =
+  /\/(components\/table|features\/submissions\/browse-submissions\/ui)\/[^/]+\.tsx$/;
+
 export default defineConfig({
-  plugins: [tsconfigPaths({ projects: ["./tsconfig.vitest.json"] }), react()],
+  plugins: [
+    tsconfigPaths({ projects: ["./tsconfig.vitest.json"] }),
+    reactCompilerInTests(COMPILED_IN_TESTS),
+    react(),
+  ],
   resolve: {
     alias: {
       "server-only": path.resolve(__dirname, "test/mocks/server-only.ts"),
@@ -25,7 +34,15 @@ export default defineConfig({
     testTimeout: 15_000,
     server: {
       deps: {
-        inline: ["next-auth"],
+        inline: [
+          "next-auth",
+          // SurveyJS 3.2.5 records property reads on a static of survey-core.
+          // Prebundling survey-react-ui keeps a second copy, so those reads never subscribe.
+          "survey-core",
+          "survey-react-ui",
+          "survey-creator-core",
+          "survey-creator-react",
+        ],
       },
     },
     exclude: [...configDefaults.exclude, "e2e/**", "**/.*/worktrees/**"],
@@ -33,6 +50,8 @@ export default defineConfig({
       include: [
         "app/**/*.{ts,tsx}",
         "components/**/*.tsx",
+        // Sonar counts this module. The components glob above is tsx only.
+        "components/table/hub-table-features.ts",
         "extensions/**/*.ts",
         "features/**/*.ts",
         "lib/**/*.{ts,tsx}",
