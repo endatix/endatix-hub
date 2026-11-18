@@ -1,6 +1,5 @@
 "use client";
 
-import { useBrand } from "@/lib/branding/client";
 import * as React from "react";
 import { ChevronsUpDown, Plus } from "lucide-react";
 
@@ -19,7 +18,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { BrandLogo } from "@/lib/branding/client";
+import { BrandLogo, useBrand } from "@/lib/branding/client";
 
 function DeploymentIcon({ className }: Readonly<{ className?: string }>) {
   return <BrandLogo variant="icon" className={className} />;
