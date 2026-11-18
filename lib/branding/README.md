@@ -63,7 +63,9 @@ What the Hub does with it:
   canvas, sidebar, cards, muted/accent and the surface containers). Each starts from the
   built-in look, primary at 90% and ring at 50% over the page. A hover whose label would not
   read takes the same step the other way; a ring that would not read darkens or lightens until
-  it does. Without a pack both fall back to exactly `bg-primary/90` and `ring-ring/50`.
+  it does. Without a pack the hover falls back to exactly `bg-primary/90`, and `app/globals.css`
+  declares `--focus-ring` in `:root` and `.dark` with what `derivePalette` gives the built-in
+  colour (`palette.test.ts` checks both stay equal and reach 3:1).
   - `--primary-hover` (`bg-primary-hover`): the default `Button` and the default link `Badge`.
   - `--focus-ring` (`ring-focus-ring`, `outline-focus-ring`): every element's base outline
     (`app/globals.css`), and the focus ring of `Button`, `Badge`, `Input`, `Textarea`, `Select`,

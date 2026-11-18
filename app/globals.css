@@ -116,7 +116,8 @@
   --input: hsl(214.3 31.8% 91.4%);
   --ring: hsl(216 100% 41%);
   /* The keyboard focus ring: --ring softened toward the page, but at least 3:1
-     on every surface (derivePalette's value, see lib/branding/palette.ts). */
+     on every surface. It is derivePalette's value for the built-in colour;
+     lib/branding/__tests__/palette.test.ts fails when the two drift. */
   --focus-ring: #5c84c0;
 
   --radius: 0.5rem;

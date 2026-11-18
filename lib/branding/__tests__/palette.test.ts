@@ -305,7 +305,7 @@ describe("checkBrandContrast", () => {
 /** `--focus-ring` as app/globals.css declares it in `:root` or `.dark`. */
 function builtInFocusRing(selector: ":root" | ".dark"): string | undefined {
   const css = readFileSync(
-    path.join(process.cwd(), "app", "globals.css"),
+    path.resolve(import.meta.dirname, "../../../app/globals.css"),
     "utf8",
   );
   const block = new RegExp(
