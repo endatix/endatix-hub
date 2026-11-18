@@ -165,36 +165,32 @@ const MODES = ["light", "dark"] as const;
 const ratio = (a: string, b: string) =>
   contrastRatio(parseCssColor(a)!, parseCssColor(b)!);
 
-function expectReadableStates(palette: ReturnType<typeof derivePalette>) {
+function expectReadableStates(accent: string, onDark?: string) {
+  const palette = derivePalette(color(accent, onDark));
+  const name = onDark ? `${accent} / on-dark ${onDark}` : accent;
   for (const mode of MODES) {
     const tokens = palette[mode];
     expect(
       ratio(tokens["--primary-hover"], tokens["--primary-foreground"]),
-      `${mode} hover label`,
+      `${name}: ${mode} hover label`,
     ).toBeGreaterThanOrEqual(4.5);
     for (const surface of FOCUS_SURFACES[mode])
       expect(
         ratio(tokens["--focus-ring"], surface),
-        `${mode} focus ring on ${surface}`,
+        `${name}: ${mode} focus ring on ${surface}`,
       ).toBeGreaterThanOrEqual(3);
   }
 }
 
 describe("derivePalette: interactive states", () => {
   it("keeps the hover label and focus ring readable for a pale accent", () => {
-    // Act: #747474 passes at rest, but primary/90 on white is 3.85:1 and ring/50 is 1.95:1.
-    const palette = derivePalette(color("#747474"));
-
-    // Assert
-    expectReadableStates(palette);
+    // Act / Assert: #747474 passes at rest, but primary/90 on white is 3.85:1 and ring/50 is 1.95:1.
+    expectReadableStates("#747474");
   });
 
   it("keeps the hover label and focus ring readable for a dark accent on the dark page", () => {
-    // Act
-    const palette = derivePalette(color("#0b6b5d", "#0a1a2a"));
-
-    // Assert
-    expectReadableStates(palette);
+    // Act / Assert
+    expectReadableStates("#0b6b5d", "#0a1a2a");
   });
 
   it("still shows a hover for a pale accent, stepping the other way", () => {
@@ -233,13 +229,12 @@ describe("derivePalette: interactive states", () => {
         [0, 50, 100].map((s) => `hsl(${h} ${s}% ${l}%)`),
       ),
     );
-    const accents = shades.flatMap((shade) => [
-      color(shade),
-      color("#0b6b5d", shade),
-    ]);
 
     // Act / Assert
-    for (const accent of accents) expectReadableStates(derivePalette(accent));
+    for (const shade of shades) {
+      expectReadableStates(shade);
+      expectReadableStates("#0b6b5d", shade);
+    }
   });
 });
 

@@ -29,7 +29,7 @@ export function CardOpenSurface({
         type="button"
         aria-label={label}
         onClick={onOpen}
-        className="absolute inset-0 cursor-pointer rounded-[inherit] outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+        className="absolute inset-0 cursor-pointer rounded-[inherit] outline-none focus-visible:ring-[3px] focus-visible:ring-focus-ring"
       />
     </div>
   );

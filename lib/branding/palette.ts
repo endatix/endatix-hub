@@ -79,20 +79,34 @@ const REFERENCE: Record<
   },
 };
 
-/** The page each mode's primary sits on (`--background`). */
-const PAGE_BACKGROUND: Record<ColorMode, string> = {
-  light: "hsl(0 0% 100%)",
-  dark: "#000f21",
-};
-
 /**
- * Where a focused control can sit in each mode, page first: `--background`,
- * `--content-canvas`, `--card` / `--popover` and `--sidebar` in app/globals.css.
- * A focus ring has to read on all of them.
+ * The surfaces a focus ring can sit on in each mode, from app/globals.css; the
+ * ring has to read at 3:1 on all of them. The page (`--background`) is first.
+ * light: background, content-canvas, sidebar, muted / accent / secondary,
+ *   surface-container-low, -container, -high (card, popover and
+ *   surface-container-lowest equal the background).
+ * dark: background, content-canvas, card / popover / surface-container,
+ *   muted / accent / surface-container-high, surface-container-low and -lowest.
+ *   Dark `--secondary` (#9e9da1) is left out: it fills secondary buttons, and
+ *   no colour reaches 3:1 on both it and the dark page.
  */
 export const FOCUS_SURFACES: Record<ColorMode, readonly string[]> = {
-  light: ["hsl(0 0% 100%)", "hsl(214 88% 97%)", "hsl(0 0% 98%)"],
-  dark: ["#000f21", "#001225", "#001a34"],
+  light: [
+    "hsl(0 0% 100%)",
+    "hsl(214 88% 97%)",
+    "hsl(0 0% 98%)",
+    "hsl(210 40% 96.1%)",
+    "hsl(212 100% 97%)",
+    "hsl(212 100% 94%)",
+    "hsl(212 100% 92%)",
+  ],
+  dark: ["#000f21", "#001225", "#001a34", "#00203e", "#00142a", "#000000"],
+};
+
+/** The page each mode's primary sits on (`--background`). */
+const PAGE_BACKGROUND: Record<ColorMode, string> = {
+  light: FOCUS_SURFACES.light[0],
+  dark: FOCUS_SURFACES.dark[0],
 };
 
 const WHITE: Rgb = { r: 1, g: 1, b: 1 };
