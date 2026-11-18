@@ -25,29 +25,10 @@ import {
 import {
   loadCarryForwardTargetsFromPropertyChange,
   syncCarryForwardTargets,
+  syncNewCarryForwardTargets,
 } from "./carry-forward-sync";
-import { syncSingleCarryForwardTarget } from "../use-cases/sync-carry-forward-target";
 
 const boundModelsForTests = new Map<Model, () => void>();
-
-/**
- * Syncs targets outside the update guard, as bind and loop-panel creation always
- * have, then re-runs expressions so calculated values see the carried choices
- * (see syncCarryForwardTargetsAndRunExpressions).
- */
-function syncTargetsAndRunExpressions(
-  model: Model,
-  targets: AdvancedCarryForwardQuestion[],
-): void {
-  let changed = false;
-  for (const target of targets) {
-    changed = syncSingleCarryForwardTarget(model, target) || changed;
-  }
-
-  if (changed) {
-    model.runExpressions();
-  }
-}
 
 type PropertyChangeHandler = (_: unknown, options: { name: string }) => void;
 
@@ -193,7 +174,7 @@ function attachCarryForwardPropertyChangeHandlers(model: Model): () => void {
   // In design mode the created question is a template one: leave it as authored.
   const handleQuestionCreated = (_: unknown, options: QuestionCreatedEvent) => {
     if (!model.isDesignMode && targets.attach(options.question)) {
-      syncTargetsAndRunExpressions(model, [
+      syncNewCarryForwardTargets(model, [
         options.question as AdvancedCarryForwardQuestion,
       ]);
     }
@@ -226,7 +207,7 @@ export function bindAdvancedCarryForwardToSurvey(model: Model): () => void {
   const detachPropertyHandlers =
     attachCarryForwardPropertyChangeHandlers(model);
 
-  syncTargetsAndRunExpressions(
+  syncNewCarryForwardTargets(
     model,
     getCarryForwardTargetsInDependencyOrder(model),
   );
