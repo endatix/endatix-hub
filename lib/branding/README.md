@@ -31,7 +31,9 @@ project token). The same image serves either brand, with no rebuild.
 }
 ```
 
-- Only `version` and `name` are required; anything left out keeps the built-in value. The full
+- Only `version` and `name` are required. A pack never shows Endatix's name or links: the
+  name stands in for the legal name and the personas ("<name> AI Assistant", "<name> Bot"), and
+  a link the pack leaves out is hidden. Files left out keep the built-in artwork. The full
   shape is [`brand.schema.json`](brand.schema.json); `fixtures/` holds the shared examples.
 - Colours: hex, `rgb()`, `hsl()` or `oklch()`. `primary-on-dark` is optional; without it the
   dark-mode accent is derived from `primary`.
@@ -75,15 +77,19 @@ to the current one. Responses are `private`: under PostHog the flag can differ p
 
 ## Code
 
-| Import                                                   | For                                                                                                                                                                                              |
-| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `getBrand()` from `@/lib/branding/server`                | Server Components. Pass the result to `AppProvider` as `brand`.                                                                                                                                  |
-| `RESPONDENT_BRAND_DEFERRED` from `@/lib/branding/server` | `/share` and `/embed` layouts: respondent pages stay on the built-in brand for now.                                                                                                              |
-| `brandMetadata(page?)` from `@/lib/branding/server`      | every root layout's and page's `generateMetadata`: title `"<page> \| <name>"`, application name, publisher, icon, and with a page the social image. Spread it first, then the page's own fields. |
-| `brandRouteResponse()` from `@/lib/branding/server`      | the `/brand/*` route only                                                                                                                                                                        |
-| `useBrand()` from `@/lib/branding/client`                | Client Components under `AppProvider`                                                                                                                                                            |
-| `BrandLogo` from `@/lib/branding/client`                 | the brand's logo (`variant="logo"`), icon (`"icon"`) or sidebar lockup (`"lockup"`), light and dark. Never hand-write the `dark:hidden` / `dark:block` image pair.                               |
-| `type Brand`                                             | either side                                                                                                                                                                                      |
+| Import                                                                     | For                                                                                                                                                                                              |
+| -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `getBrand()` from `@/lib/branding/server`                                  | Server Components. Pass the result to `AppProvider` as `brand`.                                                                                                                                  |
+| `RESPONDENT_BRAND_DEFERRED` from `@/lib/branding/server`                   | `/share` and `/embed` layouts: respondent pages stay on the built-in brand for now.                                                                                                              |
+| `brandMetadata(page?)` from `@/lib/branding/server`                        | every root layout's and page's `generateMetadata`: title `"<page> \| <name>"`, application name, publisher, icon, and with a page the social image. Spread it first, then the page's own fields. |
+| `brandRouteResponse()` from `@/lib/branding/server`                        | the `/brand/*` route only                                                                                                                                                                        |
+| `useBrand()` from `@/lib/branding/client`                                  | Client Components under `AppProvider`                                                                                                                                                            |
+| `BrandLogo` from `@/lib/branding/client`                                   | the brand's logo (`variant="logo"`), icon (`"icon"`) or sidebar lockup (`"lockup"`), light and dark. Never hand-write the `dark:hidden` / `dark:block` image pair.                               |
+| `brandAuthors(brand)`, `brandKeywords(brand)` from `@/lib/branding/server` | a page's `authors` and `keywords` metadata                                                                                                                                                       |
+| `brandUrl(brand, key, builtInUrl)` from either side                        | a deep link into the brand's site: `builtInUrl` while the link is the built-in one, else the pack's link, or undefined (hide it)                                                                 |
+| `isPoweredByShown(brand, envShown)` from either side                       | the "Powered by" line: the pack's `poweredBy` wins, `ENDATIX_SHOW_POWERED_BY` is the fallback                                                                                                    |
+| `withIndefiniteArticle(name)` from either side                             | "an Endatix", "a Example…" in running text                                                                                                                                                       |
+| `type Brand`                                                               | either side                                                                                                                                                                                      |
 
 Titles: `brandMetadata({ title: "Sign in" })` gives `Sign in | <name>`. A page whose title
 today has another shape passes it as `builtInTitle` (`{ title: "Form", builtInTitle: "Endatix
@@ -102,3 +108,15 @@ the accent. It is not hoisted: React keeps a hoisted style after a refresh to an
 The zod schema in `schema.ts` is canonical. After changing it, run `pnpm brand:schema` to
 rewrite `brand.schema.json`; a test fails while the two differ. The API keeps a copy of that
 file and of `fixtures/`.
+
+## Copy
+
+UI text names the product through the brand: `brand.name` ("Endatix Hub") in titles and
+descriptions, `brand.shortName` ("Endatix") in running text ("About …", "the … API", "… Team"),
+`brand.personas` for the assistant and the bot, and `brand.tagline` for the sign-in hero. With
+no pack each gives the literal it replaced, so the Hub reads exactly as before.
+
+ESLint's `no-restricted-syntax` rejects "Endatix" or an endatix.com link in a string, template,
+or JSX text outside this folder and tests. `productNameBaseline` in `eslint.config.mjs` lists
+the files that still do; it only shrinks. A built-in value used only while no pack applies
+takes an `eslint-disable-next-line` with that reason.
