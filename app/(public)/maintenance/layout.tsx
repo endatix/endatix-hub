@@ -1,8 +1,7 @@
 import { AppProvider } from "@/components/providers";
 import { AppOptions } from "@/components/providers/app-options";
 import { getClientEndatixConfig } from "@/features/config/server";
-import { getBrand } from "@/lib/branding/server";
-import { getPublicAssetPath } from "@/lib/hosting";
+import { brandMetadata, getBrand } from "@/lib/branding/server";
 import { getMetadataBase } from "@/lib/seo";
 import { Metadata } from "next";
 
@@ -12,10 +11,13 @@ import { Metadata } from "next";
  * follows the OS colour scheme on its own.
  */
 
-export const metadata: Metadata = {
-  metadataBase: getMetadataBase(),
-  title: "Scheduled maintenance",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    ...(await brandMetadata()),
+    metadataBase: getMetadataBase(),
+    title: "Scheduled maintenance",
+  };
+}
 
 interface MaintenanceLayoutProps {
   children: React.ReactNode;
@@ -31,13 +33,7 @@ export default async function MaintenanceLayout({
 
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        <link
-          rel="icon"
-          href={getPublicAssetPath("/assets/icons/icon.svg")}
-          type="image/svg+xml"
-        />
-      </head>
+      <head />
       <body>
         <AppProvider
           options={AppOptions.StatusPages}

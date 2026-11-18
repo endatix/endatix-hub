@@ -2,30 +2,29 @@ import "@/app/globals.css";
 import { auth } from "@/auth";
 import { AppProvider } from "@/components/providers";
 import { geistMono, geistSans } from "@/lib/fonts/geist-local";
-import { getPublicAssetPath } from "@/lib/hosting";
 import { getOsClass } from "@/lib/utils/next-utils";
 import { Metadata } from "next";
 import { cookies, headers } from "next/headers";
 import { getMetadataBase } from "@/lib/seo";
 import { getClientEndatixConfig } from "@/features/config/server";
-import { getBrand } from "@/lib/branding/server";
+import { brandMetadata, getBrand } from "@/lib/branding/server";
 import { SupportAccessBannerSlot } from "@/features/platform-admin/assume-tenant/ui/support-access-banner-slot";
 
-export const metadata: Metadata = {
-  metadataBase: getMetadataBase(),
-  title: "Endatix Hub",
-  description: "Customizable form management platform",
-  generator: "Endatix",
-  keywords: [
-    "endatix",
-    "endatix hub",
-    "endatix hub app",
-    "forms-management",
-    "ai-form-builder",
-  ],
-  applicationName: "Endatix Hub",
-  publisher: "Endatix Ltd.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    ...(await brandMetadata()),
+    metadataBase: getMetadataBase(),
+    description: "Customizable form management platform",
+    generator: "Endatix",
+    keywords: [
+      "endatix",
+      "endatix hub",
+      "endatix hub app",
+      "forms-management",
+      "ai-form-builder",
+    ],
+  };
+}
 
 interface RootLayoutProps {
   children: React.ReactNode;
@@ -52,13 +51,7 @@ export default async function RootLayout({
 
   return (
     <html lang="en" className={osClass} suppressHydrationWarning>
-      <head>
-        <link
-          rel="icon"
-          href={getPublicAssetPath("/assets/icons/icon.svg")}
-          type="image/svg+xml"
-        />
-      </head>
+      <head />
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <AppProvider
           session={session}

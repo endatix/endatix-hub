@@ -5,6 +5,7 @@ import {
   SIGNOUT_PATH,
 } from "@/features/auth/infrastructure/auth-constants";
 import { Metadata } from "next";
+import { brandMetadata } from "@/lib/branding/server";
 import Link from "next/link";
 import { AuthErrorType } from "@/features/auth/shared/auth.types";
 import { auth } from "@/auth";
@@ -12,29 +13,24 @@ import {
   resolveErrorPresentation,
   type ErrorPresentation,
 } from "@/lib/errors/error-presentation";
-import { getPublicAssetPath } from "@/lib/hosting";
 import { ROBOTS } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Authentication failed | Endatix Hub",
-  description: "Authentication failed the Endatix Hub form management portal.",
-  authors: [
-    {
-      name: "Endatix Team",
-      url: "https://endatix.com",
-    },
-  ],
-  openGraph: {
-    description:
-      "Authentication failed the Endatix Hub form management portal.",
-    images: [
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    ...(await brandMetadata({
+      title: "Authentication failed",
+      description:
+        "Authentication failed the Endatix Hub form management portal.",
+    })),
+    authors: [
       {
-        url: getPublicAssetPath("/assets/endatix-og-image.jpg"),
+        name: "Endatix Team",
+        url: "https://endatix.com",
       },
     ],
-  },
-  robots: ROBOTS.hiddenPage,
-};
+    robots: ROBOTS.hiddenPage,
+  };
+}
 
 interface AuthErrorPresentation extends ErrorPresentation {
   /** Branch name shown to the user to quote at support. Not the HTTP status. */

@@ -2,27 +2,28 @@ import "@/app/globals.css";
 import { auth } from "@/auth";
 import { AppProvider } from "@/components/providers";
 import { getClientEndatixConfig } from "@/features/config/server";
-import { getBrand } from "@/lib/branding/server";
+import { brandMetadata, getBrand } from "@/lib/branding/server";
 import { geistMono, geistSans } from "@/lib/fonts/geist-local";
-import { getPublicAssetPath } from "@/lib/hosting";
 import type { Metadata } from "next";
 import { getMetadataBase } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  metadataBase: getMetadataBase(),
-  title: "Endatix Hub - Error",
-  description: "An error occurred while loading the page.",
-  generator: "Endatix",
-  keywords: [
-    "endatix",
-    "endatix hub",
-    "endatix hub app",
-    "forms-management",
-    "ai-form-builder",
-  ],
-  applicationName: "Endatix Hub",
-  publisher: "Endatix Ltd.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const [metadata, brand] = await Promise.all([brandMetadata(), getBrand()]);
+  return {
+    ...metadata,
+    metadataBase: getMetadataBase(),
+    title: `${brand.name} - Error`,
+    description: "An error occurred while loading the page.",
+    generator: "Endatix",
+    keywords: [
+      "endatix",
+      "endatix hub",
+      "endatix hub app",
+      "forms-management",
+      "ai-form-builder",
+    ],
+  };
+}
 
 interface UnauthorizedLayoutProps {
   children: React.ReactNode;
@@ -39,13 +40,7 @@ export default async function UnauthorizedLayout({
 
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        <link
-          rel="icon"
-          href={getPublicAssetPath("/assets/icons/icon.svg")}
-          type="image/svg+xml"
-        />
-      </head>
+      <head />
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <AppProvider
           session={session}

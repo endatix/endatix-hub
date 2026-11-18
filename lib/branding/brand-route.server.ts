@@ -19,8 +19,8 @@ const ALIASES: ReadonlyMap<string, (brand: Brand) => string> = new Map([
 const NOT_FOUND = () => new Response("Not found", { status: 404 });
 
 /**
- * GET /brand/<path>. Serves the deployment brand only: the `brand.css`, `icon`,
- * `logo-light` and `logo-dark` aliases, and the files the pack's brand.json
+ * GET /brand/<path>. Serves the deployment brand only: the `brand.css`, `name`,
+ * `icon`, `logo-light` and `logo-dark` aliases, and the files the pack's brand.json
  * names (nothing else in the folder, brand.json included).
  */
 export async function brandRouteResponse(
@@ -31,6 +31,7 @@ export async function brandRouteResponse(
   const name = segments.join("/");
 
   if (name === "brand.css") return stylesheetRoute(brand, request);
+  if (name === "name") return nameRoute(brand);
   const alias = ALIASES.get(name);
   if (alias) return redirectTo(alias(brand));
 
@@ -64,6 +65,16 @@ function stylesheetRoute(brand: Brand, request: Request): Promise<Response> {
       }),
     );
   return cached(request, `"${hash.slice(0, 12)}"`, respond);
+}
+
+/** For a client root that cannot read the brand (`global-error.tsx`'s title). */
+function nameRoute(brand: Brand): Response {
+  return new Response(brand.name, {
+    headers: {
+      "Content-Type": "text/plain; charset=utf-8",
+      "Cache-Control": "private, no-cache",
+    },
+  });
 }
 
 function redirectTo(location: string): Response {

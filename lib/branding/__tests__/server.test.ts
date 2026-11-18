@@ -161,6 +161,34 @@ describe("getBrand", () => {
   });
 });
 
+describe("brandMetadata", () => {
+  it("titles a page with the mounted pack's name", async () => {
+    // Arrange
+    pack.write({});
+    const { brandMetadata } = await load();
+
+    // Act
+    const metadata = await brandMetadata({ title: "Sign in" });
+
+    // Assert
+    expect(metadata.title).toBe("Sign in | Example Forms");
+    expect(metadata.applicationName).toBe("Example Forms");
+  });
+
+  it("keeps the built-in title while the flag is off", async () => {
+    // Arrange
+    pack.write({});
+    flagState.on = false;
+    const { brandMetadata } = await load();
+
+    // Act
+    const metadata = await brandMetadata({ title: "Sign in" });
+
+    // Assert
+    expect(metadata.title).toBe("Sign in | Endatix Hub");
+  });
+});
+
 describe("pack errors at request time", () => {
   it("applies a fix that only adds the file a rejected brand.json named", async () => {
     // Arrange

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { brandMetadata } from "@/lib/branding/server";
 import {
   Card,
   CardContent,
@@ -17,26 +18,21 @@ import {
   RETURN_URL_PARAM,
 } from "@/features/auth/infrastructure";
 import SigninForm from "@/features/auth/use-cases/signin/ui/signin-form";
-import { getPublicAssetPath } from "@/lib/hosting";
 
-export const metadata: Metadata = {
-  title: "Sign in | Endatix Hub",
-  description: "Sign in the Endatix Hub form management portal.",
-  authors: [
-    {
-      name: "Endatix Team",
-      url: "https://endatix.com",
-    },
-  ],
-  openGraph: {
-    description: "Sign in the Endatix Hub form management portal.",
-    images: [
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    ...(await brandMetadata({
+      title: "Sign in",
+      description: "Sign in the Endatix Hub form management portal.",
+    })),
+    authors: [
       {
-        url: getPublicAssetPath("/assets/endatix-og-image.jpg"),
+        name: "Endatix Team",
+        url: "https://endatix.com",
       },
     ],
-  },
-};
+  };
+}
 
 interface SignInPageProps {
   searchParams: Promise<{

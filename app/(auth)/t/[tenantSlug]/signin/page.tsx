@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { brandMetadata } from "@/lib/branding/server";
 import Link from "next/link";
 import { auth, authPresentation } from "@/auth";
 import { Button } from "@/components/ui/button";
@@ -15,9 +16,10 @@ import { TenantPublicUnavailable } from "@/features/tenants/public-tenant/ui/ten
 import { tenantPublicRegisterPath } from "@/features/platform-admin/tenant-registration";
 import { Result } from "@/lib/result";
 
-export const metadata: Metadata = {
-  title: "Sign in | Endatix Hub",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { title } = await brandMetadata({ title: "Sign in" });
+  return { title };
+}
 
 interface TenantSignInPageProps {
   params: Promise<{ tenantSlug: string }>;
