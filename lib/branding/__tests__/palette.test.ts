@@ -225,13 +225,17 @@ describe("derivePalette: interactive states", () => {
 
   it("holds both minimums for every accent the validator accepts", () => {
     // Arrange: any parseable colour is accepted, so sweep hue, lightness and chroma.
-    const accents: BrandColor[] = [];
-    for (let h = 0; h < 360; h += 30)
-      for (let l = 0; l <= 100; l += 10)
-        for (const s of [0, 50, 100]) {
-          accents.push(color(`hsl(${h} ${s}% ${l}%)`));
-          accents.push(color("#0b6b5d", `hsl(${h} ${s}% ${l}%)`));
-        }
+    const steps = (to: number, by: number) =>
+      Array.from({ length: Math.floor(to / by) + 1 }, (_, i) => i * by);
+    const shades = steps(330, 30).flatMap((h) =>
+      steps(100, 10).flatMap((l) =>
+        [0, 50, 100].map((s) => `hsl(${h} ${s}% ${l}%)`),
+      ),
+    );
+    const accents = shades.flatMap((shade) => [
+      color(shade),
+      color("#0b6b5d", shade),
+    ]);
 
     // Act / Assert
     for (const accent of accents) expectReadableStates(derivePalette(accent));

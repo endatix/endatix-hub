@@ -155,10 +155,7 @@ function tokensFor(
   hue: BrandHue,
 ): BrandTokenValues {
   const primaryHex = toHex(primary);
-  const foreground = foregroundFor(
-    primary,
-    follow(reference(mode, "--primary-foreground"), hue),
-  );
+  const foreground = foregroundFor(mode, primary, hue);
   return {
     "--primary": primaryHex,
     "--primary-foreground": foreground,
@@ -209,7 +206,8 @@ function dimFor(mode: ColorMode, primary: Rgb): string {
  * The tinted built-in foreground when it reads, else white or black, whichever
  * reads better. Checked on the hex values the stylesheet will carry.
  */
-function foregroundFor(primary: Rgb, tinted: Oklch): string {
+function foregroundFor(mode: ColorMode, primary: Rgb, hue: BrandHue): string {
+  const tinted = follow(reference(mode, "--primary-foreground"), hue);
   const candidate = toHex(fromOklch(tinted));
   const asWritten = (hex: string) => parseCssColor(hex)!;
   if (
