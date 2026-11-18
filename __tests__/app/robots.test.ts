@@ -1,5 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import robots, { MAIN_ENDATIX_RULES, RESTRICTED_RULES } from '@/app/robots';
+import robots, {
+  defaultRobotsDomain,
+  MAIN_ENDATIX_RULES,
+  RESTRICTED_RULES,
+} from '@/app/robots';
 import { headers } from 'next/headers';
 import { type ReadonlyHeaders } from 'next/dist/server/web/spec-extension/adapters/headers';
 
@@ -25,6 +29,12 @@ function createMockHeaders(hostValue: string): ReadonlyHeaders {
 vi.mock('next/headers', () => ({
   headers: vi.fn()
 }));
+
+vi.mock('@/lib/branding/server', async () => {
+  const { BUILT_IN_LAYER, mergeBrand } = await import('@/lib/branding/layers');
+  const { brandUrl } = await import('@/lib/branding/copy');
+  return { brandUrl, getBrand: async () => mergeBrand([BUILT_IN_LAYER]) };
+});
 
 describe('Robots.ts rule sets', () => {
   it('should define proper rule sets', () => {
@@ -134,4 +144,19 @@ describe('Robots.ts metadata route', () => {
     // Assert
     expect(result.rules).toEqual(RESTRICTED_RULES);
   });
-}); 
+});
+
+describe('defaultRobotsDomain', () => {
+  it('is app.endatix.com for the built-in brand', () => {
+    expect(
+      defaultRobotsDomain({ links: { website: 'https://endatix.com' } }),
+    ).toBe('app.endatix.com');
+  });
+
+  it('is none under a brand pack', () => {
+    expect(
+      defaultRobotsDomain({ links: { website: 'https://example.com' } }),
+    ).toBeUndefined();
+    expect(defaultRobotsDomain({ links: {} })).toBeUndefined();
+  });
+});

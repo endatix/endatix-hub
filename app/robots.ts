@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next';
 import { headers } from 'next/headers';
+import { brandUrl, getBrand, type Brand } from '@/lib/branding/server';
 
 /**
  * Rule set for main Endatix domains that allow login access
@@ -34,7 +35,7 @@ export const RESTRICTED_RULES = [
  */
 export default async function robots(): Promise<MetadataRoute.Robots> {
   // Default fallback domain that should always allow /login
-  const DEFAULT_DOMAIN = 'app.endatix.com';
+  const DEFAULT_DOMAIN = defaultRobotsDomain(await getBrand());
   
   try {
     // Get the current domain from request headers
@@ -45,7 +46,7 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
     const currentDomain = host.split(':')[0];
     
     // Default to main rules for the default domain
-    if (currentDomain === DEFAULT_DOMAIN) {
+    if (DEFAULT_DOMAIN !== undefined && currentDomain === DEFAULT_DOMAIN) {
       return { rules: MAIN_ENDATIX_RULES };
     }
     
@@ -70,4 +71,15 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
   
   // Default to restricted rules
   return { rules: RESTRICTED_RULES };
-} 
+}
+
+const BUILT_IN_APP_URL = 'https://app.endatix.com';
+
+/** The hosted app's domain for the built-in brand; a pack has none, so only ROBOTS_ALLOWED_DOMAINS allows /login. */
+export function defaultRobotsDomain(
+  brand: Pick<Brand, 'links'>,
+): string | undefined {
+  return brandUrl(brand, 'website', BUILT_IN_APP_URL) === BUILT_IN_APP_URL
+    ? new URL(BUILT_IN_APP_URL).host
+    : undefined;
+}
