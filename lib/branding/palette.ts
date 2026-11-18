@@ -225,17 +225,23 @@ function foregroundFor(primary: Rgb, tinted: Oklch): string {
 }
 
 /**
- * The built-in hover (primary at 90% over the page), moved away from the label
- * until the label reads at 4.5:1. The primary itself always reads, so the
- * search ends at the primary at worst.
+ * The built-in hover, primary at 90% over the page, when the label still reads
+ * on it at 4.5:1. Otherwise the same lightness step taken the other way, away
+ * from the label, so the hover stays visible and reads better than the rest
+ * colour. The primary itself always reads, so the search ends there at worst.
  */
 function hoverFor(mode: ColorMode, primary: Rgb, foreground: string): string {
   const page = parseCssColor(PAGE_BACKGROUND[mode])!;
   const label = parseCssColor(foreground)!;
-  return (
-    reachContrast(over(primary, page, HOVER_OPACITY), label, TEXT_CONTRAST) ??
-    toHex(primary)
-  );
+  const blend = over(primary, page, HOVER_OPACITY);
+  const blendHex = toHex(blend);
+  if (contrastRatio(parseCssColor(blendHex)!, label) >= TEXT_CONTRAST)
+    return blendHex;
+  const rest = toOklch(primary);
+  const step = Math.abs(toOklch(blend).l - rest.l);
+  const away = relativeLuminance(primary) >= relativeLuminance(label) ? 1 : -1;
+  const mirrored = fromOklch({ ...rest, l: rest.l + away * step });
+  return reachContrast(mirrored, label, TEXT_CONTRAST) ?? toHex(primary);
 }
 
 /**

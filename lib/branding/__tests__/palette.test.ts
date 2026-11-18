@@ -196,6 +196,17 @@ describe("derivePalette: interactive states", () => {
     expectReadableStates(palette);
   });
 
+  it("still shows a hover for a pale accent, stepping the other way", () => {
+    // Act
+    const { light } = derivePalette(color("#747474"));
+
+    // Assert: as far from the rest colour as the built-in 90% blend would be, but darker.
+    expect(distance(light["--primary-hover"], "#747474")).toBeGreaterThan(0.04);
+    expect(ratio(light["--primary-hover"], PAGE.light)).toBeGreaterThan(
+      ratio("#747474", PAGE.light),
+    );
+  });
+
   it("keeps the built-in hover look when the accent already reads", () => {
     // Act
     const { light } = derivePalette(color("#0b6b5d"));
