@@ -1,6 +1,6 @@
 "use client";
 
-import { useBrand, withIndefiniteArticle } from "@/lib/branding/client";
+import { useBrand } from "@/lib/branding/client";
 import { ErrorMessage } from "@/components/forms/error-message";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -102,8 +102,8 @@ export function SignupRequestForm() {
           <BrandLogo className="h-10 w-auto" priority />
         </div>
         <p className="mb-6 text-balance text-muted-foreground">
-          Request access to {withIndefiniteArticle(brand.shortName)} workspace.
-          We will review your request and email you if approved.
+          Request access to a workspace on {brand.shortName}. We will review
+          your request and email you if approved.
         </p>
       </div>
       <div className="grid gap-4">

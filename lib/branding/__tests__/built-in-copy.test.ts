@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { helpMenuItems, sitemap, withBrandHelpLinks } from "@/lib/constants";
 import { brandAuthors, brandKeywords } from "../brand-metadata";
-import { brandUrl, isPoweredByShown, withIndefiniteArticle } from "../copy";
+import { brandUrl, isPoweredByShown } from "../copy";
 import { BUILT_IN_LAYER, mergeBrand, packLayer } from "../layers";
 import { BrandPackSchema } from "../schema";
 
@@ -30,8 +30,8 @@ describe("built-in brand copy is unchanged", () => {
     ],
     [
       "signup description",
-      `Request access to ${withIndefiniteArticle(builtIn.shortName)} workspace.`,
-      "Request access to an Endatix workspace.",
+      `Request access to a workspace on ${builtIn.shortName}.`,
+      "Request access to a workspace on Endatix.",
     ],
     ["about title", `About ${builtIn.shortName}`, "About Endatix"],
     ["API label", `${builtIn.shortName} API URL`, "Endatix API URL"],
@@ -86,7 +86,6 @@ describe("a brand pack's copy", () => {
       "example forms",
       "example forms app",
     ]);
-    expect(withIndefiniteArticle(brand.shortName)).toBe("an Example Forms");
     expect(brandUrl(brand, "docs", "https://docs.endatix.com/x")).toBe(
       "https://docs.example.com",
     );
