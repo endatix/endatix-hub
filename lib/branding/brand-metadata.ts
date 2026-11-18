@@ -5,7 +5,14 @@ import type { Brand } from "./index";
 export interface BrandPage {
   /** Shown as "<title> | <brand name>". */
   readonly title?: string;
+  /** The page's whole title while no pack applies, when it differs from "<title> | Endatix Hub". */
+  readonly builtInTitle?: string;
   readonly description?: string;
+}
+
+/** `builtIn`: no pack applies (none mounted, or the flag is off). */
+export interface BrandSource {
+  readonly builtIn: boolean;
 }
 
 const ICON_TYPES: Readonly<Record<string, string>> = {
@@ -22,14 +29,27 @@ const ICON_TYPES: Readonly<Record<string, string>> = {
  * brand name; a page with a description also gets a social preview with the
  * brand's image.
  */
-export function metadataFor(brand: Brand, page?: BrandPage): Metadata {
+export function metadataFor(
+  brand: Brand,
+  page?: BrandPage,
+  source: BrandSource = { builtIn: false },
+): Metadata {
   return {
-    title: page?.title ? `${page.title} | ${brand.name}` : brand.name,
+    title: titleFor(brand, page, source),
     applicationName: brand.name,
     publisher: brand.legalName,
     icons: { icon: [iconLink(brand.icon)] },
     ...(page?.description && socialPreview(brand, page.description)),
   };
+}
+
+function titleFor(
+  brand: Brand,
+  page: BrandPage | undefined,
+  source: BrandSource,
+) {
+  if (source.builtIn && page?.builtInTitle) return page.builtInTitle;
+  return page?.title ? `${page.title} | ${brand.name}` : brand.name;
 }
 
 function socialPreview(brand: Brand, description: string): Metadata {

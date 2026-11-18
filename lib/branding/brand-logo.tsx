@@ -59,21 +59,20 @@ export function BrandLogo({
 
 /** Named after whoever supplied the image: a pack without a logo still shows Endatix. */
 function BrandWordmark({ brand, ...props }: PartProps) {
-  const builtIn = brand.logo.light === BUILT_IN_ASSETS.logo.light;
-  const alt = builtIn ? BUILT_IN_NAME : brand.name;
+  const alt = isBuiltIn(brand.logo.light) ? BUILT_IN_NAME : brand.name;
   return <ThemedImage pair={brand.logo} alt={alt} {...LOGO_SIZE} {...props} />;
 }
 
 function BrandIcon({ brand, ...props }: PartProps) {
   const shape = { ...ICON_SIZE, ...props };
-  if (brand.icon === BUILT_IN_ASSETS.icon)
+  if (isBuiltIn(brand.icon))
     return <ThemedImage pair={BUILT_IN_ASSETS.mark} alt="" {...shape} />;
   return <Image src={brand.icon} alt="" aria-hidden {...shape} unoptimized />;
 }
 
 /** The built-in sidebar shows its icon and wordmark files apart, for gap control. */
 function BrandLockup({ brand, priority }: PartProps) {
-  if (!isBuiltInLockup(brand))
+  if (!isBuiltIn(brand.icon) || !isBuiltIn(brand.logo.light))
     return (
       <BrandWordmark brand={brand} className="h-7 w-auto" priority={priority} />
     );
@@ -86,18 +85,22 @@ function BrandLockup({ brand, priority }: PartProps) {
       />
       <ThemedImage
         {...BUILT_IN_WORDMARK}
-        alt={brand.name}
+        alt={BUILT_IN_NAME}
         priority={priority}
       />
     </>
   );
 }
 
-function isBuiltInLockup(brand: Brand): boolean {
-  return (
-    brand.icon === BUILT_IN_ASSETS.icon &&
-    brand.logo.light === BUILT_IN_ASSETS.logo.light
-  );
+const BUILT_IN_URLS: ReadonlySet<string> = new Set([
+  BUILT_IN_ASSETS.icon,
+  BUILT_IN_ASSETS.logo.light,
+  BUILT_IN_ASSETS.logo.dark,
+]);
+
+/** A brand URL that is still the built-in file: the pack left that asset out. Pack URLs are under `/brand/`, so they never match. */
+function isBuiltIn(url: string): boolean {
+  return BUILT_IN_URLS.has(url);
 }
 
 const PARTS = { logo: BrandWordmark, icon: BrandIcon, lockup: BrandLockup };

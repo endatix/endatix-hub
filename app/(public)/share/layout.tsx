@@ -22,7 +22,10 @@ const metadata: Metadata = {
 
 /** Respondent pages keep the built-in brand (`RESPONDENT_BRAND_DEFERRED`); only the title names the deployment. */
 export async function generateMetadata(): Promise<Metadata> {
-  const { title } = await brandMetadata({ title: "Form" });
+  const { title } = await brandMetadata({
+    title: "Form",
+    builtInTitle: "Endatix Form",
+  });
   return { ...metadata, title };
 }
 

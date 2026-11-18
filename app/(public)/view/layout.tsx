@@ -9,7 +9,10 @@ import { ROBOTS, getMetadataBase } from "@/lib/seo";
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    ...(await brandMetadata({ title: "View Submission" })),
+    ...(await brandMetadata({
+      title: "View Submission",
+      builtInTitle: "View Submission - Endatix",
+    })),
     metadataBase: getMetadataBase(),
     description: "View your submission",
     generator: "Endatix",

@@ -31,9 +31,11 @@ export const RESPONDENT_BRAND_DEFERRED: Brand = BUILT_IN_BRAND;
 
 /**
  * The brand's metadata for a root layout (no page) or a page: title
- * "<page> | <name>", application name, publisher, icon, and with a page the
- * social image. Spread it first, then add the page's own fields.
+ * "<page> | <name>" (or the page's `builtInTitle` while no pack applies),
+ * application name, publisher, icon, and for a described page the social
+ * image. Spread it first, then add the page's own fields.
  */
 export async function brandMetadata(page?: BrandPage): Promise<Metadata> {
-  return metadataFor(await getBrand(), page);
+  const brand = await getBrand();
+  return metadataFor(brand, page, { builtIn: brand === BUILT_IN_BRAND });
 }

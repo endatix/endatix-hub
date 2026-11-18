@@ -85,6 +85,11 @@ to the current one. Responses are `private`: under PostHog the flag can differ p
 | `BrandLogo` from `@/lib/branding/client`                 | the brand's logo (`variant="logo"`), icon (`"icon"`) or sidebar lockup (`"lockup"`), light and dark. Never hand-write the `dark:hidden` / `dark:block` image pair.                               |
 | `type Brand`                                             | either side                                                                                                                                                                                      |
 
+Titles: `brandMetadata({ title: "Sign in" })` gives `Sign in | <name>`. A page whose title
+today has another shape passes it as `builtInTitle` (`{ title: "Form", builtInTitle: "Endatix
+Form" }`): with no pack, or the flag off, that title stays exactly as it was; with a pack, the
+page gets `Form | <name>`.
+
 `BrandLogo` keeps the built-in artwork for whatever the pack leaves out: a pack with only an
 `icon` keeps the Endatix wordmark (named "Endatix Hub") on sign-in and in the expanded sidebar,
 and a pack with only a `logo` keeps the paperclip in the collapsed sidebar. The built-in brand's

@@ -102,22 +102,22 @@ const ROUTES: Route[] = [
   {
     name: "edit",
     load: () => import("@/app/(public)/edit/layout"),
-    title: "Edit Submission | Endatix Hub",
+    title: "Edit Submission - Endatix",
   },
   {
     name: "view",
     load: () => import("@/app/(public)/view/layout"),
-    title: "View Submission | Endatix Hub",
+    title: "View Submission - Endatix",
   },
   {
     name: "share",
     load: () => import("@/app/(public)/share/layout"),
-    title: "Form | Endatix Hub",
+    title: "Endatix Form",
   },
   {
     name: "embed",
     load: () => import("@/app/(public)/embed/[formId]/layout"),
-    title: "Form | Endatix Hub",
+    title: "Endatix Form",
   },
 ];
 

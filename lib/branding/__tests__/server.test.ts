@@ -175,6 +175,24 @@ describe("brandMetadata", () => {
     expect(metadata.applicationName).toBe("Example Forms");
   });
 
+  it("keeps a page's built-in title while the flag is off, and brands it with a pack", async () => {
+    // Arrange
+    pack.write({});
+    const page = { title: "Form", builtInTitle: "Endatix Form" };
+    flagState.on = false;
+    const off = (await load()).brandMetadata;
+    const offTitle = (await off(page)).title;
+    flagState.on = true;
+    const on = (await load()).brandMetadata;
+
+    // Act
+    const onTitle = (await on(page)).title;
+
+    // Assert
+    expect(offTitle).toBe("Endatix Form");
+    expect(onTitle).toBe("Form | Example Forms");
+  });
+
   it("keeps the built-in title while the flag is off", async () => {
     // Arrange
     pack.write({});

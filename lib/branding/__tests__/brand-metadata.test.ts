@@ -86,6 +86,29 @@ describe("metadataFor", () => {
     expect(metadata.icons).toEqual({ icon: [{ url: "/brand/icon?v=abc" }] });
   });
 
+  it("keeps a page's own title while no pack applies", () => {
+    // Act
+    const metadata = metadataFor(
+      builtIn,
+      { title: "Form", builtInTitle: "Endatix Form" },
+      { builtIn: true },
+    );
+
+    // Assert
+    expect(metadata.title).toBe("Endatix Form");
+  });
+
+  it("titles a page '<page> | <name>' when a pack applies, even with a built-in title", () => {
+    // Act
+    const metadata = metadataFor(packBrand(), {
+      title: "Form",
+      builtInTitle: "Endatix Form",
+    });
+
+    // Assert
+    expect(metadata.title).toBe("Form | Example Forms");
+  });
+
   it("adds no social preview to a page without a description", () => {
     // Act
     const metadata = metadataFor(builtIn, { title: "Edit Submission" });
