@@ -2,7 +2,7 @@ import "@/app/globals.css";
 import { auth } from "@/auth";
 import { AppProvider } from "@/components/providers";
 import { getClientEndatixConfig } from "@/features/config/server";
-import { brandMetadata, getBrand } from "@/lib/branding/server";
+import { brandKeywords, brandMetadata, getBrand } from "@/lib/branding/server";
 import { geistMono, geistSans } from "@/lib/fonts/geist-local";
 import type { Metadata } from "next";
 import { getMetadataBase } from "@/lib/seo";
@@ -14,11 +14,9 @@ export async function generateMetadata(): Promise<Metadata> {
     metadataBase: getMetadataBase(),
     title: `${brand.name} - Error`,
     description: "An error occurred while loading the page.",
-    generator: "Endatix",
+    generator: brand.shortName,
     keywords: [
-      "endatix",
-      "endatix hub",
-      "endatix hub app",
+      ...brandKeywords(brand),
       "forms-management",
       "ai-form-builder",
     ],

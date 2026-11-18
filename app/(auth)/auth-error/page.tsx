@@ -5,7 +5,7 @@ import {
   SIGNOUT_PATH,
 } from "@/features/auth/infrastructure/auth-constants";
 import { Metadata } from "next";
-import { brandMetadata } from "@/lib/branding/server";
+import { brandAuthors, brandMetadata, getBrand } from "@/lib/branding/server";
 import Link from "next/link";
 import { AuthErrorType } from "@/features/auth/shared/auth.types";
 import { auth } from "@/auth";
@@ -16,18 +16,14 @@ import {
 import { ROBOTS } from "@/lib/seo";
 
 export async function generateMetadata(): Promise<Metadata> {
+  const brand = await getBrand();
   return {
     ...(await brandMetadata({
       title: "Authentication failed",
       description:
-        "Authentication failed the Endatix Hub form management portal.",
+        `Authentication failed the ${brand.name} form management portal.`,
     })),
-    authors: [
-      {
-        name: "Endatix Team",
-        url: "https://endatix.com",
-      },
-    ],
+    authors: brandAuthors(brand),
     robots: ROBOTS.hiddenPage,
   };
 }

@@ -69,3 +69,16 @@ function iconLink(url: string): { url: string; type?: string } {
   const type = extension ? ICON_TYPES[extension] : undefined;
   return type ? { url, type } : { url };
 }
+
+/** `authors` metadata: "<short name> Team", linked to the brand's website when it has one. */
+export function brandAuthors(brand: Brand): NonNullable<Metadata["authors"]> {
+  const name = `${brand.shortName} Team`;
+  const url = brand.links.website;
+  return [url ? { name, url } : { name }];
+}
+
+/** The brand's `keywords`: its short name, its name, and "<name> app", lower-cased and de-duplicated. */
+export function brandKeywords(brand: Brand): string[] {
+  const name = brand.name.toLowerCase();
+  return [...new Set([brand.shortName.toLowerCase(), name, `${name} app`])];
+}

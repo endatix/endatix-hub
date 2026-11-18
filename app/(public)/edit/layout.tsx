@@ -7,6 +7,7 @@ import type { Metadata } from "next";
 import { ROBOTS, getMetadataBase } from "@/lib/seo";
 
 export async function generateMetadata(): Promise<Metadata> {
+  const brand = await getBrand();
   return {
     ...(await brandMetadata({
       title: "Edit Submission",
@@ -14,8 +15,8 @@ export async function generateMetadata(): Promise<Metadata> {
     })),
     metadataBase: getMetadataBase(),
     description: "Edit your submission",
-    generator: "Endatix",
-    keywords: ["endatix", "edit", "submission", "form"],
+    generator: brand.shortName,
+    keywords: [brand.shortName.toLowerCase(), "edit", "submission", "form"],
     robots: ROBOTS.hiddenPage,
   };
 }

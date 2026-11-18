@@ -27,10 +27,11 @@ interface AuthLayoutProps {
 }
 
 export async function generateMetadata(): Promise<Metadata> {
+  const brand = await getBrand();
   return {
     ...(await brandMetadata()),
     metadataBase: getMetadataBase(),
-    description: "Login to your Endatix Hub account",
+    description: `Login to your ${brand.name} account`,
   };
 }
 

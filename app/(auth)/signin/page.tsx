@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { brandMetadata } from "@/lib/branding/server";
+import { brandAuthors, brandMetadata, getBrand } from "@/lib/branding/server";
 import {
   Card,
   CardContent,
@@ -20,17 +20,13 @@ import {
 import SigninForm from "@/features/auth/use-cases/signin/ui/signin-form";
 
 export async function generateMetadata(): Promise<Metadata> {
+  const brand = await getBrand();
   return {
     ...(await brandMetadata({
       title: "Sign in",
-      description: "Sign in the Endatix Hub form management portal.",
+      description: `Sign in the ${brand.name} form management portal.`,
     })),
-    authors: [
-      {
-        name: "Endatix Team",
-        url: "https://endatix.com",
-      },
-    ],
+    authors: brandAuthors(brand),
   };
 }
 
@@ -64,7 +60,8 @@ const SignInPage = async ({ searchParams }: SignInPageProps) => {
   }
 
   if (!endatixAuthProvider) {
-    return <div>No Endatix auth provider found</div>;
+    const brand = await getBrand();
+    return <div>No {brand.shortName} auth provider found</div>;
   }
 
   return (
