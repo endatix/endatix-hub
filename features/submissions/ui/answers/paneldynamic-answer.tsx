@@ -72,11 +72,7 @@ const PanelDynamicAnswer = ({
             <span className="flex min-w-0 flex-1 items-center gap-2 text-left">
               <Captions className="h-4 w-4 shrink-0 text-muted-foreground" />
               <span className="min-w-0 text-sm font-semibold tracking-tight text-foreground">
-                {panel.processedTitle ? (
-                  <RichText html={panel.processedTitle} />
-                ) : (
-                  `Dynamic panel ${index + 1}`
-                )}
+                <PanelTitle panel={panel} index={index} />
               </span>
             </span>
           </AccordionTrigger>
@@ -90,6 +86,13 @@ const PanelDynamicAnswer = ({
     </Accordion>
   );
 };
+
+const PanelTitle = ({ panel, index }: { panel: PanelModel; index: number }) =>
+  panel.processedTitle ? (
+    <RichText html={panel.processedTitle} />
+  ) : (
+    `Dynamic panel ${index + 1}`
+  );
 
 const Panel = ({ panel }: { panel: PanelModel }) => {
   return (

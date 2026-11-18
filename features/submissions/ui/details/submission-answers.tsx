@@ -137,6 +137,22 @@ interface SubmissionItemCardProps {
 
 const selectedQuestionCardClass = "selected ring-2 ring-primary/80 ring-inset";
 
+function QuestionHeading({
+  question,
+  className,
+}: Readonly<{ question: Question; className?: string }>) {
+  return (
+    <h3
+      className={cn(
+        "text-lg font-bold tracking-tight text-foreground",
+        className,
+      )}
+    >
+      <RichText html={question.title ?? ""} />
+    </h3>
+  );
+}
+
 const SubmissionItemCard = ({
   question,
   isInvisible,
@@ -168,9 +184,7 @@ const SubmissionItemCard = ({
             <span className="text-[10px] font-bold tracking-wider text-primary uppercase">
               {questionLabel} • {question.getType()}
             </span>
-            <h3 className="text-lg font-bold tracking-tight text-foreground">
-              <RichText html={question.title ?? ""} />
-            </h3>
+            <QuestionHeading question={question} />
           </div>
         </div>
         <div className="mt-4 rounded-md border border-slate-100 bg-surface-container-low p-3 sm:p-5 dark:border-slate-800 dark:bg-surface-container">
@@ -199,9 +213,7 @@ const SubmissionItemCard = ({
           <span className="text-[10px] font-bold tracking-wider text-primary uppercase">
             {questionLabel} • {question.getType()}
           </span>
-          <h3 className="text-lg leading-snug font-bold tracking-tight text-foreground">
-            <RichText html={question.title ?? ""} />
-          </h3>
+          <QuestionHeading question={question} className="leading-snug" />
         </div>
       </div>
       <div className="rounded-md border border-slate-100 bg-surface-container-low p-3 sm:p-5 dark:border-slate-800 dark:bg-surface-container">
