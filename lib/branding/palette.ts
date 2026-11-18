@@ -116,7 +116,7 @@ const TEXT_CONTRAST = 4.5;
 /** WCAG 2.x 1.4.11: a control or focus ring against what is next to it. */
 const UI_CONTRAST = 3;
 const MAX_CHROMA_SCALE = 1.5;
-/** The built-in states: `hover:bg-primary/90` and `focus-visible:ring-ring/50`. */
+/** The states a ring and hover start from: `bg-primary/90` and `ring-ring/50`. */
 const HOVER_OPACITY = 0.9;
 const RING_OPACITY = 0.5;
 /** OKLCH lightness per step when a state has to move to reach its minimum. */
@@ -268,8 +268,9 @@ function hoverFor(mode: ColorMode, primary: Rgb, foreground: string): string {
 }
 
 /**
- * The built-in focus ring (`--ring` at 50% over the page), moved away from the
- * page until it reaches 3:1 against every surface in `FOCUS_SURFACES`.
+ * The focus ring: `--ring` at 50% over the page, moved away from the page until
+ * it reaches 3:1 against every surface in `FOCUS_SURFACES`. app/globals.css
+ * declares the built-in colour's result as `--focus-ring`.
  */
 function focusRingFor(mode: ColorMode, primary: Rgb): string {
   const surfaces = FOCUS_SURFACES[mode].map((color) => parseCssColor(color)!);

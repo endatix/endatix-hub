@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { contrastRatio, parseCssColor, toOklch } from "../color";
 import {
@@ -298,4 +300,50 @@ describe("checkBrandContrast", () => {
       }),
     ]);
   });
+});
+
+/** `--focus-ring` as app/globals.css declares it in `:root` or `.dark`. */
+function builtInFocusRing(selector: ":root" | ".dark"): string | undefined {
+  const css = readFileSync(
+    path.join(process.cwd(), "app", "globals.css"),
+    "utf8",
+  );
+  const block = new RegExp(
+    `^${selector.replace(".", "\\.")} \\{([\\s\\S]*?)\\n\\}`,
+    "m",
+  ).exec(css)?.[1];
+  return /--focus-ring:\s*([^;]+);/.exec(block ?? "")?.[1].trim();
+}
+
+describe("the built-in focus ring", () => {
+  it.each([
+    ["light", ":root"],
+    ["dark", ".dark"],
+  ] as const)(
+    "reaches 3:1 on every %s surface (%s in app/globals.css)",
+    (mode, selector) => {
+      // Act
+      const ring = builtInFocusRing(selector);
+
+      // Assert
+      expect(ring, `${selector} must declare --focus-ring`).toBeDefined();
+      for (const surface of FOCUS_SURFACES[mode])
+        expect(
+          ratio(ring!, surface),
+          `${mode} focus ring on ${surface}`,
+        ).toBeGreaterThanOrEqual(3);
+    },
+  );
+
+  it.each(MODES)(
+    "is what derivePalette gives the built-in colour in %s",
+    (mode) => {
+      // Act
+      const palette = derivePalette(color(BUILT_IN.light["--primary"]));
+
+      // Assert
+      const selector = mode === "light" ? ":root" : ".dark";
+      expect(builtInFocusRing(selector)).toBe(palette[mode]["--focus-ring"]);
+    },
+  );
 });
