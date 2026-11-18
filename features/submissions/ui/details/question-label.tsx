@@ -84,20 +84,43 @@ function cutsThroughTag(tokens: Token[]): boolean {
   });
 }
 
+/**
+ * Resolves each variable on its own, so a piped value with spaces in it is not
+ * cut at the next static piece. Keeps the positional match when the resolved
+ * pieces do not rebuild the processed title.
+ */
+function resolveVariables(tokens: Token[], question: Question): Token[] {
+  const resolved = tokens.map((token) =>
+    token.isVariable
+      ? {
+          ...token,
+          replacedValue: question.getProcessedText(`{${token.value}}`),
+        }
+      : token,
+  );
+  const rebuilt = resolved
+    .map((token) => (token.isVariable ? token.replacedValue : token.value))
+    .join("");
+  return rebuilt === question.processedTitle ? resolved : tokens;
+}
+
 function PersonalizedTextLabel({ question }: { question: Question }) {
   const extractionTokensResult = useMemo(
     () => extractReplacedTokens(question.title, question.processedTitle),
     [question.title, question.processedTitle],
   );
 
-  if (
-    Result.isError(extractionTokensResult) ||
-    cutsThroughTag(extractionTokensResult.value)
-  ) {
+  if (Result.isError(extractionTokensResult)) {
     return <TextLabel question={question} html={question.processedTitle} />;
   }
 
-  const personalizedTokens = extractionTokensResult.value;
+  const personalizedTokens = resolveVariables(
+    extractionTokensResult.value,
+    question,
+  );
+  if (cutsThroughTag(personalizedTokens)) {
+    return <TextLabel question={question} html={question.processedTitle} />;
+  }
 
   return (
     <TooltipProvider>

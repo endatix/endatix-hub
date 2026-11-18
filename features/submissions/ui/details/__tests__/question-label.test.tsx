@@ -1,4 +1,4 @@
-import { render } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { Model, Question } from "survey-core";
 import { describe, expect, it, vi } from "vitest";
 import { QuestionLabel } from "../question-label";
@@ -9,6 +9,13 @@ vi.mock("../submission-details-context", () => ({
     viewOptions: { showPersonalizedItems: true },
   }),
 }));
+
+// jsdom has no ResizeObserver; the Radix tooltip measures its content with it.
+globalThis.ResizeObserver ??= class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+} as unknown as typeof ResizeObserver;
 
 const BRAND_HTML =
   '<img src="https://cdn.example.com/acme.png" style="width:100%; max-width:100px; height:auto;"><p>ACME</p>';
@@ -36,7 +43,7 @@ function loopQuestion(): Question {
       },
     ],
   });
-  model.setVariable("verb", "use");
+  model.setVariable("verb", "use / buy");
   model.data = {
     brands: ["acme"],
     brandsLoop: [{ brand: BRAND_HTML, consider: "Might consider" }],
@@ -60,6 +67,20 @@ describe("QuestionLabel", () => {
     expect(container.textContent).not.toContain("<p>");
     expect(container.textContent).toContain("ACME");
     expect(container.querySelectorAll("img[loading=lazy]")).toHaveLength(1);
+  });
+
+  it("gives each piped variable its own chip, spaces included", async () => {
+    const question = loopQuestion();
+
+    render(<QuestionLabel forQuestion={question} />);
+
+    const chips = screen.getAllByRole("button");
+    expect(chips.map((chip) => chip.textContent)).toEqual([
+      "use / buy",
+      "ACME",
+    ]);
+    fireEvent.focus(chips[0]);
+    expect((await screen.findAllByText("{verb}")).length).toBeGreaterThan(0);
   });
 
   it("strips script and handlers from a piped value", () => {
