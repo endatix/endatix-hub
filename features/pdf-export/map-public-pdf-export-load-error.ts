@@ -1,3 +1,4 @@
+import type { Brand } from "@/lib/branding";
 import { ERROR_CODE } from "@/lib/endatix-api/shared/error-codes";
 import type { Error as ResultError } from "@/lib/result";
 import { apiResponses } from "@/lib/utils/route-handlers";
@@ -27,12 +28,16 @@ function supportFields(error: ResultError) {
 }
 
 /**
- * Maps public PDF export load failures. Network/`fetch failed` must not become 404.
+ * Maps public PDF export load failures, naming the API by `brand`. Network/`fetch failed` must not become 404.
  */
-export function mapPublicPdfExportLoadError(error: ResultError): NextResponse {
+export function mapPublicPdfExportLoadError(
+  error: ResultError,
+  brand: Pick<Brand, "shortName">,
+): NextResponse {
+  const loadFailed = `Failed to load submission from the ${brand.shortName} API.`;
   if (error.errorCode && UPSTREAM_FAILURE_CODES.has(error.errorCode)) {
     return apiResponses.badGateway({
-      detail: "Failed to load submission from the Endatix API.",
+      detail: loadFailed,
       ...supportFields(error),
     });
   }
@@ -75,7 +80,7 @@ export function mapPublicPdfExportLoadError(error: ResultError): NextResponse {
     errorMessage.includes("fetch failed")
   ) {
     return apiResponses.badGateway({
-      detail: "Failed to load submission from the Endatix API.",
+      detail: loadFailed,
       ...supportFields(error),
     });
   }
@@ -93,7 +98,7 @@ export function mapPublicPdfExportLoadError(error: ResultError): NextResponse {
   }
 
   return apiResponses.badGateway({
-    detail: "Failed to load submission from the Endatix API.",
+    detail: loadFailed,
     ...supportFields(error),
   });
 }

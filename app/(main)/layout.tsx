@@ -7,22 +7,17 @@ import { Metadata } from "next";
 import { cookies, headers } from "next/headers";
 import { getMetadataBase } from "@/lib/seo";
 import { getClientEndatixConfig } from "@/features/config/server";
-import { brandMetadata, getBrand } from "@/lib/branding/server";
+import { brandKeywords, brandMetadata, getBrand } from "@/lib/branding/server";
 import { SupportAccessBannerSlot } from "@/features/platform-admin/assume-tenant/ui/support-access-banner-slot";
 
 export async function generateMetadata(): Promise<Metadata> {
+  const brand = await getBrand();
   return {
     ...(await brandMetadata()),
     metadataBase: getMetadataBase(),
     description: "Customizable form management platform",
-    generator: "Endatix",
-    keywords: [
-      "endatix",
-      "endatix hub",
-      "endatix hub app",
-      "forms-management",
-      "ai-form-builder",
-    ],
+    generator: brand.shortName,
+    keywords: [...brandKeywords(brand), "forms-management", "ai-form-builder"],
   };
 }
 

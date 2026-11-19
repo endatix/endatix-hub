@@ -6,6 +6,10 @@ import sonarjs from "eslint-plugin-sonarjs";
 import unicorn from "eslint-plugin-unicorn";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  PRODUCT_NAME_PATTERN,
+  productNameBaseline,
+} from "./eslint/product-name-baseline.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -36,6 +40,11 @@ const authoringIndexOnly = {
   message:
     "Import Audience authoring from @/lib/personalization/authoring (client), or the Creator-free @/lib/personalization/coverage (server-safe), through their index.ts only. Browser code that needs only the verdicts imports @/lib/personalization/coverage/audience-usage, which leaves the linter out of the bundle.",
 };
+
+// "Endatix" or an Endatix link in a string, template, or JSX text: the product name comes from the
+// brand (`useBrand()` / `getBrand()` in lib/branding), so a brand pack can replace it.
+const productNameMessage =
+  "Name the product through the brand (useBrand() / getBrand() from @/lib/branding), not a literal: a brand pack must be able to replace it.";
 
 const eslintConfig = defineConfig([
   ...nextVitals,
@@ -203,6 +212,38 @@ const eslintConfig = defineConfig([
     },
     rules: {
       "@typescript-eslint/no-floating-promises": "error",
+    },
+  },
+  {
+    files: [
+      "app/**/*.{ts,tsx}",
+      "components/**/*.{ts,tsx}",
+      "features/**/*.{ts,tsx}",
+      "lib/**/*.{ts,tsx}",
+    ],
+    ignores: [
+      "lib/branding/**",
+      "**/__tests__/**",
+      "**/*.test.{ts,tsx}",
+      "**/*.spec.{ts,tsx}",
+      ...productNameBaseline,
+    ],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: `Literal[value=${PRODUCT_NAME_PATTERN}]`,
+          message: productNameMessage,
+        },
+        {
+          selector: `TemplateElement[value.raw=${PRODUCT_NAME_PATTERN}]`,
+          message: productNameMessage,
+        },
+        {
+          selector: `JSXText[value=${PRODUCT_NAME_PATTERN}]`,
+          message: productNameMessage,
+        },
+      ],
     },
   },
   prettierConfig,

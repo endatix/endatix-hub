@@ -8,6 +8,14 @@ vi.mock("@/auth", () => ({
   auth: vi.fn(),
 }));
 
+vi.mock("@/lib/branding/server", async (importOriginal) => {
+  const { BUILT_IN_LAYER, mergeBrand } = await import("@/lib/branding/layers");
+  return {
+    ...(await importOriginal<typeof import("@/lib/branding/server")>()),
+    getBrand: async () => mergeBrand([BUILT_IN_LAYER]),
+  };
+});
+
 async function renderAuthError(
   error: string | undefined,
   { isLoggedIn = false }: { isLoggedIn?: boolean } = {},

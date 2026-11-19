@@ -23,6 +23,7 @@ export interface BrandLayer {
 export const BUILT_IN_LAYER: BrandLayer & { readonly values: BrandFields } = {
   values: {
     name: BUILT_IN_NAME,
+    shortName: "Endatix",
     legalName: "Endatix Ltd.",
     logo: BUILT_IN_ASSETS.logo,
     icon: BUILT_IN_ASSETS.icon,
@@ -46,11 +47,15 @@ export function packLayer(
   return {
     values: {
       name: pack.name,
-      legalName: pack.legalName,
+      shortName: pack.name,
+      legalName: pack.legalName ?? pack.name,
       ...packAssets(pack.assets, assetUrl),
-      links: pack.links,
+      links: pack.links ?? {},
       poweredBy: pack.poweredBy,
-      personas: pack.personas,
+      personas: {
+        assistant: pack.personas?.assistant ?? `${pack.name} AI Assistant`,
+        bot: pack.personas?.bot ?? `${pack.name} Bot`,
+      },
     },
     color: packColor(pack.tokens?.color),
   };
@@ -92,11 +97,12 @@ export function mergeBrand(layers: readonly BrandLayer[]): Brand {
 
   return {
     name: pick("name") ?? builtIn.name,
+    shortName: pick("shortName") ?? builtIn.shortName,
     legalName: pick("legalName") ?? builtIn.legalName,
     logo: pick("logo") ?? builtIn.logo,
     icon: pick("icon") ?? builtIn.icon,
     ogImage: pick("ogImage") ?? builtIn.ogImage,
-    links: mergeKeys(layers, "links"),
+    links: pick("links") ?? builtIn.links,
     poweredBy: pick("poweredBy") ?? builtIn.poweredBy,
     personas: mergeKeys(layers, "personas") as Brand["personas"],
     stylesheet: toStylesheet(color) as BrandStylesheet,
@@ -104,7 +110,7 @@ export function mergeBrand(layers: readonly BrandLayer[]): Brand {
 }
 
 /** Key by key, the most specific layer winning each key. */
-function mergeKeys(layers: readonly BrandLayer[], group: "links" | "personas") {
+function mergeKeys(layers: readonly BrandLayer[], group: "personas") {
   return Object.assign(
     {},
     ...layers.map((layer) => layer.values[group]).reverse(),

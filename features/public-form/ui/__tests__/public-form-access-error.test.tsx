@@ -16,6 +16,7 @@ vi.mock("@/features/public-form/ui/embed-height-reporter", () => ({
 
 vi.mock("@/lib/hosting", () => ({
   withBasePath: (path: string) => `/hub${path}`,
+  getPublicAssetPath: (path: string) => `/hub${path}`,
 }));
 
 describe("buildPublicFormSignInHref", () => {

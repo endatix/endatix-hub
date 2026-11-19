@@ -2,10 +2,7 @@ import { auth } from "@/auth";
 import { AppProvider } from "@/components/providers";
 import { AppOptions } from "@/components/providers/app-options";
 import { getClientEndatixConfig } from "@/features/config/server";
-import {
-  brandMetadata,
-  RESPONDENT_BRAND_DEFERRED,
-} from "@/lib/branding/server";
+import { brandMetadata, getRespondentBrand } from "@/lib/branding/server";
 import { getPublicAssetPath } from "@/lib/hosting";
 import type { Metadata } from "next";
 import { ROBOTS, getMetadataBase } from "@/lib/seo";
@@ -15,7 +12,7 @@ const metadata: Metadata = {
   robots: ROBOTS.hiddenPage,
 };
 
-/** Respondent pages keep the built-in brand (`RESPONDENT_BRAND_DEFERRED`); only the title names the deployment. */
+/** Respondent pages keep the built-in look (`getRespondentBrand()`); the title and "Powered by" follow the deployment. */
 export async function generateMetadata(): Promise<Metadata> {
   const { title } = await brandMetadata({
     title: "Form",
@@ -49,7 +46,7 @@ export default async function EmbedLayout({
           options={AppOptions.PublicPages}
           session={session}
           endatixConfig={endatixConfig}
-          brand={RESPONDENT_BRAND_DEFERRED}
+          brand={await getRespondentBrand()}
         >
           {children}
         </AppProvider>

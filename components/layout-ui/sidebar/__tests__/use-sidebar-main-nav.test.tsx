@@ -1,6 +1,7 @@
 import { renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { useSidebarMainNav } from "@/components/layout-ui/sidebar/use-sidebar-main-nav";
+import { BuiltInBrand } from "@/test/render-with-brand";
 
 const alpha = { id: "1", name: "Alpha", slug: "alpha" };
 const beta = { id: "2", name: "Beta", slug: "beta" };
@@ -20,7 +21,7 @@ describe("useSidebarMainNav", () => {
     const { result, rerender } = renderHook(
       ({ folders }: { folders: (typeof alpha)[] }) =>
         useSidebarMainNav(folders, keys, false),
-      { initialProps: { folders: [alpha] } },
+      { initialProps: { folders: [alpha] }, wrapper: BuiltInBrand },
     );
     expect(formsChildren(result.current)).toEqual(["Alpha"]);
 
@@ -41,6 +42,7 @@ describe("useSidebarMainNav", () => {
         isAuthenticated: boolean;
       }) => useSidebarMainNav(folders, keys, isAuthenticated),
       {
+        wrapper: BuiltInBrand,
         initialProps: {
           folders: [alpha] as (typeof alpha)[] | undefined,
           isAuthenticated: true,

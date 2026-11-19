@@ -1,13 +1,14 @@
 import "@/app/globals.css";
 import { NotFoundComponent } from "@/components/error-handling/not-found";
 import { geistMono, geistSans } from "@/lib/fonts/geist-local";
-import { brandMetadata } from "@/lib/branding/server";
+import { brandKeywords, brandMetadata, getBrand } from "@/lib/branding/server";
 import { getMetadataBase } from "@/lib/seo";
 import { Metadata } from "next";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 export async function generateMetadata(): Promise<Metadata> {
+  const brand = await getBrand();
   return {
     ...(await brandMetadata({
       title: "404 - Page Not Found",
@@ -15,14 +16,8 @@ export async function generateMetadata(): Promise<Metadata> {
     })),
     metadataBase: getMetadataBase(),
     description: "The page you are looking for does not exist.",
-    generator: "Endatix",
-    keywords: [
-      "endatix",
-      "endatix hub",
-      "endatix hub app",
-      "forms-management",
-      "ai-form-builder",
-    ],
+    generator: brand.shortName,
+    keywords: [...brandKeywords(brand), "forms-management", "ai-form-builder"],
   };
 }
 

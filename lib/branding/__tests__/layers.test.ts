@@ -25,7 +25,7 @@ describe("mergeBrand", () => {
     expect(brand.stylesheet).toBe("");
   });
 
-  it("takes the pack's fields and keeps built-in values for what it leaves out", () => {
+  it("takes the pack's fields and keeps built-in files for what it leaves out", () => {
     // Arrange
     const layer = packLayer(
       pack({ links: { docs: "https://docs.example.com" } }),
@@ -38,9 +38,67 @@ describe("mergeBrand", () => {
     // Assert
     expect(brand.name).toBe("Example Forms");
     expect(brand.links.docs).toBe("https://docs.example.com");
-    expect(brand.links.website).toBe("https://endatix.com");
-    expect(brand.personas).toEqual(mergeBrand([BUILT_IN_LAYER]).personas);
     expect(brand.icon).toBe(BUILT_IN_LAYER.values.icon);
+  });
+
+  it("names nothing Endatix under a pack: links are the pack's only, and the name fills the rest", () => {
+    // Arrange
+    const layer = packLayer(
+      pack({ links: { docs: "https://docs.example.com" } }),
+      assetUrl,
+    );
+
+    // Act
+    const brand = mergeBrand([layer, BUILT_IN_LAYER]);
+
+    // Assert
+    expect(brand.links).toEqual({ docs: "https://docs.example.com" });
+    expect(brand.shortName).toBe("Example Forms");
+    expect(brand.legalName).toBe("Example Forms");
+    expect(brand.personas).toEqual({
+      assistant: "Example Forms AI Assistant",
+      bot: "Example Forms Bot",
+    });
+  });
+
+  it("keeps the pack's own personas and legal name", () => {
+    // Arrange
+    const layer = packLayer(
+      pack({
+        legalName: "Example Ltd.",
+        personas: { assistant: "Ada" },
+      }),
+      assetUrl,
+    );
+
+    // Act
+    const brand = mergeBrand([layer, BUILT_IN_LAYER]);
+
+    // Assert
+    expect(brand.legalName).toBe("Example Ltd.");
+    expect(brand.personas).toEqual({
+      assistant: "Ada",
+      bot: "Example Forms Bot",
+    });
+    expect(brand.links).toEqual({});
+  });
+
+  it("is today's Endatix copy with only the built-in layer", () => {
+    // Act
+    const brand = mergeBrand([BUILT_IN_LAYER]);
+
+    // Assert
+    expect(brand.shortName).toBe("Endatix");
+    expect(brand.legalName).toBe("Endatix Ltd.");
+    expect(brand.personas).toEqual({
+      assistant: "Endatix AI Assistant",
+      bot: "Endatix Bot",
+    });
+    expect(brand.links).toEqual({
+      website: "https://endatix.com",
+      docs: "https://docs.endatix.com",
+      support: "https://github.com/endatix/endatix/issues",
+    });
   });
 
   it("resolves pack files to URLs", () => {

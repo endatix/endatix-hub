@@ -1,5 +1,6 @@
 "use client";
 
+import { useBrand } from "@/lib/branding/client";
 import { Info, LogOut, Settings2, Sparkles } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
@@ -28,6 +29,7 @@ interface NavUserProps {
 
 const NavUser = ({ currentUser, trigger }: NavUserProps) => {
   const { isMobile } = useSidebar();
+  const brand = useBrand();
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   const isLoggedIn = currentUser !== null;
   const loginStatus = isLoggedIn ? "Signed in" : "Sign in";
@@ -85,7 +87,7 @@ const NavUser = ({ currentUser, trigger }: NavUserProps) => {
                 </DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => setIsAboutOpen(true)}>
                   <Info />
-                  About Endatix
+                  About {brand.shortName}
                 </DropdownMenuItem>
               </DropdownMenuGroup>
               <DropdownMenuSeparator />

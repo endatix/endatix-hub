@@ -18,7 +18,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { BrandLogo } from "@/lib/branding/client";
+import { BrandLogo, useBrand } from "@/lib/branding/client";
 
 function DeploymentIcon({ className }: Readonly<{ className?: string }>) {
   return <BrandLogo variant="icon" className={className} />;
@@ -35,8 +35,9 @@ interface TenantSwitcherProps {
   tenants?: Tenant[];
 }
 
+/** The deployment itself, named by the brand, while no tenant list is passed. */
 const DEFAULT_TENANT = {
-  name: "Endatix",
+  name: "",
   description: "beta",
   logo: DeploymentIcon,
   href: "/forms",
@@ -44,8 +45,10 @@ const DEFAULT_TENANT = {
 
 export function TenantSwitcher({ tenants }: Readonly<TenantSwitcherProps>) {
   const { isMobile } = useSidebar();
+  const brand = useBrand();
+  const defaultTenant = { ...DEFAULT_TENANT, name: brand.shortName };
   const [activeTenant, setActiveTenant] = React.useState(
-    tenants?.at(0) ?? DEFAULT_TENANT,
+    tenants?.at(0) ?? defaultTenant,
   );
 
   if (!activeTenant) {
@@ -56,7 +59,7 @@ export function TenantSwitcher({ tenants }: Readonly<TenantSwitcherProps>) {
     return <SingleTenantDisplay tenant={activeTenant} />;
   }
 
-  const tenantsToDisplay = tenants ?? [DEFAULT_TENANT];
+  const tenantsToDisplay = tenants ?? [defaultTenant];
 
   return (
     <SidebarMenu>
@@ -123,7 +126,11 @@ const SingleTenantDisplay = ({ tenant }: Readonly<{ tenant: Tenant }>) => {
   return (
     <SidebarMenu>
       <SidebarMenuItem>
-        <SidebarMenuButton size="lg" asChild className="hover:bg-transparent active:bg-transparent group-data-[collapsible=icon]:rounded-[3px] group-data-[collapsible=icon]:overflow-hidden">
+        <SidebarMenuButton
+          size="lg"
+          asChild
+          className="group-data-[collapsible=icon]:overflow-hidden group-data-[collapsible=icon]:rounded-[3px] hover:bg-transparent active:bg-transparent"
+        >
           <a href={tenant.href ?? "/"}>
             {/* Collapsed: square icon */}
             <div className="hidden aspect-square size-full items-center justify-center group-data-[collapsible=icon]:flex">

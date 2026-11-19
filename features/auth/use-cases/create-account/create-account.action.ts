@@ -1,5 +1,6 @@
 "use server";
 
+import { getBrand } from "@/lib/branding/server";
 import { register } from "@/services/api";
 import { RegistrationRequestSchema } from "../../shared/auth.schemas";
 import { parseZodError } from "@/lib/utils/zod-error-utils";
@@ -65,8 +66,7 @@ export async function createAccountAction(
         "code" in error.cause &&
         error.cause.code === CONNECTION_REFUSED_CODE
       ) {
-        errorMessage =
-          "Failed to connect to the Endatix API. Ensure your network connection and app settings are correct";
+        errorMessage = `Failed to connect to the ${(await getBrand()).shortName} API. Ensure your network connection and app settings are correct`;
       } else {
         errorMessage = error.message;
       }

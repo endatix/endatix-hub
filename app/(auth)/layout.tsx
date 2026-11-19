@@ -27,10 +27,11 @@ interface AuthLayoutProps {
 }
 
 export async function generateMetadata(): Promise<Metadata> {
+  const brand = await getBrand();
   return {
     ...(await brandMetadata()),
     metadataBase: getMetadataBase(),
-    description: "Login to your Endatix Hub account",
+    description: `Login to your ${brand.name} account`,
   };
 }
 
@@ -61,14 +62,16 @@ export default async function AuthLayout({ children }: AuthLayoutProps) {
           brand={brand}
         >
           <div className="h-screen w-full overflow-hidden bg-muted/40">
-            <a
-              href="https://endatix.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="fixed right-8 bottom-8 z-50 text-sm text-primary/70 transition-colors duration-200 hover:text-primary"
-            >
-              endatix.com
-            </a>
+            {brand.links.website?.startsWith("http") ? (
+              <a
+                href={brand.links.website}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="fixed right-8 bottom-8 z-50 text-sm text-primary/70 transition-colors duration-200 hover:text-primary"
+              >
+                {new URL(brand.links.website).host}
+              </a>
+            ) : null}
             <main className="grid h-full gap-8 p-6 lg:grid-cols-2">
               {/* Left — sign-in form */}
               <div className="flex items-center justify-center">

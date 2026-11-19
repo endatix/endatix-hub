@@ -7,6 +7,8 @@ import { KeyRound } from "lucide-react";
 import type { AuthAdminSummary } from "../view-auth-settings.server";
 
 type AuthProviderSummaryCardProps = {
+  /** The brand's short name ("Endatix"). */
+  productName: string;
   summary: AuthAdminSummary;
 };
 
@@ -173,6 +175,7 @@ function ApiProvidersSection({ api }: Readonly<{ api: AuthSettings | null }>) {
 
 export function AuthProviderSummaryCard({
   summary,
+  productName,
 }: Readonly<AuthProviderSummaryCardProps>) {
   return (
     <div className="space-y-6">
@@ -198,7 +201,7 @@ export function AuthProviderSummaryCard({
           </CardTitle>
           <p className="text-sm text-muted-foreground">
             Token validation, JWT expiries, and external provider authorization
-            as configured in the Endatix API.
+            as configured in the {productName} API.
           </p>
         </CardHeader>
         <CardContent>
@@ -288,8 +291,8 @@ export function AuthProviderSummaryCard({
         </CardHeader>
         <CardContent className="space-y-2 text-sm text-muted-foreground">
           <p>
-            PlatformAdmin access always requires local approval in Endatix, even
-            when an external identity provider nominates the role.
+            PlatformAdmin access always requires local approval in {productName}
+            , even when an external identity provider nominates the role.
           </p>
           <p>
             Manage local approvals on the{" "}

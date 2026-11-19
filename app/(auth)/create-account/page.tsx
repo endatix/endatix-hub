@@ -1,6 +1,6 @@
 import CreateAccountForm from "@/features/auth/use-cases/create-account/ui/create-account-form";
 import { Metadata } from "next";
-import { brandMetadata } from "@/lib/branding/server";
+import { brandAuthors, brandMetadata, getBrand } from "@/lib/branding/server";
 import SignInLink from "@/features/auth/use-cases/create-account/ui/sign-in-link";
 import { getSession, SessionData } from "@/features/auth";
 import {
@@ -18,18 +18,13 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 
 export async function generateMetadata(): Promise<Metadata> {
+  const brand = await getBrand();
   return {
     ...(await brandMetadata({
       title: "Create account",
-      description:
-        "Create a new account in the Endatix Hub form management portal.",
+      description: `Create a new account in the ${brand.name} form management portal.`,
     })),
-    authors: [
-      {
-        name: "Endatix Team",
-        url: "https://endatix.com",
-      },
-    ],
+    authors: brandAuthors(brand),
   };
 }
 

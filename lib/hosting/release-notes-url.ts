@@ -3,10 +3,12 @@ import {
   type SurveyJsPackage,
 } from "./surveyjs-packages.mjs";
 
+/* eslint-disable no-restricted-syntax -- Endatix's own release notes, linked only while no brand pack applies */
 const ENDATIX_RELEASE_NOTES_BASE = {
   hub: "https://github.com/endatix/endatix-hub/releases/tag/",
   api: "https://github.com/endatix/endatix/releases/tag/",
 } as const;
+/* eslint-enable no-restricted-syntax */
 
 /** Stable, canary and hotfix tags: `0.8.0`, `0.8.1-canary.3`, `0.8.1-hotfix.1`. */
 const RELEASE_TAG_VERSION = /^\d+\.\d+\.\d+(-(canary|hotfix)\.\d+)?$/;
@@ -44,7 +46,9 @@ export function releaseNotesUrl(
     : surveyJsReleaseNotesUrl(product, trimmed);
 }
 
-function isEndatixProduct(product: ReleaseProduct): product is EndatixProduct {
+export function isEndatixProduct(
+  product: ReleaseProduct,
+): product is EndatixProduct {
   return Object.hasOwn(ENDATIX_RELEASE_NOTES_BASE, product);
 }
 

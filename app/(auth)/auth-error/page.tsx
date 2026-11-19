@@ -5,7 +5,12 @@ import {
   SIGNOUT_PATH,
 } from "@/features/auth/infrastructure/auth-constants";
 import { Metadata } from "next";
-import { brandMetadata } from "@/lib/branding/server";
+import {
+  brandAuthors,
+  brandMetadata,
+  getBrand,
+  type Brand,
+} from "@/lib/branding/server";
 import Link from "next/link";
 import { AuthErrorType } from "@/features/auth/shared/auth.types";
 import { auth } from "@/auth";
@@ -16,18 +21,13 @@ import {
 import { ROBOTS } from "@/lib/seo";
 
 export async function generateMetadata(): Promise<Metadata> {
+  const brand = await getBrand();
   return {
     ...(await brandMetadata({
       title: "Authentication failed",
-      description:
-        "Authentication failed the Endatix Hub form management portal.",
+      description: `Authentication failed the ${brand.name} form management portal.`,
     })),
-    authors: [
-      {
-        name: "Endatix Team",
-        url: "https://endatix.com",
-      },
-    ],
+    authors: brandAuthors(brand),
     robots: ROBOTS.hiddenPage,
   };
 }
@@ -58,7 +58,7 @@ const errorMap: Record<AuthErrorType, AuthErrorPresentation> = {
   [AuthErrorType.Network]: {
     code: "503",
     eyebrow: "Connection problem",
-    title: "We couldn't reach the Endatix API.",
+    title: "We couldn't reach the API.",
     message:
       "The service did not respond. Try again in a moment, and contact us if the problem persists.",
     supportCode: "Network",
@@ -107,10 +107,12 @@ export default async function AuthErrorPage({
   // A rejected token while signed out just means the session lapsed. "Your session
   // was rejected" would overstate it, so fall back to the generic sign-in copy and
   // keep only the support code that says which branch it was.
-  const resolved =
+  const resolved = namingTheApi(
     error === AuthErrorType.InvalidToken && !hasInvalidTokenError
       ? { ...UNKNOWN_PRESENTATION, supportCode: presentation.supportCode }
-      : presentation;
+      : presentation,
+    await getBrand(),
+  );
 
   return (
     <ErrorPage {...resolved}>
@@ -131,4 +133,17 @@ export default async function AuthErrorPage({
       </p>
     </ErrorPage>
   );
+}
+
+/** The network title names the brand's API: "We couldn't reach the Endatix API." with no pack. */
+function namingTheApi(
+  presentation: AuthErrorPresentation,
+  brand: Brand,
+): AuthErrorPresentation {
+  return presentation.supportCode === "Network"
+    ? {
+        ...presentation,
+        title: `We couldn't reach the ${brand.shortName} API.`,
+      }
+    : presentation;
 }

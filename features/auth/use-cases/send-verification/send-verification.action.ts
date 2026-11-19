@@ -1,5 +1,6 @@
 "use server";
 
+import { getBrand } from "@/lib/branding/server";
 import { sendVerification } from "@/services/api";
 
 const CONNECTION_REFUSED_CODE = "ECONNREFUSED";
@@ -21,9 +22,9 @@ export async function sendVerificationAction(
 
   try {
     const response = await sendVerification({ email });
-    
+
     // The API returns a string message on success
-    if (response && typeof response === 'string') {
+    if (response && typeof response === "string") {
       return { success: true };
     } else {
       return {
@@ -32,14 +33,17 @@ export async function sendVerificationAction(
       };
     }
   } catch (error: unknown) {
-    let errorMessage = "We cannot send the verification email at this time. Please try again later.";
-    
+    let errorMessage =
+      "We cannot send the verification email at this time. Please try again later.";
+
     if (error instanceof Error) {
-      if (error?.cause &&
-          typeof error.cause === "object" &&
-          "code" in error.cause &&
-          error.cause.code == CONNECTION_REFUSED_CODE) {
-        errorMessage = "Failed to connect to the Endatix API. Ensure your network connection and app settings are correct";
+      if (
+        error?.cause &&
+        typeof error.cause === "object" &&
+        "code" in error.cause &&
+        error.cause.code == CONNECTION_REFUSED_CODE
+      ) {
+        errorMessage = `Failed to connect to the ${(await getBrand()).shortName} API. Ensure your network connection and app settings are correct`;
       } else {
         errorMessage = error.message;
       }
@@ -50,4 +54,4 @@ export async function sendVerificationAction(
       errorMessage: errorMessage,
     };
   }
-} 
+}

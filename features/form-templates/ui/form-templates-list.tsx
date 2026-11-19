@@ -1,5 +1,6 @@
 "use client";
 
+import { brandUrl, useBrand } from "@/lib/branding/client";
 import { FormTemplate } from "@/types";
 import { use, useState } from "react";
 import FormTemplateCard from "./form-template-card";
@@ -139,6 +140,12 @@ function FormTemplatesListContent({
 }
 
 const NoFormTemplates = () => {
+  const learnMoreUrl = brandUrl(
+    useBrand(),
+    "docs",
+    // eslint-disable-next-line no-restricted-syntax -- built-in value, shown only while no brand pack applies
+    "https://docs.endatix.com/docs/form-builder?utm_source=endatix-hub&utm_medium=product",
+  );
   return (
     <Empty>
       <EmptyHeader>
@@ -159,20 +166,18 @@ const NoFormTemplates = () => {
           </Link>
         </Button>
       </EmptyContent>
-      <Button
-        variant="link"
-        asChild
-        className="text-muted-foreground"
-        size="sm"
-      >
-        <a
-          href="https://docs.endatix.com/docs/form-builder?utm_source=endatix-hub&utm_medium=product"
-          target="_blank"
-          rel="noopener noreferrer"
+      {learnMoreUrl ? (
+        <Button
+          variant="link"
+          asChild
+          className="text-muted-foreground"
+          size="sm"
         >
-          Learn more <ArrowUpRight data-icon="inline-end" />
-        </a>
-      </Button>
+          <a href={learnMoreUrl} target="_blank" rel="noopener noreferrer">
+            Learn more <ArrowUpRight data-icon="inline-end" />
+          </a>
+        </Button>
+      ) : null}
     </Empty>
   );
 };

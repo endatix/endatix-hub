@@ -1,5 +1,6 @@
 "use client";
 
+import { useBrand, type Brand } from "@/lib/branding/client";
 import { useEffect } from "react";
 import { Tag } from "lucide-react";
 import { PanelSection } from "@/components/common/panel-section";
@@ -49,9 +50,10 @@ export function AboutEndatixDialog({
 }
 
 function AboutHeader() {
+  const brand = useBrand();
   return (
     <ResponsivePanelHeader>
-      <ResponsivePanelTitle>About Endatix</ResponsivePanelTitle>
+      <ResponsivePanelTitle>About {brand.shortName}</ResponsivePanelTitle>
       <ResponsivePanelDescription>
         The versions you are using. Include them when you report an issue.
       </ResponsivePanelDescription>
@@ -93,10 +95,11 @@ function VersionList({ versions }: Readonly<VersionsProps>) {
 }
 
 function CopyVersions({ versions }: Readonly<VersionsProps>) {
+  const brand = useBrand();
   return (
     <CopyToClipboard
       layout="inline"
-      copyValue={() => formatVersions(versions)}
+      copyValue={() => formatVersions(brand, versions)}
       disabled={!versions?.hub && !versions?.api}
       label="Copy versions"
       buttonClassName="size-7"
@@ -145,10 +148,13 @@ function NotesLink({
   );
 }
 
-function formatVersions(versions: ProductVersions | undefined): string {
+function formatVersions(
+  brand: Brand,
+  versions: ProductVersions | undefined,
+): string {
   return [
-    `Endatix Hub ${formatBuildIdentity(versions?.hub ?? null)}`,
-    `Endatix API ${formatBuildIdentity(versions?.api ?? null)}`,
+    `${brand.name} ${formatBuildIdentity(versions?.hub ?? null)}`,
+    `${brand.shortName} API ${formatBuildIdentity(versions?.api ?? null)}`,
     ...SURVEYJS_PACKAGES.map(
       (name) => `${name} ${versions?.surveyJs?.[name] ?? "unavailable"}`,
     ),

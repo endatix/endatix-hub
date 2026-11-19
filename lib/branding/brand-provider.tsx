@@ -27,6 +27,11 @@ export function BrandProvider({
   );
 }
 
+/** The brand under `AppProvider`, or null outside it (a page with no provider). */
+export function useOptionalBrand(): Brand | null {
+  return useContext(BrandContext);
+}
+
 export function useBrand(): Brand {
   const brand = useContext(BrandContext);
   if (brand === null)

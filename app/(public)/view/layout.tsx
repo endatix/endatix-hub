@@ -8,15 +8,17 @@ import type { Metadata } from "next";
 import { ROBOTS, getMetadataBase } from "@/lib/seo";
 
 export async function generateMetadata(): Promise<Metadata> {
+  const brand = await getBrand();
   return {
     ...(await brandMetadata({
       title: "View Submission",
+      // eslint-disable-next-line no-restricted-syntax -- built-in value, shown only while no brand pack applies
       builtInTitle: "View Submission - Endatix",
     })),
     metadataBase: getMetadataBase(),
     description: "View your submission",
-    generator: "Endatix",
-    keywords: ["endatix", "view", "submission", "form"],
+    generator: brand.shortName,
+    keywords: [brand.shortName.toLowerCase(), "view", "submission", "form"],
     robots: ROBOTS.hiddenPage,
   };
 }

@@ -161,8 +161,7 @@ export function brandPackJsonSchema(): Record<string, unknown> {
   return {
     $schema,
     $id: "https://docs.endatix.com/schemas/brand/1/brand.schema.json",
-    title:
-      "Endatix brand pack v1 (spec artifact; H1's zod schema must generate an equal document)",
+    title: "Endatix brand pack v1",
     ...rest,
   };
 }
