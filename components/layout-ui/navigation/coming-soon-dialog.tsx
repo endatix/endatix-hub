@@ -21,7 +21,7 @@ export function ComingSoonDialog({
   isOpen,
   onClose,
   featureName,
-}: ComingSoonDialogProps) {
+}: Readonly<ComingSoonDialogProps>) {
   const brand = useBrand();
   const websiteUrl = brandUrl(
     brand,
