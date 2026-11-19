@@ -391,7 +391,7 @@ describe("pages under a layout that hands down the social image", () => {
     }).filter((file) => file.endsWith("page.tsx"));
 
     // Assert
-    expect(pages.length).toBe(
+    expect(pages).toHaveLength(
       ROUTES.filter(
         (route) => route.chain[0] === auth && route.chain.length > 1,
       ).length,
