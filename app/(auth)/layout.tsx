@@ -2,9 +2,8 @@ import "@/app/globals.css";
 import { auth } from "@/auth";
 import { AppProvider } from "@/components/providers";
 import { getClientEndatixConfig } from "@/features/config/server";
-import { getBrand } from "@/lib/branding/server";
+import { brandMetadata, getBrand } from "@/lib/branding/server";
 import { geistMono, geistSans } from "@/lib/fonts/geist-local";
-import { getPublicAssetPath } from "@/lib/hosting";
 import {
   BarChart2,
   Database,
@@ -27,13 +26,13 @@ interface AuthLayoutProps {
   children: React.ReactNode;
 }
 
-export const metadata: Metadata = {
-  metadataBase: getMetadataBase(),
-  title: "Endatix Hub",
-  description: "Login to your Endatix Hub account",
-  applicationName: "Endatix Hub",
-  publisher: "Endatix Ltd.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    ...(await brandMetadata()),
+    metadataBase: getMetadataBase(),
+    description: "Login to your Endatix Hub account",
+  };
+}
 
 const formFeatures = [
   { icon: PenLine, label: "Form Builder" },
@@ -52,13 +51,7 @@ export default async function AuthLayout({ children }: AuthLayoutProps) {
   ]);
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        <link
-          rel="icon"
-          href={getPublicAssetPath("/assets/icons/icon.svg")}
-          type="image/svg+xml"
-        />
-      </head>
+      <head />
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${instrumentSans.variable}`}
       >

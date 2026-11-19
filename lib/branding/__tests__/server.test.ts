@@ -161,6 +161,52 @@ describe("getBrand", () => {
   });
 });
 
+describe("brandMetadata", () => {
+  it("titles a page with the mounted pack's name", async () => {
+    // Arrange
+    pack.write({});
+    const { brandMetadata } = await load();
+
+    // Act
+    const metadata = await brandMetadata({ title: "Sign in" });
+
+    // Assert
+    expect(metadata.title).toBe("Sign in | Example Forms");
+    expect(metadata.applicationName).toBe("Example Forms");
+  });
+
+  it("keeps a page's built-in title while the flag is off, and brands it with a pack", async () => {
+    // Arrange
+    pack.write({});
+    const page = { title: "Form", builtInTitle: "Endatix Form" };
+    flagState.on = false;
+    const off = (await load()).brandMetadata;
+    const offTitle = (await off(page)).title;
+    flagState.on = true;
+    const on = (await load()).brandMetadata;
+
+    // Act
+    const onTitle = (await on(page)).title;
+
+    // Assert
+    expect(offTitle).toBe("Endatix Form");
+    expect(onTitle).toBe("Form | Example Forms");
+  });
+
+  it("keeps the built-in title while the flag is off", async () => {
+    // Arrange
+    pack.write({});
+    flagState.on = false;
+    const { brandMetadata } = await load();
+
+    // Act
+    const metadata = await brandMetadata({ title: "Sign in" });
+
+    // Assert
+    expect(metadata.title).toBe("Sign in | Endatix Hub");
+  });
+});
+
 describe("pack errors at request time", () => {
   it("applies a fix that only adds the file a rejected brand.json named", async () => {
     // Arrange

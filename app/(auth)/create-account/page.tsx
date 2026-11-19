@@ -1,5 +1,6 @@
 import CreateAccountForm from "@/features/auth/use-cases/create-account/ui/create-account-form";
 import { Metadata } from "next";
+import { brandMetadata } from "@/lib/branding/server";
 import SignInLink from "@/features/auth/use-cases/create-account/ui/sign-in-link";
 import { getSession, SessionData } from "@/features/auth";
 import {
@@ -15,28 +16,22 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
-import { getPublicAssetPath } from "@/lib/hosting";
 
-export const metadata: Metadata = {
-  title: "Create account | Endatix Hub",
-  description:
-    "Create a new account in the Endatix Hub form management portal.",
-  authors: [
-    {
-      name: "Endatix Team",
-      url: "https://endatix.com",
-    },
-  ],
-  openGraph: {
-    description:
-      "Create a new account in the Endatix Hub form management portal.",
-    images: [
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    ...(await brandMetadata({
+      title: "Create account",
+      description:
+        "Create a new account in the Endatix Hub form management portal.",
+    })),
+    authors: [
       {
-        url: getPublicAssetPath("/assets/endatix-og-image.jpg"),
+        name: "Endatix Team",
+        url: "https://endatix.com",
       },
     ],
-  },
-};
+  };
+}
 
 const CreateAccountPage = async () => {
   const user = await getSession();

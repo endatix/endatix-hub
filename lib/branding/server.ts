@@ -1,6 +1,8 @@
 import "server-only";
 
+import type { Metadata } from "next";
 import { cache } from "react";
+import { metadataFor, type BrandPage } from "./brand-metadata";
 import type { Brand } from "./index";
 import {
   BUILT_IN_BRAND,
@@ -8,6 +10,7 @@ import {
 } from "./effective-brand.server";
 
 export type { Brand, BrandLinkKey } from "./index";
+export type { BrandPage } from "./brand-metadata";
 export { brandRouteResponse } from "./brand-route.server";
 
 /**
@@ -25,3 +28,14 @@ export const getBrand = cache(async (): Promise<Brand> => {
  * from dropping the brand without anyone noticing.
  */
 export const RESPONDENT_BRAND_DEFERRED: Brand = BUILT_IN_BRAND;
+
+/**
+ * The brand's metadata for a root layout (no page) or a page: title
+ * "<page> | <name>" (or the page's `builtInTitle` while no pack applies),
+ * application name, publisher, icon, and for a described page the social
+ * image. Spread it first, then add the page's own fields.
+ */
+export async function brandMetadata(page?: BrandPage): Promise<Metadata> {
+  const brand = await getBrand();
+  return metadataFor(brand, page, { builtIn: brand === BUILT_IN_BRAND });
+}

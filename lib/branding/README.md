@@ -75,24 +75,37 @@ What the Hub does with it:
 
 `app/brand/[...path]/route.ts` serves the deployment brand without sign-in:
 
-| Path | Response |
-| --- | --- |
-| `/brand/brand.css` | the brand stylesheet (empty for the built-in brand) |
+| Path                                                   | Response                                                                                                       |
+| ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| `/brand/brand.css`                                     | the brand stylesheet (empty for the built-in brand)                                                            |
+| `/brand/name`                                          | the brand name as plain text, for `global-error.tsx`'s title                                                   |
 | `/brand/icon`, `/brand/logo-light`, `/brand/logo-dark` | a redirect to the current file, for code that cannot read the brand (a client root such as `global-error.tsx`) |
-| `/brand/<file>` | a file `brand.json` names, and nothing else in the folder |
+| `/brand/<file>`                                        | a file `brand.json` names, and nothing else in the folder                                                      |
 
 Pack file URLs carry `?v=<fingerprint>`, which changes with the pack; an old `?v=` redirects
 to the current one. Responses are `private`: under PostHog the flag can differ per user.
 
 ## Code
 
-| Import | For |
-| --- | --- |
-| `getBrand()` from `@/lib/branding/server` | Server Components. Pass the result to `AppProvider` as `brand`. |
-| `RESPONDENT_BRAND_DEFERRED` from `@/lib/branding/server` | `/share` and `/embed` layouts: respondent pages stay on the built-in brand for now. |
-| `brandRouteResponse()` from `@/lib/branding/server` | the `/brand/*` route only |
-| `useBrand()` from `@/lib/branding/client` | Client Components under `AppProvider` |
-| `type Brand` | either side |
+| Import                                                   | For                                                                                                                                                                                              |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `getBrand()` from `@/lib/branding/server`                | Server Components. Pass the result to `AppProvider` as `brand`.                                                                                                                                  |
+| `RESPONDENT_BRAND_DEFERRED` from `@/lib/branding/server` | `/share` and `/embed` layouts: respondent pages stay on the built-in brand for now.                                                                                                              |
+| `brandMetadata(page?)` from `@/lib/branding/server`      | every root layout's and page's `generateMetadata`: title `"<page> \| <name>"`, application name, publisher, icon, and with a page the social image. Spread it first, then the page's own fields. |
+| `brandRouteResponse()` from `@/lib/branding/server`      | the `/brand/*` route only                                                                                                                                                                        |
+| `useBrand()` from `@/lib/branding/client`                | Client Components under `AppProvider`                                                                                                                                                            |
+| `BrandLogo` from `@/lib/branding/client`                 | the brand's logo (`variant="logo"`), icon (`"icon"`) or sidebar lockup (`"lockup"`), light and dark. Never hand-write the `dark:hidden` / `dark:block` image pair.                               |
+| `type Brand`                                             | either side                                                                                                                                                                                      |
+
+Titles: `brandMetadata({ title: "Sign in" })` gives `Sign in | <name>`. A page whose title
+today has another shape passes it as `builtInTitle` (`{ title: "Form", builtInTitle: "Endatix
+Form" }`): with no pack, or the flag off, that title stays exactly as it was; with a pack, the
+page gets `Form | <name>`.
+
+`BrandLogo` keeps the built-in artwork for whatever the pack leaves out: a pack with only an
+`icon` keeps the Endatix wordmark (named "Endatix Hub") on sign-in and in the expanded sidebar,
+and a pack with only a `logo` keeps the paperclip in the collapsed sidebar. The built-in brand's
+sidebar shows its icon and wordmark files apart, as it always has.
 
 Everything else in the folder is internal. `AppProvider` mounts the brand provider, which
 renders the stylesheet as a `<style>` ahead of the content, so the first paint already has

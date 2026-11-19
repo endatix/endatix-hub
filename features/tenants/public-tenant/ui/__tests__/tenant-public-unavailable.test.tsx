@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
+import { renderWithBrand } from "@/test/render-with-brand";
 import { Result } from "@/lib/result";
 import { TenantPublicUnavailable } from "../tenant-public-unavailable";
 
@@ -16,7 +17,7 @@ function errorResult(message: string, statusCode?: number) {
 
 describe("TenantPublicUnavailable", () => {
   it("shows not-found copy on a 404 and hides the API message", () => {
-    render(
+    renderWithBrand(
       <TenantPublicUnavailable error={errorResult("Tenant not found", 404)} />,
     );
 
@@ -25,7 +26,7 @@ describe("TenantPublicUnavailable", () => {
   });
 
   it("surfaces the API message for other failures", () => {
-    render(
+    renderWithBrand(
       <TenantPublicUnavailable
         error={errorResult("Failed to load tenant", 500)}
       />,

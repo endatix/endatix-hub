@@ -1,4 +1,5 @@
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
+import { renderWithBrand } from "@/test/render-with-brand";
 import { describe, expect, it, vi } from "vitest";
 import { SignupRequestForm } from "../ui/signup-request-form";
 
@@ -20,7 +21,7 @@ vi.mock("../submit-signup-request.action", () => ({
 describe("SignupRequestForm", () => {
   it("leaves PostHog id fields empty when the client is absent", () => {
     // Act
-    render(<SignupRequestForm />);
+    renderWithBrand(<SignupRequestForm />);
 
     // Assert
     const distinctId = document.querySelector<HTMLInputElement>(
@@ -32,6 +33,8 @@ describe("SignupRequestForm", () => {
     expect(distinctId?.value).toBe("");
     expect(sessionId?.value).toBe("");
     expect(posthog.get_distinct_id).not.toHaveBeenCalled();
-    expect(screen.getByRole("button", { name: "Request workspace" })).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Request workspace" }),
+    ).toBeTruthy();
   });
 });

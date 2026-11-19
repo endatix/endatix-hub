@@ -1,4 +1,4 @@
-import { getPublicAssetPath } from "@/lib/hosting";
+import { BUILT_IN_ASSETS, BUILT_IN_NAME } from "./built-in-assets";
 import { parseCssColor } from "./color";
 import type { Brand, BrandStylesheet } from "./index";
 import { toStylesheet, type BrandColor } from "./palette";
@@ -22,14 +22,11 @@ export interface BrandLayer {
 /** Today's literals. Its stylesheet is empty, so the Hub CSS stays as shipped. */
 export const BUILT_IN_LAYER: BrandLayer & { readonly values: BrandFields } = {
   values: {
-    name: "Endatix Hub",
+    name: BUILT_IN_NAME,
     legalName: "Endatix Ltd.",
-    logo: {
-      light: getPublicAssetPath("/assets/icons/endatix-logo-wordmark-blue.svg"),
-      dark: getPublicAssetPath("/assets/icons/endatix-logo-wordmark-white.svg"),
-    },
-    icon: getPublicAssetPath("/assets/icons/icon.svg"),
-    ogImage: getPublicAssetPath("/assets/endatix-og-image.jpg"),
+    logo: BUILT_IN_ASSETS.logo,
+    icon: BUILT_IN_ASSETS.icon,
+    ogImage: BUILT_IN_ASSETS.ogImage,
     links: {
       website: "https://endatix.com",
       docs: "https://docs.endatix.com",

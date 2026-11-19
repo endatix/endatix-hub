@@ -1,30 +1,26 @@
 import { Metadata } from "next";
+import { brandMetadata } from "@/lib/branding/server";
 import SignoutButton from "@/features/auth/use-cases/signout/ui/signout-button";
 import GoBackButton from "@/components/layout-ui/navigation/go-back-button";
 import { AuthLogo } from "@/features/auth/ui/auth-logo";
 import { AuthStatus } from "@/features/auth/ui/auth-status";
-import { getPublicAssetPath } from "@/lib/hosting";
 import { ROBOTS } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Sign out | Endatix Hub",
-  description: "Sign out from the Endatix Hub form management portal.",
-  authors: [
-    {
-      name: "Endatix Team",
-      url: "https://endatix.com",
-    },
-  ],
-  openGraph: {
-    description: "Sign out from the Endatix Hub form management portal.",
-    images: [
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    ...(await brandMetadata({
+      title: "Sign out",
+      description: "Sign out from the Endatix Hub form management portal.",
+    })),
+    authors: [
       {
-        url: getPublicAssetPath("/assets/endatix-og-image.jpg"),
+        name: "Endatix Team",
+        url: "https://endatix.com",
       },
     ],
-  },
-  robots: ROBOTS.hiddenPage,
-};
+    robots: ROBOTS.hiddenPage,
+  };
+}
 
 export default function SignOutPage() {
   return (
