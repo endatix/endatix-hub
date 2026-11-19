@@ -7,7 +7,7 @@ describe("mapPublicPdfExportLoadError", () => {
   it("maps network_error to 502 instead of 404", async () => {
     // Arrange
     const error = Result.error(
-      "Network error. Failed to connect to the Endatix API.",
+      "Network error. Failed to connect to the API.",
       "fetch failed",
       ERROR_CODE.NETWORK_ERROR,
     );

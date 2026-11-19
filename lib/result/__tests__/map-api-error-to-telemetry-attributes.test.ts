@@ -35,7 +35,7 @@ describe("mapApiErrorToTelemetryAttributes", () => {
       success: false,
       error: {
         type: ApiErrorType.NetworkError,
-        message: "Network error. Failed to connect to the Endatix API.",
+        message: "Network error. Failed to connect to the API.",
         errorCode: "network_error",
         details: {
           endpoint:

@@ -17,8 +17,6 @@ export const productNameBaseline = [
   "lib/survey-extensions/core-registry.ts",
   "lib/survey-extensions/server/analyzer.ts",
   "lib/hosting/check-node-version.ts",
-  // The API client's network message is a dev-only detail, never shown in production.
-  "lib/endatix-api/endatix-api.ts",
   // Audience link errors: the API's capability messages.
   "features/audience/generate-links/personal-links.ts",
   "features/audience/reissue-link/reissue-audience-link.action.ts",

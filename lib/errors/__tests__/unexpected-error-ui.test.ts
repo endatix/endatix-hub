@@ -44,7 +44,7 @@ describe("unexpected-error-ui", () => {
   it("classifies a network failure by errorCode, not by absent status", () => {
     // Arrange
     const result = Result.error(
-      "Network error. Failed to connect to the Endatix API.",
+      "Network error. Failed to connect to the API.",
       undefined,
       "network_error",
     );
