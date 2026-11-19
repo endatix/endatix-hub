@@ -72,8 +72,12 @@ What the Hub does with it:
   - `--focus-ring` (`ring-focus-ring`, `outline-focus-ring`): every element's base outline
     (`app/globals.css`), and the focus ring of `Button`, `Badge`, `Input`, `Textarea`, `Select`,
     `Checkbox`, `RadioGroup`, `Switch`, `Slider`, `Tabs`, `Accordion`, `ScrollArea`,
-    `LinkTabs`, `StatCard`, the faceted filter, the open-card surface and the preview-as
-    participant picker.
+    `LinkTabs`, `StatCard`, the faceted filter, the open-card surface, the preview-as
+    participant picker, the submission question finder and the folder card.
+  - The destructive `Button` and `Badge` keep a red ring, `--destructive` at 100% (light) and 70%
+    (dark), with a 2px page-coloured offset so it stands apart from the red fill.
+    `__tests__/focus-indicators.test.ts` checks that every built-in `focus-visible:ring-<token>`
+    class reaches 3:1 on every `FOCUS_SURFACES` entry.
 
 ## `/brand/*`
 
