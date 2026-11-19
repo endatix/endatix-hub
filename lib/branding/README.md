@@ -134,7 +134,8 @@ descriptions, `brand.shortName` ("Endatix") in running text ("About â€¦", "the â
 `brand.personas` for the assistant and the bot. With
 no pack each gives the literal it replaced, so the Hub reads exactly as before.
 
-ESLint's `no-restricted-syntax` rejects "Endatix" or an endatix.com link in a string, template,
-or JSX text outside this folder and tests. `productNameBaseline` in `eslint.config.mjs` lists
-the files that still do; it only shrinks. A built-in value used only while no pack applies
+ESLint's `no-restricted-syntax` rejects "Endatix", an endatix.com link or a github.com/endatix
+link in a string, template, or JSX text outside this folder and tests. `productNameBaseline` in
+`eslint/product-name-baseline.mjs` lists the files that still do, each with its reason; it only
+shrinks, and `__tests__/lint/product-name-ratchet.test.ts` pins it. A built-in value used only while no pack applies
 takes an `eslint-disable-next-line` with that reason.

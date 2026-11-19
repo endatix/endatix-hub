@@ -235,7 +235,7 @@ describe("Auth", () => {
         if (ApiResult.isError(result)) {
           expect(result.error.type).toBe(ApiErrorType.NetworkError);
           expect(result.error.message).toBe(
-            "Network error. Failed to connect to the Endatix API.",
+            "Network error. Failed to connect to the API.",
           );
           expect(result.error.details?.details).toBe("Failed to fetch");
         }

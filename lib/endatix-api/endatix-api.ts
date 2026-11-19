@@ -522,7 +522,7 @@ export class EndatixApi {
 
     if (error instanceof TypeError && error.message.includes("fetch")) {
       return ApiResult.networkError(
-        "Network error. Failed to connect to the Endatix API.",
+        "Network error. Failed to connect to the API.",
         details,
       );
     }

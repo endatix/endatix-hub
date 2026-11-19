@@ -70,7 +70,6 @@ describe("product-name lint ratchet", () => {
       "lib/survey-extensions/core-registry.ts",
       "lib/survey-extensions/server/analyzer.ts",
       "lib/hosting/check-node-version.ts",
-      "lib/endatix-api/endatix-api.ts",
       "features/audience/generate-links/personal-links.ts",
       "features/audience/reissue-link/reissue-audience-link.action.ts",
       "features/audience/copy-test-link/create-test-link.action.ts",
