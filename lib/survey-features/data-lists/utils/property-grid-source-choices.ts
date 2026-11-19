@@ -43,7 +43,9 @@ function getUpstreamNames(question: Question): string[] | null {
 
   if (isAdvancedCarryForwardRuntimeEnabled(question)) {
     const sources = question.getPropertyValue(CARRY_FORWARD_SOURCES_PROPERTY);
-    return Array.isArray(sources) ? sources : [];
+    return Array.isArray(sources)
+      ? sources.filter((name): name is string => typeof name === "string")
+      : [];
   }
 
   return null;
@@ -52,7 +54,8 @@ function getUpstreamNames(question: Question): string[] | null {
 /**
  * Follows a source through `choicesFromQuestion` and carry forward to the
  * questions that own its choices in the designer, where neither fills the
- * source's own `choices`. A cycle resolves to nothing.
+ * source's own `choices`. A cycle resolves to nothing. This is the design-time
+ * superset: carry-forward mode and max choices narrow it only at runtime.
  */
 function resolveChoiceOwners(
   source: Question,
@@ -153,13 +156,27 @@ export function getStaticChoicesFromSources(
   return items;
 }
 
+function getOwnedDataListIds(source: Question): string[] {
+  return resolveChoiceOwners(source).flatMap((owner) => {
+    const dataListId = getDataListIdFromQuestion(owner);
+    return dataListId ? [dataListId] : [];
+  });
+}
+
+/**
+ * The data lists the sources reach, each once, under the first source that
+ * reaches it, so the lazy picker fetches and counts a list only once.
+ */
 export function getDataListSourceRefs(
   sources: Question[],
 ): Array<{ sourceName: string; dataListId: string }> {
+  const seen = new Set<string>();
+  const isFirstReach = (dataListId: string) =>
+    !seen.has(dataListId) && Boolean(seen.add(dataListId));
+
   return sources.flatMap((source) =>
-    resolveChoiceOwners(source).flatMap((owner) => {
-      const dataListId = getDataListIdFromQuestion(owner);
-      return dataListId ? [{ sourceName: source.name, dataListId }] : [];
-    }),
+    getOwnedDataListIds(source)
+      .filter((dataListId) => isFirstReach(dataListId))
+      .map((dataListId) => ({ sourceName: source.name, dataListId })),
   );
 }

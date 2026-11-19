@@ -3,6 +3,7 @@ import { SurveyModel } from "survey-core";
 import { registerDataListGlobals } from "../../infrastructure/registry";
 import {
   formatSourceChoiceLabel,
+  getDataListSourceRefs,
   getStaticChoicesFromSources,
   hasDataListSource,
 } from "../property-grid-source-choices";
@@ -69,5 +70,32 @@ describe("property-grid-source-choices", () => {
     );
 
     expect(choices).toEqual([{ value: "Banana", text: "brands: (Banana)" }]);
+  });
+});
+
+describe("getDataListSourceRefs through chained sources", () => {
+  beforeAll(() => {
+    registerDataListGlobals();
+  });
+
+  it("lists a data list reached through several sources once, under the first source", () => {
+    const survey = new SurveyModel({
+      elements: [
+        { type: "tagbox", name: "question1", edxDataListId: "list-1" },
+        {
+          type: "checkbox",
+          name: "question2",
+          choicesFromQuestion: "question1",
+        },
+      ],
+    });
+    survey.setDesignMode(true);
+
+    const refs = getDataListSourceRefs([
+      survey.getQuestionByName("question2")!,
+      survey.getQuestionByName("question1")!,
+    ]);
+
+    expect(refs).toEqual([{ sourceName: "question2", dataListId: "list-1" }]);
   });
 });
