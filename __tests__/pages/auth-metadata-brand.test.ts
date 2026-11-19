@@ -28,12 +28,8 @@ vi.mock("@/lib/branding/server", async (importOriginal) => {
     brandLayoutMetadata: async (
       options?: Parameters<typeof layoutMetadataFor>[1],
     ) => layoutMetadataFor(current.brand, options),
-    brandTitle: async (page: string, builtInTitle?: string) =>
-      titleFor(
-        current.brand,
-        { page, builtIn: builtInTitle },
-        current.brand === builtIn,
-      ),
+    brandTitle: async (title: Parameters<typeof titleFor>[1]) =>
+      titleFor(current.brand, title, current.brand === builtIn),
   };
 });
 

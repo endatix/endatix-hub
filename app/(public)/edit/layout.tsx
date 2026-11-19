@@ -14,11 +14,11 @@ export async function generateMetadata(): Promise<Metadata> {
   const brand = await getBrand();
   return {
     ...(await brandLayoutMetadata()),
-    title: await brandTitle(
-      "Edit Submission",
+    title: await brandTitle({
+      page: "Edit Submission",
       // eslint-disable-next-line no-restricted-syntax -- built-in value, shown only while no brand pack applies
-      "Edit Submission - Endatix",
-    ),
+      builtIn: "Edit Submission - Endatix",
+    }),
     metadataBase: getMetadataBase(),
     description: "Edit your submission",
     generator: brand.shortName,

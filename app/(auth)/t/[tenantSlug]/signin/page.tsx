@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-
 import Link from "next/link";
 import { auth, authPresentation } from "@/auth";
 import { Button } from "@/components/ui/button";

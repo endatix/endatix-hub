@@ -51,7 +51,7 @@ export function layoutMetadataFor(
 export function titleFor(
   brand: Brand,
   title: BrandTitle,
-  isBuiltInBrand = false,
+  isBuiltInBrand: boolean,
 ): string {
   if (isBuiltInBrand && title.builtIn) return title.builtIn;
   return `${title.page} | ${brand.name}`;

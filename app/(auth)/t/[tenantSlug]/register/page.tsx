@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-
 import Link from "next/link";
 import { getPublicTenantAction } from "@/features/tenants/public-tenant/public-tenant.action";
 import { TenantPublicUnavailable } from "@/features/tenants/public-tenant/ui/tenant-public-unavailable";

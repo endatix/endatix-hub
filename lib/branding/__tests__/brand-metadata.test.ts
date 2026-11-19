@@ -100,7 +100,7 @@ describe("layoutMetadataFor", () => {
 
 describe("titleFor", () => {
   it("titles a page '<page> | <name>'", () => {
-    expect(titleFor(packBrand(), { page: "Form" })).toBe(
+    expect(titleFor(packBrand(), { page: "Form" }, false)).toBe(
       "Form | Example Forms",
     );
   });

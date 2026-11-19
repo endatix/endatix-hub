@@ -83,7 +83,7 @@ to the current one. Responses are `private`: under PostHog the flag can differ p
 | `getRespondentBrand()` from `@/lib/branding/server`                        | `/share` and `/embed` layouts: the built-in look (`RESPONDENT_BRAND_DEFERRED`) with the deployment's `poweredBy`.                                                                                                                                           |
 | `RESPONDENT_BRAND_DEFERRED` from `@/lib/branding/server`                   | the built-in brand that respondent pages keep for now; use `getRespondentBrand()` in a layout.                                                                                                                                                              |
 | `brandLayoutMetadata(options?)` from `@/lib/branding/server`               | each root layout's `generateMetadata`: the brand name as title, application name, publisher and icon; `titleTemplate` gives the pages below `"<page> \| <name>"`, `socialImage` gives them the social image. Spread it first, then the layout's own fields. |
-| `brandTitle(page, builtIn?)` from `@/lib/branding/server`                  | a title no template reaches (a root layout's own, share and embed): `"<page> \| <name>"` with a pack, `builtIn` without one                                                                                                                                 |
+| `brandTitle({ page, builtIn? })` from `@/lib/branding/server`              | a title no template reaches (a root layout's own, share and embed): `"<page> \| <name>"` with a pack, `builtIn` without one                                                                                                                                 |
 | `brandRouteResponse()` from `@/lib/branding/server`                        | the `/brand/*` route only                                                                                                                                                                                                                                   |
 | `useBrand()` from `@/lib/branding/client`                                  | Client Components under `AppProvider`                                                                                                                                                                                                                       |
 | `BrandLogo` from `@/lib/branding/client`                                   | the brand's logo (`variant="logo"`), icon (`"icon"`) or sidebar lockup (`"lockup"`), light and dark. Never hand-write the `dark:hidden` / `dark:block` image pair.                                                                                          |
@@ -99,7 +99,7 @@ and publisher, fills its title into the layout's template, and, under a layout w
 `socialImage`, gives it the social image with og:title and og:description taken from the page.
 A page that sets its own `openGraph` replaces the layout's, image included, so leave it out.
 Under `(auth)`, a title that must stand alone uses `title: { absolute: "…" }`. Layouts whose
-title has another shape today use `brandTitle("Form", "Endatix Form")`: with no pack, or the
+title has another shape today use `brandTitle({ page: "Form", builtIn: "Endatix Form" })`: with no pack, or the
 flag off, the title stays exactly as it was; with a pack it is `Form | <name>`.
 
 `BrandLogo` keeps the built-in artwork for whatever the pack leaves out: a pack with only an

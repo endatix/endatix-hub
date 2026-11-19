@@ -21,7 +21,7 @@ const metadata: Metadata = {
 export async function generateMetadata(): Promise<Metadata> {
   return {
     ...metadata,
-    title: await brandTitle("Form", "Endatix Form"),
+    title: await brandTitle({ page: "Form", builtIn: "Endatix Form" }),
   };
 }
 

@@ -6,6 +6,7 @@ import {
   layoutMetadataFor,
   titleFor,
   type BrandLayoutOptions,
+  type BrandTitle,
 } from "./brand-metadata";
 import type { Brand } from "./index";
 import {
@@ -14,7 +15,7 @@ import {
 } from "./effective-brand.server";
 
 export type { Brand, BrandLinkKey } from "./index";
-export type { BrandLayoutOptions } from "./brand-metadata";
+export type { BrandLayoutOptions, BrandTitle } from "./brand-metadata";
 export { brandAuthors, brandKeywords } from "./brand-metadata";
 export { brandUrl, isBuiltInLink, isPoweredByShown } from "./copy";
 export { brandRouteResponse } from "./brand-route.server";
@@ -38,7 +39,7 @@ export const RESPONDENT_BRAND_DEFERRED: Brand = BUILT_IN_BRAND;
 /**
  * True when `brand` is the built-in brand (no pack, or the flag off). Server only:
  * a brand that crossed to the client is a copy. Pass the answer down as a prop,
- * like `builtInTitle`, for copy whose built-in wording a pack can't reuse.
+ * like `brandTitle`'s `builtIn`, for copy whose built-in wording a pack can't reuse.
  */
 export function isBuiltInBrand(brand: Brand): boolean {
   return brand === BUILT_IN_BRAND;
@@ -67,12 +68,10 @@ export async function brandLayoutMetadata(
 
 /**
  * A title no layout template reaches (a root layout's own, or a respondent
- * page's): "<page> | <name>" with a pack, `builtIn` (when given) without one.
+ * page's): "<page> | <name>" with a pack, `builtIn` (when given) without one:
+ * `brandTitle({ page: "Form", builtIn: "Endatix Form" })`.
  */
-export async function brandTitle(
-  page: string,
-  builtIn?: string,
-): Promise<string> {
+export async function brandTitle(title: BrandTitle): Promise<string> {
   const brand = await getBrand();
-  return titleFor(brand, { page, builtIn }, isBuiltInBrand(brand));
+  return titleFor(brand, title, isBuiltInBrand(brand));
 }

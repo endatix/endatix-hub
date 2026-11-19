@@ -197,12 +197,14 @@ describe("brandTitle", () => {
     // Arrange
     pack.write({});
     flagState.on = false;
-    const offTitle = await (await load()).brandTitle("Form", "Endatix Form");
+    const offTitle = await (
+      await load()
+    ).brandTitle({ page: "Form", builtIn: "Endatix Form" });
     flagState.on = true;
     const { brandTitle } = await load();
 
     // Act
-    const onTitle = await brandTitle("Form", "Endatix Form");
+    const onTitle = await brandTitle({ page: "Form", builtIn: "Endatix Form" });
 
     // Assert
     expect(offTitle).toBe("Endatix Form");
