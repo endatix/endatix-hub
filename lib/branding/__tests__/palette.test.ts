@@ -3,6 +3,7 @@ import { contrastRatio, parseCssColor, toOklch } from "../color";
 import {
   BRAND_TOKENS,
   checkBrandContrast,
+  FOCUS_SURFACES,
   derivePalette,
   toStylesheet,
   type BrandColor,
@@ -154,6 +155,85 @@ describe("derivePalette", () => {
         parseCssColor(palette[mode]["--primary-foreground"])!,
       );
       expect(ratio).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+});
+
+const PAGE = { light: FOCUS_SURFACES.light[0], dark: FOCUS_SURFACES.dark[0] };
+const MODES = ["light", "dark"] as const;
+
+const ratio = (a: string, b: string) =>
+  contrastRatio(parseCssColor(a)!, parseCssColor(b)!);
+
+function expectReadableStates(accent: string, onDark?: string) {
+  const palette = derivePalette(color(accent, onDark));
+  const name = onDark ? `${accent} / on-dark ${onDark}` : accent;
+  for (const mode of MODES) {
+    const tokens = palette[mode];
+    expect(
+      ratio(tokens["--primary-hover"], tokens["--primary-foreground"]),
+      `${name}: ${mode} hover label`,
+    ).toBeGreaterThanOrEqual(4.5);
+    for (const surface of FOCUS_SURFACES[mode])
+      expect(
+        ratio(tokens["--focus-ring"], surface),
+        `${name}: ${mode} focus ring on ${surface}`,
+      ).toBeGreaterThanOrEqual(3);
+  }
+}
+
+describe("derivePalette: interactive states", () => {
+  it("keeps the hover label and focus ring readable for a pale accent", () => {
+    // Act / Assert: #747474 passes at rest, but primary/90 on white is 3.85:1 and ring/50 is 1.95:1.
+    expectReadableStates("#747474");
+  });
+
+  it("keeps the hover label and focus ring readable for a dark accent on the dark page", () => {
+    // Act / Assert
+    expectReadableStates("#0b6b5d", "#0a1a2a");
+  });
+
+  it("still shows a hover for a pale accent, stepping the other way", () => {
+    // Act
+    const { light } = derivePalette(color("#747474"));
+
+    // Assert: as far from the rest colour as the built-in 90% blend would be, but darker.
+    expect(distance(light["--primary-hover"], "#747474")).toBeGreaterThan(0.04);
+    expect(ratio(light["--primary-hover"], PAGE.light)).toBeGreaterThan(
+      ratio("#747474", PAGE.light),
+    );
+  });
+
+  it("keeps the built-in hover look when the accent already reads", () => {
+    // Act
+    const { light } = derivePalette(color("#0b6b5d"));
+
+    // Assert: primary at 90% over the white page, as bg-primary/90 draws it.
+    expect(distance(light["--primary-hover"], "#237a6d")).toBeLessThan(0.02);
+  });
+
+  it("keeps the soft ring when the accent's half-tone already reaches 3:1", () => {
+    // Act
+    const { dark } = derivePalette(color("#0b6b5d", "#b4c5ff"));
+
+    // Assert: #b4c5ff at 50% over the dark page, as ring-ring/50 draws it.
+    expect(distance(dark["--focus-ring"], "#5a6a90")).toBeLessThan(0.02);
+  });
+
+  it("holds both minimums for every accent the validator accepts", () => {
+    // Arrange: any parseable colour is accepted, so sweep hue, lightness and chroma.
+    const steps = (to: number, by: number) =>
+      Array.from({ length: Math.floor(to / by) + 1 }, (_, i) => i * by);
+    const shades = steps(330, 30).flatMap((h) =>
+      steps(100, 10).flatMap((l) =>
+        [0, 50, 100].map((s) => `hsl(${h} ${s}% ${l}%)`),
+      ),
+    );
+
+    // Act / Assert
+    for (const shade of shades) {
+      expectReadableStates(shade);
+      expectReadableStates("#0b6b5d", shade);
     }
   });
 });

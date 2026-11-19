@@ -234,7 +234,7 @@ function commandProps(inline: boolean, focusable: boolean) {
   return {
     tabIndex: focusable ? 0 : -1,
     className:
-      "rounded-md outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 [&:not(:focus-within)_[cmdk-item][data-selected=true]]:bg-transparent",
+      "rounded-md outline-none focus-visible:ring-[3px] focus-visible:ring-focus-ring [&:not(:focus-within)_[cmdk-item][data-selected=true]]:bg-transparent",
   };
 }
 

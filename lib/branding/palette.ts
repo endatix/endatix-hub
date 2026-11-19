@@ -11,6 +11,7 @@ import {
   contrastRatio,
   fromOklch,
   parseCssColor,
+  relativeLuminance,
   toHex,
   toOklch,
   type Oklch,
@@ -27,6 +28,8 @@ export const BRAND_TOKENS = [
   "--primary",
   "--primary-foreground",
   "--ring",
+  "--focus-ring",
+  "--primary-hover",
   "--endatix",
   "--primary-dim",
   "--sidebar-ring",
@@ -44,7 +47,13 @@ export type ColorMode = "light" | "dark";
 /** Built-in values, copied from `app/globals.css`. The derivation is relative to these. */
 const REFERENCE: Record<
   ColorMode,
-  Record<Exclude<BrandToken, "--ring" | "--endatix">, string>
+  Record<
+    Exclude<
+      BrandToken,
+      "--ring" | "--focus-ring" | "--primary-hover" | "--endatix"
+    >,
+    string
+  >
 > = {
   light: {
     "--primary": "hsl(216 100% 41%)",
@@ -70,16 +79,48 @@ const REFERENCE: Record<
   },
 };
 
+/**
+ * The surfaces a focus ring can sit on in each mode, from app/globals.css; the
+ * ring has to read at 3:1 on all of them. The page (`--background`) is first.
+ * light: background, content-canvas, sidebar, muted / accent / secondary,
+ *   surface-container-low, -container, -high (card, popover and
+ *   surface-container-lowest equal the background).
+ * dark: background, content-canvas, card / popover / surface-container,
+ *   muted / accent / surface-container-high, surface-container-low and -lowest.
+ *   Dark `--secondary` (#9e9da1) is left out: it fills secondary buttons, and
+ *   no colour reaches 3:1 on both it and the dark page.
+ */
+export const FOCUS_SURFACES: Record<ColorMode, readonly string[]> = {
+  light: [
+    "hsl(0 0% 100%)",
+    "hsl(214 88% 97%)",
+    "hsl(0 0% 98%)",
+    "hsl(210 40% 96.1%)",
+    "hsl(212 100% 97%)",
+    "hsl(212 100% 94%)",
+    "hsl(212 100% 92%)",
+  ],
+  dark: ["#000f21", "#001225", "#001a34", "#00203e", "#00142a", "#000000"],
+};
+
 /** The page each mode's primary sits on (`--background`). */
 const PAGE_BACKGROUND: Record<ColorMode, string> = {
-  light: "hsl(0 0% 100%)",
-  dark: "#000f21",
+  light: FOCUS_SURFACES.light[0],
+  dark: FOCUS_SURFACES.dark[0],
 };
+
+const WHITE: Rgb = { r: 1, g: 1, b: 1 };
+const BLACK: Rgb = { r: 0, g: 0, b: 0 };
 
 const TEXT_CONTRAST = 4.5;
 /** WCAG 2.x 1.4.11: a control or focus ring against what is next to it. */
 const UI_CONTRAST = 3;
 const MAX_CHROMA_SCALE = 1.5;
+/** The built-in states: `hover:bg-primary/90` and `focus-visible:ring-ring/50`. */
+const HOVER_OPACITY = 0.9;
+const RING_OPACITY = 0.5;
+/** OKLCH lightness per step when a state has to move to reach its minimum. */
+const LIGHTNESS_STEP = 0.01;
 
 const reference = (
   mode: ColorMode,
@@ -141,13 +182,13 @@ function tokensFor(
   hue: BrandHue,
 ): BrandTokenValues {
   const primaryHex = toHex(primary);
+  const foreground = foregroundFor(mode, primary, hue);
   return {
     "--primary": primaryHex,
-    "--primary-foreground": foregroundFor(
-      primary,
-      follow(reference(mode, "--primary-foreground"), hue),
-    ),
+    "--primary-foreground": foreground,
     "--ring": primaryHex,
+    "--focus-ring": focusRingFor(mode, primary),
+    "--primary-hover": hoverFor(mode, primary, foreground),
     "--endatix": primaryHex,
     "--primary-dim": dimFor(mode, primary),
     ...followingTokens(mode, hue),
@@ -192,7 +233,8 @@ function dimFor(mode: ColorMode, primary: Rgb): string {
  * The tinted built-in foreground when it reads, else white or black, whichever
  * reads better. Checked on the hex values the stylesheet will carry.
  */
-function foregroundFor(primary: Rgb, tinted: Oklch): string {
+function foregroundFor(mode: ColorMode, primary: Rgb, hue: BrandHue): string {
+  const tinted = follow(reference(mode, "--primary-foreground"), hue);
   const candidate = toHex(fromOklch(tinted));
   const asWritten = (hex: string) => parseCssColor(hex)!;
   if (
@@ -200,11 +242,80 @@ function foregroundFor(primary: Rgb, tinted: Oklch): string {
     TEXT_CONTRAST
   )
     return candidate;
-  const white: Rgb = { r: 1, g: 1, b: 1 };
-  const black: Rgb = { r: 0, g: 0, b: 0 };
-  return contrastRatio(primary, white) >= contrastRatio(primary, black)
+  return contrastRatio(primary, WHITE) >= contrastRatio(primary, BLACK)
     ? "#ffffff"
     : "#000000";
+}
+
+/**
+ * The built-in hover, primary at 90% over the page, when the label still reads
+ * on it at 4.5:1. Otherwise the same lightness step taken the other way, away
+ * from the label, so the hover stays visible and reads better than the rest
+ * colour. The primary itself always reads, so the search ends there at worst.
+ */
+function hoverFor(mode: ColorMode, primary: Rgb, foreground: string): string {
+  const page = parseCssColor(PAGE_BACKGROUND[mode])!;
+  const label = parseCssColor(foreground)!;
+  const blend = over(primary, page, HOVER_OPACITY);
+  const blendHex = toHex(blend);
+  if (contrastRatio(parseCssColor(blendHex)!, label) >= TEXT_CONTRAST)
+    return blendHex;
+  const rest = toOklch(primary);
+  const step = Math.abs(toOklch(blend).l - rest.l);
+  const away = relativeLuminance(primary) >= relativeLuminance(label) ? 1 : -1;
+  const mirrored = fromOklch({ ...rest, l: rest.l + away * step });
+  return reachContrast(mirrored, [label], TEXT_CONTRAST) ?? toHex(primary);
+}
+
+/**
+ * The built-in focus ring (`--ring` at 50% over the page), moved away from the
+ * page until it reaches 3:1 against every surface in `FOCUS_SURFACES`.
+ */
+function focusRingFor(mode: ColorMode, primary: Rgb): string {
+  const surfaces = FOCUS_SURFACES[mode].map((color) => parseCssColor(color)!);
+  const [page] = surfaces;
+  const fallback =
+    contrastRatio(page, WHITE) >= contrastRatio(page, BLACK) ? WHITE : BLACK;
+  return (
+    reachContrast(over(primary, page, RING_OPACITY), surfaces, UI_CONTRAST) ??
+    toHex(fallback)
+  );
+}
+
+/** `color` at `opacity` composited over an opaque `backdrop`, as the browser paints it. */
+function over(color: Rgb, backdrop: Rgb, opacity: number): Rgb {
+  const mix = (a: number, b: number) => a * opacity + b * (1 - opacity);
+  return {
+    r: mix(color.r, backdrop.r),
+    g: mix(color.g, backdrop.g),
+    b: mix(color.b, backdrop.b),
+  };
+}
+
+/**
+ * The first shade of `start`, stepping OKLCH lightness away from `against[0]`,
+ * whose hex reaches `minimum` against every colour in `against`; null when even
+ * the end of the range does not.
+ */
+function reachContrast(
+  start: Rgb,
+  against: readonly Rgb[],
+  minimum: number,
+): string | null {
+  const base = toOklch(start);
+  const direction =
+    relativeLuminance(start) >= relativeLuminance(against[0]) ? 1 : -1;
+  for (let step = 0; ; step++) {
+    const l = Math.min(
+      1,
+      Math.max(0, base.l + direction * step * LIGHTNESS_STEP),
+    );
+    const hex = toHex(fromOklch({ ...base, l }));
+    const shade = parseCssColor(hex)!;
+    if (against.every((color) => contrastRatio(shade, color) >= minimum))
+      return hex;
+    if (l === 0 || l === 1) return null;
+  }
 }
 
 /** How far a mode's brand primary sits from that mode's built-in primary. */

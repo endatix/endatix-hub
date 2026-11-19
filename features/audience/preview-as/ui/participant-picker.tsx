@@ -41,7 +41,7 @@ const SEARCH_ICON =
   "pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground";
 const LIST = "flex flex-col gap-4 rounded-xl border bg-card p-2";
 const OPTION =
-  "w-full rounded-md px-2 py-1.5 text-left text-sm break-all hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none";
+  "w-full rounded-md px-2 py-1.5 text-left text-sm break-all hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-focus-ring focus-visible:outline-none";
 
 type SearchFieldProps = Pick<ParticipantPickerProps, "search" | "onSearch">;
 

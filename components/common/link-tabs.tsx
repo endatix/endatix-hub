@@ -21,7 +21,7 @@ type LinkTabsProps = {
 };
 
 const TAB_CLASS =
-  "inline-flex items-center gap-1.5 rounded-md px-3 py-1 text-sm font-medium whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none aria-[current=page]:bg-background aria-[current=page]:text-foreground aria-[current=page]:shadow-sm";
+  "inline-flex items-center gap-1.5 rounded-md px-3 py-1 text-sm font-medium whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-focus-ring focus-visible:outline-none aria-[current=page]:bg-background aria-[current=page]:text-foreground aria-[current=page]:shadow-sm";
 
 function TabCount({ count }: Readonly<{ count?: number }>) {
   if (count === undefined) return null;
