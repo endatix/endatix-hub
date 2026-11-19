@@ -25,13 +25,16 @@ export async function verifyEmailAction(
     const userId = await verifyEmail({ token });
     return { success: true, userId };
   } catch (error: unknown) {
-    let errorMessage = "We cannot verify your email at this time. Please try again later.";
-    
+    let errorMessage =
+      "We cannot verify your email at this time. Please try again later.";
+
     if (error instanceof Error) {
-      if (error?.cause &&
-          typeof error.cause === "object" &&
-          "code" in error.cause &&
-          error.cause.code == CONNECTION_REFUSED_CODE) {
+      if (
+        error?.cause &&
+        typeof error.cause === "object" &&
+        "code" in error.cause &&
+        error.cause.code == CONNECTION_REFUSED_CODE
+      ) {
         errorMessage = `Failed to connect to the ${(await getBrand()).shortName} API. Ensure your network connection and app settings are correct`;
       } else {
         errorMessage = error.message;
@@ -43,4 +46,4 @@ export async function verifyEmailAction(
       errorMessage: errorMessage,
     };
   }
-} 
+}

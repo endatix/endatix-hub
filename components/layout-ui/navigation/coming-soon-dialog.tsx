@@ -17,7 +17,11 @@ interface ComingSoonDialogProps {
   featureName: string;
 }
 
-export function ComingSoonDialog({ isOpen, onClose, featureName }: ComingSoonDialogProps) {
+export function ComingSoonDialog({
+  isOpen,
+  onClose,
+  featureName,
+}: ComingSoonDialogProps) {
   const brand = useBrand();
   const websiteUrl = brandUrl(
     brand,
@@ -35,18 +39,18 @@ export function ComingSoonDialog({ isOpen, onClose, featureName }: ComingSoonDia
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle className="text-center">
-            Coming soon
-          </DialogTitle>
+          <DialogTitle className="text-center">Coming soon</DialogTitle>
           <div className="mt-20" />
-          <DialogDescription className="text-left px-4 leading-relaxed">
-            <span className="font-semibold text-foreground">{featureName}</span> is coming soon!{" "}
-            {brand.name} is the new exciting way to manage your data collection and processing workflows.
-            We&apos;re constantly adding new features and enhancing existing ones to make your data management experience even better.
+          <DialogDescription className="px-4 text-left leading-relaxed">
+            <span className="font-semibold text-foreground">{featureName}</span>{" "}
+            is coming soon! {brand.name} is the new exciting way to manage your
+            data collection and processing workflows. We&apos;re constantly
+            adding new features and enhancing existing ones to make your data
+            management experience even better.
           </DialogDescription>
         </DialogHeader>
 
-        <DialogFooter className="flex flex-col sm:flex-row gap-3 justify-center">
+        <DialogFooter className="flex flex-col justify-center gap-3 sm:flex-row">
           {websiteUrl ? (
             <Button asChild size="sm">
               <a href={websiteUrl} target="_blank" rel="noopener noreferrer">
@@ -65,4 +69,4 @@ export function ComingSoonDialog({ isOpen, onClose, featureName }: ComingSoonDia
       </DialogContent>
     </Dialog>
   );
-} 
+}

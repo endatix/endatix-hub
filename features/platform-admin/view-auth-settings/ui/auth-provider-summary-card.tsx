@@ -291,8 +291,8 @@ export function AuthProviderSummaryCard({
         </CardHeader>
         <CardContent className="space-y-2 text-sm text-muted-foreground">
           <p>
-            PlatformAdmin access always requires local approval in {productName}, even
-            when an external identity provider nominates the role.
+            PlatformAdmin access always requires local approval in {productName}
+            , even when an external identity provider nominates the role.
           </p>
           <p>
             Manage local approvals on the{" "}
