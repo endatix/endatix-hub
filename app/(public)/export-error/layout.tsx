@@ -12,9 +12,11 @@ import { Metadata } from "next";
  */
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    ...(await brandMetadata()),
+    ...(await brandMetadata({
+      title: "Export failed",
+      builtInTitle: "Export failed",
+    })),
     metadataBase: getMetadataBase(),
-    title: "Export failed",
     description: "This export could not be completed.",
     robots: {
       index: false,

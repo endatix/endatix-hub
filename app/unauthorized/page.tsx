@@ -11,9 +11,10 @@ import { redirect } from "next/navigation";
 export async function generateMetadata(): Promise<Metadata> {
   return {
     ...(await brandMetadata({
+      title: "403 - Access Denied",
+      builtInTitle: "403 - Access Denied",
       description: "You don't have permission to access this page.",
     })),
-    title: "403 - Access Denied",
     authors: [
       {
         name: "Endatix Team",

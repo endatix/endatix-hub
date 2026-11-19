@@ -13,9 +13,11 @@ import { Metadata } from "next";
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    ...(await brandMetadata()),
+    ...(await brandMetadata({
+      title: "Scheduled maintenance",
+      builtInTitle: "Scheduled maintenance",
+    })),
     metadataBase: getMetadataBase(),
-    title: "Scheduled maintenance",
   };
 }
 

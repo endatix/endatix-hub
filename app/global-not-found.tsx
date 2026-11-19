@@ -9,9 +9,11 @@ import { Button } from "@/components/ui/button";
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    ...(await brandMetadata()),
+    ...(await brandMetadata({
+      title: "404 - Page Not Found",
+      builtInTitle: "404 - Page Not Found",
+    })),
     metadataBase: getMetadataBase(),
-    title: "404 - Page Not Found",
     description: "The page you are looking for does not exist.",
     generator: "Endatix",
     keywords: [

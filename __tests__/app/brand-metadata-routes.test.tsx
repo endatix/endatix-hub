@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { mountPackDir } from "@/lib/branding/__tests__/pack-dir";
 
 const flagState = vi.hoisted(() => ({ on: false }));
 
@@ -20,6 +21,8 @@ type Route = {
   name: string;
   load: () => Promise<{ generateMetadata: () => Promise<Metadata> }>;
   title: string;
+  /** The title with the example pack applied, where the route names the brand. */
+  packTitle?: string;
 };
 
 /** Today's titles with no brand pack: the built-in brand must keep them. */
@@ -28,6 +31,7 @@ const ROUTES: Route[] = [
     name: "(main) layout",
     load: () => import("@/app/(main)/layout"),
     title: "Endatix Hub",
+    packTitle: "Example Forms",
   },
   {
     name: "(auth) layout",
@@ -38,6 +42,7 @@ const ROUTES: Route[] = [
     name: "sign in",
     load: () => import("@/app/(auth)/signin/page"),
     title: "Sign in | Endatix Hub",
+    packTitle: "Sign in | Example Forms",
   },
   {
     name: "sign out",
@@ -83,26 +88,31 @@ const ROUTES: Route[] = [
     name: "unauthorized page",
     load: () => import("@/app/unauthorized/page"),
     title: "403 - Access Denied",
+    packTitle: "403 - Access Denied | Example Forms",
   },
   {
     name: "maintenance",
     load: () => import("@/app/(public)/maintenance/layout"),
     title: "Scheduled maintenance",
+    packTitle: "Scheduled maintenance | Example Forms",
   },
   {
     name: "export error",
     load: () => import("@/app/(public)/export-error/layout"),
     title: "Export failed",
+    packTitle: "Export failed | Example Forms",
   },
   {
     name: "global not found",
     load: () => import("@/app/global-not-found"),
     title: "404 - Page Not Found",
+    packTitle: "404 - Page Not Found | Example Forms",
   },
   {
     name: "edit",
     load: () => import("@/app/(public)/edit/layout"),
     title: "Edit Submission - Endatix",
+    packTitle: "Edit Submission | Example Forms",
   },
   {
     name: "view",
@@ -113,6 +123,7 @@ const ROUTES: Route[] = [
     name: "share",
     load: () => import("@/app/(public)/share/layout"),
     title: "Endatix Form",
+    packTitle: "Form | Example Forms",
   },
   {
     name: "embed",
@@ -167,6 +178,27 @@ describe("route metadata with the built-in brand", () => {
       expect(metadata.icons).toEqual({
         icon: [{ url: "/assets/icons/icon.svg", type: "image/svg+xml" }],
       });
+    },
+  );
+});
+
+describe("route metadata with a brand pack", () => {
+  const pack = mountPackDir();
+
+  beforeEach(() => {
+    flagState.on = true;
+    pack.write({});
+    vi.resetModules();
+  });
+
+  it.each(ROUTES.filter((route) => route.packTitle))(
+    "$name names the pack in its title",
+    async ({ load, packTitle }) => {
+      // Act
+      const metadata = await (await load()).generateMetadata();
+
+      // Assert
+      expect(metadata.title).toBe(packTitle);
     },
   );
 });
