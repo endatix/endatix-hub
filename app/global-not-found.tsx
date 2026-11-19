@@ -4,6 +4,7 @@ import { geistMono, geistSans } from "@/lib/fonts/geist-local";
 import {
   brandKeywords,
   brandLayoutMetadata,
+  brandTitle,
   getBrand,
 } from "@/lib/branding/server";
 import { getMetadataBase } from "@/lib/seo";
@@ -15,8 +16,11 @@ export async function generateMetadata(): Promise<Metadata> {
   const brand = await getBrand();
   return {
     ...(await brandLayoutMetadata()),
+    title: await brandTitle({
+      page: "404 - Page Not Found",
+      builtIn: "404 - Page Not Found",
+    }),
     metadataBase: getMetadataBase(),
-    title: "404 - Page Not Found",
     description: "The page you are looking for does not exist.",
     generator: brand.shortName,
     keywords: [...brandKeywords(brand), "forms-management", "ai-form-builder"],

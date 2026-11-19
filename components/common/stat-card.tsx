@@ -80,7 +80,7 @@ export function StatCard(props: Readonly<StatCardProps>) {
       href={props.href}
       className={cn(
         CARD_CLASS,
-        "group transition-colors hover:bg-muted/40 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none",
+        "group transition-colors hover:bg-muted/40 focus-visible:ring-[3px] focus-visible:ring-focus-ring focus-visible:outline-none",
       )}
     >
       <StatCardBody {...props} />

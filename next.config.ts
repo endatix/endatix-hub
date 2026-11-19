@@ -5,6 +5,7 @@ import {
   resolveSurveyJsVersions,
 } from "./lib/hosting/hub-build.mjs";
 import { getHubDeploymentId } from "./lib/hosting/hub-version";
+import { resolveDevIndicators } from "./lib/hosting/dev-indicators";
 import { getRewriteRuleFor } from "./lib/hosting/next-config-helper";
 import { Rewrite } from "next/dist/lib/load-custom-routes";
 import { withEndatix } from "@/features/config";
@@ -36,6 +37,8 @@ const nextConfig: NextConfig = {
   // sibling dependencies on hosts that dereference symlinks (Azure Static Web Apps,
   // endatix-hub#1269). Loaded by name, sanitize-html finds its postcss in its own folder.
   serverExternalPackages: [...OTEL_SERVER_EXTERNAL_PACKAGES, "sanitize-html"],
+  // Opt-in HUB_DEV_INDICATORS=false hides the dev badge for screenshots; unset keeps it.
+  ...resolveDevIndicators(),
   typedRoutes: true,
   reactStrictMode: true,
   reactCompiler: true,

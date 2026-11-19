@@ -1,7 +1,11 @@
 import { AppProvider } from "@/components/providers";
 import { AppOptions } from "@/components/providers/app-options";
 import { getClientEndatixConfig } from "@/features/config/server";
-import { brandLayoutMetadata, getBrand } from "@/lib/branding/server";
+import {
+  brandLayoutMetadata,
+  brandTitle,
+  getBrand,
+} from "@/lib/branding/server";
 import { getMetadataBase } from "@/lib/seo";
 import { Metadata } from "next";
 
@@ -13,8 +17,11 @@ import { Metadata } from "next";
 export async function generateMetadata(): Promise<Metadata> {
   return {
     ...(await brandLayoutMetadata()),
+    title: await brandTitle({
+      page: "Export failed",
+      builtIn: "Export failed",
+    }),
     metadataBase: getMetadataBase(),
-    title: "Export failed",
     description: "This export could not be completed.",
     robots: {
       index: false,

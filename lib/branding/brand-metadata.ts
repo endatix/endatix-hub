@@ -33,16 +33,16 @@ const ICON_TYPES: Readonly<Record<string, string>> = {
  */
 export function layoutMetadataFor(
   brand: Brand,
-  options: BrandLayoutOptions = {},
+  options?: BrandLayoutOptions,
 ): Metadata {
   return {
-    title: options.titleTemplate
+    title: options?.titleTemplate
       ? { default: brand.name, template: `%s | ${brand.name}` }
       : brand.name,
     applicationName: brand.name,
     publisher: brand.legalName,
     icons: { icon: [iconLink(brand.icon)] },
-    ...(options.socialImage &&
+    ...(options?.socialImage &&
       brand.ogImage && { openGraph: { images: [{ url: brand.ogImage }] } }),
   };
 }

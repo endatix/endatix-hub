@@ -12,7 +12,6 @@ import {
 import type { AdvancedCarryForwardQuestion } from "../types";
 import {
   getAllCarryForwardTargets,
-  getCarryForwardTargetsInDependencyOrder,
   isAdvancedCarryForwardEnabled,
 } from "../utils";
 import {
@@ -25,6 +24,7 @@ import {
 import {
   loadCarryForwardTargetsFromPropertyChange,
   syncCarryForwardTargets,
+  syncCarryForwardTargetsOnBind,
 } from "./carry-forward-sync";
 import { syncSingleCarryForwardTarget } from "../use-cases/sync-carry-forward-target";
 
@@ -208,9 +208,7 @@ export function bindAdvancedCarryForwardToSurvey(model: Model): () => void {
   const detachPropertyHandlers =
     attachCarryForwardPropertyChangeHandlers(model);
 
-  getCarryForwardTargetsInDependencyOrder(model).forEach((target) => {
-    syncSingleCarryForwardTarget(model, target);
-  });
+  syncCarryForwardTargetsOnBind(model);
 
   const dispose = () => {
     detachPropertyHandlers();
