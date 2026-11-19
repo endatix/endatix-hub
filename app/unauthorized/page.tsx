@@ -12,9 +12,10 @@ export async function generateMetadata(): Promise<Metadata> {
   const brand = await getBrand();
   return {
     ...(await brandMetadata({
+      title: "403 - Access Denied",
+      builtInTitle: "403 - Access Denied",
       description: "You don't have permission to access this page.",
     })),
-    title: "403 - Access Denied",
     authors: brandAuthors(brand),
     robots: ROBOTS.hiddenPage,
   };

@@ -37,7 +37,7 @@ describe("loadCarryForwardTargets", () => {
       .mockImplementationOnce(() => {
         throw new Error("sync failed");
       })
-      .mockImplementation(() => {});
+      .mockImplementation(() => false);
 
     expect(() =>
       loadCarryForwardTargets(survey, {
@@ -88,6 +88,7 @@ describe("loadCarryForwardTargets", () => {
             value: ["A"],
           } as never);
         }
+        return false;
       },
     );
 

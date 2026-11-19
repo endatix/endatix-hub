@@ -60,6 +60,18 @@ What the Hub does with it:
 - **The accent**: one colour derives `--primary`, `--primary-foreground` (always 4.5:1),
   `--ring`, `--endatix`, `--primary-dim`, `--sidebar-ring` and `--chart-1..5` for light and
   dark. Survey Creator follows, since it reads the computed CSS.
+- **Hover and focus**: the pack also sets `--primary-hover` (label at 4.5:1 or more) and
+  `--focus-ring` (3:1 or more on every surface in `FOCUS_SURFACES` in `palette.ts`: page, content
+  canvas, sidebar, cards, muted/accent and the surface containers). Each starts from the
+  built-in look, primary at 90% and ring at 50% over the page. A hover whose label would not
+  read takes the same step the other way; a ring that would not read darkens or lightens until
+  it does. Without a pack both fall back to exactly `bg-primary/90` and `ring-ring/50`.
+  - `--primary-hover` (`bg-primary-hover`): the default `Button` and the default link `Badge`.
+  - `--focus-ring` (`ring-focus-ring`, `outline-focus-ring`): every element's base outline
+    (`app/globals.css`), and the focus ring of `Button`, `Badge`, `Input`, `Textarea`, `Select`,
+    `Checkbox`, `RadioGroup`, `Switch`, `Slider`, `Tabs`, `Accordion`, `ScrollArea`,
+    `LinkTabs`, `StatCard`, the faceted filter, the open-card surface and the preview-as
+    participant picker.
 
 ## `/brand/*`
 
