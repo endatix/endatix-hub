@@ -68,6 +68,36 @@ describe("brandRouteResponse", () => {
     expect(icon.headers.get("location")).toBe("/assets/icons/icon.svg");
   });
 
+  it("serves the brand name as text at the name alias", async () => {
+    // Arrange
+    pack.write({});
+    const { brandRouteResponse } = await load();
+
+    // Act
+    const response = await brandRouteResponse(["name"], request());
+
+    // Assert
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toBe(
+      "text/plain; charset=utf-8",
+    );
+    expect(response.headers.get("cache-control")).toBe("private, no-cache");
+    expect(await response.text()).toBe("Example Forms");
+  });
+
+  it("serves the built-in name at the name alias while the flag is off", async () => {
+    // Arrange
+    pack.write({});
+    flagState.on = false;
+    const { brandRouteResponse } = await load();
+
+    // Act
+    const response = await brandRouteResponse(["name"], request());
+
+    // Assert
+    expect(await response.text()).toBe("Endatix Hub");
+  });
+
   it("redirects the logo aliases to the pack's files", async () => {
     // Arrange
     pack.write({ assets: { logo: { light: "logo.svg" } } });

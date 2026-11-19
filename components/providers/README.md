@@ -14,10 +14,10 @@ To use these providers in your application, update your root layout:
 
 ```tsx
 // app/layout.tsx
-import { auth } from '@/auth';
-import { AppProvider } from '@/components/providers';
-import { getClientEndatixConfig } from '@/features/config/server';
-import { getBrand } from '@/lib/branding/server';
+import { auth } from "@/auth";
+import { AppProvider } from "@/components/providers";
+import { getClientEndatixConfig } from "@/features/config/server";
+import { getBrand } from "@/lib/branding/server";
 
 export default async function RootLayout({ children }) {
   // The session also identifies the user for analytics
@@ -37,7 +37,7 @@ export default async function RootLayout({ children }) {
           themeOptions={{
             attribute: "class",
             defaultTheme: "light",
-            enableSystem: true
+            enableSystem: true,
           }}
         >
           {children}
@@ -57,16 +57,16 @@ The AppProvider accepts several options to configure its behavior:
 ```tsx
 interface AppProviderProps {
   children: ReactNode;
-  session?: SessionData;               // User session data for analytics
-  options?: AppProviderOptions;        // Feature toggles
-  themeOptions?: ThemeOptions;         // Theme configuration
-  endatixConfig: ClientEndatixConfig;  // Request-time public config
-  brand: Brand;                        // getBrand(); RESPONDENT_BRAND_DEFERRED on /share and /embed
+  session?: SessionData; // User session data for analytics
+  options?: AppProviderOptions; // Feature toggles
+  themeOptions?: ThemeOptions; // Theme configuration
+  endatixConfig: ClientEndatixConfig; // Request-time public config
+  brand: Brand; // getBrand(); getRespondentBrand() on /share and /embed
 }
 
 interface AppProviderOptions {
-  enableTheme?: boolean;               // Enable/disable theme (default: true)
-  enableAnalytics?: boolean;           // Enable/disable analytics (default: true)
+  enableTheme?: boolean; // Enable/disable theme (default: true)
+  enableAnalytics?: boolean; // Enable/disable analytics (default: true)
 }
 ```
 
@@ -79,4 +79,4 @@ interface AppProviderOptions {
 
 ### Analytics Provider
 
-The analytics provider automatically configures PostHog based on environment variables. The provider uses email as the identifier for logged-in users and maintains anonymous IDs for non-logged in users. 
+The analytics provider automatically configures PostHog based on environment variables. The provider uses email as the identifier for logged-in users and maintains anonymous IDs for non-logged in users.

@@ -2,9 +2,8 @@ import "@/app/globals.css";
 import { auth } from "@/auth";
 import { AppProvider } from "@/components/providers";
 import { getClientEndatixConfig } from "@/features/config/server";
-import { getBrand } from "@/lib/branding/server";
+import { brandLayoutMetadata, getBrand } from "@/lib/branding/server";
 import { geistMono, geistSans } from "@/lib/fonts/geist-local";
-import { getPublicAssetPath } from "@/lib/hosting";
 import {
   BarChart2,
   Database,
@@ -27,13 +26,14 @@ interface AuthLayoutProps {
   children: React.ReactNode;
 }
 
-export const metadata: Metadata = {
-  metadataBase: getMetadataBase(),
-  title: "Endatix Hub",
-  description: "Login to your Endatix Hub account",
-  applicationName: "Endatix Hub",
-  publisher: "Endatix Ltd.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const brand = await getBrand();
+  return {
+    ...(await brandLayoutMetadata({ titleTemplate: true, socialImage: true })),
+    metadataBase: getMetadataBase(),
+    description: `Login to your ${brand.name} account`,
+  };
+}
 
 const formFeatures = [
   { icon: PenLine, label: "Form Builder" },
@@ -52,13 +52,7 @@ export default async function AuthLayout({ children }: AuthLayoutProps) {
   ]);
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        <link
-          rel="icon"
-          href={getPublicAssetPath("/assets/icons/icon.svg")}
-          type="image/svg+xml"
-        />
-      </head>
+      <head />
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${instrumentSans.variable}`}
       >
@@ -68,14 +62,16 @@ export default async function AuthLayout({ children }: AuthLayoutProps) {
           brand={brand}
         >
           <div className="h-screen w-full overflow-hidden bg-muted/40">
-            <a
-              href="https://endatix.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="fixed right-8 bottom-8 z-50 text-sm text-primary/70 transition-colors duration-200 hover:text-primary"
-            >
-              endatix.com
-            </a>
+            {brand.links.website?.startsWith("http") ? (
+              <a
+                href={brand.links.website}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="fixed right-8 bottom-8 z-50 text-sm text-primary/70 transition-colors duration-200 hover:text-primary"
+              >
+                {new URL(brand.links.website).host}
+              </a>
+            ) : null}
             <main className="grid h-full gap-8 p-6 lg:grid-cols-2">
               {/* Left — sign-in form */}
               <div className="flex items-center justify-center">

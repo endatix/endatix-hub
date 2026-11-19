@@ -2,21 +2,30 @@ import "@/app/globals.css";
 import { auth } from "@/auth";
 import { AppProvider } from "@/components/providers";
 import { getClientEndatixConfig } from "@/features/config/server";
-import { getBrand } from "@/lib/branding/server";
-import { getPublicAssetPath } from "@/lib/hosting";
+import {
+  brandLayoutMetadata,
+  brandTitle,
+  getBrand,
+} from "@/lib/branding/server";
 import type { Metadata } from "next";
 import { ROBOTS, getMetadataBase } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  metadataBase: getMetadataBase(),
-  title: "Edit Submission - Endatix",
-  description: "Edit your submission",
-  generator: "Endatix",
-  keywords: ["endatix", "edit", "submission", "form"],
-  applicationName: "Endatix Hub",
-  publisher: "Endatix Ltd.",
-  robots: ROBOTS.hiddenPage,
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const brand = await getBrand();
+  return {
+    ...(await brandLayoutMetadata()),
+    title: await brandTitle({
+      page: "Edit Submission",
+      // eslint-disable-next-line no-restricted-syntax -- built-in value, shown only while no brand pack applies
+      builtIn: "Edit Submission - Endatix",
+    }),
+    metadataBase: getMetadataBase(),
+    description: "Edit your submission",
+    generator: brand.shortName,
+    keywords: [brand.shortName.toLowerCase(), "edit", "submission", "form"],
+    robots: ROBOTS.hiddenPage,
+  };
+}
 
 export default async function EditLayout({
   children,
@@ -30,13 +39,7 @@ export default async function EditLayout({
   ]);
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        <link
-          rel="icon"
-          href={getPublicAssetPath("/assets/icons/icon.svg")}
-          type="image/svg+xml"
-        />
-      </head>
+      <head />
       <body>
         <AppProvider
           session={session}

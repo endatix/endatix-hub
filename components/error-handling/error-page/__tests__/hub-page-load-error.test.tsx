@@ -20,7 +20,7 @@ describe("HubPageLoadError", () => {
   it("renders ResultLoadErrorView chrome for a network Result", () => {
     // Arrange
     const result = Result.error(
-      "Network error. Failed to connect to the Endatix API.",
+      "Network error. Failed to connect to the API.",
       undefined,
       ERROR_CODE.NETWORK_ERROR,
       { statusCode: 503 },

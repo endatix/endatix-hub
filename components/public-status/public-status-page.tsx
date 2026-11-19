@@ -1,5 +1,6 @@
 import { getIsomorphicEndatixConfig } from "@/features/config/client-endatix-config";
 import type { LucideIcon } from "lucide-react";
+import { PoweredBy } from "./powered-by";
 import styles from "./public-status-page.module.css";
 
 /**
@@ -85,14 +86,11 @@ export function PublicStatusPage({
         {children}
         {note ? <p className={styles.note}>{note}</p> : null}
       </div>
-      {isPoweredByShown ? (
-        <p className={styles.poweredBy}>
-          Powered by{" "}
-          <a href={POWERED_BY_URL} rel="noopener" target="_blank">
-            Endatix
-          </a>
-        </p>
-      ) : null}
+      <PoweredBy
+        envShown={isPoweredByShown}
+        className={styles.poweredBy}
+        href={POWERED_BY_URL}
+      />
     </div>
   );
 }

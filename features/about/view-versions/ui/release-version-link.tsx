@@ -2,7 +2,9 @@
 
 import { TextLink } from "@/components/common/text-link";
 import { useTrackEvent } from "@/features/analytics/posthog/client";
+import { isBuiltInLink, useBrand } from "@/lib/branding/client";
 import {
+  isEndatixProduct,
   releaseNotesUrl,
   type ReleaseNotesSource,
   type ReleaseProduct,
@@ -21,7 +23,12 @@ interface ReleaseVersionLinkProps {
  */
 export function ReleaseVersionLink(props: Readonly<ReleaseVersionLinkProps>) {
   const { trackEvent } = useTrackEvent();
-  const href = releaseNotesUrl(props.product, props.version, props.source);
+  const brand = useBrand();
+  // Endatix's release notes name Endatix; a brand pack shows the version unlinked.
+  const href =
+    isEndatixProduct(props.product) && !isBuiltInLink(brand, "website")
+      ? null
+      : releaseNotesUrl(props.product, props.version, props.source);
 
   if (!props.version || !href) {
     return <VersionText version={props.version} />;

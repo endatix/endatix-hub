@@ -1,5 +1,6 @@
 "use client";
 
+import { useBrand } from "@/lib/branding/client";
 import Link from "next/link";
 import { CalendarX2 } from "lucide-react";
 import {
@@ -44,6 +45,7 @@ export default function ActivateInviteForm({
   token,
   email,
 }: Readonly<ActivateInviteFormProps>) {
+  const brand = useBrand();
   const [state, formAction, isPending] = useActionState(
     activateInviteAction,
     initialState,
@@ -102,7 +104,7 @@ export default function ActivateInviteForm({
         <AuthLogo className="mb-2" />
         <h1 className="text-2xl font-semibold">Accept your invitation</h1>
         <p className="mb-6 text-balance text-muted-foreground">
-          Set a password to activate your account and sign in to Endatix Hub.
+          Set a password to activate your account and sign in to {brand.name}.
         </p>
       </div>
 

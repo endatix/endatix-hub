@@ -7,9 +7,7 @@ import { TenantRegistrationClosed } from "@/features/tenants/public-tenant/ui/te
 import { tenantPublicSignInPath } from "@/features/platform-admin/tenant-registration";
 import { Result } from "@/lib/result";
 
-export const metadata: Metadata = {
-  title: "Create account | Endatix Hub",
-};
+export const metadata: Metadata = { title: "Create account" };
 
 interface TenantRegisterPageProps {
   params: Promise<{ tenantSlug: string }>;

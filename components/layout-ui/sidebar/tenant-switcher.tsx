@@ -18,32 +18,10 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import Image from "next/image";
-import { cn } from "@/lib/utils";
-import { getPublicAssetPath } from "@/lib/hosting";
+import { BrandLogo, useBrand } from "@/lib/branding/client";
 
-
-function EndatixLogoIcon({ className }: Readonly<{ className?: string }>) {
-  return (
-    <>
-      <Image
-        src={getPublicAssetPath("/assets/icons/endatix-paperclip-icon-blue.svg")}
-        alt=""
-        className={cn(className, "dark:hidden")}
-        width={706}
-        height={706}
-        aria-hidden
-      />
-      <Image
-        src={getPublicAssetPath("/assets/icons/endatix-paperclip-icon-white.svg")}
-        alt=""
-        className={cn(className, "hidden dark:block")}
-        width={706}
-        height={706}
-        aria-hidden
-      />
-    </>
-  );
+function DeploymentIcon({ className }: Readonly<{ className?: string }>) {
+  return <BrandLogo variant="icon" className={className} />;
 }
 
 interface Tenant {
@@ -57,17 +35,20 @@ interface TenantSwitcherProps {
   tenants?: Tenant[];
 }
 
+/** The deployment itself, named by the brand, while no tenant list is passed. */
 const DEFAULT_TENANT = {
-  name: "Endatix",
+  name: "",
   description: "beta",
-  logo: EndatixLogoIcon,
+  logo: DeploymentIcon,
   href: "/forms",
 };
 
 export function TenantSwitcher({ tenants }: Readonly<TenantSwitcherProps>) {
   const { isMobile } = useSidebar();
+  const brand = useBrand();
+  const defaultTenant = { ...DEFAULT_TENANT, name: brand.shortName };
   const [activeTenant, setActiveTenant] = React.useState(
-    tenants?.at(0) ?? DEFAULT_TENANT,
+    tenants?.at(0) ?? defaultTenant,
   );
 
   if (!activeTenant) {
@@ -78,7 +59,7 @@ export function TenantSwitcher({ tenants }: Readonly<TenantSwitcherProps>) {
     return <SingleTenantDisplay tenant={activeTenant} />;
   }
 
-  const tenantsToDisplay = tenants ?? [DEFAULT_TENANT];
+  const tenantsToDisplay = tenants ?? [defaultTenant];
 
   return (
     <SidebarMenu>
@@ -145,48 +126,19 @@ const SingleTenantDisplay = ({ tenant }: Readonly<{ tenant: Tenant }>) => {
   return (
     <SidebarMenu>
       <SidebarMenuItem>
-        <SidebarMenuButton size="lg" asChild className="hover:bg-transparent active:bg-transparent group-data-[collapsible=icon]:rounded-[3px] group-data-[collapsible=icon]:overflow-hidden">
+        <SidebarMenuButton
+          size="lg"
+          asChild
+          className="group-data-[collapsible=icon]:overflow-hidden group-data-[collapsible=icon]:rounded-[3px] hover:bg-transparent active:bg-transparent"
+        >
           <a href={tenant.href ?? "/"}>
             {/* Collapsed: square icon */}
             <div className="hidden aspect-square size-full items-center justify-center group-data-[collapsible=icon]:flex">
               <tenant.logo className="size-8 shrink-0" />
             </div>
-            {/* Expanded: icon + text wordmark as separate files for gap control */}
+            {/* Expanded: the brand lockup (built-in: icon and wordmark files, for gap control) */}
             <div className="flex items-center gap-1 group-data-[collapsible=icon]:hidden">
-              <Image
-                src={getPublicAssetPath("/assets/icons/endatix-paperclip-icon-blue.svg")}
-                alt=""
-                width={706}
-                height={706}
-                className="h-7 w-auto shrink-0 dark:hidden"
-                aria-hidden
-                priority
-              />
-              <Image
-                src={getPublicAssetPath("/assets/icons/endatix-paperclip-icon-white.svg")}
-                alt=""
-                width={706}
-                height={706}
-                className="hidden h-7 w-auto shrink-0 dark:block"
-                aria-hidden
-                priority
-              />
-              <Image
-                src={getPublicAssetPath("/assets/icons/endatix-wordmark-blue.svg")}
-                alt="Endatix Hub"
-                width={217}
-                height={46}
-                className="h-6 w-auto dark:hidden"
-                priority
-              />
-              <Image
-                src={getPublicAssetPath("/assets/icons/endatix-wordmark-white.svg")}
-                alt="Endatix Hub"
-                width={217}
-                height={46}
-                className="hidden h-6 w-auto dark:block"
-                priority
-              />
+              <BrandLogo variant="lockup" priority />
             </div>
           </a>
         </SidebarMenuButton>

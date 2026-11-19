@@ -272,12 +272,19 @@ function clipboardLine(label: string, value: string | undefined) {
 
 export function formatUnexpectedErrorClipboard(
   diagnostics: UnexpectedErrorDiagnostics,
-  extras: { path?: string; statusLabel?: string; details?: string },
+  extras: {
+    path?: string;
+    statusLabel?: string;
+    details?: string;
+    /** The brand's name; a root error page, outside `AppProvider`, has none. */
+    productName?: string;
+  },
 ): string {
   const httpStatus = diagnostics.statusCode ?? extras.statusLabel;
 
   return [
-    "Endatix Hub error",
+    // eslint-disable-next-line no-restricted-syntax -- the built-in name, for root error pages outside AppProvider
+    `${extras.productName ?? "Endatix Hub"} error`,
     clipboardLine("Path", extras.path),
     `Timestamp: ${new Date().toISOString()}`,
     clipboardLine("Digest", diagnostics.digest ?? "n/a"),

@@ -15,9 +15,7 @@ import { TenantPublicUnavailable } from "@/features/tenants/public-tenant/ui/ten
 import { tenantPublicRegisterPath } from "@/features/platform-admin/tenant-registration";
 import { Result } from "@/lib/result";
 
-export const metadata: Metadata = {
-  title: "Sign in | Endatix Hub",
-};
+export const metadata: Metadata = { title: "Sign in" };
 
 interface TenantSignInPageProps {
   params: Promise<{ tenantSlug: string }>;

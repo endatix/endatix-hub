@@ -3,30 +3,23 @@ import { UnauthorizedComponent } from "@/components/error-handling/unauthorized"
 import { Button } from "@/components/ui/button";
 import { SIGNIN_PATH, SIGNOUT_PATH } from "@/features/auth";
 import { Metadata } from "next";
-import { getPublicAssetPath } from "@/lib/hosting";
+import { brandAuthors, brandTitle, getBrand } from "@/lib/branding/server";
 import { ROBOTS } from "@/lib/seo";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-export const metadata: Metadata = {
-  title: "403 - Access Denied",
-  description: "You don't have permission to access this page.",
-  authors: [
-    {
-      name: "Endatix Team",
-      url: "https://endatix.com",
-    },
-  ],
-  openGraph: {
+export async function generateMetadata(): Promise<Metadata> {
+  const brand = await getBrand();
+  return {
+    title: await brandTitle({
+      page: "403 - Access Denied",
+      builtIn: "403 - Access Denied",
+    }),
     description: "You don't have permission to access this page.",
-    images: [
-      {
-        url: getPublicAssetPath("/assets/endatix-og-image.jpg"),
-      },
-    ],
-  },
-  robots: ROBOTS.hiddenPage,
-};
+    authors: brandAuthors(brand),
+    robots: ROBOTS.hiddenPage,
+  };
+}
 
 export default async function UnauthorizedPage() {
   const session = await auth();

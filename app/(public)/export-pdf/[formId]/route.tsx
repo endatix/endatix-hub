@@ -1,3 +1,4 @@
+import { getBrand } from "@/lib/branding/server";
 import { parsePdfLocaleQuery } from "@/features/pdf-export/submission/pdf-locale";
 import { renderSubmissionPdf } from "@/features/pdf-export/submission/render-submission-pdf.use-case";
 import { asBrowserExportError } from "@/features/pdf-export/browser-export-error";
@@ -53,7 +54,7 @@ export async function GET(req: NextRequest, { params }: Params) {
 
   if (Result.isError(submissionResult)) {
     return await asBrowserExportError(
-      mapPublicPdfExportLoadError(submissionResult),
+      mapPublicPdfExportLoadError(submissionResult, await getBrand()),
       accept,
     );
   }

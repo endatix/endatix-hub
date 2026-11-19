@@ -1,27 +1,31 @@
 import "@/app/globals.css";
 import { NotFoundComponent } from "@/components/error-handling/not-found";
 import { geistMono, geistSans } from "@/lib/fonts/geist-local";
-import { getPublicAssetPath } from "@/lib/hosting";
+import {
+  brandKeywords,
+  brandLayoutMetadata,
+  brandTitle,
+  getBrand,
+} from "@/lib/branding/server";
 import { getMetadataBase } from "@/lib/seo";
 import { Metadata } from "next";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
-export const metadata: Metadata = {
-  metadataBase: getMetadataBase(),
-  title: "404 - Page Not Found",
-  description: "The page you are looking for does not exist.",
-  generator: "Endatix",
-  keywords: [
-    "endatix",
-    "endatix hub",
-    "endatix hub app",
-    "forms-management",
-    "ai-form-builder",
-  ],
-  applicationName: "Endatix Hub",
-  publisher: "Endatix Ltd.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const brand = await getBrand();
+  return {
+    ...(await brandLayoutMetadata()),
+    title: await brandTitle({
+      page: "404 - Page Not Found",
+      builtIn: "404 - Page Not Found",
+    }),
+    metadataBase: getMetadataBase(),
+    description: "The page you are looking for does not exist.",
+    generator: brand.shortName,
+    keywords: [...brandKeywords(brand), "forms-management", "ai-form-builder"],
+  };
+}
 
 /**
  * Unmatched routes skip every layout. Import Hub styles here (Next.js global-not-found).
@@ -30,13 +34,7 @@ export const metadata: Metadata = {
 export default function GlobalNotFound() {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        <link
-          rel="icon"
-          href={getPublicAssetPath("/assets/icons/icon.svg")}
-          type="image/svg+xml"
-        />
-      </head>
+      <head />
       <body
         className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-content-canvas text-foreground antialiased`}
       >

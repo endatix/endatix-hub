@@ -1,14 +1,20 @@
 import { ActivateInviteForm } from "@/features/auth/use-cases/activate-invite";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, screen } from "@testing-library/react";
+import { renderWithBrand } from "@/test/render-with-brand";
 import { describe, expect, it, vi } from "vitest";
 
-vi.mock("@/features/auth/use-cases/activate-invite/activate-invite.action", () => ({
-  activateInviteAction: vi.fn(),
-}));
+vi.mock(
+  "@/features/auth/use-cases/activate-invite/activate-invite.action",
+  () => ({
+    activateInviteAction: vi.fn(),
+  }),
+);
 
 describe("ActivateInviteForm", () => {
   it("renders invited email as username for password managers", () => {
-    render(<ActivateInviteForm token="invite-token" email="invitee@example.com" />);
+    renderWithBrand(
+      <ActivateInviteForm token="invite-token" email="invitee@example.com" />,
+    );
 
     const emailInput = screen.getByLabelText("Email");
     expect((emailInput as HTMLInputElement).value).toBe("invitee@example.com");
@@ -24,7 +30,9 @@ describe("ActivateInviteForm", () => {
   });
 
   it("prevents submit when the password fails client validation", () => {
-    render(<ActivateInviteForm token="invite-token" email="invitee@example.com" />);
+    renderWithBrand(
+      <ActivateInviteForm token="invite-token" email="invitee@example.com" />,
+    );
 
     fireEvent.change(screen.getByLabelText("Password"), {
       target: { value: "Password1" },

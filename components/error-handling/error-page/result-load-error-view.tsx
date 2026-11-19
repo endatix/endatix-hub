@@ -1,5 +1,6 @@
 "use client";
 
+import { useOptionalBrand } from "@/lib/branding/client";
 import { ErrorPage } from "./error-page";
 import { TruncatedId } from "@/components/common/truncated-id";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,7 @@ export function LoadErrorView({
   onRetry,
 }: Readonly<LoadErrorViewProps>) {
   const [isCopied, setIsCopied] = useState(false);
+  const productName = useOptionalBrand()?.name;
   const showDevDetails =
     process.env.NODE_ENV === "development" && Boolean(details);
 
@@ -45,6 +47,7 @@ export function LoadErrorView({
         typeof window !== "undefined" ? window.location.pathname : undefined,
       statusLabel: ui.code,
       details: showDevDetails ? details : undefined,
+      productName,
     });
 
     try {

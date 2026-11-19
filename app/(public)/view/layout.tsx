@@ -3,21 +3,30 @@ import { auth } from "@/auth";
 import { AppProvider } from "@/components/providers";
 import { AppOptions } from "@/components/providers/app-options";
 import { getClientEndatixConfig } from "@/features/config/server";
-import { getBrand } from "@/lib/branding/server";
-import { getPublicAssetPath } from "@/lib/hosting";
+import {
+  brandLayoutMetadata,
+  brandTitle,
+  getBrand,
+} from "@/lib/branding/server";
 import type { Metadata } from "next";
 import { ROBOTS, getMetadataBase } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  metadataBase: getMetadataBase(),
-  title: "View Submission - Endatix",
-  description: "View your submission",
-  generator: "Endatix",
-  keywords: ["endatix", "view", "submission", "form"],
-  applicationName: "Endatix Hub",
-  publisher: "Endatix Ltd.",
-  robots: ROBOTS.hiddenPage,
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const brand = await getBrand();
+  return {
+    ...(await brandLayoutMetadata()),
+    title: await brandTitle({
+      page: "View Submission",
+      // eslint-disable-next-line no-restricted-syntax -- built-in value, shown only while no brand pack applies
+      builtIn: "View Submission - Endatix",
+    }),
+    metadataBase: getMetadataBase(),
+    description: "View your submission",
+    generator: brand.shortName,
+    keywords: [brand.shortName.toLowerCase(), "view", "submission", "form"],
+    robots: ROBOTS.hiddenPage,
+  };
+}
 
 export default async function ViewLayout({
   children,
@@ -32,13 +41,7 @@ export default async function ViewLayout({
 
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        <link
-          rel="icon"
-          href={getPublicAssetPath("/assets/icons/icon.svg")}
-          type="image/svg+xml"
-        />
-      </head>
+      <head />
       <body>
         <AppProvider
           options={AppOptions.PublicPages}

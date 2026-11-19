@@ -7,9 +7,30 @@ import {
   resetBrowserEndatixConfigForTests,
   EMPTY_CLIENT_ENDATIX_CONFIG,
 } from "@/features/config/client-endatix-config";
+import { BrandProvider } from "@/lib/branding/brand-provider";
+import { BUILT_IN_LAYER, mergeBrand, packLayer } from "@/lib/branding/layers";
 import { render, screen } from "@testing-library/react";
 import { SearchX } from "lucide-react";
 import { afterEach, describe, expect, it } from "vitest";
+
+function packBrand(poweredBy: boolean | undefined) {
+  const pack = { version: 1 as const, name: "Example Forms", poweredBy };
+  return mergeBrand([packLayer(pack, (file) => file), BUILT_IN_LAYER]);
+}
+
+function renderUnderPack(poweredBy: boolean | undefined) {
+  return render(
+    <BrandProvider brand={packBrand(poweredBy)}>
+      <PublicStatusPage
+        icon={SearchX}
+        layout="page"
+        message="Check the link and try again."
+        title="We couldn't find that survey."
+        tone="neutral"
+      />
+    </BrandProvider>,
+  );
+}
 
 function renderPage(props: { showPoweredBy?: boolean } = {}) {
   return render(
@@ -68,5 +89,38 @@ describe("PublicStatusPage", () => {
     renderPage({ showPoweredBy: false });
 
     expect(screen.queryByRole("link", { name: "Endatix" })).toBeNull();
+  });
+
+  it("hides Powered by when the pack says poweredBy: false, even with ENDATIX_SHOW_POWERED_BY on", () => {
+    hydrateBrowserEndatixConfig({
+      ...EMPTY_CLIENT_ENDATIX_CONFIG,
+      showPoweredBy: true,
+    });
+
+    renderUnderPack(false);
+
+    expect(screen.queryByText(/Powered by/)).toBeNull();
+  });
+
+  it("shows Powered by when the pack says poweredBy: true, even with ENDATIX_SHOW_POWERED_BY off", () => {
+    hydrateBrowserEndatixConfig({
+      ...EMPTY_CLIENT_ENDATIX_CONFIG,
+      showPoweredBy: false,
+    });
+
+    renderUnderPack(true);
+
+    expect(screen.getByText(/Powered by/)).toBeDefined();
+  });
+
+  it("falls back to ENDATIX_SHOW_POWERED_BY when the pack does not say", () => {
+    hydrateBrowserEndatixConfig({
+      ...EMPTY_CLIENT_ENDATIX_CONFIG,
+      showPoweredBy: false,
+    });
+
+    renderUnderPack(undefined);
+
+    expect(screen.queryByText(/Powered by/)).toBeNull();
   });
 });

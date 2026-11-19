@@ -48,7 +48,7 @@ describe("FormTemplatesList", () => {
   it("renders HubPageLoadError when templates Result is an error", async () => {
     // Arrange
     const listResult = Result.error<FormTemplate[]>(
-      "Network error. Failed to connect to the Endatix API.",
+      "Network error. Failed to connect to the API.",
       undefined,
       ERROR_CODE.NETWORK_ERROR,
       { statusCode: 503 },

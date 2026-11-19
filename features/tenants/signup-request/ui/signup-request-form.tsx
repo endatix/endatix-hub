@@ -12,7 +12,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import Image from "next/image";
 import Link from "next/link";
 import { useActionState, useEffect, useRef } from "react";
 import { usePostHog } from "posthog-js/react";
@@ -24,11 +23,12 @@ import {
   submitSignupRequestAction,
   type SignupRequestActionState,
 } from "../submit-signup-request.action";
-import { getPublicAssetPath } from "@/lib/hosting";
+import { BrandLogo } from "@/lib/branding/client";
 
 const initialState: SignupRequestActionState = ServerActionState.emptyState();
 
-export function SignupRequestForm() {
+/** `intro`: the page's one-line intro (`signupIntro`), worked out on the server. */
+export function SignupRequestForm({ intro }: Readonly<{ intro: string }>) {
   const [state, formAction, isPending] = useActionState(
     submitSignupRequestAction,
     initialState,
@@ -98,30 +98,10 @@ export function SignupRequestForm() {
     <form action={formAction} onSubmit={handleSubmit}>
       <div className="grid gap-2 text-center">
         <div className="mb-2 flex justify-center">
-          <Image
-            src={getPublicAssetPath(
-              "/assets/icons/endatix-logo-wordmark-blue.svg",
-            )}
-            alt="Endatix Hub"
-            width={3778}
-            height={706}
-            priority
-            className="h-10 w-auto dark:hidden"
-          />
-          <Image
-            src={getPublicAssetPath(
-              "/assets/icons/endatix-logo-wordmark-white.svg",
-            )}
-            alt="Endatix Hub"
-            width={3778}
-            height={706}
-            priority
-            className="hidden h-10 w-auto dark:block"
-          />
+          <BrandLogo className="h-10 w-auto" priority />
         </div>
         <p className="mb-6 text-balance text-muted-foreground">
-          Request access to an Endatix workspace. We will review your request
-          and email you if approved.
+          {intro} We will review your request and email you if approved.
         </p>
       </div>
       <div className="grid gap-4">

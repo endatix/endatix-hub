@@ -29,7 +29,7 @@ interface AppProviderProps {
   sidebarDefaultOpen?: boolean;
   /** Safe request-time browser read-only projection of endatix config properties */
   endatixConfig: ClientEndatixConfig;
-  /** The effective brand: `getBrand()`, or `RESPONDENT_BRAND_DEFERRED` on respondent pages. */
+  /** The effective brand: `getBrand()`, or `getRespondentBrand()` on respondent pages. */
   brand: Brand;
 }
 

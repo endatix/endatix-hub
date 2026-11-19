@@ -7,7 +7,7 @@ describe("mapPublicPdfExportLoadError", () => {
   it("maps network_error to 502 instead of 404", async () => {
     // Arrange
     const error = Result.error(
-      "Network error. Failed to connect to the Endatix API.",
+      "Network error. Failed to connect to the API.",
       "fetch failed",
       ERROR_CODE.NETWORK_ERROR,
     );
@@ -16,7 +16,9 @@ describe("mapPublicPdfExportLoadError", () => {
     }
 
     // Act
-    const response = mapPublicPdfExportLoadError(error);
+    const response = mapPublicPdfExportLoadError(error, {
+      shortName: "Endatix",
+    });
     const body = await response.json();
 
     // Assert
@@ -37,7 +39,9 @@ describe("mapPublicPdfExportLoadError", () => {
     }
 
     // Act
-    const response = mapPublicPdfExportLoadError(error);
+    const response = mapPublicPdfExportLoadError(error, {
+      shortName: "Endatix",
+    });
 
     // Assert
     expect(response.status).toBe(401);
@@ -51,7 +55,9 @@ describe("mapPublicPdfExportLoadError", () => {
     }
 
     // Act
-    const response = mapPublicPdfExportLoadError(error);
+    const response = mapPublicPdfExportLoadError(error, {
+      shortName: "Endatix",
+    });
 
     // Assert
     expect(response.status).toBe(502);
@@ -70,7 +76,9 @@ describe("mapPublicPdfExportLoadError", () => {
     }
 
     // Act
-    const response = mapPublicPdfExportLoadError(error);
+    const response = mapPublicPdfExportLoadError(error, {
+      shortName: "Endatix",
+    });
 
     // Assert
     expect(response.status).toBe(404);

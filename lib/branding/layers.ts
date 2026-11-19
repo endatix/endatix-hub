@@ -1,4 +1,4 @@
-import { getPublicAssetPath } from "@/lib/hosting";
+import { BUILT_IN_ASSETS, BUILT_IN_NAME } from "./built-in-assets";
 import { parseCssColor } from "./color";
 import type { Brand, BrandStylesheet } from "./index";
 import { toStylesheet, type BrandColor } from "./palette";
@@ -22,14 +22,12 @@ export interface BrandLayer {
 /** Today's literals. Its stylesheet is empty, so the Hub CSS stays as shipped. */
 export const BUILT_IN_LAYER: BrandLayer & { readonly values: BrandFields } = {
   values: {
-    name: "Endatix Hub",
+    name: BUILT_IN_NAME,
+    shortName: "Endatix",
     legalName: "Endatix Ltd.",
-    logo: {
-      light: getPublicAssetPath("/assets/icons/endatix-logo-wordmark-blue.svg"),
-      dark: getPublicAssetPath("/assets/icons/endatix-logo-wordmark-white.svg"),
-    },
-    icon: getPublicAssetPath("/assets/icons/icon.svg"),
-    ogImage: getPublicAssetPath("/assets/endatix-og-image.jpg"),
+    logo: BUILT_IN_ASSETS.logo,
+    icon: BUILT_IN_ASSETS.icon,
+    ogImage: BUILT_IN_ASSETS.ogImage,
     links: {
       website: "https://endatix.com",
       docs: "https://docs.endatix.com",
@@ -49,11 +47,15 @@ export function packLayer(
   return {
     values: {
       name: pack.name,
-      legalName: pack.legalName,
+      shortName: pack.name,
+      legalName: pack.legalName ?? pack.name,
       ...packAssets(pack.assets, assetUrl),
-      links: pack.links,
+      links: pack.links ?? {},
       poweredBy: pack.poweredBy,
-      personas: pack.personas,
+      personas: {
+        assistant: pack.personas?.assistant ?? `${pack.name} AI Assistant`,
+        bot: pack.personas?.bot ?? `${pack.name} Bot`,
+      },
     },
     color: packColor(pack.tokens?.color),
   };
@@ -95,11 +97,12 @@ export function mergeBrand(layers: readonly BrandLayer[]): Brand {
 
   return {
     name: pick("name") ?? builtIn.name,
+    shortName: pick("shortName") ?? builtIn.shortName,
     legalName: pick("legalName") ?? builtIn.legalName,
     logo: pick("logo") ?? builtIn.logo,
     icon: pick("icon") ?? builtIn.icon,
     ogImage: pick("ogImage") ?? builtIn.ogImage,
-    links: mergeKeys(layers, "links"),
+    links: pick("links") ?? builtIn.links,
     poweredBy: pick("poweredBy") ?? builtIn.poweredBy,
     personas: mergeKeys(layers, "personas") as Brand["personas"],
     stylesheet: toStylesheet(color) as BrandStylesheet,
@@ -107,7 +110,7 @@ export function mergeBrand(layers: readonly BrandLayer[]): Brand {
 }
 
 /** Key by key, the most specific layer winning each key. */
-function mergeKeys(layers: readonly BrandLayer[], group: "links" | "personas") {
+function mergeKeys(layers: readonly BrandLayer[], group: "personas") {
   return Object.assign(
     {},
     ...layers.map((layer) => layer.values[group]).reverse(),

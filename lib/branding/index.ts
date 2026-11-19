@@ -7,12 +7,14 @@
 export interface Brand {
   /** Product name: titles, metadata, UI copy. */
   readonly name: string;
+  /** The name in running text ("About …", "the … API", "… Team"): "Endatix" for the built-in brand, the pack's name otherwise. */
+  readonly shortName: string;
   readonly legalName: string;
   /** Wordmark URLs. A pack with only a light logo uses it for dark too. */
   readonly logo: { readonly light: string; readonly dark: string };
   readonly icon: string;
   readonly ogImage: string | null;
-  /** The pack's links over the built-in ones, key by key. The built-in brand has no privacy or terms link. */
+  /** The pack's links, or with no pack the built-in ones. A link the pack leaves out is absent, never Endatix's. */
   readonly links: Readonly<Partial<Record<BrandLinkKey, string>>>;
   /** Null: the pack does not say, so `ENDATIX_SHOW_POWERED_BY` decides. */
   readonly poweredBy: boolean | null;
