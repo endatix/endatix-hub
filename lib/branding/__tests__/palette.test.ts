@@ -1,5 +1,3 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { contrastRatio, parseCssColor, toOklch } from "../color";
 import {
@@ -10,6 +8,7 @@ import {
   toStylesheet,
   type BrandColor,
 } from "../palette";
+import { builtInToken } from "./globals-css";
 
 function color(primary: string, onDark?: string): BrandColor {
   return {
@@ -304,15 +303,7 @@ describe("checkBrandContrast", () => {
 
 /** `--focus-ring` as app/globals.css declares it in `:root` or `.dark`. */
 function builtInFocusRing(selector: ":root" | ".dark"): string | undefined {
-  const css = readFileSync(
-    path.resolve(import.meta.dirname, "../../../app/globals.css"),
-    "utf8",
-  );
-  const block = new RegExp(
-    `^${selector.replace(".", "\\.")} \\{([\\s\\S]*?)\\n\\}`,
-    "m",
-  ).exec(css)?.[1];
-  return /--focus-ring:\s*([^;]+);/.exec(block ?? "")?.[1].trim();
+  return builtInToken(selector, "focus-ring");
 }
 
 describe("the built-in focus ring", () => {
