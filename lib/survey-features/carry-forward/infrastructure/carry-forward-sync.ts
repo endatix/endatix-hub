@@ -24,25 +24,76 @@ export const CARRY_FORWARD_CONTROL_PROPS = new Set([
 
 const updatingCarryForwardSurveys = new Set<SurveyModel>();
 
+function syncEachCarryForwardTarget(
+  survey: SurveyModel,
+  targets: AdvancedCarryForwardQuestion[],
+): boolean {
+  let changed = false;
+  for (const target of targets) {
+    changed = syncSingleCarryForwardTarget(survey, target) || changed;
+  }
+  return changed;
+}
+
+/**
+ * Re-runs the survey's expressions after carried choices changed with no value
+ * change (initial bind, a settings change). SurveyJS computes calculated values
+ * and expressions when the model finishes loading and on each value change, so
+ * without this `displayValue()` and similar functions keep reading the old
+ * choices.
+ *
+ * Not needed when a source's answer changes or a loop adds panels: SurveyJS runs
+ * conditions after those. A source whose choices change through
+ * `choicesVisibleIf` stays stale, as a native `choicesFromQuestion` copy does.
+ */
+function runExpressionsWhenChanged(
+  survey: SurveyModel,
+  changed: boolean,
+): void {
+  if (changed) {
+    survey.runExpressions();
+  }
+}
+
+/**
+ * Syncs targets in dependency order under the re-entrancy guard.
+ *
+ * @returns whether any target's choices changed; `false` also when the guard
+ * skipped the call or there were no targets.
+ */
 export function syncCarryForwardTargets(
   survey: SurveyModel,
   targets: AdvancedCarryForwardQuestion[],
-): void {
+): boolean {
   if (updatingCarryForwardSurveys.has(survey) || targets.length === 0) {
-    return;
+    return false;
   }
 
   updatingCarryForwardSurveys.add(survey);
 
   try {
-    orderCarryForwardTargetsByDependencies(survey, targets).forEach(
-      (target) => {
-        syncSingleCarryForwardTarget(survey, target);
-      },
+    return syncEachCarryForwardTarget(
+      survey,
+      orderCarryForwardTargetsByDependencies(survey, targets),
     );
   } finally {
     updatingCarryForwardSurveys.delete(survey);
   }
+}
+
+/**
+ * Syncs every target once the carry-forward handlers are bound, in dependency
+ * order and outside the re-entrancy guard, then re-runs the survey's
+ * expressions when their choices changed.
+ */
+export function syncCarryForwardTargetsOnBind(survey: SurveyModel): void {
+  runExpressionsWhenChanged(
+    survey,
+    syncEachCarryForwardTarget(
+      survey,
+      getCarryForwardTargetsInDependencyOrder(survey),
+    ),
+  );
 }
 
 export function syncAllCarryForwardTargets(survey: SurveyModel): void {
@@ -86,7 +137,10 @@ export function loadCarryForwardTargetsFromPropertyChange(
     ...getDownstreamCarryForwardTargets(survey, changedTarget.name),
   ]);
 
-  syncCarryForwardTargets(survey, targetsToUpdate);
+  runExpressionsWhenChanged(
+    survey,
+    syncCarryForwardTargets(survey, targetsToUpdate),
+  );
 }
 
 export function resetCarryForwardUpdateGuardForTests(): void {
