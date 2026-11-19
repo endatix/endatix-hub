@@ -1,7 +1,11 @@
 import "@/app/globals.css";
 import { NotFoundComponent } from "@/components/error-handling/not-found";
 import { geistMono, geistSans } from "@/lib/fonts/geist-local";
-import { brandKeywords, brandMetadata, getBrand } from "@/lib/branding/server";
+import {
+  brandKeywords,
+  brandLayoutMetadata,
+  getBrand,
+} from "@/lib/branding/server";
 import { getMetadataBase } from "@/lib/seo";
 import { Metadata } from "next";
 import Link from "next/link";
@@ -10,7 +14,7 @@ import { Button } from "@/components/ui/button";
 export async function generateMetadata(): Promise<Metadata> {
   const brand = await getBrand();
   return {
-    ...(await brandMetadata()),
+    ...(await brandLayoutMetadata()),
     metadataBase: getMetadataBase(),
     title: "404 - Page Not Found",
     description: "The page you are looking for does not exist.",

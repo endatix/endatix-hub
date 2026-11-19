@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { brandMetadata, getBrand } from "@/lib/branding/server";
+import { getBrand } from "@/lib/branding/server";
 import {
   ActivateInviteForm,
   InvalidInviteLinkMessage,
@@ -12,7 +12,7 @@ import { ROBOTS } from "@/lib/seo";
 export async function generateMetadata(): Promise<Metadata> {
   const brand = await getBrand();
   return {
-    ...(await brandMetadata({ title: "Accept Invitation" })),
+    title: "Accept Invitation",
     description: `Accept your ${brand.name} invitation and set your password.`,
     robots: ROBOTS.hiddenPage,
   };

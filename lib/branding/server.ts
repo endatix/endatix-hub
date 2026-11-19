@@ -2,7 +2,11 @@ import "server-only";
 
 import type { Metadata } from "next";
 import { cache } from "react";
-import { metadataFor, type BrandPage } from "./brand-metadata";
+import {
+  layoutMetadataFor,
+  titleFor,
+  type BrandLayoutOptions,
+} from "./brand-metadata";
 import type { Brand } from "./index";
 import {
   BUILT_IN_BRAND,
@@ -10,7 +14,7 @@ import {
 } from "./effective-brand.server";
 
 export type { Brand, BrandLinkKey } from "./index";
-export type { BrandPage } from "./brand-metadata";
+export type { BrandLayoutOptions } from "./brand-metadata";
 export { brandAuthors, brandKeywords } from "./brand-metadata";
 export { brandUrl, isBuiltInLink, isPoweredByShown } from "./copy";
 export { brandRouteResponse } from "./brand-route.server";
@@ -50,12 +54,25 @@ export async function getRespondentBrand(): Promise<Brand> {
 }
 
 /**
- * The brand's metadata for a root layout (no page) or a page: title
- * "<page> | <name>" (or the page's `builtInTitle` while no pack applies),
- * application name, publisher, icon, and for a described page the social
- * image. Spread it first, then add the page's own fields.
+ * For a root layout's `generateMetadata`: the brand's name, icon, application
+ * name and publisher, and optionally a title template and the social image for
+ * the pages below. Spread it first, then add the layout's own fields. Pages
+ * declare their own `title` and `description`; Next merges the rest.
  */
-export async function brandMetadata(page?: BrandPage): Promise<Metadata> {
+export async function brandLayoutMetadata(
+  options?: BrandLayoutOptions,
+): Promise<Metadata> {
+  return layoutMetadataFor(await getBrand(), options);
+}
+
+/**
+ * A title no layout template reaches (a root layout's own, or a respondent
+ * page's): "<page> | <name>" with a pack, `builtIn` (when given) without one.
+ */
+export async function brandTitle(
+  page: string,
+  builtIn?: string,
+): Promise<string> {
   const brand = await getBrand();
-  return metadataFor(brand, page, { builtIn: brand === BUILT_IN_BRAND });
+  return titleFor(brand, { page, builtIn }, isBuiltInBrand(brand));
 }

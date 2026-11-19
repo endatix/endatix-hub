@@ -1,18 +1,19 @@
 import type { Metadata } from "next";
 import type { Brand } from "./index";
 
-/** A page's own title and description; the brand adds its name, icon and social image. */
-export interface BrandPage {
-  /** Shown as "<title> | <brand name>". */
-  readonly title?: string;
-  /** The page's whole title while no pack applies, when it differs from "<title> | Endatix Hub". */
-  readonly builtInTitle?: string;
-  readonly description?: string;
+/** What a root layout hands down to the pages below it. */
+export interface BrandLayoutOptions {
+  /** Pages below get "<page title> | <brand name>". Leave off where page titles stand alone. */
+  readonly titleTemplate?: boolean;
+  /** Pages below get the brand's social image; Next fills og:title and og:description from each page. */
+  readonly socialImage?: boolean;
 }
 
-/** `builtIn`: no pack applies (none mounted, or the flag is off). */
-export interface BrandSource {
-  readonly builtIn: boolean;
+/** A title no layout template can give: the layout's own, or a respondent page's. */
+export interface BrandTitle {
+  readonly page: string;
+  /** The whole title while no pack applies, when it differs from "<page> | Endatix Hub". */
+  readonly builtIn?: string;
 }
 
 const ICON_TYPES: Readonly<Record<string, string>> = {
@@ -25,41 +26,35 @@ const ICON_TYPES: Readonly<Record<string, string>> = {
 };
 
 /**
- * The brand's part of a page's metadata. With a page, the title carries the
- * brand name; a page with a description also gets a social preview with the
- * brand's image.
+ * A root layout's brand metadata: its name as the title (and, with
+ * `titleTemplate`, the template for the pages below), application name,
+ * publisher, icon and, with `socialImage`, the social image. Next merges it
+ * into every page below, so pages declare only their own metadata.
  */
-export function metadataFor(
+export function layoutMetadataFor(
   brand: Brand,
-  page?: BrandPage,
-  source: BrandSource = { builtIn: false },
+  options: BrandLayoutOptions = {},
 ): Metadata {
   return {
-    title: titleFor(brand, page, source),
+    title: options.titleTemplate
+      ? { default: brand.name, template: `%s | ${brand.name}` }
+      : brand.name,
     applicationName: brand.name,
     publisher: brand.legalName,
     icons: { icon: [iconLink(brand.icon)] },
-    ...(page?.description && socialPreview(brand, page.description)),
+    ...(options.socialImage &&
+      brand.ogImage && { openGraph: { images: [{ url: brand.ogImage }] } }),
   };
 }
 
-function titleFor(
+/** "<page> | <name>", or `title.builtIn` while the built-in brand applies. */
+export function titleFor(
   brand: Brand,
-  page: BrandPage | undefined,
-  source: BrandSource,
-) {
-  if (source.builtIn && page?.builtInTitle) return page.builtInTitle;
-  return page?.title ? `${page.title} | ${brand.name}` : brand.name;
-}
-
-function socialPreview(brand: Brand, description: string): Metadata {
-  return {
-    description,
-    openGraph: {
-      description,
-      ...(brand.ogImage && { images: [{ url: brand.ogImage }] }),
-    },
-  };
+  title: BrandTitle,
+  isBuiltInBrand = false,
+): string {
+  if (isBuiltInBrand && title.builtIn) return title.builtIn;
+  return `${title.page} | ${brand.name}`;
 }
 
 function iconLink(url: string): { url: string; type?: string } {

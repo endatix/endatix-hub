@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { brandAuthors, brandMetadata, getBrand } from "@/lib/branding/server";
+import { brandAuthors, getBrand } from "@/lib/branding/server";
 import SignoutButton from "@/features/auth/use-cases/signout/ui/signout-button";
 import GoBackButton from "@/components/layout-ui/navigation/go-back-button";
 import { AuthLogo } from "@/features/auth/ui/auth-logo";
@@ -9,10 +9,8 @@ import { ROBOTS } from "@/lib/seo";
 export async function generateMetadata(): Promise<Metadata> {
   const brand = await getBrand();
   return {
-    ...(await brandMetadata({
-      title: "Sign out",
-      description: `Sign out from the ${brand.name} form management portal.`,
-    })),
+    title: "Sign out",
+    description: `Sign out from the ${brand.name} form management portal.`,
     authors: brandAuthors(brand),
     robots: ROBOTS.hiddenPage,
   };

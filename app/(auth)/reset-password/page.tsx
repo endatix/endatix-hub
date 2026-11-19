@@ -5,7 +5,7 @@ import ResetPasswordForm, {
 import { ROBOTS } from "@/lib/seo";
 
 export const metadata: Metadata = {
-  title: "Reset Password",
+  title: { absolute: "Reset Password" },
   description: "Reset your password",
   robots: ROBOTS.hiddenPage,
 };

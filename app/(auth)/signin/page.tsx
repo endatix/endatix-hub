@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { brandAuthors, brandMetadata, getBrand } from "@/lib/branding/server";
+import { brandAuthors, getBrand } from "@/lib/branding/server";
 import {
   Card,
   CardContent,
@@ -22,10 +22,8 @@ import SigninForm from "@/features/auth/use-cases/signin/ui/signin-form";
 export async function generateMetadata(): Promise<Metadata> {
   const brand = await getBrand();
   return {
-    ...(await brandMetadata({
-      title: "Sign in",
-      description: `Sign in the ${brand.name} form management portal.`,
-    })),
+    title: "Sign in",
+    description: `Sign in the ${brand.name} form management portal.`,
     authors: brandAuthors(brand),
   };
 }
