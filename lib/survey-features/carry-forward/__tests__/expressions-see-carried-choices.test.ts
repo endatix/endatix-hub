@@ -147,6 +147,25 @@ describe("expressions see carried-forward choices", () => {
     expect(runExpressions).not.toHaveBeenCalled();
   });
 
+  it("keeps a selected-mode target's expressions current when its source answer changes", () => {
+    // Arrange
+    const model = new Model({
+      calculatedValues: [displayValueOf("target")],
+      elements: [
+        ...sourceElements,
+        carryForwardTarget("target", "plain", "selected"),
+      ],
+    });
+    bindAdvancedCarryForwardToSurvey(model);
+    expect(model.getVariable("display_target")).toBe(3);
+
+    // Act
+    model.setValue("plain", [3]);
+
+    // Assert
+    expect(model.getVariable("display_target")).toBe("Item 3");
+  });
+
   it("keeps a chained target's expressions current when the first source answer changes", () => {
     // Arrange
     const model = new Model({
@@ -193,5 +212,43 @@ describe("expressions see carried-forward choices", () => {
 
     // Assert
     expect(panelLabel(model, 0)).toBe("Item 3");
+  });
+
+  it("leaves a design-mode survey as authored: no carried choices, no expression run, conditions not applied", () => {
+    // Arrange: the Creator's design surface sets design mode before loading JSON.
+    const model = new Model();
+    model.setDesignMode(true);
+    model.fromJSON({
+      calculatedValues: [displayValueOf("target")],
+      elements: [
+        ...sourceElements,
+        {
+          type: "checkbox",
+          name: "other",
+          choices: [{ value: 3, text: "Other 3" }],
+        },
+        carryForwardTarget("target", "plain"),
+        { type: "text", name: "hiddenQuestion", visibleIf: "false" },
+        {
+          type: "panel",
+          name: "hiddenPanel",
+          visibleIf: "false",
+          elements: [{ type: "text", name: "inPanel" }],
+        },
+      ],
+    });
+    const runExpressions = vi.spyOn(model, "runExpressions");
+    const target = model.getQuestionByName("target");
+
+    // Act
+    bindAdvancedCarryForwardToSurvey(model);
+    target.setPropertyValue("edxCarryForwardSources", ["other"]);
+
+    // Assert
+    expect(target.choices).toHaveLength(0);
+    expect(runExpressions).not.toHaveBeenCalled();
+    expect(model.getVariable("display_target")).toBe(3);
+    expect(model.getQuestionByName("hiddenQuestion").isVisible).toBe(true);
+    expect(model.getPanelByName("hiddenPanel").isVisible).toBe(true);
   });
 });
