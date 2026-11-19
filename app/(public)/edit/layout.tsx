@@ -2,18 +2,23 @@ import "@/app/globals.css";
 import { auth } from "@/auth";
 import { AppProvider } from "@/components/providers";
 import { getClientEndatixConfig } from "@/features/config/server";
-import { brandMetadata, getBrand } from "@/lib/branding/server";
+import {
+  brandLayoutMetadata,
+  brandTitle,
+  getBrand,
+} from "@/lib/branding/server";
 import type { Metadata } from "next";
 import { ROBOTS, getMetadataBase } from "@/lib/seo";
 
 export async function generateMetadata(): Promise<Metadata> {
   const brand = await getBrand();
   return {
-    ...(await brandMetadata({
-      title: "Edit Submission",
+    ...(await brandLayoutMetadata()),
+    title: await brandTitle({
+      page: "Edit Submission",
       // eslint-disable-next-line no-restricted-syntax -- built-in value, shown only while no brand pack applies
-      builtInTitle: "Edit Submission - Endatix",
-    })),
+      builtIn: "Edit Submission - Endatix",
+    }),
     metadataBase: getMetadataBase(),
     description: "Edit your submission",
     generator: brand.shortName,

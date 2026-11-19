@@ -2,7 +2,7 @@ import "@/app/globals.css";
 import { auth } from "@/auth";
 import { AppProvider } from "@/components/providers";
 import { getClientEndatixConfig } from "@/features/config/server";
-import { brandMetadata, getBrand } from "@/lib/branding/server";
+import { brandLayoutMetadata, getBrand } from "@/lib/branding/server";
 import { geistMono, geistSans } from "@/lib/fonts/geist-local";
 import {
   BarChart2,
@@ -29,7 +29,7 @@ interface AuthLayoutProps {
 export async function generateMetadata(): Promise<Metadata> {
   const brand = await getBrand();
   return {
-    ...(await brandMetadata()),
+    ...(await brandLayoutMetadata({ titleTemplate: true, socialImage: true })),
     metadataBase: getMetadataBase(),
     description: `Login to your ${brand.name} account`,
   };

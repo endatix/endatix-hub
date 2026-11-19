@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { AppProvider } from "@/components/providers";
 import { AppOptions } from "@/components/providers/app-options";
 import { getClientEndatixConfig } from "@/features/config/server";
-import { brandMetadata, getRespondentBrand } from "@/lib/branding/server";
+import { brandTitle, getRespondentBrand } from "@/lib/branding/server";
 import { getPublicAssetPath } from "@/lib/hosting";
 import type { Metadata } from "next";
 import { ROBOTS, getMetadataBase } from "@/lib/seo";
@@ -14,11 +14,10 @@ const metadata: Metadata = {
 
 /** Respondent pages keep the built-in look (`getRespondentBrand()`); the title and "Powered by" follow the deployment. */
 export async function generateMetadata(): Promise<Metadata> {
-  const { title } = await brandMetadata({
-    title: "Form",
-    builtInTitle: "Endatix Form",
-  });
-  return { ...metadata, title };
+  return {
+    ...metadata,
+    title: await brandTitle({ page: "Form", builtIn: "Endatix Form" }),
+  };
 }
 
 export default async function EmbedLayout({

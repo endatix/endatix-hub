@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { metadataFor } from "../brand-metadata";
+import { layoutMetadataFor, titleFor } from "../brand-metadata";
 import { BUILT_IN_LAYER, mergeBrand, packLayer } from "../layers";
 import { BrandPackSchema } from "../schema";
 
@@ -20,10 +20,10 @@ function packBrand(assets: Record<string, unknown> = {}) {
   ]);
 }
 
-describe("metadataFor", () => {
+describe("layoutMetadataFor", () => {
   it("keeps today's Endatix values for the built-in brand", () => {
     // Act
-    const metadata = metadataFor(builtIn);
+    const metadata = layoutMetadataFor(builtIn);
 
     // Assert
     expect(metadata).toEqual({
@@ -36,42 +36,53 @@ describe("metadataFor", () => {
     });
   });
 
-  it("titles a page '<page> | <name>' and describes it for social previews", () => {
+  it("gives the pages below a '<page> | <name>' title template", () => {
     // Act
-    const metadata = metadataFor(builtIn, {
-      title: "Sign in",
-      description: "Sign in the portal.",
-    });
+    const metadata = layoutMetadataFor(packBrand(), { titleTemplate: true });
 
     // Assert
-    expect(metadata.title).toBe("Sign in | Endatix Hub");
-    expect(metadata.description).toBe("Sign in the portal.");
-    expect(metadata.openGraph).toEqual({
-      description: "Sign in the portal.",
-      images: [{ url: "/assets/endatix-og-image.jpg" }],
+    expect(metadata.title).toEqual({
+      default: "Example Forms",
+      template: "%s | Example Forms",
     });
   });
 
-  it("uses the pack's name, legal name, icon and social image", () => {
+  it("gives the pages below the brand's social image", () => {
     // Arrange
-    const brand = packBrand({ icon: "icon.png", ogImage: "og.jpg" });
+    const brand = packBrand({ ogImage: "og.jpg" });
 
     // Act
-    const metadata = metadataFor(brand, {
-      title: "Sign in",
-      description: "Sign in the portal.",
-    });
+    const metadata = layoutMetadataFor(brand, { socialImage: true });
 
     // Assert
-    expect(metadata.title).toBe("Sign in | Example Forms");
+    expect(metadata.openGraph).toEqual({
+      images: [{ url: "/brand/og.jpg?v=abc" }],
+    });
+  });
+
+  it("names no social image when the brand has none", () => {
+    // Arrange
+    const brand = { ...builtIn, ogImage: null };
+
+    // Act
+    const metadata = layoutMetadataFor(brand, { socialImage: true });
+
+    // Assert
+    expect(metadata.openGraph).toBeUndefined();
+  });
+
+  it("uses the pack's name, legal name and icon", () => {
+    // Arrange
+    const brand = packBrand({ icon: "icon.png" });
+
+    // Act
+    const metadata = layoutMetadataFor(brand);
+
+    // Assert
     expect(metadata.applicationName).toBe("Example Forms");
     expect(metadata.publisher).toBe("Example Ltd.");
     expect(metadata.icons).toEqual({
       icon: [{ url: "/brand/icon.png?v=abc", type: "image/png" }],
-    });
-    expect(metadata.openGraph).toEqual({
-      description: "Sign in the portal.",
-      images: [{ url: "/brand/og.jpg?v=abc" }],
     });
   });
 
@@ -80,55 +91,29 @@ describe("metadataFor", () => {
     const brand = { ...builtIn, icon: "/brand/icon?v=abc" };
 
     // Act
-    const metadata = metadataFor(brand);
+    const metadata = layoutMetadataFor(brand);
 
     // Assert
     expect(metadata.icons).toEqual({ icon: [{ url: "/brand/icon?v=abc" }] });
   });
+});
 
-  it("keeps a page's own title while no pack applies", () => {
-    // Act
-    const metadata = metadataFor(
-      builtIn,
-      { title: "Form", builtInTitle: "Endatix Form" },
-      { builtIn: true },
+describe("titleFor", () => {
+  it("titles a page '<page> | <name>'", () => {
+    expect(titleFor(packBrand(), { page: "Form" }, false)).toBe(
+      "Form | Example Forms",
     );
-
-    // Assert
-    expect(metadata.title).toBe("Endatix Form");
   });
 
-  it("titles a page '<page> | <name>' when a pack applies, even with a built-in title", () => {
-    // Act
-    const metadata = metadataFor(packBrand(), {
-      title: "Form",
-      builtInTitle: "Endatix Form",
-    });
-
-    // Assert
-    expect(metadata.title).toBe("Form | Example Forms");
+  it("keeps the page's built-in title while no pack applies", () => {
+    expect(
+      titleFor(builtIn, { page: "Form", builtIn: "Endatix Form" }, true),
+    ).toBe("Endatix Form");
   });
 
-  it("adds no social preview to a page without a description", () => {
-    // Act
-    const metadata = metadataFor(builtIn, { title: "Edit Submission" });
-
-    // Assert
-    expect(metadata.title).toBe("Edit Submission | Endatix Hub");
-    expect(metadata.openGraph).toBeUndefined();
-  });
-
-  it("names no social image when the brand has none", () => {
-    // Arrange
-    const brand = { ...builtIn, ogImage: null };
-
-    // Act
-    const metadata = metadataFor(brand, {
-      title: "Sign in",
-      description: "Sign in the portal.",
-    });
-
-    // Assert
-    expect(metadata.openGraph).toEqual({ description: "Sign in the portal." });
+  it("brands a page with a built-in title when a pack applies", () => {
+    expect(
+      titleFor(packBrand(), { page: "Form", builtIn: "Endatix Form" }, false),
+    ).toBe("Form | Example Forms");
   });
 });

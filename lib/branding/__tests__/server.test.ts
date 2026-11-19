@@ -161,49 +161,54 @@ describe("getBrand", () => {
   });
 });
 
-describe("brandMetadata", () => {
-  it("titles a page with the mounted pack's name", async () => {
+describe("brandLayoutMetadata", () => {
+  it("names the mounted pack and templates the titles below", async () => {
     // Arrange
     pack.write({});
-    const { brandMetadata } = await load();
+    const { brandLayoutMetadata } = await load();
 
     // Act
-    const metadata = await brandMetadata({ title: "Sign in" });
+    const metadata = await brandLayoutMetadata({ titleTemplate: true });
 
     // Assert
-    expect(metadata.title).toBe("Sign in | Example Forms");
+    expect(metadata.title).toEqual({
+      default: "Example Forms",
+      template: "%s | Example Forms",
+    });
     expect(metadata.applicationName).toBe("Example Forms");
   });
 
+  it("keeps the built-in name while the flag is off", async () => {
+    // Arrange
+    pack.write({});
+    flagState.on = false;
+    const { brandLayoutMetadata } = await load();
+
+    // Act
+    const metadata = await brandLayoutMetadata();
+
+    // Assert
+    expect(metadata.title).toBe("Endatix Hub");
+  });
+});
+
+describe("brandTitle", () => {
   it("keeps a page's built-in title while the flag is off, and brands it with a pack", async () => {
     // Arrange
     pack.write({});
-    const page = { title: "Form", builtInTitle: "Endatix Form" };
     flagState.on = false;
-    const off = (await load()).brandMetadata;
-    const offTitle = (await off(page)).title;
+    const offTitle = await (
+      await load()
+    ).brandTitle({ page: "Form", builtIn: "Endatix Form" });
     flagState.on = true;
-    const on = (await load()).brandMetadata;
+    const { brandTitle } = await load();
 
     // Act
-    const onTitle = (await on(page)).title;
+    const onTitle = await brandTitle({ page: "Form", builtIn: "Endatix Form" });
 
     // Assert
     expect(offTitle).toBe("Endatix Form");
     expect(onTitle).toBe("Form | Example Forms");
-  });
-
-  it("keeps the built-in title while the flag is off", async () => {
-    // Arrange
-    pack.write({});
-    flagState.on = false;
-    const { brandMetadata } = await load();
-
-    // Act
-    const metadata = await brandMetadata({ title: "Sign in" });
-
-    // Assert
-    expect(metadata.title).toBe("Sign in | Endatix Hub");
   });
 });
 

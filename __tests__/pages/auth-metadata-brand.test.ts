@@ -19,15 +19,17 @@ vi.mock("@/auth", () => ({ auth: vi.fn(), authPresentation: [] }));
 vi.mock("@/lib/branding/server", async (importOriginal) => {
   const original =
     await importOriginal<typeof import("@/lib/branding/server")>();
-  const { metadataFor } = await import("@/lib/branding/brand-metadata");
+  const { layoutMetadataFor, titleFor } =
+    await import("@/lib/branding/brand-metadata");
   return {
     ...original,
     getBrand: async () => current.brand,
     isBuiltInBrand: (brand: Brand) => brand === builtIn,
-    brandMetadata: async (page?: Parameters<typeof metadataFor>[1]) =>
-      metadataFor(current.brand, page, {
-        builtIn: current.brand === builtIn,
-      }),
+    brandLayoutMetadata: async (
+      options?: Parameters<typeof layoutMetadataFor>[1],
+    ) => layoutMetadataFor(current.brand, options),
+    brandTitle: async (title: Parameters<typeof titleFor>[1]) =>
+      titleFor(current.brand, title, current.brand === builtIn),
   };
 });
 

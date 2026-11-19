@@ -5,12 +5,7 @@ import {
   SIGNOUT_PATH,
 } from "@/features/auth/infrastructure/auth-constants";
 import { Metadata } from "next";
-import {
-  brandAuthors,
-  brandMetadata,
-  getBrand,
-  type Brand,
-} from "@/lib/branding/server";
+import { brandAuthors, getBrand, type Brand } from "@/lib/branding/server";
 import Link from "next/link";
 import { AuthErrorType } from "@/features/auth/shared/auth.types";
 import { auth } from "@/auth";
@@ -23,10 +18,8 @@ import { ROBOTS } from "@/lib/seo";
 export async function generateMetadata(): Promise<Metadata> {
   const brand = await getBrand();
   return {
-    ...(await brandMetadata({
-      title: "Authentication failed",
-      description: `Authentication failed the ${brand.name} form management portal.`,
-    })),
+    title: "Authentication failed",
+    description: `Authentication failed the ${brand.name} form management portal.`,
     authors: brandAuthors(brand),
     robots: ROBOTS.hiddenPage,
   };

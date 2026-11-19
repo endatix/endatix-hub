@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { brandMetadata } from "@/lib/branding/server";
 import Link from "next/link";
 import { getPublicTenantAction } from "@/features/tenants/public-tenant/public-tenant.action";
 import { TenantPublicUnavailable } from "@/features/tenants/public-tenant/ui/tenant-public-unavailable";
@@ -8,9 +7,7 @@ import { TenantRegistrationClosed } from "@/features/tenants/public-tenant/ui/te
 import { tenantPublicSignInPath } from "@/features/platform-admin/tenant-registration";
 import { Result } from "@/lib/result";
 
-export async function generateMetadata(): Promise<Metadata> {
-  return brandMetadata({ title: "Create account" });
-}
+export const metadata: Metadata = { title: "Create account" };
 
 interface TenantRegisterPageProps {
   params: Promise<{ tenantSlug: string }>;

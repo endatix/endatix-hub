@@ -1,6 +1,6 @@
 import CreateAccountForm from "@/features/auth/use-cases/create-account/ui/create-account-form";
 import { Metadata } from "next";
-import { brandAuthors, brandMetadata, getBrand } from "@/lib/branding/server";
+import { brandAuthors, getBrand } from "@/lib/branding/server";
 import SignInLink from "@/features/auth/use-cases/create-account/ui/sign-in-link";
 import { getSession, SessionData } from "@/features/auth";
 import {
@@ -20,10 +20,8 @@ import { headers } from "next/headers";
 export async function generateMetadata(): Promise<Metadata> {
   const brand = await getBrand();
   return {
-    ...(await brandMetadata({
-      title: "Create account",
-      description: `Create a new account in the ${brand.name} form management portal.`,
-    })),
+    title: "Create account",
+    description: `Create a new account in the ${brand.name} form management portal.`,
     authors: brandAuthors(brand),
   };
 }
