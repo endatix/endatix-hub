@@ -39,7 +39,7 @@ function SlackTokenTransfer() {
   }, [code]);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-muted">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-muted">
       <h3>Slack authorization for {brand.personas.bot}</h3>
       {message}
       <br />

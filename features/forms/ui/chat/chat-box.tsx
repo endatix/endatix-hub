@@ -183,12 +183,12 @@ const ChatBox = ({
   };
 
   return (
-    <div className={`flex flex-col flex-1 gap-2 ${className}`} {...props}>
+    <div className={`flex flex-1 flex-col gap-2 ${className}`} {...props}>
       {chatContext?.error && (
         <ChatErrorAlert errorMessage={chatContext.error} />
       )}
 
-      <div className="items-center gap-2 flex justify-end">
+      <div className="flex items-center justify-end gap-2">
         {hasFormCreated && isTranslationMode && (
           <Button
             variant="outline"
@@ -215,7 +215,7 @@ const ChatBox = ({
       </div>
 
       {hasFormCreated && isTranslationMode && (
-        <div className="flex items-center gap-2 p-3 border rounded-lg bg-muted/50">
+        <div className="flex items-center gap-2 rounded-lg border bg-muted/50 p-3">
           <span className="text-sm font-medium">Add new languages:</span>
           <input
             ref={languageInputRef}
@@ -223,7 +223,7 @@ const ChatBox = ({
             value={targetLanguage}
             onChange={(e) => setTargetLanguage(e.target.value)}
             placeholder="e.g., Spanish, French, German..."
-            className="flex-1 px-2 py-1 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-ring"
+            className="flex-1 rounded border px-2 py-1 text-sm focus:ring-1 focus:ring-ring focus:outline-none"
           />
           <Button
             disabled={isGeneratingResponse || !targetLanguage.trim()}
@@ -240,7 +240,7 @@ const ChatBox = ({
 
       <form
         action={promptAction}
-        className="flex-1 relative overflow-hidden rounded-lg border bg-background focus-within:ring-1 focus-within:ring-ring"
+        className="relative flex-1 overflow-hidden rounded-lg border bg-background focus-within:ring-1 focus-within:ring-ring"
       >
         <Label htmlFor="prompt" className="sr-only">
           Your prompt here
@@ -265,7 +265,8 @@ const ChatBox = ({
           placeholder={
             isTranslationMode && targetLanguage
               ? `Add ${targetLanguage} translations to this form...`
-              : placeholder ?? "What would you like to achieve with your form?"
+              : (placeholder ??
+                "What would you like to achieve with your form?")
           }
           className="min-h-12 resize-none border-0 p-3 shadow-none focus:outline-none focus-visible:ring-0"
         />
@@ -278,7 +279,7 @@ const ChatBox = ({
                     disabled
                     variant="ghost"
                     size="icon"
-                    className="disabled:opacity-50 pointer-events-none"
+                    className="pointer-events-none disabled:opacity-50"
                   >
                     <Paperclip className="size-4" />
                     <span className="sr-only">Attach file</span>
@@ -296,7 +297,7 @@ const ChatBox = ({
                     disabled
                     variant="ghost"
                     size="icon"
-                    className="disabled:opacity-50 pointer-events-none"
+                    className="pointer-events-none disabled:opacity-50"
                   >
                     <Mic className="size-4" />
                     <span className="sr-only">Use Microphone</span>

@@ -126,7 +126,11 @@ const SingleTenantDisplay = ({ tenant }: Readonly<{ tenant: Tenant }>) => {
   return (
     <SidebarMenu>
       <SidebarMenuItem>
-        <SidebarMenuButton size="lg" asChild className="hover:bg-transparent active:bg-transparent group-data-[collapsible=icon]:rounded-[3px] group-data-[collapsible=icon]:overflow-hidden">
+        <SidebarMenuButton
+          size="lg"
+          asChild
+          className="group-data-[collapsible=icon]:overflow-hidden group-data-[collapsible=icon]:rounded-[3px] hover:bg-transparent active:bg-transparent"
+        >
           <a href={tenant.href ?? "/"}>
             {/* Collapsed: square icon */}
             <div className="hidden aspect-square size-full items-center justify-center group-data-[collapsible=icon]:flex">
