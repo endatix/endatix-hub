@@ -38,16 +38,13 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  /* A brand pack sets these so hover and focus keep their contrast; the built-in
-     brand falls back to exactly what bg-primary/90 and ring-ring/50 draw. */
+  /* A brand pack sets --primary-hover so hover keeps its contrast; the built-in
+     brand falls back to exactly what bg-primary/90 draws. */
   --color-primary-hover: var(
     --primary-hover,
     color-mix(in oklab, var(--primary) 90%, transparent)
   );
-  --color-focus-ring: var(
-    --focus-ring,
-    color-mix(in oklab, var(--ring) 50%, transparent)
-  );
+  --color-focus-ring: var(--focus-ring);
   --color-endatix: var(--endatix);
   --color-on-surface-variant: var(--on-surface-variant);
 
@@ -118,6 +115,10 @@
   --border: hsl(214.3 31.8% 91.4%);
   --input: hsl(214.3 31.8% 91.4%);
   --ring: hsl(216 100% 41%);
+  /* The keyboard focus ring: --ring softened toward the page, but at least 3:1
+     on every surface. It is derivePalette's value for the built-in colour;
+     lib/branding/__tests__/palette.test.ts fails when the two drift. */
+  --focus-ring: #5c84c0;
 
   --radius: 0.5rem;
 
@@ -193,6 +194,7 @@
   --border: #4178b5;
   --input: #3b3b3f;
   --ring: #b4c5ff;
+  --focus-ring: #5a6a90;
 
   --chart-1: hsl(211, 100%, 78%);
   --chart-2: hsl(216, 100%, 58%);

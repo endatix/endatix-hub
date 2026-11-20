@@ -8,6 +8,7 @@ import {
   toStylesheet,
   type BrandColor,
 } from "../palette";
+import { builtInToken } from "./globals-css";
 
 function color(primary: string, onDark?: string): BrandColor {
   return {
@@ -298,4 +299,42 @@ describe("checkBrandContrast", () => {
       }),
     ]);
   });
+});
+
+/** `--focus-ring` as app/globals.css declares it in `:root` or `.dark`. */
+function builtInFocusRing(selector: ":root" | ".dark"): string | undefined {
+  return builtInToken(selector, "focus-ring");
+}
+
+describe("the built-in focus ring", () => {
+  it.each([
+    ["light", ":root"],
+    ["dark", ".dark"],
+  ] as const)(
+    "reaches 3:1 on every %s surface (%s in app/globals.css)",
+    (mode, selector) => {
+      // Act
+      const ring = builtInFocusRing(selector);
+
+      // Assert
+      expect(ring, `${selector} must declare --focus-ring`).toBeDefined();
+      for (const surface of FOCUS_SURFACES[mode])
+        expect(
+          ratio(ring!, surface),
+          `${mode} focus ring on ${surface}`,
+        ).toBeGreaterThanOrEqual(3);
+    },
+  );
+
+  it.each(MODES)(
+    "is what derivePalette gives the built-in colour in %s",
+    (mode) => {
+      // Act
+      const palette = derivePalette(color(BUILT_IN.light["--primary"]));
+
+      // Assert
+      const selector = mode === "light" ? ":root" : ".dark";
+      expect(builtInFocusRing(selector)).toBe(palette[mode]["--focus-ring"]);
+    },
+  );
 });

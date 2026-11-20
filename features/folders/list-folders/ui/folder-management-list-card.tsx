@@ -58,8 +58,8 @@ export function FolderManagementListCard({
       <Card
         className={
           folder.isActive
-            ? "group relative cursor-pointer overflow-hidden border-border/50 shadow-sm transition-shadow hover:shadow-md focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:outline-none"
-            : "group relative cursor-pointer overflow-hidden border-dashed border-border/70 bg-muted/20 focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:outline-none"
+            ? "group relative cursor-pointer overflow-hidden border-border/50 shadow-sm transition-shadow hover:shadow-md focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none"
+            : "group relative cursor-pointer overflow-hidden border-dashed border-border/70 bg-muted/20 focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none"
         }
         role="link"
         tabIndex={0}
