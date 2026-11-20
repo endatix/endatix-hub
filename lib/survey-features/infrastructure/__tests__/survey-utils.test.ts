@@ -314,4 +314,96 @@ describe("setSubmissionData", () => {
       }
     });
   });
+  describe("Values from defaultValueExpression (stored data without them)", () => {
+    // A submission created through the API (on behalf, or with a prefill) stores only what the
+    // caller sent. Loading it must not drop the values the form computes itself.
+    const rankingSurvey = {
+      calculatedValues: [{ name: "c_n", expression: "4" }],
+      pages: [
+        {
+          elements: [
+            {
+              type: "checkbox",
+              name: "SRC",
+              visible: false,
+              clearIfInvisible: "none",
+              defaultValueExpression: "iif({c_n} = 4, [1,2,3,4], [1])",
+              choices: [1, 2, 3, 4, 5],
+            },
+            {
+              type: "radiogroup",
+              name: "PIPE",
+              visible: false,
+              defaultValueExpression: "1",
+              choices: [{ value: 1, text: "piped text" }],
+            },
+          ],
+        },
+        {
+          elements: [
+            {
+              type: "ranking",
+              name: "RANK",
+              title: "Rank {PIPE}",
+              choicesFromQuestion: "SRC",
+              choicesFromQuestionMode: "selected",
+            },
+          ],
+        },
+      ],
+    };
+    const rankChoices = (survey: SurveyModel) =>
+      (
+        survey.getQuestionByName("RANK") as unknown as {
+          visibleChoices: unknown[];
+        }
+      ).visibleChoices.length;
+
+    it("keeps defaults the stored data does not hold", () => {
+      // Arrange
+      const survey = new SurveyModel(rankingSurvey);
+
+      // Act
+      const result = setSubmissionData(
+        survey,
+        JSON.stringify({ panelistId: "p-0001" }),
+      );
+
+      // Assert
+      expect(Result.isSuccess(result) && result.value).toBe(true);
+      expect(survey.getValue("SRC")).toEqual([1, 2, 3, 4]);
+      expect(survey.getValue("panelistId")).toBe("p-0001");
+      expect(rankChoices(survey)).toBe(4);
+      expect(survey.getQuestionByName("RANK").locTitle.renderedHtml).toContain(
+        "piped text",
+      );
+    });
+
+    it("keeps defaults when the stored data is an empty object", () => {
+      // Arrange
+      const survey = new SurveyModel(rankingSurvey);
+
+      // Act
+      setSubmissionData(survey, "{}");
+
+      // Assert
+      expect(survey.getValue("SRC")).toEqual([1, 2, 3, 4]);
+      expect(rankChoices(survey)).toBe(4);
+    });
+
+    it("lets a stored value win over the default", () => {
+      // Arrange
+      const survey = new SurveyModel(rankingSurvey);
+
+      // Act
+      setSubmissionData(
+        survey,
+        JSON.stringify({ panelistId: "p-0001", SRC: [2] }),
+      );
+
+      // Assert
+      expect(survey.getValue("SRC")).toEqual([2]);
+      expect(rankChoices(survey)).toBe(1);
+    });
+  });
 });

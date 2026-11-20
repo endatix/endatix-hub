@@ -27,7 +27,9 @@ export function setSubmissionData(
   try {
     const parsedData = JSON.parse(submissionData);
     if (!Helpers.isTwoValueEquals(model.data, parsedData)) {
-      model.data = parsedData;
+      // Merge, not assign: assigning replaces every value, so values the form computes itself
+      // (defaultValueExpression) that the stored data does not hold would be lost and never re-run.
+      model.mergeData(parsedData);
       hasChanges = true;
     }
 
