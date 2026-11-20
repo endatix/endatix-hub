@@ -389,6 +389,9 @@ describe("setSubmissionData", () => {
       // Assert
       expect(survey.getValue("SRC")).toEqual([1, 2, 3, 4]);
       expect(rankChoices(survey)).toBe(4);
+      expect(survey.getQuestionByName("RANK").locTitle.renderedHtml).toContain(
+        "piped text",
+      );
     });
 
     it("lets a stored value win over the default", () => {
