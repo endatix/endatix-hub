@@ -167,6 +167,89 @@ const inlineSanitizationOptions: IOptions = {
 };
 
 /**
+ * Inline rich preset - the inline preset plus a guarded image, for author
+ * text (question titles, the definition's choice texts) shown in Hub.
+ * Never use it for respondent answers: render those as plain text.
+ *
+ * Images: kept only when the trimmed `src` starts with `https://` (any case);
+ * relative, scheme-less, `data:` and `http:` sources drop the whole image.
+ * `loading="lazy"`, `decoding="async"` and `referrerpolicy="no-referrer"` are
+ * forced; no `width`/`height`/`srcset` attributes. `style` is allowed on `img`
+ * only, for `width` and `height`, as `auto` or a bounded number with a unit;
+ * no `max-*` (Hub's own caps must win), `!`, comments, `url()` or `expression()`.
+ *
+ * Links: every `a` opens in a new tab with `rel="noopener noreferrer"`.
+ * Block tags such as `<p>` are unwrapped and their text kept.
+ */
+const IMAGE_SIZE_VALUE = /^(?:auto|\d{1,4}(?:\.\d{1,2})?(?:px|%|em|rem))$/;
+const HTTPS_SOURCE = /^https:\/\//i;
+
+function enforceImageLoading(
+  tagName: string,
+  attribs: Record<string, string>,
+): { tagName: string; attribs: Record<string, string> } {
+  // sanitize-html matches a style value without its `!important` flag and
+  // then writes the flag back, and a comment can split the flag
+  // (`! /**/ important`), so any `!` or `/*` drops the whole style.
+  const { style, ...kept } = attribs;
+  const safe: Record<string, string> = {
+    ...kept,
+    loading: "lazy",
+    decoding: "async",
+    referrerpolicy: "no-referrer",
+  };
+  if (style && !/!|\/\*/.test(style)) {
+    safe.style = style;
+  }
+  return { tagName, attribs: safe };
+}
+
+function enforceNewTabLink(
+  tagName: string,
+  attribs: Record<string, string>,
+): { tagName: string; attribs: Record<string, string> } {
+  return {
+    tagName,
+    attribs: { ...attribs, target: "_blank", rel: "noopener noreferrer" },
+  };
+}
+
+const inlineRichSanitizationOptions: IOptions = {
+  ...inlineSanitizationOptions,
+  allowedTags: [...INLINE_ALLOWED_TAGS, "img"],
+  allowedAttributes: {
+    ...(inlineSanitizationOptions.allowedAttributes as Record<
+      string,
+      AllowedAttribute[]
+    >),
+    img: [
+      "src",
+      "alt",
+      "title",
+      "style",
+      "loading",
+      "decoding",
+      "referrerpolicy",
+    ],
+  },
+  allowedSchemesByTag: { img: ["https"] },
+  allowedStyles: {
+    img: {
+      width: [IMAGE_SIZE_VALUE],
+      height: [IMAGE_SIZE_VALUE],
+    },
+  },
+  transformTags: {
+    a: enforceNewTabLink,
+    img: enforceImageLoading,
+  },
+  // sanitize-html checks a scheme only when one is present, so a relative or
+  // scheme-less source would pass `allowedSchemesByTag`. Keep https only.
+  exclusiveFilter: (frame) =>
+    frame.tag === "img" && !HTTPS_SOURCE.test((frame.attribs.src ?? "").trim()),
+};
+
+/**
  * Moderate (block) sanitization preset - balanced security and functionality.
  * Use for question descriptions and rich text where block elements (headings, lists, tables) are allowed.
  *
@@ -253,6 +336,7 @@ function sanitizeHtmlInline(dirtyHtml: string): string {
  *
  * - `strict`: Minimal tags, maximum security (for untrusted input)
  * - `inline`: Phrasing content only, safe inside &lt;label&gt; (for titles, labels)
+ * - `inlineRich`: Inline plus https images with size-only styles (for Submission Details titles and choices)
  * - `moderate`: Block + inline content (for descriptions, rich text)
  * - `surveyHtml`: Moderate + structural tags, for HTML-bearing survey properties
  * - `pdf`: No tags, plain text only (for PDF export and non-DOM contexts)
@@ -260,6 +344,7 @@ function sanitizeHtmlInline(dirtyHtml: string): string {
 export const sanitizationPresets = {
   strict: strictSanitizationOptions,
   inline: inlineSanitizationOptions,
+  inlineRich: inlineRichSanitizationOptions,
   moderate: moderateSanitizationOptions,
   surveyHtml: surveyHtmlSanitizationOptions,
   pdf: pdfSanitizationOptions,
