@@ -2,7 +2,9 @@ import { Result } from "@/lib/result";
 import { SurveyModel, Helpers } from "survey-core";
 
 /**
- * Sets the submission data to the model and returns true if the data has changed.
+ * Merges the stored submission data into the model and returns true if it differs from the model's data.
+ * Merge, not assign: assigning drops the values the form sets itself (defaultValueExpression) for keys the
+ * stored data does not hold, and they never re-run. Stored values win.
  * @param model - The survey model to set the submission data to.
  * @param submissionData - The submission data to set to the model.
  * @param onError - [Optional] The callback to call if an error occurs.
@@ -27,8 +29,6 @@ export function setSubmissionData(
   try {
     const parsedData = JSON.parse(submissionData);
     if (!Helpers.isTwoValueEquals(model.data, parsedData)) {
-      // Merge, not assign: assigning replaces every value, so values the form computes itself
-      // (defaultValueExpression) that the stored data does not hold would be lost and never re-run.
       model.mergeData(parsedData);
       hasChanges = true;
     }
