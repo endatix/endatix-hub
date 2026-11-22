@@ -15,23 +15,23 @@ export const BRAND_PACK_VERSION = 1;
  */
 const PACK_FILE_PATTERN = String.raw`^(?!.*\.\.)[A-Za-z0-9_-][A-Za-z0-9._-]*(?:/[A-Za-z0-9_-][A-Za-z0-9._-]*)*$`;
 const URL_PATTERN = "^(https?:|mailto:)";
-/** No whitespace and no "@" (one regex test, no backtracking). */
-const PLAIN_PART = /^[^\s@]+$/;
+/**
+ * One dot-separated part of an address: no whitespace, no dot, and none of the
+ * characters .NET's `MailAddress` reads as a comment, display name, quote or
+ * list (one regex test, no backtracking).
+ */
+const ADDRESS_ATOM = /^[^\s.@()<>[\]\\",;:]+$/;
 
 /**
- * `local@domain`, the domain with a dot that is neither its first nor its last
- * character: the same shape as `/^[^\s@]+@[^\s@]+\.[^\s@]+$/`, without its
- * backtracking. A full RFC 5322 parse is not the goal.
+ * `local@domain`, each side dot-separated atoms with no empty one: the bare
+ * addresses `MailAddress` reads back unchanged, which the API requires. Quoted
+ * local parts, which it also accepts, are left out.
  */
-function isEmailShape(value: string): boolean {
+function isBareAddress(value: string): boolean {
   const at = value.indexOf("@");
-  const local = value.slice(0, at);
-  const domain = value.slice(at + 1);
-  return (
-    at > 0 &&
-    PLAIN_PART.test(local) &&
-    PLAIN_PART.test(domain) &&
-    domain.slice(1, -1).includes(".")
+  if (at < 0) return false;
+  return [value.slice(0, at), value.slice(at + 1)].every((side) =>
+    side.split(".").every((atom) => ADDRESS_ATOM.test(atom)),
   );
 }
 
@@ -72,16 +72,22 @@ function namesSupportAddress(link: string): boolean {
   const address = decodeOrKeep(
     link.slice(MAILTO.length).split(MAILTO_ADDRESS_END)[0],
   );
-  return address.includes(",") || isEmailShape(address);
+  return address.includes(",") || isBareAddress(address);
 }
 
-/** Like .NET's `Uri.UnescapeDataString`, an escape it cannot decode stays as written. */
+/**
+ * Decodes each run of escapes on its own, so, as with .NET's
+ * `Uri.UnescapeDataString`, a run it cannot decode stays as written and the
+ * others are still decoded.
+ */
 function decodeOrKeep(value: string): string {
-  try {
-    return decodeURIComponent(value);
-  } catch {
-    return value;
-  }
+  return value.replaceAll(/(?:%[0-9A-Fa-f]{2})+/g, (run) => {
+    try {
+      return decodeURIComponent(run);
+    } catch {
+      return run;
+    }
+  });
 }
 
 export const BrandPackSchema = z.strictObject({

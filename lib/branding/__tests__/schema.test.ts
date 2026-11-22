@@ -149,6 +149,7 @@ describe("a mailto support link", () => {
     "mailto:help@example.com#contact",
     "mailto:first%2Blast@example.com",
     "mailto:help%40example.com",
+    "mailto:help%40example.com%zz",
     "mailto:a@example.com,b@example.com",
     "mailto:a@example.com%2Cb@example.com",
     "https://example.com/support",
@@ -164,6 +165,9 @@ describe("a mailto support link", () => {
     "mailto:?subject=Help",
     "mailto:not-an-email",
     "mailto:Example <help@example.com>",
+    "mailto:%22Example%22 help@example.com",
+    "mailto:a%28b%29@example.com",
+    "mailto:help%20me@example.com%zz",
   ])("rejects %j at links.support, as the API does", (link) => {
     // Act
     const result = support(link);
@@ -177,13 +181,19 @@ describe("a mailto support link", () => {
     );
   });
 
-  it("keeps the text of an escape it cannot decode", () => {
-    // Act
-    const result = support("mailto:help%zz@example.com");
+  it.each([
+    ["a list", "mailto:a%2Cb%zz@example.com", true],
+    ["one address", "mailto:help%2Bdesk%zz@example.com", true],
+  ])(
+    "decodes the other escapes of %s around one it cannot decode",
+    (_, link, valid) => {
+      // Act
+      const result = support(link);
 
-    // Assert
-    expect(result.success).toBe(true);
-  });
+      // Assert
+      expect(result.success).toBe(valid);
+    },
+  );
 });
 
 describe("email address shape", () => {
@@ -194,22 +204,24 @@ describe("email address shape", () => {
       links: { support: `mailto:${address}` },
     }).success;
 
-  // The verdicts of the previous check, /^[^\s@]+@[^\s@]+\.[^\s@]+$/.
+  // The API's rule: MailAddress parses it, and reads back the same address.
   it.each([
     ["help@example.com", true],
-    ["a@b.c", true],
-    ["a@b..c", true],
-    ["a@.b.c", true],
     ["first.last@sub.example.com", true],
-    ["a@b", false],
-    ["a@.c", false],
+    ["a@b.c", true],
+    ["a@localhost", true],
+    ["a@b..c", false],
+    ["a@.b.c", false],
+    [".a@b.c", false],
     ["a@b.", false],
-    ["a@.", false],
     ["@b.c", false],
     ["a@", false],
     ["a b@c.d", false],
     ["a@b c.d", false],
     ["a@b@c.d", false],
+    ["a(b)@example.com", false],
+    ["(c)a@b.co", false],
+    ["<a@b.co>", false],
     ["", false],
   ])("treats %j as %s", (address, valid) => {
     // Act
