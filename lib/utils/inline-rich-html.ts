@@ -53,7 +53,8 @@ const INLINE_RICH_TAGS = [
 const LINK_HOST = "data-hub-link-host";
 const LINK_HREF = "data-hub-link-href";
 const TOO_LARGE = "data-hub-too-large";
-const SAFE_HREF = /^(?:https:|mailto:|tel:)/i;
+const CONTACT_HREF = /^(?:mailto:|tel:)/i;
+const ABSOLUTE_HTTPS = /^https:\/\//i;
 
 type Tag = { tagName: string; attribs: Record<string, string> };
 
@@ -142,8 +143,8 @@ function enforceSafeLink(
   tagName: string,
   attribs: Record<string, string>,
 ): Tag {
-  const href = (attribs.href ?? "").trim();
-  if (!SAFE_HREF.test(href)) {
+  const href = safeHref(attribs.href);
+  if (!href) {
     return { tagName: "span", attribs: {} };
   }
   return {
@@ -155,6 +156,27 @@ function enforceSafeLink(
       rel: "noopener noreferrer",
     },
   };
+}
+
+/**
+ * An absolute `https://` URL with a host (as parsed, so `https:/x` or
+ * `https:x`, which a browser resolves against the page, never pass), or a
+ * `mailto:` / `tel:` link. Anything else leaves the link text only.
+ */
+function safeHref(rawHref: string | undefined): string | null {
+  const href = (rawHref ?? "").trim();
+  if (CONTACT_HREF.test(href)) {
+    return href;
+  }
+  if (!ABSOLUTE_HTTPS.test(href)) {
+    return null;
+  }
+  try {
+    const url = new URL(href);
+    return url.protocol === "https:" && url.hostname ? url.href : null;
+  } catch {
+    return null;
+  }
 }
 
 // sanitize-html cannot turn a void <img> into an element with text, so the

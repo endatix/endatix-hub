@@ -23,6 +23,9 @@ export const MAX_DATA_IMAGE_BASE64_LENGTH = 100 * 1024;
 
 const DATA_IMAGE =
   /^data:image\/(?:png|jpeg|gif|webp);base64,([A-Za-z0-9+/]+={0,2})$/;
+// `https:/x` and `https:x` parse as absolute, but a browser resolves them
+// against the page: only a literal `https://` counts.
+const ABSOLUTE_HTTPS = /^https:\/\//i;
 const IPV4_LITERAL = /^\d{1,3}(?:\.\d{1,3}){3}$/;
 const DROP: ImageSourceDecision = { kind: "drop" };
 
@@ -38,7 +41,7 @@ export function decideImageSource(
   if (src.toLowerCase().startsWith("data:")) {
     return decideDataImage(src);
   }
-  const url = parseUrl(src);
+  const url = ABSOLUTE_HTTPS.test(src) ? parseUrl(src) : null;
   if (!url || isRejectedImageUrl(url, policy)) {
     return DROP;
   }
@@ -66,8 +69,13 @@ function parseUrl(src: string): URL | null {
 }
 
 /** Never an image source, even when listed: non-https, userinfo, IPs, localhost, the Hub itself. */
+/** Lower-cased hostname without one trailing dot (`localhost.` is `localhost`). */
+function hostnameOf(url: URL): string {
+  return url.hostname.toLowerCase().replace(/\.$/, "");
+}
+
 function isRejectedImageUrl(url: URL, policy: ImageSourcePolicy): boolean {
-  const hostname = url.hostname.toLowerCase();
+  const hostname = hostnameOf(url);
   return (
     url.protocol !== "https:" ||
     url.username.length > 0 ||
@@ -82,17 +90,18 @@ function isRejectedImageUrl(url: URL, policy: ImageSourcePolicy): boolean {
 
 function isOwnOrigin(url: URL, ownOrigin: string | undefined): boolean {
   const own = ownOrigin ? parseUrl(ownOrigin) : null;
-  return (
-    own !== null && own.hostname.toLowerCase() === url.hostname.toLowerCase()
-  );
+  return own !== null && hostnameOf(own) === hostnameOf(url);
 }
 
 /** Exact hostname match; a pattern with a port also needs that port. */
 function isAllowedHost(url: URL, allowedHosts: readonly string[]): boolean {
-  const hostname = url.hostname.toLowerCase();
-  const host = url.host.toLowerCase();
+  const hostname = hostnameOf(url);
+  const host = url.port ? `${hostname}:${url.port}` : hostname;
   return allowedHosts.some((pattern) => {
-    const entry = pattern.trim().toLowerCase();
+    const entry = pattern
+      .trim()
+      .toLowerCase()
+      .replace(/\.(?=:|$)/, "");
     return entry.includes(":") ? entry === host : entry === hostname;
   });
 }

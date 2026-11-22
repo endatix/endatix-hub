@@ -36,6 +36,7 @@ describe("decideImageSource", () => {
         "an allowed host with its listed port",
         "https://s3.example.com:9443/a.png",
       ],
+      ["an allowed host with a trailing dot", "https://cdn.example.com./a.png"],
     ])("keeps %s", (_name, src) => {
       expect(decide(src).kind).toBe("keep");
     });
@@ -91,6 +92,13 @@ describe("decideImageSource", () => {
       ["localhost", "https://localhost/a.png"],
       ["a .localhost name", "https://hub.localhost/a.png"],
       ["the Hub's own origin", "https://hub.example.com/api/auth/logout"],
+      ["the Hub's own host on another port", "https://hub.example.com:8443/x"],
+      ["the Hub's own host with a trailing dot", "https://hub.example.com./x"],
+      ["localhost with a trailing dot", "https://localhost./a.png"],
+      ["a .localhost name with a trailing dot", "https://hub.localhost./a.png"],
+      ["an IPv4 literal with a trailing dot", "https://203.0.113.7./a.png"],
+      ["https:/ without a host", "https:/cdn.example.com/a.png"],
+      ["https: without slashes", "https:cdn.example.com/a.png"],
       ["empty", ""],
       ["missing", undefined],
     ])("drops %s", (_name, src) => {
@@ -141,6 +149,11 @@ describe("decideImageSource", () => {
     it("keeps an image at exactly 100 KB of base64", () => {
       const src = `data:image/png;base64,${"A".repeat(MAX_DATA_IMAGE_BASE64_LENGTH)}`;
       expect(decide(src).kind).toBe("keep");
+    });
+
+    it("marks an image of exactly 102,401 base64 characters as too large", () => {
+      const src = `data:image/png;base64,${"A".repeat(102_401)}`;
+      expect(decide(src)).toEqual({ kind: "too-large" });
     });
 
     it("marks an image over 100 KB of base64 as too large", () => {

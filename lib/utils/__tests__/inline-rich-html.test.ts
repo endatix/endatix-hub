@@ -134,6 +134,12 @@ describe("sanitizeInlineRichHtml", () => {
   });
 
   describe("links", () => {
+    it("writes an https link as its parsed absolute URL", () => {
+      expect(inlineRich('<a href=" HTTPS://Example.com/a b">x</a>')).toContain(
+        'href="https://example.com/a%20b"',
+      );
+    });
+
     it.each([
       ["_top target", '<a href="https://example.com" target="_top">x</a>'],
       ["upper-case scheme", '<a href="HTTPS://example.com">x</a>'],
@@ -150,6 +156,11 @@ describe("sanitizeInlineRichHtml", () => {
       ["relative", '<a href="/forms/1">Forms</a>'],
       ["scheme-less", '<a href="forms/1">Forms</a>'],
       ["fragment", '<a href="#top">Forms</a>'],
+      ["https:/ path", '<a href="https:/forms/1">Forms</a>'],
+      ["https: path", '<a href="https:forms/1">Forms</a>'],
+      ["upper-case HTTPS:/ path", '<a href="HTTPS:/api/auth/logout">Forms</a>'],
+      ["bare https:", '<a href="https:">Forms</a>'],
+      ["host-less https://", '<a href="https://">Forms</a>'],
     ])("turns a %s link into text", (_name, input) => {
       expect(inlineRich(input)).toBe("<span>Forms</span>");
     });
