@@ -168,6 +168,9 @@ describe("a mailto support link", () => {
     "mailto:%22Example%22 help@example.com",
     "mailto:a%28b%29@example.com",
     "mailto:help%20me@example.com%zz",
+    "mailto:a%01b@example.com",
+    "mailto:a%C3%28b@example.com",
+    "mailto:e%CC%81@example.com",
   ])("rejects %j at links.support, as the API does", (link) => {
     // Act
     const result = support(link);
@@ -182,8 +185,8 @@ describe("a mailto support link", () => {
   });
 
   it.each([
-    ["a list", "mailto:a%2Cb%zz@example.com", true],
-    ["one address", "mailto:help%2Bdesk%zz@example.com", true],
+    ["a list", "mailto:a%2C%zz", true],
+    ["one address", "mailto:a%28b%zz@example.com", false],
   ])(
     "decodes the other escapes of %s around one it cannot decode",
     (_, link, valid) => {

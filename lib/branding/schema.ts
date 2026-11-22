@@ -16,20 +16,21 @@ export const BRAND_PACK_VERSION = 1;
 const PACK_FILE_PATTERN = String.raw`^(?!.*\.\.)[A-Za-z0-9_-][A-Za-z0-9._-]*(?:/[A-Za-z0-9_-][A-Za-z0-9._-]*)*$`;
 const URL_PATTERN = "^(https?:|mailto:)";
 /**
- * One dot-separated part of an address: no whitespace, no dot, and none of the
- * characters .NET's `MailAddress` reads as a comment, display name, quote or
- * list (one regex test, no backtracking).
+ * One dot-separated part of an address: no whitespace, no ASCII control
+ * character, no dot, and none of the characters .NET's `MailAddress` reads as a
+ * comment, display name, quote or list (one regex test, no backtracking).
  */
-const ADDRESS_ATOM = /^[^\s.@()<>[\]\\",;:]+$/;
+const ADDRESS_ATOM = /^[^\s\x00-\x1F\x7F.@()<>[\]\\",;:]+$/;
 
 /**
  * `local@domain`, each side dot-separated atoms with no empty one: the bare
- * addresses `MailAddress` reads back unchanged, which the API requires. Quoted
+ * addresses `MailAddress` reads back unchanged, which the API requires. It
+ * normalises to NFC, so an address that is not NFC reads back changed. Quoted
  * local parts, which it also accepts, are left out.
  */
 function isBareAddress(value: string): boolean {
   const at = value.indexOf("@");
-  if (at < 0) return false;
+  if (at < 0 || value.normalize("NFC") !== value) return false;
   return [value.slice(0, at), value.slice(at + 1)].every((side) =>
     side.split(".").every((atom) => ADDRESS_ATOM.test(atom)),
   );
@@ -76,18 +77,44 @@ function namesSupportAddress(link: string): boolean {
 }
 
 /**
- * Decodes each run of escapes on its own, so, as with .NET's
- * `Uri.UnescapeDataString`, a run it cannot decode stays as written and the
- * others are still decoded.
+ * Percent-decodes as .NET's `Uri.UnescapeDataString` does: an ASCII escape is
+ * always decoded, a valid UTF-8 sequence of escapes is decoded as one
+ * character, and every other escape stays as written.
  */
 function decodeOrKeep(value: string): string {
-  return value.replaceAll(/(?:%[0-9A-Fa-f]{2})+/g, (run) => {
-    try {
-      return decodeURIComponent(run);
-    } catch {
-      return run;
-    }
-  });
+  return value.replaceAll(/(?:%[0-9A-Fa-f]{2})+/g, decodeEscapeRun);
+}
+
+function decodeEscapeRun(run: string): string {
+  const escapes = run.match(/%[0-9A-Fa-f]{2}/g) ?? [];
+  let decoded = "";
+  for (let index = 0; index < escapes.length; ) {
+    const length = utf8SequenceLength(
+      Number.parseInt(escapes[index].slice(1), 16),
+    );
+    const sequence = escapes.slice(index, index + length).join("");
+    const character =
+      index + length <= escapes.length ? decodeOrNull(sequence) : null;
+    decoded += character ?? escapes[index];
+    index += character === null ? 1 : length;
+  }
+  return decoded;
+}
+
+/** The bytes a UTF-8 sequence starting with this byte takes. */
+function utf8SequenceLength(lead: number): number {
+  if (lead >= 0xf0) return 4;
+  if (lead >= 0xe0) return 3;
+  if (lead >= 0xc0) return 2;
+  return 1;
+}
+
+function decodeOrNull(sequence: string): string | null {
+  try {
+    return decodeURIComponent(sequence);
+  } catch {
+    return null;
+  }
 }
 
 export const BrandPackSchema = z.strictObject({
@@ -145,7 +172,9 @@ export type BrandPack = z.infer<typeof BrandPackSchema>;
  * before the sender moved to the API's email settings, is ignored, as the API
  * ignores it; every other unknown key still fails.
  */
-export function parseBrandPack(input: unknown) {
+export function parseBrandPack(
+  input: unknown,
+): z.ZodSafeParseResult<BrandPack> {
   if (input === null || typeof input !== "object" || Array.isArray(input))
     return BrandPackSchema.safeParse(input);
   const { email: _ignored, ...pack } = input as Record<string, unknown>;
