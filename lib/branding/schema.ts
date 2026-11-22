@@ -57,7 +57,7 @@ const ColorToken = z.strictObject({
   $value: z
     .string()
     .min(4)
-    .max(COLOR_MAX_LENGTH, { message: COLOR_MESSAGE })
+    .max(COLOR_MAX_LENGTH, { message: COLOR_MESSAGE, abort: true })
     .refine((value) => parseCssColor(value) !== null, {
       message: COLOR_MESSAGE,
     }),

@@ -128,24 +128,28 @@ describe("brand pack schema", () => {
   it.each([
     [64, true],
     [65, false],
-  ])("reads a %i-character colour as the API does: %s", (length, accepted) => {
-    // Arrange
-    const value = "#0b6b5d".padStart(length, " ");
-    const pack = {
-      version: 1,
-      name: "Example Forms",
-      tokens: { color: { primary: { $type: "color", $value: value } } },
-    };
+    [65, false, "x"],
+  ])(
+    "reads a %i-character colour as the API does: %s",
+    (length, accepted, fill = " ") => {
+      // Arrange
+      const value = "#0b6b5d".padStart(length, fill);
+      const pack = {
+        version: 1,
+        name: "Example Forms",
+        tokens: { color: { primary: { $type: "color", $value: value } } },
+      };
 
-    // Act
-    const result = BrandPackSchema.safeParse(pack);
+      // Act
+      const result = BrandPackSchema.safeParse(pack);
 
-    // Assert
-    expect(result.success).toBe(accepted);
-    expect(result.error?.issues.map((issue) => issue.message) ?? []).toEqual(
-      accepted ? [] : ["Use a hex, rgb(), hsl() or oklch() colour"],
-    );
-  });
+      // Assert
+      expect(result.success).toBe(accepted);
+      expect(result.error?.issues.map((issue) => issue.message) ?? []).toEqual(
+        accepted ? [] : ["Use a hex, rgb(), hsl() or oklch() colour"],
+      );
+    },
+  );
 
   it.each([
     ["links.website", { links: { website: "javascript:alert(1)" } }],
