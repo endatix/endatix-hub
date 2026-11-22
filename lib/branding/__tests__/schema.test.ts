@@ -126,30 +126,27 @@ describe("brand pack schema", () => {
   });
 
   it.each([
-    [64, true],
-    [65, false],
-    [65, false, "x"],
-  ])(
-    "reads a %i-character colour as the API does: %s",
-    (length, accepted, fill = " ") => {
-      // Arrange
-      const value = "#0b6b5d".padStart(length, fill);
-      const pack = {
-        version: 1,
-        name: "Example Forms",
-        tokens: { color: { primary: { $type: "color", $value: value } } },
-      };
+    ["accepts a 64-character colour padded with spaces", 64, " ", true],
+    ["refuses a 65-character colour padded with spaces", 65, " ", false],
+    ["reports a 65-character unreadable colour once", 65, "x", false],
+  ])("%s, as the API does", (_label, length, fill, accepted) => {
+    // Arrange
+    const value = "#0b6b5d".padStart(length, fill);
+    const pack = {
+      version: 1,
+      name: "Example Forms",
+      tokens: { color: { primary: { $type: "color", $value: value } } },
+    };
 
-      // Act
-      const result = BrandPackSchema.safeParse(pack);
+    // Act
+    const result = BrandPackSchema.safeParse(pack);
 
-      // Assert
-      expect(result.success).toBe(accepted);
-      expect(result.error?.issues.map((issue) => issue.message) ?? []).toEqual(
-        accepted ? [] : ["Use a hex, rgb(), hsl() or oklch() colour"],
-      );
-    },
-  );
+    // Assert
+    expect(result.success).toBe(accepted);
+    expect(result.error?.issues.map((issue) => issue.message) ?? []).toEqual(
+      accepted ? [] : ["Use a hex, rgb(), hsl() or oklch() colour"],
+    );
+  });
 
   it.each([
     ["links.website", { links: { website: "javascript:alert(1)" } }],
