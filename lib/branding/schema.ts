@@ -48,13 +48,18 @@ const ThemedFile = z.strictObject({
   dark: PackFile.optional(),
 });
 
+const COLOR_MESSAGE = "Use a hex, rgb(), hsl() or oklch() colour";
+/** The API's `BrandOverrideReader.COLOR_MAX_LENGTH`, counted before trimming. */
+const COLOR_MAX_LENGTH = 64;
+
 const ColorToken = z.strictObject({
   $type: z.literal("color"),
   $value: z
     .string()
     .min(4)
+    .max(COLOR_MAX_LENGTH, { message: COLOR_MESSAGE })
     .refine((value) => parseCssColor(value) !== null, {
-      message: "Use a hex, rgb(), hsl() or oklch() colour",
+      message: COLOR_MESSAGE,
     }),
 });
 
