@@ -7,8 +7,8 @@ import { createHash, type Hash } from "node:crypto";
 import { readFileSync, realpathSync, statSync } from "node:fs";
 import path from "node:path";
 import {
-  BrandPackSchema,
   formatBrandPackIssues,
+  parseBrandPack,
   type BrandPack,
 } from "./schema";
 
@@ -46,7 +46,7 @@ export interface LoadedBrandPack {
 export function readBrandPack(dir: string): LoadedBrandPack {
   const root = resolveDir(dir);
   const raw = readBrandFile(root);
-  const parsed = BrandPackSchema.safeParse(parseJson(root, raw));
+  const parsed = parseBrandPack(parseJson(root, raw));
   if (!parsed.success)
     throw new BrandPackError(root, formatBrandPackIssues(parsed.error));
 

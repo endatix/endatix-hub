@@ -59,9 +59,30 @@ const Url = z.string().regex(new RegExp(URL_PATTERN)).refine(isAbsoluteUrl, {
   message: "Use an absolute https:, http: or mailto: URL",
 });
 
-const Email = z.string().refine(isEmailShape, {
-  message: "Use an email address",
-});
+const MAILTO = "mailto:";
+const MAILTO_ADDRESS_END = /[?#]/;
+
+/**
+ * The API reads the support address from a `mailto:` link: the part before `?`
+ * or `#` (RFC 6068), percent-decoded, and a list of addresses leaves its
+ * built-in address. So the link must name one address, or a list.
+ */
+function namesSupportAddress(link: string): boolean {
+  if (!link.startsWith(MAILTO)) return true;
+  const address = decodeOrKeep(
+    link.slice(MAILTO.length).split(MAILTO_ADDRESS_END)[0],
+  );
+  return address.includes(",") || isEmailShape(address);
+}
+
+/** Like .NET's `Uri.UnescapeDataString`, an escape it cannot decode stays as written. */
+function decodeOrKeep(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
 
 export const BrandPackSchema = z.strictObject({
   $schema: z.string().optional(),
@@ -93,6 +114,14 @@ export const BrandPackSchema = z.strictObject({
       privacy: Url.optional(),
       terms: Url.optional(),
     })
+    .superRefine((links, context) => {
+      if (links.support !== undefined && !namesSupportAddress(links.support))
+        context.addIssue({
+          code: "custom",
+          path: ["support"],
+          message: "Use a mailto: link to one email address",
+        });
+    })
     .optional(),
   poweredBy: z.boolean().optional(),
   personas: z
@@ -101,16 +130,21 @@ export const BrandPackSchema = z.strictObject({
       bot: z.string().min(1).optional(),
     })
     .optional(),
-  email: z
-    .strictObject({
-      senderName: z.string().min(1).optional(),
-      fromAddress: Email.optional(),
-      supportAddress: Email.optional(),
-    })
-    .optional(),
 });
 
 export type BrandPack = z.infer<typeof BrandPackSchema>;
+
+/**
+ * Checks a parsed `brand.json`. A top-level `email` section, from packs written
+ * before the sender moved to the API's email settings, is ignored, as the API
+ * ignores it; every other unknown key still fails.
+ */
+export function parseBrandPack(input: unknown) {
+  if (input === null || typeof input !== "object" || Array.isArray(input))
+    return BrandPackSchema.safeParse(input);
+  const { email: _ignored, ...pack } = input as Record<string, unknown>;
+  return BrandPackSchema.safeParse(pack);
+}
 
 /** One line per issue, `path: message`, so an operator finds the field. */
 export function formatBrandPackIssues(error: z.ZodError): string {
@@ -148,7 +182,6 @@ function asSpecWritesIt({
   // RegExp#source escapes `/`; the spec keeps the pattern as written.
   if (zodSchema === PackFile) node.pattern = PACK_FILE_PATTERN;
   if (zodSchema === Url) node.format = "uri";
-  if (zodSchema === Email) node.format = "email";
 }
 
 /** The JSON Schema document for `brand.schema.json`. */
