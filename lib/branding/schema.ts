@@ -19,9 +19,10 @@ const URL_PATTERN = "^(https?:|mailto:)";
  * One dot-separated part of an address: no whitespace, no ASCII control
  * character, no U+FFFE (which .NET cannot normalise), no dot, and none of the
  * characters .NET's `MailAddress` reads as a comment, display name, quote or
- * list (one regex test, no backtracking).
+ * list (one regex test, no backtracking). Tab through carriage return sit in
+ * `\s`, so the control ranges leave that gap.
  */
-const ADDRESS_ATOM = /^[^\s\x00-\x1F\x7F\uFFFE.@()<>[\]\\",;:]+$/;
+const ADDRESS_ATOM = /^[^\x00-\x08\x0E-\x1F\x7F\s\uFFFE.@()<>[\]\\",;:]+$/;
 
 /**
  * `local@domain`, each side dot-separated atoms with no empty one: the bare
