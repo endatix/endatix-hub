@@ -36,7 +36,8 @@ project token). The same image serves either brand, with no rebuild.
   a link the pack leaves out is hidden. Files left out keep the built-in artwork. The full
   shape is [`brand.schema.json`](brand.schema.json); `fixtures/` holds the shared examples.
 - Colours: hex, `rgb()`, `hsl()` or `oklch()`, as CSS reads them (comma `hsl()` needs `%` on
-  saturation and lightness; there is no `oklcha()`). `primary-on-dark` is optional; without it the
+  saturation and lightness; there is no `oklcha()`), at most 64 characters including spaces: the
+  limit the API applies to tenant brand overrides. `primary-on-dark` is optional; without it the
   dark-mode accent is derived from `primary`.
 - Files: relative paths inside the folder, made of plain names (no `.`, `..`, empty or
   dot-first segments), of type `.svg`, `.png`, `.jpg`, `.jpeg`, `.webp` or `.ico`.

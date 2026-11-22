@@ -126,6 +126,33 @@ describe("brand pack schema", () => {
   });
 
   it.each([
+    ["accepts a 64-character colour padded with spaces", 64, " ", true],
+    ["refuses a 65-character hex colour padded with spaces", 65, " ", false],
+    ["reports a 65-character unreadable colour once", 65, "x", false],
+  ])("%s, as the API does", (_label, length, fill, accepted) => {
+    // Arrange
+    const value = "#0b6b5d".padStart(length, fill);
+    const pack = {
+      version: 1,
+      name: "Example Forms",
+      tokens: { color: { primary: { $type: "color", $value: value } } },
+    };
+
+    // Act
+    const result = BrandPackSchema.safeParse(pack);
+
+    // Assert
+    expect(result.success).toBe(accepted);
+    expect(result.error?.issues.map((issue) => issue.message) ?? []).toEqual(
+      accepted
+        ? []
+        : [
+            "Use a hex, rgb(), hsl() or oklch() colour of at most 64 characters",
+          ],
+    );
+  });
+
+  it.each([
     ["links.website", { links: { website: "javascript:alert(1)" } }],
     ["links.support", { links: { support: "ftp://example.com" } }],
   ])("rejects a malformed value at %s", (fieldPath, extra) => {
