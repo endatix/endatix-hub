@@ -39,6 +39,10 @@ project token). The same image serves either brand, with no rebuild.
   dark-mode accent is derived from `primary`.
 - Files: relative paths inside the folder, made of plain names (no `.`, `..`, empty or
   dot-first segments), of type `.svg`, `.png`, `.jpg`, `.jpeg`, `.webp` or `.ico`.
+- The pack is identity only. The API reads the same mounted pack, and the email sender lives in
+  its email settings. A `links.support` `mailto:` link names the address emails show, so it must
+  name one bare address (or a list, which keeps the API's built-in address). An `email` section
+  from older packs is ignored by both apps, though an editor checking `brand.schema.json` flags it.
 - Check a pack before rolling it out: `pnpm brand:validate <folder>`. It prints each problem
   with its field path, and warns when an accent fades into the page (WCAG 2.x 3:1).
 

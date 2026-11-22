@@ -64,6 +64,34 @@ describe("readBrandPack", () => {
     expect(loaded.fingerprint).toMatch(/^[0-9a-f]{12}$/);
   });
 
+  it.each([
+    ["an invalid one", { fromAddress: "not-an-email" }],
+    ["one that is not an object", "noreply@example.com"],
+  ])("ignores an email section, %s, as the API does", (_, email) => {
+    // Arrange: packs written before the sender moved to the API's email settings.
+    writeFileSync(
+      path.join(dir, "brand.json"),
+      JSON.stringify({ version: 1, name: "Example Forms", email }),
+    );
+
+    // Act
+    const loaded = readBrandPack(dir);
+
+    // Assert
+    expect(loaded.pack).toEqual({ version: 1, name: "Example Forms" });
+  });
+
+  it("still rejects another unknown key", () => {
+    // Arrange
+    useFixture("invalid-unknown-key");
+
+    // Act
+    const error = errorOf(() => readBrandPack(dir));
+
+    // Assert
+    expect(error.message).toContain("fonts");
+  });
+
   it("names the field path of a schema failure", () => {
     // Arrange
     useFixture("invalid-path-traversal");

@@ -15,23 +15,26 @@ export const BRAND_PACK_VERSION = 1;
  */
 const PACK_FILE_PATTERN = String.raw`^(?!.*\.\.)[A-Za-z0-9_-][A-Za-z0-9._-]*(?:/[A-Za-z0-9_-][A-Za-z0-9._-]*)*$`;
 const URL_PATTERN = "^(https?:|mailto:)";
-/** No whitespace and no "@" (one regex test, no backtracking). */
-const PLAIN_PART = /^[^\s@]+$/;
+/**
+ * One dot-separated part of an address: no whitespace, no ASCII control
+ * character, no U+FFFE (which .NET cannot normalise), no dot, and none of the
+ * characters .NET's `MailAddress` reads as a comment, display name, quote or
+ * list (one regex test, no backtracking). Tab through carriage return sit in
+ * `\s`, so the control ranges leave that gap.
+ */
+const ADDRESS_ATOM = /^[^\x00-\x08\x0E-\x1F\x7F\s\uFFFE.@()<>[\]\\",;:]+$/;
 
 /**
- * `local@domain`, the domain with a dot that is neither its first nor its last
- * character: the same shape as `/^[^\s@]+@[^\s@]+\.[^\s@]+$/`, without its
- * backtracking. A full RFC 5322 parse is not the goal.
+ * `local@domain`, each side dot-separated atoms with no empty one: the bare
+ * addresses `MailAddress` reads back unchanged, which the API requires. It
+ * normalises to NFC, so an address that is not NFC reads back changed. Quoted
+ * local parts, which it also accepts, are left out.
  */
-function isEmailShape(value: string): boolean {
+function isBareAddress(value: string): boolean {
   const at = value.indexOf("@");
-  const local = value.slice(0, at);
-  const domain = value.slice(at + 1);
-  return (
-    at > 0 &&
-    PLAIN_PART.test(local) &&
-    PLAIN_PART.test(domain) &&
-    domain.slice(1, -1).includes(".")
+  if (at < 0 || value.normalize("NFC") !== value) return false;
+  return [value.slice(0, at), value.slice(at + 1)].every((side) =>
+    side.split(".").every((atom) => ADDRESS_ATOM.test(atom)),
   );
 }
 
@@ -59,9 +62,62 @@ const Url = z.string().regex(new RegExp(URL_PATTERN)).refine(isAbsoluteUrl, {
   message: "Use an absolute https:, http: or mailto: URL",
 });
 
-const Email = z.string().refine(isEmailShape, {
-  message: "Use an email address",
-});
+const MAILTO = "mailto:";
+const MAILTO_ADDRESS_END = /[?#]/;
+
+/**
+ * The API reads the support address from a `mailto:` link: the part before `?`
+ * or `#` (RFC 6068), percent-decoded, and a list of addresses leaves its
+ * built-in address. So the link must name one address, or a list.
+ */
+function namesSupportAddress(link: string): boolean {
+  if (!link.startsWith(MAILTO)) return true;
+  const address = decodeOrKeep(
+    link.slice(MAILTO.length).split(MAILTO_ADDRESS_END)[0],
+  );
+  return address.includes(",") || isBareAddress(address);
+}
+
+/**
+ * Percent-decodes as .NET's `Uri.UnescapeDataString` does: an ASCII escape is
+ * always decoded, a valid UTF-8 sequence of escapes is decoded as one
+ * character, and every other escape stays as written.
+ */
+function decodeOrKeep(value: string): string {
+  return value.replaceAll(/(?:%[0-9A-Fa-f]{2})+/g, decodeEscapeRun);
+}
+
+function decodeEscapeRun(run: string): string {
+  const escapes = run.match(/%[0-9A-Fa-f]{2}/g) ?? [];
+  let decoded = "";
+  for (let index = 0; index < escapes.length; ) {
+    const length = utf8SequenceLength(
+      Number.parseInt(escapes[index].slice(1), 16),
+    );
+    const sequence = escapes.slice(index, index + length).join("");
+    const character =
+      index + length <= escapes.length ? decodeOrNull(sequence) : null;
+    decoded += character ?? escapes[index];
+    index += character === null ? 1 : length;
+  }
+  return decoded;
+}
+
+/** The bytes a UTF-8 sequence starting with this byte takes. */
+function utf8SequenceLength(lead: number): number {
+  if (lead >= 0xf0) return 4;
+  if (lead >= 0xe0) return 3;
+  if (lead >= 0xc0) return 2;
+  return 1;
+}
+
+function decodeOrNull(sequence: string): string | null {
+  try {
+    return decodeURIComponent(sequence);
+  } catch {
+    return null;
+  }
+}
 
 export const BrandPackSchema = z.strictObject({
   $schema: z.string().optional(),
@@ -93,6 +149,14 @@ export const BrandPackSchema = z.strictObject({
       privacy: Url.optional(),
       terms: Url.optional(),
     })
+    .superRefine((links, context) => {
+      if (links.support !== undefined && !namesSupportAddress(links.support))
+        context.addIssue({
+          code: "custom",
+          path: ["support"],
+          message: "Use a mailto: link to one email address",
+        });
+    })
     .optional(),
   poweredBy: z.boolean().optional(),
   personas: z
@@ -101,16 +165,23 @@ export const BrandPackSchema = z.strictObject({
       bot: z.string().min(1).optional(),
     })
     .optional(),
-  email: z
-    .strictObject({
-      senderName: z.string().min(1).optional(),
-      fromAddress: Email.optional(),
-      supportAddress: Email.optional(),
-    })
-    .optional(),
 });
 
 export type BrandPack = z.infer<typeof BrandPackSchema>;
+
+/**
+ * Checks a parsed `brand.json`. A top-level `email` section, from packs written
+ * before the sender moved to the API's email settings, is ignored, as the API
+ * ignores it; every other unknown key still fails.
+ */
+export function parseBrandPack(
+  input: unknown,
+): z.ZodSafeParseResult<BrandPack> {
+  if (input === null || typeof input !== "object" || Array.isArray(input))
+    return BrandPackSchema.safeParse(input);
+  const { email: _ignored, ...pack } = input as Record<string, unknown>;
+  return BrandPackSchema.safeParse(pack);
+}
 
 /** One line per issue, `path: message`, so an operator finds the field. */
 export function formatBrandPackIssues(error: z.ZodError): string {
@@ -148,7 +219,6 @@ function asSpecWritesIt({
   // RegExp#source escapes `/`; the spec keeps the pattern as written.
   if (zodSchema === PackFile) node.pattern = PACK_FILE_PATTERN;
   if (zodSchema === Url) node.format = "uri";
-  if (zodSchema === Email) node.format = "email";
 }
 
 /** The JSON Schema document for `brand.schema.json`. */

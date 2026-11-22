@@ -71,6 +71,7 @@ describe("brand pack schema", () => {
     ["invalid-path-traversal", "assets.icon"],
     ["invalid-unknown-key", ""],
     ["invalid-version", "version"],
+    ["invalid-support-mailto", "links.support"],
   ])("rejects the shared fixture %s at %s", (name, fieldPath) => {
     // Act
     const paths = failingPaths(name);
@@ -118,7 +119,7 @@ describe("brand pack schema", () => {
 
   it.each([
     ["links.website", { links: { website: "javascript:alert(1)" } }],
-    ["email.fromAddress", { email: { fromAddress: "not-an-address" } }],
+    ["links.support", { links: { support: "ftp://example.com" } }],
   ])("rejects a malformed value at %s", (fieldPath, extra) => {
     // Arrange
     const pack = { version: 1, name: "Example Forms", ...extra };
@@ -133,30 +134,98 @@ describe("brand pack schema", () => {
   });
 });
 
+describe("a mailto support link", () => {
+  const support = (link: string) =>
+    BrandPackSchema.safeParse({
+      version: 1,
+      name: "Example Forms",
+      links: { support: link },
+    });
+
+  // The API reads the support address from this link (endatix/endatix#1711).
+  it.each([
+    "mailto:help@example.com",
+    "mailto:help@example.com?subject=Help",
+    "mailto:help@example.com#contact",
+    "mailto:first%2Blast@example.com",
+    "mailto:help%40example.com",
+    "mailto:help%40example.com%zz",
+    "mailto:a@example.com,b@example.com",
+    "mailto:a@example.com%2Cb@example.com",
+    "https://example.com/support",
+  ])("accepts %j, as the API does", (link) => {
+    // Act
+    const result = support(link);
+
+    // Assert
+    expect(result.success).toBe(true);
+  });
+
+  it.each([
+    "mailto:?subject=Help",
+    "mailto:not-an-email",
+    "mailto:Example <help@example.com>",
+    "mailto:%22Example%22 help@example.com",
+    "mailto:a%28b%29@example.com",
+    "mailto:help%20me@example.com%zz",
+    "mailto:a%01b@example.com",
+    "mailto:a%C3%28b@example.com",
+    "mailto:e%CC%81@example.com",
+    "mailto:a%EF%BF%BEb@x.co",
+  ])("rejects %j at links.support, as the API does", (link) => {
+    // Act
+    const result = support(link);
+
+    // Assert
+    expect(result.error?.issues.map((issue) => issue.path.join("."))).toEqual([
+      "links.support",
+    ]);
+    expect(formatBrandPackIssues(result.error!)).toContain(
+      "links.support: Use a mailto: link to one email address",
+    );
+  });
+
+  it.each([
+    ["a list", "mailto:a%2C%zz", true],
+    ["one address", "mailto:a%28b%zz@example.com", false],
+  ])(
+    "decodes the other escapes of %s around one it cannot decode",
+    (_, link, valid) => {
+      // Act
+      const result = support(link);
+
+      // Assert
+      expect(result.success).toBe(valid);
+    },
+  );
+});
+
 describe("email address shape", () => {
   const accepts = (address: string) =>
     BrandPackSchema.safeParse({
       version: 1,
       name: "Example Forms",
-      email: { fromAddress: address },
+      links: { support: `mailto:${address}` },
     }).success;
 
-  // The verdicts of the previous check, /^[^\s@]+@[^\s@]+\.[^\s@]+$/.
+  // The API's rule: MailAddress parses it, and reads back the same address.
   it.each([
     ["help@example.com", true],
-    ["a@b.c", true],
-    ["a@b..c", true],
-    ["a@.b.c", true],
     ["first.last@sub.example.com", true],
-    ["a@b", false],
-    ["a@.c", false],
+    ["a@b.c", true],
+    ["a@localhost", true],
+    ["a@b..c", false],
+    ["a@.b.c", false],
+    [".a@b.c", false],
     ["a@b.", false],
-    ["a@.", false],
     ["@b.c", false],
     ["a@", false],
     ["a b@c.d", false],
     ["a@b c.d", false],
     ["a@b@c.d", false],
+    ["a(b)@example.com", false],
+    ["(c)a@b.co", false],
+    ["<a@b.co>", false],
     ["", false],
   ])("treats %j as %s", (address, valid) => {
     // Act
