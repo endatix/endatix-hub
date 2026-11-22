@@ -136,6 +136,44 @@ describe("parseCssColor, CSS syntax details", () => {
     expect(color).toBeNull();
   });
 
+  const around = (space: string) =>
+    `${space}hsl(216${space}100%${space}41%)${space}`;
+  const between = (space: string) => `hsl(216,${space}100%,${space}41%)`;
+
+  it.each([" ", "\t", "\n", "\r", "\f"])(
+    "reads ASCII whitespace %j around and between arguments",
+    (space) => {
+      // Act
+      const spaced = parseCssColor(around(space));
+      const commas = parseCssColor(between(space));
+
+      // Assert
+      expect(spaced && toHex(spaced)).toBe("#0054d1");
+      expect(commas && toHex(commas)).toBe("#0054d1");
+    },
+  );
+
+  it.each(["﻿", " ", "\u000B", " ", " ", " ", " ", " ", " ", " ", " ", "　"])(
+    "rejects the non-ASCII space %j before or between arguments",
+    (space) => {
+      // Act
+      const leading = parseCssColor(`${space}hsl(216 100% 41%)`);
+      const spaced = parseCssColor(`hsl(216${space}100%${space}41%)`);
+      const commas = parseCssColor(between(space));
+
+      // Assert
+      expect([leading, spaced, commas]).toEqual([null, null, null]);
+    },
+  );
+
+  it("rejects a hex colour wrapped in a byte-order mark", () => {
+    // Act
+    const color = parseCssColor("﻿#0054d1﻿");
+
+    // Assert
+    expect(color).toBeNull();
+  });
+
   it("rejects a long integer followed by junk without retrying its digits", () => {
     // Arrange: an ambiguous number pattern splits the digits every way first.
     const input = `rgb(${"1".repeat(30_000)}x 0 0)`;
