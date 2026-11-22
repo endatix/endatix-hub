@@ -25,12 +25,12 @@ const WS_CHARS = " \t\n\r\f";
 const WS = `[${WS_CHARS}]`;
 /** One separator style per value: all commas (`rgb()`/`hsl()` only) or all spaces. */
 const COMMA_ARGS = new RegExp(
-  `^(rgb|hsl)a?\\(${WS}*${ARG}${WS}*,${WS}*${ARG}${WS}*,${WS}*${ARG}${WS}*\\)$`,
+  String.raw`^(rgb|hsl)a?\(${WS}*${ARG}${WS}*,${WS}*${ARG}${WS}*,${WS}*${ARG}${WS}*\)$`,
   "i",
 );
 /** CSS has no `oklcha()`. */
 const SPACE_ARGS = new RegExp(
-  `^(rgb|hsl|oklch(?!a))a?\\(${WS}*${ARG}${WS}+${ARG}${WS}+${ARG}${WS}*\\)$`,
+  String.raw`^(rgb|hsl|oklch(?!a))a?\(${WS}*${ARG}${WS}+${ARG}${WS}+${ARG}${WS}*\)$`,
   "i",
 );
 const HEX = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
