@@ -42,7 +42,7 @@ export default async function SubmissionPage({ params, searchParams }: Params) {
  * Submission Details with the image hosts author rich text may load from
  * (env and storage, read on the server).
  */
-function DetailsView(props: { formId: string; submissionId: string }) {
+function DetailsView(props: Readonly<{ formId: string; submissionId: string }>) {
   const allowedHosts = collectRichTextImageHosts(
     getRuntimeStorageProfile().imageRemoteHostnames,
   );

@@ -28,7 +28,7 @@ export function RichTextImagePolicy({
   allowedHosts,
   ownOrigin,
   children,
-}: RichTextImagePolicyProps) {
+}: Readonly<RichTextImagePolicyProps>) {
   const policy = useMemo(
     () => ({ allowedHosts, ownOrigin }),
     [allowedHosts, ownOrigin],
@@ -58,7 +58,7 @@ interface RichTextProps extends Omit<
  * For a grid cell, the table of contents or an export, use
  * `htmlSanitizer.toPlainText` instead: those contexts show no markup.
  */
-export function RichText({ html, className, ...props }: RichTextProps) {
+export function RichText({ html, className, ...props }: Readonly<RichTextProps>) {
   const policy = useContext(ImageSourcePolicyContext);
   const sanitized = useMemo(
     () => sanitizeInlineRichHtml(html, policy),

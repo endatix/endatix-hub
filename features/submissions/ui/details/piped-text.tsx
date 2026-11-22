@@ -43,7 +43,7 @@ interface AuthorTextProps extends Omit<
  * text from the definition). A respondent's answer, or any other piped value,
  * renders as plain text, so it can never add links or images to the page.
  */
-export function AuthorText({ value, survey, ...props }: AuthorTextProps) {
+export function AuthorText({ value, survey, ...props }: Readonly<AuthorTextProps>) {
   if (authorTextsOf(survey).has(value)) {
     return <RichText html={value} {...props} />;
   }
@@ -93,7 +93,7 @@ function cutsThroughTag(tokens: Token[]): boolean {
  * A piped title without chips (panel headers): author pieces rich, piped
  * values through `AuthorText`, plain text when the title cannot be split.
  */
-export function PipedText({ source }: { source: PipedTitleSource }) {
+export function PipedText({ source }: Readonly<{ source: PipedTitleSource }>) {
   if (source.processedTitle === source.title) {
     return <RichText html={source.title} />;
   }
@@ -109,7 +109,7 @@ interface PipedPiecesProps {
   survey: ISurvey | null;
 }
 
-function PipedPieces({ tokens, survey }: PipedPiecesProps) {
+function PipedPieces({ tokens, survey }: Readonly<PipedPiecesProps>) {
   return <span>{tokens.map((token) => pipedPiece(token, survey))}</span>;
 }
 
