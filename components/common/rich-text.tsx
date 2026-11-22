@@ -13,7 +13,8 @@ interface RichTextProps extends Omit<
 /**
  * Renders author-written inline HTML (formatting, links and https images) the
  * one way Hub allows: through the `inlineRich` sanitizer preset. Images are
- * lazy-loaded and capped in height so an author's size cannot break the layout.
+ * lazy-loaded and sized here (aspect kept, at most 40px high and 160px wide);
+ * the preset drops every author size, so text keeps its line.
  *
  * For a grid cell, the table of contents or an export, use
  * `htmlSanitizer.toPlainText` instead: those contexts show no markup.
@@ -27,7 +28,7 @@ export function RichText({ html, className, ...props }: RichTextProps) {
   return (
     <span
       className={cn(
-        "[&_img]:inline-block [&_img]:max-h-24 [&_img]:max-w-full [&_img]:align-middle",
+        "[&_img]:inline-block [&_img]:h-auto [&_img]:max-h-10 [&_img]:w-auto [&_img]:max-w-40 [&_img]:align-middle",
         className,
       )}
       dangerouslySetInnerHTML={{ __html: sanitized }}

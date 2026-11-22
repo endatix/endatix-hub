@@ -174,34 +174,27 @@ const inlineSanitizationOptions: IOptions = {
  * Images: kept only when the trimmed `src` starts with `https://` (any case);
  * relative, scheme-less, `data:` and `http:` sources drop the whole image.
  * `loading="lazy"`, `decoding="async"` and `referrerpolicy="no-referrer"` are
- * forced; no `width`/`height`/`srcset` attributes. `style` is allowed on `img`
- * only, for `width` and `height`, as `auto` or a bounded number with a unit;
- * no `max-*` (Hub's own caps must win), `!`, comments, `url()` or `expression()`.
+ * forced. No `style`, `width`, `height` or `srcset`: Hub sizes the image
+ * (`RichText`), so an author size can never stretch or overflow the layout.
  *
  * Links: every `a` opens in a new tab with `rel="noopener noreferrer"`.
  * Block tags such as `<p>` are unwrapped and their text kept.
  */
-const IMAGE_SIZE_VALUE = /^(?:auto|\d{1,4}(?:\.\d{1,2})?(?:px|%|em|rem))$/;
 const HTTPS_SOURCE = /^https:\/\//i;
 
 function enforceImageLoading(
   tagName: string,
   attribs: Record<string, string>,
 ): { tagName: string; attribs: Record<string, string> } {
-  // sanitize-html matches a style value without its `!important` flag and
-  // then writes the flag back, and a comment can split the flag
-  // (`! /**/ important`), so any `!` or `/*` drops the whole style.
-  const { style, ...kept } = attribs;
-  const safe: Record<string, string> = {
-    ...kept,
-    loading: "lazy",
-    decoding: "async",
-    referrerpolicy: "no-referrer",
+  return {
+    tagName,
+    attribs: {
+      ...attribs,
+      loading: "lazy",
+      decoding: "async",
+      referrerpolicy: "no-referrer",
+    },
   };
-  if (style && !/!|\/\*/.test(style)) {
-    safe.style = style;
-  }
-  return { tagName, attribs: safe };
 }
 
 function enforceNewTabLink(
@@ -222,23 +215,9 @@ const inlineRichSanitizationOptions: IOptions = {
       string,
       AllowedAttribute[]
     >),
-    img: [
-      "src",
-      "alt",
-      "title",
-      "style",
-      "loading",
-      "decoding",
-      "referrerpolicy",
-    ],
+    img: ["src", "alt", "title", "loading", "decoding", "referrerpolicy"],
   },
   allowedSchemesByTag: { img: ["https"] },
-  allowedStyles: {
-    img: {
-      width: [IMAGE_SIZE_VALUE],
-      height: [IMAGE_SIZE_VALUE],
-    },
-  },
   transformTags: {
     a: enforceNewTabLink,
     img: enforceImageLoading,
@@ -336,7 +315,7 @@ function sanitizeHtmlInline(dirtyHtml: string): string {
  *
  * - `strict`: Minimal tags, maximum security (for untrusted input)
  * - `inline`: Phrasing content only, safe inside &lt;label&gt; (for titles, labels)
- * - `inlineRich`: Inline plus https images with size-only styles (for Submission Details titles and choices)
+ * - `inlineRich`: Inline plus https images Hub sizes itself (author text on Submission Details)
  * - `moderate`: Block + inline content (for descriptions, rich text)
  * - `surveyHtml`: Moderate + structural tags, for HTML-bearing survey properties
  * - `pdf`: No tags, plain text only (for PDF export and non-DOM contexts)

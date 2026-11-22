@@ -93,14 +93,13 @@ describe("htmlSanitizer inlineRich preset", () => {
       ).not.toContain("srcset");
     });
 
-    it("keeps only width and height styles on an image", () => {
+    it("drops every author style on an image", () => {
       const result = inlineRich(
-        '<img src="https://example.com/a.png" style="width:100%; max-width:100px; height:auto; position:fixed; color:red">',
+        '<img src="https://example.com/a.png" style="width:100%; max-width:100px; height:auto; position:fixed">',
       );
 
-      expect(result).toContain("width:100%");
-      expect(result).toContain("height:auto");
-      expect(result).not.toMatch(/max-width|position|color/);
+      expect(result).toContain("<img");
+      expect(result).not.toContain("style=");
     });
   });
 
