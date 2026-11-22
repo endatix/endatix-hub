@@ -106,6 +106,8 @@ describe("parseCssColor, CSS syntax details", () => {
     ["oklch(0.5 -0.05 0)", "#636363"],
     ["hsl(216 100 41)", "#0054d1"],
     ["hsla(216, 100%, 41%)", "#0054d1"],
+    ["hsla(216deg, 100%, 41%)", "#0054d1"],
+    ["hsla(216 100 41)", "#0054d1"],
   ])("reads %s as CSS does", (input, hex) => {
     // Act
     const color = parseCssColor(input);
@@ -120,6 +122,7 @@ describe("parseCssColor, CSS syntax details", () => {
     "hsl(216, 100% 41%)",
     "oklch(0.6, 0.1, 250)",
     "oklcha(0.6 0.1 250)",
+    "OKLCHA(0.6 0.1 250)",
     "hsl(216,100,41)",
     "hsl(216, 100%, 41)",
     "hsla(216, 100, 41%)",
