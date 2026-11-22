@@ -1,8 +1,12 @@
 import { auth } from "@/auth";
+import { RichTextImagePolicy } from "@/components/common/rich-text";
 import { Skeleton } from "@/components/ui/skeleton";
 import { authorization } from "@/features/auth/authorization";
+import { getRuntimeStorageProfile } from "@/features/config";
 import { PdfEmbedView } from "@/features/pdf-export/embed-submission/pdf-embed-view";
 import SubmissionDetails from "@/features/submissions/ui/details/submission-details";
+import { collectRichTextImageHosts } from "@/lib/hosting/rich-text-image-hosts";
+import { getMetadataBase } from "@/lib/seo/metadata-base";
 import { Suspense } from "react";
 
 type Params = {
@@ -31,10 +35,26 @@ export default async function SubmissionPage({ params, searchParams }: Params) {
     );
   }
 
+  return <DetailsView formId={formId} submissionId={submissionId} />;
+}
+
+/**
+ * Submission Details with the image hosts author rich text may load from
+ * (env and storage, read on the server).
+ */
+function DetailsView(props: Readonly<{ formId: string; submissionId: string }>) {
+  const allowedHosts = collectRichTextImageHosts(
+    getRuntimeStorageProfile().imageRemoteHostnames,
+  );
   return (
-    <Suspense fallback={<SubmissionDataSkeleton />}>
-      <SubmissionDetails formId={formId} submissionId={submissionId} />
-    </Suspense>
+    <RichTextImagePolicy
+      allowedHosts={allowedHosts}
+      ownOrigin={getMetadataBase().origin}
+    >
+      <Suspense fallback={<SubmissionDataSkeleton />}>
+        <SubmissionDetails {...props} />
+      </Suspense>
+    </RichTextImagePolicy>
   );
 }
 
@@ -142,6 +162,4 @@ function SubmissionDataSkeleton() {
       </section>
     </div>
   );
-
-
 }

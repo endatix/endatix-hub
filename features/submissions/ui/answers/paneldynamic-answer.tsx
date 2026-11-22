@@ -7,6 +7,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Captions, CaptionsOff } from "lucide-react";
 import { PanelModel, QuestionPanelDynamicModel } from "survey-core";
+import { PipedText } from "../details/piped-text";
 import { QuestionLabel } from "../details/question-label";
 import AnswerViewer from "./answer-viewer";
 
@@ -71,9 +72,7 @@ const PanelDynamicAnswer = ({
             <span className="flex min-w-0 flex-1 items-center gap-2 text-left">
               <Captions className="h-4 w-4 shrink-0 text-muted-foreground" />
               <span className="min-w-0 text-sm font-semibold tracking-tight text-foreground">
-                {panel.processedTitle
-                  ? panel.processedTitle
-                  : `Dynamic panel ${index + 1}`}
+                <PanelTitle panel={panel} index={index} />
               </span>
             </span>
           </AccordionTrigger>
@@ -87,6 +86,13 @@ const PanelDynamicAnswer = ({
     </Accordion>
   );
 };
+
+const PanelTitle = ({ panel, index }: { panel: PanelModel; index: number }) =>
+  panel.processedTitle ? (
+    <PipedText source={panel} />
+  ) : (
+    `Dynamic panel ${index + 1}`
+  );
 
 const Panel = ({ panel }: { panel: PanelModel }) => {
   return (
