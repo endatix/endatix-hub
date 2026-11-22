@@ -136,6 +136,57 @@ describe("parseCssColor, CSS syntax details", () => {
     expect(color).toBeNull();
   });
 
+  const around = (space: string) =>
+    `${space}hsl(216${space}100%${space}41%)${space}`;
+  const between = (space: string) => `hsl(216,${space}100%,${space}41%)`;
+
+  it.each([" ", "\t", "\n", "\r", "\f"])(
+    "reads ASCII whitespace %j around and between arguments",
+    (space) => {
+      // Act
+      const spaced = parseCssColor(around(space));
+      const commas = parseCssColor(between(space));
+
+      // Assert
+      expect(spaced && toHex(spaced)).toBe("#0054d1");
+      expect(commas && toHex(commas)).toBe("#0054d1");
+    },
+  );
+
+  /** Every space JavaScript's `trim()` and `\s` take beyond the five CSS ones. */
+  const NON_ASCII_SPACES = [
+    0xfeff,
+    0x00a0,
+    0x000b,
+    0x1680,
+    ...Array.from({ length: 11 }, (_, i) => 0x2000 + i),
+    0x2028,
+    0x2029,
+    0x202f,
+    0x205f,
+    0x3000,
+  ].map((codePoint) => [
+    `U+${codePoint.toString(16).toUpperCase().padStart(4, "0")}`,
+    String.fromCodePoint(codePoint),
+  ]);
+
+  it.each(NON_ASCII_SPACES)(
+    "rejects %s before, between or after arguments",
+    (_, space) => {
+      // Act
+      const results = [
+        parseCssColor(`${space}hsl(216 100% 41%)`),
+        parseCssColor(`hsl(216 100% 41%)${space}`),
+        parseCssColor(`hsl(216${space}100%${space}41%)`),
+        parseCssColor(between(space)),
+        parseCssColor(`${space}#0054d1`),
+      ];
+
+      // Assert
+      expect(results).toEqual([null, null, null, null, null]);
+    },
+  );
+
   it("rejects a long integer followed by junk without retrying its digits", () => {
     // Arrange: an ambiguous number pattern splits the digits every way first.
     const input = `rgb(${"1".repeat(30_000)}x 0 0)`;

@@ -20,14 +20,17 @@ export interface Oklch {
 
 const NUMBER = String.raw`[+-]?(?:\d+(?:\.\d*)?|\.\d+)`;
 const ARG = `(${NUMBER})(%|deg)?`;
+/** CSS whitespace, as the API reads it: not `\s` or `trim()`, which add U+FEFF, NBSP and the other Unicode spaces. */
+const WS_CHARS = " \t\n\r\f";
+const WS = `[${WS_CHARS}]`;
 /** One separator style per value: all commas (`rgb()`/`hsl()` only) or all spaces. */
 const COMMA_ARGS = new RegExp(
-  String.raw`^(rgb|hsl)a?\(\s*${ARG}\s*,\s*${ARG}\s*,\s*${ARG}\s*\)$`,
+  String.raw`^(rgb|hsl)a?\(${WS}*${ARG}${WS}*,${WS}*${ARG}${WS}*,${WS}*${ARG}${WS}*\)$`,
   "i",
 );
 /** CSS has no `oklcha()`. */
 const SPACE_ARGS = new RegExp(
-  String.raw`^(rgb|hsl|oklch(?!a))a?\(\s*${ARG}\s+${ARG}\s+${ARG}\s*\)$`,
+  String.raw`^(rgb|hsl|oklch(?!a))a?\(${WS}*${ARG}${WS}+${ARG}${WS}+${ARG}${WS}*\)$`,
   "i",
 );
 const HEX = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
@@ -48,7 +51,7 @@ const OKLCH_CHROMA_PERCENT = 0.4 / 100;
  * for anything else, including named colours.
  */
 export function parseCssColor(input: string): Rgb | null {
-  const value = input.trim();
+  const value = trimCssWhitespace(input);
   const hex = HEX.exec(value);
   if (hex) return parseHex(hex[1]);
 
@@ -64,6 +67,14 @@ export function parseCssColor(input: string): Rgb | null {
   if (kind === "rgb") return rgbFromArgs(args, commas !== null);
   if (kind === "hsl") return hslFromArgs(args, commas !== null);
   return oklchFromArgs(args);
+}
+
+function trimCssWhitespace(input: string): string {
+  let start = 0;
+  let end = input.length;
+  while (start < end && WS_CHARS.includes(input[start])) start++;
+  while (end > start && WS_CHARS.includes(input[end - 1])) end--;
+  return input.slice(start, end);
 }
 
 /** The legacy comma form needs one unit throughout; the space form mixes them. */
