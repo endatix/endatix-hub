@@ -2,6 +2,7 @@ import type {
   LocalPattern,
   RemotePattern,
 } from "next/dist/shared/lib/image-config";
+import { parseRemoteImageHostnames } from "./rich-text-image-hosts";
 
 /**
  * Includes remote image hostnames in the remote patterns.
@@ -17,11 +18,9 @@ function includesRemoteImageHostnames(
 
   const REMOTE_IMAGE_HOSTNAMES =
     process.env.REMOTE_IMAGE_HOSTNAMES?.trim() ?? "";
-  const hostnames = REMOTE_IMAGE_HOSTNAMES.split(",").map((h: string) =>
-    h.trim(),
-  );
+  const hostnames = parseRemoteImageHostnames(REMOTE_IMAGE_HOSTNAMES);
 
-  if (!REMOTE_IMAGE_HOSTNAMES || hostnames.length < 1) {
+  if (!REMOTE_IMAGE_HOSTNAMES) {
     remotePatterns.push({
       protocol: "https",
       hostname: "**",
@@ -30,10 +29,6 @@ function includesRemoteImageHostnames(
   }
 
   hostnames.forEach((hostname: string) => {
-    if (!hostname?.length) {
-      return;
-    }
-
     remotePatterns.push({
       protocol: "https",
       hostname: hostname,

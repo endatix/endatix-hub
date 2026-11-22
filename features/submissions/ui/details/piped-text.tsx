@@ -114,6 +114,9 @@ function PipedPieces({ tokens, survey }: PipedPiecesProps) {
 }
 
 function pipedPiece(token: Token, survey: ISurvey | null) {
+  if (token.isVariable && !token.replacedValue) {
+    return null;
+  }
   return token.isVariable ? (
     <AuthorText
       key={token.id}

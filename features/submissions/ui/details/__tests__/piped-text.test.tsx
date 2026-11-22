@@ -1,7 +1,16 @@
 import { render } from "@testing-library/react";
 import { Model, PanelModel } from "survey-core";
+import { RichTextImagePolicy } from "@/components/common/rich-text";
 import { describe, expect, it } from "vitest";
 import { PipedText } from "../piped-text";
+
+const ALLOWED_HOSTS = ["cdn.example.com"];
+const renderWithPolicy = (ui: React.ReactElement) =>
+  render(
+    <RichTextImagePolicy allowedHosts={ALLOWED_HOSTS}>
+      {ui}
+    </RichTextImagePolicy>,
+  );
 
 const AUTHOR_HTML = '<img src="https://cdn.example.com/acme.png"><p>ACME</p>';
 const RESPONDENT_HTML =
@@ -32,7 +41,7 @@ function panelWithBrand(brand: string): PanelModel {
 
 describe("PipedText", () => {
   it("renders an author choice text piped into a panel header as rich text", () => {
-    const { container } = render(
+    const { container } = renderWithPolicy(
       <PipedText source={panelWithBrand(AUTHOR_HTML)} />,
     );
 
@@ -41,7 +50,7 @@ describe("PipedText", () => {
   });
 
   it("renders a respondent answer piped into a panel header as plain text", () => {
-    const { container } = render(
+    const { container } = renderWithPolicy(
       <PipedText source={panelWithBrand(RESPONDENT_HTML)} />,
     );
 

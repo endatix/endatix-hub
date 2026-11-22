@@ -1,11 +1,13 @@
 import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { RichText } from "../rich-text";
+import { RichText, RichTextImagePolicy } from "../rich-text";
 
 describe("RichText", () => {
   it("renders sanitized inline markup as HTML", () => {
     const { container } = render(
-      <RichText html='<strong>ACME</strong> <img src="https://example.com/a.png">' />,
+      <RichTextImagePolicy allowedHosts={["example.com"]}>
+        <RichText html='<strong>ACME</strong> <img src="https://example.com/a.png">' />
+      </RichTextImagePolicy>,
     );
 
     expect(container.querySelector("strong")?.textContent).toBe("ACME");
@@ -18,6 +20,15 @@ describe("RichText", () => {
     );
 
     expect(container.innerHTML).not.toMatch(/onerror|<script/);
+  });
+
+  it("shows a remote image as a link to its host without a policy", () => {
+    const { container } = render(
+      <RichText html='<img src="https://example.com/a.png">' />,
+    );
+
+    expect(container.querySelector("img")).toBeNull();
+    expect(container.querySelector("a")?.textContent).toBe("example.com");
   });
 
   it("renders a span by default", () => {

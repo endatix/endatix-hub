@@ -67,6 +67,11 @@ function TextLabel({ question }: { question: Question }) {
   );
 }
 
+/** An empty piped value shows no chip. */
+function hasText(token: Token): boolean {
+  return !token.isVariable || (token.replacedValue ?? "").length > 0;
+}
+
 function PersonalizedTextLabel({ question }: { question: Question }) {
   // Not memoized: processedTitle follows piped values on the same question.
   const personalizedTokens = resolvePipedTokens(question);
@@ -82,33 +87,35 @@ function PersonalizedTextLabel({ question }: { question: Question }) {
   return (
     <TooltipProvider>
       <Label htmlFor={question.name} className={labelClass}>
-        {personalizedTokens.map((token: Token) =>
-          token.isVariable ? (
-            <Tooltip key={token.id}>
-              <TooltipTrigger asChild>
-                <AuthorText
-                  value={token.replacedValue ?? ""}
-                  survey={question.survey}
-                  className="rounded-md bg-primary/10 box-decoration-clone px-1.5 py-0.5 font-bold"
-                  tabIndex={0}
-                  role="button"
-                  aria-describedby={`${question.name}-tooltip`}
-                />
-              </TooltipTrigger>
-              <TooltipContent
-                side="top"
-                sideOffset={10}
-                id={`${question.name}-tooltip`}
-              >
-                <p>
-                  @variable: <b>&#123;{token.value}&#125;</b>
-                </p>
-              </TooltipContent>
-            </Tooltip>
-          ) : (
-            <RichText key={token.id} html={token.value} />
-          ),
-        )}
+        {personalizedTokens
+          .filter((token) => hasText(token))
+          .map((token: Token) =>
+            token.isVariable ? (
+              <Tooltip key={token.id}>
+                <TooltipTrigger asChild>
+                  <AuthorText
+                    value={token.replacedValue ?? ""}
+                    survey={question.survey}
+                    className="rounded-md bg-primary/10 box-decoration-clone px-1.5 py-0.5 font-bold"
+                    tabIndex={0}
+                    role="button"
+                    aria-describedby={`${question.name}-tooltip`}
+                  />
+                </TooltipTrigger>
+                <TooltipContent
+                  side="top"
+                  sideOffset={10}
+                  id={`${question.name}-tooltip`}
+                >
+                  <p>
+                    @variable: <b>&#123;{token.value}&#125;</b>
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            ) : (
+              <RichText key={token.id} html={token.value} />
+            ),
+          )}
       </Label>
     </TooltipProvider>
   );
