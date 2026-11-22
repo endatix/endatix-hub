@@ -171,6 +171,7 @@ describe("a mailto support link", () => {
     "mailto:a%01b@example.com",
     "mailto:a%C3%28b@example.com",
     "mailto:e%CC%81@example.com",
+    "mailto:a%EF%BF%BEb@x.co",
   ])("rejects %j at links.support, as the API does", (link) => {
     // Act
     const result = support(link);

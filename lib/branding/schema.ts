@@ -17,10 +17,11 @@ const PACK_FILE_PATTERN = String.raw`^(?!.*\.\.)[A-Za-z0-9_-][A-Za-z0-9._-]*(?:/
 const URL_PATTERN = "^(https?:|mailto:)";
 /**
  * One dot-separated part of an address: no whitespace, no ASCII control
- * character, no dot, and none of the characters .NET's `MailAddress` reads as a
- * comment, display name, quote or list (one regex test, no backtracking).
+ * character, no U+FFFE (which .NET cannot normalise), no dot, and none of the
+ * characters .NET's `MailAddress` reads as a comment, display name, quote or
+ * list (one regex test, no backtracking).
  */
-const ADDRESS_ATOM = /^[^\s\x00-\x1F\x7F.@()<>[\]\\",;:]+$/;
+const ADDRESS_ATOM = /^[^\s\x00-\x1F\x7F\uFFFE.@()<>[\]\\",;:]+$/;
 
 /**
  * `local@domain`, each side dot-separated atoms with no empty one: the bare
