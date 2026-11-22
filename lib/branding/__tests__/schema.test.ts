@@ -103,6 +103,14 @@ describe("brand pack schema", () => {
         "primary-on-dark": { $type: "color", $value: "rgb(1 2)" },
       },
     ],
+    [
+      "tokens.color.primary.$value",
+      { primary: { $type: "color", $value: "oklcha(0.6 0.1 250)" } },
+    ],
+    [
+      "tokens.color.primary.$value",
+      { primary: { $type: "color", $value: "hsl(216,100,41)" } },
+    ],
   ])("rejects a colour it cannot read at %s", (fieldPath, color) => {
     // Arrange
     const pack = { version: 1, name: "Example Forms", tokens: { color } };

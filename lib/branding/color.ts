@@ -25,8 +25,9 @@ const COMMA_ARGS = new RegExp(
   String.raw`^(rgb|hsl)a?\(\s*${ARG}\s*,\s*${ARG}\s*,\s*${ARG}\s*\)$`,
   "i",
 );
+/** CSS has no `oklcha()`. */
 const SPACE_ARGS = new RegExp(
-  String.raw`^(rgb|hsl|oklch)a?\(\s*${ARG}\s+${ARG}\s+${ARG}\s*\)$`,
+  String.raw`^(rgb|hsl|oklch(?!a))a?\(\s*${ARG}\s+${ARG}\s+${ARG}\s*\)$`,
   "i",
 );
 const HEX = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
@@ -61,7 +62,7 @@ export function parseCssColor(input: string): Rgb | null {
   if (args.some((arg) => !Number.isFinite(arg.value))) return null;
   const kind = match[1].toLowerCase();
   if (kind === "rgb") return rgbFromArgs(args, commas !== null);
-  if (kind === "hsl") return hslFromArgs(args);
+  if (kind === "hsl") return hslFromArgs(args, commas !== null);
   return oklchFromArgs(args);
 }
 
@@ -75,8 +76,10 @@ function rgbFromArgs(args: readonly Arg[], commas: boolean): Rgb | null {
   return { r, g, b };
 }
 
-function hslFromArgs([h, s, l]: readonly Arg[]): Rgb | null {
+/** The comma syntax needs a percentage for saturation and lightness; the space syntax also takes a number. */
+function hslFromArgs([h, s, l]: readonly Arg[], commas: boolean): Rgb | null {
   if (h.unit === "%" || s.unit === "deg" || l.unit === "deg") return null;
+  if (commas && (s.unit !== "%" || l.unit !== "%")) return null;
   return hslToRgb(h.value, s.value / 100, l.value / 100);
 }
 
