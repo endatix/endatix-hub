@@ -48,9 +48,13 @@ const ThemedFile = z.strictObject({
   dark: PackFile.optional(),
 });
 
-const COLOR_MESSAGE = "Use a hex, rgb(), hsl() or oklch() colour";
-/** The API's `BrandOverrideReader.COLOR_MAX_LENGTH`, counted before trimming. */
+/**
+ * The limit the API's `BrandOverrideReader.COLOR_MAX_LENGTH` applies to tenant
+ * brand overrides, counted before trimming. zod counts code points and the API
+ * UTF-16 units; the colour grammar is ASCII, so both agree at the cap.
+ */
 const COLOR_MAX_LENGTH = 64;
+const COLOR_MESSAGE = `Use a hex, rgb(), hsl() or oklch() colour of at most ${COLOR_MAX_LENGTH} characters`;
 
 const ColorToken = z.strictObject({
   $type: z.literal("color"),

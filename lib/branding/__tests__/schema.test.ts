@@ -127,7 +127,7 @@ describe("brand pack schema", () => {
 
   it.each([
     ["accepts a 64-character colour padded with spaces", 64, " ", true],
-    ["refuses a 65-character colour padded with spaces", 65, " ", false],
+    ["refuses a 65-character hex colour padded with spaces", 65, " ", false],
     ["reports a 65-character unreadable colour once", 65, "x", false],
   ])("%s, as the API does", (_label, length, fill, accepted) => {
     // Arrange
@@ -144,7 +144,11 @@ describe("brand pack schema", () => {
     // Assert
     expect(result.success).toBe(accepted);
     expect(result.error?.issues.map((issue) => issue.message) ?? []).toEqual(
-      accepted ? [] : ["Use a hex, rgb(), hsl() or oklch() colour"],
+      accepted
+        ? []
+        : [
+            "Use a hex, rgb(), hsl() or oklch() colour of at most 64 characters",
+          ],
     );
   });
 
