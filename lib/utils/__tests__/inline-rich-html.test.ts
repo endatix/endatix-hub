@@ -78,7 +78,7 @@ describe("sanitizeInlineRichHtml", () => {
       );
 
       expect(result).toBe(
-        '<a href="https://images.other.example/a.png?x=1&amp;y=2" target="_blank" rel="noopener noreferrer">images.other.example</a>',
+        '<a href="https://images.other.example/a.png?x=1&amp;y=2" title="Image on images.other.example" target="_blank" rel="noopener noreferrer">images.other.example</a>',
       );
     });
 

@@ -169,7 +169,7 @@ const TOO_LARGE_MARK = new RegExp(`<img ${TOO_LARGE}="true" />`, "g");
 
 function replaceImageMarkers(html: string): string {
   return html
-    .replace(LINK_MARK, '<a href="$1">$2</a>')
+    .replace(LINK_MARK, '<a href="$1" title="Image on $2">$2</a>')
     .replace(
       TOO_LARGE_MARK,
       '<span title="Image too large">[image too large]</span>',

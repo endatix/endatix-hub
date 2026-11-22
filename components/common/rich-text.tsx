@@ -68,7 +68,7 @@ export function RichText({ html, className, ...props }: RichTextProps) {
   return (
     <span
       className={cn(
-        "[&_img]:inline-block [&_img]:h-auto [&_img]:max-h-10 [&_img]:w-auto [&_img]:max-w-40 [&_img]:align-middle",
+        "[&_a]:mx-1 [&_a]:underline [&_a]:underline-offset-2 [&_img]:inline-block [&_img]:h-auto [&_img]:max-h-10 [&_img]:w-auto [&_img]:max-w-40 [&_img]:align-middle",
         className,
       )}
       dangerouslySetInnerHTML={{ __html: sanitized }}
