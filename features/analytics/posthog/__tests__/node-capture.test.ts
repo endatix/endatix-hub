@@ -40,11 +40,11 @@ async function recordCapture(responseBody: string) {
   if (!address || typeof address === "string")
     throw new Error("Expected a TCP listener");
   const origin = `http://127.0.0.1:${address.port}`;
-  useLocalCaptureHost(origin);
+  configureLocalCapture(origin);
   return requests;
 }
 
-function useLocalCaptureHost(origin: string) {
+function configureLocalCapture(origin: string) {
   const fetchLocal = fetch;
   vi.stubGlobal("fetch", (url: string, options: RequestInit) => {
     if (new URL(url).origin !== origin)
@@ -97,7 +97,7 @@ it("delivers the server event and exception to the configured capture proxy", as
 
   // Assert
   expect(onError).not.toHaveBeenCalled();
-  expect(requests.flatMap(readBatch)).toMatchObject([
+  expect(requests.flatMap((request) => readBatch(request))).toMatchObject([
     {
       event: "sample_event",
       distinct_id: "server",
