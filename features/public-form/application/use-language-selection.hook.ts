@@ -12,6 +12,22 @@ import {
 
 const STORAGE_KEY = "form-lang-preference";
 
+function readPreference() {
+  try {
+    return localStorage.getItem(STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function savePreference(locale: string) {
+  try {
+    localStorage.setItem(STORAGE_KEY, locale);
+  } catch {
+    // Storage is optional in embeds; the selection still applies to this visit.
+  }
+}
+
 interface UseLanguageSelectionProps {
   availableLocales: string[];
   surveyModel: SurveyModel | null;
@@ -49,8 +65,8 @@ export function useLanguageSelection({
   );
   const initializedForModelRef = useRef<SurveyModel | null>(null);
 
-  const applyCatalogLocale = useCallback(
-    (newLocale: string, persist: boolean) => {
+  const changeLocale = useCallback(
+    (newLocale: string) => {
       const catalogLocale = fromSurveyModelLocale(newLocale);
       if (!surveyModel || !catalogLocales.includes(catalogLocale)) {
         return;
@@ -62,19 +78,11 @@ export function useLanguageSelection({
         // The hook never moves a single-language survey off its JSON locale,
         // so reading `surveyModel.locale` again is stable.
         surveyDefaultLocale(surveyModel.locale, catalogLocales),
+        availableLocales,
       );
-      if (persist) {
-        localStorage.setItem(STORAGE_KEY, catalogLocale);
-      }
+      savePreference(catalogLocale);
     },
-    [surveyModel, catalogLocales],
-  );
-
-  const changeLocale = useCallback(
-    (newLocale: string) => {
-      applyCatalogLocale(newLocale, true);
-    },
-    [applyCatalogLocale],
+    [surveyModel, catalogLocales, availableLocales],
   );
 
   useEffect(() => {
@@ -87,14 +95,13 @@ export function useLanguageSelection({
     }
     initializedForModelRef.current = surveyModel;
 
-    const localeToSelect = resolveInitialCatalogLocale(catalogLocales, {
+    const selected = initializeRespondentLanguage(
+      surveyModel,
+      availableLocales,
       preselectedLocale,
-      savedLocale: localStorage.getItem(STORAGE_KEY),
-      surveyLocale: surveyModel.locale,
-    });
-
-    applyCatalogLocale(localeToSelect, false);
-  }, [surveyModel, catalogLocales, preselectedLocale, applyCatalogLocale]);
+    );
+    setCurrentLocale(selected);
+  }, [surveyModel, catalogLocales, availableLocales, preselectedLocale]);
 
   const languageOptions = useMemo(
     () => catalogLocales.map((locale) => toLanguageOption(locale)),
@@ -120,6 +127,27 @@ function toLanguageOption(catalogLocale: string) {
     value: catalogLocale,
     label: catalogLocaleDisplayName(catalogLocale),
   };
+}
+
+export function initializeRespondentLanguage(
+  model: SurveyModel,
+  availableLocales = model.getUsedLocales(),
+  preselectedLocale?: string,
+): string {
+  const catalogLocales = toCatalogLocales(availableLocales);
+  const locale = resolveInitialCatalogLocale(catalogLocales, {
+    preselectedLocale,
+    savedLocale: readPreference(),
+    surveyLocale: model.locale,
+  });
+  if (catalogLocales.includes(locale)) {
+    model.locale = toSurveyModelLocale(
+      locale,
+      surveyDefaultLocale(model.locale, catalogLocales),
+      availableLocales,
+    );
+  }
+  return locale;
 }
 
 /** Returns the catalog form of `candidate` when it is available; otherwise undefined. */

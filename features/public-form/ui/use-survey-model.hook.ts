@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
-import { Model, SurveyModel } from "survey-core";
+import { TelemetryLogger } from "@/features/telemetry";
+import type { Model } from "survey-core";
+import { createLocalizedModel } from "@/lib/localization/create-localized-model";
 import { Submission } from "@/lib/endatix-api";
 import { initializeCustomQuestions } from "@/lib/questions";
 import { registerAudioQuestion } from "@/lib/questions/audio-recorder";
@@ -20,6 +22,7 @@ interface UseSurveyModelProps {
   definition: string;
   submission?: Submission;
   customQuestions?: string[];
+  initializeLanguage?: (model: Model) => void;
   onModelCreated?: (model: Model) => void;
   formRuntime?: FormRuntimeContextValue;
 }
@@ -28,6 +31,7 @@ export function useSurveyModel({
   formId,
   definition,
   customQuestions,
+  initializeLanguage,
   submission,
   onModelCreated,
   formRuntime,
@@ -91,32 +95,29 @@ export function useSurveyModel({
     initPublicSurveyRuntime();
     initAnyAnsweredGlobals();
     initQuestionLoopsGlobals();
-    const model = new SurveyModel(definition);
-
-    const initialSubmission = submissionRef.current;
-    if (initialSubmission) {
-      setSubmissionData(model, initialSubmission.jsonData, (error) => {
-        setError(error);
+    let active = true;
+    let unbindQuestionLoops: (() => void) | undefined;
+    void createLocalizedModel(definition)
+      .then((model) => {
+        if (!active) return;
+        const initialSubmission = submissionRef.current;
+        restoreSubmission(model, initialSubmission, setError);
+        unbindQuestionLoops = bindQuestionLoops(model);
+        initializeLanguage?.(model);
+        onModelCreated?.(model);
+        processSearchParams(model);
+        applyPersonalizationToModel(model, initialSubmission?.personalization);
+        setSurveyModel(model);
+        isInitializedRef.current = true;
+        cleanupUrl();
+        formRuntime?.updateState({ surveyModel: model });
+      })
+      .catch((cause: unknown) => {
+        if (active) setError(reportInitializationFailure(cause));
       });
-      model.currentPageNo = initialSubmission.currentPage ?? 0;
-      applyVariablesToModel(model, initialSubmission.metadata);
-    }
-
-    const unbindQuestionLoops = bindQuestionLoops(model);
-    onModelCreated?.(model);
-    processSearchParams(model);
-    applyPersonalizationToModel(model, initialSubmission?.personalization);
-
-    setSurveyModel(model);
-    isInitializedRef.current = true;
-
-    cleanupUrl();
-
-    if (formRuntime) {
-      formRuntime.updateState({ surveyModel: model });
-    }
 
     return () => {
+      active = false;
       unbindQuestionLoops?.();
     };
   }, [
@@ -127,6 +128,7 @@ export function useSurveyModel({
     cleanupUrl,
     submissionRef,
     onModelCreated,
+    initializeLanguage,
     initAnyAnsweredGlobals,
     initQuestionLoopsGlobals,
     bindQuestionLoops,
@@ -140,6 +142,28 @@ export function useSurveyModel({
 }
 
 let isPublicSurveyRuntimeInitialized = false;
+
+function reportInitializationFailure(cause: unknown) {
+  const message = "Failed to initialize survey";
+  // Parser messages and custom question exceptions can contain form data.
+  let failureKind = "unknown";
+  if (cause instanceof SyntaxError) failureKind = "syntax";
+  else if (cause instanceof TypeError) failureKind = "type";
+  else if (cause instanceof Error) failureKind = "runtime";
+  TelemetryLogger.error(message, undefined, { failureKind });
+  return message;
+}
+
+function restoreSubmission(
+  model: Model,
+  submission: Submission | undefined,
+  onError: (message: string) => void,
+) {
+  if (!submission) return;
+  setSubmissionData(model, submission.jsonData, onError);
+  model.currentPageNo = submission.currentPage ?? 0;
+  applyVariablesToModel(model, submission.metadata);
+}
 
 function initPublicSurveyRuntime(): void {
   if (isPublicSurveyRuntimeInitialized) {

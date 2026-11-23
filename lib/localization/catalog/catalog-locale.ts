@@ -35,11 +35,14 @@ export function isDefaultCatalogLocale(
 export function toSurveyModelLocale(
   catalogLocale: string,
   surveyDefaultLocale = "",
+  usedLocales: readonly string[] = [],
 ): string {
   const locale = isDefaultCatalogLocale(catalogLocale)
     ? surveyDefaultLocale
     : catalogLocale;
-  return isDefaultCatalogLocale(locale) ? "" : locale.trim().toLowerCase();
+  if (isDefaultCatalogLocale(locale)) return "";
+  const tag = locale.trim().toLowerCase();
+  return usedLocales.find((key) => key.toLowerCase() === tag) ?? tag;
 }
 
 /**
@@ -64,10 +67,12 @@ export function surveyModelLocale(
   catalogLocale: string,
   jsonLocale: string,
 ): string {
-  const catalogLocales = toCatalogLocales(model.getUsedLocales() ?? []);
+  const usedLocales = model.getUsedLocales() ?? [];
+  const catalogLocales = toCatalogLocales(usedLocales);
   return toSurveyModelLocale(
     catalogLocale,
     surveyDefaultLocale(jsonLocale, catalogLocales),
+    usedLocales,
   );
 }
 

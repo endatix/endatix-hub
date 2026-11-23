@@ -10,8 +10,8 @@ import { useQuestionLoops } from "@/lib/survey-features/question-loops";
 import { useAnyAnswered } from "@/lib/survey-features/any-answered";
 import { useEndatixSurveyTheme } from "@/lib/themes/use-endatix-themes";
 import { useEffect, useRef, useState } from "react";
-import { Model } from "survey-core";
-import "survey-core/survey.i18n";
+import type { Model } from "survey-core";
+import { createLocalizedModel } from "@/lib/localization/create-localized-model";
 import {
   getSubmissionLocale,
   isLocaleValid,
@@ -39,6 +39,7 @@ export function useSurveyModel(
   surveyThemeRef.current = surveyTheme;
 
   useEffect(() => {
+    let active = true;
     const initializeModel = async () => {
       if (modelRef.current) {
         setIsLoading(false);
@@ -49,21 +50,8 @@ export function useSurveyModel(
         return;
       }
 
-      let questionsList: string[] = [];
-      if (customQuestions) {
-        questionsList = customQuestions;
-      } else {
-        const result = await getCustomQuestionsAction();
-
-        if (result === undefined) {
-          toast.error("Could not proceed with fetching custom questions");
-          return;
-        }
-
-        if (Result.isSuccess(result)) {
-          questionsList = result.value.map((q) => q.jsonData);
-        }
-      }
+      const questionsList = customQuestions ?? (await loadCustomQuestions());
+      if (!active || !questionsList) return;
 
       try {
         if (questionsList.length > 0) {
@@ -74,7 +62,8 @@ export function useSurveyModel(
         initQuestionLoopsGlobals();
         const definitionJson = JSON.parse(submission.formDefinition.jsonData);
         const submissionData = JSON.parse(submission.jsonData);
-        const model = new Model(definitionJson);
+        const model = await createLocalizedModel(definitionJson);
+        if (!active) return;
 
         onModelCreated?.(model);
 
@@ -87,28 +76,8 @@ export function useSurveyModel(
         // from data it can see — the order public-form already uses (h938).
         const unbindQuestionLoops = bindQuestionLoops(model);
 
-        const submissionLocale = getSubmissionLocale(submission);
-        if (submissionLocale && isLocaleValid(submissionLocale, model)) {
-          model.locale = surveyModelLocale(
-            model,
-            submissionLocale,
-            surveyJsonLocale(definitionJson),
-          );
-        }
-
-        model.showCompletedPage = false;
-        model.validationEnabled = false;
-        model.showPageTitles = true;
-        model.showPageNumbers = false;
-        model.showCompleteButton = false;
-        model.readOnly = readOnly;
-        model.showTOC = true;
-        model.showQuestionNumbers = true;
-        model.showProgressBar = "off" as const;
-        model.showTitle = false;
-        model.getAllPanels().forEach((panel) => {
-          panel.expand();
-        });
+        applySubmissionLocale(model, submission, definitionJson);
+        configureSubmissionView(model, readOnly);
 
         model.applyTheme(surveyThemeRef.current);
 
@@ -122,16 +91,17 @@ export function useSurveyModel(
       } catch (error) {
         console.error("Error initializing survey model:", error);
       } finally {
-        setIsLoading(false);
+        if (active) setIsLoading(false);
       }
     };
 
     void initializeModel().catch((error: unknown) => {
       TelemetryLogger.error("Error initializing survey model", error);
-      setIsLoading(false);
+      if (active) setIsLoading(false);
     });
 
     return () => {
+      active = false;
       cleanUpFuncRef.current?.();
       cleanUpFuncRef.current = null;
       modelRef.current = null;
@@ -152,4 +122,42 @@ export function useSurveyModel(
   }, [surveyTheme]);
 
   return { model: modelRef.current, isLoading };
+}
+
+function configureSubmissionView(model: Model, readOnly: boolean) {
+  model.showCompletedPage = false;
+  model.validationEnabled = false;
+  model.showPageTitles = true;
+  model.showPageNumbers = false;
+  model.showCompleteButton = false;
+  model.readOnly = readOnly;
+  model.showTOC = true;
+  model.showQuestionNumbers = true;
+  model.showProgressBar = "off";
+  model.showTitle = false;
+  model.getAllPanels().forEach((panel) => panel.expand());
+}
+
+async function loadCustomQuestions() {
+  const result = await getCustomQuestionsAction();
+  if (result === undefined) {
+    toast.error("Could not proceed with fetching custom questions");
+    return undefined;
+  }
+  return Result.isSuccess(result) ? result.value.map((q) => q.jsonData) : [];
+}
+
+function applySubmissionLocale(
+  model: Model,
+  submission: Submission,
+  definition: unknown,
+) {
+  const locale = getSubmissionLocale(submission);
+  if (locale && isLocaleValid(locale, model)) {
+    model.locale = surveyModelLocale(
+      model,
+      locale,
+      surveyJsonLocale(definition),
+    );
+  }
 }
