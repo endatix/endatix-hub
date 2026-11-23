@@ -11,8 +11,8 @@ import { initializeCustomQuestions } from "@/lib/questions";
 import { registerAudioQuestionModel } from "@/lib/questions/audio-recorder/audio-question-pdf";
 // Model-only: barrel would pull survey-react-ui + stylesheet into this server path.
 import { registerDragCategorizeModel } from "@/lib/questions/drag-categorize/drag-categorize.registry";
-import { Model } from "survey-core";
-import "survey-core/survey.i18n";
+import type { Model } from "survey-core";
+import { createLocalizedModel } from "@/lib/localization/create-localized-model";
 import {
   resolvePdfLocale,
   type PdfLocaleDecision,
@@ -48,7 +48,7 @@ export async function preparePdfModel({
   registerDataListGlobals();
 
   const surveyJson = JSON.parse(submission.formDefinition?.jsonData ?? "{}");
-  const surveyModel = new Model(surveyJson);
+  const surveyModel = await createLocalizedModel(surveyJson);
 
   const locale = resolvePdfLocale(
     surveyModel.getUsedLocales() ?? [],

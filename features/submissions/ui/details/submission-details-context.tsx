@@ -24,7 +24,6 @@ import {
   useReducer,
 } from "react";
 import { Model, Question } from "survey-core";
-import "survey-core/survey.i18n";
 import z from "zod";
 import {
   buildSubmissionNavPages,

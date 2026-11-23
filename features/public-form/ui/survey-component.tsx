@@ -39,7 +39,6 @@ import {
   ValueChangedEvent,
 } from "survey-core";
 import "survey-core/survey-core.css";
-import "survey-core/survey.i18n";
 import { Survey } from "survey-react-ui";
 import { TriangleAlert } from "lucide-react";
 import {

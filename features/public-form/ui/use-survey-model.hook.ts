@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { Model, SurveyModel } from "survey-core";
+import type { Model } from "survey-core";
+import { createLocalizedModel } from "@/lib/localization/create-localized-model";
 import { Submission } from "@/lib/endatix-api";
 import { initializeCustomQuestions } from "@/lib/questions";
 import { registerAudioQuestion } from "@/lib/questions/audio-recorder";
@@ -91,32 +92,28 @@ export function useSurveyModel({
     initPublicSurveyRuntime();
     initAnyAnsweredGlobals();
     initQuestionLoopsGlobals();
-    const model = new SurveyModel(definition);
-
-    const initialSubmission = submissionRef.current;
-    if (initialSubmission) {
-      setSubmissionData(model, initialSubmission.jsonData, (error) => {
-        setError(error);
+    let active = true;
+    let unbindQuestionLoops: (() => void) | undefined;
+    void createLocalizedModel(definition)
+      .then((model) => {
+        if (!active) return;
+        const initialSubmission = submissionRef.current;
+        restoreSubmission(model, initialSubmission, setError);
+        unbindQuestionLoops = bindQuestionLoops(model);
+        onModelCreated?.(model);
+        processSearchParams(model);
+        applyPersonalizationToModel(model, initialSubmission?.personalization);
+        setSurveyModel(model);
+        isInitializedRef.current = true;
+        cleanupUrl();
+        formRuntime?.updateState({ surveyModel: model });
+      })
+      .catch(() => {
+        if (active) setError("Failed to initialize survey");
       });
-      model.currentPageNo = initialSubmission.currentPage ?? 0;
-      applyVariablesToModel(model, initialSubmission.metadata);
-    }
-
-    const unbindQuestionLoops = bindQuestionLoops(model);
-    onModelCreated?.(model);
-    processSearchParams(model);
-    applyPersonalizationToModel(model, initialSubmission?.personalization);
-
-    setSurveyModel(model);
-    isInitializedRef.current = true;
-
-    cleanupUrl();
-
-    if (formRuntime) {
-      formRuntime.updateState({ surveyModel: model });
-    }
 
     return () => {
+      active = false;
       unbindQuestionLoops?.();
     };
   }, [
@@ -140,6 +137,17 @@ export function useSurveyModel({
 }
 
 let isPublicSurveyRuntimeInitialized = false;
+
+function restoreSubmission(
+  model: Model,
+  submission: Submission | undefined,
+  onError: (message: string) => void,
+) {
+  if (!submission) return;
+  setSubmissionData(model, submission.jsonData, onError);
+  model.currentPageNo = submission.currentPage ?? 0;
+  applyVariablesToModel(model, submission.metadata);
+}
 
 function initPublicSurveyRuntime(): void {
   if (isPublicSurveyRuntimeInitialized) {

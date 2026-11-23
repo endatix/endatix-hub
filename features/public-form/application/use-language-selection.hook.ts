@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { SurveyModel } from "survey-core";
 import {
   DEFAULT_CATALOG_LOCALE,
@@ -77,7 +77,7 @@ export function useLanguageSelection({
     [applyCatalogLocale],
   );
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!surveyModel || catalogLocales.length === 0) {
       return;
     }
