@@ -73,23 +73,29 @@ describe("submitFormOperation with a personalized link's cookie access token", (
   ])(
     "refuses a save by a %s token with respondent copy, keeps the token, and starts no submission",
     async (errorCode, message) => {
+      // Arrange
       updateByAccessToken.mockResolvedValue(
         ApiResult.validationError("Token refused", errorCode),
       );
 
+      // Act
       const result = await submitFormOperation(
         "form-1",
         draft,
         tokenStore as never,
       );
 
-      expect(ApiResult.isError(result) && result.error).toMatchObject({
+      // Assert
+      const error = ApiResult.isError(result) && result.error;
+      expect(error).toMatchObject({
         message,
         errorCode,
       });
       expect(create).not.toHaveBeenCalled();
       expect(tokenStore.deleteToken).not.toHaveBeenCalled();
-      expect(captureException).toHaveBeenCalled();
+      expect(captureException).toHaveBeenCalledExactlyOnceWith(error, {
+        properties: { formId: "form-1" },
+      });
       expect(JSON.stringify(captureException.mock.calls)).not.toContain(
         "stamp~sig",
       );
