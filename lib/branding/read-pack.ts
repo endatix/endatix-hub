@@ -99,7 +99,8 @@ async function locateFiles(
 ): Promise<Map<string, string>> {
   const files = new Map<string, string>();
   const problems: string[] = [];
-  for (const { field, file } of packFiles(pack)) {
+  // fromAsync awaits each mapper: hash in field order without retaining asset buffers.
+  await Array.fromAsync(packFiles(pack), async ({ field, file }) => {
     const bytes = await readPackFile(root, file);
     if (typeof bytes === "string") {
       problems.push(`${field}: ${file} ${bytes}`);
@@ -107,7 +108,7 @@ async function locateFiles(
       files.set(file, PACK_FILE_TYPES[path.extname(file).toLowerCase()]);
       hash.update(`${file}:${bytes.length}:`).update(bytes);
     }
-  }
+  });
   if (problems.length > 0) throw new BrandPackError(root, problems.join("\n"));
   return files;
 }

@@ -54,14 +54,15 @@ describe("readBrandPack", () => {
   it("reads a valid pack and fingerprints it", async () => {
     // Arrange
     useFixture("valid-full");
-    touch("logo-light.svg", "logo-dark.svg", "icon.svg", "og.jpg");
+    touch("og.jpg", "icon.svg", "logo-dark.svg", "logo-light.svg");
 
     // Act
     const loaded = await readBrandPack(dir);
 
     // Assert
     expect(loaded.pack.name).toBe("Example Forms");
-    expect(loaded.fingerprint).toMatch(/^[0-9a-f]{12}$/);
+    // Existing fingerprint of this fixture in field order, not file creation order.
+    expect(loaded.fingerprint).toBe("79d2ded418f7");
   });
 
   it.each([
@@ -105,17 +106,17 @@ describe("readBrandPack", () => {
     );
   });
 
-  it("names the field whose file is missing", async () => {
+  it("reports every missing file in field order", async () => {
     // Arrange
     useFixture("valid-full");
-    touch("logo-light.svg", "icon.svg", "og.jpg");
+    touch("logo-light.svg", "og.jpg");
 
     // Act
     const error = await errorOf(() => readBrandPack(dir));
 
     // Assert
     expect(error.message).toContain(
-      "assets.logo.dark: logo-dark.svg not found",
+      "assets.logo.dark: logo-dark.svg not found\nassets.icon: icon.svg not found",
     );
   });
 
