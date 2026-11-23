@@ -2,7 +2,7 @@ import "server-only";
 
 import { readFile } from "node:fs/promises";
 import decodeIco from "decode-ico";
-import sharp from "sharp";
+import sharp, { type Raw } from "sharp";
 import { toHex } from "./color";
 import { resolveDeploymentBrand } from "./effective-brand.server";
 import { packColor } from "./layers";
@@ -18,7 +18,7 @@ export interface PdfBrandIdentity {
 /** Preserve transparency and aspect ratio; never hand a URL to the PDF renderer. */
 export async function pdfLogoPng(
   bytes: Buffer,
-  raw?: sharp.Raw,
+  raw?: Raw,
 ): Promise<string> {
   const png = await sharp(bytes, { limitInputPixels: 16_000_000, raw })
     .rotate()
