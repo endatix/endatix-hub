@@ -76,16 +76,12 @@ export function SubmissionAnswers({
     surveyModel.showQuestionNumbers = true;
   }, [surveyModel]);
 
-  if (!isExtensionsReady) {
-    return <div>Loading...</div>;
-  }
-
-  if (!surveyModel) {
-    return <div>Loading...</div>;
-  }
-
   if (error) {
     return <ErrorView />;
+  }
+
+  if (!isExtensionsReady || !surveyModel) {
+    return <div>Loading...</div>;
   }
 
   return (
