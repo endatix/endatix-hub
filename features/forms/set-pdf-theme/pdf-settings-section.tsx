@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { HubPageLoadError } from "@/components/error-handling/error-page/hub-page-load-error";
 import { SectionTitle } from "@/components/headings/section-title";
 import { authorization, Permissions } from "@/features/auth/authorization";
 import { EndatixApi } from "@/lib/endatix-api";
@@ -30,7 +31,7 @@ export async function PdfSettingsSection({ formId }: Readonly<{ formId: string }
     <section className="mx-auto max-w-2xl space-y-3 py-4">
       <SectionTitle title="Submission PDFs" headingClassName="text-xl" />
       {Result.isError(result) ? (
-        <p>{result.message}</p>
+        <HubPageLoadError result={result} />
       ) : (
         <PdfThemeSwitch formId={formId} settings={result.value} />
       )}
