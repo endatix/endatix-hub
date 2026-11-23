@@ -18,11 +18,13 @@ it("registers the definition language and translated question language only", as
   // Assert
   expect(initialNext).toBe("Weiter");
   expect(model.pageNextText).toBe("Próximo");
+  expect(model.completeText).toBe("Completar");
+  expect(model.getLocalizationString("maskPlaceholderYear")).toBe("a");
   expect(
     Object.keys(surveyLocalization.locales)
       .filter((key) => !before.includes(key))
       .sort(),
-  ).toEqual(["de", "pt-br"]);
+  ).toEqual(["de", "pt", "pt-br"]);
 });
 
 it("renders regional French controls from the base pack on first use", async () => {

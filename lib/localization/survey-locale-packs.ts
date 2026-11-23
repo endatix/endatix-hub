@@ -58,6 +58,9 @@ const packs = new Map<string, () => Promise<unknown>>([
 
 export function loadSurveyLocalePack(locale: string) {
   const tag = locale.toLowerCase();
-  const load = packs.get(tag) ?? packs.get(tag.split("-")[0]);
-  return load?.();
+  const [base] = tag.split("-");
+  // SurveyJS falls back per string, even when the regional pack exists.
+  if (base !== tag)
+    return Promise.all([packs.get(tag)?.(), packs.get(base)?.()]);
+  return packs.get(tag)?.();
 }

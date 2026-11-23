@@ -1,6 +1,4 @@
-import { surveyLocalization } from "survey-core";
-import { expect, it } from "vitest";
-import { createLocalizedModel } from "../create-localized-model";
+import { expect, it, vi } from "vitest";
 
 // Next-button labels from the individual SurveyJS packs. Some regional packs
 // share this label with their base, so also check the exact code registered.
@@ -37,8 +35,8 @@ const nextLabels = {
   mk: "Следно",
   mm: "ရှေ့သို့",
   ms: "Seterusnya",
-  nl: "Volgende",
   "nl-BE": "Volgende",
+  nl: "Volgende",
   no: "Neste",
   pl: "Dalej",
   pt: "Próximo",
@@ -61,19 +59,27 @@ const nextLabels = {
   "zh-tw": "下一頁",
 };
 
+const fallbackPacks: Record<string, string[]> = {
+  "nl-BE": ["nl"],
+  "pt-br": ["pt"],
+};
+
 it.each(Object.entries(nextLabels))(
   "renders the %s navigation controls",
   async (locale, next) => {
     // Arrange
-    const before = new Set(Object.keys(surveyLocalization.locales));
+    vi.resetModules();
+    const { surveyLocalization } = await import("survey-core");
+    const { createLocalizedModel } = await import("../create-localized-model");
+    expect(Object.keys(surveyLocalization.locales)).toEqual(["en"]);
 
     // Act
     const model = await createLocalizedModel({ locale });
 
     // Assert
     expect(model.pageNextText).toBe(next);
-    expect(
-      Object.keys(surveyLocalization.locales).filter((key) => !before.has(key)),
-    ).toEqual([locale]);
+    expect(Object.keys(surveyLocalization.locales).sort()).toEqual(
+      ["en", locale, ...(fallbackPacks[locale] ?? [])].sort(),
+    );
   },
 );
