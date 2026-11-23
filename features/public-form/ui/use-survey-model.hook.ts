@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { TelemetryLogger } from "@/features/telemetry";
 import type { Model } from "survey-core";
 import { createLocalizedModel } from "@/lib/localization/create-localized-model";
 import { Submission } from "@/lib/endatix-api";
@@ -111,8 +112,8 @@ export function useSurveyModel({
         cleanupUrl();
         formRuntime?.updateState({ surveyModel: model });
       })
-      .catch(() => {
-        if (active) setError("Failed to initialize survey");
+      .catch((cause: unknown) => {
+        if (active) setError(reportInitializationFailure(cause));
       });
 
     return () => {
@@ -141,6 +142,17 @@ export function useSurveyModel({
 }
 
 let isPublicSurveyRuntimeInitialized = false;
+
+function reportInitializationFailure(cause: unknown) {
+  const message = "Failed to initialize survey";
+  // Parser messages and custom question exceptions can contain form data.
+  let failureKind = "unknown";
+  if (cause instanceof SyntaxError) failureKind = "syntax";
+  else if (cause instanceof TypeError) failureKind = "type";
+  else if (cause instanceof Error) failureKind = "runtime";
+  TelemetryLogger.error(message, undefined, { failureKind });
+  return message;
+}
 
 function restoreSubmission(
   model: Model,
