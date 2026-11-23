@@ -43,6 +43,10 @@ function canReadFormLogo(source: string) {
       parseStorageObjectUrl(source, storage)?.containerType === "CONTENT"
     );
   }
+  return isAllowedRemoteLogo(source);
+}
+
+function isAllowedRemoteLogo(source: string) {
   return (
     decideImageSource(source, {
       allowedHosts: collectRichTextImageHosts([]),
