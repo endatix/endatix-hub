@@ -1,3 +1,4 @@
+import { currentPdfStyles } from "@/features/pdf-export/theme/pdf-theme-context";
 import { getPanelTitle } from "@/lib/questions/question-utils";
 import { pdfPlainText } from "@/lib/utils/pdf-plain-text";
 import { StyleSheet, Text, View } from "@react-pdf/renderer";
@@ -18,7 +19,17 @@ const FULL_WIDTH_TYPES = new Set([
   "matrix",
 ]);
 
+function panelHeading(panelTitle: string) {
+  const { text, divider } = currentPdfStyles();
+  return (
+    <View key={`panel-title-${panelTitle}`} style={styles.groupHeaderRow}>
+      <Text style={[styles.groupHeaderText, text, divider]}>{panelTitle}</Text>
+    </View>
+  );
+}
+
 export const PdfSubmissionAnswer = ({ question }: PdfSubmissionAnswerProps) => {
+  const { divider, muted } = currentPdfStyles();
   if (question instanceof QuestionNonValue) {
     return null;
   }
@@ -26,13 +37,7 @@ export const PdfSubmissionAnswer = ({ question }: PdfSubmissionAnswerProps) => {
   const panelTitle = pdfPlainText(getPanelTitle(question));
   const rows: React.ReactNode[] = [];
 
-  if (panelTitle) {
-    rows.push(
-      <View key={`panel-title-${panelTitle}`} style={styles.groupHeaderRow}>
-        <Text style={styles.groupHeaderText}>{panelTitle}</Text>
-      </View>,
-    );
-  }
+  if (panelTitle) rows.push(panelHeading(panelTitle));
 
   // Title and answer are siblings of the other questions. minPresenceAhead only
   // works in that shared column: if the first image does not fit below the
@@ -67,14 +72,14 @@ export const PdfSubmissionAnswer = ({ question }: PdfSubmissionAnswerProps) => {
 
   if (!question.isVisibleInSurvey) {
     rows.push(
-      <View key={question.id} style={styles.questionRow}>
+      <View key={question.id} style={[styles.questionRow, divider]}>
         <View style={styles.labelCol}>
           <PdfQuestionLabel question={question} style={styles.questionLabel} />
         </View>
         <View style={styles.answerCol}>
           <View style={styles.invisibleRow}>
             <EyeOffIcon />
-            <Text style={styles.invisibleText}>
+            <Text style={[styles.invisibleText, muted]}>
               This question was not visible in the survey.
             </Text>
           </View>
@@ -86,7 +91,7 @@ export const PdfSubmissionAnswer = ({ question }: PdfSubmissionAnswerProps) => {
 
   // wrap={false}: a wrapping flex row splits label/answer at page breaks and truncates text.
   rows.push(
-    <View key={question.id} style={styles.questionRow} wrap={false}>
+    <View key={question.id} style={[styles.questionRow, divider]} wrap={false}>
       <View style={styles.labelCol}>
         <PdfQuestionLabel question={question} style={styles.questionLabel} />
       </View>

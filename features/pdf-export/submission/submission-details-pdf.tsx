@@ -8,7 +8,7 @@ import {
   View,
 } from "@react-pdf/renderer";
 import { Model } from "survey-core";
-import { PDF_STYLES } from "./pdf-styles";
+import { currentPdfStyles } from "@/features/pdf-export/theme/pdf-theme-context";
 import { PdfSubmissionAnswer } from "./pdf-submission-answer";
 import { PdfSubmissionProperties } from "./pdf-submission-properties";
 import { shouldIncludeQuestionInPdf } from "../should-include-question-in-pdf";
@@ -44,16 +44,15 @@ export const SubmissionDetailsPdf = ({
   submission,
   surveyModel,
 }: SubmissionDetailsPdfProps) => {
-  const questions = surveyModel
-    .getAllQuestions(false, false, false)
-    .filter(shouldIncludeQuestionInPdf);
+  const { page, body } = currentPdfStyles();
+  const questions = surveyModel.getAllQuestions(false, false, false).filter(shouldIncludeQuestionInPdf);
 
   return (
     <Document>
-      <Page size="A4" style={styles.page} wrap={true}>
+      <Page size="A4" style={[styles.page, page]} wrap={true}>
         <PdfSubmissionProperties submission={submission} />
-        <View style={PDF_STYLES.section}>
-          <Text style={PDF_STYLES.sectionTitle}>Submission Answers</Text>
+        <View style={body.section}>
+          <Text style={body.sectionTitle}>Submission Answers</Text>
           <View style={{ marginTop: 8 }}>
             {questions?.map((question) => (
               <PdfSubmissionAnswer key={question.name} question={question} />

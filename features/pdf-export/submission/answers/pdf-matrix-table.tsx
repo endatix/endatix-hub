@@ -1,7 +1,7 @@
+import { currentPdfStyles } from "@/features/pdf-export/theme/pdf-theme-context";
 import { Text, View } from "@react-pdf/renderer";
 import {
   MATRIX_LABEL_COLUMN_WIDTH,
-  PDF_TABLE_STYLES,
   computeMatrixDataColumnWidth,
 } from "@/features/pdf-export/submission/pdf-styles";
 
@@ -24,24 +24,33 @@ interface PdfMatrixTableProps {
 const FIXED_COLUMN = { flexGrow: 0, flexShrink: 0, minWidth: 0 };
 
 function cellStyle(width: number, header = false) {
+  const { table } = currentPdfStyles();
   return {
-    ...(header ? PDF_TABLE_STYLES.tableCellHeader : PDF_TABLE_STYLES.tableCell),
+    ...(header ? table.tableCellHeader : table.tableCell),
     ...FIXED_COLUMN,
     width,
   };
 }
 
+function answeredColumns(
+  columns: PdfMatrixTableColumn[],
+  row: PdfMatrixTableRow,
+) {
+  const answered = columns.filter((column) => row.cells[column.key]);
+  return answered.length > 0 ? answered : columns;
+}
+
 function StackedMatrix({ columns, rows }: PdfMatrixTableProps) {
+  const { table } = currentPdfStyles();
   return (
-    <View style={PDF_TABLE_STYLES.stackedContainer}>
+    <View style={table.stackedContainer}>
       {rows.map((row) => {
-        const answered = columns.filter((column) => row.cells[column.key]);
-        const columnsToShow = answered.length > 0 ? answered : columns;
+        const columnsToShow = answeredColumns(columns, row);
         return (
-          <View key={row.key} style={PDF_TABLE_STYLES.stackedRow} wrap={false}>
-            <Text style={PDF_TABLE_STYLES.stackedRowLabel}>{row.label}</Text>
+          <View key={row.key} style={table.stackedRow} wrap={false}>
+            <Text style={table.stackedRowLabel}>{row.label}</Text>
             {columnsToShow.map((column) => (
-              <Text key={column.key} style={PDF_TABLE_STYLES.stackedRowCell}>
+              <Text key={column.key} style={table.stackedRowCell}>
                 {column.title}: {row.cells[column.key] || "-"}
               </Text>
             ))}
@@ -53,13 +62,13 @@ function StackedMatrix({ columns, rows }: PdfMatrixTableProps) {
 }
 
 export const PdfMatrixTable = ({ columns, rows }: PdfMatrixTableProps) => {
+  const { table } = currentPdfStyles();
   const dataColumnWidth = computeMatrixDataColumnWidth(columns.length);
-  if (dataColumnWidth === null) {
+  if (dataColumnWidth === null)
     return <StackedMatrix columns={columns} rows={rows} />;
-  }
 
   const headerRow = (
-    <View style={[PDF_TABLE_STYLES.tableRow, PDF_TABLE_STYLES.tableHeader]}>
+    <View style={[table.tableRow, table.tableHeader]}>
       <View style={cellStyle(MATRIX_LABEL_COLUMN_WIDTH, true)}>
         <Text> </Text>
       </View>
@@ -72,7 +81,7 @@ export const PdfMatrixTable = ({ columns, rows }: PdfMatrixTableProps) => {
   );
 
   const renderDataRow = (row: PdfMatrixTableRow) => (
-    <View style={PDF_TABLE_STYLES.tableRow} key={row.key} wrap={false}>
+    <View style={table.tableRow} key={row.key} wrap={false}>
       <View style={cellStyle(MATRIX_LABEL_COLUMN_WIDTH)}>
         <Text>{row.label}</Text>
       </View>
@@ -87,7 +96,7 @@ export const PdfMatrixTable = ({ columns, rows }: PdfMatrixTableProps) => {
   const [firstRow, ...remainingRows] = rows;
 
   return (
-    <View style={PDF_TABLE_STYLES.table}>
+    <View style={table.table}>
       {/* Keep header with the first data row so it is never orphaned at a page break. */}
       <View wrap={false}>
         {headerRow}

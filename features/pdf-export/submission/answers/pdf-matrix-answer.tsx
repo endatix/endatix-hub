@@ -1,6 +1,6 @@
 import { Text, View } from "@react-pdf/renderer";
 import { ItemValue, QuestionMatrixModel } from "survey-core";
-import { PDF_TABLE_STYLES } from "@/features/pdf-export/submission/pdf-styles";
+import { currentPdfStyles } from "@/features/pdf-export/theme/pdf-theme-context";
 import { pdfPlainText } from "@/lib/utils/pdf-plain-text";
 import { resolveItemValueLabel } from "../format-choice-display";
 import {
@@ -56,15 +56,16 @@ export function buildMatrixAnswerTableData(
 }
 
 const PdfMatrixAnswer = ({ question }: MatrixAnswerPdfProps) => {
+  const { table } = currentPdfStyles();
   const tableData = buildMatrixAnswerTableData(question);
 
   if (!tableData) {
-    return <Text style={PDF_TABLE_STYLES.noAnswer}>No answer</Text>;
+    return <Text style={table.noAnswer}>No answer</Text>;
   }
 
   return (
-    <View style={PDF_TABLE_STYLES.container}>
-      <Text style={PDF_TABLE_STYLES.caption}>
+    <View style={table.container}>
+      <Text style={table.caption}>
         Answers for the &quot;{pdfPlainText(question.title)}
         &quot; question
       </Text>

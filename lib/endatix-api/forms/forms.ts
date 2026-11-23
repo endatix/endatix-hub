@@ -14,6 +14,7 @@ import {
   CreateFormAccessTokenRequest,
   FormAccessTokenResponse,
   FormsListRequest,
+  FormPdfSettings,
   GetPublicFormAccessRequest,
   PublicFormAccessResponse,
   UpdateFormRequest,
@@ -63,6 +64,32 @@ export class Forms {
       return ApiResult.validationError(validateFormIdResult.message);
     }
     return this.endatix.delete<void>(`/forms/${validateFormIdResult.value}`);
+  }
+
+  async getSettings(formId: string): Promise<ApiResult<FormPdfSettings>> {
+    const id = validateEndatixId(formId, "formId");
+    if (Result.isError(id)) return ApiResult.validationError(id.message);
+    return this.endatix.get(`/forms/${id.value}/settings`);
+  }
+
+  async updatePdfSettings(
+    formId: string,
+    settings: FormPdfSettings,
+  ): Promise<ApiResult<FormPdfSettings>> {
+    const id = validateEndatixId(formId, "formId");
+    if (Result.isError(id)) return ApiResult.validationError(id.message);
+    if (
+      typeof settings?.version !== "string" ||
+      !/^\d{1,19}$/.test(settings.version) ||
+      typeof settings.pdf?.usesFormTheme !== "boolean"
+    ) {
+      return ApiResult.validationError("Invalid PDF settings or version.");
+    }
+    return this.endatix.patch(
+      `/forms/${id.value}/settings`,
+      { pdf: { usesFormTheme: settings.pdf.usesFormTheme } },
+      { headers: { "If-Match": `"${settings.version}"` } },
+    );
   }
 
   /**

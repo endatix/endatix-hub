@@ -65,3 +65,7 @@ export interface PublicFormAccessResponse {
   expiresAt: string;
   eTag: string;
 }
+export interface FormPdfSettings {
+  version: string;
+  pdf: { usesFormTheme: boolean };
+}

@@ -7,7 +7,7 @@ import {
   UnknownFileIcon,
   VideoFileIcon,
 } from "@/features/pdf-export/submission/icons";
-import { PDF_STYLES } from "@/features/pdf-export/submission/pdf-styles";
+import { currentPdfStyles } from "@/features/pdf-export/theme/pdf-theme-context";
 import { pdfPlainText } from "@/lib/utils/pdf-plain-text";
 import AudioFileIcon from "./icons/audio-file-icon";
 import { PDF_IMAGE_ROW_WIDTH } from "./pack-pdf-image-rows";
@@ -99,7 +99,7 @@ const FileDetails = ({
   icon: React.ReactNode;
 }) => {
   return (
-    <View style={[styles.fileCard, PDF_STYLES.mutedBorder]} wrap={false}>
+    <View style={[styles.fileCard, currentPdfStyles().body.mutedBorder]} wrap={false}>
       <View style={styles.fileIcon}>{icon}</View>
       <View style={styles.fileText}>
         <Text style={styles.fileName} hyphenationCallback={keepWholeWords}>

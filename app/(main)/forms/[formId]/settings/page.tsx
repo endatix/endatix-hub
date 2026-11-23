@@ -3,6 +3,7 @@ import { FormWorkspaceHeader } from "@/features/forms/form-workspace";
 import { loadWorkspaceForm } from "@/features/forms/form-workspace/load-workspace-form.server";
 import { FormLoadError } from "@/features/forms/form-workspace/ui/form-load-error";
 import FormDetails from "@/features/forms/ui/form-details";
+import { PdfSettingsSection } from "@/features/forms/set-pdf-theme/pdf-settings-section";
 import { FilterableQuestionsSection } from "@/features/submissions/choose-filterable-questions";
 import { Result } from "@/lib/result";
 import type { Form } from "@/types";
@@ -31,6 +32,9 @@ function FormSettings({ form }: Readonly<{ form: Form }>) {
     <div className="container py-6">
       <FormWorkspaceHeader title="Settings" />
       <FormDetails form={form} enableEditing />
+      <Suspense fallback={null}>
+        <PdfSettingsSection formId={form.id} />
+      </Suspense>
       <Suspense fallback={null}>
         <FilterableQuestionsSection formId={form.id} />
       </Suspense>
