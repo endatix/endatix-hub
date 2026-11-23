@@ -50,6 +50,12 @@ project token). The same image serves either brand, with no rebuild.
 
 What the Hub does with it:
 
+- **Submission PDFs**: the signed-in download, inline view and share link show the
+  pack's name, light logo, primary accent bar and legal name (or name) in the footer.
+  A form logo embedded in the form, uploaded to content storage or served over
+  HTTPS from a host in `REMOTE_IMAGE_HOSTNAMES` takes the pack logo's place.
+  The form theme still controls the body. Without an active pack, or if its
+  logo cannot be read in time, the export uses the ordinary submission layout.
 - **At start**, while the flag may be on (`FLAG_WHITE_LABELING=true`, or PostHog flags, which
   are decided per request), an invalid mounted pack stops the Hub with the field paths in the
   error. Under PostHog flags, turning the flag off does not avoid this: fix the pack or remove

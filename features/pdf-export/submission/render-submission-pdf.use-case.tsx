@@ -12,6 +12,7 @@ import {
 } from "../render-timeout";
 import { describePdfWorkload } from "./describe-pdf-workload";
 import { downscalePdfFileImages } from "./downscale-pdf-images";
+import { loadPdfIdentity } from "./load-pdf-identity";
 import { attachPdfFileLinks } from "./attach-pdf-file-links";
 import { getClientStorageConfig } from "@/features/asset-storage/server";
 import { getMetadataBase } from "@/lib/seo/metadata-base";
@@ -124,8 +125,7 @@ export async function renderSubmissionPdf({
               hubOrigin: getMetadataBase().origin,
               storageConfig: getClientStorageConfig(),
             });
-            await downscalePdfFileImages(model);
-            return renderDocument(submission, model);
+            return renderDocument(submission, model, startedAtMs);
           }, remainingRenderTimeoutMs(startedAtMs));
 
           span.setAttributes({
@@ -175,10 +175,14 @@ export async function renderSubmissionPdf({
   }
 }
 
-function renderDocument(submission: Submission, model: Model) {
+async function renderDocument(submission: Submission, model: Model, started: number) {
+  const [identity] = await Promise.all([
+    loadPdfIdentity(model, started),
+    downscalePdfFileImages(model),
+  ]);
   return withPdfStyles(submission.formDefinition, () =>
     pdf(
-      <SubmissionDetailsPdf submission={submission} surveyModel={model} />,
+      <SubmissionDetailsPdf submission={submission} surveyModel={model} identity={identity} />,
     ).toBlob(),
   );
 }

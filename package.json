@@ -66,6 +66,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "1.1.1",
+    "decode-ico": "^0.4.1",
     "entities": "^9",
     "fflate": "^0.8.3",
     "flags": "^4.4.0",

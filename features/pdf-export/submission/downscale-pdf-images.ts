@@ -75,27 +75,25 @@ async function downscaleFile(file: IFile): Promise<IFile> {
   }
 }
 
-async function loadImageBytes(source: string): Promise<Buffer | null> {
-  if (source.startsWith("data:image/")) {
-    const comma = source.indexOf(",");
-    if (comma < 0) {
-      return null;
-    }
-    const payload = source.slice(comma + 1);
-    // Base64 expands ~4/3; reject before allocating the decoded buffer.
-    if (Math.floor((payload.length * 3) / 4) > MAX_SOURCE_BYTES) {
-      return null;
-    }
-    const bytes = Buffer.from(payload, "base64");
-    return bytes.length > MAX_SOURCE_BYTES ? null : bytes;
-  }
-
-  if (!source.startsWith("http://") && !source.startsWith("https://")) {
+function inlineImageBytes(source: string): Buffer | null {
+  const comma = source.indexOf(",");
+  if (comma < 0) return null;
+  const payload = source.slice(comma + 1);
+  // Base64 expands ~4/3; reject before allocating the decoded buffer.
+  if (Math.floor((payload.length * 3) / 4) > MAX_SOURCE_BYTES) {
     return null;
   }
+  const bytes = Buffer.from(payload, "base64");
+  return bytes.length > MAX_SOURCE_BYTES ? null : bytes;
+}
+
+export async function loadImageBytes(source: string, options?: RequestInit): Promise<Buffer | null> {
+  if (source.startsWith("data:image/")) return inlineImageBytes(source);
+  if (!source.startsWith("http://") && !source.startsWith("https://")) return null;
 
   const response = await fetch(source, {
-    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    ...options,
+    signal: options?.signal ?? AbortSignal.timeout(FETCH_TIMEOUT_MS),
   });
   if (!response.ok) {
     return null;
