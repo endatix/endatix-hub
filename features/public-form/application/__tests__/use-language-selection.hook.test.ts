@@ -49,6 +49,25 @@ describe("useLanguageSelection", () => {
   });
 
   describe("initialization", () => {
+    it("can open and switch languages when preference storage is denied", () => {
+      const deny = () => {
+        throw new DOMException("Denied", "SecurityError");
+      };
+      vi.stubGlobal("localStorage", { getItem: deny, setItem: deny });
+      mockSurveyModel.locale = "sv";
+      const { result } = renderHook(() =>
+        useLanguageSelection({
+          availableLocales: ["en", "sv"],
+          surveyModel: mockSurveyModel,
+        }),
+      );
+
+      expect(result.current.currentLocale).toBe("sv");
+      act(() => result.current.changeLocale("default"));
+      expect(result.current.currentLocale).toBe("default");
+      expect(mockSurveyModel.locale).toBe("");
+    });
+
     it("applies a saved translation before SurveyJS renders the first page", async () => {
       // Arrange
       mockLocalStorage.getItem.mockReturnValue("fr");

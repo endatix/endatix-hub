@@ -12,6 +12,22 @@ import {
 
 const STORAGE_KEY = "form-lang-preference";
 
+function readPreference() {
+  try {
+    return localStorage.getItem(STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function savePreference(locale: string) {
+  try {
+    localStorage.setItem(STORAGE_KEY, locale);
+  } catch {
+    // Storage is optional in embeds; the selection still applies to this visit.
+  }
+}
+
 interface UseLanguageSelectionProps {
   availableLocales: string[];
   surveyModel: SurveyModel | null;
@@ -63,7 +79,7 @@ export function useLanguageSelection({
         // so reading `surveyModel.locale` again is stable.
         surveyDefaultLocale(surveyModel.locale, catalogLocales),
       );
-      localStorage.setItem(STORAGE_KEY, catalogLocale);
+      savePreference(catalogLocale);
     },
     [surveyModel, catalogLocales],
   );
@@ -120,7 +136,7 @@ export function initializeRespondentLanguage(
 ): string {
   const locale = resolveInitialCatalogLocale(catalogLocales, {
     preselectedLocale,
-    savedLocale: localStorage.getItem(STORAGE_KEY),
+    savedLocale: readPreference(),
     surveyLocale: model.locale,
   });
   if (catalogLocales.includes(locale)) {
