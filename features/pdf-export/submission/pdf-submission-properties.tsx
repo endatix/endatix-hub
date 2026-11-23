@@ -1,6 +1,6 @@
 import { Submission } from "@/lib/endatix-api";
 import { View, Text, StyleSheet } from "@react-pdf/renderer";
-import { PDF_STYLES } from "./pdf-styles";
+import { currentPdfStyles } from "@/features/pdf-export/theme/pdf-theme-context";
 import {
   getElapsedTimeString,
   getFormattedDate,
@@ -16,62 +16,55 @@ const DASH_NO_DATA = "—";
 export const PdfSubmissionProperties = ({
   submission,
 }: PdfSubmissionPropertiesProps) => {
+  const { body, panel } = currentPdfStyles();
   return (
-    <View style={[PDF_STYLES.section, styles.sectionProperties]}>
-      <Text style={PDF_STYLES.sectionTitle}>Submission Properties</Text>
+    <View style={[body.section, styles.sectionProperties, panel]}>
+      <Text style={body.sectionTitle}>Submission Properties</Text>
       <View style={styles.propertiesTable}>
-        <View style={styles.propertyRow}>
-          <Text style={styles.propertyLabel}>ID:</Text>
-          <Text style={styles.propertyValue}>{submission.id}</Text>
-        </View>
-        <View style={styles.propertyRow}>
-          <Text style={styles.propertyLabel}>Is Complete?</Text>
-          <Text style={styles.propertyValue}>
-            {submission.isComplete ? "YES" : "NO"}
-          </Text>
-        </View>
-        <View style={styles.propertyRow}>
-          <Text style={styles.propertyLabel}>Created at</Text>
-          <Text style={styles.propertyValue}>
-            {getFormattedDate(submission.createdAt)}
-          </Text>
-        </View>
-        <View style={styles.propertyRow}>
-          <Text style={styles.propertyLabel}>Last modified on</Text>
-          <Text style={styles.propertyValue}>
-            {getFormattedDate(submission.modifiedAt)}
-          </Text>
-        </View>
-        <View style={styles.propertyRow}>
-          <Text style={styles.propertyLabel}>Started at</Text>
-          <Text style={styles.propertyValue}>
-            {getFormattedDate(submission.startedAt, DASH_NO_DATA)}
-          </Text>
-        </View>
-        <View style={styles.propertyRow}>
-          <Text style={styles.propertyLabel}>Completed at</Text>
-          <Text style={styles.propertyValue}>
-            {submission.isComplete
-              ? getFormattedDate(submission.completedAt)
-              : DASH_NO_DATA}
-          </Text>
-        </View>
-        <View style={styles.propertyRow}>
-          <Text style={styles.propertyLabel}>Completion time</Text>
-          <Text style={styles.propertyValue}>
-            {submission.isComplete
-              ? getElapsedTimeString(
-                  getSubmissionStartedAt(submission),
-                  submission.completedAt,
-                  "long",
-                )
-              : DASH_NO_DATA}
-          </Text>
-        </View>
+        <Property label="ID:">{submission.id}</Property>
+        <Property label="Is Complete?">
+          {submission.isComplete ? "YES" : "NO"}
+        </Property>
+        <Property label="Created at">
+          {getFormattedDate(submission.createdAt)}
+        </Property>
+        <Property label="Last modified on">
+          {getFormattedDate(submission.modifiedAt)}
+        </Property>
+        <Property label="Started at">
+          {getFormattedDate(submission.startedAt, DASH_NO_DATA)}
+        </Property>
+        <Property label="Completed at">
+          {submission.isComplete
+            ? getFormattedDate(submission.completedAt)
+            : DASH_NO_DATA}
+        </Property>
+        <Property label="Completion time">
+          {submission.isComplete
+            ? getElapsedTimeString(
+                getSubmissionStartedAt(submission),
+                submission.completedAt,
+                "long",
+              )
+            : DASH_NO_DATA}
+        </Property>
       </View>
     </View>
   );
 };
+
+function Property({
+  label,
+  children,
+}: Readonly<{ label: string; children: React.ReactNode }>) {
+  const { text, muted } = currentPdfStyles();
+  return (
+    <View style={styles.propertyRow}>
+      <Text style={[styles.propertyLabel, muted]}>{label}</Text>
+      <Text style={[styles.propertyValue, text]}>{children}</Text>
+    </View>
+  );
+}
 
 const styles = StyleSheet.create({
   sectionProperties: {

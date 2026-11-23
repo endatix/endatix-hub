@@ -2,7 +2,7 @@ import React from "react";
 import { Text, StyleSheet, View } from "@react-pdf/renderer";
 import type { Style } from "@react-pdf/types";
 import { Question, QuestionCustomModel } from "survey-core";
-import { PDF_STYLES } from "@/features/pdf-export/submission/pdf-styles";
+import { currentPdfStyles } from "@/features/pdf-export/theme/pdf-theme-context";
 import { getPanelTitle } from "@/lib/questions";
 import { pdfPlainText } from "@/lib/utils/pdf-plain-text";
 
@@ -38,17 +38,14 @@ export const PdfQuestionLabel = ({
   style,
   align = "right",
 }: PdfQuestionLabelProps) => {
+  const { body } = currentPdfStyles();
   const title = pdfPlainText(getProcessedTitle(question));
   const panelTitle = pdfPlainText(getPanelTitle(question));
 
   const alignStyle =
-    align === "right" ? PDF_STYLES.rightAlign : PDF_LABEL_STYLES.leftAlign;
-  const titleStyles = [
-    alignStyle,
-    PDF_STYLES.questionTitle,
-    ...(style ? [style] : []),
-  ];
-  const subTitleStyles = [alignStyle, PDF_STYLES.questionSubTitle];
+    align === "right" ? body.rightAlign : PDF_LABEL_STYLES.leftAlign;
+  const titleStyles = [alignStyle, body.questionTitle, ...(style ? [style] : [])];
+  const subTitleStyles = [alignStyle, body.questionSubTitle];
 
   return (
     <View>

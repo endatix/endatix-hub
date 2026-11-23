@@ -1,3 +1,4 @@
+import type { Model } from "survey-core";
 import { pdf } from "@react-pdf/renderer";
 import { Submission } from "@/lib/endatix-api";
 import { Result } from "@/lib/result";
@@ -17,6 +18,7 @@ import { getMetadataBase } from "@/lib/seo/metadata-base";
 import type { PdfLocaleQuery } from "./pdf-locale";
 import { preparePdfModel } from "./prepare-pdf-model.use-case";
 import { SubmissionDetailsPdf } from "./submission-details-pdf";
+import { withPdfStyles } from "../theme/pdf-theme-context";
 
 const TRACER = "pdf-export";
 const LOGGER_NAME = "pdf-export";
@@ -123,12 +125,7 @@ export async function renderSubmissionPdf({
               storageConfig: getClientStorageConfig(),
             });
             await downscalePdfFileImages(model);
-            return pdf(
-              <SubmissionDetailsPdf
-                submission={submission}
-                surveyModel={model}
-              />,
-            ).toBlob();
+            return renderDocument(submission, model);
           }, remainingRenderTimeoutMs(startedAtMs));
 
           span.setAttributes({
@@ -176,6 +173,14 @@ export async function renderSubmissionPdf({
     );
     return Result.error(PDF_EXPORT_FAILED);
   }
+}
+
+function renderDocument(submission: Submission, model: Model) {
+  return withPdfStyles(submission.formDefinition, () =>
+    pdf(
+      <SubmissionDetailsPdf submission={submission} surveyModel={model} />,
+    ).toBlob(),
+  );
 }
 
 /**
