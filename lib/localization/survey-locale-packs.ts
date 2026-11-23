@@ -84,6 +84,10 @@ function aliasPackForAuthoredLocale(locale: string) {
     (key) => key.toLowerCase() === tag,
   );
   if (!registered) return;
+  const directions = surveyLocalization.localeDirections;
+  if (Object.hasOwn(directions, registered)) {
+    directions[locale] = directions[registered];
+  }
   // Exact lookup serves controls; enumeration (e.g. Creator's picker) stays unchanged.
   Object.defineProperty(registry, locale, {
     configurable: true,
