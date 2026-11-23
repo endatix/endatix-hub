@@ -1,4 +1,4 @@
-import { unlink, writeFile } from "node:fs/promises";
+import { readFile, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
 import { beforeEach, afterEach, expect, it, vi } from "vitest";
@@ -6,6 +6,10 @@ import { accent, mountPackDir } from "@/lib/branding/__tests__/pack-dir";
 import { whiteLabelingFlag } from "@/lib/feature-flags/flags";
 import { loadPdfIdentity } from "../load-pdf-identity";
 
+vi.mock("node:fs/promises", async (importOriginal) => {
+  const fs = await importOriginal<typeof import("node:fs/promises")>();
+  return { ...fs, readFile: vi.fn(fs.readFile) };
+});
 vi.mock("@/lib/feature-flags/flags", () => ({ whiteLabelingFlag: vi.fn() }));
 vi.mock("@/features/telemetry", () => ({
   TelemetryLogger: { warn: vi.fn(), error: vi.fn() },
@@ -176,11 +180,12 @@ it("drops the whole identity when a previously mounted logo disappears", async (
   expect(await resolve()).toBeUndefined();
 });
 
-it("returns the default identity early on a short render deadline", async () => {
+it("abandons a stalled pack asset early on a short render deadline", async () => {
   // Arrange
+  await mountLogo();
   vi.useFakeTimers();
   vi.stubEnv("PDF_RENDER_TIMEOUT_SECONDS", "1");
-  vi.mocked(whiteLabelingFlag).mockReturnValueOnce(new Promise(() => {}));
+  vi.mocked(readFile).mockReturnValueOnce(new Promise(() => {}));
 
   // Act
   const result = resolve();
@@ -188,4 +193,7 @@ it("returns the default identity early on a short render deadline", async () => 
 
   // Assert
   expect(await result).toBeUndefined();
+  expect(readFile).toHaveBeenCalledWith(expect.stringContaining("light.svg"), {
+    signal: expect.objectContaining({ aborted: true }),
+  });
 });
