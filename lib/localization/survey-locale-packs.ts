@@ -56,11 +56,18 @@ const packs = new Map<string, () => Promise<unknown>>([
   ["zh-tw", () => import("survey-core/i18n/traditional-chinese")],
 ]);
 
-export function loadSurveyLocalePack(locale: string) {
-  const tag = locale.toLowerCase();
-  const [base] = tag.split("-");
-  // SurveyJS falls back per string, even when the regional pack exists.
-  if (base !== tag)
-    return Promise.all([packs.get(tag)?.(), packs.get(base)?.()]);
-  return packs.get(tag)?.();
+export async function loadSurveyLocalePacks(locales: Iterable<string>) {
+  const codes = new Set<string>();
+  for (const locale of locales) {
+    const tag = locale.toLowerCase();
+    codes.add(tag);
+    // SurveyJS falls back per string, even when the regional pack exists.
+    codes.add(tag.split("-")[0]);
+  }
+  const pending: Promise<unknown>[] = [];
+  for (const code of codes) {
+    const load = packs.get(code);
+    if (load) pending.push(load());
+  }
+  await Promise.all(pending);
 }

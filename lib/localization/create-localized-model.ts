@@ -1,5 +1,5 @@
 import { Model } from "survey-core";
-import { loadSurveyLocalePack } from "./survey-locale-packs";
+import { loadSurveyLocalePacks } from "./survey-locale-packs";
 
 /** Use SurveyJS's own localizable properties, including registered custom questions. */
 export async function createLocalizedModel(
@@ -10,7 +10,7 @@ export async function createLocalizedModel(
   const model = new Model(content);
   const languages = new Set<string>(model.getUsedLocales());
   if (typeof locale === "string") languages.add(locale);
-  await Promise.all(Array.from(languages, loadSurveyLocalePack));
+  await loadSurveyLocalePacks(languages);
   if (typeof locale === "string") model.locale = locale;
   return model;
 }
