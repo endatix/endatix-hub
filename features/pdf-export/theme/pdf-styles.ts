@@ -30,6 +30,14 @@ function bodyStyles(t: PdfBodyLayer) {
   };
 }
 
+function panelStyles(t: PdfBodyLayer) {
+  const backgroundColor = t.tableHeaderBackground ?? (t.pageBackground && "transparent");
+  return {
+    ...(backgroundColor && { backgroundColor }),
+    ...(t.radius !== undefined && { borderRadius: t.radius }),
+  };
+}
+
 function tableStyles(t: PdfBodyLayer) {
   const border = t.tableBorder ? { borderColor: t.tableBorder } : {};
   return {
@@ -43,13 +51,14 @@ function tableStyles(t: PdfBodyLayer) {
       ...table.tableHeader,
       borderBottomColor: t.tableBorder ?? table.tableHeader.borderBottomColor,
       backgroundColor:
-        t.tableHeaderBackground ?? table.tableHeader.backgroundColor,
+        panelStyles(t).backgroundColor ?? table.tableHeader.backgroundColor,
     },
     noAnswer: { ...table.noAnswer, color: t.mutedText ?? table.noAnswer.color },
   };
 }
 
 export function createPdfStyles(t: PdfBodyLayer) {
+  const muted = t.mutedText ?? t.text;
   return {
     page: {
       ...(t.text && { color: t.text }),
@@ -57,13 +66,8 @@ export function createPdfStyles(t: PdfBodyLayer) {
     },
     divider: t.border ? { borderBottomColor: t.border } : {},
     text: t.text ? { color: t.text } : {},
-    muted: t.mutedText ? { color: t.mutedText } : {},
-    panel: {
-      ...(t.tableHeaderBackground && {
-        backgroundColor: t.tableHeaderBackground,
-      }),
-      ...(t.radius !== undefined && { borderRadius: t.radius }),
-    },
+    muted: muted ? { color: muted } : {},
+    panel: panelStyles(t),
     body: bodyStyles(t),
     table: tableStyles(t),
   };

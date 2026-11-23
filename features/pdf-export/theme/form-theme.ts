@@ -54,8 +54,8 @@ function printableColor(value: string | undefined) {
   const rgb = parseCssColor(rgba ? `rgb(${rgba[1]})` : value);
   if (!rgb) return;
   const alpha = rgba ? Number(rgba[2]) : 1;
-  const flatten = (channel: number) => 1 - alpha + alpha * channel;
-  return toHex({ r: flatten(rgb.r), g: flatten(rgb.g), b: flatten(rgb.b) });
+  const hex = toHex(rgb);
+  return alpha === 1 ? hex : hex + Math.round(alpha * 255).toString(16).padStart(2, "0");
 }
 
 function radius(value: string | undefined) {

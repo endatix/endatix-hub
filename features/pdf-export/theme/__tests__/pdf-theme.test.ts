@@ -1,6 +1,16 @@
 import { expect, it } from "vitest";
 import { formThemeToPdfLayer } from "../form-theme";
 
+it("retains translucent border ink for compositing on each rendered surface", () => {
+  // Arrange
+  const themeModel = JSON.stringify({
+    cssVariables: { "--sjs-border-default": "rgba(255, 255, 255, 0.5)" },
+  });
+
+  // Act & Assert
+  expect(formThemeToPdfLayer({ themeModel }).border).toBe("#ffffff80");
+});
+
 it("reads the theme delivered with the submission, including SurveyJS colour references", () => {
   // Arrange
   const themeModel = JSON.stringify({

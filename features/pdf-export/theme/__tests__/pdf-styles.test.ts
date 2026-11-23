@@ -2,6 +2,16 @@ import { expect, it } from "vitest";
 import { PDF_STYLES, PDF_TABLE_STYLES } from "../../submission/pdf-styles";
 import { createPdfStyles } from "../pdf-styles";
 
+it("lets the dark page show through panels and table headers without a surface token", () => {
+  // Arrange & Act
+  const styles = createPdfStyles({ pageBackground: "#121212", text: "#ffffff" });
+
+  // Assert
+  expect(styles.panel.backgroundColor).toBe("transparent");
+  expect(styles.table.tableHeader.backgroundColor).toBe("transparent");
+  expect(styles.muted.color).toBe("#ffffff");
+});
+
 it("preserves the original styles including omitted page colours", () => {
   // Act & Assert
   expect(createPdfStyles({})).toEqual({
