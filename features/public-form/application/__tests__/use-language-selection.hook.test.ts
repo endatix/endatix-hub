@@ -8,22 +8,8 @@ import {
 } from "../use-language-selection.hook";
 import { createLocalizedModel } from "@/lib/localization/create-localized-model";
 
-vi.mock("survey-core", async () => {
-  const actual = await vi.importActual("survey-core");
-  return {
-    ...actual,
-    surveyLocalization: {
-      defaultLocale: "en",
-      localeNames: {
-        en: "English",
-        sv: "Svenska",
-        es: "Español",
-        bg: "български",
-        fr: "Français",
-      },
-    },
-  };
-});
+import "survey-core/i18n/swedish";
+import "survey-core/i18n/spanish";
 
 const mockLocalStorage = {
   getItem: vi.fn(),
@@ -364,9 +350,9 @@ describe("useLanguageSelection", () => {
       );
 
       expect(result.current.languageOptions).toEqual([
-        { value: "default", label: "English" },
-        { value: "sv", label: "Svenska" },
-        { value: "es", label: "Español" },
+        { value: "default", label: "english" },
+        { value: "sv", label: "svenska" },
+        { value: "es", label: "español" },
       ]);
     });
   });
@@ -382,7 +368,7 @@ describe("useLanguageSelection", () => {
 
       expect(result.current.currentOption).toEqual({
         value: "default",
-        label: "English",
+        label: "english",
       });
 
       act(() => {
@@ -391,7 +377,7 @@ describe("useLanguageSelection", () => {
 
       expect(result.current.currentOption).toEqual({
         value: "sv",
-        label: "Svenska",
+        label: "svenska",
       });
     });
   });

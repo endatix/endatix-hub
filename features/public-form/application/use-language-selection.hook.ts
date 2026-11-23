@@ -78,10 +78,11 @@ export function useLanguageSelection({
         // The hook never moves a single-language survey off its JSON locale,
         // so reading `surveyModel.locale` again is stable.
         surveyDefaultLocale(surveyModel.locale, catalogLocales),
+        availableLocales,
       );
       savePreference(catalogLocale);
     },
-    [surveyModel, catalogLocales],
+    [surveyModel, catalogLocales, availableLocales],
   );
 
   useEffect(() => {
@@ -94,14 +95,13 @@ export function useLanguageSelection({
     }
     initializedForModelRef.current = surveyModel;
 
-    setCurrentLocale(
-      initializeRespondentLanguage(
-        surveyModel,
-        catalogLocales,
-        preselectedLocale,
-      ),
+    const selected = initializeRespondentLanguage(
+      surveyModel,
+      availableLocales,
+      preselectedLocale,
     );
-  }, [surveyModel, catalogLocales, preselectedLocale]);
+    setCurrentLocale(selected);
+  }, [surveyModel, catalogLocales, availableLocales, preselectedLocale]);
 
   const languageOptions = useMemo(
     () => catalogLocales.map((locale) => toLanguageOption(locale)),
@@ -131,9 +131,10 @@ function toLanguageOption(catalogLocale: string) {
 
 export function initializeRespondentLanguage(
   model: SurveyModel,
-  catalogLocales = toCatalogLocales(model.getUsedLocales()),
+  availableLocales = model.getUsedLocales(),
   preselectedLocale?: string,
 ): string {
+  const catalogLocales = toCatalogLocales(availableLocales);
   const locale = resolveInitialCatalogLocale(catalogLocales, {
     preselectedLocale,
     savedLocale: readPreference(),
@@ -143,6 +144,7 @@ export function initializeRespondentLanguage(
     model.locale = toSurveyModelLocale(
       locale,
       surveyDefaultLocale(model.locale, catalogLocales),
+      availableLocales,
     );
   }
   return locale;

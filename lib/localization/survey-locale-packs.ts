@@ -1,3 +1,5 @@
+import { surveyLocalization } from "survey-core";
+
 // Literal imports let the production bundler split each SurveyJS pack. English is built in.
 const packs = new Map<string, () => Promise<unknown>>([
   ["ar", () => import("survey-core/i18n/arabic")],
@@ -59,15 +61,33 @@ const packs = new Map<string, () => Promise<unknown>>([
 export async function loadSurveyLocalePacks(locales: Iterable<string>) {
   const codes = new Set<string>();
   for (const locale of locales) {
-    const tag = locale.toLowerCase();
-    codes.add(tag);
+    codes.add(locale);
     // SurveyJS falls back per string, even when the regional pack exists.
-    codes.add(tag.split("-")[0]);
+    codes.add(locale.split("-")[0]);
   }
   const pending: Promise<unknown>[] = [];
-  for (const code of codes) {
+  const catalogCodes = new Set(Array.from(codes, (tag) => tag.toLowerCase()));
+  for (const code of catalogCodes) {
     const load = packs.get(code);
     if (load) pending.push(load());
   }
   await Promise.all(pending);
+  for (const code of new Set([...codes, ...catalogCodes]))
+    aliasPackForAuthoredLocale(code);
+}
+
+function aliasPackForAuthoredLocale(locale: string) {
+  const registry = surveyLocalization.locales;
+  if (Object.hasOwn(registry, locale)) return;
+  const tag = locale.toLowerCase();
+  const registered = Object.keys(registry).find(
+    (key) => key.toLowerCase() === tag,
+  );
+  if (!registered) return;
+  // Exact lookup serves controls; enumeration (e.g. Creator's picker) stays unchanged.
+  Object.defineProperty(registry, locale, {
+    configurable: true,
+    writable: true,
+    value: registry[registered],
+  });
 }
