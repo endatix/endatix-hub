@@ -25,6 +25,13 @@ it("registers the definition language and translated question language only", as
   ).toEqual(["de", "pt-br"]);
 });
 
+it("renders regional French controls from the base pack on first use", async () => {
+  const model = await createLocalizedModel({ locale: "fr-CA" });
+
+  expect(model.locale).toBe("fr-CA");
+  expect(model.pageNextText).toBe("Suivant");
+});
+
 it.each(["en", "zz"])(
   "renders %s with built-in English and no additional pack",
   async (locale) => {

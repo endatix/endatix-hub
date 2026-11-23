@@ -57,5 +57,7 @@ const packs = new Map<string, () => Promise<unknown>>([
 ]);
 
 export function loadSurveyLocalePack(locale: string) {
-  return packs.get(locale.toLowerCase())?.();
+  const tag = locale.toLowerCase();
+  const load = packs.get(tag) ?? packs.get(tag.split("-")[0]);
+  return load?.();
 }
