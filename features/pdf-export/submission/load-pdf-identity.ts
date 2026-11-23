@@ -32,17 +32,27 @@ async function optionalAsset<T>(
 function canReadFormLogo(source: string) {
   if (source.startsWith("data:image/")) return true;
   const storage = getClientStorageConfig();
-  if (
-    source.startsWith(`${storage.protocol}://`) &&
-    parseStorageObjectUrl(source, storage)?.containerType === "CONTENT"
-  )
-    return true;
+  const url = URL.parse(source);
+  if (!url) return false;
+  const storageOrigin = URL.parse(`${storage.protocol}://${storage.hostName}`);
+  if (storageOrigin && hostname(url) === hostname(storageOrigin)) {
+    return (
+      url.origin === storageOrigin.origin &&
+      !url.username &&
+      !url.password &&
+      parseStorageObjectUrl(source, storage)?.containerType === "CONTENT"
+    );
+  }
   return (
     decideImageSource(source, {
       allowedHosts: collectRichTextImageHosts([]),
       ownOrigin: getMetadataBase().origin,
     }).kind === "keep"
   );
+}
+
+function hostname(url: URL) {
+  return url.hostname.toLowerCase().replace(/\.$/, "");
 }
 
 async function readFormLogo(source: string, signal: AbortSignal) {

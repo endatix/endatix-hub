@@ -1,6 +1,6 @@
 import "server-only";
 
-import { readdirSync, statSync } from "node:fs";
+import { readdir, stat } from "node:fs/promises";
 import { TelemetryLogger } from "@/features/telemetry";
 import { envFlagName } from "@/lib/feature-flags/factories/environment-flag-factory";
 import { shouldUsePostHogFlags } from "@/lib/feature-flags/factories/posthog-flag-settings";
@@ -29,12 +29,12 @@ let checkedFingerprint: string | null = null;
  * when brand.json or a file it names changes. A change that does not validate
  * keeps the last good pack and logs the field paths; with no good pack yet, it throws.
  */
-export function loadDeploymentPack(): LoadedBrandPack | null {
+async function loadDeploymentPack(): Promise<LoadedBrandPack | null> {
   const dir = process.env[BRAND_DIR_ENV]?.trim();
   if (!dir) return null;
 
   const known = snapshot?.dir === dir ? snapshot.loaded.files.keys() : [];
-  const stamp = stampOf(dir, [...known]);
+  const stamp = await stampOf(dir, [...known]);
   if (snapshot?.dir === dir && snapshot.stamp === stamp) return snapshot.loaded;
   return reload(dir, stamp);
 }
@@ -43,9 +43,9 @@ export function loadDeploymentPack(): LoadedBrandPack | null {
  * `stamp` was taken before the read, so a change during the read leaves the
  * stored stamp behind the mount, and the next request reads again.
  */
-function reload(dir: string, stamp: string): LoadedBrandPack {
+async function reload(dir: string, stamp: string): Promise<LoadedBrandPack> {
   try {
-    const loaded = readBrandPack(dir);
+    const loaded = await readBrandPack(dir);
     snapshot = { dir, stamp, loaded };
     return loaded;
   } catch (error) {
@@ -64,13 +64,13 @@ function reload(dir: string, stamp: string): LoadedBrandPack {
  * As `loadDeploymentPack`, for request time: never throws. A pack that has
  * never validated gives null (the built-in brand) and is reported once.
  */
-export function currentDeploymentPack(): LoadedBrandPack | null {
+async function readCurrentPack(): Promise<LoadedBrandPack | null> {
   try {
-    const loaded = loadDeploymentPack();
+    const loaded = await loadDeploymentPack();
     if (loaded) warnAboutContrast(loaded);
     return loaded;
   } catch (error) {
-    const stamp = stampOf(process.env[BRAND_DIR_ENV]?.trim() ?? "", []);
+    const stamp = await stampOf(process.env[BRAND_DIR_ENV]?.trim() ?? "", []);
     if (stamp !== failedStamp) {
       failedStamp = stamp;
       report("Brand pack not applied; serving the built-in brand", error);
@@ -86,9 +86,18 @@ export function currentDeploymentPack(): LoadedBrandPack | null {
  * on. With the env flag off the pack is ignored: a problem is reported, and the
  * Hub starts on the built-in brand.
  */
-export function assertBrandPackAtStartup(): void {
-  if (whiteLabelingMayBeOn()) loadDeploymentPack();
-  else currentDeploymentPack();
+export async function assertBrandPackAtStartup(): Promise<void> {
+  if (whiteLabelingMayBeOn()) await loadDeploymentPack();
+  else await currentDeploymentPack();
+}
+
+/** The mount is process-wide. Overlapping requests share a refresh, never a flag decision. */
+let pending: Promise<LoadedBrandPack | null> | undefined;
+export function currentDeploymentPack() {
+  pending ??= readCurrentPack().finally(() => {
+    pending = undefined;
+  });
+  return pending;
 }
 
 function whiteLabelingMayBeOn(): boolean {
@@ -119,24 +128,26 @@ function warnAboutContrast(loaded: LoadedBrandPack): void {
  * The folder listing (so adding a file a rejected brand.json named counts as a
  * change) and the identity of brand.json and each file the last good pack names.
  */
-function stampOf(dir: string, files: readonly string[]): string {
-  return [listing(dir), BRAND_FILE, ...files]
-    .map((file) => {
-      try {
-        const stat = statSync(path.join(dir, file));
-        return `${file}:${stat.ino}:${stat.size}:${stat.mtimeMs}:${stat.ctimeMs}`;
-      } catch {
-        return `${file}:missing`;
-      }
-    })
-    .join("|");
+async function fileStamp(dir: string, file: string) {
+  try {
+    const info = await stat(path.join(dir, file));
+    return `${file}:${info.ino}:${info.size}:${info.mtimeMs}:${info.ctimeMs}`;
+  } catch {
+    return `${file}:missing`;
+  }
 }
 
-function listing(dir: string): string {
+async function stampOf(dir: string, files: readonly string[]) {
+  const parts = await Promise.all([
+    listing(dir),
+    ...[BRAND_FILE, ...files].map((file) => fileStamp(dir, file)),
+  ]);
+  return parts.join("|");
+}
+
+async function listing(dir: string): Promise<string> {
   try {
-    return readdirSync(dir)
-      .sort((a, b) => a.localeCompare(b))
-      .join(",");
+    return (await readdir(dir)).sort((a, b) => a.localeCompare(b)).join(",");
   } catch {
     return "";
   }

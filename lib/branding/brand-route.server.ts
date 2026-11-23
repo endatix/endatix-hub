@@ -99,7 +99,7 @@ async function packFileResponse(
 }
 
 async function readPackFile(pack: LoadedBrandPack, name: string) {
-  const file = locatePackFile(pack.dir, name);
+  const file = await locatePackFile(pack.dir, name);
   if (typeof file !== "string") return null;
   return readFile(file).catch(() => null);
 }

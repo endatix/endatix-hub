@@ -49,7 +49,7 @@ function packIconPng(bytes: Buffer) {
 async function readPackLogo(pack: LoadedBrandPack, signal: AbortSignal) {
   const name = pack.pack.assets?.logo?.light;
   if (!name) return;
-  const file = locatePackFile(pack.dir, name);
+  const file = await locatePackFile(pack.dir, name);
   if (typeof file !== "string") throw new Error("Pack logo unavailable");
   const bytes = await readFile(file, { signal });
   return name.toLowerCase().endsWith(".ico")

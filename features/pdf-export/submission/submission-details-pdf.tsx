@@ -64,7 +64,7 @@ export const SubmissionDetailsPdf = ({
   );
 };
 
-function PdfAnswers({ model }: { model: Model }) {
+function PdfAnswers({ model }: { readonly model: Model }) {
   const { body } = currentPdfStyles();
   const questions = model
     .getAllQuestions(false, false, false)

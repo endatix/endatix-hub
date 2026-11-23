@@ -34,6 +34,7 @@ beforeEach(() => {
   vi.mocked(whiteLabelingFlag).mockResolvedValue(true);
 });
 afterEach(() => {
+  vi.mocked(readFile).mockReset();
   vi.useRealTimers();
 });
 
@@ -170,6 +171,24 @@ it("reads an allowlisted external logo without following redirects", async () =>
   );
 });
 
+it("reserves the configured storage host for content even when it is listed as a remote host", async () => {
+  // Arrange
+  await mountLogo();
+  vi.stubEnv("REMOTE_IMAGE_HOSTNAMES", "files.example");
+  const deployment = await resolve();
+  const read = vi.fn();
+  vi.stubGlobal("fetch", read);
+
+  // Act & Assert
+  expect(await resolve("https://files.example/files/example.png")).toEqual(
+    deployment,
+  );
+  expect(await resolve("https://files.example/other/example.png")).toEqual(
+    deployment,
+  );
+  expect(read).not.toHaveBeenCalled();
+});
+
 it("drops the whole identity when a previously mounted logo disappears", async () => {
   // Arrange
   await mountLogo();
@@ -185,10 +204,21 @@ it("abandons a stalled pack asset early on a short render deadline", async () =>
   await mountLogo();
   vi.useFakeTimers();
   vi.stubEnv("PDF_RENDER_TIMEOUT_SECONDS", "1");
-  vi.mocked(readFile).mockReturnValueOnce(new Promise(() => {}));
+  const entered = Promise.withResolvers<void>();
+  const { readFile: actualRead } =
+    await vi.importActual<typeof import("node:fs/promises")>(
+      "node:fs/promises",
+    );
+  vi.mocked(readFile).mockImplementation((path, options) => {
+    if (!(typeof options === "object" && options?.signal))
+      return actualRead(path, options);
+    entered.resolve();
+    return new Promise(() => {});
+  });
 
   // Act
   const result = resolve();
+  await entered.promise;
   await vi.advanceTimersByTimeAsync(125);
 
   // Assert

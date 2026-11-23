@@ -50,7 +50,7 @@ async function validate(dir) {
   const branding = await loadBranding();
   let loaded;
   try {
-    loaded = branding.readBrandPack(path.resolve(dir));
+    loaded = await branding.readBrandPack(path.resolve(dir));
   } catch (error) {
     if (!(error instanceof Error) || error.name !== "BrandPackError")
       throw error;
