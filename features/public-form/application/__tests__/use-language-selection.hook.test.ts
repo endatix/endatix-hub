@@ -2,7 +2,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { SurveyModel } from "survey-core";
-import { useLanguageSelection } from "../use-language-selection.hook";
+import {
+  initializeRespondentLanguage,
+  useLanguageSelection,
+} from "../use-language-selection.hook";
+import { createLocalizedModel } from "@/lib/localization/create-localized-model";
 
 vi.mock("survey-core", async () => {
   const actual = await vi.importActual("survey-core");
@@ -45,6 +49,23 @@ describe("useLanguageSelection", () => {
   });
 
   describe("initialization", () => {
+    it("applies a saved translation before SurveyJS renders the first page", async () => {
+      // Arrange
+      mockLocalStorage.getItem.mockReturnValue("fr");
+      const model = await createLocalizedModel({
+        elements: [
+          { type: "text", name: "name", title: { default: "Name", fr: "Nom" } },
+        ],
+      });
+
+      // Act
+      initializeRespondentLanguage(model);
+
+      // Assert
+      expect(model.pageNextText).toBe("Suivant");
+      expect(model.getQuestionByName("name").title).toBe("Nom");
+    });
+
     it("uses catalog default when no survey model", () => {
       const { result } = renderHook(() =>
         useLanguageSelection({

@@ -21,6 +21,7 @@ interface UseSurveyModelProps {
   definition: string;
   submission?: Submission;
   customQuestions?: string[];
+  initializeLanguage?: (model: Model) => void;
   onModelCreated?: (model: Model) => void;
   formRuntime?: FormRuntimeContextValue;
 }
@@ -29,6 +30,7 @@ export function useSurveyModel({
   formId,
   definition,
   customQuestions,
+  initializeLanguage,
   submission,
   onModelCreated,
   formRuntime,
@@ -100,6 +102,7 @@ export function useSurveyModel({
         const initialSubmission = submissionRef.current;
         restoreSubmission(model, initialSubmission, setError);
         unbindQuestionLoops = bindQuestionLoops(model);
+        initializeLanguage?.(model);
         onModelCreated?.(model);
         processSearchParams(model);
         applyPersonalizationToModel(model, initialSubmission?.personalization);
@@ -124,6 +127,7 @@ export function useSurveyModel({
     cleanupUrl,
     submissionRef,
     onModelCreated,
+    initializeLanguage,
     initAnyAnsweredGlobals,
     initQuestionLoopsGlobals,
     bindQuestionLoops,

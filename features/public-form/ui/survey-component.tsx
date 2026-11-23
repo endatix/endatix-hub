@@ -46,6 +46,7 @@ import {
   useSubmissionQueue,
 } from "../application/submission-queue";
 import { LanguageSelector } from "./language-selector";
+import { initializeRespondentLanguage } from "../application/use-language-selection.hook";
 import styles from "./survey-component.module.css";
 import { useSurveyModel } from "./use-survey-model.hook";
 import { useSurveyTheme } from "./use-survey-theme.hook";
@@ -102,6 +103,7 @@ export default function SurveyComponent({
     definition,
     submission,
     customQuestions,
+    initializeLanguage: initializeRespondentLanguage,
     onModelCreated,
     formRuntime,
   });
@@ -232,9 +234,7 @@ export default function SurveyComponent({
     onOpened: (opened) => handleSubmissionIdChange(opened.submissionId),
   });
 
-  const surveyLocales = useMemo(() => {
-    return surveyModel?.getUsedLocales() ?? [];
-  }, [surveyModel]);
+  const surveyLocales = useMemo(() => surveyModel?.getUsedLocales() ?? [], [surveyModel]);
 
   const trackPartialChange = useCallback(
     (sender: SurveyModel, _event: PartialUpdateEvent) => {

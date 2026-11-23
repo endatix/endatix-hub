@@ -1,4 +1,4 @@
-import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SurveyModel } from "survey-core";
 import {
   DEFAULT_CATALOG_LOCALE,
@@ -49,8 +49,8 @@ export function useLanguageSelection({
   );
   const initializedForModelRef = useRef<SurveyModel | null>(null);
 
-  const applyCatalogLocale = useCallback(
-    (newLocale: string, persist: boolean) => {
+  const changeLocale = useCallback(
+    (newLocale: string) => {
       const catalogLocale = fromSurveyModelLocale(newLocale);
       if (!surveyModel || !catalogLocales.includes(catalogLocale)) {
         return;
@@ -63,21 +63,12 @@ export function useLanguageSelection({
         // so reading `surveyModel.locale` again is stable.
         surveyDefaultLocale(surveyModel.locale, catalogLocales),
       );
-      if (persist) {
-        localStorage.setItem(STORAGE_KEY, catalogLocale);
-      }
+      localStorage.setItem(STORAGE_KEY, catalogLocale);
     },
     [surveyModel, catalogLocales],
   );
 
-  const changeLocale = useCallback(
-    (newLocale: string) => {
-      applyCatalogLocale(newLocale, true);
-    },
-    [applyCatalogLocale],
-  );
-
-  useLayoutEffect(() => {
+  useEffect(() => {
     if (!surveyModel || catalogLocales.length === 0) {
       return;
     }
@@ -87,14 +78,14 @@ export function useLanguageSelection({
     }
     initializedForModelRef.current = surveyModel;
 
-    const localeToSelect = resolveInitialCatalogLocale(catalogLocales, {
-      preselectedLocale,
-      savedLocale: localStorage.getItem(STORAGE_KEY),
-      surveyLocale: surveyModel.locale,
-    });
-
-    applyCatalogLocale(localeToSelect, false);
-  }, [surveyModel, catalogLocales, preselectedLocale, applyCatalogLocale]);
+    setCurrentLocale(
+      initializeRespondentLanguage(
+        surveyModel,
+        catalogLocales,
+        preselectedLocale,
+      ),
+    );
+  }, [surveyModel, catalogLocales, preselectedLocale]);
 
   const languageOptions = useMemo(
     () => catalogLocales.map((locale) => toLanguageOption(locale)),
@@ -120,6 +111,25 @@ function toLanguageOption(catalogLocale: string) {
     value: catalogLocale,
     label: catalogLocaleDisplayName(catalogLocale),
   };
+}
+
+export function initializeRespondentLanguage(
+  model: SurveyModel,
+  catalogLocales = toCatalogLocales(model.getUsedLocales()),
+  preselectedLocale?: string,
+): string {
+  const locale = resolveInitialCatalogLocale(catalogLocales, {
+    preselectedLocale,
+    savedLocale: localStorage.getItem(STORAGE_KEY),
+    surveyLocale: model.locale,
+  });
+  if (catalogLocales.includes(locale)) {
+    model.locale = toSurveyModelLocale(
+      locale,
+      surveyDefaultLocale(model.locale, catalogLocales),
+    );
+  }
+  return locale;
 }
 
 /** Returns the catalog form of `candidate` when it is available; otherwise undefined. */
