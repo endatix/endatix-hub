@@ -27,10 +27,7 @@ function logApiError<T>(
   properties: Record<string, unknown>,
 ): ApiResult<T> {
   if (ApiResult.isError(result)) {
-    const postHog = getPostHog();
-    if (postHog) {
-      postHog.captureException(result.error, "", properties);
-    }
+    getPostHog()?.captureException(result.error, { properties });
   }
 
   return result;

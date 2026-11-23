@@ -146,6 +146,12 @@ function DataComponent() {
 
 ## Server-Side Usage
 
+**Before rolling out PostHog Node 6 with an absolute custom `POSTHOG_HOST`, verify the proxy on that host.** A relative `/ingest` uses the direct ingestion host on the server. An absolute URL also routes server events and exceptions through that URL.
+
+Forward `POST /i/v1/analytics/events` with the request body intact, including compressed bodies. Preserve the project token in `Authorization: Bearer …`, all `PostHog-*` headers, `Content-Type`, `Content-Encoding`, and `User-Agent`. Use `POSTHOG_PROJECT_TOKEN` for capture; `POSTHOG_PERSONAL_API_KEY` is for reads.
+
+Return the upstream status and response body unchanged. A proxy-generated `200` without the upstream `results` object fails the batch, even when the SDK's `flush()` resolves. Verify receipt of a synthetic event before rollout. See the [Node SDK proxy migration guide](https://github.com/PostHog/posthog-js/blob/5b30078144d668e6dd3a2839cfdf734a1ecacc60/packages/node/MIGRATION.md#prepare-your-proxy).
+
 ### Tracking in Server Components/Actions
 
 ```tsx
