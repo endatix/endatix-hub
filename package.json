@@ -120,7 +120,7 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-sonarjs": "^4.2.2",
     "eslint-plugin-testing-library": "^7.16.2",
-    "eslint-plugin-unicorn": "^79.0.0",
+    "eslint-plugin-unicorn": "^80.0.0",
     "jsdom": "^31.0.1",
     "postcss": "^8.5.33",
     "prettier-plugin-tailwindcss": "^0.8.1",
