@@ -111,7 +111,7 @@ const FileDetails = ({
           </Text>
         ) : null}
         {file.pdfLink ? (
-          <Link src={file.pdfLink} style={styles.fileLink}>
+          <Link src={file.pdfLink} style={[styles.fileLink, currentPdfStyles().text]}>
             Open file
           </Link>
         ) : null}

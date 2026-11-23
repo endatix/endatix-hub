@@ -36,6 +36,30 @@ it("reads the theme delivered with the submission, including SurveyJS colour ref
 });
 
 it.each([
+  ["var( --ink_2-a )", "#112233"],
+  ["var(--missing, var(--other, rgba(255, 0, 0, 0.5)))", "#ff000080"],
+  ["var(--ink_2-a, )", "#112233"],
+  ["var(--ink_2-a,)", undefined],
+  ["var(--ink_2-a, red\nblue)", undefined],
+  ["var(--ink 2-a, #456)", undefined],
+  ["var(--missing, #456", undefined],
+  ["var(--loop)", undefined],
+  ["var(--missing, #456)".padEnd(257), undefined],
+])("resolves only supported variable references: %s", (reference, expected) => {
+  // Arrange
+  const themeModel = JSON.stringify({
+    cssVariables: {
+      "--sjs-general-forecolor": reference,
+      "--ink_2-a": "#123",
+      "--loop": "var(--loop)",
+    },
+  });
+
+  // Act & Assert
+  expect(formThemeToPdfLayer({ themeModel }).text).toBe(expected);
+});
+
+it.each([
   undefined,
   "",
   "null",

@@ -3,10 +3,12 @@ import { beforeEach, expect, it, vi } from "vitest";
 import { Result } from "@/lib/result";
 import { PdfThemeSwitch } from "../pdf-theme-switch";
 import { savePdfSettings } from "../save-pdf-settings.action";
+import { reloadPage } from "@/lib/utils/reload-page";
 
 const { refresh } = vi.hoisted(() => ({ refresh: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
 vi.mock("../save-pdf-settings.action", () => ({ savePdfSettings: vi.fn() }));
+vi.mock("@/lib/utils/reload-page", () => ({ reloadPage: vi.fn() }));
 
 const settings = { version: "0", pdf: { usesFormTheme: false } };
 
@@ -56,4 +58,40 @@ it("reads the saved settings again after a successful change", async () => {
   // Assert
   await waitFor(() => expect(refresh).toHaveBeenCalledOnce());
   expect(screen.queryByRole("alert")).toBeNull();
+});
+
+it("requires a fresh settings page after losing the save response", async () => {
+  // Arrange
+  vi.mocked(savePdfSettings).mockRejectedValueOnce(
+    new TypeError("Network error"),
+  );
+  const view = render(<PdfThemeSwitch formId="42" settings={settings} />);
+  const toggle = screen.getByRole("switch");
+
+  // Act
+  fireEvent.click(toggle);
+  expect((await screen.findByRole("alert")).textContent).toContain(
+    "Could not confirm the save",
+  );
+  expect(toggle.hasAttribute("disabled")).toBe(true);
+  fireEvent.click(toggle);
+  fireEvent.click(screen.getByRole("button", { name: "Reload settings" }));
+
+  // Assert: no replay; after reload, the committed value and version govern the next write.
+  expect(savePdfSettings).toHaveBeenCalledTimes(1);
+  expect(reloadPage).toHaveBeenCalledOnce();
+  view.unmount();
+  render(
+    <PdfThemeSwitch
+      formId="42"
+      settings={{ version: "1", pdf: { usesFormTheme: true } }}
+    />,
+  );
+  expect(screen.getByRole("switch").getAttribute("aria-checked")).toBe("true");
+  fireEvent.click(screen.getByRole("switch"));
+  await waitFor(() => expect(refresh).toHaveBeenCalledOnce());
+  expect(savePdfSettings).toHaveBeenLastCalledWith("42", {
+    version: "1",
+    pdf: { usesFormTheme: false },
+  });
 });

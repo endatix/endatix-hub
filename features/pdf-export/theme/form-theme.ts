@@ -35,16 +35,32 @@ export type PdfBodyLayer = Partial<
 > & { radius?: number };
 type Variables = Record<string, unknown>;
 
+function variableReference(token: string) {
+  if (!token.startsWith("var(") || !token.endsWith(")")) return;
+  const args = token.slice(4, -1);
+  const comma = args.indexOf(",");
+  const name = (comma < 0 ? args : args.slice(0, comma)).trim();
+  if (!/^--[\w-]+$/.test(name)) return;
+  if (comma < 0) return { name };
+
+  const rest = args.slice(comma + 1);
+  // Leading whitespace is allowed, but the fallback must contain at least
+  // one character and cannot span lines.
+  const fallback = rest.trimStart() || rest.slice(-1);
+  if (!fallback || /[\r\n\u2028\u2029]/.test(fallback)) return;
+  return { name, fallback };
+}
+
 function literal(
   value: unknown,
   vars: Variables,
   depth = 0,
 ): string | undefined {
   if (typeof value !== "string" || value.length > 256 || depth > 4) return;
-  const ref = /^var\(\s*(--[\w-]+)\s*(?:,\s*(.+))?\)$/.exec(value.trim());
+  const ref = variableReference(value.trim());
   if (!ref) return value.trim();
   return (
-    literal(vars[ref[1]], vars, depth + 1) ?? literal(ref[2], vars, depth + 1)
+    literal(vars[ref.name], vars, depth + 1) ?? literal(ref.fallback, vars, depth + 1)
   );
 }
 
