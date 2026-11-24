@@ -1,8 +1,5 @@
-/**
- * A4 (595pt) minus the page padding (20) and the answers section padding (8).
- * Image rows use this so they line up with the question text.
- */
-export const PDF_IMAGE_ROW_WIDTH = 539;
+import { PDF_ANSWER_WIDTH } from "./pdf-styles";
+export const PDF_IMAGE_ROW_WIDTH = PDF_ANSWER_WIDTH;
 const GAP = 8;
 /** Keeps a portrait from filling the page, so the name under it stays in view. */
 const MAX_ROW_HEIGHT = 200;
