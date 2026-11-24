@@ -15,6 +15,7 @@ export function withPdfStyles<T>(
   render: () => T,
   deploymentAccent?: string,
 ): T {
+  // Delivery means the form owns the body, even when none of its tokens can be printed.
   const styles = definition?.themeModel == null
     ? createPdfStyles({}, deploymentAccent ?? builtInAccent)
     : createPdfStyles(formThemeToPdfLayer(definition));

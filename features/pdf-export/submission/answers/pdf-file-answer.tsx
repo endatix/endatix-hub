@@ -4,6 +4,7 @@ import { PDF_IMAGE_CAPTION_HEIGHT, PdfFileViewer } from "../pdf-file-viewer";
 import { packPdfImageRows } from "../pack-pdf-image-rows";
 import { Question, QuestionFileModel } from "survey-core";
 import { FileType, getFileType, IFile } from "@/lib/questions/file/file-type";
+import { currentPdfStyles } from "../../theme/pdf-theme-context";
 interface FileAnswerProps {
   question: QuestionFileModel;
 }
@@ -76,7 +77,7 @@ export function PdfFileAnswer({
             </View>
           ))}
           {files.some((file) => file.pdfLinkIsTemporary) ? (
-            <Text style={styles.temporaryLinksNote}>
+            <Text style={[styles.temporaryLinksNote, currentPdfStyles().muted]}>
               File links in this PDF are temporary and stop working shortly
               after it was exported.
             </Text>
@@ -111,7 +112,6 @@ const styles = StyleSheet.create({
   },
   noFiles: {
     fontSize: 12,
-    color: "gray",
   },
   filesContainer: {
     display: "flex",
@@ -130,7 +130,6 @@ const styles = StyleSheet.create({
   },
   temporaryLinksNote: {
     fontSize: 8,
-    color: "#71717a",
   },
 });
 

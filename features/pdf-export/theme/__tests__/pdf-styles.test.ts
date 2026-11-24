@@ -44,6 +44,27 @@ it("reads a translucent heading against the paper beneath it", () => {
   expect(table.tableCellHeader.color).toBe("#000000");
 });
 
+it("preserves readable translucent form ink over the actual header", () => {
+  const { table } = createPdfStyles({ text: "#ffffff80", tableHeaderBackground: "#000000" });
+  expect(table.tableCellHeader.color).toBe("#808080");
+});
+
+it("keeps authored label ink only if it passes on the emitted tint", () => {
+  const { table } = createPdfStyles({ accent: "#4d65b7" });
+  const { color, backgroundColor } = table.fieldLabel;
+  expect(contrastRatio(parseCssColor(color)!, parseCssColor(backgroundColor)!)).toBeGreaterThanOrEqual(4.5);
+});
+
+it("uses the form's readable text for note headings without a form accent", () => {
+  expect(createPdfStyles({ text: "#123456" }).table.noteHeading.color).toBe("#123456");
+});
+
+it("retains a visible band and tint when a deployment chooses pure white", () => {
+  const { table } = createPdfStyles({}, "#ffffff");
+  expect(table.tableHeader.backgroundColor).not.toBe("#ffffff");
+  expect(table.fieldLabel.backgroundColor).not.toBe(table.tableHeader.backgroundColor);
+});
+
 it("reads section titles and properties on opposite paper and panel surfaces", () => {
   // Arrange & Act
   const { body, properties } = createPdfStyles({

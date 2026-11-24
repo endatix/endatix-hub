@@ -43,6 +43,7 @@ export function createPdfStyles(t: PdfBodyLayer, deploymentAccent?: string) {
   return {
     page: { ...text, ...(t.pageBackground && { backgroundColor: t.pageBackground }) },
     text,
+    link: { color: colors.page.heading },
     muted: { color: colors.page.caption },
     divider: { borderBottomColor: t.border ?? colors.rule },
     panel: { backgroundColor: colors.panel, ...(t.radius !== undefined && { borderRadius: t.radius }) },

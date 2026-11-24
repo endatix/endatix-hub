@@ -22,7 +22,6 @@ const styles = StyleSheet.create({
   noPanelsText: {
     fontFamily: "Roboto",
     fontSize: 12,
-    color: "gray",
   },
 });
 

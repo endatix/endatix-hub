@@ -14,13 +14,23 @@ function painted(hex: string | undefined, backdrop: Rgb) {
 }
 
 function readable(preferred: Rgb, surface: Rgb) {
-  if (contrastRatio(preferred, surface) >= 4.5) return toHex(preferred);
-  return contrastRatio(PAPER, surface) >= contrastRatio(INK, surface) ? "#ffffff" : "#000000";
+  const ink = toHex(preferred);
+  const paper = parseCssColor(toHex(surface))!;
+  if (contrastRatio(parseCssColor(ink)!, paper) >= 4.5) return ink;
+  return contrastRatio(PAPER, paper) >= contrastRatio(INK, paper) ? "#ffffff" : "#000000";
+}
+
+function tableBand(theme: PdfBodyLayer, deploymentAccent?: string) {
+  if (theme.tableHeaderBackground) return theme.tableHeaderBackground;
+  if (theme.accent) return theme.accent;
+  if (!deploymentAccent) return theme.pageBackground ? "transparent" : "#414141";
+  const seed = painted(deploymentAccent, PAPER);
+  return contrastRatio(seed, PAPER) < 1.1 ? toHex(over(INK, seed, 0.16)) : deploymentAccent;
 }
 
 function printSurfaces(theme: PdfBodyLayer, deploymentAccent?: string) {
   const page = painted(theme.pageBackground, PAPER);
-  const band = theme.tableHeaderBackground ?? theme.accent ?? deploymentAccent ?? (theme.pageBackground ? "transparent" : "#414141");
+  const band = tableBand(theme, deploymentAccent);
   const header = painted(band, page);
   const seed = theme.accent ? painted(theme.accent, page) : header;
   const field = over(seed, page, 0.14);
@@ -57,12 +67,13 @@ export function printColors(theme: PdfBodyLayer, deploymentAccent?: string) {
   const s = printSurfaces(theme, deploymentAccent);
   const page = inksOn(theme, s.seed, s.page);
   const properties = inksOn(theme, s.seed, painted(s.panel, s.page));
+  const note = inksOn(theme, s.seed, s.note);
   return {
     page, properties, panel: s.panel, band: s.band,
-    headerInk: readable(painted(theme.text, PAPER), s.header),
+    headerInk: readable(theme.text ? painted(theme.text, s.header) : PAPER, s.header),
     fieldTint: toHex(s.field), fieldInk: inksOn(theme, s.seed, s.field).heading,
-    noteTint: toHex(s.note), noteInk: inksOn(theme, s.seed, s.note).body,
-    noteHeading: headingInk(s.noteHue, s.note),
+    noteTint: toHex(s.note), noteInk: note.body,
+    noteHeading: theme.accent || theme.text ? note.heading : headingInk(s.noteHue, s.note),
     rule: theme.tableBorder ?? toHex(over(s.seed, parseCssColor("#a1a9b2")!, 0.24)),
   };
 }
