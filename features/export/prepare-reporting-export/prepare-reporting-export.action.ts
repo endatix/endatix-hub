@@ -9,9 +9,15 @@ import {
 import { reportingExportFlag } from "@/lib/feature-flags/flags";
 import { EndatixApi } from "@/lib/endatix-api";
 import type { PrepareReportingExportSummary } from "@/lib/endatix-api/reporting/types";
-import { Result } from "@/lib/result";
+import { Result, type Error as ResultError, type Success } from "@/lib/result";
 import { toResult } from "@/lib/result/map-api-result-to-result";
 import { backfillReportingSubmissions } from "../backfill-reporting-submissions.server";
+import {
+  previousSchema,
+  recordPrepareFailure,
+  incompleteBackfill,
+  type PrepareStep,
+} from "./prepare-failure.server";
 
 const LOGGER_NAME = "export.prepare-reporting-export";
 
@@ -20,7 +26,11 @@ export type PrepareReportingExportOptions = {
 };
 
 export type PrepareReportingExportResult =
-  Result<PrepareReportingExportSummary>;
+  | Success<PrepareReportingExportSummary>
+  | (ResultError & {
+      step?: PrepareStep;
+      previousSchema?: ReturnType<typeof previousSchema>;
+    });
 
 type CheckPermission = Awaited<
   ReturnType<typeof authorization>
@@ -66,15 +76,17 @@ export async function prepareReportingExportAction(
 
   const api = new EndatixApi(session?.accessToken);
 
-  const compileResult = await api.reporting.compileSchema(formId, {
+  const compiled = await api.reporting.compileSchema(formId, {
     replace: fullRecompile,
   });
-  if (!compileResult.success) {
-    return toResult(compileResult, {
-      fallbackMessage: "Failed to compile export schema.",
-      logMessage: "Failed to compile export schema.",
-      loggerName: LOGGER_NAME,
-    });
+  const compileResult = toResult(compiled, {
+    fallbackMessage: "Failed to compile export schema.",
+  });
+  if (Result.isError(compileResult)) {
+    return {
+      ...recordPrepareFailure(formId, "compile", compileResult),
+      previousSchema: previousSchema(compiled),
+    };
   }
 
   const backfill = await backfillReportingSubmissions(api, formId, {
@@ -82,18 +94,15 @@ export async function prepareReportingExportAction(
     loggerName: LOGGER_NAME,
   });
   if (Result.isError(backfill)) {
-    return backfill;
+    return recordPrepareFailure(formId, "backfill", backfill);
   }
 
-  const { batches, processed, skipped, failed, finished } = backfill.value;
-  if (!finished) {
-    return Result.error(
-      "Backfill stopped after the safety batch limit. Run prepare again to continue.",
-    );
-  }
+  const failure = incompleteBackfill(backfill.value);
+  if (failure) return recordPrepareFailure(formId, "backfill", failure);
+  const { batches, processed, skipped, failed } = backfill.value;
 
   return Result.success({
-    formDefinitionId: compileResult.data.formDefinitionId,
+    formDefinitionId: compileResult.value.formDefinitionId,
     batches,
     processed,
     skipped,

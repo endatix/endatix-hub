@@ -1,29 +1,15 @@
 "use client";
 
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type RefObject,
-  type SubmitEvent,
-} from "react";
+import { useEffect, useMemo, useRef, useState, type SubmitEvent } from "react";
 import { useTrackEvent } from "@/features/analytics/posthog/client";
-import { prepareReportingExportAction } from "@/features/export/prepare-reporting-export";
+import { usePrepareAttempt } from "./use-prepare-attempt.hook";
 import {
   catalogLocaleCodeLabel,
   catalogLocaleEnglishName,
 } from "@/lib/localization";
 import { Result } from "@/lib/result";
-import {
-  DEFAULT_REPORTING_LOCALE,
-  type SubmissionExportListFilters,
-} from "../export-url";
-import {
-  GENERIC_EXPORT_FAILURE_MESSAGE,
-  isExportSchemaMissingError,
-  SCHEMA_NEEDS_PREPARE_MESSAGE,
-} from "../export-error-message";
+import { DEFAULT_REPORTING_LOCALE } from "../export-url";
+import { GENERIC_EXPORT_FAILURE_MESSAGE } from "../export-error-message";
 import {
   clearCompletedAtRange,
   coerceLocaleToOptions,
@@ -31,8 +17,8 @@ import {
   EMPTY_RANGE_ERRORS,
   hasFilterRangeErrors,
   includesIncompleteSubmissions,
-  pickDefaultExportFormatId,
   resolveDefaultLocale,
+  pickDefaultExportFormatId,
   showsCompletedAtFields,
   showsLocaleField,
   showsSubmissionRowFilters,
@@ -42,14 +28,13 @@ import {
   type ExportFilterRangeErrors,
 } from "./export-dialog-filters";
 import {
+  schemaReadiness,
   formatPrepareOutcome,
   getPhaseDescription,
   isBusyPhase,
   isControlsLocked,
   showsFiltersForm,
-  showsPrepareCta,
-  showsPrepareOptions,
-  showsRebuildEntry,
+  exportDialogControls,
   type ExportDialogPhase,
   type PrepareOutcome,
 } from "./export-dialog-phase";
@@ -58,78 +43,12 @@ import {
   refreshIncompleteSubmissionsAction,
   type IncompleteRefreshOutcome,
 } from "./refresh-incomplete-submissions.action";
+
 import type {
-  TenantExportOption,
-  TenantExportOptionGroup,
-} from "./map-tenant-export-options";
-
-export type ExportDialogSubmitArgs = {
-  formatKey: string;
-  exportName: string;
-  exportFormatId: string;
-  fallbackExtension: string;
-  filters: SubmissionExportListFilters;
-};
-
-export type UseExportDialogArgs = {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  formId: string;
-  groups: TenantExportOptionGroup[];
-  listFilters?: SubmissionExportListFilters;
-  /** The user may edit forms, so may rebuild reporting data from scratch. */
-  canRebuild: boolean;
-  isExporting: boolean;
-  onExport: (
-    args: ExportDialogSubmitArgs,
-  ) => Promise<{ succeeded: boolean; message?: string }>;
-};
-
-export type UseExportDialogResult = {
-  phase: ExportDialogPhase;
-  includingIncomplete: boolean;
-  /** Set after an export that refreshed incomplete submissions first. */
-  incompleteRefresh: IncompleteRefreshOutcome | null;
-  description: string;
-  busy: boolean;
-  controlsLocked: boolean;
-  rebuildMode: boolean;
-  showFiltersForm: boolean;
-  showPrepareCta: boolean;
-  showPrepareOptions: boolean;
-  showRebuildEntry: boolean;
-  showBackToExport: boolean;
-  showExportSubmit: boolean;
-  showGroupLabels: boolean;
-  inlineError: string | null;
-  prepareOutcome: PrepareOutcome | null;
-  fullRecompile: boolean;
-  setFullRecompile: (fullRecompile: boolean) => void;
-  exportFormatId: string;
-  setExportFormatId: (id: string) => void;
-  options: TenantExportOption[];
-  selectedOption: TenantExportOption | undefined;
-  showRowFilters: boolean;
-  showLocaleField: boolean;
-  showCompletedAt: boolean;
-  filterDraft: ExportFilterDraft;
-  rangeErrors: ExportFilterRangeErrors;
-  localeSelectOptions: ReadonlyArray<{ value: string; label: string }>;
-  localeSelectValue: string;
-  exportButtonRef: RefObject<HTMLButtonElement | null>;
-  handleOpenChange: (nextOpen: boolean) => void;
-  enterRebuildMode: () => void;
-  exitRebuildMode: () => void;
-  handlePrepare: () => Promise<void>;
-  handleSubmit: (event: SubmitEvent<HTMLFormElement>) => Promise<void>;
-  patchFilterDraft: (patch: Partial<ExportFilterDraft>) => void;
-  setDateRange: (
-    key: "createdAt" | "modifiedAt" | "startedAt" | "completedAt",
-    side: "from" | "to",
-    value: string,
-  ) => void;
-  setLocale: (locale: string) => void;
-};
+  UseExportDialogArgs,
+  UseExportDialogResult,
+} from "./export-dialog-types";
+export type { ExportDialogSubmitArgs } from "./export-dialog-types";
 
 /** The export panel's state on each open: readiness check, prepare and rebuild, filters, and the download; Rebuild shows only with `canRebuild`. */
 export function useExportDialog({
@@ -156,6 +75,12 @@ export function useExportDialog({
     null,
   );
   const [rebuildMode, setRebuildMode] = useState(false);
+  const {
+    failure: prepareFailure,
+    prepare,
+    lastFailure,
+  } = usePrepareAttempt(formId);
+  const previousDownload = prepareFailure?.previousSchema === "downloadable";
   const [fullRecompile, setFullRecompile] = useState(false);
   const [exportFormatId, setExportFormatId] = useState("");
   const [filterDraft, setFilterDraft] = useState<ExportFilterDraft>(
@@ -212,25 +137,12 @@ export function useExportDialog({
   const applyReadinessResult = (
     result: Awaited<ReturnType<typeof listFormReportingLocalesAction>>,
   ): boolean => {
-    if (Result.isSuccess(result)) {
-      setFormLocales(result.value);
-      setReadinessPassed(true);
-      setPhase("ready");
-      return true;
-    }
-
-    setReadinessPassed(false);
-
-    if (isExportSchemaMissingError(result.message)) {
-      setFormLocales([DEFAULT_REPORTING_LOCALE]);
-      setInlineError(SCHEMA_NEEDS_PREPARE_MESSAGE);
-      setPhase("needsPrepare");
-      return false;
-    }
-
-    setInlineError(result.message || GENERIC_EXPORT_FAILURE_MESSAGE);
-    setPhase("error");
-    return false;
+    const state = schemaReadiness(result);
+    setFormLocales(state.locales);
+    setReadinessPassed(state.phase === "ready");
+    setInlineError(state.message);
+    setPhase(state.phase);
+    return state.phase === "ready";
   };
 
   const refreshReadiness = async (): Promise<boolean> => {
@@ -262,10 +174,9 @@ export function useExportDialog({
     setInlineError(null);
     setPrepareOutcome(null);
 
-    const result = await prepareReportingExportAction(formId, {
-      fullRecompile,
-    });
+    const result = await prepare(fullRecompile);
     if (Result.isError(result)) {
+      setReadinessPassed(false);
       setInlineError(result.message);
       setPhase("error");
       return;
@@ -288,6 +199,7 @@ export function useExportDialog({
       return;
     }
 
+    previousExportFormatIdRef.current = null;
     const currentOptions = optionsRef.current;
     const currentListFilters = listFiltersRef.current;
 
@@ -297,12 +209,19 @@ export function useExportDialog({
     setLocaleDirty(false);
     setIncludingIncomplete(false);
     setIncompleteRefresh(null);
-    previousExportFormatIdRef.current = null;
     setInlineError(null);
     setPrepareOutcome(null);
     setRebuildMode(false);
     setFullRecompile(false);
 
+    const incomplete = lastFailure();
+    if (incomplete) {
+      setRebuildMode(canRebuild);
+      setReadinessPassed(false);
+      setInlineError(incomplete.message);
+      setPhase(prepareFailure ? "error" : "needsPrepare");
+      return;
+    }
     let cancelled = false;
     void (async () => {
       setPhase("checking");
@@ -400,11 +319,15 @@ export function useExportDialog({
     patchFilterDraft({ locale });
   };
 
+  const exportPermitted = (readinessPassed && !rebuildMode) || previousDownload;
+  const refreshDrafts =
+    !previousDownload &&
+    showRowFilters &&
+    includesIncompleteSubmissions(filterDraft.collectionStatus);
   const handleSubmit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!selectedOption || phase === "needsPrepare" || busy) {
+    if (!selectedOption || !exportPermitted || busy || !showsFiltersForm(phase))
       return;
-    }
 
     const nextErrors = validateFilterDraft(filterDraft, {
       showRowFilters,
@@ -422,18 +345,14 @@ export function useExportDialog({
       locale: localeSelectValue,
     });
 
-    const includesIncomplete =
-      showRowFilters &&
-      includesIncompleteSubmissions(filterDraft.collectionStatus);
-
     setPhase("exporting");
     setInlineError(null);
     setPrepareOutcome(null);
-    setIncludingIncomplete(includesIncomplete);
+    setIncludingIncomplete(refreshDrafts);
     setIncompleteRefresh(null);
 
     try {
-      if (includesIncomplete) {
+      if (refreshDrafts) {
         const refresh = await refreshIncompleteSubmissionsAction(formId);
         setIncludingIncomplete(false);
         if (Result.isError(refresh)) {
@@ -472,12 +391,8 @@ export function useExportDialog({
     }
   };
 
-  // Rebuild prepare can fail with a message that is not a "prepare recovery"
-  // export error; keep retry + Back to export available in that case.
-  const prepareCtaVisible =
-    showsPrepareCta(phase, inlineError) || (rebuildMode && phase === "error");
-
   return {
+    prepareFailure,
     phase,
     includingIncomplete,
     incompleteRefresh,
@@ -488,13 +403,14 @@ export function useExportDialog({
     busy,
     controlsLocked,
     rebuildMode,
-    showFiltersForm: showsFiltersForm(phase) && readinessPassed && !rebuildMode,
-    showPrepareCta: prepareCtaVisible,
-    showPrepareOptions: showsPrepareOptions(phase, rebuildMode),
-    showRebuildEntry: canRebuild && showsRebuildEntry(phase),
-    showBackToExport:
-      rebuildMode && (phase === "needsPrepare" || phase === "error"),
-    showExportSubmit: readinessPassed && !prepareCtaVisible && !rebuildMode,
+    ...exportDialogControls(phase, {
+      readinessPassed,
+      rebuildMode,
+      canRebuild,
+      exportPermitted,
+      hasFailure: prepareFailure !== null,
+      inlineError,
+    }),
     showGroupLabels: groups.length > 1,
     inlineError,
     prepareOutcome,

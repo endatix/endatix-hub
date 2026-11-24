@@ -1,4 +1,11 @@
-import { isExportPrepareRecoveryError } from "../export-error-message";
+import { Result } from "@/lib/result";
+import { DEFAULT_REPORTING_LOCALE } from "../export-url";
+import {
+  GENERIC_EXPORT_FAILURE_MESSAGE,
+  SCHEMA_NEEDS_PREPARE_MESSAGE,
+  isExportSchemaMissingError,
+  isExportPrepareRecoveryError,
+} from "../export-error-message";
 
 export type ExportDialogPhase =
   | "checking"
@@ -95,4 +102,50 @@ export function formatPrepareOutcome(result: {
       ? `${counts} Failed submissions are missing from the export until a rebuild succeeds.`
       : `${counts} You can export now.`;
   return { summary, failed: result.failed };
+}
+
+interface ControlState {
+  readinessPassed: boolean;
+  rebuildMode: boolean;
+  canRebuild: boolean;
+  exportPermitted: boolean;
+  hasFailure: boolean;
+  inlineError: string | null;
+}
+
+export function exportDialogControls(
+  phase: ExportDialogPhase,
+  state: ControlState,
+) {
+  const { rebuildMode, readinessPassed, inlineError } = state;
+  const retry = phase === "error" && (rebuildMode || state.hasFailure);
+  const prepare = retry || showsPrepareCta(phase, inlineError);
+  return {
+    showFiltersForm: state.exportPermitted && showsFiltersForm(phase),
+    showPrepareCta: prepare,
+    showPrepareOptions: showsPrepareOptions(phase, rebuildMode),
+    showRebuildEntry: state.canRebuild && showsRebuildEntry(phase),
+    showBackToExport:
+      readinessPassed &&
+      showsPrepareOptions(phase, rebuildMode) &&
+      !isBusyPhase(phase),
+    showExportSubmit: readinessPassed && !prepare && !rebuildMode,
+  };
+}
+
+export function schemaReadiness(result: Result<string[]>) {
+  if (Result.isSuccess(result))
+    return { phase: "ready" as const, locales: result.value, message: null };
+  const locales = [DEFAULT_REPORTING_LOCALE];
+  if (isExportSchemaMissingError(result.message))
+    return {
+      phase: "needsPrepare" as const,
+      locales,
+      message: SCHEMA_NEEDS_PREPARE_MESSAGE,
+    };
+  return {
+    phase: "error" as const,
+    locales,
+    message: result.message || GENERIC_EXPORT_FAILURE_MESSAGE,
+  };
 }

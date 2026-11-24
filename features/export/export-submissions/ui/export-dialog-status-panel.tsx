@@ -3,6 +3,9 @@
 import { PanelSection } from "@/components/common/panel-section";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
+import { TruncatedId } from "@/components/common/truncated-id";
+import type { PrepareFailure } from "../use-prepare-attempt.hook";
+import { Button } from "@/components/ui/button";
 import { SCHEMA_NEEDS_PREPARE_MESSAGE } from "../../export-error-message";
 import {
   CheckCircle2,
@@ -17,6 +20,8 @@ const REBUILD_PREPARE_MESSAGE =
   "Updates the reporting schema and processes submissions that are missing from the reporting data.";
 
 interface ExportDialogStatusPanelProps {
+  prepareFailure: PrepareFailure | null;
+  canDownload: boolean;
   phase: ExportDialogPhase;
   rebuildMode?: boolean;
   inlineError: string | null;
@@ -59,25 +64,25 @@ function describeIncompleteRefresh(
 }
 
 /** One strip for the current step. Progress stays in the header and footer. */
-export function ExportDialogStatusPanel({
-  phase,
-  rebuildMode = false,
-  inlineError,
-  prepareOutcome,
-  incompleteRefresh,
-  exportName,
-}: Readonly<ExportDialogStatusPanelProps>) {
+export function ExportDialogStatusPanel(
+  props: Readonly<ExportDialogStatusPanelProps>,
+) {
+  const { phase, rebuildMode, inlineError, prepareOutcome, prepareFailure } =
+    props;
+  if (phase === "error" && prepareFailure)
+    return (
+      <PrepareFailureAlert
+        failure={prepareFailure}
+        downloadEnabled={props.canDownload}
+        downloadError={inlineError}
+      />
+    );
   if (phase === "checking") {
     return <ExportDialogSkeleton />;
   }
 
   if (phase === "success") {
-    return (
-      <DownloadOutcomeAlert
-        exportName={exportName}
-        incompleteRefresh={incompleteRefresh}
-      />
-    );
+    return <DownloadOutcomeAlert {...props} />;
   }
 
   if (phase === "needsPrepare" || phase === "preparing" || phase === "error") {
@@ -95,6 +100,68 @@ export function ExportDialogStatusPanel({
   }
 
   return null;
+}
+
+const failureTitles = {
+  compile: "Schema compilation failed",
+  backfill: "Submission backfill failed",
+  unconfirmed: "Preparation could not be completed",
+};
+
+interface PrepareFailureAlertProps {
+  failure: PrepareFailure;
+  downloadEnabled: boolean;
+  downloadError: string | null;
+}
+
+function PrepareFailureAlert(props: Readonly<PrepareFailureAlertProps>) {
+  const { failure, downloadError } = props;
+  return (
+    <Alert variant="destructive">
+      <AlertTitle>{failureTitles[failure.step ?? "unconfirmed"]}</AlertTitle>
+      <AlertDescription>
+        <p>{failure.message}</p>
+        {downloadError && downloadError !== failure.message && (
+          <p>Download failed: {downloadError}</p>
+        )}
+        <PreviousSchemaDownload
+          disposition={failure.previousSchema}
+          enabled={props.downloadEnabled}
+        />
+        <SupportReference traceId={failure.traceId} />
+      </AlertDescription>
+    </Alert>
+  );
+}
+
+function SupportReference({ traceId }: Readonly<{ traceId?: string }>) {
+  if (!traceId) return null;
+  return (
+    <div>
+      Support reference{" "}
+      <TruncatedId id={traceId} copyLabel="Copy support reference" />
+    </div>
+  );
+}
+
+function PreviousSchemaDownload({
+  disposition,
+  enabled,
+}: Readonly<{
+  disposition: PrepareFailure["previousSchema"];
+  enabled: boolean;
+}>) {
+  if (!disposition) return null;
+  if (disposition === "retained")
+    return <p>No previous download is available.</p>;
+  return (
+    <>
+      <p>Recent changes may be missing from this download.</p>
+      <Button type="submit" variant="outline" disabled={!enabled}>
+        Download using previous schema
+      </Button>
+    </>
+  );
 }
 
 function DownloadOutcomeAlert({

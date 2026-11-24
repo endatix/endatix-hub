@@ -2,7 +2,7 @@ import "server-only";
 
 import type { EndatixApi } from "@/lib/endatix-api";
 import type { BackfillSubmissionsRequest } from "@/lib/endatix-api/reporting/types";
-import { Result } from "@/lib/result";
+import { Result, type Error as ResultError } from "@/lib/result";
 import { toResult } from "@/lib/result/map-api-result-to-result";
 
 const DEFAULT_BATCH_SIZE = 100;
@@ -16,6 +16,14 @@ export type BackfillRunSummary = {
   /** False when the batch cap stopped the run with submissions still left. */
   finished: boolean;
 };
+
+function interruptedPage(page: ResultError, summary: BackfillRunSummary) {
+  if (!summary.batches) return page;
+  return {
+    ...page,
+    message: `${page.message} Before the interruption: ${summary.processed} processed, ${summary.skipped} skipped, ${summary.failed} failed.`,
+  };
+}
 
 /**
  * Pages through `POST …/submissions/backfill` until the API reports no more
@@ -46,24 +54,23 @@ export async function backfillReportingSubmissions(
       completionScope: options.completionScope,
     });
 
-    if (!backfillResult.success) {
-      return toResult(backfillResult, {
-        fallbackMessage: "Failed to backfill submissions.",
-        logMessage: "Failed to backfill submissions.",
-        loggerName: options.loggerName,
-      });
-    }
+    const page = toResult(backfillResult, {
+      fallbackMessage: "Failed to backfill submissions.",
+      logMessage: "Failed to backfill submissions.",
+      loggerName: options.loggerName,
+    });
+    if (Result.isError(page)) return interruptedPage(page, summary);
 
     summary.batches += 1;
-    summary.processed += backfillResult.data.processed;
-    summary.skipped += backfillResult.data.skipped;
-    summary.failed += backfillResult.data.failed;
+    summary.processed += page.value.processed;
+    summary.skipped += page.value.skipped;
+    summary.failed += page.value.failed;
 
     // Check for the end before the cap, so a run whose last page is batch
     // 100 counts as finished.
-    const next = backfillResult.data.nextAfterSubmissionId;
-    if (!backfillResult.data.hasMore || !next) {
-      summary.finished = true;
+    const next = page.value.nextAfterSubmissionId;
+    if (!page.value.hasMore || !next) {
+      summary.finished = !page.value.hasMore;
       return Result.success(summary);
     }
 

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthorizationResult } from "@/features/auth/authorization/domain/authorization-result";
 import { ApiResult } from "@/lib/endatix-api/shared/api-result";
 import { Result } from "@/lib/result";
+import { mapResponseToApiError } from "@/lib/endatix-api/shared/http-error-mapper";
 import { prepareReportingExportAction } from "../prepare-reporting-export.action";
 
 const mockRequireHubAccess = vi.fn();
@@ -172,14 +173,79 @@ describe("prepareReportingExportAction", () => {
     expect(Result.isSuccess(result)).toBe(true);
   });
 
-  it("maps compile API failures via Result.error", async () => {
+  it("identifies the failed compile and preserves its API support reference", async () => {
+    // Arrange
     mockCompileSchema.mockResolvedValueOnce(
-      ApiResult.serverError("Compile blew up"),
+      ApiResult.networkError("Compile unavailable", { traceId: "api-ref" }),
     );
 
+    // Act
     const result = await prepareReportingExportAction("form-1");
 
-    expect(Result.isError(result)).toBe(true);
+    // Assert
+    expect(result).toMatchObject({ step: "compile", traceId: "api-ref" });
     expect(mockBackfillSubmissions).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["ReportingSchemaAliasConflict", true, "downloadable"],
+    ["ReportingSchemaAliasConflict", false, "retained"],
+    ["ReportingSchemaAliasConflict", "true", "retained"],
+    ["OtherConflict", true, undefined],
+  ])(
+    "checks the rejected compile contract (%s, %s)",
+    async (errorCode, available, expected) => {
+      // Arrange
+      const body = {
+        status: 409,
+        detail: "Column meanings conflict.",
+        errorCode,
+        previousSchemaRetained: true,
+        previousExportAvailable: available,
+      };
+      mockCompileSchema.mockResolvedValueOnce(
+        await mapResponseToApiError(Response.json(body, { status: 409 }), {}),
+      );
+
+      // Act
+      const failure = await prepareReportingExportAction("form-1");
+
+      // Assert
+      expect(failure).toMatchObject({
+        step: "compile",
+        message: body.detail,
+        previousSchema: expected,
+      });
+      expect(mockBackfillSubmissions).not.toHaveBeenCalled();
+    },
+  );
+
+  it("reports completed batches before an interrupted backfill", async () => {
+    // Arrange
+    mockBackfillSubmissions.mockResolvedValueOnce(
+      ApiResult.success({
+        processed: 4,
+        skipped: 1,
+        failed: 0,
+        hasMore: true,
+        nextAfterSubmissionId: "7",
+      }),
+    );
+    mockBackfillSubmissions.mockResolvedValueOnce(
+      ApiResult.networkError("Backfill unavailable"),
+    );
+
+    // Act
+    const failure = await prepareReportingExportAction("100", {
+      fullRecompile: true,
+    });
+
+    // Assert
+    expect(failure).toMatchObject({
+      step: "backfill",
+      message: expect.stringContaining("4 processed, 1 skipped, 0 failed"),
+      traceId: expect.any(String),
+    });
+    expect(failure).not.toHaveProperty("previousSchema");
   });
 });

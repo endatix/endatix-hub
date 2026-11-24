@@ -93,11 +93,8 @@ export function ExportSubmissionsDialog({
 
         <ResponsivePanelBody>
           <ExportDialogStatusPanel
-            phase={dialog.phase}
-            rebuildMode={dialog.rebuildMode}
-            inlineError={dialog.inlineError}
-            prepareOutcome={dialog.prepareOutcome}
-            incompleteRefresh={dialog.incompleteRefresh}
+            {...dialog}
+            canDownload={Boolean(dialog.selectedOption) && !dialog.busy}
             exportName={dialog.selectedOption?.label}
           />
 

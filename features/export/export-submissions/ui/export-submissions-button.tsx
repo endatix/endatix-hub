@@ -56,38 +56,20 @@ function ExportButtonContents({
 
 /** Nothing without `canExport`; otherwise the reporting export panel, or the legacy export menu when the reporting flag is off. */
 export function ExportSubmissionsButton({
-  formId,
-  className,
-  disabled = false,
-  useReportingExport = false,
-  listFilters,
-  statusGroups = [],
   access,
+  useReportingExport,
+  ...props
 }: Readonly<ExportSubmissionsButtonProps>) {
-  if (!access.canExport) {
-    return null;
-  }
-
-  if (useReportingExport) {
+  if (!access.canExport) return null;
+  if (useReportingExport)
     return (
       <ReportingExportSubmissionsButton
-        formId={formId}
-        className={className}
-        disabled={disabled}
-        listFilters={listFilters}
-        statusGroups={statusGroups}
+        key={props.formId}
+        {...props}
         canRebuild={access.canRebuild}
       />
     );
-  }
-
-  return (
-    <LegacyExportSubmissionsButton
-      formId={formId}
-      className={className}
-      disabled={disabled}
-    />
-  );
+  return <LegacyExportSubmissionsButton {...props} />;
 }
 
 function ReportingExportSubmissionsButton({

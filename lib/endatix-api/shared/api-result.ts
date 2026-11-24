@@ -34,6 +34,8 @@ export interface ApiErrorDetails {
   problemMediaType?: string;
   /** The resource a 409 ran into, e.g. the existing submission of `submission_exists`. */
   existingId?: string;
+  previousSchemaRetained?: boolean;
+  previousExportAvailable?: boolean;
   /** Undici/Node `error.cause.code` when `fetch` throws (e.g. ETIMEDOUT). */
   causeCode?: string;
   /** Undici/Node `error.cause.name` when `fetch` throws. */

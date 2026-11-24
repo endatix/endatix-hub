@@ -378,6 +378,7 @@ Element.prototype.scrollIntoView = vi.fn();
 describe("ExportSubmissionsDialog", () => {
   beforeEach(() => {
     latestPanelProps = null;
+    sessionStorage.clear();
     mockListFormReportingLocalesAction.mockResolvedValue(
       Result.success(["default", "es", "fr"]),
     );
@@ -889,36 +890,30 @@ describe("ExportSubmissionsDialog", () => {
     ).toBeNull();
   });
 
-  it("warns when prepare finishes with failed submissions", async () => {
+  it("keeps a partial backfill out of Ready after reopening", async () => {
     mockListFormReportingLocalesAction
       .mockResolvedValueOnce(
         Result.error("Form schema has not been compiled for this form."),
       )
       .mockResolvedValueOnce(Result.success(["default"]));
-    mockPrepareReportingExportAction.mockResolvedValue(
-      Result.success({
-        formDefinitionId: "1",
-        processed: 4,
-        skipped: 0,
-        failed: 2,
-        batches: 1,
-      }),
-    );
-
-    render(<ExportSubmissionsDialog {...createProps()} />);
-    await waitFor(() => {
-      expect(
-        screen.getByRole("button", { name: /prepare for export/i }),
-      ).toBeDefined();
+    mockPrepareReportingExportAction.mockResolvedValue({
+      ...Result.error("4 processed, 0 skipped, 2 failed."),
+      step: "backfill",
+      traceId: "partial-ref",
     });
 
+    const { rerender } = render(<ExportSubmissionsDialog {...createProps()} />);
     fireEvent.click(
-      screen.getByRole("button", { name: /prepare for export/i }),
+      await screen.findByRole("button", { name: /prepare for export/i }),
     );
 
-    await waitForReady();
-    expect(screen.getByText("Ready, with failed submissions")).toBeDefined();
-    expect(screen.getByText(/missing from the export/i)).toBeDefined();
+    await screen.findByText("Submission backfill failed");
+    rerender(<ExportSubmissionsDialog {...createProps({ open: false })} />);
+    rerender(<ExportSubmissionsDialog {...createProps()} />);
+    expect(
+      await screen.findByText("4 processed, 0 skipped, 2 failed."),
+    ).toBeDefined();
+    expect(screen.queryByRole("button", { name: /^export$/i })).toBeNull();
   });
 
   it("does not show prepare CTA in ready when schema is already compiled", async () => {
@@ -1007,10 +1002,12 @@ describe("ExportSubmissionsDialog", () => {
     await waitForReady();
   });
 
-  it("keeps rebuild recovery after prepare failure", async () => {
-    mockPrepareReportingExportAction.mockResolvedValue(
-      Result.error("Reporting service unavailable"),
-    );
+  it("offers a retry and support reference after a destructive rebuild fails", async () => {
+    mockPrepareReportingExportAction.mockResolvedValue({
+      ...Result.error("Reporting service unavailable"),
+      step: "backfill",
+      traceId: "batch-ref",
+    });
     render(<ExportSubmissionsDialog {...createProps()} />);
     await waitForReady();
 
@@ -1024,20 +1021,19 @@ describe("ExportSubmissionsDialog", () => {
     await waitFor(() => {
       expect(screen.getByText("Reporting service unavailable")).toBeDefined();
     });
-    expect(screen.getByText("Export failed")).toBeDefined();
+    expect(screen.getByText("Submission backfill failed")).toBeDefined();
+    expect(
+      screen.getByRole("button", { name: "Copy support reference" }),
+    ).toBeDefined();
     expect(
       screen.getByRole("button", { name: /prepare for export/i }),
     ).toBeDefined();
     expect(
-      screen.getByRole("button", { name: /back to export/i }),
-    ).toBeDefined();
+      screen.queryByRole("button", {
+        name: /back to export|using previous schema/i,
+      }),
+    ).toBeNull();
     expect(screen.getByLabelText(/Full recompile/i)).toBeDefined();
-
-    fireEvent.click(screen.getByRole("button", { name: /back to export/i }));
-
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: /^export$/i })).toBeDefined();
-    });
   });
 
   it("hides full recompile option when schema is missing on open", async () => {
