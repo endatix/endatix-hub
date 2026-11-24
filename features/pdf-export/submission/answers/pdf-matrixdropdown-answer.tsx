@@ -35,36 +35,45 @@ function visibleEntry(
   row: MatrixRow,
   fields: MatrixField[],
 ) {
-  const cells = fields.map((field) => {
+  const cells = new Map<string, string>();
+  for (const field of fields) {
     const cell = row.getCellByColumn(field);
-    return cell?.question?.isVisible ? displayCell(cell) : "";
-  });
+    const value = cell?.question?.isVisible ? displayCell(cell) : "";
+    if (value) cells.set(field.name, value);
+  }
   const text = (template: string) => pdfPlainText(row.getProcessedText(template)).trim();
   const fallback = text(question.getLocalizationString("rowIndexTemplateTitle"));
   const label = text(question.singleInputTitleTemplate) || fallback;
   return { key: String(row.rowIndex), ordinal: row.rowIndex, cells, fallback, label };
 }
 
-function visibleEntries(question: MatrixQuestion, fields: MatrixField[]) {
+function readPage(question: MatrixQuestion, fieldNames: Set<string>) {
+  // SurveyJS evaluates conditional columns when it materializes this page's rows.
+  const rows = question.visibleRows.filter(row => !row.isEmpty);
+  const fields: MatrixField[] = question.visibleColumns;
+  for (const field of fields) fieldNames.add(field.name);
+  return rows.map(row => visibleEntry(question, row, fields))
+    .filter(entry => entry.cells.size > 0);
+}
+
+function readMatrixPages(question: MatrixQuestion) {
+  const fieldNames = new Set<string>();
   const entries: ReturnType<typeof visibleEntry>[] = [];
   const current = question.pageIndex;
   try {
     for (let page = 0; page < Math.max(question.pageCount, 1); page++) {
       question.pageIndex = page;
-      const rows = question.visibleRows.filter((row) => !row.isEmpty);
-      entries.push(...rows.map((row) => visibleEntry(question, row, fields)));
+      entries.push(...readPage(question, fieldNames));
     }
   } finally {
     if (question.pageIndex !== current) question.pageIndex = current;
   }
-  return entries
-    .filter((entry) => entry.cells.some(Boolean))
-    .sort((a, b) => a.ordinal - b.ordinal);
+  const fields = question.columns.filter(field => fieldNames.has(field.name));
+  return { fields, entries: entries.sort((a, b) => a.ordinal - b.ordinal) };
 }
 
 function transposedTable(question: MatrixQuestion) {
-  const fields: MatrixField[] = question.visibleColumns;
-  const entries = visibleEntries(question, fields);
+  const { fields, entries } = readMatrixPages(question);
   if (!entries.length) return null;
   const ambiguous =
     new Set(entries.map((entry) => entry.label)).size !== entries.length;
@@ -72,11 +81,11 @@ function transposedTable(question: MatrixQuestion) {
     key,
     title: ambiguous && label !== fallback ? `${fallback}: ${label}` : label,
   }));
-  const rows = fields.map((field, i) => ({
+  const rows = fields.map(field => ({
     key: field.name,
     label: pdfPlainText(field.title || field.name),
     cells: Object.fromEntries(
-      entries.map((entry) => [entry.key, entry.cells[i]]),
+      entries.map((entry) => [entry.key, entry.cells.get(field.name) ?? ""]),
     ),
   }));
   return { columns, rows };
