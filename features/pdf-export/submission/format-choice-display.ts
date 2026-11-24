@@ -1,24 +1,30 @@
 import type { ItemValue, Question, QuestionMatrixModel } from "survey-core";
 import { pdfPlainText } from "@/lib/utils/pdf-plain-text";
 
+function containsWholeCode(label: string, code: string): boolean {
+  // Only whitespace separates identifiers; punctuation may belong to the code.
+  for (const { index } of label.matchAll(/\S+/gu)) {
+    if (
+      label.startsWith(code, index) &&
+      !/\S/u.test(label.charAt(index + code.length))
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function labelDisplaysCode(label: string, code: string): boolean {
   if (label.includes(`(${code})`)) return true;
   if (/^[A-Z]{2,}$/.test(code) && label === `${code}s`) return true;
 
-  // Only infer a numeric code in plain prose: signs, ranges and decimals
-  // can turn the same digits into a different value.
-  if (/^\d+$/.test(code)) {
+  // A separate sign or range marker can change a number's meaning ("− 1").
+  if (/^[+\-−]?\p{N}/u.test(code)) {
     const words = label.split(/\s+/u);
-    return (
-      words.includes(code) &&
-      words.every((word) => word === code || /^[\p{L}\p{M}]+$/u.test(word))
-    );
+    if (words.some((word) => word !== code && !/^[\p{L}\p{M}]+$/u.test(word)))
+      return false;
   }
-
-  if (!/^[\p{L}\p{M}][\p{L}\p{M}\p{N} ]*$/u.test(code)) return false;
-  return label
-    .split(/[^\p{L}\p{M}\p{N}_ ]+/u)
-    .some((phrase) => ` ${phrase} `.includes(` ${code} `));
+  return containsWholeCode(label, code);
 }
 
 /** Print the stored code alongside its label unless the reader can already see it. */

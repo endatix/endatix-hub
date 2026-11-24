@@ -52,6 +52,10 @@ describe("formatChoiceDisplay", () => {
     ["A+B", "Track (A+B)"],
     ["SPO", "SPOs"],
     ["1", "Tier 1 or higher"],
+    ["AB-12", "Site AB-12"],
+    ["A+", "Blood group A+"],
+    ["−1", "−1 degree"],
+    ["0.1", "0.1 mg"],
   ])("prints %s only once in %s", (code, label) => {
     expect(formatChoiceDisplay(code, label)).toBe(label);
   });
@@ -69,6 +73,8 @@ describe("formatChoiceDisplay", () => {
     ["US", "Contact us", "Contact us (US)"],
     ["01", "Tier 1", "Tier 1 (01)"],
     ["A1", "Site (a1)", "Site (a1) (A1)"],
+    ["AB", "Site AB-12", "Site AB-12 (AB)"],
+    ["A", "Blood group A+", "Blood group A+ (A)"],
   ])("retains the distinct code %s for %s", (code, label, expected) => {
     expect(formatChoiceDisplay(code, label)).toBe(expected);
   });
