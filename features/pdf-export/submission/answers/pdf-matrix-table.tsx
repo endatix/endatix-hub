@@ -23,12 +23,13 @@ interface PdfMatrixTableProps {
 
 const FIXED_COLUMN = { flexGrow: 0, flexShrink: 0, minWidth: 0 };
 
-// A repeated header must leave room for data even if a column title is pages long.
-const MAX_RUNNING_TITLE = 48;
+// Short cells can stay together even if each character is on its own line.
+// Longer content must be free to flow, not held in an unbreakable row or repeated header.
+const MAX_ATOMIC_TEXT_LENGTH = 48;
 
 function columnHeading(column: PdfMatrixTableColumn, index: number) {
   const title = column.title.replaceAll(/\s+/g, " ").trim();
-  return title.length <= MAX_RUNNING_TITLE
+  return title.length <= MAX_ATOMIC_TEXT_LENGTH
     ? { key: column.key, title, description: undefined }
     : {
         key: column.key,
@@ -115,8 +116,11 @@ interface RowProps {
 
 function DataRow({ row, columns, width }: RowProps) {
   const { table } = currentPdfStyles();
+  const wrap = [row.label, ...Object.values(row.cells)].some(
+    (text) => text.length > MAX_ATOMIC_TEXT_LENGTH,
+  );
   return (
-    <View style={table.tableRow}>
+    <View style={table.tableRow} wrap={wrap}>
       <View style={cellStyle(MATRIX_LABEL_COLUMN_WIDTH)}>
         <Text>{row.label}</Text>
       </View>
