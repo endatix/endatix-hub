@@ -6,8 +6,9 @@ import "../submission-details-pdf";
 import { loadMatrixFonts } from "../answers/matrix-print-bands";
 import PdfMatrixDropdownAnswer from "../answers/pdf-matrixdropdown-answer";
 import { FullWidthNote } from "../answers/pdf-transposed-matrix";
+import { currentPdfStyles, withPdfStyles } from "../../theme/pdf-theme-context";
 
-type Node = { lines?: { string: string }[]; children?: Node[] };
+type Node = { lines?: { string: string }[]; style?: { color?: string }; children?: Node[] };
 function text(node: Node): string[] {
   return (
     node.lines?.map((line) => line.string) ??
@@ -32,7 +33,7 @@ it("keeps a wrapped note heading with its first two answer lines", async () => {
   expect(first).toEqual(expect.arrayContaining(["Trial 0", "Trial 1"]));
 });
 
-async function print(entries: { observation: string }[]) {
+async function printPages(entries: { observation: string }[]) {
   const model = new Model({
     elements: [
       {
@@ -57,15 +58,36 @@ async function print(entries: { observation: string }[]) {
       { onRender },
       el(
         Page,
-        { size: "A4", style: { padding: 28 } },
+        { size: "A4", style: { padding: 28, ...currentPdfStyles().page } },
         el(PdfMatrixDropdownAnswer, { question }),
       ),
     ),
   ).toBlob();
-  return (
-    onRender.mock.lastCall![0]._INTERNAL__LAYOUT__DATA_.children as Node[]
-  ).map((page) => text(page));
+  return onRender.mock.lastCall![0]._INTERNAL__LAYOUT__DATA_.children as Node[];
 }
+
+async function print(entries: { observation: string }[]) {
+  return (await printPages(entries)).map((page) => text(page));
+}
+
+function printedInk(node: Node): [string, string | undefined][] {
+  return node.lines?.map(line => [line.string, node.style?.color]) ??
+    node.children?.flatMap(child => printedInk(child)) ?? [];
+}
+
+it("prints group headings, answers and continued trials in readable ink on dark paper alone", async () => {
+  // Arrange
+  const themeModel = JSON.stringify({cssVariables: {"--sjs2-color-utility-surface-survey": "#121212"}});
+  const trials = Array.from({length: 140}, (_, i) => `Trial ${i}`).join("\n");
+  const entries = Array.from({length: 12}, (_, i) => ({observation: i === 6 ? trials : `Short-${i}`}));
+  // Act
+  const pages = await withPdfStyles({themeModel}, () => printPages(entries));
+  const ink = new Map(pages.flatMap(page => printedInk(page)));
+  // Assert
+  for (const label of ["Group 1 of 2", "Record", "Short-0", "Trial 0", "Trial 139"])
+    expect(ink.get(label), label).toBe("#ffffff");
+  expect(pages.filter(page => text(page).some(line => line.startsWith("Trial "))).length).toBeGreaterThan(1);
+});
 
 it("keeps a full-width note with its identifiers on every page and its payload only once", async () => {
   // Arrange

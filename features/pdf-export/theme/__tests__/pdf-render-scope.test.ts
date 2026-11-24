@@ -35,12 +35,12 @@ it("keeps overlapping exports' styles separate across async rendering", async ()
 
   // Act
   const first = render("#123");
-  const second = render("#abc");
+  const second = render("#456");
   ready.resolve();
   const [dark, light] = await Promise.all([first, second]);
 
   // Assert
   expect(await dark.text()).toContain("(#112233)");
-  expect(await light.text()).toContain("(#aabbcc)");
+  expect(await light.text()).toContain("(#445566)");
   expect(currentPdfStyles().page).toEqual({});
 });

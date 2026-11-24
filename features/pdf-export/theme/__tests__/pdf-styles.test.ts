@@ -40,6 +40,15 @@ it("lets the dark page show through panels and table headers without a surface t
   expect(styles.muted.color).toBe("#ffffff");
 });
 
+it.each([
+  [{pageBackground: "#121212"}, "#ffffff"],
+  [{pageBackground: "#121212", text: "#222222"}, "#ffffff"],
+  [{pageBackground: "#121212", text: "#ddddee"}, "#ddddee"],
+  [{pageBackground: "#00000020"}, "#000000"],
+])("resolves inherited ink on the painted page: %j", (theme, ink) => {
+  expect(createPdfStyles(theme).page.color).toBe(ink);
+});
+
 it("keeps the default page unpainted and reuses the print geometry", () => {
   // Act & Assert
   const styles = createPdfStyles({});

@@ -1,6 +1,7 @@
 import { Text, View, StyleSheet } from "@react-pdf/renderer";
 import { Question } from "survey-core";
 import { currentPdfStyles } from "../../theme/pdf-theme-context";
+import { PROPERTIES_PAPER } from "../pdf-styles";
 import { VIEWER_STYLES } from "../pdf-answer-viewer";
 import {
   formatChoiceDisplay,
@@ -19,7 +20,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   tag: {
-    backgroundColor: "#f0f0f0",
+    backgroundColor: PROPERTIES_PAPER,
     paddingTop: 2,
     paddingBottom: 2,
     paddingLeft: 4,
@@ -34,7 +35,7 @@ const PdfTagBoxAnswer = ({ question }: TagBoxAnswerProps) => {
   if (!question?.value || question.value.length === 0) {
     return <Text style={VIEWER_STYLES.answerText}>No Answer</Text>;
   }
-  const { panel, text } = currentPdfStyles();
+  const { panel, properties } = currentPdfStyles();
   return (
     <View style={styles.tagsContainer}>
       {question.value.map((value: string) => {
@@ -43,7 +44,7 @@ const PdfTagBoxAnswer = ({ question }: TagBoxAnswerProps) => {
           resolveChoiceLabel(question, value),
         );
         return (
-          <Text key={value} style={[styles.tag, panel, text]}>
+          <Text key={value} style={[styles.tag, panel, properties.value]}>
             {display}
           </Text>
         );

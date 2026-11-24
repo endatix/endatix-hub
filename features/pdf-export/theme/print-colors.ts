@@ -36,6 +36,8 @@ export function printColors(theme: PdfBodyLayer, header: string) {
   const accent = painted(theme.accent, contrastRatio(surface, page) < 1.5 ? body : surface);
   const tint = over(accent, page, 0.09);
   return {
+    pageInk: readable(body, page),
+    mutedInk: readable(painted(theme.mutedText, body), page),
     headerInk: readable(body, surface),
     fieldTint: toHex(tint),
     fieldInk: readable(body, tint),

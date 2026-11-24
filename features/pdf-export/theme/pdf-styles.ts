@@ -55,19 +55,26 @@ function tableStyles(t: PdfBodyLayer, backgroundColor: string, colors: ReturnTyp
   };
 }
 
+function pageStyles(t: PdfBodyLayer, colors: ReturnType<typeof printColors>) {
+  const text = t.pageBackground || t.text ? { color: colors.pageInk } : {};
+  const muted = t.pageBackground || t.text || t.mutedText ? { color: colors.mutedInk } : {};
+  return {
+    page: {
+      ...text,
+      ...(t.pageBackground && { backgroundColor: t.pageBackground }),
+    },
+    text,
+    muted,
+  };
+}
+
 export function createPdfStyles(t: PdfBodyLayer) {
-  const muted = t.mutedText ?? t.text;
   const panel = panelStyles(t);
   const header = t.tableHeaderBackground ?? t.accent ?? panel.backgroundColor ?? table.tableHeader.backgroundColor;
   const colors = printColors(t, header);
   return {
-    page: {
-      ...(t.text && { color: t.text }),
-      ...(t.pageBackground && { backgroundColor: t.pageBackground }),
-    },
+    ...pageStyles(t, colors),
     divider: t.border ? { borderBottomColor: t.border } : {},
-    text: t.text ? { color: t.text } : {},
-    muted: muted ? { color: muted } : {},
     panel,
     properties: propertyInks(t, panel.backgroundColor),
     body: bodyStyles(t, colors.headingInk),
