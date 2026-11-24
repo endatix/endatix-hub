@@ -204,6 +204,59 @@ it.each([false, true])(
   },
 );
 
+const numericParagraph = (pairs: number, mark: string) =>
+  mark + Array(pairs).fill("1234 5678").join(" ") + mark;
+
+it.each([
+  numericParagraph(32, "\u200f"),
+  numericParagraph(32, "\u200e"),
+  "\u200f" + "12 ABC \u206634 56\u2069 ".repeat(60) + "\u200f",
+])(
+  "retains the ordinary grid's paragraph ordering across a band boundary",
+  async (source) => {
+    const rows = [{ key: "sample", label: "Sample", cells: { First: source } }];
+    const printed = async (n: number) =>
+      (
+        await printedPages(
+          { columns: columns.slice(0, n), rows },
+          undefined,
+          1 + (n + 1) * 77,
+        )
+      )
+        .flat()
+        .filter((line) => /[2-8]/u.test(line));
+    const expected = await printed(5);
+    expect(expected.length).toBeGreaterThan(19);
+    expect(await printed(6)).toEqual(expected);
+  },
+);
+
+it("keeps the RTL context and row key on every physical continuation", async () => {
+  const rows = [
+    {
+      key: "north",
+      label: "North",
+      cells: { First: numericParagraph(128, "\u200f") },
+    },
+  ];
+  const pages = await printedPages({ columns, rows }, undefined, 540);
+  const answers = pages.filter((page) =>
+    page.some((line) => line.includes("5678")),
+  );
+  expect(answers.length).toBeGreaterThan(1);
+  for (const page of answers) {
+    expect(page).toEqual(
+      expect.arrayContaining(["Row 1 (cont.)", "North", "First", "Sixth"]),
+    );
+  }
+  expect(
+    answers
+      .flat()
+      .filter((line) => line.includes("5678"))
+      .map((line) => line.replace(/\D/gu, "")),
+  ).toEqual(Array(128).fill("56781234"));
+});
+
 it("identifies continued answers even after the row label has finished printing", async () => {
   const labels = Array.from({ length: 90 }, (_, i) => `Label-${i}`);
   const answers = Array.from({ length: 150 }, (_, i) => `Answer-${i}`);

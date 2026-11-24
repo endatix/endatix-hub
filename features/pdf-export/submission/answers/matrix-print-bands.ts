@@ -80,7 +80,7 @@ function measureSource(width: number, family: string) {
   const measure = typesetter(width, family);
   const available = width - CELL_EDGES;
   const withinWidth = (lines: ReturnType<typeof measure>) =>
-    lines.every(line => (line.xAdvance ?? 0) <= available);
+    lines.every((line) => (line.xAdvance ?? 0) <= available);
   const fits = (word: string) => {
     const lines = measure(word);
     return lines.length === 1 && withinWidth(lines);
@@ -89,22 +89,13 @@ function measureSource(width: number, family: string) {
     const lines = measure(source);
     if (withinWidth(lines)) return { text: source, lines: lines.length };
     const text = source.replace(/\S+/gu, (word) =>
-      withinWidth(measure(word))
-        ? word
-        : breakWideToken(word, fits).join("\n"),
+      withinWidth(measure(word)) ? word : breakWideToken(word, fits).join("\n"),
     );
     return { text, lines: measure(text).length };
   };
 }
 
 type Measure = ReturnType<typeof measureSource>;
-
-function* sourceTokens(source: string, measure: Measure, limit: number) {
-  for (const [token] of source.matchAll(/\S+[^\S\n]*\n?|[^\S\n]+|\n/gu)) {
-    if (measure(token).lines <= limit) yield token;
-    else yield* Array.from(graphemes.segment(token), ({ segment }) => segment);
-  }
-}
 
 function splitSource(
   block: TextBlock,
@@ -114,7 +105,7 @@ function splitSource(
   if (block.lines <= limit) return [block];
   const chunks: TextBlock[] = [];
   let current = measure("");
-  for (const part of sourceTokens(block.text, measure, limit)) {
+  for (const part of block.text.split(/(?<=\n)/u)) {
     const next = measure(current.text + part);
     if (next.lines <= limit || !current.text) current = next;
     else {
@@ -152,6 +143,7 @@ interface PrintRow {
   label: string;
   cells: PdfMatrixTableColumn[];
   height: number;
+  paragraph?: { column: number; source: string };
 }
 
 interface RowLayout {
@@ -200,30 +192,111 @@ function measureRow(
   return { labels, cells };
 }
 
-function fragmentRow(
+function fragmentShortParagraphs(
   row: PdfMatrixTableRow,
   columns: PdfMatrixTableColumn[],
   layout: RowLayout,
 ) {
   const { labels, cells } = measureRow(row, columns, layout);
-  const count = Math.max(labels.count, ...cells.map(parts => parts.length));
+  const count = Math.max(labels.count, ...cells.map((parts) => parts.length));
   return Array.from({ length: count }, (_, i) => {
     const name = labels.at(i);
     const part = cells.map((parts) => parts[i]);
-    const height = rowHeight(Math.max(name.lines, ...part.map(p => p?.lines ?? 0)));
+    const lineCount = Math.max(name.lines, ...part.map(p => p?.lines ?? 0));
     return {
       key: `${row.key}:${i}`,
       label: name.text,
-      height,
-      cells: columns.map(({key}, j) => ({ key, title: part[j]?.text ?? "" })),
+      height: rowHeight(lineCount),
+      cells: columns.map(({ key }, j) => ({ key, title: part[j]?.text ?? "" })),
     };
   });
+}
+
+// A paragraph is the unit of bidi resolution, not a word or a printed line.
+// Let React-PDF paginate its original Text node if it cannot fit in one band.
+function paragraphNeedsFlow(
+  source: string,
+  shape: ReturnType<typeof typesetter>,
+  layout: RowLayout,
+) {
+  const lines = shape(source);
+  if (lines.length > layout.limit) return true;
+  return lines.some(line => (line.xAdvance ?? 0) > layout.width - CELL_EDGES
+    && line.runs.some(run => (run.attributes.bidiLevel ?? 0) > 0));
+}
+
+export function nativeWordBreaks(width: number) {
+  const shape = typesetter(width, tableCell.fontFamily);
+  return (word: string, fallback?: (word: string) => string[]) =>
+    shape(word).some((line) => (line.xAdvance ?? 0) > width - CELL_EDGES)
+      ? Array.from(graphemes.segment(word), ({ segment }) => segment)
+      : (fallback?.(word) ?? [word]);
+}
+
+function fragmentRow(
+  row: PdfMatrixTableRow,
+  columns: PdfMatrixTableColumn[],
+  layout: RowLayout,
+) {
+  const shape = typesetter(layout.width, tableCell.fontFamily);
+  const sources = [row.label, ...columns.map((c) => row.cells[c.key] ?? "")];
+  const markerLines = shape(`Row ${layout.ordinal} (cont.)`).length;
+  const native = sources.flatMap((source, column) => {
+    const limit = column === 0 ? layout.limit - markerLines : layout.limit;
+    return source
+      .split("\n")
+      .some((p) => paragraphNeedsFlow(p, shape, { ...layout, limit }))
+      ? [{ column, source }]
+      : [];
+  });
+  if (!native.length) return fragmentShortParagraphs(row, columns, layout);
+  return rowWithParagraphs(row, columns, { native, layout });
+}
+
+function rowWithParagraphs(
+  row: PdfMatrixTableRow,
+  columns: PdfMatrixTableColumn[],
+  options: {
+    native: { column: number; source: string }[];
+    layout: RowLayout;
+  },
+): PrintRow[] {
+  const { native, layout } = options;
+  const measure = measureSource(layout.width, tableCell.fontFamily);
+  const stub = summaryRow(row, columns, native);
+  const start = fragmentShortParagraphs(stub, columns, layout);
+  const name = `Row ${layout.ordinal}`;
+  if (start.length === 1) identifySummary(start[0], name, measure);
+  const shortName = measure(stub.label).lines <= 2 ? stub.label : "";
+  const label = [`${name} (cont.)`, shortName].filter(Boolean).join("\n");
+  return [...start, ...native.map(paragraph => ({
+    key: `${row.key}:paragraph:${paragraph.column}`, height: 0, cells: [], label, paragraph,
+  }))];
+}
+
+function summaryRow(row: PdfMatrixTableRow, columns: PdfMatrixTableColumn[], native: {column: number}[]) {
+  const stub = { ...row, cells: { ...row.cells } };
+  for (const { column } of native) {
+    if (column === 0) stub.label = "";
+    else stub.cells[columns[column - 1].key] = "See below";
+  }
+  return stub;
+}
+
+function identifySummary(row: PrintRow, name: string, measure: Measure) {
+  row.label = [name, row.label].filter(Boolean).join("\n");
+  row.height = Math.max(row.height, rowHeight(measure(row.label).lines));
 }
 
 function packRows(rows: PrintRow[], capacity: number) {
   const bands: PrintRow[][] = [];
   let remaining = 0;
   for (const row of rows) {
+    if (row.paragraph) {
+      bands.push([row]);
+      remaining = 0;
+      continue;
+    }
     if (remaining < row.height) {
       bands.push([]);
       remaining = capacity;

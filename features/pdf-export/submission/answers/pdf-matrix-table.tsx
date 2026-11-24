@@ -1,6 +1,6 @@
 import { currentPdfStyles } from "@/features/pdf-export/theme/pdf-theme-context";
 import { Text, View } from "@react-pdf/renderer";
-import { MATRIX_LINE_STYLE, matrixPrintBands } from "./matrix-print-bands";
+import { MATRIX_LINE_STYLE, matrixPrintBands, nativeWordBreaks } from "./matrix-print-bands";
 import {
   MATRIX_LABEL_COLUMN_WIDTH,
   computeMatrixDataColumnWidth,
@@ -136,23 +136,38 @@ function columnDescriptions(legend: PrintLayout["legend"]) {
   );
 }
 
+function NativeParagraph({ legend, row, width }: {
+  legend: PrintLayout["legend"]; row: PrintLayout["bands"][number][number]; width: number;
+}) {
+  const { table } = currentPdfStyles();
+  const paragraph = row.paragraph!;
+  const share = 100 / (legend.length + 1);
+  return <View>
+    <StartGridTogether />
+    <View style={table.table}>
+      <View fixed><GridLine label={row.label} cells={legend} width={width} header /></View>
+      <Text orphans={1} widows={1} hyphenationCallback={nativeWordBreaks(width)} style={{
+        fontFamily: table.tableCell.fontFamily, fontSize: table.tableCell.fontSize,
+        width: `${share}%`, marginLeft: `${share * paragraph.column}%`,
+        paddingHorizontal: table.tableCell.padding, borderRightWidth: table.tableCell.borderWidth,
+        borderRightColor: table.tableCell.borderColor, ...MATRIX_LINE_STYLE,
+      }}>{paragraph.source}</Text>
+    </View>
+  </View>;
+}
+
 function printBands({bands, legend}: PrintLayout, width: number) {
   const { table } = currentPdfStyles();
-  return bands.map((band) => (
+  return bands.map((band) => band[0].paragraph
+    ? <NativeParagraph key={band[0].key} row={band[0]} legend={legend} width={width} /> : (
     <View
       key={band[0].key}
       wrap={false}
       style={[table.table, MATRIX_LINE_STYLE]}
     >
       <GridLine cells={legend} width={width} header />
-      {band.map((row) => (
-        <GridLine
-          key={row.key}
-          label={row.label}
-          cells={row.cells}
-          width={width}
-        />
-      ))}
+      {band.map(({key, label, cells}) =>
+        <GridLine key={key} label={label} cells={cells} width={width} />)}
     </View>
   ));
 }
