@@ -42,6 +42,7 @@ import {
   isControlsLocked,
   showsFiltersForm,
   exportDialogControls,
+  prepareActionLabel,
   type ExportDialogPhase,
   type PrepareOutcome,
 } from "./export-dialog-phase";
@@ -420,6 +421,10 @@ export function useExportDialog({
       hasFailure: prepareFailure !== null,
       inlineError,
     }),
+    prepareLabel: prepareActionLabel(
+      phase === "error" ? prepareFailure : null,
+      fullRecompile,
+    ),
     showGroupLabels: groups.length > 1,
     inlineError,
     prepareOutcome,

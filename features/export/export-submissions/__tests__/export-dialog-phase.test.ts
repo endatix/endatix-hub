@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  prepareActionLabel,
   formatPrepareOutcome,
   getPhaseDescription,
   isBusyPhase,
@@ -75,4 +76,19 @@ describe("export-dialog-phase", () => {
       formatPrepareOutcome({ processed: 3, skipped: 0, failed: 2 }).summary,
     ).toContain("missing from the export");
   });
+});
+
+describe("prepareActionLabel", () => {
+  it.each([
+    [null, false, "Prepare for export"],
+    [{ previousSchema: "retained" as const }, false, "Rebuild again"],
+    [{ previousSchema: undefined }, false, "Retry rebuild"],
+    [{ previousSchema: "retained" as const }, true, "Run full recompile"],
+    [{ previousSchema: undefined }, true, "Run full recompile"],
+  ])(
+    "names the fix for failure %o (full recompile %s)",
+    (failure, full, label) => {
+      expect(prepareActionLabel(failure, full)).toBe(label);
+    },
+  );
 });

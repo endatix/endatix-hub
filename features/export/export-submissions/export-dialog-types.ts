@@ -51,6 +51,8 @@ export type UseExportDialogResult = {
   showRebuildEntry: boolean;
   showBackToExport: boolean;
   showExportSubmit: boolean;
+  /** The footer primary while preparing is offered; names the fix once a failure is shown. */
+  prepareLabel: string;
   showGroupLabels: boolean;
   inlineError: string | null;
   prepareOutcome: PrepareOutcome | null;
