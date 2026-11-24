@@ -23,6 +23,31 @@ interface PdfMatrixTableProps {
 
 const FIXED_COLUMN = { flexGrow: 0, flexShrink: 0, minWidth: 0 };
 
+// A repeated header must leave room for data even if a column title is pages long.
+const MAX_RUNNING_TITLE = 48;
+
+function columnHeading(column: PdfMatrixTableColumn, index: number) {
+  const title = column.title.replaceAll(/\s+/g, " ").trim();
+  return title.length <= MAX_RUNNING_TITLE
+    ? { key: column.key, title, description: undefined }
+    : {
+        key: column.key,
+        title: `Column ${index + 1}`,
+        description: column.title,
+      };
+}
+
+type Heading = ReturnType<typeof columnHeading>;
+
+function TableStart({ headings }: { readonly headings: Heading[] }) {
+  // react-pdf copies a fixed child even into a sliver at the foot of a page.
+  // Reserve its top margin, header and two body lines; cancel the space once it fits.
+  // At the 72pt minimum width a 10pt bold header fits at least three characters per line.
+  const longest = Math.max(1, ...headings.map(({ title }) => title.length));
+  const height = 48 + 14 * Math.ceil(longest / 3);
+  return <View wrap={false} style={{ height, marginBottom: -height }} />;
+}
+
 function cellStyle(width: number, header = false) {
   const { table } = currentPdfStyles();
   return {
@@ -61,48 +86,72 @@ function StackedMatrix({ columns, rows }: PdfMatrixTableProps) {
   );
 }
 
-export const PdfMatrixTable = ({ columns, rows }: PdfMatrixTableProps) => {
-  const { table } = currentPdfStyles();
-  const dataColumnWidth = computeMatrixDataColumnWidth(columns.length);
-  if (dataColumnWidth === null)
-    return <StackedMatrix columns={columns} rows={rows} />;
+interface HeaderProps {
+  readonly headings: Heading[];
+  readonly width: number;
+}
 
-  const headerRow = (
-    <View style={[table.tableRow, table.tableHeader]}>
+function ColumnHeaders({ headings, width }: HeaderProps) {
+  const { table } = currentPdfStyles();
+  return (
+    <View fixed style={[table.tableRow, table.tableHeader]}>
       <View style={cellStyle(MATRIX_LABEL_COLUMN_WIDTH, true)}>
         <Text> </Text>
       </View>
-      {columns.map((column) => (
-        <View key={column.key} style={cellStyle(dataColumnWidth, true)}>
-          <Text>{column.title}</Text>
+      {headings.map(({ key, title }) => (
+        <View key={key} style={cellStyle(width, true)}>
+          <Text>{title}</Text>
         </View>
       ))}
     </View>
   );
+}
 
-  const renderDataRow = (row: PdfMatrixTableRow) => (
-    <View style={table.tableRow} key={row.key} wrap={false}>
+interface RowProps {
+  readonly row: PdfMatrixTableRow;
+  readonly columns: PdfMatrixTableColumn[];
+  readonly width: number;
+}
+
+function DataRow({ row, columns, width }: RowProps) {
+  const { table } = currentPdfStyles();
+  return (
+    <View style={table.tableRow}>
       <View style={cellStyle(MATRIX_LABEL_COLUMN_WIDTH)}>
         <Text>{row.label}</Text>
       </View>
       {columns.map((column) => (
-        <View key={column.key} style={cellStyle(dataColumnWidth)}>
+        <View key={column.key} style={cellStyle(width)}>
           <Text>{row.cells[column.key] ?? ""}</Text>
         </View>
       ))}
     </View>
   );
+}
 
-  const [firstRow, ...remainingRows] = rows;
+export const PdfMatrixTable = ({ columns, rows }: PdfMatrixTableProps) => {
+  const { table } = currentPdfStyles();
+  const width = computeMatrixDataColumnWidth(columns.length);
+  if (width === null) return <StackedMatrix columns={columns} rows={rows} />;
+  const headings = columns.map((column, index) => columnHeading(column, index));
 
   return (
-    <View style={table.table}>
-      {/* Keep header with the first data row so it is never orphaned at a page break. */}
-      <View wrap={false}>
-        {headerRow}
-        {firstRow ? renderDataRow(firstRow) : null}
+    <View>
+      {headings.map(
+        ({ key, title, description }) =>
+          description && (
+            <Text key={key}>
+              {title}: {description}
+            </Text>
+          ),
+      )}
+      <TableStart headings={headings} />
+      <View style={table.table}>
+        <ColumnHeaders headings={headings} width={width} />
+        {rows.map((row) => (
+          <DataRow key={row.key} row={row} columns={columns} width={width} />
+        ))}
       </View>
-      {remainingRows.map((row) => renderDataRow(row))}
     </View>
   );
 };

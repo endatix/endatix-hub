@@ -1,6 +1,26 @@
 import type { ItemValue, Question, QuestionMatrixModel } from "survey-core";
 import { pdfPlainText } from "@/lib/utils/pdf-plain-text";
 
+const WORD_END = /[\p{L}\p{M}\p{N}_]$/u;
+const WORD_START = /^[\p{L}\p{M}\p{N}_]/u;
+
+function containsWholeValue(label: string, value: string): boolean {
+  for (
+    let at = label.indexOf(value);
+    at >= 0;
+    at = label.indexOf(value, at + 1)
+  ) {
+    const end = at + value.length;
+    // Two UTF-16 units hold the adjacent code point even outside the BMP.
+    if (
+      !WORD_END.test(label.slice(Math.max(0, at - 2), at)) &&
+      !WORD_START.test(label.slice(end, end + 2))
+    )
+      return true;
+  }
+  return false;
+}
+
 /**
  * Formats a stored choice value with its resolved label for PDF export.
  * When label differs from value (e.g. data lists), shows both: "United States (us)".
@@ -9,17 +29,19 @@ export function formatChoiceDisplay(
   value: string | number | boolean | null | undefined,
   label?: string | null,
 ): string {
-  if (value === null || value === undefined || value === "") {
-    return "";
-  }
+  if (value === null || value === undefined || value === "") return "";
 
   const valueStr = pdfPlainText(value);
   const labelStr = pdfPlainText(label?.trim());
-  if (!labelStr) {
-    return valueStr;
-  }
+  if (!labelStr) return valueStr;
+  if (!valueStr || labelStr === valueStr) return labelStr;
 
-  return labelStr.includes(valueStr) ? labelStr : `${labelStr} (${valueStr})`;
+  const pluralAcronym =
+    /^[A-Z]{2,}$/.test(valueStr) &&
+    containsWholeValue(labelStr, `${valueStr}s`);
+  return pluralAcronym || containsWholeValue(labelStr, valueStr)
+    ? labelStr
+    : `${labelStr} (${valueStr})`;
 }
 
 export function resolveItemValueLabel(

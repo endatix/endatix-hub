@@ -48,12 +48,22 @@ describe("formatChoiceDisplay", () => {
   it.each([
     ["SPO", "SPOs"],
     ["Workshop Facilitator", "Workshop Facilitator (morning)"],
+    ["A+B", "Track (A+B)"],
+    ["1", "Tier 1 or higher"],
   ])(
     "does not append %s when the printed label contains it",
     (value, label) => {
       expect(formatChoiceDisplay(value, label)).toBe(label);
     },
   );
+  it.each([
+    [1, "10 or more", "10 or more (1)"],
+    ["at", "Station", "Station (at)"],
+    ["id", "résident", "résident (id)"],
+    ["a", "as", "as (a)"],
+  ])("retains distinct code %s for %s", (code, label, expected) => {
+    expect(formatChoiceDisplay(code, label)).toBe(expected);
+  });
   it("shows label and value when they differ", () => {
     expect(formatChoiceDisplay("us", "United States")).toBe(
       "United States (us)",
