@@ -55,12 +55,6 @@ export const PDF_STYLES = StyleSheet.create({
     fontFamily: "Roboto-Bold",
     marginBottom: 2,
   },
-  questionSubTitle: {
-    fontFamily: "Roboto",
-    fontSize: 9,
-    width: "100%",
-    color: "gray",
-  },
   section: {
     padding: 8,
   },
@@ -167,7 +161,7 @@ export const PDF_TABLE_STYLES = StyleSheet.create({
 /** A4 content width after submission-details-pdf page margins. */
 export const MATRIX_TABLE_CONTENT_WIDTH = 550;
 export const MATRIX_LABEL_COLUMN_WIDTH = 110;
-export const MATRIX_MIN_DATA_COLUMN_WIDTH = 75;
+export const MATRIX_MIN_DATA_COLUMN_WIDTH = 72;
 
 /** Even split of remaining width, or null → stacked layout. */
 export function computeMatrixDataColumnWidth(

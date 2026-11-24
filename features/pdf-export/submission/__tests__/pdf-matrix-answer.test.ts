@@ -41,10 +41,10 @@ describe("buildMatrixAnswerTableData", () => {
     expect(result?.rows).toHaveLength(2);
     expect(result?.rows[0].cells).toEqual({
       poor: "",
-      good: "✓",
+      good: "X",
       great: "",
     });
-    expect(result?.rows[1].cells.great).toBe("✓");
+    expect(result?.rows[1].cells.great).toBe("X");
   });
 
   it("returns null when every row is unanswered", () => {

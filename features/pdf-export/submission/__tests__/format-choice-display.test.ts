@@ -45,6 +45,15 @@ vi.mock("@/lib/endatix-api/public", () => ({
 import { primeDataListDisplayValues } from "@/lib/survey-features/data-lists/infrastructure/prime-data-list-display-values";
 
 describe("formatChoiceDisplay", () => {
+  it.each([
+    ["SPO", "SPOs"],
+    ["Workshop Facilitator", "Workshop Facilitator (morning)"],
+  ])(
+    "does not append %s when the printed label contains it",
+    (value, label) => {
+      expect(formatChoiceDisplay(value, label)).toBe(label);
+    },
+  );
   it("shows label and value when they differ", () => {
     expect(formatChoiceDisplay("us", "United States")).toBe(
       "United States (us)",

@@ -4,7 +4,7 @@ import { pdf } from "@react-pdf/renderer";
 import sharp from "sharp";
 import { Model } from "survey-core";
 import { expect, it, vi } from "vitest";
-import type { Submission } from "@/lib/endatix-api";
+import { submission } from "./submission-fixture";
 import type { PdfBrandIdentity } from "@/lib/branding/pdf.server";
 import { SubmissionDetailsPdf } from "../submission-details-pdf";
 import { renderSubmissionPdf } from "../render-submission-pdf.use-case";
@@ -20,19 +20,6 @@ vi.mock("node:fs/promises", async (original) => {
 });
 
 const pack = mountPackDir();
-
-const submission: Submission = {
-  id: "42",
-  formId: "7",
-  formDefinitionId: "8",
-  isComplete: false,
-  status: "draft",
-  currentPage: 0,
-  createdAt: new Date("2026-01-01"),
-  token: "",
-  metadata: "{}",
-  jsonData: JSON.stringify({ question: "Example answer" }),
-};
 
 async function render(identity?: PdfBrandIdentity) {
   const surveyModel = new Model({
@@ -55,10 +42,13 @@ it("embeds a real image only in the concurrent export that has a logo", async ()
     .png()
     .toBuffer();
   const nameOnly = { productName: "Fieldwork", footerText: "Fieldwork Ltd." };
-  const withLogo = {
+  const withLogo: PdfBrandIdentity = {
     ...nameOnly,
     accentBar: "#aa1144",
-    logo: `data:image/png;base64,${png.toString("base64")}`,
+    logo: {
+      kind: "icon",
+      src: `data:image/png;base64,${png.toString("base64")}`,
+    },
   };
 
   // Act

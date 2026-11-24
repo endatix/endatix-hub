@@ -15,11 +15,11 @@ export function formatChoiceDisplay(
 
   const valueStr = pdfPlainText(value);
   const labelStr = pdfPlainText(label?.trim());
-  if (!labelStr || labelStr === valueStr) {
+  if (!labelStr) {
     return valueStr;
   }
 
-  return `${labelStr} (${valueStr})`;
+  return labelStr.includes(valueStr) ? labelStr : `${labelStr} (${valueStr})`;
 }
 
 export function resolveItemValueLabel(
