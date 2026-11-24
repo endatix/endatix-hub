@@ -36,16 +36,34 @@ export function previousSchema(result: ApiResult<unknown>) {
   return "retained" as const;
 }
 
+const LOGGER_NAME = "export.prepare-reporting-export";
+const FAILURE_LOG = "Reporting export preparation failed";
+
+/** A client-side status (4xx) is expected; anything else needs an engineer. */
+function isUnexpected(failure: ResultError) {
+  const status = failure.statusCode;
+  return status === undefined || status >= 500;
+}
+
+/** Logs the failure under the support reference the user sees, then returns it with that reference. */
 export function recordPrepareFailure(
   formId: string,
   step: PrepareStep,
   failure: ResultError,
 ) {
   const traceId = failure.traceId || randomUUID();
-  TelemetryLogger.warn(
-    "Reporting export preparation failed",
-    { formId, step, traceId, errorCode: failure.errorCode },
-    "export.prepare-reporting-export",
-  );
+  const { statusCode, message, details, errorCode } = failure;
+  const attributes = {
+    formId,
+    step,
+    traceId,
+    statusCode,
+    message,
+    details,
+    errorCode,
+  };
+  if (isUnexpected(failure))
+    TelemetryLogger.error(FAILURE_LOG, undefined, attributes, LOGGER_NAME);
+  else TelemetryLogger.warn(FAILURE_LOG, attributes, LOGGER_NAME);
   return { ...failure, traceId, step };
 }
