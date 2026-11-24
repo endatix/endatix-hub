@@ -17,10 +17,9 @@ export interface PdfMatrixTableRow {
   cells: Record<string, string>;
 }
 
-interface PdfMatrixTableProps {
-  columns: PdfMatrixTableColumn[];
-  rows: PdfMatrixTableRow[];
-  children?: React.ReactNode;
+interface MatrixData {
+  readonly columns: PdfMatrixTableColumn[];
+  readonly rows: PdfMatrixTableRow[];
 }
 
 const FIXED_COLUMN = { flexGrow: 0, flexShrink: 0, minWidth: 0 };
@@ -42,7 +41,7 @@ function answeredColumns(
   return answered.length > 0 ? answered : columns;
 }
 
-function StackedMatrix({ columns, rows }: PdfMatrixTableProps) {
+function StackedMatrix({ columns, rows }: MatrixData) {
   const { table } = currentPdfStyles();
   return (
     <View style={table.stackedContainer}>
@@ -70,7 +69,7 @@ interface GridLineProps {
   header?: boolean;
 }
 
-function GridLine({ label = " ", cells, width, header }: GridLineProps) {
+function GridLine({ label = " ", cells, width, header }: Readonly<GridLineProps>) {
   const { table } = currentPdfStyles();
   const dataStyle = cellStyle(width, header);
   return (
@@ -90,7 +89,7 @@ function GridLine({ label = " ", cells, width, header }: GridLineProps) {
   );
 }
 
-type GridProps = PdfMatrixTableProps & { width: number };
+type GridProps = MatrixData & { readonly width: number };
 
 function dataLines({ columns, rows, width }: GridProps) {
   return rows.map((row) => {
@@ -104,13 +103,13 @@ function dataLines({ columns, rows, width }: GridProps) {
   });
 }
 
-function MatrixGrid(props: GridProps) {
+function MatrixGrid({ columns, rows, width }: GridProps) {
   const { table } = currentPdfStyles();
-  const [firstRow, ...remainingRows] = dataLines(props);
+  const [firstRow, ...remainingRows] = dataLines({ columns, rows, width });
   return (
     <View style={table.table}>
       <View wrap={false}>
-        <GridLine cells={props.columns} width={props.width} header />
+        <GridLine cells={columns} width={width} header />
         {firstRow}
       </View>
       {remainingRows}
@@ -136,9 +135,13 @@ function columnDescriptions(legend: PrintLayout["legend"]) {
   );
 }
 
-function NativeParagraph({ legend, row, width }: {
-  legend: PrintLayout["legend"]; row: PrintLayout["bands"][number][number]; width: number;
-}) {
+interface NativeParagraphProps {
+  readonly legend: PrintLayout["legend"];
+  readonly row: PrintLayout["bands"][number][number];
+  readonly width: number;
+}
+
+function NativeParagraph({ legend, row, width }: NativeParagraphProps) {
   const { table } = currentPdfStyles();
   const paragraph = row.paragraph!;
   const share = 100 / (legend.length + 1);
@@ -172,7 +175,7 @@ function printBands({bands, legend}: PrintLayout, width: number) {
   ));
 }
 
-function BandedGrid({ columns, rows, width, children }: GridProps) {
+function BandedGrid({ columns, rows, width, children }: React.PropsWithChildren<GridProps>) {
   const layout = matrixPrintBands(columns, rows, width);
   const [first, ...rest] = printBands(layout, width);
   return (
@@ -200,12 +203,14 @@ function StartGridTogether() {
   );
 }
 
-export const PdfMatrixTable = (props: PdfMatrixTableProps) => {
-  const width = computeMatrixDataColumnWidth(props.columns.length);
-  if (width !== null && props.columns.length === 6)
-    return <BandedGrid {...props} width={width} />;
-  const grid = width === null ? <StackedMatrix {...props} /> : <MatrixGrid {...props} width={width} />;
-  return <>{props.children}{grid}</>;
+export const PdfMatrixTable = ({ columns, rows, children }: React.PropsWithChildren<MatrixData>) => {
+  const width = computeMatrixDataColumnWidth(columns.length);
+  if (width !== null && columns.length === 6)
+    return <BandedGrid columns={columns} rows={rows} width={width}>{children}</BandedGrid>;
+  const grid = width === null
+    ? <StackedMatrix columns={columns} rows={rows} />
+    : <MatrixGrid columns={columns} rows={rows} width={width} />;
+  return <>{children}{grid}</>;
 };
 
 export default PdfMatrixTable;
