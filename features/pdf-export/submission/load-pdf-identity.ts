@@ -6,19 +6,24 @@ import {
 import { collectRichTextImageHosts } from "@/lib/hosting/rich-text-image-hosts";
 import { getMetadataBase } from "@/lib/seo/metadata-base";
 import { decideImageSource } from "@/lib/utils/image-source-policy";
-import { loadPdfBrand, pdfLogoPng } from "@/lib/branding/pdf.server";
+import {
+  loadPdfBrand,
+  pdfLogoPng,
+  type PdfBrandIdentity,
+  type PdfLogoCandidate,
+} from "@/lib/branding/pdf.server";
 import { raceWithTimeout, remainingRenderTimeoutMs } from "../render-timeout";
 import { loadImageBytes } from "./downscale-pdf-images";
 
 /** Optional images get a fraction of the remaining render budget, even on short deadlines. */
+function assetBudget(started: number) {
+  return Math.min(2000, Math.floor(remainingRenderTimeoutMs(started) / 8));
+}
+
 async function optionalAsset<T>(
-  started: number,
+  budget: number,
   read: (signal: AbortSignal) => Promise<T>,
 ) {
-  const budget = Math.min(
-    2000,
-    Math.floor(remainingRenderTimeoutMs(started) / 8),
-  );
   const controller = new AbortController();
   try {
     return await raceWithTimeout(() => read(controller.signal), budget);
@@ -26,6 +31,16 @@ async function optionalAsset<T>(
     return undefined;
   } finally {
     controller.abort();
+  }
+}
+
+async function firstUsableLogo(candidates: PdfLogoCandidate[], budget: number) {
+  const deadline = Date.now() + budget;
+  for (const [index, { kind, read }] of candidates.entries()) {
+    // A slow form logo or icon must leave time for the remaining fallbacks.
+    const share = (deadline - Date.now()) / (candidates.length - index);
+    const src = await optionalAsset(Math.floor(share), read);
+    if (src) return { kind, src };
   }
 }
 
@@ -68,11 +83,15 @@ async function readFormLogo(source: string, signal: AbortSignal) {
 export async function loadPdfIdentity(
   model: Pick<Model, "logo">,
   started: number,
-) {
-  const brand = await optionalAsset(started, loadPdfBrand);
-  if (!brand || !model.logo) return brand;
-  const logo = await optionalAsset(started, (signal) =>
-    readFormLogo(model.logo, signal),
-  );
-  return logo ? { ...brand, logo } : brand;
+): Promise<PdfBrandIdentity | undefined> {
+  const brand = await optionalAsset(assetBudget(started), loadPdfBrand);
+  if (!brand) return;
+  const { identity, candidates } = brand;
+  if (model.logo)
+    candidates.unshift({
+      kind: "form",
+      read: (signal) => readFormLogo(model.logo, signal),
+    });
+  const logo = await firstUsableLogo(candidates, assetBudget(started));
+  return { ...identity, logo };
 }

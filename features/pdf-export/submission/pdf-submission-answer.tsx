@@ -1,6 +1,4 @@
 import { currentPdfStyles } from "@/features/pdf-export/theme/pdf-theme-context";
-import { getPanelTitle } from "@/lib/questions/question-utils";
-import { pdfPlainText } from "@/lib/utils/pdf-plain-text";
 import { StyleSheet, Text, View } from "@react-pdf/renderer";
 import { Question, QuestionNonValue } from "survey-core";
 import { EyeOffIcon } from "./icons";
@@ -19,11 +17,11 @@ const FULL_WIDTH_TYPES = new Set([
   "matrix",
 ]);
 
-function panelHeading(panelTitle: string) {
+export function PdfGroupHeading({ title }: { readonly title: string }) {
   const { text, divider } = currentPdfStyles();
   return (
-    <View key={`panel-title-${panelTitle}`} style={styles.groupHeaderRow}>
-      <Text style={[styles.groupHeaderText, text, divider]}>{panelTitle}</Text>
+    <View style={styles.groupHeaderRow}>
+      <Text style={[styles.groupHeaderText, text, divider]}>{title}</Text>
     </View>
   );
 }
@@ -34,10 +32,7 @@ export const PdfSubmissionAnswer = ({ question }: PdfSubmissionAnswerProps) => {
     return null;
   }
 
-  const panelTitle = pdfPlainText(getPanelTitle(question));
   const rows: React.ReactNode[] = [];
-
-  if (panelTitle) rows.push(panelHeading(panelTitle));
 
   // Title and answer are siblings of the other questions. minPresenceAhead only
   // works in that shared column: if the first image does not fit below the
