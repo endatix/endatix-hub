@@ -1012,6 +1012,30 @@ describe("ExportSubmissionsDialog", () => {
     expect(screen.getByLabelText(/Full recompile/i)).toBeDefined();
   });
 
+  it("keeps Back to export when a rebuild is refused before it starts", async () => {
+    // Arrange
+    mockPrepareReportingExportAction.mockResolvedValue({
+      ...Result.error("A full recompile needs permission to edit forms."),
+      step: "refused",
+    });
+    render(<ExportSubmissionsDialog {...createProps()} />);
+    await waitForReady();
+
+    // Act
+    fireEvent.click(
+      screen.getByRole("button", { name: /rebuild reporting data/i }),
+    );
+    fireEvent.click(screen.getByLabelText(/Full recompile/i));
+    fireEvent.click(
+      screen.getByRole("button", { name: /prepare for export/i }),
+    );
+    await screen.findByText("Preparation did not start");
+
+    // Assert
+    fireEvent.click(screen.getByRole("button", { name: /back to export/i }));
+    await waitForReady();
+  });
+
   it("hides full recompile option when schema is missing on open", async () => {
     mockListFormReportingLocalesAction.mockResolvedValue(
       Result.error(
