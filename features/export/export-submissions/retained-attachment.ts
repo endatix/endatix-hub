@@ -41,7 +41,6 @@ function isSelectedAttachment(response: Response, formatKey: string) {
   return (
     wire &&
     response.status === 200 &&
-    !response.redirected &&
     /^attachment\s*;/i.test(disposition) &&
     media === FILE_KINDS[wire.fileKind].mimeType
   );
