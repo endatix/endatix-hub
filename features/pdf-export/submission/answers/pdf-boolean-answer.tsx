@@ -15,12 +15,6 @@ const styles = StyleSheet.create({
     fontFamily: "Roboto-Bold",
     fontSize: 12,
   },
-  yes: {
-    color: "#006105",
-  },
-  no: {
-    color: "#FF0000",
-  },
 });
 
 const PdfBooleanAnswer = ({ question }: BooleanAnswerProps) => {
@@ -31,11 +25,10 @@ const PdfBooleanAnswer = ({ question }: BooleanAnswerProps) => {
   const label = question.value
     ? question.locLabelTrue.text
     : question.locLabelFalse.text;
-  const style = question.value ? styles.yes : styles.no;
 
   return (
     <View style={styles.valueContainer}>
-      <Text style={[styles.booleanText, style]}>
+      <Text style={styles.booleanText}>
         {pdfPlainText(label).toUpperCase()}
       </Text>
     </View>

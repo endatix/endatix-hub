@@ -1,6 +1,5 @@
-import { contrastRatio, over, parseCssColor, toHex, type Rgb } from "@/lib/branding/color";
+import { contrastRatio, over, parseCssColor, rotateHue, toHex, type Rgb } from "@/lib/branding/color";
 import type { PdfBodyLayer } from "./form-theme";
-import { PROPERTIES_PAPER } from "../submission/pdf-styles";
 
 const PAPER = { r: 1, g: 1, b: 1 };
 const INK = { r: 0, g: 0, b: 0 };
@@ -15,32 +14,72 @@ function painted(hex: string | undefined, backdrop: Rgb) {
 }
 
 function readable(preferred: Rgb, surface: Rgb) {
-  if (contrastRatio(preferred, surface) >= 4.5) return toHex(preferred);
-  return contrastRatio(PAPER, surface) >= contrastRatio(INK, surface) ? "#ffffff" : "#000000";
+  const ink = toHex(preferred);
+  const paper = parseCssColor(toHex(surface))!;
+  if (contrastRatio(parseCssColor(ink)!, paper) >= 4.5) return ink;
+  return contrastRatio(PAPER, paper) >= contrastRatio(INK, paper) ? "#ffffff" : "#000000";
 }
 
-export function propertyInks(theme: PdfBodyLayer, panel: string = PROPERTIES_PAPER) {
-  const surface = painted(panel, painted(theme.pageBackground, PAPER));
-  const ink = (hex: string) => ({ color: readable(painted(hex, surface), surface) });
+function tableBand(theme: PdfBodyLayer, deploymentAccent?: string) {
+  if (theme.tableHeaderBackground) return theme.tableHeaderBackground;
+  if (theme.accent) return theme.accent;
+  if (!deploymentAccent) return theme.pageBackground ? "transparent" : "#414141";
+  const seed = painted(deploymentAccent, PAPER);
+  return contrastRatio(seed, PAPER) < 1.1 ? toHex(over(INK, seed, 0.16)) : deploymentAccent;
+}
+
+function printSurfaces(theme: PdfBodyLayer, deploymentAccent?: string) {
+  const page = painted(theme.pageBackground, PAPER);
+  const band = tableBand(theme, deploymentAccent);
+  const header = painted(band, page);
+  const seed = theme.accent ? painted(theme.accent, page) : header;
+  const tintSeed = band === "transparent" ? localInkSeed(theme.text, page) : seed;
+  const field = over(tintSeed, page, 0.14);
+  const panel = theme.tableHeaderBackground ?? (theme.pageBackground && !theme.accent ? "transparent" : toHex(field));
+  const noteHue = rotateHue(tintSeed, 35);
+  const note = over(noteHue, page, 0.23);
+  return { page, band, header, seed, field, panel, noteHue, note };
+}
+
+function localInkSeed(text: string | undefined, page: Rgb) {
+  const ink = text ? painted(text, page) : INK;
+  return parseCssColor(readable(ink, page))!;
+}
+
+function headingInk(hue: Rgb, surface: Rgb) {
+  const charcoal = parseCssColor("#171d27")!;
+  for (let step = 0; step <= 100; step++) {
+    const ink = over(charcoal, hue, step / 100);
+    if (contrastRatio(ink, surface) >= 5) return toHex(ink);
+  }
+  return readable(hue, surface);
+}
+
+function inksOn(theme: PdfBodyLayer, seed: Rgb, surface: Rgb) {
+  const ink = (token: string | undefined, fallback: Rgb) =>
+    readable(token ? painted(token, surface) : fallback, surface);
+  const body = over(seed, parseCssColor("#18212b")!, 0.08);
+  const caption = over(seed, parseCssColor("#45515d")!, 0.15);
   return {
-    title: ink(theme.accent ?? theme.text ?? "#000000"),
-    label: ink(theme.mutedText ?? theme.text ?? "#666666"),
-    value: ink(theme.text ?? "#222222"),
+    body: ink(theme.text, body),
+    caption: ink(theme.mutedText ?? theme.text, caption),
+    heading: theme.accent || theme.text
+      ? ink(theme.accent ?? theme.text, body)
+      : headingInk(over(seed, body, 0.77), surface),
   };
 }
 
-export function printColors(theme: PdfBodyLayer, header: string) {
-  const page = painted(theme.pageBackground, PAPER);
-  const body = theme.text ? painted(theme.text, page) : INK;
-  const surface = painted(header, page);
-  const accent = painted(theme.accent, contrastRatio(surface, page) < 1.5 ? body : surface);
-  const tint = over(accent, page, 0.09);
+export function printColors(theme: PdfBodyLayer, deploymentAccent?: string) {
+  const s = printSurfaces(theme, deploymentAccent);
+  const page = inksOn(theme, s.seed, s.page);
+  const properties = inksOn(theme, s.seed, painted(s.panel, s.page));
+  const note = inksOn(theme, s.seed, s.note);
   return {
-    pageInk: readable(body, page),
-    mutedInk: readable(painted(theme.mutedText, body), page),
-    headerInk: readable(body, surface),
-    fieldTint: toHex(tint),
-    fieldInk: readable(body, tint),
-    headingInk: readable(painted(theme.accent, body), page),
+    page, properties, panel: s.panel, band: s.band,
+    headerInk: readable(theme.text ? painted(theme.text, s.header) : PAPER, s.header),
+    fieldTint: toHex(s.field), fieldInk: inksOn(theme, s.seed, s.field).heading,
+    noteTint: toHex(s.note), noteInk: note.body,
+    noteHeading: theme.accent || theme.text ? note.heading : headingInk(s.noteHue, s.note),
+    rule: theme.tableBorder ?? toHex(over(s.seed, parseCssColor("#a1a9b2")!, 0.24)),
   };
 }

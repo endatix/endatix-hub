@@ -7,6 +7,7 @@ import { loadMatrixFonts } from "../answers/matrix-print-bands";
 import PdfMatrixDropdownAnswer from "../answers/pdf-matrixdropdown-answer";
 import { FullWidthNote } from "../answers/pdf-transposed-matrix";
 import { currentPdfStyles, withPdfStyles } from "../../theme/pdf-theme-context";
+import { printedInk } from "./printed-ink";
 
 type Node = { lines?: { string: string }[]; style?: { color?: string }; children?: Node[] };
 function text(node: Node): string[] {
@@ -31,6 +32,38 @@ it("keeps a wrapped note heading with its first two answer lines", async () => {
   const pages: Node[] = onRender.mock.lastCall![0]._INTERNAL__LAYOUT__DATA_.children;
   const first = pages.map(page => text(page)).find(lines => lines.some(line => line.includes("Note [1]")));
   expect(first).toEqual(expect.arrayContaining(["Trial 0", "Trial 1"]));
+});
+
+type Positioned = { box: { left: number; width: number }; lines?: { string: string }[]; children?: Positioned[] };
+
+function placedLines(node: Positioned, origin = 0): { text: string; x: number; width: number }[] {
+  const x = origin + node.box.left;
+  return node.lines?.map(line => ({ text: line.string, x, width: node.box.width })) ??
+    node.children?.flatMap(child => placedLines(child, x)) ?? [];
+}
+
+it("insets the heading and body on every note fragment without losing a dense identifier", async () => {
+  // Arrange
+  await loadMatrixFonts();
+  const token = "W".repeat(180);
+  const source = ["First", token, ...Array.from({ length: 60 }, (_, i) => `Trial ${i}`)].join("\n");
+  const onRender = vi.fn();
+  // Act
+  await pdf(el(Document, { onRender }, el(Page, { size: "A4", style: { padding: 28 } },
+    el(FullWidthNote, { heading: "[1] · Row 7 · Observation", source }),
+  ))).toBlob();
+  const pages: Positioned[] = onRender.mock.lastCall![0]._INTERNAL__LAYOUT__DATA_.children;
+  // Assert
+  expect(pages.length).toBeGreaterThan(1);
+  const payload = [];
+  for (const page of pages) {
+    const [title, ...body] = placedLines(page);
+    expect(title.text).toBe("Note [1] · Row 7 · Observation");
+    expect(body.length).toBeGreaterThan(0);
+    expect([title, ...body].every(line => line.x === 36 && line.width <= 524)).toBe(true);
+    payload.push(...body.map(line => line.text));
+  }
+  expect(payload.join("").replaceAll(/\s/g, "")).toBe(source.replaceAll(/\s/g, ""));
 });
 
 async function printPages(entries: { observation: string }[]) {
@@ -68,11 +101,6 @@ async function printPages(entries: { observation: string }[]) {
 
 async function print(entries: { observation: string }[]) {
   return (await printPages(entries)).map((page) => text(page));
-}
-
-function printedInk(node: Node): [string, string | undefined][] {
-  return node.lines?.map(line => [line.string, node.style?.color]) ??
-    node.children?.flatMap(child => printedInk(child)) ?? [];
 }
 
 it("prints group headings, answers and continued trials in readable ink on dark paper alone", async () => {

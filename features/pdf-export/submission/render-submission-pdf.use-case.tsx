@@ -182,11 +182,11 @@ async function renderDocument(submission: Submission, model: Model, started: num
     downscalePdfFileImages(model),
     loadMatrixFonts(),
   ]);
-  return withPdfStyles(submission.formDefinition, () =>
+  const render = () =>
     pdf(
       <SubmissionDetailsPdf submission={submission} surveyModel={model} identity={identity} />,
-    ).toBlob(),
-  );
+    ).toBlob();
+  return withPdfStyles(submission.formDefinition, render, identity?.accentBar);
 }
 
 /**

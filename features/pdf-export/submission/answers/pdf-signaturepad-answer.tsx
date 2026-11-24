@@ -45,7 +45,6 @@ const styles = StyleSheet.create({
   },
   noFiles: {
     fontSize: 12,
-    color: "gray",
   },
   signatureContainer: {
     position: "relative",

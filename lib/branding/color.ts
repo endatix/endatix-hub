@@ -141,6 +141,21 @@ function hslToRgb(hue: number, saturation: number, lightness: number): Rgb {
   return { r: r + m, g: g + m, b: b + m };
 }
 
+/** Turn a hue without changing HSL lightness or saturation. */
+export function rotateHue(color: Rgb, degrees: number): Rgb {
+  const { r, g, b } = color;
+  const high = Math.max(r, g, b);
+  const low = Math.min(r, g, b);
+  const chroma = high - low;
+  if (chroma === 0) return color;
+  const lightness = (high + low) / 2;
+  const saturation = chroma / (1 - Math.abs(2 * lightness - 1));
+  let sector = (g - b) / chroma;
+  if (high === g) sector = 2 + (b - r) / chroma;
+  else if (high === b) sector = 4 + (r - g) / chroma;
+  return hslToRgb(60 * sector + degrees, saturation, lightness);
+}
+
 /** `#rrggbb`, channels rounded to the nearest byte. */
 export function toHex(color: Rgb): string {
   const byte = (v: number) =>

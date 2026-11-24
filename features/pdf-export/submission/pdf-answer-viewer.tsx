@@ -1,6 +1,7 @@
 import React from "react";
 import { Text, View, StyleSheet } from "@react-pdf/renderer";
 import { pdfPlainText } from "@/lib/utils/pdf-plain-text";
+import { currentPdfStyles } from "../theme/pdf-theme-context";
 import {
   MultipleTextItemModel,
   Question,
@@ -141,7 +142,7 @@ const PdfAnswerViewer = ({
               >
                 Comment:
               </Text>
-              <Text style={[VIEWER_STYLES.mutedText, VIEWER_STYLES.smallText]}>
+              <Text style={[currentPdfStyles().muted, VIEWER_STYLES.smallText]}>
                 {pdfPlainText(forQuestion?.comment)}
               </Text>
             </View>
@@ -341,9 +342,6 @@ export const VIEWER_STYLES = StyleSheet.create({
   },
   smallText: {
     fontSize: 10,
-  },
-  mutedText: {
-    color: "gray",
   },
 });
 

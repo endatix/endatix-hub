@@ -1,83 +1,58 @@
-import {
-  PDF_STYLES as body,
-  PDF_TABLE_STYLES as table,
-} from "../submission/pdf-styles";
+import { PDF_STYLES as body, PDF_TABLE_STYLES as table } from "../submission/pdf-styles";
 import type { PdfBodyLayer } from "./form-theme";
-import { printColors, propertyInks } from "./print-colors";
+import { printColors } from "./print-colors";
 
-export const DEFAULT_PDF_THEME: PdfBodyLayer = {};
+type Colors = ReturnType<typeof printColors>;
 
-export function resolvePdfTheme({ form }: { form?: PdfBodyLayer }) {
-  return { ...DEFAULT_PDF_THEME, ...form };
-}
-
-function bodyStyles(t: PdfBodyLayer, headingInk: string) {
+function bodyStyles(t: PdfBodyLayer, colors: Colors) {
   return {
     ...body,
-    mutedText: { color: t.mutedText ?? body.mutedText.color },
+    mutedText: { color: colors.page.caption },
     mutedBorder: {
       ...body.mutedBorder,
-      borderColor: t.border ?? body.mutedBorder.borderColor,
+      borderColor: t.border ?? colors.rule,
       borderRadius: t.radius ?? body.mutedBorder.borderRadius,
     },
-    sectionTitle: {
-      ...body.sectionTitle,
-      color: headingInk,
-    },
+    sectionTitle: { ...body.sectionTitle, color: colors.page.heading },
   };
 }
 
-function panelStyles(t: PdfBodyLayer) {
-  const backgroundColor = t.tableHeaderBackground ?? (t.pageBackground && "transparent");
-  return {
-    ...(backgroundColor && { backgroundColor }),
-    ...(t.radius !== undefined && { borderRadius: t.radius }),
-  };
-}
-
-function tableStyles(t: PdfBodyLayer, backgroundColor: string, colors: ReturnType<typeof printColors>) {
-  const border = t.tableBorder ? { borderColor: t.tableBorder } : {};
+function tableStyles(c: Colors) {
+  const border = { borderColor: c.rule };
   return {
     ...table,
-    fieldLabel: { ...table.fieldLabel, backgroundColor: colors.fieldTint, color: colors.fieldInk },
-    noteHeading: { ...table.noteHeading, color: colors.headingInk, borderTopColor: t.tableBorder ?? table.table.borderColor },
+    caption: { ...table.caption, color: c.page.heading },
+    groupNumber: { ...table.groupNumber, color: c.page.caption },
+    fieldLabel: { ...table.fieldLabel, backgroundColor: c.fieldTint, color: c.fieldInk },
+    noteSurface: { backgroundColor: c.noteTint },
+    noteHeading: { ...table.noteHeading, color: c.noteHeading, borderTopColor: c.rule },
+    noteText: { ...table.noteText, color: c.noteInk },
     table: { ...table.table, ...border },
     tableCell: { ...table.tableCell, ...border },
-    tableCellHeader: { ...table.tableCellHeader, ...border, color: colors.headerInk },
+    tableCellHeader: { ...table.tableCellHeader, ...border, color: c.headerInk },
     stackedContainer: { ...table.stackedContainer, ...border },
     stackedRow: { ...table.stackedRow, ...border },
-    tableHeader: {
-      ...table.tableHeader,
-      borderBottomColor: t.tableBorder ?? table.tableHeader.borderBottomColor,
-      backgroundColor,
-    },
-    noAnswer: { ...table.noAnswer, color: t.mutedText ?? table.noAnswer.color },
+    tableHeader: { ...table.tableHeader, borderBottomColor: c.rule, backgroundColor: c.band },
+    noAnswer: { ...table.noAnswer, color: c.page.caption },
   };
 }
 
-function pageStyles(t: PdfBodyLayer, colors: ReturnType<typeof printColors>) {
-  const text = t.pageBackground || t.text ? { color: colors.pageInk } : {};
-  const muted = t.pageBackground || t.text || t.mutedText ? { color: colors.mutedInk } : {};
+export function createPdfStyles(t: PdfBodyLayer, deploymentAccent?: string) {
+  const colors = printColors(t, deploymentAccent);
+  const text = { color: colors.page.body };
   return {
-    page: {
-      ...text,
-      ...(t.pageBackground && { backgroundColor: t.pageBackground }),
-    },
+    page: { ...text, ...(t.pageBackground && { backgroundColor: t.pageBackground }) },
     text,
-    muted,
-  };
-}
-
-export function createPdfStyles(t: PdfBodyLayer) {
-  const panel = panelStyles(t);
-  const header = t.tableHeaderBackground ?? t.accent ?? panel.backgroundColor ?? table.tableHeader.backgroundColor;
-  const colors = printColors(t, header);
-  return {
-    ...pageStyles(t, colors),
-    divider: t.border ? { borderBottomColor: t.border } : {},
-    panel,
-    properties: propertyInks(t, panel.backgroundColor),
-    body: bodyStyles(t, colors.headingInk),
-    table: tableStyles(t, header, colors),
+    link: { color: colors.page.heading },
+    muted: { color: colors.page.caption },
+    divider: { borderBottomColor: t.border ?? colors.rule },
+    panel: { backgroundColor: colors.panel, ...(t.radius !== undefined && { borderRadius: t.radius }) },
+    properties: {
+      title: { color: colors.properties.heading },
+      label: { color: colors.properties.caption },
+      value: { color: colors.properties.body },
+    },
+    body: bodyStyles(t, colors),
+    table: tableStyles(colors),
   };
 }

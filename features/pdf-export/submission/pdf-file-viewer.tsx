@@ -80,7 +80,7 @@ const FileCaption = ({ file }: { file: IFile }) => (
       {pdfPlainText(file.name) || "Untitled file"}
     </Text>
     {file.type ? (
-      <Text style={styles.fileType} hyphenationCallback={keepWholeWords}>
+      <Text style={[styles.fileType, currentPdfStyles().muted]} hyphenationCallback={keepWholeWords}>
         {file.type}
       </Text>
     ) : null}
@@ -106,12 +106,12 @@ const FileDetails = ({
           {pdfPlainText(file.name) || "Untitled file"}
         </Text>
         {file.type ? (
-          <Text style={styles.fileType} hyphenationCallback={keepWholeWords}>
+          <Text style={[styles.fileType, currentPdfStyles().muted]} hyphenationCallback={keepWholeWords}>
             {file.type}
           </Text>
         ) : null}
         {file.pdfLink ? (
-          <Link src={file.pdfLink} style={[styles.fileLink, currentPdfStyles().text]}>
+          <Link src={file.pdfLink} style={[styles.fileLink, currentPdfStyles().link]}>
             Open file
           </Link>
         ) : null}
@@ -137,7 +137,6 @@ const styles = StyleSheet.create({
   },
   fileType: {
     fontSize: 8,
-    color: "#71717a",
     marginTop: 1,
     maxLines: 1,
     textOverflow: "ellipsis",
@@ -156,7 +155,6 @@ const styles = StyleSheet.create({
   },
   fileLink: {
     fontSize: 9,
-    color: "#1d4ed8",
     marginTop: 4,
   },
 });

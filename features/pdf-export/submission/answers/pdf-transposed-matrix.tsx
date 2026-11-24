@@ -1,7 +1,7 @@
 import { Text, View } from "@react-pdf/renderer";
 import { currentPdfStyles } from "../../theme/pdf-theme-context";
 import { MATRIX_LABEL_COLUMN_WIDTH, NOTE_LINE_HEIGHT, PDF_ANSWER_WIDTH } from "../pdf-styles";
-import { MATRIX_LINE_STYLE, measureSource, typesetter } from "./matrix-print-bands";
+import { MATRIX_LINE_STYLE, measureText } from "./matrix-print-bands";
 import type { MatrixDropdownTableData } from "./pdf-matrixdropdown-answer";
 import { StartGridTogether } from "./pdf-matrix-table";
 import {
@@ -40,25 +40,25 @@ function PanelLine({ label, cells, entries, heading }: Readonly<Line>) {
   );
 }
 
-const noteSpacing = { marginTop: 8 };
+const noteSpacing = { marginTop: 8, paddingHorizontal: 8, paddingBottom: 5 };
+const noteTextWidth = PDF_ANSWER_WIDTH - 2 * noteSpacing.paddingHorizontal;
 
-function noteStartHeight(title: string) {
+function noteStartHeight(headingLines: number) {
   const style = currentPdfStyles().table.noteHeading;
-  const lines = typesetter(PDF_ANSWER_WIDTH, style.fontFamily, style.fontSize)(title);
   return Math.ceil(noteSpacing.marginTop + style.paddingTop + style.borderTopWidth
-    + style.marginBottom + (lines.length + 2) * NOTE_LINE_HEIGHT);
+    + style.marginBottom + (headingLines + 2) * NOTE_LINE_HEIGHT + noteSpacing.paddingBottom);
 }
 
 export function FullWidthNote({ heading, source }: Readonly<MatrixNote>) {
   const { table } = currentPdfStyles();
-  const body = measureSource(PDF_ANSWER_WIDTH, table.noteText.fontFamily)(source);
-  const title = `Note ${heading}`;
+  const body = measureText(noteTextWidth, table.noteText.fontFamily, table.noteText.fontSize)(source);
+  const title = measureText(noteTextWidth, table.noteHeading.fontFamily, table.noteHeading.fontSize)(`Note ${heading}`);
   return (
     <View>
-      <StartGridTogether presence={noteStartHeight(title)} />
-      <View style={noteSpacing}>
+      <StartGridTogether presence={noteStartHeight(title.lines)} />
+      <View style={[noteSpacing, table.noteSurface]}>
         <Text fixed style={table.noteHeading}>
-          {title}
+          {title.text}
         </Text>
         <Text style={table.noteText}>
           {body.text}
