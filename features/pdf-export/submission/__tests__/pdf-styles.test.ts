@@ -26,10 +26,11 @@ describe("computeMatrixDataColumnWidth", () => {
 
   it("returns null once columns would drop below the legible minimum (stacked-layout fallback)", () => {
     // Arrange — enough columns that even width would fall under the minimum.
-    const tooManyColumns = Math.ceil(
-      (MATRIX_TABLE_CONTENT_WIDTH - MATRIX_LABEL_COLUMN_WIDTH) /
-        MATRIX_MIN_DATA_COLUMN_WIDTH,
-    ) + 1;
+    const tooManyColumns =
+      Math.ceil(
+        (MATRIX_TABLE_CONTENT_WIDTH - MATRIX_LABEL_COLUMN_WIDTH) /
+          MATRIX_MIN_DATA_COLUMN_WIDTH,
+      ) + 1;
 
     // Act
     const width = computeMatrixDataColumnWidth(tooManyColumns);
@@ -42,11 +43,14 @@ describe("computeMatrixDataColumnWidth", () => {
     expect(computeMatrixDataColumnWidth(0)).toBeNull();
   });
 
-  it("keeps a grid at five data columns and stacks at six", () => {
+  it("keeps a grid through six data columns and stacks at seven", () => {
     // Act & Assert
     expect(computeMatrixDataColumnWidth(5)).toBe(
       (MATRIX_TABLE_CONTENT_WIDTH - MATRIX_LABEL_COLUMN_WIDTH) / 5,
     );
-    expect(computeMatrixDataColumnWidth(6)).toBeNull();
+    expect(computeMatrixDataColumnWidth(6)).toBe(
+      (MATRIX_TABLE_CONTENT_WIDTH - MATRIX_LABEL_COLUMN_WIDTH) / 6,
+    );
+    expect(computeMatrixDataColumnWidth(7)).toBeNull();
   });
 });

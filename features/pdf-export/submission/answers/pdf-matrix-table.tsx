@@ -1,5 +1,6 @@
 import { currentPdfStyles } from "@/features/pdf-export/theme/pdf-theme-context";
 import { Text, View } from "@react-pdf/renderer";
+import { MATRIX_LINE_STYLE, matrixPrintBands } from "./matrix-print-bands";
 import {
   MATRIX_LABEL_COLUMN_WIDTH,
   computeMatrixDataColumnWidth,
@@ -19,6 +20,7 @@ export interface PdfMatrixTableRow {
 interface PdfMatrixTableProps {
   columns: PdfMatrixTableColumn[];
   rows: PdfMatrixTableRow[];
+  children?: React.ReactNode;
 }
 
 const FIXED_COLUMN = { flexGrow: 0, flexShrink: 0, minWidth: 0 };
@@ -61,50 +63,134 @@ function StackedMatrix({ columns, rows }: PdfMatrixTableProps) {
   );
 }
 
-export const PdfMatrixTable = ({ columns, rows }: PdfMatrixTableProps) => {
+interface GridLineProps {
+  label?: string;
+  cells: PdfMatrixTableColumn[];
+  width: number;
+  header?: boolean;
+}
+
+function GridLine({ label = " ", cells, width, header }: GridLineProps) {
   const { table } = currentPdfStyles();
-  const dataColumnWidth = computeMatrixDataColumnWidth(columns.length);
-  if (dataColumnWidth === null)
-    return <StackedMatrix columns={columns} rows={rows} />;
-
-  const headerRow = (
-    <View style={[table.tableRow, table.tableHeader]}>
-      <View style={cellStyle(MATRIX_LABEL_COLUMN_WIDTH, true)}>
-        <Text> </Text>
+  const dataStyle = cellStyle(width, header);
+  return (
+    <View
+      style={header ? [table.tableRow, table.tableHeader] : table.tableRow}
+      wrap={false}
+    >
+      <View style={cellStyle(MATRIX_LABEL_COLUMN_WIDTH, header)}>
+        <Text>{label}</Text>
       </View>
-      {columns.map((column) => (
-        <View key={column.key} style={cellStyle(dataColumnWidth, true)}>
-          <Text>{column.title}</Text>
+      {cells.map(({ key, title }) => (
+        <View key={key} style={dataStyle}>
+          <Text>{title}</Text>
         </View>
       ))}
     </View>
   );
+}
 
-  const renderDataRow = (row: PdfMatrixTableRow) => (
-    <View style={table.tableRow} key={row.key} wrap={false}>
-      <View style={cellStyle(MATRIX_LABEL_COLUMN_WIDTH)}>
-        <Text>{row.label}</Text>
-      </View>
-      {columns.map((column) => (
-        <View key={column.key} style={cellStyle(dataColumnWidth)}>
-          <Text>{row.cells[column.key] ?? ""}</Text>
-        </View>
-      ))}
-    </View>
-  );
+type GridProps = PdfMatrixTableProps & { width: number };
 
-  const [firstRow, ...remainingRows] = rows;
+function dataLines({ columns, rows, width }: GridProps) {
+  return rows.map((row) => {
+    const cells = columns.map(({ key }) => ({
+      key,
+      title: row.cells[key] ?? "",
+    }));
+    return (
+      <GridLine key={row.key} label={row.label} cells={cells} width={width} />
+    );
+  });
+}
 
+function MatrixGrid(props: GridProps) {
+  const { table } = currentPdfStyles();
+  const [firstRow, ...remainingRows] = dataLines(props);
   return (
     <View style={table.table}>
-      {/* Keep header with the first data row so it is never orphaned at a page break. */}
       <View wrap={false}>
-        {headerRow}
-        {firstRow ? renderDataRow(firstRow) : null}
+        <GridLine cells={props.columns} width={props.width} header />
+        {firstRow}
       </View>
-      {remainingRows.map((row) => renderDataRow(row))}
+      {remainingRows}
     </View>
   );
+}
+
+type PrintLayout = ReturnType<typeof matrixPrintBands>;
+
+function columnDescriptions(legend: PrintLayout["legend"]) {
+  const { table } = currentPdfStyles();
+  const { fontFamily, fontSize } = table.tableCell;
+  return legend.map(
+    (c) =>
+      c.description && (
+        <Text
+          key={c.key}
+          style={{fontFamily, fontSize}}
+        >
+          {c.description}
+        </Text>
+      ),
+  );
+}
+
+function printBands({bands, legend}: PrintLayout, width: number) {
+  const { table } = currentPdfStyles();
+  return bands.map((band) => (
+    <View
+      key={band[0].key}
+      wrap={false}
+      style={[table.table, MATRIX_LINE_STYLE]}
+    >
+      <GridLine cells={legend} width={width} header />
+      {band.map((row) => (
+        <GridLine
+          key={row.key}
+          label={row.label}
+          cells={row.cells}
+          width={width}
+        />
+      ))}
+    </View>
+  ));
+}
+
+function BandedGrid({ columns, rows, width, children }: GridProps) {
+  const layout = matrixPrintBands(columns, rows, width);
+  const [first, ...rest] = printBands(layout, width);
+  return (
+    <View>
+      {columnDescriptions(layout.legend)}
+      <View>
+        <StartGridTogether />
+        {children}
+        {first}
+      </View>
+      {rest}
+    </View>
+  );
+}
+
+// React-PDF clamps presence to the measured extent of the following siblings.
+// Keep the caption with the first band. The first empty sibling
+// gives the paginator a break opportunity even inside a nested answer.
+function StartGridTogether() {
+  return (
+    <>
+      <View />
+      <View minPresenceAhead={Number.MAX_SAFE_INTEGER} />
+    </>
+  );
+}
+
+export const PdfMatrixTable = (props: PdfMatrixTableProps) => {
+  const width = computeMatrixDataColumnWidth(props.columns.length);
+  if (width !== null && props.columns.length === 6)
+    return <BandedGrid {...props} width={width} />;
+  const grid = width === null ? <StackedMatrix {...props} /> : <MatrixGrid {...props} width={width} />;
+  return <>{props.children}{grid}</>;
 };
 
 export default PdfMatrixTable;
