@@ -636,6 +636,28 @@ describe("ExportSubmissionsDialog", () => {
     expect(mockTrackFeatureUsage).not.toHaveBeenCalled();
   });
 
+  it("retries a plain export failure with Export, never Prepare and retry", async () => {
+    // Arrange
+    mockOnExport.mockResolvedValue({
+      succeeded: false,
+      message: "Export format is not supported.",
+    });
+    render(<ExportSubmissionsDialog {...createProps()} />);
+    await waitForReady();
+
+    // Act
+    fireEvent.click(screen.getByRole("button", { name: /^export$/i }));
+    await screen.findByText("Export format is not supported.");
+
+    // Assert
+    expect(screen.getByRole("button", { name: /^export$/i })).toBeDefined();
+    expect(
+      screen.queryByRole("button", {
+        name: /prepare and retry|prepare for export/i,
+      }),
+    ).toBeNull();
+  });
+
   it("shows prepare recovery when export fails with a backfill message", async () => {
     mockOnExport.mockResolvedValue({
       succeeded: false,
@@ -648,7 +670,7 @@ describe("ExportSubmissionsDialog", () => {
     fireEvent.click(screen.getByRole("button", { name: /^export$/i }));
 
     expect(
-      await screen.findByRole("button", { name: "Try again" }),
+      await screen.findByRole("button", { name: "Prepare and retry" }),
     ).toBeDefined();
     expect(screen.getByText(/Prepare required|Export failed/i)).toBeDefined();
     expect(

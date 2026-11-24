@@ -157,7 +157,7 @@ export function prepareActionLabel(
   fullRecompile: boolean,
 ): string {
   if (phase !== "error") return "Prepare for export";
-  if (!failure) return "Try again";
+  if (!failure) return "Prepare and retry";
   if (fullRecompile) return "Run full recompile";
   return failure.previousSchema === "retained"
     ? "Rebuild again"

@@ -88,7 +88,7 @@ describe("prepareActionLabel", () => {
       full: false,
       label: "Prepare for export",
     },
-    { phase: "error", failure: null, full: false, label: "Try again" },
+    { phase: "error", failure: null, full: false, label: "Prepare and retry" },
     { phase: "error", failure: retained, full: false, label: "Rebuild again" },
     {
       phase: "error",
