@@ -176,4 +176,26 @@ describe("CopyToClipboard", () => {
       expect(mockWriteText).not.toHaveBeenCalled();
     });
   });
+
+  describe("Inline confirmation", () => {
+    it("says Copied next to the control for two seconds, without a toast", async () => {
+      // Arrange
+      const { toast } = await import("../ui/toast");
+      vi.mocked(toast.success).mockClear();
+      render(<CopyToClipboard copyValue="ref" confirmation="inline" />);
+
+      // Act
+      fireEvent.click(screen.getByRole("button"));
+      await act(async () => {});
+
+      // Assert
+      expect(screen.getByRole("status").textContent).toBe("Copied");
+      expect(toast.success).not.toHaveBeenCalled();
+      await act(async () => {
+        vi.advanceTimersByTime(2000);
+      });
+      expect(screen.queryByRole("status")).toBeNull();
+    });
+  });
 });
+

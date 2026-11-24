@@ -35,6 +35,10 @@ interface TruncatedIdProps {
   truncate?: "middle" | "prefix";
   className?: string;
   copyLabel?: string;
+  /** Default `toast`; `inline` says "Copied" beside the copy control instead. */
+  copyConfirmation?: "toast" | "inline";
+  /** Aligns both tooltips to the trigger, e.g. `end` near a panel's right edge. */
+  tooltipAlign?: "start" | "center" | "end";
 }
 
 export function TruncatedId({
@@ -44,6 +48,8 @@ export function TruncatedId({
   truncate = "middle",
   className,
   copyLabel = "Copy ID",
+  copyConfirmation = "toast",
+  tooltipAlign,
 }: Readonly<TruncatedIdProps>) {
   const trimmed = id?.trim() ?? "";
   if (trimmed.length === 0) {
@@ -72,7 +78,7 @@ export function TruncatedId({
         <TooltipProvider delayDuration={200}>
           <Tooltip>
             <TooltipTrigger asChild>{idText}</TooltipTrigger>
-            <TooltipContent>
+            <TooltipContent align={tooltipAlign}>
               <span className="font-mono text-xs">{trimmed}</span>
             </TooltipContent>
           </Tooltip>
@@ -84,7 +90,9 @@ export function TruncatedId({
         copyValue={trimmed}
         label={copyLabel}
         layout="inline"
-        className="opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100"
+        confirmation={copyConfirmation}
+        tooltipContentProps={{ align: tooltipAlign }}
+        className="items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100 has-[[role=status]]:opacity-100"
         buttonClassName="size-5"
       />
     </div>
