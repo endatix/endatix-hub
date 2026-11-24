@@ -94,7 +94,6 @@ export function ExportSubmissionsDialog({
         <ResponsivePanelBody>
           <ExportDialogStatusPanel
             {...dialog}
-            canDownload={Boolean(dialog.selectedOption) && !dialog.busy}
             exportName={dialog.selectedOption?.label}
           />
 

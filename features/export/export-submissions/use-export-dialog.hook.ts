@@ -87,7 +87,6 @@ export function useExportDialog({
     prepare,
     lastFailure,
   } = usePrepareAttempt(formId);
-  const previousDownload = prepareFailure?.previousSchema === "downloadable";
   const [fullRecompile, setFullRecompile] = useState(false);
   const [exportFormatId, setExportFormatId] = useState("");
   const [filterDraft, setFilterDraft] = useState<ExportFilterDraft>(
@@ -329,9 +328,8 @@ export function useExportDialog({
     patchFilterDraft({ locale });
   };
 
-  const exportPermitted = (readinessPassed && !rebuildMode) || previousDownload;
+  const exportPermitted = readinessPassed && !rebuildMode;
   const refreshDrafts =
-    !previousDownload &&
     showRowFilters &&
     includesIncompleteSubmissions(filterDraft.collectionStatus);
   const handleSubmit = async (event: SubmitEvent<HTMLFormElement>) => {

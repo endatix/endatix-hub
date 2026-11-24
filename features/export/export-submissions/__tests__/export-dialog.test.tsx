@@ -6,6 +6,7 @@ import {
   ExportSubmissionsDialog,
   type ExportSubmissionsDialogProps,
 } from "../ui/export-dialog";
+import { exportGroups } from "./export-dialog-fixture";
 import { stubResizeObserver } from "@/test/stubs/resize-observer";
 
 const mockOnExport = vi.fn();
@@ -297,68 +298,7 @@ function createProps(
     onOpenChange: mockOnOpenChange,
     formId: "100",
     canRebuild: true,
-    groups: [
-      {
-        target: "Submissions" as ExportTarget,
-        label: "Submissions",
-        options: [
-          {
-            exportFormatId: "csv-1",
-            formatKey: "csv",
-            label: "CSV",
-            fallbackExtension: "csv",
-            exportTarget: "Submissions" as ExportTarget,
-            profile: "Native",
-            allowedFilters: [
-              "includeTestSubmissions",
-              "createdAtRange",
-              "startedAtRange",
-              "completedAtRange",
-              "collectionStatus",
-            ],
-          },
-          {
-            exportFormatId: "json-1",
-            formatKey: "json",
-            label: "JSON",
-            fallbackExtension: "json",
-            exportTarget: "Submissions" as ExportTarget,
-            profile: "Native",
-            allowedFilters: [
-              "includeTestSubmissions",
-              "createdAtRange",
-              "startedAtRange",
-              "completedAtRange",
-              "collectionStatus",
-            ],
-          },
-        ],
-      },
-      {
-        target: "Codebook" as ExportTarget,
-        label: "Codebook",
-        options: [
-          {
-            exportFormatId: "cb-native",
-            formatKey: "codebook",
-            label: "Native codebook",
-            fallbackExtension: "json",
-            exportTarget: "Codebook" as ExportTarget,
-            profile: "Native",
-            allowedFilters: [],
-          },
-          {
-            exportFormatId: "cb-shoji",
-            formatKey: "codebook-shoji",
-            label: "Shoji codebook",
-            fallbackExtension: "json",
-            exportTarget: "Codebook" as ExportTarget,
-            profile: "Shoji",
-            allowedFilters: ["locale"],
-          },
-        ],
-      },
-    ],
+    groups: exportGroups,
     statusGroups: COLLECTION_STATUS_FACET_GROUPS,
     listFilters: undefined,
     isExporting: false,
@@ -926,6 +866,42 @@ describe("ExportSubmissionsDialog", () => {
     expect(
       screen.getByRole("button", { name: /rebuild reporting data/i }),
     ).toBeDefined();
+  });
+
+  it("blocks a retained schema when rows exist but the selected plan is unverified", async () => {
+    // Arrange
+    mockPrepareReportingExportAction.mockResolvedValue({
+      ...Result.error("The alias has conflicting meanings."),
+      step: "compile",
+      previousSchema: "unverified",
+      traceId: "conflict-ref",
+    });
+    render(<ExportSubmissionsDialog {...createProps()} />);
+    await waitForReady();
+
+    // Act
+    fireEvent.click(
+      screen.getByRole("button", { name: /rebuild reporting data/i }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: /prepare for export/i }),
+    );
+    await screen.findByText(/selected export has not been verified/i);
+    fireEvent.submit(
+      screen
+        .getByRole("heading", { name: "Export submissions" })
+        .closest("form")!,
+    );
+
+    // Assert
+    expect(
+      screen.queryByRole("button", {
+        name: /download using previous schema|^export$|back to export/i,
+      }),
+    ).toBeNull();
+    expect(mockOnExport).not.toHaveBeenCalled();
+    expect(mockRefreshIncompleteSubmissionsAction).not.toHaveBeenCalled();
+    expect(mockPrepareReportingExportAction).toHaveBeenCalledTimes(1);
   });
 
   it("hides Rebuild reporting data from a user who cannot edit forms", async () => {

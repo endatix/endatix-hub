@@ -32,7 +32,10 @@ export function previousSchema(result: ApiResult<unknown>) {
   const details = result.error.details;
   if (details?.statusCode !== 409 || details.previousSchemaRetained !== true)
     return;
-  return details.previousExportAvailable === true ? "downloadable" : "retained";
+  // The compile endpoint checks for rows, not the selected format, locale or plan.
+  return details.previousExportAvailable === false
+    ? "unavailable"
+    : "unverified";
 }
 
 export function recordPrepareFailure(

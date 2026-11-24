@@ -18,7 +18,6 @@ const UNCONFIRMED: PrepareFailure = {
 };
 
 // A remount may forget diagnostics, but it must not promote an interrupted run to Ready.
-// Storage never grants a download: only the response to this window's compile can do that.
 function markIncomplete(key: string, incomplete: boolean) {
   try {
     if (incomplete) sessionStorage.setItem(key, "1");
@@ -33,12 +32,11 @@ export function usePrepareAttempt(formId: string) {
   const [failure, setFailure] = useState<PrepareFailure | null>(null);
   const lastFailure = () => failure ?? interruptedAttempt(key);
   async function prepare(fullRecompile: boolean) {
-    const prior = lastFailure();
     markIncomplete(key, true);
     const result = await prepareReportingExportAction(formId, {
       fullRecompile,
     }).catch(() => UNCONFIRMED);
-    const next = Result.isError(result) ? failureAfter(prior, result) : null;
+    const next = Result.isError(result) ? result : null;
     setFailure(next);
     markIncomplete(key, next !== null);
     return result;
@@ -52,14 +50,4 @@ function interruptedAttempt(key: string) {
   } catch {
     return null;
   }
-}
-
-function failureAfter(
-  prior: PrepareFailure | null,
-  next: PrepareFailure,
-): PrepareFailure {
-  if (next.previousSchema && prior && prior.previousSchema !== "downloadable") {
-    return { ...next, previousSchema: "retained" };
-  }
-  return next;
 }

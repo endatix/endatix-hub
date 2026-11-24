@@ -5,7 +5,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TruncatedId } from "@/components/common/truncated-id";
 import type { PrepareFailure } from "../use-prepare-attempt.hook";
-import { Button } from "@/components/ui/button";
 import { SCHEMA_NEEDS_PREPARE_MESSAGE } from "../../export-error-message";
 import {
   CheckCircle2,
@@ -21,7 +20,6 @@ const REBUILD_PREPARE_MESSAGE =
 
 interface ExportDialogStatusPanelProps {
   prepareFailure: PrepareFailure | null;
-  canDownload: boolean;
   phase: ExportDialogPhase;
   rebuildMode?: boolean;
   inlineError: string | null;
@@ -70,13 +68,7 @@ export function ExportDialogStatusPanel(
   const { phase, rebuildMode, inlineError, prepareOutcome, prepareFailure } =
     props;
   if (phase === "error" && prepareFailure)
-    return (
-      <PrepareFailureAlert
-        failure={prepareFailure}
-        downloadEnabled={props.canDownload}
-        downloadError={inlineError}
-      />
-    );
+    return <PrepareFailureAlert failure={prepareFailure} />;
   if (phase === "checking") {
     return <ExportDialogSkeleton />;
   }
@@ -108,26 +100,17 @@ const failureTitles = {
   unconfirmed: "Preparation could not be completed",
 };
 
-interface PrepareFailureAlertProps {
-  failure: PrepareFailure;
-  downloadEnabled: boolean;
-  downloadError: string | null;
-}
-
-function PrepareFailureAlert(props: Readonly<PrepareFailureAlertProps>) {
-  const { failure, downloadError } = props;
+function PrepareFailureAlert({
+  failure,
+}: Readonly<{ failure: PrepareFailure }>) {
   return (
     <Alert variant="destructive">
       <AlertTitle>{failureTitles[failure.step ?? "unconfirmed"]}</AlertTitle>
       <AlertDescription>
         <p>{failure.message}</p>
-        {downloadError && downloadError !== failure.message && (
-          <p>Download failed: {downloadError}</p>
+        {failure.previousSchema && (
+          <p>{previousExportMessages[failure.previousSchema]}</p>
         )}
-        <PreviousSchemaDownload
-          disposition={failure.previousSchema}
-          enabled={props.downloadEnabled}
-        />
         <SupportReference traceId={failure.traceId} />
       </AlertDescription>
     </Alert>
@@ -144,25 +127,11 @@ function SupportReference({ traceId }: Readonly<{ traceId?: string }>) {
   );
 }
 
-function PreviousSchemaDownload({
-  disposition,
-  enabled,
-}: Readonly<{
-  disposition: PrepareFailure["previousSchema"];
-  enabled: boolean;
-}>) {
-  if (!disposition) return null;
-  if (disposition === "retained")
-    return <p>No previous download is available.</p>;
-  return (
-    <>
-      <p>Recent changes may be missing from this download.</p>
-      <Button type="submit" variant="outline" disabled={!enabled}>
-        Download using previous schema
-      </Button>
-    </>
-  );
-}
+const previousExportMessages = {
+  unavailable: "No previous download is available.",
+  unverified:
+    "The selected export has not been verified against the retained schema.",
+};
 
 function DownloadOutcomeAlert({
   exportName,
