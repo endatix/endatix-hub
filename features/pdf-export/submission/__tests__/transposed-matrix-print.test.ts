@@ -34,6 +34,38 @@ it("keeps a wrapped note heading with its first two answer lines", async () => {
   expect(first).toEqual(expect.arrayContaining(["Trial 0", "Trial 1"]));
 });
 
+type Positioned = { box: { left: number; width: number }; lines?: { string: string }[]; children?: Positioned[] };
+
+function placedLines(node: Positioned, origin = 0): { text: string; x: number; width: number }[] {
+  const x = origin + node.box.left;
+  return node.lines?.map(line => ({ text: line.string, x, width: node.box.width })) ??
+    node.children?.flatMap(child => placedLines(child, x)) ?? [];
+}
+
+it("insets the heading and body on every note fragment without losing a dense identifier", async () => {
+  // Arrange
+  await loadMatrixFonts();
+  const token = "W".repeat(180);
+  const source = Array.from({ length: 100 }, (_, i) => `Trial ${i}: ${token}`).join("\n");
+  const onRender = vi.fn();
+  // Act
+  await pdf(el(Document, { onRender }, el(Page, { size: "A4", style: { padding: 28 } },
+    el(FullWidthNote, { heading: "[1] · Row 7 · Observation", source }),
+  ))).toBlob();
+  const pages: Positioned[] = onRender.mock.lastCall![0]._INTERNAL__LAYOUT__DATA_.children;
+  // Assert
+  expect(pages.length).toBeGreaterThan(1);
+  const payload = [];
+  for (const page of pages) {
+    const [title, ...body] = placedLines(page);
+    expect(title.text).toBe("Note [1] · Row 7 · Observation");
+    expect(body.length).toBeGreaterThan(0);
+    expect([title, ...body].every(line => line.x === 36 && line.width <= 524)).toBe(true);
+    payload.push(...body.map(line => line.text));
+  }
+  expect(payload.join("").replaceAll(/\s/g, "")).toBe(source.replaceAll(/\s/g, ""));
+});
+
 async function printPages(entries: { observation: string }[]) {
   const model = new Model({
     elements: [

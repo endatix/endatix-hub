@@ -40,7 +40,11 @@ export async function loadMatrixFonts() {
   );
 }
 
-export function typesetter(width: number, family: string, fontSize: number = tableCell.fontSize) {
+export function typesetter(width: number, family: string) {
+  return textTypesetter(width - CELL_EDGES, family);
+}
+
+function textTypesetter(width: number, family: string, fontSize: number = tableCell.fontSize) {
   const font = [family, "Helvetica"].map(
     (fontFamily) => Font.getFont({ fontFamily }).data!,
   );
@@ -49,7 +53,7 @@ export function typesetter(width: number, family: string, fontSize: number = tab
     fontSize,
     lineHeight: LINE_HEIGHT,
   };
-  const box = { x: 0, y: 0, width: width - CELL_EDGES, height: Infinity };
+  const box = { x: 0, y: 0, width, height: Infinity };
   return (text: string) =>
     typeset(fromFragments([{ string: text, attributes }]), box, {
       shrinkWhitespaceFactor: { before: -0.5, after: -0.5 },
@@ -77,8 +81,11 @@ interface TextBlock {
 // Textkit returns display-order glyphs. Only use their geometry: React-PDF
 // needs the logical source (including direction marks) to shape the final PDF.
 export function measureSource(width: number, family: string) {
-  const measure = typesetter(width, family);
-  const available = width - CELL_EDGES;
+  return measureText(width - CELL_EDGES, family);
+}
+
+export function measureText(available: number, family: string, fontSize: number = tableCell.fontSize) {
+  const measure = textTypesetter(available, family, fontSize);
   const withinWidth = (lines: ReturnType<typeof measure>) =>
     lines.every((line) => (line.xAdvance ?? 0) <= available);
   const fits = (word: string) => {
