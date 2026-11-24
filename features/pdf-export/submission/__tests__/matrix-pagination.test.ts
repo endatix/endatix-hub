@@ -42,6 +42,7 @@ function lines(node: LayoutNode, parentTop = 0): string[] {
 async function printedPages(
   table = { columns, rows },
   lead: ReactNode = el(Text, { break: true }, "Matrix question"),
+  frameWidth?: number,
 ) {
   await loadMatrixFonts();
   // react-pdf supplies its paginated layout to Document.onRender after writing the PDF.
@@ -54,7 +55,9 @@ async function printedPages(
       { size: "A4", style: { padding: 24 } },
       el(Text, null, "Before question"),
       lead,
-      el(PdfMatrixTable, table),
+      frameWidth
+        ? el(View, { style: { width: frameWidth } }, el(PdfMatrixTable, table))
+        : el(PdfMatrixTable, table),
       el(Text, { break: true }, "After question"),
     ),
   );
@@ -139,6 +142,7 @@ it("finishes oversized titles and cells without clipping or duplicating their li
   )) {
     expect(page).toContain("Column 1");
     expect(page).toContain("Sixth");
+    expect(page).toContain("Tall row");
   }
 });
 
@@ -149,7 +153,7 @@ it("keeps every character of a long unbroken identifier in its own column", asyn
   // Act
   const pages = await printedPages({ columns, rows: [row] });
   // Assert — each W is about 9 pt in the stock font; eight cannot fit in this cell.
-  const lines = pages.flat().filter(line => /^W+$/u.test(line));
+  const lines = pages.flat().filter((line) => /^W+$/u.test(line));
   expect(lines.join("")).toBe(identifier);
   for (const line of lines) expect(line.length).toBeLessThan(8);
 });
@@ -168,6 +172,55 @@ it("starts a flowing first row with its legend, not in a sliver above the page b
   expect(pages[0]).toEqual(["Before question"]);
   for (const page of pages.filter((p) => p.includes("Sixth")))
     expect(page).toContain("Printed line");
+});
+
+it.each([false, true])(
+  "matches the ordinary grid's printed bidi order (soft-wrapped: %s)",
+  async (wrapped) => {
+    const run = "\u200f(12)-(34)\u200f";
+    // Match the actual cell widths so natural line breaks are comparable.
+    const label = wrapped
+      ? `Alpha ${run} Bravo ${run} Charlie ${run}`
+      : "Sample";
+    const sample = [
+      { ...rows[0], label, cells: { First: wrapped ? "X" : run } },
+    ];
+    const output = async (width: number) =>
+      (
+        await printedPages(
+          {
+            columns: columns.slice(0, width),
+            rows: sample,
+          },
+          undefined,
+          1 + (width + 1) * 77,
+        )
+      )
+        .flat()
+        .filter((line) => /[()]/u.test(line));
+    const reference = await output(5);
+    expect(reference.length).toBeGreaterThan(wrapped ? 1 : 0);
+    expect(await output(6)).toEqual(reference);
+  },
+);
+
+it("identifies continued answers even after the row label has finished printing", async () => {
+  const labels = Array.from({ length: 90 }, (_, i) => `Label-${i}`);
+  const answers = Array.from({ length: 150 }, (_, i) => `Answer-${i}`);
+  const sample = [
+    {
+      key: "id",
+      label: labels.join("\n"),
+      cells: { First: answers.join("\n") },
+    },
+  ];
+  const pages = (await printedPages({ columns, rows: sample })).filter((p) =>
+    p.some((l) => l.startsWith("Answer-")),
+  );
+  expect(pages.flat().filter((l) => l.startsWith("Label-"))).toEqual(labels);
+  expect(pages.flat().filter((l) => l.startsWith("Answer-"))).toEqual(answers);
+  expect(pages[0]).toContain("Row 1");
+  for (const page of pages.slice(1)) expect(page).toContain("Row 1 (cont.)");
 });
 
 it.each([0, 220, 665, 680, 690, 765])(
