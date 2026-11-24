@@ -108,6 +108,7 @@ export function RetainedExportDownload({
         type="button"
         variant="outline"
         size="sm"
+        className="text-foreground"
         onClick={download}
         disabled={busy || !selection}
       >
