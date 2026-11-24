@@ -423,10 +423,7 @@ export function useExportDialog({
       hasFailure: prepareFailure !== null,
       inlineError,
     }),
-    prepareLabel: prepareActionLabel(
-      phase === "error" ? prepareFailure : null,
-      fullRecompile,
-    ),
+    prepareLabel: prepareActionLabel(phase, prepareFailure, fullRecompile),
     showGroupLabels: groups.length > 1,
     inlineError,
     prepareOutcome,

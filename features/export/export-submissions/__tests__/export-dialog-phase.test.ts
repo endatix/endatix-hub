@@ -80,15 +80,22 @@ describe("export-dialog-phase", () => {
 
 describe("prepareActionLabel", () => {
   it.each([
-    [null, false, "Prepare for export"],
-    [{ previousSchema: "retained" as const }, false, "Rebuild again"],
-    [{ previousSchema: undefined }, false, "Retry rebuild"],
-    [{ previousSchema: "retained" as const }, true, "Run full recompile"],
-    [{ previousSchema: undefined }, true, "Run full recompile"],
-  ])(
-    "names the fix for failure %o (full recompile %s)",
-    (failure, full, label) => {
-      expect(prepareActionLabel(failure, full)).toBe(label);
+    ["needsPrepare", null, false, "Prepare for export"],
+    ["error", null, false, "Try again"],
+    ["error", { previousSchema: "retained" as const }, false, "Rebuild again"],
+    ["error", { previousSchema: undefined }, false, "Retry rebuild"],
+    [
+      "error",
+      { previousSchema: "retained" as const },
+      true,
+      "Run full recompile",
+    ],
+    ["error", { previousSchema: undefined }, true, "Run full recompile"],
+    ["preparing", { previousSchema: undefined }, false, "Prepare for export"],
+  ] as const)(
+    "in %s names the action for failure %o (full recompile %s)",
+    (phase, failure, full, label) => {
+      expect(prepareActionLabel(phase, failure, full)).toBe(label);
     },
   );
 });

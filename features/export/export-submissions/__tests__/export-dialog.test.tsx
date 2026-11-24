@@ -647,12 +647,13 @@ describe("ExportSubmissionsDialog", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /^export$/i }));
 
-    await waitFor(() => {
-      expect(
-        screen.getByRole("button", { name: /prepare for export/i }),
-      ).toBeDefined();
-    });
+    expect(
+      await screen.findByRole("button", { name: "Try again" }),
+    ).toBeDefined();
     expect(screen.getByText(/Prepare required|Export failed/i)).toBeDefined();
+    expect(
+      screen.queryByRole("button", { name: /prepare for export/i }),
+    ).toBeNull();
     expect(screen.queryByLabelText(/Full recompile/i)).toBeNull();
   });
 

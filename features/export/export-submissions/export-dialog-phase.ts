@@ -150,12 +150,14 @@ export function schemaReadiness(result: Result<string[]>) {
   };
 }
 
-/** The footer's primary action. While a failure is shown it names the fix, never the first-time prepare. */
+/** The footer's primary action. Under any error it names the fix, never the first-time prepare. */
 export function prepareActionLabel(
+  phase: ExportDialogPhase,
   failure: { previousSchema?: "retained" } | null,
   fullRecompile: boolean,
 ): string {
-  if (!failure) return "Prepare for export";
+  if (phase !== "error") return "Prepare for export";
+  if (!failure) return "Try again";
   if (fullRecompile) return "Run full recompile";
   return failure.previousSchema === "retained"
     ? "Rebuild again"
