@@ -64,7 +64,8 @@ function enrichDetails(
     problemTitle: problemDetails?.title ?? details.problemTitle,
     problemMediaType: problemMediaType || details.problemMediaType,
     existingId: problemDetails?.existingId ?? details.existingId,
-    previousSchemaRetained: problemDetails?.previousSchemaRetained,
+    previousSchemaRetained:
+      problemDetails?.previousSchemaRetained ?? details.previousSchemaRetained,
   };
 }
 
