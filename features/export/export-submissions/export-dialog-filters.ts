@@ -287,3 +287,12 @@ export function pickDefaultExportFormatId(
     ""
   );
 }
+
+export function exportOptionFields(option: TenantExportOption | undefined) {
+  return {
+    showRowFilters: option
+      ? showsSubmissionRowFilters(option.exportTarget, option.formatKey)
+      : false,
+    showLocale: option ? showsLocaleField(option) : false,
+  };
+}

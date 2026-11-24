@@ -14,10 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  FacetedFilter,
-  type FacetedFilterGroup,
-} from "@/components/table";
+import { FacetedFilter, type FacetedFilterGroup } from "@/components/table";
 import { Button } from "@/components/ui/button";
 import type { SubmissionExportListFilters } from "../../export-url";
 import {
@@ -35,6 +32,7 @@ import { FileDown, ListFilter } from "lucide-react";
 import { ExportDateRangeFieldset } from "./export-date-range-fieldset";
 
 interface ExportDialogFiltersFormProps {
+  usingRetainedSchema?: boolean;
   groups: TenantExportOptionGroup[];
   statusGroups: readonly FacetedFilterGroup[];
   showGroupLabels: boolean;
@@ -44,7 +42,7 @@ interface ExportDialogFiltersFormProps {
   optionsEmpty: boolean;
   showLocaleField: boolean;
   localeSelectValue: string;
-  localeSelectOptions: ReadonlyArray<{ value: string; label: string }>;
+  localeSelectOptions: ReadonlyArray<{ value: string; label: string }> | null;
   onLocaleChange: (locale: string) => void;
   showRowFilters: boolean;
   filterDraft: ExportFilterDraft;
@@ -62,7 +60,6 @@ interface ExportDialogFiltersFormProps {
 
 export function ExportDialogFiltersForm({
   groups,
-  statusGroups,
   showGroupLabels,
   exportFormatId,
   onExportFormatIdChange,
@@ -72,13 +69,7 @@ export function ExportDialogFiltersForm({
   localeSelectValue,
   localeSelectOptions,
   onLocaleChange,
-  showRowFilters,
-  filterDraft,
-  rangeErrors,
-  showCompletedAt,
-  tablePrefill,
-  onPatchFilterDraft,
-  onDateRangeChange,
+  ...submissions
 }: Readonly<ExportDialogFiltersFormProps>) {
   return (
     <>
@@ -124,7 +115,7 @@ export function ExportDialogFiltersForm({
             <Select
               value={localeSelectValue}
               onValueChange={onLocaleChange}
-              disabled={controlsLocked}
+              disabled={controlsLocked || !localeSelectOptions?.length}
             >
               <SelectTrigger
                 id="export-submissions-locale"
@@ -134,7 +125,7 @@ export function ExportDialogFiltersForm({
                 <SelectValue placeholder="Select language" />
               </SelectTrigger>
               <SelectContent>
-                {localeSelectOptions.map((localeOption) => (
+                {localeSelectOptions?.map((localeOption) => (
                   <SelectItem
                     key={localeOption.value}
                     value={localeOption.value}
@@ -149,30 +140,31 @@ export function ExportDialogFiltersForm({
               id="export-submissions-locale-hint"
               className="text-xs text-muted-foreground"
             >
-              Question and choice labels in the codebook.
+              {languageHint(localeSelectOptions)}
             </p>
           </div>
         ) : null}
       </PanelSection>
 
-      <SubmissionsSection
-        showRowFilters={showRowFilters}
-        filterDraft={filterDraft}
-        rangeErrors={rangeErrors}
-        showCompletedAt={showCompletedAt}
-        controlsLocked={controlsLocked}
-        tablePrefill={tablePrefill}
-        statusGroups={statusGroups}
-        onPatchFilterDraft={onPatchFilterDraft}
-        onDateRangeChange={onDateRangeChange}
-      />
+      <SubmissionsSection controlsLocked={controlsLocked} {...submissions} />
     </>
   );
+}
+
+function languageHint(
+  options: ExportDialogFiltersFormProps["localeSelectOptions"],
+) {
+  if (!options)
+    return "We couldn’t load the form’s languages. Close and reopen Export submissions to try again.";
+  return options.length
+    ? "Question and choice labels in the codebook."
+    : "Loading languages…";
 }
 
 type DateRangeKey = (typeof ROW_FILTER_DATE_KEYS)[number];
 
 interface SubmissionsSectionProps {
+  usingRetainedSchema?: boolean;
   showRowFilters: boolean;
   filterDraft: ExportFilterDraft;
   rangeErrors: ExportFilterRangeErrors;
@@ -289,7 +281,8 @@ const STATUS_HINT_ID = "export-submissions-status-hint";
 
 function StatusField(props: Readonly<SubmissionsSectionProps>) {
   const codes = props.filterDraft.collectionStatus;
-  const showHint = includesIncompleteSubmissions(codes);
+  const showHint =
+    !props.usingRetainedSchema && includesIncompleteSubmissions(codes);
   return (
     <div className="grid gap-2">
       <Label htmlFor={STATUS_FIELD_ID}>Status</Label>

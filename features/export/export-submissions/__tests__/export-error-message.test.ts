@@ -4,6 +4,8 @@ import {
   getExportFailureMessage,
   isExportPrepareRecoveryError,
   isExportSchemaMissingError,
+  readExportProblem,
+  GENERIC_EXPORT_FAILURE_MESSAGE,
 } from "../../export-error-message";
 
 describe("getExportErrorMessage", () => {
@@ -106,5 +108,38 @@ describe("isExportPrepareRecoveryError", () => {
         "No completed submissions are available to export for this form.",
       ),
     ).toBe(false);
+  });
+});
+
+describe("readExportProblem", () => {
+  it("keeps the API's support reference with the reason", async () => {
+    const response = Response.json(
+      { error: "Export failed", traceId: "00-plan-ref" },
+      { status: 400 },
+    );
+    await expect(readExportProblem(response)).resolves.toEqual({
+      message: "Export failed",
+      traceId: "00-plan-ref",
+      noEligibleRows: false,
+    });
+  });
+
+  it("tells apart an export with no completed submissions", async () => {
+    const response = Response.json(
+      { error: "No completed submissions are available to export." },
+      { status: 400 },
+    );
+    await expect(readExportProblem(response)).resolves.toMatchObject({
+      noEligibleRows: true,
+    });
+  });
+
+  it("falls back to a generic reason for a body that is not an object", async () => {
+    const response = Response.json(null, { status: 500 });
+    await expect(readExportProblem(response)).resolves.toEqual({
+      message: GENERIC_EXPORT_FAILURE_MESSAGE,
+      traceId: undefined,
+      noEligibleRows: false,
+    });
   });
 });

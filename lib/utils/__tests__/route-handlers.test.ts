@@ -3,6 +3,18 @@ import { ApiResult } from "@/lib/endatix-api/shared/api-result";
 import { toUpstreamFileResponse } from "../route-handlers";
 
 describe("toUpstreamFileResponse", () => {
+  it("does not promote a partial attachment response to a complete file", () => {
+    // Arrange
+    const part = new Response("part", {
+      status: 206,
+      headers: { "Content-Length": "4" },
+    });
+    // Act
+    const response = toUpstreamFileResponse(ApiResult.success(part));
+    // Assert
+    expect(response.status).toBe(206);
+    expect(response.headers.get("Content-Length")).toBe("4");
+  });
   it("proxies upstream body and download headers on success", async () => {
     // Arrange
     const upstream = new Response("col1,col2\nv1,v2", {
@@ -72,6 +84,23 @@ describe("toUpstreamFileResponse", () => {
     expect(response.headers.get("Content-Type")).toBe("application/json");
     await expect(response.json()).resolves.toEqual({
       error: "Data list not found",
+    });
+  });
+
+  it("passes the API's support reference with the error", async () => {
+    // Arrange
+    const result = ApiResult.serverError<Response>("Export failed", {
+      statusCode: 400,
+      traceId: "00-plan-ref",
+    });
+
+    // Act
+    const response = toUpstreamFileResponse(result);
+
+    // Assert
+    await expect(response.json()).resolves.toEqual({
+      error: "Export failed",
+      traceId: "00-plan-ref",
     });
   });
 

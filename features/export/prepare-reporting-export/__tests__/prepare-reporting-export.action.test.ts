@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthorizationResult } from "@/features/auth/authorization/domain/authorization-result";
 import { ApiResult } from "@/lib/endatix-api/shared/api-result";
 import { Result } from "@/lib/result";
+import { mapResponseToApiError } from "@/lib/endatix-api/shared/http-error-mapper";
 import { prepareReportingExportAction } from "../prepare-reporting-export.action";
 
 const mockRequireHubAccess = vi.fn();
@@ -9,6 +10,9 @@ const mockCheckPermission = vi.fn();
 const mockCompileSchema = vi.fn();
 const mockBackfillSubmissions = vi.fn();
 const mockReportingExportFlag = vi.fn();
+const telemetry = vi.hoisted(() => ({ error: vi.fn(), warn: vi.fn() }));
+
+vi.mock("@/features/telemetry", () => ({ TelemetryLogger: telemetry }));
 
 vi.mock("@/auth", () => ({
   auth: vi.fn().mockResolvedValue({ accessToken: "token" }),
@@ -45,6 +49,8 @@ vi.mock("@/lib/endatix-api", () => ({
 
 describe("prepareReportingExportAction", () => {
   beforeEach(() => {
+    telemetry.error.mockClear();
+    telemetry.warn.mockClear();
     mockRequireHubAccess.mockResolvedValue(undefined);
     mockCheckPermission.mockResolvedValue(AuthorizationResult.success());
     mockReportingExportFlag.mockResolvedValue(true);
@@ -145,7 +151,7 @@ describe("prepareReportingExportAction", () => {
     });
 
     expect(mockCheckPermission).toHaveBeenCalledWith("forms.edit");
-    expect(Result.isError(result)).toBe(true);
+    expect(result).toMatchObject({ step: "refused" });
     expect(mockCompileSchema).not.toHaveBeenCalled();
     expect(mockBackfillSubmissions).not.toHaveBeenCalled();
   });
@@ -172,14 +178,170 @@ describe("prepareReportingExportAction", () => {
     expect(Result.isSuccess(result)).toBe(true);
   });
 
-  it("maps compile API failures via Result.error", async () => {
+  it("identifies the failed compile and preserves its API support reference", async () => {
+    // Arrange
     mockCompileSchema.mockResolvedValueOnce(
-      ApiResult.serverError("Compile blew up"),
+      ApiResult.networkError("Compile unavailable", { traceId: "api-ref" }),
     );
 
+    // Act
     const result = await prepareReportingExportAction("form-1");
 
-    expect(Result.isError(result)).toBe(true);
+    // Assert
+    expect(result).toMatchObject({ step: "compile", traceId: "api-ref" });
     expect(mockBackfillSubmissions).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["ReportingSchemaAliasConflict", true, "retained"],
+    ["ReportingSchemaAliasConflict", false, "retained"],
+    ["ReportingSchemaAliasConflict", "true", "retained"],
+    ["OtherConflict", true, undefined],
+  ])(
+    "checks the rejected compile contract (%s, %s)",
+    async (errorCode, available, expected) => {
+      // Arrange
+      const body = {
+        status: 409,
+        detail: "Column meanings conflict.",
+        errorCode,
+        previousSchemaRetained: true,
+        previousExportAvailable: available,
+      };
+      mockCompileSchema.mockResolvedValueOnce(
+        await mapResponseToApiError(Response.json(body, { status: 409 }), {}),
+      );
+
+      // Act
+      const failure = await prepareReportingExportAction("form-1");
+
+      // Assert
+      expect(failure).toMatchObject({
+        step: "compile",
+        message: body.detail,
+        previousSchema: expected,
+      });
+      expect(mockBackfillSubmissions).not.toHaveBeenCalled();
+    },
+  );
+
+  it("reports completed batches before an interrupted backfill", async () => {
+    // Arrange
+    mockBackfillSubmissions.mockResolvedValueOnce(
+      ApiResult.success({
+        processed: 4,
+        skipped: 1,
+        failed: 0,
+        hasMore: true,
+        nextAfterSubmissionId: "7",
+      }),
+    );
+    mockBackfillSubmissions.mockResolvedValueOnce(
+      ApiResult.networkError("Backfill unavailable"),
+    );
+
+    // Act
+    const failure = await prepareReportingExportAction("100", {
+      fullRecompile: true,
+    });
+
+    // Assert
+    expect(failure).toMatchObject({
+      step: "backfill",
+      message: expect.stringContaining("4 processed, 1 skipped, 0 failed"),
+      traceId: expect.any(String),
+    });
+    expect(failure).not.toHaveProperty("previousSchema");
+  });
+
+  it("logs an unexpected compile failure as an error under its support reference", async () => {
+    // Arrange
+    mockCompileSchema.mockResolvedValueOnce(
+      ApiResult.serverError("sentinel-compile-message", {
+        statusCode: 500,
+        traceId: "api-ref",
+        details: "sentinel-private-details",
+      }),
+    );
+
+    // Act
+    const failure = await prepareReportingExportAction("form-1");
+
+    // Assert
+    expect(failure).toMatchObject({
+      traceId: "api-ref",
+      message: "sentinel-compile-message",
+      details: "sentinel-private-details",
+    });
+    expect(telemetry.warn).not.toHaveBeenCalled();
+    expect(telemetry.error).toHaveBeenCalledExactlyOnceWith(
+      "Reporting export preparation failed",
+      undefined,
+      {
+        formId: "form-1",
+        step: "compile",
+        traceId: "api-ref",
+        statusCode: 500,
+        errorCode: "server_error",
+      },
+      "export.prepare-reporting-export",
+    );
+  });
+
+  it("logs an interrupted backfill under the reference it returns", async () => {
+    // Arrange
+    mockBackfillSubmissions.mockResolvedValueOnce(
+      ApiResult.serverError("Backfill blew up", { statusCode: 500 }),
+    );
+
+    // Act
+    const failure = await prepareReportingExportAction("form-1");
+
+    // Assert
+    const traceId = Result.isError(failure) ? failure.traceId : undefined;
+    expect(traceId).toEqual(expect.any(String));
+    expect(telemetry.error).toHaveBeenCalledExactlyOnceWith(
+      "Reporting export preparation failed",
+      undefined,
+      {
+        formId: "form-1",
+        step: "backfill",
+        traceId,
+        statusCode: 500,
+        errorCode: "server_error",
+      },
+      "export.prepare-reporting-export",
+    );
+  });
+
+  it("logs only structured context for an expected conflict and returns its detail to the reader", async () => {
+    // Arrange
+    const body = {
+      status: 409,
+      detail: "Column meanings conflict.",
+      errorCode: "ReportingSchemaAliasConflict",
+      traceId: "conflict-ref",
+    };
+    mockCompileSchema.mockResolvedValueOnce(
+      await mapResponseToApiError(Response.json(body, { status: 409 }), {}),
+    );
+
+    // Act
+    const failure = await prepareReportingExportAction("form-1");
+
+    // Assert
+    expect(telemetry.error).not.toHaveBeenCalled();
+    expect(failure).toMatchObject({ message: body.detail, traceId: body.traceId });
+    expect(telemetry.warn).toHaveBeenCalledExactlyOnceWith(
+      "Reporting export preparation failed",
+      {
+        formId: "form-1",
+        step: "compile",
+        traceId: "conflict-ref",
+        statusCode: 409,
+        errorCode: body.errorCode,
+      },
+      "export.prepare-reporting-export",
+    );
   });
 });

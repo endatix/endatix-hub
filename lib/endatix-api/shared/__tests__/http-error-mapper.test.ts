@@ -218,3 +218,24 @@ describe("mapResponseToApiError existingId", () => {
     );
   });
 });
+
+describe("mapResponseToApiError previousSchemaRetained", () => {
+  it("keeps the request's retained flag when the body does not carry one", async () => {
+    // Arrange
+    const response = new Response(JSON.stringify({ status: 409 }), {
+      status: 409,
+      headers: { "content-type": "application/problem+json" },
+    });
+
+    // Act
+    const result = await mapResponseToApiError(response, {
+      statusCode: 409,
+      previousSchemaRetained: true,
+    });
+
+    // Assert
+    expect(
+      ApiResult.isError(result) && result.error.details?.previousSchemaRetained,
+    ).toBe(true);
+  });
+});

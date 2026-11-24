@@ -130,4 +130,42 @@ describe("refreshIncompleteSubmissionsAction", () => {
     // Assert
     expect(Result.isError(result)).toBe(true);
   });
+
+  it("names the completed batches when a later page fails", async () => {
+    // Arrange
+    mockBackfillSubmissions
+      .mockResolvedValueOnce(
+        page({
+          processed: 3,
+          failed: 1,
+          hasMore: true,
+          nextAfterSubmissionId: "9",
+        }),
+      )
+      .mockResolvedValueOnce(ApiResult.serverError("Backfill blew up"));
+
+    // Act
+    const result = await refreshIncompleteSubmissionsAction("form-1");
+
+    // Assert
+    expect(Result.isError(result) && result.message).toBe(
+      "Backfill blew up Before the interruption: 3 processed, 0 skipped, 1 failed.",
+    );
+  });
+
+  it("reports an unfinished run when the API has more but names no next page", async () => {
+    // Arrange
+    mockBackfillSubmissions.mockResolvedValue(
+      page({ hasMore: true, nextAfterSubmissionId: null }),
+    );
+
+    // Act
+    const result = await refreshIncompleteSubmissionsAction("form-1");
+
+    // Assert
+    expect(mockBackfillSubmissions).toHaveBeenCalledTimes(1);
+    expect(result).toEqual(
+      Result.success({ kind: "refreshed", failed: 0, finished: false }),
+    );
+  });
 });

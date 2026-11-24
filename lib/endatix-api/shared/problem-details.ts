@@ -21,6 +21,7 @@ export const ProblemDetailsSchema = z.object({
   instance: z.string().optional(),
   errorCode: z.string().optional(),
   traceId: z.string().optional(),
+  previousSchemaRetained: z.boolean().optional().catch(undefined),
   fields: z.record(z.string(), z.array(z.string())).optional(),
 });
 
@@ -92,16 +93,12 @@ export function parseProblemDetails(data: unknown): ProblemDetails | null {
 
   const title = result.data.title ?? "Error";
   return {
+    ...result.data,
     type: result.data.type ?? "about:blank",
     title,
-    status: result.data.status,
     // Keep `detail` a guaranteed string for consumers; fall back to the title when the
     // producer omitted it.
     detail: result.data.detail ?? title,
-    instance: result.data.instance,
-    errorCode: result.data.errorCode,
-    traceId: result.data.traceId,
-    fields: result.data.fields,
     existingId: readExistingId(normalized as Record<string, unknown>),
   };
 }

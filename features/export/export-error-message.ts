@@ -10,6 +10,12 @@ export const SCHEMA_NEEDS_PREPARE_MESSAGE =
 export const GENERIC_EXPORT_FAILURE_MESSAGE =
   "There was a problem exporting the submissions.";
 
+const NO_COMPLETED_PHRASE = "no completed submissions are available to export";
+
+function mentionsNoCompletedSubmissions(message: string): boolean {
+  return message.toLowerCase().includes(NO_COMPLETED_PHRASE);
+}
+
 export function getExportErrorMessage(
   errorMessage: string | undefined,
   statusCode?: number,
@@ -20,11 +26,11 @@ export function getExportErrorMessage(
       : GENERIC_EXPORT_FAILURE_MESSAGE;
   }
 
-  const normalized = errorMessage.toLowerCase();
-  if (normalized.includes("no completed submissions are available to export")) {
+  if (mentionsNoCompletedSubmissions(errorMessage)) {
     return NO_COMPLETED_HINT;
   }
 
+  const normalized = errorMessage.toLowerCase();
   if (
     normalized.includes("backfill") ||
     normalized.includes("flattened submissions") ||
@@ -37,15 +43,40 @@ export function getExportErrorMessage(
   return errorMessage;
 }
 
+/** A refused export as the reader sees it: the reason, the API's support reference, and whether no rows matched. */
+export type ExportProblem = {
+  message: string;
+  traceId?: string;
+  noEligibleRows: boolean;
+};
+
+async function readErrorPayload(response: Response) {
+  try {
+    const payload: unknown = await response.json();
+    return typeof payload === "object" && payload !== null
+      ? (payload as { error?: unknown; traceId?: unknown })
+      : {};
+  } catch {
+    return {};
+  }
+}
+
+export async function readExportProblem(
+  response: Response,
+): Promise<ExportProblem> {
+  const payload = await readErrorPayload(response);
+  const error = typeof payload.error === "string" ? payload.error : undefined;
+  return {
+    message: getExportErrorMessage(error, response.status),
+    traceId: typeof payload.traceId === "string" ? payload.traceId : undefined,
+    noEligibleRows: mentionsNoCompletedSubmissions(error ?? ""),
+  };
+}
+
 export async function readExportErrorMessage(
   response: Response,
 ): Promise<string> {
-  try {
-    const payload = (await response.json()) as { error?: string };
-    return getExportErrorMessage(payload.error, response.status);
-  } catch {
-    return getExportErrorMessage(undefined, response.status);
-  }
+  return (await readExportProblem(response)).message;
 }
 
 export function getExportFailureMessage(error: unknown): string {
@@ -69,11 +100,11 @@ export function isExportSchemaMissingError(message: string): boolean {
 
 /** True when prepare/compile/backfill can recover from this export or readiness error. */
 export function isExportPrepareRecoveryError(message: string): boolean {
-  const normalized = message.toLowerCase();
-  if (normalized.includes("no completed submissions are available to export")) {
+  if (mentionsNoCompletedSubmissions(message)) {
     return false;
   }
 
+  const normalized = message.toLowerCase();
   return (
     normalized.includes("form schema") ||
     normalized.includes("compile the schema") ||

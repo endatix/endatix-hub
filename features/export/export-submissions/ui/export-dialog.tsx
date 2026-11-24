@@ -93,11 +93,7 @@ export function ExportSubmissionsDialog({
 
         <ResponsivePanelBody>
           <ExportDialogStatusPanel
-            phase={dialog.phase}
-            rebuildMode={dialog.rebuildMode}
-            inlineError={dialog.inlineError}
-            prepareOutcome={dialog.prepareOutcome}
-            incompleteRefresh={dialog.incompleteRefresh}
+            {...dialog}
             exportName={dialog.selectedOption?.label}
           />
 
@@ -111,6 +107,9 @@ export function ExportSubmissionsDialog({
 
           {dialog.showFiltersForm ? (
             <ExportDialogFiltersForm
+              usingRetainedSchema={
+                dialog.prepareFailure?.previousSchema === "retained"
+              }
               groups={groups}
               statusGroups={statusGroups}
               showGroupLabels={dialog.showGroupLabels}
@@ -132,21 +131,12 @@ export function ExportSubmissionsDialog({
             />
           ) : null}
 
-          {dialog.showRebuildEntry ? (
-            <div className="flex justify-start">
-              {/* An action, so a quiet ghost button — not a link. */}
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="-ml-3 text-muted-foreground"
-                onClick={dialog.enterRebuildMode}
-                disabled={dialog.busy}
-              >
-                Rebuild reporting data…
-              </Button>
-            </div>
-          ) : null}
+          {dialog.showRebuildEntry && (
+            <RebuildEntry
+              disabled={dialog.busy}
+              onClick={dialog.enterRebuildMode}
+            />
+          )}
         </ResponsivePanelBody>
 
         <ExportDialogActions
@@ -154,6 +144,7 @@ export function ExportSubmissionsDialog({
           busy={dialog.busy}
           isExporting={isExporting}
           showPrepareCta={dialog.showPrepareCta}
+          prepareLabel={dialog.prepareLabel}
           showExportSubmit={dialog.showExportSubmit}
           showBackToExport={dialog.showBackToExport}
           canExport={Boolean(dialog.selectedOption)}
@@ -170,3 +161,21 @@ export function ExportSubmissionsDialog({
 }
 
 export type { ExportSubmissionsDialogProps };
+
+function RebuildEntry(
+  props: Readonly<{ disabled: boolean; onClick: () => void }>,
+) {
+  return (
+    <div className="flex justify-start">
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        className="-ml-3 text-muted-foreground"
+        {...props}
+      >
+        Rebuild reporting data…
+      </Button>
+    </div>
+  );
+}

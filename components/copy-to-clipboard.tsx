@@ -31,10 +31,11 @@ interface CopyToClipboardProps extends Omit<
   tooltipContentProps?: React.ComponentProps<typeof TooltipContent>;
   /** Merged onto the icon button (size, padding, etc.). */
   buttonClassName?: string;
+  /** Default `toast`. `inline` says "Copied" beside the control instead, for panels whose own actions a toast would cover. */
+  confirmation?: "toast" | "inline";
 }
 
-/** Await clipboard write; return whether it succeeded (no toast on failure). */
-export const copyValueToClipboard = async (value: string): Promise<boolean> => {
+async function writeToClipboard(value: string): Promise<boolean> {
   if (!value || typeof value !== "string" || value.trim().length === 0) {
     return false;
   }
@@ -46,7 +47,15 @@ export const copyValueToClipboard = async (value: string): Promise<boolean> => {
 
   try {
     await clipboard.writeText(value);
+    return true;
   } catch {
+    return false;
+  }
+}
+
+/** Await clipboard write; return whether it succeeded (no toast on failure). */
+export const copyValueToClipboard = async (value: string): Promise<boolean> => {
+  if (!(await writeToClipboard(value))) {
     return false;
   }
 
@@ -59,6 +68,7 @@ export const copyValueToClipboard = async (value: string): Promise<boolean> => {
 };
 
 const ANIMATION_DURATION = 4000;
+const INLINE_CONFIRMATION_DURATION = 2000;
 const TOOLTIP_TEXT_DEFAULT = "Copy to clipboard";
 const TOOLTIP_TEXT_COPIED = "Copied to clipboard";
 
@@ -79,6 +89,11 @@ const getTooltipContent = (
   return tooltipContent;
 };
 
+const confirmations = {
+  toast: { copy: copyValueToClipboard, duration: ANIMATION_DURATION },
+  inline: { copy: writeToClipboard, duration: INLINE_CONFIRMATION_DURATION },
+};
+
 const CopyToClipboard = ({
   copyValue,
   label,
@@ -87,27 +102,32 @@ const CopyToClipboard = ({
   tooltipContent,
   tooltipContentProps,
   buttonClassName,
+  confirmation = "toast",
   className,
   ...props
 }: CopyToClipboardProps) => {
   const [isCopied, setIsCopied] = useState(false);
 
+  const { copy, duration } = confirmations[confirmation];
   const handleCopyClick = async () => {
     if (disabled) {
       return;
     }
-    const copied = await copyValueToClipboard(
-      typeof copyValue === "function" ? copyValue() : copyValue,
-    );
 
-    if (copied) {
+    if (await copy(typeof copyValue === "function" ? copyValue() : copyValue)) {
       setIsCopied(true);
 
       setTimeout(() => {
         setIsCopied(false);
-      }, ANIMATION_DURATION);
+      }, duration);
     }
   };
+  const inlineConfirmation =
+    confirmation === "inline" && isCopied ? (
+      <output className="text-xs text-muted-foreground">
+        Copied
+      </output>
+    ) : null;
 
   const tooltipBody = getTooltipContent(tooltipContent, isCopied);
   const cursorClassName = disabled ? "cursor-default" : "cursor-pointer";
@@ -147,6 +167,7 @@ const CopyToClipboard = ({
     return (
       <div {...props} className={cn(layoutClassName, className)}>
         {button}
+        {inlineConfirmation}
       </div>
     );
   }
@@ -161,6 +182,7 @@ const CopyToClipboard = ({
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
+      {inlineConfirmation}
     </div>
   );
 };

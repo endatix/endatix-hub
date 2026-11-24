@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  prepareActionLabel,
   formatPrepareOutcome,
   getPhaseDescription,
   isBusyPhase,
@@ -74,5 +75,48 @@ describe("export-dialog-phase", () => {
     expect(
       formatPrepareOutcome({ processed: 3, skipped: 0, failed: 2 }).summary,
     ).toContain("missing from the export");
+  });
+});
+
+describe("prepareActionLabel", () => {
+  const retained = { previousSchema: "retained" as const };
+  const destructive = { previousSchema: undefined };
+  it.each([
+    {
+      phase: "needsPrepare",
+      failure: null,
+      full: false,
+      label: "Prepare for export",
+    },
+    { phase: "error", failure: null, full: false, label: "Prepare and retry" },
+    { phase: "error", failure: retained, full: false, label: "Rebuild again" },
+    {
+      phase: "error",
+      failure: destructive,
+      full: false,
+      label: "Retry rebuild",
+    },
+    {
+      phase: "error",
+      failure: retained,
+      full: true,
+      label: "Run full recompile",
+    },
+    {
+      phase: "error",
+      failure: destructive,
+      full: true,
+      label: "Run full recompile",
+    },
+    {
+      phase: "preparing",
+      failure: destructive,
+      full: false,
+      label: "Prepare for export",
+    },
+  ] as const)("in $phase with full recompile $full reads $label", (row) => {
+    expect(prepareActionLabel(row.phase, row.failure, row.full)).toBe(
+      row.label,
+    );
   });
 });

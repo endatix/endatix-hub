@@ -250,21 +250,26 @@ export type UpstreamFileResponseOptions = {
 
 /**
  * Proxies an upstream file/stream `Response` to the Hub client without buffering
- * the body. On API failure, returns a JSON `{ error }` payload matching existing
- * export route handlers.
+ * the body. On API failure, returns a JSON `{ error, traceId }` payload matching
+ * existing export route handlers; `traceId` is the API's support reference.
  */
 export function toUpstreamFileResponse(
   result: ApiResult<Response>,
   options: UpstreamFileResponseOptions = {},
 ): Response {
   if (ApiResult.isError(result)) {
-    return new Response(JSON.stringify({ error: result.error.message }), {
+    const { message, details } = result.error;
+    const body = { error: message, traceId: details?.traceId };
+    return new Response(JSON.stringify(body), {
       status: result.error.details?.statusCode ?? 500,
       headers: { "Content-Type": "application/json" },
     });
   }
 
-  const upstream = result.data;
+  return proxyFile(result.data, options);
+}
+
+function proxyFile(upstream: Response, options: UpstreamFileResponseOptions) {
   const contentType =
     upstream.headers.get("Content-Type") ??
     options.fallbackContentType ??
@@ -274,10 +279,13 @@ export function toUpstreamFileResponse(
     options.fallbackContentDisposition ??
     "attachment";
 
-  return new Response(upstream.body, {
-    headers: {
-      "Content-Type": contentType,
-      "Content-Disposition": contentDisposition,
-    },
+  const headers = new Headers({
+    "Content-Type": contentType,
+    "Content-Disposition": contentDisposition,
   });
+  // Fetch decodes compressed bodies; their upstream length describes different bytes.
+  const length = upstream.headers.get("Content-Length");
+  if (length && !upstream.headers.has("Content-Encoding"))
+    headers.set("Content-Length", length);
+  return new Response(upstream.body, { status: upstream.status, headers });
 }

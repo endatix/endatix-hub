@@ -6,7 +6,9 @@ import {
   ExportSubmissionsDialog,
   type ExportSubmissionsDialogProps,
 } from "../ui/export-dialog";
+import { exportGroups, preparedSchema, retainedConflict, stubAttachments, supportedLocales } from "./export-dialog-fixture";
 import { stubResizeObserver } from "@/test/stubs/resize-observer";
+import * as downloads from "@/lib/utils/files-download";
 
 const mockOnExport = vi.fn();
 const mockOnOpenChange = vi.fn();
@@ -297,68 +299,7 @@ function createProps(
     onOpenChange: mockOnOpenChange,
     formId: "100",
     canRebuild: true,
-    groups: [
-      {
-        target: "Submissions" as ExportTarget,
-        label: "Submissions",
-        options: [
-          {
-            exportFormatId: "csv-1",
-            formatKey: "csv",
-            label: "CSV",
-            fallbackExtension: "csv",
-            exportTarget: "Submissions" as ExportTarget,
-            profile: "Native",
-            allowedFilters: [
-              "includeTestSubmissions",
-              "createdAtRange",
-              "startedAtRange",
-              "completedAtRange",
-              "collectionStatus",
-            ],
-          },
-          {
-            exportFormatId: "json-1",
-            formatKey: "json",
-            label: "JSON",
-            fallbackExtension: "json",
-            exportTarget: "Submissions" as ExportTarget,
-            profile: "Native",
-            allowedFilters: [
-              "includeTestSubmissions",
-              "createdAtRange",
-              "startedAtRange",
-              "completedAtRange",
-              "collectionStatus",
-            ],
-          },
-        ],
-      },
-      {
-        target: "Codebook" as ExportTarget,
-        label: "Codebook",
-        options: [
-          {
-            exportFormatId: "cb-native",
-            formatKey: "codebook",
-            label: "Native codebook",
-            fallbackExtension: "json",
-            exportTarget: "Codebook" as ExportTarget,
-            profile: "Native",
-            allowedFilters: [],
-          },
-          {
-            exportFormatId: "cb-shoji",
-            formatKey: "codebook-shoji",
-            label: "Shoji codebook",
-            fallbackExtension: "json",
-            exportTarget: "Codebook" as ExportTarget,
-            profile: "Shoji",
-            allowedFilters: ["locale"],
-          },
-        ],
-      },
-    ],
+    groups: exportGroups,
     statusGroups: COLLECTION_STATUS_FACET_GROUPS,
     listFilters: undefined,
     isExporting: false,
@@ -373,23 +314,27 @@ async function waitForReady() {
   });
 }
 
+/** Opens the panel, rebuilds, and lands on a retained-schema conflict. */
+async function openRetainedConflict() {
+  mockPrepareReportingExportAction.mockResolvedValue(retainedConflict);
+  const view = render(<ExportSubmissionsDialog {...createProps()} />);
+  await waitForReady();
+  fireEvent.click(
+    screen.getByRole("button", { name: /rebuild reporting data/i }),
+  );
+  fireEvent.click(screen.getByRole("button", { name: /prepare for export/i }));
+  await screen.findByRole("button", { name: "Download with previous schema" });
+  return view;
+}
+
 Element.prototype.scrollIntoView = vi.fn();
 
 describe("ExportSubmissionsDialog", () => {
   beforeEach(() => {
     latestPanelProps = null;
-    mockListFormReportingLocalesAction.mockResolvedValue(
-      Result.success(["default", "es", "fr"]),
-    );
-    mockPrepareReportingExportAction.mockResolvedValue(
-      Result.success({
-        formDefinitionId: "1",
-        processed: 1,
-        skipped: 0,
-        failed: 0,
-        batches: 1,
-      }),
-    );
+    sessionStorage.clear();
+    mockListFormReportingLocalesAction.mockResolvedValue(supportedLocales);
+    mockPrepareReportingExportAction.mockResolvedValue(preparedSchema);
     mockOnExport.mockResolvedValue({ succeeded: true });
     mockRefreshIncompleteSubmissionsAction.mockResolvedValue(
       Result.success({ kind: "refreshed", failed: 0, finished: true }),
@@ -661,6 +606,28 @@ describe("ExportSubmissionsDialog", () => {
     expect(mockTrackFeatureUsage).not.toHaveBeenCalled();
   });
 
+  it("retries a plain export failure with Export, never Prepare and retry", async () => {
+    // Arrange
+    mockOnExport.mockResolvedValue({
+      succeeded: false,
+      message: "Export format is not supported.",
+    });
+    render(<ExportSubmissionsDialog {...createProps()} />);
+    await waitForReady();
+
+    // Act
+    fireEvent.click(screen.getByRole("button", { name: /^export$/i }));
+    await screen.findByText("Export format is not supported.");
+
+    // Assert
+    expect(screen.getByRole("button", { name: /^export$/i })).toBeDefined();
+    expect(
+      screen.queryByRole("button", {
+        name: /prepare and retry|prepare for export/i,
+      }),
+    ).toBeNull();
+  });
+
   it("shows prepare recovery when export fails with a backfill message", async () => {
     mockOnExport.mockResolvedValue({
       succeeded: false,
@@ -672,12 +639,13 @@ describe("ExportSubmissionsDialog", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /^export$/i }));
 
-    await waitFor(() => {
-      expect(
-        screen.getByRole("button", { name: /prepare for export/i }),
-      ).toBeDefined();
-    });
+    expect(
+      await screen.findByRole("button", { name: "Prepare and retry" }),
+    ).toBeDefined();
     expect(screen.getByText(/Prepare required|Export failed/i)).toBeDefined();
+    expect(
+      screen.queryByRole("button", { name: /prepare for export/i }),
+    ).toBeNull();
     expect(screen.queryByLabelText(/Full recompile/i)).toBeNull();
   });
 
@@ -889,36 +857,37 @@ describe("ExportSubmissionsDialog", () => {
     ).toBeNull();
   });
 
-  it("warns when prepare finishes with failed submissions", async () => {
+  it("keeps a partial backfill out of Ready after reopening", async () => {
     mockListFormReportingLocalesAction
       .mockResolvedValueOnce(
         Result.error("Form schema has not been compiled for this form."),
       )
       .mockResolvedValueOnce(Result.success(["default"]));
-    mockPrepareReportingExportAction.mockResolvedValue(
-      Result.success({
-        formDefinitionId: "1",
-        processed: 4,
-        skipped: 0,
-        failed: 2,
-        batches: 1,
-      }),
-    );
-
-    render(<ExportSubmissionsDialog {...createProps()} />);
-    await waitFor(() => {
-      expect(
-        screen.getByRole("button", { name: /prepare for export/i }),
-      ).toBeDefined();
+    mockPrepareReportingExportAction.mockResolvedValue({
+      ...Result.error("4 processed, 0 skipped, 2 failed."),
+      step: "backfill",
+      traceId: "partial-ref",
     });
 
+    const { rerender } = render(<ExportSubmissionsDialog {...createProps()} />);
     fireEvent.click(
-      screen.getByRole("button", { name: /prepare for export/i }),
+      await screen.findByRole("button", { name: /prepare for export/i }),
     );
 
-    await waitForReady();
-    expect(screen.getByText("Ready, with failed submissions")).toBeDefined();
-    expect(screen.getByText(/missing from the export/i)).toBeDefined();
+    await screen.findByText("Rebuild failed during submission processing");
+    rerender(<ExportSubmissionsDialog {...createProps({ open: false })} />);
+    rerender(<ExportSubmissionsDialog {...createProps()} />);
+    expect(
+      await screen.findByText("4 processed, 0 skipped, 2 failed."),
+    ).toBeDefined();
+    expect(
+      screen.getByText(/Some submissions are missing from reporting data/),
+    ).toBeDefined();
+    expect(screen.getByRole("button", { name: "Retry rebuild" })).toBeDefined();
+    expect(screen.queryByRole("button", { name: /^export$/i })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: /prepare for export/i }),
+    ).toBeNull();
   });
 
   it("does not show prepare CTA in ready when schema is already compiled", async () => {
@@ -931,6 +900,89 @@ describe("ExportSubmissionsDialog", () => {
     expect(
       screen.getByRole("button", { name: /rebuild reporting data/i }),
     ).toBeDefined();
+  });
+
+  it("blocks a retained schema when rows exist but the selected plan is unverified", async () => {
+    // Arrange
+    await openRetainedConflict();
+
+    // Act
+    fireEvent.submit(
+      screen
+        .getByRole("heading", { name: "Export submissions" })
+        .closest("form")!,
+    );
+
+    // Assert
+    expect(
+      screen.queryByRole("button", { name: /^export$|back to export/i }),
+    ).toBeNull();
+    expect(
+      screen.getByText("Rebuild stopped: two questions map to the same column"),
+    ).toBeDefined();
+    expect(screen.getByRole("button", { name: "Rebuild again" })).toBeDefined();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Which questions conflict" }),
+    );
+    expect(
+      screen.getByText("The alias has conflicting meanings."),
+    ).toBeDefined();
+    expect(mockOnExport).not.toHaveBeenCalled();
+    expect(mockRefreshIncompleteSubmissionsAction).not.toHaveBeenCalled();
+    expect(mockPrepareReportingExportAction).toHaveBeenCalledTimes(1);
+  });
+
+  it("discards a downloaded previous-schema file when the format changes", async () => {
+    // Arrange
+    const request = stubAttachments();
+    await openRetainedConflict();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Download with previous schema" }),
+    );
+    await screen.findByRole("button", { name: /^Save file again/ });
+
+    // Act
+    fireEvent.change(screen.getByTestId("export-submissions-format"), {
+      target: { value: "json-1" },
+    });
+
+    // Assert
+    expect(
+      screen.queryByRole("button", { name: /^Save file again/ }),
+    ).toBeNull();
+    expect(screen.queryByText("Your download should start.")).toBeNull();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Download with previous schema" }),
+    );
+    await screen.findByRole("button", { name: /^Save file again/ });
+    expect(request).toHaveBeenCalledTimes(2);
+    expect(request.mock.calls[1][0]).toContain("format=json");
+    expect(vi.mocked(downloads.initiateFileDownload).mock.lastCall?.[1]).toBe(
+      "old.json",
+    );
+  });
+
+  it("waits for the restored schema's French locale before downloading the selected codebook", async () => {
+    // Arrange
+    (await openRetainedConflict()).unmount();
+    const locales = Promise.withResolvers<Result<string[]>>();
+    mockListFormReportingLocalesAction.mockReturnValueOnce(locales.promise);
+    const request = stubAttachments();
+    render(<ExportSubmissionsDialog {...createProps({ listFilters: { locale: "fr" } })} />);
+    fireEvent.change(screen.getByTestId("export-submissions-format"), {
+      target: { value: "cb-shoji" },
+    });
+    const download = () => screen.getByRole("button", { name: "Download with previous schema" });
+
+    // Act & Assert
+    fireEvent.click(download());
+    expect(request).not.toHaveBeenCalled();
+    locales.resolve(Result.success(["default", "fr"]));
+    await waitFor(() => expect((screen.getByTestId("export-submissions-locale") as HTMLSelectElement).value).toBe("fr"));
+    expect(screen.queryByText("Ready to export")).toBeNull();
+    fireEvent.click(download());
+    expect(request.mock.calls[0][0]).toContain("locale=fr");
+    await screen.findByText("Your download should start.");
   });
 
   it("hides Rebuild reporting data from a user who cannot edit forms", async () => {
@@ -1007,10 +1059,12 @@ describe("ExportSubmissionsDialog", () => {
     await waitForReady();
   });
 
-  it("keeps rebuild recovery after prepare failure", async () => {
-    mockPrepareReportingExportAction.mockResolvedValue(
-      Result.error("Reporting service unavailable"),
-    );
+  it("offers a retry and support reference after a destructive rebuild fails", async () => {
+    mockPrepareReportingExportAction.mockResolvedValue({
+      ...Result.error("Reporting service unavailable"),
+      step: "backfill",
+      traceId: "batch-ref",
+    });
     render(<ExportSubmissionsDialog {...createProps()} />);
     await waitForReady();
 
@@ -1024,20 +1078,75 @@ describe("ExportSubmissionsDialog", () => {
     await waitFor(() => {
       expect(screen.getByText("Reporting service unavailable")).toBeDefined();
     });
-    expect(screen.getByText("Export failed")).toBeDefined();
     expect(
-      screen.getByRole("button", { name: /prepare for export/i }),
+      screen.getByText("Rebuild failed during submission processing"),
     ).toBeDefined();
     expect(
-      screen.getByRole("button", { name: /back to export/i }),
+      screen.getByRole("button", { name: "Copy support reference" }),
     ).toBeDefined();
+    expect(screen.getByRole("button", { name: "Retry rebuild" })).toBeDefined();
+    fireEvent.click(screen.getByLabelText(/Full recompile/i));
+    expect(
+      screen.getByRole("button", { name: "Run full recompile" }),
+    ).toBeDefined();
+    expect(
+      screen.queryByRole("button", {
+        name: /back to export|previous schema|prepare for export/i,
+      }),
+    ).toBeNull();
     expect(screen.getByLabelText(/Full recompile/i)).toBeDefined();
+  });
 
-    fireEvent.click(screen.getByRole("button", { name: /back to export/i }));
-
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: /^export$/i })).toBeDefined();
+  it("keeps Back to export when a rebuild is refused before it starts", async () => {
+    // Arrange
+    mockPrepareReportingExportAction.mockResolvedValue({
+      ...Result.error("A full recompile needs permission to edit forms."),
+      step: "refused",
     });
+    render(<ExportSubmissionsDialog {...createProps()} />);
+    await waitForReady();
+
+    // Act
+    fireEvent.click(
+      screen.getByRole("button", { name: /rebuild reporting data/i }),
+    );
+    fireEvent.click(screen.getByLabelText(/Full recompile/i));
+    fireEvent.click(
+      screen.getByRole("button", { name: /prepare for export/i }),
+    );
+    await screen.findByText("Preparation did not start");
+
+    // Assert
+    fireEvent.click(screen.getByRole("button", { name: /back to export/i }));
+    await waitForReady();
+  });
+
+  it("shows a later export error, not an earlier refusal, after Back to export", async () => {
+    // Arrange
+    mockPrepareReportingExportAction.mockResolvedValue({
+      ...Result.error("A full recompile needs permission to edit forms."),
+      step: "refused",
+    });
+    mockOnExport.mockResolvedValue({ succeeded: false, message: "Disk full." });
+    render(<ExportSubmissionsDialog {...createProps()} />);
+    await waitForReady();
+    fireEvent.click(
+      screen.getByRole("button", { name: /rebuild reporting data/i }),
+    );
+    fireEvent.click(screen.getByLabelText(/Full recompile/i));
+    fireEvent.click(
+      screen.getByRole("button", { name: /prepare for export/i }),
+    );
+    await screen.findByText("Preparation did not start");
+
+    // Act
+    fireEvent.click(screen.getByRole("button", { name: /back to export/i }));
+    await waitForReady();
+    fireEvent.click(screen.getByRole("button", { name: /^export$/i }));
+
+    // Assert
+    expect(await screen.findByText("Disk full.")).toBeDefined();
+    expect(screen.queryByText("Preparation did not start")).toBeNull();
   });
 
   it("hides full recompile option when schema is missing on open", async () => {

@@ -3,26 +3,39 @@
 import { PanelSection } from "@/components/common/panel-section";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import type { PrepareFailure } from "../use-prepare-attempt.hook";
+import type { AttachmentSelection } from "../retained-attachment";
 import { SCHEMA_NEEDS_PREPARE_MESSAGE } from "../../export-error-message";
 import {
   CheckCircle2,
+  ChevronDown,
+  CircleAlert,
   FileDown,
   ListFilter,
   TriangleAlert,
 } from "lucide-react";
 import type { ExportDialogPhase, PrepareOutcome } from "../export-dialog-phase";
 import type { IncompleteRefreshOutcome } from "../refresh-incomplete-submissions.action";
+import { RetainedExportDownload } from "./retained-export-download";
+import { SupportReference } from "./support-reference";
 
 const REBUILD_PREPARE_MESSAGE =
   "Updates the reporting schema and processes submissions that are missing from the reporting data.";
 
 interface ExportDialogStatusPanelProps {
+  prepareFailure: PrepareFailure | null;
   phase: ExportDialogPhase;
   rebuildMode?: boolean;
   inlineError: string | null;
   prepareOutcome: PrepareOutcome | null;
   incompleteRefresh?: IncompleteRefreshOutcome | null;
   exportName?: string;
+  retainedSelection?: AttachmentSelection | null;
 }
 
 /** Extra sentence on the success strip. `partial` means some drafts may be missing. */
@@ -59,25 +72,24 @@ function describeIncompleteRefresh(
 }
 
 /** One strip for the current step. Progress stays in the header and footer. */
-export function ExportDialogStatusPanel({
-  phase,
-  rebuildMode = false,
-  inlineError,
-  prepareOutcome,
-  incompleteRefresh,
-  exportName,
-}: Readonly<ExportDialogStatusPanelProps>) {
+export function ExportDialogStatusPanel(
+  props: Readonly<ExportDialogStatusPanelProps>,
+) {
+  const { phase, rebuildMode, inlineError, prepareOutcome, prepareFailure } =
+    props;
+  if (phase === "error" && prepareFailure)
+    return (
+      <PrepareFailureAlert
+        failure={prepareFailure}
+        selection={props.retainedSelection}
+      />
+    );
   if (phase === "checking") {
     return <ExportDialogSkeleton />;
   }
 
   if (phase === "success") {
-    return (
-      <DownloadOutcomeAlert
-        exportName={exportName}
-        incompleteRefresh={incompleteRefresh}
-      />
-    );
+    return <DownloadOutcomeAlert {...props} />;
   }
 
   if (phase === "needsPrepare" || phase === "preparing" || phase === "error") {
@@ -95,6 +107,117 @@ export function ExportDialogStatusPanel({
   }
 
   return null;
+}
+
+const failureTitles = {
+  refused: "Preparation did not start",
+  compile: "Schema compilation failed",
+  backfill: "Rebuild failed during submission processing",
+  unconfirmed: "Preparation could not be completed",
+};
+const RETAINED_TITLE = "Rebuild stopped: two questions map to the same column";
+
+const consequences = {
+  retained:
+    "Your previous reporting data was kept. Exports still use the previous schema.",
+  backfill:
+    "Some submissions are missing from reporting data. Exports are unavailable until a rebuild succeeds.",
+  other:
+    "Reporting data may be incomplete. Exports are unavailable until a rebuild succeeds.",
+};
+
+const isRetained = (failure: PrepareFailure) =>
+  failure.previousSchema === "retained";
+
+function failureTitle(failure: PrepareFailure) {
+  return isRetained(failure)
+    ? RETAINED_TITLE
+    : failureTitles[failure.step ?? "unconfirmed"];
+}
+
+/** What the failure means for the reader's data. A refusal changed nothing. */
+function failureConsequence(failure: PrepareFailure) {
+  if (failure.step === "refused") return null;
+  if (isRetained(failure)) return consequences.retained;
+  return failure.step === "backfill"
+    ? consequences.backfill
+    : consequences.other;
+}
+
+// The destructive variant colours the whole description; only the title and icon stay red.
+const QUIET_DESCRIPTION =
+  "*:data-[slot=alert-description]:text-muted-foreground";
+
+type FailureCardProps = Readonly<{
+  failure: PrepareFailure;
+  selection?: AttachmentSelection | null;
+}>;
+
+/** One card: what happened, what it means for the data, the reference, then what the reader can do. */
+function PrepareFailureAlert(props: FailureCardProps) {
+  return (
+    <Alert variant="destructive" className={QUIET_DESCRIPTION}>
+      <CircleAlert />
+      <AlertTitle className="line-clamp-none">
+        {failureTitle(props.failure)}
+      </AlertTitle>
+      <AlertDescription className="gap-2">
+        <FailureBody {...props} />
+      </AlertDescription>
+    </Alert>
+  );
+}
+
+function FailureBody({ failure, selection }: FailureCardProps) {
+  const consequence = failureConsequence(failure);
+  return (
+    <>
+      {!isRetained(failure) && <p>{failure.message}</p>}
+      {consequence && <p className="text-foreground">{consequence}</p>}
+      <SupportReference traceId={failure.traceId} />
+      {consequence && (
+        <FailureRemedies failure={failure} selection={selection} />
+      )}
+    </>
+  );
+}
+
+function FailureRemedies(props: FailureCardProps) {
+  return (
+    <section aria-label="What you can do" className="grid gap-2 pt-1">
+      <h3 className="font-medium text-foreground">What you can do</h3>
+      {isRetained(props.failure) ? (
+        <RetainedRemedies {...props} />
+      ) : (
+        <p>Retry the rebuild, or run a full recompile.</p>
+      )}
+    </section>
+  );
+}
+
+function RetainedRemedies({ failure, selection = null }: FailureCardProps) {
+  return (
+    <>
+      <p>Fix the question names, then rebuild.</p>
+      <ConflictDetails message={failure.message} />
+      <RetainedExportDownload key={selection?.url} selection={selection} />
+    </>
+  );
+}
+
+/** The API's account of the conflict names the questions; folded so the card fits a phone. */
+function ConflictDetails({ message }: Readonly<{ message: string }>) {
+  return (
+    <Collapsible className="grid gap-1">
+      <CollapsibleTrigger className="group inline-flex items-center gap-1 font-medium text-foreground underline-offset-4 hover:underline">
+        Which questions conflict
+        <ChevronDown className="size-4 transition-transform group-data-[state=open]:rotate-180" />
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <p>{message}</p>
+      </CollapsibleContent>
+    </Collapsible>
+  );
 }
 
 function DownloadOutcomeAlert({

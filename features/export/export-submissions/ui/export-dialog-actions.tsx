@@ -11,6 +11,7 @@ interface ExportDialogActionsProps {
   busy: boolean;
   isExporting: boolean;
   showPrepareCta: boolean;
+  prepareLabel: string;
   showExportSubmit: boolean;
   showBackToExport: boolean;
   canExport: boolean;
@@ -27,6 +28,7 @@ function PrimaryActionButton({
   busy,
   isExporting,
   showPrepareCta,
+  prepareLabel,
   showExportSubmit,
   canExport,
   includingIncomplete,
@@ -39,6 +41,7 @@ function PrimaryActionButton({
     | "busy"
     | "isExporting"
     | "showPrepareCta"
+    | "prepareLabel"
     | "showExportSubmit"
     | "canExport"
     | "includingIncomplete"
@@ -56,7 +59,7 @@ function PrimaryActionButton({
             Preparing…
           </>
         ) : (
-          "Prepare for export"
+          prepareLabel
         )}
       </Button>
     );
@@ -95,6 +98,7 @@ export function ExportDialogActions({
   busy,
   isExporting,
   showPrepareCta,
+  prepareLabel,
   showExportSubmit,
   showBackToExport,
   canExport,
@@ -141,6 +145,7 @@ export function ExportDialogActions({
         busy={busy}
         isExporting={isExporting}
         showPrepareCta={showPrepareCta}
+        prepareLabel={prepareLabel}
         showExportSubmit={showExportSubmit}
         canExport={canExport}
         includingIncomplete={includingIncomplete}
