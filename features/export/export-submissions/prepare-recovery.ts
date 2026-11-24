@@ -179,6 +179,7 @@ function supersedes(earlier: boolean, failure: PrepareFailure | null) {
   return earlier || (failure !== null && !failure.previousSchema);
 }
 
+/** True when the caller owns the final, non-superseded outcome. */
 export function finishPrepare(
   attempt: Attempt,
   failure: PrepareFailure | null,
@@ -190,5 +191,5 @@ export function finishPrepare(
   if (index < 0) return false;
   write(attempt.key, finishAt(current, index, failure));
   const superseded = current.superseded.includes(attempt.owner);
-  return index === current.owners.length - 1 && !superseded;
+  return current.owners.length === 1 && !superseded;
 }

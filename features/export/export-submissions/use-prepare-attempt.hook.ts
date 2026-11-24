@@ -19,8 +19,13 @@ function settledOutcome(
   attempt: ReturnType<typeof startPrepare>,
   result: PrepareReportingExportResult,
 ) {
-  const latest = finishPrepare(attempt, Result.isError(result) ? result : null);
-  return readPrepareFailure(attempt.key) ?? (latest ? result : unconfirmed);
+  const failure = Result.isError(result) ? result : null;
+  const authoritative = finishPrepare(attempt, failure);
+  // A refusal explains this click; it did not mutate the schema or repair the durable failure.
+  if (authoritative && failure?.step === "refused") return failure;
+  return (
+    readPrepareFailure(attempt.key) ?? (authoritative ? result : unconfirmed)
+  );
 }
 
 /** A thrown action leaves the outcome unknown, never Ready. */
@@ -50,5 +55,6 @@ export function usePrepareAttempt(formId: string) {
     return outcome;
   }
   const forgetRefusal = () => setFailure(withoutRefusal);
-  return { failure, restoreFailure, prepare, forgetRefusal };
+  const requiresRepair = () => readPrepareFailure(key) !== null;
+  return { failure, restoreFailure, prepare, forgetRefusal, requiresRepair };
 }

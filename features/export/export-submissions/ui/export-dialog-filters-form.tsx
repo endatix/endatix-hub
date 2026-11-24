@@ -42,7 +42,7 @@ interface ExportDialogFiltersFormProps {
   optionsEmpty: boolean;
   showLocaleField: boolean;
   localeSelectValue: string;
-  localeSelectOptions: ReadonlyArray<{ value: string; label: string }>;
+  localeSelectOptions: ReadonlyArray<{ value: string; label: string }> | null;
   onLocaleChange: (locale: string) => void;
   showRowFilters: boolean;
   filterDraft: ExportFilterDraft;
@@ -115,7 +115,7 @@ export function ExportDialogFiltersForm({
             <Select
               value={localeSelectValue}
               onValueChange={onLocaleChange}
-              disabled={controlsLocked}
+              disabled={controlsLocked || !localeSelectOptions?.length}
             >
               <SelectTrigger
                 id="export-submissions-locale"
@@ -125,7 +125,7 @@ export function ExportDialogFiltersForm({
                 <SelectValue placeholder="Select language" />
               </SelectTrigger>
               <SelectContent>
-                {localeSelectOptions.map((localeOption) => (
+                {localeSelectOptions?.map((localeOption) => (
                   <SelectItem
                     key={localeOption.value}
                     value={localeOption.value}
@@ -140,7 +140,7 @@ export function ExportDialogFiltersForm({
               id="export-submissions-locale-hint"
               className="text-xs text-muted-foreground"
             >
-              Question and choice labels in the codebook.
+              {languageHint(localeSelectOptions)}
             </p>
           </div>
         ) : null}
@@ -149,6 +149,16 @@ export function ExportDialogFiltersForm({
       <SubmissionsSection controlsLocked={controlsLocked} {...submissions} />
     </>
   );
+}
+
+function languageHint(
+  options: ExportDialogFiltersFormProps["localeSelectOptions"],
+) {
+  if (!options)
+    return "We couldn’t load the form’s languages. Close and reopen Export submissions to try again.";
+  return options.length
+    ? "Question and choice labels in the codebook."
+    : "Loading languages…";
 }
 
 type DateRangeKey = (typeof ROW_FILTER_DATE_KEYS)[number];

@@ -44,6 +44,7 @@ const refusal = {
   ...partial,
   step: "refused",
   message: "Form edit permission required",
+  traceId: "refused-ref",
 } as const;
 beforeEach(() => sessionStorage.clear());
 
@@ -91,6 +92,30 @@ it("keeps B's destructive partial result when A succeeds afterwards", async () =
   const finishB = startAfterMount();
   await finishB(partial);
   await finishA(success);
+  expect(restored()).toMatchObject(partial);
+});
+
+it("a superseded refusal cannot replace a newer destructive failure", async () => {
+  // Arrange
+  const finishOlder = startAfterMount();
+  const finishNewer = startAfterMount();
+  await finishNewer(partial);
+
+  // Act & Assert
+  expect(await finishOlder(refusal)).toMatchObject(partial);
+  expect(restored()).toMatchObject(partial);
+});
+
+it("a refusal cannot replace the pending outcome of a still-live rebuild", async () => {
+  // Arrange
+  const finishOlder = startAfterMount();
+  const finishNewer = startAfterMount();
+
+  // Act & Assert
+  expect(await finishNewer(refusal)).toMatchObject({
+    message: expect.stringMatching(/could not be confirmed/i),
+  });
+  await finishOlder(partial);
   expect(restored()).toMatchObject(partial);
 });
 
@@ -191,7 +216,7 @@ it.each([success, retained, partial, refusal])(
 );
 
 it.each([retained, partial])(
-  "refusal preserves the prior outcome and trace on return (%#)",
+  "a current refusal reports its own cause and trace, restoring the prior failure only on reopen (%#)",
   async (prior) => {
     // Arrange
     server.mockResolvedValueOnce(prior).mockResolvedValueOnce(refusal);
@@ -204,8 +229,9 @@ it.each([retained, partial])(
 
     // Act
     await act(async () => {
-      await second.result.current.prepare(true);
+      expect(await second.result.current.prepare(true)).toEqual(refusal);
     });
+    expect(second.result.current.failure).toEqual(refusal);
     second.unmount();
 
     // Assert

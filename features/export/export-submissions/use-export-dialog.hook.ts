@@ -10,7 +10,8 @@ import {
 } from "react";
 import { useTrackEvent } from "@/features/analytics/posthog/client";
 import { retainedAttachmentSelection } from "./retained-attachment";
-import { usePrepareAttempt } from "./use-prepare-attempt.hook";
+import { usePrepareAttempt, type PrepareFailure } from "./use-prepare-attempt.hook";
+import { useExportLocaleCatalog } from "./use-export-locale-catalog.hook";
 import {
   catalogLocaleCodeLabel,
   catalogLocaleEnglishName,
@@ -86,6 +87,7 @@ export function useExportDialog({
     prepare,
     restoreFailure,
     forgetRefusal,
+    requiresRepair,
   } = usePrepareAttempt(formId);
   const [fullRecompile, setFullRecompile] = useState(false);
   const [exportFormatId, setExportFormatId] = useState("");
@@ -95,7 +97,12 @@ export function useExportDialog({
   const [rangeErrors, setRangeErrors] =
     useState<ExportFilterRangeErrors>(EMPTY_RANGE_ERRORS);
   const [localeDirty, setLocaleDirty] = useState(false);
-  const [formLocales, setFormLocales] = useState<string[]>([]);
+  const retained =
+    open && phase === "error" && prepareFailure?.previousSchema === "retained";
+  const { formLocales, setFormLocales, unavailable } = useExportLocaleCatalog(
+    formId,
+    retained,
+  );
   const [readinessPassed, setReadinessPassed] = useState(false);
 
   const options = useMemo(
@@ -125,8 +132,6 @@ export function useExportDialog({
 
   const busy = isBusyPhase(phase) || isExporting;
   const controlsLocked = isControlsLocked(phase) || isExporting;
-  const retained =
-    open && phase === "error" && prepareFailure?.previousSchema === "retained";
 
   const listFiltersRef = useRef(listFilters);
   listFiltersRef.current = listFilters;
@@ -169,19 +174,20 @@ export function useExportDialog({
     }
   };
 
+  const showPrepareFailure = (failure: PrepareFailure) => {
+    // A refusal changed nothing, but another attempt may have invalidated the earlier readiness.
+    if (failure.step !== "refused" || requiresRepair()) setReadinessPassed(false);
+    setInlineError(failure.message);
+    setPhase("error");
+  };
+
   const handlePrepare = async () => {
     setPhase("preparing");
     setInlineError(null);
     setPrepareOutcome(null);
 
     const result = await prepare(fullRecompile);
-    if (Result.isError(result)) {
-      // A refusal changed nothing, so the earlier readiness still holds.
-      setReadinessPassed((passed) => passed && result.step === "refused");
-      setInlineError(result.message);
-      setPhase("error");
-      return;
-    }
+    if (Result.isError(result)) return showPrepareFailure(result);
 
     const outcome = formatPrepareOutcome(result.value);
     setRebuildMode(false);
@@ -201,6 +207,7 @@ export function useExportDialog({
     setPhase("error");
     return true;
   });
+  const applyOpeningReadiness = useEffectEvent(applyReadinessResult);
 
   useEffect(() => {
     const justOpened = open && !wasOpenRef.current;
@@ -231,24 +238,13 @@ export function useExportDialog({
       setPhase("checking");
       setReadinessPassed(false);
       const result = await listFormReportingLocalesAction(formId);
-      if (!cancelled) applyReadinessResult(result);
+      if (!cancelled) applyOpeningReadiness(result);
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [open, formId]);
-
-  useEffect(() => {
-    if (!retained || formLocales.length) return;
-    let cancelled = false;
-    void listFormReportingLocalesAction(formId).then((result) => {
-      if (!cancelled && Result.isSuccess(result)) setFormLocales(result.value);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [retained, formId, formLocales.length]);
+  }, [open, formId, setFormLocales]);
 
   useEffect(() => {
     if (showsCompletedAtFields(filterDraft.collectionStatus)) {
@@ -409,7 +405,7 @@ export function useExportDialog({
     showCompletedAt,
     filterDraft,
     rangeErrors: retained ? ranges : rangeErrors,
-    localeSelectOptions,
+    localeSelectOptions: unavailable ? null : localeSelectOptions,
     localeSelectValue,
     exportButtonRef,
     handleOpenChange,

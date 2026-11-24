@@ -67,7 +67,7 @@ export type UseExportDialogResult = {
   showCompletedAt: boolean;
   filterDraft: ExportFilterDraft;
   rangeErrors: ExportFilterRangeErrors;
-  localeSelectOptions: ReadonlyArray<{ value: string; label: string }>;
+  localeSelectOptions: ReadonlyArray<{ value: string; label: string }> | null;
   localeSelectValue: string;
   exportButtonRef: RefObject<HTMLButtonElement | null>;
   handleOpenChange: (nextOpen: boolean) => void;
