@@ -1,6 +1,7 @@
 import { Submission } from "@/lib/endatix-api";
 import { View, Text, StyleSheet } from "@react-pdf/renderer";
 import { currentPdfStyles } from "@/features/pdf-export/theme/pdf-theme-context";
+import { PROPERTIES_PAPER } from "./pdf-styles";
 import {
   getElapsedTimeString,
   getFormattedDate,
@@ -16,10 +17,10 @@ const DASH_NO_DATA = "—";
 export const PdfSubmissionProperties = ({
   submission,
 }: PdfSubmissionPropertiesProps) => {
-  const { body, panel } = currentPdfStyles();
+  const { body, panel, properties } = currentPdfStyles();
   return (
     <View style={[body.section, styles.sectionProperties, panel]}>
-      <Text style={body.sectionTitle}>Submission Properties</Text>
+      <Text style={[body.sectionTitle, properties.title]}>Submission Properties</Text>
       <View style={styles.propertiesTable}>
         <Property label="ID:">{submission.id}</Property>
         <Property label="Is Complete?">
@@ -57,11 +58,11 @@ function Property({
   label,
   children,
 }: Readonly<{ label: string; children: React.ReactNode }>) {
-  const { text, muted } = currentPdfStyles();
+  const { properties } = currentPdfStyles();
   return (
     <View style={styles.propertyRow}>
-      <Text style={[styles.propertyLabel, muted]}>{label}</Text>
-      <Text style={[styles.propertyValue, text]}>{children}</Text>
+      <Text style={[styles.propertyLabel, properties.label]}>{label}</Text>
+      <Text style={[styles.propertyValue, properties.value]}>{children}</Text>
     </View>
   );
 }
@@ -69,7 +70,7 @@ function Property({
 const styles = StyleSheet.create({
   sectionProperties: {
     fontSize: 10,
-    backgroundColor: "#f0f0f0",
+    backgroundColor: PROPERTIES_PAPER,
     borderRadius: 4,
     gap: 4,
   },
@@ -86,7 +87,6 @@ const styles = StyleSheet.create({
     flex: 2,
     textAlign: "right",
     fontFamily: "Roboto-Bold",
-    color: "#666",
     fontSize: 10,
     paddingRight: 16,
   },
@@ -94,7 +94,6 @@ const styles = StyleSheet.create({
     flex: 3,
     textAlign: "left",
     fontFamily: "Roboto",
-    color: "#222",
     fontSize: 10,
   },
 });

@@ -1,10 +1,11 @@
 import { createElement as el } from "react";
-import { Document, Page, pdf } from "@react-pdf/renderer";
+import { Document, Page, View, pdf } from "@react-pdf/renderer";
 import { Model, QuestionMatrixDynamicModel } from "survey-core";
 import { expect, it, vi } from "vitest";
 import "../submission-details-pdf";
 import { loadMatrixFonts } from "../answers/matrix-print-bands";
 import PdfMatrixDropdownAnswer from "../answers/pdf-matrixdropdown-answer";
+import { FullWidthNote } from "../answers/pdf-transposed-matrix";
 
 type Node = { lines?: { string: string }[]; children?: Node[] };
 function text(node: Node): string[] {
@@ -14,6 +15,22 @@ function text(node: Node): string[] {
     []
   );
 }
+
+it("keeps a wrapped note heading with its first two answer lines", async () => {
+  // Arrange: 73 pt remain, enough for the old fixed reservation but not this note.
+  await loadMatrixFonts();
+  const heading = "[1] · Row 7 · " + "Observation field ".repeat(8);
+  const source = Array.from({length: 100}, (_, i) => `Trial ${i}`).join("\n");
+  const onRender = vi.fn();
+  // Act
+  await pdf(el(Document, {onRender}, el(Page, {size: "A4", style: {padding: 28}},
+    el(View, {style: {height: 713}}), el(FullWidthNote, {heading, source})
+  ))).toBlob();
+  // Assert
+  const pages: Node[] = onRender.mock.lastCall![0]._INTERNAL__LAYOUT__DATA_.children;
+  const first = pages.map(text).find(lines => lines.some(line => line.includes("Note [1]")));
+  expect(first).toEqual(expect.arrayContaining(["Trial 0", "Trial 1"]));
+});
 
 async function print(entries: { observation: string }[]) {
   const model = new Model({

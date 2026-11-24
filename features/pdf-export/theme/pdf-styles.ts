@@ -3,7 +3,7 @@ import {
   PDF_TABLE_STYLES as table,
 } from "../submission/pdf-styles";
 import type { PdfBodyLayer } from "./form-theme";
-import { printColors } from "./print-colors";
+import { printColors, propertyInks } from "./print-colors";
 
 export const DEFAULT_PDF_THEME: PdfBodyLayer = {};
 
@@ -69,6 +69,7 @@ export function createPdfStyles(t: PdfBodyLayer) {
     text: t.text ? { color: t.text } : {},
     muted: muted ? { color: muted } : {},
     panel,
+    properties: propertyInks(t, panel.backgroundColor),
     body: bodyStyles(t, colors.headingInk),
     table: tableStyles(t, header, colors),
   };

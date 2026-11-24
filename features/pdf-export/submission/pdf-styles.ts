@@ -1,5 +1,8 @@
 import { StyleSheet } from "@react-pdf/renderer";
 
+export const NOTE_LINE_HEIGHT = 14;
+export const PROPERTIES_PAPER = "#f0f0f0";
+
 export const PDF_STYLES = StyleSheet.create({
   image: {
     objectFit: "cover",
@@ -87,11 +90,12 @@ export const PDF_TABLE_STYLES = StyleSheet.create({
     borderTopWidth: 0.6,
     paddingTop: 5,
     marginBottom: 4,
+    lineHeight: `${NOTE_LINE_HEIGHT}pt`,
   },
   noteText: {
     fontSize: 10,
     fontFamily: "Roboto",
-    lineHeight: "14pt",
+    lineHeight: `${NOTE_LINE_HEIGHT}pt`,
   },
   fieldLabel: {
     fontFamily: "Roboto-Bold",

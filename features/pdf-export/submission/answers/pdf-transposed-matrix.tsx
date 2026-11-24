@@ -1,7 +1,7 @@
 import { Text, View } from "@react-pdf/renderer";
 import { currentPdfStyles } from "../../theme/pdf-theme-context";
-import { MATRIX_LABEL_COLUMN_WIDTH, PDF_ANSWER_WIDTH } from "../pdf-styles";
-import { MATRIX_LINE_STYLE, measureSource } from "./matrix-print-bands";
+import { MATRIX_LABEL_COLUMN_WIDTH, NOTE_LINE_HEIGHT, PDF_ANSWER_WIDTH } from "../pdf-styles";
+import { MATRIX_LINE_STYLE, measureSource, typesetter } from "./matrix-print-bands";
 import type { MatrixDropdownTableData } from "./pdf-matrixdropdown-answer";
 import { StartGridTogether } from "./pdf-matrix-table";
 import {
@@ -40,18 +40,25 @@ function PanelLine({ label, cells, entries, heading }: Readonly<Line>) {
   );
 }
 
-function FullWidthNote({ heading, source }: Readonly<MatrixNote>) {
+const noteSpacing = { marginTop: 8 };
+
+function noteStartHeight(title: string) {
+  const style = currentPdfStyles().table.noteHeading;
+  const lines = typesetter(PDF_ANSWER_WIDTH, style.fontFamily, style.fontSize)(title);
+  return Math.ceil(noteSpacing.marginTop + style.paddingTop + style.borderTopWidth
+    + style.marginBottom + (lines.length + 2) * NOTE_LINE_HEIGHT);
+}
+
+export function FullWidthNote({ heading, source }: Readonly<MatrixNote>) {
   const { table } = currentPdfStyles();
-  const body = measureSource(
-    PDF_ANSWER_WIDTH,
-    table.tableCell.fontFamily,
-  )(source);
+  const body = measureSource(PDF_ANSWER_WIDTH, table.noteText.fontFamily)(source);
+  const title = `Note ${heading}`;
   return (
     <View>
-      <StartGridTogether presence={60} />
-      <View style={{ marginTop: 8 }}>
+      <StartGridTogether presence={noteStartHeight(title)} />
+      <View style={noteSpacing}>
         <Text fixed style={table.noteHeading}>
-          Note {heading}
+          {title}
         </Text>
         <Text style={table.noteText}>
           {body.text}

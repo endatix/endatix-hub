@@ -1,5 +1,6 @@
 import { contrastRatio, over, parseCssColor, toHex, type Rgb } from "@/lib/branding/color";
 import type { PdfBodyLayer } from "./form-theme";
+import { PROPERTIES_PAPER } from "../submission/pdf-styles";
 
 const PAPER = { r: 1, g: 1, b: 1 };
 const INK = { r: 0, g: 0, b: 0 };
@@ -16,6 +17,16 @@ function painted(hex: string | undefined, backdrop: Rgb) {
 function readable(preferred: Rgb, surface: Rgb) {
   if (contrastRatio(preferred, surface) >= 4.5) return toHex(preferred);
   return contrastRatio(PAPER, surface) >= contrastRatio(INK, surface) ? "#ffffff" : "#000000";
+}
+
+export function propertyInks(theme: PdfBodyLayer, panel: string = PROPERTIES_PAPER) {
+  const surface = painted(panel, painted(theme.pageBackground, PAPER));
+  const ink = (hex: string) => ({ color: readable(painted(hex, surface), surface) });
+  return {
+    title: ink(theme.accent ?? theme.text ?? "#000000"),
+    label: ink(theme.mutedText ?? theme.text ?? "#666666"),
+    value: ink(theme.text ?? "#222222"),
+  };
 }
 
 export function printColors(theme: PdfBodyLayer, header: string) {

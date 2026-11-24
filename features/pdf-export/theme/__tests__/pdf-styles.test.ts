@@ -4,14 +4,30 @@ import { createPdfStyles } from "../pdf-styles";
 import { contrastRatio, parseCssColor } from "@/lib/branding/color";
 
 it.each(["#493669", "#ffeecc"])("keeps print headings readable on form surface %s", (surface) => {
+  // Arrange & Act
   const { table } = createPdfStyles({ tableHeaderBackground: surface });
+  // Assert
   const ink = parseCssColor(table.tableCellHeader.color);
   expect(contrastRatio(ink!, parseCssColor(surface)!)).toBeGreaterThanOrEqual(4.5);
 });
 
 it("reads a translucent heading against the paper beneath it", () => {
+  // Arrange & Act
   const { table } = createPdfStyles({tableHeaderBackground: "#00000020", text: "#ffffff"});
+  // Assert
   expect(table.tableCellHeader.color).toBe("#000000");
+});
+
+it("reads section titles and properties on opposite paper and panel surfaces", () => {
+  // Arrange & Act
+  const { body, properties } = createPdfStyles({
+    pageBackground: "#ffffff", tableHeaderBackground: "#000000", accent: "#ffffff",
+  });
+  // Assert
+  expect(body.sectionTitle.color).toBe("#000000");
+  expect(properties.title.color).toBe("#ffffff");
+  expect(properties.label.color).toBe("#ffffff");
+  expect(properties.value.color).toBe("#ffffff");
 });
 
 it("lets the dark page show through panels and table headers without a surface token", () => {
@@ -26,8 +42,9 @@ it("lets the dark page show through panels and table headers without a surface t
 
 it("keeps the default page unpainted and reuses the print geometry", () => {
   // Act & Assert
-  expect(createPdfStyles({})).toMatchObject({
-    page: {},
+  const styles = createPdfStyles({});
+  expect(styles.page).toEqual({});
+  expect(styles).toMatchObject({
     panel: {},
     text: {},
     muted: {},
