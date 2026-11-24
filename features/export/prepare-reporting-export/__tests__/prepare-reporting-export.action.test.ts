@@ -257,9 +257,10 @@ describe("prepareReportingExportAction", () => {
   it("logs an unexpected compile failure as an error under its support reference", async () => {
     // Arrange
     mockCompileSchema.mockResolvedValueOnce(
-      ApiResult.serverError("Compile blew up", {
+      ApiResult.serverError("sentinel-compile-message", {
         statusCode: 500,
         traceId: "api-ref",
+        details: "sentinel-private-details",
       }),
     );
 
@@ -267,17 +268,22 @@ describe("prepareReportingExportAction", () => {
     const failure = await prepareReportingExportAction("form-1");
 
     // Assert
-    expect(failure).toMatchObject({ traceId: "api-ref" });
-    expect(telemetry.error).toHaveBeenCalledWith(
+    expect(failure).toMatchObject({
+      traceId: "api-ref",
+      message: "sentinel-compile-message",
+      details: "sentinel-private-details",
+    });
+    expect(telemetry.warn).not.toHaveBeenCalled();
+    expect(telemetry.error).toHaveBeenCalledExactlyOnceWith(
       "Reporting export preparation failed",
       undefined,
-      expect.objectContaining({
+      {
         formId: "form-1",
         step: "compile",
         traceId: "api-ref",
         statusCode: 500,
-        message: "Compile blew up",
-      }),
+        errorCode: "server_error",
+      },
       "export.prepare-reporting-export",
     );
   });
@@ -294,20 +300,21 @@ describe("prepareReportingExportAction", () => {
     // Assert
     const traceId = Result.isError(failure) ? failure.traceId : undefined;
     expect(traceId).toEqual(expect.any(String));
-    expect(telemetry.error).toHaveBeenCalledWith(
+    expect(telemetry.error).toHaveBeenCalledExactlyOnceWith(
       "Reporting export preparation failed",
       undefined,
-      expect.objectContaining({
+      {
+        formId: "form-1",
         step: "backfill",
         traceId,
         statusCode: 500,
-        message: "Backfill blew up",
-      }),
+        errorCode: "server_error",
+      },
       "export.prepare-reporting-export",
     );
   });
 
-  it("logs an expected conflict as a warning with its status and detail", async () => {
+  it("logs only structured context for an expected conflict and returns its detail to the reader", async () => {
     // Arrange
     const body = {
       status: 409,
@@ -320,18 +327,20 @@ describe("prepareReportingExportAction", () => {
     );
 
     // Act
-    await prepareReportingExportAction("form-1");
+    const failure = await prepareReportingExportAction("form-1");
 
     // Assert
     expect(telemetry.error).not.toHaveBeenCalled();
-    expect(telemetry.warn).toHaveBeenCalledWith(
+    expect(failure).toMatchObject({ message: body.detail, traceId: body.traceId });
+    expect(telemetry.warn).toHaveBeenCalledExactlyOnceWith(
       "Reporting export preparation failed",
-      expect.objectContaining({
+      {
+        formId: "form-1",
+        step: "compile",
         traceId: "conflict-ref",
         statusCode: 409,
-        message: body.detail,
         errorCode: body.errorCode,
-      }),
+      },
       "export.prepare-reporting-export",
     );
   });

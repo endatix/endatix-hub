@@ -25,8 +25,6 @@ import {
   type PrepareStep,
 } from "./prepare-failure.server";
 
-const LOGGER_NAME = "export.prepare-reporting-export";
-
 export type PrepareReportingExportOptions = {
   fullRecompile?: boolean;
 };
@@ -106,7 +104,6 @@ export async function prepareReportingExportAction(
 
   const backfill = await backfillReportingSubmissions(api, formId, {
     force: fullRecompile,
-    loggerName: LOGGER_NAME,
   });
   if (Result.isError(backfill)) {
     return recordPrepareFailure(formId, "backfill", backfill);

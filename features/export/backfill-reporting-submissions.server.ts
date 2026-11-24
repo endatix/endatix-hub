@@ -34,7 +34,7 @@ export async function backfillReportingSubmissions(
   api: EndatixApi,
   formId: string,
   options: Pick<BackfillSubmissionsRequest, "force" | "completionScope"> & {
-    loggerName: string;
+    loggerName?: string;
   },
 ): Promise<Result<BackfillRunSummary>> {
   const summary: BackfillRunSummary = {
@@ -56,7 +56,7 @@ export async function backfillReportingSubmissions(
 
     const page = toResult(backfillResult, {
       fallbackMessage: "Failed to backfill submissions.",
-      logMessage: "Failed to backfill submissions.",
+      logMessage: options.loggerName && "Failed to backfill submissions.",
       loggerName: options.loggerName,
     });
     if (Result.isError(page)) return interruptedPage(page, summary);

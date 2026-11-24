@@ -48,8 +48,8 @@ function isUnexpected(failure: ResultError) {
 type FailureContext = { formId: string; step: PrepareStep; traceId: string };
 
 function logPrepareFailure(context: FailureContext, failure: ResultError) {
-  const { statusCode, message, details, errorCode } = failure;
-  const attributes = { ...context, statusCode, message, details, errorCode };
+  const { statusCode, errorCode } = failure;
+  const attributes = { ...context, statusCode, errorCode };
   if (isUnexpected(failure))
     TelemetryLogger.error(FAILURE_LOG, undefined, attributes, LOGGER_NAME);
   else TelemetryLogger.warn(FAILURE_LOG, attributes, LOGGER_NAME);
