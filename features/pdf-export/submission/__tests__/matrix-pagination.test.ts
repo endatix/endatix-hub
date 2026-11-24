@@ -70,8 +70,7 @@ it("repeats column titles on every matrix page and never on neighboring question
   expect(pages.at(-1)).toEqual(["After question"]);
   expect(matrixPages.length).toBeGreaterThan(1);
   for (const page of matrixPages) {
-    for (const { title } of columns)
-      expect(page.filter((line) => line === title)).toHaveLength(1);
+    for (const { title } of columns) expect(page).toContain(title);
   }
   expect(
     matrixPages.flat().filter((line) => line.startsWith("Station-")),
@@ -87,6 +86,28 @@ it("keeps a header out of a preceding page with only a few points left", async (
   // Assert
   expect(pages[0]).toEqual(["Before question"]);
 });
+
+it.each([665, 680, 690])(
+  "moves the header with its multiline first row after a %i pt spacer",
+  async (height) => {
+    // Arrange
+    const first = {
+      ...rows[0],
+      cells: { First: "One\nTwo\nThree\nFour\nFive\nSix\nSeven" },
+    };
+
+    // Act
+    const pages = await printedPages(
+      { columns, rows: [first, ...rows.slice(1)] },
+      el(View, { style: { height } }),
+    );
+
+    // Assert
+    expect(pages[0]).toEqual(["Before question"]);
+    expect(pages[1]).toContain("First");
+    expect(pages[1]).toContain("Seven");
+  },
+);
 
 it("finishes oversized titles and cells without clipping or duplicating their lines", async () => {
   // Arrange
@@ -113,4 +134,20 @@ it("finishes oversized titles and cells without clipping or duplicating their li
     expect(page).toContain("Column 1");
     expect(page).toContain("Sixth");
   }
+});
+
+it("starts a flowing first row with its legend, not in a sliver above the page break", async () => {
+  // Arrange
+  const first = { ...rows[0], cells: { First: "Printed line\n".repeat(150) } };
+
+  // Act
+  const pages = await printedPages(
+    { columns, rows: [first] },
+    el(View, { style: { height: 765 } }),
+  );
+
+  // Assert
+  expect(pages[0]).toEqual(["Before question"]);
+  for (const page of pages.filter((p) => p.includes("Sixth")))
+    expect(page).toContain("Printed line");
 });

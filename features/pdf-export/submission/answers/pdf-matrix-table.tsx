@@ -40,13 +40,48 @@ function columnHeading(column: PdfMatrixTableColumn, index: number) {
 
 type Heading = ReturnType<typeof columnHeading>;
 
-function TableStart({ headings }: { readonly headings: Heading[] }) {
-  // react-pdf copies a fixed child even into a sliver at the foot of a page.
-  // Reserve its top margin, header and two body lines; cancel the space once it fits.
-  // At the 72pt minimum width a 10pt bold header fits at least three characters per line.
-  const longest = Math.max(1, ...headings.map(({ title }) => title.length));
-  const height = 48 + 14 * Math.ceil(longest / 3);
-  return <View wrap={false} style={{ height, marginBottom: -height }} />;
+interface RowBand {
+  rows: PdfMatrixTableRow[];
+  flowing: boolean;
+}
+
+function cellText(row: PdfMatrixTableRow) {
+  return [row.label, ...Object.values(row.cells)];
+}
+
+function needsFlow(row: PdfMatrixTableRow) {
+  return cellText(row).some((cell) => cell.length > MAX_ATOMIC_TEXT_LENGTH);
+}
+
+// Small grid bands carry their own legend. The renderer places the real
+// header and rows together, regardless of how much room the preceding question used.
+function compactBands(rows: PdfMatrixTableRow[]) {
+  const bands: RowBand[] = [];
+  let compact: RowBand | undefined;
+  for (const row of rows) {
+    if (cellText(row).some((cell) => /[\r\n\u2028\u2029]/u.test(cell))) {
+      bands.push({ rows: [row], flowing: false });
+      compact = undefined;
+      continue;
+    }
+    if (!compact || compact.rows.length === 6) {
+      compact = { rows: [], flowing: false };
+      bands.push(compact);
+    }
+    compact.rows.push(row);
+  }
+  return bands;
+}
+
+function rowBands(rows: PdfMatrixTableRow[]) {
+  const firstLong = rows.findIndex((row) => needsFlow(row));
+  if (firstLong < 0) return compactBands(rows);
+  // Start the flowing tail on a fresh sheet when paginating. Only one such
+  // break per matrix, even when short and page-long answers alternate.
+  return [
+    ...compactBands(rows.slice(0, firstLong)),
+    { rows: rows.slice(firstLong), flowing: true },
+  ];
 }
 
 function cellStyle(width: number, header = false) {
@@ -90,12 +125,13 @@ function StackedMatrix({ columns, rows }: PdfMatrixTableProps) {
 interface HeaderProps {
   readonly headings: Heading[];
   readonly width: number;
+  readonly flowing: boolean;
 }
 
-function ColumnHeaders({ headings, width }: HeaderProps) {
+function ColumnHeaders({ headings, width, flowing }: HeaderProps) {
   const { table } = currentPdfStyles();
   return (
-    <View fixed style={[table.tableRow, table.tableHeader]}>
+    <View fixed={flowing} style={[table.tableRow, table.tableHeader]}>
       <View style={cellStyle(MATRIX_LABEL_COLUMN_WIDTH, true)}>
         <Text> </Text>
       </View>
@@ -116,11 +152,8 @@ interface RowProps {
 
 function DataRow({ row, columns, width }: RowProps) {
   const { table } = currentPdfStyles();
-  const wrap = [row.label, ...Object.values(row.cells)].some(
-    (text) => text.length > MAX_ATOMIC_TEXT_LENGTH,
-  );
   return (
-    <View style={table.tableRow} wrap={wrap}>
+    <View style={table.tableRow} wrap={needsFlow(row)}>
       <View style={cellStyle(MATRIX_LABEL_COLUMN_WIDTH)}>
         <Text>{row.label}</Text>
       </View>
@@ -133,8 +166,21 @@ function DataRow({ row, columns, width }: RowProps) {
   );
 }
 
-export const PdfMatrixTable = ({ columns, rows }: PdfMatrixTableProps) => {
+type BandProps = Omit<HeaderProps, "flowing"> & { readonly band: RowBand };
+
+function GridBand({ headings, width, band }: BandProps) {
   const { table } = currentPdfStyles();
+  return (
+    <View wrap={band.flowing} break={band.flowing} style={table.table}>
+      <ColumnHeaders headings={headings} width={width} flowing={band.flowing} />
+      {band.rows.map((row) => (
+        <DataRow key={row.key} row={row} columns={headings} width={width} />
+      ))}
+    </View>
+  );
+}
+
+export const PdfMatrixTable = ({ columns, rows }: PdfMatrixTableProps) => {
   const width = computeMatrixDataColumnWidth(columns.length);
   if (width === null) return <StackedMatrix columns={columns} rows={rows} />;
   const headings = columns.map((column, index) => columnHeading(column, index));
@@ -149,13 +195,14 @@ export const PdfMatrixTable = ({ columns, rows }: PdfMatrixTableProps) => {
             </Text>
           ),
       )}
-      <TableStart headings={headings} />
-      <View style={table.table}>
-        <ColumnHeaders headings={headings} width={width} />
-        {rows.map((row) => (
-          <DataRow key={row.key} row={row} columns={columns} width={width} />
-        ))}
-      </View>
+      {rowBands(rows).map((band) => (
+        <GridBand
+          key={band.rows[0].key}
+          band={band}
+          headings={headings}
+          width={width}
+        />
+      ))}
     </View>
   );
 };

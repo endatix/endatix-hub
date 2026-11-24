@@ -58,6 +58,11 @@ describe("formatChoiceDisplay", () => {
   );
   it.each([
     [1, "10 or more", "10 or more (1)"],
+    [1, "0.1 mg", "0.1 mg (1)"],
+    ["1", "−1 degree", "−1 degree (1)"],
+    [1, "-1 degree", "-1 degree (1)"],
+    [1, "+1 degree", "+1 degree (1)"],
+    [1, "− 1 degree", "− 1 degree (1)"],
     ["at", "Station", "Station (at)"],
     ["id", "résident", "résident (id)"],
     ["a", "as", "as (a)"],

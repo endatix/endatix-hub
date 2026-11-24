@@ -1,24 +1,22 @@
 import type { ItemValue, Question, QuestionMatrixModel } from "survey-core";
 import { pdfPlainText } from "@/lib/utils/pdf-plain-text";
 
-const WORD_END = /[\p{L}\p{M}\p{N}_]$/u;
-const WORD_START = /^[\p{L}\p{M}\p{N}_]/u;
-
-function containsWholeValue(label: string, value: string): boolean {
-  for (
-    let at = label.indexOf(value);
-    at >= 0;
-    at = label.indexOf(value, at + 1)
-  ) {
-    const end = at + value.length;
-    // Two UTF-16 units hold the adjacent code point even outside the BMP.
-    if (
-      !WORD_END.test(label.slice(Math.max(0, at - 2), at)) &&
-      !WORD_START.test(label.slice(end, end + 2))
-    )
-      return true;
+function displaysValue(label: string, value: string) {
+  // Only suppress an integer in plain words. Signs, decimals, ranges and other
+  // numeric notation can change its meaning; keeping the stored code is safer.
+  if (/\p{N}/u.test(value)) {
+    const words = label.split(/\s+/u);
+    return (
+      /^\d+$/.test(value) &&
+      words.includes(value) &&
+      words.every((word) => word === value || /^[\p{L}\p{M}]+$/u.test(word))
+    );
   }
-  return false;
+  return (
+    label.includes(`(${value})`) ||
+    (label.startsWith(`${value} (`) && label.endsWith(")")) ||
+    (/^[A-Z]{2,}$/.test(value) && label === `${value}s`)
+  );
 }
 
 /**
@@ -36,10 +34,7 @@ export function formatChoiceDisplay(
   if (!labelStr) return valueStr;
   if (!valueStr || labelStr === valueStr) return labelStr;
 
-  const pluralAcronym =
-    /^[A-Z]{2,}$/.test(valueStr) &&
-    containsWholeValue(labelStr, `${valueStr}s`);
-  return pluralAcronym || containsWholeValue(labelStr, valueStr)
+  return displaysValue(labelStr, valueStr)
     ? labelStr
     : `${labelStr} (${valueStr})`;
 }
