@@ -47,6 +47,51 @@ const refusal = {
 } as const;
 beforeEach(() => sessionStorage.clear());
 
+function startAfterMount() {
+  const deferred = Promise.withResolvers<PrepareReportingExportResult>();
+  server.mockReturnValueOnce(deferred.promise);
+  const view = mounted();
+  const running = view.result.current.prepare(true);
+  view.unmount();
+  return async (outcome: PrepareReportingExportResult) => {
+    deferred.resolve(outcome);
+    await act(async () => {
+      await running;
+    });
+  };
+}
+
+it.each([
+  { name: "success", outcome: success, order: "A first" },
+  { name: "retained conflict", outcome: retained, order: "A first" },
+  { name: "success", outcome: success, order: "B first" },
+  { name: "retained conflict", outcome: retained, order: "B first" },
+])(
+  "restores A's $name after B refuses ($order)",
+  async ({ outcome, order }) => {
+    // Arrange
+    const finishA = startAfterMount();
+    const finishB = startAfterMount();
+    // Act
+    if (order === "A first") await finishA(outcome);
+    else await finishB(refusal);
+    expect(restored()?.message).toMatch(/could not be confirmed/i);
+    if (order === "A first") await finishB(refusal);
+    else await finishA(outcome);
+    // Assert
+    if (outcome === success) expect(restored()).toBeNull();
+    else expect(restored()).toMatchObject(retained);
+  },
+);
+
+it("keeps B's destructive partial result when A succeeds afterwards", async () => {
+  const finishA = startAfterMount();
+  const finishB = startAfterMount();
+  await finishB(partial);
+  await finishA(success);
+  expect(restored()).toMatchObject(partial);
+});
+
 it.each([success, retained, partial, refusal])(
   "only the owning attempt may finish after remount (late outcome %#)",
   async (late) => {

@@ -13,8 +13,7 @@ export const unconfirmed: PrepareFailure = {
     "Preparation could not be confirmed. Prepare again before exporting.",
 };
 
-const recoverySchema = z.discriminatedUnion("state", [
-  z.object({ state: z.literal("pending"), owner: z.string() }),
+const settledSchema = z.discriminatedUnion("state", [
   z.object({ state: z.literal("refused") }),
   z.object({
     state: z.literal("failed"),
@@ -24,9 +23,16 @@ const recoverySchema = z.discriminatedUnion("state", [
     traceId: z.string().optional(),
   }),
 ]);
+const pendingSchema = z.object({
+  state: z.literal("pending"),
+  owners: z.array(z.string()).min(1),
+  settled: settledSchema.nullable(),
+});
+const recoverySchema = z.union([settledSchema, pendingSchema]);
+type Pending = z.infer<typeof pendingSchema>;
 type Recovery = z.infer<typeof recoverySchema>;
 type Prior = Recovery | null;
-type Attempt = { key: string; owner: string; prior: Prior };
+type Attempt = { key: string; owner: string };
 const memory = new Map<string, string>();
 
 function read(key: string): Prior {
@@ -73,17 +79,26 @@ export function readPrepareFailure(key: string) {
 }
 
 export function startPrepare(key: string): Attempt {
-  const attempt = { key, owner: crypto.randomUUID(), prior: read(key) };
-  write(key, { state: "pending", owner: attempt.owner });
+  const attempt = { key, owner: crypto.randomUUID() };
+  const prior = read(key);
+  const pending =
+    prior?.state === "pending" ? prior : { owners: [], settled: prior };
+  write(key, {
+    state: "pending",
+    settled: pending.settled,
+    owners: [...pending.owners, attempt.owner],
+  });
   return attempt;
 }
 
-function resolved(prior: Prior, failure: PrepareFailure | null): Prior {
+function resolved(
+  prior: Prior,
+  failure: PrepareFailure | null,
+): Pending["settled"] {
   if (!failure) return null;
   if (failure.step === "refused") {
-    if (prior?.state === "pending")
-      return { state: "failed", message: unconfirmed.message };
-    return prior ?? { state: "refused" };
+    const settled = prior?.state === "pending" ? prior.settled : prior;
+    return settled ?? { state: "refused" };
   }
   const earlier = failureOf(prior);
   const previousSchema =
@@ -97,13 +112,29 @@ function resolved(prior: Prior, failure: PrepareFailure | null): Prior {
   };
 }
 
+// Refusal removes just that request. A mutation settles through its position;
+// later requests still mask the settled result until they finish.
+function finishAt(
+  pending: Pending,
+  index: number,
+  failure: PrepareFailure | null,
+): Prior {
+  const owners =
+    failure?.step === "refused"
+      ? pending.owners.filter((_, position) => position !== index)
+      : pending.owners.slice(index + 1);
+  const settled = resolved(index === 0 ? pending.settled : pending, failure);
+  return owners.length ? { state: "pending", owners, settled } : settled;
+}
+
 export function finishPrepare(
   attempt: Attempt,
   failure: PrepareFailure | null,
 ) {
   const current = read(attempt.key);
-  if (current?.state !== "pending" || current.owner !== attempt.owner)
-    return false;
-  write(attempt.key, resolved(attempt.prior, failure));
-  return true;
+  if (current?.state !== "pending") return false;
+  const index = current.owners.indexOf(attempt.owner);
+  if (index < 0) return false;
+  write(attempt.key, finishAt(current, index, failure));
+  return index === current.owners.length - 1;
 }
