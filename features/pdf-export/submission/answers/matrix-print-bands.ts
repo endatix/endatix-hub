@@ -40,13 +40,13 @@ export async function loadMatrixFonts() {
   );
 }
 
-export function typesetter(width: number, family: string) {
+export function typesetter(width: number, family: string, fontSize: number = tableCell.fontSize) {
   const font = [family, "Helvetica"].map(
     (fontFamily) => Font.getFont({ fontFamily }).data!,
   );
   const attributes = {
     font,
-    fontSize: tableCell.fontSize,
+    fontSize,
     lineHeight: LINE_HEIGHT,
   };
   const box = { x: 0, y: 0, width: width - CELL_EDGES, height: Infinity };

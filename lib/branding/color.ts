@@ -199,6 +199,16 @@ function oklchToRgbUnclamped({ l, c, h }: Oklch): Rgb {
   };
 }
 
+/** `color` at `opacity` composited over an opaque `backdrop`. */
+export function over(color: Rgb, backdrop: Rgb, opacity: number): Rgb {
+  const mix = (a: number, b: number) => a * opacity + b * (1 - opacity);
+  return {
+    r: mix(color.r, backdrop.r),
+    g: mix(color.g, backdrop.g),
+    b: mix(color.b, backdrop.b),
+  };
+}
+
 /** WCAG 2.x relative luminance. */
 export function relativeLuminance(color: Rgb): number {
   return (

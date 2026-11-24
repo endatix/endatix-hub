@@ -1,5 +1,8 @@
 import { StyleSheet } from "@react-pdf/renderer";
 
+export const NOTE_LINE_HEIGHT = 14;
+export const PROPERTIES_PAPER = "#f0f0f0";
+
 export const PDF_STYLES = StyleSheet.create({
   image: {
     objectFit: "cover",
@@ -59,8 +62,8 @@ export const PDF_STYLES = StyleSheet.create({
     padding: 8,
   },
   sectionTitle: {
-    fontSize: 14,
-    marginBottom: 8,
+    fontSize: 17,
+    marginBottom: 6,
     fontFamily: "Roboto-Bold",
   },
 });
@@ -70,15 +73,38 @@ export const PDF_TABLE_STYLES = StyleSheet.create({
     marginBottom: 12,
   },
   caption: {
-    fontSize: 11,
+    fontSize: 14,
     fontFamily: "Roboto-Bold",
-    marginBottom: 6,
+    marginBottom: 2,
+  },
+  groupNumber: {
+    fontSize: 9,
+    letterSpacing: 0.6,
+    fontFamily: "Roboto-Bold",
+    marginTop: 8,
+    marginBottom: 2,
+  },
+  noteHeading: {
+    fontSize: 12,
+    fontFamily: "Roboto-Bold",
+    borderTopWidth: 0.6,
+    paddingTop: 5,
+    marginBottom: 4,
+    lineHeight: `${NOTE_LINE_HEIGHT}pt`,
+  },
+  noteText: {
+    fontSize: 10,
+    fontFamily: "Roboto",
+    lineHeight: `${NOTE_LINE_HEIGHT}pt`,
+  },
+  fieldLabel: {
+    fontFamily: "Roboto-Bold",
   },
   table: {
     width: "auto",
     borderStyle: "solid",
-    borderWidth: 1,
-    borderColor: "#c0c0c0",
+    borderWidth: 0.6,
+    borderColor: "#c8c8c8",
     borderRightWidth: 0,
     borderBottomWidth: 0,
     marginTop: 8,
@@ -89,17 +115,17 @@ export const PDF_TABLE_STYLES = StyleSheet.create({
     minHeight: 20,
   },
   tableHeader: {
-    backgroundColor: "#f0f0f0",
-    borderBottomWidth: 1,
-    borderBottomColor: "#c0c0c0",
+    backgroundColor: "#414141",
+    borderBottomWidth: 0.6,
+    borderBottomColor: "#c8c8c8",
   },
   tableCell: {
     fontSize: 10,
     fontFamily: "Roboto",
     padding: 4,
     borderStyle: "solid",
-    borderWidth: 1,
-    borderColor: "#c0c0c0",
+    borderWidth: 0.6,
+    borderColor: "#c8c8c8",
     borderLeftWidth: 0,
     borderTopWidth: 0,
     flexShrink: 1,
@@ -112,11 +138,11 @@ export const PDF_TABLE_STYLES = StyleSheet.create({
   tableCellHeader: {
     fontSize: 10,
     fontFamily: "Roboto-Bold",
-    textAlign: "center",
+    textAlign: "left",
     padding: 4,
     borderStyle: "solid",
-    borderWidth: 1,
-    borderColor: "#c0c0c0",
+    borderWidth: 0.6,
+    borderColor: "#c8c8c8",
     borderLeftWidth: 0,
     borderTopWidth: 0,
     flexShrink: 1,

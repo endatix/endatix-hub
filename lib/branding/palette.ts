@@ -10,6 +10,7 @@
 import {
   contrastRatio,
   fromOklch,
+  over,
   parseCssColor,
   relativeLuminance,
   toHex,
@@ -281,16 +282,6 @@ function focusRingFor(mode: ColorMode, primary: Rgb): string {
     reachContrast(over(primary, page, RING_OPACITY), surfaces, UI_CONTRAST) ??
     toHex(fallback)
   );
-}
-
-/** `color` at `opacity` composited over an opaque `backdrop`, as the browser paints it. */
-function over(color: Rgb, backdrop: Rgb, opacity: number): Rgb {
-  const mix = (a: number, b: number) => a * opacity + b * (1 - opacity);
-  return {
-    r: mix(color.r, backdrop.r),
-    g: mix(color.g, backdrop.g),
-    b: mix(color.b, backdrop.b),
-  };
 }
 
 /**
