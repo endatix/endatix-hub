@@ -873,7 +873,7 @@ describe("ExportSubmissionsDialog", () => {
     mockPrepareReportingExportAction.mockResolvedValue({
       ...Result.error("The alias has conflicting meanings."),
       step: "compile",
-      previousSchema: "unverified",
+      previousSchema: "retained",
       traceId: "conflict-ref",
     });
     render(<ExportSubmissionsDialog {...createProps()} />);
@@ -886,7 +886,7 @@ describe("ExportSubmissionsDialog", () => {
     fireEvent.click(
       screen.getByRole("button", { name: /prepare for export/i }),
     );
-    await screen.findByText(/selected export has not been verified/i);
+    await screen.findByRole("button", { name: "Check previous export" });
     fireEvent.submit(
       screen
         .getByRole("heading", { name: "Export submissions" })

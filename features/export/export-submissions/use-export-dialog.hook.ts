@@ -9,6 +9,7 @@ import {
   type SubmitEvent,
 } from "react";
 import { useTrackEvent } from "@/features/analytics/posthog/client";
+import { retainedAttachmentSelection } from "./retained-attachment";
 import { usePrepareAttempt } from "./use-prepare-attempt.hook";
 import {
   catalogLocaleCodeLabel,
@@ -27,8 +28,7 @@ import {
   resolveDefaultLocale,
   pickDefaultExportFormatId,
   showsCompletedAtFields,
-  showsLocaleField,
-  showsSubmissionRowFilters,
+  exportOptionFields,
   toSubmissionExportListFilters,
   validateFilterDraft,
   type ExportFilterDraft,
@@ -110,13 +110,7 @@ export function useExportDialog({
     [exportFormatId, options],
   );
 
-  const showRowFilters = selectedOption
-    ? showsSubmissionRowFilters(
-        selectedOption.exportTarget,
-        selectedOption.formatKey,
-      )
-    : false;
-  const showLocale = selectedOption ? showsLocaleField(selectedOption) : false;
+  const { showRowFilters, showLocale } = exportOptionFields(selectedOption);
   const showCompletedAt = showsCompletedAtFields(filterDraft.collectionStatus);
 
   const localeSelectOptions = useMemo(
@@ -329,6 +323,22 @@ export function useExportDialog({
   };
 
   const exportPermitted = readinessPassed && !rebuildMode;
+  const retained =
+    open && phase === "error" && prepareFailure?.previousSchema === "retained";
+  const ranges = validateFilterDraft(filterDraft, {
+    showRowFilters,
+    showCompletedAt,
+  });
+  const filters = toSubmissionExportListFilters(filterDraft, {
+    showLocaleField: showLocale,
+    showRowFilters,
+    showCompletedAt,
+    locale: localeSelectValue,
+  });
+  const retainedSelection =
+    retained && !hasFilterRangeErrors(ranges)
+      ? retainedAttachmentSelection(formId, selectedOption, filters)
+      : null;
   const refreshDrafts =
     showRowFilters &&
     includesIncompleteSubmissions(filterDraft.collectionStatus);
@@ -337,21 +347,10 @@ export function useExportDialog({
     if (!selectedOption || !exportPermitted || busy || !showsFiltersForm(phase))
       return;
 
-    const nextErrors = validateFilterDraft(filterDraft, {
-      showRowFilters,
-      showCompletedAt,
-    });
-    setRangeErrors(nextErrors);
-    if (hasFilterRangeErrors(nextErrors)) {
+    setRangeErrors(ranges);
+    if (hasFilterRangeErrors(ranges)) {
       return;
     }
-
-    const filters = toSubmissionExportListFilters(filterDraft, {
-      showLocaleField: showLocale,
-      showRowFilters,
-      showCompletedAt,
-      locale: localeSelectValue,
-    });
 
     setPhase("exporting");
     setInlineError(null);
@@ -400,6 +399,7 @@ export function useExportDialog({
   };
 
   return {
+    retainedSelection,
     prepareFailure,
     phase,
     includingIncomplete,
@@ -415,7 +415,7 @@ export function useExportDialog({
       readinessPassed,
       rebuildMode,
       canRebuild,
-      exportPermitted,
+      exportPermitted: exportPermitted || retained,
       hasFailure: prepareFailure !== null,
       inlineError,
     }),
@@ -432,7 +432,7 @@ export function useExportDialog({
     showLocaleField: showLocale,
     showCompletedAt,
     filterDraft,
-    rangeErrors,
+    rangeErrors: retained ? ranges : rangeErrors,
     localeSelectOptions,
     localeSelectValue,
     exportButtonRef,

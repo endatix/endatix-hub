@@ -32,16 +32,27 @@ export function usePrepareAttempt(formId: string) {
   const [failure, setFailure] = useState<PrepareFailure | null>(null);
   const lastFailure = () => failure ?? interruptedAttempt(key);
   async function prepare(fullRecompile: boolean) {
+    const prior = lastFailure();
     markIncomplete(key, true);
     const result = await prepareReportingExportAction(formId, {
       fullRecompile,
     }).catch(() => UNCONFIRMED);
-    const next = Result.isError(result) ? result : null;
+    const next = Result.isError(result) ? afterAttempt(prior, result) : null;
     setFailure(next);
     markIncomplete(key, next !== null);
     return result;
   }
   return { failure, lastFailure, prepare };
+}
+
+function afterAttempt(
+  prior: PrepareFailure | null,
+  next: PrepareFailure,
+): PrepareFailure {
+  // A rejected compile cannot repair a previously interrupted or partial backfill.
+  if (prior && !prior.previousSchema && next.previousSchema)
+    return { ...next, previousSchema: undefined };
+  return next;
 }
 
 function interruptedAttempt(key: string) {

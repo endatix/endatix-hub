@@ -14,10 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  FacetedFilter,
-  type FacetedFilterGroup,
-} from "@/components/table";
+import { FacetedFilter, type FacetedFilterGroup } from "@/components/table";
 import { Button } from "@/components/ui/button";
 import type { SubmissionExportListFilters } from "../../export-url";
 import {
@@ -35,6 +32,7 @@ import { FileDown, ListFilter } from "lucide-react";
 import { ExportDateRangeFieldset } from "./export-date-range-fieldset";
 
 interface ExportDialogFiltersFormProps {
+  usingRetainedSchema?: boolean;
   groups: TenantExportOptionGroup[];
   statusGroups: readonly FacetedFilterGroup[];
   showGroupLabels: boolean;
@@ -62,7 +60,6 @@ interface ExportDialogFiltersFormProps {
 
 export function ExportDialogFiltersForm({
   groups,
-  statusGroups,
   showGroupLabels,
   exportFormatId,
   onExportFormatIdChange,
@@ -72,13 +69,7 @@ export function ExportDialogFiltersForm({
   localeSelectValue,
   localeSelectOptions,
   onLocaleChange,
-  showRowFilters,
-  filterDraft,
-  rangeErrors,
-  showCompletedAt,
-  tablePrefill,
-  onPatchFilterDraft,
-  onDateRangeChange,
+  ...submissions
 }: Readonly<ExportDialogFiltersFormProps>) {
   return (
     <>
@@ -155,17 +146,7 @@ export function ExportDialogFiltersForm({
         ) : null}
       </PanelSection>
 
-      <SubmissionsSection
-        showRowFilters={showRowFilters}
-        filterDraft={filterDraft}
-        rangeErrors={rangeErrors}
-        showCompletedAt={showCompletedAt}
-        controlsLocked={controlsLocked}
-        tablePrefill={tablePrefill}
-        statusGroups={statusGroups}
-        onPatchFilterDraft={onPatchFilterDraft}
-        onDateRangeChange={onDateRangeChange}
-      />
+      <SubmissionsSection controlsLocked={controlsLocked} {...submissions} />
     </>
   );
 }
@@ -173,6 +154,7 @@ export function ExportDialogFiltersForm({
 type DateRangeKey = (typeof ROW_FILTER_DATE_KEYS)[number];
 
 interface SubmissionsSectionProps {
+  usingRetainedSchema?: boolean;
   showRowFilters: boolean;
   filterDraft: ExportFilterDraft;
   rangeErrors: ExportFilterRangeErrors;
@@ -289,7 +271,8 @@ const STATUS_HINT_ID = "export-submissions-status-hint";
 
 function StatusField(props: Readonly<SubmissionsSectionProps>) {
   const codes = props.filterDraft.collectionStatus;
-  const showHint = includesIncompleteSubmissions(codes);
+  const showHint =
+    !props.usingRetainedSchema && includesIncompleteSubmissions(codes);
   return (
     <div className="grid gap-2">
       <Label htmlFor={STATUS_FIELD_ID}>Status</Label>

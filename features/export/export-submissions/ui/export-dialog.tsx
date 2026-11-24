@@ -19,6 +19,7 @@ import { ExportDialogActions } from "./export-dialog-actions";
 import { ExportDialogFiltersForm } from "./export-dialog-filters-form";
 import { ExportDialogPrepareOptions } from "./export-dialog-prepare-options";
 import { ExportDialogStatusPanel } from "./export-dialog-status-panel";
+import { RetainedExportCheck } from "./retained-export-check";
 
 interface ExportSubmissionsDialogProps {
   open: boolean;
@@ -107,6 +108,9 @@ export function ExportSubmissionsDialog({
 
           {dialog.showFiltersForm ? (
             <ExportDialogFiltersForm
+              usingRetainedSchema={
+                dialog.prepareFailure?.previousSchema === "retained"
+              }
               groups={groups}
               statusGroups={statusGroups}
               showGroupLabels={dialog.showGroupLabels}
@@ -128,21 +132,19 @@ export function ExportSubmissionsDialog({
             />
           ) : null}
 
-          {dialog.showRebuildEntry ? (
-            <div className="flex justify-start">
-              {/* An action, so a quiet ghost button — not a link. */}
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="-ml-3 text-muted-foreground"
-                onClick={dialog.enterRebuildMode}
-                disabled={dialog.busy}
-              >
-                Rebuild reporting data…
-              </Button>
-            </div>
-          ) : null}
+          {dialog.retainedSelection && (
+            <RetainedExportCheck
+              key={dialog.retainedSelection.url}
+              selection={dialog.retainedSelection}
+            />
+          )}
+
+          {dialog.showRebuildEntry && (
+            <RebuildEntry
+              disabled={dialog.busy}
+              onClick={dialog.enterRebuildMode}
+            />
+          )}
         </ResponsivePanelBody>
 
         <ExportDialogActions
@@ -166,3 +168,21 @@ export function ExportSubmissionsDialog({
 }
 
 export type { ExportSubmissionsDialogProps };
+
+function RebuildEntry(
+  props: Readonly<{ disabled: boolean; onClick: () => void }>,
+) {
+  return (
+    <div className="flex justify-start">
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        className="-ml-3 text-muted-foreground"
+        {...props}
+      >
+        Rebuild reporting data…
+      </Button>
+    </div>
+  );
+}

@@ -109,7 +109,10 @@ function PrepareFailureAlert({
       <AlertDescription>
         <p>{failure.message}</p>
         {failure.previousSchema && (
-          <p>{previousExportMessages[failure.previousSchema]}</p>
+          <p>
+            Check the selected export against the retained schema before
+            downloading.
+          </p>
         )}
         <SupportReference traceId={failure.traceId} />
       </AlertDescription>
@@ -126,12 +129,6 @@ function SupportReference({ traceId }: Readonly<{ traceId?: string }>) {
     </div>
   );
 }
-
-const previousExportMessages = {
-  unavailable: "No previous download is available.",
-  unverified:
-    "The selected export has not been verified against the retained schema.",
-};
 
 function DownloadOutcomeAlert({
   exportName,

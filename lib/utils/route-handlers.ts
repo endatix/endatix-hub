@@ -264,7 +264,10 @@ export function toUpstreamFileResponse(
     });
   }
 
-  const upstream = result.data;
+  return proxyFile(result.data, options);
+}
+
+function proxyFile(upstream: Response, options: UpstreamFileResponseOptions) {
   const contentType =
     upstream.headers.get("Content-Type") ??
     options.fallbackContentType ??
@@ -274,10 +277,13 @@ export function toUpstreamFileResponse(
     options.fallbackContentDisposition ??
     "attachment";
 
-  return new Response(upstream.body, {
-    headers: {
-      "Content-Type": contentType,
-      "Content-Disposition": contentDisposition,
-    },
+  const headers = new Headers({
+    "Content-Type": contentType,
+    "Content-Disposition": contentDisposition,
   });
+  // Fetch decodes compressed bodies; their upstream length describes different bytes.
+  const length = upstream.headers.get("Content-Length");
+  if (length && !upstream.headers.has("Content-Encoding"))
+    headers.set("Content-Length", length);
+  return new Response(upstream.body, { status: upstream.status, headers });
 }

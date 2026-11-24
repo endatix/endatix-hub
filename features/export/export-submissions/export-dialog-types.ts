@@ -1,6 +1,7 @@
 import type { RefObject, SubmitEvent } from "react";
 import type { IncompleteRefreshOutcome } from "./refresh-incomplete-submissions.action";
 import type { PrepareFailure } from "./use-prepare-attempt.hook";
+import type { AttachmentSelection } from "./retained-attachment";
 import type { SubmissionExportListFilters } from "../export-url";
 import type { ExportDialogPhase, PrepareOutcome } from "./export-dialog-phase";
 import type {
@@ -34,6 +35,7 @@ export type UseExportDialogArgs = {
 };
 
 export type UseExportDialogResult = {
+  retainedSelection: AttachmentSelection | null;
   prepareFailure: PrepareFailure | null;
   phase: ExportDialogPhase;
   includingIncomplete: boolean;

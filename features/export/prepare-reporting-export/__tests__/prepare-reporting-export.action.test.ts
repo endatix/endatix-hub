@@ -188,9 +188,9 @@ describe("prepareReportingExportAction", () => {
   });
 
   it.each([
-    ["ReportingSchemaAliasConflict", true, "unverified"],
-    ["ReportingSchemaAliasConflict", false, "unavailable"],
-    ["ReportingSchemaAliasConflict", "true", "unverified"],
+    ["ReportingSchemaAliasConflict", true, "retained"],
+    ["ReportingSchemaAliasConflict", false, "retained"],
+    ["ReportingSchemaAliasConflict", "true", "retained"],
     ["OtherConflict", true, undefined],
   ])(
     "checks the rejected compile contract (%s, %s)",

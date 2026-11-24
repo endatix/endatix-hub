@@ -22,7 +22,6 @@ export const ProblemDetailsSchema = z.object({
   errorCode: z.string().optional(),
   traceId: z.string().optional(),
   previousSchemaRetained: z.boolean().optional().catch(undefined),
-  previousExportAvailable: z.boolean().optional().catch(undefined),
   fields: z.record(z.string(), z.array(z.string())).optional(),
 });
 
