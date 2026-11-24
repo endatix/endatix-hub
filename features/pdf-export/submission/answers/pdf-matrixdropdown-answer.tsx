@@ -24,28 +24,62 @@ type MatrixRow = MatrixQuestion["visibleRows"][number];
 type MatrixField = MatrixQuestion["columns"][number];
 
 function displayCell(cell: ReturnType<MatrixRow["getCellByColumn"]>) {
-  return formatMatrixDropdownCell(cell?.question?.value, cell?.question?.displayValue);
+  return formatMatrixDropdownCell(
+    cell?.question?.value,
+    cell?.question?.displayValue,
+  );
 }
 
-function entryColumns(question: MatrixQuestion, entries: MatrixRow[]) {
-  const ordinal = question.getLocalizationString("rowIndexTemplateTitle");
-  const labels = entries.map(row => pdfPlainText(row.getProcessedText(question.singleInputTitleTemplate)));
-  const counts = new Map<string, number>();
-  for (const label of labels) counts.set(label, (counts.get(label) ?? 0) + 1);
-  return entries.map((row, i) => {
-    const fallback = row.getProcessedText(ordinal);
-    const label = labels[i];
-    const title = (counts.get(label)! > 1 && label) ? `${fallback}: ${label}` : label || fallback;
-    return { key: row.id, title };
-  });
-}
-
-function fieldRow(field: MatrixField, entries: MatrixRow[]) {
-  const cells = entries.map(row => {
+function visibleEntry(
+  question: MatrixQuestion,
+  row: MatrixRow,
+  fields: MatrixField[],
+) {
+  const cells = fields.map((field) => {
     const cell = row.getCellByColumn(field);
-    return [row.id, cell?.question?.isVisible ? displayCell(cell) : ""];
+    return cell?.question?.isVisible ? displayCell(cell) : "";
   });
-  return { key: field.name, label: pdfPlainText(field.title || field.name), cells: Object.fromEntries(cells) };
+  const text = (template: string) => pdfPlainText(row.getProcessedText(template)).trim();
+  const fallback = text(question.getLocalizationString("rowIndexTemplateTitle"));
+  const label = text(question.singleInputTitleTemplate) || fallback;
+  return { key: String(row.rowIndex), ordinal: row.rowIndex, cells, fallback, label };
+}
+
+function visibleEntries(question: MatrixQuestion, fields: MatrixField[]) {
+  const entries: ReturnType<typeof visibleEntry>[] = [];
+  const current = question.pageIndex;
+  try {
+    for (let page = 0; page < Math.max(question.pageCount, 1); page++) {
+      question.pageIndex = page;
+      const rows = question.visibleRows.filter((row) => !row.isEmpty);
+      entries.push(...rows.map((row) => visibleEntry(question, row, fields)));
+    }
+  } finally {
+    if (question.pageIndex !== current) question.pageIndex = current;
+  }
+  return entries
+    .filter((entry) => entry.cells.some(Boolean))
+    .sort((a, b) => a.ordinal - b.ordinal);
+}
+
+function transposedTable(question: MatrixQuestion) {
+  const fields: MatrixField[] = question.visibleColumns;
+  const entries = visibleEntries(question, fields);
+  if (!entries.length) return null;
+  const ambiguous =
+    new Set(entries.map((entry) => entry.label)).size !== entries.length;
+  const columns = entries.map(({ key, fallback, label }) => ({
+    key,
+    title: ambiguous && label !== fallback ? `${fallback}: ${label}` : label,
+  }));
+  const rows = fields.map((field, i) => ({
+    key: field.name,
+    label: pdfPlainText(field.title || field.name),
+    cells: Object.fromEntries(
+      entries.map((entry) => [entry.key, entry.cells[i]]),
+    ),
+  }));
+  return { columns, rows };
 }
 
 function isTransposedMatrix(question: MatrixQuestion) {
@@ -60,17 +94,12 @@ function isTransposedMatrix(question: MatrixQuestion) {
 export function buildMatrixDropdownTableData(
   question: MatrixQuestion,
 ): MatrixDropdownTableData | null {
+  if (isTransposedMatrix(question)) return transposedTable(question);
   const questionColumns = question.columns ?? [];
   const filledRows = (question.visibleRows ?? []).filter((row) => !row.isEmpty);
 
   if (filledRows.length === 0) {
     return null;
-  }
-  if (isTransposedMatrix(question)) {
-    return {
-      columns: entryColumns(question, filledRows),
-      rows: question.visibleColumns.map(field => fieldRow(field, filledRows)),
-    };
   }
   return ordinaryTable(questionColumns, filledRows);
 }
@@ -81,31 +110,42 @@ function ordinaryTable(fields: MatrixField[], entries: MatrixRow[]) {
     title: pdfPlainText(column.title || column.name),
   }));
 
-  const rows = entries.map(row => ({
+  const rows = entries.map((row) => ({
     key: row.id,
     label: pdfPlainText(row.text || row.rowName || row.id),
-    cells: Object.fromEntries(fields.map(field =>
-      [field.name, displayCell(row.getCellByColumn(field))])),
+    cells: Object.fromEntries(
+      fields.map((field) => [
+        field.name,
+        displayCell(row.getCellByColumn(field)),
+      ]),
+    ),
   }));
   return { columns, rows };
 }
 
 function UnansweredMatrix({ question }: Readonly<MatrixDropdownAnswerProps>) {
-    return (
-      <View style={VIEWER_STYLES.answerContainer}>
-        <Text style={VIEWER_STYLES.questionLabel}>
-          {pdfPlainText(question.title)}:
-        </Text>
-        <Text style={VIEWER_STYLES.answerText}>No Answer</Text>
-      </View>
-    );
+  return (
+    <View style={VIEWER_STYLES.answerContainer}>
+      <Text style={VIEWER_STYLES.questionLabel}>
+        {pdfPlainText(question.title)}:
+      </Text>
+      <Text style={VIEWER_STYLES.answerText}>No Answer</Text>
+    </View>
+  );
 }
 
-const PdfMatrixDropdownAnswer = ({ question }: Readonly<MatrixDropdownAnswerProps>) => {
+const PdfMatrixDropdownAnswer = ({
+  question,
+}: Readonly<MatrixDropdownAnswerProps>) => {
   const tableData = buildMatrixDropdownTableData(question);
   if (!tableData) return <UnansweredMatrix question={question} />;
   if (isTransposedMatrix(question)) {
-    return <PdfTransposedMatrix data={tableData} caption={pdfPlainText(question.processedTitle)} />;
+    return (
+      <PdfTransposedMatrix
+        data={tableData}
+        caption={pdfPlainText(question.processedTitle)}
+      />
+    );
   }
   return (
     <View style={PDF_TABLE_STYLES.container}>

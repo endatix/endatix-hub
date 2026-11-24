@@ -10,27 +10,75 @@ function getMatrixQuestion(
 }
 
 describe("buildMatrixDropdownTableData", () => {
+  it("prints all source pages, omitting hidden-only entries and disambiguating fallback labels", () => {
+    // Arrange
+    const model = new Model({
+      elements: [
+        {
+          type: "matrixdynamic",
+          name: "entries",
+          transposeData: true,
+          pageSize: 2,
+          singleInputTitleTemplate: "{row.day}",
+          columns: [
+            { name: "day", cellType: "text" },
+            { name: "distance", cellType: "text" },
+            { name: "private", cellType: "text", visible: false },
+          ],
+        },
+      ],
+    });
+    model.data = { entries: [
+      { day: "Row 2" }, { distance: "3" }, { private: "Hidden" }, { day: "Tuesday" },
+    ] };
+    const question = getMatrixQuestion(model, "entries");
+    question.pageIndex = 1;
+    const original = JSON.stringify(model.data);
+
+    // Act
+    const table = buildMatrixDropdownTableData(question)!;
+
+    // Assert
+    expect(table.columns.map((c) => c.title)).toEqual([
+      "Row 1: Row 2",
+      "Row 2",
+      "Row 4: Tuesday",
+    ]);
+    expect(question.pageIndex).toBe(1);
+    expect(JSON.stringify(model.data)).toBe(original);
+  });
   it("prints populated entries across visible fields using source ordinals and choice labels", () => {
     // Arrange
-    const model = new Model({ elements: [{
-      type: "matrixdynamic", name: "entries", transposeData: true,
-      singleInputTitleTemplate: "Visit {rowIndex}",
-      columns: [
-        { name: "day", cellType: "text" },
-        { name: "choice", choices: [{ value: "g", text: "Green" }] },
-        { name: "hidden", visible: false },
+    const model = new Model({
+      elements: [
+        {
+          type: "matrixdynamic",
+          name: "entries",
+          transposeData: true,
+          singleInputTitleTemplate: "Visit {rowIndex}",
+          columns: [
+            { name: "day", cellType: "text" },
+            { name: "choice", choices: [{ value: "g", text: "Green" }] },
+            { name: "hidden", visible: false },
+          ],
+        },
       ],
-    }] });
+    });
     model.data = { entries: [{ day: "Tuesday" }, {}, { choice: "g" }] };
 
     // Act
-    const table = buildMatrixDropdownTableData(getMatrixQuestion(model, "entries"))!;
+    const table = buildMatrixDropdownTableData(
+      getMatrixQuestion(model, "entries"),
+    )!;
 
     // Assert
-    expect(table.columns.map(c => c.title)).toEqual(["Visit 1", "Visit 3"]);
-    expect(table.rows.map(r => r.label)).toEqual(["day", "choice"]);
-    expect(table.rows.map(r => table.columns.map(c => r.cells[c.key]))).toEqual([
-      ["Tuesday", ""], ["", "Green (g)"],
+    expect(table.columns.map((c) => c.title)).toEqual(["Visit 1", "Visit 3"]);
+    expect(table.rows.map((r) => r.label)).toEqual(["day", "choice"]);
+    expect(
+      table.rows.map((r) => table.columns.map((c) => r.cells[c.key])),
+    ).toEqual([
+      ["Tuesday", ""],
+      ["", "Green (g)"],
     ]);
   });
   it("returns populated rows for a matrixdynamic answer (regression: previously always 'No Answer')", () => {
@@ -189,9 +237,7 @@ describe("buildMatrixDropdownTableData", () => {
         {
           type: "matrixdropdown",
           name: "qMatrixDropdown",
-          columns: [
-            { name: "score", title: "<b>Score</b>" },
-          ],
+          columns: [{ name: "score", title: "<b>Score</b>" }],
           choices: [1, 2],
           rows: [{ value: "alice", text: "<i>Alice</i>" }],
         },

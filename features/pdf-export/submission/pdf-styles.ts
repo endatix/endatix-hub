@@ -158,9 +158,11 @@ export const PDF_TABLE_STYLES = StyleSheet.create({
   },
 });
 
-/** A4 content width after submission-details-pdf page margins. */
 export const PDF_PAGE_PADDING = 20;
+export const PDF_FOOTER_PADDING = 38;
+/** A4 print area inside the answers section; reserve the branded footer. */
 export const PDF_ANSWER_WIDTH = Math.floor(595.28 - 2 * (PDF_PAGE_PADDING + PDF_STYLES.section.padding));
+export const PDF_ANSWER_HEIGHT = Math.floor(841.89 - PDF_PAGE_PADDING - PDF_FOOTER_PADDING - 2 * PDF_STYLES.section.padding);
 export const MATRIX_TABLE_CONTENT_WIDTH = 550;
 export const MATRIX_LABEL_COLUMN_WIDTH = 110;
 export const MATRIX_MIN_DATA_COLUMN_WIDTH = 70;

@@ -26,7 +26,7 @@ const typeset = layoutEngine({
 });
 const { tableCell, tableCellHeader, tableRow } = PDF_TABLE_STYLES;
 // A band is independently placeable on A4. Short matrices need only one legend.
-const BAND_HEIGHT = 260;
+export const BAND_HEIGHT = 260;
 export const LINE_HEIGHT = 12;
 export const MATRIX_LINE_STYLE = { lineHeight: `${LINE_HEIGHT}pt` };
 export const CELL_EDGES = tableCell.padding * 2 + tableCell.borderWidth;
@@ -116,7 +116,7 @@ function splitSource(
   return [...chunks, current];
 }
 
-function rowHeight(lines: number) {
+export function rowHeight(lines: number) {
   return Math.max(tableRow.minHeight, lines * LINE_HEIGHT + CELL_EDGES);
 }
 
@@ -288,8 +288,8 @@ function identifySummary(row: PrintRow, name: string, measure: Measure) {
   row.height = Math.max(row.height, rowHeight(measure(row.label).lines));
 }
 
-function packRows(rows: PrintRow[], capacity: number) {
-  const bands: PrintRow[][] = [];
+export function packRows<T extends {height: number; paragraph?: unknown}>(rows: T[], capacity: number) {
+  const bands: T[][] = [];
   let remaining = 0;
   for (const row of rows) {
     if (row.paragraph) {
@@ -321,5 +321,5 @@ export function matrixPrintBands(
   const fragments = rows.flatMap((row, i) =>
     fragmentRow(row, columns, { width, limit: maxLines, ordinal: i + 1 }),
   );
-  return { legend, bands: packRows(fragments, capacity) };
+  return { legend, bands: packRows<PrintRow>(fragments, capacity) };
 }
