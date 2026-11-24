@@ -32,6 +32,17 @@ it.each([
   expect(styles.table.tableHeader.backgroundColor).toBe(expected);
 });
 
+it("keeps white form paper visible through the header but distinct from its label and note", () => {
+  // Arrange
+  const definition = { themeModel: JSON.stringify({ cssVariables: { "--sjs-general-backcolor": "#fff" } }) };
+  // Act
+  const { table } = withPdfStyles(definition, currentPdfStyles, "#974420");
+  // Assert
+  expect(table).toEqual(withPdfStyles(definition, currentPdfStyles).table);
+  expect(table.tableHeader.backgroundColor).toBe("transparent");
+  expect(new Set(["#ffffff", table.fieldLabel.backgroundColor, table.noteSurface.backgroundColor]).size).toBe(3);
+});
+
 it("keeps overlapping exports' styles separate across async rendering", async () => {
   // Arrange
   const ready = Promise.withResolvers<void>();

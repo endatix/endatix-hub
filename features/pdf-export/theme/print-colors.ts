@@ -33,11 +33,17 @@ function printSurfaces(theme: PdfBodyLayer, deploymentAccent?: string) {
   const band = tableBand(theme, deploymentAccent);
   const header = painted(band, page);
   const seed = theme.accent ? painted(theme.accent, page) : header;
-  const field = over(seed, page, 0.14);
+  const tintSeed = band === "transparent" ? localInkSeed(theme.text, page) : seed;
+  const field = over(tintSeed, page, 0.14);
   const panel = theme.tableHeaderBackground ?? (theme.pageBackground && !theme.accent ? "transparent" : toHex(field));
-  const noteHue = rotateHue(seed, 35);
+  const noteHue = rotateHue(tintSeed, 35);
   const note = over(noteHue, page, 0.23);
   return { page, band, header, seed, field, panel, noteHue, note };
+}
+
+function localInkSeed(text: string | undefined, page: Rgb) {
+  const ink = text ? painted(text, page) : INK;
+  return parseCssColor(readable(ink, page))!;
 }
 
 function headingInk(hue: Rgb, surface: Rgb) {

@@ -56,8 +56,14 @@ What the Hub does with it:
   is usable. A form logo embedded in the form, uploaded to content storage or
   served over HTTPS from a host in `REMOTE_IMAGE_HOSTNAMES` takes precedence
   and appears beside the product name. The pack supplies the primary accent
-  bar and the legal name (or product name) in the footer; the form theme controls
-  the body. Without an active pack the export uses the ordinary submission layout.
+  bar and the legal name (or product name) in the footer. Without an active
+  pack, the export keeps its ordinary layout.
+
+  When the export receives no form theme, it colors the body from the pack's
+  light primary accent, falling back to the built-in blue if there is no pack
+  or no accent. A delivered form theme owns the body, even if it is empty,
+  partial or malformed: missing or unreadable colors use readable form-local
+  defaults. The deployment still owns the header and footer.
 - **At start**, while the flag may be on (`FLAG_WHITE_LABELING=true`, or PostHog flags, which
   are decided per request), an invalid mounted pack stops the Hub with the field paths in the
   error. Under PostHog flags, turning the flag off does not avoid this: fix the pack or remove

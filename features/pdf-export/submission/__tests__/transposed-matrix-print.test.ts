@@ -7,6 +7,7 @@ import { loadMatrixFonts } from "../answers/matrix-print-bands";
 import PdfMatrixDropdownAnswer from "../answers/pdf-matrixdropdown-answer";
 import { FullWidthNote } from "../answers/pdf-transposed-matrix";
 import { currentPdfStyles, withPdfStyles } from "../../theme/pdf-theme-context";
+import { printedInk } from "./printed-ink";
 
 type Node = { lines?: { string: string }[]; style?: { color?: string }; children?: Node[] };
 function text(node: Node): string[] {
@@ -68,11 +69,6 @@ async function printPages(entries: { observation: string }[]) {
 
 async function print(entries: { observation: string }[]) {
   return (await printPages(entries)).map((page) => text(page));
-}
-
-function printedInk(node: Node): [string, string | undefined][] {
-  return node.lines?.map(line => [line.string, node.style?.color]) ??
-    node.children?.flatMap(child => printedInk(child)) ?? [];
 }
 
 it("prints group headings, answers and continued trials in readable ink on dark paper alone", async () => {
