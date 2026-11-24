@@ -62,28 +62,54 @@ it.each(["svg", "webp"])(
       productName: "Example Forms",
       footerText: "Example Ltd.",
       accentBar: "#ffffff",
-      logo: expect.stringMatching(/^data:image\/png;base64,/),
+      logo: {
+        kind: "wordmark",
+        src: expect.stringMatching(/^data:image\/png;base64,/),
+      },
     });
-    const png = Buffer.from(identity!.logo!.split(",")[1], "base64");
+    const png = Buffer.from(identity!.logo!.src.split(",")[1], "base64");
     expect(await sharp(png).metadata()).toMatchObject({
       format: "png",
-      width: 16,
-      height: 8,
+      width: format === "svg" ? 67 : 16,
+      height: format === "svg" ? 33 : 8,
     });
   },
 );
 
-it("renders a Windows bitmap frame from a pack ICO", async () => {
-  // Arrange: a 4-by-4 blue RGBA icon.
-  const ico =
-    "AAABAAEABAQAAAAAIABoAAAAFgAAACgAAAAEAAAACAAAAAEAIAAAAAAAQAAAAMQOAADEDgAAAAAAAAAAAAD/AAD//wAA//8AAP//AAD//wAA//8AAP//AAD//wAA//8AAP//AAD//wAA//8AAP//AAD//wAA//8AAP//AAD/";
-  await mountLogo("logo.ico", Buffer.from(ico, "base64"));
+it("embeds a 2400×600 SVG wordmark that would exceed the input pixel limit at 300 DPI", async () => {
+  // Arrange
+  const artboard = Buffer.from(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="2400" height="600"><rect width="100%" height="100%" fill="red"/></svg>',
+  );
+  await mountLogo("light.svg", artboard);
 
   // Act
   const identity = await resolve();
 
   // Assert
-  const png = Buffer.from(identity!.logo!.split(",")[1], "base64");
+  expect(identity?.logo?.kind).toBe("wordmark");
+  const png = Buffer.from(identity!.logo!.src.split(",")[1], "base64");
+  expect(await sharp(png).metadata()).toMatchObject({
+    format: "png",
+    width: 480,
+    height: 120,
+  });
+});
+
+it("prefers the compact ICO over the wordmark and preserves its native bitmap", async () => {
+  // Arrange: a 4-by-4 blue RGBA icon.
+  const ico =
+    "AAABAAEABAQAAAAAIABoAAAAFgAAACgAAAAEAAAACAAAAAEAIAAAAAAAQAAAAMQOAADEDgAAAAAAAAAAAAD/AAD//wAA//8AAP//AAD//wAA//8AAP//AAD//wAA//8AAP//AAD//wAA//8AAP//AAD//wAA//8AAP//AAD/";
+  await mountLogo();
+  pack.write({ assets: { icon: "mark.ico", logo: { light: "light.svg" } } });
+  await writeFile(path.join(pack.path, "mark.ico"), Buffer.from(ico, "base64"));
+
+  // Act
+  const identity = await resolve();
+
+  // Assert
+  expect(identity?.logo?.kind).toBe("icon");
+  const png = Buffer.from(identity!.logo!.src.split(",")[1], "base64");
   expect(await sharp(png).metadata()).toMatchObject({
     format: "png",
     width: 4,
@@ -131,7 +157,7 @@ it("keeps the form-logo override local to its export while a second export rende
   // Assert
   expect(overridden).toEqual({
     ...second,
-    logo: expect.stringMatching(/^data:image\/png/),
+    logo: { kind: "form", src: expect.stringMatching(/^data:image\/png/) },
   });
   expect(overridden!.logo).not.toBe(second!.logo);
 });
@@ -143,6 +169,20 @@ it("retains the deployment logo for an unreadable form logo", async () => {
 
   // Act & Assert
   expect(await resolve("data:image/png;base64,AA==")).toEqual(expected);
+});
+
+it("falls through an unreadable compact mark to the full wordmark", async () => {
+  // Arrange
+  await mountLogo();
+  await writeFile(path.join(pack.path, "mark.ico"), "invalid");
+  pack.write({ assets: { icon: "mark.ico", logo: { light: "light.svg" } } });
+
+  // Act
+  const identity = await resolve();
+
+  // Assert
+  expect(identity?.logo?.kind).toBe("wordmark");
+  expect(identity?.logo?.src).toMatch(/^data:image\/png/);
 });
 
 it.each(["percent", "base64"])(
@@ -160,7 +200,7 @@ it.each(["percent", "base64"])(
     const identity = await resolve(uri);
 
     // Assert
-    const png = Buffer.from(identity!.logo!.split(",")[1], "base64");
+    const png = Buffer.from(identity!.logo!.src.split(",")[1], "base64");
     expect(await sharp(png).metadata()).toMatchObject({
       format: "png",
       width: 16,
@@ -200,7 +240,7 @@ it("reads an allowlisted external logo without following redirects", async () =>
   const identity = await resolve("https://art.example/form.svg");
 
   // Assert
-  expect(identity?.logo).toMatch(/^data:image\/png/);
+  expect(identity?.logo?.kind).toBe("form");
   expect(read).toHaveBeenCalledTimes(1);
   expect(read).toHaveBeenCalledWith(
     "https://art.example/form.svg",
@@ -226,14 +266,18 @@ it("reserves the configured storage host for content even when it is listed as a
   expect(read).not.toHaveBeenCalled();
 });
 
-it("drops the whole identity when a previously mounted logo disappears", async () => {
+it("retains the deployment name when a previously mounted wordmark disappears", async () => {
   // Arrange
   await mountLogo();
   expect(await resolve()).toBeDefined();
   await unlink(path.join(pack.path, "light.svg"));
 
   // Act & Assert
-  expect(await resolve()).toBeUndefined();
+  expect(await resolve()).toEqual({
+    productName: "Example Forms",
+    footerText: "Example Ltd.",
+    accentBar: "#ffffff",
+  });
 });
 
 it("abandons a stalled pack asset early on a short render deadline", async () => {
@@ -259,7 +303,11 @@ it("abandons a stalled pack asset early on a short render deadline", async () =>
   await vi.advanceTimersByTimeAsync(125);
 
   // Assert
-  expect(await result).toBeUndefined();
+  expect(await result).toEqual({
+    productName: "Example Forms",
+    footerText: "Example Ltd.",
+    accentBar: "#ffffff",
+  });
   expect(readFile).toHaveBeenCalledWith(expect.stringContaining("light.svg"), {
     signal: expect.objectContaining({ aborted: true }),
   });

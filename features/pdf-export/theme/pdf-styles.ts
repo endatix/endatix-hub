@@ -23,10 +23,6 @@ function bodyStyles(t: PdfBodyLayer) {
       ...body.sectionTitle,
       ...(t.accent && { color: t.accent }),
     },
-    questionSubTitle: {
-      ...body.questionSubTitle,
-      color: t.mutedText ?? body.questionSubTitle.color,
-    },
   };
 }
 

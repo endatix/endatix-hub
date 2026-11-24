@@ -55,12 +55,6 @@ export const PDF_STYLES = StyleSheet.create({
     fontFamily: "Roboto-Bold",
     marginBottom: 2,
   },
-  questionSubTitle: {
-    fontFamily: "Roboto",
-    fontSize: 9,
-    width: "100%",
-    color: "gray",
-  },
   section: {
     padding: 8,
   },

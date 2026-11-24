@@ -2,7 +2,7 @@ import "server-only";
 
 import { readFile } from "node:fs/promises";
 import decodeIco from "decode-ico";
-import sharp, { type Raw } from "sharp";
+import sharp, { type SharpOptions } from "sharp";
 import { toHex } from "./color";
 import { resolveDeploymentBrand } from "./effective-brand.server";
 import { packColor } from "./layers";
@@ -12,19 +12,29 @@ export interface PdfBrandIdentity {
   productName: string;
   footerText: string;
   accentBar?: string;
-  logo?: string;
+  logo?: { kind: "form" | "icon" | "wordmark"; src: string };
 }
+
+export interface PdfLogoCandidate {
+  kind: NonNullable<PdfBrandIdentity["logo"]>["kind"];
+  read: (signal: AbortSignal) => Promise<string | undefined>;
+}
+
+const LOGO_SIZE = { width: 480, height: 144 };
+const MAX_INPUT_PIXELS = 16_000_000;
 
 /** Preserve transparency and aspect ratio; never hand a URL to the PDF renderer. */
 export async function pdfLogoPng(
   bytes: Buffer,
-  raw?: Raw,
+  options?: Pick<SharpOptions, "raw" | "density">,
 ): Promise<string> {
-  const png = await sharp(bytes, { limitInputPixels: 16_000_000, raw })
+  const png = await sharp(bytes, {
+    limitInputPixels: MAX_INPUT_PIXELS,
+    ...options,
+  })
     .rotate()
     .resize({
-      width: 480,
-      height: 144,
+      ...LOGO_SIZE,
       fit: "inside",
       withoutEnlargement: true,
     })
@@ -43,31 +53,62 @@ function packIconPng(bytes: Buffer) {
     frame.type === "bmp"
       ? { width: frame.width, height: frame.height, channels: 4 as const }
       : undefined;
-  return pdfLogoPng(Buffer.from(frame.data), raw);
+  return pdfLogoPng(Buffer.from(frame.data), { raw });
 }
 
-async function readPackLogo(pack: LoadedBrandPack, signal: AbortSignal) {
-  const name = pack.pack.assets?.logo?.light;
-  if (!name) return;
+async function packSvgPng(bytes: Buffer, signal: AbortSignal) {
+  const { width, height } = await sharp(bytes, {
+    limitInputPixels: MAX_INPUT_PIXELS,
+  }).metadata();
+  if (signal.aborted) return;
+  // With fit: "inside", either dimension at the output bound is enough detail.
+  const density =
+    width < LOGO_SIZE.width && height < LOGO_SIZE.height ? 300 : 72;
+  return pdfLogoPng(bytes, { density });
+}
+
+async function readPdfPackImage(
+  pack: LoadedBrandPack,
+  name: string,
+  signal: AbortSignal,
+) {
   const file = await locatePackFile(pack.dir, name);
-  if (typeof file !== "string") throw new Error("Pack logo unavailable");
+  if (typeof file !== "string") return;
   const bytes = await readFile(file, { signal });
-  return name.toLowerCase().endsWith(".ico")
+  const filename = name.toLowerCase();
+  if (filename.endsWith(".svg")) return packSvgPng(bytes, signal);
+  return filename.endsWith(".ico")
     ? packIconPng(bytes)
-    : pdfLogoPng(bytes);
+    : pdfLogoPng(bytes, { density: 300 });
+}
+
+function packLogoCandidates(pack: LoadedBrandPack): PdfLogoCandidate[] {
+  const assets = pack.pack.assets;
+  const files = [
+    ["icon", assets?.icon],
+    ["wordmark", assets?.logo?.light],
+  ] as const;
+  return files.flatMap(([kind, name]) =>
+    name
+      ? [
+          {
+            kind,
+            read: (signal: AbortSignal) => readPdfPackImage(pack, name, signal),
+          },
+        ]
+      : [],
+  );
 }
 
 /** Only this adapter knows where an export's identity comes from. */
-export async function loadPdfBrand(
-  signal: AbortSignal,
-): Promise<PdfBrandIdentity | undefined> {
+export async function loadPdfBrand(signal: AbortSignal) {
   const { brand, pack } = await resolveDeploymentBrand();
   if (!pack || signal.aborted) return;
   const color = packColor(pack.pack.tokens?.color);
-  return {
+  const identity: PdfBrandIdentity = {
     productName: brand.name,
     footerText: brand.legalName,
     accentBar: color ? toHex(color.primary) : undefined,
-    logo: await readPackLogo(pack, signal),
   };
+  return { identity, candidates: packLogoCandidates(pack) };
 }
