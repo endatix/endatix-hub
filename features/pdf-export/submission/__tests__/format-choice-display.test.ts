@@ -45,6 +45,34 @@ vi.mock("@/lib/endatix-api/public", () => ({
 import { primeDataListDisplayValues } from "@/lib/survey-features/data-lists/infrastructure/prime-data-list-display-values";
 
 describe("formatChoiceDisplay", () => {
+  it.each([
+    ["A1", "Site (A1)"],
+    ["Alpha", "Team Alpha"],
+    ["Workshop Facilitator", "Workshop Facilitator (morning)"],
+    ["A+B", "Track (A+B)"],
+    ["SPO", "SPOs"],
+    ["1", "Tier 1 or higher"],
+  ])("prints %s only once in %s", (code, label) => {
+    expect(formatChoiceDisplay(code, label)).toBe(label);
+  });
+
+  it.each([
+    [1, "10 or more", "10 or more (1)"],
+    [1, "0.1 mg", "0.1 mg (1)"],
+    [1, "−1 degree", "−1 degree (1)"],
+    [1, "-1 degree", "-1 degree (1)"],
+    [1, "+1 degree", "+1 degree (1)"],
+    [1, "− 1 degree", "− 1 degree (1)"],
+    ["at", "Station", "Station (at)"],
+    ["id", "résident", "résident (id)"],
+    ["a", "as", "as (a)"],
+    ["US", "Contact us", "Contact us (US)"],
+    ["01", "Tier 1", "Tier 1 (01)"],
+    ["A1", "Site (a1)", "Site (a1) (A1)"],
+  ])("retains the distinct code %s for %s", (code, label, expected) => {
+    expect(formatChoiceDisplay(code, label)).toBe(expected);
+  });
+
   it("shows label and value when they differ", () => {
     expect(formatChoiceDisplay("us", "United States")).toBe(
       "United States (us)",

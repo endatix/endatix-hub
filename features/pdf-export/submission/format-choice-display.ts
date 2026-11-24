@@ -1,10 +1,27 @@
 import type { ItemValue, Question, QuestionMatrixModel } from "survey-core";
 import { pdfPlainText } from "@/lib/utils/pdf-plain-text";
 
-/**
- * Formats a stored choice value with its resolved label for PDF export.
- * When label differs from value (e.g. data lists), shows both: "United States (us)".
- */
+function labelDisplaysCode(label: string, code: string): boolean {
+  if (label.includes(`(${code})`)) return true;
+  if (/^[A-Z]{2,}$/.test(code) && label === `${code}s`) return true;
+
+  // Only infer a numeric code in plain prose: signs, ranges and decimals
+  // can turn the same digits into a different value.
+  if (/^\d+$/.test(code)) {
+    const words = label.split(/\s+/u);
+    return (
+      words.includes(code) &&
+      words.every((word) => word === code || /^[\p{L}\p{M}]+$/u.test(word))
+    );
+  }
+
+  if (!/^[\p{L}\p{M}][\p{L}\p{M}\p{N} ]*$/u.test(code)) return false;
+  return label
+    .split(/[^\p{L}\p{M}\p{N}_ ]+/u)
+    .some((phrase) => ` ${phrase} `.includes(` ${code} `));
+}
+
+/** Print the stored code alongside its label unless the reader can already see it. */
 export function formatChoiceDisplay(
   value: string | number | boolean | null | undefined,
   label?: string | null,
@@ -15,10 +32,13 @@ export function formatChoiceDisplay(
 
   const valueStr = pdfPlainText(value);
   const labelStr = pdfPlainText(label?.trim());
-  if (!labelStr || labelStr === valueStr) {
-    return valueStr;
-  }
-
+  if (!labelStr) return valueStr;
+  if (
+    !valueStr ||
+    labelStr === valueStr ||
+    labelDisplaysCode(labelStr, valueStr)
+  )
+    return labelStr;
   return `${labelStr} (${valueStr})`;
 }
 
