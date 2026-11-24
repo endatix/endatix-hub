@@ -79,23 +79,44 @@ describe("export-dialog-phase", () => {
 });
 
 describe("prepareActionLabel", () => {
+  const retained = { previousSchema: "retained" as const };
+  const destructive = { previousSchema: undefined };
   it.each([
-    ["needsPrepare", null, false, "Prepare for export"],
-    ["error", null, false, "Try again"],
-    ["error", { previousSchema: "retained" as const }, false, "Rebuild again"],
-    ["error", { previousSchema: undefined }, false, "Retry rebuild"],
-    [
-      "error",
-      { previousSchema: "retained" as const },
-      true,
-      "Run full recompile",
-    ],
-    ["error", { previousSchema: undefined }, true, "Run full recompile"],
-    ["preparing", { previousSchema: undefined }, false, "Prepare for export"],
-  ] as const)(
-    "in %s names the action for failure %o (full recompile %s)",
-    (phase, failure, full, label) => {
-      expect(prepareActionLabel(phase, failure, full)).toBe(label);
+    {
+      phase: "needsPrepare",
+      failure: null,
+      full: false,
+      label: "Prepare for export",
     },
-  );
+    { phase: "error", failure: null, full: false, label: "Try again" },
+    { phase: "error", failure: retained, full: false, label: "Rebuild again" },
+    {
+      phase: "error",
+      failure: destructive,
+      full: false,
+      label: "Retry rebuild",
+    },
+    {
+      phase: "error",
+      failure: retained,
+      full: true,
+      label: "Run full recompile",
+    },
+    {
+      phase: "error",
+      failure: destructive,
+      full: true,
+      label: "Run full recompile",
+    },
+    {
+      phase: "preparing",
+      failure: destructive,
+      full: false,
+      label: "Prepare for export",
+    },
+  ] as const)("in $phase with full recompile $full reads $label", (row) => {
+    expect(prepareActionLabel(row.phase, row.failure, row.full)).toBe(
+      row.label,
+    );
+  });
 });

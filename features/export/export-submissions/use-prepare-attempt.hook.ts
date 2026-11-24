@@ -32,6 +32,10 @@ function runPrepare(formId: string, fullRecompile: boolean) {
   );
 }
 
+// A refusal changed nothing; once the reader leaves it, it must not describe a later error.
+const withoutRefusal = (failure: PrepareFailure | null) =>
+  failure?.step === "refused" ? null : failure;
+
 export function usePrepareAttempt(formId: string) {
   const key = `export-prepare:${formId}`;
   const [failure, setFailure] = useState<PrepareFailure | null>(null);
@@ -49,9 +53,6 @@ export function usePrepareAttempt(formId: string) {
     setFailure(outcome.failure);
     return outcome.returned;
   }
-  // A refusal changed nothing; once the reader leaves it, it must not describe a later error.
-  function forgetRefusal() {
-    setFailure((current) => (current?.step === "refused" ? null : current));
-  }
+  const forgetRefusal = () => setFailure(withoutRefusal);
   return { failure, restoreFailure, prepare, forgetRefusal };
 }
