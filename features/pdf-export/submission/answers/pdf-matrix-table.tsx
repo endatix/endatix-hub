@@ -194,7 +194,7 @@ function BandedGrid({ columns, rows, width, children }: React.PropsWithChildren<
 // React-PDF clamps presence to the measured extent of the following siblings.
 // Keep the caption with the first band. The first empty sibling
 // gives the paginator a break opportunity even inside a nested answer.
-function StartGridTogether() {
+export function StartGridTogether() {
   return (
     <>
       <View />

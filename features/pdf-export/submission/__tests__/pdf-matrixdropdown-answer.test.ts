@@ -10,6 +10,29 @@ function getMatrixQuestion(
 }
 
 describe("buildMatrixDropdownTableData", () => {
+  it("prints populated entries across visible fields using source ordinals and choice labels", () => {
+    // Arrange
+    const model = new Model({ elements: [{
+      type: "matrixdynamic", name: "entries", transposeData: true,
+      singleInputTitleTemplate: "Visit {rowIndex}",
+      columns: [
+        { name: "day", cellType: "text" },
+        { name: "choice", choices: [{ value: "g", text: "Green" }] },
+        { name: "hidden", visible: false },
+      ],
+    }] });
+    model.data = { entries: [{ day: "Tuesday" }, {}, { choice: "g" }] };
+
+    // Act
+    const table = buildMatrixDropdownTableData(getMatrixQuestion(model, "entries"))!;
+
+    // Assert
+    expect(table.columns.map(c => c.title)).toEqual(["Visit 1", "Visit 3"]);
+    expect(table.rows.map(r => r.label)).toEqual(["day", "choice"]);
+    expect(table.rows.map(r => table.columns.map(c => r.cells[c.key]))).toEqual([
+      ["Tuesday", ""], ["", "Green (g)"],
+    ]);
+  });
   it("returns populated rows for a matrixdynamic answer (regression: previously always 'No Answer')", () => {
     // Arrange — a populated matrixdynamic question, same shape as the "List
     // of participants" question that rendered as "No Answer" in production.

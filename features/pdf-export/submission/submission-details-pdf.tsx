@@ -15,6 +15,7 @@ import type { PdfBrandIdentity } from "@/lib/branding/pdf.server";
 import { PdfBrandFooter, PdfBrandHeader } from "./pdf-brand-chrome";
 import { PdfGroupHeading, PdfSubmissionAnswer } from "./pdf-submission-answer";
 import { PdfSubmissionProperties } from "./pdf-submission-properties";
+import { PDF_PAGE_PADDING } from "./pdf-styles";
 import { shouldIncludeQuestionInPdf } from "../should-include-question-in-pdf";
 
 Font.register({
@@ -106,7 +107,7 @@ function PdfAnswers({ model }: { readonly model: Model }) {
 
 const styles = StyleSheet.create({
   page: {
-    padding: 20,
+    padding: PDF_PAGE_PADDING,
     fontSize: 12,
     fontFamily: "Roboto",
   },

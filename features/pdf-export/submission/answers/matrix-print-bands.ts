@@ -27,9 +27,9 @@ const typeset = layoutEngine({
 const { tableCell, tableCellHeader, tableRow } = PDF_TABLE_STYLES;
 // A band is independently placeable on A4. Short matrices need only one legend.
 const BAND_HEIGHT = 260;
-const LINE_HEIGHT = 12;
+export const LINE_HEIGHT = 12;
 export const MATRIX_LINE_STYLE = { lineHeight: `${LINE_HEIGHT}pt` };
-const CELL_EDGES = tableCell.padding * 2 + tableCell.borderWidth;
+export const CELL_EDGES = tableCell.padding * 2 + tableCell.borderWidth;
 const graphemes = new Intl.Segmenter(undefined, { granularity: "grapheme" });
 
 export async function loadMatrixFonts() {
@@ -40,7 +40,7 @@ export async function loadMatrixFonts() {
   );
 }
 
-function typesetter(width: number, family: string) {
+export function typesetter(width: number, family: string) {
   const font = [family, "Helvetica"].map(
     (fontFamily) => Font.getFont({ fontFamily }).data!,
   );
@@ -76,7 +76,7 @@ interface TextBlock {
 
 // Textkit returns display-order glyphs. Only use their geometry: React-PDF
 // needs the logical source (including direction marks) to shape the final PDF.
-function measureSource(width: number, family: string) {
+export function measureSource(width: number, family: string) {
   const measure = typesetter(width, family);
   const available = width - CELL_EDGES;
   const withinWidth = (lines: ReturnType<typeof measure>) =>
