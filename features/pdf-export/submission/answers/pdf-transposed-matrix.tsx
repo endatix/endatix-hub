@@ -56,7 +56,7 @@ export function FullWidthNote({ heading, source }: Readonly<MatrixNote>) {
   return (
     <View>
       <StartGridTogether presence={noteStartHeight(title)} />
-      <View style={noteSpacing}>
+      <View style={[noteSpacing, table.noteSurface]}>
         <Text fixed style={table.noteHeading}>
           {title}
         </Text>

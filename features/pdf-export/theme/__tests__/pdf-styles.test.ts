@@ -3,6 +3,32 @@ import { PDF_STYLES, PDF_TABLE_STYLES } from "../../submission/pdf-styles";
 import { createPdfStyles } from "../pdf-styles";
 import { contrastRatio, parseCssColor } from "@/lib/branding/color";
 
+it("tints the label rail, properties and note from the print accent", () => {
+  // Arrange & Act
+  const { table, panel } = createPdfStyles({ accent: "#0054d1" });
+  // Assert
+  expect(table.fieldLabel.backgroundColor).toBe("#dbe7f9");
+  expect(panel.backgroundColor).toBe(table.fieldLabel.backgroundColor);
+  expect(table.noteSurface.backgroundColor).toBe("#cdc4f4");
+  expect(table.table.borderColor).not.toBe(PDF_TABLE_STYLES.table.borderColor);
+});
+
+it.each(["#f4e7af", "#777777", "#009245", "#cc241a"])("keeps every tinted surface readable for accent %s", (accent) => {
+  // Act
+  const { body, page, muted, properties, panel, table } = createPdfStyles({}, accent);
+  const pairs = [
+    [page.color, "#ffffff"], [muted.color, "#ffffff"], [body.sectionTitle.color, "#ffffff"],
+    [table.tableCellHeader.color, table.tableHeader.backgroundColor],
+    [table.fieldLabel.color, table.fieldLabel.backgroundColor],
+    [table.noteHeading.color, table.noteSurface.backgroundColor],
+    [table.noteText.color, table.noteSurface.backgroundColor],
+    ...Object.values(properties).map(({ color }) => [color, panel.backgroundColor]),
+  ];
+  // Assert
+  for (const [ink, surface] of pairs)
+    expect(contrastRatio(parseCssColor(ink)!, parseCssColor(surface)!)).toBeGreaterThanOrEqual(4.5);
+});
+
 it.each(["#493669", "#ffeecc"])("keeps print headings readable on form surface %s", (surface) => {
   // Arrange & Act
   const { table } = createPdfStyles({ tableHeaderBackground: surface });
@@ -44,7 +70,7 @@ it.each([
   [{pageBackground: "#121212"}, "#ffffff"],
   [{pageBackground: "#121212", text: "#222222"}, "#ffffff"],
   [{pageBackground: "#121212", text: "#ddddee"}, "#ddddee"],
-  [{pageBackground: "#00000020"}, "#000000"],
+  [{pageBackground: "#00000020", text: "#123456"}, "#123456"],
 ])("resolves inherited ink on the painted page: %j", (theme, ink) => {
   expect(createPdfStyles(theme).page.color).toBe(ink);
 });
@@ -52,14 +78,10 @@ it.each([
 it("keeps the default page unpainted and reuses the print geometry", () => {
   // Act & Assert
   const styles = createPdfStyles({});
-  expect(styles.page).toEqual({});
-  expect(styles).toMatchObject({
-    panel: {},
-    text: {},
-    muted: {},
-    divider: {},
-    body: {sectionTitle: PDF_STYLES.sectionTitle},
-    table: {tableCell: PDF_TABLE_STYLES.tableCell},
+  expect(styles.page).not.toHaveProperty("backgroundColor");
+  expect(styles.body.sectionTitle).toMatchObject(PDF_STYLES.sectionTitle);
+  expect(styles.table.tableCell).toMatchObject({
+    ...PDF_TABLE_STYLES.tableCell, borderColor: expect.any(String),
   });
 });
 

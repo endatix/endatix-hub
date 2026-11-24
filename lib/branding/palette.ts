@@ -45,6 +45,8 @@ export type BrandToken = (typeof BRAND_TOKENS)[number];
 export type BrandTokenValues = Readonly<Record<BrandToken, string>>;
 export type ColorMode = "light" | "dark";
 
+export const BUILT_IN_LIGHT_PRIMARY = "hsl(216 100% 41%)";
+
 /** Built-in values, copied from `app/globals.css`. The derivation is relative to these. */
 const REFERENCE: Record<
   ColorMode,
@@ -57,7 +59,7 @@ const REFERENCE: Record<
   >
 > = {
   light: {
-    "--primary": "hsl(216 100% 41%)",
+    "--primary": BUILT_IN_LIGHT_PRIMARY,
     "--primary-foreground": "hsl(210 40% 98%)",
     "--primary-dim": "hsl(216 100% 37%)",
     "--sidebar-ring": "hsl(217.2 91.2% 59.8%)",

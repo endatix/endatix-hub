@@ -17,9 +17,25 @@ function PaletteDocument() {
   );
 }
 
+it.each([
+  [undefined, undefined, "#0054d1"],
+  [undefined, "#974420", "#974420"],
+  ["", "#974420", "#414141"],
+  ["invalid", "#974420", "#414141"],
+  ["{}", "#974420", "#414141"],
+  ['{"cssVariables":{"--sjs-general-forecolor":"#123"}}', "#974420", "#414141"],
+  ['{"cssVariables":{"--sjs-primary-backcolor":"#345"}}', "#974420", "#334455"],
+])("selects the table band for theme %s and deployment %s", (themeModel, deploymentAccent, expected) => {
+  // Act
+  const styles = withPdfStyles({ themeModel }, currentPdfStyles, deploymentAccent);
+  // Assert
+  expect(styles.table.tableHeader.backgroundColor).toBe(expected);
+});
+
 it("keeps overlapping exports' styles separate across async rendering", async () => {
   // Arrange
   const ready = Promise.withResolvers<void>();
+  const outside = currentPdfStyles();
   const render = (color: string) =>
     withPdfStyles(
       {
@@ -42,5 +58,5 @@ it("keeps overlapping exports' styles separate across async rendering", async ()
   // Assert
   expect(await dark.text()).toContain("(#112233)");
   expect(await light.text()).toContain("(#445566)");
-  expect(currentPdfStyles().page).toEqual({});
+  expect(currentPdfStyles()).toBe(outside);
 });
