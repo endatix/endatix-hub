@@ -49,5 +49,9 @@ export function usePrepareAttempt(formId: string) {
     setFailure(outcome.failure);
     return outcome.returned;
   }
-  return { failure, restoreFailure, prepare };
+  // A refusal changed nothing; once the reader leaves it, it must not describe a later error.
+  function forgetRefusal() {
+    setFailure((current) => (current?.step === "refused" ? null : current));
+  }
+  return { failure, restoreFailure, prepare, forgetRefusal };
 }

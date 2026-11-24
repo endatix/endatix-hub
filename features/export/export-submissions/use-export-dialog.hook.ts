@@ -87,6 +87,7 @@ export function useExportDialog({
     failure: prepareFailure,
     prepare,
     restoreFailure,
+    forgetRefusal,
   } = usePrepareAttempt(formId);
   const [fullRecompile, setFullRecompile] = useState(false);
   const [exportFormatId, setExportFormatId] = useState("");
@@ -162,6 +163,7 @@ export function useExportDialog({
   };
 
   const exitRebuildMode = () => {
+    forgetRefusal();
     setRebuildMode(false);
     setFullRecompile(false);
     setInlineError(null);

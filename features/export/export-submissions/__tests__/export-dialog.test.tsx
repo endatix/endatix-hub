@@ -1099,6 +1099,34 @@ describe("ExportSubmissionsDialog", () => {
     await waitForReady();
   });
 
+  it("shows a later export error, not an earlier refusal, after Back to export", async () => {
+    // Arrange
+    mockPrepareReportingExportAction.mockResolvedValue({
+      ...Result.error("A full recompile needs permission to edit forms."),
+      step: "refused",
+    });
+    mockOnExport.mockResolvedValue({ succeeded: false, message: "Disk full." });
+    render(<ExportSubmissionsDialog {...createProps()} />);
+    await waitForReady();
+    fireEvent.click(
+      screen.getByRole("button", { name: /rebuild reporting data/i }),
+    );
+    fireEvent.click(screen.getByLabelText(/Full recompile/i));
+    fireEvent.click(
+      screen.getByRole("button", { name: /prepare for export/i }),
+    );
+    await screen.findByText("Preparation did not start");
+
+    // Act
+    fireEvent.click(screen.getByRole("button", { name: /back to export/i }));
+    await waitForReady();
+    fireEvent.click(screen.getByRole("button", { name: /^export$/i }));
+
+    // Assert
+    expect(await screen.findByText("Disk full.")).toBeDefined();
+    expect(screen.queryByText("Preparation did not start")).toBeNull();
+  });
+
   it("hides full recompile option when schema is missing on open", async () => {
     mockListFormReportingLocalesAction.mockResolvedValue(
       Result.error(
