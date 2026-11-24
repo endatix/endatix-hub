@@ -46,7 +46,7 @@ it("insets the heading and body on every note fragment without losing a dense id
   // Arrange
   await loadMatrixFonts();
   const token = "W".repeat(180);
-  const source = Array.from({ length: 100 }, (_, i) => `Trial ${i}: ${token}`).join("\n");
+  const source = ["First", token, ...Array.from({ length: 60 }, (_, i) => `Trial ${i}`)].join("\n");
   const onRender = vi.fn();
   // Act
   await pdf(el(Document, { onRender }, el(Page, { size: "A4", style: { padding: 28 } },
