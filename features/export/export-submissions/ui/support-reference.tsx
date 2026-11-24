@@ -13,6 +13,7 @@ export function SupportReference({ traceId }: Readonly<{ traceId?: string }>) {
         className="text-foreground"
         copyLabel="Copy support reference"
         copyConfirmation="inline"
+        copyVisibility="always"
         tooltipAlign="end"
       />
     </div>

@@ -11,6 +11,8 @@ import { cn } from "@/lib/utils";
 
 const DEFAULT_VISIBLE_CHARS = 4;
 const ELLIPSIS = "\u2026";
+const HOVER_REVEAL =
+  "opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100 has-[[role=status]]:opacity-100";
 
 export function truncateId(
   id: string,
@@ -37,6 +39,8 @@ interface TruncatedIdProps {
   copyLabel?: string;
   /** Default `toast`; `inline` says "Copied" beside the copy control instead. */
   copyConfirmation?: "toast" | "inline";
+  /** Default `hover`: the copy control appears on hover or focus. `always` keeps it visible, for touch and support flows. */
+  copyVisibility?: "hover" | "always";
   /** Aligns both tooltips to the trigger, e.g. `end` near a panel's right edge. */
   tooltipAlign?: "start" | "center" | "end";
 }
@@ -49,6 +53,7 @@ export function TruncatedId({
   className,
   copyLabel = "Copy ID",
   copyConfirmation = "toast",
+  copyVisibility = "hover",
   tooltipAlign,
 }: Readonly<TruncatedIdProps>) {
   const trimmed = id?.trim() ?? "";
@@ -92,7 +97,10 @@ export function TruncatedId({
         layout="inline"
         confirmation={copyConfirmation}
         tooltipContentProps={{ align: tooltipAlign }}
-        className="items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100 has-[[role=status]]:opacity-100"
+        className={cn(
+          "items-center gap-1",
+          copyVisibility === "hover" && HOVER_REVEAL,
+        )}
         buttonClassName="size-5"
       />
     </div>
