@@ -946,7 +946,7 @@ describe("ExportSubmissionsDialog", () => {
     fireEvent.click(
       screen.getByRole("button", { name: "Download with previous schema" }),
     );
-    await screen.findByText(/old\.csv is in your browser/);
+    await screen.findByRole("button", { name: /^Save file again/ });
 
     // Act
     fireEvent.change(screen.getByTestId("export-submissions-format"), {
@@ -954,13 +954,19 @@ describe("ExportSubmissionsDialog", () => {
     });
 
     // Assert
-    expect(screen.queryByText(/old\.csv is in your browser/)).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: /^Save file again/ }),
+    ).toBeNull();
+    expect(screen.queryByText("Your download should start.")).toBeNull();
     fireEvent.click(
       screen.getByRole("button", { name: "Download with previous schema" }),
     );
-    await screen.findByText(/old\.json is in your browser/);
+    await screen.findByRole("button", { name: /^Save file again/ });
     expect(request).toHaveBeenCalledTimes(2);
     expect(request.mock.calls[1][0]).toContain("format=json");
+    expect(vi.mocked(downloads.initiateFileDownload).mock.lastCall?.[1]).toBe(
+      "old.json",
+    );
   });
 
   it("hides Rebuild reporting data from a user who cannot edit forms", async () => {

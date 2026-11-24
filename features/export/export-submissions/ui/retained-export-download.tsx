@@ -9,12 +9,14 @@ import {
   receiveRetainedAttachment,
   RetainedExportRefused,
   type AttachmentSelection,
+  type ReceivedAttachment,
 } from "../retained-attachment";
 import { SupportReference } from "./support-reference";
 
 type Download =
   | { kind: "idle" | "preparing" | "noRows" }
-  | { kind: "saved"; filename: string }
+  // The received file stays in memory only to save it again; the URL key drops it with the selection.
+  | { kind: "saved"; file: ReceivedAttachment }
   | { kind: "failed"; message: string; traceId?: string };
 
 function outcomeOf(error: unknown): Download {
@@ -26,6 +28,9 @@ function outcomeOf(error: unknown): Download {
     : { kind: "failed", message, traceId };
 }
 
+const saveFile = (file: ReceivedAttachment) =>
+  initiateFileDownload(file.blob, file.filename);
+
 /** Fetches and checks the complete attachment, then saves it in the same click. */
 async function fetchAndSave(
   selection: AttachmentSelection,
@@ -34,8 +39,8 @@ async function fetchAndSave(
   try {
     const file = await receiveRetainedAttachment(selection, signal);
     signal.throwIfAborted();
-    initiateFileDownload(file.blob, file.filename);
-    return { kind: "saved", filename: file.filename };
+    saveFile(file);
+    return { kind: "saved", file };
   } catch (error) {
     return outcomeOf(error);
   }
@@ -97,9 +102,24 @@ function DownloadOutcome({ state }: Readonly<{ state: Download }>) {
   if (state.kind === "noRows") return <NoRowsLine />;
   if (state.kind === "failed") return <FailedLine {...state} />;
   if (state.kind !== "saved") return null;
+  return <SavedLine file={state.file} />;
+}
+
+/** A browser may block a save that follows a fetch; the same bytes can be saved again from here. */
+function SavedLine({ file }: Readonly<{ file: ReceivedAttachment }>) {
+  const size = Math.max(1, Math.ceil(file.blob.size / 1024));
   return (
     <Line icon={<CheckCircle2 className="text-success" />}>
-      {state.filename} is in your browser&apos;s downloads.
+      <p>Your download should start.</p>
+      <Button
+        type="button"
+        variant="link"
+        size="sm"
+        className="h-auto justify-self-start p-0"
+        onClick={() => saveFile(file)}
+      >
+        Save file again ({size} KB)
+      </Button>
     </Line>
   );
 }

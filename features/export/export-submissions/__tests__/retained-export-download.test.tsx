@@ -41,12 +41,29 @@ it("checks and saves the complete attachment in one click", async () => {
   fireEvent.click(downloadButton());
 
   // Assert
-  expect(
-    await screen.findByText(/labels\.json is in your browser/),
-  ).toBeDefined();
+  expect(await screen.findByText("Your download should start.")).toBeDefined();
   expect(request).toHaveBeenCalledTimes(1);
   expect(request.mock.calls[0][0]).toBe(selection.url);
   expect(save).toHaveBeenCalledWith(blob, "labels.json");
+});
+
+it("saves the same received file again without fetching it again", async () => {
+  // Arrange
+  const blob = new Blob(["x".repeat(2048)]);
+  const request = vi.fn().mockResolvedValue(attachment(blob));
+  vi.stubGlobal("fetch", request);
+  render(<RetainedExportDownload selection={selection} />);
+  fireEvent.click(downloadButton());
+
+  // Act
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Save file again (2 KB)" }),
+  );
+
+  // Assert
+  expect(save).toHaveBeenCalledTimes(2);
+  expect(save.mock.calls[1]).toEqual([blob, "labels.json"]);
+  expect(request).toHaveBeenCalledTimes(1);
 });
 
 it("shows the refusal's reason and support reference, never a bare failure", async () => {
