@@ -22,6 +22,9 @@ export type MatrixNote = { heading: string; source: string };
 function preferredWidth(text: string, family: string, maximum: number) {
   const shape = typesetter(maximum, family);
   const lines = shape(text);
+  if (lines.length === 1 && lines[0].runs.some(run => (run.attributes.bidiLevel ?? 0) > 0)) {
+    return Math.min(maximum, Math.ceil((lines[0].xAdvance ?? 0) + CELL_EDGES + 1));
+  }
   // A long narrative may need a note. Don't let it crowd out the short cells.
   if (lines.length > 6) return MATRIX_MIN_DATA_COLUMN_WIDTH;
   const words = text.split(/\s+/u).filter(Boolean);

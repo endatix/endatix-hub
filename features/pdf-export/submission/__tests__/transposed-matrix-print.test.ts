@@ -101,3 +101,13 @@ it("wraps an unbroken identifier without inventing separator glyphs", async () =
   expect(lines.length).toBeGreaterThan(1);
   expect(lines.join("")).toBe(identifier);
 });
+
+it("keeps a short mixed-direction numeric observation in reading order in a wide panel", async () => {
+  // Arrange
+  const entries = Array.from({length: 6}, () => ({observation: "Short"}));
+  entries[3].observation = "Mixed \u200f(12)-(34)\u200f finish";
+  // Act
+  const printed = (await print(entries)).flat().map(line => line.replaceAll("\u200f", ""));
+  // Assert
+  expect(printed).toContain("Mixed (34)-(12) finish");
+});
