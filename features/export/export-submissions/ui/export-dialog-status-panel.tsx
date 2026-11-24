@@ -95,6 +95,7 @@ export function ExportDialogStatusPanel(
 }
 
 const failureTitles = {
+  refused: "Preparation did not start",
   compile: "Schema compilation failed",
   backfill: "Submission backfill failed",
   unconfirmed: "Preparation could not be completed",

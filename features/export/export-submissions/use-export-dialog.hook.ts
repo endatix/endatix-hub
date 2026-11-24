@@ -85,7 +85,7 @@ export function useExportDialog({
   const {
     failure: prepareFailure,
     prepare,
-    lastFailure,
+    restoreFailure,
   } = usePrepareAttempt(formId);
   const [fullRecompile, setFullRecompile] = useState(false);
   const [exportFormatId, setExportFormatId] = useState("");
@@ -192,12 +192,12 @@ export function useExportDialog({
   };
 
   const restoreIncomplete = useEffectEvent(() => {
-    const incomplete = lastFailure();
+    const incomplete = restoreFailure();
     if (!incomplete) return false;
     setRebuildMode(canRebuild);
     setReadinessPassed(false);
     setInlineError(incomplete.message);
-    setPhase(prepareFailure ? "error" : "needsPrepare");
+    setPhase("error");
     return true;
   });
 

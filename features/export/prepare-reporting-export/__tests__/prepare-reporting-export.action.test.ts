@@ -146,7 +146,7 @@ describe("prepareReportingExportAction", () => {
     });
 
     expect(mockCheckPermission).toHaveBeenCalledWith("forms.edit");
-    expect(Result.isError(result)).toBe(true);
+    expect(result).toMatchObject({ step: "refused" });
     expect(mockCompileSchema).not.toHaveBeenCalled();
     expect(mockBackfillSubmissions).not.toHaveBeenCalled();
   });

@@ -1,64 +1,33 @@
 import { useState } from "react";
-import { Kind, ErrorType, Result } from "@/lib/result";
+import { Result } from "@/lib/result";
+import { prepareReportingExportAction } from "../prepare-reporting-export";
 import {
-  prepareReportingExportAction,
-  type PrepareReportingExportResult,
-} from "../prepare-reporting-export";
+  finishPrepare,
+  readPrepareFailure,
+  startPrepare,
+  unconfirmed,
+  type PrepareFailure,
+} from "./prepare-recovery";
 
-export type PrepareFailure = Exclude<
-  PrepareReportingExportResult,
-  { value: unknown }
->;
-
-const UNCONFIRMED: PrepareFailure = {
-  kind: Kind.Error,
-  errorType: ErrorType.Error,
-  message:
-    "Preparation could not be confirmed. Prepare again before exporting.",
-};
-
-// A remount may forget diagnostics, but it must not promote an interrupted run to Ready.
-function markIncomplete(key: string, incomplete: boolean) {
-  try {
-    if (incomplete) sessionStorage.setItem(key, "1");
-    else sessionStorage.removeItem(key);
-  } catch {
-    /* The mounted window still has the latest attempt. */
-  }
-}
+export type { PrepareFailure } from "./prepare-recovery";
 
 export function usePrepareAttempt(formId: string) {
   const key = `export-prepare:${formId}`;
   const [failure, setFailure] = useState<PrepareFailure | null>(null);
-  const lastFailure = () => failure ?? interruptedAttempt(key);
+  function restoreFailure() {
+    const prior = readPrepareFailure(key);
+    setFailure(prior);
+    return prior;
+  }
   async function prepare(fullRecompile: boolean) {
-    const prior = lastFailure();
-    markIncomplete(key, true);
+    const attempt = startPrepare(key);
     const result = await prepareReportingExportAction(formId, {
       fullRecompile,
-    }).catch(() => UNCONFIRMED);
-    const next = Result.isError(result) ? afterAttempt(prior, result) : null;
-    setFailure(next);
-    markIncomplete(key, next !== null);
+    }).catch(() => unconfirmed);
+    const error = Result.isError(result) ? result : null;
+    if (!finishPrepare(attempt, error)) return unconfirmed;
+    setFailure(error?.step === "refused" ? error : readPrepareFailure(key));
     return result;
   }
-  return { failure, lastFailure, prepare };
-}
-
-function afterAttempt(
-  prior: PrepareFailure | null,
-  next: PrepareFailure,
-): PrepareFailure {
-  // A rejected compile cannot repair a previously interrupted or partial backfill.
-  if (prior && !prior.previousSchema && next.previousSchema)
-    return { ...next, previousSchema: undefined };
-  return next;
-}
-
-function interruptedAttempt(key: string) {
-  try {
-    return sessionStorage.getItem(key) === "1" ? UNCONFIRMED : null;
-  } catch {
-    return null;
-  }
+  return { failure, restoreFailure, prepare };
 }

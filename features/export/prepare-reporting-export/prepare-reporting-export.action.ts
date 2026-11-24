@@ -9,7 +9,13 @@ import {
 import { reportingExportFlag } from "@/lib/feature-flags/flags";
 import { EndatixApi } from "@/lib/endatix-api";
 import type { PrepareReportingExportSummary } from "@/lib/endatix-api/reporting/types";
-import { Result, type Error as ResultError, type Success } from "@/lib/result";
+import {
+  Result,
+  ErrorType,
+  Kind,
+  type Error as ResultError,
+  type Success,
+} from "@/lib/result";
 import { toResult } from "@/lib/result/map-api-result-to-result";
 import { backfillReportingSubmissions } from "../backfill-reporting-submissions.server";
 import {
@@ -28,13 +34,22 @@ export type PrepareReportingExportOptions = {
 export type PrepareReportingExportResult =
   | Success<PrepareReportingExportSummary>
   | (ResultError & {
-      step?: PrepareStep;
+      step?: PrepareStep | "refused";
       previousSchema?: ReturnType<typeof previousSchema>;
     });
 
 type CheckPermission = Awaited<
   ReturnType<typeof authorization>
 >["checkPermission"];
+
+function refusedBeforeMutation(message: string) {
+  return {
+    kind: Kind.Error,
+    errorType: ErrorType.Error,
+    step: "refused",
+    message,
+  } as const;
+}
 
 /** A full recompile clears flattened data, so the API keeps it behind `forms.edit`. */
 async function refuseFullRecompile(
@@ -45,7 +60,7 @@ async function refuseFullRecompile(
     return null;
   }
 
-  return Result.error(
+  return refusedBeforeMutation(
     isPermissionDenied(canEdit)
       ? "A full recompile needs permission to edit forms."
       : "Could not check permission to recompile reporting data.",
@@ -63,7 +78,7 @@ export async function prepareReportingExportAction(
 
   const reportingExportEnabled = await reportingExportFlag();
   if (!reportingExportEnabled) {
-    return Result.error(
+    return refusedBeforeMutation(
       "Reporting export is not enabled for this environment.",
     );
   }
