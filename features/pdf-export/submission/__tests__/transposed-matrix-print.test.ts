@@ -28,7 +28,7 @@ it("keeps a wrapped note heading with its first two answer lines", async () => {
   ))).toBlob();
   // Assert
   const pages: Node[] = onRender.mock.lastCall![0]._INTERNAL__LAYOUT__DATA_.children;
-  const first = pages.map(text).find(lines => lines.some(line => line.includes("Note [1]")));
+  const first = pages.map(page => text(page)).find(lines => lines.some(line => line.includes("Note [1]")));
   expect(first).toEqual(expect.arrayContaining(["Trial 0", "Trial 1"]));
 });
 
